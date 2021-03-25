@@ -1,0 +1,91 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  createdAt     DateTime  @default(now()) @map(name: "created_at")
+  updatedAt     DateTime  @updatedAt @map(name: "updated_at")
+  name          String?   @unique
+  email         String?   @unique
+  emailVerified DateTime? @map(name: "email_verified")
+  image         String?
+  item          Item[]
+  messages      Message[]
+
+  @@map(name: "users")
+}
+
+model Message {
+  id     Int    @id @default(autoincrement())
+  text   String
+  user   User   @relation(fields: [userId], references: [id])
+  userId Int
+}
+
+model Item {
+  id         Int                   @id @default(autoincrement())
+  createdAt  DateTime              @default(now()) @map(name: "created_at")
+  updatedAt  DateTime              @updatedAt @map(name: "updated_at")
+  text       String
+  url        String
+  user       User                  @relation(fields: [userId], references: [id])
+  userId     Int
+  parent     Item?                 @relation("ParentChildren", fields: [parentId], references: [id])
+  parentId   Int?
+  children   Item[]                @relation("ParentChildren")
+  parentPath Unsupported("LTREE")?
+
+  @@index([userId])
+  @@index([parentId])
+}
+
+model Account {
+  id                 Int       @id @default(autoincrement())
+  createdAt          DateTime  @default(now()) @map(name: "created_at")
+  updatedAt          DateTime  @updatedAt @map(name: "updated_at")
+  compoundId         String    @unique @map(name: "compound_id")
+  userId             Int       @map(name: "user_id")
+  providerType       String    @map(name: "provider_type")
+  providerId         String    @map(name: "provider_id")
+  providerAccountId  String    @map(name: "provider_account_id")
+  refreshToken       String?   @map(name: "refresh_token")
+  accessToken        String?   @map(name: "access_token")
+  accessTokenExpires DateTime? @map(name: "access_token_expires")
+
+  @@index([providerAccountId])
+  @@index([providerId])
+  @@index([userId])
+  @@map(name: "accounts")
+}
+
+model Session {
+  id           Int      @id @default(autoincrement())
+  createdAt    DateTime @default(now()) @map(name: "created_at")
+  updatedAt    DateTime @updatedAt @map(name: "updated_at")
+  userId       Int      @map(name: "user_id")
+  expires      DateTime
+  sessionToken String   @unique @map(name: "session_token")
+  accessToken  String   @unique @map(name: "access_token")
+
+  @@map(name: "sessions")
+}
+
+model VerificationRequest {
+  id         Int      @id @default(autoincrement())
+  createdAt  DateTime @default(now()) @map(name: "created_at")
+  updatedAt  DateTime @updatedAt @map(name: "updated_at")
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@map(name: "verification_requests")
+}

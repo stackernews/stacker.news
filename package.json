@@ -8,8 +8,32 @@
     "start": "next start"
   },
   "dependencies": {
+    "@prisma/client": "^2.19.0",
+    "apollo-server-micro": "^2.21.2",
+    "graphql": "^15.5.0",
     "next": "10.0.9",
+    "next-auth": "^3.13.3",
     "react": "17.0.1",
-    "react-dom": "17.0.1"
+    "react-dom": "17.0.1",
+    "swr": "^0.5.4"
+  },
+  "standard": {
+    "parser": "babel-eslint",
+    "plugins": [
+      "eslint-plugin-compat"
+    ],
+    "extends": [
+      "plugin:compat/recommended"
+    ],
+    "env": {
+      "browser": true
+    }
+  },
+  "devDependencies": {
+    "babel-eslint": "^10.1.0",
+    "eslint": "^7.22.0",
+    "eslint-plugin-compat": "^3.9.0",
+    "prisma": "2.19.0",
+    "standard": "^16.0.3"
   }
 }

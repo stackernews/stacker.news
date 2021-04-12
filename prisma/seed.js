@@ -30,7 +30,73 @@ async function main () {
       }
     }
   })
-  console.log({ k00b, satoshi })
+  const greg = await prisma.user.upsert({
+    where: { name: 'greg' },
+    update: {},
+    create: {
+      name: 'greg'
+    }
+  })
+  const stan = await prisma.user.upsert({
+    where: { name: 'stan' },
+    update: {},
+    create: {
+      name: 'stan'
+    }
+  })
+
+  await prisma.item.upsert({
+    where: { id: 0 },
+    update: {},
+    create: {
+      text: 'A',
+      userId: satoshi.id,
+      children: {
+        create: [
+          {
+            text: 'B',
+            userId: k00b.id,
+            children: {
+              create: [
+                {
+                  text: 'G',
+                  userId: satoshi.id,
+                  children: {
+                    create: [
+                      {
+                        text: 'H',
+                        userId: greg.id
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            text: 'C',
+            userId: k00b.id,
+            children: {
+              create: [
+                {
+                  text: 'D',
+                  userId: satoshi.id
+                },
+                {
+                  text: 'E',
+                  userId: greg.id
+                },
+                {
+                  text: 'F',
+                  userId: stan.id
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  })
 }
 main()
   .catch(e => {

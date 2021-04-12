@@ -28,39 +28,39 @@ CREATE TABLE "Item" (
     "id" SERIAL NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
-    "text" TEXT NOT NULL,
-    "url" TEXT NOT NULL,
+    "text" TEXT,
+    "url" TEXT,
     "userId" INTEGER NOT NULL,
     "parentId" INTEGER,
-    "parentPath" LTREE,
+    "path" LTREE,
 
     PRIMARY KEY ("id")
 );
 
 -- Edit: create index for path
-CREATE INDEX "Item.parentPath_index" ON "Item" USING GIST ("parentPath");
+CREATE INDEX "item_gist_path_index" ON "Item" USING GIST ("path");
 
 -- Edit: create trigger for path
-CREATE OR REPLACE FUNCTION update_item_parent_path() RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION update_item_path() RETURNS TRIGGER AS $$
     DECLARE
-        path ltree;
+        npath ltree;
     BEGIN
-        IF NEW.parent_id IS NULL THEN
-            NEW.parent_path = 'root'::ltree;
-        ELSEIF TG_OP = 'INSERT' OR OLD.parent_id IS NULL OR OLD.parent_id != NEW.parent_id THEN
-            SELECT parent_path || id::text FROM "Item" WHERE id = NEW.parent_id INTO path;
-            IF path IS NULL THEN
-                RAISE EXCEPTION 'Invalid parent_id %', NEW.parent_id;
+        IF NEW."parentId" IS NULL THEN
+            SELECT NEW.id::text::ltree INTO npath;
+        ELSEIF TG_OP = 'INSERT' OR OLD."parentId" IS NULL OR OLD."parentId" != NEW."parentId" THEN
+            SELECT "path" || NEW.id::text FROM "Item" WHERE id = NEW."parentId" INTO npath;
+            IF npath IS NULL THEN
+                RAISE EXCEPTION 'Invalid parent_id %', NEW."parentId";
             END IF;
-            NEW.parent_path = path;
         END IF;
+        NEW."path" = npath;
         RETURN NEW;
     END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER parent_path_tgr
+CREATE TRIGGER path_tgr
     BEFORE INSERT OR UPDATE ON "Item"
-    FOR EACH ROW EXECUTE PROCEDURE update_item_parent_path();
+    FOR EACH ROW EXECUTE PROCEDURE update_item_path();
 
 -- CreateTable
 CREATE TABLE "accounts" (

@@ -1,0 +1,11 @@
+.brand {
+    font-family: lightning;
+    font-size: 2rem;
+    padding: 0;
+    line-height: 100%;
+    margin-bottom: -.3rem;
+}
+
+.navbar {
+    padding: 0rem 1.75rem;
+}

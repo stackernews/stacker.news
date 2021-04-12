@@ -18,7 +18,7 @@ model User {
   email         String?   @unique
   emailVerified DateTime? @map(name: "email_verified")
   image         String?
-  item          Item[]
+  items         Item[]
   messages      Message[]
 
   @@map(name: "users")
@@ -32,17 +32,18 @@ model Message {
 }
 
 model Item {
-  id         Int                   @id @default(autoincrement())
-  createdAt  DateTime              @default(now()) @map(name: "created_at")
-  updatedAt  DateTime              @updatedAt @map(name: "updated_at")
-  text       String
-  url        String
-  user       User                  @relation(fields: [userId], references: [id])
-  userId     Int
-  parent     Item?                 @relation("ParentChildren", fields: [parentId], references: [id])
-  parentId   Int?
-  children   Item[]                @relation("ParentChildren")
-  parentPath Unsupported("LTREE")?
+  id        Int                   @id @default(autoincrement())
+  createdAt DateTime              @default(now()) @map(name: "created_at")
+  updatedAt DateTime              @updatedAt @map(name: "updated_at")
+  title     String
+  text      String?
+  url       String?
+  user      User                  @relation(fields: [userId], references: [id])
+  userId    Int
+  parent    Item?                 @relation("ParentChildren", fields: [parentId], references: [id])
+  parentId  Int?
+  children  Item[]                @relation("ParentChildren")
+  path      Unsupported("LTREE")?
 
   @@index([userId])
   @@index([parentId])

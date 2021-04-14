@@ -6,13 +6,20 @@ export default gql`
   }
 
   extend type Mutation {
-    createItem(text: String!, parentId: ID): Item!
+    createLink(title: String!, url: String): Item!
+    createDiscussion(title: String!, text: String): Item!
+    createComment(text: String!, parentId: ID!): Item!
   }
 
   type Item {
     id: ID!
-    text: String!
+    createdAt: String!
+    title: String
+    url: String
+    text: String
     user: User!
     depth: Int!
+    sats: Int!
+    comments: Int!
   }
 `

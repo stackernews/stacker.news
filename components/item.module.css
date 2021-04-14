@@ -1,0 +1,23 @@
+.upvote {
+    fill: grey;
+    margin-right: .25rem;
+}
+
+.upvote:hover {
+    fill: darkgray;
+    cursor: pointer;
+}
+
+.title {
+    font-weight: 500;
+}
+
+.link {
+    font-size: 80%;
+    margin-left: .5rem;
+}
+
+.other {
+    font-size: 70%;
+    color: grey;
+}

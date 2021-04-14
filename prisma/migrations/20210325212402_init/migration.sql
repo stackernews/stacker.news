@@ -28,6 +28,7 @@ CREATE TABLE "Item" (
     "id" SERIAL NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
+    "title" TEXT,
     "text" TEXT,
     "url" TEXT,
     "userId" INTEGER NOT NULL,

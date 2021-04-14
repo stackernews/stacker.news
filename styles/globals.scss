@@ -1,0 +1,99 @@
+$theme-colors: (
+  "primary" :  #FADA5E,
+  "secondary" : #F6911D,
+  "danger" : #c03221,
+  "info" : #007cbe,
+  "success" : #5c8001
+);
+
+$body-bg: #fafafa;
+$border-radius: .4rem;
+$enable-transitions: false;
+$enable-gradients: false;
+$enable-shadows: false;
+$btn-transition:   none;
+$form-feedback-icon-invalid: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='12' height='12'%3E%3Cpath fill='none' d='M0 0h24v24H0z'/%3E%3Cpath d='M22 15h-3V3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1zm-5.293 1.293l-6.4 6.4a.5.5 0 0 1-.654.047L8.8 22.1a1.5 1.5 0 0 1-.553-1.57L9.4 16H3a2 2 0 0 1-2-2v-2.104a2 2 0 0 1 .15-.762L4.246 3.62A1 1 0 0 1 5.17 3H16a1 1 0 0 1 1 1v11.586a1 1 0 0 1-.293.707z' fill='rgba(192,50,33,1)'/%3E%3C/svg%3E");
+$line-height-base: 1.75;
+$input-btn-padding-y: .42rem;
+$input-btn-padding-x: .84rem;
+$btn-padding-y: .5rem;
+$btn-padding-x:  1.1rem;
+$btn-font-weight: bold;
+$btn-focus-width: 0;
+$btn-border-width:  0;
+$btn-focus-box-shadow: none;
+$alert-border-width: 0;
+$close-text-shadow: none;
+$close-color: inherit;
+$alert-border-radius: #{33% 2%} / #{11% 74%};
+$link-color: #007cbe;
+$font-size-base: .9rem;
+$enable-responsive-font-sizes: true;
+$link-hover-decoration: none;
+$container-max-widths: (
+  sm: 540px,
+  md: 720px,
+  lg: 900px,
+  xl: 900px
+) !default;
+
+
+@import "~bootstrap/scss/bootstrap";
+
+@font-face {
+  font-family: lightning;
+  src: url(/Lightningvolt-xoqm.ttf);
+}
+
+.form-label {
+  font-size: 92%;
+  font-weight: bold;
+}
+
+.form-control:focus {
+  border-color: #fada5e;
+}
+
+.btn-secondary,
+.btn-secondary:hover,
+.btn-secondary:disabled {
+  color: #ffffff;
+}
+
+.flashit{
+  animation: flash ease-out 7s infinite;
+  animation-delay: -3s;
+}
+
+@keyframes flash {
+	from { opacity: 0; }
+  42% { opacity: 0; }
+  43% { opacity: 0.6; }
+  44% { opacity: 0.2; }
+  46% { opacity: 1; }
+  50% { opacity: 0; }
+  92% { opacity: 0; }
+	93% { opacity: 0.6; }
+  94% { opacity: 0.2; }
+  96% { opacity: 1; }
+	to { opacity: 0; }
+}
+
+.morphit{
+  animation: flash ease-out 7s infinite;
+  animation-delay: -3s;
+}
+
+@keyframes flash {
+	from { opacity: 0; }
+  42% { opacity: 0; }
+  43% { opacity: 0.6; }
+  44% { opacity: 0.2; }
+  46% { opacity: 1; }
+  50% { opacity: 0; }
+  92% { opacity: 0; }
+	93% { opacity: 0.6; }
+  94% { opacity: 0.2; }
+  96% { opacity: 1; }
+	to { opacity: 0; }
+}

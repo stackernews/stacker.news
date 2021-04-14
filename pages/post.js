@@ -1,38 +1,102 @@
-import Button from 'react-bootstrap/Button'
-import Form from 'react-bootstrap/Form'
 import Layout from '../components/layout'
+import Button from 'react-bootstrap/Button'
+import { Form, Input, SubmitButton } from '../components/form'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import styles from '../styles/post.module.css'
+import * as Yup from 'yup'
+import { gql, useMutation } from '@apollo/client'
+
+export const DiscussionSchema = Yup.object({
+  title: Yup.string().required('required').trim()
+})
 
 export function DiscussionForm () {
+  const router = useRouter()
+  const [createDiscussion] = useMutation(
+    gql`
+      mutation createDiscussion($title: String!, $text: String) {
+        createDiscussion(title: $title, text: $text) {
+          id
+        }
+      }`
+  )
+
   return (
-    <Form>
-      <Form.Group>
-        <Form.Label>title</Form.Label>
-        <Form.Control type='text' />
-      </Form.Group>
-      <Form.Group>
-        <Form.Label>text <small className='text-muted ml-2'>optional</small></Form.Label>
-        <Form.Control as='textarea' rows={4} />
-      </Form.Group>
-      <Button className='mt-2' variant='main' size='lg' type='submit'>post</Button>
+    <Form
+      initial={{
+        title: '',
+        text: ''
+      }}
+      schema={DiscussionSchema}
+      onSubmit={async (values) => {
+        const { data: { createDiscussion: { id } }, error } = await createDiscussion({ variables: values })
+        if (error) {
+          throw new Error({ message: error.toString() })
+        }
+        router.push(`items/${id}`)
+      }}
+    >
+      <Input
+        label='title'
+        name='title'
+        required
+        autoFocus
+      />
+      <Input
+        label={<>text <small className='text-muted ml-2'>optional</small></>}
+        name='text'
+        as='textarea'
+        rows={4}
+      />
+      <SubmitButton variant='secondary' className='mt-2'>post</SubmitButton>
     </Form>
   )
 }
 
+export const LinkSchema = Yup.object({
+  title: Yup.string().required('required').trim(),
+  url: Yup.string().url('invalid url')
+})
+
 export function LinkForm () {
+  const router = useRouter()
+  const [createLink] = useMutation(
+    gql`
+      mutation createLink($title: String!, $url: String!) {
+        createLink(title: $title, url: $url) {
+          id
+        }
+      }`
+  )
+
   return (
-    <Form>
-      <Form.Group>
-        <Form.Label>title</Form.Label>
-        <Form.Control type='text' />
-      </Form.Group>
-      <Form.Group>
-        <Form.Label>url</Form.Label>
-        <Form.Control type='url' />
-      </Form.Group>
-      <Button className='mt-2' variant='main' size='lg' type='submit'>post</Button>
+    <Form
+      initial={{
+        title: '',
+        url: ''
+      }}
+      schema={LinkSchema}
+      onSubmit={async (values) => {
+        const { data: { createLink: { id } }, error } = await createLink({ variables: values })
+        if (error) {
+          throw new Error({ message: error.toString() })
+        }
+        router.push(`items/${id}`)
+      }}
+    >
+      <Input
+        label='title'
+        name='title'
+        required
+        autoFocus
+      />
+      <Input
+        label='url'
+        name='url'
+        required
+      />
+      <SubmitButton variant='secondary' className='mt-2'>post</SubmitButton>
     </Form>
   )
 }
@@ -44,11 +108,11 @@ export function PostForm () {
     return (
       <div className='align-items-center'>
         <Link href='/post?type=link'>
-          <Button variant='main' size='lg'>link</Button>
+          <Button variant='secondary'>link</Button>
         </Link>
         <span className='mx-3 font-weight-bold text-muted'>or</span>
         <Link href='/post?type=discussion'>
-          <Button variant='main' size='lg'> discussion</Button>
+          <Button variant='secondary'> discussion</Button>
         </Link>
       </div>
     )

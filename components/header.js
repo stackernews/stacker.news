@@ -4,6 +4,7 @@ import Nav from 'react-bootstrap/Nav'
 import Link from 'next/link'
 import styles from './header.module.css'
 import { useRouter } from 'next/router'
+import { Container } from 'react-bootstrap'
 
 export default function Header () {
   const [session, loading] = useSession()
@@ -30,25 +31,27 @@ export default function Header () {
 
   return (
     <>
-      <Navbar bg='brand' className={styles.navbar}>
-        <Link href='/' passHref>
-          <Navbar.Brand className={styles.brand}>STACKER NEWS</Navbar.Brand>
-        </Link>
-        <Nav className='mr-auto align-items-center' activeKey={router.pathname}>
-          <Nav.Item>
-            <Link href='/recent' passHref>
-              <Nav.Link>recent</Nav.Link>
-            </Link>
-          </Nav.Item>
-          <Nav.Item>
-            <Link href='/post' passHref>
-              <Nav.Link>post</Nav.Link>
-            </Link>
-          </Nav.Item>
-        </Nav>
-        <Nav className='ml-auto align-items-center'>
-          <Corner />
-        </Nav>
+      <Navbar bg='primary' className={styles.navbar}>
+        <Container>
+          <Link href='/' passHref>
+            <Navbar.Brand className={styles.brand}>STACKER NEWS</Navbar.Brand>
+          </Link>
+          <Nav className='mr-auto align-items-center' activeKey={router.pathname}>
+            <Nav.Item>
+              <Link href='/recent' passHref>
+                <Nav.Link>recent</Nav.Link>
+              </Link>
+            </Nav.Item>
+            <Nav.Item>
+              <Link href='/post' passHref>
+                <Nav.Link>post</Nav.Link>
+              </Link>
+            </Nav.Item>
+          </Nav>
+          <Nav className='ml-auto align-items-center'>
+            <Corner />
+          </Nav>
+        </Container>
       </Navbar>
     </>
   )

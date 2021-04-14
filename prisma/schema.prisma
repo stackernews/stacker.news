@@ -35,7 +35,7 @@ model Item {
   id        Int                   @id @default(autoincrement())
   createdAt DateTime              @default(now()) @map(name: "created_at")
   updatedAt DateTime              @updatedAt @map(name: "updated_at")
-  title     String
+  title     String?
   text      String?
   url       String?
   user      User                  @relation(fields: [userId], references: [id])

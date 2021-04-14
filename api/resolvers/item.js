@@ -1,43 +1,71 @@
 import { UserInputError, AuthenticationError } from 'apollo-server-micro'
 
+const createItem = async (parent, { title, text, url, parentId }, { me, models }) => {
+  if (!me) {
+    throw new AuthenticationError('You must be logged in')
+  }
+
+  const data = {
+    title,
+    url,
+    text,
+    user: {
+      connect: {
+        name: me.name
+      }
+    }
+  }
+
+  if (parentId) {
+    data.parent = {
+      connect: {
+        id: parseInt(parentId)
+      }
+    }
+  }
+
+  return await models.item.create({ data })
+}
+
 export default {
   Query: {
     items: async (parent, args, { models }) => {
       return await models.$queryRaw(`
-        SELECT id, text, "userId", ltree2text("path") AS "path"
+        SELECT id, "created_at" as "createdAt", title, url, text, "userId", ltree2text("path") AS "path"
         FROM "Item"
         ORDER BY "path"`)
     }
   },
 
   Mutation: {
-    createItem: async (parent, { text, parentId }, { me, models }) => {
-      if (!me) {
-        throw new AuthenticationError('You must be logged in')
+    createLink: async (parent, { title, url }, { me, models }) => {
+      if (!title) {
+        throw new UserInputError('Link must have title', { argumentName: 'title' })
       }
 
+      if (!url) {
+        throw new UserInputError('Link must have url', { argumentName: 'url' })
+      }
+
+      return await createItem(parent, { title, url }, { me, models })
+    },
+    createDiscussion: async (parent, { title, text }, { me, models }) => {
+      if (!title) {
+        throw new UserInputError('Link must have title', { argumentName: 'title' })
+      }
+
+      return await createItem(parent, { title, text }, { me, models })
+    },
+    createComment: async (parent, { text, parentId }, { me, models }) => {
       if (!text) {
-        throw new UserInputError('Item must have text', { argumentName: 'text' })
+        throw new UserInputError('Comment must have text', { argumentName: 'text' })
       }
 
-      const data = {
-        text,
-        user: {
-          connect: {
-            name: me.name
-          }
-        }
+      if (!parentId) {
+        throw new UserInputError('Comment must have text', { argumentName: 'text' })
       }
 
-      if (parentId) {
-        data.parent = {
-          connect: {
-            id: parseInt(parentId)
-          }
-        }
-      }
-
-      return await models.item.create({ data })
+      return await createItem(parent, { text, parentId }, { me, models })
     }
   },
 
@@ -56,6 +84,8 @@ export default {
         WHERE id = ${item.id}`
 
       return path.split('.').length - 1
-    }
+    },
+    comments: () => 0,
+    sats: () => 0
   }
 }

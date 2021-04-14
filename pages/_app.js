@@ -1,5 +1,4 @@
-import 'bootstrap/dist/css/bootstrap.min.css'
-import '../styles/globals.css'
+import '../styles/globals.scss'
 import { ApolloClient, InMemoryCache, ApolloProvider } from '@apollo/client'
 import { Provider } from 'next-auth/client'
 

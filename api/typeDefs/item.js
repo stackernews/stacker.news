@@ -3,6 +3,8 @@ import { gql } from 'apollo-server-micro'
 export default gql`
   extend type Query {
     items: [Item!]!
+    item(id: ID!): Item
+    ncomments(id: ID!): [Item!]!
   }
 
   extend type Mutation {
@@ -17,9 +19,10 @@ export default gql`
     title: String
     url: String
     text: String
+    parentId: Int
     user: User!
     depth: Int!
     sats: Int!
-    comments: Int!
+    ncomments: Int!
   }
 `

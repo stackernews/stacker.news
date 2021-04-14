@@ -33,6 +33,21 @@ export default {
       return await models.$queryRaw(`
         SELECT id, "created_at" as "createdAt", title, url, text, "userId", ltree2text("path") AS "path"
         FROM "Item"
+        WHERE "parentId" IS NULL
+        ORDER BY "path"`)
+    },
+    item: async (parent, { id }, { models }) => {
+      const res = await models.$queryRaw(`
+        SELECT id, "created_at" as "createdAt", title, url, text, "parentId", "userId", ltree2text("path") AS "path"
+        FROM "Item"
+        WHERE id = ${id}
+        ORDER BY "path"`)
+      return res.length ? res[0] : null
+    },
+    ncomments: async (parent, { parentId }, { models }) => {
+      return await models.$queryRaw(`
+        SELECT id, "created_at" as "createdAt", title, url, text, "userId", ltree2text("path") AS "path"
+        FROM "Item"
         ORDER BY "path"`)
     }
   },
@@ -62,7 +77,7 @@ export default {
       }
 
       if (!parentId) {
-        throw new UserInputError('Comment must have text', { argumentName: 'text' })
+        throw new UserInputError('Comment must have parent', { argumentName: 'text' })
       }
 
       return await createItem(parent, { text, parentId }, { me, models })
@@ -85,7 +100,13 @@ export default {
 
       return path.split('.').length - 1
     },
-    comments: () => 0,
+    ncomments: async (item, args, { models }) => {
+      const [{ count }] = await models.$queryRaw`
+        SELECT count(*)
+        FROM "Item"
+        WHERE path <@ text2ltree(${item.id}) AND id != ${item.id}`
+      return count
+    },
     sats: () => 0
   }
 }

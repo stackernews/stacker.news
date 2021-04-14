@@ -1,0 +1,21 @@
+.item {
+    align-items: flex-start;
+}
+
+.upvote {
+    margin-top: .3rem;
+}
+
+.text {
+    margin-top: .1rem;
+}
+
+.reply {
+    font-weight: bold;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.children {
+    margin-top: .4rem;
+}

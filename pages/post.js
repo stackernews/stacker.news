@@ -127,7 +127,7 @@ export function PostForm () {
 
 export default function Post () {
   return (
-    <Layout>
+    <Layout noContain>
       <div className={styles.page}>
         <div className={styles.post}>
           <PostForm />

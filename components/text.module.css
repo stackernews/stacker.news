@@ -1,0 +1,7 @@
+.text {
+    font-size: 90%;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: inherit;
+    margin: 0;
+}

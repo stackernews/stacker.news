@@ -11,7 +11,7 @@ const apolloServer = new ApolloServer({
     const session = await getSession({ req })
     return {
       models,
-      me: session ? session.user : await models.user.findUnique({ where: { name: 'k00b' } })
+      me: session ? session.user : null
     }
   }
 })

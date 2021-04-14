@@ -1,0 +1,12 @@
+.grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+}
+
+.rank {
+    font-weight: 600;
+    align-items: center;
+    display: flex;
+    color: grey;
+    font-size: 90%;
+}

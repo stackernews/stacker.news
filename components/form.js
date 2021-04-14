@@ -62,6 +62,7 @@ export function Form ({
     <Formik
       initialValues={initial}
       validationSchema={schema}
+      validateOnBlur={false}
       onSubmit={(...args) =>
         onSubmit(...args).catch(e => setError(e.message))}
     >

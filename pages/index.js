@@ -1,8 +1,6 @@
-import { useQuery, gql } from '@apollo/client'
-// import styles from '../styles/index.module.css'
 import Layout from '../components/layout'
-import Item from '../components/item'
-import Container from 'react-bootstrap/Container'
+import React from 'react'
+import Items from '../components/items'
 
 // function Users () {
 //   const { loading, error, data } = useQuery(gql`{ users { id, name } }`)
@@ -87,42 +85,6 @@ import Container from 'react-bootstrap/Container'
 //     </form>
 //   )
 // }
-
-function Items () {
-  const { loading, error, data } = useQuery(
-    gql`
-      { items {
-        id
-        createdAt
-        title
-        url
-        user {
-          name
-        }
-        sats
-        comments
-      } }`
-  )
-  if (error) return <div>Failed to load</div>
-  if (loading) return <div>Loading...</div>
-  const { items } = data
-  return (
-    <>
-      <Container className='my-1 py-2 px-sm-0'>
-        <table>
-          <tbody>
-            {items.map((item, i) => (
-              <tr className='align-items-center' key={item.id}>
-                <td align='right' className='font-weight-bold text-muted mr-1'>{i + 1}</td>
-                <td><Item item={item} /></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Container>
-    </>
-  )
-}
 
 export default function Index () {
   return (

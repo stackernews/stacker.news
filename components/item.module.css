@@ -1,6 +1,6 @@
 .upvote {
     fill: grey;
-    margin-right: .25rem;
+    min-width: fit-content;
 }
 
 .upvote:hover {
@@ -10,14 +10,39 @@
 
 .title {
     font-weight: 500;
+    white-space: normal;
+    margin-right: .5rem;
 }
 
 .link {
     font-size: 80%;
-    margin-left: .5rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .other {
     font-size: 70%;
     color: grey;
+}
+
+.item {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    min-width: 0;
+}
+
+.hunk {
+    overflow: hidden;
+}
+
+.main {
+    display: flex;
+    align-items: baseline;
+}
+
+.children {
+    margin-top: 1rem;
+    margin-left: 24px;
 }

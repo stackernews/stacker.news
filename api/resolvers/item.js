@@ -31,24 +31,33 @@ export default {
   Query: {
     items: async (parent, args, { models }) => {
       return await models.$queryRaw(`
-        SELECT id, "created_at" as "createdAt", title, url, text, "userId", ltree2text("path") AS "path"
+        SELECT id, "created_at" as "createdAt", title, url, text,
+          "userId", nlevel(path)-1 AS depth, ltree2text("path") AS "path"
         FROM "Item"
-        WHERE "parentId" IS NULL
-        ORDER BY "path"`)
+        WHERE "parentId" IS NULL`)
     },
     item: async (parent, { id }, { models }) => {
       const res = await models.$queryRaw(`
-        SELECT id, "created_at" as "createdAt", title, url, text, "parentId", "userId", ltree2text("path") AS "path"
+        SELECT id, "created_at" as "createdAt", title, url, text,
+          "parentId", "userId", nlevel(path)-1 AS depth, ltree2text("path") AS "path"
         FROM "Item"
-        WHERE id = ${id}
-        ORDER BY "path"`)
+        WHERE id = ${id}`)
       return res.length ? res[0] : null
     },
-    ncomments: async (parent, { parentId }, { models }) => {
+    comments: async (parent, { parentId }, { models }) => {
       return await models.$queryRaw(`
-        SELECT id, "created_at" as "createdAt", title, url, text, "userId", ltree2text("path") AS "path"
+        SELECT id, "created_at" as "createdAt", text, "parentId",
+          "userId", nlevel(path)-1 AS depth, ltree2text("path") AS "path"
         FROM "Item"
+        WHERE path <@ (SELECT path FROM "Item" where id = ${parentId}) AND id != ${parentId}
         ORDER BY "path"`)
+    },
+    root: async (parent, { id }, { models }) => {
+      const res = await models.$queryRaw(`
+        SELECT id, title
+        FROM "Item"
+        WHERE id = (SELECT ltree2text(subltree(path, 0, 1))::integer FROM "Item" WHERE id = ${id})`)
+      return res.length ? res[0] : null
     }
   },
 
@@ -87,24 +96,11 @@ export default {
   Item: {
     user: async (item, args, { models }) =>
       await models.user.findUnique({ where: { id: item.userId } }),
-    depth: async (item, args, { models }) => {
-      if (item.path) {
-        return item.path.split('.').length - 1
-      }
-
-      // as the result of a mutation, path is not populated
-      const [{ path }] = await models.$queryRaw`
-        SELECT ltree2text("path") AS "path"
-        FROM "Item"
-        WHERE id = ${item.id}`
-
-      return path.split('.').length - 1
-    },
     ncomments: async (item, args, { models }) => {
       const [{ count }] = await models.$queryRaw`
         SELECT count(*)
         FROM "Item"
-        WHERE path <@ text2ltree(${item.id}) AND id != ${item.id}`
+        WHERE path <@ text2ltree(${item.path}) AND id != ${item.id}`
       return count
     },
     sats: () => 0

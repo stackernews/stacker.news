@@ -5,6 +5,7 @@ import Text from './text'
 import Link from 'next/link'
 import Reply from './reply'
 import { useState } from 'react'
+import { gql, useQuery } from '@apollo/client'
 
 function timeSince (timeStamp) {
   const now = new Date()
@@ -26,8 +27,42 @@ function timeSince (timeStamp) {
   }
 }
 
-export default function Comment ({ item, children }) {
-  const [reply, setReply] = useState(false)
+function Parent ({ item }) {
+  const { data } = useQuery(
+    gql`{
+      root(id: ${item.id}) {
+        id
+        title
+      }
+    }`
+  )
+
+  const ParentFrag = () => (
+    <>
+      <span> \ </span>
+      <Link href={`/items/${item.parentId}`} passHref>
+        <a className='text-reset'>parent</a>
+      </Link>
+    </>
+  )
+
+  if (!data) {
+    return <ParentFrag />
+  }
+
+  return (
+    <>
+      {data.root.id !== item.parentId && <ParentFrag />}
+      <span> \ </span>
+      <Link href={`/items/${data.root.id}`} passHref>
+        <a className='text-reset'>{data.root.title}</a>
+      </Link>
+    </>
+  )
+}
+
+export default function Comment ({ item, children, replyOpen, includeParent }) {
+  const [reply, setReply] = useState(replyOpen)
 
   return (
     <>
@@ -43,7 +78,10 @@ export default function Comment ({ item, children }) {
             <span> \ </span>
             <span>{item.sats} sats</span>
             <span> \ </span>
-            <span>{item.ncomments} replies</span>
+            <Link href={`/items/${item.id}`} passHref>
+              <a className='text-reset'>{item.ncomments} replies</a>
+            </Link>
+            {includeParent && <Parent item={item} />}
           </div>
           <div className={styles.text}>
             <Text>{item.text}</Text>

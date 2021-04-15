@@ -37,7 +37,9 @@ export default function Item ({ item, children }) {
           <div className={styles.other}>
             <span>{item.sats} sats</span>
             <span> \ </span>
-            <span>{item.ncomments} comments</span>
+            <Link href={`/items/${item.id}`} passHref>
+              <a className='text-reset'>{item.ncomments} comments</a>
+            </Link>
             <span> \ </span>
             <Link href={`/@${item.user.name}`} passHref>
               <a>@{item.user.name}</a>
@@ -50,11 +52,6 @@ export default function Item ({ item, children }) {
       {children && (
         <div className={styles.children}>
           {children}
-          {item.comments
-            ? item.comments.map((item) => (
-              <Item key={item.id} item={item} />
-              ))
-            : null}
         </div>
       )}
     </>

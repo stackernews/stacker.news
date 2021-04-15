@@ -4,7 +4,8 @@ export default gql`
   extend type Query {
     items: [Item!]!
     item(id: ID!): Item
-    ncomments(id: ID!): [Item!]!
+    comments(parentId: ID!): [Item!]!
+    root(id: ID!): Item
   }
 
   extend type Mutation {

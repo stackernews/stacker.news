@@ -5,6 +5,7 @@ import ApolloClient from '../../api/client'
 import Reply from '../../components/reply'
 import Comment from '../../components/comment'
 import Text from '../../components/text'
+import Comments from '../../components/comments'
 
 export async function getServerSideProps ({ params }) {
   const { error, data: { item } } = await ApolloClient.query({
@@ -20,6 +21,7 @@ export async function getServerSideProps ({ params }) {
           user {
             name
           }
+          depth
           sats
           ncomments
         }
@@ -43,9 +45,7 @@ export default function FullItem ({ item }) {
   return (
     <Layout>
       {item.parentId
-        ? (
-          <Comment item={item} />
-          )
+        ? <Comment item={item} replyOpen includeParent />
         : (
           <>
             <Item item={item}>
@@ -54,6 +54,7 @@ export default function FullItem ({ item }) {
             </Item>
           </>
           )}
+      <Comments parentId={item.id} baseDepth={item.depth} />
     </Layout>
   )
 }

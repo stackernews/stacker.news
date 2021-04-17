@@ -1,19 +1,15 @@
 import { useQuery, gql } from '@apollo/client'
 import Comment from './comment'
+import { COMMENTS } from '../fragments'
 
-export default function Comments ({ parentId, baseDepth }) {
+export default function Comments ({ parentId }) {
   const { data } = useQuery(
-    gql`{
+    gql`
+    ${COMMENTS}
+
+    {
       comments(parentId: ${parentId}) {
-        id
-        createdAt
-        text
-        user {
-          name
-        }
-        depth
-        sats
-        ncomments
+        ...CommentsRecursive
       }
     }`
   )
@@ -23,10 +19,7 @@ export default function Comments ({ parentId, baseDepth }) {
   return (
     <div className='mt-5'>
       {data.comments.map(item => (
-        <div
-          key={item.id} className='mt-2'
-          style={{ marginLeft: `${42 * (item.depth - baseDepth - 1)}px` }}
-        >
+        <div key={item.id} className='mt-2'>
           <Comment item={item} />
         </div>
       ))}

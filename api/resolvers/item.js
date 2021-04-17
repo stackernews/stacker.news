@@ -24,7 +24,75 @@ const createItem = async (parent, { title, text, url, parentId }, { me, models }
     }
   }
 
-  return await models.item.create({ data })
+  const item = await models.item.create({ data })
+  item.comments = []
+  console.log(item)
+  return item
+}
+
+// function nestComments (flat, parentId) {
+//   const result = []
+//   for (let i = 0; i < flat.length; i++) {
+//     if (Number(flat[i].parentId) === Number(parentId)) {
+//       result.push(flat[i])
+//     } else if (result.length > 0) {
+//       // this comment is a child of the last one pushed
+//       const last = result[result.length - 1]
+//       last.comments = nestComments(flat.slice(i), last.id)
+
+//       // we consumed this many comments
+//       i += last.comments.length
+//     }
+//   }
+
+//   return result
+// }
+
+// function nestComments (flat, parentId) {
+//   const result = []
+//   let last
+//   for (let i = 0; i < flat.length; i++) {
+//     // initialize all comments
+//     if (!flat[i].comments) flat[i].comments = []
+
+//     if (Number(flat[i].parentId) === Number(parentId)) {
+//       result.push(flat[i])
+//       last = flat[i]
+//     } else if (last && Number(last.id) === flat[i].parentId) {
+//       const nested = nestComments(flat.slice(i), last.id)
+//       if (nested.length > 0) {
+//         last.comments.push(...nested)
+//         i += nested.length - 1
+//       }
+//     }
+//   }
+
+//   return result
+// }
+
+function nestComments (flat, parentId) {
+  const result = []
+  let added = 0
+  for (let i = 0; i < flat.length;) {
+    if (!flat[i].comments) flat[i].comments = []
+    if (Number(flat[i].parentId) === Number(parentId)) {
+      result.push(flat[i])
+      added++
+      i++
+    } else if (result.length > 0) {
+      const item = result[result.length - 1]
+      const [nested, newAdded] = nestComments(flat.slice(i), item.id)
+      if (newAdded === 0) {
+        break
+      }
+      item.comments.push(...nested)
+      i += newAdded
+      added += newAdded
+    } else {
+      break
+    }
+  }
+  return [result, added]
 }
 
 export default {
@@ -44,13 +112,22 @@ export default {
         WHERE id = ${id}`)
       return res.length ? res[0] : null
     },
-    comments: async (parent, { parentId }, { models }) => {
+    flatcomments: async (parent, { parentId }, { models }) => {
       return await models.$queryRaw(`
         SELECT id, "created_at" as "createdAt", text, "parentId",
           "userId", nlevel(path)-1 AS depth, ltree2text("path") AS "path"
         FROM "Item"
         WHERE path <@ (SELECT path FROM "Item" where id = ${parentId}) AND id != ${parentId}
         ORDER BY "path"`)
+    },
+    comments: async (parent, { parentId }, { models }) => {
+      const flat = await models.$queryRaw(`
+        SELECT id, "created_at" as "createdAt", text, "parentId",
+          "userId", nlevel(path)-1 AS depth, ltree2text("path") AS "path"
+        FROM "Item"
+        WHERE path <@ (SELECT path FROM "Item" where id = ${parentId}) AND id != ${parentId}
+        ORDER BY "path"`)
+      return nestComments(flat, parentId)[0]
     },
     root: async (parent, { id }, { models }) => {
       const res = await models.$queryRaw(`

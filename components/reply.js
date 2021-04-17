@@ -2,19 +2,41 @@ import { Form, Input, SubmitButton } from '../components/form'
 import * as Yup from 'yup'
 import { gql, useMutation } from '@apollo/client'
 import styles from './reply.module.css'
+import { COMMENTS } from '../fragments'
 
 export const CommentSchema = Yup.object({
   text: Yup.string().required('required').trim()
 })
 
-export default function Reply ({ parentId }) {
+export default function Reply ({ item }) {
+  const parentId = item.id
   const [createComment] = useMutation(
     gql`
+      ${COMMENTS}
       mutation createComment($text: String!, $parentId: ID!) {
         createComment(text: $text, parentId: $parentId) {
-          id
+          ...CommentFields
+          comments {
+            ...CommentsRecursive
+          }
         }
-      }`
+      }`, {
+      update (cache, { data: { createComment } }) {
+        cache.modify({
+          id: `Item:${item.id}`,
+          fields: {
+            comments (existingCommentRefs = [], { readField }) {
+              const newCommentRef = cache.writeFragment({
+                data: createComment,
+                fragment: COMMENTS,
+                fragmentName: 'CommentsRecursive'
+              })
+              return [newCommentRef, ...existingCommentRefs]
+            }
+          }
+        })
+      }
+    }
   )
 
   return (

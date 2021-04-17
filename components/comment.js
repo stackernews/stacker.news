@@ -95,13 +95,15 @@ export default function Comment ({ item, children, replyOpen, includeParent }) {
         >
           {reply ? 'cancel' : 'reply'}
         </div>
-        {reply && <Reply parentId={item.id} />}
+        {reply && <Reply item={item} />}
         {children}
-        {item.comments
-          ? item.comments.map((item) => (
-            <Comment key={item.id} item={item} />
-            ))
-          : null}
+        <div className={styles.comments}>
+          {item.comments
+            ? item.comments.map((item) => (
+              <Comment key={item.id} item={item} />
+              ))
+            : null}
+        </div>
       </div>
     </>
   )

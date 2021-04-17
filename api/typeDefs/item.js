@@ -5,6 +5,7 @@ export default gql`
     items: [Item!]!
     item(id: ID!): Item
     comments(parentId: ID!): [Item!]!
+    flatcomments(parentId: ID!): [Item!]!
     root(id: ID!): Item
   }
 
@@ -25,5 +26,6 @@ export default gql`
     depth: Int!
     sats: Int!
     ncomments: Int!
+    comments: [Item!]!
   }
 `

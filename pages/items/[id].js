@@ -21,7 +21,6 @@ export async function getServerSideProps ({ params }) {
           user {
             name
           }
-          depth
           sats
           ncomments
         }
@@ -50,11 +49,11 @@ export default function FullItem ({ item }) {
           <>
             <Item item={item}>
               {item.text && <Text>{item.text}</Text>}
-              <Reply parentId={item.id} />
+              <Reply item={item} />
             </Item>
           </>
           )}
-      <Comments parentId={item.id} baseDepth={item.depth} />
+      <Comments parentId={item.id} />
     </Layout>
   )
 }

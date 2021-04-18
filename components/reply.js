@@ -8,8 +8,7 @@ export const CommentSchema = Yup.object({
   text: Yup.string().required('required').trim()
 })
 
-export default function Reply ({ item }) {
-  const parentId = item.id
+export default function Reply ({ parentId, onSuccess, cacheId }) {
   const [createComment] = useMutation(
     gql`
       ${COMMENTS}
@@ -23,7 +22,7 @@ export default function Reply ({ item }) {
       }`, {
       update (cache, { data: { createComment } }) {
         cache.modify({
-          id: `Item:${item.id}`,
+          id: cacheId || `Item:${parentId}`,
           fields: {
             comments (existingCommentRefs = [], { readField }) {
               const newCommentRef = cache.writeFragment({
@@ -46,17 +45,15 @@ export default function Reply ({ item }) {
           text: ''
         }}
         schema={CommentSchema}
-        onSubmit={async (values) => {
-          const {
-            data: {
-              createComment: { id }
-            },
-            error
-          } = await createComment({ variables: { ...values, parentId } })
+        onSubmit={async (values, { resetForm }) => {
+          const { error } = await createComment({ variables: { ...values, parentId } })
           if (error) {
             throw new Error({ message: error.toString() })
           }
-          console.log('success!', id)
+          resetForm({ text: '' })
+          if (onSuccess) {
+            onSuccess()
+          }
         }}
       >
         <Input

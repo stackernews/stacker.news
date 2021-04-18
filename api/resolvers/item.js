@@ -26,49 +26,8 @@ const createItem = async (parent, { title, text, url, parentId }, { me, models }
 
   const item = await models.item.create({ data })
   item.comments = []
-  console.log(item)
   return item
 }
-
-// function nestComments (flat, parentId) {
-//   const result = []
-//   for (let i = 0; i < flat.length; i++) {
-//     if (Number(flat[i].parentId) === Number(parentId)) {
-//       result.push(flat[i])
-//     } else if (result.length > 0) {
-//       // this comment is a child of the last one pushed
-//       const last = result[result.length - 1]
-//       last.comments = nestComments(flat.slice(i), last.id)
-
-//       // we consumed this many comments
-//       i += last.comments.length
-//     }
-//   }
-
-//   return result
-// }
-
-// function nestComments (flat, parentId) {
-//   const result = []
-//   let last
-//   for (let i = 0; i < flat.length; i++) {
-//     // initialize all comments
-//     if (!flat[i].comments) flat[i].comments = []
-
-//     if (Number(flat[i].parentId) === Number(parentId)) {
-//       result.push(flat[i])
-//       last = flat[i]
-//     } else if (last && Number(last.id) === flat[i].parentId) {
-//       const nested = nestComments(flat.slice(i), last.id)
-//       if (nested.length > 0) {
-//         last.comments.push(...nested)
-//         i += nested.length - 1
-//       }
-//     }
-//   }
-
-//   return result
-// }
 
 function nestComments (flat, parentId) {
   const result = []

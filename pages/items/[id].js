@@ -44,12 +44,12 @@ export default function FullItem ({ item }) {
   return (
     <Layout>
       {item.parentId
-        ? <Comment item={item} replyOpen includeParent />
+        ? <Comment item={item} replyOpen includeParent cacheId='ROOT_QUERY' />
         : (
           <>
             <Item item={item}>
               {item.text && <Text>{item.text}</Text>}
-              <Reply item={item} />
+              <Reply parentId={item.id} cacheId='ROOT_QUERY' />
             </Item>
           </>
           )}

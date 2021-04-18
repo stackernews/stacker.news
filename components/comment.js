@@ -6,26 +6,7 @@ import Link from 'next/link'
 import Reply from './reply'
 import { useState } from 'react'
 import { gql, useQuery } from '@apollo/client'
-
-function timeSince (timeStamp) {
-  const now = new Date()
-  const secondsPast = (now.getTime() - timeStamp) / 1000
-  if (secondsPast < 60) {
-    return parseInt(secondsPast) + 's'
-  }
-  if (secondsPast < 3600) {
-    return parseInt(secondsPast / 60) + 'm'
-  }
-  if (secondsPast <= 86400) {
-    return parseInt(secondsPast / 3600) + 'h'
-  }
-  if (secondsPast > 86400) {
-    const day = timeStamp.getDate()
-    const month = timeStamp.toDateString().match(/ [a-zA-Z]*/)[0].replace(' ', '')
-    const year = timeStamp.getFullYear() === now.getFullYear() ? '' : ' ' + timeStamp.getFullYear()
-    return day + ' ' + month + year
-  }
-}
+import { timeSince } from '../lib/time'
 
 function Parent ({ item }) {
   const { data } = useQuery(
@@ -61,7 +42,7 @@ function Parent ({ item }) {
   )
 }
 
-export default function Comment ({ item, children, replyOpen, includeParent }) {
+export default function Comment ({ item, children, replyOpen, includeParent, cacheId }) {
   const [reply, setReply] = useState(replyOpen)
 
   return (
@@ -95,7 +76,7 @@ export default function Comment ({ item, children, replyOpen, includeParent }) {
         >
           {reply ? 'cancel' : 'reply'}
         </div>
-        {reply && <Reply item={item} />}
+        {reply && <Reply parentId={item.id} onSuccess={() => setReply(replyOpen || false)} cacheId={cacheId} />}
         {children}
         <div className={styles.comments}>
           {item.comments

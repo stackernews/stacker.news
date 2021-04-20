@@ -96,3 +96,16 @@ $container-max-widths: (
   96% { opacity: 1; }
 	to { opacity: 0; }
 }
+
+.fadeOut {
+  animation: fadeOut ease 1s;
+}
+
+@keyframes fadeOut {
+  0% {
+    opacity:1;
+  }
+  100% {
+    opacity:0;
+  }
+}

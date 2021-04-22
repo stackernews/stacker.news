@@ -2,7 +2,7 @@ import { Form, Input, SubmitButton } from '../components/form'
 import * as Yup from 'yup'
 import { gql, useMutation } from '@apollo/client'
 import styles from './reply.module.css'
-import { COMMENTS } from '../fragments'
+import { COMMENTS } from '../fragments/comments'
 
 export const CommentSchema = Yup.object({
   text: Yup.string().required('required').trim()

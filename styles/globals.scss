@@ -16,7 +16,7 @@ $form-feedback-icon-invalid: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3
 $line-height-base: 1.75;
 $input-btn-padding-y: .42rem;
 $input-btn-padding-x: .84rem;
-$btn-padding-y: .5rem;
+$btn-padding-y: .42rem;
 $btn-padding-x:  1.1rem;
 $btn-font-weight: bold;
 $btn-focus-width: 0;
@@ -59,53 +59,26 @@ $container-max-widths: (
   color: #ffffff;
 }
 
-.flashit{
-  animation: flash ease-out 7s infinite;
-  animation-delay: -3s;
+.nav-link.active {
+  font-weight: bold;
 }
 
 @keyframes flash {
-	from { opacity: 0; }
-  42% { opacity: 0; }
-  43% { opacity: 0.6; }
-  44% { opacity: 0.2; }
-  46% { opacity: 1; }
-  50% { opacity: 0; }
-  92% { opacity: 0; }
-	93% { opacity: 0.6; }
-  94% { opacity: 0.2; }
-  96% { opacity: 1; }
-	to { opacity: 0; }
+	from { filter: brightness(1); background-position: 0 0;}
+  2% { filter: brightness(2.3); }
+  4% { filter: brightness(1.4); }
+  8% { filter: brightness(3); }
+  16% { filter: brightness(1); }
+  to { filter: brightness(1); background-position: 250px 0;}
 }
 
-.morphit{
-  animation: flash ease-out 7s infinite;
-  animation-delay: -3s;
-}
-
-@keyframes flash {
-	from { opacity: 0; }
-  42% { opacity: 0; }
-  43% { opacity: 0.6; }
-  44% { opacity: 0.2; }
-  46% { opacity: 1; }
-  50% { opacity: 0; }
-  92% { opacity: 0; }
-	93% { opacity: 0.6; }
-  94% { opacity: 0.2; }
-  96% { opacity: 1; }
-	to { opacity: 0; }
-}
-
-.fadeOut {
-  animation: fadeOut ease 1s;
-}
-
-@keyframes fadeOut {
-  0% {
-    opacity:1;
-  }
-  100% {
-    opacity:0;
-  }
+.clouds {
+  animation: flash ease-out 3.5s infinite;
+  background: url('/clouds.jpeg');
+  background-color: grey;
+  background-repeat: repeat;
+  background-origin: content-box;
+  background-size: cover;
+  background-attachment: fixed;
+  opacity: .2;
 }

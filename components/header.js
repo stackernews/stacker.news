@@ -18,7 +18,11 @@ export default function Header () {
     if (session) {
       return (
         <>
-          <Nav.Item>{session.user.name}</Nav.Item>
+          <Nav.Item>
+            <Link href={'/' + session.user.name} passHref>
+              <Nav.Link className='text-reset'>@{session.user.name}</Nav.Link>
+            </Link>
+          </Nav.Item>
           <Nav.Item>
             <Nav.Link onClick={signOut}>logout</Nav.Link>
           </Nav.Item>
@@ -36,7 +40,7 @@ export default function Header () {
           <Link href='/' passHref>
             <Navbar.Brand className={styles.brand}>STACKER NEWS</Navbar.Brand>
           </Link>
-          <Nav className='mr-auto align-items-center' activeKey={router.pathname}>
+          <Nav className='mr-auto align-items-center' activeKey={router.asPath}>
             <Nav.Item>
               <Link href='/recent' passHref>
                 <Nav.Link>recent</Nav.Link>
@@ -48,7 +52,7 @@ export default function Header () {
               </Link>
             </Nav.Item>
           </Nav>
-          <Nav className='ml-auto align-items-center'>
+          <Nav className='ml-auto align-items-center' activeKey={router.asPath}>
             <Corner />
           </Nav>
         </Container>

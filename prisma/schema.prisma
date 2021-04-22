@@ -20,6 +20,7 @@ model User {
   image         String?
   items         Item[]
   messages      Message[]
+  votes         Vote[]
 
   @@map(name: "users")
 }
@@ -43,10 +44,25 @@ model Item {
   parent    Item?                 @relation("ParentChildren", fields: [parentId], references: [id])
   parentId  Int?
   children  Item[]                @relation("ParentChildren")
+  votes     Vote[]
   path      Unsupported("LTREE")?
 
   @@index([userId])
   @@index([parentId])
+}
+
+model Vote {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map(name: "created_at")
+  updatedAt DateTime @updatedAt @map(name: "updated_at")
+  sats      Int
+  item      Item     @relation(fields: [itemId], references: [id])
+  itemId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+
+  @@index([itemId])
+  @@index([userId])
 }
 
 model Account {

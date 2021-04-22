@@ -1,13 +1,19 @@
 import Link from 'next/link'
-import UpVote from '../svgs/lightning-arrow.svg'
 import styles from './item.module.css'
 import { timeSince } from '../lib/time'
+import UpVote from './upvote'
 
-export default function Item ({ item, children }) {
+export default function Item ({ item, rank, children }) {
   return (
     <>
+      {rank
+        ? (
+          <div className={styles.rank}>
+            {rank}
+          </div>)
+        : <div />}
       <div className={styles.item}>
-        <UpVote width={24} height={24} className={styles.upvote} />
+        <UpVote />
         <div className={styles.hunk}>
           <div className={`${styles.main} flex-wrap flex-md-nowrap`}>
             <Link href={`/items/${item.id}`} passHref>
@@ -22,7 +28,7 @@ export default function Item ({ item, children }) {
               <a className='text-reset'>{item.ncomments} comments</a>
             </Link>
             <span> \ </span>
-            <Link href={`/@${item.user.name}`} passHref>
+            <Link href={`/${item.user.name}`} passHref>
               <a>@{item.user.name}</a>
             </Link>
             <span> </span>
@@ -35,6 +41,31 @@ export default function Item ({ item, children }) {
           {children}
         </div>
       )}
+    </>
+  )
+}
+
+export function ItemSkeleton ({ rank }) {
+  return (
+    <>
+      {rank &&
+        <div className={styles.rank}>
+          {rank}
+        </div>}
+      <div className={`${styles.item} ${styles.skeleton}`}>
+        <UpVote />
+        <div className={styles.hunk}>
+          <div className={`${styles.main} flex-wrap flex-md-nowrap`}>
+            <span className={`${styles.title} clouds text-reset flex-md-fill flex-md-shrink-0 mr-2`} />
+            <span className={`${styles.link} clouds`} />
+          </div>
+          <div className={styles.other}>
+            <span className={`${styles.otherItem} clouds`} />
+            <span className={`${styles.otherItem} ${styles.otherItemLonger} clouds`} />
+            <span className={`${styles.otherItem} ${styles.otherItemLonger} clouds`} />
+          </div>
+        </div>
+      </div>
     </>
   )
 }

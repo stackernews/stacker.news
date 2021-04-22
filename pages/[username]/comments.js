@@ -1,9 +1,9 @@
-import Layout from '../components/layout'
-import Items from '../components/items'
-import { ITEM_FIELDS } from '../fragments/items'
+import Layout from '../../components/layout'
+import Comments from '../../components/comments'
+import { COMMENT_FIELDS } from '../../fragments/comments'
 import { gql } from '@apollo/client'
-import ApolloClient from '../api/client'
-import UserHeader from '../components/user-header'
+import ApolloClient from '../../api/client'
+import UserHeader from '../../components/user-header'
 
 export async function getServerSideProps ({ params }) {
   const { error, data: { user } } = await ApolloClient.query({
@@ -36,17 +36,17 @@ export async function getServerSideProps ({ params }) {
 
 export default function User ({ user }) {
   const query = gql`
-    ${ITEM_FIELDS}
+    ${COMMENT_FIELDS}
     {
-      items: userItems(userId: ${user.id}) {
-        ...ItemFields
+      comments: userComments(userId: ${user.id}) {
+        ...CommentFields
       }
     }
   `
   return (
     <Layout>
       <UserHeader user={user} />
-      <Items query={query} />
+      <Comments query={query} includeParent noReply />
     </Layout>
   )
 }

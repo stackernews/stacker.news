@@ -4,8 +4,9 @@ export default gql`
   extend type Query {
     items: [Item!]!
     item(id: ID!): Item
+    userItems(userId: ID!): [Item!]
     comments(parentId: ID!): [Item!]!
-    flatcomments(parentId: ID!): [Item!]!
+    userComments(userId: ID!): [Item!]
     root(id: ID!): Item
   }
 
@@ -13,6 +14,7 @@ export default gql`
     createLink(title: String!, url: String): Item!
     createDiscussion(title: String!, text: String): Item!
     createComment(text: String!, parentId: ID!): Item!
+    vote(sats: Int): Int!
   }
 
   type Item {

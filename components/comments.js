@@ -1,28 +1,23 @@
-import { useQuery, gql } from '@apollo/client'
-import Comment from './comment'
-import { COMMENTS } from '../fragments'
+import { useQuery } from '@apollo/client'
+import Comment, { CommentSkeleton } from './comment'
 
-export default function Comments ({ parentId }) {
-  const { data } = useQuery(
-    gql`
-    ${COMMENTS}
+export default function Comments ({ query, ...props }) {
+  const { loading, error, data } = useQuery(query)
 
-    {
-      comments(parentId: ${parentId}) {
-        ...CommentsRecursive
-      }
-    }`
-  )
+  if (error) return <div>Failed to load!</div>
+  if (loading) {
+    const comments = new Array(3).fill(null)
 
-  if (!data) return null
+    return comments.map((_, i) => (
+      <div key={i} className='mt-2'>
+        <CommentSkeleton skeletonChildren />
+      </div>
+    ))
+  }
 
-  return (
-    <div className='mt-5'>
-      {data.comments.map(item => (
-        <div key={item.id} className='mt-2'>
-          <Comment item={item} />
-        </div>
-      ))}
+  return data.comments.map(item => (
+    <div key={item.id} className='mt-2'>
+      <Comment item={item} {...props} />
     </div>
-  )
+  ))
 }

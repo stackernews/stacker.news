@@ -54,46 +54,55 @@ function nestComments (flat, parentId) {
   return [result, added]
 }
 
+// we have to do our own query because ltree is unsupported
+const SELECT =
+  `SELECT id, created_at as "createdAt", updated_at as "updatedAt", title,
+    text, url, "userId", "parentId", ltree2text("path") AS "path"`
+
 export default {
   Query: {
     items: async (parent, args, { models }) => {
       return await models.$queryRaw(`
-        SELECT id, "created_at" as "createdAt", title, url, text,
-          "userId", nlevel(path)-1 AS depth, ltree2text("path") AS "path"
+        ${SELECT}
         FROM "Item"
         WHERE "parentId" IS NULL`)
     },
     item: async (parent, { id }, { models }) => {
-      const res = await models.$queryRaw(`
-        SELECT id, "created_at" as "createdAt", title, url, text,
-          "parentId", "userId", nlevel(path)-1 AS depth, ltree2text("path") AS "path"
+      return (await models.$queryRaw(`
+        ${SELECT}
         FROM "Item"
-        WHERE id = ${id}`)
-      return res.length ? res[0] : null
+        WHERE id = ${id}`))[0]
     },
-    flatcomments: async (parent, { parentId }, { models }) => {
+    userItems: async (parent, { userId }, { models }) => {
       return await models.$queryRaw(`
-        SELECT id, "created_at" as "createdAt", text, "parentId",
-          "userId", nlevel(path)-1 AS depth, ltree2text("path") AS "path"
+        ${SELECT}
         FROM "Item"
-        WHERE path <@ (SELECT path FROM "Item" where id = ${parentId}) AND id != ${parentId}
-        ORDER BY "path"`)
+        WHERE "userId" = ${userId} AND "parentId" IS NULL
+        ORDER BY created_at DESC`)
     },
     comments: async (parent, { parentId }, { models }) => {
       const flat = await models.$queryRaw(`
-        SELECT id, "created_at" as "createdAt", text, "parentId",
-          "userId", nlevel(path)-1 AS depth, ltree2text("path") AS "path"
+        ${SELECT}
         FROM "Item"
         WHERE path <@ (SELECT path FROM "Item" where id = ${parentId}) AND id != ${parentId}
         ORDER BY "path"`)
       return nestComments(flat, parentId)[0]
     },
-    root: async (parent, { id }, { models }) => {
-      const res = await models.$queryRaw(`
-        SELECT id, title
+    userComments: async (parent, { userId }, { models }) => {
+      return await models.$queryRaw(`
+        ${SELECT}
         FROM "Item"
-        WHERE id = (SELECT ltree2text(subltree(path, 0, 1))::integer FROM "Item" WHERE id = ${id})`)
-      return res.length ? res[0] : null
+        WHERE "userId" = ${userId} AND "parentId" IS NOT NULL
+        ORDER BY created_at DESC`)
+    },
+    root: async (parent, { id }, { models }) => {
+      return (await models.$queryRaw(`
+        ${SELECT}
+        FROM "Item"
+        WHERE id = (
+          SELECT ltree2text(subltree(path, 0, 1))::integer
+          FROM "Item"
+          WHERE id = ${id})`))[0]
     }
   },
 

@@ -3,13 +3,16 @@ import { gql } from 'apollo-server-micro'
 export default gql`
   extend type Query {
     me: User
-    user(id: ID!): User
+    user(name: String): User
     users: [User!]
   }
 
   type User {
     id: ID!
     name: String
-    messages: [Message!]
+    nitems: Int!
+    ncomments: Int!
+    stacked: Int!
+    sats: Int!
   }
 `

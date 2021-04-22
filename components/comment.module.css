@@ -24,3 +24,13 @@
     margin-left: 16px;
     margin-top: .5rem;
 }
+
+
+.skeleton .hunk {
+    width: 100%;
+}
+
+.skeleton .text {
+    height: 100px;
+    border-radius: .4rem;
+}

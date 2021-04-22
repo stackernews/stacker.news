@@ -1,5 +1,30 @@
+import React, { useRef, useEffect } from 'react'
 
-import { useRef, useEffect } from 'react'
+export const LightningContext = React.createContext()
+
+export class LightningProvider extends React.Component {
+  state = {
+    bolts: 0,
+    strike: () => this.setState(state => {
+      return {
+        ...this.state,
+        bolts: this.state.bolts + 1
+      }
+    })
+  }
+
+  render () {
+    const { state, props: { children } } = this
+    return (
+      <LightningContext.Provider value={state}>
+        {new Array(this.state.bolts).fill(null).map((_, i) => <Lightning key={i} />)}
+        {children}
+      </LightningContext.Provider>
+    )
+  }
+}
+
+export const LightningConsumer = LightningContext.Consumer
 
 export function Lightning () {
   const canvasRef = useRef(null)
@@ -14,21 +39,14 @@ export function Lightning () {
     const bolt = new Bolt(context, {
       startPoint: [Math.random() * (canvas.width * 0.5) + (canvas.width * 0.25), 0],
       length: canvas.height,
-      speed: options.speed,
-      spread: options.spread,
-      branches: options.branching
+      speed: 100,
+      spread: 30,
+      branches: 20
     })
     bolt.draw()
   }, [])
 
-  return <canvas className='position-absolute' ref={canvasRef} style={{ zIndex: -1 }} />
-}
-
-// Initialize options.
-const options = {
-  speed: 80,
-  spread: 40,
-  branching: 5
+  return <canvas className='position-fixed' ref={canvasRef} style={{ zIndex: -1 }} />
 }
 
 function Bolt (ctx, options) {
@@ -40,6 +58,7 @@ function Bolt (ctx, options) {
     spread: 50,
     branches: 10,
     maxBranches: 10,
+    lineWidth: 3,
     ...options
   }
   this.point = [this.options.startPoint[0], this.options.startPoint[1]]
@@ -59,7 +78,7 @@ function Bolt (ctx, options) {
   ctx.shadowOffsetY = 0
   ctx.fillStyle = 'rgba(250, 250, 250, 1)'
   ctx.strokeStyle = 'rgba(250, 218, 94, 1)'
-  ctx.lineWidth = 2
+  ctx.lineWidth = this.options.lineWidth
   this.draw = (isChild) => {
     ctx.beginPath()
     ctx.moveTo(this.point[0], this.point[1])
@@ -78,6 +97,9 @@ function Bolt (ctx, options) {
       Math.pow(this.point[1] - this.options.startPoint[1], 2)
     )
 
+    // make skinnier?
+    // ctx.lineWidth = ctx.lineWidth * 0.98
+
     if (rand(0, 99) < this.options.branches && this.children.length < this.options.maxBranches) {
       this.children.push(new Bolt(ctx, {
         startPoint: [this.point[0], this.point[1]],
@@ -86,7 +108,8 @@ function Bolt (ctx, options) {
         resistance: this.options.resistance,
         speed: this.options.speed - 2,
         spread: this.options.spread - 2,
-        branches: this.options.branches
+        branches: this.options.branches,
+        lineWidth: ctx.lineWidth
       }))
     }
 
@@ -101,19 +124,14 @@ function Bolt (ctx, options) {
     if (d < this.options.length) {
       window.requestAnimationFrame(() => { this.draw() })
     } else {
+      ctx.canvas.style.opacity = 1
       this.fade()
     }
   }
 
   this.fade = function () {
-    ctx.shadowColor = 'rgba(250, 250, 250, .5)'
-    ctx.fillStyle = 'rgba(250, 250, 250, .05)'
-    ctx.fillRect(0, 0, window.innerWidth, window.innerHeight)
-
-    const color = ctx.getImageData(0, 0, 1, 1)
-    console.log(color.data)
-    if (color.data[0] >= 250 && color.data[3] > 240) {
-      ctx.fillStyle = 'rgba(250, 250, 250, 1)'
+    ctx.canvas.style.opacity -= 0.04
+    if (ctx.canvas.style.opacity <= 0) {
       ctx.clearRect(0, 0, window.innerWidth, window.innerHeight)
       return
     }

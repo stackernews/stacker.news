@@ -1,0 +1,9 @@
+.upvote {
+    fill: grey;
+    min-width: fit-content;
+}
+
+.upvote:hover {
+    fill: darkgray;
+    cursor: pointer;
+}

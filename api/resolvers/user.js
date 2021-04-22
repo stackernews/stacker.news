@@ -2,18 +2,22 @@ export default {
   Query: {
     me: async (parent, args, { models, me }) =>
       me ? await models.user.findUnique({ where: { id: me.id } }) : null,
-    user: async (parent, { id }, { models }) =>
-      await models.user.findUnique({ where: { id } }),
+    user: async (parent, { name }, { models }) => {
+      console.log(name)
+      return await models.user.findUnique({ where: { name } })
+    },
     users: async (parent, args, { models }) =>
       await models.user.findMany()
   },
 
   User: {
-    messages: async (user, args, { models }) =>
-      await models.message.findMany({
-        where: {
-          userId: user.id
-        }
-      })
+    nitems: async (user, args, { models }) => {
+      return await models.item.count({ where: { userId: user.id, parentId: null } })
+    },
+    ncomments: async (user, args, { models }) => {
+      return await models.item.count({ where: { userId: user.id, parentId: { not: null } } })
+    },
+    stacked: () => 0,
+    sats: () => 0
   }
 }

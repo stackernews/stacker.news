@@ -8,4 +8,6 @@
 
 .navbar {
     padding: 0rem 1.75rem;
+    background-color: transparent !important;
+    background-image: linear-gradient(#FADA5E, #FADA5E, transparent)
 }

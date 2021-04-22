@@ -6,6 +6,7 @@ import Reply from '../../components/reply'
 import Comment from '../../components/comment'
 import Text from '../../components/text'
 import Comments from '../../components/comments'
+import { COMMENTS } from '../../fragments/comments'
 
 export async function getServerSideProps ({ params }) {
   const { error, data: { item } } = await ApolloClient.query({
@@ -41,6 +42,14 @@ export async function getServerSideProps ({ params }) {
 }
 
 export default function FullItem ({ item }) {
+  const commentsQuery = gql`
+    ${COMMENTS}
+    {
+      comments(parentId: ${item.id}) {
+        ...CommentsRecursive
+      }
+  }`
+
   return (
     <Layout>
       {item.parentId
@@ -53,7 +62,9 @@ export default function FullItem ({ item }) {
             </Item>
           </>
           )}
-      <Comments parentId={item.id} />
+      <div className='mt-5'>
+        <Comments query={commentsQuery} />
+      </div>
     </Layout>
   )
 }

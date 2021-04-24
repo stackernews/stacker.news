@@ -1,3 +1,7 @@
+.login .providerButton {
+    width: 100%;
+}
+
 .page {
     position: absolute;
     width: 100%;
@@ -9,19 +13,13 @@
     z-index: -1;
 }
 
-.post {
+.login {
     display: table-cell;
     vertical-align: middle;
     padding: .5rem;
 }
 
-.post > form {
-    max-width: 740px;
-    margin: 1rem auto;
-}
-
-.post > div {
-    display: flex;
-    justify-content: center;
-    margin: 1rem auto;
+.login > * {
+    max-width: 300px;
+    margin: auto;
 }

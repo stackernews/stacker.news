@@ -22,3 +22,12 @@ export const ITEMS_FEED = gql`
       ...ItemFields
     }
   }`
+
+export const ITEMS_RECENT = gql`
+  ${ITEM_FIELDS}
+
+  {
+    items: recent {
+      ...ItemFields
+    }
+  }`

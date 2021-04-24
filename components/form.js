@@ -3,7 +3,7 @@ import InputGroup from 'react-bootstrap/InputGroup'
 import BootstrapForm from 'react-bootstrap/Form'
 import Alert from 'react-bootstrap/Alert'
 import { Formik, Form as FormikForm, useFormikContext, useField } from 'formik'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
 export function SubmitButton ({ children, variant, ...props }) {
   const { isSubmitting } = useFormikContext()
@@ -63,13 +63,40 @@ export function Form ({
       initialValues={initial}
       validationSchema={schema}
       validateOnBlur={false}
-      onSubmit={(...args) =>
-        onSubmit(...args).catch(e => setError(e.message))}
+      onSubmit={async (...args) =>
+        onSubmit && onSubmit(...args).catch(e => setError(e.message))}
     >
       <FormikForm {...props} noValidate>
         {error && <Alert variant='danger' onClose={() => setError(undefined)} dismissible>{error}</Alert>}
         {children}
       </FormikForm>
+    </Formik>
+  )
+}
+
+export function SyncForm ({
+  initial, schema, children, action, ...props
+}) {
+  const ref = useRef(null)
+  return (
+    <Formik
+      initialValues={initial}
+      validationSchema={schema}
+      validateOnBlur={false}
+      onSubmit={() => ref.current.submit()}
+    >
+      {props => (
+        <form
+          ref={ref}
+          onSubmit={props.handleSubmit}
+          onReset={props.handleReset}
+          action={action}
+          method='POST'
+          noValidate
+        >
+          {children}
+        </form>
+      )}
     </Formik>
   )
 }

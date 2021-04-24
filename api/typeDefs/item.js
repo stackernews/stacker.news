@@ -3,6 +3,7 @@ import { gql } from 'apollo-server-micro'
 export default gql`
   extend type Query {
     items: [Item!]!
+    recent: [Item!]!
     item(id: ID!): Item
     userItems(userId: ID!): [Item!]
     comments(parentId: ID!): [Item!]!

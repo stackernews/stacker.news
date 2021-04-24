@@ -29,7 +29,7 @@ export default function Header () {
         </>
       )
     } else {
-      return <Nav.Link onClick={signIn}>login</Nav.Link>
+      return <Nav.Link href='/login' onClick={signIn}>login</Nav.Link>
     }
   }
 
@@ -40,7 +40,7 @@ export default function Header () {
           <Link href='/' passHref>
             <Navbar.Brand className={styles.brand}>STACKER NEWS</Navbar.Brand>
           </Link>
-          <Nav className='mr-auto align-items-center' activeKey={router.asPath}>
+          <Nav className='mr-auto align-items-center' activeKey={router.asPath.split('?')[0]}>
             <Nav.Item>
               <Link href='/recent' passHref>
                 <Nav.Link>recent</Nav.Link>
@@ -52,7 +52,7 @@ export default function Header () {
               </Link>
             </Nav.Item>
           </Nav>
-          <Nav className='ml-auto align-items-center' activeKey={router.asPath}>
+          <Nav className='ml-auto align-items-center' activeKey={router.asPath.split('?')[0]}>
             <Corner />
           </Nav>
         </Container>

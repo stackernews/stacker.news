@@ -1,6 +1,7 @@
 .upvote {
     fill: grey;
     min-width: fit-content;
+    user-select: none;
 }
 
 .upvote:hover {

@@ -67,6 +67,13 @@ export default {
         FROM "Item"
         WHERE "parentId" IS NULL`)
     },
+    recent: async (parent, args, { models }) => {
+      return await models.$queryRaw(`
+        ${SELECT}
+        FROM "Item"
+        WHERE "parentId" IS NULL
+        ORDER BY created_at`)
+    },
     item: async (parent, { id }, { models }) => {
       return (await models.$queryRaw(`
         ${SELECT}
@@ -78,7 +85,7 @@ export default {
         ${SELECT}
         FROM "Item"
         WHERE "userId" = ${userId} AND "parentId" IS NULL
-        ORDER BY created_at DESC`)
+        ORDER BY created_at`)
     },
     comments: async (parent, { parentId }, { models }) => {
       const flat = await models.$queryRaw(`

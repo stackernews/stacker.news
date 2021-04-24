@@ -3,7 +3,8 @@ $theme-colors: (
   "secondary" : #F6911D,
   "danger" : #c03221,
   "info" : #007cbe,
-  "success" : #5c8001
+  "success" : #5c8001,
+  "twitter" : #1da1f2,
 );
 
 $body-bg: #fafafa;
@@ -57,6 +58,14 @@ $container-max-widths: (
 .btn-secondary:hover,
 .btn-secondary:disabled {
   color: #ffffff;
+}
+
+.btn-twitter svg {
+  fill: #ffffff;
+}
+
+.btn-dark svg {
+  fill: #ffffff;
 }
 
 .nav-link.active {

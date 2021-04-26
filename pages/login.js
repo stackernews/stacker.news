@@ -66,7 +66,7 @@ export default function login ({ providers, csrfToken, error }) {
 
             return (
               <Button
-                className={`d-block mt-2 ${styles.providerButton}`}
+                className={`mt-2 ${styles.providerButton}`}
                 key={provider.name}
                 variant={variant}
                 onClick={() => signIn(provider.id)}

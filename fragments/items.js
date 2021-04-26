@@ -11,6 +11,7 @@ export const ITEM_FIELDS = gql`
       name
     }
     sats
+    meSats
     ncomments
   }`
 

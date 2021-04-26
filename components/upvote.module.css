@@ -8,3 +8,13 @@
     fill: darkgray;
     cursor: pointer;
 }
+
+.upvote.voted {
+    fill: #F6911D;
+    filter: drop-shadow(0 0 7px #F6911D);
+}
+
+.upvote.stimi {
+    fill: #993DF5;
+    filter: drop-shadow(0 0 7px #C28BF9);
+}

@@ -1,64 +1,5 @@
 import { UserInputError, AuthenticationError } from 'apollo-server-micro'
 
-const createItem = async (parent, { title, text, url, parentId }, { me, models }) => {
-  if (!me) {
-    throw new AuthenticationError('You must be logged in')
-  }
-
-  const data = {
-    title,
-    url,
-    text,
-    user: {
-      connect: {
-        name: me.name
-      }
-    }
-  }
-
-  if (parentId) {
-    data.parent = {
-      connect: {
-        id: parseInt(parentId)
-      }
-    }
-  }
-
-  const item = await models.item.create({ data })
-  item.comments = []
-  return item
-}
-
-function nestComments (flat, parentId) {
-  const result = []
-  let added = 0
-  for (let i = 0; i < flat.length;) {
-    if (!flat[i].comments) flat[i].comments = []
-    if (Number(flat[i].parentId) === Number(parentId)) {
-      result.push(flat[i])
-      added++
-      i++
-    } else if (result.length > 0) {
-      const item = result[result.length - 1]
-      const [nested, newAdded] = nestComments(flat.slice(i), item.id)
-      if (newAdded === 0) {
-        break
-      }
-      item.comments.push(...nested)
-      i += newAdded
-      added += newAdded
-    } else {
-      break
-    }
-  }
-  return [result, added]
-}
-
-// we have to do our own query because ltree is unsupported
-const SELECT =
-  `SELECT id, created_at as "createdAt", updated_at as "updatedAt", title,
-    text, url, "userId", "parentId", ltree2text("path") AS "path"`
-
 export default {
   Query: {
     items: async (parent, args, { models }) => {
@@ -142,6 +83,29 @@ export default {
       }
 
       return await createItem(parent, { text, parentId }, { me, models })
+    },
+    vote: async (parent, { id, sats = 1 }, { me, models }) => {
+      // need to make sure we are logged in
+      if (!me) {
+        throw new AuthenticationError('You must be logged in')
+      }
+
+      const data = {
+        sats,
+        item: {
+          connect: {
+            id: parseInt(id)
+          }
+        },
+        user: {
+          connect: {
+            name: me.name
+          }
+        }
+      }
+
+      await models.vote.create({ data })
+      return sats
     }
   },
 
@@ -155,6 +119,96 @@ export default {
         WHERE path <@ text2ltree(${item.path}) AND id != ${item.id}`
       return count
     },
-    sats: () => 0
+    sats: async (item, args, { models }) => {
+      const { sum: { sats } } = await models.vote.aggregate({
+        sum: {
+          sats: true
+        },
+        where: {
+          itemId: item.id
+        }
+      })
+
+      return sats
+    },
+    meSats: async (item, args, { me, models }) => {
+      if (!me) return 0
+
+      const { sum: { sats } } = await models.vote.aggregate({
+        sum: {
+          sats: true
+        },
+        where: {
+          itemId: item.id,
+          userId: me.id
+        }
+      })
+
+      return sats
+    }
   }
 }
+
+const createItem = async (parent, { title, text, url, parentId }, { me, models }) => {
+  if (!me) {
+    throw new AuthenticationError('You must be logged in')
+  }
+
+  const data = {
+    title,
+    url,
+    text,
+    item: {
+      connect: {
+
+      }
+    },
+    user: {
+      connect: {
+        name: me.name
+      }
+    }
+  }
+
+  if (parentId) {
+    data.parent = {
+      connect: {
+        id: parseInt(parentId)
+      }
+    }
+  }
+
+  const item = await models.item.create({ data })
+  item.comments = []
+  return item
+}
+
+function nestComments (flat, parentId) {
+  const result = []
+  let added = 0
+  for (let i = 0; i < flat.length;) {
+    if (!flat[i].comments) flat[i].comments = []
+    if (Number(flat[i].parentId) === Number(parentId)) {
+      result.push(flat[i])
+      added++
+      i++
+    } else if (result.length > 0) {
+      const item = result[result.length - 1]
+      const [nested, newAdded] = nestComments(flat.slice(i), item.id)
+      if (newAdded === 0) {
+        break
+      }
+      item.comments.push(...nested)
+      i += newAdded
+      added += newAdded
+    } else {
+      break
+    }
+  }
+  return [result, added]
+}
+
+// we have to do our own query because ltree is unsupported
+const SELECT =
+  `SELECT id, created_at as "createdAt", updated_at as "updatedAt", title,
+    text, url, "userId", "parentId", ltree2text("path") AS "path"`

@@ -50,7 +50,7 @@ export default function Comment ({ item, children, replyOpen, includeParent, cac
       <div />
       <div>
         <div className={`${itemStyles.item} ${styles.item}`}>
-          <UpVote className={styles.upvote} />
+          <UpVote itemId={item.id} meSats={item.meSats} className={styles.upvote} />
           <div className={itemStyles.hunk}>
             <div className={itemStyles.other}>
               <Link href={`/${item.user.name}`} passHref>

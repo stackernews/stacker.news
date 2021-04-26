@@ -20,7 +20,7 @@ export default function Header () {
         <>
           <Nav.Item>
             <Link href={'/' + session.user.name} passHref>
-              <Nav.Link className='text-reset'>@{session.user.name}</Nav.Link>
+              <Nav.Link>@{session.user.name}</Nav.Link>
             </Link>
           </Nav.Item>
           <Nav.Item>
@@ -50,6 +50,9 @@ export default function Header () {
               <Link href='/post' passHref>
                 <Nav.Link>post</Nav.Link>
               </Link>
+            </Nav.Item>
+            <Nav.Item>
+              <Nav.Link href='https://bitcoinerjobs.co' target='_blank'>jobs</Nav.Link>
             </Nav.Item>
           </Nav>
           <Nav className='ml-auto align-items-center' activeKey={router.asPath.split('?')[0]}>

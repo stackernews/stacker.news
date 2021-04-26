@@ -5,6 +5,7 @@ $theme-colors: (
   "info" : #007cbe,
   "success" : #5c8001,
   "twitter" : #1da1f2,
+  "boost" : #7A0CE9,
 );
 
 $body-bg: #fafafa;
@@ -48,6 +49,14 @@ $container-max-widths: (
 .form-label {
   font-size: 92%;
   font-weight: bold;
+}
+
+.alert-dismissible .close {
+  font-weight: 300;
+}
+
+.nav-item {
+  font-weight: 500;
 }
 
 .form-control:focus {

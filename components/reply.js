@@ -24,7 +24,7 @@ export default function Reply ({ parentId, onSuccess, cacheId }) {
         cache.modify({
           id: cacheId || `Item:${parentId}`,
           fields: {
-            comments (existingCommentRefs = [], { readField }) {
+            comments (existingCommentRefs = []) {
               const newCommentRef = cache.writeFragment({
                 data: createComment,
                 fragment: COMMENTS,

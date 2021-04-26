@@ -15,7 +15,7 @@ export default gql`
     createLink(title: String!, url: String): Item!
     createDiscussion(title: String!, text: String): Item!
     createComment(text: String!, parentId: ID!): Item!
-    vote(sats: Int): Int!
+    vote(id: ID!, sats: Int): Int!
   }
 
   type Item {
@@ -28,6 +28,7 @@ export default gql`
     user: User!
     depth: Int!
     sats: Int!
+    meSats: Int!
     ncomments: Int!
     comments: [Item!]!
   }

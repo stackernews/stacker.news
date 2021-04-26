@@ -55,7 +55,8 @@ model Vote {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now()) @map(name: "created_at")
   updatedAt DateTime @updatedAt @map(name: "updated_at")
-  sats      Int
+  sats      Int      @default(1)
+  stimi     Boolean  @default(false)
   item      Item     @relation(fields: [itemId], references: [id])
   itemId    Int
   user      User     @relation(fields: [userId], references: [id])

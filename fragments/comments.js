@@ -10,6 +10,7 @@ export const COMMENT_FIELDS = gql`
       name
     }
     sats
+    meSats
     ncomments
   }
 `

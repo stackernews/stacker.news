@@ -1,4 +1,3 @@
-import gql from 'graphql-tag'
 import Item from '../../components/item'
 import Layout from '../../components/layout'
 import ApolloClient from '../../api/client'
@@ -7,23 +6,18 @@ import Comment from '../../components/comment'
 import Text from '../../components/text'
 import Comments from '../../components/comments'
 import { COMMENTS } from '../../fragments/comments'
+import { ITEM_FIELDS } from '../../fragments/items'
+import { gql } from '@apollo/client'
 
-export async function getServerSideProps ({ params }) {
-  const { error, data: { item } } = await ApolloClient.query({
+export async function getServerSideProps ({ req, params }) {
+  const { error, data: { item } } = await (await ApolloClient(req)).query({
     query:
-      gql`{
+      gql`
+      ${ITEM_FIELDS}
+      {
         item(id: ${params.id}) {
-          id
-          createdAt
-          title
-          url
+          ...ItemFields
           text
-          parentId
-          user {
-            name
-          }
-          sats
-          ncomments
         }
       }`
   })

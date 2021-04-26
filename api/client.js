@@ -6,23 +6,22 @@ import resolvers from './resolvers'
 import typeDefs from './typeDefs'
 import models from './models'
 
-const client = new ApolloClient({
-  ssrMode: true,
-  // Instead of "createHttpLink" use SchemaLink here
-  link: new SchemaLink({
-    schema: mergeSchemas({
-      schemas: typeDefs,
-      resolvers: resolvers
-    }),
-    context: async ({ req }) => {
-      const session = await getSession({ req })
-      return {
+export default async function serverSideClient (req) {
+  const session = await getSession({ req })
+  console.log(session)
+  return new ApolloClient({
+    ssrMode: true,
+    // Instead of "createHttpLink" use SchemaLink here
+    link: new SchemaLink({
+      schema: mergeSchemas({
+        schemas: typeDefs,
+        resolvers: resolvers
+      }),
+      context: {
         models,
         me: session ? session.user : null
       }
-    }
-  }),
-  cache: new InMemoryCache()
-})
-
-export default client
+    }),
+    cache: new InMemoryCache()
+  })
+}

@@ -3,7 +3,6 @@ export default {
     me: async (parent, args, { models, me }) =>
       me ? await models.user.findUnique({ where: { id: me.id } }) : null,
     user: async (parent, { name }, { models }) => {
-      console.log(name)
       return await models.user.findUnique({ where: { name } })
     },
     users: async (parent, args, { models }) =>
@@ -17,7 +16,14 @@ export default {
     ncomments: async (user, args, { models }) => {
       return await models.item.count({ where: { userId: user.id, parentId: { not: null } } })
     },
-    stacked: () => 0,
+    stacked: async (user, args, { models }) => {
+      const [{ sum }] = await models.$queryRaw`
+        SELECT sum("Vote".sats)
+        FROM "Item"
+        LEFT JOIN "Vote" on "Vote"."itemId" = "Item".id
+        WHERE "Item"."userId" = ${user.id}`
+      return sum
+    },
     sats: () => 0
   }
 }

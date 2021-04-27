@@ -7,12 +7,16 @@ import Comments, { CommentsSkeleton } from '../../components/comments'
 import { COMMENTS } from '../../fragments/comments'
 import { ITEM_FIELDS } from '../../fragments/items'
 import { gql, useQuery } from '@apollo/client'
-import { useRouter } from 'next/router'
 
-export default function FullItem ({ item }) {
-  const router = useRouter()
-  const { id } = router.query
+export async function getServerSideProps ({ params: { id } }) {
+  return {
+    props: {
+      id
+    }
+  }
+}
 
+export default function FullItem ({ id }) {
   const query = gql`
     ${ITEM_FIELDS}
     ${COMMENTS}

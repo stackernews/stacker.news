@@ -56,7 +56,7 @@ model Vote {
   createdAt DateTime @default(now()) @map(name: "created_at")
   updatedAt DateTime @updatedAt @map(name: "updated_at")
   sats      Int      @default(1)
-  stimi     Boolean  @default(false)
+  boost     Boolean  @default(false)
   item      Item     @relation(fields: [itemId], references: [id])
   itemId    Int
   user      User     @relation(fields: [userId], references: [id])

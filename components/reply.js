@@ -31,6 +31,9 @@ export default function Reply ({ parentId, onSuccess }) {
                 fragmentName: 'CommentsRecursive'
               })
               return [newCommentRef, ...existingCommentRefs]
+            },
+            ncomments (existingNComments = 0) {
+              return existingNComments + 1
             }
           }
         })

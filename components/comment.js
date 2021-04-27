@@ -60,6 +60,11 @@ export default function Comment ({ item, children, replyOpen, includeParent, cac
               <span>{timeSince(new Date(item.createdAt))}</span>
               <span> \ </span>
               <span>{item.sats} sats</span>
+              {!!item.boost &&
+                <>
+                  <span> \ </span>
+                  <span>{item.boost} boost</span>
+                </>}
               <span> \ </span>
               <Link href={`/items/${item.id}`} passHref>
                 <a className='text-reset'>{item.ncomments} replies</a>

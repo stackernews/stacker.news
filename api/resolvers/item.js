@@ -6,14 +6,16 @@ export default {
       return await models.$queryRaw(`
         ${SELECT}
         FROM "Item"
-        WHERE "parentId" IS NULL`)
+        ${LEFT_JOIN_SATS}
+        WHERE "parentId" IS NULL
+        ${ORDER_BY_SATS}`)
     },
     recent: async (parent, args, { models }) => {
       return await models.$queryRaw(`
         ${SELECT}
         FROM "Item"
         WHERE "parentId" IS NULL
-        ORDER BY created_at`)
+        ORDER BY created_at DESC`)
     },
     item: async (parent, { id }, { models }) => {
       return (await models.$queryRaw(`
@@ -82,6 +84,18 @@ export default {
         throw new AuthenticationError('You must be logged in')
       }
 
+      if (sats <= 0) {
+        throw new UserInputError('Sats must be positive', { argumentName: 'sats' })
+      }
+
+      // check if we've already voted for the item
+      const boosted = await models.vote.findFirst({
+        where: {
+          itemId: parseInt(id),
+          userId: me.id
+        }
+      })
+
       const data = {
         sats,
         item: {
@@ -93,7 +107,8 @@ export default {
           connect: {
             name: me.name
           }
-        }
+        },
+        boost: !!boosted
       }
 
       await models.vote.create({ data })
@@ -113,10 +128,17 @@ export default {
     },
     comments: async (item, args, { models }) => {
       const flat = await models.$queryRaw(`
-        ${SELECT}
-        FROM "Item"
-        WHERE path <@ (SELECT path FROM "Item" where id = ${item.id}) AND id != ${item.id}
-        ORDER BY "path"`)
+        WITH RECURSIVE base AS (
+          ${SELECT}, ARRAY[row_number() OVER (${ORDER_BY_SATS}, "Item".path)] AS sort_path
+          FROM "Item"
+          ${LEFT_JOIN_SATS}
+          WHERE "parentId" = ${item.id}
+        UNION ALL
+          ${SELECT}, p.sort_path || row_number() OVER (${ORDER_BY_SATS}, "Item".path)
+          FROM base p
+          JOIN "Item" ON ltree2text(subpath("Item"."path", 0, -1)) = p."path"
+          ${LEFT_JOIN_SATS})
+        SELECT * FROM base ORDER BY sort_path`)
       return nestComments(flat, item.id)[0]
     },
     sats: async (item, args, { models }) => {
@@ -125,7 +147,21 @@ export default {
           sats: true
         },
         where: {
-          itemId: item.id
+          itemId: item.id,
+          boost: false
+        }
+      })
+
+      return sats
+    },
+    boost: async (item, args, { models }) => {
+      const { sum: { sats } } = await models.vote.aggregate({
+        sum: {
+          sats: true
+        },
+        where: {
+          itemId: item.id,
+          boost: true
         }
       })
 
@@ -205,5 +241,14 @@ function nestComments (flat, parentId) {
 
 // we have to do our own query because ltree is unsupported
 const SELECT =
-  `SELECT id, created_at as "createdAt", updated_at as "updatedAt", title,
-    text, url, "userId", "parentId", ltree2text("path") AS "path"`
+  `SELECT "Item".id, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt", "Item".title,
+  "Item".text, "Item".url, "Item"."userId", "Item"."parentId", ltree2text("Item"."path") AS "path"`
+
+const LEFT_JOIN_SATS =
+  `LEFT JOIN (SELECT i.id, SUM("Vote".sats) as sats
+  FROM "Item" i
+  JOIN "Vote" ON i.id = "Vote"."itemId"
+  GROUP BY i.id) x ON "Item".id = x.id`
+
+const ORDER_BY_SATS =
+  'ORDER BY (x.sats-1)/POWER(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE \'UTC\') - "Item".created_at))/3600+2, 1.5) DESC NULLS LAST'

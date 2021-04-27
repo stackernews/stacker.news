@@ -1,3 +1,0 @@
--- AlterTable
-ALTER TABLE "Vote" ADD COLUMN     "stimi" BOOLEAN NOT NULL DEFAULT false,
-ALTER COLUMN "sats" SET DEFAULT 1;

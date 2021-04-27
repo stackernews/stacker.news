@@ -17,7 +17,7 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, erro
       Location: callbackUrl
     })
     res.end()
-    return
+    return { props: {} }
   }
 
   return {

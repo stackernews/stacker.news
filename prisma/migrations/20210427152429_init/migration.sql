@@ -20,6 +20,7 @@ CREATE TABLE "Message" (
     PRIMARY KEY ("id")
 );
 
+
 -- Edit: create extension for path
 CREATE EXTENSION ltree;
 
@@ -62,6 +63,19 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER path_tgr
     BEFORE INSERT OR UPDATE ON "Item"
     FOR EACH ROW EXECUTE PROCEDURE update_item_path();
+
+-- CreateTable
+CREATE TABLE "Vote" (
+    "id" SERIAL NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+    "sats" INTEGER NOT NULL DEFAULT 1,
+    "boost" BOOLEAN NOT NULL DEFAULT false,
+    "itemId" INTEGER NOT NULL,
+    "userId" INTEGER NOT NULL,
+
+    PRIMARY KEY ("id")
+);
 
 -- CreateTable
 CREATE TABLE "accounts" (
@@ -118,6 +132,12 @@ CREATE INDEX "Item.userId_index" ON "Item"("userId");
 CREATE INDEX "Item.parentId_index" ON "Item"("parentId");
 
 -- CreateIndex
+CREATE INDEX "Vote.itemId_index" ON "Vote"("itemId");
+
+-- CreateIndex
+CREATE INDEX "Vote.userId_index" ON "Vote"("userId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "accounts.compound_id_unique" ON "accounts"("compound_id");
 
 -- CreateIndex
@@ -146,3 +166,9 @@ ALTER TABLE "Item" ADD FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE
 
 -- AddForeignKey
 ALTER TABLE "Item" ADD FOREIGN KEY ("parentId") REFERENCES "Item"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Vote" ADD FOREIGN KEY ("itemId") REFERENCES "Item"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Vote" ADD FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;

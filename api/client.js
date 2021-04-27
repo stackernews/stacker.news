@@ -8,7 +8,6 @@ import models from './models'
 
 export default async function serverSideClient (req) {
   const session = await getSession({ req })
-  console.log(session)
   return new ApolloClient({
     ssrMode: true,
     // Instead of "createHttpLink" use SchemaLink here

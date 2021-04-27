@@ -27,6 +27,7 @@ export default gql`
     user: User!
     depth: Int!
     sats: Int!
+    boost: Int!
     meSats: Int!
     ncomments: Int!
     comments: [Item!]!

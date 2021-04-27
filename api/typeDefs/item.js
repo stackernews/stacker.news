@@ -6,7 +6,6 @@ export default gql`
     recent: [Item!]!
     item(id: ID!): Item
     userItems(userId: ID!): [Item!]
-    comments(parentId: ID!): [Item!]!
     userComments(userId: ID!): [Item!]
     root(id: ID!): Item
   }

@@ -2,3 +2,19 @@
     max-width: 600px;
     margin-top: 1rem;
 }
+
+.skeleton .input {
+    background-color: grey;
+    width: 100%;
+    border-radius: .4rem;
+    height: 115px;
+    margin-bottom: 1rem;
+}
+
+.skeleton .button {
+    background-color: grey;
+    border-radius: .4rem;
+    margin-top: .25rem;
+    width: 71px;
+    height: 38px;
+}

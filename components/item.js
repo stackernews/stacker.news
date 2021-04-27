@@ -45,7 +45,7 @@ export default function Item ({ item, rank, children }) {
   )
 }
 
-export function ItemSkeleton ({ rank }) {
+export function ItemSkeleton ({ rank, children }) {
   return (
     <>
       {rank &&
@@ -66,6 +66,11 @@ export function ItemSkeleton ({ rank }) {
           </div>
         </div>
       </div>
+      {children && (
+        <div className={styles.children}>
+          {children}
+        </div>
+      )}
     </>
   )
 }

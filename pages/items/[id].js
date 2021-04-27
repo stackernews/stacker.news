@@ -1,64 +1,72 @@
-import Item from '../../components/item'
+import Item, { ItemSkeleton } from '../../components/item'
 import Layout from '../../components/layout'
-import ApolloClient from '../../api/client'
-import Reply from '../../components/reply'
+import Reply, { ReplySkeleton } from '../../components/reply'
 import Comment from '../../components/comment'
 import Text from '../../components/text'
-import Comments from '../../components/comments'
+import Comments, { CommentsSkeleton } from '../../components/comments'
 import { COMMENTS } from '../../fragments/comments'
 import { ITEM_FIELDS } from '../../fragments/items'
-import { gql } from '@apollo/client'
-
-export async function getServerSideProps ({ req, params }) {
-  const { error, data: { item } } = await (await ApolloClient(req)).query({
-    query:
-      gql`
-      ${ITEM_FIELDS}
-      {
-        item(id: ${params.id}) {
-          ...ItemFields
-          text
-        }
-      }`
-  })
-
-  if (!item || error) {
-    return {
-      notFound: true
-    }
-  }
-
-  return {
-    props: {
-      item: item
-    }
-  }
-}
+import { gql, useQuery } from '@apollo/client'
+import { useRouter } from 'next/router'
 
 export default function FullItem ({ item }) {
-  const commentsQuery = gql`
+  const router = useRouter()
+  const { id } = router.query
+
+  const query = gql`
+    ${ITEM_FIELDS}
     ${COMMENTS}
     {
-      comments(parentId: ${item.id}) {
-        ...CommentsRecursive
-      }
+      item(id: ${id}) {
+        ...ItemFields
+        text
+        comments {
+          ...CommentsRecursive
+        }
+    }
   }`
 
   return (
     <Layout>
+      <LoadItem query={query} />
+    </Layout>
+  )
+}
+
+function LoadItem ({ query }) {
+  const { loading, error, data } = useQuery(query)
+  if (error) return <div>Failed to load!</div>
+
+  if (loading) {
+    return (
+      <div>
+        <ItemSkeleton>
+          <ReplySkeleton />
+        </ItemSkeleton>
+        <div className='mt-5'>
+          <CommentsSkeleton />
+        </div>
+      </div>
+    )
+  }
+
+  const { item } = data
+
+  return (
+    <>
       {item.parentId
-        ? <Comment item={item} replyOpen includeParent cacheId='ROOT_QUERY' />
+        ? <Comment item={item} replyOpen includeParent noComments />
         : (
           <>
             <Item item={item}>
               {item.text && <Text>{item.text}</Text>}
-              <Reply parentId={item.id} cacheId='ROOT_QUERY' />
+              <Reply parentId={item.id} />
             </Item>
           </>
           )}
       <div className='mt-5'>
-        <Comments query={commentsQuery} />
+        <Comments comments={item.comments} />
       </div>
-    </Layout>
+    </>
   )
 }

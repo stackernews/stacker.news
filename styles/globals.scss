@@ -82,12 +82,12 @@ $container-max-widths: (
 }
 
 @keyframes flash {
-	from { filter: brightness(1); background-position: 0 0;}
+	from { filter: brightness(1);}
   2% { filter: brightness(2.3); }
   4% { filter: brightness(1.4); }
   8% { filter: brightness(3); }
   16% { filter: brightness(1); }
-  to { filter: brightness(1); background-position: 250px 0;}
+  to { filter: brightness(1);}
 }
 
 .clouds {

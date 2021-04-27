@@ -28,14 +28,6 @@ export default {
         WHERE "userId" = ${userId} AND "parentId" IS NULL
         ORDER BY created_at`)
     },
-    comments: async (parent, { parentId }, { models }) => {
-      const flat = await models.$queryRaw(`
-        ${SELECT}
-        FROM "Item"
-        WHERE path <@ (SELECT path FROM "Item" where id = ${parentId}) AND id != ${parentId}
-        ORDER BY "path"`)
-      return nestComments(flat, parentId)[0]
-    },
     userComments: async (parent, { userId }, { models }) => {
       return await models.$queryRaw(`
         ${SELECT}
@@ -119,6 +111,14 @@ export default {
         WHERE path <@ text2ltree(${item.path}) AND id != ${item.id}`
       return count
     },
+    comments: async (item, args, { models }) => {
+      const flat = await models.$queryRaw(`
+        ${SELECT}
+        FROM "Item"
+        WHERE path <@ (SELECT path FROM "Item" where id = ${item.id}) AND id != ${item.id}
+        ORDER BY "path"`)
+      return nestComments(flat, item.id)[0]
+    },
     sats: async (item, args, { models }) => {
       const { sum: { sats } } = await models.vote.aggregate({
         sum: {
@@ -158,11 +158,6 @@ const createItem = async (parent, { title, text, url, parentId }, { me, models }
     title,
     url,
     text,
-    item: {
-      connect: {
-
-      }
-    },
     user: {
       connect: {
         name: me.name

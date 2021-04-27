@@ -42,7 +42,7 @@ function Parent ({ item }) {
   )
 }
 
-export default function Comment ({ item, children, replyOpen, includeParent, cacheId, noReply }) {
+export default function Comment ({ item, children, replyOpen, includeParent, cacheId, noComments, noReply }) {
   const [reply, setReply] = useState(replyOpen)
 
   return (
@@ -82,7 +82,7 @@ export default function Comment ({ item, children, replyOpen, includeParent, cac
           {reply && <Reply parentId={item.id} onSuccess={() => setReply(replyOpen || false)} cacheId={cacheId} />}
           {children}
           <div className={styles.comments}>
-            {item.comments
+            {item.comments && !noComments
               ? item.comments.map((item) => (
                 <Comment key={item.id} item={item} />
                 ))

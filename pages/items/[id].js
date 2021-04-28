@@ -48,7 +48,7 @@ function LoadItem ({ query }) {
         <ItemSkeleton>
           <ReplySkeleton />
         </ItemSkeleton>
-        <div className='mt-5'>
+        <div className={styles.comments}>
           <CommentsSkeleton />
         </div>
       </div>

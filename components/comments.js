@@ -8,10 +8,10 @@ export default function Comments ({ comments, ...props }) {
 }
 
 export function CommentsSkeleton () {
-  const comments = new Array(3).fill(null)
+  const comments = new Array(1).fill(null)
 
   return comments.map((_, i) => (
-    <CommentSkeleton key={i} skeletonChildren />
+    <CommentSkeleton key={i} skeletonChildren={2} />
   ))
 }
 

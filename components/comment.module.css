@@ -8,6 +8,7 @@
 
 .text {
     margin-top: .1rem;
+    padding-right: .75rem;
 }
 
 .reply {
@@ -29,8 +30,20 @@
 }
 
 .skeleton .text {
-    height: 100px;
+    height: 80px;
     border-radius: .4rem;
+    margin-right: .75rem;
+}
+
+.skeleton .reply {
+    width: 45px;
+    height: 10px;
+    border-radius: .2rem;
+}
+
+.replyPadder {
+    padding: .25rem 0;
+    padding-bottom: .5rem;
 }
 
 .comment {

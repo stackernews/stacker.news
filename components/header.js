@@ -18,7 +18,7 @@ export default function Header () {
 
     if (session) {
       return (
-        <NavDropdown eventKey={'/' + session.user.name} title={`@${session.user.name}`} alignRight>
+        <NavDropdown title={`@${session.user.name}`} alignRight>
           <Link href={'/' + session.user.name} passHref>
             <NavDropdown.Item>profile</NavDropdown.Item>
           </Link>

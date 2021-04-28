@@ -67,7 +67,7 @@
     height: 14px;
     background-color: grey;
     width: 800px;
-    border-radius: .4rem;
+    border-radius: .3rem;
     margin: 3px 0px;
 }
 
@@ -75,7 +75,7 @@
     display: inline-flex;
     width: 42px;
     height: 70%;
-    border-radius: .4rem;
+    border-radius: .27rem;
     background-color: grey;
     margin-right: .5rem;
 }

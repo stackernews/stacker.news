@@ -97,30 +97,34 @@ export default function Comment ({ item, children, replyOpen, includeParent, cac
 }
 
 export function CommentSkeleton ({ skeletonChildren }) {
-  const comments = skeletonChildren ? new Array(2).fill(null) : []
+  const comments = skeletonChildren > 0 ? new Array(skeletonChildren).fill(null) : []
 
   return (
-    <>
+    <div className={styles.comment}>
       <div className={`${itemStyles.item} ${itemStyles.skeleton} ${styles.item} ${styles.skeleton}`}>
         <UpVote className={styles.upvote} />
         <div className={`${itemStyles.hunk} ${styles.hunk}`}>
           <div className={itemStyles.other}>
-            <span className={`${itemStyles.otherItem} ${itemStyles.otherItemLonger} clouds`} />
+            <span className={`${itemStyles.otherItem} clouds`} />
+            <span className={`${itemStyles.otherItem} clouds`} />
             <span className={`${itemStyles.otherItem} clouds`} />
             <span className={`${itemStyles.otherItem} ${itemStyles.otherItemLonger} clouds`} />
           </div>
           <div className={`${styles.text} clouds`} />
         </div>
       </div>
-      <div className={`${itemStyles.children} ${styles.children}`}>
-        <div className={styles.comments}>
+      <div className={`${itemStyles.children} ${styles.children} ${styles.skeleton}`}>
+        <div className={styles.replyPadder}>
+          <div className={`${itemStyles.other} ${styles.reply} clouds`} />
+        </div>
+        <div className={`${styles.comments} ml-sm-1 ml-md-3`}>
           {comments
             ? comments.map((_, i) => (
-              <CommentSkeleton key={i} />
+              <CommentSkeleton key={i} skeletonChildren={skeletonChildren - 1} />
               ))
             : null}
         </div>
       </div>
-    </>
+    </div>
   )
 }

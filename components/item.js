@@ -65,6 +65,7 @@ export function ItemSkeleton ({ rank, children }) {
           </div>
           <div className={styles.other}>
             <span className={`${styles.otherItem} clouds`} />
+            <span className={`${styles.otherItem} clouds`} />
             <span className={`${styles.otherItem} ${styles.otherItemLonger} clouds`} />
             <span className={`${styles.otherItem} ${styles.otherItemLonger} clouds`} />
           </div>

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import styles from './header.module.css'
 import { useRouter } from 'next/router'
 import { Container } from 'react-bootstrap'
+import Price from './price'
 
 export default function Header () {
   const [session, loading] = useSession()
@@ -53,6 +54,9 @@ export default function Header () {
             </Nav.Item>
             <Nav.Item>
               <Nav.Link href='https://bitcoinerjobs.co' target='_blank' className={styles.navLink}>jobs</Nav.Link>
+            </Nav.Item>
+            <Nav.Item style={{ fontFamily: 'monospace', opacity: '.5' }}>
+              <Price />
             </Nav.Item>
             <Corner />
           </Nav>

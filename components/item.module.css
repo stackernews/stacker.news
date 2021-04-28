@@ -4,6 +4,10 @@
     margin-right: .5rem;
 }
 
+.upvote {
+    margin-top: 9px;
+}
+
 .link {
     font-size: 80%;
     white-space: nowrap;
@@ -19,7 +23,6 @@
 .item {
     display: flex;
     justify-content: flex-start;
-    align-items: center;
     min-width: 0;
 }
 
@@ -40,7 +43,7 @@
 
 .rank {
     font-weight: 600;
-    align-items: center;
+    margin-top: 8px;
     display: flex;
     color: grey;
     font-size: 90%;

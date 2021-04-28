@@ -57,7 +57,7 @@ export function ItemSkeleton ({ rank, children }) {
           {rank}
         </div>}
       <div className={`${styles.item} ${styles.skeleton}`}>
-        <UpVote />
+        <UpVote className={styles.upvote} />
         <div className={styles.hunk}>
           <div className={`${styles.main} flex-wrap flex-md-nowrap`}>
             <span className={`${styles.title} clouds text-reset flex-md-fill flex-md-shrink-0 mr-2`} />

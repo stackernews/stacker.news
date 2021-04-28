@@ -7,6 +7,7 @@ import Comments, { CommentsSkeleton } from '../../components/comments'
 import { COMMENTS } from '../../fragments/comments'
 import { ITEM_FIELDS } from '../../fragments/items'
 import { gql, useQuery } from '@apollo/client'
+import styles from '../../styles/item.module.css'
 
 export async function getServerSideProps ({ params: { id } }) {
   return {
@@ -68,7 +69,7 @@ function LoadItem ({ query }) {
             </Item>
           </>
           )}
-      <div className='mt-5'>
+      <div className={styles.comments}>
         <Comments comments={item.comments} />
       </div>
     </>

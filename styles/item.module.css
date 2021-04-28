@@ -1,0 +1,11 @@
+.comments {
+    margin-top: 3rem;
+}
+
+@media only screen and (max-width: 600px) {
+    .comments {
+        margin-top: 3rem;
+        margin-left: -15px;
+        margin-right: -15px;
+    }
+}

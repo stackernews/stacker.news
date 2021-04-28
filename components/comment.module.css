@@ -3,7 +3,7 @@
 }
 
 .upvote {
-    margin-top: .3rem;
+    margin-top: 9px;
 }
 
 .text {
@@ -13,18 +13,16 @@
 .reply {
     font-weight: bold;
     cursor: pointer;
-    text-decoration: underline;
+    padding-bottom: .5rem;
 }
 
 .children {
-    margin-top: .4rem;
+    margin-top: .25rem;
 }
 
 .comments {
-    margin-left: 16px;
-    margin-top: .5rem;
+    margin-left: -1rem;
 }
-
 
 .skeleton .hunk {
     width: 100%;
@@ -33,4 +31,22 @@
 .skeleton .text {
     height: 100px;
     border-radius: .4rem;
+}
+
+.comment {
+    background-color: rgba(0, 0, 0, 0.03);
+    border-radius: .4rem;
+    padding-top: .5rem;
+    padding-left: .2rem;
+}
+
+.comment:not(:last-child) {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.comment:not(:first-child) {
+    padding-top: .25rem;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
 }

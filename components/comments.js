@@ -3,9 +3,7 @@ import Comment, { CommentSkeleton } from './comment'
 
 export default function Comments ({ comments, ...props }) {
   return comments.map(item => (
-    <div key={item.id} className='mt-2'>
-      <Comment item={item} {...props} />
-    </div>
+    <Comment key={item.id} item={item} {...props} />
   ))
 }
 
@@ -13,9 +11,7 @@ export function CommentsSkeleton () {
   const comments = new Array(3).fill(null)
 
   return comments.map((_, i) => (
-    <div key={i} className='mt-2'>
-      <CommentSkeleton skeletonChildren />
-    </div>
+    <CommentSkeleton key={i} skeletonChildren />
   ))
 }
 

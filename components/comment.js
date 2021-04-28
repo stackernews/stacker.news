@@ -46,56 +46,53 @@ export default function Comment ({ item, children, replyOpen, includeParent, cac
   const [reply, setReply] = useState(replyOpen)
 
   return (
-    <>
-      <div />
-      <div>
-        <div className={`${itemStyles.item} ${styles.item}`}>
-          <UpVote itemId={item.id} meSats={item.meSats} className={styles.upvote} />
-          <div className={itemStyles.hunk}>
-            <div className={itemStyles.other}>
-              <Link href={`/${item.user.name}`} passHref>
-                <a>@{item.user.name}</a>
-              </Link>
-              <span> </span>
-              <span>{timeSince(new Date(item.createdAt))}</span>
-              <span> \ </span>
-              <span>{item.sats} sats</span>
-              {!!item.boost &&
-                <>
-                  <span> \ </span>
-                  <span>{item.boost} boost</span>
-                </>}
-              <span> \ </span>
-              <Link href={`/items/${item.id}`} passHref>
-                <a className='text-reset'>{item.ncomments} replies</a>
-              </Link>
-              {includeParent && <Parent item={item} />}
-            </div>
-            <div className={styles.text}>
-              <Text>{item.text}</Text>
-            </div>
+    <div className={includeParent ? '' : styles.comment}>
+      <div className={`${itemStyles.item} ${styles.item}`}>
+        <UpVote itemId={item.id} meSats={item.meSats} className={styles.upvote} />
+        <div className={itemStyles.hunk}>
+          <div className={itemStyles.other}>
+            <span>{item.sats} sats</span>
+            <span> \ </span>
+            <span>{item.boost} boost</span>
+            <span> \ </span>
+            <Link href={`/items/${item.id}`} passHref>
+              <a className='text-reset'>{item.ncomments} replies</a>
+            </Link>
+            <span> \ </span>
+            <Link href={`/${item.user.name}`} passHref>
+              <a>@{item.user.name}</a>
+            </Link>
+            <span> </span>
+            <span>{timeSince(new Date(item.createdAt))}</span>
+            {includeParent && <Parent item={item} />}
           </div>
-        </div>
-        <div className={`${itemStyles.children} ${styles.children}`}>
-          {!noReply &&
-            <div
-              className={`${itemStyles.other} ${styles.reply}`}
-              onClick={() => setReply(!reply)}
-            >
-              {reply ? 'cancel' : 'reply'}
-            </div>}
-          {reply && <Reply parentId={item.id} onSuccess={() => setReply(replyOpen || false)} cacheId={cacheId} />}
-          {children}
-          <div className={styles.comments}>
-            {item.comments && !noComments
-              ? item.comments.map((item) => (
-                <Comment key={item.id} item={item} />
-                ))
-              : null}
+          <div className={styles.text}>
+            <Text>{item.text}</Text>
           </div>
         </div>
       </div>
-    </>
+      <div className={`${itemStyles.children} ${styles.children}`}>
+        {!noReply &&
+          <div
+            className={`${itemStyles.other} ${styles.reply}`}
+            onClick={() => setReply(!reply)}
+          >
+            {reply ? 'cancel' : 'reply'}
+          </div>}
+        {reply &&
+          <div className='pb-2 pr-2'>
+            <Reply parentId={item.id} onSuccess={() => setReply(replyOpen || false)} cacheId={cacheId} />
+          </div>}
+        {children}
+        <div className={`${styles.comments} ml-sm-1 ml-md-3`}>
+          {item.comments && !noComments
+            ? item.comments.map((item) => (
+              <Comment key={item.id} item={item} />
+              ))
+            : null}
+        </div>
+      </div>
+    </div>
   )
 }
 

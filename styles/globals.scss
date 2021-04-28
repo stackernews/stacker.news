@@ -32,6 +32,12 @@ $link-color: #007cbe;
 $font-size-base: .9rem;
 $enable-responsive-font-sizes: true;
 $link-hover-decoration: none;
+$dropdown-border-color: #ced4da;
+$dropdown-link-active-color: inherit;
+$dropdown-link-hover-bg: transparent;
+$dropdown-link-active-bg: transparent;
+$dropdown-link-color:  rgba(0, 0, 0, 0.7);
+$dropdown-link-hover-color: rgba(0, 0, 0, 0.9);
 $container-max-widths: (
   sm: 540px,
   md: 720px,
@@ -57,6 +63,19 @@ $container-max-widths: (
 
 .nav-item {
   font-weight: 500;
+}
+
+.dropdown-toggle::after {
+  display: none;
+}
+
+.dropdown-item {
+  font-weight: 500;
+}
+
+
+.dropdown-item.active {
+  text-shadow: 0 0 10px #FADA5E;
 }
 
 .form-control:focus {

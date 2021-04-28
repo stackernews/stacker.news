@@ -4,7 +4,7 @@ import Nav from 'react-bootstrap/Nav'
 import Link from 'next/link'
 import styles from './header.module.css'
 import { useRouter } from 'next/router'
-import { Container } from 'react-bootstrap'
+import { Container, NavDropdown } from 'react-bootstrap'
 import Price from './price'
 
 export default function Header () {
@@ -18,16 +18,12 @@ export default function Header () {
 
     if (session) {
       return (
-        <>
-          <Nav.Item>
-            <Link href={'/' + session.user.name} passHref>
-              <Nav.Link className={styles.navLink}>@{session.user.name}</Nav.Link>
-            </Link>
-          </Nav.Item>
-          {/* <Nav.Item>
-            <Nav.Link onClick={signOut} className={styles.navLink}>logout</Nav.Link>
-          </Nav.Item> */}
-        </>
+        <NavDropdown eventKey={'/' + session.user.name} title={`@${session.user.name}`} alignRight>
+          <Link href={'/' + session.user.name} passHref>
+            <NavDropdown.Item>profile</NavDropdown.Item>
+          </Link>
+          <NavDropdown.Item className='text-muted' onClick={signOut}>logout</NavDropdown.Item>
+        </NavDropdown>
       )
     } else {
       return <Nav.Link href='/login' onClick={signIn}>login</Nav.Link>
@@ -40,7 +36,10 @@ export default function Header () {
         <Navbar className={styles.navbar}>
           <Nav className='w-100 justify-content-sm-between justify-content-start flex-wrap align-items-center' activeKey={router.asPath.split('?')[0]}>
             <Link href='/' passHref>
-              <Navbar.Brand className={`${styles.brand} mr-2 mr-sm-0`}>STACKER NEWS</Navbar.Brand>
+              <Navbar.Brand className={`${styles.brand} mr-2 d-none d-sm-block`}>STACKER NEWS</Navbar.Brand>
+            </Link>
+            <Link href='/' passHref>
+              <Navbar.Brand className={`${styles.brand} mr-2 d-block d-sm-none`}>SN</Navbar.Brand>
             </Link>
             <Nav.Item>
               <Link href='/recent' passHref>

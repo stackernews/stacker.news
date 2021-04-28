@@ -25,6 +25,7 @@
 
 .hunk {
     overflow: hidden;
+    width: 100%;
 }
 
 .main {

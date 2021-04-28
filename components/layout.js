@@ -10,7 +10,7 @@ export default function Layout ({ noContain, children }) {
         {noContain
           ? children
           : (
-            <Container className='my-2 py-2 px-sm-0'>
+            <Container className='my-1 px-sm-0'>
               {children}
             </Container>
             )}

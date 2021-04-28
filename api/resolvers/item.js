@@ -139,7 +139,8 @@ export default {
           JOIN "Item" ON ltree2text(subpath("Item"."path", 0, -1)) = p."path"
           ${LEFT_JOIN_SATS})
         SELECT * FROM base ORDER BY sort_path`)
-      return nestComments(flat, item.id)[0]
+      const comments = nestComments(flat, item.id)[0]
+      return comments
     },
     sats: async (item, args, { models }) => {
       const { sum: { sats } } = await models.vote.aggregate({

@@ -13,31 +13,30 @@ export default function Item ({ item, rank, children }) {
           </div>)
         : <div />}
       <div className={styles.item}>
-        <UpVote itemId={item.id} meSats={item.meSats} />
+        <UpVote itemId={item.id} meSats={item.meSats} className={styles.upvote} />
         <div className={styles.hunk}>
           <div className={`${styles.main} flex-wrap flex-md-nowrap`}>
             <Link href={`/items/${item.id}`} passHref>
-              <a className={`${styles.title} text-reset flex-md-fill flex-md-shrink-0 mr-2`}>{item.title}</a>
+              <a className={`${styles.title} text-reset flex-md-shrink-0 mr-2`}>{item.title}</a>
             </Link>
             {item.url && <a className={styles.link} href={item.url}>{item.url.replace(/(^\w+:|^)\/\//, '')}</a>}
           </div>
-          <div className={styles.other}>
+          <div className={`${styles.other}`}>
             <span>{item.sats} sats</span>
-            {!!item.boost &&
-              <>
-                <span> \ </span>
-                <span>{item.boost} boost</span>
-              </>}
+            <span> \ </span>
+            <span>{item.boost} boost</span>
             <span> \ </span>
             <Link href={`/items/${item.id}`} passHref>
               <a className='text-reset'>{item.ncomments} comments</a>
             </Link>
             <span> \ </span>
-            <Link href={`/${item.user.name}`} passHref>
-              <a>@{item.user.name}</a>
-            </Link>
-            <span> </span>
-            <span>{timeSince(new Date(item.createdAt))}</span>
+            <span>
+              <Link href={`/${item.user.name}`} passHref>
+                <a>@{item.user.name}</a>
+              </Link>
+              <span> </span>
+              <span>{timeSince(new Date(item.createdAt))}</span>
+            </span>
           </div>
         </div>
       </div>

@@ -20,12 +20,12 @@ export default function Header () {
         <>
           <Nav.Item>
             <Link href={'/' + session.user.name} passHref>
-              <Nav.Link>@{session.user.name}</Nav.Link>
+              <Nav.Link className={styles.navLink}>@{session.user.name}</Nav.Link>
             </Link>
           </Nav.Item>
-          <Nav.Item>
-            <Nav.Link onClick={signOut}>logout</Nav.Link>
-          </Nav.Item>
+          {/* <Nav.Item>
+            <Nav.Link onClick={signOut} className={styles.navLink}>logout</Nav.Link>
+          </Nav.Item> */}
         </>
       )
     } else {
@@ -35,31 +35,29 @@ export default function Header () {
 
   return (
     <>
-      <Navbar bg='primary' className={styles.navbar}>
-        <Container>
-          <Link href='/' passHref>
-            <Navbar.Brand className={styles.brand}>STACKER NEWS</Navbar.Brand>
-          </Link>
-          <Nav className='mr-auto align-items-center' activeKey={router.asPath.split('?')[0]}>
+      <Container className='px-sm-0'>
+        <Navbar className={styles.navbar}>
+          <Nav className='w-100 justify-content-sm-between justify-content-start flex-wrap align-items-center' activeKey={router.asPath.split('?')[0]}>
+            <Link href='/' passHref>
+              <Navbar.Brand className={`${styles.brand} mr-2 mr-sm-0`}>STACKER NEWS</Navbar.Brand>
+            </Link>
             <Nav.Item>
               <Link href='/recent' passHref>
-                <Nav.Link>recent</Nav.Link>
+                <Nav.Link className={styles.navLink}>recent</Nav.Link>
               </Link>
             </Nav.Item>
             <Nav.Item>
               <Link href='/post' passHref>
-                <Nav.Link>post</Nav.Link>
+                <Nav.Link className={styles.navLink}>post</Nav.Link>
               </Link>
             </Nav.Item>
             <Nav.Item>
-              <Nav.Link href='https://bitcoinerjobs.co' target='_blank'>jobs</Nav.Link>
+              <Nav.Link href='https://bitcoinerjobs.co' target='_blank' className={styles.navLink}>jobs</Nav.Link>
             </Nav.Item>
-          </Nav>
-          <Nav className='ml-auto align-items-center' activeKey={router.asPath.split('?')[0]}>
             <Corner />
           </Nav>
-        </Container>
-      </Navbar>
+        </Navbar>
+      </Container>
     </>
   )
 }

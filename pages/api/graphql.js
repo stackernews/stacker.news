@@ -7,6 +7,7 @@ import { getSession } from 'next-auth/client'
 const apolloServer = new ApolloServer({
   typeDefs,
   resolvers,
+  tracing: true,
   context: async ({ req }) => {
     const session = await getSession({ req })
     return {

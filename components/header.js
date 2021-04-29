@@ -22,7 +22,7 @@ export default function Header () {
           <Link href={'/' + session.user.name} passHref>
             <NavDropdown.Item>profile</NavDropdown.Item>
           </Link>
-          <NavDropdown.Item className='text-muted' onClick={signOut}>logout</NavDropdown.Item>
+          <NavDropdown.Item onClick={signOut}>logout</NavDropdown.Item>
         </NavDropdown>
       )
     } else {
@@ -34,7 +34,7 @@ export default function Header () {
     <>
       <Container className='px-sm-0'>
         <Navbar className={styles.navbar}>
-          <Nav className='w-100 justify-content-sm-between justify-content-start flex-wrap align-items-center' activeKey={router.asPath.split('?')[0]}>
+          <Nav className='w-100 justify-content-between flex-wrap align-items-center' activeKey={router.asPath.split('?')[0]}>
             <Link href='/' passHref>
               <Navbar.Brand className={`${styles.brand} mr-2 d-none d-sm-block`}>STACKER NEWS</Navbar.Brand>
             </Link>

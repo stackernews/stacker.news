@@ -1,5 +1,21 @@
 import { UserInputError, AuthenticationError } from 'apollo-server-micro'
 
+async function comments (models, id) {
+  const flat = await models.$queryRaw(`
+        WITH RECURSIVE base AS (
+          ${SELECT}, ARRAY[row_number() OVER (${ORDER_BY_SATS}, "Item".path)] AS sort_path
+          FROM "Item"
+          ${LEFT_JOIN_SATS}
+          WHERE "parentId" = ${id}
+        UNION ALL
+          ${SELECT}, p.sort_path || row_number() OVER (${ORDER_BY_SATS}, "Item".path)
+          FROM base p
+          JOIN "Item" ON ltree2text(subpath("Item"."path", 0, -1)) = p."path"
+          ${LEFT_JOIN_SATS})
+        SELECT * FROM base ORDER BY sort_path`)
+  return nestComments(flat, id)[0]
+}
+
 export default {
   Query: {
     items: async (parent, args, { models }) => {
@@ -18,10 +34,13 @@ export default {
         ORDER BY created_at DESC`)
     },
     item: async (parent, { id }, { models }) => {
-      return (await models.$queryRaw(`
+      const item = (await models.$queryRaw(`
         ${SELECT}
         FROM "Item"
         WHERE id = ${id}`))[0]
+
+      item.comments = comments(models, id)
+      return item
     },
     userItems: async (parent, { userId }, { models }) => {
       return await models.$queryRaw(`
@@ -125,22 +144,6 @@ export default {
         FROM "Item"
         WHERE path <@ text2ltree(${item.path}) AND id != ${item.id}`
       return count
-    },
-    comments: async (item, args, { models }) => {
-      const flat = await models.$queryRaw(`
-        WITH RECURSIVE base AS (
-          ${SELECT}, ARRAY[row_number() OVER (${ORDER_BY_SATS}, "Item".path)] AS sort_path
-          FROM "Item"
-          ${LEFT_JOIN_SATS}
-          WHERE "parentId" = ${item.id}
-        UNION ALL
-          ${SELECT}, p.sort_path || row_number() OVER (${ORDER_BY_SATS}, "Item".path)
-          FROM base p
-          JOIN "Item" ON ltree2text(subpath("Item"."path", 0, -1)) = p."path"
-          ${LEFT_JOIN_SATS})
-        SELECT * FROM base ORDER BY sort_path`)
-      const comments = nestComments(flat, item.id)[0]
-      return comments
     },
     sats: async (item, args, { models }) => {
       const { sum: { sats } } = await models.vote.aggregate({

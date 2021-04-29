@@ -8,12 +8,17 @@
 
 .text {
     margin-top: .1rem;
-    padding-right: .75rem;
+    padding-right: 15px;
 }
 
 .reply {
     font-weight: bold;
     cursor: pointer;
+    padding-bottom: .5rem;
+}
+
+.replyWrapper {
+    padding-right: 15px;
     padding-bottom: .5rem;
 }
 
@@ -32,7 +37,7 @@
 .skeleton .text {
     height: 80px;
     border-radius: .4rem;
-    margin-right: .75rem;
+    margin-right: 15px;
 }
 
 .skeleton .reply {

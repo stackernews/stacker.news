@@ -80,7 +80,7 @@ export default function Comment ({ item, children, replyOpen, includeParent, cac
             {reply ? 'cancel' : 'reply'}
           </div>}
         {reply &&
-          <div className='pb-2 pr-2'>
+          <div className={styles.replyWrapper}>
             <Reply parentId={item.id} onSuccess={() => setReply(replyOpen || false)} cacheId={cacheId} />
           </div>}
         {children}

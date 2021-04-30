@@ -3,6 +3,7 @@ import { gql } from 'apollo-server-micro'
 import user from './user'
 import message from './message'
 import item from './item'
+import wallet from './wallet'
 
 const link = gql`
   type Query {
@@ -18,4 +19,4 @@ const link = gql`
   }
 `
 
-export default [link, user, item, message]
+export default [link, user, item, message, wallet]

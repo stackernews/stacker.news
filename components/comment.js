@@ -7,6 +7,8 @@ import { useState } from 'react'
 import { gql, useQuery } from '@apollo/client'
 import { timeSince } from '../lib/time'
 import UpVote from './upvote'
+import Eye from '../svgs/eye-fill.svg'
+import EyeClose from '../svgs/eye-close-line.svg'
 
 function Parent ({ item }) {
   const { data } = useQuery(
@@ -44,27 +46,34 @@ function Parent ({ item }) {
 
 export default function Comment ({ item, children, replyOpen, includeParent, cacheId, noComments, noReply }) {
   const [reply, setReply] = useState(replyOpen)
+  const [collapse, setCollapse] = useState(false)
 
   return (
-    <div className={includeParent ? '' : styles.comment}>
+    <div className={includeParent ? '' : `${styles.comment} ${collapse ? styles.collapsed : ''}`}>
       <div className={`${itemStyles.item} ${styles.item}`}>
         <UpVote itemId={item.id} meSats={item.meSats} className={styles.upvote} />
-        <div className={itemStyles.hunk}>
-          <div className={itemStyles.other}>
-            <span>{item.sats} sats</span>
-            <span> \ </span>
-            <span>{item.boost} boost</span>
-            <span> \ </span>
-            <Link href={`/items/${item.id}`} passHref>
-              <a className='text-reset'>{item.ncomments} replies</a>
-            </Link>
-            <span> \ </span>
-            <Link href={`/${item.user.name}`} passHref>
-              <a>@{item.user.name}</a>
-            </Link>
-            <span> </span>
-            <span>{timeSince(new Date(item.createdAt))}</span>
-            {includeParent && <Parent item={item} />}
+        <div className={`${itemStyles.hunk} ${styles.hunk}`}>
+          <div className='d-flex align-items-center'>
+            <div className={`${itemStyles.other} ${styles.other}`}>
+              <span>{item.sats} sats</span>
+              <span> \ </span>
+              <span>{item.boost} boost</span>
+              <span> \ </span>
+              <Link href={`/items/${item.id}`} passHref>
+                <a className='text-reset'>{item.ncomments} replies</a>
+              </Link>
+              <span> \ </span>
+              <Link href={`/${item.user.name}`} passHref>
+                <a>@{item.user.name}</a>
+              </Link>
+              <span> </span>
+              <span>{timeSince(new Date(item.createdAt))}</span>
+              {includeParent && <Parent item={item} />}
+            </div>
+            {!includeParent && (collapse
+              ? <Eye className={styles.collapser} height={10} width={10} onClick={() => setCollapse(false)} />
+              : <EyeClose className={styles.collapser} height={10} width={10} onClick={() => setCollapse(true)} />)}
+
           </div>
           <div className={styles.text}>
             <Text>{item.text}</Text>

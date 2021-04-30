@@ -11,6 +11,28 @@
     padding-right: 15px;
 }
 
+.collapsed .hunk {
+    margin-bottom: .5rem;
+}
+
+.collapsed .text,
+.collapsed .children {
+    display: none;
+}
+
+.collapsed .upvote {
+    visibility: hidden;
+    height: 0;
+}
+
+.collapser {
+    cursor: pointer;
+    fill: grey;
+    width: 45px;
+    margin-left: auto;
+    user-select: none;
+}
+
 .reply {
     font-weight: bold;
     cursor: pointer;

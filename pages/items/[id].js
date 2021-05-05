@@ -8,6 +8,7 @@ import { COMMENTS } from '../../fragments/comments'
 import { ITEM_FIELDS } from '../../fragments/items'
 import { gql, useQuery } from '@apollo/client'
 import styles from '../../styles/item.module.css'
+import Head from 'next/head'
 
 export async function getServerSideProps ({ params: { id } }) {
   return {
@@ -63,6 +64,9 @@ function LoadItem ({ query }) {
         ? <Comment item={item} replyOpen includeParent noComments />
         : (
           <>
+            <Head>
+              <title>{item.title} \ stacker news</title>
+            </Head>
             <Item item={item}>
               {item.text && <Text>{item.text}</Text>}
               <Reply parentId={item.id} />

@@ -106,8 +106,6 @@ export default function Comment ({ item, children, replyOpen, includeParent, cac
 }
 
 export function CommentSkeleton ({ skeletonChildren }) {
-  const comments = skeletonChildren > 0 ? new Array(skeletonChildren).fill(null) : []
-
   return (
     <div className={styles.comment}>
       <div className={`${itemStyles.item} ${itemStyles.skeleton} ${styles.item} ${styles.skeleton}`}>
@@ -127,10 +125,8 @@ export function CommentSkeleton ({ skeletonChildren }) {
           <div className={`${itemStyles.other} ${styles.reply} clouds`} />
         </div>
         <div className={`${styles.comments} ml-sm-1 ml-md-3`}>
-          {comments
-            ? comments.map((_, i) => (
-              <CommentSkeleton key={i} skeletonChildren={skeletonChildren - 1} />
-              ))
+          {skeletonChildren
+            ? <CommentSkeleton skeletonChildren={skeletonChildren - 1} />
             : null}
         </div>
       </div>

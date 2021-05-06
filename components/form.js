@@ -28,7 +28,7 @@ export function Input ({ label, prepend, append, hint, ...props }) {
       <InputGroup hasValidation>
         {prepend && (
           <InputGroup.Prepend>
-            {prepend}
+            <InputGroup.Text>{prepend}</InputGroup.Text>
           </InputGroup.Prepend>
         )}
         <BootstrapForm.Control
@@ -37,7 +37,7 @@ export function Input ({ label, prepend, append, hint, ...props }) {
         />
         {append && (
           <InputGroup.Append>
-            {append}
+            <InputGroup.Text>{append}</InputGroup.Text>
           </InputGroup.Append>
         )}
         <BootstrapForm.Control.Feedback type='invalid'>

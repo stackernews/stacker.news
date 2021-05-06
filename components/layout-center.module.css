@@ -1,0 +1,24 @@
+.page {
+    width: 100%;
+    display: flex;
+    flex-flow: column;
+    height: 100%;
+    min-height: 100vh;
+    align-items: center;
+}
+
+.content {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 740px;
+    width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+    flex-direction: column;
+}
+
+.content form {
+    width: 100%;
+}

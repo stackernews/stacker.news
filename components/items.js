@@ -6,7 +6,7 @@ export default function Items ({ query, rank }) {
   const { loading, error, data } = useQuery(query)
   if (error) return <div>Failed to load!</div>
   if (loading) {
-    const items = new Array(30).fill(null)
+    const items = new Array(20).fill(null)
 
     return (
       <div className={styles.grid}>

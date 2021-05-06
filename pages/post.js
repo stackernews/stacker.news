@@ -1,11 +1,10 @@
-import Layout from '../components/layout'
 import Button from 'react-bootstrap/Button'
 import { Form, Input, SubmitButton } from '../components/form'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
-import styles from '../styles/post.module.css'
 import * as Yup from 'yup'
 import { gql, useMutation } from '@apollo/client'
+import LayoutCenter from '../components/layout-center'
 
 export const DiscussionSchema = Yup.object({
   title: Yup.string().required('required').trim()
@@ -112,7 +111,7 @@ export function PostForm () {
         </Link>
         <span className='mx-3 font-weight-bold text-muted'>or</span>
         <Link href='/post?type=discussion'>
-          <Button variant='secondary'> discussion</Button>
+          <Button variant='secondary'>discussion</Button>
         </Link>
       </div>
     )
@@ -127,12 +126,8 @@ export function PostForm () {
 
 export default function Post () {
   return (
-    <Layout noContain>
-      <div className={styles.page}>
-        <div className={styles.post}>
-          <PostForm />
-        </div>
-      </div>
-    </Layout>
+    <LayoutCenter>
+      <PostForm />
+    </LayoutCenter>
   )
 }

@@ -1,5 +1,4 @@
 import { providers, signIn, getSession, csrfToken } from 'next-auth/client'
-import Layout from '../components/layout'
 import Button from 'react-bootstrap/Button'
 import styles from '../styles/login.module.css'
 import GithubIcon from '../svgs/github-fill.svg'
@@ -8,6 +7,7 @@ import { Input, SubmitButton, SyncForm } from '../components/form'
 import * as Yup from 'yup'
 import { useState } from 'react'
 import Alert from 'react-bootstrap/Alert'
+import LayoutCenter from '../components/layout-center'
 
 export async function getServerSideProps ({ req, res, query: { callbackUrl, error = null } }) {
   const session = await getSession({ req })
@@ -50,53 +50,51 @@ export default function login ({ providers, csrfToken, error }) {
   const [errorMessage, setErrorMessage] = useState(error && (errors[error] ?? errors.default))
 
   return (
-    <Layout noContain>
-      <div className={styles.page}>
-        <div className={styles.login}>
-          {errorMessage &&
-            <Alert variant='danger' onClose={() => setErrorMessage(undefined)} dismissible>{errorMessage}</Alert>}
-          {Object.values(providers).map(provider => {
-            if (provider.name === 'Email') {
-              return null
-            }
-            const [variant, Icon] =
+    <LayoutCenter>
+      <div className={styles.login}>
+        {errorMessage &&
+          <Alert variant='danger' onClose={() => setErrorMessage(undefined)} dismissible>{errorMessage}</Alert>}
+        {Object.values(providers).map(provider => {
+          if (provider.name === 'Email') {
+            return null
+          }
+          const [variant, Icon] =
           provider.name === 'Twitter'
             ? ['twitter', TwitterIcon]
             : ['dark', GithubIcon]
 
-            return (
-              <Button
-                className={`mt-2 ${styles.providerButton}`}
-                key={provider.name}
-                variant={variant}
-                onClick={() => signIn(provider.id)}
-              >
-                <Icon
-                  className='mr-3'
-                />Login with {provider.name}
-              </Button>
-            )
-          })}
-          <div className='mt-2 text-center text-muted font-weight-bold'>or</div>
-          <SyncForm
-            initial={{
-              email: ''
-            }}
-            schema={EmailSchema}
-            action='/api/auth/signin/email'
-          >
-            <input name='csrfToken' type='hidden' defaultValue={csrfToken} />
-            <Input
-              label='Email'
-              name='email'
-              placeholder='email@example.com'
-              required
-              autoFocus
-            />
-            <SubmitButton variant='secondary' className={styles.providerButton}>Login with Email</SubmitButton>
-          </SyncForm>
-        </div>
+          return (
+            <Button
+              className={`mt-2 ${styles.providerButton}`}
+              key={provider.name}
+              variant={variant}
+              onClick={() => signIn(provider.id)}
+            >
+              <Icon
+                className='mr-3'
+              />Login with {provider.name}
+            </Button>
+          )
+        })}
+        <div className='mt-2 text-center text-muted font-weight-bold'>or</div>
+        <SyncForm
+          initial={{
+            email: ''
+          }}
+          schema={EmailSchema}
+          action='/api/auth/signin/email'
+        >
+          <input name='csrfToken' type='hidden' defaultValue={csrfToken} />
+          <Input
+            label='Email'
+            name='email'
+            placeholder='email@example.com'
+            required
+            autoFocus
+          />
+          <SubmitButton variant='secondary' className={styles.providerButton}>Login with Email</SubmitButton>
+        </SyncForm>
       </div>
-    </Layout>
+    </LayoutCenter>
   )
 }

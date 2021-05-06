@@ -2,10 +2,10 @@ import { gql } from 'apollo-server-micro'
 
 export default gql`
   extend type Query {
-    accounts: [String!]
+    invoice(id: ID!): String!
   }
 
   extend type Mutation {
-    createAccount: String!
+    createInvoice(amount: Int!): String!
   }
 `

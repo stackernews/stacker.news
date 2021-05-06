@@ -57,8 +57,6 @@ body {
   background-attachment:fixed;
   min-height: 100vh;
   height: 100%;
-  z-index: -2;
-  position: relative;
 }
 
 .form-label {
@@ -109,6 +107,10 @@ body {
   font-weight: bold;
 }
 
+.fill-grey {
+  fill: grey;
+}
+
 @keyframes flash {
 	from { filter: brightness(1);}
   2% { filter: brightness(2.3); }
@@ -126,5 +128,24 @@ body {
   background-origin: content-box;
   background-size: cover;
   background-attachment: fixed;
-  opacity: .2;
+  opacity: .1;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% {  transform: rotate(359deg); }
+}
+
+.spin {
+  animation: spin 2s linear infinite;
+}
+
+.static {
+  background: url('/giphy.gif');
+  background-color: grey;
+  background-repeat: repeat;
+  background-origin: content-box;
+  background-size: cover;
+  background-attachment: fixed;
+  opacity: .1;
 }

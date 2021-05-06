@@ -1,11 +1,11 @@
-.login .providerButton {
+.providerButton {
     width: 100%;
     justify-content: center;
     align-items: center;
     display: flex;
 }
 
-.login > * {
+.login  {
     max-width: 300px;
-    margin: auto;
+    width: 100%;
 }

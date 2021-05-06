@@ -31,7 +31,6 @@ export default function Price () {
   }
 
   if (asSats) {
-    console.log(asSats, 'as sats')
     return (
       <Button className='text-reset' onClick={handleClick} variant='link'>
         {fixed(100000000 / data.data.amount, 0) + ' sats/$'}

@@ -59,6 +59,12 @@ body {
   height: 100%;
 }
 
+@media screen and (max-width: 767px) {
+  input, select, textarea, .form-control, .form-control:focus, .input-group-text {
+    font-size: 1rem !important;
+  }
+}
+
 .form-label {
   font-size: 92%;
   font-weight: bold;

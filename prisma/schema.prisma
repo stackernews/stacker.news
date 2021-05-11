@@ -21,6 +21,8 @@ model User {
   items         Item[]
   messages      Message[]
   votes         Vote[]
+  invoices      Invoice[]
+  msats         Int       @default(0)
 
   @@map(name: "users")
 }
@@ -63,6 +65,24 @@ model Vote {
   userId    Int
 
   @@index([itemId])
+  @@index([userId])
+}
+
+model Invoice {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map(name: "created_at")
+  updatedAt DateTime @updatedAt @map(name: "updated_at")
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+
+  hash           String    @unique
+  bolt11         String
+  expiresAt      DateTime
+  confirmedAt    DateTime?
+  msatsRequested Int
+  msatsReceived  Int?
+  cancelled      Boolean   @default(false)
+
   @@index([userId])
 }
 

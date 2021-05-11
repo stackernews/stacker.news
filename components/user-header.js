@@ -20,11 +20,11 @@ export default function UserHeader ({ user }) {
             <Nav.Link>{user.ncomments} comments</Nav.Link>
           </Link>
         </Nav.Item>
-        <Nav.Item>
+        {/* <Nav.Item>
           <Link href={'/' + user.name + '/sativity'} passHref>
             <Nav.Link>sativity</Nav.Link>
           </Link>
-        </Nav.Item>
+        </Nav.Item> */}
       </Nav>
     </>
   )

@@ -107,7 +107,7 @@ export default {
         throw new UserInputError('Sats must be positive', { argumentName: 'sats' })
       }
 
-      // check if we've already voted for the item
+      // TODO: check if we've already voted for the item ... XXX this isn't transactional
       const boosted = await models.vote.findFirst({
         where: {
           itemId: parseInt(id),
@@ -143,7 +143,7 @@ export default {
         SELECT count(*)
         FROM "Item"
         WHERE path <@ text2ltree(${item.path}) AND id != ${item.id}`
-      return count
+      return count || 0
     },
     sats: async (item, args, { models }) => {
       const { sum: { sats } } = await models.vote.aggregate({
@@ -156,7 +156,7 @@ export default {
         }
       })
 
-      return sats
+      return sats || 0
     },
     boost: async (item, args, { models }) => {
       const { sum: { sats } } = await models.vote.aggregate({
@@ -169,7 +169,7 @@ export default {
         }
       })
 
-      return sats
+      return sats || 0
     },
     meSats: async (item, args, { me, models }) => {
       if (!me) return 0
@@ -184,7 +184,7 @@ export default {
         }
       })
 
-      return sats
+      return sats || 0
     }
   }
 }

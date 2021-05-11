@@ -117,6 +117,14 @@ body {
   fill: grey;
 }
 
+.fill-success {
+  fill: #5c8001;
+}
+
+.fill-danger {
+  fill: #c03221;
+}
+
 @keyframes flash {
 	from { filter: brightness(1);}
   2% { filter: brightness(2.3); }
@@ -154,4 +162,30 @@ body {
   background-size: cover;
   background-attachment: fixed;
   opacity: .1;
+}
+
+@keyframes flipX{
+  from {
+      transform: rotateX(180deg);
+  }
+  to {
+      transform: rotateX(-180deg);
+  }
+}
+
+.flipX {
+  animation: flipX 2s linear infinite;
+}
+
+@keyframes flipY{
+  from {
+      transform: rotateY(0deg);
+  }
+  to {
+      transform: rotateY(360deg);
+  }
+}
+
+.flipY {
+  animation: flipY 4s linear infinite;
 }

@@ -1,7 +1,7 @@
 export default {
   Query: {
     me: async (parent, args, { models, me }) =>
-      me ? await models.user.findUnique({ where: { id: me.id } }) : null,
+      me ? await models.user.findUnique({ where: { name: me.name } }) : null,
     user: async (parent, { name }, { models }) => {
       return await models.user.findUnique({ where: { name } })
     },
@@ -22,8 +22,10 @@ export default {
         FROM "Item"
         LEFT JOIN "Vote" on "Vote"."itemId" = "Item".id
         WHERE "Item"."userId" = ${user.id}`
-      return sum
+      return sum || 0
     },
-    sats: () => 0
+    sats: async (user, args, { models }) => {
+      return Math.floor(user.msats / 1000)
+    }
   }
 }

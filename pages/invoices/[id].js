@@ -14,7 +14,14 @@ export async function getServerSideProps ({ params: { id } }) {
 export default function FullInvoice ({ id }) {
   const query = gql`
     {
-      invoice(id: ${id})
+      invoice(id: ${id}) {
+        id
+        bolt11
+        msatsReceived
+        cancelled
+        confirmedAt
+        expiresAt
+      }
     }`
   return (
     <LayoutCenter>
@@ -24,10 +31,10 @@ export default function FullInvoice ({ id }) {
 }
 
 function LoadInvoice ({ query }) {
-  const { loading, error, data } = useQuery(query)
+  const { loading, error, data } = useQuery(query, { pollInterval: 1000 })
   if (error) return <div>error</div>
   if (!data || loading) {
-    return <InvoiceSkeleton />
+    return <InvoiceSkeleton status='loading' />
   }
 
   return <Invoice invoice={data.invoice} />

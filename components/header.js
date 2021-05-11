@@ -6,6 +6,21 @@ import styles from './header.module.css'
 import { useRouter } from 'next/router'
 import { Button, Container, NavDropdown } from 'react-bootstrap'
 import Price from './price'
+import { gql, useQuery } from '@apollo/client'
+
+function WalletSummary () {
+  const query = gql`
+  {
+    me {
+      sats
+      stacked
+    }
+  }`
+  const { data } = useQuery(query, { pollInterval: 1000 })
+  if (!data) return null
+
+  return `[${data.me.stacked},${data.me.sats}]`
+}
 
 export default function Header () {
   const [session, loading] = useSession()
@@ -42,7 +57,7 @@ export default function Header () {
           </NavDropdown>
           <Nav.Item>
             <Link href='/wallet' passHref>
-              <Nav.Link className='text-success px-0'>[0,0]</Nav.Link>
+              <Nav.Link className='text-success px-0'><WalletSummary /></Nav.Link>
             </Link>
           </Nav.Item>
         </div>

@@ -37,3 +37,29 @@ WITH RECURSIVE base AS (
     JOIN "Item" ON ltree2text(subpath("Item"."path", 0, -1)) = p."path"
 )
 select * from base order by sort_path;
+
+CREATE OR REPLACE FUNCTION vote(item_id INTEGER, username TEXT, vote_sats INTEGER)
+RETURNS INTEGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    user_id INTEGER
+    user_sats INTEGER
+BEGIN
+    SELECT sats, id INTO user_sats, user_id FROM "User" WHERE name = username;
+    IF vote_sats > user_sats THEN
+        RAISE EXCEPTION 'insufficient funds';
+    END IF;
+
+    UPDATE "User" SET sats = sats - vote_sats WHERE id = user_id;
+
+    IF EXISTS (SELECT 1 FROM "Vote" WHERE "itemId" = item_id AND "userId" = user_id) THEN
+        INSERT INTO "Vote" (sats, "itemId", "userId") VALUES (vote_sats, item_id, user_id);
+        UPDATE "User" SET sats = sats + vote_sats WHERE id = (SELECT "userId" FROM "Item" WHERE id = item_id);
+    ELSE
+        INSERT INTO "Vote" (sats, "itemId", "userId", boost) VALUES (vote_sats, item_id, user_id, true);
+    END IF;
+
+    RETURN sats
+END;
+$$;

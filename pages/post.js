@@ -55,7 +55,7 @@ export function DiscussionForm () {
 
 export const LinkSchema = Yup.object({
   title: Yup.string().required('required').trim(),
-  url: Yup.string().url('invalid url')
+  url: Yup.string().url('invalid url').required('required')
 })
 
 export function LinkForm () {

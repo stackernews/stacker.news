@@ -15,46 +15,7 @@ const models = new PrismaClient()
 async function recordStatus (inv) {
   console.log(inv)
   if (inv.is_confirmed) {
-    const received = Number(inv.received_mtokens)
-
-    // only increment iff this invoice has not yet confirmed
-    const updateUser = models.user.updateMany({
-      where: {
-        invoices: {
-          some: {
-            hash: inv.id,
-            confirmedAt: {
-              equals: null
-            }
-          }
-        }
-      },
-      data: {
-        msats: {
-          increment: received
-        }
-      }
-    })
-
-    // ATOMICALLY (with above) mark the invoice as confirmed
-    const updateInvoice = models.invoice.updateMany({
-      where: {
-        hash: inv.id,
-        AND: [
-          {
-            confirmedAt: {
-              equals: null
-            }
-          }
-        ]
-      },
-      data: {
-        confirmedAt: inv.confirmed_at,
-        msatsReceived: received
-      }
-    })
-
-    models.$transaction([updateUser, updateInvoice])
+    await models.$queryRaw`SELECT confirm_invoice(${inv.id}, ${Number(inv.received_mtokens)})`
   } else if (inv.is_canceled) {
     // mark as cancelled
     models.invoice.update({

@@ -6,13 +6,13 @@ async function comments (models, id) {
           ${SELECT}, ARRAY[row_number() OVER (${ORDER_BY_SATS}, "Item".path)] AS sort_path
           FROM "Item"
           ${LEFT_JOIN_SATS}
-          WHERE "parentId" = ${id}
+          WHERE "parentId" = $1
         UNION ALL
           ${SELECT}, p.sort_path || row_number() OVER (${ORDER_BY_SATS}, "Item".path)
           FROM base p
           JOIN "Item" ON ltree2text(subpath("Item"."path", 0, -1)) = p."path"
           ${LEFT_JOIN_SATS})
-        SELECT * FROM base ORDER BY sort_path`)
+        SELECT * FROM base ORDER BY sort_path`, Number(id))
   return nestComments(flat, id)[0]
 }
 
@@ -34,11 +34,10 @@ export default {
         ORDER BY created_at DESC`)
     },
     item: async (parent, { id }, { models }) => {
-      const item = (await models.$queryRaw(`
+      const [item] = await models.$queryRaw(`
         ${SELECT}
         FROM "Item"
-        WHERE id = ${id}`))[0]
-
+        WHERE id = $1`, Number(id))
       item.comments = comments(models, id)
       return item
     },
@@ -46,15 +45,15 @@ export default {
       return await models.$queryRaw(`
         ${SELECT}
         FROM "Item"
-        WHERE "userId" = ${userId} AND "parentId" IS NULL
-        ORDER BY created_at`)
+        WHERE "userId" = $1 AND "parentId" IS NULL
+        ORDER BY created_at`, Number(userId))
     },
     userComments: async (parent, { userId }, { models }) => {
       return await models.$queryRaw(`
         ${SELECT}
         FROM "Item"
-        WHERE "userId" = ${userId} AND "parentId" IS NOT NULL
-        ORDER BY created_at DESC`)
+        WHERE "userId" = $1 AND "parentId" IS NOT NULL
+        ORDER BY created_at DESC`, Number(userId))
     },
     root: async (parent, { id }, { models }) => {
       return (await models.$queryRaw(`
@@ -63,36 +62,36 @@ export default {
         WHERE id = (
           SELECT ltree2text(subltree(path, 0, 1))::integer
           FROM "Item"
-          WHERE id = ${id})`))[0]
+          WHERE id = $1)`, Number(id)))[0]
     }
   },
 
   Mutation: {
     createLink: async (parent, { title, url }, { me, models }) => {
       if (!title) {
-        throw new UserInputError('Link must have title', { argumentName: 'title' })
+        throw new UserInputError('link must have title', { argumentName: 'title' })
       }
 
       if (!url) {
-        throw new UserInputError('Link must have url', { argumentName: 'url' })
+        throw new UserInputError('link must have url', { argumentName: 'url' })
       }
 
       return await createItem(parent, { title, url }, { me, models })
     },
     createDiscussion: async (parent, { title, text }, { me, models }) => {
       if (!title) {
-        throw new UserInputError('Link must have title', { argumentName: 'title' })
+        throw new UserInputError('link must have title', { argumentName: 'title' })
       }
 
       return await createItem(parent, { title, text }, { me, models })
     },
     createComment: async (parent, { text, parentId }, { me, models }) => {
       if (!text) {
-        throw new UserInputError('Comment must have text', { argumentName: 'text' })
+        throw new UserInputError('comment must have text', { argumentName: 'text' })
       }
 
       if (!parentId) {
-        throw new UserInputError('Comment must have parent', { argumentName: 'text' })
+        throw new UserInputError('comment must have parent', { argumentName: 'text' })
       }
 
       return await createItem(parent, { text, parentId }, { me, models })
@@ -100,37 +99,22 @@ export default {
     vote: async (parent, { id, sats = 1 }, { me, models }) => {
       // need to make sure we are logged in
       if (!me) {
-        throw new AuthenticationError('You must be logged in')
+        throw new AuthenticationError('you must be logged in')
       }
 
       if (sats <= 0) {
-        throw new UserInputError('Sats must be positive', { argumentName: 'sats' })
+        throw new UserInputError('sats must be positive', { argumentName: 'sats' })
       }
 
-      // TODO: check if we've already voted for the item ... XXX this isn't transactional
-      const boosted = await models.vote.findFirst({
-        where: {
-          itemId: parseInt(id),
-          userId: me.id
+      try {
+        await models.$queryRaw`SELECT vote(${Number(id)}, ${me.name}, ${Number(sats)})`
+      } catch (error) {
+        const { meta: { message } } = error
+        if (message.includes('SN_INSUFFICIENT_FUNDS')) {
+          throw new UserInputError('insufficient funds')
         }
-      })
-
-      const data = {
-        sats,
-        item: {
-          connect: {
-            id: parseInt(id)
-          }
-        },
-        user: {
-          connect: {
-            name: me.name
-          }
-        },
-        boost: !!boosted
+        throw error
       }
-
-      await models.vote.create({ data })
       return sats
     }
   },
@@ -189,33 +173,24 @@ export default {
   }
 }
 
-const createItem = async (parent, { title, text, url, parentId }, { me, models }) => {
+const createItem = async (parent, { title, url, text, parentId }, { me, models }) => {
   if (!me) {
-    throw new AuthenticationError('You must be logged in')
+    throw new AuthenticationError('you must be logged in')
   }
 
-  const data = {
-    title,
-    url,
-    text,
-    user: {
-      connect: {
-        name: me.name
-      }
+  try {
+    const [item] = await models.$queryRaw(
+      `${SELECT} FROM create_item($1, $2, $3, $4, $5) AS "Item"`,
+      title, url, text, Number(parentId), me.name)
+    item.comments = []
+    return item
+  } catch (error) {
+    const { meta: { message } } = error
+    if (message.includes('SN_INSUFFICIENT_FUNDS')) {
+      throw new UserInputError('insufficient funds')
     }
+    throw error
   }
-
-  if (parentId) {
-    data.parent = {
-      connect: {
-        id: parseInt(parentId)
-      }
-    }
-  }
-
-  const item = await models.item.create({ data })
-  item.comments = []
-  return item
 }
 
 function nestComments (flat, parentId) {

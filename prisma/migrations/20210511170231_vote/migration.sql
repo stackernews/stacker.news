@@ -66,3 +66,26 @@ BEGIN
     RETURN 0;
 END;
 $$;
+
+CREATE OR REPLACE FUNCTION create_withdrawl(lnd_id TEXT, bolt11 TEXT, msats_amount INTEGER, msats_max_fee INTEGER, username TEXT)
+RETURNS INTEGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    user_id INTEGER;
+    user_msats INTEGER;
+    withdrawl "Withdrawl";
+BEGIN
+    SELECT msats, id INTO user_msats, user_id FROM users WHERE name = username;
+    IF msats_amount + msats_max_fee > user_msats THEN
+        RAISE EXCEPTION 'SN_INSUFFICIENT_FUNDS';
+    END IF;
+
+    INSERT INTO "Withdrawl" (hash, bolt11, "msatsPaying", "msatsFeePaying", "userId", updated_at)
+    VALUES (lnd_id, bolt11, msats_amount, msats_max_fee, user_id, 'now') RETURNING * INTO withdrawl;
+
+    UPDATE users SET msats = msats - msats_amount - msats_max_fee WHERE id = user_id;
+
+    RETURN withdrawl;
+END;
+$$;

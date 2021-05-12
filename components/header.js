@@ -91,7 +91,7 @@ export default function Header () {
             <Nav.Item className='d-md-flex d-none'>
               <Nav.Link href='https://bitcoinerjobs.co' target='_blank' className={styles.navLink}>jobs</Nav.Link>
             </Nav.Item>
-            <Nav.Item style={{ fontFamily: 'monospace', opacity: '.5' }}>
+            <Nav.Item className='text-monospace' style={{ opacity: '.5' }}>
               <Price />
             </Nav.Item>
             <Corner />

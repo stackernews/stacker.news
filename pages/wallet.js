@@ -3,7 +3,7 @@ import { Form, Input, SubmitButton } from '../components/form'
 import Link from 'next/link'
 import Button from 'react-bootstrap/Button'
 import * as Yup from 'yup'
-import { gql, useMutation } from '@apollo/client'
+import { gql, useMutation, useQuery } from '@apollo/client'
 import { InvoiceSkeleton } from '../components/invoice'
 import LayoutCenter from '../components/layout-center'
 
@@ -79,6 +79,56 @@ export function FundForm () {
   )
 }
 
+export const WithdrawlSchema = Yup.object({
+  invoice: Yup.string().required('required'),
+  maxFee: Yup.number('must be a number').required('required').positive('must be positive').integer('must be whole')
+})
+
 export function WithdrawlForm () {
-  return <div>withdrawl</div>
+  const query = gql`
+  {
+    me {
+      msats
+    }
+  }`
+  const { data } = useQuery(query, { pollInterval: 1000 })
+
+  const [createWithdrawl] = useMutation(gql`
+    mutation createWithdrawl($invoice: String!, $maxFee: Int!) {
+      createWithdrawl(invoice: $invoice, maxFee: $maxFee)
+  }`)
+
+  return (
+    <>
+      <h2 className={`${data ?? 'invisible'} text-success pb-5`}>
+        you have <span className='text-monospace'>{data && data.me.msats}</span> millisats
+      </h2>
+      <Form
+        className='pt-3'
+        initial={{
+          destination: '',
+          maxFee: 0,
+          amount: 0
+        }}
+        schema={WithdrawlSchema}
+        onSubmit={async ({ invoice, maxFee }) => {
+          await createWithdrawl({ variables: { invoice, maxFee: Number(maxFee) } })
+        }}
+      >
+        <Input
+          label='invoice'
+          name='invoice'
+          required
+          autoFocus
+        />
+        <Input
+          label='max fee'
+          name='maxFee'
+          required
+          append='millisats'
+        />
+        <SubmitButton variant='success' className='mt-2'>withdrawl</SubmitButton>
+      </Form>
+    </>
+  )
 }

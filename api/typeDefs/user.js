@@ -14,5 +14,6 @@ export default gql`
     ncomments: Int!
     stacked: Int!
     sats: Int!
+    msats: Int!
   }
 `

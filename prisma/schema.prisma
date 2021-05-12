@@ -11,18 +11,19 @@ generator client {
 }
 
 model User {
-  id            Int       @id @default(autoincrement())
-  createdAt     DateTime  @default(now()) @map(name: "created_at")
-  updatedAt     DateTime  @updatedAt @map(name: "updated_at")
-  name          String?   @unique
-  email         String?   @unique
-  emailVerified DateTime? @map(name: "email_verified")
+  id            Int         @id @default(autoincrement())
+  createdAt     DateTime    @default(now()) @map(name: "created_at")
+  updatedAt     DateTime    @updatedAt @map(name: "updated_at")
+  name          String?     @unique
+  email         String?     @unique
+  emailVerified DateTime?   @map(name: "email_verified")
   image         String?
   items         Item[]
   messages      Message[]
   votes         Vote[]
   invoices      Invoice[]
-  msats         Int       @default(0)
+  withdrawls    Withdrawl[]
+  msats         Int         @default(0)
 
   @@map(name: "users")
 }
@@ -82,6 +83,32 @@ model Invoice {
   msatsRequested Int
   msatsReceived  Int?
   cancelled      Boolean   @default(false)
+
+  @@index([userId])
+}
+
+enum WithdrawlStatus {
+  INSUFFICIENT_BALANCE
+  INVALID_PAYMENT
+  PATHFINDING_TIMEOUT
+  ROUTE_NOT_FOUND
+}
+
+model Withdrawl {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map(name: "created_at")
+  updatedAt DateTime @updatedAt @map(name: "updated_at")
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+
+  hash           String @unique
+  bolt11         String
+  msatsPaying    Int
+  msatsPaid      Int?
+  msatsFeePaying Int
+  msatsFeePaid   Int?
+
+  status WithdrawlStatus?
 
   @@index([userId])
 }

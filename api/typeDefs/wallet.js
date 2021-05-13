@@ -30,6 +30,6 @@ export default gql`
     msatsPaid: Int
     msatsFeePaying: Int!
     msatsFeePaid: Int
-    status: String!
+    status: String
   }
 `

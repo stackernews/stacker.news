@@ -4,6 +4,8 @@ import BootstrapForm from 'react-bootstrap/Form'
 import Alert from 'react-bootstrap/Alert'
 import { Formik, Form as FormikForm, useFormikContext, useField } from 'formik'
 import { useRef, useState } from 'react'
+import copy from 'clipboard-copy'
+import Thumb from '../svgs/thumb-up-fill.svg'
 
 export function SubmitButton ({ children, variant, ...props }) {
   const { isSubmitting } = useFormikContext()
@@ -19,8 +21,35 @@ export function SubmitButton ({ children, variant, ...props }) {
   )
 }
 
+export function CopyInput (props) {
+  const [copied, setCopied] = useState(false)
+
+  const handleClick = () => {
+    copy(props.placeholder)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
+  return (
+    <Input
+      onClick={handleClick}
+      append={<Button onClick={handleClick}>{copied ? <Thumb width={18} height={18} /> : 'copy'}</Button>}
+      {...props}
+    />
+  )
+}
+
+export function InputSkeleton ({ label }) {
+  return (
+    <BootstrapForm.Group>
+      {label && <BootstrapForm.Label>{label}</BootstrapForm.Label>}
+      <div className='clouds form-control' />
+    </BootstrapForm.Group>
+  )
+}
+
 export function Input ({ label, prepend, append, hint, ...props }) {
-  const [field, meta] = useField(props)
+  const [field, meta] = props.readOnly ? [{}, {}] : useField(props)
 
   return (
     <BootstrapForm.Group>
@@ -28,7 +57,7 @@ export function Input ({ label, prepend, append, hint, ...props }) {
       <InputGroup hasValidation>
         {prepend && (
           <InputGroup.Prepend>
-            <InputGroup.Text>{prepend}</InputGroup.Text>
+            {prepend}
           </InputGroup.Prepend>
         )}
         <BootstrapForm.Control
@@ -37,7 +66,7 @@ export function Input ({ label, prepend, append, hint, ...props }) {
         />
         {append && (
           <InputGroup.Append>
-            <InputGroup.Text>{append}</InputGroup.Text>
+            {append}
           </InputGroup.Append>
         )}
         <BootstrapForm.Control.Feedback type='invalid'>

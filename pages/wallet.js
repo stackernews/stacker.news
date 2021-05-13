@@ -6,6 +6,7 @@ import * as Yup from 'yup'
 import { gql, useMutation, useQuery } from '@apollo/client'
 import { InvoiceSkeleton } from '../components/invoice'
 import LayoutCenter from '../components/layout-center'
+import InputGroup from 'react-bootstrap/InputGroup'
 
 export default function Wallet () {
   return (
@@ -73,7 +74,7 @@ export function FundForm () {
         name='amount'
         required
         autoFocus
-        append='sats'
+        append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
       />
       <SubmitButton variant='success' className='mt-2'>generate invoice</SubmitButton>
     </Form>
@@ -130,7 +131,7 @@ export function WithdrawlForm () {
           label='max fee'
           name='maxFee'
           required
-          append='millisats'
+          append={<InputGroup.Text className='text-monospace'>millisats</InputGroup.Text>}
         />
         <SubmitButton variant='success' className='mt-2'>withdrawl</SubmitButton>
       </Form>

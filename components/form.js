@@ -83,9 +83,9 @@ export function Input ({ label, prepend, append, hint, ...props }) {
 }
 
 export function Form ({
-  initial, schema, onSubmit, children, ...props
+  initial, schema, onSubmit, children, initialError, ...props
 }) {
-  const [error, setError] = useState()
+  const [error, setError] = useState(initialError)
 
   return (
     <Formik

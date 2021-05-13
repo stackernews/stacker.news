@@ -7,6 +7,7 @@ import { gql, useMutation, useQuery } from '@apollo/client'
 import { InvoiceSkeleton } from '../components/invoice'
 import LayoutCenter from '../components/layout-center'
 import InputGroup from 'react-bootstrap/InputGroup'
+import { WithdrawlSkeleton } from './withdrawls/[id]'
 
 export default function Wallet () {
   return (
@@ -47,14 +48,14 @@ export const FundSchema = Yup.object({
 
 export function FundForm () {
   const router = useRouter()
-  const [createInvoice, { called }] = useMutation(gql`
+  const [createInvoice, { called, error }] = useMutation(gql`
     mutation createInvoice($amount: Int!) {
       createInvoice(amount: $amount) {
         id
       }
     }`)
 
-  if (called) {
+  if (called && !error) {
     return <InvoiceSkeleton status='generating' />
   }
 
@@ -92,22 +93,26 @@ export function WithdrawlForm () {
   const query = gql`
   {
     me {
-      msats
+      sats
     }
   }`
   const { data } = useQuery(query, { pollInterval: 1000 })
 
-  const [createWithdrawl] = useMutation(gql`
+  const [createWithdrawl, { called, error }] = useMutation(gql`
     mutation createWithdrawl($invoice: String!, $maxFee: Int!) {
       createWithdrawl(invoice: $invoice, maxFee: $maxFee) {
         id
       }
   }`)
 
+  if (called && !error) {
+    return <WithdrawlSkeleton status='sending' />
+  }
+
   return (
     <>
-      <h2 className={`${data ?? 'invisible'} text-success pb-5`}>
-        you have <span className='text-monospace'>{data && data.me.msats}</span> millisats
+      <h2 className={`${data ? 'visible' : 'invisible'} text-success pb-5`}>
+        you have <span className='text-monospace'>{data && data.me.sats}</span> sats
       </h2>
       <Form
         className='pt-3'
@@ -115,8 +120,10 @@ export function WithdrawlForm () {
           invoice: '',
           maxFee: 0
         }}
+        initialError={error ? error.toString() : undefined}
         schema={WithdrawlSchema}
         onSubmit={async ({ invoice, maxFee }) => {
+          console.log('calling')
           const { data } = await createWithdrawl({ variables: { invoice, maxFee: Number(maxFee) } })
           router.push(`/withdrawls/${data.createWithdrawl.id}`)
         }}
@@ -131,7 +138,7 @@ export function WithdrawlForm () {
           label='max fee'
           name='maxFee'
           required
-          append={<InputGroup.Text className='text-monospace'>millisats</InputGroup.Text>}
+          append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
         />
         <SubmitButton variant='success' className='mt-2'>withdrawl</SubmitButton>
       </Form>

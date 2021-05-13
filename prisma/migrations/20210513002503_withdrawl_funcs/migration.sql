@@ -21,24 +21,38 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION confirm_withdrawl(lnd_id TEXT, msats_paid INTEGER, msats_fee_paid INTEGER)
+CREATE OR REPLACE FUNCTION confirm_withdrawl(wid INTEGER, msats_paid INTEGER, msats_fee_paid INTEGER)
 RETURNS INTEGER
 LANGUAGE plpgsql
 AS $$
 DECLARE
-
+    msats_fee_paying INTEGER;
+    user_id INTEGER;
 BEGIN
+    IF EXISTS (SELECT 1 FROM "Withdrawl" WHERE id = wid AND status IS NULL) THEN
+        UPDATE "Withdrawl" SET status = 'CONFIRMED', "msatsPaid" = msats_paid, "msatsFeePaid" = msats_fee_paid WHERE id = wid;
+        SELECT "msatsFeePaying", "userId" INTO msats_fee_paying, user_id FROM "Withdrawl" WHERE id = wid;
+        UPDATE users SET msats = msats + (msats_fee_paying - msats_fee_paid) WHERE id = user_id;
+    END IF;
 
+    RETURN 0;
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION reverse_withdrawl(lnd_id TEXT, msats_paid INTEGER, msats_fee_paid INTEGER)
+CREATE OR REPLACE FUNCTION reverse_withdrawl(wid INTEGER, wstatus "WithdrawlStatus")
 RETURNS INTEGER
 LANGUAGE plpgsql
 AS $$
 DECLARE
-
+    msats_fee_paying INTEGER;
+    msats_paying INTEGER;
+    user_id INTEGER;
 BEGIN
-
+    IF EXISTS (SELECT 1 FROM "Withdrawl" WHERE id = wid AND status IS NULL) THEN
+        UPDATE "Withdrawl" SET status = wstatus WHERE id = wid;
+        SELECT "msatsPaying", "msatsFeePaying", "userId" INTO msats_paying, msats_fee_paying, user_id FROM "Withdrawl" WHERE id = wid;
+        UPDATE users SET msats = msats + msats_paying + msats_fee_paying WHERE id = user_id;
+    END IF;
+    RETURN 0;
 END;
 $$;

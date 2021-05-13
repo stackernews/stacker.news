@@ -60,3 +60,8 @@ async function checkPending () {
 }
 
 checkPending()
+
+// TODO
+// in walletd
+// for each payment that hasn't failed or succeeded after 30 seconds after creation
+// request status from lnd and record

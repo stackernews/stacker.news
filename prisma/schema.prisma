@@ -88,10 +88,12 @@ model Invoice {
 }
 
 enum WithdrawlStatus {
+  CONFIRMED
   INSUFFICIENT_BALANCE
   INVALID_PAYMENT
   PATHFINDING_TIMEOUT
   ROUTE_NOT_FOUND
+  UNKNOWN_FAILURE
 }
 
 model Withdrawl {

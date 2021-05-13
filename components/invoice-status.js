@@ -1,6 +1,6 @@
 import Moon from '../svgs/moon-fill.svg'
 import Check from '../svgs/check-double-line.svg'
-import Fail from '../svgs/close-line.svg'
+import ThumbDown from '../svgs/thumb-down-fill.svg'
 
 function InvoiceDefaultStatus ({ status }) {
   return (
@@ -23,7 +23,7 @@ function InvoiceConfirmedStatus ({ status }) {
 function InvoiceFailedStatus ({ status }) {
   return (
     <div className='d-flex mt-2'>
-      <Fail className='fill-danger' />
+      <ThumbDown className='fill-danger' />
       <div className='ml-3 text-danger' style={{ fontWeight: '600' }}>{status}</div>
     </div>
   )

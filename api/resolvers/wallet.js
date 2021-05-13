@@ -7,7 +7,6 @@ export default {
       return await models.invoice.findUnique({ where: { id: Number(id) } })
     },
     withdrawl: async (parent, { id }, { me, models, lnd }) => {
-      console.log(models)
       return await models.withdrawl.findUnique({ where: { id: Number(id) } })
     }
   },
@@ -54,30 +53,64 @@ export default {
       // decode invoice to get amount
       const decoded = await decodePaymentRequest({ lnd, request: invoice })
 
+      const msatsFee = Number(maxFee) * 1000
       // create withdrawl transactionally (id, bolt11, amount, fee)
-      const [withdrawl] =
+      try {
+        const [withdrawl] =
         await models.$queryRaw`SELECT * FROM create_withdrawl(${decoded.id}, ${invoice},
-          ${Number(decoded.mtokens)}, ${Number(maxFee)}, ${me.name})`
+          ${Number(decoded.mtokens)}, ${msatsFee}, ${me.name})`
 
-      // create the payment, subscribing to its status
-      const sub = subscribeToPayViaRequest({
-        lnd,
-        request: invoice,
-        max_fee_mtokens: maxFee,
-        pathfinding_timeout: 30000
-      })
+        // create the payment, subscribing to its status
+        const sub = subscribeToPayViaRequest({
+          lnd,
+          request: invoice,
+          // can't use max_fee_mtokens https://github.com/alexbosworth/ln-service/issues/141
+          max_fee: Number(maxFee),
+          pathfinding_timeout: 30000
+        })
 
-      // if it's confirmed, update confirmed
-      sub.on('confirmed', console.log)
+        // if it's confirmed, update confirmed returning extra fees to user
+        sub.on('confirmed', async e => {
+          console.log(e)
+          // mtokens also contains the fee
+          const fee = Number(e.fee_mtokens)
+          const paid = Number(e.mtokens) - fee
+          await models.$queryRaw`SELECT confirm_withdrawl(${withdrawl.id}, ${paid}, ${fee})`
+        })
 
-      // if the payment fails, we need to
-      // 1. transactionally return the funds to the user
-      // 2. transactionally update the widthdrawl as failed
-      sub.on('failed', console.log)
+        // if the payment fails, we need to
+        // 1. return the funds to the user
+        // 2. update the widthdrawl as failed
+        sub.on('failed', async e => {
+          console.log(e)
+          let status = 'UNKNOWN_FAILURE'
+          if (e.is_insufficient_balance) {
+            status = 'INSUFFICIENT_BALANCE'
+          } else if (e.is_invalid_payment) {
+            status = 'INVALID_PAYMENT'
+          } else if (e.is_pathfinding_timeout) {
+            status = 'PATHFINDING_TIMEOUT'
+          } else if (e.is_route_not_found) {
+            status = 'ROUTE_NOT_FOUND'
+          }
+          await models.$queryRaw`SELECT reverse_withdrawl(${withdrawl.id}, ${status})`
+        })
 
-      // in walletd
-      // for each payment that hasn't failed or succeede
-      return withdrawl
+        return withdrawl
+      } catch (error) {
+        const { meta: { message } } = error
+        if (message.includes('SN_INSUFFICIENT_FUNDS')) {
+          throw new UserInputError('insufficient funds')
+        }
+        throw error
+      }
     }
+  },
+
+  Withdrawl: {
+    satsPaying: w => Math.floor(w.msatsPaying / 1000),
+    satsPaid: w => Math.floor(w.msatsPaid / 1000),
+    satsFeePaying: w => Math.floor(w.msatsFeePaying / 1000),
+    satsFeePaid: w => Math.floor(w.msatsFeePaid / 1000)
   }
 }

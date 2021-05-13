@@ -18,8 +18,11 @@ BEGIN
     IF EXISTS (SELECT 1 FROM "Vote" WHERE "itemId" = item_id AND "userId" = user_id) THEN
         INSERT INTO "Vote" (sats, "itemId", "userId", boost, updated_at) VALUES (vote_sats, item_id, user_id, true, 'now');
     ELSE
-        INSERT INTO "Vote" (sats, "itemId", "userId", updated_at) VALUES (vote_sats, item_id, user_id, 'now');
-        UPDATE users SET msats = msats + (vote_sats * 1000) WHERE id = (SELECT "userId" FROM "Item" WHERE id = item_id);
+        INSERT INTO "Vote" (sats, "itemId", "userId", updated_at) VALUES (1, item_id, user_id, 'now');
+        UPDATE users SET msats = msats + 1000 WHERE id = (SELECT "userId" FROM "Item" WHERE id = item_id);
+        IF vote_sats > 1 THEN
+            INSERT INTO "Vote" (sats, "itemId", "userId", boost, updated_at) VALUES (vote_sats - 1, item_id, user_id, true, 'now');
+        END IF;
     END IF;
 
     RETURN vote_sats;

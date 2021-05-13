@@ -18,7 +18,9 @@ export default function Withdrawl ({ id }) {
     {
       withdrawl(id: ${id}) {
         bolt11
-        msatsFeePaying
+        satsPaid
+        satsFeePaying
+        satsFeePaid
         status
       }
     }`
@@ -29,21 +31,52 @@ export default function Withdrawl ({ id }) {
   )
 }
 
+export function WithdrawlSkeleton ({ status }) {
+  return (
+    <>
+      <div className='w-100'>
+        <InputSkeleton label='invoice' />
+      </div>
+      <div className='w-100'>
+        <InputSkeleton label='max fee' />
+      </div>
+      <InvoiceStatus status={status} />
+    </>
+  )
+}
+
 function LoadWithdrawl ({ query }) {
   const { loading, error, data } = useQuery(query, { pollInterval: 1000 })
   if (error) return <div>error</div>
   if (!data || loading) {
-    return (
-      <>
-        <div className='w-100'>
-          <InputSkeleton label='invoice' />
-        </div>
-        <div className='w-100'>
-          <InputSkeleton label='max fee' />
-        </div>
-        <InvoiceStatus status='pending' />
-      </>
-    )
+    return <WithdrawlSkeleton status='loading' />
+  }
+
+  let status = 'pending'
+  let variant = 'default'
+  switch (data.withdrawl.status) {
+    case 'CONFIRMED':
+      status = `sent ${data.withdrawl.satsPaid} sats with ${data.withdrawl.satsFeePaid} sats in routing fees`
+      variant = 'confirmed'
+      break
+    case 'INSUFFICIENT_BALANCE':
+      status = <>insufficient balance <small className='ml-3'>contact keyan!</small></>
+      variant = 'failed'
+      break
+    case 'INVALID_PAYMENT':
+      status = 'invalid invoice'
+      variant = 'failed'
+      break
+    case 'PATHFINDING_TIMEOUT':
+      status = <>timed out trying to find route <small className='ml-3'>try increasing max fee</small></>
+      variant = 'failed'
+      break
+    case 'ROUTE_NOT_FOUND':
+      status = <>could not find route <small className='ml-3'>try increasing max fee</small></>
+      variant = 'failed'
+      break
+    default:
+      break
   }
 
   return (
@@ -57,11 +90,11 @@ function LoadWithdrawl ({ query }) {
       <div className='w-100'>
         <Input
           label='max fee' type='text'
-          placeholder={data.withdrawl.msatsFeePaying} readOnly
-          append={<InputGroup.Text className='text-monospace'>millisats</InputGroup.Text>}
+          placeholder={data.withdrawl.satsFeePaying} readOnly
+          append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
         />
       </div>
-      <InvoiceStatus status='pending' />
+      <InvoiceStatus variant={variant} status={status} />
     </>
   )
 }

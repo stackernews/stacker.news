@@ -27,9 +27,13 @@ export default gql`
     hash: String!
     bolt11: String!
     msatsPaying: Int!
+    satsPaying: Int!
     msatsPaid: Int
+    satsPaid: Int
     msatsFeePaying: Int!
+    satsFeePaying: Int!
     msatsFeePaid: Int
+    satsFeePaid: Int
     status: String
   }
 `

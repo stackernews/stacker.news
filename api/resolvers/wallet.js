@@ -1,10 +1,14 @@
-import { createInvoice, decodePaymentRequest, payViaPaymentRequest } from 'ln-service'
+import { createInvoice, decodePaymentRequest, subscribeToPayViaRequest } from 'ln-service'
 import { UserInputError, AuthenticationError } from 'apollo-server-micro'
 
 export default {
   Query: {
     invoice: async (parent, { id }, { me, models, lnd }) => {
       return await models.invoice.findUnique({ where: { id: Number(id) } })
+    },
+    withdrawl: async (parent, { id }, { me, models, lnd }) => {
+      console.log(models)
+      return await models.withdrawl.findUnique({ where: { id: Number(id) } })
     }
   },
 
@@ -21,7 +25,12 @@ export default {
       // set expires at to 3 hours into future
       const expiresAt = new Date(new Date().setHours(new Date().getHours() + 3))
       const description = `${amount} sats for @${me.name} on stacker.news`
-      const invoice = await createInvoice({ description, lnd, tokens: amount, expires_at: expiresAt })
+      const invoice = await createInvoice({
+        description,
+        lnd,
+        tokens: amount,
+        expires_at: expiresAt
+      })
 
       const data = {
         hash: invoice.id,
@@ -46,24 +55,29 @@ export default {
       const decoded = await decodePaymentRequest({ lnd, request: invoice })
 
       // create withdrawl transactionally (id, bolt11, amount, fee)
-      const withdrawl =
-        await models.$queryRaw`SELECT confirm_withdrawl(${decoded.id}, ${invoice},
-          ${decoded.mtokens}, ${Number(maxFee)}, ${me.name})`
+      const [withdrawl] =
+        await models.$queryRaw`SELECT * FROM create_withdrawl(${decoded.id}, ${invoice},
+          ${Number(decoded.mtokens)}, ${Number(maxFee)}, ${me.name})`
 
       // create the payment, subscribing to its status
-      const sub = subscribeToPayViaRequest({ lnd, request: invoice, max_fee_mtokens: maxFee, pathfinding_timeout: 30000 })
+      const sub = subscribeToPayViaRequest({
+        lnd,
+        request: invoice,
+        max_fee_mtokens: maxFee,
+        pathfinding_timeout: 30000
+      })
 
       // if it's confirmed, update confirmed
-      sub.on('confirmed', recordStatus)
+      sub.on('confirmed', console.log)
 
       // if the payment fails, we need to
       // 1. transactionally return the funds to the user
       // 2. transactionally update the widthdrawl as failed
-      sub.on('failed', recordStatus)
+      sub.on('failed', console.log)
 
       // in walletd
       // for each payment that hasn't failed or succeede
-      return 0
+      return withdrawl
     }
   }
 }

@@ -40,7 +40,8 @@ export function WalletForm () {
 }
 
 export const FundSchema = Yup.object({
-  amount: Yup.number('must be a number').required('required').positive('must be positive').integer('must be whole')
+  amount: Yup.number().typeError('must be a number').required('required')
+    .positive('must be positive').integer('must be whole')
 })
 
 export function FundForm () {
@@ -81,10 +82,12 @@ export function FundForm () {
 
 export const WithdrawlSchema = Yup.object({
   invoice: Yup.string().required('required'),
-  maxFee: Yup.number('must be a number').required('required').positive('must be positive').integer('must be whole')
+  maxFee: Yup.number().typeError('must be a number').required('required')
+    .min(0, 'must be positive').integer('must be whole')
 })
 
 export function WithdrawlForm () {
+  const router = useRouter()
   const query = gql`
   {
     me {
@@ -95,7 +98,9 @@ export function WithdrawlForm () {
 
   const [createWithdrawl] = useMutation(gql`
     mutation createWithdrawl($invoice: String!, $maxFee: Int!) {
-      createWithdrawl(invoice: $invoice, maxFee: $maxFee)
+      createWithdrawl(invoice: $invoice, maxFee: $maxFee) {
+        id
+      }
   }`)
 
   return (
@@ -106,13 +111,13 @@ export function WithdrawlForm () {
       <Form
         className='pt-3'
         initial={{
-          destination: '',
-          maxFee: 0,
-          amount: 0
+          invoice: '',
+          maxFee: 0
         }}
         schema={WithdrawlSchema}
         onSubmit={async ({ invoice, maxFee }) => {
-          await createWithdrawl({ variables: { invoice, maxFee: Number(maxFee) } })
+          const { data } = await createWithdrawl({ variables: { invoice, maxFee: Number(maxFee) } })
+          router.push(`/withdrawls/${data.createWithdrawl.id}`)
         }}
       >
         <Input

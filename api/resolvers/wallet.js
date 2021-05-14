@@ -75,7 +75,8 @@ export default {
           // mtokens also contains the fee
           const fee = Number(e.fee_mtokens)
           const paid = Number(e.mtokens) - fee
-          await models.$queryRaw`SELECT confirm_withdrawl(${withdrawl.id}, ${paid}, ${fee})`
+          await models.$queryRaw`
+            SELECT confirm_withdrawl(${withdrawl.id}, ${paid}, ${fee})`
         })
 
         // if the payment fails, we need to
@@ -93,7 +94,8 @@ export default {
           } else if (e.is_route_not_found) {
             status = 'ROUTE_NOT_FOUND'
           }
-          await models.$queryRaw`SELECT reverse_withdrawl(${withdrawl.id}, ${status})`
+          await models.$queryRaw`
+            SELECT reverse_withdrawl(${withdrawl.id}, ${status})`
         })
 
         return withdrawl

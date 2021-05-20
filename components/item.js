@@ -20,7 +20,7 @@ export default function Item ({ item, rank, children }) {
               <a className={`${styles.title} text-reset flex-md-shrink-0 mr-2`}>{item.title}</a>
             </Link>
             {item.url &&
-              <a className={styles.link} href={item.url} rel={item.sats > 5 ? null : 'nofollow'}>
+              <a className={styles.link} href={item.url} rel={item.sats + item.boost >= 10 ? null : 'nofollow'}>
                 {item.url.replace(/(^https?:|^)\/\//, '')}
               </a>}
           </div>

@@ -47,9 +47,13 @@ export default function Header () {
               <Link href='/recent' passHref>
                 <NavDropdown.Item>recent</NavDropdown.Item>
               </Link>
-              <Link href='/post' passHref>
-                <NavDropdown.Item>post</NavDropdown.Item>
-              </Link>
+              {session
+                ? (
+                  <Link href='/post' passHref>
+                    <NavDropdown.Item>post</NavDropdown.Item>
+                  </Link>
+                  )
+                : <NavDropdown.Item onClick={signIn}>post</NavDropdown.Item>}
               <NavDropdown.Item href='https://bitcoinerjobs.co' target='_blank'>jobs</NavDropdown.Item>
             </div>
             <NavDropdown.Divider />
@@ -84,9 +88,13 @@ export default function Header () {
               </Link>
             </Nav.Item>
             <Nav.Item className='d-md-flex d-none'>
-              <Link href='/post' passHref>
-                <Nav.Link className={styles.navLink}>post</Nav.Link>
-              </Link>
+              {session
+                ? (
+                  <Link href='/post' passHref>
+                    <Nav.Link className={styles.navLink}>post</Nav.Link>
+                  </Link>
+                  )
+                : <Nav.Link className={styles.navLink} onClick={signIn}>post</Nav.Link>}
             </Nav.Item>
             <Nav.Item className='d-md-flex d-none'>
               <Nav.Link href='https://bitcoinerjobs.co' target='_blank' className={styles.navLink}>jobs</Nav.Link>

@@ -2,8 +2,10 @@ import { LightningConsumer } from './lightning'
 import UpArrow from '../svgs/lightning-arrow.svg'
 import styles from './upvote.module.css'
 import { gql, useMutation } from '@apollo/client'
+import { signIn, useSession } from 'next-auth/client'
 
 export default function UpVote ({ itemId, meSats, className }) {
+  const [session] = useSession()
   const [vote] = useMutation(
     gql`
       mutation vote($id: ID!, $sats: Int!) {
@@ -39,15 +41,19 @@ export default function UpVote ({ itemId, meSats, className }) {
             ${className || ''}
             ${meSats ? (meSats > 1 ? styles.stimi : styles.voted) : ''}`
           }
-          onClick={async () => {
-            if (!itemId) return
-            const { error } = await vote({ variables: { id: itemId, sats: 1 } })
-            if (error) {
-              throw new Error({ message: error.toString() })
-            }
+          onClick={
+            session
+              ? async () => {
+                  if (!itemId) return
+                  const { error } = await vote({ variables: { id: itemId, sats: 1 } })
+                  if (error) {
+                    throw new Error({ message: error.toString() })
+                  }
 
-            strike()
-          }}
+                  strike()
+                }
+              : signIn
+          }
         />}
     </LightningConsumer>
   )

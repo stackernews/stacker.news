@@ -2,7 +2,7 @@ const { UserInputError } = require('apollo-server-micro')
 const retry = require('async-retry')
 
 async function serialize (models, call) {
-  await retry(async bail => {
+  return await retry(async bail => {
     try {
       const [, result] = await models.$transaction([
         models.$executeRaw(SERIALIZE),

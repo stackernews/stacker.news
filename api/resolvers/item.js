@@ -1,4 +1,5 @@
 import { UserInputError, AuthenticationError } from 'apollo-server-micro'
+import { ensureProtocol } from '../../lib/url'
 import serialize from './serial'
 
 async function comments (models, id) {
@@ -77,7 +78,9 @@ export default {
         throw new UserInputError('link must have url', { argumentName: 'url' })
       }
 
-      return await createItem(parent, { title, url }, { me, models })
+      console.log(ensureProtocol(url))
+
+      return await createItem(parent, { title, url: ensureProtocol(url) }, { me, models })
     },
     createDiscussion: async (parent, { title, text }, { me, models }) => {
       if (!title) {
@@ -171,10 +174,12 @@ const createItem = async (parent, { title, url, text, parentId }, { me, models }
     throw new AuthenticationError('you must be logged in')
   }
 
+  console.log('before')
   const [item] = await serialize(models, models.$queryRaw(
     `${SELECT} FROM create_item($1, $2, $3, $4, $5) AS "Item"`,
     title, url, text, Number(parentId), me.name))
   item.comments = []
+  console.log('after')
   return item
 }
 

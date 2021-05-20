@@ -19,7 +19,10 @@ export default function Item ({ item, rank, children }) {
             <Link href={`/items/${item.id}`} passHref>
               <a className={`${styles.title} text-reset flex-md-shrink-0 mr-2`}>{item.title}</a>
             </Link>
-            {item.url && <a className={styles.link} href={item.url}>{item.url.replace(/(^\w+:|^)\/\//, '')}</a>}
+            {item.url &&
+              <a className={styles.link} href={item.url} rel={item.sats > 5 ? null : 'nofollow'}>
+                {item.url.replace(/(^https?:|^)\/\//, '')}
+              </a>}
           </div>
           <div className={`${styles.other}`}>
             <span>{item.sats} sats</span>

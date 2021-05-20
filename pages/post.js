@@ -5,6 +5,7 @@ import Link from 'next/link'
 import * as Yup from 'yup'
 import { gql, useMutation } from '@apollo/client'
 import LayoutCenter from '../components/layout-center'
+import { ensureProtocol } from '../lib/url'
 
 export const DiscussionSchema = Yup.object({
   title: Yup.string().required('required').trim()
@@ -55,7 +56,19 @@ export function DiscussionForm () {
 
 export const LinkSchema = Yup.object({
   title: Yup.string().required('required').trim(),
-  url: Yup.string().url('invalid url').required('required')
+  url: Yup.string().test({
+    name: 'url',
+    test: (value) => {
+      try {
+        value = ensureProtocol(value)
+        const valid = new URL(value)
+        return Boolean(valid)
+      } catch {
+        return false
+      }
+    },
+    message: 'invalid url'
+  }).required('required')
 })
 
 export function LinkForm () {

@@ -68,11 +68,11 @@ function LoadWithdrawl ({ query }) {
       variant = 'failed'
       break
     case 'PATHFINDING_TIMEOUT':
-      status = <>timed out trying to find route <small className='ml-3'>try increasing max fee</small></>
+      status = <>timed out finding route <small className='ml-3'>try increasing max fee</small></>
       variant = 'failed'
       break
     case 'ROUTE_NOT_FOUND':
-      status = <>could not find route <small className='ml-3'>try increasing max fee</small></>
+      status = <>no route <small className='ml-3'>try increasing max fee</small></>
       variant = 'failed'
       break
     default:

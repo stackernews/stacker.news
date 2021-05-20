@@ -8,7 +8,7 @@ export const CommentSchema = Yup.object({
   text: Yup.string().required('required').trim()
 })
 
-export default function Reply ({ parentId, onSuccess }) {
+export default function Reply ({ parentId, onSuccess, autoFocus }) {
   const [createComment] = useMutation(
     gql`
       ${COMMENTS}
@@ -63,6 +63,7 @@ export default function Reply ({ parentId, onSuccess }) {
           name='text'
           as='textarea'
           rows={4}
+          autoFocus={autoFocus}
           required
         />
         <SubmitButton variant='secondary' className='mt-1'>reply</SubmitButton>

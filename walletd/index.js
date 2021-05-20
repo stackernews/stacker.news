@@ -1,6 +1,7 @@
 const { PrismaClient } = require('@prisma/client')
 const { authenticatedLndGrpc, subscribeToInvoices, getInvoice, getPayment } = require('ln-service')
 const dotenv = require('dotenv')
+const serialize = require('../api/resolvers/serial')
 
 dotenv.config({ path: '..' })
 
@@ -15,17 +16,19 @@ const models = new PrismaClient()
 async function recordInvoiceStatus (inv) {
   console.log(inv)
   if (inv.is_confirmed) {
-    await models.$queryRaw`SELECT confirm_invoice(${inv.id}, ${Number(inv.received_mtokens)})`
+    await serialize(models,
+      models.$executeRaw`SELECT confirm_invoice(${inv.id}, ${Number(inv.received_mtokens)})`)
   } else if (inv.is_canceled) {
     // mark as cancelled
-    models.invoice.update({
-      where: {
-        hash: inv.id
-      },
-      data: {
-        cancelled: true
-      }
-    })
+    await serialize(models,
+      models.invoice.update({
+        where: {
+          hash: inv.id
+        },
+        data: {
+          cancelled: true
+        }
+      }))
   }
 }
 
@@ -67,8 +70,8 @@ async function recordWithdrawlStatus (id, wdrwl) {
     // is this true for getPayment?
     const fee = Number(wdrwl.payment.fee_mtokens)
     const paid = Number(wdrwl.mtokens) - fee
-    await models.$queryRaw`
-      SELECT confirm_withdrawl(${id}, ${paid}, ${fee})`
+    await serialize(models, models.$executeRaw`
+      SELECT confirm_withdrawl(${id}, ${paid}, ${fee})`)
   } else if (wdrwl.is_failed) {
     let status = 'UNKNOWN_FAILURE'
     if (wdrwl.failed.is_insufficient_balance) {
@@ -80,8 +83,8 @@ async function recordWithdrawlStatus (id, wdrwl) {
     } else if (wdrwl.failed.is_route_not_found) {
       status = 'ROUTE_NOT_FOUND'
     }
-    await models.$queryRaw`
-      SELECT reverse_withdrawl(${id}, ${status})`
+    await serialize(models, models.$executeRaw`
+      SELECT reverse_withdrawl(${id}, ${status})`)
   }
 }
 
@@ -90,7 +93,7 @@ async function checkPendingWithdrawls () {
   const leftovers = await models.withdrawl.findMany({
     where: {
       createdAt: {
-        lt: new Date(new Date().setSeconds(new Date().getSeconds() + 30))
+        lt: new Date(new Date().setSeconds(new Date().getSeconds() - 30))
       },
       status: {
         equals: null

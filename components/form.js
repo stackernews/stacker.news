@@ -93,7 +93,7 @@ export function Form ({
       validationSchema={schema}
       validateOnBlur={false}
       onSubmit={async (...args) =>
-        onSubmit && onSubmit(...args).catch(e => setError(e.message))}
+        onSubmit && onSubmit(...args).catch(e => setError(e.message || e))}
     >
       <FormikForm {...props} noValidate>
         {error && <Alert variant='danger' onClose={() => setError(undefined)} dismissible>{error}</Alert>}

@@ -90,7 +90,10 @@ export default function Comment ({ item, children, replyOpen, includeParent, cac
           </div>}
         {reply &&
           <div className={styles.replyWrapper}>
-            <Reply parentId={item.id} onSuccess={() => setReply(replyOpen || false)} cacheId={cacheId} />
+            <Reply
+              parentId={item.id} autoFocus={!replyOpen}
+              onSuccess={() => setReply(replyOpen || false)} cacheId={cacheId}
+            />
           </div>}
         {children}
         <div className={`${styles.comments} ml-sm-1 ml-md-3`}>

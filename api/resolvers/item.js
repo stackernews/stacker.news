@@ -1,4 +1,5 @@
 import { UserInputError, AuthenticationError } from 'apollo-server-micro'
+import serialize from './serial'
 
 async function comments (models, id) {
   const flat = await models.$queryRaw(`
@@ -106,15 +107,7 @@ export default {
         throw new UserInputError('sats must be positive', { argumentName: 'sats' })
       }
 
-      try {
-        await models.$queryRaw`SELECT vote(${Number(id)}, ${me.name}, ${Number(sats)})`
-      } catch (error) {
-        const { meta: { message } } = error
-        if (message.includes('SN_INSUFFICIENT_FUNDS')) {
-          throw new UserInputError('insufficient funds')
-        }
-        throw error
-      }
+      await serialize(models, models.$queryRaw`SELECT vote(${Number(id)}, ${me.name}, ${Number(sats)})`)
       return sats
     }
   },
@@ -178,19 +171,11 @@ const createItem = async (parent, { title, url, text, parentId }, { me, models }
     throw new AuthenticationError('you must be logged in')
   }
 
-  try {
-    const [item] = await models.$queryRaw(
-      `${SELECT} FROM create_item($1, $2, $3, $4, $5) AS "Item"`,
-      title, url, text, Number(parentId), me.name)
-    item.comments = []
-    return item
-  } catch (error) {
-    const { meta: { message } } = error
-    if (message.includes('SN_INSUFFICIENT_FUNDS')) {
-      throw new UserInputError('insufficient funds')
-    }
-    throw error
-  }
+  const [item] = await serialize(models, models.$queryRaw(
+    `${SELECT} FROM create_item($1, $2, $3, $4, $5) AS "Item"`,
+    title, url, text, Number(parentId), me.name))
+  item.comments = []
+  return item
 }
 
 function nestComments (flat, parentId) {

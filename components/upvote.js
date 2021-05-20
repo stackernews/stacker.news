@@ -3,9 +3,11 @@ import UpArrow from '../svgs/lightning-arrow.svg'
 import styles from './upvote.module.css'
 import { gql, useMutation } from '@apollo/client'
 import { signIn, useSession } from 'next-auth/client'
+import { useFundError } from './fund-error'
 
 export default function UpVote ({ itemId, meSats, className }) {
   const [session] = useSession()
+  const { setError } = useFundError()
   const [vote] = useMutation(
     gql`
       mutation vote($id: ID!, $sats: Int!) {
@@ -45,8 +47,15 @@ export default function UpVote ({ itemId, meSats, className }) {
             session
               ? async () => {
                   if (!itemId) return
-                  const { error } = await vote({ variables: { id: itemId, sats: 1 } })
-                  if (error) {
+                  try {
+                    await vote({ variables: { id: itemId, sats: 1 } })
+                  } catch (error) {
+                    console.log(error.toString())
+                    if (error.toString().includes('insufficient funds')) {
+                      console.log('hjo')
+                      setError(true)
+                      return
+                    }
                     throw new Error({ message: error.toString() })
                   }
 

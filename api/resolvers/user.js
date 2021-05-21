@@ -1,3 +1,5 @@
+import { AuthenticationError } from 'apollo-server-errors'
+
 export default {
   Query: {
     me: async (parent, args, { models, me }) =>
@@ -6,7 +8,14 @@ export default {
       return await models.user.findUnique({ where: { name } })
     },
     users: async (parent, args, { models }) =>
-      await models.user.findMany()
+      await models.user.findMany(),
+    nameAvailable: async (parent, { name }, { models, me }) => {
+      if (!me) {
+        throw new AuthenticationError('you must be logged in')
+      }
+
+      return me.name === name || !(await models.user.findUnique({ where: { name } }))
+    }
   },
 
   User: {

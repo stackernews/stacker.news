@@ -50,9 +50,7 @@ export default function UpVote ({ itemId, meSats, className }) {
                   try {
                     await vote({ variables: { id: itemId, sats: 1 } })
                   } catch (error) {
-                    console.log(error.toString())
                     if (error.toString().includes('insufficient funds')) {
-                      console.log('hjo')
                       setError(true)
                       return
                     }

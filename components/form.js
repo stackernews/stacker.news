@@ -48,11 +48,11 @@ export function InputSkeleton ({ label }) {
   )
 }
 
-export function Input ({ label, prepend, append, hint, ...props }) {
+export function Input ({ label, prepend, append, hint, showValid, noBottomMargin, ...props }) {
   const [field, meta] = props.readOnly ? [{}, {}] : useField(props)
 
   return (
-    <BootstrapForm.Group>
+    <BootstrapForm.Group className={noBottomMargin ? 'mb-0' : ''}>
       {label && <BootstrapForm.Label>{label}</BootstrapForm.Label>}
       <InputGroup hasValidation>
         {prepend && (
@@ -63,6 +63,7 @@ export function Input ({ label, prepend, append, hint, ...props }) {
         <BootstrapForm.Control
           {...field} {...props}
           isInvalid={meta.touched && meta.error}
+          isValid={showValid && meta.touched && !meta.error}
         />
         {append && (
           <InputGroup.Append>

@@ -3,8 +3,9 @@ import { gql } from 'apollo-server-micro'
 export default gql`
   extend type Query {
     me: User
-    user(name: String): User
+    user(name: String!): User
     users: [User!]
+    nameAvailable(name: String!): Boolean!
   }
 
   type User {

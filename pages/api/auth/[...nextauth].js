@@ -21,7 +21,6 @@ const options = {
       clientId: process.env.TWITTER_ID,
       clientSecret: process.env.TWITTER_SECRET,
       profile: profile => {
-        console.log(profile)
         return {
           ...profile,
           name: profile.screen_name
@@ -32,7 +31,6 @@ const options = {
       server: process.env.EMAIL_SERVER,
       from: process.env.EMAIL_FROM,
       profile: profile => {
-        console.log(profile)
         return profile
       }
     })

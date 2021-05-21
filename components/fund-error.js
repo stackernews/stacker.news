@@ -35,7 +35,7 @@ export function FundErrorModal () {
       onHide={() => setError(false)}
     >
       <Modal.Body>
-        <p>you're out of sats!</p>
+        <p className='font-weight-bolder'>you are out of sats</p>
         <div className='d-flex justify-content-end'>
           <Link href='/wallet?type=fund'>
             <Button variant='success' onClick={() => setError(false)}>fund</Button>

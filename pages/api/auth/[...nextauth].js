@@ -9,15 +9,32 @@ const options = {
   providers: [
     Providers.GitHub({
       clientId: process.env.GITHUB_ID,
-      clientSecret: process.env.GITHUB_SECRET
+      clientSecret: process.env.GITHUB_SECRET,
+      profile: profile => {
+        return {
+          ...profile,
+          name: profile.login
+        }
+      }
     }),
     Providers.Twitter({
       clientId: process.env.TWITTER_ID,
-      clientSecret: process.env.TWITTER_SECRET
+      clientSecret: process.env.TWITTER_SECRET,
+      profile: profile => {
+        console.log(profile)
+        return {
+          ...profile,
+          name: profile.screen_name
+        }
+      }
     }),
     Providers.Email({
       server: process.env.EMAIL_SERVER,
-      from: process.env.EMAIL_FROM
+      from: process.env.EMAIL_FROM,
+      profile: profile => {
+        console.log(profile)
+        return profile
+      }
     })
   ],
   adapter: Adapters.Prisma.Adapter({ prisma }),

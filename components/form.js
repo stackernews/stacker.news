@@ -84,7 +84,7 @@ export function Input ({ label, prepend, append, hint, showValid, noBottomMargin
 }
 
 export function Form ({
-  initial, schema, onSubmit, children, initialError, ...props
+  initial, schema, onSubmit, children, initialError, validateOnBlur, ...props
 }) {
   const [error, setError] = useState(initialError)
 
@@ -92,7 +92,7 @@ export function Form ({
     <Formik
       initialValues={initial}
       validationSchema={schema}
-      validateOnBlur={false}
+      validateOnBlur={validateOnBlur}
       onSubmit={async (...args) =>
         onSubmit && onSubmit(...args).catch(e => setError(e.message || e))}
     >

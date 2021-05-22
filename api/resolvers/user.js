@@ -1,4 +1,4 @@
-import { AuthenticationError } from 'apollo-server-errors'
+import { AuthenticationError, UserInputError } from 'apollo-server-errors'
 
 export default {
   Query: {
@@ -15,6 +15,23 @@ export default {
       }
 
       return me.name === name || !(await models.user.findUnique({ where: { name } }))
+    }
+  },
+
+  Mutation: {
+    setName: async (parent, { name }, { me, models }) => {
+      if (!me) {
+        throw new AuthenticationError('you must be logged in')
+      }
+
+      try {
+        await models.user.update({ where: { name: me.name }, data: { name } })
+      } catch (error) {
+        if (error.code === 'P2002') {
+          throw new UserInputError('name taken')
+        }
+        throw error
+      }
     }
   },
 

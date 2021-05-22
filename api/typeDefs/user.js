@@ -8,6 +8,10 @@ export default gql`
     nameAvailable(name: String!): Boolean!
   }
 
+  extend type Mutation {
+    setName(name: String!): Boolean
+  }
+
   type User {
     id: ID!
     name: String

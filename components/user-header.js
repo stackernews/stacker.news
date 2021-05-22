@@ -7,7 +7,7 @@ import { useState } from 'react'
 import { Form, Input, SubmitButton } from './form'
 import InputGroup from 'react-bootstrap/InputGroup'
 import * as Yup from 'yup'
-import { gql, useApolloClient, useQuery } from '@apollo/client'
+import { gql, useApolloClient, useMutation } from '@apollo/client'
 
 const NAME_QUERY =
 gql`
@@ -16,11 +16,19 @@ gql`
   }
 `
 
+const NAME_MUTATION =
+gql`
+  mutation setName($name: String!) {
+    setName(name: $name)
+  }
+`
+
 export default function UserHeader ({ user }) {
   const [editting, setEditting] = useState(false)
   const [session] = useSession()
   const router = useRouter()
   const client = useApolloClient()
+  const [setName] = useMutation(NAME_MUTATION)
 
   const Satistics = () => <h1 className='ml-2'><small className='text-success'>[{user.stacked} stacked, {user.sats} sats]</small></h1>
 
@@ -49,6 +57,17 @@ export default function UserHeader ({ user }) {
             schema={UserSchema}
             initial={{
               name: user.name
+            }}
+            onSubmit={async ({ name }) => {
+              if (name === user.name) {
+                setEditting(false)
+                return
+              }
+              const { error } = await setName({ variables: { name } })
+              if (error) {
+                throw new Error({ message: error.toString() })
+              }
+              window.location = `/${name}`
             }}
           >
             <Input

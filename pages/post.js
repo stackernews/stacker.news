@@ -6,6 +6,7 @@ import * as Yup from 'yup'
 import { gql, useMutation } from '@apollo/client'
 import LayoutCenter from '../components/layout-center'
 import { ensureProtocol } from '../lib/url'
+import { useMe } from '../components/me'
 
 export const DiscussionSchema = Yup.object({
   title: Yup.string().required('required').trim()
@@ -115,6 +116,7 @@ export function LinkForm () {
 
 export function PostForm () {
   const router = useRouter()
+  const me = useMe()
 
   if (!router.query.type) {
     return (
@@ -126,6 +128,9 @@ export function PostForm () {
         <Link href='/post?type=discussion'>
           <Button variant='secondary'>discussion</Button>
         </Link>
+        {me?.freePosts
+          ? <div className='text-center font-weight-bold mt-3 text-success'>{me.freePosts} free posts left</div>
+          : null}
       </div>
     )
   }

@@ -24,6 +24,8 @@ model User {
   invoices      Invoice[]
   withdrawls    Withdrawl[]
   msats         Int         @default(0)
+  freeComments  Int         @default(5)
+  freePosts     Int         @default(2)
 
   @@map(name: "users")
 }

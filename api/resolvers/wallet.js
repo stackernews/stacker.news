@@ -86,7 +86,12 @@ export default {
       }
 
       // decode invoice to get amount
-      const decoded = await decodePaymentRequest({ lnd, request: invoice })
+      let decoded
+      try {
+        decoded = await decodePaymentRequest({ lnd, request: invoice })
+      } catch (error) {
+        throw new UserInputError('could not decode invoice')
+      }
 
       const msatsFee = Number(maxFee) * 1000
 

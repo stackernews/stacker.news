@@ -18,6 +18,8 @@ export default gql`
     nitems: Int!
     ncomments: Int!
     stacked: Int!
+    freePosts: Int!
+    freeComments: Int!
     sats: Int!
     msats: Int!
   }

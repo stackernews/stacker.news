@@ -6,20 +6,13 @@ import styles from './header.module.css'
 import { useRouter } from 'next/router'
 import { Button, Container, NavDropdown } from 'react-bootstrap'
 import Price from './price'
-import { gql, useQuery } from '@apollo/client'
+import { useMe } from './me'
 
 function WalletSummary () {
-  const query = gql`
-  {
-    me {
-      sats
-      stacked
-    }
-  }`
-  const { data } = useQuery(query, { pollInterval: 1000 })
-  if (!data) return null
+  const me = useMe()
+  if (!me) return null
 
-  return `[${data.me.stacked},${data.me.sats}]`
+  return `[${me.stacked},${me.sats}]`
 }
 
 export default function Header () {

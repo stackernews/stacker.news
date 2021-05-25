@@ -8,6 +8,7 @@ import { Form, Input, SubmitButton } from './form'
 import InputGroup from 'react-bootstrap/InputGroup'
 import * as Yup from 'yup'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
+import styles from './user-header.module.css'
 
 const NAME_QUERY =
 gql`
@@ -58,6 +59,7 @@ export default function UserHeader ({ user }) {
             initial={{
               name: user.name
             }}
+            validateImmediately
             onSubmit={async ({ name }) => {
               if (name === user.name) {
                 setEditting(false)
@@ -74,7 +76,7 @@ export default function UserHeader ({ user }) {
               prepend=<InputGroup.Text>@</InputGroup.Text>
               name='name'
               autoFocus
-              noBottomMargin
+              groupClassName={`mb-0 ${styles.username}`}
               showValid
             />
             <Satistics user={user} />

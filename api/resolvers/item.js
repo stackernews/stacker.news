@@ -174,12 +174,10 @@ const createItem = async (parent, { title, url, text, parentId }, { me, models }
     throw new AuthenticationError('you must be logged in')
   }
 
-  console.log('before')
   const [item] = await serialize(models, models.$queryRaw(
     `${SELECT} FROM create_item($1, $2, $3, $4, $5) AS "Item"`,
     title, url, text, Number(parentId), me.name))
   item.comments = []
-  console.log('after')
   return item
 }
 

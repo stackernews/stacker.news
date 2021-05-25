@@ -48,11 +48,10 @@ export function InputSkeleton ({ label }) {
   )
 }
 
-export function Input ({ label, prepend, append, hint, showValid, noBottomMargin, ...props }) {
+export function Input ({ label, prepend, append, hint, showValid, groupClassName, ...props }) {
   const [field, meta] = props.readOnly ? [{}, {}] : useField(props)
-
   return (
-    <BootstrapForm.Group className={noBottomMargin ? 'mb-0' : ''}>
+    <BootstrapForm.Group className={groupClassName}>
       {label && <BootstrapForm.Label>{label}</BootstrapForm.Label>}
       <InputGroup hasValidation>
         {prepend && (
@@ -73,18 +72,18 @@ export function Input ({ label, prepend, append, hint, showValid, noBottomMargin
         <BootstrapForm.Control.Feedback type='invalid'>
           {meta.touched && meta.error}
         </BootstrapForm.Control.Feedback>
-        {hint && (
-          <BootstrapForm.Text>
-            {hint}
-          </BootstrapForm.Text>
-        )}
       </InputGroup>
+      {hint && (
+        <BootstrapForm.Text>
+          {hint}
+        </BootstrapForm.Text>
+      )}
     </BootstrapForm.Group>
   )
 }
 
 export function Form ({
-  initial, schema, onSubmit, children, initialError, validateOnBlur, ...props
+  initial, schema, onSubmit, children, initialError, validateImmediately, ...props
 }) {
   const [error, setError] = useState(initialError)
 
@@ -92,7 +91,8 @@ export function Form ({
     <Formik
       initialValues={initial}
       validationSchema={schema}
-      validateOnBlur={validateOnBlur}
+      initialTouched={validateImmediately && initial}
+      validateOnBlur={false}
       onSubmit={async (...args) =>
         onSubmit && onSubmit(...args).catch(e => setError(e.message || e))}
     >

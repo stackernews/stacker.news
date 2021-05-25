@@ -3,12 +3,15 @@ import * as Yup from 'yup'
 import { gql, useMutation } from '@apollo/client'
 import styles from './reply.module.css'
 import { COMMENTS } from '../fragments/comments'
+import { useMe } from './me'
 
 export const CommentSchema = Yup.object({
   text: Yup.string().required('required').trim()
 })
 
 export default function Reply ({ parentId, onSuccess, autoFocus }) {
+  const me = useMe()
+
   const [createComment] = useMutation(
     gql`
       ${COMMENTS}
@@ -65,6 +68,7 @@ export default function Reply ({ parentId, onSuccess, autoFocus }) {
           rows={4}
           autoFocus={autoFocus}
           required
+          hint={me?.freeComments ? <span className='text-success'>{me.freeComments} free comments left</span> : null}
         />
         <SubmitButton variant='secondary' className='mt-1'>reply</SubmitButton>
       </Form>

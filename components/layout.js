@@ -3,6 +3,7 @@ import Head from 'next/head'
 import Container from 'react-bootstrap/Container'
 import { LightningProvider } from './lightning'
 import { useRouter } from 'next/router'
+import Footer from './footer'
 
 export default function Layout ({ noContain, children }) {
   const router = useRouter()
@@ -18,10 +19,11 @@ export default function Layout ({ noContain, children }) {
         {noContain
           ? children
           : (
-            <Container className='my-1 mb-5 px-sm-0'>
+            <Container className='my-1 mb-4 px-sm-0'>
               {children}
             </Container>
             )}
+        <Footer />
       </LightningProvider>
     </>
   )

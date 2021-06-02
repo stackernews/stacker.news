@@ -60,6 +60,21 @@ body {
   height: 100%;
 }
 
+#__next {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 100vh;
+}
+
+footer {
+  margin-top: auto;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
 @media screen and (max-width: 767px) {
   input, select, textarea, .form-control, .form-control:focus, .input-group-text {
     font-size: 1rem !important;

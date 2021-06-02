@@ -4,6 +4,7 @@ export default gql`
   extend type Query {
     invoice(id: ID!): Invoice!
     withdrawl(id: ID!): Withdrawl!
+    connectAddress: String!
   }
 
   extend type Mutation {

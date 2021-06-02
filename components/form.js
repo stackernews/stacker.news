@@ -33,7 +33,14 @@ export function CopyInput (props) {
   return (
     <Input
       onClick={handleClick}
-      append={<Button onClick={handleClick}>{copied ? <Thumb width={18} height={18} /> : 'copy'}</Button>}
+      append={
+        <Button
+          size={props.size}
+          onClick={handleClick}
+        >
+          {copied ? <Thumb width={18} height={18} /> : 'copy'}
+        </Button>
+}
       {...props}
     />
   )

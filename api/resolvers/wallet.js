@@ -1,4 +1,4 @@
-import { createInvoice, decodePaymentRequest, subscribeToPayViaRequest } from 'ln-service'
+import lndService, { createInvoice, decodePaymentRequest, subscribeToPayViaRequest } from 'ln-service'
 import { UserInputError, AuthenticationError } from 'apollo-server-micro'
 import serialize from './serial'
 
@@ -43,6 +43,10 @@ export default {
       }
 
       return wdrwl
+    },
+    connectAddress: async (parent, args, { lnd }) => {
+      const pubkey = (await lndService.getWalletInfo({ lnd })).public_key
+      return `${pubkey}@${process.env.LND_SOCKET}`
     }
   },
 

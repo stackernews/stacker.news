@@ -28,8 +28,8 @@ const options = {
       }
     }),
     Providers.Email({
-      server: process.env.EMAIL_SERVER,
-      from: process.env.EMAIL_FROM,
+      server: process.env.LOGIN_EMAIL_SERVER,
+      from: process.env.LOGIN_EMAIL_FROM,
       profile: profile => {
         return profile
       }

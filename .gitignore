@@ -33,3 +33,8 @@ yarn-error.log*
 
 # vercel
 .vercel
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml

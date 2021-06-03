@@ -28,6 +28,9 @@
     "yup": "^0.32.9",
     "prisma": "^2.23.0"
   },
+  "engines": {
+    "node": ">=14.0.0"
+  },
   "standard": {
     "parser": "babel-eslint",
     "plugins": [

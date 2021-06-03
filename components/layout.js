@@ -5,7 +5,7 @@ import { LightningProvider } from './lightning'
 import { useRouter } from 'next/router'
 import Footer from './footer'
 
-export default function Layout ({ noContain, children }) {
+export default function Layout ({ noContain, noFooter, children }) {
   const router = useRouter()
   const defaultTitle = router.asPath.split('?')[0].slice(1)
   return (
@@ -23,7 +23,7 @@ export default function Layout ({ noContain, children }) {
               {children}
             </Container>
             )}
-        <Footer />
+        {!noFooter && <Footer />}
       </LightningProvider>
     </>
   )

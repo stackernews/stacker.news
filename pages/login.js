@@ -50,7 +50,7 @@ export default function login ({ providers, csrfToken, error }) {
   const [errorMessage, setErrorMessage] = useState(error && (errors[error] ?? errors.default))
 
   return (
-    <LayoutCenter>
+    <LayoutCenter noFooter>
       <div className={styles.login}>
         {errorMessage &&
           <Alert variant='danger' onClose={() => setErrorMessage(undefined)} dismissible>{errorMessage}</Alert>}

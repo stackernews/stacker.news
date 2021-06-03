@@ -29,7 +29,7 @@
     "prisma": "^2.23.0"
   },
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=v14.0.0"
   },
   "standard": {
     "parser": "babel-eslint",

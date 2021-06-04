@@ -5,8 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start -p 8080",
-    "prestart": "prisma generate"
+    "start": "next start -p $PORT"
   },
   "dependencies": {
     "@apollo/client": "^3.3.13",

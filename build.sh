@@ -7,4 +7,4 @@ sudo npm install yarn -g
 sudo ln -s "$(npm bin --global)"/yarn /usr/bin/yarn
 
 # build it
-yarn build
+sudo yarn build

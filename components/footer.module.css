@@ -1,0 +1,11 @@
+.connect {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    max-width: 500px;
+    opacity: 0.7;
+}
+
+.connect:hover {
+    opacity: 1;
+}

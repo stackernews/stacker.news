@@ -2,6 +2,7 @@ import { useQuery } from '@apollo/client'
 import gql from 'graphql-tag'
 import { Container } from 'react-bootstrap'
 import { CopyInput } from './form'
+import styles from './footer.module.css'
 
 export default function Footer () {
   const query = gql`
@@ -17,8 +18,7 @@ export default function Footer () {
       {data &&
         <Container>
           <div
-            className='d-flex align-items-center text-small my-3 mx-auto w-100'
-            style={{ maxWidth: '500px' }}
+            className={`text-small my-3 mx-auto ${styles.connect}`}
           >
             <span className='nav-item text-muted mr-2'>connect:</span>
             <CopyInput

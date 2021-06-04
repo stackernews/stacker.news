@@ -1,19 +1,16 @@
 #!/usr/bin/env bash
 
 echo installing yarn
-
-# install yarn
 sudo npm install yarn -g
 
-echo link
-
-# make sure it's in path
+echo link yarn
 sudo ln -s "$(npm bin --global)"/yarn /usr/bin/yarn
+
+echo install
+yarn install
 
 echo gen primsa client
 prisma generate
 
-echo try to build
-
-# build it
+echo build
 yarn build

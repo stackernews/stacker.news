@@ -3,7 +3,7 @@
 echo installing yarn
 sudo npm install yarn -g
 
-echo link yarn
+echo link yarn $(npm bin --global) $(sudo npm bin --global)
 sudo ln -s "$(npm bin --global)"/yarn /usr/bin/yarn
 
 echo install

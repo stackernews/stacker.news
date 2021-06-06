@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "rebuild": "next build",
+    "build": "next build",
     "start": "next start -p $PORT"
   },
   "dependencies": {

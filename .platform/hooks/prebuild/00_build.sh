@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-echo skipping yarn
+echo build with npm
+npm run build
+
 # echo installing yarn
 # sudo npm install yarn -g
 

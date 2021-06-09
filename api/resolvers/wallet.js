@@ -62,26 +62,31 @@ export default {
       // set expires at to 3 hours into future
       const expiresAt = new Date(new Date().setHours(new Date().getHours() + 3))
       const description = `${amount} sats for @${me.name} on stacker.news`
-      const invoice = await createInvoice({
-        description,
-        lnd,
-        tokens: amount,
-        expires_at: expiresAt
-      })
+      try {
+        const invoice = await createInvoice({
+          description,
+          lnd,
+          tokens: amount,
+          expires_at: expiresAt
+        })
 
-      const data = {
-        hash: invoice.id,
-        bolt11: invoice.request,
-        expiresAt: expiresAt,
-        msatsRequested: amount * 1000,
-        user: {
-          connect: {
-            name: me.name
+        const data = {
+          hash: invoice.id,
+          bolt11: invoice.request,
+          expiresAt: expiresAt,
+          msatsRequested: amount * 1000,
+          user: {
+            connect: {
+              name: me.name
+            }
           }
         }
-      }
 
-      return await models.invoice.create({ data })
+        return await models.invoice.create({ data })
+      } catch (error) {
+        console.log(error)
+        throw error
+      }
     },
     createWithdrawl: async (parent, { invoice, maxFee }, { me, models, lnd }) => {
       if (!me) {

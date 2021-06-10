@@ -84,7 +84,7 @@ export default {
 
         return await models.invoice.create({ data })
       } catch (error) {
-        console.log(error)
+        console.log(error, error.metadata)
         throw error
       }
     },

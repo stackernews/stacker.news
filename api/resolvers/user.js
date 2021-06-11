@@ -46,7 +46,7 @@ export default {
       const [{ sum }] = await models.$queryRaw`
         SELECT sum("Vote".sats)
         FROM "Item"
-        LEFT JOIN "Vote" on "Vote"."itemId" = "Item".id AND "Item"."userId" <> ${user.id}
+        LEFT JOIN "Vote" on "Vote"."itemId" = "Item".id AND "Vote"."userId" <> ${user.id}
         WHERE "Item"."userId" = ${user.id}`
       return sum || 0
     },

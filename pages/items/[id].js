@@ -68,7 +68,7 @@ function LoadItem ({ query }) {
               <title>{item.title} \ stacker news</title>
             </Head>
             <Item item={item}>
-              {item.text && <Text>{item.text}</Text>}
+              {item.text && <div className='mb-3'><Text>{item.text}</Text></div>}
               <Reply parentId={item.id} />
             </Item>
           </>

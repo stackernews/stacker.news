@@ -154,13 +154,15 @@ export default {
     meSats: async (item, args, { me, models }) => {
       if (!me) return 0
 
+      const meFull = await models.user.findUnique({ where: { name: me.name } })
+
       const { sum: { sats } } = await models.vote.aggregate({
         sum: {
           sats: true
         },
         where: {
           itemId: item.id,
-          userId: me.id
+          userId: meFull.id
         }
       })
 

@@ -17,7 +17,7 @@ export default function Price () {
       refreshInterval: 30000
     })
 
-  if (!data) return null
+  if (!data || !data.data) return null
 
   const fixed = (n, f) => Number.parseFloat(n).toFixed(f)
   const handleClick = () => {

@@ -11,16 +11,18 @@ const client = new ApolloClient({
 
 function MyApp ({ Component, pageProps }) {
   return (
-    <Provider session={pageProps.session}>
-      <ApolloProvider client={client}>
-        <MeProvider>
-          <FundErrorProvider>
-            <FundErrorModal />
-            <Component {...pageProps} />
-          </FundErrorProvider>
-        </MeProvider>
-      </ApolloProvider>
-    </Provider>
+    <>
+      <Provider session={pageProps.session}>
+        <ApolloProvider client={client}>
+          <MeProvider>
+            <FundErrorProvider>
+              <FundErrorModal />
+              <Component {...pageProps} />
+            </FundErrorProvider>
+          </MeProvider>
+        </ApolloProvider>
+      </Provider>
+    </>
   )
 }
 

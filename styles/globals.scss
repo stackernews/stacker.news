@@ -151,14 +151,13 @@ footer {
 }
 
 .clouds {
-  animation: flash ease-out 3.5s infinite;
   background: url('/clouds.jpeg');
   background-color: grey;
   background-repeat: repeat;
   background-origin: content-box;
   background-size: cover;
   background-attachment: fixed;
-  opacity: .1;
+  opacity: .2;
 }
 
 @keyframes spin {

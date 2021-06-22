@@ -44,7 +44,7 @@ export default {
           ${SELECT}
           FROM "Item"
           WHERE "userId" = $1 AND "parentId" IS NULL AND created_at <= $2
-          ORDER BY created_at
+          ORDER BY created_at DESC
           OFFSET $3
           LIMIT ${LIMIT}`, Number(userId), decodedCursor.time, decodedCursor.offset)
         : sort === 'hot'

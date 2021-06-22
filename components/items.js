@@ -27,7 +27,7 @@ export default function Items ({ variables, rank }) {
   )
 }
 
-function ItemsSkeleton ({ startRank = 1 }) {
+function ItemsSkeleton ({ startRank = 0 }) {
   const items = new Array(21).fill(null)
 
   return (

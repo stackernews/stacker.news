@@ -2,10 +2,8 @@ import { gql } from 'apollo-server-micro'
 
 export default gql`
   extend type Query {
-    items: [Item!]!
-    recent: [Item!]!
+    moreItems(sort: String!, cursor: String, userId: ID): Items
     item(id: ID!): Item
-    userItems(userId: ID!): [Item!]
     userComments(userId: ID!): [Item!]
     root(id: ID!): Item
   }
@@ -15,6 +13,11 @@ export default gql`
     createDiscussion(title: String!, text: String): Item!
     createComment(text: String!, parentId: ID!): Item!
     vote(id: ID!, sats: Int): Int!
+  }
+
+  type Items {
+    cursor: String
+    items: [Item!]!
   }
 
   type Item {

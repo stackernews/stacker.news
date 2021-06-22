@@ -1,28 +1,74 @@
 import { useQuery } from '@apollo/client'
+import Button from 'react-bootstrap/Button'
 import Item, { ItemSkeleton } from './item'
 import styles from './items.module.css'
+import { MORE_ITEMS } from '../fragments/items'
+import { useState } from 'react'
 
-export default function Items ({ query, rank }) {
-  const { loading, error, data } = useQuery(query)
+export default function Items ({ variables, rank }) {
+  const { loading, error, data, fetchMore } = useQuery(MORE_ITEMS, {
+    variables
+  })
   if (error) return <div>Failed to load!</div>
   if (loading) {
-    const items = new Array(20).fill(null)
-
-    return (
-      <div className={styles.grid}>
-        {items.map((_, i) => (
-          <ItemSkeleton rank={i + 1} key={i} />
-        ))}
-      </div>
-    )
+    return <ItemsSkeleton />
   }
 
-  const { items } = data
+  const { moreItems: { items, cursor } } = data
+  return (
+    <>
+      <div className={styles.grid}>
+        {items.map((item, i) => (
+          <Item item={item} rank={rank && i + 1} key={item.id} />
+        ))}
+      </div>
+      <MoreFooter cursor={cursor} fetchMore={fetchMore} offset={items.length} />
+    </>
+  )
+}
+
+function ItemsSkeleton ({ startRank = 1 }) {
+  const items = new Array(21).fill(null)
+
   return (
     <div className={styles.grid}>
-      {items.map((item, i) => (
-        <Item item={item} rank={rank && i + 1} key={item.id} />
+      {items.map((_, i) => (
+        <ItemSkeleton rank={i + startRank + 1} key={i + startRank} />
       ))}
     </div>
   )
+}
+
+function MoreFooter ({ cursor, fetchMore, offset }) {
+  const [loading, setLoading] = useState(false)
+
+  if (loading) {
+    return <ItemsSkeleton startRank={offset} />
+  }
+
+  let Footer
+  if (cursor) {
+    Footer = () => (
+      <Button
+        variant='secondary'
+        size='sm'
+        onClick={async () => {
+          setLoading(true)
+          await fetchMore({
+            variables: {
+              cursor
+            }
+          })
+          setLoading(false)
+        }}
+      >Load more
+      </Button>
+    )
+  } else {
+    Footer = () => (
+      <div className='text-muted' style={{ fontFamily: 'lightning', fontSize: '2rem', opacity: '0.6' }}>GENISIS</div>
+    )
+  }
+
+  return <div className='d-flex justify-content-center mt-4 mb-2'><Footer /></div>
 }

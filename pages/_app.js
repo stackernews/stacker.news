@@ -6,7 +6,33 @@ import { MeProvider } from '../components/me'
 
 const client = new ApolloClient({
   uri: '/api/graphql',
-  cache: new InMemoryCache()
+  cache: new InMemoryCache({
+    typePolicies: {
+      Query: {
+        fields: {
+          moreItems: {
+            keyArgs: ['sort', 'userId'],
+            merge (existing, incoming, { readField }) {
+              const items = existing ? existing.items : []
+              return {
+                cursor: incoming.cursor,
+                items: [...items, ...incoming.items]
+              }
+            },
+
+            read (existing) {
+              if (existing) {
+                return {
+                  cursor: existing.cursor,
+                  items: existing.items
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  })
 })
 
 function MyApp ({ Component, pageProps }) {

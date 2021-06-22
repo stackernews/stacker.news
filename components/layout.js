@@ -21,14 +21,14 @@ export default function Layout ({ noContain, noFooter, children }) {
           description: desc,
           images: [
             {
-              url: 'https://stacker.news/favicon.png',
-            },
+              url: 'https://stacker.news/favicon.png'
+            }
           ],
-          site_name: 'Stacker News',
+          site_name: 'Stacker News'
         }}
         twitter={{
           site: '@stacker_news',
-          cardType: 'summary_large_image',
+          cardType: 'summary_large_image'
         }}
       />
       <LightningProvider>
@@ -39,7 +39,7 @@ export default function Layout ({ noContain, noFooter, children }) {
         {noContain
           ? children
           : (
-            <Container className='my-1 mb-4 px-sm-0'>
+            <Container className='mt-1 px-sm-0'>
               {children}
             </Container>
             )}

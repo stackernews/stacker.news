@@ -1,6 +1,5 @@
 import Layout from '../components/layout'
 import Items from '../components/items'
-import { ITEM_FIELDS } from '../fragments/items'
 import { gql } from '@apollo/client'
 import ApolloClient from '../api/client'
 import UserHeader from '../components/user-header'
@@ -35,18 +34,10 @@ export async function getServerSideProps ({ req, params }) {
 }
 
 export default function User ({ user }) {
-  const query = gql`
-    ${ITEM_FIELDS}
-    {
-      items: userItems(userId: ${user.id}) {
-        ...ItemFields
-      }
-    }
-  `
   return (
     <Layout>
       <UserHeader user={user} />
-      <Items query={query} />
+      <Items variables={{ sort: 'recent', userId: user.id }} />
     </Layout>
   )
 }

@@ -2,6 +2,8 @@ import { UserInputError, AuthenticationError } from 'apollo-server-micro'
 import { ensureProtocol } from '../../lib/url'
 import serialize from './serial'
 
+const LIMIT = 5
+
 async function comments (models, id) {
   const flat = await models.$queryRaw(`
         WITH RECURSIVE base AS (
@@ -18,22 +20,53 @@ async function comments (models, id) {
   return nestComments(flat, id)[0]
 }
 
+function decodeCursor (cursor) {
+  if (!cursor) {
+    return { offset: 0, time: new Date() }
+  } else {
+    const res = JSON.parse(Buffer.from(cursor, 'base64'))
+    res.time = new Date(res.time)
+    return res
+  }
+}
+
+function nextCursorEncoded (cursor) {
+  cursor.offset += LIMIT
+  return Buffer.from(JSON.stringify(cursor)).toString('base64')
+}
+
 export default {
   Query: {
-    items: async (parent, args, { models }) => {
-      return await models.$queryRaw(`
-        ${SELECT}
-        FROM "Item"
-        ${LEFT_JOIN_SATS}
-        WHERE "parentId" IS NULL
-        ${ORDER_BY_SATS}`)
-    },
-    recent: async (parent, args, { models }) => {
-      return await models.$queryRaw(`
-        ${SELECT}
-        FROM "Item"
-        WHERE "parentId" IS NULL
-        ORDER BY created_at DESC`)
+    moreItems: async (parent, { sort, cursor, userId }, { models }) => {
+      const decodedCursor = decodeCursor(cursor)
+      const items = userId
+        ? await models.$queryRaw(`
+          ${SELECT}
+          FROM "Item"
+          WHERE "userId" = $1 AND "parentId" IS NULL AND created_at <= $2
+          ORDER BY created_at
+          OFFSET $3
+          LIMIT ${LIMIT}`, Number(userId), decodedCursor.time, decodedCursor.offset)
+        : sort === 'hot'
+          ? await models.$queryRaw(`
+            ${SELECT}
+            FROM "Item"
+            ${timedLeftJoinSats(1)}
+            WHERE "parentId" IS NULL AND created_at <= $1
+            ${timedOrderBySats(1)}
+            OFFSET $2
+            LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+          : await models.$queryRaw(`
+            ${SELECT}
+            FROM "Item"
+            WHERE "parentId" IS NULL AND created_at <= $1
+            ORDER BY created_at DESC
+            OFFSET $2
+            LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+      return {
+        cursor: items.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
+        items
+      }
     },
     item: async (parent, { id }, { models }) => {
       const [item] = await models.$queryRaw(`
@@ -42,13 +75,6 @@ export default {
         WHERE id = $1`, Number(id))
       item.comments = comments(models, id)
       return item
-    },
-    userItems: async (parent, { userId }, { models }) => {
-      return await models.$queryRaw(`
-        ${SELECT}
-        FROM "Item"
-        WHERE "userId" = $1 AND "parentId" IS NULL
-        ORDER BY created_at`, Number(userId))
     },
     userComments: async (parent, { userId }, { models }) => {
       return await models.$queryRaw(`
@@ -213,11 +239,22 @@ const SELECT =
   `SELECT "Item".id, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt", "Item".title,
   "Item".text, "Item".url, "Item"."userId", "Item"."parentId", ltree2text("Item"."path") AS "path"`
 
+function timedLeftJoinSats (num) {
+  return `LEFT JOIN (SELECT i.id, SUM("Vote".sats) as sats
+  FROM "Item" i
+  JOIN "Vote" ON i.id = "Vote"."itemId" AND "Vote".created_at <= $${num}
+  GROUP BY i.id) x ON "Item".id = x.id`
+}
+
 const LEFT_JOIN_SATS =
   `LEFT JOIN (SELECT i.id, SUM("Vote".sats) as sats
   FROM "Item" i
   JOIN "Vote" ON i.id = "Vote"."itemId"
   GROUP BY i.id) x ON "Item".id = x.id`
+
+function timedOrderBySats (num) {
+  return `ORDER BY (x.sats-1)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 1.5) DESC NULLS LAST`
+}
 
 const ORDER_BY_SATS =
   'ORDER BY (x.sats-1)/POWER(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE \'UTC\') - "Item".created_at))/3600+2, 1.5) DESC NULLS LAST'

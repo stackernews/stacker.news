@@ -2,7 +2,7 @@ import { UserInputError, AuthenticationError } from 'apollo-server-micro'
 import { ensureProtocol } from '../../lib/url'
 import serialize from './serial'
 
-const LIMIT = 5
+const LIMIT = 21
 
 async function comments (models, id) {
   const flat = await models.$queryRaw(`

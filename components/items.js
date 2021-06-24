@@ -11,7 +11,7 @@ export default function Items ({ variables, rank }) {
   })
   if (error) return <div>Failed to load!</div>
   if (loading) {
-    return <ItemsSkeleton />
+    return <ItemsSkeleton rank={rank} />
   }
 
   const { moreItems: { items, cursor } } = data
@@ -22,28 +22,28 @@ export default function Items ({ variables, rank }) {
           <Item item={item} rank={rank && i + 1} key={item.id} />
         ))}
       </div>
-      <MoreFooter cursor={cursor} fetchMore={fetchMore} offset={items.length} />
+      <MoreFooter cursor={cursor} fetchMore={fetchMore} offset={items.length} rank={rank} />
     </>
   )
 }
 
-function ItemsSkeleton ({ startRank = 0 }) {
+function ItemsSkeleton ({ rank, startRank = 0 }) {
   const items = new Array(21).fill(null)
 
   return (
     <div className={styles.grid}>
       {items.map((_, i) => (
-        <ItemSkeleton rank={i + startRank + 1} key={i + startRank} />
+        <ItemSkeleton rank={rank && i + startRank + 1} key={i + startRank} />
       ))}
     </div>
   )
 }
 
-function MoreFooter ({ cursor, fetchMore, offset }) {
+function MoreFooter ({ cursor, fetchMore, rank, offset }) {
   const [loading, setLoading] = useState(false)
 
   if (loading) {
-    return <ItemsSkeleton startRank={offset} />
+    return <ItemsSkeleton rank={rank} startRank={offset} />
   }
 
   let Footer

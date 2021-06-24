@@ -3,12 +3,13 @@ import styles from './comment.module.css'
 import Text from './text'
 import Link from 'next/link'
 import Reply from './reply'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { gql, useQuery } from '@apollo/client'
 import { timeSince } from '../lib/time'
 import UpVote from './upvote'
 import Eye from '../svgs/eye-fill.svg'
 import EyeClose from '../svgs/eye-close-line.svg'
+import { useRouter } from 'next/router'
 
 function Parent ({ item }) {
   const { data } = useQuery(
@@ -24,7 +25,7 @@ function Parent ({ item }) {
     <>
       <span> \ </span>
       <Link href={`/items/${item.parentId}`} passHref>
-        <a className='text-reset'>parent</a>
+        <a onClick={e => e.stopPropagation()} className='text-reset'>parent</a>
       </Link>
     </>
   )
@@ -38,18 +39,33 @@ function Parent ({ item }) {
       {data.root.id !== item.parentId && <ParentFrag />}
       <span> \ </span>
       <Link href={`/items/${data.root.id}`} passHref>
-        <a className='text-reset'>{data.root.title}</a>
+        <a onClick={e => e.stopPropagation()} className='text-reset'>root: {data.root.title}</a>
       </Link>
     </>
   )
 }
 
-export default function Comment ({ item, children, replyOpen, includeParent, cacheId, noComments, noReply }) {
+export default function Comment ({ item, children, replyOpen, includeParent, cacheId, noComments, noReply, clickToContext }) {
   const [reply, setReply] = useState(replyOpen)
   const [collapse, setCollapse] = useState(false)
+  const ref = useRef(null)
+  const router = useRouter()
+
+  useEffect(() => {
+    if (Number(router.query.commentId) === Number(item.id)) {
+      ref.current.scrollIntoView()
+      // ref.current.classList.add('flash-it')
+    }
+  }, [item])
 
   return (
-    <div className={includeParent ? '' : `${styles.comment} ${collapse ? styles.collapsed : ''}`}>
+    <div
+      ref={ref} onClick={() => {
+        if (clickToContext) {
+          router.push(`/items/${item.parentId}?commentId=${item.id}`, `/items/${item.parentId}`)
+        }
+      }} className={includeParent ? `${clickToContext ? styles.clickToContext : ''}` : `${styles.comment} ${collapse ? styles.collapsed : ''}`}
+    >
       <div className={`${itemStyles.item} ${styles.item}`}>
         <UpVote itemId={item.id} meSats={item.meSats} className={styles.upvote} />
         <div className={`${itemStyles.hunk} ${styles.hunk}`}>
@@ -60,11 +76,11 @@ export default function Comment ({ item, children, replyOpen, includeParent, cac
               <span>{item.boost} boost</span>
               <span> \ </span>
               <Link href={`/items/${item.id}`} passHref>
-                <a className='text-reset'>{item.ncomments} replies</a>
+                <a onClick={e => e.stopPropagation()} className='text-reset'>{item.ncomments} replies</a>
               </Link>
               <span> \ </span>
               <Link href={`/${item.user.name}`} passHref>
-                <a>@{item.user.name}</a>
+                <a onClick={e => e.stopPropagation()}>@{item.user.name}</a>
               </Link>
               <span> </span>
               <span>{timeSince(new Date(item.createdAt))}</span>

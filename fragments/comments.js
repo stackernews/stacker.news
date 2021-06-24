@@ -16,6 +16,19 @@ export const COMMENT_FIELDS = gql`
   }
 `
 
+export const MORE_FLAT_COMMENTS = gql`
+  ${COMMENT_FIELDS}
+
+  query MoreFlatComments($cursor: String, $userId: ID) {
+    moreFlatComments(cursor: $cursor, userId: $userId) {
+      cursor
+      comments {
+        ...CommentFields
+      }
+    }
+  }
+`
+
 export const COMMENTS = gql`
   ${COMMENT_FIELDS}
 

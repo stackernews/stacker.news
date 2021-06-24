@@ -7,11 +7,9 @@ import { useRouter } from 'next/router'
 import { Button, Container, NavDropdown } from 'react-bootstrap'
 import Price from './price'
 import { useMe } from './me'
+import { useApolloClient } from '@apollo/client'
 
-function WalletSummary () {
-  const me = useMe()
-  if (!me) return null
-
+function WalletSummary ({ me }) {
   return `[${me.stacked},${me.sats}]`
 }
 
@@ -19,6 +17,8 @@ export default function Header () {
   const [session, loading] = useSession()
   const router = useRouter()
   const path = router.asPath.split('?')[0]
+  const me = useMe()
+  const client = useApolloClient()
 
   const Corner = () => {
     if (loading) {
@@ -28,35 +28,56 @@ export default function Header () {
     if (session) {
       return (
         <div className='d-flex align-items-center'>
-          <NavDropdown className='pl-0' title={`@${session.user.name}`} alignRight>
-            <Link href={'/' + session.user.name} passHref>
-              <NavDropdown.Item>profile</NavDropdown.Item>
-            </Link>
-            <Link href='/wallet' passHref>
-              <NavDropdown.Item>wallet</NavDropdown.Item>
-            </Link>
-            <div>
-              <NavDropdown.Divider />
-              <Link href='/recent' passHref>
-                <NavDropdown.Item>recent</NavDropdown.Item>
+          <div className='position-relative'>
+            <NavDropdown className='pl-0' title={`@${session.user.name}`} alignRight>
+              <Link href={'/' + session.user.name} passHref>
+                <NavDropdown.Item>profile</NavDropdown.Item>
               </Link>
-              {session
-                ? (
-                  <Link href='/post' passHref>
-                    <NavDropdown.Item>post</NavDropdown.Item>
-                  </Link>
-                  )
-                : <NavDropdown.Item onClick={signIn}>post</NavDropdown.Item>}
-              <NavDropdown.Item href='https://bitcoinerjobs.co' target='_blank'>jobs</NavDropdown.Item>
-            </div>
-            <NavDropdown.Divider />
-            <NavDropdown.Item onClick={signOut}>logout</NavDropdown.Item>
-          </NavDropdown>
-          <Nav.Item>
-            <Link href='/wallet' passHref>
-              <Nav.Link className='text-success px-0'><WalletSummary /></Nav.Link>
-            </Link>
-          </Nav.Item>
+              <Link href='/notifications' passHref>
+                <NavDropdown.Item onClick={() => {
+                  // when it's a fresh click evict old notification cache
+                  client.cache.evict({ id: 'ROOT_QUERY', fieldName: 'moreFlatComments:{}' })
+                  client.cache.evict({ id: 'ROOT_QUERY', fieldName: 'recentlyStacked' })
+                }}
+                >
+                  notifications
+                  {me && me.hasNewNotes &&
+                    <div className='p-1 d-inline-block bg-danger rounded-circle ml-1'>
+                      <span className='invisible'>{' '}</span>
+                    </div>}
+                </NavDropdown.Item>
+              </Link>
+              <Link href='/wallet' passHref>
+                <NavDropdown.Item>wallet</NavDropdown.Item>
+              </Link>
+              <div>
+                <NavDropdown.Divider />
+                <Link href='/recent' passHref>
+                  <NavDropdown.Item>recent</NavDropdown.Item>
+                </Link>
+                {session
+                  ? (
+                    <Link href='/post' passHref>
+                      <NavDropdown.Item>post</NavDropdown.Item>
+                    </Link>
+                    )
+                  : <NavDropdown.Item onClick={signIn}>post</NavDropdown.Item>}
+                <NavDropdown.Item href='https://bitcoinerjobs.co' target='_blank'>jobs</NavDropdown.Item>
+              </div>
+              <NavDropdown.Divider />
+              <NavDropdown.Item onClick={signOut}>logout</NavDropdown.Item>
+            </NavDropdown>
+            {me && me.hasNewNotes &&
+              <span className='position-absolute p-1 bg-danger rounded-circle' style={{ top: '5px', right: '0px' }}>
+                <span className='invisible'>{' '}</span>
+              </span>}
+          </div>
+          {me &&
+            <Nav.Item>
+              <Link href='/wallet' passHref>
+                <Nav.Link className='text-success px-0'><WalletSummary me={me} /></Nav.Link>
+              </Link>
+            </Nav.Item>}
         </div>
       )
     } else {

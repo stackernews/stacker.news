@@ -160,6 +160,10 @@ footer {
   opacity: .2;
 }
 
+.flash-it {
+  animation: flash 2s linear 2;
+}
+
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% {  transform: rotate(359deg); }

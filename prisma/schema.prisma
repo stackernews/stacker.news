@@ -11,21 +11,22 @@ generator client {
 }
 
 model User {
-  id            Int         @id @default(autoincrement())
-  createdAt     DateTime    @default(now()) @map(name: "created_at")
-  updatedAt     DateTime    @default(now()) @updatedAt @map(name: "updated_at")
-  name          String?     @unique
-  email         String?     @unique
-  emailVerified DateTime?   @map(name: "email_verified")
-  image         String?
-  items         Item[]
-  messages      Message[]
-  votes         Vote[]
-  invoices      Invoice[]
-  withdrawls    Withdrawl[]
-  msats         Int         @default(0)
-  freeComments  Int         @default(5)
-  freePosts     Int         @default(2)
+  id             Int         @id @default(autoincrement())
+  createdAt      DateTime    @default(now()) @map(name: "created_at")
+  updatedAt      DateTime    @default(now()) @updatedAt @map(name: "updated_at")
+  name           String?     @unique
+  email          String?     @unique
+  emailVerified  DateTime?   @map(name: "email_verified")
+  image          String?
+  items          Item[]
+  messages       Message[]
+  votes          Vote[]
+  invoices       Invoice[]
+  withdrawls     Withdrawl[]
+  msats          Int         @default(0)
+  freeComments   Int         @default(5)
+  freePosts      Int         @default(2)
+  checkedNotesAt DateTime?
 
   @@map(name: "users")
 }

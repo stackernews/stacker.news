@@ -37,18 +37,21 @@ function nextCursorEncoded (cursor) {
 
 export default {
   Query: {
-    moreItems: async (parent, { sort, cursor, userId }, { models }) => {
+    moreItems: async (parent, { sort, cursor, userId }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
-      const items = userId
-        ? await models.$queryRaw(`
-          ${SELECT}
-          FROM "Item"
-          WHERE "userId" = $1 AND "parentId" IS NULL AND created_at <= $2
-          ORDER BY created_at DESC
-          OFFSET $3
-          LIMIT ${LIMIT}`, Number(userId), decodedCursor.time, decodedCursor.offset)
-        : sort === 'hot'
-          ? await models.$queryRaw(`
+      let items
+      switch (sort) {
+        case 'user':
+          items = await models.$queryRaw(`
+            ${SELECT}
+            FROM "Item"
+            WHERE "userId" = $1 AND "parentId" IS NULL AND created_at <= $2
+            ORDER BY created_at DESC
+            OFFSET $3
+            LIMIT ${LIMIT}`, Number(userId), decodedCursor.time, decodedCursor.offset)
+          break
+        case 'hot':
+          items = await models.$queryRaw(`
             ${SELECT}
             FROM "Item"
             ${timedLeftJoinSats(1)}
@@ -56,17 +59,65 @@ export default {
             ${timedOrderBySats(1)}
             OFFSET $2
             LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
-          : await models.$queryRaw(`
+          break
+        default:
+          items = await models.$queryRaw(`
             ${SELECT}
             FROM "Item"
             WHERE "parentId" IS NULL AND created_at <= $1
             ORDER BY created_at DESC
             OFFSET $2
             LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+          break
+      }
       return {
         cursor: items.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
         items
       }
+    },
+    moreFlatComments: async (parent, { cursor, userId }, { me, models }) => {
+      const decodedCursor = decodeCursor(cursor)
+      let comments
+      if (userId) {
+        comments = await models.$queryRaw(`
+          ${SELECT}
+          FROM "Item"
+          WHERE "userId" = $1 AND "parentId" IS NOT NULL
+          AND created_at <= $2
+          ORDER BY created_at DESC
+          OFFSET $3
+          LIMIT ${LIMIT}`, Number(userId), decodedCursor.time, decodedCursor.offset)
+      } else {
+        if (!me) {
+          throw new AuthenticationError('you must be logged in')
+        }
+        const user = await models.user.findUnique({ where: { name: me.name } })
+        comments = await models.$queryRaw(`
+          ${SELECT}
+          From "Item"
+          JOIN "Item" p ON "Item"."parentId" = p.id AND p."userId" = $1
+          AND "Item"."userId" <> $1 AND "Item".created_at <= $2
+          ORDER BY "Item".created_at DESC
+          OFFSET $3
+          LIMIT ${LIMIT}`, user.id, decodedCursor.time, decodedCursor.offset)
+      }
+      return {
+        cursor: comments.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
+        comments
+      }
+    },
+    notifications: async (parent, args, { me, models }) => {
+      if (!me) {
+        throw new AuthenticationError('you must be logged in')
+      }
+      const user = await models.user.findUnique({ where: { name: me.name } })
+
+      return await models.$queryRaw(`
+        ${SELECT}
+        From "Item"
+        JOIN "Item" p ON "Item"."parentId" = p.id AND p."userId" = $1
+        AND "Item"."userId" <> $1
+        ORDER BY "Item".created_at DESC`, user.id)
     },
     item: async (parent, { id }, { models }) => {
       const [item] = await models.$queryRaw(`
@@ -103,8 +154,6 @@ export default {
       if (!url) {
         throw new UserInputError('link must have url', { argumentName: 'url' })
       }
-
-      console.log(ensureProtocol(url))
 
       return await createItem(parent, { title, url: ensureProtocol(url) }, { me, models })
     },

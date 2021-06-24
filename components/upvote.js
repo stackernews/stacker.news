@@ -45,7 +45,9 @@ export default function UpVote ({ itemId, meSats, className }) {
           }
           onClick={
             session
-              ? async () => {
+              ? async (e) => {
+                  e.stopPropagation()
+                  strike()
                   if (!itemId) return
                   try {
                     await vote({ variables: { id: itemId, sats: 1 } })
@@ -56,8 +58,6 @@ export default function UpVote ({ itemId, meSats, className }) {
                     }
                     throw new Error({ message: error.toString() })
                   }
-
-                  strike()
                 }
               : signIn
           }

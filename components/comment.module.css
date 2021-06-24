@@ -80,6 +80,15 @@
     padding-left: .2rem;
 }
 
+.clickToContext {
+    border-radius: .4rem;
+    padding: .2rem 0;
+}
+
+.clickToContext:hover {
+    background-color: rgba(0, 0, 0, 0.03);
+}
+
 .comment:not(:last-child) {
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
@@ -89,4 +98,9 @@
     padding-top: .25rem;
     border-top-left-radius: 0;
     border-top-right-radius: 0;
+}
+
+.clickToContext {
+    scroll-behavior: smooth;
+    cursor: pointer;
 }

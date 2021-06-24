@@ -1,9 +1,8 @@
 import Layout from '../../components/layout'
-import { CommentsQuery } from '../../components/comments'
-import { COMMENT_FIELDS } from '../../fragments/comments'
 import { gql } from '@apollo/client'
 import ApolloClient from '../../api/client'
 import UserHeader from '../../components/user-header'
+import CommentsFlat from '../../components/comments-flat'
 
 export async function getServerSideProps ({ req, params }) {
   const { error, data: { user } } = await (await ApolloClient(req)).query({
@@ -34,19 +33,11 @@ export async function getServerSideProps ({ req, params }) {
   }
 }
 
-export default function User ({ user }) {
-  const query = gql`
-    ${COMMENT_FIELDS}
-    {
-      comments: userComments(userId: ${user.id}) {
-        ...CommentFields
-      }
-    }
-  `
+export default function UserComments ({ user }) {
   return (
     <Layout>
       <UserHeader user={user} />
-      <CommentsQuery query={query} includeParent noReply />
+      <CommentsFlat variables={{ userId: user.id }} includeParent noReply clickToContext />
     </Layout>
   )
 }

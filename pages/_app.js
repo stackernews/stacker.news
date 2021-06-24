@@ -28,6 +28,25 @@ const client = new ApolloClient({
                 }
               }
             }
+          },
+          moreFlatComments: {
+            keyArgs: ['userId'],
+            merge (existing, incoming, { readField }) {
+              const comments = existing ? existing.comments : []
+              return {
+                cursor: incoming.cursor,
+                comments: [...comments, ...incoming.comments]
+              }
+            },
+
+            read (existing) {
+              if (existing) {
+                return {
+                  cursor: existing.cursor,
+                  comments: existing.comments
+                }
+              }
+            }
           }
         }
       }

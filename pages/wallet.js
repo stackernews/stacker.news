@@ -123,7 +123,6 @@ export function WithdrawlForm () {
         initialError={error ? error.toString() : undefined}
         schema={WithdrawlSchema}
         onSubmit={async ({ invoice, maxFee }) => {
-          console.log('calling')
           const { data } = await createWithdrawl({ variables: { invoice, maxFee: Number(maxFee) } })
           router.push(`/withdrawls/${data.createWithdrawl.id}`)
         }}

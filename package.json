@@ -22,7 +22,7 @@
     "next": "10.0.9",
     "next-auth": "^3.13.3",
     "next-seo": "^4.24.0",
-    "prisma": "^2.23.0",
+    "prisma": "^2.25.0",
     "qrcode.react": "^1.0.1",
     "react": "17.0.1",
     "react-bootstrap": "^1.5.2",

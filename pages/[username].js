@@ -37,7 +37,7 @@ export default function User ({ user }) {
   return (
     <Layout>
       <UserHeader user={user} />
-      <Items variables={{ sort: 'recent', userId: user.id }} />
+      <Items variables={{ sort: 'user', userId: user.id }} />
     </Layout>
   )
 }

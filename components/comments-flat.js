@@ -1,49 +1,45 @@
 import { useQuery } from '@apollo/client'
 import Button from 'react-bootstrap/Button'
-import Item, { ItemSkeleton } from './item'
-import styles from './items.module.css'
-import { MORE_ITEMS } from '../fragments/items'
+import { MORE_FLAT_COMMENTS } from '../fragments/comments'
 import { useState } from 'react'
+import Comment, { CommentSkeleton } from './comment'
 
-export default function Items ({ variables, rank }) {
-  const { loading, error, data, fetchMore } = useQuery(MORE_ITEMS, {
+export default function CommentsFlat ({ variables, ...props }) {
+  const { loading, error, data, fetchMore } = useQuery(MORE_FLAT_COMMENTS, {
     variables
   })
   if (error) return <div>Failed to load!</div>
   if (loading) {
-    return <ItemsSkeleton />
+    return <CommentsFlatSkeleton />
   }
 
-  const { moreItems: { items, cursor } } = data
+  const { moreFlatComments: { comments, cursor } } = data
   return (
     <>
-      <div className={styles.grid}>
-        {items.map((item, i) => (
-          <Item item={item} rank={rank && i + 1} key={item.id} />
-        ))}
-      </div>
-      <MoreFooter cursor={cursor} fetchMore={fetchMore} offset={items.length} />
+      {comments.map(item => (
+        <Comment key={item.id} item={item} {...props} />
+      ))}
+      <MoreFooter cursor={cursor} fetchMore={fetchMore} />
     </>
   )
 }
 
-function ItemsSkeleton ({ startRank = 0 }) {
-  const items = new Array(21).fill(null)
+function CommentsFlatSkeleton () {
+  const comments = new Array(21).fill(null)
 
   return (
-    <div className={styles.grid}>
-      {items.map((_, i) => (
-        <ItemSkeleton rank={i + startRank + 1} key={i + startRank} />
-      ))}
+    <div>{comments.map((_, i) => (
+      <CommentSkeleton key={i} skeletonChildren={0} />
+    ))}
     </div>
   )
 }
 
-function MoreFooter ({ cursor, fetchMore, offset }) {
+function MoreFooter ({ cursor, fetchMore }) {
   const [loading, setLoading] = useState(false)
 
   if (loading) {
-    return <ItemsSkeleton startRank={offset} />
+    return <div><CommentsFlatSkeleton /></div>
   }
 
   let Footer

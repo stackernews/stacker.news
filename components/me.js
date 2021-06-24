@@ -14,6 +14,7 @@ export function MeProvider ({ children }) {
       stacked
       freePosts
       freeComments
+      hasNewNotes
     }
   }`
   const { data } = useQuery(query, { pollInterval: 1000 })

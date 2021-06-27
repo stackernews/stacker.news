@@ -18,7 +18,7 @@ export default {
         }
       })
 
-      if (inv.user.name !== me.name) {
+      if (inv.user.id !== me.id) {
         throw new AuthenticationError('not ur invoice')
       }
 
@@ -38,7 +38,7 @@ export default {
         }
       })
 
-      if (wdrwl.user.name !== me.name) {
+      if (wdrwl.user.id !== me.id) {
         throw new AuthenticationError('not ur withdrawl')
       }
 
@@ -77,7 +77,7 @@ export default {
           msatsRequested: amount * 1000,
           user: {
             connect: {
-              name: me.name
+              id: me.id
             }
           }
         }

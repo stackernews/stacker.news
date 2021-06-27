@@ -1,6 +1,7 @@
 import { useQuery } from '@apollo/client'
 import gql from 'graphql-tag'
-import { Invoice, InvoiceSkeleton } from '../../components/invoice'
+import { Invoice } from '../../components/invoice'
+import { LnQRSkeleton } from '../../components/lnqr'
 import LayoutCenter from '../../components/layout-center'
 
 export async function getServerSideProps ({ params: { id } }) {
@@ -34,7 +35,7 @@ function LoadInvoice ({ query }) {
   const { loading, error, data } = useQuery(query, { pollInterval: 1000 })
   if (error) return <div>error</div>
   if (!data || loading) {
-    return <InvoiceSkeleton status='loading' />
+    return <LnQRSkeleton status='loading' />
   }
 
   return <Invoice invoice={data.invoice} />

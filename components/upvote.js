@@ -17,14 +17,14 @@ export default function UpVote ({ itemId, meSats, className }) {
         cache.modify({
           id: `Item:${itemId}`,
           fields: {
+            meSats (existingMeSats = 0) {
+              return existingMeSats + vote
+            },
             sats (existingSats = 0) {
-              return existingSats || vote
+              return meSats === 0 ? existingSats + vote : existingSats
             },
             boost (existingBoost = 0) {
               return meSats >= 1 ? existingBoost + vote : existingBoost
-            },
-            meSats (existingMeSats = 0) {
-              return existingMeSats + vote
             }
           }
         })

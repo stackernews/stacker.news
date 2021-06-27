@@ -91,7 +91,6 @@ export default {
         if (!me) {
           throw new AuthenticationError('you must be logged in')
         }
-        const user = await models.user.findUnique({ where: { name: me.name } })
         comments = await models.$queryRaw(`
           ${SELECT}
           From "Item"
@@ -99,7 +98,7 @@ export default {
           AND "Item"."userId" <> $1 AND "Item".created_at <= $2
           ORDER BY "Item".created_at DESC
           OFFSET $3
-          LIMIT ${LIMIT}`, user.id, decodedCursor.time, decodedCursor.offset)
+          LIMIT ${LIMIT}`, me.id, decodedCursor.time, decodedCursor.offset)
       }
       return {
         cursor: comments.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
@@ -110,14 +109,13 @@ export default {
       if (!me) {
         throw new AuthenticationError('you must be logged in')
       }
-      const user = await models.user.findUnique({ where: { name: me.name } })
 
       return await models.$queryRaw(`
         ${SELECT}
         From "Item"
         JOIN "Item" p ON "Item"."parentId" = p.id AND p."userId" = $1
         AND "Item"."userId" <> $1
-        ORDER BY "Item".created_at DESC`, user.id)
+        ORDER BY "Item".created_at DESC`, me.id)
     },
     item: async (parent, { id }, { models }) => {
       const [item] = await models.$queryRaw(`
@@ -229,15 +227,13 @@ export default {
     meSats: async (item, args, { me, models }) => {
       if (!me) return 0
 
-      const meFull = await models.user.findUnique({ where: { name: me.name } })
-
       const { sum: { sats } } = await models.vote.aggregate({
         sum: {
           sats: true
         },
         where: {
           itemId: item.id,
-          userId: meFull.id
+          userId: me.id
         }
       })
 

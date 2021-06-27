@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Button from 'react-bootstrap/Button'
 import * as Yup from 'yup'
 import { gql, useMutation, useQuery } from '@apollo/client'
-import { InvoiceSkeleton } from '../components/invoice'
+import { LnQRSkeleton } from '../components/lnqr'
 import LayoutCenter from '../components/layout-center'
 import InputGroup from 'react-bootstrap/InputGroup'
 import { WithdrawlSkeleton } from './withdrawls/[id]'
@@ -56,7 +56,7 @@ export function FundForm () {
     }`)
 
   if (called && !error) {
-    return <InvoiceSkeleton status='generating' />
+    return <LnQRSkeleton status='generating' />
   }
 
   return (

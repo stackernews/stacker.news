@@ -3,7 +3,7 @@ import { AuthenticationError, UserInputError } from 'apollo-server-errors'
 export default {
   Query: {
     me: async (parent, args, { models, me }) =>
-      me ? await models.user.findUnique({ where: { name: me.name } }) : null,
+      me ? await models.user.findUnique({ where: { id: me.id } }) : null,
     user: async (parent, { name }, { models }) => {
       return await models.user.findUnique({ where: { name } })
     },
@@ -21,7 +21,7 @@ export default {
         throw new AuthenticationError('you must be logged in')
       }
 
-      const user = await models.user.findUnique({ where: { name: me.name } })
+      const user = await models.user.findUnique({ where: { id: me.id } })
 
       const [{ sum }] = await models.$queryRaw(`
         SELECT sum("Vote".sats)
@@ -32,7 +32,7 @@ export default {
         AND "Vote".boost = false
         WHERE "Item"."userId" = $1`, user.id, user.checkedNotesAt)
 
-      await models.user.update({ where: { name: me.name }, data: { checkedNotesAt: new Date() } })
+      await models.user.update({ where: { id: me.id }, data: { checkedNotesAt: new Date() } })
       return sum || 0
     }
   },
@@ -44,7 +44,7 @@ export default {
       }
 
       try {
-        await models.user.update({ where: { name: me.name }, data: { name } })
+        await models.user.update({ where: { id: me.id }, data: { name } })
       } catch (error) {
         if (error.code === 'P2002') {
           throw new UserInputError('name taken')

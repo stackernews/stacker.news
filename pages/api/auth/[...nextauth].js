@@ -94,7 +94,7 @@ const options = {
     })
   ],
   adapter: Adapters.Prisma.Adapter({ prisma }),
-  secret: process.env.SECRET,
+  secret: process.env.NEXTAUTH_SECRET,
   session: { jwt: true },
   jwt: {
     signingKey: process.env.JWT_SIGNING_PRIVATE_KEY

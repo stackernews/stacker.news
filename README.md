@@ -1,30 +1,20 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# stacker.news
+(Stacker News)[https://stacker.news] is a Lightning powered Bitcoin news site modelled after Hacker News (which is modelled after Reddit). The intent is to create a better place to discuss Bitcoin.
 
-## Getting Started
+# stack
+The site is written in javascript using Next.js, a React framework. The backend API is provided via graphql. The database is postgresql modelled with prisma. We use lnd for the lightning node which we connect to through a tor http tunnel. A customized Bootstrap theme is used for styling.
 
-First, run the development server:
+# processes
+There are two. 1. the web app and 2. walletd, which checks and polls lnd for all pending invoice/withdrawl statuses in case the web process dies.
 
-```bash
-npm run dev
-# or
-yarn dev
-```
+# wallet transaction safety
+To ensure user balances are kept sane, all wallet updates are run in serializable transactions at the database level. Because prisma has relatively poor support for transactions all wallet touching code is written in plpgsql stored procedures and can be found in the prisma/migrations folder.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+# code
+The code is linted with standardjs.
 
-You can start editing the page by modifying `pages/index.js`. The page auto-updates as you edit the file.
+# contributing
+Pull requests are welcome. Please submit feature requests and bug reports through issues.
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/import?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+# license
+[MIT](https://choosealicense.com/licenses/mit/)

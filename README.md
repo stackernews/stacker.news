@@ -1,5 +1,5 @@
 # stacker.news
-(Stacker News)[https://stacker.news] is a Lightning powered Bitcoin news site modelled after Hacker News (which is modelled after Reddit). The intent is to create a better place to discuss Bitcoin.
+[Stacker News](https://stacker.news) is a Lightning powered Bitcoin news site modelled after Hacker News (which is modelled after Reddit). The intent is to create a better place to discuss Bitcoin.
 
 # stack
 The site is written in javascript using Next.js, a React framework. The backend API is provided via graphql. The database is postgresql modelled with prisma. We use lnd for the lightning node which we connect to through a tor http tunnel. A customized Bootstrap theme is used for styling.

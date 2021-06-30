@@ -73,6 +73,16 @@ footer {
   width: 100%;
   align-items: center;
   justify-content: center;
+  margin: 1rem 0;
+  text-align: center;
+}
+
+.text-twitter svg {
+  fill: #1da1f2 !important;
+}
+
+.text-muted svg {
+  fill: #6c757d;
 }
 
 @media screen and (max-width: 767px) {

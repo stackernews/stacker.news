@@ -18,7 +18,7 @@ export default function Footer () {
 
   return (
     <footer>
-      <Container>
+      <Container className='my-3'>
         {data &&
           <div
             className={`text-small mx-auto mb-2 ${styles.connect}`}

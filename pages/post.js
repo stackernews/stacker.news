@@ -1,5 +1,5 @@
 import Button from 'react-bootstrap/Button'
-import { Form, Input, SubmitButton } from '../components/form'
+import { Form, Input, MarkdownInput, SubmitButton } from '../components/form'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import * as Yup from 'yup'
@@ -44,7 +44,7 @@ export function DiscussionForm () {
         required
         autoFocus
       />
-      <Input
+      <MarkdownInput
         label={<>text <small className='text-muted ml-2'>optional</small></>}
         name='text'
         as='textarea'

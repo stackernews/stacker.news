@@ -44,6 +44,10 @@ $container-max-widths: (
   md: 720px,
   lg: 900px,
 ) !default;
+$nav-link-padding-y: .1rem;
+$nav-tabs-link-active-bg: #fff;
+$nav-tabs-link-hover-border-color: transparent;
+$nav-tabs-link-active-border-color: #ced4da #ced4da $nav-tabs-link-active-bg;
 
 
 @import "~bootstrap/scss/bootstrap";
@@ -88,6 +92,21 @@ footer {
   input, select, textarea, .form-control, .form-control:focus, .input-group-text {
     font-size: 1rem !important;
   }
+}
+
+.nav-tabs {
+  border-bottom: 0;
+}
+
+.nav-tabs .nav-link {
+  font-size: 80%;
+  color: #6c757d;
+  z-index: 100;
+  position: relative;
+}
+
+.nav-tabs .nav-link.active {
+  height: 100%;
 }
 
 .form-label {

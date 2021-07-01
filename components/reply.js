@@ -1,4 +1,4 @@
-import { Form, Input, SubmitButton } from '../components/form'
+import { Form, MarkdownInput, SubmitButton } from '../components/form'
 import * as Yup from 'yup'
 import { gql, useMutation } from '@apollo/client'
 import styles from './reply.module.css'
@@ -62,7 +62,7 @@ export default function Reply ({ parentId, onSuccess, autoFocus }) {
           }
         }}
       >
-        <Input
+        <MarkdownInput
           name='text'
           as='textarea'
           rows={4}

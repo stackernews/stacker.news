@@ -17,3 +17,16 @@
     width: 71px;
     height: 38px;
 }
+
+.noTopLeftRadius textarea {
+    border-top-left-radius: 0;
+}
+
+.reply textarea {
+    margin-top: -1px;
+}
+
+.reply .text {
+    margin-top: -1px;
+    height: auto;
+}

@@ -3,9 +3,13 @@ import InputGroup from 'react-bootstrap/InputGroup'
 import BootstrapForm from 'react-bootstrap/Form'
 import Alert from 'react-bootstrap/Alert'
 import { Formik, Form as FormikForm, useFormikContext, useField } from 'formik'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import copy from 'clipboard-copy'
 import Thumb from '../svgs/thumb-up-fill.svg'
+import { Nav } from 'react-bootstrap'
+import Markdown from '../svgs/markdown-line.svg'
+import styles from './form.module.css'
+import Text from '../components/text'
 
 export function SubmitButton ({ children, variant, ...props }) {
   const { isSubmitting } = useFormikContext()
@@ -55,11 +59,60 @@ export function InputSkeleton ({ label }) {
   )
 }
 
-export function Input ({ label, prepend, append, hint, showValid, groupClassName, ...props }) {
-  const [field, meta] = props.readOnly ? [{}, {}] : useField(props)
+export function MarkdownInput ({ label, groupClassName, ...props }) {
+  const [tab, setTab] = useState('write')
+  const [, meta] = useField(props)
+
+  useEffect(() => {
+    !meta.value && setTab('write')
+  }, [meta.value])
+
   return (
-    <BootstrapForm.Group className={groupClassName}>
+    <FormGroup label={label} className={groupClassName}>
+      <div className={`${styles.markdownInput} ${tab === 'write' ? styles.noTopLeftRadius : ''}`}>
+        <Nav variant='tabs' defaultActiveKey='write' activeKey={tab} onSelect={tab => setTab(tab)}>
+          <Nav.Item>
+            <Nav.Link eventKey='write'>write</Nav.Link>
+          </Nav.Item>
+          <Nav.Item>
+            <Nav.Link eventKey='preview' disabled={!meta.value}>preview</Nav.Link>
+          </Nav.Item>
+          <a
+            className='ml-auto text-muted d-flex align-items-center'
+            href='https://guides.github.com/features/mastering-markdown/' target='_blank' rel='noreferrer'
+          >
+            <Markdown width={18} height={18} />
+          </a>
+        </Nav>
+        <div className={tab !== 'write' ? 'd-none' : ''}>
+          <InputInner
+            {...props}
+          />
+        </div>
+        <div className='form-group'>
+          <div className={tab !== 'preview' ? 'd-none' : `${styles.text} form-control`}>
+            <Text>{meta.value}</Text>
+          </div>
+        </div>
+      </div>
+    </FormGroup>
+  )
+}
+
+function FormGroup ({ className, label, children }) {
+  return (
+    <BootstrapForm.Group className={className}>
       {label && <BootstrapForm.Label>{label}</BootstrapForm.Label>}
+      {children}
+    </BootstrapForm.Group>
+  )
+}
+
+function InputInner ({ prepend, append, hint, showValid, ...props }) {
+  const [field, meta] = props.readOnly ? [{}, {}] : useField(props)
+
+  return (
+    <>
       <InputGroup hasValidation>
         {prepend && (
           <InputGroup.Prepend>
@@ -85,7 +138,15 @@ export function Input ({ label, prepend, append, hint, showValid, groupClassName
           {hint}
         </BootstrapForm.Text>
       )}
-    </BootstrapForm.Group>
+    </>
+  )
+}
+
+export function Input ({ label, groupClassName, ...props }) {
+  return (
+    <FormGroup label={label} className={groupClassName}>
+      <InputInner {...props} />
+    </FormGroup>
   )
 }
 

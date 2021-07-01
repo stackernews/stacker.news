@@ -104,13 +104,12 @@ export default function Comment ({ item, children, replyOpen, includeParent, cac
           >
             {reply ? 'cancel' : 'reply'}
           </div>}
-        {reply &&
-          <div className={styles.replyWrapper}>
-            <Reply
-              parentId={item.id} autoFocus={!replyOpen}
-              onSuccess={() => setReply(replyOpen || false)} cacheId={cacheId}
-            />
-          </div>}
+        <div className={reply ? styles.replyWrapper : 'd-none'}>
+          <Reply
+            parentId={item.id} autoFocus={!replyOpen}
+            onSuccess={() => setReply(replyOpen || false)} cacheId={cacheId}
+          />
+        </div>
         {children}
         <div className={`${styles.comments} ml-sm-1 ml-md-3`}>
           {item.comments && !noComments

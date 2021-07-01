@@ -1,0 +1,12 @@
+.noTopLeftRadius textarea {
+    border-top-left-radius: 0;
+}
+
+.markdownInput textarea {
+    margin-top: -1px;
+}
+
+.markdownInput .text {
+    margin-top: -1px;
+    height: auto;
+}

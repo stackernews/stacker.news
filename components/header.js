@@ -123,3 +123,19 @@ export default function Header () {
     </>
   )
 }
+
+export function HeaderPreview () {
+  return (
+    <>
+      <Container className='px-sm-0'>
+        <Navbar className={styles.navbar}>
+          <Nav className='w-100 justify-content-between flex-wrap align-items-center'>
+            <Link href='/' passHref>
+              <Navbar.Brand className={`${styles.brand} d-none d-sm-block`}>STACKER NEWS</Navbar.Brand>
+            </Link>
+          </Nav>
+        </Navbar>
+      </Container>
+    </>
+  )
+}

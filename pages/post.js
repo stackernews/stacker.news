@@ -7,6 +7,7 @@ import { gql, useMutation } from '@apollo/client'
 import LayoutCenter from '../components/layout-center'
 import { ensureProtocol } from '../lib/url'
 import { useMe } from '../components/me'
+import ActionTooltip from '../components/action-tooltip'
 
 export const DiscussionSchema = Yup.object({
   title: Yup.string().required('required').trim()
@@ -50,7 +51,9 @@ export function DiscussionForm () {
         as='textarea'
         rows={4}
       />
-      <SubmitButton variant='secondary' className='mt-2'>post</SubmitButton>
+      <ActionTooltip>
+        <SubmitButton variant='secondary' className='mt-2'>post</SubmitButton>
+      </ActionTooltip>
     </Form>
   )
 }
@@ -109,7 +112,9 @@ export function LinkForm () {
         name='url'
         required
       />
-      <SubmitButton variant='secondary' className='mt-2'>post</SubmitButton>
+      <ActionTooltip>
+        <SubmitButton variant='secondary' className='mt-2'>post</SubmitButton>
+      </ActionTooltip>
     </Form>
   )
 }

@@ -4,6 +4,7 @@ import styles from './upvote.module.css'
 import { gql, useMutation } from '@apollo/client'
 import { signIn, useSession } from 'next-auth/client'
 import { useFundError } from './fund-error'
+import ActionTooltip from './action-tooltip'
 
 export default function UpVote ({ itemId, meSats, className }) {
   const [session] = useSession()
@@ -35,15 +36,16 @@ export default function UpVote ({ itemId, meSats, className }) {
   return (
     <LightningConsumer>
       {({ strike }) =>
-        <UpArrow
-          width={24}
-          height={24}
-          className={
+        <ActionTooltip>
+          <UpArrow
+            width={24}
+            height={24}
+            className={
             `${styles.upvote}
             ${className || ''}
             ${meSats ? (meSats > 1 ? styles.stimi : styles.voted) : ''}`
           }
-          onClick={
+            onClick={
             session
               ? async (e) => {
                   e.stopPropagation()
@@ -61,7 +63,8 @@ export default function UpVote ({ itemId, meSats, className }) {
                 }
               : signIn
           }
-        />}
+          />
+        </ActionTooltip>}
     </LightningConsumer>
   )
 }

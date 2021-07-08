@@ -8,6 +8,7 @@ import { Button, Container, NavDropdown } from 'react-bootstrap'
 import Price from './price'
 import { useMe } from './me'
 import { useApolloClient } from '@apollo/client'
+import Head from 'next/head'
 
 function WalletSummary ({ me }) {
   return `[${me.stacked},${me.sats}]`
@@ -28,6 +29,10 @@ export default function Header () {
     if (session) {
       return (
         <div className='d-flex align-items-center'>
+          {me && me.hasNewNotes &&
+            <Head>
+              <link rel='shortcut icon' href='/favicon-notify.png' />
+            </Head>}
           <div className='position-relative'>
             <NavDropdown className='pl-0' title={`@${session.user.name}`} alignRight>
               <Link href={'/' + session.user.name} passHref>
@@ -42,7 +47,7 @@ export default function Header () {
                 >
                   notifications
                   {me && me.hasNewNotes &&
-                    <div className='p-1 d-inline-block bg-danger rounded-circle ml-1'>
+                    <div className='p-1 d-inline-block bg-danger ml-1'>
                       <span className='invisible'>{' '}</span>
                     </div>}
                 </NavDropdown.Item>
@@ -68,7 +73,7 @@ export default function Header () {
               <NavDropdown.Item onClick={signOut}>logout</NavDropdown.Item>
             </NavDropdown>
             {me && me.hasNewNotes &&
-              <span className='position-absolute p-1 bg-danger rounded-circle' style={{ top: '5px', right: '0px' }}>
+              <span className='position-absolute p-1 bg-danger' style={{ top: '5px', right: '0px' }}>
                 <span className='invisible'>{' '}</span>
               </span>}
           </div>

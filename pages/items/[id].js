@@ -9,21 +9,41 @@ import { ITEM_FIELDS } from '../../fragments/items'
 import { gql, useQuery } from '@apollo/client'
 import styles from '../../styles/item.module.css'
 import Seo from '../../components/seo'
+import ApolloClient from '../../api/client'
 
-export async function getServerSideProps ({ params: { id } }) {
+// ssr the item without comments so that we can populate metatags
+export async function getServerSideProps ({ req, params: { id } }) {
+  const { error, data: { item } } = await (await ApolloClient(req)).query({
+    query:
+      gql`
+        ${ITEM_FIELDS}
+        {
+          item(id: ${id}) {
+            ...ItemFields
+            text
+        }
+      }`
+  })
+
+  if (!item || error) {
+    return {
+      notFound: true
+    }
+  }
+
   return {
     props: {
-      id
+      item
     }
   }
 }
 
-export default function FullItem ({ id }) {
+export default function FullItem ({ item }) {
   const query = gql`
     ${ITEM_FIELDS}
     ${COMMENTS}
     {
-      item(id: ${id}) {
+      item(id: ${item.id}) {
         ...ItemFields
         text
         comments {
@@ -34,6 +54,7 @@ export default function FullItem ({ id }) {
 
   return (
     <Layout noSeo>
+      <Seo item={item} />
       <LoadItem query={query} />
     </Layout>
   )
@@ -60,7 +81,6 @@ function LoadItem ({ query }) {
 
   return (
     <>
-      <Seo item={item} />
       {item.parentId
         ? <Comment item={item} replyOpen includeParent noComments />
         : (

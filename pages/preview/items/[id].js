@@ -9,9 +9,9 @@ import Comment from '../../../components/comment'
 
 // we can't SSR on the normal page because we'd have to hyrdate the cache
 // on the client which is a lot of work, i.e. a bit fat todo
-export async function getServerSideProps ({ req, params }) {
+export async function getServerSideProps ({ params }) {
   // grab the item on the server side
-  const { error, data: { item } } = await (await ApolloClient(req)).query({
+  const { error, data: { item } } = await (await ApolloClient()).query({
     query:
       gql`
       ${ITEM_FIELDS}
@@ -36,18 +36,30 @@ export async function getServerSideProps ({ req, params }) {
   }
 }
 
+// export async function getStaticPaths () {
+//   return {
+//     paths: [],
+//     // Enable statically generating additional pages
+//     // For example: `/posts/3`
+//     fallback: 'blocking'
+//   }
+// }
+
 export default function ItemPreview ({ item }) {
   return (
-    <LayoutPreview>
-      <LightningProvider>
-        {item.parentId
-          ? <Comment item={item} includeParent noComments />
-          : (
-            <Item item={item}>
-              {item.text && <div className='mb-3'><Text>{item.text}</Text></div>}
-            </Item>
-            )}
-      </LightningProvider>
-    </LayoutPreview>
+    <>
+      <LayoutPreview>
+        <LightningProvider>
+
+          {item.parentId
+            ? <Comment item={item} includeParent noReply noComments />
+            : (
+              <Item item={item}>
+                {item.text && <div className='mb-3'><Text>{item.text}</Text></div>}
+              </Item>
+              )}
+        </LightningProvider>
+      </LayoutPreview>
+    </>
   )
 }

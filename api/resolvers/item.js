@@ -131,15 +131,6 @@ export default {
         FROM "Item"
         WHERE "userId" = $1 AND "parentId" IS NOT NULL
         ORDER BY created_at DESC`, Number(userId))
-    },
-    root: async (parent, { id }, { models }) => {
-      return (await models.$queryRaw(`
-        ${SELECT}
-        FROM "Item"
-        WHERE id = (
-          SELECT ltree2text(subltree(path, 0, 1))::integer
-          FROM "Item"
-          WHERE id = $1)`, Number(id)))[0]
     }
   },
 
@@ -238,6 +229,24 @@ export default {
       })
 
       return sats || 0
+    },
+    root: async (item, args, { models }) => {
+      if (!item.parentId) {
+        return null
+      }
+      return (await models.$queryRaw(`
+        ${SELECT}
+        FROM "Item"
+        WHERE id = (
+          SELECT ltree2text(subltree(path, 0, 1))::integer
+          FROM "Item"
+          WHERE id = $1)`, Number(item.id)))[0]
+    },
+    parent: async (item, args, { models }) => {
+      if (!item.parentId) {
+        return null
+      }
+      return await models.item.findUnique({ where: { id: item.parentId } })
     }
   }
 }

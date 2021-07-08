@@ -4,7 +4,6 @@ import Text from './text'
 import Link from 'next/link'
 import Reply from './reply'
 import { useEffect, useRef, useState } from 'react'
-import { gql, useQuery } from '@apollo/client'
 import { timeSince } from '../lib/time'
 import UpVote from './upvote'
 import Eye from '../svgs/eye-fill.svg'
@@ -12,15 +11,6 @@ import EyeClose from '../svgs/eye-close-line.svg'
 import { useRouter } from 'next/router'
 
 function Parent ({ item }) {
-  const { data } = useQuery(
-    gql`{
-      root(id: ${item.id}) {
-        id
-        title
-      }
-    }`
-  )
-
   const ParentFrag = () => (
     <>
       <span> \ </span>
@@ -30,16 +20,16 @@ function Parent ({ item }) {
     </>
   )
 
-  if (!data) {
+  if (!item.root) {
     return <ParentFrag />
   }
 
   return (
     <>
-      {data.root.id !== item.parentId && <ParentFrag />}
+      {Number(item.root.id) !== Number(item.parentId) && <ParentFrag />}
       <span> \ </span>
-      <Link href={`/items/${data.root.id}`} passHref>
-        <a onClick={e => e.stopPropagation()} className='text-reset'>root: {data.root.title}</a>
+      <Link href={`/items/${item.root.id}`} passHref>
+        <a onClick={e => e.stopPropagation()} className='text-reset'>root: {item.root.title}</a>
       </Link>
     </>
   )

@@ -14,6 +14,10 @@ export const ITEM_FIELDS = gql`
     boost
     meSats
     ncomments
+    root {
+      id
+      title
+    }
   }`
 
 export const MORE_ITEMS = gql`

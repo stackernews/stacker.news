@@ -3,6 +3,7 @@ import Items from '../components/items'
 import { gql } from '@apollo/client'
 import ApolloClient from '../api/client'
 import UserHeader from '../components/user-header'
+import Seo from '../components/seo'
 
 export async function getServerSideProps ({ req, params }) {
   const { error, data: { user } } = await (await ApolloClient(req)).query({
@@ -36,6 +37,7 @@ export async function getServerSideProps ({ req, params }) {
 export default function User ({ user }) {
   return (
     <Layout>
+      <Seo user={user} />
       <UserHeader user={user} />
       <Items variables={{ sort: 'user', userId: user.id }} />
     </Layout>

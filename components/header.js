@@ -81,7 +81,7 @@ export default function Header () {
         </div>
       )
     } else {
-      return path !== '/login' && <Button href='/login' onClick={signIn}>login</Button>
+      return path !== '/login' && <Button id='login' href='/login' onClick={signIn}>login</Button>
     }
   }
 
@@ -133,6 +133,9 @@ export function HeaderPreview () {
             <Link href='/' passHref>
               <Navbar.Brand className={`${styles.brand} d-none d-sm-block`}>STACKER NEWS</Navbar.Brand>
             </Link>
+            <Nav.Item className='text-monospace' style={{ opacity: '.5' }}>
+              <Price />
+            </Nav.Item>
           </Nav>
         </Navbar>
       </Container>

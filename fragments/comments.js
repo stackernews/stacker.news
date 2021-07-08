@@ -13,6 +13,10 @@ export const COMMENT_FIELDS = gql`
     boost
     meSats
     ncomments
+    root {
+      id
+      title
+    }
   }
 `
 

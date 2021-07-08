@@ -7,7 +7,6 @@ export default gql`
     notifications: [Item!]!
     item(id: ID!): Item
     userComments(userId: ID!): [Item!]
-    root(id: ID!): Item
   }
 
   extend type Mutation {
@@ -34,6 +33,8 @@ export default gql`
     url: String
     text: String
     parentId: Int
+    parent: Item
+    root: Item
     user: User!
     depth: Int!
     sats: Int!

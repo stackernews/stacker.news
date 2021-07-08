@@ -33,7 +33,7 @@ export default function FullItem ({ id }) {
   }`
 
   return (
-    <Layout>
+    <Layout noSeo>
       <LoadItem query={query} />
     </Layout>
   )

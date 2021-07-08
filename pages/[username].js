@@ -36,7 +36,7 @@ export async function getServerSideProps ({ req, params }) {
 
 export default function User ({ user }) {
   return (
-    <Layout>
+    <Layout noSeo>
       <Seo user={user} />
       <UserHeader user={user} />
       <Items variables={{ sort: 'user', userId: user.id }} />

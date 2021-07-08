@@ -36,7 +36,7 @@ export async function getServerSideProps ({ req, params }) {
 
 export default function UserComments ({ user }) {
   return (
-    <Layout>
+    <Layout noSeo>
       <Seo user={user} />
       <UserHeader user={user} />
       <CommentsFlat variables={{ userId: user.id }} includeParent noReply clickToContext />

@@ -5,10 +5,10 @@ import { LightningProvider } from './lightning'
 import Footer from './footer'
 import Seo from './seo'
 
-export default function Layout ({ noContain, noFooter, children }) {
+export default function Layout ({ noContain, noFooter, noSeo, children }) {
   return (
     <>
-      <Seo />
+      {!noSeo && <Seo />}
       <LightningProvider>
         <Head>
           <meta name='viewport' content='initial-scale=1.0, width=device-width' />

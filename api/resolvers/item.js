@@ -22,7 +22,7 @@ async function comments (models, id) {
 
 function decodeCursor (cursor) {
   if (!cursor) {
-    return { offset: 0, time: new Date((new Date()).getTime() + (2 * 60 * 60 * 1000)) }
+    return { offset: 0, time: new Date() }
   } else {
     const res = JSON.parse(Buffer.from(cursor, 'base64'))
     res.time = new Date(res.time)

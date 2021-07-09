@@ -22,7 +22,7 @@ async function comments (models, id) {
 
 function decodeCursor (cursor) {
   if (!cursor) {
-    return { offset: 0, time: new Date() }
+    return { offset: 0, time: new Date((new Date()).getTime() + (2 * 60 * 60 * 1000)) }
   } else {
     const res = JSON.parse(Buffer.from(cursor, 'base64'))
     res.time = new Date(res.time)
@@ -293,22 +293,26 @@ const SELECT =
   `SELECT "Item".id, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt", "Item".title,
   "Item".text, "Item".url, "Item"."userId", "Item"."parentId", ltree2text("Item"."path") AS "path"`
 
+const LEFT_JOIN_SATS_SELECT = 'SELECT i.id, SUM(CASE WHEN "Vote".boost THEN 0 ELSE "Vote".sats END) as sats,  SUM(CASE WHEN "Vote".boost THEN "Vote".sats ELSE 0 END) as boost'
+
 function timedLeftJoinSats (num) {
-  return `LEFT JOIN (SELECT i.id, SUM("Vote".sats) as sats
+  return `LEFT JOIN (${LEFT_JOIN_SATS_SELECT}
   FROM "Item" i
   JOIN "Vote" ON i.id = "Vote"."itemId" AND "Vote".created_at <= $${num}
   GROUP BY i.id) x ON "Item".id = x.id`
 }
 
 const LEFT_JOIN_SATS =
-  `LEFT JOIN (SELECT i.id, SUM("Vote".sats) as sats
+  `LEFT JOIN (${LEFT_JOIN_SATS_SELECT}
   FROM "Item" i
   JOIN "Vote" ON i.id = "Vote"."itemId"
   GROUP BY i.id) x ON "Item".id = x.id`
 
 function timedOrderBySats (num) {
-  return `ORDER BY (x.sats-1)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 1.5) DESC NULLS LAST`
+  return `ORDER BY ((x.sats-1)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 1.5) +
+    (x.boost)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 9)) DESC NULLS LAST`
 }
 
 const ORDER_BY_SATS =
-  'ORDER BY (x.sats-1)/POWER(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE \'UTC\') - "Item".created_at))/3600+2, 1.5) DESC NULLS LAST'
+  `ORDER BY ((x.sats-1)/POWER(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE 'UTC') - "Item".created_at))/3600+2, 1.5) +
+    (x.boost)/POWER(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE 'UTC') - "Item".created_at))/3600+2, 9)) DESC NULLS LAST`

@@ -7,7 +7,7 @@ export default function Seo ({ item, user }) {
   const pathNoQuery = router.asPath.split('?')[0]
   const defaultTitle = pathNoQuery.slice(1)
   let fullTitle = `${defaultTitle && `${defaultTitle} \\ `}stacker news`
-  let desc = 'Bitcoin news powered by the Lightning Network. Stack sats with real Bitcoiners.'
+  let desc = 'Bitcoin news powered by the Lightning Network.'
   if (item) {
     if (item.title) {
       fullTitle = `${item.title} \\ stacker news`

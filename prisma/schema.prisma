@@ -115,7 +115,7 @@ model Withdrawl {
   user      User     @relation(fields: [userId], references: [id])
   userId    Int
 
-  hash           String @unique
+  hash           String
   bolt11         String
   msatsPaying    Int
   msatsPaid      Int?

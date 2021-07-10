@@ -17,6 +17,12 @@ async function serialize (models, call) {
       if (error.message.includes('SN_NOT_SERIALIZABLE')) {
         bail(new Error('wallet balance transaction is not serializable'))
       }
+      if (error.message.includes('SN_CONFIRMED_WITHDRAWL_EXISTS')) {
+        bail(new Error('withdrawl invoice already confirmed (to withdrawl again create a new invoice)'))
+      }
+      if (error.message.includes('SN_PENDING_WITHDRAWL_EXISTS')) {
+        bail(new Error('withdrawl invoice exists and is pending'))
+      }
       if (error.message.includes('40001')) {
         throw new Error('wallet balance serialization failure - retry again')
       }

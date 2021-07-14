@@ -1,7 +1,7 @@
 .title {
     font-weight: 500;
     white-space: normal;
-    margin-right: .5rem;
+    max-width: 100%;
 }
 
 .upvote {
@@ -13,6 +13,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    flex: 1 0 128px;
 }
 
 .other {

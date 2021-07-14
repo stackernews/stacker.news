@@ -15,9 +15,9 @@ export default function Item ({ item, rank, children }) {
       <div className={styles.item}>
         <UpVote itemId={item.id} meSats={item.meSats} className={styles.upvote} />
         <div className={styles.hunk}>
-          <div className={`${styles.main} flex-wrap flex-md-nowrap`}>
+          <div className={`${styles.main} flex-wrap`}>
             <Link href={`/items/${item.id}`} passHref>
-              <a className={`${styles.title} text-reset flex-md-shrink-0 mr-2`}>{item.title}</a>
+              <a className={`${styles.title} text-reset mr-2`}>{item.title}</a>
             </Link>
             {item.url &&
               <a

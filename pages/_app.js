@@ -3,6 +3,7 @@ import { ApolloClient, InMemoryCache, ApolloProvider } from '@apollo/client'
 import { Provider } from 'next-auth/client'
 import { FundErrorModal, FundErrorProvider } from '../components/fund-error'
 import { MeProvider } from '../components/me'
+import PlausibleProvider from 'next-plausible'
 
 const client = new ApolloClient({
   uri: '/api/graphql',
@@ -56,7 +57,7 @@ const client = new ApolloClient({
 
 function MyApp ({ Component, pageProps }) {
   return (
-    <>
+    <PlausibleProvider domain='stacker.news' trackOutboundLinks>
       <Provider session={pageProps.session}>
         <ApolloProvider client={client}>
           <MeProvider>
@@ -67,7 +68,7 @@ function MyApp ({ Component, pageProps }) {
           </MeProvider>
         </ApolloProvider>
       </Provider>
-    </>
+    </PlausibleProvider>
   )
 }
 

@@ -6,6 +6,7 @@ import styles from './footer.module.css'
 import Texas from '../svgs/texas.svg'
 import Github from '../svgs/github-fill.svg'
 import Twitter from '../svgs/twitter-fill.svg'
+import Link from 'next/link'
 
 export default function Footer () {
   const query = gql`
@@ -31,6 +32,12 @@ export default function Footer () {
               placeholder={data.connectAddress}
             />
           </div>}
+        <Link href='/faq' passHref>
+          <a className='text-dark d-inline-flex'>
+            FAQ
+          </a>
+        </Link>
+        <span className='text-muted mx-2'> \ </span>
         <small>
           <a className='text-dark d-inline-flex' href='https://github.com/stackernews/stacker.news'>
             This is free open source software <Github width={20} height={20} className='mx-1' />

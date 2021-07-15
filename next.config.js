@@ -1,5 +1,12 @@
 const { withPlausibleProxy } = require('next-plausible')
 
 module.exports = withPlausibleProxy()({
-  // ...your next js config, if any
+  async rewrites () {
+    return [
+      {
+        source: '/faq',
+        destination: '/items/349'
+      }
+    ]
+  }
 })

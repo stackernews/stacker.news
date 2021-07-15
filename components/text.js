@@ -4,6 +4,7 @@ import gfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 /* Use `…/dist/cjs/…` if you’re not in ESM! */
 import { atomDark } from 'react-syntax-highlighter/dist/cjs/styles/prism'
+import mention from '../lib/remark-mention'
 
 export default function Text ({ children }) {
   return (
@@ -35,7 +36,7 @@ export default function Text ({ children }) {
                 )
           }
         }}
-        remarkPlugins={[gfm]}
+        remarkPlugins={[gfm, mention]}
       >
         {children}
       </ReactMarkdown>

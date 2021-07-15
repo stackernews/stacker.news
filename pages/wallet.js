@@ -3,11 +3,12 @@ import { Form, Input, SubmitButton } from '../components/form'
 import Link from 'next/link'
 import Button from 'react-bootstrap/Button'
 import * as Yup from 'yup'
-import { gql, useMutation, useQuery } from '@apollo/client'
+import { gql, useMutation } from '@apollo/client'
 import { LnQRSkeleton } from '../components/lnqr'
 import LayoutCenter from '../components/layout-center'
 import InputGroup from 'react-bootstrap/InputGroup'
 import { WithdrawlSkeleton } from './withdrawls/[id]'
+import { useMe } from '../components/me'
 
 export default function Wallet () {
   return (
@@ -17,12 +18,22 @@ export default function Wallet () {
   )
 }
 
+function YouHaveSats () {
+  const me = useMe()
+  return (
+    <h2 className={`${me ? 'visible' : 'invisible'} text-success pb-5`}>
+      you have <span className='text-monospace'>{me && me.sats}</span> sats
+    </h2>
+  )
+}
+
 export function WalletForm () {
   const router = useRouter()
 
   if (!router.query.type) {
     return (
       <div className='align-items-center'>
+        <YouHaveSats />
         <Link href='/wallet?type=fund'>
           <Button variant='success'>fund</Button>
         </Link>
@@ -60,25 +71,28 @@ export function FundForm () {
   }
 
   return (
-    <Form
-      initial={{
-        amount: 1000
-      }}
-      schema={FundSchema}
-      onSubmit={async ({ amount }) => {
-        const { data } = await createInvoice({ variables: { amount: Number(amount) } })
-        router.push(`/invoices/${data.createInvoice.id}`)
-      }}
-    >
-      <Input
-        label='amount'
-        name='amount'
-        required
-        autoFocus
-        append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
-      />
-      <SubmitButton variant='success' className='mt-2'>generate invoice</SubmitButton>
-    </Form>
+    <>
+      <YouHaveSats />
+      <Form
+        initial={{
+          amount: 1000
+        }}
+        schema={FundSchema}
+        onSubmit={async ({ amount }) => {
+          const { data } = await createInvoice({ variables: { amount: Number(amount) } })
+          router.push(`/invoices/${data.createInvoice.id}`)
+        }}
+      >
+        <Input
+          label='amount'
+          name='amount'
+          required
+          autoFocus
+          append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+        />
+        <SubmitButton variant='success' className='mt-2'>generate invoice</SubmitButton>
+      </Form>
+    </>
   )
 }
 
@@ -90,13 +104,6 @@ export const WithdrawlSchema = Yup.object({
 
 export function WithdrawlForm () {
   const router = useRouter()
-  const query = gql`
-  {
-    me {
-      sats
-    }
-  }`
-  const { data } = useQuery(query, { pollInterval: 1000 })
 
   const [createWithdrawl, { called, error }] = useMutation(gql`
     mutation createWithdrawl($invoice: String!, $maxFee: Int!) {
@@ -111,9 +118,7 @@ export function WithdrawlForm () {
 
   return (
     <>
-      <h2 className={`${data ? 'visible' : 'invisible'} text-success pb-5`}>
-        you have <span className='text-monospace'>{data && data.me.sats}</span> sats
-      </h2>
+      <YouHaveSats />
       <Form
         className='pt-3'
         initial={{

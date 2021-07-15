@@ -238,3 +238,10 @@ footer {
 .flipY {
   animation: flipY 4s linear infinite;
 }
+
+@media (hover:none), (hover:on-demand) {
+  .tooltip {
+    visibility: hidden;
+    pointer-events: none;
+  }
+}

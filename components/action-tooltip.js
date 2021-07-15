@@ -9,7 +9,7 @@ export default function ActionTooltip ({ children }) {
           1 sat
         </Tooltip>
       }
-      trigger={['hover']}
+      trigger={['hover', 'focus']}
     >
       {children}
     </OverlayTrigger>

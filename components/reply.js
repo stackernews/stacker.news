@@ -5,6 +5,7 @@ import styles from './reply.module.css'
 import { COMMENTS } from '../fragments/comments'
 import { useMe } from './me'
 import ActionTooltip from './action-tooltip'
+import TextareaAutosize from 'react-textarea-autosize'
 
 export const CommentSchema = Yup.object({
   text: Yup.string().required('required').trim()
@@ -65,8 +66,8 @@ export default function Reply ({ parentId, onSuccess, autoFocus }) {
       >
         <MarkdownInput
           name='text'
-          as='textarea'
-          rows={4}
+          as={TextareaAutosize}
+          minRows={4}
           autoFocus={autoFocus}
           required
           hint={me?.freeComments ? <span className='text-success'>{me.freeComments} free comments left</span> : null}

@@ -92,7 +92,7 @@ export default function Header () {
       const strike = useLightning()
       useEffect(() => {
         setTimeout(strike, randInRange(3000, 10000))
-      }, [])
+      }, [router.asPath])
       return path !== '/login' && <Button id='login' onClick={signIn}>login</Button>
     }
   }

@@ -8,6 +8,7 @@ import LayoutCenter from '../components/layout-center'
 import { ensureProtocol } from '../lib/url'
 import { useMe } from '../components/me'
 import ActionTooltip from '../components/action-tooltip'
+import TextareaAutosize from 'react-textarea-autosize'
 
 export const DiscussionSchema = Yup.object({
   title: Yup.string().required('required').trim()
@@ -48,8 +49,8 @@ export function DiscussionForm () {
       <MarkdownInput
         label={<>text <small className='text-muted ml-2'>optional</small></>}
         name='text'
-        as='textarea'
-        rows={4}
+        as={TextareaAutosize}
+        minRows={4}
       />
       <ActionTooltip>
         <SubmitButton variant='secondary' className='mt-2'>post</SubmitButton>

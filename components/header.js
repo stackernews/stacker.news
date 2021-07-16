@@ -86,7 +86,7 @@ export default function Header () {
         </div>
       )
     } else {
-      return path !== '/login' && <Button id='login' href='/login' onClick={signIn}>login</Button>
+      return path !== '/login' && <Button id='login' onClick={signIn}>login</Button>
     }
   }
 

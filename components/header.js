@@ -1,4 +1,3 @@
-import { signOut, signIn, useSession } from 'next-auth/client'
 import Navbar from 'react-bootstrap/Navbar'
 import Nav from 'react-bootstrap/Nav'
 import Link from 'next/link'
@@ -9,6 +8,7 @@ import Price from './price'
 import { useMe } from './me'
 import { useApolloClient } from '@apollo/client'
 import Head from 'next/head'
+import { signOut, signIn, useSession } from 'next-auth/client'
 
 function WalletSummary ({ me }) {
   return `[${me.stacked},${me.sats}]`

@@ -4,6 +4,7 @@ import { Provider } from 'next-auth/client'
 import { FundErrorModal, FundErrorProvider } from '../components/fund-error'
 import { MeProvider } from '../components/me'
 import PlausibleProvider from 'next-plausible'
+import { LightningProvider } from '../components/lightning'
 
 const client = new ApolloClient({
   uri: '/api/graphql',
@@ -61,10 +62,12 @@ function MyApp ({ Component, pageProps }) {
       <Provider session={pageProps.session}>
         <ApolloProvider client={client}>
           <MeProvider>
-            <FundErrorProvider>
-              <FundErrorModal />
-              <Component {...pageProps} />
-            </FundErrorProvider>
+            <LightningProvider>
+              <FundErrorProvider>
+                <FundErrorModal />
+                <Component {...pageProps} />
+              </FundErrorProvider>
+            </LightningProvider>
           </MeProvider>
         </ApolloProvider>
       </Provider>

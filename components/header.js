@@ -9,6 +9,9 @@ import { useMe } from './me'
 import { useApolloClient } from '@apollo/client'
 import Head from 'next/head'
 import { signOut, signIn, useSession } from 'next-auth/client'
+import { useLightning } from './lightning'
+import { useEffect } from 'react'
+import { randInRange } from '../lib/rand'
 
 function WalletSummary ({ me }) {
   return `[${me.stacked},${me.sats}]`
@@ -86,6 +89,10 @@ export default function Header () {
         </div>
       )
     } else {
+      const strike = useLightning()
+      useEffect(() => {
+        setTimeout(strike, randInRange(3000, 10000))
+      }, [])
       return path !== '/login' && <Button id='login' onClick={signIn}>login</Button>
     }
   }

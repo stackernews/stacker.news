@@ -1,16 +1,22 @@
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useEffect, useContext } from 'react'
+import { randInRange } from '../lib/rand'
 
-export const LightningContext = React.createContext()
+export const LightningContext = React.createContext({
+  bolts: 0,
+  strike: () => {}
+})
 
 export class LightningProvider extends React.Component {
   state = {
     bolts: 0,
-    strike: () => this.setState(state => {
-      return {
-        ...this.state,
-        bolts: this.state.bolts + 1
-      }
-    })
+    strike: (repeat) => {
+      this.setState(state => {
+        return {
+          ...this.state,
+          bolts: this.state.bolts + 1
+        }
+      })
+    }
   }
 
   render () {
@@ -25,6 +31,10 @@ export class LightningProvider extends React.Component {
 }
 
 export const LightningConsumer = LightningContext.Consumer
+export function useLightning () {
+  const { strike } = useContext(LightningContext)
+  return strike
+}
 
 export function Lightning () {
   const canvasRef = useRef(null)
@@ -82,7 +92,7 @@ function Bolt (ctx, options) {
   this.draw = (isChild) => {
     ctx.beginPath()
     ctx.moveTo(this.point[0], this.point[1])
-    const angleChange = rand(1, this.options.spread)
+    const angleChange = randInRange(1, this.options.spread)
     this.lastAngle += this.lastAngle > this.options.angle ? -angleChange : angleChange
     const radians = this.lastAngle * Math.PI / 180
 
@@ -100,11 +110,11 @@ function Bolt (ctx, options) {
     // make skinnier?
     // ctx.lineWidth = ctx.lineWidth * 0.98
 
-    if (rand(0, 99) < this.options.branches && this.children.length < this.options.maxBranches) {
+    if (randInRange(0, 99) < this.options.branches && this.children.length < this.options.maxBranches) {
       this.children.push(new Bolt(ctx, {
         startPoint: [this.point[0], this.point[1]],
         length: d * 0.8,
-        angle: this.lastAngle + rand(350 - this.options.spread, 370 + this.options.spread),
+        angle: this.lastAngle + randInRange(350 - this.options.spread, 370 + this.options.spread),
         resistance: this.options.resistance,
         speed: this.options.speed - 2,
         spread: this.options.spread - 2,
@@ -138,8 +148,4 @@ function Bolt (ctx, options) {
 
     setTimeout(() => { this.fade() }, 50)
   }
-}
-
-function rand (min, max) {
-  return Math.random() * (max - min) + min
 }

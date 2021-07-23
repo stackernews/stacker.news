@@ -5,7 +5,7 @@ import Link from 'next/link'
 import * as Yup from 'yup'
 import { gql, useMutation } from '@apollo/client'
 import LayoutCenter from '../components/layout-center'
-import { ensureProtocol } from '../lib/url'
+import { isURL } from '../lib/url'
 import { useMe } from '../components/me'
 import ActionTooltip from '../components/action-tooltip'
 import TextareaAutosize from 'react-textarea-autosize'
@@ -63,15 +63,7 @@ export const LinkSchema = Yup.object({
   title: Yup.string().required('required').trim(),
   url: Yup.string().test({
     name: 'url',
-    test: (value) => {
-      try {
-        value = ensureProtocol(value)
-        const valid = new URL(value)
-        return Boolean(valid)
-      } catch {
-        return false
-      }
-    },
+    test: (value) => isURL(value),
     message: 'invalid url'
   }).required('required')
 })

@@ -39,7 +39,7 @@ export function WalletForm () {
         </Link>
         <span className='mx-3 font-weight-bold text-muted'>or</span>
         <Link href='/wallet?type=withdrawl'>
-          <Button variant='success'>withdrawl</Button>
+          <Button variant='success'>withdraw</Button>
         </Link>
       </div>
     )

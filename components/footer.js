@@ -38,11 +38,9 @@ export default function Footer () {
           </a>
         </Link>
         <span className='text-muted mx-2'> \ </span>
-        <Link href='/rss' passHref>
-          <a className='text-dark d-inline-flex'>
-            RSS
-          </a>
-        </Link>
+        <a href='/rss' className='text-dark d-inline-flex'>
+          RSS
+        </a>
         <span className='text-muted mx-2'> \ </span>
         <small>
           <a className='text-dark d-inline-flex' href='https://github.com/stackernews/stacker.news'>

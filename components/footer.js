@@ -38,8 +38,12 @@ export default function Footer () {
           </a>
         </Link>
         <span className='text-muted mx-2'> \ </span>
-        <a href='/rss' className='text-dark d-inline-flex'>
+        <a href='/rss' className='text-dark d-inline-flex' target='_blank'>
           RSS
+        </a>
+        <span className='text-muted mx-2'> \ </span>
+        <a href='https://plausible.io/stacker.news' className='text-dark d-inline-flex' target='_blank' rel='noreferrer'>
+          Analytics
         </a>
         <span className='text-muted mx-2'> \ </span>
         <small>

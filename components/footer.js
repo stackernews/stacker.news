@@ -38,6 +38,12 @@ export default function Footer () {
           </a>
         </Link>
         <span className='text-muted mx-2'> \ </span>
+        <Link href='/rss' passHref>
+          <a className='text-dark d-inline-flex'>
+            RSS
+          </a>
+        </Link>
+        <span className='text-muted mx-2'> \ </span>
         <small>
           <a className='text-dark d-inline-flex' href='https://github.com/stackernews/stacker.news'>
             This is free open source software <Github width={20} height={20} className='mx-1' />

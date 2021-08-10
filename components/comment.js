@@ -9,6 +9,9 @@ import UpVote from './upvote'
 import Eye from '../svgs/eye-fill.svg'
 import EyeClose from '../svgs/eye-close-line.svg'
 import { useRouter } from 'next/router'
+import { useMe } from './me'
+import CommentEdit from './comment-edit'
+import Countdown from 'react-countdown'
 
 function Parent ({ item }) {
   const ParentFrag = () => (
@@ -37,9 +40,15 @@ function Parent ({ item }) {
 
 export default function Comment ({ item, children, replyOpen, includeParent, cacheId, noComments, noReply, clickToContext }) {
   const [reply, setReply] = useState(replyOpen)
+  const [edit, setEdit] = useState()
   const [collapse, setCollapse] = useState(false)
   const ref = useRef(null)
   const router = useRouter()
+  const me = useMe()
+  const mine = me.id === item.user.id
+  const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
+  const [canEdit, setCanEdit] =
+    useState(mine && (Date.now() < editThreshold))
 
   useEffect(() => {
     if (Number(router.query.commentId) === Number(item.id)) {
@@ -81,23 +90,63 @@ export default function Comment ({ item, children, replyOpen, includeParent, cac
               : <EyeClose className={styles.collapser} height={10} width={10} onClick={() => setCollapse(true)} />)}
 
           </div>
-          <div className={styles.text}>
-            <Text>{item.text}</Text>
-          </div>
+          {edit
+            ? (
+              <div className={styles.replyWrapper}>
+                <CommentEdit
+                  comment={item}
+                  onSuccess={() => {
+                    setEdit(!edit)
+                    setCanEdit(mine && (Date.now() < editThreshold))
+                  }}
+                  onCancel={() => {
+                    setEdit(!edit)
+                    setCanEdit(mine && (Date.now() < editThreshold))
+                  }}
+                  editThreshold={editThreshold}
+                />
+              </div>
+              )
+            : (
+              <div className={styles.text}>
+                <Text>{item.text}</Text>
+              </div>
+              )}
         </div>
       </div>
       <div className={`${itemStyles.children} ${styles.children}`}>
-        {!noReply &&
-          <div
-            className={`${itemStyles.other} ${styles.reply}`}
-            onClick={() => setReply(!reply)}
-          >
-            {reply ? 'cancel' : 'reply'}
-          </div>}
+        {!noReply && !edit && (
+          <div className={`${itemStyles.other} ${styles.reply}`}>
+            <div
+              className='d-inline-block'
+              onClick={() => setReply(!reply)}
+            >
+              {reply ? 'cancel' : 'reply'}
+            </div>
+            {canEdit && !reply && !edit &&
+              <>
+                <span> \ </span>
+                <div
+                  className='d-inline-block'
+                  onClick={() => setEdit(!edit)}
+                >
+                  edit
+                  <Countdown
+                    date={editThreshold}
+                    renderer={props => <span> {props.formatted.minutes}:{props.formatted.seconds}</span>}
+                    onComplete={() => {
+                      setCanEdit(false)
+                    }}
+                  />
+                </div>
+              </>}
+          </div>
+        )}
+
         <div className={reply ? styles.replyWrapper : 'd-none'}>
           <Reply
             parentId={item.id} autoFocus={!replyOpen}
-            onSuccess={() => setReply(replyOpen || false)} cacheId={cacheId}
+            onSuccess={() => setReply(replyOpen || false)}
           />
         </div>
         {children}

@@ -8,6 +8,7 @@ export const COMMENT_FIELDS = gql`
     text
     user {
       name
+      id
     }
     sats
     boost

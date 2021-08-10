@@ -159,10 +159,34 @@ export default {
       }
 
       if (!parentId) {
-        throw new UserInputError('comment must have parent', { argumentName: 'text' })
+        throw new UserInputError('comment must have parent', { argumentName: 'parentId' })
       }
 
       return await createItem(parent, { text, parentId }, { me, models })
+    },
+    updateComment: async (parent, { id, text }, { me, models }) => {
+      if (!text) {
+        throw new UserInputError('comment must have text', { argumentName: 'text' })
+      }
+
+      if (!id) {
+        throw new UserInputError('comment must have id', { argumentName: 'id' })
+      }
+
+      // update iff this comment belongs to me
+      const comment = await models.item.findUnique({ where: { id: Number(id) } })
+      if (Number(comment.userId) !== Number(me.id)) {
+        throw new AuthenticationError('comment must belong to you')
+      }
+
+      if (Date.now() > new Date(comment.createdAt).getTime() + 10 * 60000) {
+        throw new UserInputError('comment can no longer be editted')
+      }
+
+      return await models.item.update({
+        where: { id: Number(id) },
+        data: { text }
+      })
     },
     vote: async (parent, { id, sats = 1 }, { me, models }) => {
       // need to make sure we are logged in

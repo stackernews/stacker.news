@@ -13,6 +13,7 @@ export default gql`
     createLink(title: String!, url: String): Item!
     createDiscussion(title: String!, text: String): Item!
     createComment(text: String!, parentId: ID!): Item!
+    updateComment(id: ID!, text: String!): Item!
     vote(id: ID!, sats: Int): Int!
   }
 

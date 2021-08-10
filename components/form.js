@@ -89,8 +89,8 @@ export function MarkdownInput ({ label, groupClassName, ...props }) {
             {...props}
           />
         </div>
-        <div className='form-group'>
-          <div className={tab !== 'preview' ? 'd-none' : `${styles.text} form-control`}>
+        <div className={tab !== 'preview' ? 'd-none' : 'form-group'}>
+          <div className={`${styles.text} form-control`}>
             <Text>{meta.value}</Text>
           </div>
         </div>

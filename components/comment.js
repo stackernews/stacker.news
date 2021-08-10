@@ -45,7 +45,7 @@ export default function Comment ({ item, children, replyOpen, includeParent, cac
   const ref = useRef(null)
   const router = useRouter()
   const me = useMe()
-  const mine = me.id === item.user.id
+  const mine = me?.id === item.user.id
   const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
   const [canEdit, setCanEdit] =
     useState(mine && (Date.now() < editThreshold))

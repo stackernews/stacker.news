@@ -2,8 +2,16 @@ import Link from 'next/link'
 import styles from './item.module.css'
 import { timeSince } from '../lib/time'
 import UpVote from './upvote'
+import { useMe } from './me'
+import { useState } from 'react'
+import Countdown from 'react-countdown'
 
 export default function Item ({ item, rank, children }) {
+  const me = useMe()
+  const mine = me?.id === item.user.id
+  const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
+  const [canEdit, setCanEdit] =
+    useState(mine && (Date.now() < editThreshold))
   return (
     <>
       {rank
@@ -43,6 +51,22 @@ export default function Item ({ item, rank, children }) {
               <span> </span>
               <span>{timeSince(new Date(item.createdAt))}</span>
             </span>
+            {canEdit &&
+              <>
+                <span> \ </span>
+                <Link href={`/items/${item.id}/edit`} passHref>
+                  <a className='text-reset'>
+                    edit
+                    <Countdown
+                      date={editThreshold}
+                      renderer={props => <span> {props.formatted.minutes}:{props.formatted.seconds}</span>}
+                      onComplete={() => {
+                        setCanEdit(false)
+                      }}
+                    />
+                  </a>
+                </Link>
+              </>}
           </div>
         </div>
       </div>

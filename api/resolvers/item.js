@@ -146,12 +146,64 @@ export default {
 
       return await createItem(parent, { title, url: ensureProtocol(url) }, { me, models })
     },
-    createDiscussion: async (parent, { title, text }, { me, models }) => {
+    updateLink: async (parent, { id, title, url }, { me, models }) => {
+      if (!id) {
+        throw new UserInputError('link must have id', { argumentName: 'id' })
+      }
+
       if (!title) {
         throw new UserInputError('link must have title', { argumentName: 'title' })
       }
 
+      if (!url) {
+        throw new UserInputError('link must have url', { argumentName: 'url' })
+      }
+
+      // update iff this item belongs to me
+      const item = await models.item.findUnique({ where: { id: Number(id) } })
+      if (Number(item.userId) !== Number(me.id)) {
+        throw new AuthenticationError('item does not belong to you')
+      }
+
+      if (Date.now() > new Date(item.createdAt).getTime() + 10 * 60000) {
+        throw new UserInputError('item can no longer be editted')
+      }
+
+      return await models.item.update({
+        where: { id: Number(id) },
+        data: { title, url: ensureProtocol(url) }
+      })
+    },
+    createDiscussion: async (parent, { title, text }, { me, models }) => {
+      if (!title) {
+        throw new UserInputError('discussion must have title', { argumentName: 'title' })
+      }
+
       return await createItem(parent, { title, text }, { me, models })
+    },
+    updateDiscussion: async (parent, { id, title, text }, { me, models }) => {
+      if (!id) {
+        throw new UserInputError('discussion must have id', { argumentName: 'id' })
+      }
+
+      if (!title) {
+        throw new UserInputError('discussion must have title', { argumentName: 'title' })
+      }
+
+      // update iff this item belongs to me
+      const item = await models.item.findUnique({ where: { id: Number(id) } })
+      if (Number(item.userId) !== Number(me.id)) {
+        throw new AuthenticationError('item does not belong to you')
+      }
+
+      if (Date.now() > new Date(item.createdAt).getTime() + 10 * 60000) {
+        throw new UserInputError('item can no longer be editted')
+      }
+
+      return await models.item.update({
+        where: { id: Number(id) },
+        data: { title, text }
+      })
     },
     createComment: async (parent, { text, parentId }, { me, models }) => {
       if (!text) {
@@ -176,7 +228,7 @@ export default {
       // update iff this comment belongs to me
       const comment = await models.item.findUnique({ where: { id: Number(id) } })
       if (Number(comment.userId) !== Number(me.id)) {
-        throw new AuthenticationError('comment must belong to you')
+        throw new AuthenticationError('comment does not belong to you')
       }
 
       if (Date.now() > new Date(comment.createdAt).getTime() + 10 * 60000) {

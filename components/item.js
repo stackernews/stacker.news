@@ -4,7 +4,7 @@ import { timeSince } from '../lib/time'
 import UpVote from './upvote'
 import { useMe } from './me'
 import { useState } from 'react'
-import Countdown from 'react-countdown'
+import Countdown from './countdown'
 
 export default function Item ({ item, rank, children }) {
   const me = useMe()
@@ -59,7 +59,7 @@ export default function Item ({ item, rank, children }) {
                     edit
                     <Countdown
                       date={editThreshold}
-                      renderer={props => <span> {props.formatted.minutes}:{props.formatted.seconds}</span>}
+                      className=' '
                       onComplete={() => {
                         setCanEdit(false)
                       }}

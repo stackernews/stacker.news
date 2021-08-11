@@ -4,7 +4,7 @@ import * as Yup from 'yup'
 import { gql, useMutation } from '@apollo/client'
 import ActionTooltip from '../components/action-tooltip'
 import TextareaAutosize from 'react-textarea-autosize'
-import Countdown from 'react-countdown'
+import Countdown from './countdown'
 
 export const DiscussionSchema = Yup.object({
   title: Yup.string().required('required').trim()
@@ -75,14 +75,7 @@ export function DiscussionForm ({ item, editThreshold }) {
         as={TextareaAutosize}
         minRows={4}
         hint={editThreshold
-          ? (
-            <span className='text-muted font-weight-bold'>
-              <Countdown
-                date={editThreshold}
-                renderer={props => <span> {props.formatted.minutes}:{props.formatted.seconds}</span>}
-              />
-            </span>
-            )
+          ? <Countdown date={editThreshold} />
           : null}
       />
       <ActionTooltip>

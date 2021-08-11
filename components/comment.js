@@ -11,7 +11,7 @@ import EyeClose from '../svgs/eye-close-line.svg'
 import { useRouter } from 'next/router'
 import { useMe } from './me'
 import CommentEdit from './comment-edit'
-import Countdown from 'react-countdown'
+import Countdown from './countdown'
 
 function Parent ({ item }) {
   const ParentFrag = () => (
@@ -133,7 +133,7 @@ export default function Comment ({ item, children, replyOpen, includeParent, cac
                   edit
                   <Countdown
                     date={editThreshold}
-                    renderer={props => <span> {props.formatted.minutes}:{props.formatted.seconds}</span>}
+                    className=' '
                     onComplete={() => {
                       setCanEdit(false)
                     }}

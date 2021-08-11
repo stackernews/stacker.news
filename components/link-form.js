@@ -4,7 +4,7 @@ import * as Yup from 'yup'
 import { gql, useMutation } from '@apollo/client'
 import { ensureProtocol } from '../lib/url'
 import ActionTooltip from '../components/action-tooltip'
-import Countdown from 'react-countdown'
+import Countdown from './countdown'
 
 export const LinkSchema = Yup.object({
   title: Yup.string().required('required').trim(),
@@ -89,14 +89,7 @@ export function LinkForm ({ item, editThreshold }) {
         name='url'
         required
         hint={editThreshold
-          ? (
-            <span className='text-muted font-weight-bold'>
-              <Countdown
-                date={editThreshold}
-                renderer={props => <span> {props.formatted.minutes}:{props.formatted.seconds}</span>}
-              />
-            </span>
-            )
+          ? <Countdown date={editThreshold} />
           : null}
       />
       <ActionTooltip>

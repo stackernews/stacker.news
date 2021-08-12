@@ -101,6 +101,11 @@ export default {
         throw new UserInputError('could not decode invoice')
       }
 
+      // TODO: test
+      if (!decoded.mtokens || Number(decoded.mtokens) <= 0) {
+        throw new UserInputError('you must specify amount')
+      }
+
       const msatsFee = Number(maxFee) * 1000
 
       // create withdrawl transactionally (id, bolt11, amount, fee)

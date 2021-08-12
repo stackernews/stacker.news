@@ -57,7 +57,7 @@ async function checkPendingInvoices () {
       const inv = await getInvoice({ id: invoice.hash, lnd })
       await recordInvoiceStatus(inv)
     } catch (error) {
-      console.log(error)
+      console.log(invoice, error)
       process.exit(1)
     }
   })
@@ -106,7 +106,7 @@ async function checkPendingWithdrawls () {
       const wdrwl = await getPayment({ id: withdrawl.hash, lnd })
       await recordWithdrawlStatus(withdrawl.id, wdrwl)
     } catch (error) {
-      console.log(error)
+      console.log(withdrawl, error)
       process.exit(1)
     }
   })

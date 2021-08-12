@@ -122,7 +122,9 @@ export default {
         ${SELECT}
         FROM "Item"
         WHERE id = $1`, Number(id))
-      item.comments = comments(models, id)
+      if (item) {
+        item.comments = comments(models, id)
+      }
       return item
     },
     userComments: async (parent, { userId }, { models }) => {

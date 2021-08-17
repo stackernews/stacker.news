@@ -13,7 +13,7 @@ import { useMe } from './me'
 import CommentEdit from './comment-edit'
 import Countdown from './countdown'
 
-function Parent ({ item }) {
+function Parent ({ item, rootText }) {
   const ParentFrag = () => (
     <>
       <span> \ </span>
@@ -32,13 +32,13 @@ function Parent ({ item }) {
       {Number(item.root.id) !== Number(item.parentId) && <ParentFrag />}
       <span> \ </span>
       <Link href={`/items/${item.root.id}`} passHref>
-        <a onClick={e => e.stopPropagation()} className='text-reset'>root: {item.root.title}</a>
+        <a onClick={e => e.stopPropagation()} className='text-reset'>{rootText || 'on:'} {item.root.title}</a>
       </Link>
     </>
   )
 }
 
-export default function Comment ({ item, children, replyOpen, includeParent, cacheId, noComments, noReply, clickToContext }) {
+export default function Comment ({ item, children, replyOpen, includeParent, rootText, noComments, noReply, clickToContext }) {
   const [reply, setReply] = useState(replyOpen)
   const [edit, setEdit] = useState()
   const [collapse, setCollapse] = useState(false)
@@ -50,8 +50,11 @@ export default function Comment ({ item, children, replyOpen, includeParent, cac
   const [canEdit, setCanEdit] =
     useState(mine && (Date.now() < editThreshold))
 
+  console.log('wtf router', router, item.id, ref.current)
+
   useEffect(() => {
     if (Number(router.query.commentId) === Number(item.id)) {
+      console.log(ref.current.scrollTop)
       ref.current.scrollIntoView()
       // ref.current.classList.add('flash-it')
     }
@@ -61,7 +64,12 @@ export default function Comment ({ item, children, replyOpen, includeParent, cac
     <div
       ref={ref} onClick={() => {
         if (clickToContext) {
-          router.push(`/items/${item.parentId}?commentId=${item.id}`, `/items/${item.parentId}`)
+          console.log('pushing')
+          // router.push(`/items/${item.parentId}?commentId=${item.id}`, `/items/${item.parentId}`, { scroll: false })
+          router.push({
+            pathname: '/items/[id]',
+            query: { id: item.parentId, commentId: item.id }
+          }, `/items/${item.parentId}`)
         }
       }} className={includeParent ? `${clickToContext ? styles.clickToContext : ''}` : `${styles.comment} ${collapse ? styles.collapsed : ''}`}
     >
@@ -83,7 +91,7 @@ export default function Comment ({ item, children, replyOpen, includeParent, cac
               </Link>
               <span> </span>
               <span>{timeSince(new Date(item.createdAt))}</span>
-              {includeParent && <Parent item={item} />}
+              {includeParent && <Parent item={item} rootText={rootText} />}
             </div>
             {!includeParent && (collapse
               ? <Eye className={styles.collapser} height={10} width={10} onClick={() => setCollapse(false)} />

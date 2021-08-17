@@ -1,3 +1,4 @@
+import { AuthenticationError } from 'apollo-server-micro'
 import { decodeCursor, LIMIT, nextCursorEncoded } from './cursor'
 
 export default {
@@ -44,7 +45,8 @@ export default {
       let notifications = await models.$queryRaw(`
         SELECT ${ITEM_FIELDS}, "Item".created_at as sort_time, NULL as "earnedSats"
         From "Item"
-        JOIN "Item" p ON "Item"."parentId" = p.id AND p."userId" = $1
+        JOIN "Item" p ON "Item"."parentId" = p.id
+        WHERE p."userId" = $1
         AND "Item"."userId" <> $1 AND "Item".created_at <= $2
         UNION ALL
         (SELECT ${ITEM_SUBQUERY_FIELDS}, max(subquery.voted_at) as sort_time, sum(subquery.sats) as "earnedSats"
@@ -52,16 +54,16 @@ export default {
         (SELECT ${ITEM_FIELDS}, "Vote".created_at as voted_at, "Vote".sats,
         ROW_NUMBER() OVER(ORDER BY "Vote".created_at) -
         ROW_NUMBER() OVER(PARTITION BY "Item".id ORDER BY "Vote".created_at) as island
-        FROM "Item"
-        LEFT JOIN "Vote" on "Vote"."itemId" = "Item".id
-        AND "Vote"."userId" <> $1
+        FROM "Vote"
+        JOIN "Item" on "Vote"."itemId" = "Item".id
+        WHERE "Vote"."userId" <> $1
         AND "Item".created_at <= $2
         AND "Vote".boost = false
-        WHERE "Item"."userId" = $1) subquery
+        AND "Item"."userId" = $1) subquery
         GROUP BY ${ITEM_SUBQUERY_FIELDS}, subquery.island ORDER BY max(subquery.voted_at) desc)
         ORDER BY sort_time DESC
         OFFSET $3
-        LIMIT ${LIMIT}`, me ? me.id : 622, decodedCursor.time, decodedCursor.offset)
+        LIMIT ${LIMIT}`, 622, decodedCursor.time, decodedCursor.offset)
 
       notifications = notifications.map(n => {
         n.item = { ...n }
@@ -85,4 +87,4 @@ const ITEM_SUBQUERY_FIELDS =
 
 const ITEM_FIELDS =
   `"Item".id, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt", "Item".title,
-  "Item".text, "Item".url, "Item"."userId", "Item"."parentId", ltree2text("Item"."path") AS "path"`
+  "Item".text, "Item".url, "Item"."userId", "Item"."parentId", ltree2text("Item"."path") AS path`

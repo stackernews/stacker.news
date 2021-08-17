@@ -44,5 +44,6 @@ export default gql`
     meSats: Int!
     ncomments: Int!
     comments: [Item!]!
+    path: String
   }
 `

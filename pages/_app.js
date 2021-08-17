@@ -49,6 +49,24 @@ const client = new ApolloClient({
                 }
               }
             }
+          },
+          notifications: {
+            merge (existing, incoming, { readField }) {
+              const notifications = existing ? existing.notifications : []
+              return {
+                cursor: incoming.cursor,
+                notifications: [...notifications, ...incoming.notifications]
+              }
+            },
+
+            read (existing) {
+              if (existing) {
+                return {
+                  cursor: existing.cursor,
+                  notifications: existing.notifications
+                }
+              }
+            }
           }
         }
       }

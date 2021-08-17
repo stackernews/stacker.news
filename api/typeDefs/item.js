@@ -4,7 +4,6 @@ export default gql`
   extend type Query {
     moreItems(sort: String!, cursor: String, userId: ID): Items
     moreFlatComments(cursor: String, userId: ID): Comments
-    notifications: [Item!]!
     item(id: ID!): Item
     userComments(userId: ID!): [Item!]
   }

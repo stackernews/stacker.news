@@ -1,8 +1,7 @@
 import { UserInputError, AuthenticationError } from 'apollo-server-micro'
 import { ensureProtocol } from '../../lib/url'
 import serialize from './serial'
-
-const LIMIT = 21
+import { decodeCursor, LIMIT, nextCursorEncoded } from './cursor'
 
 async function comments (models, id) {
   const flat = await models.$queryRaw(`
@@ -18,21 +17,6 @@ async function comments (models, id) {
           ${LEFT_JOIN_SATS})
         SELECT * FROM base ORDER BY sort_path`, Number(id))
   return nestComments(flat, id)[0]
-}
-
-function decodeCursor (cursor) {
-  if (!cursor) {
-    return { offset: 0, time: new Date() }
-  } else {
-    const res = JSON.parse(Buffer.from(cursor, 'base64'))
-    res.time = new Date(res.time)
-    return res
-  }
-}
-
-function nextCursorEncoded (cursor) {
-  cursor.offset += LIMIT
-  return Buffer.from(JSON.stringify(cursor)).toString('base64')
 }
 
 export default {
@@ -88,6 +72,7 @@ export default {
           OFFSET $3
           LIMIT ${LIMIT}`, Number(userId), decodedCursor.time, decodedCursor.offset)
       } else {
+        // notifications ... god such spagetti
         if (!me) {
           throw new AuthenticationError('you must be logged in')
         }
@@ -104,18 +89,6 @@ export default {
         cursor: comments.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
         comments
       }
-    },
-    notifications: async (parent, args, { me, models }) => {
-      if (!me) {
-        throw new AuthenticationError('you must be logged in')
-      }
-
-      return await models.$queryRaw(`
-        ${SELECT}
-        From "Item"
-        JOIN "Item" p ON "Item"."parentId" = p.id AND p."userId" = $1
-        AND "Item"."userId" <> $1
-        ORDER BY "Item".created_at DESC`, me.id)
     },
     item: async (parent, { id }, { models }) => {
       const [item] = await models.$queryRaw(`

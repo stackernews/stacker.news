@@ -38,7 +38,7 @@ function Parent ({ item, rootText }) {
   )
 }
 
-export default function Comment ({ item, children, replyOpen, includeParent, rootText, noComments, noReply, clickToContext }) {
+export default function Comment ({ item, children, replyOpen, includeParent, rootText, noComments, noReply }) {
   const [reply, setReply] = useState(replyOpen)
   const [edit, setEdit] = useState()
   const [collapse, setCollapse] = useState(false)
@@ -50,28 +50,16 @@ export default function Comment ({ item, children, replyOpen, includeParent, roo
   const [canEdit, setCanEdit] =
     useState(mine && (Date.now() < editThreshold))
 
-  console.log('wtf router', router, item.id, ref.current)
-
   useEffect(() => {
     if (Number(router.query.commentId) === Number(item.id)) {
-      console.log(ref.current.scrollTop)
       ref.current.scrollIntoView()
-      // ref.current.classList.add('flash-it')
+      ref.current.classList.add('flash-it')
     }
   }, [item])
 
   return (
     <div
-      ref={ref} onClick={() => {
-        if (clickToContext) {
-          console.log('pushing')
-          // router.push(`/items/${item.parentId}?commentId=${item.id}`, `/items/${item.parentId}`, { scroll: false })
-          router.push({
-            pathname: '/items/[id]',
-            query: { id: item.parentId, commentId: item.id }
-          }, `/items/${item.parentId}`)
-        }
-      }} className={includeParent ? `${clickToContext ? styles.clickToContext : ''}` : `${styles.comment} ${collapse ? styles.collapsed : ''}`}
+      ref={ref} className={includeParent ? '' : `${styles.comment} ${collapse ? styles.collapsed : ''}`}
     >
       <div className={`${itemStyles.item} ${styles.item}`}>
         <UpVote itemId={item.id} meSats={item.meSats} className={styles.upvote} />

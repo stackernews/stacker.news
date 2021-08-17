@@ -5,9 +5,9 @@ export default {
   Query: {
     notifications: async (parent, { cursor }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
-      // if (!me) {
-      //   throw new AuthenticationError('you must be logged in')
-      // }
+      if (!me) {
+        throw new AuthenticationError('you must be logged in')
+      }
 
       /*
         So that we can cursor over results, we union notifications together ...
@@ -63,12 +63,15 @@ export default {
         GROUP BY ${ITEM_SUBQUERY_FIELDS}, subquery.island ORDER BY max(subquery.voted_at) desc)
         ORDER BY sort_time DESC
         OFFSET $3
-        LIMIT ${LIMIT}`, 622, decodedCursor.time, decodedCursor.offset)
+        LIMIT ${LIMIT}`, me.id, decodedCursor.time, decodedCursor.offset)
 
       notifications = notifications.map(n => {
         n.item = { ...n }
         return n
       })
+
+      await models.user.update({ where: { id: me.id }, data: { checkedNotesAt: new Date() } })
+
       return {
         cursor: notifications.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
         notifications

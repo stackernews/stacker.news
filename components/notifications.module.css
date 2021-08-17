@@ -1,0 +1,9 @@
+.clickToContext {
+    border-radius: .4rem;
+    padding: .2rem 0;
+    cursor: pointer;
+}
+
+.clickToContext:hover {
+    background-color: rgba(0, 0, 0, 0.03);
+}

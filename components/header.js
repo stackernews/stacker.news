@@ -14,7 +14,7 @@ import { useEffect } from 'react'
 import { randInRange } from '../lib/rand'
 
 function WalletSummary ({ me }) {
-  return `[${me.stacked},${me.sats}]`
+  return `${me.stacked} \\ ${me.sats}`
 }
 
 export default function Header () {
@@ -32,20 +32,18 @@ export default function Header () {
     if (session) {
       return (
         <div className='d-flex align-items-center'>
-          {me && me.hasNewNotes &&
-            <Head>
-              <link rel='shortcut icon' href='/favicon-notify.png' />
-            </Head>}
+          <Head>
+            <link rel='shortcut icon' href={me && me.hasNewNotes ? '/favicon-notify.png' : '/favicon.png'} />
+          </Head>
           <div className='position-relative'>
-            <NavDropdown className='pl-0' title={`@${session.user.name}`} alignRight>
+            <NavDropdown className='px-0' title={`@${session.user.name}`} alignRight>
               <Link href={'/' + session.user.name} passHref>
                 <NavDropdown.Item>profile</NavDropdown.Item>
               </Link>
               <Link href='/notifications' passHref>
                 <NavDropdown.Item onClick={() => {
                   // when it's a fresh click evict old notification cache
-                  client.cache.evict({ id: 'ROOT_QUERY', fieldName: 'moreFlatComments:{}' })
-                  client.cache.evict({ id: 'ROOT_QUERY', fieldName: 'recentlyStacked' })
+                  client.cache.evict({ id: 'ROOT_QUERY', fieldName: 'notifications' })
                 }}
                 >
                   notifications

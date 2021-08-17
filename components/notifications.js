@@ -4,8 +4,11 @@ import { useState } from 'react'
 import Comment, { CommentSkeleton } from './comment'
 import Item from './item'
 import { NOTIFICATIONS } from '../fragments/notifications'
+import styles from './notifications.module.css'
+import { useRouter } from 'next/router'
 
 export default function Notifications ({ variables, ...props }) {
+  const router = useRouter()
   const { loading, error, data, fetchMore } = useQuery(NOTIFICATIONS, {
     variables
   })
@@ -14,12 +17,26 @@ export default function Notifications ({ variables, ...props }) {
     return <CommentsFlatSkeleton />
   }
   const { notifications: { notifications, cursor } } = data
+
   return (
     <>
       {/* XXX we shouldn't use the index but we don't have a unique id in this union yet */}
       {notifications.map((n, i) => (
-        <div key={i}>
-          {n.__typename === 'Votification' && <small className='font-weight-bold text-success'>your {n.item.title ? 'post' : 'reply'} stacked {n.earnedSats} sats</small>}
+        <div
+          key={i}
+          className={styles.clickToContext}
+          onClick={() => {
+            if (n.__typename === 'Reply' || !n.item.title) {
+              router.push({
+                pathname: '/items/[id]',
+                query: { id: n.item.parentId, commentId: n.item.id }
+              }, `/items/${n.item.parentId}`)
+            } else {
+              router.push(`items/${n.item.id}`)
+            }
+          }}
+        >
+          {n.__typename === 'Votification' && <small className='font-weight-bold text-success ml-2'>your {n.item.title ? 'post' : 'reply'} stacked {n.earnedSats} sats</small>}
           <div className={n.__typename === 'Votification' ? 'ml-sm-4 ml-2' : ''}>
             {n.item.title
               ? <Item item={n.item} />

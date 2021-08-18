@@ -14,7 +14,7 @@ import { useEffect } from 'react'
 import { randInRange } from '../lib/rand'
 
 function WalletSummary ({ me }) {
-  return `${me.stacked} \\ ${me.sats}`
+  return `${me.sats} \\ ${me.stacked}`
 }
 
 export default function Header () {

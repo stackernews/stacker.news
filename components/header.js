@@ -35,7 +35,7 @@ export default function Header () {
           <Head>
             <link rel='shortcut icon' href={me && me.hasNewNotes ? '/favicon-notify.png' : '/favicon.png'} />
           </Head>
-          <div className='position-relative'>
+          <div className='position-relative mr-1'>
             <NavDropdown className='px-0' title={`@${session.user.name}`} alignRight>
               <Link href={'/' + session.user.name} passHref>
                 <NavDropdown.Item>profile</NavDropdown.Item>

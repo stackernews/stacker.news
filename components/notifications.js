@@ -1,4 +1,4 @@
-import { useQuery } from '@apollo/client'
+import { useApolloClient, useQuery } from '@apollo/client'
 import Button from 'react-bootstrap/Button'
 import { useState } from 'react'
 import Comment, { CommentSkeleton } from './comment'
@@ -9,6 +9,7 @@ import { useRouter } from 'next/router'
 
 export default function Notifications ({ variables, ...props }) {
   const router = useRouter()
+  const client = useApolloClient()
   const { loading, error, data, fetchMore } = useQuery(NOTIFICATIONS, {
     variables
   })
@@ -27,11 +28,15 @@ export default function Notifications ({ variables, ...props }) {
           className={styles.clickToContext}
           onClick={() => {
             if (n.__typename === 'Reply' || !n.item.title) {
+              // evict item from cache so that it has current state
+              // e.g. if they previously visited before a recent comment
+              client.cache.evict({ id: `Item:${n.item.parentId}` })
               router.push({
                 pathname: '/items/[id]',
                 query: { id: n.item.parentId, commentId: n.item.id }
               }, `/items/${n.item.parentId}`)
             } else {
+              client.cache.evict({ id: `Item:${n.item.id}` })
               router.push(`items/${n.item.id}`)
             }
           }}

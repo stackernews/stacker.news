@@ -47,7 +47,7 @@ export default function Notifications ({ variables, ...props }) {
             <small className='font-weight-bold text-info ml-2'>you were mentioned in</small>}
           <div className={
             n.__typename === 'Votification' || n.__typename === 'Mention'
-              ? `ml-sm-4 ml-2 ${n.item.title ? 'pb-2' : ''}`
+              ? `ml-sm-4 ml-3 ${n.item.title ? 'pb-2' : ''}`
               : ''
             }
           >

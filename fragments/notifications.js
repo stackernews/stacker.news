@@ -9,6 +9,13 @@ export const NOTIFICATIONS = gql`
       cursor
       notifications {
         __typename
+        ... on Mention {
+          mention
+          item {
+            ...ItemFields
+            text
+          }
+        }
         ... on Votification {
           earnedSats
           item {

@@ -41,8 +41,16 @@ export default function Notifications ({ variables, ...props }) {
             }
           }}
         >
-          {n.__typename === 'Votification' && <small className='font-weight-bold text-success ml-2'>your {n.item.title ? 'post' : 'reply'} stacked {n.earnedSats} sats</small>}
-          <div className={n.__typename === 'Votification' ? `ml-sm-4 ml-2 ${n.item.title ? 'pb-2' : ''}` : ''}>
+          {n.__typename === 'Votification' &&
+            <small className='font-weight-bold text-success ml-2'>your {n.item.title ? 'post' : 'reply'} stacked {n.earnedSats} sats</small>}
+          {n.__typename === 'Mention' &&
+            <small className='font-weight-bold text-info ml-2'>you were mentioned in</small>}
+          <div className={
+            n.__typename === 'Votification' || n.__typename === 'Mention'
+              ? `ml-sm-4 ml-2 ${n.item.title ? 'pb-2' : ''}`
+              : ''
+            }
+          >
             {n.item.title
               ? <Item item={n.item} />
               : <Comment item={n.item} noReply includeParent rootText={n.__typename === 'Reply' ? 'replying to you on:' : undefined} clickToContext {...props} />}

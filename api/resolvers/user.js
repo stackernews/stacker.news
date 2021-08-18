@@ -96,7 +96,20 @@ export default {
         WHERE p."userId" = $1
         AND ("Item".created_at > $2 OR $2 IS NULL)  AND "Item"."userId" <> $1
         LIMIT 1`, user.id, user.checkedNotesAt)
-      return !!newReplies.length
+      if (newReplies.length > 0) {
+        return true
+      }
+
+      // check if they have any mentions since checkedNotesAt
+      const newMentions = await models.$queryRaw(`
+        SELECT "Item".id, "Item".created_at
+        From "Mention"
+        JOIN "Item" ON "Mention"."itemId" = "Item".id
+        WHERE "Mention"."userId" = $1
+        AND ("Mention".created_at > $2 OR $2 IS NULL)
+        AND "Item"."userId" <> $1
+        LIMIT 1`, user.id, user.checkedNotesAt)
+      return newMentions.length > 0
     }
   }
 }

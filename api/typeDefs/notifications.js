@@ -14,7 +14,12 @@ export default gql`
     item: Item!
   }
 
-  union Notification = Reply | Votification
+  type Mention {
+    mention: Boolean!
+    item: Item!
+  }
+
+  union Notification = Reply | Votification | Mention
 
   type Notifications {
     cursor: String

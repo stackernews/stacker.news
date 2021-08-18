@@ -43,13 +43,15 @@ export default {
       */
 
       let notifications = await models.$queryRaw(`
-        SELECT ${ITEM_FIELDS}, "Item".created_at as sort_time, NULL as "earnedSats"
+        SELECT ${ITEM_FIELDS}, "Item".created_at as sort_time, NULL as "earnedSats",
+        false as mention
         From "Item"
         JOIN "Item" p ON "Item"."parentId" = p.id
         WHERE p."userId" = $1
         AND "Item"."userId" <> $1 AND "Item".created_at <= $2
         UNION ALL
-        (SELECT ${ITEM_SUBQUERY_FIELDS}, max(subquery.voted_at) as sort_time, sum(subquery.sats) as "earnedSats"
+        (SELECT ${ITEM_SUBQUERY_FIELDS}, max(subquery.voted_at) as sort_time,
+        sum(subquery.sats) as "earnedSats", false as mention
         FROM
         (SELECT ${ITEM_FIELDS}, "Vote".created_at as voted_at, "Vote".sats,
         ROW_NUMBER() OVER(ORDER BY "Vote".created_at) -
@@ -57,10 +59,18 @@ export default {
         FROM "Vote"
         JOIN "Item" on "Vote"."itemId" = "Item".id
         WHERE "Vote"."userId" <> $1
-        AND "Item".created_at <= $2
+        AND "Vote".created_at <= $2
         AND "Vote".boost = false
         AND "Item"."userId" = $1) subquery
         GROUP BY ${ITEM_SUBQUERY_FIELDS}, subquery.island ORDER BY max(subquery.voted_at) desc)
+        UNION ALL
+        (SELECT ${ITEM_FIELDS}, "Mention".created_at as sort_time,  NULL as "earnedSats",
+        true as mention
+        FROM "Mention"
+        JOIN "Item" on "Mention"."itemId" = "Item".id
+        WHERE "Mention"."userId" = $1
+        AND "Mention".created_at <= $2
+        AND "Item"."userId" <> $1)
         ORDER BY sort_time DESC
         OFFSET $3
         LIMIT ${LIMIT}`, me.id, decodedCursor.time, decodedCursor.offset)
@@ -80,7 +90,7 @@ export default {
   },
   Notification: {
     __resolveType: async (notification, args, { models }) =>
-      notification.earnedSats ? 'Votification' : 'Reply'
+      notification.earnedSats ? 'Votification' : (notification.mention ? 'Mention' : 'Reply')
   }
 }
 

@@ -47,6 +47,7 @@
 .children {
     margin-top: 0;
     padding-top: .25rem;
+    margin-left: 24px;
 }
 
 .comments {

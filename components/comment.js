@@ -110,7 +110,7 @@ export default function Comment ({ item, children, replyOpen, includeParent, roo
               )}
         </div>
       </div>
-      <div className={`${itemStyles.children} ${styles.children}`}>
+      <div className={`${styles.children}`}>
         {!noReply && !edit && (
           <div className={`${itemStyles.other} ${styles.reply}`}>
             <div

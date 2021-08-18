@@ -19,6 +19,7 @@ model User {
   emailVerified  DateTime?   @map(name: "email_verified")
   image          String?
   items          Item[]
+  mentions       Mention[]
   messages       Message[]
   votes          Vote[]
   invoices       Invoice[]
@@ -60,6 +61,7 @@ model Item {
   parentId  Int?
   children  Item[]                @relation("ParentChildren")
   votes     Vote[]
+  mentions  Mention[]
   path      Unsupported("LTREE")?
 
   @@index([userId])
@@ -77,6 +79,20 @@ model Vote {
   user      User     @relation(fields: [userId], references: [id])
   userId    Int
 
+  @@index([itemId])
+  @@index([userId])
+}
+
+model Mention {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map(name: "created_at")
+  updatedAt DateTime @updatedAt @map(name: "updated_at")
+  item      Item     @relation(fields: [itemId], references: [id])
+  itemId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+
+  @@unique([itemId, userId])
   @@index([itemId])
   @@index([userId])
 }

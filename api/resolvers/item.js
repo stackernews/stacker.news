@@ -61,30 +61,20 @@ export default {
     },
     moreFlatComments: async (parent, { cursor, userId }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
-      let comments
-      if (userId) {
-        comments = await models.$queryRaw(`
-          ${SELECT}
-          FROM "Item"
-          WHERE "userId" = $1 AND "parentId" IS NOT NULL
-          AND created_at <= $2
-          ORDER BY created_at DESC
-          OFFSET $3
-          LIMIT ${LIMIT}`, Number(userId), decodedCursor.time, decodedCursor.offset)
-      } else {
-        // notifications ... god such spagetti
-        if (!me) {
-          throw new AuthenticationError('you must be logged in')
-        }
-        comments = await models.$queryRaw(`
-          ${SELECT}
-          From "Item"
-          JOIN "Item" p ON "Item"."parentId" = p.id AND p."userId" = $1
-          AND "Item"."userId" <> $1 AND "Item".created_at <= $2
-          ORDER BY "Item".created_at DESC
-          OFFSET $3
-          LIMIT ${LIMIT}`, me.id, decodedCursor.time, decodedCursor.offset)
+
+      if (!userId) {
+        throw new UserInputError('must supply userId', { argumentName: 'userId' })
       }
+
+      const comments = await models.$queryRaw(`
+        ${SELECT}
+        FROM "Item"
+        WHERE "userId" = $1 AND "parentId" IS NOT NULL
+        AND created_at <= $2
+        ORDER BY created_at DESC
+        OFFSET $3
+        LIMIT ${LIMIT}`, Number(userId), decodedCursor.time, decodedCursor.offset)
+
       return {
         cursor: comments.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
         comments
@@ -144,10 +134,7 @@ export default {
         throw new UserInputError('item can no longer be editted')
       }
 
-      return await models.item.update({
-        where: { id: Number(id) },
-        data: { title, url: ensureProtocol(url) }
-      })
+      return await updateItem(parent, { id, data: { title, url: ensureProtocol(url) } }, { me, models })
     },
     createDiscussion: async (parent, { title, text }, { me, models }) => {
       if (!title) {
@@ -175,10 +162,7 @@ export default {
         throw new UserInputError('item can no longer be editted')
       }
 
-      return await models.item.update({
-        where: { id: Number(id) },
-        data: { title, text }
-      })
+      return await updateItem(parent, { id, data: { title, text } }, { me, models })
     },
     createComment: async (parent, { text, parentId }, { me, models }) => {
       if (!text) {
@@ -210,10 +194,7 @@ export default {
         throw new UserInputError('comment can no longer be editted')
       }
 
-      return await models.item.update({
-        where: { id: Number(id) },
-        data: { text }
-      })
+      return await updateItem(parent, { id, data: { text } }, { me, models })
     },
     vote: async (parent, { id, sats = 1 }, { me, models }) => {
       // need to make sure we are logged in
@@ -302,6 +283,56 @@ export default {
   }
 }
 
+const namePattern = /\B@[\w_]+/gi
+
+const createMentions = async (item, models) => {
+  // if we miss a mention, in the rare circumstance there's some kind of
+  // failure, it's not a big deal so we don't do it transactionally
+  // ideally, we probably would
+  if (!item.text) {
+    return
+  }
+
+  try {
+    const mentions = item.text.match(namePattern).map(m => m.slice(1))
+    if (mentions.length > 0) {
+      const users = await models.user.findMany({
+        where: {
+          name: { in: mentions }
+        }
+      })
+
+      users.forEach(async user => {
+        const data = {
+          itemId: item.id,
+          userId: user.id
+        }
+
+        await models.mention.upsert({
+          where: {
+            itemId_userId: data
+          },
+          update: data,
+          create: data
+        })
+      })
+    }
+  } catch (e) {
+    console.log('mention failure', e)
+  }
+}
+
+const updateItem = async (parent, { id, data }, { me, models }) => {
+  const item = await models.item.update({
+    where: { id: Number(id) },
+    data
+  })
+
+  await createMentions(item, models)
+
+  return item
+}
+
 const createItem = async (parent, { title, url, text, parentId }, { me, models }) => {
   if (!me) {
     throw new AuthenticationError('you must be logged in')
@@ -310,6 +341,9 @@ const createItem = async (parent, { title, url, text, parentId }, { me, models }
   const [item] = await serialize(models, models.$queryRaw(
     `${SELECT} FROM create_item($1, $2, $3, $4, $5) AS "Item"`,
     title, url, text, Number(parentId), me.name))
+
+  await createMentions(item, models)
+
   item.comments = []
   return item
 }

@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "NODE_OPTIONS='--trace-warnings' next dev",
     "build": "next build",
     "migrate": "prisma migrate deploy",
-    "start": "next start -p $PORT"
+    "start": "NODE_OPTIONS='--trace-warnings' next start -p $PORT"
   },
   "dependencies": {
     "@apollo/client": "^3.3.13",

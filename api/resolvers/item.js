@@ -294,8 +294,8 @@ const createMentions = async (item, models) => {
   }
 
   try {
-    const mentions = item.text.match(namePattern).map(m => m.slice(1))
-    if (mentions.length > 0) {
+    const mentions = item.text.match(namePattern)?.map(m => m.slice(1))
+    if (mentions?.length > 0) {
       const users = await models.user.findMany({
         where: {
           name: { in: mentions }

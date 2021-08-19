@@ -81,7 +81,7 @@ export default function Header () {
           {me &&
             <Nav.Item>
               <Link href='/wallet' passHref>
-                <Nav.Link className='text-success px-0'><WalletSummary me={me} /></Nav.Link>
+                <Nav.Link className='text-success px-0 text-nowrap'><WalletSummary me={me} /></Nav.Link>
               </Link>
             </Nav.Item>}
         </div>

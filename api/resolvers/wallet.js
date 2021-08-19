@@ -39,7 +39,7 @@ export default {
       })
 
       if (wdrwl.user.id !== me.id) {
-        throw new AuthenticationError('not ur withdrawl')
+        throw new AuthenticationError('not ur withdrawal')
       }
 
       return wdrwl

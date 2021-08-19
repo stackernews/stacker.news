@@ -123,8 +123,11 @@ export default {
       })
 
       // if it's confirmed, update confirmed returning extra fees to user
-      sub.on('confirmed', async e => {
+      sub.once('confirmed', async e => {
         console.log(e)
+
+        sub.removeAllListeners()
+
         // mtokens also contains the fee
         const fee = Number(e.fee_mtokens)
         const paid = Number(e.mtokens) - fee
@@ -135,8 +138,11 @@ export default {
       // if the payment fails, we need to
       // 1. return the funds to the user
       // 2. update the widthdrawl as failed
-      sub.on('failed', async e => {
+      sub.once('failed', async e => {
         console.log(e)
+
+        sub.removeAllListeners()
+
         let status = 'UNKNOWN_FAILURE'
         if (e.is_insufficient_balance) {
           status = 'INSUFFICIENT_BALANCE'

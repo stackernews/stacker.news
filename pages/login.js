@@ -16,7 +16,7 @@ import { gql, useMutation, useQuery } from '@apollo/client'
 export async function getServerSideProps ({ req, res, query: { callbackUrl, error = null } }) {
   const session = await getSession({ req })
 
-  if (session && res && session.accessToken) {
+  if (session && res && callbackUrl) {
     res.writeHead(302, {
       Location: callbackUrl
     })

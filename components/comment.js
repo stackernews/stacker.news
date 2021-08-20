@@ -9,8 +9,11 @@ import UpVote from './upvote'
 import Eye from '../svgs/eye-fill.svg'
 import EyeClose from '../svgs/eye-close-line.svg'
 import { useRouter } from 'next/router'
+import { useMe } from './me'
+import CommentEdit from './comment-edit'
+import Countdown from './countdown'
 
-function Parent ({ item }) {
+function Parent ({ item, rootText }) {
   const ParentFrag = () => (
     <>
       <span> \ </span>
@@ -29,32 +32,34 @@ function Parent ({ item }) {
       {Number(item.root.id) !== Number(item.parentId) && <ParentFrag />}
       <span> \ </span>
       <Link href={`/items/${item.root.id}`} passHref>
-        <a onClick={e => e.stopPropagation()} className='text-reset'>root: {item.root.title}</a>
+        <a onClick={e => e.stopPropagation()} className='text-reset'>{rootText || 'on:'} {item.root.title}</a>
       </Link>
     </>
   )
 }
 
-export default function Comment ({ item, children, replyOpen, includeParent, cacheId, noComments, noReply, clickToContext }) {
+export default function Comment ({ item, children, replyOpen, includeParent, rootText, noComments, noReply }) {
   const [reply, setReply] = useState(replyOpen)
+  const [edit, setEdit] = useState()
   const [collapse, setCollapse] = useState(false)
   const ref = useRef(null)
   const router = useRouter()
+  const me = useMe()
+  const mine = me?.id === item.user.id
+  const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
+  const [canEdit, setCanEdit] =
+    useState(mine && (Date.now() < editThreshold))
 
   useEffect(() => {
     if (Number(router.query.commentId) === Number(item.id)) {
       ref.current.scrollIntoView()
-      // ref.current.classList.add('flash-it')
+      ref.current.classList.add('flash-it')
     }
   }, [item])
 
   return (
     <div
-      ref={ref} onClick={() => {
-        if (clickToContext) {
-          router.push(`/items/${item.parentId}?commentId=${item.id}`, `/items/${item.parentId}`)
-        }
-      }} className={includeParent ? `${clickToContext ? styles.clickToContext : ''}` : `${styles.comment} ${collapse ? styles.collapsed : ''}`}
+      ref={ref} className={includeParent ? '' : `${styles.comment} ${collapse ? styles.collapsed : ''}`}
     >
       <div className={`${itemStyles.item} ${styles.item}`}>
         <UpVote itemId={item.id} meSats={item.meSats} className={styles.upvote} />
@@ -74,30 +79,70 @@ export default function Comment ({ item, children, replyOpen, includeParent, cac
               </Link>
               <span> </span>
               <span>{timeSince(new Date(item.createdAt))}</span>
-              {includeParent && <Parent item={item} />}
+              {includeParent && <Parent item={item} rootText={rootText} />}
             </div>
             {!includeParent && (collapse
               ? <Eye className={styles.collapser} height={10} width={10} onClick={() => setCollapse(false)} />
               : <EyeClose className={styles.collapser} height={10} width={10} onClick={() => setCollapse(true)} />)}
 
           </div>
-          <div className={styles.text}>
-            <Text>{item.text}</Text>
-          </div>
+          {edit
+            ? (
+              <div className={styles.replyWrapper}>
+                <CommentEdit
+                  comment={item}
+                  onSuccess={() => {
+                    setEdit(!edit)
+                    setCanEdit(mine && (Date.now() < editThreshold))
+                  }}
+                  onCancel={() => {
+                    setEdit(!edit)
+                    setCanEdit(mine && (Date.now() < editThreshold))
+                  }}
+                  editThreshold={editThreshold}
+                />
+              </div>
+              )
+            : (
+              <div className={styles.text}>
+                <Text>{item.text}</Text>
+              </div>
+              )}
         </div>
       </div>
-      <div className={`${itemStyles.children} ${styles.children}`}>
-        {!noReply &&
-          <div
-            className={`${itemStyles.other} ${styles.reply}`}
-            onClick={() => setReply(!reply)}
-          >
-            {reply ? 'cancel' : 'reply'}
-          </div>}
+      <div className={`${styles.children}`}>
+        {!noReply && !edit && (
+          <div className={`${itemStyles.other} ${styles.reply}`}>
+            <div
+              className='d-inline-block'
+              onClick={() => setReply(!reply)}
+            >
+              {reply ? 'cancel' : 'reply'}
+            </div>
+            {canEdit && !reply && !edit &&
+              <>
+                <span> \ </span>
+                <div
+                  className='d-inline-block'
+                  onClick={() => setEdit(!edit)}
+                >
+                  edit
+                  <Countdown
+                    date={editThreshold}
+                    className=' '
+                    onComplete={() => {
+                      setCanEdit(false)
+                    }}
+                  />
+                </div>
+              </>}
+          </div>
+        )}
+
         <div className={reply ? styles.replyWrapper : 'd-none'}>
           <Reply
             parentId={item.id} autoFocus={!replyOpen}
-            onSuccess={() => setReply(replyOpen || false)} cacheId={cacheId}
+            onSuccess={() => setReply(replyOpen || false)}
           />
         </div>
         {children}

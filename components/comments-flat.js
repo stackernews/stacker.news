@@ -3,8 +3,11 @@ import Button from 'react-bootstrap/Button'
 import { MORE_FLAT_COMMENTS } from '../fragments/comments'
 import { useState } from 'react'
 import Comment, { CommentSkeleton } from './comment'
+import styles from './notifications.module.css'
+import { useRouter } from 'next/router'
 
 export default function CommentsFlat ({ variables, ...props }) {
+  const router = useRouter()
   const { loading, error, data, fetchMore } = useQuery(MORE_FLAT_COMMENTS, {
     variables
   })
@@ -12,12 +15,22 @@ export default function CommentsFlat ({ variables, ...props }) {
   if (loading) {
     return <CommentsFlatSkeleton />
   }
-
   const { moreFlatComments: { comments, cursor } } = data
   return (
     <>
       {comments.map(item => (
-        <Comment key={item.id} item={item} {...props} />
+        <div
+          key={item.id}
+          className={styles.clickToContext}
+          onClick={() => {
+            router.push({
+              pathname: '/items/[id]',
+              query: { id: item.parentId, commentId: item.id }
+            }, `/items/${item.parentId}`)
+          }}
+        >
+          <Comment item={item} {...props} />
+        </div>
       ))}
       <MoreFooter cursor={cursor} fetchMore={fetchMore} />
     </>

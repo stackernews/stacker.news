@@ -9,6 +9,7 @@ export const ITEM_FIELDS = gql`
     url
     user {
       name
+      id
     }
     sats
     boost

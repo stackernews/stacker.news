@@ -13,6 +13,12 @@ import ApolloClient from '../../api/client'
 
 // ssr the item without comments so that we can populate metatags
 export async function getServerSideProps ({ req, params: { id } }) {
+  if (isNaN(id)) {
+    return {
+      notFound: true
+    }
+  }
+
   const { error, data: { item } } = await (await ApolloClient(req)).query({
     query:
       gql`

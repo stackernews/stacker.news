@@ -17,7 +17,7 @@ export default function Layout ({ noContain, noFooter, noSeo, children }) {
         {noContain
           ? children
           : (
-            <Container className='mt-1 px-sm-0'>
+            <Container className='px-sm-0'>
               {children}
             </Container>
             )}

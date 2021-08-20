@@ -53,7 +53,6 @@
 .skeleton .other {
     height: 17px;
     align-items: center;
-    display: flex;
 }
 
 .skeleton .title {

@@ -47,7 +47,7 @@ export default function Reply ({ parentId, onSuccess, autoFocus }) {
   )
 
   return (
-    <div className={styles.reply}>
+    <div className={`${styles.reply} mb-1`}>
       <Form
         initial={{
           text: ''

@@ -31,7 +31,7 @@ export default function UserHeader ({ user }) {
   const client = useApolloClient()
   const [setName] = useMutation(NAME_MUTATION)
 
-  const Satistics = () => <h1 className='ml-2'><small className='text-success'>[{user.stacked} stacked, {user.sats} sats]</small></h1>
+  const Satistics = () => <h1 className='ml-2'><small className='text-success'>{user.sats} sats \ {user.stacked} stacked</small></h1>
 
   const UserSchema = Yup.object({
     name: Yup.string()

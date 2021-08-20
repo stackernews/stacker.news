@@ -36,7 +36,7 @@ export default function UpVote ({ itemId, meSats, className }) {
   return (
     <LightningConsumer>
       {({ strike }) =>
-        <ActionTooltip>
+        <ActionTooltip notForm>
           <UpArrow
             width={24}
             height={24}

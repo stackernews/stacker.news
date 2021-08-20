@@ -7,7 +7,7 @@ import { gql, useMutation } from '@apollo/client'
 import { LnQRSkeleton } from '../components/lnqr'
 import LayoutCenter from '../components/layout-center'
 import InputGroup from 'react-bootstrap/InputGroup'
-import { WithdrawlSkeleton } from './withdrawls/[id]'
+import { WithdrawlSkeleton } from './withdrawals/[id]'
 import { useMe } from '../components/me'
 
 export default function Wallet () {
@@ -38,7 +38,7 @@ export function WalletForm () {
           <Button variant='success'>fund</Button>
         </Link>
         <span className='mx-3 font-weight-bold text-muted'>or</span>
-        <Link href='/wallet?type=withdrawl'>
+        <Link href='/wallet?type=withdraw'>
           <Button variant='success'>withdraw</Button>
         </Link>
       </div>
@@ -129,7 +129,7 @@ export function WithdrawlForm () {
         schema={WithdrawlSchema}
         onSubmit={async ({ invoice, maxFee }) => {
           const { data } = await createWithdrawl({ variables: { invoice, maxFee: Number(maxFee) } })
-          router.push(`/withdrawls/${data.createWithdrawl.id}`)
+          router.push(`/withdrawals/${data.createWithdrawl.id}`)
         }}
       >
         <Input
@@ -144,7 +144,7 @@ export function WithdrawlForm () {
           required
           append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
         />
-        <SubmitButton variant='success' className='mt-2'>withdrawl</SubmitButton>
+        <SubmitButton variant='success' className='mt-2'>withdraw</SubmitButton>
       </Form>
     </>
   )

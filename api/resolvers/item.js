@@ -1,8 +1,7 @@
 import { UserInputError, AuthenticationError } from 'apollo-server-micro'
 import { ensureProtocol } from '../../lib/url'
 import serialize from './serial'
-
-const LIMIT = 21
+import { decodeCursor, LIMIT, nextCursorEncoded } from './cursor'
 
 async function comments (models, id) {
   const flat = await models.$queryRaw(`
@@ -18,21 +17,6 @@ async function comments (models, id) {
           ${LEFT_JOIN_SATS})
         SELECT * FROM base ORDER BY sort_path`, Number(id))
   return nestComments(flat, id)[0]
-}
-
-function decodeCursor (cursor) {
-  if (!cursor) {
-    return { offset: 0, time: new Date() }
-  } else {
-    const res = JSON.parse(Buffer.from(cursor, 'base64'))
-    res.time = new Date(res.time)
-    return res
-  }
-}
-
-function nextCursorEncoded (cursor) {
-  cursor.offset += LIMIT
-  return Buffer.from(JSON.stringify(cursor)).toString('base64')
 }
 
 export default {
@@ -77,52 +61,33 @@ export default {
     },
     moreFlatComments: async (parent, { cursor, userId }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
-      let comments
-      if (userId) {
-        comments = await models.$queryRaw(`
-          ${SELECT}
-          FROM "Item"
-          WHERE "userId" = $1 AND "parentId" IS NOT NULL
-          AND created_at <= $2
-          ORDER BY created_at DESC
-          OFFSET $3
-          LIMIT ${LIMIT}`, Number(userId), decodedCursor.time, decodedCursor.offset)
-      } else {
-        if (!me) {
-          throw new AuthenticationError('you must be logged in')
-        }
-        comments = await models.$queryRaw(`
-          ${SELECT}
-          From "Item"
-          JOIN "Item" p ON "Item"."parentId" = p.id AND p."userId" = $1
-          AND "Item"."userId" <> $1 AND "Item".created_at <= $2
-          ORDER BY "Item".created_at DESC
-          OFFSET $3
-          LIMIT ${LIMIT}`, me.id, decodedCursor.time, decodedCursor.offset)
+
+      if (!userId) {
+        throw new UserInputError('must supply userId', { argumentName: 'userId' })
       }
+
+      const comments = await models.$queryRaw(`
+        ${SELECT}
+        FROM "Item"
+        WHERE "userId" = $1 AND "parentId" IS NOT NULL
+        AND created_at <= $2
+        ORDER BY created_at DESC
+        OFFSET $3
+        LIMIT ${LIMIT}`, Number(userId), decodedCursor.time, decodedCursor.offset)
+
       return {
         cursor: comments.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
         comments
       }
-    },
-    notifications: async (parent, args, { me, models }) => {
-      if (!me) {
-        throw new AuthenticationError('you must be logged in')
-      }
-
-      return await models.$queryRaw(`
-        ${SELECT}
-        From "Item"
-        JOIN "Item" p ON "Item"."parentId" = p.id AND p."userId" = $1
-        AND "Item"."userId" <> $1
-        ORDER BY "Item".created_at DESC`, me.id)
     },
     item: async (parent, { id }, { models }) => {
       const [item] = await models.$queryRaw(`
         ${SELECT}
         FROM "Item"
         WHERE id = $1`, Number(id))
-      item.comments = comments(models, id)
+      if (item) {
+        item.comments = comments(models, id)
+      }
       return item
     },
     userComments: async (parent, { userId }, { models }) => {
@@ -146,12 +111,58 @@ export default {
 
       return await createItem(parent, { title, url: ensureProtocol(url) }, { me, models })
     },
-    createDiscussion: async (parent, { title, text }, { me, models }) => {
+    updateLink: async (parent, { id, title, url }, { me, models }) => {
+      if (!id) {
+        throw new UserInputError('link must have id', { argumentName: 'id' })
+      }
+
       if (!title) {
         throw new UserInputError('link must have title', { argumentName: 'title' })
       }
 
+      if (!url) {
+        throw new UserInputError('link must have url', { argumentName: 'url' })
+      }
+
+      // update iff this item belongs to me
+      const item = await models.item.findUnique({ where: { id: Number(id) } })
+      if (Number(item.userId) !== Number(me.id)) {
+        throw new AuthenticationError('item does not belong to you')
+      }
+
+      if (Date.now() > new Date(item.createdAt).getTime() + 10 * 60000) {
+        throw new UserInputError('item can no longer be editted')
+      }
+
+      return await updateItem(parent, { id, data: { title, url: ensureProtocol(url) } }, { me, models })
+    },
+    createDiscussion: async (parent, { title, text }, { me, models }) => {
+      if (!title) {
+        throw new UserInputError('discussion must have title', { argumentName: 'title' })
+      }
+
       return await createItem(parent, { title, text }, { me, models })
+    },
+    updateDiscussion: async (parent, { id, title, text }, { me, models }) => {
+      if (!id) {
+        throw new UserInputError('discussion must have id', { argumentName: 'id' })
+      }
+
+      if (!title) {
+        throw new UserInputError('discussion must have title', { argumentName: 'title' })
+      }
+
+      // update iff this item belongs to me
+      const item = await models.item.findUnique({ where: { id: Number(id) } })
+      if (Number(item.userId) !== Number(me.id)) {
+        throw new AuthenticationError('item does not belong to you')
+      }
+
+      if (Date.now() > new Date(item.createdAt).getTime() + 10 * 60000) {
+        throw new UserInputError('item can no longer be editted')
+      }
+
+      return await updateItem(parent, { id, data: { title, text } }, { me, models })
     },
     createComment: async (parent, { text, parentId }, { me, models }) => {
       if (!text) {
@@ -159,10 +170,31 @@ export default {
       }
 
       if (!parentId) {
-        throw new UserInputError('comment must have parent', { argumentName: 'text' })
+        throw new UserInputError('comment must have parent', { argumentName: 'parentId' })
       }
 
       return await createItem(parent, { text, parentId }, { me, models })
+    },
+    updateComment: async (parent, { id, text }, { me, models }) => {
+      if (!text) {
+        throw new UserInputError('comment must have text', { argumentName: 'text' })
+      }
+
+      if (!id) {
+        throw new UserInputError('comment must have id', { argumentName: 'id' })
+      }
+
+      // update iff this comment belongs to me
+      const comment = await models.item.findUnique({ where: { id: Number(id) } })
+      if (Number(comment.userId) !== Number(me.id)) {
+        throw new AuthenticationError('comment does not belong to you')
+      }
+
+      if (Date.now() > new Date(comment.createdAt).getTime() + 10 * 60000) {
+        throw new UserInputError('comment can no longer be editted')
+      }
+
+      return await updateItem(parent, { id, data: { text } }, { me, models })
     },
     vote: async (parent, { id, sats = 1 }, { me, models }) => {
       // need to make sure we are logged in
@@ -251,6 +283,56 @@ export default {
   }
 }
 
+const namePattern = /\B@[\w_]+/gi
+
+const createMentions = async (item, models) => {
+  // if we miss a mention, in the rare circumstance there's some kind of
+  // failure, it's not a big deal so we don't do it transactionally
+  // ideally, we probably would
+  if (!item.text) {
+    return
+  }
+
+  try {
+    const mentions = item.text.match(namePattern)?.map(m => m.slice(1))
+    if (mentions?.length > 0) {
+      const users = await models.user.findMany({
+        where: {
+          name: { in: mentions }
+        }
+      })
+
+      users.forEach(async user => {
+        const data = {
+          itemId: item.id,
+          userId: user.id
+        }
+
+        await models.mention.upsert({
+          where: {
+            itemId_userId: data
+          },
+          update: data,
+          create: data
+        })
+      })
+    }
+  } catch (e) {
+    console.log('mention failure', e)
+  }
+}
+
+const updateItem = async (parent, { id, data }, { me, models }) => {
+  const item = await models.item.update({
+    where: { id: Number(id) },
+    data
+  })
+
+  await createMentions(item, models)
+
+  return item
+}
+
 const createItem = async (parent, { title, url, text, parentId }, { me, models }) => {
   if (!me) {
     throw new AuthenticationError('you must be logged in')
@@ -259,6 +341,9 @@ const createItem = async (parent, { title, url, text, parentId }, { me, models }
   const [item] = await serialize(models, models.$queryRaw(
     `${SELECT} FROM create_item($1, $2, $3, $4, $5) AS "Item"`,
     title, url, text, Number(parentId), me.name))
+
+  await createMentions(item, models)
+
   item.comments = []
   return item
 }

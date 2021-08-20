@@ -89,8 +89,8 @@ export function MarkdownInput ({ label, groupClassName, ...props }) {
             {...props}
           />
         </div>
-        <div className='form-group'>
-          <div className={tab !== 'preview' ? 'd-none' : `${styles.text} form-control`}>
+        <div className={tab !== 'preview' ? 'd-none' : 'form-group'}>
+          <div className={`${styles.text} form-control`}>
             <Text>{meta.value}</Text>
           </div>
         </div>
@@ -110,7 +110,7 @@ function FormGroup ({ className, label, children }) {
 
 function InputInner ({ prepend, append, hint, showValid, ...props }) {
   const [field, meta] = props.readOnly ? [{}, {}] : useField(props)
-
+  const formik = props.readOnly ? null : useFormikContext()
   return (
     <>
       <InputGroup hasValidation>
@@ -120,6 +120,11 @@ function InputInner ({ prepend, append, hint, showValid, ...props }) {
           </InputGroup.Prepend>
         )}
         <BootstrapForm.Control
+          onKeyDown={(e) => {
+            if (e.keyCode === 13 && (e.metaKey || e.ctrlKey)) {
+              formik?.submitForm()
+            }
+          }}
           {...field} {...props}
           isInvalid={meta.touched && meta.error}
           isValid={showValid && meta.touched && !meta.error}

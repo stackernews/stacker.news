@@ -25,12 +25,12 @@ export default {
 
       const [{ sum }] = await models.$queryRaw(`
         SELECT sum("Vote".sats)
-        FROM "Item"
-        LEFT JOIN "Vote" on "Vote"."itemId" = "Item".id
-        AND "Vote"."userId" <> $1
+        FROM "Vote"
+        JOIN "Item" on "Vote"."itemId" = "Item".id
+        WHERE "Vote"."userId" <> $1
         AND ("Vote".created_at > $2 OR $2 IS NULL)
         AND "Vote".boost = false
-        WHERE "Item"."userId" = $1`, user.id, user.checkedNotesAt)
+        AND "Item"."userId" = $1`, user.id, user.checkedNotesAt)
 
       await models.user.update({ where: { id: me.id }, data: { checkedNotesAt: new Date() } })
       return sum || 0
@@ -64,9 +64,10 @@ export default {
     stacked: async (user, args, { models }) => {
       const [{ sum }] = await models.$queryRaw`
         SELECT sum("Vote".sats)
-        FROM "Item"
-        LEFT JOIN "Vote" on "Vote"."itemId" = "Item".id AND "Vote"."userId" <> ${user.id} AND boost = false
-        WHERE "Item"."userId" = ${user.id}`
+        FROM "Vote"
+        JOIN "Item" on "Vote"."itemId" = "Item".id
+        WHERE "Vote"."userId" <> ${user.id} AND boost = false
+        AND "Item"."userId" = ${user.id}`
       return sum || 0
     },
     sats: async (user, args, { models }) => {
@@ -77,11 +78,11 @@ export default {
       const votes = await models.$queryRaw(`
         SELECT "Vote".id, "Vote".created_at
         FROM "Vote"
-        LEFT JOIN "Item" on "Vote"."itemId" = "Item".id
-        AND "Vote"."userId" <> $1
+        JOIN "Item" on "Vote"."itemId" = "Item".id
+        WHERE "Vote"."userId" <> $1
         AND ("Vote".created_at > $2 OR $2 IS NULL)
         AND "Vote".boost = false
-        WHERE "Item"."userId" = $1
+        AND "Item"."userId" = $1
         LIMIT 1`, user.id, user.checkedNotesAt)
       if (votes.length > 0) {
         return true
@@ -91,10 +92,24 @@ export default {
       const newReplies = await models.$queryRaw(`
         SELECT "Item".id, "Item".created_at
         From "Item"
-        JOIN "Item" p ON "Item"."parentId" = p.id AND p."userId" = $1
+        JOIN "Item" p ON "Item"."parentId" = p.id
+        WHERE p."userId" = $1
         AND ("Item".created_at > $2 OR $2 IS NULL)  AND "Item"."userId" <> $1
         LIMIT 1`, user.id, user.checkedNotesAt)
-      return !!newReplies.length
+      if (newReplies.length > 0) {
+        return true
+      }
+
+      // check if they have any mentions since checkedNotesAt
+      const newMentions = await models.$queryRaw(`
+        SELECT "Item".id, "Item".created_at
+        From "Mention"
+        JOIN "Item" ON "Mention"."itemId" = "Item".id
+        WHERE "Mention"."userId" = $1
+        AND ("Mention".created_at > $2 OR $2 IS NULL)
+        AND "Item"."userId" <> $1
+        LIMIT 1`, user.id, user.checkedNotesAt)
+      return newMentions.length > 0
     }
   }
 }

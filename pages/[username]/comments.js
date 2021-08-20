@@ -39,7 +39,7 @@ export default function UserComments ({ user }) {
     <Layout noSeo>
       <Seo user={user} />
       <UserHeader user={user} />
-      <CommentsFlat variables={{ userId: user.id }} includeParent noReply clickToContext />
+      <CommentsFlat variables={{ userId: user.id }} includeParent noReply />
     </Layout>
   )
 }

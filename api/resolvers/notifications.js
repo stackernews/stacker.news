@@ -43,14 +43,14 @@ export default {
       */
 
       let notifications = await models.$queryRaw(`
-        SELECT ${ITEM_FIELDS}, "Item".created_at as sort_time, NULL as "earnedSats",
+        SELECT ${ITEM_FIELDS}, "Item".created_at as "sortTime", NULL as "earnedSats",
         false as mention
         From "Item"
         JOIN "Item" p ON "Item"."parentId" = p.id
         WHERE p."userId" = $1
         AND "Item"."userId" <> $1 AND "Item".created_at <= $2
         UNION ALL
-        (SELECT ${ITEM_SUBQUERY_FIELDS}, max(subquery.voted_at) as sort_time,
+        (SELECT ${ITEM_SUBQUERY_FIELDS}, max(subquery.voted_at) as "sortTime",
         sum(subquery.sats) as "earnedSats", false as mention
         FROM
         (SELECT ${ITEM_FIELDS}, "Vote".created_at as voted_at, "Vote".sats,
@@ -64,7 +64,7 @@ export default {
         AND "Item"."userId" = $1) subquery
         GROUP BY ${ITEM_SUBQUERY_FIELDS}, subquery.island ORDER BY max(subquery.voted_at) desc)
         UNION ALL
-        (SELECT ${ITEM_FIELDS}, "Mention".created_at as sort_time,  NULL as "earnedSats",
+        (SELECT ${ITEM_FIELDS}, "Mention".created_at as "sortTime",  NULL as "earnedSats",
         true as mention
         FROM "Mention"
         JOIN "Item" on "Mention"."itemId" = "Item".id
@@ -73,7 +73,7 @@ export default {
         AND "Mention".created_at <= $2
         AND "Item"."userId" <> $1
         AND p."userId" <> $1)
-        ORDER BY sort_time DESC
+        ORDER BY "sortTime" DESC
         OFFSET $3
         LIMIT ${LIMIT}`, me.id, decodedCursor.time, decodedCursor.offset)
 
@@ -82,9 +82,11 @@ export default {
         return n
       })
 
+      const { checkedNotesAt } = await models.user.findUnique({ where: { id: me.id } })
       await models.user.update({ where: { id: me.id }, data: { checkedNotesAt: new Date() } })
 
       return {
+        lastChecked: checkedNotesAt,
         cursor: notifications.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
         notifications
       }

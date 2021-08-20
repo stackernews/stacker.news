@@ -7,9 +7,11 @@ export const NOTIFICATIONS = gql`
   query Notifications($cursor: String) {
     notifications(cursor: $cursor) {
       cursor
+      lastChecked
       notifications {
         __typename
         ... on Mention {
+          sortTime
           mention
           item {
             ...ItemFields
@@ -17,6 +19,7 @@ export const NOTIFICATIONS = gql`
           }
         }
         ... on Votification {
+          sortTime
           earnedSats
           item {
             ...ItemFields
@@ -24,6 +27,7 @@ export const NOTIFICATIONS = gql`
           }
         }
         ... on Reply {
+          sortTime
           item {
             ...ItemFields
             text

@@ -7,9 +7,47 @@ import { NOTIFICATIONS } from '../fragments/notifications'
 import styles from './notifications.module.css'
 import { useRouter } from 'next/router'
 
-export default function Notifications ({ variables, ...props }) {
+function Notification ({ key, n }) {
   const router = useRouter()
   const client = useApolloClient()
+  return (
+    <div
+      key={key}
+      className={styles.clickToContext}
+      onClick={() => {
+        if (n.__typename === 'Reply' || !n.item.title) {
+          // evict item from cache so that it has current state
+          // e.g. if they previously visited before a recent comment
+          client.cache.evict({ id: `Item:${n.item.parentId}` })
+          router.push({
+            pathname: '/items/[id]',
+            query: { id: n.item.parentId, commentId: n.item.id }
+          }, `/items/${n.item.parentId}`)
+        } else {
+          client.cache.evict({ id: `Item:${n.item.id}` })
+          router.push(`items/${n.item.id}`)
+        }
+      }}
+    >
+      {n.__typename === 'Votification' &&
+        <small className='font-weight-bold text-success ml-2'>your {n.item.title ? 'post' : 'reply'} stacked {n.earnedSats} sats</small>}
+      {n.__typename === 'Mention' &&
+        <small className='font-weight-bold text-info ml-2'>you were mentioned in</small>}
+      <div className={
+    n.__typename === 'Votification' || n.__typename === 'Mention'
+      ? `ml-sm-4 ml-3 ${n.item.title ? 'pb-2' : ''}`
+      : ''
+    }
+      >
+        {n.item.title
+          ? <Item item={n.item} />
+          : <Comment item={n.item} noReply includeParent rootText={n.__typename === 'Reply' ? 'replying to you on:' : undefined} clickToContext />}
+      </div>
+    </div>
+  )
+}
+
+export default function Notifications ({ variables }) {
   const { loading, error, data, fetchMore } = useQuery(NOTIFICATIONS, {
     variables
   })
@@ -17,45 +55,26 @@ export default function Notifications ({ variables, ...props }) {
   if (loading) {
     return <CommentsFlatSkeleton />
   }
-  const { notifications: { notifications, cursor } } = data
+
+  const { notifications: { notifications, cursor, lastChecked } } = data
+
+  const [fresh, old] =
+    notifications.reduce((result, n) => {
+      result[new Date(n.sortTime).getTime() > lastChecked ? 0 : 1].push(n)
+      return result
+    },
+    [[], []])
 
   return (
     <>
       {/* XXX we shouldn't use the index but we don't have a unique id in this union yet */}
-      {notifications.map((n, i) => (
-        <div
-          key={i}
-          className={styles.clickToContext}
-          onClick={() => {
-            if (n.__typename === 'Reply' || !n.item.title) {
-              // evict item from cache so that it has current state
-              // e.g. if they previously visited before a recent comment
-              client.cache.evict({ id: `Item:${n.item.parentId}` })
-              router.push({
-                pathname: '/items/[id]',
-                query: { id: n.item.parentId, commentId: n.item.id }
-              }, `/items/${n.item.parentId}`)
-            } else {
-              client.cache.evict({ id: `Item:${n.item.id}` })
-              router.push(`items/${n.item.id}`)
-            }
-          }}
-        >
-          {n.__typename === 'Votification' &&
-            <small className='font-weight-bold text-success ml-2'>your {n.item.title ? 'post' : 'reply'} stacked {n.earnedSats} sats</small>}
-          {n.__typename === 'Mention' &&
-            <small className='font-weight-bold text-info ml-2'>you were mentioned in</small>}
-          <div className={
-            n.__typename === 'Votification' || n.__typename === 'Mention'
-              ? `ml-sm-4 ml-3 ${n.item.title ? 'pb-2' : ''}`
-              : ''
-            }
-          >
-            {n.item.title
-              ? <Item item={n.item} />
-              : <Comment item={n.item} noReply includeParent rootText={n.__typename === 'Reply' ? 'replying to you on:' : undefined} clickToContext {...props} />}
-          </div>
-        </div>
+      <div className={styles.fresh}>
+        {fresh.map((n, i) => (
+          <Notification n={n} key={i} />
+        ))}
+      </div>
+      {old.map((n, i) => (
+        <Notification n={n} key={i} />
       ))}
       <MoreFooter cursor={cursor} fetchMore={fetchMore} />
     </>

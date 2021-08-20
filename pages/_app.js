@@ -55,17 +55,13 @@ const client = new ApolloClient({
               const notifications = existing ? existing.notifications : []
               return {
                 cursor: incoming.cursor,
-                notifications: [...notifications, ...incoming.notifications]
+                notifications: [...notifications, ...incoming.notifications],
+                lastChecked: incoming.lastChecked
               }
             },
 
             read (existing) {
-              if (existing) {
-                return {
-                  cursor: existing.cursor,
-                  notifications: existing.notifications
-                }
-              }
+              return existing
             }
           }
         }

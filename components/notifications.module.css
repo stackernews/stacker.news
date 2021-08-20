@@ -7,3 +7,8 @@
 .clickToContext:hover {
     background-color: rgba(0, 0, 0, 0.03);
 }
+
+.fresh {
+    background-color: rgba(0, 0, 0, 0.03);
+    border-radius: .4rem;
+}

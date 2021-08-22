@@ -6,6 +6,7 @@ export default gql`
     moreFlatComments(cursor: String, userId: ID): Comments
     item(id: ID!): Item
     userComments(userId: ID!): [Item!]
+    pageTitle(url: String!): String
   }
 
   extend type Mutation {

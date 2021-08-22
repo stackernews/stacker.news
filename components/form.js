@@ -108,9 +108,16 @@ function FormGroup ({ className, label, children }) {
   )
 }
 
-function InputInner ({ prepend, append, hint, showValid, ...props }) {
-  const [field, meta] = props.readOnly ? [{}, {}] : useField(props)
+function InputInner ({ prepend, append, hint, showValid, onChange, overrideValue, ...props }) {
+  const [field, meta, helpers] = props.readOnly ? [{}, {}, {}] : useField(props)
   const formik = props.readOnly ? null : useFormikContext()
+
+  useEffect(() => {
+    if (overrideValue) {
+      helpers.setValue(overrideValue)
+    }
+  }, [overrideValue])
+
   return (
     <>
       <InputGroup hasValidation>
@@ -126,6 +133,12 @@ function InputInner ({ prepend, append, hint, showValid, ...props }) {
             }
           }}
           {...field} {...props}
+          onChange={(e) => {
+            field.onChange(e)
+            if (onChange) {
+              onChange(formik, e)
+            }
+          }}
           isInvalid={meta.touched && meta.error}
           isValid={showValid && meta.touched && !meta.error}
         />

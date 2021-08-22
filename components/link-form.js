@@ -1,7 +1,7 @@
 import { Form, Input, SubmitButton } from '../components/form'
 import { useRouter } from 'next/router'
 import * as Yup from 'yup'
-import { gql, useMutation } from '@apollo/client'
+import { gql, useLazyQuery, useMutation } from '@apollo/client'
 import { ensureProtocol } from '../lib/url'
 import ActionTooltip from '../components/action-tooltip'
 import Countdown from './countdown'
@@ -24,6 +24,10 @@ export const LinkSchema = Yup.object({
 })
 
 export function LinkForm ({ item, editThreshold }) {
+  const [getPageTitle, { data }] = useLazyQuery(gql`
+    query PageTitle($url: String!) {
+      pageTitle(url: $url)
+    }`)
   const router = useRouter()
   const [createLink] = useMutation(
     gql`
@@ -81,6 +85,7 @@ export function LinkForm ({ item, editThreshold }) {
       <Input
         label='title'
         name='title'
+        overrideValue={data?.pageTitle}
         required
         autoFocus
       />
@@ -91,6 +96,13 @@ export function LinkForm ({ item, editThreshold }) {
         hint={editThreshold
           ? <Countdown date={editThreshold} />
           : null}
+        onChange={async (formik, e) => {
+          if ((/^ *$/).test(formik?.values.title)) {
+            getPageTitle({
+              variables: { url: e.target.value }
+            })
+          }
+        }}
       />
       <ActionTooltip>
         <SubmitButton variant='secondary' className='mt-2'>{item ? 'save' : 'post'}</SubmitButton>

@@ -2,6 +2,8 @@ import { UserInputError, AuthenticationError } from 'apollo-server-micro'
 import { ensureProtocol } from '../../lib/url'
 import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from './cursor'
+import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
+import domino from 'domino'
 
 async function comments (models, id) {
   const flat = await models.$queryRaw(`
@@ -96,6 +98,17 @@ export default {
         FROM "Item"
         WHERE "userId" = $1 AND "parentId" IS NOT NULL
         ORDER BY created_at DESC`, Number(userId))
+    },
+    pageTitle: async (parent, { url }, { models }) => {
+      try {
+        const response = await fetch(ensureProtocol(url), { redirect: 'follow' })
+        const html = await response.text()
+        const doc = domino.createWindow(html).document
+        const metadata = getMetadata(doc, url, { title: metadataRuleSets.title })
+        return metadata?.title
+      } catch (e) {
+        return null
+      }
     }
   },
 

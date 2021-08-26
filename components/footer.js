@@ -7,10 +7,8 @@ import Texas from '../svgs/texas.svg'
 import Github from '../svgs/github-fill.svg'
 import Twitter from '../svgs/twitter-fill.svg'
 import Link from 'next/link'
-import { useRouter } from 'next/router'
 
-export default function Footer () {
-  const router = useRouter()
+export default function Footer ({ noLinks }) {
   const query = gql`
     {
       connectAddress
@@ -21,7 +19,23 @@ export default function Footer () {
 
   return (
     <footer>
-      <Container className='my-3 mt-5'>
+      <Container className='mb-3 mt-4'>
+        {!noLinks &&
+          <div className='mb-2' style={{ fontWeight: 500, opacity: 0.5 }}>
+            <Link href='/faq' passHref>
+              <a className='text-reset d-inline-flex'>
+                faq
+              </a>
+            </Link>
+            <span className='mx-2'> \ </span>
+            <a href='/rss' className='text-reset d-inline-flex' target='_blank'>
+              rss
+            </a>
+            <span className='mx-2'> \ </span>
+            <a href='https://plausible.io/stacker.news' className='text-reset d-inline-flex' target='_blank' rel='noreferrer'>
+              analytics
+            </a>
+          </div>}
         {data &&
           <div
             className={`text-small mx-auto mb-2 ${styles.connect}`}
@@ -34,23 +48,6 @@ export default function Footer () {
               placeholder={data.connectAddress}
             />
           </div>}
-        {router.asPath === '/' &&
-          <>
-            <Link href='/faq' passHref>
-              <a className='text-dark d-inline-flex'>
-                FAQ
-              </a>
-            </Link>
-            <span className='text-muted mx-2'> \ </span>
-            <a href='/rss' className='text-dark d-inline-flex' target='_blank'>
-              RSS
-            </a>
-            <span className='text-muted mx-2'> \ </span>
-            <a href='https://plausible.io/stacker.news' className='text-dark d-inline-flex' target='_blank' rel='noreferrer'>
-              Analytics
-            </a>
-            <span className='text-muted mx-2'> \ </span>
-          </>}
         <small>
           <a className='text-dark d-inline-flex' href='https://github.com/stackernews/stacker.news'>
             This is free open source software <Github width={20} height={20} className='mx-1' />

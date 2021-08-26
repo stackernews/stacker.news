@@ -5,7 +5,7 @@ import { LightningProvider } from './lightning'
 import Footer from './footer'
 import Seo from './seo'
 
-export default function Layout ({ noContain, noFooter, noSeo, children }) {
+export default function Layout ({ noContain, noFooter, noFooterLinks, noSeo, children }) {
   return (
     <>
       {!noSeo && <Seo />}
@@ -21,7 +21,7 @@ export default function Layout ({ noContain, noFooter, noSeo, children }) {
               {children}
             </Container>
             )}
-        {!noFooter && <Footer />}
+        {!noFooter && <Footer noLinks={noFooterLinks} />}
       </LightningProvider>
     </>
   )

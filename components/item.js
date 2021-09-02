@@ -5,6 +5,7 @@ import UpVote from './upvote'
 import { useMe } from './me'
 import { useState } from 'react'
 import Countdown from './countdown'
+import { NOFOLLOW_LIMIT } from '../lib/constants'
 
 export default function Item ({ item, rank, children }) {
   const me = useMe()
@@ -30,7 +31,7 @@ export default function Item ({ item, rank, children }) {
             {item.url &&
               <a
                 className={styles.link} target='_blank' href={item.url} // eslint-disable-line
-                rel={item.sats + item.boost >= 10 ? null : 'nofollow'}
+                rel={item.sats + item.boost >= NOFOLLOW_LIMIT ? null : 'nofollow'}
               >
                 {item.url.replace(/(^https?:|^)\/\//, '')}
               </a>}

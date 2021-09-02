@@ -6,7 +6,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { atomDark } from 'react-syntax-highlighter/dist/cjs/styles/prism'
 import mention from '../lib/remark-mention'
 
-export default function Text ({ children }) {
+export default function Text ({ nofollow, children }) {
   return (
     <div className={styles.text}>
       <ReactMarkdown
@@ -34,7 +34,8 @@ export default function Text ({ children }) {
                   {children}
                 </code>
                 )
-          }
+          },
+          a: ({ node, ...props }) => <a target='_blank' rel={nofollow ? 'nofollow' : null} {...props} />
         }}
         remarkPlugins={[gfm, mention]}
       >

@@ -10,6 +10,7 @@ import { gql, useQuery } from '@apollo/client'
 import styles from '../../styles/item.module.css'
 import Seo from '../../components/seo'
 import ApolloClient from '../../api/client'
+import { NOFOLLOW_LIMIT } from '../../lib/constants'
 
 // ssr the item without comments so that we can populate metatags
 export async function getServerSideProps ({ req, params: { id } }) {
@@ -92,7 +93,7 @@ function LoadItem ({ query }) {
         : (
           <>
             <Item item={item}>
-              {item.text && <div className='mb-3'><Text>{item.text}</Text></div>}
+              {item.text && <div className='mb-3'><Text nofollow={item.sats + item.boost < NOFOLLOW_LIMIT}>{item.text}</Text></div>}
               <Reply parentId={item.id} />
             </Item>
           </>

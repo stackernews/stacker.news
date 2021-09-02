@@ -12,6 +12,7 @@ import { useRouter } from 'next/router'
 import { useMe } from './me'
 import CommentEdit from './comment-edit'
 import Countdown from './countdown'
+import { NOFOLLOW_LIMIT } from '../lib/constants'
 
 function Parent ({ item, rootText }) {
   const ParentFrag = () => (
@@ -105,7 +106,7 @@ export default function Comment ({ item, children, replyOpen, includeParent, roo
               )
             : (
               <div className={styles.text}>
-                <Text>{item.text}</Text>
+                <Text nofollow={item.sats + item.boost < NOFOLLOW_LIMIT}>{item.text}</Text>
               </div>
               )}
         </div>

@@ -6,6 +6,10 @@ module.exports = withPlausibleProxy()({
       {
         source: '/faq',
         destination: '/items/349'
+      },
+      {
+        source: '/story',
+        destination: '/items/1620'
       }
     ]
   }

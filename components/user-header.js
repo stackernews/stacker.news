@@ -69,7 +69,11 @@ export default function UserHeader ({ user }) {
               if (error) {
                 throw new Error({ message: error.toString() })
               }
-              window.location = `/${name}`
+              router.replace(`/${name}`)
+              session.user.name = name
+              user.name = name
+              setEditting(false)
+              // alternative is setting window.location = /name
             }}
           >
             <Input

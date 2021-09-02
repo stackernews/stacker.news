@@ -1,12 +1,32 @@
 import { useQuery } from '@apollo/client'
 import gql from 'graphql-tag'
-import { Container } from 'react-bootstrap'
+import { Container, OverlayTrigger, Popover } from 'react-bootstrap'
 import { CopyInput } from './form'
 import styles from './footer.module.css'
 import Texas from '../svgs/texas.svg'
 import Github from '../svgs/github-fill.svg'
 import Twitter from '../svgs/twitter-fill.svg'
 import Link from 'next/link'
+
+const ChatPopover = (
+  <Popover>
+    <Popover.Content style={{ fontWeight: 500, opacity: 0.5, fontSize: '.9rem' }}>
+      <a
+        href='https://tribes.sphinx.chat/t/stackerzchat' className='text-reset d-inline-flex'
+        target='_blank' rel='noreferrer'
+      >
+        sphinx
+      </a>
+      <span className='mx-2'> \ </span>
+      <a
+        href='https://t.me/stackernews' className='text-reset d-inline-flex'
+        target='_blank' rel='noreferrer'
+      >
+        telegram
+      </a>
+    </Popover.Content>
+  </Popover>
+)
 
 export default function Footer ({ noLinks }) {
   const query = gql`
@@ -41,12 +61,11 @@ export default function Footer ({ noLinks }) {
               analytics
             </a>
             <span className='mx-2'> \ </span>
-            <a
-              href='https://tribes.sphinx.chat/t/stackerzchat' className='text-reset d-inline-flex'
-              target='_blank' rel='noreferrer'
-            >
-              chat
-            </a>
+            <OverlayTrigger trigger='click' placement='top' overlay={ChatPopover} rootClose>
+              <div className='text-reset d-inline-flex' style={{ cursor: 'pointer' }}>
+                chat
+              </div>
+            </OverlayTrigger>
             <span className='mx-2'> \ </span>
             <a href='/rss' className='text-reset d-inline-flex' target='_blank'>
               rss

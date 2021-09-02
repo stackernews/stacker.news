@@ -32,7 +32,7 @@ export function WalletForm () {
 
   if (!router.query.type) {
     return (
-      <div className='align-items-center'>
+      <div className='align-items-center text-center'>
         <YouHaveSats />
         <Link href='/wallet?type=fund'>
           <Button variant='success'>fund</Button>

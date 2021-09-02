@@ -34,8 +34,18 @@ export default function Footer ({ noLinks }) {
               </a>
             </Link>
             <span className='mx-2'> \ </span>
-            <a href='https://plausible.io/stacker.news' className='text-reset d-inline-flex' target='_blank' rel='noreferrer'>
+            <a
+              href='https://plausible.io/stacker.news' className='text-reset d-inline-flex'
+              target='_blank' rel='noreferrer'
+            >
               analytics
+            </a>
+            <span className='mx-2'> \ </span>
+            <a
+              href='https://tribes.sphinx.chat/t/stackerzchat' className='text-reset d-inline-flex'
+              target='_blank' rel='noreferrer'
+            >
+              chat
             </a>
             <span className='mx-2'> \ </span>
             <a href='/rss' className='text-reset d-inline-flex' target='_blank'>

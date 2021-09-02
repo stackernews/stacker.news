@@ -14,7 +14,7 @@ export default {
         throw new AuthenticationError('you must be logged in')
       }
 
-      return me.name === name || !(await models.user.findUnique({ where: { name } }))
+      return me.name?.toUpperCase() === name?.toUpperCase() || !(await models.user.findUnique({ where: { name } }))
     },
     recentlyStacked: async (parent, args, { models, me }) => {
       if (!me) {

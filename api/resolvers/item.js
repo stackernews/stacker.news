@@ -1,7 +1,7 @@
 import { UserInputError, AuthenticationError } from 'apollo-server-micro'
 import { ensureProtocol } from '../../lib/url'
 import serialize from './serial'
-import { decodeCursor, LIMIT, nextCursorEncoded } from './cursor'
+import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
 import domino from 'domino'
 

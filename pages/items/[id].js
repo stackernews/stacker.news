@@ -11,6 +11,7 @@ import styles from '../../styles/item.module.css'
 import Seo from '../../components/seo'
 import ApolloClient from '../../api/client'
 import { NOFOLLOW_LIMIT } from '../../lib/constants'
+import { useRouter } from 'next/router'
 
 // ssr the item without comments so that we can populate metatags
 export async function getServerSideProps ({ req, params: { id } }) {
@@ -68,10 +69,13 @@ export default function FullItem ({ item }) {
 }
 
 function LoadItem ({ query }) {
-  const { loading, error, data } = useQuery(query)
+  const router = useRouter()
+  const { error, data } = useQuery(query, {
+    fetchPolicy: router.query.cache ? 'cache-first' : undefined
+  })
   if (error) return <div>Failed to load!</div>
 
-  if (loading) {
+  if (!data) {
     return (
       <div>
         <ItemSkeleton>

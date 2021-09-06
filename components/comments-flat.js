@@ -8,11 +8,12 @@ import { useRouter } from 'next/router'
 
 export default function CommentsFlat ({ variables, ...props }) {
   const router = useRouter()
-  const { loading, error, data, fetchMore } = useQuery(MORE_FLAT_COMMENTS, {
-    variables
+  const { error, data, fetchMore } = useQuery(MORE_FLAT_COMMENTS, {
+    variables,
+    fetchPolicy: router.query.cache ? 'cache-first' : undefined
   })
   if (error) return <div>Failed to load!</div>
-  if (loading) {
+  if (!data) {
     return <CommentsFlatSkeleton />
   }
   const { moreFlatComments: { comments, cursor } } = data

@@ -48,6 +48,7 @@
     display: flex;
     color: grey;
     font-size: 90%;
+    min-width: 18px;
 }
 
 .skeleton .other {

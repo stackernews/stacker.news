@@ -4,13 +4,16 @@ import Item, { ItemSkeleton } from './item'
 import styles from './items.module.css'
 import { MORE_ITEMS } from '../fragments/items'
 import { useState } from 'react'
+import { useRouter } from 'next/router'
 
 export default function Items ({ variables, rank }) {
-  const { loading, error, data, fetchMore } = useQuery(MORE_ITEMS, {
-    variables
+  const router = useRouter()
+  const { error, data, fetchMore } = useQuery(MORE_ITEMS, {
+    variables,
+    fetchPolicy: router.query.cache ? 'cache-first' : undefined
   })
   if (error) return <div>Failed to load!</div>
-  if (loading) {
+  if (!data) {
     return <ItemsSkeleton rank={rank} />
   }
 

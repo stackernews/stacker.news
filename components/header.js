@@ -6,7 +6,6 @@ import { useRouter } from 'next/router'
 import { Button, Container, NavDropdown } from 'react-bootstrap'
 import Price from './price'
 import { useMe } from './me'
-import { useApolloClient } from '@apollo/client'
 import Head from 'next/head'
 import { signOut, signIn, useSession } from 'next-auth/client'
 import { useLightning } from './lightning'
@@ -17,12 +16,21 @@ function WalletSummary ({ me }) {
   return `${me.sats} \\ ${me.stacked}`
 }
 
+function RefreshableLink ({ href, children, ...props }) {
+  const router = useRouter()
+  const same = router.asPath === href
+  return (
+    <Link href={same ? `${href}?key=${Math.random()}` : href} as={href} {...props}>
+      {children}
+    </Link>
+  )
+}
+
 export default function Header () {
   const [session, loading] = useSession()
   const router = useRouter()
   const path = router.asPath.split('?')[0]
   const me = useMe()
-  const client = useApolloClient()
 
   const Corner = () => {
     if (loading) {
@@ -40,27 +48,23 @@ export default function Header () {
               <Link href={'/' + session.user.name} passHref>
                 <NavDropdown.Item>profile</NavDropdown.Item>
               </Link>
-              <Link href='/notifications' passHref>
-                <NavDropdown.Item onClick={() => {
-                  // when it's a fresh click evict old notification cache
-                  client.cache.evict({ id: 'ROOT_QUERY', fieldName: 'notifications' })
-                }}
-                >
+              <RefreshableLink href='/notifications' passHref>
+                <NavDropdown.Item>
                   notifications
                   {me && me.hasNewNotes &&
                     <div className='p-1 d-inline-block bg-danger ml-1'>
                       <span className='invisible'>{' '}</span>
                     </div>}
                 </NavDropdown.Item>
-              </Link>
+              </RefreshableLink>
               <Link href='/wallet' passHref>
                 <NavDropdown.Item>wallet</NavDropdown.Item>
               </Link>
               <div>
                 <NavDropdown.Divider />
-                <Link href='/recent' passHref>
+                <RefreshableLink href='/recent' passHref>
                   <NavDropdown.Item>recent</NavDropdown.Item>
-                </Link>
+                </RefreshableLink>
                 {session
                   ? (
                     <Link href='/post' passHref>
@@ -100,16 +104,16 @@ export default function Header () {
       <Container className='px-sm-0'>
         <Navbar className={styles.navbar}>
           <Nav className='w-100 justify-content-between flex-wrap align-items-center' activeKey={path}>
-            <Link href='/' passHref>
+            <RefreshableLink href='/' passHref>
               <Navbar.Brand className={`${styles.brand} d-none d-sm-block`}>STACKER NEWS</Navbar.Brand>
-            </Link>
-            <Link href='/' passHref>
+            </RefreshableLink>
+            <RefreshableLink href='/' passHref>
               <Navbar.Brand className={`${styles.brand} d-block d-sm-none`}>SN</Navbar.Brand>
-            </Link>
+            </RefreshableLink>
             <Nav.Item className='d-md-flex d-none'>
-              <Link href='/recent' passHref>
+              <RefreshableLink href='/recent' passHref>
                 <Nav.Link className={styles.navLink}>recent</Nav.Link>
-              </Link>
+              </RefreshableLink>
             </Nav.Item>
             <Nav.Item className='d-md-flex d-none'>
               {session

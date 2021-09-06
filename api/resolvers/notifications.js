@@ -1,5 +1,5 @@
 import { AuthenticationError } from 'apollo-server-micro'
-import { decodeCursor, LIMIT, nextCursorEncoded } from './cursor'
+import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 
 export default {
   Query: {
@@ -83,7 +83,9 @@ export default {
       })
 
       const { checkedNotesAt } = await models.user.findUnique({ where: { id: me.id } })
-      await models.user.update({ where: { id: me.id }, data: { checkedNotesAt: new Date() } })
+      if (decodedCursor.offset === 0) {
+        await models.user.update({ where: { id: me.id }, data: { checkedNotesAt: new Date() } })
+      }
 
       return {
         lastChecked: checkedNotesAt,

@@ -1,4 +1,4 @@
-import { useApolloClient, useQuery } from '@apollo/client'
+import { useQuery } from '@apollo/client'
 import Button from 'react-bootstrap/Button'
 import { useState } from 'react'
 import Comment, { CommentSkeleton } from './comment'
@@ -7,25 +7,22 @@ import { NOTIFICATIONS } from '../fragments/notifications'
 import styles from './notifications.module.css'
 import { useRouter } from 'next/router'
 
-function Notification ({ key, n }) {
+function Notification ({ n }) {
   const router = useRouter()
-  const client = useApolloClient()
   return (
     <div
-      key={key}
       className={styles.clickToContext}
       onClick={() => {
         if (n.__typename === 'Reply' || !n.item.title) {
-          // evict item from cache so that it has current state
-          // e.g. if they previously visited before a recent comment
-          client.cache.evict({ id: `Item:${n.item.parentId}` })
           router.push({
             pathname: '/items/[id]',
             query: { id: n.item.parentId, commentId: n.item.id }
           }, `/items/${n.item.parentId}`)
         } else {
-          client.cache.evict({ id: `Item:${n.item.id}` })
-          router.push(`items/${n.item.id}`)
+          router.push({
+            pathname: '/items/[id]',
+            query: { id: n.item.id }
+          }, `/items/${n.item.id}`)
         }
       }}
     >
@@ -48,11 +45,13 @@ function Notification ({ key, n }) {
 }
 
 export default function Notifications ({ variables }) {
-  const { loading, error, data, fetchMore } = useQuery(NOTIFICATIONS, {
-    variables
+  const router = useRouter()
+  const { error, data, fetchMore } = useQuery(NOTIFICATIONS, {
+    variables,
+    fetchPolicy: router.query.cache ? 'cache-first' : undefined
   })
   if (error) return <div>Failed to load!</div>
-  if (loading) {
+  if (!data) {
     return <CommentsFlatSkeleton />
   }
 

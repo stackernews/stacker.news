@@ -71,9 +71,20 @@ export default function UserHeader ({ user }) {
               }
               router.replace(`/${name}`)
               session.user.name = name
-              user.name = name
+
+              client.writeFragment({
+                id: `User:${user.id}`,
+                fragment: gql`
+                  fragment CurUser on User {
+                    name
+                  }
+                `,
+                data: {
+                  name
+                }
+              })
+
               setEditting(false)
-              // alternative is setting window.location = /name
             }}
           >
             <Input

@@ -1,9 +1,22 @@
 import QRCode from 'qrcode.react'
 import { CopyInput, InputSkeleton } from './form'
 import InvoiceStatus from './invoice-status'
+import { requestProvider } from 'webln'
+import { useEffect } from 'react'
 
-export default function LnQR ({ value, statusVariant, status }) {
+export default function LnQR ({ value, webLn, statusVariant, status }) {
   const qrValue = 'lightning:' + value.toUpperCase()
+
+  useEffect(async () => {
+    if (webLn) {
+      try {
+        const provider = await requestProvider()
+        provider.sendPayment(value)
+      } catch (e) {
+        console.log(e)
+      }
+    }
+  }, [])
 
   return (
     <>

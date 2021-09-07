@@ -14,5 +14,5 @@ export function Invoice ({ invoice }) {
     status = 'expired'
   }
 
-  return <LnQR value={invoice.bolt11} statusVariant={variant} status={status} />
+  return <LnQR webLn value={invoice.bolt11} statusVariant={variant} status={status} />
 }

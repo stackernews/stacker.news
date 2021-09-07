@@ -10,6 +10,7 @@ export function MeProvider ({ children }) {
   {
     me {
       id
+      name
       sats
       stacked
       freePosts

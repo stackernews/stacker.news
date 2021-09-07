@@ -9,6 +9,8 @@ import LayoutCenter from '../components/layout-center'
 import InputGroup from 'react-bootstrap/InputGroup'
 import { WithdrawlSkeleton } from './withdrawals/[id]'
 import { useMe } from '../components/me'
+import { useEffect } from 'react'
+import { requestProvider } from 'webln'
 
 export default function Wallet () {
   return (
@@ -102,8 +104,11 @@ export const WithdrawlSchema = Yup.object({
     .min(0, 'must be positive').integer('must be whole')
 })
 
+const MAX_FEE_DEFAULT = 10
+
 export function WithdrawlForm () {
   const router = useRouter()
+  const me = useMe()
 
   const [createWithdrawl, { called, error }] = useMutation(gql`
     mutation createWithdrawl($invoice: String!, $maxFee: Int!) {
@@ -111,6 +116,20 @@ export function WithdrawlForm () {
         id
       }
   }`)
+
+  useEffect(async () => {
+    try {
+      const provider = await requestProvider()
+      console.log(me)
+      const { paymentRequest: invoice } = await provider.makeInvoice({
+        defaultMemo: `Withdrawal for @${me.name} on SN`
+      })
+      const { data } = await createWithdrawl({ variables: { invoice, maxFee: MAX_FEE_DEFAULT } })
+      router.push(`/withdrawals/${data.createWithdrawl.id}`)
+    } catch (e) {
+      console.log(e)
+    }
+  }, [])
 
   if (called && !error) {
     return <WithdrawlSkeleton status='sending' />
@@ -123,7 +142,7 @@ export function WithdrawlForm () {
         className='pt-3'
         initial={{
           invoice: '',
-          maxFee: 0
+          maxFee: MAX_FEE_DEFAULT
         }}
         initialError={error ? error.toString() : undefined}
         schema={WithdrawlSchema}

@@ -127,7 +127,7 @@ export function WithdrawlForm () {
       const { data } = await createWithdrawl({ variables: { invoice, maxFee: MAX_FEE_DEFAULT } })
       router.push(`/withdrawals/${data.createWithdrawl.id}`)
     } catch (e) {
-      console.log(e)
+      console.log(e.message)
     }
   }, [])
 

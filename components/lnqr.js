@@ -11,9 +11,9 @@ export default function LnQR ({ value, webLn, statusVariant, status }) {
     if (webLn) {
       try {
         const provider = await requestProvider()
-        provider.sendPayment(value)
+        await provider.sendPayment(value)
       } catch (e) {
-        console.log(e)
+        console.log(e.message)
       }
     }
   }, [])

@@ -4,7 +4,6 @@ import { useRouter } from 'next/router'
 
 export default function Index () {
   const router = useRouter()
-  console.log(router)
   return (
     <Layout>
       <Items variables={{ sort: 'hot' }} rank key={router.query.key} />

@@ -15,6 +15,16 @@ export default function UpVote ({ itemId, meSats, className }) {
         vote(id: $id, sats: $sats)
       }`, {
       update (cache, { data: { vote } }) {
+        // read in the cached object so we don't use meSats prop
+        // which can be stale
+        const item = cache.readFragment({
+          id: `Item:${itemId}`,
+          fragment: gql`
+            fragment votedItem on Item {
+              meSats
+            }
+          `
+        })
         cache.modify({
           id: `Item:${itemId}`,
           fields: {
@@ -22,10 +32,10 @@ export default function UpVote ({ itemId, meSats, className }) {
               return existingMeSats + vote
             },
             sats (existingSats = 0) {
-              return meSats === 0 ? existingSats + vote : existingSats
+              return item.meSats === 0 ? existingSats + vote : existingSats
             },
             boost (existingBoost = 0) {
-              return meSats >= 1 ? existingBoost + vote : existingBoost
+              return item.meSats >= 1 ? existingBoost + vote : existingBoost
             }
           }
         })

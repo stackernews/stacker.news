@@ -5,7 +5,7 @@
 
 */
 -- CreateEnum
-CREATE TYPE "ItemAct" AS ENUM ('VOTE', 'BOOST', 'TIP');
+CREATE TYPE "ItemActType" AS ENUM ('VOTE', 'BOOST', 'TIP');
 
 -- DropForeignKey
 ALTER TABLE "Vote" DROP CONSTRAINT "Vote_itemId_fkey";

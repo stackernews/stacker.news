@@ -11,24 +11,24 @@ generator client {
 }
 
 model User {
-  id             Int          @id @default(autoincrement())
-  createdAt      DateTime     @default(now()) @map(name: "created_at")
-  updatedAt      DateTime     @default(now()) @updatedAt @map(name: "updated_at")
-  name           String?      @unique @db.Citext
-  email          String?      @unique
-  emailVerified  DateTime?    @map(name: "email_verified")
+  id             Int         @id @default(autoincrement())
+  createdAt      DateTime    @default(now()) @map(name: "created_at")
+  updatedAt      DateTime    @default(now()) @updatedAt @map(name: "updated_at")
+  name           String?     @unique @db.Citext
+  email          String?     @unique
+  emailVerified  DateTime?   @map(name: "email_verified")
   image          String?
   items          Item[]
   mentions       Mention[]
   messages       Message[]
-  itemActions    ItemAction[]
+  itemActions    ItemAct[]
   invoices       Invoice[]
   withdrawls     Withdrawl[]
-  msats          Int          @default(0)
-  freeComments   Int          @default(5)
-  freePosts      Int          @default(2)
+  msats          Int         @default(0)
+  freeComments   Int         @default(5)
+  freePosts      Int         @default(2)
   checkedNotesAt DateTime?
-  pubkey         String?      @unique
+  pubkey         String?     @unique
 
   @@map(name: "users")
 }
@@ -60,7 +60,7 @@ model Item {
   parent    Item?                 @relation("ParentChildren", fields: [parentId], references: [id])
   parentId  Int?
   children  Item[]                @relation("ParentChildren")
-  actions   ItemAction[]
+  actions   ItemAct[]
   mentions  Mention[]
   path      Unsupported("LTREE")?
 
@@ -68,26 +68,26 @@ model Item {
   @@index([parentId])
 }
 
-enum ItemActionType {
+enum ItemActType {
   VOTE
   BOOST
   TIP
 }
 
-model ItemAction {
-  id        Int            @id @default(autoincrement())
-  createdAt DateTime       @default(now()) @map(name: "created_at")
-  updatedAt DateTime       @updatedAt @map(name: "updated_at")
-  sats      Int            @default(1)
-  action    ItemActionType @default(VOTE)
-  item      Item           @relation(fields: [itemId], references: [id])
+model ItemAct {
+  id        Int         @id @default(autoincrement())
+  createdAt DateTime    @default(now()) @map(name: "created_at")
+  updatedAt DateTime    @updatedAt @map(name: "updated_at")
+  sats      Int
+  act       ItemActType
+  item      Item        @relation(fields: [itemId], references: [id])
   itemId    Int
-  user      User           @relation(fields: [userId], references: [id])
+  user      User        @relation(fields: [userId], references: [id])
   userId    Int
 
   @@index([itemId])
   @@index([userId])
-  @@index([action])
+  @@index([act])
 }
 
 model Mention {

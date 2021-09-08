@@ -16,7 +16,7 @@ export default gql`
     updateDiscussion(id: ID!, title: String!, text: String): Item!
     createComment(text: String!, parentId: ID!): Item!
     updateComment(id: ID!, text: String!): Item!
-    vote(id: ID!, sats: Int): Int!
+    act(id: ID!, act: String!, sats: Int): Int!
   }
 
   type Items {

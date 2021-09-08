@@ -53,14 +53,14 @@ export default {
         (SELECT ${ITEM_SUBQUERY_FIELDS}, max(subquery.voted_at) as "sortTime",
           sum(subquery.sats) as "earnedSats", false as mention
           FROM
-          (SELECT ${ITEM_FIELDS}, "Vote".created_at as voted_at, "Vote".sats,
-            ROW_NUMBER() OVER(ORDER BY "Vote".created_at) -
-            ROW_NUMBER() OVER(PARTITION BY "Item".id ORDER BY "Vote".created_at) as island
-            FROM "Vote"
-            JOIN "Item" on "Vote"."itemId" = "Item".id
-            WHERE "Vote"."userId" <> $1
-            AND "Vote".created_at <= $2
-            AND "Vote".boost = false
+          (SELECT ${ITEM_FIELDS}, "ItemAct".created_at as voted_at, "ItemAct".sats,
+            ROW_NUMBER() OVER(ORDER BY "ItemAct".created_at) -
+            ROW_NUMBER() OVER(PARTITION BY "Item".id ORDER BY "ItemAct".created_at) as island
+            FROM "ItemAct"
+            JOIN "Item" on "ItemAct"."itemId" = "Item".id
+            WHERE "ItemAct"."userId" <> $1
+            AND "ItemAct".created_at <= $2
+            AND "ItemAct".act <> 'BOOST'
             AND "Item"."userId" = $1) subquery
             GROUP BY ${ITEM_SUBQUERY_FIELDS}, subquery.island ORDER BY max(subquery.voted_at) desc)
         UNION ALL

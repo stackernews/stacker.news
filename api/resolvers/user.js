@@ -44,10 +44,10 @@ export default {
     },
     stacked: async (user, args, { models }) => {
       const [{ sum }] = await models.$queryRaw`
-        SELECT sum("Vote".sats)
-        FROM "Vote"
-        JOIN "Item" on "Vote"."itemId" = "Item".id
-        WHERE "Vote"."userId" <> ${user.id} AND boost = false
+        SELECT sum("ItemAct".sats)
+        FROM "ItemAct"
+        JOIN "Item" on "ItemAct"."itemId" = "Item".id
+        WHERE "ItemAct"."userId" <> ${user.id} AND "ItemAct".act <> 'BOOST'
         AND "Item"."userId" = ${user.id}`
       return sum || 0
     },
@@ -57,12 +57,12 @@ export default {
     hasNewNotes: async (user, args, { models }) => {
       // check if any votes have been cast for them since checkedNotesAt
       const votes = await models.$queryRaw(`
-        SELECT "Vote".id, "Vote".created_at
-        FROM "Vote"
-        JOIN "Item" on "Vote"."itemId" = "Item".id
-        WHERE "Vote"."userId" <> $1
-        AND ("Vote".created_at > $2 OR $2 IS NULL)
-        AND "Vote".boost = false
+        SELECT "ItemAct".id, "ItemAct".created_at
+        FROM "ItemAct"
+        JOIN "Item" on "ItemAct"."itemId" = "Item".id
+        WHERE "ItemAct"."userId" <> $1
+        AND ("ItemAct".created_at > $2 OR $2 IS NULL)
+        AND "ItemAct".act <> 'BOOST'
         AND "Item"."userId" = $1
         LIMIT 1`, user.id, user.checkedNotesAt)
       if (votes.length > 0) {

@@ -209,7 +209,7 @@ export default {
 
       return await updateItem(parent, { id, data: { text } }, { me, models })
     },
-    vote: async (parent, { id, sats = 1 }, { me, models }) => {
+    act: async (parent, { id, act, sats }, { me, models }) => {
       // need to make sure we are logged in
       if (!me) {
         throw new AuthenticationError('you must be logged in')
@@ -219,7 +219,7 @@ export default {
         throw new UserInputError('sats must be positive', { argumentName: 'sats' })
       }
 
-      await serialize(models, models.$queryRaw`SELECT vote(${Number(id)}, ${me.name}, ${Number(sats)})`)
+      await serialize(models, models.$queryRaw`SELECT item_act(${Number(id)}, ${me.id}, ${act}, ${Number(sats)})`)
       return sats
     }
   },
@@ -235,26 +235,26 @@ export default {
       return count || 0
     },
     sats: async (item, args, { models }) => {
-      const { sum: { sats } } = await models.vote.aggregate({
+      const { sum: { sats } } = await models.itemAct.aggregate({
         sum: {
           sats: true
         },
         where: {
           itemId: item.id,
-          boost: false
+          act: 'VOTE'
         }
       })
 
       return sats || 0
     },
     boost: async (item, args, { models }) => {
-      const { sum: { sats } } = await models.vote.aggregate({
+      const { sum: { sats } } = await models.itemAct.aggregate({
         sum: {
           sats: true
         },
         where: {
           itemId: item.id,
-          boost: true
+          act: 'BOOST'
         }
       })
 
@@ -263,13 +263,14 @@ export default {
     meSats: async (item, args, { me, models }) => {
       if (!me) return 0
 
-      const { sum: { sats } } = await models.vote.aggregate({
+      const { sum: { sats } } = await models.itemAct.aggregate({
         sum: {
           sats: true
         },
         where: {
           itemId: item.id,
-          userId: me.id
+          userId: me.id,
+          act: 'VOTE'
         }
       })
 
@@ -353,7 +354,7 @@ const createItem = async (parent, { title, url, text, parentId }, { me, models }
 
   const [item] = await serialize(models, models.$queryRaw(
     `${SELECT} FROM create_item($1, $2, $3, $4, $5) AS "Item"`,
-    title, url, text, Number(parentId), me.name))
+    title, url, text, Number(parentId), me.id))
 
   await createMentions(item, models)
 
@@ -391,19 +392,19 @@ const SELECT =
   `SELECT "Item".id, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt", "Item".title,
   "Item".text, "Item".url, "Item"."userId", "Item"."parentId", ltree2text("Item"."path") AS "path"`
 
-const LEFT_JOIN_SATS_SELECT = 'SELECT i.id, SUM(CASE WHEN "Vote".boost THEN 0 ELSE "Vote".sats END) as sats,  SUM(CASE WHEN "Vote".boost THEN "Vote".sats ELSE 0 END) as boost'
+const LEFT_JOIN_SATS_SELECT = 'SELECT i.id, SUM(CASE WHEN "ItemAct".act = \'VOTE\' THEN "ItemAct".sats ELSE 0 END) as sats,  SUM(CASE WHEN "ItemAct".act = \'BOOST\' THEN "ItemAct".sats ELSE 0 END) as boost'
 
 function timedLeftJoinSats (num) {
   return `LEFT JOIN (${LEFT_JOIN_SATS_SELECT}
   FROM "Item" i
-  JOIN "Vote" ON i.id = "Vote"."itemId" AND "Vote".created_at <= $${num}
+  JOIN "ItemAct" ON i.id = "ItemAct"."itemId" AND "ItemAct".created_at <= $${num}
   GROUP BY i.id) x ON "Item".id = x.id`
 }
 
 const LEFT_JOIN_SATS =
   `LEFT JOIN (${LEFT_JOIN_SATS_SELECT}
   FROM "Item" i
-  JOIN "Vote" ON i.id = "Vote"."itemId"
+  JOIN "ItemAct" ON i.id = "ItemAct"."itemId"
   GROUP BY i.id) x ON "Item".id = x.id`
 
 function timedOrderBySats (num) {

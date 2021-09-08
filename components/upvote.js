@@ -9,18 +9,18 @@ import ActionTooltip from './action-tooltip'
 export default function UpVote ({ itemId, meSats, className }) {
   const [session] = useSession()
   const { setError } = useFundError()
-  const [vote] = useMutation(
+  const [act] = useMutation(
     gql`
-      mutation vote($id: ID!, $sats: Int!) {
-        vote(id: $id, sats: $sats)
+      mutation act($id: ID!, $sats: Int!) {
+        act(id: $id, act: 'VOTE', sats: $sats)
       }`, {
-      update (cache, { data: { vote } }) {
+      update (cache, { data: { act } }) {
         // read in the cached object so we don't use meSats prop
         // which can be stale
         const item = cache.readFragment({
           id: `Item:${itemId}`,
           fragment: gql`
-            fragment votedItem on Item {
+            fragment actedItem on Item {
               meSats
             }
           `
@@ -29,13 +29,13 @@ export default function UpVote ({ itemId, meSats, className }) {
           id: `Item:${itemId}`,
           fields: {
             meSats (existingMeSats = 0) {
-              return existingMeSats + vote
+              return existingMeSats + act
             },
             sats (existingSats = 0) {
-              return item.meSats === 0 ? existingSats + vote : existingSats
+              return item.meSats === 0 ? existingSats + act : existingSats
             },
             boost (existingBoost = 0) {
-              return item.meSats >= 1 ? existingBoost + vote : existingBoost
+              return item.meSats >= 1 ? existingBoost + act : existingBoost
             }
           }
         })
@@ -62,7 +62,7 @@ export default function UpVote ({ itemId, meSats, className }) {
                   strike()
                   if (!itemId) return
                   try {
-                    await vote({ variables: { id: itemId, sats: 1 } })
+                    await act({ variables: { id: itemId, sats: 1 } })
                   } catch (error) {
                     if (error.toString().includes('insufficient funds')) {
                       setError(true)

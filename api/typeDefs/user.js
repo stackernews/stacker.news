@@ -6,7 +6,6 @@ export default gql`
     user(name: String!): User
     users: [User!]
     nameAvailable(name: String!): Boolean!
-    recentlyStacked: Int!
   }
 
   extend type Mutation {

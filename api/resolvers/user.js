@@ -15,25 +15,6 @@ export default {
       }
 
       return me.name?.toUpperCase() === name?.toUpperCase() || !(await models.user.findUnique({ where: { name } }))
-    },
-    recentlyStacked: async (parent, args, { models, me }) => {
-      if (!me) {
-        throw new AuthenticationError('you must be logged in')
-      }
-
-      const user = await models.user.findUnique({ where: { id: me.id } })
-
-      const [{ sum }] = await models.$queryRaw(`
-        SELECT sum("Vote".sats)
-        FROM "Vote"
-        JOIN "Item" on "Vote"."itemId" = "Item".id
-        WHERE "Vote"."userId" <> $1
-        AND ("Vote".created_at > $2 OR $2 IS NULL)
-        AND "Vote".boost = false
-        AND "Item"."userId" = $1`, user.id, user.checkedNotesAt)
-
-      await models.user.update({ where: { id: me.id }, data: { checkedNotesAt: new Date() } })
-      return sum || 0
     }
   },
 

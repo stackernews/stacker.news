@@ -106,7 +106,7 @@ DECLARE
 BEGIN
     PERFORM ASSERT_SERIALIZED();
 
-    SELECT (msats / 1000), id, "freePosts", "freeComments"
+    SELECT (msats / 1000), "freePosts", "freeComments"
     INTO user_sats, free_posts, free_comments
     FROM users WHERE id = user_id;
 
@@ -119,7 +119,7 @@ BEGIN
     INSERT INTO "Item" (title, url, text, "userId", "parentId", created_at, updated_at)
     VALUES (title, url, text, user_id, parent_id, now_utc(), now_utc()) RETURNING * INTO item;
 
-    IF freebie THEN
+    IF freebie = true THEN
         IF parent_id IS NULL THEN
             UPDATE users SET "freePosts" = "freePosts" - 1 WHERE id = user_id;
         ELSE

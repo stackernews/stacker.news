@@ -12,7 +12,7 @@ export default function UpVote ({ itemId, meSats, className }) {
   const [act] = useMutation(
     gql`
       mutation act($id: ID!, $sats: Int!) {
-        act(id: $id, act: 'VOTE', sats: $sats)
+        act(id: $id, act: VOTE, sats: $sats)
       }`, {
       update (cache, { data: { act } }) {
         // read in the cached object so we don't use meSats prop

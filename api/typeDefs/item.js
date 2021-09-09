@@ -9,6 +9,12 @@ export default gql`
     pageTitle(url: String!): String
   }
 
+  enum ItemAct {
+    VOTE
+    BOOST
+    TIP
+  }
+
   extend type Mutation {
     createLink(title: String!, url: String): Item!
     updateLink(id: ID!, title: String!, url: String): Item!
@@ -16,7 +22,7 @@ export default gql`
     updateDiscussion(id: ID!, title: String!, text: String): Item!
     createComment(text: String!, parentId: ID!): Item!
     updateComment(id: ID!, text: String!): Item!
-    act(id: ID!, act: String!, sats: Int): Int!
+    act(id: ID!, act: ItemAct!, sats: Int): Int!
   }
 
   type Items {

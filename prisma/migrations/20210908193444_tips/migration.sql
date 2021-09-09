@@ -119,7 +119,7 @@ BEGIN
     INSERT INTO "Item" (title, url, text, "userId", "parentId", created_at, updated_at)
     VALUES (title, url, text, user_id, parent_id, now_utc(), now_utc()) RETURNING * INTO item;
 
-    IF freebie = true THEN
+    IF freebie THEN
         IF parent_id IS NULL THEN
             UPDATE users SET "freePosts" = "freePosts" - 1 WHERE id = user_id;
         ELSE

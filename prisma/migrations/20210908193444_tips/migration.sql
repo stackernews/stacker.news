@@ -22,8 +22,8 @@ ALTER TABLE "ItemAct"
   ALTER COLUMN "act" SET DATA TYPE "ItemActType"
     USING (
       CASE
-        WHEN "act" THEN 'VOTE'
-        ELSE 'BOOST'
+        WHEN "act" THEN 'BOOST'
+        ELSE 'VOTE'
       END
     )::"ItemActType";
 

@@ -120,7 +120,6 @@ export function WithdrawlForm () {
   useEffect(async () => {
     try {
       const provider = await requestProvider()
-      console.log(me)
       const { paymentRequest: invoice } = await provider.makeInvoice({
         defaultMemo: `Withdrawal for @${me.name} on SN`
       })

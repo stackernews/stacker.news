@@ -21,7 +21,7 @@ model User {
   items          Item[]
   mentions       Mention[]
   messages       Message[]
-  itemActions    ItemAct[]
+  actions        ItemAct[]
   invoices       Invoice[]
   withdrawls     Withdrawl[]
   msats          Int         @default(0)

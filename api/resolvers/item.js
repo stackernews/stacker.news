@@ -352,8 +352,6 @@ const createItem = async (parent, { title, url, text, parentId }, { me, models }
     throw new AuthenticationError('you must be logged in')
   }
 
-  console.log(me)
-
   const [item] = await serialize(models, models.$queryRaw(
     `${SELECT} FROM create_item($1, $2, $3, $4, $5) AS "Item"`,
     title, url, text, Number(parentId), Number(me.id)))

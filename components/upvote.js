@@ -5,14 +5,16 @@ import { gql, useMutation } from '@apollo/client'
 import { signIn, useSession } from 'next-auth/client'
 import { useFundError } from './fund-error'
 import ActionTooltip from './action-tooltip'
+import { useItemAct } from './item-act'
 
 export default function UpVote ({ itemId, meSats, className }) {
   const [session] = useSession()
   const { setError } = useFundError()
+  const { setItem } = useItemAct()
   const [act] = useMutation(
     gql`
-      mutation act($id: ID!, $sats: Int!) {
-        act(id: $id, act: VOTE, sats: $sats)
+      mutation act($id: ID!, $act: ItemAct! $sats: Int!) {
+        act(id: $id, act: $act, sats: $sats)
       }`, {
       update (cache, { data: { act } }) {
         // read in the cached object so we don't use meSats prop
@@ -59,10 +61,16 @@ export default function UpVote ({ itemId, meSats, className }) {
             session
               ? async (e) => {
                   e.stopPropagation()
+                  if (meSats >= 1) {
+                    setItem({ itemId, act, strike })
+                    return
+                  }
+
                   strike()
                   if (!itemId) return
+
                   try {
-                    await act({ variables: { id: itemId, sats: 1 } })
+                    await act({ variables: { id: itemId, act: 'VOTE', sats: 1 } })
                   } catch (error) {
                     if (error.toString().includes('insufficient funds')) {
                       setError(true)

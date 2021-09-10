@@ -8,6 +8,7 @@ import { LightningProvider } from '../components/lightning'
 import apolloClient from '../lib/apollo'
 import { useRouter } from 'next/router'
 import { useEffect } from 'react'
+import { ItemActModal, ItemActProvider } from '../components/item-act'
 
 function MyApp ({ Component, pageProps }) {
   const router = useRouter()
@@ -30,7 +31,10 @@ function MyApp ({ Component, pageProps }) {
             <LightningProvider>
               <FundErrorProvider>
                 <FundErrorModal />
-                <Component {...pageProps} />
+                <ItemActProvider>
+                  <ItemActModal />
+                  <Component {...pageProps} />
+                </ItemActProvider>
               </FundErrorProvider>
             </LightningProvider>
           </MeProvider>

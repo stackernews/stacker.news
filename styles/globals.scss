@@ -5,7 +5,7 @@ $theme-colors: (
   "info" : #007cbe,
   "success" : #5c8001,
   "twitter" : #1da1f2,
-  "boost" : #7A0CE9,
+  "boost" : #8c25f4
 );
 
 $body-bg: #f5f5f5;
@@ -169,6 +169,10 @@ footer {
 
 .fill-danger {
   fill: #c03221;
+}
+
+.text-underline {
+  text-decoration: underline;
 }
 
 @keyframes flash {

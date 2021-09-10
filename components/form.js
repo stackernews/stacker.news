@@ -11,13 +11,19 @@ import Markdown from '../svgs/markdown-line.svg'
 import styles from './form.module.css'
 import Text from '../components/text'
 
-export function SubmitButton ({ children, variant, ...props }) {
-  const { isSubmitting } = useFormikContext()
+export function SubmitButton ({ children, variant, value, onClick, ...props }) {
+  const { isSubmitting, setFieldValue } = useFormikContext()
   return (
     <Button
       variant={variant || 'main'}
       type='submit'
       disabled={isSubmitting}
+      onClick={value
+        ? e => {
+            setFieldValue('submit', value)
+            onClick && onClick(e)
+          }
+        : onClick}
       {...props}
     >
       {children}
@@ -108,7 +114,7 @@ function FormGroup ({ className, label, children }) {
   )
 }
 
-function InputInner ({ prepend, append, hint, showValid, onChange, overrideValue, ...props }) {
+function InputInner ({ prepend, append, hint, showValid, onChange, overrideValue, innerRef, ...props }) {
   const [field, meta, helpers] = props.readOnly ? [{}, {}, {}] : useField(props)
   const formik = props.readOnly ? null : useFormikContext()
 
@@ -132,6 +138,7 @@ function InputInner ({ prepend, append, hint, showValid, onChange, overrideValue
               formik?.submitForm()
             }
           }}
+          ref={innerRef}
           {...field} {...props}
           onChange={(e) => {
             field.onChange(e)

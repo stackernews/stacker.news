@@ -39,8 +39,11 @@ export default function Item ({ item, rank, children }) {
           <div className={`${styles.other}`}>
             <span>{item.sats} sats</span>
             <span> \ </span>
-            <span>{item.boost} boost</span>
-            <span> \ </span>
+            {item.boost > 0 &&
+              <>
+                <span>{item.boost} boost</span>
+                <span> \ </span>
+              </>}
             <Link href={`/items/${item.id}`} passHref>
               <a className='text-reset'>{item.ncomments} comments</a>
             </Link>

@@ -219,8 +219,23 @@ export default {
         throw new UserInputError('sats must be positive', { argumentName: 'sats' })
       }
 
+      // if we are tipping disallow self tips
+      if (act === 'TIP') {
+        const [item] = await models.$queryRaw(`
+        ${SELECT}
+        FROM "Item"
+        WHERE id = $1 AND "userId" = $2`, Number(id), me.id)
+        if (item) {
+          throw new UserInputError('cannot tip your self')
+        }
+      }
+
       await serialize(models, models.$queryRaw`SELECT item_act(${Number(id)}, ${me.id}, ${act}, ${Number(sats)})`)
-      return sats
+
+      return {
+        sats,
+        act
+      }
     }
   },
 
@@ -260,7 +275,20 @@ export default {
 
       return sats || 0
     },
-    meSats: async (item, args, { me, models }) => {
+    tips: async (item, args, { models }) => {
+      const { sum: { sats } } = await models.itemAct.aggregate({
+        sum: {
+          sats: true
+        },
+        where: {
+          itemId: item.id,
+          act: 'TIP'
+        }
+      })
+
+      return sats || 0
+    },
+    meVote: async (item, args, { me, models }) => {
       if (!me) return 0
 
       const { sum: { sats } } = await models.itemAct.aggregate({
@@ -271,6 +299,38 @@ export default {
           itemId: item.id,
           userId: me.id,
           act: 'VOTE'
+        }
+      })
+
+      return sats || 0
+    },
+    meBoost: async (item, args, { me, models }) => {
+      if (!me) return 0
+
+      const { sum: { sats } } = await models.itemAct.aggregate({
+        sum: {
+          sats: true
+        },
+        where: {
+          itemId: item.id,
+          userId: me.id,
+          act: 'BOOST'
+        }
+      })
+
+      return sats || 0
+    },
+    meTip: async (item, args, { me, models }) => {
+      if (!me) return 0
+
+      const { sum: { sats } } = await models.itemAct.aggregate({
+        sum: {
+          sats: true
+        },
+        where: {
+          itemId: item.id,
+          userId: me.id,
+          act: 'TIP'
         }
       })
 

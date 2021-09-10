@@ -22,7 +22,7 @@ export default function Item ({ item, rank, children }) {
           </div>)
         : <div />}
       <div className={styles.item}>
-        <UpVote itemId={item.id} meSats={item.meSats} className={styles.upvote} />
+        <UpVote item={item} className={styles.upvote} />
         <div className={styles.hunk}>
           <div className={`${styles.main} flex-wrap`}>
             <Link href={`/items/${item.id}`} passHref>
@@ -42,6 +42,11 @@ export default function Item ({ item, rank, children }) {
             {item.boost > 0 &&
               <>
                 <span>{item.boost} boost</span>
+                <span> \ </span>
+              </>}
+            {item.tips > 0 &&
+              <>
+                <span>{item.tips} tipped</span>
                 <span> \ </span>
               </>}
             <Link href={`/items/${item.id}`} passHref>

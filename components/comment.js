@@ -63,14 +63,22 @@ export default function Comment ({ item, children, replyOpen, includeParent, roo
       ref={ref} className={includeParent ? '' : `${styles.comment} ${collapse ? styles.collapsed : ''}`}
     >
       <div className={`${itemStyles.item} ${styles.item}`}>
-        <UpVote itemId={item.id} meSats={item.meSats} className={styles.upvote} />
+        <UpVote item={item} className={styles.upvote} />
         <div className={`${itemStyles.hunk} ${styles.hunk}`}>
           <div className='d-flex align-items-center'>
             <div className={`${itemStyles.other} ${styles.other}`}>
               <span>{item.sats} sats</span>
               <span> \ </span>
-              <span>{item.boost} boost</span>
-              <span> \ </span>
+              {item.boost > 0 &&
+                <>
+                  <span>{item.boost} boost</span>
+                  <span> \ </span>
+                </>}
+              {item.tips > 0 &&
+                <>
+                  <span>{item.tips} tipped</span>
+                  <span> \ </span>
+                </>}
               <Link href={`/items/${item.id}`} passHref>
                 <a onClick={e => e.stopPropagation()} className='text-reset'>{item.ncomments} replies</a>
               </Link>

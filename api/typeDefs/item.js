@@ -15,6 +15,11 @@ export default gql`
     TIP
   }
 
+  type ItemActResult {
+    sats: Int!
+    act: ItemAct!
+  }
+
   extend type Mutation {
     createLink(title: String!, url: String): Item!
     updateLink(id: ID!, title: String!, url: String): Item!
@@ -22,7 +27,7 @@ export default gql`
     updateDiscussion(id: ID!, title: String!, text: String): Item!
     createComment(text: String!, parentId: ID!): Item!
     updateComment(id: ID!, text: String!): Item!
-    act(id: ID!, act: ItemAct!, sats: Int): Int!
+    act(id: ID!, act: ItemAct!, sats: Int): ItemActResult!
   }
 
   type Items {
@@ -48,7 +53,10 @@ export default gql`
     depth: Int!
     sats: Int!
     boost: Int!
-    meSats: Int!
+    tips: Int!
+    meVote: Int!
+    meBoost: Int!
+    meTip: Int!
     ncomments: Int!
     comments: [Item!]!
     path: String

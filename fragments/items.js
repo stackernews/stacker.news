@@ -13,7 +13,10 @@ export const ITEM_FIELDS = gql`
     }
     sats
     boost
-    meSats
+    tips
+    meVote
+    meBoost
+    meTip
     ncomments
     root {
       id

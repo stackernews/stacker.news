@@ -1,7 +1,7 @@
 import { useFormikContext } from 'formik'
 import { OverlayTrigger, Tooltip } from 'react-bootstrap'
 
-export default function ActionTooltip ({ children, notForm }) {
+export default function ActionTooltip ({ children, notForm, overlayText }) {
   // if we're in a form, we want to hide tooltip on submit
   let formik
   if (!notForm) {
@@ -12,7 +12,7 @@ export default function ActionTooltip ({ children, notForm }) {
       placement='bottom'
       overlay={
         <Tooltip>
-          1 sat
+          {overlayText || '1 sat'}
         </Tooltip>
       }
       trigger={['hover', 'focus']}

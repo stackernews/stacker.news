@@ -20,9 +20,17 @@ export default function Seo ({ item, user }) {
         desc = desc.replace(/\s+/g, ' ')
       }
     } else {
-      desc = `@${item.user.name} stacked ${item.sats} sats ${item.url ? `posting ${item.url}` : ''}`
+      desc = `@${item.user.name} stacked ${(item.sats > 0 ? item.sats - 1 : 0) + item.tips} sats ${item.url ? `posting ${item.url}` : 'with this discussion'}`
     }
-    desc += ` [${item.ncomments} comments, ${item.boost} boost]`
+    if (item.ncomments) {
+      desc += ` [${item.ncomments} comments`
+      if (item.boost) {
+        desc += `, ${item.boost} boost`
+      }
+      desc += ']'
+    } else if (item.boost) {
+      desc += ` [${item.boost} boost]`
+    }
   }
   if (user) {
     desc = `@${user.name} has [${user.stacked} stacked, ${user.sats} sats, ${user.nitems} posts, ${user.ncomments} comments]`

@@ -1,0 +1,29 @@
+import AccordianItem from './accordian-item'
+import * as Yup from 'yup'
+import { Input } from './form'
+import { InputGroup } from 'react-bootstrap'
+
+export const AdvPostSchema = {
+  boost: Yup.number().typeError('must be a number')
+    .min(0, 'must be positive').integer('must be whole')
+}
+
+export const AdvPostInitial = {
+  boost: 0
+}
+
+export default function AdvPostForm () {
+  return (
+    <AccordianItem
+      header={<div className='font-weight-bold'>advanced</div>}
+      body={
+        <Input
+          label='boost'
+          name='boost'
+          hint={<span className='text-muted'>boost ranks posts higher temporarily depending on the amount</span>}
+          append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+        />
+      }
+    />
+  )
+}

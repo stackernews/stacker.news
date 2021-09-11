@@ -5,17 +5,19 @@ import { gql, useMutation } from '@apollo/client'
 import ActionTooltip from '../components/action-tooltip'
 import TextareaAutosize from 'react-textarea-autosize'
 import Countdown from './countdown'
+import AdvPostForm, { AdvPostInitial, AdvPostSchema } from './adv-post-form'
 
 export const DiscussionSchema = Yup.object({
-  title: Yup.string().required('required').trim()
+  title: Yup.string().required('required').trim(),
+  ...AdvPostSchema
 })
 
 export function DiscussionForm ({ item, editThreshold }) {
   const router = useRouter()
   const [createDiscussion] = useMutation(
     gql`
-      mutation createDiscussion($title: String!, $text: String) {
-        createDiscussion(title: $title, text: $text) {
+      mutation createDiscussion($title: String!, $text: String, $boost: Int) {
+        createDiscussion(title: $title, text: $text, boost: $boost) {
           id
         }
       }`
@@ -47,15 +49,16 @@ export function DiscussionForm ({ item, editThreshold }) {
     <Form
       initial={{
         title: item?.title || '',
-        text: item?.text || ''
+        text: item?.text || '',
+        ...AdvPostInitial
       }}
       schema={DiscussionSchema}
-      onSubmit={async (values) => {
+      onSubmit={async ({ boost, ...values }) => {
         let id, error
         if (item) {
           ({ data: { updateDiscussion: { id } }, error } = await updateDiscussion({ variables: { ...values, id: item.id } }))
         } else {
-          ({ data: { createDiscussion: { id } }, error } = await createDiscussion({ variables: values }))
+          ({ data: { createDiscussion: { id } }, error } = await createDiscussion({ variables: { boost: Number(boost), ...values } }))
         }
         if (error) {
           throw new Error({ message: error.toString() })
@@ -78,9 +81,12 @@ export function DiscussionForm ({ item, editThreshold }) {
           ? <Countdown date={editThreshold} />
           : null}
       />
-      <ActionTooltip>
-        <SubmitButton variant='secondary' className='mt-2'>{item ? 'save' : 'post'}</SubmitButton>
-      </ActionTooltip>
+      {!item && <AdvPostForm />}
+      <div className='d-flex'>
+        <ActionTooltip>
+          <SubmitButton variant='secondary' className='mt-2 ml-auto'>{item ? 'save' : 'post'}</SubmitButton>
+        </ActionTooltip>
+      </div>
     </Form>
   )
 }

@@ -113,7 +113,7 @@ export default {
   },
 
   Mutation: {
-    createLink: async (parent, { title, url }, { me, models }) => {
+    createLink: async (parent, { title, url, boost }, { me, models }) => {
       if (!title) {
         throw new UserInputError('link must have title', { argumentName: 'title' })
       }
@@ -122,7 +122,7 @@ export default {
         throw new UserInputError('link must have url', { argumentName: 'url' })
       }
 
-      return await createItem(parent, { title, url: ensureProtocol(url) }, { me, models })
+      return await createItem(parent, { title, url: ensureProtocol(url), boost }, { me, models })
     },
     updateLink: async (parent, { id, title, url }, { me, models }) => {
       if (!id) {
@@ -149,12 +149,12 @@ export default {
 
       return await updateItem(parent, { id, data: { title, url: ensureProtocol(url) } }, { me, models })
     },
-    createDiscussion: async (parent, { title, text }, { me, models }) => {
+    createDiscussion: async (parent, { title, text, boost }, { me, models }) => {
       if (!title) {
         throw new UserInputError('discussion must have title', { argumentName: 'title' })
       }
 
-      return await createItem(parent, { title, text }, { me, models })
+      return await createItem(parent, { title, text, boost }, { me, models })
     },
     updateDiscussion: async (parent, { id, title, text }, { me, models }) => {
       if (!id) {
@@ -407,14 +407,23 @@ const updateItem = async (parent, { id, data }, { me, models }) => {
   return item
 }
 
-const createItem = async (parent, { title, url, text, parentId }, { me, models }) => {
+const createItem = async (parent, { title, url, text, boost, parentId }, { me, models }) => {
   if (!me) {
     throw new AuthenticationError('you must be logged in')
   }
 
-  const [item] = await serialize(models, models.$queryRaw(
-    `${SELECT} FROM create_item($1, $2, $3, $4, $5) AS "Item"`,
-    title, url, text, Number(parentId), Number(me.id)))
+  if (boost && boost < 0) {
+    throw new UserInputError('boost must be positive', { argumentName: 'boost' })
+  }
+
+  const [item] = await serialize(models,
+    models.$queryRaw(`${SELECT} FROM create_item($1, $2, $3, $4, $5) AS "Item"`,
+      title, url, text, Number(parentId), Number(me.id)))
+
+  if (boost) {
+    await serialize(models,
+      models.$queryRaw`SELECT item_act(${item.id}, ${me.id}, 'BOOST', ${Number(boost)})`)
+  }
 
   await createMentions(item, models)
 

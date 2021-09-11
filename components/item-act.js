@@ -1,9 +1,7 @@
-import { Accordion, InputGroup, Modal } from 'react-bootstrap'
+import { InputGroup, Modal } from 'react-bootstrap'
 import React, { useState, useCallback, useContext, useRef, useEffect } from 'react'
 import * as Yup from 'yup'
 import { Form, Input, SubmitButton } from './form'
-import ArrowRight from '../svgs/arrow-right-s-fill.svg'
-import ArrowDown from '../svgs/arrow-down-s-fill.svg'
 
 export const ItemActContext = React.createContext({
   item: null,
@@ -37,7 +35,6 @@ export const ActSchema = Yup.object({
 
 export function ItemActModal () {
   const { item, setItem } = useItemAct()
-  const [open, setOpen] = useState(false)
   const inputRef = useRef(null)
 
   useEffect(() => {
@@ -49,7 +46,6 @@ export function ItemActModal () {
       show={!!item}
       onHide={() => {
         setItem(null)
-        setOpen(false)
       }}
     >
       <Modal.Body>
@@ -61,7 +57,6 @@ export function ItemActModal () {
           onSubmit={async ({ amount, submit }) => {
             await item.act({ variables: { id: item.itemId, act: submit, sats: Number(amount) } })
             await item.strike()
-            setOpen(false)
             setItem(null)
           }}
         >
@@ -73,28 +68,9 @@ export function ItemActModal () {
             autoFocus
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
           />
-          <div className='d-flex justify-content-between'>
-            <SubmitButton variant='boost' className='mt-1' value='BOOST'>boost</SubmitButton>
-            <SubmitButton variant='success' className='mt-1 px-4' value='TIP'>tip</SubmitButton>
+          <div className='d-flex'>
+            <SubmitButton variant='success' className='ml-auto mt-1 px-4' value='TIP'>tip</SubmitButton>
           </div>
-          <Accordion className='pt-3'>
-            <Accordion.Toggle
-              as={props => <div {...props} />}
-              eventKey='0'
-              style={{ cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
-              onClick={() => setOpen(!open)}
-            >
-              {open
-                ? <ArrowDown className='fill-grey' height={16} width={16} />
-                : <ArrowRight className='fill-grey' height={16} width={16} />}
-              <small className='text-muted text-underline'>I'm confused</small>
-            </Accordion.Toggle>
-            <Accordion.Collapse eventKey='0' className='mt-2'>
-              <span>Tips go directly to the poster or commenter. Boosts boost the rank
-                of the post or comment for a limited time, and the sats go to the site.
-              </span>
-            </Accordion.Collapse>
-          </Accordion>
         </Form>
       </Modal.Body>
     </Modal>

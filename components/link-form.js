@@ -5,6 +5,7 @@ import { gql, useLazyQuery, useMutation } from '@apollo/client'
 import { ensureProtocol } from '../lib/url'
 import ActionTooltip from '../components/action-tooltip'
 import Countdown from './countdown'
+import AdvPostForm, { AdvPostInitial, AdvPostSchema } from './adv-post-form'
 
 export const LinkSchema = Yup.object({
   title: Yup.string().required('required').trim(),
@@ -20,7 +21,8 @@ export const LinkSchema = Yup.object({
       }
     },
     message: 'invalid url'
-  }).required('required')
+  }).required('required'),
+  ...AdvPostSchema
 })
 
 export function LinkForm ({ item, editThreshold }) {
@@ -31,8 +33,8 @@ export function LinkForm ({ item, editThreshold }) {
   const router = useRouter()
   const [createLink] = useMutation(
     gql`
-      mutation createLink($title: String!, $url: String!) {
-        createLink(title: $title, url: $url) {
+      mutation createLink($title: String!, $url: String!, $boost: Int) {
+        createLink(title: $title, url: $url, boost: $boost) {
           id
         }
       }`
@@ -66,15 +68,16 @@ export function LinkForm ({ item, editThreshold }) {
     <Form
       initial={{
         title: item?.title || '',
-        url: item?.url || ''
+        url: item?.url || '',
+        ...AdvPostInitial
       }}
       schema={LinkSchema}
-      onSubmit={async (values) => {
+      onSubmit={async ({ boost, ...values }) => {
         let id, error
         if (item) {
           ({ data: { updateLink: { id } }, error } = await updateLink({ variables: { ...values, id: item.id } }))
         } else {
-          ({ data: { createLink: { id } }, error } = await createLink({ variables: values }))
+          ({ data: { createLink: { id } }, error } = await createLink({ variables: { boost: Number(boost), ...values } }))
         }
         if (error) {
           throw new Error({ message: error.toString() })
@@ -104,9 +107,13 @@ export function LinkForm ({ item, editThreshold }) {
           }
         }}
       />
-      <ActionTooltip>
-        <SubmitButton variant='secondary' className='mt-2'>{item ? 'save' : 'post'}</SubmitButton>
-      </ActionTooltip>
+      {!item && <AdvPostForm />}
+
+      <div className='d-flex'>
+        <ActionTooltip>
+          <SubmitButton variant='secondary' className='mt-2 ml-auto'>{item ? 'save' : 'post'}</SubmitButton>
+        </ActionTooltip>
+      </div>
     </Form>
   )
 }

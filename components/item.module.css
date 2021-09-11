@@ -16,6 +16,10 @@
     flex: 1 0 128px;
 }
 
+a.link:visited {
+    color: grey;
+}
+
 .other {
     font-size: 70%;
     color: grey;

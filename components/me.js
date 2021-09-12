@@ -16,6 +16,7 @@ export function MeProvider ({ children }) {
       freePosts
       freeComments
       hasNewNotes
+      tipDefault
     }
   }`
   const { data } = useQuery(query, { pollInterval: 1000 })

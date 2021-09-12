@@ -7,15 +7,17 @@ import { useFundError } from './fund-error'
 import ActionTooltip from './action-tooltip'
 import { useItemAct } from './item-act'
 import Window from '../svgs/window-2-fill.svg'
+import { useMe } from './me'
 
 export default function UpVote ({ item, className }) {
   const [session] = useSession()
   const { setError } = useFundError()
   const { setItem } = useItemAct()
+  const me = useMe()
   const [act] = useMutation(
     gql`
-      mutation act($id: ID!, $act: ItemAct! $sats: Int!) {
-        act(id: $id, act: $act, sats: $sats) {
+      mutation act($id: ID!, $act: ItemAct! $sats: Int!, $tipDefault: Boolean) {
+        act(id: $id, act: $act, sats: $sats, tipDefault: $tipDefault) {
           act,
           sats
         }
@@ -68,29 +70,58 @@ export default function UpVote ({ item, className }) {
     }
   )
 
+  const overlayText = () => {
+    if (item?.meVote) {
+      if (me?.tipDefault) {
+        return `tip ${me.tipDefault}`
+      }
+      return <Window style={{ fill: '#fff' }} width={18} height={18} />
+    }
+
+    return '1 sat'
+  }
+
+  const noSelfTips = item?.meVote && item?.user?.id === me?.id
+
   return (
     <LightningConsumer>
       {({ strike }) =>
-        <ActionTooltip notForm overlayText={item?.meVote ? <Window style={{ fill: '#fff' }} /> : '1 sat'}>
+        <ActionTooltip notForm disable={noSelfTips} overlayText={overlayText()}>
           <UpArrow
             width={24}
             height={24}
             className={
             `${styles.upvote}
             ${className || ''}
+            ${noSelfTips ? styles.noSelfTips : ''}
             ${item?.meVote ? styles.voted : ''}`
           }
             onClick={
             session
               ? async (e) => {
                   e.stopPropagation()
+                  if (!item) return
+
+                  // we can't tip ourselves
+                  if (noSelfTips) {
+                    return
+                  }
+
                   if (item?.meVote) {
+                    if (me?.tipDefault) {
+                      try {
+                        await act({ variables: { id: item.id, act: 'TIP', sats: me.tipDefault } })
+                        strike()
+                      } catch (e) {
+                        console.log(e)
+                      }
+                      return
+                    }
                     setItem({ itemId: item.id, act, strike })
                     return
                   }
 
                   strike()
-                  if (!item) return
 
                   try {
                     await act({ variables: { id: item.id, act: 'VOTE', sats: 1 } })

@@ -21,6 +21,7 @@ export default gql`
     freePosts: Int!
     freeComments: Int!
     hasNewNotes: Boolean!
+    tipDefault: Int!
     sats: Int!
     msats: Int!
   }

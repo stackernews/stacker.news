@@ -27,7 +27,7 @@ export default gql`
     updateDiscussion(id: ID!, title: String!, text: String): Item!
     createComment(text: String!, parentId: ID!): Item!
     updateComment(id: ID!, text: String!): Item!
-    act(id: ID!, act: ItemAct!, sats: Int): ItemActResult!
+    act(id: ID!, act: ItemAct!, sats: Int, tipDefault: Boolean): ItemActResult!
   }
 
   type Items {

@@ -1,7 +1,8 @@
 import { InputGroup, Modal } from 'react-bootstrap'
 import React, { useState, useCallback, useContext, useRef, useEffect } from 'react'
 import * as Yup from 'yup'
-import { Form, Input, SubmitButton } from './form'
+import { Checkbox, Form, Input, SubmitButton } from './form'
+import { useMe } from './me'
 
 export const ItemActContext = React.createContext({
   item: null,
@@ -36,6 +37,7 @@ export const ActSchema = Yup.object({
 export function ItemActModal () {
   const { item, setItem } = useItemAct()
   const inputRef = useRef(null)
+  const me = useMe()
 
   useEffect(() => {
     inputRef.current?.focus()
@@ -51,11 +53,19 @@ export function ItemActModal () {
       <Modal.Body>
         <Form
           initial={{
-            amount: 21
+            amount: me?.tipDefault || 21,
+            default: false
           }}
           schema={ActSchema}
-          onSubmit={async ({ amount, submit }) => {
-            await item.act({ variables: { id: item.itemId, act: submit, sats: Number(amount) } })
+          onSubmit={async ({ amount, tipDefault, submit }) => {
+            await item.act({
+              variables: {
+                id: item.itemId,
+                act: submit,
+                sats: Number(amount),
+                tipDefault
+              }
+            })
             await item.strike()
             setItem(null)
           }}
@@ -67,6 +77,12 @@ export function ItemActModal () {
             required
             autoFocus
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+          />
+          <Checkbox
+            label='set as default'
+            name='tipDefault'
+            required
+            autoFocus
           />
           <div className='d-flex'>
             <SubmitButton variant='success' className='ml-auto mt-1 px-4' value='TIP'>tip</SubmitButton>

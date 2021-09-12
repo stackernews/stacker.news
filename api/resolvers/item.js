@@ -209,7 +209,7 @@ export default {
 
       return await updateItem(parent, { id, data: { text } }, { me, models })
     },
-    act: async (parent, { id, act, sats }, { me, models }) => {
+    act: async (parent, { id, act, sats, tipDefault }, { me, models }) => {
       // need to make sure we are logged in
       if (!me) {
         throw new AuthenticationError('you must be logged in')
@@ -227,6 +227,10 @@ export default {
         WHERE id = $1 AND "userId" = $2`, Number(id), me.id)
         if (item) {
           throw new UserInputError('cannot tip your self')
+        }
+        // if tipDefault, set on user
+        if (tipDefault) {
+          await models.user.update({ where: { id: me.id }, data: { tipDefault: sats } })
         }
       }
 

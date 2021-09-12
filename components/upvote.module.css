@@ -8,6 +8,10 @@
     cursor: pointer;
 }
 
+.noSelfTips:hover {
+    cursor: default !important;
+}
+
 .upvote.voted {
     fill: #F6911D;
     filter: drop-shadow(0 0 7px #F6911D);

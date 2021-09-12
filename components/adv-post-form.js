@@ -15,12 +15,12 @@ export const AdvPostInitial = {
 export default function AdvPostForm () {
   return (
     <AccordianItem
-      header={<div className='font-weight-bold'>advanced</div>}
+      header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>options</div>}
       body={
         <Input
           label='boost'
           name='boost'
-          hint={<span className='text-muted'>boost ranks posts higher temporarily depending on the amount</span>}
+          hint={<span className='text-muted'>boost ranks posts higher temporarily based on the amount</span>}
           append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
         />
       }

@@ -109,11 +109,9 @@ export function LinkForm ({ item, editThreshold }) {
       />
       {!item && <AdvPostForm />}
 
-      <div className='d-flex'>
-        <ActionTooltip>
-          <SubmitButton variant='secondary' className='mt-2 ml-auto'>{item ? 'save' : 'post'}</SubmitButton>
-        </ActionTooltip>
-      </div>
+      <ActionTooltip>
+        <SubmitButton variant='secondary' className='mt-3'>{item ? 'save' : 'post'}</SubmitButton>
+      </ActionTooltip>
     </Form>
   )
 }

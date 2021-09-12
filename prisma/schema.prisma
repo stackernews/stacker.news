@@ -28,6 +28,7 @@ model User {
   freeComments   Int         @default(5)
   freePosts      Int         @default(2)
   checkedNotesAt DateTime?
+  tipDefault     Int         @default(0)
   pubkey         String?     @unique
 
   @@map(name: "users")

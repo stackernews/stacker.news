@@ -421,13 +421,8 @@ const createItem = async (parent, { title, url, text, boost, parentId }, { me, m
   }
 
   const [item] = await serialize(models,
-    models.$queryRaw(`${SELECT} FROM create_item($1, $2, $3, $4, $5) AS "Item"`,
-      title, url, text, Number(parentId), Number(me.id)))
-
-  if (boost) {
-    await serialize(models,
-      models.$queryRaw`SELECT item_act(${item.id}, ${me.id}, 'BOOST', ${Number(boost)})`)
-  }
+    models.$queryRaw(`${SELECT} FROM create_item($1, $2, $3, $4, $5, $6) AS "Item"`,
+      title, url, text, Number(boost || 0), Number(parentId), Number(me.id)))
 
   await createMentions(item, models)
 

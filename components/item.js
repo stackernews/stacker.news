@@ -3,7 +3,7 @@ import styles from './item.module.css'
 import { timeSince } from '../lib/time'
 import UpVote from './upvote'
 import { useMe } from './me'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Countdown from './countdown'
 import { NOFOLLOW_LIMIT } from '../lib/constants'
 
@@ -13,6 +13,15 @@ export default function Item ({ item, rank, children }) {
   const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
   const [canEdit, setCanEdit] =
     useState(mine && (Date.now() < editThreshold))
+  const [wrap, setWrap] = useState(false)
+  const titleRef = useRef()
+
+  useEffect(() => {
+    setWrap(
+      parseInt(window.getComputedStyle(titleRef.current).lineHeight) <
+        titleRef.current.clientHeight)
+  }, [])
+
   return (
     <>
       {rank
@@ -24,13 +33,13 @@ export default function Item ({ item, rank, children }) {
       <div className={styles.item}>
         <UpVote item={item} className={styles.upvote} />
         <div className={styles.hunk}>
-          <div className={`${styles.main} flex-wrap`}>
+          <div className={`${styles.main} flex-wrap ${wrap ? 'd-inline' : ''}`}>
             <Link href={`/items/${item.id}`} passHref>
-              <a className={`${styles.title} text-reset mr-2`}>{item.title}</a>
+              <a ref={titleRef} className={`${styles.title} text-reset mr-2`}>{item.title}</a>
             </Link>
             {item.url &&
               <a
-                className={styles.link} target='_blank' href={item.url} // eslint-disable-line
+                className={`${styles.link} ${wrap ? styles.linkSmall : ''}`} target='_blank' href={item.url} // eslint-disable-line
                 rel={item.sats + item.boost >= NOFOLLOW_LIMIT ? null : 'nofollow'}
               >
                 {item.url.replace(/(^https?:|^)\/\//, '')}

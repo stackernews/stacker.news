@@ -16,6 +16,12 @@
     flex: 1 0 128px;
 }
 
+.linkSmall {
+    width: 128px;
+    display: inline-block;
+    vertical-align: text-top;
+}
+
 a.link:visited {
     color: #7acaf5;
 }

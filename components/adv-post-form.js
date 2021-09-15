@@ -20,7 +20,7 @@ export default function AdvPostForm () {
         <Input
           label='boost'
           name='boost'
-          hint={<span className='text-muted'>boost ranks posts higher temporarily based on the amount</span>}
+          hint={<span className='text-muted'>ranks posts higher temporarily based on the amount</span>}
           append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
         />
       }

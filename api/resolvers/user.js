@@ -2,14 +2,14 @@ import { AuthenticationError, UserInputError } from 'apollo-server-errors'
 import { createMentions, getItem, SELECT } from './item'
 import serialize from './serial'
 
-export const createBio = async (parent, { title, text }, { me, models }) => {
+export const createBio = async (parent, { bio }, { me, models }) => {
   if (!me) {
     throw new AuthenticationError('you must be logged in')
   }
 
   const [item] = await serialize(models,
     models.$queryRaw(`${SELECT} FROM create_bio($1, $2, $3) AS "Item"`,
-      title, text, Number(me.id)))
+      `@${me.name}'s bio`, bio, Number(me.id)))
 
   await createMentions(item, models)
 

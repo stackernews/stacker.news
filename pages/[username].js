@@ -6,10 +6,13 @@ import Seo from '../components/seo'
 import { Button } from 'react-bootstrap'
 import styles from '../styles/user.module.css'
 import { useState } from 'react'
-import { DiscussionForm } from '../components/discussion-form'
 import { useSession } from 'next-auth/client'
 import { ITEM_FIELDS } from '../fragments/items'
 import ItemFull from '../components/item-full'
+import * as Yup from 'yup'
+import { Form, MarkdownInput, SubmitButton } from '../components/form'
+import ActionTooltip from '../components/action-tooltip'
+import TextareaAutosize from 'react-textarea-autosize'
 
 export async function getServerSideProps ({ req, params }) {
   const { error, data: { user } } = await (await ApolloClient(req)).query({
@@ -45,11 +48,15 @@ export async function getServerSideProps ({ req, params }) {
   }
 }
 
+const BioSchema = Yup.object({
+  bio: Yup.string().required('required').trim()
+})
+
 function BioForm () {
   const [createBio] = useMutation(
     gql`
-      mutation createBio($title: String!, $text: String) {
-        createBio(title: $title, text: $text) {
+      mutation createBio($bio: String!) {
+        createBio(bio: $bio) {
           id
         }
       }`, {
@@ -68,15 +75,27 @@ function BioForm () {
 
   return (
     <div className={styles.createFormContainer}>
-      <DiscussionForm
-        titleLabel='one line bio' textLabel='full bio' buttonText='create'
-        handleSubmit={async values => {
+      <Form
+        initial={{
+          bio: ''
+        }}
+        schema={BioSchema}
+        onSubmit={async values => {
           const { error } = await createBio({ variables: values })
           if (error) {
             throw new Error({ message: error.toString() })
           }
         }}
-      />
+      >
+        <MarkdownInput
+          name='bio'
+          as={TextareaAutosize}
+          minRows={4}
+        />
+        <ActionTooltip>
+          <SubmitButton variant='secondary' className='mt-3'>create</SubmitButton>
+        </ActionTooltip>
+      </Form>
     </div>
   )
 }
@@ -85,7 +104,7 @@ export default function User ({ user }) {
   const [create, setCreate] = useState(false)
   const [session] = useSession()
 
-  // need to check if this is the user's page
+  // need to check if this is the user's page before exposing create/edit
 
   return (
     <Layout noSeo containClassName={styles.contain}>

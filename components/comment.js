@@ -39,7 +39,10 @@ function Parent ({ item, rootText }) {
   )
 }
 
-export default function Comment ({ item, children, replyOpen, includeParent, rootText, noComments, noReply }) {
+export default function Comment ({
+  item, children, replyOpen, includeParent,
+  rootText, noComments, noReply
+}) {
   const [reply, setReply] = useState(replyOpen)
   const [edit, setEdit] = useState()
   const [collapse, setCollapse] = useState(false)

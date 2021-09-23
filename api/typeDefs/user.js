@@ -10,6 +10,7 @@ export default gql`
 
   extend type Mutation {
     setName(name: String!): Boolean
+    createBio(title: String!, text: String): Item!
   }
 
   type User {
@@ -22,6 +23,7 @@ export default gql`
     freeComments: Int!
     hasNewNotes: Boolean!
     tipDefault: Int!
+    bio: Item
     sats: Int!
     msats: Int!
   }

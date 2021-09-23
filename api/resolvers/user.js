@@ -1,4 +1,21 @@
 import { AuthenticationError, UserInputError } from 'apollo-server-errors'
+import { createMentions, getItem, SELECT } from './item'
+import serialize from './serial'
+
+export const createBio = async (parent, { title, text }, { me, models }) => {
+  if (!me) {
+    throw new AuthenticationError('you must be logged in')
+  }
+
+  const [item] = await serialize(models,
+    models.$queryRaw(`${SELECT} FROM create_bio($1, $2, $3) AS "Item"`,
+      title, text, Number(me.id)))
+
+  await createMentions(item, models)
+
+  item.comments = []
+  return item
+}
 
 export default {
   Query: {
@@ -32,7 +49,8 @@ export default {
         }
         throw error
       }
-    }
+    },
+    createBio: createBio
   },
 
   User: {
@@ -53,6 +71,10 @@ export default {
     },
     sats: async (user, args, { models }) => {
       return Math.floor(user.msats / 1000)
+    },
+    bio: async (user, args, { models }) => {
+      console.log(user)
+      return getItem(user, { id: user.bioId }, { models })
     },
     hasNewNotes: async (user, args, { models }) => {
       // check if any votes have been cast for them since checkedNotesAt

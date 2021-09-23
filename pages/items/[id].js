@@ -1,17 +1,9 @@
-import Item, { ItemSkeleton } from '../../components/item'
 import Layout from '../../components/layout'
-import Reply, { ReplySkeleton } from '../../components/reply'
-import Comment from '../../components/comment'
-import Text from '../../components/text'
-import Comments, { CommentsSkeleton } from '../../components/comments'
-import { COMMENTS } from '../../fragments/comments'
 import { ITEM_FIELDS } from '../../fragments/items'
-import { gql, useQuery } from '@apollo/client'
-import styles from '../../styles/item.module.css'
+import { gql } from '@apollo/client'
 import Seo from '../../components/seo'
 import ApolloClient from '../../api/client'
-import { NOFOLLOW_LIMIT } from '../../lib/constants'
-import { useRouter } from 'next/router'
+import ItemFull from '../../components/item-full'
 
 // ssr the item without comments so that we can populate metatags
 export async function getServerSideProps ({ req, params: { id } }) {
@@ -46,65 +38,11 @@ export async function getServerSideProps ({ req, params: { id } }) {
   }
 }
 
-export default function FullItem ({ item }) {
-  const query = gql`
-    ${ITEM_FIELDS}
-    ${COMMENTS}
-    {
-      item(id: ${item.id}) {
-        ...ItemFields
-        text
-        comments {
-          ...CommentsRecursive
-        }
-    }
-  }`
-
+export default function AnItem ({ item }) {
   return (
     <Layout noSeo>
       <Seo item={item} />
-      <LoadItem query={query} />
+      <ItemFull item={item} />
     </Layout>
-  )
-}
-
-function LoadItem ({ query }) {
-  const router = useRouter()
-  const { error, data } = useQuery(query, {
-    fetchPolicy: router.query.cache ? 'cache-first' : undefined
-  })
-  if (error) return <div>Failed to load!</div>
-
-  if (!data) {
-    return (
-      <div>
-        <ItemSkeleton>
-          <ReplySkeleton />
-        </ItemSkeleton>
-        <div className={styles.comments}>
-          <CommentsSkeleton />
-        </div>
-      </div>
-    )
-  }
-
-  const { item } = data
-
-  return (
-    <>
-      {item.parentId
-        ? <Comment item={item} replyOpen includeParent noComments />
-        : (
-          <>
-            <Item item={item}>
-              {item.text && <div className='mb-3'><Text nofollow={item.sats + item.boost < NOFOLLOW_LIMIT}>{item.text}</Text></div>}
-              <Reply parentId={item.id} />
-            </Item>
-          </>
-          )}
-      <div className={styles.comments}>
-        <Comments comments={item.comments} />
-      </div>
-    </>
   )
 }

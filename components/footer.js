@@ -84,12 +84,12 @@ export default function Footer ({ noLinks }) {
             />
           </div>}
         <small>
-          <a className='text-dark d-inline-flex' href='https://github.com/stackernews/stacker.news'>
-            This is free open source software <Github width={20} height={20} className='mx-1' />
+          <a className='text-dark d-inline-block' href='https://github.com/stackernews/stacker.news'>
+            This is free open source software<Github width={20} height={20} className='mx-1' />
           </a>
-          <span className='d-inline-flex text-muted'>
-            made with sound love in Austin <Texas className='mx-1' width={20} height={20} />
-            by <a href='https://twitter.com/k00bideh' className='text-twitter d-inline-flex'><Twitter width={20} height={20} className='ml-1' />@k00bideh</a>
+          <span className='d-inline-block text-muted'>
+            made with sound love in Austin<Texas className='mx-1' width={20} height={20} />
+            by<a href='https://twitter.com/k00bideh' className='text-twitter d-inline-block'><Twitter width={20} height={20} className='ml-1' />@k00bideh</a>
           </span>
         </small>
       </Container>

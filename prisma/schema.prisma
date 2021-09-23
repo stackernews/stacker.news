@@ -24,6 +24,8 @@ model User {
   actions        ItemAct[]
   invoices       Invoice[]
   withdrawls     Withdrawl[]
+  bio            Item?       @relation(name: "Item", fields: [bioId], references: [id])
+  bioId          Int?
   msats          Int         @default(0)
   freeComments   Int         @default(5)
   freePosts      Int         @default(2)
@@ -65,6 +67,7 @@ model Item {
   mentions  Mention[]
   path      Unsupported("LTREE")?
 
+  User User[] @relation("Item")
   @@index([userId])
   @@index([parentId])
 }

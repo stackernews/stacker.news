@@ -12,7 +12,11 @@ export const DiscussionSchema = Yup.object({
   ...AdvPostSchema
 })
 
-export function DiscussionForm ({ item, editThreshold }) {
+export function DiscussionForm ({
+  item, editThreshold, titleLabel = 'title',
+  textLabel = 'text', buttonText = 'post',
+  adv, handleSubmit
+}) {
   const router = useRouter()
   const [createDiscussion] = useMutation(
     gql`
@@ -53,7 +57,7 @@ export function DiscussionForm ({ item, editThreshold }) {
         ...AdvPostInitial
       }}
       schema={DiscussionSchema}
-      onSubmit={async ({ boost, ...values }) => {
+      onSubmit={handleSubmit || (async ({ boost, ...values }) => {
         let id, error
         if (item) {
           ({ data: { updateDiscussion: { id } }, error } = await updateDiscussion({ variables: { ...values, id: item.id } }))
@@ -63,17 +67,18 @@ export function DiscussionForm ({ item, editThreshold }) {
         if (error) {
           throw new Error({ message: error.toString() })
         }
+
         router.push(`/items/${id}`)
-      }}
+      })}
     >
       <Input
-        label='title'
+        label={titleLabel}
         name='title'
         required
         autoFocus
       />
       <MarkdownInput
-        label={<>text <small className='text-muted ml-2'>optional</small></>}
+        label={<>{textLabel} <small className='text-muted ml-2'>optional</small></>}
         name='text'
         as={TextareaAutosize}
         minRows={4}
@@ -81,9 +86,9 @@ export function DiscussionForm ({ item, editThreshold }) {
           ? <Countdown date={editThreshold} />
           : null}
       />
-      {!item && <AdvPostForm />}
+      {!item && adv && <AdvPostForm />}
       <ActionTooltip>
-        <SubmitButton variant='secondary' className='mt-3'>{item ? 'save' : 'post'}</SubmitButton>
+        <SubmitButton variant='secondary' className='mt-3'>{item ? 'save' : buttonText}</SubmitButton>
       </ActionTooltip>
     </Form>
   )

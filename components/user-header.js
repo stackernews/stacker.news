@@ -31,7 +31,7 @@ export default function UserHeader ({ user }) {
   const client = useApolloClient()
   const [setName] = useMutation(NAME_MUTATION)
 
-  const Satistics = () => <h1 className='ml-2'><small className='text-success'>{user.sats} sats \ {user.stacked} stacked</small></h1>
+  const Satistics = () => <h1 className='mb-0'><small className='text-success'>{user.sats} sats \ {user.stacked} stacked</small></h1>
 
   const UserSchema = Yup.object({
     name: Yup.string()
@@ -51,66 +51,73 @@ export default function UserHeader ({ user }) {
 
   return (
     <>
-      {editting
-        ? (
-          <Form
-            className='d-flex align-items-center flex-wrap'
-            schema={UserSchema}
-            initial={{
-              name: user.name
-            }}
-            validateImmediately
-            onSubmit={async ({ name }) => {
-              if (name === user.name) {
-                setEditting(false)
-                return
-              }
-              const { error } = await setName({ variables: { name } })
-              if (error) {
-                throw new Error({ message: error.toString() })
-              }
-              router.replace(`/${name}`)
-              session.user.name = name
+      <div>
+        {editting
+          ? (
+            <Form
+              schema={UserSchema}
+              initial={{
+                name: user.name
+              }}
+              className='d-flex align-items-center'
+              validateImmediately
+              onSubmit={async ({ name }) => {
+                if (name === user.name) {
+                  setEditting(false)
+                  return
+                }
+                const { error } = await setName({ variables: { name } })
+                if (error) {
+                  throw new Error({ message: error.toString() })
+                }
+                router.replace(`/${name}`)
+                session.user.name = name
 
-              client.writeFragment({
-                id: `User:${user.id}`,
-                fragment: gql`
+                client.writeFragment({
+                  id: `User:${user.id}`,
+                  fragment: gql`
                   fragment CurUser on User {
                     name
                   }
                 `,
-                data: {
-                  name
-                }
-              })
+                  data: {
+                    name
+                  }
+                })
 
-              setEditting(false)
-            }}
-          >
-            <Input
-              prepend=<InputGroup.Text>@</InputGroup.Text>
-              name='name'
-              autoFocus
-              groupClassName={`mb-0 ${styles.username}`}
-              showValid
-            />
-            <Satistics user={user} />
-            <SubmitButton className='ml-2' variant='info' size='sm' onClick={() => setEditting(true)}>save</SubmitButton>
-          </Form>
-          )
-        : (
-          <div className='d-flex align-items-center flex-wrap'>
-            <h1>@{user.name}</h1>
-            <Satistics user={user} />
-            {session && session.user && session.user.name === user.name &&
-              <Button className='ml-2' variant='boost' size='sm' onClick={() => setEditting(true)}>edit</Button>}
-          </div>
-          )}
+                setEditting(false)
+              }}
+            >
+              <Input
+                prepend=<InputGroup.Text>@</InputGroup.Text>
+                name='name'
+                autoFocus
+                groupClassName={`mb-0 ${styles.username}`}
+                showValid
+              />
+              <SubmitButton variant='link' onClick={() => setEditting(true)}>save</SubmitButton>
+            </Form>
+            )
+          : (
+            <div className='d-flex align-items-center'>
+              <h2 className='mb-0'>@{user.name}</h2>
+              {session?.user?.name === user.name &&
+                <Button variant='link' onClick={() => setEditting(true)}>edit nym</Button>}
+            </div>
+            )}
+        <Satistics user={user} />
+      </div>
       <Nav
+        className={styles.nav}
         activeKey={router.asPath}
       >
         <Nav.Item>
           <Link href={'/' + user.name} passHref>
+            <Nav.Link>bio</Nav.Link>
+          </Link>
+        </Nav.Item>
+        <Nav.Item>
+          <Link href={'/' + user.name + '/posts'} passHref>
             <Nav.Link>{user.nitems} posts</Nav.Link>
           </Link>
         </Nav.Item>
@@ -121,7 +128,7 @@ export default function UserHeader ({ user }) {
         </Nav.Item>
         {/* <Nav.Item>
           <Link href={'/' + user.name + '/sativity'} passHref>
-            <Nav.Link>sativity</Nav.Link>
+            <Nav.Link>satistics</Nav.Link>
           </Link>
         </Nav.Item> */}
       </Nav>

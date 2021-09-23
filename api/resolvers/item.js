@@ -21,6 +21,18 @@ async function comments (models, id) {
   return nestComments(flat, id)[0]
 }
 
+export async function getItem (parent, { id }, { models }) {
+  console.log(id)
+  const [item] = await models.$queryRaw(`
+  ${SELECT}
+  FROM "Item"
+  WHERE id = $1`, Number(id))
+  if (item) {
+    item.comments = comments(models, id)
+  }
+  return item
+}
+
 export default {
   Query: {
     moreItems: async (parent, { sort, cursor, userId }, { me, models }) => {
@@ -82,16 +94,7 @@ export default {
         comments
       }
     },
-    item: async (parent, { id }, { models }) => {
-      const [item] = await models.$queryRaw(`
-        ${SELECT}
-        FROM "Item"
-        WHERE id = $1`, Number(id))
-      if (item) {
-        item.comments = comments(models, id)
-      }
-      return item
-    },
+    item: getItem,
     userComments: async (parent, { userId }, { models }) => {
       return await models.$queryRaw(`
         ${SELECT}
@@ -363,7 +366,7 @@ export default {
 
 const namePattern = /\B@[\w_]+/gi
 
-const createMentions = async (item, models) => {
+export const createMentions = async (item, models) => {
   // if we miss a mention, in the rare circumstance there's some kind of
   // failure, it's not a big deal so we don't do it transactionally
   // ideally, we probably would
@@ -456,7 +459,7 @@ function nestComments (flat, parentId) {
 }
 
 // we have to do our own query because ltree is unsupported
-const SELECT =
+export const SELECT =
   `SELECT "Item".id, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt", "Item".title,
   "Item".text, "Item".url, "Item"."userId", "Item"."parentId", ltree2text("Item"."path") AS "path"`
 

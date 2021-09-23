@@ -85,12 +85,14 @@ export default function User ({ user }) {
   const [create, setCreate] = useState(false)
   const [session] = useSession()
 
+  // need to check if this is the user's page
+
   return (
     <Layout noSeo containClassName={styles.contain}>
       <Seo user={user} />
       <UserHeader user={user} />
       {user.bio
-        ? <ItemFull item={user.bio} minimal />
+        ? <ItemFull item={user.bio} bio />
         : (
           <div className={styles.create}>
             {create

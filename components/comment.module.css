@@ -11,6 +11,11 @@
     padding-right: 15px;
 }
 
+.edit {
+    display: inline-block;
+    cursor: pointer;
+}
+
 .collapsed .hunk {
     margin-bottom: .5rem;
 }
@@ -33,20 +38,8 @@
     user-select: none;
 }
 
-.reply {
-    font-weight: bold;
-    cursor: pointer;
-    padding-bottom: .5rem;
-}
-
-.replyWrapper {
-    padding-right: 15px;
-    padding-bottom: .5rem;
-}
-
 .children {
     margin-top: 0;
-    padding-top: .25rem;
     margin-left: 24px;
 }
 

@@ -6,12 +6,14 @@ import { COMMENTS } from '../fragments/comments'
 import { useMe } from './me'
 import ActionTooltip from './action-tooltip'
 import TextareaAutosize from 'react-textarea-autosize'
+import { useState } from 'react'
 
 export const CommentSchema = Yup.object({
   text: Yup.string().required('required').trim()
 })
 
-export default function Reply ({ parentId, onSuccess, autoFocus }) {
+export default function Reply ({ parentId, onSuccess, replyOpen }) {
+  const [reply, setReply] = useState(replyOpen)
   const me = useMe()
 
   const [createComment] = useMutation(
@@ -47,35 +49,41 @@ export default function Reply ({ parentId, onSuccess, autoFocus }) {
   )
 
   return (
-    <div className={`${styles.reply} mb-1`}>
-      <Form
-        initial={{
-          text: ''
-        }}
-        schema={CommentSchema}
-        onSubmit={async (values, { resetForm }) => {
-          const { error } = await createComment({ variables: { ...values, parentId } })
-          if (error) {
-            throw new Error({ message: error.toString() })
-          }
-          resetForm({ text: '' })
-          if (onSuccess) {
-            onSuccess()
-          }
-        }}
+    <div>
+      <div
+        className={styles.replyButtons}
+        onClick={() => setReply(!reply)}
       >
-        <MarkdownInput
-          name='text'
-          as={TextareaAutosize}
-          minRows={4}
-          autoFocus={autoFocus}
-          required
-          hint={me?.freeComments ? <span className='text-success'>{me.freeComments} free comments left</span> : null}
-        />
-        <ActionTooltip>
-          <SubmitButton variant='secondary' className='mt-1'>reply</SubmitButton>
-        </ActionTooltip>
-      </Form>
+        {reply ? 'cancel' : 'reply'}
+      </div>
+      <div className={reply ? `${styles.reply}` : 'd-none'}>
+        <Form
+          initial={{
+            text: ''
+          }}
+          schema={CommentSchema}
+          onSubmit={async (values, { resetForm }) => {
+            const { error } = await createComment({ variables: { ...values, parentId } })
+            if (error) {
+              throw new Error({ message: error.toString() })
+            }
+            resetForm({ text: '' })
+            setReply(replyOpen || false)
+          }}
+        >
+          <MarkdownInput
+            name='text'
+            as={TextareaAutosize}
+            minRows={4}
+            autoFocus={!replyOpen}
+            required
+            hint={me?.freeComments ? <span className='text-success'>{me.freeComments} free comments left</span> : null}
+          />
+          <ActionTooltip>
+            <SubmitButton variant='secondary' className='mt-1'>reply</SubmitButton>
+          </ActionTooltip>
+        </Form>
+      </div>
     </div>
   )
 }

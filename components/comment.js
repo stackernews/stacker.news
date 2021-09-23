@@ -41,9 +41,8 @@ function Parent ({ item, rootText }) {
 
 export default function Comment ({
   item, children, replyOpen, includeParent,
-  rootText, noComments, noReply
+  rootText, noComments
 }) {
-  const [reply, setReply] = useState(replyOpen)
   const [edit, setEdit] = useState()
   const [collapse, setCollapse] = useState(false)
   const ref = useRef(null)
@@ -92,28 +91,36 @@ export default function Comment ({
               <span> </span>
               <span>{timeSince(new Date(item.createdAt))}</span>
               {includeParent && <Parent item={item} rootText={rootText} />}
+              {canEdit &&
+                <>
+                  <span> \ </span>
+                  <div
+                    className={styles.edit}
+                    onClick={() => setEdit(!edit)}
+                  >
+                    {edit ? 'cancel' : 'edit'}
+                    <Countdown
+                      date={editThreshold}
+                      onComplete={() => {
+                        setCanEdit(false)
+                      }}
+                    />
+                  </div>
+                </>}
             </div>
             {!includeParent && (collapse
               ? <Eye className={styles.collapser} height={10} width={10} onClick={() => setCollapse(false)} />
               : <EyeClose className={styles.collapser} height={10} width={10} onClick={() => setCollapse(true)} />)}
-
           </div>
           {edit
             ? (
-              <div className={styles.replyWrapper}>
-                <CommentEdit
-                  comment={item}
-                  onSuccess={() => {
-                    setEdit(!edit)
-                    setCanEdit(mine && (Date.now() < editThreshold))
-                  }}
-                  onCancel={() => {
-                    setEdit(!edit)
-                    setCanEdit(mine && (Date.now() < editThreshold))
-                  }}
-                  editThreshold={editThreshold}
-                />
-              </div>
+              <CommentEdit
+                comment={item}
+                onSuccess={() => {
+                  setEdit(!edit)
+                  setCanEdit(mine && (Date.now() < editThreshold))
+                }}
+              />
               )
             : (
               <div className={styles.text}>
@@ -123,40 +130,9 @@ export default function Comment ({
         </div>
       </div>
       <div className={`${styles.children}`}>
-        {!noReply && !edit && (
-          <div className={`${itemStyles.other} ${styles.reply}`}>
-            <div
-              className='d-inline-block'
-              onClick={() => setReply(!reply)}
-            >
-              {reply ? 'cancel' : 'reply'}
-            </div>
-            {canEdit && !reply && !edit &&
-              <>
-                <span> \ </span>
-                <div
-                  className='d-inline-block'
-                  onClick={() => setEdit(!edit)}
-                >
-                  edit
-                  <Countdown
-                    date={editThreshold}
-                    className=' '
-                    onComplete={() => {
-                      setCanEdit(false)
-                    }}
-                  />
-                </div>
-              </>}
-          </div>
-        )}
-
-        <div className={reply ? styles.replyWrapper : 'd-none'}>
-          <Reply
-            parentId={item.id} autoFocus={!replyOpen}
-            onSuccess={() => setReply(replyOpen || false)}
-          />
-        </div>
+        <Reply
+          parentId={item.id} replyOpen={replyOpen}
+        />
         {children}
         <div className={`${styles.comments} ml-sm-1 ml-md-3`}>
           {item.comments && !noComments

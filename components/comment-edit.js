@@ -3,7 +3,6 @@ import * as Yup from 'yup'
 import { gql, useMutation } from '@apollo/client'
 import styles from './reply.module.css'
 import TextareaAutosize from 'react-textarea-autosize'
-import Countdown from '../components/countdown'
 
 export const CommentSchema = Yup.object({
   text: Yup.string().required('required').trim()
@@ -53,19 +52,8 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
           minRows={4}
           autoFocus
           required
-          groupClassName='mb-0'
-          hint={<Countdown date={editThreshold} />}
         />
-        <div className='d-flex align-items-center justify-content-between'>
-          <SubmitButton variant='secondary' className='mt-1'>save</SubmitButton>
-          <div
-            className='font-weight-bold text-muted mr-3'
-            style={{ fontSize: '80%', cursor: 'pointer' }}
-            onClick={onCancel}
-          >
-            cancel
-          </div>
-        </div>
+        <SubmitButton variant='secondary' className='mt-1'>save</SubmitButton>
       </Form>
     </div>
   )

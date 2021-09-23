@@ -10,7 +10,33 @@ import styles from '../styles/item.module.css'
 import { NOFOLLOW_LIMIT } from '../lib/constants'
 import { useRouter } from 'next/router'
 
-export default function ItemFull ({ item: qItem, minimal }) {
+function BioItem ({ item }) {
+  if (!item.text) {
+    return null
+  }
+
+  return (
+    <>
+      <ItemText item={item} />
+      <Reply parentId={item.id} />
+    </>
+  )
+}
+
+function TopLevelItem ({ item }) {
+  return (
+    <Item item={item}>
+      {item.text && <ItemText item={item} />}
+      <Reply parentId={item.id} replyOpen />
+    </Item>
+  )
+}
+
+function ItemText ({ item }) {
+  return <Text nofollow={item.sats + item.boost < NOFOLLOW_LIMIT}>{item.text}</Text>
+}
+
+export default function ItemFull ({ item: qItem, bio }) {
   const query = gql`
     ${ITEM_FIELDS}
     ${COMMENTS}
@@ -49,24 +75,9 @@ export default function ItemFull ({ item: qItem, minimal }) {
     <>
       {item.parentId
         ? <Comment item={item} replyOpen includeParent noComments />
-        : (minimal
-            ? (
-              <>
-                {item.text &&
-                  <div className='mb-3'>
-                    <Text nofollow={item.sats + item.boost < NOFOLLOW_LIMIT}>{item.text}</Text>
-                  </div>}
-              </>)
-            : (
-              <>
-                <Item item={item}>
-                  {item.text &&
-                    <div className='mb-3'>
-                      <Text nofollow={item.sats + item.boost < NOFOLLOW_LIMIT}>{item.text}</Text>
-                    </div>}
-                  <Reply parentId={item.id} />
-                </Item>
-              </>)
+        : (bio
+            ? <BioItem item={item} />
+            : <TopLevelItem item={item} />
           )}
       <div className={styles.comments}>
         <Comments comments={item.comments} />

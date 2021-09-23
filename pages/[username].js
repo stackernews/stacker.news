@@ -13,6 +13,7 @@ import * as Yup from 'yup'
 import { Form, MarkdownInput, SubmitButton } from '../components/form'
 import ActionTooltip from '../components/action-tooltip'
 import TextareaAutosize from 'react-textarea-autosize'
+import { useMe } from '../components/me'
 
 export async function getServerSideProps ({ req, params }) {
   const { error, data: { user } } = await (await ApolloClient(req)).query({
@@ -52,7 +53,7 @@ const BioSchema = Yup.object({
   bio: Yup.string().required('required').trim()
 })
 
-function BioForm () {
+export function BioForm () {
   const [createBio] = useMutation(
     gql`
       mutation createBio($bio: String!) {
@@ -103,8 +104,7 @@ function BioForm () {
 export default function User ({ user }) {
   const [create, setCreate] = useState(false)
   const [session] = useSession()
-
-  // need to check if this is the user's page before exposing create/edit
+  const me = useMe()
 
   return (
     <Layout noSeo containClassName={styles.contain}>
@@ -112,7 +112,7 @@ export default function User ({ user }) {
       <UserHeader user={user} />
       {user.bio
         ? <ItemFull item={user.bio} bio />
-        : (
+        : (me?.name === user.name &&
           <div className={styles.create}>
             {create
               ? <BioForm />

@@ -22,7 +22,6 @@ async function comments (models, id) {
 }
 
 export async function getItem (parent, { id }, { models }) {
-  console.log(id)
   const [item] = await models.$queryRaw(`
   ${SELECT}
   FROM "Item"

@@ -73,7 +73,6 @@ export default {
       return Math.floor(user.msats / 1000)
     },
     bio: async (user, args, { models }) => {
-      console.log(user)
       return getItem(user, { id: user.bioId }, { models })
     },
     hasNewNotes: async (user, args, { models }) => {

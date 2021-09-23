@@ -9,8 +9,11 @@ import { gql, useQuery } from '@apollo/client'
 import styles from '../styles/item.module.css'
 import { NOFOLLOW_LIMIT } from '../lib/constants'
 import { useRouter } from 'next/router'
+import Link from 'next/link'
+import { useMe } from './me'
 
 function BioItem ({ item }) {
+  const me = useMe()
   if (!item.text) {
     return null
   }
@@ -18,6 +21,10 @@ function BioItem ({ item }) {
   return (
     <>
       <ItemText item={item} />
+      {me?.name === item.user.name &&
+        <Link href={`/items/${item.id}/edit`} passHref>
+          <a className='text-right'>edit bio</a>
+        </Link>}
       <Reply parentId={item.id} />
     </>
   )

@@ -2,21 +2,6 @@ import { AuthenticationError, UserInputError } from 'apollo-server-errors'
 import { createMentions, getItem, SELECT } from './item'
 import serialize from './serial'
 
-export const createBio = async (parent, { bio }, { me, models }) => {
-  if (!me) {
-    throw new AuthenticationError('you must be logged in')
-  }
-
-  const [item] = await serialize(models,
-    models.$queryRaw(`${SELECT} FROM create_bio($1, $2, $3) AS "Item"`,
-      `@${me.name}'s bio`, bio, Number(me.id)))
-
-  await createMentions(item, models)
-
-  item.comments = []
-  return item
-}
-
 export default {
   Query: {
     me: async (parent, args, { models, me }) =>
@@ -50,7 +35,31 @@ export default {
         throw error
       }
     },
-    createBio: createBio
+    upsertBio: async (parent, { bio }, { me, models }) => {
+      if (!me) {
+        throw new AuthenticationError('you must be logged in')
+      }
+
+      const user = await models.user.findUnique({ where: { id: me.id } })
+
+      let item
+      if (user.bioId) {
+        item = await models.item.update({
+          where: { id: Number(user.bioId) },
+          data: {
+            text: bio
+          }
+        })
+      } else {
+        ([item] = await serialize(models,
+          models.$queryRaw(`${SELECT} FROM create_bio($1, $2, $3) AS "Item"`,
+            `@${me.name}'s bio`, bio, Number(me.id))))
+      }
+
+      await createMentions(item, models)
+
+      return await models.user.findUnique({ where: { id: me.id } })
+    }
   },
 
   User: {

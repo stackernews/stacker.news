@@ -1,18 +1,18 @@
-import Item, { ItemSkeleton } from './item'
-import Reply, { ReplySkeleton } from './reply'
+import Item from './item'
+import Reply from './reply'
 import Comment from './comment'
 import Text from './text'
-import Comments, { CommentsSkeleton } from './comments'
+import Comments from './comments'
 import { COMMENTS } from '../fragments/comments'
 import { ITEM_FIELDS } from '../fragments/items'
 import { gql, useQuery } from '@apollo/client'
 import styles from '../styles/item.module.css'
 import { NOFOLLOW_LIMIT } from '../lib/constants'
 import { useRouter } from 'next/router'
-import Link from 'next/link'
 import { useMe } from './me'
+import { Button } from 'react-bootstrap'
 
-function BioItem ({ item }) {
+function BioItem ({ item, handleClick }) {
   const me = useMe()
   if (!item.text) {
     return null
@@ -22,9 +22,12 @@ function BioItem ({ item }) {
     <>
       <ItemText item={item} />
       {me?.name === item.user.name &&
-        <Link href={`/items/${item.id}/edit`} passHref>
-          <a className='text-right'>edit bio</a>
-        </Link>}
+        <Button
+          onClick={handleClick}
+          size='md' variant='link'
+          className='text-right'
+        >edit bio
+        </Button>}
       <Reply parentId={item.id} />
     </>
   )
@@ -43,12 +46,12 @@ function ItemText ({ item }) {
   return <Text nofollow={item.sats + item.boost < NOFOLLOW_LIMIT}>{item.text}</Text>
 }
 
-export default function ItemFull ({ item: qItem, bio }) {
+export default function ItemFull ({ item, bio, ...props }) {
   const query = gql`
     ${ITEM_FIELDS}
     ${COMMENTS}
     {
-      item(id: ${qItem.id}) {
+      item(id: ${item.id}) {
         ...ItemFields
         text
         comments {
@@ -61,34 +64,27 @@ export default function ItemFull ({ item: qItem, bio }) {
   const { error, data } = useQuery(query, {
     fetchPolicy: router.query.cache ? 'cache-first' : undefined
   })
-  if (error) return <div>Failed to load!</div>
-
-  if (!data) {
-    return (
-      <div>
-        <ItemSkeleton>
-          <ReplySkeleton />
-        </ItemSkeleton>
-        <div className={styles.comments}>
-          <CommentsSkeleton />
-        </div>
-      </div>
-    )
+  if (error) {
+    return <div>Failed to load!</div>
   }
 
-  const { item } = data
+  // XXX replace item with cache version
+  if (data) {
+    ({ item } = data)
+  }
 
   return (
     <>
       {item.parentId
-        ? <Comment item={item} replyOpen includeParent noComments />
+        ? <Comment item={item} replyOpen includeParent noComments {...props} />
         : (bio
-            ? <BioItem item={item} />
-            : <TopLevelItem item={item} />
+            ? <BioItem item={item} {...props} />
+            : <TopLevelItem item={item} {...props} />
           )}
-      <div className={styles.comments}>
-        <Comments comments={item.comments} />
-      </div>
+      {item.comments &&
+        <div className={styles.comments}>
+          <Comments comments={item.comments} />
+        </div>}
     </>
   )
 }

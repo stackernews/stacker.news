@@ -59,7 +59,6 @@ export default function UserHeader ({ user }) {
               initial={{
                 name: user.name
               }}
-              className='d-flex align-items-center'
               validateImmediately
               onSubmit={async ({ name }) => {
                 if (name === user.name) {
@@ -88,14 +87,16 @@ export default function UserHeader ({ user }) {
                 setEditting(false)
               }}
             >
-              <Input
-                prepend=<InputGroup.Text>@</InputGroup.Text>
-                name='name'
-                autoFocus
-                groupClassName={`mb-0 ${styles.username}`}
-                showValid
-              />
-              <SubmitButton variant='link' onClick={() => setEditting(true)}>save</SubmitButton>
+              <div className='d-flex align-items-center'>
+                <Input
+                  prepend=<InputGroup.Text>@</InputGroup.Text>
+                  name='name'
+                  autoFocus
+                  groupClassName={`mb-0 ${styles.username}`}
+                  showValid
+                />
+                <SubmitButton variant='link' onClick={() => setEditting(true)}>save</SubmitButton>
+              </div>
             </Form>
             )
           : (

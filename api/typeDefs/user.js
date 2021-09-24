@@ -10,11 +10,12 @@ export default gql`
 
   extend type Mutation {
     setName(name: String!): Boolean
-    createBio(bio: String!): Item!
+    upsertBio(bio: String!): User!
   }
 
   type User {
     id: ID!
+    createdAt: String!
     name: String
     nitems: Int!
     ncomments: Int!

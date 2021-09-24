@@ -41,7 +41,7 @@ function Parent ({ item, rootText }) {
 
 export default function Comment ({
   item, children, replyOpen, includeParent,
-  rootText, noComments
+  rootText, noComments, noReply
 }) {
   const [edit, setEdit] = useState()
   const [collapse, setCollapse] = useState(false)
@@ -130,9 +130,10 @@ export default function Comment ({
         </div>
       </div>
       <div className={`${styles.children}`}>
-        <Reply
-          parentId={item.id} replyOpen={replyOpen}
-        />
+        {!noReply &&
+          <Reply
+            parentId={item.id} replyOpen={replyOpen}
+          />}
         {children}
         <div className={`${styles.comments} ml-sm-1 ml-md-3`}>
           {item.comments && !noComments

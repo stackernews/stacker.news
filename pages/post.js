@@ -28,7 +28,7 @@ export function PostForm () {
   }
 
   if (router.query.type === 'discussion') {
-    return <DiscussionForm />
+    return <DiscussionForm adv />
   } else {
     return <LinkForm />
   }

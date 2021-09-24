@@ -13,7 +13,7 @@ import { useEffect } from 'react'
 import { randInRange } from '../lib/rand'
 
 function WalletSummary ({ me }) {
-  return `${me.sats} \\ ${me.stacked}`
+  return `${me?.sats} \\ ${me?.stacked}`
 }
 
 function RefreshableLink ({ href, children, ...props }) {
@@ -44,8 +44,8 @@ export default function Header () {
             <link rel='shortcut icon' href={me?.hasNewNotes ? '/favicon-notify.png' : '/favicon.png'} />
           </Head>
           <div className='position-relative mr-1'>
-            <NavDropdown className='px-0' title={`@${me.name}`} alignRight>
-              <Link href={'/' + me.name} passHref>
+            <NavDropdown className='px-0' title={`@${me?.name}`} alignRight>
+              <Link href={'/' + me?.name} passHref>
                 <NavDropdown.Item>
                   profile
                   {me && !me.bio &&

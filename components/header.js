@@ -30,14 +30,14 @@ export default function Header () {
   const router = useRouter()
   const path = router.asPath.split('?')[0]
   const me = useMe()
-  const [, loading] = useSession()
+  const [session, loading] = useSession()
 
   const Corner = () => {
-    if (loading && !me) {
+    if (loading || !me) {
       return null
     }
 
-    if (me) {
+    if (session) {
       return (
         <div className='d-flex align-items-center'>
           <Head>

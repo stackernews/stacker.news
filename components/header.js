@@ -33,7 +33,7 @@ export default function Header () {
   const [session, loading] = useSession()
 
   const Corner = () => {
-    if (loading || !me) {
+    if (loading && !me) {
       return null
     }
 

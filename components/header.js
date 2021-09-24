@@ -7,7 +7,7 @@ import { Button, Container, NavDropdown } from 'react-bootstrap'
 import Price from './price'
 import { useMe } from './me'
 import Head from 'next/head'
-import { signOut, signIn, useSession } from 'next-auth/client'
+import { signOut, signIn } from 'next-auth/client'
 import { useLightning } from './lightning'
 import { useEffect } from 'react'
 import { randInRange } from '../lib/rand'
@@ -27,31 +27,32 @@ function RefreshableLink ({ href, children, ...props }) {
 }
 
 export default function Header () {
-  const [session, loading] = useSession()
   const router = useRouter()
   const path = router.asPath.split('?')[0]
   const me = useMe()
 
   const Corner = () => {
-    if (loading) {
-      return null
-    }
-
-    if (session) {
+    if (me) {
       return (
         <div className='d-flex align-items-center'>
           <Head>
-            <link rel='shortcut icon' href={me && me.hasNewNotes ? '/favicon-notify.png' : '/favicon.png'} />
+            <link rel='shortcut icon' href={me?.hasNewNotes ? '/favicon-notify.png' : '/favicon.png'} />
           </Head>
           <div className='position-relative mr-1'>
-            <NavDropdown className='px-0' title={`@${session.user.name}`} alignRight>
-              <Link href={'/' + session.user.name} passHref>
-                <NavDropdown.Item>profile</NavDropdown.Item>
+            <NavDropdown className='px-0' title={`@${me.name}`} alignRight>
+              <Link href={'/' + me.name} passHref>
+                <NavDropdown.Item>
+                  profile
+                  {me && !me.bio &&
+                    <div className='p-1 d-inline-block bg-secondary ml-1'>
+                      <span className='invisible'>{' '}</span>
+                    </div>}
+                </NavDropdown.Item>
               </Link>
               <RefreshableLink href='/notifications' passHref>
                 <NavDropdown.Item>
                   notifications
-                  {me && me.hasNewNotes &&
+                  {me?.hasNewNotes &&
                     <div className='p-1 d-inline-block bg-danger ml-1'>
                       <span className='invisible'>{' '}</span>
                     </div>}
@@ -65,7 +66,7 @@ export default function Header () {
                 <RefreshableLink href='/recent' passHref>
                   <NavDropdown.Item>recent</NavDropdown.Item>
                 </RefreshableLink>
-                {session
+                {me
                   ? (
                     <Link href='/post' passHref>
                       <NavDropdown.Item>post</NavDropdown.Item>
@@ -77,8 +78,12 @@ export default function Header () {
               <NavDropdown.Divider />
               <NavDropdown.Item onClick={signOut}>logout</NavDropdown.Item>
             </NavDropdown>
-            {me && me.hasNewNotes &&
+            {me?.hasNewNotes &&
               <span className='position-absolute p-1 bg-danger' style={{ top: '5px', right: '0px' }}>
+                <span className='invisible'>{' '}</span>
+              </span>}
+            {me && !me.bio &&
+              <span className='position-absolute p-1 bg-secondary' style={{ bottom: '5px', right: '0px' }}>
                 <span className='invisible'>{' '}</span>
               </span>}
           </div>
@@ -116,7 +121,7 @@ export default function Header () {
               </RefreshableLink>
             </Nav.Item>
             <Nav.Item className='d-md-flex d-none'>
-              {session
+              {me
                 ? (
                   <Link href='/post' passHref>
                     <Nav.Link className={styles.navLink}>post</Nav.Link>

@@ -33,11 +33,7 @@ export default function Header () {
   const [session, loading] = useSession()
 
   const Corner = () => {
-    if (loading && !me) {
-      return null
-    }
-
-    if (session) {
+    if (me) {
       return (
         <div className='d-flex align-items-center'>
           <Head>
@@ -101,6 +97,9 @@ export default function Header () {
         </div>
       )
     } else {
+      if (loading || session) {
+        return null
+      }
       const strike = useLightning()
       useEffect(() => {
         setTimeout(strike, randInRange(3000, 10000))

@@ -42,6 +42,8 @@ export default {
         date_trunc('hour', "Vote".created_at) order by created_at desc;
       */
 
+      console.log(decodedCursor.time)
+
       let notifications = await models.$queryRaw(`
         SELECT ${ITEM_FIELDS}, "Item".created_at as "sortTime", NULL as "earnedSats",
           false as mention
@@ -68,11 +70,11 @@ export default {
           true as mention
           FROM "Mention"
           JOIN "Item" on "Mention"."itemId" = "Item".id
-          JOIN "Item" p on "Item"."parentId" = p.id
+          LEFT JOIN "Item" p on "Item"."parentId" = p.id
           WHERE "Mention"."userId" = $1
           AND "Mention".created_at <= $2
           AND "Item"."userId" <> $1
-          AND p."userId" <> $1)
+          AND (p."userId" IS NULL OR p."userId" <> $1))
           ORDER BY "sortTime" DESC
           OFFSET $3
           LIMIT ${LIMIT}`, me.id, decodedCursor.time, decodedCursor.offset)

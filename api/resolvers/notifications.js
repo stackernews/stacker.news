@@ -42,8 +42,6 @@ export default {
         date_trunc('hour', "Vote".created_at) order by created_at desc;
       */
 
-      console.log(decodedCursor.time)
-
       let notifications = await models.$queryRaw(`
         SELECT ${ITEM_FIELDS}, "Item".created_at as "sortTime", NULL as "earnedSats",
           false as mention

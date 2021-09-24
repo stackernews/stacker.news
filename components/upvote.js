@@ -2,7 +2,7 @@ import { LightningConsumer } from './lightning'
 import UpArrow from '../svgs/lightning-arrow.svg'
 import styles from './upvote.module.css'
 import { gql, useMutation } from '@apollo/client'
-import { signIn, useSession } from 'next-auth/client'
+import { signIn } from 'next-auth/client'
 import { useFundError } from './fund-error'
 import ActionTooltip from './action-tooltip'
 import { useItemAct } from './item-act'
@@ -10,7 +10,6 @@ import Window from '../svgs/window-2-fill.svg'
 import { useMe } from './me'
 
 export default function UpVote ({ item, className }) {
-  const [session] = useSession()
   const { setError } = useFundError()
   const { setItem } = useItemAct()
   const me = useMe()
@@ -97,7 +96,7 @@ export default function UpVote ({ item, className }) {
             ${item?.meVote ? styles.voted : ''}`
           }
             onClick={
-            session
+            me
               ? async (e) => {
                   e.stopPropagation()
                   if (!item) return

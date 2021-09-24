@@ -1,5 +1,4 @@
 import { Button } from 'react-bootstrap'
-import { useSession } from 'next-auth/client'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import Nav from 'react-bootstrap/Nav'
@@ -9,6 +8,7 @@ import InputGroup from 'react-bootstrap/InputGroup'
 import * as Yup from 'yup'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
 import styles from './user-header.module.css'
+import { useMe } from './me'
 
 const NAME_QUERY =
 gql`
@@ -26,7 +26,7 @@ gql`
 
 export default function UserHeader ({ user }) {
   const [editting, setEditting] = useState(false)
-  const [session] = useSession()
+  const me = useMe()
   const router = useRouter()
   const client = useApolloClient()
   const [setName] = useMutation(NAME_MUTATION)
@@ -70,7 +70,6 @@ export default function UserHeader ({ user }) {
                   throw new Error({ message: error.toString() })
                 }
                 router.replace(`/${name}`)
-                session.user.name = name
 
                 client.writeFragment({
                   id: `User:${user.id}`,
@@ -102,7 +101,7 @@ export default function UserHeader ({ user }) {
           : (
             <div className='d-flex align-items-center'>
               <h2 className='mb-0'>@{user.name}</h2>
-              {session?.user?.name === user.name &&
+              {me?.name === user.name &&
                 <Button variant='link' onClick={() => setEditting(true)}>edit nym</Button>}
             </div>
             )}

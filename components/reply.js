@@ -50,12 +50,15 @@ export default function Reply ({ parentId, onSuccess, replyOpen }) {
 
   return (
     <div>
-      <div
-        className={styles.replyButtons}
-        onClick={() => setReply(!reply)}
-      >
-        {reply ? 'cancel' : 'reply'}
-      </div>
+      {replyOpen
+        ? <div className={styles.replyButtons} />
+        : (
+          <div
+            className={styles.replyButtons}
+            onClick={() => setReply(!reply)}
+          >
+            {reply ? 'cancel' : 'reply'}
+          </div>)}
       <div className={reply ? `${styles.reply}` : 'd-none'}>
         <Form
           initial={{

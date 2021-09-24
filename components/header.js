@@ -7,7 +7,7 @@ import { Button, Container, NavDropdown } from 'react-bootstrap'
 import Price from './price'
 import { useMe } from './me'
 import Head from 'next/head'
-import { signOut, signIn } from 'next-auth/client'
+import { signOut, signIn, useSession } from 'next-auth/client'
 import { useLightning } from './lightning'
 import { useEffect } from 'react'
 import { randInRange } from '../lib/rand'
@@ -30,8 +30,13 @@ export default function Header () {
   const router = useRouter()
   const path = router.asPath.split('?')[0]
   const me = useMe()
+  const [, loading] = useSession()
 
   const Corner = () => {
+    if (loading && !me) {
+      return null
+    }
+
     if (me) {
       return (
         <div className='d-flex align-items-center'>

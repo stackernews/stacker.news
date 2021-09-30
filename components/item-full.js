@@ -47,32 +47,6 @@ function ItemText ({ item }) {
 }
 
 export default function ItemFull ({ item, bio, ...props }) {
-  const query = gql`
-    ${ITEM_FIELDS}
-    ${COMMENTS}
-    {
-      item(id: ${item.id}) {
-        ...ItemFields
-        text
-        comments {
-          ...CommentsRecursive
-        }
-    }
-  }`
-
-  const router = useRouter()
-  const { error, data } = useQuery(query, {
-    fetchPolicy: router.query.cache ? 'cache-first' : undefined
-  })
-  if (error) {
-    return <div>Failed to load!</div>
-  }
-
-  // XXX replace item with cache version
-  if (data) {
-    ({ item } = data)
-  }
-
   return (
     <>
       {item.parentId

@@ -1,11 +1,10 @@
 import { useQuery } from '@apollo/client'
-import Button from 'react-bootstrap/Button'
-import { useState } from 'react'
 import Comment, { CommentSkeleton } from './comment'
 import Item from './item'
 import { NOTIFICATIONS } from '../fragments/notifications'
 import styles from './notifications.module.css'
 import { useRouter } from 'next/router'
+import MoreFooter from './more-footer'
 
 function Notification ({ n }) {
   const router = useRouter()
@@ -44,18 +43,16 @@ function Notification ({ n }) {
   )
 }
 
-export default function Notifications ({ variables }) {
+export default function Notifications ({ notifications, cursor, lastChecked, variables }) {
   const router = useRouter()
-  const { error, data, fetchMore } = useQuery(NOTIFICATIONS, {
+  const { data, fetchMore } = useQuery(NOTIFICATIONS, {
     variables,
     fetchPolicy: router.query.cache ? 'cache-first' : undefined
   })
-  if (error) return <div>Failed to load!</div>
-  if (!data) {
-    return <CommentsFlatSkeleton />
-  }
 
-  const { notifications: { notifications, cursor, lastChecked } } = data
+  if (data) {
+    ({ notifications: { notifications, cursor } } = data)
+  }
 
   const [fresh, old] =
     notifications.reduce((result, n) => {
@@ -75,7 +72,7 @@ export default function Notifications ({ variables }) {
       {old.map((n, i) => (
         <Notification n={n} key={i} />
       ))}
-      <MoreFooter cursor={cursor} fetchMore={fetchMore} />
+      <MoreFooter cursor={cursor} fetchMore={fetchMore} Skeleton={CommentsFlatSkeleton} />
     </>
   )
 }
@@ -89,38 +86,4 @@ function CommentsFlatSkeleton () {
     ))}
     </div>
   )
-}
-
-function MoreFooter ({ cursor, fetchMore }) {
-  const [loading, setLoading] = useState(false)
-
-  if (loading) {
-    return <div><CommentsFlatSkeleton /></div>
-  }
-
-  let Footer
-  if (cursor) {
-    Footer = () => (
-      <Button
-        variant='primary'
-        size='md'
-        onClick={async () => {
-          setLoading(true)
-          await fetchMore({
-            variables: {
-              cursor
-            }
-          })
-          setLoading(false)
-        }}
-      >more
-      </Button>
-    )
-  } else {
-    Footer = () => (
-      <div className='text-muted' style={{ fontFamily: 'lightning', fontSize: '2rem', opacity: '0.6' }}>GENISIS</div>
-    )
-  }
-
-  return <div className='d-flex justify-content-center mt-4 mb-2'><Footer /></div>
 }

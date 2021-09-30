@@ -6,11 +6,10 @@ import resolvers from './resolvers'
 import typeDefs from './typeDefs'
 import models from './models'
 
-export default async function serverSideClient (req) {
+export default async function getSSRApolloClient (req) {
   const session = req && await getSession({ req })
   return new ApolloClient({
     ssrMode: true,
-    // Instead of "createHttpLink" use SchemaLink here
     link: new SchemaLink({
       schema: mergeSchemas({
         schemas: typeDefs,

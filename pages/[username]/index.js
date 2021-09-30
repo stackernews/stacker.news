@@ -1,34 +1,28 @@
-import Layout from '../components/layout'
+import Layout from '../../components/layout'
 import { gql, useMutation, useQuery } from '@apollo/client'
-import ApolloClient from '../api/client'
-import UserHeader from '../components/user-header'
-import Seo from '../components/seo'
+import UserHeader from '../../components/user-header'
+import Seo from '../../components/seo'
 import { Button } from 'react-bootstrap'
-import styles from '../styles/user.module.css'
+import styles from '../../styles/user.module.css'
 import { useState } from 'react'
-import ItemFull from '../components/item-full'
+import ItemFull from '../../components/item-full'
 import * as Yup from 'yup'
-import { Form, MarkdownInput, SubmitButton } from '../components/form'
-import ActionTooltip from '../components/action-tooltip'
+import { Form, MarkdownInput, SubmitButton } from '../../components/form'
+import ActionTooltip from '../../components/action-tooltip'
 import TextareaAutosize from 'react-textarea-autosize'
-import { useMe } from '../components/me'
-import { USER_FIELDS } from '../fragments/users'
+import { useMe } from '../../components/me'
+import { USER_FULL } from '../../fragments/users'
 import { useRouter } from 'next/router'
-import { ITEM_FIELDS } from '../fragments/items'
+import { ITEM_FIELDS } from '../../fragments/items'
+import getSSRApolloClient from '../../api/ssrApollo'
 
-export async function getServerSideProps ({ req, params }) {
-  const { error, data: { user } } = await (await ApolloClient(req)).query({
-    query:
-      gql`
-      ${USER_FIELDS}
-      {
-        user(name: "${params.username}") {
-          ...UserFields
-        }
-      }`
+export async function getServerSideProps ({ req, params: { username } }) {
+  const client = await getSSRApolloClient(req)
+  const { error, data } = await client.query({
+    query: USER_FULL(username)
   })
 
-  if (!user || error) {
+  if (error || !data?.user) {
     return {
       notFound: true
     }
@@ -36,7 +30,7 @@ export async function getServerSideProps ({ req, params }) {
 
   return {
     props: {
-      user
+      user: data.user
     }
   }
 }
@@ -103,24 +97,12 @@ export default function User ({ user }) {
   const [create, setCreate] = useState(false)
   const [edit, setEdit] = useState(false)
   const me = useMe()
-
-  const query = gql`
-    ${USER_FIELDS}
-    {
-      user(name: "${user.name}") {
-        ...UserFields
-      }
-    }`
-
   const router = useRouter()
-  const { error, data } = useQuery(query, {
+
+  const { data } = useQuery(USER_FULL(user.name), {
     fetchPolicy: router.query.cache ? 'cache-first' : undefined
   })
-  if (error) {
-    return <div>Failed to load!</div>
-  }
 
-  // XXX replace item with cache version
   if (data) {
     ({ user } = data)
   }

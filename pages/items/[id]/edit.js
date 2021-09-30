@@ -18,7 +18,7 @@ export async function getServerSideProps ({ req, params: { id } }) {
       }`
   })
 
-  if (!item || error) {
+  if (error || !item) {
     return {
       notFound: true
     }

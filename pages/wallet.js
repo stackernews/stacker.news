@@ -12,6 +12,12 @@ import { useMe } from '../components/me'
 import { useEffect } from 'react'
 import { requestProvider } from 'webln'
 
+export async function getServerSideProps () {
+  return {
+    props: {}
+  }
+}
+
 export default function Wallet () {
   return (
     <LayoutCenter>

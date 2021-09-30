@@ -5,13 +5,14 @@ import { FundErrorModal, FundErrorProvider } from '../components/fund-error'
 import { MeProvider } from '../components/me'
 import PlausibleProvider from 'next-plausible'
 import { LightningProvider } from '../components/lightning'
-import apolloClient from '../lib/apollo'
 import { useRouter } from 'next/router'
 import { useEffect } from 'react'
 import { ItemActModal, ItemActProvider } from '../components/item-act'
+import getApolloClient from '../lib/apollo'
 
-function MyApp ({ Component, pageProps }) {
+function MyApp ({ Component, pageProps: { session, ...props } }) {
   const router = useRouter()
+
   useEffect(() => {
     router.beforePopState(({ url, as, options }) => {
       // we need to tell the next page to use a cache-first fetch policy ...
@@ -25,15 +26,15 @@ function MyApp ({ Component, pageProps }) {
 
   return (
     <PlausibleProvider domain='stacker.news' trackOutboundLinks>
-      <Provider session={pageProps.session}>
-        <ApolloProvider client={apolloClient}>
+      <Provider session={session}>
+        <ApolloProvider client={getApolloClient()}>
           <MeProvider>
             <LightningProvider>
               <FundErrorProvider>
                 <FundErrorModal />
                 <ItemActProvider>
                   <ItemActModal />
-                  <Component {...pageProps} />
+                  <Component {...props} />
                 </ItemActProvider>
               </FundErrorProvider>
             </LightningProvider>

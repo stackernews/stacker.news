@@ -1,4 +1,5 @@
 import { gql } from '@apollo/client'
+import { COMMENTS } from './comments'
 
 export const ITEM_FIELDS = gql`
   fragment ItemFields on Item {
@@ -36,20 +37,26 @@ export const MORE_ITEMS = gql`
     }
   } `
 
-export const ITEMS_FEED = gql`
+export const ITEM_FULL = id => gql`
   ${ITEM_FIELDS}
-
+  ${COMMENTS}
   {
-    items {
+    item(id: ${id}) {
       ...ItemFields
+      text
+      comments {
+        ...CommentsRecursive
+      }
     }
   }`
 
-export const ITEMS_RECENT = gql`
+export const ITEM_WITH_COMMENTS = gql`
   ${ITEM_FIELDS}
-
-  {
-    items: recent {
+  ${COMMENTS}
+  fragment ItemWithComments on Item {
       ...ItemFields
-    }
-  }`
+      text
+      comments {
+        ...CommentsRecursive
+      }
+    }`

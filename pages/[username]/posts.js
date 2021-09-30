@@ -1,45 +1,64 @@
 import Layout from '../../components/layout'
-import { gql } from '@apollo/client'
-import ApolloClient from '../../api/client'
+import { useQuery } from '@apollo/client'
 import UserHeader from '../../components/user-header'
 import Seo from '../../components/seo'
 import Items from '../../components/items'
+import { useRouter } from 'next/router'
+import { USER_FULL } from '../../fragments/users'
+import { getServerSideProps as headerProps } from './index'
+import getSSRApolloClient from '../../api/ssrApollo'
+import { MORE_ITEMS } from '../../fragments/items'
 
-export async function getServerSideProps ({ req, params }) {
-  const { error, data: { user } } = await (await ApolloClient(req)).query({
-    query:
-      gql`{
-        user(name: "${params.username}") {
-          id
-          createdAt
-          name
-          nitems
-          ncomments
-          stacked
-          sats
-        }
-      }`
+export async function getServerSideProps ({ req, params: { username } }) {
+  const { notFound, props } = await headerProps({ req, params: { username } })
+
+  if (notFound) {
+    return {
+      notFound
+    }
+  }
+
+  const { user } = props
+  const client = await getSSRApolloClient(req)
+  const { data } = await client.query({
+    query: MORE_ITEMS,
+    variables: { sort: 'user', userId: user.id }
   })
 
-  if (!user || error) {
-    return {
-      notFound: true
-    }
+  let items, cursor
+  if (data) {
+    ({ moreItems: { items, cursor } } = data)
   }
 
   return {
     props: {
-      user
+      ...props,
+      items,
+      cursor
     }
   }
 }
 
-export default function UserPosts ({ user }) {
+export default function UserPosts ({ user, items, cursor }) {
+  const router = useRouter()
+
+  const { data } = useQuery(
+    USER_FULL(user.name), {
+      fetchPolicy: router.query.cache ? 'cache-first' : undefined
+    })
+
+  if (data) {
+    ({ user } = data)
+  }
+
   return (
     <Layout noSeo>
       <Seo user={user} />
       <UserHeader user={user} />
-      <Items variables={{ sort: 'user', userId: user.id }} />
+      <Items
+        items={items} cursor={cursor}
+        variables={{ sort: 'user', userId: user.id }}
+      />
     </Layout>
   )
 }

@@ -6,7 +6,7 @@ export default async function handler (req, res) {
   res.setHeader('Content-Type', 'image/png')
   try {
     const streams = await new Pageres({ crop: true })
-    .src(url, ['600x300'])
+    .src(url, ['600x314'])
     .run()
     res.status(200).end(streams[0])
   } catch(e) {

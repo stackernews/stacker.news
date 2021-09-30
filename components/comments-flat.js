@@ -1,22 +1,25 @@
 import { useQuery } from '@apollo/client'
-import Button from 'react-bootstrap/Button'
 import { MORE_FLAT_COMMENTS } from '../fragments/comments'
-import { useState } from 'react'
 import Comment, { CommentSkeleton } from './comment'
 import styles from './notifications.module.css'
 import { useRouter } from 'next/router'
+import MoreFooter from './more-footer'
 
-export default function CommentsFlat ({ variables, ...props }) {
+export default function CommentsFlat ({ variables, comments, cursor, ...props }) {
   const router = useRouter()
-  const { error, data, fetchMore } = useQuery(MORE_FLAT_COMMENTS, {
+  const { data, fetchMore } = useQuery(MORE_FLAT_COMMENTS, {
     variables,
     fetchPolicy: router.query.cache ? 'cache-first' : undefined
   })
-  if (error) return <div>Failed to load!</div>
-  if (!data) {
+
+  if (!data && !comments) {
     return <CommentsFlatSkeleton />
   }
-  const { moreFlatComments: { comments, cursor } } = data
+
+  if (data) {
+    ({ moreFlatComments: { comments, cursor } } = data)
+  }
+
   return (
     <>
       {comments.map(item => (
@@ -33,7 +36,7 @@ export default function CommentsFlat ({ variables, ...props }) {
           <Comment item={item} {...props} />
         </div>
       ))}
-      <MoreFooter cursor={cursor} fetchMore={fetchMore} />
+      <MoreFooter cursor={cursor} fetchMore={fetchMore} Skeleton={CommentsFlatSkeleton} />
     </>
   )
 }
@@ -47,38 +50,4 @@ function CommentsFlatSkeleton () {
     ))}
     </div>
   )
-}
-
-function MoreFooter ({ cursor, fetchMore }) {
-  const [loading, setLoading] = useState(false)
-
-  if (loading) {
-    return <div><CommentsFlatSkeleton /></div>
-  }
-
-  let Footer
-  if (cursor) {
-    Footer = () => (
-      <Button
-        variant='primary'
-        size='md'
-        onClick={async () => {
-          setLoading(true)
-          await fetchMore({
-            variables: {
-              cursor
-            }
-          })
-          setLoading(false)
-        }}
-      >more
-      </Button>
-    )
-  } else {
-    Footer = () => (
-      <div className='text-muted' style={{ fontFamily: 'lightning', fontSize: '2rem', opacity: '0.6' }}>GENISIS</div>
-    )
-  }
-
-  return <div className='d-flex justify-content-center mt-4 mb-2'><Footer /></div>
 }

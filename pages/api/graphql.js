@@ -5,7 +5,7 @@ import lnd from '../../api/lnd'
 import typeDefs from '../../api/typeDefs'
 import { getSession } from 'next-auth/client'
 
-const apolloServer = new ApolloServer({
+global.apolloServer ||= new ApolloServer({
   typeDefs,
   resolvers,
   tracing: true,
@@ -25,4 +25,4 @@ export const config = {
   }
 }
 
-export default apolloServer.createHandler({ path: '/api/graphql' })
+export default global.apolloServer.createHandler({ path: '/api/graphql' })

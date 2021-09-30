@@ -42,7 +42,7 @@ export default function UserHeader ({ user }) {
         name: 'name',
         test: async name => {
           if (!name || !name.length) return false
-          const { data } = await client.query({ query: NAME_QUERY, variables: { name } })
+          const { data } = await client.query({ query: NAME_QUERY, variables: { name }, fetchPolicy: 'network-only' })
           return data.nameAvailable
         },
         message: 'taken'
@@ -69,7 +69,10 @@ export default function UserHeader ({ user }) {
                 if (error) {
                   throw new Error({ message: error.toString() })
                 }
-                router.replace(`/${name}`)
+                router.replace({
+                  pathname: router.pathname,
+                  query: { ...router.query, username: name }
+                })
 
                 client.writeFragment({
                   id: `User:${user.id}`,

@@ -1,12 +1,13 @@
 import { ITEM_FIELDS } from '../../../fragments/items'
 import { gql } from '@apollo/client'
-import ApolloClient from '../../../api/client'
+import getSSRApolloClient from '../../../api/ssrApollo'
 import { DiscussionForm } from '../../../components/discussion-form'
 import { LinkForm } from '../../../components/link-form'
 import LayoutCenter from '../../../components/layout-center'
 
 export async function getServerSideProps ({ req, params: { id } }) {
-  const { error, data: { item } } = await (await ApolloClient(req)).query({
+  const client = await getSSRApolloClient(req)
+  const { error, data: { item } } = await client.query({
     query:
       gql`
         ${ITEM_FIELDS}

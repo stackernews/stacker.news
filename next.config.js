@@ -1,7 +1,7 @@
 const { withPlausibleProxy } = require('next-plausible')
 const data = require('/opt/elasticbeanstalk/deployment/app_version_manifest.json') // eslint-disable-line
 
-console.log(data)
+console.error(data, process.env)
 
 module.exports = withPlausibleProxy()({
   generateBuildId: async () => {

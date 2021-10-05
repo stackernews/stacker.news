@@ -1,11 +1,11 @@
 const { withPlausibleProxy } = require('next-plausible')
-const data = require('/opt/elasticbeanstalk/deployment/app_version_manifest.json') // eslint-disable-line
-
-console.error(data, process.env)
+const { RuntimeSources } = require('/opt/elasticbeanstalk/deployment/app_version_manifest.json') // eslint-disable-line
 
 module.exports = withPlausibleProxy()({
   generateBuildId: async () => {
-    return data.VersionLabel
+    // use the app version which eb doesn't otherwise give us
+    // as the build id
+    return Object.keys(RuntimeSources['stacker.news'])[0]
   },
   async rewrites () {
     return [

@@ -33,6 +33,7 @@ model User {
   tipDefault     Int         @default(0)
   pubkey         String?     @unique
 
+  @@index([createdAt])
   @@map(name: "users")
 }
 
@@ -68,6 +69,7 @@ model Item {
   path      Unsupported("LTREE")?
 
   User User[] @relation("Item")
+  @@index([createdAt])
   @@index([userId])
   @@index([parentId])
 }
@@ -92,6 +94,7 @@ model ItemAct {
   @@index([itemId])
   @@index([userId])
   @@index([act])
+  @@index([createdAt])
 }
 
 model Mention {
@@ -104,6 +107,7 @@ model Mention {
   userId    Int
 
   @@unique([itemId, userId])
+  @@index([createdAt])
   @@index([itemId])
   @@index([userId])
 }
@@ -123,6 +127,7 @@ model Invoice {
   msatsReceived  Int?
   cancelled      Boolean   @default(false)
 
+  @@index([createdAt])
   @@index([userId])
 }
 
@@ -150,7 +155,7 @@ model Withdrawl {
   msatsFeePaid   Int?
 
   status WithdrawlStatus?
-
+  @@index([createdAt])
   @@index([userId])
 }
 

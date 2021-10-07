@@ -48,7 +48,26 @@ export default {
             LIMIT ${LIMIT}`, Number(userId), decodedCursor.time, decodedCursor.offset)
           break
         case 'hot':
-          items = await models.$queryRaw(`
+          // HACK we can speed hack the first hot page, by limiting our query to only
+          // the most recently created items so that the tables doesn't have to
+          // fully be computed
+          // if the offset is 0, we limit our search to posts from the last week
+          // if there are 21 items, return them ... if not do the unrestricted query
+          // instead of doing this we should materialize a view ... but this is easier for now
+
+          if (decodedCursor.offset === 0) {
+            items = await models.$queryRaw(`
+            ${SELECT}
+            FROM "Item"
+            ${timedLeftJoinSats(1)}
+            WHERE "parentId" IS NULL AND created_at <= $1 AND created_at > $3
+            ${timedOrderBySats(1)}
+            OFFSET $2
+            LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, new Date(new Date() - 7))
+          }
+
+          if (decodedCursor.offset !== 0 || items.length < LIMIT) {
+            items = await models.$queryRaw(`
             ${SELECT}
             FROM "Item"
             ${timedLeftJoinSats(1)}
@@ -56,6 +75,7 @@ export default {
             ${timedOrderBySats(1)}
             OFFSET $2
             LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+          }
           break
         default:
           items = await models.$queryRaw(`

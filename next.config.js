@@ -2,6 +2,7 @@ const { withPlausibleProxy } = require('next-plausible')
 const { RuntimeSources } = require('/opt/elasticbeanstalk/deployment/app_version_manifest.json') // eslint-disable-line
 
 module.exports = withPlausibleProxy()({
+  compress: false,
   generateBuildId: async () => {
     // use the app version which eb doesn't otherwise give us
     // as the build id

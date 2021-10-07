@@ -112,7 +112,10 @@ export default function Header () {
     <>
       <Container className='px-sm-0'>
         <Navbar className={styles.navbar}>
-          <Nav className='w-100 justify-content-between flex-wrap align-items-center' activeKey={path}>
+          <Nav
+            className={styles.navbarNav}
+            activeKey={path}
+          >
             <RefreshableLink href='/' passHref>
               <Navbar.Brand className={`${styles.brand} d-none d-sm-block`}>STACKER NEWS</Navbar.Brand>
             </RefreshableLink>

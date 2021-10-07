@@ -42,13 +42,18 @@ export default {
         date_trunc('hour', "Vote".created_at) order by created_at desc;
       */
 
+      // HACK to make notifications faster, we only return a limited sub set of the unioned
+      // queries ... we only ever need at most LIMIT+current offset in the child queries to
+      // have enough items to return in the union
       let notifications = await models.$queryRaw(`
-        SELECT ${ITEM_FIELDS}, "Item".created_at as "sortTime", NULL as "earnedSats",
+        (SELECT ${ITEM_FIELDS}, "Item".created_at as "sortTime", NULL as "earnedSats",
           false as mention
           FROM "Item"
           JOIN "Item" p ON "Item"."parentId" = p.id
           WHERE p."userId" = $1
             AND "Item"."userId" <> $1 AND "Item".created_at <= $2
+          ORDER BY "Item".created_at
+          LIMIT ${LIMIT}+$3)
         UNION ALL
         (SELECT ${ITEM_SUBQUERY_FIELDS}, max(subquery.voted_at) as "sortTime",
           sum(subquery.sats) as "earnedSats", false as mention
@@ -62,7 +67,9 @@ export default {
             AND "ItemAct".created_at <= $2
             AND "ItemAct".act <> 'BOOST'
             AND "Item"."userId" = $1) subquery
-            GROUP BY ${ITEM_SUBQUERY_FIELDS}, subquery.island ORDER BY max(subquery.voted_at) desc)
+          GROUP BY ${ITEM_SUBQUERY_FIELDS}, subquery.island
+          ORDER BY max(subquery.voted_at) desc
+          LIMIT ${LIMIT}+$3)
         UNION ALL
         (SELECT ${ITEM_FIELDS}, "Mention".created_at as "sortTime",  NULL as "earnedSats",
           true as mention
@@ -72,10 +79,12 @@ export default {
           WHERE "Mention"."userId" = $1
           AND "Mention".created_at <= $2
           AND "Item"."userId" <> $1
-          AND (p."userId" IS NULL OR p."userId" <> $1))
-          ORDER BY "sortTime" DESC
-          OFFSET $3
-          LIMIT ${LIMIT}`, me.id, decodedCursor.time, decodedCursor.offset)
+          AND (p."userId" IS NULL OR p."userId" <> $1)
+          ORDER BY "Mention".created_at
+          LIMIT ${LIMIT}+$3)
+        ORDER BY "sortTime" DESC
+        OFFSET $3
+        LIMIT ${LIMIT}`, me.id, decodedCursor.time, decodedCursor.offset)
 
       notifications = notifications.map(n => {
         n.item = { ...n }

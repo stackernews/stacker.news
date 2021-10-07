@@ -16,3 +16,10 @@
     padding: .5rem 0;
     background-color: transparent !important;
 }
+
+.navbarNav {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+}

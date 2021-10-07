@@ -1,6 +1,18 @@
 import models from '../../../../api/models'
 import lnd from '../../../../api/lnd'
 import { createInvoice } from 'ln-service'
+import crypto from 'crypto'
+
+function utf8ByteArray (str) {
+  const utf8 = unescape(encodeURIComponent(str))
+
+  const arr = []
+  for (let i = 0; i < utf8.length; i++) {
+    arr.push(utf8.charCodeAt(i))
+  }
+
+  return Buffer.from(arr)
+}
 
 export default async ({ query: { username, amount } }, res) => {
   const user = await models.user.findUnique({ where: { name: username } })
@@ -14,10 +26,15 @@ export default async ({ query: { username, amount } }, res) => {
 
   // generate invoice
   const expiresAt = new Date(new Date().setHours(new Date().getHours() + 3))
-  const description = `Funding @${username} on stacker.news`
+  const description = `${amount} msats for @${user.name} on stacker.news`
+  const descriptionHash = crypto
+    .createHash('sha256')
+    .update(utf8ByteArray(`Funding @${username} on stacker.news`))
+    .digest('hex')
   try {
     const invoice = await createInvoice({
       description,
+      description_hash: descriptionHash,
       lnd,
       mtokens: amount,
       expires_at: expiresAt

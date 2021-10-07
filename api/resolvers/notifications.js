@@ -52,7 +52,7 @@ export default {
           JOIN "Item" p ON "Item"."parentId" = p.id
           WHERE p."userId" = $1
             AND "Item"."userId" <> $1 AND "Item".created_at <= $2
-          ORDER BY "Item".created_at
+          ORDER BY "Item".created_at desc
           LIMIT ${LIMIT}+$3)
         UNION ALL
         (SELECT ${ITEM_SUBQUERY_FIELDS}, max(subquery.voted_at) as "sortTime",
@@ -80,7 +80,7 @@ export default {
           AND "Mention".created_at <= $2
           AND "Item"."userId" <> $1
           AND (p."userId" IS NULL OR p."userId" <> $1)
-          ORDER BY "Mention".created_at
+          ORDER BY "Mention".created_at desc
           LIMIT ${LIMIT}+$3)
         ORDER BY "sortTime" DESC
         OFFSET $3

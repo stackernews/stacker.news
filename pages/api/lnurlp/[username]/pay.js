@@ -14,7 +14,7 @@ export default async ({ query: { username, amount } }, res) => {
 
   // generate invoice
   const expiresAt = new Date(new Date().setHours(new Date().getHours() + 3))
-  const description = `${amount} msats for @${user.name} on stacker.news`
+  const description = `Funding @${username} on stacker.news`
   try {
     const invoice = await createInvoice({
       description,

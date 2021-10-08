@@ -77,7 +77,7 @@ export function FundForm () {
     }`)
 
   useEffect(() => {
-    setShowAlert(true || !localStorage.getItem('hideLnAddrAlert'))
+    setShowAlert(!localStorage.getItem('hideLnAddrAlert'))
   }, [])
 
   if (called && !error) {

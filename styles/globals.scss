@@ -118,6 +118,11 @@ footer {
 
 .alert-dismissible .close {
   font-weight: 300;
+  font-family: 'lightning';
+}
+
+.alert-dismissible .close::after {
+  content: 'X';
 }
 
 .nav-item {

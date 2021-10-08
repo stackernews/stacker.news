@@ -9,8 +9,9 @@ import LayoutCenter from '../components/layout-center'
 import InputGroup from 'react-bootstrap/InputGroup'
 import { WithdrawlSkeleton } from './withdrawals/[id]'
 import { useMe } from '../components/me'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { requestProvider } from 'webln'
+import { Alert } from 'react-bootstrap'
 
 export async function getServerSideProps () {
   return {
@@ -37,7 +38,6 @@ function YouHaveSats () {
 
 export function WalletForm () {
   const router = useRouter()
-
   if (!router.query.type) {
     return (
       <div className='align-items-center text-center'>
@@ -66,6 +66,8 @@ export const FundSchema = Yup.object({
 })
 
 export function FundForm () {
+  const me = useMe()
+  const [showAlert, setShowAlert] = useState(true)
   const router = useRouter()
   const [createInvoice, { called, error }] = useMutation(gql`
     mutation createInvoice($amount: Int!) {
@@ -74,6 +76,10 @@ export function FundForm () {
       }
     }`)
 
+  useEffect(() => {
+    setShowAlert(true || !localStorage.getItem('hideLnAddrAlert'))
+  }, [])
+
   if (called && !error) {
     return <LnQRSkeleton status='generating' />
   }
@@ -81,6 +87,15 @@ export function FundForm () {
   return (
     <>
       <YouHaveSats />
+      {me && showAlert &&
+        <Alert
+          variant='success' dismissible onClose={() => {
+            localStorage.setItem('hideLnAddrAlert', 'yep')
+            setShowAlert(false)
+          }}
+        >
+          Your can also fund your account via lightning address with <strong>{`${me.name}@stacker.news`}</strong>
+        </Alert>}
       <Form
         initial={{
           amount: 1000

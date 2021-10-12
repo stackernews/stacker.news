@@ -4,5 +4,6 @@ import item from './item'
 import wallet from './wallet'
 import lnurl from './lnurl'
 import notifications from './notifications'
+import invite from './invite'
 
-export default [user, item, message, wallet, lnurl, notifications]
+export default [user, item, message, wallet, lnurl, notifications, invite]

@@ -12,7 +12,6 @@ export async function getServerSideProps () {
   }
 }
 
-
 export function PostForm () {
   const router = useRouter()
   const me = useMe()

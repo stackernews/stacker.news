@@ -1,0 +1,27 @@
+.invites {
+    background-color: rgba(0, 0, 0, 0.06);
+    border-radius: .4rem;
+    padding: .75rem;
+}
+
+.invites {
+    margin-bottom: 0 !important;
+}
+
+.other {
+    font-weight: 500;
+    font-size: 70%;
+    color: grey;
+}
+
+.revoke {
+    cursor: pointer;
+}
+
+.invite {
+    margin-bottom: .5rem;
+}
+
+.invite:last-child {
+    margin-bottom: 0;
+}

@@ -3,15 +3,17 @@ import ArrowRight from '../svgs/arrow-right-s-fill.svg'
 import ArrowDown from '../svgs/arrow-down-s-fill.svg'
 import { useEffect, useState } from 'react'
 
-export default function AccordianItem ({ header, body, headerColor = 'grey' }) {
-  const [open, setOpen] = useState(false)
+export default function AccordianItem ({ header, body, headerColor = 'grey', show }) {
+  const [open, setOpen] = useState(show)
 
   useEffect(() => {
-    setOpen(false)
+    setOpen(show)
   }, [])
 
   return (
-    <Accordion>
+    <Accordion
+      defaultActiveKey={show ? '0' : undefined}
+    >
       <Accordion.Toggle
         as={props => <div {...props} />}
         eventKey='0'

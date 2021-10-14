@@ -28,10 +28,22 @@ export default {
       return await models.invite.create({
         data: { gift, limit, userId: me.id }
       })
+    },
+    revokeInvite: async (parent, { id }, { me, models }) => {
+      if (!me) {
+        throw new AuthenticationError('you must be logged in')
+      }
+
+      return await models.invite.update({
+        where: { id },
+        data: { revoked: true }
+      })
     }
   },
 
   Invite: {
-    invitees: async (invite, args, { models }) => []
+    invitees: async (invite, args, { me, models }) => {
+      return await models.user.findMany({ where: { inviteId: invite.id } })
+    }
   }
 }

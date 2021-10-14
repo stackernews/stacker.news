@@ -62,6 +62,10 @@ export default function Header () {
               <Link href='/wallet' passHref>
                 <NavDropdown.Item>wallet</NavDropdown.Item>
               </Link>
+              <NavDropdown.Divider />
+              <Link href='/invites' passHref>
+                <NavDropdown.Item>invites</NavDropdown.Item>
+              </Link>
               <div>
                 <NavDropdown.Divider />
                 <RefreshableLink href='/recent' passHref>

@@ -20,6 +20,7 @@ const options = {
       if (user?.id) {
         token.id = user.id
       }
+
       // XXX We need to update the user name incase they update it ... kind of hacky
       // better if we use user id everywhere an ignore the username ...
       if (token?.id) {

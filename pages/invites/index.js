@@ -131,7 +131,7 @@ function InviteList ({ name, invites }) {
             return <Invite invite={invite} key={invite.id} active={name === 'active'} />
           })}
           </div>
-      }
+        }
       />
     </div>
   )
@@ -150,7 +150,11 @@ export default function Invites () {
 
   const [active, inactive] = data && data.invites
     ? data.invites.reduce((result, invite) => {
-        result[invite.revoked || (invite.limit && invite.invitees.length >= invite.limit) ? 1 : 0].push(invite)
+        result[
+          invite.revoked || (invite.limit &&
+            invite.invitees.length >= invite.limit)
+            ? 1
+            : 0].push(invite)
         return result
       },
       [[], []])
@@ -158,6 +162,7 @@ export default function Invites () {
 
   return (
     <Layout>
+      <h2 className='text-center mt-3'>invite links</h2>
       <InviteForm />
       {active.length > 0 && <InviteList name='active' invites={active} />}
       {inactive.length > 0 && <InviteList name='inactive' invites={inactive} />}

@@ -17,7 +17,7 @@ export const EmailSchema = Yup.object({
   email: Yup.string().email('email is no good').required('required').trim()
 })
 
-export default function Login ({ providers, callbackUrl, error }) {
+export default function Login ({ providers, callbackUrl, error, Header }) {
   const errors = {
     Signin: 'Try signing with a different account.',
     OAuthSignin: 'Try signing with a different account.',
@@ -37,6 +37,7 @@ export default function Login ({ providers, callbackUrl, error }) {
   return (
     <LayoutCenter noFooter>
       <div className={styles.login}>
+        {Header && <Header />}
         {errorMessage &&
           <Alert variant='danger' onClose={() => setErrorMessage(undefined)} dismissible>{errorMessage}</Alert>}
         {router.query.type === 'lightning'

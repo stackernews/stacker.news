@@ -46,10 +46,10 @@ function InviteForm () {
         limit: undefined
       }}
       schema={InviteSchema}
-      onSubmit={async ({ limit, ...values }) => {
+      onSubmit={async ({ limit, gift }) => {
         const { error } = await createInvite({
           variables: {
-            ...values, limit: limit ? Number(limit) : limit
+            gift: Number(gift), limit: limit ? Number(limit) : limit
           }
         })
         if (error) {
@@ -95,6 +95,8 @@ function Invite ({ invite, active }) {
         placeholder={`https://stacker.news/invites/${invite.id}`} readOnly
       />
       <div className={styles.other}>
+        <span>{invite.gift} sat gift</span>
+        <span> \ </span>
         <span>{invite.invitees.length} joined{invite.limit ? ` of ${invite.limit}` : ''}</span>
         {active
           ? (

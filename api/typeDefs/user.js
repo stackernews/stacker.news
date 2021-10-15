@@ -23,6 +23,7 @@ export default gql`
     freePosts: Int!
     freeComments: Int!
     hasNewNotes: Boolean!
+    hasInvites: Boolean!
     tipDefault: Int!
     bio: Item
     sats: Int!

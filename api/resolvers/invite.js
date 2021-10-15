@@ -10,6 +10,16 @@ export default {
       return await models.invite.findMany({
         where: {
           userId: me.id
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      })
+    },
+    invite: async (parent, { id }, { me, models }) => {
+      return await models.invite.findUnique({
+        where: {
+          id
         }
       })
     }
@@ -44,6 +54,13 @@ export default {
   Invite: {
     invitees: async (invite, args, { me, models }) => {
       return await models.user.findMany({ where: { inviteId: invite.id } })
+    },
+    user: async (invite, args, { me, models }) => {
+      return await models.user.findUnique({ where: { id: invite.userId } })
+    },
+    poor: async (invite, args, { me, models }) => {
+      const user = await models.user.findUnique({ where: { id: invite.userId } })
+      return user.msats < invite.gift * 1000
     }
   }
 }

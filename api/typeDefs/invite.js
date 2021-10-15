@@ -3,6 +3,7 @@ import { gql } from 'apollo-server-micro'
 export default gql`
   extend type Query {
     invites: [Invite!]!
+    invite(id: ID!): Invite
   }
 
   extend type Mutation {
@@ -16,6 +17,8 @@ export default gql`
     invitees: [User!]!
     gift: Int!
     limit: Int
+    user: User!
     revoked: Boolean!
+    poor: Boolean!
   }
 `

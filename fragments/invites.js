@@ -11,5 +11,10 @@ export const INVITE_FIELDS = gql`
     gift
     limit
     revoked
+    user {
+      name
+      id
+    }
+    poor
   }
 `

@@ -64,7 +64,12 @@ export default function Header () {
               </Link>
               <NavDropdown.Divider />
               <Link href='/invites' passHref>
-                <NavDropdown.Item>invites</NavDropdown.Item>
+                <NavDropdown.Item>invites
+                  {me && !me.hasInvites &&
+                    <div className='p-1 d-inline-block bg-success ml-1'>
+                      <span className='invisible'>{' '}</span>
+                    </div>}
+                </NavDropdown.Item>
               </Link>
               <div>
                 <NavDropdown.Divider />

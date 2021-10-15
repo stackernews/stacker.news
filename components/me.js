@@ -20,6 +20,7 @@ export function MeProvider ({ children }) {
       bio {
         id
       }
+      hasInvites
     }
   }`
   const { data } = useQuery(query, { pollInterval: 1000 })

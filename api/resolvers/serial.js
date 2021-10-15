@@ -23,6 +23,12 @@ async function serialize (models, call) {
       if (error.message.includes('SN_PENDING_WITHDRAWL_EXISTS')) {
         bail(new Error('withdrawal invoice exists and is pending'))
       }
+      if (error.message.includes('SN_INELIGIBLE')) {
+        bail(new Error('user ineligible for gift'))
+      }
+      if (error.message.includes('SN_REVOKED_OR_EXHAUSTED')) {
+        bail(new Error('faucet has been revoked or is exhausted'))
+      }
       if (error.message.includes('40001')) {
         throw new Error('wallet balance serialization failure - retry again')
       }

@@ -84,6 +84,12 @@ export default {
     bio: async (user, args, { models }) => {
       return getItem(user, { id: user.bioId }, { models })
     },
+    hasInvites: async (user, args, { models }) => {
+      const anInvite = await models.invite.findFirst({
+        where: { userId: user.id }
+      })
+      return !!anInvite
+    },
     hasNewNotes: async (user, args, { models }) => {
       // check if any votes have been cast for them since checkedNotesAt
       const votes = await models.$queryRaw(`

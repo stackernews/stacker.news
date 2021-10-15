@@ -108,7 +108,7 @@ export default function Header () {
       useEffect(() => {
         setTimeout(strike, randInRange(3000, 10000))
       }, [router.asPath])
-      return path !== '/login' && <Button id='login' onClick={signIn}>login</Button>
+      return path !== '/login' && !path.startsWith('/invites') && <Button id='login' onClick={signIn}>login</Button>
     }
   }
 

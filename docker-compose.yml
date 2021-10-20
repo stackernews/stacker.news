@@ -1,0 +1,25 @@
+version: "3"
+services:
+  db:
+    container_name: db
+    image: postgres
+    restart: always
+    expose:
+      - "5432"
+    ports:
+      - "5431:5432"
+    env_file:
+      - .env.sample
+  app:
+    container_name: app
+    build: ./
+    depends_on:
+      - db
+    env_file:
+      - .env.sample
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./:/app
+    links:
+      - db

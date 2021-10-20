@@ -1,5 +1,12 @@
 # stacker.news
-[Stacker News](https://stacker.news) is a Lightning powered Bitcoin news site modelled after Hacker News (which is modelled after Reddit). The intent is to create a better place to discuss Bitcoin.
+[Stacker News](https://stacker.news) is like Hacker News but we pay you Bitcoin. We use Bitcoin and the Lightning Network to provide Sybil resistance and any karma earned is withdrawable as Bitcoin. Long-term we plan to decentralize SN on an open peer to peer network.
+
+# local development
+1. [Install docker-compose](https://docs.docker.com/compose/install/) and deps if you don't already have it installed
+2. `git clone git@github.com:stackernews/stacker.news.git sn && cd sn`
+3. `docker-compose up --build`
+
+You should then be able to access the site at `localhost:3000` and any changes you make will hot reload. If you want to login locally or use lnd you'll need to modify `.env.sample` appropriately. If you have trouble please open an issue so I can help and update the README for everyone else.
 
 # stack
 The site is written in javascript using Next.js, a React framework. The backend API is provided via graphql. The database is postgresql modelled with prisma. We use lnd for the lightning node which we connect to through a tor http tunnel. A customized Bootstrap theme is used for styling.

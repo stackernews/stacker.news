@@ -55,7 +55,6 @@ export async function getServerSideProps ({ req, res, query: { id, error = null 
 }
 
 function InviteHeader ({ invite }) {
-  console.log(invite.poor)
   let Inner
   if (invite.revoked) {
     Inner = () => <div className='text-danger'>this invite link expired</div>

@@ -9,14 +9,14 @@ services:
     ports:
       - "5431:5432"
     env_file:
-      - .env.sample
+      - ./.env.sample
   app:
     container_name: app
     build: ./
     depends_on:
       - db
     env_file:
-      - .env.sample
+      - ./.env.sample
     ports:
       - "3000:3000"
     volumes:

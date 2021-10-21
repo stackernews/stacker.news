@@ -3,13 +3,13 @@ import Nav from 'react-bootstrap/Nav'
 import Link from 'next/link'
 import styles from './header.module.css'
 import { useRouter } from 'next/router'
-import { Button, Container, NavDropdown } from 'react-bootstrap'
+import { Button, Container, NavDropdown, SplitButton, Dropdown } from 'react-bootstrap'
 import Price from './price'
 import { useMe } from './me'
 import Head from 'next/head'
 import { signOut, signIn, useSession } from 'next-auth/client'
 import { useLightning } from './lightning'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { randInRange } from '../lib/rand'
 
 function WalletSummary ({ me }) {
@@ -31,6 +31,17 @@ export default function Header () {
   const path = router.asPath.split('?')[0]
   const me = useMe()
   const [session, loading] = useSession()
+  const [sort, setSort] = useState('recent')
+  const [within, setWithin] = useState()
+
+  useEffect(() => {
+    setSort(localStorage.getItem('sort') || 'recent')
+    setWithin(localStorage.getItem('topWithin'))
+  }, [])
+
+  const otherSort = sort === 'recent' ? 'top' : 'recent'
+  const sortLink = `/${sort}${sort === 'top' && within ? `/${within}` : ''}`
+  const otherSortLink = `/${otherSort}${otherSort === 'top' && within ? `/${within}` : ''}`
 
   const Corner = () => {
     if (me) {
@@ -75,6 +86,9 @@ export default function Header () {
                 <NavDropdown.Divider />
                 <RefreshableLink href='/recent' passHref>
                   <NavDropdown.Item>recent</NavDropdown.Item>
+                </RefreshableLink>
+                <RefreshableLink href={`/top${within ? `/${within}` : ''}`} passHref>
+                  <NavDropdown.Item>top</NavDropdown.Item>
                 </RefreshableLink>
                 {me
                   ? (
@@ -131,10 +145,22 @@ export default function Header () {
             <RefreshableLink href='/' passHref>
               <Navbar.Brand className={`${styles.brand} d-block d-sm-none`}>SN</Navbar.Brand>
             </RefreshableLink>
-            <Nav.Item className='d-md-flex d-none'>
-              <RefreshableLink href='/recent' passHref>
-                <Nav.Link className={styles.navLink}>recent</Nav.Link>
-              </RefreshableLink>
+            <Nav.Item className='d-md-flex d-none nav-dropdown-toggle'>
+              <SplitButton
+                title={
+                  <RefreshableLink href={sortLink} passHref>
+                    <Nav.Link className={styles.navLink}>{sort}</Nav.Link>
+                  </RefreshableLink>
+              }
+                key={`/${sort}`}
+                id='recent-top-button'
+                variant='link'
+                className='p-0'
+              >
+                <Link href={otherSortLink} passHref>
+                  <Dropdown.Item onClick={() => localStorage.setItem('sort', otherSort)}>{otherSort}</Dropdown.Item>
+                </Link>
+              </SplitButton>
             </Nav.Item>
             <Nav.Item className='d-md-flex d-none'>
               {me

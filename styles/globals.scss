@@ -129,6 +129,32 @@ footer {
   font-weight: 500;
 }
 
+.nav-dropdown-toggle .dropdown-toggle::after {
+  display: inline-block;
+}
+
+.nav-dropdown-toggle .btn-link {
+  color: rgba(0, 0, 0, 0.5) !important;
+}
+
+.nav-dropdown-toggle .btn-link[aria-expanded="true"] {
+  color: rgba(0, 0, 0, 0.9) !important;
+}
+
+.nav-dropdown-toggle .dropdown .btn {
+  padding: 0;
+}
+
+.nav-dropdown-toggle .dropdown .dropdown-toggle {
+  padding-left: .75rem;
+  padding-right: .5rem;
+}
+
+.nav-dropdown-toggle .nav-link {
+  padding-right: 0 !important;
+  font-weight: 500;
+}
+
 .dropdown-toggle::after {
   display: none;
 }

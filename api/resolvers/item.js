@@ -34,9 +34,10 @@ export async function getItem (parent, { id }, { models }) {
 
 export default {
   Query: {
-    moreItems: async (parent, { sort, cursor, userId }, { me, models }) => {
+    moreItems: async (parent, { sort, cursor, userId, within }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
       let items
+      let interval = 'INTERVAL '
       switch (sort) {
         case 'user':
           items = await models.$queryRaw(`
@@ -76,6 +77,32 @@ export default {
             OFFSET $2
             LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
           }
+          break
+        case 'top':
+          switch (within) {
+            case 'day':
+              interval += "'1 day'"
+              break
+            case 'week':
+              interval += "'7 days'"
+              break
+            case 'month':
+              interval += "'1 month'"
+              break
+            case 'year':
+              interval += "'1 year'"
+              break
+          }
+
+          items = await models.$queryRaw(`
+          ${SELECT}
+          FROM "Item"
+          ${timedLeftJoinSats(1)}
+          WHERE "parentId" IS NULL AND created_at <= $1
+          ${within ? ` AND created_at >= $1 - ${interval}` : ''}
+          ORDER BY x.sats DESC NULLS LAST, created_at DESC
+          OFFSET $2
+          LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
           break
         default:
           items = await models.$queryRaw(`

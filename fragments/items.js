@@ -28,8 +28,8 @@ export const ITEM_FIELDS = gql`
 export const MORE_ITEMS = gql`
   ${ITEM_FIELDS}
 
-  query MoreItems($sort: String!, $cursor: String, $userId: ID) {
-    moreItems(sort: $sort, cursor: $cursor, userId: $userId) {
+  query MoreItems($sort: String!, $cursor: String, $userId: ID, $within: String) {
+    moreItems(sort: $sort, cursor: $cursor, userId: $userId, within: $within) {
       cursor
       items {
         ...ItemFields

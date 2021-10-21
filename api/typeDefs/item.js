@@ -2,7 +2,7 @@ import { gql } from 'apollo-server-micro'
 
 export default gql`
   extend type Query {
-    moreItems(sort: String!, cursor: String, userId: ID): Items
+    moreItems(sort: String!, cursor: String, userId: ID, within: String): Items
     moreFlatComments(cursor: String, userId: ID): Comments
     item(id: ID!): Item
     userComments(userId: ID!): [Item!]

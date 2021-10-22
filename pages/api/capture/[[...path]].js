@@ -1,16 +1,25 @@
-import Pageres from 'pageres'
 import path from 'path'
+const { spawn } = require('child_process');
 
 export default async function handler (req, res) {
-  const url = process.env.SELF_URL + '/' + path.join(...(req.query.path || []))
-  res.setHeader('Content-Type', 'image/png')
-  try {
-    const streams = await new Pageres({ crop: true })
-    .src(url, ['600x314'])
-    .run()
-    res.status(200).end(streams[0])
-  } catch(e) {
-    console.log(e)
-    res.status(500)
-  }
+  return new Promise(resolve => {
+    const url = process.env.SELF_URL + '/' + path.join(...(req.query.path || []))
+    res.setHeader('Content-Type', 'image/png')
+
+    const capture = spawn(
+      'node', ['./spawn/capture.js', url], {maxBuffer: 1024*1024*5})
+
+    capture.on('close', code => {
+      if (code !== 0) {
+        res.status(500).end()
+      } else {
+        res.status(200).end()
+      }
+      capture.removeAllListeners()
+      resolve()
+    })
+    capture.on('error', err => console.log('error', err))
+    capture.stderr.on('data', data => console.log('error stderr', data.toString()))
+    capture.stdout.on('data', data => res.write(data))
+  })
 }

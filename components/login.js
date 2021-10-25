@@ -122,7 +122,7 @@ function LnQRAuth ({ k1, encodedUrl, callbackUrl }) {
   return (
     <>
       <small className='mb-2'>
-        <a className='text-muted text-underline' href='https://github.com/fiatjaf/awesome-lnurl#wallets' target='_blank' rel='noreferrer' style={{ textDecoration: 'underline' }}>Does my wallet support lnurl-auth?</a>
+        <a className='text-muted text-underline' href='https://github.com/fiatjaf/lnurl-rfc#lnurl-documents' target='_blank' rel='noreferrer' style={{ textDecoration: 'underline' }}>Does my wallet support lnurl-auth?</a>
       </small>
       <LnQR value={encodedUrl} status='waiting for you' />
     </>

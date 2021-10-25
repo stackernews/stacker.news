@@ -111,8 +111,7 @@ function LnQRAuth ({ k1, encodedUrl, callbackUrl }) {
       k1
     }
   }`
-  const { error, data } = useQuery(query, { pollInterval: 1000 })
-  if (error) return <div>error</div>
+  const { data } = useQuery(query, { pollInterval: 1000 })
 
   if (data && data.lnAuth.pubkey) {
     signIn('credentials', { ...data.lnAuth, callbackUrl })

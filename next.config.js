@@ -2,6 +2,9 @@ const { withPlausibleProxy } = require('next-plausible')
 
 module.exports = withPlausibleProxy()({
   compress: false,
+  experimental: {
+    scrollRestoration: true
+  },
   generateBuildId: process.env.NODE_ENV === 'development'
     ? undefined
     : async () => {

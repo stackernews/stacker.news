@@ -7,11 +7,12 @@ import { Nav, Navbar } from 'react-bootstrap'
 import styles from '../../components/header.module.css'
 import Link from 'next/link'
 
-export async function getServerSideProps ({ req }) {
+export async function getServerSideProps ({ req, params: { within } }) {
   const client = await getSSRApolloClient(req)
+  console.log('called')
   const { data } = await client.query({
     query: MORE_ITEMS,
-    variables: { sort: 'top', within: req.query?.within?.pop() }
+    variables: { sort: 'top', within: within?.pop() }
   })
 
   let items, cursor

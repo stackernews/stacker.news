@@ -62,7 +62,6 @@ function InviteForm () {
         name='gift'
         append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
         required
-        autoFocus
       />
       <Input
         label={<>invitee limit <small className='text-muted ml-2'>optional</small></>}

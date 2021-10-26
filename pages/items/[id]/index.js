@@ -5,7 +5,7 @@ import ItemFull from '../../../components/item-full'
 import { getGetServerSideProps } from '../../../api/ssrApollo'
 import { useQuery } from '@apollo/client'
 
-export const getServerSideProps = getGetServerSideProps(ITEM_FULL)
+export const getServerSideProps = getGetServerSideProps(ITEM_FULL, null, 'item')
 
 export default function AnItem ({ data: { item } }) {
   const { data } = useQuery(ITEM_FULL, {

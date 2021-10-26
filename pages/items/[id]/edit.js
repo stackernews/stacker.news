@@ -4,7 +4,7 @@ import { DiscussionForm } from '../../../components/discussion-form'
 import { LinkForm } from '../../../components/link-form'
 import LayoutCenter from '../../../components/layout-center'
 
-export const getServerSideProps = getGetServerSideProps(ITEM)
+export const getServerSideProps = getGetServerSideProps(ITEM, null, 'item')
 
 export default function PostEdit ({ data: { item } }) {
   const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000

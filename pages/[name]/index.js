@@ -15,7 +15,7 @@ import { USER_FULL } from '../../fragments/users'
 import { ITEM_FIELDS } from '../../fragments/items'
 import { getGetServerSideProps } from '../../api/ssrApollo'
 
-export const getServerSideProps = getGetServerSideProps(USER_FULL)
+export const getServerSideProps = getGetServerSideProps(USER_FULL, null, 'user')
 
 const BioSchema = Yup.object({
   bio: Yup.string().required('required').trim()

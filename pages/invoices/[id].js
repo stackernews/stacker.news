@@ -1,38 +1,24 @@
 import { useQuery } from '@apollo/client'
-import gql from 'graphql-tag'
 import { Invoice } from '../../components/invoice'
 import { LnQRSkeleton } from '../../components/lnqr'
 import LayoutCenter from '../../components/layout-center'
+import { useRouter } from 'next/router'
+import { INVOICE } from '../../fragments/wallet'
 
-export async function getServerSideProps ({ params: { id } }) {
-  return {
-    props: {
-      id
-    }
-  }
-}
-
-export default function FullInvoice ({ id }) {
-  const query = gql`
-    {
-      invoice(id: ${id}) {
-        id
-        bolt11
-        msatsReceived
-        cancelled
-        confirmedAt
-        expiresAt
-      }
-    }`
+export default function FullInvoice () {
   return (
     <LayoutCenter>
-      <LoadInvoice query={query} />
+      <LoadInvoice />
     </LayoutCenter>
   )
 }
 
-function LoadInvoice ({ query }) {
-  const { loading, error, data } = useQuery(query, { pollInterval: 1000 })
+function LoadInvoice () {
+  const router = useRouter()
+  const { loading, error, data } = useQuery(INVOICE, {
+    pollInterval: 1000,
+    variables: { id: router.query.id }
+  })
   if (error) return <div>error</div>
   if (!data || loading) {
     return <LnQRSkeleton status='loading' />

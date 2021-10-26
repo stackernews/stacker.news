@@ -13,12 +13,6 @@ import { useEffect, useState } from 'react'
 import { requestProvider } from 'webln'
 import { Alert } from 'react-bootstrap'
 
-export async function getServerSideProps () {
-  return {
-    props: {}
-  }
-}
-
 export default function Wallet () {
   return (
     <LayoutCenter>

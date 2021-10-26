@@ -34,19 +34,28 @@ export async function getItem (parent, { id }, { models }) {
 
 export default {
   Query: {
-    moreItems: async (parent, { sort, cursor, userId, within }, { me, models }) => {
+    moreItems: async (parent, { sort, cursor, name, within }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
-      let items
-      let interval = 'INTERVAL '
+      let items; let user; let interval = 'INTERVAL '
+
       switch (sort) {
         case 'user':
+          if (!name) {
+            throw new UserInputError('must supply name', { argumentName: 'name' })
+          }
+
+          user = await models.user.findUnique({ where: { name } })
+          if (!user) {
+            throw new UserInputError('no user has that name', { argumentName: 'name' })
+          }
+
           items = await models.$queryRaw(`
             ${SELECT}
             FROM "Item"
             WHERE "userId" = $1 AND "parentId" IS NULL AND created_at <= $2
             ORDER BY created_at DESC
             OFFSET $3
-            LIMIT ${LIMIT}`, Number(userId), decodedCursor.time, decodedCursor.offset)
+            LIMIT ${LIMIT}`, user.id, decodedCursor.time, decodedCursor.offset)
           break
         case 'hot':
           // HACK we can speed hack the first hot page, by limiting our query to only
@@ -67,7 +76,7 @@ export default {
             LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, new Date(new Date() - 7))
           }
 
-          if (decodedCursor.offset !== 0 || items.length < LIMIT) {
+          if (decodedCursor.offset !== 0 || items?.length < LIMIT) {
             items = await models.$queryRaw(`
             ${SELECT}
             FROM "Item"
@@ -79,7 +88,7 @@ export default {
           }
           break
         case 'top':
-          switch (within) {
+          switch (within?.pop()) {
             case 'day':
               interval += "'1 day'"
               break
@@ -119,11 +128,16 @@ export default {
         items
       }
     },
-    moreFlatComments: async (parent, { cursor, userId }, { me, models }) => {
+    moreFlatComments: async (parent, { cursor, name }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
 
-      if (!userId) {
-        throw new UserInputError('must supply userId', { argumentName: 'userId' })
+      if (!name) {
+        throw new UserInputError('must supply name', { argumentName: 'name' })
+      }
+
+      const user = await models.user.findUnique({ where: { name } })
+      if (!user) {
+        throw new UserInputError('no user has that name', { argumentName: 'name' })
       }
 
       const comments = await models.$queryRaw(`
@@ -133,7 +147,7 @@ export default {
         AND created_at <= $2
         ORDER BY created_at DESC
         OFFSET $3
-        LIMIT ${LIMIT}`, Number(userId), decodedCursor.time, decodedCursor.offset)
+        LIMIT ${LIMIT}`, user.id, decodedCursor.time, decodedCursor.offset)
 
       return {
         cursor: comments.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
@@ -141,13 +155,6 @@ export default {
       }
     },
     item: getItem,
-    userComments: async (parent, { userId }, { models }) => {
-      return await models.$queryRaw(`
-        ${SELECT}
-        FROM "Item"
-        WHERE "userId" = $1 AND "parentId" IS NOT NULL
-        ORDER BY created_at DESC`, Number(userId))
-    },
     pageTitle: async (parent, { url }, { models }) => {
       try {
         const response = await fetch(ensureProtocol(url), { redirect: 'follow' })
@@ -524,11 +531,12 @@ const LEFT_JOIN_SATS =
   JOIN "ItemAct" ON i.id = "ItemAct"."itemId"
   GROUP BY i.id) x ON "Item".id = x.id`
 
+/* NOTE: because many items will have the same rank, we need to tie break with a unique field so pagination works */
 function timedOrderBySats (num) {
   return `ORDER BY ((x.sats-1)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 1.5) +
-    (x.boost)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 5)) DESC NULLS LAST`
+    (x.boost)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 5)) DESC NULLS LAST, "Item".id DESC`
 }
 
 const ORDER_BY_SATS =
   `ORDER BY ((x.sats-1)/POWER(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE 'UTC') - "Item".created_at))/3600+2, 1.5) +
-    (x.boost)/POWER(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE 'UTC') - "Item".created_at))/3600+2, 5)) DESC NULLS LAST`
+    (x.boost)/POWER(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE 'UTC') - "Item".created_at))/3600+2, 5)) DESC NULLS LAST, "Item".id DESC`

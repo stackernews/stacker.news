@@ -8,8 +8,7 @@ import MoreFooter from './more-footer'
 export default function CommentsFlat ({ variables, comments, cursor, ...props }) {
   const router = useRouter()
   const { data, fetchMore } = useQuery(MORE_FLAT_COMMENTS, {
-    variables,
-    fetchPolicy: router.query.cache ? 'cache-first' : undefined
+    variables
   })
 
   if (!data && !comments) {

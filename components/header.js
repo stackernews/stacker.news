@@ -16,16 +16,6 @@ function WalletSummary ({ me }) {
   return `${me?.sats} \\ ${me?.stacked}`
 }
 
-function RefreshableLink ({ href, children, ...props }) {
-  const router = useRouter()
-  const same = router.asPath === href
-  return (
-    <Link href={same ? `${href}?key=${Math.random()}` : href} as={href} {...props}>
-      {children}
-    </Link>
-  )
-}
-
 export default function Header () {
   const router = useRouter()
   const path = router.asPath.split('?')[0]
@@ -61,7 +51,7 @@ export default function Header () {
                     </div>}
                 </NavDropdown.Item>
               </Link>
-              <RefreshableLink href='/notifications' passHref>
+              <Link href='/notifications' passHref>
                 <NavDropdown.Item>
                   notifications
                   {me?.hasNewNotes &&
@@ -69,7 +59,7 @@ export default function Header () {
                       <span className='invisible'>{' '}</span>
                     </div>}
                 </NavDropdown.Item>
-              </RefreshableLink>
+              </Link>
               <Link href='/wallet' passHref>
                 <NavDropdown.Item>wallet</NavDropdown.Item>
               </Link>
@@ -84,12 +74,12 @@ export default function Header () {
               </Link>
               <div>
                 <NavDropdown.Divider />
-                <RefreshableLink href='/recent' passHref>
+                <Link href='/recent' passHref>
                   <NavDropdown.Item>recent</NavDropdown.Item>
-                </RefreshableLink>
-                <RefreshableLink href={`/top${within ? `/${within}` : ''}`} passHref>
+                </Link>
+                <Link href={`/top${within ? `/${within}` : ''}`} passHref>
                   <NavDropdown.Item>top</NavDropdown.Item>
-                </RefreshableLink>
+                </Link>
                 {me
                   ? (
                     <Link href='/post' passHref>
@@ -139,18 +129,18 @@ export default function Header () {
             className={styles.navbarNav}
             activeKey={path}
           >
-            <RefreshableLink href='/' passHref>
+            <Link href='/' passHref>
               <Navbar.Brand className={`${styles.brand} d-none d-sm-block`}>STACKER NEWS</Navbar.Brand>
-            </RefreshableLink>
-            <RefreshableLink href='/' passHref>
+            </Link>
+            <Link href='/' passHref>
               <Navbar.Brand className={`${styles.brand} d-block d-sm-none`}>SN</Navbar.Brand>
-            </RefreshableLink>
+            </Link>
             <Nav.Item className='d-md-flex d-none nav-dropdown-toggle'>
               <SplitButton
                 title={
-                  <RefreshableLink href={sortLink} passHref>
+                  <Link href={sortLink} passHref>
                     <Nav.Link className={styles.navLink}>{sort}</Nav.Link>
-                  </RefreshableLink>
+                  </Link>
               }
                 key={`/${sort}`}
                 id='recent-top-button'

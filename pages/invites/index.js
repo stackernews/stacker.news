@@ -148,7 +148,7 @@ export default function Invites () {
           ...InviteFields
         }
       }
-    `)
+    `, { fetchPolicy: 'cache-and-network' })
 
   const [active, inactive] = data && data.invites
     ? data.invites.reduce((result, invite) => {

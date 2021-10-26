@@ -44,11 +44,7 @@ function Notification ({ n }) {
 }
 
 export default function Notifications ({ notifications, cursor, lastChecked, variables }) {
-  const router = useRouter()
-  const { data, fetchMore } = useQuery(NOTIFICATIONS, {
-    variables,
-    fetchPolicy: router.query.cache ? 'cache-first' : undefined
-  })
+  const { data, fetchMore } = useQuery(NOTIFICATIONS, { variables })
 
   if (data) {
     ({ notifications: { notifications, cursor } } = data)

@@ -1,38 +1,12 @@
-import { ITEM_FIELDS } from '../../../fragments/items'
-import { gql } from '@apollo/client'
-import getSSRApolloClient from '../../../api/ssrApollo'
+import { ITEM } from '../../../fragments/items'
+import { getGetServerSideProps } from '../../../api/ssrApollo'
 import { DiscussionForm } from '../../../components/discussion-form'
 import { LinkForm } from '../../../components/link-form'
 import LayoutCenter from '../../../components/layout-center'
 
-export async function getServerSideProps ({ req, params: { id } }) {
-  const client = await getSSRApolloClient(req)
-  const { error, data: { item } } = await client.query({
-    query:
-      gql`
-        ${ITEM_FIELDS}
-        {
-          item(id: ${id}) {
-            ...ItemFields
-            text
-        }
-      }`
-  })
+export const getServerSideProps = getGetServerSideProps(ITEM)
 
-  if (error || !item) {
-    return {
-      notFound: true
-    }
-  }
-
-  return {
-    props: {
-      item
-    }
-  }
-}
-
-export default function PostEdit ({ item }) {
+export default function PostEdit ({ data: { item } }) {
   const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
 
   return (

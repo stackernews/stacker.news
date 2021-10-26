@@ -1,5 +1,4 @@
 import { useQuery } from '@apollo/client'
-import { useRouter } from 'next/router'
 import { useEffect } from 'react'
 import Comment, { CommentSkeleton } from './comment'
 
@@ -22,10 +21,7 @@ export function CommentsSkeleton () {
 }
 
 export function CommentsQuery ({ query, ...props }) {
-  const router = useRouter()
-  const { error, data } = useQuery(query, {
-    fetchPolicy: router.query.cache ? 'cache-first' : undefined
-  })
+  const { error, data } = useQuery(query)
 
   if (error) return <div>Failed to load!</div>
   if (!data) {

@@ -1,34 +1,15 @@
 import Layout from '../../components/layout'
 import Items from '../../components/items'
 import { useRouter } from 'next/router'
-import getSSRApolloClient from '../../api/ssrApollo'
+import { getGetServerSideProps } from '../../api/ssrApollo'
 import { MORE_ITEMS } from '../../fragments/items'
 import { Nav, Navbar } from 'react-bootstrap'
 import styles from '../../components/header.module.css'
 import Link from 'next/link'
 
-export async function getServerSideProps ({ req, params: { within } }) {
-  const client = await getSSRApolloClient(req)
-  console.log('called')
-  const { data } = await client.query({
-    query: MORE_ITEMS,
-    variables: { sort: 'top', within: within?.pop() }
-  })
+export const getServerSideProps = getGetServerSideProps(MORE_ITEMS, { sort: 'top'})
 
-  let items, cursor
-  if (data) {
-    ({ moreItems: { items, cursor } } = data)
-  }
-
-  return {
-    props: {
-      items,
-      cursor
-    }
-  }
-}
-
-export default function Index ({ items, cursor }) {
+export default function Index ({ data: { moreItems: { items, cursor } } }) {
   const router = useRouter()
   const path = router.asPath.split('?')[0]
 
@@ -88,7 +69,7 @@ export default function Index ({ items, cursor }) {
       </Navbar>
       <Items
         items={items} cursor={cursor}
-        variables={{ sort: 'top', within: router.query?.within?.pop() }} rank key={router.query.key}
+        variables={{ sort: 'top', within: router.query?.within }} rank
       />
     </Layout>
   )

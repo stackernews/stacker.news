@@ -71,7 +71,7 @@ export default function UserHeader ({ user }) {
                 }
                 router.replace({
                   pathname: router.pathname,
-                  query: { ...router.query, username: name }
+                  query: { ...router.query, name }
                 })
 
                 client.writeFragment({

@@ -6,12 +6,6 @@ import { useMe } from '../components/me'
 import { DiscussionForm } from '../components/discussion-form'
 import { LinkForm } from '../components/link-form'
 
-export async function getServerSideProps () {
-  return {
-    props: {}
-  }
-}
-
 export function PostForm () {
   const router = useRouter()
   const me = useMe()

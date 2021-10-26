@@ -1,32 +1,15 @@
 import { useQuery } from '@apollo/client'
-import gql from 'graphql-tag'
 import LayoutCenter from '../../components/layout-center'
 import { CopyInput, Input, InputSkeleton } from '../../components/form'
 import InputGroup from 'react-bootstrap/InputGroup'
 import InvoiceStatus from '../../components/invoice-status'
+import { useRouter } from 'next/router'
+import { WITHDRAWL } from '../../fragments/wallet'
 
-export async function getServerSideProps ({ params: { id } }) {
-  return {
-    props: {
-      id
-    }
-  }
-}
-
-export default function Withdrawl ({ id }) {
-  const query = gql`
-    {
-      withdrawl(id: ${id}) {
-        bolt11
-        satsPaid
-        satsFeePaying
-        satsFeePaid
-        status
-      }
-    }`
+export default function Withdrawl () {
   return (
     <LayoutCenter>
-      <LoadWithdrawl query={query} />
+      <LoadWithdrawl />
     </LayoutCenter>
   )
 }
@@ -45,8 +28,12 @@ export function WithdrawlSkeleton ({ status }) {
   )
 }
 
-function LoadWithdrawl ({ query }) {
-  const { loading, error, data } = useQuery(query, { pollInterval: 1000 })
+function LoadWithdrawl () {
+  const router = useRouter()
+  const { loading, error, data } = useQuery(WITHDRAWL, {
+    variables: { id: router.query.id },
+    pollInterval: 1000
+  })
   if (error) return <div>error</div>
   if (!data || loading) {
     return <WithdrawlSkeleton status='loading' />

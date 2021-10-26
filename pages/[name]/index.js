@@ -12,28 +12,10 @@ import ActionTooltip from '../../components/action-tooltip'
 import TextareaAutosize from 'react-textarea-autosize'
 import { useMe } from '../../components/me'
 import { USER_FULL } from '../../fragments/users'
-import { useRouter } from 'next/router'
 import { ITEM_FIELDS } from '../../fragments/items'
-import getSSRApolloClient from '../../api/ssrApollo'
+import { getGetServerSideProps } from '../../api/ssrApollo'
 
-export async function getServerSideProps ({ req, params: { username } }) {
-  const client = await getSSRApolloClient(req)
-  const { error, data } = await client.query({
-    query: USER_FULL(username)
-  })
-
-  if (error || !data?.user) {
-    return {
-      notFound: true
-    }
-  }
-
-  return {
-    props: {
-      user: data.user
-    }
-  }
-}
+export const getServerSideProps = getGetServerSideProps(USER_FULL)
 
 const BioSchema = Yup.object({
   bio: Yup.string().required('required').trim()
@@ -93,15 +75,12 @@ export function BioForm ({ handleSuccess, bio }) {
   )
 }
 
-export default function User ({ user }) {
+export default function User ({ data: { user } }) {
   const [create, setCreate] = useState(false)
   const [edit, setEdit] = useState(false)
   const me = useMe()
-  const router = useRouter()
 
-  const { data } = useQuery(USER_FULL(user.name), {
-    fetchPolicy: router.query.cache ? 'cache-first' : undefined
-  })
+  const { data } = useQuery(USER_FULL, { variables: { name: user.name } })
 
   if (data) {
     ({ user } = data)

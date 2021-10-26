@@ -2,15 +2,10 @@ import { useQuery } from '@apollo/client'
 import Item, { ItemSkeleton } from './item'
 import styles from './items.module.css'
 import { MORE_ITEMS } from '../fragments/items'
-import { useRouter } from 'next/router'
 import MoreFooter from './more-footer'
 
 export default function Items ({ variables, rank, items, cursor }) {
-  const router = useRouter()
-  const { data, fetchMore } = useQuery(MORE_ITEMS, {
-    variables,
-    fetchPolicy: router.query.cache ? 'cache-first' : undefined
-  })
+  const { data, fetchMore } = useQuery(MORE_ITEMS, { variables })
 
   if (!data && !items) {
     return <ItemsSkeleton rank={rank} />

@@ -22,6 +22,10 @@ export const ITEM_FIELDS = gql`
     root {
       id
       title
+      user {
+        name
+        id
+      }
     }
   }`
 

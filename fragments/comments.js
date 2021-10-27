@@ -20,6 +20,10 @@ export const COMMENT_FIELDS = gql`
     root {
       id
       title
+      user {
+        name
+        id
+      }
     }
   }
 `

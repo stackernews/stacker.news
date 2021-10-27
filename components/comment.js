@@ -58,6 +58,7 @@ export default function Comment ({
       ref.current.scrollIntoView()
       ref.current.classList.add('flash-it')
     }
+    setCollapse(localStorage.getItem(`commentCollapse:${item.id}`))
   }, [item])
 
   const op = item.root.user.name === item.user.name
@@ -111,8 +112,18 @@ export default function Comment ({
                 </>}
             </div>
             {!includeParent && (collapse
-              ? <Eye className={styles.collapser} height={10} width={10} onClick={() => setCollapse(false)} />
-              : <EyeClose className={styles.collapser} height={10} width={10} onClick={() => setCollapse(true)} />)}
+              ? <Eye
+                  className={styles.collapser} height={10} width={10} onClick={() => {
+                    setCollapse(false)
+                    localStorage.removeItem(`commentCollapse:${item.id}`)
+                  }}
+                />
+              : <EyeClose
+                  className={styles.collapser} height={10} width={10} onClick={() => {
+                    setCollapse(true)
+                    localStorage.setItem(`commentCollapse:${item.id}`, 'yep')
+                  }}
+                />)}
           </div>
           {edit
             ? (

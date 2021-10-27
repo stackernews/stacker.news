@@ -29,7 +29,9 @@ export function LinkForm ({ item, editThreshold }) {
   const [getPageTitle, { data }] = useLazyQuery(gql`
     query PageTitle($url: String!) {
       pageTitle(url: $url)
-    }`)
+    }`, {
+    fetchPolicy: 'network-only'
+  })
   const router = useRouter()
   const [createLink] = useMutation(
     gql`

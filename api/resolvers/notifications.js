@@ -40,6 +40,23 @@ export default {
         "Item" LEFT JOIN "Vote" on "Vote"."itemId" = "Item".id AND "Vote"."userId" <> 622
         AND "Vote".boost = false WHERE "Item"."userId" = 622 group by "Item".id,
         date_trunc('hour', "Vote".created_at) order by created_at desc;
+
+        island approach we used to take
+        (SELECT ${ITEM_SUBQUERY_FIELDS}, max(subquery.voted_at) as "sortTime",
+          sum(subquery.sats) as "earnedSats", false as mention
+          FROM
+          (SELECT ${ITEM_FIELDS}, "ItemAct".created_at as voted_at, "ItemAct".sats,
+            ROW_NUMBER() OVER(ORDER BY "ItemAct".created_at) -
+            ROW_NUMBER() OVER(PARTITION BY "Item".id ORDER BY "ItemAct".created_at) as island
+            FROM "ItemAct"
+            JOIN "Item" on "ItemAct"."itemId" = "Item".id
+            WHERE "ItemAct"."userId" <> $1
+            AND "ItemAct".created_at <= $2
+            AND "ItemAct".act <> 'BOOST'
+            AND "Item"."userId" = $1) subquery
+          GROUP BY ${ITEM_SUBQUERY_FIELDS}, subquery.island
+          ORDER BY max(subquery.voted_at) desc
+          LIMIT ${LIMIT}+$3)
       */
 
       // HACK to make notifications faster, we only return a limited sub set of the unioned
@@ -55,20 +72,16 @@ export default {
           ORDER BY "Item".created_at desc
           LIMIT ${LIMIT}+$3)
         UNION ALL
-        (SELECT ${ITEM_SUBQUERY_FIELDS}, max(subquery.voted_at) as "sortTime",
-          sum(subquery.sats) as "earnedSats", false as mention
-          FROM
-          (SELECT ${ITEM_FIELDS}, "ItemAct".created_at as voted_at, "ItemAct".sats,
-            ROW_NUMBER() OVER(ORDER BY "ItemAct".created_at) -
-            ROW_NUMBER() OVER(PARTITION BY "Item".id ORDER BY "ItemAct".created_at) as island
-            FROM "ItemAct"
-            JOIN "Item" on "ItemAct"."itemId" = "Item".id
-            WHERE "ItemAct"."userId" <> $1
-            AND "ItemAct".created_at <= $2
-            AND "ItemAct".act <> 'BOOST'
-            AND "Item"."userId" = $1) subquery
-          GROUP BY ${ITEM_SUBQUERY_FIELDS}, subquery.island
-          ORDER BY max(subquery.voted_at) desc
+        (SELECT ${ITEM_FIELDS}, max("ItemAct".created_at) as "sortTime",
+          sum("ItemAct".sats) as "earnedSats", false as mention
+          FROM "Item"
+          JOIN "ItemAct" on "ItemAct"."itemId" = "Item".id
+          WHERE "ItemAct"."userId" <> $1
+          AND "ItemAct".created_at <= $2
+          AND "ItemAct".act <> 'BOOST'
+          AND "Item"."userId" = $1
+          GROUP BY ${ITEM_GROUP_FIELDS}
+          ORDER BY max("ItemAct".created_at) desc
           LIMIT ${LIMIT}+$3)
         UNION ALL
         (SELECT ${ITEM_FIELDS}, "Mention".created_at as "sortTime",  NULL as "earnedSats",
@@ -109,9 +122,13 @@ export default {
   }
 }
 
-const ITEM_SUBQUERY_FIELDS =
-  `subquery.id, subquery."createdAt", subquery."updatedAt", subquery.title, subquery.text,
-  subquery.url, subquery."userId", subquery."parentId", subquery.path`
+// const ITEM_SUBQUERY_FIELDS =
+//   `subquery.id, subquery."createdAt", subquery."updatedAt", subquery.title, subquery.text,
+//   subquery.url, subquery."userId", subquery."parentId", subquery.path`
+
+const ITEM_GROUP_FIELDS =
+  `"Item".id, "Item".created_at, "Item".updated_at, "Item".title,
+  "Item".text, "Item".url, "Item"."userId", "Item"."parentId", ltree2text("Item"."path")`
 
 const ITEM_FIELDS =
   `"Item".id, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt", "Item".title,

@@ -6,8 +6,9 @@ import resolvers from './resolvers'
 import typeDefs from './typeDefs'
 import models from './models'
 import { print } from 'graphql'
+import lnd from './lnd'
 
-export default async function getSSRApolloClient (req) {
+export default async function getSSRApolloClient (req, me = null) {
   const session = req && await getSession({ req })
   return new ApolloClient({
     ssrMode: true,
@@ -18,7 +19,8 @@ export default async function getSSRApolloClient (req) {
       }),
       context: {
         models,
-        me: session ? session.user : null
+        me: session ? session.user : me,
+        lnd
       }
     }),
     cache: new InMemoryCache()

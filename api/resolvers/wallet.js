@@ -89,10 +89,6 @@ export default {
       }
     },
     createWithdrawl: async (parent, { invoice, maxFee }, { me, models, lnd }) => {
-      if (!me) {
-        throw new AuthenticationError('you must be logged in')
-      }
-
       // decode invoice to get amount
       let decoded
       try {

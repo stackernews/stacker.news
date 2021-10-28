@@ -48,6 +48,15 @@ model LnAuth {
   pubkey    String?
 }
 
+model LnWith {
+  id           Int      @id @default(autoincrement())
+  createdAt    DateTime @default(now()) @map(name: "created_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map(name: "updated_at")
+  k1           String   @unique
+  userId       Int
+  withdrawalId Int?
+}
+
 model Invite {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now()) @map(name: "created_at")

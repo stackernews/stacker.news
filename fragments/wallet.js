@@ -23,3 +23,10 @@ export const WITHDRAWL = gql`
       status
     }
   }`
+
+export const CREATE_WITHDRAWL = gql`
+  mutation createWithdrawl($invoice: String!, $maxFee: Int!) {
+    createWithdrawl(invoice: $invoice, maxFee: $maxFee) {
+      id
+    }
+}`

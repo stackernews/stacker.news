@@ -3,8 +3,8 @@ import { Form, Input, SubmitButton } from '../components/form'
 import Link from 'next/link'
 import Button from 'react-bootstrap/Button'
 import * as Yup from 'yup'
-import { gql, useMutation } from '@apollo/client'
-import { LnQRSkeleton } from '../components/lnqr'
+import { gql, useMutation, useQuery } from '@apollo/client'
+import LnQR, { LnQRSkeleton } from '../components/lnqr'
 import LayoutCenter from '../components/layout-center'
 import InputGroup from 'react-bootstrap/InputGroup'
 import { WithdrawlSkeleton } from './withdrawals/[id]'
@@ -12,6 +12,7 @@ import { useMe } from '../components/me'
 import { useEffect, useState } from 'react'
 import { requestProvider } from 'webln'
 import { Alert } from 'react-bootstrap'
+import { CREATE_WITHDRAWL } from '../fragments/wallet'
 
 export default function Wallet () {
   return (
@@ -49,8 +50,10 @@ export function WalletForm () {
 
   if (router.query.type === 'fund') {
     return <FundForm />
-  } else {
+  } else if (router.query.type === 'withdraw') {
     return <WithdrawlForm />
+  } else {
+    return <LnWithdrawal />
   }
 }
 
@@ -125,12 +128,7 @@ export function WithdrawlForm () {
   const router = useRouter()
   const me = useMe()
 
-  const [createWithdrawl, { called, error }] = useMutation(gql`
-    mutation createWithdrawl($invoice: String!, $maxFee: Int!) {
-      createWithdrawl(invoice: $invoice, maxFee: $maxFee) {
-        id
-      }
-  }`)
+  const [createWithdrawl, { called, error }] = useMutation(CREATE_WITHDRAWL)
 
   useEffect(async () => {
     try {
@@ -153,7 +151,6 @@ export function WithdrawlForm () {
     <>
       <YouHaveSats />
       <Form
-        className='pt-3'
         initial={{
           invoice: '',
           maxFee: MAX_FEE_DEFAULT
@@ -179,6 +176,49 @@ export function WithdrawlForm () {
         />
         <SubmitButton variant='success' className='mt-2'>withdraw</SubmitButton>
       </Form>
+      <span className='my-3 font-weight-bold text-muted'>or</span>
+      <Link href='/wallet?type=lnurl-withdraw'>
+        <Button variant='grey'>QR code</Button>
+      </Link>
     </>
   )
+}
+
+function LnQRWith ({ k1, encodedUrl }) {
+  const router = useRouter()
+  const query = gql`
+  {
+    lnWith(k1: "${k1}") {
+      withdrawalId
+      k1
+    }
+  }`
+  const { data } = useQuery(query, { pollInterval: 1000, fetchPolicy: 'cache-first' })
+
+  if (data?.lnWith?.withdrawalId) {
+    router.push(`/withdrawals/${data.lnWith.withdrawalId}`)
+  }
+
+  return <LnQR value={encodedUrl} status='waiting for you' />
+}
+
+export function LnWithdrawal () {
+  // query for challenge
+  const [createAuth, { data, error }] = useMutation(gql`
+    mutation createAuth {
+      createWith {
+        k1
+        encodedUrl
+      }
+    }`)
+
+  useEffect(createAuth, [])
+
+  if (error) return <div>error</div>
+
+  if (!data) {
+    return <LnQRSkeleton status='generating' />
+  }
+
+  return <LnQRWith {...data.createWith} />
 }

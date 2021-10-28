@@ -35,7 +35,7 @@ export default function Footer ({ noLinks }) {
     }
   `
 
-  const { data } = useQuery(query)
+  const { data } = useQuery(query, { fetchPolicy: 'cache-first' })
 
   return (
     <footer>

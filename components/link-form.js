@@ -6,6 +6,9 @@ import { ensureProtocol } from '../lib/url'
 import ActionTooltip from '../components/action-tooltip'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial, AdvPostSchema } from './adv-post-form'
+import { ITEM_FIELDS } from '../fragments/items'
+import Item from './item'
+import AccordianItem from './accordian-item'
 
 export const LinkSchema = Yup.object({
   title: Yup.string().required('required').trim(),
@@ -26,13 +29,24 @@ export const LinkSchema = Yup.object({
 })
 
 export function LinkForm ({ item, editThreshold }) {
+  const router = useRouter()
+
   const [getPageTitle, { data }] = useLazyQuery(gql`
     query PageTitle($url: String!) {
       pageTitle(url: $url)
     }`, {
     fetchPolicy: 'network-only'
   })
-  const router = useRouter()
+  const [getDupes, { data: dupesData }] = useLazyQuery(gql`
+  ${ITEM_FIELDS}
+  query Dupes($url: String!) {
+    dupes(url: $url) {
+      ...ItemFields
+    }
+  }`, {
+    fetchPolicy: 'network-only'
+  })
+
   const [createLink] = useMutation(
     gql`
       mutation createLink($title: String!, $url: String!, $boost: Int) {
@@ -41,6 +55,7 @@ export function LinkForm ({ item, editThreshold }) {
         }
       }`
   )
+
   const [updateLink] = useMutation(
     gql`
       mutation updateLink($id: ID!, $title: String!, $url: String!) {
@@ -65,6 +80,8 @@ export function LinkForm ({ item, editThreshold }) {
       }
     }
   )
+
+  console.log(dupesData)
 
   return (
     <Form
@@ -107,13 +124,31 @@ export function LinkForm ({ item, editThreshold }) {
               variables: { url: e.target.value }
             })
           }
+          getDupes({
+            variables: { url: e.target.value }
+          })
         }}
       />
       {!item && <AdvPostForm />}
-
       <ActionTooltip>
         <SubmitButton variant='secondary' className='mt-3'>{item ? 'save' : 'post'}</SubmitButton>
       </ActionTooltip>
+      {dupesData?.dupes?.length > 0 &&
+        <div className='mt-3'>
+          <AccordianItem
+            show
+            headerColor='#c03221'
+            header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>dupes</div>}
+            body={
+              <div>
+                {dupesData.dupes.map((item, i) => (
+                  <Item item={item} key={item.id} />
+                ))}
+              </div>
+              }
+          />
+        </div>}
+
     </Form>
   )
 }

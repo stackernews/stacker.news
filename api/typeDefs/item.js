@@ -6,6 +6,7 @@ export default gql`
     moreFlatComments(cursor: String, name: String!): Comments
     item(id: ID!): Item
     pageTitle(url: String!): String
+    dupes(url: String!): [Item!]
   }
 
   enum ItemAct {

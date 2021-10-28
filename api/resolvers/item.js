@@ -165,6 +165,15 @@ export default {
       } catch (e) {
         return null
       }
+    },
+    dupes: async (parent, { url }, { models }) => {
+      const urlObj = new URL(ensureProtocol(url))
+      return await models.$queryRaw(`
+        ${SELECT}
+        FROM "Item"
+        WHERE url LIKE ($1 || '?%') OR url = $1
+        ORDER BY created_at DESC
+        LIMIT 3`, urlObj.origin + urlObj.pathname)
     }
   },
 

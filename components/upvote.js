@@ -8,10 +8,12 @@ import ActionTooltip from './action-tooltip'
 import { useItemAct } from './item-act'
 import Window from '../svgs/window-2-fill.svg'
 import { useMe } from './me'
+import { useState } from 'react'
 
 export default function UpVote ({ item, className }) {
   const { setError } = useFundError()
   const { setItem } = useItemAct()
+  const [voteLock, setVoteLock] = useState()
   const me = useMe()
   const [act] = useMutation(
     gql`
@@ -99,7 +101,7 @@ export default function UpVote ({ item, className }) {
             me
               ? async (e) => {
                   e.stopPropagation()
-                  if (!item) return
+                  if (!item || voteLock) return
 
                   // we can't tip ourselves
                   if (noSelfTips) {
@@ -109,8 +111,8 @@ export default function UpVote ({ item, className }) {
                   if (item?.meVote) {
                     if (me?.tipDefault) {
                       try {
-                        await act({ variables: { id: item.id, act: 'TIP', sats: me.tipDefault } })
                         strike()
+                        await act({ variables: { id: item.id, act: 'TIP', sats: me.tipDefault } })
                       } catch (e) {
                         console.log(e)
                       }
@@ -123,6 +125,7 @@ export default function UpVote ({ item, className }) {
                   strike()
 
                   try {
+                    setVoteLock(true)
                     await act({ variables: { id: item.id, act: 'VOTE', sats: 1 } })
                   } catch (error) {
                     if (error.toString().includes('insufficient funds')) {
@@ -130,6 +133,8 @@ export default function UpVote ({ item, className }) {
                       return
                     }
                     throw new Error({ message: error.toString() })
+                  } finally {
+                    setVoteLock(false)
                   }
                 }
               : signIn

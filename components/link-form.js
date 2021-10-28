@@ -81,8 +81,6 @@ export function LinkForm ({ item, editThreshold }) {
     }
   )
 
-  console.log(dupesData)
-
   return (
     <Form
       initial={{

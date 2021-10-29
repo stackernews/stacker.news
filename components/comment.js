@@ -89,7 +89,7 @@ export default function Comment ({
               </Link>
               <span> \ </span>
               <Link href={`/${item.user.name}`} passHref>
-                <a onClick={e => e.stopPropagation()}>@{item.user.name}<span className='text-muted font-weight-bold'>{op && ' OP'}</span></a>
+                <a onClick={e => e.stopPropagation()}>@{item.user.name}<span className='text-boost font-weight-bold'>{op && ' OP'}</span></a>
               </Link>
               <span> </span>
               <span>{timeSince(new Date(item.createdAt))}</span>

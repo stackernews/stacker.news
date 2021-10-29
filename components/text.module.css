@@ -1,6 +1,7 @@
 .text {
     font-size: 90%;
     font-family: inherit;
+    word-break: break-word;
 }
 
 .text p {

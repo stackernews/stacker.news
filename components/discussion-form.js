@@ -83,7 +83,7 @@ export function DiscussionForm ({
         as={TextareaAutosize}
         minRows={4}
         hint={editThreshold
-          ? <Countdown date={editThreshold} />
+          ? <div className='text-muted font-weight-bold'><Countdown date={editThreshold} /></div>
           : null}
       />
       {!item && adv && <AdvPostForm />}

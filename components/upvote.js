@@ -99,6 +99,12 @@ export default function UpVote ({ item, className }) {
                   return
                 }
 
+                if (window.getSelection) {
+                  window.getSelection().removeAllRanges()
+                } else if (document.selection) {
+                  document.selection.empty()
+                }
+
                 setItem({ itemId: item.id, act, strike })
               }
             }

@@ -236,7 +236,8 @@ export default {
         throw new AuthenticationError('item does not belong to you')
       }
 
-      if (Date.now() > new Date(item.createdAt).getTime() + 10 * 60000) {
+      // if it's not the FAQ and older than 10 minutes
+      if (item.id !== 349 && Date.now() > new Date(item.createdAt).getTime() + 10 * 60000) {
         throw new UserInputError('item can no longer be editted')
       }
 

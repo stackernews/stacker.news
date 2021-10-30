@@ -9,6 +9,7 @@ import { useItemAct } from './item-act'
 import Window from '../svgs/window-2-fill.svg'
 import { useMe } from './me'
 import { useState } from 'react'
+import LongPressable from 'react-longpressable'
 
 export default function UpVote ({ item, className }) {
   const { setError } = useFundError()
@@ -88,16 +89,21 @@ export default function UpVote ({ item, className }) {
     <LightningConsumer>
       {({ strike }) =>
         <ActionTooltip notForm disable={noSelfTips} overlayText={overlayText()}>
-          <UpArrow
-            width={24}
-            height={24}
-            className={
-            `${styles.upvote}
-            ${className || ''}
-            ${noSelfTips ? styles.noSelfTips : ''}
-            ${item?.meVote ? styles.voted : ''}`
-          }
-            onClick={
+          <LongPressable
+            onLongPress={
+              async (e) => {
+                e.stopPropagation()
+                if (!item || voteLock) return
+
+                // we can't tip ourselves
+                if (noSelfTips) {
+                  return
+                }
+
+                setItem({ itemId: item.id, act, strike })
+              }
+            }
+            onShortPress={
             me
               ? async (e) => {
                   e.stopPropagation()
@@ -139,7 +145,18 @@ export default function UpVote ({ item, className }) {
                 }
               : signIn
           }
-          />
+          >
+            <UpArrow
+              width={24}
+              height={24}
+              className={
+            `${styles.upvote}
+            ${className || ''}
+            ${noSelfTips ? styles.noSelfTips : ''}
+            ${item?.meVote ? styles.voted : ''}`
+          }
+            />
+          </LongPressable>
         </ActionTooltip>}
     </LightningConsumer>
   )

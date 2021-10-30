@@ -21,7 +21,9 @@ export default function LnQR ({ value, webLn, statusVariant, status }) {
   return (
     <>
       <a className='d-block' href={qrValue}>
-        <QRCode className='h-auto mw-100' value={qrValue} renderAs='svg' size={300} />
+        <QRCode
+          className='h-auto mw-100' value={qrValue} renderAs='svg' size={300}
+        />
       </a>
       <div className='mt-3 w-100'>
         <CopyInput type='text' placeholder={value} readOnly />

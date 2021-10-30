@@ -91,18 +91,14 @@ export default function UpVote ({ item, className }) {
         <LongPressable
           onLongPress={
               async (e) => {
+                e.preventDefault()
                 e.stopPropagation()
                 if (!item || voteLock) return
+                console.log('hi1')
 
                 // we can't tip ourselves
                 if (noSelfTips) {
                   return
-                }
-
-                if (window.getSelection) {
-                  window.getSelection().removeAllRanges()
-                } else if (document.selection) {
-                  document.selection.empty()
                 }
 
                 setItem({ itemId: item.id, act, strike })
@@ -111,8 +107,10 @@ export default function UpVote ({ item, className }) {
           onShortPress={
             me
               ? async (e) => {
+                  e.preventDefault()
                   e.stopPropagation()
                   if (!item || voteLock) return
+                  console.log('hi2')
 
                   // we can't tip ourselves
                   if (noSelfTips) {
@@ -152,16 +150,18 @@ export default function UpVote ({ item, className }) {
           }
         >
           <ActionTooltip notForm disable={noSelfTips} overlayText={overlayText()}>
-
             <UpArrow
               width={24}
               height={24}
               className={
-            `${styles.upvote}
-            ${className || ''}
-            ${noSelfTips ? styles.noSelfTips : ''}
-            ${item?.meVote ? styles.voted : ''}`
-          }
+                `${styles.upvote}
+                ${className || ''}
+                ${noSelfTips ? styles.noSelfTips : ''}
+                ${item?.meVote ? styles.voted : ''}`
+              }
+              onClick={e => {
+                e.stopPropagation()
+              }}
             />
           </ActionTooltip>
         </LongPressable>}

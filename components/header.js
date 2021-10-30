@@ -90,6 +90,10 @@ export default function Header () {
                 <NavDropdown.Item href='https://bitcoinerjobs.co' target='_blank'>jobs</NavDropdown.Item>
               </div>
               <NavDropdown.Divider />
+              <Link href='/settings' passHref>
+                <NavDropdown.Item>settings</NavDropdown.Item>
+              </Link>
+              <NavDropdown.Divider />
               <NavDropdown.Item onClick={signOut}>logout</NavDropdown.Item>
             </NavDropdown>
             {me?.hasNewNotes &&

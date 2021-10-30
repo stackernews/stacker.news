@@ -35,6 +35,15 @@ export default {
         throw error
       }
     },
+    setSettings: async (parent, { tipDefault }, { me, models }) => {
+      if (!me) {
+        throw new AuthenticationError('you must be logged in')
+      }
+
+      await models.user.update({ where: { id: me.id }, data: { tipDefault } })
+
+      return true
+    },
     upsertBio: async (parent, { bio }, { me, models }) => {
       if (!me) {
         throw new AuthenticationError('you must be logged in')

@@ -10,6 +10,7 @@ export default gql`
 
   extend type Mutation {
     setName(name: String!): Boolean
+    setSettings(tipDefault: Int!): Boolean
     upsertBio(bio: String!): User!
   }
 

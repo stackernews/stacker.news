@@ -88,9 +88,8 @@ export default function UpVote ({ item, className }) {
   return (
     <LightningConsumer>
       {({ strike }) =>
-        <ActionTooltip notForm disable={noSelfTips} overlayText={overlayText()}>
-          <LongPressable
-            onLongPress={
+        <LongPressable
+          onLongPress={
               async (e) => {
                 e.stopPropagation()
                 if (!item || voteLock) return
@@ -103,7 +102,7 @@ export default function UpVote ({ item, className }) {
                 setItem({ itemId: item.id, act, strike })
               }
             }
-            onShortPress={
+          onShortPress={
             me
               ? async (e) => {
                   e.stopPropagation()
@@ -145,7 +144,9 @@ export default function UpVote ({ item, className }) {
                 }
               : signIn
           }
-          >
+        >
+          <ActionTooltip notForm disable={noSelfTips} overlayText={overlayText()}>
+
             <UpArrow
               width={24}
               height={24}
@@ -156,8 +157,8 @@ export default function UpVote ({ item, className }) {
             ${item?.meVote ? styles.voted : ''}`
           }
             />
-          </LongPressable>
-        </ActionTooltip>}
+          </ActionTooltip>
+        </LongPressable>}
     </LightningConsumer>
   )
 }

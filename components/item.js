@@ -67,7 +67,9 @@ export default function Item ({ item, rank, children }) {
                 <a>@{item.user.name}</a>
               </Link>
               <span> </span>
-              <span>{timeSince(new Date(item.createdAt))}</span>
+              <Link href={`/items/${item.id}`} passHref>
+                <a title={item.createdAt} className='text-reset'>{timeSince(new Date(item.createdAt))}</a>
+              </Link>
             </span>
             {canEdit &&
               <>

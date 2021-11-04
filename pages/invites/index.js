@@ -126,7 +126,7 @@ function InviteList ({ name, invites }) {
     <div className='mt-4'>
       <AccordianItem
         show
-        headerColor='#212529'
+        headerColor='#6c757d'
         header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>{name}</div>} body={
           <div className={styles.invites}>{invites.map(invite => {
             return <Invite invite={invite} key={invite.id} active={name === 'active'} />

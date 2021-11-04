@@ -11,6 +11,39 @@ import { signOut, signIn, useSession } from 'next-auth/client'
 import { useLightning } from './lightning'
 import { useEffect, useState } from 'react'
 import { randInRange } from '../lib/rand'
+import styled from 'styled-components'
+import Sun from '../svgs/sun-fill.svg'
+
+const Brand = styled(Navbar.Brand)`
+  color: ${({ theme }) => theme.brandColor}
+`
+
+export const StyledNavbar = styled(Navbar).attrs(({ theme }) => ({
+  variant: theme.navbarVariant,
+  className: styles.navbar
+}))`
+  & .dropdown-menu {
+    background-color: ${({ theme }) => theme.body};
+    border: 1px solid ${({ theme }) => theme.borderColor};
+  }
+
+  & .dropdown-item {
+    color: ${({ theme }) => theme.dropdownItemColor};
+  }
+
+  & .dropdown-item:hover {
+    color: ${({ theme }) => theme.dropdownItemColorHover};
+  }
+
+  & .dropdown-item.active {
+    color: ${({ theme }) => theme.brandColor};
+    text-shadow: 0 0 10px var(--primary);
+  }
+
+  & .dropdown-divider {
+    border-top: 1px solid ${({ theme }) => theme.borderColor};
+  }
+`
 
 function WalletSummary ({ me }) {
   return `${me?.sats} \\ ${me?.stacked}`
@@ -90,9 +123,12 @@ export default function Header () {
                 <NavDropdown.Item href='https://bitcoinerjobs.co' target='_blank'>jobs</NavDropdown.Item>
               </div>
               <NavDropdown.Divider />
-              <Link href='/settings' passHref>
-                <NavDropdown.Item>settings</NavDropdown.Item>
-              </Link>
+              <div className='d-flex align-items-center'>
+                <Link href='/settings' passHref>
+                  <NavDropdown.Item>settings</NavDropdown.Item>
+                </Link>
+                <Sun className='fill-grey mr-3' />
+              </div>
               <NavDropdown.Divider />
               <NavDropdown.Item onClick={signOut}>logout</NavDropdown.Item>
             </NavDropdown>
@@ -128,16 +164,16 @@ export default function Header () {
   return (
     <>
       <Container className='px-sm-0'>
-        <Navbar className={styles.navbar}>
+        <StyledNavbar>
           <Nav
             className={styles.navbarNav}
             activeKey={path}
           >
             <Link href='/' passHref>
-              <Navbar.Brand className={`${styles.brand} d-none d-sm-block`}>STACKER NEWS</Navbar.Brand>
+              <Brand className={`${styles.brand} d-none d-sm-block`}>STACKER NEWS</Brand>
             </Link>
             <Link href='/' passHref>
-              <Navbar.Brand className={`${styles.brand} d-block d-sm-none`}>SN</Navbar.Brand>
+              <Brand className={`${styles.brand} d-block d-sm-none`}>SN</Brand>
             </Link>
             <Nav.Item className='d-md-flex d-none nav-dropdown-toggle'>
               <SplitButton
@@ -173,7 +209,7 @@ export default function Header () {
             </Nav.Item>
             <Corner />
           </Nav>
-        </Navbar>
+        </StyledNavbar>
       </Container>
     </>
   )

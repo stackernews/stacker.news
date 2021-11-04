@@ -1,7 +1,6 @@
 import { useQuery } from '@apollo/client'
 import { MORE_FLAT_COMMENTS } from '../fragments/comments'
 import Comment, { CommentSkeleton } from './comment'
-import styles from './notifications.module.css'
 import { useRouter } from 'next/router'
 import MoreFooter from './more-footer'
 
@@ -24,7 +23,7 @@ export default function CommentsFlat ({ variables, comments, cursor, ...props })
       {comments.map(item => (
         <div
           key={item.id}
-          className={styles.clickToContext}
+          className='clickToContext'
           onClick={() => {
             router.push({
               pathname: '/items/[id]',

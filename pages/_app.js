@@ -7,6 +7,86 @@ import PlausibleProvider from 'next-plausible'
 import { LightningProvider } from '../components/lightning'
 import { ItemActModal, ItemActProvider } from '../components/item-act'
 import getApolloClient from '../lib/apollo'
+import { createGlobalStyle, ThemeProvider } from 'styled-components'
+
+const GlobalStyle = createGlobalStyle`
+  body {
+    background: ${({ theme }) => theme.body};
+    color: ${({ theme }) => theme.color};
+  }
+
+  .nav-tabs .nav-link.active, .nav-tabs .nav-item.show .nav-link {
+    color: inherit;
+    background-color: ${({ theme }) => theme.inputBg};
+    border-color: ${({ theme }) => theme.borderColor};
+    border-bottom-color: ${({ theme }) => theme.inputBg};
+  }
+
+  .form-control {
+    background-color: ${({ theme }) => theme.inputBg};
+    color: ${({ theme }) => theme.color};
+    border-color: ${({ theme }) => theme.borderColor};
+  }
+
+  .form-control:focus {
+    background-color:  ${({ theme }) => theme.inputBg};
+    color: ${({ theme }) => theme.color};
+  }
+
+  .form-control:disabled, .form-control[readonly] {
+    background-color: ${({ theme }) => theme.inputBg};
+    border-color: ${({ theme }) => theme.borderColor};
+    opacity: 1;
+  }
+
+  .clickToContext {
+    border-radius: .4rem;
+    padding: .2rem 0;
+    cursor: pointer;
+  }
+
+  .clickToContext:hover {
+    background-color: ${({ theme }) => theme.clickToContextColor};
+  }
+
+  .fresh {
+    background-color: ${({ theme }) => theme.clickToContextColor};
+    border-radius: .4rem;
+  }
+
+  .modal-content {
+    background-color: ${({ theme }) => theme.body};
+    border-color: ${({ theme }) => theme.borderColor};
+  }
+`
+
+// const lightTheme = {
+//   body: 'linear-gradient(180deg, #f5f5f5, #f5f5f5, white)',
+//   color: '#212529',
+//   navbarVariant: 'light',
+//   inputBg: '#ffffff',
+//   navbarVariant: 'light',
+//   borderColor: 'rgb(255 255 255 / 50%)',
+//   dropdownItemColor: 'rgba(255, 255, 255, 0.7)',
+//   dropdownItemColorHover: 'rgba(255, 255, 255, 0.9)',
+//   commentBg: 'rgba(255, 255, 255, 0.04)',
+//   clickToContextColor: 'rgba(255, 255, 255, 0.08)',
+//   color: '#f8f9fa',
+//   brandColor: 'var(--primary) !important'
+// }
+
+const darkTheme = {
+  body: '#000000',
+  inputBg: '#000000',
+  navbarVariant: 'dark',
+  borderColor: 'rgb(255 255 255 / 50%)',
+  dropdownItemColor: 'rgba(255, 255, 255, 0.7)',
+  dropdownItemColorHover: 'rgba(255, 255, 255, 0.9)',
+  commentBg: 'rgba(255, 255, 255, 0.04)',
+  clickToContextColor: 'rgba(255, 255, 255, 0.08)',
+  color: '#f8f9fa',
+  brandColor: 'var(--primary) !important'
+}
 
 function MyApp ({ Component, pageProps: { session, ...props } }) {
   const client = getApolloClient()
@@ -27,21 +107,24 @@ function MyApp ({ Component, pageProps: { session, ...props } }) {
 
   return (
     <PlausibleProvider domain='stacker.news' trackOutboundLinks>
-      <Provider session={session}>
-        <ApolloProvider client={client}>
-          <MeProvider>
-            <LightningProvider>
-              <FundErrorProvider>
-                <FundErrorModal />
-                <ItemActProvider>
-                  <ItemActModal />
-                  <Component {...props} />
-                </ItemActProvider>
-              </FundErrorProvider>
-            </LightningProvider>
-          </MeProvider>
-        </ApolloProvider>
-      </Provider>
+      <ThemeProvider theme={darkTheme}>
+        <GlobalStyle />
+        <Provider session={session}>
+          <ApolloProvider client={client}>
+            <MeProvider>
+              <LightningProvider>
+                <FundErrorProvider>
+                  <FundErrorModal />
+                  <ItemActProvider>
+                    <ItemActModal />
+                    <Component {...props} />
+                  </ItemActProvider>
+                </FundErrorProvider>
+              </LightningProvider>
+            </MeProvider>
+          </ApolloProvider>
+        </Provider>
+      </ThemeProvider>
     </PlausibleProvider>
   )
 }

@@ -60,7 +60,7 @@ export function InputSkeleton ({ label }) {
   return (
     <BootstrapForm.Group>
       {label && <BootstrapForm.Label>{label}</BootstrapForm.Label>}
-      <div className='clouds form-control' />
+      <div className='form-control clouds' />
     </BootstrapForm.Group>
   )
 }

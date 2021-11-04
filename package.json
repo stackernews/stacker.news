@@ -42,6 +42,7 @@
     "remove-markdown": "^0.3.0",
     "sass": "^1.32.8",
     "secp256k1": "^4.0.2",
+    "styled-components": "^5.3.3",
     "swr": "^0.5.4",
     "webln": "^0.2.2",
     "yup": "^0.32.9"

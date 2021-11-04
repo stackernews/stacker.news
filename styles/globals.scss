@@ -171,11 +171,11 @@ footer {
 
 
 .dropdown-item.active {
-  text-shadow: 0 0 10px #FADA5E;
+  text-shadow: 0 0 10px var(--primary);
 }
 
 .form-control:focus {
-  border-color: #fada5e;
+  border-color: var(--primary);
 }
 
 .btn-secondary,
@@ -222,7 +222,7 @@ footer {
 }
 
 .clouds {
-  background: url('/clouds.jpeg');
+  background-image: url('/clouds.jpeg') !important;
   background-color: grey;
   background-repeat: repeat;
   background-origin: content-box;

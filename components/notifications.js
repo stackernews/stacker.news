@@ -2,7 +2,6 @@ import { useQuery } from '@apollo/client'
 import Comment, { CommentSkeleton } from './comment'
 import Item from './item'
 import { NOTIFICATIONS } from '../fragments/notifications'
-import styles from './notifications.module.css'
 import { useRouter } from 'next/router'
 import MoreFooter from './more-footer'
 
@@ -10,7 +9,7 @@ function Notification ({ n }) {
   const router = useRouter()
   return (
     <div
-      className={styles.clickToContext}
+      className='clickToContext'
       onClick={() => {
         if (n.__typename === 'Reply' || !n.item.title) {
           router.push({
@@ -60,7 +59,7 @@ export default function Notifications ({ notifications, cursor, lastChecked, var
   return (
     <>
       {/* XXX we shouldn't use the index but we don't have a unique id in this union yet */}
-      <div className={styles.fresh}>
+      <div className='fresh'>
         {fresh.map((n, i) => (
           <Notification n={n} key={i} />
         ))}

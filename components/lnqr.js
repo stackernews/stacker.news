@@ -20,7 +20,7 @@ export default function LnQR ({ value, webLn, statusVariant, status }) {
 
   return (
     <>
-      <a className='d-block' href={qrValue}>
+      <a className='d-block p-3' style={{ background: 'white' }} href={qrValue}>
         <QRCode
           className='h-auto mw-100' value={qrValue} renderAs='svg' size={300}
         />
@@ -36,7 +36,7 @@ export default function LnQR ({ value, webLn, statusVariant, status }) {
 export function LnQRSkeleton ({ status }) {
   return (
     <>
-      <div className='h-auto w-100 clouds' style={{ paddingTop: 'min(300px, 100%)', maxWidth: '300px' }} />
+      <div className='h-auto w-100 clouds' style={{ paddingTop: 'min(300px + 2rem, 100%)', maxWidth: 'calc(300px + 2rem)' }} />
       <div className='mt-3 w-100'>
         <InputSkeleton />
       </div>

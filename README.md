@@ -1,5 +1,5 @@
 # stacker.news
-[Stacker News](https://stacker.news) is like Hacker News but we pay you Bitcoin. We use Bitcoin and the Lightning Network to provide Sybil resistance and any karma earned is withdrawable as Bitcoin. Long-term we plan to decentralize SN on an open peer to peer network.
+[Stacker News](https://stacker.news) is like Hacker News but we pay you Bitcoin. We use Bitcoin and the Lightning Network to provide Sybil resistance and any karma earned is withdrawable as Bitcoin. Next year we plan to decentralize SN on an open peer to peer network.
 
 # local development
 1. [Install docker-compose](https://docs.docker.com/compose/install/) and deps if you don't already have it installed

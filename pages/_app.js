@@ -2,7 +2,7 @@ import '../styles/globals.scss'
 import { ApolloProvider, gql } from '@apollo/client'
 import { Provider } from 'next-auth/client'
 import { FundErrorModal, FundErrorProvider } from '../components/fund-error'
-import { MeProvider } from '../components/me'
+import { MeProvider, useMe } from '../components/me'
 import PlausibleProvider from 'next-plausible'
 import { LightningProvider } from '../components/lightning'
 import { ItemActModal, ItemActProvider } from '../components/item-act'
@@ -60,20 +60,18 @@ const GlobalStyle = createGlobalStyle`
   }
 `
 
-// const lightTheme = {
-//   body: 'linear-gradient(180deg, #f5f5f5, #f5f5f5, white)',
-//   color: '#212529',
-//   navbarVariant: 'light',
-//   inputBg: '#ffffff',
-//   navbarVariant: 'light',
-//   borderColor: 'rgb(255 255 255 / 50%)',
-//   dropdownItemColor: 'rgba(255, 255, 255, 0.7)',
-//   dropdownItemColorHover: 'rgba(255, 255, 255, 0.9)',
-//   commentBg: 'rgba(255, 255, 255, 0.04)',
-//   clickToContextColor: 'rgba(255, 255, 255, 0.08)',
-//   color: '#f8f9fa',
-//   brandColor: 'var(--primary) !important'
-// }
+const lightTheme = {
+  body: '#f5f5f5',
+  color: '#212529',
+  navbarVariant: 'light',
+  borderColor: '#ced4da',
+  inputBg: '#ffffff',
+  dropdownItemColor: 'inherit',
+  dropdownItemColorHover: 'rgba(0, 0, 0, 0.9)',
+  commentBg: 'rgba(0, 0, 0, 0.03)',
+  clickToContextColor: 'rgba(0, 0, 0, 0.05)',
+  brandColor: 'rgba(0, 0, 0, 0.9)'
+}
 
 const darkTheme = {
   body: '#000000',
@@ -86,6 +84,16 @@ const darkTheme = {
   clickToContextColor: 'rgba(255, 255, 255, 0.08)',
   color: '#f8f9fa',
   brandColor: 'var(--primary) !important'
+}
+
+function ThemeProviderWrapper ({ children }) {
+  const me = useMe()
+  console.log(me)
+  return (
+    <ThemeProvider theme={me?.theme === 'light' ? lightTheme : darkTheme}>
+      {children}
+    </ThemeProvider>
+  )
 }
 
 function MyApp ({ Component, pageProps: { session, ...props } }) {
@@ -107,11 +115,11 @@ function MyApp ({ Component, pageProps: { session, ...props } }) {
 
   return (
     <PlausibleProvider domain='stacker.news' trackOutboundLinks>
-      <ThemeProvider theme={darkTheme}>
-        <GlobalStyle />
-        <Provider session={session}>
-          <ApolloProvider client={client}>
-            <MeProvider>
+      <Provider session={session}>
+        <ApolloProvider client={client}>
+          <MeProvider>
+            <ThemeProviderWrapper>
+              <GlobalStyle />
               <LightningProvider>
                 <FundErrorProvider>
                   <FundErrorModal />
@@ -121,10 +129,10 @@ function MyApp ({ Component, pageProps: { session, ...props } }) {
                   </ItemActProvider>
                 </FundErrorProvider>
               </LightningProvider>
-            </MeProvider>
-          </ApolloProvider>
-        </Provider>
-      </ThemeProvider>
+            </ThemeProviderWrapper>
+          </MeProvider>
+        </ApolloProvider>
+      </Provider>
     </PlausibleProvider>
   )
 }

@@ -35,6 +35,7 @@ model User {
   checkedNotesAt DateTime?
   tipDefault     Int         @default(0)
   pubkey         String?     @unique
+  theme          String      @default("light")
 
   @@index([createdAt])
   @@map(name: "users")

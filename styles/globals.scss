@@ -95,6 +95,10 @@ footer {
   fill: #6c757d;
 }
 
+.pointer {
+  cursor: pointer;
+}
+
 @media screen and (max-width: 767px) {
   input, select, textarea, .form-control, .form-control:focus, .input-group-text {
     font-size: 1rem !important;

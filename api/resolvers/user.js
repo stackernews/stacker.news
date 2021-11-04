@@ -44,6 +44,15 @@ export default {
 
       return true
     },
+    setTheme: async (parent, { theme }, { me, models }) => {
+      if (!me) {
+        throw new AuthenticationError('you must be logged in')
+      }
+
+      await models.user.update({ where: { id: me.id }, data: { theme } })
+
+      return true
+    },
     upsertBio: async (parent, { bio }, { me, models }) => {
       if (!me) {
         throw new AuthenticationError('you must be logged in')

@@ -21,6 +21,7 @@ export function MeProvider ({ children }) {
         id
       }
       hasInvites
+      theme
     }
   }`
   const { data } = useQuery(query, { pollInterval: 1000 })

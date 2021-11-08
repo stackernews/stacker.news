@@ -90,7 +90,7 @@ function ThemeProviderWrapper ({ children }) {
   const me = useMe()
   console.log(me)
   return (
-    <ThemeProvider theme={me?.theme === 'light' ? lightTheme : darkTheme}>
+    <ThemeProvider theme={!me || me?.theme === 'light' ? lightTheme : darkTheme}>
       {children}
     </ThemeProvider>
   )

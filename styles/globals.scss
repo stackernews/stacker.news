@@ -85,7 +85,7 @@ body {
 }
 
 .form-control:disabled, .form-control[readonly] {
-  background-color: var(--theme-inputBg);
+  background-color: var(--theme-inputDisabledBg);
   border-color: var(--theme-borderColor);
   opacity: 1;
 }
@@ -106,7 +106,7 @@ body {
 }
 
 .modal-content {
-  background-color: var(--theme-body);
+  background-color: var(--theme-inputBg);
   border-color: var(--theme-borderColor);
 }
 
@@ -127,7 +127,7 @@ body {
 }
 
 .navbar-nav .dropdown-menu {
-  background-color: var(--theme-body);
+  background-color: var(--theme-inputBg);
   border: 1px solid var(--theme-borderColor);
 }
 

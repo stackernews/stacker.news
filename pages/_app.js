@@ -2,12 +2,13 @@ import '../styles/globals.scss'
 import { ApolloProvider, gql } from '@apollo/client'
 import { Provider } from 'next-auth/client'
 import { FundErrorModal, FundErrorProvider } from '../components/fund-error'
-import { MeProvider, useMe } from '../components/me'
+import { MeProvider } from '../components/me'
 import PlausibleProvider from 'next-plausible'
 import { LightningProvider } from '../components/lightning'
 import { ItemActModal, ItemActProvider } from '../components/item-act'
 import getApolloClient from '../lib/apollo'
 import { createGlobalStyle, ThemeProvider } from 'styled-components'
+import useDarkMode from 'use-dark-mode'
 
 const GlobalStyle = createGlobalStyle`
   body {
@@ -86,18 +87,12 @@ const darkTheme = {
   brandColor: 'var(--primary) !important'
 }
 
-function ThemeProviderWrapper ({ children }) {
-  const me = useMe()
-  console.log(me)
-  return (
-    <ThemeProvider theme={!me || me?.theme === 'light' ? lightTheme : darkTheme}>
-      {children}
-    </ThemeProvider>
-  )
-}
-
 function MyApp ({ Component, pageProps: { session, ...props } }) {
   const client = getApolloClient()
+  const darkMode = useDarkMode(false, {
+    // set this so it doesn't try to use clas
+    onChange: (e) => { console.log(e) }
+  })
   /*
     If we are on the client, we populate the apollo cache with the
     ssr data
@@ -118,7 +113,7 @@ function MyApp ({ Component, pageProps: { session, ...props } }) {
       <Provider session={session}>
         <ApolloProvider client={client}>
           <MeProvider>
-            <ThemeProviderWrapper>
+            <ThemeProvider theme={darkMode.value ? darkTheme : lightTheme}>
               <GlobalStyle />
               <LightningProvider>
                 <FundErrorProvider>
@@ -129,7 +124,7 @@ function MyApp ({ Component, pageProps: { session, ...props } }) {
                   </ItemActProvider>
                 </FundErrorProvider>
               </LightningProvider>
-            </ThemeProviderWrapper>
+            </ThemeProvider>
           </MeProvider>
         </ApolloProvider>
       </Provider>

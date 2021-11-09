@@ -12,9 +12,6 @@ import { useLightning } from './lightning'
 import { useEffect, useState } from 'react'
 import { randInRange } from '../lib/rand'
 import styled from 'styled-components'
-import Sun from '../svgs/sun-fill.svg'
-import Moon from '../svgs/moon-fill.svg'
-import { gql, useMutation } from '@apollo/client'
 
 const Brand = styled(Navbar.Brand)`
   color: ${({ theme }) => theme.brandColor}
@@ -68,12 +65,6 @@ export default function Header () {
   const [session, loading] = useSession()
   const [sort, setSort] = useState('recent')
   const [within, setWithin] = useState()
-  const [setTheme] = useMutation(
-    gql`
-      mutation setTheme($theme: String!) {
-        setTheme(theme: $theme)
-      }`
-  )
 
   useEffect(() => {
     setSort(localStorage.getItem('sort') || 'recent')
@@ -145,9 +136,6 @@ export default function Header () {
                 <Link href='/settings' passHref>
                   <NavDropdown.Item>settings</NavDropdown.Item>
                 </Link>
-                {me?.theme === 'light'
-                  ? <Moon onClick={() => setTheme({ variables: { theme: 'dark' } })} className='theme' />
-                  : <Sun onClick={() => setTheme({ variables: { theme: 'light' } })} className='theme' />}
               </div>
               <NavDropdown.Divider />
               <NavDropdown.Item onClick={signOut}>logout</NavDropdown.Item>

@@ -10,7 +10,7 @@ export const COLORS = {
     navLinkActive: 'rgba(0, 0, 0, 0.9)',
     borderColor: '#ced4da',
     inputBg: '#ffffff',
-    dropdownItemColor: 'inherit',
+    dropdownItemColor: 'rgba(0, 0, 0, 0.7)',
     dropdownItemColorHover: 'rgba(0, 0, 0, 0.9)',
     commentBg: 'rgba(0, 0, 0, 0.03)',
     clickToContextColor: 'rgba(0, 0, 0, 0.05)',

@@ -11,6 +11,7 @@ import useDarkMode from 'use-dark-mode'
 import Sun from '../svgs/sun-fill.svg'
 import Moon from '../svgs/moon-fill.svg'
 import { handleThemeChange } from '../public/darkmode'
+import { useEffect, useState } from 'react'
 
 const ChatPopover = (
   <Popover>
@@ -46,16 +47,23 @@ export default function Footer ({ noLinks }) {
     onChange: handleThemeChange
   })
 
+  const [mounted, setMounted] = useState()
+
+  useEffect(() => {
+    setMounted(true)
+  })
+
   return (
     <footer>
       <Container className='mb-3 mt-4'>
         {!noLinks &&
           <div className='mb-2' style={{ fontWeight: 500, opacity: 0.5 }}>
-            <div className='mb-2'>
-              {darkMode.value
-                ? <Sun onClick={() => darkMode.toggle()} className='theme' />
-                : <Moon onClick={() => darkMode.toggle()} className='theme' />}
-            </div>
+            {mounted &&
+              <div className='mb-2'>
+                {darkMode.value
+                  ? <Sun onClick={() => darkMode.toggle()} className='theme' />
+                  : <Moon onClick={() => darkMode.toggle()} className='theme' />}
+              </div>}
             <Link href='/faq' passHref>
               <a className='text-reset d-inline-flex'>
                 faq

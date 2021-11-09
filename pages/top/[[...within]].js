@@ -3,10 +3,9 @@ import Items from '../../components/items'
 import { useRouter } from 'next/router'
 import { getGetServerSideProps } from '../../api/ssrApollo'
 import { MORE_ITEMS } from '../../fragments/items'
-import { Nav } from 'react-bootstrap'
+import { Nav, Navbar } from 'react-bootstrap'
 import styles from '../../components/header.module.css'
 import Link from 'next/link'
-import { StyledNavbar } from '../../components/header'
 
 export const getServerSideProps = getGetServerSideProps(MORE_ITEMS, { sort: 'top'})
 
@@ -16,7 +15,7 @@ export default function Index ({ data: { moreItems: { items, cursor } } }) {
 
   return (
     <Layout>
-      <StyledNavbar>
+      <Navbar>
         <Nav
           className={styles.navbarNav}
           activeKey={path}
@@ -67,7 +66,7 @@ export default function Index ({ data: { moreItems: { items, cursor } } }) {
             </Link>
           </Nav.Item>
         </Nav>
-      </StyledNavbar>
+      </Navbar>
       <Items
         items={items} cursor={cursor}
         variables={{ sort: 'top', within: router.query?.within }} rank

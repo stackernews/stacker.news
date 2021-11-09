@@ -8,9 +8,9 @@ import Github from '../svgs/github-fill.svg'
 import Twitter from '../svgs/twitter-fill.svg'
 import Link from 'next/link'
 import useDarkMode from 'use-dark-mode'
-import styled from 'styled-components'
 import Sun from '../svgs/sun-fill.svg'
 import Moon from '../svgs/moon-fill.svg'
+import { handleThemeChange } from '../public/darkmode'
 
 const ChatPopover = (
   <Popover>
@@ -32,16 +32,6 @@ const ChatPopover = (
   </Popover>
 )
 
-const ContrastLink = styled.a`
-  color: ${({ theme }) => theme.color};
-  &:hover {
-    color: ${({ theme }) => theme.color};
-  }
-  & svg {
-    fill: ${({ theme }) => theme.color};
-  }
-`
-
 export default function Footer ({ noLinks }) {
   const query = gql`
     {
@@ -53,7 +43,7 @@ export default function Footer ({ noLinks }) {
 
   const darkMode = useDarkMode(false, {
     // set this so it doesn't try to use classes
-    onChange: () => { }
+    onChange: handleThemeChange
   })
 
   return (
@@ -108,9 +98,9 @@ export default function Footer ({ noLinks }) {
             />
           </div>}
         <small>
-          <ContrastLink className='d-inline-block' href='https://github.com/stackernews/stacker.news'>
+          <a className={`d-inline-block ${styles.contrastLink}`} href='https://github.com/stackernews/stacker.news'>
             This is free open source software<Github width={20} height={20} className='mx-1' />
-          </ContrastLink>
+          </a>
           <span className='d-inline-block text-muted'>
             made with sound love in Austin<Texas className='mx-1' width={20} height={20} />
             by<a href='https://twitter.com/k00bideh' className='text-twitter d-inline-block'><Twitter width={20} height={20} className='ml-1' />@k00bideh</a>

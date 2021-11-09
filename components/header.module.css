@@ -6,6 +6,7 @@
     margin-bottom: -.3rem;
     margin-right: 0;
     text-shadow: 0 0 10px #FADA5E;
+    color: var(--theme-brandColor) !important;
 }
 
 .navLink {

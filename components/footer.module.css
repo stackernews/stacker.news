@@ -9,3 +9,13 @@
 .connect:hover {
     opacity: 1;
 }
+
+.contrastLink {
+  color: var(--theme-color);
+}
+.contrastLink:hover {
+    color: var(--theme-color);
+}
+.contrastLink svg {
+    fill: var(--theme-color);
+}

@@ -13,7 +13,6 @@ import { useMe } from './me'
 import CommentEdit from './comment-edit'
 import Countdown from './countdown'
 import { NOFOLLOW_LIMIT } from '../lib/constants'
-import styled from 'styled-components'
 
 function Parent ({ item, rootText }) {
   const ParentFrag = () => (
@@ -40,10 +39,6 @@ function Parent ({ item, rootText }) {
   )
 }
 
-const StyledComment = styled.div`
-  background-color: ${({ theme, includeParent }) => includeParent ? undefined : theme.commentBg};
-`
-
 export default function Comment ({
   item, children, replyOpen, includeParent,
   rootText, noComments, noReply
@@ -69,8 +64,7 @@ export default function Comment ({
   const op = item.root.user.name === item.user.name
 
   return (
-    <StyledComment
-      includeParent={includeParent}
+    <div
       ref={ref} className={includeParent ? '' : `${styles.comment} ${collapse ? styles.collapsed : ''}`}
     >
       <div className={`${itemStyles.item} ${styles.item}`}>
@@ -162,7 +156,7 @@ export default function Comment ({
             : null}
         </div>
       </div>
-    </StyledComment>
+    </div>
   )
 }
 

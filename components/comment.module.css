@@ -72,6 +72,7 @@
     border-radius: .4rem;
     padding-top: .5rem;
     padding-left: .2rem;
+    background-color: var(--theme-commentBg);
 }
 
 .comment:not(:last-child) {

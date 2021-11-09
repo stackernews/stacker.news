@@ -11,48 +11,6 @@ import { signOut, signIn, useSession } from 'next-auth/client'
 import { useLightning } from './lightning'
 import { useEffect, useState } from 'react'
 import { randInRange } from '../lib/rand'
-import styled from 'styled-components'
-
-const Brand = styled(Navbar.Brand)`
-  color: ${({ theme }) => theme.brandColor}
-`
-
-export const StyledNavbar = styled(Navbar).attrs(({ theme }) => ({
-  variant: theme.navbarVariant,
-  className: styles.navbar
-}))`
-  & .dropdown-menu {
-    background-color: ${({ theme }) => theme.body};
-    border: 1px solid ${({ theme }) => theme.borderColor};
-  }
-
-  & .dropdown-item {
-    color: ${({ theme }) => theme.dropdownItemColor};
-  }
-
-  & .dropdown-item:hover {
-    color: ${({ theme }) => theme.dropdownItemColorHover};
-  }
-
-  & .dropdown-item.active {
-    color: ${({ theme }) => theme.brandColor};
-    text-shadow: 0 0 10px var(--primary);
-  }
-
-  & .dropdown-divider {
-    border-top: 1px solid ${({ theme }) => theme.borderColor};
-  }
-
-  & .theme {
-    margin-right: 1rem;
-    cursor: pointer;
-    fill: ${({ theme }) => theme.dropdownItemColor};
-  }
-
-  & .theme:hover {
-    fill: ${({ theme }) => theme.dropdownItemColorHover};
-  }
-`
 
 function WalletSummary ({ me }) {
   return `${me?.sats} \\ ${me?.stacked}`
@@ -172,16 +130,16 @@ export default function Header () {
   return (
     <>
       <Container className='px-sm-0'>
-        <StyledNavbar>
+        <Navbar>
           <Nav
             className={styles.navbarNav}
             activeKey={path}
           >
             <Link href='/' passHref>
-              <Brand className={`${styles.brand} d-none d-sm-block`}>STACKER NEWS</Brand>
+              <Navbar.Brand className={`${styles.brand} d-none d-sm-block`}>STACKER NEWS</Navbar.Brand>
             </Link>
             <Link href='/' passHref>
-              <Brand className={`${styles.brand} d-block d-sm-none`}>SN</Brand>
+              <Navbar.Brand className={`${styles.brand} d-block d-sm-none`}>SN</Navbar.Brand>
             </Link>
             <Nav.Item className='d-md-flex d-none nav-dropdown-toggle'>
               <SplitButton
@@ -217,7 +175,7 @@ export default function Header () {
             </Nav.Item>
             <Corner />
           </Nav>
-        </StyledNavbar>
+        </Navbar>
       </Container>
     </>
   )
@@ -227,6 +185,7 @@ export function HeaderPreview () {
   return (
     <>
       <Container className='px-sm-0'>
+        {/* still need to set variant */}
         <Navbar className={styles.navbar}>
           <Nav className='w-100 justify-content-between flex-wrap align-items-center'>
             <Link href='/' passHref>

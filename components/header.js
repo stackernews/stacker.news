@@ -23,6 +23,7 @@ export default function Header () {
   const [session, loading] = useSession()
   const [sort, setSort] = useState('recent')
   const [within, setWithin] = useState()
+  const [priceReady, setPriceReady] = useState()
 
   useEffect(() => {
     setSort(localStorage.getItem('sort') || 'recent')
@@ -127,6 +128,8 @@ export default function Header () {
     }
   }
 
+  const visible = ((session && me) || (!session && !loading)) && priceReady ? 'visible' : 'invisible'
+
   return (
     <>
       <Container className='px-sm-0'>
@@ -141,13 +144,13 @@ export default function Header () {
             <Link href='/' passHref>
               <Navbar.Brand className={`${styles.brand} d-block d-sm-none`}>SN</Navbar.Brand>
             </Link>
-            <Nav.Item className='d-md-flex d-none nav-dropdown-toggle'>
+            <Nav.Item className={`d-md-flex d-none nav-dropdown-toggle ${visible}`}>
               <SplitButton
                 title={
                   <Link href={sortLink} passHref>
                     <Nav.Link className={styles.navLink}>{sort}</Nav.Link>
                   </Link>
-              }
+                }
                 key={`/${sort}`}
                 id='recent-top-button'
                 variant='link'
@@ -158,7 +161,7 @@ export default function Header () {
                 </Link>
               </SplitButton>
             </Nav.Item>
-            <Nav.Item className='d-md-flex d-none'>
+            <Nav.Item className={`d-md-flex d-none ${visible}`}>
               {me
                 ? (
                   <Link href='/post' passHref>
@@ -167,13 +170,15 @@ export default function Header () {
                   )
                 : <Nav.Link className={styles.navLink} onClick={signIn}>post</Nav.Link>}
             </Nav.Item>
-            <Nav.Item className='d-md-flex d-none'>
+            <Nav.Item className={`d-md-flex d-none ${visible}`}>
               <Nav.Link href='https://bitcoinerjobs.co' target='_blank' className={styles.navLink}>jobs</Nav.Link>
             </Nav.Item>
-            <Nav.Item className='text-monospace' style={{ opacity: '.5' }}>
-              <Price />
+            <Nav.Item className={`text-monospace ${visible}`} style={{ opacity: '.5' }}>
+              <Price onReady={() => setPriceReady(true)} />
             </Nav.Item>
-            <Corner />
+            <div className={visible}>
+              <Corner />
+            </div>
           </Nav>
         </Navbar>
       </Container>

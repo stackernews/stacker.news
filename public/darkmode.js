@@ -1,6 +1,6 @@
 // Insert this script in your index.html right after the <body> tag.
 // This will help to prevent a flash if dark mode is the default.
-export const COLORS = {
+const COLORS = {
   light: {
     body: '#f5f5f5',
     color: '#212529',
@@ -45,7 +45,7 @@ export const handleThemeChange = (dark) => {
 
 if (typeof window !== 'undefined') {
   (function () {
-  // Change these if you use something different in your hook.
+    // Change these if you use something different in your hook.
     const storageKey = 'darkMode'
 
     const preferDarkQuery = '(prefers-color-scheme: dark)'

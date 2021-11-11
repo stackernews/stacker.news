@@ -94,7 +94,6 @@ export default function UpVote ({ item, className }) {
                 e.preventDefault()
                 e.stopPropagation()
                 if (!item || voteLock) return
-                console.log('hi1')
 
                 // we can't tip ourselves
                 if (noSelfTips) {
@@ -110,7 +109,6 @@ export default function UpVote ({ item, className }) {
                   e.preventDefault()
                   e.stopPropagation()
                   if (!item || voteLock) return
-                  console.log('hi2')
 
                   // we can't tip ourselves
                   if (noSelfTips) {

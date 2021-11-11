@@ -44,10 +44,12 @@ export async function getServerSideProps ({ req, res, query: { id, error = null 
     return { props: {} }
   }
 
+  console.log(process.env.PUBLIC_URL + req.url)
+
   return {
     props: {
       providers: await providers({ req, res }),
-      callbackUrl: process.env.SELF_URL + req.url,
+      callbackUrl: process.env.PUBLIC_URL + req.url,
       invite: data.invite,
       error
     }

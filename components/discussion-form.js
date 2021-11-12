@@ -81,7 +81,7 @@ export function DiscussionForm ({
         label={<>{textLabel} <small className='text-muted ml-2'>optional</small></>}
         name='text'
         as={TextareaAutosize}
-        minRows={4}
+        minRows={6}
         hint={editThreshold
           ? <div className='text-muted font-weight-bold'><Countdown date={editThreshold} /></div>
           : null}

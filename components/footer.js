@@ -95,7 +95,7 @@ export default function Footer ({ noLinks }) {
           </div>}
         {data &&
           <div
-            className={`text-small mx-auto mb-2 ${styles.connect}`}
+            className={`text-small mx-auto mb-1 ${styles.connect}`}
           >
             <span className='nav-item text-muted mr-2'>connect:</span>
             <CopyInput

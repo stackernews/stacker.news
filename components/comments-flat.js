@@ -23,7 +23,7 @@ export default function CommentsFlat ({ variables, comments, cursor, ...props })
       {comments.map(item => (
         <div
           key={item.id}
-          className='clickToContext'
+          className='clickToContext py-2'
           onClick={() => {
             router.push({
               pathname: '/items/[id]',

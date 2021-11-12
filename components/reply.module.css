@@ -1,7 +1,7 @@
 .reply {
     max-width: 600px;
     padding-right: 15px;
-    padding-bottom: .5rem;
+    padding-bottom: 1rem;
 }
 
 .replyButtons {
@@ -10,7 +10,8 @@
     font-weight: bold;
     display: inline-block;
     cursor: pointer;
-    padding-bottom: .5rem;
+    padding-bottom: .25rem;
+    line-height: 1rem;
 }
 
 .skeleton .input {

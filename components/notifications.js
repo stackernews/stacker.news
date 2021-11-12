@@ -30,13 +30,16 @@ function Notification ({ n }) {
         <small className='font-weight-bold text-info ml-2'>you were mentioned in</small>}
       <div className={
     n.__typename === 'Votification' || n.__typename === 'Mention'
-      ? `ml-sm-4 ml-3 ${n.item.title ? 'pb-2' : ''}`
-      : ''
+      ? 'ml-sm-4 ml-3'
+      : 'py-2'
     }
       >
         {n.item.title
           ? <Item item={n.item} />
-          : <Comment item={n.item} noReply includeParent rootText={n.__typename === 'Reply' ? 'replying to you on:' : undefined} clickToContext />}
+          : (
+            <div className='pb-2'>
+              <Comment item={n.item} noReply includeParent rootText={n.__typename === 'Reply' ? 'replying to you on:' : undefined} clickToContext />
+            </div>)}
       </div>
     </div>
   )

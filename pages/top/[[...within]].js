@@ -15,7 +15,7 @@ export default function Index ({ data: { moreItems: { items, cursor } } }) {
 
   return (
     <Layout>
-      <Navbar>
+      <Navbar className='pt-0'>
         <Nav
           className={styles.navbarNav}
           activeKey={path}

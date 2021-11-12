@@ -12,8 +12,18 @@ import { useLightning } from './lightning'
 import { useEffect, useState } from 'react'
 import { randInRange } from '../lib/rand'
 
+const formatSats = n => {
+  if (n < 1e3) return n
+  if (n >= 1e3 && n < 1e6) return +(n / 1e3).toFixed(1) + 'k'
+  if (n >= 1e6 && n < 1e9) return +(n / 1e6).toFixed(1) + 'm'
+  if (n >= 1e9 && n < 1e12) return +(n / 1e9).toFixed(1) + 'b'
+  if (n >= 1e12) return +(n / 1e12).toFixed(1) + 't'
+}
+
 function WalletSummary ({ me }) {
-  return `${me?.sats} \\ ${me?.stacked}`
+  if (!me) return null
+
+  return `${formatSats(me.sats)} \\ ${formatSats(me.stacked)}`
 }
 
 export default function Header () {
@@ -41,7 +51,7 @@ export default function Header () {
           <Head>
             <link rel='shortcut icon' href={me?.hasNewNotes ? '/favicon-notify.png' : '/favicon.png'} />
           </Head>
-          <div className='position-relative mr-1'>
+          <div className='position-relative'>
             <NavDropdown className='px-0' title={`@${me?.name}`} alignRight>
               <Link href={'/' + me?.name} passHref>
                 <NavDropdown.Item>
@@ -133,7 +143,7 @@ export default function Header () {
   return (
     <>
       <Container className='px-sm-0'>
-        <Navbar>
+        <Navbar className='pb-1'>
           <Nav
             className={styles.navbarNav}
             activeKey={path}

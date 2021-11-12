@@ -92,7 +92,7 @@ body {
 
 .clickToContext {
   border-radius: .4rem;
-  padding: .2rem 0;
+  padding: 0;
   cursor: pointer;
 }
 
@@ -194,6 +194,10 @@ footer {
   input, select, textarea, .form-control, .form-control:focus, .input-group-text {
     font-size: 1rem !important;
   }
+}
+
+textarea.form-control {
+  line-height: 1rem;
 }
 
 .nav-tabs {

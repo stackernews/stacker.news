@@ -77,7 +77,7 @@ export default function Reply ({ parentId, onSuccess, replyOpen }) {
           <MarkdownInput
             name='text'
             as={TextareaAutosize}
-            minRows={4}
+            minRows={6}
             autoFocus={!replyOpen}
             required
             hint={me?.freeComments ? <span className='text-success'>{me.freeComments} free comments left</span> : null}

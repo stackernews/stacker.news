@@ -18,15 +18,18 @@
     background-color: transparent !important;
 }
 
+.navLink:first-child {
+    padding-left: 0 !important;
+}
+
+.navLink:last-child {
+    padding-right: 0 !important;
+}
+
 .navbarNav {
     width: 100%;
     flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
     height: 39px;
-}
-
-.easein {
-  transition-timing-function: ease;
-  transition-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1);
 }

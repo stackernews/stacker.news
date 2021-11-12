@@ -38,14 +38,14 @@ export default function Price ({ onReady }) {
 
   if (asSats) {
     return (
-      <Button className='text-reset py-0' onClick={handleClick} variant='link'>
+      <Button className='text-reset px-1 py-0' onClick={handleClick} variant='link'>
         {fixed(100000000 / data.data.amount, 0) + ' sats/$'}
       </Button>
     )
   }
 
   return (
-    <Button className='text-reset py-0' onClick={handleClick} variant='link'>
+    <Button className='text-reset px-1 py-0' onClick={handleClick} variant='link'>
       {'$' + fixed(data.data.amount, 2)}
     </Button>
   )

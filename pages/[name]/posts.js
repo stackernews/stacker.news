@@ -20,10 +20,12 @@ export default function UserPosts ({ data: { user, moreItems: { items, cursor } 
     <Layout noSeo>
       <Seo user={user} />
       <UserHeader user={user} />
-      <Items
-        items={items} cursor={cursor}
-        variables={{ sort: 'user', name: user.name }}
-      />
+      <div className='mt-2'>
+        <Items
+          items={items} cursor={cursor}
+          variables={{ sort: 'user', name: user.name }}
+        />
+      </div>
     </Layout>
   )
 }

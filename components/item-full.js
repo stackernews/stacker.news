@@ -18,12 +18,13 @@ function BioItem ({ item, handleClick }) {
     <>
       <ItemText item={item} />
       {me?.name === item.user.name &&
-        <Button
-          onClick={handleClick}
-          size='md' variant='link'
-          className='text-right'
-        >edit bio
-        </Button>}
+        <div className='text-right'>
+          <Button
+            onClick={handleClick}
+            size='md' variant='link'
+          >edit bio
+          </Button>
+        </div>}
       <Reply parentId={item.id} />
     </>
   )
@@ -47,10 +48,13 @@ export default function ItemFull ({ item, bio, ...props }) {
     <>
       {item.parentId
         ? <Comment item={item} replyOpen includeParent noComments {...props} />
-        : (bio
+        : (
+          <div className='mt-1'>{
+          bio
             ? <BioItem item={item} {...props} />
             : <TopLevelItem item={item} {...props} />
-          )}
+          }
+          </div>)}
       {item.comments &&
         <div className={styles.comments}>
           <Comments comments={item.comments} />

@@ -65,7 +65,7 @@ export function BioForm ({ handleSuccess, bio }) {
         <MarkdownInput
           name='bio'
           as={TextareaAutosize}
-          minRows={4}
+          minRows={6}
         />
         <ActionTooltip>
           <SubmitButton variant='secondary' className='mt-3'>{bio?.text ? 'save' : 'create'}</SubmitButton>

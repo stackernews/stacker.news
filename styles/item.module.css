@@ -1,10 +1,10 @@
 .comments {
-    margin-top: 1rem;
+    margin-top: .5rem;
 }
 
 @media only screen and (max-width: 600px) {
     .comments {
-        margin-top: 1rem;
+        margin-top: .5rem;
         margin-left: -15px;
         margin-right: -15px;
     }

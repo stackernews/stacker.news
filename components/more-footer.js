@@ -32,5 +32,5 @@ export default function MoreFooter ({ cursor, fetchMore, Skeleton }) {
     )
   }
 
-  return <div className='d-flex justify-content-center mt-4 mb-2'><Footer /></div>
+  return <div className='d-flex justify-content-center mt-3 mb-1'><Footer /></div>
 }

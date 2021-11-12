@@ -75,6 +75,10 @@
     background-color: var(--theme-commentBg);
 }
 
+.hunk {
+    margin-bottom: 0;
+}
+
 .comment:not(:last-child) {
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;

@@ -5,7 +5,7 @@
 }
 
 .upvote {
-    margin-top: 9px;
+    margin-top: 3px;
 }
 
 .link {
@@ -40,6 +40,8 @@ a.link:visited {
 .hunk {
     overflow: hidden;
     width: 100%;
+    margin-bottom: .3rem;
+    line-height: 1rem;
 }
 
 .main {
@@ -48,21 +50,20 @@ a.link:visited {
 }
 
 .children {
-    margin-top: 1rem;
+    margin-top: .25rem;
     margin-left: 24px;
 }
 
 .rank {
     font-weight: 600;
-    margin-top: 8px;
+    margin-top: 4px;
     display: flex;
     color: grey;
     font-size: 90%;
-    min-width: 18px;
 }
 
 .skeleton .other {
-    height: 17px;
+    height: 14px;
     align-items: center;
 }
 
@@ -70,8 +71,8 @@ a.link:visited {
     background-color: grey;
     width: 500px;
     border-radius: .4rem;
-    height: 19px;
-    margin: 3px 0px;
+    height: 17px;
+    margin: 0;
 }
 
 .skeleton .link {
@@ -79,7 +80,7 @@ a.link:visited {
     background-color: grey;
     width: 800px;
     border-radius: .3rem;
-    margin: 3px 0px;
+    margin: 2px 0px;
 }
 
 .skeleton .otherItem {

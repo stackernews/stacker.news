@@ -49,7 +49,7 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
         <MarkdownInput
           name='text'
           as={TextareaAutosize}
-          minRows={4}
+          minRows={6}
           autoFocus
           required
         />

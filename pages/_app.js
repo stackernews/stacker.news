@@ -7,6 +7,7 @@ import PlausibleProvider from 'next-plausible'
 import { LightningProvider } from '../components/lightning'
 import { ItemActModal, ItemActProvider } from '../components/item-act'
 import getApolloClient from '../lib/apollo'
+import NextNProgress from 'nextjs-progressbar'
 
 function MyApp ({ Component, pageProps: { session, ...props } }) {
   const client = getApolloClient()
@@ -27,23 +28,33 @@ function MyApp ({ Component, pageProps: { session, ...props } }) {
   }
 
   return (
-    <PlausibleProvider domain='stacker.news' trackOutboundLinks>
-      <Provider session={session}>
-        <ApolloProvider client={client}>
-          <MeProvider>
-            <LightningProvider>
-              <FundErrorProvider>
-                <FundErrorModal />
-                <ItemActProvider>
-                  <ItemActModal />
-                  <Component {...props} />
-                </ItemActProvider>
-              </FundErrorProvider>
-            </LightningProvider>
-          </MeProvider>
-        </ApolloProvider>
-      </Provider>
-    </PlausibleProvider>
+    <>
+      <NextNProgress
+        color='var(--primary)'
+        startPosition={0.3}
+        stopDelayMs={200}
+        height={2}
+        showOnShallow
+        options={{ showSpinner: false }}
+      />
+      <PlausibleProvider domain='stacker.news' trackOutboundLinks>
+        <Provider session={session}>
+          <ApolloProvider client={client}>
+            <MeProvider>
+              <LightningProvider>
+                <FundErrorProvider>
+                  <FundErrorModal />
+                  <ItemActProvider>
+                    <ItemActModal />
+                    <Component {...props} />
+                  </ItemActProvider>
+                </FundErrorProvider>
+              </LightningProvider>
+            </MeProvider>
+          </ApolloProvider>
+        </Provider>
+      </PlausibleProvider>
+    </>
   )
 }
 

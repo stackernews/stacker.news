@@ -34,7 +34,7 @@ const COLORS = {
   }
 }
 
-export const handleThemeChange = (dark) => {
+const handleThemeChange = (dark) => {
   const root = window.document.documentElement
   const colors = COLORS[dark ? 'dark' : 'light']
   Object.entries(colors).forEach(([varName, value]) => {

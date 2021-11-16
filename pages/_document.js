@@ -8,7 +8,7 @@ class MyDocument extends Document {
           <link rel='preload' href='/Lightningvolt-xoqm.ttf' as='font' type='font/ttf' crossOrigin='' />
         </Head>
         <body>
-          <script src='/darkmode.js' type='module' />
+          <script src='/darkmode.js' />
           <Main />
           <NextScript />
         </body>

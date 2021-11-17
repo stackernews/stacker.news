@@ -1,5 +1,6 @@
 import { LightningConsumer } from './lightning'
 import UpArrow from '../svgs/lightning-arrow.svg'
+import BoltAdd from '../svgs/lightning-plus.svg'
 import styles from './upvote.module.css'
 import { gql, useMutation } from '@apollo/client'
 import { signIn } from 'next-auth/client'
@@ -84,6 +85,7 @@ export default function UpVote ({ item, className }) {
   }
 
   const noSelfTips = item?.meVote && item?.user?.id === me?.id
+  const Arrow = item?.meVote ? BoltAdd : UpArrow
 
   return (
     <LightningConsumer>
@@ -148,19 +150,21 @@ export default function UpVote ({ item, className }) {
           }
         >
           <ActionTooltip notForm disable={noSelfTips} overlayText={overlayText()}>
-            <UpArrow
-              width={24}
-              height={24}
-              className={
+            <div>
+              <Arrow
+                width={24}
+                height={24}
+                className={
                 `${styles.upvote}
                 ${className || ''}
                 ${noSelfTips ? styles.noSelfTips : ''}
                 ${item?.meVote ? styles.voted : ''}`
               }
-              onClick={e => {
-                e.stopPropagation()
-              }}
-            />
+                onClick={e => {
+                  e.stopPropagation()
+                }}
+              />
+            </div>
           </ActionTooltip>
         </LongPressable>}
     </LightningConsumer>

@@ -1,6 +1,6 @@
 import { LightningConsumer } from './lightning'
 import UpArrow from '../svgs/lightning-arrow.svg'
-import BoltAdd from '../svgs/lightning-plus.svg'
+import BoltAdd from '../svgs/tip.svg'
 import styles from './upvote.module.css'
 import { gql, useMutation } from '@apollo/client'
 import { signIn } from 'next-auth/client'

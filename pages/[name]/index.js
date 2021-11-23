@@ -106,11 +106,14 @@ export default function User ({ data: { user } }) {
               ? <BioForm handleSuccess={() => setCreate(false)} />
               : (
                   mine &&
-                    <Button
-                      onClick={setCreate}
-                      size='md' variant='secondary'
-                    >create bio
-                    </Button>
+                    <div className='text-center'>
+                      <Button
+                        onClick={setCreate}
+                        size='md' variant='secondary'
+                      >create bio
+                      </Button>
+                      <small className='d-block mt-3 text-muted'>your bio is also a post introducing yourself to other users</small>
+                    </div>
                 )}
           </div>)}
     </Layout>

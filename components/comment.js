@@ -72,17 +72,11 @@ export default function Comment ({
         <div className={`${itemStyles.hunk} ${styles.hunk}`}>
           <div className='d-flex align-items-center'>
             <div className={`${itemStyles.other} ${styles.other}`}>
-              <span>{item.sats} sats</span>
+              <span title={`${item.sats} upvotes \\ ${item.tips} tipped`}>{item.sats + item.tips} sats</span>
               <span> \ </span>
               {item.boost > 0 &&
                 <>
                   <span>{item.boost} boost</span>
-                  <span> \ </span>
-                </>}
-              {item.tips > 0 &&
-                <>
-                  <span>{item.tips} tipped</span>
-                  <span> \ </span>
                 </>}
               <Link href={`/items/${item.id}`} passHref>
                 <a onClick={e => e.stopPropagation()} className='text-reset'>{item.ncomments} replies</a>

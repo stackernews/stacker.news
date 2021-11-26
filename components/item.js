@@ -46,16 +46,11 @@ export default function Item ({ item, rank, children }) {
               </a>}
           </div>
           <div className={`${styles.other}`}>
-            <span>{item.sats} sats</span>
+            <span title={`${item.sats} upvotes \\ ${item.tips} tipped`}>{item.sats + item.tips} sats</span>
             <span> \ </span>
             {item.boost > 0 &&
               <>
                 <span>{item.boost} boost</span>
-                <span> \ </span>
-              </>}
-            {item.tips > 0 &&
-              <>
-                <span>{item.tips} tipped</span>
                 <span> \ </span>
               </>}
             <Link href={`/items/${item.id}`} passHref>

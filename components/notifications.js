@@ -14,8 +14,8 @@ function Notification ({ n }) {
         if (n.__typename === 'Reply' || !n.item.title) {
           router.push({
             pathname: '/items/[id]',
-            query: { id: n.item.parentId, commentId: n.item.id }
-          }, `/items/${n.item.parentId}`)
+            query: { id: n.item.root.id, commentId: n.item.id }
+          }, `/items/${n.item.root.id}`)
         } else {
           router.push({
             pathname: '/items/[id]',

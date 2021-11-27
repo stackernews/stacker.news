@@ -54,6 +54,7 @@ export default gql`
     sats: Int!
     boost: Int!
     tips: Int!
+    mine: Boolean!
     meVote: Int!
     meBoost: Int!
     meTip: Int!

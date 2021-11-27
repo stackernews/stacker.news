@@ -84,8 +84,8 @@ export default function UpVote ({ item, className }) {
     return '1 sat'
   }
 
-  const noSelfTips = item?.meVote && item?.user?.id === me?.id
-  const Arrow = item?.meVote ? BoltAdd : UpArrow
+  const noSelfTips = item?.meVote && item?.mine
+  const Arrow = item?.meVote && !item?.mine ? BoltAdd : UpArrow
 
   return (
     <LightningConsumer>

@@ -27,8 +27,8 @@ export default function CommentsFlat ({ variables, comments, cursor, ...props })
           onClick={() => {
             router.push({
               pathname: '/items/[id]',
-              query: { id: item.parentId, commentId: item.id }
-            }, `/items/${item.parentId}`)
+              query: { id: item.root.id, commentId: item.id }
+            }, `/items/${item.root.id}`)
           }}
         >
           <Comment item={item} {...props} />

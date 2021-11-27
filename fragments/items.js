@@ -19,6 +19,7 @@ export const ITEM_FIELDS = gql`
     meBoost
     meTip
     ncomments
+    mine
     root {
       id
       title

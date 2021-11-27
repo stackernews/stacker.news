@@ -9,7 +9,6 @@ import UpVote from './upvote'
 import Eye from '../svgs/eye-fill.svg'
 import EyeClose from '../svgs/eye-close-line.svg'
 import { useRouter } from 'next/router'
-import { useMe } from './me'
 import CommentEdit from './comment-edit'
 import Countdown from './countdown'
 import { NOFOLLOW_LIMIT } from '../lib/constants'
@@ -47,8 +46,7 @@ export default function Comment ({
   const [collapse, setCollapse] = useState(false)
   const ref = useRef(null)
   const router = useRouter()
-  const me = useMe()
-  const mine = me?.id === item.user.id
+  const mine = item.mine
   const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
   const [canEdit, setCanEdit] =
     useState(mine && (Date.now() < editThreshold))

@@ -374,6 +374,9 @@ export default {
 
       return sats || 0
     },
+    mine: async (item, args, { me, models }) => {
+      return me?.id === item.userId
+    },
     meBoost: async (item, args, { me, models }) => {
       if (!me) return 0
 

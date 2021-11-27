@@ -16,6 +16,7 @@ export const COMMENT_FIELDS = gql`
     meVote
     meBoost
     meTip
+    mine
     ncomments
     root {
       id

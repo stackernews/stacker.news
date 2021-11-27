@@ -2,14 +2,12 @@ import Link from 'next/link'
 import styles from './item.module.css'
 import { timeSince } from '../lib/time'
 import UpVote from './upvote'
-import { useMe } from './me'
 import { useEffect, useRef, useState } from 'react'
 import Countdown from './countdown'
 import { NOFOLLOW_LIMIT } from '../lib/constants'
 
 export default function Item ({ item, rank, children }) {
-  const me = useMe()
-  const mine = me?.id === item.user.id
+  const mine = item.mine
   const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
   const [canEdit, setCanEdit] =
     useState(mine && (Date.now() < editThreshold))

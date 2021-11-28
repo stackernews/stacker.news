@@ -1,29 +1,53 @@
-import { useEffect, useState } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import { Button } from 'react-bootstrap'
 import useSWR from 'swr'
 
 const fetcher = url => fetch(url).then(res => res.json())
 
-export default function Price ({ onReady }) {
-  const [asSats, setAsSats] = useState(undefined)
-  useEffect(() => {
-    setAsSats(localStorage.getItem('asSats'))
-  }, [])
+export const PriceContext = React.createContext({
+  price: null
+})
 
+const ENDPOINT = 'https://api.coinbase.com/v2/prices/BTC-USD/spot'
+
+export async function getPrice () {
+  const data = await fetcher(ENDPOINT)
+  return data?.data?.amount
+}
+
+export function PriceProvider ({ price, children }) {
   const { data } = useSWR(
-    'https://api.coinbase.com/v2/prices/BTC-USD/spot',
+    ENDPOINT,
     fetcher,
     {
       refreshInterval: 30000
     })
 
-  useEffect(() => {
-    if (onReady) {
-      onReady()
-    }
-  }, [data])
+  const contextValue = {
+    price: data?.data?.amount || price
+  }
 
-  if (!data || !data.data) return null
+  return (
+    <PriceContext.Provider value={contextValue}>
+      {children}
+    </PriceContext.Provider>
+  )
+}
+
+export function usePrice () {
+  const { price } = useContext(PriceContext)
+  return price
+}
+
+export default function Price () {
+  const [asSats, setAsSats] = useState(undefined)
+  useEffect(() => {
+    setAsSats(localStorage.getItem('asSats'))
+  }, [])
+
+  const price = usePrice()
+
+  if (!price) return null
 
   const fixed = (n, f) => Number.parseFloat(n).toFixed(f)
   const handleClick = () => {
@@ -39,14 +63,14 @@ export default function Price ({ onReady }) {
   if (asSats) {
     return (
       <Button className='text-reset px-1 py-0' onClick={handleClick} variant='link'>
-        {fixed(100000000 / data.data.amount, 0) + ' sats/$'}
+        {fixed(100000000 / price, 0) + ' sats/$'}
       </Button>
     )
   }
 
   return (
     <Button className='text-reset px-1 py-0' onClick={handleClick} variant='link'>
-      {'$' + fixed(data.data.amount, 2)}
+      {'$' + fixed(price, 2)}
     </Button>
   )
 }

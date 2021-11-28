@@ -7,7 +7,7 @@ import { Button, Container, NavDropdown, SplitButton, Dropdown } from 'react-boo
 import Price from './price'
 import { useMe } from './me'
 import Head from 'next/head'
-import { signOut, signIn, useSession } from 'next-auth/client'
+import { signOut, signIn } from 'next-auth/client'
 import { useLightning } from './lightning'
 import { useEffect, useState } from 'react'
 import { randInRange } from '../lib/rand'
@@ -30,10 +30,8 @@ export default function Header () {
   const router = useRouter()
   const path = router.asPath.split('?')[0]
   const me = useMe()
-  const [session, loading] = useSession()
   const [sort, setSort] = useState('recent')
   const [within, setWithin] = useState()
-  const [priceReady, setPriceReady] = useState()
 
   useEffect(() => {
     setSort(localStorage.getItem('sort') || 'recent')
@@ -127,9 +125,6 @@ export default function Header () {
         </div>
       )
     } else {
-      if (loading || session) {
-        return null
-      }
       const strike = useLightning()
       useEffect(() => {
         setTimeout(strike, randInRange(3000, 10000))
@@ -137,8 +132,6 @@ export default function Header () {
       return path !== '/login' && !path.startsWith('/invites') && <Button id='login' onClick={signIn}>login</Button>
     }
   }
-
-  const visible = ((session && me) || (!session && !loading)) && priceReady ? 'visible' : 'invisible'
 
   return (
     <>
@@ -154,7 +147,7 @@ export default function Header () {
             <Link href='/' passHref>
               <Navbar.Brand className={`${styles.brand} d-block d-sm-none`}>SN</Navbar.Brand>
             </Link>
-            <Nav.Item className={`d-md-flex d-none nav-dropdown-toggle ${visible}`}>
+            <Nav.Item className='d-md-flex d-none nav-dropdown-toggle'>
               <SplitButton
                 title={
                   <Link href={sortLink} passHref>
@@ -171,7 +164,7 @@ export default function Header () {
                 </Link>
               </SplitButton>
             </Nav.Item>
-            <Nav.Item className={`d-md-flex d-none ${visible}`}>
+            <Nav.Item className='d-md-flex d-none'>
               {me
                 ? (
                   <Link href='/post' passHref>
@@ -180,15 +173,13 @@ export default function Header () {
                   )
                 : <Nav.Link className={styles.navLink} onClick={signIn}>post</Nav.Link>}
             </Nav.Item>
-            <Nav.Item className={`d-md-flex d-none ${visible}`}>
+            <Nav.Item className='d-md-flex d-none'>
               <Nav.Link href='https://bitcoinerjobs.co' target='_blank' className={styles.navLink}>jobs</Nav.Link>
             </Nav.Item>
-            <Nav.Item className={`text-monospace ${visible}`} style={{ opacity: '.5' }}>
-              <Price onReady={() => setPriceReady(true)} />
+            <Nav.Item className='text-monospace' style={{ opacity: '.5' }}>
+              <Price />
             </Nav.Item>
-            <div className={visible}>
-              <Corner />
-            </div>
+            <Corner />
           </Nav>
         </Navbar>
       </Container>

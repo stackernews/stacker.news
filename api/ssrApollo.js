@@ -7,6 +7,8 @@ import typeDefs from './typeDefs'
 import models from './models'
 import { print } from 'graphql'
 import lnd from './lnd'
+import { ME } from '../fragments/users'
+import { getPrice } from '../components/price'
 
 export default async function getSSRApolloClient (req, me = null) {
   const session = req && await getSession({ req })
@@ -41,12 +43,20 @@ export function getGetServerSideProps (query, variables = null, foundField) {
       }
     }
 
+    const { data: { me } } = await client.query({
+      query: ME
+    })
+
+    const price = await getPrice()
+
     return {
       props: {
         apollo: {
           query: print(query),
           variables: { ...params, ...variables }
         },
+        me,
+        price,
         data
       }
     }

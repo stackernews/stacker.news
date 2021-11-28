@@ -2,6 +2,25 @@ import { gql } from '@apollo/client'
 import { COMMENT_FIELDS } from './comments'
 import { ITEM_FIELDS, ITEM_WITH_COMMENTS } from './items'
 
+export const ME = gql`
+  {
+    me {
+      id
+      name
+      sats
+      stacked
+      freePosts
+      freeComments
+      hasNewNotes
+      tipDefault
+      bio {
+        id
+      }
+      hasInvites
+      theme
+    }
+  }`
+
 export const USER_FIELDS = gql`
   ${ITEM_FIELDS}
   fragment UserFields on User {

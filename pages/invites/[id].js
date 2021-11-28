@@ -44,8 +44,6 @@ export async function getServerSideProps ({ req, res, query: { id, error = null 
     return { props: {} }
   }
 
-  console.log(process.env.PUBLIC_URL + req.url)
-
   return {
     props: {
       providers: await providers({ req, res }),

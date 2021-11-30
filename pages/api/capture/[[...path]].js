@@ -1,8 +1,17 @@
 import path from 'path'
-const { spawn } = require('child_process');
+const { spawn } = require('child_process')
+
+var capturing = false
 
 export default async function handler (req, res) {
+  if (capturing) {
+    return res.writeHead(503, {
+      'Retry-After' : 1
+    }).end()
+  }
+
   return new Promise(resolve => {
+    capturing = true
     const url = process.env.SELF_URL + '/' + path.join(...(req.query.path || []))
     res.setHeader('Content-Type', 'image/png')
 
@@ -16,6 +25,7 @@ export default async function handler (req, res) {
         res.status(200).end()
       }
       capture.removeAllListeners()
+      capturing = false
       resolve()
     })
     capture.on('error', err => console.log('error', err))

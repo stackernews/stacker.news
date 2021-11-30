@@ -1,6 +1,7 @@
 import { createInvoice, decodePaymentRequest, subscribeToPayViaRequest } from 'ln-service'
 import { UserInputError, AuthenticationError } from 'apollo-server-micro'
 import serialize from './serial'
+import { decodeCursor } from '../../lib/cursor'
 
 export default {
   Query: {
@@ -46,6 +47,13 @@ export default {
     },
     connectAddress: async (parent, args, { lnd }) => {
       return process.env.LND_CONNECT_ADDRESS
+    },
+    walletHistory: async (parent, { cursor }, { me, models, lnd }) => {
+      const decodedCursor = decodeCursor(cursor)
+      if (!me) {
+        throw new AuthenticationError('you must be logged in')
+      }
+
     }
   },
 

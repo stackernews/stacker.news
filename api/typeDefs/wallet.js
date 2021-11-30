@@ -5,6 +5,7 @@ export default gql`
     invoice(id: ID!): Invoice!
     withdrawl(id: ID!): Withdrawl!
     connectAddress: String!
+    walletHistory(cursor: String): History
   }
 
   extend type Mutation {
@@ -36,5 +37,12 @@ export default gql`
     msatsFeePaid: Int
     satsFeePaid: Int
     status: String
+  }
+
+  union Fact = Invoice | Withdrawl
+
+  type History {
+    facts: [Fact!]!
+    cursor: String
   }
 `

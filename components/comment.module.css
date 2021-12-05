@@ -1,5 +1,6 @@
 .item {
     align-items: flex-start;
+    margin-bottom: 0 !important;
 }
 
 .upvote {
@@ -40,7 +41,7 @@
 
 .children {
     margin-top: 0;
-    margin-left: 24px;
+    margin-left: 28px;
 }
 
 .comments {

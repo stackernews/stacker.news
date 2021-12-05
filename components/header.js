@@ -3,7 +3,7 @@ import Nav from 'react-bootstrap/Nav'
 import Link from 'next/link'
 import styles from './header.module.css'
 import { useRouter } from 'next/router'
-import { Button, Container, NavDropdown, SplitButton, Dropdown } from 'react-bootstrap'
+import { Button, Container, NavDropdown } from 'react-bootstrap'
 import Price from './price'
 import { useMe } from './me'
 import Head from 'next/head'
@@ -30,17 +30,11 @@ export default function Header () {
   const router = useRouter()
   const path = router.asPath.split('?')[0]
   const me = useMe()
-  const [sort, setSort] = useState('recent')
   const [within, setWithin] = useState()
 
   useEffect(() => {
-    setSort(localStorage.getItem('sort') || 'recent')
     setWithin(localStorage.getItem('topWithin'))
   }, [])
-
-  const otherSort = sort === 'recent' ? 'top' : 'recent'
-  const sortLink = `/${sort}${sort === 'top' && within ? `/${within}` : ''}`
-  const otherSortLink = `/${otherSort}${otherSort === 'top' && within ? `/${within}` : ''}`
 
   const Corner = () => {
     if (me) {
@@ -147,22 +141,15 @@ export default function Header () {
             <Link href='/' passHref>
               <Navbar.Brand className={`${styles.brand} d-block d-sm-none`}>SN</Navbar.Brand>
             </Link>
-            <Nav.Item className='d-md-flex d-none nav-dropdown-toggle'>
-              <SplitButton
-                title={
-                  <Link href={sortLink} passHref>
-                    <Nav.Link className={styles.navLink}>{sort}</Nav.Link>
-                  </Link>
-                }
-                key={`/${sort}`}
-                id='recent-top-button'
-                variant='link'
-                className='p-0'
-              >
-                <Link href={otherSortLink} passHref>
-                  <Dropdown.Item onClick={() => localStorage.setItem('sort', otherSort)}>{otherSort}</Dropdown.Item>
-                </Link>
-              </SplitButton>
+            <Nav.Item className='d-md-flex d-none'>
+              <Link href='/recent' passHref>
+                <Nav.Link className={styles.navLink}>recent</Nav.Link>
+              </Link>
+            </Nav.Item>
+            <Nav.Item className='d-md-flex d-none'>
+              <Link href={`/top${within ? `/${within}` : ''}`} passHref>
+                <Nav.Link className={styles.navLink}>top</Nav.Link>
+              </Link>
             </Nav.Item>
             <Nav.Item className='d-md-flex d-none'>
               {me

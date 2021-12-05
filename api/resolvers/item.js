@@ -374,10 +374,7 @@ export default {
 
       return sats || 0
     },
-    mine: async (item, args, { me, models }) => {
-      return me?.id === item.userId
-    },
-    meBoost: async (item, args, { me, models }) => {
+    meSats: async (item, args, { me, models }) => {
       if (!me) return 0
 
       const { sum: { sats } } = await models.itemAct.aggregate({
@@ -387,11 +384,21 @@ export default {
         where: {
           itemId: item.id,
           userId: me.id,
-          act: 'BOOST'
+          OR: [
+            {
+              act: 'TIP'
+            },
+            {
+              act: 'VOTE'
+            }
+          ]
         }
       })
 
       return sats || 0
+    },
+    mine: async (item, args, { me, models }) => {
+      return me?.id === item.userId
     },
     meTip: async (item, args, { me, models }) => {
       if (!me) return 0

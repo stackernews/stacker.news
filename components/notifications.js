@@ -30,7 +30,7 @@ function Notification ({ n }) {
         <small className='font-weight-bold text-info ml-2'>you were mentioned in</small>}
       <div className={
     n.__typename === 'Votification' || n.__typename === 'Mention'
-      ? 'ml-sm-4 ml-3'
+      ? ''
       : 'py-2'
     }
       >

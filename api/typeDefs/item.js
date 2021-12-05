@@ -56,7 +56,7 @@ export default gql`
     tips: Int!
     mine: Boolean!
     meVote: Int!
-    meBoost: Int!
+    meSats: Int!
     meTip: Int!
     ncomments: Int!
     comments: [Item!]!

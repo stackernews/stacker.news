@@ -1,27 +1,35 @@
 .upvote {
-    fill: grey;
+    fill: #a5a5a5;
     user-select: none;
     -webkit-user-select: none;
     -webkit-touch-callout: none;
 }
 
-.upvote:hover {
-    fill: darkgray;
-    cursor: pointer;
+.upvoteWrapper {
+    position: relative;
+    padding-right: .2rem;
 }
 
-.noSelfTips:hover {
-    cursor: default !important;
+.noSelfTips .upvote.voted {
+    fill: transparent !important;
+    filter: none !important;
+}
+
+.upvoteWrapper:not(.noSelfTips):hover {
+    cursor: pointer;
 }
 
 .upvote.voted {
     fill: #F6911D;
-    filter: drop-shadow(0 0 7px #F6911D);
+    filter: drop-shadow(0 0 6px #f6911d90);
 }
 
-.upvote.stimi {
-    /* fill: #993DF5;
-    filter: drop-shadow(0 0 7px #C28BF9); */
-    fill: #F6911D;
-    filter: drop-shadow(0 0 7px #F6911D);
+.cover {
+    background: var(--theme-body);
+    width: 100%;
+    overflow: hidden;
+    mix-blend-mode: color;
+    position: absolute;
+    left: 4px;
+    width: 17px;
 }

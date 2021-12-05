@@ -16,7 +16,7 @@ export const ITEM_FIELDS = gql`
     boost
     tips
     meVote
-    meBoost
+    meSats
     meTip
     ncomments
     mine

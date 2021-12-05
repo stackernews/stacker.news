@@ -51,7 +51,10 @@ export default function Price () {
 
   const fixed = (n, f) => Number.parseFloat(n).toFixed(f)
   const handleClick = () => {
-    if (asSats) {
+    if (asSats === 'yep') {
+      localStorage.setItem('asSats', '1btc')
+      setAsSats('1btc')
+    } else if (asSats === '1btc') {
       localStorage.removeItem('asSats')
       setAsSats(undefined)
     } else {
@@ -60,7 +63,7 @@ export default function Price () {
     }
   }
 
-  if (asSats) {
+  if (asSats === 'yep') {
     return (
       <Button className='text-reset px-1 py-0' onClick={handleClick} variant='link'>
         {fixed(100000000 / price, 0) + ' sats/$'}
@@ -68,9 +71,17 @@ export default function Price () {
     )
   }
 
+  if (asSats === '1btc') {
+    return (
+      <Button className='text-reset px-1 py-0' onClick={handleClick} variant='link'>
+        1sat=1sat
+      </Button>
+    )
+  }
+
   return (
     <Button className='text-reset px-1 py-0' onClick={handleClick} variant='link'>
-      {'$' + fixed(price, 2)}
+      {'$' + fixed(price, 0)}
     </Button>
   )
 }

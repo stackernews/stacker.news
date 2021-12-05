@@ -14,7 +14,7 @@ export const COMMENT_FIELDS = gql`
     boost
     tips
     meVote
-    meBoost
+    meSats
     meTip
     mine
     ncomments

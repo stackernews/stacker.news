@@ -1,6 +1,5 @@
 import { LightningConsumer } from './lightning'
-import UpArrow from '../svgs/lightning-arrow.svg'
-import BoltAdd from '../svgs/lightning-pplus.svg'
+import UpBolt from '../svgs/bolt.svg'
 import styles from './upvote.module.css'
 import { gql, useMutation } from '@apollo/client'
 import { signIn } from 'next-auth/client'
@@ -11,6 +10,7 @@ import Window from '../svgs/window-2-fill.svg'
 import { useMe } from './me'
 import { useState } from 'react'
 import LongPressable from 'react-longpressable'
+import Rainbow from '../lib/rainbow'
 
 export default function UpVote ({ item, className }) {
   const { setError } = useFundError()
@@ -37,12 +37,6 @@ export default function UpVote ({ item, className }) {
               }
               return existingMeVote
             },
-            meBoost (existingMeBoost = 0) {
-              if (act === 'BOOST') {
-                return existingMeBoost + sats
-              }
-              return existingMeBoost
-            },
             meTip (existingMeTip = 0) {
               if (act === 'TIP') {
                 return existingMeTip + sats
@@ -51,6 +45,12 @@ export default function UpVote ({ item, className }) {
             },
             sats (existingSats = 0) {
               if (act === 'VOTE') {
+                return existingSats + sats
+              }
+              return existingSats
+            },
+            meSats (existingSats = 0) {
+              if (act === 'VOTE' || act === 'TIP') {
                 return existingSats + sats
               }
               return existingSats
@@ -76,7 +76,7 @@ export default function UpVote ({ item, className }) {
   const overlayText = () => {
     if (item?.meVote) {
       if (me?.tipDefault) {
-        return `tip ${me.tipDefault}`
+        return `${me.tipDefault} sat${me.tipDefault > 1 ? 's' : ''}`
       }
       return <Window style={{ fill: '#fff' }} width={18} height={18} />
     }
@@ -84,9 +84,21 @@ export default function UpVote ({ item, className }) {
     return '1 sat'
   }
 
-  const noSelfTips = item?.meVote && item?.mine
-  const Arrow = item?.meVote && !item?.mine ? BoltAdd : UpArrow
+  const getColor = (meSats) => {
+    if (!meSats || meSats <= 10) {
+      return 'var(--secondary)'
+    }
 
+    const idx = Math.min(
+      Math.floor((Math.log(meSats) / Math.log(100000)) * (Rainbow.length - 1)),
+      Rainbow.length - 1)
+    return Rainbow[idx]
+  }
+
+  const noSelfTips = item?.meVote && item?.mine
+  // 12 px default height
+  const cover = (item?.meSats < 10 ? ((10 - item.meSats) / 10.0) : 0) * 12
+  const color = getColor(item?.meSats)
   return (
     <LightningConsumer>
       {({ strike }) =>
@@ -150,8 +162,10 @@ export default function UpVote ({ item, className }) {
           }
         >
           <ActionTooltip notForm disable={noSelfTips} overlayText={overlayText()}>
-            <div>
-              <Arrow
+            <div className={`${noSelfTips ? styles.noSelfTips : ''}
+              ${styles.upvoteWrapper}`}
+            >
+              <UpBolt
                 width={24}
                 height={24}
                 className={
@@ -160,10 +174,17 @@ export default function UpVote ({ item, className }) {
                 ${noSelfTips ? styles.noSelfTips : ''}
                 ${item?.meVote ? styles.voted : ''}`
               }
+                style={item?.meVote
+                  ? {
+                      fill: color,
+                      filter: `drop-shadow(0 0 6px ${color}90)`
+                    }
+                  : undefined}
                 onClick={e => {
                   e.stopPropagation()
                 }}
               />
+              <div className={styles.cover} style={{ top: item?.parentId ? '9px' : '4px', height: `${cover}px` }} />
             </div>
           </ActionTooltip>
         </LongPressable>}

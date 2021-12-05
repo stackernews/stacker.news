@@ -35,6 +35,11 @@ a.link:visited {
     display: flex;
     justify-content: flex-start;
     min-width: 0;
+    margin-bottom: .2rem;
+}
+
+.item .cover {
+    top: 4px;
 }
 
 .hunk {
@@ -51,7 +56,7 @@ a.link:visited {
 
 .children {
     margin-top: .25rem;
-    margin-left: 24px;
+    margin-left: 28px;
 }
 
 .rank {

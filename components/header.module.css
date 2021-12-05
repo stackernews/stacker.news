@@ -5,9 +5,10 @@
     line-height: 100%;
     margin-bottom: -.3rem;
     margin-right: 0;
-    text-shadow: 0 0 10px #FADA5E;
+    text-shadow: 0 0 10px var(--primary);
     color: var(--theme-brandColor) !important;
 }
+
 
 .navLink {
     padding: 0.25rem 1rem;

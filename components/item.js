@@ -36,12 +36,15 @@ export default function Item ({ item, rank, children }) {
               <a ref={titleRef} className={`${styles.title} text-reset mr-2`}>{item.title}</a>
             </Link>
             {item.url &&
-              <a
-                className={`${styles.link} ${wrap ? styles.linkSmall : ''}`} target='_blank' href={item.url} // eslint-disable-line
-                rel={item.sats + item.boost >= NOFOLLOW_LIMIT ? null : 'nofollow'}
-              >
-                {item.url.replace(/(^https?:|^)\/\//, '')}
-              </a>}
+              <>
+                {/*  eslint-disable-next-line */}
+                <a
+                  className={`${styles.link} ${wrap ? styles.linkSmall : ''}`} target='_blank' href={item.url}
+                  rel={item.sats + item.boost >= NOFOLLOW_LIMIT ? null : 'nofollow'}
+                >
+                  {item.url.replace(/(^https?:|^)\/\//, '')}
+                </a>
+              </>}
           </div>
           <div className={`${styles.other}`}>
             <span title={`${item.sats} upvotes \\ ${item.tips} tipped`}>{item.sats + item.tips} sats</span>

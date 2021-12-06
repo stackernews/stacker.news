@@ -3,7 +3,7 @@ import Button from 'react-bootstrap/Button'
 import styles from './login.module.css'
 import GithubIcon from '../svgs/github-fill.svg'
 import TwitterIcon from '../svgs/twitter-fill.svg'
-import LightningIcon from '../svgs/lightning.svg'
+import LightningIcon from '../svgs/bolt.svg'
 import { Form, Input, SubmitButton } from '../components/form'
 import * as Yup from 'yup'
 import { useEffect, useState } from 'react'
@@ -53,6 +53,8 @@ export default function Login ({ providers, callbackUrl, error, Header }) {
                 })}
               >
                 <LightningIcon
+                  width={20}
+                  height={20}
                   className='mr-3'
                 />Login with Lightning
               </Button>

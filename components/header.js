@@ -29,6 +29,7 @@ function WalletSummary ({ me }) {
 export default function Header () {
   const router = useRouter()
   const path = router.asPath.split('?')[0]
+  const [fired, setFired] = useState()
   const me = useMe()
   const [within, setWithin] = useState()
 
@@ -119,10 +120,13 @@ export default function Header () {
         </div>
       )
     } else {
-      const strike = useLightning()
-      useEffect(() => {
-        setTimeout(strike, randInRange(3000, 10000))
-      }, [router.asPath])
+      if (!fired) {
+        const strike = useLightning()
+        useEffect(() => {
+          setTimeout(strike, randInRange(3000, 10000))
+        }, [router.asPath])
+        setFired(true)
+      }
       return path !== '/login' && !path.startsWith('/invites') && <Button id='login' onClick={signIn}>login</Button>
     }
   }

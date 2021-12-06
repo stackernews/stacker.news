@@ -11,6 +11,7 @@ import { useMe } from './me'
 import { useState } from 'react'
 import LongPressable from 'react-longpressable'
 import Rainbow from '../lib/rainbow'
+import { OverlayTrigger, Popover } from 'react-bootstrap'
 
 export default function UpVote ({ item, className }) {
   const { setError } = useFundError()
@@ -95,6 +96,15 @@ export default function UpVote ({ item, className }) {
     return Rainbow[idx]
   }
 
+  const popover = (
+    <Popover id='popover-basic'>
+      <Popover.Title as='h3'>Tipping</Popover.Title>
+      <Popover.Content>
+        Press bolt again to tip
+      </Popover.Content>
+    </Popover>
+  )
+
   const noSelfTips = item?.meVote && item?.mine
   // 12 px default height
   const cover = (item?.meSats < 10 ? ((10 - item.meSats) / 10.0) : 0) * 12
@@ -165,25 +175,27 @@ export default function UpVote ({ item, className }) {
             <div className={`${noSelfTips ? styles.noSelfTips : ''}
               ${styles.upvoteWrapper}`}
             >
-              <UpBolt
-                width={24}
-                height={24}
-                className={
+              <OverlayTrigger placement='right' overlay={popover} show>
+                <UpBolt
+                  width={24}
+                  height={24}
+                  className={
                 `${styles.upvote}
                 ${className || ''}
                 ${noSelfTips ? styles.noSelfTips : ''}
                 ${item?.meVote ? styles.voted : ''}`
               }
-                style={item?.meVote
-                  ? {
-                      fill: color,
-                      filter: `drop-shadow(0 0 6px ${color}90)`
-                    }
-                  : undefined}
-                onClick={e => {
-                  e.stopPropagation()
-                }}
-              />
+                  style={item?.meVote
+                    ? {
+                        fill: color,
+                        filter: `drop-shadow(0 0 6px ${color}90)`
+                      }
+                    : undefined}
+                  onClick={e => {
+                    e.stopPropagation()
+                  }}
+                />
+              </OverlayTrigger>
               <div className={styles.cover} style={{ top: item?.parentId ? '9px' : '4px', height: `${cover}px` }} />
             </div>
           </ActionTooltip>

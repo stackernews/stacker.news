@@ -13,6 +13,7 @@ export default gql`
     setSettings(tipDefault: Int!): Boolean
     setTheme(theme: String!): Boolean
     upsertBio(bio: String!): User!
+    setWalkthrough(tipPopover: Boolean, upvotePopover: Boolean): Boolean
   }
 
   type User {
@@ -31,5 +32,7 @@ export default gql`
     sats: Int!
     msats: Int!
     theme: String!
+    upvotePopover: Boolean!
+    tipPopover: Boolean!
   }
 `

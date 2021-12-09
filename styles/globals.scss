@@ -230,6 +230,10 @@ textarea.form-control {
   font-family: 'lightning';
 }
 
+.popover-header.alert-dismissible .close {
+  padding: .5rem !important;
+}
+
 .alert-dismissible .close::after {
   content: 'X';
 }

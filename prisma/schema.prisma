@@ -37,6 +37,9 @@ model User {
   pubkey         String?     @unique
   theme          String      @default("light")
 
+  upvotePopover Boolean @default(false)
+  tipPopover    Boolean @default(false)
+
   @@index([createdAt])
   @@map(name: "users")
 }

@@ -18,6 +18,8 @@ export const ME = gql`
       }
       hasInvites
       theme
+      upvotePopover
+      tipPopover
     }
   }`
 

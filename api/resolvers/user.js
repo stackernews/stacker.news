@@ -44,6 +44,15 @@ export default {
 
       return true
     },
+    setWalkthrough: async (parent, { upvotePopover, tipPopover }, { me, models }) => {
+      if (!me) {
+        throw new AuthenticationError('you must be logged in')
+      }
+
+      await models.user.update({ where: { id: me.id }, data: { upvotePopover, tipPopover } })
+
+      return true
+    },
     setTheme: async (parent, { theme }, { me, models }) => {
       if (!me) {
         throw new AuthenticationError('you must be logged in')

@@ -6,7 +6,6 @@ import { signIn } from 'next-auth/client'
 import { useFundError } from './fund-error'
 import ActionTooltip from './action-tooltip'
 import { useItemAct } from './item-act'
-import Window from '../svgs/window-2-fill.svg'
 import { useMe } from './me'
 import { useRef, useState } from 'react'
 import LongPressable from 'react-longpressable'
@@ -174,10 +173,8 @@ export default function UpVote ({ item, className }) {
       if (me?.tipDefault) {
         return `${me.tipDefault} sat${me.tipDefault > 1 ? 's' : ''}`
       }
-      return <Window style={{ fill: '#fff' }} width={18} height={18} />
+      return '1 sat'
     }
-
-    return '1 sat'
   }
 
   const noSelfTips = item?.meVote && item?.mine
@@ -218,16 +215,12 @@ export default function UpVote ({ item, className }) {
 
                   if (item?.meVote) {
                     setVoteShow(false)
-                    if (me?.tipDefault) {
-                      try {
-                        strike()
-                        await act({ variables: { id: item.id, act: 'TIP', sats: me.tipDefault } })
-                      } catch (e) {
-                        console.log(e)
-                      }
-                      return
+                    try {
+                      strike()
+                      await act({ variables: { id: item.id, act: 'TIP', sats: me.tipDefault || 1 } })
+                    } catch (e) {
+                      console.log(e)
                     }
-                    setItem({ itemId: item.id, act, strike })
                     return
                   }
 

@@ -7,9 +7,9 @@ import { useFundError } from './fund-error'
 import ActionTooltip from './action-tooltip'
 import { useItemAct } from './item-act'
 import { useMe } from './me'
+import Rainbow from '../lib/rainbow'
 import { useRef, useState } from 'react'
 import LongPressable from 'react-longpressable'
-import Rainbow from '../lib/rainbow'
 import { Overlay, Popover } from 'react-bootstrap'
 
 const getColor = (meSats) => {
@@ -18,7 +18,7 @@ const getColor = (meSats) => {
   }
 
   const idx = Math.min(
-    Math.floor((Math.log(meSats) / Math.log(100000)) * (Rainbow.length - 1)),
+    Math.floor((Math.log(meSats) / Math.log(10000)) * (Rainbow.length - 1)),
     Rainbow.length - 1)
   return Rainbow[idx]
 }
@@ -34,7 +34,7 @@ const UpvotePopover = ({ target, show, handleClose }) => (
         <button type='button' className='close' onClick={handleClose}><span aria-hidden='true'>×</span><span className='sr-only'>Close alert</span></button>
       </Popover.Title>
       <Popover.Content>
-        Press bolt again to tip 1 sat
+        Press bolt again to tip 1 sat.
       </Popover.Content>
     </Popover>
   </Overlay>
@@ -51,7 +51,8 @@ const TipPopover = ({ target, show, handleClose }) => (
         <button type='button' class='close' onClick={handleClose}><span aria-hidden='true'>×</span><span class='sr-only'>Close alert</span></button>
       </Popover.Title>
       <Popover.Content>
-        Press and hold bolt to tip a custom amount
+        <div className='mb-2'>Press and hold bolt to tip a custom amount.</div>
+        <div>As you tip more, the bolt color follows the rainbow.</div>
       </Popover.Content>
     </Popover>
   </Overlay>
@@ -71,11 +72,6 @@ export default function UpVote ({ item, className }) {
         setWalkthrough(upvotePopover: $upvotePopover, tipPopover: $tipPopover)
       }`
   )
-
-  // TODO: 1. create functions that updates user to say that they've performed the
-  // actions so they don't get reprompted, 2. check that the user hasn't been prompted
-  // before prompting ... we can probably just create one toggle function for each
-  // that does these checks
 
   const setVoteShow = (yes) => {
     if (!me) return
@@ -178,8 +174,6 @@ export default function UpVote ({ item, className }) {
   }
 
   const noSelfTips = item?.meVote && item?.mine
-  // 12 px default height
-  const cover = (item?.meSats < 10 ? ((10 - item.meSats) / 10.0) : 0) * 12
   const color = getColor(item?.meSats)
   return (
     <LightningConsumer>
@@ -265,11 +259,6 @@ export default function UpVote ({ item, className }) {
                   onClick={e => {
                     e.stopPropagation()
                   }}
-                />
-                <div
-                  className={styles.cover} onClick={e => {
-                    e.stopPropagation()
-                  }} style={{ top: item?.parentId ? '9px' : '4px', height: `${cover}px` }}
                 />
               </div>
             </ActionTooltip>

@@ -47,7 +47,7 @@ export default function Item ({ item, rank, children }) {
               </>}
           </div>
           <div className={`${styles.other}`}>
-            <span title={`${item.sats} upvotes \\ ${item.tips} tipped`}>{item.sats + item.tips} sats</span>
+            <span title={`${item.sats} upvotes \\ ${item.tips} tipped${item.meSats > 0 ? ` (${item.meSats} from me)` : ''}`}>{item.sats + item.tips} sats</span>
             <span> \ </span>
             {item.boost > 0 &&
               <>

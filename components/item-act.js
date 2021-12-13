@@ -1,7 +1,7 @@
 import { InputGroup, Modal } from 'react-bootstrap'
 import React, { useState, useCallback, useContext, useRef, useEffect } from 'react'
 import * as Yup from 'yup'
-import { Checkbox, Form, Input, SubmitButton } from './form'
+import { Form, Input, SubmitButton } from './form'
 import { useMe } from './me'
 
 export const ItemActContext = React.createContext({
@@ -53,7 +53,7 @@ export function ItemActModal () {
       <Modal.Body>
         <Form
           initial={{
-            amount: me?.tipDefault || 21,
+            amount: me?.tipDefault,
             default: false
           }}
           schema={ActSchema}
@@ -77,12 +77,6 @@ export function ItemActModal () {
             required
             autoFocus
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
-          />
-          <Checkbox
-            label='set as default'
-            name='tipDefault'
-            required
-            autoFocus
           />
           <div className='d-flex'>
             <SubmitButton variant='success' className='ml-auto mt-1 px-4' value='TIP'>tip</SubmitButton>

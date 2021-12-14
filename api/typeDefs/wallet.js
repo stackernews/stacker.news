@@ -39,7 +39,15 @@ export default gql`
     status: String
   }
 
-  union Fact = Invoice | Withdrawl
+  type Fact {
+    id: ID!
+    bolt11: String!
+    createdAt: String!
+    msats: Int!
+    msatsFee: Int!
+    status: String!
+    type: String!
+  }
 
   type History {
     facts: [Fact!]!

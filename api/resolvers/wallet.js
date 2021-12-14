@@ -1,7 +1,7 @@
 import { createInvoice, decodePaymentRequest, subscribeToPayViaRequest } from 'ln-service'
 import { UserInputError, AuthenticationError } from 'apollo-server-micro'
 import serialize from './serial'
-import { decodeCursor } from '../../lib/cursor'
+import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 
 export default {
   Query: {
@@ -50,10 +50,48 @@ export default {
     },
     walletHistory: async (parent, { cursor }, { me, models, lnd }) => {
       const decodedCursor = decodeCursor(cursor)
-      if (!me) {
-        throw new AuthenticationError('you must be logged in')
-      }
+      // if (!me) {
+      //   throw new AuthenticationError('you must be logged in')
+      // }
 
+      // TODO
+      // 1. union invoices and withdrawals
+      // 2. add to union spending and receiving
+
+      const history = await models.$queryRaw(`
+      (SELECT id, bolt11, created_at as "createdAt",
+        "msatsReceived" as msats, NULL as "msatsFee",
+        CASE WHEN "confirmedAt" IS NOT NULL THEN 'CONFIRMED'
+             WHEN "expiresAt" IS NOT NULL THEN 'EXPIRED'
+             WHEN cancelled THEN 'CANCELLED'
+             ELSE 'PENDING' END as status,
+        'invoice' as type
+        FROM "Invoice"
+        WHERE "userId" = $1
+          AND created_at <= $2
+        ORDER BY created_at desc
+        LIMIT ${LIMIT}+$3)
+      UNION ALL
+      (SELECT id, bolt11, created_at as "createdAt",
+        CASE WHEN status = 'CONFIRMED' THEN "msatsPaid"
+        ELSE "msatsPaying" END as msats,
+        CASE WHEN status = 'CONFIRMED' THEN "msatsFeePaid"
+        ELSE "msatsFeePaying" END as "msatsFee",
+        COALESCE(status::text, 'PENDING') as status,
+        'withdrawal' as type
+        FROM "Withdrawl"
+        WHERE "userId" = $1
+          AND created_at <= $2
+        ORDER BY created_at desc
+        LIMIT ${LIMIT}+$3)
+      ORDER BY "createdAt" DESC
+      OFFSET $3
+      LIMIT ${LIMIT}`, 624, decodedCursor.time, decodedCursor.offset)
+
+      return {
+        cursor: history.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
+        facts: history
+      }
     }
   },
 

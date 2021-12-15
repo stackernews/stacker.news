@@ -41,12 +41,13 @@ export default gql`
 
   type Fact {
     id: ID!
-    bolt11: String!
+    bolt11: String
     createdAt: String!
     msats: Int!
-    msatsFee: Int!
+    msatsFee: Int
     status: String!
     type: String!
+    description: String
   }
 
   type History {

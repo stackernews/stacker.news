@@ -1,0 +1,18 @@
+.type {
+    width: 1px;
+    white-space: nowrap;
+}
+
+.sats {
+    width: 1px;
+    white-space: nowrap;
+    text-align: right;
+}
+
+.failed {
+    text-decoration: line-through;
+}
+
+.row {
+    cursor: pointer;
+}

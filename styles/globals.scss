@@ -59,6 +59,20 @@ $tooltip-bg: #5c8001;
   src: url(/Lightningvolt-xoqm.ttf);
 }
 
+.table-sm th, .table-sm td {
+  padding: .3rem .75rem;
+  line-height: 1.2rem;
+}
+
+.table {
+  color: var(--theme-color);
+  background-color: var(--theme-body);
+}
+
+.table th, .table td, .table thead th {
+  border-color: var(--theme-borderColor);
+}
+
 body {
   background: var(--theme-body);
   color: var(--theme-color);

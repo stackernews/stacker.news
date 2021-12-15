@@ -32,6 +32,7 @@ export default function UserHeader ({ user }) {
   const [setName] = useMutation(NAME_MUTATION)
 
   const Satistics = () => <h1 className='mb-0'><small className='text-success'>{user.sats} sats \ {user.stacked} stacked</small></h1>
+  const isMe = me?.name === user.name
 
   const UserSchema = Yup.object({
     name: Yup.string()
@@ -104,7 +105,7 @@ export default function UserHeader ({ user }) {
           : (
             <div className='d-flex align-items-center'>
               <h2 className='mb-0'>@{user.name}</h2>
-              {me?.name === user.name &&
+              {isMe &&
                 <Button variant='link' onClick={() => setEditting(true)}>edit nym</Button>}
             </div>
             )}
@@ -129,11 +130,12 @@ export default function UserHeader ({ user }) {
             <Nav.Link>{user.ncomments} comments</Nav.Link>
           </Link>
         </Nav.Item>
-        {/* <Nav.Item>
-          <Link href={'/' + user.name + '/sativity'} passHref>
-            <Nav.Link>satistics</Nav.Link>
-          </Link>
-        </Nav.Item> */}
+        {isMe &&
+          <Nav.Item>
+            <Link href='/satistics' passHref>
+              <Nav.Link>satistics</Nav.Link>
+            </Link>
+          </Nav.Item>}
       </Nav>
     </>
   )

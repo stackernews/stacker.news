@@ -24,6 +24,24 @@ export const WITHDRAWL = gql`
     }
   }`
 
+export const WALLET_HISTORY = gql`
+  query WalletHistory($cursor: String) {
+    walletHistory(cursor: $cursor) {
+      facts {
+        id
+        type
+        createdAt
+        msats
+        msatsFee
+        status
+        type
+        description
+      }
+      cursor
+    }
+  }
+`
+
 export const CREATE_WITHDRAWL = gql`
   mutation createWithdrawl($invoice: String!, $maxFee: Int!) {
     createWithdrawl(invoice: $invoice, maxFee: $maxFee) {

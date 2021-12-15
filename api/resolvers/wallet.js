@@ -2,6 +2,7 @@ import { createInvoice, decodePaymentRequest, subscribeToPayViaRequest } from 'l
 import { UserInputError, AuthenticationError } from 'apollo-server-micro'
 import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
+import lnpr from 'bolt11'
 
 export default {
   Query: {
@@ -50,19 +51,19 @@ export default {
     },
     walletHistory: async (parent, { cursor }, { me, models, lnd }) => {
       const decodedCursor = decodeCursor(cursor)
-      // if (!me) {
-      //   throw new AuthenticationError('you must be logged in')
-      // }
+      if (!me) {
+        throw new AuthenticationError('you must be logged in')
+      }
 
       // TODO
-      // 1. union invoices and withdrawals
+      // 1. union invoices and withdrawals (check)
       // 2. add to union spending and receiving
 
-      const history = await models.$queryRaw(`
+      let history = await models.$queryRaw(`
       (SELECT id, bolt11, created_at as "createdAt",
-        "msatsReceived" as msats, NULL as "msatsFee",
+        COALESCE("msatsReceived", "msatsRequested") as msats, NULL as "msatsFee",
         CASE WHEN "confirmedAt" IS NOT NULL THEN 'CONFIRMED'
-             WHEN "expiresAt" IS NOT NULL THEN 'EXPIRED'
+             WHEN "expiresAt" <= $2 THEN 'EXPIRED'
              WHEN cancelled THEN 'CANCELLED'
              ELSE 'PENDING' END as status,
         'invoice' as type
@@ -86,7 +87,31 @@ export default {
         LIMIT ${LIMIT}+$3)
       ORDER BY "createdAt" DESC
       OFFSET $3
-      LIMIT ${LIMIT}`, 624, decodedCursor.time, decodedCursor.offset)
+      LIMIT ${LIMIT}`, me.id, decodedCursor.time, decodedCursor.offset)
+
+      history = history.map(f => {
+        if (f.bolt11) {
+          const inv = lnpr.decode(f.bolt11)
+          if (inv) {
+            const { tags } = inv
+            for (const tag of tags) {
+              if (tag.tagName === 'description') {
+                f.description = tag.data
+                break
+              }
+            }
+          }
+        }
+        switch (f.type) {
+          case 'withdrawal':
+            f.msats *= -1
+            break
+          default:
+            break
+        }
+
+        return f
+      })
 
       return {
         cursor: history.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,

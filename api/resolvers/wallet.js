@@ -56,7 +56,7 @@ export default {
         throw new AuthenticationError('you must be logged in')
       }
 
-      const include = new Set(inc.split(','))
+      const include = new Set(inc?.split(','))
       const queries = []
 
       if (include.has('invoice')) {

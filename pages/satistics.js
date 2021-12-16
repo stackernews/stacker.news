@@ -112,7 +112,7 @@ export default function Satistics ({ data: { walletHistory: { facts, cursor } } 
   const { data, fetchMore } = useQuery(WALLET_HISTORY, { variables: { inc: router.query.inc } })
 
   function filterRoutePush (filter, add) {
-    const inc = new Set(router.query.inc.split(','))
+    const inc = new Set(router.query.inc?.split(','))
     inc.delete('')
     // depending on addrem, add or remove filter
     if (add) {
@@ -126,7 +126,7 @@ export default function Satistics ({ data: { walletHistory: { facts, cursor } } 
   }
 
   function included (filter) {
-    const inc = new Set(router.query.inc.split(','))
+    const inc = new Set(router.query.inc?.split(','))
     return inc.has(filter)
   }
 

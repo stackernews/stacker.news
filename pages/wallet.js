@@ -31,8 +31,19 @@ function YouHaveSats () {
   )
 }
 
+function WalletHistory () {
+  return (
+    <div className='pt-4'>
+      <Link href='/satistics?inc=invoice,withdrawal' passHref>
+        <a className='text-muted font-weight-bold text-underline'>wallet history</a>
+      </Link>
+    </div>
+  )
+}
+
 export function WalletForm () {
   const router = useRouter()
+
   if (!router.query.type) {
     return (
       <div className='align-items-center text-center'>
@@ -44,6 +55,7 @@ export function WalletForm () {
         <Link href='/wallet?type=withdraw'>
           <Button variant='success'>withdraw</Button>
         </Link>
+        <WalletHistory />
       </div>
     )
   }
@@ -112,6 +124,7 @@ export function FundForm () {
         />
         <SubmitButton variant='success' className='mt-2'>generate invoice</SubmitButton>
       </Form>
+      <WalletHistory />
     </>
   )
 }
@@ -180,6 +193,7 @@ export function WithdrawlForm () {
       <Link href='/wallet?type=lnurl-withdraw'>
         <Button variant='grey'>QR code</Button>
       </Link>
+      <WalletHistory />
     </>
   )
 }

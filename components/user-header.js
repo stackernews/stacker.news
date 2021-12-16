@@ -113,7 +113,7 @@ export default function UserHeader ({ user }) {
       </div>
       <Nav
         className={styles.nav}
-        activeKey={router.asPath}
+        activeKey={router.asPath.split('?')[0]}
       >
         <Nav.Item>
           <Link href={'/' + user.name} passHref>
@@ -132,8 +132,8 @@ export default function UserHeader ({ user }) {
         </Nav.Item>
         {isMe &&
           <Nav.Item>
-            <Link href='/satistics' passHref>
-              <Nav.Link>satistics</Nav.Link>
+            <Link href='/satistics?inc=invoice,withdrawal,stacked,spent' passHref>
+              <Nav.Link eventKey='/satistics'>satistics</Nav.Link>
             </Link>
           </Nav.Item>}
       </Nav>

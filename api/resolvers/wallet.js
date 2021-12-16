@@ -49,45 +49,61 @@ export default {
     connectAddress: async (parent, args, { lnd }) => {
       return process.env.LND_CONNECT_ADDRESS
     },
-    walletHistory: async (parent, { cursor }, { me, models, lnd }) => {
+    walletHistory: async (parent, { cursor, inc }, { me, models, lnd }) => {
       const decodedCursor = decodeCursor(cursor)
       if (!me) {
         throw new AuthenticationError('you must be logged in')
+      }
+
+      const include = new Set(inc.split(','))
+      const queries = []
+
+      if (include.has('invoice')) {
+        queries.push(
+          `(SELECT ('invoice' || id) as id, id as "factId", bolt11, created_at as "createdAt",
+          COALESCE("msatsReceived", "msatsRequested") as msats, NULL as "msatsFee",
+          CASE WHEN "confirmedAt" IS NOT NULL THEN 'CONFIRMED'
+              WHEN "expiresAt" <= $2 THEN 'EXPIRED'
+              WHEN cancelled THEN 'CANCELLED'
+              ELSE 'PENDING' END as status,
+          'invoice' as type
+          FROM "Invoice"
+          WHERE "userId" = $1
+            AND created_at <= $2)`)
+      }
+
+      if (include.has('withdrawal')) {
+        queries.push(
+          `(SELECT ('withdrawal' || id) as id, id as "factId", bolt11, created_at as "createdAt",
+          CASE WHEN status = 'CONFIRMED' THEN "msatsPaid"
+          ELSE "msatsPaying" END as msats,
+          CASE WHEN status = 'CONFIRMED' THEN "msatsFeePaid"
+          ELSE "msatsFeePaying" END as "msatsFee",
+          COALESCE(status::text, 'PENDING') as status,
+          'withdrawal' as type
+          FROM "Withdrawl"
+          WHERE "userId" = $1
+            AND created_at <= $2)`)
       }
 
       // TODO
       // 1. union invoices and withdrawals (check)
       // 2. add to union spending and receiving
 
+      if (queries.length === 0) {
+        return {
+          cursor: null,
+          facts: []
+        }
+      }
+
       let history = await models.$queryRaw(`
-      (SELECT id, bolt11, created_at as "createdAt",
-        COALESCE("msatsReceived", "msatsRequested") as msats, NULL as "msatsFee",
-        CASE WHEN "confirmedAt" IS NOT NULL THEN 'CONFIRMED'
-             WHEN "expiresAt" <= $2 THEN 'EXPIRED'
-             WHEN cancelled THEN 'CANCELLED'
-             ELSE 'PENDING' END as status,
-        'invoice' as type
-        FROM "Invoice"
-        WHERE "userId" = $1
-          AND created_at <= $2
-        ORDER BY created_at desc
-        LIMIT ${LIMIT}+$3)
-      UNION ALL
-      (SELECT id, bolt11, created_at as "createdAt",
-        CASE WHEN status = 'CONFIRMED' THEN "msatsPaid"
-        ELSE "msatsPaying" END as msats,
-        CASE WHEN status = 'CONFIRMED' THEN "msatsFeePaid"
-        ELSE "msatsFeePaying" END as "msatsFee",
-        COALESCE(status::text, 'PENDING') as status,
-        'withdrawal' as type
-        FROM "Withdrawl"
-        WHERE "userId" = $1
-          AND created_at <= $2
-        ORDER BY created_at desc
-        LIMIT ${LIMIT}+$3)
+      ${queries.join(' UNION ALL ')}
       ORDER BY "createdAt" DESC
       OFFSET $3
       LIMIT ${LIMIT}`, me.id, decodedCursor.time, decodedCursor.offset)
+
+      console.log(history)
 
       history = history.map(f => {
         if (f.bolt11) {
@@ -112,6 +128,8 @@ export default {
 
         return f
       })
+
+      console.log(history)
 
       return {
         cursor: history.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,

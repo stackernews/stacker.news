@@ -64,6 +64,10 @@ $tooltip-bg: #5c8001;
   line-height: 1.2rem;
 }
 
+.custom-checkbox.custom-control-inline {
+  margin-right: .5rem;
+}
+
 .table {
   color: var(--theme-color);
   background-color: var(--theme-body);

@@ -30,7 +30,7 @@ export default async function getSSRApolloClient (req, me = null) {
 }
 
 export function getGetServerSideProps (query, variables = null, foundField) {
-  return async function ({ req, params }) {
+  return async function ({ req, query: params }) {
     const client = await getSSRApolloClient(req)
     const { error, data } = await client.query({
       query,

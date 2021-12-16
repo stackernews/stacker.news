@@ -12,6 +12,8 @@ import styles from '../styles/satistics.module.css'
 import Moon from '../svgs/moon-fill.svg'
 import Check from '../svgs/check-double-line.svg'
 import ThumbDown from '../svgs/thumb-down-fill.svg'
+import { Checkbox, Form } from '../components/form'
+import { useRouter } from 'next/router'
 
 export const getServerSideProps = getGetServerSideProps(WALLET_HISTORY)
 
@@ -83,7 +85,29 @@ function Satus ({ status }) {
 export default function Satistics ({ data: { walletHistory: { facts, cursor } } }) {
   const me = useMe()
   const { value: darkMode } = useDarkMode()
-  const { data, fetchMore } = useQuery(WALLET_HISTORY)
+  const router = useRouter()
+  const { data, fetchMore } = useQuery(WALLET_HISTORY, { variables: { inc: router.query.inc } })
+
+  console.log(router.query.inc, data)
+
+  function filterRoutePush (filter, add) {
+    const inc = new Set(router.query.inc.split(','))
+    inc.delete('')
+    // depending on addrem, add or remove filter
+    if (add) {
+      inc.add(filter)
+    } else {
+      inc.delete(filter)
+    }
+
+    const incstr = [...inc].join(',')
+    router.push(`/satistics?inc=${incstr}`)
+  }
+
+  function included (filter) {
+    const inc = new Set(router.query.inc.split(','))
+    return inc.has(filter)
+  }
 
   if (data) {
     ({ walletHistory: { facts, cursor } } = data)
@@ -97,32 +121,61 @@ export default function Satistics ({ data: { walletHistory: { facts, cursor } } 
   return (
     <Layout noSeo>
       <UserHeader user={me} />
-      <Table className='mt-3 mb-0' bordered hover size='sm' variant={darkMode ? 'dark' : undefined}>
-        <thead>
-          <tr>
-            <th className={styles.type}>type</th>
-            <th>detail</th>
-            <th className={styles.sats}>sats</th>
-          </tr>
-        </thead>
-        <tbody>
-          {facts.map((f, i) => (
-            <Link href={`${f.type}s/${f.id}`} key={`${f.type}-${f.id}`}>
-              <tr className={styles.row}>
-                <td className={`${styles.type} ${satusClass(f.status)}`}>{f.type}</td>
-                <td className={styles.description}>
-                  <div className={satusClass(f.status)}>
-                    {f.description || 'no description'}
-                  </div>
-                  <Satus status={f.status} />
-                </td>
-                <td className={`${styles.sats} ${satusClass(f.status)}`}>{f.msats / 1000}</td>
-              </tr>
-            </Link>
-          ))}
-        </tbody>
-      </Table>
-      <MoreFooter cursor={cursor} fetchMore={fetchMore} Skeleton={SatisticsSkeleton} />
+      <div className='mt-3'>
+        <Form
+          initial={{
+            invoice: included('invoice'),
+            withdrawal: included('withdrawal'),
+            stacked: included('stacked'),
+            spent: included('spent')
+          }}
+        >
+          <div className='d-flex justify-content-around flex-wrap'>
+            <Checkbox
+              label='invoice' name='invoice' inline
+              handleChange={c => filterRoutePush('invoice', c)}
+            />
+            <Checkbox
+              label='withdrawal' name='withdrawal' inline
+              handleChange={c => filterRoutePush('withdrawal', c)}
+            />
+            <Checkbox
+              label='stacked' name='stacked' inline
+              handleChange={c => filterRoutePush('stacked', c)}
+            />
+            <Checkbox
+              label='spent' name='spent' inline
+              handleChange={c => filterRoutePush('spent', c)}
+            />
+          </div>
+        </Form>
+        <Table className='mt-3 mb-0' bordered hover size='sm' variant={darkMode ? 'dark' : undefined}>
+          <thead>
+            <tr>
+              <th className={styles.type}>type</th>
+              <th>detail</th>
+              <th className={styles.sats}>sats</th>
+            </tr>
+          </thead>
+          <tbody>
+            {facts.map((f, i) => (
+              <Link href={`${f.type}s/${f.factId}`} key={f.id}>
+                <tr className={styles.row}>
+                  <td className={`${styles.type} ${satusClass(f.status)}`}>{f.type}</td>
+                  <td className={styles.description}>
+                    <div className={satusClass(f.status)}>
+                      {f.description || 'no description'}
+                    </div>
+                    <Satus status={f.status} />
+                  </td>
+                  <td className={`${styles.sats} ${satusClass(f.status)}`}>{f.msats / 1000}</td>
+                </tr>
+              </Link>
+            ))}
+          </tbody>
+        </Table>
+        <MoreFooter cursor={cursor} fetchMore={fetchMore} Skeleton={SatisticsSkeleton} />
+      </div>
     </Layout>
   )
 }

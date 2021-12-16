@@ -25,10 +25,11 @@ export const WITHDRAWL = gql`
   }`
 
 export const WALLET_HISTORY = gql`
-  query WalletHistory($cursor: String) {
-    walletHistory(cursor: $cursor) {
+  query WalletHistory($cursor: String, $inc: String) {
+    walletHistory(cursor: $cursor, inc: $inc) {
       facts {
         id
+        factId
         type
         createdAt
         msats

@@ -62,7 +62,7 @@ export const USER_WITH_COMMENTS = gql`
         ...ItemWithComments
       }
     }
-    moreFlatComments(name: $name) {
+    moreFlatComments(sort: "user", name: $name) {
       cursor
       comments {
         ...CommentFields

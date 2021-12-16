@@ -32,11 +32,33 @@ export async function getItem (parent, { id }, { models }) {
   return item
 }
 
+function topClause (within) {
+  let interval = ' AND created_at >= $1 - INTERVAL '
+  switch (within) {
+    case 'day':
+      interval += "'1 day'"
+      break
+    case 'week':
+      interval += "'7 days'"
+      break
+    case 'month':
+      interval += "'1 month'"
+      break
+    case 'year':
+      interval += "'1 year'"
+      break
+    default:
+      interval = ''
+      break
+  }
+  return interval
+}
+
 export default {
   Query: {
     moreItems: async (parent, { sort, cursor, name, within }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
-      let items; let user; let interval = 'INTERVAL '
+      let items; let user
 
       switch (sort) {
         case 'user':
@@ -88,27 +110,12 @@ export default {
           }
           break
         case 'top':
-          switch (within?.pop()) {
-            case 'day':
-              interval += "'1 day'"
-              break
-            case 'week':
-              interval += "'7 days'"
-              break
-            case 'month':
-              interval += "'1 month'"
-              break
-            case 'year':
-              interval += "'1 year'"
-              break
-          }
-
           items = await models.$queryRaw(`
           ${SELECT}
           FROM "Item"
           ${timedLeftJoinSats(1)}
           WHERE "parentId" IS NULL AND created_at <= $1
-          ${within ? ` AND created_at >= $1 - ${interval}` : ''}
+          ${topClause(within)}
           ORDER BY x.sats DESC NULLS LAST, created_at DESC
           OFFSET $2
           LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
@@ -128,26 +135,45 @@ export default {
         items
       }
     },
-    moreFlatComments: async (parent, { cursor, name }, { me, models }) => {
+    moreFlatComments: async (parent, { cursor, name, sort, within }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
 
-      if (!name) {
-        throw new UserInputError('must supply name', { argumentName: 'name' })
-      }
+      let comments, user
+      switch (sort) {
+        case 'user':
+          if (!name) {
+            throw new UserInputError('must supply name', { argumentName: 'name' })
+          }
 
-      const user = await models.user.findUnique({ where: { name } })
-      if (!user) {
-        throw new UserInputError('no user has that name', { argumentName: 'name' })
-      }
+          user = await models.user.findUnique({ where: { name } })
+          if (!user) {
+            throw new UserInputError('no user has that name', { argumentName: 'name' })
+          }
 
-      const comments = await models.$queryRaw(`
-        ${SELECT}
-        FROM "Item"
-        WHERE "userId" = $1 AND "parentId" IS NOT NULL
-        AND created_at <= $2
-        ORDER BY created_at DESC
-        OFFSET $3
-        LIMIT ${LIMIT}`, user.id, decodedCursor.time, decodedCursor.offset)
+          comments = await models.$queryRaw(`
+            ${SELECT}
+            FROM "Item"
+            WHERE "userId" = $1 AND "parentId" IS NOT NULL
+            AND created_at <= $2
+            ORDER BY created_at DESC
+            OFFSET $3
+            LIMIT ${LIMIT}`, user.id, decodedCursor.time, decodedCursor.offset)
+          break
+        case 'top':
+          comments = await models.$queryRaw(`
+          ${SELECT}
+          FROM "Item"
+          ${timedLeftJoinSats(1)}
+          WHERE "parentId" IS NOT NULL
+          AND created_at <= $1
+          ${topClause(within)}
+          ORDER BY x.sats DESC NULLS LAST, created_at DESC
+          OFFSET $2
+          LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+          break
+        default:
+          throw new UserInputError('invalid sort type', { argumentName: 'sort' })
+      }
 
       return {
         cursor: comments.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,

@@ -132,7 +132,7 @@ export default function UserHeader ({ user }) {
         </Nav.Item>
         {isMe &&
           <Nav.Item>
-            <Link href='/satistics?inc=invoice,withdrawal,stacked,spent' passHref>
+            <Link href='/satistics?inc=invoice,withdrawal' passHref>
               <Nav.Link eventKey='/satistics'>satistics</Nav.Link>
             </Link>
           </Nav.Item>}

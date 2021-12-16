@@ -3,6 +3,7 @@ import { UserInputError, AuthenticationError } from 'apollo-server-micro'
 import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import lnpr from 'bolt11'
+import { SELECT } from './item'
 
 export default {
   Query: {
@@ -86,9 +87,29 @@ export default {
             AND created_at <= $2)`)
       }
 
-      // TODO
-      // 1. union invoices and withdrawals (check)
-      // 2. add to union spending and receiving
+      if (include.has('stacked')) {
+        queries.push(
+          `(SELECT ('stacked' || "Item".id) as id, "Item".id as "factId", NULL as bolt11,
+          MAX("ItemAct".created_at) as "createdAt", sum("ItemAct".sats) * 1000 as msats,
+          0 as "msatsFee", NULL as status, 'stacked' as type
+          FROM "ItemAct"
+          JOIN "Item" on "ItemAct"."itemId" = "Item".id
+          WHERE "ItemAct"."userId" <> $1 AND "ItemAct".act <> 'BOOST'
+          AND "Item"."userId" = $1 AND "ItemAct".created_at <= $2
+          GROUP BY "Item".id)`)
+      }
+
+      if (include.has('spent')) {
+        queries.push(
+          `(SELECT ('spent' || "Item".id) as id, "Item".id as "factId", NULL as bolt11,
+          MAX("ItemAct".created_at) as "createdAt", sum("ItemAct".sats) * 1000 as msats,
+          0 as "msatsFee", NULL as status, 'spent' as type
+          FROM "ItemAct"
+          JOIN "Item" on "ItemAct"."itemId" = "Item".id
+          WHERE "ItemAct"."userId" = $1
+          AND "ItemAct".created_at <= $2
+          GROUP BY "Item".id)`)
+      }
 
       if (queries.length === 0) {
         return {
@@ -102,8 +123,6 @@ export default {
       ORDER BY "createdAt" DESC
       OFFSET $3
       LIMIT ${LIMIT}`, me.id, decodedCursor.time, decodedCursor.offset)
-
-      console.log(history)
 
       history = history.map(f => {
         if (f.bolt11) {
@@ -120,6 +139,9 @@ export default {
         }
         switch (f.type) {
           case 'withdrawal':
+            f.msats = (-1 * f.msats) - f.msatsFee
+            break
+          case 'spent':
             f.msats *= -1
             break
           default:
@@ -128,8 +150,6 @@ export default {
 
         return f
       })
-
-      console.log(history)
 
       return {
         cursor: history.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
@@ -251,5 +271,19 @@ export default {
     satsPaid: w => Math.floor(w.msatsPaid / 1000),
     satsFeePaying: w => Math.floor(w.msatsFeePaying / 1000),
     satsFeePaid: w => Math.floor(w.msatsFeePaid / 1000)
+  },
+
+  Fact: {
+    item: async (fact, args, { models }) => {
+      if (fact.type !== 'spent' && fact.type !== 'stacked') {
+        return null
+      }
+      const [item] = await models.$queryRaw(`
+        ${SELECT}
+        FROM "Item"
+        WHERE id = $1`, Number(fact.factId))
+
+      return item
+    }
   }
 }

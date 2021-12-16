@@ -46,9 +46,10 @@ export default gql`
     createdAt: String!
     msats: Int!
     msatsFee: Int
-    status: String!
+    status: String
     type: String!
     description: String
+    item: Item
   }
 
   type History {

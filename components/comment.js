@@ -38,9 +38,14 @@ function Parent ({ item, rootText }) {
   )
 }
 
+const truncateString = (string = '', maxLength = 140) =>
+  string.length > maxLength
+    ? `${string.substring(0, maxLength)} […]`
+    : string
+
 export default function Comment ({
   item, children, replyOpen, includeParent,
-  rootText, noComments, noReply
+  rootText, noComments, noReply, truncate
 }) {
   const [edit, setEdit] = useState()
   const [collapse, setCollapse] = useState(false)
@@ -129,7 +134,9 @@ export default function Comment ({
               )
             : (
               <div className={styles.text}>
-                <Text nofollow={item.sats + item.boost < NOFOLLOW_LIMIT}>{item.text}</Text>
+                <Text nofollow={item.sats + item.boost < NOFOLLOW_LIMIT}>
+                  {truncate ? truncateString(item.text) : item.text}
+                </Text>
               </div>
               )}
         </div>

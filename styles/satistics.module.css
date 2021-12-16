@@ -16,3 +16,13 @@
 .row {
     cursor: pointer;
 }
+
+.itemWrapper {
+    padding-top: .25rem;
+    margin-bottom: -.25rem;
+}
+
+.commentWrapper {
+    padding-top: .2rem;
+    padding-bottom: .4rem;
+}

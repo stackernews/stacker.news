@@ -1,7 +1,6 @@
 import { useQuery } from '@apollo/client'
 import Link from 'next/link'
 import { Table } from 'react-bootstrap'
-import useDarkMode from 'use-dark-mode'
 import { getGetServerSideProps } from '../api/ssrApollo'
 import Layout from '../components/layout'
 import { useMe } from '../components/me'
@@ -14,10 +13,16 @@ import Check from '../svgs/check-double-line.svg'
 import ThumbDown from '../svgs/thumb-down-fill.svg'
 import { Checkbox, Form } from '../components/form'
 import { useRouter } from 'next/router'
+import Item from '../components/item'
+import Comment from '../components/comment'
 
 export const getServerSideProps = getGetServerSideProps(WALLET_HISTORY)
 
 function satusClass (status) {
+  if (!status) {
+    return ''
+  }
+
   switch (status) {
     case 'CONFIRMED':
       return ''
@@ -82,13 +87,29 @@ function Satus ({ status }) {
   )
 }
 
+function Detail ({ fact }) {
+  if (!fact.item) {
+    return (
+      <>
+        <div className={satusClass(fact.status)}>
+          {fact.description || 'no description'}
+        </div>
+        <Satus status={fact.status} />
+      </>
+    )
+  }
+
+  if (fact.item.title) {
+    return <div className={styles.itemWrapper}><Item item={fact.item} /></div>
+  }
+
+  return <div className={styles.commentWrapper}><Comment item={fact.item} includeParent noReply truncate /></div>
+}
+
 export default function Satistics ({ data: { walletHistory: { facts, cursor } } }) {
   const me = useMe()
-  const { value: darkMode } = useDarkMode()
   const router = useRouter()
   const { data, fetchMore } = useQuery(WALLET_HISTORY, { variables: { inc: router.query.inc } })
-
-  console.log(router.query.inc, data)
 
   function filterRoutePush (filter, add) {
     const inc = new Set(router.query.inc.split(','))
@@ -107,6 +128,16 @@ export default function Satistics ({ data: { walletHistory: { facts, cursor } } 
   function included (filter) {
     const inc = new Set(router.query.inc.split(','))
     return inc.has(filter)
+  }
+
+  function href (fact) {
+    switch (fact.type) {
+      case 'withdrawal':
+      case 'invoice':
+        return `/${fact.type}s/${fact.factId}`
+      default:
+        return `/items/${fact.factId}`
+    }
   }
 
   if (data) {
@@ -149,7 +180,7 @@ export default function Satistics ({ data: { walletHistory: { facts, cursor } } 
             />
           </div>
         </Form>
-        <Table className='mt-3 mb-0' bordered hover size='sm' variant={darkMode ? 'dark' : undefined}>
+        <Table className='mt-3 mb-0' bordered hover size='sm'>
           <thead>
             <tr>
               <th className={styles.type}>type</th>
@@ -159,14 +190,11 @@ export default function Satistics ({ data: { walletHistory: { facts, cursor } } 
           </thead>
           <tbody>
             {facts.map((f, i) => (
-              <Link href={`${f.type}s/${f.factId}`} key={f.id}>
+              <Link href={href(f)} key={f.id}>
                 <tr className={styles.row}>
                   <td className={`${styles.type} ${satusClass(f.status)}`}>{f.type}</td>
                   <td className={styles.description}>
-                    <div className={satusClass(f.status)}>
-                      {f.description || 'no description'}
-                    </div>
-                    <Satus status={f.status} />
+                    <Detail fact={f} />
                   </td>
                   <td className={`${styles.sats} ${satusClass(f.status)}`}>{f.msats / 1000}</td>
                 </tr>

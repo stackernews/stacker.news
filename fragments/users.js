@@ -39,6 +39,18 @@ export const USER_FIELDS = gql`
     }
   }`
 
+export const TOP_USERS = gql`
+  query TopUsers($cursor: String, $within: String!) {
+    topUsers(cursor: $cursor, within: $within) {
+      users {
+        name
+        stacked
+      }
+      cursor
+    }
+  }
+`
+
 export const USER_FULL = gql`
   ${USER_FIELDS}
   ${ITEM_WITH_COMMENTS}

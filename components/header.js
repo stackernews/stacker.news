@@ -31,11 +31,6 @@ export default function Header () {
   const path = router.asPath.split('?')[0]
   const [fired, setFired] = useState()
   const me = useMe()
-  const [within, setWithin] = useState()
-
-  useEffect(() => {
-    setWithin(localStorage.getItem('topWithin'))
-  }, [])
 
   const Corner = () => {
     if (me) {
@@ -81,7 +76,7 @@ export default function Header () {
                 <Link href='/recent' passHref>
                   <NavDropdown.Item>recent</NavDropdown.Item>
                 </Link>
-                <Link href={`/top${within ? `/${within}` : ''}`} passHref>
+                <Link href='/top/posts/week' passHref>
                   <NavDropdown.Item>top</NavDropdown.Item>
                 </Link>
                 {me
@@ -151,7 +146,7 @@ export default function Header () {
               </Link>
             </Nav.Item>
             <Nav.Item className='d-md-flex d-none'>
-              <Link href={`/top${within ? `/${within}` : ''}`} passHref>
+              <Link href='/top/posts/week' passHref>
                 <Nav.Link className={styles.navLink}>top</Nav.Link>
               </Link>
             </Nav.Item>

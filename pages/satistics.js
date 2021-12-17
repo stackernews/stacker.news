@@ -180,7 +180,7 @@ export default function Satistics ({ data: { walletHistory: { facts, cursor } } 
             />
           </div>
         </Form>
-        <Table className='mt-3 mb-0' bordered hover size='sm'>
+        <Table className='mt-3 mb-0' bordered hover responsive size='sm'>
           <thead>
             <tr>
               <th className={styles.type}>type</th>

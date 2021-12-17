@@ -1,6 +1,29 @@
 import { AuthenticationError, UserInputError } from 'apollo-server-errors'
+import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { createMentions, getItem, SELECT } from './item'
 import serialize from './serial'
+
+export function topClause (within) {
+  let interval = ' AND "ItemAct".created_at >= $1 - INTERVAL '
+  switch (within) {
+    case 'day':
+      interval += "'1 day'"
+      break
+    case 'week':
+      interval += "'7 days'"
+      break
+    case 'month':
+      interval += "'1 month'"
+      break
+    case 'year':
+      interval += "'1 year'"
+      break
+    default:
+      interval = ''
+      break
+  }
+  return interval
+}
 
 export default {
   Query: {
@@ -17,6 +40,25 @@ export default {
       }
 
       return me.name?.toUpperCase() === name?.toUpperCase() || !(await models.user.findUnique({ where: { name } }))
+    },
+    topUsers: async (parent, { cursor, within }, { models, me }) => {
+      const decodedCursor = decodeCursor(cursor)
+      const users = await models.$queryRaw(`
+      SELECT users.name, users.created_at, sum("ItemAct".sats) as stacked
+      FROM "ItemAct"
+      JOIN "Item" on "ItemAct"."itemId" = "Item".id
+      JOIN users on "Item"."userId" = users.id
+      WHERE act <> 'BOOST' AND "ItemAct".created_at <= $1
+      ${topClause(within)}
+      GROUP BY users.id, users.name
+      ORDER BY stacked DESC NULLS LAST, users.created_at DESC
+      OFFSET $2
+      LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+
+      return {
+        cursor: users.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
+        users
+      }
     }
   },
 
@@ -97,6 +139,9 @@ export default {
       return await models.item.count({ where: { userId: user.id, parentId: { not: null } } })
     },
     stacked: async (user, args, { models }) => {
+      if (user.stacked) {
+        return user.stacked
+      }
       const [{ sum }] = await models.$queryRaw`
         SELECT sum("ItemAct".sats)
         FROM "ItemAct"

@@ -194,12 +194,23 @@ export default {
     },
     dupes: async (parent, { url }, { models }) => {
       const urlObj = new URL(ensureProtocol(url))
+      let uri = urlObj.hostname + urlObj.pathname
+      uri = uri.endsWith('/') ? uri.slice(0, -1) : uri
+      let similar = `(http(s)?://)?${uri}/?`
+
+      const whitelist = ['news.ycombinator.com/item', 'bitcointalk.org/index.php', 'www.youtube.com/watch']
+      if (whitelist.includes(uri)) {
+        similar += `\\${urlObj.search}`
+      } else {
+        similar += '(\\?%)?'
+      }
+
       return await models.$queryRaw(`
         ${SELECT}
         FROM "Item"
-        WHERE url LIKE ($1 || '?%') OR url = $1
+        WHERE url SIMILAR TO $1
         ORDER BY created_at DESC
-        LIMIT 3`, urlObj.origin + urlObj.pathname)
+        LIMIT 3`, similar)
     }
   },
 

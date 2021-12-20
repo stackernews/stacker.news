@@ -80,6 +80,7 @@ export default function Comment ({
               {item.boost > 0 &&
                 <>
                   <span>{item.boost} boost</span>
+                  <span> \ </span>
                 </>}
               <Link href={`/items/${item.id}`} passHref>
                 <a onClick={e => e.stopPropagation()} className='text-reset'>{item.ncomments} replies</a>

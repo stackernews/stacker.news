@@ -95,7 +95,7 @@ export default function Header () {
                 </Link>
               </div>
               <NavDropdown.Divider />
-              <NavDropdown.Item onClick={signOut}>logout</NavDropdown.Item>
+              <NavDropdown.Item onClick={() => signOut({ callbackUrl: '/' })}>logout</NavDropdown.Item>
             </NavDropdown>
             {me?.hasNewNotes &&
               <span className='position-absolute p-1 bg-danger' style={{ top: '5px', right: '0px' }}>

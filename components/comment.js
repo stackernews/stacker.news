@@ -60,6 +60,10 @@ export default function Comment ({
     if (Number(router.query.commentId) === Number(item.id)) {
       ref.current.scrollIntoView()
       ref.current.classList.add('flash-it')
+      router.replace({
+        pathname: router.pathname,
+        query: { id: router.query.id }
+      }, undefined, { scroll: false })
     }
     setCollapse(localStorage.getItem(`commentCollapse:${item.id}`))
   }, [item])

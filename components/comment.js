@@ -94,7 +94,9 @@ export default function Comment ({
                 <a onClick={e => e.stopPropagation()}>@{item.user.name}<span className='text-boost font-weight-bold'>{op && ' OP'}</span></a>
               </Link>
               <span> </span>
-              <span>{timeSince(new Date(item.createdAt))}</span>
+              <Link href={`/items/${item.id}`} passHref>
+                <a title={item.createdAt} className='text-reset'>{timeSince(new Date(item.createdAt))}</a>
+              </Link>
               {includeParent && <Parent item={item} rootText={rootText} />}
               {canEdit &&
                 <>

@@ -5,18 +5,35 @@ import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
 import domino from 'domino'
 
-async function comments (models, id) {
+async function comments (models, id, sort) {
+  let orderBy
+  let join
+  switch (sort) {
+    case 'top':
+      orderBy = 'ORDER BY x.sats DESC NULLS LAST'
+      join = LEFT_JOIN_SATS
+      break
+    case 'recent':
+      orderBy = 'ORDER BY "Item".created_at DESC'
+      join = ''
+      break
+    default:
+      orderBy = ORDER_BY_SATS
+      join = LEFT_JOIN_SATS
+      break
+  }
+
   const flat = await models.$queryRaw(`
         WITH RECURSIVE base AS (
-          ${SELECT}, ARRAY[row_number() OVER (${ORDER_BY_SATS}, "Item".path)] AS sort_path
+          ${SELECT}, ARRAY[row_number() OVER (${orderBy}, "Item".path)] AS sort_path
           FROM "Item"
-          ${LEFT_JOIN_SATS}
+          ${join}
           WHERE "parentId" = $1
         UNION ALL
-          ${SELECT}, p.sort_path || row_number() OVER (${ORDER_BY_SATS}, "Item".path)
+          ${SELECT}, p.sort_path || row_number() OVER (${orderBy}, "Item".path)
           FROM base p
           JOIN "Item" ON ltree2text(subpath("Item"."path", 0, -1)) = p."path"
-          ${LEFT_JOIN_SATS})
+          ${join})
         SELECT * FROM base ORDER BY sort_path`, Number(id))
   return nestComments(flat, id)[0]
 }
@@ -27,7 +44,7 @@ export async function getItem (parent, { id }, { models }) {
   FROM "Item"
   WHERE id = $1`, Number(id))
   if (item) {
-    item.comments = comments(models, id)
+    item.comments = comments(models, id, 'hot')
   }
   return item
 }
@@ -211,6 +228,9 @@ export default {
         WHERE url SIMILAR TO $1
         ORDER BY created_at DESC
         LIMIT 3`, similar)
+    },
+    comments: async (parent, { id, sort }, { models }) => {
+      return comments(models, id, sort)
     }
   },
 

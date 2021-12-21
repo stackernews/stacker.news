@@ -52,6 +52,16 @@ export const ITEM = gql`
     }
   }`
 
+export const COMMENTS_QUERY = gql`
+  ${COMMENTS}
+
+  query Comments($id: ID!, $sort: String) {
+    comments(id: $id, sort: $sort) {
+      ...CommentsRecursive
+    }
+  }
+`
+
 export const ITEM_FULL = gql`
   ${ITEM_FIELDS}
   ${COMMENTS}

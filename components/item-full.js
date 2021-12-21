@@ -57,7 +57,7 @@ export default function ItemFull ({ item, bio, ...props }) {
           </div>)}
       {item.comments &&
         <div className={styles.comments}>
-          <Comments comments={item.comments} />
+          <Comments parentId={item.id} comments={item.comments} />
         </div>}
     </>
   )

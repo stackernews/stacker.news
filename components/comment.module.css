@@ -80,12 +80,12 @@
     margin-bottom: 0;
 }
 
-.comment:not(:last-child) {
+.comment:not(:last-of-type) {
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
 }
 
-.comment:not(:first-child) {
+.comment:not(:first-of-type) {
     padding-top: .25rem;
     border-top-left-radius: 0;
     border-top-right-radius: 0;

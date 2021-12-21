@@ -5,6 +5,7 @@ export default gql`
     moreItems(sort: String!, cursor: String, name: String, within: String): Items
     moreFlatComments(sort: String!, cursor: String, name: String, within: String): Comments
     item(id: ID!): Item
+    comments(id: ID!, sort: String): [Item!]!
     pageTitle(url: String!): String
     dupes(url: String!): [Item!]
   }

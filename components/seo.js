@@ -33,7 +33,7 @@ export default function Seo ({ item, user }) {
     }
   }
   if (user) {
-    desc = `@${user.name} has [${user.stacked} stacked, ${user.sats} sats, ${user.nitems} posts, ${user.ncomments} comments]`
+    desc = `@${user.name} has [${user.stacked} stacked, ${user.nitems} posts, ${user.ncomments} comments]`
   }
 
   return (

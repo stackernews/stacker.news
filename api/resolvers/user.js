@@ -150,7 +150,10 @@ export default {
         AND "Item"."userId" = ${user.id}`
       return sum || 0
     },
-    sats: async (user, args, { models }) => {
+    sats: async (user, args, { models, me }) => {
+      if (me?.id !== user.id) {
+        return 0
+      }
       return Math.floor(user.msats / 1000)
     },
     bio: async (user, args, { models }) => {

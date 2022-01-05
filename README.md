@@ -9,10 +9,10 @@
 You should then be able to access the site at `localhost:3000` and any changes you make will hot reload. If you want to login locally or use lnd you'll need to modify `.env.sample` appropriately. If you have trouble please open an issue so I can help and update the README for everyone else.
 
 # stack
-The site is written in javascript using Next.js, a React framework. The backend API is provided via graphql. The database is postgresql modelled with prisma. We use lnd for the lightning node which we connect to through a tor http tunnel. A customized Bootstrap theme is used for styling.
+The site is written in javascript using Next.js, a React framework. The backend API is provided via graphql. The database is postgresql modelled with prisma. The job queue is also maintained in postgresql. We use lnd for the lightning node which we connect to through a tor http tunnel. A customized Bootstrap theme is used for styling.
 
 # processes
-There are two. 1. the web app and 2. walletd, which checks and polls lnd for all pending invoice/withdrawal statuses in case the web process dies.
+There are two. 1. the web app and 2. the worker, which dequeues jobs sent to it by the web app, e.g. polling lnd for invoice/payment status
 
 # wallet transaction safety
 To ensure user balances are kept sane, all wallet updates are run in serializable transactions at the database level. Because prisma has relatively poor support for transactions all wallet touching code is written in plpgsql stored procedures and can be found in the prisma/migrations folder.

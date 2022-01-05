@@ -1,4 +1,4 @@
-import { createInvoice, decodePaymentRequest, subscribeToPayViaRequest } from 'ln-service'
+import { createInvoice, decodePaymentRequest, payViaPaymentRequest } from 'ln-service'
 import { UserInputError, AuthenticationError } from 'apollo-server-micro'
 import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
@@ -179,19 +179,11 @@ export default {
           expires_at: expiresAt
         })
 
-        const data = {
-          hash: invoice.id,
-          bolt11: invoice.request,
-          expiresAt: expiresAt,
-          msatsRequested: amount * 1000,
-          user: {
-            connect: {
-              id: me.id
-            }
-          }
-        }
+        const [inv] = await serialize(models,
+          models.$queryRaw`SELECT * FROM create_invoice(${invoice.id}, ${invoice.request},
+            ${expiresAt}, ${amount * 1000}, ${me.id})`)
 
-        return await models.invoice.create({ data })
+        return inv
       } catch (error) {
         console.log(error)
         throw error
@@ -206,7 +198,6 @@ export default {
         throw new UserInputError('could not decode invoice')
       }
 
-      // TODO: test
       if (!decoded.mtokens || Number(decoded.mtokens) <= 0) {
         throw new UserInputError('you must specify amount')
       }
@@ -218,48 +209,12 @@ export default {
         models.$queryRaw`SELECT * FROM create_withdrawl(${decoded.id}, ${invoice},
           ${Number(decoded.mtokens)}, ${msatsFee}, ${me.name})`)
 
-      // create the payment, subscribing to its status
-      const sub = subscribeToPayViaRequest({
+      payViaPaymentRequest({
         lnd,
         request: invoice,
         // can't use max_fee_mtokens https://github.com/alexbosworth/ln-service/issues/141
         max_fee: Number(maxFee),
         pathfinding_timeout: 30000
-      })
-
-      // if it's confirmed, update confirmed returning extra fees to user
-      sub.once('confirmed', async e => {
-        console.log(e)
-
-        sub.removeAllListeners()
-
-        // mtokens also contains the fee
-        const fee = Number(e.fee_mtokens)
-        const paid = Number(e.mtokens) - fee
-        await serialize(models, models.$queryRaw`
-            SELECT confirm_withdrawl(${withdrawl.id}, ${paid}, ${fee})`)
-      })
-
-      // if the payment fails, we need to
-      // 1. return the funds to the user
-      // 2. update the widthdrawl as failed
-      sub.once('failed', async e => {
-        console.log(e)
-
-        sub.removeAllListeners()
-
-        let status = 'UNKNOWN_FAILURE'
-        if (e.is_insufficient_balance) {
-          status = 'INSUFFICIENT_BALANCE'
-        } else if (e.is_invalid_payment) {
-          status = 'INVALID_PAYMENT'
-        } else if (e.is_pathfinding_timeout) {
-          status = 'PATHFINDING_TIMEOUT'
-        } else if (e.is_route_not_found) {
-          status = 'ROUTE_NOT_FOUND'
-        }
-        await serialize(models, models.$queryRaw`
-            SELECT reverse_withdrawl(${withdrawl.id}, ${status})`)
       })
 
       return withdrawl

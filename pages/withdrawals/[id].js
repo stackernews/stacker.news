@@ -62,6 +62,10 @@ function LoadWithdrawl () {
       status = <>no route <small className='ml-3'>try increasing max fee</small></>
       variant = 'failed'
       break
+    case 'UNKNOWN_FAILURE':
+      status = <>unknown error</>
+      variant = 'failed'
+      break
     default:
       break
   }

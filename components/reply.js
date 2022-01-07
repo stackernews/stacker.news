@@ -13,7 +13,7 @@ export const CommentSchema = Yup.object({
 })
 
 export default function Reply ({ parentId, onSuccess, replyOpen }) {
-  const [reply, setReply] = useState(replyOpen)
+  const [reply, setReply] = useState(replyOpen || !!localStorage.getItem('reply-' + parentId + '-' + 'text'))
   const me = useMe()
 
   const [createComment] = useMutation(
@@ -73,6 +73,7 @@ export default function Reply ({ parentId, onSuccess, replyOpen }) {
             resetForm({ text: '' })
             setReply(replyOpen || false)
           }}
+          storageKeyPrefix={'reply-' + parentId}
         >
           <MarkdownInput
             name='text'

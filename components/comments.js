@@ -17,7 +17,7 @@ export function CommentsHeader ({ handleSort }) {
   }
 
   return (
-    <Navbar className='py-0'>
+    <Navbar className='py-1'>
       <Nav
         className={styles.navbarNav}
         activeKey={sort}

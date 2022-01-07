@@ -237,7 +237,6 @@ export function Form ({
       onSubmit={async (...args) =>
         onSubmit && onSubmit(...args).then(() => {
           if (!storageKeyPrefix) return
-          console.log(...args)
           Object.keys(...args).forEach(v =>
             localStorage.removeItem(storageKeyPrefix + '-' + v))
         }).catch(e => setError(e.message || e))}

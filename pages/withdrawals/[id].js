@@ -5,6 +5,7 @@ import InputGroup from 'react-bootstrap/InputGroup'
 import InvoiceStatus from '../../components/invoice-status'
 import { useRouter } from 'next/router'
 import { WITHDRAWL } from '../../fragments/wallet'
+import Link from 'next/link'
 
 export default function Withdrawl () {
   return (
@@ -39,6 +40,11 @@ function LoadWithdrawl () {
     return <WithdrawlSkeleton status='loading' />
   }
 
+  const TryMaxFee = () =>
+    <Link href='/wallet?type=withdraw' passHref>
+      <a className='text-reset text-underline'><small className='ml-3'>try increasing max fee</small></a>
+    </Link>
+
   let status = 'pending'
   let variant = 'default'
   switch (data.withdrawl.status) {
@@ -55,11 +61,11 @@ function LoadWithdrawl () {
       variant = 'failed'
       break
     case 'PATHFINDING_TIMEOUT':
-      status = <>timed out finding route <small className='ml-3'>try increasing max fee</small></>
+      status = <>timed out finding route <TryMaxFee /></>
       variant = 'failed'
       break
     case 'ROUTE_NOT_FOUND':
-      status = <>no route <small className='ml-3'>try increasing max fee</small></>
+      status = <>no route <TryMaxFee /></>
       variant = 'failed'
       break
     case 'UNKNOWN_FAILURE':

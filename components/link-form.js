@@ -105,6 +105,7 @@ export function LinkForm ({ item, editThreshold }) {
           router.push('/recent')
         }
       }}
+      storageKeyPrefix={item ? undefined : 'link'}
     >
       <Input
         label='title'

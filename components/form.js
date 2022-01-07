@@ -3,7 +3,7 @@ import InputGroup from 'react-bootstrap/InputGroup'
 import BootstrapForm from 'react-bootstrap/Form'
 import Alert from 'react-bootstrap/Alert'
 import { Formik, Form as FormikForm, useFormikContext, useField } from 'formik'
-import { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import copy from 'clipboard-copy'
 import Thumb from '../svgs/thumb-up-fill.svg'
 import { Nav } from 'react-bootstrap'
@@ -114,13 +114,28 @@ function FormGroup ({ className, label, children }) {
   )
 }
 
-function InputInner ({ prepend, append, hint, showValid, onChange, overrideValue, innerRef, ...props }) {
+function InputInner ({
+  prepend, append, hint, showValid, onChange, overrideValue,
+  innerRef, storageKeyPrefix, ...props
+}) {
   const [field, meta, helpers] = props.readOnly ? [{}, {}, {}] : useField(props)
   const formik = props.readOnly ? null : useFormikContext()
+
+  const storageKey = storageKeyPrefix ? storageKeyPrefix + '-' + props.name : undefined
 
   useEffect(() => {
     if (overrideValue) {
       helpers.setValue(overrideValue)
+      if (storageKey) {
+        localStorage.setItem(storageKey, overrideValue)
+      }
+    } else if (storageKey) {
+      const draft = localStorage.getItem(storageKey)
+      if (draft) {
+        // for some reason we have to turn off validation to get formik to
+        // not assume this is invalid
+        helpers.setValue(draft, false)
+      }
     }
   }, [overrideValue])
 
@@ -142,6 +157,11 @@ function InputInner ({ prepend, append, hint, showValid, onChange, overrideValue
           {...field} {...props}
           onChange={(e) => {
             field.onChange(e)
+
+            if (storageKey) {
+              localStorage.setItem(storageKey, e.target.value)
+            }
+
             if (onChange) {
               onChange(formik, e)
             }
@@ -204,7 +224,7 @@ export function Checkbox ({ children, label, extra, handleChange, inline, ...pro
 }
 
 export function Form ({
-  initial, schema, onSubmit, children, initialError, validateImmediately, ...props
+  initial, schema, onSubmit, children, initialError, validateImmediately, storageKeyPrefix, ...props
 }) {
   const [error, setError] = useState(initialError)
 
@@ -215,11 +235,24 @@ export function Form ({
       initialTouched={validateImmediately && initial}
       validateOnBlur={false}
       onSubmit={async (...args) =>
-        onSubmit && onSubmit(...args).catch(e => setError(e.message || e))}
+        onSubmit && onSubmit(...args).then(() => {
+          if (!storageKeyPrefix) return
+          console.log(...args)
+          Object.keys(...args).forEach(v =>
+            localStorage.removeItem(storageKeyPrefix + '-' + v))
+        }).catch(e => setError(e.message || e))}
     >
       <FormikForm {...props} noValidate>
         {error && <Alert variant='danger' onClose={() => setError(undefined)} dismissible>{error}</Alert>}
-        {children}
+        {storageKeyPrefix
+          ? React.Children.map(children, (child) => {
+              if (child) {
+                return React.cloneElement(child, {
+                  storageKeyPrefix
+                })
+              }
+            })
+          : children}
       </FormikForm>
     </Formik>
   )

@@ -74,6 +74,7 @@ export function DiscussionForm ({
           router.push('/recent')
         }
       })}
+      storageKeyPrefix={item ? undefined : 'discussion'}
     >
       <Input
         label={titleLabel}

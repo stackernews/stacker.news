@@ -65,7 +65,15 @@ async function repin ({ name }) {
 }
 
 async function checkInvoice ({ data: { hash } }) {
-  const inv = await getInvoice({ id: hash, lnd })
+  let inv
+  try {
+    inv = await getInvoice({ id: hash, lnd })
+  } catch (err) {
+    console.log(err)
+    // on lnd related errors, we manually retry which so we don't exponentially backoff
+    await boss.send('checkInvoice', { hash }, walletOptions)
+    return
+  }
   console.log(inv)
 
   if (inv.is_confirmed) {
@@ -98,7 +106,9 @@ async function checkWithdrawal ({ data: { id, hash } }) {
     if (err[1] === 'SentPaymentNotFound') {
       notFound = true
     } else {
-      throw err
+      // on lnd related errors, we manually retry which so we don't exponentially backoff
+      await boss.send('checkWithdrawal', { id, hash }, walletOptions)
+      return
     }
   }
   console.log(wdrwl)

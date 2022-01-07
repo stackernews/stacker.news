@@ -17,7 +17,7 @@ export async function getServerSideProps ({ req, res }) {
 
   if (!items || error) return emptyProps
 
-  res.setHeader('Content-Type', 'text/xml')
+  res.setHeader('Content-Type', 'text/xml; charset=utf-8')
   res.write(generateRssFeed(items))
   res.end()
 

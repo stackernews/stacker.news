@@ -21,7 +21,47 @@ async function work () {
   await boss.start()
   await boss.work('checkInvoice', checkInvoice)
   await boss.work('checkWithdrawal', checkWithdrawal)
+  await boss.work('repin-*', repin)
   console.log('working jobs')
+}
+
+async function repin ({ name }) {
+  console.log(name)
+  // get the id
+  const id = name.slice('repin-'.length)
+  if (id.length === 0 || isNaN(id)) {
+    console.log('repin id not found in', name)
+    return
+  }
+
+  // get the latest item with this id
+  const pinId = Number(id)
+  const current = await models.item.findFirst(
+    {
+      where: {
+        pinId
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    }
+  )
+
+  if (!current) {
+    console.log('could not find existing item for', name)
+    return
+  }
+
+  // create a new item with matching 1) title, text, and url and 2) setting pinId
+  await models.item.create({
+    data: {
+      title: current.title,
+      text: current.text,
+      url: current.url,
+      userId: current.userId,
+      pinId
+    }
+  })
 }
 
 async function checkInvoice ({ data: { hash } }) {
@@ -44,7 +84,7 @@ async function checkInvoice ({ data: { hash } }) {
       }))
   } else if (new Date(inv.expires_at) > new Date()) {
     // not expired, recheck in 5 seconds
-    boss.send('checkInvoice', { hash }, walletOptions)
+    await boss.send('checkInvoice', { hash }, walletOptions)
   }
 }
 
@@ -83,7 +123,7 @@ async function checkWithdrawal ({ data: { id, hash } }) {
       SELECT reverse_withdrawl(${id}, ${status})`)
   } else {
     // we need to requeue to check again in 5 seconds
-    boss.send('checkWithdrawal', { id, hash }, walletOptions)
+    await boss.send('checkWithdrawal', { id, hash }, walletOptions)
   }
 }
 

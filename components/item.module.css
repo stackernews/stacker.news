@@ -16,6 +16,12 @@
     flex: 1 0 128px;
 }
 
+.pin {
+    fill: var(--theme-body);
+    stroke: var(--theme-color);
+    margin-right: .2rem;
+}
+
 .linkSmall {
     width: 128px;
     display: inline-block;

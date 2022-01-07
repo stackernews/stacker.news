@@ -34,6 +34,7 @@ export default gql`
   type Items {
     cursor: String
     items: [Item!]!
+    pins: [Item!]
   }
 
   type Comments {
@@ -62,5 +63,6 @@ export default gql`
     ncomments: Int!
     comments: [Item!]!
     path: String
+    position: Int
   }
 `

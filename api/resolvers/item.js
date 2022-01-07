@@ -75,7 +75,7 @@ export default {
   Query: {
     moreItems: async (parent, { sort, cursor, name, within }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
-      let items; let user
+      let items; let user; let pins
 
       switch (sort) {
         case 'user':
@@ -92,6 +92,7 @@ export default {
             ${SELECT}
             FROM "Item"
             WHERE "userId" = $1 AND "parentId" IS NULL AND created_at <= $2
+            AND "pinId" IS NULL
             ORDER BY created_at DESC
             OFFSET $3
             LIMIT ${LIMIT}`, user.id, decodedCursor.time, decodedCursor.offset)
@@ -110,6 +111,7 @@ export default {
             FROM "Item"
             ${timedLeftJoinSats(1)}
             WHERE "parentId" IS NULL AND created_at <= $1 AND created_at > $3
+            AND "pinId" IS NULL
             ${timedOrderBySats(1)}
             OFFSET $2
             LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, new Date(new Date() - 7))
@@ -121,9 +123,24 @@ export default {
             FROM "Item"
             ${timedLeftJoinSats(1)}
             WHERE "parentId" IS NULL AND created_at <= $1
+            AND "pinId" IS NULL
             ${timedOrderBySats(1)}
             OFFSET $2
             LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+          }
+
+          if (decodedCursor.offset === 0) {
+            // get pins for the page and return those separately
+            pins = await models.$queryRaw(`SELECT rank_filter.*
+              FROM (
+                ${SELECT},
+                rank() OVER (
+                    PARTITION BY "pinId"
+                    ORDER BY created_at DESC
+                )
+                FROM "Item"
+                WHERE "pinId" IS NOT NULL
+            ) rank_filter WHERE RANK = 1`)
           }
           break
         case 'top':
@@ -132,6 +149,7 @@ export default {
           FROM "Item"
           ${timedLeftJoinSats(1)}
           WHERE "parentId" IS NULL AND created_at <= $1
+          AND "pinId" IS NULL
           ${topClause(within)}
           ORDER BY x.sats DESC NULLS LAST, created_at DESC
           OFFSET $2
@@ -141,7 +159,7 @@ export default {
           items = await models.$queryRaw(`
             ${SELECT}
             FROM "Item"
-            WHERE "parentId" IS NULL AND created_at <= $1
+            WHERE "parentId" IS NULL AND created_at <= $1 AND "pinId" IS NULL
             ORDER BY created_at DESC
             OFFSET $2
             LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
@@ -149,7 +167,8 @@ export default {
       }
       return {
         cursor: items.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
-        items
+        items,
+        pins
       }
     },
     moreFlatComments: async (parent, { cursor, name, sort, within }, { me, models }) => {
@@ -367,6 +386,18 @@ export default {
   },
 
   Item: {
+    position: async (item, args, { models }) => {
+      if (!item.pinId) {
+        return null
+      }
+
+      const pin = await models.pin.findUnique({ where: { id: item.pinId } })
+      if (!pin) {
+        return null
+      }
+
+      return pin.position
+    },
     user: async (item, args, { models }) =>
       await models.user.findUnique({ where: { id: item.userId } }),
     ncomments: async (item, args, { models }) => {
@@ -591,7 +622,7 @@ function nestComments (flat, parentId) {
 // we have to do our own query because ltree is unsupported
 export const SELECT =
   `SELECT "Item".id, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt", "Item".title,
-  "Item".text, "Item".url, "Item"."userId", "Item"."parentId", ltree2text("Item"."path") AS "path"`
+  "Item".text, "Item".url, "Item"."userId", "Item"."parentId", "Item"."pinId", ltree2text("Item"."path") AS "path"`
 
 const LEFT_JOIN_SATS_SELECT = 'SELECT i.id, SUM(CASE WHEN "ItemAct".act = \'VOTE\' THEN "ItemAct".sats ELSE 0 END) as sats,  SUM(CASE WHEN "ItemAct".act = \'BOOST\' THEN "ItemAct".sats ELSE 0 END) as boost'
 

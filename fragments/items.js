@@ -38,6 +38,10 @@ export const MORE_ITEMS = gql`
       cursor
       items {
         ...ItemFields
+      },
+      pins {
+        ...ItemFields
+        position
       }
     }
   }`
@@ -68,6 +72,7 @@ export const ITEM_FULL = gql`
   query Item($id: ID!) {
     item(id: $id) {
       ...ItemFields
+      position
       text
       comments {
         ...CommentsRecursive

@@ -6,11 +6,11 @@ import { MORE_ITEMS } from '../fragments/items'
 const variables = { sort: 'hot' }
 export const getServerSideProps = getGetServerSideProps(MORE_ITEMS, variables)
 
-export default function Index ({ data: { moreItems: { items, cursor } } }) {
+export default function Index ({ data: { moreItems: { items, pins, cursor } } }) {
   return (
     <Layout>
       <Items
-        items={items} cursor={cursor}
+        items={items} pins={pins} cursor={cursor}
         variables={variables} rank
       />
     </Layout>

@@ -5,6 +5,7 @@ import UpVote from './upvote'
 import { useEffect, useRef, useState } from 'react'
 import Countdown from './countdown'
 import { NOFOLLOW_LIMIT } from '../lib/constants'
+import Pin from '../svgs/pin.svg'
 
 export default function Item ({ item, rank, children }) {
   const mine = item.mine
@@ -29,7 +30,7 @@ export default function Item ({ item, rank, children }) {
           </div>)
         : <div />}
       <div className={styles.item}>
-        <UpVote item={item} className={styles.upvote} />
+        {item.position ? <Pin width={24} height={24} className={styles.pin} /> : <UpVote item={item} className={styles.upvote} />}
         <div className={styles.hunk}>
           <div className={`${styles.main} flex-wrap ${wrap ? 'd-inline' : ''}`}>
             <Link href={`/items/${item.id}`} passHref>
@@ -47,8 +48,11 @@ export default function Item ({ item, rank, children }) {
               </>}
           </div>
           <div className={`${styles.other}`}>
-            <span title={`${item.sats} upvotes \\ ${item.tips} tipped${item.meSats > 0 ? ` (${item.meSats} from me)` : ''}`}>{item.sats + item.tips} sats</span>
-            <span> \ </span>
+            {!item.position &&
+              <>
+                <span title={`${item.sats} upvotes \\ ${item.tips} tipped${item.meSats > 0 ? ` (${item.meSats} from me)` : ''}`}>{item.sats + item.tips} sats</span>
+                <span> \ </span>
+              </>}
             {item.boost > 0 &&
               <>
                 <span>{item.boost} boost</span>

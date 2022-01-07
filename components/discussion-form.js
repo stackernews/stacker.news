@@ -58,17 +58,21 @@ export function DiscussionForm ({
       }}
       schema={DiscussionSchema}
       onSubmit={handleSubmit || (async ({ boost, ...values }) => {
-        let id, error
+        let error
         if (item) {
-          ({ data: { updateDiscussion: { id } }, error } = await updateDiscussion({ variables: { ...values, id: item.id } }))
+          ({ error } = await updateDiscussion({ variables: { ...values, id: item.id } }))
         } else {
-          ({ data: { createDiscussion: { id } }, error } = await createDiscussion({ variables: { boost: Number(boost), ...values } }))
+          ({ error } = await createDiscussion({ variables: { boost: Number(boost), ...values } }))
         }
         if (error) {
           throw new Error({ message: error.toString() })
         }
 
-        router.push(`/items/${id}`)
+        if (item) {
+          router.push(`/items/${item.id}`)
+        } else {
+          router.push('/recent')
+        }
       })}
     >
       <Input

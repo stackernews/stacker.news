@@ -90,16 +90,20 @@ export function LinkForm ({ item, editThreshold }) {
       }}
       schema={LinkSchema}
       onSubmit={async ({ boost, ...values }) => {
-        let id, error
+        let error
         if (item) {
-          ({ data: { updateLink: { id } }, error } = await updateLink({ variables: { ...values, id: item.id } }))
+          ({ error } = await updateLink({ variables: { ...values, id: item.id } }))
         } else {
-          ({ data: { createLink: { id } }, error } = await createLink({ variables: { boost: Number(boost), ...values } }))
+          ({ error } = await createLink({ variables: { boost: Number(boost), ...values } }))
         }
         if (error) {
           throw new Error({ message: error.toString() })
         }
-        router.push(`/items/${id}`)
+        if (item) {
+          router.push(`/items/${item.id}`)
+        } else {
+          router.push('/recent')
+        }
       }}
     >
       <Input
@@ -114,7 +118,7 @@ export function LinkForm ({ item, editThreshold }) {
         required
         autoFocus
         hint={editThreshold
-          ? <Countdown date={editThreshold} />
+          ? <div className='text-muted font-weight-bold'><Countdown date={editThreshold} /></div>
           : null}
         onChange={async (formik, e) => {
           if ((/^ *$/).test(formik?.values.title)) {

@@ -127,10 +127,10 @@ function InputInner ({
     if (overrideValue) {
       helpers.setValue(overrideValue)
       if (storageKey) {
-        localStorage.setItem(storageKey, overrideValue)
+        localStorage?.setItem(storageKey, overrideValue)
       }
     } else if (storageKey) {
-      const draft = localStorage.getItem(storageKey)
+      const draft = localStorage?.getItem(storageKey)
       if (draft) {
         // for some reason we have to turn off validation to get formik to
         // not assume this is invalid

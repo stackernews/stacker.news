@@ -5,7 +5,7 @@ import UpVote from './upvote'
 import { useEffect, useRef, useState } from 'react'
 import Countdown from './countdown'
 import { NOFOLLOW_LIMIT } from '../lib/constants'
-import Pin from '../svgs/pin.svg'
+import Pin from '../svgs/pushpin-line.svg'
 
 export default function Item ({ item, rank, children }) {
   const mine = item.mine

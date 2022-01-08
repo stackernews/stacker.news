@@ -6,15 +6,19 @@ import { COMMENTS } from '../fragments/comments'
 import { useMe } from './me'
 import ActionTooltip from './action-tooltip'
 import TextareaAutosize from 'react-textarea-autosize'
-import { useState } from 'react'
+import { useLayoutEffect, useState } from 'react'
 
 export const CommentSchema = Yup.object({
   text: Yup.string().required('required').trim()
 })
 
 export default function Reply ({ parentId, onSuccess, replyOpen }) {
-  const [reply, setReply] = useState(replyOpen || !!localStorage.getItem('reply-' + parentId + '-' + 'text'))
+  const [reply, setReply] = useState(replyOpen)
   const me = useMe()
+
+  useLayoutEffect(() => {
+    setReply(replyOpen || !!localStorage.getItem('reply-' + parentId + '-' + 'text'))
+  }, [])
 
   const [createComment] = useMutation(
     gql`

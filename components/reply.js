@@ -6,7 +6,7 @@ import { COMMENTS } from '../fragments/comments'
 import { useMe } from './me'
 import ActionTooltip from './action-tooltip'
 import TextareaAutosize from 'react-textarea-autosize'
-import { useLayoutEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 export const CommentSchema = Yup.object({
   text: Yup.string().required('required').trim()
@@ -16,7 +16,7 @@ export default function Reply ({ parentId, onSuccess, replyOpen }) {
   const [reply, setReply] = useState(replyOpen)
   const me = useMe()
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     setReply(replyOpen || !!localStorage.getItem('reply-' + parentId + '-' + 'text'))
   }, [])
 

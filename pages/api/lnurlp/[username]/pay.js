@@ -29,7 +29,7 @@ export default async ({ query: { username, amount } }, res) => {
 
     await serialize(models,
       models.$queryRaw`SELECT * FROM create_invoice(${invoice.id}, ${invoice.request},
-        ${expiresAt}, ${amount}, ${user.id})`)
+        ${expiresAt}, ${Number(amount)}, ${user.id})`)
 
     return res.status(200).json({
       pr: invoice.request

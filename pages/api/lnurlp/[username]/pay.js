@@ -2,6 +2,7 @@ import models from '../../../../api/models'
 import lnd from '../../../../api/lnd'
 import { createInvoice } from 'ln-service'
 import { lnurlPayDescriptionHash } from '../../../../lib/lnurl'
+import serialize from '../../../../api/resolvers/serial'
 
 export default async ({ query: { username, amount } }, res) => {
   const user = await models.user.findUnique({ where: { name: username } })
@@ -26,19 +27,9 @@ export default async ({ query: { username, amount } }, res) => {
       expires_at: expiresAt
     })
 
-    const data = {
-      hash: invoice.id,
-      bolt11: invoice.request,
-      expiresAt: expiresAt,
-      msatsRequested: Number(amount),
-      user: {
-        connect: {
-          id: user.id
-        }
-      }
-    }
-
-    await models.invoice.create({ data })
+    await serialize(models,
+      models.$queryRaw`SELECT * FROM create_invoice(${invoice.id}, ${invoice.request},
+        ${expiresAt}, ${amount * 1000}, ${user.id})`)
 
     return res.status(200).json({
       pr: invoice.request

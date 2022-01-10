@@ -17,7 +17,7 @@
 }
 
 .pin {
-    fill: var(--theme-color);
+    fill: #a5a5a5;
     margin-right: .2rem;
 }
 

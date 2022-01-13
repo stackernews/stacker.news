@@ -15,12 +15,6 @@ AWS.config.update({
 })
 
 export default async function handler (req, res) {
-  if (capturing) {
-    return res.writeHead(503, {
-      'Retry-After' : 1
-    }).end()
-  }
-
   return new Promise(resolve => {
     const joinedPath = path.join(...(req.query.path || []))
     const s3Path = s3PathPrefix + (joinedPath === '.' ? '_' : joinedPath)
@@ -38,6 +32,12 @@ export default async function handler (req, res) {
       resolve()
     }).catch(() => {
       // we don't have it cached, so capture it and cache it
+      if (capturing) {
+        return res.writeHead(503, {
+          'Retry-After' : 1
+        }).end()
+      }
+
       capturing = true
       const pass = new PassThrough()
       aws.upload({

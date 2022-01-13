@@ -64,5 +64,6 @@ export default gql`
     comments: [Item!]!
     path: String
     position: Int
+    prior: Int
   }
 `

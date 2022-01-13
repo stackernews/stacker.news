@@ -398,6 +398,29 @@ export default {
 
       return pin.position
     },
+    prior: async (item, args, { models }) => {
+      if (!item.pinId) {
+        return null
+      }
+
+      const prior = await models.item.findFirst({
+        where: {
+          pinId: item.pinId,
+          createdAt: {
+            lt: item.createdAt
+          }
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      })
+
+      if (!prior) {
+        return null
+      }
+
+      return prior.id
+    },
     user: async (item, args, { models }) =>
       await models.user.findUnique({ where: { id: item.userId } }),
     ncomments: async (item, args, { models }) => {

@@ -72,6 +72,7 @@ export const ITEM_FULL = gql`
   query Item($id: ID!) {
     item(id: $id) {
       ...ItemFields
+      prior
       position
       text
       comments {

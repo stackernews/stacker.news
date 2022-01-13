@@ -70,6 +70,13 @@ export default function Item ({ item, rank, children }) {
               <Link href={`/items/${item.id}`} passHref>
                 <a title={item.createdAt} className='text-reset'>{timeSince(new Date(item.createdAt))}</a>
               </Link>
+              {item.prior &&
+                <>
+                  <span> \ </span>
+                  <Link href={`/items/${item.prior}`} passHref>
+                    <a className='text-reset'>yesterday</a>
+                  </Link>
+                </>}
             </span>
             {canEdit &&
               <>

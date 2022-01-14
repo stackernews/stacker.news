@@ -17,7 +17,6 @@ export default gql`
   extend type Mutation {
     setName(name: String!): Boolean
     setSettings(tipDefault: Int!): Boolean
-    setTheme(theme: String!): Boolean
     upsertBio(bio: String!): User!
     setWalkthrough(tipPopover: Boolean, upvotePopover: Boolean): Boolean
   }
@@ -37,7 +36,6 @@ export default gql`
     bio: Item
     sats: Int!
     msats: Int!
-    theme: String!
     upvotePopover: Boolean!
     tipPopover: Boolean!
   }

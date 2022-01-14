@@ -17,7 +17,6 @@ export const ME = gql`
         id
       }
       hasInvites
-      theme
       upvotePopover
       tipPopover
     }

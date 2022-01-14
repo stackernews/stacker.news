@@ -22,7 +22,12 @@ async function work () {
   await boss.work('checkInvoice', checkInvoice)
   await boss.work('checkWithdrawal', checkWithdrawal)
   await boss.work('repin-*', repin)
+  await boss.work('trust', trust)
   console.log('working jobs')
+}
+
+async function trust () {
+  return null
 }
 
 async function repin ({ name }) {

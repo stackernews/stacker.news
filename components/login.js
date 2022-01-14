@@ -14,7 +14,7 @@ import LnQR, { LnQRSkeleton } from '../components/lnqr'
 import { gql, useMutation, useQuery } from '@apollo/client'
 
 export const EmailSchema = Yup.object({
-  email: Yup.string().email('email is no good').required('required').trim()
+  email: Yup.string().email('email is no good').required('required')
 })
 
 export default function Login ({ providers, callbackUrl, error, Header }) {

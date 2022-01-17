@@ -143,6 +143,17 @@ export default {
             ) rank_filter WHERE RANK = 1`)
           }
           break
+        case 'wot':
+          items = await models.$queryRaw(`
+            ${SELECT}
+            FROM "Item"
+            ${timedLeftJoinWeightedSats(1)}
+            WHERE "parentId" IS NULL AND created_at <= $1
+            AND "pinId" IS NULL
+            ${timedOrderBySats(1)}
+            OFFSET $2
+            LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+          break
         case 'top':
           items = await models.$queryRaw(`
           ${SELECT}
@@ -654,6 +665,19 @@ function timedLeftJoinSats (num) {
   FROM "Item" i
   JOIN "ItemAct" ON i.id = "ItemAct"."itemId" AND "ItemAct".created_at <= $${num}
   GROUP BY i.id) x ON "Item".id = x.id`
+}
+
+const LEFT_JOIN_WEIGHTED_SATS_SELECT = 'SELECT i.id, SUM(CASE WHEN "ItemAct".act = \'VOTE\' THEN "ItemAct".sats * users.trust ELSE 0 END) as sats,  SUM(CASE WHEN "ItemAct".act = \'BOOST\' THEN "ItemAct".sats ELSE 0 END) as boost'
+
+function timedLeftJoinWeightedSats (num) {
+  return `
+  LEFT JOIN (
+    ${LEFT_JOIN_WEIGHTED_SATS_SELECT}
+      FROM "Item" i
+      JOIN "ItemAct" ON i.id = "ItemAct"."itemId" AND "ItemAct".created_at <= $${num}
+      JOIN users on "ItemAct"."userId" = users.id
+      GROUP BY i.id
+  ) x ON "Item".id = x.id`
 }
 
 const LEFT_JOIN_SATS =

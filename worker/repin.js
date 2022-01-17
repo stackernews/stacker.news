@@ -1,6 +1,7 @@
 function repin ({ models }) {
   return async function ({ name }) {
-    console.log(name)
+    console.log('doing', name)
+
     // get the id
     const id = name.slice('repin-'.length)
     if (id.length === 0 || isNaN(id)) {

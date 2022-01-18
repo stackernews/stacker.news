@@ -688,7 +688,7 @@ const LEFT_JOIN_SATS =
 
 /* NOTE: because many items will have the same rank, we need to tie break with a unique field so pagination works */
 function timedOrderBySats (num) {
-  return `ORDER BY ((x.sats-1)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 1.5) +
+  return `ORDER BY (GREATEST(x.sats-1, 0)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 1.5) +
     (x.boost)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 5)) DESC NULLS LAST, "Item".id DESC`
 }
 

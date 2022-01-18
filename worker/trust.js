@@ -2,7 +2,8 @@ function trust ({ boss, models }) {
   return async function () {
     console.log('doing trust')
     const graph = await getGraph(models)
-    const trust = await trustGivenGraph(graph, 624)
+    const user = await models.user.findUnique({ where: { name: process.env.WOT_SOURCE || 'k00b' } })
+    const trust = await trustGivenGraph(graph, user.id)
     await storeTrust(models, trust)
     console.log('done doing trust')
   }
@@ -50,7 +51,6 @@ function boundedTrust (probs) {
 function trustGivenPaths (paths) {
   const trust = {}
   for (const [node, npaths] of Object.entries(paths)) {
-    console.log(Object.values(npaths))
     trust[node] = boundedTrust(Object.values(npaths))
   }
   return trust
@@ -73,7 +73,6 @@ function trustGivenGraph (graph, start) {
   // while we have nodes to visit
   while (queue.length > 0) {
     const node = queue.shift()
-    console.log('visiting', node)
     if (depth[node] === MAX_DEPTH) break
 
     if (!graph[node]) {
@@ -84,7 +83,6 @@ function trustGivenGraph (graph, start) {
     // for all of this nodes outbound edges
     for (let i = 0; i < graph[node].length; i++) {
       const { node: sibling, trust } = graph[node][i]
-      console.log('sibling', sibling)
       let explore = false
 
       // for all existing paths to this node
@@ -130,7 +128,6 @@ function trustGivenGraph (graph, start) {
       if (!explore) continue
       depth[sibling] = depth[node] + 1
       queue.push(sibling)
-      console.log('queuing', sibling)
     }
   }
 
@@ -158,7 +155,6 @@ async function getGraph (models) {
           ) a
           group by id
       ) b`
-  console.log(graph)
   return graph
 }
 

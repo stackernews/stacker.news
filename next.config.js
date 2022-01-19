@@ -28,5 +28,14 @@ module.exports = withPlausibleProxy()({
         destination: '/api/lnurlp/:username'
       }
     ]
+  },
+  async redirects () {
+    return [
+      {
+        source: '/statistics',
+        destination: '/satistics?inc=invoice,withdrawal',
+        permanent: true
+      }
+    ]
   }
 })

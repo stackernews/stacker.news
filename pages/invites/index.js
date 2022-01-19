@@ -1,11 +1,12 @@
 import Layout from '../../components/layout'
 import * as Yup from 'yup'
-import { CopyInput, Form, Input, SubmitButton } from '../../components/form'
+import { Form, Input, SubmitButton } from '../../components/form'
 import { InputGroup } from 'react-bootstrap'
 import { gql, useMutation, useQuery } from '@apollo/client'
 import { INVITE_FIELDS } from '../../fragments/invites'
 import AccordianItem from '../../components/accordian-item'
 import styles from '../../styles/invites.module.css'
+import Invite from '../../components/invite'
 
 export const InviteSchema = Yup.object({
   gift: Yup.number().typeError('must be a number')
@@ -70,54 +71,6 @@ function InviteForm () {
 
       <SubmitButton variant='secondary'>create</SubmitButton>
     </Form>
-  )
-}
-
-function Invite ({ invite, active }) {
-  const [revokeInvite] = useMutation(
-    gql`
-      ${INVITE_FIELDS}
-      mutation revokeInvite($id: ID!) {
-        revokeInvite(id: $id) {
-          ...InviteFields
-        }
-      }`
-  )
-
-  return (
-    <div
-      className={styles.invite}
-    >
-      <CopyInput
-        groupClassName='mb-1'
-        size='sm' type='text'
-        placeholder={`https://stacker.news/invites/${invite.id}`} readOnly
-      />
-      <div className={styles.other}>
-        <span>{invite.gift} sat gift</span>
-        <span> \ </span>
-        <span>{invite.invitees.length} joined{invite.limit ? ` of ${invite.limit}` : ''}</span>
-        {active
-          ? (
-            <>
-              <span> \ </span>
-              <span
-                className={styles.revoke}
-                onClick={() => revokeInvite({ variables: { id: invite.id } })}
-              >revoke
-              </span>
-            </>)
-
-          : invite.revoked && (
-            <>
-              <span> \ </span>
-              <span
-                className='text-danger'
-              >revoked
-              </span>
-            </>)}
-      </div>
-    </div>
   )
 }
 

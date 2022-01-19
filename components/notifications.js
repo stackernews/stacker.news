@@ -4,6 +4,7 @@ import Item from './item'
 import { NOTIFICATIONS } from '../fragments/notifications'
 import { useRouter } from 'next/router'
 import MoreFooter from './more-footer'
+import Invite from './invite'
 
 function Notification ({ n }) {
   const router = useRouter()
@@ -11,7 +12,9 @@ function Notification ({ n }) {
     <div
       className='clickToContext'
       onClick={() => {
-        if (n.__typename === 'Reply' || !n.item.title) {
+        if (n.__typename === 'Invitification') {
+          router.push('/invites')
+        } else if (!n.item.title) {
           router.push({
             pathname: '/items/[id]',
             query: { id: n.item.root.id, commentId: n.item.id }
@@ -24,23 +27,41 @@ function Notification ({ n }) {
         }
       }}
     >
-      {n.__typename === 'Votification' &&
-        <small className='font-weight-bold text-success ml-2'>your {n.item.title ? 'post' : 'reply'} stacked {n.earnedSats} sats</small>}
-      {n.__typename === 'Mention' &&
-        <small className='font-weight-bold text-info ml-2'>you were mentioned in</small>}
-      <div className={
-    n.__typename === 'Votification' || n.__typename === 'Mention'
-      ? ''
-      : 'py-2'
-    }
-      >
-        {n.item.title
-          ? <Item item={n.item} />
-          : (
-            <div className='pb-2'>
-              <Comment item={n.item} noReply includeParent rootText={n.__typename === 'Reply' ? 'replying to you on:' : undefined} clickToContext />
-            </div>)}
-      </div>
+      {n.__typename === 'Invitification'
+        ? (
+          <>
+            <small className='font-weight-bold text-secondary ml-2'>
+              your invite has been redeemed by {n.invite.invitees.length} users
+            </small>
+            <div className='ml-4 mr-2 mt-1'>
+              <Invite
+                invite={n.invite} active={
+                !n.invite.revoked &&
+                !(n.invite.limit && n.invite.invitees.length >= n.invite.limit)
+              }
+              />
+            </div>
+          </>
+          )
+        : (
+          <>
+            {n.__typename === 'Votification' &&
+              <small className='font-weight-bold text-success ml-2'>
+                your {n.item.title ? 'post' : 'reply'} stacked {n.earnedSats} sats
+              </small>}
+            {n.__typename === 'Mention' &&
+              <small className='font-weight-bold text-info ml-2'>
+                you were mentioned in
+              </small>}
+            <div className={n.__typename === 'Votification' || n.__typename === 'Mention' ? '' : 'py-2'}>
+              {n.item.title
+                ? <Item item={n.item} />
+                : (
+                  <div className='pb-2'>
+                    <Comment item={n.item} noReply includeParent rootText={n.__typename === 'Reply' ? 'replying to you on:' : undefined} clickToContext />
+                  </div>)}
+            </div>
+          </>)}
     </div>
   )
 }

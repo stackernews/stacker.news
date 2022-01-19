@@ -22,7 +22,12 @@ export default gql`
     sortTime: String!
   }
 
-  union Notification = Reply | Votification | Mention
+  type Invitification {
+    invite: Invite!
+    sortTime: String!
+  }
+
+  union Notification = Reply | Votification | Mention | Invitification
 
   type Notifications {
     lastChecked: String

@@ -1,5 +1,6 @@
 import { AuthenticationError } from 'apollo-server-micro'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
+import { getItem } from './item'
 
 export default {
   Query: {
@@ -62,47 +63,49 @@ export default {
       // HACK to make notifications faster, we only return a limited sub set of the unioned
       // queries ... we only ever need at most LIMIT+current offset in the child queries to
       // have enough items to return in the union
-      let notifications = await models.$queryRaw(`
-        (SELECT ${ITEM_FIELDS}, "Item".created_at as "sortTime", NULL as "earnedSats",
-          false as mention
+      const notifications = await models.$queryRaw(`
+        (SELECT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL as "earnedSats",
+          'Reply' AS type
           FROM "Item"
           JOIN "Item" p ON "Item"."parentId" = p.id
           WHERE p."userId" = $1
             AND "Item"."userId" <> $1 AND "Item".created_at <= $2
-          ORDER BY "Item".created_at desc
+          ORDER BY "Item".created_at DESC
           LIMIT ${LIMIT}+$3)
         UNION ALL
-        (SELECT ${ITEM_FIELDS}, max("ItemAct".created_at) as "sortTime",
-          sum("ItemAct".sats) as "earnedSats", false as mention
+        (SELECT "Item".id::TEXT, MAX("ItemAct".created_at) AS "sortTime",
+          sum("ItemAct".sats) as "earnedSats", 'Votification' AS type
           FROM "Item"
-          JOIN "ItemAct" on "ItemAct"."itemId" = "Item".id
+          JOIN "ItemAct" ON "ItemAct"."itemId" = "Item".id
           WHERE "ItemAct"."userId" <> $1
           AND "ItemAct".created_at <= $2
           AND "ItemAct".act <> 'BOOST'
           AND "Item"."userId" = $1
           GROUP BY ${ITEM_GROUP_FIELDS}
-          ORDER BY max("ItemAct".created_at) desc
+          ORDER BY MAX("ItemAct".created_at) DESC
           LIMIT ${LIMIT}+$3)
         UNION ALL
-        (SELECT ${ITEM_FIELDS}, "Mention".created_at as "sortTime",  NULL as "earnedSats",
-          true as mention
+        (SELECT "Item".id::TEXT, "Mention".created_at AS "sortTime", NULL as "earnedSats",
+          'Mention' AS type
           FROM "Mention"
-          JOIN "Item" on "Mention"."itemId" = "Item".id
-          LEFT JOIN "Item" p on "Item"."parentId" = p.id
+          JOIN "Item" ON "Mention"."itemId" = "Item".id
+          LEFT JOIN "Item" p ON "Item"."parentId" = p.id
           WHERE "Mention"."userId" = $1
           AND "Mention".created_at <= $2
           AND "Item"."userId" <> $1
           AND (p."userId" IS NULL OR p."userId" <> $1)
-          ORDER BY "Mention".created_at desc
+          ORDER BY "Mention".created_at DESC
           LIMIT ${LIMIT}+$3)
+        UNION ALL
+        (SELECT "Invite".id, MAX(users.created_at) AS "sortTime", NULL as "earnedSats",
+          'Invitification' AS type
+          FROM users JOIN "Invite" on users."inviteId" = "Invite".id
+          WHERE "Invite"."userId" = $1
+          AND users.created_at <= $2
+          GROUP BY "Invite".id)
         ORDER BY "sortTime" DESC
         OFFSET $3
         LIMIT ${LIMIT}`, me.id, decodedCursor.time, decodedCursor.offset)
-
-      notifications = notifications.map(n => {
-        n.item = { ...n }
-        return n
-      })
 
       const { checkedNotesAt } = await models.user.findUnique({ where: { id: me.id } })
       if (decodedCursor.offset === 0) {
@@ -117,8 +120,26 @@ export default {
     }
   },
   Notification: {
-    __resolveType: async (notification, args, { models }) =>
-      notification.earnedSats ? 'Votification' : (notification.mention ? 'Mention' : 'Reply')
+    __resolveType: async (n, args, { models }) => n.type
+  },
+  Votification: {
+    item: async (n, args, { models }) => getItem(n, { id: n.id }, { models })
+  },
+  Reply: {
+    item: async (n, args, { models }) => getItem(n, { id: n.id }, { models })
+  },
+  Mention: {
+    mention: async (n, args, { models }) => true,
+    item: async (n, args, { models }) => getItem(n, { id: n.id }, { models })
+  },
+  Invitification: {
+    invite: async (n, args, { models }) => {
+      return await models.invite.findUnique({
+        where: {
+          id: n.id
+        }
+      })
+    }
   }
 }
 
@@ -130,6 +151,6 @@ const ITEM_GROUP_FIELDS =
   `"Item".id, "Item".created_at, "Item".updated_at, "Item".title,
   "Item".text, "Item".url, "Item"."userId", "Item"."parentId", ltree2text("Item"."path")`
 
-const ITEM_FIELDS =
-  `"Item".id, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt", "Item".title,
-  "Item".text, "Item".url, "Item"."userId", "Item"."parentId", ltree2text("Item"."path") AS path`
+// const ITEM_FIELDS =
+//   `"Item".id, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt", "Item".title,
+//   "Item".text, "Item".url, "Item"."userId", "Item"."parentId", ltree2text("Item"."path") AS path`

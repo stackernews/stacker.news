@@ -160,13 +160,13 @@ export default {
       // check if any votes have been cast for them since checkedNotesAt
       const votes = await models.$queryRaw(`
         SELECT "ItemAct".id, "ItemAct".created_at
-        FROM "ItemAct"
-        JOIN "Item" on "ItemAct"."itemId" = "Item".id
-        WHERE "ItemAct"."userId" <> $1
-        AND ("ItemAct".created_at > $2 OR $2 IS NULL)
-        AND "ItemAct".act <> 'BOOST'
-        AND "Item"."userId" = $1
-        LIMIT 1`, user.id, user.checkedNotesAt)
+          FROM "ItemAct"
+          JOIN "Item" on "ItemAct"."itemId" = "Item".id
+          WHERE "ItemAct"."userId" <> $1
+          AND ("ItemAct".created_at > $2 OR $2 IS NULL)
+          AND "ItemAct".act <> 'BOOST'
+          AND "Item"."userId" = $1
+          LIMIT 1`, user.id, user.checkedNotesAt)
       if (votes.length > 0) {
         return true
       }
@@ -174,11 +174,11 @@ export default {
       // check if they have any replies since checkedNotesAt
       const newReplies = await models.$queryRaw(`
         SELECT "Item".id, "Item".created_at
-        From "Item"
-        JOIN "Item" p ON "Item"."parentId" = p.id
-        WHERE p."userId" = $1
-        AND ("Item".created_at > $2 OR $2 IS NULL)  AND "Item"."userId" <> $1
-        LIMIT 1`, user.id, user.checkedNotesAt)
+          FROM "Item"
+          JOIN "Item" p ON "Item"."parentId" = p.id
+          WHERE p."userId" = $1
+          AND ("Item".created_at > $2 OR $2 IS NULL)  AND "Item"."userId" <> $1
+          LIMIT 1`, user.id, user.checkedNotesAt)
       if (newReplies.length > 0) {
         return true
       }
@@ -186,13 +186,24 @@ export default {
       // check if they have any mentions since checkedNotesAt
       const newMentions = await models.$queryRaw(`
         SELECT "Item".id, "Item".created_at
-        From "Mention"
-        JOIN "Item" ON "Mention"."itemId" = "Item".id
-        WHERE "Mention"."userId" = $1
-        AND ("Mention".created_at > $2 OR $2 IS NULL)
-        AND "Item"."userId" <> $1
-        LIMIT 1`, user.id, user.checkedNotesAt)
-      return newMentions.length > 0
+          FROM "Mention"
+          JOIN "Item" ON "Mention"."itemId" = "Item".id
+          WHERE "Mention"."userId" = $1
+          AND ("Mention".created_at > $2 OR $2 IS NULL)
+          AND "Item"."userId" <> $1
+          LIMIT 1`, user.id, user.checkedNotesAt)
+      if (newMentions.length > 0) {
+        return true
+      }
+
+      // check if new invites have been redeemed
+      const newInvitees = await models.$queryRaw(`
+        SELECT "Invite".id
+          FROM users JOIN "Invite" on users."inviteId" = "Invite".id
+          WHERE "Invite"."userId" = $1
+          AND (users.created_at > $2 or $2 IS NULL)
+          LIMIT 1`, user.id, user.checkedNotesAt)
+      return newInvitees.length > 0
     }
   }
 }

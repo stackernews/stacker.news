@@ -69,6 +69,7 @@ const options = {
     Providers.GitHub({
       clientId: process.env.GITHUB_ID,
       clientSecret: process.env.GITHUB_SECRET,
+      authorization: 'https://github.com/login/oauth/authorize?scope=read:user',
       profile: profile => {
         return {
           ...profile,

@@ -244,9 +244,9 @@ export default function UpVote ({ item, className }) {
                       `${styles.upvote}
                       ${className || ''}
                       ${noSelfTips ? styles.noSelfTips : ''}
-                      ${item?.meVote ? styles.voted : ''}`
+                      ${item?.meSats ? styles.voted : ''}`
                     }
-                  style={item?.meVote
+                  style={item?.meSats
                     ? {
                         fill: color,
                         filter: `drop-shadow(0 0 6px ${color}90)`

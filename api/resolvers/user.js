@@ -48,7 +48,7 @@ export default {
       FROM "ItemAct"
       JOIN "Item" on "ItemAct"."itemId" = "Item".id
       JOIN users on "Item"."userId" = users.id
-      WHERE act <> 'BOOST' AND "ItemAct".created_at <= $1
+      WHERE act <> 'BOOST' AND "ItemAct"."userId" <> users.id AND "ItemAct".created_at <= $1
       ${topClause(within)}
       GROUP BY users.id, users.name
       ORDER BY stacked DESC NULLS LAST, users.created_at DESC

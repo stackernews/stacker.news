@@ -164,18 +164,22 @@ export default function Satistics ({ data: { walletHistory: { facts, cursor } } 
           <div className='d-flex justify-content-around flex-wrap'>
             <Checkbox
               label='invoice' name='invoice' inline
+              checked={included('invoice')}
               handleChange={c => filterRoutePush('invoice', c)}
             />
             <Checkbox
               label='withdrawal' name='withdrawal' inline
+              checked={included('withdrawal')}
               handleChange={c => filterRoutePush('withdrawal', c)}
             />
             <Checkbox
               label='stacked' name='stacked' inline
+              checked={included('stacked')}
               handleChange={c => filterRoutePush('stacked', c)}
             />
             <Checkbox
               label='spent' name='spent' inline
+              checked={included('spent')}
               handleChange={c => filterRoutePush('spent', c)}
             />
           </div>

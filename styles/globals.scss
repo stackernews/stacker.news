@@ -69,6 +69,16 @@ $tooltip-bg: #5c8001;
   line-height: 1.2rem;
 }
 
+.twitter-tweet {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding-right: 12px;
+}
+
+.twitter-tweet iframe {
+  width: 100% !important;
+}
+
 .custom-checkbox.custom-control-inline {
   margin-right: .5rem;
 }

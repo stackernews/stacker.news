@@ -7,6 +7,8 @@ import styles from '../styles/item.module.css'
 import { NOFOLLOW_LIMIT } from '../lib/constants'
 import { useMe } from './me'
 import { Button } from 'react-bootstrap'
+import TweetEmbed from 'react-tweet-embed'
+import useDarkMode from 'use-dark-mode'
 
 function BioItem ({ item, handleClick }) {
   const me = useMe()
@@ -30,10 +32,21 @@ function BioItem ({ item, handleClick }) {
   )
 }
 
+function ItemEmbed ({ item }) {
+  const darkMode = useDarkMode()
+  const twitter = item.url?.match(/^https?:\/\/twitter\.com\/(?:#!\/)?\w+\/status(?:es)?\/(?<id>\d+)$/)
+  if (twitter?.groups?.id) {
+    return <TweetEmbed id={twitter.groups.id} options={{ width: '100%', theme: darkMode.value ? 'dark' : 'light' }} />
+  }
+
+  return null
+}
+
 function TopLevelItem ({ item }) {
   return (
     <Item item={item}>
       {item.text && <ItemText item={item} />}
+      {item.url && <ItemEmbed item={item} />}
       <Reply parentId={item.id} replyOpen />
     </Item>
   )

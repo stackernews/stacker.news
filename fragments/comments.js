@@ -11,11 +11,9 @@ export const COMMENT_FIELDS = gql`
       id
     }
     sats
+    upvotes
     boost
-    tips
-    meVote
     meSats
-    meTip
     mine
     ncomments
     root {

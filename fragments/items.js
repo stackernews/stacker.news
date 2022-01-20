@@ -13,11 +13,9 @@ export const ITEM_FIELDS = gql`
       id
     }
     sats
+    upvotes
     boost
-    tips
-    meVote
     meSats
-    meTip
     ncomments
     mine
     root {

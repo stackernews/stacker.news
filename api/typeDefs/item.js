@@ -10,15 +10,9 @@ export default gql`
     dupes(url: String!): [Item!]
   }
 
-  enum ItemAct {
-    VOTE
-    BOOST
-    TIP
-  }
-
   type ItemActResult {
+    vote: Int!
     sats: Int!
-    act: ItemAct!
   }
 
   extend type Mutation {
@@ -28,7 +22,7 @@ export default gql`
     updateDiscussion(id: ID!, title: String!, text: String): Item!
     createComment(text: String!, parentId: ID!): Item!
     updateComment(id: ID!, text: String!): Item!
-    act(id: ID!, act: ItemAct!, sats: Int, tipDefault: Boolean): ItemActResult!
+    act(id: ID!, sats: Int): ItemActResult!
   }
 
   type Items {
@@ -53,13 +47,11 @@ export default gql`
     root: Item
     user: User!
     depth: Int!
-    sats: Int!
-    boost: Int!
-    tips: Int!
     mine: Boolean!
-    meVote: Int!
+    boost: Int!
+    sats: Int!
+    upvotes: Int!
     meSats: Int!
-    meTip: Int!
     ncomments: Int!
     comments: [Item!]!
     path: String

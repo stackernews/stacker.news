@@ -362,7 +362,7 @@ export default {
 
       return await updateItem(parent, { id, data: { text } }, { me, models })
     },
-    act: async (parent, { id, act, sats, tipDefault }, { me, models }) => {
+    act: async (parent, { id, sats }, { me, models }) => {
       // need to make sure we are logged in
       if (!me) {
         throw new AuthenticationError('you must be logged in')
@@ -372,26 +372,20 @@ export default {
         throw new UserInputError('sats must be positive', { argumentName: 'sats' })
       }
 
-      // if we are tipping disallow self tips
-      if (act === 'TIP') {
-        const [item] = await models.$queryRaw(`
-        ${SELECT}
-        FROM "Item"
-        WHERE id = $1 AND "userId" = $2`, Number(id), me.id)
-        if (item) {
-          throw new UserInputError('cannot tip your self')
-        }
-        // if tipDefault, set on user
-        if (tipDefault) {
-          await models.user.update({ where: { id: me.id }, data: { tipDefault: sats } })
-        }
+      // disallow self tips
+      const [item] = await models.$queryRaw(`
+      ${SELECT}
+      FROM "Item"
+      WHERE id = $1 AND "userId" = $2`, Number(id), me.id)
+      if (item) {
+        throw new UserInputError('cannot tip your self')
       }
 
-      await serialize(models, models.$queryRaw`SELECT item_act(${Number(id)}, ${me.id}, ${act}, ${Number(sats)})`)
+      const [{ item_act: vote }] = await serialize(models, models.$queryRaw`SELECT item_act(${Number(id)}, ${me.id}, 'TIP', ${Number(sats)})`)
 
       return {
-        sats,
-        act
+        vote,
+        sats
       }
     }
   },
@@ -448,6 +442,27 @@ export default {
         },
         where: {
           itemId: item.id,
+          userId: {
+            not: item.userId
+          },
+          act: {
+            not: 'BOOST'
+          }
+        }
+      })
+
+      return sats || 0
+    },
+    upvotes: async (item, args, { models }) => {
+      const { sum: { sats } } = await models.itemAct.aggregate({
+        sum: {
+          sats: true
+        },
+        where: {
+          itemId: item.id,
+          userId: {
+            not: item.userId
+          },
           act: 'VOTE'
         }
       })
@@ -462,35 +477,6 @@ export default {
         where: {
           itemId: item.id,
           act: 'BOOST'
-        }
-      })
-
-      return sats || 0
-    },
-    tips: async (item, args, { models }) => {
-      const { sum: { sats } } = await models.itemAct.aggregate({
-        sum: {
-          sats: true
-        },
-        where: {
-          itemId: item.id,
-          act: 'TIP'
-        }
-      })
-
-      return sats || 0
-    },
-    meVote: async (item, args, { me, models }) => {
-      if (!me) return 0
-
-      const { sum: { sats } } = await models.itemAct.aggregate({
-        sum: {
-          sats: true
-        },
-        where: {
-          itemId: item.id,
-          userId: me.id,
-          act: 'VOTE'
         }
       })
 
@@ -521,22 +507,6 @@ export default {
     },
     mine: async (item, args, { me, models }) => {
       return me?.id === item.userId
-    },
-    meTip: async (item, args, { me, models }) => {
-      if (!me) return 0
-
-      const { sum: { sats } } = await models.itemAct.aggregate({
-        sum: {
-          sats: true
-        },
-        where: {
-          itemId: item.id,
-          userId: me.id,
-          act: 'TIP'
-        }
-      })
-
-      return sats || 0
     },
     root: async (item, args, { models }) => {
       if (!item.parentId) {

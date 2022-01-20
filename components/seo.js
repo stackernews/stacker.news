@@ -20,7 +20,7 @@ export default function Seo ({ item, user }) {
         desc = desc.replace(/\s+/g, ' ')
       }
     } else {
-      desc = `@${item.user.name} stacked ${(item.sats > 0 ? item.sats - 1 : 0) + item.tips} sats ${item.url ? `posting ${item.url}` : 'with this discussion'}`
+      desc = `@${item.user.name} stacked ${item.sats} sats ${item.url ? `posting ${item.url}` : 'with this discussion'}`
     }
     if (item.ncomments) {
       desc += ` [${item.ncomments} comments`

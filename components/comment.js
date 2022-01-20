@@ -79,7 +79,7 @@ export default function Comment ({
         <div className={`${itemStyles.hunk} ${styles.hunk}`}>
           <div className='d-flex align-items-center'>
             <div className={`${itemStyles.other} ${styles.other}`}>
-              <span title={`${item.sats} upvotes \\ ${item.tips} tipped${item.meSats > 0 ? ` (${item.meSats} from me)` : ''}`}>{item.sats + item.tips} sats</span>
+              <span title={`from ${item.upvotes} users (${item.meSats} from me)`}>{item.sats} sats</span>
               <span> \ </span>
               {item.boost > 0 &&
                 <>

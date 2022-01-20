@@ -37,9 +37,11 @@ BEGIN
                 INSERT INTO "ItemAct" (sats, "itemId", "userId", act, created_at, updated_at)
                     VALUES (act_sats, item_id, user_id, 'TIP', now_utc(), now_utc());
             END IF;
+
+            RETURN 1;
         END IF;
     END IF;
 
-    RETURN act_sats;
+    RETURN 0;
 END;
 $$;

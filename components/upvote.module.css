@@ -10,7 +10,7 @@
     padding-right: .2rem;
 }
 
-.noSelfTips .upvote.voted {
+.noSelfTips {
     fill: transparent !important;
     filter: none !important;
 }

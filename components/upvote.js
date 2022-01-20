@@ -104,60 +104,29 @@ export default function UpVote ({ item, className }) {
 
   const [act] = useMutation(
     gql`
-      mutation act($id: ID!, $act: ItemAct! $sats: Int!, $tipDefault: Boolean) {
-        act(id: $id, act: $act, sats: $sats, tipDefault: $tipDefault) {
-          act,
+      mutation act($id: ID!, $sats: Int!) {
+        act(id: $id, sats: $sats) {
+          vote,
           sats
         }
       }`, {
-      update (cache, { data: { act: { act, sats } } }) {
-        // read in the cached object so we don't use meSats prop
-        // which can be stale
-        if (act === 'VOTE') {
-          setVoteShow(true)
-        }
-        if (act === 'TIP') {
-          setTipShow(true)
-        }
-
+      update (cache, { data: { act: { vote, sats } } }) {
         cache.modify({
           id: `Item:${item.id}`,
           fields: {
-            meVote (existingMeVote = 0) {
-              if (act === 'VOTE') {
-                return existingMeVote + sats
-              }
-              return existingMeVote
-            },
-            meTip (existingMeTip = 0) {
-              if (act === 'TIP') {
-                return existingMeTip + sats
-              }
-              return existingMeTip
-            },
             sats (existingSats = 0) {
-              if (act === 'VOTE') {
-                return existingSats + sats
-              }
-              return existingSats
+              return existingSats + sats
             },
             meSats (existingSats = 0) {
-              if (act === 'VOTE' || act === 'TIP') {
-                return existingSats + sats
+              if (existingSats === 0) {
+                setVoteShow(true)
+              } else {
+                setTipShow(true)
               }
-              return existingSats
+              return existingSats + sats
             },
-            boost (existingBoost = 0) {
-              if (act === 'BOOST') {
-                return existingBoost + sats
-              }
-              return existingBoost
-            },
-            tips (existingTips = 0) {
-              if (act === 'TIP') {
-                return existingTips + sats
-              }
-              return existingTips
+            upvotes (existingUpvotes = 0) {
+              return existingUpvotes + vote
             }
           }
         })
@@ -166,15 +135,12 @@ export default function UpVote ({ item, className }) {
   )
 
   const overlayText = () => {
-    if (item?.meVote) {
-      if (me?.tipDefault) {
-        return `${me.tipDefault} sat${me.tipDefault > 1 ? 's' : ''}`
-      }
-      return '1 sat'
+    if (me?.tipDefault) {
+      return `${me.tipDefault} sat${me.tipDefault > 1 ? 's' : ''}`
     }
+    return '1 sat'
   }
 
-  const noSelfTips = item?.meVote && item?.mine
   const color = getColor(item?.meSats)
   return (
     <LightningConsumer>
@@ -186,7 +152,7 @@ export default function UpVote ({ item, className }) {
                 if (!item || voteLock) return
 
                 // we can't tip ourselves
-                if (noSelfTips) {
+                if (item?.mine) {
                   return
                 }
 
@@ -200,26 +166,19 @@ export default function UpVote ({ item, className }) {
                   if (!item || voteLock) return
 
                   // we can't tip ourselves
-                  if (noSelfTips) {
+                  if (item?.mine) {
                     return
                   }
 
-                  if (item?.meVote) {
+                  if (item?.meSats) {
                     setVoteShow(false)
-                    try {
-                      strike()
-                      await act({ variables: { id: item.id, act: 'TIP', sats: me.tipDefault || 1 } })
-                    } catch (e) {
-                      console.log(e)
-                    }
-                    return
                   }
 
                   strike()
 
                   try {
                     setVoteLock(true)
-                    await act({ variables: { id: item.id, act: 'VOTE', sats: 1 } })
+                    await act({ variables: { id: item.id, sats: me.tipDefault || 1 } })
                   } catch (error) {
                     if (error.toString().includes('insufficient funds')) {
                       setError(true)
@@ -233,9 +192,9 @@ export default function UpVote ({ item, className }) {
               : signIn
           }
           >
-            <ActionTooltip notForm disable={noSelfTips} overlayText={overlayText()}>
+            <ActionTooltip notForm disable={item?.mine} overlayText={overlayText()}>
               <div
-                className={`${noSelfTips ? styles.noSelfTips : ''}
+                className={`${item?.mine ? styles.noSelfTips : ''}
                     ${styles.upvoteWrapper}`}
               >
                 <UpBolt
@@ -244,7 +203,7 @@ export default function UpVote ({ item, className }) {
                   className={
                       `${styles.upvote}
                       ${className || ''}
-                      ${noSelfTips ? styles.noSelfTips : ''}
+                      ${item?.mine ? styles.noSelfTips : ''}
                       ${item?.meSats ? styles.voted : ''}`
                     }
                   style={item?.meSats

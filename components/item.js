@@ -50,7 +50,7 @@ export default function Item ({ item, rank, children }) {
           <div className={`${styles.other}`}>
             {!item.position &&
               <>
-                <span title={`${item.sats} upvotes \\ ${item.tips} tipped${item.meSats > 0 ? ` (${item.meSats} from me)` : ''}`}>{item.sats + item.tips} sats</span>
+                <span title={`from ${item.upvotes} users (${item.meSats} sats from me)`}>{item.sats} sats</span>
                 <span> \ </span>
               </>}
             {item.boost > 0 &&

@@ -57,13 +57,11 @@ export function ItemActModal () {
             default: false
           }}
           schema={ActSchema}
-          onSubmit={async ({ amount, tipDefault, submit }) => {
+          onSubmit={async ({ amount }) => {
             await item.act({
               variables: {
                 id: item.itemId,
-                act: submit,
-                sats: Number(amount),
-                tipDefault
+                sats: Number(amount)
               }
             })
             await item.strike()

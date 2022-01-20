@@ -34,7 +34,8 @@ const UpvotePopover = ({ target, show, handleClose }) => (
         <button type='button' className='close' onClick={handleClose}><span aria-hidden='true'>×</span><span className='sr-only'>Close alert</span></button>
       </Popover.Title>
       <Popover.Content>
-        Press bolt again to tip 1 sat.
+        <div className='mb-2'>Press the bolt again to tip 1 more sat.</div>
+        <div>Repeatedly press the bolt to tip more sats.</div>
       </Popover.Content>
     </Popover>
   </Overlay>

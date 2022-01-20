@@ -5,13 +5,18 @@ import { NOTIFICATIONS } from '../fragments/notifications'
 import { useRouter } from 'next/router'
 import MoreFooter from './more-footer'
 import Invite from './invite'
+import { ignoreClick } from '../lib/clicks'
 
 function Notification ({ n }) {
   const router = useRouter()
   return (
     <div
       className='clickToContext'
-      onClick={() => {
+      onClick={e => {
+        if (ignoreClick(e)) {
+          return
+        }
+
         if (n.__typename === 'Invitification') {
           router.push('/invites')
         } else if (!n.item.title) {

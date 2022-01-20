@@ -3,6 +3,7 @@ import { MORE_FLAT_COMMENTS } from '../fragments/comments'
 import Comment, { CommentSkeleton } from './comment'
 import { useRouter } from 'next/router'
 import MoreFooter from './more-footer'
+import { ignoreClick } from '../lib/clicks'
 
 export default function CommentsFlat ({ variables, comments, cursor, ...props }) {
   const router = useRouter()
@@ -24,7 +25,10 @@ export default function CommentsFlat ({ variables, comments, cursor, ...props })
         <div
           key={item.id}
           className='clickToContext py-2'
-          onClick={() => {
+          onClick={e => {
+            if (ignoreClick(e)) {
+              return
+            }
             router.push({
               pathname: '/items/[id]',
               query: { id: item.root.id, commentId: item.id }

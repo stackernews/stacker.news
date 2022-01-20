@@ -18,7 +18,7 @@ function Parent ({ item, rootText }) {
     <>
       <span> \ </span>
       <Link href={`/items/${item.parentId}`} passHref>
-        <a onClick={e => e.stopPropagation()} className='text-reset'>parent</a>
+        <a className='text-reset'>parent</a>
       </Link>
     </>
   )
@@ -32,7 +32,7 @@ function Parent ({ item, rootText }) {
       {Number(item.root.id) !== Number(item.parentId) && <ParentFrag />}
       <span> \ </span>
       <Link href={`/items/${item.root.id}`} passHref>
-        <a onClick={e => e.stopPropagation()} className='text-reset'>{rootText || 'on:'} {item.root.title}</a>
+        <a className='text-reset'>{rootText || 'on:'} {item.root.title}</a>
       </Link>
     </>
   )
@@ -87,11 +87,11 @@ export default function Comment ({
                   <span> \ </span>
                 </>}
               <Link href={`/items/${item.id}`} passHref>
-                <a onClick={e => e.stopPropagation()} className='text-reset'>{item.ncomments} replies</a>
+                <a className='text-reset'>{item.ncomments} replies</a>
               </Link>
               <span> \ </span>
               <Link href={`/${item.user.name}`} passHref>
-                <a onClick={e => e.stopPropagation()}>@{item.user.name}<span className='text-boost font-weight-bold'>{op && ' OP'}</span></a>
+                <a>@{item.user.name}<span className='text-boost font-weight-bold'>{op && ' OP'}</span></a>
               </Link>
               <span> </span>
               <Link href={`/items/${item.id}`} passHref>
@@ -103,7 +103,9 @@ export default function Comment ({
                   <span> \ </span>
                   <div
                     className={styles.edit}
-                    onClick={() => setEdit(!edit)}
+                    onClick={e => {
+                      setEdit(!edit)
+                    }}
                   >
                     {edit ? 'cancel' : 'edit'}
                     <Countdown

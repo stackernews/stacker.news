@@ -178,12 +178,10 @@ export default function UpVote ({ item, className }) {
   return (
     <LightningConsumer>
       {({ strike }) =>
-        <div ref={ref}>
+        <div ref={ref} className='upvoteParent'>
           <LongPressable
             onLongPress={
               async (e) => {
-                e.preventDefault()
-                e.stopPropagation()
                 if (!item || voteLock) return
 
                 // we can't tip ourselves
@@ -198,8 +196,6 @@ export default function UpVote ({ item, className }) {
             onShortPress={
             me
               ? async (e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
                   if (!item || voteLock) return
 
                   // we can't tip ourselves
@@ -256,9 +252,6 @@ export default function UpVote ({ item, className }) {
                         filter: `drop-shadow(0 0 6px ${color}90)`
                       }
                     : undefined}
-                  onClick={e => {
-                    e.stopPropagation()
-                  }}
                 />
               </div>
             </ActionTooltip>

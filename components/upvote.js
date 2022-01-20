@@ -62,7 +62,6 @@ const TipPopover = ({ target, show, handleClose }) => (
 export default function UpVote ({ item, className }) {
   const { setError } = useFundError()
   const { setItem } = useItemAct()
-  const [voteLock, setVoteLock] = useState()
   const [voteShow, _setVoteShow] = useState(false)
   const [tipShow, _setTipShow] = useState(false)
   const ref = useRef()
@@ -149,7 +148,7 @@ export default function UpVote ({ item, className }) {
           <LongPressable
             onLongPress={
               async (e) => {
-                if (!item || voteLock) return
+                if (!item) return
 
                 // we can't tip ourselves
                 if (item?.mine) {
@@ -163,7 +162,7 @@ export default function UpVote ({ item, className }) {
             onShortPress={
             me
               ? async (e) => {
-                  if (!item || voteLock) return
+                  if (!item) return
 
                   // we can't tip ourselves
                   if (item?.mine) {
@@ -177,16 +176,22 @@ export default function UpVote ({ item, className }) {
                   strike()
 
                   try {
-                    setVoteLock(true)
-                    await act({ variables: { id: item.id, sats: me.tipDefault || 1 } })
+                    await act({
+                      variables: { id: item.id, sats: me.tipDefault || 1 },
+                      optimisticResponse: {
+                        act: {
+                          id: `Item:${item.id}`,
+                          sats: me.tipDefault || 1,
+                          vote: 0
+                        }
+                      }
+                    })
                   } catch (error) {
                     if (error.toString().includes('insufficient funds')) {
                       setError(true)
                       return
                     }
                     throw new Error({ message: error.toString() })
-                  } finally {
-                    setVoteLock(false)
                   }
                 }
               : signIn

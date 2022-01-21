@@ -32,6 +32,16 @@ module.exports = withPlausibleProxy()({
       {
         source: '/_next/:asset*',
         headers: corsHeaders
+      },
+      {
+        source: '/Lightningvolt-xoqm.ttf',
+        headers: [
+          ...corsHeaders,
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable'
+          }
+        ]
       }
     ]
   },

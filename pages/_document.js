@@ -4,9 +4,7 @@ class MyDocument extends Document {
   render () {
     return (
       <Html>
-        <Head>
-          <link rel='preload' href='/Lightningvolt-xoqm.ttf' as='font' type='font/ttf' crossOrigin='' />
-        </Head>
+        <Head />
         <body>
           <script src='/darkmode.js' />
           <Main />

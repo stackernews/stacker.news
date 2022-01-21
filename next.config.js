@@ -26,7 +26,7 @@ module.exports = withPlausibleProxy()({
       return Object.keys(RuntimeSources['stacker.news'])[0]
     },
   // Use the CDN in production and localhost for development.
-  // assetPrefix: isProd ? 'https://a.stacker.news' : '',
+  assetPrefix: isProd ? 'https://a.stacker.news' : '',
   async headers () {
     return [
       {

@@ -34,7 +34,7 @@ function BioItem ({ item, handleClick }) {
 
 function ItemEmbed ({ item }) {
   const darkMode = useDarkMode()
-  const twitter = item.url?.match(/^https?:\/\/twitter\.com\/(?:#!\/)?\w+\/status(?:es)?\/(?<id>\d+)$/)
+  const twitter = item.url?.match(/^https?:\/\/twitter\.com\/(?:#!\/)?\w+\/status(?:es)?\/(?<id>\d+)/)
   if (twitter?.groups?.id) {
     return <TweetEmbed id={twitter.groups.id} options={{ width: '100%', theme: darkMode.value ? 'dark' : 'light' }} />
   }

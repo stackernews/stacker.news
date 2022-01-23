@@ -56,11 +56,15 @@ export function CopyInput (props) {
   )
 }
 
-export function InputSkeleton ({ label }) {
+export function InputSkeleton ({ label, hint }) {
   return (
     <BootstrapForm.Group>
       {label && <BootstrapForm.Label>{label}</BootstrapForm.Label>}
       <div className='form-control clouds' />
+      {hint &&
+        <BootstrapForm.Text>
+          {hint}
+        </BootstrapForm.Text>}
     </BootstrapForm.Group>
   )
 }

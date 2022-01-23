@@ -11,6 +11,13 @@ export default gql`
   extend type Mutation {
     createInvoice(amount: Int!): Invoice!
     createWithdrawl(invoice: String!, maxFee: Int!): Withdrawl!
+    sendToLnAddr(addr: String!, amount: Int!, maxFee: Int!): Withdrawl!
+  }
+
+  type LnAddrResp {
+    callback: String!
+    maxSendable: String!
+    minSendable: String!
   }
 
   type Invoice {

@@ -189,35 +189,30 @@ export default {
         throw error
       }
     },
-    createWithdrawl: async (parent, { invoice, maxFee }, { me, models, lnd }) => {
-      // decode invoice to get amount
-      let decoded
-      try {
-        decoded = await decodePaymentRequest({ lnd, request: invoice })
-      } catch (error) {
-        throw new UserInputError('could not decode invoice')
+    createWithdrawl: createWithdrawal,
+    sendToLnAddr: async (parent, { addr, amount, maxFee }, { me, models, lnd }) => {
+      const [name, domain] = addr.split('@')
+      const res1 = await (await fetch(`https://${domain}/.well-known/lnurlp/${name}`)).json()
+      if (res1.status === 'ERROR') {
+        throw new Error(res1.reason)
       }
 
-      if (!decoded.mtokens || Number(decoded.mtokens) <= 0) {
-        throw new UserInputError('you must specify amount')
+      const milliamount = amount * 1000
+      // check that amount is within min and max sendable
+      if (milliamount < res1.minSendable || milliamount > res1.maxSendable) {
+        throw new UserInputError(
+          `amount must be >= ${res1.minSendable / 1000} and <= ${res1.maxSendable / 1000}`,
+          { argumentName: 'amount' })
       }
 
-      const msatsFee = Number(maxFee) * 1000
+      // call callback with amount
+      const res2 = await (await fetch(`${res1.callback}?amount=${milliamount}`)).json()
+      if (res2.status === 'ERROR') {
+        throw new Error(res2.reason)
+      }
 
-      // create withdrawl transactionally (id, bolt11, amount, fee)
-      const [withdrawl] = await serialize(models,
-        models.$queryRaw`SELECT * FROM create_withdrawl(${decoded.id}, ${invoice},
-          ${Number(decoded.mtokens)}, ${msatsFee}, ${me.name})`)
-
-      payViaPaymentRequest({
-        lnd,
-        request: invoice,
-        // can't use max_fee_mtokens https://github.com/alexbosworth/ln-service/issues/141
-        max_fee: Number(maxFee),
-        pathfinding_timeout: 30000
-      })
-
-      return withdrawl
+      // take pr and createWithdrawl
+      return await createWithdrawal(parent, { invoice: res2.pr, maxFee }, { me, models, lnd })
     }
   },
 
@@ -241,4 +236,36 @@ export default {
       return item
     }
   }
+}
+
+async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd }) {
+  // decode invoice to get amount
+  let decoded
+  try {
+    decoded = await decodePaymentRequest({ lnd, request: invoice })
+  } catch (error) {
+    console.log(error)
+    throw new UserInputError('could not decode invoice')
+  }
+
+  if (!decoded.mtokens || Number(decoded.mtokens) <= 0) {
+    throw new UserInputError('you must specify amount')
+  }
+
+  const msatsFee = Number(maxFee) * 1000
+
+  // create withdrawl transactionally (id, bolt11, amount, fee)
+  const [withdrawl] = await serialize(models,
+    models.$queryRaw`SELECT * FROM create_withdrawl(${decoded.id}, ${invoice},
+      ${Number(decoded.mtokens)}, ${msatsFee}, ${me.name})`)
+
+  payViaPaymentRequest({
+    lnd,
+    request: invoice,
+    // can't use max_fee_mtokens https://github.com/alexbosworth/ln-service/issues/141
+    max_fee: Number(maxFee),
+    pathfinding_timeout: 30000
+  })
+
+  return withdrawl
 }

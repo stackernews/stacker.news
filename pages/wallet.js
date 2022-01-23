@@ -12,7 +12,7 @@ import { useMe } from '../components/me'
 import { useEffect, useState } from 'react'
 import { requestProvider } from 'webln'
 import { Alert } from 'react-bootstrap'
-import { CREATE_WITHDRAWL } from '../fragments/wallet'
+import { CREATE_WITHDRAWL, SEND_TO_LNADDR } from '../fragments/wallet'
 
 export default function Wallet () {
   return (
@@ -64,8 +64,10 @@ export function WalletForm () {
     return <FundForm />
   } else if (router.query.type === 'withdraw') {
     return <WithdrawlForm />
-  } else {
+  } else if (router.query.type === 'lnurl-withdraw') {
     return <LnWithdrawal />
+  } else {
+    return <LnAddrWithdrawal />
   }
 }
 
@@ -189,9 +191,12 @@ export function WithdrawlForm () {
         />
         <SubmitButton variant='success' className='mt-2'>withdraw</SubmitButton>
       </Form>
-      <span className='my-3 font-weight-bold text-muted'>or</span>
+      <span className='my-3 font-weight-bold text-muted'>or via</span>
       <Link href='/wallet?type=lnurl-withdraw'>
         <Button variant='grey'>QR code</Button>
+      </Link>
+      <Link href='/wallet?type=lnaddr-withdraw'>
+        <Button className='mt-2' variant='grey'>Lightning Address</Button>
       </Link>
       <WalletHistory />
     </>
@@ -235,4 +240,61 @@ export function LnWithdrawal () {
   }
 
   return <LnQRWith {...data.createWith} />
+}
+
+export const LnAddrSchema = Yup.object({
+  // addr: Yup.string().email('address is no good').required('required'),
+  amount: Yup.number().typeError('must be a number').required('required')
+    .positive('must be positive').integer('must be whole'),
+  maxFee: Yup.number().typeError('must be a number').required('required')
+    .min(0, 'must be positive').integer('must be whole')
+})
+
+export function LnAddrWithdrawal () {
+  const router = useRouter()
+  const [sendToLnAddr, { called, error }] = useMutation(SEND_TO_LNADDR)
+
+  if (called && !error) {
+    return <WithdrawlSkeleton status='sending' />
+  }
+
+  return (
+    <>
+      <YouHaveSats />
+      <Form
+        initial={{
+          addr: '',
+          amount: 1,
+          maxFee: 10
+        }}
+        schema={LnAddrSchema}
+        initialError={error ? error.toString() : undefined}
+        onSubmit={async ({ addr, amount, maxFee }) => {
+          const { data } = await sendToLnAddr({ variables: { addr, amount: Number(amount), maxFee } })
+          router.push(`/withdrawals/${data.sendToLnAddr.id}`)
+        }}
+      >
+        <Input
+          label='lightning address'
+          name='addr'
+          required
+          autoFocus
+        />
+        <Input
+          label='amount'
+          name='amount'
+          required
+          autoFocus
+          append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+        />
+        <Input
+          label='max fee'
+          name='maxFee'
+          required
+          append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+        />
+        <SubmitButton variant='success' className='mt-2'>send</SubmitButton>
+      </Form>
+    </>
+  )
 }

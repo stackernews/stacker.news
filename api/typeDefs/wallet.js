@@ -14,12 +14,6 @@ export default gql`
     sendToLnAddr(addr: String!, amount: Int!, maxFee: Int!): Withdrawl!
   }
 
-  type LnAddrResp {
-    callback: String!
-    maxSendable: String!
-    minSendable: String!
-  }
-
   type Invoice {
     id: ID!
     createdAt: String!

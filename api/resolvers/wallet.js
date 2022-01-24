@@ -192,7 +192,14 @@ export default {
     createWithdrawl: createWithdrawal,
     sendToLnAddr: async (parent, { addr, amount, maxFee }, { me, models, lnd }) => {
       const [name, domain] = addr.split('@')
-      const res1 = await (await fetch(`https://${domain}/.well-known/lnurlp/${name}`)).json()
+      let req
+      try {
+        req = await fetch(`https://${domain}/.well-known/lnurlp/${name}`)
+      } catch (e) {
+        throw new Error(`error initiating protocol with https://${domain}`)
+      }
+
+      const res1 = await req.json()
       if (res1.status === 'ERROR') {
         throw new Error(res1.reason)
       }

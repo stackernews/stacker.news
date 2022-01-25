@@ -5,11 +5,32 @@ const { PrismaClient } = require('@prisma/client')
 const { checkInvoice, checkWithdrawal } = require('./wallet')
 const { repin } = require('./repin')
 const { trust } = require('./trust')
+const { ApolloClient, HttpLink, InMemoryCache } = require('@apollo/client')
+const { indexItem, indexAllItems } = require('./search')
+const fetch = require('cross-fetch')
 
 async function work () {
   const boss = new PgBoss(process.env.DATABASE_URL)
   const models = new PrismaClient()
-  const args = { boss, models }
+  const apollo = new ApolloClient({
+    link: new HttpLink({
+      uri: `${process.env.SELF_URL}/api/graphql`,
+      fetch
+    }),
+    cache: new InMemoryCache(),
+    defaultOptions: {
+      watchQuery: {
+        fetchPolicy: 'network-only',
+        nextFetchPolicy: 'network-only'
+      },
+      query: {
+        fetchPolicy: 'network-only',
+        nextFetchPolicy: 'network-only'
+      }
+    }
+  })
+
+  const args = { boss, models, apollo }
 
   boss.on('error', error => console.error(error))
 
@@ -18,6 +39,8 @@ async function work () {
   await boss.work('checkWithdrawal', checkWithdrawal(args))
   await boss.work('repin-*', repin(args))
   await boss.work('trust', trust(args))
+  await boss.work('indexItem', indexItem(args))
+  await boss.work('indexAllItems', indexAllItems(args))
 
   console.log('working jobs')
 }

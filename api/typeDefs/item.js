@@ -8,6 +8,7 @@ export default gql`
     comments(id: ID!, sort: String): [Item!]!
     pageTitle(url: String!): String
     dupes(url: String!): [Item!]
+    allItems(cursor: String): Items
   }
 
   type ItemActResult {
@@ -39,6 +40,7 @@ export default gql`
   type Item {
     id: ID!
     createdAt: String!
+    updatedAt: String!
     title: String
     url: String
     text: String

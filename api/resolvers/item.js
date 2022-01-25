@@ -182,6 +182,19 @@ export default {
         pins
       }
     },
+    allItems: async (parent, { cursor }, { models }) => {
+      const decodedCursor = decodeCursor(cursor)
+      const items = await models.$queryRaw(`
+        ${SELECT}
+        FROM "Item"
+        ORDER BY created_at DESC
+        OFFSET $1
+        LIMIT ${LIMIT}`, decodedCursor.offset)
+      return {
+        cursor: items.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
+        items
+      }
+    },
     moreFlatComments: async (parent, { cursor, name, sort, within }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
 

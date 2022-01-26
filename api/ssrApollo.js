@@ -7,6 +7,7 @@ import typeDefs from './typeDefs'
 import models from './models'
 import { print } from 'graphql'
 import lnd from './lnd'
+import search from './search'
 import { ME } from '../fragments/users'
 import { getPrice } from '../components/price'
 
@@ -22,7 +23,8 @@ export default async function getSSRApolloClient (req, me = null) {
       context: {
         models,
         me: session ? session.user : me,
-        lnd
+        lnd,
+        search
       }
     }),
     cache: new InMemoryCache()

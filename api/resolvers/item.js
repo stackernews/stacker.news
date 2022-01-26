@@ -274,6 +274,64 @@ export default {
     },
     comments: async (parent, { id, sort }, { models }) => {
       return comments(models, id, sort)
+    },
+    search: async (parent, { query, cursor }, { models, search }) => {
+      const decodedCursor = decodeCursor(cursor)
+
+      const sitems = await search.search({
+        index: 'item',
+        size: LIMIT,
+        from: decodedCursor.offset,
+        body: {
+          query: {
+            bool: {
+              must: {
+                bool: {
+                  should: [
+                    {
+                      // all terms are matched in fields
+                      multi_match: {
+                        query,
+                        type: 'most_fields',
+                        fields: ['title^20', 'text'],
+                        fuzziness: 'AUTO',
+                        prefix_length: 3,
+                        minimum_should_match: '100%',
+                        boost: 2
+                      }
+                    },
+                    {
+                      // only some terms must match
+                      multi_match: {
+                        query,
+                        type: 'most_fields',
+                        fields: ['title^20', 'text'],
+                        fuzziness: 'AUTO',
+                        minimum_should_match: '60%'
+                      }
+                    }
+                    // TODO: add wildcard matches for
+                    // user.name and url
+                  ]
+                }
+              },
+              filter: {
+                range: {
+                  createdAt: {
+                    lte: decodedCursor.time
+                  }
+                }
+              }
+            }
+          }
+        }
+      })
+
+      const items = sitems.body.hits.hits.map(e => e._source)
+      return {
+        cursor: items.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
+        items
+      }
     }
   },
 

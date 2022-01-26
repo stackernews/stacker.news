@@ -4,6 +4,7 @@ import models from '../../api/models'
 import lnd from '../../api/lnd'
 import typeDefs from '../../api/typeDefs'
 import { getSession } from 'next-auth/client'
+import search from '../../api/search'
 
 global.apolloServer ||= new ApolloServer({
   typeDefs,
@@ -14,7 +15,8 @@ global.apolloServer ||= new ApolloServer({
     return {
       models,
       lnd,
-      me: session ? session.user : null
+      me: session ? session.user : null,
+      search
     }
   }
 })

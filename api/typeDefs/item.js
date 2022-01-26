@@ -9,6 +9,7 @@ export default gql`
     pageTitle(url: String!): String
     dupes(url: String!): [Item!]
     allItems(cursor: String): Items
+    search(query: String, cursor: String): Items
   }
 
   type ItemActResult {

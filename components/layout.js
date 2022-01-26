@@ -4,6 +4,7 @@ import Container from 'react-bootstrap/Container'
 import { LightningProvider } from './lightning'
 import Footer from './footer'
 import Seo from './seo'
+import Search from './search'
 
 export default function Layout ({ noContain, noFooter, noFooterLinks, containClassName, noSeo, children }) {
   return (
@@ -22,6 +23,7 @@ export default function Layout ({ noContain, noFooter, noFooterLinks, containCla
             </Container>
             )}
         {!noFooter && <Footer noLinks={noFooterLinks} />}
+        {!noContain && <Search />}
       </LightningProvider>
     </>
   )

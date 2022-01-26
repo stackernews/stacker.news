@@ -1,0 +1,51 @@
+.searchSection {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 88px;
+}
+
+.searchContainer {
+    height: 88px;
+    position: relative;
+}
+
+.searchSection.solid {
+    pointer-events: auto;
+    background: var(--theme-body);
+    box-shadow: 0 -4px 12px hsl(0deg 0% 59% / 10%);
+}
+
+.searchSection.hidden {
+    pointer-events: none;
+    background: transparent;
+}
+
+.search {
+    width: 50px;
+    height: 50px;
+    border-radius: 25px;
+    padding: 0;
+    align-items: center;
+    justify-content: center;
+    display: flex;
+}
+
+.active {
+    pointer-events: auto;
+    bottom: 18px;
+    right: 18px;
+    position: absolute;
+}
+
+form.active {
+    left: 18px;
+    display: flex;
+    flex-flow: row wrap;
+    align-items: center;
+}
+
+.searchPadding {
+    padding-bottom: 88px;
+}

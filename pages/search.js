@@ -4,7 +4,7 @@ import { ITEM_SEARCH } from '../fragments/items'
 import SearchItems from '../components/search-items'
 import { useRouter } from 'next/router'
 
-export const getServerSideProps = getGetServerSideProps(ITEM_SEARCH)
+export const getServerSideProps = getGetServerSideProps(ITEM_SEARCH, null, null, 'q')
 
 export default function Index ({ data: { search: { items, cursor } } }) {
   const router = useRouter()

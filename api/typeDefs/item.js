@@ -9,7 +9,7 @@ export default gql`
     pageTitle(url: String!): String
     dupes(url: String!): [Item!]
     allItems(cursor: String): Items
-    search(query: String, cursor: String): Items
+    search(q: String, cursor: String): Items
   }
 
   type ItemActResult {
@@ -49,6 +49,7 @@ export default gql`
     parent: Item
     root: Item
     user: User!
+    userId: Int!
     depth: Int!
     mine: Boolean!
     boost: Int!

@@ -275,7 +275,7 @@ export default {
     comments: async (parent, { id, sort }, { models }) => {
       return comments(models, id, sort)
     },
-    search: async (parent, { query, cursor }, { models, search }) => {
+    search: async (parent, { q: query, cursor }, { models, search }) => {
       const decodedCursor = decodeCursor(cursor)
 
       const sitems = await search.search({
@@ -503,7 +503,7 @@ export default {
       const [{ count }] = await models.$queryRaw`
         SELECT count(*)
         FROM "Item"
-        WHERE path <@ text2ltree(${item.path}) AND id != ${item.id}`
+        WHERE path <@ text2ltree(${item.path}) AND id != ${Number(item.id)}`
       return count || 0
     },
     sats: async (item, args, { models }) => {
@@ -512,9 +512,9 @@ export default {
           sats: true
         },
         where: {
-          itemId: item.id,
+          itemId: Number(item.id),
           userId: {
-            not: item.userId
+            not: Number(item.userId)
           },
           act: {
             not: 'BOOST'
@@ -530,9 +530,9 @@ export default {
           sats: true
         },
         where: {
-          itemId: item.id,
+          itemId: Number(item.id),
           userId: {
-            not: item.userId
+            not: Number(item.userId)
           },
           act: 'VOTE'
         }
@@ -546,7 +546,7 @@ export default {
           sats: true
         },
         where: {
-          itemId: item.id,
+          itemId: Number(item.id),
           act: 'BOOST'
         }
       })
@@ -561,7 +561,7 @@ export default {
           sats: true
         },
         where: {
-          itemId: item.id,
+          itemId: Number(item.id),
           userId: me.id,
           OR: [
             {

@@ -1,12 +1,9 @@
 import { useQuery } from '@apollo/client'
 import { MORE_FLAT_COMMENTS } from '../fragments/comments'
-import Comment, { CommentSkeleton } from './comment'
-import { useRouter } from 'next/router'
+import { CommentFlat, CommentSkeleton } from './comment'
 import MoreFooter from './more-footer'
-import { ignoreClick } from '../lib/clicks'
 
 export default function CommentsFlat ({ variables, comments, cursor, ...props }) {
-  const router = useRouter()
   const { data, fetchMore } = useQuery(MORE_FLAT_COMMENTS, {
     variables
   })
@@ -21,23 +18,9 @@ export default function CommentsFlat ({ variables, comments, cursor, ...props })
 
   return (
     <>
-      {comments.map(item => (
-        <div
-          key={item.id}
-          className='clickToContext py-2'
-          onClick={e => {
-            if (ignoreClick(e)) {
-              return
-            }
-            router.push({
-              pathname: '/items/[id]',
-              query: { id: item.root.id, commentId: item.id }
-            }, `/items/${item.root.id}`)
-          }}
-        >
-          <Comment item={item} {...props} />
-        </div>
-      ))}
+      {comments.map(item =>
+        <CommentFlat key={item.id} item={item} {...props} />
+      )}
       <MoreFooter cursor={cursor} fetchMore={fetchMore} Skeleton={CommentsFlatSkeleton} />
     </>
   )

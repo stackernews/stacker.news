@@ -12,6 +12,7 @@ import { useRouter } from 'next/router'
 import CommentEdit from './comment-edit'
 import Countdown from './countdown'
 import { NOFOLLOW_LIMIT } from '../lib/constants'
+import { ignoreClick } from '../lib/clicks'
 
 function Parent ({ item, rootText }) {
   const ParentFrag = () => (
@@ -42,6 +43,26 @@ const truncateString = (string = '', maxLength = 140) =>
   string.length > maxLength
     ? `${string.substring(0, maxLength)} […]`
     : string
+
+export function CommentFlat ({ item, ...props }) {
+  const router = useRouter()
+  return (
+    <div
+      className='clickToContext py-2'
+      onClick={e => {
+        if (ignoreClick(e)) {
+          return
+        }
+        router.push({
+          pathname: '/items/[id]',
+          query: { id: item.root.id, commentId: item.id }
+        }, `/items/${item.root.id}`)
+      }}
+    >
+      <Comment item={item} {...props} />
+    </div>
+  )
+}
 
 export default function Comment ({
   item, children, replyOpen, includeParent,

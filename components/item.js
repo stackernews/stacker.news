@@ -109,10 +109,12 @@ export default function Item ({ item, rank, children }) {
 export function ItemSkeleton ({ rank, children }) {
   return (
     <>
-      {rank &&
-        <div className={styles.rank}>
-          {rank}
-        </div>}
+      {rank
+        ? (
+          <div className={styles.rank}>
+            {rank}
+          </div>)
+        : <div />}
       <div className={`${styles.item} ${styles.skeleton}`}>
         <UpVote className={styles.upvote} />
         <div className={styles.hunk}>

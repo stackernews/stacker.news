@@ -42,12 +42,12 @@ function ItemEmbed ({ item }) {
   return null
 }
 
-function TopLevelItem ({ item }) {
+function TopLevelItem ({ item, noReply }) {
   return (
     <Item item={item}>
       {item.text && <ItemText item={item} />}
       {item.url && <ItemEmbed item={item} />}
-      <Reply parentId={item.id} replyOpen />
+      {!noReply && <Reply parentId={item.id} replyOpen />}
     </Item>
   )
 }

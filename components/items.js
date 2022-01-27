@@ -4,6 +4,7 @@ import styles from './items.module.css'
 import { MORE_ITEMS } from '../fragments/items'
 import MoreFooter from './more-footer'
 import React from 'react'
+import Comment from './comment'
 
 export default function Items ({ variables, rank, items, pins, cursor }) {
   const { data, fetchMore } = useQuery(MORE_ITEMS, { variables })
@@ -24,7 +25,9 @@ export default function Items ({ variables, rank, items, pins, cursor }) {
         {items.map((item, i) => (
           <React.Fragment key={item.id}>
             {pinMap && pinMap[i + 1] && <Item item={pinMap[i + 1]} key={pinMap[i + 1].id} />}
-            <Item item={item} rank={rank && i + 1} key={item.id} />
+            {item.parentId
+              ? <><div /><div className='pb-3'><Comment item={item} noReply includeParent /></div></>
+              : <Item item={item} rank={rank && i + 1} key={item.id} />}
           </React.Fragment>
         ))}
       </div>

@@ -12,6 +12,7 @@ const ITEM_SEARCH_FIELDS = gql`
     title
     text
     url
+    userId
     user {
       name
     }

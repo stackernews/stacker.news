@@ -1,7 +1,7 @@
 import { Button } from 'react-bootstrap'
 import { useState } from 'react'
 
-export default function MoreFooter ({ cursor, fetchMore, Skeleton }) {
+export default function MoreFooter ({ cursor, fetchMore, Skeleton, noMoreText }) {
   const [loading, setLoading] = useState(false)
 
   if (loading) {
@@ -28,7 +28,7 @@ export default function MoreFooter ({ cursor, fetchMore, Skeleton }) {
     )
   } else {
     Footer = () => (
-      <div className='text-muted' style={{ fontFamily: 'lightning', fontSize: '2rem', opacity: '0.6' }}>GENISIS</div>
+      <div className='text-muted' style={{ fontFamily: 'lightning', fontSize: '2rem', opacity: '0.6' }}>{noMoreText || 'GENISIS'}</div>
     )
   }
 

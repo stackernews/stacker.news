@@ -31,6 +31,7 @@ export default function SearchItems ({ variables, items, pins, cursor }) {
       </div>
       <MoreFooter
         cursor={cursor} fetchMore={fetchMore}
+        noMoreText='EMPTY'
         Skeleton={() => <ItemsSkeleton />}
       />
     </>

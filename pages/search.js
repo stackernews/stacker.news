@@ -8,6 +8,7 @@ export const getServerSideProps = getGetServerSideProps(ITEM_SEARCH, null, null,
 
 export default function Index ({ data: { search: { items, cursor } } }) {
   const router = useRouter()
+
   return (
     <Layout>
       <SearchItems

@@ -1,7 +1,5 @@
 const { gql } = require('apollo-server-micro')
-const es = require('@opensearch-project/opensearch')
-
-const search = new es.Client({ node: 'http://localhost:9200' })
+const search = require('../api/search')
 
 const ITEM_SEARCH_FIELDS = gql`
   fragment ItemSearchFields on Item {

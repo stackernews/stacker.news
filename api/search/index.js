@@ -1,5 +1,14 @@
-import es from '@opensearch-project/opensearch'
+const os = require('@opensearch-project/opensearch')
 
-global.es ||= new es.Client({ node: 'http://localhost:9200' })
+global.os = global.os || new os.Client(
+  process.env.NODE_ENV === 'production'
+    ? {
+        node: process.env.OPENSEARCH_URL,
+        auth: {
+          username: process.env.OPENSEARCH_USERNAME,
+          password: process.env.OPENSEARCH_PASSWORD
+        }
+      }
+    : { node: 'http://localhost:9200' })
 
-export default global.es
+module.exports = global.os

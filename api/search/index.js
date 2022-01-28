@@ -1,14 +1,15 @@
 const os = require('@opensearch-project/opensearch')
 
-global.os = global.os || new os.Client(
-  process.env.NODE_ENV !== 'development'
-    ? {
-        node: process.env.OPENSEARCH_URL,
-        auth: {
-          username: process.env.OPENSEARCH_USERNAME,
-          password: process.env.OPENSEARCH_PASSWORD
-        }
+const options = process.env.NODE_ENV === 'development'
+  ? { node: 'http://localhost:9200' }
+  : {
+      node: process.env.OPENSEARCH_URL,
+      auth: {
+        username: process.env.OPENSEARCH_USERNAME,
+        password: process.env.OPENSEARCH_PASSWORD
       }
-    : { node: 'http://localhost:9200' })
+    }
+
+global.os = global.os || new os.Client(options)
 
 module.exports = global.os

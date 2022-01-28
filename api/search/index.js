@@ -1,7 +1,7 @@
 const os = require('@opensearch-project/opensearch')
 
 global.os = global.os || new os.Client(
-  process.env.NODE_ENV === 'production'
+  process.env.NODE_ENV !== 'development'
     ? {
         node: process.env.OPENSEARCH_URL,
         auth: {

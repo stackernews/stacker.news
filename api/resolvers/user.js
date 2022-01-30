@@ -175,7 +175,7 @@ export default {
       const newReplies = await models.$queryRaw(`
         SELECT "Item".id, "Item".created_at
           FROM "Item"
-          JOIN "Item" p ON "Item"."parentId" = p.id
+          JOIN "Item" p ON "Item".path <@ p.path
           WHERE p."userId" = $1
           AND ("Item".created_at > $2 OR $2 IS NULL)  AND "Item"."userId" <> $1
           LIMIT 1`, user.id, user.checkedNotesAt)

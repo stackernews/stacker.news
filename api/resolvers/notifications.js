@@ -67,7 +67,7 @@ export default {
         (SELECT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL as "earnedSats",
           'Reply' AS type
           FROM "Item"
-          JOIN "Item" p ON "Item"."parentId" = p.id
+          JOIN "Item" p ON "Item".path <@ p.path
           WHERE p."userId" = $1
             AND "Item"."userId" <> $1 AND "Item".created_at <= $2
           ORDER BY "Item".created_at DESC

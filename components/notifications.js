@@ -63,7 +63,7 @@ function Notification ({ n }) {
                 ? <Item item={n.item} />
                 : (
                   <div className='pb-2'>
-                    <Comment item={n.item} noReply includeParent rootText={n.__typename === 'Reply' ? 'replying to you on:' : undefined} clickToContext />
+                    <Comment item={n.item} noReply includeParent rootText={n.__typename === 'Reply' ? 'replying on:' : undefined} clickToContext />
                   </div>)}
             </div>
           </>)}

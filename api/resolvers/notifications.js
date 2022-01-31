@@ -64,13 +64,14 @@ export default {
       // queries ... we only ever need at most LIMIT+current offset in the child queries to
       // have enough items to return in the union
       const notifications = await models.$queryRaw(`
-        (SELECT DISTINCT ON ("Item".created_at, "Item".id) "Item".id::TEXT, "Item".created_at AS "sortTime", NULL as "earnedSats",
+        (SELECT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL as "earnedSats",
           'Reply' AS type
           FROM "Item"
           JOIN "Item" p ON "Item".path <@ p.path
           WHERE p."userId" = $1
             AND "Item"."userId" <> $1 AND "Item".created_at <= $2
-          ORDER BY "Item".created_at DESC, "Item".id DESC
+          GROUP BY "Item".id
+          ORDER BY "Item".created_at DESC
           LIMIT ${LIMIT}+$3)
         UNION ALL
         (SELECT "Item".id::TEXT, MAX("ItemAct".created_at) AS "sortTime",

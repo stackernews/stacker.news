@@ -280,6 +280,16 @@ export default {
                   bool: {
                     should: [
                       {
+                        // all terms are matched in fields
+                        multi_match: {
+                          query,
+                          type: 'most_fields',
+                          fields: ['title^20', 'text'],
+                          minimum_should_match: '100%',
+                          boost: 3
+                        }
+                      },
+                      {
                       // all terms are matched in fields
                         multi_match: {
                           query,

@@ -11,7 +11,7 @@ async function comments (models, id, sort) {
   switch (sort) {
     case 'top':
       orderBy = 'ORDER BY x.sats DESC NULLS LAST'
-      join = LEFT_JOIN_SATS
+      join = LEFT_JOIN_WEIGHTED_SATS
       break
     case 'recent':
       orderBy = 'ORDER BY "Item".created_at DESC'
@@ -19,7 +19,7 @@ async function comments (models, id, sort) {
       break
     default:
       orderBy = ORDER_BY_SATS
-      join = LEFT_JOIN_SATS
+      join = LEFT_JOIN_WEIGHTED_SATS
       break
   }
 
@@ -107,26 +107,26 @@ export default {
 
           if (decodedCursor.offset === 0) {
             items = await models.$queryRaw(`
-            ${SELECT}
-            FROM "Item"
-            ${timedLeftJoinSats(1)}
-            WHERE "parentId" IS NULL AND created_at <= $1 AND created_at > $3
-            AND "pinId" IS NULL
-            ${timedOrderBySats(1)}
-            OFFSET $2
-            LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, new Date(new Date() - 7))
+              ${SELECT}
+              FROM "Item"
+              ${timedLeftJoinWeightedSats(1)}
+              WHERE "parentId" IS NULL AND created_at <= $1 AND created_at > $3
+              AND "pinId" IS NULL
+              ${timedOrderBySats(1)}
+              OFFSET $2
+              LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, new Date(new Date() - 7))
           }
 
           if (decodedCursor.offset !== 0 || items?.length < LIMIT) {
             items = await models.$queryRaw(`
-            ${SELECT}
-            FROM "Item"
-            ${timedLeftJoinSats(1)}
-            WHERE "parentId" IS NULL AND created_at <= $1
-            AND "pinId" IS NULL
-            ${timedOrderBySats(1)}
-            OFFSET $2
-            LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+              ${SELECT}
+              FROM "Item"
+              ${timedLeftJoinWeightedSats(1)}
+              WHERE "parentId" IS NULL AND created_at <= $1
+              AND "pinId" IS NULL
+              ${timedOrderBySats(1)}
+              OFFSET $2
+              LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
           }
 
           if (decodedCursor.offset === 0) {
@@ -142,17 +142,6 @@ export default {
                 WHERE "pinId" IS NOT NULL
             ) rank_filter WHERE RANK = 1`)
           }
-          break
-        case 'wot':
-          items = await models.$queryRaw(`
-            ${SELECT}
-            FROM "Item"
-            ${timedLeftJoinWeightedSats(1)}
-            WHERE "parentId" IS NULL AND created_at <= $1
-            AND "pinId" IS NULL
-            ${timedOrderBySats(1)}
-            OFFSET $2
-            LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
           break
         case 'top':
           items = await models.$queryRaw(`
@@ -730,11 +719,17 @@ function timedLeftJoinWeightedSats (num) {
   ) x ON "Item".id = x.id`
 }
 
-const LEFT_JOIN_SATS =
+const LEFT_JOIN_WEIGHTED_SATS =
   `LEFT JOIN (${LEFT_JOIN_SATS_SELECT}
   FROM "Item" i
   JOIN "ItemAct" ON i.id = "ItemAct"."itemId"
   GROUP BY i.id) x ON "Item".id = x.id`
+
+// const LEFT_JOIN_SATS =
+//   `LEFT JOIN (${LEFT_JOIN_SATS_SELECT}
+//   FROM "Item" i
+//   JOIN "ItemAct" ON i.id = "ItemAct"."itemId"
+//   GROUP BY i.id) x ON "Item".id = x.id`
 
 /* NOTE: because many items will have the same rank, we need to tie break with a unique field so pagination works */
 function timedOrderBySats (num) {

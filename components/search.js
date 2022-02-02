@@ -44,7 +44,7 @@ export default function Search () {
                 <Input
                   name='q'
                   required
-                  autoFocus
+                  autoFocus={showSearch && !atBottom}
                   groupClassName='mr-3 mb-0 flex-grow-1'
                   className='w-100'
                   onChange={async (formik, e) => {

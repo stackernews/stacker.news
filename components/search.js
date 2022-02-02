@@ -36,7 +36,7 @@ export default function Search () {
                 }}
                 className={`w-auto ${styles.active}`}
                 onSubmit={async ({ q }) => {
-                  if (q != '') {
+                  if (q.trim() !== '') {
                     router.push(`/search?q=${q}`)
                   }
                 }}

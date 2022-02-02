@@ -270,7 +270,7 @@ export function LnAddrWithdrawal () {
         schema={LnAddrSchema}
         initialError={error ? error.toString() : undefined}
         onSubmit={async ({ addr, amount, maxFee }) => {
-          const { data } = await sendToLnAddr({ variables: { addr, amount: Number(amount), maxFee } })
+          const { data } = await sendToLnAddr({ variables: { addr, amount: Number(amount), maxFee: Number(maxFee) } })
           router.push(`/withdrawals/${data.sendToLnAddr.id}`)
         }}
       >

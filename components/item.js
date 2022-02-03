@@ -9,7 +9,7 @@ import Pin from '../svgs/pushpin-fill.svg'
 import reactStringReplace from 'react-string-replace'
 
 function SearchTitle ({ title }) {
-  return reactStringReplace(title, /:high\[(.+)\]/g, (match, i) => {
+  return reactStringReplace(title, /:high\[([^\]]+)\]/g, (match, i) => {
     return <mark key={`mark-${match}`}>{match}</mark>
   })
 }

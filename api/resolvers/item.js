@@ -286,7 +286,7 @@ export default {
                           type: 'most_fields',
                           fields: ['title^20', 'text'],
                           minimum_should_match: '100%',
-                          boost: 40
+                          boost: 400
                         }
                       },
                       {
@@ -298,7 +298,7 @@ export default {
                           fuzziness: 'AUTO',
                           prefix_length: 3,
                           minimum_should_match: '100%',
-                          boost: 2
+                          boost: 20
                         }
                       },
                       {
@@ -308,6 +308,7 @@ export default {
                           type: 'most_fields',
                           fields: ['title^20', 'text'],
                           fuzziness: 'AUTO',
+                          prefix_length: 3,
                           minimum_should_match: '60%'
                         }
                       }

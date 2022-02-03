@@ -324,6 +324,12 @@ export default {
                   }
                 }
               }
+            },
+            highlight: {
+              fields: {
+                title: { number_of_fragments: 0, pre_tags: ['***'], post_tags: ['***'] },
+                text: { number_of_fragments: 0, pre_tags: ['***'], post_tags: ['***'] }
+              }
             }
           }
         })
@@ -335,7 +341,18 @@ export default {
         }
       }
 
-      const items = sitems.body.hits.hits.map(e => e._source)
+      // return highlights
+      const items = sitems.body.hits.hits.map(e => {
+        const item = e._source
+        if (e.highlight?.title) {
+          item.title = e.highlight.title[0]
+        }
+        if (e.highlight?.text) {
+          item.text = e.highlight.text[0]
+        }
+        return item
+      })
+
       return {
         cursor: items.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
         items

@@ -36,13 +36,15 @@ export default function Search () {
                 }}
                 className={`w-auto ${styles.active}`}
                 onSubmit={async ({ q }) => {
-                  router.push(`/search?q=${q}`)
+                  if (q.trim() !== '') {
+                    router.push(`/search?q=${q}`)
+                  }
                 }}
               >
                 <Input
                   name='q'
                   required
-                  autoFocus
+                  autoFocus={showSearch && !atBottom}
                   groupClassName='mr-3 mb-0 flex-grow-1'
                   className='w-100'
                   onChange={async (formik, e) => {

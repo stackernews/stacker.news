@@ -1,19 +1,20 @@
-import Layout from '../../../components/layout'
+import Layout from '../../../../components/layout'
 import { useRouter } from 'next/router'
-import { getGetServerSideProps } from '../../../api/ssrApollo'
-import TopHeader from '../../../components/top-header'
-import { TOP_USERS } from '../../../fragments/users'
+import { getGetServerSideProps } from '../../../../api/ssrApollo'
+import TopHeader from '../../../../components/top-header'
+import { TOP_USERS } from '../../../../fragments/users'
 import { useQuery } from '@apollo/client'
 import Link from 'next/link'
-import MoreFooter from '../../../components/more-footer'
+import MoreFooter from '../../../../components/more-footer'
 
 export const getServerSideProps = getGetServerSideProps(TOP_USERS)
 
 export default function Index ({ data: { topUsers: { users, cursor } } }) {
   const router = useRouter()
+  const userType = router.query.userType
 
   const { data, fetchMore } = useQuery(TOP_USERS, {
-    variables: { within: router.query?.within }
+    variables: { within: router.query?.within, userType: router.query?.userType }
   })
 
   if (data) {
@@ -22,12 +23,12 @@ export default function Index ({ data: { topUsers: { users, cursor } } }) {
 
   return (
     <Layout>
-      <TopHeader cat='users' />
+      <TopHeader cat={'users/' + userType}  />
       {users.map(user => (
         <Link href={`/${user.name}`} key={user.name}>
           <div className='d-flex align-items-center pointer'>
             <h3 className='mb-0'>@{user.name}</h3>
-            <h2 className='ml-2 mb-0'><small className='text-success'>{user.stacked} stacked</small></h2>
+            <h2 className='ml-2 mb-0'><small className='text-success'>{user.amount} {userType}</small></h2>
           </div>
         </Link>
       ))}

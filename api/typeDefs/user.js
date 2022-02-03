@@ -6,12 +6,23 @@ export default gql`
     user(name: String!): User
     users: [User!]
     nameAvailable(name: String!): Boolean!
-    topUsers(cursor: String, within: String!): Users
+    topUsers(cursor: String, within: String!, userType: String!): TopUsers
   }
 
   type Users {
     cursor: String
     users: [User!]!
+  }
+
+  type TopUsers {
+    cursor: String
+    users: [TopUser!]!
+  }
+
+  type TopUser {
+    name: String!
+    createdAt: String!
+    amount: Int!
   }
 
   extend type Mutation {

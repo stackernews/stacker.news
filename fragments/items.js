@@ -98,6 +98,8 @@ export const ITEM_SEARCH = gql`
       items {
         ...ItemFields
         text
+        searchTitle
+        searchText
       }
     }
   }

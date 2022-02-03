@@ -5,6 +5,25 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 /* Use `…/dist/cjs/…` if you’re not in ESM! */
 import { atomDark } from 'react-syntax-highlighter/dist/cjs/styles/prism'
 import mention from '../lib/remark-mention'
+import remarkDirective from 'remark-directive'
+import { visit } from 'unist-util-visit'
+
+function myRemarkPlugin () {
+  return (tree) => {
+    visit(tree, (node) => {
+      if (
+        node.type === 'textDirective' ||
+        node.type === 'leafDirective'
+      ) {
+        if (node.name !== 'high') return
+
+        const data = node.data || (node.data = {})
+        data.hName = 'mark'
+        data.hProperties = {}
+      }
+    })
+  }
+}
 
 export default function Text ({ nofollow, children }) {
   return (
@@ -37,7 +56,7 @@ export default function Text ({ nofollow, children }) {
           },
           a: ({ node, ...props }) => <a target='_blank' rel={nofollow ? 'nofollow' : null} {...props} />
         }}
-        remarkPlugins={[gfm, mention]}
+        remarkPlugins={[gfm, mention, remarkDirective, myRemarkPlugin]}
       >
         {children}
       </ReactMarkdown>

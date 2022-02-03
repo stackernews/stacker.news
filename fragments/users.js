@@ -39,11 +39,11 @@ export const USER_FIELDS = gql`
   }`
 
 export const TOP_USERS = gql`
-  query TopUsers($cursor: String, $within: String!) {
-    topUsers(cursor: $cursor, within: $within) {
+  query TopUsers($cursor: String, $within: String!, $userType: String!) {
+    topUsers(cursor: $cursor, within: $within, userType: $userType) {
       users {
         name
-        stacked
+        amount
       }
       cursor
     }

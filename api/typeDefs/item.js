@@ -43,7 +43,9 @@ export default gql`
     createdAt: String!
     updatedAt: String!
     title: String
+    searchTitle: String
     url: String
+    searchText: String
     text: String
     parentId: Int
     parent: Item

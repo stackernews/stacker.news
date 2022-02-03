@@ -41,19 +41,33 @@ export default {
 
       return me.name?.toUpperCase() === name?.toUpperCase() || !(await models.user.findUnique({ where: { name } }))
     },
-    topUsers: async (parent, { cursor, within }, { models, me }) => {
+    topUsers: async (parent, { cursor, within, userType }, { models, me }) => {
       const decodedCursor = decodeCursor(cursor)
-      const users = await models.$queryRaw(`
-      SELECT users.name, users.created_at, sum("ItemAct".sats) as stacked
-      FROM "ItemAct"
-      JOIN "Item" on "ItemAct"."itemId" = "Item".id
-      JOIN users on "Item"."userId" = users.id
-      WHERE act <> 'BOOST' AND "ItemAct"."userId" <> users.id AND "ItemAct".created_at <= $1
-      ${topClause(within)}
-      GROUP BY users.id, users.name
-      ORDER BY stacked DESC NULLS LAST, users.created_at DESC
-      OFFSET $2
-      LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+      let users
+      if (userType === 'spent') {
+        users = await models.$queryRaw(`
+          SELECT users.name, users.created_at, sum("ItemAct".sats) as amount
+          FROM "ItemAct"
+          JOIN users on "ItemAct"."userId" = users.id
+          WHERE "ItemAct".created_at <= $1
+          ${topClause(within)}
+          GROUP BY users.id, users.name
+          ORDER BY amount DESC NULLS LAST, users.created_at DESC
+          OFFSET $2
+          LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+      } else {
+        users = await models.$queryRaw(`
+          SELECT users.name, users.created_at, sum("ItemAct".sats) as amount
+          FROM "ItemAct"
+          JOIN "Item" on "ItemAct"."itemId" = "Item".id
+          JOIN users on "Item"."userId" = users.id
+          WHERE act <> 'BOOST' AND "ItemAct"."userId" <> users.id AND "ItemAct".created_at <= $1
+          ${topClause(within)}
+          GROUP BY users.id, users.name
+          ORDER BY amount DESC NULLS LAST, users.created_at DESC
+          OFFSET $2
+          LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+      }
 
       return {
         cursor: users.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,

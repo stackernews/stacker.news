@@ -42,9 +42,9 @@ function ItemEmbed ({ item }) {
   return null
 }
 
-function TopLevelItem ({ item, noReply }) {
+function TopLevelItem ({ item, noReply, ...props }) {
   return (
-    <Item item={item}>
+    <Item item={item} {...props}>
       {item.text && <ItemText item={item} />}
       {item.url && <ItemEmbed item={item} />}
       {!noReply && <Reply parentId={item.id} replyOpen />}
@@ -53,7 +53,7 @@ function TopLevelItem ({ item, noReply }) {
 }
 
 function ItemText ({ item }) {
-  return <Text nofollow={item.sats + item.boost < NOFOLLOW_LIMIT}>{item.text}</Text>
+  return <Text nofollow={item.sats + item.boost < NOFOLLOW_LIMIT}>{item.searchText || item.text}</Text>
 }
 
 export default function ItemFull ({ item, bio, ...props }) {

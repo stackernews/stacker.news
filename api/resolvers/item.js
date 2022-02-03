@@ -327,8 +327,8 @@ export default {
             },
             highlight: {
               fields: {
-                title: { number_of_fragments: 0, pre_tags: ['***'], post_tags: ['***'] },
-                text: { number_of_fragments: 0, pre_tags: ['***'], post_tags: ['***'] }
+                title: { number_of_fragments: 0, pre_tags: [':high['], post_tags: [']'] },
+                text: { number_of_fragments: 0, pre_tags: [':high['], post_tags: [']'] }
               }
             }
           }
@@ -344,12 +344,10 @@ export default {
       // return highlights
       const items = sitems.body.hits.hits.map(e => {
         const item = e._source
-        if (e.highlight?.title) {
-          item.title = e.highlight.title[0]
-        }
-        if (e.highlight?.text) {
-          item.text = e.highlight.text[0]
-        }
+
+        item.searchTitle = (e.highlight.title && e.highlight.title[0]) || item.title
+        item.searchText = (e.highlight.text && e.highlight.text[0]) || item.text
+
         return item
       })
 

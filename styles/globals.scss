@@ -65,6 +65,11 @@ $tooltip-bg: #5c8001;
   }
 }
 
+mark {
+  background-color: var(--primary);
+  padding: 0 0.2rem;
+}
+
 .table-sm th, .table-sm td {
   line-height: 1.2rem;
 }

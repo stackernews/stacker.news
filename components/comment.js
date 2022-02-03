@@ -165,7 +165,7 @@ export default function Comment ({
             : (
               <div className={styles.text}>
                 <Text nofollow={item.sats + item.boost < NOFOLLOW_LIMIT}>
-                  {truncate ? truncateString(item.text) : item.text}
+                  {truncate ? truncateString(item.text) : item.searchText || item.text}
                 </Text>
               </div>
               )}

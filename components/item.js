@@ -6,6 +6,13 @@ import { useEffect, useRef, useState } from 'react'
 import Countdown from './countdown'
 import { NOFOLLOW_LIMIT } from '../lib/constants'
 import Pin from '../svgs/pushpin-fill.svg'
+import reactStringReplace from 'react-string-replace'
+
+function SearchTitle ({ title }) {
+  return reactStringReplace(title, /:high\[(.+)\]/g, (match, i) => {
+    return <mark key={`mark-${match}`}>{match}</mark>
+  })
+}
 
 export default function Item ({ item, rank, children }) {
   const mine = item.mine
@@ -34,7 +41,9 @@ export default function Item ({ item, rank, children }) {
         <div className={styles.hunk}>
           <div className={`${styles.main} flex-wrap ${wrap ? 'd-inline' : ''}`}>
             <Link href={`/items/${item.id}`} passHref>
-              <a ref={titleRef} className={`${styles.title} text-reset mr-2`}>{item.title}</a>
+              <a ref={titleRef} className={`${styles.title} text-reset mr-2`}>
+                {item.searchTitle ? <SearchTitle title={item.searchTitle} /> : item.title}
+              </a>
             </Link>
             {item.url &&
               <>

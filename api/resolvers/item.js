@@ -286,7 +286,7 @@ export default {
                           type: 'most_fields',
                           fields: ['title^20', 'text'],
                           minimum_should_match: '100%',
-                          boost: 3
+                          boost: 40
                         }
                       },
                       {

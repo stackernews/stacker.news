@@ -2,6 +2,7 @@ import path from 'path'
 import AWS from 'aws-sdk'
 import {PassThrough} from 'stream'
 const { spawn } = require('child_process')
+const encodeS3URI = require('node-s3-url-encode')
 
 const bucketName = 'sn-capture'
 const bucketRegion = 'us-east-1'
@@ -17,18 +18,20 @@ AWS.config.update({
 export default async function handler (req, res) {
   return new Promise(resolve => {
     const joinedPath = path.join(...(req.query.path || []))
-    const s3Path = s3PathPrefix + (joinedPath === '.' ? '_' : joinedPath)
-    const url = process.env.SELF_URL + '/' + joinedPath
+    const searchQ = req.query.q ? `?q=${req.query.q}` : ''
+    const s3PathPUT = s3PathPrefix + (joinedPath === '.' ? '_' : joinedPath) + searchQ
+    const s3PathGET = s3PathPrefix + (joinedPath === '.' ? '_' : joinedPath) + encodeS3URI(searchQ)
+    const url = process.env.SELF_URL + '/' + joinedPath + searchQ
     const aws = new AWS.S3({apiVersion: '2006-03-01'})
 
     // check to see if we have a recent version of the object
     aws.headObject({
       Bucket: bucketName,
-      Key: s3Path,
+      Key: s3PathPUT,
       IfModifiedSince : new Date(new Date().getTime() - 15*60000)
     }).promise().then(() => {
       // this path is cached so return it
-      res.writeHead(302, { Location: bucketUrl + s3Path }).end()
+      res.writeHead(302, { Location: bucketUrl + s3PathGET }).end()
       resolve()
     }).catch(() => {
       // we don't have it cached, so capture it and cache it
@@ -42,7 +45,7 @@ export default async function handler (req, res) {
       const pass = new PassThrough()
       aws.upload({
         Bucket: bucketName,
-        Key: s3Path,
+        Key: s3PathPUT,
         ACL: 'public-read',
         Body: pass,
         ContentType: contentType

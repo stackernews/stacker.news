@@ -2,6 +2,33 @@ import { NextSeo } from 'next-seo'
 import { useRouter } from 'next/router'
 import RemoveMarkdown from 'remove-markdown'
 
+export function SeoSearch () {
+  const router = useRouter()
+  const title = `${router.query.q} \\ stacker news`
+  const desc = `SN search: ${router.query.q}`
+
+  return (
+    <NextSeo
+      title={title}
+      description={desc}
+      openGraph={{
+        title: title,
+        description: desc,
+        images: [
+          {
+            url: 'https://stacker.news/api/capture' + router.asPath
+          }
+        ],
+        site_name: 'Stacker News'
+      }}
+      twitter={{
+        site: '@stacker_news',
+        cardType: 'summary_large_image'
+      }}
+    />
+  )
+}
+
 export default function Seo ({ item, user }) {
   const router = useRouter()
   const pathNoQuery = router.asPath.split('?')[0]

@@ -8,6 +8,7 @@ import { NOFOLLOW_LIMIT } from '../lib/constants'
 import { useMe } from './me'
 import { Button } from 'react-bootstrap'
 import TweetEmbed from 'react-tweet-embed'
+import YouTube from 'react-youtube'
 import useDarkMode from 'use-dark-mode'
 
 function BioItem ({ item, handleClick }) {
@@ -37,6 +38,15 @@ function ItemEmbed ({ item }) {
   const twitter = item.url?.match(/^https?:\/\/twitter\.com\/(?:#!\/)?\w+\/status(?:es)?\/(?<id>\d+)/)
   if (twitter?.groups?.id) {
     return <TweetEmbed id={twitter.groups.id} options={{ width: '100%', theme: darkMode.value ? 'dark' : 'light' }} />
+  }
+
+  const youtube = item.url?.match(/(https?:\/\/)?((www\.)?(youtube(-nocookie)?|youtube.googleapis)\.com.*(v\/|v=|vi=|vi\/|e\/|embed\/|user\/.*\/u\/\d+\/)|youtu\.be\/)(?<id>[_0-9a-z-]+)/i)
+  if (youtube?.groups?.id) {
+    return (
+      <div style={{ maxWidth: '640px', paddingRight: '15px' }}>
+        <YouTube videoId={youtube.groups.id} containerClassName={styles.youtubeContainer} />
+      </div>
+    )
   }
 
   return null

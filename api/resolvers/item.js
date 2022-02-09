@@ -683,6 +683,20 @@ const createItem = async (parent, { title, url, text, boost, parentId }, { me, m
     throw new UserInputError('boost must be positive', { argumentName: 'boost' })
   }
 
+  // check if they've already commented on this parent ... don't allow it if so
+  if (parentId) {
+    const existingComment = await models.item.findFirst({
+      where: {
+        parentId: Number(parentId),
+        userId: me.id
+      }
+    })
+
+    if (existingComment) {
+      throw new UserInputError("you've already commented on this item")
+    }
+  }
+
   const [item] = await serialize(models,
     models.$queryRaw(`${SELECT} FROM create_item($1, $2, $3, $4, $5, $6) AS "Item"`,
       title, url, text, Number(boost || 0), Number(parentId), Number(me.id)))

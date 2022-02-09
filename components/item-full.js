@@ -37,7 +37,11 @@ function ItemEmbed ({ item }) {
   const darkMode = useDarkMode()
   const twitter = item.url?.match(/^https?:\/\/twitter\.com\/(?:#!\/)?\w+\/status(?:es)?\/(?<id>\d+)/)
   if (twitter?.groups?.id) {
-    return <TweetEmbed id={twitter.groups.id} options={{ width: '100%', theme: darkMode.value ? 'dark' : 'light' }} />
+    return (
+      <div className='mt-1'>
+        <TweetEmbed id={twitter.groups.id} options={{ width: '100%', theme: darkMode.value ? 'dark' : 'light' }} />
+      </div>
+    )
   }
 
   const youtube = item.url?.match(/(https?:\/\/)?((www\.)?(youtube(-nocookie)?|youtube.googleapis)\.com.*(v\/|v=|vi=|vi\/|e\/|embed\/|user\/.*\/u\/\d+\/)|youtu\.be\/)(?<id>[_0-9a-z-]+)/i)

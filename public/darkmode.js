@@ -5,7 +5,7 @@ const COLORS = {
     body: '#f5f5f5',
     color: '#212529',
     navbarVariant: 'light',
-    navLink: 'rgba(0, 0, 0, 0.5)',
+    navLink: 'rgba(0, 0, 0, 0.55)',
     navLinkFocus: 'rgba(0, 0, 0, 0.7)',
     navLinkActive: 'rgba(0, 0, 0, 0.9)',
     borderColor: '#ced4da',
@@ -15,13 +15,17 @@ const COLORS = {
     dropdownItemColorHover: 'rgba(0, 0, 0, 0.9)',
     commentBg: 'rgba(0, 0, 0, 0.03)',
     clickToContextColor: 'rgba(0, 0, 0, 0.05)',
-    brandColor: 'rgba(0, 0, 0, 0.9)'
+    brandColor: 'rgba(0, 0, 0, 0.9)',
+    grey: '#707070',
+    link: '#007cbe',
+    linkHover: '#004a72',
+    linkVisited: '#7acaf5'
   },
   dark: {
     body: '#000000',
     inputBg: '#000000',
     inputDisabledBg: '#000000',
-    navLink: 'rgba(255, 255, 255, 0.5)',
+    navLink: 'rgba(255, 255, 255, 0.55)',
     navLinkFocus: 'rgba(255, 255, 255, 0.75)',
     navLinkActive: 'rgba(255, 255, 255, 0.9)',
     borderColor: 'rgba(255, 255, 255, 0.5)',
@@ -30,7 +34,11 @@ const COLORS = {
     commentBg: 'rgba(255, 255, 255, 0.04)',
     clickToContextColor: 'rgba(255, 255, 255, 0.08)',
     color: '#f8f9fa',
-    brandColor: 'var(--primary)'
+    brandColor: 'var(--primary)',
+    grey: '#969696',
+    link: '#2e99d1',
+    linkHover: '#007cbe',
+    linkVisited: '#066ba3'
   }
 }
 

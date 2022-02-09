@@ -28,19 +28,19 @@
 }
 
 a.link:visited {
-    color: #7acaf5;
+    color: var(--theme-linkVisited) !important;
 }
 
 .other {
-    font-size: 70%;
-    color: grey;
+    font-size: 80%;
+    color: var(--theme-grey);
+    margin-bottom: .15rem;
 }
 
 .item {
     display: flex;
     justify-content: flex-start;
     min-width: 0;
-    margin-bottom: .2rem;
 }
 
 .item .cover {
@@ -51,7 +51,7 @@ a.link:visited {
     overflow: hidden;
     width: 100%;
     margin-bottom: .3rem;
-    line-height: 1rem;
+    line-height: 1.06rem;
 }
 
 .main {
@@ -60,7 +60,6 @@ a.link:visited {
 }
 
 .children {
-    margin-top: .25rem;
     margin-left: 28px;
 }
 
@@ -68,7 +67,7 @@ a.link:visited {
     font-weight: 600;
     margin-top: 4px;
     display: flex;
-    color: grey;
+    color: var(--theme-grey);
     font-size: 90%;
 }
 
@@ -78,7 +77,7 @@ a.link:visited {
 }
 
 .skeleton .title {
-    background-color: grey;
+    background-color: var(--theme-grey);
     width: 500px;
     border-radius: .4rem;
     height: 17px;
@@ -87,7 +86,7 @@ a.link:visited {
 
 .skeleton .link {
     height: 14px;
-    background-color: grey;
+    background-color: var(--theme-grey);
     width: 800px;
     border-radius: .3rem;
     margin: 2px 0px;
@@ -98,7 +97,7 @@ a.link:visited {
     width: 42px;
     height: 70%;
     border-radius: .27rem;
-    background-color: grey;
+    background-color: var(--theme-grey);
     margin-right: .5rem;
 }
 

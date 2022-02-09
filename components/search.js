@@ -13,9 +13,9 @@ export default function Search () {
   const [atBottom, setAtBottom] = useState()
 
   useEffect(() => {
-    setAtBottom((window.innerHeight + window.pageYOffset) >= document.body.offsetHeight)
+    setAtBottom(Math.ceil(window.innerHeight + window.pageYOffset) >= document.body.offsetHeight)
     window.onscroll = function (ev) {
-      if ((window.innerHeight + window.pageYOffset) >= document.body.offsetHeight) {
+      if (Math.ceil(window.innerHeight + window.pageYOffset) >= document.body.offsetHeight) {
         setAtBottom(true)
       } else {
         setAtBottom(false)

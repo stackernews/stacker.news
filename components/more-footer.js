@@ -28,7 +28,7 @@ export default function MoreFooter ({ cursor, fetchMore, Skeleton, noMoreText })
     )
   } else {
     Footer = () => (
-      <div className='text-muted' style={{ fontFamily: 'lightning', fontSize: '2rem', opacity: '0.6' }}>{noMoreText || 'GENISIS'}</div>
+      <div className='text-muted' style={{ fontFamily: 'lightning', fontSize: '2rem', opacity: '0.75' }}>{noMoreText || 'GENISIS'}</div>
     )
   }
 

@@ -24,7 +24,7 @@ export default function Item ({ item, rank, children }) {
 
   useEffect(() => {
     setWrap(
-      parseInt(window.getComputedStyle(titleRef.current).lineHeight) <
+      Math.ceil(parseFloat(window.getComputedStyle(titleRef.current).lineHeight)) <
         titleRef.current.clientHeight)
   }, [])
 

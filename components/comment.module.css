@@ -33,7 +33,7 @@
 
 .collapser {
     cursor: pointer;
-    fill: grey;
+    fill: var(--theme-grey);
     width: 45px;
     margin-left: auto;
     user-select: none;
@@ -78,6 +78,7 @@
 
 .hunk {
     margin-bottom: 0;
+    margin-top: 0.15rem;
 }
 
 .comment:not(:last-of-type) {

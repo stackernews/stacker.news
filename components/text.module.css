@@ -1,9 +1,15 @@
 .text {
-    font-size: 90%;
+    font-size: 94%;
     font-family: inherit;
     word-break: break-word;
-    line-height: 1rem;
+    line-height: 140%;
 }
+
+@media screen and (min-width: 767px) {
+    .text {
+      line-height: 130%;
+    }
+  }
 
 .text p {
     margin-bottom: .5rem;
@@ -15,8 +21,16 @@
     margin-bottom: .5rem;
 }
 
+.text pre > div {
+    margin: 0 !important;
+}
+
 .text > *:last-child {
-    margin-bottom: 0;
+    margin-bottom: 0 !important;
+}
+
+.text blockquote > *:last-child {
+    margin-bottom: 0 !important;
 }
 
 .text img {
@@ -29,6 +43,7 @@
 }
 
 .text blockquote {
-    border-left: 2px solid #212529;
+    border-left: 2px solid var(--theme-grey);
     padding-left: 1rem;
+    margin: 0 0 0.5rem 0.5rem !important;
 }

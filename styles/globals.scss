@@ -6,7 +6,7 @@ $theme-colors: (
   "success" : #5c8001,
   "twitter" : #1da1f2,
   "boost" : #8c25f4,
-  "grey" : #e9ecef
+  "grey" : #e9ecef,
 );
 
 $body-bg: #f5f5f5;
@@ -51,7 +51,6 @@ $nav-tabs-link-hover-border-color: transparent;
 $nav-tabs-link-active-border-color: #ced4da #ced4da $nav-tabs-link-active-bg;
 $tooltip-bg: #5c8001;
 
-
 @import "~bootstrap/scss/bootstrap";
 
 @font-face {
@@ -63,6 +62,10 @@ $tooltip-bg: #5c8001;
   .table-sm th, .table-sm td {
     padding: .3rem .75rem;
   }
+}
+
+.text-muted {
+  color: var(--theme-grey) !important;
 }
 
 mark {
@@ -107,6 +110,14 @@ body {
   color: var(--theme-color);
   min-height: 100vh;
   height: 100%;
+}
+
+a {
+  color: var(--theme-link);
+}
+
+a:hover {
+  color: var(--theme-linkHover);
 }
 
 .nav-tabs .nav-link.active, .nav-tabs .nav-item.show .nav-link {
@@ -157,11 +168,11 @@ body {
   border-color: var(--theme-borderColor);
 }
 
-.navbar-nav .nav-link:not(.text-success) {
+.nav-link:not(.text-success) {
   color: var(--theme-navLink) !important;
 }
 
-.navbar-nav .nav-link:not(.text-success):hover, .navbar-nav .nav-link:not(.text-success):focus {
+.nav-link:not(.text-success):hover, .nav-link:not(.text-success):focus {
   color: var(--theme-navLinkFocus) !important;
 }
 
@@ -173,25 +184,25 @@ body {
   color: var(--theme-navLinkFocus) !important;
 }
 
-.navbar-nav .dropdown-menu {
+.dropdown-menu {
   background-color: var(--theme-inputBg);
   border: 1px solid var(--theme-borderColor);
 }
 
-.navbar-nav .dropdown-item {
+.dropdown-item {
   color: var(--theme-dropdownItemColor);
 }
 
-.navbar-nav .dropdown-item:hover {
+.dropdown-item:hover {
   color: var(--theme-dropdownItemColorHover);
 }
 
-.navbar-nav .dropdown-item.active {
+.dropdown-item.active {
   color: var(--theme-brandColor);
   text-shadow: 0 0 10px var(--primary);
 }
 
-.navbar-nav .dropdown-divider {
+.dropdown-divider {
   border-top: 1px solid var(--theme-borderColor);
 }
 
@@ -230,7 +241,7 @@ footer {
 }
 
 .text-muted svg {
-  fill: #6c757d;
+  fill: var(--theme-grey);
 }
 
 .pointer {
@@ -343,7 +354,7 @@ textarea.form-control {
 }
 
 .fill-grey {
-  fill: grey;
+  fill: var(--theme-grey);
 }
 
 .fill-white {
@@ -373,7 +384,7 @@ textarea.form-control {
 
 .clouds {
   background-image: url('/clouds.jpeg') !important;
-  background-color: grey;
+  background-color:var(--theme-grey);
   background-repeat: repeat;
   background-origin: content-box;
   background-size: cover;
@@ -396,7 +407,7 @@ textarea.form-control {
 
 .static {
   background: url('/giphy.gif');
-  background-color: grey;
+  background-color:var(--theme-grey);
   background-repeat: repeat;
   background-origin: content-box;
   background-size: cover;

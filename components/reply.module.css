@@ -6,16 +6,17 @@
 
 .replyButtons {
     font-size: 70%;
-    color: grey;
+    color: var(--theme-grey);
     font-weight: bold;
     display: inline-block;
     cursor: pointer;
     padding-bottom: .5rem;
     line-height: 1rem;
+    vertical-align: middle;
 }
 
 .skeleton .input {
-    background-color: grey;
+    background-color: var(--theme-grey);
     width: 100%;
     border-radius: .4rem;
     height: 115px;
@@ -23,7 +24,7 @@
 }
 
 .skeleton .button {
-    background-color: grey;
+    background-color: var(--theme-grey);
     border-radius: .4rem;
     margin-top: .25rem;
     width: 71px;

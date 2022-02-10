@@ -7,6 +7,7 @@ import { atomDark } from 'react-syntax-highlighter/dist/cjs/styles/prism'
 import mention from '../lib/remark-mention'
 import remarkDirective from 'remark-directive'
 import { visit } from 'unist-util-visit'
+import reactStringReplace from 'react-string-replace'
 
 function myRemarkPlugin () {
   return (tree) => {
@@ -26,6 +27,7 @@ function myRemarkPlugin () {
 }
 
 export default function Text ({ nofollow, children }) {
+  // all the reactStringReplace calls are to facilitate search highlighting
   return (
     <div className={styles.text}>
       <ReactMarkdown
@@ -45,16 +47,39 @@ export default function Text ({ nofollow, children }) {
             return !inline
               ? (
                 <SyntaxHighlighter showLineNumbers style={atomDark} language={match && match[1]} PreTag='div' {...props}>
-                  {String(children).replace(/\n$/, '')}
+                  {reactStringReplace(String(children).replace(/\n$/, ''), /:high\[([^\]]+)\]/g, (match, i) => {
+                    return match
+                  }).join('')}
                 </SyntaxHighlighter>
                 )
               : (
                 <code className={className} style={atomDark} {...props}>
-                  {children}
+                  {reactStringReplace(String(children), /:high\[([^\]]+)\]/g, (match, i) => {
+                    return <mark key={`mark-${match}`}>{match}</mark>
+                  })}
                 </code>
                 )
           },
-          a: ({ node, ...props }) => <a target='_blank' rel={nofollow ? 'nofollow' : null} {...props} />
+          a: ({ node, href, children, ...props }) => {
+            children = children.map(e => typeof e === 'string'
+              ? reactStringReplace(e, /:high\[([^\]]+)\]/g, (match, i) => {
+                  return <mark key={`mark-${match}-${i}`}>{match}</mark>
+                })
+              : e)
+            console.log(href)
+
+            return (
+              /*  eslint-disable-next-line */
+              <a
+                target='_blank' rel={nofollow ? 'nofollow' : 'noreferrer'}
+                href={reactStringReplace(href, /:high%5B([^%5D]+)%5D/g, (match, i) => {
+                  return match
+                }).join('')} {...props}
+              >
+                {children}
+              </a>
+            )
+          }
         }}
         remarkPlugins={[gfm, mention, remarkDirective, myRemarkPlugin]}
       >

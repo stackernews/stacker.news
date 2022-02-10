@@ -101,7 +101,7 @@ export function MarkdownInput ({ label, groupClassName, ...props }) {
         </div>
         <div className={tab !== 'preview' ? 'd-none' : 'form-group'}>
           <div className={`${styles.text} form-control`}>
-            <Text>{meta.value}</Text>
+            {tab === 'preview' && <Text>{meta.value}</Text>}
           </div>
         </div>
       </div>

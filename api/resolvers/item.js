@@ -147,7 +147,7 @@ export default {
           items = await models.$queryRaw(`
           ${SELECT}
           FROM "Item"
-          ${timedLeftJoinSats(1)}
+          ${timedLeftJoinWeightedSats(1)}
           WHERE "parentId" IS NULL AND created_at <= $1
           AND "pinId" IS NULL
           ${topClause(within)}
@@ -212,7 +212,7 @@ export default {
           comments = await models.$queryRaw(`
           ${SELECT}
           FROM "Item"
-          ${timedLeftJoinSats(1)}
+          ${timedLeftJoinWeightedSats(1)}
           WHERE "parentId" IS NOT NULL
           AND created_at <= $1
           ${topClause(within)}
@@ -739,12 +739,12 @@ export const SELECT =
 
 const LEFT_JOIN_SATS_SELECT = 'SELECT i.id, SUM(CASE WHEN "ItemAct".act = \'VOTE\' THEN "ItemAct".sats ELSE 0 END) as sats,  SUM(CASE WHEN "ItemAct".act = \'BOOST\' THEN "ItemAct".sats ELSE 0 END) as boost'
 
-function timedLeftJoinSats (num) {
-  return `LEFT JOIN (${LEFT_JOIN_SATS_SELECT}
-  FROM "Item" i
-  JOIN "ItemAct" ON i.id = "ItemAct"."itemId" AND "ItemAct".created_at <= $${num}
-  GROUP BY i.id) x ON "Item".id = x.id`
-}
+// function timedLeftJoinSats (num) {
+//   return `LEFT JOIN (${LEFT_JOIN_SATS_SELECT}
+//   FROM "Item" i
+//   JOIN "ItemAct" ON i.id = "ItemAct"."itemId" AND "ItemAct".created_at <= $${num}
+//   GROUP BY i.id) x ON "Item".id = x.id`
+// }
 
 const LEFT_JOIN_WEIGHTED_SATS_SELECT = 'SELECT i.id, SUM(CASE WHEN "ItemAct".act = \'VOTE\' THEN "ItemAct".sats * users.trust ELSE 0 END) as sats,  SUM(CASE WHEN "ItemAct".act = \'BOOST\' THEN "ItemAct".sats ELSE 0 END) as boost'
 

@@ -2,10 +2,11 @@ import { NextSeo } from 'next-seo'
 import { useRouter } from 'next/router'
 import RemoveMarkdown from 'remove-markdown'
 
-export function SeoSearch () {
+export function SeoSearch ({ sub }) {
   const router = useRouter()
-  const title = `${router.query.q} \\ stacker news`
-  const desc = `SN search: ${router.query.q}`
+  const subStr = sub ? ` ~${sub}` : ''
+  const title = `${router.query.q} \\ stacker news${subStr}`
+  const desc = `SN${subStr} search: ${router.query.q}`
 
   return (
     <NextSeo
@@ -29,18 +30,25 @@ export function SeoSearch () {
   )
 }
 
-export default function Seo ({ item, user }) {
+// for a sub we need
+// item seo
+// index page seo
+// recent page seo
+
+export default function Seo ({ sub, item, user }) {
   const router = useRouter()
   const pathNoQuery = router.asPath.split('?')[0]
   const defaultTitle = pathNoQuery.slice(1)
+  const snStr = `stacker news${sub ? ` ~${sub}` : ''}`
   let fullTitle = `${defaultTitle && `${defaultTitle} \\ `}stacker news`
   let desc = "It's like Hacker News but we pay you Bitcoin."
   if (item) {
     if (item.title) {
-      fullTitle = `${item.title} \\ stacker news`
+      fullTitle = `${item.title} \\ ${snStr}`
     } else if (item.root) {
-      fullTitle = `reply on: ${item.root.title} \\ stacker news`
+      fullTitle = `reply on: ${item.root.title} \\ ${snStr}`
     }
+    // at least for now subs (ie the only one is jobs) will always have text
     if (item.text) {
       desc = RemoveMarkdown(item.text)
       if (desc) {

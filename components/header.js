@@ -11,14 +11,7 @@ import { signOut, signIn } from 'next-auth/client'
 import { useLightning } from './lightning'
 import { useEffect, useState } from 'react'
 import { randInRange } from '../lib/rand'
-
-const formatSats = n => {
-  if (n < 1e4) return n
-  if (n >= 1e4 && n < 1e6) return +(n / 1e3).toFixed(1) + 'k'
-  if (n >= 1e6 && n < 1e9) return +(n / 1e6).toFixed(1) + 'm'
-  if (n >= 1e9 && n < 1e12) return +(n / 1e9).toFixed(1) + 'b'
-  if (n >= 1e12) return +(n / 1e12).toFixed(1) + 't'
-}
+import { formatSats } from '../lib/format'
 
 function WalletSummary ({ me }) {
   if (!me) return null
@@ -26,11 +19,12 @@ function WalletSummary ({ me }) {
   return `${formatSats(me.sats)} \\ ${formatSats(me.stacked)}`
 }
 
-export default function Header () {
+export default function Header ({ sub }) {
   const router = useRouter()
   const path = router.asPath.split('?')[0]
   const [fired, setFired] = useState()
   const me = useMe()
+  const prefix = sub ? `/~${sub}` : ''
 
   const Corner = () => {
     if (me) {
@@ -73,20 +67,23 @@ export default function Header () {
               </Link>
               <div>
                 <NavDropdown.Divider />
-                <Link href='/recent' passHref>
+                <Link href={prefix + '/recent'} passHref>
                   <NavDropdown.Item>recent</NavDropdown.Item>
                 </Link>
-                <Link href='/top/posts/week' passHref>
-                  <NavDropdown.Item>top</NavDropdown.Item>
-                </Link>
+                {!prefix &&
+                  <Link href='/top/posts/week' passHref>
+                    <NavDropdown.Item>top</NavDropdown.Item>
+                  </Link>}
                 {me
                   ? (
-                    <Link href='/post' passHref>
+                    <Link href={prefix + '/post'} passHref>
                       <NavDropdown.Item>post</NavDropdown.Item>
                     </Link>
                     )
                   : <NavDropdown.Item onClick={signIn}>post</NavDropdown.Item>}
-                <NavDropdown.Item href='https://bitcoinerjobs.co' target='_blank'>jobs</NavDropdown.Item>
+                {sub
+                  ? <Link href='/' passHref><NavDropdown.Item>home</NavDropdown.Item></Link>
+                  : <Link href='/~jobs' passHref><NavDropdown.Item>~jobs</NavDropdown.Item></Link>}
               </div>
               <NavDropdown.Divider />
               <div className='d-flex align-items-center'>
@@ -134,58 +131,55 @@ export default function Header () {
             className={styles.navbarNav}
             activeKey={path}
           >
-            <Link href='/' passHref>
-              <Navbar.Brand className={`${styles.brand} d-none d-sm-block`}>STACKER NEWS</Navbar.Brand>
-            </Link>
-            <Link href='/' passHref>
-              <Navbar.Brand className={`${styles.brand} d-block d-sm-none`}>SN</Navbar.Brand>
-            </Link>
+            <div className='d-flex'>
+              <Link href='/' passHref>
+                <Navbar.Brand className={`${styles.brand} d-none d-sm-block`}>
+                  {sub
+                    ? 'SN'
+                    : 'STACKER NEWS'}
+                </Navbar.Brand>
+              </Link>
+              <Link href='/' passHref>
+                <Navbar.Brand className={`${styles.brand} d-block d-sm-none`}>
+                  SN
+                </Navbar.Brand>
+              </Link>
+              {sub &&
+                <Link href={prefix} passHref>
+                  <Navbar.Brand className={`${styles.brand} d-block`}>
+                    <span>&nbsp;</span>{sub}
+                  </Navbar.Brand>
+                </Link>}
+            </div>
             <Nav.Item className='d-md-flex d-none'>
-              <Link href='/recent' passHref>
+              <Link href={prefix + '/recent'} passHref>
                 <Nav.Link className={styles.navLink}>recent</Nav.Link>
               </Link>
             </Nav.Item>
-            <Nav.Item className='d-md-flex d-none'>
-              <Link href='/top/posts/week' passHref>
-                <Nav.Link className={styles.navLink}>top</Nav.Link>
-              </Link>
-            </Nav.Item>
+            {!prefix &&
+              <Nav.Item className='d-md-flex d-none'>
+                <Link href='/top/posts/week' passHref>
+                  <Nav.Link className={styles.navLink}>top</Nav.Link>
+                </Link>
+              </Nav.Item>}
             <Nav.Item className='d-md-flex d-none'>
               {me
                 ? (
-                  <Link href='/post' passHref>
+                  <Link href={prefix + '/post'} passHref>
                     <Nav.Link className={styles.navLink}>post</Nav.Link>
                   </Link>
                   )
                 : <Nav.Link className={styles.navLink} onClick={signIn}>post</Nav.Link>}
             </Nav.Item>
             <Nav.Item className='d-md-flex d-none'>
-              <Nav.Link href='https://bitcoinerjobs.co' target='_blank' className={styles.navLink}>jobs</Nav.Link>
+              {sub
+                ? <Link href='/' passHref><Nav.Link className={styles.navLink}>home</Nav.Link></Link>
+                : <Link href='/~jobs' passHref><Nav.Link className={styles.navLink}>~jobs</Nav.Link></Link>}
             </Nav.Item>
             <Nav.Item className='text-monospace nav-link'>
               <Price />
             </Nav.Item>
             <Corner />
-          </Nav>
-        </Navbar>
-      </Container>
-    </>
-  )
-}
-
-export function HeaderPreview () {
-  return (
-    <>
-      <Container className='px-sm-0'>
-        {/* still need to set variant */}
-        <Navbar className={styles.navbar}>
-          <Nav className='w-100 justify-content-between flex-wrap align-items-center'>
-            <Link href='/' passHref>
-              <Navbar.Brand className={`${styles.brand} d-none d-sm-block`}>STACKER NEWS</Navbar.Brand>
-            </Link>
-            <Nav.Item className='text-monospace' style={{ opacity: '.5' }}>
-              <Price />
-            </Nav.Item>
           </Nav>
         </Navbar>
       </Container>

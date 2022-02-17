@@ -23,7 +23,7 @@ export default function UserComments (
       <UserHeader user={user} />
       <CommentsFlat
         comments={comments} cursor={cursor}
-        variables={{ name: user.name, sort: 'user' }} includeParent noReply
+        variables={{ name: user.name }} includeParent noReply
       />
     </Layout>
   )

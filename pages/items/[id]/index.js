@@ -15,9 +15,11 @@ export default function AnItem ({ data: { item } }) {
     ({ item } = data)
   }
 
+  const sub = item.sub?.name || item.root?.sub?.name
+
   return (
-    <Layout noSeo>
-      <Seo item={item} />
+    <Layout sub={sub} noSeo>
+      <Seo item={item} sub={sub} />
       <ItemFull item={item} />
     </Layout>
   )

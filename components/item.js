@@ -7,11 +7,79 @@ import Countdown from './countdown'
 import { NOFOLLOW_LIMIT } from '../lib/constants'
 import Pin from '../svgs/pushpin-fill.svg'
 import reactStringReplace from 'react-string-replace'
+import { formatSats } from '../lib/format'
+import * as Yup from 'yup'
+import Briefcase from '../svgs/briefcase-4-fill.svg'
 
 function SearchTitle ({ title }) {
   return reactStringReplace(title, /:high\[([^\]]+)\]/g, (match, i) => {
     return <mark key={`mark-${match}`}>{match}</mark>
   })
+}
+
+export function ItemJob ({ item, rank, children }) {
+  const isEmail = Yup.string().email().isValidSync(item.url)
+
+  return (
+    <>
+      {rank
+        ? (
+          <div className={styles.rank}>
+            {rank}
+          </div>)
+        : <div />}
+      <div className={`${styles.item}`}>
+        <Briefcase width={24} height={24} className={styles.case} />
+        <div className={styles.hunk}>
+          <div className={`${styles.main} flex-wrap d-inline`}>
+            <Link href={`/items/${item.id}`} passHref>
+              <a className={`${styles.title} text-reset mr-2`}>
+                {item.searchTitle ? <SearchTitle title={item.searchTitle} /> : item.title}
+              </a>
+            </Link>
+            {/*  eslint-disable-next-line */}
+            <a
+              className={`${styles.link}`}
+              target='_blank' href={(isEmail ? 'mailto:' : '') + item.url}
+            >
+              apply
+            </a>
+          </div>
+          <div className={`${styles.other}`}>
+            <span>{formatSats(item.maxBid)} sats</span>
+            <span> \ </span>
+            <Link href={`/items/${item.id}`} passHref>
+              <a className='text-reset'>{item.ncomments} comments</a>
+            </Link>
+            <span> \ </span>
+            <span>
+              <Link href={`/${item.user.name}`} passHref>
+                <a>@{item.user.name}</a>
+              </Link>
+              <span> </span>
+              <Link href={`/items/${item.id}`} passHref>
+                <a title={item.createdAt} className='text-reset'>{timeSince(new Date(item.createdAt))}</a>
+              </Link>
+            </span>
+            {item.mine &&
+              <>
+                <span> \ </span>
+                <Link href={`/items/${item.id}/edit`} passHref>
+                  <a className='text-reset'>
+                    edit
+                  </a>
+                </Link>
+              </>}
+          </div>
+        </div>
+      </div>
+      {children && (
+        <div className={`${styles.children}`}>
+          {children}
+        </div>
+      )}
+    </>
+  )
 }
 
 export default function Item ({ item, rank, children }) {

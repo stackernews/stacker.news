@@ -14,6 +14,10 @@ const ITEM_SEARCH_FIELDS = gql`
     user {
       name
     }
+    sub {
+      name
+    }
+    maxBid
     upvotes
     sats
     boost

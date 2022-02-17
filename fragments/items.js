@@ -17,10 +17,18 @@ export const ITEM_FIELDS = gql`
     boost
     meSats
     ncomments
+    maxBid
+    sub {
+      name
+      baseCost
+    }
     mine
     root {
       id
       title
+      sub {
+        name
+      }
       user {
         name
         id
@@ -28,11 +36,11 @@ export const ITEM_FIELDS = gql`
     }
   }`
 
-export const MORE_ITEMS = gql`
+export const ITEMS = gql`
   ${ITEM_FIELDS}
 
-  query MoreItems($sort: String!, $cursor: String, $name: String, $within: String) {
-    moreItems(sort: $sort, cursor: $cursor, name: $name, within: $within) {
+  query items($sub: String, $sort: String, $cursor: String, $name: String, $within: String) {
+    items(sub: $sub, sort: $sort, cursor: $cursor, name: $name, within: $within) {
       cursor
       items {
         ...ItemFields

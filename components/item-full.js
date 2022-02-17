@@ -1,4 +1,4 @@
-import Item from './item'
+import Item, { ItemJob } from './item'
 import Reply from './reply'
 import Comment from './comment'
 import Text from './text'
@@ -95,12 +95,14 @@ function ItemEmbed ({ item }) {
 }
 
 function TopLevelItem ({ item, noReply, ...props }) {
+  const ItemComponent = item.maxBid ? ItemJob : Item
+
   return (
-    <Item item={item} {...props}>
+    <ItemComponent item={item} {...props}>
       {item.text && <ItemText item={item} />}
       {item.url && <ItemEmbed item={item} />}
       {!noReply && <Reply parentId={item.id} replyOpen />}
-    </Item>
+    </ItemComponent>
   )
 }
 

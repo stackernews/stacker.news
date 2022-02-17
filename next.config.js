@@ -60,8 +60,12 @@ module.exports = withPlausibleProxy()({
         destination: '/api/lnurlp/:username'
       },
       {
-        source: '/$:sub',
-        destination: '/$/:sub'
+        source: '/~:sub',
+        destination: '/~/:sub'
+      },
+      {
+        source: '/~:sub/:slug*',
+        destination: '/~/:sub/:slug*'
       }
     ]
   },

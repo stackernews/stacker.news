@@ -21,6 +21,14 @@
     margin-right: .2rem;
 }
 
+.case {
+    fill: #a5a5a5;
+    margin-right: .2rem;
+    margin-left: .2rem;
+    margin-top: .2rem;
+    padding: 0 2px;
+}
+
 .linkSmall {
     width: 128px;
     display: inline-block;

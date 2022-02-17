@@ -63,6 +63,10 @@ $tooltip-bg: #5c8001;
   color: var(--theme-grey) !important;
 }
 
+ol, ul, dl {
+  padding-inline-start: 2rem;
+}
+
 mark {
   background-color: var(--primary);
   padding: 0 0.2rem;
@@ -362,6 +366,10 @@ textarea.form-control {
 
 .fill-danger {
   fill: #c03221;
+}
+
+.fill-theme-color {
+  fill: var(--theme-color);
 }
 
 .text-underline {

@@ -2,14 +2,15 @@ import { gql } from 'apollo-server-micro'
 
 export default gql`
   extend type Query {
-    moreItems(sort: String!, cursor: String, name: String, within: String): Items
+    items(sub: String, sort: String, cursor: String, name: String, within: String): Items
     moreFlatComments(sort: String!, cursor: String, name: String, within: String): Comments
     item(id: ID!): Item
     comments(id: ID!, sort: String): [Item!]!
     pageTitle(url: String!): String
     dupes(url: String!): [Item!]
     allItems(cursor: String): Items
-    search(q: String, cursor: String): Items
+    search(q: String, sub: String, cursor: String): Items
+    auctionPosition(sub: String, id: ID, bid: Int!): Int!
   }
 
   type ItemActResult {
@@ -24,6 +25,7 @@ export default gql`
     updateDiscussion(id: ID!, title: String!, text: String): Item!
     createComment(text: String!, parentId: ID!): Item!
     updateComment(id: ID!, text: String!): Item!
+    upsertJob(id: ID, sub: ID!, title: String!, text: String!, url: String!, maxBid: Int!): Item!
     act(id: ID!, sats: Int): ItemActResult!
   }
 
@@ -63,5 +65,7 @@ export default gql`
     path: String
     position: Int
     prior: Int
+    maxBid: Int
+    sub: Sub
   }
 `

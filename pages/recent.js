@@ -1,12 +1,12 @@
 import Layout from '../components/layout'
 import Items from '../components/items'
 import { getGetServerSideProps } from '../api/ssrApollo'
-import { MORE_ITEMS } from '../fragments/items'
+import { ITEMS } from '../fragments/items'
 
 const variables = { sort: 'recent' }
-export const getServerSideProps = getGetServerSideProps(MORE_ITEMS, { sort: 'recent' })
+export const getServerSideProps = getGetServerSideProps(ITEMS, variables)
 
-export default function Index ({ data: { moreItems: { items, cursor } } }) {
+export default function Index ({ data: { items: { items, cursor } } }) {
   return (
     <Layout>
       <Items

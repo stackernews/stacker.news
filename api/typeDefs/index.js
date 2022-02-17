@@ -7,6 +7,7 @@ import wallet from './wallet'
 import lnurl from './lnurl'
 import notifications from './notifications'
 import invite from './invite'
+import sub from './sub'
 
 const link = gql`
   type Query {
@@ -22,4 +23,4 @@ const link = gql`
   }
 `
 
-export default [link, user, item, message, wallet, lnurl, notifications, invite]
+export default [link, user, item, message, wallet, lnurl, notifications, invite, sub]

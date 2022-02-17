@@ -98,11 +98,48 @@ model Item {
   pin       Pin?                  @relation(fields: [pinId], references: [id])
   pinId     Int?
 
+  // if sub is null, this is the main sub
+  sub     Sub?    @relation(fields: [subName], references: [name])
+  subName String? @db.Citext
+
+  // fields exclusively for job post types right now
+  minSalary Int?
+  maxSalary Int?
+  maxBid    Int?
+  location  String?
+  latitude  Float?
+  longitude Float?
+  remote    Boolean?
+
   User User[] @relation("Item")
 
   @@index([createdAt])
   @@index([userId])
   @@index([parentId])
+}
+
+enum PostType {
+  LINK
+  DISCUSSION
+  JOB
+}
+
+enum RankingType {
+  WOT
+  RECENT
+  AUCTION
+}
+
+model Sub {
+  name        String      @id @db.Citext
+  createdAt   DateTime    @default(now()) @map(name: "created_at")
+  updatedAt   DateTime    @default(now()) @updatedAt @map(name: "updated_at")
+  postTypes   PostType[]
+  rankingType RankingType
+  baseCost    Int         @default(1)
+  desc        String?
+
+  Item Item[]
 }
 
 // the active pin is the latest one when it's a recurring cron

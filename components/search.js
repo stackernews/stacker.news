@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { Form, Input, SubmitButton } from './form'
 import { useRouter } from 'next/router'
 
-export default function Search () {
+export default function Search ({ sub }) {
   const router = useRouter()
   const [searching, setSearching] = useState(router.query.q)
   const [q, setQ] = useState(router.query.q)
@@ -37,7 +37,11 @@ export default function Search () {
                 className={`w-auto ${styles.active}`}
                 onSubmit={async ({ q }) => {
                   if (q.trim() !== '') {
-                    router.push(`/search?q=${q}`)
+                    let prefix = ''
+                    if (sub) {
+                      prefix = `/~${sub}`
+                    }
+                    router.push(prefix + `/search?q=${q}`)
                   }
                 }}
               >

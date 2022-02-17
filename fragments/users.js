@@ -85,14 +85,14 @@ export const USER_WITH_POSTS = gql`
   ${USER_FIELDS}
   ${ITEM_WITH_COMMENTS}
   ${ITEM_FIELDS}
-  query UserWithPosts($name: String!, $sort: String!) {
+  query UserWithPosts($name: String!) {
     user(name: $name) {
       ...UserFields
       bio {
         ...ItemWithComments
       }
     }
-    moreItems(sort: $sort, name: $name) {
+    items(sort: "user", name: $name) {
       cursor
       items {
         ...ItemFields

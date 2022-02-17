@@ -11,7 +11,9 @@ import Markdown from '../svgs/markdown-line.svg'
 import styles from './form.module.css'
 import Text from '../components/text'
 
-export function SubmitButton ({ children, variant, value, onClick, ...props }) {
+export function SubmitButton ({
+  children, variant, value, onClick, ...props
+}) {
   const { isSubmitting, setFieldValue } = useFormikContext()
   return (
     <Button
@@ -249,6 +251,7 @@ export function Form ({
         {error && <Alert variant='danger' onClose={() => setError(undefined)} dismissible>{error}</Alert>}
         {storageKeyPrefix
           ? React.Children.map(children, (child) => {
+              // if child has a type it's a dom element
               if (child) {
                 return React.cloneElement(child, {
                   storageKeyPrefix

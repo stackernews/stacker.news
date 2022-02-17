@@ -6,15 +6,18 @@ import Footer from './footer'
 import Seo from './seo'
 import Search from './search'
 
-export default function Layout ({ noContain, noFooter, noFooterLinks, containClassName, noSeo, children }) {
+export default function Layout ({
+  sub, noContain, noFooter, noFooterLinks,
+  containClassName, noSeo, children
+}) {
   return (
     <>
-      {!noSeo && <Seo />}
+      {!noSeo && <Seo sub={sub} />}
       <LightningProvider>
         <Head>
           <meta name='viewport' content='initial-scale=1.0, width=device-width' />
         </Head>
-        <Header />
+        <Header sub={sub} />
         {noContain
           ? children
           : (
@@ -23,7 +26,7 @@ export default function Layout ({ noContain, noFooter, noFooterLinks, containCla
             </Container>
             )}
         {!noFooter && <Footer noLinks={noFooterLinks} />}
-        {!noContain && <Search />}
+        {!noContain && <Search sub={sub} />}
       </LightningProvider>
     </>
   )

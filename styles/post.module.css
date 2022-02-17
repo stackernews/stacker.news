@@ -1,0 +1,13 @@
+.close {
+    cursor: pointer;
+    display: flex;
+    margin-left: auto;
+    padding-top: 1rem;
+    padding-right: 1.5rem;
+    font-family: 'lightning';
+    font-size: 150%;
+}
+
+.close:hover {
+    opacity: 0.7;
+}

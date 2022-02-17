@@ -73,9 +73,13 @@ function topClause (within) {
 
 export default {
   Query: {
-    moreItems: async (parent, { sort, cursor, name, within }, { me, models }) => {
+    items: async (parent, { sub, sort, cursor, name, within }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
-      let items; let user; let pins
+      let items; let user; let pins; let subFull
+
+      const subClause = (num) => {
+        return sub ? ` AND "subName" = $${num} ` : `AND ("subName" IS NULL OR "subName" = $${3}) `
+      }
 
       switch (sort) {
         case 'user':
@@ -97,72 +101,95 @@ export default {
             OFFSET $3
             LIMIT ${LIMIT}`, user.id, decodedCursor.time, decodedCursor.offset)
           break
-        case 'hot':
-          // HACK we can speed hack the first hot page, by limiting our query to only
-          // the most recently created items so that the tables doesn't have to
-          // fully be computed
-          // if the offset is 0, we limit our search to posts from the last week
-          // if there are 21 items, return them ... if not do the unrestricted query
-          // instead of doing this we should materialize a view ... but this is easier for now
-
-          if (decodedCursor.offset === 0) {
-            items = await models.$queryRaw(`
-              ${SELECT}
-              FROM "Item"
-              ${timedLeftJoinWeightedSats(1)}
-              WHERE "parentId" IS NULL AND created_at <= $1 AND created_at > $3
-              AND "pinId" IS NULL
-              ${timedOrderBySats(1)}
-              OFFSET $2
-              LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, new Date(new Date() - 7))
-          }
-
-          if (decodedCursor.offset !== 0 || items?.length < LIMIT) {
-            items = await models.$queryRaw(`
-              ${SELECT}
-              FROM "Item"
-              ${timedLeftJoinWeightedSats(1)}
-              WHERE "parentId" IS NULL AND created_at <= $1
-              AND "pinId" IS NULL
-              ${timedOrderBySats(1)}
-              OFFSET $2
-              LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
-          }
-
-          if (decodedCursor.offset === 0) {
-            // get pins for the page and return those separately
-            pins = await models.$queryRaw(`SELECT rank_filter.*
-              FROM (
-                ${SELECT},
-                rank() OVER (
-                    PARTITION BY "pinId"
-                    ORDER BY created_at DESC
-                )
-                FROM "Item"
-                WHERE "pinId" IS NOT NULL
-            ) rank_filter WHERE RANK = 1`)
-          }
-          break
-        case 'top':
-          items = await models.$queryRaw(`
-          ${SELECT}
-          FROM "Item"
-          ${timedLeftJoinWeightedSats(1)}
-          WHERE "parentId" IS NULL AND created_at <= $1
-          AND "pinId" IS NULL
-          ${topClause(within)}
-          ORDER BY x.sats DESC NULLS LAST, created_at DESC
-          OFFSET $2
-          LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
-          break
-        default:
+        case 'recent':
           items = await models.$queryRaw(`
             ${SELECT}
             FROM "Item"
             WHERE "parentId" IS NULL AND created_at <= $1 AND "pinId" IS NULL
+            ${subClause(3)}
             ORDER BY created_at DESC
             OFFSET $2
+            LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, sub || 'NULL')
+          break
+        case 'top':
+          items = await models.$queryRaw(`
+            ${SELECT}
+            FROM "Item"
+            ${timedLeftJoinWeightedSats(1)}
+            WHERE "parentId" IS NULL AND created_at <= $1
+            AND "pinId" IS NULL
+            ${topClause(within)}
+            ORDER BY x.sats DESC NULLS LAST, created_at DESC
+            OFFSET $2
             LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+          break
+        default:
+          // sub so we know the default ranking
+          if (sub) {
+            subFull = await models.sub.findUnique({ where: { name: sub } })
+          }
+
+          switch (subFull?.rankingType) {
+            case 'AUCTION':
+              // it might be sufficient to sort by the floor(maxBid / 1000) desc, created_at desc
+              // we pull from their wallet
+              // TODO: need to filter out by payment status
+              items = await models.$queryRaw(`
+                ${SELECT}
+                FROM "Item"
+                WHERE "parentId" IS NULL AND created_at <= $1
+                AND "pinId" IS NULL
+                ${subClause(3)}
+                ORDER BY "maxBid" / 1000 DESC, created_at ASC
+                OFFSET $2
+                LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, sub)
+              break
+            default:
+              // HACK we can speed hack the first hot page, by limiting our query to only
+              // the most recently created items so that the tables doesn't have to
+              // fully be computed
+              // if the offset is 0, we limit our search to posts from the last week
+              // if there are 21 items, return them ... if not do the unrestricted query
+              // instead of doing this we should materialize a view ... but this is easier for now
+              if (decodedCursor.offset === 0) {
+                items = await models.$queryRaw(`
+                  ${SELECT}
+                  FROM "Item"
+                  ${timedLeftJoinWeightedSats(1)}
+                  WHERE "parentId" IS NULL AND created_at <= $1 AND created_at > $3
+                  AND "pinId" IS NULL
+                  ${timedOrderBySats(1)}
+                  OFFSET $2
+                  LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, new Date(new Date() - 7))
+              }
+
+              if (decodedCursor.offset !== 0 || items?.length < LIMIT) {
+                items = await models.$queryRaw(`
+                  ${SELECT}
+                  FROM "Item"
+                  ${timedLeftJoinWeightedSats(1)}
+                  WHERE "parentId" IS NULL AND created_at <= $1
+                  AND "pinId" IS NULL
+                  ${timedOrderBySats(1)}
+                  OFFSET $2
+                  LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+              }
+
+              if (decodedCursor.offset === 0) {
+                // get pins for the page and return those separately
+                pins = await models.$queryRaw(`SELECT rank_filter.*
+                  FROM (
+                    ${SELECT},
+                    rank() OVER (
+                        PARTITION BY "pinId"
+                        ORDER BY created_at DESC
+                    )
+                    FROM "Item"
+                    WHERE "pinId" IS NOT NULL
+                ) rank_filter WHERE RANK = 1`)
+              }
+              break
+          }
           break
       }
       return {
@@ -264,7 +291,7 @@ export default {
     comments: async (parent, { id, sort }, { models }) => {
       return comments(models, id, sort)
     },
-    search: async (parent, { q: query, cursor }, { models, search }) => {
+    search: async (parent, { q: query, sub, cursor }, { models, search }) => {
       const decodedCursor = decodeCursor(cursor)
       let sitems
 
@@ -276,47 +303,52 @@ export default {
           body: {
             query: {
               bool: {
-                must: {
-                  bool: {
-                    should: [
-                      {
+                must: [
+                  sub
+                    ? { term: { 'sub.name': sub } }
+                    : { bool: { must_not: { exists: { field: 'sub.name' } } } },
+                  {
+                    bool: {
+                      should: [
+                        {
                         // all terms are matched in fields
-                        multi_match: {
-                          query,
-                          type: 'most_fields',
-                          fields: ['title^20', 'text'],
-                          minimum_should_match: '100%',
-                          boost: 400
+                          multi_match: {
+                            query,
+                            type: 'most_fields',
+                            fields: ['title^20', 'text'],
+                            minimum_should_match: '100%',
+                            boost: 400
+                          }
+                        },
+                        {
+                          // all terms are matched in fields
+                          multi_match: {
+                            query,
+                            type: 'most_fields',
+                            fields: ['title^20', 'text'],
+                            fuzziness: 'AUTO',
+                            prefix_length: 3,
+                            minimum_should_match: '100%',
+                            boost: 20
+                          }
+                        },
+                        {
+                          // only some terms must match
+                          multi_match: {
+                            query,
+                            type: 'most_fields',
+                            fields: ['title^20', 'text'],
+                            fuzziness: 'AUTO',
+                            prefix_length: 3,
+                            minimum_should_match: '60%'
+                          }
                         }
-                      },
-                      {
-                      // all terms are matched in fields
-                        multi_match: {
-                          query,
-                          type: 'most_fields',
-                          fields: ['title^20', 'text'],
-                          fuzziness: 'AUTO',
-                          prefix_length: 3,
-                          minimum_should_match: '100%',
-                          boost: 20
-                        }
-                      },
-                      {
-                      // only some terms must match
-                        multi_match: {
-                          query,
-                          type: 'most_fields',
-                          fields: ['title^20', 'text'],
-                          fuzziness: 'AUTO',
-                          prefix_length: 3,
-                          minimum_should_match: '60%'
-                        }
-                      }
-                    // TODO: add wildcard matches for
-                    // user.name and url
-                    ]
+                        // TODO: add wildcard matches for
+                        // user.name and url
+                      ]
+                    }
                   }
-                },
+                ],
                 filter: {
                   range: {
                     createdAt: {
@@ -356,6 +388,36 @@ export default {
         cursor: items.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
         items
       }
+    },
+    auctionPosition: async (parent, { id, sub, bid }, { models }) => {
+      // count items that have a bid gte to the current bid + 1000 or
+      // gte current bid and older
+      const where = {
+        where: {
+          subName: sub,
+          OR: [{
+            maxBid: {
+              gte: bid + 1000
+            }
+          }, {
+            AND: [{
+              maxBid: {
+                gte: bid
+              }
+            }, {
+              createdAt: {
+                lt: new Date()
+              }
+            }]
+          }]
+        }
+      }
+
+      if (id) {
+        where.where.id = { not: Number(id) }
+      }
+
+      return await models.item.count(where) + 1
     }
   },
 
@@ -425,6 +487,51 @@ export default {
 
       return await updateItem(parent, { id, data: { title, text } }, { me, models })
     },
+    upsertJob: async (parent, { id, sub, title, text, url, maxBid }, { me, models }) => {
+      if (!me) {
+        throw new AuthenticationError('you must be logged in to create job')
+      }
+
+      if (!sub) {
+        throw new UserInputError('jobs must have a sub', { argumentName: 'sub' })
+      }
+
+      const fullSub = await models.sub.findUnique({ where: { name: sub } })
+      if (!fullSub) {
+        throw new UserInputError('not a valid sub', { argumentName: 'sub' })
+      }
+
+      const params = { title, text, url }
+      for (const param in params) {
+        if (!params[param]) {
+          throw new UserInputError(`jobs must have ${param}`, { argumentName: param })
+        }
+      }
+
+      if (fullSub.baseCost > maxBid) {
+        throw new UserInputError(`bid must be at least ${fullSub.baseCost}`, { argumentName: 'maxBid' })
+      }
+
+      const data = {
+        title,
+        text,
+        url,
+        maxBid,
+        subName: sub,
+        userId: me.id
+      }
+
+      if (id) {
+        return await models.item.update({
+          where: { id: Number(id) },
+          data
+        })
+      }
+
+      return await models.item.create({
+        data
+      })
+    },
     createComment: async (parent, { text, parentId }, { me, models }) => {
       if (!text) {
         throw new UserInputError('comment must have text', { argumentName: 'text' })
@@ -486,6 +593,13 @@ export default {
   },
 
   Item: {
+    sub: async (item, args, { models }) => {
+      if (!item.subName) {
+        return null
+      }
+
+      return await models.sub.findUnique({ where: { name: item.subName } })
+    },
     position: async (item, args, { models }) => {
       if (!item.pinId) {
         return null
@@ -735,7 +849,8 @@ function nestComments (flat, parentId) {
 // we have to do our own query because ltree is unsupported
 export const SELECT =
   `SELECT "Item".id, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt", "Item".title,
-  "Item".text, "Item".url, "Item"."userId", "Item"."parentId", "Item"."pinId", ltree2text("Item"."path") AS "path"`
+  "Item".text, "Item".url, "Item"."userId", "Item"."parentId", "Item"."pinId", "Item"."maxBid",
+  "Item"."subName", ltree2text("Item"."path") AS "path"`
 
 const LEFT_JOIN_SATS_SELECT = 'SELECT i.id, SUM(CASE WHEN "ItemAct".act = \'VOTE\' THEN "ItemAct".sats ELSE 0 END) as sats,  SUM(CASE WHEN "ItemAct".act = \'BOOST\' THEN "ItemAct".sats ELSE 0 END) as boost'
 

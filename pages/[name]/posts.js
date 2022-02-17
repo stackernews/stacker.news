@@ -6,14 +6,14 @@ import Items from '../../components/items'
 import { USER_WITH_POSTS } from '../../fragments/users'
 import { getGetServerSideProps } from '../../api/ssrApollo'
 
-export const getServerSideProps = getGetServerSideProps(USER_WITH_POSTS, { sort: 'user' })
+export const getServerSideProps = getGetServerSideProps(USER_WITH_POSTS)
 
-export default function UserPosts ({ data: { user, moreItems: { items, cursor } } }) {
+export default function UserPosts ({ data: { user, items: { items, cursor } } }) {
   const { data } = useQuery(USER_WITH_POSTS,
-    { variables: { name: user.name, sort: 'user' } })
+    { variables: { name: user.name } })
 
   if (data) {
-    ({ user, moreItems: { items, cursor } } = data)
+    ({ user, items: { items, cursor } } = data)
   }
 
   return (
@@ -23,7 +23,7 @@ export default function UserPosts ({ data: { user, moreItems: { items, cursor } 
       <div className='mt-2'>
         <Items
           items={items} cursor={cursor}
-          variables={{ sort: 'user', name: user.name }}
+          variables={{ name: user.name }}
         />
       </div>
     </Layout>

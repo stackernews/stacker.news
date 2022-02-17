@@ -2,13 +2,13 @@ import Layout from '../../../components/layout'
 import Items from '../../../components/items'
 import { useRouter } from 'next/router'
 import { getGetServerSideProps } from '../../../api/ssrApollo'
-import { MORE_ITEMS } from '../../../fragments/items'
+import { ITEMS } from '../../../fragments/items'
 
 import TopHeader from '../../../components/top-header'
 
-export const getServerSideProps = getGetServerSideProps(MORE_ITEMS, { sort: 'top' })
+export const getServerSideProps = getGetServerSideProps(ITEMS, { sort: 'top' })
 
-export default function Index ({ data: { moreItems: { items, cursor } } }) {
+export default function Index ({ data: { items: { items, cursor } } }) {
   const router = useRouter()
 
   return (

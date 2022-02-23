@@ -66,7 +66,6 @@ export default function Text ({ nofollow, children }) {
                   return <mark key={`mark-${match}-${i}`}>{match}</mark>
                 })
               : e)
-            console.log(href)
 
             return (
               /*  eslint-disable-next-line */

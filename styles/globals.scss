@@ -53,11 +53,6 @@ $tooltip-bg: #5c8001;
 
 @import "~bootstrap/scss/bootstrap";
 
-@font-face {
-  font-family: lightning;
-  src: url(/Lightningvolt-xoqm.ttf);
-}
-
 @media screen and (min-width: 767px) {
   .table-sm th, .table-sm td {
     padding: .3rem .75rem;

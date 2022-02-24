@@ -21,7 +21,7 @@ export default async function handler (req, res) {
     const searchQ = req.query.q ? `?q=${req.query.q}` : ''
     const s3PathPUT = s3PathPrefix + (joinedPath === '.' ? '_' : joinedPath) + searchQ
     const s3PathGET = s3PathPrefix + (joinedPath === '.' ? '_' : joinedPath) + encodeS3URI(searchQ)
-    const url = process.env.SELF_URL + '/' + joinedPath + searchQ
+    const url = process.env.PUBLIC_URL + '/' + joinedPath + searchQ
     const aws = new AWS.S3({apiVersion: '2006-03-01'})
 
     // check to see if we have a recent version of the object

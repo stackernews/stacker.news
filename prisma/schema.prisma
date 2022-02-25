@@ -80,6 +80,12 @@ model Message {
   userId Int
 }
 
+enum Status {
+  ACTIVE
+  STOPPED
+  NOSATS
+}
+
 model Item {
   id        Int                   @id @default(autoincrement())
   createdAt DateTime              @default(now()) @map(name: "created_at")
@@ -106,6 +112,8 @@ model Item {
   minSalary Int?
   maxSalary Int?
   maxBid    Int?
+  status    Status    @default(ACTIVE)
+  noSatsAt  DateTime?
   location  String?
   latitude  Float?
   longitude Float?

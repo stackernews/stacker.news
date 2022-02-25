@@ -5,6 +5,7 @@ const { PrismaClient } = require('@prisma/client')
 const { checkInvoice, checkWithdrawal } = require('./wallet')
 const { repin } = require('./repin')
 const { trust } = require('./trust')
+const { auction } = require('./auction')
 const { ApolloClient, HttpLink, InMemoryCache } = require('@apollo/client')
 const { indexItem, indexAllItems } = require('./search')
 const fetch = require('cross-fetch')
@@ -41,6 +42,7 @@ async function work () {
   await boss.work('trust', trust(args))
   await boss.work('indexItem', indexItem(args))
   await boss.work('indexAllItems', indexAllItems(args))
+  await boss.work('auction', auction(args))
 
   console.log('working jobs')
 }

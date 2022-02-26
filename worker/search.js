@@ -17,6 +17,7 @@ const ITEM_SEARCH_FIELDS = gql`
     sub {
       name
     }
+    status
     maxBid
     upvotes
     sats

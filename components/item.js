@@ -69,6 +69,7 @@ export function ItemJob ({ item, rank, children }) {
                     edit
                   </a>
                 </Link>
+                {item.status !== 'ACTIVE' && <span className='font-weight-bold text-danger'> {item.status}</span>}
               </>}
           </div>
         </div>

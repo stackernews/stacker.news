@@ -25,7 +25,7 @@ export default gql`
     updateDiscussion(id: ID!, title: String!, text: String): Item!
     createComment(text: String!, parentId: ID!): Item!
     updateComment(id: ID!, text: String!): Item!
-    upsertJob(id: ID, sub: ID!, title: String!, text: String!, url: String!, maxBid: Int!): Item!
+    upsertJob(id: ID, sub: ID!, title: String!, text: String!, url: String!, maxBid: Int!, status: String): Item!
     act(id: ID!, sats: Int): ItemActResult!
   }
 
@@ -67,5 +67,6 @@ export default gql`
     prior: Int
     maxBid: Int
     sub: Sub
+    status: String
   }
 `

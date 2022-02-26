@@ -22,6 +22,7 @@ export const ITEM_FIELDS = gql`
       name
       baseCost
     }
+    status
     mine
     root {
       id

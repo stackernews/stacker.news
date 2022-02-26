@@ -1,4 +1,4 @@
-import { Form, Input, MarkdownInput, SubmitButton } from './form'
+import { Checkbox, Form, Input, MarkdownInput, SubmitButton } from './form'
 import TextareaAutosize from 'react-textarea-autosize'
 import { InputGroup, Modal } from 'react-bootstrap'
 import * as Yup from 'yup'
@@ -8,6 +8,7 @@ import AccordianItem from './accordian-item'
 import styles from '../styles/post.module.css'
 import { useLazyQuery, gql, useMutation } from '@apollo/client'
 import { useRouter } from 'next/router'
+import Link from 'next/link'
 
 Yup.addMethod(Yup.string, 'or', function (schemas, msg) {
   return this.test({
@@ -41,8 +42,10 @@ export default function JobForm ({ item, sub }) {
     }`,
   { fetchPolicy: 'network-only' })
   const [upsertJob] = useMutation(gql`
-    mutation upsertJob($id: ID, $title: String!, $text: String!, $url: String!, $maxBid: Int!) {
-      upsertJob(sub: "${sub.name}", id: $id title: $title, text: $text, url: $url, maxBid: $maxBid) {
+    mutation upsertJob($id: ID, $title: String!, $text: String!,
+      $url: String!, $maxBid: Int!, $status: String) {
+      upsertJob(sub: "${sub.name}", id: $id title: $title, text: $text,
+        url: $url, maxBid: $maxBid, status: $status) {
         id
       }
     }`
@@ -118,12 +121,21 @@ export default function JobForm ({ item, sub }) {
           title: item?.title || '',
           text: item?.text || '',
           url: item?.url || '',
-          maxBid: item?.maxBid || sub.baseCost
+          maxBid: item?.maxBid || sub.baseCost,
+          stop: false,
+          start: false
         }}
         schema={JobSchema}
         storageKeyPrefix={storageKeyPrefix}
-        onSubmit={(async ({ maxBid, ...values }) => {
-          const variables = { sub: sub.name, maxBid: Number(maxBid), ...values }
+        onSubmit={(async ({ maxBid, stop, start, ...values }) => {
+          let status
+          if (start) {
+            status = 'ACTIVE'
+          } else if (stop) {
+            status = 'STOPPED'
+          }
+
+          const variables = { sub: sub.name, maxBid: Number(maxBid), status, ...values }
           if (item) {
             variables.id = item.id
           }
@@ -176,8 +188,57 @@ export default function JobForm ({ item, sub }) {
           hint={<span className='text-muted'>up to {pull} sats/min will be pulled from your wallet</span>}
         />
         <div className='font-weight-bold text-muted'>This bid puts your job in position: {position}</div>
+        {item && <StatusControl item={item} />}
         <SubmitButton variant='secondary' className='mt-3'>{item ? 'save' : 'post'}</SubmitButton>
       </Form>
     </>
+  )
+}
+
+function StatusControl ({ item }) {
+  let StatusComp
+
+  if (item.status === 'ACTIVE') {
+    StatusComp = () => {
+      return (
+        <AccordianItem
+          header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>I want to stop my job</div>}
+          headerColor='var(--danger)'
+          body={
+            <Checkbox
+              label={<div className='font-weight-bold text-danger'>stop my job</div>} name='stop' inline
+            />
+          }
+        />
+      )
+    }
+  } else if (item.status === 'STOPPED') {
+    StatusComp = () => {
+      return (
+        <AccordianItem
+          header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>I want to resume my job</div>}
+          headerColor='var(--success)'
+          body={
+            <Checkbox
+              label={<div className='font-weight-bold text-success'>resume my job</div>} name='start' inline
+            />
+          }
+        />
+      )
+    }
+  } else {
+    StatusComp = () => {
+      return (
+        <div style={{ fontWeight: 'bold', color: 'var(--danger)' }}>
+          you have no sats! <Link href='/wallet?type=fund' passHref><a className='text-reset text-underline'>fund your wallet</a></Link> to resume your job
+        </div>
+      )
+    }
+  }
+
+  return (
+    <div className='my-2'>
+      <StatusComp />
+    </div>
   )
 }

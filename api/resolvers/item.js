@@ -78,7 +78,11 @@ export default {
       let items; let user; let pins; let subFull
 
       const subClause = (num) => {
-        return sub ? ` AND "subName" = $${num} ` : `AND ("subName" IS NULL OR "subName" = $${3}) `
+        return sub ? ` AND "subName" = $${num} ` : ` AND ("subName" IS NULL OR "subName" = $${3}) `
+      }
+
+      const activeOrMine = () => {
+        return me ? ` AND (status = 'ACTIVE' OR "userId" = ${me.id}) ` : ' AND status = \'ACTIVE\' '
       }
 
       switch (sort) {
@@ -97,6 +101,7 @@ export default {
             FROM "Item"
             WHERE "userId" = $1 AND "parentId" IS NULL AND created_at <= $2
             AND "pinId" IS NULL
+            ${activeOrMine()}
             ORDER BY created_at DESC
             OFFSET $3
             LIMIT ${LIMIT}`, user.id, decodedCursor.time, decodedCursor.offset)
@@ -107,6 +112,7 @@ export default {
             FROM "Item"
             WHERE "parentId" IS NULL AND created_at <= $1 AND "pinId" IS NULL
             ${subClause(3)}
+            ${activeOrMine()}
             ORDER BY created_at DESC
             OFFSET $2
             LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, sub || 'NULL')
@@ -140,6 +146,7 @@ export default {
                 WHERE "parentId" IS NULL AND created_at <= $1
                 AND "pinId" IS NULL
                 ${subClause(3)}
+                AND status = 'ACTIVE'
                 ORDER BY "maxBid" / 1000 DESC, created_at ASC
                 OFFSET $2
                 LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, sub)
@@ -291,7 +298,7 @@ export default {
     comments: async (parent, { id, sort }, { models }) => {
       return comments(models, id, sort)
     },
-    search: async (parent, { q: query, sub, cursor }, { models, search }) => {
+    search: async (parent, { q: query, sub, cursor }, { me, models, search }) => {
       const decodedCursor = decodeCursor(cursor)
       let sitems
 
@@ -305,8 +312,18 @@ export default {
               bool: {
                 must: [
                   sub
-                    ? { term: { 'sub.name': sub } }
+                    ? { match: { 'sub.name': sub } }
                     : { bool: { must_not: { exists: { field: 'sub.name' } } } },
+                  me
+                    ? {
+                        bool: {
+                          should: [
+                            { match: { status: 'ACTIVE' } },
+                            { match: { userId: me.id } }
+                          ]
+                        }
+                      }
+                    : { match: { status: 'ACTIVE' } },
                   {
                     bool: {
                       should: [
@@ -395,6 +412,7 @@ export default {
       const where = {
         where: {
           subName: sub,
+          status: 'ACTIVE',
           OR: [{
             maxBid: {
               gte: bid + 1000
@@ -487,7 +505,7 @@ export default {
 
       return await updateItem(parent, { id, data: { title, text } }, { me, models })
     },
-    upsertJob: async (parent, { id, sub, title, text, url, maxBid }, { me, models }) => {
+    upsertJob: async (parent, { id, sub, title, text, url, maxBid, status }, { me, models }) => {
       if (!me) {
         throw new AuthenticationError('you must be logged in to create job')
       }
@@ -512,6 +530,15 @@ export default {
         throw new UserInputError(`bid must be at least ${fullSub.baseCost}`, { argumentName: 'maxBid' })
       }
 
+      const checkSats = async () => {
+        // check if the user has the funds to run for the first minute
+        const minuteMsats = maxBid * 1000 / 30 / 24 / 60
+        const user = models.user.findUnique({ where: { id: me.id } })
+        if (user.msats < minuteMsats) {
+          throw new UserInputError('insufficient funds')
+        }
+      }
+
       const data = {
         title,
         text,
@@ -522,12 +549,23 @@ export default {
       }
 
       if (id) {
+        if (status) {
+          data.status = status
+
+          // if the job is changing to active, we need to check they have funds
+          if (status === 'ACTIVE') {
+            await checkSats()
+          }
+        }
+
         return await models.item.update({
           where: { id: Number(id) },
           data
         })
       }
 
+      // before creating job, check the sats
+      await checkSats()
       return await models.item.create({
         data
       })
@@ -850,7 +888,7 @@ function nestComments (flat, parentId) {
 export const SELECT =
   `SELECT "Item".id, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt", "Item".title,
   "Item".text, "Item".url, "Item"."userId", "Item"."parentId", "Item"."pinId", "Item"."maxBid",
-  "Item"."subName", ltree2text("Item"."path") AS "path"`
+  "Item"."subName", "Item".status, ltree2text("Item"."path") AS "path"`
 
 const LEFT_JOIN_SATS_SELECT = 'SELECT i.id, SUM(CASE WHEN "ItemAct".act = \'VOTE\' THEN "ItemAct".sats ELSE 0 END) as sats,  SUM(CASE WHEN "ItemAct".act = \'BOOST\' THEN "ItemAct".sats ELSE 0 END) as boost'
 

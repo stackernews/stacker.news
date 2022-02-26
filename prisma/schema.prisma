@@ -109,15 +109,15 @@ model Item {
   subName String? @db.Citext
 
   // fields exclusively for job post types right now
-  minSalary Int?
-  maxSalary Int?
-  maxBid    Int?
-  status    Status    @default(ACTIVE)
-  noSatsAt  DateTime?
-  location  String?
-  latitude  Float?
-  longitude Float?
-  remote    Boolean?
+  minSalary       Int?
+  maxSalary       Int?
+  maxBid          Int?
+  status          Status    @default(ACTIVE)
+  statusUpdatedAt DateTime?
+  location        String?
+  latitude        Float?
+  longitude       Float?
+  remote          Boolean?
 
   User User[] @relation("Item")
 

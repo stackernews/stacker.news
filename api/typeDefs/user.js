@@ -46,7 +46,6 @@ export default gql`
     tipDefault: Int!
     bio: Item
     sats: Int!
-    msats: Int!
     upvotePopover: Boolean!
     tipPopover: Boolean!
   }

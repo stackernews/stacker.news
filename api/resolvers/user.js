@@ -159,7 +159,7 @@ export default {
       if (me?.id !== user.id) {
         return 0
       }
-      return Math.floor(user.msats / 1000)
+      return Math.floor(user.msats / 1000.0)
     },
     bio: async (user, args, { models }) => {
       return getItem(user, { id: user.bioId }, { models })

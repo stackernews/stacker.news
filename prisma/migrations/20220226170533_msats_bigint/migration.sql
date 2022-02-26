@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "users" ALTER COLUMN "msats" SET DEFAULT 0,
+ALTER COLUMN "msats" SET DATA TYPE BIGINT;

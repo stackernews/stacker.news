@@ -104,6 +104,14 @@ export default {
           WHERE "Invite"."userId" = $1
           AND users.created_at <= $2
           GROUP BY "Invite".id)
+          UNION ALL
+        (SELECT "Item".id::text, "Item"."statusUpdatedAt" AS "sortTime", NULL as "earnedSats",
+            'JobChanged' AS type
+            FROM "Item"
+            WHERE "Item"."userId" = $1
+            AND "maxBid" IS NOT NULL
+            AND status <> 'STOPPED'
+            AND "statusUpdatedAt" <= $2)
         ORDER BY "sortTime" DESC
         OFFSET $3
         LIMIT ${LIMIT}`, me.id, decodedCursor.time, decodedCursor.offset)
@@ -127,6 +135,9 @@ export default {
     item: async (n, args, { models }) => getItem(n, { id: n.id }, { models })
   },
   Reply: {
+    item: async (n, args, { models }) => getItem(n, { id: n.id }, { models })
+  },
+  JobChanged: {
     item: async (n, args, { models }) => getItem(n, { id: n.id }, { models })
   },
   Mention: {

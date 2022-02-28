@@ -1,6 +1,6 @@
 import { useQuery } from '@apollo/client'
 import Comment, { CommentSkeleton } from './comment'
-import Item from './item'
+import Item, { ItemJob } from './item'
 import { NOTIFICATIONS } from '../fragments/notifications'
 import { useRouter } from 'next/router'
 import MoreFooter from './more-footer'
@@ -58,13 +58,21 @@ function Notification ({ n }) {
               <small className='font-weight-bold text-info ml-2'>
                 you were mentioned in
               </small>}
-            <div className={n.__typename === 'Votification' || n.__typename === 'Mention' ? '' : 'py-2'}>
-              {n.item.title
-                ? <Item item={n.item} />
-                : (
-                  <div className='pb-2'>
-                    <Comment item={n.item} noReply includeParent rootText={n.__typename === 'Reply' ? 'replying on:' : undefined} clickToContext />
-                  </div>)}
+            {n.__typename === 'JobChanged' &&
+              <small className={`font-weight-bold text-${n.item.status === 'NOSATS' ? 'danger' : 'success'} ml-1`}>
+                {n.item.status === 'NOSATS'
+                  ? 'your job ran out of sats'
+                  : 'your job is active again'}
+              </small>}
+            <div className={n.__typename === 'Votification' || n.__typename === 'Mention' || n.__typename === 'JobChanged' ? '' : 'py-2'}>
+              {n.item.maxBid
+                ? <ItemJob item={n.item} />
+                : n.item.title
+                  ? <Item item={n.item} />
+                  : (
+                    <div className='pb-2'>
+                      <Comment item={n.item} noReply includeParent rootText={n.__typename === 'Reply' ? 'replying on:' : undefined} clickToContext />
+                    </div>)}
             </div>
           </>)}
     </div>

@@ -78,7 +78,7 @@ export default {
       let items; let user; let pins; let subFull
 
       const subClause = (num) => {
-        return sub ? ` AND "subName" = $${num} ` : ` AND ("subName" IS NULL OR "subName" = $${3}) `
+        return sub ? ` AND "subName" = $${num} ` : ` AND ("subName" IS NULL OR "subName" = $${num}) `
       }
 
       const activeOrMine = () => {
@@ -165,9 +165,10 @@ export default {
                   ${timedLeftJoinWeightedSats(1)}
                   WHERE "parentId" IS NULL AND created_at <= $1 AND created_at > $3
                   AND "pinId" IS NULL
+                  ${subClause(4)}
                   ${timedOrderBySats(1)}
                   OFFSET $2
-                  LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, new Date(new Date() - 7))
+                  LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, new Date(new Date() - 7), sub || 'NULL')
               }
 
               if (decodedCursor.offset !== 0 || items?.length < LIMIT) {
@@ -177,9 +178,10 @@ export default {
                   ${timedLeftJoinWeightedSats(1)}
                   WHERE "parentId" IS NULL AND created_at <= $1
                   AND "pinId" IS NULL
+                  ${subClause(3)}
                   ${timedOrderBySats(1)}
                   OFFSET $2
-                  LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+                  LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, sub || 'NULL')
               }
 
               if (decodedCursor.offset === 0) {
@@ -532,8 +534,9 @@ export default {
 
       const checkSats = async () => {
         // check if the user has the funds to run for the first minute
-        const minuteMsats = maxBid / 1296
-        const user = models.user.findUnique({ where: { id: me.id } })
+        const minuteMsats = maxBid * 5 / 216
+        const user = await models.user.findUnique({ where: { id: me.id } })
+        console.log(user, user.msats, minuteMsats)
         if (user.msats < minuteMsats) {
           throw new UserInputError('insufficient funds')
         }

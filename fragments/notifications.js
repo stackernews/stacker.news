@@ -41,6 +41,12 @@ export const NOTIFICATIONS = gql`
             ...InviteFields
           }
         }
+        ... on JobChanged {
+          sortTime
+          item {
+            ...ItemFields
+          }
+        }
       }
     }
   } `

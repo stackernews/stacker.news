@@ -27,7 +27,12 @@ export default gql`
     sortTime: String!
   }
 
-  union Notification = Reply | Votification | Mention | Invitification
+  type JobChanged {
+    item: Item!
+    sortTime: String!
+  }
+
+  union Notification = Reply | Votification | Mention | Invitification | JobChanged
 
   type Notifications {
     lastChecked: String

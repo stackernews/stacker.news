@@ -210,6 +210,23 @@ export default {
         return true
       }
 
+      const job = await models.item.findFirst({
+        where: {
+          status: {
+            not: 'STOPPED'
+          },
+          maxBid: {
+            not: null
+          },
+          statusUpdatedAt: {
+            gt: user.checkedNotesAt
+          }
+        }
+      })
+      if (job) {
+        return true
+      }
+
       // check if new invites have been redeemed
       const newInvitees = await models.$queryRaw(`
         SELECT "Invite".id

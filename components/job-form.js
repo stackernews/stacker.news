@@ -92,7 +92,7 @@ export default function JobForm ({ item, sub }) {
               <div>
                 <ol>
                   <li>You only pay as many sats/mo as required to maintain your position relative to other
-                    posts and only up to your max bid.
+                    posts (or {sub.baseCost} sats/mo) and only up to your max bid.
                   </li>
                   <li>Your sats/mo must be a multiple of 1000 sats</li>
                 </ol>
@@ -147,7 +147,7 @@ export default function JobForm ({ item, sub }) {
           if (item) {
             router.push(`/items/${item.id}`)
           } else {
-            router.push(`/$${sub.name}/recent`)
+            router.push(`/~${sub.name}/recent`)
           }
         })}
       >
@@ -198,21 +198,24 @@ export default function JobForm ({ item, sub }) {
 function StatusControl ({ item }) {
   let StatusComp
 
-  if (item.status === 'ACTIVE') {
+  if (item.status !== 'STOPPED') {
     StatusComp = () => {
       return (
-        <AccordianItem
-          header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>I want to stop my job</div>}
-          headerColor='var(--danger)'
-          body={
-            <Checkbox
-              label={<div className='font-weight-bold text-danger'>stop my job</div>} name='stop' inline
-            />
+        <>
+
+          <AccordianItem
+            header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>I want to stop my job</div>}
+            headerColor='var(--danger)'
+            body={
+              <Checkbox
+                label={<div className='font-weight-bold text-danger'>stop my job</div>} name='stop' inline
+              />
           }
-        />
+          />
+        </>
       )
     }
-  } else if (item.status === 'STOPPED') {
+  } else {
     StatusComp = () => {
       return (
         <AccordianItem
@@ -226,18 +229,14 @@ function StatusControl ({ item }) {
         />
       )
     }
-  } else {
-    StatusComp = () => {
-      return (
-        <div style={{ fontWeight: 'bold', color: 'var(--danger)' }}>
-          you have no sats! <Link href='/wallet?type=fund' passHref><a className='text-reset text-underline'>fund your wallet</a></Link> to resume your job
-        </div>
-      )
-    }
   }
 
   return (
     <div className='my-2'>
+      {item.status === 'NOSATS' &&
+        <div className='text-danger font-weight-bold my-1'>
+          you have no sats! <Link href='/wallet?type=fund' passHref><a className='text-reset text-underline'>fund your wallet</a></Link> to resume your job
+        </div>}
       <StatusComp />
     </div>
   )

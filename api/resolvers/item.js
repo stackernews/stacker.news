@@ -536,7 +536,6 @@ export default {
         // check if the user has the funds to run for the first minute
         const minuteMsats = maxBid * 5 / 216
         const user = await models.user.findUnique({ where: { id: me.id } })
-        console.log(user, user.msats, minuteMsats)
         if (user.msats < minuteMsats) {
           throw new UserInputError('insufficient funds')
         }

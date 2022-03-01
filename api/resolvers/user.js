@@ -210,19 +210,22 @@ export default {
         return true
       }
 
-      const job = await models.item.findFirst({
-        where: {
-          status: {
-            not: 'STOPPED'
-          },
-          maxBid: {
-            not: null
-          },
-          statusUpdatedAt: {
-            gt: user.checkedNotesAt
-          }
+      const where = {
+        status: {
+          not: 'STOPPED'
+        },
+        maxBid: {
+          not: null
         }
-      })
+      }
+
+      if (user.checkedNotesAt) {
+        where.statusUpdatedAt = {
+          gt: user.checkedNotesAt
+        }
+      }
+
+      const job = user.checkedNotesAt && await models.item.findFirst({ where })
       if (job) {
         return true
       }

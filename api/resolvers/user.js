@@ -216,7 +216,8 @@ export default {
         },
         maxBid: {
           not: null
-        }
+        },
+        userId: user.id
       }
 
       if (user.checkedNotesAt) {
@@ -224,8 +225,7 @@ export default {
           gt: user.checkedNotesAt
         }
       }
-
-      const job = user.checkedNotesAt && await models.item.findFirst({ where })
+      const job = await models.item.findFirst({ where })
       if (job) {
         return true
       }

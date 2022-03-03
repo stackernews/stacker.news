@@ -5,6 +5,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 /* Use `…/dist/cjs/…` if you’re not in ESM! */
 import { atomDark } from 'react-syntax-highlighter/dist/cjs/styles/prism'
 import mention from '../lib/remark-mention'
+import sub from '../lib/remark-sub'
 import remarkDirective from 'remark-directive'
 import { visit } from 'unist-util-visit'
 import reactStringReplace from 'react-string-replace'
@@ -80,7 +81,7 @@ export default function Text ({ nofollow, children }) {
             )
           }
         }}
-        remarkPlugins={[gfm, mention, remarkDirective, myRemarkPlugin]}
+        remarkPlugins={[gfm, mention, sub, remarkDirective, myRemarkPlugin]}
       >
         {children}
       </ReactMarkdown>

@@ -58,9 +58,9 @@ export default function JobForm ({ item, sub }) {
       .or([Yup.string().email(), Yup.string().url()], 'invalid url or email')
       .required('Required'),
     maxBid: Yup.number('must be number')
-      .integer('must be integer').min(sub.baseCost, 'must be at least 10000')
+      .integer('must be integer').min(sub.baseCost, `must be at least ${sub.baseCost}`)
       .max(100000000, 'must be less than 100000000')
-      .test('multiple', 'must be a multiple of 1000 sats', (val) => val % 1000 === 0)
+      .test('multiple', `must be a multiple of ${sub.deltaCost} sats`, (val) => val % sub.deltaCost === 0)
   })
 
   const position = data?.auctionPosition
@@ -82,37 +82,10 @@ export default function JobForm ({ item, sub }) {
           <ol className='font-weight-bold'>
             <li>The higher your bid the higher your job will rank</li>
             <li>The minimum bid is {sub.baseCost} sats/mo</li>
-            <li>You can increase or decrease your bid at anytime</li>
-            <li>You can edit or remove your job at anytime</li>
+            <li>Your sats/mo must be a multiple of {sub.deltaCost} sats</li>
+            <li>You can increase or decrease your bid, and edit or stop your job at anytime</li>
             <li>Your job will be hidden if your wallet runs out of sats and can be unhidden by filling your wallet again</li>
           </ol>
-          <AccordianItem
-            header={<div className='font-weight-bold'>How does ranking work in detail?</div>}
-            body={
-              <div>
-                <ol>
-                  <li>You only pay as many sats/mo as required to maintain your position relative to other
-                    posts (or {sub.baseCost} sats/mo) and only up to your max bid.
-                  </li>
-                  <li>Your sats/mo must be a multiple of 1000 sats</li>
-                </ol>
-
-                <div className='font-weight-bold text-muted'>By example</div>
-                <p>If your post's (A's) max bid is higher than another post (B) by at least
-                  1000 sats/mo your post will rank higher and your wallet will pay 1000
-                  sats/mo more than B.
-                </p>
-                <p>If another post (C) comes along whose max bid is higher than B's but less
-                  than your's (A's), C will pay 1000 sats/mo more than B, and you will pay 1000 sats/mo
-                  more than C.
-                </p>
-                <p>If a post (D) comes along whose max bid is higher than your's (A's), D
-                  will pay 1000 stat/mo more than you (A), and the amount you (A) pays won't
-                  change.
-                </p>
-              </div>
-}
-          />
         </Modal.Body>
       </Modal>
       <Form
@@ -171,7 +144,7 @@ export default function JobForm ({ item, sub }) {
         />
         <Input
           label={
-            <div className='d-flex align-items-center'>max bid
+            <div className='d-flex align-items-center'>bid
               <Info width={18} height={18} className='fill-theme-color pointer ml-1' onClick={() => setInfo(true)} />
             </div>
           }
@@ -185,7 +158,7 @@ export default function JobForm ({ item, sub }) {
             }
           }}
           append={<InputGroup.Text className='text-monospace'>sats/month</InputGroup.Text>}
-          hint={<span className='text-muted'>up to {pull} sats/min will be pulled from your wallet</span>}
+          hint={<span className='text-muted'>{pull} sats/min will be pulled from your wallet</span>}
         />
         <div className='font-weight-bold text-muted'>This bid puts your job in position: {position}</div>
         {item && <StatusControl item={item} />}

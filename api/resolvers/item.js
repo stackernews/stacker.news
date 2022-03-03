@@ -147,7 +147,7 @@ export default {
                 AND "pinId" IS NULL
                 ${subClause(3)}
                 AND status = 'ACTIVE'
-                ORDER BY "maxBid" / 1000 DESC, created_at ASC
+                ORDER BY "maxBid" DESC, created_at ASC
                 OFFSET $2
                 LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, sub)
               break
@@ -409,27 +409,15 @@ export default {
       }
     },
     auctionPosition: async (parent, { id, sub, bid }, { models }) => {
-      // count items that have a bid gte to the current bid + 1000 or
+      // count items that have a bid gte to the current bid or
       // gte current bid and older
       const where = {
         where: {
           subName: sub,
           status: 'ACTIVE',
-          OR: [{
-            maxBid: {
-              gte: bid + 1000
-            }
-          }, {
-            AND: [{
-              maxBid: {
-                gte: bid
-              }
-            }, {
-              createdAt: {
-                lt: new Date()
-              }
-            }]
-          }]
+          maxBid: {
+            gte: bid
+          }
         }
       }
 
@@ -530,6 +518,10 @@ export default {
 
       if (fullSub.baseCost > maxBid) {
         throw new UserInputError(`bid must be at least ${fullSub.baseCost}`, { argumentName: 'maxBid' })
+      }
+
+      if (maxBid % fullSub.deltaCost !== 0) {
+        throw new UserInputError(`bid must be a multiple of ${fullSub.deltaCost}`, { argumentName: 'maxBid' })
       }
 
       const checkSats = async () => {

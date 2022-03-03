@@ -176,7 +176,7 @@ export default function Header ({ sub }) {
                 ? <Link href='/' passHref><Nav.Link className={styles.navLink}>home</Nav.Link></Link>
                 : <Link href='/~jobs' passHref><Nav.Link className={styles.navLink}>~jobs</Nav.Link></Link>}
             </Nav.Item>
-            <Nav.Item className='text-monospace nav-link'>
+            <Nav.Item className={`text-monospace nav-link ${sub || me?.name.length > 6 ? 'd-none d-sm-flex' : ''}`}>
               <Price />
             </Nav.Item>
             <Corner />

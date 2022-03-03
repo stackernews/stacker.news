@@ -23,7 +23,7 @@ export default function UserPosts ({ data: { user, items: { items, cursor } } })
       <div className='mt-2'>
         <Items
           items={items} cursor={cursor}
-          variables={{ name: user.name }}
+          variables={{ name: user.name, sort: 'user' }}
         />
       </div>
     </Layout>

@@ -43,9 +43,6 @@ export async function getItem (parent, { id }, { models }) {
   ${SELECT}
   FROM "Item"
   WHERE id = $1`, Number(id))
-  if (item) {
-    item.comments = comments(models, id, 'hot')
-  }
   return item
 }
 
@@ -675,6 +672,9 @@ export default {
         FROM "Item"
         WHERE path <@ text2ltree(${item.path}) AND id != ${Number(item.id)}`
       return count || 0
+    },
+    comments: async (item, args, { models }) => {
+      return comments(models, item.id, 'hot')
     },
     sats: async (item, args, { models }) => {
       const { sum: { sats } } = await models.itemAct.aggregate({

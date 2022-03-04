@@ -64,14 +64,10 @@ export const USER_FULL = gql`
 
 export const USER_WITH_COMMENTS = gql`
   ${USER_FIELDS}
-  ${ITEM_WITH_COMMENTS}
   ${COMMENT_FIELDS}
   query UserWithComments($name: String!) {
     user(name: $name) {
       ...UserFields
-      bio {
-        ...ItemWithComments
-      }
     }
     moreFlatComments(sort: "user", name: $name) {
       cursor
@@ -83,14 +79,10 @@ export const USER_WITH_COMMENTS = gql`
 
 export const USER_WITH_POSTS = gql`
   ${USER_FIELDS}
-  ${ITEM_WITH_COMMENTS}
   ${ITEM_FIELDS}
   query UserWithPosts($name: String!) {
     user(name: $name) {
       ...UserFields
-      bio {
-        ...ItemWithComments
-      }
     }
     items(sort: "user", name: $name) {
       cursor

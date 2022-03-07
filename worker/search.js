@@ -19,6 +19,9 @@ const ITEM_SEARCH_FIELDS = gql`
     }
     status
     maxBid
+    company
+    location
+    remote
     upvotes
     sats
     boost
@@ -28,13 +31,24 @@ const ITEM_SEARCH_FIELDS = gql`
 
 async function _indexItem (item) {
   console.log('indexing item', item.id)
+
+  // HACK: modify the title for jobs so that company/location are searchable
+  // and highlighted without further modification
+  const itemcp = { ...item }
+  if (item.company) {
+    itemcp.title += ` \\ ${item.company}`
+  }
+  if (item.location || item.remote) {
+    itemcp.title += ` \\ ${item.location || ''}${item.location && item.remote ? ' or ' : ''}${item.remote ? 'Remote' : ''}`
+  }
+
   try {
     await search.index({
       id: item.id,
       index: 'item',
       version: new Date(item.updatedAt).getTime(),
       versionType: 'external_gte',
-      body: item
+      body: itemcp
     })
   } catch (e) {
     // ignore version conflict ...

@@ -18,6 +18,9 @@ export const ITEM_FIELDS = gql`
     meSats
     ncomments
     maxBid
+    company
+    location
+    remote
     sub {
       name
       baseCost

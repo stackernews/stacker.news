@@ -115,6 +115,7 @@ model Item {
   status          Status    @default(ACTIVE)
   statusUpdatedAt DateTime?
   location        String?
+  company         String?
   latitude        Float?
   longitude       Float?
   remote          Boolean?

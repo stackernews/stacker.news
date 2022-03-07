@@ -11,3 +11,10 @@
 .close:hover {
     opacity: 0.7;
 }
+
+.inlineCheckGroup {
+    margin-left: .5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}

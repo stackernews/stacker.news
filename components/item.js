@@ -34,7 +34,21 @@ export function ItemJob ({ item, rank, children }) {
           <div className={`${styles.main} flex-wrap d-inline`}>
             <Link href={`/items/${item.id}`} passHref>
               <a className={`${styles.title} text-reset mr-2`}>
-                {item.searchTitle ? <SearchTitle title={item.searchTitle} /> : item.title}
+                {item.searchTitle
+                  ? <SearchTitle title={item.searchTitle} />
+                  : (
+                    <>{item.title}
+                      {item.company &&
+                        <>
+                          <span> \ </span>
+                          {item.company}
+                        </>}
+                      {(item.location || item.remote) &&
+                        <>
+                          <span> \ </span>
+                          {`${item.location || ''}${item.location && item.remote ? ' or ' : ''}${item.remote ? 'Remote' : ''}`}
+                        </>}
+                    </>)}
               </a>
             </Link>
             {/*  eslint-disable-next-line */}

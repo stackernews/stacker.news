@@ -492,13 +492,9 @@ export default {
 
       return await updateItem(parent, { id, data: { title, text } }, { me, models })
     },
-    upsertJob: async (parent, { id, sub, title, text, url, maxBid, status }, { me, models }) => {
+    upsertJob: async (parent, { id, sub, title, company, location, remote, text, url, maxBid, status }, { me, models }) => {
       if (!me) {
         throw new AuthenticationError('you must be logged in to create job')
-      }
-
-      if (!sub) {
-        throw new UserInputError('jobs must have a sub', { argumentName: 'sub' })
       }
 
       const fullSub = await models.sub.findUnique({ where: { name: sub } })
@@ -506,20 +502,17 @@ export default {
         throw new UserInputError('not a valid sub', { argumentName: 'sub' })
       }
 
-      const params = { title, text, url }
-      for (const param in params) {
-        if (!params[param]) {
-          throw new UserInputError(`jobs must have ${param}`, { argumentName: param })
-        }
-      }
-
       if (fullSub.baseCost > maxBid) {
         throw new UserInputError(`bid must be at least ${fullSub.baseCost}`, { argumentName: 'maxBid' })
       }
 
+      if (!location && !remote) {
+        throw new UserInputError('must specify location or remote', { argumentName: 'location' })
+      }
+
       const checkSats = async () => {
         // check if the user has the funds to run for the first minute
-        const minuteMsats = maxBid * 5 / 216
+        const minuteMsats = maxBid * 1000
         const user = await models.user.findUnique({ where: { id: me.id } })
         if (user.msats < minuteMsats) {
           throw new UserInputError('insufficient funds')
@@ -528,6 +521,9 @@ export default {
 
       const data = {
         title,
+        company,
+        location: location.toLowerCase() === 'remote' ? undefined : location,
+        remote,
         text,
         url,
         maxBid,
@@ -878,6 +874,7 @@ function nestComments (flat, parentId) {
 export const SELECT =
   `SELECT "Item".id, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt", "Item".title,
   "Item".text, "Item".url, "Item"."userId", "Item"."parentId", "Item"."pinId", "Item"."maxBid",
+  "Item".company, "Item".location, "Item".remote,
   "Item"."subName", "Item".status, ltree2text("Item"."path") AS "path"`
 
 const LEFT_JOIN_SATS_SELECT = 'SELECT i.id, SUM(CASE WHEN "ItemAct".act = \'VOTE\' THEN "ItemAct".sats ELSE 0 END) as sats,  SUM(CASE WHEN "ItemAct".act = \'BOOST\' THEN "ItemAct".sats ELSE 0 END) as boost'

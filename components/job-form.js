@@ -1,6 +1,6 @@
 import { Checkbox, Form, Input, MarkdownInput, SubmitButton } from './form'
 import TextareaAutosize from 'react-textarea-autosize'
-import { InputGroup, Modal } from 'react-bootstrap'
+import { InputGroup, Modal, Form as BForm, Col } from 'react-bootstrap'
 import * as Yup from 'yup'
 import { useEffect, useState } from 'react'
 import Info from '../svgs/information-fill.svg'
@@ -54,9 +54,10 @@ export default function JobForm ({ item, sub }) {
     }`,
   { fetchPolicy: 'network-only' })
   const [upsertJob] = useMutation(gql`
-    mutation upsertJob($id: ID, $title: String!, $text: String!,
-      $url: String!, $maxBid: Int!, $status: String) {
-      upsertJob(sub: "${sub.name}", id: $id title: $title, text: $text,
+    mutation upsertJob($id: ID, $title: String!, $company: String!, $location: String,
+      $remote: Boolean, $text: String!, $url: String!, $maxBid: Int!, $status: String) {
+      upsertJob(sub: "${sub.name}", id: $id, title: $title, company: $company,
+        location: $location, remote: $remote, text: $text,
         url: $url, maxBid: $maxBid, status: $status) {
         id
       }
@@ -65,12 +66,17 @@ export default function JobForm ({ item, sub }) {
 
   const JobSchema = Yup.object({
     title: Yup.string().required('required').trim(),
+    company: Yup.string().required('required').trim(),
     text: Yup.string().required('required').trim(),
     url: Yup.string()
       .or([Yup.string().email(), Yup.string().url()], 'invalid url or email')
       .required('Required'),
     maxBid: Yup.number('must be number')
-      .integer('must be integer').min(sub.baseCost, `must be at least ${sub.baseCost}`)
+      .integer('must be integer').min(sub.baseCost, `must be at least ${sub.baseCost}`),
+    location: Yup.string().when('remote', {
+      is: (value) => !value,
+      then: Yup.string().required('required').trim()
+    })
   })
 
   const position = data?.auctionPosition
@@ -101,6 +107,9 @@ export default function JobForm ({ item, sub }) {
         className='py-5'
         initial={{
           title: item?.title || '',
+          company: item?.company || '',
+          location: item?.location || '',
+          remote: item?.remote || false,
           text: item?.text || '',
           url: item?.url || '',
           maxBid: item?.maxBid || sub.baseCost,
@@ -134,11 +143,28 @@ export default function JobForm ({ item, sub }) {
         })}
       >
         <Input
-          label='title'
+          label='job title'
           name='title'
           required
           autoFocus
         />
+        <Input
+          label='company'
+          name='company'
+          required
+        />
+        <BForm.Row className='mr-0'>
+          <Col>
+            <Input
+              label='location'
+              name='location'
+            />
+          </Col>
+          <Checkbox
+            label={<div className='font-weight-bold'>remote</div>} name='remote' hiddenLabel
+            groupClassName={styles.inlineCheckGroup}
+          />
+        </BForm.Row>
         <MarkdownInput
           label='description'
           name='text'

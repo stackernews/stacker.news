@@ -81,9 +81,9 @@ export default function Header ({ sub }) {
                     </Link>
                     )
                   : <NavDropdown.Item onClick={signIn}>post</NavDropdown.Item>}
-                {sub
-                  ? <Link href='/' passHref><NavDropdown.Item>home</NavDropdown.Item></Link>
-                  : <Link href='/~jobs' passHref><NavDropdown.Item>~jobs</NavDropdown.Item></Link>}
+                <Link href='/~jobs' passHref>
+                  <NavDropdown.Item active={sub === 'jobs'}>~jobs</NavDropdown.Item>
+                </Link>
               </div>
               <NavDropdown.Divider />
               <div className='d-flex align-items-center'>
@@ -134,9 +134,7 @@ export default function Header ({ sub }) {
             <div className='d-flex'>
               <Link href='/' passHref>
                 <Navbar.Brand className={`${styles.brand} d-none d-sm-block`}>
-                  {sub
-                    ? 'SN'
-                    : 'STACKER NEWS'}
+                  STACKER NEWS
                 </Navbar.Brand>
               </Link>
               <Link href='/' passHref>
@@ -144,12 +142,6 @@ export default function Header ({ sub }) {
                   SN
                 </Navbar.Brand>
               </Link>
-              {sub &&
-                <Link href={prefix} passHref>
-                  <Navbar.Brand className={`${styles.brand} d-block`}>
-                    <span>&nbsp;</span>{sub}
-                  </Navbar.Brand>
-                </Link>}
             </div>
             <Nav.Item className='d-md-flex d-none'>
               <Link href={prefix + '/recent'} passHref>
@@ -172,11 +164,11 @@ export default function Header ({ sub }) {
                 : <Nav.Link className={styles.navLink} onClick={signIn}>post</Nav.Link>}
             </Nav.Item>
             <Nav.Item className='d-md-flex d-none'>
-              {sub
-                ? <Link href='/' passHref><Nav.Link className={styles.navLink}>home</Nav.Link></Link>
-                : <Link href='/~jobs' passHref><Nav.Link className={styles.navLink}>~jobs</Nav.Link></Link>}
+              <Link href='/~jobs' passHref>
+                <Nav.Link active={sub === 'jobs'} className={styles.navLink}>~jobs</Nav.Link>
+              </Link>
             </Nav.Item>
-            <Nav.Item className={`text-monospace nav-link ${sub || me?.name.length > 6 ? 'd-none d-sm-flex' : ''}`}>
+            <Nav.Item className='text-monospace nav-link'>
               <Price />
             </Nav.Item>
             <Corner />

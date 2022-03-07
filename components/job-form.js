@@ -160,7 +160,7 @@ export default function JobForm ({ item, sub }) {
           append={<InputGroup.Text className='text-monospace'>sats/month</InputGroup.Text>}
           hint={<span className='text-muted'>{pull} sats/min will be pulled from your wallet</span>}
         />
-        <div className='font-weight-bold text-muted'>This bid puts your job in position: {position}</div>
+        <><div className='font-weight-bold text-muted'>This bid puts your job in position: {position}</div></>
         {item && <StatusControl item={item} />}
         <SubmitButton variant='secondary' className='mt-3'>{item ? 'save' : 'post'}</SubmitButton>
       </Form>

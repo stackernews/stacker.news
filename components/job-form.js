@@ -9,6 +9,7 @@ import styles from '../styles/post.module.css'
 import { useLazyQuery, gql, useMutation } from '@apollo/client'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
+import { usePrice } from './price'
 
 Yup.addMethod(Yup.string, 'or', function (schemas, msg) {
   return this.test({
@@ -26,15 +27,26 @@ Yup.addMethod(Yup.string, 'or', function (schemas, msg) {
   })
 })
 
-function satsMo2Min (monthly) {
-  return Number.parseFloat(monthly / 30 / 24 / 60).toFixed(2)
+function satsMin2Mo (minute) {
+  return minute * 30 * 24 * 60
+}
+
+function PriceHint ({ monthly }) {
+  const price = usePrice()
+  if (!price) {
+    return null
+  }
+  const fixed = (n, f) => Number.parseFloat(n).toFixed(f)
+  const fiat = fixed((price / 100000000) * monthly, 0)
+
+  return <span className='text-muted'>{monthly} sats/mo which is ${fiat}/mo</span>
 }
 
 // need to recent list items
 export default function JobForm ({ item, sub }) {
   const storageKeyPrefix = item ? undefined : `${sub.name}-job`
   const router = useRouter()
-  const [pull, setPull] = useState(satsMo2Min(item?.maxBid || sub.baseCost))
+  const [monthly, setMonthly] = useState(satsMin2Mo(item?.maxBid || sub.baseCost))
   const [info, setInfo] = useState()
   const [getAuctionPosition, { data }] = useLazyQuery(gql`
     query AuctionPosition($id: ID, $bid: Int!) {
@@ -59,8 +71,6 @@ export default function JobForm ({ item, sub }) {
       .required('Required'),
     maxBid: Yup.number('must be number')
       .integer('must be integer').min(sub.baseCost, `must be at least ${sub.baseCost}`)
-      .max(100000000, 'must be less than 100000000')
-      .test('multiple', `must be a multiple of ${sub.deltaCost} sats`, (val) => val % sub.deltaCost === 0)
   })
 
   const position = data?.auctionPosition
@@ -68,7 +78,7 @@ export default function JobForm ({ item, sub }) {
   useEffect(() => {
     const initialMaxBid = Number(item?.maxBid || localStorage.getItem(storageKeyPrefix + '-maxBid')) || sub.baseCost
     getAuctionPosition({ variables: { id: item?.id, bid: initialMaxBid } })
-    setPull(satsMo2Min(initialMaxBid))
+    setMonthly(satsMin2Mo(initialMaxBid))
   }, [])
 
   return (
@@ -81,8 +91,7 @@ export default function JobForm ({ item, sub }) {
         <Modal.Body>
           <ol className='font-weight-bold'>
             <li>The higher your bid the higher your job will rank</li>
-            <li>The minimum bid is {sub.baseCost} sats/mo</li>
-            <li>Your sats/mo must be a multiple of {sub.deltaCost} sats</li>
+            <li>The minimum bid is {sub.baseCost} sats/min</li>
             <li>You can increase or decrease your bid, and edit or stop your job at anytime</li>
             <li>Your job will be hidden if your wallet runs out of sats and can be unhidden by filling your wallet again</li>
           </ol>
@@ -151,14 +160,14 @@ export default function JobForm ({ item, sub }) {
           name='maxBid'
           onChange={async (formik, e) => {
             if (e.target.value >= sub.baseCost && e.target.value <= 100000000) {
-              setPull(satsMo2Min(e.target.value))
+              setMonthly(satsMin2Mo(e.target.value))
               getAuctionPosition({ variables: { id: item?.id, bid: Number(e.target.value) } })
             } else {
-              setPull(satsMo2Min(sub.baseCost))
+              setMonthly(satsMin2Mo(sub.baseCost))
             }
           }}
-          append={<InputGroup.Text className='text-monospace'>sats/month</InputGroup.Text>}
-          hint={<span className='text-muted'>{pull} sats/min will be pulled from your wallet</span>}
+          append={<InputGroup.Text className='text-monospace'>sats/min</InputGroup.Text>}
+          hint={<PriceHint monthly={monthly} />}
         />
         <><div className='font-weight-bold text-muted'>This bid puts your job in position: {position}</div></>
         {item && <StatusControl item={item} />}

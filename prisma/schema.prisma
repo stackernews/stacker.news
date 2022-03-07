@@ -145,7 +145,6 @@ model Sub {
   postTypes   PostType[]
   rankingType RankingType
   baseCost    Int         @default(1)
-  deltaCost   Int         @default(0)
   desc        String?
 
   Item Item[]

@@ -21,7 +21,6 @@ export const ITEM_FIELDS = gql`
     sub {
       name
       baseCost
-      deltaCost
     }
     status
     mine

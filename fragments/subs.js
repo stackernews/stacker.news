@@ -7,7 +7,6 @@ export const SUB_FIELDS = gql`
     postTypes
     rankingType
     baseCost
-    deltaCost
   }`
 
 export const SUB = gql`

@@ -517,10 +517,6 @@ export default {
         throw new UserInputError(`bid must be at least ${fullSub.baseCost}`, { argumentName: 'maxBid' })
       }
 
-      if (maxBid % fullSub.deltaCost !== 0) {
-        throw new UserInputError(`bid must be a multiple of ${fullSub.deltaCost}`, { argumentName: 'maxBid' })
-      }
-
       const checkSats = async () => {
         // check if the user has the funds to run for the first minute
         const minuteMsats = maxBid * 5 / 216

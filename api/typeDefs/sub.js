@@ -12,6 +12,5 @@ export default gql`
     postTypes: [String!]!
     rankingType: String!
     baseCost: Int!
-    deltaCost: Int!
   }
 `

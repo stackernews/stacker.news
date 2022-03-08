@@ -65,7 +65,7 @@ export default function Price () {
 
   if (asSats === 'yep') {
     return (
-      <Button className='text-reset px-1 py-0' onClick={handleClick} variant='link'>
+      <Button className='text-reset p-0' onClick={handleClick} variant='link'>
         {fixed(100000000 / price, 0) + ' sats/$'}
       </Button>
     )
@@ -73,14 +73,14 @@ export default function Price () {
 
   if (asSats === '1btc') {
     return (
-      <Button className='text-reset px-1 py-0' onClick={handleClick} variant='link'>
+      <Button className='text-reset p-0' onClick={handleClick} variant='link'>
         1sat=1sat
       </Button>
     )
   }
 
   return (
-    <Button className='text-reset px-1 py-0' onClick={handleClick} variant='link'>
+    <Button className='text-reset p-0' onClick={handleClick} variant='link'>
       {'$' + fixed(price, 0)}
     </Button>
   )

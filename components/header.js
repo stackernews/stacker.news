@@ -34,7 +34,7 @@ export default function Header ({ sub }) {
             <link rel='shortcut icon' href={me?.hasNewNotes ? '/favicon-notify.png' : '/favicon.png'} />
           </Head>
           <div className='position-relative'>
-            <NavDropdown className='px-0' title={`@${me?.name}`} alignRight>
+            <NavDropdown className={styles.dropdown} title={`@${me?.name}`} alignRight>
               <Link href={'/' + me?.name} passHref>
                 <NavDropdown.Item>
                   profile
@@ -65,26 +65,6 @@ export default function Header ({ sub }) {
                     </div>}
                 </NavDropdown.Item>
               </Link>
-              <div>
-                <NavDropdown.Divider />
-                <Link href={prefix + '/recent'} passHref>
-                  <NavDropdown.Item>recent</NavDropdown.Item>
-                </Link>
-                {!prefix &&
-                  <Link href='/top/posts/week' passHref>
-                    <NavDropdown.Item>top</NavDropdown.Item>
-                  </Link>}
-                {me
-                  ? (
-                    <Link href={prefix + '/post'} passHref>
-                      <NavDropdown.Item>post</NavDropdown.Item>
-                    </Link>
-                    )
-                  : <NavDropdown.Item onClick={signIn}>post</NavDropdown.Item>}
-                <Link href='/~jobs' passHref>
-                  <NavDropdown.Item active={sub === 'jobs'}>~jobs</NavDropdown.Item>
-                </Link>
-              </div>
               <NavDropdown.Divider />
               <div className='d-flex align-items-center'>
                 <Link href='/settings' passHref>
@@ -126,52 +106,78 @@ export default function Header ({ sub }) {
   return (
     <>
       <Container className='px-sm-0'>
-        <Navbar className='pb-1'>
+        <Navbar className='pb-0 pb-md-1'>
           <Nav
             className={styles.navbarNav}
             activeKey={path}
           >
             <div className='d-flex'>
               <Link href='/' passHref>
-                <Navbar.Brand className={`${styles.brand} d-none d-sm-block`}>
+                <Navbar.Brand className={`${styles.brand} d-none d-md-block`}>
                   STACKER NEWS
                 </Navbar.Brand>
               </Link>
               <Link href='/' passHref>
-                <Navbar.Brand className={`${styles.brand} d-block d-sm-none`}>
+                <Navbar.Brand className={`${styles.brand} d-block d-md-none`}>
                   SN
                 </Navbar.Brand>
               </Link>
             </div>
-            <Nav.Item className='d-md-flex d-none'>
+            <Nav.Item className='d-none d-md-flex'>
               <Link href={prefix + '/recent'} passHref>
                 <Nav.Link className={styles.navLink}>recent</Nav.Link>
               </Link>
             </Nav.Item>
             {!prefix &&
-              <Nav.Item className='d-md-flex d-none'>
+              <Nav.Item className='d-none d-md-flex'>
                 <Link href='/top/posts/week' passHref>
                   <Nav.Link className={styles.navLink}>top</Nav.Link>
                 </Link>
               </Nav.Item>}
-            <Nav.Item className='d-md-flex d-none'>
-              {me
-                ? (
-                  <Link href={prefix + '/post'} passHref>
-                    <Nav.Link className={styles.navLink}>post</Nav.Link>
-                  </Link>
-                  )
-                : <Nav.Link className={styles.navLink} onClick={signIn}>post</Nav.Link>}
-            </Nav.Item>
-            <Nav.Item className='d-md-flex d-none'>
+            <Nav.Item className='d-none d-md-flex'>
               <Link href='/~jobs' passHref>
-                <Nav.Link active={sub === 'jobs'} className={styles.navLink}>~jobs</Nav.Link>
+                <Nav.Link active={sub === 'jobs'} className={styles.navLink}>jobs</Nav.Link>
               </Link>
             </Nav.Item>
-            <Nav.Item className='text-monospace nav-link'>
+            {me &&
+              <Nav.Item className='d-none d-md-flex'>
+                <Link href={prefix + '/post'} passHref>
+                  <Nav.Link className={styles.navLinkButton}>post</Nav.Link>
+                </Link>
+              </Nav.Item>}
+            <Nav.Item className={`text-monospace nav-link px-0 ${me?.name.length > 6 ? 'd-none d-lg-flex' : ''}`}>
               <Price />
             </Nav.Item>
             <Corner />
+          </Nav>
+        </Navbar>
+        <Navbar className='pt-0 pb-1 d-md-none'>
+          <Nav
+            className={styles.navbarNav}
+            activeKey={path}
+          >
+            <Nav.Item>
+              <Link href={prefix + '/recent'} passHref>
+                <Nav.Link className={styles.navLink}>recent</Nav.Link>
+              </Link>
+            </Nav.Item>
+            {!prefix &&
+              <Nav.Item>
+                <Link href='/top/posts/week' passHref>
+                  <Nav.Link className={styles.navLink}>top</Nav.Link>
+                </Link>
+              </Nav.Item>}
+            <Nav.Item>
+              <Link href='/~jobs' passHref>
+                <Nav.Link active={sub === 'jobs'} className={styles.navLink}>jobs</Nav.Link>
+              </Link>
+            </Nav.Item>
+            {me &&
+              <Nav.Item>
+                <Link href={prefix + '/post'} passHref>
+                  <Nav.Link className={styles.navLinkButton}>post</Nav.Link>
+                </Link>
+              </Nav.Item>}
           </Nav>
         </Navbar>
       </Container>

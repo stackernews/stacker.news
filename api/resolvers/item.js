@@ -4,6 +4,7 @@ import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
 import domino from 'domino'
+import { BOOST_MIN } from '../../lib/constants'
 
 async function comments (models, id, sort) {
   let orderBy
@@ -817,8 +818,8 @@ const createItem = async (parent, { title, url, text, boost, parentId }, { me, m
     throw new AuthenticationError('you must be logged in')
   }
 
-  if (boost && boost < 0) {
-    throw new UserInputError('boost must be positive', { argumentName: 'boost' })
+  if (boost && boost < BOOST_MIN) {
+    throw new UserInputError(`boost must be at least ${BOOST_MIN}`, { argumentName: 'boost' })
   }
 
   // check if they've already commented on this parent ... don't allow it if so
@@ -877,15 +878,6 @@ export const SELECT =
   "Item".company, "Item".location, "Item".remote,
   "Item"."subName", "Item".status, ltree2text("Item"."path") AS "path"`
 
-const LEFT_JOIN_SATS_SELECT = 'SELECT i.id, SUM(CASE WHEN "ItemAct".act = \'VOTE\' THEN "ItemAct".sats ELSE 0 END) as sats,  SUM(CASE WHEN "ItemAct".act = \'BOOST\' THEN "ItemAct".sats ELSE 0 END) as boost'
-
-// function timedLeftJoinSats (num) {
-//   return `LEFT JOIN (${LEFT_JOIN_SATS_SELECT}
-//   FROM "Item" i
-//   JOIN "ItemAct" ON i.id = "ItemAct"."itemId" AND "ItemAct".created_at <= $${num}
-//   GROUP BY i.id) x ON "Item".id = x.id`
-// }
-
 const LEFT_JOIN_WEIGHTED_SATS_SELECT = 'SELECT i.id, SUM(CASE WHEN "ItemAct".act = \'VOTE\' THEN "ItemAct".sats * users.trust ELSE 0 END) as sats,  SUM(CASE WHEN "ItemAct".act = \'BOOST\' THEN "ItemAct".sats ELSE 0 END) as boost'
 
 function timedLeftJoinWeightedSats (num) {
@@ -900,23 +892,19 @@ function timedLeftJoinWeightedSats (num) {
 }
 
 const LEFT_JOIN_WEIGHTED_SATS =
-  `LEFT JOIN (${LEFT_JOIN_SATS_SELECT}
-  FROM "Item" i
-  JOIN "ItemAct" ON i.id = "ItemAct"."itemId"
-  GROUP BY i.id) x ON "Item".id = x.id`
-
-// const LEFT_JOIN_SATS =
-//   `LEFT JOIN (${LEFT_JOIN_SATS_SELECT}
-//   FROM "Item" i
-//   JOIN "ItemAct" ON i.id = "ItemAct"."itemId"
-//   GROUP BY i.id) x ON "Item".id = x.id`
+  `LEFT JOIN (
+    ${LEFT_JOIN_WEIGHTED_SATS_SELECT}
+    FROM "Item" i
+    JOIN "ItemAct" ON i.id = "ItemAct"."itemId"
+    JOIN users on "ItemAct"."userId" = users.id
+    GROUP BY i.id
+  ) x ON "Item".id = x.id`
 
 /* NOTE: because many items will have the same rank, we need to tie break with a unique field so pagination works */
 function timedOrderBySats (num) {
   return `ORDER BY (GREATEST(x.sats-1, 0)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 1.5) +
-    (x.boost)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 5)) DESC NULLS LAST, "Item".id DESC`
+    GREATEST(x.boost-${BOOST_MIN}+5, 0)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 5)) DESC NULLS LAST, "Item".id DESC`
 }
 
 const ORDER_BY_SATS =
-  `ORDER BY ((x.sats-1)/POWER(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE 'UTC') - "Item".created_at))/3600+2, 1.5) +
-    (x.boost)/POWER(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE 'UTC') - "Item".created_at))/3600+2, 5)) DESC NULLS LAST, "Item".id DESC`
+  'ORDER BY GREATEST(x.sats-1, 0)/POWER(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE \'UTC\') - "Item".created_at))/3600+2, 1.5) DESC NULLS LAST, "Item".id DESC'

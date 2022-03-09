@@ -72,7 +72,8 @@ export default function JobForm ({ item, sub }) {
       .or([Yup.string().email(), Yup.string().url()], 'invalid url or email')
       .required('Required'),
     maxBid: Yup.number('must be number')
-      .integer('must be integer').min(sub.baseCost, `must be at least ${sub.baseCost}`),
+      .integer('must be whole').min(sub.baseCost, `must be at least ${sub.baseCost}`)
+      .required('required'),
     location: Yup.string().when('remote', {
       is: (value) => !value,
       then: Yup.string().required('required').trim()

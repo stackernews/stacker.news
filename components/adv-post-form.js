@@ -2,14 +2,15 @@ import AccordianItem from './accordian-item'
 import * as Yup from 'yup'
 import { Input } from './form'
 import { InputGroup } from 'react-bootstrap'
+import { BOOST_MIN } from '../lib/constants'
 
 export const AdvPostSchema = {
   boost: Yup.number().typeError('must be a number')
-    .min(0, 'must be positive').integer('must be whole')
+    .min(BOOST_MIN, `must be at least ${BOOST_MIN}`).integer('must be whole')
 }
 
 export const AdvPostInitial = {
-  boost: 0
+  boost: ''
 }
 
 export default function AdvPostForm () {

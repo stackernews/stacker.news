@@ -125,6 +125,11 @@ model Item {
   @@index([createdAt])
   @@index([userId])
   @@index([parentId])
+  @@index([status])
+  @@index([maxBid])
+  @@index([statusUpdatedAt])
+  @@index([subName])
+  @@index([pinId])
 }
 
 enum PostType {

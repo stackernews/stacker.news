@@ -281,9 +281,14 @@ export default {
       uri = uri.endsWith('/') ? uri.slice(0, -1) : uri
       let similar = `(http(s)?://)?${uri}/?`
 
-      const whitelist = ['news.ycombinator.com/item', 'bitcointalk.org/index.php', 'www.youtube.com/watch']
+      const whitelist = ['news.ycombinator.com/item', 'bitcointalk.org/index.php']
+      const youtube = ['www.youtube.com', 'youtu.be']
       if (whitelist.includes(uri)) {
         similar += `\\${urlObj.search}`
+      } else if (youtube.includes(urlObj.hostname)) {
+        // extract id and create both links
+        const matches = url.match(/(https?:\/\/)?((www\.)?(youtube(-nocookie)?|youtube.googleapis)\.com.*(v\/|v=|vi=|vi\/|e\/|embed\/|user\/.*\/u\/\d+\/)|youtu\.be\/)(?<id>[_0-9a-z-]+)/i)
+        similar = `(http(s)?://)?(www.youtube.com/watch\\?v=${matches?.groups?.id}|youtu.be/${matches?.groups?.id})`
       } else {
         similar += '(\\?%)?'
       }

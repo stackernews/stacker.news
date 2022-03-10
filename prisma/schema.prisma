@@ -41,6 +41,7 @@ model User {
   tipPopover    Boolean @default(false)
 
   @@index([createdAt])
+  @@index([inviteId])
   @@map(name: "users")
 }
 
@@ -71,6 +72,9 @@ model Invite {
   limit     Int?
   revoked   Boolean  @default(false)
   invitees  User[]
+
+  @@index([userId])
+  @@index([createdAt])
 }
 
 model Message {

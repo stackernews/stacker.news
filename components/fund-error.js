@@ -34,6 +34,7 @@ export function FundErrorModal () {
       show={error}
       onHide={() => setError(false)}
     >
+      <div className='modal-close' onClick={() => setError(false)}>X</div>
       <Modal.Body>
         <p className='font-weight-bolder'>you have no sats</p>
         <div className='d-flex justify-content-end'>

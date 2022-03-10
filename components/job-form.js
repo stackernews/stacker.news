@@ -94,7 +94,7 @@ export default function JobForm ({ item, sub }) {
         show={info}
         onHide={() => setInfo(false)}
       >
-        <div className={styles.close} onClick={() => setInfo(false)}>X</div>
+        <div className='modal-close' onClick={() => setInfo(false)}>X</div>
         <Modal.Body>
           <ol className='font-weight-bold'>
             <li>The higher your bid the higher your job will rank</li>

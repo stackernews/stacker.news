@@ -50,6 +50,7 @@ export function ItemActModal () {
         setItem(null)
       }}
     >
+      <div className='modal-close' onClick={() => setItem(null)}>X</div>
       <Modal.Body>
         <Form
           initial={{

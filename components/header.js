@@ -153,7 +153,7 @@ export default function Header ({ sub }) {
         </Navbar>
         <Navbar className='pt-0 pb-1 d-md-none'>
           <Nav
-            className={styles.navbarNav}
+            className={`${styles.navbarNav} justify-content-around`}
             activeKey={path}
           >
             <Nav.Item>

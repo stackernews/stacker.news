@@ -10,7 +10,7 @@ import { Button } from 'react-bootstrap'
 import { TwitterTweetEmbed } from 'react-twitter-embed'
 import YouTube from 'react-youtube'
 import useDarkMode from 'use-dark-mode'
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 
 function BioItem ({ item, handleClick }) {
   const me = useMe()
@@ -53,27 +53,12 @@ function ItemEmbed ({ item }) {
   const darkMode = useDarkMode()
   const [overflowing, setOverflowing] = useState(false)
   const [show, setShow] = useState(false)
-  const containerRef = useRef(null)
-
-  const checkOverflow = () => {
-    const cont = containerRef.current
-    const over = cont && (cont.offsetHeight < cont.scrollHeight || cont.offsetWidth < cont.scrollWidth)
-
-    if (over) {
-      setOverflowing(true)
-      return
-    }
-
-    setOverflowing(false)
-  }
-
-  useEffect(checkOverflow, [])
 
   const twitter = item.url?.match(/^https?:\/\/twitter\.com\/(?:#!\/)?\w+\/status(?:es)?\/(?<id>\d+)/)
   if (twitter?.groups?.id) {
     return (
-      <div className={`${styles.twitterContainer} ${show ? '' : styles.twitterContained}`} ref={containerRef}>
-        <TwitterTweetEmbed tweetId={twitter.groups.id} options={{ width: '550px', theme: darkMode.value ? 'dark' : 'light' }} placeholder={<TweetSkeleton />} onLoad={checkOverflow} />
+      <div className={`${styles.twitterContainer} ${show ? '' : styles.twitterContained}`}>
+        <TwitterTweetEmbed tweetId={twitter.groups.id} options={{ width: '550px', theme: darkMode.value ? 'dark' : 'light' }} placeholder={<TweetSkeleton />} onLoad={() => setOverflowing(true)} />
         {overflowing && !show &&
           <Button size='lg' variant='info' className={styles.twitterShowFull} onClick={() => setShow(true)}>
             show full tweet

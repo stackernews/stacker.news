@@ -100,9 +100,9 @@ export function LinkForm ({ item, editThreshold }) {
           throw new Error({ message: error.toString() })
         }
         if (item) {
-          router.push(`/items/${item.id}`)
+          await router.push(`/items/${item.id}`)
         } else {
-          router.push('/recent')
+          await router.push('/recent')
         }
       }}
       storageKeyPrefix={item ? undefined : 'link'}

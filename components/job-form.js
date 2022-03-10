@@ -137,9 +137,9 @@ export default function JobForm ({ item, sub }) {
           }
 
           if (item) {
-            router.push(`/items/${item.id}`)
+            await router.push(`/items/${item.id}`)
           } else {
-            router.push(`/~${sub.name}/recent`)
+            await router.push(`/~${sub.name}/recent`)
           }
         })}
       >

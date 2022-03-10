@@ -36,7 +36,7 @@ export function FundErrorModal () {
     >
       <div className='modal-close' onClick={() => setError(false)}>X</div>
       <Modal.Body>
-        <p className='font-weight-bolder'>you have no sats</p>
+        <p className='font-weight-bolder'>you need more sats</p>
         <div className='d-flex justify-content-end'>
           <Link href='/wallet?type=fund'>
             <Button variant='success' onClick={() => setError(false)}>fund</Button>

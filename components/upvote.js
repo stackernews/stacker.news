@@ -76,12 +76,13 @@ export default function UpVote ({ item, className }) {
   const setVoteShow = (yes) => {
     if (!me) return
 
-    if (yes && !me.upvotePopover) {
-      _setVoteShow(yes)
+    // if they haven't seen the walkthrough and they have sats
+    if (yes && !me.upvotePopover && me.sats) {
+      _setVoteShow(true)
     }
 
     if (voteShow && !yes) {
-      _setVoteShow(yes)
+      _setVoteShow(false)
       setWalkthrough({ variables: { upvotePopover: true } })
     }
   }
@@ -90,13 +91,13 @@ export default function UpVote ({ item, className }) {
     if (!me) return
 
     // if we want to show it, yet we still haven't shown
-    if (yes && !me.tipPopover) {
-      _setTipShow(yes)
+    if (yes && !me.tipPopover && me.sats) {
+      _setTipShow(true)
     }
 
     // if it's currently showing and we want to hide it
     if (tipShow && !yes) {
-      _setTipShow(yes)
+      _setTipShow(false)
       setWalkthrough({ variables: { tipPopover: true } })
     }
   }

@@ -2,6 +2,7 @@ import NextAuth from 'next-auth'
 import Providers from 'next-auth/providers'
 import Adapters from 'next-auth/adapters'
 import prisma from '../../../api/models'
+import nodemailer from 'nodemailer'
 
 export default (req, res) => NextAuth(req, res, options)
 
@@ -90,6 +91,7 @@ const options = {
     Providers.Email({
       server: process.env.LOGIN_EMAIL_SERVER,
       from: process.env.LOGIN_EMAIL_FROM,
+      sendVerificationRequest,
       profile: profile => {
         return profile
       }
@@ -105,3 +107,93 @@ const options = {
     signIn: '/login'
   }
 }
+
+function sendVerificationRequest ({
+  identifier: email,
+  url,
+  token,
+  baseUrl,
+  provider
+}) {
+  return new Promise((resolve, reject) => {
+    const { server, from } = provider
+    // Strip protocol from URL and use domain as site name
+    const site = baseUrl.replace(/^https?:\/\//, '')
+
+    nodemailer.createTransport(server).sendMail(
+      {
+        to: email,
+        from,
+        subject: `login to ${site}`,
+        text: text({ url, site, email }),
+        html: html({ url, site, email })
+      },
+      (error) => {
+        if (error) {
+          return reject(new Error('SEND_VERIFICATION_EMAIL_ERROR', error))
+        }
+        return resolve()
+      }
+    )
+  })
+}
+
+// Email HTML body
+const html = ({ url, site, email }) => {
+  // Insert invisible space into domains and email address to prevent both the
+  // email address and the domain from being turned into a hyperlink by email
+  // clients like Outlook and Apple mail, as this is confusing because it seems
+  // like they are supposed to click on their email address to sign in.
+  const escapedEmail = `${email.replace(/\./g, '&#8203;.')}`
+  const escapedSite = `${site.replace(/\./g, '&#8203;.')}`
+
+  // Some simple styling options
+  const backgroundColor = '#f5f5f5'
+  const textColor = '#212529'
+  const mainBackgroundColor = '#ffffff'
+  const buttonBackgroundColor = '#FADA5E'
+  const buttonBorderColor = '#FADA5E'
+  const buttonTextColor = '#212529'
+
+  // Uses tables for layout and inline CSS due to email client limitations
+  return `
+<body style="background: ${backgroundColor};">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0">
+    <tr>
+      <td align="center" style="padding: 10px 0px 20px 0px; font-size: 22px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
+        <strong>${escapedSite}</strong>
+      </td>
+    </tr>
+  </table>
+  <table width="100%" border="0" cellspacing="20" cellpadding="0" style="background: ${mainBackgroundColor}; max-width: 600px; margin: auto; border-radius: 10px;">
+    <tr>
+      <td align="center" style="padding: 10px 0px 0px 0px; font-size: 18px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
+        login as <strong>${escapedEmail}</strong>
+      </td>
+    </tr>
+    <tr>
+      <td align="center" style="padding: 20px 0;">
+        <table border="0" cellspacing="0" cellpadding="0">
+          <tr>
+            <td align="center" style="border-radius: 5px;" bgcolor="${buttonBackgroundColor}"><a href="${url}" target="_blank" style="font-size: 18px; font-family: Helvetica, Arial, sans-serif; color: ${buttonTextColor}; text-decoration: none; text-decoration: none;border-radius: 5px; padding: 10px 20px; border: 1px solid ${buttonBorderColor}; display: inline-block; font-weight: bold;">login</a></td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td align="center" style="padding: 0px 0px 10px 0px; font-size: 16px; line-height: 22px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
+        Or copy and paste this link: <a href="#" style="text-decoration:none; color:${textColor}">${url}</a>
+      </td>
+    </tr>
+    <tr>
+      <td align="center" style="padding: 0px 0px 10px 0px; font-size: 10px; line-height: 22px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
+        If you did not request this email you can safely ignore it.
+      </td>
+    </tr>
+  </table>
+</body>
+`
+}
+
+// Email text body –fallback for email clients that don't render HTML
+const text = ({ url, site }) => `Sign in to ${site}\n${url}\n\n`

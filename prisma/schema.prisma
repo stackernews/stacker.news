@@ -36,6 +36,7 @@ model User {
   tipDefault     Int         @default(1)
   pubkey         String?     @unique
   trust          Float       @default(0)
+  lastSeenAt     DateTime?
 
   upvotePopover Boolean @default(false)
   tipPopover    Boolean @default(false)

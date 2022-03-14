@@ -27,8 +27,15 @@ export function topClause (within) {
 
 export default {
   Query: {
-    me: async (parent, args, { models, me }) =>
-      me ? await models.user.findUnique({ where: { id: me.id } }) : null,
+    me: async (parent, args, { models, me }) => {
+      if (!me) {
+        return null
+      }
+
+      await models.user.update({ where: { id: me.id }, data: { lastSeenAt: new Date() } })
+
+      return await models.user.findUnique({ where: { id: me.id } })
+    },
     user: async (parent, { name }, { models }) => {
       return await models.user.findUnique({ where: { name } })
     },

@@ -82,7 +82,7 @@ export default {
           AND "ItemAct".created_at <= $2
           AND "ItemAct".act <> 'BOOST'
           AND "Item"."userId" = $1
-          GROUP BY ${ITEM_GROUP_FIELDS}
+          GROUP BY "Item".id
           ORDER BY MAX("ItemAct".created_at) DESC
           LIMIT ${LIMIT}+$3)
         UNION ALL
@@ -159,9 +159,9 @@ export default {
 //   `subquery.id, subquery."createdAt", subquery."updatedAt", subquery.title, subquery.text,
 //   subquery.url, subquery."userId", subquery."parentId", subquery.path`
 
-const ITEM_GROUP_FIELDS =
-  `"Item".id, "Item".created_at, "Item".updated_at, "Item".title,
-  "Item".text, "Item".url, "Item"."userId", "Item"."parentId", ltree2text("Item"."path")`
+// const ITEM_GROUP_FIELDS =
+//   `"Item".id, "Item".created_at, "Item".updated_at, "Item".title,
+//   "Item".text, "Item".url, "Item"."userId", "Item"."parentId", ltree2text("Item"."path")`
 
 // const ITEM_FIELDS =
 //   `"Item".id, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt", "Item".title,

@@ -176,6 +176,7 @@ enum ItemActType {
   VOTE
   BOOST
   TIP
+  STREAM
 }
 
 model ItemAct {

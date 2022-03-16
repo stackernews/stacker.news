@@ -60,7 +60,7 @@ export function ItemJob ({ item, rank, children }) {
             </a>
           </div>
           <div className={`${styles.other}`}>
-            <span>{formatSats(item.maxBid)} sats</span>
+            <span>{formatSats(item.maxBid)} sats per min</span>
             <span> \ </span>
             <Link href={`/items/${item.id}`} passHref>
               <a className='text-reset'>{item.ncomments} comments</a>

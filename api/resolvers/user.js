@@ -160,6 +160,7 @@ export default {
         JOIN "Item" on "ItemAct"."itemId" = "Item".id
         WHERE "ItemAct"."userId" <> ${user.id} AND "ItemAct".act <> 'BOOST'
         AND "Item"."userId" = ${user.id}`
+
       return sum || 0
     },
     sats: async (user, args, { models, me }) => {
@@ -217,23 +218,33 @@ export default {
         return true
       }
 
-      const where = {
-        status: {
-          not: 'STOPPED'
-        },
-        maxBid: {
-          not: null
-        },
-        userId: user.id
+      const job = await models.item.findFirst({
+        where: {
+          status: {
+            not: 'STOPPED'
+          },
+          maxBid: {
+            not: null
+          },
+          userId: user.id,
+          statusUpdatedAt: {
+            gt: user.checkedNotesAt || new Date(0)
+          }
+        }
+      })
+      if (job) {
+        return true
       }
 
-      if (user.checkedNotesAt) {
-        where.statusUpdatedAt = {
-          gt: user.checkedNotesAt
+      const earn = await models.earn.findFirst({
+        where: {
+          userId: user.id,
+          createdAt: {
+            gt: user.checkedNotesAt || new Date(0)
+          }
         }
-      }
-      const job = await models.item.findFirst({ where })
-      if (job) {
+      })
+      if (earn) {
         return true
       }
 

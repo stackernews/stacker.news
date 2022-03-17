@@ -41,9 +41,23 @@ model User {
   upvotePopover Boolean @default(false)
   tipPopover    Boolean @default(false)
 
+  Earn Earn[]
   @@index([createdAt])
   @@index([inviteId])
   @@map(name: "users")
+}
+
+model Earn {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map(name: "created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map(name: "updated_at")
+
+  msats  Int
+  user   User @relation(fields: [userId], references: [id])
+  userId Int
+
+  @@index([createdAt])
+  @@index([userId])
 }
 
 model LnAuth {

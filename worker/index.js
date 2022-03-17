@@ -6,6 +6,7 @@ const { checkInvoice, checkWithdrawal } = require('./wallet')
 const { repin } = require('./repin')
 const { trust } = require('./trust')
 const { auction } = require('./auction')
+const { earn } = require('./earn')
 const { ApolloClient, HttpLink, InMemoryCache } = require('@apollo/client')
 const { indexItem, indexAllItems } = require('./search')
 const fetch = require('cross-fetch')
@@ -43,6 +44,7 @@ async function work () {
   await boss.work('indexItem', indexItem(args))
   await boss.work('indexAllItems', indexAllItems(args))
   await boss.work('auction', auction(args))
+  await boss.work('earn', earn(args))
 
   console.log('working jobs')
 }

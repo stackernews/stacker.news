@@ -112,6 +112,13 @@ export default {
             AND "maxBid" IS NOT NULL
             AND status <> 'STOPPED'
             AND "statusUpdatedAt" <= $2)
+          UNION ALL
+        (SELECT "Earn".id::text, "Earn".created_at AS "sortTime", FLOOR(msats / 1000) as "earnedSats",
+            'Earn' AS type
+            FROM "Earn"
+            WHERE "Earn"."userId" = $1 AND
+            FLOOR(msats / 1000) > 0
+            AND created_at <= $2)
         ORDER BY "sortTime" DESC
         OFFSET $3
         LIMIT ${LIMIT}`, me.id, decodedCursor.time, decodedCursor.offset)

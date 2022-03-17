@@ -6,6 +6,7 @@ import { useRouter } from 'next/router'
 import MoreFooter from './more-footer'
 import Invite from './invite'
 import { ignoreClick } from '../lib/clicks'
+import Link from 'next/link'
 
 function Notification ({ n }) {
   const router = useRouter()
@@ -13,6 +14,10 @@ function Notification ({ n }) {
     <div
       className='clickToContext'
       onClick={e => {
+        if (n.__typename === 'Earn') {
+          return
+        }
+
         if (ignoreClick(e)) {
           return
         }
@@ -48,33 +53,44 @@ function Notification ({ n }) {
             </div>
           </>
           )
-        : (
-          <>
-            {n.__typename === 'Votification' &&
-              <small className='font-weight-bold text-success ml-2'>
-                your {n.item.title ? 'post' : 'reply'} stacked {n.earnedSats} sats
-              </small>}
-            {n.__typename === 'Mention' &&
-              <small className='font-weight-bold text-info ml-2'>
-                you were mentioned in
-              </small>}
-            {n.__typename === 'JobChanged' &&
-              <small className={`font-weight-bold text-${n.item.status === 'NOSATS' ? 'danger' : 'success'} ml-1`}>
-                {n.item.status === 'NOSATS'
-                  ? 'your job ran out of sats'
-                  : 'your job is active again'}
-              </small>}
-            <div className={n.__typename === 'Votification' || n.__typename === 'Mention' || n.__typename === 'JobChanged' ? '' : 'py-2'}>
-              {n.item.maxBid
-                ? <ItemJob item={n.item} />
-                : n.item.title
-                  ? <Item item={n.item} />
-                  : (
-                    <div className='pb-2'>
-                      <Comment item={n.item} noReply includeParent rootText={n.__typename === 'Reply' ? 'replying on:' : undefined} clickToContext />
-                    </div>)}
-            </div>
-          </>)}
+        : n.__typename === 'Earn'
+          ? (
+            <>
+              <div className='font-weight-bold text-boost ml-2'>
+                you stacked {n.earnedSats} sats
+              </div>
+              <div className='ml-4'>
+                SN distributes the sats it earns back to its best users daily. These sats come from <Link href='/~jobs' passHref><a>jobs</a></Link>, boost, and posting fees.
+              </div>
+            </>
+            )
+          : (
+            <>
+              {n.__typename === 'Votification' &&
+                <small className='font-weight-bold text-success ml-2'>
+                  your {n.item.title ? 'post' : 'reply'} stacked {n.earnedSats} sats
+                </small>}
+              {n.__typename === 'Mention' &&
+                <small className='font-weight-bold text-info ml-2'>
+                  you were mentioned in
+                </small>}
+              {n.__typename === 'JobChanged' &&
+                <small className={`font-weight-bold text-${n.item.status === 'NOSATS' ? 'danger' : 'success'} ml-1`}>
+                  {n.item.status === 'NOSATS'
+                    ? 'your job ran out of sats'
+                    : 'your job is active again'}
+                </small>}
+              <div className={n.__typename === 'Votification' || n.__typename === 'Mention' || n.__typename === 'JobChanged' ? '' : 'py-2'}>
+                {n.item.maxBid
+                  ? <ItemJob item={n.item} />
+                  : n.item.title
+                    ? <Item item={n.item} />
+                    : (
+                      <div className='pb-2'>
+                        <Comment item={n.item} noReply includeParent rootText={n.__typename === 'Reply' ? 'replying on:' : undefined} clickToContext />
+                      </div>)}
+              </div>
+            </>)}
     </div>
   )
 }

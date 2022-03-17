@@ -47,6 +47,10 @@ export const NOTIFICATIONS = gql`
             ...ItemFields
           }
         }
+        ... on Earn {
+          sortTime
+          earnedSats
+        }
       }
     }
   } `

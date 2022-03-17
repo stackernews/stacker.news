@@ -97,6 +97,12 @@ export default {
           WHERE "ItemAct"."userId" <> $1 AND "ItemAct".act <> 'BOOST'
           AND "Item"."userId" = $1 AND "ItemAct".created_at <= $2
           GROUP BY "Item".id)`)
+        queries.push(
+            `(SELECT ('earn' || "Earn".id) as id, "Earn".id as "factId", NULL as bolt11,
+            created_at as "createdAt", msats,
+            0 as "msatsFee", NULL as status, 'earn' as type
+            FROM "Earn"
+            WHERE "Earn"."userId" = $1 AND "Earn".created_at <= $2)`)
       }
 
       if (include.has('spent')) {

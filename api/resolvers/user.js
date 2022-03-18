@@ -161,7 +161,16 @@ export default {
         WHERE "ItemAct"."userId" <> ${user.id} AND "ItemAct".act <> 'BOOST'
         AND "Item"."userId" = ${user.id}`
 
-      return sum || 0
+      const { sum: { msats } } = await models.earn.aggregate({
+        sum: {
+          msats: true
+        },
+        where: {
+          userId: Number(user.id)
+        }
+      })
+
+      return (sum || 0) + Math.floor((msats || 0) / 1000)
     },
     sats: async (user, args, { models, me }) => {
       if (me?.id !== user.id) {
@@ -241,6 +250,9 @@ export default {
           userId: user.id,
           createdAt: {
             gt: user.checkedNotesAt || new Date(0)
+          },
+          msats: {
+            gte: 1000
           }
         }
       })

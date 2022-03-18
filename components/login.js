@@ -36,6 +36,9 @@ export default function Login ({ providers, callbackUrl, error, Header }) {
 
   return (
     <LayoutCenter noFooter>
+      <p className='text-center'>
+        Not registered? Just login, we'll automatically create an account.
+      </p>
       <div className={styles.login}>
         {Header && <Header />}
         {errorMessage &&

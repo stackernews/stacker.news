@@ -105,7 +105,7 @@ export function FundForm () {
             setShowAlert(false)
           }}
         >
-          Your can also fund your account via lightning address with <strong>{`${me.name}@stacker.news`}</strong>
+          You can also fund your account via lightning address with <strong>{`${me.name}@stacker.news`}</strong>
         </Alert>}
       <Form
         initial={{

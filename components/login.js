@@ -36,11 +36,11 @@ export default function Login ({ providers, callbackUrl, error, Header }) {
 
   return (
     <LayoutCenter noFooter>
-      <p className='text-center'>
-        Not registered? Just login, we'll automatically create an account.
-      </p>
       <div className={styles.login}>
         {Header && <Header />}
+        <div className='text-center font-weight-bold text-muted pb-4'>
+          Not registered? Just login, we'll automatically create an account.
+        </div>
         {errorMessage &&
           <Alert variant='danger' onClose={() => setErrorMessage(undefined)} dismissible>{errorMessage}</Alert>}
         {router.query.type === 'lightning'

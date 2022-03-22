@@ -59,7 +59,7 @@ function Notification ({ n }) {
               <div className='font-weight-bold text-boost ml-2'>
                 you stacked {n.earnedSats} sats
               </div>
-              <div className='ml-4'>
+              <div className='ml-4 pb-1' style={{ lineHeight: '140%' }}>
                 SN distributes the sats it earns back to its best users daily. These sats come from <Link href='/~jobs' passHref><a>jobs</a></Link>, boost, and posting fees.
               </div>
             </>

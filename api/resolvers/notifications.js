@@ -63,16 +63,24 @@ export default {
       // HACK to make notifications faster, we only return a limited sub set of the unioned
       // queries ... we only ever need at most LIMIT+current offset in the child queries to
       // have enough items to return in the union
+      // HACK 2.0 ... replies are slow because they could be a reply to multiple ancestors yet
+      // we should only get one notification for this reply ... the right
+      // way would be to make sure the reply query returns unique results but this is slow for users with
+      // many replies (you have to hash every reply) ... this hack avoids doing that by assuming there will be
+      // at most 25 ancesestors belonging to the same user for a given reply, see: (LIMIT+OFFSET)*25 which is
+      // undoubtably the case today ... this probably won't hold indefinitely though
+      // One other less HACKy way to do this is to store in each reply, an set of users it's in response to
       const notifications = await models.$queryRaw(`
-        (SELECT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL as "earnedSats",
+        SELECT DISTINCT *
+        FROM
+        ((SELECT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL as "earnedSats",
           'Reply' AS type
           FROM "Item"
           JOIN "Item" p ON "Item".path <@ p.path
           WHERE p."userId" = $1
             AND "Item"."userId" <> $1 AND "Item".created_at <= $2
-          GROUP BY "Item".id
-          ORDER BY "Item".created_at DESC
-          LIMIT ${LIMIT}+$3)
+          ORDER BY "sortTime" DESC
+          LIMIT (${LIMIT}+$3) * 25)
         UNION ALL
         (SELECT "Item".id::TEXT, MAX("ItemAct".created_at) AS "sortTime",
           sum("ItemAct".sats) as "earnedSats", 'Votification' AS type
@@ -83,7 +91,7 @@ export default {
           AND "ItemAct".act <> 'BOOST'
           AND "Item"."userId" = $1
           GROUP BY "Item".id
-          ORDER BY MAX("ItemAct".created_at) DESC
+          ORDER BY "sortTime" DESC
           LIMIT ${LIMIT}+$3)
         UNION ALL
         (SELECT "Item".id::TEXT, "Mention".created_at AS "sortTime", NULL as "earnedSats",
@@ -95,7 +103,7 @@ export default {
           AND "Mention".created_at <= $2
           AND "Item"."userId" <> $1
           AND (p."userId" IS NULL OR p."userId" <> $1)
-          ORDER BY "Mention".created_at DESC
+          ORDER BY "sortTime" DESC
           LIMIT ${LIMIT}+$3)
         UNION ALL
         (SELECT "Invite".id, MAX(users.created_at) AS "sortTime", NULL as "earnedSats",
@@ -103,7 +111,9 @@ export default {
           FROM users JOIN "Invite" on users."inviteId" = "Invite".id
           WHERE "Invite"."userId" = $1
           AND users.created_at <= $2
-          GROUP BY "Invite".id)
+          GROUP BY "Invite".id
+          ORDER BY "sortTime" DESC
+          LIMIT ${LIMIT}+$3)
           UNION ALL
         (SELECT "Item".id::text, "Item"."statusUpdatedAt" AS "sortTime", NULL as "earnedSats",
             'JobChanged' AS type
@@ -111,14 +121,18 @@ export default {
             WHERE "Item"."userId" = $1
             AND "maxBid" IS NOT NULL
             AND status <> 'STOPPED'
-            AND "statusUpdatedAt" <= $2)
+            AND "statusUpdatedAt" <= $2
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT}+$3)
           UNION ALL
         (SELECT "Earn".id::text, "Earn".created_at AS "sortTime", FLOOR(msats / 1000) as "earnedSats",
             'Earn' AS type
             FROM "Earn"
             WHERE "Earn"."userId" = $1 AND
             FLOOR(msats / 1000) > 0
-            AND created_at <= $2)
+            AND created_at <= $2
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT}+$3)) AS n
         ORDER BY "sortTime" DESC
         OFFSET $3
         LIMIT ${LIMIT}`, me.id, decodedCursor.time, decodedCursor.offset)

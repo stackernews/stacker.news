@@ -8,6 +8,7 @@ import Invite from './invite'
 import { ignoreClick } from '../lib/clicks'
 import Link from 'next/link'
 import Check from '../svgs/check-double-line.svg'
+import HandCoin from '../svgs/hand-coin-fill.svg'
 
 // TODO: oh man, this is a mess ... each notification type should just be a component ...
 function Notification ({ n }) {
@@ -59,14 +60,17 @@ function Notification ({ n }) {
           )
         : n.__typename === 'Earn'
           ? (
-            <>
-              <div className='font-weight-bold text-boost ml-2'>
-                you stacked {n.earnedSats} sats
+            <div className='d-flex'>
+              <HandCoin className='align-self-center fill-boost mx-1' width={24} height={24} style={{ flex: '0 0 24px', transform: 'rotateY(180deg)' }} />
+              <div className='ml-2'>
+                <div className='font-weight-bold text-boost'>
+                  you stacked {n.earnedSats} sats
+                </div>
+                <div className='pb-1' style={{ lineHeight: '140%' }}>
+                  SN distributes the sats it earns back to its best users daily. These sats come from <Link href='/~jobs' passHref><a>jobs</a></Link>, boost, and posting fees.
+                </div>
               </div>
-              <div className='ml-4 pb-1' style={{ lineHeight: '140%' }}>
-                SN distributes the sats it earns back to its best users daily. These sats come from <Link href='/~jobs' passHref><a>jobs</a></Link>, boost, and posting fees.
-              </div>
-            </>
+            </div>
             )
           : n.__typename === 'InvoicePaid'
             ? <div className='font-weight-bold text-info ml-2 py-1'><Check className='fill-info mr-1' />{n.earnedSats} sats were deposited in your account</div>

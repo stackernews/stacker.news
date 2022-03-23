@@ -7,7 +7,9 @@ import MoreFooter from './more-footer'
 import Invite from './invite'
 import { ignoreClick } from '../lib/clicks'
 import Link from 'next/link'
+import Check from '../svgs/check-double-line.svg'
 
+// TODO: oh man, this is a mess ... each notification type should just be a component ...
 function Notification ({ n }) {
   const router = useRouter()
   return (
@@ -22,7 +24,9 @@ function Notification ({ n }) {
           return
         }
 
-        if (n.__typename === 'Invitification') {
+        if (n.__typename === 'InvoicePaid') {
+          router.push(`/invoices/${n.invoice.id}`)
+        } else if (n.__typename === 'Invitification') {
           router.push('/invites')
         } else if (!n.item.title) {
           router.push({
@@ -64,33 +68,35 @@ function Notification ({ n }) {
               </div>
             </>
             )
-          : (
-            <>
-              {n.__typename === 'Votification' &&
-                <small className='font-weight-bold text-success ml-2'>
-                  your {n.item.title ? 'post' : 'reply'} stacked {n.earnedSats} sats
-                </small>}
-              {n.__typename === 'Mention' &&
-                <small className='font-weight-bold text-info ml-2'>
-                  you were mentioned in
-                </small>}
-              {n.__typename === 'JobChanged' &&
-                <small className={`font-weight-bold text-${n.item.status === 'NOSATS' ? 'danger' : 'success'} ml-1`}>
-                  {n.item.status === 'NOSATS'
-                    ? 'your job ran out of sats'
-                    : 'your job is active again'}
-                </small>}
-              <div className={n.__typename === 'Votification' || n.__typename === 'Mention' || n.__typename === 'JobChanged' ? '' : 'py-2'}>
-                {n.item.maxBid
-                  ? <ItemJob item={n.item} />
-                  : n.item.title
-                    ? <Item item={n.item} />
-                    : (
-                      <div className='pb-2'>
-                        <Comment item={n.item} noReply includeParent rootText={n.__typename === 'Reply' ? 'replying on:' : undefined} clickToContext />
-                      </div>)}
-              </div>
-            </>)}
+          : n.__typename === 'InvoicePaid'
+            ? <div className='font-weight-bold text-info ml-2 py-1'><Check className='fill-info mr-1' />{n.earnedSats} sats were deposited in your account</div>
+            : (
+              <>
+                {n.__typename === 'Votification' &&
+                  <small className='font-weight-bold text-success ml-2'>
+                    your {n.item.title ? 'post' : 'reply'} stacked {n.earnedSats} sats
+                  </small>}
+                {n.__typename === 'Mention' &&
+                  <small className='font-weight-bold text-info ml-2'>
+                    you were mentioned in
+                  </small>}
+                {n.__typename === 'JobChanged' &&
+                  <small className={`font-weight-bold text-${n.item.status === 'NOSATS' ? 'danger' : 'success'} ml-1`}>
+                    {n.item.status === 'NOSATS'
+                      ? 'your job ran out of sats'
+                      : 'your job is active again'}
+                  </small>}
+                <div className={n.__typename === 'Votification' || n.__typename === 'Mention' || n.__typename === 'JobChanged' ? '' : 'py-2'}>
+                  {n.item.maxBid
+                    ? <ItemJob item={n.item} />
+                    : n.item.title
+                      ? <Item item={n.item} />
+                      : (
+                        <div className='pb-2'>
+                          <Comment item={n.item} noReply includeParent rootText={n.__typename === 'Reply' ? 'replying on:' : undefined} clickToContext />
+                        </div>)}
+                </div>
+              </>)}
     </div>
   )
 }

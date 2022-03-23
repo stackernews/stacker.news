@@ -37,8 +37,14 @@ export default gql`
     sortTime: String!
   }
 
+  type InvoicePaid {
+    earnedSats: Int!
+    invoice: Invoice!
+    sortTime: String!
+  }
+
   union Notification = Reply | Votification | Mention
-    | Invitification | JobChanged | Earn
+    | Invitification | JobChanged | Earn | InvoicePaid
 
   type Notifications {
     lastChecked: String

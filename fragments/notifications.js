@@ -51,6 +51,13 @@ export const NOTIFICATIONS = gql`
           sortTime
           earnedSats
         }
+        ... on InvoicePaid {
+          sortTime
+          earnedSats
+          invoice {
+            id
+          }
+        }
       }
     }
   } `

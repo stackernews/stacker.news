@@ -1,6 +1,7 @@
 import { AuthenticationError } from 'apollo-server-micro'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { getItem } from './item'
+import { getInvoice } from './wallet'
 
 export default {
   Query: {
@@ -70,6 +71,7 @@ export default {
       // at most 25 ancesestors belonging to the same user for a given reply, see: (LIMIT+OFFSET)*25 which is
       // undoubtably the case today ... this probably won't hold indefinitely though
       // One other less HACKy way to do this is to store in each reply, an set of users it's in response to
+      // or to simply denormalize the replies (simply the ids which we wouldn't have to be concerned about consitency)
       const notifications = await models.$queryRaw(`
         SELECT DISTINCT *
         FROM
@@ -128,8 +130,17 @@ export default {
         (SELECT "Earn".id::text, "Earn".created_at AS "sortTime", FLOOR(msats / 1000) as "earnedSats",
             'Earn' AS type
             FROM "Earn"
-            WHERE "Earn"."userId" = $1 AND
-            FLOOR(msats / 1000) > 0
+            WHERE "Earn"."userId" = $1
+            AND FLOOR(msats / 1000) > 0
+            AND created_at <= $2
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT}+$3)
+          UNION ALL
+        (SELECT "Invoice".id::text, "Invoice"."confirmedAt" AS "sortTime", FLOOR("msatsReceived" / 1000) as "earnedSats",
+            'InvoicePaid' AS type
+            FROM "Invoice"
+            WHERE "Invoice"."userId" = $1
+            AND "confirmedAt" IS NOT NULL
             AND created_at <= $2
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT}+$3)) AS n
@@ -164,6 +175,9 @@ export default {
   Mention: {
     mention: async (n, args, { models }) => true,
     item: async (n, args, { models }) => getItem(n, { id: n.id }, { models })
+  },
+  InvoicePaid: {
+    invoice: async (n, args, { me, models }) => getInvoice(n, { id: n.id }, { me, models })
   },
   Invitification: {
     invite: async (n, args, { models }) => {

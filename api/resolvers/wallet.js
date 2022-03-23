@@ -5,28 +5,30 @@ import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import lnpr from 'bolt11'
 import { SELECT } from './item'
 
+export async function getInvoice (parent, { id }, { me, models }) {
+  if (!me) {
+    throw new AuthenticationError('you must be logged in')
+  }
+
+  const inv = await models.invoice.findUnique({
+    where: {
+      id: Number(id)
+    },
+    include: {
+      user: true
+    }
+  })
+
+  if (inv.user.id !== me.id) {
+    throw new AuthenticationError('not ur invoice')
+  }
+
+  return inv
+}
+
 export default {
   Query: {
-    invoice: async (parent, { id }, { me, models, lnd }) => {
-      if (!me) {
-        throw new AuthenticationError('you must be logged in')
-      }
-
-      const inv = await models.invoice.findUnique({
-        where: {
-          id: Number(id)
-        },
-        include: {
-          user: true
-        }
-      })
-
-      if (inv.user.id !== me.id) {
-        throw new AuthenticationError('not ur invoice')
-      }
-
-      return inv
-    },
+    invoice: getInvoice,
     withdrawl: async (parent, { id }, { me, models, lnd }) => {
       if (!me) {
         throw new AuthenticationError('you must be logged in')

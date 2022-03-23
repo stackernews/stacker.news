@@ -260,6 +260,18 @@ export default {
         return true
       }
 
+      const invoice = await models.invoice.findFirst({
+        where: {
+          userId: user.id,
+          confirmedAt: {
+            gt: user.checkedNotesAt || new Date(0)
+          }
+        }
+      })
+      if (invoice) {
+        return true
+      }
+
       // check if new invites have been redeemed
       const newInvitees = await models.$queryRaw(`
         SELECT "Invite".id

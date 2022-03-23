@@ -380,11 +380,15 @@ textarea.form-control {
 }
 
 .fill-success {
-  fill: #5c8001;
+  fill: var(--success);
+}
+
+.fill-info {
+  fill: var(--info);
 }
 
 .fill-danger {
-  fill: #c03221;
+  fill: var(--danger);
 }
 
 .fill-theme-color {

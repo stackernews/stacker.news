@@ -672,6 +672,9 @@ export default {
       return count || 0
     },
     comments: async (item, args, { models }) => {
+      if (item.comments) {
+        return item.comments
+      }
       return comments(models, item.id, 'hot')
     },
     sats: async (item, args, { models }) => {

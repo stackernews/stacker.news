@@ -148,7 +148,8 @@ async function getGraph (models) {
       from (
         select id, json_agg(json_build_object('node', oid, 'trust', trust)) as hops
           from (
-            select "ItemAct"."userId" as id, "Item"."userId" as oid, least(${MAX_TRUST}, count(*)/10.0) as trust
+            select "ItemAct"."userId" as id, "Item"."userId" as oid, least(${MAX_TRUST},
+              sum(POWER(.99, EXTRACT(DAY FROM (NOW_UTC() - "ItemAct".created_at))))/42.0) as trust
               from "ItemAct"
               join "Item" on "itemId" = "Item".id and "ItemAct"."userId" <> "Item"."userId"
               where "ItemAct".act = 'VOTE' group by "ItemAct"."userId", "Item"."userId"
@@ -167,11 +168,13 @@ async function storeTrust (models, nodeTrust) {
   }
 
   // update the trust of each user in graph
-  await models.$executeRaw(
-    `UPDATE users
-      SET trust = g.trust
-      FROM (values ${values}) g(id, trust)
-      WHERE users.id = g.id`)
+  await models.$transaction([
+    models.$executeRaw`UPDATE users SET trust = 0`,
+    models.$executeRaw(
+      `UPDATE users
+        SET trust = g.trust
+        FROM (values ${values}) g(id, trust)
+        WHERE users.id = g.id`)])
 }
 
 module.exports = { trust }

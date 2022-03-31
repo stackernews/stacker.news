@@ -6,6 +6,7 @@ import { useRouter } from 'next/router'
 import MoreFooter from './more-footer'
 import Invite from './invite'
 import { ignoreClick } from '../lib/clicks'
+import { timeSince } from '../lib/time'
 import Link from 'next/link'
 import Check from '../svgs/check-double-line.svg'
 import HandCoin from '../svgs/hand-coin-fill.svg'
@@ -64,7 +65,7 @@ function Notification ({ n }) {
               <HandCoin className='align-self-center fill-boost mx-1' width={24} height={24} style={{ flex: '0 0 24px', transform: 'rotateY(180deg)' }} />
               <div className='ml-2'>
                 <div className='font-weight-bold text-boost'>
-                  you stacked {n.earnedSats} sats
+                  you stacked {n.earnedSats} sats <small className='text-muted ml-1'>{timeSince(new Date(n.sortTime))}</small>
                 </div>
                 <div className='pb-1' style={{ lineHeight: '140%' }}>
                   SN distributes the sats it earns back to its best users daily. These sats come from <Link href='/~jobs' passHref><a>jobs</a></Link>, boost, and posting fees.

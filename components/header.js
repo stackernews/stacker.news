@@ -75,9 +75,12 @@ export default function Header ({ sub }) {
               <NavDropdown.Item onClick={() => signOut({ callbackUrl: '/' })}>logout</NavDropdown.Item>
             </NavDropdown>
             {me?.hasNewNotes &&
-              <span className='position-absolute p-1 bg-danger' style={{ top: '5px', right: '0px' }}>
-                <span className='invisible'>{' '}</span>
-              </span>}
+              <Link href='/notifications' passHref>
+                <span className='position-absolute p-1 bg-danger' style={{ top: '5px', right: '0px' }}>
+                  <span className='invisible'>{' '}</span>
+                </span>
+              </Link>
+            }
             {me && !me.bio &&
               <span className='position-absolute p-1 bg-secondary' style={{ bottom: '5px', right: '0px' }}>
                 <span className='invisible'>{' '}</span>

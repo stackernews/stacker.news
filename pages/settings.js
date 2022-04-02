@@ -22,7 +22,7 @@ export default function Settings () {
   )
 
   return (
-    <LayoutCenter>
+    <LayoutCenter noFooterLinks>
       <h2 className='mb-5 text-left'>settings</h2>
       <Form
         initial={{

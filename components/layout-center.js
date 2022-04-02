@@ -1,14 +1,18 @@
-import Layout from './layout'
-import styles from './layout-center.module.css'
+import Layout from "./layout";
+import styles from "./layout-center.module.css";
 
-export default function LayoutCenter ({ children, ...props }) {
+export default function LayoutCenter({ children, noFooterLinks, ...props }) {
   return (
     <div className={styles.page}>
-      <Layout noContain noFooterLinks {...props}>
-        <div className={styles.content}>
-          {children}
-        </div>
-      </Layout>
+      {noFooterLinks ? (
+        <Layout noContain noFooterLinks {...props}>
+          <div className={styles.content}>{children}</div>
+        </Layout>
+      ) : (
+        <Layout noContain {...props}>
+          <div className={styles.content}>{children}</div>
+        </Layout>
+      )}
     </div>
-  )
+  );
 }

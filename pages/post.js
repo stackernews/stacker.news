@@ -36,7 +36,7 @@ export function PostForm () {
 
 export default function Post () {
   return (
-    <LayoutCenter>
+    <LayoutCenter noFooterLinks>
       <PostForm />
     </LayoutCenter>
   )

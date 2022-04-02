@@ -9,7 +9,7 @@ import Link from 'next/link'
 
 export default function Withdrawl () {
   return (
-    <LayoutCenter>
+    <LayoutCenter noFooterLinks>
       <LoadWithdrawl />
     </LayoutCenter>
   )

@@ -16,7 +16,7 @@ import { CREATE_WITHDRAWL, SEND_TO_LNADDR } from '../fragments/wallet'
 
 export default function Wallet () {
   return (
-    <LayoutCenter>
+    <LayoutCenter noFooterLinks>
       <WalletForm />
     </LayoutCenter>
   )

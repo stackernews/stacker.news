@@ -7,7 +7,7 @@ import { INVOICE } from '../../fragments/wallet'
 
 export default function FullInvoice () {
   return (
-    <LayoutCenter>
+    <LayoutCenter noFooterLinks>
       <LoadInvoice />
     </LayoutCenter>
   )

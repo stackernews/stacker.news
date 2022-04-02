@@ -12,15 +12,15 @@ async function comments (models, id, sort) {
   switch (sort) {
     case 'top':
       orderBy = 'ORDER BY x.sats DESC NULLS LAST'
-      join = LEFT_JOIN_WEIGHTED_SATS
+      join = COMMENTS_LEFT_JOIN_WEIGHTED_SATS
       break
     case 'recent':
       orderBy = 'ORDER BY "Item".created_at DESC'
       join = ''
       break
     default:
-      orderBy = ORDER_BY_SATS
-      join = LEFT_JOIN_WEIGHTED_SATS
+      orderBy = COMMENTS_ORDER_BY_SATS
+      join = COMMENTS_LEFT_JOIN_WEIGHTED_SATS
       break
   }
 
@@ -33,7 +33,7 @@ async function comments (models, id, sort) {
         UNION ALL
           ${SELECT}, p.sort_path || row_number() OVER (${orderBy}, "Item".path)
           FROM base p
-          JOIN "Item" ON ltree2text(subpath("Item"."path", 0, -1)) = p."path"
+          JOIN "Item" ON "Item"."parentId" = p.id
           ${join})
         SELECT * FROM base ORDER BY sort_path`, Number(id))
   return nestComments(flat, id)[0]
@@ -48,7 +48,7 @@ export async function getItem (parent, { id }, { models }) {
 }
 
 function topClause (within) {
-  let interval = ' AND created_at >= $1 - INTERVAL '
+  let interval = ' AND "Item".created_at >= $1 - INTERVAL '
   switch (within) {
     case 'day':
       interval += "'1 day'"
@@ -119,11 +119,11 @@ export default {
           items = await models.$queryRaw(`
             ${SELECT}
             FROM "Item"
-            ${timedLeftJoinWeightedSats(1)}
-            WHERE "parentId" IS NULL AND created_at <= $1
+            ${newTimedLeftJoinWeightedSats(1)}
+            WHERE "parentId" IS NULL AND "Item".created_at <= $1
             AND "pinId" IS NULL
             ${topClause(within)}
-            ORDER BY x.sats DESC NULLS LAST, created_at DESC
+            ${TOP_ORDER_BY_SATS}
             OFFSET $2
             LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
           break
@@ -160,24 +160,24 @@ export default {
                 items = await models.$queryRaw(`
                   ${SELECT}
                   FROM "Item"
-                  ${timedLeftJoinWeightedSats(1)}
-                  WHERE "parentId" IS NULL AND created_at <= $1 AND created_at > $3
+                  ${newTimedLeftJoinWeightedSats(1)}
+                  WHERE "parentId" IS NULL AND "Item".created_at <= $1 AND "Item".created_at > $3
                   AND "pinId" IS NULL
                   ${subClause(4)}
-                  ${timedOrderBySats(1)}
+                  ${newTimedOrderByWeightedSats(1)}
                   OFFSET $2
-                  LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, new Date(new Date() - 7), sub || 'NULL')
+                  LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, new Date(new Date().setDate(new Date().getDate() - 5)), sub || 'NULL')
               }
 
               if (decodedCursor.offset !== 0 || items?.length < LIMIT) {
                 items = await models.$queryRaw(`
                   ${SELECT}
                   FROM "Item"
-                  ${timedLeftJoinWeightedSats(1)}
-                  WHERE "parentId" IS NULL AND created_at <= $1
+                  ${newTimedLeftJoinWeightedSats(1)}
+                  WHERE "parentId" IS NULL AND "Item".created_at <= $1
                   AND "pinId" IS NULL
                   ${subClause(3)}
-                  ${timedOrderBySats(1)}
+                  ${newTimedOrderByWeightedSats(1)}
                   OFFSET $2
                   LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, sub || 'NULL')
               }
@@ -246,11 +246,11 @@ export default {
           comments = await models.$queryRaw(`
           ${SELECT}
           FROM "Item"
-          ${timedLeftJoinWeightedSats(1)}
+          ${newTimedLeftJoinWeightedSats(1)}
           WHERE "parentId" IS NOT NULL
-          AND created_at <= $1
+          AND "Item".created_at <= $1
           ${topClause(within)}
-          ORDER BY x.sats DESC NULLS LAST, created_at DESC
+          ${TOP_ORDER_BY_SATS}
           OFFSET $2
           LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
           break
@@ -888,31 +888,30 @@ export const SELECT =
 
 const LEFT_JOIN_WEIGHTED_SATS_SELECT = 'SELECT i.id, SUM(CASE WHEN "ItemAct".act = \'VOTE\' THEN "ItemAct".sats * users.trust ELSE 0 END) as sats,  SUM(CASE WHEN "ItemAct".act = \'BOOST\' THEN "ItemAct".sats ELSE 0 END) as boost'
 
-function timedLeftJoinWeightedSats (num) {
+function newTimedLeftJoinWeightedSats (num) {
   return `
-  LEFT JOIN (
-    ${LEFT_JOIN_WEIGHTED_SATS_SELECT}
-      FROM "Item" i
-      JOIN "ItemAct" ON i.id = "ItemAct"."itemId" AND "ItemAct".created_at <= $${num}
-      JOIN users on "ItemAct"."userId" = users.id
-      GROUP BY i.id
-  ) x ON "Item".id = x.id`
+   JOIN "ItemAct" ON "Item".id = "ItemAct"."itemId" AND "ItemAct".created_at <= $${num}
+   JOIN users ON "ItemAct"."userId" = users.id`
 }
 
-const LEFT_JOIN_WEIGHTED_SATS =
+function newTimedOrderByWeightedSats (num) {
+  return `
+    GROUP BY "Item".id
+    ORDER BY (SUM(CASE WHEN "ItemAct".act = 'VOTE' AND "Item"."userId" <> "ItemAct"."userId" THEN users.trust ELSE 0 END)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 1.5) +
+              GREATEST(SUM(CASE WHEN "ItemAct".act = 'BOOST' THEN "ItemAct".sats ELSE 0 END)-1000+5, 0)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 5)) DESC NULLS LAST, "Item".id DESC`
+}
+
+const TOP_ORDER_BY_SATS = 'GROUP BY "Item".id ORDER BY (SUM(CASE WHEN "ItemAct".act = \'VOTE\' AND "Item"."userId" <> "ItemAct"."userId" THEN users.trust ELSE 0 END)) DESC NULLS LAST, "Item".created_at DESC'
+
+const COMMENTS_LEFT_JOIN_WEIGHTED_SATS =
   `LEFT JOIN (
     ${LEFT_JOIN_WEIGHTED_SATS_SELECT}
     FROM "Item" i
     JOIN "ItemAct" ON i.id = "ItemAct"."itemId"
     JOIN users on "ItemAct"."userId" = users.id
+    WHERE "parentId" IS NOT NULL
     GROUP BY i.id
   ) x ON "Item".id = x.id`
 
-/* NOTE: because many items will have the same rank, we need to tie break with a unique field so pagination works */
-function timedOrderBySats (num) {
-  return `ORDER BY (GREATEST(x.sats-1, 0)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 1.5) +
-    GREATEST(x.boost-${BOOST_MIN}+5, 0)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 5)) DESC NULLS LAST, "Item".id DESC`
-}
-
-const ORDER_BY_SATS =
-  'ORDER BY GREATEST(x.sats-1, 0)/POWER(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE \'UTC\') - "Item".created_at))/3600+2, 1.5) DESC NULLS LAST, "Item".id DESC'
+const COMMENTS_ORDER_BY_SATS =
+  'ORDER BY GREATEST(x.sats, 0)/POWER(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE \'UTC\') - "Item".created_at))/3600+2, 1.5) DESC NULLS LAST, "Item".id DESC'

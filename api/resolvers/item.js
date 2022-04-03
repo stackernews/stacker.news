@@ -39,6 +39,18 @@ async function comments (models, id, sort) {
   return nestComments(flat, id)[0]
 }
 
+const COMMENTS_LEFT_JOIN_WEIGHTED_SATS_SELECT = 'SELECT "Item".id, SUM(CASE WHEN "ItemAct".act = \'VOTE\' AND "Item"."userId" <> "ItemAct"."userId" THEN users.trust ELSE 0 END) as sats'
+const COMMENTS_LEFT_JOIN_WEIGHTED_SATS =
+  `LEFT JOIN LATERAL (
+    ${COMMENTS_LEFT_JOIN_WEIGHTED_SATS_SELECT}
+    FROM "ItemAct"
+    JOIN users on "ItemAct"."userId" = users.id
+    WHERE "Item".id = "ItemAct"."itemId"
+    GROUP BY "Item".id
+  ) x ON "Item".id = x.id`
+const COMMENTS_ORDER_BY_SATS =
+  'ORDER BY GREATEST(x.sats, 0)/POWER(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE \'UTC\') - "Item".created_at))/3600+2, 1.5) DESC NULLS LAST, "Item".id DESC'
+
 export async function getItem (parent, { id }, { models }) {
   const [item] = await models.$queryRaw(`
   ${SELECT}
@@ -886,11 +898,9 @@ export const SELECT =
   "Item".company, "Item".location, "Item".remote,
   "Item"."subName", "Item".status, ltree2text("Item"."path") AS "path"`
 
-const LEFT_JOIN_WEIGHTED_SATS_SELECT = 'SELECT i.id, SUM(CASE WHEN "ItemAct".act = \'VOTE\' THEN "ItemAct".sats * users.trust ELSE 0 END) as sats,  SUM(CASE WHEN "ItemAct".act = \'BOOST\' THEN "ItemAct".sats ELSE 0 END) as boost'
-
 function newTimedLeftJoinWeightedSats (num) {
   return `
-   JOIN "ItemAct" ON "Item".id = "ItemAct"."itemId" AND "ItemAct".created_at <= $${num}
+   LEFT JOIN "ItemAct" ON "Item".id = "ItemAct"."itemId" AND "ItemAct".created_at <= $${num}
    JOIN users ON "ItemAct"."userId" = users.id`
 }
 
@@ -902,16 +912,3 @@ function newTimedOrderByWeightedSats (num) {
 }
 
 const TOP_ORDER_BY_SATS = 'GROUP BY "Item".id ORDER BY (SUM(CASE WHEN "ItemAct".act = \'VOTE\' AND "Item"."userId" <> "ItemAct"."userId" THEN users.trust ELSE 0 END)) DESC NULLS LAST, "Item".created_at DESC'
-
-const COMMENTS_LEFT_JOIN_WEIGHTED_SATS =
-  `LEFT JOIN (
-    ${LEFT_JOIN_WEIGHTED_SATS_SELECT}
-    FROM "Item" i
-    JOIN "ItemAct" ON i.id = "ItemAct"."itemId"
-    JOIN users on "ItemAct"."userId" = users.id
-    WHERE "parentId" IS NOT NULL
-    GROUP BY i.id
-  ) x ON "Item".id = x.id`
-
-const COMMENTS_ORDER_BY_SATS =
-  'ORDER BY GREATEST(x.sats, 0)/POWER(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE \'UTC\') - "Item".created_at))/3600+2, 1.5) DESC NULLS LAST, "Item".id DESC'

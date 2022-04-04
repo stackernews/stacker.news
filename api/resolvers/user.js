@@ -154,23 +154,8 @@ export default {
       if (user.stacked) {
         return user.stacked
       }
-      const [{ sum }] = await models.$queryRaw`
-        SELECT sum("ItemAct".sats)
-        FROM "ItemAct"
-        JOIN "Item" on "ItemAct"."itemId" = "Item".id
-        WHERE "ItemAct"."userId" <> ${user.id} AND "ItemAct".act <> 'BOOST'
-        AND "Item"."userId" = ${user.id}`
 
-      const { sum: { msats } } = await models.earn.aggregate({
-        sum: {
-          msats: true
-        },
-        where: {
-          userId: Number(user.id)
-        }
-      })
-
-      return (sum || 0) + Math.floor((msats || 0) / 1000)
+      return Math.floor((user.stackedMsats || 0) / 1000)
     },
     sats: async (user, args, { models, me }) => {
       if (me?.id !== user.id) {
@@ -189,15 +174,16 @@ export default {
     },
     hasNewNotes: async (user, args, { models }) => {
       // check if any votes have been cast for them since checkedNotesAt
+      const lastChecked = user.checkedNotesAt || new Date(0)
       const votes = await models.$queryRaw(`
         SELECT "ItemAct".id, "ItemAct".created_at
-          FROM "ItemAct"
-          JOIN "Item" on "ItemAct"."itemId" = "Item".id
+          FROM "Item"
+          JOIN "ItemAct" on "ItemAct"."itemId" = "Item".id
           WHERE "ItemAct"."userId" <> $1
-          AND ("ItemAct".created_at > $2 OR $2 IS NULL)
+          AND "ItemAct".created_at > $2
           AND "ItemAct".act <> 'BOOST'
           AND "Item"."userId" = $1
-          LIMIT 1`, user.id, user.checkedNotesAt)
+          LIMIT 1`, user.id, lastChecked)
       if (votes.length > 0) {
         return true
       }
@@ -208,8 +194,8 @@ export default {
           FROM "Item"
           JOIN "Item" p ON "Item".path <@ p.path
           WHERE p."userId" = $1
-          AND ("Item".created_at > $2 OR $2 IS NULL)  AND "Item"."userId" <> $1
-          LIMIT 1`, user.id, user.checkedNotesAt)
+          AND "Item".created_at > $2  AND "Item"."userId" <> $1
+          LIMIT 1`, user.id, lastChecked)
       if (newReplies.length > 0) {
         return true
       }
@@ -220,9 +206,9 @@ export default {
           FROM "Mention"
           JOIN "Item" ON "Mention"."itemId" = "Item".id
           WHERE "Mention"."userId" = $1
-          AND ("Mention".created_at > $2 OR $2 IS NULL)
+          AND "Mention".created_at > $2
           AND "Item"."userId" <> $1
-          LIMIT 1`, user.id, user.checkedNotesAt)
+          LIMIT 1`, user.id, lastChecked)
       if (newMentions.length > 0) {
         return true
       }
@@ -237,7 +223,7 @@ export default {
           },
           userId: user.id,
           statusUpdatedAt: {
-            gt: user.checkedNotesAt || new Date(0)
+            gt: lastChecked
           }
         }
       })
@@ -249,7 +235,7 @@ export default {
         where: {
           userId: user.id,
           createdAt: {
-            gt: user.checkedNotesAt || new Date(0)
+            gt: lastChecked
           },
           msats: {
             gte: 1000
@@ -264,7 +250,7 @@ export default {
         where: {
           userId: user.id,
           confirmedAt: {
-            gt: user.checkedNotesAt || new Date(0)
+            gt: lastChecked
           }
         }
       })
@@ -277,8 +263,8 @@ export default {
         SELECT "Invite".id
           FROM users JOIN "Invite" on users."inviteId" = "Invite".id
           WHERE "Invite"."userId" = $1
-          AND (users.created_at > $2 or $2 IS NULL)
-          LIMIT 1`, user.id, user.checkedNotesAt)
+          AND users.created_at > $2
+          LIMIT 1`, user.id, lastChecked)
       return newInvitees.length > 0
     }
   }

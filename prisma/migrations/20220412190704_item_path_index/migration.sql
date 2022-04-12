@@ -1,0 +1,1 @@
+CREATE INDEX "item_gist_path_index" ON "Item" USING GIST  ("path" gist_ltree_ops(siglen=2024));

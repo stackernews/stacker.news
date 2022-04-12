@@ -34,7 +34,7 @@ model User {
   freeComments   Int         @default(5)
   freePosts      Int         @default(2)
   checkedNotesAt DateTime?
-  tipDefault     Int         @default(1)
+  tipDefault     Int         @default(10)
   pubkey         String?     @unique
   trust          Float       @default(0)
   lastSeenAt     DateTime?
@@ -150,6 +150,7 @@ model Item {
   @@index([statusUpdatedAt])
   @@index([subName])
   @@index([pinId])
+  @@index([path])
 }
 
 enum PostType {

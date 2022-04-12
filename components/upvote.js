@@ -23,23 +23,26 @@ const getColor = (meSats) => {
   return Rainbow[idx]
 }
 
-const UpvotePopover = ({ target, show, handleClose }) => (
-  <Overlay
-    show={show}
-    target={target}
-    placement='right'
-  >
-    <Popover id='popover-basic'>
-      <Popover.Title className='d-flex justify-content-between alert-dismissible' as='h3'>Tipping
-        <button type='button' className='close' onClick={handleClose}><span aria-hidden='true'>×</span><span className='sr-only'>Close alert</span></button>
-      </Popover.Title>
-      <Popover.Content>
-        <div className='mb-2'>Press the bolt again to tip 1 more sat.</div>
-        <div>Repeatedly press the bolt to tip more sats.</div>
-      </Popover.Content>
-    </Popover>
-  </Overlay>
-)
+const UpvotePopover = ({ target, show, handleClose }) => {
+  const me = useMe()
+  return (
+    <Overlay
+      show={show}
+      target={target}
+      placement='right'
+    >
+      <Popover id='popover-basic'>
+        <Popover.Title className='d-flex justify-content-between alert-dismissible' as='h3'>Tipping
+          <button type='button' className='close' onClick={handleClose}><span aria-hidden='true'>×</span><span className='sr-only'>Close alert</span></button>
+        </Popover.Title>
+        <Popover.Content>
+          <div className='mb-2'>Press the bolt again to tip {me?.tipDefault || 1} more sat{me?.tipDefault > 1 ? 's' : ''}.</div>
+          <div>Repeatedly press the bolt to tip more sats.</div>
+        </Popover.Content>
+      </Popover>
+    </Overlay>
+  )
+}
 
 const TipPopover = ({ target, show, handleClose }) => (
   <Overlay

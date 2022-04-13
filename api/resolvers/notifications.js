@@ -64,25 +64,15 @@ export default {
       // HACK to make notifications faster, we only return a limited sub set of the unioned
       // queries ... we only ever need at most LIMIT+current offset in the child queries to
       // have enough items to return in the union
-      // HACK 2.0 ... replies are slow because they could be a reply to multiple ancestors yet
-      // we should only get one notification for this reply ... the right
-      // way would be to make sure the reply query returns unique results but this is slow for users with
-      // many replies (you have to hash every reply) ... this hack avoids doing that by assuming there will be
-      // at most 25 ancesestors belonging to the same user for a given reply, see: (LIMIT+OFFSET)*25 which is
-      // undoubtably the case today ... this probably won't hold indefinitely though
-      // One other less HACKy way to do this is to store in each reply, an set of users it's in response to
-      // or to simply denormalize the replies (simply the ids which we wouldn't have to be concerned about consitency)
       const notifications = await models.$queryRaw(`
-        SELECT DISTINCT *
-        FROM
-        ((SELECT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL as "earnedSats",
+        (SELECT DISTINCT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL::BIGINT as "earnedSats",
           'Reply' AS type
           FROM "Item"
           JOIN "Item" p ON "Item".path <@ p.path
           WHERE p."userId" = $1
             AND "Item"."userId" <> $1 AND "Item".created_at <= $2
           ORDER BY "sortTime" DESC
-          LIMIT (${LIMIT}+$3) * 25)
+          LIMIT ${LIMIT}+$3)
         UNION ALL
         (SELECT "Item".id::TEXT, MAX("ItemAct".created_at) AS "sortTime",
           sum("ItemAct".sats) as "earnedSats", 'Votification' AS type
@@ -143,7 +133,7 @@ export default {
             AND "confirmedAt" IS NOT NULL
             AND created_at <= $2
             ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT}+$3)) AS n
+            LIMIT ${LIMIT}+$3)
         ORDER BY "sortTime" DESC
         OFFSET $3
         LIMIT ${LIMIT}`, me.id, decodedCursor.time, decodedCursor.offset)

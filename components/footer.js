@@ -159,12 +159,12 @@ export default function Footer ({ noLinks }) {
             />
           </div>}
         <small>
-          <a className={`d-inline-block ${styles.contrastLink}`} href='https://github.com/stackernews/stacker.news'>
+          <a className={`d-inline-block ${styles.contrastLink}`} href='https://github.com/stackernews/stacker.news' target='_blank' rel='noreferrer'>
             This is free open source software<Github width={20} height={20} className='mx-1' />
           </a>
           <span className='d-inline-block text-muted'>
             made with sound love in Austin<Texas className='mx-1' width={20} height={20} />
-            by<a href='https://twitter.com/k00bideh' className='text-twitter d-inline-block'><Twitter width={20} height={20} className='ml-1' />@k00bideh</a>
+            by<a href='https://twitter.com/k00bideh' target='_blank' rel='noreferrer' className='text-twitter d-inline-block'><Twitter width={20} height={20} className='ml-1' />@k00bideh</a>
           </span>
         </small>
       </Container>

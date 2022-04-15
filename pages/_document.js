@@ -15,6 +15,7 @@ class MyDocument extends Document {
             ` @font-face {
                 font-family: lightning;
                 src: url(${publicPrefix}/Lightningvolt-xoqm.ttf);
+                font-display: swap;
               }`
             }}
           />

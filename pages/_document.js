@@ -20,7 +20,7 @@ class MyDocument extends Document {
           />
         </Head>
         <body>
-          <script src='/darkmode.js' />
+          <script src={`${publicPrefix}/darkmode.js`} />
           <Main />
           <NextScript />
         </body>

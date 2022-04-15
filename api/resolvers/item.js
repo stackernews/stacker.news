@@ -759,6 +759,11 @@ export default {
 
       return sats || 0
     },
+    meComments: async (item, args, { me, models }) => {
+      if (!me) return 0
+
+      return await models.items.count({ where: { userId: me.id, parentId: item.id } })
+    },
     mine: async (item, args, { me, models }) => {
       return me?.id === item.userId
     },

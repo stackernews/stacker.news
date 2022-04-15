@@ -60,6 +60,7 @@ export default gql`
     sats: Int!
     upvotes: Int!
     meSats: Int!
+    meComments: Int!
     ncomments: Int!
     comments: [Item!]!
     path: String

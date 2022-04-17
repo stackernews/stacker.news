@@ -174,7 +174,7 @@ export default function Comment ({
       <div className={`${styles.children}`}>
         {!noReply &&
           <Reply
-            parentId={item.id} replyOpen={replyOpen}
+            parentId={item.id} meComments={item.meComments} replyOpen={replyOpen}
           />}
         {children}
         <div className={`${styles.comments} ml-sm-1 ml-md-3`}>

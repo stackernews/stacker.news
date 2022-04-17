@@ -83,6 +83,7 @@ export const ITEM_FULL = gql`
     item(id: $id) {
       ...ItemFields
       prior
+      meComments
       position
       text
       comments {
@@ -97,6 +98,7 @@ export const ITEM_WITH_COMMENTS = gql`
   fragment ItemWithComments on Item {
       ...ItemFields
       text
+      meComments
       comments {
         ...CommentsRecursive
       }

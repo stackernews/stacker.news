@@ -29,7 +29,7 @@ function BioItem ({ item, handleClick }) {
           >edit bio
           </Button>
         </div>}
-      <Reply parentId={item.id} />
+      <Reply parentId={item.id} meComments={item.meComments} />
     </>
   )
 }
@@ -86,7 +86,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
     <ItemComponent item={item} {...props}>
       {item.text && <ItemText item={item} />}
       {item.url && <ItemEmbed item={item} />}
-      {!noReply && <Reply parentId={item.id} replyOpen />}
+      {!noReply && <Reply parentId={item.id} meComments={item.meComments} replyOpen />}
     </ItemComponent>
   )
 }

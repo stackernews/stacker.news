@@ -762,7 +762,7 @@ export default {
     meComments: async (item, args, { me, models }) => {
       if (!me) return 0
 
-      return await models.items.count({ where: { userId: me.id, parentId: item.id } })
+      return await models.item.count({ where: { userId: me.id, parentId: item.id } })
     },
     mine: async (item, args, { me, models }) => {
       return me?.id === item.userId
@@ -845,20 +845,6 @@ const createItem = async (parent, { title, url, text, boost, parentId }, { me, m
 
   if (boost && boost < BOOST_MIN) {
     throw new UserInputError(`boost must be at least ${BOOST_MIN}`, { argumentName: 'boost' })
-  }
-
-  // check if they've already commented on this parent ... don't allow it if so
-  if (parentId) {
-    const existingComment = await models.item.findFirst({
-      where: {
-        parentId: Number(parentId),
-        userId: me.id
-      }
-    })
-
-    if (existingComment) {
-      throw new UserInputError("you've already commented on this item")
-    }
   }
 
   const [item] = await serialize(models,

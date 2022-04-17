@@ -12,7 +12,7 @@ export const CommentSchema = Yup.object({
   text: Yup.string().required('required').trim()
 })
 
-export default function Reply ({ parentId, onSuccess, replyOpen }) {
+export default function Reply ({ parentId, meComments, onSuccess, replyOpen }) {
   const [reply, setReply] = useState(replyOpen)
   const me = useMe()
 
@@ -45,12 +45,17 @@ export default function Reply ({ parentId, onSuccess, replyOpen }) {
             },
             ncomments (existingNComments = 0) {
               return existingNComments + 1
+            },
+            meComments (existingMeComments = 0) {
+              return existingMeComments + 1
             }
           }
         })
       }
     }
   )
+
+  const cost = me?.freeComments ? 0 : Math.pow(10, meComments)
 
   return (
     <div>
@@ -87,8 +92,8 @@ export default function Reply ({ parentId, onSuccess, replyOpen }) {
             required
             hint={me?.freeComments ? <span className='text-success'>{me.freeComments} free comments left</span> : null}
           />
-          <ActionTooltip>
-            <SubmitButton variant='secondary' className='mt-1'>reply</SubmitButton>
+          <ActionTooltip overlayText={`${cost} sats`}>
+            <SubmitButton variant='secondary' className='mt-1'>reply{cost > 1 && <small> {cost} sats</small>}</SubmitButton>
           </ActionTooltip>
         </Form>
       </div>

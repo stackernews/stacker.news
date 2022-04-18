@@ -1,9 +1,9 @@
 import { Checkbox, Form, Input, MarkdownInput, SubmitButton } from './form'
 import TextareaAutosize from 'react-textarea-autosize'
-import { InputGroup, Modal, Form as BForm, Col } from 'react-bootstrap'
+import { InputGroup, Form as BForm, Col } from 'react-bootstrap'
 import * as Yup from 'yup'
 import { useEffect, useState } from 'react'
-import Info from '../svgs/information-fill.svg'
+import Info from './info'
 import AccordianItem from './accordian-item'
 import styles from '../styles/post.module.css'
 import { useLazyQuery, gql, useMutation } from '@apollo/client'
@@ -47,7 +47,6 @@ export default function JobForm ({ item, sub }) {
   const storageKeyPrefix = item ? undefined : `${sub.name}-job`
   const router = useRouter()
   const [monthly, setMonthly] = useState(satsMin2Mo(item?.maxBid || sub.baseCost))
-  const [info, setInfo] = useState()
   const [getAuctionPosition, { data }] = useLazyQuery(gql`
     query AuctionPosition($id: ID, $bid: Int!) {
       auctionPosition(sub: "${sub.name}", id: $id, bid: $bid)
@@ -90,20 +89,6 @@ export default function JobForm ({ item, sub }) {
 
   return (
     <>
-      <Modal
-        show={info}
-        onHide={() => setInfo(false)}
-      >
-        <div className='modal-close' onClick={() => setInfo(false)}>X</div>
-        <Modal.Body>
-          <ol className='font-weight-bold'>
-            <li>The higher your bid the higher your job will rank</li>
-            <li>The minimum bid is {sub.baseCost} sats/min</li>
-            <li>You can increase or decrease your bid, and edit or stop your job at anytime</li>
-            <li>Your job will be hidden if your wallet runs out of sats and can be unhidden by filling your wallet again</li>
-          </ol>
-        </Modal.Body>
-      </Modal>
       <Form
         className='py-5'
         initial={{
@@ -181,7 +166,14 @@ export default function JobForm ({ item, sub }) {
         <Input
           label={
             <div className='d-flex align-items-center'>bid
-              <Info width={18} height={18} className='fill-theme-color pointer ml-1' onClick={() => setInfo(true)} />
+              <Info>
+                <ol className='font-weight-bold'>
+                  <li>The higher your bid the higher your job will rank</li>
+                  <li>The minimum bid is {sub.baseCost} sats/min</li>
+                  <li>You can increase or decrease your bid, and edit or stop your job at anytime</li>
+                  <li>Your job will be hidden if your wallet runs out of sats and can be unhidden by filling your wallet again</li>
+                </ol>
+              </Info>
             </div>
           }
           name='maxBid'

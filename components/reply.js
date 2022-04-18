@@ -7,6 +7,7 @@ import { useMe } from './me'
 import ActionTooltip from './action-tooltip'
 import TextareaAutosize from 'react-textarea-autosize'
 import { useEffect, useState } from 'react'
+import Info from './info'
 
 export const CommentSchema = Yup.object({
   text: Yup.string().required('required').trim()
@@ -92,9 +93,16 @@ export default function Reply ({ parentId, meComments, onSuccess, replyOpen }) {
             required
             hint={me?.freeComments ? <span className='text-success'>{me.freeComments} free comments left</span> : null}
           />
-          <ActionTooltip overlayText={`${cost} sats`}>
-            <SubmitButton variant='secondary' className='mt-1'>reply{cost > 1 && <small> {cost} sats</small>}</SubmitButton>
-          </ActionTooltip>
+          <div className='d-flex align-items-center mt-1'>
+            <ActionTooltip overlayText={`${cost} sats`}>
+              <SubmitButton variant='secondary'>reply{cost > 1 && <small> {cost} sats</small>}</SubmitButton>
+            </ActionTooltip>
+            {cost > 1 && (
+              <Info>
+                <div className='font-weight-bold'>Multiple replies on the same level get pricier, but we still love your thoughts!</div>
+              </Info>
+            )}
+          </div>
         </Form>
       </div>
     </div>

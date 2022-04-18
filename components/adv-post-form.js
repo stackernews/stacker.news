@@ -7,7 +7,7 @@ import { BOOST_MIN } from '../lib/constants'
 export const AdvPostSchema = {
   boost: Yup.number().typeError('must be a number')
     .min(BOOST_MIN, `must be at least ${BOOST_MIN}`).integer('must be whole'),
-  forward: Yup.string().required('required').trim()
+  forward: Yup.string().trim()
 }
 
 export const AdvPostInitial = {

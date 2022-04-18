@@ -18,35 +18,13 @@ export function DiscussionForm ({
   adv, handleSubmit
 }) {
   const router = useRouter()
-  const [createDiscussion] = useMutation(
+  const [upsertDiscussion] = useMutation(
     gql`
-      mutation createDiscussion($title: String!, $text: String, $boost: Int, $forward: String) {
-        createDiscussion(title: $title, text: $text, boost: $boost, forward: $forward) {
+      mutation upsertDiscussion($id: ID, $title: String!, $text: String, $boost: Int, $forward: String) {
+        upsertDiscussion(id: $id, title: $title, text: $text, boost: $boost, forward: $forward) {
           id
         }
       }`
-  )
-  const [updateDiscussion] = useMutation(
-    gql`
-      mutation updateDiscussion($id: ID!, $title: String!, $text: String!, $forward: String) {
-        updateDiscussion(id: $id, title: $title, text: $text, forward: $forward) {
-          id
-        }
-      }`, {
-      update (cache, { data: { updateDiscussion } }) {
-        cache.modify({
-          id: `Item:${item.id}`,
-          fields: {
-            title () {
-              return updateDiscussion.title
-            },
-            text () {
-              return updateDiscussion.text
-            }
-          }
-        })
-      }
-    }
   )
 
   return (
@@ -58,12 +36,9 @@ export function DiscussionForm ({
       }}
       schema={DiscussionSchema}
       onSubmit={handleSubmit || (async ({ boost, ...values }) => {
-        let error
-        if (item) {
-          ({ error } = await updateDiscussion({ variables: { ...values, id: item.id } }))
-        } else {
-          ({ error } = await createDiscussion({ variables: { boost: Number(boost), ...values } }))
-        }
+        const { error } = await upsertDiscussion({
+          variables: { id: item?.id, boost: Number(boost), ...values }
+        })
         if (error) {
           throw new Error({ message: error.toString() })
         }

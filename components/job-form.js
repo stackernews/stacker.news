@@ -112,11 +112,15 @@ export default function JobForm ({ item, sub }) {
             status = 'STOPPED'
           }
 
-          const variables = { sub: sub.name, maxBid: Number(maxBid), status, ...values }
-          if (item) {
-            variables.id = item.id
-          }
-          const { error } = await upsertJob({ variables })
+          const { error } = await upsertJob({
+            variables: {
+              id: item?.id,
+              sub: sub.name,
+              maxBid: Number(maxBid),
+              status,
+              ...values
+            }
+          })
           if (error) {
             throw new Error({ message: error.toString() })
           }

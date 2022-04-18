@@ -36,38 +36,13 @@ export function LinkForm ({ item, editThreshold }) {
     fetchPolicy: 'network-only'
   })
 
-  const [createLink] = useMutation(
+  const [upsertLink] = useMutation(
     gql`
-      mutation createLink($title: String!, $url: String!, $boost: Int, $forward: String) {
-        createLink(title: $title, url: $url, boost: $boost, forward: $forward) {
+      mutation upsertLink($id: ID, $title: String!, $url: String!, $boost: Int, $forward: String) {
+        upsertLink(id: $id, title: $title, url: $url, boost: $boost, forward: $forward) {
           id
         }
       }`
-  )
-
-  const [updateLink] = useMutation(
-    gql`
-      mutation updateLink($id: ID!, $title: String!, $url: String!, $forward: String) {
-        updateLink(id: $id, title: $title, url: $url, forward: $forward) {
-          id
-          title
-          url
-        }
-      }`, {
-      update (cache, { data: { updateLink } }) {
-        cache.modify({
-          id: `Item:${item.id}`,
-          fields: {
-            title () {
-              return updateLink.title
-            },
-            url () {
-              return updateLink.url
-            }
-          }
-        })
-      }
-    }
   )
 
   return (
@@ -79,12 +54,9 @@ export function LinkForm ({ item, editThreshold }) {
       }}
       schema={LinkSchema}
       onSubmit={async ({ boost, ...values }) => {
-        let error
-        if (item) {
-          ({ error } = await updateLink({ variables: { ...values, id: item.id } }))
-        } else {
-          ({ error } = await createLink({ variables: { boost: Number(boost), ...values } }))
-        }
+        const { error } = await upsertLink({
+          variables: { id: item?.id, boost: Number(boost), ...values }
+        })
         if (error) {
           throw new Error({ message: error.toString() })
         }

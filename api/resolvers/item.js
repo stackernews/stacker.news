@@ -445,70 +445,26 @@ export default {
   },
 
   Mutation: {
-    createLink: async (parent, { title, url, boost }, { me, models }) => {
-      if (!title) {
-        throw new UserInputError('link must have title', { argumentName: 'title' })
-      }
+    upsertLink: async (parent, args, { me, models }) => {
+      const { id, ...data } = args
+      data.url = ensureProtocol(data.url)
 
-      if (!url) {
-        throw new UserInputError('link must have url', { argumentName: 'url' })
+      if (id) {
+        const { forward, boost, ...remaining } = data
+        return await updateItem(parent, { id, data: remaining }, { me, models })
+      } else {
+        return await createItem(parent, data, { me, models })
       }
-
-      return await createItem(parent, { title, url: ensureProtocol(url), boost }, { me, models })
     },
-    updateLink: async (parent, { id, title, url }, { me, models }) => {
-      if (!id) {
-        throw new UserInputError('link must have id', { argumentName: 'id' })
-      }
+    upsertDiscussion: async (parent, args, { me, models }) => {
+      const { id, ...data } = args
 
-      if (!title) {
-        throw new UserInputError('link must have title', { argumentName: 'title' })
+      if (id) {
+        const { forward, boost, ...remaining } = data
+        return await updateItem(parent, { id, data: remaining }, { me, models })
+      } else {
+        return await createItem(parent, data, { me, models })
       }
-
-      if (!url) {
-        throw new UserInputError('link must have url', { argumentName: 'url' })
-      }
-
-      // update iff this item belongs to me
-      const item = await models.item.findUnique({ where: { id: Number(id) } })
-      if (Number(item.userId) !== Number(me.id)) {
-        throw new AuthenticationError('item does not belong to you')
-      }
-
-      if (Date.now() > new Date(item.createdAt).getTime() + 10 * 60000) {
-        throw new UserInputError('item can no longer be editted')
-      }
-
-      return await updateItem(parent, { id, data: { title, url: ensureProtocol(url) } }, { me, models })
-    },
-    createDiscussion: async (parent, { title, text, boost }, { me, models }) => {
-      if (!title) {
-        throw new UserInputError('discussion must have title', { argumentName: 'title' })
-      }
-
-      return await createItem(parent, { title, text, boost }, { me, models })
-    },
-    updateDiscussion: async (parent, { id, title, text }, { me, models }) => {
-      if (!id) {
-        throw new UserInputError('discussion must have id', { argumentName: 'id' })
-      }
-
-      if (!title) {
-        throw new UserInputError('discussion must have title', { argumentName: 'title' })
-      }
-
-      // update iff this item belongs to me
-      const item = await models.item.findUnique({ where: { id: Number(id) } })
-      if (Number(item.userId) !== Number(me.id)) {
-        throw new AuthenticationError('item does not belong to you')
-      }
-
-      // if it's not the FAQ and older than 10 minutes
-      if (item.id !== 349 && Date.now() > new Date(item.createdAt).getTime() + 10 * 60000) {
-        throw new UserInputError('item can no longer be editted')
-      }
-
-      return await updateItem(parent, { id, data: { title, text } }, { me, models })
     },
     upsertJob: async (parent, { id, sub, title, company, location, remote, text, url, maxBid, status }, { me, models }) => {
       if (!me) {
@@ -559,6 +515,11 @@ export default {
           }
         }
 
+        const old = await models.item.findUnique({ where: { id: Number(id) } })
+        if (Number(old.userId) !== Number(me?.id)) {
+          throw new AuthenticationError('item does not belong to you')
+        }
+
         return await models.item.update({
           where: { id: Number(id) },
           data
@@ -572,35 +533,9 @@ export default {
       })
     },
     createComment: async (parent, { text, parentId }, { me, models }) => {
-      if (!text) {
-        throw new UserInputError('comment must have text', { argumentName: 'text' })
-      }
-
-      if (!parentId) {
-        throw new UserInputError('comment must have parent', { argumentName: 'parentId' })
-      }
-
       return await createItem(parent, { text, parentId }, { me, models })
     },
     updateComment: async (parent, { id, text }, { me, models }) => {
-      if (!text) {
-        throw new UserInputError('comment must have text', { argumentName: 'text' })
-      }
-
-      if (!id) {
-        throw new UserInputError('comment must have id', { argumentName: 'id' })
-      }
-
-      // update iff this comment belongs to me
-      const comment = await models.item.findUnique({ where: { id: Number(id) } })
-      if (Number(comment.userId) !== Number(me.id)) {
-        throw new AuthenticationError('comment does not belong to you')
-      }
-
-      if (Date.now() > new Date(comment.createdAt).getTime() + 10 * 60000) {
-        throw new UserInputError('comment can no longer be editted')
-      }
-
       return await updateItem(parent, { id, data: { text } }, { me, models })
     },
     act: async (parent, { id, sats }, { me, models }) => {
@@ -828,6 +763,17 @@ export const createMentions = async (item, models) => {
 }
 
 const updateItem = async (parent, { id, data }, { me, models }) => {
+  // update iff this item belongs to me
+  const old = await models.item.findUnique({ where: { id: Number(id) } })
+  if (Number(old.userId) !== Number(me?.id)) {
+    throw new AuthenticationError('item does not belong to you')
+  }
+
+  // if it's not the FAQ and older than 10 minutes
+  if (old.id !== 349 && Date.now() > new Date(old.createdAt).getTime() + 10 * 60000) {
+    throw new UserInputError('item can no longer be editted')
+  }
+
   const item = await models.item.update({
     where: { id: Number(id) },
     data
@@ -838,7 +784,7 @@ const updateItem = async (parent, { id, data }, { me, models }) => {
   return item
 }
 
-const createItem = async (parent, { title, url, text, boost, parentId }, { me, models }) => {
+const createItem = async (parent, { title, url, text, boost, forward, parentId }, { me, models }) => {
   if (!me) {
     throw new AuthenticationError('you must be logged in')
   }

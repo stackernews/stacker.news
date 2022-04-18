@@ -19,10 +19,7 @@ export default gql`
   }
 
   extend type Mutation {
-    createLink(title: String!, url: String, boost: Int): Item!
-    updateLink(id: ID!, title: String!, url: String): Item!
-    createDiscussion(title: String!, text: String, boost: Int): Item!
-    updateDiscussion(id: ID!, title: String!, text: String): Item!
+    upsertStory(title: String!, text: String, url: String, boost: Int): Item!
     createComment(text: String!, parentId: ID!): Item!
     updateComment(id: ID!, text: String!): Item!
     upsertJob(id: ID, sub: ID!, title: String!, company: String!, location: String, remote: Boolean, text: String!, url: String!, maxBid: Int!, status: String): Item!

@@ -18,7 +18,8 @@ model User {
   email          String?     @unique
   emailVerified  DateTime?   @map(name: "email_verified")
   image          String?
-  items          Item[]
+  items          Item[]      @relation("UserItems")
+  fwdItems       Item[]      @relation("FwdItem")
   mentions       Mention[]
   messages       Message[]
   actions        ItemAct[]
@@ -27,7 +28,7 @@ model User {
   invites        Invite[]    @relation(name: "Invites")
   invite         Invite?     @relation(fields: [inviteId], references: [id])
   inviteId       String?
-  bio            Item?       @relation(name: "Item", fields: [bioId], references: [id])
+  bio            Item?       @relation(fields: [bioId], references: [id])
   bioId          Int?
   msats          Int         @default(0)
   stackedMsats   Int         @default(0)
@@ -113,8 +114,10 @@ model Item {
   title     String?
   text      String?
   url       String?
-  user      User                  @relation(fields: [userId], references: [id])
+  user      User                  @relation("UserItems", fields: [userId], references: [id])
   userId    Int
+  fwdUser   User?                 @relation(name: "FwdItem", fields: [fwdUserId], references: [id])
+  fwdUserId Int?
   parent    Item?                 @relation("ParentChildren", fields: [parentId], references: [id])
   parentId  Int?
   children  Item[]                @relation("ParentChildren")
@@ -140,8 +143,7 @@ model Item {
   longitude       Float?
   remote          Boolean?
 
-  User User[] @relation("Item")
-
+  User User[]
   @@index([createdAt])
   @@index([userId])
   @@index([parentId])

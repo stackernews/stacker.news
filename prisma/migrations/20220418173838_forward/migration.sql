@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "Item" ADD COLUMN     "fwdUserId" INTEGER;
+
+-- AddForeignKey
+ALTER TABLE "Item" ADD FOREIGN KEY ("fwdUserId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;

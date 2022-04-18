@@ -38,8 +38,8 @@ export function LinkForm ({ item, editThreshold }) {
 
   const [createLink] = useMutation(
     gql`
-      mutation createLink($title: String!, $url: String!, $boost: Int) {
-        createLink(title: $title, url: $url, boost: $boost) {
+      mutation createLink($title: String!, $url: String!, $boost: Int, $forward: String) {
+        createLink(title: $title, url: $url, boost: $boost, forward: $forward) {
           id
         }
       }`
@@ -47,8 +47,8 @@ export function LinkForm ({ item, editThreshold }) {
 
   const [updateLink] = useMutation(
     gql`
-      mutation updateLink($id: ID!, $title: String!, $url: String!) {
-        updateLink(id: $id, title: $title, url: $url) {
+      mutation updateLink($id: ID!, $title: String!, $url: String!, $forward: String) {
+        updateLink(id: $id, title: $title, url: $url, forward: $forward) {
           id
           title
           url

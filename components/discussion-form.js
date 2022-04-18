@@ -20,16 +20,16 @@ export function DiscussionForm ({
   const router = useRouter()
   const [createDiscussion] = useMutation(
     gql`
-      mutation createDiscussion($title: String!, $text: String, $boost: Int) {
-        createDiscussion(title: $title, text: $text, boost: $boost) {
+      mutation createDiscussion($title: String!, $text: String, $boost: Int, $forward: String) {
+        createDiscussion(title: $title, text: $text, boost: $boost, forward: $forward) {
           id
         }
       }`
   )
   const [updateDiscussion] = useMutation(
     gql`
-      mutation updateDiscussion($id: ID!, $title: String!, $text: String!) {
-        updateDiscussion(id: $id, title: $title, text: $text) {
+      mutation updateDiscussion($id: ID!, $title: String!, $text: String!, $forward: String) {
+        updateDiscussion(id: $id, title: $title, text: $text, forward: $forward) {
           id
         }
       }`, {

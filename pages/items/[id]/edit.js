@@ -5,7 +5,8 @@ import { LinkForm } from '../../../components/link-form'
 import LayoutCenter from '../../../components/layout-center'
 import JobForm from '../../../components/job-form'
 
-export const getServerSideProps = getGetServerSideProps(ITEM, null, 'item')
+export const getServerSideProps = getGetServerSideProps(ITEM, null,
+  data => !data.item)
 
 export default function PostEdit ({ data: { item } }) {
   const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000

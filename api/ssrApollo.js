@@ -31,7 +31,7 @@ export default async function getSSRApolloClient (req, me = null) {
   })
 }
 
-export function getGetServerSideProps (query, variables = null, foundField, requireVar) {
+export function getGetServerSideProps (query, variables = null, notFoundFunc, requireVar) {
   return async function ({ req, query: params }) {
     const client = await getSSRApolloClient(req)
     const vars = { ...params, ...variables }
@@ -47,7 +47,7 @@ export function getGetServerSideProps (query, variables = null, foundField, requ
       variables: vars
     })
 
-    if (error || !data || (foundField && !data[foundField])) {
+    if (error || !data || (notFoundFunc && notFoundFunc(data))) {
       return {
         notFound: true
       }

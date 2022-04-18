@@ -5,7 +5,8 @@ import { useRouter } from 'next/router'
 import { SeoSearch } from '../../../components/seo'
 import { SUB_SEARCH } from '../../../fragments/subs'
 
-export const getServerSideProps = getGetServerSideProps(SUB_SEARCH, null, 'sub', 'q')
+export const getServerSideProps = getGetServerSideProps(SUB_SEARCH, null,
+  data => !data.sub, 'q')
 
 export default function Index ({ data: { sub: { name }, search: { items, cursor } } }) {
   const router = useRouter()

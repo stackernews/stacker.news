@@ -74,7 +74,11 @@ function Notification ({ n }) {
             </div>
             )
           : n.__typename === 'InvoicePaid'
-            ? <div className='font-weight-bold text-info ml-2 py-1'><Check className='fill-info mr-1' />{n.earnedSats} sats were deposited in your account</div>
+            ? (
+              <div className='font-weight-bold text-info ml-2 py-1'>
+                <Check className='fill-info mr-1' />{n.earnedSats} sats were deposited in your account
+                <small className='text-muted ml-1'>{timeSince(new Date(n.sortTime))}</small>
+              </div>)
             : (
               <>
                 {n.__typename === 'Votification' &&

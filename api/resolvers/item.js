@@ -611,6 +611,12 @@ export default {
     },
     user: async (item, args, { models }) =>
       await models.user.findUnique({ where: { id: item.userId } }),
+    fwdUser: async (item, args, { models }) => {
+      if (!item.fwdUserId) {
+        return null
+      }
+      return await models.user.findUnique({ where: { id: item.fwdUserId } })
+    },
     ncomments: async (item, args, { models }) => {
       const [{ count }] = await models.$queryRaw`
         SELECT count(*)
@@ -793,11 +799,28 @@ const createItem = async (parent, { title, url, text, boost, forward, parentId }
     throw new UserInputError(`boost must be at least ${BOOST_MIN}`, { argumentName: 'boost' })
   }
 
+  let fwdUser
+  if (forward) {
+    fwdUser = await models.user.findUnique({ where: { name: forward } })
+    if (!fwdUser) {
+      throw new UserInputError('forward user does not exist', { argumentName: 'forward' })
+    }
+  }
+
   const [item] = await serialize(models,
     models.$queryRaw(`${SELECT} FROM create_item($1, $2, $3, $4, $5, $6) AS "Item"`,
       title, url, text, Number(boost || 0), Number(parentId), Number(me.id)))
 
   await createMentions(item, models)
+
+  if (fwdUser) {
+    await models.item.update({
+      where: { id: item.id },
+      data: {
+        fwdUserId: fwdUser.id
+      }
+    })
+  }
 
   item.comments = []
   return item
@@ -831,7 +854,7 @@ function nestComments (flat, parentId) {
 // we have to do our own query because ltree is unsupported
 export const SELECT =
   `SELECT "Item".id, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt", "Item".title,
-  "Item".text, "Item".url, "Item"."userId", "Item"."parentId", "Item"."pinId", "Item"."maxBid",
+  "Item".text, "Item".url, "Item"."userId", "Item"."fwdUserId", "Item"."parentId", "Item"."pinId", "Item"."maxBid",
   "Item".company, "Item".location, "Item".remote,
   "Item"."subName", "Item".status, ltree2text("Item"."path") AS "path"`
 

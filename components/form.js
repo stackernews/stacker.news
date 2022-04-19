@@ -173,7 +173,7 @@ function InputInner ({
             }
           }}
           isInvalid={meta.touched && meta.error}
-          isValid={showValid && meta.touched && !meta.error}
+          isValid={showValid && meta.initialValue !== meta.value && meta.touched && !meta.error}
         />
         {append && (
           <InputGroup.Append>

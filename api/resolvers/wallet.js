@@ -97,7 +97,9 @@ export default {
           FROM "ItemAct"
           JOIN "Item" on "ItemAct"."itemId" = "Item".id
           WHERE "ItemAct"."userId" <> $1 AND "ItemAct".act <> 'BOOST'
-          AND "Item"."userId" = $1 AND "ItemAct".created_at <= $2
+          AND (("Item"."userId" = $1 AND "Item"."fwdUserId" IS NULL)
+                OR ("Item"."fwdUserId" = $1 AND "ItemAct"."userId" <> "Item"."userId"))
+          AND "ItemAct".created_at <= $2
           GROUP BY "Item".id)`)
         queries.push(
             `(SELECT ('earn' || "Earn".id) as id, "Earn".id as "factId", NULL as bolt11,

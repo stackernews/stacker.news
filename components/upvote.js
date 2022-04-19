@@ -76,6 +76,8 @@ export default function UpVote ({ item, className }) {
       }`
   )
 
+  const fwd2me = me && me?.id === item?.fwdUser?.id
+
   const setVoteShow = (yes) => {
     if (!me) return
 
@@ -155,7 +157,7 @@ export default function UpVote ({ item, className }) {
                 if (!item) return
 
                 // we can't tip ourselves
-                if (item?.mine) {
+                if (item?.mine || fwd2me) {
                   return
                 }
 
@@ -169,7 +171,7 @@ export default function UpVote ({ item, className }) {
                   if (!item) return
 
                   // we can't tip ourselves
-                  if (item?.mine) {
+                  if (item?.mine || fwd2me) {
                     return
                   }
 
@@ -201,9 +203,9 @@ export default function UpVote ({ item, className }) {
               : signIn
           }
           >
-            <ActionTooltip notForm disable={item?.mine} overlayText={overlayText()}>
+            <ActionTooltip notForm disable={item?.mine || fwd2me} overlayText={overlayText()}>
               <div
-                className={`${item?.mine ? styles.noSelfTips : ''}
+                className={`${item?.mine || fwd2me ? styles.noSelfTips : ''}
                     ${styles.upvoteWrapper}`}
               >
                 <UpBolt
@@ -212,7 +214,7 @@ export default function UpVote ({ item, className }) {
                   className={
                       `${styles.upvote}
                       ${className || ''}
-                      ${item?.mine ? styles.noSelfTips : ''}
+                      ${item?.mine || fwd2me ? styles.noSelfTips : ''}
                       ${item?.meSats ? styles.voted : ''}`
                     }
                   style={item?.meSats

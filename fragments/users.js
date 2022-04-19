@@ -22,6 +22,20 @@ export const ME = gql`
     }
   }`
 
+export const NAME_QUERY =
+gql`
+  query nameAvailable($name: String!) {
+    nameAvailable(name: $name)
+  }
+`
+
+export const NAME_MUTATION =
+gql`
+  mutation setName($name: String!) {
+    setName(name: $name)
+  }
+`
+
 export const USER_FIELDS = gql`
   ${ITEM_FIELDS}
   fragment UserFields on User {

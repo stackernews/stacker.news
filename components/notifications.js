@@ -79,7 +79,7 @@ function Notification ({ n }) {
               <>
                 {n.__typename === 'Votification' &&
                   <small className='font-weight-bold text-success ml-2'>
-                    your {n.item.title ? 'post' : 'reply'} stacked {n.earnedSats} sats
+                    your {n.item.title ? 'post' : 'reply'} {n.item.fwdUser ? 'forwarded' : 'stacked'} {n.earnedSats} sats{n.item.fwdUser && ` to @${n.item.fwdUser.name}`}
                   </small>}
                 {n.__typename === 'Mention' &&
                   <small className='font-weight-bold text-info ml-2'>

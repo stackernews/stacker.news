@@ -97,7 +97,18 @@ export function ItemJob ({ item, rank, children }) {
   )
 }
 
-export default function Item ({ item, rank, children }) {
+function FwdUser ({ user }) {
+  return (
+    <div className={styles.other}>
+      100% of tips are forwarded to{' '}
+      <Link href={`/${user.name}`} passHref>
+        <a>@{user.name}</a>
+      </Link>
+    </div>
+  )
+}
+
+export default function Item ({ item, rank, showFwdUser, children }) {
   const mine = item.mine
   const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
   const [canEdit, setCanEdit] =
@@ -187,6 +198,7 @@ export default function Item ({ item, rank, children }) {
                 </Link>
               </>}
           </div>
+          {showFwdUser && item.fwdUser && <FwdUser user={item.fwdUser} />}
         </div>
       </div>
       {children && (

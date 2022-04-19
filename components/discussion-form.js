@@ -1,7 +1,7 @@
 import { Form, Input, MarkdownInput, SubmitButton } from '../components/form'
 import { useRouter } from 'next/router'
 import * as Yup from 'yup'
-import { gql, useMutation } from '@apollo/client'
+import { gql, useApolloClient, useMutation } from '@apollo/client'
 import ActionTooltip from '../components/action-tooltip'
 import TextareaAutosize from 'react-textarea-autosize'
 import Countdown from './countdown'
@@ -18,6 +18,7 @@ export function DiscussionForm ({
   adv, handleSubmit
 }) {
   const router = useRouter()
+  const client = useApolloClient()
   const [upsertDiscussion] = useMutation(
     gql`
       mutation upsertDiscussion($id: ID, $title: String!, $text: String, $boost: Int, $forward: String) {
@@ -26,6 +27,11 @@ export function DiscussionForm ({
         }
       }`
   )
+
+  const DiscussionSchema = Yup.object({
+    title: Yup.string().required('required').trim(),
+    ...AdvPostSchema(client)
+  })
 
   return (
     <Form

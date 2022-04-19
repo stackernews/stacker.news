@@ -12,6 +12,10 @@ export const ITEM_FIELDS = gql`
       name
       id
     }
+    fwdUser {
+      name
+      id
+    }
     sats
     upvotes
     boost

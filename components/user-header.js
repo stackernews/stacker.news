@@ -9,20 +9,7 @@ import * as Yup from 'yup'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
 import styles from './user-header.module.css'
 import { useMe } from './me'
-
-const NAME_QUERY =
-gql`
-  query nameAvailable($name: String!) {
-    nameAvailable(name: $name)
-  }
-`
-
-const NAME_MUTATION =
-gql`
-  mutation setName($name: String!) {
-    setName(name: $name)
-  }
-`
+import { NAME_MUTATION, NAME_QUERY } from '../fragments/users'
 
 export default function UserHeader ({ user }) {
   const [editting, setEditting] = useState(false)

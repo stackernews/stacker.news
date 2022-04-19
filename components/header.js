@@ -12,11 +12,12 @@ import { useLightning } from './lightning'
 import { useEffect, useState } from 'react'
 import { randInRange } from '../lib/rand'
 import { formatSats } from '../lib/format'
+import NoteIcon from '../svgs/notification-4-fill.svg'
 
 function WalletSummary ({ me }) {
   if (!me) return null
 
-  return `${formatSats(me.sats)} \\ ${formatSats(me.stacked)}`
+  return `${formatSats(me.sats)}`
 }
 
 export default function Header ({ sub }) {
@@ -33,6 +34,15 @@ export default function Header ({ sub }) {
           <Head>
             <link rel='shortcut icon' href={me?.hasNewNotes ? '/favicon-notify.png' : '/favicon.png'} />
           </Head>
+          <Link href='/notifications' passHref>
+            <Nav.Link className='pl-0 position-relative'>
+              <NoteIcon className='fill-lgrey' />
+              {me?.hasNewNotes &&
+                <span className={styles.notification}>
+                  <span className='invisible'>{' '}</span>
+                </span>}
+            </Nav.Link>
+          </Link>
           <div className='position-relative'>
             <NavDropdown className={styles.dropdown} title={`@${me?.name}`} alignRight>
               <Link href={'/' + me?.name} passHref>
@@ -44,17 +54,11 @@ export default function Header ({ sub }) {
                     </div>}
                 </NavDropdown.Item>
               </Link>
-              <Link href='/notifications' passHref>
-                <NavDropdown.Item>
-                  notifications
-                  {me?.hasNewNotes &&
-                    <div className='p-1 d-inline-block bg-danger ml-1'>
-                      <span className='invisible'>{' '}</span>
-                    </div>}
-                </NavDropdown.Item>
-              </Link>
               <Link href='/wallet' passHref>
                 <NavDropdown.Item>wallet</NavDropdown.Item>
+              </Link>
+              <Link href='/satistics?inc=invoice,withdrawal,stacked,spent' passHref>
+                <NavDropdown.Item>satistics</NavDropdown.Item>
               </Link>
               <NavDropdown.Divider />
               <Link href='/invites' passHref>
@@ -74,12 +78,8 @@ export default function Header ({ sub }) {
               <NavDropdown.Divider />
               <NavDropdown.Item onClick={() => signOut({ callbackUrl: '/' })}>logout</NavDropdown.Item>
             </NavDropdown>
-            {me?.hasNewNotes &&
-              <span className='position-absolute p-1 bg-danger' style={{ top: '5px', right: '0px' }}>
-                <span className='invisible'>{' '}</span>
-              </span>}
             {me && !me.bio &&
-              <span className='position-absolute p-1 bg-secondary' style={{ bottom: '5px', right: '0px' }}>
+              <span className='position-absolute p-1 bg-secondary' style={{ top: '5px', right: '0px' }}>
                 <span className='invisible'>{' '}</span>
               </span>}
           </div>

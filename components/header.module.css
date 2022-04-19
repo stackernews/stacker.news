@@ -27,6 +27,15 @@
     padding-left: 0 !important;
 }
 
+.notification {
+    position: absolute;
+    padding: .25rem;
+    background-color: var(--danger);
+    top: 3px;
+    right: 8px;
+    border: 1px solid var(--theme-body);
+}
+
 .navLink:last-child {
     padding-right: 0 !important;
 }

@@ -5,7 +5,7 @@ import { getInvoice } from './wallet'
 
 export default {
   Query: {
-    notifications: async (parent, { cursor }, { me, models }) => {
+    notifications: async (parent, { cursor, filter }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
       if (!me) {
         throw new AuthenticationError('you must be logged in')
@@ -64,8 +64,18 @@ export default {
       // HACK to make notifications faster, we only return a limited sub set of the unioned
       // queries ... we only ever need at most LIMIT+current offset in the child queries to
       // have enough items to return in the union
-      const notifications = await models.$queryRaw(`
-        (SELECT DISTINCT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL::BIGINT as "earnedSats",
+      const notifications = await models.$queryRaw(
+        filter === 'replies'
+          ? `SELECT DISTINCT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL::BIGINT as "earnedSats",
+              'Reply' AS type
+             FROM "Item"
+             JOIN "Item" p ON "Item".path <@ p.path
+             WHERE p."userId" = $1
+              AND "Item"."userId" <> $1 AND "Item".created_at <= $2
+              ORDER BY "sortTime" DESC
+             OFFSET $3
+             LIMIT ${LIMIT}`
+          : `(SELECT DISTINCT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL::BIGINT as "earnedSats",
           'Reply' AS type
           FROM "Item"
           JOIN "Item" p ON "Item".path <@ p.path

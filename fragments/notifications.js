@@ -6,8 +6,8 @@ export const NOTIFICATIONS = gql`
   ${ITEM_FIELDS}
   ${INVITE_FIELDS}
 
-  query Notifications($cursor: String) {
-    notifications(cursor: $cursor) {
+  query Notifications($cursor: String, $filter: String) {
+    notifications(cursor: $cursor, filter: $filter) {
       cursor
       lastChecked
       notifications {

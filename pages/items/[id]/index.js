@@ -6,7 +6,7 @@ import { getGetServerSideProps } from '../../../api/ssrApollo'
 import { useQuery } from '@apollo/client'
 
 export const getServerSideProps = getGetServerSideProps(ITEM_FULL, null,
-  data => !data.item || data.item.status !== 'ACTIVE')
+  data => !data.item || (data.item.status !== 'ACTIVE' && !data.item.mine))
 
 export default function AnItem ({ data: { item } }) {
   const { data } = useQuery(ITEM_FULL, {

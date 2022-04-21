@@ -5,7 +5,7 @@ import { getInvoice } from './wallet'
 
 export default {
   Query: {
-    notifications: async (parent, { cursor, filter }, { me, models }) => {
+    notifications: async (parent, { cursor, inc }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
       if (!me) {
         throw new AuthenticationError('you must be logged in')
@@ -65,7 +65,7 @@ export default {
       // queries ... we only ever need at most LIMIT+current offset in the child queries to
       // have enough items to return in the union
       const notifications = await models.$queryRaw(
-        filter === 'replies'
+        inc === 'replies'
           ? `SELECT DISTINCT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL::BIGINT as "earnedSats",
               'Reply' AS type
              FROM "Item"

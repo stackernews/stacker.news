@@ -2,7 +2,7 @@ import { gql } from 'apollo-server-micro'
 
 export default gql`
   extend type Query {
-    notifications(cursor: String, filter: String): Notifications
+    notifications(cursor: String, inc: String): Notifications
   }
 
   type Votification {

@@ -23,8 +23,8 @@
     background-color: transparent !important;
 }
 
-.navLink:first-child {
-    padding-left: 0 !important;
+.navLink.active svg {
+    fill: var(--theme-navLinkActive);
 }
 
 .notification {

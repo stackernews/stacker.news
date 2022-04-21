@@ -36,7 +36,7 @@ export default function Header ({ sub }) {
           </Head>
           <Link href='/notifications' passHref>
             <Nav.Link className='pl-0 position-relative'>
-              <NoteIcon className='fill-lgrey' />
+              <NoteIcon />
               {me?.hasNewNotes &&
                 <span className={styles.notification}>
                   <span className='invisible'>{' '}</span>

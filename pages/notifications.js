@@ -1,9 +1,9 @@
 import { Nav, Navbar } from 'react-bootstrap'
-import { getGetServerSideProps } from '../../api/ssrApollo'
-import Layout from '../../components/layout'
-import Notifications from '../../components/notifications'
-import { NOTIFICATIONS } from '../../fragments/notifications'
-import styles from '../../components/header.module.css'
+import { getGetServerSideProps } from '../api/ssrApollo'
+import Layout from '../components/layout'
+import Notifications from '../components/notifications'
+import { NOTIFICATIONS } from '../fragments/notifications'
+import styles from '../components/header.module.css'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 
@@ -17,7 +17,7 @@ export default function NotificationPage ({ data: { notifications: { notificatio
       <NotificationHeader />
       <Notifications
         notifications={notifications} cursor={cursor}
-        lastChecked={lastChecked} variables={{ filter: router.query?.filter }}
+        lastChecked={lastChecked} variables={{ inc: router.query?.inc }}
       />
     </Layout>
   )
@@ -26,7 +26,7 @@ export default function NotificationPage ({ data: { notifications: { notificatio
 export function NotificationHeader () {
   const router = useRouter()
   return (
-    <Navbar className='pt-0'>
+    <Navbar className='py-0'>
       <Nav
         className={`${styles.navbarNav} justify-content-around`}
         activeKey={router.asPath}
@@ -41,7 +41,7 @@ export function NotificationHeader () {
           </Link>
         </Nav.Item>
         <Nav.Item>
-          <Link href='/notifications/replies' passHref>
+          <Link href='/notifications?inc=replies' passHref>
             <Nav.Link
               className={styles.navLink}
             >

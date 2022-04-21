@@ -371,6 +371,14 @@ textarea.form-control {
   color: var(--theme-navLinkActive) !important;
 }
 
+.nav-link svg {
+  fill: var(--theme-navLink);
+}
+
+.nav-link.active svg {
+  fill: var(--theme-navLinkActive);
+}
+
 .fill-grey {
   fill: var(--theme-grey);
 }

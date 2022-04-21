@@ -19,6 +19,12 @@ export const ME = gql`
       hasInvites
       upvotePopover
       tipPopover
+      noteItemSats
+      noteEarning
+      noteAllDescendants
+      noteMentions
+      noteDeposits
+      noteInvites
     }
   }`
 

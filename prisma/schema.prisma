@@ -43,6 +43,14 @@ model User {
   upvotePopover Boolean @default(false)
   tipPopover    Boolean @default(false)
 
+  // notification settings
+  noteItemSats       Boolean @default(true)
+  noteEarning        Boolean @default(true)
+  noteAllDescendants Boolean @default(true)
+  noteMentions       Boolean @default(true)
+  noteDeposits       Boolean @default(true)
+  noteInvites        Boolean @default(true)
+
   Earn Earn[]
   @@index([createdAt])
   @@index([inviteId])

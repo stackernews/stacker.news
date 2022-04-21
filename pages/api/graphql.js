@@ -15,7 +15,9 @@ global.apolloServer ||= new ApolloServer({
     return {
       models,
       lnd,
-      me: session ? session.user : null,
+      me: session
+        ? await models.user.findUnique({ where: { id: session.user?.id } })
+        : null,
       search
     }
   }

@@ -13,6 +13,9 @@ import { useEffect, useState } from 'react'
 import { requestProvider } from 'webln'
 import { Alert } from 'react-bootstrap'
 import { CREATE_WITHDRAWL, SEND_TO_LNADDR } from '../fragments/wallet'
+import { getGetServerSideProps } from '../api/ssrApollo'
+
+export const getServerSideProps = getGetServerSideProps()
 
 export default function Wallet () {
   return (

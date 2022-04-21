@@ -22,7 +22,9 @@ export default async function getSSRApolloClient (req, me = null) {
       }),
       context: {
         models,
-        me: session ? session.user : me,
+        me: session
+          ? await models.user.findUnique({ where: { id: session.user?.id } })
+          : me,
         lnd,
         search
       }
@@ -42,14 +44,24 @@ export function getGetServerSideProps (query, variables = null, notFoundFunc, re
       }
     }
 
-    const { error, data } = await client.query({
-      query,
-      variables: vars
-    })
+    let error = null; let data = null; let props = {}
+    if (query) {
+      ({ error, data } = await client.query({
+        query,
+        variables: vars
+      }))
 
-    if (error || !data || (notFoundFunc && notFoundFunc(data))) {
-      return {
-        notFound: true
+      if (error || !data || (notFoundFunc && notFoundFunc(data))) {
+        return {
+          notFound: true
+        }
+      }
+
+      props = {
+        apollo: {
+          query: print(query),
+          variables: { ...params, ...variables }
+        }
       }
     }
 
@@ -61,10 +73,7 @@ export function getGetServerSideProps (query, variables = null, notFoundFunc, re
 
     return {
       props: {
-        apollo: {
-          query: print(query),
-          variables: { ...params, ...variables }
-        },
+        ...props,
         me,
         price,
         data

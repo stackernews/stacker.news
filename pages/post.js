@@ -5,6 +5,9 @@ import LayoutCenter from '../components/layout-center'
 import { useMe } from '../components/me'
 import { DiscussionForm } from '../components/discussion-form'
 import { LinkForm } from '../components/link-form'
+import { getGetServerSideProps } from '../api/ssrApollo'
+
+export const getServerSideProps = getGetServerSideProps()
 
 export function PostForm () {
   const router = useRouter()

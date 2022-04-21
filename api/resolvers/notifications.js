@@ -64,60 +64,32 @@ export default {
       // HACK to make notifications faster, we only return a limited sub set of the unioned
       // queries ... we only ever need at most LIMIT+current offset in the child queries to
       // have enough items to return in the union
-      const notifications = await models.$queryRaw(
-        inc === 'replies'
-          ? `SELECT DISTINCT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL::BIGINT as "earnedSats",
+
+      const queries = []
+
+      if (inc === 'replies') {
+        queries.push(
+          `SELECT DISTINCT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL::BIGINT as "earnedSats",
               'Reply' AS type
-             FROM "Item"
-             JOIN "Item" p ON "Item".path <@ p.path
-             WHERE p."userId" = $1
-              AND "Item"."userId" <> $1 AND "Item".created_at <= $2
+              FROM "Item"
+              JOIN "Item" p ON ${me.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
+              WHERE p."userId" = $1
+                AND "Item"."userId" <> $1 AND "Item".created_at <= $2`
+        )
+      } else {
+        queries.push(
+          `(SELECT DISTINCT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL::BIGINT as "earnedSats",
+              'Reply' AS type
+              FROM "Item"
+              JOIN "Item" p ON ${me.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
+              WHERE p."userId" = $1
+                AND "Item"."userId" <> $1 AND "Item".created_at <= $2
               ORDER BY "sortTime" DESC
-             OFFSET $3
-             LIMIT ${LIMIT}`
-          : `(SELECT DISTINCT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL::BIGINT as "earnedSats",
-          'Reply' AS type
-          FROM "Item"
-          JOIN "Item" p ON "Item".path <@ p.path
-          WHERE p."userId" = $1
-            AND "Item"."userId" <> $1 AND "Item".created_at <= $2
-          ORDER BY "sortTime" DESC
-          LIMIT ${LIMIT}+$3)
-        UNION ALL
-        (SELECT "Item".id::TEXT, MAX("ItemAct".created_at) AS "sortTime",
-          sum("ItemAct".sats) as "earnedSats", 'Votification' AS type
-          FROM "Item"
-          JOIN "ItemAct" ON "ItemAct"."itemId" = "Item".id
-          WHERE "ItemAct"."userId" <> $1
-          AND "ItemAct".created_at <= $2
-          AND "ItemAct".act <> 'BOOST'
-          AND "Item"."userId" = $1
-          GROUP BY "Item".id
-          ORDER BY "sortTime" DESC
-          LIMIT ${LIMIT}+$3)
-        UNION ALL
-        (SELECT "Item".id::TEXT, "Mention".created_at AS "sortTime", NULL as "earnedSats",
-          'Mention' AS type
-          FROM "Mention"
-          JOIN "Item" ON "Mention"."itemId" = "Item".id
-          LEFT JOIN "Item" p ON "Item"."parentId" = p.id
-          WHERE "Mention"."userId" = $1
-          AND "Mention".created_at <= $2
-          AND "Item"."userId" <> $1
-          AND (p."userId" IS NULL OR p."userId" <> $1)
-          ORDER BY "sortTime" DESC
-          LIMIT ${LIMIT}+$3)
-        UNION ALL
-        (SELECT "Invite".id, MAX(users.created_at) AS "sortTime", NULL as "earnedSats",
-          'Invitification' AS type
-          FROM users JOIN "Invite" on users."inviteId" = "Invite".id
-          WHERE "Invite"."userId" = $1
-          AND users.created_at <= $2
-          GROUP BY "Invite".id
-          ORDER BY "sortTime" DESC
-          LIMIT ${LIMIT}+$3)
-          UNION ALL
-        (SELECT "Item".id::text, "Item"."statusUpdatedAt" AS "sortTime", NULL as "earnedSats",
+              LIMIT ${LIMIT}+$3)`
+        )
+
+        queries.push(
+          `(SELECT "Item".id::text, "Item"."statusUpdatedAt" AS "sortTime", NULL as "earnedSats",
             'JobChanged' AS type
             FROM "Item"
             WHERE "Item"."userId" = $1
@@ -125,25 +97,83 @@ export default {
             AND status <> 'STOPPED'
             AND "statusUpdatedAt" <= $2
             ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT}+$3)
-          UNION ALL
-        (SELECT "Earn".id::text, "Earn".created_at AS "sortTime", FLOOR(msats / 1000) as "earnedSats",
-            'Earn' AS type
-            FROM "Earn"
-            WHERE "Earn"."userId" = $1
-            AND FLOOR(msats / 1000) > 0
-            AND created_at <= $2
-            ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT}+$3)
-          UNION ALL
-        (SELECT "Invoice".id::text, "Invoice"."confirmedAt" AS "sortTime", FLOOR("msatsReceived" / 1000) as "earnedSats",
-            'InvoicePaid' AS type
-            FROM "Invoice"
-            WHERE "Invoice"."userId" = $1
-            AND "confirmedAt" IS NOT NULL
-            AND created_at <= $2
-            ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT}+$3)
+            LIMIT ${LIMIT}+$3)`
+        )
+
+        if (me.noteItemSats) {
+          queries.push(
+            `(SELECT "Item".id::TEXT, MAX("ItemAct".created_at) AS "sortTime",
+              sum("ItemAct".sats) as "earnedSats", 'Votification' AS type
+              FROM "Item"
+              JOIN "ItemAct" ON "ItemAct"."itemId" = "Item".id
+              WHERE "ItemAct"."userId" <> $1
+              AND "ItemAct".created_at <= $2
+              AND "ItemAct".act <> 'BOOST'
+              AND "Item"."userId" = $1
+              GROUP BY "Item".id
+              ORDER BY "sortTime" DESC
+              LIMIT ${LIMIT}+$3)`
+          )
+        }
+
+        if (me.noteEarning) {
+          queries.push(
+            `(SELECT "Earn".id::text, "Earn".created_at AS "sortTime", FLOOR(msats / 1000) as "earnedSats",
+              'Earn' AS type
+              FROM "Earn"
+              WHERE "Earn"."userId" = $1
+              AND FLOOR(msats / 1000) > 0
+              AND created_at <= $2
+              ORDER BY "sortTime" DESC
+              LIMIT ${LIMIT}+$3)`
+          )
+        }
+
+        if (me.noteMentions) {
+          queries.push(
+            `(SELECT "Item".id::TEXT, "Mention".created_at AS "sortTime", NULL as "earnedSats",
+              'Mention' AS type
+              FROM "Mention"
+              JOIN "Item" ON "Mention"."itemId" = "Item".id
+              LEFT JOIN "Item" p ON "Item"."parentId" = p.id
+              WHERE "Mention"."userId" = $1
+              AND "Mention".created_at <= $2
+              AND "Item"."userId" <> $1
+              AND (p."userId" IS NULL OR p."userId" <> $1)
+              ORDER BY "sortTime" DESC
+              LIMIT ${LIMIT}+$3)`
+          )
+        }
+
+        if (me.noteDeposits) {
+          queries.push(
+            `(SELECT "Invoice".id::text, "Invoice"."confirmedAt" AS "sortTime", FLOOR("msatsReceived" / 1000) as "earnedSats",
+              'InvoicePaid' AS type
+              FROM "Invoice"
+              WHERE "Invoice"."userId" = $1
+              AND "confirmedAt" IS NOT NULL
+              AND created_at <= $2
+              ORDER BY "sortTime" DESC
+              LIMIT ${LIMIT}+$3)`
+          )
+        }
+
+        if (me.noteInvites) {
+          queries.push(
+            `(SELECT "Invite".id, MAX(users.created_at) AS "sortTime", NULL as "earnedSats",
+              'Invitification' AS type
+              FROM users JOIN "Invite" on users."inviteId" = "Invite".id
+              WHERE "Invite"."userId" = $1
+              AND users.created_at <= $2
+              GROUP BY "Invite".id
+              ORDER BY "sortTime" DESC
+              LIMIT ${LIMIT}+$3)`
+          )
+        }
+      }
+
+      const notifications = await models.$queryRaw(
+        `${queries.join(' UNION ALL ')}
         ORDER BY "sortTime" DESC
         OFFSET $3
         LIMIT ${LIMIT}`, me.id, decodedCursor.time, decodedCursor.offset)

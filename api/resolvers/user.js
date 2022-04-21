@@ -98,12 +98,12 @@ export default {
         throw error
       }
     },
-    setSettings: async (parent, { tipDefault }, { me, models }) => {
+    setSettings: async (parent, data, { me, models }) => {
       if (!me) {
         throw new AuthenticationError('you must be logged in')
       }
 
-      await models.user.update({ where: { id: me.id }, data: { tipDefault } })
+      await models.user.update({ where: { id: me.id }, data })
 
       return true
     },
@@ -172,10 +172,12 @@ export default {
       })
       return !!anInvite
     },
-    hasNewNotes: async (user, args, { models }) => {
-      // check if any votes have been cast for them since checkedNotesAt
+    hasNewNotes: async (user, args, { me, models }) => {
       const lastChecked = user.checkedNotesAt || new Date(0)
-      const votes = await models.$queryRaw(`
+
+      // check if any votes have been cast for them since checkedNotesAt
+      if (me.noteItemSats) {
+        const votes = await models.$queryRaw(`
         SELECT "ItemAct".id, "ItemAct".created_at
           FROM "Item"
           JOIN "ItemAct" on "ItemAct"."itemId" = "Item".id
@@ -184,15 +186,16 @@ export default {
           AND "ItemAct".act <> 'BOOST'
           AND "Item"."userId" = $1
           LIMIT 1`, user.id, lastChecked)
-      if (votes.length > 0) {
-        return true
+        if (votes.length > 0) {
+          return true
+        }
       }
 
       // check if they have any replies since checkedNotesAt
       const newReplies = await models.$queryRaw(`
         SELECT "Item".id, "Item".created_at
           FROM "Item"
-          JOIN "Item" p ON "Item".path <@ p.path
+          JOIN "Item" p ON ${me.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
           WHERE p."userId" = $1
           AND "Item".created_at > $2  AND "Item"."userId" <> $1
           LIMIT 1`, user.id, lastChecked)
@@ -201,7 +204,8 @@ export default {
       }
 
       // check if they have any mentions since checkedNotesAt
-      const newMentions = await models.$queryRaw(`
+      if (me.noteMentions) {
+        const newMentions = await models.$queryRaw(`
         SELECT "Item".id, "Item".created_at
           FROM "Mention"
           JOIN "Item" ON "Mention"."itemId" = "Item".id
@@ -209,8 +213,9 @@ export default {
           AND "Mention".created_at > $2
           AND "Item"."userId" <> $1
           LIMIT 1`, user.id, lastChecked)
-      if (newMentions.length > 0) {
-        return true
+        if (newMentions.length > 0) {
+          return true
+        }
       }
 
       const job = await models.item.findFirst({
@@ -231,41 +236,51 @@ export default {
         return true
       }
 
-      const earn = await models.earn.findFirst({
-        where: {
-          userId: user.id,
-          createdAt: {
-            gt: lastChecked
-          },
-          msats: {
-            gte: 1000
+      if (me.noteEarning) {
+        const earn = await models.earn.findFirst({
+          where: {
+            userId: user.id,
+            createdAt: {
+              gt: lastChecked
+            },
+            msats: {
+              gte: 1000
+            }
           }
+        })
+        if (earn) {
+          return true
         }
-      })
-      if (earn) {
-        return true
       }
 
-      const invoice = await models.invoice.findFirst({
-        where: {
-          userId: user.id,
-          confirmedAt: {
-            gt: lastChecked
+      if (me.noteDeposits) {
+        const invoice = await models.invoice.findFirst({
+          where: {
+            userId: user.id,
+            confirmedAt: {
+              gt: lastChecked
+            }
           }
+        })
+        if (invoice) {
+          return true
         }
-      })
-      if (invoice) {
-        return true
       }
 
       // check if new invites have been redeemed
-      const newInvitees = await models.$queryRaw(`
+      if (me.noteInvites) {
+        const newInvitees = await models.$queryRaw(`
         SELECT "Invite".id
           FROM users JOIN "Invite" on users."inviteId" = "Invite".id
           WHERE "Invite"."userId" = $1
           AND users.created_at > $2
           LIMIT 1`, user.id, lastChecked)
-      return newInvitees.length > 0
+        if (newInvitees.length > 0) {
+          return true
+        }
+      }
+
+      return false
     }
   }
 }

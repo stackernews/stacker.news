@@ -62,7 +62,7 @@ export default function Settings () {
           groupClassName='mb-0'
         />
         <Checkbox
-          label='I get a daily airdrops'
+          label='I get a daily airdrop'
           name='noteEarning'
           groupClassName='mb-0'
         />

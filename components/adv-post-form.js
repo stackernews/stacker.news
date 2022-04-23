@@ -34,13 +34,13 @@ export default function AdvPostForm () {
       body={
         <>
           <Input
-            label='boost'
+            label={<>boost <small className='text-muted ml-2'>optional</small></>}
             name='boost'
             hint={<span className='text-muted'>ranks posts higher temporarily based on the amount</span>}
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
           />
           <Input
-            label='forward sats to'
+            label={<>forward sats to <small className='text-muted ml-2'>optional</small></>}
             name='forward'
             hint={<span className='text-muted'>100% of sats will be sent to this user</span>}
             prepend=<InputGroup.Text>@</InputGroup.Text>

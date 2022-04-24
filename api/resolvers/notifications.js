@@ -116,19 +116,6 @@ export default {
           )
         }
 
-        if (me.noteEarning) {
-          queries.push(
-            `(SELECT "Earn".id::text, "Earn".created_at AS "sortTime", FLOOR(msats / 1000) as "earnedSats",
-              'Earn' AS type
-              FROM "Earn"
-              WHERE "Earn"."userId" = $1
-              AND FLOOR(msats / 1000) > 0
-              AND created_at <= $2
-              ORDER BY "sortTime" DESC
-              LIMIT ${LIMIT}+$3)`
-          )
-        }
-
         if (me.noteMentions) {
           queries.push(
             `(SELECT "Item".id::TEXT, "Mention".created_at AS "sortTime", NULL as "earnedSats",
@@ -179,12 +166,28 @@ export default {
         LIMIT ${LIMIT}`, me.id, decodedCursor.time, decodedCursor.offset)
 
       const { checkedNotesAt } = await models.user.findUnique({ where: { id: me.id } })
+      let earn
       if (decodedCursor.offset === 0) {
+        if (me.noteEarning) {
+          const earnings = await models.$queryRaw(
+            `SELECT MAX("Earn".id)::text, MAX("Earn".created_at) AS "sortTime", FLOOR(SUM(msats) / 1000) as "earnedSats",
+              'Earn' AS type
+              FROM "Earn"
+              WHERE "Earn"."userId" = $1
+              AND created_at >= $2`, me.id, checkedNotesAt)
+          if (earnings.length > 0 && earnings[0].earnedSats > 0) {
+            earn = earnings[0]
+          }
+        }
+
         await models.user.update({ where: { id: me.id }, data: { checkedNotesAt: new Date() } })
       }
 
+      console.log(decodedCursor)
+
       return {
         lastChecked: checkedNotesAt,
+        earn,
         cursor: notifications.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
         notifications
       }

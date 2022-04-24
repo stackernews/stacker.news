@@ -44,10 +44,11 @@ export default gql`
   }
 
   union Notification = Reply | Votification | Mention
-    | Invitification | JobChanged | Earn | InvoicePaid
+    | Invitification | Earn | JobChanged | InvoicePaid
 
   type Notifications {
     lastChecked: String
+    earn: Notification
     cursor: String
     notifications: [Notification!]!
   }

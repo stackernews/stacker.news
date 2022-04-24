@@ -110,11 +110,13 @@ function Notification ({ n }) {
   )
 }
 
-export default function Notifications ({ notifications, cursor, lastChecked, variables }) {
+export default function Notifications ({ notifications, earn, cursor, lastChecked, variables }) {
   const { data, fetchMore } = useQuery(NOTIFICATIONS, { variables })
 
+  console.log(data)
+
   if (data) {
-    ({ notifications: { notifications, cursor } } = data)
+    ({ notifications: { notifications, earn, cursor } } = data)
   }
 
   const [fresh, old] =
@@ -128,6 +130,7 @@ export default function Notifications ({ notifications, cursor, lastChecked, var
     <>
       {/* XXX we shouldn't use the index but we don't have a unique id in this union yet */}
       <div className='fresh'>
+        {earn && <Notification n={earn} key='earn' />}
         {fresh.map((n, i) => (
           <Notification n={n} key={i} />
         ))}

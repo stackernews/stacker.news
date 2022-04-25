@@ -183,8 +183,6 @@ export default {
         await models.user.update({ where: { id: me.id }, data: { checkedNotesAt: new Date() } })
       }
 
-      console.log(decodedCursor)
-
       return {
         lastChecked: checkedNotesAt,
         earn,

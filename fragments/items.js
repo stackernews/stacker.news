@@ -52,6 +52,7 @@ export const ITEMS = gql`
       cursor
       items {
         ...ItemFields
+        position
       },
       pins {
         ...ItemFields

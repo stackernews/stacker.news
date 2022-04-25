@@ -113,8 +113,6 @@ function Notification ({ n }) {
 export default function Notifications ({ notifications, earn, cursor, lastChecked, variables }) {
   const { data, fetchMore } = useQuery(NOTIFICATIONS, { variables })
 
-  console.log(data)
-
   if (data) {
     ({ notifications: { notifications, earn, cursor } } = data)
   }

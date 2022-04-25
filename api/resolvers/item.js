@@ -120,7 +120,7 @@ export default {
           items = await models.$queryRaw(`
             ${SELECT}
             FROM "Item"
-            WHERE "parentId" IS NULL AND created_at <= $1 AND "pinId" IS NULL
+            WHERE "parentId" IS NULL AND created_at <= $1
             ${subClause(3)}
             ${activeOrMine()}
             ORDER BY created_at DESC

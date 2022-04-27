@@ -1,5 +1,6 @@
-.username {
+.usernameForm {
     width: 300px;
+    margin-bottom: 0;
 }
 
 .nav {
@@ -13,4 +14,15 @@
 
 .nav div:last-child a {
     padding-right: 0;
+}
+
+.userimg {
+    clip-path: polygon(0% 0%, 83% 0%, 100% 100%, 17% 100%);
+    object-fit: cover;
+}
+
+.username {
+    font-weight: bold;
+    font-size: 150%;
+    line-height: 1.25rem;
 }

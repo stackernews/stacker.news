@@ -10,6 +10,9 @@ import { gql, useApolloClient, useMutation } from '@apollo/client'
 import styles from './user-header.module.css'
 import { useMe } from './me'
 import { NAME_MUTATION, NAME_QUERY } from '../fragments/users'
+import Image from 'next/image'
+import QRCode from 'qrcode.react'
+import LightningIcon from '../svgs/bolt.svg'
 
 export default function UserHeader ({ user }) {
   const [editting, setEditting] = useState(false)
@@ -19,7 +22,7 @@ export default function UserHeader ({ user }) {
   const [setName] = useMutation(NAME_MUTATION)
 
   const isMe = me?.name === user.name
-  const Satistics = () => <h1 className='mb-0'><small className='text-success'>{isMe ? `${user.sats} sats \\ ` : ''}{user.stacked} stacked</small></h1>
+  const Satistics = () => <div className={`mb-4 ${styles.username} text-success`}>{isMe ? `${user.sats} sats \\ ` : ''}{user.stacked} stacked</div>
 
   const UserSchema = Yup.object({
     name: Yup.string()
@@ -39,64 +42,78 @@ export default function UserHeader ({ user }) {
 
   return (
     <>
-      <div>
-        {editting
-          ? (
-            <Form
-              schema={UserSchema}
-              initial={{
-                name: user.name
-              }}
-              validateImmediately
-              onSubmit={async ({ name }) => {
-                if (name === user.name) {
-                  setEditting(false)
-                  return
-                }
-                const { error } = await setName({ variables: { name } })
-                if (error) {
-                  throw new Error({ message: error.toString() })
-                }
-                router.replace({
-                  pathname: router.pathname,
-                  query: { ...router.query, name }
-                })
+      <div className='d-flex align-items-center mt-2 flex-wrap'>
+        <Image
+          src='/dorian400.jpg' width='200' height='166' layout='fixed'
+          className={styles.userimg}
+        />
+        <div className='ml-3'>
+          {editting
+            ? (
+              <Form
+                schema={UserSchema}
+                initial={{
+                  name: user.name
+                }}
+                validateImmediately
+                onSubmit={async ({ name }) => {
+                  if (name === user.name) {
+                    setEditting(false)
+                    return
+                  }
+                  const { error } = await setName({ variables: { name } })
+                  if (error) {
+                    throw new Error({ message: error.toString() })
+                  }
+                  router.replace({
+                    pathname: router.pathname,
+                    query: { ...router.query, name }
+                  })
 
-                client.writeFragment({
-                  id: `User:${user.id}`,
-                  fragment: gql`
+                  client.writeFragment({
+                    id: `User:${user.id}`,
+                    fragment: gql`
                   fragment CurUser on User {
                     name
                   }
                 `,
-                  data: {
-                    name
-                  }
-                })
+                    data: {
+                      name
+                    }
+                  })
 
-                setEditting(false)
-              }}
-            >
-              <div className='d-flex align-items-center'>
-                <Input
-                  prepend=<InputGroup.Text>@</InputGroup.Text>
-                  name='name'
-                  autoFocus
-                  groupClassName={`mb-0 ${styles.username}`}
-                  showValid
-                />
-                <SubmitButton variant='link' onClick={() => setEditting(true)}>save</SubmitButton>
+                  setEditting(false)
+                }}
+              >
+                <div className='d-flex align-items-center mb-1'>
+                  <Input
+                    prepend=<InputGroup.Text>@</InputGroup.Text>
+                    name='name'
+                    autoFocus
+                    groupClassName={styles.usernameForm}
+                    showValid
+                  />
+                  <SubmitButton variant='link' onClick={() => setEditting(true)}>save</SubmitButton>
+                </div>
+              </Form>
+              )
+            : (
+              <div className='d-flex align-items-center mb-1'>
+                <div className={styles.username}>@{user.name}</div>
+                {isMe &&
+                  <Button className='py-0' variant='link' onClick={() => setEditting(true)}>edit nym</Button>}
               </div>
-            </Form>
-            )
-          : (
-            <div className='d-flex align-items-center'>
-              <h2 className='mb-0'>@{user.name}</h2>
-              {isMe &&
-                <Button variant='link' onClick={() => setEditting(true)}>edit nym</Button>}
-            </div>
-            )}
-        <Satistics user={user} />
+              )}
+          <Satistics user={user} />
+          <Button className='font-weight-bold'>
+            <LightningIcon
+              width={20}
+              height={20}
+              className='mr-1'
+            />{user.name}@stacker.news
+          </Button>
+        </div>
+        <QRCode className='ml-auto' value='fdsajfkldsajlkfjdlksajfkldjsalkjfdklsa' renderAs='svg' size={166} />
       </div>
       <Nav
         className={styles.nav}

@@ -1,16 +1,20 @@
 import { PrismaClient } from '@prisma/client'
 
-if (!global.prisma) {
-  global.prisma = new PrismaClient({
+const prisma = global.prisma || (() => {
+  console.log('initing prisma')
+  const prisma = new PrismaClient({
     log: [{ level: 'query', emit: 'event' }, 'warn', 'error']
   })
-  global.prisma.$on('query', (e) => {
+  prisma.$on('query', (e) => {
     if (e.duration > 50) {
       console.log('Query: ' + e.query)
       console.log('Params: ' + e.params)
       console.log('Duration: ' + e.duration + 'ms')
     }
   })
-}
+  return prisma
+})()
 
-export default global.prisma
+if (process.env.NODE_ENV === 'development') global.prisma = prisma
+
+export default prisma

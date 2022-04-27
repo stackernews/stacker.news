@@ -6,10 +6,16 @@ import typeDefs from '../../api/typeDefs'
 import { getSession } from 'next-auth/client'
 import search from '../../api/search'
 
-global.apolloServer ||= new ApolloServer({
+const plugin = {
+  serverWillStart (ctx) {
+    console.log('gql server starting up')
+  }
+}
+
+const apolloServer = new ApolloServer({
   typeDefs,
   resolvers,
-  tracing: true,
+  plugins: [plugin],
   context: async ({ req }) => {
     const session = await getSession({ req })
     return {
@@ -23,10 +29,4 @@ global.apolloServer ||= new ApolloServer({
   }
 })
 
-export const config = {
-  api: {
-    bodyParser: false
-  }
-}
-
-export default global.apolloServer.createHandler({ path: '/api/graphql' })
+module.exports = apolloServer.start().then(() => apolloServer.createHandler({ path: '/api/graphql' }))

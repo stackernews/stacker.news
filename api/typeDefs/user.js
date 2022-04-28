@@ -47,6 +47,7 @@ export default gql`
     hasInvites: Boolean!
     tipDefault: Int!
     bio: Item
+    bioId: Int
     sats: Int!
     upvotePopover: Boolean!
     tipPopover: Boolean!

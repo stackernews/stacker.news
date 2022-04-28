@@ -167,10 +167,10 @@ export default {
       return getItem(user, { id: user.bioId }, { models })
     },
     hasInvites: async (user, args, { models }) => {
-      const anInvite = await models.invite.findFirst({
+      const invite = await models.invite.findFirst({
         where: { userId: user.id }
       })
-      return !!anInvite
+      return !!invite
     },
     hasNewNotes: async (user, args, { me, models }) => {
       const lastChecked = user.checkedNotesAt || new Date(0)
@@ -183,7 +183,6 @@ export default {
           JOIN "ItemAct" on "ItemAct"."itemId" = "Item".id
           WHERE "ItemAct"."userId" <> $1
           AND "ItemAct".created_at > $2
-          AND "ItemAct".act <> 'BOOST'
           AND "Item"."userId" = $1
           LIMIT 1`, user.id, lastChecked)
         if (votes.length > 0) {

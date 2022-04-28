@@ -13,9 +13,7 @@ export const ME = gql`
       freeComments
       hasNewNotes
       tipDefault
-      bio {
-        id
-      }
+      bioId
       hasInvites
       upvotePopover
       tipPopover

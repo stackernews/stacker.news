@@ -48,7 +48,7 @@ export default function Header ({ sub }) {
               <Link href={'/' + me?.name} passHref>
                 <NavDropdown.Item>
                   profile
-                  {me && !me.bio &&
+                  {me && !me.bioId &&
                     <div className='p-1 d-inline-block bg-secondary ml-1'>
                       <span className='invisible'>{' '}</span>
                     </div>}
@@ -78,7 +78,7 @@ export default function Header ({ sub }) {
               <NavDropdown.Divider />
               <NavDropdown.Item onClick={() => signOut({ callbackUrl: '/' })}>logout</NavDropdown.Item>
             </NavDropdown>
-            {me && !me.bio &&
+            {me && !me.bioId &&
               <span className='position-absolute p-1 bg-secondary' style={{ top: '5px', right: '0px' }}>
                 <span className='invisible'>{' '}</span>
               </span>}

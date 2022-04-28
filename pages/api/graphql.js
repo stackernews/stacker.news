@@ -19,7 +19,7 @@ const apolloServer = new ApolloServer({
               return (error, result) => {
                 const end = process.hrtime.bigint()
                 const ms = (end - start) / 1000000n
-                if (ms > 20) {
+                if (ms > 20 && info.parentType.name !== 'User') {
                   console.log(`Field ${info.parentType.name}.${info.fieldName} took ${ms}ms`)
                 }
                 if (error) {

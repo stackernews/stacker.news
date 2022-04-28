@@ -167,10 +167,11 @@ export default {
       return getItem(user, { id: user.bioId }, { models })
     },
     hasInvites: async (user, args, { models }) => {
-      const invite = await models.invite.findFirst({
-        where: { userId: user.id }
-      })
-      return !!invite
+      const invites = await models.user.findUnique({
+        where: { id: user.id }
+      }).invites({ take: 1 })
+
+      return invites.length > 0
     },
     hasNewNotes: async (user, args, { me, models }) => {
       const lastChecked = user.checkedNotesAt || new Date(0)

@@ -26,6 +26,28 @@ export const ME = gql`
     }
   }`
 
+export const ME_SSR = gql`
+  {
+    me {
+      id
+      name
+      sats
+      stacked
+      freePosts
+      freeComments
+      tipDefault
+      bioId
+      upvotePopover
+      tipPopover
+      noteItemSats
+      noteEarning
+      noteAllDescendants
+      noteMentions
+      noteDeposits
+      noteInvites
+    }
+  }`
+
 export const NAME_QUERY =
 gql`
   query nameAvailable($name: String!) {

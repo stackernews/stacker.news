@@ -8,7 +8,7 @@ import models from './models'
 import { print } from 'graphql'
 import lnd from './lnd'
 import search from './search'
-import { ME } from '../fragments/users'
+import { ME_SSR } from '../fragments/users'
 import { getPrice } from '../components/price'
 
 export default async function getSSRApolloClient (req, me = null) {
@@ -66,7 +66,7 @@ export function getGetServerSideProps (query, variables = null, notFoundFunc, re
     }
 
     const { data: { me } } = await client.query({
-      query: ME
+      query: ME_SSR
     })
 
     const price = await getPrice()

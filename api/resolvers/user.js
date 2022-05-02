@@ -177,7 +177,7 @@ export default {
       const lastChecked = user.checkedNotesAt || new Date(0)
 
       // check if any votes have been cast for them since checkedNotesAt
-      if (me.noteItemSats) {
+      if (user.noteItemSats) {
         const votes = await models.$queryRaw(`
         SELECT "ItemAct".id, "ItemAct".created_at
           FROM "Item"
@@ -185,7 +185,7 @@ export default {
           WHERE "ItemAct"."userId" <> $1
           AND "ItemAct".created_at > $2
           AND "Item"."userId" = $1
-          LIMIT 1`, user.id, lastChecked)
+          LIMIT 1`, me.id, lastChecked)
         if (votes.length > 0) {
           return true
         }
@@ -195,16 +195,16 @@ export default {
       const newReplies = await models.$queryRaw(`
         SELECT "Item".id, "Item".created_at
           FROM "Item"
-          JOIN "Item" p ON ${me.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
+          JOIN "Item" p ON ${user.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
           WHERE p."userId" = $1
           AND "Item".created_at > $2  AND "Item"."userId" <> $1
-          LIMIT 1`, user.id, lastChecked)
+          LIMIT 1`, me.id, lastChecked)
       if (newReplies.length > 0) {
         return true
       }
 
       // check if they have any mentions since checkedNotesAt
-      if (me.noteMentions) {
+      if (user.noteMentions) {
         const newMentions = await models.$queryRaw(`
         SELECT "Item".id, "Item".created_at
           FROM "Mention"
@@ -212,7 +212,7 @@ export default {
           WHERE "Mention"."userId" = $1
           AND "Mention".created_at > $2
           AND "Item"."userId" <> $1
-          LIMIT 1`, user.id, lastChecked)
+          LIMIT 1`, me.id, lastChecked)
         if (newMentions.length > 0) {
           return true
         }
@@ -226,7 +226,7 @@ export default {
           maxBid: {
             not: null
           },
-          userId: user.id,
+          userId: me.id,
           statusUpdatedAt: {
             gt: lastChecked
           }
@@ -236,10 +236,10 @@ export default {
         return true
       }
 
-      if (me.noteEarning) {
+      if (user.noteEarning) {
         const earn = await models.earn.findFirst({
           where: {
-            userId: user.id,
+            userId: me.id,
             createdAt: {
               gt: lastChecked
             },
@@ -253,10 +253,10 @@ export default {
         }
       }
 
-      if (me.noteDeposits) {
+      if (user.noteDeposits) {
         const invoice = await models.invoice.findFirst({
           where: {
-            userId: user.id,
+            userId: me.id,
             confirmedAt: {
               gt: lastChecked
             }
@@ -268,13 +268,13 @@ export default {
       }
 
       // check if new invites have been redeemed
-      if (me.noteInvites) {
+      if (user.noteInvites) {
         const newInvitees = await models.$queryRaw(`
         SELECT "Invite".id
           FROM users JOIN "Invite" on users."inviteId" = "Invite".id
           WHERE "Invite"."userId" = $1
           AND users.created_at > $2
-          LIMIT 1`, user.id, lastChecked)
+          LIMIT 1`, me.id, lastChecked)
         if (newInvitees.length > 0) {
           return true
         }

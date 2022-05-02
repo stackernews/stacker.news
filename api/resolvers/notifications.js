@@ -11,6 +11,8 @@ export default {
         throw new AuthenticationError('you must be logged in')
       }
 
+      const meFull = await models.user.findUnique({ where: { id: me.id } })
+
       /*
         So that we can cursor over results, we union notifications together ...
         this requires we have the same number of columns in all results
@@ -72,7 +74,7 @@ export default {
           `SELECT DISTINCT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL::BIGINT as "earnedSats",
               'Reply' AS type
               FROM "Item"
-              JOIN "Item" p ON ${me.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
+              JOIN "Item" p ON ${meFull.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
               WHERE p."userId" = $1
                 AND "Item"."userId" <> $1 AND "Item".created_at <= $2`
         )
@@ -81,7 +83,7 @@ export default {
           `(SELECT DISTINCT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL::BIGINT as "earnedSats",
               'Reply' AS type
               FROM "Item"
-              JOIN "Item" p ON ${me.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
+              JOIN "Item" p ON ${meFull.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
               WHERE p."userId" = $1
                 AND "Item"."userId" <> $1 AND "Item".created_at <= $2
               ORDER BY "sortTime" DESC
@@ -100,7 +102,7 @@ export default {
             LIMIT ${LIMIT}+$3)`
         )
 
-        if (me.noteItemSats) {
+        if (meFull.noteItemSats) {
           queries.push(
             `(SELECT "Item".id::TEXT, MAX("ItemAct".created_at) AS "sortTime",
               sum("ItemAct".sats) as "earnedSats", 'Votification' AS type
@@ -116,7 +118,7 @@ export default {
           )
         }
 
-        if (me.noteMentions) {
+        if (meFull.noteMentions) {
           queries.push(
             `(SELECT "Item".id::TEXT, "Mention".created_at AS "sortTime", NULL as "earnedSats",
               'Mention' AS type
@@ -132,7 +134,7 @@ export default {
           )
         }
 
-        if (me.noteDeposits) {
+        if (meFull.noteDeposits) {
           queries.push(
             `(SELECT "Invoice".id::text, "Invoice"."confirmedAt" AS "sortTime", FLOOR("msatsReceived" / 1000) as "earnedSats",
               'InvoicePaid' AS type
@@ -145,7 +147,7 @@ export default {
           )
         }
 
-        if (me.noteInvites) {
+        if (meFull.noteInvites) {
           queries.push(
             `(SELECT "Invite".id, MAX(users.created_at) AS "sortTime", NULL as "earnedSats",
               'Invitification' AS type
@@ -165,16 +167,15 @@ export default {
         OFFSET $3
         LIMIT ${LIMIT}`, me.id, decodedCursor.time, decodedCursor.offset)
 
-      const { checkedNotesAt } = await models.user.findUnique({ where: { id: me.id } })
       let earn
       if (decodedCursor.offset === 0) {
-        if (me.noteEarning) {
+        if (meFull.noteEarning) {
           const earnings = await models.$queryRaw(
             `SELECT MAX("Earn".id)::text, MAX("Earn".created_at) AS "sortTime", FLOOR(SUM(msats) / 1000) as "earnedSats",
               'Earn' AS type
               FROM "Earn"
               WHERE "Earn"."userId" = $1
-              AND created_at >= $2`, me.id, checkedNotesAt)
+              AND created_at >= $2`, me.id, meFull.checkedNotesAt)
           if (earnings.length > 0 && earnings[0].earnedSats > 0) {
             earn = earnings[0]
           }
@@ -184,7 +185,7 @@ export default {
       }
 
       return {
-        lastChecked: checkedNotesAt,
+        lastChecked: meFull.checkedNotesAt,
         earn,
         cursor: notifications.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
         notifications

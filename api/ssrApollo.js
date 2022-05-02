@@ -23,7 +23,7 @@ export default async function getSSRApolloClient (req, me = null) {
       context: {
         models,
         me: session
-          ? await models.user.findUnique({ where: { id: session.user?.id } })
+          ? session.user
           : me,
         lnd,
         search

@@ -32,7 +32,9 @@ export default {
         return null
       }
 
-      await models.user.update({ where: { id: me.id }, data: { lastSeenAt: new Date() } })
+      models.user.update(
+        { where: { id: me.id }, data: { lastSeenAt: new Date() } }
+      ).catch(console.log)
 
       return await models.user.findUnique({ where: { id: me.id } })
     },

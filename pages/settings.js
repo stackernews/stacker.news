@@ -1,6 +1,6 @@
 import { Checkbox, Form, Input, SubmitButton } from '../components/form'
 import * as Yup from 'yup'
-import { Alert, InputGroup } from 'react-bootstrap'
+import { Alert, Button, InputGroup } from 'react-bootstrap'
 import { useMe } from '../components/me'
 import LayoutCenter from '../components/layout-center'
 import { useState } from 'react'
@@ -85,6 +85,8 @@ export default function Settings () {
           label='someone mentions me'
           name='noteMentions'
         />
+        <div className='form-label'>saturday newsletter</div>
+        <Button href='https://mail.stacker.news/subscription/form' target='_blank'>(re)subscribe</Button>
         <div className='d-flex'>
           <SubmitButton variant='info' className='ml-auto mt-1 px-4'>save</SubmitButton>
         </div>

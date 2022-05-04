@@ -89,7 +89,7 @@ export default function Login ({ providers, callbackUrl, error, Header }) {
                   email: ''
                 }}
                 schema={EmailSchema}
-                onSubmit={({ email }) => {
+                onSubmit={async ({ email }) => {
                   signIn('email', { email, callbackUrl })
                 }}
               >

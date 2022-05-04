@@ -28,6 +28,25 @@ const options = {
         const { name } = await prisma.user.findUnique({ where: { id: token.id } })
         token.name = name
       }
+
+      // sign them up for the newsletter
+      if (isNewUser && profile.email) {
+        fetch(process.env.LIST_MONK_URL + '/api/subscribers', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Basic ' + Buffer.from(process.env.LIST_MONK_AUTH).toString('base64')
+          },
+          body: JSON.stringify({
+            email: profile.email,
+            name: 'blank',
+            lists: [2],
+            status: 'enabled',
+            preconfirm_subscriptions: true
+          })
+        }).then(async r => console.log(await r.json())).catch(console.log)
+      }
+
       return token
     },
     async session (session, token) {

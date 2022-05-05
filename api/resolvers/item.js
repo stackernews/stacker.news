@@ -49,7 +49,7 @@ const COMMENTS_LEFT_JOIN_WEIGHTED_SATS =
     GROUP BY "Item".id
   ) x ON "Item".id = x.id`
 const COMMENTS_ORDER_BY_SATS =
-  'ORDER BY GREATEST(x.sats, 0)/POWER(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE \'UTC\') - "Item".created_at))/3600+2, 1.5) DESC NULLS LAST, "Item".id DESC'
+  'ORDER BY GREATEST(x.sats, 0)/POWER(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE \'UTC\') - "Item".created_at))/3600+2, 1.3) DESC NULLS LAST, "Item".id DESC'
 
 export async function getItem (parent, { id }, { models }) {
   const [item] = await models.$queryRaw(`
@@ -867,7 +867,7 @@ function newTimedLeftJoinWeightedSats (num) {
 function newTimedOrderByWeightedSats (num) {
   return `
     GROUP BY "Item".id
-    ORDER BY (SUM(CASE WHEN "ItemAct".act = 'VOTE' AND "Item"."userId" <> "ItemAct"."userId" THEN users.trust ELSE 0 END)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 1.5) +
+    ORDER BY (SUM(CASE WHEN "ItemAct".act = 'VOTE' AND "Item"."userId" <> "ItemAct"."userId" THEN users.trust ELSE 0 END)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 1.3) +
               GREATEST(SUM(CASE WHEN "ItemAct".act = 'BOOST' THEN "ItemAct".sats ELSE 0 END)-1000+5, 0)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 5)) DESC NULLS LAST, "Item".id DESC`
 }
 

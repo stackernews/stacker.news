@@ -38,7 +38,7 @@ const apolloServer = new ApolloServer({
       models,
       lnd,
       me: session
-        ? await models.user.findUnique({ where: { id: session.user?.id } })
+        ? session.user
         : null,
       search
     }

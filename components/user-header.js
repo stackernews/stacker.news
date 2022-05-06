@@ -10,9 +10,11 @@ import { gql, useApolloClient, useMutation } from '@apollo/client'
 import styles from './user-header.module.css'
 import { useMe } from './me'
 import { NAME_MUTATION, NAME_QUERY } from '../fragments/users'
-import Image from 'next/image'
+// import Image from 'next/image'
 import QRCode from 'qrcode.react'
 import LightningIcon from '../svgs/bolt.svg'
+import ModalButton from './modal-button'
+import { encodeLNUrl } from '../lib/lnurl'
 
 export default function UserHeader ({ user }) {
   const [editting, setEditting] = useState(false)
@@ -22,7 +24,7 @@ export default function UserHeader ({ user }) {
   const [setName] = useMutation(NAME_MUTATION)
 
   const isMe = me?.name === user.name
-  const Satistics = () => <div className={`mb-4 ${styles.username} text-success`}>{isMe ? `${user.sats} sats \\ ` : ''}{user.stacked} stacked</div>
+  const Satistics = () => <div className={`mb-2 ${styles.username} text-success`}>{isMe ? `${user.sats} sats \\ ` : ''}{user.stacked} stacked</div>
 
   const UserSchema = Yup.object({
     name: Yup.string()
@@ -40,14 +42,16 @@ export default function UserHeader ({ user }) {
       })
   })
 
+  const lnurlp = encodeLNUrl(new URL(`https://stacker.news/.well-known/lnurlp/${user.name}`))
+
   return (
     <>
       <div className='d-flex align-items-center mt-2 flex-wrap'>
-        <Image
-          src='/dorian400.jpg' width='200' height='166' layout='fixed'
+        {/* <Image
+          src='/dorian400.jpg' width='135' height='135' layout='fixed'
           className={styles.userimg}
-        />
-        <div className='ml-3'>
+        /> */}
+        <div>
           {editting
             ? (
               <Form
@@ -85,7 +89,7 @@ export default function UserHeader ({ user }) {
                   setEditting(false)
                 }}
               >
-                <div className='d-flex align-items-center mb-1'>
+                <div className='d-flex align-items-center mb-2'>
                   <Input
                     prepend=<InputGroup.Text>@</InputGroup.Text>
                     name='name'
@@ -98,22 +102,30 @@ export default function UserHeader ({ user }) {
               </Form>
               )
             : (
-              <div className='d-flex align-items-center mb-1'>
+              <div className='d-flex align-items-center mb-2'>
                 <div className={styles.username}>@{user.name}</div>
                 {isMe &&
                   <Button className='py-0' variant='link' onClick={() => setEditting(true)}>edit nym</Button>}
               </div>
               )}
           <Satistics user={user} />
-          <Button className='font-weight-bold'>
-            <LightningIcon
-              width={20}
-              height={20}
-              className='mr-1'
-            />{user.name}@stacker.news
-          </Button>
+          <ModalButton
+            clicker={
+              <Button className='font-weight-bold'>
+                <LightningIcon
+                  width={20}
+                  height={20}
+                  className='mr-1'
+                />{user.name}@stacker.news
+              </Button>
+            }
+          >
+            <a className='d-flex m-auto p-3' style={{ background: 'white', width: 'fit-content' }} href={`lightning:${lnurlp}`}>
+              <QRCode className='d-flex m-auto' value={lnurlp} renderAs='svg' size={300} />
+            </a>
+            <div className='text-center font-weight-bold text-muted mt-3'>click or scan</div>
+          </ModalButton>
         </div>
-        <QRCode className='ml-auto' value='fdsajfkldsajlkfjdlksajfkldjsalkjfdklsa' renderAs='svg' size={166} />
       </div>
       <Nav
         className={styles.nav}

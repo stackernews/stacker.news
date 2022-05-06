@@ -32,11 +32,7 @@ export default {
         return null
       }
 
-      models.user.update(
-        { where: { id: me.id }, data: { lastSeenAt: new Date() } }
-      ).catch(console.log)
-
-      return await models.user.findUnique({ where: { id: me.id } })
+      return await models.user.update({ where: { id: me.id }, data: { lastSeenAt: new Date() } })
     },
     user: async (parent, { name }, { models }) => {
       return await models.user.findUnique({ where: { name } })
@@ -48,7 +44,9 @@ export default {
         throw new AuthenticationError('you must be logged in')
       }
 
-      return me.name?.toUpperCase() === name?.toUpperCase() || !(await models.user.findUnique({ where: { name } }))
+      const user = await models.user.findUnique({ where: { id: me.id } })
+
+      return user.name?.toUpperCase() === name?.toUpperCase() || !(await models.user.findUnique({ where: { name } }))
     },
     topUsers: async (parent, { cursor, within, userType }, { models, me }) => {
       const decodedCursor = decodeCursor(cursor)
@@ -136,7 +134,7 @@ export default {
       } else {
         ([item] = await serialize(models,
           models.$queryRaw(`${SELECT} FROM create_bio($1, $2, $3) AS "Item"`,
-            `@${me.name}'s bio`, bio, Number(me.id))))
+            `@${user.name}'s bio`, bio, Number(me.id))))
       }
 
       await createMentions(item, models)

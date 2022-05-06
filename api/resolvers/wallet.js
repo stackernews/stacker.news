@@ -178,9 +178,11 @@ export default {
         throw new UserInputError('amount must be positive', { argumentName: 'amount' })
       }
 
+      const user = await models.user.findUnique({ where: { id: me.id } })
+
       // set expires at to 3 hours into future
       const expiresAt = new Date(new Date().setHours(new Date().getHours() + 3))
-      const description = `${amount} sats for @${me.name} on stacker.news`
+      const description = `${amount} sats for @${user.name} on stacker.news`
       try {
         const invoice = await createInvoice({
           description,
@@ -271,10 +273,12 @@ async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd 
 
   const msatsFee = Number(maxFee) * 1000
 
+  const user = await models.user.findUnique({ where: { id: me.id } })
+
   // create withdrawl transactionally (id, bolt11, amount, fee)
   const [withdrawl] = await serialize(models,
     models.$queryRaw`SELECT * FROM create_withdrawl(${decoded.id}, ${invoice},
-      ${Number(decoded.mtokens)}, ${msatsFee}, ${me.name})`)
+      ${Number(decoded.mtokens)}, ${msatsFee}, ${user.name})`)
 
   payViaPaymentRequest({
     lnd,

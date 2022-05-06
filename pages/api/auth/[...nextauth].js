@@ -22,13 +22,6 @@ const options = {
         token.id = user.id
       }
 
-      // XXX We need to update the user name incase they update it ... kind of hacky
-      // better if we use user id everywhere an ignore the username ...
-      if (token?.id) {
-        const { name } = await prisma.user.findUnique({ where: { id: token.id } })
-        token.name = name
-      }
-
       // sign them up for the newsletter
       if (isNewUser && profile.email) {
         fetch(process.env.LIST_MONK_URL + '/api/subscribers', {
@@ -52,7 +45,6 @@ const options = {
     async session (session, token) {
       // we need to add additional session params here
       session.user.id = token.id
-      session.user.name = token.name
       return session
     }
   },

@@ -868,7 +868,7 @@ function newTimedOrderByWeightedSats (num) {
   return `
     GROUP BY "Item".id
     ORDER BY (SUM(CASE WHEN "ItemAct".act = 'VOTE' AND "Item"."userId" <> "ItemAct"."userId" THEN users.trust ELSE 0 END)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 1.3) +
-              GREATEST(SUM(CASE WHEN "ItemAct".act = 'BOOST' THEN "ItemAct".sats ELSE 0 END)-1000+5, 0)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 3)) DESC NULLS LAST, "Item".id DESC`
+              GREATEST(SUM(CASE WHEN "ItemAct".act = 'BOOST' THEN "ItemAct".sats ELSE 0 END)-1000+5, 0)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 4)) DESC NULLS LAST, "Item".id DESC`
 }
 
 const TOP_ORDER_BY_SATS = 'GROUP BY "Item".id ORDER BY (SUM(CASE WHEN "ItemAct".act = \'VOTE\' AND "Item"."userId" <> "ItemAct"."userId" THEN users.trust ELSE 0 END)) DESC NULLS LAST, "Item".created_at DESC'

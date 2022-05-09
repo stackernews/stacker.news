@@ -23,6 +23,8 @@ export const ME = gql`
       noteMentions
       noteDeposits
       noteInvites
+      noteJobIndicator
+      lastCheckedJobs
     }
   }`
 
@@ -45,6 +47,8 @@ export const ME_SSR = gql`
       noteMentions
       noteDeposits
       noteInvites
+      noteJobIndicator
+      lastCheckedJobs
     }
   }`
 

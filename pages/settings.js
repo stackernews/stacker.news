@@ -21,10 +21,11 @@ export default function Settings () {
     gql`
       mutation setSettings($tipDefault: Int!, $noteItemSats: Boolean!, $noteEarning: Boolean!,
         $noteAllDescendants: Boolean!, $noteMentions: Boolean!, $noteDeposits: Boolean!,
-        $noteInvites: Boolean!) {
+        $noteInvites: Boolean!, $noteJobIndicator: Boolean!) {
         setSettings(tipDefault: $tipDefault, noteItemSats: $noteItemSats,
           noteEarning: $noteEarning, noteAllDescendants: $noteAllDescendants,
-          noteMentions: $noteMentions, noteDeposits: $noteDeposits, noteInvites: $noteInvites)
+          noteMentions: $noteMentions, noteDeposits: $noteDeposits, noteInvites: $noteInvites,
+          noteJobIndicator: $noteJobIndicator)
       }`
   )
 
@@ -39,7 +40,8 @@ export default function Settings () {
           noteAllDescendants: me?.noteAllDescendants,
           noteMentions: me?.noteMentions,
           noteDeposits: me?.noteDeposits,
-          noteInvites: me?.noteInvites
+          noteInvites: me?.noteInvites,
+          noteJobIndicator: me?.noteJobIndicator
         }}
         schema={SettingsSchema}
         onSubmit={async ({ tipDefault, ...values }) => {
@@ -84,6 +86,11 @@ export default function Settings () {
         <Checkbox
           label='someone mentions me'
           name='noteMentions'
+          groupClassName='mb-0'
+        />
+        <Checkbox
+          label='there is a new job'
+          name='noteJobIndicator'
         />
         <div className='form-label'>saturday newsletter</div>
         <Button href='https://mail.stacker.news/subscription/form' target='_blank'>(re)subscribe</Button>

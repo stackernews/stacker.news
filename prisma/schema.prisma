@@ -11,34 +11,35 @@ generator client {
 }
 
 model User {
-  id             Int         @id @default(autoincrement())
-  createdAt      DateTime    @default(now()) @map(name: "created_at")
-  updatedAt      DateTime    @default(now()) @updatedAt @map(name: "updated_at")
-  name           String?     @unique @db.Citext
-  email          String?     @unique
-  emailVerified  DateTime?   @map(name: "email_verified")
-  image          String?
-  items          Item[]      @relation("UserItems")
-  fwdItems       Item[]      @relation("FwdItem")
-  mentions       Mention[]
-  messages       Message[]
-  actions        ItemAct[]
-  invoices       Invoice[]
-  withdrawls     Withdrawl[]
-  invites        Invite[]    @relation(name: "Invites")
-  invite         Invite?     @relation(fields: [inviteId], references: [id])
-  inviteId       String?
-  bio            Item?       @relation(fields: [bioId], references: [id])
-  bioId          Int?
-  msats          Int         @default(0)
-  stackedMsats   Int         @default(0)
-  freeComments   Int         @default(5)
-  freePosts      Int         @default(2)
-  checkedNotesAt DateTime?
-  tipDefault     Int         @default(10)
-  pubkey         String?     @unique
-  trust          Float       @default(0)
-  lastSeenAt     DateTime?
+  id              Int         @id @default(autoincrement())
+  createdAt       DateTime    @default(now()) @map(name: "created_at")
+  updatedAt       DateTime    @default(now()) @updatedAt @map(name: "updated_at")
+  name            String?     @unique @db.Citext
+  email           String?     @unique
+  emailVerified   DateTime?   @map(name: "email_verified")
+  image           String?
+  items           Item[]      @relation("UserItems")
+  fwdItems        Item[]      @relation("FwdItem")
+  mentions        Mention[]
+  messages        Message[]
+  actions         ItemAct[]
+  invoices        Invoice[]
+  withdrawls      Withdrawl[]
+  invites         Invite[]    @relation(name: "Invites")
+  invite          Invite?     @relation(fields: [inviteId], references: [id])
+  inviteId        String?
+  bio             Item?       @relation(fields: [bioId], references: [id])
+  bioId           Int?
+  msats           Int         @default(0)
+  stackedMsats    Int         @default(0)
+  freeComments    Int         @default(5)
+  freePosts       Int         @default(2)
+  checkedNotesAt  DateTime?
+  tipDefault      Int         @default(10)
+  pubkey          String?     @unique
+  trust           Float       @default(0)
+  lastSeenAt      DateTime?
+  lastCheckedJobs DateTime?
 
   upvotePopover Boolean @default(false)
   tipPopover    Boolean @default(false)
@@ -50,6 +51,7 @@ model User {
   noteMentions       Boolean @default(true)
   noteDeposits       Boolean @default(true)
   noteInvites        Boolean @default(true)
+  noteJobIndicator   Boolean @default(true)
 
   Earn Earn[]
   @@index([createdAt])

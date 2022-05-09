@@ -29,7 +29,7 @@ export default gql`
     setName(name: String!): Boolean
     setSettings(tipDefault: Int!, noteItemSats: Boolean!, noteEarning: Boolean!,
       noteAllDescendants: Boolean!, noteMentions: Boolean!, noteDeposits: Boolean!,
-      noteInvites:Boolean!): Boolean
+      noteInvites: Boolean!, noteJobIndicator: Boolean!): Boolean
     upsertBio(bio: String!): User!
     setWalkthrough(tipPopover: Boolean, upvotePopover: Boolean): Boolean
   }
@@ -57,5 +57,7 @@ export default gql`
     noteMentions: Boolean!
     noteDeposits: Boolean!
     noteInvites: Boolean!
+    noteJobIndicator: Boolean!
+    lastCheckedJobs: String
   }
 `

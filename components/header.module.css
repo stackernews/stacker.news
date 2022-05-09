@@ -27,6 +27,15 @@
     fill: var(--theme-navLinkActive);
 }
 
+.jobIndicator {
+    position: absolute;
+    padding: .25rem;
+    background-color: var(--primary);
+    top: 3px;
+    right: 0px;
+    border: 1px solid var(--theme-body);
+}
+
 .notification {
     position: absolute;
     padding: .25rem;

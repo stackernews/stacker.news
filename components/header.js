@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react'
 import { randInRange } from '../lib/rand'
 import { formatSats } from '../lib/format'
 import NoteIcon from '../svgs/notification-4-fill.svg'
+import { useQuery, gql } from '@apollo/client'
 
 function WalletSummary ({ me }) {
   if (!me) return null
@@ -26,6 +27,23 @@ export default function Header ({ sub }) {
   const [fired, setFired] = useState()
   const me = useMe()
   const prefix = sub ? `/~${sub}` : ''
+  const { data: subLatestPost } = useQuery(gql`
+    query subLatestPost($name: ID!) {
+      subLatestPost(name: $name)
+    }
+  `, { variables: { name: 'jobs' }, pollInterval: 600000, fetchPolicy: 'network-only' })
+
+  const [lastCheckedJobs, setLastCheckedJobs] = useState(new Date().getTime())
+  useEffect(() => {
+    if (me) {
+      setLastCheckedJobs(me.lastCheckedJobs)
+    } else {
+      if (sub === 'jobs') {
+        localStorage.setItem('lastCheckedJobs', new Date().getTime())
+      }
+      setLastCheckedJobs(localStorage.getItem('lastCheckedJobs'))
+    }
+  })
 
   const Corner = () => {
     if (me) {
@@ -103,6 +121,43 @@ export default function Header ({ sub }) {
     }
   }
 
+  const NavItems = ({ className }) => {
+    return (
+      <>
+        <Nav.Item className={className}>
+          <Link href={prefix + '/recent'} passHref>
+            <Nav.Link className={styles.navLink}>recent</Nav.Link>
+          </Link>
+        </Nav.Item>
+        {!prefix &&
+          <Nav.Item className={className}>
+            <Link href='/top/posts/week' passHref>
+              <Nav.Link className={styles.navLink}>top</Nav.Link>
+            </Link>
+          </Nav.Item>}
+        <Nav.Item className={className}>
+          <div className='position-relative'>
+            <Link href='/~jobs' passHref>
+              <Nav.Link active={sub === 'jobs'} className={styles.navLink}>
+                jobs
+              </Nav.Link>
+            </Link>
+            {sub !== 'jobs' && (!me || me.noteJobIndicator) && (!lastCheckedJobs || lastCheckedJobs < subLatestPost?.subLatestPost) &&
+              <span className={styles.jobIndicator}>
+                <span className='invisible'>{' '}</span>
+              </span>}
+          </div>
+        </Nav.Item>
+        {me &&
+          <Nav.Item className={className}>
+            <Link href={prefix + '/post'} passHref>
+              <Nav.Link className={styles.navLinkButton}>post</Nav.Link>
+            </Link>
+          </Nav.Item>}
+      </>
+    )
+  }
+
   return (
     <>
       <Container className='px-sm-0'>
@@ -123,28 +178,7 @@ export default function Header ({ sub }) {
                 </Navbar.Brand>
               </Link>
             </div>
-            <Nav.Item className='d-none d-md-flex'>
-              <Link href={prefix + '/recent'} passHref>
-                <Nav.Link className={styles.navLink}>recent</Nav.Link>
-              </Link>
-            </Nav.Item>
-            {!prefix &&
-              <Nav.Item className='d-none d-md-flex'>
-                <Link href='/top/posts/week' passHref>
-                  <Nav.Link className={styles.navLink}>top</Nav.Link>
-                </Link>
-              </Nav.Item>}
-            <Nav.Item className='d-none d-md-flex'>
-              <Link href='/~jobs' passHref>
-                <Nav.Link active={sub === 'jobs'} className={styles.navLink}>jobs</Nav.Link>
-              </Link>
-            </Nav.Item>
-            {me &&
-              <Nav.Item className='d-none d-md-flex'>
-                <Link href={prefix + '/post'} passHref>
-                  <Nav.Link className={styles.navLinkButton}>post</Nav.Link>
-                </Link>
-              </Nav.Item>}
+            <NavItems className='d-none d-md-flex' />
             <Nav.Item className={`text-monospace nav-link px-0 ${me?.name.length > 6 ? 'd-none d-lg-flex' : ''}`}>
               <Price />
             </Nav.Item>
@@ -156,28 +190,7 @@ export default function Header ({ sub }) {
             className={`${styles.navbarNav} justify-content-around`}
             activeKey={path}
           >
-            <Nav.Item>
-              <Link href={prefix + '/recent'} passHref>
-                <Nav.Link className={styles.navLink}>recent</Nav.Link>
-              </Link>
-            </Nav.Item>
-            {!prefix &&
-              <Nav.Item>
-                <Link href='/top/posts/week' passHref>
-                  <Nav.Link className={styles.navLink}>top</Nav.Link>
-                </Link>
-              </Nav.Item>}
-            <Nav.Item>
-              <Link href='/~jobs' passHref>
-                <Nav.Link active={sub === 'jobs'} className={styles.navLink}>jobs</Nav.Link>
-              </Link>
-            </Nav.Item>
-            {me &&
-              <Nav.Item>
-                <Link href={prefix + '/post'} passHref>
-                  <Nav.Link className={styles.navLinkButton}>post</Nav.Link>
-                </Link>
-              </Nav.Item>}
+            <NavItems />
           </Nav>
         </Navbar>
       </Container>

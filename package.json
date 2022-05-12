@@ -24,6 +24,7 @@
     "domino": "^2.1.6",
     "formik": "^2.2.6",
     "graphql": "^15.5.0",
+    "graphql-type-json": "^0.3.2",
     "ln-service": "^52.8.0",
     "mdast-util-find-and-replace": "^1.1.1",
     "next": "^11.1.2",

@@ -53,10 +53,29 @@ model User {
   noteInvites        Boolean @default(true)
   noteJobIndicator   Boolean @default(true)
 
-  Earn Earn[]
+  Earn   Earn[]
+  Upload Upload[]
   @@index([createdAt])
   @@index([inviteId])
   @@map(name: "users")
+}
+
+model Upload {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map(name: "created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map(name: "updated_at")
+  type      String
+  size      Int
+  width     Int?
+  height    Int?
+  item      Item?    @relation(fields: [itemId], references: [id])
+  itemId    Int?
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+
+  @@index([createdAt])
+  @@index([itemId])
+  @@index([userId])
 }
 
 model Earn {
@@ -153,7 +172,8 @@ model Item {
   longitude       Float?
   remote          Boolean?
 
-  User User[]
+  User   User[]
+  Upload Upload[]
   @@index([createdAt])
   @@index([userId])
   @@index([parentId])

@@ -45,10 +45,6 @@
     border: 1px solid var(--theme-body);
 }
 
-.navLink:last-child {
-    padding-right: 0 !important;
-}
-
 .navbarNav {
     width: 100%;
     flex-wrap: wrap;

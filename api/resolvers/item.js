@@ -45,7 +45,7 @@ const COMMENTS_LEFT_JOIN_WEIGHTED_SATS =
     ${COMMENTS_LEFT_JOIN_WEIGHTED_SATS_SELECT}
     FROM "ItemAct"
     JOIN users on "ItemAct"."userId" = users.id
-    WHERE "Item".id = "ItemAct"."itemId"
+    WHERE "Item".id = "ItemAct"."itemId" AND "ItemAct".act = 'VOTE'
     GROUP BY "Item".id
   ) x ON "Item".id = x.id`
 const COMMENTS_ORDER_BY_SATS =
@@ -860,7 +860,7 @@ export const SELECT =
 
 function newTimedLeftJoinWeightedSats (num) {
   return `
-   LEFT JOIN "ItemAct" ON "Item".id = "ItemAct"."itemId" AND "ItemAct".created_at <= $${num}
+   LEFT JOIN "ItemAct" ON "Item".id = "ItemAct"."itemId" AND "ItemAct".created_at <= $${num} AND "ItemAct".act IN ('VOTE', 'BOOST')
    JOIN users ON "ItemAct"."userId" = users.id`
 }
 

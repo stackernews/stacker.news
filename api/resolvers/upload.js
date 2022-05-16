@@ -42,7 +42,7 @@ export default {
       const s3 = new AWS.S3({ apiVersion: '2006-03-01' })
       const res = await new Promise((resolve, reject) => {
         s3.createPresignedPost({
-          Bucket: process.env.AWS_UPLOAD_BUCKET,
+          Bucket: process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET,
           Fields: {
             key: String(upload.id)
           },

@@ -40,6 +40,8 @@ model User {
   trust           Float       @default(0)
   lastSeenAt      DateTime?
   lastCheckedJobs DateTime?
+  photoId         Int?
+  photo           Upload?     @relation(fields: [photoId], references: [id])
 
   upvotePopover Boolean @default(false)
   tipPopover    Boolean @default(false)
@@ -54,7 +56,7 @@ model User {
   noteJobIndicator   Boolean @default(true)
 
   Earn   Earn[]
-  Upload Upload[]
+  Upload Upload[] @relation(name: "Uploads")
   @@index([createdAt])
   @@index([inviteId])
   @@map(name: "users")
@@ -70,9 +72,10 @@ model Upload {
   height    Int?
   item      Item?    @relation(fields: [itemId], references: [id])
   itemId    Int?
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(name: "Uploads", fields: [userId], references: [id])
   userId    Int
 
+  User User[]
   @@index([createdAt])
   @@index([itemId])
   @@index([userId])

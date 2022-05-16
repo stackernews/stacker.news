@@ -30,6 +30,7 @@ export default gql`
     setSettings(tipDefault: Int!, noteItemSats: Boolean!, noteEarning: Boolean!,
       noteAllDescendants: Boolean!, noteMentions: Boolean!, noteDeposits: Boolean!,
       noteInvites: Boolean!, noteJobIndicator: Boolean!): Boolean
+    setPhoto(photoId: ID!): Int!
     upsertBio(bio: String!): User!
     setWalkthrough(tipPopover: Boolean, upvotePopover: Boolean): Boolean
   }
@@ -48,6 +49,7 @@ export default gql`
     tipDefault: Int!
     bio: Item
     bioId: Int
+    photoId: Int
     sats: Int!
     upvotePopover: Boolean!
     tipPopover: Boolean!

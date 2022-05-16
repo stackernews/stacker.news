@@ -14,6 +14,7 @@ export const ME = gql`
       hasNewNotes
       tipDefault
       bioId
+      photoId
       hasInvites
       upvotePopover
       tipPopover
@@ -39,6 +40,7 @@ export const ME_SSR = gql`
       freeComments
       tipDefault
       bioId
+      photoId
       upvotePopover
       tipPopover
       noteItemSats
@@ -76,6 +78,7 @@ export const USER_FIELDS = gql`
     ncomments
     stacked
     sats
+    photoId
     bio {
       ...ItemFields
       text

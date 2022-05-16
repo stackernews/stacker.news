@@ -116,6 +116,18 @@ export default {
 
       return true
     },
+    setPhoto: async (parent, { photoId }, { me, models }) => {
+      if (!me) {
+        throw new AuthenticationError('you must be logged in')
+      }
+
+      await models.user.update({
+        where: { id: me.id },
+        data: { photoId: Number(photoId) }
+      })
+
+      return Number(photoId)
+    },
     upsertBio: async (parent, { bio }, { me, models }) => {
       if (!me) {
         throw new AuthenticationError('you must be logged in')

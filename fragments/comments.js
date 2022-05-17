@@ -15,6 +15,7 @@ export const COMMENT_FIELDS = gql`
     boost
     meSats
     meComments
+    path
     mine
     ncomments
     root {

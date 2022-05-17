@@ -8,10 +8,19 @@ import ActionTooltip from './action-tooltip'
 import TextareaAutosize from 'react-textarea-autosize'
 import { useEffect, useState } from 'react'
 import Info from './info'
+import Link from 'next/link'
 
 export const CommentSchema = Yup.object({
   text: Yup.string().required('required').trim()
 })
+
+export function ReplyOnAnotherPage ({ parentId }) {
+  return (
+    <Link href={`/items/${parentId}`}>
+      <a className={`${styles.replyButtons} text-muted`}>reply on another page</a>
+    </Link>
+  )
+}
 
 export default function Reply ({ parentId, meComments, onSuccess, replyOpen }) {
   const [reply, setReply] = useState(replyOpen)

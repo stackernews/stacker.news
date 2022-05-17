@@ -2,7 +2,7 @@ import itemStyles from './item.module.css'
 import styles from './comment.module.css'
 import Text from './text'
 import Link from 'next/link'
-import Reply from './reply'
+import Reply, { ReplyOnAnotherPage } from './reply'
 import { useEffect, useRef, useState } from 'react'
 import { timeSince } from '../lib/time'
 import UpVote from './upvote'
@@ -11,7 +11,7 @@ import EyeClose from '../svgs/eye-close-line.svg'
 import { useRouter } from 'next/router'
 import CommentEdit from './comment-edit'
 import Countdown from './countdown'
-import { NOFOLLOW_LIMIT } from '../lib/constants'
+import { COMMENT_DEPTH_LIMIT, NOFOLLOW_LIMIT } from '../lib/constants'
 import { ignoreClick } from '../lib/clicks'
 
 function Parent ({ item, rootText }) {
@@ -53,10 +53,17 @@ export function CommentFlat ({ item, ...props }) {
         if (ignoreClick(e)) {
           return
         }
-        router.push({
-          pathname: '/items/[id]',
-          query: { id: item.root.id, commentId: item.id }
-        }, `/items/${item.root.id}`)
+        if (item.path.split('.').length > COMMENT_DEPTH_LIMIT + 1) {
+          router.push({
+            pathname: '/items/[id]',
+            query: { id: item.parentId, commentId: item.id }
+          }, `/items/${item.parentId}`)
+        } else {
+          router.push({
+            pathname: '/items/[id]',
+            query: { id: item.root.id, commentId: item.id }
+          }, `/items/${item.root.id}`)
+        }
       }}
     >
       <Comment item={item} {...props} />
@@ -66,7 +73,7 @@ export function CommentFlat ({ item, ...props }) {
 
 export default function Comment ({
   item, children, replyOpen, includeParent,
-  rootText, noComments, noReply, truncate
+  rootText, noComments, noReply, truncate, depth
 }) {
   const [edit, setEdit] = useState()
   const [collapse, setCollapse] = useState(false)
@@ -88,6 +95,8 @@ export default function Comment ({
     }
     setCollapse(localStorage.getItem(`commentCollapse:${item.id}`))
   }, [item])
+
+  const bottomedOut = depth === COMMENT_DEPTH_LIMIT
 
   const op = item.root.user.name === item.user.name
 
@@ -171,20 +180,40 @@ export default function Comment ({
               )}
         </div>
       </div>
-      <div className={`${styles.children}`}>
-        {!noReply &&
-          <Reply
-            parentId={item.id} meComments={item.meComments} replyOpen={replyOpen}
-          />}
-        {children}
-        <div className={`${styles.comments} ml-sm-1 ml-md-3`}>
-          {item.comments && !noComments
-            ? item.comments.map((item) => (
-              <Comment key={item.id} item={item} />
-              ))
-            : null}
-        </div>
-      </div>
+      {bottomedOut
+        ? <DepthLimit item={item} />
+        : (
+          <div className={`${styles.children}`}>
+            {!noReply &&
+              <Reply
+                depth={depth + 1} parentId={item.id} meComments={item.meComments} replyOpen={replyOpen}
+              />}
+            {children}
+            <div className={`${styles.comments} ml-sm-1 ml-md-3`}>
+              {item.comments && !noComments
+                ? item.comments.map((item) => (
+                  <Comment depth={depth + 1} key={item.id} item={item} />
+                  ))
+                : null}
+            </div>
+          </div>
+          )}
+    </div>
+  )
+}
+
+function DepthLimit ({ item }) {
+  if (item.ncomments > 0) {
+    return (
+      <Link href={`/items/${item.id}`} passHref>
+        <a className='d-block p-3 font-weight-bold text-muted w-100 text-center'>view replies</a>
+      </Link>
+    )
+  }
+
+  return (
+    <div className={`${styles.children}`}>
+      <ReplyOnAnotherPage parentId={item.id} />
     </div>
   )
 }

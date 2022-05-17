@@ -1,4 +1,4 @@
-import { gql, useApolloClient, useLazyQuery, useQuery } from '@apollo/client'
+import { gql, useApolloClient, useLazyQuery } from '@apollo/client'
 import { useEffect, useState } from 'react'
 import Comment, { CommentSkeleton } from './comment'
 import styles from './header.module.css'
@@ -89,7 +89,7 @@ export default function Comments ({ parentId, comments, ...props }) {
       {loading
         ? <CommentsSkeleton />
         : comments.map(item => (
-          <Comment key={item.id} item={item} {...props} />
+          <Comment depth={1} key={item.id} item={item} {...props} />
         ))}
     </>
   )
@@ -97,15 +97,4 @@ export default function Comments ({ parentId, comments, ...props }) {
 
 export function CommentsSkeleton () {
   return <CommentSkeleton skeletonChildren={7} />
-}
-
-export function CommentsQuery ({ query, ...props }) {
-  const { error, data } = useQuery(query)
-
-  if (error) return <div>Failed to load!</div>
-  if (!data) {
-    return <CommentsSkeleton />
-  }
-
-  return <Comments comments={data.comments} {...props} />
 }

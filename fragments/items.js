@@ -19,6 +19,7 @@ export const ITEM_FIELDS = gql`
     sats
     upvotes
     boost
+    path
     meSats
     ncomments
     maxBid

@@ -10,6 +10,7 @@ import { timeSince } from '../lib/time'
 import Link from 'next/link'
 import Check from '../svgs/check-double-line.svg'
 import HandCoin from '../svgs/hand-coin-fill.svg'
+import { COMMENT_DEPTH_LIMIT } from '../lib/constants'
 
 // TODO: oh man, this is a mess ... each notification type should just be a component ...
 function Notification ({ n }) {
@@ -31,10 +32,17 @@ function Notification ({ n }) {
         } else if (n.__typename === 'Invitification') {
           router.push('/invites')
         } else if (!n.item.title) {
-          router.push({
-            pathname: '/items/[id]',
-            query: { id: n.item.root.id, commentId: n.item.id }
-          }, `/items/${n.item.root.id}`)
+          if (n.item.path.split('.').length > COMMENT_DEPTH_LIMIT + 1) {
+            router.push({
+              pathname: '/items/[id]',
+              query: { id: n.item.parentId, commentId: n.item.id }
+            }, `/items/${n.item.parentId}`)
+          } else {
+            router.push({
+              pathname: '/items/[id]',
+              query: { id: n.item.root.id, commentId: n.item.id }
+            }, `/items/${n.item.root.id}`)
+          }
         } else {
           router.push({
             pathname: '/items/[id]',

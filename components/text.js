@@ -62,7 +62,7 @@ export default function Text ({ nofollow, children }) {
                 )
           },
           a: ({ node, href, children, ...props }) => {
-            children = children.map(e => typeof e === 'string'
+            children = children?.map(e => typeof e === 'string'
               ? reactStringReplace(e, /:high\[([^\]]+)\]/g, (match, i) => {
                   return <mark key={`mark-${match}-${i}`}>{match}</mark>
                 })

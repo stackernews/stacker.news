@@ -283,7 +283,7 @@ export default {
         const matches = url.match(/(https?:\/\/)?((www\.)?(youtube(-nocookie)?|youtube.googleapis)\.com.*(v\/|v=|vi=|vi\/|e\/|embed\/|user\/.*\/u\/\d+\/)|youtu\.be\/)(?<id>[_0-9a-z-]+)/i)
         similar = `(http(s)?://)?(www.youtube.com/watch\\?v=${matches?.groups?.id}|youtu.be/${matches?.groups?.id})`
       } else {
-        similar += '(\\?%)?'
+        similar += '((\\?|#)%)?'
       }
 
       return await models.$queryRaw(`

@@ -38,6 +38,7 @@ export default function Upload ({ as: Component, onSelect, onStarted, onError, o
       Object.keys(data.getSignedPOST.fields).forEach(key =>
         form.append(key, data.getSignedPOST.fields[key]))
       form.append('Content-Type', file.type)
+      form.append('Cache-Control', 'max-age=31536000')
       form.append('acl', 'public-read')
       form.append('file', file)
 

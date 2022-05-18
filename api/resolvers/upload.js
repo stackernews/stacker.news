@@ -49,6 +49,7 @@ export default {
           Expires: 300,
           Conditions: [
             { 'Content-Type': type },
+            { 'Cache-Control': 'max-age=31536000' },
             { acl: 'public-read' },
             ['content-length-range', size, size]
           ]

@@ -268,7 +268,7 @@ async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd 
   }
 
   if (!decoded.mtokens || Number(decoded.mtokens) <= 0) {
-    throw new UserInputError('you must specify amount')
+    throw new UserInputError('your invoice must specify an amount')
   }
 
   const msatsFee = Number(maxFee) * 1000

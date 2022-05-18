@@ -41,7 +41,7 @@ export default function Search ({ sub }) {
                     if (sub) {
                       prefix = `/~${sub}`
                     }
-                    router.push(prefix + `/search?q=${q}`)
+                    router.push(prefix + `/search?q=${encodeURIComponent(q)}`)
                   }
                 }}
               >

@@ -98,7 +98,7 @@ export default function Comment ({
 
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT
 
-  const op = item.root.user.name === item.user.name
+  const op = item.root?.user.name === item.user.name
 
   return (
     <div

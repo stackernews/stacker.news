@@ -1,5 +1,4 @@
 import Header from './header'
-import Head from 'next/head'
 import Container from 'react-bootstrap/Container'
 import { LightningProvider } from './lightning'
 import Footer from './footer'
@@ -14,9 +13,6 @@ export default function Layout ({
     <>
       {!noSeo && <Seo sub={sub} />}
       <LightningProvider>
-        <Head>
-          <meta name='viewport' content='initial-scale=1.0, width=device-width' />
-        </Head>
         <Header sub={sub} />
         {noContain
           ? children

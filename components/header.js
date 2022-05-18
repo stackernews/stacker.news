@@ -197,3 +197,65 @@ export default function Header ({ sub }) {
     </>
   )
 }
+
+const NavItemsStatic = ({ className }) => {
+  return (
+    <>
+      <Nav.Item className={className}>
+        <Link href='/recent' passHref>
+          <Nav.Link className={styles.navLink}>recent</Nav.Link>
+        </Link>
+      </Nav.Item>
+      <Nav.Item className={className}>
+        <Link href='/top/posts/week' passHref>
+          <Nav.Link className={styles.navLink}>top</Nav.Link>
+        </Link>
+      </Nav.Item>
+      <Nav.Item className={className}>
+        <div className='position-relative'>
+          <Link href='/~jobs' passHref>
+            <Nav.Link className={styles.navLink}>
+              jobs
+            </Nav.Link>
+          </Link>
+        </div>
+      </Nav.Item>
+    </>
+  )
+}
+
+export function HeaderStatic () {
+  return (
+    <Container className='px-sm-0'>
+      <Navbar className='pb-0 pb-md-1'>
+        <Nav
+          className={styles.navbarNav}
+        >
+          <div className='d-flex'>
+            <Link href='/' passHref>
+              <Navbar.Brand className={`${styles.brand} d-none d-md-block`}>
+                STACKER NEWS
+              </Navbar.Brand>
+            </Link>
+            <Link href='/' passHref>
+              <Navbar.Brand className={`${styles.brand} d-block d-md-none`}>
+                SN
+              </Navbar.Brand>
+            </Link>
+          </div>
+          <NavItemsStatic className='d-none d-md-flex' />
+          <Nav.Item className='text-monospace nav-link px-0'>
+            <Price />
+          </Nav.Item>
+        </Nav>
+      </Navbar>
+      <Navbar className='pt-0 pb-1 d-md-none'>
+        <Nav
+          className={`${styles.navbarNav} justify-content-around`}
+        >
+          <NavItemsStatic />
+        </Nav>
+      </Navbar>
+    </Container>
+  )
+}

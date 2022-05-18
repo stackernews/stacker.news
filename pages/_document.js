@@ -6,6 +6,7 @@ class MyDocument extends Document {
     return (
       <Html>
         <Head>
+          <meta name='viewport' content='initial-scale=1.0, width=device-width' />
           <link rel='apple-touch-icon' sizes='180x180' href='/apple-touch-icon.png' />
           <link rel='manifest' href='/site.webmanifest' />
           <link rel='preload' href={`${publicPrefix}/Lightningvolt-xoqm.ttf`} as='font' type='font/ttf' crossOrigin='' />

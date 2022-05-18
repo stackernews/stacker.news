@@ -3,7 +3,6 @@ import Link from 'next/link'
 import { Table } from 'react-bootstrap'
 import { getGetServerSideProps } from '../api/ssrApollo'
 import Layout from '../components/layout'
-import { useMe } from '../components/me'
 import MoreFooter from '../components/more-footer'
 import UserHeader from '../components/user-header'
 import { WALLET_HISTORY } from '../fragments/wallet'
@@ -115,8 +114,7 @@ function Detail ({ fact }) {
   return <div className={styles.commentWrapper}><Comment item={fact.item} includeParent noReply truncate /></div>
 }
 
-export default function Satistics ({ data: { walletHistory: { facts, cursor } } }) {
-  const me = useMe()
+export default function Satistics ({ data: { me, walletHistory: { facts, cursor } } }) {
   const router = useRouter()
   const { data, fetchMore } = useQuery(WALLET_HISTORY, { variables: { inc: router.query.inc } })
 
@@ -150,7 +148,7 @@ export default function Satistics ({ data: { walletHistory: { facts, cursor } } 
   }
 
   if (data) {
-    ({ walletHistory: { facts, cursor } } = data)
+    ({ me, walletHistory: { facts, cursor } } = data)
   }
 
   const SatisticsSkeleton = () => (

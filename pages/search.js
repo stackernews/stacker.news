@@ -5,7 +5,7 @@ import SearchItems from '../components/search-items'
 import { useRouter } from 'next/router'
 import { SeoSearch } from '../components/seo'
 
-export const getServerSideProps = getGetServerSideProps(ITEM_SEARCH, null, null, 'q')
+export const getServerSideProps = getGetServerSideProps(ITEM_SEARCH)
 
 export default function Index ({ data: { search: { items, cursor } } }) {
   const router = useRouter()
@@ -13,9 +13,10 @@ export default function Index ({ data: { search: { items, cursor } } }) {
   return (
     <Layout noSeo>
       <SeoSearch />
-      <SearchItems
-        items={items} cursor={cursor} variables={{ q: router.query?.q }}
-      />
+      {router.query?.q &&
+        <SearchItems
+          items={items} cursor={cursor} variables={{ q: router.query?.q }}
+        />}
     </Layout>
   )
 }

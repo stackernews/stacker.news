@@ -5,8 +5,8 @@ import RemoveMarkdown from 'remove-markdown'
 export function SeoSearch ({ sub }) {
   const router = useRouter()
   const subStr = sub ? ` ~${sub}` : ''
-  const title = `${router.query.q} \\ stacker news${subStr}`
-  const desc = `SN${subStr} search: ${router.query.q}`
+  const title = `${router.query.q || 'search'} \\ stacker news${subStr}`
+  const desc = `SN${subStr} search: ${router.query.q || ''}`
 
   return (
     <NextSeo

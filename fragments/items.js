@@ -112,7 +112,7 @@ export const ITEM_WITH_COMMENTS = gql`
 
 export const ITEM_SEARCH = gql`
   ${ITEM_FIELDS}
-  query Search($q: String!, $cursor: String) {
+  query Search($q: String, $cursor: String) {
     search(q: $q, cursor: $cursor) {
       cursor
       items {

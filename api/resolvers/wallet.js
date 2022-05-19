@@ -4,6 +4,7 @@ import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import lnpr from 'bolt11'
 import { SELECT } from './item'
+import { lnurlPayDescriptionHash } from '../../lib/lnurl'
 
 export async function getInvoice (parent, { id }, { me, models }) {
   if (!me) {
@@ -228,6 +229,19 @@ export default {
       const res2 = await (await fetch(`${res1.callback}?amount=${milliamount}`)).json()
       if (res2.status === 'ERROR') {
         throw new Error(res2.reason)
+      }
+
+      // decode invoice
+      let decoded
+      try {
+        decoded = await decodePaymentRequest({ lnd, request: res2.pr })
+      } catch (error) {
+        console.log(error)
+        throw new Error('could not decode invoice')
+      }
+
+      if (decoded.description_hash !== lnurlPayDescriptionHash(res1.metadata)) {
+        throw new Error('description hash does not match')
       }
 
       // take pr and createWithdrawl

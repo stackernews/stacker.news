@@ -1,7 +1,7 @@
 import models from '../../../../api/models'
 import lnd from '../../../../api/lnd'
 import { createInvoice } from 'ln-service'
-import { lnurlPayDescriptionHash } from '../../../../lib/lnurl'
+import { lnurlPayDescriptionHashForUser } from '../../../../lib/lnurl'
 import serialize from '../../../../api/resolvers/serial'
 
 export default async ({ query: { username, amount } }, res) => {
@@ -17,7 +17,7 @@ export default async ({ query: { username, amount } }, res) => {
   // generate invoice
   const expiresAt = new Date(new Date().setHours(new Date().getHours() + 3))
   const description = `${amount} msats for @${user.name} on stacker.news`
-  const descriptionHash = lnurlPayDescriptionHash(username)
+  const descriptionHash = lnurlPayDescriptionHashForUser(username)
   try {
     const invoice = await createInvoice({
       description,

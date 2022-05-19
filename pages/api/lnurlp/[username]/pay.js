@@ -32,7 +32,8 @@ export default async ({ query: { username, amount } }, res) => {
         ${expiresAt}, ${Number(amount)}, ${user.id})`)
 
     return res.status(200).json({
-      pr: invoice.request
+      pr: invoice.request,
+      routes: []
     })
   } catch (error) {
     console.log(error)

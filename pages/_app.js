@@ -9,6 +9,7 @@ import { ItemActModal, ItemActProvider } from '../components/item-act'
 import getApolloClient from '../lib/apollo'
 import NextNProgress from 'nextjs-progressbar'
 import { PriceProvider } from '../components/price'
+import Head from 'next/head'
 
 function MyApp ({ Component, pageProps: { session, ...props } }) {
   const client = getApolloClient()
@@ -40,6 +41,9 @@ function MyApp ({ Component, pageProps: { session, ...props } }) {
         showOnShallow
         options={{ showSpinner: false }}
       />
+      <Head>
+        <meta name='viewport' content='initial-scale=1.0, width=device-width' />
+      </Head>
       <PlausibleProvider domain='stacker.news' trackOutboundLinks>
         <Provider session={session}>
           <ApolloProvider client={client}>

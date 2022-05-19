@@ -5,15 +5,24 @@ import getSSRApolloClient from '../../api/ssrApollo'
 import { CREATE_WITHDRAWL } from '../../fragments/wallet'
 
 export default async ({ query }, res) => {
+  if (!query.k1) {
+    return res.status(400).json({ status: 'ERROR', reason: 'k1 not provided' })
+  }
+
   if (query.pr) {
     return doWithdrawal(query, res)
   }
 
   let reason
   try {
-    // TODO: make sure lnwith was recently generated ... or better use a stateless
-    // bearer token to auth user
-    const lnwith = await models.lnWith.findUnique({ where: { k1: query.k1 } })
+    const lnwith = await models.lnWith.findFirst({
+      where: {
+        k1: query.k1,
+        createdAt: {
+          gt: new Date(new Date().setHours(new Date().getHours() - 1))
+        }
+      }
+    })
     if (lnwith) {
       const user = await models.user.findUnique({ where: { id: lnwith.userId } })
       if (user) {
@@ -36,14 +45,12 @@ export default async ({ query }, res) => {
     reason = 'internal server error'
   }
 
+  console.log(reason)
+
   return res.status(400).json({ status: 'ERROR', reason })
 }
 
 async function doWithdrawal (query, res) {
-  if (!query.k1) {
-    return res.status(400).json({ status: 'ERROR', reason: 'k1 not provided' })
-  }
-
   const lnwith = await models.lnWith.findUnique({ where: { k1: query.k1 } })
   if (!lnwith) {
     return res.status(400).json({ status: 'ERROR', reason: 'invalid k1' })

@@ -225,8 +225,11 @@ export default {
           { argumentName: 'amount' })
       }
 
+      const callback = new URL(res1.callback)
+      callback.searchParams.append('amount', milliamount)
+
       // call callback with amount
-      const res2 = await (await fetch(`${res1.callback}?amount=${milliamount}`)).json()
+      const res2 = await (await fetch(callback.toString())).json()
       if (res2.status === 'ERROR') {
         throw new Error(res2.reason)
       }

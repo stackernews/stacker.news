@@ -62,7 +62,13 @@ export default function Header ({ sub }) {
             </Nav.Link>
           </Link>
           <div className='position-relative'>
-            <NavDropdown className={styles.dropdown} title={<Link href={`/${me?.name}`} passHref><Nav.Link onClick={e => e.preventDefault()}>{`@${me?.name}`}</Nav.Link></Link>} alignRight>
+            <NavDropdown
+              className={styles.dropdown} title={
+                <Link href={`/${me?.name}`} passHref>
+                  <Nav.Link className='p-0' onClick={e => e.preventDefault()}>{`@${me?.name}`}</Nav.Link>
+                </Link>
+              } alignRight
+            >
               <Link href={'/' + me?.name} passHref>
                 <NavDropdown.Item>
                   profile

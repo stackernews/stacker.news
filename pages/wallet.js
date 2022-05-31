@@ -114,6 +114,7 @@ export function FundForm () {
         initial={{
           amount: 1000
         }}
+        initialError={error?.toString()}
         schema={FundSchema}
         onSubmit={async ({ amount }) => {
           const { data } = await createInvoice({ variables: { amount: Number(amount) } })

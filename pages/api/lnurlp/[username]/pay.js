@@ -3,6 +3,7 @@ import lnd from '../../../../api/lnd'
 import { createInvoice } from 'ln-service'
 import { lnurlPayDescriptionHashForUser } from '../../../../lib/lnurl'
 import serialize from '../../../../api/resolvers/serial'
+import { belowInvoiceLimit } from '../../../../api/resolvers/wallet'
 
 export default async ({ query: { username, amount } }, res) => {
   const user = await models.user.findUnique({ where: { name: username } })
@@ -14,8 +15,12 @@ export default async ({ query: { username, amount } }, res) => {
     return res.status(400).json({ status: 'ERROR', reason: 'amount must be >=1000 msats' })
   }
 
+  if (!await belowInvoiceLimit(models, user.id)) {
+    return res.status(400).json({ status: 'ERROR', reason: 'too many pending invoices' })
+  }
+
   // generate invoice
-  const expiresAt = new Date(new Date().setHours(new Date().getHours() + 3))
+  const expiresAt = new Date(new Date().setMinutes(new Date().getMinutes() + 1))
   const description = `${amount} msats for @${user.name} on stacker.news`
   const descriptionHash = lnurlPayDescriptionHashForUser(username)
   try {

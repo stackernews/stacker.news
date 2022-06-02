@@ -50,6 +50,11 @@ a.link:visited {
     min-width: 0;
 }
 
+.itemDead {
+    pointer-events: none;
+    opacity: .5;
+}
+
 .item .cover {
     top: 4px;
 }

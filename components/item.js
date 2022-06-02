@@ -28,7 +28,7 @@ export function ItemJob ({ item, rank, children }) {
             {rank}
           </div>)
         : <div />}
-      <div className={`${styles.item}`}>
+      <div className={`${styles.item} ${item.status === 'NOSATS' && !item.mine ? styles.itemDead : ''}`}>
         <Briefcase width={24} height={24} className={styles.case} />
         <div className={styles.hunk}>
           <div className={`${styles.main} flex-wrap d-inline`}>
@@ -60,7 +60,9 @@ export function ItemJob ({ item, rank, children }) {
             </a>
           </div>
           <div className={`${styles.other}`}>
-            <span>{formatSats(item.maxBid)} sats per min</span>
+            {item.status !== 'NOSATS'
+              ? <span>{formatSats(item.maxBid)} sats per min</span>
+              : <span>expired</span>}
             <span> \ </span>
             <Link href={`/items/${item.id}`} passHref>
               <a className='text-reset'>{item.ncomments} comments</a>

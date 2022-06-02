@@ -77,7 +77,7 @@ export default {
       }
 
       const activeOrMine = () => {
-        return me ? ` AND (status = 'ACTIVE' OR "userId" = ${me.id}) ` : ' AND status = \'ACTIVE\' '
+        return me ? ` AND (status <> 'STOPPED' OR "userId" = ${me.id}) ` : ' AND status <> \'STOPPED\' '
       }
 
       switch (sort) {
@@ -140,8 +140,8 @@ export default {
                 WHERE "parentId" IS NULL AND created_at <= $1
                 AND "pinId" IS NULL
                 ${subClause(3)}
-                AND status = 'ACTIVE'
-                ORDER BY "maxBid" DESC, created_at ASC
+                AND status <> 'STOPPED'
+                ORDER BY (CASE WHEN status = 'ACTIVE' THEN "maxBid" ELSE 0 END) DESC, created_at ASC
                 OFFSET $2
                 LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, sub)
               break

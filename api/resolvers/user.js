@@ -25,6 +25,23 @@ export function topClause (within) {
   return interval
 }
 
+async function authMethods (user, args, { models, me }) {
+  const accounts = await models.account.findMany({
+    where: {
+      userId: me.id
+    }
+  })
+
+  const oauth = accounts.map(a => a.providerId)
+
+  return {
+    lightning: !!user.pubkey,
+    email: user.emailVerified && user.email,
+    twitter: oauth.indexOf('twitter') >= 0,
+    github: oauth.indexOf('github') >= 0
+  }
+}
+
 export default {
   Query: {
     me: async (parent, args, { models, me }) => {
@@ -33,6 +50,13 @@ export default {
       }
 
       return await models.user.update({ where: { id: me.id }, data: { lastSeenAt: new Date() } })
+    },
+    settings: async (parent, args, { models, me }) => {
+      if (!me) {
+        throw new AuthenticationError('you must be logged in')
+      }
+
+      return await models.user.findUnique({ where: { id: me.id } })
     },
     user: async (parent, { name }, { models }) => {
       return await models.user.findUnique({ where: { name } })
@@ -152,10 +176,54 @@ export default {
       await createMentions(item, models)
 
       return await models.user.findUnique({ where: { id: me.id } })
+    },
+    unlinkAuth: async (parent, { authType }, { models, me }) => {
+      if (!me) {
+        throw new AuthenticationError('you must be logged in')
+      }
+
+      if (authType === 'twitter' || authType === 'github') {
+        const user = await models.user.findUnique({ where: { id: me.id } })
+        const account = await models.account.findFirst({ where: { userId: me.id, providerId: authType } })
+        if (!account) {
+          throw new UserInputError('no such account')
+        }
+        await models.account.delete({ where: { id: account.id } })
+        return await authMethods(user, undefined, { models, me })
+      }
+
+      if (authType === 'lightning') {
+        const user = await models.user.update({ where: { id: me.id }, data: { pubkey: null } })
+        return await authMethods(user, undefined, { models, me })
+      }
+
+      if (authType === 'email') {
+        const user = await models.user.update({ where: { id: me.id }, data: { email: null, emailVerified: null } })
+        return await authMethods(user, undefined, { models, me })
+      }
+
+      throw new UserInputError('no such account')
+    },
+    linkUnverifiedEmail: async (parent, { email }, { models, me }) => {
+      if (!me) {
+        throw new AuthenticationError('you must be logged in')
+      }
+
+      try {
+        await models.user.update({ where: { id: me.id }, data: { email } })
+      } catch (error) {
+        if (error.code === 'P2002') {
+          throw new UserInputError('email taken')
+        }
+        throw error
+      }
+
+      return true
     }
   },
 
   User: {
+    authMethods,
     nitems: async (user, args, { models }) => {
       return await models.item.count({ where: { userId: user.id, parentId: null } })
     },

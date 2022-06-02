@@ -3,6 +3,7 @@ import { gql } from 'apollo-server-micro'
 export default gql`
   extend type Query {
     me: User
+    settings: User
     user(name: String!): User
     users: [User!]
     nameAvailable(name: String!): Boolean!
@@ -33,6 +34,15 @@ export default gql`
     setPhoto(photoId: ID!): Int!
     upsertBio(bio: String!): User!
     setWalkthrough(tipPopover: Boolean, upvotePopover: Boolean): Boolean
+    unlinkAuth(authType: String!): AuthMethods!
+    linkUnverifiedEmail(email: String!): Boolean
+  }
+
+  type AuthMethods {
+    lightning: Boolean!
+    email: String
+    twitter: Boolean!
+    github: Boolean!
   }
 
   type User {
@@ -61,5 +71,6 @@ export default gql`
     noteInvites: Boolean!
     noteJobIndicator: Boolean!
     lastCheckedJobs: String
+    authMethods: AuthMethods!
   }
 `

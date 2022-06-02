@@ -6,16 +6,38 @@ import TwitterIcon from '../svgs/twitter-fill.svg'
 import LightningIcon from '../svgs/bolt.svg'
 import { Form, Input, SubmitButton } from '../components/form'
 import * as Yup from 'yup'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import Alert from 'react-bootstrap/Alert'
 import LayoutCenter from '../components/layout-center'
 import { useRouter } from 'next/router'
-import LnQR, { LnQRSkeleton } from '../components/lnqr'
-import { gql, useMutation, useQuery } from '@apollo/client'
+import { LightningAuth } from './lightning-auth'
 
 export const EmailSchema = Yup.object({
   email: Yup.string().email('email is no good').required('required')
 })
+
+export function EmailLoginForm ({ callbackUrl }) {
+  return (
+    <Form
+      initial={{
+        email: ''
+      }}
+      schema={EmailSchema}
+      onSubmit={async ({ email }) => {
+        signIn('email', { email, callbackUrl })
+      }}
+    >
+      <Input
+        label='Email'
+        name='email'
+        placeholder='email@example.com'
+        required
+        autoFocus
+      />
+      <SubmitButton variant='secondary' className={styles.providerButton}>Login with Email</SubmitButton>
+    </Form>
+  )
+}
 
 export default function Login ({ providers, callbackUrl, error, Header }) {
   const errors = {
@@ -84,72 +106,9 @@ export default function Login ({ providers, callbackUrl, error, Header }) {
                 )
               })}
               <div className='mt-2 text-center text-muted font-weight-bold'>or</div>
-              <Form
-                initial={{
-                  email: ''
-                }}
-                schema={EmailSchema}
-                onSubmit={async ({ email }) => {
-                  signIn('email', { email, callbackUrl })
-                }}
-              >
-                <Input
-                  label='Email'
-                  name='email'
-                  placeholder='email@example.com'
-                  required
-                  autoFocus
-                />
-                <SubmitButton variant='secondary' className={styles.providerButton}>Login with Email</SubmitButton>
-              </Form>
+              <EmailLoginForm callbackUrl={callbackUrl} />
             </>)}
       </div>
     </LayoutCenter>
   )
-}
-
-function LnQRAuth ({ k1, encodedUrl, callbackUrl }) {
-  const query = gql`
-  {
-    lnAuth(k1: "${k1}") {
-      pubkey
-      k1
-    }
-  }`
-  const { data } = useQuery(query, { pollInterval: 1000 })
-
-  if (data && data.lnAuth.pubkey) {
-    signIn('credentials', { ...data.lnAuth, callbackUrl })
-  }
-
-  // output pubkey and k1
-  return (
-    <>
-      <small className='mb-2'>
-        <a className='text-muted text-underline' href='https://github.com/fiatjaf/lnurl-rfc#lnurl-documents' target='_blank' rel='noreferrer' style={{ textDecoration: 'underline' }}>Does my wallet support lnurl-auth?</a>
-      </small>
-      <LnQR value={encodedUrl} status='waiting for you' />
-    </>
-  )
-}
-
-export function LightningAuth ({ callbackUrl }) {
-  // query for challenge
-  const [createAuth, { data, error }] = useMutation(gql`
-    mutation createAuth {
-      createAuth {
-        k1
-        encodedUrl
-      }
-    }`)
-
-  useEffect(createAuth, [])
-
-  if (error) return <div>error</div>
-
-  if (!data) {
-    return <LnQRSkeleton status='generating' />
-  }
-
-  return <LnQRAuth {...data.createAuth} callbackUrl={callbackUrl} />
 }

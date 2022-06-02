@@ -1,8 +1,9 @@
 import NextAuth from 'next-auth'
 import Providers from 'next-auth/providers'
-import Adapters from 'next-auth/adapters'
+import { PrismaLegacyAdapter } from '../../../lib/prisma-adapter'
 import prisma from '../../../api/models'
 import nodemailer from 'nodemailer'
+import { getSession } from 'next-auth/client'
 
 export default (req, res) => NextAuth(req, res, options)
 
@@ -19,7 +20,10 @@ const options = {
     async jwt (token, user, account, profile, isNewUser) {
       // Add additional session params
       if (user?.id) {
-        token.id = user.id
+        token.id = Number(user.id)
+        // HACK next-auth needs this to do account linking with jwts
+        // see: https://github.com/nextauthjs/next-auth/issues/625
+        token.user = { id: Number(user.id) }
       }
 
       // sign them up for the newsletter
@@ -44,7 +48,7 @@ const options = {
     },
     async session (session, token) {
       // we need to add additional session params here
-      session.user.id = token.id
+      session.user.id = Number(token.id)
       return session
     }
   },
@@ -65,9 +69,18 @@ const options = {
           const lnauth = await prisma.lnAuth.findUnique({ where: { k1 } })
           if (lnauth.pubkey === pubkey) {
             let user = await prisma.user.findUnique({ where: { pubkey } })
+            const session = await getSession({ req })
             if (!user) {
-              user = await prisma.user.create({ data: { name: pubkey.slice(0, 10), pubkey } })
+              // if we are logged in, update rather than create
+              if (session?.user) {
+                user = await prisma.user.update({ where: { id: session.user.id }, data: { pubkey } })
+              } else {
+                user = await prisma.user.create({ data: { name: pubkey.slice(0, 10), pubkey } })
+              }
+            } else if (session && session.user?.id !== user.id) {
+              throw new Error('account not linked')
             }
+
             await prisma.lnAuth.delete({ where: { k1 } })
             return user
           }
@@ -108,7 +121,7 @@ const options = {
       }
     })
   ],
-  adapter: Adapters.Prisma.Adapter({ prisma }),
+  adapter: PrismaLegacyAdapter({ prisma }),
   secret: process.env.NEXTAUTH_SECRET,
   session: { jwt: true },
   jwt: {

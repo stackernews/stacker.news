@@ -12,7 +12,7 @@ export default function ModalButton ({ children, clicker }) {
       >
         <div className='modal-close' onClick={() => setShow(false)}>X</div>
         <Modal.Body>
-          {children}
+          {show && children}
         </Modal.Body>
       </Modal>
       <div className='pointer' onClick={() => setShow(true)}>{clicker}</div>

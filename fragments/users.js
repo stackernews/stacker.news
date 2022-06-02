@@ -52,6 +52,26 @@ export const ME_SSR = gql`
     }
   }`
 
+export const SETTINGS = gql`
+{
+  settings {
+    tipDefault
+    noteItemSats
+    noteEarning
+    noteAllDescendants
+    noteMentions
+    noteDeposits
+    noteInvites
+    noteJobIndicator
+    authMethods {
+      lightning
+      email
+      twitter
+      github
+    }
+  }
+}`
+
 export const NAME_QUERY =
 gql`
   query nameAvailable($name: String!) {

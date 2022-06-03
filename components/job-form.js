@@ -73,10 +73,14 @@ export default function JobForm ({ item, sub }) {
     maxBid: Yup.number('must be number')
       .integer('must be whole').min(sub.baseCost, `must be at least ${sub.baseCost}`)
       .required('required'),
-    location: Yup.string().when('remote', {
-      is: (value) => !value,
-      then: Yup.string().required('required').trim()
-    })
+    location: Yup.string().test(
+      'no-remote',
+      "don't write remote, just check the box",
+      v => !v?.match(/\bremote\b/gi))
+      .when('remote', {
+        is: (value) => !value,
+        then: Yup.string().required('required').trim()
+      })
   })
 
   const position = data?.auctionPosition

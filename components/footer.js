@@ -98,7 +98,7 @@ const AnalyticsPopover = (
       <span className='mx-2 text-dark'> \ </span>
       <Link href='/usage' passHref>
         <a className='text-dark d-inline-flex'>
-          usage
+          users
         </a>
       </Link>
     </Popover.Content>

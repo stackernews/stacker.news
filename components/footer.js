@@ -86,6 +86,25 @@ const ChatPopover = (
   </Popover>
 )
 
+const AnalyticsPopover = (
+  <Popover>
+    <Popover.Content style={{ fontWeight: 500, fontSize: '.9rem' }}>
+      <a
+        href='https://plausible.io/stacker.news' className='text-dark d-inline-flex'
+        target='_blank' rel='noreferrer'
+      >
+        visitors
+      </a>
+      <span className='mx-2 text-dark'> \ </span>
+      <Link href='/usage' passHref>
+        <a className='text-dark d-inline-flex'>
+          usage
+        </a>
+      </Link>
+    </Popover.Content>
+  </Popover>
+)
+
 export default function Footer ({ noLinks }) {
   const query = gql`
     {
@@ -129,12 +148,11 @@ export default function Footer ({ noLinks }) {
               </a>
             </Link>
             <span className='mx-2 text-muted'> \ </span>
-            <a
-              href='https://plausible.io/stacker.news' className='nav-link p-0 d-inline-flex'
-              target='_blank' rel='noreferrer'
-            >
-              analytics
-            </a>
+            <OverlayTrigger trigger='click' placement='top' overlay={AnalyticsPopover} rootClose>
+              <div className='nav-link p-0 d-inline-flex' style={{ cursor: 'pointer' }}>
+                analytics
+              </div>
+            </OverlayTrigger>
             <span className='mx-2 text-muted'> \ </span>
             <OverlayTrigger trigger='click' placement='top' overlay={ChatPopover} rootClose>
               <div className='nav-link p-0 d-inline-flex' style={{ cursor: 'pointer' }}>

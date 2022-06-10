@@ -50,6 +50,7 @@
     "react-textarea-autosize": "^8.3.3",
     "react-twitter-embed": "^4.0.4",
     "react-youtube": "^7.14.0",
+    "recharts": "^2.1.10",
     "remark-directive": "^2.0.1",
     "remark-gfm": "^3.0.1",
     "remove-markdown": "^0.3.0",

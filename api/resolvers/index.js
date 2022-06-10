@@ -7,7 +7,8 @@ import notifications from './notifications'
 import invite from './invite'
 import sub from './sub'
 import upload from './upload'
+import growth from './growth'
 import { GraphQLJSONObject } from 'graphql-type-json'
 
 export default [user, item, message, wallet, lnurl, notifications, invite, sub,
-  upload, { JSONObject: GraphQLJSONObject }]
+  upload, growth, { JSONObject: GraphQLJSONObject }]

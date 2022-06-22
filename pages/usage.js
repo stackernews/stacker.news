@@ -24,14 +24,20 @@ export const getServerSideProps = getGetServerSideProps(
         time
         num
       }
+      earnedGrowth {
+        time
+        num
+      }
     }`)
 
 const dateFormatter = timeStr => {
   const date = new Date(timeStr)
-  return `${('0' + (date.getMonth() + 1)).slice(-2)}/${String(date.getFullYear()).slice(-2)}`
+  return `${('0' + (date.getMonth() + 2)).slice(-2)}/${String(date.getFullYear()).slice(-2)}`
 }
 
-export default function Growth ({ data: { registrationGrowth, activeGrowth, itemGrowth, spentGrowth } }) {
+export default function Growth ({
+  data: { registrationGrowth, activeGrowth, itemGrowth, spentGrowth, earnedGrowth }
+}) {
   return (
     <Layout>
       <Row className='mt-3'>
@@ -49,6 +55,12 @@ export default function Growth ({ data: { registrationGrowth, activeGrowth, item
         <Col>
           <GrowthLineChart data={spentGrowth} xName='month' yName='sats spent' />
         </Col>
+      </Row>
+      <Row className='mt-3'>
+        <Col>
+          <GrowthLineChart data={earnedGrowth} xName='month' yName='earning users' />
+        </Col>
+        <Col />
       </Row>
     </Layout>
   )

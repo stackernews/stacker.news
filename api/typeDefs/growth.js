@@ -6,6 +6,7 @@ export default gql`
     activeGrowth: [TimeNum!]!
     itemGrowth: [TimeNum!]!
     spentGrowth: [TimeNum!]!
+    earnedGrowth: [TimeNum!]!
   }
 
   type TimeNum {

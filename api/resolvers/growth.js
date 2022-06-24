@@ -77,7 +77,7 @@ export default {
         ORDER BY time ASC`)
     },
     registrationsWeekly: async (parent, args, { models }) => {
-      return await models.item.count({
+      return await models.user.count({
         where: {
           createdAt: {
             gte: new Date(new Date().setDate(new Date().getDate() - 7))
@@ -111,7 +111,7 @@ export default {
       const [stats] = await models.$queryRaw(
         `SELECT json_build_array(
           json_build_object('name', 'comments', 'value', count("parentId")),
-          json_build_object('name', 'job', 'value', count("subName")),
+          json_build_object('name', 'jobs', 'value', count("subName")),
           json_build_object('name', 'posts', 'value', count(*)-count("parentId")-count("subName"))) as array
         FROM "Item"
         WHERE created_at >= now_utc() - interval '1 week'`)

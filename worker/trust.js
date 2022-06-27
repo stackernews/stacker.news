@@ -12,6 +12,8 @@ function trust ({ boss, models }) {
 // only explore a path up to this depth from start
 const MAX_DEPTH = 6
 const MAX_TRUST = 0.9
+// https://en.wikipedia.org/wiki/Normal_distribution#Quantile_function
+const Z_CONFIDENCE = 2.326347874041 // 98% confidence
 
 function pathsOverlap (arr1 = [], arr2 = []) {
   const dp = new Array(arr1.length + 1).fill(0).map(() => new Array(arr2.length + 1).fill(0))
@@ -135,6 +137,7 @@ function trustGivenGraph (graph, start) {
 }
 
 /*
+  OLD TRUST GRAPH
   graph is returned as json in adjacency list where edges are the trust value 0-.9
   graph = {
     node1 : [{node : node2, trust: trust12}, {node: node3, trust: trust13}],
@@ -142,20 +145,57 @@ function trustGivenGraph (graph, start) {
     node3 : [{node : node2, trust: trust32}],
   }
 */
+// async function getGraph (models) {
+//   const [{ graph }] = await models.$queryRaw`
+//     select json_object_agg(id, hops) as graph
+//       from (
+//         select id, json_agg(json_build_object('node', oid, 'trust', trust)) as hops
+//           from (
+//             select "ItemAct"."userId" as id, "Item"."userId" as oid, least(${MAX_TRUST},
+//               sum(POWER(.99, EXTRACT(DAY FROM (NOW_UTC() - "ItemAct".created_at))))/21.0) as trust
+//               from "ItemAct"
+//               join "Item" on "itemId" = "Item".id and "ItemAct"."userId" <> "Item"."userId"
+//               where "ItemAct".act = 'VOTE' group by "ItemAct"."userId", "Item"."userId"
+//           ) a
+//           group by id
+//       ) b`
+//   return graph
+// }
+
+// upvote confidence graph
 async function getGraph (models) {
   const [{ graph }] = await models.$queryRaw`
     select json_object_agg(id, hops) as graph
       from (
         select id, json_agg(json_build_object('node', oid, 'trust', trust)) as hops
           from (
-            select "ItemAct"."userId" as id, "Item"."userId" as oid, least(${MAX_TRUST},
-              sum(POWER(.99, EXTRACT(DAY FROM (NOW_UTC() - "ItemAct".created_at))))/21.0) as trust
-              from "ItemAct"
-              join "Item" on "itemId" = "Item".id and "ItemAct"."userId" <> "Item"."userId"
-              where "ItemAct".act = 'VOTE' group by "ItemAct"."userId", "Item"."userId"
-          ) a
-          group by id
-      ) b`
+            select s.id, s.oid, confidence(s.shared, count(*), ${Z_CONFIDENCE}) as trust
+            from (
+              select a."userId" as id, b."userId" as oid, count(*) as shared
+              from "ItemAct" b
+              join users bu on bu.id = b."userId"
+              join "ItemAct" a on b."itemId" = a."itemId"
+              join users au on au.id = a."userId"
+              join "Item" on "Item".id = b."itemId"
+              where b.act = 'VOTE'
+              and a.act = 'VOTE'
+              and "Item"."parentId" is null
+              and "Item"."userId" <> b."userId"
+              and "Item"."userId" <> a."userId"
+              and b."userId" <> a."userId"
+              and "Item".created_at >= au.created_at and "Item".created_at >= bu.created_at
+              group by b."userId", a."userId") s
+            join users u on s.id = u.id
+            join users ou on s.oid = ou.id
+            join "ItemAct" on "ItemAct"."userId" = s.oid
+            join "Item" on "Item".id = "ItemAct"."itemId"
+            where "ItemAct".act = 'VOTE' and "Item"."parentId" is null
+            and "Item"."userId" <> s.oid and "Item"."userId" <> s.id
+            and "Item".created_at >= u.created_at and "Item".created_at >= ou.created_at
+            group by s.id, s.oid, s.shared
+        ) a
+        group by id
+    ) b`
   return graph
 }
 

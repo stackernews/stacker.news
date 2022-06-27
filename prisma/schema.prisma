@@ -38,6 +38,7 @@ model User {
   tipDefault      Int         @default(10)
   pubkey          String?     @unique
   trust           Float       @default(0)
+  upvoteTrust     Float       @default(0)
   lastSeenAt      DateTime?
   lastCheckedJobs DateTime?
   photoId         Int?

@@ -110,7 +110,7 @@ export default {
               JOIN "ItemAct" ON "ItemAct"."itemId" = "Item".id
               WHERE "ItemAct"."userId" <> $1
               AND "ItemAct".created_at <= $2
-              AND "ItemAct".act <> 'BOOST'
+              AND "ItemAct".act in ('VOTE', 'TIP')
               AND "Item"."userId" = $1
               GROUP BY "Item".id
               ORDER BY "sortTime" DESC

@@ -2,7 +2,7 @@ import { gql } from 'apollo-server-micro'
 
 export default gql`
   extend type Query {
-    registrationGrowth: [TimeNum!]!
+    registrationGrowth: [RegistrationGrowth!]!
     activeGrowth: [TimeNum!]!
     itemGrowth: [ItemGrowth!]!
     spentGrowth: [SpentGrowth!]!
@@ -27,6 +27,12 @@ export default gql`
     value: Int!
   }
 
+  type RegistrationGrowth {
+    time: String!
+    invited: Int!
+    organic: Int!
+  }
+
   type ItemGrowth {
     time: String!
     jobs: Int!
@@ -36,7 +42,7 @@ export default gql`
 
   type StackedGrowth {
     time: String!
-    airdrops: Int!
+    rewards: Int!
     posts: Int!
     comments: Int!
   }

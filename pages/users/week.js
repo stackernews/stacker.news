@@ -40,11 +40,11 @@ export default function Growth ({
           <h3 className='text-center'>{registrationsWeekly}</h3>
         </Col>
         <Col className='mt-3'>
-          <div className='text-center text-muted font-weight-bold'>interactive users</div>
+          <div className='text-center text-muted font-weight-bold'>spenders</div>
           <h3 className='text-center'>{activeWeekly}</h3>
         </Col>
         <Col className='mt-3'>
-          <div className='text-center text-muted font-weight-bold'>earners</div>
+          <div className='text-center text-muted font-weight-bold'>stackers</div>
           <h3 className='text-center'>{earnersWeekly}</h3>
         </Col>
       </Row>

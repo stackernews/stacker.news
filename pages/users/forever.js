@@ -11,7 +11,8 @@ export const getServerSideProps = getGetServerSideProps(
     {
       registrationGrowth {
         time
-        num
+        invited
+        organic
       }
       activeGrowth {
         time
@@ -34,7 +35,7 @@ export const getServerSideProps = getGetServerSideProps(
         time
         posts
         comments
-        airdrops
+        rewards
       }
       earnerGrowth {
         time
@@ -44,7 +45,7 @@ export const getServerSideProps = getGetServerSideProps(
 
 const dateFormatter = timeStr => {
   const date = new Date(timeStr)
-  return `${('0' + (date.getMonth() + 2)).slice(-2)}/${String(date.getFullYear()).slice(-2)}`
+  return `${('0' + (date.getUTCMonth() % 12 + 1)).slice(-2)}/${String(date.getUTCFullYear()).slice(-2)}`
 }
 
 export default function Growth ({
@@ -55,8 +56,8 @@ export default function Growth ({
       <UsageHeader />
       <Row>
         <Col className='mt-3'>
-          <div className='text-center text-muted font-weight-bold invisible'>earning users</div>
-          <GrowthLineChart data={earnerGrowth} xName='month' yName='earning users' />
+          <div className='text-center text-muted font-weight-bold invisible'>stackers</div>
+          <GrowthLineChart data={earnerGrowth} xName='month' yName='stackers' />
         </Col>
         <Col className='mt-3'>
           <div className='text-center text-muted font-weight-bold'>stacking</div>
@@ -75,12 +76,12 @@ export default function Growth ({
       </Row>
       <Row>
         <Col className='mt-3'>
-          <div className='text-center text-muted font-weight-bold invisible'>registrations</div>
-          <GrowthLineChart data={registrationGrowth} xName='month' yName='registrations' />
+          <div className='text-center text-muted font-weight-bold'>registrations</div>
+          <GrowthAreaChart data={registrationGrowth} xName='month' yName='registrations' />
         </Col>
         <Col className='mt-3'>
-          <div className='text-center text-muted font-weight-bold invisible'>active users</div>
-          <GrowthLineChart data={activeGrowth} xName='month' yName='interactive users' />
+          <div className='text-center text-muted font-weight-bold invisible'>spenders</div>
+          <GrowthLineChart data={activeGrowth} xName='month' yName='spenders' />
         </Col>
       </Row>
     </Layout>

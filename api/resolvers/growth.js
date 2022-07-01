@@ -4,7 +4,7 @@ export default {
   Query: {
     registrationGrowth: async (parent, args, { models }) => {
       return await models.$queryRaw(
-        `SELECT date_trunc('month', created_at) AS time, count(*) as num
+        `SELECT date_trunc('month', created_at) AS time, count("inviteId") as invited, count(*) - count("inviteId") as organic
         FROM users
         WHERE id > ${PLACEHOLDERS_NUM} AND date_trunc('month', now_utc()) <> date_trunc('month', created_at)
         GROUP BY time
@@ -60,7 +60,7 @@ export default {
     },
     stackedGrowth: async (parent, args, { models }) => {
       return await models.$queryRaw(
-        `SELECT time, sum(airdrop) as airdrops, sum(post) as posts, sum(comment) as comments
+        `SELECT time, sum(airdrop) as rewards, sum(post) as posts, sum(comment) as comments
         FROM
         ((SELECT date_trunc('month', "ItemAct".created_at) AS time, 0 as airdrop,
           CASE WHEN "Item"."parentId" IS NULL THEN 0 ELSE sats END as comment,
@@ -134,7 +134,7 @@ export default {
     stackedWeekly: async (parent, args, { models }) => {
       const [stats] = await models.$queryRaw(
         `SELECT json_build_array(
-          json_build_object('name', 'airdrops', 'value', sum(airdrop)),
+          json_build_object('name', 'rewards', 'value', sum(airdrop)),
           json_build_object('name', 'posts', 'value', sum(post)),
           json_build_object('name', 'comments', 'value', sum(comment))
         ) as array

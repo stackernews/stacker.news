@@ -34,7 +34,7 @@ async function comments (models, id, sort) {
 }
 
 const COMMENTS_ORDER_BY_SATS =
-  'ORDER BY "Item"."weightedVotes"/POWER(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE \'UTC\') - "Item".created_at))/3600+2, 1.3) DESC NULLS LAST, "Item".id DESC'
+  'ORDER BY POWER("Item"."weightedVotes", 1.2)/POWER(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE \'UTC\') - "Item".created_at))/3600+2, 1.3) DESC NULLS LAST, "Item".id DESC'
 
 export async function getItem (parent, { id }, { models }) {
   const [item] = await models.$queryRaw(`
@@ -841,7 +841,7 @@ export const SELECT =
 
 function newTimedOrderByWeightedSats (num) {
   return `
-    ORDER BY (POWER("Item"."weightedVotes", 1.1)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 1.3) +
+    ORDER BY (POWER("Item"."weightedVotes", 1.2)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 1.3) +
               GREATEST("Item".boost-1000+5, 0)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 4)) DESC NULLS LAST, "Item".id DESC`
 }
 

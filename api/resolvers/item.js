@@ -841,7 +841,7 @@ export const SELECT =
 
 function newTimedOrderByWeightedSats (num) {
   return `
-    ORDER BY ("Item"."weightedVotes"/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 1.3) +
+    ORDER BY (POWER("Item"."weightedVotes", 1.1)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 1.3) +
               GREATEST("Item".boost-1000+5, 0)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 4)) DESC NULLS LAST, "Item".id DESC`
 }
 

@@ -159,34 +159,44 @@ export default {
               LIMIT ${LIMIT}+$3)`
           )
         }
+
+        if (meFull.noteEarning) {
+          queries.push(
+            `SELECT id::text, created_at AS "sortTime", FLOOR(msats / 1000) as "earnedSats",
+            'Earn' AS type
+            FROM "Earn"
+            WHERE "userId" = $1
+            AND created_at <= $2`
+          )
+        }
       }
 
+      // we do all this crazy subquery stuff to make 'reward' islands
       const notifications = await models.$queryRaw(
-        `${queries.join(' UNION ALL ')}
+        `SELECT MAX(id) AS id, MAX("sortTime") AS "sortTime", sum("earnedSats") AS "earnedSats", type
+        FROM
+          (SELECT *,
+          CASE
+            WHEN type = 'Earn' THEN
+              ROW_NUMBER() OVER(ORDER BY "sortTime" DESC) -
+              ROW_NUMBER() OVER(PARTITION BY type = 'Earn' ORDER BY "sortTime" DESC)
+            ELSE
+              ROW_NUMBER() OVER(ORDER BY "sortTime" DESC)
+          END as island
+          FROM
+          (${queries.join(' UNION ALL ')}) u
+        ) sub
+        GROUP BY type, island
         ORDER BY "sortTime" DESC
         OFFSET $3
         LIMIT ${LIMIT}`, me.id, decodedCursor.time, decodedCursor.offset)
 
-      let earn
       if (decodedCursor.offset === 0) {
-        if (meFull.noteEarning) {
-          const earnings = await models.$queryRaw(
-            `SELECT MAX("Earn".id)::text, MAX("Earn".created_at) AS "sortTime", FLOOR(SUM(msats) / 1000) as "earnedSats",
-              'Earn' AS type
-              FROM "Earn"
-              WHERE "Earn"."userId" = $1
-              AND created_at >= $2`, me.id, meFull.checkedNotesAt)
-          if (earnings.length > 0 && earnings[0].earnedSats > 0) {
-            earn = earnings[0]
-          }
-        }
-
         await models.user.update({ where: { id: me.id }, data: { checkedNotesAt: new Date() } })
       }
 
       return {
         lastChecked: meFull.checkedNotesAt,
-        earn,
         cursor: notifications.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
         notifications
       }

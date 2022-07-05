@@ -48,7 +48,6 @@ export default gql`
 
   type Notifications {
     lastChecked: String
-    earn: Notification
     cursor: String
     notifications: [Notification!]!
   }

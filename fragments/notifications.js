@@ -10,13 +10,6 @@ export const NOTIFICATIONS = gql`
     notifications(cursor: $cursor, inc: $inc) {
       cursor
       lastChecked
-      earn {
-        __typename
-        ... on Earn {
-          sortTime
-          earnedSats
-        }
-      }
       notifications {
         __typename
         ... on Mention {
@@ -34,6 +27,10 @@ export const NOTIFICATIONS = gql`
             ...ItemFields
             text
           }
+        }
+        ... on Earn {
+          sortTime
+          earnedSats
         }
         ... on Reply {
           sortTime

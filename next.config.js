@@ -4,11 +4,11 @@ const isProd = process.env.NODE_ENV === 'production'
 const corsHeaders = [
   {
     key: 'Access-Control-Allow-Origin',
-    value: isProd ? 'https://stacker.news' : 'http://localhost:3000'
+    value: '*'
   },
   {
     key: 'Access-Control-Allow-Methods',
-    value: 'GET, PUT, POST, DELETE, HEAD, OPTIONS'
+    value: 'GET, HEAD, OPTIONS'
   }
 ]
 

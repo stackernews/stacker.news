@@ -43,6 +43,7 @@ function MyApp ({ Component, pageProps: { session, ...props } }) {
       />
       <Head>
         <meta name='viewport' content='initial-scale=1.0, width=device-width' />
+        <meta http-equiv='onion-location' content='http://snsnsnya6h3ot563f3p566wuhfoklkg5f62hokdlaqzcaub3gf4xlxyd.onion' />
       </Head>
       <PlausibleProvider domain='stacker.news' trackOutboundLinks>
         <Provider session={session}>

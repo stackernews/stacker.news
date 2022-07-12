@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useState } from 'react'
 import { Button } from 'react-bootstrap'
 import useSWR from 'swr'
 
-const fetcher = url => fetch(url).then(res => res.json())
+const fetcher = url => fetch(url).then(res => res.json()).catch()
 
 export const PriceContext = React.createContext({
   price: null

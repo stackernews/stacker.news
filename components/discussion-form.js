@@ -6,11 +6,7 @@ import ActionTooltip from '../components/action-tooltip'
 import TextareaAutosize from 'react-textarea-autosize'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial, AdvPostSchema } from './adv-post-form'
-
-export const DiscussionSchema = Yup.object({
-  title: Yup.string().required('required').trim(),
-  ...AdvPostSchema
-})
+import { MAX_TITLE_LENGTH } from '../lib/constants'
 
 export function DiscussionForm ({
   item, editThreshold, titleLabel = 'title',
@@ -29,7 +25,9 @@ export function DiscussionForm ({
   )
 
   const DiscussionSchema = Yup.object({
-    title: Yup.string().required('required').trim(),
+    title: Yup.string().required('required').trim()
+      .max(MAX_TITLE_LENGTH,
+        ({ max, value }) => `${Math.abs(max - value.length)} too many`),
     ...AdvPostSchema(client)
   })
 

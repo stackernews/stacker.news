@@ -7,9 +7,13 @@
 
 @media screen and (min-width: 767px) {
     .text {
-      line-height: 130%;
+        line-height: 130%;
     }
-  }
+}
+
+.text hr {
+    border-top: 1px solid var(--theme-clickToContextColor);
+}
 
 .text p {
     margin-bottom: .5rem;
@@ -21,21 +25,29 @@
     margin-bottom: .5rem;
 }
 
-.text pre > div {
+.text pre>div {
     margin: 0 !important;
 }
 
-.text > *:last-child {
+.text>*:last-child {
     margin-bottom: 0 !important;
 }
 
-.text blockquote > *:last-child {
+.text blockquote>*:last-child {
     margin-bottom: 0 !important;
 }
 
 .text img {
+    display: block;
+    margin-top: .5rem;
+    border-radius: .4rem;
+    width: min-content;
     max-width: 100%;
-    max-height: 300px;
+}
+
+.text img.topLevel {
+    margin-top: .75rem;
+    margin-bottom: .75rem;
 }
 
 .text table {
@@ -46,4 +58,28 @@
     border-left: 2px solid var(--theme-grey);
     padding-left: 1rem;
     margin: 0 0 0.5rem 0.5rem !important;
+}
+
+.text h1 {
+    font-size: 1.6rem;
+}
+
+.text h2 {
+    font-size: 1.45rem;
+}
+
+.text h3 {
+    font-size: 1.3rem;
+}
+
+.text h4 {
+    font-size: 1.15rem;
+}
+
+.text h5 {
+    font-size: 1rem;
+}
+
+.text h6 {
+    font-size: .85rem;
 }

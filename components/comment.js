@@ -72,7 +72,7 @@ export function CommentFlat ({ item, ...props }) {
 }
 
 export default function Comment ({
-  item, children, replyOpen, includeParent,
+  item, children, replyOpen, includeParent, topLevel,
   rootText, noComments, noReply, truncate, depth
 }) {
   const [edit, setEdit] = useState()
@@ -173,7 +173,7 @@ export default function Comment ({
               )
             : (
               <div className={styles.text}>
-                <Text nofollow={item.sats + item.boost < NOFOLLOW_LIMIT}>
+                <Text topLevel={topLevel} nofollow={item.sats + item.boost < NOFOLLOW_LIMIT}>
                   {truncate ? truncateString(item.text) : item.searchText || item.text}
                 </Text>
               </div>

@@ -71,7 +71,7 @@ export function InputSkeleton ({ label, hint }) {
   )
 }
 
-export function MarkdownInput ({ label, groupClassName, ...props }) {
+export function MarkdownInput ({ label, topLevel, groupClassName, ...props }) {
   const [tab, setTab] = useState('write')
   const [, meta] = useField(props)
 
@@ -103,7 +103,7 @@ export function MarkdownInput ({ label, groupClassName, ...props }) {
         </div>
         <div className={tab !== 'preview' ? 'd-none' : 'form-group'}>
           <div className={`${styles.text} form-control`}>
-            {tab === 'preview' && <Text>{meta.value}</Text>}
+            {tab === 'preview' && <Text topLevel={topLevel}>{meta.value}</Text>}
           </div>
         </div>
       </div>

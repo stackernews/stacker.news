@@ -64,6 +64,7 @@ export function BioForm ({ handleSuccess, bio }) {
         }}
       >
         <MarkdownInput
+          topLevel
           name='bio'
           as={TextareaAutosize}
           minRows={6}

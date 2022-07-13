@@ -92,14 +92,14 @@ function TopLevelItem ({ item, noReply, ...props }) {
 }
 
 function ItemText ({ item }) {
-  return <Text nofollow={item.sats + item.boost < NOFOLLOW_LIMIT}>{item.searchText || item.text}</Text>
+  return <Text topLevel nofollow={item.sats + item.boost < NOFOLLOW_LIMIT}>{item.searchText || item.text}</Text>
 }
 
 export default function ItemFull ({ item, bio, ...props }) {
   return (
     <>
       {item.parentId
-        ? <Comment item={item} replyOpen includeParent noComments {...props} />
+        ? <Comment topLevel item={item} replyOpen includeParent noComments {...props} />
         : (
           <div className='mt-1'>{
           bio

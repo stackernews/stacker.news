@@ -160,6 +160,7 @@ export default function JobForm ({ item, sub }) {
           />
         </BForm.Row>
         <MarkdownInput
+          topLevel
           label='description'
           name='text'
           as={TextareaAutosize}

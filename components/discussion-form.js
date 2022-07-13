@@ -62,6 +62,7 @@ export function DiscussionForm ({
         autoFocus
       />
       <MarkdownInput
+        topLevel
         label={<>{textLabel} <small className='text-muted ml-2'>optional</small></>}
         name='text'
         as={TextareaAutosize}

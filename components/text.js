@@ -9,6 +9,7 @@ import sub from '../lib/remark-sub'
 import remarkDirective from 'remark-directive'
 import { visit } from 'unist-util-visit'
 import reactStringReplace from 'react-string-replace'
+import { useEffect, useState } from 'react'
 
 function myRemarkPlugin () {
   return (tree) => {
@@ -27,17 +28,18 @@ function myRemarkPlugin () {
   }
 }
 
-export default function Text ({ nofollow, children }) {
+export default function Text ({ topLevel, nofollow, children }) {
   // all the reactStringReplace calls are to facilitate search highlighting
+
   return (
     <div className={styles.text}>
       <ReactMarkdown
         components={{
-          h1: 'h6',
-          h2: 'h6',
-          h3: 'h6',
-          h4: 'h6',
-          h5: 'h6',
+          h1: ({children, node, ...props}) => topLevel ? <h1 {...props}>{children}</h1> : <h3 {...props}>{children}</h3>,
+          h2: ({children, node, ...props}) => topLevel ? <h2 {...props}>{children}</h2> : <h4 {...props}>{children}</h4>,
+          h3: ({children, node, ...props}) => topLevel ? <h3 {...props}>{children}</h3> : <h5 {...props}>{children}</h5>,
+          h4: ({children, node, ...props}) => topLevel ? <h4 {...props}>{children}</h4> : <h6 {...props}>{children}</h6>,
+          h5: ({children, node, ...props}) => topLevel ? <h5 {...props}>{children}</h5> : <h6 {...props}>{children}</h6>,
           h6: 'h6',
           table: ({ node, ...props }) =>
             <div className='table-responsive'>
@@ -79,7 +81,8 @@ export default function Text ({ nofollow, children }) {
                 {children}
               </a>
             )
-          }
+          },
+          img: ({node, ...props}) => <ZoomableImage topLevel={topLevel} {...props}/>
         }}
         remarkPlugins={[gfm, mention, sub, remarkDirective, myRemarkPlugin]}
       >
@@ -87,4 +90,39 @@ export default function Text ({ nofollow, children }) {
       </ReactMarkdown>
     </div>
   )
+}
+
+function ZoomableImage ({ src, topLevel, ...props }) {
+  if (!src) {
+    return null
+  }
+
+  const defaultMediaStyle = {
+    maxHeight: topLevel ? '75vh' : '25vh',
+    cursor: 'zoom-in'
+  }
+
+  // if image changes we need to update state
+  const [mediaStyle, setMediaStyle] = useState(defaultMediaStyle)
+  useEffect(() => {
+    setMediaStyle(defaultMediaStyle)
+  }, [src])
+
+  const handleClick = () => {
+    if (mediaStyle.cursor === 'zoom-in') {
+      setMediaStyle({
+        cursor: 'zoom-out'
+      })
+    } else {
+      setMediaStyle(defaultMediaStyle)
+    }
+  }
+
+  return <img
+        className={topLevel ? styles.topLevel : undefined}
+        style={mediaStyle}
+        src={src}
+        onClick={handleClick}
+        {...props}
+      />
 }

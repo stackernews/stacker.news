@@ -111,6 +111,7 @@ function ZoomableImage ({ src, topLevel, ...props }) {
   const handleClick = () => {
     if (mediaStyle.cursor === 'zoom-in') {
       setMediaStyle({
+        width: '100%',
         cursor: 'zoom-out'
       })
     } else {

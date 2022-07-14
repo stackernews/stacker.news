@@ -25,6 +25,28 @@ export function topClause (within) {
   return interval
 }
 
+export function earnWithin (within) {
+  let interval = ' AND "Earn".created_at >= $1 - INTERVAL '
+  switch (within) {
+    case 'day':
+      interval += "'1 day'"
+      break
+    case 'week':
+      interval += "'7 days'"
+      break
+    case 'month':
+      interval += "'1 month'"
+      break
+    case 'year':
+      interval += "'1 year'"
+      break
+    default:
+      interval = ''
+      break
+  }
+  return interval
+}
+
 async function authMethods (user, args, { models, me }) {
   const accounts = await models.account.findMany({
     where: {
@@ -88,14 +110,21 @@ export default {
           LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
       } else {
         users = await models.$queryRaw(`
-          SELECT users.name, users.created_at, sum("ItemAct".sats) as amount
-          FROM "ItemAct"
-          JOIN "Item" on "ItemAct"."itemId" = "Item".id
-          JOIN users on "Item"."userId" = users.id
-          WHERE act <> 'BOOST' AND "ItemAct"."userId" <> users.id AND "ItemAct".created_at <= $1
-          ${topClause(within)}
-          GROUP BY users.id, users.name
-          ORDER BY amount DESC NULLS LAST, users.created_at DESC
+          SELECT name, created_at, sum(sats) as amount
+          FROM
+          ((SELECT users.name, users.created_at, "ItemAct".sats as sats
+            FROM "ItemAct"
+            JOIN "Item" on "ItemAct"."itemId" = "Item".id
+            JOIN users on "Item"."userId" = users.id
+            WHERE act <> 'BOOST' AND "ItemAct"."userId" <> users.id AND "ItemAct".created_at <= $1
+            ${topClause(within)})
+          UNION ALL
+          (SELECT users.name, users.created_at, "Earn".msats/1000 as sats
+            FROM "Earn"
+            JOIN users on users.id = "Earn"."userId"
+            WHERE "Earn".msats > 0 ${earnWithin(within)})) u
+          GROUP BY name, created_at
+          ORDER BY amount DESC NULLS LAST, created_at DESC
           OFFSET $2
           LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
       }

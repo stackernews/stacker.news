@@ -2,14 +2,15 @@ import styles from './text.module.css'
 import ReactMarkdown from 'react-markdown'
 import gfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-/* Use `…/dist/cjs/…` if you’re not in ESM! */
 import { atomDark } from 'react-syntax-highlighter/dist/cjs/styles/prism'
 import mention from '../lib/remark-mention'
 import sub from '../lib/remark-sub'
 import remarkDirective from 'remark-directive'
 import { visit } from 'unist-util-visit'
 import reactStringReplace from 'react-string-replace'
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
+import GithubSlugger from 'github-slugger'
+import Link from '../svgs/link.svg'
 
 function myRemarkPlugin () {
   return (tree) => {
@@ -28,19 +29,41 @@ function myRemarkPlugin () {
   }
 }
 
-export default function Text ({ topLevel, nofollow, children }) {
+function Heading ({ h, slugger, noFragments, topLevel, children, node, ...props }) {
+  const id = noFragments
+  ? undefined
+  : slugger.slug(children.reduce(
+    (acc, cur) => {
+      if (typeof cur !== 'string') {
+        return acc
+      }
+      return acc + cur.replace(/[^\w\-\s]+/gi, '')
+    }, ''))
+
+  return (
+    <div className={styles.heading}>
+      {React.createElement(h, { id, ...props }, children)}
+      {!noFragments && topLevel && <a className={styles.headingLink} href={`#${id}`}><Link width={18} height={18} className='fill-grey' /></a>}
+    </div>
+  )
+}
+
+export default function Text ({ topLevel, noFragments, nofollow, children }) {
   // all the reactStringReplace calls are to facilitate search highlighting
+  const slugger = new GithubSlugger()
+
+  const HeadingWrapper = (props) => Heading({ topLevel, slugger, noFragments, ...props})
 
   return (
     <div className={styles.text}>
       <ReactMarkdown
         components={{
-          h1: ({children, node, ...props}) => topLevel ? <h1 {...props}>{children}</h1> : <h3 {...props}>{children}</h3>,
-          h2: ({children, node, ...props}) => topLevel ? <h2 {...props}>{children}</h2> : <h4 {...props}>{children}</h4>,
-          h3: ({children, node, ...props}) => topLevel ? <h3 {...props}>{children}</h3> : <h5 {...props}>{children}</h5>,
-          h4: ({children, node, ...props}) => topLevel ? <h4 {...props}>{children}</h4> : <h6 {...props}>{children}</h6>,
-          h5: ({children, node, ...props}) => topLevel ? <h5 {...props}>{children}</h5> : <h6 {...props}>{children}</h6>,
-          h6: 'h6',
+          h1: (props) => HeadingWrapper({ h: topLevel ? 'h1' : 'h3', ...props }),
+          h2: (props) => HeadingWrapper({ h: topLevel ? 'h2' : 'h4', ...props }),
+          h3: (props) => HeadingWrapper({ h: topLevel ? 'h3' : 'h5', ...props }),
+          h4: (props) => HeadingWrapper({ h: topLevel ? 'h4' : 'h6', ...props }),
+          h5: (props) => HeadingWrapper({ h: topLevel ? 'h5' : 'h6', ...props }),
+          h6: (props) => HeadingWrapper({ h: 'h6', ...props }),
           table: ({ node, ...props }) =>
             <div className='table-responsive'>
               <table className='table table-bordered table-sm' {...props} />
@@ -64,7 +87,8 @@ export default function Text ({ topLevel, nofollow, children }) {
                 )
           },
           a: ({ node, href, children, ...props }) => {
-            children = children?.map(e => typeof e === 'string'
+            children = children?.map(e =>
+              typeof e === 'string'
               ? reactStringReplace(e, /:high\[([^\]]+)\]/g, (match, i) => {
                   return <mark key={`mark-${match}-${i}`}>{match}</mark>
                 })
@@ -82,7 +106,7 @@ export default function Text ({ topLevel, nofollow, children }) {
               </a>
             )
           },
-          img: ({node, ...props}) => <ZoomableImage topLevel={topLevel} {...props}/>
+          img: ({ node, ...props }) => <ZoomableImage topLevel={topLevel} {...props} />
         }}
         remarkPlugins={[gfm, mention, sub, remarkDirective, myRemarkPlugin]}
       >
@@ -119,11 +143,13 @@ function ZoomableImage ({ src, topLevel, ...props }) {
     }
   }
 
-  return <img
-        className={topLevel ? styles.topLevel : undefined}
-        style={mediaStyle}
-        src={src}
-        onClick={handleClick}
-        {...props}
-      />
+  return (
+    <img
+      className={topLevel ? styles.topLevel : undefined}
+      style={mediaStyle}
+      src={src}
+      onClick={handleClick}
+      {...props}
+    />
+  )
 }

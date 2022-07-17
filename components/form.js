@@ -103,7 +103,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, ...props }) {
         </div>
         <div className={tab !== 'preview' ? 'd-none' : 'form-group'}>
           <div className={`${styles.text} form-control`}>
-            {tab === 'preview' && <Text topLevel={topLevel}>{meta.value}</Text>}
+            {tab === 'preview' && <Text topLevel={topLevel} noFragments>{meta.value}</Text>}
           </div>
         </div>
       </div>
@@ -254,11 +254,13 @@ export function Form ({
         {error && <Alert variant='danger' onClose={() => setError(undefined)} dismissible>{error}</Alert>}
         {storageKeyPrefix
           ? React.Children.map(children, (child) => {
-              // if child has a type it's a dom element
+              // if child has a type that's a string, it's a dom element and can't get a prop
               if (child) {
-                return React.cloneElement(child, {
-                  storageKeyPrefix
-                })
+                let childProps = {}
+                if (typeof child.type !== 'string') {
+                  childProps = { storageKeyPrefix }
+                }
+                return React.cloneElement(child, childProps)
               }
             })
           : children}

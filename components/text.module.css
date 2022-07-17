@@ -11,6 +11,28 @@
     }
 }
 
+.heading {
+    position: relative;
+    margin-left: -22px;
+    padding-left: 22px;
+}
+
+.headingLink {
+    display: none;
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    height: 100%;
+}
+
+.headingLink svg {
+    align-self: center;
+}
+
+.heading:hover>.headingLink {
+    display: flex;
+}
+
 .text hr {
     border-top: 1px solid var(--theme-clickToContextColor);
 }

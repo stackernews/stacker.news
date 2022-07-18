@@ -1,5 +1,5 @@
 $theme-colors: (
-  "primary" :  #FADA5E,
+  "primary" : #FADA5E,
   "secondary" : #F6911D,
   "danger" : #c03221,
   "info" : #007cbe,
@@ -14,17 +14,17 @@ $border-radius: .4rem;
 $enable-transitions: false;
 $enable-gradients: false;
 $enable-shadows: false;
-$btn-transition:   none;
+$btn-transition: none;
 $form-feedback-icon-valid: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='12' height='12'%3E%3Cpath fill='none' d='M0 0h24v24H0z'/%3E%3Cpath d='M2 9h3v12H2a1 1 0 0 1-1-1V10a1 1 0 0 1 1-1zm5.293-1.293l6.4-6.4a.5.5 0 0 1 .654-.047l.853.64a1.5 1.5 0 0 1 .553 1.57L14.6 8H21a2 2 0 0 1 2 2v2.104a2 2 0 0 1-.15.762l-3.095 7.515a1 1 0 0 1-.925.619H8a1 1 0 0 1-1-1V8.414a1 1 0 0 1 .293-.707z' fill='rgba(92, 128, 1, 1)'/%3E%3C/svg%3E");
 $form-feedback-icon-invalid: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='12' height='12'%3E%3Cpath fill='none' d='M0 0h24v24H0z'/%3E%3Cpath d='M22 15h-3V3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1zm-5.293 1.293l-6.4 6.4a.5.5 0 0 1-.654.047L8.8 22.1a1.5 1.5 0 0 1-.553-1.57L9.4 16H3a2 2 0 0 1-2-2v-2.104a2 2 0 0 1 .15-.762L4.246 3.62A1 1 0 0 1 5.17 3H16a1 1 0 0 1 1 1v11.586a1 1 0 0 1-.293.707z' fill='rgba(192,50,33,1)'/%3E%3C/svg%3E");
 $line-height-base: 1.75;
 $input-btn-padding-y: .42rem;
 $input-btn-padding-x: .84rem;
 $btn-padding-y: .42rem;
-$btn-padding-x:  1.1rem;
+$btn-padding-x: 1.1rem;
 $btn-font-weight: bold;
 $btn-focus-width: 0;
-$btn-border-width:  0;
+$btn-border-width: 0;
 $btn-focus-box-shadow: none;
 $alert-border-width: 0;
 $close-text-shadow: none;
@@ -38,13 +38,13 @@ $dropdown-border-color: #ced4da;
 $dropdown-link-active-color: inherit;
 $dropdown-link-hover-bg: transparent;
 $dropdown-link-active-bg: transparent;
-$dropdown-link-color:  rgba(0, 0, 0, 0.7);
+$dropdown-link-color: rgba(0, 0, 0, 0.7);
 $dropdown-link-hover-color: rgba(0, 0, 0, 0.9);
 $container-max-widths: (
   sm: 540px,
   md: 720px,
   lg: 900px,
-) !default;
+  ) !default;
 $nav-link-padding-y: .1rem;
 $nav-tabs-link-active-bg: #fff;
 $nav-tabs-link-hover-border-color: transparent;
@@ -54,7 +54,9 @@ $tooltip-bg: #5c8001;
 @import "~bootstrap/scss/bootstrap";
 
 @media screen and (min-width: 767px) {
-  .table-sm th, .table-sm td {
+
+  .table-sm th,
+  .table-sm td {
     padding: .3rem .75rem;
   }
 }
@@ -74,7 +76,7 @@ $tooltip-bg: #5c8001;
   opacity: 0.7;
 }
 
-.modal-close + .modal-body {
+.modal-close+.modal-body {
   padding-top: 0.5rem;
 }
 
@@ -82,16 +84,20 @@ $tooltip-bg: #5c8001;
   color: var(--theme-grey) !important;
 }
 
-ol, ul, dl {
+ol,
+ul,
+dl {
   padding-inline-start: 2rem;
 }
 
 mark {
-  background-color: var(--primary);
-  padding: 0 0.2rem;
+  background-color: var(--primary
+  );
+padding: 0 0.2rem;
 }
 
-.table-sm th, .table-sm td {
+.table-sm th,
+.table-sm td {
   line-height: 1.2rem;
 }
 
@@ -114,7 +120,9 @@ mark {
   background-color: var(--theme-body);
 }
 
-.table th, .table td, .table thead th {
+.table th,
+.table td,
+.table thead th {
   border-color: var(--theme-borderColor);
 }
 
@@ -138,7 +146,8 @@ a:hover {
   color: var(--theme-linkHover);
 }
 
-.nav-tabs .nav-link.active, .nav-tabs .nav-item.show .nav-link {
+.nav-tabs .nav-link.active,
+.nav-tabs .nav-item.show .nav-link {
   color: inherit;
   background-color: var(--theme-inputBg);
   border-color: var(--theme-borderColor);
@@ -152,11 +161,12 @@ a:hover {
 }
 
 .form-control:focus {
-  background-color:  var(--theme-inputBg);
+  background-color: var(--theme-inputBg);
   color: var(--theme-color);
 }
 
-.form-control:disabled, .form-control[readonly] {
+.form-control:disabled,
+.form-control[readonly] {
   background-color: var(--theme-inputDisabledBg);
   border-color: var(--theme-borderColor);
   opacity: 1;
@@ -190,7 +200,8 @@ a:hover {
   color: var(--theme-navLink) !important;
 }
 
-.nav-link:not(.text-success):hover, .nav-link:not(.text-success):focus {
+.nav-link:not(.text-success):hover,
+.nav-link:not(.text-success):focus {
   color: var(--theme-navLinkFocus) !important;
 }
 
@@ -205,6 +216,8 @@ a:hover {
 .dropdown-menu {
   background-color: var(--theme-inputBg);
   border: 1px solid var(--theme-borderColor);
+  max-width: 90vw;
+  overflow: scroll;
 }
 
 .dropdown-item {
@@ -267,7 +280,13 @@ footer {
 }
 
 @media screen and (max-width: 767px) {
-  input, select, textarea, .form-control, .form-control:focus, .input-group-text {
+
+  input,
+  select,
+  textarea,
+  .form-control,
+  .form-control:focus,
+  .input-group-text {
     font-size: 1rem !important;
   }
 }
@@ -420,17 +439,34 @@ textarea.form-control {
 }
 
 @keyframes flash {
-	from { filter: brightness(1);}
-  2% { filter: brightness(2.3); }
-  4% { filter: brightness(1.4); }
-  8% { filter: brightness(3); }
-  16% { filter: brightness(1); }
-  to { filter: brightness(1);}
+  from {
+    filter: brightness(1);
+  }
+
+  2% {
+    filter: brightness(2.3);
+  }
+
+  4% {
+    filter: brightness(1.4);
+  }
+
+  8% {
+    filter: brightness(3);
+  }
+
+  16% {
+    filter: brightness(1);
+  }
+
+  to {
+    filter: brightness(1);
+  }
 }
 
 .clouds {
   background-image: url('/clouds.jpeg') !important;
-  background-color:var(--theme-grey);
+  background-color: var(--theme-grey);
   background-repeat: repeat;
   background-origin: content-box;
   background-size: cover;
@@ -443,8 +479,13 @@ textarea.form-control {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% {  transform: rotate(359deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(359deg);
+  }
 }
 
 .spin {
@@ -453,7 +494,7 @@ textarea.form-control {
 
 .static {
   background: url('/giphy.gif');
-  background-color:var(--theme-grey);
+  background-color: var(--theme-grey);
   background-repeat: repeat;
   background-origin: content-box;
   background-size: cover;
@@ -461,12 +502,13 @@ textarea.form-control {
   opacity: .1;
 }
 
-@keyframes flipX{
+@keyframes flipX {
   from {
-      transform: rotateX(180deg);
+    transform: rotateX(180deg);
   }
+
   to {
-      transform: rotateX(-180deg);
+    transform: rotateX(-180deg);
   }
 }
 
@@ -474,12 +516,13 @@ textarea.form-control {
   animation: flipX 2s linear infinite;
 }
 
-@keyframes flipY{
+@keyframes flipY {
   from {
-      transform: rotateY(0deg);
+    transform: rotateY(0deg);
   }
+
   to {
-      transform: rotateY(360deg);
+    transform: rotateY(360deg);
   }
 }
 
@@ -487,7 +530,8 @@ textarea.form-control {
   animation: flipY 4s linear infinite;
 }
 
-@media (hover:none), (hover:on-demand) {
+@media (hover:none),
+(hover:on-demand) {
   .tooltip {
     visibility: hidden;
     pointer-events: none;

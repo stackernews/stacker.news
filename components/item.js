@@ -10,6 +10,7 @@ import reactStringReplace from 'react-string-replace'
 import { formatSats } from '../lib/format'
 import * as Yup from 'yup'
 import Briefcase from '../svgs/briefcase-4-fill.svg'
+import Toc from './table-of-contents'
 
 function SearchTitle ({ title }) {
   return reactStringReplace(title, /:high\[([^\]]+)\]/g, (match, i) => {
@@ -17,7 +18,7 @@ function SearchTitle ({ title }) {
   })
 }
 
-export function ItemJob ({ item, rank, children }) {
+export function ItemJob ({ item, toc, rank, children }) {
   const isEmail = Yup.string().email().isValidSync(item.url)
 
   return (
@@ -52,12 +53,12 @@ export function ItemJob ({ item, rank, children }) {
               </a>
             </Link>
             {/*  eslint-disable-next-line */}
-            <a
-              className={`${styles.link}`}
-              target='_blank' href={(isEmail ? 'mailto:' : '') + item.url}
-            >
-              apply
-            </a>
+              <a
+                className={`${styles.link}`}
+                target='_blank' href={(isEmail ? 'mailto:' : '') + item.url}
+              >
+                apply
+              </a>
           </div>
           <div className={`${styles.other}`}>
             {item.status !== 'NOSATS'
@@ -89,6 +90,7 @@ export function ItemJob ({ item, rank, children }) {
               </>}
           </div>
         </div>
+        {toc && <Toc text={item.text} />}
       </div>
       {children && (
         <div className={`${styles.children}`}>
@@ -110,7 +112,7 @@ function FwdUser ({ user }) {
   )
 }
 
-export default function Item ({ item, rank, showFwdUser, children }) {
+export default function Item ({ item, rank, showFwdUser, toc, children }) {
   const mine = item.mine
   const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
   const [canEdit, setCanEdit] =
@@ -202,6 +204,7 @@ export default function Item ({ item, rank, showFwdUser, children }) {
           </div>
           {showFwdUser && item.fwdUser && <FwdUser user={item.fwdUser} />}
         </div>
+        {toc && <Toc text={item.text} />}
       </div>
       {children && (
         <div className={styles.children}>

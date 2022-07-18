@@ -59,7 +59,9 @@ export default function Comments ({ parentId, comments, ...props }) {
   useEffect(() => {
     const hash = window.location.hash
     if (hash) {
-      document.querySelector(hash).scrollIntoView({ behavior: 'smooth' })
+      try {
+        document.querySelector(hash).scrollIntoView({ behavior: 'smooth' })
+      } catch {}
     }
   }, [])
   const [getComments, { loading }] = useLazyQuery(COMMENTS_QUERY, {

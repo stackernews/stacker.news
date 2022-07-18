@@ -83,7 +83,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
   const ItemComponent = item.maxBid ? ItemJob : Item
 
   return (
-    <ItemComponent item={item} showFwdUser {...props}>
+    <ItemComponent item={item} toc showFwdUser {...props}>
       {item.text && <ItemText item={item} />}
       {item.url && <ItemEmbed item={item} />}
       {!noReply && <Reply parentId={item.id} meComments={item.meComments} replyOpen />}

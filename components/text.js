@@ -11,6 +11,7 @@ import reactStringReplace from 'react-string-replace'
 import React, { useEffect, useState } from 'react'
 import GithubSlugger from 'github-slugger'
 import Link from '../svgs/link.svg'
+import {toString} from 'mdast-util-to-string'
 
 function myRemarkPlugin () {
   return (tree) => {
@@ -29,16 +30,10 @@ function myRemarkPlugin () {
   }
 }
 
+
+
 function Heading ({ h, slugger, noFragments, topLevel, children, node, ...props }) {
-  const id = noFragments
-  ? undefined
-  : slugger.slug(children.reduce(
-    (acc, cur) => {
-      if (typeof cur !== 'string') {
-        return acc
-      }
-      return acc + cur.replace(/[^\w\-\s]+/gi, '')
-    }, ''))
+  const id = noFragments ? undefined : slugger.slug(toString(node).replace(/[^\w\-\s]+/gi, ''))
 
   return (
     <div className={styles.heading}>

@@ -41,13 +41,20 @@ a.link:visited {
 .other {
     font-size: 80%;
     color: var(--theme-grey);
-    margin-bottom: .15rem;
 }
 
 .item {
     display: flex;
     justify-content: flex-start;
     min-width: 0;
+    margin-bottom: .45rem;
+}
+
+.item .companyImage {
+    border-radius: 100%;
+    align-self: center;
+    margin-right: 0.5rem;
+    margin-left: 0.3rem;
 }
 
 .itemDead {
@@ -62,9 +69,16 @@ a.link:visited {
 .hunk {
     overflow: hidden;
     width: 100%;
-    margin-bottom: .3rem;
     line-height: 1.06rem;
 }
+
+/* .itemJob .hunk {
+    align-self: center;
+}
+
+.itemJob .rank {
+    align-self: center;
+} */
 
 .main {
     display: flex;

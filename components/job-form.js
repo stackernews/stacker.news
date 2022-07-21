@@ -1,6 +1,6 @@
 import { Checkbox, Form, Input, MarkdownInput, SubmitButton } from './form'
 import TextareaAutosize from 'react-textarea-autosize'
-import { InputGroup, Form as BForm, Col } from 'react-bootstrap'
+import { InputGroup, Form as BForm, Col, Image } from 'react-bootstrap'
 import * as Yup from 'yup'
 import { useEffect, useState } from 'react'
 import Info from './info'
@@ -10,6 +10,7 @@ import { useLazyQuery, gql, useMutation } from '@apollo/client'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { usePrice } from './price'
+import Avatar from './avatar'
 
 Yup.addMethod(Yup.string, 'or', function (schemas, msg) {
   return this.test({
@@ -47,6 +48,7 @@ export default function JobForm ({ item, sub }) {
   const storageKeyPrefix = item ? undefined : `${sub.name}-job`
   const router = useRouter()
   const [monthly, setMonthly] = useState(satsMin2Mo(item?.maxBid || sub.baseCost))
+  const [logoId, setLogoId] = useState(item?.uploadId)
   const [getAuctionPosition, { data }] = useLazyQuery(gql`
     query AuctionPosition($id: ID, $bid: Int!) {
       auctionPosition(sub: "${sub.name}", id: $id, bid: $bid)
@@ -54,10 +56,10 @@ export default function JobForm ({ item, sub }) {
   { fetchPolicy: 'network-only' })
   const [upsertJob] = useMutation(gql`
     mutation upsertJob($id: ID, $title: String!, $company: String!, $location: String,
-      $remote: Boolean, $text: String!, $url: String!, $maxBid: Int!, $status: String) {
+      $remote: Boolean, $text: String!, $url: String!, $maxBid: Int!, $status: String, $logo: Int) {
       upsertJob(sub: "${sub.name}", id: $id, title: $title, company: $company,
         location: $location, remote: $remote, text: $text,
-        url: $url, maxBid: $maxBid, status: $status) {
+        url: $url, maxBid: $maxBid, status: $status, logo: $logo) {
         id
       }
     }`
@@ -122,6 +124,7 @@ export default function JobForm ({ item, sub }) {
               sub: sub.name,
               maxBid: Number(maxBid),
               status,
+              logo: Number(logoId),
               ...values
             }
           })
@@ -136,6 +139,15 @@ export default function JobForm ({ item, sub }) {
           }
         })}
       >
+        <div className='form-group'>
+          <label className='form-label'>logo</label>
+          <div className='position-relative' style={{ width: 'fit-content' }}>
+            <Image
+              src={logoId ? `https://${process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET}.s3.amazonaws.com/${logoId}` : '/jobs-default.png'} width='135' height='135' roundedCircle
+            />
+            <Avatar onSuccess={setLogoId} />
+          </div>
+        </div>
         <Input
           label='job title'
           name='title'

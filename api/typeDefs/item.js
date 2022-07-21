@@ -21,7 +21,8 @@ export default gql`
   extend type Mutation {
     upsertLink(id: ID, title: String!, url: String!, boost: Int, forward: String): Item!
     upsertDiscussion(id: ID, title: String!, text: String, boost: Int, forward: String): Item!
-    upsertJob(id: ID, sub: ID!, title: String!, company: String!, location: String, remote: Boolean, text: String!, url: String!, maxBid: Int!, status: String): Item!
+    upsertJob(id: ID, sub: ID!, title: String!, company: String!, location: String, remote: Boolean,
+      text: String!, url: String!, maxBid: Int!, status: String, logo: Int): Item!
     createComment(text: String!, parentId: ID!): Item!
     updateComment(id: ID!, text: String!): Item!
     act(id: ID!, sats: Int): ItemActResult!
@@ -71,5 +72,6 @@ export default gql`
     remote: Boolean
     sub: Sub
     status: String
+    uploadId: Int
   }
 `

@@ -24,7 +24,7 @@ export default function Toc ({ text }) {
   }
 
   return (
-    <Dropdown alignRight>
+    <Dropdown alignRight className='d-flex align-items-center'>
       <Dropdown.Toggle as={CustomToggle} id='dropdown-custom-components'>
         <TocIcon className='mx-2 fill-grey theme' />
       </Dropdown.Toggle>

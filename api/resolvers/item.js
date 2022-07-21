@@ -135,13 +135,24 @@ export default {
               // we pull from their wallet
               // TODO: need to filter out by payment status
               items = await models.$queryRaw(`
-                ${SELECT}
-                FROM "Item"
-                WHERE "parentId" IS NULL AND created_at <= $1
-                AND "pinId" IS NULL
-                ${subClause(3)}
-                AND status <> 'STOPPED'
-                ORDER BY (CASE WHEN status = 'ACTIVE' THEN "maxBid" ELSE 0 END) DESC, created_at ASC
+                SELECT *
+                FROM (
+                  (${SELECT}
+                  FROM "Item"
+                  WHERE "parentId" IS NULL AND created_at <= $1
+                  AND "pinId" IS NULL
+                  ${subClause(3)}
+                  AND status = 'ACTIVE'
+                  ORDER BY "maxBid" DESC, created_at ASC)
+                  UNION ALL
+                  (${SELECT}
+                  FROM "Item"
+                  WHERE "parentId" IS NULL AND created_at <= $1
+                  AND "pinId" IS NULL
+                  ${subClause(3)}
+                  AND status = 'NOSATS'
+                  ORDER BY created_at DESC)
+                ) a
                 OFFSET $2
                 LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, sub)
               break
@@ -447,7 +458,10 @@ export default {
         return await createItem(parent, data, { me, models })
       }
     },
-    upsertJob: async (parent, { id, sub, title, company, location, remote, text, url, maxBid, status }, { me, models }) => {
+    upsertJob: async (parent, {
+      id, sub, title, company, location, remote,
+      text, url, maxBid, status, logo
+    }, { me, models }) => {
       if (!me) {
         throw new AuthenticationError('you must be logged in to create job')
       }
@@ -483,7 +497,8 @@ export default {
         url,
         maxBid,
         subName: sub,
-        userId: me.id
+        userId: me.id,
+        uploadId: logo
       }
 
       if (id) {
@@ -837,7 +852,7 @@ export const SELECT =
   `SELECT "Item".id, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt", "Item".title,
   "Item".text, "Item".url, "Item"."userId", "Item"."fwdUserId", "Item"."parentId", "Item"."pinId", "Item"."maxBid",
   "Item".company, "Item".location, "Item".remote,
-  "Item"."subName", "Item".status, ltree2text("Item"."path") AS "path"`
+  "Item"."subName", "Item".status, "Item"."uploadId", ltree2text("Item"."path") AS "path"`
 
 function newTimedOrderByWeightedSats (num) {
   return `

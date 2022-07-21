@@ -1,5 +1,6 @@
 import { useQuery } from '@apollo/client'
-import Item, { ItemJob, ItemSkeleton } from './item'
+import Item, { ItemSkeleton } from './item'
+import ItemJob from './item-job'
 import styles from './items.module.css'
 import { ITEMS } from '../fragments/items'
 import MoreFooter from './more-footer'

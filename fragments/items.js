@@ -31,6 +31,7 @@ export const ITEM_FIELDS = gql`
       baseCost
     }
     status
+    uploadId
     mine
     root {
       id

@@ -1,6 +1,7 @@
 import { useQuery } from '@apollo/client'
 import Comment, { CommentSkeleton } from './comment'
-import Item, { ItemJob } from './item'
+import Item from './item'
+import ItemJob from './item-job'
 import { NOTIFICATIONS } from '../fragments/notifications'
 import { useRouter } from 'next/router'
 import MoreFooter from './more-footer'

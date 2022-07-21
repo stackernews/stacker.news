@@ -1,4 +1,5 @@
-import Item, { ItemJob } from './item'
+import Item from './item'
+import ItemJob from './item-job'
 import Reply from './reply'
 import Comment from './comment'
 import Text from './text'

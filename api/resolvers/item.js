@@ -857,7 +857,7 @@ export const SELECT =
 function newTimedOrderByWeightedSats (num) {
   return `
     ORDER BY (POWER("Item"."weightedVotes", 1.2)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 1.3) +
-              GREATEST("Item".boost-1000+5, 0)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 4)) DESC NULLS LAST, "Item".id DESC`
+              ("Item".boost/${BOOST_MIN}::float)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 2.6)) DESC NULLS LAST, "Item".id DESC`
 }
 
 const TOP_ORDER_BY_SATS = 'ORDER BY "Item"."weightedVotes" DESC NULLS LAST, "Item".id DESC'

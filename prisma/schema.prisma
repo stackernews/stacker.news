@@ -56,8 +56,9 @@ model User {
   noteInvites        Boolean @default(true)
   noteJobIndicator   Boolean @default(true)
 
-  Earn   Earn[]
-  Upload Upload[] @relation(name: "Uploads")
+  Earn     Earn[]
+  Upload   Upload[]   @relation(name: "Uploads")
+  PollVote PollVote[]
   @@index([createdAt])
   @@index([inviteId])
   @@map(name: "users")
@@ -180,7 +181,12 @@ model Item {
   longitude       Float?
   remote          Boolean?
 
-  User User[]
+  // fields for polls
+  pollCost Int?
+
+  User       User[]
+  PollOption PollOption[]
+  PollVote   PollVote[]
   @@index([createdAt])
   @@index([userId])
   @@index([parentId])
@@ -192,10 +198,39 @@ model Item {
   @@index([path])
 }
 
+model PollOption {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map(name: "created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map(name: "updated_at")
+  itemId    Int
+  item      Item     @relation(fields: [itemId], references: [id])
+  option    String
+
+  PollVote PollVote[]
+  @@index([itemId])
+}
+
+model PollVote {
+  id           Int        @id @default(autoincrement())
+  createdAt    DateTime   @default(now()) @map(name: "created_at")
+  updatedAt    DateTime   @default(now()) @updatedAt @map(name: "updated_at")
+  userId       Int
+  user         User       @relation(fields: [userId], references: [id])
+  itemId       Int
+  item         Item       @relation(fields: [itemId], references: [id])
+  pollOptionId Int
+  pollOption   PollOption @relation(fields: [pollOptionId], references: [id])
+
+  @@unique([itemId, userId])
+  @@index([userId])
+  @@index([pollOptionId])
+}
+
 enum PostType {
   LINK
   DISCUSSION
   JOB
+  POLL
 }
 
 enum RankingType {
@@ -232,6 +267,7 @@ enum ItemActType {
   BOOST
   TIP
   STREAM
+  POLL
 }
 
 model ItemAct {

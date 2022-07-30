@@ -12,6 +12,7 @@ import { TwitterTweetEmbed } from 'react-twitter-embed'
 import YouTube from 'react-youtube'
 import useDarkMode from 'use-dark-mode'
 import { useState } from 'react'
+import Poll from './poll'
 
 function BioItem ({ item, handleClick }) {
   const me = useMe()
@@ -87,6 +88,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
     <ItemComponent item={item} toc showFwdUser {...props}>
       {item.text && <ItemText item={item} />}
       {item.url && <ItemEmbed item={item} />}
+      {item.poll && <Poll item={item} />}
       {!noReply && <Reply parentId={item.id} meComments={item.meComments} replyOpen />}
     </ItemComponent>
   )

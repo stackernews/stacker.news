@@ -30,6 +30,7 @@ export const ITEM_FIELDS = gql`
       name
       baseCost
     }
+    pollCost
     status
     uploadId
     mine
@@ -93,6 +94,16 @@ export const ITEM_FULL = gql`
       meComments
       position
       text
+      poll {
+        meVoted
+        count
+        options {
+          id
+          option
+          count
+          meVoted
+        }
+      }
       comments {
         ...CommentsRecursive
       }

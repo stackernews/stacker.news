@@ -16,7 +16,7 @@ function earn ({ models }) {
         FROM "ItemAct"
         JOIN "Item" on "ItemAct"."itemId" = "Item".id
         WHERE ("ItemAct".act in ('BOOST', 'STREAM')
-          OR ("ItemAct".act = 'VOTE' AND "Item"."userId" = "ItemAct"."userId"))
+          OR ("ItemAct".act IN ('VOTE','POLL') AND "Item"."userId" = "ItemAct"."userId"))
           AND "ItemAct".created_at > now_utc() - INTERVAL '1 day'`
 
     /*

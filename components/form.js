@@ -2,14 +2,15 @@ import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
 import BootstrapForm from 'react-bootstrap/Form'
 import Alert from 'react-bootstrap/Alert'
-import { Formik, Form as FormikForm, useFormikContext, useField } from 'formik'
+import { Formik, Form as FormikForm, useFormikContext, useField, FieldArray } from 'formik'
 import React, { useEffect, useRef, useState } from 'react'
 import copy from 'clipboard-copy'
 import Thumb from '../svgs/thumb-up-fill.svg'
-import { Nav } from 'react-bootstrap'
+import { Col, Nav } from 'react-bootstrap'
 import Markdown from '../svgs/markdown-line.svg'
 import styles from './form.module.css'
 import Text from '../components/text'
+import AddIcon from '../svgs/add-fill.svg'
 
 export function SubmitButton ({
   children, variant, value, onClick, ...props
@@ -201,6 +202,39 @@ export function Input ({ label, groupClassName, ...props }) {
   )
 }
 
+export function VariableInput ({ label, groupClassName, name, hint, max, ...props }) {
+  return (
+    <FormGroup label={label} className={groupClassName}>
+      <FieldArray name={name}>
+        {({ form, ...fieldArrayHelpers }) => {
+          const options = form.values.options
+          return (
+            <>
+              {options.map((_, i) => (
+                <div key={i}>
+                  <BootstrapForm.Row className='mb-2'>
+                    <Col>
+                      <InputInner name={`${name}[${i}]`} {...props} placeholder={i > 1 ? 'optional' : undefined} />
+                    </Col>
+                    {options.length - 1 === i && options.length !== max
+                      ? <AddIcon className='fill-grey align-self-center pointer mx-2' onClick={() => fieldArrayHelpers.push('')} />
+                      : null}
+                  </BootstrapForm.Row>
+                </div>
+              ))}
+            </>
+          )
+        }}
+      </FieldArray>
+      {hint && (
+        <BootstrapForm.Text>
+          {hint}
+        </BootstrapForm.Text>
+      )}
+    </FormGroup>
+  )
+}
+
 export function Checkbox ({ children, label, groupClassName, hiddenLabel, extra, handleChange, inline, ...props }) {
   // React treats radios and checkbox inputs differently other input types, select, and textarea.
   // Formik does this too! When you specify `type` to useField(), it will
@@ -243,11 +277,17 @@ export function Form ({
       validationSchema={schema}
       initialTouched={validateImmediately && initial}
       validateOnBlur={false}
-      onSubmit={async (...args) =>
-        onSubmit && onSubmit(...args).then(() => {
+      onSubmit={async (values, ...args) =>
+        onSubmit && onSubmit(values, ...args).then(() => {
           if (!storageKeyPrefix) return
-          Object.keys(...args).forEach(v =>
-            localStorage.removeItem(storageKeyPrefix + '-' + v))
+          Object.keys(values).forEach(v => {
+            localStorage.removeItem(storageKeyPrefix + '-' + v)
+            if (Array.isArray(values[v])) {
+              values[v].forEach(
+                (_, i) => localStorage.removeItem(`${storageKeyPrefix}-${v}[${i}]`))
+            }
+          }
+          )
         }).catch(e => setError(e.message || e))}
     >
       <FormikForm {...props} noValidate>

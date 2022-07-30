@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react'
 import { Button } from 'react-bootstrap'
 import useSWR from 'swr'
+import { fixedDecimal } from '../lib/format'
 
 const fetcher = url => fetch(url).then(res => res.json()).catch()
 
@@ -49,7 +50,6 @@ export default function Price () {
 
   if (!price) return null
 
-  const fixed = (n, f) => Number.parseFloat(n).toFixed(f)
   const handleClick = () => {
     if (asSats === 'yep') {
       localStorage.setItem('asSats', '1btc')
@@ -66,7 +66,7 @@ export default function Price () {
   if (asSats === 'yep') {
     return (
       <Button className='text-reset p-0' onClick={handleClick} variant='link'>
-        {fixed(100000000 / price, 0) + ' sats/$'}
+        {fixedDecimal(100000000 / price, 0) + ' sats/$'}
       </Button>
     )
   }
@@ -81,7 +81,7 @@ export default function Price () {
 
   return (
     <Button className='text-reset p-0' onClick={handleClick} variant='link'>
-      {'$' + fixed(price, 0)}
+      {'$' + fixedDecimal(price, 0)}
     </Button>
   )
 }

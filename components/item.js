@@ -8,6 +8,7 @@ import { NOFOLLOW_LIMIT } from '../lib/constants'
 import Pin from '../svgs/pushpin-fill.svg'
 import reactStringReplace from 'react-string-replace'
 import Toc from './table-of-contents'
+import PollIcon from '../svgs/bar-chart-horizontal-fill.svg'
 
 export function SearchTitle ({ title }) {
   return reactStringReplace(title, /:high\[([^\]]+)\]/g, (match, i) => {
@@ -55,6 +56,7 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
             <Link href={`/items/${item.id}`} passHref>
               <a ref={titleRef} className={`${styles.title} text-reset mr-2`}>
                 {item.searchTitle ? <SearchTitle title={item.searchTitle} /> : item.title}
+                {item.pollCost && <span> <PollIcon className='fill-grey vertical-align-baseline' height={14} width={14} /></span>}
               </a>
             </Link>
             {item.url &&

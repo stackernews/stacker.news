@@ -34,7 +34,7 @@ export default {
       return await models.$queryRaw(
         `SELECT date_trunc('month', "ItemAct".created_at) AS time,
         sum(CASE WHEN act = 'STREAM' THEN sats ELSE 0 END) as jobs,
-        sum(CASE WHEN act = 'VOTE' AND "Item"."userId" = "ItemAct"."userId" THEN sats ELSE 0 END) as fees,
+        sum(CASE WHEN act IN ('VOTE', 'POLL') AND "Item"."userId" = "ItemAct"."userId" THEN sats ELSE 0 END) as fees,
         sum(CASE WHEN act = 'BOOST' THEN sats ELSE 0 END) as boost,
         sum(CASE WHEN act = 'TIP' THEN sats ELSE 0 END) as tips
         FROM "ItemAct"
@@ -122,7 +122,7 @@ export default {
       const [stats] = await models.$queryRaw(
         `SELECT json_build_array(
           json_build_object('name', 'jobs', 'value', sum(CASE WHEN act = 'STREAM' THEN sats ELSE 0 END)),
-          json_build_object('name', 'fees', 'value', sum(CASE WHEN act = 'VOTE' AND "Item"."userId" = "ItemAct"."userId" THEN sats ELSE 0 END)),
+          json_build_object('name', 'fees', 'value', sum(CASE WHEN act in ('VOTE', 'POLL') AND "Item"."userId" = "ItemAct"."userId" THEN sats ELSE 0 END)),
           json_build_object('name', 'boost', 'value', sum(CASE WHEN act = 'BOOST' THEN sats ELSE 0 END)),
           json_build_object('name', 'tips', 'value', sum(CASE WHEN act = 'TIP' THEN sats ELSE 0 END))) as array
         FROM "ItemAct"

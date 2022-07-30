@@ -458,6 +458,50 @@ export default {
         return await createItem(parent, data, { me, models })
       }
     },
+    upsertPoll: async (parent, { id, forward, boost, title, text, options }, { me, models }) => {
+      if (!me) {
+        throw new AuthenticationError('you must be logged in')
+      }
+
+      if (boost && boost < BOOST_MIN) {
+        throw new UserInputError(`boost must be at least ${BOOST_MIN}`, { argumentName: 'boost' })
+      }
+
+      if (id) {
+        // TODO: this isn't ever called clientside, we edit like it's a discussion
+
+        const item = await models.item.update({
+          where: { id: Number(id) },
+          data: { title: title }
+        })
+
+        return item
+      } else {
+        let fwdUser
+        if (forward) {
+          fwdUser = await models.user.findUnique({ where: { name: forward } })
+          if (!fwdUser) {
+            throw new UserInputError('forward user does not exist', { argumentName: 'forward' })
+          }
+        }
+
+        const [item] = await serialize(models,
+          models.$queryRaw(`${SELECT} FROM create_poll($1, $2, $3, $4, $5, $6) AS "Item"`,
+            title, text, 1, Number(boost || 0), Number(me.id), options))
+
+        if (fwdUser) {
+          await models.item.update({
+            where: { id: item.id },
+            data: {
+              fwdUserId: fwdUser.id
+            }
+          })
+        }
+
+        item.comments = []
+        return item
+      }
+    },
     upsertJob: async (parent, {
       id, sub, title, company, location, remote,
       text, url, maxBid, status, logo
@@ -534,6 +578,17 @@ export default {
     updateComment: async (parent, { id, text }, { me, models }) => {
       return await updateItem(parent, { id, data: { text } }, { me, models })
     },
+    pollVote: async (parent, { id }, { me, models }) => {
+      if (!me) {
+        throw new AuthenticationError('you must be logged in')
+      }
+
+      await serialize(models,
+        models.$queryRaw(`${SELECT} FROM poll_vote($1, $2) AS "Item"`,
+          Number(id), Number(me.id)))
+
+      return id
+    },
     act: async (parent, { id, sats }, { me, models }) => {
       // need to make sure we are logged in
       if (!me) {
@@ -561,7 +616,6 @@ export default {
       }
     }
   },
-
   Item: {
     sub: async (item, args, { models }) => {
       if (!item.subName) {
@@ -604,6 +658,27 @@ export default {
       }
 
       return prior.id
+    },
+    poll: async (item, args, { models, me }) => {
+      if (!item.pollCost) {
+        return null
+      }
+
+      const options = await models.$queryRaw`
+        SELECT "PollOption".id, option, count("PollVote"."userId") as count,
+          coalesce(bool_or("PollVote"."userId" = ${me?.id}), 'f') as "meVoted"
+        FROM "PollOption"
+        LEFT JOIN "PollVote" on "PollVote"."pollOptionId" = "PollOption".id
+        WHERE "PollOption"."itemId" = ${item.id}
+        GROUP BY "PollOption".id
+        ORDER BY "PollOption".id ASC
+      `
+      const poll = {}
+      poll.options = options
+      poll.meVoted = options.some(o => o.meVoted)
+      poll.count = options.reduce((t, o) => t + o.count, 0)
+
+      return poll
     },
     user: async (item, args, { models }) =>
       await models.user.findUnique({ where: { id: item.userId } }),
@@ -852,7 +927,7 @@ export const SELECT =
   `SELECT "Item".id, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt", "Item".title,
   "Item".text, "Item".url, "Item"."userId", "Item"."fwdUserId", "Item"."parentId", "Item"."pinId", "Item"."maxBid",
   "Item".company, "Item".location, "Item".remote,
-  "Item"."subName", "Item".status, "Item"."uploadId", ltree2text("Item"."path") AS "path"`
+  "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost", ltree2text("Item"."path") AS "path"`
 
 function newTimedOrderByWeightedSats (num) {
   return `

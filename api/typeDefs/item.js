@@ -23,9 +23,24 @@ export default gql`
     upsertDiscussion(id: ID, title: String!, text: String, boost: Int, forward: String): Item!
     upsertJob(id: ID, sub: ID!, title: String!, company: String!, location: String, remote: Boolean,
       text: String!, url: String!, maxBid: Int!, status: String, logo: Int): Item!
+    upsertPoll(id: ID, title: String!, text: String, options: [String!]!, boost: Int, forward: String): Item!
     createComment(text: String!, parentId: ID!): Item!
     updateComment(id: ID!, text: String!): Item!
     act(id: ID!, sats: Int): ItemActResult!
+    pollVote(id: ID!): ID!
+  }
+
+  type PollOption {
+    id: ID,
+    option: String!
+    count: Int!
+    meVoted: Boolean!
+  }
+
+  type Poll {
+    meVoted: Boolean!
+    count: Int!
+    options: [PollOption!]!
   }
 
   type Items {
@@ -67,6 +82,8 @@ export default gql`
     position: Int
     prior: Int
     maxBid: Int
+    pollCost: Int
+    poll: Poll
     company: String
     location: String
     remote: Boolean

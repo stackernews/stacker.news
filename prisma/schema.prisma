@@ -32,7 +32,7 @@ model User {
   bioId           Int?
   msats           Int         @default(0)
   stackedMsats    Int         @default(0)
-  freeComments    Int         @default(5)
+  freeComments    Int         @default(0)
   freePosts       Int         @default(2)
   checkedNotesAt  DateTime?
   tipDefault      Int         @default(10)
@@ -59,6 +59,7 @@ model User {
   Earn     Earn[]
   Upload   Upload[]   @relation(name: "Uploads")
   PollVote PollVote[]
+
   @@index([createdAt])
   @@index([inviteId])
   @@map(name: "users")
@@ -78,6 +79,7 @@ model Upload {
   userId    Int
 
   User User[]
+
   @@index([createdAt])
   @@index([itemId])
   @@index([userId])
@@ -187,6 +189,7 @@ model Item {
   User       User[]
   PollOption PollOption[]
   PollVote   PollVote[]
+
   @@index([createdAt])
   @@index([userId])
   @@index([parentId])
@@ -207,6 +210,7 @@ model PollOption {
   option    String
 
   PollVote PollVote[]
+
   @@index([itemId])
 }
 
@@ -345,6 +349,7 @@ model Withdrawl {
   msatsFeePaid   Int?
 
   status WithdrawlStatus?
+
   @@index([createdAt])
   @@index([userId])
 }

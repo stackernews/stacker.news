@@ -11,6 +11,7 @@ export default gql`
     allItems(cursor: String): Items
     search(q: String, sub: String, cursor: String): Items
     auctionPosition(sub: String, id: ID, bid: Int!): Int!
+    itemRepetition(parentId: ID): Int!
   }
 
   type ItemActResult {

@@ -82,6 +82,11 @@ export default function Text ({ topLevel, noFragments, nofollow, children }) {
                 )
           },
           a: ({ node, href, children, ...props }) => {
+            if (children?.some(e => e?.props?.node?.tagName === 'img')) {
+              return <>{children}</>
+            }
+
+            // map: fix any highlighted links
             children = children?.map(e =>
               typeof e === 'string'
               ? reactStringReplace(e, /:high\[([^\]]+)\]/g, (match, i) => {

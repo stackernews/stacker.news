@@ -4,7 +4,8 @@ import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
 import domino from 'domino'
-import { BOOST_MIN } from '../../lib/constants'
+import { BOOST_MIN, ITEM_SPAM_INTERVAL } from '../../lib/constants'
+import { mdHas } from '../../lib/md'
 
 async function comments (models, id, sort) {
   let orderBy
@@ -68,6 +69,13 @@ function topClause (within) {
 
 export default {
   Query: {
+    itemRepetition: async (parent, { parentId }, { me, models }) => {
+      if (!me) return 0
+      // how many of the parents starting at parentId belong to me
+      const [{ item_spam: count }] = await models.$queryRaw(`SELECT item_spam($1, $2, '${ITEM_SPAM_INTERVAL}')`, Number(parentId), Number(me.id))
+
+      return count
+    },
     items: async (parent, { sub, sort, cursor, name, within }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
       let items; let user; let pins; let subFull
@@ -851,6 +859,10 @@ const updateItem = async (parent, { id, data }, { me, models }) => {
     throw new UserInputError('item can no longer be editted')
   }
 
+  if (data?.text && !old.paidImgLink && mdHas(data.text, ['link', 'image'])) {
+    throw new UserInputError('adding links or images on edit is not allowed yet')
+  }
+
   const item = await models.item.update({
     where: { id: Number(id) },
     data
@@ -878,20 +890,15 @@ const createItem = async (parent, { title, url, text, boost, forward, parentId }
     }
   }
 
+  const hasImgLink = mdHas(text, ['link', 'image'])
+
   const [item] = await serialize(models,
-    models.$queryRaw(`${SELECT} FROM create_item($1, $2, $3, $4, $5, $6) AS "Item"`,
-      title, url, text, Number(boost || 0), Number(parentId), Number(me.id)))
+    models.$queryRaw(
+      `${SELECT} FROM create_item($1, $2, $3, $4, $5, $6, $7, $8, '${ITEM_SPAM_INTERVAL}') AS "Item"`,
+      title, url, text, Number(boost || 0), Number(parentId), Number(me.id),
+      Number(fwdUser?.id), hasImgLink))
 
   await createMentions(item, models)
-
-  if (fwdUser) {
-    await models.item.update({
-      where: { id: item.id },
-      data: {
-        fwdUserId: fwdUser.id
-      }
-    })
-  }
 
   item.comments = []
   return item

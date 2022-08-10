@@ -11,6 +11,7 @@ import Markdown from '../svgs/markdown-line.svg'
 import styles from './form.module.css'
 import Text from '../components/text'
 import AddIcon from '../svgs/add-fill.svg'
+import { mdHas } from '../lib/md'
 
 export function SubmitButton ({
   children, variant, value, onClick, ...props
@@ -72,7 +73,7 @@ export function InputSkeleton ({ label, hint }) {
   )
 }
 
-export function MarkdownInput ({ label, topLevel, groupClassName, ...props }) {
+export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setHasImgLink, ...props }) {
   const [tab, setTab] = useState('write')
   const [, meta] = useField(props)
 
@@ -99,7 +100,12 @@ export function MarkdownInput ({ label, topLevel, groupClassName, ...props }) {
         </Nav>
         <div className={tab !== 'write' ? 'd-none' : ''}>
           <InputInner
-            {...props}
+            {...props} onChange={(formik, e) => {
+              if (onChange) onChange(formik, e)
+              if (setHasImgLink) {
+                setHasImgLink(mdHas(e.target.value, ['link', 'image']))
+              }
+            }}
           />
         </div>
         <div className={tab !== 'preview' ? 'd-none' : 'form-group'}>

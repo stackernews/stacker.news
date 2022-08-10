@@ -33,7 +33,7 @@ model User {
   msats           Int         @default(0)
   stackedMsats    Int         @default(0)
   freeComments    Int         @default(0)
-  freePosts       Int         @default(2)
+  freePosts       Int         @default(0)
   checkedNotesAt  DateTime?
   tipDefault      Int         @default(10)
   pubkey          String?     @unique
@@ -166,6 +166,7 @@ model Item {
   boost         Int                   @default(0)
   uploadId      Int?
   upload        Upload?
+  paidImgLink   Boolean               @default(false)
 
   // if sub is null, this is the main sub
   sub     Sub?    @relation(fields: [subName], references: [name])

@@ -8,12 +8,12 @@ import { useState } from 'react'
 import ItemFull from '../../components/item-full'
 import * as Yup from 'yup'
 import { Form, MarkdownInput, SubmitButton } from '../../components/form'
-import ActionTooltip from '../../components/action-tooltip'
 import TextareaAutosize from 'react-textarea-autosize'
 import { useMe } from '../../components/me'
 import { USER_FULL } from '../../fragments/users'
 import { ITEM_FIELDS } from '../../fragments/items'
 import { getGetServerSideProps } from '../../api/ssrApollo'
+import FeeButton from '../../components/fee-button'
 
 export const getServerSideProps = getGetServerSideProps(USER_FULL, null,
   data => !data.user)
@@ -23,6 +23,8 @@ const BioSchema = Yup.object({
 })
 
 export function BioForm ({ handleSuccess, bio }) {
+  const [hasImgLink, setHasImgLink] = useState()
+
   const [upsertBio] = useMutation(
     gql`
       ${ITEM_FIELDS}
@@ -68,10 +70,16 @@ export function BioForm ({ handleSuccess, bio }) {
           name='bio'
           as={TextareaAutosize}
           minRows={6}
+          setHasImgLink={setHasImgLink}
         />
-        <ActionTooltip>
-          <SubmitButton variant='secondary' className='mt-3'>{bio?.text ? 'save' : 'create'}</SubmitButton>
-        </ActionTooltip>
+        <div className='mt-3'>
+          {bio?.text
+            ? <SubmitButton variant='secondary'>save</SubmitButton>
+            : <FeeButton
+                baseFee={1} hasImgLink={hasImgLink} parentId={null} text='create'
+                ChildButton={SubmitButton} variant='secondary'
+              />}
+        </div>
       </Form>
     </div>
   )

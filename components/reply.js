@@ -4,11 +4,10 @@ import { gql, useMutation } from '@apollo/client'
 import styles from './reply.module.css'
 import { COMMENTS } from '../fragments/comments'
 import { useMe } from './me'
-import ActionTooltip from './action-tooltip'
 import TextareaAutosize from 'react-textarea-autosize'
 import { useEffect, useState } from 'react'
-import Info from './info'
 import Link from 'next/link'
+import FeeButton from './fee-button'
 
 export const CommentSchema = Yup.object({
   text: Yup.string().required('required').trim()
@@ -25,6 +24,7 @@ export function ReplyOnAnotherPage ({ parentId }) {
 export default function Reply ({ parentId, meComments, onSuccess, replyOpen }) {
   const [reply, setReply] = useState(replyOpen)
   const me = useMe()
+  const [hasImgLink, setHasImgLink] = useState()
 
   useEffect(() => {
     setReply(replyOpen || !!localStorage.getItem('reply-' + parentId + '-' + 'text'))
@@ -65,7 +65,7 @@ export default function Reply ({ parentId, meComments, onSuccess, replyOpen }) {
     }
   )
 
-  const cost = me?.freeComments ? 0 : Math.pow(10, meComments)
+  // const cost = me?.freeComments ? 0 : Math.pow(10, meComments)
 
   return (
     <div>
@@ -91,6 +91,7 @@ export default function Reply ({ parentId, meComments, onSuccess, replyOpen }) {
             }
             resetForm({ text: '' })
             setReply(replyOpen || false)
+            setHasImgLink(false)
           }}
           storageKeyPrefix={'reply-' + parentId}
         >
@@ -100,18 +101,16 @@ export default function Reply ({ parentId, meComments, onSuccess, replyOpen }) {
             minRows={6}
             autoFocus={!replyOpen}
             required
+            setHasImgLink={setHasImgLink}
             hint={me?.freeComments ? <span className='text-success'>{me.freeComments} free comments left</span> : null}
           />
-          <div className='d-flex align-items-center mt-1'>
-            <ActionTooltip overlayText={`${cost} sats`}>
-              <SubmitButton variant='secondary'>reply{cost > 1 && <small> {cost} sats</small>}</SubmitButton>
-            </ActionTooltip>
-            {cost > 1 && (
-              <Info>
-                <div className='font-weight-bold'>Multiple replies on the same level get pricier, but we still love your thoughts!</div>
-              </Info>
-            )}
-          </div>
+          {reply &&
+            <div className='mt-1'>
+              <FeeButton
+                baseFee={1} hasImgLink={hasImgLink} parentId={parentId} text='reply'
+                ChildButton={SubmitButton} variant='secondary' alwaysShow
+              />
+            </div>}
         </Form>
       </div>
     </div>

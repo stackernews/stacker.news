@@ -890,7 +890,7 @@ const createItem = async (parent, { title, url, text, boost, forward, parentId }
     }
   }
 
-  const hasImgLink = mdHas(text, ['link', 'image'])
+  const hasImgLink = !!(text && mdHas(text, ['link', 'image']))
 
   const [item] = await serialize(models,
     models.$queryRaw(

@@ -63,7 +63,7 @@
     display: block;
     margin-top: .5rem;
     border-radius: .4rem;
-    width: min-content;
+    width: auto;
     max-width: 100%;
 }
 

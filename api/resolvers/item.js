@@ -236,6 +236,15 @@ export default {
 
       let comments, user
       switch (sort) {
+        case 'recent':
+          comments = await models.$queryRaw(`
+            ${SELECT}
+            FROM "Item"
+            WHERE "parentId" IS NOT NULL AND created_at <= $1
+            ORDER BY created_at DESC
+            OFFSET $2
+            LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+          break
         case 'user':
           if (!name) {
             throw new UserInputError('must supply name', { argumentName: 'name' })

@@ -1,7 +1,7 @@
-import Layout from '../components/layout'
-import Items from '../components/items'
-import { getGetServerSideProps } from '../api/ssrApollo'
-import { ITEMS } from '../fragments/items'
+import Layout from '../../components/layout'
+import Items from '../../components/items'
+import { getGetServerSideProps } from '../../api/ssrApollo'
+import { ITEMS } from '../../fragments/items'
 
 const variables = { sort: 'recent' }
 export const getServerSideProps = getGetServerSideProps(ITEMS, variables)

@@ -96,7 +96,7 @@ const AnalyticsPopover = (
         visitors
       </a>
       <span className='mx-2 text-dark'> \ </span>
-      <Link href='/users/forever' passHref>
+      <Link href='/users/week' passHref>
         <a className='text-dark d-inline-flex'>
           users
         </a>

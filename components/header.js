@@ -65,7 +65,7 @@ export default function Header ({ sub }) {
             <NavDropdown
               className={styles.dropdown} title={
                 <Link href={`/${me?.name}`} passHref>
-                  <Nav.Link className='p-0' onClick={e => e.preventDefault()}>{`@${me?.name}`}</Nav.Link>
+                  <Nav.Link as='div' className='p-0' onClick={e => e.preventDefault()}>{`@${me?.name}`}</Nav.Link>
                 </Link>
               } alignRight
             >

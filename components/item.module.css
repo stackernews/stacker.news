@@ -47,7 +47,7 @@ a.link:visited {
     display: flex;
     justify-content: flex-start;
     min-width: 0;
-    margin-bottom: .45rem;
+    padding-bottom: .45rem;
 }
 
 .item .companyImage {

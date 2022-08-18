@@ -19,9 +19,9 @@
 }
 
 .invite {
-    margin-bottom: .5rem;
-}Í
+    padding-bottom: .5rem;
+}
 
-.invite:last-child {
-    margin-bottom: 0;
+.invites .invite:last-child {
+    padding-bottom: 0;
 }

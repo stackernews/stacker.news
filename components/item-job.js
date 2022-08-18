@@ -14,7 +14,7 @@ export default function ItemJob ({ item, toc, rank, children }) {
     <>
       {rank
         ? (
-          <div className={`${styles.rank} align-self-center`}>
+          <div className={`${styles.rank} pb-2 align-self-center`}>
             {rank}
           </div>)
         : <div />}

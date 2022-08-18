@@ -129,10 +129,10 @@ function FormGroup ({ className, label, children }) {
 
 function InputInner ({
   prepend, append, hint, showValid, onChange, overrideValue,
-  innerRef, storageKeyPrefix, ...props
+  innerRef, storageKeyPrefix, noForm, ...props
 }) {
-  const [field, meta, helpers] = props.readOnly ? [{}, {}, {}] : useField(props)
-  const formik = props.readOnly ? null : useFormikContext()
+  const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)
+  const formik = noForm ? null : useFormikContext()
 
   const storageKey = storageKeyPrefix ? storageKeyPrefix + '-' + props.name : undefined
 
@@ -208,19 +208,19 @@ export function Input ({ label, groupClassName, ...props }) {
   )
 }
 
-export function VariableInput ({ label, groupClassName, name, hint, max, ...props }) {
+export function VariableInput ({ label, groupClassName, name, hint, max, readOnlyLen, ...props }) {
   return (
     <FormGroup label={label} className={groupClassName}>
       <FieldArray name={name}>
         {({ form, ...fieldArrayHelpers }) => {
-          const options = form.values.options
+          const options = form.values[name]
           return (
             <>
               {options.map((_, i) => (
                 <div key={i}>
                   <BootstrapForm.Row className='mb-2'>
                     <Col>
-                      <InputInner name={`${name}[${i}]`} {...props} placeholder={i > 1 ? 'optional' : undefined} />
+                      <InputInner name={`${name}[${i}]`} {...props} readOnly={i < readOnlyLen} placeholder={i > 1 ? 'optional' : undefined} />
                     </Col>
                     {options.length - 1 === i && options.length !== max
                       ? <AddIcon className='fill-grey align-self-center pointer mx-2' onClick={() => fieldArrayHelpers.push('')} />

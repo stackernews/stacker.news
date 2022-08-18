@@ -173,6 +173,7 @@ export default function Footer ({ noLinks }) {
               size='sm'
               groupClassName='mb-0 w-100'
               readOnly
+              noForm
               placeholder={data.connectAddress}
             />
           </div>}

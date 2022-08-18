@@ -4,6 +4,7 @@ import { DiscussionForm } from '../../../components/discussion-form'
 import { LinkForm } from '../../../components/link-form'
 import LayoutCenter from '../../../components/layout-center'
 import JobForm from '../../../components/job-form'
+import { PollForm } from '../../../components/poll-form'
 
 export const getServerSideProps = getGetServerSideProps(ITEM, null,
   data => !data.item)
@@ -16,8 +17,10 @@ export default function PostEdit ({ data: { item } }) {
       {item.maxBid
         ? <JobForm item={item} sub={item.sub} />
         : (item.url
-            ? <LinkForm item={item} editThreshold={editThreshold} />
-            : <DiscussionForm item={item} editThreshold={editThreshold} />)}
+            ? <LinkForm item={item} editThreshold={editThreshold} adv />
+            : (item.pollCost
+                ? <PollForm item={item} editThreshold={editThreshold} />
+                : <DiscussionForm item={item} editThreshold={editThreshold} adv />))}
     </LayoutCenter>
   )
 }

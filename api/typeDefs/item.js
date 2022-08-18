@@ -76,6 +76,7 @@ export default gql`
     sats: Int!
     upvotes: Int!
     meSats: Int!
+    paidImgLink: Boolean
     meComments: Int!
     ncomments: Int!
     comments: [Item!]!

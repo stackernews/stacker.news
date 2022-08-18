@@ -34,6 +34,7 @@ export const ITEM_FIELDS = gql`
     status
     uploadId
     mine
+    paidImgLink
     root {
       id
       title
@@ -64,12 +65,28 @@ export const ITEMS = gql`
     }
   }`
 
+export const POLL_FIELDS = gql`
+  fragment PollFields on Item {
+    poll {
+      meVoted
+      count
+      options {
+        id
+        option
+        count
+        meVoted
+      }
+    }
+  }`
+
 export const ITEM = gql`
   ${ITEM_FIELDS}
+  ${POLL_FIELDS}
 
   query Item($id: ID!) {
     item(id: $id) {
       ...ItemFields
+      ...PollFields
       text
     }
   }`
@@ -86,6 +103,7 @@ export const COMMENTS_QUERY = gql`
 
 export const ITEM_FULL = gql`
   ${ITEM_FIELDS}
+  ${POLL_FIELDS}
   ${COMMENTS}
   query Item($id: ID!) {
     item(id: $id) {
@@ -94,16 +112,7 @@ export const ITEM_FULL = gql`
       meComments
       position
       text
-      poll {
-        meVoted
-        count
-        options {
-          id
-          option
-          count
-          meVoted
-        }
-      }
+      ...PollFields
       comments {
         ...CommentsRecursive
       }

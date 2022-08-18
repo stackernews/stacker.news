@@ -26,7 +26,7 @@ export default function LnQR ({ value, webLn, statusVariant, status }) {
         />
       </a>
       <div className='mt-3 w-100'>
-        <CopyInput type='text' placeholder={value} readOnly />
+        <CopyInput type='text' placeholder={value} readOnly noForm />
       </div>
       <InvoiceStatus variant={statusVariant} status={status} />
     </>

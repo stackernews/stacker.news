@@ -17,6 +17,7 @@ export const COMMENT_FIELDS = gql`
     meComments
     path
     mine
+    paidImgLink
     ncomments
     root {
       id

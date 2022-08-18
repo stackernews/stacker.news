@@ -2,15 +2,17 @@ import { Form, Input, MarkdownInput, SubmitButton, VariableInput } from '../comp
 import { useRouter } from 'next/router'
 import * as Yup from 'yup'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
-import ActionTooltip from '../components/action-tooltip'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial, AdvPostSchema } from './adv-post-form'
-import { MAX_TITLE_LENGTH, MAX_POLL_CHOICE_LENGTH } from '../lib/constants'
+import { MAX_TITLE_LENGTH, MAX_POLL_CHOICE_LENGTH, MAX_POLL_NUM_CHOICES } from '../lib/constants'
 import TextareaAutosize from 'react-textarea-autosize'
+import { useState } from 'react'
+import FeeButton, { EditFeeButton } from './fee-button'
 
 export function PollForm ({ item, editThreshold }) {
   const router = useRouter()
   const client = useApolloClient()
+  const [hasImgLink, setHasImgLink] = useState()
 
   const [upsertPoll] = useMutation(
     gql`
@@ -36,16 +38,19 @@ export function PollForm ({ item, editThreshold }) {
     ...AdvPostSchema(client)
   })
 
+  const initialOptions = item?.poll?.options.map(i => i.option)
+
   return (
     <Form
       initial={{
         title: item?.title || '',
-        options: item?.options || ['', ''],
-        ...AdvPostInitial
+        text: item?.text || '',
+        options: initialOptions || ['', ''],
+        ...AdvPostInitial({ forward: item?.fwdUser?.name })
       }}
       schema={PollSchema}
       onSubmit={async ({ boost, title, options, ...values }) => {
-        const optionsFiltered = options.filter(word => word.trim().length > 0)
+        const optionsFiltered = options.slice(initialOptions?.length).filter(word => word.trim().length > 0)
         const { error } = await upsertPoll({
           variables: {
             id: item?.id,
@@ -77,20 +82,29 @@ export function PollForm ({ item, editThreshold }) {
         name='text'
         as={TextareaAutosize}
         minRows={2}
+        setHasImgLink={setHasImgLink}
       />
       <VariableInput
         label='choices'
         name='options'
-        max={5}
+        readOnlyLen={initialOptions?.length}
+        max={MAX_POLL_NUM_CHOICES}
         hint={editThreshold
           ? <div className='text-muted font-weight-bold'><Countdown date={editThreshold} /></div>
           : null}
       />
-      {!item && <AdvPostForm />}
-      <ActionTooltip>
-        <SubmitButton variant='secondary' className='mt-3'>{item ? 'save' : 'post'}</SubmitButton>
-      </ActionTooltip>
-
+      <AdvPostForm edit={!!item} />
+      <div className='mt-3'>
+        {item
+          ? <EditFeeButton
+              paidSats={item.meSats} hadImgLink={item.paidImgLink} hasImgLink={hasImgLink}
+              parentId={null} text='save' ChildButton={SubmitButton} variant='secondary'
+            />
+          : <FeeButton
+              baseFee={1} hasImgLink={hasImgLink} parentId={null} text='post'
+              ChildButton={SubmitButton} variant='secondary'
+            />}
+      </div>
     </Form>
   )
 }

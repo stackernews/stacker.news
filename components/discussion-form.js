@@ -7,7 +7,7 @@ import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial, AdvPostSchema } from './adv-post-form'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
 import { useState } from 'react'
-import FeeButton from './fee-button'
+import FeeButton, { EditFeeButton } from './fee-button'
 
 export function DiscussionForm ({
   item, editThreshold, titleLabel = 'title',
@@ -41,7 +41,7 @@ export function DiscussionForm ({
       initial={{
         title: item?.title || '',
         text: item?.text || '',
-        ...AdvPostInitial
+        ...AdvPostInitial({ forward: item?.fwdUser?.name })
       }}
       schema={DiscussionSchema}
       onSubmit={handleSubmit || (async ({ boost, ...values }) => {
@@ -77,10 +77,13 @@ export function DiscussionForm ({
           : null}
         setHasImgLink={setHasImgLink}
       />
-      {!item && adv && <AdvPostForm />}
+      {adv && <AdvPostForm edit={!!item} />}
       <div className='mt-3'>
         {item
-          ? <SubmitButton variant='secondary'>save</SubmitButton>
+          ? <EditFeeButton
+              paidSats={item.meSats} hadImgLink={item.paidImgLink} hasImgLink={hasImgLink}
+              parentId={null} text='save' ChildButton={SubmitButton} variant='secondary'
+            />
           : <FeeButton
               baseFee={1} hasImgLink={hasImgLink} parentId={null} text={buttonText}
               ChildButton={SubmitButton} variant='secondary'

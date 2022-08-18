@@ -4,7 +4,7 @@ import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
 import domino from 'domino'
-import { BOOST_MIN, ITEM_SPAM_INTERVAL } from '../../lib/constants'
+import { BOOST_MIN, ITEM_SPAM_INTERVAL, MAX_POLL_NUM_CHOICES } from '../../lib/constants'
 import { mdHas } from '../../lib/md'
 
 async function comments (models, id, sort) {
@@ -450,8 +450,7 @@ export default {
       data.url = ensureProtocol(data.url)
 
       if (id) {
-        const { forward, boost, ...remaining } = data
-        return await updateItem(parent, { id, data: remaining }, { me, models })
+        return await updateItem(parent, { id, data }, { me, models })
       } else {
         return await createItem(parent, data, { me, models })
       }
@@ -460,8 +459,7 @@ export default {
       const { id, ...data } = args
 
       if (id) {
-        const { forward, boost, ...remaining } = data
-        return await updateItem(parent, { id, data: remaining }, { me, models })
+        return await updateItem(parent, { id, data }, { me, models })
       } else {
         return await createItem(parent, data, { me, models })
       }
@@ -475,36 +473,42 @@ export default {
         throw new UserInputError(`boost must be at least ${BOOST_MIN}`, { argumentName: 'boost' })
       }
 
-      if (id) {
-        // TODO: this isn't ever called clientside, we edit like it's a discussion
+      let fwdUser
+      if (forward) {
+        fwdUser = await models.user.findUnique({ where: { name: forward } })
+        if (!fwdUser) {
+          throw new UserInputError('forward user does not exist', { argumentName: 'forward' })
+        }
+      }
 
-        const item = await models.item.update({
-          where: { id: Number(id) },
-          data: { title: title }
+      const hasImgLink = !!(text && mdHas(text, ['link', 'image']))
+
+      if (id) {
+        const optionCount = await models.pollOption.count({
+          where: {
+            itemId: Number(id)
+          }
         })
 
-        return item
-      } else {
-        let fwdUser
-        if (forward) {
-          fwdUser = await models.user.findUnique({ where: { name: forward } })
-          if (!fwdUser) {
-            throw new UserInputError('forward user does not exist', { argumentName: 'forward' })
-          }
+        if (options.length + optionCount > MAX_POLL_NUM_CHOICES) {
+          throw new UserInputError(`total choices must be <${MAX_POLL_NUM_CHOICES}`, { argumentName: 'options' })
         }
 
         const [item] = await serialize(models,
-          models.$queryRaw(`${SELECT} FROM create_poll($1, $2, $3, $4, $5, $6) AS "Item"`,
-            title, text, 1, Number(boost || 0), Number(me.id), options))
+          models.$queryRaw(`${SELECT} FROM update_poll($1, $2, $3, $4, $5, $6, $7) AS "Item"`,
+            Number(id), title, text, Number(boost || 0), options, Number(fwdUser?.id), hasImgLink))
 
-        if (fwdUser) {
-          await models.item.update({
-            where: { id: item.id },
-            data: {
-              fwdUserId: fwdUser.id
-            }
-          })
+        return item
+      } else {
+        if (options.length < 2 || options.length > MAX_POLL_NUM_CHOICES) {
+          throw new UserInputError(`choices must be >2 and <${MAX_POLL_NUM_CHOICES}`, { argumentName: 'options' })
         }
+
+        const [item] = await serialize(models,
+          models.$queryRaw(`${SELECT} FROM create_poll($1, $2, $3, $4, $5, $6, $7, $8, '${ITEM_SPAM_INTERVAL}') AS "Item"`,
+            title, text, 1, Number(boost || 0), Number(me.id), options, Number(fwdUser?.id), hasImgLink))
+
+        await createMentions(item, models)
 
         item.comments = []
         return item
@@ -847,26 +851,37 @@ export const createMentions = async (item, models) => {
   }
 }
 
-const updateItem = async (parent, { id, data }, { me, models }) => {
+export const updateItem = async (parent, { id, data: { title, url, text, boost, forward, parentId } }, { me, models }) => {
   // update iff this item belongs to me
   const old = await models.item.findUnique({ where: { id: Number(id) } })
   if (Number(old.userId) !== Number(me?.id)) {
     throw new AuthenticationError('item does not belong to you')
   }
 
-  // if it's not the FAQ and older than 10 minutes
-  if (old.id !== 349 && Date.now() > new Date(old.createdAt).getTime() + 10 * 60000) {
+  // if it's not the FAQ, not their bio, and older than 10 minutes
+  const user = await models.user.findUnique({ where: { id: me.id } })
+  if (old.id !== 349 && user.bioId !== id && Date.now() > new Date(old.createdAt).getTime() + 10 * 60000) {
     throw new UserInputError('item can no longer be editted')
   }
 
-  if (data?.text && !old.paidImgLink && mdHas(data.text, ['link', 'image'])) {
-    throw new UserInputError('adding links or images on edit is not allowed yet')
+  if (boost && boost < BOOST_MIN) {
+    throw new UserInputError(`boost must be at least ${BOOST_MIN}`, { argumentName: 'boost' })
   }
 
-  const item = await models.item.update({
-    where: { id: Number(id) },
-    data
-  })
+  let fwdUser
+  if (forward) {
+    fwdUser = await models.user.findUnique({ where: { name: forward } })
+    if (!fwdUser) {
+      throw new UserInputError('forward user does not exist', { argumentName: 'forward' })
+    }
+  }
+
+  const hasImgLink = !!(text && mdHas(text, ['link', 'image']))
+
+  const [item] = await serialize(models,
+    models.$queryRaw(
+      `${SELECT} FROM update_item($1, $2, $3, $4, $5, $6, $7) AS "Item"`,
+      Number(id), title, url, text, Number(boost || 0), Number(fwdUser?.id), hasImgLink))
 
   await createMentions(item, models)
 
@@ -934,7 +949,7 @@ export const SELECT =
   `SELECT "Item".id, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt", "Item".title,
   "Item".text, "Item".url, "Item"."userId", "Item"."fwdUserId", "Item"."parentId", "Item"."pinId", "Item"."maxBid",
   "Item".company, "Item".location, "Item".remote,
-  "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost", ltree2text("Item"."path") AS "path"`
+  "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost", "Item"."paidImgLink", ltree2text("Item"."path") AS "path"`
 
 function newTimedOrderByWeightedSats (num) {
   return `

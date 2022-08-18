@@ -1,6 +1,7 @@
 import { AuthenticationError, UserInputError } from 'apollo-server-errors'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
-import { createMentions, getItem, SELECT } from './item'
+import { mdHas } from '../../lib/md'
+import { createMentions, getItem, SELECT, updateItem } from './item'
 import serialize from './serial'
 
 export function topClause (within) {
@@ -188,21 +189,16 @@ export default {
 
       const user = await models.user.findUnique({ where: { id: me.id } })
 
-      let item
       if (user.bioId) {
-        item = await models.item.update({
-          where: { id: Number(user.bioId) },
-          data: {
-            text: bio
-          }
-        })
+        await updateItem(parent, { id: user.bioId, data: { text: bio, title: `@${user.name}'s bio` } }, { me, models })
       } else {
-        ([item] = await serialize(models,
-          models.$queryRaw(`${SELECT} FROM create_bio($1, $2, $3) AS "Item"`,
-            `@${user.name}'s bio`, bio, Number(me.id))))
-      }
+        const hasImgLink = !!(bio && mdHas(bio, ['link', 'image']))
 
-      await createMentions(item, models)
+        const [item] = await serialize(models,
+          models.$queryRaw(`${SELECT} FROM create_bio($1, $2, $3, $4) AS "Item"`,
+            `@${user.name}'s bio`, bio, Number(me.id), hasImgLink))
+        await createMentions(item, models)
+      }
 
       return await models.user.findUnique({ where: { id: me.id } })
     },

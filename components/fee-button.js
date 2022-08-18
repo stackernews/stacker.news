@@ -62,3 +62,58 @@ export default function FeeButton ({ parentId, hasImgLink, baseFee, ChildButton,
     </div>
   )
 }
+
+function EditReceipt ({ cost, paidSats, addImgLink, boost, parentId }) {
+  return (
+    <Table className={styles.receipt} borderless size='sm'>
+      <tbody>
+        {addImgLink &&
+          <>
+            <tr>
+              <td>{paidSats} sats</td>
+              <td align='right' className='font-weight-light'>{parentId ? 'reply' : 'post'} fee</td>
+            </tr>
+            <tr>
+              <td>x 10</td>
+              <td align='right' className='font-weight-light'>image/link fee</td>
+            </tr>
+            <tr>
+              <td>- {paidSats} sats</td>
+              <td align='right' className='font-weight-light'>already paid</td>
+            </tr>
+          </>}
+        {boost > 0 &&
+          <tr>
+            <td>+ {boost} sats</td>
+            <td className='font-weight-light' align='right'>boost</td>
+          </tr>}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td className='font-weight-bold'>{cost} sats</td>
+          <td align='right' className='font-weight-light'>total fee</td>
+        </tr>
+      </tfoot>
+    </Table>
+  )
+}
+
+export function EditFeeButton ({ paidSats, hadImgLink, hasImgLink, ChildButton, variant, text, alwaysShow, parentId }) {
+  const formik = useFormikContext()
+  const boost = formik?.values?.boost || 0
+  const addImgLink = hasImgLink && !hadImgLink
+  const cost = (addImgLink ? paidSats * 9 : 0) + Number(boost)
+
+  const show = alwaysShow || !formik?.isSubmitting
+  return (
+    <div className='d-flex align-items-center'>
+      <ActionTooltip overlayText={`${cost} sats`}>
+        <ChildButton variant={variant}>{text}{cost > 0 && show && <small> {cost} sats</small>}</ChildButton>
+      </ActionTooltip>
+      {cost > 0 && show &&
+        <Info>
+          <EditReceipt paidSats={paidSats} addImgLink={addImgLink} cost={cost} parentId={parentId} boost={boost} />
+        </Info>}
+    </div>
+  )
+}

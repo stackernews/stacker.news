@@ -241,6 +241,7 @@ function AuthMethods ({ methods }) {
               placeholder={methods.email}
               groupClassName='mb-0'
               readOnly
+              noForm
             />
             <Button
               className='ml-2' variant='secondary' onClick={

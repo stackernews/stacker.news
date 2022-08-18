@@ -13,7 +13,7 @@ import { useMe } from '../../components/me'
 import { USER_FULL } from '../../fragments/users'
 import { ITEM_FIELDS } from '../../fragments/items'
 import { getGetServerSideProps } from '../../api/ssrApollo'
-import FeeButton from '../../components/fee-button'
+import FeeButton, { EditFeeButton } from '../../components/fee-button'
 
 export const getServerSideProps = getGetServerSideProps(USER_FULL, null,
   data => !data.user)
@@ -74,7 +74,10 @@ export function BioForm ({ handleSuccess, bio }) {
         />
         <div className='mt-3'>
           {bio?.text
-            ? <SubmitButton variant='secondary'>save</SubmitButton>
+            ? <EditFeeButton
+                paidSats={bio?.meSats} hadImgLink={bio?.paidImgLink} hasImgLink={hasImgLink}
+                parentId={null} text='save' ChildButton={SubmitButton} variant='secondary'
+              />
             : <FeeButton
                 baseFee={1} hasImgLink={hasImgLink} parentId={null} text='create'
                 ChildButton={SubmitButton} variant='secondary'

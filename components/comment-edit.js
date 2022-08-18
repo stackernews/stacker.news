@@ -3,17 +3,22 @@ import * as Yup from 'yup'
 import { gql, useMutation } from '@apollo/client'
 import styles from './reply.module.css'
 import TextareaAutosize from 'react-textarea-autosize'
+import { useState } from 'react'
+import { EditFeeButton } from './fee-button'
 
 export const CommentSchema = Yup.object({
   text: Yup.string().required('required').trim()
 })
 
 export default function CommentEdit ({ comment, editThreshold, onSuccess, onCancel }) {
+  const [hasImgLink, setHasImgLink] = useState()
+
   const [updateComment] = useMutation(
     gql`
       mutation updateComment($id: ID! $text: String!) {
         updateComment(id: $id, text: $text) {
           text
+          paidImgLink
         }
       }`, {
       update (cache, { data: { updateComment } }) {
@@ -22,6 +27,9 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
           fields: {
             text () {
               return updateComment.text
+            },
+            paidImgLink () {
+              return updateComment.paidImgLink
             }
           }
         })
@@ -51,9 +59,13 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
           as={TextareaAutosize}
           minRows={6}
           autoFocus
+          setHasImgLink={setHasImgLink}
           required
         />
-        <SubmitButton variant='secondary' className='mt-1'>save</SubmitButton>
+        <EditFeeButton
+          paidSats={comment.meSats} hadImgLink={comment.paidImgLink} hasImgLink={hasImgLink}
+          parentId={comment.parentId} text='save' ChildButton={SubmitButton} variant='secondary'
+        />
       </Form>
     </div>
   )

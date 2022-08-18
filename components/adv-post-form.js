@@ -9,7 +9,14 @@ import Info from './info'
 export function AdvPostSchema (client) {
   return {
     boost: Yup.number().typeError('must be a number')
-      .min(BOOST_MIN, `must be blank or at least ${BOOST_MIN}`).integer('must be whole'),
+      .min(BOOST_MIN, `must be blank or at least ${BOOST_MIN}`).integer('must be whole').test({
+        name: 'boost',
+        test: async boost => {
+          if (!boost || boost % BOOST_MIN === 0) return true
+          return false
+        },
+        message: `must be divisble be ${BOOST_MIN}`
+      }),
     forward: Yup.string()
       .test({
         name: 'name',
@@ -23,12 +30,14 @@ export function AdvPostSchema (client) {
   }
 }
 
-export const AdvPostInitial = {
-  boost: '',
-  forward: ''
+export function AdvPostInitial ({ forward }) {
+  return {
+    boost: '',
+    forward: forward || ''
+  }
 }
 
-export default function AdvPostForm () {
+export default function AdvPostForm ({ edit }) {
   return (
     <AccordianItem
       header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>options</div>}
@@ -36,7 +45,7 @@ export default function AdvPostForm () {
         <>
           <Input
             label={
-              <div className='d-flex align-items-center'>boost
+              <div className='d-flex align-items-center'>{edit ? 'add boost' : 'boost'}
                 <Info>
                   <ol className='font-weight-bold'>
                     <li>Boost ranks posts higher temporarily based on the amount</li>

@@ -14,6 +14,7 @@ import { Checkbox, Form } from '../components/form'
 import { useRouter } from 'next/router'
 import Item from '../components/item'
 import Comment from '../components/comment'
+import React from 'react'
 
 export const getServerSideProps = getGetServerSideProps(WALLET_HISTORY)
 
@@ -142,6 +143,8 @@ export default function Satistics ({ data: { me, walletHistory: { facts, cursor 
       case 'withdrawal':
       case 'invoice':
         return `/${fact.type}s/${fact.factId}`
+      case 'earn':
+        return
       default:
         return `/items/${fact.factId}`
     }
@@ -200,17 +203,22 @@ export default function Satistics ({ data: { me, walletHistory: { facts, cursor 
             </tr>
           </thead>
           <tbody>
-            {facts.map((f, i) => (
-              <Link href={href(f)} key={f.id}>
-                <tr className={styles.row}>
-                  <td className={`${styles.type} ${satusClass(f.status)}`}>{f.type}</td>
-                  <td className={styles.description}>
-                    <Detail fact={f} />
-                  </td>
-                  <td className={`${styles.sats} ${satusClass(f.status)}`}>{f.msats / 1000}</td>
-                </tr>
-              </Link>
-            ))}
+            {facts.map((f, i) => {
+              const uri = href(f)
+              const Wrapper = uri ? Link : React.Fragment
+
+              return (
+                <Wrapper href={uri} key={f.id}>
+                  <tr className={styles.row}>
+                    <td className={`${styles.type} ${satusClass(f.status)}`}>{f.type}</td>
+                    <td className={styles.description}>
+                      <Detail fact={f} />
+                    </td>
+                    <td className={`${styles.sats} ${satusClass(f.status)}`}>{Math.floor(f.msats / 1000)}</td>
+                  </tr>
+                </Wrapper>
+              )
+            })}
           </tbody>
         </Table>
         <MoreFooter cursor={cursor} fetchMore={fetchMore} Skeleton={SatisticsSkeleton} />

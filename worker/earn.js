@@ -34,7 +34,7 @@ function earn ({ models }) {
     const earners = await models.$queryRaw(`
       WITH item_ratios AS (
         SELECT *,
-            "weightedVotes"/(sum("weightedVotes") OVER (PARTITION BY "parentId" IS NULL)) AS ratio
+            "weightedVotes"/coalesce(NULLIF(sum("weightedVotes") OVER (PARTITION BY "parentId" IS NULL),0), ${TOP_ITEMS}) AS ratio
         FROM (
             SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY "parentId" IS NULL ORDER BY "weightedVotes" desc) AS r

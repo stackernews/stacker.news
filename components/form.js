@@ -12,6 +12,7 @@ import styles from './form.module.css'
 import Text from '../components/text'
 import AddIcon from '../svgs/add-fill.svg'
 import { mdHas } from '../lib/md'
+import CloseIcon from '../svgs/close-line.svg'
 
 export function SubmitButton ({
   children, variant, value, onClick, ...props
@@ -129,7 +130,7 @@ function FormGroup ({ className, label, children }) {
 
 function InputInner ({
   prepend, append, hint, showValid, onChange, overrideValue,
-  innerRef, storageKeyPrefix, noForm, ...props
+  innerRef, storageKeyPrefix, noForm, clear, ...props
 }) {
   const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)
   const formik = noForm ? null : useFormikContext()
@@ -151,6 +152,8 @@ function InputInner ({
       }
     }
   }, [overrideValue])
+
+  const invalid = meta.touched && meta.error
 
   return (
     <>
@@ -179,11 +182,23 @@ function InputInner ({
               onChange(formik, e)
             }
           }}
-          isInvalid={meta.touched && meta.error}
+          isInvalid={invalid}
           isValid={showValid && meta.initialValue !== meta.value && meta.touched && !meta.error}
         />
-        {append && (
+        {(append || (clear && field.value)) && (
           <InputGroup.Append>
+            {(clear && field.value) &&
+              <Button
+                variant={null}
+                onClick={() => {
+                  helpers.setValue('')
+                  if (storageKey) {
+                    localStorage.removeItem(storageKey)
+                  }
+                }}
+                className={`${styles.clearButton} ${invalid ? styles.isInvalid : ''}`}
+              ><CloseIcon className='fill-grey' height={20} width={20} />
+              </Button>}
             {append}
           </InputGroup.Append>
         )}

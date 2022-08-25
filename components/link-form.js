@@ -78,12 +78,14 @@ export function LinkForm ({ item, editThreshold }) {
         name='title'
         overrideValue={data?.pageTitle}
         required
+        clear
       />
       <Input
         label='url'
         name='url'
         required
         autoFocus
+        clear
         hint={editThreshold
           ? <div className='text-muted font-weight-bold'><Countdown date={editThreshold} /></div>
           : null}

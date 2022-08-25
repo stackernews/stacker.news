@@ -65,6 +65,7 @@ export function DiscussionForm ({
         name='title'
         required
         autoFocus
+        clear
       />
       <MarkdownInput
         topLevel

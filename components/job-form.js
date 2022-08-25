@@ -71,7 +71,7 @@ export default function JobForm ({ item, sub }) {
     text: Yup.string().required('required').trim(),
     url: Yup.string()
       .or([Yup.string().email(), Yup.string().url()], 'invalid url or email')
-      .required('Required'),
+      .required('required'),
     maxBid: Yup.number('must be number')
       .integer('must be whole').min(sub.baseCost, `must be at least ${sub.baseCost}`)
       .required('required'),
@@ -153,17 +153,20 @@ export default function JobForm ({ item, sub }) {
           name='title'
           required
           autoFocus
+          clear
         />
         <Input
           label='company'
           name='company'
           required
+          clear
         />
         <BForm.Row className='mr-0'>
           <Col>
             <Input
               label='location'
               name='location'
+              clear
             />
           </Col>
           <Checkbox
@@ -183,6 +186,7 @@ export default function JobForm ({ item, sub }) {
           label={<>how to apply <small className='text-muted ml-2'>url or email address</small></>}
           name='url'
           required
+          clear
         />
         <Input
           label={

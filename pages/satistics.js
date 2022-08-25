@@ -205,8 +205,7 @@ export default function Satistics ({ data: { me, walletHistory: { facts, cursor 
           <tbody>
             {facts.map((f, i) => {
               const uri = href(f)
-              const Wrapper = uri ? Link : React.Fragment
-
+              const Wrapper = uri ? Link : ({ href, ...props }) => <React.Fragment {...props} />
               return (
                 <Wrapper href={uri} key={f.id}>
                   <tr className={styles.row}>

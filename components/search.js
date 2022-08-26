@@ -50,7 +50,8 @@ export default function Search ({ sub }) {
                   required
                   autoFocus={showSearch && !atBottom}
                   groupClassName='mr-3 mb-0 flex-grow-1'
-                  className='w-100'
+                  className='flex-grow-1'
+                  clear
                   onChange={async (formik, e) => {
                     setSearching(true)
                     setQ(e.target.value?.trim())

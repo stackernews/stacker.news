@@ -41,6 +41,7 @@ export function DiscussionForm ({
       initial={{
         title: item?.title || '',
         text: item?.text || '',
+        suggest: '',
         ...AdvPostInitial({ forward: item?.fwdUser?.name })
       }}
       schema={DiscussionSchema}

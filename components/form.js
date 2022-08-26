@@ -6,13 +6,15 @@ import { Formik, Form as FormikForm, useFormikContext, useField, FieldArray } fr
 import React, { useEffect, useRef, useState } from 'react'
 import copy from 'clipboard-copy'
 import Thumb from '../svgs/thumb-up-fill.svg'
-import { Col, Nav } from 'react-bootstrap'
+import { Col, Dropdown, Nav } from 'react-bootstrap'
 import Markdown from '../svgs/markdown-line.svg'
 import styles from './form.module.css'
 import Text from '../components/text'
 import AddIcon from '../svgs/add-fill.svg'
 import { mdHas } from '../lib/md'
 import CloseIcon from '../svgs/close-line.svg'
+import { useLazyQuery } from '@apollo/client'
+import { USER_SEARCH } from '../fragments/users'
 
 export function SubmitButton ({
   children, variant, value, onClick, ...props
@@ -130,7 +132,7 @@ function FormGroup ({ className, label, children }) {
 
 function InputInner ({
   prepend, append, hint, showValid, onChange, overrideValue,
-  innerRef, storageKeyPrefix, noForm, clear, ...props
+  innerRef, storageKeyPrefix, noForm, clear, onKeyDown, ...props
 }) {
   const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)
   const formik = noForm ? null : useFormikContext()
@@ -168,6 +170,7 @@ function InputInner ({
             if (e.keyCode === 13 && (e.metaKey || e.ctrlKey)) {
               formik?.submitForm()
             }
+            if (onKeyDown) onKeyDown(e)
           }}
           ref={innerRef}
           {...field} {...props}
@@ -212,6 +215,76 @@ function InputInner ({
         </BootstrapForm.Text>
       )}
     </>
+  )
+}
+
+export function InputUserSuggest ({ label, groupClassName, ...props }) {
+  const [getSuggestions] = useLazyQuery(USER_SEARCH, {
+    fetchPolicy: 'network-only',
+    onCompleted: data => {
+      setSuggestions({ array: data.searchUsers, index: 0 })
+    }
+  })
+
+  const INITIAL_SUGGESTIONS = { array: [], index: 0 }
+  const [suggestions, setSuggestions] = useState(INITIAL_SUGGESTIONS)
+  const [ovalue, setOValue] = useState()
+
+  return (
+    <FormGroup label={label} className={groupClassName}>
+      <InputInner
+        {...props}
+        autoComplete='off'
+        onChange={(_, e) => getSuggestions({ variables: { name: e.target.value } })}
+        overrideValue={ovalue}
+        onKeyDown={(e) => {
+          switch (e.code) {
+            case 'ArrowUp':
+              e.preventDefault()
+              setSuggestions(
+                {
+                  ...suggestions,
+                  index: Math.max(suggestions.index - 1, 0)
+                })
+              break
+            case 'ArrowDown':
+              e.preventDefault()
+              setSuggestions(
+                {
+                  ...suggestions,
+                  index: Math.min(suggestions.index + 1, suggestions.array.length - 1)
+                })
+              break
+            case 'Enter':
+              e.preventDefault()
+              setOValue(suggestions.array[suggestions.index].name)
+              setSuggestions(INITIAL_SUGGESTIONS)
+              break
+            case 'Escape':
+              e.preventDefault()
+              setSuggestions(INITIAL_SUGGESTIONS)
+              break
+            default:
+              break
+          }
+        }}
+      />
+      <Dropdown show={suggestions.array.length > 0}>
+        <Dropdown.Menu className={styles.suggestionsMenu}>
+          {suggestions.array.map((v, i) =>
+            <Dropdown.Item
+              key={v.name}
+              active={suggestions.index === i}
+              onClick={() => {
+                setOValue(v.name)
+                setSuggestions(INITIAL_SUGGESTIONS)
+              }}
+            >
+              {v.name}
+            </Dropdown.Item>)}
+        </Dropdown.Menu>
+      </Dropdown>
+    </FormGroup>
   )
 }
 

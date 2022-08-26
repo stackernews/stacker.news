@@ -134,6 +134,10 @@ export default {
         cursor: users.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
         users
       }
+    },
+    searchUsers: async (parent, { name }, { models }) => {
+      return await models.$queryRaw`
+        SELECT * FROM users where id > 615 AND SIMILARITY(name, ${name}) > .1 ORDER BY SIMILARITY(name, ${name}) DESC LIMIT 5`
     }
   },
 

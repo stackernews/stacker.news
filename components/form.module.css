@@ -23,3 +23,9 @@
 .clearButton.isInvalid {
     border-color: #c03221;
 }
+
+/* https://github.com/react-bootstrap/react-bootstrap/issues/5475 */
+.suggestionsMenu {
+    opacity: 1 !important;
+    pointer-events: unset !important;
+}

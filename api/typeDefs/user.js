@@ -8,6 +8,7 @@ export default gql`
     users: [User!]
     nameAvailable(name: String!): Boolean!
     topUsers(cursor: String, within: String!, userType: String!): TopUsers
+    searchUsers(name: String!): [User!]!
   }
 
   type Users {

@@ -89,6 +89,14 @@ gql`
   }
 `
 
+export const USER_SEARCH =
+gql`
+  query searchUsers($name: String!) {
+    searchUsers(name: $name) {
+      name
+    }
+  }`
+
 export const USER_FIELDS = gql`
   ${ITEM_FIELDS}
   fragment UserFields on User {

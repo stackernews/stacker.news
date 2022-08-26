@@ -1,6 +1,6 @@
 import AccordianItem from './accordian-item'
 import * as Yup from 'yup'
-import { Input } from './form'
+import { Input, InputUserSuggest } from './form'
 import { InputGroup } from 'react-bootstrap'
 import { BOOST_MIN } from '../lib/constants'
 import { NAME_QUERY } from '../fragments/users'
@@ -69,7 +69,7 @@ export default function AdvPostForm ({ edit }) {
             hint={<span className='text-muted'>ranks posts higher temporarily based on the amount</span>}
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
           />
-          <Input
+          <InputUserSuggest
             label={<>forward sats to</>}
             name='forward'
             hint={<span className='text-muted'>100% of sats will be sent to this user</span>}

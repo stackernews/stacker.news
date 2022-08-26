@@ -4,7 +4,7 @@ import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
 import domino from 'domino'
-import { BOOST_MIN, ITEM_SPAM_INTERVAL, MAX_POLL_NUM_CHOICES } from '../../lib/constants'
+import { BOOST_MIN, ITEM_SPAM_INTERVAL, MAX_POLL_NUM_CHOICES, MAX_TITLE_LENGTH } from '../../lib/constants'
 import { mdHas } from '../../lib/md'
 
 async function comments (models, id, sort) {
@@ -877,6 +877,10 @@ export const updateItem = async (parent, { id, data: { title, url, text, boost, 
     throw new UserInputError(`boost must be at least ${BOOST_MIN}`, { argumentName: 'boost' })
   }
 
+  if (title.length > MAX_TITLE_LENGTH) {
+    throw new UserInputError('title too long')
+  }
+
   let fwdUser
   if (forward) {
     fwdUser = await models.user.findUnique({ where: { name: forward } })
@@ -904,6 +908,10 @@ const createItem = async (parent, { title, url, text, boost, forward, parentId }
 
   if (boost && boost < BOOST_MIN) {
     throw new UserInputError(`boost must be at least ${BOOST_MIN}`, { argumentName: 'boost' })
+  }
+
+  if (title.length > MAX_TITLE_LENGTH) {
+    throw new UserInputError('title too long')
   }
 
   let fwdUser

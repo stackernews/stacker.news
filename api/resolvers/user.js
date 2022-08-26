@@ -143,6 +143,14 @@ export default {
         throw new AuthenticationError('you must be logged in')
       }
 
+      if (!/^[\w_]+$/.test(name)) {
+        throw new UserInputError('only letters, numbers, and _')
+      }
+
+      if (name.length > 32) {
+        throw new UserInputError('too long')
+      }
+
       try {
         await models.user.update({ where: { id: me.id }, data: { name } })
       } catch (error) {

@@ -32,6 +32,9 @@ async function serialize (models, call) {
       if (error.message.includes('40001')) {
         throw new Error('wallet balance serialization failure - retry again')
       }
+      if (error.message.includes('23514')) {
+        bail(new Error('constraint failure'))
+      }
       bail(error)
     }
   }, {

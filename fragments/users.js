@@ -24,6 +24,7 @@ export const ME = gql`
       noteDeposits
       noteInvites
       noteJobIndicator
+      hideInvoiceDesc
       lastCheckedJobs
     }
   }`
@@ -48,6 +49,7 @@ export const ME_SSR = gql`
       noteDeposits
       noteInvites
       noteJobIndicator
+      hideInvoiceDesc
       lastCheckedJobs
     }
   }`
@@ -63,6 +65,7 @@ export const SETTINGS = gql`
     noteDeposits
     noteInvites
     noteJobIndicator
+    hideInvoiceDesc
     authMethods {
       lightning
       email

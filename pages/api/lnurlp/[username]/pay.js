@@ -20,7 +20,7 @@ export default async ({ query: { username, amount } }, res) => {
   const descriptionHash = lnurlPayDescriptionHashForUser(username)
   try {
     const invoice = await createInvoice({
-      description,
+      description: user.hideInvoiceDesc ? undefined : description,
       description_hash: descriptionHash,
       lnd,
       mtokens: amount,

@@ -56,6 +56,9 @@ model User {
   noteInvites        Boolean @default(true)
   noteJobIndicator   Boolean @default(true)
 
+  // privacy settings
+  hideInvoiceDesc Boolean @default(false)
+
   Earn     Earn[]
   Upload   Upload[]   @relation(name: "Uploads")
   PollVote PollVote[]

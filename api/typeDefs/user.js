@@ -30,7 +30,7 @@ export default gql`
     setName(name: String!): Boolean
     setSettings(tipDefault: Int!, noteItemSats: Boolean!, noteEarning: Boolean!,
       noteAllDescendants: Boolean!, noteMentions: Boolean!, noteDeposits: Boolean!,
-      noteInvites: Boolean!, noteJobIndicator: Boolean!): Boolean
+      noteInvites: Boolean!, noteJobIndicator: Boolean!, hideInvoiceDesc: Boolean!): Boolean
     setPhoto(photoId: ID!): Int!
     upsertBio(bio: String!): User!
     setWalkthrough(tipPopover: Boolean, upvotePopover: Boolean): Boolean
@@ -70,6 +70,7 @@ export default gql`
     noteDeposits: Boolean!
     noteInvites: Boolean!
     noteJobIndicator: Boolean!
+    hideInvoiceDesc: Boolean!
     lastCheckedJobs: String
     authMethods: AuthMethods!
   }

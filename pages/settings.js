@@ -11,6 +11,7 @@ import ModalButton from '../components/modal-button'
 import { LightningAuth } from '../components/lightning-auth'
 import { SETTINGS } from '../fragments/users'
 import { useRouter } from 'next/router'
+import Info from '../components/info'
 
 export const getServerSideProps = getGetServerSideProps(SETTINGS)
 
@@ -31,11 +32,11 @@ export default function Settings ({ data: { settings } }) {
     gql`
       mutation setSettings($tipDefault: Int!, $noteItemSats: Boolean!, $noteEarning: Boolean!,
         $noteAllDescendants: Boolean!, $noteMentions: Boolean!, $noteDeposits: Boolean!,
-        $noteInvites: Boolean!, $noteJobIndicator: Boolean!) {
+        $noteInvites: Boolean!, $noteJobIndicator: Boolean!, $hideInvoiceDesc: Boolean!) {
         setSettings(tipDefault: $tipDefault, noteItemSats: $noteItemSats,
           noteEarning: $noteEarning, noteAllDescendants: $noteAllDescendants,
           noteMentions: $noteMentions, noteDeposits: $noteDeposits, noteInvites: $noteInvites,
-          noteJobIndicator: $noteJobIndicator)
+          noteJobIndicator: $noteJobIndicator, hideInvoiceDesc: $hideInvoiceDesc)
       }`
   )
 
@@ -57,7 +58,8 @@ export default function Settings ({ data: { settings } }) {
             noteMentions: settings?.noteMentions,
             noteDeposits: settings?.noteDeposits,
             noteInvites: settings?.noteInvites,
-            noteJobIndicator: settings?.noteJobIndicator
+            noteJobIndicator: settings?.noteJobIndicator,
+            hideInvoiceDesc: settings?.hideInvoiceDesc
           }}
           schema={SettingsSchema}
           onSubmit={async ({ tipDefault, ...values }) => {
@@ -107,6 +109,25 @@ export default function Settings ({ data: { settings } }) {
           <Checkbox
             label='there is a new job'
             name='noteJobIndicator'
+          />
+          <div className='form-label'>privacy</div>
+          <Checkbox
+            label={
+              <>hide invoice descriptions
+                <Info>
+                  <ul className='font-weight-bold'>
+                    <li>Use this if you don't want funding sources to be linkable to your SN identity.</li>
+                    <li>It makes your invoice descriptions blank.</li>
+                    <li>This only applies invoices you create
+                      <ul>
+                        <li>lnurl-pay or lightning addresses still reference your nym</li>
+                      </ul>
+                    </li>
+                  </ul>
+                </Info>
+              </>
+            }
+            name='hideInvoiceDesc'
           />
           <div className='d-flex'>
             <SubmitButton variant='info' className='ml-auto mt-1 px-4'>save</SubmitButton>

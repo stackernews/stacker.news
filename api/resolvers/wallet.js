@@ -186,7 +186,7 @@ export default {
       const description = `${amount} sats for @${user.name} on stacker.news`
       try {
         const invoice = await createInvoice({
-          description,
+          description: user.hideInvoiceDesc ? undefined : description,
           lnd,
           tokens: amount,
           expires_at: expiresAt

@@ -29,11 +29,17 @@ async function serialize (models, call) {
       if (error.message.includes('SN_REVOKED_OR_EXHAUSTED')) {
         bail(new Error('faucet has been revoked or is exhausted'))
       }
-      if (error.message.includes('40001')) {
-        throw new Error('wallet balance serialization failure - retry again')
-      }
       if (error.message.includes('23514')) {
         bail(new Error('constraint failure'))
+      }
+      if (error.message.includes('SN_INV_PENDING_LIMIT')) {
+        bail(new Error('too many pending invoices'))
+      }
+      if (error.message.includes('SN_INV_EXCEED_BALANCE')) {
+        bail(new Error('pending invoices must not cause balance to exceed 1m sats'))
+      }
+      if (error.message.includes('40001')) {
+        throw new Error('wallet balance serialization failure - retry again')
       }
       bail(error)
     }

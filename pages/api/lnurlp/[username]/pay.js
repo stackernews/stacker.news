@@ -3,7 +3,6 @@ import lnd from '../../../../api/lnd'
 import { createInvoice } from 'ln-service'
 import { lnurlPayDescriptionHashForUser } from '../../../../lib/lnurl'
 import serialize from '../../../../api/resolvers/serial'
-import { belowInvoiceLimit } from '../../../../api/resolvers/wallet'
 
 export default async ({ query: { username, amount } }, res) => {
   const user = await models.user.findUnique({ where: { name: username } })
@@ -13,10 +12,6 @@ export default async ({ query: { username, amount } }, res) => {
 
   if (!amount || amount < 1000) {
     return res.status(400).json({ status: 'ERROR', reason: 'amount must be >=1000 msats' })
-  }
-
-  if (!await belowInvoiceLimit(models, user.id)) {
-    return res.status(400).json({ status: 'ERROR', reason: 'too many pending invoices' })
   }
 
   // generate invoice
@@ -42,6 +37,6 @@ export default async ({ query: { username, amount } }, res) => {
     })
   } catch (error) {
     console.log(error)
-    res.status(400).json({ status: 'ERROR', reason: 'failed to create invoice' })
+    res.status(400).json({ status: 'ERROR', reason: error.message })
   }
 }

@@ -34,7 +34,7 @@ const COLORS = {
     grey: '#707070',
     link: '#007cbe',
     linkHover: '#004a72',
-    linkVisited: '#7acaf5'
+    linkVisited: '#537587'
   },
   dark: {
     body: '#000000',
@@ -53,7 +53,7 @@ const COLORS = {
     grey: '#969696',
     link: '#2e99d1',
     linkHover: '#007cbe',
-    linkVisited: '#066ba3'
+    linkVisited: '#56798E'
   }
 }
 

@@ -4,6 +4,10 @@
     max-width: 100%;
 }
 
+a.title:visited {
+    color: var(--theme-grey) !important;
+}
+
 .upvote {
     margin-top: 3px;
 }

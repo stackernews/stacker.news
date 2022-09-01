@@ -109,7 +109,7 @@ export default function Comment ({
         <div className={`${itemStyles.hunk} ${styles.hunk}`}>
           <div className='d-flex align-items-center'>
             <div className={`${itemStyles.other} ${styles.other}`}>
-              <span title={`from ${item.upvotes} users (${item.meSats} from me)`}>{item.sats} sats</span>
+              <span title={`from ${item.upvotes} users ${item.mine ? `\\ ${item.meSats} sats to post` : `(${item.meSats} sats from me)`}`}>{item.sats} sats</span>
               <span> \ </span>
               {item.boost > 0 &&
                 <>
@@ -186,7 +186,7 @@ export default function Comment ({
           <div className={`${styles.children}`}>
             {!noReply &&
               <Reply
-                depth={depth + 1} parentId={item.id} meComments={item.meComments} replyOpen={replyOpen}
+                depth={depth + 1} parentId={item.id} replyOpen={replyOpen}
               />}
             {children}
             <div className={`${styles.comments} ml-sm-1 ml-md-3`}>

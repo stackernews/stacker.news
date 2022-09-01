@@ -21,7 +21,7 @@ export function ReplyOnAnotherPage ({ parentId }) {
   )
 }
 
-export default function Reply ({ parentId, meComments, onSuccess, replyOpen }) {
+export default function Reply ({ parentId, onSuccess, replyOpen }) {
   const [reply, setReply] = useState(replyOpen)
   const me = useMe()
   const [hasImgLink, setHasImgLink] = useState()
@@ -55,17 +55,12 @@ export default function Reply ({ parentId, meComments, onSuccess, replyOpen }) {
             },
             ncomments (existingNComments = 0) {
               return existingNComments + 1
-            },
-            meComments (existingMeComments = 0) {
-              return existingMeComments + 1
             }
           }
         })
       }
     }
   )
-
-  // const cost = me?.freeComments ? 0 : Math.pow(10, meComments)
 
   return (
     <div>

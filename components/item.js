@@ -73,7 +73,7 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
           <div className={`${styles.other}`}>
             {!item.position &&
               <>
-                <span title={`from ${item.upvotes} users (${item.meSats} sats from me)`}>{item.sats} sats</span>
+                <span title={`from ${item.upvotes} users ${item.mine ? `\\ ${item.meSats} sats to post` : `(${item.meSats} sats from me)`} `}>{item.sats} sats</span>
                 <span> \ </span>
               </>}
             {item.boost > 0 &&

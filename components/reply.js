@@ -21,10 +21,11 @@ export function ReplyOnAnotherPage ({ parentId }) {
   )
 }
 
-export default function Reply ({ parentId, onSuccess, replyOpen }) {
+export default function Reply ({ item, onSuccess, replyOpen }) {
   const [reply, setReply] = useState(replyOpen)
   const me = useMe()
   const [hasImgLink, setHasImgLink] = useState()
+  const parentId = item.id
 
   useEffect(() => {
     setReply(replyOpen || !!localStorage.getItem('reply-' + parentId + '-' + 'text'))
@@ -52,11 +53,20 @@ export default function Reply ({ parentId, onSuccess, replyOpen }) {
                 fragmentName: 'CommentsRecursive'
               })
               return [newCommentRef, ...existingCommentRefs]
-            },
-            ncomments (existingNComments = 0) {
-              return existingNComments + 1
             }
           }
+        })
+
+        // update all ancestors
+        item.path.split('.').forEach(id => {
+          cache.modify({
+            id: `Item:${id}`,
+            fields: {
+              ncomments (existingNComments = 0) {
+                return existingNComments + 1
+              }
+            }
+          })
         })
       }
     }

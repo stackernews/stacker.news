@@ -135,6 +135,19 @@ export default function UpVote ({ item, className }) {
             }
           }
         })
+
+        // update all ancestors
+        item.path.split('.').forEach(id => {
+          if (Number(id) === Number(item.id)) return
+          cache.modify({
+            id: `Item:${id}`,
+            fields: {
+              commentSats (existingCommentSats = 0) {
+                return existingCommentSats + sats
+              }
+            }
+          })
+        })
       }
     }
   )

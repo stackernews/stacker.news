@@ -22,6 +22,8 @@ export const ITEM_FIELDS = gql`
     path
     meSats
     ncomments
+    commentSats
+    lastCommentAt
     maxBid
     company
     location

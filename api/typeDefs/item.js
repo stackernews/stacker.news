@@ -74,6 +74,8 @@ export default gql`
     mine: Boolean!
     boost: Int!
     sats: Int!
+    commentSats: Int!
+    lastCommentAt: String
     upvotes: Int!
     meSats: Int!
     paidImgLink: Boolean

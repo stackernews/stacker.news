@@ -72,7 +72,8 @@ export default {
     itemRepetition: async (parent, { parentId }, { me, models }) => {
       if (!me) return 0
       // how many of the parents starting at parentId belong to me
-      const [{ item_spam: count }] = await models.$queryRaw(`SELECT item_spam($1, $2, '${ITEM_SPAM_INTERVAL}')`, Number(parentId), Number(me.id))
+      const [{ item_spam: count }] = await models.$queryRaw(`SELECT item_spam($1, $2, '${ITEM_SPAM_INTERVAL}')`,
+        Number(parentId), Number(me.id))
 
       return count
     },
@@ -709,36 +710,11 @@ export default {
       }
       return await models.user.findUnique({ where: { id: item.fwdUserId } })
     },
-    ncomments: async (item, args, { models }) => {
-      const [{ count }] = await models.$queryRaw`
-        SELECT count(*)
-        FROM "Item"
-        WHERE path <@ text2ltree(${item.path}) AND id != ${Number(item.id)}`
-      return count || 0
-    },
     comments: async (item, args, { models }) => {
       if (item.comments) {
         return item.comments
       }
       return comments(models, item.id, 'hot')
-    },
-    sats: async (item, args, { models }) => {
-      const { sum: { sats } } = await models.itemAct.aggregate({
-        sum: {
-          sats: true
-        },
-        where: {
-          itemId: Number(item.id),
-          userId: {
-            not: Number(item.userId)
-          },
-          act: {
-            not: 'BOOST'
-          }
-        }
-      })
-
-      return sats || 0
     },
     upvotes: async (item, args, { models }) => {
       const { sum: { sats } } = await models.itemAct.aggregate({
@@ -966,7 +942,8 @@ export const SELECT =
   `SELECT "Item".id, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt", "Item".title,
   "Item".text, "Item".url, "Item"."userId", "Item"."fwdUserId", "Item"."parentId", "Item"."pinId", "Item"."maxBid",
   "Item".company, "Item".location, "Item".remote,
-  "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost", "Item"."paidImgLink", ltree2text("Item"."path") AS "path"`
+  "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost", "Item"."paidImgLink",
+  "Item".sats, "Item".ncomments, "Item"."commentSats", "Item"."lastCommentAt", ltree2text("Item"."path") AS "path"`
 
 function newTimedOrderByWeightedSats (num) {
   return `

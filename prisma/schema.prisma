@@ -147,29 +147,37 @@ enum Status {
 }
 
 model Item {
-  id            Int                   @id @default(autoincrement())
-  createdAt     DateTime              @default(now()) @map(name: "created_at")
-  updatedAt     DateTime              @default(now()) @updatedAt @map(name: "updated_at")
-  title         String?
-  text          String?
-  url           String?
-  user          User                  @relation("UserItems", fields: [userId], references: [id])
-  userId        Int
-  fwdUser       User?                 @relation(name: "FwdItem", fields: [fwdUserId], references: [id])
-  fwdUserId     Int?
-  parent        Item?                 @relation("ParentChildren", fields: [parentId], references: [id])
-  parentId      Int?
-  children      Item[]                @relation("ParentChildren")
-  actions       ItemAct[]
-  mentions      Mention[]
-  path          Unsupported("LTREE")?
-  pin           Pin?                  @relation(fields: [pinId], references: [id])
-  pinId         Int?
-  weightedVotes Float                 @default(0)
-  boost         Int                   @default(0)
-  uploadId      Int?
-  upload        Upload?
-  paidImgLink   Boolean               @default(false)
+  id          Int                   @id @default(autoincrement())
+  createdAt   DateTime              @default(now()) @map(name: "created_at")
+  updatedAt   DateTime              @default(now()) @updatedAt @map(name: "updated_at")
+  title       String?
+  text        String?
+  url         String?
+  user        User                  @relation("UserItems", fields: [userId], references: [id])
+  userId      Int
+  fwdUser     User?                 @relation(name: "FwdItem", fields: [fwdUserId], references: [id])
+  fwdUserId   Int?
+  parent      Item?                 @relation("ParentChildren", fields: [parentId], references: [id])
+  parentId    Int?
+  children    Item[]                @relation("ParentChildren")
+  actions     ItemAct[]
+  mentions    Mention[]
+  path        Unsupported("LTREE")?
+  pin         Pin?                  @relation(fields: [pinId], references: [id])
+  pinId       Int?
+  boost       Int                   @default(0)
+  uploadId    Int?
+  upload      Upload?
+  paidImgLink Boolean               @default(false)
+
+  // denormalized self stats
+  weightedVotes Float @default(0)
+  sats          Int   @default(0)
+
+  // denormalized comment stats
+  ncomments     Int       @default(0)
+  commentSats   Int       @default(0)
+  lastCommentAt DateTime?
 
   // if sub is null, this is the main sub
   sub     Sub?    @relation(fields: [subName], references: [name])

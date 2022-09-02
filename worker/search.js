@@ -25,6 +25,8 @@ const ITEM_SEARCH_FIELDS = gql`
     upvotes
     sats
     boost
+    lastCommentAt
+    commentSats
     path
     ncomments
   }`

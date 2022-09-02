@@ -16,7 +16,13 @@ export default function Info ({ children }) {
           {children}
         </Modal.Body>
       </Modal>
-      <InfoIcon width={18} height={18} className='fill-theme-color pointer ml-1' onClick={() => setInfo(true)} />
+      <InfoIcon
+        width={18} height={18} className='fill-theme-color pointer ml-1'
+        onClick={(e) => {
+          e.preventDefault()
+          setInfo(true)
+        }}
+      />
     </>
   )
 }

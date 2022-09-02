@@ -118,9 +118,9 @@ export default function Settings ({ data: { settings } }) {
                   <ul className='font-weight-bold'>
                     <li>Use this if you don't want funding sources to be linkable to your SN identity.</li>
                     <li>It makes your invoice descriptions blank.</li>
-                    <li>This only applies invoices you create
+                    <li>This only applies to invoices you create
                       <ul>
-                        <li>lnurl-pay or lightning addresses still reference your nym</li>
+                        <li>lnurl-pay and lightning addresses still reference your nym</li>
                       </ul>
                     </li>
                   </ul>

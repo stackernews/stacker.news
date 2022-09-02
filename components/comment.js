@@ -117,7 +117,7 @@ export default function Comment ({
                   <span> \ </span>
                 </>}
               <Link href={`/items/${item.id}`} passHref>
-                <a className='text-reset'>{item.ncomments} replies</a>
+                <a title={`${item.commentSats} sats`} className='text-reset'>{item.ncomments} replies</a>
               </Link>
               <span> \ </span>
               <Link href={`/${item.user.name}`} passHref>

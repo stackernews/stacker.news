@@ -15,6 +15,7 @@ export const COMMENT_FIELDS = gql`
     boost
     meSats
     path
+    commentSats
     mine
     paidImgLink
     ncomments

@@ -82,7 +82,7 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
                 <span> \ </span>
               </>}
             <Link href={`/items/${item.id}`} passHref>
-              <a className='text-reset'>{item.ncomments} comments</a>
+              <a title={`${item.commentSats} sats`} className='text-reset'>{item.ncomments} comments</a>
             </Link>
             <span> \ </span>
             <span>

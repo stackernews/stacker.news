@@ -9,6 +9,8 @@ import Pin from '../svgs/pushpin-fill.svg'
 import reactStringReplace from 'react-string-replace'
 import Toc from './table-of-contents'
 import PollIcon from '../svgs/bar-chart-horizontal-fill.svg'
+import { Badge } from 'react-bootstrap'
+import { newComments } from '../lib/new-comments'
 
 export function SearchTitle ({ title }) {
   return reactStringReplace(title, /:high\[([^\]]+)\]/g, (match, i) => {
@@ -34,12 +36,18 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
     useState(mine && (Date.now() < editThreshold))
   const [wrap, setWrap] = useState(false)
   const titleRef = useRef()
+  const [hasNewComments, setHasNewComments] = useState(false)
 
   useEffect(() => {
     setWrap(
       Math.ceil(parseFloat(window.getComputedStyle(titleRef.current).lineHeight)) <
         titleRef.current.clientHeight)
   }, [])
+
+  useEffect(() => {
+    // if we are showing toc, then this is a full item
+    setHasNewComments(!toc && newComments(item))
+  }, [item])
 
   return (
     <>
@@ -82,7 +90,10 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
                 <span> \ </span>
               </>}
             <Link href={`/items/${item.id}`} passHref>
-              <a title={`${item.commentSats} sats`} className='text-reset'>{item.ncomments} comments</a>
+              <a title={`${item.commentSats} sats`} className='text-reset'>
+                {item.ncomments} comments
+                {hasNewComments && <>{' '}<Badge className={styles.newComment} variant={null}>new</Badge></>}
+              </a>
             </Link>
             <span> \ </span>
             <span>

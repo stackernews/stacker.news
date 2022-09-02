@@ -8,6 +8,7 @@ import TextareaAutosize from 'react-textarea-autosize'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import FeeButton from './fee-button'
+import { commentsViewedAfterComment } from '../lib/new-comments'
 
 export const CommentSchema = Yup.object({
   text: Yup.string().required('required').trim()
@@ -57,8 +58,10 @@ export default function Reply ({ item, onSuccess, replyOpen }) {
           }
         })
 
+        const ancestors = item.path.split('.')
+
         // update all ancestors
-        item.path.split('.').forEach(id => {
+        ancestors.forEach(id => {
           cache.modify({
             id: `Item:${id}`,
             fields: {
@@ -68,6 +71,11 @@ export default function Reply ({ item, onSuccess, replyOpen }) {
             }
           })
         })
+
+        // so that we don't see indicator for our own comments, we record this comments as the latest time
+        // but we also have record num comments, in case someone else commented when we did
+        const root = ancestors[0]
+        commentsViewedAfterComment(root, createComment.createdAt)
       }
     }
   )

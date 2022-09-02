@@ -129,6 +129,9 @@ export default function Header ({ sub }) {
     }
   }
 
+  const showJobIndicator = sub !== 'jobs' && (!me || me.noteJobIndicator) &&
+    (!lastCheckedJobs || lastCheckedJobs < subLatestPost?.subLatestPost)
+
   const NavItems = ({ className }) => {
     return (
       <>
@@ -150,7 +153,7 @@ export default function Header ({ sub }) {
                 jobs
               </Nav.Link>
             </Link>
-            {sub !== 'jobs' && (!me || me.noteJobIndicator) && (!lastCheckedJobs || lastCheckedJobs < subLatestPost?.subLatestPost) &&
+            {showJobIndicator &&
               <span className={styles.jobIndicator}>
                 <span className='invisible'>{' '}</span>
               </span>}

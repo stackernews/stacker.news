@@ -20,6 +20,11 @@ a.title:visited {
     flex: 1 0 128px;
 }
 
+.newComment {
+    color: var(--theme-grey) !important;
+    background: var(--theme-clickToContextColor) !important;
+}
+
 .pin {
     fill: #a5a5a5;
     margin-right: .2rem;

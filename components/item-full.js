@@ -11,8 +11,9 @@ import { Button } from 'react-bootstrap'
 import { TwitterTweetEmbed } from 'react-twitter-embed'
 import YouTube from 'react-youtube'
 import useDarkMode from 'use-dark-mode'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Poll from './poll'
+import { commentsViewed } from '../lib/new-comments'
 
 function BioItem ({ item, handleClick }) {
   const me = useMe()
@@ -99,6 +100,10 @@ function ItemText ({ item }) {
 }
 
 export default function ItemFull ({ item, bio, ...props }) {
+  useEffect(() => {
+    commentsViewed(item)
+  }, [item.lastCommentAt])
+
   return (
     <>
       {item.parentId

@@ -69,7 +69,8 @@ export default function Comments ({ parentId, commentSats, comments, ...props })
       } catch {}
     }
   }, [])
-  const [getComments, { loading }] = useLazyQuery(COMMENTS_QUERY, {
+  const [loading, setLoading] = useState()
+  const [getComments] = useLazyQuery(COMMENTS_QUERY, {
     fetchPolicy: 'network-only',
     onCompleted: data => {
       client.writeFragment({
@@ -87,12 +88,20 @@ export default function Comments ({ parentId, commentSats, comments, ...props })
           comments: data.comments
         }
       })
+      setLoading(false)
     }
   })
 
   return (
     <>
-      {comments.length ? <CommentsHeader commentSats={commentSats} handleSort={sort => getComments({ variables: { id: parentId, sort } })} /> : null}
+      {comments.length
+        ? <CommentsHeader
+            commentSats={commentSats} handleSort={sort => {
+              setLoading(true)
+              getComments({ variables: { id: parentId, sort } })
+            }}
+          />
+        : null}
       {loading
         ? <CommentsSkeleton />
         : comments.map(item => (

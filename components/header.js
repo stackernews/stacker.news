@@ -125,7 +125,12 @@ export default function Header ({ sub }) {
           setFired(true)
         }, [router.asPath])
       }
-      return path !== '/login' && !path.startsWith('/invites') && <Button id='login' onClick={signIn}>login</Button>
+      return path !== '/login' && !path.startsWith('/invites') &&
+        <Button
+          id='login'
+          onClick={() => signIn(null, { callbackUrl: window.location.origin + router.asPath })}
+        >login
+        </Button>
     }
   }
 

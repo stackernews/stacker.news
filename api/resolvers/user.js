@@ -169,9 +169,7 @@ export default {
         throw new AuthenticationError('you must be logged in')
       }
 
-      await models.user.update({ where: { id: me.id }, data })
-
-      return true
+      return await models.user.update({ where: { id: me.id }, data })
     },
     setWalkthrough: async (parent, { upvotePopover, tipPopover }, { me, models }) => {
       if (!me) {

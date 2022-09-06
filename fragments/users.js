@@ -54,9 +54,8 @@ export const ME_SSR = gql`
     }
   }`
 
-export const SETTINGS = gql`
-{
-  settings {
+export const SETTINGS_FIELDS = gql`
+  fragment SettingsFields on User {
     tipDefault
     noteItemSats
     noteEarning
@@ -72,8 +71,30 @@ export const SETTINGS = gql`
       twitter
       github
     }
+  }`
+
+export const SETTINGS = gql`
+${SETTINGS_FIELDS}
+{
+  settings {
+    ...SettingsFields
   }
 }`
+
+export const SET_SETTINGS =
+gql`
+${SETTINGS_FIELDS}
+mutation setSettings($tipDefault: Int!, $noteItemSats: Boolean!, $noteEarning: Boolean!,
+  $noteAllDescendants: Boolean!, $noteMentions: Boolean!, $noteDeposits: Boolean!,
+  $noteInvites: Boolean!, $noteJobIndicator: Boolean!, $hideInvoiceDesc: Boolean!) {
+  setSettings(tipDefault: $tipDefault, noteItemSats: $noteItemSats,
+    noteEarning: $noteEarning, noteAllDescendants: $noteAllDescendants,
+    noteMentions: $noteMentions, noteDeposits: $noteDeposits, noteInvites: $noteInvites,
+    noteJobIndicator: $noteJobIndicator, hideInvoiceDesc: $hideInvoiceDesc) {
+      ...SettingsFields
+    }
+  }
+`
 
 export const NAME_QUERY =
 gql`
@@ -164,6 +185,11 @@ export const USER_WITH_POSTS = gql`
       cursor
       items {
         ...ItemFields
+        position
+      }
+      pins {
+        ...ItemFields
+         position
       }
     }
   }`

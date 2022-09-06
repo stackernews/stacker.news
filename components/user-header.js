@@ -96,9 +96,11 @@ export default function UserHeader ({ user }) {
                   if (error) {
                     throw new Error({ message: error.toString() })
                   }
+
+                  const { nodata, ...query } = router.query
                   router.replace({
                     pathname: router.pathname,
-                    query: { ...router.query, name }
+                    query: { ...query, name }
                   })
 
                   client.writeFragment({

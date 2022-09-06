@@ -10,7 +10,7 @@ export const getServerSideProps = getGetServerSideProps(USER_WITH_POSTS)
 
 export default function UserPosts ({ data: { user, items: { items, cursor } } }) {
   const { data } = useQuery(USER_WITH_POSTS,
-    { variables: { name: user.name } })
+    { variables: { name: user.name, sort: 'user' } })
 
   if (data) {
     ({ user, items: { items, cursor } } = data)

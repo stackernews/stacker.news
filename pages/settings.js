@@ -9,7 +9,7 @@ import LoginButton from '../components/login-button'
 import { signIn } from 'next-auth/client'
 import ModalButton from '../components/modal-button'
 import { LightningAuth } from '../components/lightning-auth'
-import { SETTINGS } from '../fragments/users'
+import { SETTINGS, SET_SETTINGS } from '../fragments/users'
 import { useRouter } from 'next/router'
 import Info from '../components/info'
 
@@ -28,16 +28,18 @@ export const WarningSchema = Yup.object({
 
 export default function Settings ({ data: { settings } }) {
   const [success, setSuccess] = useState()
-  const [setSettings] = useMutation(
-    gql`
-      mutation setSettings($tipDefault: Int!, $noteItemSats: Boolean!, $noteEarning: Boolean!,
-        $noteAllDescendants: Boolean!, $noteMentions: Boolean!, $noteDeposits: Boolean!,
-        $noteInvites: Boolean!, $noteJobIndicator: Boolean!, $hideInvoiceDesc: Boolean!) {
-        setSettings(tipDefault: $tipDefault, noteItemSats: $noteItemSats,
-          noteEarning: $noteEarning, noteAllDescendants: $noteAllDescendants,
-          noteMentions: $noteMentions, noteDeposits: $noteDeposits, noteInvites: $noteInvites,
-          noteJobIndicator: $noteJobIndicator, hideInvoiceDesc: $hideInvoiceDesc)
-      }`
+  const [setSettings] = useMutation(SET_SETTINGS, {
+    update (cache, { data: { setSettings } }) {
+      cache.modify({
+        id: 'ROOT_QUERY',
+        fields: {
+          settings () {
+            return setSettings
+          }
+        }
+      })
+    }
+  }
   )
 
   const { data } = useQuery(SETTINGS)

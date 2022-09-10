@@ -23,9 +23,9 @@ export function BountyForm({
   const client = useApolloClient();
   const [hasImgLink, setHasImgLink] = useState();
   // const me = useMe()
-  const [upsertDiscussion] = useMutation(
+  const [upsertBounty] = useMutation(
     gql`
-      mutation upsertDiscussion(
+      mutation upsertBounty(
         $id: ID
         $title: String!
         $bounty: Int!
@@ -33,7 +33,7 @@ export function BountyForm({
         $boost: Int
         $forward: String
       ) {
-        upsertDiscussion(
+        upsertBounty(
           id: $id
           title: $title
           bounty: $bounty
@@ -47,7 +47,7 @@ export function BountyForm({
     `
   );
 
-  const DiscussionSchema = Yup.object({
+  const BountySchema = Yup.object({
     title: Yup.string()
       .required("required")
       .trim()
@@ -55,6 +55,10 @@ export function BountyForm({
         MAX_TITLE_LENGTH,
         ({ max, value }) => `${Math.abs(max - value.length)} too many`
       ),
+    bounty: Yup.number()
+      .required("required")
+      .min(10, "Bounty must be at least 10 sats"),
+
     ...AdvPostSchema(client),
   });
 
@@ -68,13 +72,15 @@ export function BountyForm({
         suggest: "",
         ...AdvPostInitial({ forward: item?.fwdUser?.name }),
       }}
-      schema={DiscussionSchema}
+      schema={BountySchema}
       onSubmit={
         handleSubmit ||
         (async ({ boost, ...values }) => {
-          const { error } = await upsertDiscussion({
+          console.log("values", values);
+          const { error } = await upsertBounty({
             variables: { id: item?.id, boost: Number(boost), ...values },
           });
+          console.log("err", error);
           if (error) {
             throw new Error({ message: error.toString() });
           }

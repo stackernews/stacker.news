@@ -1,9 +1,20 @@
-import { gql } from 'apollo-server-micro'
+import { gql } from "apollo-server-micro";
 
 export default gql`
   extend type Query {
-    items(sub: String, sort: String, cursor: String, name: String, within: String): Items
-    moreFlatComments(sort: String!, cursor: String, name: String, within: String): Comments
+    items(
+      sub: String
+      sort: String
+      cursor: String
+      name: String
+      within: String
+    ): Items
+    moreFlatComments(
+      sort: String!
+      cursor: String
+      name: String
+      within: String
+    ): Comments
     item(id: ID!): Item
     comments(id: ID!, sort: String): [Item!]!
     pageTitle(url: String!): String
@@ -20,11 +31,49 @@ export default gql`
   }
 
   extend type Mutation {
-    upsertLink(id: ID, title: String!, url: String!, boost: Int, forward: String): Item!
-    upsertDiscussion(id: ID, title: String!, text: String, boost: Int, forward: String): Item!
-    upsertJob(id: ID, sub: ID!, title: String!, company: String!, location: String, remote: Boolean,
-      text: String!, url: String!, maxBid: Int!, status: String, logo: Int): Item!
-    upsertPoll(id: ID, title: String!, text: String, options: [String!]!, boost: Int, forward: String): Item!
+    upsertLink(
+      id: ID
+      title: String!
+      url: String!
+      boost: Int
+      forward: String
+    ): Item!
+    upsertDiscussion(
+      id: ID
+      title: String!
+      text: String
+      boost: Int
+      forward: String
+    ): Item!
+    upsertBounty(
+      id: ID
+      title: String!
+      text: String
+      bounty: Int!
+      boost: Int
+      forward: String
+    ): Item!
+    upsertJob(
+      id: ID
+      sub: ID!
+      title: String!
+      company: String!
+      location: String
+      remote: Boolean
+      text: String!
+      url: String!
+      maxBid: Int!
+      status: String
+      logo: Int
+    ): Item!
+    upsertPoll(
+      id: ID
+      title: String!
+      text: String
+      options: [String!]!
+      boost: Int
+      forward: String
+    ): Item!
     createComment(text: String!, parentId: ID!): Item!
     updateComment(id: ID!, text: String!): Item!
     act(id: ID!, sats: Int): ItemActResult!
@@ -32,7 +81,7 @@ export default gql`
   }
 
   type PollOption {
-    id: ID,
+    id: ID
     option: String!
     count: Int!
     meVoted: Boolean!
@@ -94,4 +143,4 @@ export default gql`
     status: String
     uploadId: Int
   }
-`
+`;

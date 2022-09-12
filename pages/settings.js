@@ -54,6 +54,7 @@ export default function Settings ({ data: { settings } }) {
         <Form
           initial={{
             tipDefault: settings?.tipDefault || 21,
+            fiatCurrency: settings?.fiatCurrency || 'USD',
             noteItemSats: settings?.noteItemSats,
             noteEarning: settings?.noteEarning,
             noteAllDescendants: settings?.noteAllDescendants,
@@ -64,8 +65,8 @@ export default function Settings ({ data: { settings } }) {
             hideInvoiceDesc: settings?.hideInvoiceDesc
           }}
           schema={SettingsSchema}
-          onSubmit={async ({ tipDefault, ...values }) => {
-            await setSettings({ variables: { tipDefault: Number(tipDefault), ...values } })
+          onSubmit={async ({ tipDefault, fiatCurrency, ...values }) => {
+            await setSettings({ variables: { tipDefault: Number(tipDefault), fiatCurrency, ...values } })
             setSuccess('settings saved')
           }}
         >
@@ -76,6 +77,10 @@ export default function Settings ({ data: { settings } }) {
             required
             autoFocus
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+          />
+          <Input
+            label='fiat currency'
+            name='fiatCurrency'
           />
           <div className='form-label'>notify me when ...</div>
           <Checkbox

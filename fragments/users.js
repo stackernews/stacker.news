@@ -13,6 +13,7 @@ export const ME = gql`
       freeComments
       hasNewNotes
       tipDefault
+      fiatCurrency
       bioId
       hasInvites
       upvotePopover
@@ -39,6 +40,7 @@ export const ME_SSR = gql`
       freePosts
       freeComments
       tipDefault
+      fiatCurrency
       bioId
       upvotePopover
       tipPopover
@@ -57,6 +59,7 @@ export const ME_SSR = gql`
 export const SETTINGS_FIELDS = gql`
   fragment SettingsFields on User {
     tipDefault
+    fiatCurrency
     noteItemSats
     noteEarning
     noteAllDescendants

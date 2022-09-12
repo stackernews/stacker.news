@@ -29,7 +29,7 @@ export default gql`
 
   extend type Mutation {
     setName(name: String!): Boolean
-    setSettings(tipDefault: Int!, noteItemSats: Boolean!, noteEarning: Boolean!,
+    setSettings(tipDefault: Int!, fiatCurrency: String!, noteItemSats: Boolean!, noteEarning: Boolean!,
       noteAllDescendants: Boolean!, noteMentions: Boolean!, noteDeposits: Boolean!,
       noteInvites: Boolean!, noteJobIndicator: Boolean!, hideInvoiceDesc: Boolean!): User
     setPhoto(photoId: ID!): Int!
@@ -58,6 +58,7 @@ export default gql`
     hasNewNotes: Boolean!
     hasInvites: Boolean!
     tipDefault: Int!
+    fiatCurrency: String
     bio: Item
     bioId: Int
     photoId: Int

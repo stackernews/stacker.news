@@ -9,7 +9,7 @@ import styles from '../styles/post.module.css'
 import { useLazyQuery, gql, useMutation } from '@apollo/client'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
-import { usePrice } from './price'
+import { CURRENCY_SYMBOLS, usePrice } from './price'
 import Avatar from './avatar'
 
 Yup.addMethod(Yup.string, 'or', function (schemas, msg) {
@@ -34,13 +34,16 @@ function satsMin2Mo (minute) {
 
 function PriceHint ({ monthly }) {
   const price = usePrice()
+  const { fiatCurrency } = useMe();
+  const fiatSymbol = CURRENCY_SYMBOLS[fiatCurrency]
+
   if (!price) {
     return null
   }
   const fixed = (n, f) => Number.parseFloat(n).toFixed(f)
   const fiat = fixed((price / 100000000) * monthly, 0)
 
-  return <span className='text-muted'>{monthly} sats/mo which is ${fiat}/mo</span>
+  return <span className='text-muted'>{monthly} sats/mo which is {fiatSymbol}{fiat}/mo</span>
 }
 
 // need to recent list items

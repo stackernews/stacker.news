@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useState } from 'react'
 import { Button } from 'react-bootstrap'
 import useSWR from 'swr'
 import { fixedDecimal } from '../lib/format'
+import { useMe } from './me'
 
 const fetcher = url => fetch(url).then(res => res.json()).catch()
 
@@ -9,16 +10,22 @@ export const PriceContext = React.createContext({
   price: null
 })
 
-const ENDPOINT = 'https://api.coinbase.com/v2/prices/BTC-USD/spot'
+export const CURRENCY_SYMBOLS = {
+  'USD': '$',
+  'EUR': '€'
+}
 
-export async function getPrice () {
-  const data = await fetcher(ENDPOINT)
+const endpoint = (fiat) => `https://api.coinbase.com/v2/prices/BTC-${fiat}/spot`
+
+export async function getPrice (fiat) {
+  const data = await fetcher(endpoint(fiat))
   return data?.data?.amount
 }
 
 export function PriceProvider ({ price, children }) {
+  const { fiatCurrency } = useMe()
   const { data } = useSWR(
-    ENDPOINT,
+    endpoint(fiatCurrency),
     fetcher,
     {
       refreshInterval: 30000
@@ -45,8 +52,9 @@ export default function Price () {
   useEffect(() => {
     setAsSats(localStorage.getItem('asSats'))
   }, [])
-
   const price = usePrice()
+  const { fiatCurrency } = useMe()
+  const fiatSymbol = CURRENCY_SYMBOLS[fiatCurrency];
 
   if (!price) return null
 
@@ -66,7 +74,7 @@ export default function Price () {
   if (asSats === 'yep') {
     return (
       <Button className='text-reset p-0' onClick={handleClick} variant='link'>
-        {fixedDecimal(100000000 / price, 0) + ' sats/$'}
+        {fixedDecimal(100000000 / price, 0) + ` sats/${fiatSymbol}`}
       </Button>
     )
   }
@@ -81,7 +89,7 @@ export default function Price () {
 
   return (
     <Button className='text-reset p-0' onClick={handleClick} variant='link'>
-      {'$' + fixedDecimal(price, 0)}
+      {fiatSymbol + fixedDecimal(price, 0)}
     </Button>
   )
 }

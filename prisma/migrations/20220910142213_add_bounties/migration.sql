@@ -1,5 +1,5 @@
 ALTER TABLE "Item" ADD COLUMN "bounty" INTEGER;
-ALTER TABLE "Item" ADD CONSTRAINT "bounty" CHECK ("bounty" IS NULL OR "bounty" >= 0) NOT VALID;
+ALTER TABLE "Item" ADD CONSTRAINT "bounty" CHECK ("bounty" IS NULL OR "bounty" > 0) NOT VALID;
 
 CREATE OR REPLACE FUNCTION create_item(
     title TEXT, url TEXT, text TEXT, boost INTEGER, bounty INTEGER,

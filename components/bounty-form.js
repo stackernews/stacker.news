@@ -57,7 +57,8 @@ export function BountyForm({
       ),
     bounty: Yup.number()
       .required("required")
-      .min(10, "Bounty must be at least 10 sats"),
+      .min(0, "Bounty must be at least 10 sats")
+      .integer("must be whole"),
 
     ...AdvPostSchema(client),
   });
@@ -75,10 +76,14 @@ export function BountyForm({
       schema={BountySchema}
       onSubmit={
         handleSubmit ||
-        (async ({ boost, ...values }) => {
-          console.log("values", values);
+        (async ({ boost, bounty, ...values }) => {
           const { error } = await upsertBounty({
-            variables: { id: item?.id, boost: Number(boost), ...values },
+            variables: {
+              id: item?.id,
+              boost: Number(boost),
+              bounty: Number(bounty),
+              ...values,
+            },
           });
           console.log("err", error);
           if (error) {

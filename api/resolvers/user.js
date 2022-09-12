@@ -245,7 +245,10 @@ export default {
       }
 
       try {
-        await models.user.update({ where: { id: me.id }, data: { email } })
+        await models.user.update({
+          where: { id: me.id },
+          data: { email: email.toLowerCase() }
+        })
       } catch (error) {
         if (error.code === 'P2002') {
           throw new UserInputError('email taken')

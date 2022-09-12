@@ -12,12 +12,16 @@ import { LightningAuth } from '../components/lightning-auth'
 import { SETTINGS, SET_SETTINGS } from '../fragments/users'
 import { useRouter } from 'next/router'
 import Info from '../components/info'
+import { CURRENCY_SYMBOLS } from '../components/price'
 
 export const getServerSideProps = getGetServerSideProps(SETTINGS)
 
+const supportedCurrencies = Object.keys(CURRENCY_SYMBOLS)
+
 export const SettingsSchema = Yup.object({
   tipDefault: Yup.number().typeError('must be a number').required('required')
-    .positive('must be positive').integer('must be whole')
+    .positive('must be positive').integer('must be whole'),
+  fiatCurrency: Yup.string().required('required').oneOf(supportedCurrencies)
 })
 
 const warningMessage = 'If I logout, even accidentally, I will never be able to access my account again'

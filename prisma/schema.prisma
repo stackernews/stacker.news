@@ -88,6 +88,13 @@ model Upload {
   @@index([userId])
 }
 
+enum EarnType {
+  POST
+  COMMENT
+  TIP_COMMENT
+  TIP_POST
+}
+
 model Earn {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now()) @map(name: "created_at")
@@ -97,8 +104,13 @@ model Earn {
   user   User @relation(fields: [userId], references: [id])
   userId Int
 
+  type   EarnType?
+  typeId Int?
+  rank   Int?
+
   @@index([createdAt])
   @@index([userId])
+  @@index([createdAt, userId])
 }
 
 model LnAuth {

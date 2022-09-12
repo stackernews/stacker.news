@@ -162,18 +162,20 @@ export default {
 
         if (meFull.noteEarning) {
           queries.push(
-            `SELECT id::text, created_at AS "sortTime", FLOOR(msats / 1000) as "earnedSats",
+            `SELECT min(id)::text, created_at AS "sortTime", FLOOR(sum(msats) / 1000) as "earnedSats",
             'Earn' AS type
             FROM "Earn"
             WHERE "userId" = $1
-            AND created_at <= $2`
+            AND created_at <= $2
+            GROUP BY "userId", created_at`
           )
         }
       }
 
       // we do all this crazy subquery stuff to make 'reward' islands
       const notifications = await models.$queryRaw(
-        `SELECT MAX(id) AS id, MAX("sortTime") AS "sortTime", sum("earnedSats") AS "earnedSats", type
+        `SELECT MAX(id) AS id, MAX("sortTime") AS "sortTime", sum("earnedSats") AS "earnedSats", type,
+            MIN("sortTime") AS "minSortTime"
         FROM
           (SELECT *,
           CASE
@@ -213,6 +215,26 @@ export default {
   },
   JobChanged: {
     item: async (n, args, { models }) => getItem(n, { id: n.id }, { models })
+  },
+  Earn: {
+    sources: async (n, args, { me, models }) => {
+      const [sources] = await models.$queryRaw(`
+        SELECT
+        FLOOR(sum(msats) FILTER(WHERE type = 'POST') / 1000) AS posts,
+        FLOOR(sum(msats) FILTER(WHERE type = 'COMMENT') / 1000) AS comments,
+        FLOOR(sum(msats) FILTER(WHERE type = 'TIP_POST' OR type = 'TIP_COMMENT') / 1000) AS tips
+        FROM "Earn"
+        WHERE "userId" = $1 AND created_at <= $2 AND created_at >= $3
+      `, Number(me.id), new Date(n.sortTime), new Date(n.minSortTime))
+      sources.posts ||= 0
+      sources.comments ||= 0
+      sources.tips ||= 0
+      if (sources.posts + sources.comments + sources.tips > 0) {
+        return sources
+      }
+
+      return null
+    }
   },
   Mention: {
     mention: async (n, args, { models }) => true,

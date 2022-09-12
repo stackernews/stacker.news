@@ -74,8 +74,14 @@ function Notification ({ n }) {
               <HandCoin className='align-self-center fill-boost mx-1' width={24} height={24} style={{ flex: '0 0 24px', transform: 'rotateY(180deg)' }} />
               <div className='ml-2'>
                 <div className='font-weight-bold text-boost'>
-                  you stacked {n.earnedSats} sats <small className='text-muted ml-1'>{timeSince(new Date(n.sortTime))}</small>
+                  you stacked {n.earnedSats} sats in rewards<small className='text-muted ml-1'>{timeSince(new Date(n.sortTime))}</small>
                 </div>
+                {n.sources &&
+                  <div style={{ fontSize: '80%', color: 'var(--theme-grey)' }}>
+                    {n.sources.posts > 0 && <span>{n.sources.posts} sats for top posts</span>}
+                    {n.sources.comments > 0 && <span>{n.sources.posts > 0 && ' \\ '}{n.sources.comments} sats for top comments</span>}
+                    {n.sources.tips > 0 && <span>{(n.sources.comments > 0 || n.sources.posts > 0) && ' \\ '}{n.sources.tips} sats for tipping top content early</span>}
+                  </div>}
                 <div className='pb-1' style={{ lineHeight: '140%' }}>
                   SN distributes the sats it earns back to its best users daily. These sats come from <Link href='/~jobs' passHref><a>jobs</a></Link>, boost, and posting fees.
                 </div>

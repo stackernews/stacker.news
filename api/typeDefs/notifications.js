@@ -32,9 +32,16 @@ export default gql`
     sortTime: String!
   }
 
+  type EarnSources {
+    posts: Int!
+    comments: Int!
+    tips: Int!
+  }
+
   type Earn {
     earnedSats: Int!
     sortTime: String!
+    sources: EarnSources
   }
 
   type InvoicePaid {

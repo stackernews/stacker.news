@@ -103,11 +103,12 @@ export default {
           AND "ItemAct".created_at <= $2
           GROUP BY "Item".id)`)
         queries.push(
-            `(SELECT ('earn' || "Earn".id) as id, "Earn".id as "factId", NULL as bolt11,
-            created_at as "createdAt", msats,
+            `(SELECT ('earn' || min("Earn".id)) as id, min("Earn".id) as "factId", NULL as bolt11,
+            created_at as "createdAt", sum(msats),
             0 as "msatsFee", NULL as status, 'earn' as type
             FROM "Earn"
-            WHERE "Earn"."userId" = $1 AND "Earn".created_at <= $2)`)
+            WHERE "Earn"."userId" = $1 AND "Earn".created_at <= $2
+            GROUP BY "userId", created_at)`)
       }
 
       if (include.has('spent')) {

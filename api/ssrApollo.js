@@ -43,7 +43,7 @@ export function getGetServerSideProps (query, variables = null, notFoundFunc, re
       query: ME_SSR
     })
 
-    const price = await getPrice()
+    const price = await getPrice(me.fiatCurrency)
 
     // we want to use client-side cache
     if (nodata && query) {

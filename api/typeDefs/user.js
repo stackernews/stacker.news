@@ -58,7 +58,7 @@ export default gql`
     hasNewNotes: Boolean!
     hasInvites: Boolean!
     tipDefault: Int!
-    fiatCurrency: String
+    fiatCurrency: String!
     bio: Item
     bioId: Int
     photoId: Int

@@ -73,7 +73,7 @@ export default function AdvPostForm ({ edit }) {
             label={<>forward sats to</>}
             name='forward'
             hint={<span className='text-muted'>100% of sats will be sent to this user</span>}
-            prepend=<InputGroup.Text>@</InputGroup.Text>
+            prepend={<InputGroup.Text>@</InputGroup.Text>}
             showValid
           />
         </>

@@ -11,8 +11,12 @@ export const PriceContext = React.createContext({
 })
 
 export const CURRENCY_SYMBOLS = {
+  'AUD': '$',
+  'CAD': '$',
+  'EUR': '€',
+  'GBP': '£',
   'USD': '$',
-  'EUR': '€'
+  'NZD': '$'
 }
 
 const endpoint = (fiat) => `https://api.coinbase.com/v2/prices/BTC-${fiat ?? 'USD'}/spot`

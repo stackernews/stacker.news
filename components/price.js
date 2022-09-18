@@ -15,7 +15,7 @@ export const CURRENCY_SYMBOLS = {
   'EUR': '€'
 }
 
-const endpoint = (fiat) => `https://api.coinbase.com/v2/prices/BTC-${fiat}/spot`
+const endpoint = (fiat) => `https://api.coinbase.com/v2/prices/BTC-${fiat ?? 'USD'}/spot`
 
 export async function getPrice (fiat) {
   const data = await fetcher(endpoint(fiat))
@@ -23,9 +23,9 @@ export async function getPrice (fiat) {
 }
 
 export function PriceProvider ({ price, children }) {
-  const { fiatCurrency } = useMe()
+  const me = useMe()
   const { data } = useSWR(
-    endpoint(fiatCurrency),
+    endpoint(me?.fiatCurrency),
     fetcher,
     {
       refreshInterval: 30000
@@ -53,8 +53,8 @@ export default function Price () {
     setAsSats(localStorage.getItem('asSats'))
   }, [])
   const price = usePrice()
-  const { fiatCurrency } = useMe()
-  const fiatSymbol = CURRENCY_SYMBOLS[fiatCurrency];
+  const me = useMe()
+  const fiatSymbol = CURRENCY_SYMBOLS[me?.fiatCurrency || 'USD'];
 
   if (!price) return null
 

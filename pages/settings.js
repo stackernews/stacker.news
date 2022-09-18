@@ -1,4 +1,4 @@
-import { Checkbox, Form, Input, SubmitButton } from '../components/form'
+import { Checkbox, Form, Input, SubmitButton, Dropdown } from '../components/form'
 import * as Yup from 'yup'
 import { Alert, Button, InputGroup, Modal } from 'react-bootstrap'
 import LayoutCenter from '../components/layout-center'
@@ -82,9 +82,11 @@ export default function Settings ({ data: { settings } }) {
             autoFocus
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
           />
-          <Input
+          <Dropdown
             label='fiat currency'
             name='fiatCurrency'
+            items={supportedCurrencies}
+            required
           />
           <div className='form-label'>notify me when ...</div>
           <Checkbox

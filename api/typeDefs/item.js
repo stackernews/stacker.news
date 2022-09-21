@@ -27,6 +27,7 @@ export default gql`
     upsertPoll(id: ID, title: String!, text: String, options: [String!]!, boost: Int, forward: String): Item!
     createComment(text: String!, parentId: ID!): Item!
     updateComment(id: ID!, text: String!): Item!
+    dontLikeThis(id: ID!): Boolean!
     act(id: ID!, sats: Int): ItemActResult!
     pollVote(id: ID!): ID!
   }
@@ -78,6 +79,7 @@ export default gql`
     lastCommentAt: String
     upvotes: Int!
     meSats: Int!
+    meDontLike: Boolean!
     paidImgLink: Boolean
     ncomments: Int!
     comments: [Item!]!

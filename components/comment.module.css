@@ -8,6 +8,14 @@
     margin-top: 9px;
 }
 
+.dontLike {
+    fill: #a5a5a5;
+    margin-right: .2rem;
+    padding: 2px;
+    margin-left: 1px;
+    margin-top: 9px;
+}
+
 .text {
     margin-top: .1rem;
     padding-right: 15px;

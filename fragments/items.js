@@ -21,6 +21,7 @@ export const ITEM_FIELDS = gql`
     boost
     path
     meSats
+    meDontLike
     ncomments
     commentSats
     lastCommentAt

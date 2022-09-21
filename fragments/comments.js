@@ -14,6 +14,7 @@ export const COMMENT_FIELDS = gql`
     upvotes
     boost
     meSats
+    meDontLike
     path
     commentSats
     mine

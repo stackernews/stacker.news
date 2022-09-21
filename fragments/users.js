@@ -25,6 +25,7 @@ export const ME = gql`
       noteInvites
       noteJobIndicator
       hideInvoiceDesc
+      wildWestMode
       lastCheckedJobs
     }
   }`
@@ -50,6 +51,7 @@ export const ME_SSR = gql`
       noteInvites
       noteJobIndicator
       hideInvoiceDesc
+      wildWestMode
       lastCheckedJobs
     }
   }`
@@ -65,6 +67,7 @@ export const SETTINGS_FIELDS = gql`
     noteInvites
     noteJobIndicator
     hideInvoiceDesc
+    wildWestMode
     authMethods {
       lightning
       email
@@ -86,11 +89,11 @@ gql`
 ${SETTINGS_FIELDS}
 mutation setSettings($tipDefault: Int!, $noteItemSats: Boolean!, $noteEarning: Boolean!,
   $noteAllDescendants: Boolean!, $noteMentions: Boolean!, $noteDeposits: Boolean!,
-  $noteInvites: Boolean!, $noteJobIndicator: Boolean!, $hideInvoiceDesc: Boolean!) {
+  $noteInvites: Boolean!, $noteJobIndicator: Boolean!, $hideInvoiceDesc: Boolean!, $wildWestMode: Boolean!) {
   setSettings(tipDefault: $tipDefault, noteItemSats: $noteItemSats,
     noteEarning: $noteEarning, noteAllDescendants: $noteAllDescendants,
     noteMentions: $noteMentions, noteDeposits: $noteDeposits, noteInvites: $noteInvites,
-    noteJobIndicator: $noteJobIndicator, hideInvoiceDesc: $hideInvoiceDesc) {
+    noteJobIndicator: $noteJobIndicator, hideInvoiceDesc: $hideInvoiceDesc, wildWestMode: $wildWestMode) {
       ...SettingsFields
     }
   }

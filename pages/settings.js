@@ -61,7 +61,8 @@ export default function Settings ({ data: { settings } }) {
             noteDeposits: settings?.noteDeposits,
             noteInvites: settings?.noteInvites,
             noteJobIndicator: settings?.noteJobIndicator,
-            hideInvoiceDesc: settings?.hideInvoiceDesc
+            hideInvoiceDesc: settings?.hideInvoiceDesc,
+            wildWestMode: settings?.wildWestMode
           }}
           schema={SettingsSchema}
           onSubmit={async ({ tipDefault, ...values }) => {
@@ -115,7 +116,7 @@ export default function Settings ({ data: { settings } }) {
           <div className='form-label'>privacy</div>
           <Checkbox
             label={
-              <>hide invoice descriptions
+              <div className='d-flex align-items-center'>hide invoice descriptions
                 <Info>
                   <ul className='font-weight-bold'>
                     <li>Use this if you don't want funding sources to be linkable to your SN identity.</li>
@@ -127,9 +128,23 @@ export default function Settings ({ data: { settings } }) {
                     </li>
                   </ul>
                 </Info>
-              </>
+              </div>
             }
             name='hideInvoiceDesc'
+          />
+          <div className='form-label'>content</div>
+          <Checkbox
+            label={
+              <div className='d-flex align-items-center'>wild west mode
+                <Info>
+                  <ul className='font-weight-bold'>
+                    <li>Don't hide flagged content</li>
+                    <li>Don't down rank flagged content</li>
+                  </ul>
+                </Info>
+              </div>
+            }
+            name='wildWestMode'
           />
           <div className='d-flex'>
             <SubmitButton variant='info' className='ml-auto mt-1 px-4'>save</SubmitButton>

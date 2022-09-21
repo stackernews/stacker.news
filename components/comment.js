@@ -13,6 +13,9 @@ import CommentEdit from './comment-edit'
 import Countdown from './countdown'
 import { COMMENT_DEPTH_LIMIT, NOFOLLOW_LIMIT } from '../lib/constants'
 import { ignoreClick } from '../lib/clicks'
+import { useMe } from './me'
+import DontLikeThis from './dont-link-this'
+import Flag from '../svgs/flag-fill.svg'
 
 function Parent ({ item, rootText }) {
   const ParentFrag = () => (
@@ -78,6 +81,7 @@ export default function Comment ({
   const [edit, setEdit] = useState()
   const [collapse, setCollapse] = useState(false)
   const ref = useRef(null)
+  const me = useMe()
   const router = useRouter()
   const mine = item.mine
   const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
@@ -105,7 +109,7 @@ export default function Comment ({
       ref={ref} className={includeParent ? '' : `${styles.comment} ${collapse ? styles.collapsed : ''}`}
     >
       <div className={`${itemStyles.item} ${styles.item}`}>
-        <UpVote item={item} className={styles.upvote} />
+        {item.meDontLike ? <Flag width={24} height={24} className={`${styles.dontLike}`} /> : <UpVote item={item} className={styles.upvote} />}
         <div className={`${itemStyles.hunk} ${styles.hunk}`}>
           <div className='d-flex align-items-center'>
             <div className={`${itemStyles.other} ${styles.other}`}>
@@ -128,6 +132,7 @@ export default function Comment ({
                 <a title={item.createdAt} className='text-reset'>{timeSince(new Date(item.createdAt))}</a>
               </Link>
               {includeParent && <Parent item={item} rootText={rootText} />}
+              {me && !item.meSats && !item.meDontLike && <DontLikeThis id={item.id} />}
               {canEdit &&
                 <>
                   <span> \ </span>

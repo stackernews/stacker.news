@@ -1,7 +1,7 @@
 import { AuthenticationError, UserInputError } from 'apollo-server-errors'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { mdHas } from '../../lib/md'
-import { createMentions, getItem, SELECT, updateItem } from './item'
+import { createMentions, getItem, SELECT, updateItem, filterClause } from './item'
 import serialize from './serial'
 
 export function topClause (within) {
@@ -317,6 +317,7 @@ export default {
           JOIN "Item" p ON ${user.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
           WHERE p."userId" = $1
           AND "Item".created_at > $2  AND "Item"."userId" <> $1
+          ${await filterClause(me, models)}
           LIMIT 1`, me.id, lastChecked)
       if (newReplies.length > 0) {
         return true

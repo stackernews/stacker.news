@@ -4,20 +4,23 @@ import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
 import domino from 'domino'
-import { BOOST_MIN, ITEM_SPAM_INTERVAL, MAX_POLL_NUM_CHOICES, MAX_TITLE_LENGTH } from '../../lib/constants'
+import {
+  BOOST_MIN, ITEM_SPAM_INTERVAL, MAX_POLL_NUM_CHOICES,
+  MAX_TITLE_LENGTH, ITEM_FILTER_THRESHOLD, DONT_LIKE_THIS_COST
+} from '../../lib/constants'
 import { mdHas } from '../../lib/md'
 
-async function comments (models, id, sort) {
+async function comments (me, models, id, sort) {
   let orderBy
   switch (sort) {
     case 'top':
-      orderBy = 'ORDER BY "Item"."weightedVotes" DESC, "Item".id DESC'
+      orderBy = `ORDER BY ${await orderByNumerator(me, models)} DESC, "Item".id DESC`
       break
     case 'recent':
       orderBy = 'ORDER BY "Item".created_at DESC, "Item".id DESC'
       break
     default:
-      orderBy = COMMENTS_ORDER_BY_SATS
+      orderBy = `ORDER BY ${await orderByNumerator(me, models)}/POWER(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE 'UTC') - "Item".created_at))/3600+2, 1.3) DESC NULLS LAST, "Item".id DESC`
       break
   }
 
@@ -26,18 +29,18 @@ async function comments (models, id, sort) {
           ${SELECT}, ARRAY[row_number() OVER (${orderBy}, "Item".path)] AS sort_path
           FROM "Item"
           WHERE "parentId" = $1
+          ${await filterClause(me, models)}
         UNION ALL
           ${SELECT}, p.sort_path || row_number() OVER (${orderBy}, "Item".path)
           FROM base p
-          JOIN "Item" ON "Item"."parentId" = p.id)
+          JOIN "Item" ON "Item"."parentId" = p.id
+          WHERE true
+          ${await filterClause(me, models)})
         SELECT * FROM base ORDER BY sort_path`, Number(id))
   return nestComments(flat, id)[0]
 }
 
-const COMMENTS_ORDER_BY_SATS =
-  'ORDER BY POWER("Item"."weightedVotes", 1.2)/POWER(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE \'UTC\') - "Item".created_at))/3600+2, 1.3) DESC NULLS LAST, "Item".id DESC'
-
-export async function getItem (parent, { id }, { models }) {
+export async function getItem (parent, { id }, { me, models }) {
   const [item] = await models.$queryRaw(`
   ${SELECT}
   FROM "Item"
@@ -65,6 +68,38 @@ function topClause (within) {
       break
   }
   return interval
+}
+
+export async function orderByNumerator (me, models) {
+  if (me) {
+    const user = await models.user.findUnique({ where: { id: me.id } })
+    if (user.wildWestMode) {
+      return 'GREATEST("Item"."weightedVotes", POWER("Item"."weightedVotes", 1.2))'
+    }
+  }
+
+  return `(CASE WHEN "Item"."weightedVotes" > "Item"."weightedDownVotes"
+                THEN 1
+                ELSE -1 END
+          * GREATEST(ABS("Item"."weightedVotes" - "Item"."weightedDownVotes"), POWER(ABS("Item"."weightedVotes" - "Item"."weightedDownVotes"), 1.2)))`
+}
+
+export async function filterClause (me, models) {
+  if (me) {
+    const user = await models.user.findUnique({ where: { id: me.id } })
+    if (user.wildWestMode) {
+      return ''
+    }
+  }
+
+  // if the item is above the threshold or is mine
+  let clause = ` AND ("Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}`
+  if (me) {
+    clause += ` OR "Item"."userId" = ${me.id}`
+  }
+  clause += ')'
+
+  return clause
 }
 
 export default {
@@ -106,6 +141,7 @@ export default {
             WHERE "userId" = $1 AND "parentId" IS NULL AND created_at <= $2
             AND "pinId" IS NULL
             ${activeOrMine()}
+            ${await filterClause(me, models)}
             ORDER BY created_at DESC
             OFFSET $3
             LIMIT ${LIMIT}`, user.id, decodedCursor.time, decodedCursor.offset)
@@ -117,6 +153,7 @@ export default {
             WHERE "parentId" IS NULL AND created_at <= $1
             ${subClause(3)}
             ${activeOrMine()}
+            ${await filterClause(me, models)}
             ORDER BY created_at DESC
             OFFSET $2
             LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, sub || 'NULL')
@@ -128,7 +165,8 @@ export default {
             WHERE "parentId" IS NULL AND "Item".created_at <= $1
             AND "pinId" IS NULL
             ${topClause(within)}
-            ${TOP_ORDER_BY_SATS}
+            ${await filterClause(me, models)}
+            ${await topOrderByWeightedSats(me, models)}
             OFFSET $2
             LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
           break
@@ -179,7 +217,8 @@ export default {
                   WHERE "parentId" IS NULL AND "Item".created_at <= $1 AND "Item".created_at > $3
                   AND "pinId" IS NULL
                   ${subClause(4)}
-                  ${newTimedOrderByWeightedSats(1)}
+                  ${await filterClause(me, models)}
+                  ${await newTimedOrderByWeightedSats(me, models, 1)}
                   OFFSET $2
                   LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, new Date(new Date().setDate(new Date().getDate() - 5)), sub || 'NULL')
               }
@@ -191,7 +230,8 @@ export default {
                   WHERE "parentId" IS NULL AND "Item".created_at <= $1
                   AND "pinId" IS NULL
                   ${subClause(3)}
-                  ${newTimedOrderByWeightedSats(1)}
+                  ${await filterClause(me, models)}
+                  ${await newTimedOrderByWeightedSats(me, models, 1)}
                   OFFSET $2
                   LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, sub || 'NULL')
               }
@@ -219,11 +259,12 @@ export default {
         pins
       }
     },
-    allItems: async (parent, { cursor }, { models }) => {
+    allItems: async (parent, { cursor }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
       const items = await models.$queryRaw(`
         ${SELECT}
         FROM "Item"
+        ${await filterClause(me, models)}
         ORDER BY created_at DESC
         OFFSET $1
         LIMIT ${LIMIT}`, decodedCursor.offset)
@@ -242,6 +283,7 @@ export default {
             ${SELECT}
             FROM "Item"
             WHERE "parentId" IS NOT NULL AND created_at <= $1
+            ${await filterClause(me, models)}
             ORDER BY created_at DESC
             OFFSET $2
             LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
@@ -261,6 +303,7 @@ export default {
             FROM "Item"
             WHERE "userId" = $1 AND "parentId" IS NOT NULL
             AND created_at <= $2
+            ${await filterClause(me, models)}
             ORDER BY created_at DESC
             OFFSET $3
             LIMIT ${LIMIT}`, user.id, decodedCursor.time, decodedCursor.offset)
@@ -272,7 +315,8 @@ export default {
           WHERE "parentId" IS NOT NULL
           AND "Item".created_at <= $1
           ${topClause(within)}
-          ${TOP_ORDER_BY_SATS}
+          ${await filterClause(me, models)}
+          ${await topOrderByWeightedSats(me, models)}
           OFFSET $2
           LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
           break
@@ -322,8 +366,8 @@ export default {
         ORDER BY created_at DESC
         LIMIT 3`, similar)
     },
-    comments: async (parent, { id, sort }, { models }) => {
-      return comments(models, id, sort)
+    comments: async (parent, { id, sort }, { me, models }) => {
+      return comments(me, models, id, sort)
     },
     search: async (parent, { q: query, sub, cursor }, { me, models, search }) => {
       const decodedCursor = decodeCursor(cursor)
@@ -636,6 +680,25 @@ export default {
         vote,
         sats
       }
+    },
+    dontLikeThis: async (parent, { id }, { me, models }) => {
+      // need to make sure we are logged in
+      if (!me) {
+        throw new AuthenticationError('you must be logged in')
+      }
+
+      // disallow self down votes
+      const [item] = await models.$queryRaw(`
+            ${SELECT}
+            FROM "Item"
+            WHERE id = $1 AND "userId" = $2`, Number(id), me.id)
+      if (item) {
+        throw new UserInputError('cannot downvote your self')
+      }
+
+      await serialize(models, models.$queryRaw`SELECT item_act(${Number(id)}, ${me.id}, 'DONT_LIKE_THIS', ${DONT_LIKE_THIS_COST})`)
+
+      return true
     }
   },
   Item: {
@@ -710,11 +773,11 @@ export default {
       }
       return await models.user.findUnique({ where: { id: item.fwdUserId } })
     },
-    comments: async (item, args, { models }) => {
+    comments: async (item, args, { me, models }) => {
       if (item.comments) {
         return item.comments
       }
-      return comments(models, item.id, 'hot')
+      return comments(me, models, item.id, 'hot')
     },
     upvotes: async (item, args, { models }) => {
       const { sum: { sats } } = await models.itemAct.aggregate({
@@ -767,6 +830,19 @@ export default {
       })
 
       return sats || 0
+    },
+    meDontLike: async (item, args, { me, models }) => {
+      if (!me) return false
+
+      const dontLike = await models.itemAct.findFirst({
+        where: {
+          itemId: Number(item.id),
+          userId: me.id,
+          act: 'DONT_LIKE_THIS'
+        }
+      })
+
+      return !!dontLike
     },
     mine: async (item, args, { me, models }) => {
       return me?.id === item.userId
@@ -940,10 +1016,12 @@ export const SELECT =
   "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost", "Item"."paidImgLink",
   "Item".sats, "Item".ncomments, "Item"."commentSats", "Item"."lastCommentAt", ltree2text("Item"."path") AS "path"`
 
-function newTimedOrderByWeightedSats (num) {
+async function newTimedOrderByWeightedSats (me, models, num) {
   return `
-    ORDER BY (POWER("Item"."weightedVotes", 1.2)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 1.3) +
+    ORDER BY (${await orderByNumerator(me, models)}/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 1.3) +
               ("Item".boost/${BOOST_MIN}::float)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 2.6)) DESC NULLS LAST, "Item".id DESC`
 }
 
-const TOP_ORDER_BY_SATS = 'ORDER BY "Item"."weightedVotes" DESC NULLS LAST, "Item".id DESC'
+async function topOrderByWeightedSats (me, models) {
+  return `ORDER BY ${await orderByNumerator(me, models)} DESC NULLS LAST, "Item".id DESC`
+}

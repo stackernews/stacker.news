@@ -59,6 +59,9 @@ model User {
   // privacy settings
   hideInvoiceDesc Boolean @default(false)
 
+  // content settings
+  wildWestMode Boolean @default(false)
+
   Earn     Earn[]
   Upload   Upload[]   @relation(name: "Uploads")
   PollVote PollVote[]
@@ -183,8 +186,9 @@ model Item {
   paidImgLink Boolean               @default(false)
 
   // denormalized self stats
-  weightedVotes Float @default(0)
-  sats          Int   @default(0)
+  weightedVotes     Float @default(0)
+  weightedDownVotes Float @default(0)
+  sats              Int   @default(0)
 
   // denormalized comment stats
   ncomments     Int       @default(0)
@@ -296,6 +300,7 @@ enum ItemActType {
   TIP
   STREAM
   POLL
+  DONT_LIKE_THIS
 }
 
 model ItemAct {

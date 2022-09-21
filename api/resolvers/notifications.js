@@ -1,6 +1,6 @@
 import { AuthenticationError } from 'apollo-server-micro'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
-import { getItem } from './item'
+import { getItem, filterClause } from './item'
 import { getInvoice } from './wallet'
 
 export default {
@@ -76,7 +76,8 @@ export default {
               FROM "Item"
               JOIN "Item" p ON ${meFull.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
               WHERE p."userId" = $1
-                AND "Item"."userId" <> $1 AND "Item".created_at <= $2`
+                AND "Item"."userId" <> $1 AND "Item".created_at <= $2
+                ${await filterClause(me, models)}`
         )
       } else {
         queries.push(
@@ -86,6 +87,7 @@ export default {
               JOIN "Item" p ON ${meFull.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
               WHERE p."userId" = $1
                 AND "Item"."userId" <> $1 AND "Item".created_at <= $2
+              ${await filterClause(me, models)}
               ORDER BY "sortTime" DESC
               LIMIT ${LIMIT}+$3)`
         )
@@ -129,6 +131,7 @@ export default {
               AND "Mention".created_at <= $2
               AND "Item"."userId" <> $1
               AND (p."userId" IS NULL OR p."userId" <> $1)
+              ${await filterClause(me, models)}
               ORDER BY "sortTime" DESC
               LIMIT ${LIMIT}+$3)`
           )

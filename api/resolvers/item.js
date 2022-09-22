@@ -292,6 +292,26 @@ export default {
         items
       }
     },
+    borderlandItems: async (parent, { cursor }, { me, models }) => {
+      const decodedCursor = decodeCursor(cursor)
+      const notMine = () => {
+        return me ? ` AND "userId" <> ${me.id} ` : ''
+      }
+
+      const items = await models.$queryRaw(`
+        ${SELECT}
+        FROM "Item"
+        WHERE "Item"."weightedVotes" - "Item"."weightedDownVotes" < 0
+        AND "Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}
+        ${notMine()}
+        ORDER BY created_at DESC
+        OFFSET $1
+        LIMIT ${LIMIT}`, decodedCursor.offset)
+      return {
+        cursor: items.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
+        items
+      }
+    },
     moreFlatComments: async (parent, { cursor, name, sort, within }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
 

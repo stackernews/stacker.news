@@ -1,13 +1,13 @@
 import Layout from '../components/layout'
 import { ItemsSkeleton } from '../components/items'
 import { getGetServerSideProps } from '../api/ssrApollo'
-import { OUTLAWED_ITEMS } from '../fragments/items'
+import { BORDERLAND_ITEMS } from '../fragments/items'
 import { useQuery } from '@apollo/client'
 import MixedItems from '../components/items-mixed'
 
-export const getServerSideProps = getGetServerSideProps(OUTLAWED_ITEMS)
+export const getServerSideProps = getGetServerSideProps(BORDERLAND_ITEMS)
 
-export default function Index ({ data: { outlawedItems: { items, cursor } } }) {
+export default function Index ({ data: { borderlandItems: { items, cursor } } }) {
   return (
     <Layout>
       <Items
@@ -18,14 +18,14 @@ export default function Index ({ data: { outlawedItems: { items, cursor } } }) {
 }
 
 function Items ({ rank, items, cursor }) {
-  const { data, fetchMore } = useQuery(OUTLAWED_ITEMS)
+  const { data, fetchMore } = useQuery(BORDERLAND_ITEMS)
 
   if (!data && !items) {
     return <ItemsSkeleton rank={rank} />
   }
 
   if (data) {
-    ({ outlawedItems: { items, cursor } } = data)
+    ({ borderlandItems: { items, cursor } } = data)
   }
 
   return <MixedItems items={items} cursor={cursor} rank fetchMore={fetchMore} />

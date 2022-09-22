@@ -82,6 +82,19 @@ export const OUTLAWED_ITEMS = gql`
     }
   }`
 
+export const BORDERLAND_ITEMS = gql`
+  ${ITEM_FIELDS}
+
+  query borderlandItems($cursor: String) {
+    borderlandItems(cursor: $cursor) {
+      cursor
+      items {
+        ...ItemFields
+        text
+      }
+    }
+  }`
+
 export const POLL_FIELDS = gql`
   fragment PollFields on Item {
     poll {

@@ -13,6 +13,7 @@ export default gql`
     auctionPosition(sub: String, id: ID, bid: Int!): Int!
     itemRepetition(parentId: ID): Int!
     outlawedItems(cursor: String): Items
+    borderlandItems(cursor: String): Items
   }
 
   type ItemActResult {

@@ -46,7 +46,7 @@ export default function DontLikeThis ({ id }) {
             }
           }}
         >
-          I don't like this
+          flag
         </Dropdown.Item>
       </Dropdown.Menu>
     </Dropdown>

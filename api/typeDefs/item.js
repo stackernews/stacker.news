@@ -12,6 +12,7 @@ export default gql`
     search(q: String, sub: String, cursor: String): Items
     auctionPosition(sub: String, id: ID, bid: Int!): Int!
     itemRepetition(parentId: ID): Int!
+    outlawedItems(cursor: String): Items
   }
 
   type ItemActResult {
@@ -80,6 +81,7 @@ export default gql`
     upvotes: Int!
     meSats: Int!
     meDontLike: Boolean!
+    outlawed: Boolean!
     paidImgLink: Boolean
     ncomments: Int!
     comments: [Item!]!

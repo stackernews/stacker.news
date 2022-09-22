@@ -15,6 +15,7 @@ export const COMMENT_FIELDS = gql`
     boost
     meSats
     meDontLike
+    outlawed
     path
     commentSats
     mine

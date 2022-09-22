@@ -30,7 +30,12 @@ export default function Items ({ variables = {}, rank, items, pins, cursor }) {
               ? <><div /><div className='pb-3'><Comment item={item} noReply includeParent /></div></>
               : (item.maxBid
                   ? <ItemJob item={item} rank={rank && i + 1} />
-                  : <Item item={item} rank={rank && i + 1} />)}
+                  : (item.title
+                      ? <Item item={item} rank={rank && i + 1} />
+                      : (
+                        <div className='pb-2'>
+                          <Comment item={item} noReply includeParent clickToContext />
+                        </div>)))}
           </React.Fragment>
         ))}
       </div>
@@ -42,7 +47,7 @@ export default function Items ({ variables = {}, rank, items, pins, cursor }) {
   )
 }
 
-function ItemsSkeleton ({ rank, startRank = 0 }) {
+export function ItemsSkeleton ({ rank, startRank = 0 }) {
   const items = new Array(21).fill(null)
 
   return (

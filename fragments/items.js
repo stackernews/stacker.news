@@ -22,6 +22,7 @@ export const ITEM_FIELDS = gql`
     path
     meSats
     meDontLike
+    outlawed
     ncomments
     commentSats
     lastCommentAt
@@ -64,6 +65,19 @@ export const ITEMS = gql`
       pins {
         ...ItemFields
         position
+      }
+    }
+  }`
+
+export const OUTLAWED_ITEMS = gql`
+  ${ITEM_FIELDS}
+
+  query outlawedItems($cursor: String) {
+    outlawedItems(cursor: $cursor) {
+      cursor
+      items {
+        ...ItemFields
+        text
       }
     }
   }`

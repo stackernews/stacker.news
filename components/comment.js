@@ -16,6 +16,7 @@ import { ignoreClick } from '../lib/clicks'
 import { useMe } from './me'
 import DontLikeThis from './dont-link-this'
 import Flag from '../svgs/flag-fill.svg'
+import { Badge } from 'react-bootstrap'
 
 function Parent ({ item, rootText }) {
   const ParentFrag = () => (
@@ -133,6 +134,7 @@ export default function Comment ({
               </Link>
               {includeParent && <Parent item={item} rootText={rootText} />}
               {me && !item.meSats && !item.meDontLike && <DontLikeThis id={item.id} />}
+              {item.outlawed && <Link href='/outlawed'><a>{' '}<Badge className={itemStyles.newComment} variant={null}>OUTLAWED</Badge></a></Link>}
               {canEdit &&
                 <>
                   <span> \ </span>

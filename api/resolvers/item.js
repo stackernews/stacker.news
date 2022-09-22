@@ -273,6 +273,25 @@ export default {
         items
       }
     },
+    outlawedItems: async (parent, { cursor }, { me, models }) => {
+      const decodedCursor = decodeCursor(cursor)
+      const notMine = () => {
+        return me ? ` AND "userId" <> ${me.id} ` : ''
+      }
+
+      const items = await models.$queryRaw(`
+        ${SELECT}
+        FROM "Item"
+        WHERE "Item"."weightedVotes" - "Item"."weightedDownVotes" <= -${ITEM_FILTER_THRESHOLD}
+        ${notMine()}
+        ORDER BY created_at DESC
+        OFFSET $1
+        LIMIT ${LIMIT}`, decodedCursor.offset)
+      return {
+        cursor: items.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
+        items
+      }
+    },
     moreFlatComments: async (parent, { cursor, name, sort, within }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
 
@@ -844,6 +863,12 @@ export default {
 
       return !!dontLike
     },
+    outlawed: async (item, args, { me, models }) => {
+      if (me && Number(item.userId) === Number(me.id)) {
+        return false
+      }
+      return item.weightedVotes - item.weightedDownVotes <= -ITEM_FILTER_THRESHOLD
+    },
     mine: async (item, args, { me, models }) => {
       return me?.id === item.userId
     },
@@ -1014,7 +1039,8 @@ export const SELECT =
   "Item".text, "Item".url, "Item"."userId", "Item"."fwdUserId", "Item"."parentId", "Item"."pinId", "Item"."maxBid",
   "Item".company, "Item".location, "Item".remote,
   "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost", "Item"."paidImgLink",
-  "Item".sats, "Item".ncomments, "Item"."commentSats", "Item"."lastCommentAt", ltree2text("Item"."path") AS "path"`
+  "Item".sats, "Item".ncomments, "Item"."commentSats", "Item"."lastCommentAt", "Item"."weightedVotes",
+  "Item"."weightedDownVotes", ltree2text("Item"."path") AS "path"`
 
 async function newTimedOrderByWeightedSats (me, models, num) {
   return `

@@ -111,6 +111,7 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
                 <a title={item.createdAt} className='text-reset'>{timeSince(new Date(item.createdAt))}</a>
               </Link>
               {me && !item.meSats && !item.position && !item.meDontLike && <DontLikeThis id={item.id} />}
+              {item.outlawed && <Link href='/outlawed'><a>{' '}<Badge className={styles.newComment} variant={null}>OUTLAWED</Badge></a></Link>}
               {item.prior &&
                 <>
                   <span> \ </span>

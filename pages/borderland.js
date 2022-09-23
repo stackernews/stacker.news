@@ -28,5 +28,5 @@ function Items ({ rank, items, cursor }) {
     ({ borderlandItems: { items, cursor } } = data)
   }
 
-  return <MixedItems items={items} cursor={cursor} rank fetchMore={fetchMore} />
+  return <MixedItems items={items} cursor={cursor} rank={rank} fetchMore={fetchMore} />
 }

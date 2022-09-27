@@ -31,7 +31,8 @@ export default gql`
     setName(name: String!): Boolean
     setSettings(tipDefault: Int!, noteItemSats: Boolean!, noteEarning: Boolean!,
       noteAllDescendants: Boolean!, noteMentions: Boolean!, noteDeposits: Boolean!,
-      noteInvites: Boolean!, noteJobIndicator: Boolean!, hideInvoiceDesc: Boolean!, wildWestMode: Boolean!): User
+      noteInvites: Boolean!, noteJobIndicator: Boolean!, hideInvoiceDesc: Boolean!,
+      wildWestMode: Boolean!, greeterMode: Boolean!): User
     setPhoto(photoId: ID!): Int!
     upsertBio(bio: String!): User!
     setWalkthrough(tipPopover: Boolean, upvotePopover: Boolean): Boolean
@@ -73,6 +74,7 @@ export default gql`
     noteJobIndicator: Boolean!
     hideInvoiceDesc: Boolean!
     wildWestMode: Boolean!
+    greeterMode: Boolean!
     lastCheckedJobs: String
     authMethods: AuthMethods!
   }

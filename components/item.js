@@ -110,8 +110,9 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
               <Link href={`/items/${item.id}`} passHref>
                 <a title={item.createdAt} className='text-reset'>{timeSince(new Date(item.createdAt))}</a>
               </Link>
-              {me && !item.meSats && !item.position && !item.meDontLike && <DontLikeThis id={item.id} />}
-              {item.outlawed && <Link href='/outlawed'><a>{' '}<Badge className={styles.newComment} variant={null}>OUTLAWED</Badge></a></Link>}
+              {me && !item.meSats && !item.position && !item.meDontLike && !item.mine && <DontLikeThis id={item.id} />}
+              {(item.outlawed && <Link href='/outlawed'><a>{' '}<Badge className={styles.newComment} variant={null}>OUTLAWED</Badge></a></Link>) ||
+               (item.freebie && !item.mine && (me?.greeterMode) && <Link href='/freebie'><a>{' '}<Badge className={styles.newComment} variant={null}>FREEBIE</Badge></a></Link>)}
               {item.prior &&
                 <>
                   <span> \ </span>

@@ -23,6 +23,7 @@ a.title:visited {
 .newComment {
     color: var(--theme-grey) !important;
     background: var(--theme-clickToContextColor) !important;
+    vertical-align: middle;
 }
 
 .pin {

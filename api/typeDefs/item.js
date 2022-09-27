@@ -14,6 +14,7 @@ export default gql`
     itemRepetition(parentId: ID): Int!
     outlawedItems(cursor: String): Items
     borderlandItems(cursor: String): Items
+    freebieItems(cursor: String): Items
   }
 
   type ItemActResult {
@@ -83,6 +84,7 @@ export default gql`
     meSats: Int!
     meDontLike: Boolean!
     outlawed: Boolean!
+    freebie: Boolean!
     paidImgLink: Boolean
     ncomments: Int!
     comments: [Item!]!

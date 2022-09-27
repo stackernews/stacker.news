@@ -16,10 +16,10 @@ export const COMMENT_FIELDS = gql`
     meSats
     meDontLike
     outlawed
+    freebie
     path
     commentSats
     mine
-    paidImgLink
     ncomments
     root {
       id

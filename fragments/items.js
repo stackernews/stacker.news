@@ -23,6 +23,7 @@ export const ITEM_FIELDS = gql`
     meSats
     meDontLike
     outlawed
+    freebie
     ncomments
     commentSats
     lastCommentAt
@@ -38,7 +39,6 @@ export const ITEM_FIELDS = gql`
     status
     uploadId
     mine
-    paidImgLink
     root {
       id
       title
@@ -87,6 +87,19 @@ export const BORDERLAND_ITEMS = gql`
 
   query borderlandItems($cursor: String) {
     borderlandItems(cursor: $cursor) {
+      cursor
+      items {
+        ...ItemFields
+        text
+      }
+    }
+  }`
+
+export const FREEBIE_ITEMS = gql`
+  ${ITEM_FIELDS}
+
+  query freebieItems($cursor: String) {
+    freebieItems(cursor: $cursor) {
       cursor
       items {
         ...ItemFields

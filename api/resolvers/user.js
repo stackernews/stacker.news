@@ -1,6 +1,5 @@
 import { AuthenticationError, UserInputError } from 'apollo-server-errors'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
-import { mdHas } from '../../lib/md'
 import { createMentions, getItem, SELECT, updateItem, filterClause } from './item'
 import serialize from './serial'
 
@@ -202,11 +201,9 @@ export default {
       if (user.bioId) {
         await updateItem(parent, { id: user.bioId, data: { text: bio, title: `@${user.name}'s bio` } }, { me, models })
       } else {
-        const hasImgLink = !!(bio && mdHas(bio, ['link', 'image']))
-
         const [item] = await serialize(models,
-          models.$queryRaw(`${SELECT} FROM create_bio($1, $2, $3, $4) AS "Item"`,
-            `@${user.name}'s bio`, bio, Number(me.id), hasImgLink))
+          models.$queryRaw(`${SELECT} FROM create_bio($1, $2, $3) AS "Item"`,
+            `@${user.name}'s bio`, bio, Number(me.id)))
         await createMentions(item, models)
       }
 

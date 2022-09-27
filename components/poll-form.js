@@ -6,13 +6,11 @@ import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial, AdvPostSchema } from './adv-post-form'
 import { MAX_TITLE_LENGTH, MAX_POLL_CHOICE_LENGTH, MAX_POLL_NUM_CHOICES } from '../lib/constants'
 import TextareaAutosize from 'react-textarea-autosize'
-import { useState } from 'react'
 import FeeButton, { EditFeeButton } from './fee-button'
 
 export function PollForm ({ item, editThreshold }) {
   const router = useRouter()
   const client = useApolloClient()
-  const [hasImgLink, setHasImgLink] = useState()
 
   const [upsertPoll] = useMutation(
     gql`
@@ -82,7 +80,6 @@ export function PollForm ({ item, editThreshold }) {
         name='text'
         as={TextareaAutosize}
         minRows={2}
-        setHasImgLink={setHasImgLink}
       />
       <VariableInput
         label='choices'
@@ -97,11 +94,11 @@ export function PollForm ({ item, editThreshold }) {
       <div className='mt-3'>
         {item
           ? <EditFeeButton
-              paidSats={item.meSats} hadImgLink={item.paidImgLink} hasImgLink={hasImgLink}
+              paidSats={item.meSats}
               parentId={null} text='save' ChildButton={SubmitButton} variant='secondary'
             />
           : <FeeButton
-              baseFee={1} hasImgLink={hasImgLink} parentId={null} text='post'
+              baseFee={1} parentId={null} text='post'
               ChildButton={SubmitButton} variant='secondary'
             />}
       </div>

@@ -23,8 +23,6 @@ const BioSchema = Yup.object({
 })
 
 export function BioForm ({ handleSuccess, bio }) {
-  const [hasImgLink, setHasImgLink] = useState()
-
   const [upsertBio] = useMutation(
     gql`
       ${ITEM_FIELDS}
@@ -70,16 +68,15 @@ export function BioForm ({ handleSuccess, bio }) {
           name='bio'
           as={TextareaAutosize}
           minRows={6}
-          setHasImgLink={setHasImgLink}
         />
         <div className='mt-3'>
           {bio?.text
             ? <EditFeeButton
-                paidSats={bio?.meSats} hadImgLink={bio?.paidImgLink} hasImgLink={hasImgLink}
+                paidSats={bio?.meSats}
                 parentId={null} text='save' ChildButton={SubmitButton} variant='secondary'
               />
             : <FeeButton
-                baseFee={1} hasImgLink={hasImgLink} parentId={null} text='create'
+                baseFee={1} parentId={null} text='create'
                 ChildButton={SubmitButton} variant='secondary'
               />}
         </div>

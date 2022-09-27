@@ -8,7 +8,6 @@ import {
   BOOST_MIN, ITEM_SPAM_INTERVAL, MAX_POLL_NUM_CHOICES,
   MAX_TITLE_LENGTH, ITEM_FILTER_THRESHOLD, DONT_LIKE_THIS_COST
 } from '../../lib/constants'
-import { mdHas } from '../../lib/md'
 
 async function comments (me, models, id, sort) {
   let orderBy
@@ -85,15 +84,28 @@ export async function orderByNumerator (me, models) {
 }
 
 export async function filterClause (me, models) {
+  // by default don't include freebies unless they have upvotes
+  let clause = ' AND (NOT "Item".freebie OR "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0'
   if (me) {
     const user = await models.user.findUnique({ where: { id: me.id } })
+    // wild west mode has everything
     if (user.wildWestMode) {
       return ''
     }
+    // greeter mode includes freebies if feebies haven't been flagged
+    if (user.greeterMode) {
+      clause = 'AND (NOT "Item".freebie OR ("Item"."weightedVotes" - "Item"."weightedDownVotes" >= 0 AND "Item".freebie)'
+    }
+
+    // always include if it's mine
+    clause += ` OR "Item"."userId" = ${me.id})`
+  } else {
+    // close default freebie clause
+    clause += ')'
   }
 
   // if the item is above the threshold or is mine
-  let clause = ` AND ("Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}`
+  clause += ` AND ("Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}`
   if (me) {
     clause += ` OR "Item"."userId" = ${me.id}`
   }
@@ -215,7 +227,7 @@ export default {
                   ${SELECT}
                   FROM "Item"
                   WHERE "parentId" IS NULL AND "Item".created_at <= $1 AND "Item".created_at > $3
-                  AND "pinId" IS NULL
+                  AND "pinId" IS NULL AND NOT bio
                   ${subClause(4)}
                   ${await filterClause(me, models)}
                   ${await newTimedOrderByWeightedSats(me, models, 1)}
@@ -228,7 +240,7 @@ export default {
                   ${SELECT}
                   FROM "Item"
                   WHERE "parentId" IS NULL AND "Item".created_at <= $1
-                  AND "pinId" IS NULL
+                  AND "pinId" IS NULL AND NOT bio
                   ${subClause(3)}
                   ${await filterClause(me, models)}
                   ${await newTimedOrderByWeightedSats(me, models, 1)}
@@ -304,6 +316,21 @@ export default {
         WHERE "Item"."weightedVotes" - "Item"."weightedDownVotes" < 0
         AND "Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}
         ${notMine()}
+        ORDER BY created_at DESC
+        OFFSET $1
+        LIMIT ${LIMIT}`, decodedCursor.offset)
+      return {
+        cursor: items.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
+        items
+      }
+    },
+    freebieItems: async (parent, { cursor }, { me, models }) => {
+      const decodedCursor = decodeCursor(cursor)
+
+      const items = await models.$queryRaw(`
+        ${SELECT}
+        FROM "Item"
+        WHERE "Item".freebie
         ORDER BY created_at DESC
         OFFSET $1
         LIMIT ${LIMIT}`, decodedCursor.offset)
@@ -574,8 +601,6 @@ export default {
         }
       }
 
-      const hasImgLink = !!(text && mdHas(text, ['link', 'image']))
-
       if (id) {
         const optionCount = await models.pollOption.count({
           where: {
@@ -588,8 +613,8 @@ export default {
         }
 
         const [item] = await serialize(models,
-          models.$queryRaw(`${SELECT} FROM update_poll($1, $2, $3, $4, $5, $6, $7) AS "Item"`,
-            Number(id), title, text, Number(boost || 0), options, Number(fwdUser?.id), hasImgLink))
+          models.$queryRaw(`${SELECT} FROM update_poll($1, $2, $3, $4, $5, $6) AS "Item"`,
+            Number(id), title, text, Number(boost || 0), options, Number(fwdUser?.id)))
 
         return item
       } else {
@@ -598,8 +623,8 @@ export default {
         }
 
         const [item] = await serialize(models,
-          models.$queryRaw(`${SELECT} FROM create_poll($1, $2, $3, $4, $5, $6, $7, $8, '${ITEM_SPAM_INTERVAL}') AS "Item"`,
-            title, text, 1, Number(boost || 0), Number(me.id), options, Number(fwdUser?.id), hasImgLink))
+          models.$queryRaw(`${SELECT} FROM create_poll($1, $2, $3, $4, $5, $6, $7, '${ITEM_SPAM_INTERVAL}') AS "Item"`,
+            title, text, 1, Number(boost || 0), Number(me.id), options, Number(fwdUser?.id)))
 
         await createMentions(item, models)
 
@@ -981,12 +1006,10 @@ export const updateItem = async (parent, { id, data: { title, url, text, boost, 
     }
   }
 
-  const hasImgLink = !!(text && mdHas(text, ['link', 'image']))
-
   const [item] = await serialize(models,
     models.$queryRaw(
-      `${SELECT} FROM update_item($1, $2, $3, $4, $5, $6, $7) AS "Item"`,
-      Number(id), title, url, text, Number(boost || 0), Number(fwdUser?.id), hasImgLink))
+      `${SELECT} FROM update_item($1, $2, $3, $4, $5, $6) AS "Item"`,
+      Number(id), title, url, text, Number(boost || 0), Number(fwdUser?.id)))
 
   await createMentions(item, models)
 
@@ -1014,13 +1037,11 @@ const createItem = async (parent, { title, url, text, boost, forward, parentId }
     }
   }
 
-  const hasImgLink = !!(text && mdHas(text, ['link', 'image']))
-
   const [item] = await serialize(models,
     models.$queryRaw(
-      `${SELECT} FROM create_item($1, $2, $3, $4, $5, $6, $7, $8, '${ITEM_SPAM_INTERVAL}') AS "Item"`,
+      `${SELECT} FROM create_item($1, $2, $3, $4, $5, $6, $7, '${ITEM_SPAM_INTERVAL}') AS "Item"`,
       title, url, text, Number(boost || 0), Number(parentId), Number(me.id),
-      Number(fwdUser?.id), hasImgLink))
+      Number(fwdUser?.id)))
 
   await createMentions(item, models)
 
@@ -1058,9 +1079,9 @@ export const SELECT =
   `SELECT "Item".id, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt", "Item".title,
   "Item".text, "Item".url, "Item"."userId", "Item"."fwdUserId", "Item"."parentId", "Item"."pinId", "Item"."maxBid",
   "Item".company, "Item".location, "Item".remote,
-  "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost", "Item"."paidImgLink",
+  "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost",
   "Item".sats, "Item".ncomments, "Item"."commentSats", "Item"."lastCommentAt", "Item"."weightedVotes",
-  "Item"."weightedDownVotes", ltree2text("Item"."path") AS "path"`
+  "Item"."weightedDownVotes", "Item".freebie, ltree2text("Item"."path") AS "path"`
 
 async function newTimedOrderByWeightedSats (me, models, num) {
   return `

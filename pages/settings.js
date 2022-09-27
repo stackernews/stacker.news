@@ -62,7 +62,8 @@ export default function Settings ({ data: { settings } }) {
             noteInvites: settings?.noteInvites,
             noteJobIndicator: settings?.noteJobIndicator,
             hideInvoiceDesc: settings?.hideInvoiceDesc,
-            wildWestMode: settings?.wildWestMode
+            wildWestMode: settings?.wildWestMode,
+            greeterMode: settings?.greeterMode
           }}
           schema={SettingsSchema}
           onSubmit={async ({ tipDefault, ...values }) => {
@@ -138,13 +139,28 @@ export default function Settings ({ data: { settings } }) {
               <div className='d-flex align-items-center'>wild west mode
                 <Info>
                   <ul className='font-weight-bold'>
-                    <li>Don't hide flagged content</li>
-                    <li>Don't down rank flagged content</li>
+                    <li>don't hide flagged content</li>
+                    <li>don't down rank flagged content</li>
                   </ul>
                 </Info>
               </div>
             }
             name='wildWestMode'
+            groupClassName='mb-0'
+          />
+          <Checkbox
+            label={
+              <div className='d-flex align-items-center'>greeter mode
+                <Info>
+                  <ul className='font-weight-bold'>
+                    <li>see and screen free posts and comments</li>
+                    <li>help onboard users to SN and Lightning</li>
+                    <li>you might be subject to more spam</li>
+                  </ul>
+                </Info>
+              </div>
+            }
+            name='greeterMode'
           />
           <div className='d-flex'>
             <SubmitButton variant='info' className='ml-auto mt-1 px-4'>save</SubmitButton>

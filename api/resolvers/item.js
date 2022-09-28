@@ -529,8 +529,9 @@ export default {
       }
 
       // return highlights
-      const items = sitems.body.hits.hits.map(e => {
-        const item = e._source
+      const items = sitems.body.hits.hits.map(async e => {
+        // this is super inefficient but will suffice until we do something more generic
+        const item = await getItem(parent, { id: e._source.id }, { me, models })
 
         item.searchTitle = (e.highlight.title && e.highlight.title[0]) || item.title
         item.searchText = (e.highlight.text && e.highlight.text[0]) || item.text

@@ -83,7 +83,7 @@ function ItemEmbed ({ item }) {
 }
 
 function TopLevelItem ({ item, noReply, ...props }) {
-  const ItemComponent = item.maxBid ? ItemJob : Item
+  const ItemComponent = item.isJob ? ItemJob : Item
 
   return (
     <ItemComponent item={item} toc showFwdUser {...props}>

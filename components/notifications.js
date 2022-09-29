@@ -105,13 +105,15 @@ function Notification ({ n }) {
                     you were mentioned in
                   </small>}
                 {n.__typename === 'JobChanged' &&
-                  <small className={`font-weight-bold text-${n.item.status === 'NOSATS' ? 'danger' : 'success'} ml-1`}>
-                    {n.item.status === 'NOSATS'
-                      ? 'your job ran out of sats'
-                      : 'your job is active again'}
+                  <small className={`font-weight-bold text-${n.item.status === 'ACTIVE' ? 'success' : 'boost'} ml-1`}>
+                    {n.item.status === 'ACTIVE'
+                      ? 'your job is active again'
+                      : (n.item.status === 'NOSATS'
+                          ? 'your job promotion ran out of sats'
+                          : 'your job has been stopped')}
                   </small>}
                 <div className={n.__typename === 'Votification' || n.__typename === 'Mention' || n.__typename === 'JobChanged' ? '' : 'py-2'}>
-                  {n.item.maxBid
+                  {n.item.isJob
                     ? <ItemJob item={n.item} />
                     : n.item.title
                       ? <Item item={n.item} />

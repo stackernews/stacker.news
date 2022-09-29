@@ -92,6 +92,7 @@ export default gql`
     position: Int
     prior: Int
     maxBid: Int
+    isJob: Boolean!
     pollCost: Int
     poll: Poll
     company: String

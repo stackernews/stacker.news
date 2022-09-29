@@ -32,7 +32,7 @@ export default function MixedItems ({ rank, items, cursor, fetchMore }) {
                     <Comment item={item} noReply includeParent clickToContext />
                   </div>
                 </>)
-              : (item.maxBid
+              : (item.isJob
                   ? <ItemJob item={item} rank={rank && i + 1} />
                   : <Item item={item} rank={rank && i + 1} />)}
           </React.Fragment>

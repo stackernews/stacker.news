@@ -201,7 +201,7 @@ export default {
                   WHERE "parentId" IS NULL AND created_at <= $1
                   AND "pinId" IS NULL
                   ${subClause(3)}
-                  AND status = 'ACTIVE'
+                  AND status = 'ACTIVE' AND "maxBid" > 0
                   ORDER BY "maxBid" DESC, created_at ASC)
                   UNION ALL
                   (${SELECT}
@@ -209,7 +209,7 @@ export default {
                   WHERE "parentId" IS NULL AND created_at <= $1
                   AND "pinId" IS NULL
                   ${subClause(3)}
-                  AND status = 'NOSATS'
+                  AND ((status = 'ACTIVE' AND "maxBid" = 0) OR status = 'NOSATS')
                   ORDER BY created_at DESC)
                 ) a
                 OFFSET $2
@@ -456,11 +456,19 @@ export default {
                         bool: {
                           should: [
                             { match: { status: 'ACTIVE' } },
+                            { match: { status: 'NOSATS' } },
                             { match: { userId: me.id } }
                           ]
                         }
                       }
-                    : { match: { status: 'ACTIVE' } },
+                    : {
+                        bool: {
+                          should: [
+                            { match: { status: 'ACTIVE' } },
+                            { match: { status: 'NOSATS' } }
+                          ]
+                        }
+                      },
                   {
                     bool: {
                       should: [
@@ -544,17 +552,24 @@ export default {
         items
       }
     },
-    auctionPosition: async (parent, { id, sub, bid }, { models }) => {
+    auctionPosition: async (parent, { id, sub, bid }, { models, me }) => {
       // count items that have a bid gte to the current bid or
       // gte current bid and older
       const where = {
         where: {
           subName: sub,
-          status: 'ACTIVE',
-          maxBid: {
-            gte: bid
-          }
+          status: { not: 'STOPPED' }
         }
+      }
+
+      if (bid > 0) {
+        where.where.maxBid = { gte: bid }
+      } else {
+        const createdAt = id ? (await getItem(parent, { id }, { models, me })).createdAt : new Date()
+        where.where.OR = [
+          { maxBid: { gt: 0 } },
+          { createdAt: { gt: createdAt } }
+        ]
       }
 
       if (id) {
@@ -646,62 +661,36 @@ export default {
         throw new UserInputError('not a valid sub', { argumentName: 'sub' })
       }
 
-      if (fullSub.baseCost > maxBid) {
-        throw new UserInputError(`bid must be at least ${fullSub.baseCost}`, { argumentName: 'maxBid' })
+      if (maxBid < 0) {
+        throw new UserInputError('bid must be at least 0', { argumentName: 'maxBid' })
       }
 
       if (!location && !remote) {
         throw new UserInputError('must specify location or remote', { argumentName: 'location' })
       }
 
-      const checkSats = async () => {
-        // check if the user has the funds to run for the first minute
-        const minuteMsats = maxBid * 1000
-        const user = await models.user.findUnique({ where: { id: me.id } })
-        if (user.msats < minuteMsats) {
-          throw new UserInputError('insufficient funds')
-        }
-      }
+      location = location.toLowerCase() === 'remote' ? undefined : location
 
-      const data = {
-        title,
-        company,
-        location: location.toLowerCase() === 'remote' ? undefined : location,
-        remote,
-        text,
-        url,
-        maxBid,
-        subName: sub,
-        userId: me.id,
-        uploadId: logo
-      }
-
+      let item
       if (id) {
-        if (status) {
-          data.status = status
-
-          // if the job is changing to active, we need to check they have funds
-          if (status === 'ACTIVE') {
-            await checkSats()
-          }
-        }
-
         const old = await models.item.findUnique({ where: { id: Number(id) } })
         if (Number(old.userId) !== Number(me?.id)) {
           throw new AuthenticationError('item does not belong to you')
         }
-
-        return await models.item.update({
-          where: { id: Number(id) },
-          data
-        })
+        ([item] = await serialize(models,
+          models.$queryRaw(
+            `${SELECT} FROM update_job($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) AS "Item"`,
+            Number(id), title, url, text, Number(maxBid), company, location, remote, Number(logo), status)))
+      } else {
+        ([item] = await serialize(models,
+          models.$queryRaw(
+            `${SELECT} FROM create_job($1, $2, $3, $4, $5, $6, $7, $8, $9) AS "Item"`,
+            title, url, text, Number(me.id), Number(maxBid), company, location, remote, Number(logo))))
       }
 
-      // before creating job, check the sats
-      await checkSats()
-      return await models.item.create({
-        data
-      })
+      await createMentions(item, models)
+
+      return item
     },
     createComment: async (parent, { text, parentId }, { me, models }) => {
       return await createItem(parent, { text, parentId }, { me, models })
@@ -767,6 +756,9 @@ export default {
     }
   },
   Item: {
+    isJob: async (item, args, { models }) => {
+      return item.subName === 'jobs'
+    },
     sub: async (item, args, { models }) => {
       if (!item.subName) {
         return null

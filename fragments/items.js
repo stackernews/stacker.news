@@ -28,6 +28,7 @@ export const ITEM_FIELDS = gql`
     commentSats
     lastCommentAt
     maxBid
+    isJob
     company
     location
     remote

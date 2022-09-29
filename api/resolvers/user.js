@@ -337,9 +337,6 @@ export default {
 
       const job = await models.item.findFirst({
         where: {
-          status: {
-            not: 'STOPPED'
-          },
           maxBid: {
             not: null
           },

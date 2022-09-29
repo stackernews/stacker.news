@@ -28,7 +28,7 @@ export default function Items ({ variables = {}, rank, items, pins, cursor }) {
             {pinMap && pinMap[i + 1] && <Item item={pinMap[i + 1]} />}
             {item.parentId
               ? <><div /><div className='pb-3'><Comment item={item} noReply includeParent /></div></>
-              : (item.maxBid
+              : (item.isJob
                   ? <ItemJob item={item} rank={rank && i + 1} />
                   : (item.title
                       ? <Item item={item} rank={rank && i + 1} />

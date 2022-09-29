@@ -98,7 +98,6 @@ export default {
             FROM "Item"
             WHERE "Item"."userId" = $1
             AND "maxBid" IS NOT NULL
-            AND status <> 'STOPPED'
             AND "statusUpdatedAt" <= $2
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT}+$3)`

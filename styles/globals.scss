@@ -217,7 +217,7 @@ a:hover {
   background-color: var(--theme-inputBg);
   border: 1px solid var(--theme-borderColor);
   max-width: 90vw;
-  overflow: scroll;
+  overflow: auto;
 }
 
 .dropdown-item {

@@ -21,10 +21,14 @@ export const ITEM_FIELDS = gql`
     boost
     path
     meSats
+    meDontLike
+    outlawed
+    freebie
     ncomments
     commentSats
     lastCommentAt
     maxBid
+    isJob
     company
     location
     remote
@@ -36,7 +40,6 @@ export const ITEM_FIELDS = gql`
     status
     uploadId
     mine
-    paidImgLink
     root {
       id
       title
@@ -63,6 +66,45 @@ export const ITEMS = gql`
       pins {
         ...ItemFields
         position
+      }
+    }
+  }`
+
+export const OUTLAWED_ITEMS = gql`
+  ${ITEM_FIELDS}
+
+  query outlawedItems($cursor: String) {
+    outlawedItems(cursor: $cursor) {
+      cursor
+      items {
+        ...ItemFields
+        text
+      }
+    }
+  }`
+
+export const BORDERLAND_ITEMS = gql`
+  ${ITEM_FIELDS}
+
+  query borderlandItems($cursor: String) {
+    borderlandItems(cursor: $cursor) {
+      cursor
+      items {
+        ...ItemFields
+        text
+      }
+    }
+  }`
+
+export const FREEBIE_ITEMS = gql`
+  ${ITEM_FIELDS}
+
+  query freebieItems($cursor: String) {
+    freebieItems(cursor: $cursor) {
+      cursor
+      items {
+        ...ItemFields
+        text
       }
     }
   }`

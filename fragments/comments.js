@@ -14,10 +14,12 @@ export const COMMENT_FIELDS = gql`
     upvotes
     boost
     meSats
+    meDontLike
+    outlawed
+    freebie
     path
     commentSats
     mine
-    paidImgLink
     ncomments
     root {
       id

@@ -14,6 +14,7 @@ import { randInRange } from '../lib/rand'
 import { formatSats } from '../lib/format'
 import NoteIcon from '../svgs/notification-4-fill.svg'
 import { useQuery, gql } from '@apollo/client'
+import LightningIcon from '../svgs/bolt.svg'
 
 function WalletSummary ({ me }) {
   if (!me) return null
@@ -125,7 +126,18 @@ export default function Header ({ sub }) {
           setFired(true)
         }, [router.asPath])
       }
-      return path !== '/login' && !path.startsWith('/invites') && <Button id='login' onClick={signIn}>login</Button>
+      return path !== '/login' && !path.startsWith('/invites') &&
+        <Button
+          className='align-items-center d-flex pl-2 pr-3'
+          id='login'
+          onClick={() => signIn(null, { callbackUrl: window.location.origin + router.asPath })}
+        >
+          <LightningIcon
+            width={17}
+            height={17}
+            className='mr-1'
+          />login
+        </Button>
     }
   }
 

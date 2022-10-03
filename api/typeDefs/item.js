@@ -12,6 +12,9 @@ export default gql`
     search(q: String, sub: String, cursor: String): Items
     auctionPosition(sub: String, id: ID, bid: Int!): Int!
     itemRepetition(parentId: ID): Int!
+    outlawedItems(cursor: String): Items
+    borderlandItems(cursor: String): Items
+    freebieItems(cursor: String): Items
   }
 
   type ItemActResult {
@@ -27,6 +30,7 @@ export default gql`
     upsertPoll(id: ID, title: String!, text: String, options: [String!]!, boost: Int, forward: String): Item!
     createComment(text: String!, parentId: ID!): Item!
     updateComment(id: ID!, text: String!): Item!
+    dontLikeThis(id: ID!): Boolean!
     act(id: ID!, sats: Int): ItemActResult!
     pollVote(id: ID!): ID!
   }
@@ -78,6 +82,9 @@ export default gql`
     lastCommentAt: String
     upvotes: Int!
     meSats: Int!
+    meDontLike: Boolean!
+    outlawed: Boolean!
+    freebie: Boolean!
     paidImgLink: Boolean
     ncomments: Int!
     comments: [Item!]!
@@ -85,6 +92,7 @@ export default gql`
     position: Int
     prior: Int
     maxBid: Int
+    isJob: Boolean!
     pollCost: Int
     poll: Poll
     company: String

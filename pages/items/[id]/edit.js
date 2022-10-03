@@ -14,7 +14,7 @@ export default function PostEdit ({ data: { item } }) {
 
   return (
     <LayoutCenter sub={item.sub?.name}>
-      {item.maxBid
+      {item.isJob
         ? <JobForm item={item} sub={item.sub} />
         : (item.url
             ? <LinkForm item={item} editThreshold={editThreshold} adv />

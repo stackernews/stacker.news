@@ -32,8 +32,8 @@ model User {
   bioId           Int?
   msats           Int         @default(0)
   stackedMsats    Int         @default(0)
-  freeComments    Int         @default(0)
-  freePosts       Int         @default(0)
+  freeComments    Int         @default(5)
+  freePosts       Int         @default(2)
   checkedNotesAt  DateTime?
   tipDefault      Int         @default(10)
   fiatCurrency    String      @default("USD")
@@ -59,6 +59,10 @@ model User {
 
   // privacy settings
   hideInvoiceDesc Boolean @default(false)
+
+  // content settings
+  wildWestMode Boolean @default(false)
+  greeterMode  Boolean @default(false)
 
   Earn     Earn[]
   Upload   Upload[]   @relation(name: "Uploads")
@@ -89,6 +93,13 @@ model Upload {
   @@index([userId])
 }
 
+enum EarnType {
+  POST
+  COMMENT
+  TIP_COMMENT
+  TIP_POST
+}
+
 model Earn {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now()) @map(name: "created_at")
@@ -98,8 +109,13 @@ model Earn {
   user   User @relation(fields: [userId], references: [id])
   userId Int
 
+  type   EarnType?
+  typeId Int?
+  rank   Int?
+
   @@index([createdAt])
   @@index([userId])
+  @@index([createdAt, userId])
 }
 
 model LnAuth {
@@ -171,9 +187,14 @@ model Item {
   upload      Upload?
   paidImgLink Boolean               @default(false)
 
+  // is free post or bio
+  freebie Boolean @default(false)
+  bio     Boolean @default(false)
+
   // denormalized self stats
-  weightedVotes Float @default(0)
-  sats          Int   @default(0)
+  weightedVotes     Float @default(0)
+  weightedDownVotes Float @default(0)
+  sats              Int   @default(0)
 
   // denormalized comment stats
   ncomments     Int       @default(0)
@@ -285,6 +306,7 @@ enum ItemActType {
   TIP
   STREAM
   POLL
+  DONT_LIKE_THIS
 }
 
 model ItemAct {

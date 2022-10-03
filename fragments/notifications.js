@@ -31,6 +31,11 @@ export const NOTIFICATIONS = gql`
         ... on Earn {
           sortTime
           earnedSats
+          sources {
+            posts
+            comments
+            tips
+          }
         }
         ... on Reply {
           sortTime

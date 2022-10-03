@@ -18,7 +18,7 @@ export default function ItemJob ({ item, toc, rank, children }) {
             {rank}
           </div>)
         : <div />}
-      <div className={`${styles.item} ${item.status === 'NOSATS' && !item.mine ? styles.itemDead : ''}`}>
+      <div className={`${styles.item}`}>
         <Link href={`/items/${item.id}`} passHref>
           <a>
             <Image
@@ -38,11 +38,6 @@ export default function ItemJob ({ item, toc, rank, children }) {
             </Link>
           </div>
           <div className={`${styles.other}`}>
-            {item.status === 'NOSATS' &&
-              <>
-                <span>expired</span>
-                {item.company && <span> \ </span>}
-              </>}
             {item.company &&
               <>
                 {item.company}
@@ -72,7 +67,7 @@ export default function ItemJob ({ item, toc, rank, children }) {
                     edit
                   </a>
                 </Link>
-                {item.status !== 'ACTIVE' && <span className='font-weight-bold text-danger'> {item.status}</span>}
+                {item.status !== 'ACTIVE' && <span className='ml-1 font-weight-bold text-boost'> {item.status}</span>}
               </>}
           </div>
         </div>

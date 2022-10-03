@@ -23,3 +23,16 @@ services:
       - ./:/app
     links:
       - db
+  worker:
+    container_name: worker
+    build: ./worker
+    depends_on:
+      - db
+    env_file:
+      - ./.env.sample
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./:/app
+    links:
+      - db

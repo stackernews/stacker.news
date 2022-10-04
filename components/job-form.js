@@ -13,6 +13,7 @@ import { CURRENCY_SYMBOLS, usePrice } from './price'
 import Avatar from './avatar'
 import BootstrapForm from 'react-bootstrap/Form'
 import Alert from 'react-bootstrap/Alert'
+import { useMe } from './me'
 
 Yup.addMethod(Yup.string, 'or', function (schemas, msg) {
   return this.test({
@@ -35,9 +36,10 @@ function satsMin2Mo (minute) {
 }
 
 function PriceHint ({ monthly }) {
+  const me = useMe()
   const price = usePrice()
-  const { fiatCurrency } = useMe();
-  const fiatSymbol = CURRENCY_SYMBOLS[fiatCurrency]
+
+  const fiatSymbol = CURRENCY_SYMBOLS[me?.fiatCurrency || 'USD']
 
   if (!price || !monthly) {
     return null

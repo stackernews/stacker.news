@@ -1,4 +1,4 @@
-import { Checkbox, Form, Input, SubmitButton, Dropdown } from '../components/form'
+import { Checkbox, Form, Input, SubmitButton, Select } from '../components/form'
 import * as Yup from 'yup'
 import { Alert, Button, InputGroup, Modal } from 'react-bootstrap'
 import LayoutCenter from '../components/layout-center'
@@ -71,8 +71,8 @@ export default function Settings ({ data: { settings } }) {
             greeterMode: settings?.greeterMode
           }}
           schema={SettingsSchema}
-          onSubmit={async ({ tipDefault, fiatCurrency, ...values }) => {
-            await setSettings({ variables: { tipDefault: Number(tipDefault), fiatCurrency, ...values } })
+          onSubmit={async ({ tipDefault, ...values }) => {
+            await setSettings({ variables: { tipDefault: Number(tipDefault), ...values } })
             setSuccess('settings saved')
           }}
         >
@@ -84,9 +84,10 @@ export default function Settings ({ data: { settings } }) {
             autoFocus
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
           />
-          <Dropdown
+          <Select
             label='fiat currency'
             name='fiatCurrency'
+            size='sm'
             items={supportedCurrencies}
             required
           />

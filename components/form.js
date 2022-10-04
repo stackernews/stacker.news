@@ -430,20 +430,14 @@ export function SyncForm ({
   )
 }
 
-export function Dropdown ({ label, items, groupClassName, ...props }) {
-  const [field, _, helper] = useField({ ...props, type: 'input' })
+export function Select ({ label, items, groupClassName, ...props }) {
+  const [field] = useField(props)
+
   return (
     <FormGroup label={label} className={groupClassName}>
-      <BootstrapDropdown>
-        <BootstrapDropdown.Toggle>
-          {field.value}
-        </BootstrapDropdown.Toggle>
-        <BootstrapDropdown.Menu>
-          {items.map(item => (
-            <BootstrapDropdown.Item onSelect={() => helper.setValue(item)}>{item}</BootstrapDropdown.Item>
-          ))}
-        </BootstrapDropdown.Menu>
-      </BootstrapDropdown>
+      <BootstrapForm.Control as='select' custom {...field} {...props}>
+        {items.map(item => <option key={item}>{item}</option>)}
+      </BootstrapForm.Control>
     </FormGroup>
   )
 }

@@ -136,7 +136,7 @@ export default function Footer ({ noLinks }) {
                   ? <Sun onClick={() => darkMode.toggle()} className='fill-grey theme' />
                   : <Moon onClick={() => darkMode.toggle()} className='fill-grey theme' />}
               </div>}
-            <div className='mb-2' style={{ fontWeight: 500 }}>
+            <div className='mb-0' style={{ fontWeight: 500 }}>
               <OverlayTrigger trigger='click' placement='top' overlay={AnalyticsPopover} rootClose>
                 <div className='nav-link p-0 d-inline-flex' style={{ cursor: 'pointer' }}>
                   analytics

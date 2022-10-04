@@ -25,6 +25,10 @@
     height: 100%;
 }
 
+.headingLink.copied {
+    display: flex;
+}
+
 .headingLink svg {
     align-self: center;
 }

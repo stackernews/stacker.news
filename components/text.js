@@ -10,14 +10,10 @@ import { visit } from 'unist-util-visit'
 import reactStringReplace from 'react-string-replace'
 import React, { useEffect, useState } from 'react'
 import GithubSlugger from 'github-slugger'
-import Link from '../svgs/link.svg'
+import LinkIcon from '../svgs/link.svg'
+import Thumb from '../svgs/thumb-up-fill.svg'
 import {toString} from 'mdast-util-to-string'
-
-function copyToClipboard (id) {
-  if (navigator && navigator.clipboard && navigator.clipboard.writeText)
-    return navigator.clipboard.writeText(str);
-  return Promise.reject('The Clipboard API is not available.');
-}
+import copy from 'clipboard-copy'
 
 function myRemarkPlugin () {
   return (tree) => {
@@ -39,17 +35,28 @@ function myRemarkPlugin () {
 
 
 function Heading ({ h, slugger, noFragments, topLevel, children, node, ...props }) {
-  const id = noFragments ? undefined : slugger.slug(toString(node).replace(/[^\w\-\s]+/gi, ''))
+  const [copied, setCopied] = useState(false)
+  const [id] = useState(noFragments ? undefined : slugger.slug(toString(node).replace(/[^\w\-\s]+/gi, '')))
+
+  const Icon = copied ? Thumb : LinkIcon
 
   return (
     <div className={styles.heading}>
       {React.createElement(h, { id, ...props }, children)}
-      {!noFragments && topLevel && <a className={styles.headingLink} href={`#${id}`}><Link 
-      onClick={() => copyToClipboard(id)}
-      width={18}
-      height={18}
-      className='fill-grey'
-      />
+      {!noFragments && topLevel &&
+      <a className={`${styles.headingLink} ${copied ? styles.copied : ''}`} href={`#${id}`}>
+        <Icon
+          onClick={() => {
+            const location = new URL(window.location)
+            location.hash = `${id}`
+            copy(location.href)
+            setTimeout(() => setCopied(false), 1500)
+            setCopied(true)
+          }}
+          width={18}
+          height={18}
+          className='fill-grey'
+        />
       </a>}
     </div>
   )

@@ -36,3 +36,8 @@ services:
       - ./:/app
     links:
       - db
+    entrypoint: ["/bin/sh", "-c"]
+    command: 
+    - |
+      npm install --loglevel verbose 
+      node worker/index.js

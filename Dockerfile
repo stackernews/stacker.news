@@ -8,4 +8,4 @@ WORKDIR /app
 
 EXPOSE 3000
 
-CMD npm install --loglevel verbose; npx prisma migrate dev; npm run dev; node worker/index.js
+CMD npm install --loglevel verbose; npx prisma migrate dev; npm run dev

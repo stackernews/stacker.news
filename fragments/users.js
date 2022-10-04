@@ -24,6 +24,9 @@ export const ME = gql`
       noteDeposits
       noteInvites
       noteJobIndicator
+      hideInvoiceDesc
+      wildWestMode
+      greeterMode
       lastCheckedJobs
     }
   }`
@@ -48,13 +51,15 @@ export const ME_SSR = gql`
       noteDeposits
       noteInvites
       noteJobIndicator
+      hideInvoiceDesc
+      wildWestMode
+      greeterMode
       lastCheckedJobs
     }
   }`
 
-export const SETTINGS = gql`
-{
-  settings {
+export const SETTINGS_FIELDS = gql`
+  fragment SettingsFields on User {
     tipDefault
     noteItemSats
     noteEarning
@@ -63,14 +68,41 @@ export const SETTINGS = gql`
     noteDeposits
     noteInvites
     noteJobIndicator
+    hideInvoiceDesc
+    wildWestMode
+    greeterMode
     authMethods {
       lightning
       email
       twitter
       github
     }
+  }`
+
+export const SETTINGS = gql`
+${SETTINGS_FIELDS}
+{
+  settings {
+    ...SettingsFields
   }
 }`
+
+export const SET_SETTINGS =
+gql`
+${SETTINGS_FIELDS}
+mutation setSettings($tipDefault: Int!, $noteItemSats: Boolean!, $noteEarning: Boolean!,
+  $noteAllDescendants: Boolean!, $noteMentions: Boolean!, $noteDeposits: Boolean!,
+  $noteInvites: Boolean!, $noteJobIndicator: Boolean!, $hideInvoiceDesc: Boolean!,
+  $wildWestMode: Boolean!, $greeterMode: Boolean!) {
+  setSettings(tipDefault: $tipDefault, noteItemSats: $noteItemSats,
+    noteEarning: $noteEarning, noteAllDescendants: $noteAllDescendants,
+    noteMentions: $noteMentions, noteDeposits: $noteDeposits, noteInvites: $noteInvites,
+    noteJobIndicator: $noteJobIndicator, hideInvoiceDesc: $hideInvoiceDesc, wildWestMode: $wildWestMode,
+    greeterMode: $greeterMode) {
+      ...SettingsFields
+    }
+  }
+`
 
 export const NAME_QUERY =
 gql`
@@ -85,6 +117,14 @@ gql`
     setName(name: $name)
   }
 `
+
+export const USER_SEARCH =
+gql`
+  query searchUsers($name: String!) {
+    searchUsers(name: $name) {
+      name
+    }
+  }`
 
 export const USER_FIELDS = gql`
   ${ITEM_FIELDS}
@@ -153,6 +193,11 @@ export const USER_WITH_POSTS = gql`
       cursor
       items {
         ...ItemFields
+        position
+      }
+      pins {
+        ...ItemFields
+         position
       }
     }
   }`

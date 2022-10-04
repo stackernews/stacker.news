@@ -81,13 +81,13 @@ function LoadWithdrawl () {
       <div className='w-100'>
         <CopyInput
           label='invoice' type='text'
-          placeholder={data.withdrawl.bolt11} readOnly
+          placeholder={data.withdrawl.bolt11} readOnly noForm
         />
       </div>
       <div className='w-100'>
         <Input
           label='max fee' type='text'
-          placeholder={data.withdrawl.satsFeePaying} readOnly
+          placeholder={data.withdrawl.satsFeePaying} readOnly noForm
           append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
         />
       </div>

@@ -4,11 +4,11 @@ import { gql, useMutation } from '@apollo/client'
 import styles from './reply.module.css'
 import { COMMENTS } from '../fragments/comments'
 import { useMe } from './me'
-import ActionTooltip from './action-tooltip'
 import TextareaAutosize from 'react-textarea-autosize'
 import { useEffect, useState } from 'react'
-import Info from './info'
 import Link from 'next/link'
+import FeeButton from './fee-button'
+import { commentsViewedAfterComment } from '../lib/new-comments'
 
 export const CommentSchema = Yup.object({
   text: Yup.string().required('required').trim()
@@ -22,9 +22,10 @@ export function ReplyOnAnotherPage ({ parentId }) {
   )
 }
 
-export default function Reply ({ parentId, meComments, onSuccess, replyOpen }) {
+export default function Reply ({ item, onSuccess, replyOpen }) {
   const [reply, setReply] = useState(replyOpen)
   const me = useMe()
+  const parentId = item.id
 
   useEffect(() => {
     setReply(replyOpen || !!localStorage.getItem('reply-' + parentId + '-' + 'text'))
@@ -52,20 +53,31 @@ export default function Reply ({ parentId, meComments, onSuccess, replyOpen }) {
                 fragmentName: 'CommentsRecursive'
               })
               return [newCommentRef, ...existingCommentRefs]
-            },
-            ncomments (existingNComments = 0) {
-              return existingNComments + 1
-            },
-            meComments (existingMeComments = 0) {
-              return existingMeComments + 1
             }
           }
         })
+
+        const ancestors = item.path.split('.')
+
+        // update all ancestors
+        ancestors.forEach(id => {
+          cache.modify({
+            id: `Item:${id}`,
+            fields: {
+              ncomments (existingNComments = 0) {
+                return existingNComments + 1
+              }
+            }
+          })
+        })
+
+        // so that we don't see indicator for our own comments, we record this comments as the latest time
+        // but we also have record num comments, in case someone else commented when we did
+        const root = ancestors[0]
+        commentsViewedAfterComment(root, createComment.createdAt)
       }
     }
   )
-
-  const cost = me?.freeComments ? 0 : Math.pow(10, meComments)
 
   return (
     <div>
@@ -102,16 +114,13 @@ export default function Reply ({ parentId, meComments, onSuccess, replyOpen }) {
             required
             hint={me?.freeComments ? <span className='text-success'>{me.freeComments} free comments left</span> : null}
           />
-          <div className='d-flex align-items-center mt-1'>
-            <ActionTooltip overlayText={`${cost} sats`}>
-              <SubmitButton variant='secondary'>reply{cost > 1 && <small> {cost} sats</small>}</SubmitButton>
-            </ActionTooltip>
-            {cost > 1 && (
-              <Info>
-                <div className='font-weight-bold'>Multiple replies on the same level get pricier, but we still love your thoughts!</div>
-              </Info>
-            )}
-          </div>
+          {reply &&
+            <div className='mt-1'>
+              <FeeButton
+                baseFee={1} parentId={parentId} text='reply'
+                ChildButton={SubmitButton} variant='secondary' alwaysShow
+              />
+            </div>}
         </Form>
       </div>
     </div>

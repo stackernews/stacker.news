@@ -2,8 +2,7 @@ const serialize = require('../api/resolvers/serial')
 
 const ITEM_EACH_REWARD = 3.0
 const UPVOTE_EACH_REWARD = 6.0
-const TOP_ITEMS = 21
-const EARLY_MULTIPLIER_MAX = 100.0
+const TOP_PERCENTILE = 21
 
 // TODO: use a weekly trust measure or make trust decay
 function earn ({ models }) {
@@ -11,18 +10,21 @@ function earn ({ models }) {
     console.log('running', name)
 
     // compute how much sn earned today
-    const [{ sum }] = await models.$queryRaw`
+    let [{ sum }] = await models.$queryRaw`
         SELECT sum("ItemAct".sats)
         FROM "ItemAct"
         JOIN "Item" on "ItemAct"."itemId" = "Item".id
         WHERE ("ItemAct".act in ('BOOST', 'STREAM')
-          OR ("ItemAct".act = 'VOTE' AND "Item"."userId" = "ItemAct"."userId"))
+          OR ("ItemAct".act IN ('VOTE','POLL') AND "Item"."userId" = "ItemAct"."userId"))
           AND "ItemAct".created_at > now_utc() - INTERVAL '1 day'`
+
+    // convert to msats
+    sum = sum * 1000
 
     /*
       How earnings work:
-      1/3: top 21 posts over last 36 hours, scored on a relative basis
-      1/3: top 21 comments over last 36 hours, scored on a relative basis
+      1/3: top 21% posts over last 36 hours, scored on a relative basis
+      1/3: top 21% comments over last 36 hours, scored on a relative basis
       1/3: top upvoters of top posts/comments, scored on:
         - their trust
         - how much they tipped
@@ -30,20 +32,28 @@ function earn ({ models }) {
         - how the post/comment scored
     */
 
-    // get earners { id, earnings }
+    if (sum <= 0) {
+      console.log('done', name, 'no earning')
+      return
+    }
+
+    // get earners { userId, id, type, rank, proportion }
     const earners = await models.$queryRaw(`
       WITH item_ratios AS (
-        SELECT *,
-            "weightedVotes"/(sum("weightedVotes") OVER (PARTITION BY "parentId" IS NULL)) AS ratio
-        FROM (
-            SELECT *,
-                ROW_NUMBER() OVER (PARTITION BY "parentId" IS NULL ORDER BY "weightedVotes" desc) AS r
-            FROM
-                "Item"
-            WHERE created_at >= now_utc() - interval '36 hours'
-        ) x
-        WHERE x.r <= ${TOP_ITEMS}
-        ),
+          SELECT *,
+              CASE WHEN "parentId" IS NULL THEN 'POST' ELSE 'COMMENT' END as type,
+              CASE WHEN "weightedVotes" > 0 THEN "weightedVotes"/(sum("weightedVotes") OVER (PARTITION BY "parentId" IS NULL)) ELSE 0 END AS ratio
+          FROM (
+              SELECT *,
+                  NTILE(100)  OVER (PARTITION BY "parentId" IS NULL ORDER BY "weightedVotes" desc) AS percentile,
+                  ROW_NUMBER()  OVER (PARTITION BY "parentId" IS NULL ORDER BY "weightedVotes" desc) AS rank
+              FROM
+                  "Item"
+              WHERE created_at >= now_utc() - interval '36 hours'
+              AND "weightedVotes" > 0
+          ) x
+          WHERE x.percentile <= ${TOP_PERCENTILE}
+      ),
       upvoters AS (
           SELECT "ItemAct"."userId", item_ratios.id, item_ratios.ratio, item_ratios."parentId",
               sum("ItemAct".sats) as tipped, min("ItemAct".created_at) as acted_at
@@ -54,36 +64,47 @@ function earn ({ models }) {
           GROUP BY "ItemAct"."userId", item_ratios.id, item_ratios.ratio, item_ratios."parentId"
       ),
       upvoter_ratios AS (
-          SELECT "userId", sum(early_multiplier*tipped_ratio*ratio*users.trust) as upvoting_score,
-              "parentId" IS NULL as "isPost"
+          SELECT "userId", sum(early_multiplier*tipped_ratio*ratio*users.trust) as upvoter_ratio,
+              "parentId" IS NULL as "isPost", CASE WHEN "parentId" IS NULL THEN 'TIP_POST' ELSE 'TIP_COMMENT' END as type
           FROM (
               SELECT *,
-                  ${EARLY_MULTIPLIER_MAX}/(ROW_NUMBER() OVER (partition by id order by acted_at asc)) AS early_multiplier,
+                  1/(ROW_NUMBER() OVER (partition by id order by acted_at asc)) AS early_multiplier,
                   tipped::float/(sum(tipped) OVER (partition by id)) tipped_ratio
               FROM upvoters
           ) u
           JOIN users on "userId" = users.id
           GROUP BY "userId", "parentId" IS NULL
       )
-      SELECT "userId" as id, FLOOR(sum(proportion)*${sum}*1000) as earnings
-      FROM (
-          SELECT "userId",
-            upvoting_score/(sum(upvoting_score) OVER (PARTITION BY "isPost"))/${UPVOTE_EACH_REWARD} as proportion
-          FROM upvoter_ratios
-          UNION ALL
-          SELECT "userId", ratio/${ITEM_EACH_REWARD} as proportion
-          FROM item_ratios
-      ) a
-      GROUP BY "userId"
-      HAVING FLOOR(sum(proportion)*${sum}) >= 1`)
+      SELECT "userId", NULL as id, type, ROW_NUMBER() OVER (PARTITION BY "isPost" ORDER BY upvoter_ratio DESC) as rank,
+          upvoter_ratio/(sum(upvoter_ratio) OVER (PARTITION BY "isPost"))/${UPVOTE_EACH_REWARD} as proportion
+      FROM upvoter_ratios
+      WHERE upvoter_ratio > 0
+      UNION ALL
+      SELECT "userId", id, type, rank, ratio/${ITEM_EACH_REWARD} as proportion
+      FROM item_ratios`)
+
+    // in order to group earnings for users we use the same createdAt time for
+    // all earnings
+    const now = new Date(new Date().getTime())
+
+    // this is just a sanity check because it seems like a good idea
+    let total = 0
 
     // for each earner, serialize earnings
     // we do this for each earner because we don't need to serialize
     // all earner updates together
     earners.forEach(async earner => {
-      if (earner.earnings > 0) {
+      const earnings = Math.floor(earner.proportion * sum)
+      total += earnings
+      if (total > sum) {
+        console.log('total exceeds sum', name)
+        return
+      }
+
+      if (earnings > 0) {
         await serialize(models,
-          models.$executeRaw`SELECT earn(${earner.id}, ${earner.earnings})`)
+          models.$executeRaw`SELECT earn(${earner.userId}, ${earnings},
+          ${now}, ${earner.type}, ${earner.id}, ${earner.rank})`)
       }
     })
 

@@ -7,96 +7,18 @@ import Countdown from './countdown'
 import { NOFOLLOW_LIMIT } from '../lib/constants'
 import Pin from '../svgs/pushpin-fill.svg'
 import reactStringReplace from 'react-string-replace'
-import { formatSats } from '../lib/format'
-import * as Yup from 'yup'
-import Briefcase from '../svgs/briefcase-4-fill.svg'
+import Toc from './table-of-contents'
+import PollIcon from '../svgs/bar-chart-horizontal-fill.svg'
+import { Badge } from 'react-bootstrap'
+import { newComments } from '../lib/new-comments'
+import { useMe } from './me'
+import DontLikeThis from './dont-link-this'
+import Flag from '../svgs/flag-fill.svg'
 
-function SearchTitle ({ title }) {
+export function SearchTitle ({ title }) {
   return reactStringReplace(title, /:high\[([^\]]+)\]/g, (match, i) => {
     return <mark key={`mark-${match}`}>{match}</mark>
   })
-}
-
-export function ItemJob ({ item, rank, children }) {
-  const isEmail = Yup.string().email().isValidSync(item.url)
-
-  return (
-    <>
-      {rank
-        ? (
-          <div className={styles.rank}>
-            {rank}
-          </div>)
-        : <div />}
-      <div className={`${styles.item} ${item.status === 'NOSATS' && !item.mine ? styles.itemDead : ''}`}>
-        <Briefcase width={24} height={24} className={styles.case} />
-        <div className={styles.hunk}>
-          <div className={`${styles.main} flex-wrap d-inline`}>
-            <Link href={`/items/${item.id}`} passHref>
-              <a className={`${styles.title} text-reset mr-2`}>
-                {item.searchTitle
-                  ? <SearchTitle title={item.searchTitle} />
-                  : (
-                    <>{item.title}
-                      {item.company &&
-                        <>
-                          <span> \ </span>
-                          {item.company}
-                        </>}
-                      {(item.location || item.remote) &&
-                        <>
-                          <span> \ </span>
-                          {`${item.location || ''}${item.location && item.remote ? ' or ' : ''}${item.remote ? 'Remote' : ''}`}
-                        </>}
-                    </>)}
-              </a>
-            </Link>
-            {/*  eslint-disable-next-line */}
-            <a
-              className={`${styles.link}`}
-              target='_blank' href={(isEmail ? 'mailto:' : '') + item.url}
-            >
-              apply
-            </a>
-          </div>
-          <div className={`${styles.other}`}>
-            {item.status !== 'NOSATS'
-              ? <span>{formatSats(item.maxBid)} sats per min</span>
-              : <span>expired</span>}
-            <span> \ </span>
-            <Link href={`/items/${item.id}`} passHref>
-              <a className='text-reset'>{item.ncomments} comments</a>
-            </Link>
-            <span> \ </span>
-            <span>
-              <Link href={`/${item.user.name}`} passHref>
-                <a>@{item.user.name}</a>
-              </Link>
-              <span> </span>
-              <Link href={`/items/${item.id}`} passHref>
-                <a title={item.createdAt} className='text-reset'>{timeSince(new Date(item.createdAt))}</a>
-              </Link>
-            </span>
-            {item.mine &&
-              <>
-                <span> \ </span>
-                <Link href={`/items/${item.id}/edit`} passHref>
-                  <a className='text-reset'>
-                    edit
-                  </a>
-                </Link>
-                {item.status !== 'ACTIVE' && <span className='font-weight-bold text-danger'> {item.status}</span>}
-              </>}
-          </div>
-        </div>
-      </div>
-      {children && (
-        <div className={`${styles.children}`}>
-          {children}
-        </div>
-      )}
-    </>
-  )
 }
 
 function FwdUser ({ user }) {
@@ -110,19 +32,26 @@ function FwdUser ({ user }) {
   )
 }
 
-export default function Item ({ item, rank, showFwdUser, children }) {
+export default function Item ({ item, rank, showFwdUser, toc, children }) {
   const mine = item.mine
   const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
   const [canEdit, setCanEdit] =
     useState(mine && (Date.now() < editThreshold))
   const [wrap, setWrap] = useState(false)
   const titleRef = useRef()
+  const me = useMe()
+  const [hasNewComments, setHasNewComments] = useState(false)
 
   useEffect(() => {
     setWrap(
       Math.ceil(parseFloat(window.getComputedStyle(titleRef.current).lineHeight)) <
         titleRef.current.clientHeight)
   }, [])
+
+  useEffect(() => {
+    // if we are showing toc, then this is a full item
+    setHasNewComments(!toc && newComments(item))
+  }, [item])
 
   return (
     <>
@@ -133,12 +62,15 @@ export default function Item ({ item, rank, showFwdUser, children }) {
           </div>)
         : <div />}
       <div className={styles.item}>
-        {item.position ? <Pin width={24} height={24} className={styles.pin} /> : <UpVote item={item} className={styles.upvote} />}
+        {item.position
+          ? <Pin width={24} height={24} className={styles.pin} />
+          : item.meDontLike ? <Flag width={24} height={24} className={`${styles.dontLike}`} /> : <UpVote item={item} className={styles.upvote} />}
         <div className={styles.hunk}>
           <div className={`${styles.main} flex-wrap ${wrap ? 'd-inline' : ''}`}>
             <Link href={`/items/${item.id}`} passHref>
               <a ref={titleRef} className={`${styles.title} text-reset mr-2`}>
                 {item.searchTitle ? <SearchTitle title={item.searchTitle} /> : item.title}
+                {item.pollCost && <span> <PollIcon className='fill-grey vertical-align-baseline' height={14} width={14} /></span>}
               </a>
             </Link>
             {item.url &&
@@ -155,7 +87,7 @@ export default function Item ({ item, rank, showFwdUser, children }) {
           <div className={`${styles.other}`}>
             {!item.position &&
               <>
-                <span title={`from ${item.upvotes} users (${item.meSats} sats from me)`}>{item.sats} sats</span>
+                <span title={`from ${item.upvotes} users ${item.mine ? `\\ ${item.meSats} sats to post` : `(${item.meSats} sats from me)`} `}>{item.sats} sats</span>
                 <span> \ </span>
               </>}
             {item.boost > 0 &&
@@ -164,7 +96,10 @@ export default function Item ({ item, rank, showFwdUser, children }) {
                 <span> \ </span>
               </>}
             <Link href={`/items/${item.id}`} passHref>
-              <a className='text-reset'>{item.ncomments} comments</a>
+              <a title={`${item.commentSats} sats`} className='text-reset'>
+                {item.ncomments} comments
+                {hasNewComments && <>{' '}<Badge className={styles.newComment} variant={null}>new</Badge></>}
+              </a>
             </Link>
             <span> \ </span>
             <span>
@@ -175,6 +110,9 @@ export default function Item ({ item, rank, showFwdUser, children }) {
               <Link href={`/items/${item.id}`} passHref>
                 <a title={item.createdAt} className='text-reset'>{timeSince(new Date(item.createdAt))}</a>
               </Link>
+              {me && !item.meSats && !item.position && !item.meDontLike && !item.mine && <DontLikeThis id={item.id} />}
+              {(item.outlawed && <Link href='/outlawed'><a>{' '}<Badge className={styles.newComment} variant={null}>OUTLAWED</Badge></a></Link>) ||
+               (item.freebie && !item.mine && (me?.greeterMode) && <Link href='/freebie'><a>{' '}<Badge className={styles.newComment} variant={null}>FREEBIE</Badge></a></Link>)}
               {item.prior &&
                 <>
                   <span> \ </span>
@@ -202,6 +140,7 @@ export default function Item ({ item, rank, showFwdUser, children }) {
           </div>
           {showFwdUser && item.fwdUser && <FwdUser user={item.fwdUser} />}
         </div>
+        {toc && <Toc text={item.text} />}
       </div>
       {children && (
         <div className={styles.children}>

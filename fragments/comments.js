@@ -14,8 +14,11 @@ export const COMMENT_FIELDS = gql`
     upvotes
     boost
     meSats
-    meComments
+    meDontLike
+    outlawed
+    freebie
     path
+    commentSats
     mine
     ncomments
     root {

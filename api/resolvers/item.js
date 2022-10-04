@@ -4,19 +4,22 @@ import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
 import domino from 'domino'
-import { BOOST_MIN } from '../../lib/constants'
+import {
+  BOOST_MIN, ITEM_SPAM_INTERVAL, MAX_POLL_NUM_CHOICES,
+  MAX_TITLE_LENGTH, ITEM_FILTER_THRESHOLD, DONT_LIKE_THIS_COST
+} from '../../lib/constants'
 
-async function comments (models, id, sort) {
+async function comments (me, models, id, sort) {
   let orderBy
   switch (sort) {
     case 'top':
-      orderBy = 'ORDER BY "Item"."weightedVotes" DESC, "Item".id DESC'
+      orderBy = `ORDER BY ${await orderByNumerator(me, models)} DESC, "Item".id DESC`
       break
     case 'recent':
       orderBy = 'ORDER BY "Item".created_at DESC, "Item".id DESC'
       break
     default:
-      orderBy = COMMENTS_ORDER_BY_SATS
+      orderBy = `ORDER BY ${await orderByNumerator(me, models)}/POWER(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE 'UTC') - "Item".created_at))/3600+2, 1.3) DESC NULLS LAST, "Item".id DESC`
       break
   }
 
@@ -25,18 +28,18 @@ async function comments (models, id, sort) {
           ${SELECT}, ARRAY[row_number() OVER (${orderBy}, "Item".path)] AS sort_path
           FROM "Item"
           WHERE "parentId" = $1
+          ${await filterClause(me, models)}
         UNION ALL
           ${SELECT}, p.sort_path || row_number() OVER (${orderBy}, "Item".path)
           FROM base p
-          JOIN "Item" ON "Item"."parentId" = p.id)
+          JOIN "Item" ON "Item"."parentId" = p.id
+          WHERE true
+          ${await filterClause(me, models)})
         SELECT * FROM base ORDER BY sort_path`, Number(id))
   return nestComments(flat, id)[0]
 }
 
-const COMMENTS_ORDER_BY_SATS =
-  'ORDER BY POWER("Item"."weightedVotes", 1.2)/POWER(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE \'UTC\') - "Item".created_at))/3600+2, 1.3) DESC NULLS LAST, "Item".id DESC'
-
-export async function getItem (parent, { id }, { models }) {
+export async function getItem (parent, { id }, { me, models }) {
   const [item] = await models.$queryRaw(`
   ${SELECT}
   FROM "Item"
@@ -66,8 +69,61 @@ function topClause (within) {
   return interval
 }
 
+export async function orderByNumerator (me, models) {
+  if (me) {
+    const user = await models.user.findUnique({ where: { id: me.id } })
+    if (user.wildWestMode) {
+      return 'GREATEST("Item"."weightedVotes", POWER("Item"."weightedVotes", 1.2))'
+    }
+  }
+
+  return `(CASE WHEN "Item"."weightedVotes" > "Item"."weightedDownVotes"
+                THEN 1
+                ELSE -1 END
+          * GREATEST(ABS("Item"."weightedVotes" - "Item"."weightedDownVotes"), POWER(ABS("Item"."weightedVotes" - "Item"."weightedDownVotes"), 1.2)))`
+}
+
+export async function filterClause (me, models) {
+  // by default don't include freebies unless they have upvotes
+  let clause = ' AND (NOT "Item".freebie OR "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0'
+  if (me) {
+    const user = await models.user.findUnique({ where: { id: me.id } })
+    // wild west mode has everything
+    if (user.wildWestMode) {
+      return ''
+    }
+    // greeter mode includes freebies if feebies haven't been flagged
+    if (user.greeterMode) {
+      clause = 'AND (NOT "Item".freebie OR ("Item"."weightedVotes" - "Item"."weightedDownVotes" >= 0 AND "Item".freebie)'
+    }
+
+    // always include if it's mine
+    clause += ` OR "Item"."userId" = ${me.id})`
+  } else {
+    // close default freebie clause
+    clause += ')'
+  }
+
+  // if the item is above the threshold or is mine
+  clause += ` AND ("Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}`
+  if (me) {
+    clause += ` OR "Item"."userId" = ${me.id}`
+  }
+  clause += ')'
+
+  return clause
+}
+
 export default {
   Query: {
+    itemRepetition: async (parent, { parentId }, { me, models }) => {
+      if (!me) return 0
+      // how many of the parents starting at parentId belong to me
+      const [{ item_spam: count }] = await models.$queryRaw(`SELECT item_spam($1, $2, '${ITEM_SPAM_INTERVAL}')`,
+        Number(parentId), Number(me.id))
+
+      return count
+    },
     items: async (parent, { sub, sort, cursor, name, within }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
       let items; let user; let pins; let subFull
@@ -97,6 +153,7 @@ export default {
             WHERE "userId" = $1 AND "parentId" IS NULL AND created_at <= $2
             AND "pinId" IS NULL
             ${activeOrMine()}
+            ${await filterClause(me, models)}
             ORDER BY created_at DESC
             OFFSET $3
             LIMIT ${LIMIT}`, user.id, decodedCursor.time, decodedCursor.offset)
@@ -108,6 +165,7 @@ export default {
             WHERE "parentId" IS NULL AND created_at <= $1
             ${subClause(3)}
             ${activeOrMine()}
+            ${await filterClause(me, models)}
             ORDER BY created_at DESC
             OFFSET $2
             LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, sub || 'NULL')
@@ -119,7 +177,8 @@ export default {
             WHERE "parentId" IS NULL AND "Item".created_at <= $1
             AND "pinId" IS NULL
             ${topClause(within)}
-            ${TOP_ORDER_BY_SATS}
+            ${await filterClause(me, models)}
+            ${await topOrderByWeightedSats(me, models)}
             OFFSET $2
             LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
           break
@@ -135,13 +194,24 @@ export default {
               // we pull from their wallet
               // TODO: need to filter out by payment status
               items = await models.$queryRaw(`
-                ${SELECT}
-                FROM "Item"
-                WHERE "parentId" IS NULL AND created_at <= $1
-                AND "pinId" IS NULL
-                ${subClause(3)}
-                AND status <> 'STOPPED'
-                ORDER BY (CASE WHEN status = 'ACTIVE' THEN "maxBid" ELSE 0 END) DESC, created_at ASC
+                SELECT *
+                FROM (
+                  (${SELECT}
+                  FROM "Item"
+                  WHERE "parentId" IS NULL AND created_at <= $1
+                  AND "pinId" IS NULL
+                  ${subClause(3)}
+                  AND status = 'ACTIVE' AND "maxBid" > 0
+                  ORDER BY "maxBid" DESC, created_at ASC)
+                  UNION ALL
+                  (${SELECT}
+                  FROM "Item"
+                  WHERE "parentId" IS NULL AND created_at <= $1
+                  AND "pinId" IS NULL
+                  ${subClause(3)}
+                  AND ((status = 'ACTIVE' AND "maxBid" = 0) OR status = 'NOSATS')
+                  ORDER BY created_at DESC)
+                ) a
                 OFFSET $2
                 LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, sub)
               break
@@ -157,9 +227,10 @@ export default {
                   ${SELECT}
                   FROM "Item"
                   WHERE "parentId" IS NULL AND "Item".created_at <= $1 AND "Item".created_at > $3
-                  AND "pinId" IS NULL
+                  AND "pinId" IS NULL AND NOT bio
                   ${subClause(4)}
-                  ${newTimedOrderByWeightedSats(1)}
+                  ${await filterClause(me, models)}
+                  ${await newTimedOrderByWeightedSats(me, models, 1)}
                   OFFSET $2
                   LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, new Date(new Date().setDate(new Date().getDate() - 5)), sub || 'NULL')
               }
@@ -169,9 +240,10 @@ export default {
                   ${SELECT}
                   FROM "Item"
                   WHERE "parentId" IS NULL AND "Item".created_at <= $1
-                  AND "pinId" IS NULL
+                  AND "pinId" IS NULL AND NOT bio
                   ${subClause(3)}
-                  ${newTimedOrderByWeightedSats(1)}
+                  ${await filterClause(me, models)}
+                  ${await newTimedOrderByWeightedSats(me, models, 1)}
                   OFFSET $2
                   LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, sub || 'NULL')
               }
@@ -199,11 +271,66 @@ export default {
         pins
       }
     },
-    allItems: async (parent, { cursor }, { models }) => {
+    allItems: async (parent, { cursor }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
       const items = await models.$queryRaw(`
         ${SELECT}
         FROM "Item"
+        ${await filterClause(me, models)}
+        ORDER BY created_at DESC
+        OFFSET $1
+        LIMIT ${LIMIT}`, decodedCursor.offset)
+      return {
+        cursor: items.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
+        items
+      }
+    },
+    outlawedItems: async (parent, { cursor }, { me, models }) => {
+      const decodedCursor = decodeCursor(cursor)
+      const notMine = () => {
+        return me ? ` AND "userId" <> ${me.id} ` : ''
+      }
+
+      const items = await models.$queryRaw(`
+        ${SELECT}
+        FROM "Item"
+        WHERE "Item"."weightedVotes" - "Item"."weightedDownVotes" <= -${ITEM_FILTER_THRESHOLD}
+        ${notMine()}
+        ORDER BY created_at DESC
+        OFFSET $1
+        LIMIT ${LIMIT}`, decodedCursor.offset)
+      return {
+        cursor: items.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
+        items
+      }
+    },
+    borderlandItems: async (parent, { cursor }, { me, models }) => {
+      const decodedCursor = decodeCursor(cursor)
+      const notMine = () => {
+        return me ? ` AND "userId" <> ${me.id} ` : ''
+      }
+
+      const items = await models.$queryRaw(`
+        ${SELECT}
+        FROM "Item"
+        WHERE "Item"."weightedVotes" - "Item"."weightedDownVotes" < 0
+        AND "Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}
+        ${notMine()}
+        ORDER BY created_at DESC
+        OFFSET $1
+        LIMIT ${LIMIT}`, decodedCursor.offset)
+      return {
+        cursor: items.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
+        items
+      }
+    },
+    freebieItems: async (parent, { cursor }, { me, models }) => {
+      const decodedCursor = decodeCursor(cursor)
+
+      const items = await models.$queryRaw(`
+        ${SELECT}
+        FROM "Item"
+        WHERE "Item".freebie
         ORDER BY created_at DESC
         OFFSET $1
         LIMIT ${LIMIT}`, decodedCursor.offset)
@@ -217,6 +344,16 @@ export default {
 
       let comments, user
       switch (sort) {
+        case 'recent':
+          comments = await models.$queryRaw(`
+            ${SELECT}
+            FROM "Item"
+            WHERE "parentId" IS NOT NULL AND created_at <= $1
+            ${await filterClause(me, models)}
+            ORDER BY created_at DESC
+            OFFSET $2
+            LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+          break
         case 'user':
           if (!name) {
             throw new UserInputError('must supply name', { argumentName: 'name' })
@@ -232,6 +369,7 @@ export default {
             FROM "Item"
             WHERE "userId" = $1 AND "parentId" IS NOT NULL
             AND created_at <= $2
+            ${await filterClause(me, models)}
             ORDER BY created_at DESC
             OFFSET $3
             LIMIT ${LIMIT}`, user.id, decodedCursor.time, decodedCursor.offset)
@@ -243,7 +381,8 @@ export default {
           WHERE "parentId" IS NOT NULL
           AND "Item".created_at <= $1
           ${topClause(within)}
-          ${TOP_ORDER_BY_SATS}
+          ${await filterClause(me, models)}
+          ${await topOrderByWeightedSats(me, models)}
           OFFSET $2
           LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
           break
@@ -293,8 +432,8 @@ export default {
         ORDER BY created_at DESC
         LIMIT 3`, similar)
     },
-    comments: async (parent, { id, sort }, { models }) => {
-      return comments(models, id, sort)
+    comments: async (parent, { id, sort }, { me, models }) => {
+      return comments(me, models, id, sort)
     },
     search: async (parent, { q: query, sub, cursor }, { me, models, search }) => {
       const decodedCursor = decodeCursor(cursor)
@@ -317,11 +456,19 @@ export default {
                         bool: {
                           should: [
                             { match: { status: 'ACTIVE' } },
+                            { match: { status: 'NOSATS' } },
                             { match: { userId: me.id } }
                           ]
                         }
                       }
-                    : { match: { status: 'ACTIVE' } },
+                    : {
+                        bool: {
+                          should: [
+                            { match: { status: 'ACTIVE' } },
+                            { match: { status: 'NOSATS' } }
+                          ]
+                        }
+                      },
                   {
                     bool: {
                       should: [
@@ -390,8 +537,9 @@ export default {
       }
 
       // return highlights
-      const items = sitems.body.hits.hits.map(e => {
-        const item = e._source
+      const items = sitems.body.hits.hits.map(async e => {
+        // this is super inefficient but will suffice until we do something more generic
+        const item = await getItem(parent, { id: e._source.id }, { me, models })
 
         item.searchTitle = (e.highlight.title && e.highlight.title[0]) || item.title
         item.searchText = (e.highlight.text && e.highlight.text[0]) || item.text
@@ -404,17 +552,24 @@ export default {
         items
       }
     },
-    auctionPosition: async (parent, { id, sub, bid }, { models }) => {
+    auctionPosition: async (parent, { id, sub, bid }, { models, me }) => {
       // count items that have a bid gte to the current bid or
       // gte current bid and older
       const where = {
         where: {
           subName: sub,
-          status: 'ACTIVE',
-          maxBid: {
-            gte: bid
-          }
+          status: { not: 'STOPPED' }
         }
+      }
+
+      if (bid > 0) {
+        where.where.maxBid = { gte: bid }
+      } else {
+        const createdAt = id ? (await getItem(parent, { id }, { models, me })).createdAt : new Date()
+        where.where.OR = [
+          { maxBid: { gt: 0 } },
+          { createdAt: { gt: createdAt } }
+        ]
       }
 
       if (id) {
@@ -431,8 +586,7 @@ export default {
       data.url = ensureProtocol(data.url)
 
       if (id) {
-        const { forward, boost, ...remaining } = data
-        return await updateItem(parent, { id, data: remaining }, { me, models })
+        return await updateItem(parent, { id, data }, { me, models })
       } else {
         return await createItem(parent, data, { me, models })
       }
@@ -441,13 +595,63 @@ export default {
       const { id, ...data } = args
 
       if (id) {
-        const { forward, boost, ...remaining } = data
-        return await updateItem(parent, { id, data: remaining }, { me, models })
+        return await updateItem(parent, { id, data }, { me, models })
       } else {
         return await createItem(parent, data, { me, models })
       }
     },
-    upsertJob: async (parent, { id, sub, title, company, location, remote, text, url, maxBid, status }, { me, models }) => {
+    upsertPoll: async (parent, { id, forward, boost, title, text, options }, { me, models }) => {
+      if (!me) {
+        throw new AuthenticationError('you must be logged in')
+      }
+
+      if (boost && boost < BOOST_MIN) {
+        throw new UserInputError(`boost must be at least ${BOOST_MIN}`, { argumentName: 'boost' })
+      }
+
+      let fwdUser
+      if (forward) {
+        fwdUser = await models.user.findUnique({ where: { name: forward } })
+        if (!fwdUser) {
+          throw new UserInputError('forward user does not exist', { argumentName: 'forward' })
+        }
+      }
+
+      if (id) {
+        const optionCount = await models.pollOption.count({
+          where: {
+            itemId: Number(id)
+          }
+        })
+
+        if (options.length + optionCount > MAX_POLL_NUM_CHOICES) {
+          throw new UserInputError(`total choices must be <${MAX_POLL_NUM_CHOICES}`, { argumentName: 'options' })
+        }
+
+        const [item] = await serialize(models,
+          models.$queryRaw(`${SELECT} FROM update_poll($1, $2, $3, $4, $5, $6) AS "Item"`,
+            Number(id), title, text, Number(boost || 0), options, Number(fwdUser?.id)))
+
+        return item
+      } else {
+        if (options.length < 2 || options.length > MAX_POLL_NUM_CHOICES) {
+          throw new UserInputError(`choices must be >2 and <${MAX_POLL_NUM_CHOICES}`, { argumentName: 'options' })
+        }
+
+        const [item] = await serialize(models,
+          models.$queryRaw(`${SELECT} FROM create_poll($1, $2, $3, $4, $5, $6, $7, '${ITEM_SPAM_INTERVAL}') AS "Item"`,
+            title, text, 1, Number(boost || 0), Number(me.id), options, Number(fwdUser?.id)))
+
+        await createMentions(item, models)
+
+        item.comments = []
+        return item
+      }
+    },
+    upsertJob: async (parent, {
+      id, sub, title, company, location, remote,
+      text, url, maxBid, status, logo
+    }, { me, models }) => {
       if (!me) {
         throw new AuthenticationError('you must be logged in to create job')
       }
@@ -457,67 +661,53 @@ export default {
         throw new UserInputError('not a valid sub', { argumentName: 'sub' })
       }
 
-      if (fullSub.baseCost > maxBid) {
-        throw new UserInputError(`bid must be at least ${fullSub.baseCost}`, { argumentName: 'maxBid' })
+      if (maxBid < 0) {
+        throw new UserInputError('bid must be at least 0', { argumentName: 'maxBid' })
       }
 
       if (!location && !remote) {
         throw new UserInputError('must specify location or remote', { argumentName: 'location' })
       }
 
-      const checkSats = async () => {
-        // check if the user has the funds to run for the first minute
-        const minuteMsats = maxBid * 1000
-        const user = await models.user.findUnique({ where: { id: me.id } })
-        if (user.msats < minuteMsats) {
-          throw new UserInputError('insufficient funds')
-        }
-      }
+      location = location.toLowerCase() === 'remote' ? undefined : location
 
-      const data = {
-        title,
-        company,
-        location: location.toLowerCase() === 'remote' ? undefined : location,
-        remote,
-        text,
-        url,
-        maxBid,
-        subName: sub,
-        userId: me.id
-      }
-
+      let item
       if (id) {
-        if (status) {
-          data.status = status
-
-          // if the job is changing to active, we need to check they have funds
-          if (status === 'ACTIVE') {
-            await checkSats()
-          }
-        }
-
         const old = await models.item.findUnique({ where: { id: Number(id) } })
         if (Number(old.userId) !== Number(me?.id)) {
           throw new AuthenticationError('item does not belong to you')
         }
-
-        return await models.item.update({
-          where: { id: Number(id) },
-          data
-        })
+        ([item] = await serialize(models,
+          models.$queryRaw(
+            `${SELECT} FROM update_job($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) AS "Item"`,
+            Number(id), title, url, text, Number(maxBid), company, location, remote, Number(logo), status)))
+      } else {
+        ([item] = await serialize(models,
+          models.$queryRaw(
+            `${SELECT} FROM create_job($1, $2, $3, $4, $5, $6, $7, $8, $9) AS "Item"`,
+            title, url, text, Number(me.id), Number(maxBid), company, location, remote, Number(logo))))
       }
 
-      // before creating job, check the sats
-      await checkSats()
-      return await models.item.create({
-        data
-      })
+      await createMentions(item, models)
+
+      return item
     },
     createComment: async (parent, { text, parentId }, { me, models }) => {
       return await createItem(parent, { text, parentId }, { me, models })
     },
     updateComment: async (parent, { id, text }, { me, models }) => {
       return await updateItem(parent, { id, data: { text } }, { me, models })
+    },
+    pollVote: async (parent, { id }, { me, models }) => {
+      if (!me) {
+        throw new AuthenticationError('you must be logged in')
+      }
+
+      await serialize(models,
+        models.$queryRaw(`${SELECT} FROM poll_vote($1, $2) AS "Item"`,
+          Number(id), Number(me.id)))
+
+      return id
     },
     act: async (parent, { id, sats }, { me, models }) => {
       // need to make sure we are logged in
@@ -544,10 +734,31 @@ export default {
         vote,
         sats
       }
+    },
+    dontLikeThis: async (parent, { id }, { me, models }) => {
+      // need to make sure we are logged in
+      if (!me) {
+        throw new AuthenticationError('you must be logged in')
+      }
+
+      // disallow self down votes
+      const [item] = await models.$queryRaw(`
+            ${SELECT}
+            FROM "Item"
+            WHERE id = $1 AND "userId" = $2`, Number(id), me.id)
+      if (item) {
+        throw new UserInputError('cannot downvote your self')
+      }
+
+      await serialize(models, models.$queryRaw`SELECT item_act(${Number(id)}, ${me.id}, 'DONT_LIKE_THIS', ${DONT_LIKE_THIS_COST})`)
+
+      return true
     }
   },
-
   Item: {
+    isJob: async (item, args, { models }) => {
+      return item.subName === 'jobs'
+    },
     sub: async (item, args, { models }) => {
       if (!item.subName) {
         return null
@@ -590,6 +801,27 @@ export default {
 
       return prior.id
     },
+    poll: async (item, args, { models, me }) => {
+      if (!item.pollCost) {
+        return null
+      }
+
+      const options = await models.$queryRaw`
+        SELECT "PollOption".id, option, count("PollVote"."userId") as count,
+          coalesce(bool_or("PollVote"."userId" = ${me?.id}), 'f') as "meVoted"
+        FROM "PollOption"
+        LEFT JOIN "PollVote" on "PollVote"."pollOptionId" = "PollOption".id
+        WHERE "PollOption"."itemId" = ${item.id}
+        GROUP BY "PollOption".id
+        ORDER BY "PollOption".id ASC
+      `
+      const poll = {}
+      poll.options = options
+      poll.meVoted = options.some(o => o.meVoted)
+      poll.count = options.reduce((t, o) => t + o.count, 0)
+
+      return poll
+    },
     user: async (item, args, { models }) =>
       await models.user.findUnique({ where: { id: item.userId } }),
     fwdUser: async (item, args, { models }) => {
@@ -598,36 +830,11 @@ export default {
       }
       return await models.user.findUnique({ where: { id: item.fwdUserId } })
     },
-    ncomments: async (item, args, { models }) => {
-      const [{ count }] = await models.$queryRaw`
-        SELECT count(*)
-        FROM "Item"
-        WHERE path <@ text2ltree(${item.path}) AND id != ${Number(item.id)}`
-      return count || 0
-    },
-    comments: async (item, args, { models }) => {
+    comments: async (item, args, { me, models }) => {
       if (item.comments) {
         return item.comments
       }
-      return comments(models, item.id, 'hot')
-    },
-    sats: async (item, args, { models }) => {
-      const { sum: { sats } } = await models.itemAct.aggregate({
-        sum: {
-          sats: true
-        },
-        where: {
-          itemId: Number(item.id),
-          userId: {
-            not: Number(item.userId)
-          },
-          act: {
-            not: 'BOOST'
-          }
-        }
-      })
-
-      return sats || 0
+      return comments(me, models, item.id, 'hot')
     },
     upvotes: async (item, args, { models }) => {
       const { sum: { sats } } = await models.itemAct.aggregate({
@@ -681,10 +888,24 @@ export default {
 
       return sats || 0
     },
-    meComments: async (item, args, { me, models }) => {
-      if (!me) return 0
+    meDontLike: async (item, args, { me, models }) => {
+      if (!me) return false
 
-      return await models.item.count({ where: { userId: me.id, parentId: item.id } })
+      const dontLike = await models.itemAct.findFirst({
+        where: {
+          itemId: Number(item.id),
+          userId: me.id,
+          act: 'DONT_LIKE_THIS'
+        }
+      })
+
+      return !!dontLike
+    },
+    outlawed: async (item, args, { me, models }) => {
+      if (me && Number(item.userId) === Number(me.id)) {
+        return false
+      }
+      return item.weightedVotes - item.weightedDownVotes <= -ITEM_FILTER_THRESHOLD
     },
     mine: async (item, args, { me, models }) => {
       return me?.id === item.userId
@@ -749,22 +970,39 @@ export const createMentions = async (item, models) => {
   }
 }
 
-const updateItem = async (parent, { id, data }, { me, models }) => {
+export const updateItem = async (parent, { id, data: { title, url, text, boost, forward, parentId } }, { me, models }) => {
   // update iff this item belongs to me
   const old = await models.item.findUnique({ where: { id: Number(id) } })
   if (Number(old.userId) !== Number(me?.id)) {
     throw new AuthenticationError('item does not belong to you')
   }
 
-  // if it's not the FAQ and older than 10 minutes
-  if (old.id !== 349 && Date.now() > new Date(old.createdAt).getTime() + 10 * 60000) {
+  // if it's not the FAQ, not their bio, and older than 10 minutes
+  const user = await models.user.findUnique({ where: { id: me.id } })
+  if (old.id !== 349 && user.bioId !== id && Date.now() > new Date(old.createdAt).getTime() + 10 * 60000) {
     throw new UserInputError('item can no longer be editted')
   }
 
-  const item = await models.item.update({
-    where: { id: Number(id) },
-    data
-  })
+  if (boost && boost < BOOST_MIN) {
+    throw new UserInputError(`boost must be at least ${BOOST_MIN}`, { argumentName: 'boost' })
+  }
+
+  if (!old.parentId && title.length > MAX_TITLE_LENGTH) {
+    throw new UserInputError('title too long')
+  }
+
+  let fwdUser
+  if (forward) {
+    fwdUser = await models.user.findUnique({ where: { name: forward } })
+    if (!fwdUser) {
+      throw new UserInputError('forward user does not exist', { argumentName: 'forward' })
+    }
+  }
+
+  const [item] = await serialize(models,
+    models.$queryRaw(
+      `${SELECT} FROM update_item($1, $2, $3, $4, $5, $6) AS "Item"`,
+      Number(id), title, url, text, Number(boost || 0), Number(fwdUser?.id)))
 
   await createMentions(item, models)
 
@@ -780,6 +1018,10 @@ const createItem = async (parent, { title, url, text, boost, forward, parentId }
     throw new UserInputError(`boost must be at least ${BOOST_MIN}`, { argumentName: 'boost' })
   }
 
+  if (!parentId && title.length > MAX_TITLE_LENGTH) {
+    throw new UserInputError('title too long')
+  }
+
   let fwdUser
   if (forward) {
     fwdUser = await models.user.findUnique({ where: { name: forward } })
@@ -789,19 +1031,12 @@ const createItem = async (parent, { title, url, text, boost, forward, parentId }
   }
 
   const [item] = await serialize(models,
-    models.$queryRaw(`${SELECT} FROM create_item($1, $2, $3, $4, $5, $6) AS "Item"`,
-      title, url, text, Number(boost || 0), Number(parentId), Number(me.id)))
+    models.$queryRaw(
+      `${SELECT} FROM create_item($1, $2, $3, $4, $5, $6, $7, '${ITEM_SPAM_INTERVAL}') AS "Item"`,
+      title, url, text, Number(boost || 0), Number(parentId), Number(me.id),
+      Number(fwdUser?.id)))
 
   await createMentions(item, models)
-
-  if (fwdUser) {
-    await models.item.update({
-      where: { id: item.id },
-      data: {
-        fwdUserId: fwdUser.id
-      }
-    })
-  }
 
   item.comments = []
   return item
@@ -837,12 +1072,16 @@ export const SELECT =
   `SELECT "Item".id, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt", "Item".title,
   "Item".text, "Item".url, "Item"."userId", "Item"."fwdUserId", "Item"."parentId", "Item"."pinId", "Item"."maxBid",
   "Item".company, "Item".location, "Item".remote,
-  "Item"."subName", "Item".status, ltree2text("Item"."path") AS "path"`
+  "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost",
+  "Item".sats, "Item".ncomments, "Item"."commentSats", "Item"."lastCommentAt", "Item"."weightedVotes",
+  "Item"."weightedDownVotes", "Item".freebie, ltree2text("Item"."path") AS "path"`
 
-function newTimedOrderByWeightedSats (num) {
+async function newTimedOrderByWeightedSats (me, models, num) {
   return `
-    ORDER BY (POWER("Item"."weightedVotes", 1.2)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 1.3) +
-              GREATEST("Item".boost-1000+5, 0)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 4)) DESC NULLS LAST, "Item".id DESC`
+    ORDER BY (${await orderByNumerator(me, models)}/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 1.3) +
+              ("Item".boost/${BOOST_MIN}::float)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 2.6)) DESC NULLS LAST, "Item".id DESC`
 }
 
-const TOP_ORDER_BY_SATS = 'ORDER BY "Item"."weightedVotes" DESC NULLS LAST, "Item".id DESC'
+async function topOrderByWeightedSats (me, models) {
+  return `ORDER BY ${await orderByNumerator(me, models)} DESC NULLS LAST, "Item".id DESC`
+}

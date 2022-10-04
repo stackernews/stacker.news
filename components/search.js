@@ -1,6 +1,6 @@
 import { Button, Container } from 'react-bootstrap'
 import styles from './search.module.css'
-import SearchIcon from '../svgs/search-fill.svg'
+import SearchIcon from '../svgs/search-line.svg'
 import CloseIcon from '../svgs/close-line.svg'
 import { useEffect, useState } from 'react'
 import { Form, Input, SubmitButton } from './form'
@@ -50,7 +50,8 @@ export default function Search ({ sub }) {
                   required
                   autoFocus={showSearch && !atBottom}
                   groupClassName='mr-3 mb-0 flex-grow-1'
-                  className='w-100'
+                  className='flex-grow-1'
+                  clear
                   onChange={async (formik, e) => {
                     setSearching(true)
                     setQ(e.target.value?.trim())

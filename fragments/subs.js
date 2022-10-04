@@ -29,6 +29,11 @@ export const SUB_ITEMS = gql`
       cursor
       items {
         ...ItemFields
+        position
+      },
+      pins {
+        ...ItemFields
+        position
       }
     }
   }

@@ -14,6 +14,7 @@ import { randInRange } from '../lib/rand'
 import { formatSats } from '../lib/format'
 import NoteIcon from '../svgs/notification-4-fill.svg'
 import { useQuery, gql } from '@apollo/client'
+import LightningIcon from '../svgs/bolt.svg'
 
 function WalletSummary ({ me }) {
   if (!me) return null
@@ -27,6 +28,8 @@ export default function Header ({ sub }) {
   const [fired, setFired] = useState()
   const me = useMe()
   const prefix = sub ? `/~${sub}` : ''
+  // there's always at least 2 on the split, e.g. '/' yields ['','']
+  const topNavKey = path.split('/')[sub ? 2 : 1]
   const { data: subLatestPost } = useQuery(gql`
     query subLatestPost($name: ID!) {
       subLatestPost(name: $name)
@@ -53,7 +56,7 @@ export default function Header ({ sub }) {
             <link rel='shortcut icon' href={me?.hasNewNotes ? '/favicon-notify.png' : '/favicon.png'} />
           </Head>
           <Link href='/notifications' passHref>
-            <Nav.Link className='pl-0 position-relative'>
+            <Nav.Link eventKey='notifications' className='pl-0 position-relative'>
               <NoteIcon />
               {me?.hasNewNotes &&
                 <span className={styles.notification}>
@@ -65,12 +68,12 @@ export default function Header ({ sub }) {
             <NavDropdown
               className={styles.dropdown} title={
                 <Link href={`/${me?.name}`} passHref>
-                  <Nav.Link className='p-0' onClick={e => e.preventDefault()}>{`@${me?.name}`}</Nav.Link>
+                  <Nav.Link eventKey={me?.name} as='div' className='p-0' onClick={e => e.preventDefault()}>{`@${me?.name}`}</Nav.Link>
                 </Link>
               } alignRight
             >
               <Link href={'/' + me?.name} passHref>
-                <NavDropdown.Item>
+                <NavDropdown.Item eventKey={me?.name}>
                   profile
                   {me && !me.bioId &&
                     <div className='p-1 d-inline-block bg-secondary ml-1'>
@@ -79,14 +82,14 @@ export default function Header ({ sub }) {
                 </NavDropdown.Item>
               </Link>
               <Link href='/wallet' passHref>
-                <NavDropdown.Item>wallet</NavDropdown.Item>
+                <NavDropdown.Item eventKey='wallet'>wallet</NavDropdown.Item>
               </Link>
               <Link href='/satistics?inc=invoice,withdrawal,stacked,spent' passHref>
-                <NavDropdown.Item>satistics</NavDropdown.Item>
+                <NavDropdown.Item eventKey='satistics'>satistics</NavDropdown.Item>
               </Link>
               <NavDropdown.Divider />
               <Link href='/invites' passHref>
-                <NavDropdown.Item>invites
+                <NavDropdown.Item eventKey='invites'>invites
                   {me && !me.hasInvites &&
                     <div className='p-1 d-inline-block bg-success ml-1'>
                       <span className='invisible'>{' '}</span>
@@ -96,7 +99,7 @@ export default function Header ({ sub }) {
               <NavDropdown.Divider />
               <div className='d-flex align-items-center'>
                 <Link href='/settings' passHref>
-                  <NavDropdown.Item>settings</NavDropdown.Item>
+                  <NavDropdown.Item eventKey='settings'>settings</NavDropdown.Item>
                 </Link>
               </div>
               <NavDropdown.Divider />
@@ -110,7 +113,7 @@ export default function Header ({ sub }) {
           {me &&
             <Nav.Item>
               <Link href='/wallet' passHref>
-                <Nav.Link className='text-success px-0 text-nowrap'><WalletSummary me={me} /></Nav.Link>
+                <Nav.Link eventKey='wallet' className='text-success px-0 text-nowrap'><WalletSummary me={me} /></Nav.Link>
               </Link>
             </Nav.Item>}
         </div>
@@ -123,22 +126,36 @@ export default function Header ({ sub }) {
           setFired(true)
         }, [router.asPath])
       }
-      return path !== '/login' && !path.startsWith('/invites') && <Button id='login' onClick={signIn}>login</Button>
+      return path !== '/login' && !path.startsWith('/invites') &&
+        <Button
+          className='align-items-center d-flex pl-2 pr-3'
+          id='login'
+          onClick={() => signIn(null, { callbackUrl: window.location.origin + router.asPath })}
+        >
+          <LightningIcon
+            width={17}
+            height={17}
+            className='mr-1'
+          />login
+        </Button>
     }
   }
+
+  const showJobIndicator = sub !== 'jobs' && (!me || me.noteJobIndicator) &&
+    (!lastCheckedJobs || lastCheckedJobs < subLatestPost?.subLatestPost)
 
   const NavItems = ({ className }) => {
     return (
       <>
         <Nav.Item className={className}>
           <Link href={prefix + '/recent'} passHref>
-            <Nav.Link className={styles.navLink}>recent</Nav.Link>
+            <Nav.Link eventKey='recent' className={styles.navLink}>recent</Nav.Link>
           </Link>
         </Nav.Item>
         {!prefix &&
           <Nav.Item className={className}>
             <Link href='/top/posts/week' passHref>
-              <Nav.Link className={styles.navLink}>top</Nav.Link>
+              <Nav.Link eventKey='top' className={styles.navLink}>top</Nav.Link>
             </Link>
           </Nav.Item>}
         <Nav.Item className={className}>
@@ -148,7 +165,7 @@ export default function Header ({ sub }) {
                 jobs
               </Nav.Link>
             </Link>
-            {sub !== 'jobs' && (!me || me.noteJobIndicator) && (!lastCheckedJobs || lastCheckedJobs < subLatestPost?.subLatestPost) &&
+            {showJobIndicator &&
               <span className={styles.jobIndicator}>
                 <span className='invisible'>{' '}</span>
               </span>}
@@ -157,7 +174,7 @@ export default function Header ({ sub }) {
         {me &&
           <Nav.Item className={className}>
             <Link href={prefix + '/post'} passHref>
-              <Nav.Link className={styles.navLinkButton}>post</Nav.Link>
+              <Nav.Link eventKey='post' className={styles.navLinkButton}>post</Nav.Link>
             </Link>
           </Nav.Item>}
       </>
@@ -170,7 +187,7 @@ export default function Header ({ sub }) {
         <Navbar className='pb-0 pb-md-1'>
           <Nav
             className={styles.navbarNav}
-            activeKey={path}
+            activeKey={topNavKey}
           >
             <div className='d-flex'>
               <Link href='/' passHref>
@@ -194,7 +211,7 @@ export default function Header ({ sub }) {
         <Navbar className='pt-0 pb-1 d-md-none'>
           <Nav
             className={`${styles.navbarNav} justify-content-around`}
-            activeKey={path}
+            activeKey={topNavKey}
           >
             <NavItems />
           </Nav>

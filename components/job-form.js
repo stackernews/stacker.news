@@ -1,6 +1,6 @@
 import { Checkbox, Form, Input, MarkdownInput, SubmitButton } from './form'
 import TextareaAutosize from 'react-textarea-autosize'
-import { InputGroup, Form as BForm, Col } from 'react-bootstrap'
+import { InputGroup, Form as BForm, Col, Image } from 'react-bootstrap'
 import * as Yup from 'yup'
 import { useEffect, useState } from 'react'
 import Info from './info'
@@ -10,6 +10,9 @@ import { useLazyQuery, gql, useMutation } from '@apollo/client'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { usePrice } from './price'
+import Avatar from './avatar'
+import BootstrapForm from 'react-bootstrap/Form'
+import Alert from 'react-bootstrap/Alert'
 
 Yup.addMethod(Yup.string, 'or', function (schemas, msg) {
   return this.test({
@@ -33,7 +36,7 @@ function satsMin2Mo (minute) {
 
 function PriceHint ({ monthly }) {
   const price = usePrice()
-  if (!price) {
+  if (!price || !monthly) {
     return null
   }
   const fixed = (n, f) => Number.parseFloat(n).toFixed(f)
@@ -46,18 +49,13 @@ function PriceHint ({ monthly }) {
 export default function JobForm ({ item, sub }) {
   const storageKeyPrefix = item ? undefined : `${sub.name}-job`
   const router = useRouter()
-  const [monthly, setMonthly] = useState(satsMin2Mo(item?.maxBid || sub.baseCost))
-  const [getAuctionPosition, { data }] = useLazyQuery(gql`
-    query AuctionPosition($id: ID, $bid: Int!) {
-      auctionPosition(sub: "${sub.name}", id: $id, bid: $bid)
-    }`,
-  { fetchPolicy: 'network-only' })
+  const [logoId, setLogoId] = useState(item?.uploadId)
   const [upsertJob] = useMutation(gql`
     mutation upsertJob($id: ID, $title: String!, $company: String!, $location: String,
-      $remote: Boolean, $text: String!, $url: String!, $maxBid: Int!, $status: String) {
+      $remote: Boolean, $text: String!, $url: String!, $maxBid: Int!, $status: String, $logo: Int) {
       upsertJob(sub: "${sub.name}", id: $id, title: $title, company: $company,
         location: $location, remote: $remote, text: $text,
-        url: $url, maxBid: $maxBid, status: $status) {
+        url: $url, maxBid: $maxBid, status: $status, logo: $logo) {
         id
       }
     }`
@@ -69,9 +67,9 @@ export default function JobForm ({ item, sub }) {
     text: Yup.string().required('required').trim(),
     url: Yup.string()
       .or([Yup.string().email(), Yup.string().url()], 'invalid url or email')
-      .required('Required'),
-    maxBid: Yup.number('must be number')
-      .integer('must be whole').min(sub.baseCost, `must be at least ${sub.baseCost}`)
+      .required('required'),
+    maxBid: Yup.number().typeError('must be a number')
+      .integer('must be whole').min(0, 'must be positive')
       .required('required'),
     location: Yup.string().test(
       'no-remote',
@@ -82,14 +80,6 @@ export default function JobForm ({ item, sub }) {
         then: Yup.string().required('required').trim()
       })
   })
-
-  const position = data?.auctionPosition
-
-  useEffect(() => {
-    const initialMaxBid = Number(item?.maxBid || localStorage.getItem(storageKeyPrefix + '-maxBid')) || sub.baseCost
-    getAuctionPosition({ variables: { id: item?.id, bid: initialMaxBid } })
-    setMonthly(satsMin2Mo(initialMaxBid))
-  }, [])
 
   return (
     <>
@@ -102,7 +92,7 @@ export default function JobForm ({ item, sub }) {
           remote: item?.remote || false,
           text: item?.text || '',
           url: item?.url || '',
-          maxBid: item?.maxBid || sub.baseCost,
+          maxBid: item?.maxBid || 0,
           stop: false,
           start: false
         }}
@@ -122,6 +112,7 @@ export default function JobForm ({ item, sub }) {
               sub: sub.name,
               maxBid: Number(maxBid),
               status,
+              logo: Number(logoId),
               ...values
             }
           })
@@ -136,22 +127,34 @@ export default function JobForm ({ item, sub }) {
           }
         })}
       >
+        <div className='form-group'>
+          <label className='form-label'>logo</label>
+          <div className='position-relative' style={{ width: 'fit-content' }}>
+            <Image
+              src={logoId ? `https://${process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET}.s3.amazonaws.com/${logoId}` : '/jobs-default.png'} width='135' height='135' roundedCircle
+            />
+            <Avatar onSuccess={setLogoId} />
+          </div>
+        </div>
         <Input
           label='job title'
           name='title'
           required
           autoFocus
+          clear
         />
         <Input
           label='company'
           name='company'
           required
+          clear
         />
         <BForm.Row className='mr-0'>
           <Col>
             <Input
               label='location'
               name='location'
+              clear
             />
           </Col>
           <Checkbox
@@ -171,37 +174,68 @@ export default function JobForm ({ item, sub }) {
           label={<>how to apply <small className='text-muted ml-2'>url or email address</small></>}
           name='url'
           required
+          clear
         />
-        <Input
-          label={
-            <div className='d-flex align-items-center'>bid
-              <Info>
-                <ol className='font-weight-bold'>
-                  <li>The higher your bid the higher your job will rank</li>
-                  <li>The minimum bid is {sub.baseCost} sats/min</li>
-                  <li>You can increase or decrease your bid, and edit or stop your job at anytime</li>
-                  <li>Your job will be hidden if your wallet runs out of sats and can be unhidden by filling your wallet again</li>
-                </ol>
-              </Info>
-            </div>
-          }
-          name='maxBid'
-          onChange={async (formik, e) => {
-            if (e.target.value >= sub.baseCost && e.target.value <= 100000000) {
-              setMonthly(satsMin2Mo(e.target.value))
-              getAuctionPosition({ variables: { id: item?.id, bid: Number(e.target.value) } })
-            } else {
-              setMonthly(satsMin2Mo(sub.baseCost))
-            }
-          }}
-          append={<InputGroup.Text className='text-monospace'>sats/min</InputGroup.Text>}
-          hint={<PriceHint monthly={monthly} />}
-        />
-        <><div className='font-weight-bold text-muted'>This bid puts your job in position: {position}</div></>
+        <PromoteJob item={item} sub={sub} storageKeyPrefix={storageKeyPrefix} />
         {item && <StatusControl item={item} />}
         <SubmitButton variant='secondary' className='mt-3'>{item ? 'save' : 'post'}</SubmitButton>
       </Form>
     </>
+  )
+}
+
+function PromoteJob ({ item, sub, storageKeyPrefix }) {
+  const [monthly, setMonthly] = useState(satsMin2Mo(item?.maxBid || 0))
+  const [getAuctionPosition, { data }] = useLazyQuery(gql`
+    query AuctionPosition($id: ID, $bid: Int!) {
+      auctionPosition(sub: "${sub.name}", id: $id, bid: $bid)
+    }`,
+  { fetchPolicy: 'network-only' })
+  const position = data?.auctionPosition
+
+  useEffect(() => {
+    const initialMaxBid = Number(item?.maxBid || localStorage.getItem(storageKeyPrefix + '-maxBid')) || 0
+    getAuctionPosition({ variables: { id: item?.id, bid: initialMaxBid } })
+    setMonthly(satsMin2Mo(initialMaxBid))
+  }, [])
+
+  return (
+    <AccordianItem
+      show={item?.maxBid > 0}
+      header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>promote</div>}
+      body={
+        <>
+          <Input
+            label={
+              <div className='d-flex align-items-center'>bid
+                <Info>
+                  <ol className='font-weight-bold'>
+                    <li>The higher your bid the higher your job will rank</li>
+                    <li>You can increase, decrease, or remove your bid at anytime</li>
+                    <li>You can edit or stop your job at anytime</li>
+                    <li>If you run out of sats, your job will stop being promoted until you fill your wallet again</li>
+                  </ol>
+                </Info>
+                <small className='text-muted ml-2'>optional</small>
+              </div>
+          }
+            name='maxBid'
+            onChange={async (formik, e) => {
+              if (e.target.value >= 0 && e.target.value <= 100000000) {
+                setMonthly(satsMin2Mo(e.target.value))
+                getAuctionPosition({ variables: { id: item?.id, bid: Number(e.target.value) } })
+              } else {
+                setMonthly(satsMin2Mo(0))
+              }
+            }}
+            append={<InputGroup.Text className='text-monospace'>sats/min</InputGroup.Text>}
+            hint={<PriceHint monthly={monthly} />}
+            storageKeyPrefix={storageKeyPrefix}
+          />
+          <><div className='font-weight-bold text-muted'>This bid puts your job in position: {position}</div></>
+        </>
+  }
+    />
   )
 }
 
@@ -225,7 +259,7 @@ function StatusControl ({ item }) {
         </>
       )
     }
-  } else {
+  } else if (item.status === 'STOPPED') {
     StatusComp = () => {
       return (
         <AccordianItem
@@ -242,12 +276,13 @@ function StatusControl ({ item }) {
   }
 
   return (
-    <div className='my-2'>
-      {item.status === 'NOSATS' &&
-        <div className='text-danger font-weight-bold my-1'>
-          you have no sats! <Link href='/wallet?type=fund' passHref><a className='text-reset text-underline'>fund your wallet</a></Link> to resume your job
-        </div>}
-      <StatusComp />
+    <div className='my-3 border border-3 rounded'>
+      <div className='p-3'>
+        <BootstrapForm.Label>job control</BootstrapForm.Label>
+        {item.status === 'NOSATS' &&
+          <Alert variant='warning'>your promotion ran out of sats. <Link href='/wallet?type=fund' passHref><a className='text-reset text-underline'>fund your wallet</a></Link> or reduce bid to continue promoting your job</Alert>}
+        <StatusComp />
+      </div>
     </div>
   )
 }

@@ -56,6 +56,10 @@ module.exports = withPlausibleProxy()({
         destination: '/items/1620'
       },
       {
+        source: '/privacy',
+        destination: '/items/76894'
+      },
+      {
         source: '/.well-known/lnurlp/:username',
         destination: '/api/lnurlp/:username'
       },

@@ -33,10 +33,10 @@ export default {
 
       return await models.$queryRaw(
         `SELECT date_trunc('month', "ItemAct".created_at) AS time,
-        sum(CASE WHEN act = 'STREAM' THEN sats ELSE 0 END) as jobs,
-        sum(CASE WHEN act = 'VOTE' AND "Item"."userId" = "ItemAct"."userId" THEN sats ELSE 0 END) as fees,
-        sum(CASE WHEN act = 'BOOST' THEN sats ELSE 0 END) as boost,
-        sum(CASE WHEN act = 'TIP' THEN sats ELSE 0 END) as tips
+        sum(CASE WHEN act = 'STREAM' THEN "ItemAct".sats ELSE 0 END) as jobs,
+        sum(CASE WHEN act IN ('VOTE', 'POLL') AND "Item"."userId" = "ItemAct"."userId" THEN "ItemAct".sats ELSE 0 END) as fees,
+        sum(CASE WHEN act = 'BOOST' THEN "ItemAct".sats ELSE 0 END) as boost,
+        sum(CASE WHEN act = 'TIP' THEN "ItemAct".sats ELSE 0 END) as tips
         FROM "ItemAct"
         JOIN "Item" on "ItemAct"."itemId" = "Item".id
         WHERE date_trunc('month', now_utc()) <> date_trunc('month',  "ItemAct".created_at)
@@ -63,8 +63,8 @@ export default {
         `SELECT time, sum(airdrop) as rewards, sum(post) as posts, sum(comment) as comments
         FROM
         ((SELECT date_trunc('month', "ItemAct".created_at) AS time, 0 as airdrop,
-          CASE WHEN "Item"."parentId" IS NULL THEN 0 ELSE sats END as comment,
-          CASE WHEN "Item"."parentId" IS NULL THEN sats ELSE 0 END as post
+          CASE WHEN "Item"."parentId" IS NULL THEN 0 ELSE "ItemAct".sats END as comment,
+          CASE WHEN "Item"."parentId" IS NULL THEN "ItemAct".sats ELSE 0 END as post
           FROM "ItemAct"
           JOIN "Item" on "ItemAct"."itemId" = "Item".id AND "Item"."userId" <> "ItemAct"."userId"
           WHERE date_trunc('month', now_utc()) <> date_trunc('month', "ItemAct".created_at) AND
@@ -121,10 +121,10 @@ export default {
     spentWeekly: async (parent, args, { models }) => {
       const [stats] = await models.$queryRaw(
         `SELECT json_build_array(
-          json_build_object('name', 'jobs', 'value', sum(CASE WHEN act = 'STREAM' THEN sats ELSE 0 END)),
-          json_build_object('name', 'fees', 'value', sum(CASE WHEN act = 'VOTE' AND "Item"."userId" = "ItemAct"."userId" THEN sats ELSE 0 END)),
-          json_build_object('name', 'boost', 'value', sum(CASE WHEN act = 'BOOST' THEN sats ELSE 0 END)),
-          json_build_object('name', 'tips', 'value', sum(CASE WHEN act = 'TIP' THEN sats ELSE 0 END))) as array
+          json_build_object('name', 'jobs', 'value', sum(CASE WHEN act = 'STREAM' THEN "ItemAct".sats ELSE 0 END)),
+          json_build_object('name', 'fees', 'value', sum(CASE WHEN act in ('VOTE', 'POLL') AND "Item"."userId" = "ItemAct"."userId" THEN "ItemAct".sats ELSE 0 END)),
+          json_build_object('name', 'boost', 'value', sum(CASE WHEN act = 'BOOST' THEN "ItemAct".sats ELSE 0 END)),
+          json_build_object('name', 'tips', 'value', sum(CASE WHEN act = 'TIP' THEN "ItemAct".sats ELSE 0 END))) as array
         FROM "ItemAct"
         JOIN "Item" on "ItemAct"."itemId" = "Item".id
         WHERE "ItemAct".created_at >= now_utc() - interval '1 week'`)
@@ -140,8 +140,8 @@ export default {
         ) as array
         FROM
         ((SELECT 0 as airdrop,
-          CASE WHEN "Item"."parentId" IS NULL THEN 0 ELSE sats END as comment,
-          CASE WHEN "Item"."parentId" IS NULL THEN sats ELSE 0 END as post
+          CASE WHEN "Item"."parentId" IS NULL THEN 0 ELSE "ItemAct".sats END as comment,
+          CASE WHEN "Item"."parentId" IS NULL THEN "ItemAct".sats ELSE 0 END as post
           FROM "ItemAct"
           JOIN "Item" on "ItemAct"."itemId" = "Item".id AND "Item"."userId" <> "ItemAct"."userId"
           WHERE  "ItemAct".created_at >= now_utc() - interval '1 week' AND

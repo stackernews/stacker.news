@@ -1,6 +1,6 @@
 import { AuthenticationError, UserInputError } from 'apollo-server-errors'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
-import { createMentions, getItem, SELECT } from './item'
+import { createMentions, getItem, SELECT, updateItem, filterClause } from './item'
 import serialize from './serial'
 
 export function topClause (within) {
@@ -133,6 +133,10 @@ export default {
         cursor: users.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
         users
       }
+    },
+    searchUsers: async (parent, { name }, { models }) => {
+      return await models.$queryRaw`
+        SELECT * FROM users where id > 615 AND SIMILARITY(name, ${name}) > .1 ORDER BY SIMILARITY(name, ${name}) DESC LIMIT 5`
     }
   },
 
@@ -140,6 +144,14 @@ export default {
     setName: async (parent, { name }, { me, models }) => {
       if (!me) {
         throw new AuthenticationError('you must be logged in')
+      }
+
+      if (!/^[\w_]+$/.test(name)) {
+        throw new UserInputError('only letters, numbers, and _')
+      }
+
+      if (name.length > 32) {
+        throw new UserInputError('too long')
       }
 
       try {
@@ -156,9 +168,7 @@ export default {
         throw new AuthenticationError('you must be logged in')
       }
 
-      await models.user.update({ where: { id: me.id }, data })
-
-      return true
+      return await models.user.update({ where: { id: me.id }, data })
     },
     setWalkthrough: async (parent, { upvotePopover, tipPopover }, { me, models }) => {
       if (!me) {
@@ -188,21 +198,14 @@ export default {
 
       const user = await models.user.findUnique({ where: { id: me.id } })
 
-      let item
       if (user.bioId) {
-        item = await models.item.update({
-          where: { id: Number(user.bioId) },
-          data: {
-            text: bio
-          }
-        })
+        await updateItem(parent, { id: user.bioId, data: { text: bio, title: `@${user.name}'s bio` } }, { me, models })
       } else {
-        ([item] = await serialize(models,
+        const [item] = await serialize(models,
           models.$queryRaw(`${SELECT} FROM create_bio($1, $2, $3) AS "Item"`,
-            `@${user.name}'s bio`, bio, Number(me.id))))
+            `@${user.name}'s bio`, bio, Number(me.id)))
+        await createMentions(item, models)
       }
-
-      await createMentions(item, models)
 
       return await models.user.findUnique({ where: { id: me.id } })
     },
@@ -239,7 +242,10 @@ export default {
       }
 
       try {
-        await models.user.update({ where: { id: me.id }, data: { email } })
+        await models.user.update({
+          where: { id: me.id },
+          data: { email: email.toLowerCase() }
+        })
       } catch (error) {
         if (error.code === 'P2002') {
           throw new UserInputError('email taken')
@@ -308,6 +314,7 @@ export default {
           JOIN "Item" p ON ${user.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
           WHERE p."userId" = $1
           AND "Item".created_at > $2  AND "Item"."userId" <> $1
+          ${await filterClause(me, models)}
           LIMIT 1`, me.id, lastChecked)
       if (newReplies.length > 0) {
         return true
@@ -330,9 +337,6 @@ export default {
 
       const job = await models.item.findFirst({
         where: {
-          status: {
-            not: 'STOPPED'
-          },
           maxBid: {
             not: null
           },

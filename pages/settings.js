@@ -9,8 +9,9 @@ import LoginButton from '../components/login-button'
 import { signIn } from 'next-auth/client'
 import ModalButton from '../components/modal-button'
 import { LightningAuth } from '../components/lightning-auth'
-import { SETTINGS } from '../fragments/users'
+import { SETTINGS, SET_SETTINGS } from '../fragments/users'
 import { useRouter } from 'next/router'
+import Info from '../components/info'
 
 export const getServerSideProps = getGetServerSideProps(SETTINGS)
 
@@ -27,16 +28,18 @@ export const WarningSchema = Yup.object({
 
 export default function Settings ({ data: { settings } }) {
   const [success, setSuccess] = useState()
-  const [setSettings] = useMutation(
-    gql`
-      mutation setSettings($tipDefault: Int!, $noteItemSats: Boolean!, $noteEarning: Boolean!,
-        $noteAllDescendants: Boolean!, $noteMentions: Boolean!, $noteDeposits: Boolean!,
-        $noteInvites: Boolean!, $noteJobIndicator: Boolean!) {
-        setSettings(tipDefault: $tipDefault, noteItemSats: $noteItemSats,
-          noteEarning: $noteEarning, noteAllDescendants: $noteAllDescendants,
-          noteMentions: $noteMentions, noteDeposits: $noteDeposits, noteInvites: $noteInvites,
-          noteJobIndicator: $noteJobIndicator)
-      }`
+  const [setSettings] = useMutation(SET_SETTINGS, {
+    update (cache, { data: { setSettings } }) {
+      cache.modify({
+        id: 'ROOT_QUERY',
+        fields: {
+          settings () {
+            return setSettings
+          }
+        }
+      })
+    }
+  }
   )
 
   const { data } = useQuery(SETTINGS)
@@ -57,7 +60,10 @@ export default function Settings ({ data: { settings } }) {
             noteMentions: settings?.noteMentions,
             noteDeposits: settings?.noteDeposits,
             noteInvites: settings?.noteInvites,
-            noteJobIndicator: settings?.noteJobIndicator
+            noteJobIndicator: settings?.noteJobIndicator,
+            hideInvoiceDesc: settings?.hideInvoiceDesc,
+            wildWestMode: settings?.wildWestMode,
+            greeterMode: settings?.greeterMode
           }}
           schema={SettingsSchema}
           onSubmit={async ({ tipDefault, ...values }) => {
@@ -107,6 +113,54 @@ export default function Settings ({ data: { settings } }) {
           <Checkbox
             label='there is a new job'
             name='noteJobIndicator'
+          />
+          <div className='form-label'>privacy</div>
+          <Checkbox
+            label={
+              <div className='d-flex align-items-center'>hide invoice descriptions
+                <Info>
+                  <ul className='font-weight-bold'>
+                    <li>Use this if you don't want funding sources to be linkable to your SN identity.</li>
+                    <li>It makes your invoice descriptions blank.</li>
+                    <li>This only applies to invoices you create
+                      <ul>
+                        <li>lnurl-pay and lightning addresses still reference your nym</li>
+                      </ul>
+                    </li>
+                  </ul>
+                </Info>
+              </div>
+            }
+            name='hideInvoiceDesc'
+          />
+          <div className='form-label'>content</div>
+          <Checkbox
+            label={
+              <div className='d-flex align-items-center'>wild west mode
+                <Info>
+                  <ul className='font-weight-bold'>
+                    <li>don't hide flagged content</li>
+                    <li>don't down rank flagged content</li>
+                  </ul>
+                </Info>
+              </div>
+            }
+            name='wildWestMode'
+            groupClassName='mb-0'
+          />
+          <Checkbox
+            label={
+              <div className='d-flex align-items-center'>greeter mode
+                <Info>
+                  <ul className='font-weight-bold'>
+                    <li>see and screen free posts and comments</li>
+                    <li>help onboard users to SN and Lightning</li>
+                    <li>you might be subject to more spam</li>
+                  </ul>
+                </Info>
+              </div>
+            }
+            name='greeterMode'
           />
           <div className='d-flex'>
             <SubmitButton variant='info' className='ml-auto mt-1 px-4'>save</SubmitButton>
@@ -241,6 +295,7 @@ function AuthMethods ({ methods }) {
               placeholder={methods.email}
               groupClassName='mb-0'
               readOnly
+              noForm
             />
             <Button
               className='ml-2' variant='secondary' onClick={

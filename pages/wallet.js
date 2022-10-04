@@ -153,7 +153,8 @@ export function WithdrawlForm () {
     try {
       const provider = await requestProvider()
       const { paymentRequest: invoice } = await provider.makeInvoice({
-        defaultMemo: `Withdrawal for @${me.name} on SN`
+        defaultMemo: `Withdrawal for @${me.name} on SN`,
+        maximumAmount: Math.max(me.sats - MAX_FEE_DEFAULT, 0)
       })
       const { data } = await createWithdrawl({ variables: { invoice, maxFee: MAX_FEE_DEFAULT } })
       router.push(`/withdrawals/${data.createWithdrawl.id}`)

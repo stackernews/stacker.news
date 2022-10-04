@@ -56,8 +56,17 @@ model User {
   noteInvites        Boolean @default(true)
   noteJobIndicator   Boolean @default(true)
 
-  Earn   Earn[]
-  Upload Upload[] @relation(name: "Uploads")
+  // privacy settings
+  hideInvoiceDesc Boolean @default(false)
+
+  // content settings
+  wildWestMode Boolean @default(false)
+  greeterMode  Boolean @default(false)
+
+  Earn     Earn[]
+  Upload   Upload[]   @relation(name: "Uploads")
+  PollVote PollVote[]
+
   @@index([createdAt])
   @@index([inviteId])
   @@map(name: "users")
@@ -72,14 +81,22 @@ model Upload {
   width     Int?
   height    Int?
   item      Item?    @relation(fields: [itemId], references: [id])
-  itemId    Int?
+  itemId    Int?     @unique
   user      User     @relation(name: "Uploads", fields: [userId], references: [id])
   userId    Int
 
   User User[]
+
   @@index([createdAt])
   @@index([itemId])
   @@index([userId])
+}
+
+enum EarnType {
+  POST
+  COMMENT
+  TIP_COMMENT
+  TIP_POST
 }
 
 model Earn {
@@ -91,8 +108,13 @@ model Earn {
   user   User @relation(fields: [userId], references: [id])
   userId Int
 
+  type   EarnType?
+  typeId Int?
+  rank   Int?
+
   @@index([createdAt])
   @@index([userId])
+  @@index([createdAt, userId])
 }
 
 model LnAuth {
@@ -141,26 +163,42 @@ enum Status {
 }
 
 model Item {
-  id            Int                   @id @default(autoincrement())
-  createdAt     DateTime              @default(now()) @map(name: "created_at")
-  updatedAt     DateTime              @default(now()) @updatedAt @map(name: "updated_at")
-  title         String?
-  text          String?
-  url           String?
-  user          User                  @relation("UserItems", fields: [userId], references: [id])
-  userId        Int
-  fwdUser       User?                 @relation(name: "FwdItem", fields: [fwdUserId], references: [id])
-  fwdUserId     Int?
-  parent        Item?                 @relation("ParentChildren", fields: [parentId], references: [id])
-  parentId      Int?
-  children      Item[]                @relation("ParentChildren")
-  actions       ItemAct[]
-  mentions      Mention[]
-  path          Unsupported("LTREE")?
-  pin           Pin?                  @relation(fields: [pinId], references: [id])
-  pinId         Int?
-  weightedVotes Float                 @default(0)
-  boost         Int                   @default(0)
+  id          Int                   @id @default(autoincrement())
+  createdAt   DateTime              @default(now()) @map(name: "created_at")
+  updatedAt   DateTime              @default(now()) @updatedAt @map(name: "updated_at")
+  title       String?
+  text        String?
+  url         String?
+  user        User                  @relation("UserItems", fields: [userId], references: [id])
+  userId      Int
+  fwdUser     User?                 @relation(name: "FwdItem", fields: [fwdUserId], references: [id])
+  fwdUserId   Int?
+  parent      Item?                 @relation("ParentChildren", fields: [parentId], references: [id])
+  parentId    Int?
+  children    Item[]                @relation("ParentChildren")
+  actions     ItemAct[]
+  mentions    Mention[]
+  path        Unsupported("LTREE")?
+  pin         Pin?                  @relation(fields: [pinId], references: [id])
+  pinId       Int?
+  boost       Int                   @default(0)
+  uploadId    Int?
+  upload      Upload?
+  paidImgLink Boolean               @default(false)
+
+  // is free post or bio
+  freebie Boolean @default(false)
+  bio     Boolean @default(false)
+
+  // denormalized self stats
+  weightedVotes     Float @default(0)
+  weightedDownVotes Float @default(0)
+  sats              Int   @default(0)
+
+  // denormalized comment stats
+  ncomments     Int       @default(0)
+  commentSats   Int       @default(0)
+  lastCommentAt DateTime?
 
   // if sub is null, this is the main sub
   sub     Sub?    @relation(fields: [subName], references: [name])
@@ -178,8 +216,13 @@ model Item {
   longitude       Float?
   remote          Boolean?
 
-  User   User[]
-  Upload Upload[]
+  // fields for polls
+  pollCost Int?
+
+  User       User[]
+  PollOption PollOption[]
+  PollVote   PollVote[]
+
   @@index([createdAt])
   @@index([userId])
   @@index([parentId])
@@ -191,10 +234,40 @@ model Item {
   @@index([path])
 }
 
+model PollOption {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map(name: "created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map(name: "updated_at")
+  itemId    Int
+  item      Item     @relation(fields: [itemId], references: [id])
+  option    String
+
+  PollVote PollVote[]
+
+  @@index([itemId])
+}
+
+model PollVote {
+  id           Int        @id @default(autoincrement())
+  createdAt    DateTime   @default(now()) @map(name: "created_at")
+  updatedAt    DateTime   @default(now()) @updatedAt @map(name: "updated_at")
+  userId       Int
+  user         User       @relation(fields: [userId], references: [id])
+  itemId       Int
+  item         Item       @relation(fields: [itemId], references: [id])
+  pollOptionId Int
+  pollOption   PollOption @relation(fields: [pollOptionId], references: [id])
+
+  @@unique([itemId, userId])
+  @@index([userId])
+  @@index([pollOptionId])
+}
+
 enum PostType {
   LINK
   DISCUSSION
   JOB
+  POLL
 }
 
 enum RankingType {
@@ -231,6 +304,8 @@ enum ItemActType {
   BOOST
   TIP
   STREAM
+  POLL
+  DONT_LIKE_THIS
 }
 
 model ItemAct {
@@ -308,6 +383,7 @@ model Withdrawl {
   msatsFeePaid   Int?
 
   status WithdrawlStatus?
+
   @@index([createdAt])
   @@index([userId])
 }

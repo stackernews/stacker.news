@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "NODE_OPTIONS='--trace-warnings' next dev",
+    "dev": "NODE_OPTIONS='--trace-warnings --inspect' next dev",
     "build": "next build",
     "migrate": "prisma migrate deploy",
     "start": "NODE_OPTIONS='--trace-warnings' next start -p $PORT"
@@ -28,6 +28,8 @@
     "graphql-type-json": "^0.3.2",
     "ln-service": "^52.8.0",
     "mdast-util-find-and-replace": "^1.1.1",
+    "mdast-util-from-markdown": "^1.2.0",
+    "mdast-util-to-string": "^3.1.0",
     "next": "^11.1.2",
     "next-auth": "^3.29.3",
     "next-plausible": "^2.1.3",

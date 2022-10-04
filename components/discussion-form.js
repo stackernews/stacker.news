@@ -2,11 +2,11 @@ import { Form, Input, MarkdownInput, SubmitButton } from '../components/form'
 import { useRouter } from 'next/router'
 import * as Yup from 'yup'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
-import ActionTooltip from '../components/action-tooltip'
 import TextareaAutosize from 'react-textarea-autosize'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial, AdvPostSchema } from './adv-post-form'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
+import FeeButton, { EditFeeButton } from './fee-button'
 
 export function DiscussionForm ({
   item, editThreshold, titleLabel = 'title',
@@ -15,6 +15,7 @@ export function DiscussionForm ({
 }) {
   const router = useRouter()
   const client = useApolloClient()
+  // const me = useMe()
   const [upsertDiscussion] = useMutation(
     gql`
       mutation upsertDiscussion($id: ID, $title: String!, $text: String, $boost: Int, $forward: String) {
@@ -31,12 +32,15 @@ export function DiscussionForm ({
     ...AdvPostSchema(client)
   })
 
+  // const cost = linkOrImg ? 10 : me?.freePosts ? 0 : 1
+
   return (
     <Form
       initial={{
         title: item?.title || '',
         text: item?.text || '',
-        ...AdvPostInitial
+        suggest: '',
+        ...AdvPostInitial({ forward: item?.fwdUser?.name })
       }}
       schema={DiscussionSchema}
       onSubmit={handleSubmit || (async ({ boost, ...values }) => {
@@ -60,6 +64,7 @@ export function DiscussionForm ({
         name='title'
         required
         autoFocus
+        clear
       />
       <MarkdownInput
         topLevel
@@ -71,10 +76,18 @@ export function DiscussionForm ({
           ? <div className='text-muted font-weight-bold'><Countdown date={editThreshold} /></div>
           : null}
       />
-      {!item && adv && <AdvPostForm />}
-      <ActionTooltip>
-        <SubmitButton variant='secondary' className='mt-3'>{item ? 'save' : buttonText}</SubmitButton>
-      </ActionTooltip>
+      {adv && <AdvPostForm edit={!!item} />}
+      <div className='mt-3'>
+        {item
+          ? <EditFeeButton
+              paidSats={item.meSats}
+              parentId={null} text='save' ChildButton={SubmitButton} variant='secondary'
+            />
+          : <FeeButton
+              baseFee={1} parentId={null} text={buttonText}
+              ChildButton={SubmitButton} variant='secondary'
+            />}
+      </div>
     </Form>
   )
 }

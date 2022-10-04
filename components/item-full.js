@@ -1,4 +1,5 @@
-import Item, { ItemJob } from './item'
+import Item from './item'
+import ItemJob from './item-job'
 import Reply from './reply'
 import Comment from './comment'
 import Text from './text'
@@ -10,7 +11,9 @@ import { Button } from 'react-bootstrap'
 import { TwitterTweetEmbed } from 'react-twitter-embed'
 import YouTube from 'react-youtube'
 import useDarkMode from 'use-dark-mode'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import Poll from './poll'
+import { commentsViewed } from '../lib/new-comments'
 
 function BioItem ({ item, handleClick }) {
   const me = useMe()
@@ -29,7 +32,7 @@ function BioItem ({ item, handleClick }) {
           >edit bio
           </Button>
         </div>}
-      <Reply parentId={item.id} meComments={item.meComments} />
+      <Reply item={item} />
     </>
   )
 }
@@ -80,13 +83,14 @@ function ItemEmbed ({ item }) {
 }
 
 function TopLevelItem ({ item, noReply, ...props }) {
-  const ItemComponent = item.maxBid ? ItemJob : Item
+  const ItemComponent = item.isJob ? ItemJob : Item
 
   return (
-    <ItemComponent item={item} showFwdUser {...props}>
+    <ItemComponent item={item} toc showFwdUser {...props}>
       {item.text && <ItemText item={item} />}
       {item.url && <ItemEmbed item={item} />}
-      {!noReply && <Reply parentId={item.id} meComments={item.meComments} replyOpen />}
+      {item.poll && <Poll item={item} />}
+      {!noReply && <Reply item={item} replyOpen />}
     </ItemComponent>
   )
 }
@@ -96,6 +100,10 @@ function ItemText ({ item }) {
 }
 
 export default function ItemFull ({ item, bio, ...props }) {
+  useEffect(() => {
+    commentsViewed(item)
+  }, [item.lastCommentAt])
+
   return (
     <>
       {item.parentId
@@ -109,7 +117,7 @@ export default function ItemFull ({ item, bio, ...props }) {
           </div>)}
       {item.comments &&
         <div className={styles.comments}>
-          <Comments parentId={item.id} comments={item.comments} />
+          <Comments parentId={item.id} commentSats={item.commentSats} comments={item.comments} />
         </div>}
     </>
   )

@@ -2,14 +2,19 @@ import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
 import BootstrapForm from 'react-bootstrap/Form'
 import Alert from 'react-bootstrap/Alert'
-import { Formik, Form as FormikForm, useFormikContext, useField } from 'formik'
+import { Formik, Form as FormikForm, useFormikContext, useField, FieldArray } from 'formik'
 import React, { useEffect, useRef, useState } from 'react'
 import copy from 'clipboard-copy'
 import Thumb from '../svgs/thumb-up-fill.svg'
-import { Nav } from 'react-bootstrap'
+import { Col, Dropdown, Nav } from 'react-bootstrap'
 import Markdown from '../svgs/markdown-line.svg'
 import styles from './form.module.css'
 import Text from '../components/text'
+import AddIcon from '../svgs/add-fill.svg'
+import { mdHas } from '../lib/md'
+import CloseIcon from '../svgs/close-line.svg'
+import { useLazyQuery } from '@apollo/client'
+import { USER_SEARCH } from '../fragments/users'
 
 export function SubmitButton ({
   children, variant, value, onClick, ...props
@@ -71,7 +76,7 @@ export function InputSkeleton ({ label, hint }) {
   )
 }
 
-export function MarkdownInput ({ label, topLevel, groupClassName, ...props }) {
+export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setHasImgLink, ...props }) {
   const [tab, setTab] = useState('write')
   const [, meta] = useField(props)
 
@@ -98,7 +103,12 @@ export function MarkdownInput ({ label, topLevel, groupClassName, ...props }) {
         </Nav>
         <div className={tab !== 'write' ? 'd-none' : ''}>
           <InputInner
-            {...props}
+            {...props} onChange={(formik, e) => {
+              if (onChange) onChange(formik, e)
+              if (setHasImgLink) {
+                setHasImgLink(mdHas(e.target.value, ['link', 'image']))
+              }
+            }}
           />
         </div>
         <div className={tab !== 'preview' ? 'd-none' : 'form-group'}>
@@ -122,10 +132,10 @@ function FormGroup ({ className, label, children }) {
 
 function InputInner ({
   prepend, append, hint, showValid, onChange, overrideValue,
-  innerRef, storageKeyPrefix, ...props
+  innerRef, storageKeyPrefix, noForm, clear, onKeyDown, ...props
 }) {
-  const [field, meta, helpers] = props.readOnly ? [{}, {}, {}] : useField(props)
-  const formik = props.readOnly ? null : useFormikContext()
+  const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)
+  const formik = noForm ? null : useFormikContext()
 
   const storageKey = storageKeyPrefix ? storageKeyPrefix + '-' + props.name : undefined
 
@@ -145,6 +155,8 @@ function InputInner ({
     }
   }, [overrideValue])
 
+  const invalid = meta.touched && meta.error
+
   return (
     <>
       <InputGroup hasValidation>
@@ -158,6 +170,7 @@ function InputInner ({
             if (e.keyCode === 13 && (e.metaKey || e.ctrlKey)) {
               formik?.submitForm()
             }
+            if (onKeyDown) onKeyDown(e)
           }}
           ref={innerRef}
           {...field} {...props}
@@ -172,11 +185,23 @@ function InputInner ({
               onChange(formik, e)
             }
           }}
-          isInvalid={meta.touched && meta.error}
+          isInvalid={invalid}
           isValid={showValid && meta.initialValue !== meta.value && meta.touched && !meta.error}
         />
-        {append && (
+        {(append || (clear && field.value)) && (
           <InputGroup.Append>
+            {(clear && field.value) &&
+              <Button
+                variant={null}
+                onClick={() => {
+                  helpers.setValue('')
+                  if (storageKey) {
+                    localStorage.removeItem(storageKey)
+                  }
+                }}
+                className={`${styles.clearButton} ${invalid ? styles.isInvalid : ''}`}
+              ><CloseIcon className='fill-grey' height={20} width={20} />
+              </Button>}
             {append}
           </InputGroup.Append>
         )}
@@ -193,10 +218,113 @@ function InputInner ({
   )
 }
 
+export function InputUserSuggest ({ label, groupClassName, ...props }) {
+  const [getSuggestions] = useLazyQuery(USER_SEARCH, {
+    fetchPolicy: 'network-only',
+    onCompleted: data => {
+      setSuggestions({ array: data.searchUsers, index: 0 })
+    }
+  })
+
+  const INITIAL_SUGGESTIONS = { array: [], index: 0 }
+  const [suggestions, setSuggestions] = useState(INITIAL_SUGGESTIONS)
+  const [ovalue, setOValue] = useState()
+
+  return (
+    <FormGroup label={label} className={groupClassName}>
+      <InputInner
+        {...props}
+        autoComplete='off'
+        onChange={(_, e) => getSuggestions({ variables: { name: e.target.value } })}
+        overrideValue={ovalue}
+        onKeyDown={(e) => {
+          switch (e.code) {
+            case 'ArrowUp':
+              e.preventDefault()
+              setSuggestions(
+                {
+                  ...suggestions,
+                  index: Math.max(suggestions.index - 1, 0)
+                })
+              break
+            case 'ArrowDown':
+              e.preventDefault()
+              setSuggestions(
+                {
+                  ...suggestions,
+                  index: Math.min(suggestions.index + 1, suggestions.array.length - 1)
+                })
+              break
+            case 'Enter':
+              e.preventDefault()
+              setOValue(suggestions.array[suggestions.index].name)
+              setSuggestions(INITIAL_SUGGESTIONS)
+              break
+            case 'Escape':
+              e.preventDefault()
+              setSuggestions(INITIAL_SUGGESTIONS)
+              break
+            default:
+              break
+          }
+        }}
+      />
+      <Dropdown show={suggestions.array.length > 0}>
+        <Dropdown.Menu className={styles.suggestionsMenu}>
+          {suggestions.array.map((v, i) =>
+            <Dropdown.Item
+              key={v.name}
+              active={suggestions.index === i}
+              onClick={() => {
+                setOValue(v.name)
+                setSuggestions(INITIAL_SUGGESTIONS)
+              }}
+            >
+              {v.name}
+            </Dropdown.Item>)}
+        </Dropdown.Menu>
+      </Dropdown>
+    </FormGroup>
+  )
+}
+
 export function Input ({ label, groupClassName, ...props }) {
   return (
     <FormGroup label={label} className={groupClassName}>
       <InputInner {...props} />
+    </FormGroup>
+  )
+}
+
+export function VariableInput ({ label, groupClassName, name, hint, max, readOnlyLen, ...props }) {
+  return (
+    <FormGroup label={label} className={groupClassName}>
+      <FieldArray name={name}>
+        {({ form, ...fieldArrayHelpers }) => {
+          const options = form.values[name]
+          return (
+            <>
+              {options.map((_, i) => (
+                <div key={i}>
+                  <BootstrapForm.Row className='mb-2'>
+                    <Col>
+                      <InputInner name={`${name}[${i}]`} {...props} readOnly={i < readOnlyLen} placeholder={i > 1 ? 'optional' : undefined} />
+                    </Col>
+                    {options.length - 1 === i && options.length !== max
+                      ? <AddIcon className='fill-grey align-self-center pointer mx-2' onClick={() => fieldArrayHelpers.push('')} />
+                      : null}
+                  </BootstrapForm.Row>
+                </div>
+              ))}
+            </>
+          )
+        }}
+      </FieldArray>
+      {hint && (
+        <BootstrapForm.Text>
+          {hint}
+        </BootstrapForm.Text>
+      )}
     </FormGroup>
   )
 }
@@ -243,11 +371,17 @@ export function Form ({
       validationSchema={schema}
       initialTouched={validateImmediately && initial}
       validateOnBlur={false}
-      onSubmit={async (...args) =>
-        onSubmit && onSubmit(...args).then(() => {
+      onSubmit={async (values, ...args) =>
+        onSubmit && onSubmit(values, ...args).then(() => {
           if (!storageKeyPrefix) return
-          Object.keys(...args).forEach(v =>
-            localStorage.removeItem(storageKeyPrefix + '-' + v))
+          Object.keys(values).forEach(v => {
+            localStorage.removeItem(storageKeyPrefix + '-' + v)
+            if (Array.isArray(values[v])) {
+              values[v].forEach(
+                (_, i) => localStorage.removeItem(`${storageKeyPrefix}-${v}[${i}]`))
+            }
+          }
+          )
         }).catch(e => setError(e.message || e))}
     >
       <FormikForm {...props} noValidate>

@@ -11,6 +11,10 @@ export default gql`
     allItems(cursor: String): Items
     search(q: String, sub: String, cursor: String): Items
     auctionPosition(sub: String, id: ID, bid: Int!): Int!
+    itemRepetition(parentId: ID): Int!
+    outlawedItems(cursor: String): Items
+    borderlandItems(cursor: String): Items
+    freebieItems(cursor: String): Items
   }
 
   type ItemActResult {
@@ -21,10 +25,27 @@ export default gql`
   extend type Mutation {
     upsertLink(id: ID, title: String!, url: String!, boost: Int, forward: String): Item!
     upsertDiscussion(id: ID, title: String!, text: String, boost: Int, forward: String): Item!
-    upsertJob(id: ID, sub: ID!, title: String!, company: String!, location: String, remote: Boolean, text: String!, url: String!, maxBid: Int!, status: String): Item!
+    upsertJob(id: ID, sub: ID!, title: String!, company: String!, location: String, remote: Boolean,
+      text: String!, url: String!, maxBid: Int!, status: String, logo: Int): Item!
+    upsertPoll(id: ID, title: String!, text: String, options: [String!]!, boost: Int, forward: String): Item!
     createComment(text: String!, parentId: ID!): Item!
     updateComment(id: ID!, text: String!): Item!
+    dontLikeThis(id: ID!): Boolean!
     act(id: ID!, sats: Int): ItemActResult!
+    pollVote(id: ID!): ID!
+  }
+
+  type PollOption {
+    id: ID,
+    option: String!
+    count: Int!
+    meVoted: Boolean!
+  }
+
+  type Poll {
+    meVoted: Boolean!
+    count: Int!
+    options: [PollOption!]!
   }
 
   type Items {
@@ -57,19 +78,28 @@ export default gql`
     mine: Boolean!
     boost: Int!
     sats: Int!
+    commentSats: Int!
+    lastCommentAt: String
     upvotes: Int!
     meSats: Int!
-    meComments: Int!
+    meDontLike: Boolean!
+    outlawed: Boolean!
+    freebie: Boolean!
+    paidImgLink: Boolean
     ncomments: Int!
     comments: [Item!]!
     path: String
     position: Int
     prior: Int
     maxBid: Int
+    isJob: Boolean!
+    pollCost: Int
+    poll: Poll
     company: String
     location: String
     remote: Boolean
     sub: Sub
     status: String
+    uploadId: Int
   }
 `

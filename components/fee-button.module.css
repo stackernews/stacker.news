@@ -1,0 +1,15 @@
+.receipt {
+    background-color: var(--theme-inputBg);
+    max-width: 250px;
+    margin: auto;
+    table-layout: auto;
+    width: 100%;
+}
+
+.receipt td {
+    padding: .25rem .1rem;
+}
+
+.receipt tfoot {
+    border-top: 2px solid var(--theme-borderColor);
+}

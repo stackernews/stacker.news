@@ -35,8 +35,29 @@ export default async function getSSRApolloClient (req, me = null) {
 
 export function getGetServerSideProps (query, variables = null, notFoundFunc, requireVar) {
   return async function ({ req, query: params }) {
+    const { nodata, ...realParams } = params
+    const vars = { ...realParams, ...variables }
     const client = await getSSRApolloClient(req)
-    const vars = { ...params, ...variables }
+
+    const { data: { me } } = await client.query({
+      query: ME_SSR
+    })
+
+    const price = await getPrice()
+
+    // we want to use client-side cache
+    if (nodata && query) {
+      return {
+        props: {
+          me,
+          price,
+          apollo: {
+            query: print(query),
+            variables: vars
+          }
+        }
+      }
+    }
 
     if (requireVar && !vars[requireVar]) {
       return {
@@ -60,16 +81,10 @@ export function getGetServerSideProps (query, variables = null, notFoundFunc, re
       props = {
         apollo: {
           query: print(query),
-          variables: { ...params, ...variables }
+          variables: vars
         }
       }
     }
-
-    const { data: { me } } = await client.query({
-      query: ME_SSR
-    })
-
-    const price = await getPrice()
 
     return {
       props: {

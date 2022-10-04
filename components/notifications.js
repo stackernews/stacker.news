@@ -1,6 +1,7 @@
 import { useQuery } from '@apollo/client'
 import Comment, { CommentSkeleton } from './comment'
-import Item, { ItemJob } from './item'
+import Item from './item'
+import ItemJob from './item-job'
 import { NOTIFICATIONS } from '../fragments/notifications'
 import { useRouter } from 'next/router'
 import MoreFooter from './more-footer'
@@ -73,8 +74,14 @@ function Notification ({ n }) {
               <HandCoin className='align-self-center fill-boost mx-1' width={24} height={24} style={{ flex: '0 0 24px', transform: 'rotateY(180deg)' }} />
               <div className='ml-2'>
                 <div className='font-weight-bold text-boost'>
-                  you stacked {n.earnedSats} sats <small className='text-muted ml-1'>{timeSince(new Date(n.sortTime))}</small>
+                  you stacked {n.earnedSats} sats in rewards<small className='text-muted ml-1'>{timeSince(new Date(n.sortTime))}</small>
                 </div>
+                {n.sources &&
+                  <div style={{ fontSize: '80%', color: 'var(--theme-grey)' }}>
+                    {n.sources.posts > 0 && <span>{n.sources.posts} sats for top posts</span>}
+                    {n.sources.comments > 0 && <span>{n.sources.posts > 0 && ' \\ '}{n.sources.comments} sats for top comments</span>}
+                    {n.sources.tips > 0 && <span>{(n.sources.comments > 0 || n.sources.posts > 0) && ' \\ '}{n.sources.tips} sats for tipping top content early</span>}
+                  </div>}
                 <div className='pb-1' style={{ lineHeight: '140%' }}>
                   SN distributes the sats it earns back to its best users daily. These sats come from <Link href='/~jobs' passHref><a>jobs</a></Link>, boost, and posting fees.
                 </div>
@@ -98,13 +105,15 @@ function Notification ({ n }) {
                     you were mentioned in
                   </small>}
                 {n.__typename === 'JobChanged' &&
-                  <small className={`font-weight-bold text-${n.item.status === 'NOSATS' ? 'danger' : 'success'} ml-1`}>
-                    {n.item.status === 'NOSATS'
-                      ? 'your job ran out of sats'
-                      : 'your job is active again'}
+                  <small className={`font-weight-bold text-${n.item.status === 'ACTIVE' ? 'success' : 'boost'} ml-1`}>
+                    {n.item.status === 'ACTIVE'
+                      ? 'your job is active again'
+                      : (n.item.status === 'NOSATS'
+                          ? 'your job promotion ran out of sats'
+                          : 'your job has been stopped')}
                   </small>}
                 <div className={n.__typename === 'Votification' || n.__typename === 'Mention' || n.__typename === 'JobChanged' ? '' : 'py-2'}>
-                  {n.item.maxBid
+                  {n.item.isJob
                     ? <ItemJob item={n.item} />
                     : n.item.title
                       ? <Item item={n.item} />

@@ -13,6 +13,10 @@ import CommentEdit from './comment-edit'
 import Countdown from './countdown'
 import { COMMENT_DEPTH_LIMIT, NOFOLLOW_LIMIT } from '../lib/constants'
 import { ignoreClick } from '../lib/clicks'
+import { useMe } from './me'
+import DontLikeThis from './dont-link-this'
+import Flag from '../svgs/flag-fill.svg'
+import { Badge } from 'react-bootstrap'
 
 function Parent ({ item, rootText }) {
   const ParentFrag = () => (
@@ -78,6 +82,7 @@ export default function Comment ({
   const [edit, setEdit] = useState()
   const [collapse, setCollapse] = useState(false)
   const ref = useRef(null)
+  const me = useMe()
   const router = useRouter()
   const mine = item.mine
   const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
@@ -105,11 +110,11 @@ export default function Comment ({
       ref={ref} className={includeParent ? '' : `${styles.comment} ${collapse ? styles.collapsed : ''}`}
     >
       <div className={`${itemStyles.item} ${styles.item}`}>
-        <UpVote item={item} className={styles.upvote} />
+        {item.meDontLike ? <Flag width={24} height={24} className={`${styles.dontLike}`} /> : <UpVote item={item} className={styles.upvote} />}
         <div className={`${itemStyles.hunk} ${styles.hunk}`}>
           <div className='d-flex align-items-center'>
             <div className={`${itemStyles.other} ${styles.other}`}>
-              <span title={`from ${item.upvotes} users (${item.meSats} from me)`}>{item.sats} sats</span>
+              <span title={`from ${item.upvotes} users ${item.mine ? `\\ ${item.meSats} sats to post` : `(${item.meSats} sats from me)`}`}>{item.sats} sats</span>
               <span> \ </span>
               {item.boost > 0 &&
                 <>
@@ -117,7 +122,7 @@ export default function Comment ({
                   <span> \ </span>
                 </>}
               <Link href={`/items/${item.id}`} passHref>
-                <a className='text-reset'>{item.ncomments} replies</a>
+                <a title={`${item.commentSats} sats`} className='text-reset'>{item.ncomments} replies</a>
               </Link>
               <span> \ </span>
               <Link href={`/${item.user.name}`} passHref>
@@ -128,6 +133,9 @@ export default function Comment ({
                 <a title={item.createdAt} className='text-reset'>{timeSince(new Date(item.createdAt))}</a>
               </Link>
               {includeParent && <Parent item={item} rootText={rootText} />}
+              {me && !item.meSats && !item.meDontLike && !item.mine && <DontLikeThis id={item.id} />}
+              {(item.outlawed && <Link href='/outlawed'><a>{' '}<Badge className={itemStyles.newComment} variant={null}>OUTLAWED</Badge></a></Link>) ||
+               (item.freebie && !item.mine && (me?.greeterMode) && <Link href='/freebie'><a>{' '}<Badge className={itemStyles.newComment} variant={null}>FREEBIE</Badge></a></Link>)}
               {canEdit &&
                 <>
                   <span> \ </span>
@@ -186,7 +194,7 @@ export default function Comment ({
           <div className={`${styles.children}`}>
             {!noReply &&
               <Reply
-                depth={depth + 1} parentId={item.id} meComments={item.meComments} replyOpen={replyOpen}
+                depth={depth + 1} item={item} replyOpen={replyOpen}
               />}
             {children}
             <div className={`${styles.comments} ml-sm-1 ml-md-3`}>

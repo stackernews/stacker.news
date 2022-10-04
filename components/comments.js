@@ -6,7 +6,7 @@ import { Nav, Navbar } from 'react-bootstrap'
 import { COMMENTS_QUERY } from '../fragments/items'
 import { COMMENTS } from '../fragments/comments'
 
-export function CommentsHeader ({ handleSort }) {
+export function CommentsHeader ({ handleSort, commentSats }) {
   const [sort, setSort] = useState('hot')
 
   const getHandleClick = sort => {
@@ -17,52 +17,60 @@ export function CommentsHeader ({ handleSort }) {
   }
 
   return (
-    <Navbar className='py-1'>
+    <Navbar className='pt-1 pb-0'>
       <Nav
         className={styles.navbarNav}
         activeKey={sort}
       >
-        <Nav.Item>
-          <Nav.Link
-            eventKey='hot'
-            className={styles.navLink}
-            onClick={getHandleClick('hot')}
-          >
-            hot
-          </Nav.Link>
+        <Nav.Item className='text-muted'>
+          {commentSats} sats
         </Nav.Item>
-        <Nav.Item>
-          <Nav.Link
-            eventKey='recent'
-            className={styles.navLink}
-            onClick={getHandleClick('recent')}
-          >
-            recent
-          </Nav.Link>
-        </Nav.Item>
-        <Nav.Item>
-          <Nav.Link
-            eventKey='top'
-            className={styles.navLink}
-            onClick={getHandleClick('top')}
-          >
-            top
-          </Nav.Link>
-        </Nav.Item>
+        <div className='ml-auto d-flex'>
+          <Nav.Item>
+            <Nav.Link
+              eventKey='hot'
+              className={styles.navLink}
+              onClick={getHandleClick('hot')}
+            >
+              hot
+            </Nav.Link>
+          </Nav.Item>
+          <Nav.Item>
+            <Nav.Link
+              eventKey='recent'
+              className={styles.navLink}
+              onClick={getHandleClick('recent')}
+            >
+              recent
+            </Nav.Link>
+          </Nav.Item>
+          <Nav.Item>
+            <Nav.Link
+              eventKey='top'
+              className={styles.navLink}
+              onClick={getHandleClick('top')}
+            >
+              top
+            </Nav.Link>
+          </Nav.Item>
+        </div>
       </Nav>
     </Navbar>
   )
 }
 
-export default function Comments ({ parentId, comments, ...props }) {
+export default function Comments ({ parentId, commentSats, comments, ...props }) {
   const client = useApolloClient()
   useEffect(() => {
     const hash = window.location.hash
     if (hash) {
-      document.querySelector(hash).scrollIntoView({ behavior: 'smooth' })
+      try {
+        document.querySelector(hash).scrollIntoView({ behavior: 'smooth' })
+      } catch {}
     }
   }, [])
-  const [getComments, { loading }] = useLazyQuery(COMMENTS_QUERY, {
+  const [loading, setLoading] = useState()
+  const [getComments] = useLazyQuery(COMMENTS_QUERY, {
     fetchPolicy: 'network-only',
     onCompleted: data => {
       client.writeFragment({
@@ -80,12 +88,20 @@ export default function Comments ({ parentId, comments, ...props }) {
           comments: data.comments
         }
       })
+      setLoading(false)
     }
   })
 
   return (
     <>
-      {comments.length ? <CommentsHeader handleSort={sort => getComments({ variables: { id: parentId, sort } })} /> : null}
+      {comments.length
+        ? <CommentsHeader
+            commentSats={commentSats} handleSort={sort => {
+              setLoading(true)
+              getComments({ variables: { id: parentId, sort } })
+            }}
+          />
+        : null}
       {loading
         ? <CommentsSkeleton />
         : comments.map(item => (

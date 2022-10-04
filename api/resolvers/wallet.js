@@ -1,28 +1,10 @@
 import { createInvoice, decodePaymentRequest, payViaPaymentRequest } from 'ln-service'
-import { UserInputError, AuthenticationError, ForbiddenError } from 'apollo-server-micro'
+import { UserInputError, AuthenticationError } from 'apollo-server-micro'
 import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import lnpr from 'bolt11'
 import { SELECT } from './item'
 import { lnurlPayDescriptionHash } from '../../lib/lnurl'
-
-const INVOICE_LIMIT = 10
-
-export async function belowInvoiceLimit (models, userId) {
-  // make sure user has not exceeded INVOICE_LIMIT
-  const count = await models.invoice.count({
-    where: {
-      userId,
-      expiresAt: {
-        gt: new Date()
-      },
-      confirmedAt: null,
-      cancelled: false
-    }
-  })
-
-  return count < INVOICE_LIMIT
-}
 
 export async function getInvoice (parent, { id }, { me, models }) {
   if (!me) {
@@ -121,11 +103,12 @@ export default {
           AND "ItemAct".created_at <= $2
           GROUP BY "Item".id)`)
         queries.push(
-            `(SELECT ('earn' || "Earn".id) as id, "Earn".id as "factId", NULL as bolt11,
-            created_at as "createdAt", msats,
+            `(SELECT ('earn' || min("Earn".id)) as id, min("Earn".id) as "factId", NULL as bolt11,
+            created_at as "createdAt", sum(msats),
             0 as "msatsFee", NULL as status, 'earn' as type
             FROM "Earn"
-            WHERE "Earn"."userId" = $1 AND "Earn".created_at <= $2)`)
+            WHERE "Earn"."userId" = $1 AND "Earn".created_at <= $2
+            GROUP BY "userId", created_at)`)
       }
 
       if (include.has('spent')) {
@@ -199,16 +182,12 @@ export default {
 
       const user = await models.user.findUnique({ where: { id: me.id } })
 
-      if (!await belowInvoiceLimit(models, me.id)) {
-        throw new ForbiddenError('too many pending invoices')
-      }
-
       // set expires at to 3 hours into future
       const expiresAt = new Date(new Date().setHours(new Date().getHours() + 3))
       const description = `${amount} sats for @${user.name} on stacker.news`
       try {
         const invoice = await createInvoice({
-          description,
+          description: user.hideInvoiceDesc ? undefined : description,
           lnd,
           tokens: amount,
           expires_at: expiresAt

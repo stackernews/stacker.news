@@ -21,8 +21,14 @@ export const ITEM_FIELDS = gql`
     boost
     path
     meSats
+    meDontLike
+    outlawed
+    freebie
     ncomments
+    commentSats
+    lastCommentAt
     maxBid
+    isJob
     company
     location
     remote
@@ -30,7 +36,9 @@ export const ITEM_FIELDS = gql`
       name
       baseCost
     }
+    pollCost
     status
+    uploadId
     mine
     root {
       id
@@ -62,12 +70,67 @@ export const ITEMS = gql`
     }
   }`
 
+export const OUTLAWED_ITEMS = gql`
+  ${ITEM_FIELDS}
+
+  query outlawedItems($cursor: String) {
+    outlawedItems(cursor: $cursor) {
+      cursor
+      items {
+        ...ItemFields
+        text
+      }
+    }
+  }`
+
+export const BORDERLAND_ITEMS = gql`
+  ${ITEM_FIELDS}
+
+  query borderlandItems($cursor: String) {
+    borderlandItems(cursor: $cursor) {
+      cursor
+      items {
+        ...ItemFields
+        text
+      }
+    }
+  }`
+
+export const FREEBIE_ITEMS = gql`
+  ${ITEM_FIELDS}
+
+  query freebieItems($cursor: String) {
+    freebieItems(cursor: $cursor) {
+      cursor
+      items {
+        ...ItemFields
+        text
+      }
+    }
+  }`
+
+export const POLL_FIELDS = gql`
+  fragment PollFields on Item {
+    poll {
+      meVoted
+      count
+      options {
+        id
+        option
+        count
+        meVoted
+      }
+    }
+  }`
+
 export const ITEM = gql`
   ${ITEM_FIELDS}
+  ${POLL_FIELDS}
 
   query Item($id: ID!) {
     item(id: $id) {
       ...ItemFields
+      ...PollFields
       text
     }
   }`
@@ -84,14 +147,15 @@ export const COMMENTS_QUERY = gql`
 
 export const ITEM_FULL = gql`
   ${ITEM_FIELDS}
+  ${POLL_FIELDS}
   ${COMMENTS}
   query Item($id: ID!) {
     item(id: $id) {
       ...ItemFields
       prior
-      meComments
       position
       text
+      ...PollFields
       comments {
         ...CommentsRecursive
       }
@@ -104,7 +168,6 @@ export const ITEM_WITH_COMMENTS = gql`
   fragment ItemWithComments on Item {
       ...ItemFields
       text
-      meComments
       comments {
         ...CommentsRecursive
       }

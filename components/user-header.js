@@ -1,8 +1,8 @@
-import { Button, InputGroup, Image, Modal, Form as BootstrapForm } from 'react-bootstrap'
+import { Button, InputGroup, Image } from 'react-bootstrap'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import Nav from 'react-bootstrap/Nav'
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { Form, Input, SubmitButton } from './form'
 import * as Yup from 'yup'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
@@ -13,10 +13,7 @@ import QRCode from 'qrcode.react'
 import LightningIcon from '../svgs/bolt.svg'
 import ModalButton from './modal-button'
 import { encodeLNUrl } from '../lib/lnurl'
-import Upload from './upload'
-import EditImage from '../svgs/image-edit-fill.svg'
-import Moon from '../svgs/moon-fill.svg'
-import AvatarEditor from 'react-avatar-editor'
+import Avatar from './avatar'
 
 export default function UserHeader ({ user }) {
   const [editting, setEditting] = useState(false)
@@ -24,6 +21,24 @@ export default function UserHeader ({ user }) {
   const router = useRouter()
   const client = useApolloClient()
   const [setName] = useMutation(NAME_MUTATION)
+
+  const [setPhoto] = useMutation(
+    gql`
+      mutation setPhoto($photoId: ID!) {
+        setPhoto(photoId: $photoId)
+      }`, {
+      update (cache, { data: { setPhoto } }) {
+        cache.modify({
+          id: `User:${user.id}`,
+          fields: {
+            photoId () {
+              return setPhoto
+            }
+          }
+        })
+      }
+    }
+  )
 
   const isMe = me?.name === user.name
   const Satistics = () => <div className={`mb-2 ml-0 ml-sm-1 ${styles.username} text-success`}>{isMe ? `${user.sats} sats \\ ` : ''}{user.stacked} stacked</div>
@@ -54,7 +69,14 @@ export default function UserHeader ({ user }) {
             src={user.photoId ? `https://${process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET}.s3.amazonaws.com/${user.photoId}` : '/dorian400.jpg'} width='135' height='135'
             className={styles.userimg}
           />
-          {isMe && <PhotoEditor userId={me.id} />}
+          {isMe &&
+            <Avatar onSuccess={async photoId => {
+              const { error } = await setPhoto({ variables: { photoId } })
+              if (error) {
+                console.log(error)
+              }
+            }}
+            />}
         </div>
         <div className='ml-0 ml-sm-1 mt-3 mt-sm-0 justify-content-center align-self-sm-center'>
           {editting
@@ -74,9 +96,11 @@ export default function UserHeader ({ user }) {
                   if (error) {
                     throw new Error({ message: error.toString() })
                   }
+
+                  const { nodata, ...query } = router.query
                   router.replace({
                     pathname: router.pathname,
-                    query: { ...router.query, name }
+                    query: { ...query, name }
                   })
 
                   client.writeFragment({
@@ -158,95 +182,6 @@ export default function UserHeader ({ user }) {
             </Link>
           </Nav.Item>}
       </Nav>
-    </>
-  )
-}
-
-function PhotoEditor ({ userId }) {
-  const [uploading, setUploading] = useState()
-  const [editProps, setEditProps] = useState()
-  const ref = useRef()
-  const [scale, setScale] = useState(1)
-
-  const [setPhoto] = useMutation(
-    gql`
-      mutation setPhoto($photoId: ID!) {
-        setPhoto(photoId: $photoId)
-      }`, {
-      update (cache, { data: { setPhoto } }) {
-        cache.modify({
-          id: `User:${userId}`,
-          fields: {
-            photoId () {
-              return setPhoto
-            }
-          }
-        })
-      }
-    }
-  )
-
-  return (
-    <>
-      <Modal
-        show={!!editProps}
-        onHide={() => setEditProps(null)}
-      >
-        <div className='modal-close' onClick={() => setEditProps(null)}>X</div>
-        <Modal.Body className='text-right mt-1 p-4'>
-          <AvatarEditor
-            ref={ref} width={200} height={200}
-            image={editProps?.file}
-            scale={scale}
-            style={{
-              width: '100%',
-              height: 'auto'
-            }}
-          />
-          <BootstrapForm.Group controlId='formBasicRange'>
-            <BootstrapForm.Control
-              type='range' onChange={e => setScale(parseFloat(e.target.value))}
-              min={1} max={2} step='0.05'
-              defaultValue={scale} custom
-            />
-          </BootstrapForm.Group>
-          <Button onClick={() => {
-            ref.current.getImageScaledToCanvas().toBlob(blob => {
-              if (blob) {
-                editProps.upload(blob)
-                setEditProps(null)
-              }
-            }, 'image/jpeg')
-          }}
-          >save
-          </Button>
-        </Modal.Body>
-      </Modal>
-      <Upload
-        as={({ onClick }) =>
-          <div className='position-absolute p-1 bg-dark pointer' onClick={onClick} style={{ bottom: '0', right: '0' }}>
-            {uploading
-              ? <Moon className='fill-white spin' />
-              : <EditImage className='fill-white' />}
-          </div>}
-        onError={e => {
-          console.log(e)
-          setUploading(false)
-        }}
-        onSelect={(file, upload) => {
-          setEditProps({ file, upload })
-        }}
-        onSuccess={async key => {
-          const { error } = await setPhoto({ variables: { photoId: key } })
-          if (error) {
-            console.log(error)
-          }
-          setUploading(false)
-        }}
-        onStarted={() => {
-          setUploading(true)
-        }}
-      />
     </>
   )
 }

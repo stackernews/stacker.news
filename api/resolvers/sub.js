@@ -28,7 +28,7 @@ export default {
         }
       })
 
-      return latest.createdAt
+      return latest?.createdAt
     }
   }
 }

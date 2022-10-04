@@ -3,6 +3,7 @@ import * as Yup from 'yup'
 import { gql, useMutation } from '@apollo/client'
 import styles from './reply.module.css'
 import TextareaAutosize from 'react-textarea-autosize'
+import { EditFeeButton } from './fee-button'
 
 export const CommentSchema = Yup.object({
   text: Yup.string().required('required').trim()
@@ -53,7 +54,10 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
           autoFocus
           required
         />
-        <SubmitButton variant='secondary' className='mt-1'>save</SubmitButton>
+        <EditFeeButton
+          paidSats={comment.meSats}
+          parentId={comment.parentId} text='save' ChildButton={SubmitButton} variant='secondary'
+        />
       </Form>
     </div>
   )

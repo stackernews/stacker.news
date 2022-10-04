@@ -4,6 +4,10 @@
     max-width: 100%;
 }
 
+a.title:visited {
+    color: var(--theme-grey) !important;
+}
+
 .upvote {
     margin-top: 3px;
 }
@@ -16,9 +20,22 @@
     flex: 1 0 128px;
 }
 
+.newComment {
+    color: var(--theme-grey) !important;
+    background: var(--theme-clickToContextColor) !important;
+    vertical-align: middle;
+}
+
 .pin {
     fill: #a5a5a5;
     margin-right: .2rem;
+}
+
+.dontLike {
+    fill: #a5a5a5;
+    margin-right: .2rem;
+    padding: 2px;
+    margin-left: 1px;
 }
 
 .case {
@@ -41,13 +58,20 @@ a.link:visited {
 .other {
     font-size: 80%;
     color: var(--theme-grey);
-    margin-bottom: .15rem;
 }
 
 .item {
     display: flex;
     justify-content: flex-start;
     min-width: 0;
+    padding-bottom: .45rem;
+}
+
+.item .companyImage {
+    border-radius: 100%;
+    align-self: center;
+    margin-right: 0.5rem;
+    margin-left: 0.3rem;
 }
 
 .itemDead {
@@ -60,11 +84,18 @@ a.link:visited {
 }
 
 .hunk {
-    overflow: hidden;
+    min-width: 0;
     width: 100%;
-    margin-bottom: .3rem;
     line-height: 1.06rem;
 }
+
+/* .itemJob .hunk {
+    align-self: center;
+}
+
+.itemJob .rank {
+    align-self: center;
+} */
 
 .main {
     display: flex;

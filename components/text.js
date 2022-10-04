@@ -13,6 +13,12 @@ import GithubSlugger from 'github-slugger'
 import Link from '../svgs/link.svg'
 import {toString} from 'mdast-util-to-string'
 
+function copyToClipboard (id) {
+  if (navigator && navigator.clipboard && navigator.clipboard.writeText)
+    return navigator.clipboard.writeText(str);
+  return Promise.reject('The Clipboard API is not available.');
+}
+
 function myRemarkPlugin () {
   return (tree) => {
     visit(tree, (node) => {
@@ -38,7 +44,13 @@ function Heading ({ h, slugger, noFragments, topLevel, children, node, ...props 
   return (
     <div className={styles.heading}>
       {React.createElement(h, { id, ...props }, children)}
-      {!noFragments && topLevel && <a className={styles.headingLink} href={`#${id}`}><Link width={18} height={18} className='fill-grey' /></a>}
+      {!noFragments && topLevel && <a className={styles.headingLink} href={`#${id}`}><Link 
+      onClick={() => copyToClipboard(id)}
+      width={18}
+      height={18}
+      className='fill-grey'
+      />
+      </a>}
     </div>
   )
 }

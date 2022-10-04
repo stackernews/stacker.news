@@ -13,6 +13,7 @@ export const ME = gql`
       freeComments
       hasNewNotes
       tipDefault
+      fiatCurrency
       bioId
       hasInvites
       upvotePopover
@@ -41,6 +42,7 @@ export const ME_SSR = gql`
       freePosts
       freeComments
       tipDefault
+      fiatCurrency
       bioId
       upvotePopover
       tipPopover
@@ -61,6 +63,7 @@ export const ME_SSR = gql`
 export const SETTINGS_FIELDS = gql`
   fragment SettingsFields on User {
     tipDefault
+    fiatCurrency
     noteItemSats
     noteEarning
     noteAllDescendants
@@ -90,11 +93,11 @@ ${SETTINGS_FIELDS}
 export const SET_SETTINGS =
 gql`
 ${SETTINGS_FIELDS}
-mutation setSettings($tipDefault: Int!, $noteItemSats: Boolean!, $noteEarning: Boolean!,
+mutation setSettings($tipDefault: Int!, $fiatCurrency: String!, $noteItemSats: Boolean!, $noteEarning: Boolean!,
   $noteAllDescendants: Boolean!, $noteMentions: Boolean!, $noteDeposits: Boolean!,
   $noteInvites: Boolean!, $noteJobIndicator: Boolean!, $hideInvoiceDesc: Boolean!,
   $wildWestMode: Boolean!, $greeterMode: Boolean!) {
-  setSettings(tipDefault: $tipDefault, noteItemSats: $noteItemSats,
+  setSettings(tipDefault: $tipDefault, fiatCurrency: $fiatCurrency, noteItemSats: $noteItemSats,
     noteEarning: $noteEarning, noteAllDescendants: $noteAllDescendants,
     noteMentions: $noteMentions, noteDeposits: $noteDeposits, noteInvites: $noteInvites,
     noteJobIndicator: $noteJobIndicator, hideInvoiceDesc: $hideInvoiceDesc, wildWestMode: $wildWestMode,

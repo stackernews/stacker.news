@@ -1,4 +1,4 @@
-import { Checkbox, Form, Input, SubmitButton } from '../components/form'
+import { Checkbox, Form, Input, SubmitButton, Dropdown } from '../components/form'
 import * as Yup from 'yup'
 import { Alert, Button, InputGroup, Modal } from 'react-bootstrap'
 import LayoutCenter from '../components/layout-center'
@@ -12,12 +12,16 @@ import { LightningAuth } from '../components/lightning-auth'
 import { SETTINGS, SET_SETTINGS } from '../fragments/users'
 import { useRouter } from 'next/router'
 import Info from '../components/info'
+import { CURRENCY_SYMBOLS } from '../components/price'
 
 export const getServerSideProps = getGetServerSideProps(SETTINGS)
 
+const supportedCurrencies = Object.keys(CURRENCY_SYMBOLS)
+
 export const SettingsSchema = Yup.object({
   tipDefault: Yup.number().typeError('must be a number').required('required')
-    .positive('must be positive').integer('must be whole')
+    .positive('must be positive').integer('must be whole'),
+  fiatCurrency: Yup.string().required('required').oneOf(supportedCurrencies)
 })
 
 const warningMessage = 'If I logout, even accidentally, I will never be able to access my account again'
@@ -54,6 +58,7 @@ export default function Settings ({ data: { settings } }) {
         <Form
           initial={{
             tipDefault: settings?.tipDefault || 21,
+            fiatCurrency: settings?.fiatCurrency || 'USD',
             noteItemSats: settings?.noteItemSats,
             noteEarning: settings?.noteEarning,
             noteAllDescendants: settings?.noteAllDescendants,
@@ -66,8 +71,8 @@ export default function Settings ({ data: { settings } }) {
             greeterMode: settings?.greeterMode
           }}
           schema={SettingsSchema}
-          onSubmit={async ({ tipDefault, ...values }) => {
-            await setSettings({ variables: { tipDefault: Number(tipDefault), ...values } })
+          onSubmit={async ({ tipDefault, fiatCurrency, ...values }) => {
+            await setSettings({ variables: { tipDefault: Number(tipDefault), fiatCurrency, ...values } })
             setSuccess('settings saved')
           }}
         >
@@ -78,6 +83,12 @@ export default function Settings ({ data: { settings } }) {
             required
             autoFocus
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+          />
+          <Dropdown
+            label='fiat currency'
+            name='fiatCurrency'
+            items={supportedCurrencies}
+            required
           />
           <div className='form-label'>notify me when ...</div>
           <Checkbox

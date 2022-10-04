@@ -6,7 +6,7 @@ import { Formik, Form as FormikForm, useFormikContext, useField, FieldArray } fr
 import React, { useEffect, useRef, useState } from 'react'
 import copy from 'clipboard-copy'
 import Thumb from '../svgs/thumb-up-fill.svg'
-import { Col, Dropdown, Nav } from 'react-bootstrap'
+import { Col, Dropdown as BootstrapDropdown, Nav } from 'react-bootstrap'
 import Markdown from '../svgs/markdown-line.svg'
 import styles from './form.module.css'
 import Text from '../components/text'
@@ -269,10 +269,10 @@ export function InputUserSuggest ({ label, groupClassName, ...props }) {
           }
         }}
       />
-      <Dropdown show={suggestions.array.length > 0}>
-        <Dropdown.Menu className={styles.suggestionsMenu}>
+      <BootstrapDropdown show={suggestions.array.length > 0}>
+        <BootstrapDropdown.Menu className={styles.suggestionsMenu}>
           {suggestions.array.map((v, i) =>
-            <Dropdown.Item
+            <BootstrapDropdown.Item
               key={v.name}
               active={suggestions.index === i}
               onClick={() => {
@@ -281,9 +281,9 @@ export function InputUserSuggest ({ label, groupClassName, ...props }) {
               }}
             >
               {v.name}
-            </Dropdown.Item>)}
-        </Dropdown.Menu>
-      </Dropdown>
+            </BootstrapDropdown.Item>)}
+        </BootstrapDropdown.Menu>
+      </BootstrapDropdown>
     </FormGroup>
   )
 }
@@ -427,5 +427,23 @@ export function SyncForm ({
         </form>
       )}
     </Formik>
+  )
+}
+
+export function Dropdown ({ label, items, groupClassName, ...props }) {
+  const [field, _, helper] = useField({ ...props, type: 'input' })
+  return (
+    <FormGroup label={label} className={groupClassName}>
+      <BootstrapDropdown>
+        <BootstrapDropdown.Toggle>
+          {field.value}
+        </BootstrapDropdown.Toggle>
+        <BootstrapDropdown.Menu>
+          {items.map(item => (
+            <BootstrapDropdown.Item onSelect={() => helper.setValue(item)}>{item}</BootstrapDropdown.Item>
+          ))}
+        </BootstrapDropdown.Menu>
+      </BootstrapDropdown>
+    </FormGroup>
   )
 }

@@ -36,6 +36,7 @@ model User {
   freePosts       Int         @default(2)
   checkedNotesAt  DateTime?
   tipDefault      Int         @default(10)
+  fiatCurrency    String      @default("USD")
   pubkey          String?     @unique
   trust           Float       @default(0)
   upvoteTrust     Float       @default(0)

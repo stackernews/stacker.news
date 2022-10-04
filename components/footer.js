@@ -129,41 +129,48 @@ export default function Footer ({ noLinks }) {
     <footer>
       <Container className='mb-3 mt-4'>
         {!noLinks &&
-          <div className='mb-2' style={{ fontWeight: 500 }}>
+          <>
             {mounted &&
               <div className='mb-2'>
                 {darkMode.value
                   ? <Sun onClick={() => darkMode.toggle()} className='fill-grey theme' />
                   : <Moon onClick={() => darkMode.toggle()} className='fill-grey theme' />}
               </div>}
-            <Link href='/faq' passHref>
-              <a className='nav-link p-0 d-inline-flex'>
-                faq
+            <div className='mb-2' style={{ fontWeight: 500 }}>
+              <OverlayTrigger trigger='click' placement='top' overlay={AnalyticsPopover} rootClose>
+                <div className='nav-link p-0 d-inline-flex' style={{ cursor: 'pointer' }}>
+                  analytics
+                </div>
+              </OverlayTrigger>
+              <span className='mx-2 text-muted'> \ </span>
+              <OverlayTrigger trigger='click' placement='top' overlay={ChatPopover} rootClose>
+                <div className='nav-link p-0 d-inline-flex' style={{ cursor: 'pointer' }}>
+                  chat
+                </div>
+              </OverlayTrigger>
+            </div>
+            <div className='mb-2' style={{ fontWeight: 500 }}>
+              <Link href='/faq' passHref>
+                <a className='nav-link p-0 d-inline-flex'>
+                  faq
+                </a>
+              </Link>
+              <span className='mx-2 text-muted'> \ </span>
+              <Link href='/story' passHref>
+                <a className='nav-link p-0 d-inline-flex'>
+                  story
+                </a>
+              </Link>
+              <span className='mx-2 text-muted'> \ </span>
+              <a href='/privacy' className='nav-link p-0 d-inline-flex' target='_blank'>
+                privacy
               </a>
-            </Link>
-            <span className='mx-2 text-muted'> \ </span>
-            <Link href='/story' passHref>
-              <a className='nav-link p-0 d-inline-flex'>
-                story
+              <span className='mx-2 text-muted'> \ </span>
+              <a href='/rss' className='nav-link p-0 d-inline-flex' target='_blank'>
+                rss
               </a>
-            </Link>
-            <span className='mx-2 text-muted'> \ </span>
-            <OverlayTrigger trigger='click' placement='top' overlay={AnalyticsPopover} rootClose>
-              <div className='nav-link p-0 d-inline-flex' style={{ cursor: 'pointer' }}>
-                analytics
-              </div>
-            </OverlayTrigger>
-            <span className='mx-2 text-muted'> \ </span>
-            <OverlayTrigger trigger='click' placement='top' overlay={ChatPopover} rootClose>
-              <div className='nav-link p-0 d-inline-flex' style={{ cursor: 'pointer' }}>
-                chat
-              </div>
-            </OverlayTrigger>
-            <span className='mx-2 text-muted'> \ </span>
-            <a href='/rss' className='nav-link p-0 d-inline-flex' target='_blank'>
-              rss
-            </a>
-          </div>}
+            </div>
+          </>}
         {data &&
           <div
             className={`text-small mx-auto mb-1 ${styles.connect}`}

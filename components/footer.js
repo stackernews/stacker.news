@@ -10,6 +10,8 @@ import Link from 'next/link'
 import useDarkMode from 'use-dark-mode'
 import Sun from '../svgs/sun-fill.svg'
 import Moon from '../svgs/moon-fill.svg'
+import No from '../svgs/no.svg'
+import Bolt from '../svgs/bolt.svg'
 import { useEffect, useState } from 'react'
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -111,7 +113,6 @@ export default function Footer ({ noLinks }) {
       connectAddress
     }
   `
-
   const { data } = useQuery(query, { fetchPolicy: 'cache-first' })
 
   const darkMode = useDarkMode(false, {
@@ -120,10 +121,25 @@ export default function Footer ({ noLinks }) {
   })
 
   const [mounted, setMounted] = useState()
+  const [lightning, setLightning] = useState(undefined)
 
   useEffect(() => {
     setMounted(true)
+    setLightning(localStorage.getItem('lnAnimate') || 'yes')
   })
+
+  const toggleLightning = () => {
+    if (lightning === 'yes') {
+      localStorage.setItem('lnAnimate', 'no')
+      setLightning('no')
+    } else {
+      localStorage.setItem('lnAnimate', 'yes')
+      setLightning('yes')
+    }
+  }
+
+  const DarkModeIcon = darkMode.value ? Sun : Moon
+  const LnIcon = lightning === 'yes' ? No : Bolt
 
   return (
     <footer>
@@ -132,9 +148,8 @@ export default function Footer ({ noLinks }) {
           <>
             {mounted &&
               <div className='mb-2'>
-                {darkMode.value
-                  ? <Sun onClick={() => darkMode.toggle()} className='fill-grey theme' />
-                  : <Moon onClick={() => darkMode.toggle()} className='fill-grey theme' />}
+                <DarkModeIcon onClick={() => darkMode.toggle()} className='fill-grey theme' />
+                <LnIcon onClick={toggleLightning} width={24} height={24} className='ml-2 fill-grey theme' />
               </div>}
             <div className='mb-0' style={{ fontWeight: 500 }}>
               <OverlayTrigger trigger='click' placement='top' overlay={AnalyticsPopover} rootClose>

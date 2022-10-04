@@ -10,12 +10,15 @@ export class LightningProvider extends React.Component {
   state = {
     bolts: 0,
     strike: (repeat) => {
-      this.setState(state => {
-        return {
-          ...this.state,
-          bolts: this.state.bolts + 1
-        }
-      })
+      const should = localStorage.getItem('lnAnimate') || 'yes'
+      if (should === 'yes') {
+        this.setState(state => {
+          return {
+            ...this.state,
+            bolts: this.state.bolts + 1
+          }
+        })
+      }
     }
   }
 

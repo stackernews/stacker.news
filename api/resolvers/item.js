@@ -553,30 +553,37 @@ export default {
       }
     },
     auctionPosition: async (parent, { id, sub, bid }, { models, me }) => {
-      // count items that have a bid gte to the current bid or
-      // gte current bid and older
-      const where = {
-        where: {
-          subName: sub,
-          status: { not: 'STOPPED' }
+      const createdAt = id ? (await getItem(parent, { id }, { models, me })).createdAt : new Date()
+      let where
+      if (bid > 0) {
+        // if there's a bid
+        // it's ACTIVE and has a larger bid than ours, or has an equal bid and is older
+        // count items: (bid > ours.bid OR (bid = ours.bid AND create_at < ours.created_at)) AND status = 'ACTIVE'
+        where = {
+          status: 'ACTIVE',
+          OR: [
+            { maxBid: { gt: bid } },
+            { maxBid: bid, createdAt: { lt: createdAt } }
+          ]
+        }
+      } else {
+        // else
+        // it's an active with a bid gt ours, or its newer than ours and not STOPPED
+        // count items: ((bid > ours.bid AND status = 'ACTIVE') OR (created_at > ours.created_at AND status <> 'STOPPED'))
+        where = {
+          OR: [
+            { maxBid: { gt: 0 }, status: 'ACTIVE' },
+            { createdAt: { gt: createdAt }, status: { not: 'STOPPED' } }
+          ]
         }
       }
 
-      if (bid > 0) {
-        where.where.maxBid = { gte: bid }
-      } else {
-        const createdAt = id ? (await getItem(parent, { id }, { models, me })).createdAt : new Date()
-        where.where.OR = [
-          { maxBid: { gt: 0 } },
-          { createdAt: { gt: createdAt } }
-        ]
-      }
-
+      where.subName = sub
       if (id) {
-        where.where.id = { not: Number(id) }
+        where.id = { not: Number(id) }
       }
 
-      return await models.item.count(where) + 1
+      return await models.item.count({ where }) + 1
     }
   },
 

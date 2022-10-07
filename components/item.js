@@ -89,6 +89,12 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
                 <span>{item.boost} boost</span>
                 <span> \ </span>
               </>}
+              {item.bounty > 0 && (
+              <>
+                <span className={styles.bountyTag}>{item.bounty} bounty</span>
+                <span> \ </span>
+              </>
+            )}
             <Link href={`/items/${item.id}`} passHref>
               <a title={`${item.commentSats} sats`} className='text-reset'>
                 {item.ncomments} comments

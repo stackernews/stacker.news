@@ -122,6 +122,7 @@ export default gql`
     depth: Int!
     mine: Boolean!
     boost: Int!
+    bounty: Int
     sats: Int!
     commentSats: Int!
     lastCommentAt: String

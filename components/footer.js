@@ -163,6 +163,10 @@ export default function Footer ({ noLinks }) {
                   chat
                 </div>
               </OverlayTrigger>
+              <span className='mx-2 text-muted'> \ </span>
+              <a href='/rss' className='nav-link p-0 d-inline-flex' target='_blank'>
+                rss
+              </a>
             </div>
             <div className='mb-2' style={{ fontWeight: 500 }}>
               <Link href='/faq' passHref>
@@ -177,13 +181,17 @@ export default function Footer ({ noLinks }) {
                 </a>
               </Link>
               <span className='mx-2 text-muted'> \ </span>
-              <a href='/privacy' className='nav-link p-0 d-inline-flex' target='_blank'>
-                privacy
-              </a>
+              <Link href='/changes' passHref>
+                <a className='nav-link p-0 d-inline-flex'>
+                  changes
+                </a>
+              </Link>
               <span className='mx-2 text-muted'> \ </span>
-              <a href='/rss' className='nav-link p-0 d-inline-flex' target='_blank'>
-                rss
-              </a>
+              <Link href='/privacy' passHref>
+                <a className='nav-link p-0 d-inline-flex'>
+                  privacy
+                </a>
+              </Link>
             </div>
           </>}
         {data &&

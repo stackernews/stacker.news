@@ -1,6 +1,6 @@
 import { Form, Input, SubmitButton } from '../components/form'
 import { useRouter } from 'next/router'
-import * as Yup from 'yup'
+import Yup from './yup'
 import { gql, useApolloClient, useLazyQuery, useMutation } from '@apollo/client'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial, AdvPostSchema } from './adv-post-form'
@@ -44,7 +44,7 @@ export function LinkForm ({ item, editThreshold }) {
 
   const LinkSchema = Yup.object({
     title: Yup.string().required('required').trim()
-      .max(MAX_TITLE_LENGTH,
+      .maxStrLen(MAX_TITLE_LENGTH,
         ({ max, value }) => `${Math.abs(max - value.length)} too many`),
     url: Yup.string().matches(URL, 'invalid url').required('required'),
     ...AdvPostSchema(client)

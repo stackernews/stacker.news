@@ -924,7 +924,7 @@ export const updateItem = async (parent, { id, data: { title, url, text, boost, 
     throw new UserInputError(`boost must be at least ${BOOST_MIN}`, { argumentName: 'boost' })
   }
 
-  if (!old.parentId && title.length > MAX_TITLE_LENGTH) {
+  if (!old.parentId && Array.from(title ?? '').length > MAX_TITLE_LENGTH) {
     throw new UserInputError('title too long')
   }
 
@@ -955,7 +955,7 @@ const createItem = async (parent, { title, url, text, boost, forward, parentId }
     throw new UserInputError(`boost must be at least ${BOOST_MIN}`, { argumentName: 'boost' })
   }
 
-  if (!parentId && title.length > MAX_TITLE_LENGTH) {
+  if (!parentId && Array.from(title ?? '').length > MAX_TITLE_LENGTH) {
     throw new UserInputError('title too long')
   }
 

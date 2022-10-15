@@ -1,6 +1,6 @@
 import { Form, Input, MarkdownInput, SubmitButton, VariableInput } from '../components/form'
 import { useRouter } from 'next/router'
-import * as Yup from 'yup'
+import Yup from './yup'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial, AdvPostSchema } from './adv-post-form'
@@ -25,7 +25,7 @@ export function PollForm ({ item, editThreshold }) {
 
   const PollSchema = Yup.object({
     title: Yup.string().required('required').trim()
-      .max(MAX_TITLE_LENGTH,
+      .maxStrLen(MAX_TITLE_LENGTH,
         ({ max, value }) => `${Math.abs(max - value.length)} too many`),
     options: Yup.array().of(
       Yup.string().trim().test('my-test', 'required', function (value) {

@@ -15,7 +15,8 @@ export default function Index ({ data: { search: { items, cursor } } }) {
       <SeoSearch />
       {router.query?.q &&
         <SearchItems
-          items={items} cursor={cursor} variables={{ q: router.query?.q }}
+          items={items} cursor={cursor}
+          variables={{ q: router.query?.q, sort: router.query?.sort, what: router.query?.what, when: router.query?.when }}
         />}
     </Layout>
   )

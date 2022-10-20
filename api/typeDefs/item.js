@@ -9,7 +9,7 @@ export default gql`
     pageTitle(url: String!): String
     dupes(url: String!): [Item!]
     allItems(cursor: String): Items
-    search(q: String, sub: String, cursor: String): Items
+    search(q: String, sub: String, cursor: String, what: String, sort: String, when: String): Items
     auctionPosition(sub: String, id: ID, bid: Int!): Int!
     itemRepetition(parentId: ID): Int!
     outlawedItems(cursor: String): Items

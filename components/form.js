@@ -193,10 +193,13 @@ function InputInner ({
             {(clear && field.value) &&
               <Button
                 variant={null}
-                onClick={() => {
+                onClick={(e) => {
                   helpers.setValue('')
                   if (storageKey) {
                     localStorage.removeItem(storageKey)
+                  }
+                  if (onChange) {
+                    onChange(formik, { target: { value: '' } })
                   }
                 }}
                 className={`${styles.clearButton} ${invalid ? styles.isInvalid : ''}`}
@@ -430,12 +433,24 @@ export function SyncForm ({
   )
 }
 
-export function Select ({ label, items, groupClassName, ...props }) {
+export function Select ({ label, items, groupClassName, onChange, noForm, ...props }) {
   const [field] = useField(props)
+  const formik = noForm ? null : useFormikContext()
 
   return (
     <FormGroup label={label} className={groupClassName}>
-      <BootstrapForm.Control as='select' custom {...field} {...props}>
+      <BootstrapForm.Control
+        as='select'
+        {...field} {...props}
+        onChange={(e) => {
+          field.onChange(e)
+
+          if (onChange) {
+            onChange(formik, e)
+          }
+        }}
+        custom
+      >
         {items.map(item => <option key={item}>{item}</option>)}
       </BootstrapForm.Control>
     </FormGroup>

@@ -16,7 +16,8 @@ export const CURRENCY_SYMBOLS = {
   EUR: '€',
   GBP: '£',
   USD: '$',
-  NZD: '$'
+  NZD: '$',
+  ZAR: 'R '
 }
 
 const endpoint = (fiat) => `https://api.coinbase.com/v2/prices/BTC-${fiat ?? 'USD'}/spot`

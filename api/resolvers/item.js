@@ -869,7 +869,7 @@ export const updateItem = async (parent, { id, data: { title, url, text, boost, 
 
   // if it's not the FAQ, not their bio, and older than 10 minutes
   const user = await models.user.findUnique({ where: { id: me.id } })
-  if (![349, 76894, 78763].includes(old.id) && user.bioId !== id && Date.now() > new Date(old.createdAt).getTime() + 10 * 60000) {
+  if (![349, 76894, 78763, 81862].includes(old.id) && user.bioId !== id && Date.now() > new Date(old.createdAt).getTime() + 10 * 60000) {
     throw new UserInputError('item can no longer be editted')
   }
 

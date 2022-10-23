@@ -175,6 +175,12 @@ export default function Footer ({ noLinks }) {
                 </a>
               </Link>
               <span className='mx-2 text-muted'> \ </span>
+              <Link href='/guide' passHref>
+                <a className='nav-link p-0 d-inline-flex'>
+                  guide
+                </a>
+              </Link>
+              <span className='mx-2 text-muted'> \ </span>
               <Link href='/story' passHref>
                 <a className='nav-link p-0 d-inline-flex'>
                   story

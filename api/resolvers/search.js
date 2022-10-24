@@ -7,6 +7,31 @@ export default {
       const decodedCursor = decodeCursor(cursor)
       let sitems
 
+      const whatArr = []
+      switch (what) {
+        case 'posts':
+          whatArr.push({ bool: { must_not: { exists: { field: 'parentId' } } } })
+          break
+        case 'comments':
+          whatArr.push({ bool: { must: { exists: { field: 'parentId' } } } })
+          break
+        default:
+          break
+      }
+
+      const queryArr = query.trim().split(/\s+/)
+      const url = queryArr.find(word => word.startsWith('url:'))
+      const nym = queryArr.find(word => word.startsWith('nym:'))
+      query = queryArr.filter(word => !word.startsWith('url:') && !word.startsWith('nym:')).join(' ')
+
+      if (url) {
+        whatArr.push({ wildcard: { url: `*${url.slice(4).toLowerCase()}*` } })
+      }
+
+      if (nym) {
+        whatArr.push({ wildcard: { 'user.name': `*${nym.slice(4).toLowerCase()}*` } })
+      }
+
       const sortArr = []
       switch (sort) {
         case 'recent':
@@ -26,16 +51,46 @@ export default {
       }
       sortArr.push('_score')
 
-      const whatArr = []
-      switch (what) {
-        case 'posts':
-          whatArr.push({ bool: { must_not: { exists: { field: 'parentId' } } } })
-          break
-        case 'comments':
-          whatArr.push({ bool: { must: { exists: { field: 'parentId' } } } })
-          break
-        default:
-          break
+      if (query.length) {
+        whatArr.push({
+          bool: {
+            should: [
+              {
+              // all terms are matched in fields
+                multi_match: {
+                  query,
+                  type: 'most_fields',
+                  fields: ['title^20', 'text'],
+                  minimum_should_match: '100%',
+                  boost: 400
+                }
+              },
+              {
+                // all terms are matched in fields
+                multi_match: {
+                  query,
+                  type: 'most_fields',
+                  fields: ['title^20', 'text'],
+                  fuzziness: 'AUTO',
+                  prefix_length: 3,
+                  minimum_should_match: '100%',
+                  boost: 20
+                }
+              },
+              {
+                // only some terms must match unless we're sorting
+                multi_match: {
+                  query,
+                  type: 'most_fields',
+                  fields: ['title^20', 'text'],
+                  fuzziness: 'AUTO',
+                  prefix_length: 3,
+                  minimum_should_match: sortArr.length > 1 ? '100%' : '60%'
+                }
+              }
+            ]
+          }
+        })
       }
 
       let whenGte
@@ -86,48 +141,7 @@ export default {
                             { match: { status: 'NOSATS' } }
                           ]
                         }
-                      },
-                  {
-                    bool: {
-                      should: [
-                        {
-                        // all terms are matched in fields
-                          multi_match: {
-                            query,
-                            type: 'most_fields',
-                            fields: ['title^20', 'text'],
-                            minimum_should_match: '100%',
-                            boost: 400
-                          }
-                        },
-                        {
-                          // all terms are matched in fields
-                          multi_match: {
-                            query,
-                            type: 'most_fields',
-                            fields: ['title^20', 'text'],
-                            fuzziness: 'AUTO',
-                            prefix_length: 3,
-                            minimum_should_match: '100%',
-                            boost: 20
-                          }
-                        },
-                        {
-                          // only some terms must match unless we're sorting
-                          multi_match: {
-                            query,
-                            type: 'most_fields',
-                            fields: ['title^20', 'text'],
-                            fuzziness: 'AUTO',
-                            prefix_length: 3,
-                            minimum_should_match: sortArr.length > 1 ? '100%' : '60%'
-                          }
-                        }
-                        // TODO: add wildcard matches for
-                        // user.name and url
-                      ]
-                    }
-                  }
+                      }
                 ],
                 filter: {
                   range: {
@@ -161,8 +175,8 @@ export default {
         // this is super inefficient but will suffice until we do something more generic
         const item = await getItem(parent, { id: e._source.id }, { me, models })
 
-        item.searchTitle = (e.highlight.title && e.highlight.title[0]) || item.title
-        item.searchText = (e.highlight.text && e.highlight.text[0]) || item.text
+        item.searchTitle = (e.highlight?.title && e.highlight.title[0]) || item.title
+        item.searchText = (e.highlight?.text && e.highlight.text[0]) || item.text
 
         return item
       })

@@ -134,9 +134,9 @@ export default {
         users
       }
     },
-    searchUsers: async (parent, { name }, { models }) => {
+    searchUsers: async (parent, { q, limit, similarity }, { models }) => {
       return await models.$queryRaw`
-        SELECT * FROM users where id > 615 AND SIMILARITY(name, ${name}) > .1 ORDER BY SIMILARITY(name, ${name}) DESC LIMIT 5`
+        SELECT * FROM users where id > 615 AND SIMILARITY(name, ${q}) > ${Number(similarity) || 0.1} ORDER BY SIMILARITY(name, ${q}) DESC LIMIT ${Number(limit) || 5}`
     }
   },
 
@@ -271,6 +271,18 @@ export default {
       }
 
       return Math.floor((user.stackedMsats || 0) / 1000)
+    },
+    spent: async (user, args, { models }) => {
+      const { sum: { sats } } = await models.itemAct.aggregate({
+        sum: {
+          sats: true
+        },
+        where: {
+          userId: user.id
+        }
+      })
+
+      return sats || 0
     },
     sats: async (user, args, { models, me }) => {
       if (me?.id !== user.id) {

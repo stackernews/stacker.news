@@ -238,7 +238,7 @@ export function InputUserSuggest ({ label, groupClassName, ...props }) {
       <InputInner
         {...props}
         autoComplete='off'
-        onChange={(_, e) => getSuggestions({ variables: { name: e.target.value } })}
+        onChange={(_, e) => getSuggestions({ variables: { q: e.target.value } })}
         overrideValue={ovalue}
         onKeyDown={(e) => {
           switch (e.code) {

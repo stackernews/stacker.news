@@ -28,7 +28,16 @@ export default function Search ({ sub }) {
     if (sub) {
       prefix = `/~${sub}`
     }
+
     if (values.q?.trim() !== '') {
+      if (values.what === 'users') {
+        await router.push({
+          pathname: '/users/search',
+          query: { q, what: 'users' }
+        })
+        return
+      }
+
       if (values.what === '') delete values.what
       if (values.sort === '') delete values.sort
       if (values.when === '') delete values.when
@@ -64,24 +73,28 @@ export default function Search ({ sub }) {
                       onChange={(formik, e) => search({ ...formik?.values, what: e.target.value })}
                       name='what'
                       size='sm'
-                      items={['all', 'posts', 'comments']}
+                      items={['all', 'posts', 'comments', 'users']}
                     />
-                    by
-                    <Select
-                      groupClassName='mx-2 mb-0'
-                      onChange={(formik, e) => search({ ...formik?.values, sort: e.target.value })}
-                      name='sort'
-                      size='sm'
-                      items={['match', 'recent', 'comments', 'sats', 'votes']}
-                    />
-                    for
-                    <Select
-                      groupClassName='mb-0 ml-2'
-                      onChange={(formik, e) => search({ ...formik?.values, when: e.target.value })}
-                      name='when'
-                      size='sm'
-                      items={['forever', 'day', 'week', 'month', 'year']}
-                    />
+                    {router.query.what !== 'users' &&
+                      <>
+                        by
+                        <Select
+                          groupClassName='mx-2 mb-0'
+                          onChange={(formik, e) => search({ ...formik?.values, sort: e.target.value })}
+                          name='sort'
+                          size='sm'
+                          items={['match', 'recent', 'comments', 'sats', 'votes']}
+                        />
+                        for
+                        <Select
+                          groupClassName='mb-0 ml-2'
+                          onChange={(formik, e) => search({ ...formik?.values, when: e.target.value })}
+                          name='when'
+                          size='sm'
+                          items={['forever', 'day', 'week', 'month', 'year']}
+                        />
+
+                      </>}
                   </div>}
                 <div className={`${styles.active}`}>
                   <Input

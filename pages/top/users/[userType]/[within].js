@@ -23,7 +23,7 @@ export default function Index ({ data: { topUsers: { users, cursor } } }) {
 
   return (
     <Layout>
-      <TopHeader cat={'users/' + userType}  />
+      <TopHeader cat={'users/' + userType} />
       {users.map(user => (
         <Link href={`/${user.name}`} key={user.name}>
           <div className='d-flex align-items-center pointer'>

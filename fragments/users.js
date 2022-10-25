@@ -123,9 +123,14 @@ gql`
 
 export const USER_SEARCH =
 gql`
-  query searchUsers($name: String!) {
-    searchUsers(name: $name) {
+  query searchUsers($q: String!, $limit: Int, $similarity: Float) {
+    searchUsers(q: $q, limit: $limit, similarity: $similarity) {
       name
+      photoId
+      stacked
+      spent
+      ncomments
+      nitems
     }
   }`
 

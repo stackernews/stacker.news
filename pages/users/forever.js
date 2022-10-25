@@ -3,7 +3,7 @@ import { getGetServerSideProps } from '../../api/ssrApollo'
 import Layout from '../../components/layout'
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts'
 import { Col, Row } from 'react-bootstrap'
-import { formatSats } from '../../lib/format'
+import { abbrNum } from '../../lib/format'
 import { UsageHeader } from '../../components/usage-header'
 
 export const getServerSideProps = getGetServerSideProps(
@@ -115,7 +115,7 @@ function GrowthAreaChart ({ data, xName, title }) {
           dataKey='time' tickFormatter={dateFormatter} name={xName}
           tick={{ fill: 'var(--theme-grey)' }}
         />
-        <YAxis tickFormatter={formatSats} tick={{ fill: 'var(--theme-grey)' }} />
+        <YAxis tickFormatter={abbrNum} tick={{ fill: 'var(--theme-grey)' }} />
         <Tooltip labelFormatter={dateFormatter} contentStyle={{ color: 'var(--theme-color)', backgroundColor: 'var(--theme-body)' }} />
         <Legend />
         {Object.keys(data[0]).filter(v => v !== 'time' && v !== '__typename').map((v, i) =>
@@ -141,7 +141,7 @@ function GrowthLineChart ({ data, xName, yName }) {
           dataKey='time' tickFormatter={dateFormatter} name={xName}
           tick={{ fill: 'var(--theme-grey)' }}
         />
-        <YAxis tickFormatter={formatSats} tick={{ fill: 'var(--theme-grey)' }} />
+        <YAxis tickFormatter={abbrNum} tick={{ fill: 'var(--theme-grey)' }} />
         <Tooltip labelFormatter={dateFormatter} contentStyle={{ color: 'var(--theme-color)', backgroundColor: 'var(--theme-body)' }} />
         <Legend />
         <Line type='monotone' dataKey='num' name={yName} stroke='var(--secondary)' />

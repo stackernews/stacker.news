@@ -14,6 +14,7 @@ import { newComments } from '../lib/new-comments'
 import { useMe } from './me'
 import DontLikeThis from './dont-link-this'
 import Flag from '../svgs/flag-fill.svg'
+import { abbrNum } from '../lib/format'
 
 export function SearchTitle ({ title }) {
   return reactStringReplace(title, /:high\[([^\]]+)\]/g, (match, i) => {
@@ -87,12 +88,12 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
           <div className={`${styles.other}`}>
             {!item.position &&
               <>
-                <span title={`from ${item.upvotes} users ${item.mine ? `\\ ${item.meSats} sats to post` : `(${item.meSats} sats from me)`} `}>{item.sats} sats</span>
+                <span title={`from ${item.upvotes} users ${item.mine ? `\\ ${item.meSats} sats to post` : `(${item.meSats} sats from me)`} `}>{abbrNum(item.sats)} sats</span>
                 <span> \ </span>
               </>}
             {item.boost > 0 &&
               <>
-                <span>{item.boost} boost</span>
+                <span>{abbrNum(item.boost)} boost</span>
                 <span> \ </span>
               </>}
             <Link href={`/items/${item.id}`} passHref>

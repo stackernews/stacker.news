@@ -49,17 +49,17 @@ export default function Growth ({
         </Col>
       </Row>
       <Row>
-        <Col className='mt-3'>
+        <Col className='mt-3 p-0'>
           <div className='text-center text-muted font-weight-bold'>items</div>
           <GrowthPieChart data={itemsWeekly} />
         </Col>
-        <Col className='mt-3'>
-          <div className='text-center text-muted font-weight-bold'>stacked</div>
-          <GrowthPieChart data={stackedWeekly} />
-        </Col>
-        <Col className='mt-3'>
+        <Col className='mt-3 p-0'>
           <div className='text-center text-muted font-weight-bold'>spent</div>
           <GrowthPieChart data={spentWeekly} />
+        </Col>
+        <Col className='mt-3 p-0'>
+          <div className='text-center text-muted font-weight-bold'>stacked</div>
+          <GrowthPieChart data={stackedWeekly} />
         </Col>
       </Row>
     </Layout>

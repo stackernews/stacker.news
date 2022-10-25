@@ -5,6 +5,7 @@ import styles from './header.module.css'
 import { Nav, Navbar } from 'react-bootstrap'
 import { COMMENTS_QUERY } from '../fragments/items'
 import { COMMENTS } from '../fragments/comments'
+import { abbrNum } from '../lib/format'
 
 export function CommentsHeader ({ handleSort, commentSats }) {
   const [sort, setSort] = useState('hot')
@@ -23,7 +24,7 @@ export function CommentsHeader ({ handleSort, commentSats }) {
         activeKey={sort}
       >
         <Nav.Item className='text-muted'>
-          {commentSats} sats
+          {abbrNum(commentSats)} sats
         </Nav.Item>
         <div className='ml-auto d-flex'>
           <Nav.Item>

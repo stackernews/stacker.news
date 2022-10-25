@@ -7,24 +7,13 @@ export default gql`
     user(name: String!): User
     users: [User!]
     nameAvailable(name: String!): Boolean!
-    topUsers(cursor: String, within: String!, userType: String!): TopUsers
+    topUsers(cursor: String, when: String, sort: String): Users
     searchUsers(q: String!, limit: Int, similarity: Float): [User!]!
   }
 
   type Users {
     cursor: String
     users: [User!]!
-  }
-
-  type TopUsers {
-    cursor: String
-    users: [TopUser!]!
-  }
-
-  type TopUser {
-    name: String!
-    createdAt: String!
-    amount: Int!
   }
 
   extend type Mutation {

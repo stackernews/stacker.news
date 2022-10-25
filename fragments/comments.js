@@ -45,6 +45,19 @@ export const MORE_FLAT_COMMENTS = gql`
   }
 `
 
+export const TOP_COMMENTS = gql`
+  ${COMMENT_FIELDS}
+
+  query topComments($sort: String, $cursor: String, $when: String) {
+    topComments(sort: $sort, cursor: $cursor, when: $when) {
+      cursor
+      comments {
+        ...CommentFields
+      }
+    }
+  }
+`
+
 export const COMMENTS = gql`
   ${COMMENT_FIELDS}
 

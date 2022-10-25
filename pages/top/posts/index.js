@@ -2,13 +2,12 @@ import Layout from '../../../components/layout'
 import Items from '../../../components/items'
 import { useRouter } from 'next/router'
 import { getGetServerSideProps } from '../../../api/ssrApollo'
-import { ITEMS } from '../../../fragments/items'
-
+import { TOP_ITEMS } from '../../../fragments/items'
 import TopHeader from '../../../components/top-header'
 
-export const getServerSideProps = getGetServerSideProps(ITEMS, { sort: 'top' })
+export const getServerSideProps = getGetServerSideProps(TOP_ITEMS)
 
-export default function Index ({ data: { items: { items, cursor } } }) {
+export default function Index ({ data: { topItems: { items, cursor } } }) {
   const router = useRouter()
 
   return (
@@ -16,7 +15,9 @@ export default function Index ({ data: { items: { items, cursor } } }) {
       <TopHeader cat='posts' />
       <Items
         items={items} cursor={cursor}
-        variables={{ sort: 'top', within: router.query?.within }} rank
+        query={TOP_ITEMS}
+        destructureData={data => data.topItems}
+        variables={{ sort: router.query.sort, when: router.query.when }} rank
       />
     </Layout>
   )

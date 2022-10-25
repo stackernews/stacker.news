@@ -15,6 +15,8 @@ export default gql`
     outlawedItems(cursor: String): Items
     borderlandItems(cursor: String): Items
     freebieItems(cursor: String): Items
+    topItems(cursor: String, sort: String, when: String): Items
+    topComments(cursor: String, sort: String, when: String): Comments
   }
 
   type ItemActResult {

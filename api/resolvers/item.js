@@ -50,8 +50,8 @@ export async function getItem (parent, { id }, { me, models }) {
 function topClause (within) {
   let interval = ' AND "Item".created_at >= $1 - INTERVAL '
   switch (within) {
-    case 'day':
-      interval += "'1 day'"
+    case 'forever':
+      interval = ''
       break
     case 'week':
       interval += "'7 days'"
@@ -63,10 +63,21 @@ function topClause (within) {
       interval += "'1 year'"
       break
     default:
-      interval = ''
+      interval += "'1 day'"
       break
   }
   return interval
+}
+
+async function topOrderClause (sort, me, models) {
+  switch (sort) {
+    case 'comments':
+      return 'ORDER BY ncomments DESC'
+    case 'sats':
+      return 'ORDER BY sats DESC'
+    default:
+      return await topOrderByWeightedSats(me, models)
+  }
 }
 
 export async function orderByNumerator (me, models) {
@@ -123,6 +134,40 @@ export default {
         Number(parentId), Number(me.id))
 
       return count
+    },
+    topItems: async (parent, { cursor, sort, when }, { me, models }) => {
+      const decodedCursor = decodeCursor(cursor)
+      const items = await models.$queryRaw(`
+        ${SELECT}
+        FROM "Item"
+        WHERE "parentId" IS NULL AND "Item".created_at <= $1
+        AND "pinId" IS NULL
+        ${topClause(when)}
+        ${await filterClause(me, models)}
+        ${await topOrderClause(sort, me, models)}
+        OFFSET $2
+        LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+      return {
+        cursor: items.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
+        items
+      }
+    },
+    topComments: async (parent, { cursor, sort, when }, { me, models }) => {
+      const decodedCursor = decodeCursor(cursor)
+      const comments = await models.$queryRaw(`
+        ${SELECT}
+        FROM "Item"
+        WHERE "parentId" IS NOT NULL
+        AND "Item".created_at <= $1
+        ${topClause(when)}
+        ${await filterClause(me, models)}
+        ${await topOrderClause(sort, me, models)}
+        OFFSET $2
+        LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+      return {
+        cursor: comments.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
+        comments
+      }
     },
     items: async (parent, { sub, sort, cursor, name, within }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)

@@ -7,15 +7,19 @@ import MoreFooter from './more-footer'
 import React from 'react'
 import Comment from './comment'
 
-export default function Items ({ variables = {}, rank, items, pins, cursor }) {
-  const { data, fetchMore } = useQuery(ITEMS, { variables })
+export default function Items ({ variables = {}, query, destructureData, rank, items, pins, cursor }) {
+  const { data, fetchMore } = useQuery(query || ITEMS, { variables })
 
   if (!data && !items) {
     return <ItemsSkeleton rank={rank} />
   }
 
   if (data) {
-    ({ items: { items, pins, cursor } } = data)
+    if (destructureData) {
+      ({ items, pins, cursor } = destructureData(data))
+    } else {
+      ({ items: { items, pins, cursor } } = data)
+    }
   }
 
   const pinMap = pins?.reduce((a, p) => { a[p.position] = p; return a }, {})

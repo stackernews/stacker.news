@@ -11,7 +11,7 @@ import { signOut, signIn } from 'next-auth/client'
 import { useLightning } from './lightning'
 import { useEffect, useState } from 'react'
 import { randInRange } from '../lib/rand'
-import { formatSats } from '../lib/format'
+import { abbrNum } from '../lib/format'
 import NoteIcon from '../svgs/notification-4-fill.svg'
 import { useQuery, gql } from '@apollo/client'
 import LightningIcon from '../svgs/bolt.svg'
@@ -19,7 +19,7 @@ import LightningIcon from '../svgs/bolt.svg'
 function WalletSummary ({ me }) {
   if (!me) return null
 
-  return `${formatSats(me.sats)}`
+  return `${abbrNum(me.sats)}`
 }
 
 export default function Header ({ sub }) {
@@ -154,7 +154,7 @@ export default function Header ({ sub }) {
         </Nav.Item>
         {!prefix &&
           <Nav.Item className={className}>
-            <Link href='/top/posts/week' passHref>
+            <Link href='/top/posts' passHref>
               <Nav.Link eventKey='top' className={styles.navLink}>top</Nav.Link>
             </Link>
           </Nav.Item>}
@@ -230,7 +230,7 @@ const NavItemsStatic = ({ className }) => {
         </Link>
       </Nav.Item>
       <Nav.Item className={className}>
-        <Link href='/top/posts/week' passHref>
+        <Link href='/top/posts' passHref>
           <Nav.Link className={styles.navLink}>top</Nav.Link>
         </Link>
       </Nav.Item>

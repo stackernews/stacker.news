@@ -17,6 +17,7 @@ import { useMe } from './me'
 import DontLikeThis from './dont-link-this'
 import Flag from '../svgs/flag-fill.svg'
 import { Badge } from 'react-bootstrap'
+import { abbrNum } from '../lib/format'
 
 function Parent ({ item, rootText }) {
   const ParentFrag = () => (
@@ -114,11 +115,11 @@ export default function Comment ({
         <div className={`${itemStyles.hunk} ${styles.hunk}`}>
           <div className='d-flex align-items-center'>
             <div className={`${itemStyles.other} ${styles.other}`}>
-              <span title={`from ${item.upvotes} users ${item.mine ? `\\ ${item.meSats} sats to post` : `(${item.meSats} sats from me)`}`}>{item.sats} sats</span>
+              <span title={`from ${item.upvotes} users ${item.mine ? `\\ ${item.meSats} sats to post` : `(${item.meSats} sats from me)`}`}>{abbrNum(item.sats)} sats</span>
               <span> \ </span>
               {item.boost > 0 &&
                 <>
-                  <span>{item.boost} boost</span>
+                  <span>{abbrNum(item.boost)} boost</span>
                   <span> \ </span>
                 </>}
               <Link href={`/items/${item.id}`} passHref>

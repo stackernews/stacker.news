@@ -6,8 +6,8 @@ import serialize from './serial'
 export function topClause (within) {
   let interval = ' AND "ItemAct".created_at >= $1 - INTERVAL '
   switch (within) {
-    case 'day':
-      interval += "'1 day'"
+    case 'forever':
+      interval = ''
       break
     case 'week':
       interval += "'7 days'"
@@ -19,7 +19,7 @@ export function topClause (within) {
       interval += "'1 year'"
       break
     default:
-      interval = ''
+      interval += "'1 day'"
       break
   }
   return interval
@@ -28,8 +28,8 @@ export function topClause (within) {
 export function earnWithin (within) {
   let interval = ' AND "Earn".created_at >= $1 - INTERVAL '
   switch (within) {
-    case 'day':
-      interval += "'1 day'"
+    case 'forever':
+      interval = ''
       break
     case 'week':
       interval += "'7 days'"
@@ -41,7 +41,29 @@ export function earnWithin (within) {
       interval += "'1 year'"
       break
     default:
+      interval += "'1 day'"
+      break
+  }
+  return interval
+}
+
+export function itemWithin (within) {
+  let interval = ' AND "Item".created_at >= $1 - INTERVAL '
+  switch (within) {
+    case 'forever':
       interval = ''
+      break
+    case 'week':
+      interval += "'7 days'"
+      break
+    case 'month':
+      interval += "'1 month'"
+      break
+    case 'year':
+      interval += "'1 year'"
+      break
+    default:
+      interval += "'1 day'"
       break
   }
   return interval
@@ -94,37 +116,59 @@ export default {
 
       return user.name?.toUpperCase() === name?.toUpperCase() || !(await models.user.findUnique({ where: { name } }))
     },
-    topUsers: async (parent, { cursor, within, userType }, { models, me }) => {
+    topUsers: async (parent, { cursor, when, sort }, { models, me }) => {
       const decodedCursor = decodeCursor(cursor)
       let users
-      if (userType === 'spent') {
+      if (sort === 'spent') {
         users = await models.$queryRaw(`
-          SELECT users.name, users.created_at, sum("ItemAct".sats) as amount
+          SELECT users.*, sum("ItemAct".sats) as spent
           FROM "ItemAct"
           JOIN users on "ItemAct"."userId" = users.id
           WHERE "ItemAct".created_at <= $1
-          ${topClause(within)}
+          ${topClause(when)}
           GROUP BY users.id, users.name
-          ORDER BY amount DESC NULLS LAST, users.created_at DESC
+          ORDER BY spent DESC NULLS LAST, users.created_at DESC
+          OFFSET $2
+          LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+      } else if (sort === 'posts') {
+        users = await models.$queryRaw(`
+        SELECT users.*, count(*) as nitems
+          FROM users
+          JOIN "Item" on "Item"."userId" = users.id
+          WHERE "Item".created_at <= $1 AND "Item"."parentId" IS NULL
+          ${itemWithin(when)}
+          GROUP BY users.id
+          ORDER BY nitems DESC NULLS LAST, users.created_at DESC
+          OFFSET $2
+          LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+      } else if (sort === 'comments') {
+        users = await models.$queryRaw(`
+        SELECT users.*, count(*) as ncomments
+          FROM users
+          JOIN "Item" on "Item"."userId" = users.id
+          WHERE "Item".created_at <= $1 AND "Item"."parentId" IS NOT NULL
+          ${itemWithin(when)}
+          GROUP BY users.id
+          ORDER BY ncomments DESC NULLS LAST, users.created_at DESC
           OFFSET $2
           LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
       } else {
         users = await models.$queryRaw(`
-          SELECT name, created_at, sum(sats) as amount
+          SELECT u.id, u.name, u."photoId", sum(amount) as stacked
           FROM
-          ((SELECT users.name, users.created_at, "ItemAct".sats as sats
+          ((SELECT users.*, "ItemAct".sats as amount
             FROM "ItemAct"
             JOIN "Item" on "ItemAct"."itemId" = "Item".id
             JOIN users on "Item"."userId" = users.id
             WHERE act <> 'BOOST' AND "ItemAct"."userId" <> users.id AND "ItemAct".created_at <= $1
-            ${topClause(within)})
+            ${topClause(when)})
           UNION ALL
-          (SELECT users.name, users.created_at, "Earn".msats/1000 as sats
+          (SELECT users.*, "Earn".msats/1000 as amount
             FROM "Earn"
             JOIN users on users.id = "Earn"."userId"
-            WHERE "Earn".msats > 0 ${earnWithin(within)})) u
-          GROUP BY name, created_at
-          ORDER BY amount DESC NULLS LAST, created_at DESC
+            WHERE "Earn".msats > 0 ${earnWithin(when)})) u
+          GROUP BY u.id, u.name, u.created_at, u."photoId"
+          ORDER BY stacked DESC NULLS LAST, created_at DESC
           OFFSET $2
           LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
       }
@@ -260,9 +304,15 @@ export default {
   User: {
     authMethods,
     nitems: async (user, args, { models }) => {
+      if (user.nitems) {
+        return user.nitems
+      }
       return await models.item.count({ where: { userId: user.id, parentId: null } })
     },
     ncomments: async (user, args, { models }) => {
+      if (user.ncomments) {
+        return user.ncomments
+      }
       return await models.item.count({ where: { userId: user.id, parentId: { not: null } } })
     },
     stacked: async (user, args, { models }) => {
@@ -273,6 +323,10 @@ export default {
       return Math.floor((user.stackedMsats || 0) / 1000)
     },
     spent: async (user, args, { models }) => {
+      if (user.spent) {
+        return user.spent
+      }
+
       const { sum: { sats } } = await models.itemAct.aggregate({
         sum: {
           sats: true

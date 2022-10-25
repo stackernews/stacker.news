@@ -127,6 +127,14 @@ a.link:visited {
     margin: 0;
 }
 
+.skeleton .name {
+    background-color: var(--theme-grey);
+    width: 100px;
+    border-radius: .4rem;
+    height: 17px;
+    margin: 0;
+}
+
 .skeleton .link {
     height: 14px;
     background-color: var(--theme-grey);

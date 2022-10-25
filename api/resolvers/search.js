@@ -7,6 +7,13 @@ export default {
       const decodedCursor = decodeCursor(cursor)
       let sitems
 
+      if (!query) {
+        return {
+          items: [],
+          cursor: null
+        }
+      }
+
       const whatArr = []
       switch (what) {
         case 'posts':

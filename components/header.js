@@ -122,9 +122,18 @@ export default function Header ({ sub }) {
       if (!fired) {
         const strike = useLightning()
         useEffect(() => {
-          setTimeout(strike, randInRange(3000, 10000))
-          setFired(true)
-        }, [router.asPath])
+          let isMounted = true
+          if (!localStorage.getItem('striked')) {
+            setTimeout(() => {
+              if (isMounted) {
+                strike()
+                localStorage.setItem('striked', 'yep')
+                setFired(true)
+              }
+            }, randInRange(3000, 10000))
+          }
+          return () => { isMounted = false }
+        }, [])
       }
       return path !== '/login' && !path.startsWith('/invites') &&
         <Button

@@ -8,6 +8,7 @@ export default gql`
     comments(id: ID!, sort: String): [Item!]!
     pageTitle(url: String!): String
     dupes(url: String!): [Item!]
+    related(cursor: String, title: String, id: ID, limit: Int): Items
     allItems(cursor: String): Items
     search(q: String, sub: String, cursor: String, what: String, sort: String, when: String): Items
     auctionPosition(sub: String, id: ID, bid: Int!): Int!

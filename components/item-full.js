@@ -14,6 +14,7 @@ import useDarkMode from 'use-dark-mode'
 import { useEffect, useState } from 'react'
 import Poll from './poll'
 import { commentsViewed } from '../lib/new-comments'
+import Related from './related'
 
 function BioItem ({ item, handleClick }) {
   const me = useMe()
@@ -90,7 +91,11 @@ function TopLevelItem ({ item, noReply, ...props }) {
       {item.text && <ItemText item={item} />}
       {item.url && <ItemEmbed item={item} />}
       {item.poll && <Poll item={item} />}
-      {!noReply && <Reply item={item} replyOpen />}
+      {!noReply &&
+        <>
+          <Reply item={item} replyOpen />
+          {!item.position && !item.isJob && !item.parentId && <Related title={item.title} itemId={item.id} />}
+        </>}
     </ItemComponent>
   )
 }

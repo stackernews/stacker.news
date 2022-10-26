@@ -204,3 +204,30 @@ export const ITEM_SEARCH = gql`
     }
   }
 `
+
+export const RELATED_ITEMS = gql`
+  ${ITEM_FIELDS}
+  query Related($title: String, $id: ID, $cursor: String, $limit: Int) {
+    related(title: $title, id: $id, cursor: $cursor, limit: $limit) {
+      cursor
+      items {
+        ...ItemFields
+      }
+    }
+  }
+`
+
+export const RELATED_ITEMS_WITH_ITEM = gql`
+  ${ITEM_FIELDS}
+  query Related($title: String, $id: ID, $cursor: String, $limit: Int) {
+    item(id: $id) {
+      ...ItemFields
+    }
+    related(title: $title, id: $id, cursor: $cursor, limit: $limit) {
+      cursor
+      items {
+        ...ItemFields
+      }
+    }
+  }
+`

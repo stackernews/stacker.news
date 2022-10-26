@@ -48,7 +48,7 @@ export const MORE_FLAT_COMMENTS = gql`
 export const TOP_COMMENTS = gql`
   ${COMMENT_FIELDS}
 
-  query topComments($sort: String, $cursor: String, $when: String) {
+  query topComments($sort: String, $cursor: String, $when: String = "day") {
     topComments(sort: $sort, cursor: $cursor, when: $when) {
       cursor
       comments {

@@ -3,11 +3,11 @@ import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { createMentions, getItem, SELECT, updateItem, filterClause } from './item'
 import serialize from './serial'
 
-export function topClause (within) {
-  let interval = ' AND "ItemAct".created_at >= $1 - INTERVAL '
+export function within (table, within) {
+  let interval = ' AND "' + table + '".created_at >= $1 - INTERVAL '
   switch (within) {
-    case 'forever':
-      interval = ''
+    case 'day':
+      interval += "'1 day'"
       break
     case 'week':
       interval += "'7 days'"
@@ -19,54 +19,25 @@ export function topClause (within) {
       interval += "'1 year'"
       break
     default:
-      interval += "'1 day'"
+      interval = ''
       break
   }
   return interval
 }
 
-export function earnWithin (within) {
-  let interval = ' AND "Earn".created_at >= $1 - INTERVAL '
+export function withinDate (within) {
   switch (within) {
-    case 'forever':
-      interval = ''
-      break
+    case 'day':
+      return new Date(new Date().setDate(new Date().getDate() - 1))
     case 'week':
-      interval += "'7 days'"
-      break
+      return new Date(new Date().setDate(new Date().getDate() - 7))
     case 'month':
-      interval += "'1 month'"
-      break
+      return new Date(new Date().setDate(new Date().getDate() - 30))
     case 'year':
-      interval += "'1 year'"
-      break
+      return new Date(new Date().setDate(new Date().getDate() - 365))
     default:
-      interval += "'1 day'"
-      break
+      return new Date(0)
   }
-  return interval
-}
-
-export function itemWithin (within) {
-  let interval = ' AND "Item".created_at >= $1 - INTERVAL '
-  switch (within) {
-    case 'forever':
-      interval = ''
-      break
-    case 'week':
-      interval += "'7 days'"
-      break
-    case 'month':
-      interval += "'1 month'"
-      break
-    case 'year':
-      interval += "'1 year'"
-      break
-    default:
-      interval += "'1 day'"
-      break
-  }
-  return interval
 }
 
 async function authMethods (user, args, { models, me }) {
@@ -125,7 +96,7 @@ export default {
           FROM "ItemAct"
           JOIN users on "ItemAct"."userId" = users.id
           WHERE "ItemAct".created_at <= $1
-          ${topClause(when)}
+          ${within('ItemAct', when)}
           GROUP BY users.id, users.name
           ORDER BY spent DESC NULLS LAST, users.created_at DESC
           OFFSET $2
@@ -136,7 +107,7 @@ export default {
           FROM users
           JOIN "Item" on "Item"."userId" = users.id
           WHERE "Item".created_at <= $1 AND "Item"."parentId" IS NULL
-          ${itemWithin(when)}
+          ${within('Item', when)}
           GROUP BY users.id
           ORDER BY nitems DESC NULLS LAST, users.created_at DESC
           OFFSET $2
@@ -147,7 +118,7 @@ export default {
           FROM users
           JOIN "Item" on "Item"."userId" = users.id
           WHERE "Item".created_at <= $1 AND "Item"."parentId" IS NOT NULL
-          ${itemWithin(when)}
+          ${within('Item', when)}
           GROUP BY users.id
           ORDER BY ncomments DESC NULLS LAST, users.created_at DESC
           OFFSET $2
@@ -161,12 +132,12 @@ export default {
             JOIN "Item" on "ItemAct"."itemId" = "Item".id
             JOIN users on "Item"."userId" = users.id
             WHERE act <> 'BOOST' AND "ItemAct"."userId" <> users.id AND "ItemAct".created_at <= $1
-            ${topClause(when)})
+            ${within('ItemAct', when)})
           UNION ALL
           (SELECT users.*, "Earn".msats/1000 as amount
             FROM "Earn"
             JOIN users on users.id = "Earn"."userId"
-            WHERE "Earn".msats > 0 ${earnWithin(when)})) u
+            WHERE "Earn".msats > 0 ${within('Earn', when)})) u
           GROUP BY u.id, u.name, u.created_at, u."photoId"
           ORDER BY stacked DESC NULLS LAST, created_at DESC
           OFFSET $2
@@ -303,26 +274,61 @@ export default {
 
   User: {
     authMethods,
-    nitems: async (user, args, { models }) => {
+    nitems: async (user, { when }, { models }) => {
       if (user.nitems) {
         return user.nitems
       }
-      return await models.item.count({ where: { userId: user.id, parentId: null } })
+      return await models.item.count({
+        where: {
+          userId: user.id,
+          parentId: null,
+          createdAt: {
+            gte: withinDate(when)
+          }
+        }
+      })
     },
-    ncomments: async (user, args, { models }) => {
+    ncomments: async (user, { when }, { models }) => {
       if (user.ncomments) {
         return user.ncomments
       }
-      return await models.item.count({ where: { userId: user.id, parentId: { not: null } } })
+
+      return await models.item.count({
+        where: {
+          userId: user.id,
+          parentId: { not: null },
+          createdAt: {
+            gte: withinDate(when)
+          }
+        }
+      })
     },
-    stacked: async (user, args, { models }) => {
+    stacked: async (user, { when }, { models }) => {
       if (user.stacked) {
         return user.stacked
       }
 
-      return Math.floor((user.stackedMsats || 0) / 1000)
+      if (!when) {
+        // forever
+        return Math.floor((user.stackedMsats || 0) / 1000)
+      } else {
+        const [{ stacked }] = await models.$queryRaw(`
+          SELECT sum(amount) as stacked
+          FROM
+          ((SELECT sum("ItemAct".sats) as amount
+            FROM "ItemAct"
+            JOIN "Item" on "ItemAct"."itemId" = "Item".id
+            WHERE act <> 'BOOST' AND "ItemAct"."userId" <> $2 AND "Item"."userId" = $2
+            AND "ItemAct".created_at >= $1)
+          UNION ALL
+          (SELECT sum("Earn".msats/1000) as amount
+            FROM "Earn"
+            WHERE "Earn".msats > 0 AND "Earn"."userId" = $2
+            AND "Earn".created_at >= $1)) u`, withinDate(when), Number(user.id))
+        return stacked || 0
+      }
     },
-    spent: async (user, args, { models }) => {
+    spent: async (user, { when }, { models }) => {
       if (user.spent) {
         return user.spent
       }
@@ -332,7 +338,10 @@ export default {
           sats: true
         },
         where: {
-          userId: user.id
+          userId: user.id,
+          createdAt: {
+            gte: withinDate(when)
+          }
         }
       })
 

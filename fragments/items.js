@@ -73,7 +73,7 @@ export const ITEMS = gql`
 export const TOP_ITEMS = gql`
   ${ITEM_FIELDS}
 
-  query topItems($sort: String, $cursor: String, $when: String) {
+  query topItems($sort: String, $cursor: String, $when: String = "day") {
     topItems(sort: $sort, cursor: $cursor, when: $when) {
       cursor
       items {

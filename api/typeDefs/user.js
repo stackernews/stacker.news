@@ -40,10 +40,10 @@ export default gql`
     id: ID!
     createdAt: String!
     name: String
-    nitems: Int!
-    ncomments: Int!
-    stacked: Int!
-    spent: Int!
+    nitems(when: String): Int!
+    ncomments(when: String): Int!
+    stacked(when: String): Int!
+    spent(when: String): Int!
     freePosts: Int!
     freeComments: Int!
     hasNewNotes: Boolean!

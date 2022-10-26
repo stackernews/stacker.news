@@ -152,15 +152,15 @@ export const USER_FIELDS = gql`
   }`
 
 export const TOP_USERS = gql`
-  query TopUsers($cursor: String, $when: String, $sort: String) {
+  query TopUsers($cursor: String, $when: String = "day", $sort: String) {
     topUsers(cursor: $cursor, when: $when, sort: $sort) {
       users {
         name
         photoId
-        stacked
-        spent
-        ncomments
-        nitems
+        stacked(when: $when)
+        spent(when: $when)
+        ncomments(when: $when)
+        nitems(when: $when)
       }
       cursor
     }

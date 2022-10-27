@@ -132,6 +132,16 @@ export const ITEM_WITH_COMMENTS = gql`
       }
     }`
 
+export const BOUNTY_ITEMS_BY_USER = gql`
+  ${ITEM_FIELDS}
+  query getBountiesByUser($id: Int!) {
+    getBountiesByUser(id: $id) {
+      ...ItemFields
+    }
+  }`
+
+
+
 export const ITEM_SEARCH = gql`
   ${ITEM_FIELDS}
   query Search($q: String, $cursor: String) {

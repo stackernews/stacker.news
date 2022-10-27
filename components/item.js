@@ -9,6 +9,7 @@ import Pin from '../svgs/pushpin-fill.svg'
 import reactStringReplace from 'react-string-replace'
 import Toc from './table-of-contents'
 import PollIcon from '../svgs/bar-chart-horizontal-fill.svg'
+import PastBounties from './past-bounties'
 import { Badge } from 'react-bootstrap'
 import { newComments } from '../lib/new-comments'
 
@@ -137,6 +138,10 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
           </div>
           {showFwdUser && item.fwdUser && <FwdUser user={item.fwdUser} />}
         </div>
+        {item.bounty > 0 && toc && (
+          <PastBounties item={item} />
+          )
+        }
         {toc && <Toc text={item.text} />}
       </div>
       {children && (

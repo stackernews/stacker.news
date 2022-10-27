@@ -296,6 +296,20 @@ export default {
         items,
       };
     },
+    getBountiesByUser: async (parent, { id }, { models }) => {
+      console.log("getBountiesByUser", id);
+
+      const items = await models.$queryRaw(
+        `
+        ${SELECT}
+        FROM "Item"
+        WHERE "userId" = $1
+        AND "bounty" IS NOT NULL
+        ORDER BY created_at DESC`,
+        id
+      );
+      return items
+    },
     moreFlatComments: async (
       parent,
       { cursor, name, sort, within },

@@ -9,6 +9,7 @@ export default gql`
       name: String
       within: String
     ): Items
+    getBountiesByUser(id: Int!): [Item]
     moreFlatComments(
       sort: String!
       cursor: String

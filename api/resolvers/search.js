@@ -1,3 +1,4 @@
+import { ITEM_FILTER_THRESHOLD } from '../../lib/constants'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { getItem } from './item'
 
@@ -73,11 +74,11 @@ export default {
               ],
               must_not: [{ exists: { field: 'parentId' } }, ...mustNot],
               filter: {
-                range: { sats: { gte: 10 } }
+                range: { wvotes: { gte: 0.2 } }
               }
             }
           },
-          sort: ['_score', { sats: 'desc' }]
+          sort: ['_score', { wvotes: 'desc' }, { sats: 'desc' }]
         }
       })
 
@@ -243,7 +244,8 @@ export default {
                     createdAt: {
                       lte: decodedCursor.time,
                       gte: whenGte
-                    }
+                    },
+                    wvotes: { gt: -1 * ITEM_FILTER_THRESHOLD }
                   }
                 }
               }

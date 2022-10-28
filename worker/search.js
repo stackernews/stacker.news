@@ -23,6 +23,7 @@ const ITEM_SEARCH_FIELDS = gql`
     location
     remote
     upvotes
+    wvotes
     sats
     boost
     lastCommentAt

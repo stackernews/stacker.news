@@ -84,6 +84,7 @@ export default gql`
     commentSats: Int!
     lastCommentAt: String
     upvotes: Int!
+    wvotes: Float!
     meSats: Int!
     meDontLike: Boolean!
     outlawed: Boolean!

@@ -321,7 +321,6 @@ export default {
       const items = await models.$queryRaw(`
         ${SELECT}
         FROM "Item"
-        ${await filterClause(me, models)}
         ORDER BY created_at DESC
         OFFSET $1
         LIMIT ${LIMIT}`, decodedCursor.offset)
@@ -799,6 +798,9 @@ export default {
       })
 
       return sats || 0
+    },
+    wvotes: async (item) => {
+      return item.weightedVotes - item.weightedDownVotes
     },
     meSats: async (item, args, { me, models }) => {
       if (!me) return 0

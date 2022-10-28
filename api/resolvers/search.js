@@ -14,7 +14,7 @@ const STOP_WORDS = ['a', 'an', 'and', 'are', 'as', 'at', 'be', 'but',
   'levels', 'from', 'cryptocurrencies', 'confirmed', 'news', 'network',
   'about', 'sources', 'vote', 'considerations', 'hope',
   'keep', 'keeps', 'including', 'we', 'brings', "don't", 'do',
-  'interesting', 'us']
+  'interesting', 'us', 'welcome']
 
 export default {
   Query: {
@@ -140,7 +140,7 @@ export default {
           sortArr.push({ sats: 'desc' })
           break
         case 'votes':
-          sortArr.push({ upvotes: 'desc' })
+          sortArr.push({ wvotes: 'desc' })
           break
         default:
           break
@@ -156,7 +156,7 @@ export default {
                 multi_match: {
                   query,
                   type: 'most_fields',
-                  fields: ['title^20', 'text'],
+                  fields: ['title^100', 'text'],
                   minimum_should_match: '100%',
                   boost: 400
                 }
@@ -166,7 +166,7 @@ export default {
                 multi_match: {
                   query,
                   type: 'most_fields',
-                  fields: ['title^20', 'text'],
+                  fields: ['title^100', 'text'],
                   fuzziness: 'AUTO',
                   prefix_length: 3,
                   minimum_should_match: '100%',
@@ -178,7 +178,7 @@ export default {
                 multi_match: {
                   query,
                   type: 'most_fields',
-                  fields: ['title^20', 'text'],
+                  fields: ['title^100', 'text'],
                   fuzziness: 'AUTO',
                   prefix_length: 3,
                   minimum_should_match: sortArr.length > 1 ? '100%' : '60%'
@@ -239,15 +239,18 @@ export default {
                         }
                       }
                 ],
-                filter: {
-                  range: {
-                    createdAt: {
-                      lte: decodedCursor.time,
-                      gte: whenGte
-                    },
-                    wvotes: { gt: -1 * ITEM_FILTER_THRESHOLD }
-                  }
-                }
+                filter: [
+                  {
+                    range:
+                    {
+                      createdAt: {
+                        lte: decodedCursor.time,
+                        gte: whenGte
+                      }
+                    }
+                  },
+                  { range: { wvotes: { gt: -1 * ITEM_FILTER_THRESHOLD } } }
+                ]
               }
             },
             sort: sortArr,

@@ -52,22 +52,9 @@ export default {
                     like: title,
                     min_term_freq: 1,
                     min_doc_freq: 1,
-                    max_query_terms: 25,
-                    min_word_length: 2,
-                    minimum_should_match: '50%',
-                    stop_words: STOP_WORDS,
-                    boost: 400
-                  }
-                },
-                {
-                  more_like_this: {
-                    fields: ['title'],
-                    like: title,
-                    min_term_freq: 1,
-                    min_doc_freq: 1,
                     min_word_length: 2,
                     max_query_terms: 25,
-                    minimum_should_match: '30%',
+                    minimum_should_match: '20%',
                     stop_words: STOP_WORDS
                   }
                 }

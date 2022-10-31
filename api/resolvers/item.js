@@ -19,7 +19,7 @@ async function comments (me, models, id, sort) {
       orderBy = 'ORDER BY "Item".created_at DESC, "Item".id DESC'
       break
     default:
-      orderBy = `ORDER BY ${await orderByNumerator(me, models)}/POWER(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE 'UTC') - "Item".created_at))/3600+2, 1.3) DESC NULLS LAST, "Item".id DESC`
+      orderBy = `ORDER BY ${await orderByNumerator(me, models)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".id DESC`
       break
   }
 
@@ -1015,7 +1015,7 @@ export const SELECT =
 
 async function newTimedOrderByWeightedSats (me, models, num) {
   return `
-    ORDER BY (${await orderByNumerator(me, models)}/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 1.3) +
+    ORDER BY (${await orderByNumerator(me, models)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600), 1.3) +
               ("Item".boost/${BOOST_MIN}::float)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 2.6)) DESC NULLS LAST, "Item".id DESC`
 }
 

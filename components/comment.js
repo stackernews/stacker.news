@@ -13,6 +13,7 @@ import CommentEdit from './comment-edit'
 import Countdown from './countdown'
 import { COMMENT_DEPTH_LIMIT, NOFOLLOW_LIMIT } from '../lib/constants'
 import { ignoreClick } from '../lib/clicks'
+import PayBounty from './pay-bounty'
 
 function Parent ({ item, rootText }) {
   const ParentFrag = () => (
@@ -73,7 +74,7 @@ export function CommentFlat ({ item, ...props }) {
 
 export default function Comment ({
   item, children, replyOpen, includeParent, topLevel,
-  rootText, noComments, noReply, truncate, depth
+  rootText, noComments, noReply, truncate, depth, bountySats
 }) {
   const [edit, setEdit] = useState()
   const [collapse, setCollapse] = useState(false)
@@ -184,10 +185,13 @@ export default function Comment ({
         ? <DepthLimit item={item} />
         : (
           <div className={`${styles.children}`}>
+            <div className={styles.replyContainer}>
             {!noReply &&
               <Reply
-                depth={depth + 1} item={item} replyOpen={replyOpen}
+              depth={depth + 1} item={item} replyOpen={replyOpen}
               />}
+              {bountySats && !op && <PayBounty />}
+            </div>
             {children}
             <div className={`${styles.comments} ml-sm-1 ml-md-3`}>
               {item.comments && !noComments

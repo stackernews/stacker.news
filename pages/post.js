@@ -18,7 +18,7 @@ export function PostForm () {
   if (!router.query.type) {
     return (
       <div className='align-items-center'>
-        {me?.freePosts
+        {me?.freePosts && me?.sats < 1
           ? <div className='text-center font-weight-bold mb-3 text-success'>{me.freePosts} free posts left</div>
           : null}
         <Link href='/post?type=link'>

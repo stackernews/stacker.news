@@ -112,7 +112,7 @@ export default function Reply ({ item, onSuccess, replyOpen }) {
             minRows={6}
             autoFocus={!replyOpen}
             required
-            hint={me?.freeComments ? <span className='text-success'>{me.freeComments} free comments left</span> : null}
+            hint={me?.freeComments && me?.sats < 1 ? <span className='text-success'>{me.freeComments} free comments left</span> : null}
           />
           {reply &&
             <div className='mt-1'>

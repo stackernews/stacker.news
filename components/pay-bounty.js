@@ -6,8 +6,6 @@ import {useMe} from "./me"
 export default function PayBounty({ children, item, bounty }) {
     const me = useMe()
 
-    console.log("item", item)
-
     const fwd2me = me && me?.id === item?.fwdUser?.id
 
     return (

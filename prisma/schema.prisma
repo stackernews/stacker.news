@@ -224,6 +224,10 @@ model Item {
   PollOption PollOption[]
   PollVote   PollVote[]
 
+  @@index([weightedVotes])
+  @@index([weightedDownVotes])
+  @@index([bio])
+  @@index([freebie])
   @@index([createdAt])
   @@index([userId])
   @@index([parentId])

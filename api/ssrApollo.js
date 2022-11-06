@@ -1,6 +1,6 @@
 import { ApolloClient, InMemoryCache } from '@apollo/client'
 import { SchemaLink } from '@apollo/client/link/schema'
-import { mergeSchemas } from 'graphql-tools'
+import { makeExecutableSchema } from 'graphql-tools'
 import { getSession } from 'next-auth/client'
 import resolvers from './resolvers'
 import typeDefs from './typeDefs'
@@ -16,9 +16,9 @@ export default async function getSSRApolloClient (req, me = null) {
   return new ApolloClient({
     ssrMode: true,
     link: new SchemaLink({
-      schema: mergeSchemas({
-        schemas: typeDefs,
-        resolvers: resolvers
+      schema: makeExecutableSchema({
+        typeDefs,
+        resolvers
       }),
       context: {
         models,

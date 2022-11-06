@@ -38,7 +38,9 @@ export function LightningAuth ({ callbackUrl }) {
       }
     }`)
 
-  useEffect(createAuth, [])
+  useEffect(() => {
+    createAuth()
+  }, [])
 
   if (error) return <div>error</div>
 

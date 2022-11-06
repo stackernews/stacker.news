@@ -42,7 +42,7 @@ function MyApp ({ Component, pageProps: { session, ...props } }) {
   const client = getApolloClient()
   const router = useRouter()
 
-  useEffect(async () => {
+  useEffect(() => {
     // HACK: 'cause there's no way to tell Next to skip SSR
     // So every page load, we modify the route in browser history
     // to point to the same page but without SSR, ie ?nodata=true

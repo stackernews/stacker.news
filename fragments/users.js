@@ -11,36 +11,6 @@ export const ME = gql`
       stacked
       freePosts
       freeComments
-      hasNewNotes
-      tipDefault
-      fiatCurrency
-      bioId
-      hasInvites
-      upvotePopover
-      tipPopover
-      noteItemSats
-      noteEarning
-      noteAllDescendants
-      noteMentions
-      noteDeposits
-      noteInvites
-      noteJobIndicator
-      hideInvoiceDesc
-      wildWestMode
-      greeterMode
-      lastCheckedJobs
-    }
-  }`
-
-export const ME_SSR = gql`
-  {
-    me {
-      id
-      name
-      sats
-      stacked
-      freePosts
-      freeComments
       tipDefault
       fiatCurrency
       bioId

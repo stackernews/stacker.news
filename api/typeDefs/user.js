@@ -9,6 +9,7 @@ export default gql`
     nameAvailable(name: String!): Boolean!
     topUsers(cursor: String, when: String, sort: String): Users
     searchUsers(q: String!, limit: Int, similarity: Float): [User!]!
+    hasNewNotes: Boolean!
   }
 
   type Users {
@@ -46,7 +47,6 @@ export default gql`
     spent(when: String): Int!
     freePosts: Int!
     freeComments: Int!
-    hasNewNotes: Boolean!
     hasInvites: Boolean!
     tipDefault: Int!
     fiatCurrency: String!

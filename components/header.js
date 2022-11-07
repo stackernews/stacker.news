@@ -35,7 +35,11 @@ export default function Header ({ sub }) {
       subLatestPost(name: $name)
     }
   `, { variables: { name: 'jobs' }, pollInterval: 600000, fetchPolicy: 'network-only' })
-
+  const { data: hasNewNotes } = useQuery(gql`
+    {
+      hasNewNotes
+    }
+  `, { pollInterval: 30000, fetchPolicy: 'cache-and-network' })
   const [lastCheckedJobs, setLastCheckedJobs] = useState(new Date().getTime())
   useEffect(() => {
     if (me) {
@@ -53,12 +57,12 @@ export default function Header ({ sub }) {
       return (
         <div className='d-flex align-items-center'>
           <Head>
-            <link rel='shortcut icon' href={me?.hasNewNotes ? '/favicon-notify.png' : '/favicon.png'} />
+            <link rel='shortcut icon' href={hasNewNotes?.hasNewNotes ? '/favicon-notify.png' : '/favicon.png'} />
           </Head>
           <Link href='/notifications' passHref>
             <Nav.Link eventKey='notifications' className='pl-0 position-relative'>
               <NoteIcon />
-              {me?.hasNewNotes &&
+              {hasNewNotes?.hasNewNotes &&
                 <span className={styles.notification}>
                   <span className='invisible'>{' '}</span>
                 </span>}

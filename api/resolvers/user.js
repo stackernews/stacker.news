@@ -149,6 +149,118 @@ export default {
         users
       }
     },
+    hasNewNotes: async (parent, args, { me, models }) => {
+      if (!me) {
+        return false
+      }
+      const user = await models.user.findUnique({ where: { id: me.id } })
+      const lastChecked = user.checkedNotesAt || new Date(0)
+
+      // check if any votes have been cast for them since checkedNotesAt
+      if (user.noteItemSats) {
+        const votes = await models.$queryRaw(`
+        SELECT "ItemAct".id, "ItemAct".created_at
+          FROM "Item"
+          JOIN "ItemAct" on "ItemAct"."itemId" = "Item".id
+          WHERE "ItemAct"."userId" <> $1
+          AND "ItemAct".created_at > $2
+          AND "Item"."userId" = $1
+          AND "ItemAct".act IN ('VOTE', 'TIP')
+          LIMIT 1`, me.id, lastChecked)
+        if (votes.length > 0) {
+          return true
+        }
+      }
+
+      // check if they have any replies since checkedNotesAt
+      const newReplies = await models.$queryRaw(`
+        SELECT "Item".id, "Item".created_at
+          FROM "Item"
+          JOIN "Item" p ON ${user.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
+          WHERE p."userId" = $1
+          AND "Item".created_at > $2  AND "Item"."userId" <> $1
+          ${await filterClause(me, models)}
+          LIMIT 1`, me.id, lastChecked)
+      if (newReplies.length > 0) {
+        return true
+      }
+
+      // check if they have any mentions since checkedNotesAt
+      if (user.noteMentions) {
+        const newMentions = await models.$queryRaw(`
+        SELECT "Item".id, "Item".created_at
+          FROM "Mention"
+          JOIN "Item" ON "Mention"."itemId" = "Item".id
+          WHERE "Mention"."userId" = $1
+          AND "Mention".created_at > $2
+          AND "Item"."userId" <> $1
+          LIMIT 1`, me.id, lastChecked)
+        if (newMentions.length > 0) {
+          return true
+        }
+      }
+
+      const job = await models.item.findFirst({
+        where: {
+          maxBid: {
+            not: null
+          },
+          userId: me.id,
+          statusUpdatedAt: {
+            gt: lastChecked
+          }
+        }
+      })
+      if (job) {
+        return true
+      }
+
+      if (user.noteEarning) {
+        const earn = await models.earn.findFirst({
+          where: {
+            userId: me.id,
+            createdAt: {
+              gt: lastChecked
+            },
+            msats: {
+              gte: 1000
+            }
+          }
+        })
+        if (earn) {
+          return true
+        }
+      }
+
+      if (user.noteDeposits) {
+        const invoice = await models.invoice.findFirst({
+          where: {
+            userId: me.id,
+            confirmedAt: {
+              gt: lastChecked
+            }
+          }
+        })
+        if (invoice) {
+          return true
+        }
+      }
+
+      // check if new invites have been redeemed
+      if (user.noteInvites) {
+        const newInvitees = await models.$queryRaw(`
+        SELECT "Invite".id
+          FROM users JOIN "Invite" on users."inviteId" = "Invite".id
+          WHERE "Invite"."userId" = $1
+          AND users.created_at > $2
+          LIMIT 1`, me.id, lastChecked)
+        if (newInvitees.length > 0) {
+          return true
+        }
+      }
+
+      return false
+    },
     searchUsers: async (parent, { q, limit, similarity }, { models }) => {
       return await models.$queryRaw`
         SELECT * FROM users where id > 615 AND SIMILARITY(name, ${q}) > ${Number(similarity) || 0.1} ORDER BY SIMILARITY(name, ${q}) DESC LIMIT ${Number(limit) || 5}`
@@ -362,114 +474,6 @@ export default {
       }).invites({ take: 1 })
 
       return invites.length > 0
-    },
-    hasNewNotes: async (user, args, { me, models }) => {
-      const lastChecked = user.checkedNotesAt || new Date(0)
-
-      // check if any votes have been cast for them since checkedNotesAt
-      if (user.noteItemSats) {
-        const votes = await models.$queryRaw(`
-        SELECT "ItemAct".id, "ItemAct".created_at
-          FROM "Item"
-          JOIN "ItemAct" on "ItemAct"."itemId" = "Item".id
-          WHERE "ItemAct"."userId" <> $1
-          AND "ItemAct".created_at > $2
-          AND "Item"."userId" = $1
-          AND "ItemAct".act IN ('VOTE', 'TIP')
-          LIMIT 1`, me.id, lastChecked)
-        if (votes.length > 0) {
-          return true
-        }
-      }
-
-      // check if they have any replies since checkedNotesAt
-      const newReplies = await models.$queryRaw(`
-        SELECT "Item".id, "Item".created_at
-          FROM "Item"
-          JOIN "Item" p ON ${user.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
-          WHERE p."userId" = $1
-          AND "Item".created_at > $2  AND "Item"."userId" <> $1
-          ${await filterClause(me, models)}
-          LIMIT 1`, me.id, lastChecked)
-      if (newReplies.length > 0) {
-        return true
-      }
-
-      // check if they have any mentions since checkedNotesAt
-      if (user.noteMentions) {
-        const newMentions = await models.$queryRaw(`
-        SELECT "Item".id, "Item".created_at
-          FROM "Mention"
-          JOIN "Item" ON "Mention"."itemId" = "Item".id
-          WHERE "Mention"."userId" = $1
-          AND "Mention".created_at > $2
-          AND "Item"."userId" <> $1
-          LIMIT 1`, me.id, lastChecked)
-        if (newMentions.length > 0) {
-          return true
-        }
-      }
-
-      const job = await models.item.findFirst({
-        where: {
-          maxBid: {
-            not: null
-          },
-          userId: me.id,
-          statusUpdatedAt: {
-            gt: lastChecked
-          }
-        }
-      })
-      if (job) {
-        return true
-      }
-
-      if (user.noteEarning) {
-        const earn = await models.earn.findFirst({
-          where: {
-            userId: me.id,
-            createdAt: {
-              gt: lastChecked
-            },
-            msats: {
-              gte: 1000
-            }
-          }
-        })
-        if (earn) {
-          return true
-        }
-      }
-
-      if (user.noteDeposits) {
-        const invoice = await models.invoice.findFirst({
-          where: {
-            userId: me.id,
-            confirmedAt: {
-              gt: lastChecked
-            }
-          }
-        })
-        if (invoice) {
-          return true
-        }
-      }
-
-      // check if new invites have been redeemed
-      if (user.noteInvites) {
-        const newInvitees = await models.$queryRaw(`
-        SELECT "Invite".id
-          FROM users JOIN "Invite" on users."inviteId" = "Invite".id
-          WHERE "Invite"."userId" = $1
-          AND users.created_at > $2
-          LIMIT 1`, me.id, lastChecked)
-        if (newInvitees.length > 0) {
-          return true
-        }
-      }
-
-      return false
     }
   }
 }

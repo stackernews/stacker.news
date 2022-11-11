@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react"
+import React from "react"
 import { Dropdown } from "react-bootstrap"
 import { useQuery } from "@apollo/client"
 import ArrowDown from "../svgs/arrow-down-s-fill.svg"
@@ -22,14 +22,25 @@ export default function PastBounties({ children, item }) {
             past bounties
           </Dropdown.Toggle>
           <Dropdown.Menu>
-            {data && data.getBountiesByUser.map((item) => (
-              <Dropdown.Item>
-                <Link href={`/items/${item.id}`} passHref>
-                  <a>item {item.id}</a>
-                  </Link> / {item.bounty} sats / <span style={{color: 'orange'}}>pending</span>
+            {data && data.getBountiesByUser.map((bountyItem) => {
+              if (bountyItem.id === item.id) {
+                return null
+              }
+              return (
+                <Dropdown.Item key={bountyItem.id}>
+                    <Link href={`/items/${bountyItem.id}`}>
+                      <div>
+                        <span>item {bountyItem.id} / {bountyItem.bounty} sats / </span>
+                        <span style={{color: bountyItem.bountyPaid == false ? 'orange' : 'lightgreen'}}>{bountyItem.bountyPaid == false ? 'pending' : 'paid'}</span> 
+                      </div>
+                    </Link>
                 </Dropdown.Item>
-            ))}
-            <Dropdown.Item><Link href={`/${item.user.name}/posts`}>see all</Link></Dropdown.Item>
+                )
+            })
+          }
+            <Dropdown.Item>
+              <Link href={`/${item.user.name}/posts`}><span style={{color: 'var(--theme-link)'}}>see all</span></Link>
+              </Dropdown.Item>
           </Dropdown.Menu>
         </Dropdown>
     )

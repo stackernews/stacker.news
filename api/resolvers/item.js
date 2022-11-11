@@ -297,8 +297,6 @@ export default {
       };
     },
     getBountiesByUser: async (parent, { id }, { models }) => {
-      console.log("getBountiesByUser", id);
-
       const items = await models.$queryRaw(
         `
         ${SELECT}
@@ -979,6 +977,22 @@ export default {
       });
 
       return sats || 0;
+    },
+    bountyPaid: async (item, args, { models }) => {
+      if (!item.bounty) {
+        return null;
+      }
+
+      const paid = await models.$queryRaw`
+      -- Sum up the sats and if they are greater than or equal to item.bounty than return true, else return false
+      SELECT coalesce(sum("ItemAct"."sats"), 0) >= ${item.bounty} as "bountyPaid"
+      FROM "ItemAct"
+      INNER JOIN "Item" ON "ItemAct"."itemId" = "Item"."id"
+      WHERE "ItemAct"."userId" = ${item.userId}
+      AND "Item"."parentId" = ${item.id}
+      `;
+
+      return paid[0].bountyPaid;
     },
     mine: async (item, args, { me, models }) => {
       return me?.id === item.userId;

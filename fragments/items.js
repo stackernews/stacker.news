@@ -20,6 +20,7 @@ export const ITEM_FIELDS = gql`
     upvotes
     boost
     bounty
+    bountyPaid
     path
     meSats
     ncomments
@@ -139,8 +140,6 @@ export const BOUNTY_ITEMS_BY_USER = gql`
       ...ItemFields
     }
   }`
-
-
 
 export const ITEM_SEARCH = gql`
   ${ITEM_FIELDS}

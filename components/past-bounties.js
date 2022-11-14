@@ -23,6 +23,7 @@ export default function PastBounties({ children, item }) {
           </Dropdown.Toggle>
           <Dropdown.Menu>
             {data && data.getBountiesByUser.map((bountyItem) => {
+              console.log(bountyItem)
               if (bountyItem.id === item.id) {
                 return null
               }

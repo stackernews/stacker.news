@@ -190,7 +190,7 @@ export default function Comment ({
               <Reply
               depth={depth + 1} item={item} replyOpen={replyOpen}
               />}
-              {bountySats && !op && <PayBounty item={item} bounty={bountySats} />}
+                <PayBounty item={item} bounty={bountySats} />
             </div>
             {children}
             <div className={`${styles.comments} ml-sm-1 ml-md-3`}>

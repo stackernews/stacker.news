@@ -30,8 +30,8 @@ model User {
   inviteId        String?
   bio             Item?       @relation(fields: [bioId], references: [id])
   bioId           Int?
-  msats           Int         @default(0)
-  stackedMsats    Int         @default(0)
+  msats           BigInt      @default(0)
+  stackedMsats    BigInt      @default(0)
   freeComments    Int         @default(5)
   freePosts       Int         @default(2)
   checkedNotesAt  DateTime?
@@ -105,8 +105,8 @@ model Earn {
   createdAt DateTime @default(now()) @map(name: "created_at")
   updatedAt DateTime @default(now()) @updatedAt @map(name: "updated_at")
 
-  msats  Int
-  user   User @relation(fields: [userId], references: [id])
+  msats  BigInt
+  user   User   @relation(fields: [userId], references: [id])
   userId Int
 
   type   EarnType?
@@ -192,13 +192,13 @@ model Item {
   bio     Boolean @default(false)
 
   // denormalized self stats
-  weightedVotes     Float @default(0)
-  weightedDownVotes Float @default(0)
-  sats              Int   @default(0)
+  weightedVotes     Float  @default(0)
+  weightedDownVotes Float  @default(0)
+  msats             BigInt @default(0)
 
   // denormalized comment stats
   ncomments     Int       @default(0)
-  commentSats   Int       @default(0)
+  commentMsats  BigInt    @default(0)
   lastCommentAt DateTime?
 
   // if sub is null, this is the main sub
@@ -317,7 +317,7 @@ model ItemAct {
   id        Int         @id @default(autoincrement())
   createdAt DateTime    @default(now()) @map(name: "created_at")
   updatedAt DateTime    @updatedAt @map(name: "updated_at")
-  sats      Int
+  msats     BigInt
   act       ItemActType
   item      Item        @relation(fields: [itemId], references: [id])
   itemId    Int
@@ -356,8 +356,8 @@ model Invoice {
   bolt11         String
   expiresAt      DateTime
   confirmedAt    DateTime?
-  msatsRequested Int
-  msatsReceived  Int?
+  msatsRequested BigInt
+  msatsReceived  BigInt?
   cancelled      Boolean   @default(false)
 
   @@index([createdAt])
@@ -382,10 +382,10 @@ model Withdrawl {
 
   hash           String
   bolt11         String
-  msatsPaying    Int
-  msatsPaid      Int?
-  msatsFeePaying Int
-  msatsFeePaid   Int?
+  msatsPaying    BigInt
+  msatsPaid      BigInt?
+  msatsFeePaying BigInt
+  msatsFeePaid   BigInt?
 
   status WithdrawlStatus?
 

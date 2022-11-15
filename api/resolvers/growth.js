@@ -33,10 +33,10 @@ export default {
 
       return await models.$queryRaw(
         `SELECT date_trunc('month', "ItemAct".created_at) AS time,
-        sum(CASE WHEN act = 'STREAM' THEN "ItemAct".sats ELSE 0 END) as jobs,
-        sum(CASE WHEN act IN ('VOTE', 'POLL') AND "Item"."userId" = "ItemAct"."userId" THEN "ItemAct".sats ELSE 0 END) as fees,
-        sum(CASE WHEN act = 'BOOST' THEN "ItemAct".sats ELSE 0 END) as boost,
-        sum(CASE WHEN act = 'TIP' THEN "ItemAct".sats ELSE 0 END) as tips
+        floor(sum(CASE WHEN act = 'STREAM' THEN "ItemAct".msats ELSE 0 END)/1000) as jobs,
+        floor(sum(CASE WHEN act IN ('VOTE', 'POLL') AND "Item"."userId" = "ItemAct"."userId" THEN "ItemAct".msats ELSE 0 END)/1000) as fees,
+        floor(sum(CASE WHEN act = 'BOOST' THEN "ItemAct".msats ELSE 0 END)/1000) as boost,
+        floor(sum(CASE WHEN act = 'TIP' THEN "ItemAct".msats ELSE 0 END)/1000) as tips
         FROM "ItemAct"
         JOIN "Item" on "ItemAct"."itemId" = "Item".id
         WHERE date_trunc('month', now_utc()) <> date_trunc('month',  "ItemAct".created_at)
@@ -60,17 +60,17 @@ export default {
     },
     stackedGrowth: async (parent, args, { models }) => {
       return await models.$queryRaw(
-        `SELECT time, sum(airdrop) as rewards, sum(post) as posts, sum(comment) as comments
+        `SELECT time, floor(sum(airdrop)/1000) as rewards, floor(sum(post)/1000) as posts, floor(sum(comment)/1000) as comments
         FROM
         ((SELECT date_trunc('month', "ItemAct".created_at) AS time, 0 as airdrop,
-          CASE WHEN "Item"."parentId" IS NULL THEN 0 ELSE "ItemAct".sats END as comment,
-          CASE WHEN "Item"."parentId" IS NULL THEN "ItemAct".sats ELSE 0 END as post
+          CASE WHEN "Item"."parentId" IS NULL THEN 0 ELSE "ItemAct".msats END as comment,
+          CASE WHEN "Item"."parentId" IS NULL THEN "ItemAct".msats ELSE 0 END as post
           FROM "ItemAct"
           JOIN "Item" on "ItemAct"."itemId" = "Item".id AND "Item"."userId" <> "ItemAct"."userId"
           WHERE date_trunc('month', now_utc()) <> date_trunc('month', "ItemAct".created_at) AND
           "ItemAct".act IN ('VOTE', 'TIP'))
         UNION ALL
-        (SELECT date_trunc('month', created_at) AS time, msats / 1000 as airdrop, 0 as post, 0 as comment
+        (SELECT date_trunc('month', created_at) AS time, msats as airdrop, 0 as post, 0 as comment
           FROM "Earn"
           WHERE date_trunc('month', now_utc()) <> date_trunc('month', created_at))) u
         GROUP BY time
@@ -121,10 +121,10 @@ export default {
     spentWeekly: async (parent, args, { models }) => {
       const [stats] = await models.$queryRaw(
         `SELECT json_build_array(
-          json_build_object('name', 'jobs', 'value', sum(CASE WHEN act = 'STREAM' THEN "ItemAct".sats ELSE 0 END)),
-          json_build_object('name', 'fees', 'value', sum(CASE WHEN act in ('VOTE', 'POLL') AND "Item"."userId" = "ItemAct"."userId" THEN "ItemAct".sats ELSE 0 END)),
-          json_build_object('name', 'boost', 'value', sum(CASE WHEN act = 'BOOST' THEN "ItemAct".sats ELSE 0 END)),
-          json_build_object('name', 'tips', 'value', sum(CASE WHEN act = 'TIP' THEN "ItemAct".sats ELSE 0 END))) as array
+          json_build_object('name', 'jobs', 'value', floor(sum(CASE WHEN act = 'STREAM' THEN "ItemAct".msats ELSE 0 END)/1000)),
+          json_build_object('name', 'fees', 'value', floor(sum(CASE WHEN act in ('VOTE', 'POLL') AND "Item"."userId" = "ItemAct"."userId" THEN "ItemAct".msats ELSE 0 END)/1000)),
+          json_build_object('name', 'boost', 'value',floor(sum(CASE WHEN act = 'BOOST' THEN "ItemAct".msats ELSE 0 END)/1000)),
+          json_build_object('name', 'tips', 'value', floor(sum(CASE WHEN act = 'TIP' THEN "ItemAct".msats ELSE 0 END)/1000))) as array
         FROM "ItemAct"
         JOIN "Item" on "ItemAct"."itemId" = "Item".id
         WHERE "ItemAct".created_at >= now_utc() - interval '1 week'`)
@@ -134,20 +134,20 @@ export default {
     stackedWeekly: async (parent, args, { models }) => {
       const [stats] = await models.$queryRaw(
         `SELECT json_build_array(
-          json_build_object('name', 'rewards', 'value', sum(airdrop)),
-          json_build_object('name', 'posts', 'value', sum(post)),
-          json_build_object('name', 'comments', 'value', sum(comment))
+          json_build_object('name', 'rewards', 'value', floor(sum(airdrop)/1000)),
+          json_build_object('name', 'posts', 'value', floor(sum(post)/1000)),
+          json_build_object('name', 'comments', 'value', floor(sum(comment)/1000))
         ) as array
         FROM
         ((SELECT 0 as airdrop,
-          CASE WHEN "Item"."parentId" IS NULL THEN 0 ELSE "ItemAct".sats END as comment,
-          CASE WHEN "Item"."parentId" IS NULL THEN "ItemAct".sats ELSE 0 END as post
+          CASE WHEN "Item"."parentId" IS NULL THEN 0 ELSE "ItemAct".msats END as comment,
+          CASE WHEN "Item"."parentId" IS NULL THEN "ItemAct".msats ELSE 0 END as post
           FROM "ItemAct"
           JOIN "Item" on "ItemAct"."itemId" = "Item".id AND "Item"."userId" <> "ItemAct"."userId"
           WHERE  "ItemAct".created_at >= now_utc() - interval '1 week' AND
           "ItemAct".act IN ('VOTE', 'TIP'))
         UNION ALL
-        (SELECT msats / 1000 as airdrop, 0 as post, 0 as comment
+        (SELECT msats as airdrop, 0 as post, 0 as comment
           FROM "Earn"
           WHERE  created_at >= now_utc() - interval '1 week')) u`)
 

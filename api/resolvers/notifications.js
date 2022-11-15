@@ -106,7 +106,7 @@ export default {
         if (meFull.noteItemSats) {
           queries.push(
             `(SELECT "Item".id::TEXT, MAX("ItemAct".created_at) AS "sortTime",
-              sum("ItemAct".sats) as "earnedSats", 'Votification' AS type
+              floor(sum("ItemAct".msats)/1000) as "earnedSats", 'Votification' AS type
               FROM "Item"
               JOIN "ItemAct" ON "ItemAct"."itemId" = "Item".id
               WHERE "ItemAct"."userId" <> $1

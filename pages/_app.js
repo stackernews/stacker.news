@@ -49,10 +49,12 @@ function MyApp ({ Component, pageProps: { session, ...props } }) {
     // this nodata var will get passed to the server on back/foward and
     // 1. prevent data from reloading and 2. perserve scroll
     // (2) is not possible while intercepting nav with beforePopState
-    router.replace({
-      pathname: router.pathname,
-      query: { ...router.query, nodata: true }
-    }, router.asPath, { ...router.options, scroll: false })
+    if (router.isReady) {
+      router.replace({
+        pathname: router.pathname,
+        query: { ...router.query, nodata: true }
+      }, router.asPath, { ...router.options, scroll: false })
+    }
   }, [router.asPath])
 
   /*

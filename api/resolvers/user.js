@@ -1,5 +1,6 @@
 import { AuthenticationError, UserInputError } from 'apollo-server-errors'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
+import { msatsToSats } from '../../lib/format'
 import { createMentions, getItem, SELECT, updateItem, filterClause } from './item'
 import serialize from './serial'
 
@@ -92,7 +93,7 @@ export default {
       let users
       if (sort === 'spent') {
         users = await models.$queryRaw(`
-          SELECT users.*, sum("ItemAct".sats) as spent
+          SELECT users.*, floor(sum("ItemAct".msats)/1000) as spent
           FROM "ItemAct"
           JOIN users on "ItemAct"."userId" = users.id
           WHERE "ItemAct".created_at <= $1
@@ -125,16 +126,16 @@ export default {
           LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
       } else {
         users = await models.$queryRaw(`
-          SELECT u.id, u.name, u."photoId", sum(amount) as stacked
+          SELECT u.id, u.name, u."photoId", floor(sum(amount)/1000) as stacked
           FROM
-          ((SELECT users.*, "ItemAct".sats as amount
+          ((SELECT users.*, "ItemAct".msats as amount
             FROM "ItemAct"
             JOIN "Item" on "ItemAct"."itemId" = "Item".id
             JOIN users on "Item"."userId" = users.id
             WHERE act <> 'BOOST' AND "ItemAct"."userId" <> users.id AND "ItemAct".created_at <= $1
             ${within('ItemAct', when)})
           UNION ALL
-          (SELECT users.*, "Earn".msats/1000 as amount
+          (SELECT users.*, "Earn".msats as amount
             FROM "Earn"
             JOIN users on users.id = "Earn"."userId"
             WHERE "Earn".msats > 0 ${within('Earn', when)})) u
@@ -422,22 +423,22 @@ export default {
 
       if (!when) {
         // forever
-        return Math.floor((user.stackedMsats || 0) / 1000)
+        return (user.stackedMsats && msatsToSats(user.stackedMsats)) || 0
       } else {
         const [{ stacked }] = await models.$queryRaw(`
           SELECT sum(amount) as stacked
           FROM
-          ((SELECT sum("ItemAct".sats) as amount
+          ((SELECT sum("ItemAct".msats) as amount
             FROM "ItemAct"
             JOIN "Item" on "ItemAct"."itemId" = "Item".id
             WHERE act <> 'BOOST' AND "ItemAct"."userId" <> $2 AND "Item"."userId" = $2
             AND "ItemAct".created_at >= $1)
           UNION ALL
-          (SELECT sum("Earn".msats/1000) as amount
+          (SELECT sum("Earn".msats) as amount
             FROM "Earn"
             WHERE "Earn".msats > 0 AND "Earn"."userId" = $2
             AND "Earn".created_at >= $1)) u`, withinDate(when), Number(user.id))
-        return stacked || 0
+        return (stacked && msatsToSats(stacked)) || 0
       }
     },
     spent: async (user, { when }, { models }) => {
@@ -445,9 +446,9 @@ export default {
         return user.spent
       }
 
-      const { sum: { sats } } = await models.itemAct.aggregate({
+      const { sum: { msats } } = await models.itemAct.aggregate({
         sum: {
-          sats: true
+          msats: true
         },
         where: {
           userId: user.id,
@@ -457,13 +458,13 @@ export default {
         }
       })
 
-      return sats || 0
+      return (msats && msatsToSats(msats)) || 0
     },
     sats: async (user, args, { models, me }) => {
       if (me?.id !== user.id) {
         return 0
       }
-      return Math.floor(user.msats / 1000.0)
+      return msatsToSats(user.msats)
     },
     bio: async (user, args, { models }) => {
       return getItem(user, { id: user.bioId }, { models })

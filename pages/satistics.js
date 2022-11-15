@@ -213,7 +213,7 @@ export default function Satistics ({ data: { me, walletHistory: { facts, cursor 
                     <td className={styles.description}>
                       <Detail fact={f} />
                     </td>
-                    <td className={`${styles.sats} ${satusClass(f.status)}`}>{Math.floor(f.msats / 1000)}</td>
+                    <td className={`${styles.sats} ${satusClass(f.status)}`}>{Math.floor(f.sats)}</td>
                   </tr>
                 </Wrapper>
               )

@@ -10,16 +10,13 @@ function earn ({ models }) {
     console.log('running', name)
 
     // compute how much sn earned today
-    let [{ sum }] = await models.$queryRaw`
-        SELECT sum("ItemAct".sats)
+    const [{ sum }] = await models.$queryRaw`
+        SELECT sum("ItemAct".msats)
         FROM "ItemAct"
         JOIN "Item" on "ItemAct"."itemId" = "Item".id
         WHERE ("ItemAct".act in ('BOOST', 'STREAM')
           OR ("ItemAct".act IN ('VOTE','POLL') AND "Item"."userId" = "ItemAct"."userId"))
           AND "ItemAct".created_at > now_utc() - INTERVAL '1 day'`
-
-    // convert to msats
-    sum = sum * 1000
 
     /*
       How earnings work:
@@ -56,7 +53,7 @@ function earn ({ models }) {
       ),
       upvoters AS (
           SELECT "ItemAct"."userId", item_ratios.id, item_ratios.ratio, item_ratios."parentId",
-              sum("ItemAct".sats) as tipped, min("ItemAct".created_at) as acted_at
+              sum("ItemAct".msats) as tipped, min("ItemAct".created_at) as acted_at
           FROM item_ratios
           JOIN "ItemAct" on "ItemAct"."itemId" = item_ratios.id
           WHERE act IN ('VOTE','TIP')

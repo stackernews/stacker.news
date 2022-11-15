@@ -8,6 +8,7 @@ import {
   BOOST_MIN, ITEM_SPAM_INTERVAL, MAX_POLL_NUM_CHOICES,
   MAX_TITLE_LENGTH, ITEM_FILTER_THRESHOLD, DONT_LIKE_THIS_COST
 } from '../../lib/constants'
+import { msatsToSats } from '../../lib/format'
 
 async function comments (me, models, id, sort) {
   let orderBy
@@ -74,7 +75,7 @@ async function topOrderClause (sort, me, models) {
     case 'comments':
       return 'ORDER BY ncomments DESC'
     case 'sats':
-      return 'ORDER BY sats DESC'
+      return 'ORDER BY msats DESC'
     default:
       return await topOrderByWeightedSats(me, models)
   }
@@ -690,6 +691,12 @@ export default {
     }
   },
   Item: {
+    sats: async (item, args, { models }) => {
+      return msatsToSats(item.msats)
+    },
+    commentSats: async (item, args, { models }) => {
+      return msatsToSats(item.commentMsats)
+    },
     isJob: async (item, args, { models }) => {
       return item.subName === 'jobs'
     },
@@ -771,10 +778,7 @@ export default {
       return comments(me, models, item.id, 'hot')
     },
     upvotes: async (item, args, { models }) => {
-      const { sum: { sats } } = await models.itemAct.aggregate({
-        sum: {
-          sats: true
-        },
+      const count = await models.itemAct.count({
         where: {
           itemId: Number(item.id),
           userId: {
@@ -784,12 +788,12 @@ export default {
         }
       })
 
-      return sats || 0
+      return count
     },
     boost: async (item, args, { models }) => {
-      const { sum: { sats } } = await models.itemAct.aggregate({
+      const { sum: { msats } } = await models.itemAct.aggregate({
         sum: {
-          sats: true
+          msats: true
         },
         where: {
           itemId: Number(item.id),
@@ -797,7 +801,7 @@ export default {
         }
       })
 
-      return sats || 0
+      return (msats && msatsToSats(msats)) || 0
     },
     wvotes: async (item) => {
       return item.weightedVotes - item.weightedDownVotes
@@ -805,9 +809,9 @@ export default {
     meSats: async (item, args, { me, models }) => {
       if (!me) return 0
 
-      const { sum: { sats } } = await models.itemAct.aggregate({
+      const { sum: { msats } } = await models.itemAct.aggregate({
         sum: {
-          sats: true
+          msats: true
         },
         where: {
           itemId: Number(item.id),
@@ -823,7 +827,7 @@ export default {
         }
       })
 
-      return sats || 0
+      return (msats && msatsToSats(msats)) || 0
     },
     meDontLike: async (item, args, { me, models }) => {
       if (!me) return false
@@ -1010,7 +1014,7 @@ export const SELECT =
   "Item".text, "Item".url, "Item"."userId", "Item"."fwdUserId", "Item"."parentId", "Item"."pinId", "Item"."maxBid",
   "Item".company, "Item".location, "Item".remote,
   "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost",
-  "Item".sats, "Item".ncomments, "Item"."commentSats", "Item"."lastCommentAt", "Item"."weightedVotes",
+  "Item".msats, "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",
   "Item"."weightedDownVotes", "Item".freebie, ltree2text("Item"."path") AS "path"`
 
 async function newTimedOrderByWeightedSats (me, models, num) {

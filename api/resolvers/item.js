@@ -4,6 +4,7 @@ import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
 import domino from 'domino'
+import { parseDomain, ParseResultType } from 'parse-domain';
 import {
   BOOST_MIN, ITEM_SPAM_INTERVAL, MAX_POLL_NUM_CHOICES,
   MAX_TITLE_LENGTH, ITEM_FILTER_THRESHOLD, DONT_LIKE_THIS_COST
@@ -455,6 +456,14 @@ export default {
       const urlObj = new URL(ensureProtocol(url))
       let uri = urlObj.hostname + urlObj.pathname
       uri = uri.endsWith('/') ? uri.slice(0, -1) : uri
+
+      const parseResult = parseDomain(urlObj.hostname)
+      if (parseResult.type === ParseResultType.LISTED) {
+        const { subDomains } = parseResult
+        const ignorePart = subDomains.join('.') + '.'
+        uri = uri.replace(ignorePart, `(${ignorePart})?`)
+      }
+
       let similar = `(http(s)?://)?${uri}/?`
 
       const whitelist = ['news.ycombinator.com/item', 'bitcointalk.org/index.php']

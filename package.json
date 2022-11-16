@@ -38,6 +38,7 @@
     "node-s3-url-encode": "^0.0.4",
     "page-metadata-parser": "^1.1.4",
     "pageres": "^6.3.0",
+    "parse-domain": "^7.0.1",
     "pg-boss": "^7.0.2",
     "prisma": "^2.25.0",
     "qrcode.react": "^1.0.1",

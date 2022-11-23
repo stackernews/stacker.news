@@ -166,7 +166,7 @@ export default {
           WHERE "ItemAct"."userId" <> $1
           AND "ItemAct".created_at > $2
           AND "Item"."userId" = $1
-          AND "ItemAct".act IN ('VOTE', 'TIP')
+          AND "ItemAct".act = 'TIP'
           LIMIT 1`, me.id, lastChecked)
         if (votes.length > 0) {
           return true

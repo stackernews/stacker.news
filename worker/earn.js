@@ -14,8 +14,7 @@ function earn ({ models }) {
         SELECT sum("ItemAct".msats)
         FROM "ItemAct"
         JOIN "Item" on "ItemAct"."itemId" = "Item".id
-        WHERE ("ItemAct".act in ('BOOST', 'STREAM')
-          OR ("ItemAct".act IN ('VOTE','POLL') AND "Item"."userId" = "ItemAct"."userId"))
+        WHERE "ItemAct".act <> 'TIP'
           AND "ItemAct".created_at > now_utc() - INTERVAL '1 day'`
 
     /*
@@ -42,8 +41,8 @@ function earn ({ models }) {
               CASE WHEN "weightedVotes" > 0 THEN "weightedVotes"/(sum("weightedVotes") OVER (PARTITION BY "parentId" IS NULL)) ELSE 0 END AS ratio
           FROM (
               SELECT *,
-                  NTILE(100)  OVER (PARTITION BY "parentId" IS NULL ORDER BY "weightedVotes" desc) AS percentile,
-                  ROW_NUMBER()  OVER (PARTITION BY "parentId" IS NULL ORDER BY "weightedVotes" desc) AS rank
+                  NTILE(100)  OVER (PARTITION BY "parentId" IS NULL ORDER BY ("weightedVotes"-"weightedDownVotes") desc) AS percentile,
+                  ROW_NUMBER()  OVER (PARTITION BY "parentId" IS NULL ORDER BY ("weightedVotes"-"weightedDownVotes") desc) AS rank
               FROM
                   "Item"
               WHERE created_at >= now_utc() - interval '36 hours'
@@ -56,8 +55,7 @@ function earn ({ models }) {
               sum("ItemAct".msats) as tipped, min("ItemAct".created_at) as acted_at
           FROM item_ratios
           JOIN "ItemAct" on "ItemAct"."itemId" = item_ratios.id
-          WHERE act IN ('VOTE','TIP')
-          AND "ItemAct"."userId" <> item_ratios."userId"
+          WHERE act = 'TIP'
           GROUP BY "ItemAct"."userId", item_ratios.id, item_ratios.ratio, item_ratios."parentId"
       ),
       upvoter_ratios AS (

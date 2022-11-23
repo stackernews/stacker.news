@@ -9,6 +9,11 @@
     text-align: right;
 }
 
+.sats>div {
+    display: flex;
+    align-items: center;
+}
+
 .failed {
     text-decoration: line-through;
 }

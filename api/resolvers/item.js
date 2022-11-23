@@ -778,15 +778,10 @@ export default {
       return comments(me, models, item.id, 'hot')
     },
     upvotes: async (item, args, { models }) => {
-      const count = await models.itemAct.count({
-        where: {
-          itemId: Number(item.id),
-          userId: {
-            not: Number(item.userId)
-          },
-          act: 'VOTE'
-        }
-      })
+      const [{ count }] = await models.$queryRaw(`
+        SELECT COUNT(DISTINCT "userId") as count
+        FROM "ItemAct"
+        WHERE act = 'TIP' AND "itemId" = $1`, Number(item.id))
 
       return count
     },
@@ -821,7 +816,7 @@ export default {
               act: 'TIP'
             },
             {
-              act: 'VOTE'
+              act: 'FEE'
             }
           ]
         }

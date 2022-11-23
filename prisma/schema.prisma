@@ -311,6 +311,7 @@ enum ItemActType {
   STREAM
   POLL
   DONT_LIKE_THIS
+  FEE
 }
 
 model ItemAct {

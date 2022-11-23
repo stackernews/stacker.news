@@ -34,7 +34,7 @@ export default {
       return await models.$queryRaw(
         `SELECT date_trunc('month', "ItemAct".created_at) AS time,
         floor(sum(CASE WHEN act = 'STREAM' THEN "ItemAct".msats ELSE 0 END)/1000) as jobs,
-        floor(sum(CASE WHEN act IN ('VOTE', 'POLL') AND "Item"."userId" = "ItemAct"."userId" THEN "ItemAct".msats ELSE 0 END)/1000) as fees,
+        floor(sum(CASE WHEN act NOT IN ('BOOST', 'TIP', 'STREAM') THEN "ItemAct".msats ELSE 0 END)/1000) as fees,
         floor(sum(CASE WHEN act = 'BOOST' THEN "ItemAct".msats ELSE 0 END)/1000) as boost,
         floor(sum(CASE WHEN act = 'TIP' THEN "ItemAct".msats ELSE 0 END)/1000) as tips
         FROM "ItemAct"
@@ -68,7 +68,7 @@ export default {
           FROM "ItemAct"
           JOIN "Item" on "ItemAct"."itemId" = "Item".id AND "Item"."userId" <> "ItemAct"."userId"
           WHERE date_trunc('month', now_utc()) <> date_trunc('month', "ItemAct".created_at) AND
-          "ItemAct".act IN ('VOTE', 'TIP'))
+          "ItemAct".act = 'TIP')
         UNION ALL
         (SELECT date_trunc('month', created_at) AS time, msats as airdrop, 0 as post, 0 as comment
           FROM "Earn"
@@ -122,7 +122,7 @@ export default {
       const [stats] = await models.$queryRaw(
         `SELECT json_build_array(
           json_build_object('name', 'jobs', 'value', floor(sum(CASE WHEN act = 'STREAM' THEN "ItemAct".msats ELSE 0 END)/1000)),
-          json_build_object('name', 'fees', 'value', floor(sum(CASE WHEN act in ('VOTE', 'POLL') AND "Item"."userId" = "ItemAct"."userId" THEN "ItemAct".msats ELSE 0 END)/1000)),
+          json_build_object('name', 'fees', 'value', floor(sum(CASE WHEN act NOT IN ('BOOST', 'TIP', 'STREAM') THEN "ItemAct".msats ELSE 0 END)/1000)),
           json_build_object('name', 'boost', 'value',floor(sum(CASE WHEN act = 'BOOST' THEN "ItemAct".msats ELSE 0 END)/1000)),
           json_build_object('name', 'tips', 'value', floor(sum(CASE WHEN act = 'TIP' THEN "ItemAct".msats ELSE 0 END)/1000))) as array
         FROM "ItemAct"
@@ -145,7 +145,7 @@ export default {
           FROM "ItemAct"
           JOIN "Item" on "ItemAct"."itemId" = "Item".id AND "Item"."userId" <> "ItemAct"."userId"
           WHERE  "ItemAct".created_at >= now_utc() - interval '1 week' AND
-          "ItemAct".act IN ('VOTE', 'TIP'))
+          "ItemAct".act = 'TIP')
         UNION ALL
         (SELECT msats as airdrop, 0 as post, 0 as comment
           FROM "Earn"

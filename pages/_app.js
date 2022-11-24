@@ -62,7 +62,7 @@ function MyApp ({ Component, pageProps: { session, ...props } }) {
     ssr data
   */
   const { apollo, data, me, price } = props
-  if (typeof window !== 'undefined' && apollo && data) {
+  if (apollo && data) {
     client.writeQuery({
       query: gql`${apollo.query}`,
       data: data,

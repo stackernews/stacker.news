@@ -22,12 +22,12 @@ async function work () {
     cache: new InMemoryCache(),
     defaultOptions: {
       watchQuery: {
-        fetchPolicy: 'network-only',
-        nextFetchPolicy: 'network-only'
+        fetchPolicy: 'no-cache',
+        nextFetchPolicy: 'no-cache'
       },
       query: {
-        fetchPolicy: 'network-only',
-        nextFetchPolicy: 'network-only'
+        fetchPolicy: 'no-cache',
+        nextFetchPolicy: 'no-cache'
       }
     }
   })

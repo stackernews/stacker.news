@@ -13,7 +13,7 @@ import { getPrice } from '../components/price'
 
 export default async function getSSRApolloClient (req, me = null) {
   const session = req && await getSession({ req })
-  return new ApolloClient({
+  const client = new ApolloClient({
     ssrMode: true,
     link: new SchemaLink({
       schema: makeExecutableSchema({
@@ -31,6 +31,8 @@ export default async function getSSRApolloClient (req, me = null) {
     }),
     cache: new InMemoryCache()
   })
+  await client.clearStore()
+  return client
 }
 
 export function getGetServerSideProps (query, variables = null, notFoundFunc, requireVar) {

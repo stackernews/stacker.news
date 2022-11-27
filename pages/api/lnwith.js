@@ -32,7 +32,7 @@ export default async ({ query }, res) => {
           k1: query.k1, // Random or non-random string to identify the user's LN WALLET when using the callback URL
           defaultDescription: `Withdrawal for @${user.name} on SN`, // A default withdrawal invoice description
           minWithdrawable: 1000, // Min amount (in millisatoshis) the user can withdraw from LN SERVICE, or 0
-          maxWithdrawable: user.msats - 10000 // Max amount (in millisatoshis) the user can withdraw from LN SERVICE, or equal to minWithdrawable if the user has no choice over the amounts
+          maxWithdrawable: Number(user.msats - 10000n) // Max amount (in millisatoshis) the user can withdraw from LN SERVICE, or equal to minWithdrawable if the user has no choice over the amounts
         })
       } else {
         reason = 'user not found'

@@ -26,7 +26,7 @@ export default function PayBounty({ children, item, bounty }) {
                   return existingSats + sats
                 },
                 meSats (existingSats = 0) {
-                // Do we need to do anything here?
+                // If we keep upvotes below we can use this to show the user's vote
                 //   if (existingSats === 0) {
                 //     setVoteShow(true)
                 //   } else {
@@ -62,13 +62,25 @@ export default function PayBounty({ children, item, bounty }) {
             signIn()
             return
         }
-        console.log("paying bounty")
         act({ variables: { id: item.id, sats: bounty } })
     }
 
     if (item.root.user.name !== me.name || item.mine) {
         return null
     }
+
+    const bountyPaidToComment = () => {
+        if (item.bountyPaid) {
+            return (
+                <div className={styles.pay}>
+                    BOUNTY REAWRDED
+                </div>
+            )
+        }
+        return null
+    }
+
+    // If the user has received an amount of sats equal to the bounty from the OP, show the bounty reward text
 
     return (
         <div className={styles.payContainer} onClick={() => handlePayBounty()}>

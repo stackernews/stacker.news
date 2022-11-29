@@ -92,7 +92,7 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
               </>}
               {item.bounty > 0 && (
               <>
-                <span className={styles.bountyTag}>{item.bounty} bounty</span>
+                <span className={styles.bountyTag}>{item.bounty} bounty {item.bountyPaid ? 'PAID' : null}</span>
                 <span> \ </span>
               </>
             )}

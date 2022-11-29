@@ -236,9 +236,6 @@ export default {
 
           switch (subFull?.rankingType) {
             case 'AUCTION':
-              // it might be sufficient to sort by the floor(maxBid / 1000) desc, created_at desc
-              // we pull from their wallet
-              // TODO: need to filter out by payment status
               items = await models.$queryRaw(`
                 SELECT *
                 FROM (

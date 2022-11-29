@@ -212,7 +212,7 @@ export default {
           }
         }
       })
-      if (job) {
+      if (job && job.statusUpdatedAt > job.createdAt) {
         return true
       }
 

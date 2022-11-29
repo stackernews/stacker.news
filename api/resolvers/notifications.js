@@ -98,7 +98,7 @@ export default {
             FROM "Item"
             WHERE "Item"."userId" = $1
             AND "maxBid" IS NOT NULL
-            AND "statusUpdatedAt" <= $2
+            AND "statusUpdatedAt" <= $2 AND "statusUpdatedAt" <> created_at
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT}+$3)`
         )

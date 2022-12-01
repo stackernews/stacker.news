@@ -43,6 +43,15 @@ function withClause (when) {
   `
 }
 
+// HACKY AF this is a performance enhancement that allows us to use the created_at indices on tables
+function intervalClause (when, table, and) {
+  if (when === 'forever') {
+    return and ? '' : 'TRUE'
+  }
+
+  return `"${table}".created_at >= now_utc() - interval '${interval(when)}' ${and ? 'AND' : ''} `
+}
+
 export default {
   Query: {
     registrationGrowth: async (parent, { when }, { models }) => {
@@ -53,7 +62,7 @@ export default {
           json_build_object('name', 'organic', 'value', count(users.id) FILTER(WHERE id > ${PLACEHOLDERS_NUM}) - count("inviteId"))
         ) AS data
         FROM times
-        LEFT JOIN users ON time = date_trunc('${timeUnit(when)}', created_at)
+        LEFT JOIN users ON ${intervalClause(when, 'users', true)} time = date_trunc('${timeUnit(when)}', created_at)
         GROUP BY time
         ORDER BY time ASC`)
     },
@@ -64,7 +73,7 @@ export default {
           json_build_object('name', 'spenders', 'value', count(DISTINCT "userId"))
         ) AS data
         FROM times
-        LEFT JOIN "ItemAct" ON time = date_trunc('${timeUnit(when)}', created_at)
+        LEFT JOIN "ItemAct" ON ${intervalClause(when, 'ItemAct', true)} time = date_trunc('${timeUnit(when)}', created_at)
         GROUP BY time
         ORDER BY time ASC`)
     },
@@ -77,7 +86,7 @@ export default {
           json_build_object('name', 'posts', 'value', count("Item".id)-count("parentId")-count("subName"))
         ) AS data
         FROM times
-        LEFT JOIN "Item" ON time = date_trunc('${timeUnit(when)}', created_at)
+        LEFT JOIN "Item" ON ${intervalClause(when, 'Item', true)} time = date_trunc('${timeUnit(when)}', created_at)
         GROUP BY time
         ORDER BY time ASC`)
     },
@@ -91,7 +100,7 @@ export default {
           json_build_object('name', 'tips', 'value', coalesce(floor(sum(CASE WHEN act = 'TIP' THEN "ItemAct".msats ELSE 0 END)/1000),0))
         ) AS data
         FROM times
-        LEFT JOIN "ItemAct" ON time = date_trunc('${timeUnit(when)}', created_at)
+        LEFT JOIN "ItemAct" ON ${intervalClause(when, 'ItemAct', true)} time = date_trunc('${timeUnit(when)}', created_at)
         JOIN "Item" ON "ItemAct"."itemId" = "Item".id
         GROUP BY time
         ORDER BY time ASC`)
@@ -107,10 +116,11 @@ export default {
         ((SELECT "ItemAct".created_at, "Item"."userId" as user_id
           FROM "ItemAct"
           JOIN "Item" on "ItemAct"."itemId" = "Item".id
-          WHERE "ItemAct".act = 'TIP')
+          WHERE ${intervalClause(when, 'ItemAct', true)} "ItemAct".act = 'TIP')
         UNION ALL
         (SELECT created_at, "userId" as user_id
-          FROM "Earn")) u ON time = date_trunc('${timeUnit(when)}', u.created_at)
+          FROM "Earn"
+          WHERE ${intervalClause(when, 'Earn', false)})) u ON time = date_trunc('${timeUnit(when)}', u.created_at)
         GROUP BY time
         ORDER BY time ASC`)
     },
@@ -129,10 +139,11 @@ export default {
           CASE WHEN "Item"."parentId" IS NULL THEN "ItemAct".msats ELSE 0 END as post
           FROM "ItemAct"
           JOIN "Item" on "ItemAct"."itemId" = "Item".id
-          WHERE "ItemAct".act = 'TIP')
+          WHERE ${intervalClause(when, 'ItemAct', true)} "ItemAct".act = 'TIP')
         UNION ALL
         (SELECT created_at, msats as airdrop, 0 as post, 0 as comment
-          FROM "Earn")) u ON time = date_trunc('${timeUnit(when)}', u.created_at)
+          FROM "Earn"
+          WHERE ${intervalClause(when, 'Earn', false)})) u ON time = date_trunc('${timeUnit(when)}', u.created_at)
         GROUP BY time
         ORDER BY time ASC`)
     }

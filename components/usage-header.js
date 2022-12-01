@@ -1,35 +1,26 @@
-import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { Nav, Navbar } from 'react-bootstrap'
-import styles from './header.module.css'
+import { Form, Select } from './form'
 
 export function UsageHeader () {
   const router = useRouter()
+
   return (
-    <Navbar className='pt-0'>
-      <Nav
-        className={`${styles.navbarNav} justify-content-around`}
-        activeKey={router.asPath}
-      >
-        <Nav.Item>
-          <Link href='/users/week' passHref>
-            <Nav.Link
-              className={styles.navLink}
-            >
-              week
-            </Nav.Link>
-          </Link>
-        </Nav.Item>
-        <Nav.Item>
-          <Link href='/users/forever' passHref>
-            <Nav.Link
-              className={styles.navLink}
-            >
-              forever
-            </Nav.Link>
-          </Link>
-        </Nav.Item>
-      </Nav>
-    </Navbar>
+    <Form
+      initial={{
+        when: router.query.when || 'day'
+      }}
+    >
+      <div className='text-muted font-weight-bold my-3 d-flex align-items-center'>
+        user analytics for
+        <Select
+          groupClassName='mb-0 ml-2'
+          className='w-auto'
+          name='when'
+          size='sm'
+          items={['day', 'week', 'month', 'year', 'forever']}
+          onChange={(formik, e) => router.push(`/users/${e.target.value}`)}
+        />
+      </div>
+    </Form>
   )
 }

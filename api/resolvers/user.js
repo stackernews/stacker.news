@@ -97,6 +97,7 @@ export default {
           FROM "ItemAct"
           JOIN users on "ItemAct"."userId" = users.id
           WHERE "ItemAct".created_at <= $1
+          AND NOT users."hideFromTopUsers"
           ${within('ItemAct', when)}
           GROUP BY users.id, users.name
           ORDER BY spent DESC NULLS LAST, users.created_at DESC
@@ -108,6 +109,7 @@ export default {
           FROM users
           JOIN "Item" on "Item"."userId" = users.id
           WHERE "Item".created_at <= $1 AND "Item"."parentId" IS NULL
+          AND NOT users."hideFromTopUsers"
           ${within('Item', when)}
           GROUP BY users.id
           ORDER BY nitems DESC NULLS LAST, users.created_at DESC
@@ -119,6 +121,7 @@ export default {
           FROM users
           JOIN "Item" on "Item"."userId" = users.id
           WHERE "Item".created_at <= $1 AND "Item"."parentId" IS NOT NULL
+          AND NOT users."hideFromTopUsers"
           ${within('Item', when)}
           GROUP BY users.id
           ORDER BY ncomments DESC NULLS LAST, users.created_at DESC
@@ -133,12 +136,14 @@ export default {
             JOIN "Item" on "ItemAct"."itemId" = "Item".id
             JOIN users on "Item"."userId" = users.id
             WHERE act <> 'BOOST' AND "ItemAct"."userId" <> users.id AND "ItemAct".created_at <= $1
+            AND NOT users."hideFromTopUsers"
             ${within('ItemAct', when)})
           UNION ALL
           (SELECT users.*, "Earn".msats as amount
             FROM "Earn"
             JOIN users on users.id = "Earn"."userId"
-            WHERE "Earn".msats > 0 ${within('Earn', when)})) u
+            WHERE "Earn".msats > 0 ${within('Earn', when)}
+            AND NOT users."hideFromTopUsers")) u
           GROUP BY u.id, u.name, u.created_at, u."photoId"
           ORDER BY stacked DESC NULLS LAST, created_at DESC
           OFFSET $2

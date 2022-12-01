@@ -58,7 +58,8 @@ model User {
   noteJobIndicator   Boolean @default(true)
 
   // privacy settings
-  hideInvoiceDesc Boolean @default(false)
+  hideInvoiceDesc  Boolean @default(false)
+  hideFromTopUsers Boolean @default(false)
 
   // content settings
   wildWestMode Boolean @default(false)

@@ -24,6 +24,7 @@ export const ME = gql`
       noteInvites
       noteJobIndicator
       hideInvoiceDesc
+      hideFromTopUsers
       wildWestMode
       greeterMode
       lastCheckedJobs
@@ -42,6 +43,7 @@ export const SETTINGS_FIELDS = gql`
     noteInvites
     noteJobIndicator
     hideInvoiceDesc
+    hideFromTopUsers
     wildWestMode
     greeterMode
     authMethods {
@@ -65,13 +67,13 @@ gql`
 ${SETTINGS_FIELDS}
 mutation setSettings($tipDefault: Int!, $fiatCurrency: String!, $noteItemSats: Boolean!, $noteEarning: Boolean!,
   $noteAllDescendants: Boolean!, $noteMentions: Boolean!, $noteDeposits: Boolean!,
-  $noteInvites: Boolean!, $noteJobIndicator: Boolean!, $hideInvoiceDesc: Boolean!,
+  $noteInvites: Boolean!, $noteJobIndicator: Boolean!, $hideInvoiceDesc: Boolean!, $hideFromTopUsers: Boolean!,
   $wildWestMode: Boolean!, $greeterMode: Boolean!) {
   setSettings(tipDefault: $tipDefault, fiatCurrency: $fiatCurrency, noteItemSats: $noteItemSats,
     noteEarning: $noteEarning, noteAllDescendants: $noteAllDescendants,
     noteMentions: $noteMentions, noteDeposits: $noteDeposits, noteInvites: $noteInvites,
-    noteJobIndicator: $noteJobIndicator, hideInvoiceDesc: $hideInvoiceDesc, wildWestMode: $wildWestMode,
-    greeterMode: $greeterMode) {
+    noteJobIndicator: $noteJobIndicator, hideInvoiceDesc: $hideInvoiceDesc, hideFromTopUsers: $hideFromTopUsers,
+    wildWestMode: $wildWestMode, greeterMode: $greeterMode) {
       ...SettingsFields
     }
   }

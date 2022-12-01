@@ -13,6 +13,7 @@ import { SETTINGS, SET_SETTINGS } from '../fragments/users'
 import { useRouter } from 'next/router'
 import Info from '../components/info'
 import { CURRENCY_SYMBOLS } from '../components/price'
+import Link from 'next/link'
 
 export const getServerSideProps = getGetServerSideProps(SETTINGS)
 
@@ -67,6 +68,7 @@ export default function Settings ({ data: { settings } }) {
             noteInvites: settings?.noteInvites,
             noteJobIndicator: settings?.noteJobIndicator,
             hideInvoiceDesc: settings?.hideInvoiceDesc,
+            hideFromTopUsers: settings?.hideFromTopUsers,
             wildWestMode: settings?.wildWestMode,
             greeterMode: settings?.greeterMode
           }}
@@ -144,6 +146,11 @@ export default function Settings ({ data: { settings } }) {
               </div>
             }
             name='hideInvoiceDesc'
+            groupClassName='mb-0'
+          />
+          <Checkbox
+            label={<>hide me from  <Link href='/top/users' passHref><a>top users</a></Link></>}
+            name='hideFromTopUsers'
           />
           <div className='form-label'>content</div>
           <Checkbox

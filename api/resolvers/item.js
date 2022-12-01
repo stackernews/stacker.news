@@ -126,6 +126,21 @@ export async function filterClause (me, models) {
   return clause
 }
 
+function recentClause (type) {
+  switch (type) {
+    case 'links':
+      return ' AND url IS NOT NULL'
+    case 'discussions':
+      return ' AND url IS NULL AND bio = false AND "pollCost"  IS NULL'
+    case 'polls':
+      return ' AND "pollCost" IS NOT NULL'
+    case 'bios':
+      return ' AND bio = true'
+    default:
+      return ''
+  }
+}
+
 export default {
   Query: {
     itemRepetition: async (parent, { parentId }, { me, models }) => {
@@ -170,7 +185,7 @@ export default {
         comments
       }
     },
-    items: async (parent, { sub, sort, cursor, name, within }, { me, models }) => {
+    items: async (parent, { sub, sort, type, cursor, name, within }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
       let items; let user; let pins; let subFull
 
@@ -212,6 +227,7 @@ export default {
             ${subClause(3)}
             ${activeOrMine()}
             ${await filterClause(me, models)}
+            ${recentClause(type)}
             ORDER BY created_at DESC
             OFFSET $2
             LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, sub || 'NULL')

@@ -185,9 +185,13 @@ export default function JobForm ({ item, sub }) {
         <PromoteJob item={item} sub={sub} storageKeyPrefix={storageKeyPrefix} />
         {item && <StatusControl item={item} />}
         <div className='d-flex align-items-center mt-3'>
-          <ActionTooltip overlayText='1000 sats'>
-            <SubmitButton variant='secondary'>{item ? 'save' : <>post <small> 1000 sats</small></>}</SubmitButton>
-          </ActionTooltip>
+          {item
+            ? <SubmitButton variant='secondary'>save</SubmitButton>
+            : (
+              <ActionTooltip overlayText='1000 sats'>
+                <SubmitButton variant='secondary'>post <small> 1000 sats</small></SubmitButton>
+              </ActionTooltip>
+              )}
         </div>
       </Form>
     </>

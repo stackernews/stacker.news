@@ -62,10 +62,10 @@ const dateFormatter = when => {
     switch (when) {
       case 'week':
       case 'month':
-        return `${('0' + (date.getMonth() % 12 + 1)).slice(-2)}/${date.getDate()}`
+        return `${('0' + (date.getUTCMonth() % 12 + 1)).slice(-2)}/${date.getUTCDate()}`
       case 'year':
       case 'forever':
-        return `${('0' + (date.getMonth() % 12 + 1)).slice(-2)}/${String(date.getFullYear()).slice(-2)}`
+        return `${('0' + (date.getUTCMonth() % 12 + 1)).slice(-2)}/${String(date.getUTCFullYear()).slice(-2)}`
       default:
         return `${date.getHours() % 12 || 12}${date.getHours() >= 12 ? 'pm' : 'am'}`
     }

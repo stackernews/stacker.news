@@ -70,7 +70,11 @@ export default {
       return await models.$queryRaw(
         `${withClause(when)}
         SELECT time, json_build_array(
-          json_build_object('name', 'spenders', 'value', count(DISTINCT "userId"))
+          json_build_object('name', 'any', 'value', count(DISTINCT "userId")),
+          json_build_object('name', 'jobs', 'value', count(DISTINCT "userId") FILTER (WHERE act = 'STREAM')),
+          json_build_object('name', 'boost', 'value', count(DISTINCT "userId") FILTER (WHERE act = 'BOOST')),
+          json_build_object('name', 'fees', 'value', count(DISTINCT "userId") FILTER (WHERE act = 'FEE')),
+          json_build_object('name', 'tips', 'value', count(DISTINCT "userId") FILTER (WHERE act = 'TIP'))
         ) AS data
         FROM times
         LEFT JOIN "ItemAct" ON ${intervalClause(when, 'ItemAct', true)} time = date_trunc('${timeUnit(when)}', created_at)
@@ -109,16 +113,19 @@ export default {
       return await models.$queryRaw(
         `${withClause(when)}
         SELECT time, json_build_array(
-          json_build_object('name', 'stackers', 'value', count(distinct user_id))
+          json_build_object('name', 'any', 'value', count(distinct user_id)),
+          json_build_object('name', 'posts', 'value', count(distinct user_id) FILTER (WHERE type = 'POST')),
+          json_build_object('name', 'comments', 'value', count(distinct user_id) FILTER (WHERE type = 'COMMENT')),
+          json_build_object('name', 'rewards', 'value', count(distinct user_id) FILTER (WHERE type = 'EARN'))
         ) AS data
         FROM times
         LEFT JOIN
-        ((SELECT "ItemAct".created_at, "Item"."userId" as user_id
+        ((SELECT "ItemAct".created_at, "Item"."userId" as user_id, CASE WHEN "Item"."parentId" IS NULL THEN 'POST' ELSE 'COMMENT' END as type
           FROM "ItemAct"
           JOIN "Item" on "ItemAct"."itemId" = "Item".id
           WHERE ${intervalClause(when, 'ItemAct', true)} "ItemAct".act = 'TIP')
         UNION ALL
-        (SELECT created_at, "userId" as user_id
+        (SELECT created_at, "userId" as user_id, 'EARN' as type
           FROM "Earn"
           WHERE ${intervalClause(when, 'Earn', false)})) u ON time = date_trunc('${timeUnit(when)}', u.created_at)
         GROUP BY time

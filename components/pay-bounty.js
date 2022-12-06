@@ -65,7 +65,7 @@ export default function PayBounty({ children, item, bounty }) {
         act({ variables: { id: item.id, sats: bounty } })
     }
 
-    if (item.root.user.name !== me.name || item.mine) {
+    if (!me || item.root.user.name !== me.name || item.mine) {
         return null
     }
 

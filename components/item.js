@@ -9,6 +9,9 @@ import Pin from '../svgs/pushpin-fill.svg'
 import reactStringReplace from 'react-string-replace'
 import Toc from './table-of-contents'
 import PollIcon from '../svgs/bar-chart-horizontal-fill.svg'
+import LightningIcon from '../svgs/bitcoin.svg'
+import ActionTooltip from './action-tooltip'
+import {useMe} from "./me"
 import PastBounties from './past-bounties'
 import { Badge } from 'react-bootstrap'
 import { newComments } from '../lib/new-comments'
@@ -38,6 +41,8 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
   const [wrap, setWrap] = useState(false)
   const titleRef = useRef()
   const [hasNewComments, setHasNewComments] = useState(false)
+  const me = useMe()
+  const fwd2me = me && me?.id === item?.fwdUser?.id
 
   useEffect(() => {
     setWrap(
@@ -66,6 +71,12 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
               <a ref={titleRef} className={`${styles.title} text-reset mr-2`}>
                 {item.searchTitle ? <SearchTitle title={item.searchTitle} /> : item.title}
                 {item.pollCost && <span> <PollIcon className='fill-grey vertical-align-baseline' height={14} width={14} /></span>}
+                {item.bounty > 0 && 
+                  <span>  
+                    <ActionTooltip notForm disable={item?.mine || fwd2me} overlayText={`${item.bounty} ${item.bountyPaid ? 'sats paid' : 'sats'}`}>
+                      <LightningIcon className={item.bountyPaid ? 'fill-success vertical-align-baseline' : 'fill-grey vertical-align-baseline'} height={14} width={14} /> 
+                    </ActionTooltip>
+                  </span>}
               </a>
             </Link>
             {item.url &&
@@ -90,12 +101,6 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
                 <span>{item.boost} boost</span>
                 <span> \ </span>
               </>}
-              {item.bounty > 0 && (
-              <>
-                <span className={styles.bountyTag}>{item.bounty} bounty {item.bountyPaid ? 'PAID' : null}</span>
-                <span> \ </span>
-              </>
-            )}
             <Link href={`/items/${item.id}`} passHref>
               <a title={`${item.commentSats} sats`} className='text-reset'>
                 {item.ncomments} comments

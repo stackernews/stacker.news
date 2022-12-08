@@ -140,7 +140,8 @@ const COLORS = [
   'var(--info)',
   'var(--success)',
   'var(--boost)',
-  'var(--theme-grey)'
+  'var(--theme-grey)',
+  'var(--danger)'
 ]
 
 function GrowthAreaChart ({ data }) {

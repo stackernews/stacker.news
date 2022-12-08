@@ -68,10 +68,20 @@ model User {
   Earn     Earn[]
   Upload   Upload[]   @relation(name: "Uploads")
   PollVote PollVote[]
+  Donation Donation[]
 
   @@index([createdAt])
   @@index([inviteId])
   @@map(name: "users")
+}
+
+model Donation {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map(name: "created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map(name: "updated_at")
+  sats      Int
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
 }
 
 model Upload {

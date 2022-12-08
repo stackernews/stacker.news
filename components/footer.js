@@ -152,6 +152,13 @@ export default function Footer ({ noLinks }) {
                 <LnIcon onClick={toggleLightning} width={24} height={24} className='ml-2 fill-grey theme' />
               </div>}
             <div className='mb-0' style={{ fontWeight: 500 }}>
+              <Link href='/rewards' passHref>
+                <a className='nav-link p-0 d-inline-flex'>
+                  rewards
+                </a>
+              </Link>
+            </div>
+            <div className='mb-0' style={{ fontWeight: 500 }}>
               <OverlayTrigger trigger='click' placement='top' overlay={AnalyticsPopover} rootClose>
                 <div className='nav-link p-0 d-inline-flex' style={{ cursor: 'pointer' }}>
                   analytics

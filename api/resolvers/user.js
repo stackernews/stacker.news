@@ -93,12 +93,20 @@ export default {
       let users
       if (sort === 'spent') {
         users = await models.$queryRaw(`
-          SELECT users.*, floor(sum("ItemAct".msats)/1000) as spent
-          FROM "ItemAct"
-          JOIN users on "ItemAct"."userId" = users.id
-          WHERE "ItemAct".created_at <= $1
+          SELECT users.*, sum(sats_spent) as spent
+          FROM
+          ((SELECT "userId", floor(sum("ItemAct".msats)/1000) as sats_spent
+            FROM "ItemAct"
+            WHERE "ItemAct".created_at <= $1
+            ${within('ItemAct', when)}
+            GROUP BY "userId")
+            UNION ALL
+          (SELECT "userId", sats as sats_spent
+            FROM "Donation"
+            WHERE created_at <= $1
+            ${within('Donation', when)})) spending
+          JOIN users on spending."userId" = users.id
           AND NOT users."hideFromTopUsers"
-          ${within('ItemAct', when)}
           GROUP BY users.id, users.name
           ORDER BY spent DESC NULLS LAST, users.created_at DESC
           OFFSET $2

@@ -10,6 +10,7 @@ import invite from './invite'
 import sub from './sub'
 import upload from './upload'
 import growth from './growth'
+import rewards from './rewards'
 
 const link = gql`
   type Query {
@@ -26,4 +27,4 @@ const link = gql`
 `
 
 export default [link, user, item, message, wallet, lnurl, notifications, invite,
-  sub, upload, growth]
+  sub, upload, growth, rewards]

@@ -122,6 +122,13 @@ export default {
           WHERE "ItemAct"."userId" = $1
           AND "ItemAct".created_at <= $2
           GROUP BY "Item".id)`)
+        queries.push(
+            `(SELECT ('donation' || "Donation".id) as id, "Donation".id as "factId", NULL as bolt11,
+            created_at as "createdAt", sats * 1000 as msats,
+            0 as "msatsFee", NULL as status, 'donation' as type
+            FROM "Donation"
+            WHERE "userId" = $1
+            AND created_at <= $2)`)
       }
 
       if (queries.length === 0) {
@@ -155,6 +162,9 @@ export default {
             f.msats = (-1 * f.msats) - f.msatsFee
             break
           case 'spent':
+            f.msats *= -1
+            break
+          case 'donation':
             f.msats *= -1
             break
           default:

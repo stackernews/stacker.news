@@ -9,7 +9,8 @@ import sub from './sub'
 import upload from './upload'
 import growth from './growth'
 import search from './search'
+import rewards from './rewards'
 import { GraphQLJSONObject } from 'graphql-type-json'
 
 export default [user, item, message, wallet, lnurl, notifications, invite, sub,
-  upload, growth, search, { JSONObject: GraphQLJSONObject }]
+  upload, growth, search, rewards, { JSONObject: GraphQLJSONObject }]

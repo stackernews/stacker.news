@@ -74,10 +74,18 @@ export default {
           json_build_object('name', 'jobs', 'value', count(DISTINCT "userId") FILTER (WHERE act = 'STREAM')),
           json_build_object('name', 'boost', 'value', count(DISTINCT "userId") FILTER (WHERE act = 'BOOST')),
           json_build_object('name', 'fees', 'value', count(DISTINCT "userId") FILTER (WHERE act = 'FEE')),
-          json_build_object('name', 'tips', 'value', count(DISTINCT "userId") FILTER (WHERE act = 'TIP'))
+          json_build_object('name', 'tips', 'value', count(DISTINCT "userId") FILTER (WHERE act = 'TIP')),
+          json_build_object('name', 'donation', 'value', count(DISTINCT "userId") FILTER (WHERE act = 'DONATION'))
         ) AS data
         FROM times
-        LEFT JOIN "ItemAct" ON ${intervalClause(when, 'ItemAct', true)} time = date_trunc('${timeUnit(when)}', created_at)
+        LEFT JOIN
+        ((SELECT "ItemAct".created_at, "userId", act::text as act
+          FROM "ItemAct"
+          WHERE ${intervalClause(when, 'ItemAct', false)})
+        UNION ALL
+        (SELECT created_at, "userId", 'DONATION' as act
+          FROM "Donation"
+          WHERE ${intervalClause(when, 'Donation', false)})) u ON time = date_trunc('${timeUnit(when)}', u.created_at)
         GROUP BY time
         ORDER BY time ASC`)
     },
@@ -98,14 +106,21 @@ export default {
       return await models.$queryRaw(
         `${withClause(when)}
         SELECT time, json_build_array(
-          json_build_object('name', 'jobs', 'value', coalesce(floor(sum(CASE WHEN act = 'STREAM' THEN "ItemAct".msats ELSE 0 END)/1000),0)),
-          json_build_object('name', 'boost', 'value', coalesce(floor(sum(CASE WHEN act = 'BOOST' THEN "ItemAct".msats ELSE 0 END)/1000),0)),
-          json_build_object('name', 'fees', 'value', coalesce(floor(sum(CASE WHEN act NOT IN ('BOOST', 'TIP', 'STREAM') THEN "ItemAct".msats ELSE 0 END)/1000),0)),
-          json_build_object('name', 'tips', 'value', coalesce(floor(sum(CASE WHEN act = 'TIP' THEN "ItemAct".msats ELSE 0 END)/1000),0))
+          json_build_object('name', 'jobs', 'value', coalesce(floor(sum(CASE WHEN act = 'STREAM' THEN msats ELSE 0 END)/1000),0)),
+          json_build_object('name', 'boost', 'value', coalesce(floor(sum(CASE WHEN act = 'BOOST' THEN msats ELSE 0 END)/1000),0)),
+          json_build_object('name', 'fees', 'value', coalesce(floor(sum(CASE WHEN act NOT IN ('BOOST', 'TIP', 'STREAM', 'DONATION') THEN msats ELSE 0 END)/1000),0)),
+          json_build_object('name', 'tips', 'value', coalesce(floor(sum(CASE WHEN act = 'TIP' THEN msats ELSE 0 END)/1000),0)),
+          json_build_object('name', 'donations', 'value', coalesce(floor(sum(CASE WHEN act = 'DONATION' THEN msats ELSE 0 END)/1000),0))
         ) AS data
         FROM times
-        LEFT JOIN "ItemAct" ON ${intervalClause(when, 'ItemAct', true)} time = date_trunc('${timeUnit(when)}', created_at)
-        JOIN "Item" ON "ItemAct"."itemId" = "Item".id
+        LEFT JOIN
+        ((SELECT "ItemAct".created_at, msats, act::text as act
+          FROM "ItemAct"
+          WHERE ${intervalClause(when, 'ItemAct', false)})
+        UNION ALL
+        (SELECT created_at, sats * 1000 as msats, 'DONATION' as act
+          FROM "Donation"
+          WHERE ${intervalClause(when, 'Donation', false)})) u ON time = date_trunc('${timeUnit(when)}', u.created_at)
         GROUP BY time
         ORDER BY time ASC`)
     },

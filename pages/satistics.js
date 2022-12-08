@@ -98,6 +98,16 @@ function Detail ({ fact }) {
       </>
     )
   }
+  if (fact.type === 'donation') {
+    return (
+      <>
+        <div className={satusClass(fact.status)}>
+          You made a donation to daily rewards!
+        </div>
+      </>
+    )
+  }
+
   if (!fact.item) {
     return (
       <>
@@ -145,6 +155,7 @@ export default function Satistics ({ data: { me, walletHistory: { facts, cursor 
       case 'invoice':
         return `/${fact.type}s/${fact.factId}`
       case 'earn':
+      case 'donation':
         return
       default:
         return `/items/${fact.factId}`

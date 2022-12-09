@@ -81,8 +81,8 @@ a.link:visited {
     line-height: 1.06rem;
 }
 
-.bountyTag {
-  color: lightgreen;
+.bountyIcon {
+    margin-bottom: 2px;
 }
 
 /* .itemJob .hunk {

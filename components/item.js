@@ -9,7 +9,7 @@ import Pin from '../svgs/pushpin-fill.svg'
 import reactStringReplace from 'react-string-replace'
 import Toc from './table-of-contents'
 import PollIcon from '../svgs/bar-chart-horizontal-fill.svg'
-import LightningIcon from '../svgs/bitcoin.svg'
+import BountyIcon from '../svgs/bounty-bag.svg'
 import ActionTooltip from './action-tooltip'
 import {useMe} from "./me"
 import PastBounties from './past-bounties'
@@ -50,6 +50,7 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
         titleRef.current.clientHeight)
   }, [])
 
+
   useEffect(() => {
     // if we are showing toc, then this is a full item
     setHasNewComments(!toc && newComments(item))
@@ -72,9 +73,9 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
                 {item.searchTitle ? <SearchTitle title={item.searchTitle} /> : item.title}
                 {item.pollCost && <span> <PollIcon className='fill-grey vertical-align-baseline' height={14} width={14} /></span>}
                 {item.bounty > 0 && 
-                  <span>  
-                    <ActionTooltip notForm disable={item?.mine || fwd2me} overlayText={`${item.bounty} ${item.bountyPaid ? 'sats paid' : 'sats'}`}>
-                      <LightningIcon className={item.bountyPaid ? 'fill-success vertical-align-baseline' : 'fill-grey vertical-align-baseline'} height={14} width={14} /> 
+                  <span>{'   '}
+                    <ActionTooltip notForm disable={item?.mine || fwd2me} overlayText={`${item.bounty} ${item.bountyPaid ? 'sats paid' : 'sats bounty'}`}>
+                      <BountyIcon className={`${styles.bountyIcon} ${item.bountyPaid ? 'fill-success vertical-align-middle' : 'fill-secondary vertical-align-middle'}`} height={16} width={16} /> 
                     </ActionTooltip>
                   </span>}
               </a>

@@ -35,7 +35,6 @@ model User {
   freeComments    Int         @default(5)
   freePosts       Int         @default(2)
   checkedNotesAt  DateTime?
-  tipDefault      Int         @default(10)
   fiatCurrency    String      @default("USD")
   pubkey          String?     @unique
   trust           Float       @default(0)
@@ -47,6 +46,10 @@ model User {
 
   upvotePopover Boolean @default(false)
   tipPopover    Boolean @default(false)
+
+  // tip settings
+  tipDefault   Int     @default(10)
+  turboTipping Boolean @default(false)
 
   // notification settings
   noteItemSats       Boolean @default(true)

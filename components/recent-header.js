@@ -1,35 +1,25 @@
-import { Nav, Navbar } from 'react-bootstrap'
-import styles from './header.module.css'
-import Link from 'next/link'
+import { Form, Select } from './form'
+import { useRouter } from 'next/router'
 
-export default function RecentHeader ({ itemType }) {
+export default function RecentHeader ({ type }) {
+  const router = useRouter()
+
   return (
-    <Navbar className='pt-0'>
-      <Nav
-        className={`${styles.navbarNav} justify-content-around`}
-        activeKey={itemType}
-      >
-        <Nav.Item>
-          <Link href='/recent' passHref>
-            <Nav.Link
-              eventKey='posts'
-              className={styles.navLink}
-            >
-              posts
-            </Nav.Link>
-          </Link>
-        </Nav.Item>
-        <Nav.Item>
-          <Link href='/recent/comments' passHref>
-            <Nav.Link
-              eventKey='comments'
-              className={styles.navLink}
-            >
-              comments
-            </Nav.Link>
-          </Link>
-        </Nav.Item>
-      </Nav>
-    </Navbar>
+    <Form
+      initial={{
+        type: router.query.type || type || 'posts'
+      }}
+    >
+      <div className='text-muted font-weight-bold mt-1 mb-3 d-flex justify-content-end align-items-center'>
+        <Select
+          groupClassName='mb-0 ml-2'
+          className='w-auto'
+          name='type'
+          size='sm'
+          items={['posts', 'comments', 'links', 'discussions', 'polls', 'bios']}
+          onChange={(formik, e) => router.push(e.target.value === 'posts' ? '/recent' : `/recent/${e.target.value}`)}
+        />
+      </div>
+    </Form>
   )
 }

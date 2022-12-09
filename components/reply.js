@@ -25,7 +25,6 @@ export function ReplyOnAnotherPage ({ parentId }) {
 export default function Reply ({ item, onSuccess, replyOpen }) {
   const [reply, setReply] = useState(replyOpen)
   const me = useMe()
-  const [hasImgLink, setHasImgLink] = useState()
   const parentId = item.id
 
   useEffect(() => {
@@ -104,7 +103,6 @@ export default function Reply ({ item, onSuccess, replyOpen }) {
             }
             resetForm({ text: '' })
             setReply(replyOpen || false)
-            setHasImgLink(false)
           }}
           storageKeyPrefix={'reply-' + parentId}
         >
@@ -114,13 +112,12 @@ export default function Reply ({ item, onSuccess, replyOpen }) {
             minRows={6}
             autoFocus={!replyOpen}
             required
-            setHasImgLink={setHasImgLink}
-            hint={me?.freeComments ? <span className='text-success'>{me.freeComments} free comments left</span> : null}
+            hint={me?.freeComments && me?.sats < 1 ? <span className='text-success'>{me.freeComments} free comments left</span> : null}
           />
           {reply &&
             <div className='mt-1'>
               <FeeButton
-                baseFee={1} hasImgLink={hasImgLink} parentId={parentId} text='reply'
+                baseFee={1} parentId={parentId} text='reply'
                 ChildButton={SubmitButton} variant='secondary' alwaysShow
               />
             </div>}

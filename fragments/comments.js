@@ -14,10 +14,12 @@ export const COMMENT_FIELDS = gql`
     upvotes
     boost
     meSats
+    meDontLike
+    outlawed
+    freebie
     path
     commentSats
     mine
-    paidImgLink
     ncomments
     root {
       id
@@ -36,6 +38,19 @@ export const MORE_FLAT_COMMENTS = gql`
 
   query MoreFlatComments($sort: String!, $cursor: String, $name: String, $within: String) {
     moreFlatComments(sort: $sort, cursor: $cursor, name: $name, within: $within) {
+      cursor
+      comments {
+        ...CommentFields
+      }
+    }
+  }
+`
+
+export const TOP_COMMENTS = gql`
+  ${COMMENT_FIELDS}
+
+  query topComments($sort: String, $cursor: String, $when: String = "day") {
+    topComments(sort: $sort, cursor: $cursor, when: $when) {
       cursor
       comments {
         ...CommentFields

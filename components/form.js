@@ -6,7 +6,7 @@ import { Formik, Form as FormikForm, useFormikContext, useField, FieldArray } fr
 import React, { useEffect, useRef, useState } from 'react'
 import copy from 'clipboard-copy'
 import Thumb from '../svgs/thumb-up-fill.svg'
-import { Col, Dropdown, Nav } from 'react-bootstrap'
+import { Col, Dropdown as BootstrapDropdown, Nav } from 'react-bootstrap'
 import Markdown from '../svgs/markdown-line.svg'
 import styles from './form.module.css'
 import Text from '../components/text'
@@ -193,10 +193,13 @@ function InputInner ({
             {(clear && field.value) &&
               <Button
                 variant={null}
-                onClick={() => {
+                onClick={(e) => {
                   helpers.setValue('')
                   if (storageKey) {
                     localStorage.removeItem(storageKey)
+                  }
+                  if (onChange) {
+                    onChange(formik, { target: { value: '' } })
                   }
                 }}
                 className={`${styles.clearButton} ${invalid ? styles.isInvalid : ''}`}
@@ -235,7 +238,7 @@ export function InputUserSuggest ({ label, groupClassName, ...props }) {
       <InputInner
         {...props}
         autoComplete='off'
-        onChange={(_, e) => getSuggestions({ variables: { name: e.target.value } })}
+        onChange={(_, e) => getSuggestions({ variables: { q: e.target.value } })}
         overrideValue={ovalue}
         onKeyDown={(e) => {
           switch (e.code) {
@@ -269,10 +272,10 @@ export function InputUserSuggest ({ label, groupClassName, ...props }) {
           }
         }}
       />
-      <Dropdown show={suggestions.array.length > 0}>
-        <Dropdown.Menu className={styles.suggestionsMenu}>
+      <BootstrapDropdown show={suggestions.array.length > 0}>
+        <BootstrapDropdown.Menu className={styles.suggestionsMenu}>
           {suggestions.array.map((v, i) =>
-            <Dropdown.Item
+            <BootstrapDropdown.Item
               key={v.name}
               active={suggestions.index === i}
               onClick={() => {
@@ -281,9 +284,9 @@ export function InputUserSuggest ({ label, groupClassName, ...props }) {
               }}
             >
               {v.name}
-            </Dropdown.Item>)}
-        </Dropdown.Menu>
-      </Dropdown>
+            </BootstrapDropdown.Item>)}
+        </BootstrapDropdown.Menu>
+      </BootstrapDropdown>
     </FormGroup>
   )
 }
@@ -427,5 +430,29 @@ export function SyncForm ({
         </form>
       )}
     </Formik>
+  )
+}
+
+export function Select ({ label, items, groupClassName, onChange, noForm, ...props }) {
+  const [field] = useField(props)
+  const formik = noForm ? null : useFormikContext()
+
+  return (
+    <FormGroup label={label} className={groupClassName}>
+      <BootstrapForm.Control
+        as='select'
+        {...field} {...props}
+        onChange={(e) => {
+          field.onChange(e)
+
+          if (onChange) {
+            onChange(formik, e)
+          }
+        }}
+        custom
+      >
+        {items.map(item => <option key={item}>{item}</option>)}
+      </BootstrapForm.Control>
+    </FormGroup>
   )
 }

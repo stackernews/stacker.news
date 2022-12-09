@@ -42,17 +42,19 @@ function MyApp ({ Component, pageProps: { session, ...props } }) {
   const client = getApolloClient()
   const router = useRouter()
 
-  useEffect(async () => {
+  useEffect(() => {
     // HACK: 'cause there's no way to tell Next to skip SSR
     // So every page load, we modify the route in browser history
     // to point to the same page but without SSR, ie ?nodata=true
     // this nodata var will get passed to the server on back/foward and
     // 1. prevent data from reloading and 2. perserve scroll
     // (2) is not possible while intercepting nav with beforePopState
-    router.replace({
-      pathname: router.pathname,
-      query: { ...router.query, nodata: true }
-    }, router.asPath, { ...router.options, scroll: false })
+    if (router.isReady) {
+      router.replace({
+        pathname: router.pathname,
+        query: { ...router.query, nodata: true }
+      }, router.asPath, { ...router.options, scroll: false })
+    }
   }, [router.asPath])
 
   /*
@@ -60,7 +62,7 @@ function MyApp ({ Component, pageProps: { session, ...props } }) {
     ssr data
   */
   const { apollo, data, me, price } = props
-  if (typeof window !== 'undefined' && apollo && data) {
+  if (apollo && data) {
     client.writeQuery({
       query: gql`${apollo.query}`,
       data: data,

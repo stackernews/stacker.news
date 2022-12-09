@@ -23,11 +23,19 @@ a.title:visited {
 .newComment {
     color: var(--theme-grey) !important;
     background: var(--theme-clickToContextColor) !important;
+    vertical-align: middle;
 }
 
 .pin {
     fill: #a5a5a5;
     margin-right: .2rem;
+}
+
+.dontLike {
+    fill: #a5a5a5;
+    margin-right: .2rem;
+    padding: 2px;
+    margin-left: 1px;
 }
 
 .case {
@@ -76,7 +84,7 @@ a.link:visited {
 }
 
 .hunk {
-    overflow: hidden;
+    min-width: 0;
     width: 100%;
     line-height: 1.06rem;
 }
@@ -118,6 +126,14 @@ a.link:visited {
 .skeleton .title {
     background-color: var(--theme-grey);
     width: 500px;
+    border-radius: .4rem;
+    height: 17px;
+    margin: 0;
+}
+
+.skeleton .name {
+    background-color: var(--theme-grey);
+    width: 100px;
     border-radius: .4rem;
     height: 17px;
     margin: 0;

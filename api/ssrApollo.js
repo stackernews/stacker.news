@@ -1,6 +1,6 @@
 import { ApolloClient, InMemoryCache } from '@apollo/client'
 import { SchemaLink } from '@apollo/client/link/schema'
-import { mergeSchemas } from 'graphql-tools'
+import { makeExecutableSchema } from 'graphql-tools'
 import { getSession } from 'next-auth/client'
 import resolvers from './resolvers'
 import typeDefs from './typeDefs'
@@ -8,17 +8,17 @@ import models from './models'
 import { print } from 'graphql'
 import lnd from './lnd'
 import search from './search'
-import { ME_SSR } from '../fragments/users'
+import { ME } from '../fragments/users'
 import { getPrice } from '../components/price'
 
 export default async function getSSRApolloClient (req, me = null) {
   const session = req && await getSession({ req })
-  return new ApolloClient({
+  const client = new ApolloClient({
     ssrMode: true,
     link: new SchemaLink({
-      schema: mergeSchemas({
-        schemas: typeDefs,
-        resolvers: resolvers
+      schema: makeExecutableSchema({
+        typeDefs,
+        resolvers
       }),
       context: {
         models,
@@ -31,6 +31,8 @@ export default async function getSSRApolloClient (req, me = null) {
     }),
     cache: new InMemoryCache()
   })
+  await client.clearStore()
+  return client
 }
 
 export function getGetServerSideProps (query, variables = null, notFoundFunc, requireVar) {
@@ -40,10 +42,10 @@ export function getGetServerSideProps (query, variables = null, notFoundFunc, re
     const client = await getSSRApolloClient(req)
 
     const { data: { me } } = await client.query({
-      query: ME_SSR
+      query: ME
     })
 
-    const price = await getPrice()
+    const price = await getPrice(me?.fiatCurrency)
 
     // we want to use client-side cache
     if (nodata && query) {

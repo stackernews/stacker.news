@@ -1,6 +1,6 @@
 import * as Yup from 'yup'
 import Toc from './table-of-contents'
-import { Button, Image } from 'react-bootstrap'
+import { Badge, Button, Image } from 'react-bootstrap'
 import { SearchTitle } from './item'
 import styles from './item.module.css'
 import Link from 'next/link'
@@ -18,7 +18,7 @@ export default function ItemJob ({ item, toc, rank, children }) {
             {rank}
           </div>)
         : <div />}
-      <div className={`${styles.item} ${item.status === 'NOSATS' && !item.mine ? styles.itemDead : ''}`}>
+      <div className={`${styles.item}`}>
         <Link href={`/items/${item.id}`} passHref>
           <a>
             <Image
@@ -38,11 +38,6 @@ export default function ItemJob ({ item, toc, rank, children }) {
             </Link>
           </div>
           <div className={`${styles.other}`}>
-            {item.status === 'NOSATS' &&
-              <>
-                <span>expired</span>
-                {item.company && <span> \ </span>}
-              </>}
             {item.company &&
               <>
                 {item.company}
@@ -64,16 +59,18 @@ export default function ItemJob ({ item, toc, rank, children }) {
               </Link>
             </span>
             {item.mine &&
-              <>
-                <wbr />
-                <span> \ </span>
-                <Link href={`/items/${item.id}/edit`} passHref>
-                  <a className='text-reset'>
-                    edit
-                  </a>
-                </Link>
-                {item.status !== 'ACTIVE' && <span className='font-weight-bold text-danger'> {item.status}</span>}
-              </>}
+              (
+                <>
+                  <wbr />
+                  <span> \ </span>
+                  <Link href={`/items/${item.id}/edit`} passHref>
+                    <a className='text-reset'>
+                      edit
+                    </a>
+                  </Link>
+                  {item.status !== 'ACTIVE' && <span className='ml-1 font-weight-bold text-boost'> {item.status}</span>}
+                </>)}
+            {item.maxBid > 0 && item.status === 'ACTIVE' && <Badge className={`${styles.newComment} ml-1`}>PROMOTED</Badge>}
           </div>
         </div>
         {toc && <Toc text={item.text} />}

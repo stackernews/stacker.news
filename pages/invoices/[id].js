@@ -19,7 +19,10 @@ function LoadInvoice () {
     pollInterval: 1000,
     variables: { id: router.query.id }
   })
-  if (error) return <div>error</div>
+  if (error) {
+    console.log(error)
+    return <div>error</div>
+  }
   if (!data || loading) {
     return <LnQRSkeleton status='loading' />
   }

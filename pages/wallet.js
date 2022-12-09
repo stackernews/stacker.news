@@ -149,18 +149,21 @@ export function WithdrawlForm () {
 
   const [createWithdrawl, { called, error }] = useMutation(CREATE_WITHDRAWL)
 
-  useEffect(async () => {
-    try {
-      const provider = await requestProvider()
-      const { paymentRequest: invoice } = await provider.makeInvoice({
-        defaultMemo: `Withdrawal for @${me.name} on SN`,
-        maximumAmount: Math.max(me.sats - MAX_FEE_DEFAULT, 0)
-      })
-      const { data } = await createWithdrawl({ variables: { invoice, maxFee: MAX_FEE_DEFAULT } })
-      router.push(`/withdrawals/${data.createWithdrawl.id}`)
-    } catch (e) {
-      console.log(e.message)
+  useEffect(() => {
+    async function effect () {
+      try {
+        const provider = await requestProvider()
+        const { paymentRequest: invoice } = await provider.makeInvoice({
+          defaultMemo: `Withdrawal for @${me.name} on SN`,
+          maximumAmount: Math.max(me.sats - MAX_FEE_DEFAULT, 0)
+        })
+        const { data } = await createWithdrawl({ variables: { invoice, maxFee: MAX_FEE_DEFAULT } })
+        router.push(`/withdrawals/${data.createWithdrawl.id}`)
+      } catch (e) {
+        console.log(e.message)
+      }
     }
+    effect()
   }, [])
 
   if (called && !error) {
@@ -228,15 +231,17 @@ function LnQRWith ({ k1, encodedUrl }) {
 
 export function LnWithdrawal () {
   // query for challenge
-  const [createAuth, { data, error }] = useMutation(gql`
-    mutation createAuth {
+  const [createWith, { data, error }] = useMutation(gql`
+    mutation createWith {
       createWith {
         k1
         encodedUrl
       }
     }`)
 
-  useEffect(createAuth, [])
+  useEffect(() => {
+    createWith()
+  }, [])
 
   if (error) return <div>error</div>
 

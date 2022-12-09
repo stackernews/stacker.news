@@ -6,7 +6,6 @@ import TextareaAutosize from 'react-textarea-autosize'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial, AdvPostSchema } from './adv-post-form'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
-import { useState } from 'react'
 import FeeButton, { EditFeeButton } from './fee-button'
 
 export function DiscussionForm ({
@@ -16,7 +15,6 @@ export function DiscussionForm ({
 }) {
   const router = useRouter()
   const client = useApolloClient()
-  const [hasImgLink, setHasImgLink] = useState()
   // const me = useMe()
   const [upsertDiscussion] = useMutation(
     gql`
@@ -77,17 +75,16 @@ export function DiscussionForm ({
         hint={editThreshold
           ? <div className='text-muted font-weight-bold'><Countdown date={editThreshold} /></div>
           : null}
-        setHasImgLink={setHasImgLink}
       />
       {adv && <AdvPostForm edit={!!item} />}
       <div className='mt-3'>
         {item
           ? <EditFeeButton
-              paidSats={item.meSats} hadImgLink={item.paidImgLink} hasImgLink={hasImgLink}
+              paidSats={item.meSats}
               parentId={null} text='save' ChildButton={SubmitButton} variant='secondary'
             />
           : <FeeButton
-              baseFee={1} hasImgLink={hasImgLink} parentId={null} text={buttonText}
+              baseFee={1} parentId={null} text={buttonText}
               ChildButton={SubmitButton} variant='secondary'
             />}
       </div>

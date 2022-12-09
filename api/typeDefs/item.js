@@ -2,28 +2,23 @@ import { gql } from "apollo-server-micro";
 
 export default gql`
   extend type Query {
-    items(
-      sub: String
-      sort: String
-      cursor: String
-      name: String
-      within: String
-    ): Items
-    getBountiesByUser(id: Int!): [Item]
-    moreFlatComments(
-      sort: String!
-      cursor: String
-      name: String
-      within: String
-    ): Comments
+    items(sub: String, sort: String, type: String, cursor: String, name: String, within: String): Items
+    moreFlatComments(sort: String!, cursor: String, name: String, within: String): Comments
     item(id: ID!): Item
     comments(id: ID!, sort: String): [Item!]!
     pageTitle(url: String!): String
     dupes(url: String!): [Item!]
+    related(cursor: String, title: String, id: ID, limit: Int): Items
     allItems(cursor: String): Items
-    search(q: String, sub: String, cursor: String): Items
+    getBountiesByUser(id: Int!): [Item]
+    search(q: String, sub: String, cursor: String, what: String, sort: String, when: String): Items
     auctionPosition(sub: String, id: ID, bid: Int!): Int!
     itemRepetition(parentId: ID): Int!
+    outlawedItems(cursor: String): Items
+    borderlandItems(cursor: String): Items
+    freebieItems(cursor: String): Items
+    topItems(cursor: String, sort: String, when: String): Items
+    topComments(cursor: String, sort: String, when: String): Comments
   }
 
   type ItemActResult {
@@ -77,6 +72,7 @@ export default gql`
     ): Item!
     createComment(text: String!, parentId: ID!): Item!
     updateComment(id: ID!, text: String!): Item!
+    dontLikeThis(id: ID!): Boolean!
     act(id: ID!, sats: Int): ItemActResult!
     pollVote(id: ID!): ID!
   }
@@ -129,7 +125,11 @@ export default gql`
     commentSats: Int!
     lastCommentAt: String
     upvotes: Int!
+    wvotes: Float!
     meSats: Int!
+    meDontLike: Boolean!
+    outlawed: Boolean!
+    freebie: Boolean!
     paidImgLink: Boolean
     ncomments: Int!
     comments: [Item!]!
@@ -137,6 +137,7 @@ export default gql`
     position: Int
     prior: Int
     maxBid: Int
+    isJob: Boolean!
     pollCost: Int
     poll: Poll
     company: String

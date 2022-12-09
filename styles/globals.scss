@@ -154,6 +154,7 @@ a:hover {
   border-bottom-color: var(--theme-inputBg);
 }
 
+select.custom-select,
 .form-control {
   background-color: var(--theme-inputBg);
   color: var(--theme-color);
@@ -217,7 +218,7 @@ a:hover {
   background-color: var(--theme-inputBg);
   border: 1px solid var(--theme-borderColor);
   max-width: 90vw;
-  overflow: scroll;
+  overflow: auto;
 }
 
 .dropdown-item {
@@ -282,7 +283,6 @@ footer {
 @media screen and (max-width: 767px) {
 
   input,
-  select,
   textarea,
   .form-control,
   .form-control:focus,

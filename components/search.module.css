@@ -3,12 +3,15 @@
     bottom: 0;
     left: 0;
     right: 0;
-    height: 88px;
 }
 
 .searchContainer {
     height: 88px;
     position: relative;
+}
+
+.leaveRoom {
+    height: 130px !important;
 }
 
 .searchSection.solid {
@@ -30,18 +33,20 @@
     align-items: center;
     justify-content: center;
     display: flex;
+    left: auto !important;
 }
 
-.active {
+.formActive {
     pointer-events: auto;
     bottom: 18px;
     right: 18px;
+    left: 18px;
     position: absolute;
 }
 
-form.active {
-    left: 18px;
+form>.active {
     display: flex;
+    pointer-events: auto;
     flex-flow: row wrap;
     align-items: center;
 }

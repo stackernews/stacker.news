@@ -11,14 +11,15 @@ import { signOut, signIn } from 'next-auth/client'
 import { useLightning } from './lightning'
 import { useEffect, useState } from 'react'
 import { randInRange } from '../lib/rand'
-import { formatSats } from '../lib/format'
+import { abbrNum } from '../lib/format'
 import NoteIcon from '../svgs/notification-4-fill.svg'
 import { useQuery, gql } from '@apollo/client'
+import LightningIcon from '../svgs/bolt.svg'
 
 function WalletSummary ({ me }) {
   if (!me) return null
 
-  return `${formatSats(me.sats)}`
+  return `${abbrNum(me.sats)}`
 }
 
 export default function Header ({ sub }) {
@@ -34,7 +35,11 @@ export default function Header ({ sub }) {
       subLatestPost(name: $name)
     }
   `, { variables: { name: 'jobs' }, pollInterval: 600000, fetchPolicy: 'network-only' })
-
+  const { data: hasNewNotes } = useQuery(gql`
+    {
+      hasNewNotes
+    }
+  `, { pollInterval: 30000, fetchPolicy: 'cache-and-network' })
   const [lastCheckedJobs, setLastCheckedJobs] = useState(new Date().getTime())
   useEffect(() => {
     if (me) {
@@ -52,12 +57,12 @@ export default function Header ({ sub }) {
       return (
         <div className='d-flex align-items-center'>
           <Head>
-            <link rel='shortcut icon' href={me?.hasNewNotes ? '/favicon-notify.png' : '/favicon.png'} />
+            <link rel='shortcut icon' href={hasNewNotes?.hasNewNotes ? '/favicon-notify.png' : '/favicon.png'} />
           </Head>
           <Link href='/notifications' passHref>
             <Nav.Link eventKey='notifications' className='pl-0 position-relative'>
               <NoteIcon />
-              {me?.hasNewNotes &&
+              {hasNewNotes?.hasNewNotes &&
                 <span className={styles.notification}>
                   <span className='invisible'>{' '}</span>
                 </span>}
@@ -121,11 +126,31 @@ export default function Header ({ sub }) {
       if (!fired) {
         const strike = useLightning()
         useEffect(() => {
-          setTimeout(strike, randInRange(3000, 10000))
-          setFired(true)
-        }, [router.asPath])
+          let isMounted = true
+          if (!localStorage.getItem('striked')) {
+            setTimeout(() => {
+              if (isMounted) {
+                strike()
+                localStorage.setItem('striked', 'yep')
+                setFired(true)
+              }
+            }, randInRange(3000, 10000))
+          }
+          return () => { isMounted = false }
+        }, [])
       }
-      return path !== '/login' && !path.startsWith('/invites') && <Button id='login' onClick={signIn}>login</Button>
+      return path !== '/login' && !path.startsWith('/invites') &&
+        <Button
+          className='align-items-center d-flex pl-2 pr-3'
+          id='login'
+          onClick={() => signIn(null, { callbackUrl: window.location.origin + router.asPath })}
+        >
+          <LightningIcon
+            width={17}
+            height={17}
+            className='mr-1'
+          />login
+        </Button>
     }
   }
 
@@ -142,7 +167,7 @@ export default function Header ({ sub }) {
         </Nav.Item>
         {!prefix &&
           <Nav.Item className={className}>
-            <Link href='/top/posts/week' passHref>
+            <Link href='/top/posts' passHref>
               <Nav.Link eventKey='top' className={styles.navLink}>top</Nav.Link>
             </Link>
           </Nav.Item>}
@@ -218,7 +243,7 @@ const NavItemsStatic = ({ className }) => {
         </Link>
       </Nav.Item>
       <Nav.Item className={className}>
-        <Link href='/top/posts/week' passHref>
+        <Link href='/top/posts' passHref>
           <Nav.Link className={styles.navLink}>top</Nav.Link>
         </Link>
       </Nav.Item>

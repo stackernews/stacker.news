@@ -23,10 +23,14 @@ export const ITEM_FIELDS = gql`
     bountyPaid
     path
     meSats
+    meDontLike
+    outlawed
+    freebie
     ncomments
     commentSats
     lastCommentAt
     maxBid
+    isJob
     company
     location
     remote
@@ -38,7 +42,6 @@ export const ITEM_FIELDS = gql`
     status
     uploadId
     mine
-    paidImgLink
     root {
       id
       title
@@ -55,8 +58,8 @@ export const ITEM_FIELDS = gql`
 export const ITEMS = gql`
   ${ITEM_FIELDS}
 
-  query items($sub: String, $sort: String, $cursor: String, $name: String, $within: String) {
-    items(sub: $sub, sort: $sort, cursor: $cursor, name: $name, within: $within) {
+  query items($sub: String, $sort: String, $type: String, $cursor: String, $name: String, $within: String) {
+    items(sub: $sub, sort: $sort, type: $type, cursor: $cursor, name: $name, within: $within) {
       cursor
       items {
         ...ItemFields
@@ -65,6 +68,62 @@ export const ITEMS = gql`
       pins {
         ...ItemFields
         position
+      }
+    }
+  }`
+
+export const TOP_ITEMS = gql`
+  ${ITEM_FIELDS}
+
+  query topItems($sort: String, $cursor: String, $when: String = "day") {
+    topItems(sort: $sort, cursor: $cursor, when: $when) {
+      cursor
+      items {
+        ...ItemFields
+        position
+      },
+      pins {
+        ...ItemFields
+        position
+      }
+    }
+  }`
+
+export const OUTLAWED_ITEMS = gql`
+  ${ITEM_FIELDS}
+
+  query outlawedItems($cursor: String) {
+    outlawedItems(cursor: $cursor) {
+      cursor
+      items {
+        ...ItemFields
+        text
+      }
+    }
+  }`
+
+export const BORDERLAND_ITEMS = gql`
+  ${ITEM_FIELDS}
+
+  query borderlandItems($cursor: String) {
+    borderlandItems(cursor: $cursor) {
+      cursor
+      items {
+        ...ItemFields
+        text
+      }
+    }
+  }`
+
+export const FREEBIE_ITEMS = gql`
+  ${ITEM_FIELDS}
+
+  query freebieItems($cursor: String) {
+    freebieItems(cursor: $cursor) {
+      cursor
+      items {
+        ...ItemFields
+        text
       }
     }
   }`
@@ -143,14 +202,41 @@ export const BOUNTY_ITEMS_BY_USER = gql`
 
 export const ITEM_SEARCH = gql`
   ${ITEM_FIELDS}
-  query Search($q: String, $cursor: String) {
-    search(q: $q, cursor: $cursor) {
+  query Search($q: String, $cursor: String, $sort: String, $what: String, $when: String) {
+    search(q: $q, cursor: $cursor, sort: $sort, what: $what, when: $when) {
       cursor
       items {
         ...ItemFields
         text
         searchTitle
         searchText
+      }
+    }
+  }
+`
+
+export const RELATED_ITEMS = gql`
+  ${ITEM_FIELDS}
+  query Related($title: String, $id: ID, $cursor: String, $limit: Int) {
+    related(title: $title, id: $id, cursor: $cursor, limit: $limit) {
+      cursor
+      items {
+        ...ItemFields
+      }
+    }
+  }
+`
+
+export const RELATED_ITEMS_WITH_ITEM = gql`
+  ${ITEM_FIELDS}
+  query Related($title: String, $id: ID, $cursor: String, $limit: Int) {
+    item(id: $id) {
+      ...ItemFields
+    }
+    related(title: $title, id: $id, cursor: $cursor, limit: $limit) {
+      cursor
+      items {
+        ...ItemFields
       }
     }
   }

@@ -12,6 +12,10 @@ function trust ({ boss, models }) {
 // only explore a path up to this depth from start
 const MAX_DEPTH = 6
 const MAX_TRUST = 0.9
+const MIN_SUCCESS = 5
+// increasing disgree_mult increases distrust when there's disagreement, at 1x we double count disagreement,
+// at 2x we triple count, etc ... this count is reflected/added in the number of total "trials" between users
+const DISAGREE_MULT = 1
 // https://en.wikipedia.org/wiki/Normal_distribution#Quantile_function
 const Z_CONFIDENCE = 2.326347874041 // 98% confidence
 
@@ -162,39 +166,72 @@ function trustGivenGraph (graph, start) {
 //   return graph
 // }
 
-// upvote confidence graph
+// old upvote confidence graph
+// async function getGraph (models) {
+//   const [{ graph }] = await models.$queryRaw`
+//     select json_object_agg(id, hops) as graph
+//       from (
+//         select id, json_agg(json_build_object('node', oid, 'trust', trust)) as hops
+//           from (
+//             select s.id, s.oid, confidence(s.shared, count(*), ${Z_CONFIDENCE}) as trust
+//             from (
+//               select a."userId" as id, b."userId" as oid, count(*) as shared
+//               from "ItemAct" b
+//               join users bu on bu.id = b."userId"
+//               join "ItemAct" a on b."itemId" = a."itemId"
+//               join users au on au.id = a."userId"
+//               join "Item" on "Item".id = b."itemId"
+//               where b.act = 'VOTE'
+//               and a.act = 'VOTE'
+//               and "Item"."parentId" is null
+//               and "Item"."userId" <> b."userId"
+//               and "Item"."userId" <> a."userId"
+//               and b."userId" <> a."userId"
+//               and "Item".created_at >= au.created_at and "Item".created_at >= bu.created_at
+//               group by b."userId", a."userId") s
+//             join users u on s.id = u.id
+//             join users ou on s.oid = ou.id
+//             join "ItemAct" on "ItemAct"."userId" = s.oid
+//             join "Item" on "Item".id = "ItemAct"."itemId"
+//             where "ItemAct".act = 'VOTE' and "Item"."parentId" is null
+//             and "Item"."userId" <> s.oid and "Item"."userId" <> s.id
+//             and "Item".created_at >= u.created_at and "Item".created_at >= ou.created_at
+//             group by s.id, s.oid, s.shared
+//         ) a
+//         group by id
+//     ) b`
+//   return graph
+// }
+
 async function getGraph (models) {
   const [{ graph }] = await models.$queryRaw`
-    select json_object_agg(id, hops) as graph
-      from (
-        select id, json_agg(json_build_object('node', oid, 'trust', trust)) as hops
-          from (
-            select s.id, s.oid, confidence(s.shared, count(*), ${Z_CONFIDENCE}) as trust
-            from (
-              select a."userId" as id, b."userId" as oid, count(*) as shared
-              from "ItemAct" b
-              join users bu on bu.id = b."userId"
-              join "ItemAct" a on b."itemId" = a."itemId"
-              join users au on au.id = a."userId"
-              join "Item" on "Item".id = b."itemId"
-              where b.act = 'VOTE'
-              and a.act = 'VOTE'
-              and "Item"."parentId" is null
-              and "Item"."userId" <> b."userId"
-              and "Item"."userId" <> a."userId"
-              and b."userId" <> a."userId"
-              and "Item".created_at >= au.created_at and "Item".created_at >= bu.created_at
-              group by b."userId", a."userId") s
-            join users u on s.id = u.id
-            join users ou on s.oid = ou.id
-            join "ItemAct" on "ItemAct"."userId" = s.oid
-            join "Item" on "Item".id = "ItemAct"."itemId"
-            where "ItemAct".act = 'VOTE' and "Item"."parentId" is null
-            and "Item"."userId" <> s.oid and "Item"."userId" <> s.id
-            and "Item".created_at >= u.created_at and "Item".created_at >= ou.created_at
-            group by s.id, s.oid, s.shared
+    SELECT json_object_agg(id, hops) AS graph
+      FROM (
+        SELECT id, json_agg(json_build_object('node', oid, 'trust', trust)) AS hops
+        FROM (
+          WITH user_votes AS (
+            SELECT "ItemAct"."userId" AS user_id, users.name AS name, "ItemAct"."itemId" AS item_id, min("ItemAct".created_at) AS act_at,
+                users.created_at AS user_at, "ItemAct".act = 'DONT_LIKE_THIS' AS against, count(*) OVER (partition by "ItemAct"."userId") AS user_vote_count
+            FROM "ItemAct"
+            JOIN "Item" ON "Item".id = "ItemAct"."itemId" AND "ItemAct".act IN ('FEE', 'TIP', 'DONT_LIKE_THIS') AND "Item"."parentId" IS NULL
+            JOIN users ON "ItemAct"."userId" = users.id
+            GROUP BY user_id, name, item_id, user_at, against
+          ),
+          user_pair AS (
+            SELECT a.user_id AS a_id, a.name AS a_name, b.user_id AS b_id, b.name AS b_name,
+                count(*) FILTER(WHERE a.act_at > b.act_at AND a.against = b.against) AS before,
+                count(*) FILTER(WHERE b.act_at > a.act_at AND a.against = b.against) AS after,
+                count(*) FILTER(WHERE a.against <> b.against)*${DISAGREE_MULT} AS disagree,
+                CASE WHEN b.user_at > a.user_at THEN b.user_vote_count ELSE a.user_vote_count END AS total
+            FROM user_votes a
+            JOIN user_votes b ON a.item_id = b.item_id
+            GROUP BY a.user_id, a.name, a.user_at, a.user_vote_count, b.user_id, b.name, b.user_at, b.user_vote_count
+          )
+          SELECT a_id AS id, a_name, b_id AS oid, b_name, confidence(before, total + disagree - after, ${Z_CONFIDENCE}) AS trust, before, after, disagree, total
+          FROM user_pair
+          WHERE before >= ${MIN_SUCCESS}
         ) a
-        group by id
+        GROUP BY a.id
     ) b`
   return graph
 }

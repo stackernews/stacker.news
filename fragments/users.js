@@ -11,34 +11,8 @@ export const ME = gql`
       stacked
       freePosts
       freeComments
-      hasNewNotes
       tipDefault
-      bioId
-      hasInvites
-      upvotePopover
-      tipPopover
-      noteItemSats
-      noteEarning
-      noteAllDescendants
-      noteMentions
-      noteDeposits
-      noteInvites
-      noteJobIndicator
-      hideInvoiceDesc
-      lastCheckedJobs
-    }
-  }`
-
-export const ME_SSR = gql`
-  {
-    me {
-      id
-      name
-      sats
-      stacked
-      freePosts
-      freeComments
-      tipDefault
+      fiatCurrency
       bioId
       upvotePopover
       tipPopover
@@ -50,6 +24,9 @@ export const ME_SSR = gql`
       noteInvites
       noteJobIndicator
       hideInvoiceDesc
+      hideFromTopUsers
+      wildWestMode
+      greeterMode
       lastCheckedJobs
     }
   }`
@@ -57,6 +34,7 @@ export const ME_SSR = gql`
 export const SETTINGS_FIELDS = gql`
   fragment SettingsFields on User {
     tipDefault
+    fiatCurrency
     noteItemSats
     noteEarning
     noteAllDescendants
@@ -65,6 +43,9 @@ export const SETTINGS_FIELDS = gql`
     noteInvites
     noteJobIndicator
     hideInvoiceDesc
+    hideFromTopUsers
+    wildWestMode
+    greeterMode
     authMethods {
       lightning
       email
@@ -84,13 +65,15 @@ ${SETTINGS_FIELDS}
 export const SET_SETTINGS =
 gql`
 ${SETTINGS_FIELDS}
-mutation setSettings($tipDefault: Int!, $noteItemSats: Boolean!, $noteEarning: Boolean!,
+mutation setSettings($tipDefault: Int!, $fiatCurrency: String!, $noteItemSats: Boolean!, $noteEarning: Boolean!,
   $noteAllDescendants: Boolean!, $noteMentions: Boolean!, $noteDeposits: Boolean!,
-  $noteInvites: Boolean!, $noteJobIndicator: Boolean!, $hideInvoiceDesc: Boolean!) {
-  setSettings(tipDefault: $tipDefault, noteItemSats: $noteItemSats,
+  $noteInvites: Boolean!, $noteJobIndicator: Boolean!, $hideInvoiceDesc: Boolean!, $hideFromTopUsers: Boolean!,
+  $wildWestMode: Boolean!, $greeterMode: Boolean!) {
+  setSettings(tipDefault: $tipDefault, fiatCurrency: $fiatCurrency, noteItemSats: $noteItemSats,
     noteEarning: $noteEarning, noteAllDescendants: $noteAllDescendants,
     noteMentions: $noteMentions, noteDeposits: $noteDeposits, noteInvites: $noteInvites,
-    noteJobIndicator: $noteJobIndicator, hideInvoiceDesc: $hideInvoiceDesc) {
+    noteJobIndicator: $noteJobIndicator, hideInvoiceDesc: $hideInvoiceDesc, hideFromTopUsers: $hideFromTopUsers,
+    wildWestMode: $wildWestMode, greeterMode: $greeterMode) {
       ...SettingsFields
     }
   }
@@ -112,9 +95,14 @@ gql`
 
 export const USER_SEARCH =
 gql`
-  query searchUsers($name: String!) {
-    searchUsers(name: $name) {
+  query searchUsers($q: String!, $limit: Int, $similarity: Float) {
+    searchUsers(q: $q, limit: $limit, similarity: $similarity) {
       name
+      photoId
+      stacked
+      spent
+      ncomments
+      nitems
     }
   }`
 
@@ -136,11 +124,15 @@ export const USER_FIELDS = gql`
   }`
 
 export const TOP_USERS = gql`
-  query TopUsers($cursor: String, $within: String!, $userType: String!) {
-    topUsers(cursor: $cursor, within: $within, userType: $userType) {
+  query TopUsers($cursor: String, $when: String = "day", $sort: String) {
+    topUsers(cursor: $cursor, when: $when, sort: $sort) {
       users {
         name
-        amount
+        photoId
+        stacked(when: $when)
+        spent(when: $when)
+        ncomments(when: $when)
+        nitems(when: $when)
       }
       cursor
     }

@@ -1,4 +1,4 @@
-import { Checkbox, Form, Input, SubmitButton } from '../components/form'
+import { Checkbox, Form, Input, SubmitButton, Select } from '../components/form'
 import * as Yup from 'yup'
 import { Alert, Button, InputGroup, Modal } from 'react-bootstrap'
 import LayoutCenter from '../components/layout-center'
@@ -12,12 +12,17 @@ import { LightningAuth } from '../components/lightning-auth'
 import { SETTINGS, SET_SETTINGS } from '../fragments/users'
 import { useRouter } from 'next/router'
 import Info from '../components/info'
+import { CURRENCY_SYMBOLS } from '../components/price'
+import Link from 'next/link'
 
 export const getServerSideProps = getGetServerSideProps(SETTINGS)
 
+const supportedCurrencies = Object.keys(CURRENCY_SYMBOLS)
+
 export const SettingsSchema = Yup.object({
   tipDefault: Yup.number().typeError('must be a number').required('required')
-    .positive('must be positive').integer('must be whole')
+    .positive('must be positive').integer('must be whole'),
+  fiatCurrency: Yup.string().required('required').oneOf(supportedCurrencies)
 })
 
 const warningMessage = 'If I logout, even accidentally, I will never be able to access my account again'
@@ -54,6 +59,7 @@ export default function Settings ({ data: { settings } }) {
         <Form
           initial={{
             tipDefault: settings?.tipDefault || 21,
+            fiatCurrency: settings?.fiatCurrency || 'USD',
             noteItemSats: settings?.noteItemSats,
             noteEarning: settings?.noteEarning,
             noteAllDescendants: settings?.noteAllDescendants,
@@ -61,7 +67,10 @@ export default function Settings ({ data: { settings } }) {
             noteDeposits: settings?.noteDeposits,
             noteInvites: settings?.noteInvites,
             noteJobIndicator: settings?.noteJobIndicator,
-            hideInvoiceDesc: settings?.hideInvoiceDesc
+            hideInvoiceDesc: settings?.hideInvoiceDesc,
+            hideFromTopUsers: settings?.hideFromTopUsers,
+            wildWestMode: settings?.wildWestMode,
+            greeterMode: settings?.greeterMode
           }}
           schema={SettingsSchema}
           onSubmit={async ({ tipDefault, ...values }) => {
@@ -76,6 +85,13 @@ export default function Settings ({ data: { settings } }) {
             required
             autoFocus
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+          />
+          <Select
+            label='fiat currency'
+            name='fiatCurrency'
+            size='sm'
+            items={supportedCurrencies}
+            required
           />
           <div className='form-label'>notify me when ...</div>
           <Checkbox
@@ -115,7 +131,7 @@ export default function Settings ({ data: { settings } }) {
           <div className='form-label'>privacy</div>
           <Checkbox
             label={
-              <>hide invoice descriptions
+              <div className='d-flex align-items-center'>hide invoice descriptions
                 <Info>
                   <ul className='font-weight-bold'>
                     <li>Use this if you don't want funding sources to be linkable to your SN identity.</li>
@@ -127,9 +143,43 @@ export default function Settings ({ data: { settings } }) {
                     </li>
                   </ul>
                 </Info>
-              </>
+              </div>
             }
             name='hideInvoiceDesc'
+            groupClassName='mb-0'
+          />
+          <Checkbox
+            label={<>hide me from  <Link href='/top/users' passHref><a>top users</a></Link></>}
+            name='hideFromTopUsers'
+          />
+          <div className='form-label'>content</div>
+          <Checkbox
+            label={
+              <div className='d-flex align-items-center'>wild west mode
+                <Info>
+                  <ul className='font-weight-bold'>
+                    <li>don't hide flagged content</li>
+                    <li>don't down rank flagged content</li>
+                  </ul>
+                </Info>
+              </div>
+            }
+            name='wildWestMode'
+            groupClassName='mb-0'
+          />
+          <Checkbox
+            label={
+              <div className='d-flex align-items-center'>greeter mode
+                <Info>
+                  <ul className='font-weight-bold'>
+                    <li>see and screen free posts and comments</li>
+                    <li>help onboard users to SN and Lightning</li>
+                    <li>you might be subject to more spam</li>
+                  </ul>
+                </Info>
+              </div>
+            }
+            name='greeterMode'
           />
           <div className='d-flex'>
             <SubmitButton variant='info' className='ml-auto mt-1 px-4'>save</SubmitButton>

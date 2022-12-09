@@ -26,6 +26,12 @@ async function serialize (models, call) {
       if (error.message.includes('SN_INELIGIBLE')) {
         bail(new Error('user ineligible for gift'))
       }
+      if (error.message.includes('SN_UNSUPPORTED')) {
+        bail(new Error('unsupported action'))
+      }
+      if (error.message.includes('SN_DUPLICATE')) {
+        bail(new Error('duplicate not allowed'))
+      }
       if (error.message.includes('SN_REVOKED_OR_EXHAUSTED')) {
         bail(new Error('faucet has been revoked or is exhausted'))
       }

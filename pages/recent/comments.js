@@ -10,7 +10,7 @@ export const getServerSideProps = getGetServerSideProps(MORE_FLAT_COMMENTS, vari
 export default function Index ({ data: { moreFlatComments: { comments, cursor } } }) {
   return (
     <Layout>
-      <RecentHeader itemType='comments' />
+      <RecentHeader type='comments' />
       <CommentsFlat
         comments={comments} cursor={cursor}
         variables={{ sort: 'recent' }} includeParent noReply

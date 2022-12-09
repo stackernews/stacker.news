@@ -15,6 +15,10 @@ import {useMe} from "./me"
 import PastBounties from './past-bounties'
 import { Badge } from 'react-bootstrap'
 import { newComments } from '../lib/new-comments'
+import { useMe } from './me'
+import DontLikeThis from './dont-link-this'
+import Flag from '../svgs/flag-fill.svg'
+import { abbrNum } from '../lib/format'
 
 export function SearchTitle ({ title }) {
   return reactStringReplace(title, /:high\[([^\]]+)\]/g, (match, i) => {
@@ -40,6 +44,7 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
     useState(mine && (Date.now() < editThreshold))
   const [wrap, setWrap] = useState(false)
   const titleRef = useRef()
+  const me = useMe()
   const [hasNewComments, setHasNewComments] = useState(false)
   const me = useMe()
   const fwd2me = me && me?.id === item?.fwdUser?.id
@@ -65,7 +70,9 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
           </div>)
         : <div />}
       <div className={styles.item}>
-        {item.position ? <Pin width={24} height={24} className={styles.pin} /> : <UpVote item={item} className={styles.upvote} />}
+        {item.position
+          ? <Pin width={24} height={24} className={styles.pin} />
+          : item.meDontLike ? <Flag width={24} height={24} className={`${styles.dontLike}`} /> : <UpVote item={item} className={styles.upvote} />}
         <div className={styles.hunk}>
           <div className={`${styles.main} flex-wrap ${wrap ? 'd-inline' : ''}`}>
             <Link href={`/items/${item.id}`} passHref>
@@ -94,12 +101,12 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
           <div className={`${styles.other}`}>
             {!item.position &&
               <>
-                <span title={`from ${item.upvotes} users ${item.mine ? `\\ ${item.meSats} sats to post` : `(${item.meSats} sats from me)`} `}>{item.sats} sats</span>
+                <span title={`from ${item.upvotes} users ${item.mine ? `\\ ${item.meSats} sats to post` : `(${item.meSats} sats from me)`} `}>{abbrNum(item.sats)} sats</span>
                 <span> \ </span>
               </>}
             {item.boost > 0 &&
               <>
-                <span>{item.boost} boost</span>
+                <span>{abbrNum(item.boost)} boost</span>
                 <span> \ </span>
               </>}
             <Link href={`/items/${item.id}`} passHref>
@@ -117,6 +124,9 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
               <Link href={`/items/${item.id}`} passHref>
                 <a title={item.createdAt} className='text-reset'>{timeSince(new Date(item.createdAt))}</a>
               </Link>
+              {me && !item.meSats && !item.position && !item.meDontLike && !item.mine && <DontLikeThis id={item.id} />}
+              {(item.outlawed && <Link href='/outlawed'><a>{' '}<Badge className={styles.newComment} variant={null}>OUTLAWED</Badge></a></Link>) ||
+               (item.freebie && !item.mine && (me?.greeterMode) && <Link href='/freebie'><a>{' '}<Badge className={styles.newComment} variant={null}>FREEBIE</Badge></a></Link>)}
               {item.prior &&
                 <>
                   <span> \ </span>

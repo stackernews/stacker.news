@@ -2,12 +2,12 @@ import Layout from '../../../components/layout'
 import { useRouter } from 'next/router'
 import { getGetServerSideProps } from '../../../api/ssrApollo'
 import TopHeader from '../../../components/top-header'
-import { MORE_FLAT_COMMENTS } from '../../../fragments/comments'
+import { TOP_COMMENTS } from '../../../fragments/comments'
 import CommentsFlat from '../../../components/comments-flat'
 
-export const getServerSideProps = getGetServerSideProps(MORE_FLAT_COMMENTS, { sort: 'top' })
+export const getServerSideProps = getGetServerSideProps(TOP_COMMENTS)
 
-export default function Index ({ data: { moreFlatComments: { comments, cursor } } }) {
+export default function Index ({ data: { topComments: { comments, cursor } } }) {
   const router = useRouter()
 
   return (
@@ -15,7 +15,9 @@ export default function Index ({ data: { moreFlatComments: { comments, cursor } 
       <TopHeader cat='comments' />
       <CommentsFlat
         comments={comments} cursor={cursor}
-        variables={{ sort: 'top', within: router.query?.within }}
+        query={TOP_COMMENTS}
+        destructureData={data => data.topComments}
+        variables={{ sort: router.query.sort, when: router.query.when }}
         includeParent noReply
       />
     </Layout>

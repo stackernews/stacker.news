@@ -15,6 +15,7 @@ import { useRouter } from 'next/router'
 import Item from '../components/item'
 import Comment from '../components/comment'
 import React from 'react'
+import Info from '../components/info'
 
 export const getServerSideProps = getGetServerSideProps(WALLET_HISTORY)
 
@@ -199,7 +200,13 @@ export default function Satistics ({ data: { me, walletHistory: { facts, cursor 
             <tr>
               <th className={styles.type}>type</th>
               <th>detail</th>
-              <th className={styles.sats}>sats</th>
+              <th className={styles.sats}>
+                <div>sats
+                  <Info>
+                    <div className='font-weight-bold'>Sats are rounded down from millisats to the nearest sat, so the actual amount might be slightly larger.</div>
+                  </Info>
+                </div>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -213,7 +220,7 @@ export default function Satistics ({ data: { me, walletHistory: { facts, cursor 
                     <td className={styles.description}>
                       <Detail fact={f} />
                     </td>
-                    <td className={`${styles.sats} ${satusClass(f.status)}`}>{Math.floor(f.msats / 1000)}</td>
+                    <td className={`${styles.sats} ${satusClass(f.status)}`}>{Math.floor(f.sats)}</td>
                   </tr>
                 </Wrapper>
               )

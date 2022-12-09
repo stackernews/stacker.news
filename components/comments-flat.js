@@ -3,8 +3,8 @@ import { MORE_FLAT_COMMENTS } from '../fragments/comments'
 import { CommentFlat, CommentSkeleton } from './comment'
 import MoreFooter from './more-footer'
 
-export default function CommentsFlat ({ variables, comments, cursor, ...props }) {
-  const { data, fetchMore } = useQuery(MORE_FLAT_COMMENTS, {
+export default function CommentsFlat ({ variables, query, destructureData, comments, cursor, ...props }) {
+  const { data, fetchMore } = useQuery(query || MORE_FLAT_COMMENTS, {
     variables
   })
 
@@ -13,7 +13,11 @@ export default function CommentsFlat ({ variables, comments, cursor, ...props })
   }
 
   if (data) {
-    ({ moreFlatComments: { comments, cursor } } = data)
+    if (destructureData) {
+      ({ comments, cursor } = destructureData(data))
+    } else {
+      ({ moreFlatComments: { comments, cursor } } = data)
+    }
   }
 
   return (

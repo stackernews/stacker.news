@@ -7,15 +7,18 @@ import { useEffect } from 'react'
 export default function LnQR ({ value, webLn, statusVariant, status }) {
   const qrValue = 'lightning:' + value.toUpperCase()
 
-  useEffect(async () => {
-    if (webLn) {
-      try {
-        const provider = await requestProvider()
-        await provider.sendPayment(value)
-      } catch (e) {
-        console.log(e.message)
+  useEffect(() => {
+    async function effect () {
+      if (webLn) {
+        try {
+          const provider = await requestProvider()
+          await provider.sendPayment(value)
+        } catch (e) {
+          console.log(e.message)
+        }
       }
     }
+    effect()
   }, [])
 
   return (

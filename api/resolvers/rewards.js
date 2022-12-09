@@ -14,7 +14,7 @@ export default {
       const [result] = await models.$queryRaw`
         SELECT coalesce(sum(sats), 0) as total, json_build_array(
           json_build_object('name', 'donations', 'value', coalesce(sum(sats) FILTER(WHERE type = 'DONATION'), 0)),
-          json_build_object('name', 'fees', 'value', coalesce(sum(sats) FILTER(WHERE type NOT IN ('BOOST', 'STREAM')), 0)),
+          json_build_object('name', 'fees', 'value', coalesce(sum(sats) FILTER(WHERE type NOT IN ('BOOST', 'STREAM', 'DONATION')), 0)),
           json_build_object('name', 'boost', 'value', coalesce(sum(sats) FILTER(WHERE type = 'BOOST'), 0)),
           json_build_object('name', 'jobs', 'value', coalesce(sum(sats) FILTER(WHERE type = 'STREAM'), 0))
         ) AS sources

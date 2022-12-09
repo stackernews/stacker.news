@@ -34,7 +34,7 @@ export default function Rewards ({ data: { expectedRewards: { total, sources } }
     <LayoutCenter footerLinks>
       <h4 className='font-weight-bold text-muted text-center'>
         <div>{total} sats to be rewarded today</div>
-        <Link href='http://localhost:3000/faq#how-do-i-earn-sats-on-stacker-news' passHref>
+        <Link href='/faq#how-do-i-earn-sats-on-stacker-news' passHref>
           <a className='text-reset'><small><small><small>learn about rewards</small></small></small></a>
         </Link>
       </h4>

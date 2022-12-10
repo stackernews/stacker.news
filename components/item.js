@@ -11,7 +11,6 @@ import Toc from './table-of-contents'
 import PollIcon from '../svgs/bar-chart-horizontal-fill.svg'
 import BountyIcon from '../svgs/bounty-bag.svg'
 import ActionTooltip from './action-tooltip'
-import {useMe} from "./me"
 import PastBounties from './past-bounties'
 import { Badge } from 'react-bootstrap'
 import { newComments } from '../lib/new-comments'
@@ -45,9 +44,8 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
   const [wrap, setWrap] = useState(false)
   const titleRef = useRef()
   const me = useMe()
-  const [hasNewComments, setHasNewComments] = useState(false)
-  const me = useMe()
   const fwd2me = me && me?.id === item?.fwdUser?.id
+  const [hasNewComments, setHasNewComments] = useState(false)
 
   useEffect(() => {
     setWrap(

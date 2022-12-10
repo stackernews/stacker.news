@@ -1001,6 +1001,7 @@ export default {
       `;
 
       return paid[0].bountyPaid;
+},
     meDontLike: async (item, args, { me, models }) => {
       if (!me) return false
 

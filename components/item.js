@@ -9,6 +9,10 @@ import Pin from '../svgs/pushpin-fill.svg'
 import reactStringReplace from 'react-string-replace'
 import Toc from './table-of-contents'
 import PollIcon from '../svgs/bar-chart-horizontal-fill.svg'
+import BountyIcon from '../svgs/bounty-bag.svg'
+import ActionTooltip from './action-tooltip'
+import {useMe} from "./me"
+import PastBounties from './past-bounties'
 import { Badge } from 'react-bootstrap'
 import { newComments } from '../lib/new-comments'
 import { useMe } from './me'
@@ -42,12 +46,15 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
   const titleRef = useRef()
   const me = useMe()
   const [hasNewComments, setHasNewComments] = useState(false)
+  const me = useMe()
+  const fwd2me = me && me?.id === item?.fwdUser?.id
 
   useEffect(() => {
     setWrap(
       Math.ceil(parseFloat(window.getComputedStyle(titleRef.current).lineHeight)) <
         titleRef.current.clientHeight)
   }, [])
+
 
   useEffect(() => {
     // if we are showing toc, then this is a full item
@@ -72,6 +79,12 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
               <a ref={titleRef} className={`${styles.title} text-reset mr-2`}>
                 {item.searchTitle ? <SearchTitle title={item.searchTitle} /> : item.title}
                 {item.pollCost && <span> <PollIcon className='fill-grey vertical-align-baseline' height={14} width={14} /></span>}
+                {item.bounty > 0 && 
+                  <span>{'   '}
+                    <ActionTooltip notForm disable={item?.mine || fwd2me} overlayText={`${item.bounty} ${item.bountyPaid ? 'sats paid' : 'sats bounty'}`}>
+                      <BountyIcon className={`${styles.bountyIcon} ${item.bountyPaid ? 'fill-success vertical-align-middle' : 'fill-secondary vertical-align-middle'}`} height={16} width={16} /> 
+                    </ActionTooltip>
+                  </span>}
               </a>
             </Link>
             {item.url &&
@@ -141,6 +154,10 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
           </div>
           {showFwdUser && item.fwdUser && <FwdUser user={item.fwdUser} />}
         </div>
+        {item.bounty > 0 && toc && (
+          <PastBounties item={item} />
+          )
+        }
         {toc && <Toc text={item.text} />}
       </div>
       {children && (

@@ -78,6 +78,12 @@
     padding-bottom: .5rem;
 }
 
+.replyContainer {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+}
+
 .comment {
     border-radius: .4rem;
     padding-top: .5rem;

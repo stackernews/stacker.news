@@ -1,4 +1,4 @@
-import { gql } from 'apollo-server-micro'
+import { gql } from "apollo-server-micro";
 
 export default gql`
   extend type Query {
@@ -10,6 +10,7 @@ export default gql`
     dupes(url: String!): [Item!]
     related(cursor: String, title: String, id: ID, limit: Int): Items
     allItems(cursor: String): Items
+    getBountiesByUser(id: Int!): [Item]
     search(q: String, sub: String, cursor: String, what: String, sort: String, when: String): Items
     auctionPosition(sub: String, id: ID, bid: Int!): Int!
     itemRepetition(parentId: ID): Int!
@@ -26,11 +27,49 @@ export default gql`
   }
 
   extend type Mutation {
-    upsertLink(id: ID, title: String!, url: String!, boost: Int, forward: String): Item!
-    upsertDiscussion(id: ID, title: String!, text: String, boost: Int, forward: String): Item!
-    upsertJob(id: ID, sub: ID!, title: String!, company: String!, location: String, remote: Boolean,
-      text: String!, url: String!, maxBid: Int!, status: String, logo: Int): Item!
-    upsertPoll(id: ID, title: String!, text: String, options: [String!]!, boost: Int, forward: String): Item!
+    upsertLink(
+      id: ID
+      title: String!
+      url: String!
+      boost: Int
+      forward: String
+    ): Item!
+    upsertDiscussion(
+      id: ID
+      title: String!
+      text: String
+      boost: Int
+      forward: String
+    ): Item!
+    upsertBounty(
+      id: ID
+      title: String!
+      text: String
+      bounty: Int!
+      boost: Int
+      forward: String
+    ): Item!
+    upsertJob(
+      id: ID
+      sub: ID!
+      title: String!
+      company: String!
+      location: String
+      remote: Boolean
+      text: String!
+      url: String!
+      maxBid: Int!
+      status: String
+      logo: Int
+    ): Item!
+    upsertPoll(
+      id: ID
+      title: String!
+      text: String
+      options: [String!]!
+      boost: Int
+      forward: String
+    ): Item!
     createComment(text: String!, parentId: ID!): Item!
     updateComment(id: ID!, text: String!): Item!
     dontLikeThis(id: ID!): Boolean!
@@ -39,7 +78,7 @@ export default gql`
   }
 
   type PollOption {
-    id: ID,
+    id: ID
     option: String!
     count: Int!
     meVoted: Boolean!
@@ -80,6 +119,8 @@ export default gql`
     depth: Int!
     mine: Boolean!
     boost: Int!
+    bounty: Int
+    bountyPaid: Boolean
     sats: Int!
     commentSats: Int!
     lastCommentAt: String
@@ -106,4 +147,4 @@ export default gql`
     status: String
     uploadId: Int
   }
-`
+`;

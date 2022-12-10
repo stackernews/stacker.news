@@ -1,0 +1,14 @@
+.payContainer {
+    padding-left: 1rem;
+}
+
+.pay {
+    font-size: 70%;
+    color: lightgreen;
+    font-weight: bold;
+    display: inline-block;
+    cursor: pointer;
+    padding-bottom: .5rem;
+    line-height: 1rem;
+    vertical-align: middle;
+}

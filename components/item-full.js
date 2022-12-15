@@ -109,8 +109,6 @@ export default function ItemFull ({ item, bio, ...props }) {
     commentsViewed(item)
   }, [item.lastCommentAt])
 
-  const isBounty = item.bounty > 0
-
   return (
     <>
       {item.parentId
@@ -124,7 +122,7 @@ export default function ItemFull ({ item, bio, ...props }) {
           </div>)}
       {item.comments &&
         <div className={styles.comments}>
-          <Comments parentId={item.id} commentSats={item.commentSats} bountySats={isBounty ? item.bounty : null} comments={item.comments} />
+          <Comments parentId={item.id} commentSats={item.commentSats} comments={item.comments} />
         </div>}
     </>
   )

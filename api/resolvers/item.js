@@ -645,7 +645,6 @@ export default {
     },
     upsertBounty: async (parent, args, { me, models }) => {
       const { id, ...data } = args;
-
       if (id) {
         return await updateItem(parent, { id, data }, { me, models });
       } else {
@@ -993,7 +992,7 @@ export default {
 
       const paid = await models.$queryRaw`
       -- Sum up the sats and if they are greater than or equal to item.bounty than return true, else return false
-      SELECT coalesce(sum("ItemAct"."sats"), 0) >= ${item.bounty} as "bountyPaid"
+      SELECT coalesce(sum("ItemAct"."msats"), 0) >= ${item.bounty} as "bountyPaid"
       FROM "ItemAct"
       INNER JOIN "Item" ON "ItemAct"."itemId" = "Item"."id"
       WHERE "ItemAct"."userId" = ${item.userId}
@@ -1136,21 +1135,21 @@ export const updateItem = async (
   return item
 }
 
-const createItem = async (parent, { title, url, text, boost, forward, parentId }, { me, models }) => {
+export const createItem = async (parent, { title, url, text, boost, forward, parentId, bounty }, { me, models }) => {
   if (!me) {
     throw new AuthenticationError("you must be logged in");
   }
-
+  
   if (boost && boost < BOOST_MIN) {
     throw new UserInputError(`boost must be at least ${BOOST_MIN}`, {
       argumentName: "boost",
     });
   }
-
+  
   if (!parentId && title.length > MAX_TITLE_LENGTH) {
     throw new UserInputError("title too long");
   }
-
+  
   let fwdUser;
   if (forward) {
     fwdUser = await models.user.findUnique({ where: { name: forward } });
@@ -1160,10 +1159,33 @@ const createItem = async (parent, { title, url, text, boost, forward, parentId }
       });
     }
   }
+  
+  if (typeof bounty !== "undefined") {
+    const [item] = await serialize(
+      models,
+      models.$queryRaw(
+        `${SELECT} FROM create_item($1, $2, $3, $4, $5, $6, $7, $8, '${ITEM_SPAM_INTERVAL}') AS "Item"`,
+        title,
+        url,
+        text,
+        Number(boost || 0),
+        Number(bounty || 0),
+        Number(parentId),
+        Number(me.id),
+        Number(fwdUser?.id)
+      )
+    )
+
+    await createMentions(item, models);
+
+    item.comments = [];
+    return item;
+  }
+
   const [item] = await serialize(models,
     models.$queryRaw(
-      `${SELECT} FROM create_item($1, $2, $3, $4, $5, $6, $7, $8, '${ITEM_SPAM_INTERVAL}') AS "Item"`,
-      title, url, text, Number(boost || 0), Number(bounty || 0), Number(parentId), Number(me.id),
+      `${SELECT} FROM create_item($1, $2, $3, $4, $5, $6, $7, '${ITEM_SPAM_INTERVAL}') AS "Item"`,
+      title, url, text, Number(boost || 0), Number(parentId), Number(me.id),
       Number(fwdUser?.id)))
 
   await createMentions(item, models)

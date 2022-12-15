@@ -79,7 +79,7 @@ export function CommentFlat ({ item, ...props }) {
 
 export default function Comment ({
   item, children, replyOpen, includeParent, topLevel,
-  rootText, noComments, noReply, truncate, depth, bountySats
+  rootText, noComments, noReply, truncate, depth
 }) {
   const [edit, setEdit] = useState()
   const [collapse, setCollapse] = useState(false)
@@ -199,7 +199,7 @@ export default function Comment ({
               <Reply
               depth={depth + 1} item={item} replyOpen={replyOpen}
               />}
-              {item.root?.bounty && <PayBounty item={item} bountySats={bountySats} />}
+              {item.root?.bounty && <PayBounty item={item} />}
             </div>
             {children}
             <div className={`${styles.comments} ml-sm-1 ml-md-3`}>

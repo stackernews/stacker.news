@@ -5,7 +5,7 @@ import { useMutation, gql } from "@apollo/client"
 import { signIn } from 'next-auth/client'
 import {useMe} from "./me"
 
-export default function PayBounty({ children, item, bounty }) {
+export default function PayBounty({ children, item }) {
     const me = useMe()
 
     const fwd2me = me && me?.id === item?.fwdUser?.id
@@ -62,29 +62,31 @@ export default function PayBounty({ children, item, bounty }) {
             signIn()
             return
         }
-        act({ variables: { id: item.id, sats: bounty } })
+        act({ variables: { id: item.id, sats: item.root.bounty } })
+        // Should show a confirm modal followed by success message
+        // After success, refetch the comment and parent item to show the new green icon and paid flag on the comment
     }
 
     if (!me || item.root.user.name !== me.name || item.mine) {
         return null
     }
 
-    const bountyPaidToComment = () => {
-        if (item.bountyPaid) {
-            return (
-                <div className={styles.pay}>
-                    BOUNTY REAWRDED
-                </div>
-            )
-        }
-        return null
-    }
-
     // If the user has received an amount of sats equal to the bounty from the OP, show the bounty reward text
+    // const bountyPaidToComment = () => {
+    //     if (item.bountyPaid) {
+    //         return (
+    //             <div className={styles.pay}>
+    //                 BOUNTY REAWRDED
+    //             </div>
+    //         )
+    //     }
+    //     return null
+    // }
+
 
     return (
         <div className={styles.payContainer} onClick={() => handlePayBounty()}>
-            <ActionTooltip notForm disable={item?.mine || fwd2me} overlayText={`${bounty} sats`}>
+            <ActionTooltip notForm disable={item?.mine || fwd2me} overlayText={`${item.root.bounty} sats`}>
                 <div className={styles.pay}>pay-bounty</div>
             </ActionTooltip>
         </div>

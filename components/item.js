@@ -14,6 +14,7 @@ import { newComments } from '../lib/new-comments'
 import { useMe } from './me'
 import DontLikeThis from './dont-link-this'
 import Flag from '../svgs/flag-fill.svg'
+import Share from './share'
 import { abbrNum } from '../lib/format'
 
 export function SearchTitle ({ title }) {
@@ -141,7 +142,11 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
           </div>
           {showFwdUser && item.fwdUser && <FwdUser user={item.fwdUser} />}
         </div>
-        {toc && <Toc text={item.text} />}
+        {toc &&
+          <>
+            <Share item={item} />
+            <Toc text={item.text} />
+          </>}
       </div>
       {children && (
         <div className={styles.children}>

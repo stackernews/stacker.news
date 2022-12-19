@@ -12,18 +12,19 @@ export default {
       })
 
       const [result] = await models.$queryRaw`
-        SELECT coalesce(sum(sats), 0) as total, json_build_array(
-          json_build_object('name', 'donations', 'value', coalesce(sum(sats) FILTER(WHERE type = 'DONATION'), 0)),
-          json_build_object('name', 'fees', 'value', coalesce(sum(sats) FILTER(WHERE type NOT IN ('BOOST', 'STREAM', 'DONATION')), 0)),
-          json_build_object('name', 'boost', 'value', coalesce(sum(sats) FILTER(WHERE type = 'BOOST'), 0)),
-          json_build_object('name', 'jobs', 'value', coalesce(sum(sats) FILTER(WHERE type = 'STREAM'), 0))
+        SELECT coalesce(FLOOR(sum(sats)), 0) as total, json_build_array(
+          json_build_object('name', 'donations', 'value', coalesce(FLOOR(sum(sats) FILTER(WHERE type = 'DONATION')), 0)),
+          json_build_object('name', 'fees', 'value', coalesce(FLOOR(sum(sats) FILTER(WHERE type NOT IN ('BOOST', 'STREAM', 'DONATION'))), 0)),
+          json_build_object('name', 'boost', 'value', coalesce(FLOOR(sum(sats) FILTER(WHERE type = 'BOOST')), 0)),
+          json_build_object('name', 'jobs', 'value', coalesce(FLOOR(sum(sats) FILTER(WHERE type = 'STREAM')), 0))
         ) AS sources
         FROM (
-          (SELECT msats / 1000 as sats, act::text as type
+          (SELECT ("ItemAct".msats - COALESCE("ReferralAct".msats, 0)) / 1000.0 as sats, act::text as type
             FROM "ItemAct"
-            WHERE created_at > ${lastReward.createdAt} AND "ItemAct".act <> 'TIP')
+            LEFT JOIN "ReferralAct" ON "ItemAct".id = "ReferralAct"."itemActId"
+            WHERE "ItemAct".created_at > ${lastReward.createdAt} AND "ItemAct".act <> 'TIP')
             UNION ALL
-          (SELECT sats, 'DONATION' as type
+          (SELECT sats::FLOAT, 'DONATION' as type
             FROM "Donation"
             WHERE created_at > ${lastReward.createdAt})
         ) subquery`

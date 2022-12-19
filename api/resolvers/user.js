@@ -271,6 +271,18 @@ export default {
         if (newInvitees.length > 0) {
           return true
         }
+
+        const referral = await models.user.findFirst({
+          where: {
+            referrerId: me.id,
+            createdAt: {
+              gt: lastChecked
+            }
+          }
+        })
+        if (referral) {
+          return true
+        }
       }
 
       return false

@@ -15,7 +15,6 @@ import { useRouter } from 'next/router'
 import Item from '../components/item'
 import Comment from '../components/comment'
 import React from 'react'
-import Info from '../components/info'
 
 export const getServerSideProps = getGetServerSideProps(WALLET_HISTORY)
 
@@ -102,7 +101,16 @@ function Detail ({ fact }) {
     return (
       <>
         <div className={satusClass(fact.status)}>
-          You made a donation to daily rewards!
+          You made a donation to <Link href='/rewards' passHref><a>daily rewards</a></Link>!
+        </div>
+      </>
+    )
+  }
+  if (fact.type === 'referral') {
+    return (
+      <>
+        <div className={satusClass(fact.status)}>
+          You stacked sats from <Link href='/referrals/month' passHref><a>a referral</a></Link>!
         </div>
       </>
     )
@@ -156,6 +164,7 @@ export default function Satistics ({ data: { me, walletHistory: { facts, cursor 
         return `/${fact.type}s/${fact.factId}`
       case 'earn':
       case 'donation':
+      case 'referral':
         return
       default:
         return `/items/${fact.factId}`
@@ -212,11 +221,7 @@ export default function Satistics ({ data: { me, walletHistory: { facts, cursor 
               <th className={styles.type}>type</th>
               <th>detail</th>
               <th className={styles.sats}>
-                <div>sats
-                  <Info>
-                    <div className='font-weight-bold'>Sats are rounded down from millisats to the nearest sat, so the actual amount might be slightly larger.</div>
-                  </Info>
-                </div>
+                sats
               </th>
             </tr>
           </thead>
@@ -231,7 +236,7 @@ export default function Satistics ({ data: { me, walletHistory: { facts, cursor 
                     <td className={styles.description}>
                       <Detail fact={f} />
                     </td>
-                    <td className={`${styles.sats} ${satusClass(f.status)}`}>{Math.floor(f.sats)}</td>
+                    <td className={`${styles.sats} ${satusClass(f.status)}`}>{f.sats}</td>
                   </tr>
                 </Wrapper>
               )

@@ -84,7 +84,7 @@ export function ItemActModal () {
             {[1, 10, 100, 1000, 10000].map(num =>
               <Button
                 size='sm'
-                className={num > 1 ? 'ml-2' : ''}
+                className={`${num > 1 ? 'ml-2' : ''} mb-2`}
                 key={num}
                 onClick={() => { setOValue(num) }}
               >

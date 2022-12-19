@@ -5,7 +5,7 @@ import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import lnpr from 'bolt11'
 import { SELECT } from './item'
 import { lnurlPayDescriptionHash } from '../../lib/lnurl'
-import { msatsToSats } from '../../lib/format'
+import { msatsToSats, msatsToSatsDecimal } from '../../lib/format'
 
 export async function getInvoice (parent, { id }, { me, models }) {
   if (!me) {
@@ -110,6 +110,12 @@ export default {
             FROM "Earn"
             WHERE "Earn"."userId" = $1 AND "Earn".created_at <= $2
             GROUP BY "userId", created_at)`)
+        queries.push(
+            `(SELECT ('referral' || "ReferralAct".id) as id, "ReferralAct".id as "factId", NULL as bolt11,
+            created_at as "createdAt", msats,
+            0 as "msatsFee", NULL as status, 'referral' as type
+            FROM "ReferralAct"
+            WHERE "ReferralAct"."referrerId" = $1 AND "ReferralAct".created_at <= $2)`)
       }
 
       if (include.has('spent')) {
@@ -287,8 +293,8 @@ export default {
 
       return item
     },
-    sats: fact => msatsToSats(fact.msats),
-    satsFee: fact => msatsToSats(fact.msatsFee)
+    sats: fact => msatsToSatsDecimal(fact.msats),
+    satsFee: fact => msatsToSatsDecimal(fact.msatsFee)
   }
 }
 

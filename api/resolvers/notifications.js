@@ -160,6 +160,15 @@ export default {
               ORDER BY "sortTime" DESC
               LIMIT ${LIMIT}+$3)`
           )
+          queries.push(
+            `(SELECT users.id::text, users.created_at AS "sortTime", NULL as "earnedSats",
+              'Referral' AS type
+              FROM users
+              WHERE "users"."referrerId" = $1
+              AND "inviteId" IS NULL
+              AND users.created_at <= $2
+              LIMIT ${LIMIT}+$3)`
+          )
         }
 
         if (meFull.noteEarning) {

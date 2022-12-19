@@ -146,7 +146,7 @@ export default function Settings ({ data: { settings } }) {
             groupClassName='mb-0'
           />
           <Checkbox
-            label='my invite links are redeemed'
+            label='someone joins using my invite or referral links'
             name='noteInvites'
             groupClassName='mb-0'
           />

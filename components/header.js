@@ -92,13 +92,8 @@ export default function Header ({ sub }) {
                 <NavDropdown.Item eventKey='satistics'>satistics</NavDropdown.Item>
               </Link>
               <NavDropdown.Divider />
-              <Link href='/invites' passHref>
-                <NavDropdown.Item eventKey='invites'>invites
-                  {me && !me.hasInvites &&
-                    <div className='p-1 d-inline-block bg-success ml-1'>
-                      <span className='invisible'>{' '}</span>
-                    </div>}
-                </NavDropdown.Item>
+              <Link href='/referrals/month' passHref>
+                <NavDropdown.Item eventKey='referrals'>referrals</NavDropdown.Item>
               </Link>
               <NavDropdown.Divider />
               <div className='d-flex align-items-center'>

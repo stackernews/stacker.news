@@ -9,7 +9,7 @@ export default function Share ({ item }) {
 
   return typeof window !== 'undefined' && navigator?.share
     ? (
-      <div className='d-flex align-items-center'>
+      <div className='ml-auto d-flex align-items-center'>
         <ShareIcon
           onClick={() => {
             if (navigator.share) {
@@ -26,7 +26,7 @@ export default function Share ({ item }) {
         />
       </div>)
     : (
-      <Dropdown alignRight className='pointer  d-flex align-items-center' as='span'>
+      <Dropdown alignRight className='ml-auto pointer  d-flex align-items-center' as='span'>
         <Dropdown.Toggle variant='success' id='dropdown-basic' as='a'>
           <ShareIcon className='mx-2 fill-grey theme' />
         </Dropdown.Toggle>

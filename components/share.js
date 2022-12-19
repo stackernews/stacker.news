@@ -9,8 +9,9 @@ export default function Share ({ item }) {
 
   return typeof window !== 'undefined' && navigator?.share
     ? (
-      <div className='ml-auto d-flex align-items-center'>
+      <div className='ml-auto pointer d-flex align-items-center'>
         <ShareIcon
+          className='mx-2 fill-grey theme'
           onClick={() => {
             if (navigator.share) {
               navigator.share({

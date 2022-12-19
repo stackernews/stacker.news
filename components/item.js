@@ -11,7 +11,6 @@ import Toc from './table-of-contents'
 import PollIcon from '../svgs/bar-chart-horizontal-fill.svg'
 import BountyIcon from '../svgs/bounty-bag.svg'
 import ActionTooltip from './action-tooltip'
-import PastBounties from './past-bounties'
 import { Badge } from 'react-bootstrap'
 import { newComments } from '../lib/new-comments'
 import { useMe } from './me'
@@ -152,10 +151,6 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
           </div>
           {showFwdUser && item.fwdUser && <FwdUser user={item.fwdUser} />}
         </div>
-        {item.bounty > 0 && toc && (
-          <PastBounties item={item} />
-          )
-        }
         {toc && <Toc text={item.text} />}
       </div>
       {children && (

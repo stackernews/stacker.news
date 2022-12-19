@@ -15,6 +15,7 @@ import { useEffect, useState } from 'react'
 import Poll from './poll'
 import { commentsViewed } from '../lib/new-comments'
 import Related from './related'
+import PastBounties from './past-bounties'
 
 function BioItem ({ item, handleClick }) {
   const me = useMe()
@@ -94,7 +95,8 @@ function TopLevelItem ({ item, noReply, ...props }) {
       {!noReply &&
         <>
           <Reply item={item} replyOpen />
-          {!item.position && !item.isJob && !item.parentId && <Related title={item.title} itemId={item.id} />}
+          {!item.position && !item.isJob && !item.parentId && !item.bounty > 0 && <Related title={item.title} itemId={item.id} />}
+          {item.bounty > 0 && <PastBounties item={item} />}
         </>}
     </ItemComponent>
   )

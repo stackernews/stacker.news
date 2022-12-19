@@ -57,7 +57,7 @@ export function BountyForm({
       ),
     bounty: Yup.number()
       .required("required")
-      .min(0, "Bounty must be at least 10 sats")
+      .min(0, "Bounty must be at least 1 sat")
       .integer("must be whole"),
 
     ...AdvPostSchema(client),
@@ -70,6 +70,7 @@ export function BountyForm({
       initial={{
         title: item?.title || "",
         text: item?.text || "",
+        bounty: item?.bounty || "",
         suggest: "",
         ...AdvPostInitial({ forward: item?.fwdUser?.name }),
       }}
@@ -85,7 +86,6 @@ export function BountyForm({
               ...values,
             },
           });
-          console.log("err", error);
           if (error) {
             throw new Error({ message: error.toString() });
           }

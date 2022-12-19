@@ -135,6 +135,18 @@ export default {
           ORDER BY ncomments DESC NULLS LAST, users.created_at DESC
           OFFSET $2
           LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+      } else if (sort === 'referrals') {
+        users = await models.$queryRaw(`
+          SELECT users.*, count(*) as referrals
+          FROM users
+          JOIN "users" referree on users.id = referree."referrerId"
+          WHERE referree.created_at <= $1
+          AND NOT users."hideFromTopUsers"
+          ${within('referree', when)}
+          GROUP BY users.id
+          ORDER BY referrals DESC NULLS LAST, users.created_at DESC
+          OFFSET $2
+          LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
       } else {
         users = await models.$queryRaw(`
           SELECT u.id, u.name, u."photoId", floor(sum(amount)/1000) as stacked
@@ -151,7 +163,13 @@ export default {
             FROM "Earn"
             JOIN users on users.id = "Earn"."userId"
             WHERE "Earn".msats > 0 ${within('Earn', when)}
-            AND NOT users."hideFromTopUsers")) u
+            AND NOT users."hideFromTopUsers")
+          UNION ALL
+          (SELECT users.*, "ReferralAct".msats as amount
+              FROM "ReferralAct"
+              JOIN users on users.id = "ReferralAct"."referrerId"
+              WHERE "ReferralAct".msats > 0 ${within('ReferralAct', when)}
+              AND NOT users."hideFromTopUsers")) u
           GROUP BY u.id, u.name, u.created_at, u."photoId"
           ORDER BY stacked DESC NULLS LAST, created_at DESC
           OFFSET $2
@@ -453,13 +471,18 @@ export default {
         const [{ stacked }] = await models.$queryRaw(`
           SELECT sum(amount) as stacked
           FROM
-          ((SELECT sum("ItemAct".msats) as amount
+          ((SELECT coalesce(sum("ItemAct".msats),0) as amount
             FROM "ItemAct"
             JOIN "Item" on "ItemAct"."itemId" = "Item".id
             WHERE act <> 'BOOST' AND "ItemAct"."userId" <> $2 AND "Item"."userId" = $2
             AND "ItemAct".created_at >= $1)
           UNION ALL
-          (SELECT sum("Earn".msats) as amount
+            (SELECT coalesce(sum("ReferralAct".msats),0) as amount
+              FROM "ReferralAct"
+              WHERE "ReferralAct".msats > 0 AND "ReferralAct"."referrerId" = $2
+              AND "ReferralAct".created_at >= $1)
+          UNION ALL
+          (SELECT coalesce(sum("Earn".msats), 0) as amount
             FROM "Earn"
             WHERE "Earn".msats > 0 AND "Earn"."userId" = $2
             AND "Earn".created_at >= $1)) u`, withinDate(when), Number(user.id))
@@ -484,6 +507,16 @@ export default {
       })
 
       return (msats && msatsToSats(msats)) || 0
+    },
+    referrals: async (user, { when }, { models }) => {
+      return await models.user.count({
+        where: {
+          referrerId: user.id,
+          createdAt: {
+            gte: withinDate(when)
+          }
+        }
+      })
     },
     sats: async (user, args, { models, me }) => {
       if (me?.id !== user.id) {

@@ -38,6 +38,7 @@ export default function UserList ({ users }) {
                 {abbrNum(user.ncomments)} comments
               </a>
             </Link>
+            {user.referrals > 0 && <span> \ {abbrNum(user.referrals)} referrals</span>}
           </div>
         </div>
       </div>

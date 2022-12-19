@@ -135,6 +135,7 @@ export const TOP_USERS = gql`
         spent(when: $when)
         ncomments(when: $when)
         nitems(when: $when)
+        referrals(when: $when)
       }
       cursor
     }

@@ -45,6 +45,7 @@ export default gql`
     ncomments(when: String): Int!
     stacked(when: String): Int!
     spent(when: String): Int!
+    referrals(when: String): Int!
     freePosts: Int!
     freeComments: Int!
     hasInvites: Boolean!

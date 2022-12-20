@@ -57,7 +57,7 @@ export function PostForm() {
   } else if (router.query.type === "poll") {
     return <PollForm />;
   } else {
-    return <BountyForm />;
+    return <BountyForm adv />;
   }
 }
 

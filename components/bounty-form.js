@@ -21,7 +21,6 @@ export function BountyForm({
 }) {
   const router = useRouter();
   const client = useApolloClient();
-  const [hasImgLink, setHasImgLink] = useState();
   // const me = useMe()
   const [upsertBounty] = useMutation(
     gql`
@@ -118,15 +117,12 @@ export function BountyForm({
             </div>
           ) : null
         }
-        setHasImgLink={setHasImgLink}
       />
       {adv && <AdvPostForm edit={!!item} />}
       <div className="mt-3">
         {item ? (
           <EditFeeButton
             paidSats={item.meSats}
-            hadImgLink={item.paidImgLink}
-            hasImgLink={hasImgLink}
             parentId={null}
             text="save"
             ChildButton={SubmitButton}
@@ -135,7 +131,6 @@ export function BountyForm({
         ) : (
           <FeeButton
             baseFee={1}
-            hasImgLink={hasImgLink}
             parentId={null}
             text={buttonText}
             ChildButton={SubmitButton}

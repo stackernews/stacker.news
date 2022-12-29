@@ -61,7 +61,7 @@ export default function Login ({ providers, callbackUrl, error, Header }) {
       <div className={styles.login}>
         {Header && <Header />}
         <div className='text-center font-weight-bold text-muted pb-4'>
-          Not registered? Just login, we'll automatically create an account.
+          Join 9,000+ Bitcoiners and start stacking sats today.
         </div>
         {errorMessage &&
           <Alert variant='danger' onClose={() => setErrorMessage(undefined)} dismissible>{errorMessage}</Alert>}

@@ -152,11 +152,19 @@ export default function UpVote ({ item, className }) {
     }
   )
 
-  const overlayText = () => {
-    if (me?.tipDefault) {
-      return `${me.tipDefault} sat${me.tipDefault > 1 ? 's' : ''}`
+  // what should our next tip be?
+  let sats = me?.tipDefault || 1
+  if (me?.turboTipping && item?.meSats) {
+    let raiseTip = sats
+    while (item?.meSats >= raiseTip) {
+      raiseTip *= 10
     }
-    return '1 sat'
+
+    sats = raiseTip - item.meSats
+  }
+
+  const overlayText = () => {
+    return `${sats} sat${sats > 1 ? 's' : ''}`
   }
 
   const color = getColor(item?.meSats)
@@ -196,11 +204,11 @@ export default function UpVote ({ item, className }) {
 
                   try {
                     await act({
-                      variables: { id: item.id, sats: me.tipDefault || 1 },
+                      variables: { id: item.id, sats },
                       optimisticResponse: {
                         act: {
                           id: `Item:${item.id}`,
-                          sats: me.tipDefault || 1,
+                          sats,
                           vote: 0
                         }
                       }

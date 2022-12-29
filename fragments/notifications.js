@@ -37,6 +37,9 @@ export const NOTIFICATIONS = gql`
             tips
           }
         }
+        ... on Referral {
+          sortTime
+        }
         ... on Reply {
           sortTime
           item {

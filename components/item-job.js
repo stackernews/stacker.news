@@ -6,6 +6,7 @@ import styles from './item.module.css'
 import Link from 'next/link'
 import { timeSince } from '../lib/time'
 import EmailIcon from '../svgs/mail-open-line.svg'
+import Share from './share'
 
 export default function ItemJob ({ item, toc, rank, children }) {
   const isEmail = Yup.string().email().isValidSync(item.url)
@@ -73,7 +74,11 @@ export default function ItemJob ({ item, toc, rank, children }) {
             {item.maxBid > 0 && item.status === 'ACTIVE' && <Badge className={`${styles.newComment} ml-1`}>PROMOTED</Badge>}
           </div>
         </div>
-        {toc && <Toc text={item.text} />}
+        {toc &&
+          <>
+            <Share item={item} />
+            <Toc text={item.text} />
+          </>}
       </div>
       {children && (
         <div className={`${styles.children}`} style={{ marginLeft: 'calc(42px + .8rem)' }}>

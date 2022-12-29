@@ -14,6 +14,7 @@ import { useRouter } from 'next/router'
 import Info from '../components/info'
 import { CURRENCY_SYMBOLS } from '../components/price'
 import Link from 'next/link'
+import AccordianItem from '../components/accordian-item'
 
 export const getServerSideProps = getGetServerSideProps(SETTINGS)
 
@@ -59,6 +60,7 @@ export default function Settings ({ data: { settings } }) {
         <Form
           initial={{
             tipDefault: settings?.tipDefault || 21,
+            turboTipping: settings?.turboTipping,
             fiatCurrency: settings?.fiatCurrency || 'USD',
             noteItemSats: settings?.noteItemSats,
             noteEarning: settings?.noteEarning,
@@ -82,10 +84,44 @@ export default function Settings ({ data: { settings } }) {
           <Input
             label='tip default'
             name='tipDefault'
+            groupClassName='mb-0'
             required
             autoFocus
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+            hint={<small className='text-muted'>note: you can also press and hold the lightning bolt to tip custom amounts</small>}
           />
+          <div className='mb-2'>
+            <AccordianItem
+              show={settings?.turboTipping}
+              header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>advanced</div>}
+              body={<Checkbox
+                name='turboTipping'
+                label={
+                  <div className='d-flex align-items-center'>turbo tipping
+                    <Info>
+                      <ul className='font-weight-bold'>
+                        <li>Makes every additional bolt click raise your total tip to another 10x multiple of your default tip</li>
+                        <li>e.g. if your tip default is 10 sats
+                          <ul>
+                            <li>1st click: 10 sats total tipped</li>
+                            <li>2nd click: 100 sats total tipped</li>
+                            <li>3rd click: 1000 sats total tipped</li>
+                            <li>4th click: 10000 sats total tipped</li>
+                            <li>and so on ...</li>
+                          </ul>
+                        </li>
+                        <li>You can still custom tip via long press
+                          <ul>
+                            <li>the next bolt click rounds up to the next greatest 10x multiple of your default</li>
+                          </ul>
+                        </li>
+                      </ul>
+                    </Info>
+                  </div>
+                  }
+                    />}
+            />
+          </div>
           <Select
             label='fiat currency'
             name='fiatCurrency'
@@ -110,7 +146,7 @@ export default function Settings ({ data: { settings } }) {
             groupClassName='mb-0'
           />
           <Checkbox
-            label='my invite links are redeemed'
+            label='someone joins using my invite or referral links'
             name='noteInvites'
             groupClassName='mb-0'
           />

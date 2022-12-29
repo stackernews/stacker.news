@@ -20,7 +20,7 @@ function Notification ({ n }) {
     <div
       className='clickToContext'
       onClick={e => {
-        if (n.__typename === 'Earn') {
+        if (n.__typename === 'Earn' || n.__typename === 'Referral') {
           return
         }
 
@@ -88,41 +88,50 @@ function Notification ({ n }) {
               </div>
             </div>
             )
-          : n.__typename === 'InvoicePaid'
+          : n.__typename === 'Referral'
             ? (
-              <div className='font-weight-bold text-info ml-2 py-1'>
-                <Check className='fill-info mr-1' />{n.earnedSats} sats were deposited in your account
-                <small className='text-muted ml-1'>{timeSince(new Date(n.sortTime))}</small>
-              </div>)
-            : (
               <>
-                {n.__typename === 'Votification' &&
-                  <small className='font-weight-bold text-success ml-2'>
-                    your {n.item.title ? 'post' : 'reply'} {n.item.fwdUser ? 'forwarded' : 'stacked'} {n.earnedSats} sats{n.item.fwdUser && ` to @${n.item.fwdUser.name}`}
-                  </small>}
-                {n.__typename === 'Mention' &&
-                  <small className='font-weight-bold text-info ml-2'>
-                    you were mentioned in
-                  </small>}
-                {n.__typename === 'JobChanged' &&
-                  <small className={`font-weight-bold text-${n.item.status === 'ACTIVE' ? 'success' : 'boost'} ml-1`}>
-                    {n.item.status === 'ACTIVE'
-                      ? 'your job is active again'
-                      : (n.item.status === 'NOSATS'
-                          ? 'your job promotion ran out of sats'
-                          : 'your job has been stopped')}
-                  </small>}
-                <div className={n.__typename === 'Votification' || n.__typename === 'Mention' || n.__typename === 'JobChanged' ? '' : 'py-2'}>
-                  {n.item.isJob
-                    ? <ItemJob item={n.item} />
-                    : n.item.title
-                      ? <Item item={n.item} />
-                      : (
-                        <div className='pb-2'>
-                          <Comment item={n.item} noReply includeParent rootText={n.__typename === 'Reply' ? 'replying on:' : undefined} clickToContext />
-                        </div>)}
-                </div>
-              </>)}
+                <small className='font-weight-bold text-secondary ml-2'>
+                  someone joined via one of your <Link href='/referrals/month' passHref><a className='text-reset'>referral links</a></Link>
+                  <small className='text-muted ml-1'>{timeSince(new Date(n.sortTime))}</small>
+                </small>
+              </>
+              )
+            : n.__typename === 'InvoicePaid'
+              ? (
+                <div className='font-weight-bold text-info ml-2 py-1'>
+                  <Check className='fill-info mr-1' />{n.earnedSats} sats were deposited in your account
+                  <small className='text-muted ml-1'>{timeSince(new Date(n.sortTime))}</small>
+                </div>)
+              : (
+                <>
+                  {n.__typename === 'Votification' &&
+                    <small className='font-weight-bold text-success ml-2'>
+                      your {n.item.title ? 'post' : 'reply'} {n.item.fwdUser ? 'forwarded' : 'stacked'} {n.earnedSats} sats{n.item.fwdUser && ` to @${n.item.fwdUser.name}`}
+                    </small>}
+                  {n.__typename === 'Mention' &&
+                    <small className='font-weight-bold text-info ml-2'>
+                      you were mentioned in
+                    </small>}
+                  {n.__typename === 'JobChanged' &&
+                    <small className={`font-weight-bold text-${n.item.status === 'ACTIVE' ? 'success' : 'boost'} ml-1`}>
+                      {n.item.status === 'ACTIVE'
+                        ? 'your job is active again'
+                        : (n.item.status === 'NOSATS'
+                            ? 'your job promotion ran out of sats'
+                            : 'your job has been stopped')}
+                    </small>}
+                  <div className={n.__typename === 'Votification' || n.__typename === 'Mention' || n.__typename === 'JobChanged' ? '' : 'py-2'}>
+                    {n.item.isJob
+                      ? <ItemJob item={n.item} />
+                      : n.item.title
+                        ? <Item item={n.item} />
+                        : (
+                          <div className='pb-2'>
+                            <Comment item={n.item} noReply includeParent rootText={n.__typename === 'Reply' ? 'replying on:' : undefined} clickToContext />
+                          </div>)}
+                  </div>
+                </>)}
     </div>
   )
 }

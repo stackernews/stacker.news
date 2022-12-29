@@ -41,7 +41,7 @@ export default function TopHeader ({ cat }) {
             onChange={(formik, e) => top({ ...formik?.values, sort: e.target.value })}
             name='sort'
             size='sm'
-            items={cat === 'users' ? ['stacked', 'spent', 'comments', 'posts'] : ['votes', 'comments', 'sats']}
+            items={cat === 'users' ? ['stacked', 'spent', 'comments', 'posts', 'referrals'] : ['votes', 'comments', 'sats']}
           />
           for
           <Select

@@ -1,8 +1,9 @@
-import { InputGroup, Modal } from 'react-bootstrap'
+import { Button, InputGroup, Modal } from 'react-bootstrap'
 import React, { useState, useCallback, useContext, useRef, useEffect } from 'react'
 import * as Yup from 'yup'
 import { Form, Input, SubmitButton } from './form'
 import { useMe } from './me'
+import UpBolt from '../svgs/bolt.svg'
 
 export const ItemActContext = React.createContext({
   item: null,
@@ -38,6 +39,7 @@ export function ItemActModal () {
   const { item, setItem } = useItemAct()
   const inputRef = useRef(null)
   const me = useMe()
+  const [oValue, setOValue] = useState()
 
   useEffect(() => {
     inputRef.current?.focus()
@@ -73,10 +75,26 @@ export function ItemActModal () {
             label='amount'
             name='amount'
             innerRef={inputRef}
+            overrideValue={oValue}
             required
             autoFocus
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
           />
+          <div>
+            {[1, 10, 100, 1000, 10000].map(num =>
+              <Button
+                size='sm'
+                className={`${num > 1 ? 'ml-2' : ''} mb-2`}
+                key={num}
+                onClick={() => { setOValue(num) }}
+              >
+                <UpBolt
+                  className='mr-1'
+                  width={14}
+                  height={14}
+                />{num}
+              </Button>)}
+          </div>
           <div className='d-flex'>
             <SubmitButton variant='success' className='ml-auto mt-1 px-4' value='TIP'>tip</SubmitButton>
           </div>

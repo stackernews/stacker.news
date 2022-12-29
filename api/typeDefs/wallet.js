@@ -41,8 +41,8 @@ export default gql`
     factId: ID!
     bolt11: String
     createdAt: String!
-    sats: Int!
-    satsFee: Int
+    sats: Float!
+    satsFee: Float
     status: String
     type: String!
     description: String

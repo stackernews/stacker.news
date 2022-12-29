@@ -1,0 +1,17 @@
+-- CreateTable
+CREATE TABLE "ReferralAct" (
+    "id" SERIAL NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "referrerId" INTEGER NOT NULL,
+    "itemActId" INTEGER NOT NULL,
+    "msats" BIGINT NOT NULL,
+
+    PRIMARY KEY ("id")
+);
+
+-- AddForeignKey
+ALTER TABLE "ReferralAct" ADD FOREIGN KEY ("referrerId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ReferralAct" ADD FOREIGN KEY ("itemActId") REFERENCES "ItemAct"("id") ON DELETE CASCADE ON UPDATE CASCADE;

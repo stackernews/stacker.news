@@ -1000,7 +1000,27 @@ export default {
       `;
 
       return paid[0].bountyPaid;
-},
+    },
+    bountyPaidTo: async (item, args, { models }) => {
+      if (!item.bounty) {
+        return null;
+      }
+    
+      const paidTo = await models.$queryRaw`
+      SELECT "Item"."id" as "itemId", coalesce(sum("ItemAct"."msats"), 0) as "totalMsats"
+      FROM "ItemAct"
+      INNER JOIN "Item" ON "ItemAct"."itemId" = "Item"."id"
+      WHERE "ItemAct"."userId" = ${item.userId}
+      AND "Item"."parentId" = ${item.id}
+      GROUP BY "Item"."id"
+      `;
+
+      if (paidTo.length === 0) {
+        return null;
+      }
+
+      return paidTo[0].itemId;
+    },
     meDontLike: async (item, args, { me, models }) => {
       if (!me) return false
 

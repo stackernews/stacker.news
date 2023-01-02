@@ -19,6 +19,8 @@
 .text {
     margin-top: .1rem;
     padding-right: 15px;
+    display: flex;
+    flex-direction: row;
 }
 
 .edit {
@@ -89,6 +91,11 @@
     padding-top: .5rem;
     padding-left: .2rem;
     background-color: var(--theme-commentBg);
+}
+
+.bountyIcon {
+    margin-bottom: 2px;
+    padding-left: 5px;
 }
 
 .hunk {

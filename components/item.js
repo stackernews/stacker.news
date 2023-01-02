@@ -79,7 +79,7 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
                 {item.bounty > 0 && 
                   <span>{'   '}
                     <ActionTooltip notForm overlayText={`${item.bounty} ${item.bountyPaid ? 'sats paid' : 'sats bounty'}`}>
-                      <BountyIcon className={`${styles.bountyIcon} ${item.bountyPaid ? 'fill-success vertical-align-middle' : 'fill-secondary vertical-align-middle'}`} height={16} width={16} /> 
+                      <BountyIcon className={`${styles.bountyIcon} ${item.bountyPaid ? 'fill-success vertical-align-middle' : 'fill-grey vertical-align-middle'}`} height={16} width={16} /> 
                     </ActionTooltip>
                   </span>}
               </a>

@@ -1,12 +1,18 @@
-import React, {useState} from "react"
+import React from "react"
+import { Button } from "react-bootstrap"
 import styles from "./pay-bounty.module.css"
 import ActionTooltip from './action-tooltip'
+import ModalButton from './modal-button'
 import { useMutation, gql } from "@apollo/client"
+import { useRouter } from "next/router";
 import { signIn } from 'next-auth/client'
 import {useMe} from "./me"
+import { abbrNum } from '../lib/format'
 
 export default function PayBounty({ children, item }) {
     const me = useMe()
+
+    const router = useRouter();
 
     const fwd2me = me && me?.id === item?.fwdUser?.id
 
@@ -63,32 +69,36 @@ export default function PayBounty({ children, item }) {
             return
         }
         act({ variables: { id: item.id, sats: item.root.bounty } })
+        router.push(`/items/${item.root.id}`)
         // Should show a confirm modal followed by success message
         // After success, refetch the comment and parent item to show the new green icon and paid flag on the comment
     }
 
-    if (!me || item.root.user.name !== me.name || item.mine) {
+    if (!me || item.root.user.name !== me.name || item.mine || item.root.bountyPaid) {
         return null
     }
 
-    // If the user has received an amount of sats equal to the bounty from the OP, show the bounty reward text
-    // const bountyPaidToComment = () => {
-    //     if (item.bountyPaid) {
-    //         return (
-    //             <div className={styles.pay}>
-    //                 BOUNTY REAWRDED
-    //             </div>
-    //         )
-    //     }
-    //     return null
-    // }
-
-
     return (
-        <div className={styles.payContainer} onClick={() => handlePayBounty()}>
-            <ActionTooltip notForm disable={item?.mine || fwd2me} overlayText={`${item.root.bounty} sats`}>
-                <div className={styles.pay}>pay-bounty</div>
-            </ActionTooltip>
-        </div>
+          <ActionTooltip 
+            notForm disable={item?.mine || fwd2me} 
+            overlayText={`${item.root.bounty} sats`}
+          >
+            <ModalButton
+              clicker={
+                <div className={styles.pay}>
+                  pay bounty
+                </div>
+                }
+            >
+                <div className='text-center font-weight-bold text-muted'>
+                  Are you sure you want to pay this bounty?
+                </div>
+                <div className='text-center'>
+                  <Button className="mt-4" variant='primary' onClick={() => handlePayBounty()}>
+                    pay {abbrNum(item.root.bounty)} sats
+                  </Button>
+                </div>
+            </ModalButton>
+          </ActionTooltip>
     )
 }

@@ -59,13 +59,18 @@
     margin-bottom: 0 !important;
 }
 
-.text blockquote>*:last-child {
+.text blockquote>* {
     margin-bottom: 0 !important;
+}
+
+.text blockquote:has(+ :not(blockquote)) {
+    margin-bottom: .5rem;
 }
 
 .text img {
     display: block;
     margin-top: .5rem;
+    margin-bottom: .5rem;
     border-radius: .4rem;
     width: auto;
     max-width: 100%;
@@ -81,9 +86,19 @@
 }
 
 .text blockquote {
-    border-left: 2px solid var(--theme-grey);
+    border-left: 4px solid var(--theme-quoteBar);
     padding-left: 1rem;
-    margin: 0 0 0.5rem 0.5rem !important;
+    margin-left: 1.25rem;
+    margin-bottom: 0;
+}
+
+.text ul {
+    margin-bottom: 0;
+}
+
+.text li {
+    margin-top: .5rem;
+    margin-bottom: .5rem;
 }
 
 .text h1 {

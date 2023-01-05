@@ -155,17 +155,22 @@ a:hover {
 }
 
 select.custom-select,
+div[contenteditable],
 .form-control {
   background-color: var(--theme-inputBg);
   color: var(--theme-color);
   border-color: var(--theme-borderColor);
 }
 
+div[contenteditable]:focus,
 .form-control:focus {
   background-color: var(--theme-inputBg);
   color: var(--theme-color);
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgb(250 218 94 / 25%);
 }
 
+div[contenteditable]:disabled,
 .form-control:disabled,
 .form-control[readonly] {
   background-color: var(--theme-inputDisabledBg);
@@ -222,15 +227,15 @@ select.custom-select,
 }
 
 .dropdown-item {
-  color: var(--theme-dropdownItemColor);
+  color: var(--theme-dropdownItemColor) !important;
 }
 
 .dropdown-item:hover {
-  color: var(--theme-dropdownItemColorHover);
+  color: var(--theme-dropdownItemColorHover) !important;
 }
 
 .dropdown-item.active {
-  color: var(--theme-brandColor);
+  color: var(--theme-brandColor) !important;
   text-shadow: 0 0 10px var(--primary);
 }
 
@@ -286,12 +291,15 @@ footer {
   textarea,
   .form-control,
   .form-control:focus,
+  div[contenteditable],
+  div[contenteditable]:focus,
   .input-group-text {
     font-size: 1rem !important;
   }
 }
 
-textarea.form-control {
+textarea.form-control,
+div[contenteditable] {
   line-height: 1rem;
 }
 
@@ -364,6 +372,7 @@ textarea.form-control {
   text-shadow: 0 0 10px var(--primary);
 }
 
+div[contenteditable]:focus,
 .form-control:focus {
   border-color: var(--primary);
 }

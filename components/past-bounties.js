@@ -40,8 +40,7 @@ export default function PastBounties({ children, item }) {
               )}
         </div>
         {
-        // cursor && 
-        item.id && <Link href={`/items/${item.id}/bounties`} query={{parent: item}} passHref><a className='text-reset text-muted font-weight-bold'>view all past bounties</a></Link>}
+        item.user.name && <Link href={`/${item.user.name}/bounties`} query={{parent: item}} passHref><a className='text-reset text-muted font-weight-bold'>view all past bounties</a></Link>}
       </>}
       />
   )

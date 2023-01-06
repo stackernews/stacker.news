@@ -200,6 +200,16 @@ export const BOUNTY_ITEMS_BY_USER = gql`
     }
   }`
 
+
+export const BOUNTY_ITEMS_BY_USER_NAME = gql`
+  ${ITEM_FIELDS}
+  query getBountiesByUserName($name: String!) {
+    getBountiesByUserName(name: $name) {
+      ...ItemFields
+    }
+  }`
+
+
 export const ITEM_SEARCH = gql`
   ${ITEM_FIELDS}
   query Search($q: String, $cursor: String, $sort: String, $what: String, $when: String) {

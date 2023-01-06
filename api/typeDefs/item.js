@@ -11,6 +11,7 @@ export default gql`
     related(cursor: String, title: String, id: ID, limit: Int): Items
     allItems(cursor: String): Items
     getBountiesByUser(id: Int!): [Item]
+    getBountiesByUserName(name: String!): [Item]
     search(q: String, sub: String, cursor: String, what: String, sort: String, when: String): Items
     auctionPosition(sub: String, id: ID, bid: Int!): Int!
     itemRepetition(parentId: ID): Int!

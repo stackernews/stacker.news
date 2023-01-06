@@ -61,6 +61,10 @@ $tooltip-bg: #5c8001;
   }
 }
 
+.lexical blockquote>* {
+  margin-bottom: 0 !important;
+}
+
 .modal-close {
   cursor: pointer;
   display: flex;

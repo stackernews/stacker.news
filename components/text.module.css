@@ -59,7 +59,7 @@
     margin-bottom: 0 !important;
 }
 
-.text blockquote>* {
+.text blockquote:last-child {
     margin-bottom: 0 !important;
 }
 

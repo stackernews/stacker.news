@@ -112,7 +112,7 @@ function Markdown () {
 
   return (
     <>
-      <div className='text-left w-100'>
+      <div className='lexical text-left w-100'>
         <OnChangePlugin onChange={() => editor.update(() => {
           setMarkdown($convertToMarkdownString(SN_TRANSFORMERS))
         })}

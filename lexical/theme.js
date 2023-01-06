@@ -13,6 +13,7 @@ const theme = {
   image: styles.image,
   link: styles.link,
   code: styles.code,
+  hr: styles.hr,
   list: {
     nested: {
       listitem: styles.nestedListItem

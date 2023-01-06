@@ -158,6 +158,11 @@ export default function Comment ({
                     />
                   </div>
                 </>}
+                {item.root.bountyPaidTo && item.root.bountyPaidTo == item.id &&
+                  <ActionTooltip notForm overlayText={`${item.root.bounty} sats paid`}>
+                    <BountyIcon className={`${styles.bountyIcon} ${'fill-success vertical-align-middle'}`} height={16} width={16} /> 
+                  </ActionTooltip>
+                }
             </div>
             {!includeParent && (collapse
               ? <Eye
@@ -188,11 +193,6 @@ export default function Comment ({
                 <Text topLevel={topLevel} nofollow={item.sats + item.boost < NOFOLLOW_LIMIT}>
                   {truncate ? truncateString(item.text) : item.searchText || item.text}
                 </Text>
-                {item.root.bountyPaidTo && item.root.bountyPaidTo == item.id &&
-                  <ActionTooltip notForm overlayText={`${item.root.bounty} sats paid`}>
-                    <BountyIcon className={`${styles.bountyIcon} ${'fill-success vertical-align-middle'}`} height={16} width={16} /> 
-                  </ActionTooltip>
-                }
               </div>
               )}
         </div>

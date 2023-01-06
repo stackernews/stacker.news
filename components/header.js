@@ -61,7 +61,7 @@ export default function Header ({ sub }) {
           </Head>
           <Link href='/notifications' passHref>
             <Nav.Link eventKey='notifications' className='pl-0 position-relative'>
-              <NoteIcon />
+              <NoteIcon className='theme' />
               {hasNewNotes?.hasNewNotes &&
                 <span className={styles.notification}>
                   <span className='invisible'>{' '}</span>

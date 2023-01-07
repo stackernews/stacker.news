@@ -81,7 +81,7 @@ export default function Settings ({ data: { settings } }) {
             wildWestMode: settings?.wildWestMode,
             greeterMode: settings?.greeterMode,
             nostrPubkey: settings?.nostrPubkey || '',
-            nostrRelays: settings?.nostrRelays || ['']
+            nostrRelays: settings?.nostrRelays?.length ? settings?.nostrRelays : ['']
           }}
           schema={SettingsSchema}
           onSubmit={async ({ tipDefault, nostrPubkey, nostrRelays, ...values }) => {

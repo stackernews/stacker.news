@@ -22,7 +22,7 @@ export default gql`
     setSettings(tipDefault: Int!, turboTipping: Boolean!, fiatCurrency: String!, noteItemSats: Boolean!,
       noteEarning: Boolean!, noteAllDescendants: Boolean!, noteMentions: Boolean!, noteDeposits: Boolean!,
       noteInvites: Boolean!, noteJobIndicator: Boolean!, hideInvoiceDesc: Boolean!, hideFromTopUsers: Boolean!,
-      wildWestMode: Boolean!, greeterMode: Boolean!): User
+      wildWestMode: Boolean!, greeterMode: Boolean!, nostrPubkey: String, nostrRelays: [String!]): User
     setPhoto(photoId: ID!): Int!
     upsertBio(bio: String!): User!
     setWalkthrough(tipPopover: Boolean, upvotePopover: Boolean): Boolean
@@ -52,6 +52,8 @@ export default gql`
     tipDefault: Int!
     turboTipping: Boolean!
     fiatCurrency: String!
+    nostrPubkey: String
+    nostrRelays: [String!]
     bio: Item
     bioId: Int
     photoId: Int

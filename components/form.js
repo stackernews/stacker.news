@@ -299,7 +299,7 @@ export function Input ({ label, groupClassName, ...props }) {
   )
 }
 
-export function VariableInput ({ label, groupClassName, name, hint, max, readOnlyLen, ...props }) {
+export function VariableInput ({ label, groupClassName, name, hint, max, min, readOnlyLen, ...props }) {
   return (
     <FormGroup label={label} className={groupClassName}>
       <FieldArray name={name}>
@@ -307,11 +307,11 @@ export function VariableInput ({ label, groupClassName, name, hint, max, readOnl
           const options = form.values[name]
           return (
             <>
-              {options.map((_, i) => (
+              {options?.map((_, i) => (
                 <div key={i}>
                   <BootstrapForm.Row className='mb-2'>
                     <Col>
-                      <InputInner name={`${name}[${i}]`} {...props} readOnly={i < readOnlyLen} placeholder={i > 1 ? 'optional' : undefined} />
+                      <InputInner name={`${name}[${i}]`} {...props} readOnly={i < readOnlyLen} placeholder={i >= min ? 'optional' : undefined} />
                     </Col>
                     {options.length - 1 === i && options.length !== max
                       ? <AddIcon className='fill-grey align-self-center pointer mx-2' onClick={() => fieldArrayHelpers.push('')} />

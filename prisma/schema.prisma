@@ -44,8 +44,13 @@ model User {
   photoId         Int?
   photo           Upload?     @relation(fields: [photoId], references: [id])
 
+  // walkthrough
   upvotePopover Boolean @default(false)
   tipPopover    Boolean @default(false)
+
+  // nostr
+  nostrPubkey String?
+  nostrRelays UserNostrRelay[]
 
   // referrals
   referrer   User?  @relation("referrals", fields: [referrerId], references: [id])
@@ -82,6 +87,24 @@ model User {
   @@index([createdAt])
   @@index([inviteId])
   @@map(name: "users")
+}
+
+model NostrRelay {
+  addr      String           @id
+  createdAt DateTime         @default(now()) @map(name: "created_at")
+  updatedAt DateTime         @default(now()) @updatedAt @map(name: "updated_at")
+  users     UserNostrRelay[]
+}
+
+model UserNostrRelay {
+  User           User       @relation(fields: [userId], references: [id])
+  userId         Int
+  NostrRelay     NostrRelay @relation(fields: [nostrRelayAddr], references: [addr])
+  nostrRelayAddr String
+  createdAt      DateTime   @default(now()) @map(name: "created_at")
+  updatedAt      DateTime   @default(now()) @updatedAt @map(name: "updated_at")
+
+  @@id([userId, nostrRelayAddr])
 }
 
 model Donation {

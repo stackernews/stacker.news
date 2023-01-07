@@ -1,4 +1,4 @@
-import { Checkbox, Form, Input, SubmitButton, Select } from '../components/form'
+import { Checkbox, Form, Input, SubmitButton, Select, VariableInput } from '../components/form'
 import * as Yup from 'yup'
 import { Alert, Button, InputGroup, Modal } from 'react-bootstrap'
 import LayoutCenter from '../components/layout-center'
@@ -15,6 +15,8 @@ import Info from '../components/info'
 import { CURRENCY_SYMBOLS } from '../components/price'
 import Link from 'next/link'
 import AccordianItem from '../components/accordian-item'
+import { MAX_NOSTR_RELAY_NUM } from '../lib/constants'
+import { WS_REGEXP } from '../lib/url'
 
 export const getServerSideProps = getGetServerSideProps(SETTINGS)
 
@@ -23,7 +25,12 @@ const supportedCurrencies = Object.keys(CURRENCY_SYMBOLS)
 export const SettingsSchema = Yup.object({
   tipDefault: Yup.number().typeError('must be a number').required('required')
     .positive('must be positive').integer('must be whole'),
-  fiatCurrency: Yup.string().required('required').oneOf(supportedCurrencies)
+  fiatCurrency: Yup.string().required('required').oneOf(supportedCurrencies),
+  nostrPubkey: Yup.string().matches(/^[0-9a-fA-F]{64}$/, 'must be 64 hex chars'),
+  nostrRelays: Yup.array().of(
+    Yup.string().matches(WS_REGEXP, 'invalid web socket address')
+  ).max(MAX_NOSTR_RELAY_NUM,
+    ({ max, value }) => `${Math.abs(max - value.length)} too many`)
 })
 
 const warningMessage = 'If I logout, even accidentally, I will never be able to access my account again'
@@ -72,11 +79,26 @@ export default function Settings ({ data: { settings } }) {
             hideInvoiceDesc: settings?.hideInvoiceDesc,
             hideFromTopUsers: settings?.hideFromTopUsers,
             wildWestMode: settings?.wildWestMode,
-            greeterMode: settings?.greeterMode
+            greeterMode: settings?.greeterMode,
+            nostrPubkey: settings?.nostrPubkey || '',
+            nostrRelays: settings?.nostrRelays || ['']
           }}
           schema={SettingsSchema}
-          onSubmit={async ({ tipDefault, ...values }) => {
-            await setSettings({ variables: { tipDefault: Number(tipDefault), ...values } })
+          onSubmit={async ({ tipDefault, nostrPubkey, nostrRelays, ...values }) => {
+            if (nostrPubkey.length === 0) {
+              nostrPubkey = null
+            }
+
+            const nostrRelaysFiltered = nostrRelays?.filter(word => word.trim().length > 0)
+
+            await setSettings({
+              variables: {
+                tipDefault: Number(tipDefault),
+                nostrPubkey,
+                nostrRelays: nostrRelaysFiltered,
+                ...values
+              }
+            })
             setSuccess('settings saved')
           }}
         >
@@ -216,6 +238,27 @@ export default function Settings ({ data: { settings } }) {
               </div>
             }
             name='greeterMode'
+          />
+          <AccordianItem
+            headerColor='var(--theme-color)'
+            show={settings?.nostrPubkey}
+            header={<h4 className='mb-2 text-left'>nostr <small><a href='https://github.com/nostr-protocol/nips/blob/master/05.md' target='_blank' rel='noreferrer'>NIP-05</a></small></h4>}
+            body={
+              <>
+                <Input
+                  label={<>pubkey <small className='text-muted ml-2'>optional</small></>}
+                  name='nostrPubkey'
+                  clear
+                />
+                <VariableInput
+                  label={<>relays <small className='text-muted ml-2'>optional</small></>}
+                  name='nostrRelays'
+                  clear
+                  min={0}
+                  max={MAX_NOSTR_RELAY_NUM}
+                />
+              </>
+              }
           />
           <div className='d-flex'>
             <SubmitButton variant='info' className='ml-auto mt-1 px-4'>save</SubmitButton>

@@ -45,7 +45,7 @@ function LightningExplainer ({ text, children }) {
               body={
                 <>
                   <Row className='mb-3 no-gutters'>
-                    You can use any wallet that support lnurl-auth. These are some wallets you can use:
+                    You can use any wallet that supports lnurl-auth. These are some wallets you can use:
                   </Row>
                   <Row>
                     <Col xs>

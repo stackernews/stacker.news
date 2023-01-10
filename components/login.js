@@ -16,7 +16,7 @@ export const EmailSchema = Yup.object({
   email: Yup.string().email('email is no good').required('required')
 })
 
-export function EmailLoginForm ({ callbackUrl }) {
+export function EmailLoginForm ({ text, callbackUrl }) {
   return (
     <Form
       initial={{
@@ -34,12 +34,12 @@ export function EmailLoginForm ({ callbackUrl }) {
         required
         autoFocus
       />
-      <SubmitButton variant='secondary' className={styles.providerButton}>Login with Email</SubmitButton>
+      <SubmitButton variant='secondary' className={styles.providerButton}>{text || 'Login'} with Email</SubmitButton>
     </Form>
   )
 }
 
-export default function Login ({ providers, callbackUrl, error, Header }) {
+export default function Login ({ providers, callbackUrl, error, text, Header, Footer }) {
   const errors = {
     Signin: 'Try signing with a different account.',
     OAuthSignin: 'Try signing with a different account.',
@@ -60,9 +60,6 @@ export default function Login ({ providers, callbackUrl, error, Header }) {
     <LayoutCenter noFooter>
       <div className={styles.login}>
         {Header && <Header />}
-        <div className='text-center font-weight-bold text-muted pb-4'>
-          Not registered? Just login, we'll automatically create an account.
-        </div>
         {errorMessage &&
           <Alert variant='danger' onClose={() => setErrorMessage(undefined)} dismissible>{errorMessage}</Alert>}
         {router.query.type === 'lightning'
@@ -81,7 +78,7 @@ export default function Login ({ providers, callbackUrl, error, Header }) {
                   width={20}
                   height={20}
                   className='mr-3'
-                />Login with Lightning
+                />{text || 'Login'} with Lightning
               </Button>
               {Object.values(providers).map(provider => {
                 if (provider.name === 'Email' || provider.name === 'Lightning') {
@@ -101,13 +98,14 @@ export default function Login ({ providers, callbackUrl, error, Header }) {
                   >
                     <Icon
                       className='mr-3'
-                    />Login with {provider.name}
+                    />{text || 'Login'} with {provider.name}
                   </Button>
                 )
               })}
               <div className='mt-2 text-center text-muted font-weight-bold'>or</div>
-              <EmailLoginForm callbackUrl={callbackUrl} />
+              <EmailLoginForm text={text} callbackUrl={callbackUrl} />
             </>)}
+        {Footer && <Footer />}
       </div>
     </LayoutCenter>
   )

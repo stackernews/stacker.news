@@ -78,7 +78,7 @@ export default function Price () {
 
   if (asSats === 'yep') {
     return (
-      <Button className='text-reset p-0' onClick={handleClick} variant='link'>
+      <Button className='text-reset p-0 line-height-1' onClick={handleClick} variant='link'>
         {fixedDecimal(100000000 / price, 0) + ` sats/${fiatSymbol}`}
       </Button>
     )
@@ -86,14 +86,14 @@ export default function Price () {
 
   if (asSats === '1btc') {
     return (
-      <Button className='text-reset p-0' onClick={handleClick} variant='link'>
+      <Button className='text-reset p-0 line-height-1' onClick={handleClick} variant='link'>
         1sat=1sat
       </Button>
     )
   }
 
   return (
-    <Button className='text-reset p-0' onClick={handleClick} variant='link'>
+    <Button className='text-reset p-0 line-height-1' onClick={handleClick} variant='link'>
       {fiatSymbol + fixedDecimal(price, 0)}
     </Button>
   )

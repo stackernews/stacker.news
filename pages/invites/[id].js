@@ -63,7 +63,7 @@ function InviteHeader ({ invite }) {
   } else {
     Inner = () => (
       <div>
-        get <span className='text-success'>{invite.gift} free sats</span> from{' '}
+        Get <span className='text-success'>{invite.gift} free sats</span> from{' '}
         <Link href={`/${invite.user.name}`} passHref><a>@{invite.user.name}</a></Link>{' '}
         when you sign up today
       </div>
@@ -71,12 +71,12 @@ function InviteHeader ({ invite }) {
   }
 
   return (
-    <h2 className='text-center pb-3'>
+    <h3 className='text-center pb-3'>
       <Inner />
-    </h2>
+    </h3>
   )
 }
 
 export default function Invite ({ invite, ...props }) {
-  return <Login Header={() => <InviteHeader invite={invite} />} {...props} />
+  return <Login Header={() => <InviteHeader invite={invite} />} text='Sign up' {...props} />
 }

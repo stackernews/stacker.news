@@ -2,7 +2,7 @@
 // This will help to prevent a flash if dark mode is the default.
 const COLORS = {
   light: {
-    body: '#f5f5f5',
+    body: '#f5f5f7',
     color: '#212529',
     navbarVariant: 'light',
     navLink: 'rgba(0, 0, 0, 0.55)',

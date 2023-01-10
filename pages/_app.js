@@ -1,11 +1,9 @@
 import '../styles/globals.scss'
 import { ApolloProvider, gql, useQuery } from '@apollo/client'
 import { Provider } from 'next-auth/client'
-import { FundErrorModal, FundErrorProvider } from '../components/fund-error'
 import { MeProvider } from '../components/me'
 import PlausibleProvider from 'next-plausible'
 import { LightningProvider } from '../components/lightning'
-import { ItemActModal, ItemActProvider } from '../components/item-act'
 import getApolloClient from '../lib/apollo'
 import NextNProgress from 'nextjs-progressbar'
 import { PriceProvider } from '../components/price'
@@ -14,6 +12,7 @@ import { useRouter } from 'next/dist/client/router'
 import { useEffect } from 'react'
 import Moon from '../svgs/moon-fill.svg'
 import Layout from '../components/layout'
+import { ShowModalProvider } from '../components/modal'
 
 function CSRWrapper ({ Component, apollo, ...props }) {
   const { data, error } = useQuery(gql`${apollo.query}`, { variables: apollo.variables, fetchPolicy: 'cache-first' })
@@ -89,15 +88,11 @@ function MyApp ({ Component, pageProps: { session, ...props } }) {
             <MeProvider me={me}>
               <PriceProvider price={price}>
                 <LightningProvider>
-                  <FundErrorProvider>
-                    <FundErrorModal />
-                    <ItemActProvider>
-                      <ItemActModal />
-                      {data || !apollo?.query
-                        ? <Component {...props} />
-                        : <CSRWrapper Component={Component} {...props} />}
-                    </ItemActProvider>
-                  </FundErrorProvider>
+                  <ShowModalProvider>
+                    {data || !apollo?.query
+                      ? <Component {...props} />
+                      : <CSRWrapper Component={Component} {...props} />}
+                  </ShowModalProvider>
                 </LightningProvider>
               </PriceProvider>
             </MeProvider>

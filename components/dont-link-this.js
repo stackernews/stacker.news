@@ -1,10 +1,11 @@
 import { gql, useMutation } from '@apollo/client'
 import { Dropdown } from 'react-bootstrap'
 import MoreIcon from '../svgs/more-fill.svg'
-import { useFundError } from './fund-error'
+import FundError from './fund-error'
+import { useShowModal } from './modal'
 
 export default function DontLikeThis ({ id }) {
-  const { setError } = useFundError()
+  const showModal = useShowModal()
 
   const [dontLikeThis] = useMutation(
     gql`
@@ -41,7 +42,9 @@ export default function DontLikeThis ({ id }) {
               })
             } catch (error) {
               if (error.toString().includes('insufficient funds')) {
-                setError(true)
+                showModal(onClose => {
+                  return <FundError onClose={onClose} />
+                })
               }
             }
           }}

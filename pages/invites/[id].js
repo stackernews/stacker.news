@@ -6,6 +6,7 @@ import { gql } from '@apollo/client'
 import { INVITE_FIELDS } from '../../fragments/invites'
 import getSSRApolloClient from '../../api/ssrApollo'
 import Link from 'next/link'
+import LayoutCenter from '../../components/layout-center'
 
 export async function getServerSideProps ({ req, res, query: { id, error = null } }) {
   const session = await getSession({ req })
@@ -78,5 +79,9 @@ function InviteHeader ({ invite }) {
 }
 
 export default function Invite ({ invite, ...props }) {
-  return <Login Header={() => <InviteHeader invite={invite} />} text='Sign up' {...props} />
+  return (
+    <LayoutCenter>
+      <Login Header={() => <InviteHeader invite={invite} />} text='Sign up' {...props} />
+    </LayoutCenter>
+  )
 }

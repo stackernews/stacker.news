@@ -136,7 +136,7 @@ export default function Footer ({ noLinks }) {
   useEffect(() => {
     setMounted(true)
     setLightning(localStorage.getItem('lnAnimate') || 'yes')
-  })
+  }, [])
 
   const toggleLightning = () => {
     if (lightning === 'yes') {

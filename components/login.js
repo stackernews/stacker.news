@@ -57,56 +57,59 @@ export default function Login ({ providers, callbackUrl, error, text, Header, Fo
   const router = useRouter()
 
   return (
-    <LayoutCenter noFooter>
-      <div className={styles.login}>
-        {Header && <Header />}
-        {errorMessage &&
-          <Alert variant='danger' onClose={() => setErrorMessage(undefined)} dismissible>{errorMessage}</Alert>}
-        {router.query.type === 'lightning'
-          ? <LightningAuth callbackUrl={callbackUrl} />
-          : (
-            <>
-              <Button
-                className={`mt-2 ${styles.providerButton}`}
-                variant='primary'
-                onClick={() => router.push({
-                  pathname: router.pathname,
-                  query: { ...router.query, type: 'lightning' }
-                })}
-              >
-                <LightningIcon
-                  width={20}
-                  height={20}
-                  className='mr-3'
-                />{text || 'Login'} with Lightning
-              </Button>
-              {Object.values(providers).map(provider => {
-                if (provider.name === 'Email' || provider.name === 'Lightning') {
-                  return null
-                }
-                const [variant, Icon] =
+    <LayoutCenter>
+      {router.query.type === 'lightning'
+        ? <LightningAuth callbackUrl={callbackUrl} text={text} />
+        : (
+          <div className={styles.login}>
+            {Header && <Header />}
+            {errorMessage &&
+              <Alert
+                variant='danger'
+                onClose={() => setErrorMessage(undefined)}
+                dismissible
+              >{errorMessage}
+              </Alert>}
+            <Button
+              className={`mt-2 ${styles.providerButton}`}
+              variant='primary'
+              onClick={() => router.push({
+                pathname: router.pathname,
+                query: { ...router.query, type: 'lightning' }
+              })}
+            >
+              <LightningIcon
+                width={20}
+                height={20}
+                className='mr-3'
+              />{text || 'Login'} with Lightning
+            </Button>
+            {Object.values(providers).map(provider => {
+              if (provider.name === 'Email' || provider.name === 'Lightning') {
+                return null
+              }
+              const [variant, Icon] =
           provider.name === 'Twitter'
             ? ['twitter', TwitterIcon]
             : ['dark', GithubIcon]
 
-                return (
-                  <Button
-                    className={`mt-2 ${styles.providerButton}`}
-                    key={provider.name}
-                    variant={variant}
-                    onClick={() => signIn(provider.id, { callbackUrl })}
-                  >
-                    <Icon
-                      className='mr-3'
-                    />{text || 'Login'} with {provider.name}
-                  </Button>
-                )
-              })}
-              <div className='mt-2 text-center text-muted font-weight-bold'>or</div>
-              <EmailLoginForm text={text} callbackUrl={callbackUrl} />
-            </>)}
-        {Footer && <Footer />}
-      </div>
+              return (
+                <Button
+                  className={`mt-2 ${styles.providerButton}`}
+                  key={provider.name}
+                  variant={variant}
+                  onClick={() => signIn(provider.id, { callbackUrl })}
+                >
+                  <Icon
+                    className='mr-3'
+                  />{text || 'Login'} with {provider.name}
+                </Button>
+              )
+            })}
+            <div className='mt-2 text-center text-muted font-weight-bold'>or</div>
+            <EmailLoginForm text={text} callbackUrl={callbackUrl} />
+            {Footer && <Footer />}
+          </div>)}
     </LayoutCenter>
   )
 }

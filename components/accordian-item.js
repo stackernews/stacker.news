@@ -3,7 +3,7 @@ import ArrowRight from '../svgs/arrow-right-s-fill.svg'
 import ArrowDown from '../svgs/arrow-down-s-fill.svg'
 import { useEffect, useState } from 'react'
 
-export default function AccordianItem ({ header, body, headerColor = 'var(--theme-grey)', show }) {
+export default function AccordianItem ({ header, body, className, headerColor = 'var(--theme-grey)', show }) {
   const [open, setOpen] = useState(show)
 
   useEffect(() => {
@@ -19,6 +19,7 @@ export default function AccordianItem ({ header, body, headerColor = 'var(--them
         eventKey='0'
         style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
         onClick={() => setOpen(!open)}
+        className={className}
       >
         {open
           ? <ArrowDown style={{ fill: headerColor }} height={20} width={20} />

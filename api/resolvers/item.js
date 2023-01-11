@@ -8,18 +8,19 @@ import {
   BOOST_MIN, ITEM_SPAM_INTERVAL, MAX_POLL_NUM_CHOICES,
   MAX_TITLE_LENGTH, ITEM_FILTER_THRESHOLD, DONT_LIKE_THIS_COST
 } from '../../lib/constants'
+import { msatsToSats } from '../../lib/format'
 
 async function comments (me, models, id, sort) {
   let orderBy
   switch (sort) {
     case 'top':
-      orderBy = `ORDER BY ${await orderByNumerator(me, models)} DESC, "Item".id DESC`
+      orderBy = `ORDER BY ${await orderByNumerator(me, models)} DESC, "Item".msats DESC, "Item".id DESC`
       break
     case 'recent':
-      orderBy = 'ORDER BY "Item".created_at DESC, "Item".id DESC'
+      orderBy = 'ORDER BY "Item".created_at DESC, "Item".msats DESC, "Item".id DESC'
       break
     default:
-      orderBy = `ORDER BY ${await orderByNumerator(me, models)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".id DESC`
+      orderBy = `ORDER BY ${await orderByNumerator(me, models)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, "Item".id DESC`
       break
   }
 
@@ -74,7 +75,7 @@ async function topOrderClause (sort, me, models) {
     case 'comments':
       return 'ORDER BY ncomments DESC'
     case 'sats':
-      return 'ORDER BY sats DESC'
+      return 'ORDER BY msats DESC'
     default:
       return await topOrderByWeightedSats(me, models)
   }
@@ -125,6 +126,21 @@ export async function filterClause (me, models) {
   return clause
 }
 
+function recentClause (type) {
+  switch (type) {
+    case 'links':
+      return ' AND url IS NOT NULL'
+    case 'discussions':
+      return ' AND url IS NULL AND bio = false AND "pollCost"  IS NULL'
+    case 'polls':
+      return ' AND "pollCost" IS NOT NULL'
+    case 'bios':
+      return ' AND bio = true'
+    default:
+      return ''
+  }
+}
+
 export default {
   Query: {
     itemRepetition: async (parent, { parentId }, { me, models }) => {
@@ -169,7 +185,7 @@ export default {
         comments
       }
     },
-    items: async (parent, { sub, sort, cursor, name, within }, { me, models }) => {
+    items: async (parent, { sub, sort, type, cursor, name, within }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
       let items; let user; let pins; let subFull
 
@@ -211,6 +227,7 @@ export default {
             ${subClause(3)}
             ${activeOrMine()}
             ${await filterClause(me, models)}
+            ${recentClause(type)}
             ORDER BY created_at DESC
             OFFSET $2
             LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, sub || 'NULL')
@@ -235,9 +252,6 @@ export default {
 
           switch (subFull?.rankingType) {
             case 'AUCTION':
-              // it might be sufficient to sort by the floor(maxBid / 1000) desc, created_at desc
-              // we pull from their wallet
-              // TODO: need to filter out by payment status
               items = await models.$queryRaw(`
                 SELECT *
                 FROM (
@@ -691,6 +705,12 @@ export default {
     }
   },
   Item: {
+    sats: async (item, args, { models }) => {
+      return msatsToSats(item.msats)
+    },
+    commentSats: async (item, args, { models }) => {
+      return msatsToSats(item.commentMsats)
+    },
     isJob: async (item, args, { models }) => {
       return item.subName === 'jobs'
     },
@@ -772,25 +792,17 @@ export default {
       return comments(me, models, item.id, 'hot')
     },
     upvotes: async (item, args, { models }) => {
-      const { sum: { sats } } = await models.itemAct.aggregate({
-        sum: {
-          sats: true
-        },
-        where: {
-          itemId: Number(item.id),
-          userId: {
-            not: Number(item.userId)
-          },
-          act: 'VOTE'
-        }
-      })
+      const [{ count }] = await models.$queryRaw(`
+        SELECT COUNT(DISTINCT "userId") as count
+        FROM "ItemAct"
+        WHERE act = 'TIP' AND "itemId" = $1`, Number(item.id))
 
-      return sats || 0
+      return count
     },
     boost: async (item, args, { models }) => {
-      const { sum: { sats } } = await models.itemAct.aggregate({
+      const { sum: { msats } } = await models.itemAct.aggregate({
         sum: {
-          sats: true
+          msats: true
         },
         where: {
           itemId: Number(item.id),
@@ -798,7 +810,7 @@ export default {
         }
       })
 
-      return sats || 0
+      return (msats && msatsToSats(msats)) || 0
     },
     wvotes: async (item) => {
       return item.weightedVotes - item.weightedDownVotes
@@ -806,9 +818,9 @@ export default {
     meSats: async (item, args, { me, models }) => {
       if (!me) return 0
 
-      const { sum: { sats } } = await models.itemAct.aggregate({
+      const { sum: { msats } } = await models.itemAct.aggregate({
         sum: {
-          sats: true
+          msats: true
         },
         where: {
           itemId: Number(item.id),
@@ -818,13 +830,13 @@ export default {
               act: 'TIP'
             },
             {
-              act: 'VOTE'
+              act: 'FEE'
             }
           ]
         }
       })
 
-      return sats || 0
+      return (msats && msatsToSats(msats)) || 0
     },
     meDontLike: async (item, args, { me, models }) => {
       if (!me) return false
@@ -1011,7 +1023,7 @@ export const SELECT =
   "Item".text, "Item".url, "Item"."userId", "Item"."fwdUserId", "Item"."parentId", "Item"."pinId", "Item"."maxBid",
   "Item".company, "Item".location, "Item".remote,
   "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost",
-  "Item".sats, "Item".ncomments, "Item"."commentSats", "Item"."lastCommentAt", "Item"."weightedVotes",
+  "Item".msats, "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",
   "Item"."weightedDownVotes", "Item".freebie, ltree2text("Item"."path") AS "path"`
 
 async function newTimedOrderByWeightedSats (me, models, num) {

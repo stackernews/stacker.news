@@ -30,12 +30,11 @@ model User {
   inviteId        String?
   bio             Item?       @relation(fields: [bioId], references: [id])
   bioId           Int?
-  msats           Int         @default(0)
-  stackedMsats    Int         @default(0)
+  msats           BigInt      @default(0)
+  stackedMsats    BigInt      @default(0)
   freeComments    Int         @default(5)
   freePosts       Int         @default(2)
   checkedNotesAt  DateTime?
-  tipDefault      Int         @default(10)
   fiatCurrency    String      @default("USD")
   pubkey          String?     @unique
   trust           Float       @default(0)
@@ -45,8 +44,22 @@ model User {
   photoId         Int?
   photo           Upload?     @relation(fields: [photoId], references: [id])
 
+  // walkthrough
   upvotePopover Boolean @default(false)
   tipPopover    Boolean @default(false)
+
+  // nostr
+  nostrPubkey String?
+  nostrRelays UserNostrRelay[]
+
+  // referrals
+  referrer   User?  @relation("referrals", fields: [referrerId], references: [id])
+  referrerId Int?
+  referrees  User[] @relation("referrals")
+
+  // tip settings
+  tipDefault   Int     @default(10)
+  turboTipping Boolean @default(false)
 
   // notification settings
   noteItemSats       Boolean @default(true)
@@ -58,19 +71,49 @@ model User {
   noteJobIndicator   Boolean @default(true)
 
   // privacy settings
-  hideInvoiceDesc Boolean @default(false)
+  hideInvoiceDesc  Boolean @default(false)
+  hideFromTopUsers Boolean @default(false)
 
   // content settings
   wildWestMode Boolean @default(false)
   greeterMode  Boolean @default(false)
 
-  Earn     Earn[]
-  Upload   Upload[]   @relation(name: "Uploads")
-  PollVote PollVote[]
+  Earn        Earn[]
+  Upload      Upload[]      @relation(name: "Uploads")
+  PollVote    PollVote[]
+  Donation    Donation[]
+  ReferralAct ReferralAct[]
 
   @@index([createdAt])
   @@index([inviteId])
   @@map(name: "users")
+}
+
+model NostrRelay {
+  addr      String           @id
+  createdAt DateTime         @default(now()) @map(name: "created_at")
+  updatedAt DateTime         @default(now()) @updatedAt @map(name: "updated_at")
+  users     UserNostrRelay[]
+}
+
+model UserNostrRelay {
+  User           User       @relation(fields: [userId], references: [id])
+  userId         Int
+  NostrRelay     NostrRelay @relation(fields: [nostrRelayAddr], references: [addr])
+  nostrRelayAddr String
+  createdAt      DateTime   @default(now()) @map(name: "created_at")
+  updatedAt      DateTime   @default(now()) @updatedAt @map(name: "updated_at")
+
+  @@id([userId, nostrRelayAddr])
+}
+
+model Donation {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map(name: "created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map(name: "updated_at")
+  sats      Int
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
 }
 
 model Upload {
@@ -105,8 +148,8 @@ model Earn {
   createdAt DateTime @default(now()) @map(name: "created_at")
   updatedAt DateTime @default(now()) @updatedAt @map(name: "updated_at")
 
-  msats  Int
-  user   User @relation(fields: [userId], references: [id])
+  msats  BigInt
+  user   User   @relation(fields: [userId], references: [id])
   userId Int
 
   type   EarnType?
@@ -192,13 +235,13 @@ model Item {
   bio     Boolean @default(false)
 
   // denormalized self stats
-  weightedVotes     Float @default(0)
-  weightedDownVotes Float @default(0)
-  sats              Int   @default(0)
+  weightedVotes     Float  @default(0)
+  weightedDownVotes Float  @default(0)
+  msats             BigInt @default(0)
 
   // denormalized comment stats
   ncomments     Int       @default(0)
-  commentSats   Int       @default(0)
+  commentMsats  BigInt    @default(0)
   lastCommentAt DateTime?
 
   // if sub is null, this is the main sub
@@ -224,6 +267,10 @@ model Item {
   PollOption PollOption[]
   PollVote   PollVote[]
 
+  @@index([weightedVotes])
+  @@index([weightedDownVotes])
+  @@index([bio])
+  @@index([freebie])
   @@index([createdAt])
   @@index([userId])
   @@index([parentId])
@@ -300,6 +347,17 @@ model Pin {
   Item      Item[]
 }
 
+model ReferralAct {
+  id         Int      @id @default(autoincrement())
+  createdAt  DateTime @default(now()) @map(name: "created_at")
+  updatedAt  DateTime @default(now()) @updatedAt @map(name: "updated_at")
+  referrerId Int
+  referrer   User     @relation(fields: [referrerId], references: [id])
+  itemActId  Int
+  itemAct    ItemAct  @relation(fields: [itemActId], references: [id])
+  msats      BigInt
+}
+
 enum ItemActType {
   VOTE
   BOOST
@@ -307,18 +365,20 @@ enum ItemActType {
   STREAM
   POLL
   DONT_LIKE_THIS
+  FEE
 }
 
 model ItemAct {
-  id        Int         @id @default(autoincrement())
-  createdAt DateTime    @default(now()) @map(name: "created_at")
-  updatedAt DateTime    @updatedAt @map(name: "updated_at")
-  sats      Int
-  act       ItemActType
-  item      Item        @relation(fields: [itemId], references: [id])
-  itemId    Int
-  user      User        @relation(fields: [userId], references: [id])
-  userId    Int
+  id          Int           @id @default(autoincrement())
+  createdAt   DateTime      @default(now()) @map(name: "created_at")
+  updatedAt   DateTime      @updatedAt @map(name: "updated_at")
+  msats       BigInt
+  act         ItemActType
+  item        Item          @relation(fields: [itemId], references: [id])
+  itemId      Int
+  user        User          @relation(fields: [userId], references: [id])
+  userId      Int
+  ReferralAct ReferralAct[]
 
   @@index([itemId])
   @@index([userId])
@@ -352,8 +412,8 @@ model Invoice {
   bolt11         String
   expiresAt      DateTime
   confirmedAt    DateTime?
-  msatsRequested Int
-  msatsReceived  Int?
+  msatsRequested BigInt
+  msatsReceived  BigInt?
   cancelled      Boolean   @default(false)
 
   @@index([createdAt])
@@ -378,10 +438,10 @@ model Withdrawl {
 
   hash           String
   bolt11         String
-  msatsPaying    Int
-  msatsPaid      Int?
-  msatsFeePaying Int
-  msatsFeePaid   Int?
+  msatsPaying    BigInt
+  msatsPaid      BigInt?
+  msatsFeePaying BigInt
+  msatsFeePaid   BigInt?
 
   status WithdrawlStatus?
 

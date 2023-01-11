@@ -2,24 +2,12 @@ import { gql } from 'apollo-server-micro'
 
 export default gql`
   extend type Query {
-    registrationGrowth: [RegistrationGrowth!]!
-    activeGrowth: [TimeNum!]!
-    itemGrowth: [ItemGrowth!]!
-    spentGrowth: [SpentGrowth!]!
-    stackedGrowth: [StackedGrowth!]!
-    earnerGrowth: [TimeNum!]!
-
-    registrationsWeekly: Int!
-    activeWeekly: Int!
-    earnersWeekly: Int!
-    itemsWeekly: [NameValue!]!
-    spentWeekly: [NameValue!]!
-    stackedWeekly: [NameValue!]!
-  }
-
-  type TimeNum {
-    time: String!
-    num: Int!
+    registrationGrowth(when: String): [TimeData!]!
+    itemGrowth(when: String): [TimeData!]!
+    spendingGrowth(when: String): [TimeData!]!
+    spenderGrowth(when: String): [TimeData!]!
+    stackingGrowth(when: String): [TimeData!]!
+    stackerGrowth(when: String): [TimeData!]!
   }
 
   type NameValue {
@@ -27,31 +15,8 @@ export default gql`
     value: Int!
   }
 
-  type RegistrationGrowth {
+  type TimeData {
     time: String!
-    invited: Int!
-    organic: Int!
-  }
-
-  type ItemGrowth {
-    time: String!
-    jobs: Int!
-    posts: Int!
-    comments: Int!
-  }
-
-  type StackedGrowth {
-    time: String!
-    rewards: Int!
-    posts: Int!
-    comments: Int!
-  }
-
-  type SpentGrowth {
-    time: String!
-    jobs: Int!
-    fees: Int!
-    boost: Int!
-    tips: Int!
+    data: [NameValue!]!
   }
 `

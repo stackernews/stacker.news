@@ -26,7 +26,7 @@ module.exports = withPlausibleProxy()({
       return Object.keys(RuntimeSources['stacker.news'])[0]
     },
   // Use the CDN in production and localhost for development.
-  assetPrefix: isProd ? 'https://a.stacker.news' : '',
+  assetPrefix: isProd ? 'https://a.stacker.news' : undefined,
   async headers () {
     return [
       {
@@ -41,6 +41,18 @@ module.exports = withPlausibleProxy()({
             key: 'Cache-Control',
             value: 'public, max-age=31536000, immutable'
           }
+        ]
+      },
+      {
+        source: '/.well-known/:slug*',
+        headers: [
+          ...corsHeaders
+        ]
+      },
+      {
+        source: '/api/lnauth',
+        headers: [
+          ...corsHeaders
         ]
       }
     ]
@@ -70,6 +82,10 @@ module.exports = withPlausibleProxy()({
       {
         source: '/.well-known/lnurlp/:username',
         destination: '/api/lnurlp/:username'
+      },
+      {
+        source: '/.well-known/nostr.json',
+        destination: '/api/nostr/nip05'
       },
       {
         source: '/~:sub',

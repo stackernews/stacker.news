@@ -5,7 +5,7 @@ export function Invoice ({ invoice }) {
   let status = 'waiting for you'
   if (invoice.confirmedAt) {
     variant = 'confirmed'
-    status = `${invoice.msatsReceived / 1000} sats deposited`
+    status = `${invoice.satsReceived} sats deposited`
   } else if (invoice.cancelled) {
     variant = 'failed'
     status = 'cancelled'

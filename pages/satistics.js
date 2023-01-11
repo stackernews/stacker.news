@@ -97,6 +97,25 @@ function Detail ({ fact }) {
       </>
     )
   }
+  if (fact.type === 'donation') {
+    return (
+      <>
+        <div className={satusClass(fact.status)}>
+          You made a donation to <Link href='/rewards' passHref><a>daily rewards</a></Link>!
+        </div>
+      </>
+    )
+  }
+  if (fact.type === 'referral') {
+    return (
+      <>
+        <div className={satusClass(fact.status)}>
+          You stacked sats from <Link href='/referrals/month' passHref><a>a referral</a></Link>!
+        </div>
+      </>
+    )
+  }
+
   if (!fact.item) {
     return (
       <>
@@ -144,6 +163,8 @@ export default function Satistics ({ data: { me, walletHistory: { facts, cursor 
       case 'invoice':
         return `/${fact.type}s/${fact.factId}`
       case 'earn':
+      case 'donation':
+      case 'referral':
         return
       default:
         return `/items/${fact.factId}`
@@ -199,7 +220,9 @@ export default function Satistics ({ data: { me, walletHistory: { facts, cursor 
             <tr>
               <th className={styles.type}>type</th>
               <th>detail</th>
-              <th className={styles.sats}>sats</th>
+              <th className={styles.sats}>
+                sats
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -213,7 +236,7 @@ export default function Satistics ({ data: { me, walletHistory: { facts, cursor 
                     <td className={styles.description}>
                       <Detail fact={f} />
                     </td>
-                    <td className={`${styles.sats} ${satusClass(f.status)}`}>{Math.floor(f.msats / 1000)}</td>
+                    <td className={`${styles.sats} ${satusClass(f.status)}`}>{f.sats}</td>
                   </tr>
                 </Wrapper>
               )

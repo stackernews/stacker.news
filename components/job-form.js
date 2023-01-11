@@ -14,6 +14,7 @@ import Avatar from './avatar'
 import BootstrapForm from 'react-bootstrap/Form'
 import Alert from 'react-bootstrap/Alert'
 import { useMe } from './me'
+import ActionTooltip from './action-tooltip'
 
 Yup.addMethod(Yup.string, 'or', function (schemas, msg) {
   return this.test({
@@ -183,7 +184,15 @@ export default function JobForm ({ item, sub }) {
         />
         <PromoteJob item={item} sub={sub} storageKeyPrefix={storageKeyPrefix} />
         {item && <StatusControl item={item} />}
-        <SubmitButton variant='secondary' className='mt-3'>{item ? 'save' : 'post'}</SubmitButton>
+        <div className='d-flex align-items-center mt-3'>
+          {item
+            ? <SubmitButton variant='secondary'>save</SubmitButton>
+            : (
+              <ActionTooltip overlayText='1000 sats'>
+                <SubmitButton variant='secondary'>post <small> 1000 sats</small></SubmitButton>
+              </ActionTooltip>
+              )}
+        </div>
       </Form>
     </>
   )

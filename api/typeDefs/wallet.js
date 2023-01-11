@@ -21,7 +21,7 @@ export default gql`
     expiresAt: String!
     cancelled: Boolean!
     confirmedAt: String
-    msatsReceived: Int
+    satsReceived: Int
   }
 
   type Withdrawl {
@@ -29,13 +29,9 @@ export default gql`
     createdAt: String!
     hash: String!
     bolt11: String!
-    msatsPaying: Int!
     satsPaying: Int!
-    msatsPaid: Int
     satsPaid: Int
-    msatsFeePaying: Int!
     satsFeePaying: Int!
-    msatsFeePaid: Int
     satsFeePaid: Int
     status: String
   }
@@ -45,8 +41,8 @@ export default gql`
     factId: ID!
     bolt11: String
     createdAt: String!
-    msats: Int!
-    msatsFee: Int
+    sats: Float!
+    satsFee: Float
     status: String
     type: String!
     description: String

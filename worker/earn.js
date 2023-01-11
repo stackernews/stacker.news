@@ -11,15 +11,18 @@ function earn ({ models }) {
 
     // compute how much sn earned today
     let [{ sum }] = await models.$queryRaw`
-        SELECT sum("ItemAct".sats)
+        SELECT coalesce(sum("ItemAct".msats - coalesce("ReferralAct".msats, 0)), 0) as sum
         FROM "ItemAct"
-        JOIN "Item" on "ItemAct"."itemId" = "Item".id
-        WHERE ("ItemAct".act in ('BOOST', 'STREAM')
-          OR ("ItemAct".act IN ('VOTE','POLL') AND "Item"."userId" = "ItemAct"."userId"))
+        JOIN "Item" ON "ItemAct"."itemId" = "Item".id
+        LEFT JOIN "ReferralAct" ON "ItemAct".id = "ReferralAct"."itemActId"
+        WHERE "ItemAct".act <> 'TIP'
           AND "ItemAct".created_at > now_utc() - INTERVAL '1 day'`
 
-    // convert to msats
-    sum = sum * 1000
+    const [{ sum: donatedSum }] = await models.$queryRaw`
+      SELECT coalesce(sum(sats), 0) as sum
+      FROM "Donation"
+      WHERE created_at > now_utc() - INTERVAL '1 day'`
+    sum += donatedSum * 1000
 
     /*
       How earnings work:
@@ -45,8 +48,8 @@ function earn ({ models }) {
               CASE WHEN "weightedVotes" > 0 THEN "weightedVotes"/(sum("weightedVotes") OVER (PARTITION BY "parentId" IS NULL)) ELSE 0 END AS ratio
           FROM (
               SELECT *,
-                  NTILE(100)  OVER (PARTITION BY "parentId" IS NULL ORDER BY "weightedVotes" desc) AS percentile,
-                  ROW_NUMBER()  OVER (PARTITION BY "parentId" IS NULL ORDER BY "weightedVotes" desc) AS rank
+                  NTILE(100)  OVER (PARTITION BY "parentId" IS NULL ORDER BY ("weightedVotes"-"weightedDownVotes") desc) AS percentile,
+                  ROW_NUMBER()  OVER (PARTITION BY "parentId" IS NULL ORDER BY ("weightedVotes"-"weightedDownVotes") desc) AS rank
               FROM
                   "Item"
               WHERE created_at >= now_utc() - interval '36 hours'
@@ -56,11 +59,10 @@ function earn ({ models }) {
       ),
       upvoters AS (
           SELECT "ItemAct"."userId", item_ratios.id, item_ratios.ratio, item_ratios."parentId",
-              sum("ItemAct".sats) as tipped, min("ItemAct".created_at) as acted_at
+              sum("ItemAct".msats) as tipped, min("ItemAct".created_at) as acted_at
           FROM item_ratios
           JOIN "ItemAct" on "ItemAct"."itemId" = item_ratios.id
-          WHERE act IN ('VOTE','TIP')
-          AND "ItemAct"."userId" <> item_ratios."userId"
+          WHERE act = 'TIP'
           GROUP BY "ItemAct"."userId", item_ratios.id, item_ratios.ratio, item_ratios."parentId"
       ),
       upvoter_ratios AS (

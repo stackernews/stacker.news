@@ -5,9 +5,7 @@ import prisma from '../../../api/models'
 import nodemailer from 'nodemailer'
 import { getSession } from 'next-auth/client'
 
-export default (req, res) => NextAuth(req, res, options)
-
-const options = {
+export default (req, res) => NextAuth(req, res, {
   callbacks: {
     /**
      * @param  {object}  token     Decrypted JSON Web Token
@@ -26,22 +24,32 @@ const options = {
         token.user = { id: Number(user.id) }
       }
 
-      // sign them up for the newsletter
-      if (isNewUser && profile.email) {
-        fetch(process.env.LIST_MONK_URL + '/api/subscribers', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: 'Basic ' + Buffer.from(process.env.LIST_MONK_AUTH).toString('base64')
-          },
-          body: JSON.stringify({
-            email: profile.email,
-            name: 'blank',
-            lists: [2],
-            status: 'enabled',
-            preconfirm_subscriptions: true
-          })
-        }).then(async r => console.log(await r.json())).catch(console.log)
+      if (isNewUser) {
+        // if referrer exists, set on user
+        if (req.cookies.sn_referrer && user?.id) {
+          const referrer = await prisma.user.findUnique({ where: { name: req.cookies.sn_referrer } })
+          if (referrer) {
+            await prisma.user.update({ where: { id: user.id }, data: { referrerId: referrer.id } })
+          }
+        }
+
+        // sign them up for the newsletter
+        if (profile.email) {
+          fetch(process.env.LIST_MONK_URL + '/api/subscribers', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: 'Basic ' + Buffer.from(process.env.LIST_MONK_AUTH).toString('base64')
+            },
+            body: JSON.stringify({
+              email: profile.email,
+              name: 'blank',
+              lists: [2],
+              status: 'enabled',
+              preconfirm_subscriptions: true
+            })
+          }).then(async r => console.log(await r.json())).catch(console.log)
+        }
       }
 
       return token
@@ -128,9 +136,10 @@ const options = {
     signingKey: process.env.JWT_SIGNING_PRIVATE_KEY
   },
   pages: {
-    signIn: '/login'
+    signIn: '/login',
+    verifyRequest: '/email'
   }
-}
+})
 
 function sendVerificationRequest ({
   identifier: email,

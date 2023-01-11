@@ -12,7 +12,7 @@ import React, { useEffect, useState } from 'react'
 import GithubSlugger from 'github-slugger'
 import LinkIcon from '../svgs/link.svg'
 import Thumb from '../svgs/thumb-up-fill.svg'
-import {toString} from 'mdast-util-to-string'
+import { toString } from 'mdast-util-to-string'
 import copy from 'clipboard-copy'
 
 function myRemarkPlugin () {
@@ -32,8 +32,6 @@ function myRemarkPlugin () {
   }
 }
 
-
-
 function Heading ({ h, slugger, noFragments, topLevel, children, node, ...props }) {
   const [copied, setCopied] = useState(false)
   const [id] = useState(noFragments ? undefined : slugger.slug(toString(node).replace(/[^\w\-\s]+/gi, '')))
@@ -44,20 +42,20 @@ function Heading ({ h, slugger, noFragments, topLevel, children, node, ...props 
     <div className={styles.heading}>
       {React.createElement(h, { id, ...props }, children)}
       {!noFragments && topLevel &&
-      <a className={`${styles.headingLink} ${copied ? styles.copied : ''}`} href={`#${id}`}>
-        <Icon
-          onClick={() => {
-            const location = new URL(window.location)
-            location.hash = `${id}`
-            copy(location.href)
-            setTimeout(() => setCopied(false), 1500)
-            setCopied(true)
-          }}
-          width={18}
-          height={18}
-          className='fill-grey'
-        />
-      </a>}
+        <a className={`${styles.headingLink} ${copied ? styles.copied : ''}`} href={`#${id}`}>
+          <Icon
+            onClick={() => {
+              const location = new URL(window.location)
+              location.hash = `${id}`
+              copy(location.href)
+              setTimeout(() => setCopied(false), 1500)
+              setCopied(true)
+            }}
+            width={18}
+            height={18}
+            className='fill-grey'
+          />
+        </a>}
     </div>
   )
 }
@@ -66,7 +64,7 @@ export default function Text ({ topLevel, noFragments, nofollow, children }) {
   // all the reactStringReplace calls are to facilitate search highlighting
   const slugger = new GithubSlugger()
 
-  const HeadingWrapper = (props) => Heading({ topLevel, slugger, noFragments, ...props})
+  const HeadingWrapper = (props) => Heading({ topLevel, slugger, noFragments, ...props })
 
   return (
     <div className={styles.text}>
@@ -108,10 +106,10 @@ export default function Text ({ topLevel, noFragments, nofollow, children }) {
             // map: fix any highlighted links
             children = children?.map(e =>
               typeof e === 'string'
-              ? reactStringReplace(e, /:high\[([^\]]+)\]/g, (match, i) => {
-                  return <mark key={`mark-${match}-${i}`}>{match}</mark>
-                })
-              : e)
+                ? reactStringReplace(e, /:high\[([^\]]+)\]/g, (match, i) => {
+                    return <mark key={`mark-${match}-${i}`}>{match}</mark>
+                  })
+                : e)
 
             return (
               /*  eslint-disable-next-line */
@@ -135,7 +133,7 @@ export default function Text ({ topLevel, noFragments, nofollow, children }) {
   )
 }
 
-function ZoomableImage ({ src, topLevel, ...props }) {
+export function ZoomableImage ({ src, topLevel, ...props }) {
   if (!src) {
     return null
   }

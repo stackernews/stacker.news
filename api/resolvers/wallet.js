@@ -5,6 +5,7 @@ import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import lnpr from 'bolt11'
 import { SELECT } from './item'
 import { lnurlPayDescriptionHash } from '../../lib/lnurl'
+import { msatsToSats, msatsToSatsDecimal } from '../../lib/format'
 
 export async function getInvoice (parent, { id }, { me, models }) {
   if (!me) {
@@ -93,11 +94,11 @@ export default {
       if (include.has('stacked')) {
         queries.push(
           `(SELECT ('stacked' || "Item".id) as id, "Item".id as "factId", NULL as bolt11,
-          MAX("ItemAct".created_at) as "createdAt", sum("ItemAct".sats) * 1000 as msats,
+          MAX("ItemAct".created_at) as "createdAt", sum("ItemAct".msats) as msats,
           0 as "msatsFee", NULL as status, 'stacked' as type
           FROM "ItemAct"
           JOIN "Item" on "ItemAct"."itemId" = "Item".id
-          WHERE "ItemAct"."userId" <> $1 AND "ItemAct".act <> 'BOOST'
+          WHERE act = 'TIP'
           AND (("Item"."userId" = $1 AND "Item"."fwdUserId" IS NULL)
                 OR ("Item"."fwdUserId" = $1 AND "ItemAct"."userId" <> "Item"."userId"))
           AND "ItemAct".created_at <= $2
@@ -109,18 +110,31 @@ export default {
             FROM "Earn"
             WHERE "Earn"."userId" = $1 AND "Earn".created_at <= $2
             GROUP BY "userId", created_at)`)
+        queries.push(
+            `(SELECT ('referral' || "ReferralAct".id) as id, "ReferralAct".id as "factId", NULL as bolt11,
+            created_at as "createdAt", msats,
+            0 as "msatsFee", NULL as status, 'referral' as type
+            FROM "ReferralAct"
+            WHERE "ReferralAct"."referrerId" = $1 AND "ReferralAct".created_at <= $2)`)
       }
 
       if (include.has('spent')) {
         queries.push(
           `(SELECT ('spent' || "Item".id) as id, "Item".id as "factId", NULL as bolt11,
-          MAX("ItemAct".created_at) as "createdAt", sum("ItemAct".sats) * 1000 as msats,
+          MAX("ItemAct".created_at) as "createdAt", sum("ItemAct".msats) as msats,
           0 as "msatsFee", NULL as status, 'spent' as type
           FROM "ItemAct"
           JOIN "Item" on "ItemAct"."itemId" = "Item".id
           WHERE "ItemAct"."userId" = $1
           AND "ItemAct".created_at <= $2
           GROUP BY "Item".id)`)
+        queries.push(
+            `(SELECT ('donation' || "Donation".id) as id, "Donation".id as "factId", NULL as bolt11,
+            created_at as "createdAt", sats * 1000 as msats,
+            0 as "msatsFee", NULL as status, 'donation' as type
+            FROM "Donation"
+            WHERE "userId" = $1
+            AND created_at <= $2)`)
       }
 
       if (queries.length === 0) {
@@ -154,6 +168,9 @@ export default {
             f.msats = (-1 * f.msats) - f.msatsFee
             break
           case 'spent':
+            f.msats *= -1
+            break
+          case 'donation':
             f.msats *= -1
             break
           default:
@@ -254,10 +271,14 @@ export default {
   },
 
   Withdrawl: {
-    satsPaying: w => Math.floor(w.msatsPaying / 1000),
-    satsPaid: w => Math.floor(w.msatsPaid / 1000),
-    satsFeePaying: w => Math.floor(w.msatsFeePaying / 1000),
-    satsFeePaid: w => Math.floor(w.msatsFeePaid / 1000)
+    satsPaying: w => msatsToSats(w.msatsPaying),
+    satsPaid: w => msatsToSats(w.msatsPaid),
+    satsFeePaying: w => msatsToSats(w.msatsFeePaying),
+    satsFeePaid: w => msatsToSats(w.msatsFeePaid)
+  },
+
+  Invoice: {
+    satsReceived: i => msatsToSats(i.msatsReceived)
   },
 
   Fact: {
@@ -271,7 +292,9 @@ export default {
         WHERE id = $1`, Number(fact.factId))
 
       return item
-    }
+    },
+    sats: fact => msatsToSatsDecimal(fact.msats),
+    satsFee: fact => msatsToSatsDecimal(fact.msatsFee)
   }
 }
 
@@ -285,7 +308,7 @@ async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd 
     throw new UserInputError('could not decode invoice')
   }
 
-  if (!decoded.mtokens || Number(decoded.mtokens) <= 0) {
+  if (!decoded.mtokens || BigInt(decoded.mtokens) <= 0) {
     throw new UserInputError('your invoice must specify an amount')
   }
 

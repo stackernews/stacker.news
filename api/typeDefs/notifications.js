@@ -50,8 +50,12 @@ export default gql`
     sortTime: String!
   }
 
+  type Referral {
+    sortTime: String!
+  }
+
   union Notification = Reply | Votification | Mention
-    | Invitification | Earn | JobChanged | InvoicePaid
+    | Invitification | Earn | JobChanged | InvoicePaid | Referral
 
   type Notifications {
     lastChecked: String

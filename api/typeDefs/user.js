@@ -9,6 +9,7 @@ export default gql`
     nameAvailable(name: String!): Boolean!
     topUsers(cursor: String, when: String, sort: String): Users
     searchUsers(q: String!, limit: Int, similarity: Float): [User!]!
+    hasNewNotes: Boolean!
   }
 
   type Users {
@@ -18,10 +19,10 @@ export default gql`
 
   extend type Mutation {
     setName(name: String!): Boolean
-    setSettings(tipDefault: Int!, fiatCurrency: String!, noteItemSats: Boolean!, noteEarning: Boolean!,
-      noteAllDescendants: Boolean!, noteMentions: Boolean!, noteDeposits: Boolean!,
-      noteInvites: Boolean!, noteJobIndicator: Boolean!, hideInvoiceDesc: Boolean!,
-      wildWestMode: Boolean!, greeterMode: Boolean!): User
+    setSettings(tipDefault: Int!, turboTipping: Boolean!, fiatCurrency: String!, noteItemSats: Boolean!,
+      noteEarning: Boolean!, noteAllDescendants: Boolean!, noteMentions: Boolean!, noteDeposits: Boolean!,
+      noteInvites: Boolean!, noteJobIndicator: Boolean!, hideInvoiceDesc: Boolean!, hideFromTopUsers: Boolean!,
+      wildWestMode: Boolean!, greeterMode: Boolean!, nostrPubkey: String, nostrRelays: [String!]): User
     setPhoto(photoId: ID!): Int!
     upsertBio(bio: String!): User!
     setWalkthrough(tipPopover: Boolean, upvotePopover: Boolean): Boolean
@@ -44,12 +45,15 @@ export default gql`
     ncomments(when: String): Int!
     stacked(when: String): Int!
     spent(when: String): Int!
+    referrals(when: String): Int!
     freePosts: Int!
     freeComments: Int!
-    hasNewNotes: Boolean!
     hasInvites: Boolean!
     tipDefault: Int!
+    turboTipping: Boolean!
     fiatCurrency: String!
+    nostrPubkey: String
+    nostrRelays: [String!]
     bio: Item
     bioId: Int
     photoId: Int
@@ -64,6 +68,7 @@ export default gql`
     noteInvites: Boolean!
     noteJobIndicator: Boolean!
     hideInvoiceDesc: Boolean!
+    hideFromTopUsers: Boolean!
     wildWestMode: Boolean!
     greeterMode: Boolean!
     lastCheckedJobs: String

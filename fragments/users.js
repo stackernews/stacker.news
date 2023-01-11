@@ -11,37 +11,8 @@ export const ME = gql`
       stacked
       freePosts
       freeComments
-      hasNewNotes
       tipDefault
-      fiatCurrency
-      bioId
-      hasInvites
-      upvotePopover
-      tipPopover
-      noteItemSats
-      noteEarning
-      noteAllDescendants
-      noteMentions
-      noteDeposits
-      noteInvites
-      noteJobIndicator
-      hideInvoiceDesc
-      wildWestMode
-      greeterMode
-      lastCheckedJobs
-    }
-  }`
-
-export const ME_SSR = gql`
-  {
-    me {
-      id
-      name
-      sats
-      stacked
-      freePosts
-      freeComments
-      tipDefault
+      turboTipping
       fiatCurrency
       bioId
       upvotePopover
@@ -54,6 +25,7 @@ export const ME_SSR = gql`
       noteInvites
       noteJobIndicator
       hideInvoiceDesc
+      hideFromTopUsers
       wildWestMode
       greeterMode
       lastCheckedJobs
@@ -63,6 +35,7 @@ export const ME_SSR = gql`
 export const SETTINGS_FIELDS = gql`
   fragment SettingsFields on User {
     tipDefault
+    turboTipping
     fiatCurrency
     noteItemSats
     noteEarning
@@ -72,6 +45,9 @@ export const SETTINGS_FIELDS = gql`
     noteInvites
     noteJobIndicator
     hideInvoiceDesc
+    hideFromTopUsers
+    nostrPubkey
+    nostrRelays
     wildWestMode
     greeterMode
     authMethods {
@@ -93,15 +69,15 @@ ${SETTINGS_FIELDS}
 export const SET_SETTINGS =
 gql`
 ${SETTINGS_FIELDS}
-mutation setSettings($tipDefault: Int!, $fiatCurrency: String!, $noteItemSats: Boolean!, $noteEarning: Boolean!,
-  $noteAllDescendants: Boolean!, $noteMentions: Boolean!, $noteDeposits: Boolean!,
-  $noteInvites: Boolean!, $noteJobIndicator: Boolean!, $hideInvoiceDesc: Boolean!,
-  $wildWestMode: Boolean!, $greeterMode: Boolean!) {
-  setSettings(tipDefault: $tipDefault, fiatCurrency: $fiatCurrency, noteItemSats: $noteItemSats,
-    noteEarning: $noteEarning, noteAllDescendants: $noteAllDescendants,
+mutation setSettings($tipDefault: Int!, $turboTipping: Boolean!, $fiatCurrency: String!, $noteItemSats: Boolean!,
+  $noteEarning: Boolean!, $noteAllDescendants: Boolean!, $noteMentions: Boolean!, $noteDeposits: Boolean!,
+  $noteInvites: Boolean!, $noteJobIndicator: Boolean!, $hideInvoiceDesc: Boolean!, $hideFromTopUsers: Boolean!,
+  $wildWestMode: Boolean!, $greeterMode: Boolean!, $nostrPubkey: String, $nostrRelays: [String!]) {
+  setSettings(tipDefault: $tipDefault, turboTipping: $turboTipping,  fiatCurrency: $fiatCurrency,
+    noteItemSats: $noteItemSats, noteEarning: $noteEarning, noteAllDescendants: $noteAllDescendants,
     noteMentions: $noteMentions, noteDeposits: $noteDeposits, noteInvites: $noteInvites,
-    noteJobIndicator: $noteJobIndicator, hideInvoiceDesc: $hideInvoiceDesc, wildWestMode: $wildWestMode,
-    greeterMode: $greeterMode) {
+    noteJobIndicator: $noteJobIndicator, hideInvoiceDesc: $hideInvoiceDesc, hideFromTopUsers: $hideFromTopUsers,
+    wildWestMode: $wildWestMode, greeterMode: $greeterMode, nostrPubkey: $nostrPubkey, nostrRelays: $nostrRelays) {
       ...SettingsFields
     }
   }
@@ -161,6 +137,7 @@ export const TOP_USERS = gql`
         spent(when: $when)
         ncomments(when: $when)
         nitems(when: $when)
+        referrals(when: $when)
       }
       cursor
     }

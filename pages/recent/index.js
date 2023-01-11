@@ -10,7 +10,7 @@ export const getServerSideProps = getGetServerSideProps(ITEMS, variables)
 export default function Index ({ data: { items: { items, cursor } } }) {
   return (
     <Layout>
-      <RecentHeader itemType='posts' />
+      <RecentHeader type='posts' />
       <Items
         items={items} cursor={cursor}
         variables={variables} rank

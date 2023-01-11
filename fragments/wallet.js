@@ -7,7 +7,7 @@ export const INVOICE = gql`
     invoice(id: $id) {
       id
       bolt11
-      msatsReceived
+      satsReceived
       cancelled
       confirmedAt
       expiresAt
@@ -40,8 +40,8 @@ export const WALLET_HISTORY = gql`
         factId
         type
         createdAt
-        msats
-        msatsFee
+        sats
+        satsFee
         status
         type
         description

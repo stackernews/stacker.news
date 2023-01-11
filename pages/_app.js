@@ -1,11 +1,9 @@
 import '../styles/globals.scss'
 import { ApolloProvider, gql, useQuery } from '@apollo/client'
 import { Provider } from 'next-auth/client'
-import { FundErrorModal, FundErrorProvider } from '../components/fund-error'
 import { MeProvider } from '../components/me'
 import PlausibleProvider from 'next-plausible'
 import { LightningProvider } from '../components/lightning'
-import { ItemActModal, ItemActProvider } from '../components/item-act'
 import getApolloClient from '../lib/apollo'
 import NextNProgress from 'nextjs-progressbar'
 import { PriceProvider } from '../components/price'
@@ -14,6 +12,7 @@ import { useRouter } from 'next/dist/client/router'
 import { useEffect } from 'react'
 import Moon from '../svgs/moon-fill.svg'
 import Layout from '../components/layout'
+import { ShowModalProvider } from '../components/modal'
 
 function CSRWrapper ({ Component, apollo, ...props }) {
   const { data, error } = useQuery(gql`${apollo.query}`, { variables: apollo.variables, fetchPolicy: 'cache-first' })
@@ -42,17 +41,19 @@ function MyApp ({ Component, pageProps: { session, ...props } }) {
   const client = getApolloClient()
   const router = useRouter()
 
-  useEffect(async () => {
+  useEffect(() => {
     // HACK: 'cause there's no way to tell Next to skip SSR
     // So every page load, we modify the route in browser history
     // to point to the same page but without SSR, ie ?nodata=true
     // this nodata var will get passed to the server on back/foward and
     // 1. prevent data from reloading and 2. perserve scroll
     // (2) is not possible while intercepting nav with beforePopState
-    router.replace({
-      pathname: router.pathname,
-      query: { ...router.query, nodata: true }
-    }, router.asPath, { ...router.options, scroll: false })
+    if (router.isReady) {
+      router.replace({
+        pathname: router.pathname,
+        query: { ...router.query, nodata: true }
+      }, router.asPath, { ...router.options, scroll: false })
+    }
   }, [router.asPath])
 
   /*
@@ -60,7 +61,7 @@ function MyApp ({ Component, pageProps: { session, ...props } }) {
     ssr data
   */
   const { apollo, data, me, price } = props
-  if (typeof window !== 'undefined' && apollo && data) {
+  if (apollo && data) {
     client.writeQuery({
       query: gql`${apollo.query}`,
       data: data,
@@ -87,15 +88,11 @@ function MyApp ({ Component, pageProps: { session, ...props } }) {
             <MeProvider me={me}>
               <PriceProvider price={price}>
                 <LightningProvider>
-                  <FundErrorProvider>
-                    <FundErrorModal />
-                    <ItemActProvider>
-                      <ItemActModal />
-                      {data || !apollo?.query
-                        ? <Component {...props} />
-                        : <CSRWrapper Component={Component} {...props} />}
-                    </ItemActProvider>
-                  </FundErrorProvider>
+                  <ShowModalProvider>
+                    {data || !apollo?.query
+                      ? <Component {...props} />
+                      : <CSRWrapper Component={Component} {...props} />}
+                  </ShowModalProvider>
                 </LightningProvider>
               </PriceProvider>
             </MeProvider>

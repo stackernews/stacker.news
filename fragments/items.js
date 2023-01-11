@@ -56,8 +56,8 @@ export const ITEM_FIELDS = gql`
 export const ITEMS = gql`
   ${ITEM_FIELDS}
 
-  query items($sub: String, $sort: String, $cursor: String, $name: String, $within: String) {
-    items(sub: $sub, sort: $sort, cursor: $cursor, name: $name, within: $within) {
+  query items($sub: String, $sort: String, $type: String, $cursor: String, $name: String, $within: String) {
+    items(sub: $sub, sort: $sort, type: $type, cursor: $cursor, name: $name, within: $within) {
       cursor
       items {
         ...ItemFields

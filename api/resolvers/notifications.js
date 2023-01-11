@@ -98,7 +98,7 @@ export default {
             FROM "Item"
             WHERE "Item"."userId" = $1
             AND "maxBid" IS NOT NULL
-            AND "statusUpdatedAt" <= $2
+            AND "statusUpdatedAt" <= $2 AND "statusUpdatedAt" <> created_at
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT}+$3)`
         )
@@ -106,12 +106,12 @@ export default {
         if (meFull.noteItemSats) {
           queries.push(
             `(SELECT "Item".id::TEXT, MAX("ItemAct".created_at) AS "sortTime",
-              sum("ItemAct".sats) as "earnedSats", 'Votification' AS type
+              floor(sum("ItemAct".msats)/1000) as "earnedSats", 'Votification' AS type
               FROM "Item"
               JOIN "ItemAct" ON "ItemAct"."itemId" = "Item".id
               WHERE "ItemAct"."userId" <> $1
               AND "ItemAct".created_at <= $2
-              AND "ItemAct".act in ('VOTE', 'TIP')
+              AND "ItemAct".act IN ('TIP', 'FEE')
               AND "Item"."userId" = $1
               GROUP BY "Item".id
               ORDER BY "sortTime" DESC
@@ -158,6 +158,15 @@ export default {
               AND users.created_at <= $2
               GROUP BY "Invite".id
               ORDER BY "sortTime" DESC
+              LIMIT ${LIMIT}+$3)`
+          )
+          queries.push(
+            `(SELECT users.id::text, users.created_at AS "sortTime", NULL as "earnedSats",
+              'Referral' AS type
+              FROM users
+              WHERE "users"."referrerId" = $1
+              AND "inviteId" IS NULL
+              AND users.created_at <= $2
               LIMIT ${LIMIT}+$3)`
           )
         }

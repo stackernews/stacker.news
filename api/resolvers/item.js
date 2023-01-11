@@ -9,6 +9,7 @@ import {
   MAX_TITLE_LENGTH, ITEM_FILTER_THRESHOLD, DONT_LIKE_THIS_COST
 } from '../../lib/constants'
 import { msatsToSats } from '../../lib/format'
+import { parse } from 'tldts'
 
 async function comments (me, models, id, sort) {
   let orderBy
@@ -469,8 +470,17 @@ export default {
       const urlObj = new URL(ensureProtocol(url))
       let uri = urlObj.hostname + urlObj.pathname
       uri = uri.endsWith('/') ? uri.slice(0, -1) : uri
-      let similar = `(http(s)?://)?${uri}/?`
 
+      const parseResult = parse(urlObj.hostname)
+      if (parseResult?.subdomain?.length) {
+        const { subdomain } = parseResult
+        console.log(subdomain)
+        uri = uri.replace(subdomain, '(%)?')
+      } else {
+        uri = `(%.)?${uri}`
+      }
+
+      let similar = `(http(s)?://)?${uri}/?`
       const whitelist = ['news.ycombinator.com/item', 'bitcointalk.org/index.php']
       const youtube = ['www.youtube.com', 'youtube.com', 'm.youtube.com', 'youtu.be']
       if (whitelist.includes(uri)) {

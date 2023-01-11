@@ -23,7 +23,7 @@ export default function LnQR ({ value, webLn, statusVariant, status }) {
 
   return (
     <>
-      <a className='d-block p-3' style={{ background: 'white' }} href={qrValue}>
+      <a className='d-block p-3 mx-auto' style={{ background: 'white', maxWidth: '300px' }} href={qrValue}>
         <QRCode
           className='h-auto mw-100' value={qrValue} renderAs='svg' size={300}
         />

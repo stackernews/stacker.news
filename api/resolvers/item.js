@@ -1,5 +1,5 @@
 import { UserInputError, AuthenticationError } from 'apollo-server-micro'
-import { ensureProtocol } from '../../lib/url'
+import { ensureProtocol, removeTracking } from '../../lib/url'
 import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
@@ -532,6 +532,7 @@ export default {
     upsertLink: async (parent, args, { me, models }) => {
       const { id, ...data } = args
       data.url = ensureProtocol(data.url)
+      data.url = removeTracking(data.url)
 
       if (id) {
         return await updateItem(parent, { id, data }, { me, models })

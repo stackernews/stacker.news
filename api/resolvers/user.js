@@ -334,12 +334,29 @@ export default {
         throw error
       }
     },
-    setSettings: async (parent, data, { me, models }) => {
+    setSettings: async (parent, { nostrRelays, ...data }, { me, models }) => {
       if (!me) {
         throw new AuthenticationError('you must be logged in')
       }
 
-      return await models.user.update({ where: { id: me.id }, data })
+      if (nostrRelays?.length) {
+        const connectOrCreate = []
+        for (const nr of nostrRelays) {
+          await models.nostrRelay.upsert({
+            where: { addr: nr },
+            update: { addr: nr },
+            create: { addr: nr }
+          })
+          connectOrCreate.push({
+            where: { userId_nostrRelayAddr: { userId: me.id, nostrRelayAddr: nr } },
+            create: { nostrRelayAddr: nr }
+          })
+        }
+
+        return await models.user.update({ where: { id: me.id }, data: { ...data, nostrRelays: { deleteMany: {}, connectOrCreate } } })
+      } else {
+        return await models.user.update({ where: { id: me.id }, data: { ...data, nostrRelays: { deleteMany: {} } } })
+      }
     },
     setWalkthrough: async (parent, { upvotePopover, tipPopover }, { me, models }) => {
       if (!me) {
@@ -533,6 +550,13 @@ export default {
       }).invites({ take: 1 })
 
       return invites.length > 0
+    },
+    nostrRelays: async (user, args, { models }) => {
+      const relays = await models.userNostrRelay.findMany({
+        where: { userId: user.id }
+      })
+
+      return relays?.map(r => r.nostrRelayAddr)
     }
   }
 }

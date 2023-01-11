@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@apollo/client": "^3.7.1",
+    "@lexical/react": "^0.7.5",
     "@opensearch-project/opensearch": "^1.1.0",
     "@prisma/client": "^2.30.3",
     "apollo-server-micro": "^3.11.1",
@@ -29,6 +30,7 @@
     "graphql-tools": "^8.3.10",
     "graphql-type-json": "^0.3.2",
     "jquery": "^3.6.1",
+    "lexical": "^0.7.5",
     "ln-service": "^54.2.6",
     "mdast-util-find-and-replace": "^1.1.1",
     "mdast-util-from-markdown": "^1.2.0",

@@ -2,7 +2,7 @@
 // This will help to prevent a flash if dark mode is the default.
 const COLORS = {
   light: {
-    body: '#f5f5f5',
+    body: '#f5f5f7',
     color: '#212529',
     navbarVariant: 'light',
     navLink: 'rgba(0, 0, 0, 0.55)',
@@ -18,6 +18,11 @@ const COLORS = {
     brandColor: 'rgba(0, 0, 0, 0.9)',
     grey: '#707070',
     link: '#007cbe',
+    toolbarActive: 'rgba(0, 0, 0, 0.10)',
+    toolbarHover: 'rgba(0, 0, 0, 0.20)',
+    toolbar: '#ffffff',
+    quoteBar: 'rgb(206, 208, 212)',
+    quoteColor: 'rgb(101, 103, 107)',
     linkHover: '#004a72',
     linkVisited: '#537587'
   },
@@ -37,6 +42,11 @@ const COLORS = {
     brandColor: 'var(--primary)',
     grey: '#969696',
     link: '#2e99d1',
+    toolbarActive: 'rgba(255, 255, 255, 0.10)',
+    toolbarHover: 'rgba(255, 255, 255, 0.20)',
+    toolbar: '#3e3f3f',
+    quoteBar: 'rgb(158, 159, 163)',
+    quoteColor: 'rgb(141, 144, 150)',
     linkHover: '#007cbe',
     linkVisited: '#56798E'
   }

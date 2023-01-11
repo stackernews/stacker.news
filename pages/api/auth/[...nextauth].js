@@ -136,7 +136,8 @@ export default (req, res) => NextAuth(req, res, {
     signingKey: process.env.JWT_SIGNING_PRIVATE_KEY
   },
   pages: {
-    signIn: '/login'
+    signIn: '/login',
+    verifyRequest: '/email'
   }
 })
 

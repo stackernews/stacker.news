@@ -42,6 +42,18 @@ module.exports = withPlausibleProxy()({
             value: 'public, max-age=31536000, immutable'
           }
         ]
+      },
+      {
+        source: '/.well-known/:slug*',
+        headers: [
+          ...corsHeaders
+        ]
+      },
+      {
+        source: '/api/lnauth',
+        headers: [
+          ...corsHeaders
+        ]
       }
     ]
   },
@@ -70,6 +82,10 @@ module.exports = withPlausibleProxy()({
       {
         source: '/.well-known/lnurlp/:username',
         destination: '/api/lnurlp/:username'
+      },
+      {
+        source: '/.well-known/nostr.json',
+        destination: '/api/nostr/nip05'
       },
       {
         source: '/~:sub',

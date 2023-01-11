@@ -6,12 +6,13 @@ import { useMe } from './me'
 import styles from './poll.module.css'
 import Check from '../svgs/checkbox-circle-fill.svg'
 import { signIn } from 'next-auth/client'
-import { useFundError } from './fund-error'
 import ActionTooltip from './action-tooltip'
+import { useShowModal } from './modal'
+import FundError from './fund-error'
 
 export default function Poll ({ item }) {
   const me = useMe()
-  const { setError } = useFundError()
+  const showModal = useShowModal()
   const [pollVote] = useMutation(
     gql`
       mutation pollVote($id: ID!) {
@@ -60,7 +61,9 @@ export default function Poll ({ item }) {
                   })
                 } catch (error) {
                   if (error.toString().includes('insufficient funds')) {
-                    setError(true)
+                    showModal(onClose => {
+                      return <FundError onClose={onClose} />
+                    })
                   }
                 }
               }

@@ -46,6 +46,8 @@ export const SETTINGS_FIELDS = gql`
     noteJobIndicator
     hideInvoiceDesc
     hideFromTopUsers
+    nostrPubkey
+    nostrRelays
     wildWestMode
     greeterMode
     authMethods {
@@ -70,12 +72,12 @@ ${SETTINGS_FIELDS}
 mutation setSettings($tipDefault: Int!, $turboTipping: Boolean!, $fiatCurrency: String!, $noteItemSats: Boolean!,
   $noteEarning: Boolean!, $noteAllDescendants: Boolean!, $noteMentions: Boolean!, $noteDeposits: Boolean!,
   $noteInvites: Boolean!, $noteJobIndicator: Boolean!, $hideInvoiceDesc: Boolean!, $hideFromTopUsers: Boolean!,
-  $wildWestMode: Boolean!, $greeterMode: Boolean!) {
+  $wildWestMode: Boolean!, $greeterMode: Boolean!, $nostrPubkey: String, $nostrRelays: [String!]) {
   setSettings(tipDefault: $tipDefault, turboTipping: $turboTipping,  fiatCurrency: $fiatCurrency,
     noteItemSats: $noteItemSats, noteEarning: $noteEarning, noteAllDescendants: $noteAllDescendants,
     noteMentions: $noteMentions, noteDeposits: $noteDeposits, noteInvites: $noteInvites,
     noteJobIndicator: $noteJobIndicator, hideInvoiceDesc: $hideInvoiceDesc, hideFromTopUsers: $hideFromTopUsers,
-    wildWestMode: $wildWestMode, greeterMode: $greeterMode) {
+    wildWestMode: $wildWestMode, greeterMode: $greeterMode, nostrPubkey: $nostrPubkey, nostrRelays: $nostrRelays) {
       ...SettingsFields
     }
   }

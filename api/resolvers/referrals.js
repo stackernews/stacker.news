@@ -43,8 +43,6 @@ export default {
         GROUP BY time
         ORDER BY time ASC`, Number(me.id))
 
-      console.log(totalSats)
-
       return {
         totalSats,
         totalReferrals,

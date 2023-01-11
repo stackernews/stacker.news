@@ -133,7 +133,7 @@ export default function Text ({ topLevel, noFragments, nofollow, children }) {
   )
 }
 
-function ZoomableImage ({ src, topLevel, ...props }) {
+export function ZoomableImage ({ src, topLevel, ...props }) {
   if (!src) {
     return null
   }

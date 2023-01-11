@@ -7,7 +7,7 @@ import { Button, Container, NavDropdown } from 'react-bootstrap'
 import Price from './price'
 import { useMe } from './me'
 import Head from 'next/head'
-import { signOut, signIn } from 'next-auth/client'
+import { signOut } from 'next-auth/client'
 import { useLightning } from './lightning'
 import { useEffect, useState } from 'react'
 import { randInRange } from '../lib/rand'
@@ -50,7 +50,7 @@ export default function Header ({ sub }) {
       }
       setLastCheckedJobs(localStorage.getItem('lastCheckedJobs'))
     }
-  })
+  }, [sub])
 
   const Corner = () => {
     if (me) {
@@ -61,7 +61,7 @@ export default function Header ({ sub }) {
           </Head>
           <Link href='/notifications' passHref>
             <Nav.Link eventKey='notifications' className='pl-0 position-relative'>
-              <NoteIcon />
+              <NoteIcon className='theme' />
               {hasNewNotes?.hasNewNotes &&
                 <span className={styles.notification}>
                   <span className='invisible'>{' '}</span>
@@ -134,18 +134,30 @@ export default function Header ({ sub }) {
           return () => { isMounted = false }
         }, [])
       }
-      return path !== '/login' && !path.startsWith('/invites') &&
-        <Button
-          className='align-items-center d-flex pl-2 pr-3'
-          id='login'
-          onClick={() => signIn(null, { callbackUrl: window.location.origin + router.asPath })}
-        >
-          <LightningIcon
-            width={17}
-            height={17}
-            className='mr-1'
-          />login
-        </Button>
+      return path !== '/login' && path !== '/signup' && !path.startsWith('/invites') &&
+        <div>
+          <Button
+            className='align-items-center px-3 py-1 mr-2'
+            id='signup'
+            style={{ borderWidth: '2px' }}
+            variant='outline-grey-darkmode'
+            onClick={async () => await router.push({ pathname: '/login', query: { callbackUrl: window.location.origin + router.asPath } })}
+          >
+            login
+          </Button>
+          <Button
+            className='align-items-center pl-2 py-1 pr-3'
+            style={{ borderWidth: '2px' }}
+            id='login'
+            onClick={async () => await router.push({ pathname: '/signup', query: { callbackUrl: window.location.origin + router.asPath } })}
+          >
+            <LightningIcon
+              width={17}
+              height={17}
+              className='mr-1'
+            />sign up
+          </Button>
+        </div>
     }
   }
 

@@ -486,7 +486,7 @@ export default {
       return await models.$queryRaw(`
         ${SELECT}
         FROM "Item"
-        WHERE url SIMILAR TO $1
+        WHERE LOWER(url) SIMILAR TO LOWER($1)
         ORDER BY created_at DESC
         LIMIT 3`, similar)
     },

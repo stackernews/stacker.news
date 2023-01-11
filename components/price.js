@@ -20,7 +20,7 @@ export const CURRENCY_SYMBOLS = {
   ZAR: 'R '
 }
 
-const endpoint = (fiat) => `https://api.coinbase.com/v2/prices/BTC-${fiat ?? 'USD'}/spot`
+const endpoint = (fiat) => `https://stacker.news/api/price?fiat=${fiat ?? 'USD'}`
 
 export async function getPrice (fiat) {
   const data = await fetcher(endpoint(fiat))

@@ -41,6 +41,7 @@
     "next-plausible": "^3.6.4",
     "next-seo": "^4.29.0",
     "nextjs-progressbar": "0.0.16",
+    "node-cache": "^5.1.2",
     "node-s3-url-encode": "^0.0.4",
     "page-metadata-parser": "^1.1.4",
     "pageres": "^7.1.0",

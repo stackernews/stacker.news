@@ -7,9 +7,11 @@ $theme-colors: (
   "twitter" : #1da1f2,
   "boost" : #8c25f4,
   "grey" : #e9ecef,
+  "grey-medium" : #d2d2d2,
+  "grey-darkmode": #8c8c8c
 );
 
-$body-bg: #f5f5f5;
+$body-bg: #f5f5f7;
 $border-radius: .4rem;
 $enable-transitions: false;
 $enable-gradients: false;
@@ -59,6 +61,14 @@ $tooltip-bg: #5c8001;
   .table-sm td {
     padding: .3rem .75rem;
   }
+}
+
+.line-height-1 {
+  line-height: 1;
+}
+
+.lexical blockquote>* {
+  margin-bottom: 0 !important;
 }
 
 .modal-close {
@@ -155,17 +165,22 @@ a:hover {
 }
 
 select.custom-select,
+div[contenteditable],
 .form-control {
   background-color: var(--theme-inputBg);
   color: var(--theme-color);
   border-color: var(--theme-borderColor);
 }
 
+div[contenteditable]:focus,
 .form-control:focus {
   background-color: var(--theme-inputBg);
   color: var(--theme-color);
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgb(250 218 94 / 25%);
 }
 
+div[contenteditable]:disabled,
 .form-control:disabled,
 .form-control[readonly] {
   background-color: var(--theme-inputDisabledBg);
@@ -184,6 +199,10 @@ select.custom-select,
 }
 
 .btn-primary svg {
+  fill: #212529;
+}
+
+.btn-grey svg {
   fill: #212529;
 }
 
@@ -222,15 +241,15 @@ select.custom-select,
 }
 
 .dropdown-item {
-  color: var(--theme-dropdownItemColor);
+  color: var(--theme-dropdownItemColor) !important;
 }
 
 .dropdown-item:hover {
-  color: var(--theme-dropdownItemColorHover);
+  color: var(--theme-dropdownItemColorHover) !important;
 }
 
 .dropdown-item.active {
-  color: var(--theme-brandColor);
+  color: var(--theme-brandColor) !important;
   text-shadow: 0 0 10px var(--primary);
 }
 
@@ -286,12 +305,15 @@ footer {
   textarea,
   .form-control,
   .form-control:focus,
+  div[contenteditable],
+  div[contenteditable]:focus,
   .input-group-text {
     font-size: 1rem !important;
   }
 }
 
-textarea.form-control {
+textarea.form-control,
+div[contenteditable] {
   line-height: 1rem;
 }
 
@@ -364,6 +386,7 @@ textarea.form-control {
   text-shadow: 0 0 10px var(--primary);
 }
 
+div[contenteditable]:focus,
 .form-control:focus {
   border-color: var(--primary);
 }

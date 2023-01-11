@@ -1,4 +1,6 @@
 import { providers, getSession } from 'next-auth/client'
+import Link from 'next/link'
+import LayoutCenter from '../components/layout-center'
 import Login from '../components/login'
 
 export async function getServerSideProps ({ req, res, query: { callbackUrl, error = null } }) {
@@ -21,4 +23,19 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, erro
   }
 }
 
-export default Login
+function LoginFooter ({ callbackUrl }) {
+  return (
+    <small className='font-weight-bold text-muted pt-4'>Don't have an account? <Link href={{ pathname: '/signup', query: { callbackUrl } }}>sign up</Link></small>
+  )
+}
+
+export default function LoginPage (props) {
+  return (
+    <LayoutCenter>
+      <Login
+        Footer={() => <LoginFooter callbackUrl={props.callbackUrl} />}
+        {...props}
+      />
+    </LayoutCenter>
+  )
+}

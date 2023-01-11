@@ -21,6 +21,7 @@ import DontLikeThis from './dont-link-this'
 import Flag from '../svgs/flag-fill.svg'
 import { Badge } from 'react-bootstrap'
 import { abbrNum } from '../lib/format'
+import Share from './share'
 
 function Parent ({ item, rootText }) {
   const ParentFrag = () => (
@@ -177,6 +178,7 @@ export default function Comment ({
                     localStorage.setItem(`commentCollapse:${item.id}`, 'yep')
                   }}
                 />)}
+            {topLevel && <Share item={item} />}
           </div>
           {edit
             ? (

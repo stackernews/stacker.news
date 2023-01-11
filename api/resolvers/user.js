@@ -93,12 +93,20 @@ export default {
       let users
       if (sort === 'spent') {
         users = await models.$queryRaw(`
-          SELECT users.*, floor(sum("ItemAct".msats)/1000) as spent
-          FROM "ItemAct"
-          JOIN users on "ItemAct"."userId" = users.id
-          WHERE "ItemAct".created_at <= $1
+          SELECT users.*, sum(sats_spent) as spent
+          FROM
+          ((SELECT "userId", floor(sum("ItemAct".msats)/1000) as sats_spent
+            FROM "ItemAct"
+            WHERE "ItemAct".created_at <= $1
+            ${within('ItemAct', when)}
+            GROUP BY "userId")
+            UNION ALL
+          (SELECT "userId", sats as sats_spent
+            FROM "Donation"
+            WHERE created_at <= $1
+            ${within('Donation', when)})) spending
+          JOIN users on spending."userId" = users.id
           AND NOT users."hideFromTopUsers"
-          ${within('ItemAct', when)}
           GROUP BY users.id, users.name
           ORDER BY spent DESC NULLS LAST, users.created_at DESC
           OFFSET $2
@@ -127,6 +135,18 @@ export default {
           ORDER BY ncomments DESC NULLS LAST, users.created_at DESC
           OFFSET $2
           LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+      } else if (sort === 'referrals') {
+        users = await models.$queryRaw(`
+          SELECT users.*, count(*) as referrals
+          FROM users
+          JOIN "users" referree on users.id = referree."referrerId"
+          WHERE referree.created_at <= $1
+          AND NOT users."hideFromTopUsers"
+          ${within('referree', when)}
+          GROUP BY users.id
+          ORDER BY referrals DESC NULLS LAST, users.created_at DESC
+          OFFSET $2
+          LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
       } else {
         users = await models.$queryRaw(`
           SELECT u.id, u.name, u."photoId", floor(sum(amount)/1000) as stacked
@@ -143,7 +163,13 @@ export default {
             FROM "Earn"
             JOIN users on users.id = "Earn"."userId"
             WHERE "Earn".msats > 0 ${within('Earn', when)}
-            AND NOT users."hideFromTopUsers")) u
+            AND NOT users."hideFromTopUsers")
+          UNION ALL
+          (SELECT users.*, "ReferralAct".msats as amount
+              FROM "ReferralAct"
+              JOIN users on users.id = "ReferralAct"."referrerId"
+              WHERE "ReferralAct".msats > 0 ${within('ReferralAct', when)}
+              AND NOT users."hideFromTopUsers")) u
           GROUP BY u.id, u.name, u.created_at, u."photoId"
           ORDER BY stacked DESC NULLS LAST, created_at DESC
           OFFSET $2
@@ -263,6 +289,18 @@ export default {
         if (newInvitees.length > 0) {
           return true
         }
+
+        const referral = await models.user.findFirst({
+          where: {
+            referrerId: me.id,
+            createdAt: {
+              gt: lastChecked
+            }
+          }
+        })
+        if (referral) {
+          return true
+        }
       }
 
       return false
@@ -296,12 +334,29 @@ export default {
         throw error
       }
     },
-    setSettings: async (parent, data, { me, models }) => {
+    setSettings: async (parent, { nostrRelays, ...data }, { me, models }) => {
       if (!me) {
         throw new AuthenticationError('you must be logged in')
       }
 
-      return await models.user.update({ where: { id: me.id }, data })
+      if (nostrRelays?.length) {
+        const connectOrCreate = []
+        for (const nr of nostrRelays) {
+          await models.nostrRelay.upsert({
+            where: { addr: nr },
+            update: { addr: nr },
+            create: { addr: nr }
+          })
+          connectOrCreate.push({
+            where: { userId_nostrRelayAddr: { userId: me.id, nostrRelayAddr: nr } },
+            create: { nostrRelayAddr: nr }
+          })
+        }
+
+        return await models.user.update({ where: { id: me.id }, data: { ...data, nostrRelays: { deleteMany: {}, connectOrCreate } } })
+      } else {
+        return await models.user.update({ where: { id: me.id }, data: { ...data, nostrRelays: { deleteMany: {} } } })
+      }
     },
     setWalkthrough: async (parent, { upvotePopover, tipPopover }, { me, models }) => {
       if (!me) {
@@ -433,13 +488,18 @@ export default {
         const [{ stacked }] = await models.$queryRaw(`
           SELECT sum(amount) as stacked
           FROM
-          ((SELECT sum("ItemAct".msats) as amount
+          ((SELECT coalesce(sum("ItemAct".msats),0) as amount
             FROM "ItemAct"
             JOIN "Item" on "ItemAct"."itemId" = "Item".id
             WHERE act <> 'BOOST' AND "ItemAct"."userId" <> $2 AND "Item"."userId" = $2
             AND "ItemAct".created_at >= $1)
           UNION ALL
-          (SELECT sum("Earn".msats) as amount
+            (SELECT coalesce(sum("ReferralAct".msats),0) as amount
+              FROM "ReferralAct"
+              WHERE "ReferralAct".msats > 0 AND "ReferralAct"."referrerId" = $2
+              AND "ReferralAct".created_at >= $1)
+          UNION ALL
+          (SELECT coalesce(sum("Earn".msats), 0) as amount
             FROM "Earn"
             WHERE "Earn".msats > 0 AND "Earn"."userId" = $2
             AND "Earn".created_at >= $1)) u`, withinDate(when), Number(user.id))
@@ -465,6 +525,16 @@ export default {
 
       return (msats && msatsToSats(msats)) || 0
     },
+    referrals: async (user, { when }, { models }) => {
+      return await models.user.count({
+        where: {
+          referrerId: user.id,
+          createdAt: {
+            gte: withinDate(when)
+          }
+        }
+      })
+    },
     sats: async (user, args, { models, me }) => {
       if (me?.id !== user.id) {
         return 0
@@ -480,6 +550,13 @@ export default {
       }).invites({ take: 1 })
 
       return invites.length > 0
+    },
+    nostrRelays: async (user, args, { models }) => {
+      const relays = await models.userNostrRelay.findMany({
+        where: { userId: user.id }
+      })
+
+      return relays?.map(r => r.nostrRelayAddr)
     }
   }
 }

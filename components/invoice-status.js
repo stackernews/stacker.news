@@ -4,7 +4,7 @@ import ThumbDown from '../svgs/thumb-down-fill.svg'
 
 function InvoiceDefaultStatus ({ status }) {
   return (
-    <div className='d-flex mt-2'>
+    <div className='d-flex mt-2 justify-content-center'>
       <Moon className='spin fill-grey' />
       <div className='ml-3 text-muted' style={{ fontWeight: '600' }}>{status}</div>
     </div>
@@ -13,7 +13,7 @@ function InvoiceDefaultStatus ({ status }) {
 
 function InvoiceConfirmedStatus ({ status }) {
   return (
-    <div className='d-flex mt-2'>
+    <div className='d-flex mt-2 justify-content-center'>
       <Check className='fill-success' />
       <div className='ml-3 text-success' style={{ fontWeight: '600' }}>{status}</div>
     </div>
@@ -22,7 +22,7 @@ function InvoiceConfirmedStatus ({ status }) {
 
 function InvoiceFailedStatus ({ status }) {
   return (
-    <div className='d-flex mt-2'>
+    <div className='d-flex mt-2 justify-content-center'>
       <ThumbDown className='fill-danger' />
       <div className='ml-3 text-danger' style={{ fontWeight: '600' }}>{status}</div>
     </div>

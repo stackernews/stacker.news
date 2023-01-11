@@ -1,5 +1,5 @@
 import { UserInputError, AuthenticationError } from 'apollo-server-micro'
-import { ensureProtocol } from '../../lib/url'
+import { ensureProtocol, removeTracking } from '../../lib/url'
 import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
@@ -14,13 +14,13 @@ async function comments (me, models, id, sort) {
   let orderBy
   switch (sort) {
     case 'top':
-      orderBy = `ORDER BY ${await orderByNumerator(me, models)} DESC, "Item".id DESC`
+      orderBy = `ORDER BY ${await orderByNumerator(me, models)} DESC, "Item".msats DESC, "Item".id DESC`
       break
     case 'recent':
-      orderBy = 'ORDER BY "Item".created_at DESC, "Item".id DESC'
+      orderBy = 'ORDER BY "Item".created_at DESC, "Item".msats DESC, "Item".id DESC'
       break
     default:
-      orderBy = `ORDER BY ${await orderByNumerator(me, models)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".id DESC`
+      orderBy = `ORDER BY ${await orderByNumerator(me, models)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, "Item".id DESC`
       break
   }
 
@@ -643,8 +643,9 @@ export default {
 
   Mutation: {
     upsertLink: async (parent, args, { me, models }) => {
-      const { id, ...data } = args;
-      data.url = ensureProtocol(data.url);
+      const { id, ...data } = args
+      data.url = ensureProtocol(data.url)
+      data.url = removeTracking(data.url)
 
       if (id) {
         return await updateItem(parent, { id, data }, { me, models });

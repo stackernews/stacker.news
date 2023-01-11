@@ -120,7 +120,7 @@ export default function Invites () {
         <h2 className='mt-3 mb-0'>
           invite links
         </h2>
-        <small className='d-block text-muted font-weight-bold mx-5'>send these to people you trust somewhat, e.g. group chats or DMs</small>
+        <small className='d-block text-muted font-weight-bold mx-5'>send these to people you trust, e.g. group chats or DMs</small>
       </div>
       <InviteForm />
       {active.length > 0 && <InviteList name='active' invites={active} />}

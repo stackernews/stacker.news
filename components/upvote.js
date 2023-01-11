@@ -2,15 +2,16 @@ import { LightningConsumer } from './lightning'
 import UpBolt from '../svgs/bolt.svg'
 import styles from './upvote.module.css'
 import { gql, useMutation } from '@apollo/client'
-import { signIn } from 'next-auth/client'
-import { useFundError } from './fund-error'
+import FundError from './fund-error'
 import ActionTooltip from './action-tooltip'
-import { useItemAct } from './item-act'
+import ItemAct from './item-act'
 import { useMe } from './me'
 import Rainbow from '../lib/rainbow'
 import { useRef, useState } from 'react'
 import LongPressable from 'react-longpressable'
 import { Overlay, Popover } from 'react-bootstrap'
+import { useShowModal } from './modal'
+import { useRouter } from 'next/router'
 
 const getColor = (meSats) => {
   if (!meSats || meSats <= 10) {
@@ -63,8 +64,8 @@ const TipPopover = ({ target, show, handleClose }) => (
 )
 
 export default function UpVote ({ item, className }) {
-  const { setError } = useFundError()
-  const { setItem } = useItemAct()
+  const showModal = useShowModal()
+  const router = useRouter()
   const [voteShow, _setVoteShow] = useState(false)
   const [tipShow, _setTipShow] = useState(false)
   const ref = useRef()
@@ -123,11 +124,14 @@ export default function UpVote ({ item, className }) {
               return existingSats + sats
             },
             meSats (existingSats = 0) {
-              if (existingSats === 0) {
-                setVoteShow(true)
-              } else {
-                setTipShow(true)
+              if (sats <= me.sats) {
+                if (existingSats === 0) {
+                  setVoteShow(true)
+                } else {
+                  setTipShow(true)
+                }
               }
+
               return existingSats + sats
             },
             upvotes (existingUpvotes = 0) {
@@ -152,11 +156,19 @@ export default function UpVote ({ item, className }) {
     }
   )
 
-  const overlayText = () => {
-    if (me?.tipDefault) {
-      return `${me.tipDefault} sat${me.tipDefault > 1 ? 's' : ''}`
+  // what should our next tip be?
+  let sats = me?.tipDefault || 1
+  if (me?.turboTipping && item?.meSats) {
+    let raiseTip = sats
+    while (item?.meSats >= raiseTip) {
+      raiseTip *= 10
     }
-    return '1 sat'
+
+    sats = raiseTip - item.meSats
+  }
+
+  const overlayText = () => {
+    return `${sats} sat${sats > 1 ? 's' : ''}`
   }
 
   const color = getColor(item?.meSats)
@@ -175,7 +187,8 @@ export default function UpVote ({ item, className }) {
                 }
 
                 setTipShow(false)
-                setItem({ itemId: item.id, act, strike })
+                showModal(onClose =>
+                  <ItemAct onClose={onClose} itemId={item.id} act={act} strike={strike} />)
               }
             }
             onShortPress={
@@ -196,24 +209,29 @@ export default function UpVote ({ item, className }) {
 
                   try {
                     await act({
-                      variables: { id: item.id, sats: me.tipDefault || 1 },
+                      variables: { id: item.id, sats },
                       optimisticResponse: {
                         act: {
                           id: `Item:${item.id}`,
-                          sats: me.tipDefault || 1,
+                          sats,
                           vote: 0
                         }
                       }
                     })
                   } catch (error) {
                     if (error.toString().includes('insufficient funds')) {
-                      setError(true)
+                      showModal(onClose => {
+                        return <FundError onClose={onClose} />
+                      })
                       return
                     }
                     throw new Error({ message: error.toString() })
                   }
                 }
-              : signIn
+              : async () => await router.push({
+                pathname: '/signup',
+                query: { callbackUrl: window.location.origin + router.asPath }
+              })
           }
           >
             <ActionTooltip notForm disable={item?.mine || fwd2me} overlayText={overlayText()}>

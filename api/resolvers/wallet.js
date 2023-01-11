@@ -5,7 +5,7 @@ import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import lnpr from 'bolt11'
 import { SELECT } from './item'
 import { lnurlPayDescriptionHash } from '../../lib/lnurl'
-import { msatsToSats } from '../../lib/format'
+import { msatsToSats, msatsToSatsDecimal } from '../../lib/format'
 
 export async function getInvoice (parent, { id }, { me, models }) {
   if (!me) {
@@ -110,6 +110,12 @@ export default {
             FROM "Earn"
             WHERE "Earn"."userId" = $1 AND "Earn".created_at <= $2
             GROUP BY "userId", created_at)`)
+        queries.push(
+            `(SELECT ('referral' || "ReferralAct".id) as id, "ReferralAct".id as "factId", NULL as bolt11,
+            created_at as "createdAt", msats,
+            0 as "msatsFee", NULL as status, 'referral' as type
+            FROM "ReferralAct"
+            WHERE "ReferralAct"."referrerId" = $1 AND "ReferralAct".created_at <= $2)`)
       }
 
       if (include.has('spent')) {
@@ -122,6 +128,13 @@ export default {
           WHERE "ItemAct"."userId" = $1
           AND "ItemAct".created_at <= $2
           GROUP BY "Item".id)`)
+        queries.push(
+            `(SELECT ('donation' || "Donation".id) as id, "Donation".id as "factId", NULL as bolt11,
+            created_at as "createdAt", sats * 1000 as msats,
+            0 as "msatsFee", NULL as status, 'donation' as type
+            FROM "Donation"
+            WHERE "userId" = $1
+            AND created_at <= $2)`)
       }
 
       if (queries.length === 0) {
@@ -155,6 +168,9 @@ export default {
             f.msats = (-1 * f.msats) - f.msatsFee
             break
           case 'spent':
+            f.msats *= -1
+            break
+          case 'donation':
             f.msats *= -1
             break
           default:
@@ -277,8 +293,8 @@ export default {
 
       return item
     },
-    sats: fact => msatsToSats(fact.msats),
-    satsFee: fact => msatsToSats(fact.msatsFee)
+    sats: fact => msatsToSatsDecimal(fact.msats),
+    satsFee: fact => msatsToSatsDecimal(fact.msatsFee)
   }
 }
 

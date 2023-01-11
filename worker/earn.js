@@ -10,12 +10,19 @@ function earn ({ models }) {
     console.log('running', name)
 
     // compute how much sn earned today
-    const [{ sum }] = await models.$queryRaw`
-        SELECT sum("ItemAct".msats)
+    let [{ sum }] = await models.$queryRaw`
+        SELECT coalesce(sum("ItemAct".msats - coalesce("ReferralAct".msats, 0)), 0) as sum
         FROM "ItemAct"
-        JOIN "Item" on "ItemAct"."itemId" = "Item".id
+        JOIN "Item" ON "ItemAct"."itemId" = "Item".id
+        LEFT JOIN "ReferralAct" ON "ItemAct".id = "ReferralAct"."itemActId"
         WHERE "ItemAct".act <> 'TIP'
           AND "ItemAct".created_at > now_utc() - INTERVAL '1 day'`
+
+    const [{ sum: donatedSum }] = await models.$queryRaw`
+      SELECT coalesce(sum(sats), 0) as sum
+      FROM "Donation"
+      WHERE created_at > now_utc() - INTERVAL '1 day'`
+    sum += donatedSum * 1000
 
     /*
       How earnings work:

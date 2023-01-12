@@ -19,6 +19,7 @@ import Flag from '../svgs/flag-fill.svg'
 import { Badge } from 'react-bootstrap'
 import { abbrNum } from '../lib/format'
 import Share from './share'
+import { DeleteDropdown } from './delete'
 
 function Parent ({ item, rootText }) {
   const ParentFrag = () => (
@@ -138,7 +139,7 @@ export default function Comment ({
               {me && !item.meSats && !item.meDontLike && !item.mine && <DontLikeThis id={item.id} />}
               {(item.outlawed && <Link href='/outlawed'><a>{' '}<Badge className={itemStyles.newComment} variant={null}>OUTLAWED</Badge></a></Link>) ||
                (item.freebie && !item.mine && (me?.greeterMode) && <Link href='/freebie'><a>{' '}<Badge className={itemStyles.newComment} variant={null}>FREEBIE</Badge></a></Link>)}
-              {canEdit &&
+              {canEdit && !item.deletedAt &&
                 <>
                   <span> \ </span>
                   <div
@@ -156,6 +157,7 @@ export default function Comment ({
                     />
                   </div>
                 </>}
+              {mine && !canEdit && !item.deletedAt && <DeleteDropdown itemId={item.id} />}
             </div>
             {!includeParent && (collapse
               ? <Eye

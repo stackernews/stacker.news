@@ -15,6 +15,7 @@ import { useRouter } from 'next/router'
 import Item from '../components/item'
 import Comment from '../components/comment'
 import React from 'react'
+import ItemJob from '../components/item-job'
 
 export const getServerSideProps = getGetServerSideProps(WALLET_HISTORY)
 
@@ -92,7 +93,7 @@ function Detail ({ fact }) {
     return (
       <>
         <div className={satusClass(fact.status)}>
-            SN distributes the sats it earns back to its best users daily. These sats come from <Link href='/~jobs' passHref><a>jobs</a></Link>, boosts, posting fees, and donations. You can see the daily rewards pool and make a donation <Link href='/rewards' passHref><a>here</a></Link>.
+          SN distributes the sats it earns back to its best users daily. These sats come from <Link href='/~jobs' passHref><a>jobs</a></Link>, boosts, posting fees, and donations. You can see the daily rewards pool and make a donation <Link href='/rewards' passHref><a>here</a></Link>.
         </div>
       </>
     )
@@ -128,6 +129,9 @@ function Detail ({ fact }) {
   }
 
   if (fact.item.title) {
+    if (fact.item.isJob) {
+      return <ItemJob className={styles.itemWrapper} item={fact.item} />
+    }
     return <div className={styles.itemWrapper}><Item item={fact.item} /></div>
   }
 

@@ -31,6 +31,7 @@ export default gql`
   }
 
   extend type Mutation {
+    deleteItem(id: ID): Item
     upsertLink(id: ID, title: String!, url: String!, boost: Int, forward: String): Item!
     upsertDiscussion(id: ID, title: String!, text: String, boost: Int, forward: String): Item!
     upsertJob(id: ID, sub: ID!, title: String!, company: String!, location: String, remote: Boolean,
@@ -71,6 +72,7 @@ export default gql`
     id: ID!
     createdAt: String!
     updatedAt: String!
+    deletedAt: String
     title: String
     searchTitle: String
     url: String

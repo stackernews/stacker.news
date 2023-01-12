@@ -7,6 +7,8 @@ import AdvPostForm, { AdvPostInitial, AdvPostSchema } from './adv-post-form'
 import { MAX_TITLE_LENGTH, MAX_POLL_CHOICE_LENGTH, MAX_POLL_NUM_CHOICES } from '../lib/constants'
 import TextareaAutosize from 'react-textarea-autosize'
 import FeeButton, { EditFeeButton } from './fee-button'
+import Delete from './delete'
+import { Button } from 'react-bootstrap'
 
 export function PollForm ({ item, editThreshold }) {
   const router = useRouter()
@@ -94,10 +96,16 @@ export function PollForm ({ item, editThreshold }) {
       <AdvPostForm edit={!!item} />
       <div className='mt-3'>
         {item
-          ? <EditFeeButton
-              paidSats={item.meSats}
-              parentId={null} text='save' ChildButton={SubmitButton} variant='secondary'
-            />
+          ? (
+            <div className='d-flex justify-content-between'>
+              <Delete itemId={item.id} onDelete={() => router.push(`/items/${item.id}`)}>
+                <Button variant='grey-medium'>delete</Button>
+              </Delete>
+              <EditFeeButton
+                paidSats={item.meSats}
+                parentId={null} text='save' ChildButton={SubmitButton} variant='secondary'
+              />
+            </div>)
           : <FeeButton
               baseFee={1} parentId={null} text='post'
               ChildButton={SubmitButton} variant='secondary'

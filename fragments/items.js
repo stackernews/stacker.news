@@ -6,6 +6,7 @@ export const ITEM_FIELDS = gql`
     id
     parentId
     createdAt
+    deletedAt
     title
     url
     user {

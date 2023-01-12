@@ -171,6 +171,8 @@ export default function UpVote ({ item, className }) {
     return `${sats} sat${sats > 1 ? 's' : ''}`
   }
 
+  const disabled = item?.mine || fwd2me || item?.deletedAt
+
   const color = getColor(item?.meSats)
   return (
     <LightningConsumer>
@@ -182,7 +184,7 @@ export default function UpVote ({ item, className }) {
                 if (!item) return
 
                 // we can't tip ourselves
-                if (item?.mine || fwd2me) {
+                if (disabled) {
                   return
                 }
 
@@ -197,7 +199,7 @@ export default function UpVote ({ item, className }) {
                   if (!item) return
 
                   // we can't tip ourselves
-                  if (item?.mine || fwd2me) {
+                  if (disabled) {
                     return
                   }
 
@@ -234,9 +236,9 @@ export default function UpVote ({ item, className }) {
               })
           }
           >
-            <ActionTooltip notForm disable={item?.mine || fwd2me} overlayText={overlayText()}>
+            <ActionTooltip notForm disable={disabled} overlayText={overlayText()}>
               <div
-                className={`${item?.mine || fwd2me ? styles.noSelfTips : ''}
+                className={`${disabled ? styles.noSelfTips : ''}
                     ${styles.upvoteWrapper}`}
               >
                 <UpBolt
@@ -245,7 +247,7 @@ export default function UpVote ({ item, className }) {
                   className={
                       `${styles.upvote}
                       ${className || ''}
-                      ${item?.mine || fwd2me ? styles.noSelfTips : ''}
+                      ${disabled ? styles.noSelfTips : ''}
                       ${item?.meSats ? styles.voted : ''}`
                     }
                   style={item?.meSats

@@ -16,6 +16,7 @@ import DontLikeThis from './dont-link-this'
 import Flag from '../svgs/flag-fill.svg'
 import Share from './share'
 import { abbrNum } from '../lib/format'
+import { DeleteDropdown } from './delete'
 
 export function SearchTitle ({ title }) {
   return reactStringReplace(title, /:high\[([^\]]+)\]/g, (match, i) => {
@@ -123,7 +124,7 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
                   </Link>
                 </>}
             </span>
-            {canEdit &&
+            {canEdit && !item.deletedAt &&
               <>
                 <span> \ </span>
                 <Link href={`/items/${item.id}/edit`} passHref>
@@ -139,6 +140,8 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
                   </a>
                 </Link>
               </>}
+            {mine && !canEdit && !item.position && !item.deletedAt &&
+              <DeleteDropdown itemId={item.id} />}
           </div>
           {showFwdUser && item.fwdUser && <FwdUser user={item.fwdUser} />}
         </div>

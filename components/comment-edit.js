@@ -4,6 +4,8 @@ import { gql, useMutation } from '@apollo/client'
 import styles from './reply.module.css'
 import TextareaAutosize from 'react-textarea-autosize'
 import { EditFeeButton } from './fee-button'
+import { Button } from 'react-bootstrap'
+import Delete from './delete'
 
 export const CommentSchema = Yup.object({
   text: Yup.string().required('required').trim()
@@ -54,10 +56,15 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
           autoFocus
           required
         />
-        <EditFeeButton
-          paidSats={comment.meSats}
-          parentId={comment.parentId} text='save' ChildButton={SubmitButton} variant='secondary'
-        />
+        <div className='d-flex justify-content-between'>
+          <Delete itemId={comment.id} onDelete={onSuccess}>
+            <Button variant='grey-medium'>delete</Button>
+          </Delete>
+          <EditFeeButton
+            paidSats={comment.meSats}
+            parentId={comment.parentId} text='save' ChildButton={SubmitButton} variant='secondary'
+          />
+        </div>
       </Form>
     </div>
   )

@@ -159,7 +159,7 @@ export default {
         ${SELECT}
         FROM "Item"
         WHERE "parentId" IS NULL AND "Item".created_at <= $1
-        AND "pinId" IS NULL
+        AND "pinId" IS NULL AND "deletedAt" IS NULL
         ${topClause(when)}
         ${await filterClause(me, models)}
         ${await topOrderClause(sort, me, models)}
@@ -176,7 +176,7 @@ export default {
         ${SELECT}
         FROM "Item"
         WHERE "parentId" IS NOT NULL
-        AND "Item".created_at <= $1
+        AND "Item".created_at <= $1 AND "deletedAt" IS NULL
         ${topClause(when)}
         ${await filterClause(me, models)}
         ${await topOrderClause(sort, me, models)}
@@ -239,7 +239,7 @@ export default {
             ${SELECT}
             FROM "Item"
             WHERE "parentId" IS NULL AND "Item".created_at <= $1
-            AND "pinId" IS NULL
+            AND "pinId" IS NULL AND "deletedAt" IS NULL
             ${topClause(within)}
             ${await filterClause(me, models)}
             ${await topOrderByWeightedSats(me, models)}
@@ -288,7 +288,7 @@ export default {
                   ${SELECT}
                   FROM "Item"
                   WHERE "parentId" IS NULL AND "Item".created_at <= $1 AND "Item".created_at > $3
-                  AND "pinId" IS NULL AND NOT bio
+                  AND "pinId" IS NULL AND NOT bio AND "deletedAt" IS NULL
                   ${subClause(4)}
                   ${await filterClause(me, models)}
                   ${await newTimedOrderByWeightedSats(me, models, 1)}
@@ -301,7 +301,7 @@ export default {
                   ${SELECT}
                   FROM "Item"
                   WHERE "parentId" IS NULL AND "Item".created_at <= $1
-                  AND "pinId" IS NULL AND NOT bio
+                  AND "pinId" IS NULL AND NOT bio AND "deletedAt" IS NULL
                   ${subClause(3)}
                   ${await filterClause(me, models)}
                   ${await newTimedOrderByWeightedSats(me, models, 1)}
@@ -438,7 +438,7 @@ export default {
           comments = await models.$queryRaw(`
           ${SELECT}
           FROM "Item"
-          WHERE "parentId" IS NOT NULL
+          WHERE "parentId" IS NOT NULL AND "deletedAt" IS NULL
           AND "Item".created_at <= $1
           ${topClause(within)}
           ${await filterClause(me, models)}
@@ -548,6 +548,28 @@ export default {
   },
 
   Mutation: {
+    deleteItem: async (parent, { id }, { me, models }) => {
+      const old = await models.item.findUnique({ where: { id: Number(id) } })
+      if (Number(old.userId) !== Number(me?.id)) {
+        throw new AuthenticationError('item does not belong to you')
+      }
+
+      const data = { deletedAt: new Date() }
+      if (old.text) {
+        data.text = '*deleted by author*'
+      }
+      if (old.title) {
+        data.title = 'deleted by author'
+      }
+      if (old.url) {
+        data.url = null
+      }
+      if (old.pollCost) {
+        data.pollCost = null
+      }
+
+      return await models.item.update({ where: { id: Number(id) }, data })
+    },
     upsertLink: async (parent, args, { me, models }) => {
       const { id, ...data } = args
       data.url = ensureProtocol(data.url)
@@ -1040,7 +1062,7 @@ function nestComments (flat, parentId) {
 export const SELECT =
   `SELECT "Item".id, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt", "Item".title,
   "Item".text, "Item".url, "Item"."userId", "Item"."fwdUserId", "Item"."parentId", "Item"."pinId", "Item"."maxBid",
-  "Item".company, "Item".location, "Item".remote,
+  "Item".company, "Item".location, "Item".remote, "Item"."deletedAt",
   "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost",
   "Item".msats, "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",
   "Item"."weightedDownVotes", "Item".freebie, ltree2text("Item"."path") AS "path"`

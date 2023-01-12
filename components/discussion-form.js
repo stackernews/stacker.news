@@ -10,6 +10,8 @@ import FeeButton, { EditFeeButton } from './fee-button'
 import { ITEM_FIELDS } from '../fragments/items'
 import AccordianItem from './accordian-item'
 import Item from './item'
+import Delete from './delete'
+import { Button } from 'react-bootstrap'
 
 export function DiscussionForm ({
   item, editThreshold, titleLabel = 'title',
@@ -103,27 +105,34 @@ export function DiscussionForm ({
       {adv && <AdvPostForm edit={!!item} />}
       <div className='mt-3'>
         {item
-          ? <EditFeeButton
-              paidSats={item.meSats}
-              parentId={null} text='save' ChildButton={SubmitButton} variant='secondary'
-            />
+          ? (
+            <div className='d-flex justify-content-between'>
+              <Delete itemId={item.id} onDelete={() => router.push(`/items/${item.id}`)}>
+                <Button variant='grey-medium'>delete</Button>
+              </Delete>
+              <EditFeeButton
+                paidSats={item.meSats}
+                parentId={null} text='save' ChildButton={SubmitButton} variant='secondary'
+              />
+            </div>)
           : <FeeButton
               baseFee={1} parentId={null} text={buttonText}
               ChildButton={SubmitButton} variant='secondary'
             />}
       </div>
-      <div className={`mt-3 ${related.length > 0 ? '' : 'invisible'}`}>
-        <AccordianItem
-          header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>similar</div>}
-          body={
-            <div>
-              {related.map((item, i) => (
-                <Item item={item} key={item.id} />
-              ))}
-            </div>
+      {!item &&
+        <div className={`mt-3 ${related.length > 0 ? '' : 'invisible'}`}>
+          <AccordianItem
+            header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>similar</div>}
+            body={
+              <div>
+                {related.map((item, i) => (
+                  <Item item={item} key={item.id} />
+                ))}
+              </div>
               }
-        />
-      </div>
+          />
+        </div>}
     </Form>
   )
 }

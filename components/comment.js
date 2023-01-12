@@ -204,18 +204,15 @@ export default function Comment ({
         : (
           <div className={`${styles.children}`}>
             <div className={styles.replyContainer}>
-            {!noReply &&
-              <Reply
-              depth={depth + 1} item={item} replyOpen={replyOpen}
-              />}
-              {item.root?.bounty && <PayBounty item={item} />}
+                {!noReply && <Reply depth={depth + 1} item={item} replyOpen={replyOpen} />}
+                {item.root?.bounty && <PayBounty item={item} />}
             </div>
             {children}
             <div className={`${styles.comments} ml-sm-1 ml-md-3`}>
               {item.comments && !noComments
                 ? item.comments.map((item) => (
                   <Comment depth={depth + 1} key={item.id} item={item} />
-                ))
+                  ))
                 : null}
             </div>
           </div>

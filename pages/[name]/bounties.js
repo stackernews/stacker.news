@@ -9,6 +9,8 @@ export const getServerSideProps = getGetServerSideProps(BOUNTY_ITEMS_BY_USER_NAM
 export default function Bounties ({ data: { getBountiesByUserName } }) {
   const router = useRouter()
 
+  console.log(getBountiesByUserName)
+
   if (!getBountiesByUserName) return null
 
   return (
@@ -17,6 +19,7 @@ export default function Bounties ({ data: { getBountiesByUserName } }) {
       <Items
         items={getBountiesByUserName}
         variables={{ id: router.query.id }}
+        query={BOUNTY_ITEMS_BY_USER_NAME}
       />
     </Layout>
   )

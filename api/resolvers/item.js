@@ -1030,8 +1030,8 @@ export const updateItem = async (parent, { id, data: { title, url, text, boost, 
 
   const [item] = await serialize(models,
     models.$queryRaw(
-      `${SELECT} FROM update_item($1, $2, $3, $4, $5, $6, $7) AS "Item"`,
-      Number(id), title, url, text, Number(boost || 0), Number(bounty || 0), Number(fwdUser?.id)))
+      `${SELECT} FROM update_item($1, $2, $3, $4, $5, $6) AS "Item"`,
+      Number(id), title, url, text, Number(boost || 0), Number(fwdUser?.id)))
 
   await createMentions(item, models)
 
@@ -1083,7 +1083,7 @@ const createItem = async (parent, { title, url, text, boost, forward, bounty, pa
 
   const [item] = await serialize(models,
     models.$queryRaw(
-      `${SELECT} FROM create_item($1, $2, $3, $4, $5, $6, $7, $8, '${ITEM_SPAM_INTERVAL}') AS "Item"`,
+      `${SELECT} FROM create_item($1, $2, $3, $4, $5, $6, $7, '${ITEM_SPAM_INTERVAL}') AS "Item"`,
       title, url, text, Number(boost || 0), Number(parentId), Number(me.id),
       Number(fwdUser?.id)))
 

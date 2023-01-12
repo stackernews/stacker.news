@@ -53,7 +53,6 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
         titleRef.current.clientHeight)
   }, [])
 
-
   useEffect(() => {
     // if we are showing toc, then this is a full item
     setHasNewComments(!toc && newComments(item))
@@ -77,10 +76,10 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
               <a ref={titleRef} className={`${styles.title} text-reset mr-2`}>
                 {item.searchTitle ? <SearchTitle title={item.searchTitle} /> : item.title}
                 {item.pollCost && <span> <PollIcon className='fill-grey vertical-align-baseline' height={14} width={14} /></span>}
-                {item.bounty > 0 && 
+                {item.bounty > 0 &&
                   <span>
                     <ActionTooltip notForm overlayText={`${item.bounty} ${item.bountyPaid ? 'sats paid' : 'sats bounty'}`}>
-                      <BountyIcon className={`${styles.bountyIcon} ${item.bountyPaid ? 'fill-success vertical-align-middle' : 'fill-grey vertical-align-middle'}`} height={16} width={16} /> 
+                      <BountyIcon className={`${styles.bountyIcon} ${item.bountyPaid ? 'fill-success vertical-align-middle' : 'fill-grey vertical-align-middle'}`} height={16} width={16} />
                     </ActionTooltip>
                   </span>}
               </a>

@@ -1,27 +1,26 @@
-import { Form, Input, MarkdownInput, SubmitButton } from "../components/form";
-import { useRouter } from "next/router";
-import * as Yup from "yup";
-import { gql, useApolloClient, useMutation } from "@apollo/client";
-import TextareaAutosize from "react-textarea-autosize";
-import Countdown from "./countdown";
-import AdvPostForm, { AdvPostInitial, AdvPostSchema } from "./adv-post-form";
-import { MAX_TITLE_LENGTH } from "../lib/constants";
-import { useState } from "react";
-import FeeButton, { EditFeeButton } from "./fee-button";
+import { Form, Input, MarkdownInput, SubmitButton } from '../components/form'
+import { useRouter } from 'next/router'
+import * as Yup from 'yup'
+import { gql, useApolloClient, useMutation } from '@apollo/client'
+import TextareaAutosize from 'react-textarea-autosize'
+import Countdown from './countdown'
+import AdvPostForm, { AdvPostInitial, AdvPostSchema } from './adv-post-form'
+import { MAX_TITLE_LENGTH } from '../lib/constants'
+import { useState } from 'react'
+import FeeButton, { EditFeeButton } from './fee-button'
 
-export function BountyForm({
+export function BountyForm ({
   item,
   editThreshold,
-  titleLabel = "title",
-  bountyLabel = "bounty",
-  textLabel = "text",
-  buttonText = "post",
+  titleLabel = 'title',
+  bountyLabel = 'bounty',
+  textLabel = 'text',
+  buttonText = 'post',
   adv,
-  handleSubmit,
+  handleSubmit
 }) {
-  const router = useRouter();
-  const client = useApolloClient();
-  // const me = useMe()
+  const router = useRouter()
+  const client = useApolloClient()
   const [upsertBounty] = useMutation(
     gql`
       mutation upsertBounty(
@@ -44,34 +43,32 @@ export function BountyForm({
         }
       }
     `
-  );
+  )
 
   const BountySchema = Yup.object({
     title: Yup.string()
-      .required("required")
+      .required('required')
       .trim()
       .max(
         MAX_TITLE_LENGTH,
         ({ max, value }) => `${Math.abs(max - value.length)} too many`
       ),
     bounty: Yup.number()
-      .required("required")
-      .min(0, "Bounty must be at least 1 sat")
-      .integer("must be whole"),
+      .required('required')
+      .min(0, 'Bounty must be at least 1 sat')
+      .integer('must be whole'),
 
-    ...AdvPostSchema(client),
-  });
-
-  // const cost = linkOrImg ? 10 : me?.freePosts ? 0 : 1
+    ...AdvPostSchema(client)
+  })
 
   return (
     <Form
       initial={{
-        title: item?.title || "",
-        text: item?.text || "",
-        bounty: item?.bounty || "",
-        suggest: "",
-        ...AdvPostInitial({ forward: item?.fwdUser?.name }),
+        title: item?.title || '',
+        text: item?.text || '',
+        bounty: item?.bounty || '',
+        suggest: '',
+        ...AdvPostInitial({ forward: item?.fwdUser?.name })
       }}
       schema={BountySchema}
       onSubmit={
@@ -82,21 +79,21 @@ export function BountyForm({
               id: item?.id,
               boost: Number(boost),
               bounty: Number(bounty),
-              ...values,
-            },
-          });
+              ...values
+            }
+          })
           if (error) {
-            throw new Error({ message: error.toString() });
+            throw new Error({ message: error.toString() })
           }
 
           if (item) {
-            await router.push(`/items/${item.id}`);
+            await router.push(`/items/${item.id}`)
           } else {
-            await router.push("/recent");
+            await router.push('/recent')
           }
         })
       }
-      storageKeyPrefix={item ? undefined : "discussion"}
+      storageKeyPrefix={item ? undefined : 'discussion'}
     >
       <Input label={titleLabel} name="title" required autoFocus clear />
       <Input label={bountyLabel} name="bounty" required autoFocus clear />
@@ -111,16 +108,19 @@ export function BountyForm({
         as={TextareaAutosize}
         minRows={6}
         hint={
-          editThreshold ? (
+          editThreshold
+            ? (
             <div className="text-muted font-weight-bold">
               <Countdown date={editThreshold} />
             </div>
-          ) : null
+              )
+            : null
         }
       />
       {adv && <AdvPostForm edit={!!item} />}
       <div className="mt-3">
-        {item ? (
+        {item
+          ? (
           <EditFeeButton
             paidSats={item.meSats}
             parentId={null}
@@ -128,7 +128,8 @@ export function BountyForm({
             ChildButton={SubmitButton}
             variant="secondary"
           />
-        ) : (
+            )
+          : (
           <FeeButton
             baseFee={1}
             parentId={null}
@@ -136,8 +137,8 @@ export function BountyForm({
             ChildButton={SubmitButton}
             variant="secondary"
           />
-        )}
+            )}
       </div>
     </Form>
-  );
+  )
 }

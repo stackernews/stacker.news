@@ -6,7 +6,7 @@ import { useRouter } from 'next/router'
 
 export const getServerSideProps = getGetServerSideProps(BOUNTY_ITEMS_BY_USER_NAME)
 
-export default function Bounties ({data: {getBountiesByUserName}}) {
+export default function Bounties ({ data: { getBountiesByUserName } }) {
   const router = useRouter()
 
   if (!getBountiesByUserName) return null

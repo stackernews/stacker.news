@@ -1,86 +1,74 @@
-import React from "react"
-import { Button } from "react-bootstrap"
-import styles from "./pay-bounty.module.css"
+import React from 'react'
+import { Button } from 'react-bootstrap'
+import styles from './pay-bounty.module.css'
 import ActionTooltip from './action-tooltip'
 import ModalButton from './modal-button'
-import { useMutation, gql } from "@apollo/client"
-import { useRouter } from "next/router";
+import { useMutation, gql } from '@apollo/client'
+import { useRouter } from 'next/router'
 import { signIn } from 'next-auth/client'
-import {useMe} from "./me"
+import { useMe } from './me'
 import { abbrNum } from '../lib/format'
 
-export default function PayBounty({ children, item }) {
-    const me = useMe()
+export default function PayBounty ({ children, item }) {
+  const me = useMe()
 
-    const router = useRouter();
+  const router = useRouter()
 
-    const fwd2me = me && me?.id === item?.fwdUser?.id
+  const fwd2me = me && me?.id === item?.fwdUser?.id
 
-    const [act] = useMutation(
-        gql`
+  const [act] = useMutation(
+    gql`
           mutation act($id: ID!, $sats: Int!) {
             act(id: $id, sats: $sats) {
               vote,
               sats
             }
           }`, {
-          update (cache, { data: { act: { vote, sats } } }) {
-            cache.modify({
-              id: `Item:${item.id}`,
-              fields: {
-                sats (existingSats = 0) {
-                  return existingSats + sats
-                },
-                meSats (existingSats = 0) {
-                // If we keep upvotes below we can use this to show the user's vote
-                //   if (existingSats === 0) {
-                //     setVoteShow(true)
-                //   } else {
-                //     setTipShow(true)
-                //   }
-                  return existingSats + sats
-                },
-                // Do we need an upvote to happen as well?
-                // upvotes (existingUpvotes = 0) {
-                //   return existingUpvotes + vote
-                // }
-              }
-            })
-    
-            // update all ancestors
-            item.path.split('.').forEach(id => {
-              if (Number(id) === Number(item.id)) return
-              cache.modify({
-                id: `Item:${id}`,
-                fields: {
-                  commentSats (existingCommentSats = 0) {
-                    return existingCommentSats + sats
-                  }
-                }
-              })
-            })
+      update (cache, { data: { act: { vote, sats } } }) {
+        cache.modify({
+          id: `Item:${item.id}`,
+          fields: {
+            sats (existingSats = 0) {
+              return existingSats + sats
+            },
+            meSats (existingSats = 0) {
+              return existingSats + sats
+            }
           }
-        }
-      )
+        })
 
-    const handlePayBounty = async () => {
-        if (!me) {
-            signIn()
-            return
-        }
-        act({ variables: { id: item.id, sats: item.root.bounty } })
-        router.push(`/items/${item.root.id}`)
-        // Should show a confirm modal followed by success message
-        // After success, refetch the comment and parent item to show the new green icon and paid flag on the comment
+        // update all ancestors
+        item.path.split('.').forEach(id => {
+          if (Number(id) === Number(item.id)) return
+          cache.modify({
+            id: `Item:${id}`,
+            fields: {
+              commentSats (existingCommentSats = 0) {
+                return existingCommentSats + sats
+              }
+            }
+          })
+        })
+      }
     }
+  )
 
-    if (!me || item.root.user.name !== me.name || item.mine || item.root.bountyPaid) {
-        return null
+  const handlePayBounty = async () => {
+    if (!me) {
+      signIn()
+      return
     }
+    act({ variables: { id: item.id, sats: item.root.bounty } })
+    router.push(`/items/${item.root.id}`)
+  }
 
-    return (
-          <ActionTooltip 
-            notForm disable={item?.mine || fwd2me} 
+  if (!me || item.root.user.name !== me.name || item.mine || item.root.bountyPaid) {
+    return null
+  }
+
+  return (
+          <ActionTooltip
+            notForm disable={item?.mine || fwd2me}
             overlayText={`${item.root.bounty} sats`}
           >
             <ModalButton
@@ -100,5 +88,5 @@ export default function PayBounty({ children, item }) {
                 </div>
             </ModalButton>
           </ActionTooltip>
-    )
+  )
 }

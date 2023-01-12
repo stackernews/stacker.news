@@ -18,7 +18,7 @@ const STOP_WORDS = ['a', 'an', 'and', 'are', 'as', 'at', 'be', 'but',
 
 export default {
   Query: {
-    related: async (parent, { title, id, cursor, limit }, { me, models, search }) => {
+    related: async (parent, { title, id, cursor, limit, minMatch }, { me, models, search }) => {
       const decodedCursor = decodeCursor(cursor)
       if (!title || title.trim().split(/\s+/).length < 1) {
         if (id) {
@@ -45,7 +45,7 @@ export default {
         body: {
           query: {
             bool: {
-              should: [
+              must: [
                 {
                   more_like_this: {
                     fields: ['title'],
@@ -54,14 +54,14 @@ export default {
                     min_doc_freq: 1,
                     min_word_length: 2,
                     max_query_terms: 25,
-                    minimum_should_match: '20%',
+                    minimum_should_match: minMatch || '20%',
                     stop_words: STOP_WORDS
                   }
                 }
               ],
               must_not: [{ exists: { field: 'parentId' } }, ...mustNot],
               filter: {
-                range: { wvotes: { gte: 0.2 } }
+                range: { wvotes: { gte: minMatch ? 0 : 0.2 } }
               }
             }
           },

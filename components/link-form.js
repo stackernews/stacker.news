@@ -33,6 +33,32 @@ export function LinkForm ({ item, editThreshold }) {
   }`, {
     fetchPolicy: 'network-only'
   })
+  const [getRelated, { data: relatedData }] = useLazyQuery(gql`
+  ${ITEM_FIELDS}
+  query related($title: String!) {
+    related(title: $title, minMatch: "75%", limit: 3) {
+      items {
+        ...ItemFields
+      }
+    }
+  }`, {
+    fetchPolicy: 'network-only'
+  })
+
+  const related = []
+  for (const item of relatedData?.related?.items || []) {
+    let found = false
+    for (const ditem of dupesData?.dupes || []) {
+      if (ditem.id === item.id) {
+        found = true
+        break
+      }
+    }
+
+    if (!found) {
+      related.push(item)
+    }
+  }
 
   const [upsertLink] = useMutation(
     gql`
@@ -80,6 +106,13 @@ export function LinkForm ({ item, editThreshold }) {
         overrideValue={data?.pageTitleAndUnshorted?.title}
         required
         clear
+        onChange={async (formik, e) => {
+          if (e.target.value) {
+            getRelated({
+              variables: { title: e.target.value }
+            })
+          }
+        }}
       />
       <Input
         label='url'
@@ -129,7 +162,18 @@ export function LinkForm ({ item, editThreshold }) {
               }
           />
         </div>}
-
+      <div className={`mt-3 ${related.length > 0 ? '' : 'invisible'}`}>
+        <AccordianItem
+          header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>similar</div>}
+          body={
+            <div>
+              {related.map((item, i) => (
+                <Item item={item} key={item.id} />
+              ))}
+            </div>
+              }
+        />
+      </div>
     </Form>
   )
 }

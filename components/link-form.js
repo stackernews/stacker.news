@@ -15,9 +15,12 @@ export function LinkForm ({ item, editThreshold }) {
   const router = useRouter()
   const client = useApolloClient()
 
-  const [getPageTitle, { data }] = useLazyQuery(gql`
-    query PageTitle($url: String!) {
-      pageTitle(url: $url)
+  const [getPageTitleAndUnshorted, { data }] = useLazyQuery(gql`
+    query PageTitleAndUnshorted($url: String!) {
+      pageTitleAndUnshorted(url: $url) {
+        title
+        unshorted
+      }
     }`, {
     fetchPolicy: 'network-only'
   })
@@ -74,7 +77,7 @@ export function LinkForm ({ item, editThreshold }) {
       <Input
         label='title'
         name='title'
-        overrideValue={data?.pageTitle}
+        overrideValue={data?.pageTitleAndUnshorted?.title}
         required
         clear
       />
@@ -84,12 +87,13 @@ export function LinkForm ({ item, editThreshold }) {
         required
         autoFocus
         clear
+        overrideValue={data?.pageTitleAndUnshorted?.unshorted}
         hint={editThreshold
           ? <div className='text-muted font-weight-bold'><Countdown date={editThreshold} /></div>
           : null}
         onChange={async (formik, e) => {
           if ((/^ *$/).test(formik?.values.title)) {
-            getPageTitle({
+            getPageTitleAndUnshorted({
               variables: { url: e.target.value }
             })
           }

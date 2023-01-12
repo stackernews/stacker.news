@@ -6,7 +6,7 @@ export default gql`
     moreFlatComments(sort: String!, cursor: String, name: String, within: String): Comments
     item(id: ID!): Item
     comments(id: ID!, sort: String): [Item!]!
-    pageTitle(url: String!): String
+    pageTitleAndUnshorted(url: String!): TitleUnshorted
     dupes(url: String!): [Item!]
     related(cursor: String, title: String, id: ID, limit: Int): Items
     allItems(cursor: String): Items
@@ -18,6 +18,11 @@ export default gql`
     freebieItems(cursor: String): Items
     topItems(cursor: String, sort: String, when: String): Items
     topComments(cursor: String, sort: String, when: String): Comments
+  }
+
+  type TitleUnshorted {
+    title: String
+    unshorted: String
   }
 
   type ItemActResult {

@@ -10,6 +10,7 @@ import {
 } from '../../lib/constants'
 import { msatsToSats } from '../../lib/format'
 import { parse } from 'tldts'
+import uu from 'url-unshort'
 
 async function comments (me, models, id, sort) {
   let orderBy
@@ -455,16 +456,24 @@ export default {
       }
     },
     item: getItem,
-    pageTitle: async (parent, { url }, { models }) => {
+    pageTitleAndUnshorted: async (parent, { url }, { models }) => {
+      const res = {}
       try {
         const response = await fetch(ensureProtocol(url), { redirect: 'follow' })
         const html = await response.text()
         const doc = domino.createWindow(html).document
         const metadata = getMetadata(doc, url, { title: metadataRuleSets.title })
-        return metadata?.title
-      } catch (e) {
-        return null
-      }
+        res.title = metadata?.title
+      } catch { }
+
+      try {
+        const unshorted = await uu().expand(url)
+        if (unshorted) {
+          res.unshorted = unshorted
+        }
+      } catch { }
+
+      return res
     },
     dupes: async (parent, { url }, { models }) => {
       const urlObj = new URL(ensureProtocol(url))

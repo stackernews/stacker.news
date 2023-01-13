@@ -20,7 +20,6 @@ export default function Delete ({ itemId, children, onDelete }) {
         }
       }`, {
       update (cache, { data: { deleteItem } }) {
-        console.log(deleteItem)
         cache.modify({
           id: `Item:${itemId}`,
           fields: {

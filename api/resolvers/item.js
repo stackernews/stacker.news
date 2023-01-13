@@ -483,7 +483,6 @@ export default {
       const parseResult = parse(urlObj.hostname)
       if (parseResult?.subdomain?.length) {
         const { subdomain } = parseResult
-        console.log(subdomain)
         uri = uri.replace(subdomain, '(%)?')
       } else {
         uri = `(%.)?${uri}`

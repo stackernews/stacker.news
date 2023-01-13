@@ -136,7 +136,7 @@ export default function Comment ({
                 <a title={item.createdAt} className='text-reset'>{timeSince(new Date(item.createdAt))}</a>
               </Link>
               {includeParent && <Parent item={item} rootText={rootText} />}
-              {me && !item.meSats && !item.meDontLike && !item.mine && <DontLikeThis id={item.id} />}
+              {me && !item.meSats && !item.meDontLike && !item.mine && !item.deletedAt && <DontLikeThis id={item.id} />}
               {(item.outlawed && <Link href='/outlawed'><a>{' '}<Badge className={itemStyles.newComment} variant={null}>OUTLAWED</Badge></a></Link>) ||
                (item.freebie && !item.mine && (me?.greeterMode) && <Link href='/freebie'><a>{' '}<Badge className={itemStyles.newComment} variant={null}>FREEBIE</Badge></a></Link>)}
               {canEdit && !item.deletedAt &&

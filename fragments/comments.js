@@ -5,6 +5,7 @@ export const COMMENT_FIELDS = gql`
     id
     parentId
     createdAt
+    deletedAt
     text
     user {
       name

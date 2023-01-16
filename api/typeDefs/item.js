@@ -6,9 +6,9 @@ export default gql`
     moreFlatComments(sort: String!, cursor: String, name: String, within: String): Comments
     item(id: ID!): Item
     comments(id: ID!, sort: String): [Item!]!
-    pageTitle(url: String!): String
+    pageTitleAndUnshorted(url: String!): TitleUnshorted
     dupes(url: String!): [Item!]
-    related(cursor: String, title: String, id: ID, limit: Int): Items
+    related(cursor: String, title: String, id: ID, minMatch: String, limit: Int): Items
     allItems(cursor: String): Items
     getBountiesByUser(id: Int!): [Item]
     getBountiesByUserName(name: String!): [Item]
@@ -22,12 +22,18 @@ export default gql`
     topComments(cursor: String, sort: String, when: String): Comments
   }
 
+  type TitleUnshorted {
+    title: String
+    unshorted: String
+  }
+
   type ItemActResult {
     vote: Int!
     sats: Int!
   }
 
   extend type Mutation {
+    deleteItem(id: ID): Item
     upsertLink(id: ID, title: String!, url: String!, boost: Int, forward: String): Item!
     upsertDiscussion(id: ID, title: String!, text: String, boost: Int, forward: String): Item!
     upsertBounty(id: ID, title: String!, text: String, bounty: Int!, boost: Int, forward: String): Item!
@@ -69,6 +75,7 @@ export default gql`
     id: ID!
     createdAt: String!
     updatedAt: String!
+    deletedAt: String
     title: String
     searchTitle: String
     url: String

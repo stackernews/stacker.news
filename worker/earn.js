@@ -53,7 +53,7 @@ function earn ({ models }) {
               FROM
                   "Item"
               WHERE created_at >= now_utc() - interval '36 hours'
-              AND "weightedVotes" > 0
+              AND "weightedVotes" > 0 AND "deletedAt" IS NULL AND NOT bio
           ) x
           WHERE x.percentile <= ${TOP_PERCENTILE}
       ),

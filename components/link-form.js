@@ -10,14 +10,19 @@ import AccordianItem from './accordian-item'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
 import { URL_REGEXP } from '../lib/url'
 import FeeButton, { EditFeeButton } from './fee-button'
+import Delete from './delete'
+import { Button } from 'react-bootstrap'
 
 export function LinkForm ({ item, editThreshold }) {
   const router = useRouter()
   const client = useApolloClient()
 
-  const [getPageTitle, { data }] = useLazyQuery(gql`
-    query PageTitle($url: String!) {
-      pageTitle(url: $url)
+  const [getPageTitleAndUnshorted, { data }] = useLazyQuery(gql`
+    query PageTitleAndUnshorted($url: String!) {
+      pageTitleAndUnshorted(url: $url) {
+        title
+        unshorted
+      }
     }`, {
     fetchPolicy: 'network-only'
   })
@@ -30,6 +35,32 @@ export function LinkForm ({ item, editThreshold }) {
   }`, {
     fetchPolicy: 'network-only'
   })
+  const [getRelated, { data: relatedData }] = useLazyQuery(gql`
+  ${ITEM_FIELDS}
+  query related($title: String!) {
+    related(title: $title, minMatch: "75%", limit: 3) {
+      items {
+        ...ItemFields
+      }
+    }
+  }`, {
+    fetchPolicy: 'network-only'
+  })
+
+  const related = []
+  for (const item of relatedData?.related?.items || []) {
+    let found = false
+    for (const ditem of dupesData?.dupes || []) {
+      if (ditem.id === item.id) {
+        found = true
+        break
+      }
+    }
+
+    if (!found) {
+      related.push(item)
+    }
+  }
 
   const [upsertLink] = useMutation(
     gql`
@@ -74,9 +105,16 @@ export function LinkForm ({ item, editThreshold }) {
       <Input
         label='title'
         name='title'
-        overrideValue={data?.pageTitle}
+        overrideValue={data?.pageTitleAndUnshorted?.title}
         required
         clear
+        onChange={async (formik, e) => {
+          if (e.target.value) {
+            getRelated({
+              variables: { title: e.target.value }
+            })
+          }
+        }}
       />
       <Input
         label='url'
@@ -84,12 +122,13 @@ export function LinkForm ({ item, editThreshold }) {
         required
         autoFocus
         clear
+        overrideValue={data?.pageTitleAndUnshorted?.unshorted}
         hint={editThreshold
           ? <div className='text-muted font-weight-bold'><Countdown date={editThreshold} /></div>
           : null}
         onChange={async (formik, e) => {
           if ((/^ *$/).test(formik?.values.title)) {
-            getPageTitle({
+            getPageTitleAndUnshorted({
               variables: { url: e.target.value }
             })
           }
@@ -101,31 +140,51 @@ export function LinkForm ({ item, editThreshold }) {
       <AdvPostForm edit={!!item} />
       <div className='mt-3'>
         {item
-          ? <EditFeeButton
-              paidSats={item.meSats}
-              parentId={null} text='save' ChildButton={SubmitButton} variant='secondary'
-            />
+          ? (
+            <div className='d-flex justify-content-between'>
+              <Delete itemId={item.id} onDelete={() => router.push(`/items/${item.id}`)}>
+                <Button variant='grey-medium'>delete</Button>
+              </Delete>
+              <EditFeeButton
+                paidSats={item.meSats}
+                parentId={null} text='save' ChildButton={SubmitButton} variant='secondary'
+              />
+            </div>)
           : <FeeButton
               baseFee={1} parentId={null} text='post'
               ChildButton={SubmitButton} variant='secondary'
             />}
       </div>
-      {dupesData?.dupes?.length > 0 &&
-        <div className='mt-3'>
-          <AccordianItem
-            show
-            headerColor='#c03221'
-            header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>dupes</div>}
-            body={
-              <div>
-                {dupesData.dupes.map((item, i) => (
-                  <Item item={item} key={item.id} />
-                ))}
-              </div>
+      {!item &&
+        <>
+          {dupesData?.dupes?.length > 0 &&
+            <div className='mt-3'>
+              <AccordianItem
+                show
+                headerColor='#c03221'
+                header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>dupes</div>}
+                body={
+                  <div>
+                    {dupesData.dupes.map((item, i) => (
+                      <Item item={item} key={item.id} />
+                    ))}
+                  </div>
               }
-          />
-        </div>}
-
+              />
+            </div>}
+          <div className={`mt-3 ${related.length > 0 ? '' : 'invisible'}`}>
+            <AccordianItem
+              header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>similar</div>}
+              body={
+                <div>
+                  {related.map((item, i) => (
+                    <Item item={item} key={item.id} />
+                  ))}
+                </div>
+              }
+            />
+          </div>
+        </>}
     </Form>
   )
 }

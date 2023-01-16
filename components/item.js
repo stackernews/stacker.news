@@ -18,6 +18,7 @@ import DontLikeThis from './dont-link-this'
 import Flag from '../svgs/flag-fill.svg'
 import Share from './share'
 import { abbrNum } from '../lib/format'
+import { DeleteDropdown } from './delete'
 
 export function SearchTitle ({ title }) {
   return reactStringReplace(title, /:high\[([^\]]+)\]/g, (match, i) => {
@@ -121,7 +122,7 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
               <Link href={`/items/${item.id}`} passHref>
                 <a title={item.createdAt} className='text-reset'>{timeSince(new Date(item.createdAt))}</a>
               </Link>
-              {me && !item.meSats && !item.position && !item.meDontLike && !item.mine && <DontLikeThis id={item.id} />}
+              {me && !item.meSats && !item.position && !item.meDontLike && !item.mine && !item.deletedAt && <DontLikeThis id={item.id} />}
               {(item.outlawed && <Link href='/outlawed'><a>{' '}<Badge className={styles.newComment} variant={null}>OUTLAWED</Badge></a></Link>) ||
                (item.freebie && !item.mine && (me?.greeterMode) && <Link href='/freebie'><a>{' '}<Badge className={styles.newComment} variant={null}>FREEBIE</Badge></a></Link>)}
               {item.prior &&
@@ -132,7 +133,7 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
                   </Link>
                 </>}
             </span>
-            {canEdit &&
+            {canEdit && !item.deletedAt &&
               <>
                 <span> \ </span>
                 <Link href={`/items/${item.id}/edit`} passHref>
@@ -148,6 +149,8 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
                   </a>
                 </Link>
               </>}
+            {mine && !canEdit && !item.position && !item.deletedAt &&
+              <DeleteDropdown itemId={item.id} />}
           </div>
           {showFwdUser && item.fwdUser && <FwdUser user={item.fwdUser} />}
         </div>

@@ -9,6 +9,8 @@ import {
   MAX_TITLE_LENGTH, ITEM_FILTER_THRESHOLD, DONT_LIKE_THIS_COST
 } from '../../lib/constants'
 import { msatsToSats } from '../../lib/format'
+import { parse } from 'tldts'
+import uu from 'url-unshort'
 
 async function comments (me, models, id, sort) {
   let orderBy
@@ -157,7 +159,7 @@ export default {
         ${SELECT}
         FROM "Item"
         WHERE "parentId" IS NULL AND "Item".created_at <= $1
-        AND "pinId" IS NULL
+        AND "pinId" IS NULL AND "deletedAt" IS NULL
         ${topClause(when)}
         ${await filterClause(me, models)}
         ${await topOrderClause(sort, me, models)}
@@ -174,7 +176,7 @@ export default {
         ${SELECT}
         FROM "Item"
         WHERE "parentId" IS NOT NULL
-        AND "Item".created_at <= $1
+        AND "Item".created_at <= $1 AND "deletedAt" IS NULL
         ${topClause(when)}
         ${await filterClause(me, models)}
         ${await topOrderClause(sort, me, models)}
@@ -237,7 +239,7 @@ export default {
             ${SELECT}
             FROM "Item"
             WHERE "parentId" IS NULL AND "Item".created_at <= $1
-            AND "pinId" IS NULL
+            AND "pinId" IS NULL AND "deletedAt" IS NULL
             ${topClause(within)}
             ${await filterClause(me, models)}
             ${await topOrderByWeightedSats(me, models)}
@@ -286,7 +288,7 @@ export default {
                   ${SELECT}
                   FROM "Item"
                   WHERE "parentId" IS NULL AND "Item".created_at <= $1 AND "Item".created_at > $3
-                  AND "pinId" IS NULL AND NOT bio
+                  AND "pinId" IS NULL AND NOT bio AND "deletedAt" IS NULL
                   ${subClause(4)}
                   ${await filterClause(me, models)}
                   ${await newTimedOrderByWeightedSats(me, models, 1)}
@@ -299,7 +301,7 @@ export default {
                   ${SELECT}
                   FROM "Item"
                   WHERE "parentId" IS NULL AND "Item".created_at <= $1
-                  AND "pinId" IS NULL AND NOT bio
+                  AND "pinId" IS NULL AND NOT bio AND "deletedAt" IS NULL
                   ${subClause(3)}
                   ${await filterClause(me, models)}
                   ${await newTimedOrderByWeightedSats(me, models, 1)}
@@ -470,7 +472,7 @@ export default {
           comments = await models.$queryRaw(`
           ${SELECT}
           FROM "Item"
-          WHERE "parentId" IS NOT NULL
+          WHERE "parentId" IS NOT NULL AND "deletedAt" IS NULL
           AND "Item".created_at <= $1
           ${topClause(within)}
           ${await filterClause(me, models)}
@@ -488,31 +490,47 @@ export default {
       }
     },
     item: getItem,
-    pageTitle: async (parent, { url }, { models }) => {
+    pageTitleAndUnshorted: async (parent, { url }, { models }) => {
+      const res = {}
       try {
         const response = await fetch(ensureProtocol(url), { redirect: 'follow' })
         const html = await response.text()
         const doc = domino.createWindow(html).document
         const metadata = getMetadata(doc, url, { title: metadataRuleSets.title })
-        return metadata?.title
-      } catch (e) {
-        return null
-      }
+        res.title = metadata?.title
+      } catch { }
+
+      try {
+        const unshorted = await uu().expand(url)
+        if (unshorted) {
+          res.unshorted = unshorted
+        }
+      } catch { }
+
+      return res
     },
     dupes: async (parent, { url }, { models }) => {
       const urlObj = new URL(ensureProtocol(url))
       let uri = urlObj.hostname + urlObj.pathname
       uri = uri.endsWith('/') ? uri.slice(0, -1) : uri
-      let similar = `(http(s)?://)?${uri}/?`
 
+      const parseResult = parse(urlObj.hostname)
+      if (parseResult?.subdomain?.length) {
+        const { subdomain } = parseResult
+        uri = uri.replace(subdomain, '(%)?')
+      } else {
+        uri = `(%.)?${uri}`
+      }
+
+      let similar = `(http(s)?://)?${uri}/?`
       const whitelist = ['news.ycombinator.com/item', 'bitcointalk.org/index.php']
-      const youtube = ['www.youtube.com', 'youtu.be']
+      const youtube = ['www.youtube.com', 'youtube.com', 'm.youtube.com', 'youtu.be']
       if (whitelist.includes(uri)) {
         similar += `\\${urlObj.search}`
       } else if (youtube.includes(urlObj.hostname)) {
         // extract id and create both links
         const matches = url.match(/(https?:\/\/)?((www\.)?(youtube(-nocookie)?|youtube.googleapis)\.com.*(v\/|v=|vi=|vi\/|e\/|embed\/|user\/.*\/u\/\d+\/)|youtu\.be\/)(?<id>[_0-9a-z-]+)/i)
-        similar = `(http(s)?://)?(www.youtube.com/watch\\?v=${matches?.groups?.id}|youtu.be/${matches?.groups?.id})`
+        similar = `(http(s)?://)?((www.|m.)?youtube.com/(watch\\?v=|v/)${matches?.groups?.id}|youtu.be/${matches?.groups?.id})((\\?|&|#)%)?`
       } else {
         similar += '((\\?|#)%)?'
       }
@@ -520,7 +538,7 @@ export default {
       return await models.$queryRaw(`
         ${SELECT}
         FROM "Item"
-        WHERE url SIMILAR TO $1
+        WHERE LOWER(url) SIMILAR TO LOWER($1)
         ORDER BY created_at DESC
         LIMIT 3`, similar)
     },
@@ -563,6 +581,28 @@ export default {
   },
 
   Mutation: {
+    deleteItem: async (parent, { id }, { me, models }) => {
+      const old = await models.item.findUnique({ where: { id: Number(id) } })
+      if (Number(old.userId) !== Number(me?.id)) {
+        throw new AuthenticationError('item does not belong to you')
+      }
+
+      const data = { deletedAt: new Date() }
+      if (old.text) {
+        data.text = '*deleted by author*'
+      }
+      if (old.title) {
+        data.title = 'deleted by author'
+      }
+      if (old.url) {
+        data.url = null
+      }
+      if (old.pollCost) {
+        data.pollCost = null
+      }
+
+      return await models.item.update({ where: { id: Number(id) }, data })
+    },
     upsertLink: async (parent, args, { me, models }) => {
       const { id, ...data } = args
       data.url = ensureProtocol(data.url)
@@ -1122,7 +1162,7 @@ function nestComments (flat, parentId) {
 export const SELECT =
   `SELECT "Item".id, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt", "Item".title,
   "Item".text, "Item".url, "Item"."bounty", "Item"."userId", "Item"."fwdUserId", "Item"."parentId", "Item"."pinId", "Item"."maxBid",
-  "Item".company, "Item".location, "Item".remote,
+  "Item".company, "Item".location, "Item".remote, "Item"."deletedAt",
   "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost",
   "Item".msats, "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",
   "Item"."weightedDownVotes", "Item".freebie, ltree2text("Item"."path") AS "path"`

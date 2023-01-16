@@ -22,7 +22,7 @@ export default function PastBounties ({ children, item }) {
   }
 
   return (
-      <AccordianItem
+    <AccordianItem
       header={<div className='font-weight-bold'>past bounties</div>}
       body={
         <>
@@ -42,6 +42,6 @@ export default function PastBounties ({ children, item }) {
         {
         item.user.name && <Link href={`/${item.user.name}/bounties`} query={{ parent: item }} passHref><a className='text-reset text-muted font-weight-bold'>view all past bounties</a></Link>}
       </>}
-      />
+    />
   )
 }

@@ -922,41 +922,41 @@ export default {
       return (msats && msatsToSats(msats)) || 0
     },
     bountyPaid: async (item, args, { models }) => {
-        if (!item.bounty) {
-          return null;
-        }
+      if (!item.bounty) {
+        return null;
+      }
   
-        const paid = await models.$queryRaw`
-            -- Sum up the sats and if they are greater than or equal to item.bounty than return true, else return false
-            SELECT coalesce(sum("ItemAct"."msats"), 0) >= ${item.bounty} as "bountyPaid"
-            FROM "ItemAct"
-            INNER JOIN "Item" ON "ItemAct"."itemId" = "Item"."id"
-            WHERE "ItemAct"."userId" = ${item.userId}
-            AND "Item"."parentId" = ${item.id}
-        `;
+      const paid = await models.$queryRaw`
+          -- Sum up the sats and if they are greater than or equal to item.bounty than return true, else return false
+          SELECT coalesce(sum("ItemAct"."msats"), 0) >= ${item.bounty} as "bountyPaid"
+          FROM "ItemAct"
+          INNER JOIN "Item" ON "ItemAct"."itemId" = "Item"."id"
+          WHERE "ItemAct"."userId" = ${item.userId}
+          AND "Item"."parentId" = ${item.id}
+      `;
   
-        return paid[0].bountyPaid;
-      },
-      bountyPaidTo: async (item, args, { models }) => {
-        if (!item.bounty) {
-          return null;
-        }
+      return paid[0].bountyPaid;
+    },
+    bountyPaidTo: async (item, args, { models }) => {
+      if (!item.bounty) {
+        return null;
+      }
       
-        const paidTo = await models.$queryRaw`
-            SELECT "Item"."id" as "itemId", coalesce(sum("ItemAct"."msats"), 0) as "totalMsats"
-            FROM "ItemAct"
-            INNER JOIN "Item" ON "ItemAct"."itemId" = "Item"."id"
-            WHERE "ItemAct"."userId" = ${item.userId}
-            AND "Item"."parentId" = ${item.id}
-            GROUP BY "Item"."id"
-        `;
+      const paidTo = await models.$queryRaw`
+          SELECT "Item"."id" as "itemId", coalesce(sum("ItemAct"."msats"), 0) as "totalMsats"
+          FROM "ItemAct"
+          INNER JOIN "Item" ON "ItemAct"."itemId" = "Item"."id"
+          WHERE "ItemAct"."userId" = ${item.userId}
+          AND "Item"."parentId" = ${item.id}
+          GROUP BY "Item"."id"
+      `;
   
-        if (paidTo.length === 0) {
-          return null;
-        }
-  
-        return paidTo[0].itemId;
-      },
+      if (paidTo.length === 0) {
+        return null;
+      }
+
+      return paidTo[0].itemId;
+    },
     meDontLike: async (item, args, { me, models }) => {
       if (!me) return false
 

@@ -61,7 +61,7 @@ export function PostForm () {
   }
 }
 
-export default function Post() {
+export default function Post () {
   return (
     <LayoutCenter>
       <PostForm />

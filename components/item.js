@@ -45,7 +45,6 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
   const [wrap, setWrap] = useState(false)
   const titleRef = useRef()
   const me = useMe()
-  const fwd2me = me && me?.id === item?.fwdUser?.id
   const [hasNewComments, setHasNewComments] = useState(false)
 
   useEffect(() => {

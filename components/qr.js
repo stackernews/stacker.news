@@ -4,8 +4,8 @@ import InvoiceStatus from './invoice-status'
 import { requestProvider } from 'webln'
 import { useEffect } from 'react'
 
-export default function LnQR ({ value, webLn, statusVariant, status }) {
-  const qrValue = 'lightning:' + value.toUpperCase()
+export default function Qr ({ asIs, value, webLn, statusVariant, status }) {
+  const qrValue = asIs ? value : 'lightning:' + value.toUpperCase()
 
   useEffect(() => {
     async function effect () {
@@ -36,7 +36,7 @@ export default function LnQR ({ value, webLn, statusVariant, status }) {
   )
 }
 
-export function LnQRSkeleton ({ status }) {
+export function QrSkeleton ({ status }) {
   return (
     <>
       <div className='h-auto w-100 clouds' style={{ paddingTop: 'min(300px + 2rem, 100%)', maxWidth: 'calc(300px + 2rem)' }} />

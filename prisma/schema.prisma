@@ -37,6 +37,7 @@ model User {
   checkedNotesAt  DateTime?
   fiatCurrency    String      @default("USD")
   pubkey          String?     @unique
+  slashtagId      String?     @unique
   trust           Float       @default(0)
   upvoteTrust     Float       @default(0)
   lastSeenAt      DateTime?

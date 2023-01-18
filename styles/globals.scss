@@ -206,6 +206,10 @@ div[contenteditable]:disabled,
   fill: #212529;
 }
 
+.btn-grey-medium svg {
+  fill: #212529;
+}
+
 .fresh {
   background-color: var(--theme-clickToContextColor);
   border-radius: .4rem;

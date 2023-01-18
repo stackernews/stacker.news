@@ -73,7 +73,6 @@ function ItemEmbed ({ item }) {
 
   const youtube = item.url?.match(/(https?:\/\/)?((www\.)?(youtube(-nocookie)?|youtube.googleapis)\.com.*(v\/|v=|vi=|vi\/|e\/|embed\/|user\/.*\/u\/\d+\/)|youtu\.be\/)(?<id>[_0-9a-z-]+)((?:\?|&)(?:t|start)=(?<start>\d+))?/i)
   if (youtube?.groups?.id) {
-    console.log(youtube?.groups?.start)
     return (
       <div style={{ maxWidth: '640px', paddingRight: '15px' }}>
         <YouTube

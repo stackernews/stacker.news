@@ -52,9 +52,10 @@ export const SETTINGS_FIELDS = gql`
     greeterMode
     authMethods {
       lightning
-      email
-      twitter
+      slashtags
       github
+      twitter
+      email
     }
   }`
 

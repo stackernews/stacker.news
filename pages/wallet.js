@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Button from 'react-bootstrap/Button'
 import * as Yup from 'yup'
 import { gql, useMutation, useQuery } from '@apollo/client'
-import LnQR, { LnQRSkeleton } from '../components/lnqr'
+import Qr, { QrSkeleton } from '../components/qr'
 import LayoutCenter from '../components/layout-center'
 import InputGroup from 'react-bootstrap/InputGroup'
 import { WithdrawlSkeleton } from './withdrawals/[id]'
@@ -95,7 +95,7 @@ export function FundForm () {
   }, [])
 
   if (called && !error) {
-    return <LnQRSkeleton status='generating' />
+    return <QrSkeleton status='generating' />
   }
 
   return (
@@ -226,7 +226,7 @@ function LnQRWith ({ k1, encodedUrl }) {
     router.push(`/withdrawals/${data.lnWith.withdrawalId}`)
   }
 
-  return <LnQR value={encodedUrl} status='waiting for you' />
+  return <Qr value={encodedUrl} status='waiting for you' />
 }
 
 export function LnWithdrawal () {
@@ -246,7 +246,7 @@ export function LnWithdrawal () {
   if (error) return <div>error</div>
 
   if (!data) {
-    return <LnQRSkeleton status='generating' />
+    return <QrSkeleton status='generating' />
   }
 
   return <LnQRWith {...data.createWith} />

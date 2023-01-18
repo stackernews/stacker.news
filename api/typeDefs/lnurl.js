@@ -17,6 +17,7 @@ export default gql`
     k1: String!
     pubkey: String
     encodedUrl: String!
+    slashtagUrl: String!
   }
 
   type LnWith {

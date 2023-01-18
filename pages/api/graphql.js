@@ -5,6 +5,7 @@ import lnd from '../../api/lnd'
 import typeDefs from '../../api/typeDefs'
 import { getSession } from 'next-auth/client'
 import search from '../../api/search'
+import slashtags from '../../api/slashtags'
 
 const apolloServer = new ApolloServer({
   typeDefs,
@@ -40,7 +41,8 @@ const apolloServer = new ApolloServer({
       me: session
         ? session.user
         : null,
-      search
+      search,
+      slashtags
     }
   }
 })

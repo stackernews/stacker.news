@@ -54,7 +54,8 @@ async function authMethods (user, args, { models, me }) {
     lightning: !!user.pubkey,
     email: user.emailVerified && user.email,
     twitter: oauth.indexOf('twitter') >= 0,
-    github: oauth.indexOf('github') >= 0
+    github: oauth.indexOf('github') >= 0,
+    slashtags: !!user.slashtagId
   }
 }
 
@@ -402,27 +403,25 @@ export default {
         throw new AuthenticationError('you must be logged in')
       }
 
+      let user
       if (authType === 'twitter' || authType === 'github') {
-        const user = await models.user.findUnique({ where: { id: me.id } })
+        user = await models.user.findUnique({ where: { id: me.id } })
         const account = await models.account.findFirst({ where: { userId: me.id, providerId: authType } })
         if (!account) {
           throw new UserInputError('no such account')
         }
         await models.account.delete({ where: { id: account.id } })
-        return await authMethods(user, undefined, { models, me })
+      } else if (authType === 'lightning') {
+        user = await models.user.update({ where: { id: me.id }, data: { pubkey: null } })
+      } else if (authType === 'slashtags') {
+        user = await models.user.update({ where: { id: me.id }, data: { slashtagId: null } })
+      } else if (authType === 'email') {
+        user = await models.user.update({ where: { id: me.id }, data: { email: null, emailVerified: null } })
+      } else {
+        throw new UserInputError('no such account')
       }
 
-      if (authType === 'lightning') {
-        const user = await models.user.update({ where: { id: me.id }, data: { pubkey: null } })
-        return await authMethods(user, undefined, { models, me })
-      }
-
-      if (authType === 'email') {
-        const user = await models.user.update({ where: { id: me.id }, data: { email: null, emailVerified: null } })
-        return await authMethods(user, undefined, { models, me })
-      }
-
-      throw new UserInputError('no such account')
+      return await authMethods(user, undefined, { models, me })
     },
     linkUnverifiedEmail: async (parent, { email }, { models, me }) => {
       if (!me) {

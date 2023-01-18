@@ -4,6 +4,8 @@
 import secp256k1 from 'secp256k1'
 import models from '../../api/models'
 
+const HOUR = 1000 * 60 * 60
+
 export default async ({ query }, res) => {
   try {
     const sig = Buffer.from(query.sig, 'hex')
@@ -11,6 +13,11 @@ export default async ({ query }, res) => {
     const key = Buffer.from(query.key, 'hex')
     const signature = secp256k1.signatureImport(sig)
     if (secp256k1.ecdsaVerify(signature, k1, key)) {
+      const auth = await models.lnAuth.findUnique({ where: { k1: query.k1 } })
+      if (!auth || auth.pubkey || auth.createdAt < Date.now() - HOUR) {
+        return res.status(400).json({ status: 'ERROR', reason: 'token expired' })
+      }
+
       await models.lnAuth.update({ where: { k1: query.k1 }, data: { pubkey: query.key } })
       return res.status(200).json({ status: 'OK' })
     }

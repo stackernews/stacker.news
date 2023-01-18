@@ -3,12 +3,12 @@ import { signIn } from 'next-auth/client'
 import { useEffect } from 'react'
 import { Col, Container, Row } from 'react-bootstrap'
 import AccordianItem from './accordian-item'
-import LnQR, { LnQRSkeleton } from './lnqr'
+import Qr, { QrSkeleton } from './qr'
 import styles from './lightning-auth.module.css'
 import BackIcon from '../svgs/arrow-left-line.svg'
 import { useRouter } from 'next/router'
 
-function LnQRAuth ({ k1, encodedUrl, callbackUrl }) {
+function QrAuth ({ k1, encodedUrl, slashtagUrl, callbackUrl }) {
   const query = gql`
   {
     lnAuth(k1: "${k1}") {
@@ -19,12 +19,12 @@ function LnQRAuth ({ k1, encodedUrl, callbackUrl }) {
   const { data } = useQuery(query, { pollInterval: 1000 })
 
   if (data && data.lnAuth.pubkey) {
-    signIn('credentials', { ...data.lnAuth, callbackUrl })
+    signIn(encodedUrl ? 'lightning' : 'slashtags', { ...data.lnAuth, callbackUrl })
   }
 
   // output pubkey and k1
   return (
-    <LnQR value={encodedUrl} status='waiting for you' />
+    <Qr value={encodedUrl || slashtagUrl} asIs={!!slashtagUrl} status='waiting for you' />
   )
 }
 
@@ -84,7 +84,15 @@ function LightningExplainer ({ text, children }) {
   )
 }
 
-export function LightningAuth ({ text, callbackUrl }) {
+export function LightningAuthWithExplainer ({ text, callbackUrl }) {
+  return (
+    <LightningExplainer text={text}>
+      <LightningAuth callbackUrl={callbackUrl} />
+    </LightningExplainer>
+  )
+}
+
+export function LightningAuth ({ callbackUrl }) {
   // query for challenge
   const [createAuth, { data, error }] = useMutation(gql`
     mutation createAuth {
@@ -100,9 +108,24 @@ export function LightningAuth ({ text, callbackUrl }) {
 
   if (error) return <div>error</div>
 
-  return (
-    <LightningExplainer text={text}>
-      {data ? <LnQRAuth {...data.createAuth} callbackUrl={callbackUrl} /> : <LnQRSkeleton status='generating' />}
-    </LightningExplainer>
-  )
+  return data ? <QrAuth {...data.createAuth} callbackUrl={callbackUrl} /> : <QrSkeleton status='generating' />
+}
+
+export function SlashtagsAuth ({ callbackUrl }) {
+  // query for challenge
+  const [createAuth, { data, error }] = useMutation(gql`
+    mutation createAuth {
+      createAuth {
+        k1
+        slashtagUrl
+      }
+    }`)
+
+  useEffect(() => {
+    createAuth()
+  }, [])
+
+  if (error) return <div>error</div>
+
+  return data ? <QrAuth {...data.createAuth} callbackUrl={callbackUrl} /> : <QrSkeleton status='generating' />
 }

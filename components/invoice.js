@@ -1,4 +1,4 @@
-import LnQR from './lnqr'
+import Qr from './qr'
 
 export function Invoice ({ invoice }) {
   let variant = 'default'
@@ -14,5 +14,5 @@ export function Invoice ({ invoice }) {
     status = 'expired'
   }
 
-  return <LnQR webLn value={invoice.bolt11} statusVariant={variant} status={status} />
+  return <Qr webLn value={invoice.bolt11} statusVariant={variant} status={status} />
 }

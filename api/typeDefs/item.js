@@ -112,5 +112,7 @@ export default gql`
     sub: Sub
     status: String
     uploadId: Int
+    otsHash: String
+    parentOtsHash: String
   }
 `

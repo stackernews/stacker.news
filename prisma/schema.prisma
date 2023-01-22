@@ -232,6 +232,10 @@ model Item {
   upload      Upload?
   paidImgLink Boolean               @default(false)
 
+  // open timestamps
+  otsHash String?
+  otsFile Bytes?
+
   // is free post or bio
   freebie Boolean @default(false)
   bio     Boolean @default(false)

@@ -9,6 +9,7 @@ const { auction } = require('./auction')
 const { earn } = require('./earn')
 const { ApolloClient, HttpLink, InMemoryCache } = require('@apollo/client')
 const { indexItem, indexAllItems } = require('./search')
+const { timestampItem } = require('./ots')
 const fetch = require('cross-fetch')
 
 async function work () {
@@ -41,6 +42,7 @@ async function work () {
   await boss.work('checkWithdrawal', checkWithdrawal(args))
   await boss.work('repin-*', repin(args))
   await boss.work('trust', trust(args))
+  await boss.work('timestampItem', timestampItem(args))
   await boss.work('indexItem', indexItem(args))
   await boss.work('indexAllItems', indexAllItems(args))
   await boss.work('auction', auction(args))

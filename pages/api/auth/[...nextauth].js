@@ -62,7 +62,8 @@ export default (req, res) => NextAuth(req, res, {
   },
   providers: [
     Providers.Credentials({
-    // The name to display on the sign in form (e.g. 'Sign in with...')
+      id: 'lightning',
+      // The name to display on the sign in form (e.g. 'Sign in with...')
       name: 'Lightning',
       // The credentials is used to generate a suitable form on the sign in page.
       // You can specify whatever fields you are expecting to be submitted.
@@ -75,6 +76,7 @@ export default (req, res) => NextAuth(req, res, {
         const { k1, pubkey } = credentials
         try {
           const lnauth = await prisma.lnAuth.findUnique({ where: { k1 } })
+          await prisma.lnAuth.delete({ where: { k1 } })
           if (lnauth.pubkey === pubkey) {
             let user = await prisma.user.findUnique({ where: { pubkey } })
             const session = await getSession({ req })
@@ -89,7 +91,45 @@ export default (req, res) => NextAuth(req, res, {
               throw new Error('account not linked')
             }
 
-            await prisma.lnAuth.delete({ where: { k1 } })
+            return user
+          }
+        } catch (error) {
+          console.log(error)
+        }
+
+        return null
+      }
+    }),
+    Providers.Credentials({
+      id: 'slashtags',
+      // The name to display on the sign in form (e.g. 'Sign in with...')
+      name: 'Slashtags',
+      // The credentials is used to generate a suitable form on the sign in page.
+      // You can specify whatever fields you are expecting to be submitted.
+      // e.g. domain, username, password, 2FA token, etc.
+      credentials: {
+        pubkey: { label: 'publickey', type: 'text' },
+        k1: { label: 'k1', type: 'text' }
+      },
+      async authorize (credentials, req) {
+        const { k1, pubkey } = credentials
+        try {
+          const lnauth = await prisma.lnAuth.findUnique({ where: { k1 } })
+          await prisma.lnAuth.delete({ where: { k1 } })
+          if (lnauth.pubkey === pubkey) {
+            let user = await prisma.user.findUnique({ where: { slashtagId: pubkey } })
+            const session = await getSession({ req })
+            if (!user) {
+              // if we are logged in, update rather than create
+              if (session?.user) {
+                user = await prisma.user.update({ where: { id: session.user.id }, data: { slashtagId: pubkey } })
+              } else {
+                user = await prisma.user.create({ data: { name: pubkey.slice(0, 10), slashtagId: pubkey } })
+              }
+            } else if (session && session.user?.id !== user.id) {
+              throw new Error('account not linked')
+            }
+
             return user
           }
         } catch (error) {

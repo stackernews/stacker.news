@@ -530,7 +530,7 @@ export default {
       } else if (youtube.includes(urlObj.hostname)) {
         // extract id and create both links
         const matches = url.match(/(https?:\/\/)?((www\.)?(youtube(-nocookie)?|youtube.googleapis)\.com.*(v\/|v=|vi=|vi\/|e\/|embed\/|user\/.*\/u\/\d+\/)|youtu\.be\/)(?<id>[_0-9a-z-]+)/i)
-        similar = `(http(s)?://)?((www.|m.)?youtube.com/(watch\\?v=|v/)${matches?.groups?.id}|youtu.be/${matches?.groups?.id})((\\?|&|#)%)?`
+        similar = `(http(s)?://)?((www.|m.)?youtube.com/(watch\\?v=|v/|live/)${matches?.groups?.id}|youtu.be/${matches?.groups?.id})((\\?|&|#)%)?`
       } else {
         similar += '((\\?|#)%)?'
       }
@@ -996,6 +996,13 @@ export default {
         return null
       }
       return await models.item.findUnique({ where: { id: item.parentId } })
+    },
+    parentOtsHash: async (item, args, { models }) => {
+      if (!item.parentId) {
+        return null
+      }
+      const parent = await models.item.findUnique({ where: { id: item.parentId } })
+      return parent.otsHash
     }
   }
 }
@@ -1165,7 +1172,7 @@ export const SELECT =
   "Item".company, "Item".location, "Item".remote, "Item"."deletedAt",
   "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost",
   "Item".msats, "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",
-  "Item"."weightedDownVotes", "Item".freebie, ltree2text("Item"."path") AS "path"`
+  "Item"."weightedDownVotes", "Item".freebie, "Item"."otsHash", ltree2text("Item"."path") AS "path"`
 
 async function newTimedOrderByWeightedSats (me, models, num) {
   return `

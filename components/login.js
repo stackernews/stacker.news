@@ -1,15 +1,12 @@
 import { signIn } from 'next-auth/client'
-import Button from 'react-bootstrap/Button'
 import styles from './login.module.css'
-import GithubIcon from '../svgs/github-fill.svg'
-import TwitterIcon from '../svgs/twitter-fill.svg'
-import LightningIcon from '../svgs/bolt.svg'
 import { Form, Input, SubmitButton } from '../components/form'
 import * as Yup from 'yup'
 import { useState } from 'react'
 import Alert from 'react-bootstrap/Alert'
 import { useRouter } from 'next/router'
-import { LightningAuth } from './lightning-auth'
+import { LightningAuthWithExplainer, SlashtagsAuth } from './lightning-auth'
+import LoginButton from './login-button'
 
 export const EmailSchema = Yup.object({
   email: Yup.string().email('email is no good').required('required')
@@ -48,7 +45,7 @@ export default function Login ({ providers, callbackUrl, error, text, Header, Fo
     Callback: 'Try signing with a different account.',
     OAuthAccountNotLinked: 'To confirm your identity, sign in with the same account you used originally.',
     EmailSignin: 'Check your email address.',
-    CredentialsSignin: 'Lightning auth failed.',
+    CredentialsSignin: 'Auth failed',
     default: 'Unable to sign in.'
   }
 
@@ -56,7 +53,11 @@ export default function Login ({ providers, callbackUrl, error, text, Header, Fo
   const router = useRouter()
 
   if (router.query.type === 'lightning') {
-    return <LightningAuth callbackUrl={callbackUrl} text={text} />
+    return <LightningAuthWithExplainer callbackUrl={callbackUrl} text={text} />
+  }
+
+  if (router.query.type === 'slashtags') {
+    return <SlashtagsAuth callbackUrl={callbackUrl} text={text} />
   }
 
   return (
@@ -69,44 +70,41 @@ export default function Login ({ providers, callbackUrl, error, text, Header, Fo
           dismissible
         >{errorMessage}
         </Alert>}
-      <Button
-        className={`mt-2 ${styles.providerButton}`}
-        variant='primary'
-        onClick={() => router.push({
-          pathname: router.pathname,
-          query: { ...router.query, type: 'lightning' }
-        })}
-      >
-        <LightningIcon
-          width={20}
-          height={20}
-          className='mr-3'
-        />{text || 'Login'} with Lightning
-      </Button>
       {providers && Object.values(providers).map(provider => {
-        if (provider.name === 'Email' || provider.name === 'Lightning') {
-          return null
+        switch (provider.name) {
+          case 'Email':
+            return (
+              <div className='w-100' key={provider.name}>
+                <div className='mt-2 text-center text-muted font-weight-bold'>or</div>
+                <EmailLoginForm text={text} callbackUrl={callbackUrl} />
+              </div>
+            )
+          case 'Lightning':
+          case 'Slashtags':
+            return (
+              <LoginButton
+                className={`mt-2 ${styles.providerButton}`}
+                key={provider.name}
+                type={provider.name.toLowerCase()}
+                onClick={() => router.push({
+                  pathname: router.pathname,
+                  query: { ...router.query, type: provider.name.toLowerCase() }
+                })}
+                text={`${text || 'Login'} with`}
+              />
+            )
+          default:
+            return (
+              <LoginButton
+                className={`mt-2 ${styles.providerButton}`}
+                key={provider.name}
+                type={provider.name.toLowerCase()}
+                onClick={() => signIn(provider.id, { callbackUrl })}
+                text={`${text || 'Login'} with`}
+              />
+            )
         }
-        const [variant, Icon] =
-          provider.name === 'Twitter'
-            ? ['twitter', TwitterIcon]
-            : ['dark', GithubIcon]
-
-        return (
-          <Button
-            className={`mt-2 ${styles.providerButton}`}
-            key={provider.name}
-            variant={variant}
-            onClick={() => signIn(provider.id, { callbackUrl })}
-          >
-            <Icon
-              className='mr-3'
-            />{text || 'Login'} with {provider.name}
-          </Button>
-        )
       })}
-      <div className='mt-2 text-center text-muted font-weight-bold'>or</div>
-      <EmailLoginForm text={text} callbackUrl={callbackUrl} />
       {Footer && <Footer />}
     </div>
   )

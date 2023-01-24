@@ -56,6 +56,26 @@ export const ITEM_FIELDS = gql`
     }
   }`
 
+export const ITEM_OTS_FIELDS = gql`
+  fragment ItemOtsFields on Item {
+    id
+    title
+    text
+    url
+    parentOtsHash
+    otsHash
+    deletedAt
+  }`
+
+export const ITEM_OTS = gql`
+  ${ITEM_OTS_FIELDS}
+
+  query Item($id: ID!) {
+    item(id: $id) {
+      ...ItemOtsFields
+    }
+  }`
+
 export const ITEMS = gql`
   ${ITEM_FIELDS}
 

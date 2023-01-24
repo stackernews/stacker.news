@@ -1,6 +1,6 @@
 import { useQuery } from '@apollo/client'
 import { Invoice } from '../../components/invoice'
-import { LnQRSkeleton } from '../../components/lnqr'
+import { QrSkeleton } from '../../components/qr'
 import LayoutCenter from '../../components/layout-center'
 import { useRouter } from 'next/router'
 import { INVOICE } from '../../fragments/wallet'
@@ -24,7 +24,7 @@ function LoadInvoice () {
     return <div>error</div>
   }
   if (!data || loading) {
-    return <LnQRSkeleton status='loading' />
+    return <QrSkeleton status='loading' />
   }
 
   return <Invoice invoice={data.invoice} />

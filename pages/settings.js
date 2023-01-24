@@ -8,7 +8,7 @@ import { getGetServerSideProps } from '../api/ssrApollo'
 import LoginButton from '../components/login-button'
 import { signIn } from 'next-auth/client'
 import ModalButton from '../components/modal-button'
-import { LightningAuth } from '../components/lightning-auth'
+import { LightningAuth, SlashtagsAuth } from '../components/lightning-auth'
 import { SETTINGS, SET_SETTINGS } from '../fragments/users'
 import { useRouter } from 'next/router'
 import Info from '../components/info'
@@ -300,14 +300,11 @@ function AuthMethods ({ methods }) {
   )
   const [obstacle, setObstacle] = useState()
 
+  const providers = Object.keys(methods).filter(k => k !== '__typename')
+
   const unlink = async type => {
     // if there's only one auth method left
-    let links = 0
-    links += methods.lightning ? 1 : 0
-    links += methods.email ? 1 : 0
-    links += methods.twitter ? 1 : 0
-    links += methods.github ? 1 : 0
-
+    const links = providers.reduce((t, p) => t + (methods[p] ? 1 : 0), 0)
     if (links === 1) {
       setObstacle(type)
     } else {
@@ -349,63 +346,78 @@ function AuthMethods ({ methods }) {
         </Modal.Body>
       </Modal>
       <div className='form-label mt-3'>auth methods</div>
-      {methods.lightning
-        ? <LoginButton
-            className='d-block' type='lightning' text='Unlink' onClick={
-          async () => {
-            await unlink('lightning')
-          }
+      {providers && providers.map(provider => {
+        switch (provider) {
+          case 'email':
+            return methods.email
+              ? (
+                <div className='mt-2 d-flex align-items-center'>
+                  <Input
+                    name='email'
+                    placeholder={methods.email}
+                    groupClassName='mb-0'
+                    readOnly
+                    noForm
+                  />
+                  <Button
+                    className='ml-2' variant='secondary' onClick={
+                    async () => {
+                      await unlink('email')
+                    }
+                  }
+                  >Unlink Email
+                  </Button>
+                </div>
+                )
+              : <div className='mt-2'><EmailLinkForm /></div>
+          case 'lightning':
+            return methods.lightning
+              ? <LoginButton
+                  className='d-block' type='lightning' text='Unlink' onClick={
+                    async () => {
+                      await unlink('lightning')
+                    }
+                  }
+                />
+              : (
+                <ModalButton clicker={<LoginButton className='d-block' type='lightning' text='Link' />}>
+                  <div className='d-flex flex-column align-items-center'>
+                    <LightningAuth />
+                  </div>
+                </ModalButton>)
+          case 'slashtags':
+            return methods.slashtags
+              ? <LoginButton
+                  className='d-block mt-2' type='slashtags' text='Unlink' onClick={
+                    async () => {
+                      await unlink('slashtags')
+                    }
+                  }
+                />
+              : (
+                <ModalButton clicker={<LoginButton className='d-block mt-2' type='slashtags' text='Link' />}>
+                  <div className='d-flex flex-column align-items-center'>
+                    <SlashtagsAuth />
+                  </div>
+                </ModalButton>)
+          default:
+            return (
+              <LoginButton
+                className='mt-2 d-block'
+                key={provider}
+                type={provider.toLowerCase()}
+                onClick={async () => {
+                  if (methods[provider]) {
+                    await unlink(provider)
+                  } else {
+                    signIn(provider)
+                  }
+                }}
+                text={methods[provider] ? 'Unlink' : 'Link'}
+              />
+            )
         }
-          />
-        : (
-          <ModalButton clicker={<LoginButton className='d-block' type='lightning' text='Link' />}>
-            <div className='d-flex flex-column align-items-center'>
-              <LightningAuth />
-            </div>
-          </ModalButton>)}
-      <LoginButton
-        className='d-block mt-2' type='twitter' text={methods.twitter ? 'Unlink' : 'Link'} onClick={
-        async () => {
-          if (methods.twitter) {
-            await unlink('twitter')
-          } else {
-            signIn('twitter')
-          }
-        }
-      }
-      />
-      <LoginButton
-        className='d-block mt-2' type='github' text={methods.github ? 'Unlink' : 'Link'} onClick={
-        async () => {
-          if (methods.github) {
-            await unlink('github')
-          } else {
-            signIn('github')
-          }
-        }
-      }
-      />
-      {methods.email
-        ? (
-          <div className='mt-2 d-flex align-items-center'>
-            <Input
-              name='email'
-              placeholder={methods.email}
-              groupClassName='mb-0'
-              readOnly
-              noForm
-            />
-            <Button
-              className='ml-2' variant='secondary' onClick={
-              async () => {
-                await unlink('email')
-              }
-            }
-            >Unlink Email
-            </Button>
-          </div>
-          )
-        : <div className='mt-2'><EmailLinkForm /></div>}
+      })}
     </>
   )
 }

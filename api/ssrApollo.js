@@ -5,6 +5,7 @@ import { getSession } from 'next-auth/client'
 import resolvers from './resolvers'
 import typeDefs from './typeDefs'
 import models from './models'
+import slashtags from './slashtags'
 import { print } from 'graphql'
 import lnd from './lnd'
 import search from './search'
@@ -26,7 +27,8 @@ export default async function getSSRApolloClient (req, me = null) {
           ? session.user
           : me,
         lnd,
-        search
+        search,
+        slashtags
       }
     }),
     cache: new InMemoryCache()

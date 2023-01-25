@@ -10,8 +10,7 @@ export default gql`
     dupes(url: String!): [Item!]
     related(cursor: String, title: String, id: ID, minMatch: String, limit: Int): Items
     allItems(cursor: String): Items
-    getBountiesByUser(id: Int!): [Item]
-    getBountiesByUserName(name: String!): [Item]
+    getBountiesByUserName(name: String!, cursor: String, , limit: Int): Items
     search(q: String, sub: String, cursor: String, what: String, sort: String, when: String): Items
     auctionPosition(sub: String, id: ID, bid: Int!): Int!
     itemRepetition(parentId: ID): Int!
@@ -92,7 +91,7 @@ export default gql`
     boost: Int!
     bounty: Int
     bountyPaid: Boolean
-    bountyPaidTo: Int
+    bountyPaidTo: [Int]!
     sats: Int!
     commentSats: Int!
     lastCommentAt: String

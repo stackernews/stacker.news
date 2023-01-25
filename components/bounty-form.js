@@ -6,8 +6,8 @@ import TextareaAutosize from 'react-textarea-autosize'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial, AdvPostSchema } from './adv-post-form'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
-import { useState } from 'react'
 import FeeButton, { EditFeeButton } from './fee-button'
+import { InputGroup } from 'react-bootstrap'
 
 export function BountyForm ({
   item,
@@ -55,7 +55,8 @@ export function BountyForm ({
       ),
     bounty: Yup.number()
       .required('required')
-      .min(0, 'Bounty must be at least 1 sat')
+      .min(1000, 'must be at least 1000 sats')
+      .max(1000000, 'must be at most 1m sats')
       .integer('must be whole'),
 
     ...AdvPostSchema(client)
@@ -66,7 +67,7 @@ export function BountyForm ({
       initial={{
         title: item?.title || '',
         text: item?.text || '',
-        bounty: item?.bounty || '',
+        bounty: item?.bounty || 1000,
         suggest: '',
         ...AdvPostInitial({ forward: item?.fwdUser?.name })
       }}
@@ -95,48 +96,51 @@ export function BountyForm ({
       }
       storageKeyPrefix={item ? undefined : 'discussion'}
     >
-      <Input label={titleLabel} name="title" required autoFocus clear />
-      <Input label={bountyLabel} name="bounty" required autoFocus clear />
+      <Input label={titleLabel} name='title' required autoFocus clear />
+      <Input
+        label={bountyLabel} name='bounty' required
+        append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+      />
       <MarkdownInput
         topLevel
         label={
           <>
-            {textLabel} <small className="text-muted ml-2">optional</small>
+            {textLabel} <small className='text-muted ml-2'>optional</small>
           </>
         }
-        name="text"
+        name='text'
         as={TextareaAutosize}
         minRows={6}
         hint={
           editThreshold
             ? (
-            <div className="text-muted font-weight-bold">
-              <Countdown date={editThreshold} />
-            </div>
+              <div className='text-muted font-weight-bold'>
+                <Countdown date={editThreshold} />
+              </div>
               )
             : null
         }
       />
       {adv && <AdvPostForm edit={!!item} />}
-      <div className="mt-3">
+      <div className='mt-3'>
         {item
           ? (
-          <EditFeeButton
-            paidSats={item.meSats}
-            parentId={null}
-            text="save"
-            ChildButton={SubmitButton}
-            variant="secondary"
-          />
+            <EditFeeButton
+              paidSats={item.meSats}
+              parentId={null}
+              text='save'
+              ChildButton={SubmitButton}
+              variant='secondary'
+            />
             )
           : (
-          <FeeButton
-            baseFee={1}
-            parentId={null}
-            text={buttonText}
-            ChildButton={SubmitButton}
-            variant="secondary"
-          />
+            <FeeButton
+              baseFee={1}
+              parentId={null}
+              text={buttonText}
+              ChildButton={SubmitButton}
+              variant='secondary'
+            />
             )}
       </div>
     </Form>

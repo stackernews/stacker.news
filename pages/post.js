@@ -29,18 +29,18 @@ export function PostForm () {
         <Link href='/post?type=discussion'>
           <Button variant='secondary'>discussion</Button>
         </Link>
-        <div className='d-flex justify-content-center mt-3'>
+        <div className='d-flex mt-3'>
           <AccordianItem
             headerColor='#6c757d'
             header={<div className='font-weight-bold text-muted'>more</div>}
             body={
-              <div className="align-items-center">
-                <Link href="/post?type=poll">
-                  <Button variant="info">poll</Button>
+              <div className='align-items-center'>
+                <Link href='/post?type=poll'>
+                  <Button variant='info'>poll</Button>
                 </Link>
-                <span className="mx-3 font-weight-bold text-muted">or</span>
-                <Link href="/post?type=bounty">
-                  <Button variant="info">bounty</Button>
+                <span className='mx-3 font-weight-bold text-muted'>or</span>
+                <Link href='/post?type=bounty'>
+                  <Button variant='info'>bounty</Button>
                 </Link>
               </div>
             }

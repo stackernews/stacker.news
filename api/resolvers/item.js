@@ -399,40 +399,31 @@ export default {
         items
       }
     },
-    getBountiesByUser: async (parent, { id }, { models }) => {
-        const items = await models.$queryRaw(
-          `
-          ${SELECT}
-          FROM "Item"
-          WHERE "userId" = $1
-          AND "bounty" IS NOT NULL
-          ORDER BY created_at DESC`,
-          id
-        );
+    getBountiesByUserName: async (parent, { name, cursor, limit }, { models }) => {
+      const decodedCursor = decodeCursor(cursor)
+      const user = await models.user.findUnique({ where: { name } })
 
-        return items
-      },
-    getBountiesByUserName: async (parent, { name }, { models }) => {
-        const user = await models.user.findUnique({ where: { name } });
+      if (!user) {
+        throw new UserInputError('user not found', {
+          argumentName: 'name'
+        })
+      }
 
-        if (!user) {
-          throw new UserInputError("user not found", {
-            argumentName: "name",
-          });
-        }
+      const items = await models.$queryRaw(
+        `${SELECT}
+        FROM "Item"
+        WHERE "userId" = $1
+        AND "bounty" IS NOT NULL
+        ORDER BY created_at DESC
+        LIMIT $2`,
+        user.id, limit || LIMIT
+      )
 
-        const items = await models.$queryRaw(
-          `
-          ${SELECT}
-          FROM "Item"
-          WHERE "userId" = $1
-          AND "bounty" IS NOT NULL
-          ORDER BY created_at DESC`,
-          user.id
-        );
-        
-        return items
-      },
+      return {
+        cursor: items.length === (limit || LIMIT) ? nextCursorEncoded(decodedCursor) : null,
+        items
+      }
+    },
     moreFlatComments: async (parent, { cursor, name, sort, within }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
 
@@ -624,12 +615,17 @@ export default {
       }
     },
     upsertBounty: async (parent, args, { me, models }) => {
-      const { id, ...data } = args;
+      const { id, ...data } = args
+      const { bounty } = data
+
+      if (bounty < 1000 || bounty > 1000000) {
+        throw new UserInputError('invalid bounty amount', { argumentName: 'bounty' })
+      }
 
       if (id) {
-        return await updateItem(parent, { id, data }, { me, models });
+        return await updateItem(parent, { id, data }, { me, models })
       } else {
-        return await createItem(parent, data, { me, models });
+        return await createItem(parent, data, { me, models })
       }
     },
     upsertPoll: async (parent, { id, forward, boost, title, text, options }, { me, models }) => {
@@ -923,39 +919,47 @@ export default {
     },
     bountyPaid: async (item, args, { models }) => {
       if (!item.bounty) {
-        return null;
+        return null
       }
-  
+
+      // if there's a child where the OP paid the amount, but it isn't the OP's own comment
       const paid = await models.$queryRaw`
           -- Sum up the sats and if they are greater than or equal to item.bounty than return true, else return false
-          SELECT coalesce(sum("ItemAct"."msats"), 0) >= ${item.bounty} as "bountyPaid"
+          SELECT "Item"."id"
           FROM "ItemAct"
-          INNER JOIN "Item" ON "ItemAct"."itemId" = "Item"."id"
+          JOIN "Item" ON "ItemAct"."itemId" = "Item"."id"
           WHERE "ItemAct"."userId" = ${item.userId}
-          AND "Item"."parentId" = ${item.id}
-      `;
-  
-      return paid[0].bountyPaid;
+          AND "Item".path <@ text2ltree (${item.path})
+          AND "Item"."userId" <> ${item.userId}
+          AND act IN ('TIP', 'FEE')
+          GROUP BY "Item"."id"
+          HAVING coalesce(sum("ItemAct"."msats"), 0) >= ${item.bounty * 1000}
+      `
+
+      return paid.length > 0
     },
     bountyPaidTo: async (item, args, { models }) => {
       if (!item.bounty) {
-        return null;
-      }
-      
-      const paidTo = await models.$queryRaw`
-          SELECT "Item"."id" as "itemId", coalesce(sum("ItemAct"."msats"), 0) as "totalMsats"
-          FROM "ItemAct"
-          INNER JOIN "Item" ON "ItemAct"."itemId" = "Item"."id"
-          WHERE "ItemAct"."userId" = ${item.userId}
-          AND "Item"."parentId" = ${item.id}
-          GROUP BY "Item"."id"
-      `;
-  
-      if (paidTo.length === 0) {
-        return null;
+        return []
       }
 
-      return paidTo[0].itemId;
+      const paidTo = await models.$queryRaw`
+          SELECT "Item"."id"
+          FROM "ItemAct"
+          JOIN "Item" ON "ItemAct"."itemId" = "Item"."id"
+          WHERE "ItemAct"."userId" = ${item.userId}
+          AND "Item".path <@ text2ltree (${item.path})
+          AND "Item"."userId" <> ${item.userId}
+          AND act IN ('TIP', 'FEE')
+          GROUP BY "Item"."id"
+          HAVING coalesce(sum("ItemAct"."msats"), 0) >= ${item.bounty * 1000}
+      `
+
+      if (paidTo.length === 0) {
+        return []
+      }
+
+      return paidTo.map(i => i.id)
     },
     meDontLike: async (item, args, { me, models }) => {
       if (!me) return false
@@ -1106,7 +1110,7 @@ const createItem = async (parent, { title, url, text, boost, forward, bounty, pa
     }
   }
 
-  if (typeof bounty !== "undefined") {
+  if (typeof bounty !== 'undefined') {
     const [item] = await serialize(
       models,
       models.$queryRaw(
@@ -1122,10 +1126,10 @@ const createItem = async (parent, { title, url, text, boost, forward, bounty, pa
       )
     )
 
-    await createMentions(item, models);
+    await createMentions(item, models)
 
-    item.comments = [];
-    return item;
+    item.comments = []
+    return item
   }
 
   const [item] = await serialize(models,

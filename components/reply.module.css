@@ -8,7 +8,8 @@
     font-size: 70%;
     color: var(--theme-grey);
     font-weight: bold;
-    display: inline-block;
+    display: flex;
+    align-items: center;
     cursor: pointer;
     padding-bottom: .5rem;
     line-height: 1rem;

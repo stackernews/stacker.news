@@ -22,7 +22,7 @@ export function ReplyOnAnotherPage ({ parentId }) {
   )
 }
 
-export default function Reply ({ item, onSuccess, replyOpen }) {
+export default function Reply ({ item, onSuccess, replyOpen, children }) {
   const [reply, setReply] = useState(replyOpen)
   const me = useMe()
   const parentId = item.id
@@ -84,11 +84,14 @@ export default function Reply ({ item, onSuccess, replyOpen }) {
       {replyOpen
         ? <div className={styles.replyButtons} />
         : (
-          <div
-            className={styles.replyButtons}
-            onClick={() => setReply(!reply)}
-          >
-            {reply ? 'cancel' : 'reply'}
+          <div className={styles.replyButtons}>
+            <div
+              onClick={() => setReply(!reply)}
+            >
+              {reply ? 'cancel' : 'reply'}
+            </div>
+            {/* HACK if we need more items, we should probably do a comment toolbar */}
+            {children}
           </div>)}
       <div className={reply ? `${styles.reply}` : 'd-none'}>
         <Form

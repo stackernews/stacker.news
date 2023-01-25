@@ -213,23 +213,16 @@ export const ITEM_WITH_COMMENTS = gql`
       }
     }`
 
-export const BOUNTY_ITEMS_BY_USER = gql`
-  ${ITEM_FIELDS}
-  query getBountiesByUser($id: Int!) {
-    getBountiesByUser(id: $id) {
-      ...ItemFields
-    }
-  }`
-
-
 export const BOUNTY_ITEMS_BY_USER_NAME = gql`
   ${ITEM_FIELDS}
   query getBountiesByUserName($name: String!) {
     getBountiesByUserName(name: $name) {
-      ...ItemFields
+      cursor
+      items {
+        ...ItemFields
+      }
     }
   }`
-
 
 export const ITEM_SEARCH = gql`
   ${ITEM_FIELDS}

@@ -6,17 +6,16 @@ import { useRouter } from 'next/router'
 
 export const getServerSideProps = getGetServerSideProps(BOUNTY_ITEMS_BY_USER_NAME)
 
-export default function Bounties ({ data: { getBountiesByUserName } }) {
+export default function Bounties ({ data: { getBountiesByUserName: { items, cursor } } }) {
   const router = useRouter()
-
-  if (!getBountiesByUserName) return null
 
   return (
     <Layout>
-      <div className='font-weight-bold my-2'>past bounties</div>
+      <div className='font-weight-bold my-2'>{router.query.name}'s bounties</div>
       <Items
-        items={getBountiesByUserName}
-        variables={{ id: router.query.id }}
+        items={items} cursor={cursor}
+        variables={{ name: router.query.name }}
+        destructureData={data => data.getBountiesByUserName}
         query={BOUNTY_ITEMS_BY_USER_NAME}
       />
     </Layout>

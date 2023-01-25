@@ -54,6 +54,12 @@ module.exports = withPlausibleProxy()({
         headers: [
           ...corsHeaders
         ]
+      },
+      {
+        source: '/api/lnurlp/:slug*',
+        headers: [
+          ...corsHeaders
+        ]
       }
     ]
   },

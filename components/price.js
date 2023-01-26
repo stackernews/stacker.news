@@ -1,10 +1,9 @@
 import React, { useContext, useEffect, useState } from 'react'
+import { useQuery } from '@apollo/client'
 import { Button } from 'react-bootstrap'
-import useSWR from 'swr'
 import { fixedDecimal } from '../lib/format'
 import { useMe } from './me'
-
-const fetcher = url => fetch(url).then(res => res.json()).catch()
+import { PRICE } from '../fragments/price'
 
 export const PriceContext = React.createContext({
   price: null
@@ -20,24 +19,17 @@ export const CURRENCY_SYMBOLS = {
   ZAR: 'R '
 }
 
-const endpoint = (fiat) => `https://stacker.news/api/price?fiat=${fiat ?? 'USD'}`
-
-export async function getPrice (fiat) {
-  const data = await fetcher(endpoint(fiat))
-  return data?.data?.amount
+export function usePrice () {
+  const { price } = useContext(PriceContext)
+  return price
 }
 
 export function PriceProvider ({ price, children }) {
   const me = useMe()
-  const { data } = useSWR(
-    endpoint(me?.fiatCurrency),
-    fetcher,
-    {
-      refreshInterval: 30000
-    })
+  const { data } = useQuery(PRICE, { variables: { fiatCurrency: me?.fiatCurrency }, pollInterval: 1000, fetchPolicy: 'cache-and-network' })
 
   const contextValue = {
-    price: data?.data?.amount || price
+    price: data?.price || price
   }
 
   return (
@@ -45,11 +37,6 @@ export function PriceProvider ({ price, children }) {
       {children}
     </PriceContext.Provider>
   )
-}
-
-export function usePrice () {
-  const { price } = useContext(PriceContext)
-  return price
 }
 
 export default function Price () {

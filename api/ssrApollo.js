@@ -9,7 +9,7 @@ import { print } from 'graphql'
 import lnd from './lnd'
 import search from './search'
 import { ME } from '../fragments/users'
-import { getPrice } from '../components/price'
+import { PRICE } from '../fragments/price'
 
 export default async function getSSRApolloClient (req, me = null) {
   const session = req && await getSession({ req })
@@ -45,7 +45,9 @@ export function getGetServerSideProps (query, variables = null, notFoundFunc, re
       query: ME
     })
 
-    const price = await getPrice(me?.fiatCurrency)
+    const { data: { price } } = await client.query({
+      query: PRICE, variables: { fiatCurrency: me?.fiatCurrency }
+    })
 
     // we want to use client-side cache
     if (nodata && query) {

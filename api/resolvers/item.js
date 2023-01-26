@@ -921,27 +921,28 @@ export default {
       return (msats && msatsToSats(msats)) || 0
     },
     bountyPaidTo: async (item, args, { models }) => {
-      if (!item.bounty) {
-        return []
-      }
+      return []
+      // if (!item.bounty) {
+      //   return []
+      // }
 
-      const paidTo = await models.$queryRaw`
-          SELECT "Item"."id"
-          FROM "ItemAct"
-          JOIN "Item" ON "ItemAct"."itemId" = "Item"."id"
-          WHERE "ItemAct"."userId" = ${item.userId}
-          AND "Item"."rootId" = ${item.id}
-          AND "Item"."userId" <> ${item.userId}
-          AND act IN ('TIP', 'FEE')
-          GROUP BY "Item"."id"
-          HAVING coalesce(sum("ItemAct"."msats"), 0) >= ${item.bounty * 1000}
-      `
+      // const paidTo = await models.$queryRaw`
+      //     SELECT "Item"."id"
+      //     FROM "ItemAct"
+      //     JOIN "Item" ON "ItemAct"."itemId" = "Item"."id"
+      //     WHERE "ItemAct"."userId" = ${item.userId}
+      //     AND "Item"."rootId" = ${item.id}
+      //     AND "Item"."userId" <> ${item.userId}
+      //     AND act IN ('TIP', 'FEE')
+      //     GROUP BY "Item"."id"
+      //     HAVING coalesce(sum("ItemAct"."msats"), 0) >= ${item.bounty * 1000}
+      // `
 
-      if (paidTo.length === 0) {
-        return []
-      }
+      // if (paidTo.length === 0) {
+      //   return []
+      // }
 
-      return paidTo.map(i => i.id)
+      // return paidTo.map(i => i.id)
     },
     meDontLike: async (item, args, { me, models }) => {
       if (!me) return false

@@ -5,6 +5,7 @@ import { LinkForm } from '../../../components/link-form'
 import LayoutCenter from '../../../components/layout-center'
 import JobForm from '../../../components/job-form'
 import { PollForm } from '../../../components/poll-form'
+import { BountyForm } from '../../../components/bounty-form'
 
 export const getServerSideProps = getGetServerSideProps(ITEM, null,
   data => !data.item)
@@ -19,8 +20,10 @@ export default function PostEdit ({ data: { item } }) {
         : (item.url
             ? <LinkForm item={item} editThreshold={editThreshold} adv />
             : (item.pollCost
-                ? <PollForm item={item} editThreshold={editThreshold} />
-                : <DiscussionForm item={item} editThreshold={editThreshold} adv />))}
+                ? <PollForm item={item} editThreshold={editThreshold} adv />
+                : (item.bounty
+                    ? <BountyForm item={item} editThreshold={editThreshold} adv />
+                    : <DiscussionForm item={item} editThreshold={editThreshold} adv />)))}
     </LayoutCenter>
   )
 }

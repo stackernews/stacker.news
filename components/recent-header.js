@@ -16,7 +16,7 @@ export default function RecentHeader ({ type }) {
           className='w-auto'
           name='type'
           size='sm'
-          items={['posts', 'comments', 'links', 'discussions', 'polls', 'bios']}
+          items={['posts', 'bounties', 'comments', 'links', 'discussions', 'polls', 'bios']}
           onChange={(formik, e) => router.push(e.target.value === 'posts' ? '/recent' : `/recent/${e.target.value}`)}
         />
       </div>

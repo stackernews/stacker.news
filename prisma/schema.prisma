@@ -222,6 +222,9 @@ model Item {
   parent      Item?                 @relation("ParentChildren", fields: [parentId], references: [id])
   parentId    Int?
   children    Item[]                @relation("ParentChildren")
+  root        Item?                 @relation("RootDescendant", fields: [rootId], references: [id])
+  rootId      Int?
+  descendants Item[]                @relation("RootDescendant")
   actions     ItemAct[]
   mentions    Mention[]
   path        Unsupported("LTREE")?
@@ -280,6 +283,7 @@ model Item {
   @@index([freebie])
   @@index([createdAt])
   @@index([userId])
+  @@index([rootId])
   @@index([parentId])
   @@index([status])
   @@index([maxBid])

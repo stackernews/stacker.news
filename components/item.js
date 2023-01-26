@@ -78,8 +78,8 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
                 {item.pollCost && <span> <PollIcon className='fill-grey vertical-align-baseline' height={14} width={14} /></span>}
                 {item.bounty > 0 &&
                   <span>
-                    <ActionTooltip notForm overlayText={`${abbrNum(item.bounty)} ${item.bountyPaid ? 'sats paid' : 'sats bounty'}`}>
-                      <BountyIcon className={`${styles.bountyIcon} ${item.bountyPaid ? 'fill-success vertical-align-middle' : 'fill-grey vertical-align-middle'}`} height={16} width={16} />
+                    <ActionTooltip notForm overlayText={`${abbrNum(item.bounty)} ${item.bountyPaidTo?.length ? 'sats paid' : 'sats bounty'}`}>
+                      <BountyIcon className={`${styles.bountyIcon} ${item.bountyPaidTo?.length ? 'fill-success vertical-align-middle' : 'fill-grey vertical-align-middle'}`} height={16} width={16} />
                     </ActionTooltip>
                   </span>}
               </a>

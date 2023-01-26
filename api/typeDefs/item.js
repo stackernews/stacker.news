@@ -90,7 +90,6 @@ export default gql`
     mine: Boolean!
     boost: Int!
     bounty: Int
-    bountyPaid: Boolean
     bountyPaidTo: [Int]!
     sats: Int!
     commentSats: Int!

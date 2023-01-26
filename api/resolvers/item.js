@@ -920,27 +920,6 @@ export default {
 
       return (msats && msatsToSats(msats)) || 0
     },
-    bountyPaid: async (item, args, { models }) => {
-      if (!item.bounty) {
-        return null
-      }
-
-      // if there's a child where the OP paid the amount, but it isn't the OP's own comment
-      const paid = await models.$queryRaw`
-          -- Sum up the sats and if they are greater than or equal to item.bounty than return true, else return false
-          SELECT "Item"."id"
-          FROM "ItemAct"
-          JOIN "Item" ON "ItemAct"."itemId" = "Item"."id"
-          WHERE "ItemAct"."userId" = ${item.userId}
-          AND "Item".path <@ text2ltree (${item.path})
-          AND "Item"."userId" <> ${item.userId}
-          AND act IN ('TIP', 'FEE')
-          GROUP BY "Item"."id"
-          HAVING coalesce(sum("ItemAct"."msats"), 0) >= ${item.bounty * 1000}
-      `
-
-      return paid.length > 0
-    },
     bountyPaidTo: async (item, args, { models }) => {
       if (!item.bounty) {
         return []
@@ -951,7 +930,7 @@ export default {
           FROM "ItemAct"
           JOIN "Item" ON "ItemAct"."itemId" = "Item"."id"
           WHERE "ItemAct"."userId" = ${item.userId}
-          AND "Item".path <@ text2ltree (${item.path})
+          AND "Item"."rootId" = ${item.id}
           AND "Item"."userId" <> ${item.userId}
           AND act IN ('TIP', 'FEE')
           GROUP BY "Item"."id"
@@ -990,13 +969,7 @@ export default {
       if (!item.parentId) {
         return null
       }
-      return (await models.$queryRaw(`
-        ${SELECT}
-        FROM "Item"
-        WHERE id = (
-          SELECT ltree2text(subltree(path, 0, 1))::integer
-          FROM "Item"
-          WHERE id = $1)`, Number(item.id)))[0]
+      return await models.item.findUnique({ where: { id: item.rootId } })
     },
     parent: async (item, args, { models }) => {
       if (!item.parentId) {
@@ -1160,7 +1133,8 @@ function nestComments (flat, parentId) {
 // we have to do our own query because ltree is unsupported
 export const SELECT =
   `SELECT "Item".id, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt", "Item".title,
-  "Item".text, "Item".url, "Item"."bounty", "Item"."userId", "Item"."fwdUserId", "Item"."parentId", "Item"."pinId", "Item"."maxBid",
+  "Item".text, "Item".url, "Item"."bounty", "Item"."userId", "Item"."fwdUserId", "Item"."parentId",
+  "Item"."pinId", "Item"."maxBid", "Item"."rootId",
   "Item".company, "Item".location, "Item".remote, "Item"."deletedAt",
   "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost",
   "Item".msats, "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",

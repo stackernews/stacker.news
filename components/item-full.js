@@ -101,7 +101,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
       {item.poll && <Poll item={item} />}
       {item.bounty &&
         <div className='font-weight-bold mt-2 mb-3'>
-          {item.bountyPaid
+          {item.bountyPaidTo?.length
             ? (
               <div className='px-3 py-1 d-inline-block bg-grey-medium rounded text-success'>
                 <Check className='fill-success' /> {item.bounty} sats paid

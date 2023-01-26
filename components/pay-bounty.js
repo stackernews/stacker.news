@@ -50,9 +50,6 @@ export default function PayBounty ({ children, item }) {
         cache.modify({
           id: `Item:${item.root.id}`,
           fields: {
-            bountyPaid () {
-              return true
-            },
             bountyPaidTo (existingPaidTo = []) {
               return [...existingPaidTo, Number(item.id)]
             }
@@ -84,7 +81,7 @@ export default function PayBounty ({ children, item }) {
     }
   }
 
-  if (!me || item.root.user.name !== me.name || item.mine || item.root.bountyPaid) {
+  if (item.mine || item.root.user.name !== me.name) {
     return null
   }
 

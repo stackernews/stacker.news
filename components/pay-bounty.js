@@ -81,7 +81,7 @@ export default function PayBounty ({ children, item }) {
     }
   }
 
-  if (item.mine || item.root.user.name !== me.name) {
+  if (!me || item.mine || item.root.user.name !== me.name) {
     return null
   }
 

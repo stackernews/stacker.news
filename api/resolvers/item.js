@@ -920,30 +920,6 @@ export default {
 
       return (msats && msatsToSats(msats)) || 0
     },
-    bountyPaidTo: async (item, args, { models }) => {
-      return []
-      // if (!item.bounty) {
-      //   return []
-      // }
-
-      // const paidTo = await models.$queryRaw`
-      //     SELECT "Item"."id"
-      //     FROM "ItemAct"
-      //     JOIN "Item" ON "ItemAct"."itemId" = "Item"."id"
-      //     WHERE "ItemAct"."userId" = ${item.userId}
-      //     AND "Item"."rootId" = ${item.id}
-      //     AND "Item"."userId" <> ${item.userId}
-      //     AND act IN ('TIP', 'FEE')
-      //     GROUP BY "Item"."id"
-      //     HAVING coalesce(sum("ItemAct"."msats"), 0) >= ${item.bounty * 1000}
-      // `
-
-      // if (paidTo.length === 0) {
-      //   return []
-      // }
-
-      // return paidTo.map(i => i.id)
-    },
     meDontLike: async (item, args, { me, models }) => {
       if (!me) return false
 
@@ -1139,7 +1115,7 @@ export const SELECT =
   "Item".company, "Item".location, "Item".remote, "Item"."deletedAt",
   "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost",
   "Item".msats, "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",
-  "Item"."weightedDownVotes", "Item".freebie, "Item"."otsHash", ltree2text("Item"."path") AS "path"`
+  "Item"."weightedDownVotes", "Item".freebie, "Item"."otsHash", "Item"."bountyPaidTo", ltree2text("Item"."path") AS "path"`
 
 async function newTimedOrderByWeightedSats (me, models, num) {
   return `

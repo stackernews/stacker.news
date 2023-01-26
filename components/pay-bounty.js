@@ -51,7 +51,7 @@ export default function PayBounty ({ children, item }) {
           id: `Item:${item.root.id}`,
           fields: {
             bountyPaidTo (existingPaidTo = []) {
-              return [...existingPaidTo, Number(item.id)]
+              return [...(existingPaidTo || []), Number(item.id)]
             }
           }
         })

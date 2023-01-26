@@ -966,7 +966,7 @@ export default {
       return me?.id === item.userId
     },
     root: async (item, args, { models }) => {
-      if (!item.parentId) {
+      if (!item.rootId) {
         return null
       }
       return await models.item.findUnique({ where: { id: item.rootId } })

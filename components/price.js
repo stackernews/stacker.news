@@ -6,7 +6,8 @@ import { useMe } from './me'
 import { PRICE } from '../fragments/price'
 
 export const PriceContext = React.createContext({
-  price: null
+  price: null,
+  fiatSymbol: null
 })
 
 export const CURRENCY_SYMBOLS = {
@@ -20,16 +21,17 @@ export const CURRENCY_SYMBOLS = {
 }
 
 export function usePrice () {
-  const { price } = useContext(PriceContext)
-  return price
+  return useContext(PriceContext)
 }
 
 export function PriceProvider ({ price, children }) {
   const me = useMe()
-  const { data } = useQuery(PRICE, { variables: { fiatCurrency: me?.fiatCurrency }, pollInterval: 1000, fetchPolicy: 'cache-and-network' })
+  const fiatCurrency = me?.fiatCurrency;
+  const { data } = useQuery(PRICE, { variables: { fiatCurrency }, pollInterval: 1000, fetchPolicy: 'cache-and-network' })
 
   const contextValue = {
-    price: data?.price || price
+    price: data?.price || price,
+    fiatSymbol: CURRENCY_SYMBOLS[fiatCurrency] || '$'
   }
 
   return (
@@ -44,9 +46,7 @@ export default function Price () {
   useEffect(() => {
     setAsSats(localStorage.getItem('asSats'))
   }, [])
-  const price = usePrice()
-  const me = useMe()
-  const fiatSymbol = CURRENCY_SYMBOLS[me?.fiatCurrency || 'USD']
+  const { price, fiatSymbol } = usePrice()
 
   if (!price) return null
 

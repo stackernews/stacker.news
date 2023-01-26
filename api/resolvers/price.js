@@ -1,25 +1,24 @@
-import NodeCache from "node-cache";
-
-const cache = new NodeCache({
-  stdTTL: 30,
-  checkperiod: 30,
-  deleteOnExpire: true,
-});
+const cache = new Map();
+const expiresIn = 30000; // in milliseconds
 
 async function getPrice(fiat) {
   fiat ??= 'USD';
-  let price = cache.get(fiat);
-  if (price) return price;
-
+  if (cache.has(fiat)) {
+    const { price, createdAt } = cache.get(fiat)
+    const expired = createdAt + expiresIn < Date.now()
+    if (!expired) {
+      return price;
+    }
+  }
   const url = `https://api.coinbase.com/v2/prices/BTC-${fiat}/spot`;
-  price = await fetch(url)
+  const price = await fetch(url)
     .then((res) => res.json())
     .then((body) => parseFloat(body.data.amount))
     .catch((err) => {
       console.error(err);
       return -1;
     });
-  cache.set(fiat, price);
+  cache.set(fiat, { price, createdAt: Date.now() });
   return price;
 }
 

@@ -89,6 +89,12 @@ a.link:visited {
     line-height: 1.06rem;
 }
 
+.bountyIcon {
+    margin-left: 5px;
+    margin-right: 5px;
+    margin-top: -2px;
+}
+
 /* .itemJob .hunk {
     align-self: center;
 }

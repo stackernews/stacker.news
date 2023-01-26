@@ -13,6 +13,9 @@ import CommentEdit from './comment-edit'
 import Countdown from './countdown'
 import { COMMENT_DEPTH_LIMIT, NOFOLLOW_LIMIT } from '../lib/constants'
 import { ignoreClick } from '../lib/clicks'
+import PayBounty from './pay-bounty'
+import BountyIcon from '../svgs/bounty-bag.svg'
+import ActionTooltip from './action-tooltip'
 import { useMe } from './me'
 import DontLikeThis from './dont-link-this'
 import Flag from '../svgs/flag-fill.svg'
@@ -107,13 +110,16 @@ export default function Comment ({
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT
 
   const op = item.root?.user.name === item.user.name
+  const bountyPaid = item.root?.bountyPaidTo?.includes(Number(item.id))
 
   return (
     <div
       ref={ref} className={includeParent ? '' : `${styles.comment} ${collapse ? styles.collapsed : ''}`}
     >
       <div className={`${itemStyles.item} ${styles.item}`}>
-        {item.meDontLike ? <Flag width={24} height={24} className={`${styles.dontLike}`} /> : <UpVote item={item} className={styles.upvote} />}
+        {item.meDontLike
+          ? <Flag width={24} height={24} className={`${styles.dontLike}`} />
+          : <UpVote item={item} className={styles.upvote} />}
         <div className={`${itemStyles.hunk} ${styles.hunk}`}>
           <div className='d-flex align-items-center'>
             <div className={`${itemStyles.other} ${styles.other}`}>
@@ -136,6 +142,10 @@ export default function Comment ({
                 <a title={item.createdAt} className='text-reset'>{timeSince(new Date(item.createdAt))}</a>
               </Link>
               {includeParent && <Parent item={item} rootText={rootText} />}
+              {bountyPaid &&
+                <ActionTooltip notForm overlayText={`${abbrNum(item.root.bounty)} sats paid`}>
+                  <BountyIcon className={`${styles.bountyIcon} ${'fill-success vertical-align-middle'}`} height={16} width={16} />
+                </ActionTooltip>}
               {me && !item.meSats && !item.meDontLike && !item.mine && !item.deletedAt && <DontLikeThis id={item.id} />}
               {(item.outlawed && <Link href='/outlawed'><a>{' '}<Badge className={itemStyles.newComment} variant={null}>OUTLAWED</Badge></a></Link>) ||
                (item.freebie && !item.mine && (me?.greeterMode) && <Link href='/freebie'><a>{' '}<Badge className={itemStyles.newComment} variant={null}>FREEBIE</Badge></a></Link>)}
@@ -198,9 +208,9 @@ export default function Comment ({
         : (
           <div className={`${styles.children}`}>
             {!noReply &&
-              <Reply
-                depth={depth + 1} item={item} replyOpen={replyOpen}
-              />}
+              <Reply depth={depth + 1} item={item} replyOpen={replyOpen}>
+                {item.root?.bounty && !bountyPaid && <PayBounty item={item} />}
+              </Reply>}
             {children}
             <div className={`${styles.comments} ml-sm-1 ml-md-3`}>
               {item.comments && !noComments

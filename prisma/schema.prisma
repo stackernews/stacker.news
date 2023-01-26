@@ -228,6 +228,7 @@ model Item {
   pin         Pin?                  @relation(fields: [pinId], references: [id])
   pinId       Int?
   boost       Int                   @default(0)
+  bounty      Int?
   uploadId    Int?
   upload      Upload?
   paidImgLink Boolean               @default(false)

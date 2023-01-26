@@ -20,6 +20,8 @@ export const ITEM_FIELDS = gql`
     sats
     upvotes
     boost
+    bounty
+    bountyPaid
     path
     meSats
     meDontLike
@@ -210,6 +212,17 @@ export const ITEM_WITH_COMMENTS = gql`
         ...CommentsRecursive
       }
     }`
+
+export const BOUNTY_ITEMS_BY_USER_NAME = gql`
+  ${ITEM_FIELDS}
+  query getBountiesByUserName($name: String!) {
+    getBountiesByUserName(name: $name) {
+      cursor
+      items {
+        ...ItemFields
+      }
+    }
+  }`
 
 export const ITEM_SEARCH = gql`
   ${ITEM_FIELDS}

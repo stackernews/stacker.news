@@ -10,6 +10,7 @@ export default gql`
     dupes(url: String!): [Item!]
     related(cursor: String, title: String, id: ID, minMatch: String, limit: Int): Items
     allItems(cursor: String): Items
+    getBountiesByUserName(name: String!, cursor: String, , limit: Int): Items
     search(q: String, sub: String, cursor: String, what: String, sort: String, when: String): Items
     auctionPosition(sub: String, id: ID, bid: Int!): Int!
     itemRepetition(parentId: ID): Int!
@@ -34,6 +35,7 @@ export default gql`
     deleteItem(id: ID): Item
     upsertLink(id: ID, title: String!, url: String!, boost: Int, forward: String): Item!
     upsertDiscussion(id: ID, title: String!, text: String, boost: Int, forward: String): Item!
+    upsertBounty(id: ID, title: String!, text: String, bounty: Int!, boost: Int, forward: String): Item!
     upsertJob(id: ID, sub: ID!, title: String!, company: String!, location: String, remote: Boolean,
       text: String!, url: String!, maxBid: Int!, status: String, logo: Int): Item!
     upsertPoll(id: ID, title: String!, text: String, options: [String!]!, boost: Int, forward: String): Item!
@@ -87,6 +89,9 @@ export default gql`
     depth: Int!
     mine: Boolean!
     boost: Int!
+    bounty: Int
+    bountyPaid: Boolean
+    bountyPaidTo: [Int]!
     sats: Int!
     commentSats: Int!
     lastCommentAt: String

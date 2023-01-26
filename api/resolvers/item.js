@@ -138,6 +138,8 @@ function recentClause (type) {
       return ' AND "pollCost" IS NOT NULL'
     case 'bios':
       return ' AND bio = true'
+    case 'bounties':
+      return ' AND bounty IS NOT NULL'
     default:
       return ''
   }
@@ -399,6 +401,32 @@ export default {
         items
       }
     },
+    getBountiesByUserName: async (parent, { name, cursor, limit }, { models }) => {
+      const decodedCursor = decodeCursor(cursor)
+      const user = await models.user.findUnique({ where: { name } })
+
+      if (!user) {
+        throw new UserInputError('user not found', {
+          argumentName: 'name'
+        })
+      }
+
+      const items = await models.$queryRaw(
+        `${SELECT}
+        FROM "Item"
+        WHERE "userId" = $1
+        AND "bounty" IS NOT NULL
+        ORDER BY created_at DESC
+        OFFSET $2
+        LIMIT $3`,
+        user.id, decodedCursor.offset, limit || LIMIT
+      )
+
+      return {
+        cursor: items.length === (limit || LIMIT) ? nextCursorEncoded(decodedCursor) : null,
+        items
+      }
+    },
     moreFlatComments: async (parent, { cursor, name, sort, within }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
 
@@ -582,6 +610,20 @@ export default {
     },
     upsertDiscussion: async (parent, args, { me, models }) => {
       const { id, ...data } = args
+
+      if (id) {
+        return await updateItem(parent, { id, data }, { me, models })
+      } else {
+        return await createItem(parent, data, { me, models })
+      }
+    },
+    upsertBounty: async (parent, args, { me, models }) => {
+      const { id, ...data } = args
+      const { bounty } = data
+
+      if (bounty < 1000 || bounty > 1000000) {
+        throw new UserInputError('invalid bounty amount', { argumentName: 'bounty' })
+      }
 
       if (id) {
         return await updateItem(parent, { id, data }, { me, models })
@@ -878,6 +920,50 @@ export default {
 
       return (msats && msatsToSats(msats)) || 0
     },
+    bountyPaid: async (item, args, { models }) => {
+      if (!item.bounty) {
+        return null
+      }
+
+      // if there's a child where the OP paid the amount, but it isn't the OP's own comment
+      const paid = await models.$queryRaw`
+          -- Sum up the sats and if they are greater than or equal to item.bounty than return true, else return false
+          SELECT "Item"."id"
+          FROM "ItemAct"
+          JOIN "Item" ON "ItemAct"."itemId" = "Item"."id"
+          WHERE "ItemAct"."userId" = ${item.userId}
+          AND "Item".path <@ text2ltree (${item.path})
+          AND "Item"."userId" <> ${item.userId}
+          AND act IN ('TIP', 'FEE')
+          GROUP BY "Item"."id"
+          HAVING coalesce(sum("ItemAct"."msats"), 0) >= ${item.bounty * 1000}
+      `
+
+      return paid.length > 0
+    },
+    bountyPaidTo: async (item, args, { models }) => {
+      if (!item.bounty) {
+        return []
+      }
+
+      const paidTo = await models.$queryRaw`
+          SELECT "Item"."id"
+          FROM "ItemAct"
+          JOIN "Item" ON "ItemAct"."itemId" = "Item"."id"
+          WHERE "ItemAct"."userId" = ${item.userId}
+          AND "Item".path <@ text2ltree (${item.path})
+          AND "Item"."userId" <> ${item.userId}
+          AND act IN ('TIP', 'FEE')
+          GROUP BY "Item"."id"
+          HAVING coalesce(sum("ItemAct"."msats"), 0) >= ${item.bounty * 1000}
+      `
+
+      if (paidTo.length === 0) {
+        return []
+      }
+
+      return paidTo.map(i => i.id)
+    },
     meDontLike: async (item, args, { me, models }) => {
       if (!me) return false
 
@@ -967,7 +1053,7 @@ export const createMentions = async (item, models) => {
   }
 }
 
-export const updateItem = async (parent, { id, data: { title, url, text, boost, forward, parentId } }, { me, models }) => {
+export const updateItem = async (parent, { id, data: { title, url, text, boost, forward, bounty, parentId } }, { me, models }) => {
   // update iff this item belongs to me
   const old = await models.item.findUnique({ where: { id: Number(id) } })
   if (Number(old.userId) !== Number(me?.id)) {
@@ -998,15 +1084,15 @@ export const updateItem = async (parent, { id, data: { title, url, text, boost, 
 
   const [item] = await serialize(models,
     models.$queryRaw(
-      `${SELECT} FROM update_item($1, $2, $3, $4, $5, $6) AS "Item"`,
-      Number(id), title, url, text, Number(boost || 0), Number(fwdUser?.id)))
+      `${SELECT} FROM update_item($1, $2, $3, $4, $5, $6, $7) AS "Item"`,
+      Number(id), title, url, text, Number(boost || 0), bounty ? Number(bounty) : null, Number(fwdUser?.id)))
 
   await createMentions(item, models)
 
   return item
 }
 
-const createItem = async (parent, { title, url, text, boost, forward, parentId }, { me, models }) => {
+const createItem = async (parent, { title, url, text, boost, forward, bounty, parentId }, { me, models }) => {
   if (!me) {
     throw new AuthenticationError('you must be logged in')
   }
@@ -1027,11 +1113,18 @@ const createItem = async (parent, { title, url, text, boost, forward, parentId }
     }
   }
 
-  const [item] = await serialize(models,
+  const [item] = await serialize(
+    models,
     models.$queryRaw(
-      `${SELECT} FROM create_item($1, $2, $3, $4, $5, $6, $7, '${ITEM_SPAM_INTERVAL}') AS "Item"`,
-      title, url, text, Number(boost || 0), Number(parentId), Number(me.id),
-      Number(fwdUser?.id)))
+    `${SELECT} FROM create_item($1, $2, $3, $4, $5, $6, $7, $8, '${ITEM_SPAM_INTERVAL}') AS "Item"`,
+    title,
+    url,
+    text,
+    Number(boost || 0),
+    bounty ? Number(bounty) : null,
+    Number(parentId),
+    Number(me.id),
+    Number(fwdUser?.id)))
 
   await createMentions(item, models)
 
@@ -1067,7 +1160,7 @@ function nestComments (flat, parentId) {
 // we have to do our own query because ltree is unsupported
 export const SELECT =
   `SELECT "Item".id, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt", "Item".title,
-  "Item".text, "Item".url, "Item"."userId", "Item"."fwdUserId", "Item"."parentId", "Item"."pinId", "Item"."maxBid",
+  "Item".text, "Item".url, "Item"."bounty", "Item"."userId", "Item"."fwdUserId", "Item"."parentId", "Item"."pinId", "Item"."maxBid",
   "Item".company, "Item".location, "Item".remote, "Item"."deletedAt",
   "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost",
   "Item".msats, "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",

@@ -15,6 +15,8 @@ import { useEffect, useState } from 'react'
 import Poll from './poll'
 import { commentsViewed } from '../lib/new-comments'
 import Related from './related'
+import PastBounties from './past-bounties'
+import Check from '../svgs/check-double-line.svg'
 
 function BioItem ({ item, handleClick }) {
   const me = useMe()
@@ -97,10 +99,23 @@ function TopLevelItem ({ item, noReply, ...props }) {
       {item.text && <ItemText item={item} />}
       {item.url && <ItemEmbed item={item} />}
       {item.poll && <Poll item={item} />}
+      {item.bounty &&
+        <div className='font-weight-bold mt-2 mb-3'>
+          {item.bountyPaid
+            ? (
+              <div className='px-3 py-1 d-inline-block bg-grey-medium rounded text-success'>
+                <Check className='fill-success' /> {item.bounty} sats paid
+              </div>)
+            : (
+              <div className='px-3 py-1 d-inline-block bg-grey-darkmode rounded text-light'>
+                {item.bounty} sats bounty
+              </div>)}
+        </div>}
       {!noReply &&
         <>
           <Reply item={item} replyOpen />
-          {!item.position && !item.isJob && !item.parentId && <Related title={item.title} itemId={item.id} />}
+          {!item.position && !item.isJob && !item.parentId && !item.bounty > 0 && <Related title={item.title} itemId={item.id} />}
+          {item.bounty > 0 && <PastBounties item={item} />}
         </>}
     </ItemComponent>
   )

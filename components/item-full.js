@@ -96,11 +96,11 @@ function TopLevelItem ({ item, noReply, ...props }) {
 
   return (
     <ItemComponent item={item} toc showFwdUser {...props}>
-      {item.text && <ItemText item={item} />}
+      {item.text && <div className='mb-2'><ItemText item={item} /></div>}
       {item.url && <ItemEmbed item={item} />}
       {item.poll && <Poll item={item} />}
       {item.bounty &&
-        <div className='font-weight-bold mt-2 mb-3'>
+        <div className='font-weight-bold my-2'>
           {item.bountyPaidTo?.length
             ? (
               <div className='px-3 py-1 d-inline-block bg-grey-medium rounded text-success'>

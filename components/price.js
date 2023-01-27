@@ -1,13 +1,13 @@
 import React, { useContext, useEffect, useState } from 'react'
+import { useQuery } from '@apollo/client'
 import { Button } from 'react-bootstrap'
-import useSWR from 'swr'
 import { fixedDecimal } from '../lib/format'
 import { useMe } from './me'
-
-const fetcher = url => fetch(url).then(res => res.json()).catch()
+import { PRICE } from '../fragments/price'
 
 export const PriceContext = React.createContext({
-  price: null
+  price: null,
+  fiatSymbol: null
 })
 
 export const CURRENCY_SYMBOLS = {
@@ -20,24 +20,18 @@ export const CURRENCY_SYMBOLS = {
   ZAR: 'R '
 }
 
-const endpoint = (fiat) => `https://api.coinbase.com/v2/prices/BTC-${fiat ?? 'USD'}/spot`
-
-export async function getPrice (fiat) {
-  const data = await fetcher(endpoint(fiat))
-  return data?.data?.amount
+export function usePrice () {
+  return useContext(PriceContext)
 }
 
 export function PriceProvider ({ price, children }) {
   const me = useMe()
-  const { data } = useSWR(
-    endpoint(me?.fiatCurrency),
-    fetcher,
-    {
-      refreshInterval: 30000
-    })
+  const fiatCurrency = me?.fiatCurrency;
+  const { data } = useQuery(PRICE, { variables: { fiatCurrency }, pollInterval: 30000, fetchPolicy: 'cache-and-network' })
 
   const contextValue = {
-    price: data?.data?.amount || price
+    price: data?.price || price,
+    fiatSymbol: CURRENCY_SYMBOLS[fiatCurrency] || '$'
   }
 
   return (
@@ -47,19 +41,12 @@ export function PriceProvider ({ price, children }) {
   )
 }
 
-export function usePrice () {
-  const { price } = useContext(PriceContext)
-  return price
-}
-
 export default function Price () {
   const [asSats, setAsSats] = useState(undefined)
   useEffect(() => {
     setAsSats(localStorage.getItem('asSats'))
   }, [])
-  const price = usePrice()
-  const me = useMe()
-  const fiatSymbol = CURRENCY_SYMBOLS[me?.fiatCurrency || 'USD']
+  const { price, fiatSymbol } = usePrice()
 
   if (!price) return null
 

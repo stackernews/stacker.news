@@ -9,7 +9,7 @@ import styles from '../styles/post.module.css'
 import { useLazyQuery, gql, useMutation } from '@apollo/client'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
-import { CURRENCY_SYMBOLS, usePrice } from './price'
+import { usePrice } from './price'
 import Avatar from './avatar'
 import BootstrapForm from 'react-bootstrap/Form'
 import Alert from 'react-bootstrap/Alert'
@@ -38,9 +38,7 @@ function satsMin2Mo (minute) {
 
 function PriceHint ({ monthly }) {
   const me = useMe()
-  const price = usePrice()
-
-  const fiatSymbol = CURRENCY_SYMBOLS[me?.fiatCurrency || 'USD']
+  const { price, fiatSymbol } = usePrice()
 
   if (!price || !monthly) {
     return null

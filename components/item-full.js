@@ -96,21 +96,23 @@ function TopLevelItem ({ item, noReply, ...props }) {
 
   return (
     <ItemComponent item={item} toc showFwdUser {...props}>
-      {item.text && <div className='mb-2'><ItemText item={item} /></div>}
-      {item.url && <ItemEmbed item={item} />}
-      {item.poll && <Poll item={item} />}
-      {item.bounty &&
-        <div className='font-weight-bold my-2'>
-          {item.bountyPaidTo?.length
-            ? (
-              <div className='px-3 py-1 d-inline-block bg-grey-medium rounded text-success'>
-                <Check className='fill-success' /> {item.bounty} sats paid
-              </div>)
-            : (
-              <div className='px-3 py-1 d-inline-block bg-grey-darkmode rounded text-light'>
-                {item.bounty} sats bounty
-              </div>)}
-        </div>}
+      <div className={styles.fullItemContainer}>
+        {item.text && <ItemText item={item} />}
+        {item.url && <ItemEmbed item={item} />}
+        {item.poll && <Poll item={item} />}
+        {item.bounty &&
+          <div className='font-weight-bold mt-2'>
+            {item.bountyPaidTo?.length
+              ? (
+                <div className='px-3 py-1 d-inline-block bg-grey-medium rounded text-success'>
+                  <Check className='fill-success' /> {item.bounty} sats paid
+                </div>)
+              : (
+                <div className='px-3 py-1 d-inline-block bg-grey-darkmode rounded text-light'>
+                  {item.bounty} sats bounty
+                </div>)}
+          </div>}
+      </div>
       {!noReply &&
         <>
           <Reply item={item} replyOpen />

@@ -17,16 +17,38 @@ import Link from 'next/link'
 import AccordianItem from '../components/accordian-item'
 import { MAX_NOSTR_RELAY_NUM } from '../lib/constants'
 import { WS_REGEXP } from '../lib/url'
+import { bech32 } from 'bech32'
 
 export const getServerSideProps = getGetServerSideProps(SETTINGS)
 
 const supportedCurrencies = Object.keys(CURRENCY_SYMBOLS)
+const HEX64 = /^[0-9a-fA-F]{64}$/
+const NPUB = /^npub1[02-9ac-hj-np-z]+$/
+
+Yup.addMethod(Yup.string, 'or', function (schemas, msg) {
+  return this.test({
+    name: 'or',
+    message: msg,
+    test: value => {
+      if (Array.isArray(schemas) && schemas.length > 1) {
+        const resee = schemas.map(schema => schema.isValidSync(value))
+        return resee.some(res => res)
+      } else {
+        throw new TypeError('Schemas is not correct array schema')
+      }
+    },
+    exclusive: false
+  })
+})
 
 export const SettingsSchema = Yup.object({
   tipDefault: Yup.number().typeError('must be a number').required('required')
     .positive('must be positive').integer('must be whole'),
   fiatCurrency: Yup.string().required('required').oneOf(supportedCurrencies),
-  nostrPubkey: Yup.string().matches(/^[0-9a-fA-F]{64}$/, 'must be 64 hex chars'),
+  nostrPubkey: Yup.string()
+    .or([
+      Yup.string().matches(HEX64, 'must be 64 hex chars'),
+      Yup.string().matches(NPUB, 'invalid bech32 encoding')], 'invalid pubkey'),
   nostrRelays: Yup.array().of(
     Yup.string().matches(WS_REGEXP, 'invalid web socket address')
   ).max(MAX_NOSTR_RELAY_NUM,
@@ -38,6 +60,10 @@ const warningMessage = 'If I logout, even accidentally, I will never be able to 
 export const WarningSchema = Yup.object({
   warning: Yup.string().matches(warningMessage, 'does not match').required('required')
 })
+
+function bech32encode (hexString) {
+  return bech32.encode('npub', bech32.toWords(Buffer.from(hexString, 'hex')))
+}
 
 export default function Settings ({ data: { settings } }) {
   const [success, setSuccess] = useState()
@@ -80,13 +106,18 @@ export default function Settings ({ data: { settings } }) {
             hideFromTopUsers: settings?.hideFromTopUsers,
             wildWestMode: settings?.wildWestMode,
             greeterMode: settings?.greeterMode,
-            nostrPubkey: settings?.nostrPubkey || '',
+            nostrPubkey: settings?.nostrPubkey ? bech32encode(settings.nostrPubkey) : '',
             nostrRelays: settings?.nostrRelays?.length ? settings?.nostrRelays : ['']
           }}
           schema={SettingsSchema}
           onSubmit={async ({ tipDefault, nostrPubkey, nostrRelays, ...values }) => {
             if (nostrPubkey.length === 0) {
               nostrPubkey = null
+            } else {
+              if (NPUB.test(nostrPubkey)) {
+                const { words } = bech32.decode(nostrPubkey)
+                nostrPubkey = Buffer.from(bech32.fromWords(words)).toString('hex')
+              }
             }
 
             const nostrRelaysFiltered = nostrRelays?.filter(word => word.trim().length > 0)

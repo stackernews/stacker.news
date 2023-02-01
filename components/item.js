@@ -19,6 +19,7 @@ import Flag from '../svgs/flag-fill.svg'
 import Share from './share'
 import { abbrNum } from '../lib/format'
 import { DeleteDropdown } from './delete'
+import CowboyHat from './cowboy-hat'
 
 export function SearchTitle ({ title }) {
   return reactStringReplace(title, /:high\[([^\]]+)\]/g, (match, i) => {
@@ -115,7 +116,7 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
             <span> \ </span>
             <span>
               <Link href={`/${item.user.name}`} passHref>
-                <a>@{item.user.name}</a>
+                <a className='d-inline-flex align-items-center'>@{item.user.name}<CowboyHat className='ml-1 fill-grey' streak={item.user.streak} height={12} width={12} /></a>
               </Link>
               <span> </span>
               <Link href={`/items/${item.id}`} passHref>

@@ -181,6 +181,15 @@ export default {
             GROUP BY "userId", created_at`
           )
         }
+
+        if (meFull.noteCowboyHat) {
+          queries.push(
+            `SELECT id::text, updated_at AS "sortTime", 0 as "earnedSats", 'Streak' AS type
+            FROM "Streak"
+            WHERE "userId" = $1
+            AND updated_at <= $2`
+          )
+        }
       }
 
       // we do all this crazy subquery stuff to make 'reward' islands
@@ -226,6 +235,17 @@ export default {
   },
   JobChanged: {
     item: async (n, args, { models }) => getItem(n, { id: n.id }, { models })
+  },
+  Streak: {
+    days: async (n, args, { models }) => {
+      const res = await models.$queryRaw`
+        SELECT "endedAt" - "startedAt" AS days
+        FROM "Streak"
+        WHERE id = ${Number(n.id)} AND "endedAt" IS NOT NULL
+      `
+
+      return res.length ? res[0].days : null
+    }
   },
   Earn: {
     sources: async (n, args, { me, models }) => {

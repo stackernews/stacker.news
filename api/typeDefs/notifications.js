@@ -38,6 +38,12 @@ export default gql`
     tips: Int!
   }
 
+  type Streak {
+    sortTime: String!
+    days: Int
+    id: ID!
+  }
+
   type Earn {
     earnedSats: Int!
     sortTime: String!
@@ -56,6 +62,7 @@ export default gql`
 
   union Notification = Reply | Votification | Mention
     | Invitification | Earn | JobChanged | InvoicePaid | Referral
+    | Streak
 
   type Notifications {
     lastChecked: String

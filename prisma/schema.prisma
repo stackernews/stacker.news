@@ -70,6 +70,7 @@ model User {
   noteDeposits       Boolean @default(true)
   noteInvites        Boolean @default(true)
   noteJobIndicator   Boolean @default(true)
+  noteCowboyHat      Boolean @default(true)
 
   // privacy settings
   hideInvoiceDesc  Boolean @default(false)
@@ -84,10 +85,24 @@ model User {
   PollVote    PollVote[]
   Donation    Donation[]
   ReferralAct ReferralAct[]
+  Streak      Streak[]
 
   @@index([createdAt])
   @@index([inviteId])
   @@map(name: "users")
+}
+
+model Streak {
+  id        Int       @id @default(autoincrement())
+  createdAt DateTime  @default(now()) @map(name: "created_at")
+  updatedAt DateTime  @default(now()) @updatedAt @map(name: "updated_at")
+  startedAt DateTime  @db.Date
+  endedAt   DateTime? @db.Date
+  userId    Int
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@unique([startedAt, userId])
+  @@index([userId])
 }
 
 model NostrRelay {

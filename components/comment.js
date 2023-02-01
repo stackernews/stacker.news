@@ -23,6 +23,7 @@ import { Badge } from 'react-bootstrap'
 import { abbrNum } from '../lib/format'
 import Share from './share'
 import { DeleteDropdown } from './delete'
+import CowboyHat from './cowboy-hat'
 
 function Parent ({ item, rootText }) {
   const ParentFrag = () => (
@@ -135,7 +136,10 @@ export default function Comment ({
               </Link>
               <span> \ </span>
               <Link href={`/${item.user.name}`} passHref>
-                <a>@{item.user.name}<span className='text-boost font-weight-bold'>{op && ' OP'}</span></a>
+                <a className='d-inline-flex align-items-center'>
+                  @{item.user.name}<CowboyHat className='ml-1 fill-grey' streak={item.user.streak} height={12} width={12} />
+                  {op && <span className='text-boost font-weight-bold ml-1'>OP</span>}
+                </a>
               </Link>
               <span> </span>
               <Link href={`/items/${item.id}`} passHref>

@@ -12,6 +12,8 @@ import Link from 'next/link'
 import Check from '../svgs/check-double-line.svg'
 import HandCoin from '../svgs/hand-coin-fill.svg'
 import { COMMENT_DEPTH_LIMIT } from '../lib/constants'
+import CowboyHatIcon from '../svgs/cowboy.svg'
+import BaldIcon from '../svgs/bald.svg'
 
 // TODO: oh man, this is a mess ... each notification type should just be a component ...
 function Notification ({ n }) {
@@ -20,7 +22,7 @@ function Notification ({ n }) {
     <div
       className='clickToContext'
       onClick={e => {
-        if (n.__typename === 'Earn' || n.__typename === 'Referral') {
+        if (n.__typename === 'Earn' || n.__typename === 'Referral' || n.__typename === 'Streak') {
           return
         }
 
@@ -103,35 +105,76 @@ function Notification ({ n }) {
                   <Check className='fill-info mr-1' />{n.earnedSats} sats were deposited in your account
                   <small className='text-muted ml-1'>{timeSince(new Date(n.sortTime))}</small>
                 </div>)
-              : (
-                <>
-                  {n.__typename === 'Votification' &&
-                    <small className='font-weight-bold text-success ml-2'>
-                      your {n.item.title ? 'post' : 'reply'} {n.item.fwdUser ? 'forwarded' : 'stacked'} {n.earnedSats} sats{n.item.fwdUser && ` to @${n.item.fwdUser.name}`}
-                    </small>}
-                  {n.__typename === 'Mention' &&
-                    <small className='font-weight-bold text-info ml-2'>
-                      you were mentioned in
-                    </small>}
-                  {n.__typename === 'JobChanged' &&
-                    <small className={`font-weight-bold text-${n.item.status === 'ACTIVE' ? 'success' : 'boost'} ml-1`}>
-                      {n.item.status === 'ACTIVE'
-                        ? 'your job is active again'
-                        : (n.item.status === 'NOSATS'
-                            ? 'your job promotion ran out of sats'
-                            : 'your job has been stopped')}
-                    </small>}
-                  <div className={n.__typename === 'Votification' || n.__typename === 'Mention' || n.__typename === 'JobChanged' ? '' : 'py-2'}>
-                    {n.item.isJob
-                      ? <ItemJob item={n.item} />
-                      : n.item.title
-                        ? <Item item={n.item} />
-                        : (
-                          <div className='pb-2'>
-                            <Comment item={n.item} noReply includeParent rootText={n.__typename === 'Reply' ? 'replying on:' : undefined} clickToContext />
-                          </div>)}
-                  </div>
-                </>)}
+              : n.__typename === 'Streak'
+                ? <Streak n={n} />
+                : (
+                  <>
+                    {n.__typename === 'Votification' &&
+                      <small className='font-weight-bold text-success ml-2'>
+                        your {n.item.title ? 'post' : 'reply'} {n.item.fwdUser ? 'forwarded' : 'stacked'} {n.earnedSats} sats{n.item.fwdUser && ` to @${n.item.fwdUser.name}`}
+                      </small>}
+                    {n.__typename === 'Mention' &&
+                      <small className='font-weight-bold text-info ml-2'>
+                        you were mentioned in
+                      </small>}
+                    {n.__typename === 'JobChanged' &&
+                      <small className={`font-weight-bold text-${n.item.status === 'ACTIVE' ? 'success' : 'boost'} ml-1`}>
+                        {n.item.status === 'ACTIVE'
+                          ? 'your job is active again'
+                          : (n.item.status === 'NOSATS'
+                              ? 'your job promotion ran out of sats'
+                              : 'your job has been stopped')}
+                      </small>}
+                    <div className={n.__typename === 'Votification' || n.__typename === 'Mention' || n.__typename === 'JobChanged' ? '' : 'py-2'}>
+                      {n.item.isJob
+                        ? <ItemJob item={n.item} />
+                        : n.item.title
+                          ? <Item item={n.item} />
+                          : (
+                            <div className='pb-2'>
+                              <Comment item={n.item} noReply includeParent rootText={n.__typename === 'Reply' ? 'replying on:' : undefined} clickToContext />
+                            </div>)}
+                    </div>
+                  </>)}
+    </div>
+  )
+}
+
+function Streak ({ n }) {
+  function blurb (n) {
+    const index = Number(n.id) % 6
+    const FOUND_BLURBS = [
+      'The harsh frontier is no place for the unprepared. This hat will protect you from the sun, dust, and other elements Mother Nature throws your way.',
+      'A cowboy is nothing without a cowboy hat. Take good care of it, and it will protect you from the sun, dust, and other elements on your journey.',
+      "This is not just a hat, it's a matter of survival. Take care of this essential tool, and it will shield you from the scorching sun and the elements.",
+      "A cowboy hat isn't just a fashion statement. It's your last defense against the unforgiving elements of the Wild West. Hang onto it tight.",
+      "A good cowboy hat is worth its weight in gold, shielding you from the sun, wind, and dust of the western frontier. Don't lose it.",
+      'Your cowboy hat is the key to your survival in the wild west. Treat it with respect and it will protect you from the elements.'
+    ]
+
+    const LOST_BLURBS = [
+      'your cowboy hat was taken by the wind storm that blew in from the west. No worries, a true cowboy always finds another hat.',
+      "you left your trusty cowboy hat in the saloon before leaving town. You'll need a replacement for the long journey west.",
+      'you lost your cowboy hat in a wild shoot-out on the outskirts of town. Tough luck, tIme to start searching for another one.',
+      'you ran out of food and had to trade your hat for supplies. Better start looking for another hat.',
+      "your hat was stolen by a mischievous prairie dog. You won't catch the dog, but you can always find another hat.",
+      'you lost your hat while crossing the river on your journey west. Maybe you can find a replacement hat in the next town.'
+    ]
+
+    if (n.days) {
+      return `After ${n.days} days, ` + LOST_BLURBS[index]
+    }
+
+    return FOUND_BLURBS[index]
+  }
+
+  return (
+    <div className='d-flex font-weight-bold ml-2 py-1'>
+      <div style={{ fontSize: '2rem' }}>{n.days ? <BaldIcon className='fill-grey' height={40} width={40} /> : <CowboyHatIcon className='fill-grey' height={40} width={40} />}</div>
+      <div className='ml-1 p-1'>
+        you {n.days ? 'lost your' : 'found a'} cowboy hat
+        <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>{blurb(n)}</small></div>
+      </div>
     </div>
   )
 }

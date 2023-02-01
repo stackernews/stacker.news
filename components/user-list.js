@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Image } from 'react-bootstrap'
 import { abbrNum } from '../lib/format'
+import CowboyHat from './cowboy-hat'
 import styles from './item.module.css'
 import userStyles from './user-header.module.css'
 
@@ -18,8 +19,8 @@ export default function UserList ({ users }) {
         </Link>
         <div className={styles.hunk}>
           <Link href={`/${user.name}`} passHref>
-            <a className={`${styles.title} text-reset`}>
-              @{user.name}
+            <a className={`${styles.title} d-inline-flex align-items-center text-reset`}>
+              @{user.name}<CowboyHat className='ml-1 fill-grey' height={14} width={14} streak={user.streak} />
             </a>
           </Link>
           <div className={styles.other}>

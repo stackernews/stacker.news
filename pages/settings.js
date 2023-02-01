@@ -102,6 +102,7 @@ export default function Settings ({ data: { settings } }) {
             noteDeposits: settings?.noteDeposits,
             noteInvites: settings?.noteInvites,
             noteJobIndicator: settings?.noteJobIndicator,
+            noteCowboyHat: settings?.noteCowboyHat,
             hideInvoiceDesc: settings?.hideInvoiceDesc,
             hideFromTopUsers: settings?.hideFromTopUsers,
             wildWestMode: settings?.wildWestMode,
@@ -216,6 +217,11 @@ export default function Settings ({ data: { settings } }) {
           <Checkbox
             label='there is a new job'
             name='noteJobIndicator'
+            groupClassName='mb-0'
+          />
+          <Checkbox
+            label='I find or lose a cowboy hat'
+            name='noteCowboyHat'
           />
           <div className='form-label'>privacy</div>
           <Checkbox

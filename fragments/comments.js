@@ -9,6 +9,7 @@ export const COMMENT_FIELDS = gql`
     text
     user {
       name
+      streak
       id
     }
     sats
@@ -29,6 +30,7 @@ export const COMMENT_FIELDS = gql`
       bountyPaidTo
       user {
         name
+        streak
         id
       }
     }

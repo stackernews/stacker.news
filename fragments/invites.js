@@ -13,6 +13,7 @@ export const INVITE_FIELDS = gql`
     revoked
     user {
       name
+      streak
       id
     }
     poor

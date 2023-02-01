@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { timeSince } from '../lib/time'
 import EmailIcon from '../svgs/mail-open-line.svg'
 import Share from './share'
+import CowboyHat from './cowboy-hat'
 
 export default function ItemJob ({ item, toc, rank, children }) {
   const isEmail = Yup.string().email().isValidSync(item.url)
@@ -52,7 +53,9 @@ export default function ItemJob ({ item, toc, rank, children }) {
             <span> \ </span>
             <span>
               <Link href={`/${item.user.name}`} passHref>
-                <a>@{item.user.name}</a>
+                <a className='d-inline-flex align-items-center'>
+                  @{item.user.name}<CowboyHat className='ml-1 fill-grey' streak={item.user.streak} height={12} width={12} />
+                </a>
               </Link>
               <span> </span>
               <Link href={`/items/${item.id}`} passHref>

@@ -304,6 +304,21 @@ export default {
         }
       }
 
+      if (user.noteCowboyHat) {
+        const streak = await models.streak.findFirst({
+          where: {
+            userId: me.id,
+            updatedAt: {
+              gt: lastChecked
+            }
+          }
+        })
+
+        if (streak) {
+          return true
+        }
+      }
+
       return false
     },
     searchUsers: async (parent, { q, limit, similarity }, { models }) => {
@@ -474,6 +489,15 @@ export default {
           }
         }
       })
+    },
+    streak: async (user, args, { models }) => {
+      const res = await models.$queryRaw`
+        SELECT (now_utc() at time zone 'America/Chicago')::date - "startedAt" AS days
+        FROM "Streak"
+        WHERE "userId" = ${user.id} AND "endedAt" IS NULL
+      `
+
+      return res.length ? res[0].days : null
     },
     stacked: async (user, { when }, { models }) => {
       if (user.stacked) {

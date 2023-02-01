@@ -11,10 +11,12 @@ export const ITEM_FIELDS = gql`
     url
     user {
       name
+      streak
       id
     }
     fwdUser {
       name
+      streak
       id
     }
     sats
@@ -51,6 +53,7 @@ export const ITEM_FIELDS = gql`
       }
       user {
         name
+        streak
         id
       }
     }

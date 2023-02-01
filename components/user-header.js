@@ -14,6 +14,7 @@ import LightningIcon from '../svgs/bolt.svg'
 import ModalButton from './modal-button'
 import { encodeLNUrl } from '../lib/lnurl'
 import Avatar from './avatar'
+import CowboyHat from './cowboy-hat'
 
 export default function UserHeader ({ user }) {
   const [editting, setEditting] = useState(false)
@@ -132,7 +133,7 @@ export default function UserHeader ({ user }) {
               )
             : (
               <div className='d-flex align-items-center mb-2'>
-                <div className={styles.username}>@{user.name}</div>
+                <div className={styles.username}>@{user.name}<CowboyHat className='' streak={user.streak} badge /></div>
                 {isMe &&
                   <Button className='py-0' style={{ lineHeight: '1.25' }} variant='link' onClick={() => setEditting(true)}>edit nym</Button>}
               </div>

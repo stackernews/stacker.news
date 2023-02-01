@@ -15,6 +15,7 @@ import { abbrNum } from '../lib/format'
 import NoteIcon from '../svgs/notification-4-fill.svg'
 import { useQuery, gql } from '@apollo/client'
 import LightningIcon from '../svgs/bolt.svg'
+import CowboyHat from './cowboy-hat'
 
 function WalletSummary ({ me }) {
   if (!me) return null
@@ -72,7 +73,9 @@ export default function Header ({ sub }) {
             <NavDropdown
               className={styles.dropdown} title={
                 <Link href={`/${me?.name}`} passHref>
-                  <Nav.Link eventKey={me?.name} as='div' className='p-0' onClick={e => e.preventDefault()}>{`@${me?.name}`}</Nav.Link>
+                  <Nav.Link eventKey={me?.name} as='div' className='p-0 d-flex align-items-center' onClick={e => e.preventDefault()}>
+                    {`@${me?.name}`}<CowboyHat streak={me.streak} />
+                  </Nav.Link>
                 </Link>
               } alignRight
             >

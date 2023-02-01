@@ -28,6 +28,11 @@ export const NOTIFICATIONS = gql`
             text
           }
         }
+        ... on Streak {
+          id
+          sortTime
+          days
+        }
         ... on Earn {
           sortTime
           earnedSats

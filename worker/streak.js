@@ -1,3 +1,5 @@
+const STREAK_THRESHOLD = 100
+
 function computeStreaks ({ models }) {
   return async function () {
     console.log('computing streaks')
@@ -19,7 +21,7 @@ function computeStreaks ({ models }) {
             WHERE (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')::date = (now() AT TIME ZONE 'America/Chicago' - interval '1 day')::date
         )) spending
         GROUP BY "userId"
-        HAVING sum(sats_spent) >= 100
+        HAVING sum(sats_spent) >= ${STREAK_THRESHOLD}
       ), existing_streaks (id) AS (
           SELECT "userId"
           FROM "Streak"
@@ -48,4 +50,47 @@ function computeStreaks ({ models }) {
   }
 }
 
-module.exports = { computeStreaks }
+function checkStreak ({ models }) {
+  return async function ({ data: { id } }) {
+    console.log('checking streak', id)
+
+    // if user is actively streaking skip
+    const streak = await models.streak.findFirst({
+      where: {
+        userId: Number(id),
+        endedAt: null
+      }
+    })
+
+    if (streak) {
+      console.log('done checking streak', id)
+      return
+    }
+
+    await models.$executeRaw`
+      WITH streak_started (id) AS (
+          SELECT "userId"
+          FROM
+          ((SELECT "userId", floor(sum("ItemAct".msats)/1000) as sats_spent
+              FROM "ItemAct"
+              WHERE (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')::date = (now() AT TIME ZONE 'America/Chicago')::date
+              AND "userId" = ${Number(id)}
+              GROUP BY "userId")
+          UNION ALL
+          (SELECT "userId", sats as sats_spent
+              FROM "Donation"
+              WHERE (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')::date = (now() AT TIME ZONE 'America/Chicago')::date
+              AND "userId" = ${Number(id)}
+          )) spending
+            GROUP BY "userId"
+            HAVING sum(sats_spent) >= ${STREAK_THRESHOLD}
+      )
+      INSERT INTO "Streak" ("userId", "startedAt", created_at, updated_at)
+      SELECT id, (now() AT TIME ZONE 'America/Chicago')::date, now_utc(), now_utc()
+      FROM streak_started`
+
+    console.log('done checking streak', id)
+  }
+}
+
+module.exports = { checkStreak, computeStreaks }

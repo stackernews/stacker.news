@@ -10,7 +10,7 @@ const { earn } = require('./earn')
 const { ApolloClient, HttpLink, InMemoryCache } = require('@apollo/client')
 const { indexItem, indexAllItems } = require('./search')
 const { timestampItem } = require('./ots')
-const { computeStreaks } = require('./streak')
+const { computeStreaks, checkStreak } = require('./streak')
 const fetch = require('cross-fetch')
 
 async function work () {
@@ -49,6 +49,7 @@ async function work () {
   await boss.work('auction', auction(args))
   await boss.work('earn', earn(args))
   await boss.work('streak', computeStreaks(args))
+  await boss.work('checkStreak', checkStreak(args))
 
   console.log('working jobs')
 }

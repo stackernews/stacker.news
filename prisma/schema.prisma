@@ -45,6 +45,9 @@ model User {
   photoId         Int?
   photo           Upload?     @relation(fields: [photoId], references: [id])
 
+  // streak
+  streak Int?
+
   // walkthrough
   upvotePopover Boolean @default(false)
   tipPopover    Boolean @default(false)

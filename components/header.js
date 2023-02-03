@@ -177,7 +177,7 @@ export default function Header ({ sub }) {
         </Nav.Item>
         {!prefix &&
           <Nav.Item className={className}>
-            <Link href='/top/posts' passHref>
+            <Link href='/top/posts/day' passHref>
               <Nav.Link eventKey='top' className={styles.navLink}>top</Nav.Link>
             </Link>
           </Nav.Item>}
@@ -253,7 +253,7 @@ const NavItemsStatic = ({ className }) => {
         </Link>
       </Nav.Item>
       <Nav.Item className={className}>
-        <Link href='/top/posts' passHref>
+        <Link href='/top/posts/day' passHref>
           <Nav.Link className={styles.navLink}>top</Nav.Link>
         </Link>
       </Nav.Item>

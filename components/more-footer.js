@@ -21,7 +21,7 @@ export default function MoreFooter ({ cursor, fetchMore, Skeleton, noMoreText })
               cursor
             }
           })
-          setLoading(false)
+          setTimeout(() => setLoading(false), 100)
         }}
       >more
       </Button>

@@ -1,17 +1,26 @@
 import { useRouter } from 'next/router'
 import { Form, Select } from './form'
 
+const USER_SORTS = ['stacked', 'spent', 'comments', 'posts', 'referrals']
+const ITEM_SORTS = ['votes', 'comments', 'sats']
+
 export default function TopHeader ({ cat }) {
   const router = useRouter()
 
   const top = async values => {
-    const what = values.what
-    delete values.what
-    if (values.sort === '') delete values.sort
-    if (values.when === '') delete values.when
+    const { what, when, ...query } = values
+
+    if (typeof query.sort !== 'undefined') {
+      if (query.sort === '' ||
+          (what === 'users' && !USER_SORTS.includes(query.sort)) ||
+          (what !== 'users' && !ITEM_SORTS.includes(query.sort))) {
+        delete query.sort
+      }
+    }
+
     await router.push({
-      pathname: `/top/${what}`,
-      query: values
+      pathname: `/top/${what}/${when}`,
+      query
     })
   }
 
@@ -41,7 +50,7 @@ export default function TopHeader ({ cat }) {
             onChange={(formik, e) => top({ ...formik?.values, sort: e.target.value })}
             name='sort'
             size='sm'
-            items={cat === 'users' ? ['stacked', 'spent', 'comments', 'posts', 'referrals'] : ['votes', 'comments', 'sats']}
+            items={cat === 'users' ? USER_SORTS : ITEM_SORTS}
           />
           for
           <Select

@@ -1,5 +1,8 @@
 # stacker.news
-[Stacker News](https://stacker.news) is like Hacker News but we pay you Bitcoin. We use Bitcoin and the Lightning Network to provide Sybil resistance and any karma earned is withdrawable as Bitcoin. Next year we plan to begin decentralizing SN on an open peer to peer network.
+[Stacker News](https://stacker.news) is like Hacker News but we pay you Bitcoin. We use Bitcoin and the Lightning Network to provide Sybil resistance and any karma earned is withdrawable as Bitcoin.
+
+# wen decentralization?
+We're discussing if it's possible to provide SN on nostr and/or a hybrid approach and have plans to begin experimenting with it. It's our overarching goal to align SN with Bitcoin's ethos yet still make a product the average bitcoiner loves to use.
 
 # local development
 1. [Install docker-compose](https://docs.docker.com/compose/install/) and deps if you don't already have it installed
@@ -9,7 +12,7 @@
 You should then be able to access the site at `localhost:3000` and any changes you make will hot reload. If you want to login locally or use lnd you'll need to modify `.env.sample` appropriately. If you have trouble please open an issue so I can help and update the README for everyone else.
 
 # stack
-The site is written in javascript using Next.js, a React framework. The backend API is provided via graphql. The database is postgresql modelled with prisma. The job queue is also maintained in postgresql. We use lnd for the lightning node which we connect to through a tor http tunnel. A customized Bootstrap theme is used for styling.
+The site is written in javascript using Next.js, a React framework. The backend API is provided via graphql. The database is postgresql modelled with prisma. The job queue is also maintained in postgresql. We use lnd for our lightning node. A customized Bootstrap theme is used for styling.
 
 # processes
 There are two. 1. the web app and 2. the worker, which dequeues jobs sent to it by the web app, e.g. polling lnd for invoice/payment status

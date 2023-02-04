@@ -12,7 +12,7 @@ import { msatsToSats } from '../../lib/format'
 import { parse } from 'tldts'
 import uu from 'url-unshort'
 
-async function comments (me, models, id, sort) {
+async function comments (me, models, id, sort, root) {
   let orderBy
   switch (sort) {
     case 'top':
@@ -39,7 +39,7 @@ async function comments (me, models, id, sort) {
           WHERE true
           ${await filterClause(me, models)})
         SELECT * FROM base ORDER BY sort_path`, Number(id))
-  return nestComments(flat, id)[0]
+  return nestComments(flat, id, root)[0]
 }
 
 export async function getItem (parent, { id }, { me, models }) {
@@ -871,7 +871,7 @@ export default {
       if (item.comments) {
         return item.comments
       }
-      return comments(me, models, item.id, 'hot')
+      return comments(me, models, item.id, 'hot', item)
     },
     upvotes: async (item, args, { models }) => {
       const [{ count }] = await models.$queryRaw(`
@@ -945,6 +945,9 @@ export default {
     root: async (item, args, { models }) => {
       if (!item.rootId) {
         return null
+      }
+      if (item.root) {
+        return item.root
       }
       return await models.item.findUnique({ where: { id: item.rootId } })
     },
@@ -1082,10 +1085,11 @@ const createItem = async (parent, { title, url, text, boost, forward, bounty, pa
   return item
 }
 
-function nestComments (flat, parentId) {
+function nestComments (flat, parentId, root) {
   const result = []
   let added = 0
   for (let i = 0; i < flat.length;) {
+    flat[i].root = root
     if (!flat[i].comments) flat[i].comments = []
     if (Number(flat[i].parentId) === Number(parentId)) {
       result.push(flat[i])
@@ -1093,7 +1097,7 @@ function nestComments (flat, parentId) {
       i++
     } else if (result.length > 0) {
       const item = result[result.length - 1]
-      const [nested, newAdded] = nestComments(flat.slice(i), item.id)
+      const [nested, newAdded] = nestComments(flat.slice(i), item.id, root)
       if (newAdded === 0) {
         break
       }

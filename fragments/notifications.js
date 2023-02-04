@@ -1,9 +1,9 @@
 import { gql } from '@apollo/client'
-import { ITEM_FIELDS } from './items'
+import { ITEM_FULL_FIELDS } from './items'
 import { INVITE_FIELDS } from './invites'
 
 export const NOTIFICATIONS = gql`
-  ${ITEM_FIELDS}
+  ${ITEM_FULL_FIELDS}
   ${INVITE_FIELDS}
 
   query Notifications($cursor: String, $inc: String) {
@@ -16,7 +16,7 @@ export const NOTIFICATIONS = gql`
           sortTime
           mention
           item {
-            ...ItemFields
+            ...ItemFullFields
             text
           }
         }
@@ -24,7 +24,7 @@ export const NOTIFICATIONS = gql`
           sortTime
           earnedSats
           item {
-            ...ItemFields
+            ...ItemFullFields
             text
           }
         }
@@ -48,7 +48,7 @@ export const NOTIFICATIONS = gql`
         ... on Reply {
           sortTime
           item {
-            ...ItemFields
+            ...ItemFullFields
             text
           }
         }

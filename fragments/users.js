@@ -189,11 +189,9 @@ export const USER_WITH_POSTS = gql`
       cursor
       items {
         ...ItemFields
-        position
       }
       pins {
         ...ItemFields
-         position
       }
     }
   }`

@@ -1,5 +1,5 @@
 import { gql } from '@apollo/client'
-import { ITEM_FIELDS } from './items'
+import { ITEM_FULL_FIELDS } from './items'
 import { USER_FIELDS } from './users'
 
 export const INVOICE = gql`
@@ -27,7 +27,7 @@ export const WITHDRAWL = gql`
   }`
 
 export const WALLET_HISTORY = gql`
-  ${ITEM_FIELDS}
+  ${ITEM_FULL_FIELDS}
   ${USER_FIELDS}
 
   query WalletHistory($cursor: String, $inc: String) {
@@ -46,8 +46,7 @@ export const WALLET_HISTORY = gql`
         type
         description
         item {
-          ...ItemFields
-          text
+          ...ItemFullFields
         }
       }
       cursor

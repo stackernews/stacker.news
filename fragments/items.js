@@ -14,11 +14,7 @@ export const ITEM_FIELDS = gql`
       streak
       id
     }
-    fwdUser {
-      name
-      streak
-      id
-    }
+    position
     sats
     upvotes
     boost
@@ -45,9 +41,23 @@ export const ITEM_FIELDS = gql`
     status
     uploadId
     mine
+  }`
+
+export const ITEM_FULL_FIELDS = gql`
+  ${ITEM_FIELDS}
+  fragment ItemFullFields on Item {
+    ...ItemFields
+    text
+    fwdUser {
+      name
+      streak
+      id
+    }
     root {
       id
       title
+      bounty
+      bountyPaidTo
       sub {
         name
       }
@@ -87,11 +97,9 @@ export const ITEMS = gql`
       cursor
       items {
         ...ItemFields
-        position
       },
       pins {
         ...ItemFields
-        position
       }
     }
   }`
@@ -104,50 +112,45 @@ export const TOP_ITEMS = gql`
       cursor
       items {
         ...ItemFields
-        position
       },
       pins {
         ...ItemFields
-        position
       }
     }
   }`
 
 export const OUTLAWED_ITEMS = gql`
-  ${ITEM_FIELDS}
+  ${ITEM_FULL_FIELDS}
 
   query outlawedItems($cursor: String) {
     outlawedItems(cursor: $cursor) {
       cursor
       items {
-        ...ItemFields
-        text
+        ...ItemFullFields
       }
     }
   }`
 
 export const BORDERLAND_ITEMS = gql`
-  ${ITEM_FIELDS}
+  ${ITEM_FULL_FIELDS}
 
   query borderlandItems($cursor: String) {
     borderlandItems(cursor: $cursor) {
       cursor
       items {
-        ...ItemFields
-        text
+        ...ItemFullFields
       }
     }
   }`
 
 export const FREEBIE_ITEMS = gql`
-  ${ITEM_FIELDS}
+  ${ITEM_FULL_FIELDS}
 
   query freebieItems($cursor: String) {
     freebieItems(cursor: $cursor) {
       cursor
       items {
-        ...ItemFields
-        text
+        ...ItemFullFields
       }
     }
   }`
@@ -167,14 +170,13 @@ export const POLL_FIELDS = gql`
   }`
 
 export const ITEM = gql`
-  ${ITEM_FIELDS}
+  ${ITEM_FULL_FIELDS}
   ${POLL_FIELDS}
 
   query Item($id: ID!) {
     item(id: $id) {
-      ...ItemFields
+      ...ItemFullFields
       ...PollFields
-      text
     }
   }`
 
@@ -189,15 +191,13 @@ export const COMMENTS_QUERY = gql`
 `
 
 export const ITEM_FULL = gql`
-  ${ITEM_FIELDS}
+  ${ITEM_FULL_FIELDS}
   ${POLL_FIELDS}
   ${COMMENTS}
   query Item($id: ID!) {
     item(id: $id) {
-      ...ItemFields
+      ...ItemFullFields
       prior
-      position
-      text
       ...PollFields
       comments {
         ...CommentsRecursive
@@ -206,11 +206,10 @@ export const ITEM_FULL = gql`
   }`
 
 export const ITEM_WITH_COMMENTS = gql`
-  ${ITEM_FIELDS}
+  ${ITEM_FULL_FIELDS}
   ${COMMENTS}
   fragment ItemWithComments on Item {
-      ...ItemFields
-      text
+      ...ItemFullFields
       comments {
         ...CommentsRecursive
       }
@@ -228,13 +227,12 @@ export const BOUNTY_ITEMS_BY_USER_NAME = gql`
   }`
 
 export const ITEM_SEARCH = gql`
-  ${ITEM_FIELDS}
+  ${ITEM_FULL_FIELDS}
   query Search($q: String, $cursor: String, $sort: String, $what: String, $when: String) {
     search(q: $q, cursor: $cursor, sort: $sort, what: $what, when: $when) {
       cursor
       items {
-        ...ItemFields
-        text
+        ...ItemFullFields
         searchTitle
         searchText
       }

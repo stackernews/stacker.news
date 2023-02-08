@@ -1,7 +1,6 @@
 import { Checkbox, Form, Input, MarkdownInput, SubmitButton } from './form'
 import TextareaAutosize from 'react-textarea-autosize'
 import { InputGroup, Form as BForm, Col, Image } from 'react-bootstrap'
-import * as Yup from 'yup'
 import { useEffect, useState } from 'react'
 import Info from './info'
 import AccordianItem from './accordian-item'
@@ -13,31 +12,14 @@ import { usePrice } from './price'
 import Avatar from './avatar'
 import BootstrapForm from 'react-bootstrap/Form'
 import Alert from 'react-bootstrap/Alert'
-import { useMe } from './me'
 import ActionTooltip from './action-tooltip'
-
-Yup.addMethod(Yup.string, 'or', function (schemas, msg) {
-  return this.test({
-    name: 'or',
-    message: msg,
-    test: value => {
-      if (Array.isArray(schemas) && schemas.length > 1) {
-        const resee = schemas.map(schema => schema.isValidSync(value))
-        return resee.some(res => res)
-      } else {
-        throw new TypeError('Schemas is not correct array schema')
-      }
-    },
-    exclusive: false
-  })
-})
+import { jobSchema } from '../lib/validate'
 
 function satsMin2Mo (minute) {
   return minute * 30 * 24 * 60
 }
 
 function PriceHint ({ monthly }) {
-  const me = useMe()
   const { price, fiatSymbol } = usePrice()
 
   if (!price || !monthly) {
@@ -65,26 +47,6 @@ export default function JobForm ({ item, sub }) {
     }`
   )
 
-  const JobSchema = Yup.object({
-    title: Yup.string().required('required').trim(),
-    company: Yup.string().required('required').trim(),
-    text: Yup.string().required('required').trim(),
-    url: Yup.string()
-      .or([Yup.string().email(), Yup.string().url()], 'invalid url or email')
-      .required('required'),
-    maxBid: Yup.number().typeError('must be a number')
-      .integer('must be whole').min(0, 'must be positive')
-      .required('required'),
-    location: Yup.string().test(
-      'no-remote',
-      "don't write remote, just check the box",
-      v => !v?.match(/\bremote\b/gi))
-      .when('remote', {
-        is: (value) => !value,
-        then: Yup.string().required('required').trim()
-      })
-  })
-
   return (
     <>
       <Form
@@ -100,7 +62,7 @@ export default function JobForm ({ item, sub }) {
           stop: false,
           start: false
         }}
-        schema={JobSchema}
+        schema={jobSchema}
         storageKeyPrefix={storageKeyPrefix}
         onSubmit={(async ({ maxBid, stop, start, ...values }) => {
           let status

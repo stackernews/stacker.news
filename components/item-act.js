@@ -1,14 +1,9 @@
 import { Button, InputGroup } from 'react-bootstrap'
 import React, { useState, useRef, useEffect } from 'react'
-import * as Yup from 'yup'
 import { Form, Input, SubmitButton } from './form'
 import { useMe } from './me'
 import UpBolt from '../svgs/bolt.svg'
-
-export const ActSchema = Yup.object({
-  amount: Yup.number().typeError('must be a number').required('required')
-    .positive('must be positive').integer('must be whole')
-})
+import { amountSchema } from '../lib/validate'
 
 export default function ItemAct ({ onClose, itemId, act, strike }) {
   const inputRef = useRef(null)
@@ -25,7 +20,7 @@ export default function ItemAct ({ onClose, itemId, act, strike }) {
         amount: me?.tipDefault,
         default: false
       }}
-      schema={ActSchema}
+      schema={amountSchema}
       onSubmit={async ({ amount }) => {
         await act({
           variables: {

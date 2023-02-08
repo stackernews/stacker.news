@@ -4,21 +4,12 @@ import { Button } from 'react-bootstrap'
 import { fixedDecimal } from '../lib/format'
 import { useMe } from './me'
 import { PRICE } from '../fragments/price'
+import { CURRENCY_SYMBOLS } from '../lib/currency'
 
 export const PriceContext = React.createContext({
   price: null,
   fiatSymbol: null
 })
-
-export const CURRENCY_SYMBOLS = {
-  AUD: '$',
-  CAD: '$',
-  EUR: '€',
-  GBP: '£',
-  USD: '$',
-  NZD: '$',
-  ZAR: 'R '
-}
 
 export function usePrice () {
   return useContext(PriceContext)

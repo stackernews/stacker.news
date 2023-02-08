@@ -4,23 +4,24 @@ import { useRouter } from 'next/router'
 import Nav from 'react-bootstrap/Nav'
 import { useState } from 'react'
 import { Form, Input, SubmitButton } from './form'
-import * as Yup from 'yup'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
 import styles from './user-header.module.css'
 import { useMe } from './me'
-import { NAME_MUTATION, NAME_QUERY } from '../fragments/users'
+import { NAME_MUTATION } from '../fragments/users'
 import QRCode from 'qrcode.react'
 import LightningIcon from '../svgs/bolt.svg'
 import ModalButton from './modal-button'
 import { encodeLNUrl } from '../lib/lnurl'
 import Avatar from './avatar'
 import CowboyHat from './cowboy-hat'
+import { userSchema } from '../lib/validate'
 
 export default function UserHeader ({ user }) {
   const [editting, setEditting] = useState(false)
   const me = useMe()
   const router = useRouter()
   const client = useApolloClient()
+  const schema = userSchema(client)
   const [setName] = useMutation(NAME_MUTATION)
 
   const [setPhoto] = useMutation(
@@ -43,22 +44,6 @@ export default function UserHeader ({ user }) {
 
   const isMe = me?.name === user.name
   const Satistics = () => <div className={`mb-2 ml-0 ml-sm-1 ${styles.username} text-success`}>{isMe ? `${user.sats} sats \\ ` : ''}{user.stacked} stacked</div>
-
-  const UserSchema = Yup.object({
-    name: Yup.string()
-      .required('required')
-      .matches(/^[\w_]+$/, 'only letters, numbers, and _')
-      .max(32, 'too long')
-      .test({
-        name: 'name',
-        test: async name => {
-          if (!name || !name.length) return false
-          const { data } = await client.query({ query: NAME_QUERY, variables: { name }, fetchPolicy: 'network-only' })
-          return data.nameAvailable
-        },
-        message: 'taken'
-      })
-  })
 
   const lnurlp = encodeLNUrl(new URL(`https://stacker.news/.well-known/lnurlp/${user.name}`))
 
@@ -83,7 +68,7 @@ export default function UserHeader ({ user }) {
           {editting
             ? (
               <Form
-                schema={UserSchema}
+                schema={schema}
                 initial={{
                   name: user.name
                 }}

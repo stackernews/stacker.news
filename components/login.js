@@ -1,16 +1,12 @@
 import { signIn } from 'next-auth/client'
 import styles from './login.module.css'
 import { Form, Input, SubmitButton } from '../components/form'
-import * as Yup from 'yup'
 import { useState } from 'react'
 import Alert from 'react-bootstrap/Alert'
 import { useRouter } from 'next/router'
 import { LightningAuthWithExplainer, SlashtagsAuth } from './lightning-auth'
 import LoginButton from './login-button'
-
-export const EmailSchema = Yup.object({
-  email: Yup.string().email('email is no good').required('required')
-})
+import { emailSchema } from '../lib/validate'
 
 export function EmailLoginForm ({ text, callbackUrl }) {
   return (
@@ -18,7 +14,7 @@ export function EmailLoginForm ({ text, callbackUrl }) {
       initial={{
         email: ''
       }}
-      schema={EmailSchema}
+      schema={emailSchema}
       onSubmit={async ({ email }) => {
         signIn('email', { email, callbackUrl })
       }}

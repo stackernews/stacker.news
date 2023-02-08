@@ -1,4 +1,5 @@
 import { AuthenticationError } from 'apollo-server-micro'
+import { amountSchema, ssValidate } from '../../lib/validate'
 import serialize from './serial'
 
 export default {
@@ -37,6 +38,8 @@ export default {
       if (!me) {
         throw new AuthenticationError('you must be logged in')
       }
+
+      await ssValidate(amountSchema, { amount: sats })
 
       await serialize(models,
         models.$queryRaw(

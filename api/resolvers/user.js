@@ -1,6 +1,7 @@
 import { AuthenticationError, UserInputError } from 'apollo-server-errors'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { msatsToSats } from '../../lib/format'
+import { bioSchema, emailSchema, settingsSchema, ssValidate, userSchema } from '../../lib/validate'
 import { createMentions, getItem, SELECT, updateItem, filterClause } from './item'
 import serialize from './serial'
 
@@ -328,21 +329,15 @@ export default {
   },
 
   Mutation: {
-    setName: async (parent, { name }, { me, models }) => {
+    setName: async (parent, data, { me, models }) => {
       if (!me) {
         throw new AuthenticationError('you must be logged in')
       }
 
-      if (!/^[\w_]+$/.test(name)) {
-        throw new UserInputError('only letters, numbers, and _')
-      }
-
-      if (name.length > 32) {
-        throw new UserInputError('too long')
-      }
+      await ssValidate(userSchema, data, models)
 
       try {
-        await models.user.update({ where: { id: me.id }, data: { name } })
+        await models.user.update({ where: { id: me.id }, data })
       } catch (error) {
         if (error.code === 'P2002') {
           throw new UserInputError('name taken')
@@ -354,6 +349,8 @@ export default {
       if (!me) {
         throw new AuthenticationError('you must be logged in')
       }
+
+      await ssValidate(settingsSchema, { nostrRelays, ...data })
 
       if (nostrRelays?.length) {
         const connectOrCreate = []
@@ -400,6 +397,8 @@ export default {
         throw new AuthenticationError('you must be logged in')
       }
 
+      await ssValidate(bioSchema, { bio })
+
       const user = await models.user.findUnique({ where: { id: me.id } })
 
       if (user.bioId) {
@@ -442,6 +441,8 @@ export default {
       if (!me) {
         throw new AuthenticationError('you must be logged in')
       }
+
+      await ssValidate(emailSchema, { email })
 
       try {
         await models.user.update({

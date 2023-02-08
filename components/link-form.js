@@ -1,21 +1,20 @@
 import { Form, Input, SubmitButton } from '../components/form'
 import { useRouter } from 'next/router'
-import * as Yup from 'yup'
 import { gql, useApolloClient, useLazyQuery, useMutation } from '@apollo/client'
 import Countdown from './countdown'
-import AdvPostForm, { AdvPostInitial, AdvPostSchema } from './adv-post-form'
+import AdvPostForm, { AdvPostInitial } from './adv-post-form'
 import { ITEM_FIELDS } from '../fragments/items'
 import Item from './item'
 import AccordianItem from './accordian-item'
-import { MAX_TITLE_LENGTH } from '../lib/constants'
-import { URL_REGEXP } from '../lib/url'
 import FeeButton, { EditFeeButton } from './fee-button'
 import Delete from './delete'
 import { Button } from 'react-bootstrap'
+import { linkSchema } from '../lib/validate'
 
 export function LinkForm ({ item, editThreshold }) {
   const router = useRouter()
   const client = useApolloClient()
+  const schema = linkSchema(client)
 
   const [getPageTitleAndUnshorted, { data }] = useLazyQuery(gql`
     query PageTitleAndUnshorted($url: String!) {
@@ -71,14 +70,6 @@ export function LinkForm ({ item, editThreshold }) {
       }`
   )
 
-  const LinkSchema = Yup.object({
-    title: Yup.string().required('required').trim()
-      .max(MAX_TITLE_LENGTH,
-        ({ max, value }) => `${Math.abs(max - value.length)} too many`),
-    url: Yup.string().matches(URL_REGEXP, 'invalid url').required('required'),
-    ...AdvPostSchema(client)
-  })
-
   return (
     <Form
       initial={{
@@ -86,10 +77,10 @@ export function LinkForm ({ item, editThreshold }) {
         url: item?.url || '',
         ...AdvPostInitial({ forward: item?.fwdUser?.name })
       }}
-      schema={LinkSchema}
+      schema={schema}
       onSubmit={async ({ boost, title, ...values }) => {
         const { error } = await upsertLink({
-          variables: { id: item?.id, boost: Number(boost), title: title.trim(), ...values }
+          variables: { id: item?.id, boost: boost ? Number(boost) : undefined, title: title.trim(), ...values }
         })
         if (error) {
           throw new Error({ message: error.toString() })

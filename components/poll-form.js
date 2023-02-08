@@ -1,18 +1,19 @@
 import { Form, Input, MarkdownInput, SubmitButton, VariableInput } from '../components/form'
 import { useRouter } from 'next/router'
-import * as Yup from 'yup'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
 import Countdown from './countdown'
-import AdvPostForm, { AdvPostInitial, AdvPostSchema } from './adv-post-form'
-import { MAX_TITLE_LENGTH, MAX_POLL_CHOICE_LENGTH, MAX_POLL_NUM_CHOICES } from '../lib/constants'
+import AdvPostForm, { AdvPostInitial } from './adv-post-form'
+import { MAX_POLL_NUM_CHOICES } from '../lib/constants'
 import TextareaAutosize from 'react-textarea-autosize'
 import FeeButton, { EditFeeButton } from './fee-button'
 import Delete from './delete'
 import { Button } from 'react-bootstrap'
+import { pollSchema } from '../lib/validate'
 
 export function PollForm ({ item, editThreshold }) {
   const router = useRouter()
   const client = useApolloClient()
+  const schema = pollSchema(client)
 
   const [upsertPoll] = useMutation(
     gql`
@@ -25,19 +26,6 @@ export function PollForm ({ item, editThreshold }) {
       }`
   )
 
-  const PollSchema = Yup.object({
-    title: Yup.string().required('required').trim()
-      .max(MAX_TITLE_LENGTH,
-        ({ max, value }) => `${Math.abs(max - value.length)} too many`),
-    options: Yup.array().of(
-      Yup.string().trim().test('my-test', 'required', function (value) {
-        return (this.path !== 'options[0]' && this.path !== 'options[1]') || value
-      }).max(MAX_POLL_CHOICE_LENGTH,
-        ({ max, value }) => `${Math.abs(max - value.length)} too many`)
-    ),
-    ...AdvPostSchema(client)
-  })
-
   const initialOptions = item?.poll?.options.map(i => i.option)
 
   return (
@@ -48,13 +36,13 @@ export function PollForm ({ item, editThreshold }) {
         options: initialOptions || ['', ''],
         ...AdvPostInitial({ forward: item?.fwdUser?.name })
       }}
-      schema={PollSchema}
+      schema={schema}
       onSubmit={async ({ boost, title, options, ...values }) => {
         const optionsFiltered = options.slice(initialOptions?.length).filter(word => word.trim().length > 0)
         const { error } = await upsertPoll({
           variables: {
             id: item?.id,
-            boost: Number(boost),
+            boost: boost ? Number(boost) : undefined,
             title: title.trim(),
             options: optionsFiltered,
             ...values

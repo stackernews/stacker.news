@@ -1,13 +1,12 @@
 import { Form, Input, MarkdownInput, SubmitButton } from '../components/form'
 import { useRouter } from 'next/router'
-import * as Yup from 'yup'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
 import TextareaAutosize from 'react-textarea-autosize'
 import Countdown from './countdown'
-import AdvPostForm, { AdvPostInitial, AdvPostSchema } from './adv-post-form'
-import { MAX_TITLE_LENGTH } from '../lib/constants'
+import AdvPostForm, { AdvPostInitial } from './adv-post-form'
 import FeeButton, { EditFeeButton } from './fee-button'
 import { InputGroup } from 'react-bootstrap'
+import { bountySchema } from '../lib/validate'
 
 export function BountyForm ({
   item,
@@ -21,6 +20,7 @@ export function BountyForm ({
 }) {
   const router = useRouter()
   const client = useApolloClient()
+  const schema = bountySchema(client)
   const [upsertBounty] = useMutation(
     gql`
       mutation upsertBounty(
@@ -45,41 +45,23 @@ export function BountyForm ({
     `
   )
 
-  const BountySchema = Yup.object({
-    title: Yup.string()
-      .required('required')
-      .trim()
-      .max(
-        MAX_TITLE_LENGTH,
-        ({ max, value }) => `${Math.abs(max - value.length)} too many`
-      ),
-    bounty: Yup.number()
-      .required('required')
-      .min(1000, 'must be at least 1000 sats')
-      .max(1000000, 'must be at most 1m sats')
-      .integer('must be whole'),
-
-    ...AdvPostSchema(client)
-  })
-
   return (
     <Form
       initial={{
         title: item?.title || '',
         text: item?.text || '',
         bounty: item?.bounty || 1000,
-        suggest: '',
         ...AdvPostInitial({ forward: item?.fwdUser?.name })
       }}
-      schema={BountySchema}
+      schema={schema}
       onSubmit={
         handleSubmit ||
         (async ({ boost, bounty, ...values }) => {
           const { error } = await upsertBounty({
             variables: {
               id: item?.id,
-              boost: Number(boost),
-              bounty: Number(bounty),
+              boost: boost ? Number(boost) : undefined,
+              bounty: bounty ? Number(bounty) : undefined,
               ...values
             }
           })
@@ -94,7 +76,7 @@ export function BountyForm ({
           }
         })
       }
-      storageKeyPrefix={item ? undefined : 'discussion'}
+      storageKeyPrefix={item ? undefined : 'bounty'}
     >
       <Input label={titleLabel} name='title' required autoFocus clear />
       <Input

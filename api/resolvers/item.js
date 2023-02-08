@@ -5,12 +5,13 @@ import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
 import domino from 'domino'
 import {
-  BOOST_MIN, ITEM_SPAM_INTERVAL, MAX_POLL_NUM_CHOICES,
+  BOOST_MIN, ITEM_SPAM_INTERVAL,
   MAX_TITLE_LENGTH, ITEM_FILTER_THRESHOLD, DONT_LIKE_THIS_COST
 } from '../../lib/constants'
 import { msatsToSats } from '../../lib/format'
 import { parse } from 'tldts'
 import uu from 'url-unshort'
+import { amountSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, ssValidate } from '../../lib/validate'
 
 async function comments (me, models, id, sort, root) {
   let orderBy
@@ -602,6 +603,8 @@ export default {
       data.url = ensureProtocol(data.url)
       data.url = removeTracking(data.url)
 
+      await ssValidate(linkSchema, data, models)
+
       if (id) {
         return await updateItem(parent, { id, data }, { me, models })
       } else {
@@ -611,6 +614,8 @@ export default {
     upsertDiscussion: async (parent, args, { me, models }) => {
       const { id, ...data } = args
 
+      await ssValidate(discussionSchema, data, models)
+
       if (id) {
         return await updateItem(parent, { id, data }, { me, models })
       } else {
@@ -619,11 +624,8 @@ export default {
     },
     upsertBounty: async (parent, args, { me, models }) => {
       const { id, ...data } = args
-      const { bounty } = data
 
-      if (bounty < 1000 || bounty > 1000000) {
-        throw new UserInputError('invalid bounty amount', { argumentName: 'bounty' })
-      }
+      await ssValidate(bountySchema, data, models)
 
       if (id) {
         return await updateItem(parent, { id, data }, { me, models })
@@ -631,14 +633,21 @@ export default {
         return await createItem(parent, data, { me, models })
       }
     },
-    upsertPoll: async (parent, { id, forward, boost, title, text, options }, { me, models }) => {
+    upsertPoll: async (parent, { id, ...data }, { me, models }) => {
+      const { forward, boost, title, text, options } = data
       if (!me) {
         throw new AuthenticationError('you must be logged in')
       }
 
-      if (boost && boost < BOOST_MIN) {
-        throw new UserInputError(`boost must be at least ${BOOST_MIN}`, { argumentName: 'boost' })
-      }
+      const optionCount = id
+        ? await models.pollOption.count({
+            where: {
+              itemId: Number(id)
+            }
+          })
+        : 0
+
+      await ssValidate(pollSchema, data, models, optionCount)
 
       let fwdUser
       if (forward) {
@@ -649,58 +658,40 @@ export default {
       }
 
       if (id) {
-        const optionCount = await models.pollOption.count({
-          where: {
-            itemId: Number(id)
-          }
-        })
-
-        if (options.length + optionCount > MAX_POLL_NUM_CHOICES) {
-          throw new UserInputError(`total choices must be <${MAX_POLL_NUM_CHOICES}`, { argumentName: 'options' })
+        const old = await models.item.findUnique({ where: { id: Number(id) } })
+        if (Number(old.userId) !== Number(me?.id)) {
+          throw new AuthenticationError('item does not belong to you')
         }
-
         const [item] = await serialize(models,
           models.$queryRaw(`${SELECT} FROM update_poll($1, $2, $3, $4, $5, $6) AS "Item"`,
             Number(id), title, text, Number(boost || 0), options, Number(fwdUser?.id)))
 
+        await createMentions(item, models)
+        item.comments = []
         return item
       } else {
-        if (options.length < 2 || options.length > MAX_POLL_NUM_CHOICES) {
-          throw new UserInputError(`choices must be >2 and <${MAX_POLL_NUM_CHOICES}`, { argumentName: 'options' })
-        }
-
         const [item] = await serialize(models,
           models.$queryRaw(`${SELECT} FROM create_poll($1, $2, $3, $4, $5, $6, $7, '${ITEM_SPAM_INTERVAL}') AS "Item"`,
             title, text, 1, Number(boost || 0), Number(me.id), options, Number(fwdUser?.id)))
 
         await createMentions(item, models)
-
         item.comments = []
         return item
       }
     },
-    upsertJob: async (parent, {
-      id, sub, title, company, location, remote,
-      text, url, maxBid, status, logo
-    }, { me, models }) => {
+    upsertJob: async (parent, { id, ...data }, { me, models }) => {
       if (!me) {
         throw new AuthenticationError('you must be logged in to create job')
       }
+      const { sub, title, company, location, remote, text, url, maxBid, status, logo } = data
 
       const fullSub = await models.sub.findUnique({ where: { name: sub } })
       if (!fullSub) {
         throw new UserInputError('not a valid sub', { argumentName: 'sub' })
       }
 
-      if (maxBid < 0) {
-        throw new UserInputError('bid must be at least 0', { argumentName: 'maxBid' })
-      }
-
-      if (!location && !remote) {
-        throw new UserInputError('must specify location or remote', { argumentName: 'location' })
-      }
-
-      location = location.toLowerCase() === 'remote' ? undefined : location
+      await ssValidate(jobSchema, data, models)
+      const loc = location.toLowerCase() === 'remote' ? undefined : location
 
       let item
       if (id) {
@@ -711,23 +702,25 @@ export default {
         ([item] = await serialize(models,
           models.$queryRaw(
             `${SELECT} FROM update_job($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) AS "Item"`,
-            Number(id), title, url, text, Number(maxBid), company, location, remote, Number(logo), status)))
+            Number(id), title, url, text, Number(maxBid), company, loc, remote, Number(logo), status)))
       } else {
         ([item] = await serialize(models,
           models.$queryRaw(
             `${SELECT} FROM create_job($1, $2, $3, $4, $5, $6, $7, $8, $9) AS "Item"`,
-            title, url, text, Number(me.id), Number(maxBid), company, location, remote, Number(logo))))
+            title, url, text, Number(me.id), Number(maxBid), company, loc, remote, Number(logo))))
       }
 
       await createMentions(item, models)
 
       return item
     },
-    createComment: async (parent, { text, parentId }, { me, models }) => {
-      return await createItem(parent, { text, parentId }, { me, models })
+    createComment: async (parent, data, { me, models }) => {
+      await ssValidate(commentSchema, data)
+      return await createItem(parent, data, { me, models })
     },
-    updateComment: async (parent, { id, text }, { me, models }) => {
-      return await updateItem(parent, { id, data: { text } }, { me, models })
+    updateComment: async (parent, { id, ...data }, { me, models }) => {
+      await ssValidate(commentSchema, data)
+      return await updateItem(parent, { id, data }, { me, models })
     },
     pollVote: async (parent, { id }, { me, models }) => {
       if (!me) {
@@ -746,9 +739,7 @@ export default {
         throw new AuthenticationError('you must be logged in')
       }
 
-      if (sats <= 0) {
-        throw new UserInputError('sats must be positive', { argumentName: 'sats' })
-      }
+      await ssValidate(amountSchema, { amount: sats })
 
       // disallow self tips
       const [item] = await models.$queryRaw(`

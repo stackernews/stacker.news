@@ -16,8 +16,7 @@ import {
   DROP_COMMAND
 } from 'lexical'
 import { useEffect, useRef } from 'react'
-import * as Yup from 'yup'
-import { ensureProtocol, URL_REGEXP } from '../../lib/url'
+import { ensureProtocol } from '../../lib/url'
 
 import {
   $createImageNode,
@@ -26,15 +25,12 @@ import {
 } from '../nodes/image'
 import { Form, Input, SubmitButton } from '../../components/form'
 import styles from '../styles.module.css'
+import { urlSchema } from '../../lib/validate'
 
 const getDOMSelection = (targetWindow) =>
   typeof window !== 'undefined' ? (targetWindow || window).getSelection() : null
 
 export const INSERT_IMAGE_COMMAND = createCommand('INSERT_IMAGE_COMMAND')
-
-const LinkSchema = Yup.object({
-  url: Yup.string().matches(URL_REGEXP, 'invalid url').required('required')
-})
 
 export function ImageInsertModal ({ onClose, editor }) {
   const inputRef = useRef(null)
@@ -49,7 +45,7 @@ export function ImageInsertModal ({ onClose, editor }) {
         url: '',
         alt: ''
       }}
-      schema={LinkSchema}
+      schema={urlSchema}
       onSubmit={async ({ alt, url }) => {
         editor.dispatchCommand(INSERT_IMAGE_COMMAND, { src: ensureProtocol(url), altText: alt })
         onClose()

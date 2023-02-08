@@ -1,5 +1,4 @@
 import { Form, MarkdownInput, SubmitButton } from '../components/form'
-import * as Yup from 'yup'
 import { gql, useMutation } from '@apollo/client'
 import styles from './reply.module.css'
 import { COMMENTS } from '../fragments/comments'
@@ -9,10 +8,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import FeeButton from './fee-button'
 import { commentsViewedAfterComment } from '../lib/new-comments'
-
-export const CommentSchema = Yup.object({
-  text: Yup.string().required('required').trim()
-})
+import { commentSchema } from '../lib/validate'
 
 export function ReplyOnAnotherPage ({ parentId }) {
   return (
@@ -98,7 +94,7 @@ export default function Reply ({ item, onSuccess, replyOpen, children }) {
           initial={{
             text: ''
           }}
-          schema={CommentSchema}
+          schema={commentSchema}
           onSubmit={async (values, { resetForm }) => {
             const { error } = await createComment({ variables: { ...values, parentId } })
             if (error) {

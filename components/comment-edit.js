@@ -1,15 +1,11 @@
 import { Form, MarkdownInput, SubmitButton } from '../components/form'
-import * as Yup from 'yup'
 import { gql, useMutation } from '@apollo/client'
 import styles from './reply.module.css'
 import TextareaAutosize from 'react-textarea-autosize'
 import { EditFeeButton } from './fee-button'
 import { Button } from 'react-bootstrap'
 import Delete from './delete'
-
-export const CommentSchema = Yup.object({
-  text: Yup.string().required('required').trim()
-})
+import { commentSchema } from '../lib/validate'
 
 export default function CommentEdit ({ comment, editThreshold, onSuccess, onCancel }) {
   const [updateComment] = useMutation(
@@ -38,7 +34,7 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
         initial={{
           text: comment.text
         }}
-        schema={CommentSchema}
+        schema={commentSchema}
         onSubmit={async (values, { resetForm }) => {
           const { error } = await updateComment({ variables: { ...values, id: comment.id } })
           if (error) {

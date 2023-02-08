@@ -6,7 +6,6 @@ import { Button } from 'react-bootstrap'
 import styles from '../../styles/user.module.css'
 import { useState } from 'react'
 import ItemFull from '../../components/item-full'
-import * as Yup from 'yup'
 import { Form, MarkdownInput, SubmitButton } from '../../components/form'
 import TextareaAutosize from 'react-textarea-autosize'
 import { useMe } from '../../components/me'
@@ -14,13 +13,10 @@ import { USER_FULL } from '../../fragments/users'
 import { ITEM_FIELDS } from '../../fragments/items'
 import { getGetServerSideProps } from '../../api/ssrApollo'
 import FeeButton, { EditFeeButton } from '../../components/fee-button'
+import { bioSchema } from '../../lib/validate'
 
 export const getServerSideProps = getGetServerSideProps(USER_FULL, null,
   data => !data.user)
-
-const BioSchema = Yup.object({
-  bio: Yup.string().required('required').trim()
-})
 
 export function BioForm ({ handleSuccess, bio }) {
   const [upsertBio] = useMutation(
@@ -54,7 +50,7 @@ export function BioForm ({ handleSuccess, bio }) {
         initial={{
           bio: bio?.text || ''
         }}
-        schema={BioSchema}
+        schema={bioSchema}
         onSubmit={async values => {
           const { error } = await upsertBio({ variables: values })
           if (error) {

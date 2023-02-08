@@ -1,4 +1,5 @@
-import { AuthenticationError, UserInputError } from 'apollo-server-micro'
+import { AuthenticationError } from 'apollo-server-micro'
+import { inviteSchema, ssValidate } from '../../lib/validate'
 
 export default {
   Query: {
@@ -31,9 +32,7 @@ export default {
         throw new AuthenticationError('you must be logged in')
       }
 
-      if (!gift || (gift && gift < 0)) {
-        throw new UserInputError('gift must be >= 0', { argumentName: 'gift' })
-      }
+      await ssValidate(inviteSchema, { gift, limit })
 
       return await models.invite.create({
         data: { gift, limit, userId: me.id }

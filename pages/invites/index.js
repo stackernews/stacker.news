@@ -1,5 +1,4 @@
 import Layout from '../../components/layout'
-import * as Yup from 'yup'
 import { Form, Input, SubmitButton } from '../../components/form'
 import { InputGroup } from 'react-bootstrap'
 import { gql, useMutation, useQuery } from '@apollo/client'
@@ -7,13 +6,7 @@ import { INVITE_FIELDS } from '../../fragments/invites'
 import AccordianItem from '../../components/accordian-item'
 import styles from '../../styles/invites.module.css'
 import Invite from '../../components/invite'
-
-export const InviteSchema = Yup.object({
-  gift: Yup.number().typeError('must be a number')
-    .min(0, 'must be positive').integer('must be whole').required(),
-  limit: Yup.number().typeError('must be a number')
-    .positive('must be positive').integer('must be whole')
-})
+import { inviteSchema } from '../../lib/validate'
 
 function InviteForm () {
   const [createInvite] = useMutation(
@@ -46,7 +39,7 @@ function InviteForm () {
         gift: 100,
         limit: undefined
       }}
-      schema={InviteSchema}
+      schema={inviteSchema}
       onSubmit={async ({ limit, gift }) => {
         const { error } = await createInvite({
           variables: {

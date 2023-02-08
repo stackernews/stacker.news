@@ -1,17 +1,16 @@
 import { Form, Input, MarkdownInput, SubmitButton } from '../components/form'
 import { useRouter } from 'next/router'
-import * as Yup from 'yup'
 import { gql, useApolloClient, useLazyQuery, useMutation } from '@apollo/client'
 import TextareaAutosize from 'react-textarea-autosize'
 import Countdown from './countdown'
-import AdvPostForm, { AdvPostInitial, AdvPostSchema } from './adv-post-form'
-import { MAX_TITLE_LENGTH } from '../lib/constants'
+import AdvPostForm, { AdvPostInitial } from './adv-post-form'
 import FeeButton, { EditFeeButton } from './fee-button'
 import { ITEM_FIELDS } from '../fragments/items'
 import AccordianItem from './accordian-item'
 import Item from './item'
 import Delete from './delete'
 import { Button } from 'react-bootstrap'
+import { discussionSchema } from '../lib/validate'
 
 export function DiscussionForm ({
   item, editThreshold, titleLabel = 'title',
@@ -20,6 +19,7 @@ export function DiscussionForm ({
 }) {
   const router = useRouter()
   const client = useApolloClient()
+  const schema = discussionSchema(client)
   // const me = useMe()
   const [upsertDiscussion] = useMutation(
     gql`
@@ -42,13 +42,6 @@ export function DiscussionForm ({
     fetchPolicy: 'network-only'
   })
 
-  const DiscussionSchema = Yup.object({
-    title: Yup.string().required('required').trim()
-      .max(MAX_TITLE_LENGTH,
-        ({ max, value }) => `${Math.abs(max - value.length)} too many`),
-    ...AdvPostSchema(client)
-  })
-
   const related = relatedData?.related?.items || []
 
   // const cost = linkOrImg ? 10 : me?.freePosts ? 0 : 1
@@ -58,13 +51,12 @@ export function DiscussionForm ({
       initial={{
         title: item?.title || '',
         text: item?.text || '',
-        suggest: '',
         ...AdvPostInitial({ forward: item?.fwdUser?.name })
       }}
-      schema={DiscussionSchema}
+      schema={schema}
       onSubmit={handleSubmit || (async ({ boost, ...values }) => {
         const { error } = await upsertDiscussion({
-          variables: { id: item?.id, boost: Number(boost), ...values }
+          variables: { id: item?.id, boost: boost ? Number(boost) : undefined, ...values }
         })
         if (error) {
           throw new Error({ message: error.toString() })

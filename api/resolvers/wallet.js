@@ -6,6 +6,7 @@ import lnpr from 'bolt11'
 import { SELECT } from './item'
 import { lnurlPayDescriptionHash } from '../../lib/lnurl'
 import { msatsToSats, msatsToSatsDecimal } from '../../lib/format'
+import { amountSchema, lnAddrSchema, ssValidate, withdrawlSchema } from '../../lib/validate'
 
 export async function getInvoice (parent, { id }, { me, models }) {
   if (!me) {
@@ -193,9 +194,7 @@ export default {
         throw new AuthenticationError('you must be logged in')
       }
 
-      if (!amount || amount <= 0) {
-        throw new UserInputError('amount must be positive', { argumentName: 'amount' })
-      }
+      await ssValidate(amountSchema, { amount })
 
       const user = await models.user.findUnique({ where: { id: me.id } })
 
@@ -222,6 +221,8 @@ export default {
     },
     createWithdrawl: createWithdrawal,
     sendToLnAddr: async (parent, { addr, amount, maxFee }, { me, models, lnd }) => {
+      await ssValidate(lnAddrSchema, { addr, amount, maxFee })
+
       const [name, domain] = addr.split('@')
       let req
       try {
@@ -299,6 +300,7 @@ export default {
 }
 
 async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd }) {
+  await ssValidate(withdrawlSchema, { invoice, maxFee })
   // decode invoice to get amount
   let decoded
   try {

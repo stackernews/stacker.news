@@ -1,34 +1,8 @@
 import AccordianItem from './accordian-item'
-import * as Yup from 'yup'
 import { Input, InputUserSuggest } from './form'
 import { InputGroup } from 'react-bootstrap'
 import { BOOST_MIN } from '../lib/constants'
-import { NAME_QUERY } from '../fragments/users'
 import Info from './info'
-
-export function AdvPostSchema (client) {
-  return {
-    boost: Yup.number().typeError('must be a number')
-      .min(BOOST_MIN, `must be blank or at least ${BOOST_MIN}`).integer('must be whole').test({
-        name: 'boost',
-        test: async boost => {
-          if (!boost || boost % BOOST_MIN === 0) return true
-          return false
-        },
-        message: `must be divisble be ${BOOST_MIN}`
-      }),
-    forward: Yup.string()
-      .test({
-        name: 'name',
-        test: async name => {
-          if (!name || !name.length) return true
-          const { data } = await client.query({ query: NAME_QUERY, variables: { name }, fetchPolicy: 'network-only' })
-          return !data.nameAvailable
-        },
-        message: 'user does not exist'
-      })
-  }
-}
 
 export function AdvPostInitial ({ forward }) {
   return {

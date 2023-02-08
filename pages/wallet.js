@@ -2,7 +2,6 @@ import { useRouter } from 'next/router'
 import { Form, Input, SubmitButton } from '../components/form'
 import Link from 'next/link'
 import Button from 'react-bootstrap/Button'
-import * as Yup from 'yup'
 import { gql, useMutation, useQuery } from '@apollo/client'
 import Qr, { QrSkeleton } from '../components/qr'
 import LayoutCenter from '../components/layout-center'
@@ -14,6 +13,7 @@ import { requestProvider } from 'webln'
 import { Alert } from 'react-bootstrap'
 import { CREATE_WITHDRAWL, SEND_TO_LNADDR } from '../fragments/wallet'
 import { getGetServerSideProps } from '../api/ssrApollo'
+import { amountSchema, lnAddrSchema, withdrawlSchema } from '../lib/validate'
 
 export const getServerSideProps = getGetServerSideProps()
 
@@ -74,11 +74,6 @@ export function WalletForm () {
   }
 }
 
-export const FundSchema = Yup.object({
-  amount: Yup.number().typeError('must be a number').required('required')
-    .positive('must be positive').integer('must be whole')
-})
-
 export function FundForm () {
   const me = useMe()
   const [showAlert, setShowAlert] = useState(true)
@@ -115,7 +110,7 @@ export function FundForm () {
           amount: 1000
         }}
         initialError={error?.toString()}
-        schema={FundSchema}
+        schema={amountSchema}
         onSubmit={async ({ amount }) => {
           const { data } = await createInvoice({ variables: { amount: Number(amount) } })
           router.push(`/invoices/${data.createInvoice.id}`)
@@ -134,12 +129,6 @@ export function FundForm () {
     </>
   )
 }
-
-export const WithdrawlSchema = Yup.object({
-  invoice: Yup.string().required('required'),
-  maxFee: Yup.number().typeError('must be a number').required('required')
-    .min(0, 'must be positive').integer('must be whole')
-})
 
 const MAX_FEE_DEFAULT = 10
 
@@ -179,7 +168,7 @@ export function WithdrawlForm () {
           maxFee: MAX_FEE_DEFAULT
         }}
         initialError={error ? error.toString() : undefined}
-        schema={WithdrawlSchema}
+        schema={withdrawlSchema}
         onSubmit={async ({ invoice, maxFee }) => {
           const { data } = await createWithdrawl({ variables: { invoice, maxFee: Number(maxFee) } })
           router.push(`/withdrawals/${data.createWithdrawl.id}`)
@@ -252,14 +241,6 @@ export function LnWithdrawal () {
   return <LnQRWith {...data.createWith} />
 }
 
-export const LnAddrSchema = Yup.object({
-  // addr: Yup.string().email('address is no good').required('required'),
-  amount: Yup.number().typeError('must be a number').required('required')
-    .positive('must be positive').integer('must be whole'),
-  maxFee: Yup.number().typeError('must be a number').required('required')
-    .min(0, 'must be positive').integer('must be whole')
-})
-
 export function LnAddrWithdrawal () {
   const router = useRouter()
   const [sendToLnAddr, { called, error }] = useMutation(SEND_TO_LNADDR)
@@ -277,7 +258,7 @@ export function LnAddrWithdrawal () {
           amount: 1,
           maxFee: 10
         }}
-        schema={LnAddrSchema}
+        schema={lnAddrSchema}
         initialError={error ? error.toString() : undefined}
         onSubmit={async ({ addr, amount, maxFee }) => {
           const { data } = await sendToLnAddr({ variables: { addr, amount: Number(amount), maxFee: Number(maxFee) } })

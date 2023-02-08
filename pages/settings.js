@@ -1,5 +1,4 @@
 import { Checkbox, Form, Input, SubmitButton, Select, VariableInput } from '../components/form'
-import * as Yup from 'yup'
 import { Alert, Button, InputGroup, Modal } from 'react-bootstrap'
 import LayoutCenter from '../components/layout-center'
 import { useState } from 'react'
@@ -12,54 +11,14 @@ import { LightningAuth, SlashtagsAuth } from '../components/lightning-auth'
 import { SETTINGS, SET_SETTINGS } from '../fragments/users'
 import { useRouter } from 'next/router'
 import Info from '../components/info'
-import { CURRENCY_SYMBOLS } from '../components/price'
 import Link from 'next/link'
 import AccordianItem from '../components/accordian-item'
-import { MAX_NOSTR_RELAY_NUM } from '../lib/constants'
-import { WS_REGEXP } from '../lib/url'
 import { bech32 } from 'bech32'
+import { NOSTR_MAX_RELAY_NUM, NOSTR_PUBKEY_BECH32 } from '../lib/nostr'
+import { emailSchema, lastAuthRemovalSchema, settingsSchema } from '../lib/validate'
+import { SUPPORTED_CURRENCIES } from '../lib/currency'
 
 export const getServerSideProps = getGetServerSideProps(SETTINGS)
-
-const supportedCurrencies = Object.keys(CURRENCY_SYMBOLS)
-const HEX64 = /^[0-9a-fA-F]{64}$/
-const NPUB = /^npub1[02-9ac-hj-np-z]+$/
-
-Yup.addMethod(Yup.string, 'or', function (schemas, msg) {
-  return this.test({
-    name: 'or',
-    message: msg,
-    test: value => {
-      if (Array.isArray(schemas) && schemas.length > 1) {
-        const resee = schemas.map(schema => schema.isValidSync(value))
-        return resee.some(res => res)
-      } else {
-        throw new TypeError('Schemas is not correct array schema')
-      }
-    },
-    exclusive: false
-  })
-})
-
-export const SettingsSchema = Yup.object({
-  tipDefault: Yup.number().typeError('must be a number').required('required')
-    .positive('must be positive').integer('must be whole'),
-  fiatCurrency: Yup.string().required('required').oneOf(supportedCurrencies),
-  nostrPubkey: Yup.string()
-    .or([
-      Yup.string().matches(HEX64, 'must be 64 hex chars'),
-      Yup.string().matches(NPUB, 'invalid bech32 encoding')], 'invalid pubkey'),
-  nostrRelays: Yup.array().of(
-    Yup.string().matches(WS_REGEXP, 'invalid web socket address')
-  ).max(MAX_NOSTR_RELAY_NUM,
-    ({ max, value }) => `${Math.abs(max - value.length)} too many`)
-})
-
-const warningMessage = 'If I logout, even accidentally, I will never be able to access my account again'
-
-export const WarningSchema = Yup.object({
-  warning: Yup.string().matches(warningMessage, 'does not match').required('required')
-})
 
 function bech32encode (hexString) {
   return bech32.encode('npub', bech32.toWords(Buffer.from(hexString, 'hex')))
@@ -110,12 +69,12 @@ export default function Settings ({ data: { settings } }) {
             nostrPubkey: settings?.nostrPubkey ? bech32encode(settings.nostrPubkey) : '',
             nostrRelays: settings?.nostrRelays?.length ? settings?.nostrRelays : ['']
           }}
-          schema={SettingsSchema}
+          schema={settingsSchema}
           onSubmit={async ({ tipDefault, nostrPubkey, nostrRelays, ...values }) => {
             if (nostrPubkey.length === 0) {
               nostrPubkey = null
             } else {
-              if (NPUB.test(nostrPubkey)) {
+              if (NOSTR_PUBKEY_BECH32.test(nostrPubkey)) {
                 const { words } = bech32.decode(nostrPubkey)
                 nostrPubkey = Buffer.from(bech32.fromWords(words)).toString('hex')
               }
@@ -180,7 +139,7 @@ export default function Settings ({ data: { settings } }) {
             label='fiat currency'
             name='fiatCurrency'
             size='sm'
-            items={supportedCurrencies}
+            items={SUPPORTED_CURRENCIES}
             required
           />
           <div className='form-label'>notify me when ...</div>
@@ -292,7 +251,7 @@ export default function Settings ({ data: { settings } }) {
                   name='nostrRelays'
                   clear
                   min={0}
-                  max={MAX_NOSTR_RELAY_NUM}
+                  max={NOSTR_MAX_RELAY_NUM}
                 />
               </>
               }
@@ -367,7 +326,7 @@ function AuthMethods ({ methods }) {
             initial={{
               warning: ''
             }}
-            schema={WarningSchema}
+            schema={lastAuthRemovalSchema}
             onSubmit={async () => {
               await unlinkAuth({ variables: { authType: obstacle } })
               router.push('/settings')
@@ -459,10 +418,6 @@ function AuthMethods ({ methods }) {
   )
 }
 
-export const EmailSchema = Yup.object({
-  email: Yup.string().email('email is no good').required('required')
-})
-
 export function EmailLinkForm ({ callbackUrl }) {
   const [linkUnverifiedEmail] = useMutation(
     gql`
@@ -476,7 +431,7 @@ export function EmailLinkForm ({ callbackUrl }) {
       initial={{
         email: ''
       }}
-      schema={EmailSchema}
+      schema={emailSchema}
       onSubmit={async ({ email }) => {
         // add email to user's account
         // then call signIn

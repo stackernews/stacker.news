@@ -4,10 +4,10 @@ import { $wrapNodeInElement, mergeRegister } from '@lexical/utils'
 import { $createLinkNode, $isLinkNode } from '@lexical/link'
 import { Modal } from 'react-bootstrap'
 import React, { useState, useCallback, useContext, useRef, useEffect } from 'react'
-import * as Yup from 'yup'
 import { Form, Input, SubmitButton } from '../../components/form'
-import { ensureProtocol, URL_REGEXP } from '../../lib/url'
+import { ensureProtocol } from '../../lib/url'
 import { getSelectedNode } from '../utils/selected-node'
+import { namedUrlSchema } from '../../lib/validate'
 
 export const INSERT_LINK_COMMAND = createCommand('INSERT_LINK_COMMAND')
 
@@ -68,11 +68,6 @@ export function useLinkInsert () {
   return { link, setLink }
 }
 
-const LinkSchema = Yup.object({
-  text: Yup.string().required('required'),
-  url: Yup.string().matches(URL_REGEXP, 'invalid url').required('required')
-})
-
 export function LinkInsertModal () {
   const [editor] = useLexicalComposerContext()
   const { link, setLink } = useLinkInsert()
@@ -106,7 +101,7 @@ export function LinkInsertModal () {
             text: link?.text,
             url: link?.url
           }}
-          schema={LinkSchema}
+          schema={namedUrlSchema}
           onSubmit={async ({ text, url }) => {
             editor.dispatchCommand(INSERT_LINK_COMMAND, { url: ensureProtocol(url), text })
             await setLink(null)

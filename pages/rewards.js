@@ -5,9 +5,9 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 import { getGetServerSideProps } from '../api/ssrApollo'
 import { Form, Input, SubmitButton } from '../components/form'
 import LayoutCenter from '../components/layout-center'
-import * as Yup from 'yup'
 import { useMutation, useQuery } from '@apollo/client'
 import Link from 'next/link'
+import { amountSchema } from '../lib/validate'
 
 const REWARDS = gql`
 {
@@ -80,11 +80,6 @@ function GrowthPieChart ({ data }) {
   )
 }
 
-export const DonateSchema = Yup.object({
-  amount: Yup.number().typeError('must be a number').required('required')
-    .positive('must be positive').integer('must be whole')
-})
-
 export function DonateButton () {
   const [show, setShow] = useState(false)
   const inputRef = useRef(null)
@@ -113,7 +108,7 @@ export function DonateButton () {
             initial={{
               amount: 1000
             }}
-            schema={DonateSchema}
+            schema={amountSchema}
             onSubmit={async ({ amount }) => {
               await donateToRewards({
                 variables: {

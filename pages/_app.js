@@ -13,6 +13,7 @@ import { useEffect } from 'react'
 import Moon from '../svgs/moon-fill.svg'
 import Layout from '../components/layout'
 import { ShowModalProvider } from '../components/modal'
+import ErrorBoundary from '../components/error-boundary'
 
 function CSRWrapper ({ Component, apollo, ...props }) {
   const { data, error } = useQuery(gql`${apollo.query}`, { variables: apollo.variables, fetchPolicy: 'cache-first' })
@@ -82,23 +83,25 @@ function MyApp ({ Component, pageProps: { session, ...props } }) {
       <Head>
         <meta name='viewport' content='initial-scale=1.0, width=device-width' />
       </Head>
-      <PlausibleProvider domain='stacker.news' trackOutboundLinks>
-        <Provider session={session}>
-          <ApolloProvider client={client}>
-            <MeProvider me={me}>
-              <PriceProvider price={price}>
-                <LightningProvider>
-                  <ShowModalProvider>
-                    {data || !apollo?.query
-                      ? <Component {...props} />
-                      : <CSRWrapper Component={Component} {...props} />}
-                  </ShowModalProvider>
-                </LightningProvider>
-              </PriceProvider>
-            </MeProvider>
-          </ApolloProvider>
-        </Provider>
-      </PlausibleProvider>
+      <ErrorBoundary>
+        <PlausibleProvider domain='stacker.news' trackOutboundLinks>
+          <Provider session={session}>
+            <ApolloProvider client={client}>
+              <MeProvider me={me}>
+                <PriceProvider price={price}>
+                  <LightningProvider>
+                    <ShowModalProvider>
+                      {data || !apollo?.query
+                        ? <Component {...props} />
+                        : <CSRWrapper Component={Component} {...props} />}
+                    </ShowModalProvider>
+                  </LightningProvider>
+                </PriceProvider>
+              </MeProvider>
+            </ApolloProvider>
+          </Provider>
+        </PlausibleProvider>
+      </ErrorBoundary>
     </>
   )
 }

@@ -10,6 +10,13 @@ export default function TopHeader ({ cat }) {
   const top = async values => {
     const { what, when, ...query } = values
 
+    if (what === 'cowboys') {
+      await router.push({
+        pathname: `/top/${what}`
+      })
+      return
+    }
+
     if (typeof query.sort !== 'undefined') {
       if (query.sort === '' ||
           (what === 'users' && !USER_SORTS.includes(query.sort)) ||
@@ -19,7 +26,7 @@ export default function TopHeader ({ cat }) {
     }
 
     await router.push({
-      pathname: `/top/${what}/${when}`,
+      pathname: `/top/${what}/${when || 'day'}`,
       query
     })
   }
@@ -42,24 +49,28 @@ export default function TopHeader ({ cat }) {
             onChange={(formik, e) => top({ ...formik?.values, what: e.target.value })}
             name='what'
             size='sm'
-            items={['posts', 'comments', 'users']}
+            items={['posts', 'comments', 'users', 'cowboys']}
           />
-          by
-          <Select
-            groupClassName='mx-2 mb-0'
-            onChange={(formik, e) => top({ ...formik?.values, sort: e.target.value })}
-            name='sort'
-            size='sm'
-            items={cat === 'users' ? USER_SORTS : ITEM_SORTS}
-          />
-          for
-          <Select
-            groupClassName='mb-0 ml-2'
-            onChange={(formik, e) => top({ ...formik?.values, when: e.target.value })}
-            name='when'
-            size='sm'
-            items={['day', 'week', 'month', 'year', 'forever']}
-          />
+          {cat !== 'cowboys' &&
+            <>
+              by
+              <Select
+                groupClassName='mx-2 mb-0'
+                onChange={(formik, e) => top({ ...formik?.values, sort: e.target.value })}
+                name='sort'
+                size='sm'
+                items={cat === 'users' ? USER_SORTS : ITEM_SORTS}
+              />
+              for
+              <Select
+                groupClassName='mb-0 ml-2'
+                onChange={(formik, e) => top({ ...formik?.values, when: e.target.value })}
+                name='when'
+                size='sm'
+                items={['day', 'week', 'month', 'year', 'forever']}
+              />
+            </>}
+
         </div>
       </Form>
     </div>

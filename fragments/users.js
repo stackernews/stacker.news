@@ -151,6 +151,24 @@ export const TOP_USERS = gql`
   }
 `
 
+export const TOP_COWBOYS = gql`
+  query TopCowboys($cursor: String) {
+    topCowboys(cursor: $cursor) {
+      users {
+        name
+        streak
+        photoId
+        stacked(when: "forever")
+        spent(when: "forever")
+        ncomments(when: "forever")
+        nitems(when: "forever")
+        referrals(when: "forever")
+      }
+      cursor
+    }
+  }
+`
+
 export const USER_FULL = gql`
   ${USER_FIELDS}
   ${ITEM_WITH_COMMENTS}

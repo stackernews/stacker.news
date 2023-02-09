@@ -8,6 +8,7 @@ export default gql`
     users: [User!]
     nameAvailable(name: String!): Boolean!
     topUsers(cursor: String, when: String, sort: String): Users
+    topCowboys(cursor: String): Users
     searchUsers(q: String!, limit: Int, similarity: Float): [User!]!
     hasNewNotes: Boolean!
   }

@@ -90,6 +90,20 @@ export default {
 
       return user.name?.toUpperCase() === name?.toUpperCase() || !(await models.user.findUnique({ where: { name } }))
     },
+    topCowboys: async (parent, { cursor }, { models, me }) => {
+      const decodedCursor = decodeCursor(cursor)
+      const users = await models.$queryRaw(`
+        SELECT users.*
+          FROM users
+          WHERE NOT "hideFromTopUsers" AND streak IS NOT NULL
+          ORDER BY streak DESC, created_at ASC
+          OFFSET $1
+          LIMIT ${LIMIT}`, decodedCursor.offset)
+      return {
+        cursor: users.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
+        users
+      }
+    },
     topUsers: async (parent, { cursor, when, sort }, { models, me }) => {
       const decodedCursor = decodeCursor(cursor)
       let users
@@ -151,7 +165,7 @@ export default {
           LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
       } else {
         users = await models.$queryRaw(`
-          SELECT u.id, u.name, u."photoId", floor(sum(amount)/1000) as stacked
+          SELECT u.id, u.name, u.streak, u."photoId", floor(sum(amount)/1000) as stacked
           FROM
           ((SELECT users.*, "ItemAct".msats as amount
             FROM "ItemAct"
@@ -172,7 +186,7 @@ export default {
               JOIN users on users.id = "ReferralAct"."referrerId"
               WHERE "ReferralAct".msats > 0 ${within('ReferralAct', when)}
               AND NOT users."hideFromTopUsers")) u
-          GROUP BY u.id, u.name, u.created_at, u."photoId"
+          GROUP BY u.id, u.name, u.created_at, u."photoId", u.streak
           ORDER BY stacked DESC NULLS LAST, created_at DESC
           OFFSET $2
           LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)

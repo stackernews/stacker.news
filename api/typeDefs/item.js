@@ -85,6 +85,7 @@ export default gql`
     root: Item
     user: User!
     userId: Int!
+    fwdUserId: Int
     fwdUser: User
     depth: Int!
     mine: Boolean!

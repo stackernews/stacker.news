@@ -14,6 +14,7 @@ export const ITEM_FIELDS = gql`
       streak
       id
     }
+    fwdUserId
     position
     sats
     upvotes

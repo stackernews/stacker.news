@@ -77,7 +77,7 @@ export default function UpVote ({ item, className }) {
       }`
   )
 
-  const fwd2me = me && me?.id === item?.fwdUser?.id
+  const fwd2me = me && Number(me?.id) === item?.fwdUserId
 
   const setVoteShow = (yes) => {
     if (!me) return

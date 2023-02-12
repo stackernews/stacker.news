@@ -86,7 +86,6 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
                   </span>}
               </a>
             </Link>
-            <Bookmark item={item}/>
             {item.url &&
               <>
                 {/*  eslint-disable-next-line */}
@@ -158,6 +157,7 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
         </div>
         {toc &&
           <>
+            <Bookmark item={item}/>
             <Share item={item} />
             <Toc text={item.text} />
           </>}

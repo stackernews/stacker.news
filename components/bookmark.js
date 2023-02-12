@@ -21,6 +21,8 @@ export default function Bookmark ({ item: { id, meBookmark } }) {
     }
   )
   return (
-    <StarIcon className={`${meBookmark ? 'fill-success' : ''} ml-1 theme`} width={16} height={16} onClick={() => bookmarkItem({ variables: { id }})} />
+    <div className='d-flex align-items-center'>
+      <StarIcon className={`${meBookmark ? 'fill-success' : ''} theme`} onClick={() => bookmarkItem({ variables: { id }})} />
+    </div>
   )
 }

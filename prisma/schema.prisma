@@ -533,4 +533,5 @@ model Bookmark {
   itemId    Int
   createdAt DateTime @default(now()) @map(name: "created_at")
   @@id([userId, itemId])
+  @@index([createdAt])
 }

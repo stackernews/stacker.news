@@ -24,6 +24,7 @@ export const ITEM_FIELDS = gql`
     path
     meSats
     meDontLike
+    meBookmark
     outlawed
     freebie
     ncomments

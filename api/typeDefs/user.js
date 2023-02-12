@@ -45,6 +45,7 @@ export default gql`
     name: String
     nitems(when: String): Int!
     ncomments(when: String): Int!
+    nbookmarks(when: String): Int!
     stacked(when: String): Int!
     spent(when: String): Int!
     referrals(when: String): Int!

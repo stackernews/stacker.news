@@ -24,6 +24,7 @@ import { abbrNum } from '../lib/format'
 import Share from './share'
 import { DeleteDropdown } from './delete'
 import CowboyHat from './cowboy-hat'
+import Bookmark from './bookmark'
 
 function Parent ({ item, rootText }) {
   const ParentFrag = () => (
@@ -150,6 +151,7 @@ export default function Comment ({
                 <ActionTooltip notForm overlayText={`${abbrNum(item.root.bounty)} sats paid`}>
                   <BountyIcon className={`${styles.bountyIcon} ${'fill-success vertical-align-middle'}`} height={16} width={16} />
                 </ActionTooltip>}
+              <Bookmark item={item}/>
               {me && !item.meSats && !item.meDontLike && !item.mine && !item.deletedAt && <DontLikeThis id={item.id} />}
               {(item.outlawed && <Link href='/outlawed'><a>{' '}<Badge className={itemStyles.newComment} variant={null}>OUTLAWED</Badge></a></Link>) ||
                (item.freebie && !item.mine && (me?.greeterMode) && <Link href='/freebie'><a>{' '}<Badge className={itemStyles.newComment} variant={null}>FREEBIE</Badge></a></Link>)}

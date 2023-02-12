@@ -20,6 +20,7 @@ import Share from './share'
 import { abbrNum } from '../lib/format'
 import { DeleteDropdown } from './delete'
 import CowboyHat from './cowboy-hat'
+import Bookmark from './bookmark'
 
 export function SearchTitle ({ title }) {
   return reactStringReplace(title, /:high\[([^\]]+)\]/g, (match, i) => {
@@ -85,6 +86,7 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
                   </span>}
               </a>
             </Link>
+            <Bookmark item={item}/>
             {item.url &&
               <>
                 {/*  eslint-disable-next-line */}

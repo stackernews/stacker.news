@@ -1,6 +1,6 @@
 import { useMutation } from '@apollo/client'
 import { gql } from 'apollo-server-micro'
-import StarIcon from '../svgs/star.svg'
+import BookmarkIcon from '../svgs/bookmark.svg'
 
 export default function Bookmark ({ item: { id, meBookmark } }) {
   const [bookmarkItem] = useMutation(
@@ -22,7 +22,7 @@ export default function Bookmark ({ item: { id, meBookmark } }) {
   )
   return (
     <div className='d-flex align-items-center'>
-      <StarIcon className={`${meBookmark ? 'fill-success' : ''} theme`} onClick={() => bookmarkItem({ variables: { id }})} />
+      <BookmarkIcon className={`${meBookmark ? 'fill-success' : ''} theme`} onClick={() => bookmarkItem({ variables: { id }})} />
     </div>
   )
 }

@@ -1,7 +1,7 @@
 import models from '../../../../api/models'
 import lnd from '../../../../api/lnd'
 import { createInvoice } from 'ln-service'
-import { lnurlPayDescriptionHashForUser } from '../../../../lib/lnurl'
+import { lnurlPayDescriptionHashForUser, lnurlPayMetadataString } from '../../../../lib/lnurl'
 import serialize from '../../../../api/resolvers/serial'
 import * as secp256k1 from '@noble/secp256k1'
 import { createHash } from 'crypto'
@@ -21,14 +21,14 @@ export default async ({ query: { username, amount, nostr } }, res) => {
       const hasETag = note.tags?.filter(t => t[0] === 'e').length <= 1
       if (await secp256k1.schnorr.verify(note.sig, note.id, note.pubkey) &&
       hasPTag && hasETag) {
-        description = user.hideInvoiceDesc ? undefined : `${amount} msats for @${user.name} on stacker.news via NIP-57`
+        description = noteStr
         descriptionHash = createHash('sha256').update(noteStr).digest('hex')
       } else {
         res.status(400).json({ status: 'ERROR', reason: 'invalid NIP-57 note' })
         return
       }
     } else {
-      description = user.hideInvoiceDesc ? undefined : `${amount} msats for @${user.name} on stacker.news`
+      description = user.hideInvoiceDesc ? undefined : lnurlPayMetadataString(username)
       descriptionHash = lnurlPayDescriptionHashForUser(username)
     }
 

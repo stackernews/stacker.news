@@ -1,14 +1,9 @@
 const serialize = require('../api/resolvers/serial')
-const { authenticatedLndGrpc, getInvoice, getPayment } = require('ln-service')
+const { getInvoice, getPayment } = require('ln-service')
 
-const { lnd } = authenticatedLndGrpc({
-  cert: process.env.LND_CERT,
-  macaroon: process.env.LND_MACAROON,
-  socket: process.env.LND_SOCKET
-})
 const walletOptions = { startAfter: 5, retryLimit: 21, retryBackoff: true }
 
-function checkInvoice ({ boss, models }) {
+function checkInvoice ({ boss, models, lnd }) {
   return async function ({ data: { hash } }) {
     let inv
     try {
@@ -24,6 +19,10 @@ function checkInvoice ({ boss, models }) {
     if (inv.is_confirmed) {
       await serialize(models,
         models.$executeRaw`SELECT confirm_invoice(${inv.id}, ${Number(inv.received_mtokens)})`)
+      try {
+        JSON.parse(inv.description)
+        await boss.send('nip57', { hash })
+      } catch {}
     } else if (inv.is_canceled) {
     // mark as cancelled
       await serialize(models,
@@ -42,7 +41,7 @@ function checkInvoice ({ boss, models }) {
   }
 }
 
-function checkWithdrawal ({ boss, models }) {
+function checkWithdrawal ({ boss, models, lnd }) {
   return async function ({ data: { id, hash } }) {
     let wdrwl
     let notFound = false

@@ -11,7 +11,10 @@ const { ApolloClient, HttpLink, InMemoryCache } = require('@apollo/client')
 const { indexItem, indexAllItems } = require('./search')
 const { timestampItem } = require('./ots')
 const { computeStreaks, checkStreak } = require('./streak')
+const { nip57 } = require('./nostr')
+
 const fetch = require('cross-fetch')
+const { authenticatedLndGrpc } = require('ln-service')
 
 async function work () {
   const boss = new PgBoss(process.env.DATABASE_URL)
@@ -34,7 +37,13 @@ async function work () {
     }
   })
 
-  const args = { boss, models, apollo }
+  const { lnd } = authenticatedLndGrpc({
+    cert: process.env.LND_CERT,
+    macaroon: process.env.LND_MACAROON,
+    socket: process.env.LND_SOCKET
+  })
+
+  const args = { boss, models, apollo, lnd }
 
   boss.on('error', error => console.error(error))
 
@@ -50,6 +59,7 @@ async function work () {
   await boss.work('earn', earn(args))
   await boss.work('streak', computeStreaks(args))
   await boss.work('checkStreak', checkStreak(args))
+  await boss.work('nip57', nip57(args))
 
   console.log('working jobs')
 }

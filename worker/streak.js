@@ -21,7 +21,7 @@ function computeStreaks ({ models }) {
             WHERE (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')::date >= (now() AT TIME ZONE 'America/Chicago' - interval '1 day')::date
         )) spending
         GROUP BY "userId"
-        HAVING sum(sats_spent) >= ${STREAK_THRESHOLD}
+        HAVING sum(sats_spent) >= 100
       ), existing_streaks (id, started_at) AS (
         SELECT "userId", "startedAt"
         FROM "Streak"
@@ -58,7 +58,7 @@ function computeStreaks ({ models }) {
       UPDATE "Streak"
       SET "endedAt" = (now() AT TIME ZONE 'America/Chicago' - interval '1 day')::date, updated_at = now_utc()
       FROM ending_streaks
-      WHERE ending_streaks.id = "Streak"."userId"`)
+      WHERE ending_streaks.id = "Streak"."userId" AND "endedAt" IS NULL`)
 
     console.log('done computing streaks')
   }

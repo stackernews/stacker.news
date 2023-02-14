@@ -11,6 +11,7 @@
   "dependencies": {
     "@apollo/client": "^3.7.1",
     "@lexical/react": "^0.7.5",
+    "@noble/secp256k1": "^1.7.1",
     "@opensearch-project/opensearch": "^1.1.0",
     "@prisma/client": "^2.30.3",
     "@synonymdev/slashtags-auth": "^1.0.0-alpha.5",

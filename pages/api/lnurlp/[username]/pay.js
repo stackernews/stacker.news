@@ -15,7 +15,7 @@ export default async ({ query: { username, amount, nostr } }, res) => {
   // if nostr, decode, validate sig, check tags, set description hash
     let description, descriptionHash
     if (nostr) {
-      const noteStr = decodeURI(nostr)
+      const noteStr = decodeURIComponent(nostr)
       const note = JSON.parse(noteStr)
       const hasPTag = note.tags?.filter(t => t[0] === 'p').length >= 1
       const hasETag = note.tags?.filter(t => t[0] === 'e').length <= 1

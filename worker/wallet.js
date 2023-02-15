@@ -19,10 +19,7 @@ function checkInvoice ({ boss, models, lnd }) {
     if (inv.is_confirmed) {
       await serialize(models,
         models.$executeRaw`SELECT confirm_invoice(${inv.id}, ${Number(inv.received_mtokens)})`)
-      try {
-        JSON.parse(inv.description)
-        await boss.send('nip57', { hash })
-      } catch {}
+      await boss.send('nip57', { hash })
     } else if (inv.is_canceled) {
     // mark as cancelled
       await serialize(models,

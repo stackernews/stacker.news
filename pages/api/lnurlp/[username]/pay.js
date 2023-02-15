@@ -1,7 +1,7 @@
 import models from '../../../../api/models'
 import lnd from '../../../../api/lnd'
 import { createInvoice } from 'ln-service'
-import { lnurlPayDescriptionHashForUser, lnurlPayMetadataString } from '../../../../lib/lnurl'
+import { lnurlPayDescriptionHashForUser } from '../../../../lib/lnurl'
 import serialize from '../../../../api/resolvers/serial'
 import * as secp256k1 from '@noble/secp256k1'
 import { createHash } from 'crypto'
@@ -13,22 +13,22 @@ export default async ({ query: { username, amount, nostr } }, res) => {
   }
   try {
   // if nostr, decode, validate sig, check tags, set description hash
-    let description, descriptionHash
+    let description, descriptionHash, noteStr
     if (nostr) {
-      const noteStr = decodeURIComponent(nostr)
+      noteStr = decodeURIComponent(nostr)
       const note = JSON.parse(noteStr)
       const hasPTag = note.tags?.filter(t => t[0] === 'p').length >= 1
       const hasETag = note.tags?.filter(t => t[0] === 'e').length <= 1
       if (await secp256k1.schnorr.verify(note.sig, note.id, note.pubkey) &&
       hasPTag && hasETag) {
-        description = noteStr
+        description = user.hideInvoiceDesc ? undefined : 'zap'
         descriptionHash = createHash('sha256').update(noteStr).digest('hex')
       } else {
         res.status(400).json({ status: 'ERROR', reason: 'invalid NIP-57 note' })
         return
       }
     } else {
-      description = user.hideInvoiceDesc ? undefined : lnurlPayMetadataString(username)
+      description = user.hideInvoiceDesc ? undefined : `Funding @${username} on stacker.news`
       descriptionHash = lnurlPayDescriptionHashForUser(username)
     }
 
@@ -48,7 +48,7 @@ export default async ({ query: { username, amount, nostr } }, res) => {
 
     await serialize(models,
       models.$queryRaw`SELECT * FROM create_invoice(${invoice.id}, ${invoice.request},
-        ${expiresAt}, ${Number(amount)}, ${user.id})`)
+        ${expiresAt}, ${Number(amount)}, ${user.id}, ${noteStr || description})`)
 
     return res.status(200).json({
       pr: invoice.request,

@@ -442,6 +442,7 @@ model Invoice {
 
   hash           String    @unique
   bolt11         String
+  desc           String?
   expiresAt      DateTime
   confirmedAt    DateTime?
   msatsRequested BigInt

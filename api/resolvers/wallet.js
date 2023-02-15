@@ -200,7 +200,7 @@ export default {
 
       // set expires at to 3 hours into future
       const expiresAt = new Date(new Date().setHours(new Date().getHours() + 3))
-      const description = `${amount} sats for @${user.name} on stacker.news`
+      const description = `Funding @${user.name} on stacker.news`
       try {
         const invoice = await createInvoice({
           description: user.hideInvoiceDesc ? undefined : description,
@@ -211,7 +211,7 @@ export default {
 
         const [inv] = await serialize(models,
           models.$queryRaw`SELECT * FROM create_invoice(${invoice.id}, ${invoice.request},
-            ${expiresAt}, ${amount * 1000}, ${me.id})`)
+            ${expiresAt}, ${amount * 1000}, ${me.id}, ${description})`)
 
         return inv
       } catch (error) {

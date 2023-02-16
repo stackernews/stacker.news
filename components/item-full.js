@@ -17,6 +17,9 @@ import { commentsViewed } from '../lib/new-comments'
 import Related from './related'
 import PastBounties from './past-bounties'
 import Check from '../svgs/check-double-line.svg'
+import Share from './share'
+import Toc from './table-of-contents'
+import Link from 'next/link'
 
 function BioItem ({ item, handleClick }) {
   const me = useMe()
@@ -91,11 +94,32 @@ function ItemEmbed ({ item }) {
   return null
 }
 
+function FwdUser ({ user }) {
+  return (
+    <div className={styles.other}>
+      100% of tips are forwarded to{' '}
+      <Link href={`/${user.name}`} passHref>
+        <a>@{user.name}</a>
+      </Link>
+    </div>
+  )
+}
+
 function TopLevelItem ({ item, noReply, ...props }) {
   const ItemComponent = item.isJob ? ItemJob : Item
 
   return (
-    <ItemComponent item={item} toc showFwdUser {...props}>
+    <ItemComponent
+      item={item}
+      right={
+        <>
+          <Share item={item} />
+          <Toc text={item.text} />
+        </>
+      }
+      belowTitle={item.fwdUser && <FwdUser user={item.fwdUser} />}
+      {...props}
+    >
       <div className={styles.fullItemContainer}>
         {item.text && <ItemText item={item} />}
         {item.url && <ItemEmbed item={item} />}

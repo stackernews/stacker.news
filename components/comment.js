@@ -4,27 +4,20 @@ import Text from './text'
 import Link from 'next/link'
 import Reply, { ReplyOnAnotherPage } from './reply'
 import { useEffect, useRef, useState } from 'react'
-import { timeSince } from '../lib/time'
 import UpVote from './upvote'
 import Eye from '../svgs/eye-fill.svg'
 import EyeClose from '../svgs/eye-close-line.svg'
 import { useRouter } from 'next/router'
 import CommentEdit from './comment-edit'
-import Countdown from './countdown'
 import { COMMENT_DEPTH_LIMIT, NOFOLLOW_LIMIT } from '../lib/constants'
 import { ignoreClick } from '../lib/clicks'
 import PayBounty from './pay-bounty'
 import BountyIcon from '../svgs/bounty-bag.svg'
 import ActionTooltip from './action-tooltip'
-import { useMe } from './me'
-import DontLikeThis from './dont-link-this'
 import Flag from '../svgs/flag-fill.svg'
-import { Badge } from 'react-bootstrap'
 import { abbrNum } from '../lib/format'
 import Share from './share'
-import { DeleteDropdown } from './delete'
-import CowboyHat from './cowboy-hat'
-import Bookmark from './bookmark'
+import ItemInfo from './item-info'
 
 function Parent ({ item, rootText }) {
   const ParentFrag = () => (
@@ -90,12 +83,7 @@ export default function Comment ({
   const [edit, setEdit] = useState()
   const [collapse, setCollapse] = useState(false)
   const ref = useRef(null)
-  const me = useMe()
   const router = useRouter()
-  const mine = item.mine
-  const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
-  const [canEdit, setCanEdit] =
-    useState(mine && (Date.now() < editThreshold))
 
   useEffect(() => {
     if (Number(router.query.commentId) === Number(item.id)) {
@@ -124,56 +112,23 @@ export default function Comment ({
           : <UpVote item={item} className={styles.upvote} />}
         <div className={`${itemStyles.hunk} ${styles.hunk}`}>
           <div className='d-flex align-items-center'>
-            <div className={`${itemStyles.other} ${styles.other}`}>
-              <span title={`from ${item.upvotes} users ${item.mine ? `\\ ${item.meSats} sats to post` : `(${item.meSats} sats from me)`}`}>{abbrNum(item.sats)} sats</span>
-              <span> \ </span>
-              {item.boost > 0 &&
+            <ItemInfo
+              item={item}
+              commentsText='replies'
+              className={`${itemStyles.other} ${styles.other}`}
+              embellishUser={op && <span className='text-boost font-weight-bold ml-1'>OP</span>}
+              extraInfo={
                 <>
-                  <span>{abbrNum(item.boost)} boost</span>
-                  <span> \ </span>
-                </>}
-              <Link href={`/items/${item.id}`} passHref>
-                <a title={`${item.commentSats} sats`} className='text-reset'>{item.ncomments} replies</a>
-              </Link>
-              <span> \ </span>
-              <Link href={`/${item.user.name}`} passHref>
-                <a className='d-inline-flex align-items-center'>
-                  @{item.user.name}<CowboyHat className='ml-1 fill-grey' streak={item.user.streak} height={12} width={12} />
-                  {op && <span className='text-boost font-weight-bold ml-1'>OP</span>}
-                </a>
-              </Link>
-              <span> </span>
-              <Link href={`/items/${item.id}`} passHref>
-                <a title={item.createdAt} className='text-reset'>{timeSince(new Date(item.createdAt))}</a>
-              </Link>
-              {includeParent && <Parent item={item} rootText={rootText} />}
-              {bountyPaid &&
-                <ActionTooltip notForm overlayText={`${abbrNum(item.root.bounty)} sats paid`}>
-                  <BountyIcon className={`${styles.bountyIcon} ${'fill-success vertical-align-middle'}`} height={16} width={16} />
-                </ActionTooltip>}
-              {me && !item.meSats && !item.meDontLike && !item.mine && !item.deletedAt && <DontLikeThis id={item.id} />}
-              {(item.outlawed && <Link href='/outlawed'><a>{' '}<Badge className={itemStyles.newComment} variant={null}>OUTLAWED</Badge></a></Link>) ||
-               (item.freebie && !item.mine && (me?.greeterMode) && <Link href='/freebie'><a>{' '}<Badge className={itemStyles.newComment} variant={null}>FREEBIE</Badge></a></Link>)}
-              {canEdit && !item.deletedAt &&
-                <>
-                  <span> \ </span>
-                  <div
-                    className={styles.edit}
-                    onClick={e => {
-                      setEdit(!edit)
-                    }}
-                  >
-                    {edit ? 'cancel' : 'edit'}
-                    <Countdown
-                      date={editThreshold}
-                      onComplete={() => {
-                        setCanEdit(false)
-                      }}
-                    />
-                  </div>
-                </>}
-              {mine && !canEdit && !item.deletedAt && <DeleteDropdown itemId={item.id} />}
-            </div>
+                  {includeParent && <Parent item={item} rootText={rootText} />}
+                  {bountyPaid &&
+                    <ActionTooltip notForm overlayText={`${abbrNum(item.root.bounty)} sats paid`}>
+                      <BountyIcon className={`${styles.bountyIcon} ${'fill-success vertical-align-middle'}`} height={16} width={16} />
+                    </ActionTooltip>}
+                </>
+              }
+              onEdit={e => { setEdit(!edit) }}
+              editText={edit ? 'cancel' : 'edit'}
+            />
             {!includeParent && (collapse
               ? <Eye
                   className={styles.collapser} height={10} width={10} onClick={() => {
@@ -188,12 +143,10 @@ export default function Comment ({
                   }}
                 />)}
             {topLevel && (
-              <span className="d-flex ml-auto align-items-center">
-                <Bookmark item={item} />
+              <span className='d-flex ml-auto align-items-center'>
                 <Share item={item} />
               </span>
-            )
-          }
+            )}
           </div>
           {edit
             ? (
@@ -201,7 +154,6 @@ export default function Comment ({
                 comment={item}
                 onSuccess={() => {
                   setEdit(!edit)
-                  setCanEdit(mine && (Date.now() < editThreshold))
                 }}
               />
               )

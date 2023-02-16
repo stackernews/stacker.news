@@ -4,7 +4,6 @@ import { Table } from 'react-bootstrap'
 import { getGetServerSideProps } from '../api/ssrApollo'
 import Layout from '../components/layout'
 import MoreFooter from '../components/more-footer'
-import UserHeader from '../components/user-header'
 import { WALLET_HISTORY } from '../fragments/wallet'
 import styles from '../styles/satistics.module.css'
 import Moon from '../svgs/moon-fill.svg'
@@ -138,7 +137,7 @@ function Detail ({ fact }) {
   return <div className={styles.commentWrapper}><Comment item={fact.item} includeParent noReply truncate /></div>
 }
 
-export default function Satistics ({ data: { me, walletHistory: { facts, cursor } } }) {
+export default function Satistics ({ data: { walletHistory: { facts, cursor } } }) {
   const router = useRouter()
   const { data, fetchMore } = useQuery(WALLET_HISTORY, { variables: { inc: router.query.inc } })
 
@@ -176,7 +175,7 @@ export default function Satistics ({ data: { me, walletHistory: { facts, cursor 
   }
 
   if (data) {
-    ({ me, walletHistory: { facts, cursor } } = data)
+    ({ walletHistory: { facts, cursor } } = data)
   }
 
   const SatisticsSkeleton = () => (
@@ -185,9 +184,9 @@ export default function Satistics ({ data: { me, walletHistory: { facts, cursor 
     </div>)
 
   return (
-    <Layout noSeo>
-      <UserHeader user={me} />
+    <Layout>
       <div className='mt-3'>
+        <h2 className='text-center'>satistics</h2>
         <Form
           initial={{
             invoice: included('invoice'),

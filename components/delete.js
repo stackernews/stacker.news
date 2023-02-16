@@ -3,7 +3,6 @@ import { gql } from 'apollo-server-micro'
 import { useState } from 'react'
 import { Alert, Button, Dropdown } from 'react-bootstrap'
 import { useShowModal } from './modal'
-import MoreIcon from '../svgs/more-fill.svg'
 
 export default function Delete ({ itemId, children, onDelete }) {
   const showModal = useShowModal()
@@ -81,22 +80,12 @@ function DeleteConfirm ({ onConfirm }) {
   )
 }
 
-export function DeleteDropdown (props) {
+export function DeleteDropdownItem (props) {
   return (
-    <Dropdown className='pointer' as='span'>
-      <Dropdown.Toggle variant='success' id='dropdown-basic' as='a'>
-        <MoreIcon className='fill-grey ml-1' height={16} width={16} />
-      </Dropdown.Toggle>
-
-      <Dropdown.Menu>
-        <Delete {...props}>
-          <Dropdown.Item
-            className='text-center'
-          >
-            delete
-          </Dropdown.Item>
-        </Delete>
-      </Dropdown.Menu>
-    </Dropdown>
+    <Delete {...props}>
+      <Dropdown.Item>
+        delete
+      </Dropdown.Item>
+    </Delete>
   )
 }

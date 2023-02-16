@@ -1,10 +1,9 @@
 import { gql, useMutation } from '@apollo/client'
 import { Dropdown } from 'react-bootstrap'
-import MoreIcon from '../svgs/more-fill.svg'
 import FundError from './fund-error'
 import { useShowModal } from './modal'
 
-export default function DontLikeThis ({ id }) {
+export default function DontLikeThisDropdownItem ({ id }) {
   const showModal = useShowModal()
 
   const [dontLikeThis] = useMutation(
@@ -26,32 +25,23 @@ export default function DontLikeThis ({ id }) {
   )
 
   return (
-    <Dropdown className='pointer' as='span'>
-      <Dropdown.Toggle variant='success' id='dropdown-basic' as='a'>
-        <MoreIcon className='fill-grey ml-1' height={16} width={16} />
-      </Dropdown.Toggle>
-
-      <Dropdown.Menu>
-        <Dropdown.Item
-          className='text-center'
-          onClick={async () => {
-            try {
-              await dontLikeThis({
-                variables: { id },
-                optimisticResponse: { dontLikeThis: true }
-              })
-            } catch (error) {
-              if (error.toString().includes('insufficient funds')) {
-                showModal(onClose => {
-                  return <FundError onClose={onClose} />
-                })
-              }
-            }
-          }}
-        >
-          flag
-        </Dropdown.Item>
-      </Dropdown.Menu>
-    </Dropdown>
+    <Dropdown.Item
+      onClick={async () => {
+        try {
+          await dontLikeThis({
+            variables: { id },
+            optimisticResponse: { dontLikeThis: true }
+          })
+        } catch (error) {
+          if (error.toString().includes('insufficient funds')) {
+            showModal(onClose => {
+              return <FundError onClose={onClose} />
+            })
+          }
+        }
+      }}
+    >
+      flag
+    </Dropdown.Item>
   )
 }

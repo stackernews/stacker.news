@@ -4,7 +4,7 @@ export default gql`
   extend type Query {
     items(sub: String, sort: String, type: String, cursor: String, name: String, within: String): Items
     moreFlatComments(sort: String!, cursor: String, name: String, within: String): Comments
-    moreBookmarks(cursor: String, name: String): Bookmarks
+    moreBookmarks(cursor: String, name: String!): Items
     item(id: ID!): Item
     comments(id: ID!, sort: String): [Item!]!
     pageTitleAndUnshorted(url: String!): TitleUnshorted
@@ -70,11 +70,6 @@ export default gql`
   type Comments {
     cursor: String
     comments: [Item!]!
-  }
-
-  type Bookmarks {
-    cursor: String
-    bookmarks: [Item!]!
   }
 
   type Item {

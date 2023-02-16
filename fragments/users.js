@@ -197,7 +197,7 @@ export const USER_WITH_COMMENTS = gql`
     }
   }`
 
-export const USER_BOOKMARKS = gql`
+export const USER_WITH_BOOKMARKS = gql`
   ${USER_FIELDS}
   ${COMMENT_FIELDS}
   query UserBookmarks($name: String!) {
@@ -206,7 +206,7 @@ export const USER_BOOKMARKS = gql`
     }
     moreBookmarks(name: $name) {
       cursor
-      bookmarks {
+      items {
         ...ItemFields
         ...CommentFields
       }

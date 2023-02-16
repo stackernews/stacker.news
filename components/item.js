@@ -1,26 +1,16 @@
 import Link from 'next/link'
 import styles from './item.module.css'
-import { timeSince } from '../lib/time'
 import UpVote from './upvote'
 import { useEffect, useRef, useState } from 'react'
-import Countdown from './countdown'
 import { NOFOLLOW_LIMIT } from '../lib/constants'
 import Pin from '../svgs/pushpin-fill.svg'
 import reactStringReplace from 'react-string-replace'
-import Toc from './table-of-contents'
 import PollIcon from '../svgs/bar-chart-horizontal-fill.svg'
 import BountyIcon from '../svgs/bounty-bag.svg'
 import ActionTooltip from './action-tooltip'
-import { Badge } from 'react-bootstrap'
-import { newComments } from '../lib/new-comments'
-import { useMe } from './me'
-import DontLikeThis from './dont-link-this'
 import Flag from '../svgs/flag-fill.svg'
-import Share from './share'
 import { abbrNum } from '../lib/format'
-import { DeleteDropdown } from './delete'
-import CowboyHat from './cowboy-hat'
-import Bookmark from './bookmark'
+import ItemInfo from './item-info'
 
 export function SearchTitle ({ title }) {
   return reactStringReplace(title, /:high\[([^\]]+)\]/g, (match, i) => {
@@ -28,37 +18,15 @@ export function SearchTitle ({ title }) {
   })
 }
 
-function FwdUser ({ user }) {
-  return (
-    <div className={styles.other}>
-      100% of tips are forwarded to{' '}
-      <Link href={`/${user.name}`} passHref>
-        <a>@{user.name}</a>
-      </Link>
-    </div>
-  )
-}
-
-export default function Item ({ item, rank, showFwdUser, toc, children }) {
-  const mine = item.mine
-  const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
-  const [canEdit, setCanEdit] =
-    useState(mine && (Date.now() < editThreshold))
+export default function Item ({ item, rank, belowTitle, right, children }) {
   const [wrap, setWrap] = useState(false)
   const titleRef = useRef()
-  const me = useMe()
-  const [hasNewComments, setHasNewComments] = useState(false)
 
   useEffect(() => {
     setWrap(
       Math.ceil(parseFloat(window.getComputedStyle(titleRef.current).lineHeight)) <
         titleRef.current.clientHeight)
   }, [])
-
-  useEffect(() => {
-    // if we are showing toc, then this is a full item
-    setHasNewComments(!toc && newComments(item))
-  }, [item])
 
   return (
     <>
@@ -97,70 +65,10 @@ export default function Item ({ item, rank, showFwdUser, toc, children }) {
                 </a>
               </>}
           </div>
-          <div className={`${styles.other}`}>
-            {!item.position &&
-              <>
-                <span title={`from ${item.upvotes} users ${item.mine ? `\\ ${item.meSats} sats to post` : `(${item.meSats} sats from me)`} `}>{abbrNum(item.sats)} sats</span>
-                <span> \ </span>
-              </>}
-            {item.boost > 0 &&
-              <>
-                <span>{abbrNum(item.boost)} boost</span>
-                <span> \ </span>
-              </>}
-            <Link href={`/items/${item.id}`} passHref>
-              <a title={`${item.commentSats} sats`} className='text-reset'>
-                {item.ncomments} comments
-                {hasNewComments && <>{' '}<Badge className={styles.newComment} variant={null}>new</Badge></>}
-              </a>
-            </Link>
-            <span> \ </span>
-            <span>
-              <Link href={`/${item.user.name}`} passHref>
-                <a className='d-inline-flex align-items-center'>@{item.user.name}<CowboyHat className='ml-1 fill-grey' streak={item.user.streak} height={12} width={12} /></a>
-              </Link>
-              <span> </span>
-              <Link href={`/items/${item.id}`} passHref>
-                <a title={item.createdAt} className='text-reset'>{timeSince(new Date(item.createdAt))}</a>
-              </Link>
-              {me && !item.meSats && !item.position && !item.meDontLike && !item.mine && !item.deletedAt && <DontLikeThis id={item.id} />}
-              {(item.outlawed && <Link href='/outlawed'><a>{' '}<Badge className={styles.newComment} variant={null}>OUTLAWED</Badge></a></Link>) ||
-               (item.freebie && !item.mine && (me?.greeterMode) && <Link href='/freebie'><a>{' '}<Badge className={styles.newComment} variant={null}>FREEBIE</Badge></a></Link>)}
-              {item.prior &&
-                <>
-                  <span> \ </span>
-                  <Link href={`/items/${item.prior}`} passHref>
-                    <a className='text-reset'>yesterday</a>
-                  </Link>
-                </>}
-            </span>
-            {canEdit && !item.deletedAt &&
-              <>
-                <span> \ </span>
-                <Link href={`/items/${item.id}/edit`} passHref>
-                  <a className='text-reset'>
-                    edit
-                    <Countdown
-                      date={editThreshold}
-                      className=' '
-                      onComplete={() => {
-                        setCanEdit(false)
-                      }}
-                    />
-                  </a>
-                </Link>
-              </>}
-            {mine && !canEdit && !item.position && !item.deletedAt &&
-              <DeleteDropdown itemId={item.id} />}
-          </div>
-          {showFwdUser && item.fwdUser && <FwdUser user={item.fwdUser} />}
+          <ItemInfo item={item} />
+          {belowTitle}
         </div>
-        {toc &&
-          <>
-            <Bookmark item={item}/>
-            <Share item={item} />
-            <Toc text={item.text} />
-          </>}
+        {right}
       </div>
       {children && (
         <div className={styles.children}>

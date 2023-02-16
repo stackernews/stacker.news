@@ -492,7 +492,7 @@ export default {
         throw new UserInputError('no user has that name', { argumentName: 'name' })
       }
 
-      const bookmarks = await models.$queryRaw(`
+      const items = await models.$queryRaw(`
             ${SELECT}
             FROM "Item"
             JOIN "Bookmark" ON "Bookmark"."itemId" = "Item"."id" AND "Bookmark"."userId" = $1
@@ -502,8 +502,8 @@ export default {
             LIMIT ${LIMIT}`, user.id, decodedCursor.time, decodedCursor.offset)
 
       return {
-        cursor: bookmarks.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
-        bookmarks
+        cursor: items.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
+        items
       }
     },
     item: getItem,
@@ -603,8 +603,7 @@ export default {
       const old = await models.bookmark.findUnique({ where: { userId_itemId: data } })
       if (old) {
         await models.bookmark.delete({ where: { userId_itemId: data } })
-      }
-      else await models.bookmark.create({ data })
+      } else await models.bookmark.create({ data })
       return { id }
     },
     deleteItem: async (parent, { id }, { me, models }) => {

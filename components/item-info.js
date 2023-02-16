@@ -92,7 +92,13 @@ export default function ItemInfo ({ item, commentsText, className, embellishUser
       {extraInfo}
       <ItemDropdown>
         <CopyLinkDropdownItem item={item} />
-        <BookmarkDropdownItem item={item} />
+        {me && <BookmarkDropdownItem item={item} />}
+        {item.otsHash &&
+          <Dropdown.Item>
+            <Link passHref href={`/items/${item.id}/ots`}>
+              <a className='text-reset'>ots timestamp</a>
+            </Link>
+          </Dropdown.Item>}
         {me && !item.meSats && !item.position && !item.meDontLike &&
           !item.mine && !item.deletedAt && <DontLikeThisDropdownItem id={item.id} />}
         {item.mine && !item.position && !item.deletedAt &&

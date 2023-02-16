@@ -15,6 +15,7 @@ export const ITEM_FIELDS = gql`
       id
     }
     fwdUserId
+    otsHash
     position
     sats
     upvotes

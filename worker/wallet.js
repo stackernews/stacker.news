@@ -10,7 +10,7 @@ function checkInvoice ({ boss, models, lnd }) {
       inv = await getInvoice({ id: hash, lnd })
     } catch (err) {
       console.log(err)
-      // on lnd related errors, we manually retry which so we don't exponentially backoff
+      // on lnd related errors, we manually retry so we don't exponentially backoff
       await boss.send('checkInvoice', { hash }, walletOptions)
       return
     }
@@ -21,7 +21,7 @@ function checkInvoice ({ boss, models, lnd }) {
         models.$executeRaw`SELECT confirm_invoice(${inv.id}, ${Number(inv.received_mtokens)})`)
       await boss.send('nip57', { hash })
     } else if (inv.is_canceled) {
-    // mark as cancelled
+      // mark as cancelled
       await serialize(models,
         models.invoice.update({
           where: {
@@ -32,7 +32,7 @@ function checkInvoice ({ boss, models, lnd }) {
           }
         }))
     } else if (new Date(inv.expires_at) > new Date()) {
-    // not expired, recheck in 5 seconds
+      // not expired, recheck in 5 seconds
       await boss.send('checkInvoice', { hash }, walletOptions)
     }
   }
@@ -49,7 +49,7 @@ function checkWithdrawal ({ boss, models, lnd }) {
       if (err[1] === 'SentPaymentNotFound') {
         notFound = true
       } else {
-      // on lnd related errors, we manually retry which so we don't exponentially backoff
+        // on lnd related errors, we manually retry so we don't exponentially backoff
         await boss.send('checkWithdrawal', { id, hash }, walletOptions)
         return
       }
@@ -75,7 +75,7 @@ function checkWithdrawal ({ boss, models, lnd }) {
       await serialize(models, models.$executeRaw`
       SELECT reverse_withdrawl(${id}, ${status})`)
     } else {
-    // we need to requeue to check again in 5 seconds
+      // we need to requeue to check again in 5 seconds
       await boss.send('checkWithdrawal', { id, hash }, walletOptions)
     }
   }

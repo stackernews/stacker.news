@@ -200,11 +200,11 @@ export const USER_WITH_COMMENTS = gql`
 export const USER_WITH_BOOKMARKS = gql`
   ${USER_FIELDS}
   ${ITEM_FULL_FIELDS}
-  query UserWithBookmarks($name: String!) {
+  query UserWithBookmarks($name: String!, $cursor: String) {
     user(name: $name) {
       ...UserFields
     }
-    moreBookmarks(name: $name) {
+    moreBookmarks(name: $name, cursor: $cursor) {
       cursor
       items {
         ...ItemFullFields

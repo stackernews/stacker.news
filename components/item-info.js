@@ -89,7 +89,6 @@ export default function ItemInfo ({ item, commentsText, className, embellishUser
             />
           </span>
         </>}
-      {extraInfo}
       <ItemDropdown>
         <CopyLinkDropdownItem item={item} />
         {me && <BookmarkDropdownItem item={item} />}
@@ -104,6 +103,7 @@ export default function ItemInfo ({ item, commentsText, className, embellishUser
         {item.mine && !item.position && !item.deletedAt &&
           <DeleteDropdownItem itemId={item.id} />}
       </ItemDropdown>
+      {extraInfo}
     </div>
   )
 }

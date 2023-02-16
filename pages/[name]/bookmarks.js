@@ -5,15 +5,12 @@ import Seo from '../../components/seo'
 import Items from '../../components/items'
 import { USER_WITH_BOOKMARKS } from '../../fragments/users'
 import { getGetServerSideProps } from '../../api/ssrApollo'
-import { useRouter } from 'next/router'
 
 export const getServerSideProps = getGetServerSideProps(USER_WITH_BOOKMARKS)
 
 export default function UserBookmarks ({ data: { user, moreBookmarks: { items, cursor } } }) {
-  const router = useRouter()
-
   const { data } = useQuery(
-    USER_WITH_BOOKMARKS, { variables: { name: router.query.name } })
+    USER_WITH_BOOKMARKS, { variables: { name: user.name } })
 
   if (data) {
     ({ user, moreBookmarks: { items, cursor } } = data)
@@ -26,6 +23,8 @@ export default function UserBookmarks ({ data: { user, moreBookmarks: { items, c
       <div className='mt-2'>
         <Items
           items={items} cursor={cursor}
+          query={USER_WITH_BOOKMARKS}
+          destructureData={data => data.moreBookmarks}
           variables={{ name: user.name }}
         />
       </div>

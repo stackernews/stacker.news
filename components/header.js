@@ -54,8 +54,6 @@ export default function Header ({ sub }) {
     }
   }, [sub])
 
-  console.log(path, dropNavKey)
-
   const Corner = () => {
     if (me) {
       return (
@@ -74,7 +72,6 @@ export default function Header ({ sub }) {
           </Link>
           <div className='position-relative'>
             <NavDropdown
-              activeKey={dropNavKey}
               className={styles.dropdown} title={
                 <Link href={`/${me?.name}`} passHref>
                   <Nav.Link eventKey={me?.name} as='div' className='p-0 d-flex align-items-center' onClick={e => e.preventDefault()}>

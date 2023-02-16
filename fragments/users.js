@@ -1,6 +1,6 @@
 import { gql } from '@apollo/client'
 import { COMMENT_FIELDS } from './comments'
-import { ITEM_FIELDS, ITEM_WITH_COMMENTS } from './items'
+import { ITEM_FIELDS, ITEM_FULL_FIELDS, ITEM_WITH_COMMENTS } from './items'
 
 export const ME = gql`
   {
@@ -199,16 +199,15 @@ export const USER_WITH_COMMENTS = gql`
 
 export const USER_WITH_BOOKMARKS = gql`
   ${USER_FIELDS}
-  ${COMMENT_FIELDS}
-  query UserBookmarks($name: String!) {
+  ${ITEM_FULL_FIELDS}
+  query UserWithBookmarks($name: String!) {
     user(name: $name) {
       ...UserFields
     }
     moreBookmarks(name: $name) {
       cursor
       items {
-        ...ItemFields
-        ...CommentFields
+        ...ItemFullFields
       }
     }
   }

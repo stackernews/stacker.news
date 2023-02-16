@@ -24,6 +24,7 @@ export const ITEM_FIELDS = gql`
     path
     meSats
     meDontLike
+    meBookmark
     outlawed
     freebie
     ncomments
@@ -218,8 +219,8 @@ export const ITEM_WITH_COMMENTS = gql`
 
 export const BOUNTY_ITEMS_BY_USER_NAME = gql`
   ${ITEM_FIELDS}
-  query getBountiesByUserName($name: String!) {
-    getBountiesByUserName(name: $name) {
+  query getBountiesByUserName($name: String!, $cursor: String, $limit: Int) {
+    getBountiesByUserName(name: $name, cursor: $cursor, limit: $limit) {
       cursor
       items {
         ...ItemFields

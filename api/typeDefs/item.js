@@ -4,6 +4,7 @@ export default gql`
   extend type Query {
     items(sub: String, sort: String, type: String, cursor: String, name: String, within: String): Items
     moreFlatComments(sort: String!, cursor: String, name: String, within: String): Comments
+    moreBookmarks(cursor: String, name: String!): Items
     item(id: ID!): Item
     comments(id: ID!, sort: String): [Item!]!
     pageTitleAndUnshorted(url: String!): TitleUnshorted
@@ -32,6 +33,7 @@ export default gql`
   }
 
   extend type Mutation {
+    bookmarkItem(id: ID): Item
     deleteItem(id: ID): Item
     upsertLink(id: ID, title: String!, url: String!, boost: Int, forward: String): Item!
     upsertDiscussion(id: ID, title: String!, text: String, boost: Int, forward: String): Item!
@@ -99,6 +101,7 @@ export default gql`
     wvotes: Float!
     meSats: Int!
     meDontLike: Boolean!
+    meBookmark: Boolean!
     outlawed: Boolean!
     freebie: Boolean!
     paidImgLink: Boolean

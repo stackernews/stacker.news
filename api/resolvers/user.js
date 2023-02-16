@@ -505,6 +505,20 @@ export default {
         }
       })
     },
+    nbookmarks: async (user, { when }, { models }) => {
+      if (user.nBookmarks) {
+        return user.nBookmarks
+      }
+
+      return await models.bookmark.count({
+        where: {
+          userId: user.id,
+          createdAt: {
+            gte: withinDate(when)
+          }
+        }
+      })
+    },
     stacked: async (user, { when }, { models }) => {
       if (user.stacked) {
         return user.stacked

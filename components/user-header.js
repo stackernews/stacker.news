@@ -161,12 +161,11 @@ export default function UserHeader ({ user }) {
             <Nav.Link>{user.ncomments} comments</Nav.Link>
           </Link>
         </Nav.Item>
-        {isMe &&
-          <Nav.Item>
-            <Link href='/satistics?inc=invoice,withdrawal' passHref>
-              <Nav.Link eventKey='/satistics'>satistics</Nav.Link>
-            </Link>
-          </Nav.Item>}
+        <Nav.Item>
+          <Link href={'/' + user.name + '/bookmarks'} passHref>
+            <Nav.Link>{user.nbookmarks} bookmarks</Nav.Link>
+          </Link>
+        </Nav.Item>
       </Nav>
     </>
   )

@@ -484,6 +484,28 @@ export default {
         comments
       }
     },
+    moreBookmarks: async (parent, { cursor, name }, { me, models }) => {
+      const decodedCursor = decodeCursor(cursor)
+
+      const user = await models.user.findUnique({ where: { name } })
+      if (!user) {
+        throw new UserInputError('no user has that name', { argumentName: 'name' })
+      }
+
+      const items = await models.$queryRaw(`
+            ${SELECT}
+            FROM "Item"
+            JOIN "Bookmark" ON "Bookmark"."itemId" = "Item"."id" AND "Bookmark"."userId" = $1
+            AND "Bookmark".created_at <= $2
+            ORDER BY "Bookmark".created_at DESC
+            OFFSET $3
+            LIMIT ${LIMIT}`, user.id, decodedCursor.time, decodedCursor.offset)
+
+      return {
+        cursor: items.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
+        items
+      }
+    },
     item: getItem,
     pageTitleAndUnshorted: async (parent, { url }, { models }) => {
       const res = {}
@@ -576,6 +598,14 @@ export default {
   },
 
   Mutation: {
+    bookmarkItem: async (parent, { id }, { me, models }) => {
+      const data = { itemId: Number(id), userId: me.id }
+      const old = await models.bookmark.findUnique({ where: { userId_itemId: data } })
+      if (old) {
+        await models.bookmark.delete({ where: { userId_itemId: data } })
+      } else await models.bookmark.create({ data })
+      return { id }
+    },
     deleteItem: async (parent, { id }, { me, models }) => {
       const old = await models.item.findUnique({ where: { id: Number(id) } })
       if (Number(old.userId) !== Number(me?.id)) {
@@ -923,6 +953,20 @@ export default {
       })
 
       return !!dontLike
+    },
+    meBookmark: async (item, args, { me, models }) => {
+      if (!me) return false
+
+      const bookmark = await models.bookmark.findUnique({
+        where: {
+          userId_itemId: {
+            itemId: Number(item.id),
+            userId: me.id
+          }
+        }
+      })
+
+      return !!bookmark
     },
     outlawed: async (item, args, { me, models }) => {
       if (me && Number(item.userId) === Number(me.id)) {

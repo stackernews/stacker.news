@@ -34,7 +34,6 @@ export default function Share ({ item }) {
 
         <Dropdown.Menu>
           <Dropdown.Item
-            className='text-center'
             onClick={async () => {
               copy(url)
             }}
@@ -43,4 +42,27 @@ export default function Share ({ item }) {
           </Dropdown.Item>
         </Dropdown.Menu>
       </Dropdown>)
+}
+
+export function CopyLinkDropdownItem ({ item }) {
+  const me = useMe()
+  const url = `https://stacker.news/items/${item.id}${me ? `/r/${me.name}` : ''}`
+  return (
+    <Dropdown.Item
+      onClick={async () => {
+        if (navigator.share) {
+          navigator.share({
+            title: item.title || '',
+            text: '',
+            url
+          }).then(() => console.log('Successful share'))
+            .catch((error) => console.log('Error sharing', error))
+        } else {
+          copy(url)
+        }
+      }}
+    >
+      copy link
+    </Dropdown.Item>
+  )
 }

@@ -31,6 +31,7 @@ export default function Header ({ sub }) {
   const prefix = sub ? `/~${sub}` : ''
   // there's always at least 2 on the split, e.g. '/' yields ['','']
   const topNavKey = path.split('/')[sub ? 2 : 1]
+  const dropNavKey = path.split('/').slice(sub ? 2 : 1).join('/')
   const { data: subLatestPost } = useQuery(gql`
     query subLatestPost($name: ID!) {
       subLatestPost(name: $name)
@@ -80,13 +81,16 @@ export default function Header ({ sub }) {
               } alignRight
             >
               <Link href={'/' + me?.name} passHref>
-                <NavDropdown.Item eventKey={me?.name}>
+                <NavDropdown.Item active={me?.name === dropNavKey}>
                   profile
                   {me && !me.bioId &&
                     <div className='p-1 d-inline-block bg-secondary ml-1'>
                       <span className='invisible'>{' '}</span>
                     </div>}
                 </NavDropdown.Item>
+              </Link>
+              <Link href={'/' + me?.name + '/bookmarks'} passHref>
+                <NavDropdown.Item active={me?.name + '/bookmarks' === dropNavKey}>bookmarks</NavDropdown.Item>
               </Link>
               <Link href='/wallet' passHref>
                 <NavDropdown.Item eventKey='wallet'>wallet</NavDropdown.Item>

@@ -2,6 +2,11 @@
     margin-top: .5rem;
 }
 
+.other {
+    font-size: 80%;
+    color: var(--theme-grey);
+}
+
 @media only screen and (max-width: 600px) {
     .comments {
         margin-top: .5rem;

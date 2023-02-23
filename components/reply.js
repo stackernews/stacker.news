@@ -4,7 +4,7 @@ import styles from './reply.module.css'
 import { COMMENTS } from '../fragments/comments'
 import { useMe } from './me'
 import TextareaAutosize from 'react-textarea-autosize'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import FeeButton from './fee-button'
 import { commentsViewedAfterComment } from '../lib/new-comments'
@@ -75,6 +75,11 @@ export default function Reply ({ item, onSuccess, replyOpen, children }) {
     }
   )
 
+  const replyInput = useRef(null)
+  useEffect(() => {
+    if (replyInput.current && reply) replyInput.current.focus()
+  }, [reply])
+
   return (
     <div>
       {replyOpen
@@ -112,6 +117,7 @@ export default function Reply ({ item, onSuccess, replyOpen, children }) {
             autoFocus={!replyOpen}
             required
             hint={me?.freeComments && me?.sats < 1 ? <span className='text-success'>{me.freeComments} free comments left</span> : null}
+            innerRef={replyInput}
           />
           {reply &&
             <div className='mt-1'>

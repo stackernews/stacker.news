@@ -77,7 +77,7 @@ export default function Reply ({ item, onSuccess, replyOpen, children }) {
 
   const replyInput = useRef(null)
   useEffect(() => {
-    if (replyInput.current && reply) replyInput.current.focus()
+    if (replyInput.current && reply && !replyOpen) replyInput.current.focus()
   }, [reply])
 
   return (

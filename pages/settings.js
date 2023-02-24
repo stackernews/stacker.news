@@ -203,7 +203,7 @@ export default function Settings ({ data: { settings } }) {
             groupClassName='mb-0'
           />
           <Checkbox
-            label={<>hide me from  <Link href='/top/users' passHref><a>top users</a></Link></>}
+            label={<>hide me from  <Link href='/top/users/day' passHref><a>top users</a></Link></>}
             name='hideFromTopUsers'
           />
           <div className='form-label'>content</div>

@@ -418,6 +418,7 @@ model ItemAct {
   @@index([userId])
   @@index([act])
   @@index([createdAt])
+  @@index([itemId, act, userId])
 }
 
 model Mention {
@@ -532,6 +533,7 @@ model Bookmark {
   item      Item     @relation(fields: [itemId], references: [id])
   itemId    Int
   createdAt DateTime @default(now()) @map(name: "created_at")
+
   @@id([userId, itemId])
   @@index([createdAt])
 }

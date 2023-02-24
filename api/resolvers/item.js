@@ -902,19 +902,6 @@ export default {
 
       return count
     },
-    boost: async (item, args, { models }) => {
-      const { sum: { msats } } = await models.itemAct.aggregate({
-        sum: {
-          msats: true
-        },
-        where: {
-          itemId: Number(item.id),
-          act: 'BOOST'
-        }
-      })
-
-      return (msats && msatsToSats(msats)) || 0
-    },
     wvotes: async (item) => {
       return item.weightedVotes - item.weightedDownVotes
     },
@@ -1152,7 +1139,7 @@ export const SELECT =
   "Item".text, "Item".url, "Item"."bounty", "Item"."userId", "Item"."fwdUserId", "Item"."parentId",
   "Item"."pinId", "Item"."maxBid", "Item"."rootId",
   "Item".company, "Item".location, "Item".remote, "Item"."deletedAt",
-  "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost",
+  "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost", "Item".boost,
   "Item".msats, "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",
   "Item"."weightedDownVotes", "Item".freebie, "Item"."otsHash", "Item"."bountyPaidTo", ltree2text("Item"."path") AS "path"`
 

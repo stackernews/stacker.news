@@ -23,6 +23,7 @@ export const COMMENT_FIELDS = gql`
     path
     commentSats
     mine
+    otsHash
     ncomments
     root {
       id

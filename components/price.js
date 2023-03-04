@@ -39,7 +39,7 @@ export default function Price () {
   }, [])
   const { price, fiatSymbol } = usePrice()
 
-  if (!price) return null
+  if (!price || price < 0) return null
 
   const handleClick = () => {
     if (asSats === 'yep') {

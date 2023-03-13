@@ -142,7 +142,8 @@ export default (req, res) => NextAuth(req, res, {
     Providers.GitHub({
       clientId: process.env.GITHUB_ID,
       clientSecret: process.env.GITHUB_SECRET,
-      authorization: 'https://github.com/login/oauth/authorize?scope=read:user',
+      authorization: 'https://github.com/login/oauth/authorize',
+      scope: '', // read-only acces to public information
       profile: profile => {
         return {
           ...profile,

@@ -7,8 +7,8 @@ import { COMMENTS_QUERY } from '../fragments/items'
 import { COMMENTS } from '../fragments/comments'
 import { abbrNum } from '../lib/format'
 
-export function CommentsHeader ({ handleSort, commentSats }) {
-  const [sort, setSort] = useState('hot')
+export function CommentsHeader ({ handleSort, pinned, commentSats }) {
+  const [sort, setSort] = useState(pinned ? 'recent' : 'hot')
 
   const getHandleClick = sort => {
     return () => {
@@ -60,7 +60,7 @@ export function CommentsHeader ({ handleSort, commentSats }) {
   )
 }
 
-export default function Comments ({ parentId, commentSats, comments, ...props }) {
+export default function Comments ({ parentId, pinned, commentSats, comments, ...props }) {
   const client = useApolloClient()
   useEffect(() => {
     const hash = window.location.hash
@@ -97,7 +97,7 @@ export default function Comments ({ parentId, commentSats, comments, ...props })
     <>
       {comments.length
         ? <CommentsHeader
-            commentSats={commentSats} handleSort={sort => {
+            commentSats={commentSats} pinned={pinned} handleSort={sort => {
               setLoading(true)
               getComments({ variables: { id: parentId, sort } })
             }}

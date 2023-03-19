@@ -892,7 +892,7 @@ export default {
       if (item.comments) {
         return item.comments
       }
-      return comments(me, models, item.id, 'hot', item)
+      return comments(me, models, item.id, item.pinId ? 'recent' : 'hot', item)
     },
     upvotes: async (item, args, { models }) => {
       const [{ count }] = await models.$queryRaw(`

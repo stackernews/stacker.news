@@ -39,5 +39,5 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command: 
     - |
-      npm install --loglevel verbose 
+      wait-for-it.sh app:3000 -t 0 
       node worker/index.js

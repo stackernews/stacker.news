@@ -6,7 +6,7 @@ You must be logged in to test features like posting, replying, tipping, etc.
 
 - First, follow the local development instructions in the README.md
 - Create a Sendgrid account (or other smtp service)
-- Update your .env file
+- Update your `.env` file and source it in `docker-compose.yml`
 
 ```
 LOGIN_EMAIL_SERVER=smtp://apikey:<sendgrid_api_key>@smtp.sendgrid.net:587
@@ -26,7 +26,7 @@ http://localhost:3000/api/auth/callback/email?email=satoshi%40gmail.com&token=11
 
 - [Create a new OAuth app](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app) in your Github account
   - Set the callback URL to: `http://localhost:3000/api/auth/callback/github`
-- Update your .env file
+- Update your `.env` file
 
 ```
 GITHUB_ID=<Client ID>

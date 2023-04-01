@@ -10,6 +10,7 @@ import FeeButton, { EditFeeButton } from './fee-button'
 import Delete from './delete'
 import { Button } from 'react-bootstrap'
 import { linkSchema } from '../lib/validate'
+import Moon from '../svgs/moon-fill.svg'
 
 export function LinkForm ({ item, editThreshold }) {
   const router = useRouter()
@@ -148,6 +149,12 @@ export function LinkForm ({ item, editThreshold }) {
       </div>
       {!item &&
         <>
+          {dupesLoading &&
+            <div className='d-flex mt-2 justify-content-center'>
+              <Moon className='spin fill-grey' />
+              <div className='ml-3 text-muted' style={{ fontWeight: '600' }}>searching for dupes</div>
+            </div>
+          }
           {dupesData?.dupes?.length > 0 &&
             <div className='mt-3'>
               <AccordianItem

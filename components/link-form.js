@@ -25,7 +25,7 @@ export function LinkForm ({ item, editThreshold }) {
     }`, {
     fetchPolicy: 'network-only'
   })
-  const [getDupes, { data: dupesData }] = useLazyQuery(gql`
+  const [getDupes, { data: dupesData, loading: dupesLoading }] = useLazyQuery(gql`
   ${ITEM_FIELDS}
   query Dupes($url: String!) {
     dupes(url: $url) {
@@ -142,7 +142,7 @@ export function LinkForm ({ item, editThreshold }) {
               />
             </div>)
           : <FeeButton
-              baseFee={1} parentId={null} text='post'
+              baseFee={1} parentId={null} text='post' disabled={dupesLoading}
               ChildButton={SubmitButton} variant='secondary'
             />}
       </div>

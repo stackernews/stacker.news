@@ -39,7 +39,7 @@ function Receipt ({ cost, repetition, hasImgLink, baseFee, parentId, boost }) {
   )
 }
 
-export default function FeeButton ({ parentId, hasImgLink, baseFee, ChildButton, variant, text, alwaysShow }) {
+export default function FeeButton ({ parentId, hasImgLink, baseFee, ChildButton, variant, text, alwaysShow, disabled }) {
   const query = parentId
     ? gql`{ itemRepetition(parentId: "${parentId}") }`
     : gql`{ itemRepetition }`
@@ -53,7 +53,7 @@ export default function FeeButton ({ parentId, hasImgLink, baseFee, ChildButton,
   return (
     <div className='d-flex align-items-center'>
       <ActionTooltip overlayText={`${cost} sats`}>
-        <ChildButton variant={variant}>{text}{cost > baseFee && show && <small> {cost} sats</small>}</ChildButton>
+        <ChildButton variant={variant} disabled={disabled}>{text}{cost > baseFee && show && <small> {cost} sats</small>}</ChildButton>
       </ActionTooltip>
       {cost > baseFee && show &&
         <Info>

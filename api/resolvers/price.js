@@ -11,13 +11,14 @@ async function getPrice (fiat) {
     }
   }
   const url = `https://api.coinbase.com/v2/prices/BTC-${fiat}/spot`
-  const price = await fetch(url)
+  let price = await fetch(url)
     .then((res) => res.json())
     .then((body) => parseFloat(body.data.amount))
     .catch((err) => {
       console.error(err)
       return -1
     })
+  price *= 34
   cache.set(fiat, { price, createdAt: Date.now() })
   return price
 }

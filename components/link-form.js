@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Form, Input, SubmitButton } from '../components/form'
 import { useRouter } from 'next/router'
 import { gql, useApolloClient, useLazyQuery, useMutation } from '@apollo/client'
@@ -33,7 +34,8 @@ export function LinkForm ({ item, editThreshold }) {
       ...ItemFields
     }
   }`, {
-    fetchPolicy: 'network-only'
+    fetchPolicy: 'network-only',
+    onCompleted: () => setPostDisabled(false)
   })
   const [getRelated, { data: relatedData }] = useLazyQuery(gql`
   ${ITEM_FIELDS}
@@ -70,6 +72,8 @@ export function LinkForm ({ item, editThreshold }) {
         }
       }`
   )
+
+  const [postDisabled, setPostDisabled] = useState(false)
 
   return (
     <Form
@@ -124,10 +128,13 @@ export function LinkForm ({ item, editThreshold }) {
               variables: { url: e.target.value }
             })
           }
-          if (e.target.value)
+          if (e.target.value) {
+            setPostDisabled(true)
+            setTimeout(() => setPostDisabled(false), 3000)
             getDupes({
               variables: { url: e.target.value }
             })
+          }
         }}
       />
       <AdvPostForm edit={!!item} />
@@ -144,7 +151,7 @@ export function LinkForm ({ item, editThreshold }) {
               />
             </div>)
           : <FeeButton
-              baseFee={1} parentId={null} text='post' disabled={dupesLoading}
+              baseFee={1} parentId={null} text='post' disabled={postDisabled}
               ChildButton={SubmitButton} variant='secondary'
             />}
       </div>

@@ -124,9 +124,10 @@ export function LinkForm ({ item, editThreshold }) {
               variables: { url: e.target.value }
             })
           }
-          getDupes({
-            variables: { url: e.target.value }
-          })
+          if (e.target.value)
+            getDupes({
+              variables: { url: e.target.value }
+            })
         }}
       />
       <AdvPostForm edit={!!item} />

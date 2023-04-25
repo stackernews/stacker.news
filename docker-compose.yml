@@ -13,6 +13,12 @@ services:
   app:
     container_name: app
     build: ./
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 1m30s
     depends_on:
       - db
     env_file:
@@ -27,7 +33,10 @@ services:
     container_name: worker
     build: ./worker
     depends_on:
-      - db
+      db:
+        condition: service_started
+      app:
+        condition: service_healthy
     env_file:
       - ./.env.sample
     ports:
@@ -37,7 +46,5 @@ services:
     links:
       - db
     entrypoint: ["/bin/sh", "-c"]
-    command: 
-    - |
-      wait-for-it.sh app:3000 -t 0 
-      node worker/index.js
+    command:
+      - node worker/index.js

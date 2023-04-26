@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from 'react'
 import { Form, Input, SubmitButton } from '../components/form'
 import { useRouter } from 'next/router'
 import { gql, useApolloClient, useLazyQuery, useMutation } from '@apollo/client'
@@ -118,6 +118,7 @@ export function LinkForm ({ item, editThreshold }) {
         required
         autoFocus
         clear
+        autoComplete='off'
         overrideValue={data?.pageTitleAndUnshorted?.unshorted}
         hint={editThreshold
           ? <div className='text-muted font-weight-bold'><Countdown date={editThreshold} /></div>
@@ -150,19 +151,22 @@ export function LinkForm ({ item, editThreshold }) {
                 parentId={null} text='save' ChildButton={SubmitButton} variant='secondary'
               />
             </div>)
-          : <FeeButton
-              baseFee={1} parentId={null} text='post' disabled={postDisabled}
-              ChildButton={SubmitButton} variant='secondary'
-            />}
+          : (
+            <div className='d-flex align-items-center'>
+              <FeeButton
+                baseFee={1} parentId={null} text='post' disabled={postDisabled}
+                ChildButton={SubmitButton} variant='secondary'
+              />
+              {dupesLoading &&
+                <div className='d-flex ml-3 justify-content-center'>
+                  <Moon className='spin fill-grey' />
+                  <div className='ml-2 text-muted' style={{ fontWeight: '600' }}>searching for dupes</div>
+                </div>}
+            </div>
+            )}
       </div>
       {!item &&
         <>
-          {dupesLoading &&
-            <div className='d-flex mt-2 justify-content-center'>
-              <Moon className='spin fill-grey' />
-              <div className='ml-3 text-muted' style={{ fontWeight: '600' }}>searching for dupes</div>
-            </div>
-          }
           {dupesData?.dupes?.length > 0 &&
             <div className='mt-3'>
               <AccordianItem

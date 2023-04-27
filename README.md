@@ -1,3 +1,6 @@
+# contributing
+We pay sats for PRs. Sats will be proportional to the impact of the PR. If there's something you'd like to work on, suggest how much you'd do it for on the issue. If there's something you'd like to work on that isn't already an issue, whether its a bug fix or a new feature, create one.
+
 # stacker.news
 [Stacker News](https://stacker.news) is like Hacker News but we pay you Bitcoin. We use Bitcoin and the Lightning Network to provide Sybil resistance and any karma earned is withdrawable as Bitcoin.
 
@@ -22,9 +25,6 @@ To ensure user balances are kept sane, all wallet updates are run in serializabl
 
 # code
 The code is linted with standardjs.
-
-# contributing
-Pull requests are welcome. Please submit feature requests and bug reports through issues.
 
 # license
 [MIT](https://choosealicense.com/licenses/mit/)

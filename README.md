@@ -4,8 +4,8 @@ We pay sats for PRs. Sats will be proportional to the impact of the PR. If there
 # stacker.news
 [Stacker News](https://stacker.news) is like Hacker News but we pay you Bitcoin. We use Bitcoin and the Lightning Network to provide Sybil resistance and any karma earned is withdrawable as Bitcoin.
 
-# wen decentralization?
-We're discussing if it's possible to provide SN on nostr and/or a hybrid approach and have plans to begin experimenting with it. It's our overarching goal to align SN with Bitcoin's ethos yet still make a product the average bitcoiner loves to use.
+# wen decentralization
+We're experimenting with providing an SN-like service on nostr in [Outer Space](https://outer.space). It's our overarching goal to align SN with Bitcoin's ethos yet still make a product the average bitcoiner loves to use.
 
 # local development
 1. [Install docker-compose](https://docs.docker.com/compose/install/) and deps if you don't already have it installed

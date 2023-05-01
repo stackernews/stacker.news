@@ -1,9 +1,8 @@
 import Footer from './footer'
 import { HeaderStatic } from './header'
 import styles from './layout-center.module.css'
-import Search from './search'
 
-export default function LayoutError ({ children, ...props }) {
+export default function LayoutStatic ({ children, ...props }) {
   return (
     <div className={styles.page}>
       <HeaderStatic />
@@ -11,7 +10,6 @@ export default function LayoutError ({ children, ...props }) {
         {children}
       </div>
       <Footer />
-      <Search />
     </div>
   )
 }

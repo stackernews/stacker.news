@@ -42,8 +42,8 @@ export const COMMENT_FIELDS = gql`
 export const MORE_FLAT_COMMENTS = gql`
   ${COMMENT_FIELDS}
 
-  query MoreFlatComments($sort: String!, $cursor: String, $name: String, $within: String) {
-    moreFlatComments(sort: $sort, cursor: $cursor, name: $name, within: $within) {
+  query MoreFlatComments($sub: String, $sort: String!, $cursor: String, $name: String, $within: String) {
+    moreFlatComments(sub: $sub, sort: $sort, cursor: $cursor, name: $name, within: $within) {
       cursor
       comments {
         ...CommentFields

@@ -11,6 +11,7 @@ export default function Share ({ item }) {
     ? (
       <div className='ml-auto pointer d-flex align-items-center'>
         <ShareIcon
+          width={20} height={20}
           className='mx-2 fill-grey theme'
           onClick={() => {
             if (navigator.share) {
@@ -29,7 +30,7 @@ export default function Share ({ item }) {
     : (
       <Dropdown alignRight className='ml-auto pointer  d-flex align-items-center' as='span'>
         <Dropdown.Toggle variant='success' id='dropdown-basic' as='a'>
-          <ShareIcon className='mx-2 fill-grey theme' />
+          <ShareIcon width={20} height={20} className='mx-2 fill-grey theme' />
         </Dropdown.Toggle>
 
         <Dropdown.Menu>

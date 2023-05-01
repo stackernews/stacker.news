@@ -10,16 +10,16 @@ import Delete from './delete'
 import { Button } from 'react-bootstrap'
 import { pollSchema } from '../lib/validate'
 
-export function PollForm ({ item, editThreshold }) {
+export function PollForm ({ item, sub, editThreshold }) {
   const router = useRouter()
   const client = useApolloClient()
   const schema = pollSchema(client)
 
   const [upsertPoll] = useMutation(
     gql`
-      mutation upsertPoll($id: ID, $title: String!, $text: String,
+      mutation upsertPoll($sub: String, $id: ID, $title: String!, $text: String,
         $options: [String!]!, $boost: Int, $forward: String) {
-        upsertPoll(id: $id, title: $title, text: $text,
+        upsertPoll(sub: $sub, id: $id, title: $title, text: $text,
           options: $options, boost: $boost, forward: $forward) {
           id
         }
@@ -42,6 +42,7 @@ export function PollForm ({ item, editThreshold }) {
         const { error } = await upsertPoll({
           variables: {
             id: item?.id,
+            sub: item?.sub?.name || sub?.name,
             boost: boost ? Number(boost) : undefined,
             title: title.trim(),
             options: optionsFiltered,
@@ -54,7 +55,8 @@ export function PollForm ({ item, editThreshold }) {
         if (item) {
           await router.push(`/items/${item.id}`)
         } else {
-          await router.push('/recent')
+          const prefix = sub?.name ? `/~${sub.name}/` : ''
+          await router.push(prefix + '/recent')
         }
       }}
       storageKeyPrefix={item ? undefined : 'poll'}

@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import styles from './item.module.css'
 import UpVote from './upvote'
-import { useEffect, useRef, useState } from 'react'
+import { useRef } from 'react'
 import { NOFOLLOW_LIMIT } from '../lib/constants'
 import Pin from '../svgs/pushpin-fill.svg'
 import reactStringReplace from 'react-string-replace'
@@ -19,14 +19,7 @@ export function SearchTitle ({ title }) {
 }
 
 export default function Item ({ item, rank, belowTitle, right, children }) {
-  const [wrap, setWrap] = useState(false)
   const titleRef = useRef()
-
-  useEffect(() => {
-    setWrap(
-      Math.ceil(parseFloat(window.getComputedStyle(titleRef.current).lineHeight)) <
-        titleRef.current.clientHeight)
-  }, [])
 
   return (
     <>
@@ -41,7 +34,7 @@ export default function Item ({ item, rank, belowTitle, right, children }) {
           ? <Pin width={24} height={24} className={styles.pin} />
           : item.meDontLike ? <Flag width={24} height={24} className={`${styles.dontLike}`} /> : <UpVote item={item} className={styles.upvote} />}
         <div className={styles.hunk}>
-          <div className={`${styles.main} flex-wrap ${wrap ? 'd-inline' : ''}`}>
+          <div className={`${styles.main} flex-wrap`}>
             <Link href={`/items/${item.id}`} passHref>
               <a ref={titleRef} className={`${styles.title} text-reset mr-2`}>
                 {item.searchTitle ? <SearchTitle title={item.searchTitle} /> : item.title}
@@ -58,7 +51,7 @@ export default function Item ({ item, rank, belowTitle, right, children }) {
               <>
                 {/*  eslint-disable-next-line */}
                 <a
-                  className={`${styles.link} ${wrap ? styles.linkSmall : ''}`} target='_blank' href={item.url}
+                  className={`${styles.link} py-half py-md-0`} target='_blank' href={item.url}
                   rel={item.sats + item.boost >= NOFOLLOW_LIMIT ? null : 'nofollow'}
                 >
                   {item.url.replace(/(^https?:|^)\/\//, '')}

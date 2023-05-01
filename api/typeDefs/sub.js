@@ -2,12 +2,12 @@ import { gql } from 'apollo-server-micro'
 
 export default gql`
   extend type Query {
-    sub(name: ID!): Sub
-    subLatestPost(name: ID!): String
+    sub(name: String!): Sub
+    subLatestPost(name: String!): String
   }
 
   type Sub {
-    name: ID!
+    name: String!
     createdAt: String!
     updatedAt: String!
     postTypes: [String!]!

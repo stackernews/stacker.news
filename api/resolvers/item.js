@@ -146,6 +146,10 @@ function recentClause (type) {
   }
 }
 
+const subClause = (sub, num) => {
+  return sub ? ` AND "subName" = $${num} ` : ` AND ("subName" IS NOT NULL OR "subName" = $${num}) `
+}
+
 export default {
   Query: {
     itemRepetition: async (parent, { parentId }, { me, models }) => {
@@ -194,10 +198,6 @@ export default {
       const decodedCursor = decodeCursor(cursor)
       let items; let user; let pins; let subFull
 
-      const subClause = (num) => {
-        return sub ? ` AND "subName" = $${num} ` : ` AND ("subName" IS NULL OR "subName" = $${num}) `
-      }
-
       const activeOrMine = () => {
         return me ? ` AND (status <> 'STOPPED' OR "userId" = ${me.id}) ` : ' AND status <> \'STOPPED\' '
       }
@@ -229,7 +229,7 @@ export default {
             ${SELECT}
             FROM "Item"
             WHERE "parentId" IS NULL AND created_at <= $1
-            ${subClause(3)}
+            ${subClause(sub, 3)}
             ${activeOrMine()}
             ${await filterClause(me, models)}
             ${recentClause(type)}
@@ -264,7 +264,7 @@ export default {
                   FROM "Item"
                   WHERE "parentId" IS NULL AND created_at <= $1
                   AND "pinId" IS NULL
-                  ${subClause(3)}
+                  ${subClause(sub, 3)}
                   AND status = 'ACTIVE' AND "maxBid" > 0
                   ORDER BY "maxBid" DESC, created_at ASC)
                   UNION ALL
@@ -272,7 +272,7 @@ export default {
                   FROM "Item"
                   WHERE "parentId" IS NULL AND created_at <= $1
                   AND "pinId" IS NULL
-                  ${subClause(3)}
+                  ${subClause(sub, 3)}
                   AND ((status = 'ACTIVE' AND "maxBid" = 0) OR status = 'NOSATS')
                   ORDER BY created_at DESC)
                 ) a
@@ -292,7 +292,7 @@ export default {
                   FROM "Item"
                   WHERE "parentId" IS NULL AND "Item".created_at <= $1 AND "Item".created_at > $3
                   AND "pinId" IS NULL AND NOT bio AND "deletedAt" IS NULL
-                  ${subClause(4)}
+                  ${subClause(sub, 4)}
                   ${await filterClause(me, models)}
                   ${await newTimedOrderByWeightedSats(me, models, 1)}
                   OFFSET $2
@@ -305,7 +305,7 @@ export default {
                   FROM "Item"
                   WHERE "parentId" IS NULL AND "Item".created_at <= $1
                   AND "pinId" IS NULL AND NOT bio AND "deletedAt" IS NULL
-                  ${subClause(3)}
+                  ${subClause(sub, 3)}
                   ${await filterClause(me, models)}
                   ${await newTimedOrderByWeightedSats(me, models, 1)}
                   OFFSET $2
@@ -323,7 +323,8 @@ export default {
                     )
                     FROM "Item"
                     WHERE "pinId" IS NOT NULL
-                ) rank_filter WHERE RANK = 1`)
+                    ${subClause(sub, 1)}
+                ) rank_filter WHERE RANK = 1`, sub)
               }
               break
           }
@@ -428,7 +429,7 @@ export default {
         items
       }
     },
-    moreFlatComments: async (parent, { cursor, name, sort, within }, { me, models }) => {
+    moreFlatComments: async (parent, { sub, cursor, name, sort, within }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
 
       let comments, user
@@ -437,11 +438,13 @@ export default {
           comments = await models.$queryRaw(`
             ${SELECT}
             FROM "Item"
-            WHERE "parentId" IS NOT NULL AND created_at <= $1
+            JOIN "Item" root ON "Item"."rootId" = root.id
+            WHERE "Item"."parentId" IS NOT NULL AND "Item".created_at <= $1
+            AND (root."subName" = $3 OR (root."subName" IS NULL AND $3 IS NULL))
             ${await filterClause(me, models)}
-            ORDER BY created_at DESC
+            ORDER BY "Item".created_at DESC
             OFFSET $2
-            LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+            LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, sub)
           break
         case 'user':
           if (!name) {
@@ -467,13 +470,15 @@ export default {
           comments = await models.$queryRaw(`
           ${SELECT}
           FROM "Item"
-          WHERE "parentId" IS NOT NULL AND "deletedAt" IS NULL
+          JOIN "Item" root ON "Item"."rootId" = root.id
+          WHERE "Item"."parentId" IS NOT NULL AND"Item"."deletedAt" IS NULL
+          AND (root."subName" = $3 OR (root."subName" IS NULL AND $3 IS NULL))
           AND "Item".created_at <= $1
           ${topClause(within)}
           ${await filterClause(me, models)}
           ${await topOrderByWeightedSats(me, models)}
           OFFSET $2
-          LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+          LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, sub)
           break
         default:
           throw new UserInputError('invalid sort type', { argumentName: 'sort' })
@@ -664,7 +669,7 @@ export default {
       }
     },
     upsertPoll: async (parent, { id, ...data }, { me, models }) => {
-      const { forward, boost, title, text, options } = data
+      const { sub, forward, boost, title, text, options } = data
       if (!me) {
         throw new AuthenticationError('you must be logged in')
       }
@@ -693,16 +698,16 @@ export default {
           throw new AuthenticationError('item does not belong to you')
         }
         const [item] = await serialize(models,
-          models.$queryRaw(`${SELECT} FROM update_poll($1, $2, $3, $4, $5, $6) AS "Item"`,
-            Number(id), title, text, Number(boost || 0), options, Number(fwdUser?.id)))
+          models.$queryRaw(`${SELECT} FROM update_poll($1, $2, $3, $4, $5, $6, $7) AS "Item"`,
+            sub || 'bitcoin', Number(id), title, text, Number(boost || 0), options, Number(fwdUser?.id)))
 
         await createMentions(item, models)
         item.comments = []
         return item
       } else {
         const [item] = await serialize(models,
-          models.$queryRaw(`${SELECT} FROM create_poll($1, $2, $3, $4, $5, $6, $7, '${ITEM_SPAM_INTERVAL}') AS "Item"`,
-            title, text, 1, Number(boost || 0), Number(me.id), options, Number(fwdUser?.id)))
+          models.$queryRaw(`${SELECT} FROM create_poll($1, $2, $3, $4, $5, $6, $7, $8, '${ITEM_SPAM_INTERVAL}') AS "Item"`,
+            sub || 'bitcoin', title, text, 1, Number(boost || 0), Number(me.id), options, Number(fwdUser?.id)))
 
         await createMentions(item, models)
         item.comments = []
@@ -1028,7 +1033,7 @@ export const createMentions = async (item, models) => {
   }
 }
 
-export const updateItem = async (parent, { id, data: { title, url, text, boost, forward, bounty, parentId } }, { me, models }) => {
+export const updateItem = async (parent, { id, data: { sub, title, url, text, boost, forward, bounty, parentId } }, { me, models }) => {
   // update iff this item belongs to me
   const old = await models.item.findUnique({ where: { id: Number(id) } })
   if (Number(old.userId) !== Number(me?.id)) {
@@ -1059,15 +1064,16 @@ export const updateItem = async (parent, { id, data: { title, url, text, boost, 
 
   const [item] = await serialize(models,
     models.$queryRaw(
-      `${SELECT} FROM update_item($1, $2, $3, $4, $5, $6, $7) AS "Item"`,
-      Number(id), title, url, text, Number(boost || 0), bounty ? Number(bounty) : null, Number(fwdUser?.id)))
+      `${SELECT} FROM update_item($1, $2, $3, $4, $5, $6, $7, $8) AS "Item"`,
+      old.parentId ? null : sub || 'bitcoin', Number(id), title, url, text,
+      Number(boost || 0), bounty ? Number(bounty) : null, Number(fwdUser?.id)))
 
   await createMentions(item, models)
 
   return item
 }
 
-const createItem = async (parent, { title, url, text, boost, forward, bounty, parentId }, { me, models }) => {
+const createItem = async (parent, { sub, title, url, text, boost, forward, bounty, parentId }, { me, models }) => {
   if (!me) {
     throw new AuthenticationError('you must be logged in')
   }
@@ -1091,7 +1097,8 @@ const createItem = async (parent, { title, url, text, boost, forward, bounty, pa
   const [item] = await serialize(
     models,
     models.$queryRaw(
-    `${SELECT} FROM create_item($1, $2, $3, $4, $5, $6, $7, $8, '${ITEM_SPAM_INTERVAL}') AS "Item"`,
+    `${SELECT} FROM create_item($1, $2, $3, $4, $5, $6, $7, $8, $9, '${ITEM_SPAM_INTERVAL}') AS "Item"`,
+    parentId ? null : sub || 'bitcoin',
     title,
     url,
     text,

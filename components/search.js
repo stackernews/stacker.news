@@ -49,7 +49,7 @@ export default function Search ({ sub }) {
   }
 
   const showSearch = atBottom || searching || router.query.q
-  const filter = router.query.q && !sub
+  const filter = sub !== 'jobs'
   return (
     <>
       <div className={`${styles.searchSection} ${showSearch ? styles.solid : styles.hidden}`}>
@@ -100,7 +100,7 @@ export default function Search ({ sub }) {
                   <Input
                     name='q'
                     required
-                    autoFocus={showSearch && !atBottom}
+                    autoFocus
                     groupClassName='mr-3 mb-0 flex-grow-1'
                     className='flex-grow-1'
                     clear

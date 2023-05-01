@@ -3,7 +3,7 @@ import { gql } from 'apollo-server-micro'
 export default gql`
   extend type Query {
     items(sub: String, sort: String, type: String, cursor: String, name: String, within: String): Items
-    moreFlatComments(sort: String!, cursor: String, name: String, within: String): Comments
+    moreFlatComments(sub: String, sort: String!, cursor: String, name: String, within: String): Comments
     moreBookmarks(cursor: String, name: String!): Items
     item(id: ID!): Item
     comments(id: ID!, sort: String): [Item!]!
@@ -12,7 +12,7 @@ export default gql`
     related(cursor: String, title: String, id: ID, minMatch: String, limit: Int): Items
     allItems(cursor: String): Items
     getBountiesByUserName(name: String!, cursor: String, , limit: Int): Items
-    search(q: String, sub: String, cursor: String, what: String, sort: String, when: String): Items
+    search(q: String, cursor: String, what: String, sort: String, when: String): Items
     auctionPosition(sub: String, id: ID, bid: Int!): Int!
     itemRepetition(parentId: ID): Int!
     outlawedItems(cursor: String): Items
@@ -35,12 +35,12 @@ export default gql`
   extend type Mutation {
     bookmarkItem(id: ID): Item
     deleteItem(id: ID): Item
-    upsertLink(id: ID, title: String!, url: String!, boost: Int, forward: String): Item!
-    upsertDiscussion(id: ID, title: String!, text: String, boost: Int, forward: String): Item!
-    upsertBounty(id: ID, title: String!, text: String, bounty: Int!, boost: Int, forward: String): Item!
-    upsertJob(id: ID, sub: ID!, title: String!, company: String!, location: String, remote: Boolean,
+    upsertLink(id: ID, sub: String, title: String!, url: String!, boost: Int, forward: String): Item!
+    upsertDiscussion(id: ID, sub: String, title: String!, text: String, boost: Int, forward: String): Item!
+    upsertBounty(id: ID, sub: String, title: String!, text: String, bounty: Int!, boost: Int, forward: String): Item!
+    upsertJob(id: ID, sub: String!, title: String!, company: String!, location: String, remote: Boolean,
       text: String!, url: String!, maxBid: Int!, status: String, logo: Int): Item!
-    upsertPoll(id: ID, title: String!, text: String, options: [String!]!, boost: Int, forward: String): Item!
+    upsertPoll(id: ID, sub: String, title: String!, text: String, options: [String!]!, boost: Int, forward: String): Item!
     createComment(text: String!, parentId: ID!): Item!
     updateComment(id: ID!, text: String!): Item!
     dontLikeThis(id: ID!): Boolean!

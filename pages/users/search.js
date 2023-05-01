@@ -8,7 +8,7 @@ export const getServerSideProps = getGetServerSideProps(USER_SEARCH, { limit: 21
 
 export default function Index ({ data: { searchUsers } }) {
   return (
-    <Layout noSeo>
+    <Layout noSeo search>
       <SeoSearch />
       <UserList users={searchUsers} />
     </Layout>

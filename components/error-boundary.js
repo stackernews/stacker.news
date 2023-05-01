@@ -1,5 +1,5 @@
 import React from 'react'
-import LayoutError from './layout-error'
+import LayoutStatic from './layout-static'
 import styles from '../styles/404.module.css'
 
 class ErrorBoundary extends React.Component {
@@ -25,10 +25,10 @@ class ErrorBoundary extends React.Component {
     if (this.state.hasError) {
       // You can render any custom fallback UI
       return (
-        <LayoutError>
+        <LayoutStatic>
           <Image width='500' height='375' src='/floating.gif' fluid />
           <h1 className={styles.fourZeroFour} style={{ fontSize: '48px' }}>something went wrong</h1>
-        </LayoutError>
+        </LayoutStatic>
       )
     }
 

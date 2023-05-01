@@ -13,7 +13,7 @@ import { Button } from 'react-bootstrap'
 import { linkSchema } from '../lib/validate'
 import Moon from '../svgs/moon-fill.svg'
 
-export function LinkForm ({ item, editThreshold }) {
+export function LinkForm ({ item, sub, editThreshold }) {
   const router = useRouter()
   const client = useApolloClient()
   const schema = linkSchema(client)
@@ -66,8 +66,8 @@ export function LinkForm ({ item, editThreshold }) {
 
   const [upsertLink] = useMutation(
     gql`
-      mutation upsertLink($id: ID, $title: String!, $url: String!, $boost: Int, $forward: String) {
-        upsertLink(id: $id, title: $title, url: $url, boost: $boost, forward: $forward) {
+      mutation upsertLink($sub: String, $id: ID, $title: String!, $url: String!, $boost: Int, $forward: String) {
+        upsertLink(sub: $sub, id: $id, title: $title, url: $url, boost: $boost, forward: $forward) {
           id
         }
       }`
@@ -85,7 +85,7 @@ export function LinkForm ({ item, editThreshold }) {
       schema={schema}
       onSubmit={async ({ boost, title, ...values }) => {
         const { error } = await upsertLink({
-          variables: { id: item?.id, boost: boost ? Number(boost) : undefined, title: title.trim(), ...values }
+          variables: { sub: item?.sub?.name || sub?.name, id: item?.id, boost: boost ? Number(boost) : undefined, title: title.trim(), ...values }
         })
         if (error) {
           throw new Error({ message: error.toString() })
@@ -93,7 +93,8 @@ export function LinkForm ({ item, editThreshold }) {
         if (item) {
           await router.push(`/items/${item.id}`)
         } else {
-          await router.push('/recent')
+          const prefix = sub?.name ? `/~${sub.name}/` : ''
+          await router.push(prefix + '/recent')
         }
       }}
       storageKeyPrefix={item ? undefined : 'link'}

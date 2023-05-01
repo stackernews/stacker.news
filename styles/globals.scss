@@ -145,7 +145,7 @@ body {
   background: var(--theme-body);
   color: var(--theme-color);
   min-height: 100vh;
-  height: 100%;
+  min-height: 100svh;
 }
 
 a {
@@ -172,6 +172,24 @@ div[contenteditable],
   border-color: var(--theme-borderColor);
 }
 
+
+select.custom-select {
+  background-color: var(--theme-clickToContextColor);
+  color: var(--theme-dropdownItemColor);
+  font-weight: bold;
+  border: none;
+  background-image: url("data:image/svg+xml, %3Csvg fill='%23808080' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath  d='M12 15.0006L7.75732 10.758L9.17154 9.34375L12 12.1722L14.8284 9.34375L16.2426 10.758L12 15.0006Z'%3E%3C/path%3E%3C/svg%3E%0A");
+  background-repeat: no-repeat;
+  background-position: right .25rem center;
+  background-size: 1.5rem;
+}
+
+select.custom-select:focus {
+  border-color: none !important;
+  box-shadow: none !important;
+}
+
+
 div[contenteditable]:focus,
 .form-control:focus {
   background-color: var(--theme-inputBg);
@@ -192,6 +210,11 @@ div[contenteditable]:disabled,
   border-radius: .4rem;
   padding: 0;
   cursor: pointer;
+}
+
+.py-half {
+  padding-top: .125rem;
+  padding-bottom: .125rem;
 }
 
 .clickToContext:hover {
@@ -273,8 +296,8 @@ div[contenteditable]:disabled,
 #__next {
   display: flex;
   flex-direction: column;
-  height: 100%;
   min-height: 100vh;
+  min-height: 100svh;
 }
 
 footer {

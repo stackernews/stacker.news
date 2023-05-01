@@ -7,7 +7,7 @@ import Search from './search'
 
 export default function Layout ({
   sub, noContain, noFooter, noFooterLinks,
-  containClassName, noSeo, children
+  containClassName, noSeo, children, search
 }) {
   return (
     <>
@@ -22,7 +22,7 @@ export default function Layout ({
             </Container>
             )}
         {!noFooter && <Footer noLinks={noFooterLinks} />}
-        {!noContain && <Search sub={sub} />}
+        {!noContain && search && <Search sub={sub} />}
       </LightningProvider>
     </>
   )

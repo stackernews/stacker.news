@@ -48,10 +48,13 @@
 
 .navbarNav {
     width: 100%;
-    flex-wrap: wrap;
-    justify-content: space-between;
     align-items: center;
     height: 39px;
+    align-content: center;
+}
+
+.price {
+    margin-top: 2px;
 }
 
 .dropdown {

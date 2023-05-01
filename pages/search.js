@@ -11,7 +11,7 @@ export default function Index ({ data: { search: { items, cursor } } }) {
   const router = useRouter()
 
   return (
-    <Layout noSeo>
+    <Layout noSeo search>
       <SeoSearch />
       {router.query?.q &&
         <SearchItems

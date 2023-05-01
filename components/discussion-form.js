@@ -13,7 +13,7 @@ import { Button } from 'react-bootstrap'
 import { discussionSchema } from '../lib/validate'
 
 export function DiscussionForm ({
-  item, editThreshold, titleLabel = 'title',
+  item, sub, editThreshold, titleLabel = 'title',
   textLabel = 'text', buttonText = 'post',
   adv, handleSubmit
 }) {
@@ -23,8 +23,8 @@ export function DiscussionForm ({
   // const me = useMe()
   const [upsertDiscussion] = useMutation(
     gql`
-      mutation upsertDiscussion($id: ID, $title: String!, $text: String, $boost: Int, $forward: String) {
-        upsertDiscussion(id: $id, title: $title, text: $text, boost: $boost, forward: $forward) {
+      mutation upsertDiscussion($sub: String, $id: ID, $title: String!, $text: String, $boost: Int, $forward: String) {
+        upsertDiscussion(sub: $sub, id: $id, title: $title, text: $text, boost: $boost, forward: $forward) {
           id
         }
       }`
@@ -56,7 +56,7 @@ export function DiscussionForm ({
       schema={schema}
       onSubmit={handleSubmit || (async ({ boost, ...values }) => {
         const { error } = await upsertDiscussion({
-          variables: { id: item?.id, boost: boost ? Number(boost) : undefined, ...values }
+          variables: { sub: item?.sub?.name || sub?.name, id: item?.id, boost: boost ? Number(boost) : undefined, ...values }
         })
         if (error) {
           throw new Error({ message: error.toString() })
@@ -65,7 +65,8 @@ export function DiscussionForm ({
         if (item) {
           await router.push(`/items/${item.id}`)
         } else {
-          await router.push('/recent')
+          const prefix = sub?.name ? `/~${sub.name}/` : ''
+          await router.push(prefix + '/recent')
         }
       })}
       storageKeyPrefix={item ? undefined : 'discussion'}

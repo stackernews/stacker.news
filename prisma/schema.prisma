@@ -44,6 +44,7 @@ model User {
   lastCheckedJobs DateTime?
   photoId         Int?
   photo           Upload?     @relation(fields: [photoId], references: [id])
+  subs            String[]
 
   // streak
   streak Int?
@@ -83,13 +84,14 @@ model User {
   wildWestMode Boolean @default(false)
   greeterMode  Boolean @default(false)
 
-  Earn        Earn[]
-  Upload      Upload[]      @relation(name: "Uploads")
-  PollVote    PollVote[]
-  Donation    Donation[]
-  ReferralAct ReferralAct[]
-  Streak      Streak[]
-  Bookmarks   Bookmark[]
+  Earn          Earn[]
+  Upload        Upload[]       @relation(name: "Uploads")
+  PollVote      PollVote[]
+  Donation      Donation[]
+  ReferralAct   ReferralAct[]
+  Streak        Streak[]
+  Bookmarks     Bookmark[]
+  Subscriptions Subscription[]
 
   @@index([createdAt])
   @@index([inviteId])
@@ -350,6 +352,7 @@ enum PostType {
   DISCUSSION
   JOB
   POLL
+  BOUNTY
 }
 
 enum RankingType {
@@ -367,7 +370,18 @@ model Sub {
   baseCost    Int         @default(1)
   desc        String?
 
-  Item Item[]
+  Item         Item[]
+  Subscription Subscription[]
+}
+
+model Subscription {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map(name: "created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map(name: "updated_at")
+  subName   String   @db.Citext
+  sub       Sub      @relation(fields: [subName], references: [name])
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
 }
 
 // the active pin is the latest one when it's a recurring cron

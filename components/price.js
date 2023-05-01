@@ -1,6 +1,5 @@
 import React, { useContext, useEffect, useState } from 'react'
 import { useQuery } from '@apollo/client'
-import { Button } from 'react-bootstrap'
 import { fixedDecimal } from '../lib/format'
 import { useMe } from './me'
 import { PRICE } from '../fragments/price'
@@ -32,7 +31,7 @@ export function PriceProvider ({ price, children }) {
   )
 }
 
-export default function Price () {
+export default function Price ({ className }) {
   const [asSats, setAsSats] = useState(undefined)
   useEffect(() => {
     setAsSats(localStorage.getItem('asSats'))
@@ -54,25 +53,27 @@ export default function Price () {
     }
   }
 
+  const compClassName = (className || '') + ' text-reset pointer'
+
   if (asSats === 'yep') {
     return (
-      <Button className='text-reset p-0 line-height-1' onClick={handleClick} variant='link'>
+      <div className={compClassName} onClick={handleClick} variant='link'>
         {fixedDecimal(100000000 / price, 0) + ` sats/${fiatSymbol}`}
-      </Button>
+      </div>
     )
   }
 
   if (asSats === '1btc') {
     return (
-      <Button className='text-reset p-0 line-height-1' onClick={handleClick} variant='link'>
+      <div className={compClassName} onClick={handleClick} variant='link'>
         1sat=1sat
-      </Button>
+      </div>
     )
   }
 
   return (
-    <Button className='text-reset p-0 line-height-1' onClick={handleClick} variant='link'>
+    <div className={compClassName} onClick={handleClick} variant='link'>
       {fiatSymbol + fixedDecimal(price, 0)}
-    </Button>
+    </div>
   )
 }

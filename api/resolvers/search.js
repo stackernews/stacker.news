@@ -79,7 +79,7 @@ export default {
         items
       }
     },
-    search: async (parent, { q: query, sub, cursor, sort, what, when }, { me, models, search }) => {
+    search: async (parent, { q: query, cursor, sort, what, when }, { me, models, search }) => {
       const decodedCursor = decodeCursor(cursor)
       let sitems
 
@@ -105,7 +105,9 @@ export default {
       const queryArr = query.trim().split(/\s+/)
       const url = queryArr.find(word => word.startsWith('url:'))
       const nym = queryArr.find(word => word.startsWith('nym:'))
-      query = queryArr.filter(word => !word.startsWith('url:') && !word.startsWith('nym:')).join(' ')
+      const sub = queryArr.find(word => word.startsWith('~'))
+      const exclude = [url, nym, sub]
+      query = queryArr.filter(word => !exclude.includes(word)).join(' ')
 
       if (url) {
         whatArr.push({ wildcard: { url: `*${url.slice(4).toLowerCase()}*` } })
@@ -113,6 +115,10 @@ export default {
 
       if (nym) {
         whatArr.push({ wildcard: { 'user.name': `*${nym.slice(4).toLowerCase()}*` } })
+      }
+
+      if (sub) {
+        whatArr.push({ match: { 'sub.name': sub.slice(1).toLowerCase() } })
       }
 
       const sortArr = []
@@ -204,9 +210,6 @@ export default {
               bool: {
                 must: [
                   ...whatArr,
-                  sub
-                    ? { match: { 'sub.name': sub } }
-                    : { bool: { must_not: { exists: { field: 'sub.name' } } } },
                   me
                     ? {
                         bool: {

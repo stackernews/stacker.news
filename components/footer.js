@@ -19,7 +19,7 @@ import { useEffect, useState } from 'react'
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 const COLORS = {
   light: {
-    body: '#f5f5f5',
+    body: '#f5f5f7',
     color: '#212529',
     navbarVariant: 'light',
     navLink: 'rgba(0, 0, 0, 0.55)',
@@ -157,9 +157,9 @@ export default function Footer ({ noLinks }) {
         {!noLinks &&
           <>
             {mounted &&
-              <div className='mb-2'>
-                <DarkModeIcon onClick={() => darkMode.toggle()} className='fill-grey theme' />
-                <LnIcon onClick={toggleLightning} width={24} height={24} className='ml-2 fill-grey theme' />
+              <div className='mb-1'>
+                <DarkModeIcon onClick={() => darkMode.toggle()} width={20} height={20} className='fill-grey theme' />
+                <LnIcon onClick={toggleLightning} width={20} height={20} className='ml-2 fill-grey theme' />
               </div>}
             <div className='mb-0' style={{ fontWeight: 500 }}>
               <Link href='/rewards' passHref>

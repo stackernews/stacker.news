@@ -10,6 +10,7 @@ import { bountySchema } from '../lib/validate'
 
 export function BountyForm ({
   item,
+  sub,
   editThreshold,
   titleLabel = 'title',
   bountyLabel = 'bounty',
@@ -24,6 +25,7 @@ export function BountyForm ({
   const [upsertBounty] = useMutation(
     gql`
       mutation upsertBounty(
+        $sub: String
         $id: ID
         $title: String!
         $bounty: Int!
@@ -32,6 +34,7 @@ export function BountyForm ({
         $forward: String
       ) {
         upsertBounty(
+          sub: $sub
           id: $id
           title: $title
           bounty: $bounty
@@ -59,6 +62,7 @@ export function BountyForm ({
         (async ({ boost, bounty, ...values }) => {
           const { error } = await upsertBounty({
             variables: {
+              sub: item?.sub?.name || sub?.name,
               id: item?.id,
               boost: boost ? Number(boost) : undefined,
               bounty: bounty ? Number(bounty) : undefined,
@@ -72,7 +76,8 @@ export function BountyForm ({
           if (item) {
             await router.push(`/items/${item.id}`)
           } else {
-            await router.push('/recent')
+            const prefix = sub?.name ? `/~${sub.name}/` : ''
+            await router.push(prefix + '/recent')
           }
         })
       }

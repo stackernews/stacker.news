@@ -64,6 +64,7 @@ export default function Settings ({ data: { settings } }) {
             noteCowboyHat: settings?.noteCowboyHat,
             hideInvoiceDesc: settings?.hideInvoiceDesc,
             hideFromTopUsers: settings?.hideFromTopUsers,
+            hideCowboyHat: settings?.hideCowboyHat,
             wildWestMode: settings?.wildWestMode,
             greeterMode: settings?.greeterMode,
             nostrPubkey: settings?.nostrPubkey ? bech32encode(settings.nostrPubkey) : '',
@@ -205,6 +206,11 @@ export default function Settings ({ data: { settings } }) {
           <Checkbox
             label={<>hide me from  <Link href='/top/users/day' passHref><a>top users</a></Link></>}
             name='hideFromTopUsers'
+            groupClassName='mb-0'
+          />
+          <Checkbox
+            label={<>hide my cowboy hat</>}
+            name='hideCowboyHat'
           />
           <div className='form-label'>content</div>
           <Checkbox

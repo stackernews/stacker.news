@@ -49,7 +49,7 @@ export default function ItemInfo ({ item, commentsText, className, embellishUser
       <span>
         <Link href={`/${item.user.name}`} passHref>
           <a className='d-inline-flex align-items-center'>
-            @{item.user.name}<CowboyHat className='ml-1 fill-grey' streak={item.user.streak} height={12} width={12} />
+            @{item.user.name}<CowboyHat className='ml-1 fill-grey' user={item.user} height={12} width={12} />
             {embellishUser}
           </a>
         </Link>

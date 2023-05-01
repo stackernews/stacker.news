@@ -28,6 +28,7 @@ export const ME = gql`
       noteCowboyHat
       hideInvoiceDesc
       hideFromTopUsers
+      hideCowboyHat
       wildWestMode
       greeterMode
       lastCheckedJobs
@@ -49,6 +50,7 @@ export const SETTINGS_FIELDS = gql`
     noteCowboyHat
     hideInvoiceDesc
     hideFromTopUsers
+    hideCowboyHat
     nostrPubkey
     nostrRelays
     wildWestMode
@@ -75,12 +77,14 @@ gql`
 ${SETTINGS_FIELDS}
 mutation setSettings($tipDefault: Int!, $turboTipping: Boolean!, $fiatCurrency: String!, $noteItemSats: Boolean!,
   $noteEarning: Boolean!, $noteAllDescendants: Boolean!, $noteMentions: Boolean!, $noteDeposits: Boolean!,
-  $noteInvites: Boolean!, $noteJobIndicator: Boolean!, $noteCowboyHat: Boolean!, $hideInvoiceDesc: Boolean!, $hideFromTopUsers: Boolean!,
+  $noteInvites: Boolean!, $noteJobIndicator: Boolean!, $noteCowboyHat: Boolean!, $hideInvoiceDesc: Boolean!,
+  $hideFromTopUsers: Boolean!, $hideCowboyHat: Boolean!,
   $wildWestMode: Boolean!, $greeterMode: Boolean!, $nostrPubkey: String, $nostrRelays: [String!]) {
   setSettings(tipDefault: $tipDefault, turboTipping: $turboTipping,  fiatCurrency: $fiatCurrency,
     noteItemSats: $noteItemSats, noteEarning: $noteEarning, noteAllDescendants: $noteAllDescendants,
     noteMentions: $noteMentions, noteDeposits: $noteDeposits, noteInvites: $noteInvites,
-    noteJobIndicator: $noteJobIndicator, noteCowboyHat: $noteCowboyHat, hideInvoiceDesc: $hideInvoiceDesc, hideFromTopUsers: $hideFromTopUsers,
+    noteJobIndicator: $noteJobIndicator, noteCowboyHat: $noteCowboyHat, hideInvoiceDesc: $hideInvoiceDesc,
+    hideFromTopUsers: $hideFromTopUsers, hideCowboyHat: $hideCowboyHat,
     wildWestMode: $wildWestMode, greeterMode: $greeterMode, nostrPubkey: $nostrPubkey, nostrRelays: $nostrRelays) {
       ...SettingsFields
     }
@@ -107,6 +111,7 @@ gql`
     searchUsers(q: $q, limit: $limit, similarity: $similarity) {
       name
       streak
+      hideCowboyHat
       photoId
       stacked
       spent
@@ -122,6 +127,7 @@ export const USER_FIELDS = gql`
     createdAt
     name
     streak
+    hideCowboyHat
     nitems
     ncomments
     nbookmarks
@@ -140,6 +146,7 @@ export const TOP_USERS = gql`
       users {
         name
         streak
+        hideCowboyHat
         photoId
         stacked(when: $when)
         spent(when: $when)
@@ -158,6 +165,7 @@ export const TOP_COWBOYS = gql`
       users {
         name
         streak
+        hideCowboyHat
         photoId
         stacked(when: "forever")
         spent(when: "forever")

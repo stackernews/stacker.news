@@ -12,6 +12,7 @@ export const ITEM_FIELDS = gql`
     user {
       name
       streak
+      hideCowboyHat
       id
     }
     fwdUserId
@@ -54,6 +55,7 @@ export const ITEM_FULL_FIELDS = gql`
     fwdUser {
       name
       streak
+      hideCowboyHat
       id
     }
     root {
@@ -67,6 +69,7 @@ export const ITEM_FULL_FIELDS = gql`
       user {
         name
         streak
+        hideCowboyHat
         id
       }
     }

@@ -1,11 +1,12 @@
 import { Badge, OverlayTrigger, Tooltip } from 'react-bootstrap'
 import CowboyHatIcon from '../svgs/cowboy.svg'
 
-export default function CowboyHat ({ streak, badge, className = 'ml-1', height = 16, width = 16 }) {
-  if (streak === null) {
+export default function CowboyHat ({ user, badge, className = 'ml-1', height = 16, width = 16 }) {
+  if (user?.streak === null || user.hideCowboyHat) {
     return null
   }
 
+  const streak = user.streak
   return (
     <HatTooltip overlayText={streak ? `${streak} days` : 'new'}>
       {badge

@@ -10,6 +10,7 @@ export const COMMENT_FIELDS = gql`
     user {
       name
       streak
+      hideCowboyHat
       id
     }
     sats
@@ -33,6 +34,7 @@ export const COMMENT_FIELDS = gql`
       user {
         name
         streak
+        hideCowboyHat
         id
       }
     }

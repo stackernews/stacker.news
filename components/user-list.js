@@ -20,7 +20,7 @@ export default function UserList ({ users }) {
         <div className={styles.hunk}>
           <Link href={`/${user.name}`} passHref>
             <a className={`${styles.title} d-inline-flex align-items-center text-reset`}>
-              @{user.name}<CowboyHat className='ml-1 fill-grey' height={14} width={14} streak={user.streak} />
+              @{user.name}<CowboyHat className='ml-1 fill-grey' height={14} width={14} user={user} />
             </a>
           </Link>
           <div className={styles.other}>

@@ -14,6 +14,7 @@ export const INVITE_FIELDS = gql`
     user {
       name
       streak
+      hideCowboyHat
       id
     }
     poor

@@ -79,6 +79,7 @@ model User {
   // privacy settings
   hideInvoiceDesc  Boolean @default(false)
   hideFromTopUsers Boolean @default(false)
+  hideCowboyHat    Boolean @default(false)
 
   // content settings
   wildWestMode Boolean @default(false)

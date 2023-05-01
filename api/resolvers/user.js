@@ -95,7 +95,7 @@ export default {
       const users = await models.$queryRaw(`
         SELECT users.*
           FROM users
-          WHERE NOT "hideFromTopUsers" AND streak IS NOT NULL
+          WHERE NOT "hideFromTopUsers" AND NOT "hideCowboyHat" AND streak IS NOT NULL
           ORDER BY streak DESC, created_at ASC
           OFFSET $1
           LIMIT ${LIMIT}`, decodedCursor.offset)

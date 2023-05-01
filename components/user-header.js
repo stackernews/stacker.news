@@ -118,7 +118,7 @@ export default function UserHeader ({ user }) {
               )
             : (
               <div className='d-flex align-items-center mb-2'>
-                <div className={styles.username}>@{user.name}<CowboyHat className='' streak={user.streak} badge /></div>
+                <div className={styles.username}>@{user.name}<CowboyHat className='' user={user} badge /></div>
                 {isMe &&
                   <Button className='py-0' style={{ lineHeight: '1.25' }} variant='link' onClick={() => setEditting(true)}>edit nym</Button>}
               </div>

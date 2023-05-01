@@ -86,7 +86,7 @@ export default function Header ({ sub }) {
             <NavDropdown
               className={styles.dropdown} title={
                 <Nav.Link eventKey={me?.name} as='span' className='p-0 d-flex align-items-center' onClick={e => e.preventDefault()}>
-                  {`@${me?.name}`}<CowboyHat streak={me.streak} />
+                  {`@${me?.name}`}<CowboyHat user={me} />
                 </Nav.Link>
               } alignRight
             >
@@ -152,7 +152,7 @@ export default function Header ({ sub }) {
         }, [])
       }
       return path !== '/login' && path !== '/signup' && !path.startsWith('/invites') &&
-        <div className='ml-auto'>
+        <div>
           <Button
             className='align-items-center px-3 py-1 mr-2'
             id='signup'

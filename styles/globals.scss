@@ -184,6 +184,11 @@ select.custom-select {
   background-size: 1.5rem;
 }
 
+select.custom-select option {
+  // fix dropdown items not visible in darkmode on some browsers
+  color: initial;
+}
+
 select.custom-select:focus {
   border-color: none !important;
   box-shadow: none !important;

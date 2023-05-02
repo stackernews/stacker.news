@@ -65,14 +65,19 @@ export default function ItemInfo ({ item, commentsText, className, embellishUser
             </Link>
           </>}
       </span>
+      {item.sub?.name &&
+        <Link href={`/~${item.sub?.name}`}>
+          <a>{' '}<Badge className={styles.newComment} variant={null}>{item.sub?.name}</Badge></a>
+        </Link>}
       {(item.outlawed && !item.mine &&
         <Link href='/outlawed'>
-          <a>{' '}<Badge className={styles.newComment} variant={null}>OUTLAWED</Badge></a>
-        </Link>) || (item.freebie && !item.mine &&
+          <a>{' '}<Badge className={styles.newComment} variant={null}>outlawed</Badge></a>
+        </Link>) ||
+        (item.freebie && !item.mine &&
           <Link href='/freebie'>
-            <a>{' '}<Badge className={styles.newComment} variant={null}>FREEBIE</Badge></a>
+            <a>{' '}<Badge className={styles.newComment} variant={null}>freebie</Badge></a>
           </Link>
-      )}
+        )}
       {canEdit && !item.deletedAt &&
         <>
           <span> \ </span>

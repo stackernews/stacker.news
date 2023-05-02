@@ -34,6 +34,7 @@ function repin ({ models }) {
         text: current.text,
         url: current.url,
         userId: current.userId,
+        subName: current.subName,
         pinId
       }
     })

@@ -11,6 +11,7 @@ import { PollForm } from '../components/poll-form'
 import { BountyForm } from '../components/bounty-form'
 import { Form, Select } from '../components/form'
 import { useEffect, useState } from 'react'
+import Info from '../components/info'
 
 export const getServerSideProps = getGetServerSideProps()
 
@@ -74,7 +75,7 @@ export function SubSelect ({ children }) {
   return (
     <div className='mb-3 d-flex justify-content-start'>
       <Form
-        className='w-auto'
+        className='w-auto d-flex align-items-center'
         initial={{
           sub
         }}
@@ -91,6 +92,16 @@ export function SubSelect ({ children }) {
           size='sm'
           items={router.query?.type ? ['bitcoin', 'nostr'] : ['bitcoin', 'nostr', 'jobs']}
         />
+        <Info>
+          <div>
+            <div className='font-weight-bold'>The sub your post will go in ...</div>
+            <ul>
+              <li>If it's bitcoin related, put it in the bitcoin sub.</li>
+              <li>If it's nostr related, put it in the nostr sub.</li>
+              <li>If it's a job, put it in the jobs sub.</li>
+            </ul>
+          </div>
+        </Info>
       </Form>
       {children}
     </div>

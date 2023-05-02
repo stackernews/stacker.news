@@ -264,7 +264,7 @@ export default function Header ({ sub }) {
             <NavItems className='d-none d-md-flex mx-2' />
             <PostItem className='d-none d-md-flex mx-2' />
             <Link href='/search' passHref>
-              <Nav.Link eventKey='search' className='position-relative d-none d-md-flex align-items-center mx-2'>
+              <Nav.Link eventKey='search' className='position-relative d-none d-md-flex align-items-center pr-0 ml-2'>
                 <SearchIcon className='theme' width={22} height={22} />
               </Nav.Link>
             </Link>

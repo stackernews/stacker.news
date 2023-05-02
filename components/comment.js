@@ -18,6 +18,7 @@ import Flag from '../svgs/flag-fill.svg'
 import { abbrNum } from '../lib/format'
 import Share from './share'
 import ItemInfo from './item-info'
+import { Badge } from 'react-bootstrap'
 
 function Parent ({ item, rootText }) {
   const ParentFrag = () => (
@@ -40,6 +41,10 @@ function Parent ({ item, rootText }) {
       <Link href={`/items/${item.root.id}`} passHref>
         <a className='text-reset'>{rootText || 'on:'} {item.root.title}</a>
       </Link>
+      {item.root.sub?.name &&
+        <Link href={`/~${item.root.sub?.name}`}>
+          <a>{' '}<Badge className={itemStyles.newComment} variant={null}>{item.root.sub?.name}</Badge></a>
+        </Link>}
     </>
   )
 }

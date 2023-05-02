@@ -165,7 +165,7 @@ export default {
           LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
       } else {
         users = await models.$queryRaw(`
-          SELECT u.id, u.name, u.streak, u."photoId", floor(sum(amount)/1000) as stacked
+          SELECT u.id, u.name, u.streak, u."photoId", u."hideCowboyHat", floor(sum(amount)/1000) as stacked
           FROM
           ((SELECT users.*, "ItemAct".msats as amount
             FROM "ItemAct"
@@ -186,7 +186,7 @@ export default {
               JOIN users on users.id = "ReferralAct"."referrerId"
               WHERE "ReferralAct".msats > 0 ${within('ReferralAct', when)}
               AND NOT users."hideFromTopUsers")) u
-          GROUP BY u.id, u.name, u.created_at, u."photoId", u.streak
+          GROUP BY u.id, u.name, u.created_at, u."photoId", u.streak, u."hideCowboyHat"
           ORDER BY stacked DESC NULLS LAST, created_at DESC
           OFFSET $2
           LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)

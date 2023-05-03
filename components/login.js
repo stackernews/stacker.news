@@ -84,7 +84,7 @@ export default function Login ({ providers, callbackUrl, error, text, Header, Fo
                 type={provider.name.toLowerCase()}
                 onClick={() => router.push({
                   pathname: router.pathname,
-                  query: { ...router.query, type: provider.name.toLowerCase() }
+                  query: { callbackUrl: router.query.callbackUrl, type: provider.name.toLowerCase() }
                 })}
                 text={`${text || 'Login'} with`}
               />

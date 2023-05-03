@@ -31,7 +31,7 @@ function QrAuth ({ k1, encodedUrl, slashtagUrl, callbackUrl }) {
 function LightningExplainer ({ text, children }) {
   const router = useRouter()
   return (
-    <Container sm>
+    <Container>
       <div className={styles.login}>
         <div className='w-100 mb-3 text-muted pointer' onClick={() => router.back()}><BackIcon /></div>
         <h3 className='w-100 pb-2'>

@@ -37,7 +37,6 @@ export default function Header ({ sub }) {
   useEffect(() => {
     // there's always at least 2 on the split, e.g. '/' yields ['','']
     const path = router.asPath.split('?')[0]
-    console.log(path, path.split('/')[sub ? 2 : 1], path.split('/').slice(sub ? 2 : 1).join('/'))
     setPrefix(sub ? `/~${sub}` : '')
     setTopNavKey(path.split('/')[sub ? 2 : 1] ?? '')
     setDropNavKey(path.split('/').slice(sub ? 2 : 1).join('/'))
@@ -69,7 +68,7 @@ export default function Header ({ sub }) {
   const Corner = () => {
     if (me) {
       return (
-        <div className='d-flex align-items-center'>
+        <div className='d-flex align-items-center ml-auto'>
           <Head>
             <link rel='shortcut icon' href={hasNewNotes?.hasNewNotes ? '/favicon-notify.png' : '/favicon.png'} />
           </Head>
@@ -152,7 +151,7 @@ export default function Header ({ sub }) {
         }, [])
       }
       return path !== '/login' && path !== '/signup' && !path.startsWith('/invites') &&
-        <div>
+        <div className='ml-auto'>
           <Button
             className='align-items-center px-3 py-1 mr-2'
             id='signup'
@@ -268,7 +267,7 @@ export default function Header ({ sub }) {
                 <SearchIcon className='theme' width={22} height={22} />
               </Nav.Link>
             </Link>
-            <Nav.Item className={`${styles.price} mx-auto align-items-center ${me?.name.length > 10 ? 'd-none d-lg-flex' : ''}`}>
+            <Nav.Item className={`${styles.price} ml-auto align-items-center ${me?.name.length > 10 ? 'd-none d-lg-flex' : ''}`}>
               <Price className='nav-link text-monospace' />
             </Nav.Item>
             <Corner />

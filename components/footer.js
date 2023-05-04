@@ -78,6 +78,24 @@ const handleThemeChange = (dark) => {
   })
 }
 
+const RssPopover = (
+  <Popover>
+    <Popover.Content style={{ fontWeight: 500, fontSize: '.9rem' }}>
+      <a href='/rss' className='text-dark d-inline-flex'>
+        home
+      </a>
+      <span className='mx-2 text-dark'> \ </span>
+      <a href='/~bitcoin/rss' className='text-dark d-inline-flex'>
+        bitcoin
+      </a>
+      <span className='mx-2 text-dark'> \ </span>
+      <a href='/~nostr/rss' className='text-dark d-inline-flex'>
+        nostr
+      </a>
+    </Popover.Content>
+  </Popover>
+)
+
 const ChatPopover = (
   <Popover>
     <Popover.Content style={{ fontWeight: 500, fontSize: '.9rem' }}>
@@ -181,9 +199,11 @@ export default function Footer ({ noLinks }) {
                 </div>
               </OverlayTrigger>
               <span className='mx-2 text-muted'> \ </span>
-              <a href='/rss' className='nav-link p-0 d-inline-flex' target='_blank'>
-                rss
-              </a>
+              <OverlayTrigger trigger='click' placement='top' overlay={RssPopover} rootClose>
+                <div className='nav-link p-0 d-inline-flex' style={{ cursor: 'pointer' }}>
+                  rss
+                </div>
+              </OverlayTrigger>
             </div>
             <div className='mb-2' style={{ fontWeight: 500 }}>
               <Link href='/faq' passHref>

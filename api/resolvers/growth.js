@@ -94,8 +94,8 @@ export default {
         `${withClause(when)}
         SELECT time, json_build_array(
           json_build_object('name', 'comments', 'value', count("parentId")),
-          json_build_object('name', 'jobs', 'value', count("subName")),
-          json_build_object('name', 'posts', 'value', count("Item".id)-count("parentId")-count("subName"))
+          json_build_object('name', 'jobs', 'value', count("subName") FILTER (WHERE "subName" = 'jobs')),
+          json_build_object('name', 'posts', 'value', count("Item".id)-count("parentId")-(count("subName") FILTER (WHERE "subName" = 'jobs')))
         ) AS data
         FROM times
         LEFT JOIN "Item" ON ${intervalClause(when, 'Item', true)} time = date_trunc('${timeUnit(when)}', created_at)

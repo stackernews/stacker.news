@@ -6,4 +6,4 @@ export default function RssFeed () {
   return null
 }
 
-export const getServerSideProps = ({ req, res, params }) => getGetRssServerSideProps(ITEMS, { sub: params.sub })({ req, res });
+export const getServerSideProps = getGetRssServerSideProps(ITEMS)

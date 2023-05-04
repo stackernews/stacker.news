@@ -81,16 +81,20 @@ const handleThemeChange = (dark) => {
 const RssPopover = (
   <Popover>
     <Popover.Content style={{ fontWeight: 500, fontSize: '.9rem' }}>
-      <a href='/rss' className='text-dark d-inline-flex'>
+      <a href='/rss' className='nav-link p-0 d-inline-flex'>
         home
       </a>
-      <span className='mx-2 text-dark'> \ </span>
-      <a href='/~bitcoin/rss' className='text-dark d-inline-flex'>
+      <span className='mx-2 text-muted'> \ </span>
+      <a href='/~bitcoin/rss' className='nav-link p-0 d-inline-flex'>
         bitcoin
       </a>
-      <span className='mx-2 text-dark'> \ </span>
-      <a href='/~nostr/rss' className='text-dark d-inline-flex'>
+      <span className='mx-2 text-muted'> \ </span>
+      <a href='/~nostr/rss' className='nav-link p-0 d-inline-flex'>
         nostr
+      </a>
+      <span className='mx-2 text-muted'> \ </span>
+      <a href='/~jobs/rss' className='nav-link p-0 d-inline-flex'>
+        jobs
       </a>
     </Popover.Content>
   </Popover>
@@ -100,14 +104,14 @@ const ChatPopover = (
   <Popover>
     <Popover.Content style={{ fontWeight: 500, fontSize: '.9rem' }}>
       <a
-        href='https://tribes.sphinx.chat/t/stackerzchat' className='text-dark d-inline-flex'
+        href='https://tribes.sphinx.chat/t/stackerzchat' className='nav-link p-0 d-inline-flex'
         target='_blank' rel='noreferrer'
       >
         sphinx
       </a>
-      <span className='mx-2 text-dark'> \ </span>
+      <span className='mx-2 text-muted'> \ </span>
       <a
-        href='https://t.me/stackernews' className='text-dark d-inline-flex'
+        href='https://t.me/stackernews' className='nav-link p-0 d-inline-flex'
         target='_blank' rel='noreferrer'
       >
         telegram
@@ -120,14 +124,14 @@ const AnalyticsPopover = (
   <Popover>
     <Popover.Content style={{ fontWeight: 500, fontSize: '.9rem' }}>
       <a
-        href='https://plausible.io/stacker.news' className='text-dark d-inline-flex'
+        href='https://plausible.io/stacker.news' className='nav-link p-0 d-inline-flex'
         target='_blank' rel='noreferrer'
       >
         visitors
       </a>
-      <span className='mx-2 text-dark'> \ </span>
+      <span className='mx-2 text-muted'> \ </span>
       <Link href='/users/day' passHref>
-        <a className='text-dark d-inline-flex'>
+        <a className='nav-link p-0 d-inline-flex'>
           users
         </a>
       </Link>
@@ -181,57 +185,57 @@ export default function Footer ({ noLinks }) {
               </div>}
             <div className='mb-0' style={{ fontWeight: 500 }}>
               <Link href='/rewards' passHref>
-                <a className='nav-link p-0 d-inline-flex'>
+                <a className='nav-link p-0 p-0 d-inline-flex'>
                   rewards
                 </a>
               </Link>
             </div>
             <div className='mb-0' style={{ fontWeight: 500 }}>
               <OverlayTrigger trigger='click' placement='top' overlay={AnalyticsPopover} rootClose>
-                <div className='nav-link p-0 d-inline-flex' style={{ cursor: 'pointer' }}>
+                <div className='nav-link p-0 p-0 d-inline-flex' style={{ cursor: 'pointer' }}>
                   analytics
                 </div>
               </OverlayTrigger>
               <span className='mx-2 text-muted'> \ </span>
               <OverlayTrigger trigger='click' placement='top' overlay={ChatPopover} rootClose>
-                <div className='nav-link p-0 d-inline-flex' style={{ cursor: 'pointer' }}>
+                <div className='nav-link p-0 p-0 d-inline-flex' style={{ cursor: 'pointer' }}>
                   chat
                 </div>
               </OverlayTrigger>
               <span className='mx-2 text-muted'> \ </span>
               <OverlayTrigger trigger='click' placement='top' overlay={RssPopover} rootClose>
-                <div className='nav-link p-0 d-inline-flex' style={{ cursor: 'pointer' }}>
+                <div className='nav-link p-0 p-0 d-inline-flex' style={{ cursor: 'pointer' }}>
                   rss
                 </div>
               </OverlayTrigger>
             </div>
             <div className='mb-2' style={{ fontWeight: 500 }}>
               <Link href='/faq' passHref>
-                <a className='nav-link p-0 d-inline-flex'>
+                <a className='nav-link p-0 p-0 d-inline-flex'>
                   faq
                 </a>
               </Link>
               <span className='mx-2 text-muted'> \ </span>
               <Link href='/guide' passHref>
-                <a className='nav-link p-0 d-inline-flex'>
+                <a className='nav-link p-0 p-0 d-inline-flex'>
                   guide
                 </a>
               </Link>
               <span className='mx-2 text-muted'> \ </span>
               <Link href='/story' passHref>
-                <a className='nav-link p-0 d-inline-flex'>
+                <a className='nav-link p-0 p-0 d-inline-flex'>
                   story
                 </a>
               </Link>
               <span className='mx-2 text-muted'> \ </span>
               <Link href='/changes' passHref>
-                <a className='nav-link p-0 d-inline-flex'>
+                <a className='nav-link p-0 p-0 d-inline-flex'>
                   changes
                 </a>
               </Link>
               <span className='mx-2 text-muted'> \ </span>
               <Link href='/privacy' passHref>
-                <a className='nav-link p-0 d-inline-flex'>
+                <a className='nav-link p-0 p-0 d-inline-flex'>
                   privacy
                 </a>
               </Link>

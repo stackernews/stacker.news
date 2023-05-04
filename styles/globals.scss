@@ -379,6 +379,21 @@ div[contenteditable] {
   padding: .5rem !important;
 }
 
+.popover {
+  color: var(--theme-color);
+  background-color: var(--theme-body);
+  border-color: var(--theme-borderColor);
+}
+
+.popover .arrow::before {
+  border-top-color: var(--theme-borderColor);
+}
+
+.popover .arrow::after {
+  border-top-color: var(--theme-body);
+}
+
+
 .alert-dismissible .close::after {
   content: 'X';
 }

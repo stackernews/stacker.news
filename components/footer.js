@@ -100,6 +100,33 @@ const RssPopover = (
   </Popover>
 )
 
+const SocialsPopover = (
+  <Popover>
+    <Popover.Content style={{ fontWeight: 500, fontSize: '.9rem' }}>
+      <a
+        href='https://snort.social/p/npub1jfujw6llhq7wuvu5detycdsq5v5yqf56sgrdq8wlgrryx2a2p09svwm0gx' className='nav-link p-0 d-inline-flex'
+        target='_blank' rel='noreferrer'
+      >
+        nostr
+      </a>
+      <span className='mx-2 text-muted'> \ </span>
+      <a
+        href='https://twitter.com/stacker_news' className='nav-link p-0 d-inline-flex'
+        target='_blank' rel='noreferrer'
+      >
+        twitter
+      </a>
+      <span className='mx-2 text-muted'> \ </span>
+      <a
+        href='https://www.youtube.com/@stackernews' className='nav-link p-0 d-inline-flex'
+        target='_blank' rel='noreferrer'
+      >
+        podcast
+      </a>
+    </Popover.Content>
+  </Popover>
+)
+
 const ChatPopover = (
   <Popover>
     <Popover.Content style={{ fontWeight: 500, fontSize: '.9rem' }}>
@@ -200,6 +227,12 @@ export default function Footer ({ noLinks }) {
               <OverlayTrigger trigger='click' placement='top' overlay={ChatPopover} rootClose>
                 <div className='nav-link p-0 p-0 d-inline-flex' style={{ cursor: 'pointer' }}>
                   chat
+                </div>
+              </OverlayTrigger>
+              <span className='mx-2 text-muted'> \ </span>
+              <OverlayTrigger trigger='click' placement='top' overlay={SocialsPopover} rootClose>
+                <div className='nav-link p-0 p-0 d-inline-flex' style={{ cursor: 'pointer' }}>
+                  socials
                 </div>
               </OverlayTrigger>
               <span className='mx-2 text-muted'> \ </span>

@@ -121,7 +121,14 @@ const SocialsPopover = (
         href='https://www.youtube.com/@stackernews' className='nav-link p-0 d-inline-flex'
         target='_blank' rel='noreferrer'
       >
-        podcast
+        youtube
+      </a>
+      <span className='mx-2 text-muted'> \ </span>
+      <a
+        href='https://www.fountain.fm/show/Mg1AWuvkeZSFhsJZ3BW2' className='nav-link p-0 d-inline-flex'
+        target='_blank' rel='noreferrer'
+      >
+        pod
       </a>
     </Popover.Content>
   </Popover>

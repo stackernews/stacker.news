@@ -235,7 +235,7 @@ export default {
             ${recentClause(type)}
             ORDER BY created_at DESC
             OFFSET $2
-            LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, sub || 'NULL')
+            LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, sub)
           break
         case 'top':
           items = await models.$queryRaw(`
@@ -440,7 +440,7 @@ export default {
             FROM "Item"
             JOIN "Item" root ON "Item"."rootId" = root.id
             WHERE "Item"."parentId" IS NOT NULL AND "Item".created_at <= $1
-            AND (root."subName" = $3 OR (root."subName" IS NULL AND $3 IS NULL))
+            AND (root."subName" = $3 OR (root."subName" IS NOT NULL AND $3 IS NULL))
             ${await filterClause(me, models)}
             ORDER BY "Item".created_at DESC
             OFFSET $2
@@ -472,13 +472,12 @@ export default {
           FROM "Item"
           JOIN "Item" root ON "Item"."rootId" = root.id
           WHERE "Item"."parentId" IS NOT NULL AND"Item"."deletedAt" IS NULL
-          AND (root."subName" = $3 OR (root."subName" IS NULL AND $3 IS NULL))
           AND "Item".created_at <= $1
           ${topClause(within)}
           ${await filterClause(me, models)}
           ${await topOrderByWeightedSats(me, models)}
           OFFSET $2
-          LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, sub)
+          LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
           break
         default:
           throw new UserInputError('invalid sort type', { argumentName: 'sort' })

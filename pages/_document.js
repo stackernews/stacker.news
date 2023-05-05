@@ -8,6 +8,7 @@ class MyDocument extends Document {
         <Head>
           <link rel='apple-touch-icon' sizes='180x180' href='/apple-touch-icon.png' />
           <link rel='manifest' href='/site.webmanifest' />
+          <link rel="manifest" href="/manifest.json" />
           <link rel='preload' href={`${publicPrefix}/Lightningvolt-xoqm.ttf`} as='font' type='font/ttf' crossOrigin='' />
           <style
             dangerouslySetInnerHTML={{

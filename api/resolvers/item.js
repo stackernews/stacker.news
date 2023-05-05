@@ -146,8 +146,8 @@ function recentClause (type) {
   }
 }
 
-const subClause = (sub, num) => {
-  return sub ? ` AND "subName" = $${num} ` : ` AND ("subName" IS NOT NULL OR "subName" = $${num}) `
+const subClause = (sub, num, table) => {
+  return sub ? ` AND ${table ? `${table}.` : ''}"subName" = $${num} ` : ''
 }
 
 export default {
@@ -202,6 +202,10 @@ export default {
         return me ? ` AND (status <> 'STOPPED' OR "userId" = ${me.id}) ` : ' AND status <> \'STOPPED\' '
       }
 
+      // HACK we want to optionally include the subName in the query
+      // but the query planner doesn't like unused parameters
+      const subArr = sub ? [sub] : []
+
       switch (sort) {
         case 'user':
           if (!name) {
@@ -235,7 +239,7 @@ export default {
             ${recentClause(type)}
             ORDER BY created_at DESC
             OFFSET $2
-            LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, sub)
+            LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, ...subArr)
           break
         case 'top':
           items = await models.$queryRaw(`
@@ -277,7 +281,7 @@ export default {
                   ORDER BY created_at DESC)
                 ) a
                 OFFSET $2
-                LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, sub)
+                LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, ...subArr)
               break
             default:
               // HACK we can speed hack the first hot page, by limiting our query to only
@@ -296,7 +300,7 @@ export default {
                   ${await filterClause(me, models)}
                   ${await newTimedOrderByWeightedSats(me, models, 1)}
                   OFFSET $2
-                  LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, new Date(new Date().setDate(new Date().getDate() - 5)), sub || 'NULL')
+                  LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, new Date(new Date().setDate(new Date().getDate() - 5)), ...subArr)
               }
 
               if (decodedCursor.offset !== 0 || items?.length < LIMIT) {
@@ -309,7 +313,7 @@ export default {
                   ${await filterClause(me, models)}
                   ${await newTimedOrderByWeightedSats(me, models, 1)}
                   OFFSET $2
-                  LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, sub || 'NULL')
+                  LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, ...subArr)
               }
 
               if (decodedCursor.offset === 0) {
@@ -324,7 +328,7 @@ export default {
                     FROM "Item"
                     WHERE "pinId" IS NOT NULL
                     ${subClause(sub, 1)}
-                ) rank_filter WHERE RANK = 1`, sub)
+                ) rank_filter WHERE RANK = 1`, ...subArr)
               }
               break
           }
@@ -431,6 +435,9 @@ export default {
     },
     moreFlatComments: async (parent, { sub, cursor, name, sort, within }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
+      // HACK we want to optionally include the subName in the query
+      // but the query planner doesn't like unused parameters
+      const subArr = sub ? [sub] : []
 
       let comments, user
       switch (sort) {
@@ -440,11 +447,11 @@ export default {
             FROM "Item"
             JOIN "Item" root ON "Item"."rootId" = root.id
             WHERE "Item"."parentId" IS NOT NULL AND "Item".created_at <= $1
-            AND (root."subName" = $3 OR (root."subName" IS NOT NULL AND $3 IS NULL))
+            ${subClause(sub, 3, 'root')}
             ${await filterClause(me, models)}
             ORDER BY "Item".created_at DESC
             OFFSET $2
-            LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, sub)
+            LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, ...subArr)
           break
         case 'user':
           if (!name) {

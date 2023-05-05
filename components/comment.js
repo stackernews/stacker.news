@@ -41,9 +41,9 @@ function Parent ({ item, rootText }) {
       <Link href={`/items/${item.root.id}`} passHref>
         <a className='text-reset'>{rootText || 'on:'} {item.root.title}</a>
       </Link>
-      {item.root.sub?.name &&
-        <Link href={`/~${item.root.sub?.name}`}>
-          <a>{' '}<Badge className={itemStyles.newComment} variant={null}>{item.root.sub?.name}</Badge></a>
+      {item.root.subName &&
+        <Link href={`/~${item.root.subName}`}>
+          <a>{' '}<Badge className={itemStyles.newComment} variant={null}>{item.root.subName}</Badge></a>
         </Link>}
     </>
   )

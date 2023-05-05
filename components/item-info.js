@@ -65,9 +65,9 @@ export default function ItemInfo ({ item, commentsText, className, embellishUser
             </Link>
           </>}
       </span>
-      {item.sub?.name &&
-        <Link href={`/~${item.sub?.name}`}>
-          <a>{' '}<Badge className={styles.newComment} variant={null}>{item.sub?.name}</Badge></a>
+      {item.subName &&
+        <Link href={`/~${item.subName}`}>
+          <a>{' '}<Badge className={styles.newComment} variant={null}>{item.subName}</Badge></a>
         </Link>}
       {(item.outlawed && !item.mine &&
         <Link href='/outlawed'>

@@ -85,7 +85,7 @@ export function LinkForm ({ item, sub, editThreshold }) {
       schema={schema}
       onSubmit={async ({ boost, title, ...values }) => {
         const { error } = await upsertLink({
-          variables: { sub: item?.sub?.name || sub?.name, id: item?.id, boost: boost ? Number(boost) : undefined, title: title.trim(), ...values }
+          variables: { sub: item?.subName || sub?.name, id: item?.id, boost: boost ? Number(boost) : undefined, title: title.trim(), ...values }
         })
         if (error) {
           throw new Error({ message: error.toString() })

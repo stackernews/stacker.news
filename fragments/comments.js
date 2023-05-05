@@ -31,9 +31,7 @@ export const COMMENT_FIELDS = gql`
       title
       bounty
       bountyPaidTo
-      sub {
-        name
-      }
+      subName
       user {
         name
         streak

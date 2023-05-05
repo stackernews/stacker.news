@@ -118,6 +118,7 @@ export default gql`
     location: String
     remote: Boolean
     sub: Sub
+    subName: String
     status: String
     uploadId: Int
     otsHash: String

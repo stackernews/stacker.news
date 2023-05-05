@@ -62,7 +62,7 @@ export function BountyForm ({
         (async ({ boost, bounty, ...values }) => {
           const { error } = await upsertBounty({
             variables: {
-              sub: item?.sub?.name || sub?.name,
+              sub: item?.subName || sub?.name,
               id: item?.id,
               boost: boost ? Number(boost) : undefined,
               bounty: bounty ? Number(bounty) : undefined,

@@ -42,7 +42,7 @@ export function PollForm ({ item, sub, editThreshold }) {
         const { error } = await upsertPoll({
           variables: {
             id: item?.id,
-            sub: item?.sub?.name || sub?.name,
+            sub: item?.subName || sub?.name,
             boost: boost ? Number(boost) : undefined,
             title: title.trim(),
             options: optionsFiltered,

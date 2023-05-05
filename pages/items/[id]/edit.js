@@ -14,7 +14,7 @@ export default function PostEdit ({ data: { item } }) {
   const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
 
   return (
-    <LayoutCenter sub={item.sub?.name}>
+    <LayoutCenter sub={item.subName}>
       {item.isJob
         ? <JobForm item={item} sub={item.sub} />
         : (item.url

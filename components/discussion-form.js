@@ -56,7 +56,7 @@ export function DiscussionForm ({
       schema={schema}
       onSubmit={handleSubmit || (async ({ boost, ...values }) => {
         const { error } = await upsertDiscussion({
-          variables: { sub: item?.sub?.name || sub?.name, id: item?.id, boost: boost ? Number(boost) : undefined, ...values }
+          variables: { sub: item?.subName || sub?.name, id: item?.id, boost: boost ? Number(boost) : undefined, ...values }
         })
         if (error) {
           throw new Error({ message: error.toString() })

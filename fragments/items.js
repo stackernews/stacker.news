@@ -37,10 +37,7 @@ export const ITEM_FIELDS = gql`
     company
     location
     remote
-    sub {
-      name
-      baseCost
-    }
+    subName
     pollCost
     status
     uploadId
@@ -63,9 +60,7 @@ export const ITEM_FULL_FIELDS = gql`
       title
       bounty
       bountyPaidTo
-      sub {
-        name
-      }
+      subName
       user {
         name
         streak

@@ -12,6 +12,7 @@ import Sun from '../svgs/sun-fill.svg'
 import Moon from '../svgs/moon-fill.svg'
 import No from '../svgs/no.svg'
 import Bolt from '../svgs/bolt.svg'
+import Amboss from '../svgs/amboss.svg'
 import { useEffect, useState } from 'react'
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -293,6 +294,12 @@ export default function Footer ({ noLinks }) {
               noForm
               placeholder={data.connectAddress}
             />
+            <a
+              href='https://amboss.space/node/03cc1d0932bb99b0697f5b5e5961b83ab7fd66f1efc4c9f5c7bad66c1bcbe78f02'
+              target='_blank' rel='noreferrer'
+            >
+              <Amboss className='ml-2 theme' width={20} height={20} />
+            </a>
           </div>}
         <small>
           <a className={`d-inline-block ${styles.contrastLink}`} href='https://github.com/stackernews/stacker.news' target='_blank' rel='noreferrer'>

@@ -42,7 +42,7 @@ export default function ItemAct ({ onClose, itemId, act, strike }) {
         append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
       />
       <div>
-        {[1, 10, 100, 1000, 10000].map(num =>
+        {[100, 1000, 10000, 100000].map(num =>
           <Button
             size='sm'
             className={`${num > 1 ? 'ml-2' : ''} mb-2`}

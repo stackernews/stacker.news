@@ -63,7 +63,7 @@ model User {
   referrees  User[] @relation("referrals")
 
   // tip settings
-  tipDefault   Int     @default(10)
+  tipDefault   Int     @default(100)
   turboTipping Boolean @default(false)
 
   // notification settings

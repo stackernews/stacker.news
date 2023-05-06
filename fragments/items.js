@@ -19,11 +19,11 @@ export const ITEM_FIELDS = gql`
     otsHash
     position
     sats
-    upvotes
     boost
     bounty
     bountyPaidTo
     path
+    upvotes
     meSats
     meDontLike
     meBookmark

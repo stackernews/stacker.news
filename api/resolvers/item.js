@@ -28,12 +28,12 @@ async function comments (me, models, id, sort, root) {
   }
 
   const filter = await filterClause(me, models)
-  const [{ item_comments: comments }] = await models.$queryRaw('SELECT item_comments($1, $2, $3, $4)', Number(id), COMMENT_DEPTH_LIMIT, orderBy, filter)
+  const [{ item_comments: comments }] = await models.$queryRaw('SELECT item_comments($1, $2, $3, $4)', Number(id), COMMENT_DEPTH_LIMIT, filter, orderBy)
   return comments
 }
 
 export async function getItem (parent, { id }, { me, models }) {
-  const [item] = await models.$queryRaw(`
+  const [item] = await itemQueryWithUsers(models, `
   ${SELECT}
   FROM "Item"
   WHERE id = $1`, Number(id))
@@ -98,7 +98,7 @@ export async function filterClause (me, models) {
     }
     // greeter mode includes freebies if feebies haven't been flagged
     if (user.greeterMode) {
-      clause = 'AND (NOT "Item".freebie OR ("Item"."weightedVotes" - "Item"."weightedDownVotes" >= 0 AND "Item".freebie)'
+      clause = ' AND (NOT "Item".freebie OR ("Item"."weightedVotes" - "Item"."weightedDownVotes" >= 0 AND "Item".freebie)'
     }
 
     // always include if it's mine
@@ -135,6 +135,15 @@ function recentClause (type) {
   }
 }
 
+async function itemQueryWithUsers (models, query, ...args) {
+  return await models.$queryRaw(`
+    SELECT "Item".*, to_json(users.*) as user
+    FROM (
+      ${query}
+    ) "Item"
+    JOIN users ON "Item"."userId" = users.id`, ...args)
+}
+
 const subClause = (sub, num, table) => {
   return sub ? ` AND ${table ? `${table}.` : ''}"subName" = $${num} ` : ''
 }
@@ -151,7 +160,7 @@ export default {
     },
     topItems: async (parent, { cursor, sort, when }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
-      const items = await models.$queryRaw(`
+      const items = await itemQueryWithUsers(models, `
         ${SELECT}
         FROM "Item"
         WHERE "parentId" IS NULL AND "Item".created_at <= $1
@@ -168,7 +177,7 @@ export default {
     },
     topComments: async (parent, { cursor, sort, when }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
-      const comments = await models.$queryRaw(`
+      const comments = await itemQueryWithUsers(models, `
         ${SELECT}
         FROM "Item"
         WHERE "parentId" IS NOT NULL
@@ -206,7 +215,7 @@ export default {
             throw new UserInputError('no user has that name', { argumentName: 'name' })
           }
 
-          items = await models.$queryRaw(`
+          items = await itemQueryWithUsers(models, `
             ${SELECT}
             FROM "Item"
             WHERE "userId" = $1 AND "parentId" IS NULL AND created_at <= $2
@@ -218,7 +227,7 @@ export default {
             LIMIT ${LIMIT}`, user.id, decodedCursor.time, decodedCursor.offset)
           break
         case 'recent':
-          items = await models.$queryRaw(`
+          items = await itemQueryWithUsers(models, `
             ${SELECT}
             FROM "Item"
             WHERE "parentId" IS NULL AND created_at <= $1
@@ -231,7 +240,7 @@ export default {
             LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, ...subArr)
           break
         case 'top':
-          items = await models.$queryRaw(`
+          items = await itemQueryWithUsers(models, `
             ${SELECT}
             FROM "Item"
             WHERE "parentId" IS NULL AND "Item".created_at <= $1
@@ -250,7 +259,7 @@ export default {
 
           switch (subFull?.rankingType) {
             case 'AUCTION':
-              items = await models.$queryRaw(`
+              items = await itemQueryWithUsers(models, `
                 SELECT *
                 FROM (
                   (${SELECT}
@@ -280,34 +289,34 @@ export default {
               // if there are 21 items, return them ... if not do the unrestricted query
               // instead of doing this we should materialize a view ... but this is easier for now
               if (decodedCursor.offset === 0) {
-                items = await models.$queryRaw(`
-                  ${SELECT}
-                  FROM "Item"
-                  WHERE "parentId" IS NULL AND "Item".created_at <= $1 AND "Item".created_at > $3
-                  AND "pinId" IS NULL AND NOT bio AND "deletedAt" IS NULL
-                  ${subClause(sub, 4)}
-                  ${await filterClause(me, models)}
-                  ${await newTimedOrderByWeightedSats(me, models, 1)}
-                  OFFSET $2
-                  LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, new Date(new Date().setDate(new Date().getDate() - 5)), ...subArr)
+                items = await itemQueryWithUsers(models, `
+                    ${SELECT}
+                    FROM "Item"
+                    WHERE "parentId" IS NULL AND "Item".created_at <= $1 AND "Item".created_at > $3
+                    AND "pinId" IS NULL AND NOT bio AND "deletedAt" IS NULL
+                    ${subClause(sub, 4)}
+                    ${await filterClause(me, models)}
+                    ${await newTimedOrderByWeightedSats(me, models, 1)}
+                    OFFSET $2
+                    LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, new Date(new Date().setDate(new Date().getDate() - 5)), ...subArr)
               }
 
               if (decodedCursor.offset !== 0 || items?.length < LIMIT) {
-                items = await models.$queryRaw(`
-                  ${SELECT}
-                  FROM "Item"
-                  WHERE "parentId" IS NULL AND "Item".created_at <= $1
-                  AND "pinId" IS NULL AND NOT bio AND "deletedAt" IS NULL
-                  ${subClause(sub, 3)}
-                  ${await filterClause(me, models)}
-                  ${await newTimedOrderByWeightedSats(me, models, 1)}
-                  OFFSET $2
-                  LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, ...subArr)
+                items = await itemQueryWithUsers(models, `
+                    ${SELECT}
+                    FROM "Item"
+                    WHERE "parentId" IS NULL AND "Item".created_at <= $1
+                    AND "pinId" IS NULL AND NOT bio AND "deletedAt" IS NULL
+                    ${subClause(sub, 3)}
+                    ${await filterClause(me, models)}
+                    ${await newTimedOrderByWeightedSats(me, models, 1)}
+                    OFFSET $2
+                    LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, ...subArr)
               }
 
               if (decodedCursor.offset === 0) {
                 // get pins for the page and return those separately
-                pins = await models.$queryRaw(`SELECT rank_filter.*
+                pins = await itemQueryWithUsers(models, `SELECT rank_filter.*
                   FROM (
                     ${SELECT},
                     rank() OVER (
@@ -331,7 +340,7 @@ export default {
     },
     allItems: async (parent, { cursor }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
-      const items = await models.$queryRaw(`
+      const items = await itemQueryWithUsers(models, `
         ${SELECT}
         FROM "Item"
         ORDER BY created_at DESC
@@ -348,7 +357,7 @@ export default {
         return me ? ` AND "userId" <> ${me.id} ` : ''
       }
 
-      const items = await models.$queryRaw(`
+      const items = await itemQueryWithUsers(models, `
         ${SELECT}
         FROM "Item"
         WHERE "Item"."weightedVotes" - "Item"."weightedDownVotes" <= -${ITEM_FILTER_THRESHOLD}
@@ -367,7 +376,7 @@ export default {
         return me ? ` AND "userId" <> ${me.id} ` : ''
       }
 
-      const items = await models.$queryRaw(`
+      const items = await itemQueryWithUsers(models, `
         ${SELECT}
         FROM "Item"
         WHERE "Item"."weightedVotes" - "Item"."weightedDownVotes" < 0
@@ -384,7 +393,7 @@ export default {
     freebieItems: async (parent, { cursor }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
 
-      const items = await models.$queryRaw(`
+      const items = await itemQueryWithUsers(models, `
         ${SELECT}
         FROM "Item"
         WHERE "Item".freebie
@@ -406,16 +415,14 @@ export default {
         })
       }
 
-      const items = await models.$queryRaw(
-        `${SELECT}
+      const items = await itemQueryWithUsers(models, `
+        ${SELECT}
         FROM "Item"
         WHERE "userId" = $1
         AND "bounty" IS NOT NULL
         ORDER BY created_at DESC
         OFFSET $2
-        LIMIT $3`,
-        user.id, decodedCursor.offset, limit || LIMIT
-      )
+        LIMIT $3`, user.id, decodedCursor.offset, limit || LIMIT)
 
       return {
         cursor: items.length === (limit || LIMIT) ? nextCursorEncoded(decodedCursor) : null,
@@ -431,7 +438,7 @@ export default {
       let comments, user
       switch (sort) {
         case 'recent':
-          comments = await models.$queryRaw(`
+          comments = await itemQueryWithUsers(models, `
             ${SELECT}
             FROM "Item"
             JOIN "Item" root ON "Item"."rootId" = root.id
@@ -452,7 +459,7 @@ export default {
             throw new UserInputError('no user has that name', { argumentName: 'name' })
           }
 
-          comments = await models.$queryRaw(`
+          comments = await itemQueryWithUsers(models, `
             ${SELECT}
             FROM "Item"
             WHERE "userId" = $1 AND "parentId" IS NOT NULL
@@ -463,10 +470,9 @@ export default {
             LIMIT ${LIMIT}`, user.id, decodedCursor.time, decodedCursor.offset)
           break
         case 'top':
-          comments = await models.$queryRaw(`
+          comments = await itemQueryWithUsers(models, `
           ${SELECT}
           FROM "Item"
-          JOIN "Item" root ON "Item"."rootId" = root.id
           WHERE "Item"."parentId" IS NOT NULL AND"Item"."deletedAt" IS NULL
           AND "Item".created_at <= $1
           ${topClause(within)}
@@ -492,7 +498,7 @@ export default {
         throw new UserInputError('no user has that name', { argumentName: 'name' })
       }
 
-      const items = await models.$queryRaw(`
+      const items = await itemQueryWithUsers(models, `
             ${SELECT}
             FROM "Item"
             JOIN "Bookmark" ON "Bookmark"."itemId" = "Item"."id" AND "Bookmark"."userId" = $1
@@ -552,7 +558,7 @@ export default {
         similar += '((\\?|#)%)?'
       }
 
-      return await models.$queryRaw(`
+      return await itemQueryWithUsers(models, `
         ${SELECT}
         FROM "Item"
         WHERE LOWER(url) SIMILAR TO LOWER($1)
@@ -880,8 +886,12 @@ export default {
 
       return poll
     },
-    user: async (item, args, { models }) =>
-      await models.user.findUnique({ where: { id: item.userId } }),
+    user: async (item, args, { models }) => {
+      if (item.user) {
+        return item.user
+      }
+      return await models.user.findUnique({ where: { id: item.userId } })
+    },
     fwdUser: async (item, args, { models }) => {
       if (!item.fwdUserId) {
         return null

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Form, Input, SubmitButton } from '../components/form'
 import { useRouter } from 'next/router'
 import { gql, useApolloClient, useLazyQuery, useMutation } from '@apollo/client'
@@ -73,7 +73,14 @@ export function LinkForm ({ item, sub, editThreshold }) {
       }`
   )
 
+  useEffect(() => {
+    if (data?.pageTitleAndUnshorted?.title) {
+      setTitleOverride(data.pageTitleAndUnshorted.title)
+    }
+  }, [data?.pageTitleAndUnshorted?.title])
+
   const [postDisabled, setPostDisabled] = useState(false)
+  const [titleOverride, setTitleOverride] = useState()
 
   return (
     <Form
@@ -102,7 +109,7 @@ export function LinkForm ({ item, sub, editThreshold }) {
       <Input
         label='title'
         name='title'
-        overrideValue={data?.pageTitleAndUnshorted?.title}
+        overrideValue={titleOverride}
         required
         clear
         onChange={async (formik, e) => {
@@ -110,6 +117,10 @@ export function LinkForm ({ item, sub, editThreshold }) {
             getRelated({
               variables: { title: e.target.value }
             })
+          }
+          if (e.target.value === e.target.value.toUpperCase()) {
+            setTitleOverride(e.target.value.replace(/\w\S*/g, txt =>
+              txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()))
           }
         }}
       />

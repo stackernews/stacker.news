@@ -19,8 +19,11 @@ import { abbrNum } from '../lib/format'
 import Share from './share'
 import ItemInfo from './item-info'
 import { Badge } from 'react-bootstrap'
+import { RootProvider, useRoot } from './root'
 
 function Parent ({ item, rootText }) {
+  const root = useRoot()
+
   const ParentFrag = () => (
     <>
       <span> \ </span>
@@ -30,20 +33,16 @@ function Parent ({ item, rootText }) {
     </>
   )
 
-  if (!item.root) {
-    return <ParentFrag />
-  }
-
   return (
     <>
-      {Number(item.root.id) !== Number(item.parentId) && <ParentFrag />}
+      {Number(root.id) !== Number(item.parentId) && <ParentFrag />}
       <span> \ </span>
-      <Link href={`/items/${item.root.id}`} passHref>
-        <a className='text-reset'>{rootText || 'on:'} {item.root.title}</a>
+      <Link href={`/items/${root.id}`} passHref>
+        <a className='text-reset'>{rootText || 'on:'} {root?.title}</a>
       </Link>
-      {item.root.subName &&
-        <Link href={`/~${item.root.subName}`}>
-          <a>{' '}<Badge className={itemStyles.newComment} variant={null}>{item.root.subName}</Badge></a>
+      {root.subName &&
+        <Link href={`/~${root.subName}`}>
+          <a>{' '}<Badge className={itemStyles.newComment} variant={null}>{root.subName}</Badge></a>
         </Link>}
     </>
   )
@@ -76,7 +75,9 @@ export function CommentFlat ({ item, ...props }) {
         }
       }}
     >
-      <Comment item={item} {...props} />
+      <RootProvider root={item.root}>
+        <Comment item={item} {...props} />
+      </RootProvider>
     </div>
   )
 }
@@ -89,6 +90,7 @@ export default function Comment ({
   const [collapse, setCollapse] = useState(false)
   const ref = useRef(null)
   const router = useRouter()
+  const root = useRoot()
 
   useEffect(() => {
     if (Number(router.query.commentId) === Number(item.id)) {
@@ -103,9 +105,8 @@ export default function Comment ({
   }, [item])
 
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT
-
-  const op = item.root?.user.name === item.user.name
-  const bountyPaid = item.root?.bountyPaidTo?.includes(Number(item.id))
+  const op = root.user.name === item.user.name
+  const bountyPaid = root.bountyPaidTo?.includes(Number(item.id))
 
   return (
     <div
@@ -126,7 +127,7 @@ export default function Comment ({
                 <>
                   {includeParent && <Parent item={item} rootText={rootText} />}
                   {bountyPaid &&
-                    <ActionTooltip notForm overlayText={`${abbrNum(item.root.bounty)} sats paid`}>
+                    <ActionTooltip notForm overlayText={`${abbrNum(root.bounty)} sats paid`}>
                       <BountyIcon className={`${styles.bountyIcon} ${'fill-success vertical-align-middle'}`} height={16} width={16} />
                     </ActionTooltip>}
                 </>
@@ -177,7 +178,7 @@ export default function Comment ({
           <div className={`${styles.children}`}>
             {!noReply &&
               <Reply depth={depth + 1} item={item} replyOpen={replyOpen}>
-                {item.root?.bounty && !bountyPaid && <PayBounty item={item} />}
+                {root.bounty && !bountyPaid && <PayBounty item={item} />}
               </Reply>}
             {children}
             <div className={`${styles.comments} ml-sm-1 ml-md-3`}>

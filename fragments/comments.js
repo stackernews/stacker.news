@@ -26,19 +26,6 @@ export const COMMENT_FIELDS = gql`
     mine
     otsHash
     ncomments
-    root {
-      id
-      title
-      bounty
-      bountyPaidTo
-      subName
-      user {
-        name
-        streak
-        hideCowboyHat
-        id
-      }
-    }
   }
 `
 
@@ -50,6 +37,19 @@ export const MORE_FLAT_COMMENTS = gql`
       cursor
       comments {
         ...CommentFields
+        root {
+          id
+          title
+          bounty
+          bountyPaidTo
+          subName
+          user {
+            name
+            streak
+            hideCowboyHat
+            id
+          }
+        }
       }
     }
   }
@@ -63,6 +63,19 @@ export const TOP_COMMENTS = gql`
       cursor
       comments {
         ...CommentFields
+        root {
+          id
+          title
+          bounty
+          bountyPaidTo
+          subName
+          user {
+            name
+            streak
+            hideCowboyHat
+            id
+          }
+        }
       }
     }
   }

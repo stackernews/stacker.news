@@ -1,8 +1,8 @@
-import React from 'react'
+import { Component } from 'react'
 import LayoutStatic from './layout-static'
 import styles from '../styles/404.module.css'
 
-class ErrorBoundary extends React.Component {
+class ErrorBoundary extends Component {
   constructor (props) {
     super(props)
 

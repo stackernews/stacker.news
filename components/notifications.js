@@ -14,6 +14,7 @@ import HandCoin from '../svgs/hand-coin-fill.svg'
 import { COMMENT_DEPTH_LIMIT } from '../lib/constants'
 import CowboyHatIcon from '../svgs/cowboy.svg'
 import BaldIcon from '../svgs/bald.svg'
+import { RootProvider } from './root'
 
 // TODO: oh man, this is a mess ... each notification type should just be a component ...
 function Notification ({ n }) {
@@ -132,7 +133,9 @@ function Notification ({ n }) {
                           ? <Item item={n.item} />
                           : (
                             <div className='pb-2'>
-                              <Comment item={n.item} noReply includeParent rootText={n.__typename === 'Reply' ? 'replying on:' : undefined} clickToContext />
+                              <RootProvider root={n.item.root}>
+                                <Comment item={n.item} noReply includeParent rootText={n.__typename === 'Reply' ? 'replying on:' : undefined} clickToContext />
+                              </RootProvider>
                             </div>)}
                     </div>
                   </>)}

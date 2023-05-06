@@ -12,8 +12,8 @@ import ThumbDown from '../svgs/thumb-down-fill.svg'
 import { Checkbox, Form } from '../components/form'
 import { useRouter } from 'next/router'
 import Item from '../components/item'
-import Comment from '../components/comment'
-import React from 'react'
+import { CommentFlat } from '../components/comment'
+import { Fragment } from 'react'
 import ItemJob from '../components/item-job'
 
 export const getServerSideProps = getGetServerSideProps(WALLET_HISTORY)
@@ -134,7 +134,7 @@ function Detail ({ fact }) {
     return <div className={styles.itemWrapper}><Item item={fact.item} /></div>
   }
 
-  return <div className={styles.commentWrapper}><Comment item={fact.item} includeParent noReply truncate /></div>
+  return <div className={styles.commentWrapper}><CommentFlat item={fact.item} includeParent noReply truncate /></div>
 }
 
 export default function Satistics ({ data: { walletHistory: { facts, cursor } } }) {
@@ -231,7 +231,7 @@ export default function Satistics ({ data: { walletHistory: { facts, cursor } } 
           <tbody>
             {facts.map((f, i) => {
               const uri = href(f)
-              const Wrapper = uri ? Link : ({ href, ...props }) => <React.Fragment {...props} />
+              const Wrapper = uri ? Link : ({ href, ...props }) => <Fragment {...props} />
               return (
                 <Wrapper href={uri} key={f.id}>
                   <tr className={styles.row}>

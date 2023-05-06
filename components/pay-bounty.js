@@ -8,10 +8,12 @@ import { useMe } from './me'
 import { abbrNum } from '../lib/format'
 import { useShowModal } from './modal'
 import FundError from './fund-error'
+import { useRoot } from './root'
 
 export default function PayBounty ({ children, item }) {
   const me = useMe()
   const showModal = useShowModal()
+  const root = useRoot()
 
   const [act] = useMutation(
     gql`
@@ -48,7 +50,7 @@ export default function PayBounty ({ children, item }) {
 
         // update root bounty status
         cache.modify({
-          id: `Item:${item.root.id}`,
+          id: `Item:${root.id}`,
           fields: {
             bountyPaidTo (existingPaidTo = []) {
               return [...(existingPaidTo || []), Number(item.id)]
@@ -62,11 +64,11 @@ export default function PayBounty ({ children, item }) {
   const handlePayBounty = async () => {
     try {
       await act({
-        variables: { id: item.id, sats: item.root.bounty },
+        variables: { id: item.id, sats: root.bounty },
         optimisticResponse: {
           act: {
             id: `Item:${item.id}`,
-            sats: item.root.bounty
+            sats: root.bounty
           }
         }
       })
@@ -81,14 +83,14 @@ export default function PayBounty ({ children, item }) {
     }
   }
 
-  if (!me || item.mine || item.root.user.name !== me.name) {
+  if (!me || item.mine || root.user.name !== me.name) {
     return null
   }
 
   return (
     <ActionTooltip
       notForm
-      overlayText={`${item.root.bounty} sats`}
+      overlayText={`${root.bounty} sats`}
     >
       <ModalButton
         clicker={
@@ -102,7 +104,7 @@ export default function PayBounty ({ children, item }) {
         </div>
         <div className='text-center'>
           <Button className='mt-4' variant='primary' onClick={() => handlePayBounty()}>
-            pay <small>{abbrNum(item.root.bounty)} sats</small>
+            pay <small>{abbrNum(root.bounty)} sats</small>
           </Button>
         </div>
       </ModalButton>

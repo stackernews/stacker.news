@@ -4,8 +4,8 @@ import ItemJob from './item-job'
 import styles from './items.module.css'
 import { ITEMS } from '../fragments/items'
 import MoreFooter from './more-footer'
-import React from 'react'
-import Comment from './comment'
+import { Fragment } from 'react'
+import { CommentFlat } from './comment'
 
 export default function Items ({ variables = {}, query, destructureData, rank, items, pins, cursor }) {
   const { data, fetchMore } = useQuery(query || ITEMS, { variables })
@@ -28,19 +28,19 @@ export default function Items ({ variables = {}, query, destructureData, rank, i
     <>
       <div className={styles.grid}>
         {items.map((item, i) => (
-          <React.Fragment key={item.id}>
+          <Fragment key={item.id}>
             {pinMap && pinMap[i + 1] && <Item item={pinMap[i + 1]} />}
             {item.parentId
-              ? <><div /><div className='pb-3'><Comment item={item} noReply includeParent /></div></>
+              ? <><div /><div className='pb-3'><CommentFlat item={item} noReply includeParent /></div></>
               : (item.isJob
                   ? <ItemJob item={item} rank={rank && i + 1} />
                   : (item.title
                       ? <Item item={item} rank={rank && i + 1} />
                       : (
                         <div className='pb-2'>
-                          <Comment item={item} noReply includeParent clickToContext />
+                          <CommentFlat item={item} noReply includeParent clickToContext />
                         </div>)))}
-          </React.Fragment>
+          </Fragment>
         ))}
       </div>
       <MoreFooter

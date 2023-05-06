@@ -72,6 +72,19 @@ export const SUB_FLAT_COMMENTS = gql`
       cursor
       comments {
         ...CommentFields
+        root {
+          id
+          title
+          bounty
+          bountyPaidTo
+          subName
+          user {
+            name
+            streak
+            hideCowboyHat
+            id
+          }
+        }
       }
     }
   }

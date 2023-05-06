@@ -3,8 +3,8 @@ import { ItemSkeleton } from './item'
 import styles from './items.module.css'
 import { ITEM_SEARCH } from '../fragments/items'
 import MoreFooter from './more-footer'
-import React from 'react'
-import Comment from './comment'
+import { Fragment } from 'react'
+import { CommentFlat } from './comment'
 import ItemFull from './item-full'
 
 export default function SearchItems ({ variables, items, pins, cursor }) {
@@ -22,11 +22,11 @@ export default function SearchItems ({ variables, items, pins, cursor }) {
     <>
       <div className={styles.grid}>
         {items.map((item, i) => (
-          <React.Fragment key={item.id}>
+          <Fragment key={item.id}>
             {item.parentId
-              ? <><div /><div className='pb-3'><Comment item={item} noReply includeParent /></div></>
+              ? <><div /><CommentFlat item={item} noReply includeParent /></>
               : <><div /><div className={item.text ? 'pb-3' : ''}><ItemFull item={item} noReply /></div></>}
-          </React.Fragment>
+          </Fragment>
         ))}
       </div>
       <MoreFooter

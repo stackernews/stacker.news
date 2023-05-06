@@ -20,6 +20,7 @@ import Check from '../svgs/check-double-line.svg'
 import Share from './share'
 import Toc from './table-of-contents'
 import Link from 'next/link'
+import { RootProvider } from './root'
 
 function BioItem ({ item, handleClick }) {
   const me = useMe()
@@ -157,7 +158,7 @@ export default function ItemFull ({ item, bio, ...props }) {
   }, [item.lastCommentAt])
 
   return (
-    <>
+    <RootProvider root={item.root || item}>
       {item.parentId
         ? <Comment topLevel item={item} replyOpen includeParent noComments {...props} />
         : (
@@ -171,6 +172,6 @@ export default function ItemFull ({ item, bio, ...props }) {
         <div className={styles.comments}>
           <Comments parentId={item.id} pinned={item.position} commentSats={item.commentSats} comments={item.comments} />
         </div>}
-    </>
+    </RootProvider>
   )
 }

@@ -6,7 +6,7 @@ import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
 import domino from 'domino'
 import {
   BOOST_MIN, ITEM_SPAM_INTERVAL,
-  MAX_TITLE_LENGTH, ITEM_FILTER_THRESHOLD, DONT_LIKE_THIS_COST
+  MAX_TITLE_LENGTH, ITEM_FILTER_THRESHOLD, DONT_LIKE_THIS_COST, COMMENT_DEPTH_LIMIT
 } from '../../lib/constants'
 import { msatsToSats } from '../../lib/format'
 import { parse } from 'tldts'
@@ -27,20 +27,9 @@ async function comments (me, models, id, sort, root) {
       break
   }
 
-  const flat = await models.$queryRaw(`
-        WITH RECURSIVE base AS (
-          ${SELECT}, ARRAY[row_number() OVER (${orderBy}, "Item".path)] AS sort_path
-          FROM "Item"
-          WHERE "parentId" = $1
-          ${await filterClause(me, models)}
-        UNION ALL
-          ${SELECT}, p.sort_path || row_number() OVER (${orderBy}, "Item".path)
-          FROM base p
-          JOIN "Item" ON "Item"."parentId" = p.id
-          WHERE true
-          ${await filterClause(me, models)})
-        SELECT * FROM base ORDER BY sort_path`, Number(id))
-  return nestComments(flat, id, root)[0]
+  const filter = await filterClause(me, models)
+  const [{ item_comments: comments }] = await models.$queryRaw('SELECT item_comments($1, $2, $3, $4)', Number(id), COMMENT_DEPTH_LIMIT, orderBy, filter)
+  return comments
 }
 
 export async function getItem (parent, { id }, { me, models }) {
@@ -1118,32 +1107,6 @@ const createItem = async (parent, { sub, title, url, text, boost, forward, bount
 
   item.comments = []
   return item
-}
-
-function nestComments (flat, parentId, root) {
-  const result = []
-  let added = 0
-  for (let i = 0; i < flat.length;) {
-    flat[i].root = root
-    if (!flat[i].comments) flat[i].comments = []
-    if (Number(flat[i].parentId) === Number(parentId)) {
-      result.push(flat[i])
-      added++
-      i++
-    } else if (result.length > 0) {
-      const item = result[result.length - 1]
-      const [nested, newAdded] = nestComments(flat.slice(i), item.id, root)
-      if (newAdded === 0) {
-        break
-      }
-      item.comments.push(...nested)
-      i += newAdded
-      added += newAdded
-    } else {
-      break
-    }
-  }
-  return [result, added]
 }
 
 // we have to do our own query because ltree is unsupported

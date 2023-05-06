@@ -252,7 +252,6 @@ model Item {
   path        Unsupported("LTREE")?
   pin         Pin?                  @relation(fields: [pinId], references: [id])
   pinId       Int?
-  boost       Int                   @default(0)
   uploadId    Int?
   upload      Upload?
   paidImgLink Boolean               @default(false)
@@ -273,6 +272,8 @@ model Item {
   weightedVotes     Float  @default(0)
   weightedDownVotes Float  @default(0)
   msats             BigInt @default(0)
+  boost             Int    @default(0)
+  upvotes           Int    @default(0)
 
   // denormalized comment stats
   ncomments     Int       @default(0)

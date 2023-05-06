@@ -904,14 +904,6 @@ export default {
       }
       return comments(me, models, item.id, item.pinId ? 'recent' : 'hot', item)
     },
-    upvotes: async (item, args, { models }) => {
-      const [{ count }] = await models.$queryRaw(`
-        SELECT COUNT(DISTINCT "userId") as count
-        FROM "ItemAct"
-        WHERE act = 'TIP' AND "itemId" = $1`, Number(item.id))
-
-      return count
-    },
     wvotes: async (item) => {
       return item.weightedVotes - item.weightedDownVotes
     },
@@ -1123,7 +1115,7 @@ const createItem = async (parent, { sub, title, url, text, boost, forward, bount
 export const SELECT =
   `SELECT "Item".id, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt", "Item".title,
   "Item".text, "Item".url, "Item"."bounty", "Item"."userId", "Item"."fwdUserId", "Item"."parentId",
-  "Item"."pinId", "Item"."maxBid", "Item"."rootId",
+  "Item"."pinId", "Item"."maxBid", "Item"."rootId", "Item".upvotes,
   "Item".company, "Item".location, "Item".remote, "Item"."deletedAt",
   "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost", "Item".boost,
   "Item".msats, "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",

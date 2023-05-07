@@ -301,6 +301,10 @@ export default {
 
 async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd }) {
   await ssValidate(withdrawlSchema, { invoice, maxFee })
+
+  // remove 'lightning:' prefix if present
+  invoice = invoice.replace(/^lightning:/, '')
+
   // decode invoice to get amount
   let decoded
   try {

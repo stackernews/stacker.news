@@ -587,8 +587,8 @@ export default {
       }
       return msatsToSats(user.msats)
     },
-    bio: async (user, args, { models }) => {
-      return getItem(user, { id: user.bioId }, { models })
+    bio: async (user, args, { models, me }) => {
+      return getItem(user, { id: user.bioId }, { models, me })
     },
     hasInvites: async (user, args, { models }) => {
       const invites = await models.user.findUnique({

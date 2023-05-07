@@ -228,13 +228,13 @@ export default {
     __resolveType: async (n, args, { models }) => n.type
   },
   Votification: {
-    item: async (n, args, { models }) => getItem(n, { id: n.id }, { models })
+    item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
   },
   Reply: {
-    item: async (n, args, { models }) => getItem(n, { id: n.id }, { models })
+    item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
   },
   JobChanged: {
-    item: async (n, args, { models }) => getItem(n, { id: n.id }, { models })
+    item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
   },
   Streak: {
     days: async (n, args, { models }) => {
@@ -269,7 +269,7 @@ export default {
   },
   Mention: {
     mention: async (n, args, { models }) => true,
-    item: async (n, args, { models }) => getItem(n, { id: n.id }, { models })
+    item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
   },
   InvoicePaid: {
     invoice: async (n, args, { me, models }) => getInvoice(n, { id: n.id }, { me, models })

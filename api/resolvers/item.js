@@ -13,7 +13,7 @@ import { parse } from 'tldts'
 import uu from 'url-unshort'
 import { amountSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, ssValidate } from '../../lib/validate'
 
-async function comments (me, models, id, sort, root) {
+async function comments (me, models, id, sort) {
   let orderBy
   switch (sort) {
     case 'top':
@@ -28,12 +28,19 @@ async function comments (me, models, id, sort, root) {
   }
 
   const filter = await filterClause(me, models)
-  const [{ item_comments: comments }] = await models.$queryRaw('SELECT item_comments($1, $2, $3, $4)', Number(id), COMMENT_DEPTH_LIMIT, filter, orderBy)
+  if (me) {
+    const [{ item_comments_with_me: comments }] = await models.$queryRaw(
+      'SELECT item_comments_with_me($1, $2, $3, $4, $5)', Number(id), Number(me.id), COMMENT_DEPTH_LIMIT, filter, orderBy)
+    return comments
+  }
+
+  const [{ item_comments: comments }] = await models.$queryRaw(
+    'SELECT item_comments($1, $2, $3, $4)', Number(id), COMMENT_DEPTH_LIMIT, filter, orderBy)
   return comments
 }
 
 export async function getItem (parent, { id }, { me, models }) {
-  const [item] = await itemQueryWithUsers(models, `
+  const [item] = await itemQueryWithMeta(me, models, `
   ${SELECT}
   FROM "Item"
   WHERE id = $1`, Number(id))
@@ -135,13 +142,34 @@ function recentClause (type) {
   }
 }
 
-async function itemQueryWithUsers (models, query, ...args) {
-  return await models.$queryRaw(`
-    SELECT "Item".*, to_json(users.*) as user
-    FROM (
-      ${query}
-    ) "Item"
-    JOIN users ON "Item"."userId" = users.id`, ...args)
+// this grabs all the stuff we need to display the item list and only
+// hits the db once
+async function itemQueryWithMeta (me, models, query, ...args) {
+  if (!me) {
+    return await models.$queryRaw(`
+      SELECT "Item".*, to_json(users.*) as user
+      FROM (
+        ${query}
+      ) "Item"
+      JOIN users ON "Item"."userId" = users.id`, ...args)
+  } else {
+    return await models.$queryRaw(`
+      SELECT "Item".*, to_json(users.*) as user, COALESCE("ItemAct"."meMsats", 0) as "meMsats",
+        COALESCE("ItemAct"."meDontLike", false) as "meDontLike", "Bookmark"."itemId" IS NOT NULL AS "meBookmark"
+      FROM (
+        ${query}
+      ) "Item"
+      JOIN users ON "Item"."userId" = users.id
+      LEFT JOIN "Bookmark" ON "Bookmark"."itemId" = "Item".id AND "Bookmark"."userId" = ${me.id}
+      LEFT JOIN LATERAL (
+        SELECT "itemId", sum("ItemAct".msats) FILTER (WHERE act = 'FEE' OR act = 'TIP') AS "meMsats",
+               bool_or(act = 'DONT_LIKE_THIS') AS "meDontLike"
+        FROM "ItemAct"
+        WHERE "ItemAct"."userId" = ${me.id}
+        AND "ItemAct"."itemId" = "Item".id
+        GROUP BY "ItemAct"."itemId"
+      ) "ItemAct" ON true`, ...args)
+  }
 }
 
 const subClause = (sub, num, table) => {
@@ -160,7 +188,7 @@ export default {
     },
     topItems: async (parent, { cursor, sort, when }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
-      const items = await itemQueryWithUsers(models, `
+      const items = await itemQueryWithMeta(me, models, `
         ${SELECT}
         FROM "Item"
         WHERE "parentId" IS NULL AND "Item".created_at <= $1
@@ -177,7 +205,7 @@ export default {
     },
     topComments: async (parent, { cursor, sort, when }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
-      const comments = await itemQueryWithUsers(models, `
+      const comments = await itemQueryWithMeta(me, models, `
         ${SELECT}
         FROM "Item"
         WHERE "parentId" IS NOT NULL
@@ -215,7 +243,7 @@ export default {
             throw new UserInputError('no user has that name', { argumentName: 'name' })
           }
 
-          items = await itemQueryWithUsers(models, `
+          items = await itemQueryWithMeta(me, models, `
             ${SELECT}
             FROM "Item"
             WHERE "userId" = $1 AND "parentId" IS NULL AND created_at <= $2
@@ -227,7 +255,7 @@ export default {
             LIMIT ${LIMIT}`, user.id, decodedCursor.time, decodedCursor.offset)
           break
         case 'recent':
-          items = await itemQueryWithUsers(models, `
+          items = await itemQueryWithMeta(me, models, `
             ${SELECT}
             FROM "Item"
             WHERE "parentId" IS NULL AND created_at <= $1
@@ -240,7 +268,7 @@ export default {
             LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, ...subArr)
           break
         case 'top':
-          items = await itemQueryWithUsers(models, `
+          items = await itemQueryWithMeta(me, models, `
             ${SELECT}
             FROM "Item"
             WHERE "parentId" IS NULL AND "Item".created_at <= $1
@@ -259,7 +287,7 @@ export default {
 
           switch (subFull?.rankingType) {
             case 'AUCTION':
-              items = await itemQueryWithUsers(models, `
+              items = await itemQueryWithMeta(me, models, `
                 SELECT *
                 FROM (
                   (${SELECT}
@@ -289,7 +317,7 @@ export default {
               // if there are 21 items, return them ... if not do the unrestricted query
               // instead of doing this we should materialize a view ... but this is easier for now
               if (decodedCursor.offset === 0) {
-                items = await itemQueryWithUsers(models, `
+                items = await itemQueryWithMeta(me, models, `
                     ${SELECT}
                     FROM "Item"
                     WHERE "parentId" IS NULL AND "Item".created_at <= $1 AND "Item".created_at > $3
@@ -302,7 +330,7 @@ export default {
               }
 
               if (decodedCursor.offset !== 0 || items?.length < LIMIT) {
-                items = await itemQueryWithUsers(models, `
+                items = await itemQueryWithMeta(me, models, `
                     ${SELECT}
                     FROM "Item"
                     WHERE "parentId" IS NULL AND "Item".created_at <= $1
@@ -316,7 +344,7 @@ export default {
 
               if (decodedCursor.offset === 0) {
                 // get pins for the page and return those separately
-                pins = await itemQueryWithUsers(models, `SELECT rank_filter.*
+                pins = await itemQueryWithMeta(me, models, `SELECT rank_filter.*
                   FROM (
                     ${SELECT},
                     rank() OVER (
@@ -340,7 +368,7 @@ export default {
     },
     allItems: async (parent, { cursor }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
-      const items = await itemQueryWithUsers(models, `
+      const items = await itemQueryWithMeta(me, models, `
         ${SELECT}
         FROM "Item"
         ORDER BY created_at DESC
@@ -357,7 +385,7 @@ export default {
         return me ? ` AND "userId" <> ${me.id} ` : ''
       }
 
-      const items = await itemQueryWithUsers(models, `
+      const items = await itemQueryWithMeta(me, models, `
         ${SELECT}
         FROM "Item"
         WHERE "Item"."weightedVotes" - "Item"."weightedDownVotes" <= -${ITEM_FILTER_THRESHOLD}
@@ -376,7 +404,7 @@ export default {
         return me ? ` AND "userId" <> ${me.id} ` : ''
       }
 
-      const items = await itemQueryWithUsers(models, `
+      const items = await itemQueryWithMeta(me, models, `
         ${SELECT}
         FROM "Item"
         WHERE "Item"."weightedVotes" - "Item"."weightedDownVotes" < 0
@@ -393,7 +421,7 @@ export default {
     freebieItems: async (parent, { cursor }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
 
-      const items = await itemQueryWithUsers(models, `
+      const items = await itemQueryWithMeta(me, models, `
         ${SELECT}
         FROM "Item"
         WHERE "Item".freebie
@@ -405,7 +433,7 @@ export default {
         items
       }
     },
-    getBountiesByUserName: async (parent, { name, cursor, limit }, { models }) => {
+    getBountiesByUserName: async (parent, { name, cursor, limit }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
       const user = await models.user.findUnique({ where: { name } })
 
@@ -415,7 +443,7 @@ export default {
         })
       }
 
-      const items = await itemQueryWithUsers(models, `
+      const items = await itemQueryWithMeta(me, models, `
         ${SELECT}
         FROM "Item"
         WHERE "userId" = $1
@@ -438,7 +466,7 @@ export default {
       let comments, user
       switch (sort) {
         case 'recent':
-          comments = await itemQueryWithUsers(models, `
+          comments = await itemQueryWithMeta(me, models, `
             ${SELECT}
             FROM "Item"
             JOIN "Item" root ON "Item"."rootId" = root.id
@@ -459,7 +487,7 @@ export default {
             throw new UserInputError('no user has that name', { argumentName: 'name' })
           }
 
-          comments = await itemQueryWithUsers(models, `
+          comments = await itemQueryWithMeta(me, models, `
             ${SELECT}
             FROM "Item"
             WHERE "userId" = $1 AND "parentId" IS NOT NULL
@@ -470,7 +498,7 @@ export default {
             LIMIT ${LIMIT}`, user.id, decodedCursor.time, decodedCursor.offset)
           break
         case 'top':
-          comments = await itemQueryWithUsers(models, `
+          comments = await itemQueryWithMeta(me, models, `
           ${SELECT}
           FROM "Item"
           WHERE "Item"."parentId" IS NOT NULL AND"Item"."deletedAt" IS NULL
@@ -498,7 +526,7 @@ export default {
         throw new UserInputError('no user has that name', { argumentName: 'name' })
       }
 
-      const items = await itemQueryWithUsers(models, `
+      const items = await itemQueryWithMeta(me, models, `
             ${SELECT}
             FROM "Item"
             JOIN "Bookmark" ON "Bookmark"."itemId" = "Item"."id" AND "Bookmark"."userId" = $1
@@ -532,7 +560,7 @@ export default {
 
       return res
     },
-    dupes: async (parent, { url }, { models }) => {
+    dupes: async (parent, { url }, { me, models }) => {
       const urlObj = new URL(ensureProtocol(url))
       let uri = urlObj.hostname + urlObj.pathname
       uri = uri.endsWith('/') ? uri.slice(0, -1) : uri
@@ -558,7 +586,7 @@ export default {
         similar += '((\\?|#)%)?'
       }
 
-      return await itemQueryWithUsers(models, `
+      return await itemQueryWithMeta(me, models, `
         ${SELECT}
         FROM "Item"
         WHERE LOWER(url) SIMILAR TO LOWER($1)
@@ -902,13 +930,14 @@ export default {
       if (item.comments) {
         return item.comments
       }
-      return comments(me, models, item.id, item.pinId ? 'recent' : 'hot', item)
+      return comments(me, models, item.id, item.pinId ? 'recent' : 'hot')
     },
     wvotes: async (item) => {
       return item.weightedVotes - item.weightedDownVotes
     },
     meSats: async (item, args, { me, models }) => {
       if (!me) return 0
+      if (typeof item.meMsats === 'number') return msatsToSats(item.meMsats)
 
       const { sum: { msats } } = await models.itemAct.aggregate({
         sum: {
@@ -932,6 +961,7 @@ export default {
     },
     meDontLike: async (item, args, { me, models }) => {
       if (!me) return false
+      if (typeof item.meDontLike === 'boolean') return item.meDontLike
 
       const dontLike = await models.itemAct.findFirst({
         where: {
@@ -945,6 +975,7 @@ export default {
     },
     meBookmark: async (item, args, { me, models }) => {
       if (!me) return false
+      if (typeof item.meBookmark === 'boolean') return item.meBookmark
 
       const bookmark = await models.bookmark.findUnique({
         where: {

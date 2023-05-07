@@ -44,7 +44,8 @@ export function getGetServerSideProps (query, variables = null, notFoundFunc, re
     const client = await getSSRApolloClient(req)
 
     const { data: { me } } = await client.query({
-      query: ME
+      query: ME,
+      variables: { skipUpdate: true }
     })
 
     const { data: { price } } = await client.query({

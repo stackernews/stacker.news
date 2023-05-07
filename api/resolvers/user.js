@@ -62,12 +62,15 @@ async function authMethods (user, args, { models, me }) {
 
 export default {
   Query: {
-    me: async (parent, args, { models, me }) => {
+    me: async (parent, { skipUpdate }, { models, me }) => {
       if (!me) {
         return null
       }
 
-      return await models.user.update({ where: { id: me.id }, data: { lastSeenAt: new Date() } })
+      if (!skipUpdate) {
+        models.user.update({ where: { id: me.id }, data: { lastSeenAt: new Date() } }).catch(console.error)
+      }
+      return await models.user.findUnique({ where: { id: me.id } })
     },
     settings: async (parent, args, { models, me }) => {
       if (!me) {

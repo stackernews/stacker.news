@@ -1,15 +1,7 @@
 const cache = new Map()
 const expiresIn = 30000 // in milliseconds
 
-async function getPrice (fiat) {
-  fiat ??= 'USD'
-  if (cache.has(fiat)) {
-    const { price, createdAt } = cache.get(fiat)
-    const expired = createdAt + expiresIn < Date.now()
-    if (!expired) {
-      return price
-    }
-  }
+async function fetchPrice (fiat) {
   const url = `https://api.coinbase.com/v2/prices/BTC-${fiat}/spot`
   const price = await fetch(url)
     .then((res) => res.json())
@@ -20,6 +12,17 @@ async function getPrice (fiat) {
     })
   cache.set(fiat, { price, createdAt: Date.now() })
   return price
+}
+
+async function getPrice (fiat) {
+  fiat ??= 'USD'
+  if (cache.has(fiat)) {
+    const { price, createdAt } = cache.get(fiat)
+    const expired = createdAt + expiresIn < Date.now()
+    if (expired) fetchPrice(fiat).catch(console.error) // update cache
+    return price // serve stale price (this on the SSR critical path)
+  }
+  return await fetchPrice(fiat)
 }
 
 export default {

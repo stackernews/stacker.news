@@ -2,16 +2,15 @@ import { providers, getSession } from 'next-auth/client'
 import Link from 'next/link'
 import LayoutStatic from '../components/layout-static'
 import Login from '../components/login'
+import { isExternal } from '../lib/url'
 
 export async function getServerSideProps ({ req, res, query: { callbackUrl, error = null } }) {
   const session = await getSession({ req })
 
-  const regex = /^https?:\/\/stacker.news\//
-  const external = !regex.test(decodeURIComponent(callbackUrl))
+  const external = isExternal(decodeURIComponent(callbackUrl))
   if (external) {
     // This is a hotfix for open redirects. See https://github.com/stackernews/stacker.news/issues/264
-    // TODO: Add redirect notice to warn users
-    return res.status(500).end()
+    callbackUrl = '/'
   }
 
   if (session && res && callbackUrl) {

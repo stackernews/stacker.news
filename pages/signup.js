@@ -6,6 +6,14 @@ import Login from '../components/login'
 export async function getServerSideProps ({ req, res, query: { callbackUrl, error = null } }) {
   const session = await getSession({ req })
 
+  const regex = /^https?:\/\/stacker.news\/?/
+  const external = !regex.test(decodeURIComponent(callbackUrl))
+  if (external) {
+    // This is a hotfix for open redirects. See https://github.com/stackernews/stacker.news/issues/264
+    // TODO: Add redirect notice to warn users
+    return res.status(500).end()
+  }
+
   if (session && res && callbackUrl) {
     res.writeHead(302, {
       Location: callbackUrl

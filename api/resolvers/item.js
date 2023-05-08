@@ -323,26 +323,21 @@ export default {
                 me,
                 models,
                 query: `
-                  SELECT *
-                  FROM (
-                    (${SELECT}
+                  ${SELECT},
+                    CASE WHEN status = 'ACTIVE' AND "maxBid" > 0
+                         THEN 0 ELSE 1 END AS group_rank,
+                    CASE WHEN status = 'ACTIVE' AND "maxBid" > 0
+                         THEN rank() OVER (ORDER BY "maxBid" DESC, created_at ASC)
+                         ELSE rank() OVER (ORDER BY created_at DESC) END AS rank
                     FROM "Item"
                     WHERE "parentId" IS NULL AND created_at <= $1
                     AND "pinId" IS NULL
                     ${subClause(sub, 3)}
-                    AND status = 'ACTIVE' AND "maxBid" > 0
-                    ORDER BY "maxBid" DESC, created_at ASC)
-                    UNION ALL
-                    (${SELECT}
-                    FROM "Item"
-                    WHERE "parentId" IS NULL AND created_at <= $1
-                    AND "pinId" IS NULL
-                    ${subClause(sub, 3)}
-                    AND ((status = 'ACTIVE' AND "maxBid" = 0) OR status = 'NOSATS')
-                    ORDER BY created_at DESC)
-                  ) a
+                    AND status IN ('ACTIVE', 'NOSATS')
+                    ORDER BY group_rank, rank
                   OFFSET $2
-                  LIMIT ${LIMIT}`
+                  LIMIT ${LIMIT}`,
+                orderBy: 'ORDER BY group_rank, rank'
               }, decodedCursor.time, decodedCursor.offset, ...subArr)
               break
             default:

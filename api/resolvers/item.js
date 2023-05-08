@@ -40,10 +40,14 @@ async function comments (me, models, id, sort) {
 }
 
 export async function getItem (parent, { id }, { me, models }) {
-  const [item] = await itemQueryWithMeta(me, models, `
-  ${SELECT}
-  FROM "Item"
-  WHERE id = $1`, Number(id))
+  const [item] = await itemQueryWithMeta({
+    me,
+    models,
+    query: `
+      ${SELECT}
+      FROM "Item"
+      WHERE id = $1`
+  }, Number(id))
   return item
 }
 
@@ -143,15 +147,17 @@ function recentClause (type) {
 }
 
 // this grabs all the stuff we need to display the item list and only
-// hits the db once
-async function itemQueryWithMeta (me, models, query, ...args) {
+// hits the db once ... orderBy needs to be duplicated on the outer query because
+// joining does not preserve the order of the inner query
+async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ...args) {
   if (!me) {
     return await models.$queryRaw(`
       SELECT "Item".*, to_json(users.*) as user
       FROM (
         ${query}
       ) "Item"
-      JOIN users ON "Item"."userId" = users.id`, ...args)
+      JOIN users ON "Item"."userId" = users.id
+      ${orderBy}`, ...args)
   } else {
     return await models.$queryRaw(`
       SELECT "Item".*, to_json(users.*) as user, COALESCE("ItemAct"."meMsats", 0) as "meMsats",
@@ -168,7 +174,8 @@ async function itemQueryWithMeta (me, models, query, ...args) {
         WHERE "ItemAct"."userId" = ${me.id}
         AND "ItemAct"."itemId" = "Item".id
         GROUP BY "ItemAct"."itemId"
-      ) "ItemAct" ON true`, ...args)
+      ) "ItemAct" ON true
+      ${orderBy}`, ...args)
   }
 }
 
@@ -188,16 +195,21 @@ export default {
     },
     topItems: async (parent, { cursor, sort, when }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
-      const items = await itemQueryWithMeta(me, models, `
-        ${SELECT}
-        FROM "Item"
-        WHERE "parentId" IS NULL AND "Item".created_at <= $1
-        AND "pinId" IS NULL AND "deletedAt" IS NULL
-        ${topClause(when)}
-        ${await filterClause(me, models)}
-        ${await topOrderClause(sort, me, models)}
-        OFFSET $2
-        LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+      const items = await itemQueryWithMeta({
+        me,
+        models,
+        query: `
+          ${SELECT}
+          FROM "Item"
+          WHERE "parentId" IS NULL AND "Item".created_at <= $1
+          AND "pinId" IS NULL AND "deletedAt" IS NULL
+          ${topClause(when)}
+          ${await filterClause(me, models)}
+          ${await topOrderClause(sort, me, models)}
+          OFFSET $2
+          LIMIT ${LIMIT}`,
+        orderBy: await topOrderClause(sort, me, models)
+      }, decodedCursor.time, decodedCursor.offset)
       return {
         cursor: items.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
         items
@@ -205,16 +217,21 @@ export default {
     },
     topComments: async (parent, { cursor, sort, when }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
-      const comments = await itemQueryWithMeta(me, models, `
-        ${SELECT}
-        FROM "Item"
-        WHERE "parentId" IS NOT NULL
-        AND "Item".created_at <= $1 AND "deletedAt" IS NULL
-        ${topClause(when)}
-        ${await filterClause(me, models)}
-        ${await topOrderClause(sort, me, models)}
-        OFFSET $2
-        LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+      const comments = await itemQueryWithMeta({
+        me,
+        models,
+        query: `
+          ${SELECT}
+          FROM "Item"
+          WHERE "parentId" IS NOT NULL
+          AND "Item".created_at <= $1 AND "deletedAt" IS NULL
+          ${topClause(when)}
+          ${await filterClause(me, models)}
+          ${await topOrderClause(sort, me, models)}
+          OFFSET $2
+          LIMIT ${LIMIT}`,
+        orderBy: await topOrderClause(sort, me, models)
+      }, decodedCursor.time, decodedCursor.offset)
       return {
         cursor: comments.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
         comments
@@ -243,41 +260,56 @@ export default {
             throw new UserInputError('no user has that name', { argumentName: 'name' })
           }
 
-          items = await itemQueryWithMeta(me, models, `
-            ${SELECT}
-            FROM "Item"
-            WHERE "userId" = $1 AND "parentId" IS NULL AND created_at <= $2
-            AND "pinId" IS NULL
-            ${activeOrMine()}
-            ${await filterClause(me, models)}
-            ORDER BY created_at DESC
-            OFFSET $3
-            LIMIT ${LIMIT}`, user.id, decodedCursor.time, decodedCursor.offset)
+          items = await itemQueryWithMeta({
+            me,
+            models,
+            query: `
+              ${SELECT}
+              FROM "Item"
+              WHERE "userId" = $1 AND "parentId" IS NULL AND created_at <= $2
+              AND "pinId" IS NULL
+              ${activeOrMine()}
+              ${await filterClause(me, models)}
+              ORDER BY created_at DESC
+              OFFSET $3
+              LIMIT ${LIMIT}`,
+            orderBy: 'ORDER BY "Item"."createdAt" DESC'
+          }, user.id, decodedCursor.time, decodedCursor.offset)
           break
         case 'recent':
-          items = await itemQueryWithMeta(me, models, `
-            ${SELECT}
-            FROM "Item"
-            WHERE "parentId" IS NULL AND created_at <= $1
-            ${subClause(sub, 3)}
-            ${activeOrMine()}
-            ${await filterClause(me, models)}
-            ${recentClause(type)}
-            ORDER BY created_at DESC
-            OFFSET $2
-            LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, ...subArr)
+          items = await itemQueryWithMeta({
+            me,
+            models,
+            query: `
+              ${SELECT}
+              FROM "Item"
+              WHERE "parentId" IS NULL AND created_at <= $1
+              ${subClause(sub, 3)}
+              ${activeOrMine()}
+              ${await filterClause(me, models)}
+              ${recentClause(type)}
+              ORDER BY created_at DESC
+              OFFSET $2
+              LIMIT ${LIMIT}`,
+            orderBy: 'ORDER BY "Item"."createdAt" DESC'
+          }, decodedCursor.time, decodedCursor.offset, ...subArr)
           break
         case 'top':
-          items = await itemQueryWithMeta(me, models, `
-            ${SELECT}
-            FROM "Item"
-            WHERE "parentId" IS NULL AND "Item".created_at <= $1
-            AND "pinId" IS NULL AND "deletedAt" IS NULL
-            ${topClause(within)}
-            ${await filterClause(me, models)}
-            ${await topOrderByWeightedSats(me, models)}
-            OFFSET $2
-            LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+          items = await itemQueryWithMeta({
+            me,
+            models,
+            query: `
+              ${SELECT}
+              FROM "Item"
+              WHERE "parentId" IS NULL AND "Item".created_at <= $1
+              AND "pinId" IS NULL AND "deletedAt" IS NULL
+              ${topClause(within)}
+              ${await filterClause(me, models)}
+              ${await topOrderByWeightedSats(me, models)}
+              OFFSET $2
+              LIMIT ${LIMIT}`,
+            orderBy: await topOrderByWeightedSats(me, models)
+          }, decodedCursor.time, decodedCursor.offset)
           break
         default:
           // sub so we know the default ranking
@@ -287,27 +319,31 @@ export default {
 
           switch (subFull?.rankingType) {
             case 'AUCTION':
-              items = await itemQueryWithMeta(me, models, `
-                SELECT *
-                FROM (
-                  (${SELECT}
-                  FROM "Item"
-                  WHERE "parentId" IS NULL AND created_at <= $1
-                  AND "pinId" IS NULL
-                  ${subClause(sub, 3)}
-                  AND status = 'ACTIVE' AND "maxBid" > 0
-                  ORDER BY "maxBid" DESC, created_at ASC)
-                  UNION ALL
-                  (${SELECT}
-                  FROM "Item"
-                  WHERE "parentId" IS NULL AND created_at <= $1
-                  AND "pinId" IS NULL
-                  ${subClause(sub, 3)}
-                  AND ((status = 'ACTIVE' AND "maxBid" = 0) OR status = 'NOSATS')
-                  ORDER BY created_at DESC)
-                ) a
-                OFFSET $2
-                LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, ...subArr)
+              items = await itemQueryWithMeta({
+                me,
+                models,
+                query: `
+                  SELECT *
+                  FROM (
+                    (${SELECT}
+                    FROM "Item"
+                    WHERE "parentId" IS NULL AND created_at <= $1
+                    AND "pinId" IS NULL
+                    ${subClause(sub, 3)}
+                    AND status = 'ACTIVE' AND "maxBid" > 0
+                    ORDER BY "maxBid" DESC, created_at ASC)
+                    UNION ALL
+                    (${SELECT}
+                    FROM "Item"
+                    WHERE "parentId" IS NULL AND created_at <= $1
+                    AND "pinId" IS NULL
+                    ${subClause(sub, 3)}
+                    AND ((status = 'ACTIVE' AND "maxBid" = 0) OR status = 'NOSATS')
+                    ORDER BY created_at DESC)
+                  ) a
+                  OFFSET $2
+                  LIMIT ${LIMIT}`
+              }, decodedCursor.time, decodedCursor.offset, ...subArr)
               break
             default:
               // HACK we can speed hack the first hot page, by limiting our query to only
@@ -317,7 +353,10 @@ export default {
               // if there are 21 items, return them ... if not do the unrestricted query
               // instead of doing this we should materialize a view ... but this is easier for now
               if (decodedCursor.offset === 0) {
-                items = await itemQueryWithMeta(me, models, `
+                items = await itemQueryWithMeta({
+                  me,
+                  models,
+                  query: `
                     ${SELECT}
                     FROM "Item"
                     WHERE "parentId" IS NULL AND "Item".created_at <= $1 AND "Item".created_at > $3
@@ -326,11 +365,16 @@ export default {
                     ${await filterClause(me, models)}
                     ${await newTimedOrderByWeightedSats(me, models, 1)}
                     OFFSET $2
-                    LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, new Date(new Date().setDate(new Date().getDate() - 5)), ...subArr)
+                    LIMIT ${LIMIT}`,
+                  orderBy: await newTimedOrderByWeightedSats(me, models, 1)
+                }, decodedCursor.time, decodedCursor.offset, new Date(new Date().setDate(new Date().getDate() - 5)), ...subArr)
               }
 
               if (decodedCursor.offset !== 0 || items?.length < LIMIT) {
-                items = await itemQueryWithMeta(me, models, `
+                items = await itemQueryWithMeta({
+                  me,
+                  models,
+                  query: `
                     ${SELECT}
                     FROM "Item"
                     WHERE "parentId" IS NULL AND "Item".created_at <= $1
@@ -339,22 +383,29 @@ export default {
                     ${await filterClause(me, models)}
                     ${await newTimedOrderByWeightedSats(me, models, 1)}
                     OFFSET $2
-                    LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, ...subArr)
+                    LIMIT ${LIMIT}`,
+                  orderBy: await newTimedOrderByWeightedSats(me, models, 1)
+                }, decodedCursor.time, decodedCursor.offset, ...subArr)
               }
 
               if (decodedCursor.offset === 0) {
                 // get pins for the page and return those separately
-                pins = await itemQueryWithMeta(me, models, `SELECT rank_filter.*
-                  FROM (
-                    ${SELECT},
-                    rank() OVER (
-                        PARTITION BY "pinId"
-                        ORDER BY created_at DESC
-                    )
-                    FROM "Item"
-                    WHERE "pinId" IS NOT NULL
-                    ${subClause(sub, 1)}
-                ) rank_filter WHERE RANK = 1`, ...subArr)
+                pins = await itemQueryWithMeta({
+                  me,
+                  models,
+                  query: `
+                    SELECT rank_filter.*
+                      FROM (
+                        ${SELECT},
+                        rank() OVER (
+                            PARTITION BY "pinId"
+                            ORDER BY created_at DESC
+                        )
+                        FROM "Item"
+                        WHERE "pinId" IS NOT NULL
+                        ${subClause(sub, 1)}
+                    ) rank_filter WHERE RANK = 1`
+                }, ...subArr)
               }
               break
           }
@@ -368,12 +419,17 @@ export default {
     },
     allItems: async (parent, { cursor }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
-      const items = await itemQueryWithMeta(me, models, `
-        ${SELECT}
-        FROM "Item"
-        ORDER BY created_at DESC
-        OFFSET $1
-        LIMIT ${LIMIT}`, decodedCursor.offset)
+      const items = await itemQueryWithMeta({
+        me,
+        models,
+        query: `
+          ${SELECT}
+          FROM "Item"
+          ORDER BY created_at DESC
+          OFFSET $1
+          LIMIT ${LIMIT}`,
+        orderBy: 'ORDER BY "Item"."createdAt" DESC'
+      }, decodedCursor.offset)
       return {
         cursor: items.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
         items
@@ -385,14 +441,19 @@ export default {
         return me ? ` AND "userId" <> ${me.id} ` : ''
       }
 
-      const items = await itemQueryWithMeta(me, models, `
-        ${SELECT}
-        FROM "Item"
-        WHERE "Item"."weightedVotes" - "Item"."weightedDownVotes" <= -${ITEM_FILTER_THRESHOLD}
-        ${notMine()}
-        ORDER BY created_at DESC
-        OFFSET $1
-        LIMIT ${LIMIT}`, decodedCursor.offset)
+      const items = await itemQueryWithMeta({
+        me,
+        models,
+        query: `
+          ${SELECT}
+          FROM "Item"
+          WHERE "Item"."weightedVotes" - "Item"."weightedDownVotes" <= -${ITEM_FILTER_THRESHOLD}
+          ${notMine()}
+          ORDER BY created_at DESC
+          OFFSET $1
+          LIMIT ${LIMIT}`,
+        orderBy: 'ORDER BY "Item"."createdAt" DESC'
+      }, decodedCursor.offset)
       return {
         cursor: items.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
         items
@@ -404,15 +465,20 @@ export default {
         return me ? ` AND "userId" <> ${me.id} ` : ''
       }
 
-      const items = await itemQueryWithMeta(me, models, `
-        ${SELECT}
-        FROM "Item"
-        WHERE "Item"."weightedVotes" - "Item"."weightedDownVotes" < 0
-        AND "Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}
-        ${notMine()}
-        ORDER BY created_at DESC
-        OFFSET $1
-        LIMIT ${LIMIT}`, decodedCursor.offset)
+      const items = await itemQueryWithMeta({
+        me,
+        models,
+        query: `
+          ${SELECT}
+          FROM "Item"
+          WHERE "Item"."weightedVotes" - "Item"."weightedDownVotes" < 0
+          AND "Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}
+          ${notMine()}
+          ORDER BY created_at DESC
+          OFFSET $1
+          LIMIT ${LIMIT}`,
+        orderBy: 'ORDER BY "Item"."createdAt" DESC'
+      }, decodedCursor.offset)
       return {
         cursor: items.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
         items
@@ -421,13 +487,18 @@ export default {
     freebieItems: async (parent, { cursor }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
 
-      const items = await itemQueryWithMeta(me, models, `
-        ${SELECT}
-        FROM "Item"
-        WHERE "Item".freebie
-        ORDER BY created_at DESC
-        OFFSET $1
-        LIMIT ${LIMIT}`, decodedCursor.offset)
+      const items = await itemQueryWithMeta({
+        me,
+        models,
+        query: `
+          ${SELECT}
+          FROM "Item"
+          WHERE "Item".freebie
+          ORDER BY created_at DESC
+          OFFSET $1
+          LIMIT ${LIMIT}`,
+        orderBy: 'ORDER BY "Item"."createdAt" DESC'
+      }, decodedCursor.offset)
       return {
         cursor: items.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
         items
@@ -443,14 +514,19 @@ export default {
         })
       }
 
-      const items = await itemQueryWithMeta(me, models, `
-        ${SELECT}
-        FROM "Item"
-        WHERE "userId" = $1
-        AND "bounty" IS NOT NULL
-        ORDER BY created_at DESC
-        OFFSET $2
-        LIMIT $3`, user.id, decodedCursor.offset, limit || LIMIT)
+      const items = await itemQueryWithMeta({
+        me,
+        models,
+        query: `
+          ${SELECT}
+          FROM "Item"
+          WHERE "userId" = $1
+          AND "bounty" IS NOT NULL
+          ORDER BY created_at DESC
+          OFFSET $2
+          LIMIT $3`,
+        orderBy: 'ORDER BY "Item"."createdAt" DESC'
+      }, user.id, decodedCursor.offset, limit || LIMIT)
 
       return {
         cursor: items.length === (limit || LIMIT) ? nextCursorEncoded(decodedCursor) : null,
@@ -466,16 +542,21 @@ export default {
       let comments, user
       switch (sort) {
         case 'recent':
-          comments = await itemQueryWithMeta(me, models, `
-            ${SELECT}
-            FROM "Item"
-            JOIN "Item" root ON "Item"."rootId" = root.id
-            WHERE "Item"."parentId" IS NOT NULL AND "Item".created_at <= $1
-            ${subClause(sub, 3, 'root')}
-            ${await filterClause(me, models)}
-            ORDER BY "Item".created_at DESC
-            OFFSET $2
-            LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset, ...subArr)
+          comments = await itemQueryWithMeta({
+            me,
+            models,
+            query: `
+              ${SELECT}
+              FROM "Item"
+              JOIN "Item" root ON "Item"."rootId" = root.id
+              WHERE "Item"."parentId" IS NOT NULL AND "Item".created_at <= $1
+              ${subClause(sub, 3, 'root')}
+              ${await filterClause(me, models)}
+              ORDER BY "Item".created_at DESC
+              OFFSET $2
+              LIMIT ${LIMIT}`,
+            orderBy: 'ORDER BY "Item"."createdAt" DESC'
+          }, decodedCursor.time, decodedCursor.offset, ...subArr)
           break
         case 'user':
           if (!name) {
@@ -487,27 +568,37 @@ export default {
             throw new UserInputError('no user has that name', { argumentName: 'name' })
           }
 
-          comments = await itemQueryWithMeta(me, models, `
-            ${SELECT}
-            FROM "Item"
-            WHERE "userId" = $1 AND "parentId" IS NOT NULL
-            AND created_at <= $2
-            ${await filterClause(me, models)}
-            ORDER BY created_at DESC
-            OFFSET $3
-            LIMIT ${LIMIT}`, user.id, decodedCursor.time, decodedCursor.offset)
+          comments = await itemQueryWithMeta({
+            me,
+            models,
+            query: `
+              ${SELECT}
+              FROM "Item"
+              WHERE "userId" = $1 AND "parentId" IS NOT NULL
+              AND created_at <= $2
+              ${await filterClause(me, models)}
+              ORDER BY created_at DESC
+              OFFSET $3
+              LIMIT ${LIMIT}`,
+            orderBy: 'ORDER BY "Item"."createdAt" DESC'
+          }, user.id, decodedCursor.time, decodedCursor.offset)
           break
         case 'top':
-          comments = await itemQueryWithMeta(me, models, `
-          ${SELECT}
-          FROM "Item"
-          WHERE "Item"."parentId" IS NOT NULL AND"Item"."deletedAt" IS NULL
-          AND "Item".created_at <= $1
-          ${topClause(within)}
-          ${await filterClause(me, models)}
-          ${await topOrderByWeightedSats(me, models)}
-          OFFSET $2
-          LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+          comments = await itemQueryWithMeta({
+            me,
+            models,
+            query: `
+              ${SELECT}
+              FROM "Item"
+              WHERE "Item"."parentId" IS NOT NULL AND"Item"."deletedAt" IS NULL
+              AND "Item".created_at <= $1
+              ${topClause(within)}
+              ${await filterClause(me, models)}
+              ${await topOrderByWeightedSats(me, models)}
+              OFFSET $2
+              LIMIT ${LIMIT}`,
+            orderBy: await topOrderByWeightedSats(me, models)
+          }, decodedCursor.time, decodedCursor.offset)
           break
         default:
           throw new UserInputError('invalid sort type', { argumentName: 'sort' })
@@ -526,14 +617,19 @@ export default {
         throw new UserInputError('no user has that name', { argumentName: 'name' })
       }
 
-      const items = await itemQueryWithMeta(me, models, `
-            ${SELECT}
-            FROM "Item"
-            JOIN "Bookmark" ON "Bookmark"."itemId" = "Item"."id" AND "Bookmark"."userId" = $1
-            AND "Bookmark".created_at <= $2
-            ORDER BY "Bookmark".created_at DESC
-            OFFSET $3
-            LIMIT ${LIMIT}`, user.id, decodedCursor.time, decodedCursor.offset)
+      const items = await itemQueryWithMeta({
+        me,
+        models,
+        query: `
+          ${SELECT}, "Bookmark".created_at as "bookmarkCreatedAt"
+          FROM "Item"
+          JOIN "Bookmark" ON "Bookmark"."itemId" = "Item"."id" AND "Bookmark"."userId" = $1
+          AND "Bookmark".created_at <= $2
+          ORDER BY "Bookmark".created_at DESC
+          OFFSET $3
+          LIMIT ${LIMIT}`,
+        orderBy: 'ORDER BY "bookmarkCreatedAt" DESC'
+      }, user.id, decodedCursor.time, decodedCursor.offset)
 
       return {
         cursor: items.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
@@ -586,12 +682,16 @@ export default {
         similar += '((\\?|#)%)?'
       }
 
-      return await itemQueryWithMeta(me, models, `
-        ${SELECT}
-        FROM "Item"
-        WHERE LOWER(url) SIMILAR TO LOWER($1)
-        ORDER BY created_at DESC
-        LIMIT 3`, similar)
+      return await itemQueryWithMeta({
+        me,
+        models,
+        query: `
+          ${SELECT}
+          FROM "Item"
+          WHERE LOWER(url) SIMILAR TO LOWER($1)
+          ORDER BY created_at DESC
+          LIMIT 3`
+      }, similar)
     },
     comments: async (parent, { id, sort }, { me, models }) => {
       return comments(me, models, id, sort)
@@ -1144,13 +1244,14 @@ const createItem = async (parent, { sub, title, url, text, boost, forward, bount
 
 // we have to do our own query because ltree is unsupported
 export const SELECT =
-  `SELECT "Item".id, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt", "Item".title,
-  "Item".text, "Item".url, "Item"."bounty", "Item"."userId", "Item"."fwdUserId", "Item"."parentId",
-  "Item"."pinId", "Item"."maxBid", "Item"."rootId", "Item".upvotes,
-  "Item".company, "Item".location, "Item".remote, "Item"."deletedAt",
-  "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost", "Item".boost,
-  "Item".msats, "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",
-  "Item"."weightedDownVotes", "Item".freebie, "Item"."otsHash", "Item"."bountyPaidTo", ltree2text("Item"."path") AS "path"`
+  `SELECT "Item".id, "Item".created_at, "Item".created_at as "createdAt", "Item".updated_at,
+  "Item".updated_at as "updatedAt", "Item".title, "Item".text, "Item".url, "Item"."bounty",
+  "Item"."userId", "Item"."fwdUserId", "Item"."parentId", "Item"."pinId", "Item"."maxBid",
+  "Item"."rootId", "Item".upvotes, "Item".company, "Item".location, "Item".remote, "Item"."deletedAt",
+  "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost", "Item".boost, "Item".msats,
+  "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",
+  "Item"."weightedDownVotes", "Item".freebie, "Item"."otsHash", "Item"."bountyPaidTo",
+  ltree2text("Item"."path") AS "path"`
 
 async function newTimedOrderByWeightedSats (me, models, num) {
   return `

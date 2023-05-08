@@ -30,4 +30,4 @@ $$ LANGUAGE plpgsql;
 
 -- we can drop these triggers because item_acts denormalize into item and hit the item trigger
 DROP TRIGGER IF EXISTS index_item_after_act ON "ItemAct";
-DROP FUNCTION index_item_after_act;
+DROP FUNCTION IF EXISTS index_item_after_act;

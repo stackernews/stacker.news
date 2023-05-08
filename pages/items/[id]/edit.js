@@ -16,7 +16,7 @@ export default function PostEdit ({ data: { item } }) {
   return (
     <LayoutCenter sub={item.subName}>
       {item.isJob
-        ? <JobForm item={item} sub={item.sub} />
+        ? <JobForm item={item} />
         : (item.url
             ? <LinkForm item={item} editThreshold={editThreshold} adv />
             : (item.pollCost

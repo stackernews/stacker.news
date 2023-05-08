@@ -37,9 +37,9 @@ export default function JobForm ({ item, sub }) {
   const router = useRouter()
   const [logoId, setLogoId] = useState(item?.uploadId)
   const [upsertJob] = useMutation(gql`
-    mutation upsertJob($id: ID, $title: String!, $company: String!, $location: String,
+    mutation upsertJob($sub: String!, $id: ID, $title: String!, $company: String!, $location: String,
       $remote: Boolean, $text: String!, $url: String!, $maxBid: Int!, $status: String, $logo: Int) {
-      upsertJob(sub: "${sub.name}", id: $id, title: $title, company: $company,
+      upsertJob(sub: $sub, id: $id, title: $title, company: $company,
         location: $location, remote: $remote, text: $text,
         url: $url, maxBid: $maxBid, status: $status, logo: $logo) {
         id
@@ -75,7 +75,7 @@ export default function JobForm ({ item, sub }) {
           const { error } = await upsertJob({
             variables: {
               id: item?.id,
-              sub: sub.name,
+              sub: item?.subName || sub?.name,
               maxBid: Number(maxBid),
               status,
               logo: Number(logoId),
@@ -162,7 +162,7 @@ function PromoteJob ({ item, sub, storageKeyPrefix }) {
   const [monthly, setMonthly] = useState(satsMin2Mo(item?.maxBid || 0))
   const [getAuctionPosition, { data }] = useLazyQuery(gql`
     query AuctionPosition($id: ID, $bid: Int!) {
-      auctionPosition(sub: "${sub.name}", id: $id, bid: $bid)
+      auctionPosition(sub: "${item?.subName || sub?.name}", id: $id, bid: $bid)
     }`,
   { fetchPolicy: 'network-only' })
   const position = data?.auctionPosition

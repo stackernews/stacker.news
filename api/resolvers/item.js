@@ -88,14 +88,15 @@ export async function orderByNumerator (me, models) {
   if (me) {
     const user = await models.user.findUnique({ where: { id: me.id } })
     if (user.wildWestMode) {
-      return 'GREATEST("Item"."weightedVotes", POWER("Item"."weightedVotes", 1.2))'
+      return 'GREATEST("Item"."weightedVotes", POWER("Item"."weightedVotes", 1.2)) + "Item"."weightedComments"/2'
     }
   }
 
   return `(CASE WHEN "Item"."weightedVotes" > "Item"."weightedDownVotes"
                 THEN 1
                 ELSE -1 END
-          * GREATEST(ABS("Item"."weightedVotes" - "Item"."weightedDownVotes"), POWER(ABS("Item"."weightedVotes" - "Item"."weightedDownVotes"), 1.2)))`
+          * GREATEST(ABS("Item"."weightedVotes" - "Item"."weightedDownVotes"), POWER(ABS("Item"."weightedVotes" - "Item"."weightedDownVotes"), 1.2))
+          + "Item"."weightedComments"/2)`
 }
 
 export async function filterClause (me, models) {
@@ -1246,7 +1247,7 @@ export const SELECT =
   "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost", "Item".boost, "Item".msats,
   "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",
   "Item"."weightedDownVotes", "Item".freebie, "Item"."otsHash", "Item"."bountyPaidTo",
-  ltree2text("Item"."path") AS "path"`
+  ltree2text("Item"."path") AS "path", "Item"."weightedComments"`
 
 async function newTimedOrderByWeightedSats (me, models, num) {
   return `

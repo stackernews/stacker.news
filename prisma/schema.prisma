@@ -276,9 +276,10 @@ model Item {
   upvotes           Int    @default(0)
 
   // denormalized comment stats
-  ncomments     Int       @default(0)
-  commentMsats  BigInt    @default(0)
-  lastCommentAt DateTime?
+  ncomments        Int       @default(0)
+  commentMsats     BigInt    @default(0)
+  lastCommentAt    DateTime?
+  weightedComments Float     @default(0)
 
   // if sub is null, this is the main sub
   sub     Sub?    @relation(fields: [subName], references: [name])

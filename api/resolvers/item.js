@@ -88,7 +88,7 @@ export async function orderByNumerator (me, models) {
   if (me) {
     const user = await models.user.findUnique({ where: { id: me.id } })
     if (user.wildWestMode) {
-      return 'GREATEST("Item"."weightedVotes", POWER("Item"."weightedVotes", 1.2)) + "Item"."weightedComments"/2'
+      return '(GREATEST("Item"."weightedVotes", POWER("Item"."weightedVotes", 1.2)) + "Item"."weightedComments"/2)'
     }
   }
 

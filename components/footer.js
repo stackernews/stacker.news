@@ -5,7 +5,6 @@ import { CopyInput } from './form'
 import styles from './footer.module.css'
 import Texas from '../svgs/texas.svg'
 import Github from '../svgs/github-fill.svg'
-import Twitter from '../svgs/twitter-fill.svg'
 import Link from 'next/link'
 import useDarkMode from 'use-dark-mode'
 import Sun from '../svgs/sun-fill.svg'
@@ -284,7 +283,7 @@ export default function Footer ({ noLinks }) {
           </>}
         {data &&
           <div
-            className={`text-small mx-auto mb-1 ${styles.connect}`}
+            className={`text-small mx-auto mb-2 ${styles.connect}`}
           >
             <span className='nav-item text-muted mr-2'>connect:</span>
             <CopyInput
@@ -301,13 +300,22 @@ export default function Footer ({ noLinks }) {
               <Amboss className='ml-2 theme' width={20} height={20} />
             </a>
           </div>}
-        <small>
-          <a className={`d-inline-block ${styles.contrastLink}`} href='https://github.com/stackernews/stacker.news' target='_blank' rel='noreferrer'>
-            This is free open source software<Github width={20} height={20} className='mx-1' />
+        <small className='d-flex justify-content-center align-items-center text-muted flex-wrap'>
+          <a className={`${styles.contrastLink} d-flex align-items-center`} href='https://github.com/stackernews/stacker.news' target='_blank' rel='noreferrer'>
+            FOSS <Github width={20} height={20} className='mx-1' />
           </a>
-          <span className='d-inline-block text-muted'>
-            made with sound love in Austin<Texas className='mx-1' width={20} height={20} />
-            by<a href='https://twitter.com/k00bideh' target='_blank' rel='noreferrer' className='text-twitter d-inline-block'><Twitter width={20} height={20} className='ml-1' />@k00bideh</a>
+          made in Austin<Texas className='ml-1' width={20} height={20} />
+          <span className='ml-1'>by</span>
+          <span>
+            <Link href='/k00b' passHref>
+              <a className='ml-1'>@k00b</a>
+            </Link>
+            <Link href='/kr' passHref>
+              <a className='ml-1'>@kr</a>
+            </Link>
+            <Link href='/ekzyis' passHref>
+              <a className='ml-1'>@ekzyis</a>
+            </Link>
           </span>
         </small>
       </Container>

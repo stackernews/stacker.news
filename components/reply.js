@@ -18,7 +18,7 @@ export function ReplyOnAnotherPage ({ parentId }) {
   )
 }
 
-export default function Reply ({ item, onSuccess, replyOpen, children }) {
+export default function Reply ({ item, onSuccess, replyOpen, children, placeholder }) {
   const [reply, setReply] = useState(replyOpen)
   const me = useMe()
   const parentId = item.id
@@ -116,6 +116,7 @@ export default function Reply ({ item, onSuccess, replyOpen, children }) {
             minRows={6}
             autoFocus={!replyOpen}
             required
+            placeholder={placeholder}
             hint={me?.freeComments && me?.sats < 1 ? <span className='text-success'>{me.freeComments} free comments left</span> : null}
             innerRef={replyInput}
           />

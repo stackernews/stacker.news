@@ -140,7 +140,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
       </div>
       {!noReply &&
         <>
-          <Reply item={item} replyOpen />
+          <Reply item={item} replyOpen placeholder={item.ncomments ? undefined : 'start the conversation ...'} />
           {!item.position && !item.isJob && !item.parentId && !item.bounty > 0 && <Related title={item.title} itemId={item.id} />}
           {item.bounty > 0 && <PastBounties item={item} />}
         </>}

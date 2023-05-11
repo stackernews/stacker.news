@@ -112,6 +112,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
   return (
     <ItemComponent
       item={item}
+      full
       right={
         <>
           <Share item={item} />

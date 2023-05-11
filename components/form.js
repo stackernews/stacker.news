@@ -3,7 +3,7 @@ import InputGroup from 'react-bootstrap/InputGroup'
 import BootstrapForm from 'react-bootstrap/Form'
 import Alert from 'react-bootstrap/Alert'
 import { Formik, Form as FormikForm, useFormikContext, useField, FieldArray } from 'formik'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { createContext, useContext, useEffect, useState } from 'react'
 import copy from 'clipboard-copy'
 import Thumb from '../svgs/thumb-up-fill.svg'
 import { Col, Dropdown as BootstrapDropdown, Nav } from 'react-bootstrap'
@@ -132,10 +132,11 @@ function FormGroup ({ className, label, children }) {
 
 function InputInner ({
   prepend, append, hint, showValid, onChange, overrideValue,
-  innerRef, storageKeyPrefix, noForm, clear, onKeyDown, ...props
+  innerRef, noForm, clear, onKeyDown, ...props
 }) {
   const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)
   const formik = noForm ? null : useFormikContext()
+  const storageKeyPrefix = useContext(StorageKeyPrefixContext)
 
   const storageKey = storageKeyPrefix ? storageKeyPrefix + '-' + props.name : undefined
 
@@ -155,7 +156,7 @@ function InputInner ({
     }
   }, [overrideValue])
 
-  const invalid = meta.touched && meta.error
+  const invalid = (!formik || formik.submitCount > 0) && meta.touched && meta.error
 
   return (
     <>
@@ -363,6 +364,8 @@ export function Checkbox ({ children, label, groupClassName, hiddenLabel, extra,
   )
 }
 
+const StorageKeyPrefixContext = createContext()
+
 export function Form ({
   initial, schema, onSubmit, children, initialError, validateImmediately, storageKeyPrefix, ...props
 }) {
@@ -389,46 +392,10 @@ export function Form ({
     >
       <FormikForm {...props} noValidate>
         {error && <Alert variant='danger' onClose={() => setError(undefined)} dismissible>{error}</Alert>}
-        {storageKeyPrefix
-          ? React.Children.map(children, (child) => {
-              // if child has a type that's a string, it's a dom element and can't get a prop
-              if (child) {
-                let childProps = {}
-                if (typeof child.type !== 'string') {
-                  childProps = { storageKeyPrefix }
-                }
-                return React.cloneElement(child, childProps)
-              }
-            })
-          : children}
-      </FormikForm>
-    </Formik>
-  )
-}
-
-export function SyncForm ({
-  initial, schema, children, action, ...props
-}) {
-  const ref = useRef(null)
-  return (
-    <Formik
-      initialValues={initial}
-      validationSchema={schema}
-      validateOnBlur={false}
-      onSubmit={() => ref.current.submit()}
-    >
-      {props => (
-        <form
-          ref={ref}
-          onSubmit={props.handleSubmit}
-          onReset={props.handleReset}
-          action={action}
-          method='POST'
-          noValidate
-        >
+        <StorageKeyPrefixContext.Provider value={storageKeyPrefix}>
           {children}
-        </form>
-      )}
+        </StorageKeyPrefixContext.Provider>
+      </FormikForm>
     </Formik>
   )
 }

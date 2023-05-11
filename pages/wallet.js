@@ -179,6 +179,7 @@ export function WithdrawlForm () {
           name='invoice'
           required
           autoFocus
+          clear
         />
         <Input
           label='max fee'

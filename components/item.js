@@ -18,7 +18,7 @@ export function SearchTitle ({ title }) {
   })
 }
 
-export default function Item ({ item, rank, belowTitle, right, children }) {
+export default function Item ({ item, rank, belowTitle, right, full, children }) {
   const titleRef = useRef()
 
   return (
@@ -58,7 +58,7 @@ export default function Item ({ item, rank, belowTitle, right, children }) {
                 </a>
               </>}
           </div>
-          <ItemInfo item={item} />
+          <ItemInfo full={full} item={item} />
           {belowTitle}
         </div>
         {right}

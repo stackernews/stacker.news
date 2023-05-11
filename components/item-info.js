@@ -15,7 +15,7 @@ import DontLikeThisDropdownItem from './dont-link-this'
 import BookmarkDropdownItem from './bookmark'
 import { CopyLinkDropdownItem } from './share'
 
-export default function ItemInfo ({ item, commentsText, className, embellishUser, extraInfo, onEdit, editText }) {
+export default function ItemInfo ({ item, full, commentsText, className, embellishUser, extraInfo, onEdit, editText }) {
   const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
   const me = useMe()
   const router = useRouter()
@@ -23,8 +23,9 @@ export default function ItemInfo ({ item, commentsText, className, embellishUser
     useState(item.mine && (Date.now() < editThreshold))
   const [hasNewComments, setHasNewComments] = useState(false)
   useEffect(() => {
-    // if we are showing toc, then this is a full item
-    setHasNewComments(newComments(item))
+    if (!full) {
+      setHasNewComments(newComments(item))
+    }
   }, [item])
 
   return (

@@ -13,5 +13,8 @@
       "sizes": "512x512"
     }
   ],
-  "display": "browser"
+  "display": "minimal-ui",
+  "theme_color": "#000000",
+  "background_color": "#ffffff",
+  "start_url": "/"
 }

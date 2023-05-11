@@ -21,15 +21,16 @@ async function getPrice (fiat) {
     const expired = createdAt + expiresIn < Date.now()
     if (expired) fetchPrice(fiat).catch(console.error) // update cache
     return price // serve stale price (this on the SSR critical path)
+  } else {
+    fetchPrice(fiat).catch(console.error)
   }
-  return await fetchPrice(fiat)
+  return null
 }
 
 export default {
   Query: {
     price: async (parent, { fiatCurrency }, ctx) => {
-      const price = await getPrice(fiatCurrency)
-      return price
+      return await getPrice(fiatCurrency)
     }
   }
 }

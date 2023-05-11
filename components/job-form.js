@@ -50,7 +50,7 @@ export default function JobForm ({ item, sub }) {
   return (
     <>
       <Form
-        className='py-5'
+        className='pb-5 pt-3'
         initial={{
           title: item?.title || '',
           company: item?.company || '',

@@ -11,11 +11,12 @@ import Item from './item'
 import Delete from './delete'
 import { Button } from 'react-bootstrap'
 import { discussionSchema } from '../lib/validate'
+import { SubSelectInitial } from './sub-select-form'
 
 export function DiscussionForm ({
   item, sub, editThreshold, titleLabel = 'title',
   textLabel = 'text', buttonText = 'post',
-  adv, handleSubmit
+  adv, handleSubmit, children
 }) {
   const router = useRouter()
   const client = useApolloClient()
@@ -51,7 +52,8 @@ export function DiscussionForm ({
       initial={{
         title: item?.title || '',
         text: item?.text || '',
-        ...AdvPostInitial({ forward: item?.fwdUser?.name })
+        ...AdvPostInitial({ forward: item?.fwdUser?.name }),
+        ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}
       onSubmit={handleSubmit || (async ({ boost, ...values }) => {
@@ -71,6 +73,7 @@ export function DiscussionForm ({
       })}
       storageKeyPrefix={item ? undefined : 'discussion'}
     >
+      {children}
       <Input
         label={titleLabel}
         name='title'

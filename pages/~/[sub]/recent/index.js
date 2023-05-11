@@ -12,7 +12,7 @@ export const getServerSideProps = getGetServerSideProps(SUB_ITEMS, variables,
 export default function Sub ({ data: { sub, items: { items, cursor } } }) {
   return (
     <Layout sub={sub?.name}>
-      <RecentHeader type='posts' sub={sub} />
+      {sub?.name !== 'jobs' && <RecentHeader type='posts' sub={sub} />}
       <Items
         items={items} cursor={cursor}
         variables={{ sub: sub?.name, ...variables }} rank

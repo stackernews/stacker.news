@@ -9,8 +9,9 @@ import FeeButton, { EditFeeButton } from './fee-button'
 import Delete from './delete'
 import { Button } from 'react-bootstrap'
 import { pollSchema } from '../lib/validate'
+import { SubSelectInitial } from './sub-select-form'
 
-export function PollForm ({ item, sub, editThreshold }) {
+export function PollForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
   const client = useApolloClient()
   const schema = pollSchema(client)
@@ -34,7 +35,8 @@ export function PollForm ({ item, sub, editThreshold }) {
         title: item?.title || '',
         text: item?.text || '',
         options: initialOptions || ['', ''],
-        ...AdvPostInitial({ forward: item?.fwdUser?.name })
+        ...AdvPostInitial({ forward: item?.fwdUser?.name }),
+        ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}
       onSubmit={async ({ boost, title, options, ...values }) => {
@@ -61,6 +63,7 @@ export function PollForm ({ item, sub, editThreshold }) {
       }}
       storageKeyPrefix={item ? undefined : 'poll'}
     >
+      {children}
       <Input
         label='title'
         name='title'

@@ -434,25 +434,31 @@ export function SyncForm ({
 }
 
 export function Select ({ label, items, groupClassName, onChange, noForm, ...props }) {
-  const [field] = useField(props)
+  const [field, meta] = noForm ? [{}, {}] : useField(props)
   const formik = noForm ? null : useFormikContext()
-
+  const invalid = meta.touched && meta.error
   return (
     <FormGroup label={label} className={groupClassName}>
       <BootstrapForm.Control
         as='select'
         {...field} {...props}
         onChange={(e) => {
-          field.onChange(e)
+          if (field?.onChange) {
+            field.onChange(e)
+          }
 
           if (onChange) {
             onChange(formik, e)
           }
         }}
         custom
+        isInvalid={invalid}
       >
         {items.map(item => <option key={item}>{item}</option>)}
       </BootstrapForm.Control>
+      <BootstrapForm.Control.Feedback type='invalid'>
+        {meta.touched && meta.error}
+      </BootstrapForm.Control.Feedback>
     </FormGroup>
   )
 }

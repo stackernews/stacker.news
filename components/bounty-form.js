@@ -7,6 +7,7 @@ import AdvPostForm, { AdvPostInitial } from './adv-post-form'
 import FeeButton, { EditFeeButton } from './fee-button'
 import { InputGroup } from 'react-bootstrap'
 import { bountySchema } from '../lib/validate'
+import { SubSelectInitial } from './sub-select-form'
 
 export function BountyForm ({
   item,
@@ -17,7 +18,8 @@ export function BountyForm ({
   textLabel = 'text',
   buttonText = 'post',
   adv,
-  handleSubmit
+  handleSubmit,
+  children
 }) {
   const router = useRouter()
   const client = useApolloClient()
@@ -54,7 +56,8 @@ export function BountyForm ({
         title: item?.title || '',
         text: item?.text || '',
         bounty: item?.bounty || 1000,
-        ...AdvPostInitial({ forward: item?.fwdUser?.name })
+        ...AdvPostInitial({ forward: item?.fwdUser?.name }),
+        ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}
       onSubmit={
@@ -83,6 +86,7 @@ export function BountyForm ({
       }
       storageKeyPrefix={item ? undefined : 'bounty'}
     >
+      {children}
       <Input label={titleLabel} name='title' required autoFocus clear />
       <Input
         label={bountyLabel} name='bounty' required

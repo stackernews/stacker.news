@@ -12,8 +12,9 @@ import Delete from './delete'
 import { Button } from 'react-bootstrap'
 import { linkSchema } from '../lib/validate'
 import Moon from '../svgs/moon-fill.svg'
+import { SubSelectInitial } from './sub-select-form'
 
-export function LinkForm ({ item, sub, editThreshold }) {
+export function LinkForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
   const client = useApolloClient()
   const schema = linkSchema(client)
@@ -87,7 +88,8 @@ export function LinkForm ({ item, sub, editThreshold }) {
       initial={{
         title: item?.title || '',
         url: item?.url || '',
-        ...AdvPostInitial({ forward: item?.fwdUser?.name })
+        ...AdvPostInitial({ forward: item?.fwdUser?.name }),
+        ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}
       onSubmit={async ({ boost, title, ...values }) => {
@@ -106,6 +108,7 @@ export function LinkForm ({ item, sub, editThreshold }) {
       }}
       storageKeyPrefix={item ? undefined : 'link'}
     >
+      {children}
       <Input
         label='title'
         name='title'

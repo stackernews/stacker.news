@@ -5,9 +5,11 @@ import { useMe } from './me'
 import UpBolt from '../svgs/bolt.svg'
 import { amountSchema } from '../lib/validate'
 
+const defaultTips = [100, 1000, 10000, 100000]
+
 const Tips = ({ setOValue }) => {
   const customTips = getCustomTips().sort((a, b) => a - b)
-  return [...customTips, 100, 1000, 10000, 100000].map(num =>
+  return [...customTips, ...defaultTips].map(num =>
     <Button
       size='sm'
       className={`${num > 1 ? 'ml-2' : ''} mb-2`}
@@ -25,6 +27,7 @@ const Tips = ({ setOValue }) => {
 const getCustomTips = () => JSON.parse(localStorage.getItem('custom-tips')) || []
 
 const addCustomTip = (amount) => {
+  if (defaultTips.includes(amount)) return
   let customTips = Array.from(new Set([amount, ...getCustomTips()]))
   if (customTips.length > 3) {
     customTips = customTips.slice(0, 3)

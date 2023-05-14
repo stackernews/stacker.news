@@ -8,8 +8,8 @@ import { amountSchema } from '../lib/validate'
 const defaultTips = [100, 1000, 10000, 100000]
 
 const Tips = ({ setOValue }) => {
-  const customTips = getCustomTips().sort((a, b) => a - b)
-  return [...customTips, ...defaultTips].map(num =>
+  const tips = [...getCustomTips(), ...defaultTips].sort((a, b) => a - b)
+  return tips.map(num =>
     <Button
       size='sm'
       className={`${num > 1 ? 'ml-2' : ''} mb-2`}

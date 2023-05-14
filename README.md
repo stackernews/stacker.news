@@ -16,7 +16,7 @@ We're experimenting with providing an SN-like service on nostr in [Outer Space](
 2. `git clone git@github.com:stackernews/stacker.news.git sn && cd sn`
 3. `docker-compose up --build`
 
-You should then be able to access the site at `localhost:3000` and any changes you make will hot reload. If you want to login locally or use lnd you'll need to modify `.env.sample` appropriately. More details [here](https://github.com/stackernews/stacker.news/tree/master/docs/local-auth.md). If you have trouble please open an issue so I can help and update the README for everyone else.
+You should then be able to access the site at `localhost:3000` and any changes you make will hot reload. If you want to login locally or use lnd you'll need to modify `.env.sample` appropriately. More details [here](./docs/local-auth.md). If you have trouble please open an issue so I can help and update the README for everyone else.
 
 # stack
 The site is written in javascript using Next.js, a React framework. The backend API is provided via graphql. The database is postgresql modelled with prisma. The job queue is also maintained in postgresql. We use lnd for our lightning node. A customized Bootstrap theme is used for styling.

@@ -34,3 +34,7 @@ GITHUB_SECRET=<Client secret>
 ```
 - Signup and login as above
 
+### Login with Lightning
+
+- Use [ngrok](https://ngrok.com/) to create a HTTPS tunnel to localhost:3000
+- Update `LNAUTH_URL` in `.env` with the URL provided by `ngrok` and add /api/lnauth to it

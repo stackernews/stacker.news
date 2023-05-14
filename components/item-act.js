@@ -63,6 +63,7 @@ export default function ItemAct ({ onClose, itemId, act, strike }) {
       <Input
         label='amount'
         name='amount'
+        type='number'
         innerRef={inputRef}
         overrideValue={oValue}
         required

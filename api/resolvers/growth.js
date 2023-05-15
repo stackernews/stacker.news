@@ -55,7 +55,7 @@ export function intervalClause (when, table, and) {
 export default {
   Query: {
     registrationGrowth: async (parent, { when }, { models }) => {
-      return await models.$queryRaw(
+      return await models.$queryRawUnsafe(
         `${withClause(when)}
         SELECT time, json_build_array(
           json_build_object('name', 'referrals', 'value', count("referrerId")),
@@ -67,7 +67,7 @@ export default {
         ORDER BY time ASC`)
     },
     spenderGrowth: async (parent, { when }, { models }) => {
-      return await models.$queryRaw(
+      return await models.$queryRawUnsafe(
         `${withClause(when)}
         SELECT time, json_build_array(
           json_build_object('name', 'any', 'value', count(DISTINCT "userId")),
@@ -90,7 +90,7 @@ export default {
         ORDER BY time ASC`)
     },
     itemGrowth: async (parent, { when }, { models }) => {
-      return await models.$queryRaw(
+      return await models.$queryRawUnsafe(
         `${withClause(when)}
         SELECT time, json_build_array(
           json_build_object('name', 'comments', 'value', count("parentId")),
@@ -103,7 +103,7 @@ export default {
         ORDER BY time ASC`)
     },
     spendingGrowth: async (parent, { when }, { models }) => {
-      return await models.$queryRaw(
+      return await models.$queryRawUnsafe(
         `${withClause(when)}
         SELECT time, json_build_array(
           json_build_object('name', 'jobs', 'value', coalesce(floor(sum(CASE WHEN act = 'STREAM' THEN msats ELSE 0 END)/1000),0)),
@@ -125,7 +125,7 @@ export default {
         ORDER BY time ASC`)
     },
     stackerGrowth: async (parent, { when }, { models }) => {
-      return await models.$queryRaw(
+      return await models.$queryRawUnsafe(
         `${withClause(when)}
         SELECT time, json_build_array(
           json_build_object('name', 'any', 'value', count(distinct user_id)),
@@ -152,7 +152,7 @@ export default {
         ORDER BY time ASC`)
     },
     stackingGrowth: async (parent, { when }, { models }) => {
-      return await models.$queryRaw(
+      return await models.$queryRawUnsafe(
         `${withClause(when)}
         SELECT time, json_build_array(
           json_build_object('name', 'rewards', 'value', coalesce(floor(sum(airdrop)/1000),0)),

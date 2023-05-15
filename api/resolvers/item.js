@@ -29,12 +29,12 @@ async function comments (me, models, id, sort) {
 
   const filter = await filterClause(me, models)
   if (me) {
-    const [{ item_comments_with_me: comments }] = await models.$queryRaw(
+    const [{ item_comments_with_me: comments }] = await models.$queryRawUnsafe(
       'SELECT item_comments_with_me($1, $2, $3, $4, $5)', Number(id), Number(me.id), COMMENT_DEPTH_LIMIT, filter, orderBy)
     return comments
   }
 
-  const [{ item_comments: comments }] = await models.$queryRaw(
+  const [{ item_comments: comments }] = await models.$queryRawUnsafe(
     'SELECT item_comments($1, $2, $3, $4)', Number(id), COMMENT_DEPTH_LIMIT, filter, orderBy)
   return comments
 }
@@ -152,7 +152,7 @@ function recentClause (type) {
 // joining does not preserve the order of the inner query
 async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ...args) {
   if (!me) {
-    return await models.$queryRaw(`
+    return await models.$queryRawUnsafe(`
       SELECT "Item".*, to_json(users.*) as user
       FROM (
         ${query}
@@ -160,7 +160,7 @@ async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ...args) 
       JOIN users ON "Item"."userId" = users.id
       ${orderBy}`, ...args)
   } else {
-    return await models.$queryRaw(`
+    return await models.$queryRawUnsafe(`
       SELECT "Item".*, to_json(users.*) as user, COALESCE("ItemAct"."meMsats", 0) as "meMsats",
         COALESCE("ItemAct"."meDontLike", false) as "meDontLike", "Bookmark"."itemId" IS NOT NULL AS "meBookmark"
       FROM (
@@ -189,7 +189,7 @@ export default {
     itemRepetition: async (parent, { parentId }, { me, models }) => {
       if (!me) return 0
       // how many of the parents starting at parentId belong to me
-      const [{ item_spam: count }] = await models.$queryRaw(`SELECT item_spam($1, $2, '${ITEM_SPAM_INTERVAL}')`,
+      const [{ item_spam: count }] = await models.$queryRawUnsafe(`SELECT item_spam($1, $2, '${ITEM_SPAM_INTERVAL}')`,
         Number(parentId), Number(me.id))
 
       return count
@@ -823,7 +823,7 @@ export default {
           throw new AuthenticationError('item does not belong to you')
         }
         const [item] = await serialize(models,
-          models.$queryRaw(`${SELECT} FROM update_poll($1, $2, $3, $4, $5, $6, $7) AS "Item"`,
+          models.$queryRawUnsafe(`${SELECT} FROM update_poll($1, $2, $3, $4, $5, $6, $7) AS "Item"`,
             sub || 'bitcoin', Number(id), title, text, Number(boost || 0), options, Number(fwdUser?.id)))
 
         await createMentions(item, models)
@@ -831,7 +831,7 @@ export default {
         return item
       } else {
         const [item] = await serialize(models,
-          models.$queryRaw(`${SELECT} FROM create_poll($1, $2, $3, $4, $5, $6, $7, $8, '${ITEM_SPAM_INTERVAL}') AS "Item"`,
+          models.$queryRawUnsafe(`${SELECT} FROM create_poll($1, $2, $3, $4, $5, $6, $7, $8, '${ITEM_SPAM_INTERVAL}') AS "Item"`,
             sub || 'bitcoin', title, text, 1, Number(boost || 0), Number(me.id), options, Number(fwdUser?.id)))
 
         await createMentions(item, models)
@@ -860,12 +860,12 @@ export default {
           throw new AuthenticationError('item does not belong to you')
         }
         ([item] = await serialize(models,
-          models.$queryRaw(
+          models.$queryRawUnsafe(
             `${SELECT} FROM update_job($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) AS "Item"`,
             Number(id), title, url, text, Number(maxBid), company, loc, remote, Number(logo), status)))
       } else {
         ([item] = await serialize(models,
-          models.$queryRaw(
+          models.$queryRawUnsafe(
             `${SELECT} FROM create_job($1, $2, $3, $4, $5, $6, $7, $8, $9) AS "Item"`,
             title, url, text, Number(me.id), Number(maxBid), company, loc, remote, Number(logo))))
       }
@@ -888,7 +888,7 @@ export default {
       }
 
       await serialize(models,
-        models.$queryRaw(`${SELECT} FROM poll_vote($1, $2) AS "Item"`,
+        models.$queryRawUnsafe(`${SELECT} FROM poll_vote($1, $2) AS "Item"`,
           Number(id), Number(me.id)))
 
       return id
@@ -902,7 +902,7 @@ export default {
       await ssValidate(amountSchema, { amount: sats })
 
       // disallow self tips
-      const [item] = await models.$queryRaw(`
+      const [item] = await models.$queryRawUnsafe(`
       ${SELECT}
       FROM "Item"
       WHERE id = $1 AND "userId" = $2`, Number(id), me.id)
@@ -924,7 +924,7 @@ export default {
       }
 
       // disallow self down votes
-      const [item] = await models.$queryRaw(`
+      const [item] = await models.$queryRawUnsafe(`
             ${SELECT}
             FROM "Item"
             WHERE id = $1 AND "userId" = $2`, Number(id), me.id)
@@ -1187,7 +1187,7 @@ export const updateItem = async (parent, { id, data: { sub, title, url, text, bo
   }
 
   const [item] = await serialize(models,
-    models.$queryRaw(
+    models.$queryRawUnsafe(
       `${SELECT} FROM update_item($1, $2, $3, $4, $5, $6, $7, $8) AS "Item"`,
       old.parentId ? null : sub || 'bitcoin', Number(id), title, url, text,
       Number(boost || 0), bounty ? Number(bounty) : null, Number(fwdUser?.id)))
@@ -1220,7 +1220,7 @@ const createItem = async (parent, { sub, title, url, text, boost, forward, bount
 
   const [item] = await serialize(
     models,
-    models.$queryRaw(
+    models.$queryRawUnsafe(
     `${SELECT} FROM create_item($1, $2, $3, $4, $5, $6, $7, $8, $9, '${ITEM_SPAM_INTERVAL}') AS "Item"`,
     parentId ? null : sub || 'bitcoin',
     title,

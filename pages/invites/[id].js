@@ -33,7 +33,7 @@ export async function getServerSideProps ({ req, res, query: { id, error = null 
       // attempt to send gift
       // catch any errors and just ignore them for now
       await serialize(models,
-        models.$queryRaw('SELECT invite_drain($1, $2)', session.user.id, id))
+        models.$queryRawUnsafe('SELECT invite_drain($1, $2)', session.user.id, id))
     } catch (e) {
       console.log(e)
     }

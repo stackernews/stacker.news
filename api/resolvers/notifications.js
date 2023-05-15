@@ -193,7 +193,7 @@ export default {
       }
 
       // we do all this crazy subquery stuff to make 'reward' islands
-      const notifications = await models.$queryRaw(
+      const notifications = await models.$queryRawUnsafe(
         `SELECT MAX(id) AS id, MAX("sortTime") AS "sortTime", sum("earnedSats") AS "earnedSats", type,
             MIN("sortTime") AS "minSortTime"
         FROM
@@ -249,7 +249,7 @@ export default {
   },
   Earn: {
     sources: async (n, args, { me, models }) => {
-      const [sources] = await models.$queryRaw(`
+      const [sources] = await models.$queryRawUnsafe(`
         SELECT
         FLOOR(sum(msats) FILTER(WHERE type = 'POST') / 1000) AS posts,
         FLOOR(sum(msats) FILTER(WHERE type = 'COMMENT') / 1000) AS comments,

@@ -41,7 +41,7 @@ function earn ({ models }) {
     }
 
     // get earners { userId, id, type, rank, proportion }
-    const earners = await models.$queryRaw(`
+    const earners = await models.$queryRawUnsafe(`
       WITH item_ratios AS (
           SELECT *,
               CASE WHEN "parentId" IS NULL THEN 'POST' ELSE 'COMMENT' END as type,

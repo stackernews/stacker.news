@@ -246,8 +246,8 @@ async function storeTrust (models, nodeTrust) {
 
   // update the trust of each user in graph
   await models.$transaction([
-    models.$executeRaw`UPDATE users SET trust = 0`,
-    models.$executeRaw(
+    models.$executeRawUnsafe('UPDATE users SET trust = 0'),
+    models.$executeRawUnsafe(
       `UPDATE users
         SET trust = g.trust
         FROM (values ${values}) g(id, trust)

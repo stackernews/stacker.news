@@ -5,7 +5,7 @@ async function serialize (models, call) {
   return await retry(async bail => {
     try {
       const [, result] = await models.$transaction([
-        models.$executeRaw(SERIALIZE),
+        models.$executeRawUnsafe(SERIALIZE),
         call
       ])
       return result

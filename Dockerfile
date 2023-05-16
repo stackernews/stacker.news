@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM node:18.6.0-bullseye
+FROM node:16.16.0-bullseye
 
 ENV NODE_ENV=development
 
@@ -8,4 +8,4 @@ WORKDIR /app
 
 EXPOSE 3000
 
-CMD npm install --loglevel verbose --legacy-peer-deps; npx prisma migrate dev; npm run dev
+CMD npm install --loglevel verbose; npx prisma migrate dev; npm run dev

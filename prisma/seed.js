@@ -35,6 +35,7 @@ async function main () {
       title: 'System76 Developing “Cosmic” Desktop Environment',
       url: 'https://blog.system76.com/post/648371526931038208/cosmic-to-arrive-in-june-release-of-popos-2104',
       userId: satoshi.id,
+      subName: 'bitcoin',
       children: {
         create: {
           userId: k00b.id,
@@ -61,6 +62,7 @@ async function main () {
       title: 'Deno 1.9',
       url: 'https://deno.com/blog/v1.9',
       userId: k00b.id,
+      subName: 'bitcoin',
       children: {
         create: {
           userId: satoshi.id,
@@ -87,6 +89,7 @@ async function main () {
       title: '1Password Secrets Automation',
       url: 'https://blog.1password.com/introducing-secrets-automation/',
       userId: greg.id,
+      subName: 'bitcoin',
       children: {
         create: {
           userId: k00b.id,
@@ -113,6 +116,7 @@ async function main () {
       title: '‘Counter Strike’ Bug Allows Hackers to Take over a PC with a Steam Invite',
       url: 'https://www.vice.com/en/article/dyvgej/counter-strike-bug-allows-hackers-to-take-over-a-pc-with-a-steam-invite',
       userId: stan.id,
+      subName: 'bitcoin',
       children: {
         create: {
           userId: greg.id,

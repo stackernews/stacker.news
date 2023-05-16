@@ -16,7 +16,7 @@ import { SubSelectInitial } from './sub-select-form'
 export function DiscussionForm ({
   item, sub, editThreshold, titleLabel = 'title',
   textLabel = 'text', buttonText = 'post',
-  adv, handleSubmit, children
+  handleSubmit, children
 }) {
   const router = useRouter()
   const client = useApolloClient()
@@ -98,7 +98,7 @@ export function DiscussionForm ({
           ? <div className='text-muted font-weight-bold'><Countdown date={editThreshold} /></div>
           : null}
       />
-      {adv && <AdvPostForm edit={!!item} />}
+      <AdvPostForm edit={!!item} />
       <div className='mt-3'>
         {item
           ? (

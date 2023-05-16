@@ -17,7 +17,6 @@ export function BountyForm ({
   bountyLabel = 'bounty',
   textLabel = 'text',
   buttonText = 'post',
-  adv,
   handleSubmit,
   children
 }) {
@@ -112,7 +111,7 @@ export function BountyForm ({
             : null
         }
       />
-      {adv && <AdvPostForm edit={!!item} />}
+      <AdvPostForm edit={!!item} />
       <div className='mt-3'>
         {item
           ? (

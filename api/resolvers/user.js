@@ -52,7 +52,7 @@ async function authMethods (user, args, { models, me }) {
   const oauth = accounts.map(a => a.providerId)
 
   return {
-    lightning: !!user.pubkey,
+    lightning: user.pubkey ?? '',
     email: user.emailVerified && user.email,
     twitter: oauth.indexOf('twitter') >= 0,
     github: oauth.indexOf('github') >= 0,

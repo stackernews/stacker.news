@@ -374,13 +374,17 @@ function AuthMethods ({ methods }) {
               : <div className='mt-2'><EmailLinkForm /></div>
           case 'lightning':
             return methods.lightning
-              ? <LoginButton
-                  className='d-block' type='lightning' text='Unlink' onClick={
-                    async () => {
-                      await unlink('lightning')
+              ? (
+                <div class='d-flex flex-row align-items-center'>
+                  <span title={methods.lightning}>pubkey: {methods.lightning.slice(0, 10) + '..' + methods.lightning.slice(-10)}</span>
+                  <LoginButton
+                    className='d-block ml-2' type='lightning' text='Unlink' onClick={
+                      async () => {
+                        await unlink('lightning')
+                      }
                     }
-                  }
-                />
+                  />
+                </div>)
               : (
                 <ModalButton clicker={<LoginButton className='d-block' type='lightning' text='Link' />}>
                   <div className='d-flex flex-column align-items-center'>

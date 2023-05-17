@@ -33,7 +33,7 @@ export default gql`
   }
 
   type AuthMethods {
-    lightning: Boolean!
+    lightning: String!
     slashtags: Boolean!
     github: Boolean!
     twitter: Boolean!

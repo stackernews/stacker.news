@@ -20,6 +20,8 @@ import { Form, Select } from './form'
 import SearchIcon from '../svgs/search-line.svg'
 import BackArrow from '../svgs/arrow-left-line.svg'
 import { useNotification } from './notifications'
+import useWebSocket from './ws'
+import { NEW_NOTES } from '../api/ws/signal'
 
 function WalletSummary ({ me }) {
   if (!me) return null
@@ -44,6 +46,8 @@ export default function Header ({ sub }) {
   const [path, setPath] = useState('')
   const me = useMe()
   const notification = useNotification()
+  const [wsHasNewNotes, setWsHasNewNotes] = useState(false)
+  useWebSocket(NEW_NOTES, () => setWsHasNewNotes(true))
 
   useEffect(() => {
     // there's always at least 2 on the split, e.g. '/' yields ['','']
@@ -59,7 +63,7 @@ export default function Header ({ sub }) {
   //     subLatestPost(name: $name)
   //   }
   // `, { variables: { name: 'jobs' }, pollInterval: 600000, fetchPolicy: 'network-only' })
-  const { data: hasNewNotes } = useQuery(gql`
+  const { data: pollHasNewNotes } = useQuery(gql`
     {
       hasNewNotes
     }
@@ -89,17 +93,19 @@ export default function Header ({ sub }) {
   //   }
   // }, [sub])
 
+  const hasNewNotes = wsHasNewNotes || pollHasNewNotes?.hasNewNotes
+
   const Corner = () => {
     if (me) {
       return (
         <div className='d-flex align-items-center ml-auto'>
           <Head>
-            <link rel='shortcut icon' href={hasNewNotes?.hasNewNotes ? '/favicon-notify.png' : '/favicon.png'} />
+            <link rel='shortcut icon' href={hasNewNotes ? '/favicon-notify.png' : '/favicon.png'} />
           </Head>
           <Link href='/notifications' passHref>
             <Nav.Link eventKey='notifications' className='pl-0 position-relative'>
               <NoteIcon height={22} width={22} className='theme' />
-              {hasNewNotes?.hasNewNotes &&
+              {hasNewNotes &&
                 <span className={styles.notification}>
                   <span className='invisible'>{' '}</span>
                 </span>}

@@ -12,6 +12,7 @@ import { msatsToSats } from '../../lib/format'
 import { parse } from 'tldts'
 import uu from 'url-unshort'
 import { amountSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, ssValidate } from '../../lib/validate'
+import { Notification } from '../ws/signal'
 
 async function comments (me, models, id, sort) {
   let orderBy
@@ -856,6 +857,7 @@ export default {
           models.$queryRaw(
             `${SELECT} FROM update_job($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) AS "Item"`,
             Number(id), title, url, text, Number(maxBid), company, loc, remote, Number(logo), status)))
+        if (item.userId !== me.id) Notification.next(item.userId)
       } else {
         ([item] = await serialize(models,
           models.$queryRaw(
@@ -898,12 +900,14 @@ export default {
       const [item] = await models.$queryRaw(`
       ${SELECT}
       FROM "Item"
-      WHERE id = $1 AND "userId" = $2`, Number(id), me.id)
-      if (item) {
+      WHERE id = $1`, Number(id))
+      if (item.userId === me.id) {
         throw new UserInputError('cannot tip your self')
       }
 
       const [{ item_act: vote }] = await serialize(models, models.$queryRaw`SELECT item_act(${Number(id)}, ${me.id}, 'TIP', ${Number(sats)})`)
+
+      Notification.next(item.userId)
 
       return {
         vote,
@@ -920,12 +924,14 @@ export default {
       const [item] = await models.$queryRaw(`
             ${SELECT}
             FROM "Item"
-            WHERE id = $1 AND "userId" = $2`, Number(id), me.id)
-      if (item) {
+            WHERE id = $1`, Number(id))
+      if (item === me.id) {
         throw new UserInputError('cannot downvote your self')
       }
 
       await serialize(models, models.$queryRaw`SELECT item_act(${Number(id)}, ${me.id}, 'DONT_LIKE_THIS', ${DONT_LIKE_THIS_COST})`)
+
+      Notification.next(item.userId)
 
       return true
     }
@@ -1158,6 +1164,8 @@ export const createMentions = async (item, models) => {
           update: data,
           create: data
         })
+
+        if (item.userId !== user.id) Notification.next(user.id)
       })
     }
   } catch (e) {
@@ -1241,6 +1249,16 @@ const createItem = async (parent, { sub, title, url, text, boost, forward, bount
     Number(fwdUser?.id)))
 
   await createMentions(item, models)
+
+  // push notifications to users of parents
+  // TODO fetch parents recursively
+  if (parentId) {
+    const [itemParent] = await serialize(
+      models,
+      models.$queryRaw`SELECT "userId" FROM "Item" WHERE id = ${Number(parentId)}`
+    )
+    if (itemParent.userId !== me.id) Notification.next(itemParent.userId)
+  }
 
   item.comments = []
   return item

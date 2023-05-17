@@ -15,6 +15,7 @@ import Layout from '../components/layout'
 import { ShowModalProvider } from '../components/modal'
 import ErrorBoundary from '../components/error-boundary'
 import { NotificationProvider } from '../components/notifications'
+import { WebSocketProvider } from '../components/ws'
 
 function CSRWrapper ({ Component, apollo, ...props }) {
   const { data, error } = useQuery(gql`${apollo.query}`, { variables: apollo.variables, fetchPolicy: 'cache-first' })
@@ -93,9 +94,11 @@ function MyApp ({ Component, pageProps: { session, ...props } }) {
                   <PriceProvider price={price}>
                     <LightningProvider>
                       <ShowModalProvider>
-                        {data || !apollo?.query
-                          ? <Component {...props} />
-                          : <CSRWrapper Component={Component} {...props} />}
+                        <WebSocketProvider>
+                          {data || !apollo?.query
+                            ? <Component {...props} />
+                            : <CSRWrapper Component={Component} {...props} />}
+                        </WebSocketProvider>
                       </ShowModalProvider>
                     </LightningProvider>
                   </PriceProvider>

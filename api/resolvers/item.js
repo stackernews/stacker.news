@@ -925,7 +925,7 @@ export default {
             ${SELECT}
             FROM "Item"
             WHERE id = $1`, Number(id))
-      if (item === me.id) {
+      if (item.userId === me.id) {
         throw new UserInputError('cannot downvote your self')
       }
 

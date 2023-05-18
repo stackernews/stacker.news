@@ -52,9 +52,29 @@ export function intervalClause (when, table, and) {
   return `"${table}".created_at >= now_utc() - interval '${interval(when)}' ${and ? 'AND' : ''} `
 }
 
+export function viewIntervalClause (when, view, and) {
+  if (when === 'forever') {
+    return and ? '' : 'TRUE'
+  }
+
+  return `"${view}".day >= date_trunc('day', timezone('America/Chicago', now() - interval '${interval(when)}')) ${and ? 'AND' : ''} `
+}
+
 export default {
   Query: {
     registrationGrowth: async (parent, { when }, { models }) => {
+      if (when !== 'day') {
+        return await models.$queryRaw(`
+          SELECT date_trunc('${timeUnit(when)}', day) as time, json_build_array(
+            json_build_object('name', 'referrals', 'value', sum(referrals)),
+            json_build_object('name', 'organic', 'value', sum(organic))
+          ) AS data
+          FROM reg_growth_days
+          WHERE ${viewIntervalClause(when, 'reg_growth_days', false)}
+          GROUP BY time
+          ORDER BY time ASC`)
+      }
+
       return await models.$queryRaw(
         `${withClause(when)}
         SELECT time, json_build_array(
@@ -67,6 +87,22 @@ export default {
         ORDER BY time ASC`)
     },
     spenderGrowth: async (parent, { when }, { models }) => {
+      if (when !== 'day') {
+        return await models.$queryRaw(`
+          SELECT date_trunc('${timeUnit(when)}', day) as time, json_build_array(
+            json_build_object('name', 'any', 'value', sum("any")),
+            json_build_object('name', 'jobs', 'value', sum(jobs)),
+            json_build_object('name', 'boost', 'value', sum(boost)),
+            json_build_object('name', 'fees', 'value', sum(fees)),
+            json_build_object('name', 'tips', 'value', sum(tips)),
+            json_build_object('name', 'donation', 'value', sum(donations))
+          ) AS data
+          FROM spender_growth_days
+          WHERE ${viewIntervalClause(when, 'spender_growth_days', false)}
+          GROUP BY time
+          ORDER BY time ASC`)
+      }
+
       return await models.$queryRaw(
         `${withClause(when)}
         SELECT time, json_build_array(
@@ -90,6 +126,19 @@ export default {
         ORDER BY time ASC`)
     },
     itemGrowth: async (parent, { when }, { models }) => {
+      if (when !== 'day') {
+        return await models.$queryRaw(`
+          SELECT date_trunc('${timeUnit(when)}', day) as time, json_build_array(
+            json_build_object('name', 'posts', 'value', sum(posts)),
+            json_build_object('name', 'comments', 'value', sum(comments)),
+            json_build_object('name', 'jobs', 'value', sum(jobs))
+          ) AS data
+          FROM item_growth_days
+          WHERE ${viewIntervalClause(when, 'item_growth_days', false)}
+          GROUP BY time
+          ORDER BY time ASC`)
+      }
+
       return await models.$queryRaw(
         `${withClause(when)}
         SELECT time, json_build_array(
@@ -103,6 +152,21 @@ export default {
         ORDER BY time ASC`)
     },
     spendingGrowth: async (parent, { when }, { models }) => {
+      if (when !== 'day') {
+        return await models.$queryRaw(`
+          SELECT date_trunc('${timeUnit(when)}', day) as time, json_build_array(
+            json_build_object('name', 'jobs', 'value', sum(jobs)),
+            json_build_object('name', 'boost', 'value', sum(boost)),
+            json_build_object('name', 'fees', 'value', sum(fees)),
+            json_build_object('name', 'tips', 'value', sum(tips)),
+            json_build_object('name', 'donations', 'value', sum(donations))
+          ) AS data
+          FROM spending_growth_days
+          WHERE ${viewIntervalClause(when, 'spending_growth_days', false)}
+          GROUP BY time
+          ORDER BY time ASC`)
+      }
+
       return await models.$queryRaw(
         `${withClause(when)}
         SELECT time, json_build_array(
@@ -125,6 +189,21 @@ export default {
         ORDER BY time ASC`)
     },
     stackerGrowth: async (parent, { when }, { models }) => {
+      if (when !== 'day') {
+        return await models.$queryRaw(`
+          SELECT date_trunc('${timeUnit(when)}', day) as time, json_build_array(
+            json_build_object('name', 'any', 'value', sum("any")),
+            json_build_object('name', 'posts', 'value', sum(posts)),
+            json_build_object('name', 'comments', 'value', sum(comments)),
+            json_build_object('name', 'rewards', 'value', sum(rewards)),
+            json_build_object('name', 'referrals', 'value', sum(referrals))
+          ) AS data
+          FROM stackers_growth_days
+          WHERE ${viewIntervalClause(when, 'stackers_growth_days', false)}
+          GROUP BY time
+          ORDER BY time ASC`)
+      }
+
       return await models.$queryRaw(
         `${withClause(when)}
         SELECT time, json_build_array(
@@ -152,6 +231,20 @@ export default {
         ORDER BY time ASC`)
     },
     stackingGrowth: async (parent, { when }, { models }) => {
+      if (when !== 'day') {
+        return await models.$queryRaw(`
+          SELECT date_trunc('${timeUnit(when)}', day) as time, json_build_array(
+            json_build_object('name', 'rewards', 'value', sum(rewards)),
+            json_build_object('name', 'posts', 'value', sum(posts)),
+            json_build_object('name', 'comments', 'value', sum(comments)),
+            json_build_object('name', 'referrals', 'value', sum(referrals))
+          ) AS data
+          FROM stacking_growth_days
+          WHERE ${viewIntervalClause(when, 'stacking_growth_days', false)}
+          GROUP BY time
+          ORDER BY time ASC`)
+      }
+
       return await models.$queryRaw(
         `${withClause(when)}
         SELECT time, json_build_array(

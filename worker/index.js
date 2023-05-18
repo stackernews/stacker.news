@@ -15,6 +15,7 @@ const { nip57 } = require('./nostr')
 
 const fetch = require('cross-fetch')
 const { authenticatedLndGrpc } = require('ln-service')
+const { views } = require('./views')
 
 async function work () {
   const boss = new PgBoss(process.env.DATABASE_URL)
@@ -60,6 +61,7 @@ async function work () {
   await boss.work('streak', computeStreaks(args))
   await boss.work('checkStreak', checkStreak(args))
   await boss.work('nip57', nip57(args))
+  await boss.work('views', views(args))
 
   console.log('working jobs')
 }

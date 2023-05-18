@@ -17,14 +17,14 @@ import { useLazyQuery } from '@apollo/client'
 import { USER_SEARCH } from '../fragments/users'
 
 export function SubmitButton ({
-  children, variant, value, onClick, ...props
+  children, variant, value, onClick, disabled, ...props
 }) {
   const { isSubmitting, setFieldValue } = useFormikContext()
   return (
     <Button
       variant={variant || 'main'}
       type='submit'
-      disabled={isSubmitting}
+      disabled={disabled || isSubmitting}
       onClick={value
         ? e => {
             setFieldValue('submit', value)

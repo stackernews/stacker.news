@@ -12,9 +12,11 @@ export function WebSocketProvider ({ children }) {
 
     // the endpoint needs to be hit at least once using HTTP
     // to initialize the websocket server
-    fetch('http://localhost:3000/api/ws')
+    fetch('/api/ws')
 
-    const client = new WebSocket('ws://localhost:3000/api/ws')
+    const loc = window.location
+    const proto = loc.protocol === 'https:' ? 'wss:' : 'ws:'
+    const client = new WebSocket(`${proto}//${loc.host}/api/ws`)
 
     let timeout
     const heartbeat = () => {

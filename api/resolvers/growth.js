@@ -45,11 +45,12 @@ export function withClause (when) {
 
 // HACKY AF this is a performance enhancement that allows us to use the created_at indices on tables
 export function intervalClause (when, table, and) {
+  const unit = timeUnit(when)
   if (when === 'forever') {
     return and ? '' : 'TRUE'
   }
 
-  return `"${table}".created_at >= now_utc() - interval '${interval(when)}' ${and ? 'AND' : ''} `
+  return `"${table}".created_at >= date_trunc('${unit}', now_utc() - interval '${interval(when)}') ${and ? 'AND' : ''} `
 }
 
 export function viewIntervalClause (when, view, and) {

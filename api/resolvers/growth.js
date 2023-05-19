@@ -90,12 +90,12 @@ export default {
       if (when !== 'day') {
         return await models.$queryRaw(`
           SELECT date_trunc('${timeUnit(when)}', day) as time, json_build_array(
-            json_build_object('name', 'any', 'value', sum("any")),
-            json_build_object('name', 'jobs', 'value', sum(jobs)),
-            json_build_object('name', 'boost', 'value', sum(boost)),
-            json_build_object('name', 'fees', 'value', sum(fees)),
-            json_build_object('name', 'tips', 'value', sum(tips)),
-            json_build_object('name', 'donation', 'value', sum(donations))
+            json_build_object('name', 'any', 'value', floor(avg("any"))),
+            json_build_object('name', 'jobs', 'value', floor(avg(jobs))),
+            json_build_object('name', 'boost', 'value', floor(avg(boost))),
+            json_build_object('name', 'fees', 'value', floor(avg(fees))),
+            json_build_object('name', 'tips', 'value', floor(avg(tips))),
+            json_build_object('name', 'donation', 'value', floor(avg(donations)))
           ) AS data
           FROM spender_growth_days
           WHERE ${viewIntervalClause(when, 'spender_growth_days', false)}
@@ -192,11 +192,11 @@ export default {
       if (when !== 'day') {
         return await models.$queryRaw(`
           SELECT date_trunc('${timeUnit(when)}', day) as time, json_build_array(
-            json_build_object('name', 'any', 'value', sum("any")),
-            json_build_object('name', 'posts', 'value', sum(posts)),
-            json_build_object('name', 'comments', 'value', sum(comments)),
-            json_build_object('name', 'rewards', 'value', sum(rewards)),
-            json_build_object('name', 'referrals', 'value', sum(referrals))
+            json_build_object('name', 'any', 'value', floor(avg("any"))),
+            json_build_object('name', 'posts', 'value', floor(avg(posts))),
+            json_build_object('name', 'comments', 'value', floor(floor(avg(comments)))),
+            json_build_object('name', 'rewards', 'value', floor(avg(rewards))),
+            json_build_object('name', 'referrals', 'value', floor(avg(referrals)))
           ) AS data
           FROM stackers_growth_days
           WHERE ${viewIntervalClause(when, 'stackers_growth_days', false)}

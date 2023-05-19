@@ -27,6 +27,29 @@ export function within (table, within) {
   return interval
 }
 
+export function viewWithin (table, within) {
+  let interval = ' AND "' + table + '".day >= date_trunc(\'day\', timezone(\'America/Chicago\', $1 at time zone \'UTC\' - interval '
+  switch (within) {
+    case 'day':
+      interval += "'1 day'))"
+      break
+    case 'week':
+      interval += "'7 days'))"
+      break
+    case 'month':
+      interval += "'1 month'))"
+      break
+    case 'year':
+      interval += "'1 year'))"
+      break
+    default:
+      // HACK: we need to use the time parameter otherwise prisma *cries* about it
+      interval = ' AND users.created_at <= $1'
+      break
+  }
+  return interval
+}
+
 export function withinDate (within) {
   switch (within) {
     case 'day':
@@ -96,9 +119,13 @@ export default {
     topCowboys: async (parent, { cursor }, { models, me }) => {
       const decodedCursor = decodeCursor(cursor)
       const users = await models.$queryRaw(`
-        SELECT users.*
+        SELECT users.*, floor(sum(msats_spent)/1000) as spent,
+          sum(posts) as nitems, sum(comments) as ncomments, sum(referrals) as referrals,
+          floor(sum(msats_stacked)/1000) as stacked
           FROM users
+          LEFT JOIN user_stats_days on users.id = user_stats_days.id
           WHERE NOT "hideFromTopUsers" AND NOT "hideCowboyHat" AND streak IS NOT NULL
+          GROUP BY users.id
           ORDER BY streak DESC, created_at ASC
           OFFSET $1
           LIMIT ${LIMIT}`, decodedCursor.offset)
@@ -110,6 +137,39 @@ export default {
     topUsers: async (parent, { cursor, when, sort }, { models, me }) => {
       const decodedCursor = decodeCursor(cursor)
       let users
+
+      if (when !== 'day') {
+        let column
+        switch (sort) {
+          case 'spent': column = 'spent'; break
+          case 'posts': column = 'nitems'; break
+          case 'comments': column = 'ncomments'; break
+          case 'referrals': column = 'referrals'; break
+          default: column = 'stacked'; break
+        }
+
+        users = await models.$queryRaw(`
+          WITH u AS (
+            SELECT users.*, floor(sum(msats_spent)/1000) as spent,
+            sum(posts) as nitems, sum(comments) as ncomments, sum(referrals) as referrals,
+            floor(sum(msats_stacked)/1000) as stacked
+            FROM user_stats_days
+            JOIN users on users.id = user_stats_days.id
+            WHERE NOT users."hideFromTopUsers"
+            ${viewWithin('user_stats_days', when)}
+            GROUP BY users.id
+            ORDER BY ${column} DESC NULLS LAST, users.created_at DESC
+          )
+          SELECT * FROM u WHERE ${column} > 0
+          OFFSET $2
+          LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+
+        return {
+          cursor: users.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
+          users
+        }
+      }
+
       if (sort === 'spent') {
         users = await models.$queryRaw(`
           SELECT users.*, sum(sats_spent) as spent
@@ -210,11 +270,12 @@ export default {
       // check if any votes have been cast for them since checkedNotesAt
       if (user.noteItemSats) {
         const votes = await models.$queryRaw(`
-        SELECT "ItemAct".id, "ItemAct".created_at
+        SELECT 1
           FROM "Item"
-          JOIN "ItemAct" on "ItemAct"."itemId" = "Item".id
-          WHERE "ItemAct"."userId" <> $1
-          AND "ItemAct".created_at > $2
+          JOIN "ItemAct" ON
+            "ItemAct"."itemId" = "Item".id
+            AND "ItemAct"."userId" <> "Item"."userId"
+          WHERE "ItemAct".created_at > $2
           AND "Item"."userId" = $1
           AND "ItemAct".act = 'TIP'
           LIMIT 1`, me.id, lastChecked)
@@ -225,11 +286,14 @@ export default {
 
       // check if they have any replies since checkedNotesAt
       const newReplies = await models.$queryRaw(`
-        SELECT "Item".id, "Item".created_at
+        SELECT 1
           FROM "Item"
-          JOIN "Item" p ON ${user.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
+          JOIN "Item" p ON
+            "Item".created_at >= p.created_at
+            AND ${user.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
+            AND "Item"."userId" <> p."userId"
           WHERE p."userId" = $1
-          AND "Item".created_at > $2  AND "Item"."userId" <> $1
+          AND "Item".created_at > $2::timestamp(3) without time zone
           ${await filterClause(me, models)}
           LIMIT 1`, me.id, lastChecked)
       if (newReplies.length > 0) {
@@ -480,9 +544,10 @@ export default {
   User: {
     authMethods,
     nitems: async (user, { when }, { models }) => {
-      if (user.nitems) {
+      if (typeof user.nitems === 'number') {
         return user.nitems
       }
+
       return await models.item.count({
         where: {
           userId: user.id,
@@ -494,7 +559,7 @@ export default {
       })
     },
     ncomments: async (user, { when }, { models }) => {
-      if (user.ncomments) {
+      if (typeof user.ncomments === 'number') {
         return user.ncomments
       }
 
@@ -509,7 +574,7 @@ export default {
       })
     },
     nbookmarks: async (user, { when }, { models }) => {
-      if (user.nBookmarks) {
+      if (typeof user.nBookmarks === 'number') {
         return user.nBookmarks
       }
 
@@ -523,14 +588,14 @@ export default {
       })
     },
     stacked: async (user, { when }, { models }) => {
-      if (user.stacked) {
+      if (typeof user.stacked === 'number') {
         return user.stacked
       }
 
-      if (!when) {
+      if (!when || when === 'forever') {
         // forever
         return (user.stackedMsats && msatsToSats(user.stackedMsats)) || 0
-      } else {
+      } else if (when === 'day') {
         const [{ stacked }] = await models.$queryRaw(`
           SELECT sum(amount) as stacked
           FROM
@@ -551,9 +616,11 @@ export default {
             AND "Earn".created_at >= $1)) u`, withinDate(when), Number(user.id))
         return (stacked && msatsToSats(stacked)) || 0
       }
+
+      return 0
     },
     spent: async (user, { when }, { models }) => {
-      if (user.spent) {
+      if (typeof user.spent === 'number') {
         return user.spent
       }
 
@@ -572,6 +639,9 @@ export default {
       return (msats && msatsToSats(msats)) || 0
     },
     referrals: async (user, { when }, { models }) => {
+      if (typeof user.referrals === 'number') {
+        return user.referrals
+      }
       return await models.user.count({
         where: {
           referrerId: user.id,

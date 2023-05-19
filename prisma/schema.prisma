@@ -435,7 +435,14 @@ model ItemAct {
   @@index([userId])
   @@index([act])
   @@index([createdAt])
-  @@index([itemId, act, userId])
+  // for getting a user's spending on an item, eg meSats
+  @@index([itemId, userId, act])
+  // for getting a user's spending over time, eg amount spent in a week
+  @@index([userId, createdAt, act])
+  // for checking if an item has been tipped recently, where the item number is small
+  @@index([itemId, createdAt, act])
+  // for checking if an item has been tipped recently, where the recent acts are small
+  @@index([createdAt, itemId, act])
 }
 
 model Mention {

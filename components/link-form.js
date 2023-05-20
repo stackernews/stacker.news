@@ -143,6 +143,14 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
             getPageTitleAndUnshorted({
               variables: { url: e.target.value }
             })
+          } else {
+            client.cache.modify({
+              fields: {
+                pageTitleAndUnshorted () {
+                  return null
+                }
+              }
+            })
           }
           if (e.target.value) {
             setPostDisabled(true)

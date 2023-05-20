@@ -80,6 +80,14 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
     }
   }, [data?.pageTitleAndUnshorted?.title])
 
+  useEffect(() => {
+    if (data?.pageTitleAndUnshorted?.unshorted) {
+      getDupes({
+        variables: { url: data?.pageTitleAndUnshorted?.unshorted }
+      })
+    }
+  }, [data?.pageTitleAndUnshorted?.unshorted])
+
   const [postDisabled, setPostDisabled] = useState(false)
   const [titleOverride, setTitleOverride] = useState()
 

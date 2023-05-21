@@ -59,13 +59,13 @@ export default function Growth ({
 }) {
   const router = useRouter()
   const { when } = router.query
-  const avg = ['month', 'year', 'forever'].includes(when) ? 'avg daily' : ''
+  const avg = ['year', 'forever'].includes(when) ? 'avg daily ' : ''
   return (
     <Layout>
       <UsageHeader />
       <Row>
         <Col className='mt-3'>
-          <div className='text-center text-muted font-weight-bold'>{avg} stackers</div>
+          <div className='text-center text-muted font-weight-bold'>{avg}stackers</div>
           <WhenLineChart data={stackerGrowth} />
         </Col>
         <Col className='mt-3'>
@@ -75,7 +75,7 @@ export default function Growth ({
       </Row>
       <Row>
         <Col className='mt-3'>
-          <div className='text-center text-muted font-weight-bold'>{avg} spenders</div>
+          <div className='text-center text-muted font-weight-bold'>{avg}spenders</div>
           <WhenLineChart data={spenderGrowth} />
         </Col>
         <Col className='mt-3'>

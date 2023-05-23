@@ -99,6 +99,17 @@ export async function orderByNumerator (me, models) {
           + "Item"."weightedComments"/2)`
 }
 
+export async function joinSatRankView (me, models) {
+  if (me) {
+    const user = await models.user.findUnique({ where: { id: me.id } })
+    if (user.wildWestMode) {
+      return 'JOIN sat_rank_wwm_view ON "Item".id = sat_rank_wwm_view.id'
+    }
+  }
+
+  return 'JOIN sat_rank_tender_view ON "Item".id = sat_rank_tender_view.id'
+}
+
 export async function filterClause (me, models) {
   // by default don't include freebies unless they have upvotes
   let clause = ' AND (NOT "Item".freebie OR "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0'
@@ -180,8 +191,8 @@ async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ...args) 
   }
 }
 
-const subClause = (sub, num, table) => {
-  return sub ? ` AND ${table ? `${table}.` : ''}"subName" = $${num} ` : ''
+const subClause = (sub, num, table, solo) => {
+  return sub ? ` ${solo ? 'WHERE' : 'AND'} ${table ? `"${table}".` : ''}"subName" = $${num} ` : ''
 }
 
 export default {
@@ -342,47 +353,19 @@ export default {
               }, decodedCursor.time, decodedCursor.offset, ...subArr)
               break
             default:
-              // HACK we can speed hack the first hot page, by limiting our query to only
-              // the most recently created items so that the tables doesn't have to
-              // fully be computed
-              // if the offset is 0, we limit our search to posts from the last week
-              // if there are 21 items, return them ... if not do the unrestricted query
-              // instead of doing this we should materialize a view ... but this is easier for now
-              if (decodedCursor.offset === 0) {
-                items = await itemQueryWithMeta({
-                  me,
-                  models,
-                  query: `
-                    ${SELECT}
+              items = await itemQueryWithMeta({
+                me,
+                models,
+                query: `
+                    ${SELECT}, rank
                     FROM "Item"
-                    WHERE "parentId" IS NULL AND "Item".created_at <= $1 AND "Item".created_at > $3
-                    AND "pinId" IS NULL AND NOT bio AND "deletedAt" IS NULL
-                    ${subClause(sub, 4)}
-                    ${await filterClause(me, models)}
-                    ${await newTimedOrderByWeightedSats(me, models, 1)}
-                    OFFSET $2
+                    ${await joinSatRankView(me, models)}
+                    ${subClause(sub, 2, 'Item', true)}
+                    ORDER BY rank DESC NULLS LAST, id DESC
+                    OFFSET $1
                     LIMIT ${LIMIT}`,
-                  orderBy: await newTimedOrderByWeightedSats(me, models, 1)
-                }, decodedCursor.time, decodedCursor.offset, new Date(new Date().setDate(new Date().getDate() - 5)), ...subArr)
-              }
-
-              if (decodedCursor.offset !== 0 || items?.length < LIMIT) {
-                items = await itemQueryWithMeta({
-                  me,
-                  models,
-                  query: `
-                    ${SELECT}
-                    FROM "Item"
-                    WHERE "parentId" IS NULL AND "Item".created_at <= $1
-                    AND "pinId" IS NULL AND NOT bio AND "deletedAt" IS NULL
-                    ${subClause(sub, 3)}
-                    ${await filterClause(me, models)}
-                    ${await newTimedOrderByWeightedSats(me, models, 1)}
-                    OFFSET $2
-                    LIMIT ${LIMIT}`,
-                  orderBy: await newTimedOrderByWeightedSats(me, models, 1)
-                }, decodedCursor.time, decodedCursor.offset, ...subArr)
-              }
+                orderBy: 'ORDER BY rank DESC NULLS LAST, id DESC'
+              }, decodedCursor.offset, ...subArr)
 
               if (decodedCursor.offset === 0) {
                 // get pins for the page and return those separately
@@ -1248,12 +1231,6 @@ export const SELECT =
   "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",
   "Item"."weightedDownVotes", "Item".freebie, "Item"."otsHash", "Item"."bountyPaidTo",
   ltree2text("Item"."path") AS "path", "Item"."weightedComments"`
-
-async function newTimedOrderByWeightedSats (me, models, num) {
-  return `
-    ORDER BY (${await orderByNumerator(me, models)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600), 1.3) +
-              ("Item".boost/${BOOST_MIN}::float)/POWER(EXTRACT(EPOCH FROM ($${num} - "Item".created_at))/3600+2, 2.6)) DESC NULLS LAST, "Item".id DESC`
-}
 
 async function topOrderByWeightedSats (me, models) {
   return `ORDER BY ${await orderByNumerator(me, models)} DESC NULLS LAST, "Item".id DESC`

@@ -14,4 +14,17 @@ function views ({ models }) {
   }
 }
 
-module.exports = { views }
+// this should be run regularly ... like, every 1-5 minutes
+function rankViews ({ models }) {
+  return async function () {
+    console.log('refreshing rank views')
+
+    for (const view of ['sat_rank_wwm_view', 'sat_rank_tender_view']) {
+      await models.$queryRaw(`REFRESH MATERIALIZED VIEW CONCURRENTLY ${view}`)
+    }
+
+    console.log('done refreshing rank views')
+  }
+}
+
+module.exports = { views, rankViews }

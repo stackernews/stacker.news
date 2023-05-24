@@ -361,10 +361,10 @@ export default {
                     FROM "Item"
                     ${await joinSatRankView(me, models)}
                     ${subClause(sub, 2, 'Item', true)}
-                    ORDER BY rank DESC NULLS LAST, id DESC
+                    ORDER BY rank ASC
                     OFFSET $1
                     LIMIT ${LIMIT}`,
-                orderBy: 'ORDER BY rank DESC NULLS LAST, id DESC'
+                orderBy: 'ORDER BY rank ASC'
               }, decodedCursor.offset, ...subArr)
 
               if (decodedCursor.offset === 0) {

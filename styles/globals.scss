@@ -63,6 +63,16 @@ $tooltip-bg: #5c8001;
   }
 }
 
+.standalone {
+  display: none
+}
+
+@media (display-mode: standalone) {
+  .standalone {
+    display: flex
+  }
+}
+
 .line-height-1 {
   line-height: 1;
 }

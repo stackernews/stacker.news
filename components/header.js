@@ -18,6 +18,7 @@ import LightningIcon from '../svgs/bolt.svg'
 import CowboyHat from './cowboy-hat'
 import { Form, Select } from './form'
 import SearchIcon from '../svgs/search-line.svg'
+import BackArrow from '../svgs/back-arrow.svg'
 
 function WalletSummary ({ me }) {
   if (!me) return null
@@ -254,6 +255,7 @@ export default function Header ({ sub }) {
             activeKey={topNavKey}
           >
             <div className='d-flex align-items-center'>
+              <BackArrow className='theme standalone mr-1' width={18} height={18} onClick={() => router.back()} />
               <Link href='/' passHref>
                 <Navbar.Brand className={`${styles.brand} d-flex`}>
                   SN
@@ -293,6 +295,7 @@ export default function Header ({ sub }) {
 }
 
 export function HeaderStatic () {
+  const router = useRouter()
   return (
     <Container className='px-sm-0'>
       <Navbar className='pb-0 pb-md-1'>
@@ -300,6 +303,7 @@ export function HeaderStatic () {
           className={styles.navbarNav}
         >
           <div className='d-flex align-items-center'>
+            <BackArrow className='theme standalone mr-1' width={18} height={18} onClick={() => router.back()} />
             <Link href='/' passHref>
               <Navbar.Brand className={`${styles.brand}`}>
                 SN

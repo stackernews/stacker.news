@@ -16,9 +16,7 @@ const corsHeaders = [
 module.exports = withPWA({
   dest: 'public',
   register: true,
-  sw: '/sw.js',
-  // prevents that worker/index.js is detected as the service worker
-  customWorkerDir: ''
+  customWorkerDir: 'sw'
 })(
   withPlausibleProxy()({
     compress: false,

@@ -19,6 +19,7 @@ import CowboyHat from './cowboy-hat'
 import { Form, Select } from './form'
 import SearchIcon from '../svgs/search-line.svg'
 import BackArrow from '../svgs/back-arrow.svg'
+import { useNotification } from './notifications'
 
 function WalletSummary ({ me }) {
   if (!me) return null
@@ -34,6 +35,7 @@ export default function Header ({ sub }) {
   const [prefix, setPrefix] = useState('')
   const [path, setPath] = useState('')
   const me = useMe()
+  const notification = useNotification()
 
   useEffect(() => {
     // there's always at least 2 on the split, e.g. '/' yields ['','']
@@ -53,7 +55,20 @@ export default function Header ({ sub }) {
     {
       hasNewNotes
     }
-  `, { pollInterval: 30000, fetchPolicy: 'cache-and-network' })
+  `, {
+    pollInterval: 30000,
+    fetchPolicy: 'cache-and-network',
+    // Trigger onComplete after every poll
+    // See https://github.com/apollographql/apollo-client/issues/5531#issuecomment-568235629
+    notifyOnNetworkStatusChange: true,
+    onCompleted: (data) => {
+      const notified = JSON.parse(localStorage.getItem('notified')) || false
+      if (!notified && data.hasNewNotes) {
+        notification.show('you have new notifications')
+      }
+      localStorage.setItem('notified', data.hasNewNotes)
+    }
+  })
   // const [lastCheckedJobs, setLastCheckedJobs] = useState(new Date().getTime())
   // useEffect(() => {
   //   if (me) {

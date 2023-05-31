@@ -74,10 +74,22 @@ export function getGetServerSideProps (query, variables = null, notFoundFunc, re
 
     let error = null; let data = null; let props = {}
     if (query) {
-      ({ error, data } = await client.query({
-        query,
-        variables: vars
-      }))
+      try {
+        ({ error, data } = await client.query({
+          query,
+          variables: vars
+        }))
+      } catch (err) {
+        if (err.message === 'you must be logged in') {
+          const callback = process.env.PUBLIC_URL + req.url
+          return {
+            redirect: {
+              destination: `/login?callbackUrl=${encodeURIComponent(callback)}`
+            }
+          }
+        }
+        throw err
+      }
 
       if (error || !data || (notFoundFunc && notFoundFunc(data))) {
         return {

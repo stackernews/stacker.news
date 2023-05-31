@@ -69,129 +69,116 @@ export default {
 
       const queries = []
 
-      if (inc === 'replies') {
-        queries.push(
-          `SELECT DISTINCT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL::BIGINT as "earnedSats",
-              'Reply' AS type
-              FROM "Item"
-              JOIN "Item" p ON ${meFull.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
-              WHERE
-                (p."userId" = $1 OR p.id = ANY(SELECT "itemId" FROM "ThreadSubscription" WHERE "userId" = $1))
-                AND "Item"."userId" <> $1 AND "Item".created_at <= $2
-                ${await filterClause(me, models)}`
-        )
-      } else {
-        queries.push(
-          `(SELECT DISTINCT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL::BIGINT as "earnedSats",
-              'Reply' AS type
-              FROM "Item"
-              JOIN "Item" p ON ${meFull.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
-              WHERE
-                (p."userId" = $1 OR p.id = ANY(SELECT "itemId" FROM "ThreadSubscription" WHERE "userId" = $1))
-                AND "Item"."userId" <> $1 AND "Item".created_at <= $2
-              ${await filterClause(me, models)}
-              ORDER BY "sortTime" DESC
-              LIMIT ${LIMIT}+$3)`
-        )
-
-        queries.push(
-          `(SELECT "Item".id::text, "Item"."statusUpdatedAt" AS "sortTime", NULL as "earnedSats",
-            'JobChanged' AS type
+      queries.push(
+        `(SELECT DISTINCT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL::BIGINT as "earnedSats",
+            'Reply' AS type
             FROM "Item"
-            WHERE "Item"."userId" = $1
-            AND "maxBid" IS NOT NULL
-            AND "statusUpdatedAt" <= $2 AND "statusUpdatedAt" <> created_at
+            JOIN "Item" p ON ${meFull.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
+            WHERE
+              (p."userId" = $1 OR p.id = ANY(SELECT "itemId" FROM "ThreadSubscription" WHERE "userId" = $1))
+              AND "Item"."userId" <> $1 AND "Item".created_at <= $2
+            ${await filterClause(me, models)}
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT}+$3)`
+      )
+
+      queries.push(
+        `(SELECT "Item".id::text, "Item"."statusUpdatedAt" AS "sortTime", NULL as "earnedSats",
+          'JobChanged' AS type
+          FROM "Item"
+          WHERE "Item"."userId" = $1
+          AND "maxBid" IS NOT NULL
+          AND "statusUpdatedAt" <= $2 AND "statusUpdatedAt" <> created_at
+          ORDER BY "sortTime" DESC
+          LIMIT ${LIMIT}+$3)`
+      )
+
+      if (meFull.noteItemSats) {
+        queries.push(
+          `(SELECT "Item".id::TEXT, MAX("ItemAct".created_at) AS "sortTime",
+            MAX("Item".msats/1000) as "earnedSats", 'Votification' AS type
+            FROM "Item"
+            JOIN "ItemAct" ON "ItemAct"."itemId" = "Item".id
+            WHERE "ItemAct"."userId" <> $1
+            AND "ItemAct".created_at <= $2
+            AND "ItemAct".act IN ('TIP', 'FEE')
+            AND "Item"."userId" = $1
+            GROUP BY "Item".id
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT}+$3)`
         )
+      }
 
-        if (meFull.noteItemSats) {
-          queries.push(
-            `(SELECT "Item".id::TEXT, MAX("ItemAct".created_at) AS "sortTime",
-              MAX("Item".msats/1000) as "earnedSats", 'Votification' AS type
-              FROM "Item"
-              JOIN "ItemAct" ON "ItemAct"."itemId" = "Item".id
-              WHERE "ItemAct"."userId" <> $1
-              AND "ItemAct".created_at <= $2
-              AND "ItemAct".act IN ('TIP', 'FEE')
-              AND "Item"."userId" = $1
-              GROUP BY "Item".id
-              ORDER BY "sortTime" DESC
-              LIMIT ${LIMIT}+$3)`
-          )
-        }
+      if (meFull.noteMentions) {
+        queries.push(
+          `(SELECT "Item".id::TEXT, "Mention".created_at AS "sortTime", NULL as "earnedSats",
+            'Mention' AS type
+            FROM "Mention"
+            JOIN "Item" ON "Mention"."itemId" = "Item".id
+            LEFT JOIN "Item" p ON "Item"."parentId" = p.id
+            WHERE "Mention"."userId" = $1
+            AND "Mention".created_at <= $2
+            AND "Item"."userId" <> $1
+            AND (p."userId" IS NULL OR p."userId" <> $1)
+            ${await filterClause(me, models)}
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT}+$3)`
+        )
+      }
 
-        if (meFull.noteMentions) {
-          queries.push(
-            `(SELECT "Item".id::TEXT, "Mention".created_at AS "sortTime", NULL as "earnedSats",
-              'Mention' AS type
-              FROM "Mention"
-              JOIN "Item" ON "Mention"."itemId" = "Item".id
-              LEFT JOIN "Item" p ON "Item"."parentId" = p.id
-              WHERE "Mention"."userId" = $1
-              AND "Mention".created_at <= $2
-              AND "Item"."userId" <> $1
-              AND (p."userId" IS NULL OR p."userId" <> $1)
-              ${await filterClause(me, models)}
-              ORDER BY "sortTime" DESC
-              LIMIT ${LIMIT}+$3)`
-          )
-        }
-
-        if (meFull.noteDeposits) {
-          queries.push(
-            `(SELECT "Invoice".id::text, "Invoice"."confirmedAt" AS "sortTime", FLOOR("msatsReceived" / 1000) as "earnedSats",
-              'InvoicePaid' AS type
-              FROM "Invoice"
-              WHERE "Invoice"."userId" = $1
-              AND "confirmedAt" IS NOT NULL
-              AND created_at <= $2
-              ORDER BY "sortTime" DESC
-              LIMIT ${LIMIT}+$3)`
-          )
-        }
-
-        if (meFull.noteInvites) {
-          queries.push(
-            `(SELECT "Invite".id, MAX(users.created_at) AS "sortTime", NULL as "earnedSats",
-              'Invitification' AS type
-              FROM users JOIN "Invite" on users."inviteId" = "Invite".id
-              WHERE "Invite"."userId" = $1
-              AND users.created_at <= $2
-              GROUP BY "Invite".id
-              ORDER BY "sortTime" DESC
-              LIMIT ${LIMIT}+$3)`
-          )
-          queries.push(
-            `(SELECT users.id::text, users.created_at AS "sortTime", NULL as "earnedSats",
-              'Referral' AS type
-              FROM users
-              WHERE "users"."referrerId" = $1
-              AND "inviteId" IS NULL
-              AND users.created_at <= $2
-              LIMIT ${LIMIT}+$3)`
-          )
-        }
-
-        if (meFull.noteEarning) {
-          queries.push(
-            `SELECT min(id)::text, created_at AS "sortTime", FLOOR(sum(msats) / 1000) as "earnedSats",
-            'Earn' AS type
-            FROM "Earn"
-            WHERE "userId" = $1
+      if (meFull.noteDeposits) {
+        queries.push(
+          `(SELECT "Invoice".id::text, "Invoice"."confirmedAt" AS "sortTime", FLOOR("msatsReceived" / 1000) as "earnedSats",
+            'InvoicePaid' AS type
+            FROM "Invoice"
+            WHERE "Invoice"."userId" = $1
+            AND "confirmedAt" IS NOT NULL
             AND created_at <= $2
-            GROUP BY "userId", created_at`
-          )
-        }
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT}+$3)`
+        )
+      }
 
-        if (meFull.noteCowboyHat) {
-          queries.push(
-            `SELECT id::text, updated_at AS "sortTime", 0 as "earnedSats", 'Streak' AS type
-            FROM "Streak"
-            WHERE "userId" = $1
-            AND updated_at <= $2`
-          )
-        }
+      if (meFull.noteInvites) {
+        queries.push(
+          `(SELECT "Invite".id, MAX(users.created_at) AS "sortTime", NULL as "earnedSats",
+            'Invitification' AS type
+            FROM users JOIN "Invite" on users."inviteId" = "Invite".id
+            WHERE "Invite"."userId" = $1
+            AND users.created_at <= $2
+            GROUP BY "Invite".id
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT}+$3)`
+        )
+        queries.push(
+          `(SELECT users.id::text, users.created_at AS "sortTime", NULL as "earnedSats",
+            'Referral' AS type
+            FROM users
+            WHERE "users"."referrerId" = $1
+            AND "inviteId" IS NULL
+            AND users.created_at <= $2
+            LIMIT ${LIMIT}+$3)`
+        )
+      }
+
+      if (meFull.noteEarning) {
+        queries.push(
+          `SELECT min(id)::text, created_at AS "sortTime", FLOOR(sum(msats) / 1000) as "earnedSats",
+          'Earn' AS type
+          FROM "Earn"
+          WHERE "userId" = $1
+          AND created_at <= $2
+          GROUP BY "userId", created_at`
+        )
+      }
+
+      if (meFull.noteCowboyHat) {
+        queries.push(
+          `SELECT id::text, updated_at AS "sortTime", 0 as "earnedSats", 'Streak' AS type
+          FROM "Streak"
+          WHERE "userId" = $1
+          AND updated_at <= $2`
+        )
       }
 
       // we do all this crazy subquery stuff to make 'reward' islands

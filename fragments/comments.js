@@ -19,6 +19,7 @@ export const COMMENT_FIELDS = gql`
     meSats
     meDontLike
     meBookmark
+    meSubscription
     outlawed
     freebie
     path

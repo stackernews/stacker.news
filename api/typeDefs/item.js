@@ -34,6 +34,7 @@ export default gql`
 
   extend type Mutation {
     bookmarkItem(id: ID): Item
+    subscribeItem(id: ID): Item
     deleteItem(id: ID): Item
     upsertLink(id: ID, sub: String, title: String!, url: String!, boost: Int, forward: String): Item!
     upsertDiscussion(id: ID, sub: String, title: String!, text: String, boost: Int, forward: String): Item!
@@ -102,6 +103,7 @@ export default gql`
     meSats: Int!
     meDontLike: Boolean!
     meBookmark: Boolean!
+    meSubscription: Boolean!
     outlawed: Boolean!
     freebie: Boolean!
     paidImgLink: Boolean

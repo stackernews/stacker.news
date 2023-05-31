@@ -27,6 +27,7 @@ export const ITEM_FIELDS = gql`
     meSats
     meDontLike
     meBookmark
+    meSubscription
     outlawed
     freebie
     ncomments

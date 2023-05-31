@@ -719,6 +719,14 @@ export default {
       } else await models.bookmark.create({ data })
       return { id }
     },
+    subscribeItem: async (parent, { id }, { me, models }) => {
+      const data = { itemId: Number(id), userId: me.id }
+      const old = await models.threadSubscription.findUnique({ where: { userId_itemId: data } })
+      if (old) {
+        await models.threadSubscription.delete({ where: { userId_itemId: data } })
+      } else await models.threadSubscription.create({ data })
+      return { id }
+    },
     deleteItem: async (parent, { id }, { me, models }) => {
       const old = await models.item.findUnique({ where: { id: Number(id) } })
       if (Number(old.userId) !== Number(me?.id)) {
@@ -1066,6 +1074,21 @@ export default {
       })
 
       return !!bookmark
+    },
+    meSubscription: async (item, args, { me, models }) => {
+      if (!me) return false
+      if (typeof item.meSubscription === 'boolean') return item.meSubscription
+
+      const subscription = await models.threadSubscription.findUnique({
+        where: {
+          userId_itemId: {
+            itemId: Number(item.id),
+            userId: me.id
+          }
+        }
+      })
+
+      return !!subscription
     },
     outlawed: async (item, args, { me, models }) => {
       if (me && Number(item.userId) === Number(me.id)) {

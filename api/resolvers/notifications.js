@@ -75,7 +75,8 @@ export default {
               'Reply' AS type
               FROM "Item"
               JOIN "Item" p ON ${meFull.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
-              WHERE p."userId" = $1
+              WHERE
+                (p."userId" = $1 OR p.id = ANY(SELECT "itemId" FROM "ThreadSubscription" WHERE "userId" = $1))
                 AND "Item"."userId" <> $1 AND "Item".created_at <= $2
                 ${await filterClause(me, models)}`
         )
@@ -85,7 +86,8 @@ export default {
               'Reply' AS type
               FROM "Item"
               JOIN "Item" p ON ${meFull.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
-              WHERE p."userId" = $1
+              WHERE
+                (p."userId" = $1 OR p.id = ANY(SELECT "itemId" FROM "ThreadSubscription" WHERE "userId" = $1))
                 AND "Item"."userId" <> $1 AND "Item".created_at <= $2
               ${await filterClause(me, models)}
               ORDER BY "sortTime" DESC

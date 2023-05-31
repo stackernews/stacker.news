@@ -85,14 +85,15 @@ model User {
   wildWestMode Boolean @default(false)
   greeterMode  Boolean @default(false)
 
-  Earn          Earn[]
-  Upload        Upload[]       @relation(name: "Uploads")
-  PollVote      PollVote[]
-  Donation      Donation[]
-  ReferralAct   ReferralAct[]
-  Streak        Streak[]
-  Bookmarks     Bookmark[]
-  Subscriptions Subscription[]
+  Earn                Earn[]
+  Upload              Upload[]       @relation(name: "Uploads")
+  PollVote            PollVote[]
+  Donation            Donation[]
+  ReferralAct         ReferralAct[]
+  Streak              Streak[]
+  Bookmarks           Bookmark[]
+  Subscriptions       Subscription[]
+  ThreadSubscriptions ThreadSubscription[]
 
   @@index([createdAt])
   @@index([inviteId])
@@ -300,10 +301,11 @@ model Item {
   // fields for polls
   pollCost Int?
 
-  User       User[]
-  PollOption PollOption[]
-  PollVote   PollVote[]
-  Bookmark   Bookmark[]
+  User                User[]
+  PollOption          PollOption[]
+  PollVote            PollVote[]
+  Bookmark            Bookmark[]
+  ThreadSubscription  ThreadSubscription[]
 
   @@index([weightedVotes])
   @@index([weightedDownVotes])
@@ -552,6 +554,17 @@ model VerificationRequest {
 }
 
 model Bookmark {
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  item      Item     @relation(fields: [itemId], references: [id])
+  itemId    Int
+  createdAt DateTime @default(now()) @map(name: "created_at")
+
+  @@id([userId, itemId])
+  @@index([createdAt])
+}
+
+model ThreadSubscription {
   user      User     @relation(fields: [userId], references: [id])
   userId    Int
   item      Item     @relation(fields: [itemId], references: [id])

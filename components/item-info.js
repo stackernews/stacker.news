@@ -13,6 +13,7 @@ import { useMe } from './me'
 import MoreIcon from '../svgs/more-fill.svg'
 import DontLikeThisDropdownItem from './dont-link-this'
 import BookmarkDropdownItem from './bookmark'
+import SubscribeDropdownItem from './subscribe'
 import { CopyLinkDropdownItem } from './share'
 
 export default function ItemInfo ({ item, full, commentsText, className, embellishUser, extraInfo, onEdit, editText }) {
@@ -98,6 +99,7 @@ export default function ItemInfo ({ item, full, commentsText, className, embelli
       <ItemDropdown>
         <CopyLinkDropdownItem item={item} />
         {me && <BookmarkDropdownItem item={item} />}
+        {me && item.user.id !== me.id && <SubscribeDropdownItem item={item} />}
         {item.otsHash &&
           <Dropdown.Item>
             <Link passHref href={`/items/${item.id}/ots`}>

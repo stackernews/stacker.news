@@ -637,7 +637,7 @@ export default {
     },
     dupes: async (parent, { url }, { me, models }) => {
       const urlObj = new URL(ensureProtocol(url))
-      let uri = urlObj.hostname + urlObj.pathname
+      let uri = urlObj.hostname + '(:[0-9]+)?' + urlObj.pathname
       uri = uri.endsWith('/') ? uri.slice(0, -1) : uri
 
       const parseResult = parse(urlObj.hostname)

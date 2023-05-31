@@ -11,10 +11,20 @@
       "src": "/android-chrome-512x512.png",
       "type": "image/png",
       "sizes": "512x512"
+    },
+    {
+      "src": "/android-chrome-24x24.png",
+      "type": "image/png",
+      "sizes": "24x24"
     }
   ],
-  "display": "minimal-ui",
+  "display": "standalone",
   "theme_color": "#000000",
   "background_color": "#ffffff",
-  "start_url": "/"
+  "start_url": "/",
+  "url_handlers": [
+    {
+      "origin": "https://stacker.news"
+    }
+  ]
 }

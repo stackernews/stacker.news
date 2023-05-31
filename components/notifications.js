@@ -1,3 +1,4 @@
+import { useState, useCallback, useEffect, useContext, createContext } from 'react'
 import { useQuery } from '@apollo/client'
 import Comment, { CommentSkeleton } from './comment'
 import Item from './item'
@@ -15,6 +16,7 @@ import { COMMENT_DEPTH_LIMIT } from '../lib/constants'
 import CowboyHatIcon from '../svgs/cowboy.svg'
 import BaldIcon from '../svgs/bald.svg'
 import { RootProvider } from './root'
+import { useMe } from './me'
 
 // TODO: oh man, this is a mess ... each notification type should just be a component ...
 function Notification ({ n }) {
@@ -222,4 +224,47 @@ function CommentsFlatSkeleton () {
     ))}
     </div>
   )
+}
+
+const NotificationContext = createContext({})
+
+export const NotificationProvider = ({ children }) => {
+  const isBrowser = typeof window !== 'undefined'
+  const [isSupported] = useState(isBrowser ? 'Notification' in window : false)
+  const [isDefaultPermission, setIsDefaultPermission] = useState(isSupported ? window.Notification.permission === 'default' : undefined)
+  const [isGranted, setIsGranted] = useState(isSupported ? window.Notification.permission === 'granted' : undefined)
+  const me = useMe()
+
+  const show_ = (title, options) => {
+    const icon = '/android-chrome-24x24.png'
+    new window.Notification(title, { icon, ...options })
+  }
+
+  const show = useCallback((...args) => {
+    if (!isGranted) return
+    show_(...args)
+  }, [isGranted])
+
+  const requestPermission = useCallback(() => {
+    window.Notification.requestPermission().then(result => {
+      setIsDefaultPermission(window.Notification.permission === 'default')
+      if (result === 'granted') {
+        setIsGranted(result === 'granted')
+        show_('you have enabled notifications')
+      }
+    })
+  }, [isDefaultPermission])
+
+  useEffect(() => {
+    if (!me || !isSupported || !isDefaultPermission) return
+    requestPermission()
+  }, [])
+
+  const ctx = { isBrowser, isSupported, isDefaultPermission, isGranted, show }
+
+  return <NotificationContext.Provider value={ctx}>{children}</NotificationContext.Provider>
+}
+
+export function useNotification () {
+  return useContext(NotificationContext)
 }

@@ -16,6 +16,7 @@ import { COMMENT_DEPTH_LIMIT } from '../lib/constants'
 import CowboyHatIcon from '../svgs/cowboy.svg'
 import BaldIcon from '../svgs/bald.svg'
 import { RootProvider } from './root'
+import { useMe } from './me'
 
 // TODO: oh man, this is a mess ... each notification type should just be a component ...
 function Notification ({ n }) {
@@ -232,6 +233,7 @@ export const NotificationProvider = ({ children }) => {
   const [isSupported] = useState(isBrowser ? 'Notification' in window : false)
   const [isDefaultPermission, setIsDefaultPermission] = useState(isSupported ? window.Notification.permission === 'default' : undefined)
   const [isGranted, setIsGranted] = useState(isSupported ? window.Notification.permission === 'granted' : undefined)
+  const me = useMe()
 
   const show_ = (title, options) => {
     const icon = '/android-chrome-24x24.png'
@@ -254,7 +256,7 @@ export const NotificationProvider = ({ children }) => {
   }, [isDefaultPermission])
 
   useEffect(() => {
-    if (!isSupported || !isDefaultPermission) return
+    if (!me || !isSupported || !isDefaultPermission) return
     requestPermission()
   }, [])
 

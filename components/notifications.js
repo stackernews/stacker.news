@@ -234,7 +234,7 @@ export const NotificationProvider = ({ children }) => {
   const [isGranted, setIsGranted] = useState(isSupported ? window.Notification.permission === 'granted' : undefined)
 
   const show_ = (title, options) => {
-    const icon = '/android-chrome-192x192.png'
+    const icon = '/android-chrome-24x24.png'
     new window.Notification(title, { icon, ...options })
   }
 

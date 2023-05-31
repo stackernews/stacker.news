@@ -617,3 +617,9 @@ div[contenteditable]:focus,
     color: #212529;
   }
 }
+
+.version {
+  margin: auto;
+  font-size: x-small;
+  color: var(--theme-grey) !important;
+}

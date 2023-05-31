@@ -100,6 +100,10 @@ module.exports = withPWA({
           destination: '/api/nostr/nip05'
         },
         {
+          source: '/.well-known/web-app-origin-association',
+          destination: '/api/web-app-origin-association'
+        },
+        {
           source: '/~:sub',
           destination: '/~/:sub'
         },

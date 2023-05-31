@@ -61,10 +61,14 @@ $tooltip-bg: #5c8001;
   .table-sm td {
     padding: .3rem .75rem;
   }
+  .standalone {
+    // undo the container padding
+    margin-left: -16px;
+  }
 }
 
 .standalone {
-  display: none
+  display: none;
 }
 
 @media (display-mode: standalone) {

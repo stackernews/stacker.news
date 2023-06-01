@@ -300,6 +300,21 @@ export default {
         return true
       }
 
+      // break out thread subscription to decrease the search space of the already expensive reply query
+      const newtsubs = await models.$queryRaw(`
+      SELECT 1
+        FROM "ThreadSubscription"
+        JOIN "Item" p ON "ThreadSubscription"."itemId" = p.id
+        JOIN "Item" ON ${user.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
+        WHERE
+          "ThreadSubscription"."userId" = $1
+        AND "Item".created_at > $2::timestamp(3) without time zone
+        ${await filterClause(me, models)}
+        LIMIT 1`, me.id, lastChecked)
+      if (newtsubs.length > 0) {
+        return true
+      }
+
       // check if they have any mentions since checkedNotesAt
       if (user.noteMentions) {
         const newMentions = await models.$queryRaw(`

@@ -74,8 +74,21 @@ export default {
             'Reply' AS type
             FROM "Item"
             JOIN "Item" p ON ${meFull.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
+            WHERE p."userId" = $1 AND "Item"."userId" <> $1 AND "Item".created_at <= $2
+            ${await filterClause(me, models)}
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT}+$3)`
+      )
+
+      // break out thread subscription to decrease the search space of the already expensive reply query
+      queries.push(
+        `(SELECT DISTINCT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL::BIGINT as "earnedSats",
+            'Reply' AS type
+            FROM "ThreadSubscription"
+            JOIN "Item" p ON "ThreadSubscription"."itemId" = p.id
+            JOIN "Item" ON ${meFull.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
             WHERE
-              (p."userId" = $1 OR p.id = ANY(SELECT "itemId" FROM "ThreadSubscription" WHERE "userId" = $1))
+              "ThreadSubscription"."userId" = $1
               AND "Item"."userId" <> $1 AND "Item".created_at <= $2
             ${await filterClause(me, models)}
             ORDER BY "sortTime" DESC

@@ -13,9 +13,10 @@ const corsHeaders = [
   }
 ]
 
+// XXX this fragile ... eb could change the version label ... but it works for now
 const commitHash = isProd
-  ? require('fs').readFileSync('version.txt', 'utf8').slice(0, 7)
-  : require('child_process').execSync('git rev-parse HEAD').toString().slice(0, 7)
+  ? Object.keys(require('/opt/elasticbeanstalk/deployment/app_version_manifest.json').RuntimeSources['stacker.news'])[0].match(/^app-(.+)-/)[1] // eslint-disable-line
+  : require('child_process').execSync('git rev-parse HEAD').toString().slice(0, 4)
 
 module.exports = withPWA({
   dest: 'public',
@@ -30,15 +31,7 @@ module.exports = withPWA({
     experimental: {
       scrollRestoration: true
     },
-    // generateBuildId: isProd ? async () => commitHash : undefined,
-    generateBuildId: isProd
-      ? async () => {
-        // use the app version which eb doesn't otherwise give us
-        // as the build id
-        const { RuntimeSources } = require('/opt/elasticbeanstalk/deployment/app_version_manifest.json') // eslint-disable-line
-          return Object.keys(RuntimeSources['stacker.news'])[0]
-        }
-      : undefined,
+    generateBuildId: isProd ? async () => commitHash : undefined,
     // Use the CDN in production and localhost for development.
     assetPrefix: isProd ? 'https://a.stacker.news' : undefined,
     async headers () {

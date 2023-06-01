@@ -207,6 +207,8 @@ export default function Footer ({ noLinks }) {
   const DarkModeIcon = darkMode.value ? Sun : Moon
   const LnIcon = lightning === 'yes' ? No : Bolt
 
+  const version = process.env.NEXT_PUBLIC_COMMIT_HASH
+
   return (
     <footer>
       <Container className='mb-3 mt-4'>
@@ -318,6 +320,7 @@ export default function Footer ({ noLinks }) {
             </Link>
           </span>
         </small>
+        <div className="version">version <a href={`https://github.com/stackernews/stacker.news/commit/${version}`}>{version}</a></div>
       </Container>
     </footer>
   )

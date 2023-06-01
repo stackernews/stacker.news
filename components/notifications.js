@@ -18,131 +18,52 @@ import BaldIcon from '../svgs/bald.svg'
 import { RootProvider } from './root'
 import { useMe } from './me'
 
-// TODO: oh man, this is a mess ... each notification type should just be a component ...
 function Notification ({ n }) {
-  const router = useRouter()
+  switch (n.__typename) {
+    case 'Earn': return <EarnNotification n={n} />
+    case 'Invitification': return <Invitification n={n} />
+    case 'InvoicePaid': return <InvoicePaid n={n} />
+    case 'Referral': return <Referral n={n} />
+    case 'Streak': return <Streak n={n} />
+    case 'Votification': return <Votification n={n} />
+    case 'Mention': return <Mention n={n} />
+    case 'JobChanged': return <JobChanged n={n} />
+    case 'Reply': return <Reply n={n} />
+  }
+  console.error("__typename not supported:", n.__typename)
+  return null
+}
+
+function NotificationLayout({ children, onClick }) {
   return (
-    <div
-      className='clickToContext'
-      onClick={e => {
-        if (n.__typename === 'Earn' || n.__typename === 'Referral' || n.__typename === 'Streak') {
-          return
-        }
-
-        if (ignoreClick(e)) {
-          return
-        }
-
-        if (n.__typename === 'InvoicePaid') {
-          router.push(`/invoices/${n.invoice.id}`)
-        } else if (n.__typename === 'Invitification') {
-          router.push('/invites')
-        } else if (!n.item.title) {
-          if (n.item.path.split('.').length > COMMENT_DEPTH_LIMIT + 1) {
-            router.push({
-              pathname: '/items/[id]',
-              query: { id: n.item.parentId, commentId: n.item.id }
-            }, `/items/${n.item.parentId}`)
-          } else {
-            router.push({
-              pathname: '/items/[id]',
-              query: { id: n.item.root.id, commentId: n.item.id }
-            }, `/items/${n.item.root.id}`)
-          }
-        } else {
-          router.push({
-            pathname: '/items/[id]',
-            query: { id: n.item.id }
-          }, `/items/${n.item.id}`)
-        }
-      }}
-    >
-      {n.__typename === 'Invitification'
-        ? (
-          <>
-            <small className='font-weight-bold text-secondary ml-2'>
-              your invite has been redeemed by {n.invite.invitees.length} users
-            </small>
-            <div className='ml-4 mr-2 mt-1'>
-              <Invite
-                invite={n.invite} active={
-                !n.invite.revoked &&
-                !(n.invite.limit && n.invite.invitees.length >= n.invite.limit)
-              }
-              />
-            </div>
-          </>
-          )
-        : n.__typename === 'Earn'
-          ? (
-            <div className='d-flex'>
-              <HandCoin className='align-self-center fill-boost mx-1' width={24} height={24} style={{ flex: '0 0 24px', transform: 'rotateY(180deg)' }} />
-              <div className='ml-2'>
-                <div className='font-weight-bold text-boost'>
-                  you stacked {n.earnedSats} sats in rewards<small className='text-muted ml-1'>{timeSince(new Date(n.sortTime))}</small>
-                </div>
-                {n.sources &&
-                  <div style={{ fontSize: '80%', color: 'var(--theme-grey)' }}>
-                    {n.sources.posts > 0 && <span>{n.sources.posts} sats for top posts</span>}
-                    {n.sources.comments > 0 && <span>{n.sources.posts > 0 && ' \\ '}{n.sources.comments} sats for top comments</span>}
-                    {n.sources.tips > 0 && <span>{(n.sources.comments > 0 || n.sources.posts > 0) && ' \\ '}{n.sources.tips} sats for tipping top content early</span>}
-                  </div>}
-                <div className='pb-1' style={{ lineHeight: '140%' }}>
-                  SN distributes the sats it earns back to its best users daily. These sats come from <Link href='/~jobs' passHref><a>jobs</a></Link>, boosts, posting fees, and donations. You can see the daily rewards pool and make a donation <Link href='/rewards' passHref><a>here</a></Link>.
-                </div>
-              </div>
-            </div>
-            )
-          : n.__typename === 'Referral'
-            ? (
-              <>
-                <small className='font-weight-bold text-secondary ml-2'>
-                  someone joined via one of your <Link href='/referrals/month' passHref><a className='text-reset'>referral links</a></Link>
-                  <small className='text-muted ml-1'>{timeSince(new Date(n.sortTime))}</small>
-                </small>
-              </>
-              )
-            : n.__typename === 'InvoicePaid'
-              ? (
-                <div className='font-weight-bold text-info ml-2 py-1'>
-                  <Check className='fill-info mr-1' />{n.earnedSats} sats were deposited in your account
-                  <small className='text-muted ml-1'>{timeSince(new Date(n.sortTime))}</small>
-                </div>)
-              : n.__typename === 'Streak'
-                ? <Streak n={n} />
-                : (
-                  <>
-                    {n.__typename === 'Votification' &&
-                      <small className='font-weight-bold text-success ml-2'>
-                        your {n.item.title ? 'post' : 'reply'} {n.item.fwdUser ? 'forwarded' : 'stacked'} {n.earnedSats} sats{n.item.fwdUser && ` to @${n.item.fwdUser.name}`}
-                      </small>}
-                    {n.__typename === 'Mention' &&
-                      <small className='font-weight-bold text-info ml-2'>
-                        you were mentioned in
-                      </small>}
-                    {n.__typename === 'JobChanged' &&
-                      <small className={`font-weight-bold text-${n.item.status === 'ACTIVE' ? 'success' : 'boost'} ml-1`}>
-                        {n.item.status === 'ACTIVE'
-                          ? 'your job is active again'
-                          : (n.item.status === 'NOSATS'
-                              ? 'your job promotion ran out of sats'
-                              : 'your job has been stopped')}
-                      </small>}
-                    <div className={n.__typename === 'Votification' || n.__typename === 'Mention' || n.__typename === 'JobChanged' ? '' : 'py-2'}>
-                      {n.item.isJob
-                        ? <ItemJob item={n.item} />
-                        : n.item.title
-                          ? <Item item={n.item} />
-                          : (
-                            <div className='pb-2'>
-                              <RootProvider root={n.item.root}>
-                                <Comment item={n.item} noReply includeParent rootText={n.__typename === 'Reply' ? 'replying on:' : undefined} clickToContext />
-                              </RootProvider>
-                            </div>)}
-                    </div>
-                  </>)}
+    <div className='clickToContext' onClick={(e) => {
+      if (ignoreClick(e)) return
+      onClick?.(e)
+    }}>
+      {children}
     </div>
   )
+}
+
+const defaultOnClick = (n) => () => {
+  if (!n.item.title) {
+    if (n.item.path.split('.').length > COMMENT_DEPTH_LIMIT + 1) {
+      router.push({
+        pathname: '/items/[id]',
+        query: { id: n.item.parentId, commentId: n.item.id }
+      }, `/items/${n.item.parentId}`)
+    } else {
+      router.push({
+        pathname: '/items/[id]',
+        query: { id: n.item.root.id, commentId: n.item.id }
+      }, `/items/${n.item.root.id}`)
+    }
+  } else {
+    router.push({
+      pathname: '/items/[id]',
+      query: { id: n.item.id }
+    }, `/items/${n.item.id}`)
+  }
 }
 
 function Streak ({ n }) {
@@ -181,6 +102,149 @@ function Streak ({ n }) {
         <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>{blurb(n)}</small></div>
       </div>
     </div>
+  )
+}
+
+function EarnNotification({ n }) {
+  return (
+    <NotificationLayout>
+      <div className='d-flex'>
+        <HandCoin className='align-self-center fill-boost mx-1' width={24} height={24} style={{ flex: '0 0 24px', transform: 'rotateY(180deg)' }} />
+        <div className='ml-2'>
+          <div className='font-weight-bold text-boost'>
+            you stacked {n.earnedSats} sats in rewards<small className='text-muted ml-1'>{timeSince(new Date(n.sortTime))}</small>
+          </div>
+          {n.sources &&
+            <div style={{ fontSize: '80%', color: 'var(--theme-grey)' }}>
+              {n.sources.posts > 0 && <span>{n.sources.posts} sats for top posts</span>}
+              {n.sources.comments > 0 && <span>{n.sources.posts > 0 && ' \\ '}{n.sources.comments} sats for top comments</span>}
+              {n.sources.tips > 0 && <span>{(n.sources.comments > 0 || n.sources.posts > 0) && ' \\ '}{n.sources.tips} sats for tipping top content early</span>}
+            </div>}
+          <div className='pb-1' style={{ lineHeight: '140%' }}>
+            SN distributes the sats it earns back to its best users daily. These sats come from <Link href='/~jobs' passHref><a>jobs</a></Link>, boosts, posting fees, and donations. You can see the daily rewards pool and make a donation <Link href='/rewards' passHref><a>here</a></Link>.
+          </div>
+        </div>
+      </div>
+    </NotificationLayout>
+  );
+}
+
+function Invitification({ n }) {
+  const router = useRouter()
+  return (
+    <NotificationLayout onClick={() => router.push('/invites')}>
+      <small className='font-weight-bold text-secondary ml-2'>
+        your invite has been redeemed by {n.invite.invitees.length} users
+      </small>
+      <div className='ml-4 mr-2 mt-1'>
+        <Invite
+          invite={n.invite} active={
+          !n.invite.revoked &&
+          !(n.invite.limit && n.invite.invitees.length >= n.invite.limit)
+        }
+        />
+      </div>
+    </NotificationLayout>
+  )
+}
+
+function InvoicePaid({ n }) {
+  const router = useRouter()
+  return (
+    <NotificationLayout onClick={() => router.push(`/invoices/${n.invoice.id}`)}>
+      <div className='font-weight-bold text-info ml-2 py-1'>
+        <Check className='fill-info mr-1' />{n.earnedSats} sats were deposited in your account
+        <small className='text-muted ml-1'>{timeSince(new Date(n.sortTime))}</small>
+      </div>
+    </NotificationLayout>
+  )
+}
+
+function Referral({ n }) {
+  return (
+    <NotificationLayout>
+      <small className='font-weight-bold text-secondary ml-2'>
+        someone joined via one of your <Link href='/referrals/month' passHref><a className='text-reset'>referral links</a></Link>
+        <small className='text-muted ml-1'>{timeSince(new Date(n.sortTime))}</small>
+      </small>
+    </NotificationLayout>
+  )
+}
+
+function Votification({ n }) {
+  return (
+    <NotificationLayout onClick={defaultOnClick(n)}>
+      <small className='font-weight-bold text-success ml-2'>
+        your {n.item.title ? 'post' : 'reply'} {n.item.fwdUser ? 'forwarded' : 'stacked'} {n.earnedSats} sats{n.item.fwdUser && ` to @${n.item.fwdUser.name}`}
+      </small>
+      <div>
+        {n.item.title
+          ? <Item item={n.item} />
+          : (
+            <div className='pb-2'>
+              <RootProvider root={n.item.root}>
+                <Comment item={n.item} noReply includeParent clickToContext />
+              </RootProvider>
+            </div>
+          )
+        }
+      </div>
+    </NotificationLayout>
+  )
+}
+
+function Mention({ n }) {
+  return (
+    <NotificationLayout onClick={defaultOnClick(n)}>
+      <small className='font-weight-bold text-info ml-2'>
+        you were mentioned in
+      </small>
+      <div>
+      {n.item.title
+        ? <Item item={n.item} />
+        : (
+          <div className='pb-2'>
+            <RootProvider root={n.item.root}>
+              <Comment item={n.item} noReply includeParent rootText={n.__typename === 'Reply' ? 'replying on:' : undefined} clickToContext />
+            </RootProvider>
+          </div>)
+        }
+      </div>
+    </NotificationLayout>
+  )
+}
+
+function JobChanged({ n }) {
+  return (
+    <NotificationLayout onClick={defaultOnClick(n)}>
+      <small className={`font-weight-bold text-${n.item.status === 'ACTIVE' ? 'success' : 'boost'} ml-1`}>
+        {n.item.status === 'ACTIVE'
+          ? 'your job is active again'
+          : (n.item.status === 'NOSATS'
+              ? 'your job promotion ran out of sats'
+              : 'your job has been stopped')}
+      </small>
+      <ItemJob item={n.item} />
+    </NotificationLayout>
+  )
+}
+
+function Reply({ n }) {
+  return (
+    <NotificationLayout onClick={defaultOnClick(n)} rootText='replying on:'>
+      <div className="py-2">
+        {n.item.title
+          ? <Item item={n.item} />
+          : (
+            <div className='pb-2'>
+              <RootProvider root={n.item.root}>
+                <Comment item={n.item} noReply includeParent clickToContext rootText='replying on:' />
+              </RootProvider>
+            </div>
+          )
+        }
+      </div>
+    </NotificationLayout>
   )
 }
 

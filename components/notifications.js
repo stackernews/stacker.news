@@ -30,22 +30,24 @@ function Notification ({ n }) {
     case 'JobChanged': return <JobChanged n={n} />
     case 'Reply': return <Reply n={n} />
   }
-  console.error("__typename not supported:", n.__typename)
+  console.error('__typename not supported:', n.__typename)
   return null
 }
 
-function NotificationLayout({ children, onClick }) {
+function NotificationLayout ({ children, onClick }) {
   return (
-    <div className='clickToContext' onClick={(e) => {
-      if (ignoreClick(e)) return
-      onClick?.(e)
-    }}>
+    <div
+      className='clickToContext' onClick={(e) => {
+        if (ignoreClick(e)) return
+        onClick?.(e)
+      }}
+    >
       {children}
     </div>
   )
 }
 
-const defaultOnClick = (n) => () => {
+const defaultOnClick = (n, router) => () => {
   if (!n.item.title) {
     if (n.item.path.split('.').length > COMMENT_DEPTH_LIMIT + 1) {
       router.push({
@@ -105,7 +107,7 @@ function Streak ({ n }) {
   )
 }
 
-function EarnNotification({ n }) {
+function EarnNotification ({ n }) {
   return (
     <NotificationLayout>
       <div className='d-flex'>
@@ -126,10 +128,10 @@ function EarnNotification({ n }) {
         </div>
       </div>
     </NotificationLayout>
-  );
+  )
 }
 
-function Invitification({ n }) {
+function Invitification ({ n }) {
   const router = useRouter()
   return (
     <NotificationLayout onClick={() => router.push('/invites')}>
@@ -148,7 +150,7 @@ function Invitification({ n }) {
   )
 }
 
-function InvoicePaid({ n }) {
+function InvoicePaid ({ n }) {
   const router = useRouter()
   return (
     <NotificationLayout onClick={() => router.push(`/invoices/${n.invoice.id}`)}>
@@ -160,7 +162,7 @@ function InvoicePaid({ n }) {
   )
 }
 
-function Referral({ n }) {
+function Referral ({ n }) {
   return (
     <NotificationLayout>
       <small className='font-weight-bold text-secondary ml-2'>
@@ -171,9 +173,10 @@ function Referral({ n }) {
   )
 }
 
-function Votification({ n }) {
+function Votification ({ n }) {
+  const router = useRouter()
   return (
-    <NotificationLayout onClick={defaultOnClick(n)}>
+    <NotificationLayout onClick={defaultOnClick(n, router)}>
       <small className='font-weight-bold text-success ml-2'>
         your {n.item.title ? 'post' : 'reply'} {n.item.fwdUser ? 'forwarded' : 'stacked'} {n.earnedSats} sats{n.item.fwdUser && ` to @${n.item.fwdUser.name}`}
       </small>
@@ -186,37 +189,37 @@ function Votification({ n }) {
                 <Comment item={n.item} noReply includeParent clickToContext />
               </RootProvider>
             </div>
-          )
-        }
+            )}
       </div>
     </NotificationLayout>
   )
 }
 
-function Mention({ n }) {
+function Mention ({ n }) {
+  const router = useRouter()
   return (
-    <NotificationLayout onClick={defaultOnClick(n)}>
+    <NotificationLayout onClick={defaultOnClick(n, router)}>
       <small className='font-weight-bold text-info ml-2'>
         you were mentioned in
       </small>
       <div>
-      {n.item.title
-        ? <Item item={n.item} />
-        : (
-          <div className='pb-2'>
-            <RootProvider root={n.item.root}>
-              <Comment item={n.item} noReply includeParent rootText={n.__typename === 'Reply' ? 'replying on:' : undefined} clickToContext />
-            </RootProvider>
-          </div>)
-        }
+        {n.item.title
+          ? <Item item={n.item} />
+          : (
+            <div className='pb-2'>
+              <RootProvider root={n.item.root}>
+                <Comment item={n.item} noReply includeParent rootText={n.__typename === 'Reply' ? 'replying on:' : undefined} clickToContext />
+              </RootProvider>
+            </div>)}
       </div>
     </NotificationLayout>
   )
 }
 
-function JobChanged({ n }) {
+function JobChanged ({ n }) {
+  const router = useRouter()
   return (
-    <NotificationLayout onClick={defaultOnClick(n)}>
+    <NotificationLayout onClick={defaultOnClick(n, router)}>
       <small className={`font-weight-bold text-${n.item.status === 'ACTIVE' ? 'success' : 'boost'} ml-1`}>
         {n.item.status === 'ACTIVE'
           ? 'your job is active again'
@@ -229,10 +232,11 @@ function JobChanged({ n }) {
   )
 }
 
-function Reply({ n }) {
+function Reply ({ n }) {
+  const router = useRouter()
   return (
-    <NotificationLayout onClick={defaultOnClick(n)} rootText='replying on:'>
-      <div className="py-2">
+    <NotificationLayout onClick={defaultOnClick(n, router)} rootText='replying on:'>
+      <div className='py-2'>
         {n.item.title
           ? <Item item={n.item} />
           : (
@@ -241,8 +245,7 @@ function Reply({ n }) {
                 <Comment item={n.item} noReply includeParent clickToContext rootText='replying on:' />
               </RootProvider>
             </div>
-          )
-        }
+            )}
       </div>
     </NotificationLayout>
   )
@@ -301,7 +304,7 @@ export const NotificationProvider = ({ children }) => {
 
   const show_ = (title, options) => {
     const icon = '/android-chrome-24x24.png'
-    new window.Notification(title, { icon, ...options })
+    window.Notification(title, { icon, ...options })
   }
 
   const show = useCallback((...args) => {

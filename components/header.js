@@ -29,7 +29,7 @@ function WalletSummary ({ me }) {
 
 function Back () {
   const router = useRouter()
-  if (typeof window !== 'undefined' && (window.navigation.canGoBack === undefined || window.navigation.canGoBack)) {
+  if (typeof window !== 'undefined' && (typeof window.navigation === 'undefined' || window.navigation.canGoBack === undefined || window?.navigation.canGoBack)) {
     return <BackArrow className='theme standalone mr-2' width={22} height={22} onClick={() => router.back()} />
   }
   return null

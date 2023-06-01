@@ -291,12 +291,27 @@ export default {
           JOIN "Item" p ON
             "Item".created_at >= p.created_at
             AND ${user.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
-            AND "Item"."userId" <> p."userId"
-          WHERE p."userId" = $1
+            AND "Item"."userId" <> $1
+          WHERE (p."userId" = $1 OR p.id = ANY(SELECT "itemId" FROM "ThreadSubscription" WHERE "userId" = $1))
           AND "Item".created_at > $2::timestamp(3) without time zone
           ${await filterClause(me, models)}
           LIMIT 1`, me.id, lastChecked)
       if (newReplies.length > 0) {
+        return true
+      }
+
+      // break out thread subscription to decrease the search space of the already expensive reply query
+      const newtsubs = await models.$queryRaw(`
+      SELECT 1
+        FROM "ThreadSubscription"
+        JOIN "Item" p ON "ThreadSubscription"."itemId" = p.id
+        JOIN "Item" ON ${user.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
+        WHERE
+          "ThreadSubscription"."userId" = $1
+        AND "Item".created_at > $2::timestamp(3) without time zone
+        ${await filterClause(me, models)}
+        LIMIT 1`, me.id, lastChecked)
+      if (newtsubs.length > 0) {
         return true
       }
 

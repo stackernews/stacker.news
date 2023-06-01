@@ -173,12 +173,14 @@ async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ...args) 
   } else {
     return await models.$queryRaw(`
       SELECT "Item".*, to_json(users.*) as user, COALESCE("ItemAct"."meMsats", 0) as "meMsats",
-        COALESCE("ItemAct"."meDontLike", false) as "meDontLike", "Bookmark"."itemId" IS NOT NULL AS "meBookmark"
+        COALESCE("ItemAct"."meDontLike", false) as "meDontLike", "Bookmark"."itemId" IS NOT NULL AS "meBookmark",
+        "ThreadSubscription"."itemId" IS NOT NULL AS "meSubscription"
       FROM (
         ${query}
       ) "Item"
       JOIN users ON "Item"."userId" = users.id
       LEFT JOIN "Bookmark" ON "Bookmark"."itemId" = "Item".id AND "Bookmark"."userId" = ${me.id}
+      LEFT JOIN "ThreadSubscription" ON "ThreadSubscription"."itemId" = "Item".id AND "ThreadSubscription"."userId" = ${me.id}
       LEFT JOIN LATERAL (
         SELECT "itemId", sum("ItemAct".msats) FILTER (WHERE act = 'FEE' OR act = 'TIP') AS "meMsats",
                bool_or(act = 'DONT_LIKE_THIS') AS "meDontLike"
@@ -719,6 +721,14 @@ export default {
       } else await models.bookmark.create({ data })
       return { id }
     },
+    subscribeItem: async (parent, { id }, { me, models }) => {
+      const data = { itemId: Number(id), userId: me.id }
+      const old = await models.threadSubscription.findUnique({ where: { userId_itemId: data } })
+      if (old) {
+        await models.threadSubscription.delete({ where: { userId_itemId: data } })
+      } else await models.threadSubscription.create({ data })
+      return { id }
+    },
     deleteItem: async (parent, { id }, { me, models }) => {
       const old = await models.item.findUnique({ where: { id: Number(id) } })
       if (Number(old.userId) !== Number(me?.id)) {
@@ -1066,6 +1076,21 @@ export default {
       })
 
       return !!bookmark
+    },
+    meSubscription: async (item, args, { me, models }) => {
+      if (!me) return false
+      if (typeof item.meSubscription === 'boolean') return item.meSubscription
+
+      const subscription = await models.threadSubscription.findUnique({
+        where: {
+          userId_itemId: {
+            itemId: Number(item.id),
+            userId: me.id
+          }
+        }
+      })
+
+      return !!subscription
     },
     outlawed: async (item, args, { me, models }) => {
       if (me && Number(item.userId) === Number(me.id)) {

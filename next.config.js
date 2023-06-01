@@ -30,7 +30,7 @@ module.exports = withPWA({
     experimental: {
       scrollRestoration: true
     },
-    generateBuildId: isProd ? commitHash : undefined,
+    generateBuildId: isProd ? async () => commitHash : undefined,
     // Use the CDN in production and localhost for development.
     assetPrefix: isProd ? 'https://a.stacker.news' : undefined,
     async headers () {

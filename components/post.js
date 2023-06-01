@@ -18,10 +18,10 @@ export function PostForm ({ type, sub, children }) {
   if (!type) {
     return (
       <div className='align-items-center'>
-        <SubSelect noForm sub={sub?.name} />
         {me?.freePosts && me?.sats < 1
           ? <div className='text-center font-weight-bold mb-3 text-success'>{me.freePosts} free posts left</div>
           : null}
+        <SubSelect noForm sub={sub?.name} />
         <Link href={prefix + '/post?type=link'}>
           <Button variant='secondary'>link</Button>
         </Link>

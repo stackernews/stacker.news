@@ -30,7 +30,15 @@ module.exports = withPWA({
     experimental: {
       scrollRestoration: true
     },
-    generateBuildId: isProd ? async () => commitHash : undefined,
+    // generateBuildId: isProd ? async () => commitHash : undefined,
+    generateBuildId: isProd
+      ? async () => {
+        // use the app version which eb doesn't otherwise give us
+        // as the build id
+        const { RuntimeSources } = require('/opt/elasticbeanstalk/deployment/app_version_manifest.json') // eslint-disable-line
+          return Object.keys(RuntimeSources['stacker.news'])[0]
+        }
+      : undefined,
     // Use the CDN in production and localhost for development.
     assetPrefix: isProd ? 'https://a.stacker.news' : undefined,
     async headers () {

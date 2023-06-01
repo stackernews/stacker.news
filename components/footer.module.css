@@ -19,3 +19,10 @@
 .contrastLink svg {
     fill: var(--theme-color);
 }
+
+.version {
+    margin: auto;
+    font-size: 75%;
+    margin-top: .15rem;
+    color: var(--theme-grey) !important;
+}

@@ -13,24 +13,24 @@ const corsHeaders = [
   }
 ]
 
+const commitHash = isProd
+  ? require('fs').readFileSync('version.txt', 'utf8').slice(0, 7)
+  : require('child_process').execSync('git rev-parse HEAD').toString().slice(0, 7)
+
 module.exports = withPWA({
   dest: 'public',
   register: true,
   customWorkerDir: 'sw'
 })(
   withPlausibleProxy()({
+    env: {
+      NEXT_PUBLIC_COMMIT_HASH: commitHash
+    },
     compress: false,
     experimental: {
       scrollRestoration: true
     },
-    generateBuildId: process.env.NODE_ENV === 'development'
-      ? undefined
-      : async () => {
-        // use the app version which eb doesn't otherwise give us
-        // as the build id
-        const { RuntimeSources } = require('/opt/elasticbeanstalk/deployment/app_version_manifest.json') // eslint-disable-line
-        return Object.keys(RuntimeSources['stacker.news'])[0]
-      },
+    generateBuildId: isProd ? commitHash : undefined,
     // Use the CDN in production and localhost for development.
     assetPrefix: isProd ? 'https://a.stacker.news' : undefined,
     async headers () {

@@ -320,7 +320,10 @@ export default function Footer ({ noLinks }) {
             </Link>
           </span>
         </small>
-        <div className="version">version <a href={`https://github.com/stackernews/stacker.news/commit/${version}`}>{version}</a></div>
+        {version &&
+          <div className={styles.version}>
+            running <a className='text-reset' href={`https://github.com/stackernews/stacker.news/commit/${version}`}>{version}</a>
+          </div>}
       </Container>
     </footer>
   )

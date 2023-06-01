@@ -72,7 +72,7 @@ export default function Header ({ sub }) {
     onCompleted: (data) => {
       const notified = JSON.parse(localStorage.getItem('notified')) || false
       if (!notified && data.hasNewNotes) {
-        notification.show('you have new notifications')
+        notification.show('you have Stacker News notifications')
       }
       localStorage.setItem('notified', data.hasNewNotes)
     }

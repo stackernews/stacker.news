@@ -301,10 +301,11 @@ export const NotificationProvider = ({ children }) => {
   const [isDefaultPermission, setIsDefaultPermission] = useState(isSupported ? window.Notification.permission === 'default' : undefined)
   const [isGranted, setIsGranted] = useState(isSupported ? window.Notification.permission === 'granted' : undefined)
   const me = useMe()
+  const router = useRouter()
 
   const show_ = (title, options) => {
     const icon = '/android-chrome-24x24.png'
-    window.Notification(title, { icon, ...options })
+    return new window.Notification(title, { icon, ...options })
   }
 
   const show = useCallback((...args) => {
@@ -317,15 +318,15 @@ export const NotificationProvider = ({ children }) => {
       setIsDefaultPermission(window.Notification.permission === 'default')
       if (result === 'granted') {
         setIsGranted(result === 'granted')
-        show_('you have enabled notifications')
+        show_('Stacker News notifications enabled')
       }
     })
   }, [isDefaultPermission])
 
   useEffect(() => {
-    if (!me || !isSupported || !isDefaultPermission) return
+    if (!me || !isSupported || !isDefaultPermission || router.pathname !== '/notifications') return
     requestPermission()
-  }, [])
+  }, [router?.pathname])
 
   const ctx = { isBrowser, isSupported, isDefaultPermission, isGranted, show }
 

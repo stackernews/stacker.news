@@ -173,12 +173,14 @@ async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ...args) 
   } else {
     return await models.$queryRaw(`
       SELECT "Item".*, to_json(users.*) as user, COALESCE("ItemAct"."meMsats", 0) as "meMsats",
-        COALESCE("ItemAct"."meDontLike", false) as "meDontLike", "Bookmark"."itemId" IS NOT NULL AS "meBookmark"
+        COALESCE("ItemAct"."meDontLike", false) as "meDontLike", "Bookmark"."itemId" IS NOT NULL AS "meBookmark",
+        "ThreadSubscription"."itemId" IS NOT NULL AS "meSubscription"
       FROM (
         ${query}
       ) "Item"
       JOIN users ON "Item"."userId" = users.id
       LEFT JOIN "Bookmark" ON "Bookmark"."itemId" = "Item".id AND "Bookmark"."userId" = ${me.id}
+      LEFT JOIN "ThreadSubscription" ON "ThreadSubscription"."itemId" = "Item".id AND "ThreadSubscription"."userId" = ${me.id}
       LEFT JOIN LATERAL (
         SELECT "itemId", sum("ItemAct".msats) FILTER (WHERE act = 'FEE' OR act = 'TIP') AS "meMsats",
                bool_or(act = 'DONT_LIKE_THIS') AS "meDontLike"

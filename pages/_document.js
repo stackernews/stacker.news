@@ -13,7 +13,7 @@ class MyDocument extends Document {
             dangerouslySetInnerHTML={{
               __html:
             ` @font-face {
-                font-family: lightning;
+                font-family: 'lightning';
                 src: url(${publicPrefix}/Lightningvolt-xoqm.ttf);
                 font-display: swap;
               }`

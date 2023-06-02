@@ -30,7 +30,7 @@ function WalletSummary ({ me }) {
 function Back () {
   const router = useRouter()
   if (typeof window !== 'undefined' && (typeof window.navigation === 'undefined' || window.navigation.canGoBack === undefined || window?.navigation.canGoBack)) {
-    return <BackArrow className='theme standalone mr-2' width={22} height={22} onClick={() => router.back()} />
+    return <BackArrow className='theme standalone mr-1 mr-md-2' width={22} height={22} onClick={() => router.back()} />
   }
   return null
 }
@@ -272,7 +272,7 @@ export default function Header ({ sub }) {
   return (
     <>
       <Container className='px-0'>
-        <Navbar className='pb-0 pb-md-2'>
+        <Navbar className='pb-0 pb-lg-2'>
           <Nav
             className={styles.navbarNav}
             activeKey={topNavKey}
@@ -285,10 +285,10 @@ export default function Header ({ sub }) {
                 </Navbar.Brand>
               </Link>
             </div>
-            <NavItems className='d-none d-md-flex mx-2' />
-            <PostItem className='d-none d-md-flex mx-2' />
+            <NavItems className='d-none d-lg-flex mx-2' />
+            <PostItem className='d-none d-lg-flex mx-2' />
             <Link href='/search' passHref>
-              <Nav.Link eventKey='search' className='position-relative d-none d-md-flex align-items-center pr-0 ml-2'>
+              <Nav.Link eventKey='search' className='position-relative d-none d-lg-flex align-items-center pr-0 ml-2'>
                 <SearchIcon className='theme' width={22} height={22} />
               </Nav.Link>
             </Link>
@@ -298,7 +298,7 @@ export default function Header ({ sub }) {
             <Corner />
           </Nav>
         </Navbar>
-        <Navbar className='pt-0 pb-2 d-md-none'>
+        <Navbar className='pt-0 pb-2 d-lg-none'>
           <Nav
             className={`${styles.navbarNav}`}
             activeKey={topNavKey}
@@ -320,7 +320,7 @@ export default function Header ({ sub }) {
 export function HeaderStatic () {
   return (
     <Container className='px-sm-0'>
-      <Navbar className='pb-0 pb-md-1'>
+      <Navbar className='pb-0 pb-lg-1'>
         <Nav
           className={styles.navbarNav}
         >

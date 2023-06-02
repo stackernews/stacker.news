@@ -55,6 +55,14 @@
 
 .price {
     margin-top: 2px;
+    white-space: nowrap;
+    display: flex;
+    flex-grow: 1;
+    justify-content: center;
+}
+
+.price > div {
+    font-size: min(3.5cqw, 0.9rem);
 }
 
 .dropdown {

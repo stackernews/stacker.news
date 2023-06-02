@@ -14,21 +14,6 @@ const corsHeaders = [
   }
 ]
 
-console.log([
-  {
-    urlPattern: /\/_next\/data\/.+\/.+\.json$/i,
-    handler: 'NetworkFirst',
-    options: {
-      cacheName: 'next-data',
-      expiration: {
-        maxEntries: 32,
-        maxAgeSeconds: 24 * 60 * 60 // 24 hours
-      }
-    }
-  },
-  ...defaultRuntimeCaching.filter((c) => c.options.cacheName !== 'next-data')
-])
-
 // XXX this fragile ... eb could change the version label ... but it works for now
 const commitHash = isProd
   ? Object.keys(require('/opt/elasticbeanstalk/deployment/app_version_manifest.json').RuntimeSources['stacker.news'])[0].match(/^app-(.+)-/)[1] // eslint-disable-line

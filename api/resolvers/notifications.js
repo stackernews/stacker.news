@@ -77,12 +77,9 @@ export default {
             WHERE p."userId" = $1 AND "Item"."userId" <> $1 AND "Item".created_at <= $2
             ${await filterClause(me, models)}
             ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT}+$3)`
-      )
-
-      // break out thread subscription to decrease the search space of the already expensive reply query
-      queries.push(
-        `(SELECT DISTINCT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL::BIGINT as "earnedSats",
+            LIMIT ${LIMIT}+$3)
+          UNION DISTINCT
+          (SELECT DISTINCT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL::BIGINT as "earnedSats",
             'Reply' AS type
             FROM "ThreadSubscription"
             JOIN "Item" p ON "ThreadSubscription"."itemId" = p.id
@@ -94,6 +91,23 @@ export default {
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT}+$3)`
       )
+
+      if (meFull.noteMentions) {
+        queries.push(
+          `(SELECT "Item".id::TEXT, "Mention".created_at AS "sortTime", NULL as "earnedSats",
+            'Mention' AS type
+            FROM "Mention"
+            JOIN "Item" ON "Mention"."itemId" = "Item".id
+            LEFT JOIN "Item" p ON "Item"."parentId" = p.id
+            WHERE "Mention"."userId" = $1
+            AND "Mention".created_at <= $2
+            AND "Item"."userId" <> $1
+            AND (p."userId" IS NULL OR p."userId" <> $1)
+            ${await filterClause(me, models)}
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT}+$3)`
+        )
+      }
 
       queries.push(
         `(SELECT "Item".id::text, "Item"."statusUpdatedAt" AS "sortTime", NULL as "earnedSats",
@@ -117,23 +131,6 @@ export default {
             AND "ItemAct".act IN ('TIP', 'FEE')
             AND "Item"."userId" = $1
             GROUP BY "Item".id
-            ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT}+$3)`
-        )
-      }
-
-      if (meFull.noteMentions) {
-        queries.push(
-          `(SELECT "Item".id::TEXT, "Mention".created_at AS "sortTime", NULL as "earnedSats",
-            'Mention' AS type
-            FROM "Mention"
-            JOIN "Item" ON "Mention"."itemId" = "Item".id
-            LEFT JOIN "Item" p ON "Item"."parentId" = p.id
-            WHERE "Mention"."userId" = $1
-            AND "Mention".created_at <= $2
-            AND "Item"."userId" <> $1
-            AND (p."userId" IS NULL OR p."userId" <> $1)
-            ${await filterClause(me, models)}
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT}+$3)`
         )

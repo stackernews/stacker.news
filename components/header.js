@@ -263,7 +263,15 @@ export default function Header ({ sub }) {
       ? (
         <Nav.Link eventKey='post' className={`${className}`}>
           <Link href={prefix + '/post'} passHref>
-            <button className='btn btn-md btn-primary px-3 py-1'>post</button>
+            <button
+              className='btn btn-md btn-primary px-3 py-1' onClick={(e) => {
+                if (e.ctrlKey) {
+                  e.preventDefault()
+                  window.open('/post', '_blank')
+                }
+              }}
+            >post
+            </button>
           </Link>
         </Nav.Link>)
       : null

@@ -261,11 +261,9 @@ export default function Header ({ sub }) {
   const PostItem = ({ className }) => {
     return me
       ? (
-        <Nav.Link eventKey='post' className={`${className}`}>
-          <Link href={prefix + '/post'} passHref>
-            <button className='btn btn-md btn-primary px-3 py-1'>post</button>
-          </Link>
-        </Nav.Link>)
+        <Link href={prefix + '/post'} passHref>
+          <a className={`${className} btn btn-md btn-primary px-3 py-1 `}>post</a>
+        </Link>)
       : null
   }
 

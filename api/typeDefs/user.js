@@ -63,6 +63,7 @@ export default gql`
     photoId: Int
     streak: Int
     sats: Int!
+    since: Int
     upvotePopover: Boolean!
     tipPopover: Boolean!
     noteItemSats: Boolean!

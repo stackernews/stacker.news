@@ -558,6 +558,18 @@ export default {
 
   User: {
     authMethods,
+    since: async (user, args, { models }) => {
+      // get the user's first item
+      const item = await models.item.findFirst({
+        where: {
+          userId: user.id
+        },
+        orderBy: {
+          createdAt: 'asc'
+        }
+      })
+      return item?.id
+    },
     nitems: async (user, { when }, { models }) => {
       if (typeof user.nitems === 'number') {
         return user.nitems

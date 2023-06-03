@@ -184,6 +184,7 @@ export const USER_FULL = gql`
   query User($name: String!) {
     user(name: $name) {
       ...UserFields
+      since
       bio {
         ...ItemWithComments
       }
@@ -196,6 +197,7 @@ export const USER_WITH_COMMENTS = gql`
   query UserWithComments($name: String!) {
     user(name: $name) {
       ...UserFields
+      since
     }
     moreFlatComments(sort: "user", name: $name) {
       cursor
@@ -224,6 +226,7 @@ export const USER_WITH_BOOKMARKS = gql`
   query UserWithBookmarks($name: String!, $cursor: String) {
     user(name: $name) {
       ...UserFields
+      since
     }
     moreBookmarks(name: $name, cursor: $cursor) {
       cursor
@@ -240,6 +243,7 @@ export const USER_WITH_POSTS = gql`
   query UserWithPosts($name: String!) {
     user(name: $name) {
       ...UserFields
+      since
     }
     items(sort: "user", name: $name) {
       cursor

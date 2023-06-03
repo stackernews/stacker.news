@@ -64,7 +64,7 @@ export default function UserHeader ({ user }) {
             }}
             />}
         </div>
-        <div className='ml-0 ml-sm-1 mt-3 mt-sm-0 justify-content-center align-self-sm-center'>
+        <div className='ml-0 ml-sm-3 mt-3 mt-sm-0 justify-content-center align-self-sm-center'>
           {editting
             ? (
               <Form
@@ -126,7 +126,7 @@ export default function UserHeader ({ user }) {
           <Satistics user={user} />
           <ModalButton
             clicker={
-              <Button className='font-weight-bold ml-0 ml-sm-2'>
+              <Button className='font-weight-bold ml-0'>
                 <LightningIcon
                   width={20}
                   height={20}
@@ -140,6 +140,10 @@ export default function UserHeader ({ user }) {
             </a>
             <div className='text-center font-weight-bold text-muted mt-3'>click or scan</div>
           </ModalButton>
+          <small className='ml-0 mt-3 mt-sm-0 text-muted d-flex-inline'>stacking since: {user.since
+            ? <Link href={`/items/${user.since}`} passHref><a className='ml-1'>#{user.since}</a></Link>
+            : <span>never</span>}
+          </small>
         </div>
       </div>
       <Nav

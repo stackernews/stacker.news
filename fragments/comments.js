@@ -15,6 +15,7 @@ export const COMMENT_FIELDS = gql`
     }
     sats
     upvotes
+    wvotes
     boost
     meSats
     meDontLike

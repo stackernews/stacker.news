@@ -20,6 +20,7 @@ import Share from './share'
 import ItemInfo from './item-info'
 import { Badge } from 'react-bootstrap'
 import { RootProvider, useRoot } from './root'
+import { useMe } from './me'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -87,7 +88,12 @@ export default function Comment ({
   rootText, noComments, noReply, truncate, depth
 }) {
   const [edit, setEdit] = useState()
-  const [collapse, setCollapse] = useState(false)
+  const me = useMe()
+  const [collapse, setCollapse] = useState(
+    !me?.wildWestMode && !me?.greeterMode &&
+    !item.mine && item.freebie && item.wvotes <= 0
+      ? 'yep'
+      : 'nope')
   const ref = useRef(null)
   const router = useRouter()
   const root = useRoot()
@@ -101,7 +107,7 @@ export default function Comment ({
         query: { id: router.query.id }
       }, undefined, { scroll: false })
     }
-    setCollapse(localStorage.getItem(`commentCollapse:${item.id}`))
+    setCollapse(localStorage.getItem(`commentCollapse:${item.id}`) || collapse)
   }, [item])
 
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT
@@ -110,7 +116,7 @@ export default function Comment ({
 
   return (
     <div
-      ref={ref} className={includeParent ? '' : `${styles.comment} ${collapse ? styles.collapsed : ''}`}
+      ref={ref} className={includeParent ? '' : `${styles.comment} ${collapse === 'yep' ? styles.collapsed : ''}`}
     >
       <div className={`${itemStyles.item} ${styles.item}`}>
         {item.meDontLike
@@ -135,16 +141,16 @@ export default function Comment ({
               onEdit={e => { setEdit(!edit) }}
               editText={edit ? 'cancel' : 'edit'}
             />
-            {!includeParent && (collapse
+            {!includeParent && (collapse === 'yep'
               ? <Eye
                   className={styles.collapser} height={10} width={10} onClick={() => {
-                    setCollapse(false)
-                    localStorage.removeItem(`commentCollapse:${item.id}`)
+                    setCollapse('nope')
+                    localStorage.setItem(`commentCollapse:${item.id}`, 'nope')
                   }}
                 />
               : <EyeClose
                   className={styles.collapser} height={10} width={10} onClick={() => {
-                    setCollapse(true)
+                    setCollapse('yep')
                     localStorage.setItem(`commentCollapse:${item.id}`, 'yep')
                   }}
                 />)}

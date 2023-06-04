@@ -69,7 +69,7 @@ export default function Comments ({ parentId, pinned, commentSats, comments, ...
         document.querySelector(hash).scrollIntoView({ behavior: 'smooth' })
       } catch {}
     }
-  }, [])
+  }, [typeof window !== 'undefined' && window.location.hash])
   const [loading, setLoading] = useState()
   const [getComments] = useLazyQuery(COMMENTS_QUERY, {
     fetchPolicy: 'network-only',

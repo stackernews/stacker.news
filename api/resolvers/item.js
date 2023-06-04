@@ -17,17 +17,17 @@ async function comments (me, models, id, sort) {
   let orderBy
   switch (sort) {
     case 'top':
-      orderBy = `ORDER BY ${await orderByNumerator(me, models)} DESC, "Item".msats DESC, "Item".id DESC`
+      orderBy = `ORDER BY ${await orderByNumerator(me, models)} DESC, "Item".msats DESC, ("Item".freebie IS FALSE) DESC,  "Item".id DESC`
       break
     case 'recent':
-      orderBy = 'ORDER BY "Item".created_at DESC, "Item".msats DESC, "Item".id DESC'
+      orderBy = 'ORDER BY "Item".created_at DESC, "Item".msats DESC, ("Item".freebie IS FALSE) DESC, "Item".id DESC'
       break
     default:
-      orderBy = `ORDER BY ${await orderByNumerator(me, models)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, "Item".id DESC`
+      orderBy = `ORDER BY ${await orderByNumerator(me, models)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".freebie IS FALSE) DESC, "Item".id DESC`
       break
   }
 
-  const filter = await filterClause(me, models)
+  const filter = await commentFilterClause(me, models)
   if (me) {
     const [{ item_comments_with_me: comments }] = await models.$queryRaw(
       'SELECT item_comments_with_me($1, $2, $3, $4, $5)', Number(id), Number(me.id), COMMENT_DEPTH_LIMIT, filter, orderBy)
@@ -108,6 +108,25 @@ export async function joinSatRankView (me, models) {
   }
 
   return 'JOIN sat_rank_tender_view ON "Item".id = sat_rank_tender_view.id'
+}
+
+export async function commentFilterClause (me, models) {
+  let clause = ` AND ("Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}`
+  if (me) {
+    const user = await models.user.findUnique({ where: { id: me.id } })
+    // wild west mode has everything
+    if (user.wildWestMode) {
+      return ''
+    }
+
+    // always include if it's mine
+    clause += ` OR "Item"."userId" = ${me.id}`
+  }
+
+  // close the clause
+  clause += ')'
+
+  return clause
 }
 
 export async function filterClause (me, models) {

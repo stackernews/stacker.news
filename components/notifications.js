@@ -1,4 +1,4 @@
-import { useState, useCallback, useContext, createContext } from 'react'
+import { useState, useCallback, useContext, useEffect, createContext } from 'react'
 import { useQuery } from '@apollo/client'
 import Comment, { CommentSkeleton } from './comment'
 import Item from './item'
@@ -16,6 +16,7 @@ import { COMMENT_DEPTH_LIMIT } from '../lib/constants'
 import CowboyHatIcon from '../svgs/cowboy.svg'
 import BaldIcon from '../svgs/bald.svg'
 import { RootProvider } from './root'
+import { Alert } from 'react-bootstrap'
 
 function Notification ({ n }) {
   switch (n.__typename) {
@@ -250,6 +251,39 @@ function Reply ({ n }) {
   )
 }
 
+function NotificationAlert () {
+  const [showAlert, setShowAlert] = useState(false)
+  const pushNotify = useNotification()
+
+  useEffect(() => {
+    setShowAlert(!localStorage.getItem('hideNotifyPrompt'))
+  }, [])
+
+  const close = () => {
+    localStorage.setItem('hideNotifyPrompt', 'yep')
+    setShowAlert(false)
+  }
+
+  return (
+    showAlert
+      ? (
+        <Alert variant='success' dismissible onClose={close}>
+          Enable push notifications?
+          <button
+            className='btn mx-1'
+            onClick={() => {
+              pushNotify.requestPermission()
+              close()
+            }}
+          >Yes
+          </button>
+          <button className='btn mx-1' onClick={close}>No</button>
+        </Alert>
+        )
+      : null
+  )
+}
+
 export default function Notifications ({ notifications, earn, cursor, lastChecked, variables }) {
   const { data, fetchMore } = useQuery(NOTIFICATIONS, { variables })
 
@@ -266,6 +300,7 @@ export default function Notifications ({ notifications, earn, cursor, lastChecke
 
   return (
     <>
+      <NotificationAlert />
       {/* XXX we shouldn't use the index but we don't have a unique id in this union yet */}
       <div className='fresh'>
         {earn && <Notification n={earn} key='earn' />}

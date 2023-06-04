@@ -325,10 +325,11 @@ export const NotificationProvider = ({ children }) => {
     setPermission_(perm)
   }, [])
 
-  const requestPermission = useCallback(() => {
+  const requestPermission = useCallback((cb) => {
     window.Notification.requestPermission().then(result => {
       setPermission(window.Notification.permission)
       if (result === 'granted') show_('Stacker News notifications enabled')
+      cb?.(result)
     })
   }, [])
 

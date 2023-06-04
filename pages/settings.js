@@ -152,12 +152,17 @@ export default function Settings ({ data: { settings } }) {
                 <>
                   <div className='form-label'>notify me</div>
                   <Checkbox
-                    value={pushNotify.isGranted}
                     disabled={pushNotify.isDenied}
                     label='with push notifications'
                     name='pushNotify'
                     groupClassName='mb-0'
-                    handleChange={(val) => val ? pushNotify.requestPermission() : pushNotify.withdrawPermission()}
+                    handleChange={(val, setValue) => {
+                      val
+                        ? pushNotify.requestPermission(result => {
+                            if (result === 'denied') setValue(false)
+                          })
+                        : pushNotify.withdrawPermission()
+                    }}
                   />
                 </>
                 )

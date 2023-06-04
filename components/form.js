@@ -333,11 +333,11 @@ export function VariableInput ({ label, groupClassName, name, hint, max, min, re
   )
 }
 
-export function Checkbox ({ children, label, groupClassName, hiddenLabel, extra, handleChange, inline, value, disabled, ...props }) {
+export function Checkbox ({ children, label, groupClassName, hiddenLabel, extra, handleChange, inline, disabled, ...props }) {
   // React treats radios and checkbox inputs differently other input types, select, and textarea.
   // Formik does this too! When you specify `type` to useField(), it will
   // return the correct bag of props for you
-  const [field] = useField({ ...props, type: 'checkbox' })
+  const [field,, helpers] = useField({ ...props, type: 'checkbox' })
   return (
     <BootstrapForm.Group className={groupClassName}>
       {hiddenLabel && <BootstrapForm.Label className='invisible'>{label}</BootstrapForm.Label>}
@@ -347,9 +347,9 @@ export function Checkbox ({ children, label, groupClassName, hiddenLabel, extra,
         inline={inline}
       >
         <BootstrapForm.Check.Input
-          {...field} {...props} value={value} disabled={disabled} type='checkbox' onChange={(e) => {
+          {...field} {...props} disabled={disabled} type='checkbox' onChange={(e) => {
             field.onChange(e)
-            handleChange && handleChange(e.target.checked)
+            handleChange && handleChange(e.target.checked, helpers.setValue)
           }}
         />
         <BootstrapForm.Check.Label className={'d-flex' + (disabled ? ' text-muted' : '')}>

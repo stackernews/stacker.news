@@ -8,11 +8,11 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, erro
   const session = await getSession({ req })
 
   // assume external by default so we will use fallback callback
-  let external = true;
+  let external = true
   try {
     external = isExternal(decodeURIComponent(callbackUrl))
   } catch (err) {
-    console.error("error decoding callback:", callbackUrl, err)
+    console.error('error decoding callback:', callbackUrl, err)
   }
   if (external) {
     // This is a hotfix for open redirects. See https://github.com/stackernews/stacker.news/issues/264

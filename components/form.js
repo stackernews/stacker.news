@@ -132,6 +132,8 @@ function insertMarkdownFormatting (replaceFn, selectFn) {
     const mdFormatted = replaceFn(selectedText)
     const newVal = val.substring(0, start) + mdFormatted + val.substring(end)
     setValue(newVal)
+    // required for undo, see https://stackoverflow.com/a/27028258
+    document.execCommand('insertText', false, mdFormatted)
     // see https://github.com/facebook/react/issues/6483
     // for why we don't use `input.setSelectionRange` directly (hint: event order)
     setSelectionRange(selectFn ? selectFn(start, mdFormatted) : { start: start + mdFormatted.length, end: start + mdFormatted.length })

@@ -121,24 +121,29 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
   )
 }
 
-function insertMarkdownLinkFormatting (input, setValue, setSelectionRange) {
-  const start = input.selectionStart
-  const end = input.selectionEnd
-  const highlight = start !== end
-  const val = input.value
-  if (!highlight) return
-  const selectedText = val.substring(start, end)
-  const markdownLink = `[${selectedText}](url)`
-  const newVal = val.substring(0, start) + markdownLink + val.substring(end)
-  setValue(newVal)
-  // highlight "url" inside parentheses for easy paste of URL
-  // see https://github.com/facebook/react/issues/6483
-  // for why we don't set the selection range directly on the input.
-  setSelectionRange({
-    start: start + markdownLink.length - 4,
-    end: start + markdownLink.length - 1
-  })
+function insertMarkdownFormatting (replaceFn, selectFn) {
+  return function (input, setValue, setSelectionRange) {
+    const start = input.selectionStart
+    const end = input.selectionEnd
+    const highlight = start !== end
+    const val = input.value
+    if (!highlight) return
+    const selectedText = val.substring(start, end)
+    const mdFormatted = replaceFn(selectedText)
+    const newVal = val.substring(0, start) + mdFormatted + val.substring(end)
+    setValue(newVal)
+    // see https://github.com/facebook/react/issues/6483
+    // for why we don't use `input.setSelectionRange` directly (hint: event order)
+    setSelectionRange(selectFn ? selectFn(start, mdFormatted) : { start: start + mdFormatted.length, end: start + mdFormatted.length })
+  }
 }
+
+const insertMarkdownLinkFormatting = insertMarkdownFormatting(
+  val => `[${val}](url)`,
+  (start, mdFormatted) => ({ start: start + mdFormatted.length - 4, end: start + mdFormatted.length - 1 })
+)
+const insertMarkdownBoldFormatting = insertMarkdownFormatting(val => `**${val}**`)
+const insertMarkdownItalicFormatting = insertMarkdownFormatting(val => `_${val}_`)
 
 function FormGroup ({ className, label, children }) {
   return (
@@ -204,6 +209,12 @@ function InputInner ({
               // some browsers use CTRL+K to focus search bar so we have to prevent that behavior
               e.preventDefault()
               insertMarkdownLinkFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+            }
+            if (e.key === 'b' && metaOrCtrl) {
+              insertMarkdownBoldFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+            }
+            if (e.key === 'i' && metaOrCtrl) {
+              insertMarkdownItalicFormatting(innerRef.current, helpers.setValue, setSelectionRange)
             }
             if (onKeyDown) onKeyDown(e)
           }}

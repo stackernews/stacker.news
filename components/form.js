@@ -168,7 +168,7 @@ function InputInner ({
         )}
         <BootstrapForm.Control
           onKeyDown={(e) => {
-            if (e.keyCode === 13 && (e.metaKey || e.ctrlKey)) {
+            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
               formik?.submitForm()
             }
             if (onKeyDown) onKeyDown(e)

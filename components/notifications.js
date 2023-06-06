@@ -17,6 +17,7 @@ import CowboyHatIcon from '../svgs/cowboy.svg'
 import BaldIcon from '../svgs/bald.svg'
 import { RootProvider } from './root'
 import { Alert } from 'react-bootstrap'
+import styles from './notifications.module.css'
 
 function Notification ({ n }) {
   switch (n.__typename) {
@@ -267,17 +268,17 @@ function NotificationAlert () {
   return (
     showAlert
       ? (
-        <Alert variant='success' dismissible onClose={close}>
-          Enable push notifications?
+        <Alert variant='success' className='text-center' dismissible onClose={close}>
+          <span className='align-middle'>Enable push notifications?</span>
           <button
-            className='btn mx-1'
+            className={`${styles.alertBtn} mx-1`}
             onClick={() => {
               pushNotify.requestPermission()
               close()
             }}
           >Yes
           </button>
-          <button className='btn mx-1' onClick={close}>No</button>
+          <button className={`${styles.alertBtn}`} onClick={close}>No</button>
         </Alert>
         )
       : null

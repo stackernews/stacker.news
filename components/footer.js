@@ -80,26 +80,29 @@ const handleThemeChange = (dark) => {
 
 const RssPopover = (
   <Popover>
-    <Popover.Content className='d-flex' style={{ fontWeight: 500, fontSize: '.9rem' }}>
-      <a href='/rss' className='nav-link p-0 d-inline-flex'>
-        home
-      </a>
-      <span className='mx-2 text-muted'> \ </span>
-      <a href='/~bitcoin/rss' className='nav-link p-0 d-inline-flex'>
-        bitcoin
-      </a>
-      <span className='mx-2 text-muted'> \ </span>
-      <a href='/~nostr/rss' className='nav-link p-0 d-inline-flex'>
-        nostr
-      </a>
-      <span className='mx-2 text-muted'> \ </span>
-      <a href='/~tech/rss' className='nav-link p-0 d-inline-flex'>
-        tech
-      </a>
-      <span className='mx-2 text-muted'> \ </span>
-      <a href='/~jobs/rss' className='nav-link p-0 d-inline-flex'>
-        jobs
-      </a>
+    <Popover.Content style={{ fontWeight: 500, fontSize: '.9rem' }}>
+      <div className='d-flex justify-content-center'>
+        <a href='/rss' className='nav-link p-0 d-inline-flex'>
+          home
+        </a>
+        <span className='mx-2 text-muted'> \ </span>
+        <a href='/~bitcoin/rss' className='nav-link p-0 d-inline-flex'>
+          bitcoin
+        </a>
+      </div>
+      <div className='d-flex justify-content-center'>
+        <a href='/~nostr/rss' className='nav-link p-0 d-inline-flex'>
+          nostr
+        </a>
+        <span className='mx-2 text-muted'> \ </span>
+        <a href='/~tech/rss' className='nav-link p-0 d-inline-flex'>
+          tech
+        </a>
+        <span className='mx-2 text-muted'> \ </span>
+        <a href='/~jobs/rss' className='nav-link p-0 d-inline-flex'>
+          jobs
+        </a>
+      </div>
     </Popover.Content>
   </Popover>
 )

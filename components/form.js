@@ -121,6 +121,32 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
   )
 }
 
+function insertMarkdownFormatting (replaceFn, selectFn) {
+  return function (input, setValue, setSelectionRange) {
+    const start = input.selectionStart
+    const end = input.selectionEnd
+    const highlight = start !== end
+    const val = input.value
+    if (!highlight) return
+    const selectedText = val.substring(start, end)
+    const mdFormatted = replaceFn(selectedText)
+    const newVal = val.substring(0, start) + mdFormatted + val.substring(end)
+    setValue(newVal)
+    // required for undo, see https://stackoverflow.com/a/27028258
+    document.execCommand('insertText', false, mdFormatted)
+    // see https://github.com/facebook/react/issues/6483
+    // for why we don't use `input.setSelectionRange` directly (hint: event order)
+    setSelectionRange(selectFn ? selectFn(start, mdFormatted) : { start: start + mdFormatted.length, end: start + mdFormatted.length })
+  }
+}
+
+const insertMarkdownLinkFormatting = insertMarkdownFormatting(
+  val => `[${val}](url)`,
+  (start, mdFormatted) => ({ start: start + mdFormatted.length - 4, end: start + mdFormatted.length - 1 })
+)
+const insertMarkdownBoldFormatting = insertMarkdownFormatting(val => `**${val}**`)
+const insertMarkdownItalicFormatting = insertMarkdownFormatting(val => `_${val}_`)
+
 function FormGroup ({ className, label, children }) {
   return (
     <BootstrapForm.Group className={className}>
@@ -137,6 +163,7 @@ function InputInner ({
   const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)
   const formik = noForm ? null : useFormikContext()
   const storageKeyPrefix = useContext(StorageKeyPrefixContext)
+  const [selectionRange, setSelectionRange] = useState({ start: 0, end: 0 })
 
   const storageKey = storageKeyPrefix ? storageKeyPrefix + '-' + props.name : undefined
 
@@ -156,6 +183,14 @@ function InputInner ({
     }
   }, [overrideValue])
 
+  useEffect(() => {
+    if (selectionRange.start <= selectionRange.end && innerRef?.current) {
+      const { start, end } = selectionRange
+      const input = innerRef.current
+      input.setSelectionRange(start, end)
+    }
+  }, [selectionRange.start, selectionRange.end])
+
   const invalid = (!formik || formik.submitCount > 0) && meta.touched && meta.error
 
   return (
@@ -168,8 +203,20 @@ function InputInner ({
         )}
         <BootstrapForm.Control
           onKeyDown={(e) => {
-            if (e.keyCode === 13 && (e.metaKey || e.ctrlKey)) {
+            const metaOrCtrl = e.metaKey || e.ctrlKey
+            if (e.key === 'Enter' && metaOrCtrl) {
               formik?.submitForm()
+            }
+            if (e.key === 'k' && metaOrCtrl) {
+              // some browsers use CTRL+K to focus search bar so we have to prevent that behavior
+              e.preventDefault()
+              insertMarkdownLinkFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+            }
+            if (e.key === 'b' && metaOrCtrl) {
+              insertMarkdownBoldFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+            }
+            if (e.key === 'i' && metaOrCtrl) {
+              insertMarkdownItalicFormatting(innerRef.current, helpers.setValue, setSelectionRange)
             }
             if (onKeyDown) onKeyDown(e)
           }}

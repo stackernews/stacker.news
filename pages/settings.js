@@ -17,7 +17,6 @@ import { bech32 } from 'bech32'
 import { NOSTR_MAX_RELAY_NUM, NOSTR_PUBKEY_BECH32 } from '../lib/nostr'
 import { emailSchema, lastAuthRemovalSchema, settingsSchema } from '../lib/validate'
 import { SUPPORTED_CURRENCIES } from '../lib/currency'
-import { useNotification } from '../components/notifications'
 
 export const getServerSideProps = getGetServerSideProps(SETTINGS)
 
@@ -40,7 +39,6 @@ export default function Settings ({ data: { settings } }) {
     }
   }
   )
-  const pushNotify = useNotification()
 
   const { data } = useQuery(SETTINGS)
   if (data) {
@@ -54,7 +52,6 @@ export default function Settings ({ data: { settings } }) {
         <Form
           initial={{
             tipDefault: settings?.tipDefault || 21,
-            pushNotify: pushNotify.isSupported && pushNotify.isGranted,
             turboTipping: settings?.turboTipping,
             fiatCurrency: settings?.fiatCurrency || 'USD',
             noteItemSats: settings?.noteItemSats,
@@ -146,29 +143,7 @@ export default function Settings ({ data: { settings } }) {
             items={SUPPORTED_CURRENCIES}
             required
           />
-          {
-            pushNotify.isSupported
-              ? (
-                <>
-                  <div className='form-label'>notify me</div>
-                  <Checkbox
-                    disabled={pushNotify.isDenied}
-                    label='with push notifications'
-                    name='pushNotify'
-                    groupClassName='mb-0'
-                    handleChange={(val, setValue) => {
-                      val
-                        ? pushNotify.requestPermission(result => {
-                            if (result === 'denied') setValue(false)
-                          })
-                        : pushNotify.withdrawPermission()
-                    }}
-                  />
-                </>
-                )
-              : <div className='form-label'>notify me when ...</div>
-          }
-          <div className='form-label'>when ...</div>
+          <div className='form-label'>notify me when ...</div>
           <Checkbox
             label='I stack sats from posts and comments'
             name='noteItemSats'

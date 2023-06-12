@@ -257,8 +257,10 @@ function NotificationAlert () {
   const pushNotify = useNotification()
 
   useEffect(() => {
-    setShowAlert(!localStorage.getItem('hideNotifyPrompt'))
-  }, [])
+    // basically, we only want to show the alert if the user hasn't interacted with
+    // either opt-in of the double opt-in
+    setShowAlert(pushNotify.isDefault && !localStorage.getItem('hideNotifyPrompt'))
+  }, [pushNotify])
 
   const close = () => {
     localStorage.setItem('hideNotifyPrompt', 'yep')
@@ -268,7 +270,7 @@ function NotificationAlert () {
   return (
     showAlert
       ? (
-        <Alert variant='success' className='text-center' dismissible onClose={close}>
+        <Alert variant='success' dismissible onClose={close}>
           <span className='align-middle'>Enable push notifications?</span>
           <button
             className={`${styles.alertBtn} mx-1`}

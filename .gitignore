@@ -19,7 +19,7 @@
 # misc
 .DS_Store
 *.pem
-*.sql
+/*.sql
 
 # debug
 npm-debug.log*

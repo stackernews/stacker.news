@@ -94,10 +94,13 @@ export function PollForm ({ item, sub, editThreshold, children }) {
               <Delete itemId={item.id} onDelete={() => router.push(`/items/${item.id}`)}>
                 <Button variant='grey-medium'>delete</Button>
               </Delete>
-              <EditFeeButton
-                paidSats={item.meSats}
-                parentId={null} text='save' ChildButton={SubmitButton} variant='secondary'
-              />
+              <div className='d-flex'>
+                <Button className='mr-2' variant='grey-medium' onClick={() => router.push(`/items/${item.id}`)}>cancel</Button>
+                <EditFeeButton
+                  paidSats={item.meSats}
+                  parentId={null} text='save' ChildButton={SubmitButton} variant='secondary'
+                />
+              </div>
             </div>)
           : <FeeButton
               baseFee={1} parentId={null} text='post'

@@ -204,20 +204,25 @@ function InputInner ({
         <BootstrapForm.Control
           onKeyDown={(e) => {
             const metaOrCtrl = e.metaKey || e.ctrlKey
-            if (e.key === 'Enter' && metaOrCtrl) {
-              formik?.submitForm()
+            if (metaOrCtrl) {
+              if (e.key === 'Enter') formik?.submitForm()
+              if (e.key === 'k') {
+                // some browsers use CTRL+K to focus search bar so we have to prevent that behavior
+                e.preventDefault()
+                insertMarkdownLinkFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+              }
+              if (e.key === 'b') {
+                // some browsers use CTRL+B to open bookmarks so we have to prevent that behavior
+                e.preventDefault()
+                insertMarkdownBoldFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+              }
+              if (e.key === 'i') {
+                // some browsers might use CTRL+I to do something else so prevent that behavior too
+                e.preventDefault()
+                insertMarkdownItalicFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+              }
             }
-            if (e.key === 'k' && metaOrCtrl) {
-              // some browsers use CTRL+K to focus search bar so we have to prevent that behavior
-              e.preventDefault()
-              insertMarkdownLinkFormatting(innerRef.current, helpers.setValue, setSelectionRange)
-            }
-            if (e.key === 'b' && metaOrCtrl) {
-              insertMarkdownBoldFormatting(innerRef.current, helpers.setValue, setSelectionRange)
-            }
-            if (e.key === 'i' && metaOrCtrl) {
-              insertMarkdownItalicFormatting(innerRef.current, helpers.setValue, setSelectionRange)
-            }
+
             if (onKeyDown) onKeyDown(e)
           }}
           ref={innerRef}

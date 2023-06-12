@@ -21,6 +21,7 @@ export default function SubSelect ({ label, sub, setSub, item, ...props }) {
         <ul>
           <li>If it's bitcoin related, put it in the bitcoin sub.</li>
           <li>If it's nostr related, put it in the nostr sub.</li>
+          <li>If it's tech related, put it in the tech sub.</li>
           <li>If it's a job, put it in the jobs sub.</li>
         </ul>
       </div>
@@ -43,7 +44,7 @@ export default function SubSelect ({ label, sub, setSub, item, ...props }) {
       name='sub'
       size='sm'
       defaultValue={props.noForm ? sub : undefined}
-      items={props.noForm ? ['pick sub', 'bitcoin', 'nostr', 'jobs'] : item ? ['bitcoin', 'nostr'] : ['pick sub', 'bitcoin', 'nostr']}
+      items={props.noForm ? ['pick sub', 'bitcoin', 'nostr', 'tech', 'jobs'] : item ? ['bitcoin', 'nostr', 'tech'] : ['pick sub', 'bitcoin', 'nostr', 'tech']}
       label={label &&
         <>
           {label}

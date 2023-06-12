@@ -80,7 +80,7 @@ const handleThemeChange = (dark) => {
 
 const RssPopover = (
   <Popover>
-    <Popover.Content style={{ fontWeight: 500, fontSize: '.9rem' }}>
+    <Popover.Content className='d-flex' style={{ fontWeight: 500, fontSize: '.9rem' }}>
       <a href='/rss' className='nav-link p-0 d-inline-flex'>
         home
       </a>
@@ -91,6 +91,10 @@ const RssPopover = (
       <span className='mx-2 text-muted'> \ </span>
       <a href='/~nostr/rss' className='nav-link p-0 d-inline-flex'>
         nostr
+      </a>
+      <span className='mx-2 text-muted'> \ </span>
+      <a href='/~tech/rss' className='nav-link p-0 d-inline-flex'>
+        tech
       </a>
       <span className='mx-2 text-muted'> \ </span>
       <a href='/~jobs/rss' className='nav-link p-0 d-inline-flex'>

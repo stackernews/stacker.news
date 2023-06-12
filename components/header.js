@@ -29,9 +29,15 @@ function WalletSummary ({ me }) {
 
 function Back () {
   const router = useRouter()
-  if (typeof window !== 'undefined' && router.asPath !== '/' &&
-    (typeof window.navigation === 'undefined' || window.navigation.canGoBack === undefined || window?.navigation.canGoBack)) {
-    return <a role='button' tabindex='0' className='nav-link p-0' onClick={() => router.back()}><BackArrow className='theme standalone mr-1 mr-md-2' width={22} height={22} /></a>
+  const [show, setShow] = useState()
+
+  useEffect(() => {
+    setShow(typeof window !== 'undefined' && router.asPath !== '/' &&
+    (typeof window.navigation === 'undefined' || window.navigation.canGoBack === undefined || window?.navigation.canGoBack))
+  }, [router.asPath])
+
+  if (show) {
+    return <a role='button' tabIndex='0' className='nav-link standalone p-0' onClick={() => router.back()}><BackArrow className='theme mr-1 mr-md-2' width={22} height={22} /></a>
   }
   return null
 }

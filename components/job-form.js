@@ -1,6 +1,6 @@
 import { Checkbox, Form, Input, MarkdownInput, SubmitButton } from './form'
 import TextareaAutosize from 'react-textarea-autosize'
-import { InputGroup, Form as BForm, Col, Image, Button } from 'react-bootstrap'
+import { InputGroup, Form as BForm, Col, Image } from 'react-bootstrap'
 import { useEffect, useState } from 'react'
 import Info from './info'
 import AccordianItem from './accordian-item'
@@ -14,6 +14,7 @@ import BootstrapForm from 'react-bootstrap/Form'
 import Alert from 'react-bootstrap/Alert'
 import ActionTooltip from './action-tooltip'
 import { jobSchema } from '../lib/validate'
+import CancelButton from './cancel-button'
 
 function satsMin2Mo (minute) {
   return minute * 30 * 24 * 60
@@ -144,11 +145,11 @@ export default function JobForm ({ item, sub }) {
         />
         <PromoteJob item={item} sub={sub} storageKeyPrefix={storageKeyPrefix} />
         {item && <StatusControl item={item} />}
-        <div className='d-flex align-items-center mt-3'>
+        <div className='d-flex align-items-center justify-content-end mt-3'>
           {item
             ? (
               <div className='d-flex'>
-                <Button className='mr-2' variant='grey-medium' onClick={() => router.push(`/items/${item.id}`)}>cancel</Button>
+                <CancelButton />
                 <SubmitButton variant='secondary'>save</SubmitButton>
               </div>
               )

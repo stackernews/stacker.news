@@ -12,6 +12,7 @@ import Delete from './delete'
 import { Button } from 'react-bootstrap'
 import { discussionSchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select-form'
+import CancelButton from './cancel-button'
 
 export function DiscussionForm ({
   item, sub, editThreshold, titleLabel = 'title',
@@ -107,7 +108,7 @@ export function DiscussionForm ({
                 <Button variant='grey-medium'>delete</Button>
               </Delete>
               <div className='d-flex'>
-                <Button className='mr-2' variant='grey-medium' onClick={() => router.push(`/items/${item.id}`)}>cancel</Button>
+                <CancelButton />
                 <EditFeeButton
                   paidSats={item.meSats}
                   parentId={null} text='save' ChildButton={SubmitButton} variant='secondary'

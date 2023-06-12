@@ -10,6 +10,7 @@ import Delete from './delete'
 import { Button } from 'react-bootstrap'
 import { pollSchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select-form'
+import CancelButton from './cancel-button'
 
 export function PollForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
@@ -95,7 +96,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
                 <Button variant='grey-medium'>delete</Button>
               </Delete>
               <div className='d-flex'>
-                <Button className='mr-2' variant='grey-medium' onClick={() => router.push(`/items/${item.id}`)}>cancel</Button>
+                <CancelButton />
                 <EditFeeButton
                   paidSats={item.meSats}
                   parentId={null} text='save' ChildButton={SubmitButton} variant='secondary'

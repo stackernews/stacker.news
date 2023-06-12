@@ -14,6 +14,7 @@ import { ITEM_FIELDS } from '../../fragments/items'
 import { getGetServerSideProps } from '../../api/ssrApollo'
 import FeeButton, { EditFeeButton } from '../../components/fee-button'
 import { bioSchema } from '../../lib/validate'
+import CancelButton from '../../components/cancel-button'
 
 export const getServerSideProps = getGetServerSideProps(USER_FULL, null,
   data => !data.user)
@@ -65,11 +66,8 @@ export function BioForm ({ handleDone, bio }) {
           as={TextareaAutosize}
           minRows={6}
         />
-        <div className='d-flex mt-3'>
-          <Button
-            className='mr-2' variant='grey-medium' type='button' onClick={handleDone}
-          >cancel
-          </Button>
+        <div className='d-flex mt-3 justify-content-end'>
+          <CancelButton onClick={handleDone} />
           {bio?.text
             ? <EditFeeButton
                 paidSats={bio?.meSats}

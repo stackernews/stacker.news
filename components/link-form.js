@@ -13,6 +13,7 @@ import { Button } from 'react-bootstrap'
 import { linkSchema } from '../lib/validate'
 import Moon from '../svgs/moon-fill.svg'
 import { SubSelectInitial } from './sub-select-form'
+import CancelButton from './cancel-button'
 
 export function LinkForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
@@ -178,7 +179,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
                 <Button variant='grey-medium'>delete</Button>
               </Delete>
               <div className='d-flex'>
-                <Button className='mr-2' variant='grey-medium' onClick={() => router.push(`/items/${item.id}`)}>cancel</Button>
+                <CancelButton />
                 <EditFeeButton
                   paidSats={item.meSats}
                   parentId={null} text='save' ChildButton={SubmitButton} variant='secondary'

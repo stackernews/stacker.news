@@ -3,7 +3,7 @@ import InputGroup from 'react-bootstrap/InputGroup'
 import BootstrapForm from 'react-bootstrap/Form'
 import Alert from 'react-bootstrap/Alert'
 import { Formik, Form as FormikForm, useFormikContext, useField, FieldArray } from 'formik'
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react'
 import copy from 'clipboard-copy'
 import Thumb from '../svgs/thumb-up-fill.svg'
 import { Col, Dropdown as BootstrapDropdown, Nav } from 'react-bootstrap'
@@ -76,13 +76,24 @@ export function InputSkeleton ({ label, hint }) {
   )
 }
 
-export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setHasImgLink, ...props }) {
+export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setHasImgLink, onKeyDown, innerRef, ...props }) {
   const [tab, setTab] = useState('write')
-  const [, meta] = useField(props)
+  const [, meta, helpers] = useField(props)
+  const formik = useFormikContext()
+  const [selectionRange, setSelectionRange] = useState({ start: 0, end: 0 })
+  innerRef = innerRef || useRef(null)
 
   useEffect(() => {
     !meta.value && setTab('write')
   }, [meta.value])
+
+  useEffect(() => {
+    if (selectionRange.start <= selectionRange.end && innerRef?.current) {
+      const { start, end } = selectionRange
+      const input = innerRef.current
+      input.setSelectionRange(start, end)
+    }
+  }, [innerRef?.current, selectionRange.start, selectionRange.end])
 
   return (
     <FormGroup label={label} className={groupClassName}>
@@ -108,6 +119,30 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
               if (setHasImgLink) {
                 setHasImgLink(mdHas(e.target.value, ['link', 'image']))
               }
+            }}
+            innerRef={innerRef}
+            onKeyDown={(e) => {
+              const metaOrCtrl = e.metaKey || e.ctrlKey
+              if (metaOrCtrl) {
+                if (e.key === 'Enter') formik?.submitForm()
+                if (e.key === 'k') {
+                  // some browsers use CTRL+K to focus search bar so we have to prevent that behavior
+                  e.preventDefault()
+                  insertMarkdownLinkFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+                }
+                if (e.key === 'b') {
+                  // some browsers use CTRL+B to open bookmarks so we have to prevent that behavior
+                  e.preventDefault()
+                  insertMarkdownBoldFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+                }
+                if (e.key === 'i') {
+                  // some browsers might use CTRL+I to do something else so prevent that behavior too
+                  e.preventDefault()
+                  insertMarkdownItalicFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+                }
+              }
+
+              if (onKeyDown) onKeyDown(e)
             }}
           />
         </div>
@@ -163,7 +198,6 @@ function InputInner ({
   const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)
   const formik = noForm ? null : useFormikContext()
   const storageKeyPrefix = useContext(StorageKeyPrefixContext)
-  const [selectionRange, setSelectionRange] = useState({ start: 0, end: 0 })
 
   const storageKey = storageKeyPrefix ? storageKeyPrefix + '-' + props.name : undefined
 
@@ -183,16 +217,6 @@ function InputInner ({
     }
   }, [overrideValue])
 
-  useEffect(() => {
-    if (selectionRange.start <= selectionRange.end && innerRef?.current) {
-      const { start, end } = selectionRange
-      const input = innerRef.current
-      if (props.type === 'textarea') {
-        input.setSelectionRange(start, end)
-      }
-    }
-  }, [selectionRange.start, selectionRange.end])
-
   const invalid = (!formik || formik.submitCount > 0) && meta.touched && meta.error
 
   return (
@@ -208,21 +232,6 @@ function InputInner ({
             const metaOrCtrl = e.metaKey || e.ctrlKey
             if (metaOrCtrl) {
               if (e.key === 'Enter') formik?.submitForm()
-              if (e.key === 'k') {
-                // some browsers use CTRL+K to focus search bar so we have to prevent that behavior
-                e.preventDefault()
-                insertMarkdownLinkFormatting(innerRef.current, helpers.setValue, setSelectionRange)
-              }
-              if (e.key === 'b') {
-                // some browsers use CTRL+B to open bookmarks so we have to prevent that behavior
-                e.preventDefault()
-                insertMarkdownBoldFormatting(innerRef.current, helpers.setValue, setSelectionRange)
-              }
-              if (e.key === 'i') {
-                // some browsers might use CTRL+I to do something else so prevent that behavior too
-                e.preventDefault()
-                insertMarkdownItalicFormatting(innerRef.current, helpers.setValue, setSelectionRange)
-              }
             }
 
             if (onKeyDown) onKeyDown(e)

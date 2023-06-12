@@ -18,7 +18,7 @@ import { bioSchema } from '../../lib/validate'
 export const getServerSideProps = getGetServerSideProps(USER_FULL, null,
   data => !data.user)
 
-export function BioForm ({ handleSuccess, bio }) {
+export function BioForm ({ handleDone, bio }) {
   const [upsertBio] = useMutation(
     gql`
       ${ITEM_FIELDS}
@@ -56,7 +56,7 @@ export function BioForm ({ handleSuccess, bio }) {
           if (error) {
             throw new Error({ message: error.toString() })
           }
-          handleSuccess && handleSuccess()
+          handleDone?.()
         }}
       >
         <MarkdownInput
@@ -65,7 +65,11 @@ export function BioForm ({ handleSuccess, bio }) {
           as={TextareaAutosize}
           minRows={6}
         />
-        <div className='mt-3'>
+        <div className='d-flex mt-3'>
+          <Button
+            className='mr-2' variant='grey-medium' type='button' onClick={handleDone}
+          >cancel
+          </Button>
           {bio?.text
             ? <EditFeeButton
                 paidSats={bio?.meSats}
@@ -102,14 +106,14 @@ export default function User ({ data: { user } }) {
         ? (edit
             ? (
               <div className={styles.create}>
-                <BioForm bio={user.bio} handleSuccess={() => setEdit(false)} />
+                <BioForm bio={user.bio} handleDone={() => setEdit(false)} />
               </div>)
             : <ItemFull item={user.bio} bio handleClick={setEdit} />
           )
         : (mine &&
           <div className={styles.create}>
             {create
-              ? <BioForm handleSuccess={() => setCreate(false)} />
+              ? <BioForm handleDone={() => setCreate(false)} />
               : (
                   mine &&
                     <div className='text-center'>

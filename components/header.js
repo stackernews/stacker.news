@@ -218,7 +218,7 @@ export default function Header ({ sub }) {
               onChange={(formik, e) => router.push(e.target.value === 'home' ? '/' : `/~${e.target.value}`)}
               name='sub'
               size='sm'
-              items={['home', 'bitcoin', 'nostr', 'jobs']}
+              items={['home', 'bitcoin', 'nostr', 'tech', 'jobs']}
             />
           </Form>
         </Nav.Item>

@@ -29,8 +29,9 @@ function WalletSummary ({ me }) {
 
 function Back () {
   const router = useRouter()
-  if (typeof window !== 'undefined' && (typeof window.navigation === 'undefined' || window.navigation.canGoBack === undefined || window?.navigation.canGoBack)) {
-    return <BackArrow className='theme standalone mr-1 mr-md-2' width={22} height={22} onClick={() => router.back()} />
+  if (typeof window !== 'undefined' && router.asPath !== '/' &&
+    (typeof window.navigation === 'undefined' || window.navigation.canGoBack === undefined || window?.navigation.canGoBack)) {
+    return <a role='button' tabindex='0' className='nav-link p-0' onClick={() => router.back()}><BackArrow className='theme standalone mr-1 mr-md-2' width={22} height={22} /></a>
   }
   return null
 }

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useContext, createContext } from 'react'
+import { useState, useCallback, useContext, useEffect, createContext } from 'react'
 import { useQuery } from '@apollo/client'
 import Comment, { CommentSkeleton } from './comment'
 import Item from './item'
@@ -16,7 +16,8 @@ import { COMMENT_DEPTH_LIMIT } from '../lib/constants'
 import CowboyHatIcon from '../svgs/cowboy.svg'
 import BaldIcon from '../svgs/bald.svg'
 import { RootProvider } from './root'
-import { useMe } from './me'
+import { Alert } from 'react-bootstrap'
+import styles from './notifications.module.css'
 
 function Notification ({ n }) {
   switch (n.__typename) {
@@ -251,6 +252,39 @@ function Reply ({ n }) {
   )
 }
 
+function NotificationAlert () {
+  const [showAlert, setShowAlert] = useState(false)
+  const pushNotify = useNotification()
+
+  useEffect(() => {
+    setShowAlert(!localStorage.getItem('hideNotifyPrompt'))
+  }, [])
+
+  const close = () => {
+    localStorage.setItem('hideNotifyPrompt', 'yep')
+    setShowAlert(false)
+  }
+
+  return (
+    showAlert
+      ? (
+        <Alert variant='success' className='text-center' dismissible onClose={close}>
+          <span className='align-middle'>Enable push notifications?</span>
+          <button
+            className={`${styles.alertBtn} mx-1`}
+            onClick={() => {
+              pushNotify.requestPermission()
+              close()
+            }}
+          >Yes
+          </button>
+          <button className={`${styles.alertBtn}`} onClick={close}>No</button>
+        </Alert>
+        )
+      : null
+  )
+}
+
 export default function Notifications ({ notifications, earn, cursor, lastChecked, variables }) {
   const { data, fetchMore } = useQuery(NOTIFICATIONS, { variables })
 
@@ -267,6 +301,7 @@ export default function Notifications ({ notifications, earn, cursor, lastChecke
 
   return (
     <>
+      <NotificationAlert />
       {/* XXX we shouldn't use the index but we don't have a unique id in this union yet */}
       <div className='fresh'>
         {earn && <Notification n={earn} key='earn' />}
@@ -298,10 +333,18 @@ const NotificationContext = createContext({})
 export const NotificationProvider = ({ children }) => {
   const isBrowser = typeof window !== 'undefined'
   const [isSupported] = useState(isBrowser ? 'Notification' in window : false)
-  const [isDefaultPermission, setIsDefaultPermission] = useState(isSupported ? window.Notification.permission === 'default' : undefined)
-  const [isGranted, setIsGranted] = useState(isSupported ? window.Notification.permission === 'granted' : undefined)
-  const me = useMe()
-  const router = useRouter()
+  const [permission, setPermission_] = useState(
+    isSupported
+      ? window.Notification.permission === 'granted'
+        // if permission was granted, we need to check if user has withdrawn permission using the settings
+        // since requestPermission only works once
+          ? localStorage.getItem('notify-permission') ?? window.Notification.permission
+          : window.Notification.permission
+      : 'unsupported')
+  const isDefault = permission === 'default'
+  const isGranted = permission === 'granted'
+  const isDenied = permission === 'denied'
+  const isWithdrawn = permission === 'withdrawn'
 
   const show_ = (title, options) => {
     const icon = '/android-chrome-24x24.png'
@@ -313,22 +356,22 @@ export const NotificationProvider = ({ children }) => {
     show_(...args)
   }, [isGranted])
 
-  const requestPermission = useCallback(() => {
+  const setPermission = useCallback((perm) => {
+    localStorage.setItem('notify-permission', perm)
+    setPermission_(perm)
+  }, [])
+
+  const requestPermission = useCallback((cb) => {
     window.Notification.requestPermission().then(result => {
-      setIsDefaultPermission(window.Notification.permission === 'default')
-      if (result === 'granted') {
-        setIsGranted(result === 'granted')
-        show_('Stacker News notifications enabled')
-      }
+      setPermission(window.Notification.permission)
+      if (result === 'granted') show_('Stacker News notifications enabled')
+      cb?.(result)
     })
-  }, [isDefaultPermission])
+  }, [])
 
-  useEffect(() => {
-    if (!me || !isSupported || !isDefaultPermission || router.pathname !== '/notifications') return
-    requestPermission()
-  }, [router?.pathname])
+  const withdrawPermission = useCallback(() => isGranted ? setPermission('withdrawn') : null, [isGranted])
 
-  const ctx = { isBrowser, isSupported, isDefaultPermission, isGranted, show }
+  const ctx = { isBrowser, isSupported, isDefault, isGranted, isDenied, isWithdrawn, requestPermission, withdrawPermission, show }
 
   return <NotificationContext.Provider value={ctx}>{children}</NotificationContext.Provider>
 }

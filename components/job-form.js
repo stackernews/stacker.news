@@ -1,6 +1,6 @@
 import { Checkbox, Form, Input, MarkdownInput, SubmitButton } from './form'
 import TextareaAutosize from 'react-textarea-autosize'
-import { InputGroup, Form as BForm, Col, Image } from 'react-bootstrap'
+import { InputGroup, Form as BForm, Col, Image, Button } from 'react-bootstrap'
 import { useEffect, useState } from 'react'
 import Info from './info'
 import AccordianItem from './accordian-item'
@@ -146,7 +146,12 @@ export default function JobForm ({ item, sub }) {
         {item && <StatusControl item={item} />}
         <div className='d-flex align-items-center mt-3'>
           {item
-            ? <SubmitButton variant='secondary'>save</SubmitButton>
+            ? (
+              <div className='d-flex'>
+                <Button className='mr-2' variant='grey-medium' onClick={() => router.push(`/items/${item.id}`)}>cancel</Button>
+                <SubmitButton variant='secondary'>save</SubmitButton>
+              </div>
+              )
             : (
               <ActionTooltip overlayText='1000 sats'>
                 <SubmitButton variant='secondary'>post <small> 1000 sats</small></SubmitButton>

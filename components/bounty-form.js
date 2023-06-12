@@ -5,7 +5,7 @@ import TextareaAutosize from 'react-textarea-autosize'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
 import FeeButton, { EditFeeButton } from './fee-button'
-import { InputGroup } from 'react-bootstrap'
+import { InputGroup, Button } from 'react-bootstrap'
 import { bountySchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select-form'
 
@@ -115,13 +115,16 @@ export function BountyForm ({
       <div className='mt-3'>
         {item
           ? (
-            <EditFeeButton
-              paidSats={item.meSats}
-              parentId={null}
-              text='save'
-              ChildButton={SubmitButton}
-              variant='secondary'
-            />
+            <div className='d-flex'>
+              <Button className='mr-2' variant='grey-medium' onClick={() => router.push(`/items/${item.id}`)}>cancel</Button>
+              <EditFeeButton
+                paidSats={item.meSats}
+                parentId={null}
+                text='save'
+                ChildButton={SubmitButton}
+                variant='secondary'
+              />
+            </div>
             )
           : (
             <FeeButton

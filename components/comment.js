@@ -99,15 +99,18 @@ export default function Comment ({
   const root = useRoot()
 
   useEffect(() => {
-    if (Number(router.query.commentId) === Number(item.id)) {
-      ref.current.scrollIntoView()
-      ref.current.classList.add('flash-it')
-      router.replace({
-        pathname: router.pathname,
-        query: { id: router.query.id }
-      }, undefined, { scroll: false })
-    }
     setCollapse(localStorage.getItem(`commentCollapse:${item.id}`) || collapse)
+    if (Number(router.query.commentId) === Number(item.id)) {
+      // HACK wait for other comments to collapse if they're collapsed
+      setTimeout(() => {
+        ref.current.scrollIntoView()
+        ref.current.classList.add('flash-it')
+        router.replace({
+          pathname: router.pathname,
+          query: { id: router.query.id }
+        }, undefined, { scroll: false })
+      }, 20)
+    }
   }, [item])
 
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT

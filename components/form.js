@@ -187,7 +187,9 @@ function InputInner ({
     if (selectionRange.start <= selectionRange.end && innerRef?.current) {
       const { start, end } = selectionRange
       const input = innerRef.current
-      input.setSelectionRange(start, end)
+      if (props.type === 'textarea') {
+        input.setSelectionRange(start, end)
+      }
     }
   }, [selectionRange.start, selectionRange.end])
 

@@ -4,7 +4,7 @@ import { Form, Select } from './form'
 const USER_SORTS = ['stacked', 'spent', 'comments', 'posts', 'referrals']
 const ITEM_SORTS = ['votes', 'comments', 'sats']
 
-export default function TopHeader ({ cat }) {
+export default function TopHeader ({ sub, cat }) {
   const router = useRouter()
 
   const top = async values => {
@@ -17,6 +17,8 @@ export default function TopHeader ({ cat }) {
       return
     }
 
+    const prefix = sub ? `/~${sub}` : ''
+
     if (typeof query.sort !== 'undefined') {
       if (query.sort === '' ||
           (what === 'users' && !USER_SORTS.includes(query.sort)) ||
@@ -26,7 +28,7 @@ export default function TopHeader ({ cat }) {
     }
 
     await router.push({
-      pathname: `/top/${what}/${when || 'day'}`,
+      pathname: `${prefix}/top/${what}/${when || 'day'}`,
       query
     })
   }
@@ -49,7 +51,7 @@ export default function TopHeader ({ cat }) {
             onChange={(formik, e) => top({ ...formik?.values, what: e.target.value })}
             name='what'
             size='sm'
-            items={['posts', 'comments', 'users', 'cowboys']}
+            items={router?.query?.sub ? ['posts', 'comments'] : ['posts', 'comments', 'users', 'cowboys']}
           />
           {cat !== 'cowboys' &&
             <>

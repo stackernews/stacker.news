@@ -40,6 +40,55 @@ export const SUB_ITEMS = gql`
   }
 `
 
+export const SUB_TOP_ITEMS = gql`
+  ${SUB_FIELDS}
+  ${ITEM_FIELDS}
+
+  query SubTopItems($sub: String!, $sort: String, $cursor: String, $when: String) {
+    sub(name: $sub) {
+      ...SubFields
+    }
+    topItems(sub: $sub, sort: $sort, cursor: $cursor, when: $when) {
+      cursor
+      items {
+        ...ItemFields
+      },
+      pins {
+        ...ItemFields
+      }
+    }
+  }`
+
+export const SUB_TOP_COMMENTS = gql`
+  ${SUB_FIELDS}
+  ${COMMENT_FIELDS}
+
+  query SubTopComments($sub: String!, $sort: String, $cursor: String, $when: String = "day") {
+    sub(name: $sub) {
+      ...SubFields
+    }
+    topComments(sub: $sub, sort: $sort, cursor: $cursor, when: $when) {
+      cursor
+      comments {
+        ...CommentFields
+        root {
+          id
+          title
+          bounty
+          bountyPaidTo
+          subName
+          user {
+            name
+            streak
+            hideCowboyHat
+            id
+          }
+        }
+      }
+    }
+  }
+`
+
 export const SUB_SEARCH = gql`
   ${SUB_FIELDS}
   ${ITEM_FIELDS}

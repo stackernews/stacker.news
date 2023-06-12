@@ -226,8 +226,9 @@ export default {
 
       return count
     },
-    topItems: async (parent, { cursor, sort, when }, { me, models }) => {
+    topItems: async (parent, { sub, cursor, sort, when }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
+      const subArr = sub ? [sub] : []
       const items = await itemQueryWithMeta({
         me,
         models,
@@ -236,35 +237,39 @@ export default {
           FROM "Item"
           WHERE "parentId" IS NULL AND "Item".created_at <= $1
           AND "pinId" IS NULL AND "deletedAt" IS NULL
+          ${subClause(sub, 3)}
           ${topClause(when)}
           ${await filterClause(me, models)}
           ${await topOrderClause(sort, me, models)}
           OFFSET $2
           LIMIT ${LIMIT}`,
         orderBy: await topOrderClause(sort, me, models)
-      }, decodedCursor.time, decodedCursor.offset)
+      }, decodedCursor.time, decodedCursor.offset, ...subArr)
       return {
         cursor: items.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
         items
       }
     },
-    topComments: async (parent, { cursor, sort, when }, { me, models }) => {
+    topComments: async (parent, { sub, cursor, sort, when }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
+      const subArr = sub ? [sub] : []
       const comments = await itemQueryWithMeta({
         me,
         models,
         query: `
           ${SELECT}
           FROM "Item"
-          WHERE "parentId" IS NOT NULL
-          AND "Item".created_at <= $1 AND "deletedAt" IS NULL
+          JOIN "Item" root ON "Item"."rootId" = root.id
+          WHERE "Item"."parentId" IS NOT NULL
+          AND "Item".created_at <= $1 AND "Item"."deletedAt" IS NULL
+          ${subClause(sub, 3, 'root')}
           ${topClause(when)}
           ${await filterClause(me, models)}
           ${await topOrderClause(sort, me, models)}
           OFFSET $2
           LIMIT ${LIMIT}`,
         orderBy: await topOrderClause(sort, me, models)
-      }, decodedCursor.time, decodedCursor.offset)
+      }, decodedCursor.time, decodedCursor.offset, ...subArr)
       return {
         cursor: comments.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
         comments

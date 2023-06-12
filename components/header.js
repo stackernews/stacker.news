@@ -239,9 +239,9 @@ export default function Header ({ sub }) {
             <Nav.Link eventKey='recent' className={styles.navLink}>recent</Nav.Link>
           </Link>
         </Nav.Item>
-        {!prefix &&
+        {sub !== 'jobs' &&
           <Nav.Item className={className}>
-            <Link href='/top/posts/day' passHref>
+            <Link href={prefix + '/top/posts/day'} passHref>
               <Nav.Link eventKey='top' className={styles.navLink}>top</Nav.Link>
             </Link>
           </Nav.Item>}

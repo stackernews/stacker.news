@@ -93,7 +93,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
       const input = innerRef.current
       input.setSelectionRange(start, end)
     }
-  }, [innerRef?.current, selectionRange.start, selectionRange.end])
+  }, [innerRef, selectionRange.start, selectionRange.end])
 
   return (
     <FormGroup label={label} className={groupClassName}>

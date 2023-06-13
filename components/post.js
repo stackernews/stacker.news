@@ -32,7 +32,7 @@ export function PostForm ({ type, sub, children }) {
         <div className='d-flex mt-3'>
           <AccordianItem
             headerColor='#6c757d'
-            header={<div className='font-weight-bold text-muted'>more</div>}
+            header={<div className='font-weight-bold text-muted'>more types</div>}
             body={
               <div className='align-items-center'>
                 <Link href={prefix + '/post?type=poll'}>

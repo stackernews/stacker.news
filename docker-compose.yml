@@ -10,6 +10,8 @@ services:
       - "5431:5432"
     env_file:
       - ./.env.sample
+    volumes:
+      - db:/var/lib/postgresql/data
   app:
     container_name: app
     build: ./
@@ -48,3 +50,6 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command:
       - node worker/index.js
+
+volumes:
+  db:

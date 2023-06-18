@@ -1,4 +1,6 @@
 const { withPlausibleProxy } = require('next-plausible')
+const { InjectManifest } = require('workbox-webpack-plugin')
+const { generatePrecacheManifest } = require('./sw/build')
 
 const isProd = process.env.NODE_ENV === 'production'
 const corsHeaders = [
@@ -120,5 +122,21 @@ module.exports = withPlausibleProxy()({
         permanent: true
       }
     ]
+  },
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      generatePrecacheManifest()
+      config.plugins.push(
+        new InjectManifest({
+          // ignore the precached manifest which includes the webpack assets
+          // since they are not useful to us
+          exclude: [/.*/],
+          // by default, webpack saves service worker at .next/server/
+          swDest: '../../public/sw.js',
+          swSrc: './sw/index.js'
+        })
+      )
+    }
+    return config
   }
 })

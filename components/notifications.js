@@ -1,4 +1,4 @@
-import { useState, useCallback, useContext, useEffect, createContext } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@apollo/client'
 import Comment, { CommentSkeleton } from './comment'
 import Item from './item'
@@ -18,6 +18,7 @@ import BaldIcon from '../svgs/bald.svg'
 import { RootProvider } from './root'
 import { Alert } from 'react-bootstrap'
 import styles from './notifications.module.css'
+import { useServiceWorker } from './serviceworker'
 
 function Notification ({ n }) {
   switch (n.__typename) {
@@ -254,13 +255,14 @@ function Reply ({ n }) {
 
 function NotificationAlert () {
   const [showAlert, setShowAlert] = useState(false)
-  const pushNotify = useNotification()
+  const [error, setError] = useState(null)
+  const sw = useServiceWorker()
 
   useEffect(() => {
-    // basically, we only want to show the alert if the user hasn't interacted with
-    // either opt-in of the double opt-in
-    setShowAlert(pushNotify.isDefault && !localStorage.getItem('hideNotifyPrompt'))
-  }, [pushNotify])
+    const isSupported = sw.support.serviceWorker && sw.support.pushManager && sw.support.notification
+    const isDefaultPermission = sw.permission.notification === 'default'
+    setShowAlert(isSupported && isDefaultPermission && !localStorage.getItem('hideNotifyPrompt'))
+  }, [sw])
 
   const close = () => {
     localStorage.setItem('hideNotifyPrompt', 'yep')
@@ -268,22 +270,29 @@ function NotificationAlert () {
   }
 
   return (
-    showAlert
+    error
       ? (
-        <Alert variant='success' dismissible onClose={close}>
-          <span className='align-middle'>Enable push notifications?</span>
-          <button
-            className={`${styles.alertBtn} mx-1`}
-            onClick={() => {
-              pushNotify.requestPermission()
-              close()
-            }}
-          >Yes
-          </button>
-          <button className={`${styles.alertBtn}`} onClick={close}>No</button>
+        <Alert variant='danger' dismissible onClose={() => setError(null)}>
+          <span>{error.toString()}</span>
         </Alert>
         )
-      : null
+      : showAlert
+        ? (
+          <Alert variant='info' dismissible onClose={close}>
+            <span className='align-middle'>Enable push notifications?</span>
+            <button
+              className={`${styles.alertBtn} mx-1`}
+              onClick={async () => {
+                await sw.requestNotificationPermission()
+                  .then(close)
+                  .catch(setError)
+              }}
+            >Yes
+            </button>
+            <button className={`${styles.alertBtn}`} onClick={close}>No</button>
+          </Alert>
+          )
+        : null
   )
 }
 
@@ -328,56 +337,4 @@ function CommentsFlatSkeleton () {
     ))}
     </div>
   )
-}
-
-const NotificationContext = createContext({})
-
-export const NotificationProvider = ({ children }) => {
-  const isBrowser = typeof window !== 'undefined'
-  const [isSupported] = useState(isBrowser ? 'Notification' in window : false)
-  const [permission, setPermission_] = useState(
-    isSupported
-      ? window.Notification.permission === 'granted'
-        // if permission was granted, we need to check if user has withdrawn permission using the settings
-        // since requestPermission only works once
-          ? localStorage.getItem('notify-permission') ?? window.Notification.permission
-          : window.Notification.permission
-      : 'unsupported')
-  const isDefault = permission === 'default'
-  const isGranted = permission === 'granted'
-  const isDenied = permission === 'denied'
-  const isWithdrawn = permission === 'withdrawn'
-
-  const show_ = (title, options) => {
-    const icon = '/android-chrome-24x24.png'
-    return new window.Notification(title, { icon, ...options })
-  }
-
-  const show = useCallback((...args) => {
-    if (!isGranted) return
-    show_(...args)
-  }, [isGranted])
-
-  const setPermission = useCallback((perm) => {
-    localStorage.setItem('notify-permission', perm)
-    setPermission_(perm)
-  }, [])
-
-  const requestPermission = useCallback((cb) => {
-    window.Notification.requestPermission().then(result => {
-      setPermission(window.Notification.permission)
-      if (result === 'granted') show_('Stacker News notifications enabled')
-      cb?.(result)
-    })
-  }, [])
-
-  const withdrawPermission = useCallback(() => isGranted ? setPermission('withdrawn') : null, [isGranted])
-
-  const ctx = { isBrowser, isSupported, isDefault, isGranted, isDenied, isWithdrawn, requestPermission, withdrawPermission, show }
-
-  return <NotificationContext.Provider value={ctx}>{children}</NotificationContext.Provider>
-}
-
-export function useNotification () {
-  return useContext(NotificationContext)
 }

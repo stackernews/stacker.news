@@ -99,6 +99,7 @@ model User {
   Bookmarks           Bookmark[]
   Subscriptions       Subscription[]
   ThreadSubscriptions ThreadSubscription[]
+  PushSubscriptions   PushSubscription[]
 
   @@index([createdAt])
   @@index([inviteId])
@@ -578,4 +579,16 @@ model ThreadSubscription {
 
   @@id([userId, itemId])
   @@index([createdAt])
+}
+
+model PushSubscription {
+  id        Int       @id @default(autoincrement())
+  user      User      @relation(fields: [userId], references: [id])
+  userId    Int
+  endpoint  String
+  p256dh    String
+  auth      String
+  createdAt DateTime  @default(now()) @map(name: "created_at")
+
+  @@index([userId])
 }

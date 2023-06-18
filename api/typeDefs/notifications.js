@@ -5,6 +5,10 @@ export default gql`
     notifications(cursor: String, inc: String): Notifications
   }
 
+  extend type Mutation {
+    savePushSubscription(userId: ID!, endpoint: String!, p256dh: String!, auth: String!): PushSubscription
+  }
+
   type Votification {
     earnedSats: Int!
     item: Item!
@@ -68,5 +72,13 @@ export default gql`
     lastChecked: String
     cursor: String
     notifications: [Notification!]!
+  }
+
+  type PushSubscription {
+    id: ID!
+    userId: ID!
+    endpoint: String!
+    p256dh: String!
+    auth: String!
   }
 `

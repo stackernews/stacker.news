@@ -78,6 +78,7 @@
     "url-unshort": "^6.1.0",
     "use-dark-mode": "^2.3.1",
     "uuid": "^8.3.2",
+    "web-push": "^3.6.2",
     "webln": "^0.2.2",
     "workbox-precaching": "^7.0.0",
     "workbox-recipes": "^7.0.0",

@@ -14,8 +14,7 @@ import Moon from '../svgs/moon-fill.svg'
 import Layout from '../components/layout'
 import { ShowModalProvider } from '../components/modal'
 import ErrorBoundary from '../components/error-boundary'
-import { NotificationProvider } from '../components/notifications'
-import { Workbox } from 'workbox-window'
+import { ServiceWorkerProvider } from '../components/serviceworker'
 
 function CSRWrapper ({ Component, apollo, ...props }) {
   const { data, error } = useQuery(gql`${apollo.query}`, { variables: apollo.variables, fetchPolicy: 'cache-first' })
@@ -59,13 +58,6 @@ function MyApp ({ Component, pageProps: { session, ...props } }) {
     }
   }, [router.asPath])
 
-  useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      const wb = new Workbox('/sw.js', { scope: '/' })
-      wb.register()
-    }
-  }, [])
-
   /*
     If we are on the client, we populate the apollo cache with the
     ssr data
@@ -97,7 +89,7 @@ function MyApp ({ Component, pageProps: { session, ...props } }) {
           <Provider session={session}>
             <ApolloProvider client={client}>
               <MeProvider me={me}>
-                <NotificationProvider>
+                <ServiceWorkerProvider>
                   <PriceProvider price={price}>
                     <LightningProvider>
                       <ShowModalProvider>
@@ -107,7 +99,7 @@ function MyApp ({ Component, pageProps: { session, ...props } }) {
                       </ShowModalProvider>
                     </LightningProvider>
                   </PriceProvider>
-                </NotificationProvider>
+                </ServiceWorkerProvider>
               </MeProvider>
             </ApolloProvider>
           </Provider>

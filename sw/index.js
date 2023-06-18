@@ -18,3 +18,8 @@ setDefaultHandler(new NetworkOnly())
 // This won't work in dev because pages are never cached.
 // See https://github.com/vercel/next.js/blob/337fb6a9aadb61c916f0121c899e463819cd3f33/server/render.js#L181-L185
 offlineFallback({ pageFallback: '/offline' })
+
+self.addEventListener('push', function (event) {
+  const payload = event.data.json()
+  event.waitUntil(self.registration.showNotification(payload.title, payload.options))
+})

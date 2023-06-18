@@ -2,6 +2,14 @@ import { AuthenticationError } from 'apollo-server-micro'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { getItem, filterClause } from './item'
 import { getInvoice } from './wallet'
+import { pushSubscriptionSchema, ssValidate } from '../../lib/validate'
+import webPush from 'web-push'
+
+webPush.setVapidDetails(
+  process.env.VAPID_MAILTO,
+  process.env.NEXT_PUBLIC_VAPID_PUBKEY,
+  process.env.VAPID_PRIVKEY
+)
 
 export default {
   Query: {
@@ -221,6 +229,37 @@ export default {
         cursor: notifications.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
         notifications
       }
+    }
+  },
+  Mutation: {
+    savePushSubscription: async (parent, { endpoint, p256dh, auth }, { me, models }) => {
+      if (!me) {
+        throw new AuthenticationError('you must be logged in')
+      }
+
+      await ssValidate(pushSubscriptionSchema, { endpoint, p256dh, auth })
+
+      const dbPushSubscription = await models.pushSubscription.create({
+        data: { userId: me.id, endpoint, p256dh, auth }
+      })
+
+      const notification = JSON.stringify({
+        title: 'Stacker News notifications enabled',
+        options: {
+          icon: '/android-chrome-96x96.png'
+        }
+      })
+      await webPush.sendNotification({ endpoint, keys: { p256dh, auth } }, notification)
+        .catch((err) => {
+          if (err.statusCode === 404 || err.statusCode === 410) {
+            console.log('Subscription has expired or is no longer valid: ', err)
+            return models.pushSubscription.delete({ where: { id: dbPushSubscription.id } })
+          } else {
+            throw err
+          }
+        })
+
+      return dbPushSubscription
     }
   },
   Notification: {

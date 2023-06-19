@@ -108,6 +108,10 @@ module.exports = withPWA({
           destination: '/items/81862'
         },
         {
+          source: '/daily',
+          destination: '/api/daily'
+        },
+        {
           source: '/.well-known/lnurlp/:username',
           destination: '/api/lnurlp/:username'
         },

@@ -98,7 +98,7 @@ function ItemEmbed ({ item }) {
 function FwdUser ({ user }) {
   return (
     <div className={styles.other}>
-      100% of tips are forwarded to{' '}
+      100% of zaps are forwarded to{' '}
       <Link href={`/${user.name}`} passHref>
         <a>@{user.name}</a>
       </Link>

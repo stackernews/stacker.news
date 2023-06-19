@@ -67,7 +67,7 @@ export default function Referrals ({ data: { referrals: { totalSats, totalReferr
           </ul>
         </li>
         <li>earn 21% of boost and job fees spent by referred stackers</li>
-        <li>earn 2.1% of all tips received by referred stackers</li>
+        <li>earn 2.1% of all zaps received by referred stackers</li>
         <li><Link href='/invites' passHref><a>invite links</a></Link> are also implicitly referral links</li>
       </ul>
     </LayoutCenter>

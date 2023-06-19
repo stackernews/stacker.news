@@ -77,7 +77,7 @@ export default function ItemAct ({ onClose, itemId, act, strike }) {
         <Tips setOValue={setOValue} />
       </div>
       <div className='d-flex'>
-        <SubmitButton variant='success' className='ml-auto mt-1 px-4' value='TIP'>tip</SubmitButton>
+        <SubmitButton variant='success' className='ml-auto mt-1 px-4' value='TIP'>zap</SubmitButton>
       </div>
     </Form>
   )

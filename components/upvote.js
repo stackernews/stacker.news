@@ -33,12 +33,12 @@ const UpvotePopover = ({ target, show, handleClose }) => {
       placement='right'
     >
       <Popover id='popover-basic'>
-        <Popover.Title className='d-flex justify-content-between alert-dismissible' as='h3'>Tipping
+        <Popover.Title className='d-flex justify-content-between alert-dismissible' as='h3'>Zapping
           <button type='button' className='close' onClick={handleClose}><span aria-hidden='true'>×</span><span className='sr-only'>Close alert</span></button>
         </Popover.Title>
         <Popover.Content>
-          <div className='mb-2'>Press the bolt again to tip {me?.tipDefault || 1} more sat{me?.tipDefault > 1 ? 's' : ''}.</div>
-          <div>Repeatedly press the bolt to tip more sats.</div>
+          <div className='mb-2'>Press the bolt again to zap {me?.tipDefault || 1} more sat{me?.tipDefault > 1 ? 's' : ''}.</div>
+          <div>Repeatedly press the bolt to zap more sats.</div>
         </Popover.Content>
       </Popover>
     </Overlay>
@@ -56,8 +56,8 @@ const TipPopover = ({ target, show, handleClose }) => (
         <button type='button' class='close' onClick={handleClose}><span aria-hidden='true'>×</span><span class='sr-only'>Close alert</span></button>
       </Popover.Title>
       <Popover.Content>
-        <div className='mb-2'>Press and hold bolt to tip a custom amount.</div>
-        <div>As you tip more, the bolt color follows the rainbow.</div>
+        <div className='mb-2'>Press and hold bolt to zap a custom amount.</div>
+        <div>As you zap more, the bolt color follows the rainbow.</div>
       </Popover.Content>
     </Popover>
   </Overlay>

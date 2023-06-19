@@ -95,7 +95,7 @@ export default {
             json_build_object('name', 'jobs', 'value', floor(avg(jobs))),
             json_build_object('name', 'boost', 'value', floor(avg(boost))),
             json_build_object('name', 'fees', 'value', floor(avg(fees))),
-            json_build_object('name', 'tips', 'value', floor(avg(tips))),
+            json_build_object('name', 'zaps', 'value', floor(avg(tips))),
             json_build_object('name', 'donation', 'value', floor(avg(donations)))
           ) AS data
           FROM spender_growth_days
@@ -111,7 +111,7 @@ export default {
           json_build_object('name', 'jobs', 'value', count(DISTINCT "userId") FILTER (WHERE act = 'STREAM')),
           json_build_object('name', 'boost', 'value', count(DISTINCT "userId") FILTER (WHERE act = 'BOOST')),
           json_build_object('name', 'fees', 'value', count(DISTINCT "userId") FILTER (WHERE act = 'FEE')),
-          json_build_object('name', 'tips', 'value', count(DISTINCT "userId") FILTER (WHERE act = 'TIP')),
+          json_build_object('name', 'zaps', 'value', count(DISTINCT "userId") FILTER (WHERE act = 'TIP')),
           json_build_object('name', 'donation', 'value', count(DISTINCT "userId") FILTER (WHERE act = 'DONATION'))
         ) AS data
         FROM times
@@ -159,7 +159,7 @@ export default {
             json_build_object('name', 'jobs', 'value', sum(jobs)),
             json_build_object('name', 'boost', 'value', sum(boost)),
             json_build_object('name', 'fees', 'value', sum(fees)),
-            json_build_object('name', 'tips', 'value', sum(tips)),
+            json_build_object('name', 'zaps', 'value', sum(tips)),
             json_build_object('name', 'donations', 'value', sum(donations))
           ) AS data
           FROM spending_growth_days
@@ -174,7 +174,7 @@ export default {
           json_build_object('name', 'jobs', 'value', coalesce(floor(sum(CASE WHEN act = 'STREAM' THEN msats ELSE 0 END)/1000),0)),
           json_build_object('name', 'boost', 'value', coalesce(floor(sum(CASE WHEN act = 'BOOST' THEN msats ELSE 0 END)/1000),0)),
           json_build_object('name', 'fees', 'value', coalesce(floor(sum(CASE WHEN act NOT IN ('BOOST', 'TIP', 'STREAM', 'DONATION') THEN msats ELSE 0 END)/1000),0)),
-          json_build_object('name', 'tips', 'value', coalesce(floor(sum(CASE WHEN act = 'TIP' THEN msats ELSE 0 END)/1000),0)),
+          json_build_object('name', 'zaps', 'value', coalesce(floor(sum(CASE WHEN act = 'TIP' THEN msats ELSE 0 END)/1000),0)),
           json_build_object('name', 'donations', 'value', coalesce(floor(sum(CASE WHEN act = 'DONATION' THEN msats ELSE 0 END)/1000),0))
         ) AS data
         FROM times

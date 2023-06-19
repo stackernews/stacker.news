@@ -96,13 +96,13 @@ export default function Settings ({ data: { settings } }) {
         >
           {success && <Alert variant='info' onClose={() => setSuccess(undefined)} dismissible>{success}</Alert>}
           <Input
-            label='tip default'
+            label='zap default'
             name='tipDefault'
             groupClassName='mb-0'
             required
             autoFocus
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
-            hint={<small className='text-muted'>note: you can also press and hold the lightning bolt to tip custom amounts</small>}
+            hint={<small className='text-muted'>note: you can also press and hold the lightning bolt to zap custom amounts</small>}
           />
           <div className='mb-2'>
             <AccordianItem
@@ -111,20 +111,20 @@ export default function Settings ({ data: { settings } }) {
               body={<Checkbox
                 name='turboTipping'
                 label={
-                  <div className='d-flex align-items-center'>turbo tipping
+                  <div className='d-flex align-items-center'>turbo zapping
                     <Info>
                       <ul className='font-weight-bold'>
-                        <li>Makes every additional bolt click raise your total tip to another 10x multiple of your default tip</li>
-                        <li>e.g. if your tip default is 10 sats
+                        <li>Makes every additional bolt click raise your total zap to another 10x multiple of your default zap</li>
+                        <li>e.g. if your zap default is 10 sats
                           <ul>
-                            <li>1st click: 10 sats total tipped</li>
-                            <li>2nd click: 100 sats total tipped</li>
-                            <li>3rd click: 1000 sats total tipped</li>
-                            <li>4th click: 10000 sats total tipped</li>
+                            <li>1st click: 10 sats total zapped</li>
+                            <li>2nd click: 100 sats total zapped</li>
+                            <li>3rd click: 1000 sats total zapped</li>
+                            <li>4th click: 10000 sats total zapped</li>
                             <li>and so on ...</li>
                           </ul>
                         </li>
-                        <li>You can still custom tip via long press
+                        <li>You can still custom zap via long press
                           <ul>
                             <li>the next bolt click rounds up to the next greatest 10x multiple of your default</li>
                           </ul>

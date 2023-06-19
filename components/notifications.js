@@ -121,7 +121,7 @@ function EarnNotification ({ n }) {
             <div style={{ fontSize: '80%', color: 'var(--theme-grey)' }}>
               {n.sources.posts > 0 && <span>{n.sources.posts} sats for top posts</span>}
               {n.sources.comments > 0 && <span>{n.sources.posts > 0 && ' \\ '}{n.sources.comments} sats for top comments</span>}
-              {n.sources.tips > 0 && <span>{(n.sources.comments > 0 || n.sources.posts > 0) && ' \\ '}{n.sources.tips} sats for tipping top content early</span>}
+              {n.sources.tips > 0 && <span>{(n.sources.comments > 0 || n.sources.posts > 0) && ' \\ '}{n.sources.tips} sats for zapping top content early</span>}
             </div>}
           <div className='pb-1' style={{ lineHeight: '140%' }}>
             SN distributes the sats it earns back to its best users daily. These sats come from <Link href='/~jobs' passHref><a>jobs</a></Link>, boosts, posting fees, and donations. You can see the daily rewards pool and make a donation <Link href='/rewards' passHref><a>here</a></Link>.

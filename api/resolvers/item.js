@@ -924,7 +924,7 @@ export default {
       FROM "Item"
       WHERE id = $1 AND "userId" = $2`, Number(id), me.id)
       if (item) {
-        throw new UserInputError('cannot tip your self')
+        throw new UserInputError('cannot zap your self')
       }
 
       const [{ item_act: vote }] = await serialize(models, models.$queryRaw`SELECT item_act(${Number(id)}, ${me.id}, 'TIP', ${Number(sats)})`)

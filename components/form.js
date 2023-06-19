@@ -140,6 +140,10 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
                   e.preventDefault()
                   insertMarkdownItalicFormatting(innerRef.current, helpers.setValue, setSelectionRange)
                 }
+                if (e.key === 'Tab' && e.altKey) {
+                  e.preventDefault()
+                  insertMarkdownTabFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+                }
               }
 
               if (onKeyDown) onKeyDown(e)
@@ -160,9 +164,7 @@ function insertMarkdownFormatting (replaceFn, selectFn) {
   return function (input, setValue, setSelectionRange) {
     const start = input.selectionStart
     const end = input.selectionEnd
-    const highlight = start !== end
     const val = input.value
-    if (!highlight) return
     const selectedText = val.substring(start, end)
     const mdFormatted = replaceFn(selectedText)
     const newVal = val.substring(0, start) + mdFormatted + val.substring(end)
@@ -171,16 +173,29 @@ function insertMarkdownFormatting (replaceFn, selectFn) {
     document.execCommand('insertText', false, mdFormatted)
     // see https://github.com/facebook/react/issues/6483
     // for why we don't use `input.setSelectionRange` directly (hint: event order)
-    setSelectionRange(selectFn ? selectFn(start, mdFormatted) : { start: start + mdFormatted.length, end: start + mdFormatted.length })
+    setSelectionRange(selectFn ? selectFn(start, end, mdFormatted) : { start: start + mdFormatted.length, end: start + mdFormatted.length })
   }
 }
 
+const insertMarkdownTabFormatting = insertMarkdownFormatting(
+  val => `\t${val}`,
+  (start, end, mdFormatted) => ({ start: start + 1, end: end + 1 }) // move inside tab
+)
 const insertMarkdownLinkFormatting = insertMarkdownFormatting(
   val => `[${val}](url)`,
-  (start, mdFormatted) => ({ start: start + mdFormatted.length - 4, end: start + mdFormatted.length - 1 })
+  (start, end, mdFormatted) => (
+    start === end
+      ? { start: start + 1, end: end + 1 } // move inside brackets
+      : { start: start + mdFormatted.length - 4, end: start + mdFormatted.length - 1 }) // move to select url part
 )
-const insertMarkdownBoldFormatting = insertMarkdownFormatting(val => `**${val}**`)
-const insertMarkdownItalicFormatting = insertMarkdownFormatting(val => `_${val}_`)
+const insertMarkdownBoldFormatting = insertMarkdownFormatting(
+  val => `**${val}**`,
+  (start, end, mdFormatted) => ({ start: start + 2, end: end + 2 }) // move inside bold
+)
+const insertMarkdownItalicFormatting = insertMarkdownFormatting(
+  val => `_${val}_`,
+  (start, end, mdFormatted) => ({ start: start + 1, end: end + 1 }) // move inside italic
+)
 
 function FormGroup ({ className, label, children }) {
   return (

@@ -20,6 +20,7 @@ import { Form, Select } from './form'
 import SearchIcon from '../svgs/search-line.svg'
 import BackArrow from '../svgs/arrow-left-line.svg'
 import { useNotification } from './notifications'
+import { SUBS } from '../lib/constants'
 
 function WalletSummary ({ me }) {
   if (!me) return null
@@ -225,7 +226,7 @@ export default function Header ({ sub }) {
               onChange={(formik, e) => router.push(e.target.value === 'home' ? '/' : `/~${e.target.value}`)}
               name='sub'
               size='sm'
-              items={['home', 'bitcoin', 'nostr', 'tech', 'jobs']}
+              items={['home', ...SUBS]}
             />
           </Form>
         </Nav.Item>

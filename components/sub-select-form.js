@@ -1,6 +1,7 @@
 import { useRouter } from 'next/router'
 import { Select } from './form'
 import Info from './info'
+import { SUBS, SUBS_NO_JOBS } from '../lib/constants'
 
 export function SubSelectInitial ({ sub }) {
   const router = useRouter()
@@ -22,6 +23,7 @@ export default function SubSelect ({ label, sub, setSub, item, ...props }) {
           <li>If it's bitcoin related, put it in the bitcoin sub.</li>
           <li>If it's nostr related, put it in the nostr sub.</li>
           <li>If it's tech related, put it in the tech sub.</li>
+          <li>If it's stacker news related, put it in the meta sub.</li>
           <li>If it's a job, put it in the jobs sub.</li>
         </ul>
       </div>
@@ -44,7 +46,7 @@ export default function SubSelect ({ label, sub, setSub, item, ...props }) {
       name='sub'
       size='sm'
       defaultValue={props.noForm ? sub : undefined}
-      items={props.noForm ? ['pick sub', 'bitcoin', 'nostr', 'tech', 'jobs'] : item ? ['bitcoin', 'nostr', 'tech'] : ['pick sub', 'bitcoin', 'nostr', 'tech']}
+      items={props.noForm ? ['pick sub', ...SUBS] : item ? SUBS_NO_JOBS : ['pick sub', ...SUBS_NO_JOBS]}
       label={label &&
         <>
           {label}

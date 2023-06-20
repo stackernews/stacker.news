@@ -20,6 +20,6 @@ setDefaultHandler(new NetworkOnly())
 offlineFallback({ pageFallback: '/offline' })
 
 self.addEventListener('push', function (event) {
-  const payload = event.data.json()
-  event.waitUntil(self.registration.showNotification(payload.title, payload.options))
+  const payload = event.data?.json()
+  if (payload) event.waitUntil(self.registration.showNotification(payload.title, payload.options))
 })

@@ -3,13 +3,7 @@ import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { getItem, filterClause } from './item'
 import { getInvoice } from './wallet'
 import { pushSubscriptionSchema, ssValidate } from '../../lib/validate'
-import webPush from 'web-push'
-
-webPush.setVapidDetails(
-  process.env.VAPID_MAILTO,
-  process.env.NEXT_PUBLIC_VAPID_PUBKEY,
-  process.env.VAPID_PRIVKEY
-)
+import { replyToSubscription } from '../webPush'
 
 export default {
   Query: {
@@ -243,21 +237,7 @@ export default {
         data: { userId: me.id, endpoint, p256dh, auth }
       })
 
-      const notification = JSON.stringify({
-        title: 'Stacker News notifications enabled',
-        options: {
-          icon: '/android-chrome-96x96.png'
-        }
-      })
-      await webPush.sendNotification({ endpoint, keys: { p256dh, auth } }, notification)
-        .catch((err) => {
-          if (err.statusCode === 404 || err.statusCode === 410) {
-            console.log('Subscription has expired or is no longer valid: ', err)
-            return models.pushSubscription.delete({ where: { id: dbPushSubscription.id } })
-          } else {
-            throw err
-          }
-        })
+      await replyToSubscription(dbPushSubscription.id, { title: 'Stacker News notifications enabled' })
 
       return dbPushSubscription
     }

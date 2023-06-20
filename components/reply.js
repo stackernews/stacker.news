@@ -9,12 +9,28 @@ import Link from 'next/link'
 import FeeButton from './fee-button'
 import { commentsViewedAfterComment } from '../lib/new-comments'
 import { commentSchema } from '../lib/validate'
+import Info from './info'
 
 export function ReplyOnAnotherPage ({ parentId }) {
   return (
     <Link href={`/items/${parentId}`}>
       <a className={`${styles.replyButtons} text-muted`}>reply on another page</a>
     </Link>
+  )
+}
+
+function FreebieDialog () {
+  return (
+    <div className='text-muted'>
+      you have no sats, so this one is on us
+      <Info>
+        <ul className='font-weight-bold'>
+          <li>Free comments have limited visibility and are listed at the bottom of the comment section until other stackers zap them.</li>
+          <li>Free comments will not cover comments that cost more than 1 sat.</li>
+          <li>To get fully visibile and unrestricted comments right away, fund your account with a few sats or earn some on Stacker News.</li>
+        </ul>
+      </Info>
+    </div>
   )
 }
 
@@ -117,7 +133,7 @@ export default function Reply ({ item, onSuccess, replyOpen, children, placehold
             autoFocus={!replyOpen}
             required
             placeholder={placeholder}
-            hint={me?.freeComments && me?.sats < 1 ? <span className='text-success'>{me.freeComments} free comments left</span> : null}
+            hint={me?.sats < 1 && <FreebieDialog />}
             innerRef={replyInput}
           />
           {reply &&

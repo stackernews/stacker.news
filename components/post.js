@@ -9,6 +9,22 @@ import { LinkForm } from './link-form'
 import { PollForm } from './poll-form'
 import { BountyForm } from './bounty-form'
 import SubSelect from './sub-select-form'
+import Info from './info'
+
+function FreebieDialog () {
+  return (
+    <div className='text-center mb-4 text-muted'>
+      you have no sats, so this one is on us
+      <Info>
+        <ul className='font-weight-bold'>
+          <li>Free posts have limited visibility and are hidden on the recent tab until other stackers zap them.</li>
+          <li>Free posts will not cover posts that cost more than 1 sat.</li>
+          <li>To get fully visibile and unrestricted posts right away, fund your account with a few sats or earn some on Stacker News.</li>
+        </ul>
+      </Info>
+    </div>
+  )
+}
 
 export function PostForm ({ type, sub, children }) {
   const me = useMe()
@@ -18,9 +34,7 @@ export function PostForm ({ type, sub, children }) {
   if (!type) {
     return (
       <div className='align-items-center'>
-        {me?.freePosts && me?.sats < 1
-          ? <div className='text-center font-weight-bold mb-3 text-success'>{me.freePosts} free posts left</div>
-          : null}
+        {me?.sats < 1 && <FreebieDialog />}
         <SubSelect noForm sub={sub?.name} />
         <Link href={prefix + '/post?type=link'}>
           <Button variant='secondary'>link</Button>
@@ -29,7 +43,7 @@ export function PostForm ({ type, sub, children }) {
         <Link href={prefix + '/post?type=discussion'}>
           <Button variant='secondary'>discussion</Button>
         </Link>
-        <div className='d-flex mt-3'>
+        <div className='d-flex mt-4'>
           <AccordianItem
             headerColor='#6c757d'
             header={<div className='font-weight-bold text-muted'>more types</div>}

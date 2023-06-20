@@ -10,6 +10,11 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model Snl {
+  id   Int     @id @default(autoincrement())
+  live Boolean @default(false)
+}
+
 model User {
   id              Int         @id @default(autoincrement())
   createdAt       DateTime    @default(now()) @map(name: "created_at")
@@ -86,7 +91,7 @@ model User {
   greeterMode  Boolean @default(false)
 
   Earn                Earn[]
-  Upload              Upload[]       @relation(name: "Uploads")
+  Upload              Upload[]             @relation(name: "Uploads")
   PollVote            PollVote[]
   Donation            Donation[]
   ReferralAct         ReferralAct[]
@@ -301,11 +306,11 @@ model Item {
   // fields for polls
   pollCost Int?
 
-  User                User[]
-  PollOption          PollOption[]
-  PollVote            PollVote[]
-  Bookmark            Bookmark[]
-  ThreadSubscription  ThreadSubscription[]
+  User               User[]
+  PollOption         PollOption[]
+  PollVote           PollVote[]
+  Bookmark           Bookmark[]
+  ThreadSubscription ThreadSubscription[]
 
   @@index([weightedVotes])
   @@index([weightedDownVotes])

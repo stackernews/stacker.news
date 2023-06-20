@@ -13,6 +13,7 @@ import growth from './growth'
 import rewards from './rewards'
 import referrals from './referrals'
 import price from './price'
+import admin from './admin'
 
 const link = gql`
   type Query {
@@ -29,4 +30,4 @@ const link = gql`
 `
 
 export default [link, user, item, message, wallet, lnurl, notifications, invite,
-  sub, upload, growth, rewards, referrals, price]
+  sub, upload, growth, rewards, referrals, price, admin]

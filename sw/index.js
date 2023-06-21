@@ -23,3 +23,10 @@ self.addEventListener('push', function (event) {
   const payload = event.data?.json()
   if (payload) event.waitUntil(self.registration.showNotification(payload.title, payload.options))
 })
+
+self.addEventListener('notificationclick', (event) => {
+  const url = event.notification.data?.url
+  if (url) {
+    event.waitUntil(self.clients.openWindow(url))
+  }
+})

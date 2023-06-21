@@ -12,6 +12,7 @@ import { msatsToSats } from '../../lib/format'
 import { parse } from 'tldts'
 import uu from 'url-unshort'
 import { amountSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, ssValidate } from '../../lib/validate'
+import { sendUserNotification } from '../webPush'
 
 async function comments (me, models, id, sort) {
   let orderBy
@@ -893,7 +894,16 @@ export default {
     },
     createComment: async (parent, data, { me, models }) => {
       await ssValidate(commentSchema, data)
-      return await createItem(parent, data, { me, models })
+      const item = await createItem(parent, data, { me, models })
+
+      const parentItem = await models.item.findUnique({ where: { id: Number(data.parentId) } })
+      sendUserNotification(parentItem.userId, {
+        title: 'you have a new reply',
+        body: data.text,
+        data: { url: `/items/${item.id}` }
+      })
+
+      return item
     },
     updateComment: async (parent, { id, ...data }, { me, models }) => {
       await ssValidate(commentSchema, data)
@@ -928,6 +938,15 @@ export default {
       }
 
       const [{ item_act: vote }] = await serialize(models, models.$queryRaw`SELECT item_act(${Number(id)}, ${me.id}, 'TIP', ${Number(sats)})`)
+
+      const updatedItem = await models.item.findUnique({ where: { id: Number(id) } })
+      const title = `your ${updatedItem.title ? 'post' : 'reply'} ${updatedItem.fwdUser ? 'forwarded' : 'stacked'} ${Math.floor(Number(updatedItem.msats) / 1000)} sats${updatedItem.fwdUser ? ` to @${updatedItem.fwdUser.name}` : ''}`
+      sendUserNotification(updatedItem.userId, {
+        title,
+        body: updatedItem.title ? updatedItem.title : updatedItem.text,
+        data: { url: `/items/${updatedItem.id}` },
+        tag: `TIP-${updatedItem.id}`
+      })
 
       return {
         vote,
@@ -1181,6 +1200,12 @@ export const createMentions = async (item, models) => {
           },
           update: data,
           create: data
+        })
+
+        sendUserNotification(user.id, {
+          title: 'you were mentioned',
+          body: item.text,
+          data: { url: `/items/${item.id}` }
         })
       })
     }

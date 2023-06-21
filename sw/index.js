@@ -19,9 +19,36 @@ setDefaultHandler(new NetworkOnly())
 // See https://github.com/vercel/next.js/blob/337fb6a9aadb61c916f0121c899e463819cd3f33/server/render.js#L181-L185
 offlineFallback({ pageFallback: '/offline' })
 
-self.addEventListener('push', function (event) {
+self.addEventListener('push', async function (event) {
   const payload = event.data?.json()
-  if (payload) event.waitUntil(self.registration.showNotification(payload.title, payload.options))
+  if (!payload) return
+  const { tag } = payload.options
+  event.waitUntil((async () => {
+    if (!['REPLY', 'MENTION'].includes(tag)) {
+      return self.registration.showNotification(payload.title, payload.options)
+    }
+
+    const notifications = await self.registration.getNotifications({ tag })
+    // since we used a tag filter, there should only be zero or one notification
+    if (notifications.length > 1) {
+      console.error(`more than one notification with tag ${tag} found`)
+      return null
+    }
+    if (notifications.length === 0) {
+      return self.registration.showNotification(payload.title, payload.options)
+    }
+    const currentNotification = notifications[0]
+    const amount = currentNotification.data?.amount ? currentNotification.data.amount + 1 : 2
+    let title = ''
+    if (tag === 'REPLY') {
+      title = `You have ${amount} new replies`
+    } else if (tag === 'MENTION') {
+      title = `You were mentioned ${amount} times`
+    }
+    currentNotification.close()
+    const { icon } = currentNotification
+    return self.registration.showNotification(title, { icon, tag, data: { url: '/notifications', amount } })
+  })())
 })
 
 self.addEventListener('notificationclick', (event) => {

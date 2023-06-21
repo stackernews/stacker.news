@@ -900,7 +900,8 @@ export default {
       sendUserNotification(parentItem.userId, {
         title: 'you have a new reply',
         body: data.text,
-        data: { url: `/items/${item.id}` }
+        data: { url: `/items/${item.id}` },
+        tag: 'REPLY'
       })
 
       return item
@@ -1205,7 +1206,8 @@ export const createMentions = async (item, models) => {
         sendUserNotification(user.id, {
           title: 'you were mentioned',
           body: item.text,
-          data: { url: `/items/${item.id}` }
+          data: { url: `/items/${item.id}` },
+          tag: 'MENTION'
         })
       })
     }

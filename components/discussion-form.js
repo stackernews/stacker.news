@@ -68,7 +68,7 @@ export function DiscussionForm ({
         if (item) {
           await router.push(`/items/${item.id}`)
         } else {
-          const prefix = sub?.name ? `/~${sub.name}/` : ''
+          const prefix = sub?.name ? `/~${sub.name}` : ''
           await router.push(prefix + '/recent')
         }
       })}

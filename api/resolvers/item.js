@@ -896,13 +896,26 @@ export default {
       await ssValidate(commentSchema, data)
       const item = await createItem(parent, data, { me, models })
 
-      const parentItem = await models.item.findUnique({ where: { id: Number(data.parentId) } })
-      sendUserNotification(parentItem.userId, {
-        title: 'you have a new reply',
-        body: data.text,
-        data: { url: `/items/${item.id}` },
-        tag: 'REPLY'
-      })
+      const parents = await models.$queryRaw(`
+      WITH RECURSIVE base AS (
+        SELECT "Item".id, "Item"."parentId", "Item"."userId"
+        FROM "Item"
+        WHERE id = $1
+        UNION ALL
+        SELECT "Item".id, "Item"."parentId", "Item"."userId"
+        FROM base p
+        JOIN "Item" ON "Item".id = p."parentId")
+      SELECT DISTINCT "userId" FROM base
+      WHERE "userId" <> $2
+      `, Number(item.parentId), Number(me.id))
+      Promise.all(
+        parents.map(({ userId }) => sendUserNotification(userId, {
+          title: 'you have a new reply',
+          body: data.text,
+          data: { url: `/items/${item.id}` },
+          tag: 'REPLY'
+        }))
+      )
 
       return item
     },

@@ -35,6 +35,11 @@ export const ServiceWorkerProvider = ({ children }) => {
         }
       `)
 
+  // I am not entirely sure if this is needed since at least in Brave,
+  // using `registration.pushManager.subscribe` also prompts the user.
+  // However, I am keeping this here since that's how it's done in most guides.
+  // Could be that this is required for the `registration.showNotification` call
+  // to work or that some browsers will break without this.
   const requestNotificationPermission = useCallback(() => {
     // https://web.dev/push-notifications-subscribing-a-user/#requesting-permission
     return new Promise(function (resolve, reject) {

@@ -1,4 +1,4 @@
-import { AuthenticationError } from 'apollo-server-micro'
+import { AuthenticationError, UserInputError } from 'apollo-server-micro'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { getItem, filterClause } from './item'
 import { getInvoice } from './wallet'
@@ -247,6 +247,20 @@ export default {
       await replyToSubscription(dbPushSubscription.id, { title: 'Stacker News notifications enabled' })
 
       return dbPushSubscription
+    },
+    deletePushSubscription: async (parent, { endpoint }, { me, models }) => {
+      if (!me) {
+        throw new AuthenticationError('you must be logged in')
+      }
+
+      const subscription = await models.pushSubscription.findFirst({ where: { endpoint, userId: Number(me.id) } })
+      if (!subscription) {
+        throw new UserInputError('endpoint not found', {
+          argumentName: 'endpoint'
+        })
+      }
+      await models.pushSubscription.delete({ where: { id: subscription.id } })
+      return subscription
     }
   },
   Notification: {

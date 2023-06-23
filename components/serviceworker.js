@@ -7,7 +7,7 @@ const applicationServerKey = process.env.NEXT_PUBLIC_VAPID_PUBKEY
 const ServiceWorkerContext = createContext()
 
 export const ServiceWorkerProvider = ({ children }) => {
-  const [swRegistration, setSWRegistration] = useState(null)
+  const [registration, setRegistration] = useState(null)
   const [support, setSupport] = useState({ serviceWorker: undefined, pushManager: undefined })
   const [permission, setPermission] = useState({ notification: undefined })
   const [savePushSubscription] = useMutation(
@@ -26,6 +26,14 @@ export const ServiceWorkerProvider = ({ children }) => {
         }
       }
     `)
+  const [deletePushSubscription] = useMutation(
+    gql`
+        mutation deletePushSubscription($endpoint: String!) {
+          deletePushSubscription(endpoint: $endpoint) {
+            id
+          }
+        }
+      `)
 
   const requestNotificationPermission = useCallback(() => {
     // https://web.dev/push-notifications-subscribing-a-user/#requesting-permission
@@ -46,7 +54,7 @@ export const ServiceWorkerProvider = ({ children }) => {
     const subscribeOptions = { userVisibleOnly: true, applicationServerKey }
     // Brave users must enable a flag in brave://settings/privacy first
     // see https://stackoverflow.com/a/69624651
-    let pushSubscription = await swRegistration.pushManager.subscribe(subscribeOptions)
+    let pushSubscription = await registration.pushManager.subscribe(subscribeOptions)
     // convert keys from ArrayBuffer to string
     pushSubscription = JSON.parse(JSON.stringify(pushSubscription))
     const variables = {
@@ -56,6 +64,18 @@ export const ServiceWorkerProvider = ({ children }) => {
     }
     await savePushSubscription({ variables })
   }
+
+  const unsubscribeFromPushNotifications = async (subscription) => {
+    await subscription.unsubscribe()
+    const { endpoint } = subscription
+    await deletePushSubscription({ variables: { endpoint } })
+  }
+
+  const togglePushSubscription = useCallback(async () => {
+    const pushSubscription = await registration.pushManager.getSubscription()
+    if (pushSubscription) return unsubscribeFromPushNotifications(pushSubscription)
+    return subscribeToPushNotifications()
+  })
 
   useEffect(() => {
     setSupport({
@@ -70,11 +90,15 @@ export const ServiceWorkerProvider = ({ children }) => {
     if (!support.serviceWorker) return
     const wb = new Workbox('/sw.js', { scope: '/' })
     wb.register().then(registration => {
-      setSWRegistration(registration)
+      setRegistration(registration)
     })
   }, [support.serviceWorker])
 
-  return <ServiceWorkerContext.Provider value={{ support, permission, requestNotificationPermission }}>{children}</ServiceWorkerContext.Provider>
+  return (
+    <ServiceWorkerContext.Provider value={{ registration, support, permission, requestNotificationPermission, togglePushSubscription }}>
+      {children}
+    </ServiceWorkerContext.Provider>
+  )
 }
 
 export function useServiceWorker () {

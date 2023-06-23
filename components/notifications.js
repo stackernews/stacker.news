@@ -19,6 +19,7 @@ import { RootProvider } from './root'
 import { Alert } from 'react-bootstrap'
 import styles from './notifications.module.css'
 import { useServiceWorker } from './serviceworker'
+import { Checkbox, Form } from './form'
 
 function Notification ({ n }) {
   switch (n.__typename) {
@@ -255,13 +256,18 @@ function Reply ({ n }) {
 
 function NotificationAlert () {
   const [showAlert, setShowAlert] = useState(false)
+  const [showToggle, setShowToggle] = useState(false)
+  const [hasSubscription, setHasSubscription] = useState(undefined)
   const [error, setError] = useState(null)
   const sw = useServiceWorker()
 
   useEffect(() => {
     const isSupported = sw.support.serviceWorker && sw.support.pushManager && sw.support.notification
     const isDefaultPermission = sw.permission.notification === 'default'
+    const isGranted = sw.permission.notification === 'granted'
     setShowAlert(isSupported && isDefaultPermission && !localStorage.getItem('hideNotifyPrompt'))
+    setShowToggle(isGranted)
+    sw.registration?.pushManager.getSubscription().then(subscription => setHasSubscription(!!subscription))
   }, [sw])
 
   const close = () => {
@@ -292,7 +298,13 @@ function NotificationAlert () {
             <button className={`${styles.alertBtn}`} onClick={close}>No</button>
           </Alert>
           )
-        : null
+        : showToggle
+          ? (
+            <Form initial={{ pushNotify: hasSubscription }}>
+              <Checkbox name='pushNotify' label='push notifications' inline checked={hasSubscription} handleChange={sw.togglePushSubscription} />
+            </Form>
+            )
+          : null
   )
 }
 

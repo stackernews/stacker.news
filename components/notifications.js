@@ -256,7 +256,7 @@ function Reply ({ n }) {
 
 function NotificationAlert () {
   const [showAlert, setShowAlert] = useState(false)
-  const [hasSubscription, setHasSubscription] = useState(undefined)
+  const [hasSubscription, setHasSubscription] = useState(false)
   const [error, setError] = useState(null)
   const sw = useServiceWorker()
 

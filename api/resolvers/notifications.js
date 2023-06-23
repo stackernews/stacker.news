@@ -244,7 +244,7 @@ export default {
         })
       }
 
-      await replyToSubscription(dbPushSubscription.id, { title: 'Stacker News notifications enabled' })
+      await replyToSubscription(dbPushSubscription.id, { title: 'Stacker News notifications are now active' })
 
       return dbPushSubscription
     },

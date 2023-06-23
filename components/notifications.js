@@ -296,7 +296,7 @@ function NotificationAlert () {
           </Alert>
           )
         : (
-          <Form initial={{ pushNotify: hasSubscription }}>
+          <Form className='d-flex justify-content-end' initial={{ pushNotify: hasSubscription }}>
             <Checkbox name='pushNotify' label='push notifications' inline checked={hasSubscription} handleChange={sw.togglePushSubscription} />
           </Form>
           )

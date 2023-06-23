@@ -226,16 +226,23 @@ export default {
     }
   },
   Mutation: {
-    savePushSubscription: async (parent, { endpoint, p256dh, auth }, { me, models }) => {
+    savePushSubscription: async (parent, { endpoint, p256dh, auth, oldEndpoint }, { me, models }) => {
       if (!me) {
         throw new AuthenticationError('you must be logged in')
       }
 
       await ssValidate(pushSubscriptionSchema, { endpoint, p256dh, auth })
 
-      const dbPushSubscription = await models.pushSubscription.create({
-        data: { userId: me.id, endpoint, p256dh, auth }
-      })
+      let dbPushSubscription
+      if (oldEndpoint) {
+        dbPushSubscription = await models.pushSubscription.update({
+          data: { userId: me.id, endpoint, p256dh, auth }, where: { endpoint: oldEndpoint }
+        })
+      } else {
+        dbPushSubscription = await models.pushSubscription.create({
+          data: { userId: me.id, endpoint, p256dh, auth }
+        })
+      }
 
       await replyToSubscription(dbPushSubscription.id, { title: 'Stacker News notifications enabled' })
 

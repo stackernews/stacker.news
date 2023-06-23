@@ -61,8 +61,8 @@ self.addEventListener('notificationclick', (event) => {
 self.addEventListener('pushsubscriptionchange', (event) => {
   // https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/pushsubscriptionchange_event
   const query = `
-  mutation savePushSubscription($endpoint: String!, $p256dh: String!, $auth: String!) {
-    savePushSubscription(endpoint: $endpoint, p256dh: $p256dh, auth: $auth) {
+  mutation savePushSubscription($endpoint: String!, $p256dh: String!, $auth: String!, $oldEndpoint: String!) {
+    savePushSubscription(endpoint: $endpoint, p256dh: $p256dh, auth: $auth, oldEndpoint: $oldEndpoint) {
       id
     }
   }`
@@ -74,7 +74,8 @@ self.addEventListener('pushsubscriptionchange', (event) => {
       const variables = {
         endpoint: subscription.endpoint,
         p256dh: subscription.keys.p256dh,
-        auth: subscription.keys.auth
+        auth: subscription.keys.auth,
+        oldEndpoint: event.oldSubscription.endpoint
       }
       const body = JSON.stringify({ query, variables })
       return fetch('/api/graphql', {

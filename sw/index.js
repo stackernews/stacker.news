@@ -57,3 +57,35 @@ self.addEventListener('notificationclick', (event) => {
     event.waitUntil(self.clients.openWindow(url))
   }
 })
+
+self.addEventListener('pushsubscriptionchange', (event) => {
+  // https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/pushsubscriptionchange_event
+  const query = `
+  mutation savePushSubscription($endpoint: String!, $p256dh: String!, $auth: String!) {
+    savePushSubscription(endpoint: $endpoint, p256dh: $p256dh, auth: $auth) {
+      id
+    }
+  }`
+  const subscription = self.registration.pushManager
+    .subscribe(event.oldSubscription.options)
+    .then((subscription) => {
+      // convert keys from ArrayBuffer to string
+      subscription = JSON.parse(JSON.stringify(subscription))
+      const variables = {
+        endpoint: subscription.endpoint,
+        p256dh: subscription.keys.p256dh,
+        auth: subscription.keys.auth
+      }
+      const body = JSON.stringify({ query, variables })
+      return fetch('/api/graphql', {
+        method: 'POST',
+        headers: {
+          'Content-type': 'application/json'
+        },
+        body
+      })
+    })
+  event.waitUntil(subscription)
+},
+false
+)

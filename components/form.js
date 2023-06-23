@@ -124,7 +124,6 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
             onKeyDown={(e) => {
               const metaOrCtrl = e.metaKey || e.ctrlKey
               if (metaOrCtrl) {
-                if (e.key === 'Enter') formik?.submitForm()
                 if (e.key === 'k') {
                   // some browsers use CTRL+K to focus search bar so we have to prevent that behavior
                   e.preventDefault()

@@ -6,7 +6,7 @@ export default gql`
   }
 
   extend type Mutation {
-    savePushSubscription(userId: ID!, endpoint: String!, p256dh: String!, auth: String!): PushSubscription
+    savePushSubscription(endpoint: String!, p256dh: String!, auth: String!): PushSubscription
   }
 
   type Votification {

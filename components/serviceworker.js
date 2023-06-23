@@ -1,27 +1,23 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { Workbox } from 'workbox-window'
 import { gql, useMutation } from '@apollo/client'
-import { useMe } from './me'
 
 const applicationServerKey = process.env.NEXT_PUBLIC_VAPID_PUBKEY
 
 const ServiceWorkerContext = createContext()
 
 export const ServiceWorkerProvider = ({ children }) => {
-  const me = useMe()
   const [swRegistration, setSWRegistration] = useState(null)
   const [support, setSupport] = useState({ serviceWorker: undefined, pushManager: undefined })
   const [permission, setPermission] = useState({ notification: undefined })
   const [savePushSubscription] = useMutation(
     gql`
       mutation savePushSubscription(
-        $userId: ID!
         $endpoint: String!
         $p256dh: String!
         $auth: String!
       ) {
         savePushSubscription(
-          userId: $userId
           endpoint: $endpoint
           p256dh: $p256dh
           auth: $auth
@@ -54,7 +50,6 @@ export const ServiceWorkerProvider = ({ children }) => {
     // convert keys from ArrayBuffer to string
     pushSubscription = JSON.parse(JSON.stringify(pushSubscription))
     const variables = {
-      userId: me.id,
       endpoint: pushSubscription.endpoint,
       p256dh: pushSubscription.keys.p256dh,
       auth: pushSubscription.keys.auth

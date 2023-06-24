@@ -297,7 +297,11 @@ function NotificationAlert () {
           )
         : (
           <Form className='d-flex justify-content-end' initial={{ pushNotify: hasSubscription }}>
-            <Checkbox name='pushNotify' label='push notifications' inline checked={hasSubscription} handleChange={sw.togglePushSubscription} />
+            <Checkbox
+              name='pushNotify' label='push notifications' inline checked={hasSubscription} handleChange={async () => {
+                await sw.togglePushSubscription().catch(setError)
+              }}
+            />
           </Form>
           )
   )

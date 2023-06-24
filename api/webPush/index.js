@@ -13,7 +13,7 @@ const createPayload = (notification) => {
   return JSON.stringify({
     title,
     options: {
-      timestamp: Math.floor(Date.now() / 1000),
+      timestamp: Date.now(),
       icon: '/android-chrome-96x96.png',
       ...options
     }

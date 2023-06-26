@@ -899,7 +899,7 @@ export default {
       const parents = await models.$queryRaw(
         'SELECT DISTINCT p."userId" FROM "Item" i JOIN "Item" p ON p.path @> i.path WHERE i.id = $1 and p."userId" <> $2',
         Number(item.parentId), Number(me.id))
-      Promise.all(
+      Promise.allSettled(
         parents.map(({ userId }) => sendUserNotification(userId, {
           title: 'you have a new reply',
           body: data.text,

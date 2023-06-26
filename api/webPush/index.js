@@ -42,15 +42,23 @@ const sendNotification = (subscription, payload) => {
 }
 
 export async function sendUserNotification (userId, notification) {
-  const payload = createPayload(notification)
-  const subscriptions = await models.pushSubscription.findMany({ where: { userId } })
-  return await Promise.all(
-    subscriptions.map(subscription => sendNotification(subscription, payload))
-  )
+  try {
+    const payload = createPayload(notification)
+    const subscriptions = await models.pushSubscription.findMany({ where: { userId } })
+    await Promise.allSettled(
+      subscriptions.map(subscription => sendNotification(subscription, payload))
+    )
+  } catch (err) {
+    console.log('[webPush] error sending user notification: ', err)
+  }
 }
 
 export async function replyToSubscription (subscriptionId, notification) {
-  const payload = createPayload(notification)
-  const subscription = await models.pushSubscription.findUnique({ where: { id: subscriptionId } })
-  return await sendNotification(subscription, payload)
+  try {
+    const payload = createPayload(notification)
+    const subscription = await models.pushSubscription.findUnique({ where: { id: subscriptionId } })
+    await sendNotification(subscription, payload)
+  } catch (err) {
+    console.log('[webPush] error sending subscription reply: ', err)
+  }
 }

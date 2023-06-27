@@ -20,6 +20,17 @@ const createPayload = (notification) => {
   })
 }
 
+const createUserFilter = (tag) => {
+  // filter users by notification settings
+  const tagMap = {
+    REPLY: 'noteAllDescendants',
+    MENTION: 'noteMentions',
+    TIP: 'noteItemSats'
+  }
+  const key = tagMap[tag.split('-')[0]]
+  return key ? { user: { where: { [key]: true } } } : undefined
+}
+
 const sendNotification = (subscription, payload) => {
   const { id, endpoint, p256dh, auth } = subscription
   return webPush.sendNotification({ endpoint, keys: { p256dh, auth } }, payload)
@@ -43,8 +54,12 @@ const sendNotification = (subscription, payload) => {
 
 export async function sendUserNotification (userId, notification) {
   try {
+    const userFilter = createUserFilter(notification.tag)
     const payload = createPayload(notification)
-    const subscriptions = await models.pushSubscription.findMany({ where: { userId } })
+    const subscriptions = await models.pushSubscription.findMany({
+      where: { userId },
+      include: userFilter
+    })
     await Promise.allSettled(
       subscriptions.map(subscription => sendNotification(subscription, payload))
     )

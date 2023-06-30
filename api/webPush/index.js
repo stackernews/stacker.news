@@ -28,7 +28,7 @@ const createUserFilter = (tag) => {
     TIP: 'noteItemSats'
   }
   const key = tagMap[tag.split('-')[0]]
-  return key ? { user: { where: { [key]: true } } } : undefined
+  return key ? { user: { [key]: true } } : undefined
 }
 
 const sendNotification = (subscription, payload) => {
@@ -57,8 +57,7 @@ export async function sendUserNotification (userId, notification) {
     const userFilter = createUserFilter(notification.tag)
     const payload = createPayload(notification)
     const subscriptions = await models.pushSubscription.findMany({
-      where: { userId },
-      include: userFilter
+      where: { userId, ...userFilter }
     })
     await Promise.allSettled(
       subscriptions.map(subscription => sendNotification(subscription, payload))

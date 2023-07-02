@@ -9,6 +9,10 @@ import manifest from './precache-manifest.json'
 
 precacheAndRoute(manifest)
 
+self.addEventListener('install', () => {
+  self.skipWaiting()
+})
+
 // Using network-only as the default strategy ensures that we fallback
 // to the browser as if the service worker wouldn't exist.
 // The browser may use own caching (HTTP cache).

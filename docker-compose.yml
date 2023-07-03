@@ -50,6 +50,17 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command:
       - node worker/index.js
-
+  imgproxy:
+    container_name: imgproxy
+    image: darthsim/imgproxy:v3.18.1
+    restart: always
+    env_file:
+      - ./.env.sample
+    expose:
+      - "8080"
+    ports:
+      - "3001:8080"
+    links:
+      - app
 volumes:
   db:

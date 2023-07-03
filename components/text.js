@@ -14,7 +14,7 @@ import LinkIcon from '../svgs/link.svg'
 import Thumb from '../svgs/thumb-up-fill.svg'
 import { toString } from 'mdast-util-to-string'
 import copy from 'clipboard-copy'
-import { IMG_URL_REGEXP } from '../lib/url'
+import { IMGPROXY_URL_REGEXP, IMG_URL_REGEXP } from '../lib/url'
 import { extractUrls } from '../lib/md'
 
 function myRemarkPlugin () {
@@ -68,9 +68,10 @@ const CACHE_STATES = {
   IS_ERROR: 'IS_ERROR'
 }
 
-export default function Text ({ topLevel, noFragments, nofollow, children }) {
+export default function Text ({ topLevel, noFragments, nofollow, onlyImgProxy, children }) {
   // all the reactStringReplace calls are to facilitate search highlighting
   const slugger = new GithubSlugger()
+  onlyImgProxy = onlyImgProxy ?? true
 
   const HeadingWrapper = (props) => Heading({ topLevel, slugger, noFragments, ...props })
 
@@ -78,12 +79,13 @@ export default function Text ({ topLevel, noFragments, nofollow, children }) {
   const [urlCache, setUrlCache] = useState({})
 
   useEffect(() => {
+    const imgRegexp = onlyImgProxy ? IMGPROXY_URL_REGEXP : IMG_URL_REGEXP
     const urls = extractUrls(children)
 
     urls.forEach((url) => {
-      if (IMG_URL_REGEXP.test(url)) {
+      if (imgRegexp.test(url)) {
         setUrlCache((prev) => ({ ...prev, [url]: CACHE_STATES.IS_LOADED }))
-      } else {
+      } else if (!onlyImgProxy) {
         const img = new Image()
         imgCache.current[url] = img
 

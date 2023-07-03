@@ -23,11 +23,23 @@ const createImageProxyUrl = url => {
   return `${IMGPROXY_URL}/${signature}${target}`
 }
 
-export const useImageProxy = text => {
+const isImageURL = async url => {
+  // https://stackoverflow.com/a/68118683
+  try {
+    const res = await fetch(url, { method: 'HEAD' })
+    const buf = await res.blob()
+    return buf.type.startsWith('image/')
+  } catch (err) {
+    console.log(err)
+    return false
+  }
+}
+
+export const useImageProxy = async text => {
   const urls = extractUrls(text)
   for (const url of urls) {
     if (url.startsWith(IMGPROXY_URL)) continue
-    // TODO: check if URL is image like in frontend
+    if (!(await isImageURL(url))) continue
     const proxyUrl = createImageProxyUrl(url)
     text = text.replace(url, proxyUrl)
   }

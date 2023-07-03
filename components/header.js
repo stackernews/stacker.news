@@ -8,7 +8,6 @@ import Price from './price'
 import { useMe } from './me'
 import Head from 'next/head'
 import { signOut } from 'next-auth/client'
-import { useLightning } from './lightning'
 import { useEffect, useState } from 'react'
 import { randInRange } from '../lib/rand'
 import { abbrNum } from '../lib/format'
@@ -21,6 +20,7 @@ import SearchIcon from '../svgs/search-line.svg'
 import BackArrow from '../svgs/arrow-left-line.svg'
 import { useNotification } from './notifications'
 import { SUBS } from '../lib/constants'
+import { useFireworks } from './fireworks'
 
 function WalletSummary ({ me }) {
   if (!me) return null
@@ -167,7 +167,7 @@ export default function Header ({ sub }) {
       )
     } else {
       if (!fired) {
-        const strike = useLightning()
+        const strike = useFireworks()
         useEffect(() => {
           let isMounted = true
           if (!localStorage.getItem('striked')) {

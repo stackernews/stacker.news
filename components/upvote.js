@@ -12,6 +12,7 @@ import LongPressable from 'react-longpressable'
 import { Overlay, Popover } from 'react-bootstrap'
 import { useShowModal } from './modal'
 import { useRouter } from 'next/router'
+import { FireworksConsumer } from './fireworks'
 
 const getColor = (meSats) => {
   if (!meSats || meSats <= 10) {
@@ -175,7 +176,7 @@ export default function UpVote ({ item, className }) {
 
   const color = getColor(item?.meSats)
   return (
-    <LightningConsumer>
+    <FireworksConsumer>
       {({ strike }) =>
         <div ref={ref} className='upvoteParent'>
           <LongPressable
@@ -263,6 +264,6 @@ export default function UpVote ({ item, className }) {
           <TipPopover target={ref.current} show={tipShow} handleClose={() => setTipShow(false)} />
           <UpvotePopover target={ref.current} show={voteShow} handleClose={() => setVoteShow(false)} />
         </div>}
-    </LightningConsumer>
+    </FireworksConsumer>
   )
 }

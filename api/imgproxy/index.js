@@ -41,7 +41,7 @@ export const useImageProxy = async text => {
     if (url.startsWith(IMGPROXY_URL)) continue
     if (!(await isImageURL(url))) continue
     const proxyUrl = createImageProxyUrl(url)
-    text = text.replace(url, proxyUrl)
+    text = text.replace(new RegExp(url, 'g'), proxyUrl)
   }
   return text
 }

@@ -951,7 +951,7 @@ export default {
         body: updatedItem.title ? updatedItem.title : updatedItem.text,
         data: { url: `/items/${updatedItem.id}` },
         tag: `TIP-${updatedItem.id}`
-      })
+      }).catch(console.error)
 
       return {
         vote,
@@ -1212,7 +1212,7 @@ export const createMentions = async (item, models) => {
           body: item.text,
           data: { url: `/items/${item.id}` },
           tag: 'MENTION'
-        })
+        }).catch(console.error)
       })
     }
   } catch (e) {

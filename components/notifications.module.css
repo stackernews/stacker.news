@@ -23,3 +23,7 @@
     border: 0 solid transparent;
     font-size: 0.9rem;
 }
+
+.subFormGroup > div {
+    margin-right: 0 !important;
+}

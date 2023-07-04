@@ -298,7 +298,9 @@ function NotificationAlert () {
         : (
           <Form className='d-flex justify-content-end' initial={{ pushNotify: hasSubscription }}>
             <Checkbox
-              name='pushNotify' label='push notifications' inline checked={hasSubscription} handleChange={async () => {
+              name='pushNotify' label={<span className='text-muted'>push notifications</span>}
+              groupClassName={`${styles.subFormGroup} mb-1 mr-sm-3 mr-0`}
+              inline checked={hasSubscription} handleChange={async () => {
                 await sw.togglePushSubscription().catch(setError)
               }}
             />

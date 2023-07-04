@@ -264,7 +264,7 @@ function NotificationAlert () {
     const isSupported = sw.support.serviceWorker && sw.support.pushManager && sw.support.notification
     const isDefaultPermission = sw.permission.notification === 'default'
     setShowAlert(isSupported && isDefaultPermission && !localStorage.getItem('hideNotifyPrompt'))
-    sw.registration?.pushManager.getSubscription().then(subscription => setHasSubscription(!!subscription))
+    isSupported && sw.registration?.pushManager.getSubscription().then(subscription => setHasSubscription(!!subscription))
   }, [sw])
 
   const close = () => {

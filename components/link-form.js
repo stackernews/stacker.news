@@ -19,6 +19,9 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
   const client = useApolloClient()
   const schema = linkSchema(client)
+  // if Web Share Target API was used
+  const shareUrl = router.query.url
+  const shareTitle = router.query.title
 
   const [getPageTitleAndUnshorted, { data }] = useLazyQuery(gql`
     query PageTitleAndUnshorted($url: String!) {
@@ -95,8 +98,8 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
   return (
     <Form
       initial={{
-        title: item?.title || '',
-        url: item?.url || '',
+        title: item?.title || shareTitle || '',
+        url: item?.url || shareUrl || '',
         ...AdvPostInitial({ forward: item?.fwdUser?.name }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}

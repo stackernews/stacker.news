@@ -4,6 +4,14 @@
 
 .markdownInput textarea {
     margin-top: -1px;
+    font-size: 94%;
+    line-height: 140%;
+}
+
+@media screen and (min-width: 767px) {
+    .markdownInput textarea {
+        line-height: 130%;
+    }
 }
 
 .markdownInput .text {

@@ -1,7 +1,9 @@
-import { AuthenticationError } from 'apollo-server-micro'
+import { AuthenticationError, UserInputError } from 'apollo-server-micro'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { getItem, filterClause } from './item'
 import { getInvoice } from './wallet'
+import { pushSubscriptionSchema, ssValidate } from '../../lib/validate'
+import { replyToSubscription } from '../webPush'
 
 export default {
   Query: {
@@ -221,6 +223,44 @@ export default {
         cursor: notifications.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
         notifications
       }
+    }
+  },
+  Mutation: {
+    savePushSubscription: async (parent, { endpoint, p256dh, auth, oldEndpoint }, { me, models }) => {
+      if (!me) {
+        throw new AuthenticationError('you must be logged in')
+      }
+
+      await ssValidate(pushSubscriptionSchema, { endpoint, p256dh, auth })
+
+      let dbPushSubscription
+      if (oldEndpoint) {
+        dbPushSubscription = await models.pushSubscription.update({
+          data: { userId: me.id, endpoint, p256dh, auth }, where: { endpoint: oldEndpoint }
+        })
+      } else {
+        dbPushSubscription = await models.pushSubscription.create({
+          data: { userId: me.id, endpoint, p256dh, auth }
+        })
+      }
+
+      await replyToSubscription(dbPushSubscription.id, { title: 'Stacker News notifications are now active' })
+
+      return dbPushSubscription
+    },
+    deletePushSubscription: async (parent, { endpoint }, { me, models }) => {
+      if (!me) {
+        throw new AuthenticationError('you must be logged in')
+      }
+
+      const subscription = await models.pushSubscription.findFirst({ where: { endpoint, userId: Number(me.id) } })
+      if (!subscription) {
+        throw new UserInputError('endpoint not found', {
+          argumentName: 'endpoint'
+        })
+      }
+      await models.pushSubscription.delete({ where: { id: subscription.id } })
+      return subscription
     }
   },
   Notification: {

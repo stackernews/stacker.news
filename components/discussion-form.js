@@ -22,6 +22,9 @@ export function DiscussionForm ({
   const router = useRouter()
   const client = useApolloClient()
   const schema = discussionSchema(client)
+  // if Web Share Target API was used
+  const shareTitle = router.query.title
+
   // const me = useMe()
   const [upsertDiscussion] = useMutation(
     gql`
@@ -51,7 +54,7 @@ export function DiscussionForm ({
   return (
     <Form
       initial={{
-        title: item?.title || '',
+        title: item?.title || shareTitle || '',
         text: item?.text || '',
         ...AdvPostInitial({ forward: item?.fwdUser?.name }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })

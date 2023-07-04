@@ -13,8 +13,8 @@ import Moon from '../svgs/moon-fill.svg'
 import Layout from '../components/layout'
 import { ShowModalProvider } from '../components/modal'
 import ErrorBoundary from '../components/error-boundary'
-import { NotificationProvider } from '../components/notifications'
 import { FireworksProvider } from '../components/fireworks'
+import { ServiceWorkerProvider } from '../components/serviceworker'
 
 function CSRWrapper ({ Component, apollo, ...props }) {
   const { data, error } = useQuery(gql`${apollo.query}`, { variables: apollo.variables, fetchPolicy: 'cache-first' })
@@ -89,7 +89,7 @@ function MyApp ({ Component, pageProps: { session, ...props } }) {
           <Provider session={session}>
             <ApolloProvider client={client}>
               <MeProvider me={me}>
-                <NotificationProvider>
+                <ServiceWorkerProvider>
                   <PriceProvider price={price}>
                     <FireworksProvider>
                       <ShowModalProvider>
@@ -99,7 +99,7 @@ function MyApp ({ Component, pageProps: { session, ...props } }) {
                       </ShowModalProvider>
                     </FireworksProvider>
                   </PriceProvider>
-                </NotificationProvider>
+                </ServiceWorkerProvider>
               </MeProvider>
             </ApolloProvider>
           </Provider>

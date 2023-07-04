@@ -43,7 +43,6 @@
     "next": "^12.3.2",
     "next-auth": "^3.29.10",
     "next-plausible": "^3.6.4",
-    "next-pwa": "^5.6.0",
     "next-seo": "^4.29.0",
     "nextjs-progressbar": "0.0.16",
     "node-s3-url-encode": "^0.0.4",
@@ -82,7 +81,14 @@
     "url-unshort": "^6.1.0",
     "use-dark-mode": "^2.3.1",
     "uuid": "^8.3.2",
+    "web-push": "^3.6.2",
     "webln": "^0.2.2",
+    "workbox-precaching": "^7.0.0",
+    "workbox-recipes": "^7.0.0",
+    "workbox-routing": "^7.0.0",
+    "workbox-strategies": "^7.0.0",
+    "workbox-webpack-plugin": "^7.0.0",
+    "workbox-window": "^7.0.0",
     "yup": "^0.32.11"
   },
   "engines": {

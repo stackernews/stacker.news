@@ -42,10 +42,9 @@ envbak
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
 
-# auto-generated files by next-pwa / workbox
-public/sw.js
-public/sw.js.map
-public/workbox-*.js
-public/workbox-*.js.map
-public/worker-*.js
-public/fallback-*.js
+# service worker
+public/sw.js*
+sw/precache-manifest.json
+public/workbox-*.js*
+public/*-development.js
+

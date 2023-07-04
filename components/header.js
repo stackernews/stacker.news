@@ -18,7 +18,6 @@ import CowboyHat from './cowboy-hat'
 import { Form, Select } from './form'
 import SearchIcon from '../svgs/search-line.svg'
 import BackArrow from '../svgs/arrow-left-line.svg'
-import { useNotification } from './notifications'
 import { SUBS } from '../lib/constants'
 import { useFireworks } from './fireworks'
 
@@ -51,7 +50,6 @@ export default function Header ({ sub }) {
   const [prefix, setPrefix] = useState('')
   const [path, setPath] = useState('')
   const me = useMe()
-  const notification = useNotification()
 
   useEffect(() => {
     // there's always at least 2 on the split, e.g. '/' yields ['','']
@@ -73,17 +71,7 @@ export default function Header ({ sub }) {
     }
   `, {
     pollInterval: 30000,
-    fetchPolicy: 'cache-and-network',
-    // Trigger onComplete after every poll
-    // See https://github.com/apollographql/apollo-client/issues/5531#issuecomment-568235629
-    notifyOnNetworkStatusChange: true,
-    onCompleted: (data) => {
-      const notified = JSON.parse(localStorage.getItem('notified')) || false
-      if (!notified && data.hasNewNotes) {
-        notification.show('you have Stacker News notifications')
-      }
-      localStorage.setItem('notified', data.hasNewNotes)
-    }
+    fetchPolicy: 'cache-and-network'
   })
   // const [lastCheckedJobs, setLastCheckedJobs] = useState(new Date().getTime())
   // useEffect(() => {

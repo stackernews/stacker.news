@@ -40,7 +40,7 @@ export function FireworksProvider ({ children }) {
               quantity: 1
             },
             size: {
-              width: 50,
+              width: 10,
               height: 0
             },
             position: {
@@ -165,7 +165,10 @@ const fireworksOptions = ['#ff595e', '#ffca3a', '#8ac926', '#1982c4', '#6a4c93']
         },
         speed: { min: 5, max: 15 },
         direction: 'none',
-        outModes: 'destroy'
+        outMode: {
+          top: 'destroy',
+          default: 'bounce'
+        }
       }
     }
   })
@@ -178,7 +181,7 @@ const particlesOptions = (theme) => ({
   destroy: {
     mode: 'split',
     bounds: {
-      top: { min: 5, max: 50 }
+      top: { min: 5, max: 40 }
     },
     split: {
       sizeOffset: false,
@@ -228,7 +231,6 @@ const particlesOptions = (theme) => ({
       inverse: true,
       maxSpeed: 100
     },
-    direction: 'top-center',
     speed: {
       min: 10,
       max: 20
@@ -246,6 +248,7 @@ const particlesOptions = (theme) => ({
 })
 
 const darkOptions = {
+  fullScreen: { enable: true },
   detectRetina: true,
   background: {
     color: '#000'
@@ -257,6 +260,7 @@ const darkOptions = {
 }
 
 const lightOptions = {
+  fullScreen: { enable: true },
   detectRetina: true,
   background: {
     color: '#fff'

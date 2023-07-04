@@ -258,14 +258,20 @@ function NotificationAlert () {
   const [showAlert, setShowAlert] = useState(false)
   const [hasSubscription, setHasSubscription] = useState(false)
   const [error, setError] = useState(null)
+  const [supported, setSupported] = useState(false)
   const sw = useServiceWorker()
 
   useEffect(() => {
     const isSupported = sw.support.serviceWorker && sw.support.pushManager && sw.support.notification
-    const isDefaultPermission = sw.permission.notification === 'default'
-    setShowAlert(isSupported && isDefaultPermission && !localStorage.getItem('hideNotifyPrompt'))
-    isSupported && sw.registration?.pushManager.getSubscription().then(subscription => setHasSubscription(!!subscription))
+    if (isSupported) {
+      const isDefaultPermission = sw.permission.notification === 'default'
+      setShowAlert(isDefaultPermission && !localStorage.getItem('hideNotifyPrompt'))
+      sw.registration?.pushManager.getSubscription().then(subscription => setHasSubscription(!!subscription))
+      setSupported(true)
+    }
   }, [sw])
+
+  if (!supported) return null
 
   const close = () => {
     localStorage.setItem('hideNotifyPrompt', 'yep')

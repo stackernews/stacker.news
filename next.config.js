@@ -38,6 +38,16 @@ module.exports = withPlausibleProxy()({
         headers: corsHeaders
       },
       {
+        source: '/darkmode.js',
+        headers: [
+          ...corsHeaders,
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable'
+          }
+        ]
+      },
+      {
         source: '/Lightningvolt-xoqm.ttf',
         headers: [
           ...corsHeaders,

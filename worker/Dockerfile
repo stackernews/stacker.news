@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM node:14.21.3-bullseye
+FROM node:16.16.0-bullseye
 
 ENV NODE_ENV=development
 

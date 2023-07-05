@@ -60,6 +60,7 @@ self.addEventListener('notificationclick', (event) => {
   if (url) {
     event.waitUntil(self.clients.openWindow(url))
   }
+  event.notification.close()
 })
 
 self.addEventListener('pushsubscriptionchange', (event) => {

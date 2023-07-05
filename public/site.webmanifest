@@ -25,7 +25,8 @@
   ],
   "display": "standalone",
   "theme_color": "#000000",
-  "background_color": "#ffffff",
+  "background_color": "#000000",
+  "id": "/",
   "start_url": "/",
   "url_handlers": [
     {
@@ -35,6 +36,7 @@
   "share_target": {
     "action": "/share",
     "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
     "params": {
       "title": "title",
       "text": "text",

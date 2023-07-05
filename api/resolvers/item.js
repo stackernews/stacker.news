@@ -1250,6 +1250,7 @@ export const updateItem = async (parent, { id, data: { sub, title, url, text, bo
     }
   }
 
+  url = await useImageProxy(url)
   text = await useImageProxy(text)
 
   const [item] = await serialize(models,
@@ -1284,6 +1285,7 @@ const createItem = async (parent, { sub, title, url, text, boost, forward, bount
     }
   }
 
+  url = await useImageProxy(url)
   text = await useImageProxy(text)
 
   const [item] = await serialize(

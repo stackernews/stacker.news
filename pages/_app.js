@@ -13,7 +13,7 @@ import Moon from '../svgs/moon-fill.svg'
 import Layout from '../components/layout'
 import { ShowModalProvider } from '../components/modal'
 import ErrorBoundary from '../components/error-boundary'
-import { FireworksProvider } from '../components/fireworks'
+import { LightningProvider } from '../components/lightning'
 import { ServiceWorkerProvider } from '../components/serviceworker'
 
 function CSRWrapper ({ Component, apollo, ...props }) {
@@ -91,13 +91,13 @@ function MyApp ({ Component, pageProps: { session, ...props } }) {
               <MeProvider me={me}>
                 <ServiceWorkerProvider>
                   <PriceProvider price={price}>
-                    <FireworksProvider>
+                    <LightningProvider>
                       <ShowModalProvider>
                         {data || !apollo?.query
                           ? <Component {...props} />
                           : <CSRWrapper Component={Component} {...props} />}
                       </ShowModalProvider>
-                    </FireworksProvider>
+                    </LightningProvider>
                   </PriceProvider>
                 </ServiceWorkerProvider>
               </MeProvider>

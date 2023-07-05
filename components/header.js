@@ -19,7 +19,7 @@ import { Form, Select } from './form'
 import SearchIcon from '../svgs/search-line.svg'
 import BackArrow from '../svgs/arrow-left-line.svg'
 import { SUBS } from '../lib/constants'
-import { useFireworks } from './fireworks'
+import { useLightning } from './lightning'
 
 function WalletSummary ({ me }) {
   if (!me) return null
@@ -155,7 +155,7 @@ export default function Header ({ sub }) {
       )
     } else {
       if (!fired) {
-        const strike = useFireworks()
+        const strike = useLightning()
         useEffect(() => {
           let isMounted = true
           if (!localStorage.getItem('striked')) {

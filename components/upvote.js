@@ -1,4 +1,3 @@
-import { LightningConsumer } from './lightning'
 import UpBolt from '../svgs/bolt.svg'
 import styles from './upvote.module.css'
 import { gql, useMutation } from '@apollo/client'
@@ -12,7 +11,7 @@ import LongPressable from 'react-longpressable'
 import { Overlay, Popover } from 'react-bootstrap'
 import { useShowModal } from './modal'
 import { useRouter } from 'next/router'
-import { FireworksConsumer } from './fireworks'
+import { LightningConsumer } from './lightning'
 
 const getColor = (meSats) => {
   if (!meSats || meSats <= 10) {
@@ -176,7 +175,7 @@ export default function UpVote ({ item, className }) {
 
   const color = getColor(item?.meSats)
   return (
-    <FireworksConsumer>
+    <LightningConsumer>
       {({ strike }) =>
         <div ref={ref} className='upvoteParent'>
           <LongPressable
@@ -264,6 +263,6 @@ export default function UpVote ({ item, className }) {
           <TipPopover target={ref.current} show={tipShow} handleClose={() => setTipShow(false)} />
           <UpvotePopover target={ref.current} show={voteShow} handleClose={() => setVoteShow(false)} />
         </div>}
-    </FireworksConsumer>
+    </LightningConsumer>
   )
 }

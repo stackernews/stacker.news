@@ -53,7 +53,7 @@ const TipPopover = ({ target, show, handleClose }) => (
   >
     <Popover id='popover-basic'>
       <Popover.Title className='d-flex justify-content-between alert-dismissible' as='h3'>Press and hold
-        <button type='button' class='close' onClick={handleClose}><span aria-hidden='true'>×</span><span class='sr-only'>Close alert</span></button>
+        <button type='button' className='close' onClick={handleClose}><span aria-hidden='true'>×</span><span className='sr-only'>Close alert</span></button>
       </Popover.Title>
       <Popover.Content>
         <div className='mb-2'>Press and hold bolt to zap a custom amount.</div>

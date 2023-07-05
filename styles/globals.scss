@@ -628,6 +628,10 @@ div[contenteditable]:focus,
 
 .popover {
   .popover-header {
-    color: #212529;
+    background-color: var(--theme-body);
+    color: var(--theme-color);
+  }
+  .popover-body {
+    color: var(--theme-color);
   }
 }

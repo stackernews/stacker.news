@@ -903,7 +903,7 @@ export default {
         parents.map(({ userId }) => sendUserNotification(userId, {
           title: 'you have a new reply',
           body: data.text,
-          data: { url: `/items/${item.id}` },
+          item,
           tag: 'REPLY'
         }))
       )
@@ -949,7 +949,7 @@ export default {
       sendUserNotification(updatedItem.userId, {
         title,
         body: updatedItem.title ? updatedItem.title : updatedItem.text,
-        data: { url: `/items/${updatedItem.id}` },
+        item: updatedItem,
         tag: `TIP-${updatedItem.id}`
       }).catch(console.error)
 
@@ -1206,11 +1206,10 @@ export const createMentions = async (item, models) => {
           update: data,
           create: data
         })
-
         sendUserNotification(user.id, {
           title: 'you were mentioned',
           body: item.text,
-          data: { url: `/items/${item.id}` },
+          item,
           tag: 'MENTION'
         }).catch(console.error)
       })

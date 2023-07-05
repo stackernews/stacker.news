@@ -1,5 +1,6 @@
 import webPush from 'web-push'
 import models from '../models'
+import { COMMENT_DEPTH_LIMIT } from '../../lib/constants'
 
 webPush.setVapidDetails(
   process.env.VAPID_MAILTO,
@@ -31,6 +32,14 @@ const createUserFilter = (tag) => {
   return key ? { user: { [key]: true } } : undefined
 }
 
+const createItemUrl = async ({ id }) => {
+  const [rootItem] = await models.$queryRaw(
+    'SELECT subpath(path, $1, 1)::text AS id FROM "Item" WHERE id = $2',
+    -(COMMENT_DEPTH_LIMIT + 1), Number(id)
+  )
+  return `/items/${rootItem.id}` + (rootItem.id !== id ? `?commentId=${id}` : '')
+}
+
 const sendNotification = (subscription, payload) => {
   const { id, endpoint, p256dh, auth } = subscription
   return webPush.sendNotification({ endpoint, keys: { p256dh, auth } }, payload)
@@ -54,6 +63,11 @@ const sendNotification = (subscription, payload) => {
 
 export async function sendUserNotification (userId, notification) {
   try {
+    notification.data ??= {}
+    if (notification.item) {
+      notification.data.url ??= await createItemUrl(notification.item)
+      delete notification.item
+    }
     const userFilter = createUserFilter(notification.tag)
     const payload = createPayload(notification)
     const subscriptions = await models.pushSubscription.findMany({

@@ -52,11 +52,13 @@ function NotificationLayout ({ children, onClick }) {
 
 const defaultOnClick = (n, router) => () => {
   if (!n.item.title) {
-    if (n.item.path.split('.').length > COMMENT_DEPTH_LIMIT + 1) {
+    const path = n.item.path.split('.')
+    if (path.length > COMMENT_DEPTH_LIMIT + 1) {
+      const rootId = path.slice(-(COMMENT_DEPTH_LIMIT + 1))[0]
       router.push({
         pathname: '/items/[id]',
-        query: { id: n.item.parentId, commentId: n.item.id }
-      }, `/items/${n.item.parentId}`)
+        query: { id: rootId, commentId: n.item.id }
+      }, `/items/${rootId}`)
     } else {
       router.push({
         pathname: '/items/[id]',

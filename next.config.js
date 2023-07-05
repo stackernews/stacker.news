@@ -30,6 +30,7 @@ module.exports = withPlausibleProxy()({
   generateBuildId: isProd ? async () => commitHash : undefined,
   // Use the CDN in production and localhost for development.
   assetPrefix: isProd ? 'https://a.stacker.news' : undefined,
+  crossOrigin: isProd ? 'anonymous' : undefined,
   async headers () {
     return [
       {

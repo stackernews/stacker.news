@@ -30,11 +30,22 @@ module.exports = withPlausibleProxy()({
   generateBuildId: isProd ? async () => commitHash : undefined,
   // Use the CDN in production and localhost for development.
   assetPrefix: isProd ? 'https://a.stacker.news' : undefined,
+  crossOrigin: isProd ? 'anonymous' : undefined,
   async headers () {
     return [
       {
         source: '/_next/:asset*',
         headers: corsHeaders
+      },
+      {
+        source: '/darkmode.js',
+        headers: [
+          ...corsHeaders,
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable'
+          }
+        ]
       },
       {
         source: '/Lightningvolt-xoqm.ttf',

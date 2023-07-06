@@ -155,7 +155,7 @@ padding: 0 0.2rem;
   background-color: var(--theme-clickToContextColor);
 }
 
-body {
+html, body {
   background: var(--theme-body);
   color: var(--theme-color);
   min-height: 100vh;

@@ -1,31 +1,96 @@
 {
-  "name": "stacker news",
+  "name": "Stacker News",
   "short_name": "SN",
   "icons": [
     {
-      "src": "/android-chrome-192x192.png",
+      "src": "/icons/icon_x48.png",
+      "type": "image/png",
+      "sizes": "48x48",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon_x72.png",
+      "type": "image/png",
+      "sizes": "72x72",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon_x96.png",
+      "type": "image/png",
+      "sizes": "96x96",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon_x128.png",
+      "type": "image/png",
+      "sizes": "128x128",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon_x192.png",
+      "type": "image/png",
       "sizes": "192x192",
-      "type": "image/png"
+      "purpose": "any"
     },
     {
-      "src": "/android-chrome-512x512.png",
+      "src": "/icons/icon_x384.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "384x384",
+      "purpose": "any"
     },
     {
-      "src": "/android-chrome-96x96.png",
+      "src": "/icons/icon_x512.png",
       "type": "image/png",
-      "sizes": "96x96"
+      "sizes": "512x512",
+      "purpose": "any"
     },
     {
-      "src": "/android-chrome-24x24.png",
+      "src": "/maskable/icon_x48.png",
       "type": "image/png",
-      "sizes": "24x24"
+      "sizes": "48x48",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/maskable/icon_x72.png",
+      "type": "image/png",
+      "sizes": "72x72",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/maskable/icon_x96.png",
+      "type": "image/png",
+      "sizes": "96x96",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/maskable/icon_x128.png",
+      "type": "image/png",
+      "sizes": "128x128",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/maskable/icon_x192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/maskable/icon_x384.png",
+      "type": "image/png",
+      "sizes": "384x384",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/maskable/icon_x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
     }
   ],
   "display": "standalone",
+  "orientation": "any",
   "theme_color": "#000000",
-  "background_color": "#000000",
+  "background_color": "#FADA5E",
   "id": "/",
   "start_url": "/",
   "url_handlers": [
@@ -42,5 +107,21 @@
       "text": "text",
       "url": "url"
     }
-  }
+  },
+  "description": "Stacker News is like Hacker News but it pays you Bitcoin",
+  "categories": ["news", "bitcoin", "lightning", "zaps", "community"],
+  "screenshots": [
+    {
+        "src": "/shot/narrow.png",
+        "type": "image/jpeg",
+        "sizes": "1080x1440",
+        "form_factor": "narrow"
+    },
+    {
+        "src": "/shot/wide.png",
+        "type": "image/jpeg",
+        "sizes": "2048x1186",
+        "form_factor": "wide"
+    }
+  ]
 }

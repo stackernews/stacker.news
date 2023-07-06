@@ -15,7 +15,7 @@ const createPayload = (notification) => {
     title,
     options: {
       timestamp: Date.now(),
-      icon: '/android-chrome-96x96.png',
+      icon: '/icons/icon_x96.png',
       ...options
     }
   })

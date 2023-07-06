@@ -1,10 +1,9 @@
 const serialize = require('../api/resolvers/serial')
 
-const ITEM_EACH_REWARD = 3.0
-const UPVOTE_EACH_REWARD = 6.0
+// const ITEM_EACH_REWARD = 3.0
+// const UPVOTE_EACH_REWARD = 6.0
 const TOP_PERCENTILE = 21
 
-// TODO: use a weekly trust measure or make trust decay
 function earn ({ models }) {
   return async function ({ name }) {
     console.log('running', name)
@@ -25,7 +24,7 @@ function earn ({ models }) {
     sum += donatedSum * 1000
 
     /*
-      How earnings work:
+      How earnings (used to) work:
       1/3: top 21% posts over last 36 hours, scored on a relative basis
       1/3: top 21% comments over last 36 hours, scored on a relative basis
       1/3: top upvoters of top posts/comments, scored on:
@@ -33,6 +32,8 @@ function earn ({ models }) {
         - how much they tipped
         - how early they upvoted it
         - how the post/comment scored
+
+      Now: 100% of earnings go to zappers of the top 21% of posts/comments
     */
 
     if (sum <= 0) {
@@ -78,12 +79,9 @@ function earn ({ models }) {
           GROUP BY "userId", "parentId" IS NULL
       )
       SELECT "userId", NULL as id, type, ROW_NUMBER() OVER (PARTITION BY "isPost" ORDER BY upvoter_ratio DESC) as rank,
-          upvoter_ratio/(sum(upvoter_ratio) OVER (PARTITION BY "isPost"))/${UPVOTE_EACH_REWARD} as proportion
+          upvoter_ratio/(sum(upvoter_ratio) OVER (PARTITION BY "isPost")) as proportion
       FROM upvoter_ratios
-      WHERE upvoter_ratio > 0
-      UNION ALL
-      SELECT "userId", id, type, rank, ratio/${ITEM_EACH_REWARD} as proportion
-      FROM item_ratios`)
+      WHERE upvoter_ratio > 0`)
 
     // in order to group earnings for users we use the same createdAt time for
     // all earnings

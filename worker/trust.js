@@ -143,7 +143,7 @@ async function getGraph (models) {
         FROM user_pair
         WHERE b_id <> ANY (${SEEDS})
         UNION ALL
-        SELECT a_id AS id, seed_id AS oid, ${MAX_TRUST}::float/ARRAY_LENGTH(${SEEDS}::int[], 1) as trust
+        SELECT a_id AS id, seed_id AS oid, ${MAX_TRUST}::numeric/ARRAY_LENGTH(${SEEDS}::int[], 1) as trust
         FROM user_pair, unnest(${SEEDS}::int[]) seed_id
         GROUP BY a_id, a_total, seed_id
       )

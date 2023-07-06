@@ -13,6 +13,7 @@ import No from '../svgs/no.svg'
 import Bolt from '../svgs/bolt.svg'
 import Amboss from '../svgs/amboss.svg'
 import { useEffect, useState } from 'react'
+import Rewards from './footer-rewards'
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // if you update this you need to update /public/darkmode
@@ -234,11 +235,7 @@ export default function Footer ({ noLinks }) {
                 <LnIcon onClick={toggleLightning} width={20} height={20} className='ml-2 fill-grey theme' />
               </div>}
             <div className='mb-0' style={{ fontWeight: 500 }}>
-              <Link href='/rewards' passHref>
-                <a className='nav-link p-0 p-0 d-inline-flex'>
-                  rewards
-                </a>
-              </Link>
+              <Rewards />
             </div>
             <div className='mb-0' style={{ fontWeight: 500 }}>
               <OverlayTrigger trigger='click' placement='top' overlay={AnalyticsPopover} rootClose>

@@ -8,6 +8,8 @@ import LayoutCenter from '../components/layout-center'
 import { useMutation, useQuery } from '@apollo/client'
 import Link from 'next/link'
 import { amountSchema } from '../lib/validate'
+import Countdown from 'react-countdown'
+import { abbrNum } from '../lib/format'
 
 const REWARDS = gql`
 {
@@ -23,8 +25,30 @@ const REWARDS = gql`
 
 export const getServerSideProps = getGetServerSideProps(REWARDS)
 
+export function RewardLine ({ total }) {
+  const [threshold, setThreshold] = useState(0)
+
+  useEffect(() => {
+    const dateStr = new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' })
+    const date = new Date(dateStr)
+    date.setHours(24, 0, 0, 0)
+    setThreshold(date.getTime())
+  }, [])
+
+  return (
+    <>
+      {abbrNum(total)} sats in rewards
+      {threshold &&
+        <Countdown
+          date={threshold}
+          renderer={props => <small className='text-monospace'> {props.formatted.hours}:{props.formatted.minutes}:{props.formatted.seconds}</small>}
+        />}
+    </>
+  )
+}
+
 export default function Rewards ({ data: { expectedRewards: { total, sources } } }) {
-  const { data } = useQuery(REWARDS, { pollInterval: 1000 })
+  const { data } = useQuery(REWARDS, { pollInterval: 1000, fetchPolicy: 'cache-and-network' })
 
   if (data) {
     ({ expectedRewards: { total, sources } } = data)
@@ -33,7 +57,9 @@ export default function Rewards ({ data: { expectedRewards: { total, sources } }
   return (
     <LayoutCenter footerLinks>
       <h4 className='font-weight-bold text-muted text-center'>
-        <div>{total} sats to be rewarded today</div>
+        <div>
+          <RewardLine total={total} />
+        </div>
         <Link href='/faq#how-do-i-earn-sats-on-stacker-news' passHref>
           <a className='text-reset'><small><small><small>learn about rewards</small></small></small></a>
         </Link>

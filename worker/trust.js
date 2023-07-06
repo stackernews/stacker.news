@@ -1,239 +1,157 @@
+const math = require('mathjs')
+
 function trust ({ boss, models }) {
   return async function () {
-    console.log('doing trust')
-    const graph = await getGraph(models)
-    const user = await models.user.findUnique({ where: { name: process.env.WOT_SOURCE || 'k00b' } })
-    const trust = await trustGivenGraph(graph, user.id)
-    await storeTrust(models, trust)
-    console.log('done doing trust')
-  }
-}
-
-// only explore a path up to this depth from start
-const MAX_DEPTH = 6
-const MAX_TRUST = 0.9
-const MIN_SUCCESS = 5
-// increasing disgree_mult increases distrust when there's disagreement, at 1x we double count disagreement,
-// at 2x we triple count, etc ... this count is reflected/added in the number of total "trials" between users
-const DISAGREE_MULT = 1
-// https://en.wikipedia.org/wiki/Normal_distribution#Quantile_function
-const Z_CONFIDENCE = 2.326347874041 // 98% confidence
-
-function pathsOverlap (arr1 = [], arr2 = []) {
-  const dp = new Array(arr1.length + 1).fill(0).map(() => new Array(arr2.length + 1).fill(0))
-  for (let i = arr1.length - 1; i >= 0; i--) {
-    for (let j = arr2.length - 1; j >= 0; j--) {
-      if (arr1[i] === arr2[j]) {
-        dp[i][j] = dp[i + 1][j + 1] + 1
-        if (dp[i][j] > 1) {
-          return true
-        }
-      } else {
-        dp[i][j] = 0
-      }
+    try {
+      console.time('trust')
+      console.timeLog('trust', 'getting graph')
+      const graph = await getGraph(models)
+      console.timeLog('trust', 'computing trust')
+      const trust = await trustGivenGraph(graph)
+      console.timeLog('trust', 'storing trust')
+      await storeTrust(models, trust)
+      console.timeEnd('trust')
+    } catch (e) {
+      console.error(e)
+      throw e
     }
   }
-
-  return false
 }
 
-/*
- This approximates an upper bound of trust given a list of indepent trust
- values ... we basically are compressing a trust vector into a single value
- without having to compute the trust using the inclusion-exclusion principle
-*/
-function boundedTrust (probs) {
-  const max = Math.max(...probs)
-  const sum = probs.reduce((a, c) => a + c)
-  const trust = sum - max * (sum - max)
-  return Math.min(trust, MAX_TRUST)
-}
-
-/*
- Given the paths to each node and the accumulated trust along that path
- this function returns an object where the keys are the node ids and
- their value is the trust of that node
-*/
-function trustGivenPaths (paths) {
-  const trust = {}
-  for (const [node, npaths] of Object.entries(paths)) {
-    trust[node] = boundedTrust(Object.values(npaths))
-  }
-  return trust
-}
+const MAX_DEPTH = 10
+const MAX_TRUST = 1
+const MIN_SUCCESS = 1
+// increasing disgree_mult increases distrust when there's disagreement
+// ... this cancels DISAGREE_MULT number of "successes" for every disagreement
+const DISAGREE_MULT = 10
+// https://en.wikipedia.org/wiki/Normal_distribution#Quantile_function
+const Z_CONFIDENCE = 6.109410204869 // 99.9999999% confidence
+const SEEDS = [616, 6030, 946, 4502]
+const SEED_WEIGHT = 0.25
+const AGAINST_MSAT_MIN = 1000
+const MSAT_MIN = 1000
 
 /*
  Given a graph and start this function returns an object where
  the keys are the node id and their value is the trust of that node
 */
-function trustGivenGraph (graph, start) {
-  const queue = [] // queue of to be visited nodes
-  queue.push(start) // visit start first
+function trustGivenGraph (graph) {
+  // empty matrix of proper size nstackers x nstackers
+  const mat = math.zeros(graph.length, graph.length, 'sparse')
 
-  const depth = {} // store the node depth ... XXX space inefficient
-  depth[start] = 0 // start node is depth 0
+  // create a map of user id to position in matrix
+  const posByUserId = {}
+  for (const [idx, val] of graph.entries()) {
+    posByUserId[val.id] = idx
+  }
 
-  const paths = {} // { node : { path to node as stringified json array : trust } }
-  paths[start] = { '[]': 1 } // the paths to start is an empty path with trust of 1
-
-  // while we have nodes to visit
-  while (queue.length > 0) {
-    const node = queue.shift()
-    if (depth[node] === MAX_DEPTH) break
-
-    if (!graph[node]) {
-      // node doesn't have outbound edges
-      continue
-    }
-
-    // for all of this nodes outbound edges
-    for (let i = 0; i < graph[node].length; i++) {
-      const { node: sibling, trust } = graph[node][i]
-      let explore = false
-
-      // for all existing paths to this node
-      for (const [key, value] of Object.entries(paths[node])) {
-        const parentPath = JSON.parse(key)
-        if (parentPath.includes(sibling)) {
-          // sibling already exists on a path to us, ie this would be a cycle
-          continue
-        }
-
-        // add this path to sibling
-        const path = JSON.stringify([...parentPath, node])
-        paths[sibling] = paths[sibling] || {}
-
-        // if this sibling has not been visited along this path
-        if (!paths[sibling][path]) {
-          // here we exclude paths that aren't disjoint - they mininally contribute
-          // to trust so we just exclude them, yielding a very small underestimation
-          // of trust while reducing the number of paths we have to explore
-          let disjoint = true
-          // for all the paths to sibling
-          for (const [key2] of Object.entries(paths[sibling])) {
-            // if this existing path to sibling contains overlap with the
-            // path we're exploring, ignore it
-            const otherPath = JSON.parse(key2)
-            const parsedPath = JSON.parse(path)
-            if (pathsOverlap(otherPath, parsedPath)) {
-              disjoint = false
-              break
-            }
-          }
-
-          // if this path is disjoint with all existing paths to sibling
-          if (disjoint) {
-            // accumulate the trust along the path and store it
-            paths[sibling][path] = value * trust
-            explore = true
-          }
-        }
+  // iterate over graph, inserting edges into matrix
+  for (const [idx, val] of graph.entries()) {
+    for (const { node, trust } of val.hops) {
+      try {
+        mat.set([idx, posByUserId[node]], Number(trust))
+      } catch (e) {
+        console.log('error:', idx, node, posByUserId[node], trust)
+        throw e
       }
-
-      // if we shouldn't explore this sibling, don't queue it
-      if (!explore) continue
-      depth[sibling] = depth[node] + 1
-      queue.push(sibling)
     }
   }
 
-  return trustGivenPaths(paths)
+  // perform random walk over trust matrix
+  // the resulting matrix columns represent the trust a user (col) has for each other user (rows)
+  // XXX this scales N^3 and mathjs is slow
+  let matT = math.transpose(mat)
+  const original = matT.clone()
+  for (let i = 0; i < MAX_DEPTH; i++) {
+    console.timeLog('trust', `matrix multiply ${i}`)
+    matT = math.multiply(original, matT)
+    matT = math.add(math.multiply(1 - SEED_WEIGHT, matT), math.multiply(SEED_WEIGHT, original))
+  }
+
+  console.timeLog('trust', 'normalizing result')
+  // we normalize the result taking the z-score, then min-max to [0,1]
+  // we remove seeds and 0 trust people from the result because they are known outliers
+  // but we need to keep them in the result to keep positions correct
+  function resultForId (id) {
+    let result = math.squeeze(math.subset(math.transpose(matT), math.index(posByUserId[id], math.range(0, graph.length))))
+    const outliers = SEEDS.concat([id])
+    outliers.forEach(id => result.set([posByUserId[id]], 0))
+    const withoutZero = math.filter(result, val => val > 0)
+    // NOTE: this might be improved by using median and mad (modified z score)
+    // given the distribution is skewed
+    const mean = math.mean(withoutZero)
+    const std = math.std(withoutZero)
+    result = result.map(val => val >= 0 ? (val - mean) / std : 0)
+    const min = math.min(result)
+    const max = math.max(result)
+    result = math.map(result, val => (val - min) / (max - min))
+    outliers.forEach(id => result.set([posByUserId[id]], MAX_TRUST))
+    return result
+  }
+
+  // turn the result vector into an object
+  const result = {}
+  resultForId(616).forEach((val, idx) => {
+    result[graph[idx].id] = val
+  })
+
+  return result
 }
 
 /*
-  OLD TRUST GRAPH
-  graph is returned as json in adjacency list where edges are the trust value 0-.9
-  graph = {
-    node1 : [{node : node2, trust: trust12}, {node: node3, trust: trust13}],
-    node2 : [{node : node1, trust: trust21}],
-    node3 : [{node : node2, trust: trust32}],
-  }
+  graph is returned as json in adjacency list where edges are the trust value 0-1
+  graph = [
+    { id: node1, hops: [{node : node2, trust: trust12}, {node: node3, trust: trust13}] },
+    ...
+  ]
 */
-// async function getGraph (models) {
-//   const [{ graph }] = await models.$queryRaw`
-//     select json_object_agg(id, hops) as graph
-//       from (
-//         select id, json_agg(json_build_object('node', oid, 'trust', trust)) as hops
-//           from (
-//             select "ItemAct"."userId" as id, "Item"."userId" as oid, least(${MAX_TRUST},
-//               sum(POWER(.99, EXTRACT(DAY FROM (NOW_UTC() - "ItemAct".created_at))))/21.0) as trust
-//               from "ItemAct"
-//               join "Item" on "itemId" = "Item".id and "ItemAct"."userId" <> "Item"."userId"
-//               where "ItemAct".act = 'VOTE' group by "ItemAct"."userId", "Item"."userId"
-//           ) a
-//           group by id
-//       ) b`
-//   return graph
-// }
-
-// old upvote confidence graph
-// async function getGraph (models) {
-//   const [{ graph }] = await models.$queryRaw`
-//     select json_object_agg(id, hops) as graph
-//       from (
-//         select id, json_agg(json_build_object('node', oid, 'trust', trust)) as hops
-//           from (
-//             select s.id, s.oid, confidence(s.shared, count(*), ${Z_CONFIDENCE}) as trust
-//             from (
-//               select a."userId" as id, b."userId" as oid, count(*) as shared
-//               from "ItemAct" b
-//               join users bu on bu.id = b."userId"
-//               join "ItemAct" a on b."itemId" = a."itemId"
-//               join users au on au.id = a."userId"
-//               join "Item" on "Item".id = b."itemId"
-//               where b.act = 'VOTE'
-//               and a.act = 'VOTE'
-//               and "Item"."parentId" is null
-//               and "Item"."userId" <> b."userId"
-//               and "Item"."userId" <> a."userId"
-//               and b."userId" <> a."userId"
-//               and "Item".created_at >= au.created_at and "Item".created_at >= bu.created_at
-//               group by b."userId", a."userId") s
-//             join users u on s.id = u.id
-//             join users ou on s.oid = ou.id
-//             join "ItemAct" on "ItemAct"."userId" = s.oid
-//             join "Item" on "Item".id = "ItemAct"."itemId"
-//             where "ItemAct".act = 'VOTE' and "Item"."parentId" is null
-//             and "Item"."userId" <> s.oid and "Item"."userId" <> s.id
-//             and "Item".created_at >= u.created_at and "Item".created_at >= ou.created_at
-//             group by s.id, s.oid, s.shared
-//         ) a
-//         group by id
-//     ) b`
-//   return graph
-// }
-
 async function getGraph (models) {
-  const [{ graph }] = await models.$queryRaw`
-    SELECT json_object_agg(id, hops) AS graph
-      FROM (
-        SELECT id, json_agg(json_build_object('node', oid, 'trust', trust)) AS hops
-        FROM (
-          WITH user_votes AS (
-            SELECT "ItemAct"."userId" AS user_id, users.name AS name, "ItemAct"."itemId" AS item_id, min("ItemAct".created_at) AS act_at,
-                users.created_at AS user_at, "ItemAct".act = 'DONT_LIKE_THIS' AS against, count(*) OVER (partition by "ItemAct"."userId") AS user_vote_count
-            FROM "ItemAct"
-            JOIN "Item" ON "Item".id = "ItemAct"."itemId" AND "ItemAct".act IN ('FEE', 'TIP', 'DONT_LIKE_THIS') AND "Item"."parentId" IS NULL
-            JOIN users ON "ItemAct"."userId" = users.id
-            GROUP BY user_id, name, item_id, user_at, against
-          ),
-          user_pair AS (
-            SELECT a.user_id AS a_id, a.name AS a_name, b.user_id AS b_id, b.name AS b_name,
-                count(*) FILTER(WHERE a.act_at > b.act_at AND a.against = b.against) AS before,
-                count(*) FILTER(WHERE b.act_at > a.act_at AND a.against = b.against) AS after,
-                count(*) FILTER(WHERE a.against <> b.against)*${DISAGREE_MULT} AS disagree,
-                CASE WHEN b.user_at > a.user_at THEN b.user_vote_count ELSE a.user_vote_count END AS total
-            FROM user_votes a
-            JOIN user_votes b ON a.item_id = b.item_id
-            GROUP BY a.user_id, a.name, a.user_at, a.user_vote_count, b.user_id, b.name, b.user_at, b.user_vote_count
-          )
-          SELECT a_id AS id, a_name, b_id AS oid, b_name, confidence(before, total + disagree - after, ${Z_CONFIDENCE}) AS trust, before, after, disagree, total
-          FROM user_pair
-          WHERE before >= ${MIN_SUCCESS}
-        ) a
-        GROUP BY a.id
-    ) b`
-  return graph
+  return await models.$queryRaw`
+    SELECT id, array_agg(json_build_object(
+      'node', oid,
+      'trust', CASE WHEN total_trust > 0 THEN trust / total_trust::float ELSE 0 END)) AS hops
+    FROM (
+      WITH user_votes AS (
+        SELECT "ItemAct"."userId" AS user_id, users.name AS name, "ItemAct"."itemId" AS item_id, min("ItemAct".created_at) AS act_at,
+            users.created_at AS user_at, "ItemAct".act = 'DONT_LIKE_THIS' AS against,
+            count(*) OVER (partition by "ItemAct"."userId") AS user_vote_count
+        FROM "ItemAct"
+        JOIN "Item" ON "Item".id = "ItemAct"."itemId" AND "ItemAct".act IN ('FEE', 'TIP', 'DONT_LIKE_THIS')
+          AND "Item"."parentId" IS NULL AND NOT "Item".bio AND "Item"."userId" <> "ItemAct"."userId"
+        JOIN users ON "ItemAct"."userId" = users.id
+        GROUP BY user_id, name, item_id, user_at, against
+        HAVING CASE WHEN
+          "ItemAct".act = 'DONT_LIKE_THIS' THEN sum("ItemAct".msats) > ${AGAINST_MSAT_MIN}
+          ELSE sum("ItemAct".msats) > ${MSAT_MIN} END
+      ),
+      user_pair AS (
+        SELECT a.user_id AS a_id, b.user_id AS b_id,
+            count(*) FILTER(WHERE a.act_at > b.act_at AND a.against = b.against) AS before,
+            count(*) FILTER(WHERE b.act_at > a.act_at AND a.against = b.against) AS after,
+            count(*) FILTER(WHERE a.against <> b.against) * ${DISAGREE_MULT} AS disagree,
+            b.user_vote_count AS b_total, a.user_vote_count AS a_total
+        FROM user_votes a
+        JOIN user_votes b ON a.item_id = b.item_id
+        WHERE a.user_id <> b.user_id
+        GROUP BY a.user_id, a.user_vote_count, b.user_id, b.user_vote_count
+      ),
+      trust_pairs AS (
+        SELECT a_id AS id, b_id AS oid,
+          CASE WHEN before - disagree >= ${MIN_SUCCESS} AND b_total - after > 0 THEN
+            confidence(before - disagree, b_total - after, ${Z_CONFIDENCE})
+          ELSE 0 END AS trust
+        FROM user_pair
+        WHERE b_id <> ANY (${SEEDS})
+        UNION ALL
+        SELECT a_id AS id, seed_id AS oid, ${MAX_TRUST}::float/ARRAY_LENGTH(${SEEDS}::int[], 1) as trust
+        FROM user_pair, unnest(${SEEDS}::int[]) seed_id
+        GROUP BY a_id, a_total, seed_id
+      )
+      SELECT id, oid, trust, sum(trust) OVER (PARTITION BY id) AS total_trust
+      FROM trust_pairs
+    ) a
+    GROUP BY a.id
+    ORDER BY id ASC`
 }
 
 async function storeTrust (models, nodeTrust) {

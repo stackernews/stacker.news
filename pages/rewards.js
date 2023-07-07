@@ -29,10 +29,13 @@ export function RewardLine ({ total }) {
   const [threshold, setThreshold] = useState(0)
 
   useEffect(() => {
-    const dateStr = new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' })
-    const date = new Date(dateStr)
+    const date = new Date()
     date.setHours(24, 0, 0, 0)
-    setThreshold(date.getTime())
+    // Central Daylight Saving Time UTC offset in minutes
+    const targetOffset = -5 * 60
+    const localOffset = -date.getTimezoneOffset()
+    const ts = date.getTime() + ((localOffset - targetOffset) * 60 * 1000)
+    setThreshold(ts)
   }, [])
 
   return (

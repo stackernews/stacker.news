@@ -23,19 +23,27 @@ const REWARDS = gql`
 }
 `
 
+function midnight (tz) {
+  function tzOffset (tz) {
+    const date = new Date()
+    date.setMilliseconds(0)
+    const targetDate = new Date(date.toLocaleString('en-US', { timeZone: tz }))
+    const targetOffsetHours = (date.getTime() - targetDate.getTime()) / 1000 / 60 / 60
+    return targetOffsetHours
+  }
+
+  const date = new Date()
+  date.setHours(24, 0, 0, 0)
+  return date.getTime() + tzOffset(tz) * 60 * 60 * 1000
+}
+
 export const getServerSideProps = getGetServerSideProps(REWARDS)
 
 export function RewardLine ({ total }) {
   const [threshold, setThreshold] = useState(0)
 
   useEffect(() => {
-    const date = new Date()
-    date.setHours(24, 0, 0, 0)
-    // Central Daylight Saving Time UTC offset in minutes
-    const targetOffset = -5 * 60
-    const localOffset = -date.getTimezoneOffset()
-    const ts = date.getTime() + ((localOffset - targetOffset) * 60 * 1000)
-    setThreshold(ts)
+    setThreshold(midnight('America/Chicago'))
   }, [])
 
   return (

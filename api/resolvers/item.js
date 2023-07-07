@@ -895,13 +895,15 @@ export default {
     createComment: async (parent, data, { me, models }) => {
       await ssValidate(commentSchema, data)
       const item = await createItem(parent, data, { me, models })
+      // fetch user to get up-to-date name
+      const user = await models.user.findUnique({ where: { id: me.id } })
 
       const parents = await models.$queryRaw(
         'SELECT DISTINCT p."userId" FROM "Item" i JOIN "Item" p ON p.path @> i.path WHERE i.id = $1 and p."userId" <> $2',
         Number(item.parentId), Number(me.id))
       Promise.allSettled(
         parents.map(({ userId }) => sendUserNotification(userId, {
-          title: 'you have a new reply',
+          title: `@${user.name} replied to you`,
           body: data.text,
           item,
           tag: 'REPLY'

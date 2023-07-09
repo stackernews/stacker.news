@@ -39,7 +39,8 @@ export const NOTIFICATIONS = gql`
           sources {
             posts
             comments
-            tips
+            tipPosts
+            tipComments
           }
         }
         ... on Referral {

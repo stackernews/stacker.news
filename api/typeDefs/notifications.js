@@ -40,7 +40,8 @@ export default gql`
   type EarnSources {
     posts: Int!
     comments: Int!
-    tips: Int!
+    tipPosts: Int!
+    tipComments: Int!
   }
 
   type Streak {

@@ -292,14 +292,16 @@ export default {
         SELECT
         FLOOR(sum(msats) FILTER(WHERE type = 'POST') / 1000) AS posts,
         FLOOR(sum(msats) FILTER(WHERE type = 'COMMENT') / 1000) AS comments,
-        FLOOR(sum(msats) FILTER(WHERE type = 'TIP_POST' OR type = 'TIP_COMMENT') / 1000) AS tips
+        FLOOR(sum(msats) FILTER(WHERE type = 'TIP_POST') / 1000) AS "tipPosts",
+        FLOOR(sum(msats) FILTER(WHERE type = 'TIP_COMMENT') / 1000) AS "tipComments"
         FROM "Earn"
         WHERE "userId" = $1 AND created_at <= $2 AND created_at >= $3
       `, Number(me.id), new Date(n.sortTime), new Date(n.minSortTime))
       sources.posts ||= 0
       sources.comments ||= 0
-      sources.tips ||= 0
-      if (sources.posts + sources.comments + sources.tips > 0) {
+      sources.tipPosts ||= 0
+      sources.tipComments ||= 0
+      if (sources.posts + sources.comments + sources.tipPosts + sources.tipComments > 0) {
         return sources
       }
 

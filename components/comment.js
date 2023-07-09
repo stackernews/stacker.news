@@ -97,6 +97,7 @@ export default function Comment ({
   const ref = useRef(null)
   const router = useRouter()
   const root = useRoot()
+  const [pendingSats, setPendingSats] = useState(0)
 
   useEffect(() => {
     setCollapse(localStorage.getItem(`commentCollapse:${item.id}`) || collapse)
@@ -124,11 +125,12 @@ export default function Comment ({
       <div className={`${itemStyles.item} ${styles.item}`}>
         {item.meDontLike
           ? <Flag width={24} height={24} className={`${styles.dontLike}`} />
-          : <UpVote item={item} className={styles.upvote} />}
+          : <UpVote item={item} className={styles.upvote} pendingSats={pendingSats} setPendingSats={setPendingSats} />}
         <div className={`${itemStyles.hunk} ${styles.hunk}`}>
           <div className='d-flex align-items-center'>
             <ItemInfo
               item={item}
+              pendingSats={pendingSats}
               commentsText='replies'
               className={`${itemStyles.other} ${styles.other}`}
               embellishUser={op && <span className='text-boost font-weight-bold ml-1'>OP</span>}

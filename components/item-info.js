@@ -16,7 +16,7 @@ import BookmarkDropdownItem from './bookmark'
 import SubscribeDropdownItem from './subscribe'
 import { CopyLinkDropdownItem } from './share'
 
-export default function ItemInfo ({ item, full, commentsText, className, embellishUser, extraInfo, onEdit, editText }) {
+export default function ItemInfo ({ item, pendingSats, full, commentsText, className, embellishUser, extraInfo, onEdit, editText }) {
   const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
   const me = useMe()
   const router = useRouter()
@@ -33,7 +33,7 @@ export default function ItemInfo ({ item, full, commentsText, className, embelli
     <div className={className || `${styles.other}`}>
       {!item.position &&
         <>
-          <span title={`from ${item.upvotes} users ${item.mine ? `\\ ${item.meSats} sats to post` : `(${item.meSats} sats from me)`} `}>{abbrNum(item.sats)} sats</span>
+          <span title={`from ${item.upvotes} users ${item.mine ? `\\ ${item.meSats} sats to post` : `(${item.meSats + pendingSats} sats from me)`} `}>{abbrNum(item.sats + pendingSats)} sats</span>
           <span> \ </span>
         </>}
       {item.boost > 0 &&

@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import styles from './item.module.css'
 import UpVote from './upvote'
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { NOFOLLOW_LIMIT } from '../lib/constants'
 import Pin from '../svgs/pushpin-fill.svg'
 import reactStringReplace from 'react-string-replace'
@@ -20,6 +20,7 @@ export function SearchTitle ({ title }) {
 
 export default function Item ({ item, rank, belowTitle, right, full, children }) {
   const titleRef = useRef()
+  const [pendingSats, setPendingSats] = useState(0)
 
   return (
     <>
@@ -32,7 +33,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children })
       <div className={styles.item}>
         {item.position
           ? <Pin width={24} height={24} className={styles.pin} />
-          : item.meDontLike ? <Flag width={24} height={24} className={`${styles.dontLike}`} /> : <UpVote item={item} className={styles.upvote} />}
+          : item.meDontLike ? <Flag width={24} height={24} className={`${styles.dontLike}`} /> : <UpVote item={item} className={styles.upvote} pendingSats={pendingSats} setPendingSats={setPendingSats} />}
         <div className={styles.hunk}>
           <div className={`${styles.main} flex-wrap`}>
             <Link href={`/items/${item.id}`} passHref>
@@ -58,7 +59,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children })
                 </a>
               </>}
           </div>
-          <ItemInfo full={full} item={item} />
+          <ItemInfo full={full} item={item} pendingSats={pendingSats} />
           {belowTitle}
         </div>
         {right}

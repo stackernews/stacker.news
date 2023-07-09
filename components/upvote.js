@@ -6,7 +6,7 @@ import ActionTooltip from './action-tooltip'
 import ItemAct from './item-act'
 import { useMe } from './me'
 import Rainbow from '../lib/rainbow'
-import { useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import LongPressable from 'react-longpressable'
 import { Overlay, Popover } from 'react-bootstrap'
 import { useShowModal } from './modal'
@@ -63,12 +63,13 @@ const TipPopover = ({ target, show, handleClose }) => (
   </Overlay>
 )
 
-export default function UpVote ({ item, className }) {
+export default function UpVote ({ item, className, pendingSats, setPendingSats }) {
   const showModal = useShowModal()
   const router = useRouter()
   const [voteShow, _setVoteShow] = useState(false)
   const [tipShow, _setTipShow] = useState(false)
   const ref = useRef()
+  const timerRef = useRef(null)
   const me = useMe()
   const [setWalkthrough] = useMutation(
     gql`
@@ -112,11 +113,12 @@ export default function UpVote ({ item, className }) {
     gql`
       mutation act($id: ID!, $sats: Int!) {
         act(id: $id, sats: $sats) {
-          vote,
           sats
         }
       }`, {
-      update (cache, { data: { act: { vote, sats } } }) {
+      update (cache, { data: { act: { sats } } }) {
+        setPendingSats(0)
+
         cache.modify({
           id: `Item:${item.id}`,
           fields: {
@@ -133,9 +135,6 @@ export default function UpVote ({ item, className }) {
               }
 
               return existingSats + sats
-            },
-            upvotes (existingUpvotes = 0) {
-              return existingUpvotes + vote
             }
           }
         })
@@ -156,15 +155,50 @@ export default function UpVote ({ item, className }) {
     }
   )
 
+  // prevent updating pendingSats after unmount
+  useEffect(() => {
+    return () => { timerRef.current = null }
+  }, [])
+
+  // if we want to use optimistic response, we need to buffer the votes
+  // because if someone votes in quick succession, responses come back out of order
+  // so we wait a bit to see if there are more votes coming in
+  // this effectively performs our own debounced optimistic response
+  const bufferVotes = useCallback((sats) => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+    }
+
+    timerRef.current = setTimeout(async (pendingSats, sats) => {
+      try {
+        await act({
+          variables: { id: item.id, sats: pendingSats + sats }
+        })
+      } catch (error) {
+        if (error.toString().includes('insufficient funds')) {
+          showModal(onClose => {
+            return <FundError onClose={onClose} />
+          })
+          return
+        }
+        throw new Error({ message: error.toString() })
+      }
+    }, 1000, pendingSats, sats)
+
+    timerRef.current && setPendingSats(pendingSats + sats)
+  }, [item, pendingSats, act, setPendingSats, showModal])
+
+  const meSats = (item?.meSats || 0) + pendingSats
+
   // what should our next tip be?
   let sats = me?.tipDefault || 1
-  if (me?.turboTipping && item?.meSats) {
+  if (me?.turboTipping && me) {
     let raiseTip = sats
-    while (item?.meSats >= raiseTip) {
+    while (meSats >= raiseTip) {
       raiseTip *= 10
     }
 
-    sats = raiseTip - item.meSats
+    sats = raiseTip - meSats
   }
 
   const overlayText = () => {
@@ -173,7 +207,7 @@ export default function UpVote ({ item, className }) {
 
   const disabled = item?.mine || fwd2me || item?.deletedAt
 
-  const color = getColor(item?.meSats)
+  const color = getColor(meSats)
   return (
     <LightningConsumer>
       {({ strike }) =>
@@ -203,32 +237,13 @@ export default function UpVote ({ item, className }) {
                     return
                   }
 
-                  if (item?.meSats) {
+                  if (meSats) {
                     setVoteShow(false)
                   }
 
                   strike()
 
-                  try {
-                    await act({
-                      variables: { id: item.id, sats },
-                      optimisticResponse: {
-                        act: {
-                          id: `Item:${item.id}`,
-                          sats,
-                          vote: 0
-                        }
-                      }
-                    })
-                  } catch (error) {
-                    if (error.toString().includes('insufficient funds')) {
-                      showModal(onClose => {
-                        return <FundError onClose={onClose} />
-                      })
-                      return
-                    }
-                    throw new Error({ message: error.toString() })
-                  }
+                  bufferVotes(sats)
                 }
               : async () => await router.push({
                 pathname: '/signup',
@@ -248,9 +263,9 @@ export default function UpVote ({ item, className }) {
                       `${styles.upvote}
                       ${className || ''}
                       ${disabled ? styles.noSelfTips : ''}
-                      ${item?.meSats ? styles.voted : ''}`
+                      ${meSats ? styles.voted : ''}`
                     }
-                  style={item?.meSats
+                  style={meSats
                     ? {
                         fill: color,
                         filter: `drop-shadow(0 0 6px ${color}90)`

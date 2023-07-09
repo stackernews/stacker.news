@@ -175,6 +175,7 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
           variables: { id: item.id, sats: pendingSats + sats }
         })
       } catch (error) {
+        timerRef.current && setPendingSats(0)
         if (error.toString().includes('insufficient funds')) {
           showModal(onClose => {
             return <FundError onClose={onClose} />

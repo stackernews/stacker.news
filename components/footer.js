@@ -179,9 +179,9 @@ const AnalyticsPopover = (
         visitors
       </a>
       <span className='mx-2 text-muted'> \ </span>
-      <Link href='/users/day' passHref>
+      <Link href='/stackers/day' passHref>
         <a className='nav-link p-0 d-inline-flex'>
-          users
+          stackers
         </a>
       </Link>
     </Popover.Content>

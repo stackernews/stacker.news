@@ -30,10 +30,10 @@ export default function Search ({ sub }) {
     }
 
     if (values.q?.trim() !== '') {
-      if (values.what === 'users') {
+      if (values.what === 'stackers') {
         await router.push({
-          pathname: '/users/search',
-          query: { q, what: 'users' }
+          pathname: '/stackers/search',
+          query: { q, what: 'stackers' }
         })
         return
       }
@@ -73,9 +73,9 @@ export default function Search ({ sub }) {
                       onChange={(formik, e) => search({ ...formik?.values, what: e.target.value })}
                       name='what'
                       size='sm'
-                      items={['all', 'posts', 'comments', 'users']}
+                      items={['all', 'posts', 'comments', 'stackers']}
                     />
-                    {router.query.what !== 'users' &&
+                    {router.query.what !== 'stackers' &&
                       <>
                         by
                         <Select

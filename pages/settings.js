@@ -204,7 +204,7 @@ export default function Settings ({ data: { settings } }) {
             groupClassName='mb-0'
           />
           <Checkbox
-            label={<>hide me from  <Link href='/top/users/day' passHref><a>top users</a></Link></>}
+            label={<>hide me from  <Link href='/top/stackers/day' passHref><a>top stackers</a></Link></>}
             name='hideFromTopUsers'
             groupClassName='mb-0'
           />
@@ -233,7 +233,7 @@ export default function Settings ({ data: { settings } }) {
                 <Info>
                   <ul className='font-weight-bold'>
                     <li>see and screen free posts and comments</li>
-                    <li>help onboard users to SN and Lightning</li>
+                    <li>help onboard new stackers to SN and Lightning</li>
                     <li>you might be subject to more spam</li>
                   </ul>
                 </Info>

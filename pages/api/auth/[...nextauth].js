@@ -285,7 +285,7 @@ const newUserHtml = ({ url, site, email }) => {
   const dailyUrl = replaceCb('/daily')
   const guideUrl = replaceCb('/guide')
   const faqUrl = replaceCb('/faq')
-  const topUrl = replaceCb('/top/users/forever')
+  const topUrl = replaceCb('/top/stackers/forever')
   const postUrl = replaceCb('/post')
 
   // Some simple styling options

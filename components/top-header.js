@@ -21,8 +21,8 @@ export default function TopHeader ({ sub, cat }) {
 
     if (typeof query.sort !== 'undefined') {
       if (query.sort === '' ||
-          (what === 'users' && !USER_SORTS.includes(query.sort)) ||
-          (what !== 'users' && !ITEM_SORTS.includes(query.sort))) {
+          (what === 'stackers' && !USER_SORTS.includes(query.sort)) ||
+          (what !== 'stackers' && !ITEM_SORTS.includes(query.sort))) {
         delete query.sort
       }
     }
@@ -51,7 +51,7 @@ export default function TopHeader ({ sub, cat }) {
             onChange={(formik, e) => top({ ...formik?.values, what: e.target.value })}
             name='what'
             size='sm'
-            items={router?.query?.sub ? ['posts', 'comments'] : ['posts', 'comments', 'users', 'cowboys']}
+            items={router?.query?.sub ? ['posts', 'comments'] : ['posts', 'comments', 'stackers', 'cowboys']}
           />
           {cat !== 'cowboys' &&
             <>
@@ -61,7 +61,7 @@ export default function TopHeader ({ sub, cat }) {
                 onChange={(formik, e) => top({ ...formik?.values, sort: e.target.value })}
                 name='sort'
                 size='sm'
-                items={cat === 'users' ? USER_SORTS : ITEM_SORTS}
+                items={cat === 'stackers' ? USER_SORTS : ITEM_SORTS}
               />
               for
               <Select

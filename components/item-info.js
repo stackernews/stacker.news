@@ -33,7 +33,7 @@ export default function ItemInfo ({ item, pendingSats, full, commentsText, class
     <div className={className || `${styles.other}`}>
       {!item.position &&
         <>
-          <span title={`from ${item.upvotes} users ${item.mine ? `\\ ${item.meSats} sats to post` : `(${item.meSats + pendingSats} sats from me)`} `}>{abbrNum(item.sats + pendingSats)} sats</span>
+          <span title={`from ${item.upvotes} stackers ${item.mine ? `\\ ${item.meSats} sats to post` : `(${item.meSats + pendingSats} sats from me)`} `}>{abbrNum(item.sats + pendingSats)} sats</span>
           <span> \ </span>
         </>}
       {item.boost > 0 &&

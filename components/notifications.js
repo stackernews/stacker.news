@@ -129,7 +129,7 @@ function EarnNotification ({ n }) {
               {n.sources.tipComments > 0 && <span>{(n.sources.comments > 0 || n.sources.posts > 0 || n.sources.tipPosts > 0) && ' \\ '}{n.sources.tipComments} sats for zapping top comments early</span>}
             </div>}
           <div className='pb-1' style={{ lineHeight: '140%' }}>
-            SN distributes the sats it earns back to its best users daily. These sats come from <Link href='/~jobs' passHref><a>jobs</a></Link>, boosts, posting fees, and donations. You can see the daily rewards pool and make a donation <Link href='/rewards' passHref><a>here</a></Link>.
+            SN distributes the sats it earns back to its best stackers daily. These sats come from <Link href='/~jobs' passHref><a>jobs</a></Link>, boosts, posting fees, and donations. You can see the daily rewards pool and make a donation <Link href='/rewards' passHref><a>here</a></Link>.
           </div>
         </div>
       </div>
@@ -142,7 +142,7 @@ function Invitification ({ n }) {
   return (
     <NotificationLayout onClick={() => router.push('/invites')}>
       <small className='font-weight-bold text-secondary ml-2'>
-        your invite has been redeemed by {n.invite.invitees.length} users
+        your invite has been redeemed by {n.invite.invitees.length} stackers
       </small>
       <div className='ml-4 mr-2 mt-1'>
         <Invite

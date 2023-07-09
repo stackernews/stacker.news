@@ -34,7 +34,7 @@ export default function AdvPostForm ({ edit }) {
                         <li>i.e. boost votes fall out of ranking faster</li>
                       </ul>
                     </li>
-                    <li>100% of sats from boost are given back to top users as rewards</li>
+                    <li>100% of sats from boost are given back to top stackers as rewards</li>
                   </ol>
                 </Info>
               </div>
@@ -46,7 +46,7 @@ export default function AdvPostForm ({ edit }) {
           <InputUserSuggest
             label={<>forward sats to</>}
             name='forward'
-            hint={<span className='text-muted'>100% of sats will be sent to this user</span>}
+            hint={<span className='text-muted'>100% of sats will be sent to this stacker</span>}
             prepend={<InputGroup.Text>@</InputGroup.Text>}
             showValid
           />

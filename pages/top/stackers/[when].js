@@ -23,7 +23,7 @@ export default function Index ({ data: { topUsers: { users, cursor } } }) {
   return (
     <Layout>
       <TopHeader cat='stackers' />
-      <UserList users={users} />
+      <UserList users={users} sort={router.query.sort} />
       <MoreFooter cursor={cursor} fetchMore={fetchMore} Skeleton={UsersSkeleton} />
     </Layout>
   )

@@ -4,8 +4,46 @@ import { abbrNum } from '../lib/format'
 import CowboyHat from './cowboy-hat'
 import styles from './item.module.css'
 import userStyles from './user-header.module.css'
+import { useEffect, useState } from 'react'
 
-export default function UserList ({ users }) {
+// all of this nonsense is to show the stat we are sorting by first
+const Stacked = ({ user }) => (<span>{abbrNum(user.stacked)} stacked</span>)
+const Spent = ({ user }) => (<span>{abbrNum(user.spent)} spent</span>)
+const Posts = ({ user }) => (
+  <Link href={`/${user.name}/posts`} passHref>
+    <a className='text-reset'>{abbrNum(user.nitems)} posts</a>
+  </Link>)
+const Comments = ({ user }) => (
+  <Link href={`/${user.name}/comments`} passHref>
+    <a className='text-reset'>{abbrNum(user.ncomments)} comments</a>
+  </Link>)
+const Referrals = ({ user }) => (<span>{abbrNum(user.referrals)} referrals</span>)
+const Seperator = () => (<span> \ </span>)
+
+const STAT_POS = {
+  stacked: 0,
+  spent: 1,
+  posts: 2,
+  comments: 3,
+  referrals: 4
+}
+const STAT_COMPONENTS = [Stacked, Spent, Posts, Comments, Referrals]
+
+function seperate (arr, seperator) {
+  return arr.flatMap((x, i) => i < arr.length - 1 ? [x, seperator] : [x])
+}
+
+export default function UserList ({ users, sort }) {
+  const [statComps, setStatComps] = useState(seperate(STAT_COMPONENTS, Seperator))
+
+  useEffect(() => {
+    if (sort) {
+      // shift the stat we are sorting by to the front
+      const comps = [...STAT_COMPONENTS]
+      setStatComps(seperate([...comps.splice(STAT_POS[sort], 1), ...comps], Seperator))
+    }
+  }, [sort])
+
   return (
     <> {users.map(user => (
       <div className={`${styles.item} mb-2`} key={user.name}>
@@ -24,22 +62,7 @@ export default function UserList ({ users }) {
             </a>
           </Link>
           <div className={styles.other}>
-            <span>{abbrNum(user.stacked)} stacked</span>
-            <span> \ </span>
-            <span>{abbrNum(user.spent)} spent</span>
-            <span> \ </span>
-            <Link href={`/${user.name}/posts`} passHref>
-              <a className='text-reset'>
-                {abbrNum(user.nitems)} posts
-              </a>
-            </Link>
-            <span> \ </span>
-            <Link href={`/${user.name}/comments`} passHref>
-              <a className='text-reset'>
-                {abbrNum(user.ncomments)} comments
-              </a>
-            </Link>
-            {user.referrals > 0 && <span> \ {abbrNum(user.referrals)} referrals</span>}
+            {statComps.map((Comp, i) => <Comp key={i} user={user} />)}
           </div>
         </div>
       </div>

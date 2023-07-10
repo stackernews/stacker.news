@@ -117,6 +117,7 @@ gql`
       spent
       ncomments
       nitems
+      referrals
     }
   }`
 

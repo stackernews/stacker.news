@@ -7,15 +7,16 @@ import { isExternal } from '../lib/url'
 export async function getServerSideProps ({ req, res, query: { callbackUrl, error = null } }) {
   const session = await getSession({ req })
 
-  // assume external by default so we will use fallback callback
-  let external = true
+  // prevent open redirects. See https://github.com/stackernews/stacker.news/issues/264
+  // let undefined urls through without redirect ... otherwise this interferes with multiple auth linking
+  let external = callbackUrl !== undefined
   try {
     external = isExternal(decodeURIComponent(callbackUrl))
   } catch (err) {
     console.error('error decoding callback:', callbackUrl, err)
   }
+
   if (external) {
-    // This is a hotfix for open redirects. See https://github.com/stackernews/stacker.news/issues/264
     callbackUrl = '/'
   }
 

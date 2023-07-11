@@ -5,6 +5,34 @@ import prisma from '../../../api/models'
 import nodemailer from 'nodemailer'
 import { getSession } from 'next-auth/client'
 
+// node v16 and next don't give us parsed headers like v14, so we
+// do our best to parse them in a similar fashion to like in v14
+// getSession requires req.headers.cookie otherwise it will throw
+function parsedHeaders (req) {
+  return req.rawHeaders.reduce(
+    (obj, value, index, arr) => {
+      if (index % 2 === 0) {
+        const key = value.toLowerCase()
+        if (typeof obj[key] === 'string') {
+          if (key === 'cookie') {
+            obj[key] = obj[key] + '; ' + arr[index + 1]
+          } else if (key === 'set-cookie') {
+            obj[key] = obj[key].push(arr[index + 1])
+          } else {
+            obj[key] = obj[key] + ', ' + arr[index + 1]
+          }
+        } else {
+          if (key === 'set-cookie') {
+            obj[key] = [arr[index + 1]]
+          } else {
+            obj[key] = arr[index + 1]
+          }
+        }
+      }
+      return obj
+    }, {})
+}
+
 export default (req, res) => NextAuth(req, res, {
   callbacks: {
     /**
@@ -79,6 +107,7 @@ export default (req, res) => NextAuth(req, res, {
           await prisma.lnAuth.delete({ where: { k1 } })
           if (lnauth.pubkey === pubkey) {
             let user = await prisma.user.findUnique({ where: { pubkey } })
+            req.headers = parsedHeaders(req)
             const session = await getSession({ req })
             if (!user) {
               // if we are logged in, update rather than create
@@ -118,6 +147,7 @@ export default (req, res) => NextAuth(req, res, {
           await prisma.lnAuth.delete({ where: { k1 } })
           if (lnauth.pubkey === pubkey) {
             let user = await prisma.user.findUnique({ where: { slashtagId: pubkey } })
+            req.headers = parsedHeaders(req)
             const session = await getSession({ req })
             if (!user) {
               // if we are logged in, update rather than create

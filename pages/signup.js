@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import LayoutStatic from '../components/layout-static'
 import Login from '../components/login'
-export { getServerSideProps } from '../components/login'
+export { getServerSideProps } from './login'
 
 function SignUpHeader () {
   return (
@@ -9,7 +9,7 @@ function SignUpHeader () {
       <h3 className='w-100 pb-2'>
         Sign up
       </h3>
-      <div className='font-weight-bold text-muted pb-4'>Join 10,000+ bitcoiners and start stacking sats today</div>
+      <div className='font-weight-bold text-muted pb-4'>Join 15,000+ bitcoiners and start stacking sats today</div>
     </>
   )
 }

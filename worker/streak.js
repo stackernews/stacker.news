@@ -47,14 +47,12 @@ function computeStreaks ({ models }) {
         SELECT id, (now() AT TIME ZONE 'America/Chicago' - interval '1 day')::date, now_utc(), now_utc()
         FROM new_streaks
       ), user_update_new_streaks AS (
-        UPDATE users SET streak = 1, "maxStreak" = GREATEST("maxStreak", 1) FROM new_streaks WHERE new_streaks.id = users.id
+        UPDATE users SET streak = 1 FROM new_streaks WHERE new_streaks.id = users.id
       ), user_update_end_streaks AS (
         UPDATE users SET streak = NULL FROM ending_streaks WHERE ending_streaks.id = users.id
       ), user_update_extend_streaks AS (
         UPDATE users
-        SET
-          streak = (now() AT TIME ZONE 'America/Chicago')::date - extending_streaks.started_at,
-          "maxStreak" = GREATEST("maxStreak", (now() AT TIME ZONE 'America/Chicago')::date - extending_streaks.started_at)
+        SET streak = (now() AT TIME ZONE 'America/Chicago')::date - extending_streaks.started_at
         FROM extending_streaks WHERE extending_streaks.id = users.id
       )
       UPDATE "Streak"
@@ -101,7 +99,7 @@ function checkStreak ({ models }) {
             GROUP BY "userId"
             HAVING sum(sats_spent) >= ${STREAK_THRESHOLD}
       ), user_start_streak AS (
-        UPDATE users SET streak = 0, "maxStreak" = GREATEST("maxStreak", 0) FROM streak_started WHERE streak_started.id = users.id
+        UPDATE users SET streak = 0 FROM streak_started WHERE streak_started.id = users.id
       )
       INSERT INTO "Streak" ("userId", "startedAt", created_at, updated_at)
       SELECT id, (now() AT TIME ZONE 'America/Chicago')::date, now_utc(), now_utc()

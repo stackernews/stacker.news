@@ -128,6 +128,7 @@ export const USER_FIELDS = gql`
     createdAt
     name
     streak
+    maxStreak
     hideCowboyHat
     nitems
     ncomments

@@ -140,10 +140,13 @@ export default function UserHeader ({ user }) {
             </a>
             <div className='text-center font-weight-bold text-muted mt-3'>click or scan</div>
           </ModalButton>
-          <small className='ml-0 mt-3 mt-sm-0 text-muted d-flex-inline'>stacking since: {user.since
-            ? <Link href={`/items/${user.since}`} passHref><a className='ml-1'>#{user.since}</a></Link>
-            : <span>never</span>}
-          </small>
+          <div className='d-flex flex-column mt-1 ml-0'>
+            <small className='text-muted d-flex-inline'>stacking since: {user.since
+              ? <Link href={`/items/${user.since}`} passHref><a className='ml-1'>#{user.since}</a></Link>
+              : <span>never</span>}
+            </small>
+            <small className='text-muted d-flex-inline'>longest cowboy streak: {user.maxStreak !== null ? user.maxStreak : 'none'}</small>
+          </div>
         </div>
       </div>
       <Nav

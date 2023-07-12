@@ -50,7 +50,7 @@ export default function UserHeader ({ user }) {
   return (
     <>
       <div className='d-flex mt-2 flex-wrap flex-column flex-sm-row'>
-        <div className='position-relative' style={{ width: 'fit-content' }}>
+        <div className='position-relative align-self-start' style={{ width: 'fit-content' }}>
           <Image
             src={user.photoId ? `https://${process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET}.s3.amazonaws.com/${user.photoId}` : '/dorian400.jpg'} width='135' height='135'
             className={styles.userimg}

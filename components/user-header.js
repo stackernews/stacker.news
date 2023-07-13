@@ -50,7 +50,7 @@ export default function UserHeader ({ user }) {
   return (
     <>
       <div className='d-flex mt-2 flex-wrap flex-column flex-sm-row'>
-        <div className='position-relative' style={{ width: 'fit-content' }}>
+        <div className='position-relative align-self-start' style={{ width: 'fit-content' }}>
           <Image
             src={user.photoId ? `https://${process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET}.s3.amazonaws.com/${user.photoId}` : '/dorian400.jpg'} width='135' height='135'
             className={styles.userimg}
@@ -140,10 +140,13 @@ export default function UserHeader ({ user }) {
             </a>
             <div className='text-center font-weight-bold text-muted mt-3'>click or scan</div>
           </ModalButton>
-          <small className='ml-0 mt-3 mt-sm-0 text-muted d-flex-inline'>stacking since: {user.since
-            ? <Link href={`/items/${user.since}`} passHref><a className='ml-1'>#{user.since}</a></Link>
-            : <span>never</span>}
-          </small>
+          <div className='d-flex flex-column mt-1 ml-0'>
+            <small className='text-muted d-flex-inline'>stacking since: {user.since
+              ? <Link href={`/items/${user.since}`} passHref><a className='ml-1'>#{user.since}</a></Link>
+              : <span>never</span>}
+            </small>
+            <small className='text-muted d-flex-inline'>longest cowboy streak: {user.maxStreak !== null ? user.maxStreak : 'none'}</small>
+          </div>
         </div>
       </div>
       <Nav

@@ -570,6 +570,10 @@ export default {
       })
       return item?.id
     },
+    maxStreak: async (user, args, { models }) => {
+      const [{ max }] = await models.$queryRaw`SELECT MAX(COALESCE("endedAt", "startedAt") - "startedAt") FROM "Streak" WHERE "userId" = ${user.id}`
+      return max
+    },
     nitems: async (user, { when }, { models }) => {
       if (typeof user.nitems === 'number') {
         return user.nitems

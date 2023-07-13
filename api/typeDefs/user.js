@@ -62,6 +62,7 @@ export default gql`
     bioId: Int
     photoId: Int
     streak: Int
+    maxStreak: Int
     sats: Int!
     since: Int
     upvotePopover: Boolean!

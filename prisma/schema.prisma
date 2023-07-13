@@ -52,7 +52,7 @@ model User {
   subs            String[]
 
   // streak
-  streak Int?
+  streak    Int?
 
   // walkthrough
   upvotePopover Boolean @default(false)

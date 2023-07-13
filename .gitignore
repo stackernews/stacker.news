@@ -42,6 +42,9 @@ envbak
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
 
+# copilot
+copilot/
+
 # service worker
 public/sw.js*
 sw/precache-manifest.json

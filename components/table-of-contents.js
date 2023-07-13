@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { Dropdown, FormControl } from 'react-bootstrap'
 import TocIcon from '../svgs/list-unordered.svg'
 import { fromMarkdown } from 'mdast-util-from-markdown'
@@ -11,13 +11,16 @@ export default function Toc ({ text }) {
     return null
   }
 
-  const tree = fromMarkdown(text)
-  const toc = []
-  const slugger = new GithubSlugger()
-  visit(tree, 'heading', (node, position, parent) => {
-    const str = toString(node)
-    toc.push({ heading: str, slug: slugger.slug(str.replace(/[^\w\-\s]+/gi, '')), depth: node.depth })
-  })
+  const toc = useMemo(() => {
+    const tree = fromMarkdown(text)
+    const toc = []
+    const slugger = new GithubSlugger()
+    visit(tree, 'heading', (node, position, parent) => {
+      const str = toString(node)
+      toc.push({ heading: str, slug: slugger.slug(str.replace(/[^\w\-\s]+/gi, '')), depth: node.depth })
+    })
+    return toc
+  }, [text])
 
   if (toc.length === 0) {
     return null

@@ -13,6 +13,7 @@ import { parse } from 'tldts'
 import uu from 'url-unshort'
 import { amountSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, ssValidate } from '../../lib/validate'
 import { sendUserNotification } from '../webPush'
+import { useImageProxy } from '../imgproxy'
 
 async function comments (me, models, id, sort) {
   let orderBy
@@ -1250,6 +1251,9 @@ export const updateItem = async (parent, { id, data: { sub, title, url, text, bo
     }
   }
 
+  url = await useImageProxy(url)
+  text = await useImageProxy(text)
+
   const [item] = await serialize(models,
     models.$queryRaw(
       `${SELECT} FROM update_item($1, $2, $3, $4, $5, $6, $7, $8) AS "Item"`,
@@ -1281,6 +1285,9 @@ const createItem = async (parent, { sub, title, url, text, boost, forward, bount
       throw new UserInputError('forward user does not exist', { argumentName: 'forward' })
     }
   }
+
+  url = await useImageProxy(url)
+  text = await useImageProxy(text)
 
   const [item] = await serialize(
     models,

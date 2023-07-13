@@ -8,12 +8,14 @@ import sub from '../lib/remark-sub'
 import remarkDirective from 'remark-directive'
 import { visit } from 'unist-util-visit'
 import reactStringReplace from 'react-string-replace'
-import React, { useEffect, useState } from 'react'
+import React, { useRef, useEffect, useState } from 'react'
 import GithubSlugger from 'github-slugger'
 import LinkIcon from '../svgs/link.svg'
 import Thumb from '../svgs/thumb-up-fill.svg'
 import { toString } from 'mdast-util-to-string'
 import copy from 'clipboard-copy'
+import { IMGPROXY_URL_REGEXP, IMG_URL_REGEXP } from '../lib/url'
+import { extractUrls } from '../lib/md'
 
 function myRemarkPlugin () {
   return (tree) => {
@@ -60,11 +62,53 @@ function Heading ({ h, slugger, noFragments, topLevel, children, node, ...props 
   )
 }
 
-export default function Text ({ topLevel, noFragments, nofollow, children }) {
+const CACHE_STATES = {
+  IS_LOADING: 'IS_LOADING',
+  IS_LOADED: 'IS_LOADED',
+  IS_ERROR: 'IS_ERROR'
+}
+
+export default function Text ({ topLevel, noFragments, nofollow, onlyImgProxy, children }) {
   // all the reactStringReplace calls are to facilitate search highlighting
   const slugger = new GithubSlugger()
+  onlyImgProxy = onlyImgProxy ?? true
 
   const HeadingWrapper = (props) => Heading({ topLevel, slugger, noFragments, ...props })
+
+  const imgCache = useRef({})
+  const [urlCache, setUrlCache] = useState({})
+
+  useEffect(() => {
+    const imgRegexp = onlyImgProxy ? IMGPROXY_URL_REGEXP : IMG_URL_REGEXP
+    const urls = extractUrls(children)
+
+    urls.forEach((url) => {
+      if (imgRegexp.test(url)) {
+        setUrlCache((prev) => ({ ...prev, [url]: CACHE_STATES.IS_LOADED }))
+      } else if (!onlyImgProxy) {
+        const img = new Image()
+        imgCache.current[url] = img
+
+        setUrlCache((prev) => ({ ...prev, [url]: CACHE_STATES.IS_LOADING }))
+
+        const callback = (state) => {
+          setUrlCache((prev) => ({ ...prev, [url]: state }))
+          delete imgCache.current[url]
+        }
+        img.onload = () => callback(CACHE_STATES.IS_LOADED)
+        img.onerror = () => callback(CACHE_STATES.IS_ERROR)
+        img.src = url
+      }
+    })
+
+    return () => {
+      Object.values(imgCache.current).forEach((img) => {
+        img.onload = null
+        img.onerror = null
+        img.src = ''
+      })
+    }
+  }, [children])
 
   return (
     <div className={styles.text}>
@@ -101,6 +145,10 @@ export default function Text ({ topLevel, noFragments, nofollow, children }) {
           a: ({ node, href, children, ...props }) => {
             if (children?.some(e => e?.props?.node?.tagName === 'img')) {
               return <>{children}</>
+            }
+
+            if (urlCache[href] === CACHE_STATES.IS_LOADED) {
+              return <ZoomableImage topLevel={topLevel} {...props} src={href} />
             }
 
             // map: fix any highlighted links

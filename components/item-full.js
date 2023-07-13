@@ -2,7 +2,7 @@ import Item from './item'
 import ItemJob from './item-job'
 import Reply from './reply'
 import Comment from './comment'
-import Text from './text'
+import Text, { ZoomableImage } from './text'
 import Comments from './comments'
 import styles from '../styles/item.module.css'
 import { NOFOLLOW_LIMIT } from '../lib/constants'
@@ -21,6 +21,7 @@ import Share from './share'
 import Toc from './table-of-contents'
 import Link from 'next/link'
 import { RootProvider } from './root'
+import { IMGPROXY_URL_REGEXP } from '../lib/url'
 
 function BioItem ({ item, handleClick }) {
   const me = useMe()
@@ -90,6 +91,10 @@ function ItemEmbed ({ item }) {
         />
       </div>
     )
+  }
+
+  if (item.url?.match(IMGPROXY_URL_REGEXP)) {
+    return <ZoomableImage src={item.url} />
   }
 
   return null

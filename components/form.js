@@ -150,7 +150,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
         </div>
         <div className={tab !== 'preview' ? 'd-none' : 'form-group'}>
           <div className={`${styles.text} form-control`}>
-            {tab === 'preview' && <Text topLevel={topLevel} noFragments>{meta.value}</Text>}
+            {tab === 'preview' && <Text topLevel={topLevel} noFragments onlyImgProxy={false}>{meta.value}</Text>}
           </div>
         </div>
       </div>

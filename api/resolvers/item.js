@@ -13,7 +13,7 @@ import { parse } from 'tldts'
 import uu from 'url-unshort'
 import { amountSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, ssValidate } from '../../lib/validate'
 import { sendUserNotification } from '../webPush'
-import { useImageProxy } from '../imgproxy'
+import { proxyImages } from './imgproxy'
 
 async function comments (me, models, id, sort) {
   let orderBy
@@ -1251,8 +1251,8 @@ export const updateItem = async (parent, { id, data: { sub, title, url, text, bo
     }
   }
 
-  url = await useImageProxy(url)
-  text = await useImageProxy(text)
+  url = await proxyImages(url)
+  text = await proxyImages(text)
 
   const [item] = await serialize(models,
     models.$queryRaw(
@@ -1286,8 +1286,8 @@ const createItem = async (parent, { sub, title, url, text, boost, forward, bount
     }
   }
 
-  url = await useImageProxy(url)
-  text = await useImageProxy(text)
+  url = await proxyImages(url)
+  text = await proxyImages(text)
 
   const [item] = await serialize(
     models,

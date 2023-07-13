@@ -1,5 +1,5 @@
 import { createHmac } from 'node:crypto'
-import { extractUrls } from '../../lib/md'
+import { extractUrls } from '../../../lib/md'
 
 const IMGPROXY_URL = process.env.NEXT_PUBLIC_IMGPROXY_URL
 const IMGPROXY_SALT = process.env.IMGPROXY_SALT
@@ -20,7 +20,7 @@ const createImageProxyUrl = url => {
   const b64Url = Buffer.from(url, 'utf-8').toString('base64url')
   const target = `${processingOptions}/${b64Url}`
   const signature = sign(target)
-  return `${IMGPROXY_URL}/${signature}${target}`
+  return `${IMGPROXY_URL}${signature}${target}`
 }
 
 const isImageURL = async url => {
@@ -35,13 +35,13 @@ const isImageURL = async url => {
   }
 }
 
-export const useImageProxy = async text => {
+export const proxyImages = async text => {
   const urls = extractUrls(text)
   for (const url of urls) {
     if (url.startsWith(IMGPROXY_URL)) continue
     if (!(await isImageURL(url))) continue
     const proxyUrl = createImageProxyUrl(url)
-    text = text.replace(new RegExp(url, 'g'), proxyUrl)
+    text = text.replaceAll(url, proxyUrl)
   }
   return text
 }

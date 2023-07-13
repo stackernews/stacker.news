@@ -2,6 +2,8 @@
     font-weight: 500;
     white-space: normal;
     max-width: 100%;
+    display: inline-flex;
+    align-items: center;
 }
 
 a.title:visited {

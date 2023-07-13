@@ -94,6 +94,10 @@
     margin-bottom: .5rem;
 }
 
+.fullItemContainer img {
+    border-radius: .4rem;
+}
+
 .fullItemContainer:empty {
     margin: 0;
 }

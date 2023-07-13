@@ -9,6 +9,7 @@ import PollIcon from '../svgs/bar-chart-horizontal-fill.svg'
 import BountyIcon from '../svgs/bounty-bag.svg'
 import ActionTooltip from './action-tooltip'
 import Flag from '../svgs/flag-fill.svg'
+import ImageIcon from '../svgs/image-fill.svg'
 import { abbrNum } from '../lib/format'
 import ItemInfo from './item-info'
 
@@ -21,6 +22,8 @@ export function SearchTitle ({ title }) {
 export default function Item ({ item, rank, belowTitle, right, full, children }) {
   const titleRef = useRef()
   const [pendingSats, setPendingSats] = useState(0)
+
+  const image = item.url && item.url.startsWith(process.env.NEXT_PUBLIC_IMGPROXY_URL)
 
   return (
     <>
@@ -39,16 +42,17 @@ export default function Item ({ item, rank, belowTitle, right, full, children })
             <Link href={`/items/${item.id}`} passHref>
               <a ref={titleRef} className={`${styles.title} text-reset mr-2`}>
                 {item.searchTitle ? <SearchTitle title={item.searchTitle} /> : item.title}
-                {item.pollCost && <span> <PollIcon className='fill-grey vertical-align-baseline' height={14} width={14} /></span>}
+                {item.pollCost && <span> <PollIcon className='fill-grey ml-1' height={14} width={14} /></span>}
                 {item.bounty > 0 &&
                   <span>
                     <ActionTooltip notForm overlayText={`${abbrNum(item.bounty)} ${item.bountyPaidTo?.length ? 'sats paid' : 'sats bounty'}`}>
-                      <BountyIcon className={`${styles.bountyIcon} ${item.bountyPaidTo?.length ? 'fill-success vertical-align-middle' : 'fill-grey vertical-align-middle'}`} height={16} width={16} />
+                      <BountyIcon className={`${styles.bountyIcon} ${item.bountyPaidTo?.length ? 'fill-success' : 'fill-grey'}`} height={16} width={16} />
                     </ActionTooltip>
                   </span>}
+                {image && <span><ImageIcon className='fill-grey ml-2' height={16} width={16} /></span>}
               </a>
             </Link>
-            {item.url &&
+            {item.url && !image &&
               <>
                 {/*  eslint-disable-next-line */}
                 <a

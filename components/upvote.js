@@ -11,7 +11,6 @@ import LongPressable from 'react-longpressable'
 import Overlay from 'react-bootstrap/Overlay'
 import Popover from 'react-bootstrap/Popover'
 import { useShowModal } from './modal'
-import { useRouter } from 'next/router'
 import { LightningConsumer } from './lightning'
 
 const getColor = (meSats) => {
@@ -66,7 +65,6 @@ const TipPopover = ({ target, show, handleClose }) => (
 
 export default function UpVote ({ item, className, pendingSats, setPendingSats }) {
   const showModal = useShowModal()
-  const router = useRouter()
   const [voteShow, _setVoteShow] = useState(false)
   const [tipShow, _setTipShow] = useState(false)
   const ref = useRef()
@@ -110,8 +108,8 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
 
   const [act] = useMutation(
     gql`
-      mutation act($id: ID!, $sats: Int!) {
-        act(id: $id, sats: $sats) {
+      mutation act($id: ID!, $sats: Int!, $invoiceId: ID) {
+        act(id: $id, sats: $sats, invoiceId: $invoiceId) {
           sats
         }
       }`, {
@@ -122,17 +120,19 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
             sats (existingSats = 0) {
               return existingSats + sats
             },
-            meSats (existingSats = 0) {
-              if (sats <= me.sats) {
-                if (existingSats === 0) {
-                  setVoteShow(true)
-                } else {
-                  setTipShow(true)
-                }
-              }
+            meSats: me
+              ? (existingSats = 0) => {
+                  if (sats <= me.sats) {
+                    if (existingSats === 0) {
+                      setVoteShow(true)
+                    } else {
+                      setTipShow(true)
+                    }
+                  }
 
-              return existingSats + sats
-            }
+                  return existingSats + sats
+                }
+              : undefined
           }
         })
 
@@ -197,8 +197,9 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
     return item?.mine || (me && Number(me.id) === item?.fwdUserId) || item?.deletedAt
   }, [me?.id, item?.fwdUserId, item?.mine, item?.deletedAt])
 
-  const [meSats, sats, overlayText, color] = useMemo(() => {
+  const [meSats, meTotalSats, sats, overlayText, color] = useMemo(() => {
     const meSats = (item?.meSats || 0) + pendingSats
+    const meTotalSats = meSats + (item?.meAnonSats || 0)
 
     // what should our next tip be?
     let sats = me?.tipDefault || 1
@@ -211,8 +212,8 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
       sats = raiseTip - meSats
     }
 
-    return [meSats, sats, `${sats} sat${sats > 1 ? 's' : ''}`, getColor(meSats)]
-  }, [item?.meSats, pendingSats, me?.tipDefault, me?.turboDefault])
+    return [meSats, meTotalSats, sats, `${sats} sat${sats > 1 ? 's' : ''}`, getColor(meTotalSats)]
+  }, [item?.meSats, item?.meAnonSats, pendingSats, me?.tipDefault, me?.turboDefault])
 
   return (
     <LightningConsumer>
@@ -251,10 +252,7 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
 
                 setPendingSats(pendingSats + sats)
               }
-              : async () => await router.push({
-                pathname: '/signup',
-                query: { callbackUrl: window.location.origin + router.asPath }
-              })
+              : () => showModal(onClose => <ItemAct onClose={onClose} itemId={item.id} act={act} strike={strike} />)
           }
           >
             <ActionTooltip notForm disable={disabled} overlayText={overlayText}>
@@ -268,9 +266,9 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
                       `${styles.upvote}
                       ${className || ''}
                       ${disabled ? styles.noSelfTips : ''}
-                      ${meSats ? styles.voted : ''}`
+                      ${meTotalSats ? styles.voted : ''}`
                     }
-                  style={meSats
+                  style={meTotalSats
                     ? {
                         fill: color,
                         filter: `drop-shadow(0 0 6px ${color}90)`

@@ -2,13 +2,13 @@ const { GraphQLError } = require('graphql')
 const retry = require('async-retry')
 const Prisma = require('@prisma/client')
 
-async function serialize (models, call) {
+async function serialize (models, ...calls) {
   return await retry(async bail => {
     try {
-      const [, result] = await models.$transaction(
-        [models.$executeRaw`SELECT ASSERT_SERIALIZED()`, call],
+      const [, ...result] = await models.$transaction(
+        [models.$executeRaw`SELECT ASSERT_SERIALIZED()`, ...calls],
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
-      return result
+      return calls.length > 1 ? result : result[0]
     } catch (error) {
       console.log(error)
       if (error.message.includes('SN_INSUFFICIENT_FUNDS')) {

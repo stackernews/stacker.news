@@ -7,12 +7,9 @@ import { SELECT } from './item'
 import { lnurlPayDescriptionHash } from '../../lib/lnurl'
 import { msatsToSats, msatsToSatsDecimal } from '../../lib/format'
 import { amountSchema, lnAddrSchema, ssValidate, withdrawlSchema } from '../../lib/validate'
+import { ANON_USER_ID } from '../../lib/constants'
 
 export async function getInvoice (parent, { id }, { me, models }) {
-  if (!me) {
-    throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
-  }
-
   const inv = await models.invoice.findUnique({
     where: {
       id: Number(id)
@@ -22,6 +19,15 @@ export async function getInvoice (parent, { id }, { me, models }) {
     }
   })
 
+  if (!inv) {
+    throw new GraphQLError('invoice not found', { extensions: { code: 'BAD_INPUT' } })
+  }
+  if (inv.user.id === ANON_USER_ID) {
+    return inv
+  }
+  if (!me) {
+    throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+  }
   if (inv.user.id !== me.id) {
     throw new GraphQLError('not ur invoice', { extensions: { code: 'FORBIDDEN' } })
   }
@@ -190,13 +196,9 @@ export default {
 
   Mutation: {
     createInvoice: async (parent, { amount }, { me, models, lnd }) => {
-      if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
-      }
-
       await ssValidate(amountSchema, { amount })
 
-      const user = await models.user.findUnique({ where: { id: me.id } })
+      const user = await models.user.findUnique({ where: { id: me ? me.id : ANON_USER_ID } })
 
       // set expires at to 3 hours into future
       const expiresAt = new Date(new Date().setHours(new Date().getHours() + 3))
@@ -211,7 +213,7 @@ export default {
 
         const [inv] = await serialize(models,
           models.$queryRaw`SELECT * FROM create_invoice(${invoice.id}, ${invoice.request},
-            ${expiresAt}, ${amount * 1000}, ${me.id}::INTEGER, ${description})`)
+            ${expiresAt}::timestamp, ${amount * 1000}, ${user.id}::INTEGER, ${description})`)
 
         return inv
       } catch (error) {

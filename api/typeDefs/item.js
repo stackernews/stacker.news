@@ -35,7 +35,7 @@ export default gql`
     createComment(text: String!, parentId: ID!): Item!
     updateComment(id: ID!, text: String!): Item!
     dontLikeThis(id: ID!): Boolean!
-    act(id: ID!, sats: Int): ItemActResult!
+    act(id: ID!, sats: Int, invoiceId: ID): ItemActResult!
     pollVote(id: ID!): ID!
   }
 

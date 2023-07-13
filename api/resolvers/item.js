@@ -16,6 +16,7 @@ import { amountSchema, bountySchema, commentSchema, discussionSchema, jobSchema,
 import { sendUserNotification } from '../webPush'
 import { proxyImages } from './imgproxy'
 import { defaultCommentSort } from '../../lib/item'
+import { checkInvoice } from '../../lib/anonymous'
 
 export async function commentFilterClause (me, models) {
   let clause = ` AND ("Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}`
@@ -711,24 +712,37 @@ export default {
 
       return id
     },
-    act: async (parent, { id, sats }, { me, models }) => {
+    act: async (parent, { id, sats, invoiceId }, { me, models }) => {
       // need to make sure we are logged in
-      if (!me) {
+      if (!me && !invoiceId) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
       }
 
       await ssValidate(amountSchema, { amount: sats })
 
+      let user = me
+      if (!me && invoiceId) {
+        const invoice = await checkInvoice(models, invoiceId, sats)
+        user = invoice.user
+      }
+
       // disallow self tips
       const [item] = await models.$queryRawUnsafe(`
       ${SELECT}
       FROM "Item"
-      WHERE id = $1 AND "userId" = $2`, Number(id), me.id)
+      WHERE id = $1 AND "userId" = $2`, Number(id), user.id)
       if (item) {
         throw new GraphQLError('cannot zap your self', { extensions: { code: 'BAD_INPUT' } })
       }
 
-      const [{ item_act: vote }] = await serialize(models, models.$queryRaw`SELECT item_act(${Number(id)}::INTEGER, ${me.id}::INTEGER, 'TIP', ${Number(sats)}::INTEGER)`)
+      const calls = [
+        models.$queryRaw`SELECT item_act(${Number(id)}::INTEGER, ${user.id}::INTEGER, 'TIP', ${Number(sats)}::INTEGER)`
+      ]
+      if (!me && invoiceId) {
+        calls.push(models.invoice.delete({ where: { id: Number(invoiceId) } }))
+      }
+
+      const [{ item_act: vote }] = await serialize(models, ...calls)
 
       const updatedItem = await models.item.findUnique({ where: { id: Number(id) } })
       const title = `your ${updatedItem.title ? 'post' : 'reply'} ${updatedItem.fwdUser ? 'forwarded' : 'stacked'} ${Math.floor(Number(updatedItem.msats) / 1000)} sats${updatedItem.fwdUser ? ` to @${updatedItem.fwdUser.name}` : ''}`

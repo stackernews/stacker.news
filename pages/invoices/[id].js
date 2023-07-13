@@ -5,7 +5,7 @@ import { CenterLayout } from '../../components/layout'
 import { useRouter } from 'next/router'
 import { INVOICE } from '../../fragments/wallet'
 
-export default function FullInvoice () {
+export default function FullInvoice ({ id }) {
   const router = useRouter()
   const { data, error } = useQuery(INVOICE, {
     pollInterval: 1000,

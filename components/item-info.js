@@ -24,17 +24,23 @@ export default function ItemInfo ({ item, pendingSats, full, commentsText, class
   const [canEdit, setCanEdit] =
     useState(item.mine && (Date.now() < editThreshold))
   const [hasNewComments, setHasNewComments] = useState(false)
+  const [meTotalSats, setMeTotalSats] = useState(0)
+
   useEffect(() => {
     if (!full) {
       setHasNewComments(newComments(item))
     }
   }, [item])
 
+  useEffect(() => {
+    if (item) setMeTotalSats(item.meSats + item.meAnonSats + pendingSats)
+  }, [item?.meSats, item?.meAnonSats, pendingSats])
+
   return (
     <div className={className || `${styles.other}`}>
       {!item.position &&
         <>
-          <span title={`from ${item.upvotes} stackers ${item.mine ? `\\ ${item.meSats} sats to post` : `(${item.meSats + pendingSats} sats from me)`} `}>{abbrNum(item.sats + pendingSats)} sats</span>
+          <span title={`from ${item.upvotes} stackers ${item.mine ? `\\ ${item.meSats} sats to post` : `(${meTotalSats} sats from me)`} `}>{abbrNum(item.sats + pendingSats)} sats</span>
           <span> \ </span>
         </>}
       {item.boost > 0 &&

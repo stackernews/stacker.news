@@ -42,14 +42,14 @@ export default function Item ({ item, rank, belowTitle, right, full, children })
             <Link href={`/items/${item.id}`} passHref>
               <a ref={titleRef} className={`${styles.title} text-reset mr-2`}>
                 {item.searchTitle ? <SearchTitle title={item.searchTitle} /> : item.title}
-                {item.pollCost && <span> <PollIcon className='fill-grey ml-1' height={14} width={14} /></span>}
+                {item.pollCost && <span className={styles.icon}> <PollIcon className='fill-grey ml-1' height={14} width={14} /></span>}
                 {item.bounty > 0 &&
-                  <span>
+                  <span className={styles.icon}>
                     <ActionTooltip notForm overlayText={`${abbrNum(item.bounty)} ${item.bountyPaidTo?.length ? 'sats paid' : 'sats bounty'}`}>
                       <BountyIcon className={`${styles.bountyIcon} ${item.bountyPaidTo?.length ? 'fill-success' : 'fill-grey'}`} height={16} width={16} />
                     </ActionTooltip>
                   </span>}
-                {image && <span><ImageIcon className='fill-grey ml-2' height={16} width={16} /></span>}
+                {image && <span className={styles.icon}><ImageIcon className='fill-grey ml-2' height={16} width={16} /></span>}
               </a>
             </Link>
             {item.url && !image &&

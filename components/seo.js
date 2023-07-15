@@ -18,7 +18,7 @@ export function SeoSearch ({ sub }) {
         description: desc,
         images: [
           {
-            url: 'https://stacker.news/api/capture' + router.asPath
+            url: 'https://capture.stacker.news' + router.asPath
           }
         ],
         site_name: 'Stacker News'
@@ -81,7 +81,7 @@ export default function Seo ({ sub, item, user }) {
         description: desc,
         images: [
           {
-            url: 'https://stacker.news/api/capture' + pathNoQuery
+            url: 'https://capture.stacker.news' + pathNoQuery
           }
         ],
         site_name: 'Stacker News'

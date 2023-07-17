@@ -70,7 +70,13 @@ module.exports = withPlausibleProxy()({
         headers: [
           ...corsHeaders
         ]
-      }
+      },
+      {
+        source: '/api/lnwith',
+        headers: [
+          ...corsHeaders
+        ]
+      },
     ]
   },
   async rewrites () {

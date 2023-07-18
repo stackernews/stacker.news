@@ -6,7 +6,8 @@
     "dev": "NODE_OPTIONS='--trace-warnings' next dev",
     "build": "next build",
     "migrate": "prisma migrate deploy",
-    "start": "NODE_OPTIONS='--trace-warnings' next start -p $PORT --keepAliveTimeout 120000"
+    "start": "NODE_OPTIONS='--trace-warnings' next start -p $PORT --keepAliveTimeout 120000",
+    "lint": "standard"
   },
   "dependencies": {
     "@apollo/client": "^3.7.17",
@@ -31,10 +32,10 @@
     "clipboard-copy": "^4.0.1",
     "cross-fetch": "^4.0.0",
     "domino": "^2.1.6",
-    "formik": "^2.4.2",
-    "github-slugger": "^2.0.0",
-    "graphql": "^16.7.1",
-    "graphql-tag": "^2.12.6",
+    "formik": "^2.2.6",
+    "github-slugger": "^1.5.0",
+    "graphql": "^15.8.0",
+    "graphql-tools": "^8.3.10",
     "graphql-type-json": "^0.3.2",
     "jose1": "npm:jose@^1.27.2",
     "ln-service": "^56.9.0",
@@ -101,7 +102,8 @@
     ],
     "extends": [
       "next"
-    ]
+    ],
+    "ignore": ["**/spawn"]
   },
   "devDependencies": {
     "@babel/core": "^7.22.9",

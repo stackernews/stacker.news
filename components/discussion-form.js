@@ -12,6 +12,9 @@ import Button from 'react-bootstrap/Button'
 import { discussionSchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
+import { useCallback } from 'react'
+import { useAnonymous } from '../lib/anonymous'
+import { ANON_POST_FEE } from '../lib/constants'
 
 export function DiscussionForm ({
   item, sub, editThreshold, titleLabel = 'title',
@@ -27,12 +30,31 @@ export function DiscussionForm ({
   // const me = useMe()
   const [upsertDiscussion] = useMutation(
     gql`
-      mutation upsertDiscussion($sub: String, $id: ID, $title: String!, $text: String, $boost: Int, $forward: String) {
-        upsertDiscussion(sub: $sub, id: $id, title: $title, text: $text, boost: $boost, forward: $forward) {
+      mutation upsertDiscussion($sub: String, $id: ID, $title: String!, $text: String, $boost: Int, $forward: String, $invoiceId: ID) {
+        upsertDiscussion(sub: $sub, id: $id, title: $title, text: $text, boost: $boost, forward: $forward, invoiceId: $invoiceId) {
           id
         }
       }`
   )
+
+  const submitUpsertDiscussion = useCallback(
+    async (_, boost, values, invoiceId) => {
+      const { error } = await upsertDiscussion({
+        variables: { sub: item?.subName || sub?.name, id: item?.id, boost: boost ? Number(boost) : undefined, ...values, invoiceId }
+      })
+      if (error) {
+        throw new Error({ message: error.toString() })
+      }
+
+      if (item) {
+        await router.push(`/items/${item.id}`)
+      } else {
+        const prefix = sub?.name ? `/~${sub.name}` : ''
+        await router.push(prefix + '/recent')
+      }
+    }, [upsertDiscussion, router])
+
+  const anonUpsertDiscussion = useAnonymous(submitUpsertDiscussion)
 
   const [getRelated, { data: relatedData }] = useLazyQuery(gql`
     ${ITEM_FIELDS}
@@ -58,19 +80,7 @@ export function DiscussionForm ({
       }}
       schema={schema}
       onSubmit={handleSubmit || (async ({ boost, ...values }) => {
-        const { error } = await upsertDiscussion({
-          variables: { sub: item?.subName || sub?.name, id: item?.id, boost: boost ? Number(boost) : undefined, ...values }
-        })
-        if (error) {
-          throw new Error({ message: error.toString() })
-        }
-
-        if (item) {
-          await router.push(`/items/${item.id}`)
-        } else {
-          const prefix = sub?.name ? `/~${sub.name}` : ''
-          await router.push(prefix + '/recent')
-        }
+        await anonUpsertDiscussion(ANON_POST_FEE, boost, values)
       })}
       storageKeyPrefix={item ? undefined : 'discussion'}
     >

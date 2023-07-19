@@ -3,12 +3,14 @@ import { gql, useMutation } from '@apollo/client'
 import styles from './reply.module.css'
 import { COMMENTS } from '../fragments/comments'
 import { useMe } from './me'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import FeeButton from './fee-button'
 import { commentsViewedAfterComment } from '../lib/new-comments'
 import { commentSchema } from '../lib/validate'
 import Info from './info'
+import { useAnonymous } from '../lib/anonymous'
+import { ANON_COMMENT_FEE } from '../lib/constants'
 
 export function ReplyOnAnotherPage ({ parentId }) {
   return (
@@ -45,8 +47,8 @@ export default function Reply ({ item, onSuccess, replyOpen, children, placehold
   const [createComment] = useMutation(
     gql`
       ${COMMENTS}
-      mutation createComment($text: String!, $parentId: ID!) {
-        createComment(text: $text, parentId: $parentId) {
+      mutation createComment($text: String!, $parentId: ID!, $invoiceId: ID) {
+        createComment(text: $text, parentId: $parentId, invoiceId: $invoiceId) {
           ...CommentFields
           comments {
             ...CommentsRecursive
@@ -90,6 +92,18 @@ export default function Reply ({ item, onSuccess, replyOpen, children, placehold
     }
   )
 
+  const submitComment = useCallback(
+    async (_, values, parentId, resetForm, invoiceId) => {
+      const { error } = await createComment({ variables: { ...values, parentId, invoiceId } })
+      if (error) {
+        throw new Error({ message: error.toString() })
+      }
+      resetForm({ text: '' })
+      setReply(replyOpen || false)
+    }, [createComment, setReply])
+
+  const anonCreateComment = useAnonymous(submitComment)
+
   const replyInput = useRef(null)
   useEffect(() => {
     if (replyInput.current && reply && !replyOpen) replyInput.current.focus()
@@ -117,12 +131,7 @@ export default function Reply ({ item, onSuccess, replyOpen, children, placehold
             }}
             schema={commentSchema}
             onSubmit={async (values, { resetForm }) => {
-              const { error } = await createComment({ variables: { ...values, parentId } })
-              if (error) {
-                throw new Error({ message: error.toString() })
-              }
-              resetForm({ text: '' })
-              setReply(replyOpen || false)
+              await anonCreateComment(ANON_COMMENT_FEE, values, parentId, resetForm)
             }}
             storageKeyPrefix={'reply-' + parentId}
           >

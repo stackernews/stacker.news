@@ -212,9 +212,6 @@ function NavItems ({ className, sub, prefix }) {
 }
 
 function PostItem ({ className, prefix }) {
-  const me = useMe()
-  if (!me) return null
-
   return (
     <Link href={prefix + '/post'} className={`${className} btn btn-md btn-primary px-3 py-1 `}>
       post

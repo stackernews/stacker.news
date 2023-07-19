@@ -3,13 +3,15 @@ import { useRouter } from 'next/router'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
-import { MAX_POLL_NUM_CHOICES } from '../lib/constants'
+import { ANON_POST_FEE, MAX_POLL_NUM_CHOICES } from '../lib/constants'
 import FeeButton, { EditFeeButton } from './fee-button'
 import Delete from './delete'
 import Button from 'react-bootstrap/Button'
 import { pollSchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
+import { useCallback } from 'react'
+import { useAnonymous } from '../lib/anonymous'
 
 export function PollForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
@@ -19,13 +21,40 @@ export function PollForm ({ item, sub, editThreshold, children }) {
   const [upsertPoll] = useMutation(
     gql`
       mutation upsertPoll($sub: String, $id: ID, $title: String!, $text: String,
-        $options: [String!]!, $boost: Int, $forward: String) {
+        $options: [String!]!, $boost: Int, $forward: String, $invoiceId: ID) {
         upsertPoll(sub: $sub, id: $id, title: $title, text: $text,
-          options: $options, boost: $boost, forward: $forward) {
+          options: $options, boost: $boost, forward: $forward, invoiceId: $invoiceId) {
           id
         }
       }`
   )
+
+  const submitUpsertPoll = useCallback(
+    async (_, boost, title, options, values, invoiceId) => {
+      const optionsFiltered = options.slice(initialOptions?.length).filter(word => word.trim().length > 0)
+      const { error } = await upsertPoll({
+        variables: {
+          id: item?.id,
+          sub: item?.subName || sub?.name,
+          boost: boost ? Number(boost) : undefined,
+          title: title.trim(),
+          options: optionsFiltered,
+          ...values,
+          invoiceId
+        }
+      })
+      if (error) {
+        throw new Error({ message: error.toString() })
+      }
+      if (item) {
+        await router.push(`/items/${item.id}`)
+      } else {
+        const prefix = sub?.name ? `/~${sub.name}` : ''
+        await router.push(prefix + '/recent')
+      }
+    }, [upsertPoll, router])
+
+  const anonUpsertPoll = useAnonymous(submitUpsertPoll)
 
   const initialOptions = item?.poll?.options.map(i => i.option)
 
@@ -40,26 +69,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
       }}
       schema={schema}
       onSubmit={async ({ boost, title, options, ...values }) => {
-        const optionsFiltered = options.slice(initialOptions?.length).filter(word => word.trim().length > 0)
-        const { error } = await upsertPoll({
-          variables: {
-            id: item?.id,
-            sub: item?.subName || sub?.name,
-            boost: boost ? Number(boost) : undefined,
-            title: title.trim(),
-            options: optionsFiltered,
-            ...values
-          }
-        })
-        if (error) {
-          throw new Error({ message: error.toString() })
-        }
-        if (item) {
-          await router.push(`/items/${item.id}`)
-        } else {
-          const prefix = sub?.name ? `/~${sub.name}` : ''
-          await router.push(prefix + '/recent')
-        }
+        await anonUpsertPoll(ANON_POST_FEE, boost, title, options, values)
       }}
       storageKeyPrefix={item ? undefined : 'poll'}
     >

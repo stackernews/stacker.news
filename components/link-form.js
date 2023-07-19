@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Form, Input, SubmitButton } from '../components/form'
 import { useRouter } from 'next/router'
 import { gql, useApolloClient, useLazyQuery, useMutation } from '@apollo/client'
@@ -14,6 +14,8 @@ import { linkSchema } from '../lib/validate'
 import Moon from '../svgs/moon-fill.svg'
 import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
+import { useAnonymous } from '../lib/anonymous'
+import { ANON_POST_FEE } from '../lib/constants'
 
 export function LinkForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
@@ -66,12 +68,30 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
 
   const [upsertLink] = useMutation(
     gql`
-      mutation upsertLink($sub: String, $id: ID, $title: String!, $url: String!, $boost: Int, $forward: String) {
-        upsertLink(sub: $sub, id: $id, title: $title, url: $url, boost: $boost, forward: $forward) {
+      mutation upsertLink($sub: String, $id: ID, $title: String!, $url: String!, $boost: Int, $forward: String, $invoiceId: ID) {
+        upsertLink(sub: $sub, id: $id, title: $title, url: $url, boost: $boost, forward: $forward, invoiceId: $invoiceId) {
           id
         }
       }`
   )
+
+  const submitUpsertLink = useCallback(
+    async (_, boost, title, values, invoiceId) => {
+      const { error } = await upsertLink({
+        variables: { sub: item?.subName || sub?.name, id: item?.id, boost: boost ? Number(boost) : undefined, title: title.trim(), invoiceId, ...values }
+      })
+      if (error) {
+        throw new Error({ message: error.toString() })
+      }
+      if (item) {
+        await router.push(`/items/${item.id}`)
+      } else {
+        const prefix = sub?.name ? `/~${sub.name}` : ''
+        await router.push(prefix + '/recent')
+      }
+    }, [upsertLink, router])
+
+  const anonUpsertLink = useAnonymous(submitUpsertLink)
 
   useEffect(() => {
     if (data?.pageTitleAndUnshorted?.title) {
@@ -100,18 +120,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
       }}
       schema={schema}
       onSubmit={async ({ boost, title, ...values }) => {
-        const { error } = await upsertLink({
-          variables: { sub: item?.subName || sub?.name, id: item?.id, boost: boost ? Number(boost) : undefined, title: title.trim(), ...values }
-        })
-        if (error) {
-          throw new Error({ message: error.toString() })
-        }
-        if (item) {
-          await router.push(`/items/${item.id}`)
-        } else {
-          const prefix = sub?.name ? `/~${sub.name}` : ''
-          await router.push(prefix + '/recent')
-        }
+        await anonUpsertLink(ANON_POST_FEE, boost, title, values)
       }}
       storageKeyPrefix={item ? undefined : 'link'}
     >

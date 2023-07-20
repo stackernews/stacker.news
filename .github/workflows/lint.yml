@@ -1,8 +1,6 @@
 name: Eslint Check
-on:
-  pull_request:
-    branches:
-      - master
+on: [pull_request]
+
 jobs:
   eslint-run:
     runs-on: ubuntu-latest

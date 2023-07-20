@@ -30,17 +30,17 @@ export function DiscussionForm ({
   // const me = useMe()
   const [upsertDiscussion] = useMutation(
     gql`
-      mutation upsertDiscussion($sub: String, $id: ID, $title: String!, $text: String, $boost: Int, $forward: String, $invoiceId: ID) {
-        upsertDiscussion(sub: $sub, id: $id, title: $title, text: $text, boost: $boost, forward: $forward, invoiceId: $invoiceId) {
+      mutation upsertDiscussion($sub: String, $id: ID, $title: String!, $text: String, $boost: Int, $forward: String, $invoiceHash: String) {
+        upsertDiscussion(sub: $sub, id: $id, title: $title, text: $text, boost: $boost, forward: $forward, invoiceHash: $invoiceHash) {
           id
         }
       }`
   )
 
   const submitUpsertDiscussion = useCallback(
-    async (_, boost, values, invoiceId) => {
+    async (_, boost, values, invoiceHash) => {
       const { error } = await upsertDiscussion({
-        variables: { sub: item?.subName || sub?.name, id: item?.id, boost: boost ? Number(boost) : undefined, ...values, invoiceId }
+        variables: { sub: item?.subName || sub?.name, id: item?.id, boost: boost ? Number(boost) : undefined, ...values, invoiceHash }
       })
       if (error) {
         throw new Error({ message: error.toString() })

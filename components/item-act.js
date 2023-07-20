@@ -47,7 +47,7 @@ export default function ItemAct ({ onClose, itemId, act, strike }) {
   }, [onClose, itemId])
 
   const submitAct = useCallback(
-    async (amount, invoiceId) => {
+    async (amount, invoiceHash) => {
       if (!me) {
         const storageKey = `TIP-item:${itemId}`
         const existingAmount = Number(window.localStorage.getItem(storageKey) || '0')
@@ -57,7 +57,7 @@ export default function ItemAct ({ onClose, itemId, act, strike }) {
         variables: {
           id: itemId,
           sats: Number(amount),
-          invoiceId
+          invoiceHash
         }
       })
       await strike()

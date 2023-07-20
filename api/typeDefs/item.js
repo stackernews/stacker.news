@@ -26,16 +26,16 @@ export default gql`
     bookmarkItem(id: ID): Item
     subscribeItem(id: ID): Item
     deleteItem(id: ID): Item
-    upsertLink(id: ID, sub: String, title: String!, url: String!, boost: Int, forward: String, invoiceId: ID): Item!
-    upsertDiscussion(id: ID, sub: String, title: String!, text: String, boost: Int, forward: String, invoiceId: ID): Item!
+    upsertLink(id: ID, sub: String, title: String!, url: String!, boost: Int, forward: String, invoiceHash: String): Item!
+    upsertDiscussion(id: ID, sub: String, title: String!, text: String, boost: Int, forward: String, invoiceHash: String): Item!
     upsertBounty(id: ID, sub: String, title: String!, text: String, bounty: Int!, boost: Int, forward: String): Item!
     upsertJob(id: ID, sub: String!, title: String!, company: String!, location: String, remote: Boolean,
       text: String!, url: String!, maxBid: Int!, status: String, logo: Int): Item!
-    upsertPoll(id: ID, sub: String, title: String!, text: String, options: [String!]!, boost: Int, forward: String, invoiceId: ID): Item!
-    createComment(text: String!, parentId: ID!, invoiceId: ID): Item!
+    upsertPoll(id: ID, sub: String, title: String!, text: String, options: [String!]!, boost: Int, forward: String, invoiceHash: String): Item!
+    createComment(text: String!, parentId: ID!, invoiceHash: String): Item!
     updateComment(id: ID!, text: String!): Item!
     dontLikeThis(id: ID!): Boolean!
-    act(id: ID!, sats: Int, invoiceId: ID): ItemActResult!
+    act(id: ID!, sats: Int, invoiceHash: String): ItemActResult!
     pollVote(id: ID!): ID!
   }
 

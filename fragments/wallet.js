@@ -5,6 +5,7 @@ export const INVOICE = gql`
   query Invoice($id: ID!) {
     invoice(id: $id) {
       id
+      hash
       bolt11
       satsReceived
       cancelled

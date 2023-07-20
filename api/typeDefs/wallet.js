@@ -17,6 +17,7 @@ export default gql`
   type Invoice {
     id: ID!
     createdAt: Date!
+    hash: String!
     bolt11: String!
     expiresAt: Date!
     cancelled: Boolean!

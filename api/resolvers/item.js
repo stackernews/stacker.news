@@ -572,7 +572,7 @@ export default {
       if (id) {
         return await updateItem(parent, { id, data }, { me, models })
       } else {
-        return await createItem(parent, data, { me, models, invoiceId: args.invoiceId })
+        return await createItem(parent, data, { me, models, invoiceHash: args.invoiceHash })
       }
     },
     upsertDiscussion: async (parent, args, { me, models }) => {
@@ -583,7 +583,7 @@ export default {
       if (id) {
         return await updateItem(parent, { id, data }, { me, models })
       } else {
-        return await createItem(parent, data, { me, models, invoiceId: args.invoiceId })
+        return await createItem(parent, data, { me, models, invoiceHash: args.invoiceHash })
       }
     },
     upsertBounty: async (parent, args, { me, models }) => {
@@ -598,13 +598,13 @@ export default {
       }
     },
     upsertPoll: async (parent, { id, ...data }, { me, models }) => {
-      const { sub, forward, boost, title, text, options, invoiceId } = data
+      const { sub, forward, boost, title, text, options, invoiceHash } = data
       let author = me
       const trx = []
-      if (!me && invoiceId) {
-        const invoice = await checkInvoice(models, invoiceId, ANON_POST_FEE)
+      if (!me && invoiceHash) {
+        const invoice = await checkInvoice(models, invoiceHash, ANON_POST_FEE)
         author = invoice.user
-        trx.push(models.invoice.delete({ where: { id: Number(invoiceId) } }))
+        trx.push(models.invoice.delete({ where: { hash: invoiceHash } }))
       }
 
       if (!author) {
@@ -689,7 +689,7 @@ export default {
     },
     createComment: async (parent, data, { me, models }) => {
       await ssValidate(commentSchema, data)
-      const item = await createItem(parent, data, { me, models, invoiceId: data.invoiceId })
+      const item = await createItem(parent, data, { me, models, invoiceHash: data.invoiceHash })
       // fetch user to get up-to-date name
       const user = await models.user.findUnique({ where: { id: me?.id || ANON_USER_ID } })
 
@@ -722,17 +722,17 @@ export default {
 
       return id
     },
-    act: async (parent, { id, sats, invoiceId }, { me, models }) => {
+    act: async (parent, { id, sats, invoiceHash }, { me, models }) => {
       // need to make sure we are logged in
-      if (!me && !invoiceId) {
+      if (!me && !invoiceHash) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
       }
 
       await ssValidate(amountSchema, { amount: sats })
 
       let user = me
-      if (!me && invoiceId) {
-        const invoice = await checkInvoice(models, invoiceId, sats)
+      if (!me && invoiceHash) {
+        const invoice = await checkInvoice(models, invoiceHash, sats)
         user = invoice.user
       }
 
@@ -748,8 +748,8 @@ export default {
       const calls = [
         models.$queryRaw`SELECT item_act(${Number(id)}::INTEGER, ${user.id}::INTEGER, 'TIP', ${Number(sats)}::INTEGER)`
       ]
-      if (!me && invoiceId) {
-        calls.push(models.invoice.delete({ where: { id: Number(invoiceId) } }))
+      if (!me && invoiceHash) {
+        calls.push(models.invoice.delete({ where: { hash: invoiceHash } }))
       }
 
       const [{ item_act: vote }] = await serialize(models, ...calls)
@@ -1075,13 +1075,13 @@ export const updateItem = async (parent, { id, data: { sub, title, url, text, bo
   return item
 }
 
-const createItem = async (parent, { sub, title, url, text, boost, forward, bounty, parentId }, { me, models, invoiceId }) => {
+const createItem = async (parent, { sub, title, url, text, boost, forward, bounty, parentId }, { me, models, invoiceHash }) => {
   let author = me
   const trx = []
-  if (!me && invoiceId) {
-    const invoice = await checkInvoice(models, invoiceId, parentId ? ANON_COMMENT_FEE : ANON_POST_FEE)
+  if (!me && invoiceHash) {
+    const invoice = await checkInvoice(models, invoiceHash, parentId ? ANON_COMMENT_FEE : ANON_POST_FEE)
     author = invoice.user
-    trx.push(models.invoice.delete({ where: { id: Number(invoiceId) } }))
+    trx.push(models.invoice.delete({ where: { hash: invoiceHash } }))
   }
 
   if (!author) {

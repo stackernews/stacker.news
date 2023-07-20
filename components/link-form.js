@@ -68,17 +68,17 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
 
   const [upsertLink] = useMutation(
     gql`
-      mutation upsertLink($sub: String, $id: ID, $title: String!, $url: String!, $boost: Int, $forward: String, $invoiceId: ID) {
-        upsertLink(sub: $sub, id: $id, title: $title, url: $url, boost: $boost, forward: $forward, invoiceId: $invoiceId) {
+      mutation upsertLink($sub: String, $id: ID, $title: String!, $url: String!, $boost: Int, $forward: String, $invoiceHash: String) {
+        upsertLink(sub: $sub, id: $id, title: $title, url: $url, boost: $boost, forward: $forward, invoiceHash: $invoiceHash) {
           id
         }
       }`
   )
 
   const submitUpsertLink = useCallback(
-    async (_, boost, title, values, invoiceId) => {
+    async (_, boost, title, values, invoiceHash) => {
       const { error } = await upsertLink({
-        variables: { sub: item?.subName || sub?.name, id: item?.id, boost: boost ? Number(boost) : undefined, title: title.trim(), invoiceId, ...values }
+        variables: { sub: item?.subName || sub?.name, id: item?.id, boost: boost ? Number(boost) : undefined, title: title.trim(), invoiceHash, ...values }
       })
       if (error) {
         throw new Error({ message: error.toString() })

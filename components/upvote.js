@@ -163,10 +163,11 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
 
     if (pendingSats > 0) {
       timerRef.current = setTimeout(async (sats) => {
+        const variables = { id: item.id, sats: pendingSats }
         try {
           timerRef.current && setPendingSats(0)
           await act({
-            variables: { id: item.id, sats },
+            variables,
             optimisticResponse: {
               act: {
                 sats
@@ -178,7 +179,15 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
 
           if (error.toString().includes('insufficient funds')) {
             showModal(onClose => {
-              return <FundError onClose={onClose} />
+              return (
+                <FundError
+                  onClose={onClose}
+                  amount={pendingSats}
+                  onPayment={async (_, invoiceHash) => {
+                    await act({ variables: { ...variables, invoiceHash } })
+                  }}
+                />
+              )
             })
             return
           }

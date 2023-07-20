@@ -6,6 +6,7 @@ import { gql, useQuery } from '@apollo/client'
 import { useFormikContext } from 'formik'
 import { useMe } from './me'
 import { ANON_COMMENT_FEE, ANON_POST_FEE } from '../lib/constants'
+import { useEffect } from 'react'
 
 function Receipt ({ cost, repetition, hasImgLink, baseFee, parentId, boost }) {
   return (
@@ -52,6 +53,10 @@ export default function FeeButton ({ parentId, hasImgLink, baseFee, ChildButton,
   const formik = useFormikContext()
   const boost = Number(formik?.values?.boost) || 0
   const cost = baseFee * (hasImgLink ? 10 : 1) * Math.pow(10, repetition) + Number(boost)
+
+  useEffect(() => {
+    formik.setFieldValue('cost', cost)
+  }, [cost])
 
   const show = alwaysShow || !formik?.isSubmitting
   return (

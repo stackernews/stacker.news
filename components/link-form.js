@@ -15,7 +15,6 @@ import Moon from '../svgs/moon-fill.svg'
 import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
 import { useAnonymous } from '../lib/anonymous'
-import { ANON_POST_FEE } from '../lib/constants'
 
 export function LinkForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
@@ -119,8 +118,8 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}
-      onSubmit={async ({ boost, title, ...values }) => {
-        await anonUpsertLink(ANON_POST_FEE, boost, title, values)
+      onSubmit={async ({ boost, title, cost, ...values }) => {
+        await anonUpsertLink(cost, boost, title, values)
       }}
       storageKeyPrefix={item ? undefined : 'link'}
     >

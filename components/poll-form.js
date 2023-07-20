@@ -3,7 +3,7 @@ import { useRouter } from 'next/router'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
-import { ANON_POST_FEE, MAX_POLL_NUM_CHOICES } from '../lib/constants'
+import { MAX_POLL_NUM_CHOICES } from '../lib/constants'
 import FeeButton, { EditFeeButton } from './fee-button'
 import Delete from './delete'
 import Button from 'react-bootstrap/Button'
@@ -68,8 +68,8 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}
-      onSubmit={async ({ boost, title, options, ...values }) => {
-        await anonUpsertPoll(ANON_POST_FEE, boost, title, options, values)
+      onSubmit={async ({ boost, title, options, cost, ...values }) => {
+        await anonUpsertPoll(cost, boost, title, options, values)
       }}
       storageKeyPrefix={item ? undefined : 'poll'}
     >

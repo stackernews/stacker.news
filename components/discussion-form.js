@@ -14,7 +14,6 @@ import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
 import { useCallback } from 'react'
 import { useAnonymous } from '../lib/anonymous'
-import { ANON_POST_FEE } from '../lib/constants'
 
 export function DiscussionForm ({
   item, sub, editThreshold, titleLabel = 'title',
@@ -79,8 +78,8 @@ export function DiscussionForm ({
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}
-      onSubmit={handleSubmit || (async ({ boost, ...values }) => {
-        await anonUpsertDiscussion(ANON_POST_FEE, boost, values)
+      onSubmit={handleSubmit || (async ({ boost, cost, ...values }) => {
+        await anonUpsertDiscussion(cost, boost, values)
       })}
       storageKeyPrefix={item ? undefined : 'discussion'}
     >

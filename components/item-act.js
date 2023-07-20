@@ -6,6 +6,8 @@ import { useMe } from './me'
 import UpBolt from '../svgs/bolt.svg'
 import { amountSchema } from '../lib/validate'
 import { useAnonymous } from '../lib/anonymous'
+import { useShowModal } from './modal'
+import FundError from './fund-error'
 
 const defaultTips = [100, 1000, 10000, 100000]
 
@@ -41,6 +43,7 @@ export default function ItemAct ({ onClose, itemId, act, strike }) {
   const inputRef = useRef(null)
   const me = useMe()
   const [oValue, setOValue] = useState()
+  const showModal = useShowModal()
 
   useEffect(() => {
     inputRef.current?.focus()
@@ -75,7 +78,23 @@ export default function ItemAct ({ onClose, itemId, act, strike }) {
       }}
       schema={amountSchema}
       onSubmit={async ({ amount }) => {
-        await anonAct(amount)
+        try {
+          await anonAct(amount)
+        } catch (error) {
+          if (error.toString().includes('insufficient funds')) {
+            showModal(onClose => {
+              return (
+                <FundError
+                  onClose={onClose}
+                  amount={amount}
+                  onPayment={submitAct}
+                />
+              )
+            })
+            return
+          }
+          throw new Error({ message: error.toString() })
+        }
       }}
     >
       <Input

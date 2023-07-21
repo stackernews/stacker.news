@@ -29,30 +29,25 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
         title
         unshorted
       }
-    }`, {
-    fetchPolicy: 'network-only'
-  })
+    }`)
   const [getDupes, { data: dupesData, loading: dupesLoading }] = useLazyQuery(gql`
-  ${ITEM_FIELDS}
-  query Dupes($url: String!) {
-    dupes(url: $url) {
-      ...ItemFields
-    }
-  }`, {
-    fetchPolicy: 'network-only',
+    ${ITEM_FIELDS}
+    query Dupes($url: String!) {
+      dupes(url: $url) {
+        ...ItemFields
+      }
+    }`, {
     onCompleted: () => setPostDisabled(false)
   })
   const [getRelated, { data: relatedData }] = useLazyQuery(gql`
-  ${ITEM_FIELDS}
-  query related($title: String!) {
-    related(title: $title, minMatch: "75%", limit: 3) {
-      items {
-        ...ItemFields
+    ${ITEM_FIELDS}
+    query related($title: String!) {
+      related(title: $title, minMatch: "75%", limit: 3) {
+        items {
+          ...ItemFields
+        }
       }
-    }
-  }`, {
-    fetchPolicy: 'network-only'
-  })
+    }`)
 
   const related = []
   for (const item of relatedData?.related?.items || []) {

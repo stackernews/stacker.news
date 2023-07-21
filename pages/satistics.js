@@ -1,6 +1,5 @@
 import { useQuery } from '@apollo/client'
 import Link from 'next/link'
-import { Table } from 'react-bootstrap'
 import { getGetServerSideProps } from '../api/ssrApollo'
 import Layout from '../components/layout'
 import MoreFooter from '../components/more-footer'
@@ -15,6 +14,7 @@ import Item from '../components/item'
 import { CommentFlat } from '../components/comment'
 import { Fragment } from 'react'
 import ItemJob from '../components/item-job'
+import PageLoading from '../components/page-loading'
 
 export const getServerSideProps = getGetServerSideProps(WALLET_HISTORY)
 
@@ -29,7 +29,7 @@ function satusClass (status) {
     case 'PENDING':
       return 'text-muted'
     default:
-      return styles.failed
+      return `${styles.failed} text-muted`
   }
 }
 
@@ -38,51 +38,48 @@ function Satus ({ status }) {
     return null
   }
 
-  const desc = () => {
-    switch (status) {
-      case 'CONFIRMED':
-        return 'confirmed'
-      case 'EXPIRED':
-        return 'expired'
-      case 'INSUFFICIENT_BALANCE':
-        return "you didn't have enough sats"
-      case 'INVALID_PAYMENT':
-        return 'invalid payment'
-      case 'PATHFINDING_TIMEOUT':
-      case 'ROUTE_NOT_FOUND':
-        return 'no route found'
-      case 'PENDING':
-        return 'pending'
-      default:
-        return 'unknown failure'
-    }
-  }
-
-  const color = () => {
-    switch (status) {
-      case 'CONFIRMED':
-        return 'success'
-      case 'PENDING':
-        return 'muted'
-      default:
-        return 'danger'
-    }
+  let color = 'danger'; let desc
+  switch (status) {
+    case 'CONFIRMED':
+      desc = 'confirmed'
+      color = 'success'
+      break
+    case 'EXPIRED':
+      desc = 'expired'
+      color = 'muted'
+      break
+    case 'PENDING':
+      desc = 'pending'
+      color = 'muted'
+      break
+    case 'INSUFFICIENT_BALANCE':
+      desc = "you didn't have enough sats"
+      break
+    case 'INVALID_PAYMENT':
+      desc = 'invalid payment'
+      break
+    case 'PATHFINDING_TIMEOUT':
+    case 'ROUTE_NOT_FOUND':
+      desc = 'no route found'
+      break
+    default:
+      return 'unknown failure'
   }
 
   const Icon = () => {
     switch (status) {
       case 'CONFIRMED':
-        return <Check width='14' height='14' className='fill-success' />
+        return <Check width='20' height='20' className={`fill-${color}`} />
       case 'PENDING':
-        return <Moon width='14' height='14' className='spin fill-grey' />
+        return <Moon width='20' height='20' className={`fill-${color} spin`} />
       default:
-        return <ThumbDown width='14' height='14' className='fill-danger' />
+        return <ThumbDown width='18' height='18' className={`fill-${color}`} />
     }
   }
 
   return (
     <div>
-      <Icon /><small className={`text-${color()}`}>{' ' + desc()}</small>
+      <Icon /><small className={`text-${color} font-weight-bold ml-2`}>{desc}</small>
     </div>
   )
 }
@@ -90,40 +87,34 @@ function Satus ({ status }) {
 function Detail ({ fact }) {
   if (fact.type === 'earn') {
     return (
-      <>
-        <div className={satusClass(fact.status)}>
-          SN distributes the sats it earns back to its best stackers daily. These sats come from <Link href='/~jobs' passHref><a>jobs</a></Link>, boosts, posting fees, and donations. You can see the daily rewards pool and make a donation <Link href='/rewards' passHref><a>here</a></Link>.
-        </div>
-      </>
+      <div className='px-3' style={{ lineHeight: '140%' }}>
+        SN distributes the sats it earns back to its best stackers daily. These sats come from <Link href='/~jobs'>jobs</Link>, boosts, posting fees, and donations. You can see the daily rewards pool and make a donation <Link href='/rewards'>here</Link>.
+      </div>
     )
   }
   if (fact.type === 'donation') {
     return (
-      <>
-        <div className={satusClass(fact.status)}>
-          You made a donation to <Link href='/rewards' passHref><a>daily rewards</a></Link>!
-        </div>
-      </>
+      <div className='px-3'>
+        You made a donation to <Link href='/rewards'>daily rewards</Link>!
+      </div>
     )
   }
   if (fact.type === 'referral') {
     return (
-      <>
-        <div className={satusClass(fact.status)}>
-          You stacked sats from <Link href='/referrals/month' passHref><a>a referral</a></Link>!
-        </div>
-      </>
+      <div className='px-3'>
+        You stacked sats from <Link href='/referrals/month'>a referral</Link>!
+      </div>
     )
   }
 
   if (!fact.item) {
     return (
-      <>
+      <div className='px-3'>
         <div className={satusClass(fact.status)}>
-          {fact.description || 'no description'}
+          {fact.description || 'no invoice description'}
         </div>
         <Satus status={fact.status} />
-      </>
+      </div>
     )
   }
 
@@ -131,15 +122,28 @@ function Detail ({ fact }) {
     if (fact.item.isJob) {
       return <ItemJob className={styles.itemWrapper} item={fact.item} />
     }
-    return <div className={styles.itemWrapper}><Item item={fact.item} /></div>
+    return <Item item={fact.item} siblingComments />
   }
 
-  return <div className={styles.commentWrapper}><CommentFlat item={fact.item} includeParent noReply truncate /></div>
+  return <CommentFlat item={fact.item} includeParent noReply truncate />
 }
 
-export default function Satistics ({ data: { walletHistory: { facts, cursor } } }) {
+function Fact ({ fact }) {
+  return (
+    <>
+      <div className={`${styles.type} ${satusClass(fact.status)} ${fact.sats > 0 ? '' : 'text-muted'}`}>{fact.type}</div>
+      <div className={styles.detail}>
+        <Detail fact={fact} />
+      </div>
+      <div className={`${styles.sats} ${satusClass(fact.status)} ${fact.sats > 0 ? '' : 'text-muted'}`}>{fact.sats}</div>
+    </>
+  )
+}
+
+export default function Satistics ({ ssrData }) {
   const router = useRouter()
   const { data, fetchMore } = useQuery(WALLET_HISTORY, { variables: { inc: router.query.inc } })
+  if (!data && !ssrData) return <PageLoading />
 
   function filterRoutePush (filter, add) {
     const inc = new Set(router.query.inc?.split(','))
@@ -160,28 +164,7 @@ export default function Satistics ({ data: { walletHistory: { facts, cursor } } 
     return inc.has(filter)
   }
 
-  function href (fact) {
-    switch (fact.type) {
-      case 'withdrawal':
-      case 'invoice':
-        return `/${fact.type}s/${fact.factId}`
-      case 'earn':
-      case 'donation':
-      case 'referral':
-        return
-      default:
-        return `/items/${fact.factId}`
-    }
-  }
-
-  if (data) {
-    ({ walletHistory: { facts, cursor } } = data)
-  }
-
-  const SatisticsSkeleton = () => (
-    <div className='d-flex justify-content-center mt-3 mb-1'>
-      <Moon className='spin fill-grey' />
-    </div>)
+  const { walletHistory: { facts, cursor } } = data || ssrData
 
   return (
     <Layout>
@@ -218,35 +201,15 @@ export default function Satistics ({ data: { walletHistory: { facts, cursor } } 
             />
           </div>
         </Form>
-        <Table className='mt-3 mb-0' bordered hover responsive size='sm'>
-          <thead>
-            <tr>
-              <th className={styles.type}>type</th>
-              <th>detail</th>
-              <th className={styles.sats}>
-                sats
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {facts.map((f, i) => {
-              const uri = href(f)
-              const Wrapper = uri ? Link : ({ href, ...props }) => <Fragment {...props} />
-              return (
-                <Wrapper href={uri} key={f.id}>
-                  <tr className={styles.row}>
-                    <td className={`${styles.type} ${satusClass(f.status)}`}>{f.type}</td>
-                    <td className={styles.description}>
-                      <Detail fact={f} />
-                    </td>
-                    <td className={`${styles.sats} ${satusClass(f.status)}`}>{f.sats}</td>
-                  </tr>
-                </Wrapper>
-              )
-            })}
-          </tbody>
-        </Table>
-        <MoreFooter cursor={cursor} fetchMore={fetchMore} Skeleton={SatisticsSkeleton} />
+        <div className='py-2 px-0 mb-0 mw-100'>
+          <div className={styles.rows}>
+            <div className={[styles.type, styles.head].join(' ')}>type</div>
+            <div className={[styles.detail, styles.head].join(' ')}>detail</div>
+            <div className={[styles.sats, styles.head].join(' ')}>sats</div>
+            {facts.map(f => <Fact key={f.factId} fact={f} />)}
+          </div>
+        </div>
+        <MoreFooter cursor={cursor} count={facts?.length} fetchMore={fetchMore} Skeleton={PageLoading} />
       </div>
     </Layout>
   )

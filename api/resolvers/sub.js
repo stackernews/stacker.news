@@ -1,6 +1,8 @@
 export default {
   Query: {
     sub: async (parent, { name }, { models, me }) => {
+      if (!name) return null
+
       if (me && name === 'jobs') {
         models.user.update({
           where: {

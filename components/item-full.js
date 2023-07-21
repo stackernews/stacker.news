@@ -5,12 +5,13 @@ import Comment from './comment'
 import Text, { ZoomableImage } from './text'
 import Comments from './comments'
 import styles from '../styles/item.module.css'
+import itemStyles from './item.module.css'
 import { NOFOLLOW_LIMIT } from '../lib/constants'
 import { useMe } from './me'
 import { Button } from 'react-bootstrap'
 import { TwitterTweetEmbed } from 'react-twitter-embed'
 import YouTube from 'react-youtube'
-import useDarkMode from 'use-dark-mode'
+import useDarkMode from './dark-mode'
 import { useEffect, useState } from 'react'
 import Poll from './poll'
 import { commentsViewed } from '../lib/new-comments'
@@ -61,7 +62,7 @@ function TweetSkeleton () {
 }
 
 function ItemEmbed ({ item }) {
-  const darkMode = useDarkMode()
+  const [darkMode] = useDarkMode()
   const [overflowing, setOverflowing] = useState(false)
   const [show, setShow] = useState(false)
 
@@ -69,7 +70,7 @@ function ItemEmbed ({ item }) {
   if (twitter?.groups?.id) {
     return (
       <div className={`${styles.twitterContainer} ${show ? '' : styles.twitterContained}`}>
-        <TwitterTweetEmbed tweetId={twitter.groups.id} options={{ width: '550px', theme: darkMode.value ? 'dark' : 'light' }} placeholder={<TweetSkeleton />} onLoad={() => setOverflowing(true)} />
+        <TwitterTweetEmbed tweetId={twitter.groups.id} options={{ width: '550px', theme: darkMode ? 'dark' : 'light' }} placeholder={<TweetSkeleton />} onLoad={() => setOverflowing(true)} />
         {overflowing && !show &&
           <Button size='lg' variant='info' className={styles.twitterShowFull} onClick={() => setShow(true)}>
             show full tweet
@@ -104,8 +105,8 @@ function FwdUser ({ user }) {
   return (
     <div className={styles.other}>
       100% of zaps are forwarded to{' '}
-      <Link href={`/${user.name}`} passHref>
-        <a>@{user.name}</a>
+      <Link href={`/${user.name}`}>
+        @{user.name}
       </Link>
     </div>
   )
@@ -119,10 +120,11 @@ function TopLevelItem ({ item, noReply, ...props }) {
       item={item}
       full
       right={
-        <>
-          <Share item={item} />
-          <Toc text={item.text} />
-        </>
+        !noReply &&
+          <>
+            <Share item={item} />
+            <Toc text={item.text} />
+          </>
       }
       belowTitle={item.fwdUser && <FwdUser user={item.fwdUser} />}
       {...props}
@@ -158,26 +160,37 @@ function ItemText ({ item }) {
   return <Text topLevel nofollow={item.sats + item.boost < NOFOLLOW_LIMIT}>{item.searchText || item.text}</Text>
 }
 
-export default function ItemFull ({ item, bio, ...props }) {
+export default function ItemFull ({ item, bio, rank, ...props }) {
   useEffect(() => {
     commentsViewed(item)
   }, [item.lastCommentAt])
 
   return (
-    <RootProvider root={item.root || item}>
-      {item.parentId
-        ? <Comment topLevel item={item} replyOpen includeParent noComments {...props} />
-        : (
-          <div className='mt-1'>{
+    <>
+      {rank
+        ? (
+          <div className={`${itemStyles.rank} pt-2 align-self-start`}>
+            {rank}
+          </div>)
+        : <div />}
+      <RootProvider root={item.root || item}>
+        {item.parentId
+          ? <Comment topLevel item={item} replyOpen includeParent noComments {...props} />
+          : (
+            <div className='mt-1'>{
           bio
             ? <BioItem item={item} {...props} />
             : <TopLevelItem item={item} {...props} />
           }
-          </div>)}
-      {item.comments &&
-        <div className={styles.comments}>
-          <Comments parentId={item.id} pinned={item.position} commentSats={item.commentSats} comments={item.comments} />
-        </div>}
-    </RootProvider>
+            </div>)}
+        {item.comments &&
+          <div className={styles.comments}>
+            <Comments
+              parentId={item.id} parentCreatedAt={item.createdAt}
+              pinned={item.position} bio={bio} commentSats={item.commentSats} comments={item.comments}
+            />
+          </div>}
+      </RootProvider>
+    </>
   )
 }

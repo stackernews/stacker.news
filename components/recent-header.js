@@ -1,14 +1,12 @@
+import { ITEM_TYPES } from '../lib/constants'
 import { Form, Select } from './form'
 import { useRouter } from 'next/router'
 
 export default function RecentHeader ({ type, sub }) {
   const router = useRouter()
-  const prefix = sub?.name ? `/~${sub.name}` : ''
+  const prefix = sub ? `/~${sub}` : ''
 
-  const items = ['posts', 'bounties', 'comments', 'links', 'discussions', 'polls']
-  if (!sub?.name) {
-    items.push('bios')
-  }
+  const items = ITEM_TYPES(sub)
 
   return (
     <Form

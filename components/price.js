@@ -17,7 +17,11 @@ export function usePrice () {
 export function PriceProvider ({ price, children }) {
   const me = useMe()
   const fiatCurrency = me?.fiatCurrency
-  const { data } = useQuery(PRICE, { variables: { fiatCurrency }, pollInterval: 30000, fetchPolicy: 'cache-and-network' })
+  const { data } = useQuery(PRICE, {
+    variables: { fiatCurrency },
+    pollInterval: 30000,
+    nextFetchPolicy: 'cache-and-network'
+  })
 
   const contextValue = {
     price: data?.price || price,

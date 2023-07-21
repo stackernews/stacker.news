@@ -6,7 +6,7 @@ import ActionTooltip from './action-tooltip'
 import ItemAct from './item-act'
 import { useMe } from './me'
 import Rainbow from '../lib/rainbow'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import LongPressable from 'react-longpressable'
 import { Overlay, Popover } from 'react-bootstrap'
 import { useShowModal } from './modal'
@@ -78,7 +78,7 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
       }`
   )
 
-  const setVoteShow = (yes) => {
+  const setVoteShow = useCallback((yes) => {
     if (!me) return
 
     // if they haven't seen the walkthrough and they have sats
@@ -90,9 +90,9 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
       _setVoteShow(false)
       setWalkthrough({ variables: { upvotePopover: true } })
     }
-  }
+  }, [me, voteShow, setWalkthrough])
 
-  const setTipShow = (yes) => {
+  const setTipShow = useCallback((yes) => {
     if (!me) return
 
     // if we want to show it, yet we still haven't shown
@@ -105,7 +105,7 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
       _setTipShow(false)
       setWalkthrough({ variables: { tipPopover: true } })
     }
-  }
+  }, [me, tipShow, setWalkthrough])
 
   const [act] = useMutation(
     gql`
@@ -161,18 +161,20 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
     }
 
     if (pendingSats > 0) {
-      timerRef.current = setTimeout(async (pendingSats) => {
+      timerRef.current = setTimeout(async (sats) => {
         try {
           timerRef.current && setPendingSats(0)
           await act({
-            variables: { id: item.id, sats: pendingSats },
+            variables: { id: item.id, sats },
             optimisticResponse: {
               act: {
-                sats: pendingSats
+                sats
               }
             }
           })
         } catch (error) {
+          if (!timerRef.current) return
+
           if (error.toString().includes('insufficient funds')) {
             showModal(onClose => {
               return <FundError onClose={onClose} />
@@ -181,14 +183,14 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
           }
           throw new Error({ message: error.toString() })
         }
-      }, 1000, pendingSats)
+      }, 500, pendingSats)
     }
 
-    return () => {
+    return async () => {
       clearTimeout(timerRef.current)
       timerRef.current = null
     }
-  }, [item, pendingSats, act, setPendingSats, showModal])
+  }, [pendingSats, act, item, showModal, setPendingSats])
 
   const disabled = useMemo(() => {
     return item?.mine || (me && Number(me.id) === item?.fwdUserId) || item?.deletedAt
@@ -213,7 +215,7 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
 
   return (
     <LightningConsumer>
-      {({ strike }) =>
+      {(strike) =>
         <div ref={ref} className='upvoteParent'>
           <LongPressable
             onLongPress={

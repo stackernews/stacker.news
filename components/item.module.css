@@ -70,7 +70,7 @@ a.link:visited {
     display: flex;
     justify-content: flex-start;
     min-width: 0;
-    padding-bottom: .45rem;
+    padding-bottom: .5rem;
 }
 
 .item .companyImage {
@@ -120,7 +120,7 @@ a.link:visited {
 
 .rank {
     font-weight: 600;
-    margin-top: 4px;
+    margin-top: .25rem;
     display: flex;
     color: var(--theme-grey);
     font-size: 90%;

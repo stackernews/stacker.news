@@ -1,4 +1,5 @@
-import { ApolloServer } from 'apollo-server-micro'
+import { ApolloServer } from '@apollo/server'
+import { startServerAndCreateNextHandler } from '@as-integrations/next'
 import resolvers from '../../api/resolvers'
 import models from '../../api/models'
 import lnd from '../../api/lnd'
@@ -24,7 +25,7 @@ const apolloServer = new ApolloServer({
                   console.log(`Field ${info.parentType.name}.${info.fieldName} took ${ms}ms`)
                 }
                 if (error) {
-                  console.log(`It failed with ${error}`)
+                  console.log(`Field ${info.parentType.name}.${info.fieldName} failed with ${error}`)
                 }
               }
             }
@@ -32,8 +33,11 @@ const apolloServer = new ApolloServer({
         }
       }
     }
-  }],
-  context: async ({ req }) => {
+  }]
+})
+
+export default startServerAndCreateNextHandler(apolloServer, {
+  context: async (req) => {
     const session = await getSession({ req })
     return {
       models,
@@ -46,18 +50,3 @@ const apolloServer = new ApolloServer({
     }
   }
 })
-
-export const config = {
-  api: {
-    bodyParser: false
-  }
-}
-
-const startServer = apolloServer.start()
-
-export default async function handler (req, res) {
-  await startServer
-  await apolloServer.createHandler({
-    path: '/api/graphql'
-  })(req, res)
-}

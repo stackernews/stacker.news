@@ -1,7 +1,8 @@
 import { Button } from 'react-bootstrap'
 import { useState } from 'react'
+import Link from 'next/link'
 
-export default function MoreFooter ({ cursor, fetchMore, Skeleton, noMoreText }) {
+export default function MoreFooter ({ cursor, count, fetchMore, Skeleton, noMoreText = 'GENESIS' }) {
   const [loading, setLoading] = useState(false)
 
   if (loading) {
@@ -28,9 +29,24 @@ export default function MoreFooter ({ cursor, fetchMore, Skeleton, noMoreText })
     )
   } else {
     Footer = () => (
-      <div className='text-muted' style={{ fontFamily: 'lightning', fontSize: '2rem', opacity: '0.75' }}>{noMoreText || 'GENESIS'}</div>
+      <div className='text-muted' style={{ fontFamily: 'lightning', fontSize: '2rem', opacity: '0.75' }}>{count === 0 ? 'EMPTY' : noMoreText}</div>
     )
   }
 
   return <div className='d-flex justify-content-center mt-3 mb-1'><Footer /></div>
+}
+
+export function NavigateFooter ({ cursor, count, fetchMore, href, text, noMoreText = 'NO MORE' }) {
+  let Footer
+  if (cursor) {
+    Footer = () => (
+      <Link href={href} className='text-reset text-muted font-weight-bold'>{text}</Link>
+    )
+  } else {
+    Footer = () => (
+      <div className='text-muted' style={{ fontFamily: 'lightning', fontSize: '2rem', opacity: '0.75' }}>{count === 0 ? 'EMPTY' : noMoreText}</div>
+    )
+  }
+
+  return <div className='d-flex justify-content-start my-1'><Footer /></div>
 }

@@ -2,8 +2,9 @@ import { Alert } from 'react-bootstrap'
 import YouTube from '../svgs/youtube-line.svg'
 import { useEffect, useState } from 'react'
 import { gql, useQuery } from '@apollo/client'
+import { dayPivot } from '../lib/time'
 
-export default function Snl () {
+export default function Snl ({ ignorePreference }) {
   const [show, setShow] = useState()
   const { data } = useQuery(gql`{ snl }`, {
     fetchPolicy: 'cache-and-network'
@@ -11,14 +12,12 @@ export default function Snl () {
 
   useEffect(() => {
     const dismissed = localStorage.getItem('snl')
-    if (dismissed && dismissed > new Date(dismissed) < new Date(new Date().setDate(new Date().getDate() - 6))) {
+    if (!ignorePreference && dismissed && dismissed > new Date(dismissed) < dayPivot(new Date(), -6)) {
       return
     }
 
-    if (data?.snl) {
-      setShow(true)
-    }
-  }, [data])
+    setShow(data?.snl)
+  }, [data, ignorePreference])
 
   if (!show) return null
 

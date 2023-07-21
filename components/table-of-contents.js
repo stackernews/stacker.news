@@ -40,7 +40,7 @@ export default function Toc ({ text }) {
               style={{
                 marginLeft: `${(v.depth - 1) * 5}px`
               }}
-              key={v.slug} href={`#${v.slug}`}
+              href={`#${v.slug}`} key={v.slug}
             >{v.heading}
             </Dropdown.Item>
           )

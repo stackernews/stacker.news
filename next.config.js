@@ -21,12 +21,15 @@ const commitHash = isProd
 
 module.exports = withPlausibleProxy()({
   env: {
-    NEXT_PUBLIC_COMMIT_HASH: commitHash
+    NEXT_PUBLIC_COMMIT_HASH: commitHash,
+    NEXT_PUBLIC_LND_CONNECT_ADDRESS: process.env.LND_CONNECT_ADDRESS,
+    NEXT_PUBLIC_ASSET_PREFIX: isProd ? 'https://a.stacker.news' : ''
   },
   compress: false,
   experimental: {
     scrollRestoration: true
   },
+  reactStrictMode: true,
   generateBuildId: isProd ? async () => commitHash : undefined,
   // Use the CDN in production and localhost for development.
   assetPrefix: isProd ? 'https://a.stacker.news' : undefined,
@@ -76,7 +79,7 @@ module.exports = withPlausibleProxy()({
         headers: [
           ...corsHeaders
         ]
-      },
+      }
     ]
   },
   async rewrites () {
@@ -118,13 +121,10 @@ module.exports = withPlausibleProxy()({
         destination: '/api/web-app-origin-association'
       },
       {
-        source: '/~:sub',
-        destination: '/~/:sub'
-      },
-      {
         source: '/~:sub/:slug*',
-        destination: '/~/:sub/:slug*'
-      }
+        destination: '/~/:slug*?sub=:sub'
+      },
+      ...['/', '/post', '/search', '/rss', '/recent/:slug*', '/top/:slug*'].map(source => ({ source, destination: '/~' + source }))
     ]
   },
   async redirects () {

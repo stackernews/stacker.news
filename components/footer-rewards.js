@@ -10,14 +10,12 @@ const REWARDS = gql`
 }`
 
 export default function Rewards () {
-  const { data } = useQuery(REWARDS, { pollInterval: 60000, fetchPolicy: 'cache-and-network' })
+  const { data } = useQuery(REWARDS, { pollInterval: 60000, nextFetchPolicy: 'cache-and-network' })
   const total = data?.expectedRewards?.total
 
   return (
-    <Link href='/rewards' passHref>
-      <a className='nav-link p-0 p-0 d-inline-flex'>
-        {total ? <span><RewardLine total={total} /></span> : 'rewards'}
-      </a>
+    <Link href='/rewards' className='nav-link p-0 p-0 d-inline-flex'>
+      {total ? <span><RewardLine total={total} /></span> : 'rewards'}
     </Link>
   )
 }

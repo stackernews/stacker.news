@@ -79,7 +79,7 @@ export default {
         items
       }
     },
-    search: async (parent, { q: query, cursor, sort, what, when }, { me, models, search }) => {
+    search: async (parent, { q: query, sub, cursor, sort, what, when }, { me, models, search }) => {
       const decodedCursor = decodeCursor(cursor)
       let sitems
 
@@ -105,8 +105,7 @@ export default {
       const queryArr = query.trim().split(/\s+/)
       const url = queryArr.find(word => word.startsWith('url:'))
       const nym = queryArr.find(word => word.startsWith('nym:'))
-      const sub = queryArr.find(word => word.startsWith('~'))
-      const exclude = [url, nym, sub]
+      const exclude = [url, nym]
       query = queryArr.filter(word => !exclude.includes(word)).join(' ')
 
       if (url) {
@@ -118,7 +117,7 @@ export default {
       }
 
       if (sub) {
-        whatArr.push({ match: { 'sub.name': sub.slice(1).toLowerCase() } })
+        whatArr.push({ match: { 'sub.name': sub } })
       }
 
       const sortArr = []
@@ -247,7 +246,7 @@ export default {
             highlight: {
               fields: {
                 title: { number_of_fragments: 0, pre_tags: [':high['], post_tags: [']'] },
-                text: { number_of_fragments: 0, pre_tags: [':high['], post_tags: [']'] }
+                text: { number_of_fragments: 5, order: 'score', pre_tags: [':high['], post_tags: [']'] }
               }
             }
           }
@@ -266,7 +265,7 @@ export default {
         const item = await getItem(parent, { id: e._source.id }, { me, models })
 
         item.searchTitle = (e.highlight?.title && e.highlight.title[0]) || item.title
-        item.searchText = (e.highlight?.text && e.highlight.text[0]) || item.text
+        item.searchText = (e.highlight?.text && e.highlight.text.join(' `...` ')) || undefined
 
         return item
       })

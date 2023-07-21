@@ -5,7 +5,7 @@ export default function SimpleCountdown ({ className, onComplete, date }) {
     <span className={className}>
       <Countdown
         date={date}
-        renderer={props => <span className='text-monospace'> {props.formatted.minutes}:{props.formatted.seconds}</span>}
+        renderer={props => <span className='text-monospace' suppressHydrationWarning> {props.formatted.minutes}:{props.formatted.seconds}</span>}
         onComplete={onComplete}
       />
     </span>

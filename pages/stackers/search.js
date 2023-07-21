@@ -1,16 +1,22 @@
-import Layout from '../../components/layout'
+import { SearchLayout } from '../../components/layout'
 import { getGetServerSideProps } from '../../api/ssrApollo'
-import { SeoSearch } from '../../components/seo'
 import { USER_SEARCH } from '../../fragments/users'
 import UserList from '../../components/user-list'
+import { useRouter } from 'next/router'
 
-export const getServerSideProps = getGetServerSideProps(USER_SEARCH, { limit: 21, similarity: 0.2 })
+const staticVariables = { limit: 21, similarity: 0.2 }
+export const getServerSideProps = getGetServerSideProps(USER_SEARCH, staticVariables)
 
-export default function Index ({ data: { searchUsers } }) {
+export default function Index ({ ssrData }) {
+  const router = useRouter()
+  const variables = { ...staticVariables, ...router.query }
+
   return (
-    <Layout noSeo search>
-      <SeoSearch />
-      <UserList users={searchUsers} />
-    </Layout>
+    <SearchLayout>
+      <UserList
+        ssrData={ssrData} query={USER_SEARCH}
+        destructureData={data => ({ users: data.searchUsers })} variables={variables}
+      />
+    </SearchLayout>
   )
 }

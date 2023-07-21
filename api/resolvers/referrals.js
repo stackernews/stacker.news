@@ -1,11 +1,11 @@
-import { AuthenticationError } from 'apollo-server-micro'
+import { GraphQLError } from 'graphql'
 import { withClause, intervalClause, timeUnit } from './growth'
 
 export default {
   Query: {
     referrals: async (parent, { when }, { models, me }) => {
       if (!me) {
-        throw new AuthenticationError('you must be logged in')
+        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
       }
 
       const [{ totalSats }] = await models.$queryRaw(`

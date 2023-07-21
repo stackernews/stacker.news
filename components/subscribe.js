@@ -1,5 +1,5 @@
 import { useMutation } from '@apollo/client'
-import { gql } from 'apollo-server-micro'
+import { gql } from 'graphql-tag'
 import { Dropdown } from 'react-bootstrap'
 
 export default function SubscribeDropdownItem ({ item: { id, meSubscription } }) {

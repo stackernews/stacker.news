@@ -12,6 +12,7 @@ import Overlay from 'react-bootstrap/Overlay'
 import Popover from 'react-bootstrap/Popover'
 import { useShowModal } from './modal'
 import { LightningConsumer } from './lightning'
+import { isInsufficientFundsError } from '../lib/anonymous'
 
 const getColor = (meSats) => {
   if (!meSats || meSats <= 10) {
@@ -175,9 +176,7 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
             }
           })
         } catch (error) {
-          if (!timerRef.current) return
-
-          if (error.toString().includes('insufficient funds')) {
+          if (isInsufficientFundsError(error)) {
             showModal(onClose => {
               return (
                 <FundError
@@ -191,6 +190,7 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
             })
             return
           }
+          if (!timerRef.current) return
           throw new Error({ message: error.toString() })
         }
       }, 500, pendingSats)

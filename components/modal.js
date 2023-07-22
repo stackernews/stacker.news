@@ -21,6 +21,7 @@ export function useShowModal () {
 
 export default function useModal () {
   const [modalContent, setModalContent] = useState(null)
+  const [modalOptions, setModalOptions] = useState(null)
 
   const onClose = useCallback(() => {
     setModalContent(null)
@@ -31,7 +32,7 @@ export default function useModal () {
       return null
     }
     return (
-      <Modal onHide={onClose} show={!!modalContent}>
+      <Modal onHide={modalOptions?.keepOpen ? null : onClose} show={!!modalContent}>
         <div className='modal-close' onClick={onClose}>X</div>
         <Modal.Body>
           {modalContent}
@@ -41,7 +42,8 @@ export default function useModal () {
   }, [modalContent, onClose])
 
   const showModal = useCallback(
-    (getContent) => {
+    (getContent, options) => {
+      setModalOptions(options)
       setModalContent(getContent(onClose))
     },
     [onClose]

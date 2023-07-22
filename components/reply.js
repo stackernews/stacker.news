@@ -10,7 +10,6 @@ import { commentsViewedAfterComment } from '../lib/new-comments'
 import { commentSchema } from '../lib/validate'
 import Info from './info'
 import { useAnonymous } from '../lib/anonymous'
-import { ANON_COMMENT_FEE } from '../lib/constants'
 
 export function ReplyOnAnotherPage ({ parentId }) {
   return (
@@ -130,8 +129,8 @@ export default function Reply ({ item, onSuccess, replyOpen, children, placehold
               text: ''
             }}
             schema={commentSchema}
-            onSubmit={async (values, { resetForm }) => {
-              await anonCreateComment(ANON_COMMENT_FEE, values, parentId, resetForm)
+            onSubmit={async ({ cost, ...values }, { resetForm }) => {
+              await anonCreateComment(cost, values, parentId, resetForm)
             }}
             storageKeyPrefix={'reply-' + parentId}
           >

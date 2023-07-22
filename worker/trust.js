@@ -1,4 +1,5 @@
 const math = require('mathjs')
+const { ANON_USER_ID } = require('../lib/constants')
 
 function trust ({ boss, models }) {
   return async function () {
@@ -158,6 +159,7 @@ async function storeTrust (models, nodeTrust) {
   // convert nodeTrust into table literal string
   let values = ''
   for (const [id, trust] of Object.entries(nodeTrust)) {
+    if (id === ANON_USER_ID) continue
     if (values) values += ','
     values += `(${id}, ${trust})`
   }

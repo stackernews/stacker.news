@@ -11,7 +11,7 @@ import LongPressable from 'react-longpressable'
 import Overlay from 'react-bootstrap/Overlay'
 import Popover from 'react-bootstrap/Popover'
 import { useShowModal } from './modal'
-import { LightningConsumer } from './lightning'
+import { LightningConsumer, useLightning } from './lightning'
 import { isInsufficientFundsError } from '../lib/anonymous'
 
 const getColor = (meSats) => {
@@ -71,6 +71,7 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
   const ref = useRef()
   const timerRef = useRef(null)
   const me = useMe()
+  const strike = useLightning()
   const [setWalkthrough] = useMutation(
     gql`
       mutation setWalkthrough($upvotePopover: Boolean, $tipPopover: Boolean) {
@@ -184,6 +185,7 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
                   amount={pendingSats}
                   onPayment={async (_, invoiceHash) => {
                     await act({ variables: { ...variables, invoiceHash } })
+                    strike()
                   }}
                 />
               )

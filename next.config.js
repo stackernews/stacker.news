@@ -76,7 +76,7 @@ module.exports = withPlausibleProxy()({
         headers: [
           ...corsHeaders
         ]
-      },
+      }
     ]
   },
   async rewrites () {

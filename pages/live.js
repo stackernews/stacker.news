@@ -1,7 +1,7 @@
 import { Button } from 'react-bootstrap'
-import { CenterLayout } from '../components/layout'
+import LayoutCenter from '../components/layout-center'
 import Snl from '../components/snl'
-import { gql } from 'graphql-tag'
+import { gql } from 'apollo-server-micro'
 import { useMutation, useQuery } from '@apollo/client'
 
 export default function Index () {
@@ -21,12 +21,14 @@ export default function Index () {
     }
   )
 
-  const { data } = useQuery(gql`{ snl }`)
+  const { data } = useQuery(gql`{ snl }`, {
+    fetchPolicy: 'cache-only'
+  })
 
   return (
-    <CenterLayout>
+    <LayoutCenter>
       <Snl />
       <Button variant={data?.snl ? 'primary' : 'danger'} onClick={toggle}>go: {data?.snl ? 'off' : 'on'} air</Button>
-    </CenterLayout>
+    </LayoutCenter>
   )
 }

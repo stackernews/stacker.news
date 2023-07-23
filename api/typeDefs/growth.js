@@ -1,4 +1,4 @@
-import { gql } from 'graphql-tag'
+import { gql } from 'apollo-server-micro'
 
 export default gql`
   type NameValue {

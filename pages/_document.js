@@ -1,23 +1,19 @@
 import Document, { Html, Head, Main, NextScript } from 'next/document'
-import Script from 'next/script'
 
+const publicPrefix = process.env.NODE_ENV === 'development' ? '' : 'https://a.stacker.news'
 class MyDocument extends Document {
   render () {
     return (
-      <Html lang='en'>
+      <Html>
         <Head>
           <link rel='manifest' href='/site.webmanifest' />
-          <link rel='preload' href={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.woff2`} as='font' type='font/woff2' crossOrigin='' />
-          <link rel='preload' href={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.woff`} as='font' type='font/woff' crossOrigin='' />
-          <link rel='preload' href={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.ttf`} as='font' type='font/ttf' crossOrigin='' />
+          <link rel='preload' href={`${publicPrefix}/Lightningvolt-xoqm.ttf`} as='font' type='font/ttf' crossOrigin='' />
           <style
             dangerouslySetInnerHTML={{
               __html:
             ` @font-face {
                 font-family: 'lightning';
-                src: url(${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.ttf) format('truetype'),
-                     url(${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.woff) format('woff'),
-                     url(${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.woff2) format('woff2');
+                src: url(${publicPrefix}/Lightningvolt-xoqm.ttf);
                 font-display: swap;
               }`
             }}
@@ -59,7 +55,7 @@ class MyDocument extends Document {
           <link rel='apple-touch-startup-image' media='screen and (device-width: 810px) and (device-height: 1080px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)' href='/splash/10.2__iPad_portrait.png' />
           <link rel='apple-touch-startup-image' media='screen and (device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)' href='/splash/9.7__iPad_Pro__7.9__iPad_mini__9.7__iPad_Air__9.7__iPad_portrait.png' />
           <link rel='apple-touch-startup-image' media='screen and (device-width: 744px) and (device-height: 1133px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)' href='/splash/8.3__iPad_Mini_portrait.png' />
-          <Script src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/dark.js`} crossOrigin='' strategy='beforeInteractive' type='module' />
+          <script src={`${publicPrefix}/darkmode.js`} crossOrigin='' />
         </Head>
         <body>
           <Main />

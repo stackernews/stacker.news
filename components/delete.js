@@ -1,5 +1,5 @@
 import { useMutation } from '@apollo/client'
-import { gql } from 'graphql-tag'
+import { gql } from 'apollo-server-micro'
 import { useState } from 'react'
 import { Alert, Button, Dropdown } from 'react-bootstrap'
 import { useShowModal } from './modal'

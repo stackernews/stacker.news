@@ -1,9 +1,10 @@
-import { useState, useEffect, useMemo } from 'react'
-import { useApolloClient, useQuery } from '@apollo/client'
+import { useState, useEffect } from 'react'
+import { useQuery } from '@apollo/client'
 import Comment, { CommentSkeleton } from './comment'
 import Item from './item'
 import ItemJob from './item-job'
-import { HAS_NOTIFICATIONS, NOTIFICATIONS } from '../fragments/notifications'
+import { NOTIFICATIONS } from '../fragments/notifications'
+import { useRouter } from 'next/router'
 import MoreFooter from './more-footer'
 import Invite from './invite'
 import { ignoreClick } from '../lib/clicks'
@@ -19,7 +20,6 @@ import { Alert } from 'react-bootstrap'
 import styles from './notifications.module.css'
 import { useServiceWorker } from './serviceworker'
 import { Checkbox, Form } from './form'
-import { useRouter } from 'next/router'
 
 function Notification ({ n }) {
   switch (n.__typename) {
@@ -37,47 +37,39 @@ function Notification ({ n }) {
   return null
 }
 
-function NotificationLayout ({ children, href, as }) {
-  const router = useRouter()
+function NotificationLayout ({ children, onClick }) {
   return (
     <div
-      className='clickToContext'
-      onClick={(e) => !ignoreClick(e) && router.push(href, as)}
+      className='clickToContext' onClick={(e) => {
+        if (ignoreClick(e)) return
+        onClick?.(e)
+      }}
     >
       {children}
     </div>
   )
 }
 
-const defaultOnClick = n => {
+const defaultOnClick = (n, router) => () => {
   if (!n.item.title) {
     const path = n.item.path.split('.')
     if (path.length > COMMENT_DEPTH_LIMIT + 1) {
       const rootId = path.slice(-(COMMENT_DEPTH_LIMIT + 1))[0]
-      return {
-        href: {
-          pathname: '/items/[id]',
-          query: { id: rootId, commentId: n.item.id }
-        },
-        as: `/items/${rootId}`
-      }
+      router.push({
+        pathname: '/items/[id]',
+        query: { id: rootId, commentId: n.item.id }
+      }, `/items/${rootId}`)
     } else {
-      return {
-        href: {
-          pathname: '/items/[id]',
-          query: { id: n.item.root.id, commentId: n.item.id }
-        },
-        as: `/items/${n.item.root.id}`
-      }
+      router.push({
+        pathname: '/items/[id]',
+        query: { id: n.item.root.id, commentId: n.item.id }
+      }, `/items/${n.item.root.id}`)
     }
   } else {
-    return {
-      href: {
-        pathname: '/items/[id]',
-        query: { id: n.item.id }
-      },
-      as: `/items/${n.item.id}`
-    }
+    router.push({
+      pathname: '/items/[id]',
+      query: { id: n.item.id }
+    }, `/items/${n.item.id}`)
   }
 }
 
@@ -122,30 +114,33 @@ function Streak ({ n }) {
 
 function EarnNotification ({ n }) {
   return (
-    <div className='d-flex ml-2 py-1'>
-      <HandCoin className='align-self-center fill-boost mx-1' width={24} height={24} style={{ flex: '0 0 24px', transform: 'rotateY(180deg)' }} />
-      <div className='ml-2'>
-        <div className='font-weight-bold text-boost'>
-          you stacked {n.earnedSats} sats in rewards<small className='text-muted ml-1'>{timeSince(new Date(n.sortTime))}</small>
-        </div>
-        {n.sources &&
-          <div style={{ fontSize: '80%', color: 'var(--theme-grey)' }}>
-            {n.sources.posts > 0 && <span>{n.sources.posts} sats for top posts</span>}
-            {n.sources.comments > 0 && <span>{n.sources.posts > 0 && ' \\ '}{n.sources.comments} sats for top comments</span>}
-            {n.sources.tipPosts > 0 && <span>{(n.sources.comments > 0 || n.sources.posts > 0) && ' \\ '}{n.sources.tipPosts} sats for zapping top posts early</span>}
-            {n.sources.tipComments > 0 && <span>{(n.sources.comments > 0 || n.sources.posts > 0 || n.sources.tipPosts > 0) && ' \\ '}{n.sources.tipComments} sats for zapping top comments early</span>}
-          </div>}
-        <div className='pb-1' style={{ lineHeight: '140%' }}>
-          SN distributes the sats it earns back to its best stackers daily. These sats come from <Link href='/~jobs'>jobs</Link>, boosts, posting fees, and donations. You can see the daily rewards pool and make a donation <Link href='/rewards'>here</Link>.
+    <NotificationLayout>
+      <div className='d-flex'>
+        <HandCoin className='align-self-center fill-boost mx-1' width={24} height={24} style={{ flex: '0 0 24px', transform: 'rotateY(180deg)' }} />
+        <div className='ml-2'>
+          <div className='font-weight-bold text-boost'>
+            you stacked {n.earnedSats} sats in rewards<small className='text-muted ml-1'>{timeSince(new Date(n.sortTime))}</small>
+          </div>
+          {n.sources &&
+            <div style={{ fontSize: '80%', color: 'var(--theme-grey)' }}>
+              {n.sources.posts > 0 && <span>{n.sources.posts} sats for top posts</span>}
+              {n.sources.comments > 0 && <span>{n.sources.posts > 0 && ' \\ '}{n.sources.comments} sats for top comments</span>}
+              {n.sources.tipPosts > 0 && <span>{(n.sources.comments > 0 || n.sources.posts > 0) && ' \\ '}{n.sources.tipPosts} sats for zapping top posts early</span>}
+              {n.sources.tipComments > 0 && <span>{(n.sources.comments > 0 || n.sources.posts > 0 || n.sources.tipPosts > 0) && ' \\ '}{n.sources.tipComments} sats for zapping top comments early</span>}
+            </div>}
+          <div className='pb-1' style={{ lineHeight: '140%' }}>
+            SN distributes the sats it earns back to its best stackers daily. These sats come from <Link href='/~jobs' passHref><a>jobs</a></Link>, boosts, posting fees, and donations. You can see the daily rewards pool and make a donation <Link href='/rewards' passHref><a>here</a></Link>.
+          </div>
         </div>
       </div>
-    </div>
+    </NotificationLayout>
   )
 }
 
 function Invitification ({ n }) {
+  const router = useRouter()
   return (
-    <NotificationLayout href='/invites'>
+    <NotificationLayout onClick={() => router.push('/invites')}>
       <small className='font-weight-bold text-secondary ml-2'>
         your invite has been redeemed by {n.invite.invitees.length} stackers
       </small>
@@ -162,8 +157,9 @@ function Invitification ({ n }) {
 }
 
 function InvoicePaid ({ n }) {
+  const router = useRouter()
   return (
-    <NotificationLayout href={`/invoices/${n.invoice.id}`}>
+    <NotificationLayout onClick={() => router.push(`/invoices/${n.invoice.id}`)}>
       <div className='font-weight-bold text-info ml-2 py-1'>
         <Check className='fill-info mr-1' />{n.earnedSats} sats were deposited in your account
         <small className='text-muted ml-1'>{timeSince(new Date(n.sortTime))}</small>
@@ -176,7 +172,7 @@ function Referral ({ n }) {
   return (
     <NotificationLayout>
       <small className='font-weight-bold text-secondary ml-2'>
-        someone joined via one of your <Link href='/referrals/month' className='text-reset'>referral links</Link>
+        someone joined via one of your <Link href='/referrals/month' passHref><a className='text-reset'>referral links</a></Link>
         <small className='text-muted ml-1'>{timeSince(new Date(n.sortTime))}</small>
       </small>
     </NotificationLayout>
@@ -184,8 +180,9 @@ function Referral ({ n }) {
 }
 
 function Votification ({ n }) {
+  const router = useRouter()
   return (
-    <NotificationLayout {...defaultOnClick(n)}>
+    <NotificationLayout onClick={defaultOnClick(n, router)}>
       <small className='font-weight-bold text-success ml-2'>
         your {n.item.title ? 'post' : 'reply'} {n.item.fwdUser ? 'forwarded' : 'stacked'} {n.earnedSats} sats{n.item.fwdUser && ` to @${n.item.fwdUser.name}`}
       </small>
@@ -205,8 +202,9 @@ function Votification ({ n }) {
 }
 
 function Mention ({ n }) {
+  const router = useRouter()
   return (
-    <NotificationLayout {...defaultOnClick(n)}>
+    <NotificationLayout onClick={defaultOnClick(n, router)}>
       <small className='font-weight-bold text-info ml-2'>
         you were mentioned in
       </small>
@@ -225,8 +223,9 @@ function Mention ({ n }) {
 }
 
 function JobChanged ({ n }) {
+  const router = useRouter()
   return (
-    <NotificationLayout {...defaultOnClick(n)}>
+    <NotificationLayout onClick={defaultOnClick(n, router)}>
       <small className={`font-weight-bold text-${n.item.status === 'ACTIVE' ? 'success' : 'boost'} ml-1`}>
         {n.item.status === 'ACTIVE'
           ? 'your job is active again'
@@ -240,8 +239,9 @@ function JobChanged ({ n }) {
 }
 
 function Reply ({ n }) {
+  const router = useRouter()
   return (
-    <NotificationLayout {...defaultOnClick(n)} rootText='replying on:'>
+    <NotificationLayout onClick={defaultOnClick(n, router)} rootText='replying on:'>
       <div className='py-2'>
         {n.item.title
           ? <Item item={n.item} />
@@ -274,6 +274,8 @@ function NotificationAlert () {
     }
   }, [sw])
 
+  if (!supported) return null
+
   const close = () => {
     localStorage.setItem('hideNotifyPrompt', 'yep')
     setShowAlert(false)
@@ -303,7 +305,7 @@ function NotificationAlert () {
           </Alert>
           )
         : (
-          <Form className={`d-flex justify-content-end ${supported ? 'visible' : 'invisible'}`} initial={{ pushNotify: hasSubscription }}>
+          <Form className='d-flex justify-content-end' initial={{ pushNotify: hasSubscription }}>
             <Checkbox
               name='pushNotify' label={<span className='text-muted'>push notifications</span>}
               groupClassName={`${styles.subFormGroup} mb-1 mr-sm-3 mr-0`}
@@ -316,48 +318,34 @@ function NotificationAlert () {
   )
 }
 
-export default function Notifications ({ ssrData }) {
-  const { data, fetchMore } = useQuery(NOTIFICATIONS)
-  const client = useApolloClient()
+export default function Notifications ({ notifications, earn, cursor, lastChecked, variables }) {
+  const { data, fetchMore } = useQuery(NOTIFICATIONS, { variables })
 
-  useEffect(() => {
-    client.writeQuery({
-      query: HAS_NOTIFICATIONS,
-      data: {
-        hasNewNotes: false
-      }
-    })
-  }, [client])
+  if (data) {
+    ({ notifications: { notifications, earn, cursor } } = data)
+  }
 
-  const { notifications: { notifications, earn, lastChecked, cursor } } = useMemo(() => {
-    if (!data && !ssrData) return { notifications: {} }
-    return data || ssrData
-  }, [data, ssrData])
-
-  const [fresh, old] = useMemo(() => {
-    if (!notifications) return [[], []]
-    return notifications.reduce((result, n) => {
+  const [fresh, old] =
+    notifications.reduce((result, n) => {
       result[new Date(n.sortTime).getTime() > lastChecked ? 0 : 1].push(n)
       return result
     },
     [[], []])
-  }, [notifications, lastChecked])
-
-  if (!data && !ssrData) return <CommentsFlatSkeleton />
 
   return (
     <>
       <NotificationAlert />
+      {/* XXX we shouldn't use the index but we don't have a unique id in this union yet */}
       <div className='fresh'>
         {earn && <Notification n={earn} key='earn' />}
         {fresh.map((n, i) => (
-          <Notification n={n} key={n.__typename + n.id + n.sortTime} />
+          <Notification n={n} key={i} />
         ))}
       </div>
       {old.map((n, i) => (
-        <Notification n={n} key={n.__typename + n.id + n.sortTime} />
+        <Notification n={n} key={i} />
       ))}
-      <MoreFooter cursor={cursor} count={notifications?.length} fetchMore={fetchMore} Skeleton={CommentsFlatSkeleton} noMoreText='NO MORE' />
+      <MoreFooter cursor={cursor} fetchMore={fetchMore} Skeleton={CommentsFlatSkeleton} />
     </>
   )
 }
@@ -366,10 +354,9 @@ function CommentsFlatSkeleton () {
   const comments = new Array(21).fill(null)
 
   return (
-    <div>
-      {comments.map((_, i) => (
-        <CommentSkeleton key={i} skeletonChildren={0} />
-      ))}
+    <div>{comments.map((_, i) => (
+      <CommentSkeleton key={i} skeletonChildren={0} />
+    ))}
     </div>
   )
 }

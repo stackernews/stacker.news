@@ -1,4 +1,4 @@
-import { gql } from 'graphql-tag'
+import { gql } from 'apollo-server-micro'
 
 export default gql`
   extend type Query {
@@ -7,7 +7,7 @@ export default gql`
     user(name: String!): User
     users: [User!]
     nameAvailable(name: String!): Boolean!
-    topUsers(cursor: String, when: String, by: String): Users
+    topUsers(cursor: String, when: String, sort: String): Users
     topCowboys(cursor: String): Users
     searchUsers(q: String!, limit: Int, similarity: Float): [User!]!
     hasNewNotes: Boolean!
@@ -19,7 +19,7 @@ export default gql`
   }
 
   extend type Mutation {
-    setName(name: String!): String
+    setName(name: String!): Boolean
     setSettings(tipDefault: Int!, turboTipping: Boolean!, fiatCurrency: String!, noteItemSats: Boolean!,
       noteEarning: Boolean!, noteAllDescendants: Boolean!, noteMentions: Boolean!, noteDeposits: Boolean!,
       noteInvites: Boolean!, noteJobIndicator: Boolean!, noteCowboyHat: Boolean!, hideInvoiceDesc: Boolean!,
@@ -45,7 +45,6 @@ export default gql`
     createdAt: String!
     name: String
     nitems(when: String): Int!
-    nposts(when: String): Int!
     ncomments(when: String): Int!
     nbookmarks(when: String): Int!
     stacked(when: String): Int!

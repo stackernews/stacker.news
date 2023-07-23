@@ -68,7 +68,7 @@ export default function Seo ({ sub, item, user }) {
     }
   }
   if (user) {
-    desc = `@${user.name} has [${user.stacked} stacked, ${user.nposts} posts, ${user.ncomments} comments]`
+    desc = `@${user.name} has [${user.stacked} stacked, ${user.nitems} posts, ${user.ncomments} comments]`
   }
 
   return (

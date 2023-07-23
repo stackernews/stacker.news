@@ -6,7 +6,7 @@ import { gql } from '@apollo/client'
 import { INVITE_FIELDS } from '../../fragments/invites'
 import getSSRApolloClient from '../../api/ssrApollo'
 import Link from 'next/link'
-import { CenterLayout } from '../../components/layout'
+import LayoutCenter from '../../components/layout-center'
 
 export async function getServerSideProps ({ req, res, query: { id, error = null } }) {
   const session = await getSession({ req })
@@ -65,7 +65,7 @@ function InviteHeader ({ invite }) {
     Inner = () => (
       <div>
         Get <span className='text-success'>{invite.gift} free sats</span> from{' '}
-        <Link href={`/${invite.user.name}`}>@{invite.user.name}</Link>{' '}
+        <Link href={`/${invite.user.name}`} passHref><a>@{invite.user.name}</a></Link>{' '}
         when you sign up today
       </div>
     )
@@ -80,8 +80,8 @@ function InviteHeader ({ invite }) {
 
 export default function Invite ({ invite, ...props }) {
   return (
-    <CenterLayout>
+    <LayoutCenter>
       <Login Header={() => <InviteHeader invite={invite} />} text='Sign up' {...props} />
-    </CenterLayout>
+    </LayoutCenter>
   )
 }

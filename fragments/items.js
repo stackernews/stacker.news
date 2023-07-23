@@ -91,6 +91,72 @@ export const ITEM_OTS = gql`
     }
   }`
 
+export const ITEMS = gql`
+  ${ITEM_FIELDS}
+
+  query items($sub: String, $sort: String, $type: String, $cursor: String, $name: String, $within: String) {
+    items(sub: $sub, sort: $sort, type: $type, cursor: $cursor, name: $name, within: $within) {
+      cursor
+      items {
+        ...ItemFields
+      },
+      pins {
+        ...ItemFields
+      }
+    }
+  }`
+
+export const TOP_ITEMS = gql`
+  ${ITEM_FIELDS}
+
+  query topItems($sort: String, $cursor: String, $when: String) {
+    topItems(sort: $sort, cursor: $cursor, when: $when) {
+      cursor
+      items {
+        ...ItemFields
+      },
+      pins {
+        ...ItemFields
+      }
+    }
+  }`
+
+export const OUTLAWED_ITEMS = gql`
+  ${ITEM_FULL_FIELDS}
+
+  query outlawedItems($cursor: String) {
+    outlawedItems(cursor: $cursor) {
+      cursor
+      items {
+        ...ItemFullFields
+      }
+    }
+  }`
+
+export const BORDERLAND_ITEMS = gql`
+  ${ITEM_FULL_FIELDS}
+
+  query borderlandItems($cursor: String) {
+    borderlandItems(cursor: $cursor) {
+      cursor
+      items {
+        ...ItemFullFields
+      }
+    }
+  }`
+
+export const FREEBIE_ITEMS = gql`
+  ${ITEM_FULL_FIELDS}
+
+  query freebieItems($cursor: String) {
+    freebieItems(cursor: $cursor) {
+      cursor
+      items {
+        ...ItemFullFields
+      }
+    }
+  }`
+
 export const POLL_FIELDS = gql`
   fragment PollFields on Item {
     poll {
@@ -150,6 +216,31 @@ export const ITEM_WITH_COMMENTS = gql`
         ...CommentsRecursive
       }
     }`
+
+export const BOUNTY_ITEMS_BY_USER_NAME = gql`
+  ${ITEM_FIELDS}
+  query getBountiesByUserName($name: String!, $cursor: String, $limit: Int) {
+    getBountiesByUserName(name: $name, cursor: $cursor, limit: $limit) {
+      cursor
+      items {
+        ...ItemFields
+      }
+    }
+  }`
+
+export const ITEM_SEARCH = gql`
+  ${ITEM_FULL_FIELDS}
+  query Search($q: String, $cursor: String, $sort: String, $what: String, $when: String) {
+    search(q: $q, cursor: $cursor, sort: $sort, what: $what, when: $when) {
+      cursor
+      items {
+        ...ItemFullFields
+        searchTitle
+        searchText
+      }
+    }
+  }
+`
 
 export const RELATED_ITEMS = gql`
   ${ITEM_FIELDS}

@@ -1,11 +1,13 @@
 import Layout from '../../components/layout'
 import { gql, useMutation, useQuery } from '@apollo/client'
 import UserHeader from '../../components/user-header'
+import Seo from '../../components/seo'
 import { Button } from 'react-bootstrap'
 import styles from '../../styles/user.module.css'
 import { useState } from 'react'
 import ItemFull from '../../components/item-full'
 import { Form, MarkdownInput, SubmitButton } from '../../components/form'
+import TextareaAutosize from 'react-textarea-autosize'
 import { useMe } from '../../components/me'
 import { USER_FULL } from '../../fragments/users'
 import { ITEM_FIELDS } from '../../fragments/items'
@@ -13,8 +15,6 @@ import { getGetServerSideProps } from '../../api/ssrApollo'
 import FeeButton, { EditFeeButton } from '../../components/fee-button'
 import { bioSchema } from '../../lib/validate'
 import CancelButton from '../../components/cancel-button'
-import { useRouter } from 'next/router'
-import PageLoading from '../../components/page-loading'
 
 export const getServerSideProps = getGetServerSideProps(USER_FULL, null,
   data => !data.user)
@@ -63,6 +63,7 @@ export function BioForm ({ handleDone, bio }) {
         <MarkdownInput
           topLevel
           name='bio'
+          as={TextareaAutosize}
           minRows={6}
         />
         <div className='d-flex mt-3 justify-content-end'>
@@ -82,29 +83,23 @@ export function BioForm ({ handleDone, bio }) {
   )
 }
 
-export function UserLayout ({ user, children }) {
-  return (
-    <Layout user={user} containClassName={styles.contain}>
-      <UserHeader user={user} />
-      {children}
-    </Layout>
-  )
-}
-
-export default function User ({ ssrData }) {
+export default function User ({ data: { user } }) {
   const [create, setCreate] = useState(false)
   const [edit, setEdit] = useState(false)
-  const router = useRouter()
   const me = useMe()
 
-  const { data } = useQuery(USER_FULL, { variables: { name: router.query.name } })
-  if (!data && !ssrData) return <PageLoading />
+  const { data } = useQuery(USER_FULL, { variables: { name: user.name } })
 
-  const { user } = data || ssrData
+  if (data) {
+    ({ user } = data)
+  }
+
   const mine = me?.name === user.name
 
   return (
-    <UserLayout user={user}>
+    <Layout noSeo containClassName={styles.contain}>
+      <Seo user={user} />
+      <UserHeader user={user} />
       {user.bio
         ? (edit
             ? (
@@ -129,6 +124,6 @@ export default function User ({ ssrData }) {
                     </div>
                 )}
           </div>)}
-    </UserLayout>
+    </Layout>
   )
 }

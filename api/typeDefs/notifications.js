@@ -1,4 +1,4 @@
-import { gql } from 'graphql-tag'
+import { gql } from 'apollo-server-micro'
 
 export default gql`
   extend type Query {
@@ -11,39 +11,33 @@ export default gql`
   }
 
   type Votification {
-    id: ID!
     earnedSats: Int!
     item: Item!
     sortTime: String!
   }
 
   type Reply {
-    id: ID!
     item: Item!
     sortTime: String!
   }
 
   type Mention {
-    id: ID!
     mention: Boolean!
     item: Item!
     sortTime: String!
   }
 
   type Invitification {
-    id: ID!
     invite: Invite!
     sortTime: String!
   }
 
   type JobChanged {
-    id: ID!
     item: Item!
     sortTime: String!
   }
 
   type EarnSources {
-    id: ID!
     posts: Int!
     comments: Int!
     tipPosts: Int!
@@ -51,27 +45,24 @@ export default gql`
   }
 
   type Streak {
-    id: ID!
     sortTime: String!
     days: Int
+    id: ID!
   }
 
   type Earn {
-    id: ID!
     earnedSats: Int!
     sortTime: String!
     sources: EarnSources
   }
 
   type InvoicePaid {
-    id: ID!
     earnedSats: Int!
     invoice: Invoice!
     sortTime: String!
   }
 
   type Referral {
-    id: ID!
     sortTime: String!
   }
 

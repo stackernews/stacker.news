@@ -1,15 +1,14 @@
 import { gql, useApolloClient, useLazyQuery } from '@apollo/client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Comment, { CommentSkeleton } from './comment'
 import styles from './header.module.css'
 import { Nav, Navbar } from 'react-bootstrap'
 import { COMMENTS_QUERY } from '../fragments/items'
 import { COMMENTS } from '../fragments/comments'
 import { abbrNum } from '../lib/format'
-import { defaultCommentSort } from '../lib/item'
 
-export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats }) {
-  const [sort, setSort] = useState(defaultCommentSort(pinned, bio, parentCreatedAt))
+export function CommentsHeader ({ handleSort, pinned, commentSats }) {
+  const [sort, setSort] = useState(pinned ? 'recent' : 'hot')
 
   const getHandleClick = sort => {
     return () => {
@@ -61,12 +60,19 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
   )
 }
 
-export default function Comments ({ parentId, pinned, bio, parentCreatedAt, commentSats, comments, ...props }) {
+export default function Comments ({ parentId, pinned, commentSats, comments, ...props }) {
   const client = useApolloClient()
-
+  useEffect(() => {
+    const hash = window.location.hash
+    if (hash) {
+      try {
+        document.querySelector(hash).scrollIntoView({ behavior: 'smooth' })
+      } catch {}
+    }
+  }, [typeof window !== 'undefined' && window.location.hash])
   const [loading, setLoading] = useState()
   const [getComments] = useLazyQuery(COMMENTS_QUERY, {
-    fetchPolicy: 'cache-first',
+    fetchPolicy: 'network-only',
     onCompleted: data => {
       client.writeFragment({
         id: `Item:${parentId}`,
@@ -91,8 +97,7 @@ export default function Comments ({ parentId, pinned, bio, parentCreatedAt, comm
     <>
       {comments.length
         ? <CommentsHeader
-            commentSats={commentSats} parentCreatedAt={parentCreatedAt}
-            pinned={pinned} bio={bio} handleSort={sort => {
+            commentSats={commentSats} pinned={pinned} handleSort={sort => {
               setLoading(true)
               getComments({ variables: { id: parentId, sort } })
             }}

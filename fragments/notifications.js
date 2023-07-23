@@ -2,8 +2,6 @@ import { gql } from '@apollo/client'
 import { ITEM_FULL_FIELDS } from './items'
 import { INVITE_FIELDS } from './invites'
 
-export const HAS_NOTIFICATIONS = gql`{ hasNewNotes }`
-
 export const NOTIFICATIONS = gql`
   ${ITEM_FULL_FIELDS}
   ${INVITE_FIELDS}
@@ -15,7 +13,6 @@ export const NOTIFICATIONS = gql`
       notifications {
         __typename
         ... on Mention {
-          id
           sortTime
           mention
           item {
@@ -24,7 +21,6 @@ export const NOTIFICATIONS = gql`
           }
         }
         ... on Votification {
-          id
           sortTime
           earnedSats
           item {
@@ -38,7 +34,6 @@ export const NOTIFICATIONS = gql`
           days
         }
         ... on Earn {
-          id
           sortTime
           earnedSats
           sources {
@@ -49,11 +44,9 @@ export const NOTIFICATIONS = gql`
           }
         }
         ... on Referral {
-          id
           sortTime
         }
         ... on Reply {
-          id
           sortTime
           item {
             ...ItemFullFields
@@ -61,21 +54,18 @@ export const NOTIFICATIONS = gql`
           }
         }
         ... on Invitification {
-          id
           sortTime
           invite {
             ...InviteFields
           }
         }
         ... on JobChanged {
-          id
           sortTime
           item {
             ...ItemFields
           }
         }
         ... on InvoicePaid {
-          id
           sortTime
           earnedSats
           invoice {

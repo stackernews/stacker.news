@@ -1,5 +1,5 @@
 import { createInvoice, decodePaymentRequest, payViaPaymentRequest } from 'ln-service'
-import { GraphQLError } from 'graphql'
+import { UserInputError, AuthenticationError } from 'apollo-server-micro'
 import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import lnpr from 'bolt11'
@@ -10,7 +10,7 @@ import { amountSchema, lnAddrSchema, ssValidate, withdrawlSchema } from '../../l
 
 export async function getInvoice (parent, { id }, { me, models }) {
   if (!me) {
-    throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+    throw new AuthenticationError('you must be logged in')
   }
 
   const inv = await models.invoice.findUnique({
@@ -23,7 +23,7 @@ export async function getInvoice (parent, { id }, { me, models }) {
   })
 
   if (inv.user.id !== me.id) {
-    throw new GraphQLError('not ur invoice', { extensions: { code: 'FORBIDDEN' } })
+    throw new AuthenticationError('not ur invoice')
   }
 
   return inv
@@ -34,7 +34,7 @@ export default {
     invoice: getInvoice,
     withdrawl: async (parent, { id }, { me, models, lnd }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+        throw new AuthenticationError('you must be logged in')
       }
 
       const wdrwl = await models.withdrawl.findUnique({
@@ -47,7 +47,7 @@ export default {
       })
 
       if (wdrwl.user.id !== me.id) {
-        throw new GraphQLError('not ur withdrawal', { extensions: { code: 'FORBIDDEN' } })
+        throw new AuthenticationError('not ur withdrawal')
       }
 
       return wdrwl
@@ -58,7 +58,7 @@ export default {
     walletHistory: async (parent, { cursor, inc }, { me, models, lnd }) => {
       const decodedCursor = decodeCursor(cursor)
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+        throw new AuthenticationError('you must be logged in')
       }
 
       const include = new Set(inc?.split(','))
@@ -191,7 +191,7 @@ export default {
   Mutation: {
     createInvoice: async (parent, { amount }, { me, models, lnd }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+        throw new AuthenticationError('you must be logged in')
       }
 
       await ssValidate(amountSchema, { amount })
@@ -239,7 +239,9 @@ export default {
       const milliamount = amount * 1000
       // check that amount is within min and max sendable
       if (milliamount < res1.minSendable || milliamount > res1.maxSendable) {
-        throw new GraphQLError(`amount must be >= ${res1.minSendable / 1000} and <= ${res1.maxSendable / 1000}`, { extensions: { code: 'BAD_INPUT' } })
+        throw new UserInputError(
+          `amount must be >= ${res1.minSendable / 1000} and <= ${res1.maxSendable / 1000}`,
+          { argumentName: 'amount' })
       }
 
       const callback = new URL(res1.callback)
@@ -309,11 +311,11 @@ async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd 
     decoded = await decodePaymentRequest({ lnd, request: invoice })
   } catch (error) {
     console.log(error)
-    throw new GraphQLError('could not decode invoice', { extensions: { code: 'BAD_INPUT' } })
+    throw new UserInputError('could not decode invoice')
   }
 
   if (!decoded.mtokens || BigInt(decoded.mtokens) <= 0) {
-    throw new GraphQLError('your invoice must specify an amount', { extensions: { code: 'BAD_INPUT' } })
+    throw new UserInputError('your invoice must specify an amount')
   }
 
   const msatsFee = Number(maxFee) * 1000

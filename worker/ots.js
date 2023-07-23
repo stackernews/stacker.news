@@ -1,4 +1,4 @@
-const { gql } = require('graphql-tag')
+const { gql } = require('apollo-server-micro')
 const stringifyCanon = require('canonical-json')
 const { createHash } = require('crypto')
 const Ots = require('opentimestamps')

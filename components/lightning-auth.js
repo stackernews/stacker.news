@@ -16,7 +16,7 @@ function QrAuth ({ k1, encodedUrl, slashtagUrl, callbackUrl }) {
       k1
     }
   }`
-  const { data } = useQuery(query, { pollInterval: 1000, nextFetchPolicy: 'cache-and-network' })
+  const { data } = useQuery(query, { pollInterval: 1000 })
 
   if (data && data.lnAuth.pubkey) {
     signIn(encodedUrl ? 'lightning' : 'slashtags', { ...data.lnAuth, callbackUrl })

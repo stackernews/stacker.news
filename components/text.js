@@ -8,7 +8,7 @@ import sub from '../lib/remark-sub'
 import remarkDirective from 'remark-directive'
 import { visit } from 'unist-util-visit'
 import reactStringReplace from 'react-string-replace'
-import React, { useRef, useEffect, useState, memo } from 'react'
+import React, { useRef, useEffect, useState } from 'react'
 import GithubSlugger from 'github-slugger'
 import LinkIcon from '../svgs/link.svg'
 import Thumb from '../svgs/thumb-up-fill.svg'
@@ -16,7 +16,6 @@ import { toString } from 'mdast-util-to-string'
 import copy from 'clipboard-copy'
 import { IMGPROXY_URL_REGEXP, IMG_URL_REGEXP } from '../lib/url'
 import { extractUrls } from '../lib/md'
-import FileMissing from '../svgs/file-warning-line.svg'
 
 function myRemarkPlugin () {
   return (tree) => {
@@ -42,7 +41,7 @@ function Heading ({ h, slugger, noFragments, topLevel, children, node, ...props 
   const Icon = copied ? Thumb : LinkIcon
 
   return (
-    <span className={styles.heading}>
+    <div className={styles.heading}>
       {React.createElement(h, { id, ...props }, children)}
       {!noFragments && topLevel &&
         <a className={`${styles.headingLink} ${copied ? styles.copied : ''}`} href={`#${id}`}>
@@ -59,7 +58,7 @@ function Heading ({ h, slugger, noFragments, topLevel, children, node, ...props 
             className='fill-grey'
           />
         </a>}
-    </span>
+    </div>
   )
 }
 
@@ -69,8 +68,7 @@ const CACHE_STATES = {
   IS_ERROR: 'IS_ERROR'
 }
 
-// this is one of the slowest components to render
-export default memo(function Text ({ topLevel, noFragments, nofollow, onlyImgProxy, children }) {
+export default function Text ({ topLevel, noFragments, nofollow, onlyImgProxy, children }) {
   // all the reactStringReplace calls are to facilitate search highlighting
   const slugger = new GithubSlugger()
   onlyImgProxy = onlyImgProxy ?? true
@@ -123,10 +121,9 @@ export default memo(function Text ({ topLevel, noFragments, nofollow, onlyImgPro
           h5: (props) => HeadingWrapper({ h: topLevel ? 'h5' : 'h6', ...props }),
           h6: (props) => HeadingWrapper({ h: 'h6', ...props }),
           table: ({ node, ...props }) =>
-            <span className='table-responsive'>
+            <div className='table-responsive'>
               <table className='table table-bordered table-sm' {...props} />
-            </span>,
-          p: ({ children, ...props }) => <div className={styles.p} {...props}>{children}</div>,
+            </div>,
           code ({ node, inline, className, children, ...props }) {
             const match = /language-(\w+)/.exec(className || '')
             return !inline
@@ -182,10 +179,13 @@ export default memo(function Text ({ topLevel, noFragments, nofollow, onlyImgPro
       </ReactMarkdown>
     </div>
   )
-})
+}
 
 export function ZoomableImage ({ src, topLevel, ...props }) {
-  const [err, setErr] = useState()
+  if (!src) {
+    return null
+  }
+
   const defaultMediaStyle = {
     maxHeight: topLevel ? '75vh' : '25vh',
     cursor: 'zoom-in'
@@ -195,17 +195,17 @@ export function ZoomableImage ({ src, topLevel, ...props }) {
   const [mediaStyle, setMediaStyle] = useState(defaultMediaStyle)
   useEffect(() => {
     setMediaStyle(defaultMediaStyle)
-    setErr(null)
   }, [src])
 
-  if (!src) return null
-  if (err) {
-    return (
-      <span className='d-flex align-items-center text-warning font-weight-bold pb-1'>
-        <FileMissing width={18} height={18} className='fill-warning mr-1' />
-        broken image <small>stacker probably used an unreliable host</small>
-      </span>
-    )
+  const handleClick = () => {
+    if (mediaStyle.cursor === 'zoom-in') {
+      setMediaStyle({
+        width: '100%',
+        cursor: 'zoom-out'
+      })
+    } else {
+      setMediaStyle(defaultMediaStyle)
+    }
   }
 
   return (
@@ -213,17 +213,7 @@ export function ZoomableImage ({ src, topLevel, ...props }) {
       className={topLevel ? styles.topLevel : undefined}
       style={mediaStyle}
       src={src}
-      onClick={() => {
-        if (mediaStyle.cursor === 'zoom-in') {
-          setMediaStyle({
-            width: '100%',
-            cursor: 'zoom-out'
-          })
-        } else {
-          setMediaStyle(defaultMediaStyle)
-        }
-      }}
-      onError={() => setErr(true)}
+      onClick={handleClick}
       {...props}
     />
   )

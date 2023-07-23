@@ -6,26 +6,19 @@ import Items from '../../../components/items'
 import Layout from '../../../components/layout'
 import { useRouter } from 'next/router'
 import Item from '../../../components/item'
-import { useQuery } from '@apollo/client'
-import PageLoading from '../../../components/page-loading'
 
 export const getServerSideProps = getGetServerSideProps(RELATED_ITEMS_WITH_ITEM, null,
   data => !data.item)
 
-export default function Related ({ ssrData }) {
+export default function Related ({ data: { item, related: { items, cursor } } }) {
   const router = useRouter()
-
-  const { data } = useQuery(RELATED_ITEMS_WITH_ITEM, { variables: { id: router.query.id } })
-  if (!data && !ssrData) return <PageLoading />
-
-  const { item } = data || ssrData
 
   return (
     <Layout>
       <Item item={item} />
       <div className='font-weight-bold my-2'>related</div>
       <Items
-        ssrData={ssrData}
+        items={items} cursor={cursor}
         query={RELATED_ITEMS}
         destructureData={data => data.related}
         variables={{ id: router.query.id }}

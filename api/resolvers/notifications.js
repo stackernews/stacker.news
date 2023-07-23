@@ -1,4 +1,4 @@
-import { GraphQLError } from 'graphql'
+import { AuthenticationError, UserInputError } from 'apollo-server-micro'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { getItem, filterClause } from './item'
 import { getInvoice } from './wallet'
@@ -10,7 +10,7 @@ export default {
     notifications: async (parent, { cursor, inc }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new AuthenticationError('you must be logged in')
       }
 
       const meFull = await models.user.findUnique({ where: { id: me.id } })
@@ -228,7 +228,7 @@ export default {
   Mutation: {
     savePushSubscription: async (parent, { endpoint, p256dh, auth, oldEndpoint }, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new AuthenticationError('you must be logged in')
       }
 
       await ssValidate(pushSubscriptionSchema, { endpoint, p256dh, auth })
@@ -250,12 +250,14 @@ export default {
     },
     deletePushSubscription: async (parent, { endpoint }, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new AuthenticationError('you must be logged in')
       }
 
       const subscription = await models.pushSubscription.findFirst({ where: { endpoint, userId: Number(me.id) } })
       if (!subscription) {
-        throw new GraphQLError('endpoint not found', { extensions: { code: 'BAD_INPUT' } })
+        throw new UserInputError('endpoint not found', {
+          argumentName: 'endpoint'
+        })
       }
       await models.pushSubscription.delete({ where: { id: subscription.id } })
       return subscription

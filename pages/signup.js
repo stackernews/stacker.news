@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { StaticLayout } from '../components/layout'
+import LayoutStatic from '../components/layout-static'
 import Login from '../components/login'
 export { getServerSideProps } from './login'
 
@@ -22,13 +22,13 @@ function SignUpFooter ({ callbackUrl }) {
 
 export default function SignUp ({ ...props }) {
   return (
-    <StaticLayout footerLinks={false}>
+    <LayoutStatic>
       <Login
         Header={() => <SignUpHeader />}
         Footer={() => <SignUpFooter callbackUrl={props.callbackUrl} />}
         text='Sign up'
         {...props}
       />
-    </StaticLayout>
+    </LayoutStatic>
   )
 }

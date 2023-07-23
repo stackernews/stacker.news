@@ -1,9 +1,12 @@
+import { useQuery } from '@apollo/client'
+import gql from 'graphql-tag'
 import { Container, OverlayTrigger, Popover } from 'react-bootstrap'
 import { CopyInput } from './form'
 import styles from './footer.module.css'
 import Texas from '../svgs/texas.svg'
 import Github from '../svgs/github-fill.svg'
 import Link from 'next/link'
+import useDarkMode from 'use-dark-mode'
 import Sun from '../svgs/sun-fill.svg'
 import Moon from '../svgs/moon-fill.svg'
 import No from '../svgs/no.svg'
@@ -11,7 +14,70 @@ import Bolt from '../svgs/bolt.svg'
 import Amboss from '../svgs/amboss.svg'
 import { useEffect, useState } from 'react'
 import Rewards from './footer-rewards'
-import useDarkMode from './dark-mode'
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// if you update this you need to update /public/darkmode
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+const COLORS = {
+  light: {
+    body: '#f5f5f7',
+    color: '#212529',
+    navbarVariant: 'light',
+    navLink: 'rgba(0, 0, 0, 0.55)',
+    navLinkFocus: 'rgba(0, 0, 0, 0.7)',
+    navLinkActive: 'rgba(0, 0, 0, 0.9)',
+    borderColor: '#ced4da',
+    inputBg: '#ffffff',
+    inputDisabledBg: '#e9ecef',
+    dropdownItemColor: 'rgba(0, 0, 0, 0.7)',
+    dropdownItemColorHover: 'rgba(0, 0, 0, 0.9)',
+    commentBg: 'rgba(0, 0, 0, 0.03)',
+    clickToContextColor: 'rgba(0, 0, 0, 0.07)',
+    brandColor: 'rgba(0, 0, 0, 0.9)',
+    grey: '#707070',
+    link: '#007cbe',
+    toolbarActive: 'rgba(0, 0, 0, 0.10)',
+    toolbarHover: 'rgba(0, 0, 0, 0.20)',
+    toolbar: '#ffffff',
+    quoteBar: 'rgb(206, 208, 212)',
+    quoteColor: 'rgb(101, 103, 107)',
+    linkHover: '#004a72',
+    linkVisited: '#537587'
+  },
+  dark: {
+    body: '#000000',
+    inputBg: '#000000',
+    inputDisabledBg: '#000000',
+    navLink: 'rgba(255, 255, 255, 0.55)',
+    navLinkFocus: 'rgba(255, 255, 255, 0.75)',
+    navLinkActive: 'rgba(255, 255, 255, 0.9)',
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+    dropdownItemColor: 'rgba(255, 255, 255, 0.7)',
+    dropdownItemColorHover: 'rgba(255, 255, 255, 0.9)',
+    commentBg: 'rgba(255, 255, 255, 0.04)',
+    clickToContextColor: 'rgba(255, 255, 255, 0.2)',
+    color: '#f8f9fa',
+    brandColor: 'var(--primary)',
+    grey: '#969696',
+    link: '#2e99d1',
+    toolbarActive: 'rgba(255, 255, 255, 0.10)',
+    toolbarHover: 'rgba(255, 255, 255, 0.20)',
+    toolbar: '#3e3f3f',
+    quoteBar: 'rgb(158, 159, 163)',
+    quoteColor: 'rgb(141, 144, 150)',
+    linkHover: '#007cbe',
+    linkVisited: '#56798E'
+  }
+}
+
+const handleThemeChange = (dark) => {
+  const root = window.document.documentElement
+  const colors = COLORS[dark ? 'dark' : 'light']
+  Object.entries(colors).forEach(([varName, value]) => {
+    const cssVarName = `--theme-${varName}`
+    root.style.setProperty(cssVarName, value)
+  })
+}
 
 const RssPopover = (
   <Popover>
@@ -113,19 +179,33 @@ const AnalyticsPopover = (
         visitors
       </a>
       <span className='mx-2 text-muted'> \ </span>
-      <Link href='/stackers/day' className='nav-link p-0 d-inline-flex'>
-        stackers
+      <Link href='/stackers/day' passHref>
+        <a className='nav-link p-0 d-inline-flex'>
+          stackers
+        </a>
       </Link>
     </Popover.Content>
   </Popover>
 )
 
-export default function Footer ({ links = true }) {
-  const [darkMode, darkModeToggle] = useDarkMode()
+export default function Footer ({ noLinks }) {
+  const query = gql`
+    {
+      connectAddress
+    }
+  `
+  const { data } = useQuery(query, { fetchPolicy: 'cache-first' })
 
+  const darkMode = useDarkMode(false, {
+    // set this so it doesn't try to use classes
+    onChange: handleThemeChange
+  })
+
+  const [mounted, setMounted] = useState()
   const [lightning, setLightning] = useState(undefined)
 
   useEffect(() => {
+    setMounted(true)
     setLightning(localStorage.getItem('lnAnimate') || 'yes')
   }, [])
 
@@ -139,7 +219,7 @@ export default function Footer ({ links = true }) {
     }
   }
 
-  const DarkModeIcon = darkMode ? Sun : Moon
+  const DarkModeIcon = darkMode.value ? Sun : Moon
   const LnIcon = lightning === 'yes' ? No : Bolt
 
   const version = process.env.NEXT_PUBLIC_COMMIT_HASH
@@ -147,12 +227,13 @@ export default function Footer ({ links = true }) {
   return (
     <footer>
       <Container className='mb-3 mt-4'>
-        {links &&
+        {!noLinks &&
           <>
-            <div className='mb-1'>
-              <DarkModeIcon onClick={darkModeToggle} width={20} height={20} className='fill-grey theme' suppressHydrationWarning />
-              <LnIcon onClick={toggleLightning} width={20} height={20} className='ml-2 fill-grey theme' suppressHydrationWarning />
-            </div>
+            {mounted &&
+              <div className='mb-1'>
+                <DarkModeIcon onClick={() => darkMode.toggle()} width={20} height={20} className='fill-grey theme' />
+                <LnIcon onClick={toggleLightning} width={20} height={20} className='ml-2 fill-grey theme' />
+              </div>}
             <div className='mb-0' style={{ fontWeight: 500 }}>
               <Rewards />
             </div>
@@ -182,28 +263,38 @@ export default function Footer ({ links = true }) {
               </OverlayTrigger>
             </div>
             <div className='mb-2' style={{ fontWeight: 500 }}>
-              <Link href='/faq' className='nav-link p-0 p-0 d-inline-flex'>
-                faq
+              <Link href='/faq' passHref>
+                <a className='nav-link p-0 p-0 d-inline-flex'>
+                  faq
+                </a>
               </Link>
               <span className='mx-2 text-muted'> \ </span>
-              <Link href='/guide' className='nav-link p-0 p-0 d-inline-flex'>
-                guide
+              <Link href='/guide' passHref>
+                <a className='nav-link p-0 p-0 d-inline-flex'>
+                  guide
+                </a>
               </Link>
               <span className='mx-2 text-muted'> \ </span>
-              <Link href='/story' className='nav-link p-0 p-0 d-inline-flex'>
-                story
+              <Link href='/story' passHref>
+                <a className='nav-link p-0 p-0 d-inline-flex'>
+                  story
+                </a>
               </Link>
               <span className='mx-2 text-muted'> \ </span>
-              <Link href='/changes' className='nav-link p-0 p-0 d-inline-flex'>
-                changes
+              <Link href='/changes' passHref>
+                <a className='nav-link p-0 p-0 d-inline-flex'>
+                  changes
+                </a>
               </Link>
               <span className='mx-2 text-muted'> \ </span>
-              <Link href='/privacy' className='nav-link p-0 p-0 d-inline-flex'>
-                privacy
+              <Link href='/privacy' passHref>
+                <a className='nav-link p-0 p-0 d-inline-flex'>
+                  privacy
+                </a>
               </Link>
             </div>
           </>}
-        {process.env.NEXT_PUBLIC_LND_CONNECT_ADDRESS &&
+        {data &&
           <div
             className={`text-small mx-auto mb-2 ${styles.connect}`}
           >
@@ -213,7 +304,7 @@ export default function Footer ({ links = true }) {
               groupClassName='mb-0 w-100'
               readOnly
               noForm
-              placeholder={process.env.NEXT_PUBLIC_LND_CONNECT_ADDRESS}
+              placeholder={data.connectAddress}
             />
             <a
               href='https://amboss.space/node/03cc1d0932bb99b0697f5b5e5961b83ab7fd66f1efc4c9f5c7bad66c1bcbe78f02'
@@ -229,14 +320,14 @@ export default function Footer ({ links = true }) {
           made in Austin<Texas className='ml-1' width={20} height={20} />
           <span className='ml-1'>by</span>
           <span>
-            <Link href='/k00b' className='ml-1'>
-              @k00b
+            <Link href='/k00b' passHref>
+              <a className='ml-1'>@k00b</a>
             </Link>
-            <Link href='/kr' className='ml-1'>
-              @kr
+            <Link href='/kr' passHref>
+              <a className='ml-1'>@kr</a>
             </Link>
-            <Link href='/ekzyis' className='ml-1'>
-              @ekzyis
+            <Link href='/ekzyis' passHref>
+              <a className='ml-1'>@ekzyis</a>
             </Link>
           </span>
         </small>

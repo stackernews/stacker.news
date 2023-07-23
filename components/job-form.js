@@ -1,4 +1,5 @@
 import { Checkbox, Form, Input, MarkdownInput, SubmitButton } from './form'
+import TextareaAutosize from 'react-textarea-autosize'
 import { InputGroup, Form as BForm, Col, Image } from 'react-bootstrap'
 import { useEffect, useState } from 'react'
 import Info from './info'
@@ -132,6 +133,7 @@ export default function JobForm ({ item, sub }) {
           topLevel
           label='description'
           name='text'
+          as={TextareaAutosize}
           minRows={6}
           required
         />
@@ -168,7 +170,7 @@ function PromoteJob ({ item, sub, storageKeyPrefix }) {
     query AuctionPosition($id: ID, $bid: Int!) {
       auctionPosition(sub: "${item?.subName || sub?.name}", id: $id, bid: $bid)
     }`,
-  { fetchPolicy: 'cache-and-network' })
+  { fetchPolicy: 'network-only' })
   const position = data?.auctionPosition
 
   useEffect(() => {
@@ -258,7 +260,7 @@ function StatusControl ({ item }) {
       <div className='p-3'>
         <BootstrapForm.Label>job control</BootstrapForm.Label>
         {item.status === 'NOSATS' &&
-          <Alert variant='warning'>your promotion ran out of sats. <Link href='/wallet?type=fund' className='text-reset text-underline'>fund your wallet</Link> or reduce bid to continue promoting your job</Alert>}
+          <Alert variant='warning'>your promotion ran out of sats. <Link href='/wallet?type=fund' passHref><a className='text-reset text-underline'>fund your wallet</a></Link> or reduce bid to continue promoting your job</Alert>}
         <StatusComp />
       </div>
     </div>

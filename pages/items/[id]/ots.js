@@ -3,22 +3,13 @@ import { ITEM_OTS } from '../../../fragments/items'
 import { getGetServerSideProps } from '../../../api/ssrApollo'
 import stringifyCanon from 'canonical-json'
 import { Button } from 'react-bootstrap'
-import { useQuery } from '@apollo/client'
-import { useRouter } from 'next/router'
-import PageLoading from '../../../components/page-loading'
 
 export const getServerSideProps = getGetServerSideProps(ITEM_OTS, null,
   data => !data.item || !data.item.otsHash)
 
-export default function OtsItem ({ ssrData }) {
-  const router = useRouter()
-  const { data } = useQuery(ITEM_OTS, { variables: { id: router.query.id } })
-  if (!data && !ssrData) return <PageLoading />
-
-  const { item } = data || ssrData
-
+export default function OtsItem ({ data: { item } }) {
   return (
-    <Layout seo={false}>
+    <Layout noSeo>
       <Ots item={item} />
     </Layout>
   )

@@ -1,44 +1,34 @@
-import { gql } from 'graphql-tag'
+import { gql } from 'apollo-server-micro'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { getGetServerSideProps } from '../../api/ssrApollo'
 import { CopyInput, Form, Select } from '../../components/form'
-import { CenterLayout } from '../../components/layout'
+import LayoutCenter from '../../components/layout-center'
 import { useMe } from '../../components/me'
 import { WhenComposedChart } from '../../components/when-charts'
-import { useQuery } from '@apollo/client'
-import PageLoading from '../../components/page-loading'
-import { WHENS } from '../../lib/constants'
 
-const REFERRALS = gql`
-  query Referrals($when: String!)
-  {
-    referrals(when: $when) {
-      totalSats
-      totalReferrals
-      stats {
-        time
-        data {
-          name
-          value
+export const getServerSideProps = getGetServerSideProps(
+  gql`
+    query Referrals($when: String!)
+    {
+      referrals(when: $when) {
+        totalSats
+        totalReferrals
+        stats {
+          time
+          data {
+            name
+            value
+          }
         }
       }
-    }
-  }`
+    }`)
 
-export const getServerSideProps = getGetServerSideProps(REFERRALS)
-
-export default function Referrals ({ ssrData }) {
+export default function Referrals ({ data: { referrals: { totalSats, totalReferrals, stats } } }) {
   const router = useRouter()
   const me = useMe()
-
-  const { data } = useQuery(REFERRALS, { variables: { when: router.query.when } })
-  if (!data && !ssrData) return <PageLoading />
-
-  const { referrals: { totalSats, totalReferrals, stats } } = data
-
   return (
-    <CenterLayout footerLinks>
+    <LayoutCenter footerLinks>
       <Form
         initial={{
           when: router.query.when
@@ -51,7 +41,7 @@ export default function Referrals ({ ssrData }) {
             className='w-auto'
             name='when'
             size='sm'
-            items={WHENS}
+            items={['day', 'week', 'month', 'year', 'forever']}
             onChange={(formik, e) => router.push(`/referrals/${e.target.value}`)}
           />
         </h4>
@@ -78,8 +68,8 @@ export default function Referrals ({ ssrData }) {
         </li>
         <li>earn 21% of boost and job fees spent by referred stackers</li>
         <li>earn 2.1% of all zaps received by referred stackers</li>
-        <li><Link href='/invites'>invite links</Link> are also implicitly referral links</li>
+        <li><Link href='/invites' passHref><a>invite links</a></Link> are also implicitly referral links</li>
       </ul>
-    </CenterLayout>
+    </LayoutCenter>
   )
 }

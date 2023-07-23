@@ -4,21 +4,16 @@
 }
 
 .nav {
-    margin: 1rem 0;
-    justify-content: start;
-    font-size: 110%;
+    margin-top: 1rem;
+    justify-content: space-between;
 }
 
-.nav :global .nav-link {
+.nav div:first-child a {
     padding-left: 0;
 }
 
-.nav :global .nav-item:not(:first-child) {
-    margin-left: 1rem;
-}
-
-.nav :global .active {
-    border-bottom: 2px solid var(--primary);
+.nav div:last-child a {
+    padding-right: 0;
 }
 
 .userimg {

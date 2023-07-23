@@ -1,4 +1,4 @@
-import { GraphQLError } from 'graphql'
+import { AuthenticationError } from 'apollo-server-micro'
 import { amountSchema, ssValidate } from '../../lib/validate'
 import serialize from './serial'
 
@@ -36,7 +36,7 @@ export default {
   Mutation: {
     donateToRewards: async (parent, { sats }, { me, models }) => {
       if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new AuthenticationError('you must be logged in')
       }
 
       await ssValidate(amountSchema, { amount: sats })

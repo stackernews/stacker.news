@@ -3,7 +3,7 @@ import styles from './comment.module.css'
 import Text from './text'
 import Link from 'next/link'
 import Reply, { ReplyOnAnotherPage } from './reply'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import UpVote from './upvote'
 import Eye from '../svgs/eye-fill.svg'
 import EyeClose from '../svgs/eye-close-line.svg'
@@ -28,8 +28,8 @@ function Parent ({ item, rootText }) {
   const ParentFrag = () => (
     <>
       <span> \ </span>
-      <Link href={`/items/${item.parentId}`} className='text-reset'>
-        parent
+      <Link href={`/items/${item.parentId}`} passHref>
+        <a className='text-reset'>parent</a>
       </Link>
     </>
   )
@@ -38,12 +38,12 @@ function Parent ({ item, rootText }) {
     <>
       {Number(root.id) !== Number(item.parentId) && <ParentFrag />}
       <span> \ </span>
-      <Link href={`/items/${root.id}`} className='text-reset'>
-        {rootText || 'on:'} {root?.title}
+      <Link href={`/items/${root.id}`} passHref>
+        <a className='text-reset'>{rootText || 'on:'} {root?.title}</a>
       </Link>
       {root.subName &&
         <Link href={`/~${root.subName}`}>
-          {' '}<Badge className={itemStyles.newComment} variant={null}>{root.subName}</Badge>
+          <a>{' '}<Badge className={itemStyles.newComment} variant={null}>{root.subName}</Badge></a>
         </Link>}
     </>
   )
@@ -54,42 +54,32 @@ const truncateString = (string = '', maxLength = 140) =>
     ? `${string.substring(0, maxLength)} […]`
     : string
 
-export function CommentFlat ({ item, rank, ...props }) {
+export function CommentFlat ({ item, ...props }) {
   const router = useRouter()
-  const [href, as] = useMemo(() => {
-    if (item.path.split('.').length > COMMENT_DEPTH_LIMIT + 1) {
-      return [{
-        pathname: '/items/[id]',
-        query: { id: item.parentId, commentId: item.id }
-      }, `/items/${item.parentId}`]
-    } else {
-      return [{
-        pathname: '/items/[id]',
-        query: { id: item.root.id, commentId: item.id }
-      }, `/items/${item.root.id}`]
-    }
-  }, [item?.id])
-
   return (
-    <>
-      {rank
-        ? (
-          <div className={`${itemStyles.rank} pt-2 align-self-start`}>
-            {rank}
-          </div>)
-        : <div />}
-      <div
-        className='clickToContext py-2'
-        onClick={e => {
-          if (ignoreClick(e)) return
-          router.push(href, as)
-        }}
-      >
-        <RootProvider root={item.root}>
-          <Comment item={item} {...props} />
-        </RootProvider>
-      </div>
-    </>
+    <div
+      className='clickToContext py-2'
+      onClick={e => {
+        if (ignoreClick(e)) {
+          return
+        }
+        if (item.path.split('.').length > COMMENT_DEPTH_LIMIT + 1) {
+          router.push({
+            pathname: '/items/[id]',
+            query: { id: item.parentId, commentId: item.id }
+          }, `/items/${item.parentId}`)
+        } else {
+          router.push({
+            pathname: '/items/[id]',
+            query: { id: item.root.id, commentId: item.id }
+          }, `/items/${item.root.id}`)
+        }
+      }}
+    >
+      <RootProvider root={item.root}>
+        <Comment item={item} {...props} />
+      </RootProvider>
+    </div>
   )
 }
 
@@ -193,26 +183,24 @@ export default function Comment ({
               )}
         </div>
       </div>
-      {collapse !== 'yep' && (
-        bottomedOut
-          ? <DepthLimit item={item} />
-          : (
-            <div className={`${styles.children}`}>
-              {!noReply &&
-                <Reply depth={depth + 1} item={item} replyOpen={replyOpen}>
-                  {root.bounty && !bountyPaid && <PayBounty item={item} />}
-                </Reply>}
-              {children}
-              <div className={`${styles.comments} ml-sm-1 ml-md-3`}>
-                {item.comments && !noComments
-                  ? item.comments.map((item) => (
-                    <Comment depth={depth + 1} key={item.id} item={item} />
-                    ))
-                  : null}
-              </div>
+      {bottomedOut
+        ? <DepthLimit item={item} />
+        : (
+          <div className={`${styles.children}`}>
+            {!noReply &&
+              <Reply depth={depth + 1} item={item} replyOpen={replyOpen}>
+                {root.bounty && !bountyPaid && <PayBounty item={item} />}
+              </Reply>}
+            {children}
+            <div className={`${styles.comments} ml-sm-1 ml-md-3`}>
+              {item.comments && !noComments
+                ? item.comments.map((item) => (
+                  <Comment depth={depth + 1} key={item.id} item={item} />
+                  ))
+                : null}
             </div>
-            )
-      )}
+          </div>
+          )}
     </div>
   )
 }
@@ -220,8 +208,8 @@ export default function Comment ({
 function DepthLimit ({ item }) {
   if (item.ncomments > 0) {
     return (
-      <Link href={`/items/${item.id}`} className='d-block p-3 font-weight-bold text-muted w-100 text-center'>
-        view replies
+      <Link href={`/items/${item.id}`} passHref>
+        <a className='d-block p-3 font-weight-bold text-muted w-100 text-center'>view replies</a>
       </Link>
     )
   }

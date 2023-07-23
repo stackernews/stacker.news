@@ -21,18 +21,22 @@ export default function ItemJob ({ item, toc, rank, children }) {
           </div>)
         : <div />}
       <div className={`${styles.item}`}>
-        <Link href={`/items/${item.id}`}>
-          <Image
-            src={item.uploadId ? `https://${process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET}.s3.amazonaws.com/${item.uploadId}` : '/jobs-default.png'} width='42' height='42' className={styles.companyImage}
-          />
+        <Link href={`/items/${item.id}`} passHref>
+          <a>
+            <Image
+              src={item.uploadId ? `https://${process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET}.s3.amazonaws.com/${item.uploadId}` : '/jobs-default.png'} width='42' height='42' className={styles.companyImage}
+            />
+          </a>
         </Link>
         <div className={`${styles.hunk} align-self-center mb-0`}>
           <div className={`${styles.main} flex-wrap d-inline`}>
-            <Link href={`/items/${item.id}`} className={`${styles.title} text-reset mr-2`}>
-              {item.searchTitle
-                ? <SearchTitle title={item.searchTitle} />
-                : (
-                  <>{item.title}</>)}
+            <Link href={`/items/${item.id}`} passHref>
+              <a className={`${styles.title} text-reset mr-2`}>
+                {item.searchTitle
+                  ? <SearchTitle title={item.searchTitle} />
+                  : (
+                    <>{item.title}</>)}
+              </a>
             </Link>
           </div>
           <div className={`${styles.other}`}>
@@ -48,12 +52,14 @@ export default function ItemJob ({ item, toc, rank, children }) {
             <wbr />
             <span> \ </span>
             <span>
-              <Link href={`/${item.user.name}`} className='d-inline-flex align-items-center'>
-                @{item.user.name}<CowboyHat className='ml-1 fill-grey' user={item.user} height={12} width={12} />
+              <Link href={`/${item.user.name}`} passHref>
+                <a className='d-inline-flex align-items-center'>
+                  @{item.user.name}<CowboyHat className='ml-1 fill-grey' user={item.user} height={12} width={12} />
+                </a>
               </Link>
               <span> </span>
-              <Link href={`/items/${item.id}`} title={item.createdAt} className='text-reset'>
-                {timeSince(new Date(item.createdAt))}
+              <Link href={`/items/${item.id}`} passHref>
+                <a title={item.createdAt} className='text-reset'>{timeSince(new Date(item.createdAt))}</a>
               </Link>
             </span>
             {item.mine &&
@@ -61,8 +67,10 @@ export default function ItemJob ({ item, toc, rank, children }) {
                 <>
                   <wbr />
                   <span> \ </span>
-                  <Link href={`/items/${item.id}/edit`} className='text-reset'>
-                    edit
+                  <Link href={`/items/${item.id}/edit`} passHref>
+                    <a className='text-reset'>
+                      edit
+                    </a>
                   </Link>
                   {item.status !== 'ACTIVE' && <span className='ml-1 font-weight-bold text-boost'> {item.status}</span>}
                 </>)}

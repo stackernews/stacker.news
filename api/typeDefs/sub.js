@@ -1,8 +1,8 @@
-import { gql } from 'graphql-tag'
+import { gql } from 'apollo-server-micro'
 
 export default gql`
   extend type Query {
-    sub(name: String): Sub
+    sub(name: String!): Sub
     subLatestPost(name: String!): String
   }
 

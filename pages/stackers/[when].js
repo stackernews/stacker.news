@@ -55,7 +55,7 @@ export const getServerSideProps = getGetServerSideProps(
     }`)
 
 export default function Growth ({
-  ssrData: { registrationGrowth, itemGrowth, spendingGrowth, spenderGrowth, stackingGrowth, stackerGrowth }
+  data: { registrationGrowth, itemGrowth, spendingGrowth, spenderGrowth, stackingGrowth, stackerGrowth }
 }) {
   const router = useRouter()
   const { when } = router.query

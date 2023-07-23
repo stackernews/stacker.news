@@ -41,39 +41,43 @@ export default function ItemInfo ({ item, pendingSats, full, commentsText, class
           <span>{abbrNum(item.boost)} boost</span>
           <span> \ </span>
         </>}
-      <Link href={`/items/${item.id}`} title={`${item.commentSats} sats`} className='text-reset'>
-        {item.ncomments} {commentsText || 'comments'}
-        {hasNewComments && <>{' '}<Badge className={styles.newComment} variant={null}>new</Badge></>}
+      <Link href={`/items/${item.id}`} passHref>
+        <a title={`${item.commentSats} sats`} className='text-reset'>
+          {item.ncomments} {commentsText || 'comments'}
+          {hasNewComments && <>{' '}<Badge className={styles.newComment} variant={null}>new</Badge></>}
+        </a>
       </Link>
       <span> \ </span>
       <span>
-        <Link href={`/${item.user.name}`} className='d-inline-flex align-items-center'>
-          @{item.user.name}<CowboyHat className='ml-1 fill-grey' user={item.user} height={12} width={12} />
-          {embellishUser}
+        <Link href={`/${item.user.name}`} passHref>
+          <a className='d-inline-flex align-items-center'>
+            @{item.user.name}<CowboyHat className='ml-1 fill-grey' user={item.user} height={12} width={12} />
+            {embellishUser}
+          </a>
         </Link>
         <span> </span>
-        <Link href={`/items/${item.id}`} title={item.createdAt} className='text-reset' suppressHydrationWarning>
-          {timeSince(new Date(item.createdAt))}
+        <Link href={`/items/${item.id}`} passHref>
+          <a title={item.createdAt} className='text-reset'>{timeSince(new Date(item.createdAt))}</a>
         </Link>
         {item.prior &&
           <>
             <span> \ </span>
-            <Link href={`/items/${item.prior}`} className='text-reset'>
-              yesterday
+            <Link href={`/items/${item.prior}`} passHref>
+              <a className='text-reset'>yesterday</a>
             </Link>
           </>}
       </span>
       {item.subName &&
         <Link href={`/~${item.subName}`}>
-          {' '}<Badge className={styles.newComment} variant={null}>{item.subName}</Badge>
+          <a>{' '}<Badge className={styles.newComment} variant={null}>{item.subName}</Badge></a>
         </Link>}
       {(item.outlawed && !item.mine &&
-        <Link href='/recent/outlawed'>
-          {' '}<Badge className={styles.newComment} variant={null}>outlawed</Badge>
+        <Link href='/outlawed'>
+          <a>{' '}<Badge className={styles.newComment} variant={null}>outlawed</Badge></a>
         </Link>) ||
-        (item.freebie &&
-          <Link href='/recent/freebies'>
-            {' '}<Badge className={styles.newComment} variant={null}>freebie</Badge>
+        (item.freebie && !item.mine &&
+          <Link href='/freebie'>
+            <a>{' '}<Badge className={styles.newComment} variant={null}>freebie</Badge></a>
           </Link>
         )}
       {canEdit && !item.deletedAt &&
@@ -97,9 +101,11 @@ export default function ItemInfo ({ item, pendingSats, full, commentsText, class
         {me && <BookmarkDropdownItem item={item} />}
         {me && item.user.id !== me.id && <SubscribeDropdownItem item={item} />}
         {item.otsHash &&
-          <Link href={`/items/${item.id}/ots`} className='text-reset dropdown-item'>
-            ots timestamp
-          </Link>}
+          <Dropdown.Item>
+            <Link passHref href={`/items/${item.id}/ots`}>
+              <a className='text-reset'>ots timestamp</a>
+            </Link>
+          </Dropdown.Item>}
         {me && !item.meSats && !item.position && !item.meDontLike &&
           !item.mine && !item.deletedAt && <DontLikeThisDropdownItem id={item.id} />}
         {item.mine && !item.position && !item.deletedAt &&

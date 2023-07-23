@@ -1,4 +1,4 @@
-const { gql } = require('graphql-tag')
+const { gql } = require('apollo-server-micro')
 const search = require('../api/search')
 
 const ITEM_SEARCH_FIELDS = gql`
@@ -16,9 +16,6 @@ const ITEM_SEARCH_FIELDS = gql`
     }
     sub {
       name
-    }
-    root {
-      subName
     }
     status
     maxBid
@@ -46,9 +43,6 @@ async function _indexItem (item) {
   }
   if (item.location || item.remote) {
     itemcp.title += ` \\ ${item.location || ''}${item.location && item.remote ? ' or ' : ''}${item.remote ? 'Remote' : ''}`
-  }
-  if (!item.sub?.name && item.root?.subName) {
-    itemcp.sub = { name: item.root.subName }
   }
 
   try {
@@ -97,11 +91,11 @@ function indexAllItems ({ apollo }) {
     let items = []; let cursor = null
     do {
       // query for items
-      ({ data: { items: { items, cursor } } } = await apollo.query({
+      ({ data: { allItems: { items, cursor } } } = await apollo.query({
         query: gql`
           ${ITEM_SEARCH_FIELDS}
           query AllItems($cursor: String) {
-            items(cursor: $cursor, sort: "recent", limit: 100, type: "all") {
+            allItems(cursor: $cursor) {
               items {
                 ...ItemSearchFields
               }

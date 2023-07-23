@@ -1,5 +1,5 @@
 import '../styles/globals.scss'
-import { ApolloProvider, gql } from '@apollo/client'
+import { ApolloProvider, gql, useQuery } from '@apollo/client'
 import { Provider } from 'next-auth/client'
 import { MeProvider } from '../components/me'
 import PlausibleProvider from 'next-plausible'
@@ -9,21 +9,34 @@ import { PriceProvider } from '../components/price'
 import Head from 'next/head'
 import { useRouter } from 'next/dist/client/router'
 import { useEffect } from 'react'
+import Moon from '../svgs/moon-fill.svg'
+import Layout from '../components/layout'
 import { ShowModalProvider } from '../components/modal'
 import ErrorBoundary from '../components/error-boundary'
 import { LightningProvider } from '../components/lightning'
 import { ServiceWorkerProvider } from '../components/serviceworker'
 
-function writeQuery (client, apollo, data) {
-  if (apollo && data) {
-    client.writeQuery({
-      query: gql`${apollo.query}`,
-      data: data,
-      variables: apollo.variables,
-      broadcast: false,
-      overwrite: true
-    })
+function CSRWrapper ({ Component, apollo, ...props }) {
+  const { data, error } = useQuery(gql`${apollo.query}`, { variables: apollo.variables, fetchPolicy: 'cache-first' })
+  if (error) {
+    return (
+      <div className='d-flex font-weight-bold justify-content-center mt-3 mb-1'>
+        {error.toString()}
+      </div>
+    )
   }
+
+  if (!data) {
+    return (
+      <Layout>
+        <div className='d-flex justify-content-center mt-3 mb-1'>
+          <Moon className='spin fill-grey' />
+        </div>
+      </Layout>
+    )
+  }
+
+  return <Component {...props} data={data} />
 }
 
 function MyApp ({ Component, pageProps: { session, ...props } }) {
@@ -37,29 +50,26 @@ function MyApp ({ Component, pageProps: { session, ...props } }) {
     // this nodata var will get passed to the server on back/foward and
     // 1. prevent data from reloading and 2. perserve scroll
     // (2) is not possible while intercepting nav with beforePopState
-    router.replace({
-      pathname: router.pathname,
-      query: { ...router.query, nodata: true }
-    }, router.asPath, { ...router.options, shallow: true }).catch((e) => {
-      // workaround for https://github.com/vercel/next.js/issues/37362
-      if (!e.cancelled) {
-        throw e
-      }
-    })
+    if (router.isReady) {
+      router.replace({
+        pathname: router.pathname,
+        query: { ...router.query, nodata: true }
+      }, router.asPath, { ...router.options, scroll: false })
+    }
   }, [router.asPath])
 
   /*
     If we are on the client, we populate the apollo cache with the
     ssr data
   */
-  const { apollo, ssrData, me, price, ...otherProps } = props
-  // if we are on the server, useEffect won't run
-  if (typeof window === 'undefined' && client) {
-    writeQuery(client, apollo, ssrData)
+  const { apollo, data, me, price } = props
+  if (apollo && data) {
+    client.writeQuery({
+      query: gql`${apollo.query}`,
+      data: data,
+      variables: apollo.variables
+    })
   }
-  useEffect(() => {
-    writeQuery(client, apollo, ssrData)
-  }, [client, apollo, ssrData])
 
   return (
     <>
@@ -68,7 +78,7 @@ function MyApp ({ Component, pageProps: { session, ...props } }) {
         startPosition={0.3}
         stopDelayMs={200}
         height={2}
-        showOnShallow={false}
+        showOnShallow
         options={{ showSpinner: false }}
       />
       <Head>
@@ -83,7 +93,9 @@ function MyApp ({ Component, pageProps: { session, ...props } }) {
                   <PriceProvider price={price}>
                     <LightningProvider>
                       <ShowModalProvider>
-                        <Component ssrData={ssrData} {...otherProps} />
+                        {data || !apollo?.query
+                          ? <Component {...props} />
+                          : <CSRWrapper Component={Component} {...props} />}
                       </ShowModalProvider>
                     </LightningProvider>
                   </PriceProvider>

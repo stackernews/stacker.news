@@ -43,7 +43,7 @@ export default function FeeButton ({ parentId, hasImgLink, baseFee, ChildButton,
   const query = parentId
     ? gql`{ itemRepetition(parentId: "${parentId}") }`
     : gql`{ itemRepetition }`
-  const { data } = useQuery(query, { pollInterval: 1000, nextFetchPolicy: 'cache-and-network' })
+  const { data } = useQuery(query, { pollInterval: 1000 })
   const repetition = data?.itemRepetition || 0
   const formik = useFormikContext()
   const boost = formik?.values?.boost || 0

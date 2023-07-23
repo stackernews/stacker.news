@@ -34,9 +34,6 @@ export default function Search ({ sub }) {
         await router.push({
           pathname: '/stackers/search',
           query: { q, what: 'stackers' }
-        }, {
-          pathname: '/stackers/search',
-          query: { q }
         })
         return
       }
@@ -53,7 +50,6 @@ export default function Search ({ sub }) {
 
   const showSearch = atBottom || searching || router.query.q
   const filter = sub !== 'jobs'
-  const what = router.pathname.startsWith('/stackers') ? 'stackers' : router.query.what
   return (
     <>
       <div className={`${styles.searchSection} ${showSearch ? styles.solid : styles.hidden}`}>
@@ -64,7 +60,7 @@ export default function Search ({ sub }) {
                 className={styles.formActive}
                 initial={{
                   q: router.query.q || '',
-                  what: what || '',
+                  what: router.query.what || '',
                   sort: router.query.sort || '',
                   when: router.query.when || ''
                 }}
@@ -79,7 +75,7 @@ export default function Search ({ sub }) {
                       size='sm'
                       items={['all', 'posts', 'comments', 'stackers']}
                     />
-                    {what !== 'stackers' &&
+                    {router.query.what !== 'stackers' &&
                       <>
                         by
                         <Select

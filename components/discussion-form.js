@@ -1,6 +1,7 @@
 import { Form, Input, MarkdownInput, SubmitButton } from '../components/form'
 import { useRouter } from 'next/router'
 import { gql, useApolloClient, useLazyQuery, useMutation } from '@apollo/client'
+import TextareaAutosize from 'react-textarea-autosize'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
 import FeeButton, { EditFeeButton } from './fee-button'
@@ -35,14 +36,16 @@ export function DiscussionForm ({
   )
 
   const [getRelated, { data: relatedData }] = useLazyQuery(gql`
-    ${ITEM_FIELDS}
-    query related($title: String!) {
-      related(title: $title, minMatch: "75%", limit: 3) {
-        items {
-          ...ItemFields
-        }
+  ${ITEM_FIELDS}
+  query related($title: String!) {
+    related(title: $title, minMatch: "75%", limit: 3) {
+      items {
+        ...ItemFields
       }
-    }`)
+    }
+  }`, {
+    fetchPolicy: 'network-only'
+  })
 
   const related = relatedData?.related?.items || []
 
@@ -93,6 +96,7 @@ export function DiscussionForm ({
         topLevel
         label={<>{textLabel} <small className='text-muted ml-2'>optional</small></>}
         name='text'
+        as={TextareaAutosize}
         minRows={6}
         hint={editThreshold
           ? <div className='text-muted font-weight-bold'><Countdown date={editThreshold} /></div>

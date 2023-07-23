@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Button from 'react-bootstrap/Button'
 import { gql, useMutation, useQuery } from '@apollo/client'
 import Qr, { QrSkeleton } from '../components/qr'
-import { CenterLayout } from '../components/layout'
+import LayoutCenter from '../components/layout-center'
 import InputGroup from 'react-bootstrap/InputGroup'
 import { WithdrawlSkeleton } from './withdrawals/[id]'
 import { useMe } from '../components/me'
@@ -19,9 +19,9 @@ export const getServerSideProps = getGetServerSideProps()
 
 export default function Wallet () {
   return (
-    <CenterLayout>
+    <LayoutCenter>
       <WalletForm />
-    </CenterLayout>
+    </LayoutCenter>
   )
 }
 
@@ -37,8 +37,8 @@ function YouHaveSats () {
 function WalletHistory () {
   return (
     <div className='pt-4'>
-      <Link href='/satistics?inc=invoice,withdrawal' className='text-muted font-weight-bold text-underline'>
-        wallet history
+      <Link href='/satistics?inc=invoice,withdrawal' passHref>
+        <a className='text-muted font-weight-bold text-underline'>wallet history</a>
       </Link>
     </div>
   )
@@ -210,7 +210,7 @@ function LnQRWith ({ k1, encodedUrl }) {
       k1
     }
   }`
-  const { data } = useQuery(query, { pollInterval: 1000, nextFetchPolicy: 'cache-and-network' })
+  const { data } = useQuery(query, { pollInterval: 1000, fetchPolicy: 'cache-first' })
 
   if (data?.lnWith?.withdrawalId) {
     router.push(`/withdrawals/${data.lnWith.withdrawalId}`)

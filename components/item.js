@@ -19,7 +19,7 @@ export function SearchTitle ({ title }) {
   })
 }
 
-export default function Item ({ item, rank, belowTitle, right, full, children, siblingComments }) {
+export default function Item ({ item, rank, belowTitle, right, full, children }) {
   const titleRef = useRef()
   const [pendingSats, setPendingSats] = useState(0)
 
@@ -33,22 +33,24 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
             {rank}
           </div>)
         : <div />}
-      <div className={`${styles.item} ${siblingComments ? 'pt-2' : ''}`}>
+      <div className={styles.item}>
         {item.position
           ? <Pin width={24} height={24} className={styles.pin} />
           : item.meDontLike ? <Flag width={24} height={24} className={`${styles.dontLike}`} /> : <UpVote item={item} className={styles.upvote} pendingSats={pendingSats} setPendingSats={setPendingSats} />}
         <div className={styles.hunk}>
           <div className={`${styles.main} flex-wrap`}>
-            <Link href={`/items/${item.id}`} ref={titleRef} className={`${styles.title} text-reset mr-2`}>
-              {item.searchTitle ? <SearchTitle title={item.searchTitle} /> : item.title}
-              {item.pollCost && <span className={styles.icon}> <PollIcon className='fill-grey ml-1' height={14} width={14} /></span>}
-              {item.bounty > 0 &&
-                <span className={styles.icon}>
-                  <ActionTooltip notForm overlayText={`${abbrNum(item.bounty)} ${item.bountyPaidTo?.length ? 'sats paid' : 'sats bounty'}`}>
-                    <BountyIcon className={`${styles.bountyIcon} ${item.bountyPaidTo?.length ? 'fill-success' : 'fill-grey'}`} height={16} width={16} />
-                  </ActionTooltip>
-                </span>}
-              {image && <span className={styles.icon}><ImageIcon className='fill-grey ml-2' height={16} width={16} /></span>}
+            <Link href={`/items/${item.id}`} passHref>
+              <a ref={titleRef} className={`${styles.title} text-reset mr-2`}>
+                {item.searchTitle ? <SearchTitle title={item.searchTitle} /> : item.title}
+                {item.pollCost && <span className={styles.icon}> <PollIcon className='fill-grey ml-1' height={14} width={14} /></span>}
+                {item.bounty > 0 &&
+                  <span className={styles.icon}>
+                    <ActionTooltip notForm overlayText={`${abbrNum(item.bounty)} ${item.bountyPaidTo?.length ? 'sats paid' : 'sats bounty'}`}>
+                      <BountyIcon className={`${styles.bountyIcon} ${item.bountyPaidTo?.length ? 'fill-success' : 'fill-grey'}`} height={16} width={16} />
+                    </ActionTooltip>
+                  </span>}
+                {image && <span className={styles.icon}><ImageIcon className='fill-grey ml-2' height={16} width={16} /></span>}
+              </a>
             </Link>
             {item.url && !image &&
               <>

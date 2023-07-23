@@ -1,6 +1,7 @@
 import { Form, MarkdownInput, SubmitButton } from '../components/form'
 import { gql, useMutation } from '@apollo/client'
 import styles from './reply.module.css'
+import TextareaAutosize from 'react-textarea-autosize'
 import { EditFeeButton } from './fee-button'
 import { Button } from 'react-bootstrap'
 import Delete from './delete'
@@ -46,6 +47,7 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
       >
         <MarkdownInput
           name='text'
+          as={TextareaAutosize}
           minRows={6}
           autoFocus
           required

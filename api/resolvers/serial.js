@@ -1,4 +1,4 @@
-const { GraphQLError } = require('graphql')
+const { UserInputError } = require('apollo-server-micro')
 const retry = require('async-retry')
 
 async function serialize (models, call) {
@@ -12,7 +12,7 @@ async function serialize (models, call) {
     } catch (error) {
       console.log(error)
       if (error.message.includes('SN_INSUFFICIENT_FUNDS')) {
-        bail(new GraphQLError('insufficient funds', { extensions: { code: 'BAD_INPUT' } }))
+        bail(new UserInputError('insufficient funds'))
       }
       if (error.message.includes('SN_NOT_SERIALIZABLE')) {
         bail(new Error('wallet balance transaction is not serializable'))

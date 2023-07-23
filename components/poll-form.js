@@ -4,6 +4,7 @@ import { gql, useApolloClient, useMutation } from '@apollo/client'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
 import { MAX_POLL_NUM_CHOICES } from '../lib/constants'
+import TextareaAutosize from 'react-textarea-autosize'
 import FeeButton, { EditFeeButton } from './fee-button'
 import Delete from './delete'
 import { Button } from 'react-bootstrap'
@@ -73,6 +74,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         topLevel
         label={<>text <small className='text-muted ml-2'>optional</small></>}
         name='text'
+        as={TextareaAutosize}
         minRows={2}
       />
       <VariableInput

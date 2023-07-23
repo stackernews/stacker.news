@@ -1,6 +1,7 @@
 import { Form, Input, MarkdownInput, SubmitButton } from '../components/form'
 import { useRouter } from 'next/router'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
+import TextareaAutosize from 'react-textarea-autosize'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
 import FeeButton, { EditFeeButton } from './fee-button'
@@ -99,6 +100,7 @@ export function BountyForm ({
           </>
         }
         name='text'
+        as={TextareaAutosize}
         minRows={6}
         hint={
           editThreshold

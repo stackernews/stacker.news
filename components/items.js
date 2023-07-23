@@ -2,63 +2,57 @@ import { useQuery } from '@apollo/client'
 import Item, { ItemSkeleton } from './item'
 import ItemJob from './item-job'
 import styles from './items.module.css'
+import { ITEMS } from '../fragments/items'
 import MoreFooter from './more-footer'
-import { Fragment, useCallback, useMemo } from 'react'
+import { Fragment } from 'react'
 import { CommentFlat } from './comment'
-import { SUB_ITEMS } from '../fragments/subs'
-import { LIMIT } from '../lib/cursor'
-import ItemFull from './item-full'
 
-export default function Items ({ ssrData, variables = {}, query, destructureData, rank, noMoreText, Footer, filter = () => true }) {
-  const { data, fetchMore } = useQuery(query || SUB_ITEMS, { variables })
-  const Foooter = Footer || MoreFooter
+export default function Items ({ variables = {}, query, destructureData, rank, items, pins, cursor }) {
+  const { data, fetchMore } = useQuery(query || ITEMS, { variables })
 
-  const { items, pins, cursor } = useMemo(() => {
-    if (!data && !ssrData) return {}
-    if (destructureData) {
-      return destructureData(data || ssrData)
-    } else {
-      return data?.items || ssrData?.items
-    }
-  }, [data, ssrData])
-
-  const pinMap = useMemo(() =>
-    pins?.reduce((a, p) => { a[p.position] = p; return a }, {}), [pins])
-
-  const Skeleton = useCallback(() =>
-    <ItemsSkeleton rank={rank} startRank={items?.length} limit={variables.limit} />, [rank, items])
-
-  if (!ssrData && !data) {
-    return <Skeleton />
+  if (!data && !items) {
+    return <ItemsSkeleton rank={rank} />
   }
+
+  if (data) {
+    if (destructureData) {
+      ({ items, pins, cursor } = destructureData(data))
+    } else {
+      ({ items: { items, pins, cursor } } = data)
+    }
+  }
+
+  const pinMap = pins?.reduce((a, p) => { a[p.position] = p; return a }, {})
 
   return (
     <>
       <div className={styles.grid}>
-        {items.filter(filter).map((item, i) => (
+        {items.map((item, i) => (
           <Fragment key={item.id}>
             {pinMap && pinMap[i + 1] && <Item item={pinMap[i + 1]} />}
             {item.parentId
-              ? <CommentFlat item={item} rank={rank && i + 1} noReply includeParent clickToContext />
+              ? <><div /><div className='pb-3'><CommentFlat item={item} noReply includeParent /></div></>
               : (item.isJob
                   ? <ItemJob item={item} rank={rank && i + 1} />
-                  : (item.searchText
-                      ? <ItemFull item={item} rank={rank && i + 1} noReply siblingComments={variables.includeComments} />
-                      : <Item item={item} rank={rank && i + 1} siblingComments={variables.includeComments} />))}
+                  : (item.title
+                      ? <Item item={item} rank={rank && i + 1} />
+                      : (
+                        <div className='pb-2'>
+                          <CommentFlat item={item} noReply includeParent clickToContext />
+                        </div>)))}
           </Fragment>
         ))}
       </div>
-      <Foooter
-        cursor={cursor} fetchMore={fetchMore} noMoreText={noMoreText}
-        count={items?.length}
-        Skeleton={Skeleton}
+      <MoreFooter
+        cursor={cursor} fetchMore={fetchMore}
+        Skeleton={() => <ItemsSkeleton rank={rank} startRank={items.length} />}
       />
     </>
   )
 }
 
-export function ItemsSkeleton ({ rank, startRank = 0, limit = LIMIT }) {
-  const items = new Array(limit).fill(null)
+export function ItemsSkeleton ({ rank, startRank = 0 }) {
+  const items = new Array(21).fill(null)
 
   return (
     <div className={styles.grid}>

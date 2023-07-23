@@ -79,7 +79,7 @@ function earn ({ models }) {
           GROUP BY "userId", "parentId" IS NULL
       )
       SELECT "userId", NULL as id, type, ROW_NUMBER() OVER (PARTITION BY "isPost" ORDER BY upvoter_ratio DESC) as rank,
-          upvoter_ratio/(sum(upvoter_ratio) OVER (PARTITION BY "isPost")) as proportion
+          upvoter_ratio/(sum(upvoter_ratio) OVER (PARTITION BY "isPost"))/2 as proportion
       FROM upvoter_ratios
       WHERE upvoter_ratio > 0`)
 

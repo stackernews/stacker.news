@@ -51,6 +51,3 @@ sw/precache-manifest.json
 public/workbox-*.js*
 public/*-development.js
 
-# slashtags
-.slashtags/
-

@@ -1,7 +1,6 @@
 import models from '../models'
 import SDK, { SlashURL } from '@synonymdev/slashtags-sdk'
 import { Server } from '@synonymdev/slashtags-auth'
-import RAM from 'random-access-memory'
 
 const HOUR = 1000 * 60 * 60
 
@@ -20,10 +19,7 @@ async function createProfile (slashtag) {
 
 const slashtags = global.slashtags || (() => {
   console.log('initing slashtags')
-  const sdk = new SDK({
-    primaryKey: process.env.SLASHTAGS_SECRET ? Buffer.from(process.env.SLASHTAGS_SECRET, 'hex') : undefined,
-    storage: new RAM()
-  })
+  const sdk = new SDK({ primaryKey: process.env.SLASHTAGS_SECRET ? Buffer.from(process.env.SLASHTAGS_SECRET, 'hex') : undefined })
 
   // Get the default slashtag
   const slashtag = sdk.slashtag()

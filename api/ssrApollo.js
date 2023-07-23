@@ -31,16 +31,38 @@ export default async function getSSRApolloClient (req, me = null) {
         slashtags
       }
     }),
-    cache: new InMemoryCache()
+    cache: new InMemoryCache({
+      freezeResults: true
+    }),
+    assumeImmutableResults: true,
+    defaultOptions: {
+      watchQuery: {
+        fetchPolicy: 'cache-only',
+        nextFetchPolicy: 'cache-only',
+        canonizeResults: true,
+        ssr: true
+      },
+      query: {
+        fetchPolicy: 'cache-first',
+        nextFetchPolicy: 'cache-only',
+        canonizeResults: true,
+        ssr: true
+      }
+    }
   })
-  await client.clearStore()
   return client
 }
 
-export function getGetServerSideProps (query, variables = null, notFoundFunc, requireVar) {
+export function getGetServerSideProps (queryOrFunc, variablesOrFunc = null, notFoundFunc, requireVar) {
   return async function ({ req, query: params }) {
     const { nodata, ...realParams } = params
+    // we want to use client-side cache
+    if (nodata) return { props: { } }
+
+    const variables = typeof variablesOrFunc === 'function' ? variablesOrFunc(realParams) : variablesOrFunc
     const vars = { ...realParams, ...variables }
+    const query = typeof queryOrFunc === 'function' ? queryOrFunc(vars) : queryOrFunc
+
     const client = await getSSRApolloClient(req)
 
     const { data: { me } } = await client.query({
@@ -51,20 +73,6 @@ export function getGetServerSideProps (query, variables = null, notFoundFunc, re
     const { data: { price } } = await client.query({
       query: PRICE, variables: { fiatCurrency: me?.fiatCurrency }
     })
-
-    // we want to use client-side cache
-    if (nodata && query) {
-      return {
-        props: {
-          me,
-          price,
-          apollo: {
-            query: print(query),
-            variables: vars
-          }
-        }
-      }
-    }
 
     if (requireVar && !vars[requireVar]) {
       return {
@@ -91,7 +99,7 @@ export function getGetServerSideProps (query, variables = null, notFoundFunc, re
         throw err
       }
 
-      if (error || !data || (notFoundFunc && notFoundFunc(data))) {
+      if (error || !data || (notFoundFunc && notFoundFunc(data, vars))) {
         return {
           notFound: true
         }
@@ -110,7 +118,7 @@ export function getGetServerSideProps (query, variables = null, notFoundFunc, re
         ...props,
         me,
         price,
-        data
+        ssrData: data
       }
     }
   }

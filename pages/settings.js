@@ -1,12 +1,11 @@
 import { Checkbox, Form, Input, SubmitButton, Select, VariableInput } from '../components/form'
-import { Alert, Button, InputGroup, Modal } from 'react-bootstrap'
-import LayoutCenter from '../components/layout-center'
+import { Alert, Button, InputGroup } from 'react-bootstrap'
+import { CenterLayout } from '../components/layout'
 import { useState } from 'react'
 import { gql, useMutation, useQuery } from '@apollo/client'
 import { getGetServerSideProps } from '../api/ssrApollo'
 import LoginButton from '../components/login-button'
 import { signIn } from 'next-auth/client'
-import ModalButton from '../components/modal-button'
 import { LightningAuth, SlashtagsAuth } from '../components/lightning-auth'
 import { SETTINGS, SET_SETTINGS } from '../fragments/users'
 import { useRouter } from 'next/router'
@@ -17,6 +16,8 @@ import { bech32 } from 'bech32'
 import { NOSTR_MAX_RELAY_NUM, NOSTR_PUBKEY_BECH32 } from '../lib/nostr'
 import { emailSchema, lastAuthRemovalSchema, settingsSchema } from '../lib/validate'
 import { SUPPORTED_CURRENCIES } from '../lib/currency'
+import PageLoading from '../components/page-loading'
+import { useShowModal } from '../components/modal'
 
 export const getServerSideProps = getGetServerSideProps(SETTINGS)
 
@@ -24,7 +25,7 @@ function bech32encode (hexString) {
   return bech32.encode('npub', bech32.toWords(Buffer.from(hexString, 'hex')))
 }
 
-export default function Settings ({ data: { settings } }) {
+export default function Settings ({ ssrData }) {
   const [success, setSuccess] = useState()
   const [setSettings] = useMutation(SET_SETTINGS, {
     update (cache, { data: { setSettings } }) {
@@ -41,12 +42,11 @@ export default function Settings ({ data: { settings } }) {
   )
 
   const { data } = useQuery(SETTINGS)
-  if (data) {
-    ({ settings } = data)
-  }
+  const { settings } = data || ssrData
+  if (!data && !ssrData) return <PageLoading />
 
   return (
-    <LayoutCenter>
+    <CenterLayout>
       <div className='py-3 w-100'>
         <h2 className='mb-2 text-left'>settings</h2>
         <Form
@@ -204,7 +204,7 @@ export default function Settings ({ data: { settings } }) {
             groupClassName='mb-0'
           />
           <Checkbox
-            label={<>hide me from  <Link href='/top/stackers/day' passHref><a>top stackers</a></Link></>}
+            label={<>hide me from  <Link href='/top/stackers/day'>top stackers</Link></>}
             name='hideFromTopUsers'
             groupClassName='mb-0'
           />
@@ -272,12 +272,62 @@ export default function Settings ({ data: { settings } }) {
           {settings?.authMethods && <AuthMethods methods={settings.authMethods} />}
         </div>
       </div>
-    </LayoutCenter>
+    </CenterLayout>
+  )
+}
+
+function QRLinkButton ({ provider, unlink, status }) {
+  const showModal = useShowModal()
+  const text = status ? 'Unlink' : 'Link'
+  const onClick = status
+    ? unlink
+    : () => showModal(onClose =>
+      <div className='d-flex flex-column align-items-center'>
+        {provider === 'slashtags' ? <SlashtagsAuth /> : <LightningAuth />}
+      </div>)
+
+  return (
+    <LoginButton
+      key={provider}
+      className='d-block mt-2' type={provider} text={text} onClick={onClick}
+    />
+  )
+}
+
+function UnlinkObstacle ({ onClose, type, unlinkAuth }) {
+  const router = useRouter()
+
+  return (
+    <div>
+      You are removing your last auth method. It is recommended you link another auth method before removing
+      your last auth method. If you'd like to proceed anyway, type the following below
+      <div className='text-danger font-weight-bold my-2'>
+        If I logout, even accidentally, I will never be able to access my account again
+      </div>
+      <Form
+        className='mt-3'
+        initial={{
+          warning: ''
+        }}
+        schema={lastAuthRemovalSchema}
+        onSubmit={async () => {
+          await unlinkAuth({ variables: { authType: type } })
+          router.push('/settings')
+          onClose()
+        }}
+      >
+        <Input
+          name='warning'
+          required
+        />
+        <SubmitButton className='d-flex ml-auto' variant='danger'>do it</SubmitButton>
+      </Form>
+    </div>
   )
 }
 
 function AuthMethods ({ methods }) {
-  const router = useRouter()
+  const showModal = useShowModal()
   const [unlinkAuth] = useMutation(
     gql`
       mutation unlinkAuth($authType: String!) {
@@ -300,7 +350,6 @@ function AuthMethods ({ methods }) {
       }
     }
   )
-  const [obstacle, setObstacle] = useState()
 
   const providers = Object.keys(methods).filter(k => k !== '__typename')
 
@@ -308,7 +357,7 @@ function AuthMethods ({ methods }) {
     // if there's only one auth method left
     const links = providers.reduce((t, p) => t + (methods[p] ? 1 : 0), 0)
     if (links === 1) {
-      setObstacle(type)
+      showModal(onClose => (<UnlinkObstacle onClose={onClose} type={type} />))
     } else {
       await unlinkAuth({ variables: { authType: type } })
     }
@@ -316,108 +365,53 @@ function AuthMethods ({ methods }) {
 
   return (
     <>
-      <Modal
-        show={obstacle}
-        onHide={() => setObstacle(null)}
-      >
-        <div className='modal-close' onClick={() => setObstacle(null)}>X</div>
-        <Modal.Body>
-          You are removing your last auth method. It is recommended you link another auth method before removing
-          your last auth method. If you'd like to proceed anyway, type the following below
-          <div className='text-danger font-weight-bold my-2'>
-            If I logout, even accidentally, I will never be able to access my account again
-          </div>
-          <Form
-            className='mt-3'
-            initial={{
-              warning: ''
-            }}
-            schema={lastAuthRemovalSchema}
-            onSubmit={async () => {
-              await unlinkAuth({ variables: { authType: obstacle } })
-              router.push('/settings')
-              setObstacle(null)
-            }}
-          >
-            <Input
-              name='warning'
-              required
-            />
-            <SubmitButton className='d-flex ml-auto' variant='danger'>do it</SubmitButton>
-          </Form>
-        </Modal.Body>
-      </Modal>
       <div className='form-label mt-3'>auth methods</div>
-      {providers && providers.map(provider => {
-        switch (provider) {
-          case 'email':
-            return methods.email
-              ? (
-                <div className='mt-2 d-flex align-items-center'>
-                  <Input
-                    name='email'
-                    placeholder={methods.email}
-                    groupClassName='mb-0'
-                    readOnly
-                    noForm
-                  />
-                  <Button
-                    className='ml-2' variant='secondary' onClick={
+      {providers?.map(provider => {
+        if (provider === 'email') {
+          return methods.email
+            ? (
+              <div key={provider} className='mt-2 d-flex align-items-center'>
+                <Input
+                  name='email'
+                  placeholder={methods.email}
+                  groupClassName='mb-0'
+                  readOnly
+                  noForm
+                />
+                <Button
+                  className='ml-2' variant='secondary' onClick={
                     async () => {
                       await unlink('email')
                     }
                   }
-                  >Unlink Email
-                  </Button>
-                </div>
-                )
-              : <div className='mt-2'><EmailLinkForm /></div>
-          case 'lightning':
-            return methods.lightning
-              ? <LoginButton
-                  className='d-block' type='lightning' text='Unlink' onClick={
-                    async () => {
-                      await unlink('lightning')
-                    }
-                  }
-                />
-              : (
-                <ModalButton clicker={<LoginButton className='d-block' type='lightning' text='Link' />}>
-                  <div className='d-flex flex-column align-items-center'>
-                    <LightningAuth />
-                  </div>
-                </ModalButton>)
-          case 'slashtags':
-            return methods.slashtags
-              ? <LoginButton
-                  className='d-block mt-2' type='slashtags' text='Unlink' onClick={
-                    async () => {
-                      await unlink('slashtags')
-                    }
-                  }
-                />
-              : (
-                <ModalButton clicker={<LoginButton className='d-block mt-2' type='slashtags' text='Link' />}>
-                  <div className='d-flex flex-column align-items-center'>
-                    <SlashtagsAuth />
-                  </div>
-                </ModalButton>)
-          default:
-            return (
-              <LoginButton
-                className='mt-2 d-block'
-                key={provider}
-                type={provider.toLowerCase()}
-                onClick={async () => {
-                  if (methods[provider]) {
-                    await unlink(provider)
-                  } else {
-                    signIn(provider)
-                  }
-                }}
-                text={methods[provider] ? 'Unlink' : 'Link'}
-              />
-            )
+                >Unlink Email
+                </Button>
+              </div>
+              )
+            : <div key={provider} className='mt-2'><EmailLinkForm /></div>
+        } else if (provider === 'lightning' || provider === 'slashtags') {
+          return (
+            <QRLinkButton
+              key={provider} provider={provider}
+              status={methods[provider]} unlink={async () => await unlink(provider)}
+            />
+          )
+        } else {
+          return (
+            <LoginButton
+              className='mt-2 d-block'
+              key={provider}
+              type={provider.toLowerCase()}
+              onClick={async () => {
+                if (methods[provider]) {
+                  await unlink(provider)
+                } else {
+                  signIn(provider)
+                }
+              }}
+              text={methods[provider] ? 'Unlink' : 'Link'}
+            />
+          )
         }
       })}
     </>

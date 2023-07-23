@@ -1,6 +1,6 @@
 import { providers, getSession } from 'next-auth/client'
 import Link from 'next/link'
-import LayoutStatic from '../components/layout-static'
+import { StaticLayout } from '../components/layout'
 import Login from '../components/login'
 import { isExternal } from '../lib/url'
 
@@ -45,11 +45,11 @@ function LoginFooter ({ callbackUrl }) {
 
 export default function LoginPage (props) {
   return (
-    <LayoutStatic>
+    <StaticLayout footerLinks={false}>
       <Login
         Footer={() => <LoginFooter callbackUrl={props.callbackUrl} />}
         {...props}
       />
-    </LayoutStatic>
+    </StaticLayout>
   )
 }

@@ -15,13 +15,14 @@ export default function LoginButton ({ text, type, className, onClick }) {
       Icon = GithubIcon
       variant = 'dark'
       break
-    case 'lightning':
-      Icon = LightningIcon
-      variant = 'primary'
-      break
     case 'slashtags':
       Icon = SlashtagsIcon
       variant = 'grey-medium'
+      break
+    case 'lightning':
+    default:
+      Icon = LightningIcon
+      variant = 'primary'
       break
   }
 

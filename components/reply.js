@@ -3,7 +3,6 @@ import { gql, useMutation } from '@apollo/client'
 import styles from './reply.module.css'
 import { COMMENTS } from '../fragments/comments'
 import { useMe } from './me'
-import TextareaAutosize from 'react-textarea-autosize'
 import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import FeeButton from './fee-button'
@@ -13,8 +12,8 @@ import Info from './info'
 
 export function ReplyOnAnotherPage ({ parentId }) {
   return (
-    <Link href={`/items/${parentId}`}>
-      <a className={`${styles.replyButtons} text-muted`}>reply on another page</a>
+    <Link href={`/items/${parentId}`} className={`${styles.replyButtons} text-muted`}>
+      reply on another page
     </Link>
   )
 }
@@ -110,41 +109,41 @@ export default function Reply ({ item, onSuccess, replyOpen, children, placehold
             {/* HACK if we need more items, we should probably do a comment toolbar */}
             {children}
           </div>)}
-      <div className={reply ? `${styles.reply}` : 'd-none'}>
-        <Form
-          initial={{
-            text: ''
-          }}
-          schema={commentSchema}
-          onSubmit={async (values, { resetForm }) => {
-            const { error } = await createComment({ variables: { ...values, parentId } })
-            if (error) {
-              throw new Error({ message: error.toString() })
-            }
-            resetForm({ text: '' })
-            setReply(replyOpen || false)
-          }}
-          storageKeyPrefix={'reply-' + parentId}
-        >
-          <MarkdownInput
-            name='text'
-            as={TextareaAutosize}
-            minRows={6}
-            autoFocus={!replyOpen}
-            required
-            placeholder={placeholder}
-            hint={me?.sats < 1 && <FreebieDialog />}
-            innerRef={replyInput}
-          />
-          {reply &&
-            <div className='mt-1'>
-              <FeeButton
-                baseFee={1} parentId={parentId} text='reply'
-                ChildButton={SubmitButton} variant='secondary' alwaysShow
-              />
-            </div>}
-        </Form>
-      </div>
+      {reply &&
+        <div className={styles.reply}>
+          <Form
+            initial={{
+              text: ''
+            }}
+            schema={commentSchema}
+            onSubmit={async (values, { resetForm }) => {
+              const { error } = await createComment({ variables: { ...values, parentId } })
+              if (error) {
+                throw new Error({ message: error.toString() })
+              }
+              resetForm({ text: '' })
+              setReply(replyOpen || false)
+            }}
+            storageKeyPrefix={'reply-' + parentId}
+          >
+            <MarkdownInput
+              name='text'
+              minRows={6}
+              autoFocus={!replyOpen}
+              required
+              placeholder={placeholder}
+              hint={me?.sats < 1 && <FreebieDialog />}
+              innerRef={replyInput}
+            />
+            {reply &&
+              <div className='mt-1'>
+                <FeeButton
+                  baseFee={1} parentId={parentId} text='reply'
+                  ChildButton={SubmitButton} variant='secondary' alwaysShow
+                />
+              </div>}
+          </Form>
+        </div>}
     </div>
   )
 }

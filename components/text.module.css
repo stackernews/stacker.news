@@ -15,6 +15,7 @@
     position: relative;
     margin-left: -22px;
     padding-left: 22px;
+    display: block;
 }
 
 .headingLink {
@@ -23,6 +24,7 @@
     left: 0px;
     top: 0px;
     height: 100%;
+    width: 44px;
 }
 
 .headingLink.copied {
@@ -41,7 +43,7 @@
     border-top: 1px solid var(--theme-clickToContextColor);
 }
 
-.text p {
+.text .p {
     margin-bottom: .5rem;
     white-space: pre-wrap;
     word-break: break-word;

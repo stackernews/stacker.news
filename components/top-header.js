@@ -1,8 +1,6 @@
 import { useRouter } from 'next/router'
 import { Form, Select } from './form'
-
-const USER_SORTS = ['stacked', 'spent', 'comments', 'posts', 'referrals']
-const ITEM_SORTS = ['votes', 'comments', 'sats']
+import { ITEM_SORTS, USER_SORTS, WHENS } from '../lib/constants'
 
 export default function TopHeader ({ sub, cat }) {
   const router = useRouter()
@@ -19,11 +17,11 @@ export default function TopHeader ({ sub, cat }) {
 
     const prefix = sub ? `/~${sub}` : ''
 
-    if (typeof query.sort !== 'undefined') {
-      if (query.sort === '' ||
-          (what === 'stackers' && !USER_SORTS.includes(query.sort)) ||
-          (what !== 'stackers' && !ITEM_SORTS.includes(query.sort))) {
-        delete query.sort
+    if (typeof query.by !== 'undefined') {
+      if (query.by === '' ||
+          (what === 'stackers' && !USER_SORTS.includes(query.by)) ||
+          (what !== 'stackers' && !ITEM_SORTS.includes(query.by))) {
+        delete query.by
       }
     }
 
@@ -39,7 +37,7 @@ export default function TopHeader ({ sub, cat }) {
         className='mr-auto'
         initial={{
           what: cat,
-          sort: router.query.sort || '',
+          by: router.query.by || '',
           when: router.query.when || ''
         }}
         onSubmit={top}
@@ -58,8 +56,8 @@ export default function TopHeader ({ sub, cat }) {
               by
               <Select
                 groupClassName='mx-2 mb-0'
-                onChange={(formik, e) => top({ ...formik?.values, sort: e.target.value })}
-                name='sort'
+                onChange={(formik, e) => top({ ...formik?.values, by: e.target.value })}
+                name='by'
                 size='sm'
                 items={cat === 'stackers' ? USER_SORTS : ITEM_SORTS}
               />
@@ -69,7 +67,7 @@ export default function TopHeader ({ sub, cat }) {
                 onChange={(formik, e) => top({ ...formik?.values, when: e.target.value })}
                 name='when'
                 size='sm'
-                items={['day', 'week', 'month', 'year', 'forever']}
+                items={WHENS}
               />
             </>}
 

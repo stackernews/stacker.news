@@ -1,33 +1,48 @@
 .type {
-    width: 1px;
-    white-space: nowrap;
+  text-align: left;
+  border-right: 2px solid var(--theme-clickToContextColor);
+  padding-right: 15px;
+  border-bottom: 2px solid var(--theme-clickToContextColor);
+  display: grid;
+  align-items: center;
+  margin-left: -15px;
+  padding-left: 15px;
 }
 
 .sats {
-    width: 1px;
-    white-space: nowrap;
-    text-align: right;
+  text-align: right;
+  border-left: 2px solid var(--theme-clickToContextColor);
+  padding-left: 15px;
+  border-bottom: 2px solid var(--theme-clickToContextColor);
+  display: grid;
+  align-items: center;
+  margin-right: -15px;
+  padding-right: 15px;
 }
 
-.sats>div {
-    display: flex;
-    align-items: center;
+.detail {
+  border-bottom: 2px solid var(--theme-clickToContextColor);
+  padding: .5rem;
+  display: grid;
+  align-items: center;
+}
+
+.detail.head {
+  text-align: center;
+}
+
+.head {
+  font-weight: bold;
+  text-transform: uppercase;
+  padding-bottom: .75rem;
 }
 
 .failed {
-    text-decoration: line-through;
+  text-decoration: line-through;
 }
 
-.row {
-    cursor: pointer;
+.rows {
+  display: grid;
+  grid-template-columns: max-content 1fr max-content;
 }
 
-.itemWrapper {
-    padding-top: .25rem;
-    margin-bottom: -.25rem;
-}
-
-.commentWrapper {
-    padding-top: .2rem;
-    padding-bottom: .4rem;
-}

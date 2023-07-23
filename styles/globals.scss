@@ -115,9 +115,9 @@ dl {
 }
 
 mark {
-  background-color: var(--primary
-  );
-padding: 0 0.2rem;
+  background-color: #fada5e5e;
+  padding: 0 0.2rem;
+  color: var(--theme-color);
 }
 
 .table-sm th,
@@ -482,7 +482,7 @@ div[contenteditable]:focus,
   fill: var(--theme-navLinkActive);
 }
 
-.fill-grey {
+.fill-grey, .fill-muted {
   fill: var(--theme-grey);
 }
 
@@ -516,6 +516,10 @@ div[contenteditable]:focus,
 
 .fill-theme-color {
   fill: var(--theme-color);
+}
+
+.fill-warning {
+  fill: var(--warning);
 }
 
 .text-underline {

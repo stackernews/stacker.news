@@ -1,4 +1,4 @@
-import { UserInputError } from 'apollo-server-micro'
+import { GraphQLError } from 'graphql'
 
 export default {
   Query: {
@@ -11,7 +11,7 @@ export default {
   Mutation: {
     createMessage: async (parent, { text }, { me, models }) => {
       if (!text) {
-        throw new UserInputError('Must have text', { argumentName: 'text' })
+        throw new GraphQLError('Must have text', { extensions: { code: 'BAD_INPUT' } })
       }
 
       return await models.message.create({

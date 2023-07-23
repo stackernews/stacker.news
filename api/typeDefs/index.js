@@ -1,4 +1,4 @@
-import { gql } from 'apollo-server-micro'
+import { gql } from 'graphql-tag'
 
 import user from './user'
 import message from './message'

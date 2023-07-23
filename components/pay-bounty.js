@@ -2,7 +2,6 @@ import React from 'react'
 import { Button } from 'react-bootstrap'
 import styles from './pay-bounty.module.css'
 import ActionTooltip from './action-tooltip'
-import ModalButton from './modal-button'
 import { useMutation, gql } from '@apollo/client'
 import { useMe } from './me'
 import { abbrNum } from '../lib/format'
@@ -61,7 +60,7 @@ export default function PayBounty ({ children, item }) {
     }
   )
 
-  const handlePayBounty = async () => {
+  const handlePayBounty = async onComplete => {
     try {
       await act({
         variables: { id: item.id, sats: root.bounty },
@@ -72,6 +71,7 @@ export default function PayBounty ({ children, item }) {
           }
         }
       })
+      onComplete()
     } catch (error) {
       if (error.toString().includes('insufficient funds')) {
         showModal(onClose => {
@@ -92,22 +92,24 @@ export default function PayBounty ({ children, item }) {
       notForm
       overlayText={`${root.bounty} sats`}
     >
-      <ModalButton
-        clicker={
-          <div className={styles.pay}>
-            pay bounty
-          </div>
-        }
+      <div
+        className={styles.pay} onClick={() => {
+          showModal(onClose => (
+            <>
+              <div className='text-center font-weight-bold text-muted'>
+                Pay this bounty to {item.user.name}?
+              </div>
+              <div className='text-center'>
+                <Button className='mt-4' variant='primary' onClick={() => handlePayBounty(onClose)}>
+                  pay <small>{abbrNum(root.bounty)} sats</small>
+                </Button>
+              </div>
+            </>
+          ))
+        }}
       >
-        <div className='text-center font-weight-bold text-muted'>
-          Pay this bounty to {item.user.name}?
-        </div>
-        <div className='text-center'>
-          <Button className='mt-4' variant='primary' onClick={() => handlePayBounty()}>
-            pay <small>{abbrNum(root.bounty)} sats</small>
-          </Button>
-        </div>
-      </ModalButton>
+        pay bounty
+      </div>
     </ActionTooltip>
   )
 }

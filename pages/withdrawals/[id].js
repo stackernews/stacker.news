@@ -1,5 +1,5 @@
 import { useQuery } from '@apollo/client'
-import LayoutCenter from '../../components/layout-center'
+import { CenterLayout } from '../../components/layout'
 import { CopyInput, Input, InputSkeleton } from '../../components/form'
 import InputGroup from 'react-bootstrap/InputGroup'
 import InvoiceStatus from '../../components/invoice-status'
@@ -9,9 +9,9 @@ import Link from 'next/link'
 
 export default function Withdrawl () {
   return (
-    <LayoutCenter>
+    <CenterLayout>
       <LoadWithdrawl />
-    </LayoutCenter>
+    </CenterLayout>
   )
 }
 
@@ -33,7 +33,8 @@ function LoadWithdrawl () {
   const router = useRouter()
   const { loading, error, data } = useQuery(WITHDRAWL, {
     variables: { id: router.query.id },
-    pollInterval: 1000
+    pollInterval: 1000,
+    nextFetchPolicy: 'cache-and-network'
   })
   if (error) return <div>error</div>
   if (!data || loading) {
@@ -41,8 +42,8 @@ function LoadWithdrawl () {
   }
 
   const TryMaxFee = () =>
-    <Link href='/wallet?type=withdraw' passHref>
-      <a className='text-reset text-underline'><small className='ml-3'>try increasing max fee</small></a>
+    <Link href='/wallet?type=withdraw' className='text-reset text-underline'>
+      <small className='ml-3'>try increasing max fee</small>
     </Link>
 
   let status = 'pending'

@@ -1,5 +1,6 @@
 import { useRouter } from 'next/router'
 import { Form, Select } from './form'
+import { WHENS } from '../lib/constants'
 
 export function UsageHeader () {
   const router = useRouter()
@@ -17,7 +18,7 @@ export function UsageHeader () {
           className='w-auto'
           name='when'
           size='sm'
-          items={['day', 'week', 'month', 'year', 'forever']}
+          items={WHENS}
           onChange={(formik, e) => router.push(`/stackers/${e.target.value}`)}
         />
       </div>

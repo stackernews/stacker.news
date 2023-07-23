@@ -1,6 +1,6 @@
 import { randomBytes } from 'crypto'
 import { bech32 } from 'bech32'
-import { AuthenticationError } from 'apollo-server-micro'
+import { GraphQLError } from 'graphql'
 
 function encodedUrl (iurl, tag, k1) {
   const url = new URL(iurl)
@@ -30,7 +30,7 @@ export default {
     },
     createWith: async (parent, args, { me, models }) => {
       if (!me) {
-        throw new AuthenticationError('you must be logged in')
+        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
       }
 
       return await models.lnWith.create({ data: { k1: k1(), userId: me.id } })

@@ -15,6 +15,7 @@ import { mdHas } from '../lib/md'
 import CloseIcon from '../svgs/close-line.svg'
 import { useLazyQuery } from '@apollo/client'
 import { USER_SEARCH } from '../fragments/users'
+import TextareaAutosize from 'react-textarea-autosize'
 
 export function SubmitButton ({
   children, variant, value, onClick, disabled, ...props
@@ -82,6 +83,9 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
   const [selectionRange, setSelectionRange] = useState({ start: 0, end: 0 })
   innerRef = innerRef || useRef(null)
 
+  props.as ||= TextareaAutosize
+  props.rows ||= props.minRows || 6
+
   useEffect(() => {
     !meta.value && setTab('write')
   }, [meta.value])
@@ -111,48 +115,53 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
             <Markdown width={18} height={18} />
           </a>
         </Nav>
-        <div className={tab !== 'write' ? 'd-none' : ''}>
-          <InputInner
-            {...props} onChange={(formik, e) => {
-              if (onChange) onChange(formik, e)
-              if (setHasImgLink) {
-                setHasImgLink(mdHas(e.target.value, ['link', 'image']))
-              }
-            }}
-            innerRef={innerRef}
-            onKeyDown={(e) => {
-              const metaOrCtrl = e.metaKey || e.ctrlKey
-              if (metaOrCtrl) {
-                if (e.key === 'k') {
-                  // some browsers use CTRL+K to focus search bar so we have to prevent that behavior
-                  e.preventDefault()
-                  insertMarkdownLinkFormatting(innerRef.current, helpers.setValue, setSelectionRange)
-                }
-                if (e.key === 'b') {
-                  // some browsers use CTRL+B to open bookmarks so we have to prevent that behavior
-                  e.preventDefault()
-                  insertMarkdownBoldFormatting(innerRef.current, helpers.setValue, setSelectionRange)
-                }
-                if (e.key === 'i') {
-                  // some browsers might use CTRL+I to do something else so prevent that behavior too
-                  e.preventDefault()
-                  insertMarkdownItalicFormatting(innerRef.current, helpers.setValue, setSelectionRange)
-                }
-                if (e.key === 'Tab' && e.altKey) {
-                  e.preventDefault()
-                  insertMarkdownTabFormatting(innerRef.current, helpers.setValue, setSelectionRange)
-                }
-              }
+        {tab === 'write'
+          ? (
+            <div>
+              <InputInner
+                {...props} onChange={(formik, e) => {
+                  if (onChange) onChange(formik, e)
+                  if (setHasImgLink) {
+                    setHasImgLink(mdHas(e.target.value, ['link', 'image']))
+                  }
+                }}
+                innerRef={innerRef}
+                onKeyDown={(e) => {
+                  const metaOrCtrl = e.metaKey || e.ctrlKey
+                  if (metaOrCtrl) {
+                    if (e.key === 'k') {
+                      // some browsers use CTRL+K to focus search bar so we have to prevent that behavior
+                      e.preventDefault()
+                      insertMarkdownLinkFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+                    }
+                    if (e.key === 'b') {
+                      // some browsers use CTRL+B to open bookmarks so we have to prevent that behavior
+                      e.preventDefault()
+                      insertMarkdownBoldFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+                    }
+                    if (e.key === 'i') {
+                      // some browsers might use CTRL+I to do something else so prevent that behavior too
+                      e.preventDefault()
+                      insertMarkdownItalicFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+                    }
+                    if (e.key === 'Tab' && e.altKey) {
+                      e.preventDefault()
+                      insertMarkdownTabFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+                    }
+                  }
 
-              if (onKeyDown) onKeyDown(e)
-            }}
-          />
-        </div>
-        <div className={tab !== 'preview' ? 'd-none' : 'form-group'}>
-          <div className={`${styles.text} form-control`}>
-            {tab === 'preview' && <Text topLevel={topLevel} noFragments onlyImgProxy={false}>{meta.value}</Text>}
-          </div>
-        </div>
+                  if (onKeyDown) onKeyDown(e)
+                }}
+              />
+            </div>)
+          : (
+            <div className='form-group'>
+              <div className={`${styles.text} form-control`}>
+                <Text topLevel={topLevel} noFragments onlyImgProxy={false}>{meta.value}</Text>
+              </div>
+            </div>
+            )}
+
       </div>
     </FormGroup>
   )
@@ -300,7 +309,6 @@ function InputInner ({
 
 export function InputUserSuggest ({ label, groupClassName, ...props }) {
   const [getSuggestions] = useLazyQuery(USER_SEARCH, {
-    fetchPolicy: 'network-only',
     onCompleted: data => {
       setSuggestions({ array: data.searchUsers, index: 0 })
     }
@@ -476,10 +484,17 @@ export function Form ({
   )
 }
 
-export function Select ({ label, items, groupClassName, onChange, noForm, ...props }) {
-  const [field, meta] = noForm ? [{}, {}] : useField(props)
+export function Select ({ label, items, groupClassName, onChange, noForm, overrideValue, ...props }) {
+  const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)
   const formik = noForm ? null : useFormikContext()
   const invalid = meta.touched && meta.error
+
+  useEffect(() => {
+    if (overrideValue) {
+      helpers.setValue(overrideValue)
+    }
+  }, [overrideValue])
+
   return (
     <FormGroup label={label} className={groupClassName}>
       <BootstrapForm.Control

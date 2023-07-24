@@ -3,7 +3,9 @@ import Nav from 'react-bootstrap/Nav'
 import Link from 'next/link'
 import styles from './header.module.css'
 import { useRouter } from 'next/router'
-import { Button, Container, NavDropdown } from 'react-bootstrap'
+import Button from 'react-bootstrap/Button'
+import Container from 'react-bootstrap/Container'
+import NavDropdown from 'react-bootstrap/NavDropdown'
 import Price from './price'
 import { useMe } from './me'
 import Head from 'next/head'
@@ -37,7 +39,7 @@ function Back () {
   }, [router.asPath])
 
   if (show) {
-    return <a role='button' tabIndex='0' className='nav-link standalone p-0' onClick={() => router.back()}><BackArrow className='theme mr-1 mr-md-2' width={22} height={22} /></a>
+    return <a role='button' tabIndex='0' className='nav-link standalone p-0' onClick={() => router.back()}><BackArrow className='theme me-1 me-md-2' width={22} height={22} /></a>
   }
   return null
 }
@@ -54,8 +56,8 @@ function NotificationBell () {
         <link rel='shortcut icon' href={data?.hasNewNotes ? '/favicon-notify.png' : '/favicon.png'} />
       </Head>
       <Link href='/notifications' passHref legacyBehavior>
-        <Nav.Link eventKey='notifications' className='pl-0 position-relative'>
-          <NoteIcon height={22} width={22} className='theme' />
+        <Nav.Link eventKey='notifications' className='ps-0 position-relative'>
+          <NoteIcon height={22} width={22} className='theme' style={{ marginTop: '-4px' }} />
           {data?.hasNewNotes &&
             <span className={styles.notification}>
               <span className='invisible'>{' '}</span>
@@ -70,23 +72,23 @@ function StackerCorner ({ dropNavKey }) {
   const me = useMe()
 
   return (
-    <div className='d-flex align-items-center ml-auto'>
+    <div className='d-flex ms-auto'>
       <NotificationBell />
       <div className='position-relative'>
         <NavDropdown
           className={styles.dropdown}
           title={
-            <Nav.Link eventKey={me.name} as='span' className='p-0 d-flex align-items-center' onClick={e => e.preventDefault()}>
+            <Nav.Link eventKey={me.name} as='span' className='p-0' onClick={e => e.preventDefault()}>
               {`@${me.name}`}<CowboyHat user={me} />
             </Nav.Link>
           }
-          alignRight
+          align='end'
         >
           <Link href={'/' + me.name} passHref legacyBehavior>
             <NavDropdown.Item active={me.name === dropNavKey}>
               profile
               {me && !me.bioId &&
-                <div className='p-1 d-inline-block bg-secondary ml-1'>
+                <div className='p-1 d-inline-block bg-secondary ms-1'>
                   <span className='invisible'>{' '}</span>
                 </div>}
             </NavDropdown.Item>
@@ -147,9 +149,9 @@ function LurkerCorner ({ path }) {
   }), [router])
 
   return path !== '/login' && path !== '/signup' && !path.startsWith('/invites') &&
-    <div className='ml-auto'>
+    <div className='ms-auto'>
       <Button
-        className='align-items-center px-3 py-1 mr-2'
+        className='align-items-center px-3 py-1 me-2'
         id='signup'
         style={{ borderWidth: '2px' }}
         variant='outline-grey-darkmode'
@@ -158,7 +160,7 @@ function LurkerCorner ({ path }) {
         login
       </Button>
       <Button
-        className='align-items-center pl-2 py-1 pr-3'
+        className='align-items-center ps-2 py-1 pe-3'
         style={{ borderWidth: '2px' }}
         id='login'
         onClick={() => handleLogin('/signup')}
@@ -166,7 +168,7 @@ function LurkerCorner ({ path }) {
         <LightningIcon
           width={17}
           height={17}
-          className='mr-1'
+          className='me-1'
         />sign up
       </Button>
     </div>
@@ -232,7 +234,7 @@ export default function Header ({ sub }) {
   const me = useMe()
 
   return (
-    <Container as='header' className='px-0'>
+    <Container as='header'>
       <Navbar className='pb-0 pb-lg-2'>
         <Nav
           className={styles.navbarNav}
@@ -249,11 +251,11 @@ export default function Header ({ sub }) {
           <NavItems className='d-none d-lg-flex mx-2' prefix={prefix} sub={sub} />
           <PostItem className='d-none d-lg-flex mx-2' prefix={prefix} />
           <Link href={prefix + '/search'} passHref legacyBehavior>
-            <Nav.Link eventKey='search' className='position-relative d-none d-lg-flex align-items-center pr-0 ml-2'>
+            <Nav.Link eventKey='search' className='position-relative d-none d-lg-flex align-items-center pe-0 ms-2'>
               <SearchIcon className='theme' width={22} height={22} />
             </Nav.Link>
           </Link>
-          <Nav.Item className={`${styles.price} ml-auto align-items-center ${me?.name.length > 10 ? 'd-none d-lg-flex' : ''}`}>
+          <Nav.Item className={`${styles.price} ms-auto align-items-center ${me?.name.length > 10 ? 'd-none d-lg-flex' : ''}`}>
             <Price className='nav-link text-monospace' />
           </Nav.Item>
           {me ? <StackerCorner dropNavKey={dropNavKey} /> : <LurkerCorner path={path} />}
@@ -264,13 +266,13 @@ export default function Header ({ sub }) {
           className={`${styles.navbarNav}`}
           activeKey={topNavKey}
         >
-          <NavItems className='mr-1' prefix={prefix} sub={sub} />
+          <NavItems className='me-1' prefix={prefix} sub={sub} />
           <Link href={prefix + '/search'} passHref legacyBehavior>
-            <Nav.Link eventKey='search' className='position-relative ml-auto d-flex mr-1'>
+            <Nav.Link eventKey='search' className='position-relative ms-auto d-flex me-1'>
               <SearchIcon className='theme' width={22} height={22} />
             </Nav.Link>
           </Link>
-          <PostItem className='mr-0 pr-0' prefix={prefix} />
+          <PostItem className='me-0' prefix={prefix} />
         </Nav>
       </Navbar>
     </Container>

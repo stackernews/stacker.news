@@ -1,4 +1,4 @@
-import { Table } from 'react-bootstrap'
+import Table from 'react-bootstrap/Table'
 import ActionTooltip from './action-tooltip'
 import Info from './info'
 import styles from './fee-button.module.css'
@@ -31,7 +31,7 @@ function Receipt ({ cost, repetition, hasImgLink, baseFee, parentId, boost }) {
       </tbody>
       <tfoot>
         <tr>
-          <td className='font-weight-bold'>{cost} sats</td>
+          <td className='fw-bold'>{cost} sats</td>
           <td align='right' className='font-weight-light'>total fee</td>
         </tr>
       </tfoot>
@@ -90,7 +90,7 @@ function EditReceipt ({ cost, paidSats, addImgLink, boost, parentId }) {
       </tbody>
       <tfoot>
         <tr>
-          <td className='font-weight-bold'>{cost} sats</td>
+          <td className='fw-bold'>{cost} sats</td>
           <td align='right' className='font-weight-light'>total fee</td>
         </tr>
       </tfoot>

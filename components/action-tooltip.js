@@ -1,5 +1,6 @@
 import { useFormikContext } from 'formik'
-import { OverlayTrigger, Tooltip } from 'react-bootstrap'
+import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
+import Tooltip from 'react-bootstrap/Tooltip'
 
 export default function ActionTooltip ({ children, notForm, disable, overlayText, placement }) {
   // if we're in a form, we want to hide tooltip on submit
@@ -21,7 +22,9 @@ export default function ActionTooltip ({ children, notForm, disable, overlayText
       trigger={['hover', 'focus']}
       show={formik?.isSubmitting ? false : undefined}
     >
-      {children}
+      <span>
+        {children}
+      </span>
     </OverlayTrigger>
   )
 }

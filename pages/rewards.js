@@ -1,6 +1,7 @@
 import { gql } from 'graphql-tag'
 import { useEffect, useState } from 'react'
-import { Button, InputGroup } from 'react-bootstrap'
+import Button from 'react-bootstrap/Button'
+import InputGroup from 'react-bootstrap/InputGroup'
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 import { getGetServerSideProps } from '../api/ssrApollo'
 import { Form, Input, SubmitButton } from '../components/form'
@@ -68,7 +69,7 @@ export default function Rewards ({ ssrData }) {
 
   return (
     <CenterLayout footerLinks>
-      <h4 className='font-weight-bold text-muted text-center'>
+      <h4 className='fw-bold text-muted text-center'>
         <div>
           <RewardLine total={total} />
         </div>
@@ -85,11 +86,11 @@ export default function Rewards ({ ssrData }) {
 }
 
 const COLORS = [
-  'var(--secondary)',
-  'var(--info)',
-  'var(--success)',
-  'var(--boost)',
-  'var(--grey)'
+  'var(--bs-secondary)',
+  'var(--bs-info)',
+  'var(--bs-success)',
+  'var(--bs-boost)',
+  'var(--bs-grey)'
 ]
 
 function GrowthPieChart ({ data }) {
@@ -103,7 +104,7 @@ function GrowthPieChart ({ data }) {
           cx='50%'
           cy='50%'
           outerRadius={80}
-          fill='var(--secondary)'
+          fill='var(--bs-secondary)'
           label
         >
           {
@@ -151,7 +152,7 @@ export function DonateButton () {
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
           />
           <div className='d-flex'>
-            <SubmitButton variant='success' className='ml-auto mt-1 px-4' value='TIP'>donate</SubmitButton>
+            <SubmitButton variant='success' className='ms-auto mt-1 px-4' value='TIP'>donate</SubmitButton>
           </div>
         </Form>
       ))}

@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
-import { Badge, Dropdown } from 'react-bootstrap'
+import Badge from 'react-bootstrap/Badge'
+import Dropdown from 'react-bootstrap/Dropdown'
 import Countdown from './countdown'
 import { abbrNum } from '../lib/format'
 import { newComments } from '../lib/new-comments'
@@ -43,12 +44,12 @@ export default function ItemInfo ({ item, pendingSats, full, commentsText, class
         </>}
       <Link href={`/items/${item.id}`} title={`${item.commentSats} sats`} className='text-reset'>
         {item.ncomments} {commentsText || 'comments'}
-        {hasNewComments && <>{' '}<Badge className={styles.newComment} variant={null}>new</Badge></>}
+        {hasNewComments && <>{' '}<Badge className={styles.newComment} bg={null}>new</Badge></>}
       </Link>
       <span> \ </span>
       <span>
-        <Link href={`/${item.user.name}`} className='d-inline-flex align-items-center'>
-          @{item.user.name}<CowboyHat className='ml-1 fill-grey' user={item.user} height={12} width={12} />
+        <Link href={`/${item.user.name}`}>
+          @{item.user.name}<CowboyHat className='ms-1 fill-grey' user={item.user} height={12} width={12} />
           {embellishUser}
         </Link>
         <span> </span>
@@ -65,15 +66,15 @@ export default function ItemInfo ({ item, pendingSats, full, commentsText, class
       </span>
       {item.subName &&
         <Link href={`/~${item.subName}`}>
-          {' '}<Badge className={styles.newComment} variant={null}>{item.subName}</Badge>
+          {' '}<Badge className={styles.newComment} bg={null}>{item.subName}</Badge>
         </Link>}
       {(item.outlawed && !item.mine &&
         <Link href='/recent/outlawed'>
-          {' '}<Badge className={styles.newComment} variant={null}>outlawed</Badge>
+          {' '}<Badge className={styles.newComment} bg={null}>outlawed</Badge>
         </Link>) ||
         (item.freebie &&
           <Link href='/recent/freebies'>
-            {' '}<Badge className={styles.newComment} variant={null}>freebie</Badge>
+            {' '}<Badge className={styles.newComment} bg={null}>freebie</Badge>
           </Link>
         )}
       {canEdit && !item.deletedAt &&
@@ -112,9 +113,9 @@ export default function ItemInfo ({ item, pendingSats, full, commentsText, class
 
 export function ItemDropdown ({ children }) {
   return (
-    <Dropdown className='pointer' as='span'>
-      <Dropdown.Toggle variant='success' id='dropdown-basic' as='a'>
-        <MoreIcon className='fill-grey ml-1' height={16} width={16} />
+    <Dropdown className={`pointer ${styles.dropdown}`} as='span'>
+      <Dropdown.Toggle variant='success' as='a'>
+        <MoreIcon className='fill-grey ms-1' height={16} width={16} />
       </Dropdown.Toggle>
       <Dropdown.Menu>
         {children}

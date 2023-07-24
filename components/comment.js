@@ -18,7 +18,7 @@ import Flag from '../svgs/flag-fill.svg'
 import { abbrNum } from '../lib/format'
 import Share from './share'
 import ItemInfo from './item-info'
-import { Badge } from 'react-bootstrap'
+import Badge from 'react-bootstrap/Badge'
 import { RootProvider, useRoot } from './root'
 import { useMe } from './me'
 
@@ -43,7 +43,7 @@ function Parent ({ item, rootText }) {
       </Link>
       {root.subName &&
         <Link href={`/~${root.subName}`}>
-          {' '}<Badge className={itemStyles.newComment} variant={null}>{root.subName}</Badge>
+          {' '}<Badge className={itemStyles.newComment} bg={null}>{root.subName}</Badge>
         </Link>}
     </>
   )
@@ -143,7 +143,7 @@ export default function Comment ({
               pendingSats={pendingSats}
               commentsText='replies'
               className={`${itemStyles.other} ${styles.other}`}
-              embellishUser={op && <span className='text-boost font-weight-bold ml-1'>OP</span>}
+              embellishUser={op && <Badge bg='boost' className={`ms-1 ${styles.op} bg-opacity-75`}>OP</Badge>}
               extraInfo={
                 <>
                   {includeParent && <Parent item={item} rootText={rootText} />}
@@ -170,7 +170,7 @@ export default function Comment ({
                   }}
                 />)}
             {topLevel && (
-              <span className='d-flex ml-auto align-items-center'>
+              <span className='d-flex ms-auto align-items-center'>
                 <Share item={item} />
               </span>
             )}
@@ -203,7 +203,7 @@ export default function Comment ({
                   {root.bounty && !bountyPaid && <PayBounty item={item} />}
                 </Reply>}
               {children}
-              <div className={`${styles.comments} ml-sm-1 ml-md-3`}>
+              <div className={`${styles.comments} ms-sm-1 ms-md-3`}>
                 {item.comments && !noComments
                   ? item.comments.map((item) => (
                     <Comment depth={depth + 1} key={item.id} item={item} />
@@ -220,7 +220,7 @@ export default function Comment ({
 function DepthLimit ({ item }) {
   if (item.ncomments > 0) {
     return (
-      <Link href={`/items/${item.id}`} className='d-block p-3 font-weight-bold text-muted w-100 text-center'>
+      <Link href={`/items/${item.id}`} className='d-block p-3 fw-bold text-muted w-100 text-center'>
         view replies
       </Link>
     )
@@ -252,7 +252,7 @@ export function CommentSkeleton ({ skeletonChildren }) {
         <div className={styles.replyPadder}>
           <div className={`${itemStyles.other} ${styles.reply} clouds`} />
         </div>
-        <div className={`${styles.comments} ml-sm-1 ml-md-3`}>
+        <div className={`${styles.comments} ms-sm-1 ms-md-3`}>
           {skeletonChildren
             ? <CommentSkeleton skeletonChildren={skeletonChildren - 1} />
             : null}

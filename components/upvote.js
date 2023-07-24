@@ -8,14 +8,15 @@ import { useMe } from './me'
 import Rainbow from '../lib/rainbow'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import LongPressable from 'react-longpressable'
-import { Overlay, Popover } from 'react-bootstrap'
+import Overlay from 'react-bootstrap/Overlay'
+import Popover from 'react-bootstrap/Popover'
 import { useShowModal } from './modal'
 import { useRouter } from 'next/router'
 import { LightningConsumer } from './lightning'
 
 const getColor = (meSats) => {
   if (!meSats || meSats <= 10) {
-    return 'var(--secondary)'
+    return 'var(--bs-secondary)'
   }
 
   const idx = Math.min(
@@ -33,13 +34,13 @@ const UpvotePopover = ({ target, show, handleClose }) => {
       placement='right'
     >
       <Popover id='popover-basic'>
-        <Popover.Title className='d-flex justify-content-between alert-dismissible' as='h3'>Zapping
+        <Popover.Body className='d-flex justify-content-between alert-dismissible' as='h3'>Zapping
           <button type='button' className='close' onClick={handleClose}><span aria-hidden='true'>×</span><span className='sr-only'>Close alert</span></button>
-        </Popover.Title>
-        <Popover.Content>
+        </Popover.Body>
+        <Popover.Body>
           <div className='mb-2'>Press the bolt again to zap {me?.tipDefault || 1} more sat{me?.tipDefault > 1 ? 's' : ''}.</div>
           <div>Repeatedly press the bolt to zap more sats.</div>
-        </Popover.Content>
+        </Popover.Body>
       </Popover>
     </Overlay>
   )
@@ -52,13 +53,13 @@ const TipPopover = ({ target, show, handleClose }) => (
     placement='right'
   >
     <Popover id='popover-basic'>
-      <Popover.Title className='d-flex justify-content-between alert-dismissible' as='h3'>Press and hold
+      <Popover.Body className='d-flex justify-content-between alert-dismissible' as='h3'>Press and hold
         <button type='button' className='close' onClick={handleClose}><span aria-hidden='true'>×</span><span className='sr-only'>Close alert</span></button>
-      </Popover.Title>
-      <Popover.Content>
+      </Popover.Body>
+      <Popover.Body>
         <div className='mb-2'>Press and hold bolt to zap a custom amount.</div>
         <div>As you zap more, the bolt color follows the rainbow.</div>
-      </Popover.Content>
+      </Popover.Body>
     </Popover>
   </Overlay>
 )

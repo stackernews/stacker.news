@@ -1,7 +1,7 @@
 .pollButton {
     margin-top: .25rem;
     display: block;
-    border: 2px solid var(--info);
+    border: 2px solid var(--bs-info);
     border-radius: 2rem;
     width: 100%;
     max-width: 600px;

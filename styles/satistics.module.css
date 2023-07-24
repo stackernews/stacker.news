@@ -18,6 +18,7 @@
   align-items: center;
   margin-right: -15px;
   padding-right: 15px;
+  font-family: monospace;
 }
 
 .detail {
@@ -29,6 +30,10 @@
 
 .detail.head {
   text-align: center;
+}
+
+.sats.head {
+  font-family: inherit;
 }
 
 .head {

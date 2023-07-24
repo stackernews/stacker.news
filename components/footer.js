@@ -1,4 +1,6 @@
-import { Container, OverlayTrigger, Popover } from 'react-bootstrap'
+import Container from 'react-bootstrap/Container'
+import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
+import Popover from 'react-bootstrap/Popover'
 import { CopyInput } from './form'
 import styles from './footer.module.css'
 import Texas from '../svgs/texas.svg'
@@ -15,7 +17,7 @@ import useDarkMode from './dark-mode'
 
 const RssPopover = (
   <Popover>
-    <Popover.Content style={{ fontWeight: 500, fontSize: '.9rem' }}>
+    <Popover.Body style={{ fontWeight: 500, fontSize: '.9rem' }}>
       <div className='d-flex justify-content-center'>
         <a href='/rss' className='nav-link p-0 d-inline-flex'>
           home
@@ -38,13 +40,13 @@ const RssPopover = (
           jobs
         </a>
       </div>
-    </Popover.Content>
+    </Popover.Body>
   </Popover>
 )
 
 const SocialsPopover = (
   <Popover>
-    <Popover.Content style={{ fontWeight: 500, fontSize: '.9rem' }}>
+    <Popover.Body style={{ fontWeight: 500, fontSize: '.9rem' }}>
       <a
         href='https://snort.social/p/npub1jfujw6llhq7wuvu5detycdsq5v5yqf56sgrdq8wlgrryx2a2p09svwm0gx' className='nav-link p-0 d-inline-flex'
         target='_blank' rel='noreferrer'
@@ -72,13 +74,13 @@ const SocialsPopover = (
       >
         pod
       </a>
-    </Popover.Content>
+    </Popover.Body>
   </Popover>
 )
 
 const ChatPopover = (
   <Popover>
-    <Popover.Content style={{ fontWeight: 500, fontSize: '.9rem' }}>
+    <Popover.Body style={{ fontWeight: 500, fontSize: '.9rem' }}>
       <a
         href='https://tribes.sphinx.chat/t/stackerzchat' className='nav-link p-0 d-inline-flex'
         target='_blank' rel='noreferrer'
@@ -99,13 +101,13 @@ const ChatPopover = (
       >
         simplex
       </a>
-    </Popover.Content>
+    </Popover.Body>
   </Popover>
 )
 
 const AnalyticsPopover = (
   <Popover>
-    <Popover.Content style={{ fontWeight: 500, fontSize: '.9rem' }}>
+    <Popover.Body style={{ fontWeight: 500, fontSize: '.9rem' }}>
       <a
         href='https://plausible.io/stacker.news' className='nav-link p-0 d-inline-flex'
         target='_blank' rel='noreferrer'
@@ -116,7 +118,7 @@ const AnalyticsPopover = (
       <Link href='/stackers/day' className='nav-link p-0 d-inline-flex'>
         stackers
       </Link>
-    </Popover.Content>
+    </Popover.Body>
   </Popover>
 )
 
@@ -151,7 +153,7 @@ export default function Footer ({ links = true }) {
           <>
             <div className='mb-1'>
               <DarkModeIcon onClick={darkModeToggle} width={20} height={20} className='fill-grey theme' suppressHydrationWarning />
-              <LnIcon onClick={toggleLightning} width={20} height={20} className='ml-2 fill-grey theme' suppressHydrationWarning />
+              <LnIcon onClick={toggleLightning} width={20} height={20} className='ms-2 fill-grey theme' suppressHydrationWarning />
             </div>
             <div className='mb-0' style={{ fontWeight: 500 }}>
               <Rewards />
@@ -207,7 +209,7 @@ export default function Footer ({ links = true }) {
           <div
             className={`text-small mx-auto mb-2 ${styles.connect}`}
           >
-            <span className='nav-item text-muted mr-2'>connect:</span>
+            <span className='nav-item text-muted me-2'>connect:</span>
             <CopyInput
               size='sm'
               groupClassName='mb-0 w-100'
@@ -219,23 +221,23 @@ export default function Footer ({ links = true }) {
               href='https://amboss.space/node/03cc1d0932bb99b0697f5b5e5961b83ab7fd66f1efc4c9f5c7bad66c1bcbe78f02'
               target='_blank' rel='noreferrer'
             >
-              <Amboss className='ml-2 theme' width={20} height={20} />
+              <Amboss className='ms-2 theme' width={20} height={20} />
             </a>
           </div>}
         <small className='d-flex justify-content-center align-items-center text-muted flex-wrap'>
           <a className={`${styles.contrastLink} d-flex align-items-center`} href='https://github.com/stackernews/stacker.news' target='_blank' rel='noreferrer'>
             FOSS <Github width={20} height={20} className='mx-1' />
           </a>
-          made in Austin<Texas className='ml-1' width={20} height={20} />
-          <span className='ml-1'>by</span>
+          made in Austin<Texas className='ms-1' width={20} height={20} />
+          <span className='ms-1'>by</span>
           <span>
-            <Link href='/k00b' className='ml-1'>
+            <Link href='/k00b' className='ms-1'>
               @k00b
             </Link>
-            <Link href='/kr' className='ml-1'>
+            <Link href='/kr' className='ms-1'>
               @kr
             </Link>
-            <Link href='/ekzyis' className='ml-1'>
+            <Link href='/ekzyis' className='ms-1'>
               @ekzyis
             </Link>
           </span>

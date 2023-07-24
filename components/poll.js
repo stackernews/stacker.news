@@ -1,5 +1,5 @@
 import { gql, useMutation } from '@apollo/client'
-import { Button } from 'react-bootstrap'
+import Button from 'react-bootstrap/Button'
 import { fixedDecimal } from '../lib/format'
 import { timeLeft } from '../lib/time'
 import { useMe } from './me'
@@ -94,8 +94,8 @@ export default function Poll ({ item }) {
 function PollResult ({ v, progress }) {
   return (
     <div className={styles.pollResult}>
-      <span className={styles.pollOption}>{v.option}{v.meVoted && <Check className='fill-grey ml-1 align-self-center' width={18} height={18} />}</span>
-      <span className='ml-auto mr-2 align-self-center'>{progress}%</span>
+      <span className={styles.pollOption}>{v.option}{v.meVoted && <Check className='fill-grey ms-1 align-self-center' width={18} height={18} />}</span>
+      <span className='ms-auto me-2 align-self-center'>{progress}%</span>
       <div className={styles.pollProgress} style={{ width: `${progress}%` }} />
     </div>
   )

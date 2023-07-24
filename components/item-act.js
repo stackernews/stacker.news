@@ -1,4 +1,5 @@
-import { Button, InputGroup } from 'react-bootstrap'
+import Button from 'react-bootstrap/Button'
+import InputGroup from 'react-bootstrap/InputGroup'
 import React, { useState, useRef, useEffect } from 'react'
 import { Form, Input, SubmitButton } from './form'
 import { useMe } from './me'
@@ -12,12 +13,12 @@ const Tips = ({ setOValue }) => {
   return tips.map(num =>
     <Button
       size='sm'
-      className={`${num > 1 ? 'ml-2' : ''} mb-2`}
+      className={`${num > 1 ? 'ms-2' : ''} mb-2`}
       key={num}
       onClick={() => { setOValue(num) }}
     >
       <UpBolt
-        className='mr-1'
+        className='me-1'
         width={14}
         height={14}
       />{num}
@@ -77,7 +78,7 @@ export default function ItemAct ({ onClose, itemId, act, strike }) {
         <Tips setOValue={setOValue} />
       </div>
       <div className='d-flex'>
-        <SubmitButton variant='success' className='ml-auto mt-1 px-4' value='TIP'>zap</SubmitButton>
+        <SubmitButton variant='success' className='ms-auto mt-1 px-4' value='TIP'>zap</SubmitButton>
       </div>
     </Form>
   )

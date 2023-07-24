@@ -4,6 +4,7 @@
     max-width: 100%;
     display: inline-block;
     vertical-align: middle;
+    padding-bottom: .15rem;
 }
 
 .icon {
@@ -24,12 +25,15 @@ a.title:visited {
     overflow: hidden;
     text-overflow: ellipsis;
     flex: 1 0 128px;
+    padding-bottom: .15rem;
 }
 
 .newComment {
     color: var(--theme-grey) !important;
     background: var(--theme-clickToContextColor) !important;
     vertical-align: middle;
+    margin-top: -1px;
+    margin-left: 0.1rem;
 }
 
 .pin {
@@ -64,6 +68,16 @@ a.link:visited {
 .other {
     font-size: 80%;
     color: var(--theme-grey);
+    vertical-align: text-top;
+    margin-bottom: .125rem;
+}
+
+.other svg {
+    vertical-align: text-top;
+}
+
+.other .dropdown svg {
+    margin-top: -1px;
 }
 
 .item {

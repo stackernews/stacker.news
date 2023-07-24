@@ -1,6 +1,6 @@
 import JobForm from './job-form'
 import Link from 'next/link'
-import { Button } from 'react-bootstrap'
+import Button from 'react-bootstrap/Button'
 import AccordianItem from './accordian-item'
 import { useMe } from './me'
 import { useRouter } from 'next/router'
@@ -16,7 +16,7 @@ function FreebieDialog () {
     <div className='text-center mb-4 text-muted'>
       you have no sats, so this one is on us
       <Info>
-        <ul className='font-weight-bold'>
+        <ul className='fw-bold'>
           <li>Free posts have limited visibility and are hidden on the recent tab until other stackers zap them.</li>
           <li>Free posts will not cover posts that cost more than 1 sat.</li>
           <li>To get fully visibile and unrestricted posts right away, fund your account with a few sats or earn some on Stacker News.</li>
@@ -39,20 +39,20 @@ export function PostForm ({ type, sub, children }) {
         <Link href={prefix + '/post?type=link'}>
           <Button variant='secondary'>link</Button>
         </Link>
-        <span className='mx-3 font-weight-bold text-muted'>or</span>
+        <span className='mx-3 fw-bold text-muted'>or</span>
         <Link href={prefix + '/post?type=discussion'}>
           <Button variant='secondary'>discussion</Button>
         </Link>
         <div className='d-flex mt-4'>
           <AccordianItem
             headerColor='#6c757d'
-            header={<div className='font-weight-bold text-muted'>more types</div>}
+            header={<div className='fw-bold text-muted'>more types</div>}
             body={
               <div className='align-items-center'>
                 <Link href={prefix + '/post?type=poll'}>
                   <Button variant='info'>poll</Button>
                 </Link>
-                <span className='mx-3 font-weight-bold text-muted'>or</span>
+                <span className='mx-3 fw-bold text-muted'>or</span>
                 <Link href={prefix + '/post?type=bounty'}>
                   <Button variant='info'>bounty</Button>
                 </Link>

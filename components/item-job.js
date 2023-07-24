@@ -1,6 +1,8 @@
 import * as Yup from 'yup'
 import Toc from './table-of-contents'
-import { Badge, Button, Image } from 'react-bootstrap'
+import Badge from 'react-bootstrap/Badge'
+import Button from 'react-bootstrap/Button'
+import Image from 'react-bootstrap/Image'
 import { SearchTitle } from './item'
 import styles from './item.module.css'
 import Link from 'next/link'
@@ -28,7 +30,7 @@ export default function ItemJob ({ item, toc, rank, children }) {
         </Link>
         <div className={`${styles.hunk} align-self-center mb-0`}>
           <div className={`${styles.main} flex-wrap d-inline`}>
-            <Link href={`/items/${item.id}`} className={`${styles.title} text-reset mr-2`}>
+            <Link href={`/items/${item.id}`} className={`${styles.title} text-reset me-2`}>
               {item.searchTitle
                 ? <SearchTitle title={item.searchTitle} />
                 : (
@@ -49,7 +51,7 @@ export default function ItemJob ({ item, toc, rank, children }) {
             <span> \ </span>
             <span>
               <Link href={`/${item.user.name}`} className='d-inline-flex align-items-center'>
-                @{item.user.name}<CowboyHat className='ml-1 fill-grey' user={item.user} height={12} width={12} />
+                @{item.user.name}<CowboyHat className='ms-1 fill-grey' user={item.user} height={12} width={12} />
               </Link>
               <span> </span>
               <Link href={`/items/${item.id}`} title={item.createdAt} className='text-reset'>
@@ -64,9 +66,9 @@ export default function ItemJob ({ item, toc, rank, children }) {
                   <Link href={`/items/${item.id}/edit`} className='text-reset'>
                     edit
                   </Link>
-                  {item.status !== 'ACTIVE' && <span className='ml-1 font-weight-bold text-boost'> {item.status}</span>}
+                  {item.status !== 'ACTIVE' && <span className='ms-1 fw-bold text-boost'> {item.status}</span>}
                 </>)}
-            {item.maxBid > 0 && item.status === 'ACTIVE' && <Badge className={`${styles.newComment} ml-1`}>PROMOTED</Badge>}
+            {item.maxBid > 0 && item.status === 'ACTIVE' && <Badge className={`${styles.newComment} ms-1`}>PROMOTED</Badge>}
           </div>
         </div>
         {toc &&
@@ -81,9 +83,9 @@ export default function ItemJob ({ item, toc, rank, children }) {
             <Button
               target='_blank' href={isEmail ? `mailto:${item.url}?subject=${encodeURIComponent(item.title)} via Stacker News` : item.url}
             >
-              apply {isEmail && <EmailIcon className='ml-1' />}
+              apply {isEmail && <EmailIcon className='ms-1' />}
             </Button>
-            {isEmail && <div className='ml-3 align-self-center text-muted font-weight-bold'>{item.url}</div>}
+            {isEmail && <div className='ms-3 align-self-center text-muted fw-bold'>{item.url}</div>}
           </div>
           {children}
         </div>

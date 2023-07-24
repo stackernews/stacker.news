@@ -14,14 +14,16 @@ import ErrorBoundary from '../components/error-boundary'
 import { LightningProvider } from '../components/lightning'
 import { ServiceWorkerProvider } from '../components/serviceworker'
 
+const SSR = typeof window === 'undefined'
+
 function writeQuery (client, apollo, data) {
   if (apollo && data) {
     client.writeQuery({
       query: gql`${apollo.query}`,
       data: data,
       variables: apollo.variables,
-      broadcast: false,
-      overwrite: true
+      broadcast: !SSR,
+      overwrite: SSR
     })
   }
 }
@@ -54,7 +56,7 @@ function MyApp ({ Component, pageProps: { session, ...props } }) {
   */
   const { apollo, ssrData, me, price, ...otherProps } = props
   // if we are on the server, useEffect won't run
-  if (typeof window === 'undefined' && client) {
+  if (SSR && client) {
     writeQuery(client, apollo, ssrData)
   }
   useEffect(() => {
@@ -64,7 +66,7 @@ function MyApp ({ Component, pageProps: { session, ...props } }) {
   return (
     <>
       <NextNProgress
-        color='var(--primary)'
+        color='var(--bs-primary)'
         startPosition={0.3}
         stopDelayMs={200}
         height={2}

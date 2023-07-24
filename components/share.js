@@ -1,4 +1,4 @@
-import { Dropdown } from 'react-bootstrap'
+import Dropdown from 'react-bootstrap/Dropdown'
 import ShareIcon from '../svgs/share-fill.svg'
 import copy from 'clipboard-copy'
 import { useMe } from './me'
@@ -9,7 +9,7 @@ export default function Share ({ item }) {
 
   return typeof window !== 'undefined' && navigator?.share
     ? (
-      <div className='ml-auto pointer d-flex align-items-center'>
+      <div className='ms-auto pointer d-flex align-items-center'>
         <ShareIcon
           width={20} height={20}
           className='mx-2 fill-grey theme'
@@ -28,7 +28,7 @@ export default function Share ({ item }) {
         />
       </div>)
     : (
-      <Dropdown alignRight className='ml-auto pointer  d-flex align-items-center' as='span'>
+      <Dropdown align='end' className='ms-auto pointer  d-flex align-items-center' as='span'>
         <Dropdown.Toggle variant='success' id='dropdown-basic' as='a'>
           <ShareIcon width={20} height={20} className='mx-2 fill-grey theme' />
         </Dropdown.Toggle>

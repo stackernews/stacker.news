@@ -1,5 +1,7 @@
 import { Checkbox, Form, Input, SubmitButton, Select, VariableInput } from '../components/form'
-import { Alert, Button, InputGroup } from 'react-bootstrap'
+import Alert from 'react-bootstrap/Alert'
+import Button from 'react-bootstrap/Button'
+import InputGroup from 'react-bootstrap/InputGroup'
 import { CenterLayout } from '../components/layout'
 import { useState } from 'react'
 import { gql, useMutation, useQuery } from '@apollo/client'
@@ -113,7 +115,7 @@ export default function Settings ({ ssrData }) {
                 label={
                   <div className='d-flex align-items-center'>turbo zapping
                     <Info>
-                      <ul className='font-weight-bold'>
+                      <ul className='fw-bold'>
                         <li>Makes every additional bolt click raise your total zap to another 10x multiple of your default zap</li>
                         <li>e.g. if your zap default is 10 sats
                           <ul>
@@ -188,7 +190,7 @@ export default function Settings ({ ssrData }) {
             label={
               <div className='d-flex align-items-center'>hide invoice descriptions
                 <Info>
-                  <ul className='font-weight-bold'>
+                  <ul className='fw-bold'>
                     <li>Use this if you don't want funding sources to be linkable to your SN identity.</li>
                     <li>It makes your invoice descriptions blank.</li>
                     <li>This only applies to invoices you create
@@ -217,7 +219,7 @@ export default function Settings ({ ssrData }) {
             label={
               <div className='d-flex align-items-center'>wild west mode
                 <Info>
-                  <ul className='font-weight-bold'>
+                  <ul className='fw-bold'>
                     <li>don't hide flagged content</li>
                     <li>don't down rank flagged content</li>
                   </ul>
@@ -231,7 +233,7 @@ export default function Settings ({ ssrData }) {
             label={
               <div className='d-flex align-items-center'>greeter mode
                 <Info>
-                  <ul className='font-weight-bold'>
+                  <ul className='fw-bold'>
                     <li>see and screen free posts and comments</li>
                     <li>help onboard new stackers to SN and Lightning</li>
                     <li>you might be subject to more spam</li>
@@ -244,16 +246,16 @@ export default function Settings ({ ssrData }) {
           <AccordianItem
             headerColor='var(--theme-color)'
             show={settings?.nostrPubkey}
-            header={<h4 className='mb-2 text-left'>nostr <small><a href='https://github.com/nostr-protocol/nips/blob/master/05.md' target='_blank' rel='noreferrer'>NIP-05</a></small></h4>}
+            header={<h4 className='text-left'>nostr <small><a href='https://github.com/nostr-protocol/nips/blob/master/05.md' target='_blank' rel='noreferrer'>NIP-05</a></small></h4>}
             body={
               <>
                 <Input
-                  label={<>pubkey <small className='text-muted ml-2'>optional</small></>}
+                  label={<>pubkey <small className='text-muted ms-2'>optional</small></>}
                   name='nostrPubkey'
                   clear
                 />
                 <VariableInput
-                  label={<>relays <small className='text-muted ml-2'>optional</small></>}
+                  label={<>relays <small className='text-muted ms-2'>optional</small></>}
                   name='nostrRelays'
                   clear
                   min={0}
@@ -263,7 +265,7 @@ export default function Settings ({ ssrData }) {
               }
           />
           <div className='d-flex'>
-            <SubmitButton variant='info' className='ml-auto mt-1 px-4'>save</SubmitButton>
+            <SubmitButton variant='info' className='ms-auto mt-1 px-4'>save</SubmitButton>
           </div>
         </Form>
         <div className='text-left w-100'>
@@ -301,7 +303,7 @@ function UnlinkObstacle ({ onClose, type, unlinkAuth }) {
     <div>
       You are removing your last auth method. It is recommended you link another auth method before removing
       your last auth method. If you'd like to proceed anyway, type the following below
-      <div className='text-danger font-weight-bold my-2'>
+      <div className='text-danger fw-bold my-2'>
         If I logout, even accidentally, I will never be able to access my account again
       </div>
       <Form
@@ -320,7 +322,7 @@ function UnlinkObstacle ({ onClose, type, unlinkAuth }) {
           name='warning'
           required
         />
-        <SubmitButton className='d-flex ml-auto' variant='danger'>do it</SubmitButton>
+        <SubmitButton className='d-flex ms-auto' variant='danger'>do it</SubmitButton>
       </Form>
     </div>
   )
@@ -379,7 +381,7 @@ function AuthMethods ({ methods }) {
                   noForm
                 />
                 <Button
-                  className='ml-2' variant='secondary' onClick={
+                  className='ms-2' variant='secondary' onClick={
                     async () => {
                       await unlink('email')
                     }
@@ -448,7 +450,7 @@ export function EmailLinkForm ({ callbackUrl }) {
           required
           groupClassName='mb-0'
         />
-        <SubmitButton className='ml-2' variant='secondary'>Link Email</SubmitButton>
+        <SubmitButton className='ms-2' variant='secondary'>Link Email</SubmitButton>
       </div>
     </Form>
   )

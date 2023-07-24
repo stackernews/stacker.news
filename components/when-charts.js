@@ -42,12 +42,12 @@ const transformData = data => {
 }
 
 const COLORS = [
-  'var(--secondary)',
-  'var(--info)',
-  'var(--success)',
-  'var(--boost)',
+  'var(--bs-secondary)',
+  'var(--bs-info)',
+  'var(--bs-success)',
+  'var(--bs-boost)',
   'var(--theme-grey)',
-  'var(--danger)'
+  'var(--bs-danger)'
 ]
 
 export function WhenAreaChart ({ data }) {
@@ -150,7 +150,7 @@ export function WhenComposedChart ({ data, lineNames, areaNames, barNames }) {
         <Tooltip labelFormatter={dateFormatter(when)} contentStyle={{ color: 'var(--theme-color)', backgroundColor: 'var(--theme-body)' }} />
         <Legend />
         {barNames?.map((v, i) =>
-          <Bar yAxisId='right' key={v} type='monotone' dataKey={v} name={v} stroke='var(--info)' fill='var(--info)' />)}
+          <Bar yAxisId='right' key={v} type='monotone' dataKey={v} name={v} stroke='var(--bs-info)' fill='var(--bs-info)' />)}
         {areaNames?.map((v, i) =>
           <Area yAxisId='left' key={v} type='monotone' dataKey={v} name={v} stackId='1' stroke={COLORS[i]} fill={COLORS[i]} />)}
         {lineNames?.map((v, i) =>

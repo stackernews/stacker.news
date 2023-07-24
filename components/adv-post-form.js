@@ -1,6 +1,6 @@
 import AccordianItem from './accordian-item'
 import { Input, InputUserSuggest } from './form'
-import { InputGroup } from 'react-bootstrap'
+import InputGroup from 'react-bootstrap/InputGroup'
 import { BOOST_MIN } from '../lib/constants'
 import Info from './info'
 
@@ -21,7 +21,7 @@ export default function AdvPostForm ({ edit }) {
             label={
               <div className='d-flex align-items-center'>{edit ? 'add boost' : 'boost'}
                 <Info>
-                  <ol className='font-weight-bold'>
+                  <ol className='fw-bold'>
                     <li>Boost ranks posts higher temporarily based on the amount</li>
                     <li>The minimum boost is {BOOST_MIN} sats</li>
                     <li>Each {BOOST_MIN} sats of boost is equivalent to one trusted upvote

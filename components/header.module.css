@@ -5,7 +5,7 @@
     line-height: 100%;
     margin-bottom: -.3rem;
     margin-right: 0;
-    text-shadow: 0 0 10px var(--primary);
+    text-shadow: 0 0 10px var(--bs-primary);
     color: var(--theme-brandColor) !important;
 }
 
@@ -28,10 +28,14 @@
     fill: var(--theme-navLinkActive);
 }
 
+.dropdown svg {
+    vertical-align: text-top;
+}
+
 .jobIndicator {
     position: absolute;
     padding: .25rem;
-    background-color: var(--primary);
+    background-color: var(--bs-primary);
     top: 3px;
     right: 0px;
     border: 1px solid var(--theme-body);
@@ -40,8 +44,8 @@
 .notification {
     position: absolute;
     padding: .25rem;
-    background-color: var(--danger);
-    top: 3px;
+    background-color: var(--bs-danger);
+    top: 1px;
     right: 8px;
     border: 1px solid var(--theme-body);
 }

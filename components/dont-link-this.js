@@ -1,5 +1,5 @@
 import { gql, useMutation } from '@apollo/client'
-import { Dropdown } from 'react-bootstrap'
+import Dropdown from 'react-bootstrap/Dropdown'
 import FundError from './fund-error'
 import { useShowModal } from './modal'
 

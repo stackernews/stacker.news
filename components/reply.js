@@ -23,7 +23,7 @@ function FreebieDialog () {
     <div className='text-muted'>
       you have no sats, so this one is on us
       <Info>
-        <ul className='font-weight-bold'>
+        <ul className='fw-bold'>
           <li>Free comments have limited visibility and are listed at the bottom of the comment section until other stackers zap them.</li>
           <li>Free comments will not cover comments that cost more than 1 sat.</li>
           <li>To get fully visibile and unrestricted comments right away, fund your account with a few sats or earn some on Stacker News.</li>

@@ -35,7 +35,7 @@ export default function Referrals ({ ssrData }) {
   const { data } = useQuery(REFERRALS, { variables: { when: router.query.when } })
   if (!data && !ssrData) return <PageLoading />
 
-  const { referrals: { totalSats, totalReferrals, stats } } = data
+  const { referrals: { totalSats, totalReferrals, stats } } = data || ssrData
 
   return (
     <CenterLayout footerLinks>
@@ -44,10 +44,10 @@ export default function Referrals ({ ssrData }) {
           when: router.query.when
         }}
       >
-        <h4 className='font-weight-bold text-muted text-center pt-5 pb-3 d-flex align-items-center justify-content-center'>
+        <h4 className='fw-bold text-muted text-center pt-5 pb-3 d-flex align-items-center justify-content-center'>
           {totalReferrals} referrals & {totalSats} sats in the last
           <Select
-            groupClassName='mb-0 ml-2'
+            groupClassName='mb-0 ms-2'
             className='w-auto'
             name='when'
             size='sm'
@@ -61,7 +61,7 @@ export default function Referrals ({ ssrData }) {
       <div
         className='text-small pt-5 px-3 d-flex w-100 align-items-center'
       >
-        <div className='nav-item text-muted pr-2' style={{ 'white-space': 'nowrap' }}>referral link:</div>
+        <div className='nav-item text-muted pe-2' style={{ 'white-space': 'nowrap' }}>referral link:</div>
         <CopyInput
           size='sm'
           groupClassName='mb-0 w-100'

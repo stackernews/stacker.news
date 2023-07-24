@@ -9,7 +9,7 @@ import Item from './item'
 import AccordianItem from './accordian-item'
 import FeeButton, { EditFeeButton } from './fee-button'
 import Delete from './delete'
-import { Button } from 'react-bootstrap'
+import Button from 'react-bootstrap/Button'
 import { linkSchema } from '../lib/validate'
 import Moon from '../svgs/moon-fill.svg'
 import { SubSelectInitial } from './sub-select-form'
@@ -143,7 +143,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
         autoComplete='off'
         overrideValue={data?.pageTitleAndUnshorted?.unshorted}
         hint={editThreshold
-          ? <div className='text-muted font-weight-bold'><Countdown date={editThreshold} /></div>
+          ? <div className='text-muted fw-bold'><Countdown date={editThreshold} /></div>
           : null}
         onChange={async (formik, e) => {
           if ((/^ *$/).test(formik?.values.title)) {
@@ -191,9 +191,9 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
                 ChildButton={SubmitButton} variant='secondary'
               />
               {dupesLoading &&
-                <div className='d-flex ml-3 justify-content-center'>
+                <div className='d-flex ms-3 justify-content-center'>
                   <Moon className='spin fill-grey' />
-                  <div className='ml-2 text-muted' style={{ fontWeight: '600' }}>searching for dupes</div>
+                  <div className='ms-2 text-muted' style={{ fontWeight: '600' }}>searching for dupes</div>
                 </div>}
             </div>
             )}

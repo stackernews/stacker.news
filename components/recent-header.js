@@ -14,9 +14,9 @@ export default function RecentHeader ({ type, sub }) {
         type: router.query.type || type || 'posts'
       }}
     >
-      <div className='text-muted font-weight-bold mt-0 mb-3 d-flex justify-content-end align-items-center'>
+      <div className='text-muted fw-bold mt-0 mb-3 d-flex justify-content-end align-items-center'>
         <Select
-          groupClassName='mb-0 ml-2'
+          groupClassName='mb-0 ms-2'
           className='w-auto'
           name='type'
           size='sm'

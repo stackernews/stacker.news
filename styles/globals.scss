@@ -1,3 +1,13 @@
+$primary: #FADA5E;
+$secondary: #F6911D;
+$danger: #c03221;
+$info: #007cbe;
+$success: #5c8001;
+$twitter: #1da1f2;
+$boost: #8c25f4;
+$light: #f8f9fa;
+$dark: #212529;
+
 $theme-colors: (
   "primary" : #FADA5E,
   "secondary" : #F6911D,
@@ -6,9 +16,11 @@ $theme-colors: (
   "success" : #5c8001,
   "twitter" : #1da1f2,
   "boost" : #8c25f4,
+  "light": #f8f9fa,
+  "dark": #212529,
   "grey" : #e9ecef,
   "grey-medium" : #d2d2d2,
-  "grey-darkmode": #8c8c8c
+  "grey-darkmode": #8c8c8c,
 );
 
 $body-bg: #f5f5f7;
@@ -20,6 +32,7 @@ $btn-transition: none;
 $form-feedback-icon-valid: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='12' height='12'%3E%3Cpath fill='none' d='M0 0h24v24H0z'/%3E%3Cpath d='M2 9h3v12H2a1 1 0 0 1-1-1V10a1 1 0 0 1 1-1zm5.293-1.293l6.4-6.4a.5.5 0 0 1 .654-.047l.853.64a1.5 1.5 0 0 1 .553 1.57L14.6 8H21a2 2 0 0 1 2 2v2.104a2 2 0 0 1-.15.762l-3.095 7.515a1 1 0 0 1-.925.619H8a1 1 0 0 1-1-1V8.414a1 1 0 0 1 .293-.707z' fill='rgba(92, 128, 1, 1)'/%3E%3C/svg%3E");
 $form-feedback-icon-invalid: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='12' height='12'%3E%3Cpath fill='none' d='M0 0h24v24H0z'/%3E%3Cpath d='M22 15h-3V3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1zm-5.293 1.293l-6.4 6.4a.5.5 0 0 1-.654.047L8.8 22.1a1.5 1.5 0 0 1-.553-1.57L9.4 16H3a2 2 0 0 1-2-2v-2.104a2 2 0 0 1 .15-.762L4.246 3.62A1 1 0 0 1 5.17 3H16a1 1 0 0 1 1 1v11.586a1 1 0 0 1-.293.707z' fill='rgba(192,50,33,1)'/%3E%3C/svg%3E");
 $line-height-base: 1.75;
+$input-placeholder-color: #6c757d;
 $input-btn-padding-y: .42rem;
 $input-btn-padding-x: .84rem;
 $btn-padding-y: .42rem;
@@ -33,6 +46,7 @@ $close-text-shadow: none;
 $close-color: inherit;
 $alert-border-radius: #{33% 2%} / #{11% 74%};
 $link-color: #007cbe;
+$link-decoration: none;
 $font-size-base: .9rem;
 $enable-responsive-font-sizes: true;
 $link-hover-decoration: none;
@@ -42,6 +56,8 @@ $dropdown-link-hover-bg: transparent;
 $dropdown-link-active-bg: transparent;
 $dropdown-link-color: rgba(0, 0, 0, 0.7);
 $dropdown-link-hover-color: rgba(0, 0, 0, 0.9);
+$dropdown-item-padding-x: 1.5rem;
+$modal-inner-padding: 2rem;
 $container-max-widths: (
   sm: 540px,
   md: 720px,
@@ -51,9 +67,20 @@ $nav-link-padding-y: .1rem;
 $nav-tabs-link-active-bg: #fff;
 $nav-tabs-link-hover-border-color: transparent;
 $nav-tabs-link-active-border-color: #ced4da #ced4da $nav-tabs-link-active-bg;
+$form-check-input-checked-color: var(--bs-primary);
+$form-check-input-checked-bg-color: var(--bs-primary);
+$popover-bg: var(--theme-body);
+$form-check-input-checked-color: #000;
 $tooltip-bg: #5c8001;
+$form-select-indicator-color: #808080;
+$form-select-indicator: url("data:image/svg+xml, %3Csvg fill='#{$form-select-indicator-color}' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath  d='M12 15.0006L7.75732 10.758L9.17154 9.34375L12 12.1722L14.8284 9.34375L16.2426 10.758L12 15.0006Z'%3E%3C/path%3E%3C/svg%3E%0A");
+$form-select-bg-position: right .25rem center;
+$form-select-bg-size: 1.5rem;
+$popover-body-padding-y: .5rem;
+$popover-max-width: 320px !default;
+$popover-border-color: var(--theme-borderColor);
 
-@import "~bootstrap/scss/bootstrap";
+@import '../node_modules/bootstrap/scss/bootstrap.scss';
 
 @media screen and (min-width: 899px) {
 
@@ -135,8 +162,8 @@ mark {
   width: 100% !important;
 }
 
-.custom-checkbox.custom-control-inline {
-  margin-right: .5rem;
+.btn-twitter, .btn-twitter:hover, .btn-twitter:active {
+  color: #ffffff !important;
 }
 
 .table {
@@ -178,7 +205,7 @@ a:hover {
   border-bottom-color: var(--theme-inputBg);
 }
 
-select.custom-select,
+select,
 div[contenteditable],
 .form-control {
   background-color: var(--theme-inputBg);
@@ -186,26 +213,38 @@ div[contenteditable],
   border-color: var(--theme-borderColor);
 }
 
+.form-group {
+  margin-bottom: 1rem;
+}
 
-select.custom-select {
+
+select.form-select {
   background-color: var(--theme-clickToContextColor);
   color: var(--theme-dropdownItemColor);
   font-weight: bold;
   border: none;
-  background-image: url("data:image/svg+xml, %3Csvg fill='%23808080' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath  d='M12 15.0006L7.75732 10.758L9.17154 9.34375L12 12.1722L14.8284 9.34375L16.2426 10.758L12 15.0006Z'%3E%3C/path%3E%3C/svg%3E%0A");
-  background-repeat: no-repeat;
-  background-position: right .25rem center;
-  background-size: 1.5rem;
+  display: inline-block;
+  width: 100%;
+  height: calc(1.5em + 0.5rem + 2px);
+  padding: 0.25rem 1.84rem 0.25rem 0.5rem;
+  font-size: .7875rem;
+  vertical-align: middle;
+  border-radius: 0.4rem;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 
-select.custom-select option {
+select option {
   // fix dropdown items not visible in darkmode on some browsers
   color: initial;
 }
 
-select.custom-select:focus {
+select:focus {
   border-color: none !important;
   box-shadow: none !important;
+  outline: none !important;
 }
 
 
@@ -222,6 +261,7 @@ div[contenteditable]:disabled,
 .form-control[readonly] {
   background-color: var(--theme-inputDisabledBg);
   border-color: var(--theme-borderColor);
+  color: var(--theme-color);
   opacity: 1;
 }
 
@@ -296,7 +336,7 @@ div[contenteditable]:disabled,
 
 .dropdown-item.active {
   color: var(--theme-brandColor) !important;
-  text-shadow: 0 0 10px var(--primary);
+  text-shadow: 0 0 10px var(--bs-primary);
 }
 
 .dropdown-divider {
@@ -356,6 +396,12 @@ footer {
   .input-group-text {
     font-size: 1rem !important;
   }
+}
+
+.input-group-text {
+  background-color: var(--theme-clickToContextColor);
+  border-color: var(--theme-borderColor);
+  color: var(--theme-color);
 }
 
 textarea.form-control,
@@ -444,12 +490,12 @@ div[contenteditable] {
 
 
 .dropdown-item.active {
-  text-shadow: 0 0 10px var(--primary);
+  text-shadow: 0 0 10px var(--bs-primary);
 }
 
 div[contenteditable]:focus,
 .form-control:focus {
-  border-color: var(--primary);
+  border-color: var(--bs-primary);
 }
 
 .btn-secondary,
@@ -491,11 +537,11 @@ div[contenteditable]:focus,
 }
 
 .fill-secondary {
-  fill: var(--secondary);
+  fill: var(--bs-secondary);
 }
 
 .fill-boost {
-  fill: var(--boost);
+  fill: var(--bs-boost);
 }
 
 .fill-white {
@@ -503,15 +549,15 @@ div[contenteditable]:focus,
 }
 
 .fill-success {
-  fill: var(--success);
+  fill: var(--bs-success);
 }
 
 .fill-info {
-  fill: var(--info);
+  fill: var(--bs-info);
 }
 
 .fill-danger {
-  fill: var(--danger);
+  fill: var(--bs-danger);
 }
 
 .fill-theme-color {

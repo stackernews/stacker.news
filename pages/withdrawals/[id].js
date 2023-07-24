@@ -43,7 +43,7 @@ function LoadWithdrawl () {
 
   const TryMaxFee = () =>
     <Link href='/wallet?type=withdraw' className='text-reset text-underline'>
-      <small className='ml-3'>try increasing max fee</small>
+      <small className='ms-3'>try increasing max fee</small>
     </Link>
 
   let status = 'pending'
@@ -54,7 +54,7 @@ function LoadWithdrawl () {
       variant = 'confirmed'
       break
     case 'INSUFFICIENT_BALANCE':
-      status = <>insufficient balance <small className='ml-3'>contact keyan!</small></>
+      status = <>insufficient balance <small className='ms-3'>contact keyan!</small></>
       variant = 'failed'
       break
     case 'INVALID_PAYMENT':

@@ -6,7 +6,7 @@ import AdvPostForm, { AdvPostInitial } from './adv-post-form'
 import { MAX_POLL_NUM_CHOICES } from '../lib/constants'
 import FeeButton, { EditFeeButton } from './fee-button'
 import Delete from './delete'
-import { Button } from 'react-bootstrap'
+import Button from 'react-bootstrap/Button'
 import { pollSchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
@@ -71,7 +71,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
       />
       <MarkdownInput
         topLevel
-        label={<>text <small className='text-muted ml-2'>optional</small></>}
+        label={<>text <small className='text-muted ms-2'>optional</small></>}
         name='text'
         minRows={2}
       />
@@ -82,7 +82,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         max={MAX_POLL_NUM_CHOICES}
         min={2}
         hint={editThreshold
-          ? <div className='text-muted font-weight-bold'><Countdown date={editThreshold} /></div>
+          ? <div className='text-muted fw-bold'><Countdown date={editThreshold} /></div>
           : null}
       />
       <AdvPostForm edit={!!item} />

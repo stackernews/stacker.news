@@ -25,7 +25,7 @@ export default function Index ({ ssrData }) {
           />
         : (
           <div className='text-muted text-center mt-5' style={{ fontFamily: 'lightning', fontSize: '2rem', opacity: '0.75' }}>
-            <Down width={22} height={22} className='mr-2' />search for something<Down width={22} height={22} className='ml-2' />
+            <Down width={22} height={22} className='me-2' />search for something<Down width={22} height={22} className='ms-2' />
           </div>)}
     </SearchLayout>
   )

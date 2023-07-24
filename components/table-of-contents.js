@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react'
-import { Dropdown, FormControl } from 'react-bootstrap'
+import Dropdown from 'react-bootstrap/Dropdown'
+import FormControl from 'react-bootstrap/FormControl'
 import TocIcon from '../svgs/list-unordered.svg'
 import { fromMarkdown } from 'mdast-util-from-markdown'
 import { visit } from 'unist-util-visit'
@@ -27,7 +28,7 @@ export default function Toc ({ text }) {
   }
 
   return (
-    <Dropdown alignRight className='d-flex align-items-center'>
+    <Dropdown align='end' className='d-flex align-items-center'>
       <Dropdown.Toggle as={CustomToggle} id='dropdown-custom-components'>
         <TocIcon width={20} height={20} className='mx-2 fill-grey theme' />
       </Dropdown.Toggle>
@@ -36,7 +37,7 @@ export default function Toc ({ text }) {
         {toc.map(v => {
           return (
             <Dropdown.Item
-              className={v.depth === 1 ? 'font-weight-bold' : ''}
+              className={v.depth === 1 ? 'fw-bold' : ''}
               style={{
                 marginLeft: `${(v.depth - 1) * 5}px`
               }}

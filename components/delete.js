@@ -1,7 +1,9 @@
 import { useMutation } from '@apollo/client'
 import { gql } from 'graphql-tag'
 import { useState } from 'react'
-import { Alert, Button, Dropdown } from 'react-bootstrap'
+import Alert from 'react-bootstrap/Alert'
+import Button from 'react-bootstrap/Button'
+import Dropdown from 'react-bootstrap/Dropdown'
 import { useShowModal } from './modal'
 
 export default function Delete ({ itemId, children, onDelete }) {
@@ -63,7 +65,7 @@ function DeleteConfirm ({ onConfirm }) {
   return (
     <>
       {error && <Alert variant='danger' onClose={() => setError(undefined)} dismissible>{error}</Alert>}
-      <p className='font-weight-bolder'>Are you sure? This is a gone forever kind of delete.</p>
+      <p className='fw-bolder'>Are you sure? This is a gone forever kind of delete.</p>
       <div className='d-flex justify-content-end'>
         <Button
           variant='danger' onClick={async () => {

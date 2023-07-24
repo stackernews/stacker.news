@@ -2,7 +2,7 @@ import GithubIcon from '../svgs/github-fill.svg'
 import TwitterIcon from '../svgs/twitter-fill.svg'
 import LightningIcon from '../svgs/bolt.svg'
 import SlashtagsIcon from '../svgs/slashtags.svg'
-import { Button } from 'react-bootstrap'
+import Button from 'react-bootstrap/Button'
 
 export default function LoginButton ({ text, type, className, onClick }) {
   let Icon, variant
@@ -32,7 +32,7 @@ export default function LoginButton ({ text, type, className, onClick }) {
     <Button className={className} variant={variant} onClick={onClick}>
       <Icon
         width={20}
-        height={20} className='mr-3'
+        height={20} className='me-3'
       />
       {text} {name}
     </Button>

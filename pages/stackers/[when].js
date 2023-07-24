@@ -1,7 +1,8 @@
 import { gql } from '@apollo/client'
 import { getGetServerSideProps } from '../../api/ssrApollo'
 import Layout from '../../components/layout'
-import { Col, Row } from 'react-bootstrap'
+import Col from 'react-bootstrap/Col'
+import Row from 'react-bootstrap/Row'
 import { UsageHeader } from '../../components/usage-header'
 import { WhenLineChart, WhenAreaChart } from '../../components/when-charts'
 import { useRouter } from 'next/router'
@@ -65,31 +66,31 @@ export default function Growth ({
       <UsageHeader />
       <Row>
         <Col className='mt-3'>
-          <div className='text-center text-muted font-weight-bold'>{avg}stackers</div>
+          <div className='text-center text-muted fw-bold'>{avg}stackers</div>
           <WhenLineChart data={stackerGrowth} />
         </Col>
         <Col className='mt-3'>
-          <div className='text-center text-muted font-weight-bold'>stacking</div>
+          <div className='text-center text-muted fw-bold'>stacking</div>
           <WhenAreaChart data={stackingGrowth} />
         </Col>
       </Row>
       <Row>
         <Col className='mt-3'>
-          <div className='text-center text-muted font-weight-bold'>{avg}spenders</div>
+          <div className='text-center text-muted fw-bold'>{avg}spenders</div>
           <WhenLineChart data={spenderGrowth} />
         </Col>
         <Col className='mt-3'>
-          <div className='text-center text-muted font-weight-bold'>spending</div>
+          <div className='text-center text-muted fw-bold'>spending</div>
           <WhenAreaChart data={spendingGrowth} />
         </Col>
       </Row>
       <Row>
         <Col className='mt-3'>
-          <div className='text-center text-muted font-weight-bold'>registrations</div>
+          <div className='text-center text-muted fw-bold'>registrations</div>
           <WhenAreaChart data={registrationGrowth} />
         </Col>
         <Col className='mt-3'>
-          <div className='text-center text-muted font-weight-bold'>items</div>
+          <div className='text-center text-muted fw-bold'>items</div>
           <WhenAreaChart data={itemGrowth} />
         </Col>
       </Row>

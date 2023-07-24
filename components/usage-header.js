@@ -11,10 +11,10 @@ export function UsageHeader () {
         when: router.query.when || 'day'
       }}
     >
-      <div className='text-muted font-weight-bold my-3 d-flex align-items-center'>
+      <div className='text-muted fw-bold my-3 d-flex align-items-center'>
         stacker analytics for
         <Select
-          groupClassName='mb-0 ml-2'
+          groupClassName='mb-0 ms-2'
           className='w-auto'
           name='when'
           size='sm'

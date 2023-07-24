@@ -1,7 +1,9 @@
 import { gql, useMutation, useQuery } from '@apollo/client'
 import { signIn } from 'next-auth/client'
 import { useEffect } from 'react'
-import { Col, Container, Row } from 'react-bootstrap'
+import Col from 'react-bootstrap/Col'
+import Container from 'react-bootstrap/Container'
+import Row from 'react-bootstrap/Row'
 import AccordianItem from './accordian-item'
 import Qr, { QrSkeleton } from './qr'
 import styles from './lightning-auth.module.css'
@@ -37,9 +39,9 @@ function LightningExplainer ({ text, children }) {
         <h3 className='w-100 pb-2'>
           {text || 'Login'} with Lightning
         </h3>
-        <div className='font-weight-bold text-muted pb-4'>This is the most private way to use Stacker News. Just open your Lightning wallet and scan the QR code.</div>
+        <div className='fw-bold text-muted pb-4'>This is the most private way to use Stacker News. Just open your Lightning wallet and scan the QR code.</div>
         <Row className='w-100 text-muted'>
-          <Col className='pl-0 mb-4' md>
+          <Col className='ps-0 mb-4' md>
             <AccordianItem
               header={`Which wallets can I use to ${(text || 'Login').toLowerCase()}?`}
               body={

@@ -6,7 +6,10 @@ import { Formik, Form as FormikForm, useFormikContext, useField, FieldArray } fr
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react'
 import copy from 'clipboard-copy'
 import Thumb from '../svgs/thumb-up-fill.svg'
-import { Col, Dropdown as BootstrapDropdown, Nav } from 'react-bootstrap'
+import Col from 'react-bootstrap/Col'
+import Dropdown from 'react-bootstrap/Dropdown'
+import Nav from 'react-bootstrap/Nav'
+import Row from 'react-bootstrap/Row'
 import Markdown from '../svgs/markdown-line.svg'
 import styles from './form.module.css'
 import Text from '../components/text'
@@ -53,6 +56,7 @@ export function CopyInput (props) {
       onClick={handleClick}
       append={
         <Button
+          className={styles.appendButton}
           size={props.size}
           onClick={handleClick}
         >
@@ -109,7 +113,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
             <Nav.Link eventKey='preview' disabled={!meta.value}>preview</Nav.Link>
           </Nav.Item>
           <a
-            className='ml-auto text-muted d-flex align-items-center'
+            className='ms-auto text-muted d-flex align-items-center'
             href='https://guides.github.com/features/mastering-markdown/' target='_blank' rel='noreferrer'
           >
             <Markdown width={18} height={18} />
@@ -206,7 +210,7 @@ const insertMarkdownItalicFormatting = insertMarkdownFormatting(
 
 function FormGroup ({ className, label, children }) {
   return (
-    <BootstrapForm.Group className={className}>
+    <BootstrapForm.Group className={`form-group ${className}`}>
       {label && <BootstrapForm.Label>{label}</BootstrapForm.Label>}
       {children}
     </BootstrapForm.Group>
@@ -244,11 +248,7 @@ function InputInner ({
   return (
     <>
       <InputGroup hasValidation>
-        {prepend && (
-          <InputGroup.Prepend>
-            {prepend}
-          </InputGroup.Prepend>
-        )}
+        {prepend}
         <BootstrapForm.Control
           onKeyDown={(e) => {
             const metaOrCtrl = e.metaKey || e.ctrlKey
@@ -274,26 +274,22 @@ function InputInner ({
           isInvalid={invalid}
           isValid={showValid && meta.initialValue !== meta.value && meta.touched && !meta.error}
         />
-        {(append || (clear && field.value)) && (
-          <InputGroup.Append>
-            {(clear && field.value) &&
-              <Button
-                variant={null}
-                onClick={(e) => {
-                  helpers.setValue('')
-                  if (storageKey) {
-                    localStorage.removeItem(storageKey)
-                  }
-                  if (onChange) {
-                    onChange(formik, { target: { value: '' } })
-                  }
-                }}
-                className={`${styles.clearButton} ${invalid ? styles.isInvalid : ''}`}
-              ><CloseIcon className='fill-grey' height={20} width={20} />
-              </Button>}
-            {append}
-          </InputGroup.Append>
-        )}
+        {(clear && field.value) &&
+          <Button
+            variant={null}
+            onClick={(e) => {
+              helpers.setValue('')
+              if (storageKey) {
+                localStorage.removeItem(storageKey)
+              }
+              if (onChange) {
+                onChange(formik, { target: { value: '' } })
+              }
+            }}
+            className={`${styles.clearButton} ${styles.appendButton} ${invalid ? styles.isInvalid : ''}`}
+          ><CloseIcon className='fill-grey' height={20} width={20} />
+          </Button>}
+        {append}
         <BootstrapForm.Control.Feedback type='invalid'>
           {meta.touched && meta.error}
         </BootstrapForm.Control.Feedback>
@@ -357,10 +353,10 @@ export function InputUserSuggest ({ label, groupClassName, ...props }) {
           }
         }}
       />
-      <BootstrapDropdown show={suggestions.array.length > 0}>
-        <BootstrapDropdown.Menu className={styles.suggestionsMenu}>
+      <Dropdown show={suggestions.array.length > 0}>
+        <Dropdown.Menu className={styles.suggestionsMenu}>
           {suggestions.array.map((v, i) =>
-            <BootstrapDropdown.Item
+            <Dropdown.Item
               key={v.name}
               active={suggestions.index === i}
               onClick={() => {
@@ -369,9 +365,9 @@ export function InputUserSuggest ({ label, groupClassName, ...props }) {
               }}
             >
               {v.name}
-            </BootstrapDropdown.Item>)}
-        </BootstrapDropdown.Menu>
-      </BootstrapDropdown>
+            </Dropdown.Item>)}
+        </Dropdown.Menu>
+      </Dropdown>
     </FormGroup>
   )
 }
@@ -394,14 +390,14 @@ export function VariableInput ({ label, groupClassName, name, hint, max, min, re
             <>
               {options?.map((_, i) => (
                 <div key={i}>
-                  <BootstrapForm.Row className='mb-2'>
+                  <Row className='mb-2'>
                     <Col>
                       <InputInner name={`${name}[${i}]`} {...props} readOnly={i < readOnlyLen} placeholder={i >= min ? 'optional' : undefined} />
                     </Col>
                     {options.length - 1 === i && options.length !== max
-                      ? <AddIcon className='fill-grey align-self-center pointer mx-2' onClick={() => fieldArrayHelpers.push('')} />
+                      ? <Col className='d-flex ps-0' xs='auto'><AddIcon className='fill-grey align-self-center justify-self-center pointer' onClick={() => fieldArrayHelpers.push('')} /></Col>
                       : null}
-                  </BootstrapForm.Row>
+                  </Row>
                 </div>
               ))}
             </>
@@ -423,10 +419,9 @@ export function Checkbox ({ children, label, groupClassName, hiddenLabel, extra,
   // return the correct bag of props for you
   const [field,, helpers] = useField({ ...props, type: 'checkbox' })
   return (
-    <BootstrapForm.Group className={groupClassName}>
+    <FormGroup className={groupClassName}>
       {hiddenLabel && <BootstrapForm.Label className='invisible'>{label}</BootstrapForm.Label>}
       <BootstrapForm.Check
-        custom
         id={props.id || props.name}
         inline={inline}
       >
@@ -444,7 +439,7 @@ export function Checkbox ({ children, label, groupClassName, hiddenLabel, extra,
             </div>}
         </BootstrapForm.Check.Label>
       </BootstrapForm.Check>
-    </BootstrapForm.Group>
+    </FormGroup>
   )
 }
 
@@ -497,8 +492,7 @@ export function Select ({ label, items, groupClassName, onChange, noForm, overri
 
   return (
     <FormGroup label={label} className={groupClassName}>
-      <BootstrapForm.Control
-        as='select'
+      <BootstrapForm.Select
         {...field} {...props}
         onChange={(e) => {
           if (field?.onChange) {
@@ -509,11 +503,10 @@ export function Select ({ label, items, groupClassName, onChange, noForm, overri
             onChange(formik, e)
           }
         }}
-        custom
         isInvalid={invalid}
       >
         {items.map(item => <option key={item}>{item}</option>)}
-      </BootstrapForm.Control>
+      </BootstrapForm.Select>
       <BootstrapForm.Control.Feedback type='invalid'>
         {meta.touched && meta.error}
       </BootstrapForm.Control.Feedback>

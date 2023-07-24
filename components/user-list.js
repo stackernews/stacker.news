@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Image } from 'react-bootstrap'
+import Image from 'react-bootstrap/Image'
 import { abbrNum } from '../lib/format'
 import CowboyHat from './cowboy-hat'
 import styles from './item.module.css'
@@ -67,12 +67,12 @@ export default function UserList ({ ssrData, query, variables, destructureData }
           <Link href={`/${user.name}`}>
             <Image
               src={user.photoId ? `https://${process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET}.s3.amazonaws.com/${user.photoId}` : '/dorian400.jpg'} width='32' height='32'
-              className={`${userStyles.userimg} mr-2`}
+              className={`${userStyles.userimg} me-2`}
             />
           </Link>
           <div className={styles.hunk}>
             <Link href={`/${user.name}`} className={`${styles.title} d-inline-flex align-items-center text-reset`}>
-              @{user.name}<CowboyHat className='ml-1 fill-grey' height={14} width={14} user={user} />
+              @{user.name}<CowboyHat className='ms-1 fill-grey' height={14} width={14} user={user} />
             </Link>
             <div className={styles.other}>
               {statComps.map((Comp, i) => <Comp key={i} user={user} />)}
@@ -94,7 +94,7 @@ export function UsersSkeleton () {
         <Image
           src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/clouds.jpeg`}
           width='32' height='32'
-          className={`${userStyles.userimg} clouds mr-2`}
+          className={`${userStyles.userimg} clouds me-2`}
         />
         <div className={styles.hunk}>
           <div className={`${styles.name} clouds text-reset`} />

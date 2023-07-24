@@ -8,7 +8,7 @@ import { ITEM_FIELDS } from '../fragments/items'
 import AccordianItem from './accordian-item'
 import Item from './item'
 import Delete from './delete'
-import { Button } from 'react-bootstrap'
+import Button from 'react-bootstrap/Button'
 import { discussionSchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
@@ -91,11 +91,11 @@ export function DiscussionForm ({
       />
       <MarkdownInput
         topLevel
-        label={<>{textLabel} <small className='text-muted ml-2'>optional</small></>}
+        label={<>{textLabel} <small className='text-muted ms-2'>optional</small></>}
         name='text'
         minRows={6}
         hint={editThreshold
-          ? <div className='text-muted font-weight-bold'><Countdown date={editThreshold} /></div>
+          ? <div className='text-muted fw-bold'><Countdown date={editThreshold} /></div>
           : null}
       />
       <AdvPostForm edit={!!item} />

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Button } from 'react-bootstrap'
+import Button from 'react-bootstrap/Button'
 import styles from './pay-bounty.module.css'
 import ActionTooltip from './action-tooltip'
 import { useMutation, gql } from '@apollo/client'
@@ -96,7 +96,7 @@ export default function PayBounty ({ children, item }) {
         className={styles.pay} onClick={() => {
           showModal(onClose => (
             <>
-              <div className='text-center font-weight-bold text-muted'>
+              <div className='text-center fw-bold text-muted'>
                 Pay this bounty to {item.user.name}?
               </div>
               <div className='text-center'>

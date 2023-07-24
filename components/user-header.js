@@ -1,4 +1,6 @@
-import { Button, InputGroup, Image } from 'react-bootstrap'
+import Button from 'react-bootstrap/Button'
+import InputGroup from 'react-bootstrap/InputGroup'
+import Image from 'react-bootstrap/Image'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import Nav from 'react-bootstrap/Nav'
@@ -158,23 +160,23 @@ function HeaderHeader ({ user }) {
   const showModal = useShowModal()
 
   const isMe = me?.name === user.name
-  const Satistics = () => <div className={`mb-2 ml-0 ml-sm-1 ${styles.username} text-success`}>{user.stacked} stacked</div>
+  const Satistics = () => <div className={`mb-2 ms-0 ms-sm-1 ${styles.username} text-success`}>{user.stacked} stacked</div>
 
   const lnurlp = encodeLNUrl(new URL(`https://stacker.news/.well-known/lnurlp/${user.name}`))
   return (
     <div className='d-flex mt-2 flex-wrap flex-column flex-sm-row'>
       <HeaderPhoto user={user} isMe={isMe} />
-      <div className='ml-0 ml-sm-3 mt-3 mt-sm-0 justify-content-center align-self-sm-center'>
+      <div className='ms-0 ms-sm-3 mt-3 mt-sm-0 justify-content-center align-self-sm-center'>
         <HeaderNym user={user} isMe={isMe} />
         <Satistics user={user} />
         <Button
-          className='font-weight-bold ml-0' onClick={() => {
+          className='fw-bold ms-0' onClick={() => {
             showModal(({ onClose }) => (
               <>
                 <a className='d-flex m-auto p-3' style={{ background: 'white', width: 'fit-content' }} href={`lightning:${lnurlp}`}>
                   <QRCode className='d-flex m-auto' value={lnurlp} renderAs='svg' size={300} />
                 </a>
-                <div className='text-center font-weight-bold text-muted mt-3'>click or scan</div>
+                <div className='text-center fw-bold text-muted mt-3'>click or scan</div>
               </>
             ))
           }}
@@ -182,12 +184,12 @@ function HeaderHeader ({ user }) {
           <LightningIcon
             width={20}
             height={20}
-            className='mr-1'
+            className='me-1'
           />{user.name}@stacker.news
         </Button>
-        <div className='d-flex flex-column mt-1 ml-0'>
+        <div className='d-flex flex-column mt-1 ms-0'>
           <small className='text-muted d-flex-inline'>stacking since: {user.since
-            ? <Link href={`/items/${user.since}`} className='ml-1'>#{user.since}</Link>
+            ? <Link href={`/items/${user.since}`} className='ms-1'>#{user.since}</Link>
             : <span>never</span>}
           </small>
           <small className='text-muted d-flex-inline'>longest cowboy streak: {user.maxStreak !== null ? user.maxStreak : 'none'}</small>

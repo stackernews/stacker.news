@@ -79,7 +79,7 @@ function Satus ({ status }) {
 
   return (
     <div>
-      <Icon /><small className={`text-${color} font-weight-bold ml-2`}>{desc}</small>
+      <Icon /><small className={`text-${color} fw-bold ms-2`}>{desc}</small>
     </div>
   )
 }

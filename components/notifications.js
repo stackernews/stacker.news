@@ -15,7 +15,7 @@ import { COMMENT_DEPTH_LIMIT } from '../lib/constants'
 import CowboyHatIcon from '../svgs/cowboy.svg'
 import BaldIcon from '../svgs/bald.svg'
 import { RootProvider } from './root'
-import { Alert } from 'react-bootstrap'
+import Alert from 'react-bootstrap/Alert'
 import styles from './notifications.module.css'
 import { useServiceWorker } from './serviceworker'
 import { Checkbox, Form } from './form'
@@ -110,9 +110,9 @@ function Streak ({ n }) {
   }
 
   return (
-    <div className='d-flex font-weight-bold ml-2 py-1'>
+    <div className='d-flex fw-bold ms-2 py-1'>
       <div style={{ fontSize: '2rem' }}>{n.days ? <BaldIcon className='fill-grey' height={40} width={40} /> : <CowboyHatIcon className='fill-grey' height={40} width={40} />}</div>
-      <div className='ml-1 p-1'>
+      <div className='ms-1 p-1'>
         you {n.days ? 'lost your' : 'found a'} cowboy hat
         <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>{blurb(n)}</small></div>
       </div>
@@ -122,11 +122,11 @@ function Streak ({ n }) {
 
 function EarnNotification ({ n }) {
   return (
-    <div className='d-flex ml-2 py-1'>
+    <div className='d-flex ms-2 py-1'>
       <HandCoin className='align-self-center fill-boost mx-1' width={24} height={24} style={{ flex: '0 0 24px', transform: 'rotateY(180deg)' }} />
-      <div className='ml-2'>
-        <div className='font-weight-bold text-boost'>
-          you stacked {n.earnedSats} sats in rewards<small className='text-muted ml-1'>{timeSince(new Date(n.sortTime))}</small>
+      <div className='ms-2'>
+        <div className='fw-bold text-boost'>
+          you stacked {n.earnedSats} sats in rewards<small className='text-muted ms-1'>{timeSince(new Date(n.sortTime))}</small>
         </div>
         {n.sources &&
           <div style={{ fontSize: '80%', color: 'var(--theme-grey)' }}>
@@ -146,10 +146,10 @@ function EarnNotification ({ n }) {
 function Invitification ({ n }) {
   return (
     <NotificationLayout href='/invites'>
-      <small className='font-weight-bold text-secondary ml-2'>
+      <small className='fw-bold text-secondary ms-2'>
         your invite has been redeemed by {n.invite.invitees.length} stackers
       </small>
-      <div className='ml-4 mr-2 mt-1'>
+      <div className='ms-4 me-2 mt-1'>
         <Invite
           invite={n.invite} active={
           !n.invite.revoked &&
@@ -164,9 +164,9 @@ function Invitification ({ n }) {
 function InvoicePaid ({ n }) {
   return (
     <NotificationLayout href={`/invoices/${n.invoice.id}`}>
-      <div className='font-weight-bold text-info ml-2 py-1'>
-        <Check className='fill-info mr-1' />{n.earnedSats} sats were deposited in your account
-        <small className='text-muted ml-1'>{timeSince(new Date(n.sortTime))}</small>
+      <div className='fw-bold text-info ms-2 py-1'>
+        <Check className='fill-info me-1' />{n.earnedSats} sats were deposited in your account
+        <small className='text-muted ms-1'>{timeSince(new Date(n.sortTime))}</small>
       </div>
     </NotificationLayout>
   )
@@ -175,9 +175,9 @@ function InvoicePaid ({ n }) {
 function Referral ({ n }) {
   return (
     <NotificationLayout>
-      <small className='font-weight-bold text-secondary ml-2'>
+      <small className='fw-bold text-secondary ms-2'>
         someone joined via one of your <Link href='/referrals/month' className='text-reset'>referral links</Link>
-        <small className='text-muted ml-1'>{timeSince(new Date(n.sortTime))}</small>
+        <small className='text-muted ms-1'>{timeSince(new Date(n.sortTime))}</small>
       </small>
     </NotificationLayout>
   )
@@ -186,7 +186,7 @@ function Referral ({ n }) {
 function Votification ({ n }) {
   return (
     <NotificationLayout {...defaultOnClick(n)}>
-      <small className='font-weight-bold text-success ml-2'>
+      <small className='fw-bold text-success ms-2'>
         your {n.item.title ? 'post' : 'reply'} {n.item.fwdUser ? 'forwarded' : 'stacked'} {n.earnedSats} sats{n.item.fwdUser && ` to @${n.item.fwdUser.name}`}
       </small>
       <div>
@@ -207,7 +207,7 @@ function Votification ({ n }) {
 function Mention ({ n }) {
   return (
     <NotificationLayout {...defaultOnClick(n)}>
-      <small className='font-weight-bold text-info ml-2'>
+      <small className='fw-bold text-info ms-2'>
         you were mentioned in
       </small>
       <div>
@@ -227,7 +227,7 @@ function Mention ({ n }) {
 function JobChanged ({ n }) {
   return (
     <NotificationLayout {...defaultOnClick(n)}>
-      <small className={`font-weight-bold text-${n.item.status === 'ACTIVE' ? 'success' : 'boost'} ml-1`}>
+      <small className={`fw-bold text-${n.item.status === 'ACTIVE' ? 'success' : 'boost'} ms-1`}>
         {n.item.status === 'ACTIVE'
           ? 'your job is active again'
           : (n.item.status === 'NOSATS'
@@ -306,7 +306,7 @@ function NotificationAlert () {
           <Form className={`d-flex justify-content-end ${supported ? 'visible' : 'invisible'}`} initial={{ pushNotify: hasSubscription }}>
             <Checkbox
               name='pushNotify' label={<span className='text-muted'>push notifications</span>}
-              groupClassName={`${styles.subFormGroup} mb-1 mr-sm-3 mr-0`}
+              groupClassName={`${styles.subFormGroup} mb-1 me-sm-3 me-0`}
               inline checked={hasSubscription} handleChange={async () => {
                 await sw.togglePushSubscription().catch(setError)
               }}

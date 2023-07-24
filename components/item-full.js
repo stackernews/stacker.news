@@ -8,7 +8,7 @@ import styles from '../styles/item.module.css'
 import itemStyles from './item.module.css'
 import { NOFOLLOW_LIMIT } from '../lib/constants'
 import { useMe } from './me'
-import { Button } from 'react-bootstrap'
+import Button from 'react-bootstrap/Button'
 import { TwitterTweetEmbed } from 'react-twitter-embed'
 import YouTube from 'react-youtube'
 import useDarkMode from './dark-mode'
@@ -134,7 +134,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
         {item.url && <ItemEmbed item={item} />}
         {item.poll && <Poll item={item} />}
         {item.bounty &&
-          <div className='font-weight-bold mt-2'>
+          <div className='fw-bold mt-2'>
             {item.bountyPaidTo?.length
               ? (
                 <div className='px-3 py-1 d-inline-block bg-grey-medium rounded text-success'>

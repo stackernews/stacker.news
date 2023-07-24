@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react'
-import { Modal } from 'react-bootstrap'
+import Modal from 'react-bootstrap/Modal'
 
 export const ShowModalContext = createContext(() => null)
 

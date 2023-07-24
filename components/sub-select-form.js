@@ -18,7 +18,7 @@ export default function SubSelect ({ label, sub, setSub, item, ...props }) {
   const SubInfo = () => (
     <Info>
       <div>
-        <div className='font-weight-bold'>The sub your post will go in ...</div>
+        <div className='fw-bold'>The sub your post will go in ...</div>
         <ul>
           <li>If it's bitcoin related, put it in the bitcoin sub.</li>
           <li>If it's nostr related, put it in the nostr sub.</li>

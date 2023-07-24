@@ -37,7 +37,7 @@ const COLORS = {
     commentBg: 'rgba(255, 255, 255, 0.04)',
     clickToContextColor: 'rgba(255, 255, 255, 0.2)',
     color: '#f8f9fa',
-    brandColor: 'var(--primary)',
+    brandColor: 'var(--bs-primary)',
     grey: '#969696',
     link: '#2e99d1',
     toolbarActive: 'rgba(255, 255, 255, 0.10)',

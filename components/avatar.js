@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import AvatarEditor from 'react-avatar-editor'
-import { Button, Form as BootstrapForm } from 'react-bootstrap'
+import Button from 'react-bootstrap/Button'
+import BootstrapForm from 'react-bootstrap/Form'
 import Upload from './upload'
 import EditImage from '../svgs/image-edit-fill.svg'
 import Moon from '../svgs/moon-fill.svg'
@@ -28,7 +29,7 @@ export default function Avatar ({ onSuccess }) {
           <BootstrapForm.Control
             type='range' onChange={e => setScale(parseFloat(e.target.value))}
             min={1} max={2} step='0.05'
-            defaultValue={scale} custom
+            defaultValue={scale}
           />
         </BootstrapForm.Group>
         <Button onClick={() => {

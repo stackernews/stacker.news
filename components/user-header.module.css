@@ -18,7 +18,7 @@
 }
 
 .nav :global .active {
-    border-bottom: 2px solid var(--primary);
+    border-bottom: 2px solid var(--bs-primary);
 }
 
 .userimg {

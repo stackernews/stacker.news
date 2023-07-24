@@ -1,6 +1,6 @@
 import Layout from '../../components/layout'
 import { Form, Input, SubmitButton } from '../../components/form'
-import { InputGroup } from 'react-bootstrap'
+import InputGroup from 'react-bootstrap/InputGroup'
 import { gql, useMutation, useQuery } from '@apollo/client'
 import { INVITE_FIELDS } from '../../fragments/invites'
 import AccordianItem from '../../components/accordian-item'
@@ -58,7 +58,7 @@ function InviteForm () {
         required
       />
       <Input
-        label={<>invitee limit <small className='text-muted ml-2'>optional</small></>}
+        label={<>invitee limit <small className='text-muted ms-2'>optional</small></>}
         name='limit'
       />
 
@@ -113,7 +113,7 @@ export default function Invites () {
         <h2 className='mt-3 mb-0'>
           invite links
         </h2>
-        <small className='d-block text-muted font-weight-bold mx-5'>send these to people you trust, e.g. group chats or DMs</small>
+        <small className='d-block text-muted fw-bold mx-5'>send these to people you trust, e.g. group chats or DMs</small>
       </div>
       <InviteForm />
       {active.length > 0 && <InviteList name='active' invites={active} />}

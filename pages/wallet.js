@@ -10,7 +10,7 @@ import { WithdrawlSkeleton } from './withdrawals/[id]'
 import { useMe } from '../components/me'
 import { useEffect, useState } from 'react'
 import { requestProvider } from 'webln'
-import { Alert } from 'react-bootstrap'
+import Alert from 'react-bootstrap/Alert'
 import { CREATE_WITHDRAWL, SEND_TO_LNADDR } from '../fragments/wallet'
 import { getGetServerSideProps } from '../api/ssrApollo'
 import { amountSchema, lnAddrSchema, withdrawlSchema } from '../lib/validate'
@@ -37,7 +37,7 @@ function YouHaveSats () {
 function WalletHistory () {
   return (
     <div className='pt-4'>
-      <Link href='/satistics?inc=invoice,withdrawal' className='text-muted font-weight-bold text-underline'>
+      <Link href='/satistics?inc=invoice,withdrawal' className='text-muted fw-bold text-underline'>
         wallet history
       </Link>
     </div>
@@ -54,7 +54,7 @@ export function WalletForm () {
         <Link href='/wallet?type=fund'>
           <Button variant='success'>fund</Button>
         </Link>
-        <span className='mx-3 font-weight-bold text-muted'>or</span>
+        <span className='mx-3 fw-bold text-muted'>or</span>
         <Link href='/wallet?type=withdraw'>
           <Button variant='success'>withdraw</Button>
         </Link>
@@ -189,7 +189,7 @@ export function WithdrawlForm () {
         />
         <SubmitButton variant='success' className='mt-2'>withdraw</SubmitButton>
       </Form>
-      <span className='my-3 font-weight-bold text-muted'>or via</span>
+      <span className='my-3 fw-bold text-muted'>or via</span>
       <Link href='/wallet?type=lnurl-withdraw'>
         <Button variant='grey'>QR code</Button>
       </Link>

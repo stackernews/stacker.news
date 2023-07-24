@@ -1,4 +1,5 @@
-import { Button, Container } from 'react-bootstrap'
+import Button from 'react-bootstrap/Button'
+import Container from 'react-bootstrap/Container'
 import styles from './search.module.css'
 import SearchIcon from '../svgs/search-line.svg'
 import CloseIcon from '../svgs/close-line.svg'
@@ -57,7 +58,7 @@ export default function Search ({ sub }) {
   return (
     <>
       <div className={`${styles.searchSection} ${showSearch ? styles.solid : styles.hidden}`}>
-        <Container className={`px-sm-0 ${styles.searchContainer} ${filter ? styles.leaveRoom : ''}`}>
+        <Container className={`px-md-0 ${styles.searchContainer} ${filter ? styles.leaveRoom : ''}`}>
           {showSearch
             ? (
               <Form
@@ -71,9 +72,9 @@ export default function Search ({ sub }) {
                 onSubmit={search}
               >
                 {filter &&
-                  <div className='text-muted font-weight-bold my-3 d-flex align-items-center'>
+                  <div className='text-muted fw-bold my-3 d-flex align-items-center'>
                     <Select
-                      groupClassName='mr-2 mb-0'
+                      groupClassName='me-2 mb-0'
                       onChange={(formik, e) => search({ ...formik?.values, what: e.target.value })}
                       name='what'
                       size='sm'
@@ -91,7 +92,7 @@ export default function Search ({ sub }) {
                         />
                         for
                         <Select
-                          groupClassName='mb-0 ml-2'
+                          groupClassName='mb-0 ms-2'
                           onChange={(formik, e) => search({ ...formik?.values, when: e.target.value })}
                           name='when'
                           size='sm'
@@ -105,7 +106,7 @@ export default function Search ({ sub }) {
                     name='q'
                     required
                     autoFocus
-                    groupClassName='mr-3 mb-0 flex-grow-1'
+                    groupClassName='me-3 mb-0 flex-grow-1'
                     className='flex-grow-1'
                     clear
                     onChange={async (formik, e) => {

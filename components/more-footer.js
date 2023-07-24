@@ -1,4 +1,4 @@
-import { Button } from 'react-bootstrap'
+import Button from 'react-bootstrap/Button'
 import { useState } from 'react'
 import Link from 'next/link'
 
@@ -40,7 +40,7 @@ export function NavigateFooter ({ cursor, count, fetchMore, href, text, noMoreTe
   let Footer
   if (cursor) {
     Footer = () => (
-      <Link href={href} className='text-reset text-muted font-weight-bold'>{text}</Link>
+      <Link href={href} className='text-reset text-muted fw-bold'>{text}</Link>
     )
   } else {
     Footer = () => (

@@ -26,6 +26,11 @@
     cursor: pointer;
 }
 
+.op {
+    margin-top: -1px;
+    vertical-align: text-top;
+}
+
 .collapsed .hunk {
     margin-bottom: .5rem;
 }

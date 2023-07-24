@@ -34,7 +34,7 @@ export default function TopHeader ({ sub, cat }) {
   return (
     <div className='d-flex'>
       <Form
-        className='mr-auto'
+        className='me-auto'
         initial={{
           what: cat,
           by: router.query.by || '',
@@ -42,7 +42,7 @@ export default function TopHeader ({ sub, cat }) {
         }}
         onSubmit={top}
       >
-        <div className='text-muted font-weight-bold my-3 d-flex align-items-center'>
+        <div className='text-muted fw-bold my-3 d-flex align-items-center'>
           top
           <Select
             groupClassName='mx-2 mb-0'
@@ -63,7 +63,7 @@ export default function TopHeader ({ sub, cat }) {
               />
               for
               <Select
-                groupClassName='mb-0 ml-2'
+                groupClassName='mb-0 ms-2'
                 onChange={(formik, e) => top({ ...formik?.values, when: e.target.value })}
                 name='when'
                 size='sm'

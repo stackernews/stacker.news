@@ -1,4 +1,4 @@
-import { Button } from 'react-bootstrap'
+import Button from 'react-bootstrap/Button'
 import { CenterLayout } from '../components/layout'
 import Snl from '../components/snl'
 import { gql } from 'graphql-tag'

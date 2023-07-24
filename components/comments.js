@@ -2,7 +2,8 @@ import { gql, useApolloClient, useLazyQuery } from '@apollo/client'
 import { useState } from 'react'
 import Comment, { CommentSkeleton } from './comment'
 import styles from './header.module.css'
-import { Nav, Navbar } from 'react-bootstrap'
+import Nav from 'react-bootstrap/Nav'
+import Navbar from 'react-bootstrap/Navbar'
 import { COMMENTS_QUERY } from '../fragments/items'
 import { COMMENTS } from '../fragments/comments'
 import { abbrNum } from '../lib/format'
@@ -19,7 +20,7 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
   }
 
   return (
-    <Navbar className='pt-1 pb-0'>
+    <Navbar className='pt-1 pb-0 px-3'>
       <Nav
         className={styles.navbarNav}
         activeKey={sort}
@@ -27,7 +28,7 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
         <Nav.Item className='text-muted'>
           {abbrNum(commentSats)} sats
         </Nav.Item>
-        <div className='ml-auto d-flex'>
+        <div className='ms-auto d-flex'>
           <Nav.Item>
             <Nav.Link
               eventKey='hot'

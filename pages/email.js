@@ -1,4 +1,4 @@
-import { Image } from 'react-bootstrap'
+import Image from 'react-bootstrap/Image'
 import { StaticLayout } from '../components/layout'
 
 export default function Email () {

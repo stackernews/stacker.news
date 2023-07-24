@@ -71,7 +71,7 @@ export default function Login ({ providers, callbackUrl, error, text, Header, Fo
           case 'Email':
             return (
               <div className='w-100' key={provider.name}>
-                <div className='mt-2 text-center text-muted font-weight-bold'>or</div>
+                <div className='mt-2 text-center text-muted fw-bold'>or</div>
                 <EmailLoginForm text={text} callbackUrl={callbackUrl} />
               </div>
             )

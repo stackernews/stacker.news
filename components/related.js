@@ -10,7 +10,7 @@ export default function Related ({ title, itemId }) {
 
   return (
     <AccordianItem
-      header={<div className='font-weight-bold'>related</div>}
+      header={<div className='fw-bold'>related</div>}
       body={
         <Items
           query={RELATED_ITEMS}

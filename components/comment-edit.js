@@ -2,7 +2,7 @@ import { Form, MarkdownInput, SubmitButton } from '../components/form'
 import { gql, useMutation } from '@apollo/client'
 import styles from './reply.module.css'
 import { EditFeeButton } from './fee-button'
-import { Button } from 'react-bootstrap'
+import Button from 'react-bootstrap/Button'
 import Delete from './delete'
 import { commentSchema } from '../lib/validate'
 

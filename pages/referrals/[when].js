@@ -5,10 +5,14 @@ import { getGetServerSideProps } from '../../api/ssrApollo'
 import { CopyInput, Form, Select } from '../../components/form'
 import { CenterLayout } from '../../components/layout'
 import { useMe } from '../../components/me'
-import { WhenComposedChart } from '../../components/when-charts'
 import { useQuery } from '@apollo/client'
 import PageLoading from '../../components/page-loading'
 import { WHENS } from '../../lib/constants'
+import dynamic from 'next/dynamic'
+
+const WhenComposedChart = dynamic(() => import('../../components/charts').then(mod => mod.WhenComposedChart), {
+  loading: () => <div>Loading...</div>
+})
 
 const REFERRALS = gql`
   query Referrals($when: String!)

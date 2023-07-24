@@ -1,4 +1,4 @@
-import * as Yup from 'yup'
+import { string } from 'yup'
 import Toc from './table-of-contents'
 import Badge from 'react-bootstrap/Badge'
 import Button from 'react-bootstrap/Button'
@@ -12,7 +12,7 @@ import Share from './share'
 import CowboyHat from './cowboy-hat'
 
 export default function ItemJob ({ item, toc, rank, children }) {
-  const isEmail = Yup.string().email().isValidSync(item.url)
+  const isEmail = string().email().isValidSync(item.url)
 
   return (
     <>

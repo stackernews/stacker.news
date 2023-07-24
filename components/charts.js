@@ -9,6 +9,9 @@ import { Bar } from 'recharts/lib/cartesian/Bar'
 import { Tooltip } from 'recharts/lib/component/Tooltip'
 import { Legend } from 'recharts/lib/component/Legend'
 import { ResponsiveContainer } from 'recharts/lib/component/ResponsiveContainer'
+import { PieChart } from 'recharts/lib/chart/PieChart'
+import { Cell } from 'recharts/lib/component/Cell'
+import { Pie } from 'recharts/lib/polar/Pie'
 import { abbrNum } from '../lib/format'
 import { useRouter } from 'next/router'
 
@@ -166,6 +169,32 @@ export function WhenComposedChart ({ data, lineNames, areaNames, barNames }) {
         {lineNames?.map((v, i) =>
           <Line yAxisId='left' key={v} type='monotone' dataKey={v} name={v} stackId='1' stroke={COLORS[i]} fill={COLORS[i]} />)}
       </ComposedChart>
+    </ResponsiveContainer>
+  )
+}
+
+export function GrowthPieChart ({ data }) {
+  return (
+    <ResponsiveContainer width='100%' height={250} minWidth={200}>
+      <PieChart margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
+        <Pie
+          dataKey='value'
+          isAnimationActive={false}
+          data={data}
+          cx='50%'
+          cy='50%'
+          outerRadius={80}
+          fill='var(--bs-secondary)'
+          label
+        >
+          {
+            data.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={COLORS[index]} />
+            ))
+          }
+        </Pie>
+        <Tooltip />
+      </PieChart>
     </ResponsiveContainer>
   )
 }

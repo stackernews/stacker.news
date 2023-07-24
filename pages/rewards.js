@@ -17,6 +17,11 @@ import Countdown from 'react-countdown'
 import { abbrNum } from '../lib/format'
 import PageLoading from '../components/page-loading'
 import { useShowModal } from '../components/modal'
+import dynamic from 'next/dynamic'
+
+const GrowthPieChart = dynamic(() => import('../components/charts').then(mod => mod.GrowthPieChart), {
+  loading: () => <div>Loading...</div>
+})
 
 const REWARDS = gql`
 {
@@ -96,32 +101,6 @@ const COLORS = [
   'var(--bs-boost)',
   'var(--bs-grey)'
 ]
-
-function GrowthPieChart ({ data }) {
-  return (
-    <ResponsiveContainer width='100%' height={250} minWidth={200}>
-      <PieChart margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
-        <Pie
-          dataKey='value'
-          isAnimationActive={false}
-          data={data}
-          cx='50%'
-          cy='50%'
-          outerRadius={80}
-          fill='var(--bs-secondary)'
-          label
-        >
-          {
-            data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index]} />
-            ))
-          }
-        </Pie>
-        <Tooltip />
-      </PieChart>
-    </ResponsiveContainer>
-  )
-}
 
 export function DonateButton () {
   const showModal = useShowModal()

@@ -46,8 +46,10 @@ export default function FeeButton ({ parentId, hasImgLink, baseFee, ChildButton,
   const { data } = useQuery(query, { pollInterval: 1000, nextFetchPolicy: 'cache-and-network' })
   const repetition = data?.itemRepetition || 0
   const formik = useFormikContext()
-  const boost = formik?.values?.boost || 0
+  const boost = Number(formik?.values?.boost) || 0
   const cost = baseFee * (hasImgLink ? 10 : 1) * Math.pow(10, repetition) + Number(boost)
+
+  console.log('cost', cost, 'baseFee', baseFee, repetition, hasImgLink, boost)
 
   const show = alwaysShow || !formik?.isSubmitting
   return (

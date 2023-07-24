@@ -1,8 +1,8 @@
 import styles from './text.module.css'
 import ReactMarkdown from 'react-markdown'
 import gfm from 'remark-gfm'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { atomDark } from 'react-syntax-highlighter/dist/cjs/styles/prism'
+import { LightAsync as SyntaxHighlighter } from 'react-syntax-highlighter'
+import atomDark from 'react-syntax-highlighter/dist/cjs/styles/prism/atom-dark'
 import mention from '../lib/remark-mention'
 import sub from '../lib/remark-sub'
 import remarkDirective from 'remark-directive'
@@ -18,7 +18,7 @@ import { IMGPROXY_URL_REGEXP, IMG_URL_REGEXP } from '../lib/url'
 import { extractUrls } from '../lib/md'
 import FileMissing from '../svgs/file-warning-line.svg'
 
-function myRemarkPlugin () {
+function searchHighlighter () {
   return (tree) => {
     visit(tree, (node) => {
       if (
@@ -128,10 +128,9 @@ export default memo(function Text ({ topLevel, noFragments, nofollow, onlyImgPro
             </span>,
           p: ({ children, ...props }) => <div className={styles.p} {...props}>{children}</div>,
           code ({ node, inline, className, children, ...props }) {
-            const match = /language-(\w+)/.exec(className || '')
             return !inline
               ? (
-                <SyntaxHighlighter showLineNumbers style={atomDark} language={match && match[1]} PreTag='div' {...props}>
+                <SyntaxHighlighter showLineNumbers style={atomDark} PreTag='div'>
                   {reactStringReplace(String(children).replace(/\n$/, ''), /:high\[([^\]]+)\]/g, (match, i) => {
                     return match
                   }).join('')}
@@ -176,7 +175,7 @@ export default memo(function Text ({ topLevel, noFragments, nofollow, onlyImgPro
           },
           img: ({ node, ...props }) => <ZoomableImage topLevel={topLevel} {...props} />
         }}
-        remarkPlugins={[gfm, mention, sub, remarkDirective, myRemarkPlugin]}
+        remarkPlugins={[gfm, mention, sub, remarkDirective, searchHighlighter]}
       >
         {children}
       </ReactMarkdown>

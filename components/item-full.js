@@ -34,8 +34,9 @@ function BioItem ({ item, handleClick }) {
     <>
       <ItemText item={item} />
       {me?.name === item.user.name &&
-        <div className='text-right'>
+        <div className='d-flex'>
           <Button
+            className='ms-auto'
             onClick={handleClick}
             size='md' variant='link'
           >edit bio

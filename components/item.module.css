@@ -17,6 +17,7 @@ a.title:visited {
 
 .upvote {
     margin-top: 3px;
+    padding-right: .2rem;
 }
 
 .link {
@@ -38,7 +39,8 @@ a.title:visited {
 
 .pin {
     fill: #a5a5a5;
-    margin-right: .2rem;
+    margin-right: .4rem;
+    margin-left: -.1rem;
 }
 
 .dontLike {

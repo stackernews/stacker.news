@@ -21,7 +21,6 @@ export default function Index ({ ssrData }) {
             destructureData={data => data.search}
             variables={variables}
             noMoreText='NO MORE'
-            rank
           />
         : (
           <div className='text-muted text-center mt-5' style={{ fontFamily: 'lightning', fontSize: '2rem', opacity: '0.75' }}>

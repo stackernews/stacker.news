@@ -79,6 +79,7 @@ $form-select-bg-size: 1.5rem;
 $popover-body-padding-y: .5rem;
 $popover-max-width: 320px !default;
 $popover-border-color: var(--theme-borderColor);
+$grid-gutter-width: 2rem;
 
 @import '../node_modules/bootstrap/scss/bootstrap.scss';
 

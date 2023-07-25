@@ -6,6 +6,8 @@
 
 .upvote {
     margin-top: 9px;
+    margin-left: .25rem;
+    margin-right: 0rem;
 }
 
 .dontLike {
@@ -55,12 +57,19 @@
 
 .children {
     margin-top: 0;
-    margin-left: 28px;
+    margin-left: 30px;
 }
 
 .comments {
-    margin-left: -1rem;
+    margin-left: -.75rem;
 }
+
+@media screen and (min-width: 768px) {
+
+    .comments {
+        margin-left: .75rem;
+    }
+  }
 
 .skeleton .hunk {
     width: 100%;

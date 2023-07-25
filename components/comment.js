@@ -203,7 +203,7 @@ export default function Comment ({
                   {root.bounty && !bountyPaid && <PayBounty item={item} />}
                 </Reply>}
               {children}
-              <div className={`${styles.comments} ms-sm-1 ms-md-3`}>
+              <div className={styles.comments}>
                 {item.comments && !noComments
                   ? item.comments.map((item) => (
                     <Comment depth={depth + 1} key={item.id} item={item} />

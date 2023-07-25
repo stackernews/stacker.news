@@ -234,7 +234,7 @@ export default function Header ({ sub }) {
   const me = useMe()
 
   return (
-    <Container as='header'>
+    <Container as='header' className='px-sm-0'>
       <Navbar className='pb-0 pb-lg-2'>
         <Nav
           className={styles.navbarNav}
@@ -243,7 +243,7 @@ export default function Header ({ sub }) {
           <div className='d-flex align-items-center'>
             <Back />
             <Link href='/' passHref legacyBehavior>
-              <Navbar.Brand className={`${styles.brand} d-flex`}>
+              <Navbar.Brand className={`${styles.brand} d-flex me-0 me-md-2`}>
                 SN
               </Navbar.Brand>
             </Link>

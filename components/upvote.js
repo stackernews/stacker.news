@@ -262,8 +262,8 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
                 className={`${disabled ? styles.noSelfTips : ''} ${styles.upvoteWrapper}`}
               >
                 <UpBolt
-                  width={24}
-                  height={24}
+                  width={26}
+                  height={26}
                   className={
                       `${styles.upvote}
                       ${className || ''}

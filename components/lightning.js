@@ -9,7 +9,7 @@ export class LightningProvider extends React.Component {
   }
 
   strike = () => {
-    const should = localStorage.getItem('lnAnimate') || 'yes'
+    const should = window.localStorage.getItem('lnAnimate') || 'yes'
     if (should === 'yes') {
       this.setState(state => {
         return {

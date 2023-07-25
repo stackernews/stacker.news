@@ -175,7 +175,7 @@ function PromoteJob ({ item, sub, storageKeyPrefix }) {
   const position = data?.auctionPosition
 
   useEffect(() => {
-    const initialMaxBid = Number(item?.maxBid || localStorage.getItem(storageKeyPrefix + '-maxBid')) || 0
+    const initialMaxBid = Number(item?.maxBid || window.localStorage.getItem(storageKeyPrefix + '-maxBid')) || 0
     getAuctionPosition({ variables: { id: item?.id, bid: initialMaxBid } })
     setMonthly(satsMin2Mo(initialMaxBid))
   }, [])

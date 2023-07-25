@@ -1,4 +1,3 @@
-
 // this is intended to be run everyday after midnight CT
 function views ({ models }) {
   return async function () {

@@ -36,7 +36,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
       <div className={`${styles.item} ${siblingComments ? 'pt-2' : ''}`}>
         {item.position
           ? <Pin width={24} height={24} className={styles.pin} />
-          : item.meDontLike ? <Flag width={24} height={24} className={`${styles.dontLike}`} /> : <UpVote item={item} className={styles.upvote} pendingSats={pendingSats} setPendingSats={setPendingSats} />}
+          : item.meDontLike ? <Flag width={24} height={24} className={styles.dontLike} /> : <UpVote item={item} className={styles.upvote} pendingSats={pendingSats} setPendingSats={setPendingSats} />}
         <div className={styles.hunk}>
           <div className={`${styles.main} flex-wrap`}>
             <Link href={`/items/${item.id}`} ref={titleRef} className={`${styles.title} text-reset me-2`}>
@@ -54,7 +54,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
               <>
                 {/*  eslint-disable-next-line */}
                 <a
-                  className={`${styles.link}`} target='_blank' href={item.url}
+                  className={styles.link} target='_blank' href={item.url}
                   rel={item.sats + item.boost >= NOFOLLOW_LIMIT ? null : 'nofollow'}
                 >
                   {item.url.replace(/(^https?:|^)\/\//, '')}

@@ -16,7 +16,7 @@ export default function Upload ({ as: Component, onSelect, onStarted, onError, o
   const upload = file => {
     onStarted && onStarted()
 
-    const img = new Image()
+    const img = new window.Image()
     img.src = window.URL.createObjectURL(file)
     img.onload = async () => {
       let data

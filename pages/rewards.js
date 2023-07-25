@@ -2,11 +2,6 @@ import { gql } from 'graphql-tag'
 import { useEffect, useState } from 'react'
 import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
-import { PieChart } from 'recharts/lib/chart/PieChart'
-import { Cell } from 'recharts/lib/component/Cell'
-import { Pie } from 'recharts/lib/polar/Pie'
-import { Tooltip } from 'recharts/lib/component/Tooltip'
-import { ResponsiveContainer } from 'recharts/lib/component/ResponsiveContainer'
 import { getGetServerSideProps } from '../api/ssrApollo'
 import { Form, Input, SubmitButton } from '../components/form'
 import { CenterLayout } from '../components/layout'
@@ -93,14 +88,6 @@ export default function Rewards ({ ssrData }) {
     </CenterLayout>
   )
 }
-
-const COLORS = [
-  'var(--bs-secondary)',
-  'var(--bs-info)',
-  'var(--bs-success)',
-  'var(--bs-boost)',
-  'var(--bs-grey)'
-]
 
 export function DonateButton () {
   const showModal = useShowModal()

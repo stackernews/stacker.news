@@ -24,7 +24,7 @@ export default function Index ({ ssrData }) {
       <Items
         ssrData={ssrData}
         query={SUB_ITEMS}
-        variables={variables} rank
+        variables={variables}
         noMoreText='NO MORE'
       />
     </Layout>

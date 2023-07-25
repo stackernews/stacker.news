@@ -52,21 +52,21 @@ export default function Poll ({ item }) {
           variant='outline-info' className={styles.pollButton}
           onClick={me
             ? async () => {
-                try {
-                  await pollVote({
-                    variables: { id: v.id },
-                    optimisticResponse: {
-                      pollVote: v.id
-                    }
-                  })
-                } catch (error) {
-                  if (error.toString().includes('insufficient funds')) {
-                    showModal(onClose => {
-                      return <FundError onClose={onClose} />
-                    })
+              try {
+                await pollVote({
+                  variables: { id: v.id },
+                  optimisticResponse: {
+                    pollVote: v.id
                   }
+                })
+              } catch (error) {
+                if (error.toString().includes('insufficient funds')) {
+                  showModal(onClose => {
+                    return <FundError onClose={onClose} />
+                  })
                 }
               }
+            }
             : signIn}
         >
           {v.option}

@@ -602,10 +602,10 @@ export default {
 
       const optionCount = id
         ? await models.pollOption.count({
-            where: {
-              itemId: Number(id)
-            }
-          })
+          where: {
+            itemId: Number(id)
+          }
+        })
         : 0
 
       await ssValidate(pollSchema, data, models, optionCount)

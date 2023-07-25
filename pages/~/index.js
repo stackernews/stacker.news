@@ -13,7 +13,7 @@ export default function Sub ({ ssrData }) {
 
   return (
     <Layout sub={variables.sub}>
-      <Items ssrData={ssrData} rank variables={variables} />
+      <Items ssrData={ssrData} variables={variables} />
     </Layout>
   )
 }

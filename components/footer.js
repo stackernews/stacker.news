@@ -128,15 +128,15 @@ export default function Footer ({ links = true }) {
   const [lightning, setLightning] = useState(undefined)
 
   useEffect(() => {
-    setLightning(localStorage.getItem('lnAnimate') || 'yes')
+    setLightning(window.localStorage.getItem('lnAnimate') || 'yes')
   }, [])
 
   const toggleLightning = () => {
     if (lightning === 'yes') {
-      localStorage.setItem('lnAnimate', 'no')
+      window.localStorage.setItem('lnAnimate', 'no')
       setLightning('no')
     } else {
-      localStorage.setItem('lnAnimate', 'yes')
+      window.localStorage.setItem('lnAnimate', 'yes')
       setLightning('yes')
     }
   }

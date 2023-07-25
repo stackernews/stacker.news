@@ -11,7 +11,7 @@ export default async ({ query }, res) => {
     const sig = Buffer.from(query.sig, 'hex')
     const k1 = Buffer.from(query.k1, 'hex')
     const key = Buffer.from(query.key, 'hex')
-    if (secp256k1.verify(signature, k1, key)) {
+    if (secp256k1.verify(sig, k1, key)) {
       const auth = await models.lnAuth.findUnique({ where: { k1: query.k1 } })
       if (!auth || auth.pubkey || auth.createdAt < Date.now() - HOUR) {
         return res.status(400).json({ status: 'ERROR', reason: 'token expired' })

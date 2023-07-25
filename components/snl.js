@@ -11,7 +11,7 @@ export default function Snl ({ ignorePreference }) {
   })
 
   useEffect(() => {
-    const dismissed = localStorage.getItem('snl')
+    const dismissed = window.localStorage.getItem('snl')
     if (!ignorePreference && dismissed && dismissed > new Date(dismissed) < dayPivot(new Date(), -6)) {
       return
     }
@@ -27,7 +27,7 @@ export default function Snl ({ ignorePreference }) {
         variant='info' className='fw-bold mb-3 d-flex py-2 flex-shrink align-items-center'
         onClose={() => {
           setShow(undefined)
-          localStorage.setItem('snl', new Date())
+          window.localStorage.setItem('snl', new Date())
         }}
         dismissible
       >

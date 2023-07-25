@@ -134,10 +134,10 @@ function LurkerCorner ({ path }) {
   const strike = useLightning()
 
   useEffect(() => {
-    if (!localStorage.getItem('striked')) {
+    if (!window.localStorage.getItem('striked')) {
       const to = setTimeout(() => {
         strike()
-        localStorage.setItem('striked', 'yep')
+        window.localStorage.setItem('striked', 'yep')
       }, randInRange(3000, 10000))
       return () => clearTimeout(to)
     }
@@ -263,7 +263,7 @@ export default function Header ({ sub }) {
       </Navbar>
       <Navbar className='pt-0 pb-2 d-lg-none'>
         <Nav
-          className={`${styles.navbarNav}`}
+          className={styles.navbarNav}
           activeKey={topNavKey}
         >
           <NavItems className='me-1' prefix={prefix} sub={sub} />
@@ -289,7 +289,7 @@ export function HeaderStatic () {
           <div className='d-flex align-items-center'>
             <Back />
             <Link href='/' passHref legacyBehavior>
-              <Navbar.Brand className={`${styles.brand}`}>
+              <Navbar.Brand className={styles.brand}>
                 SN
               </Navbar.Brand>
             </Link>

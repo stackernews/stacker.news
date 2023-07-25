@@ -101,7 +101,7 @@ export default function Search ({ sub }) {
 
                       </>}
                   </div>}
-                <div className={`${styles.active}`}>
+                <div className={styles.active}>
                   <Input
                     name='q'
                     required

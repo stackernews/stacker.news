@@ -43,7 +43,7 @@ export const ServiceWorkerProvider = ({ children }) => {
   const requestNotificationPermission = useCallback(() => {
     // https://web.dev/push-notifications-subscribing-a-user/#requesting-permission
     return new Promise(function (resolve, reject) {
-      const permission = Notification.requestPermission(function (result) {
+      const permission = window.Notification.requestPermission(function (result) {
         resolve(result)
       })
       if (permission) {
@@ -88,7 +88,7 @@ export const ServiceWorkerProvider = ({ children }) => {
       notification: 'Notification' in window,
       pushManager: 'PushManager' in window
     })
-    setPermission({ notification: 'Notification' in window ? Notification.permission : 'denied' })
+    setPermission({ notification: 'Notification' in window ? window.Notification.permission : 'denied' })
   }, [])
 
   useEffect(() => {

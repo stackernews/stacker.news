@@ -91,6 +91,9 @@
   },
   "standard": {
     "parser": "@babel/eslint-parser",
+    "plugins": [
+      "@next/next"
+    ],
     "extends": [
       "next"
     ]

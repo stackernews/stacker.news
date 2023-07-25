@@ -13,7 +13,7 @@ export function SeoSearch ({ sub }) {
       title={title}
       description={desc}
       openGraph={{
-        title: title,
+        title,
         description: desc,
         images: [
           {

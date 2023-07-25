@@ -97,14 +97,14 @@ export default function Invites () {
 
   const [active, inactive] = data && data.invites
     ? data.invites.reduce((result, invite) => {
-        result[
-          invite.revoked || (invite.limit &&
+      result[
+        invite.revoked || (invite.limit &&
             invite.invitees.length >= invite.limit)
-            ? 1
-            : 0].push(invite)
-        return result
-      },
-      [[], []])
+          ? 1
+          : 0].push(invite)
+      return result
+    },
+    [[], []])
     : [[], []]
 
   return (

@@ -25,7 +25,7 @@ const Tips = ({ setOValue }) => {
     </Button>)
 }
 
-const getCustomTips = () => JSON.parse(localStorage.getItem('custom-tips')) || []
+const getCustomTips = () => JSON.parse(window.localStorage.getItem('custom-tips')) || []
 
 const addCustomTip = (amount) => {
   if (defaultTips.includes(amount)) return
@@ -33,7 +33,7 @@ const addCustomTip = (amount) => {
   if (customTips.length > 3) {
     customTips = customTips.slice(0, 3)
   }
-  localStorage.setItem('custom-tips', JSON.stringify(customTips))
+  window.localStorage.setItem('custom-tips', JSON.stringify(customTips))
 }
 
 export default function ItemAct ({ onClose, itemId, act, strike }) {

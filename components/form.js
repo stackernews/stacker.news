@@ -31,9 +31,9 @@ export function SubmitButton ({
       disabled={disabled || isSubmitting}
       onClick={value
         ? e => {
-            setFieldValue('submit', value)
-            onClick && onClick(e)
-          }
+          setFieldValue('submit', value)
+          onClick && onClick(e)
+        }
         : onClick}
       {...props}
     >
@@ -231,10 +231,10 @@ function InputInner ({
     if (overrideValue) {
       helpers.setValue(overrideValue)
       if (storageKey) {
-        localStorage.setItem(storageKey, overrideValue)
+        window.localStorage.setItem(storageKey, overrideValue)
       }
     } else if (storageKey) {
-      const draft = localStorage.getItem(storageKey)
+      const draft = window.localStorage.getItem(storageKey)
       if (draft) {
         // for some reason we have to turn off validation to get formik to
         // not assume this is invalid
@@ -264,7 +264,7 @@ function InputInner ({
             field.onChange(e)
 
             if (storageKey) {
-              localStorage.setItem(storageKey, e.target.value)
+              window.localStorage.setItem(storageKey, e.target.value)
             }
 
             if (onChange) {
@@ -280,7 +280,7 @@ function InputInner ({
             onClick={(e) => {
               helpers.setValue('')
               if (storageKey) {
-                localStorage.removeItem(storageKey)
+                window.localStorage.removeItem(storageKey)
               }
               if (onChange) {
                 onChange(formik, { target: { value: '' } })
@@ -460,10 +460,10 @@ export function Form ({
         onSubmit && onSubmit(values, ...args).then(() => {
           if (!storageKeyPrefix) return
           Object.keys(values).forEach(v => {
-            localStorage.removeItem(storageKeyPrefix + '-' + v)
+            window.localStorage.removeItem(storageKeyPrefix + '-' + v)
             if (Array.isArray(values[v])) {
               values[v].forEach(
-                (_, i) => localStorage.removeItem(`${storageKeyPrefix}-${v}[${i}]`))
+                (_, i) => window.localStorage.removeItem(`${storageKeyPrefix}-${v}[${i}]`))
             }
           }
           )

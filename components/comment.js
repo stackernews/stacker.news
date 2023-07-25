@@ -110,7 +110,7 @@ export default function Comment ({
   const [pendingSats, setPendingSats] = useState(0)
 
   useEffect(() => {
-    setCollapse(localStorage.getItem(`commentCollapse:${item.id}`) || collapse)
+    setCollapse(window.localStorage.getItem(`commentCollapse:${item.id}`) || collapse)
     if (Number(router.query.commentId) === Number(item.id)) {
       // HACK wait for other comments to collapse if they're collapsed
       setTimeout(() => {
@@ -134,7 +134,7 @@ export default function Comment ({
     >
       <div className={`${itemStyles.item} ${styles.item}`}>
         {item.meDontLike
-          ? <Flag width={24} height={24} className={`${styles.dontLike}`} />
+          ? <Flag width={24} height={24} className={styles.dontLike} />
           : <UpVote item={item} className={styles.upvote} pendingSats={pendingSats} setPendingSats={setPendingSats} />}
         <div className={`${itemStyles.hunk} ${styles.hunk}`}>
           <div className='d-flex align-items-center'>
@@ -160,13 +160,13 @@ export default function Comment ({
               ? <Eye
                   className={styles.collapser} height={10} width={10} onClick={() => {
                     setCollapse('nope')
-                    localStorage.setItem(`commentCollapse:${item.id}`, 'nope')
+                    window.localStorage.setItem(`commentCollapse:${item.id}`, 'nope')
                   }}
                 />
               : <EyeClose
                   className={styles.collapser} height={10} width={10} onClick={() => {
                     setCollapse('yep')
-                    localStorage.setItem(`commentCollapse:${item.id}`, 'yep')
+                    window.localStorage.setItem(`commentCollapse:${item.id}`, 'yep')
                   }}
                 />)}
             {topLevel && (
@@ -197,7 +197,7 @@ export default function Comment ({
         bottomedOut
           ? <DepthLimit item={item} />
           : (
-            <div className={`${styles.children}`}>
+            <div className={styles.children}>
               {!noReply &&
                 <Reply depth={depth + 1} item={item} replyOpen={replyOpen}>
                   {root.bounty && !bountyPaid && <PayBounty item={item} />}
@@ -207,7 +207,7 @@ export default function Comment ({
                 {item.comments && !noComments
                   ? item.comments.map((item) => (
                     <Comment depth={depth + 1} key={item.id} item={item} />
-                    ))
+                  ))
                   : null}
               </div>
             </div>
@@ -227,7 +227,7 @@ function DepthLimit ({ item }) {
   }
 
   return (
-    <div className={`${styles.children}`}>
+    <div className={styles.children}>
       <ReplyOnAnotherPage parentId={item.id} />
     </div>
   )

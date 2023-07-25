@@ -20,7 +20,7 @@ function writeQuery (client, apollo, data) {
   if (apollo && data) {
     client.writeQuery({
       query: gql`${apollo.query}`,
-      data: data,
+      data,
       variables: apollo.variables,
       broadcast: !SSR,
       overwrite: SSR

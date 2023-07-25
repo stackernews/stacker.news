@@ -86,7 +86,7 @@ export function FundForm () {
     }`)
 
   useEffect(() => {
-    setShowAlert(!localStorage.getItem('hideLnAddrAlert'))
+    setShowAlert(!window.localStorage.getItem('hideLnAddrAlert'))
   }, [])
 
   if (called && !error) {
@@ -99,7 +99,7 @@ export function FundForm () {
       {me && showAlert &&
         <Alert
           variant='success' dismissible onClose={() => {
-            localStorage.setItem('hideLnAddrAlert', 'yep')
+            window.localStorage.setItem('hideLnAddrAlert', 'yep')
             setShowAlert(false)
           }}
         >

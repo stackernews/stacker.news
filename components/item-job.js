@@ -22,7 +22,7 @@ export default function ItemJob ({ item, toc, rank, children }) {
             {rank}
           </div>)
         : <div />}
-      <div className={`${styles.item}`}>
+      <div className={styles.item}>
         <Link href={`/items/${item.id}`}>
           <Image
             src={item.uploadId ? `https://${process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET}.s3.amazonaws.com/${item.uploadId}` : '/jobs-default.png'} width='42' height='42' className={styles.companyImage}
@@ -37,7 +37,7 @@ export default function ItemJob ({ item, toc, rank, children }) {
                   <>{item.title}</>)}
             </Link>
           </div>
-          <div className={`${styles.other}`}>
+          <div className={styles.other}>
             {item.company &&
               <>
                 {item.company}
@@ -78,7 +78,7 @@ export default function ItemJob ({ item, toc, rank, children }) {
           </>}
       </div>
       {children && (
-        <div className={`${styles.children}`} style={{ marginLeft: 'calc(42px + .8rem)' }}>
+        <div className={styles.children} style={{ marginLeft: 'calc(42px + .8rem)' }}>
           <div className='mb-3 d-flex'>
             <Button
               target='_blank' href={isEmail ? `mailto:${item.url}?subject=${encodeURIComponent(item.title)} via Stacker News` : item.url}

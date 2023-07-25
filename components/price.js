@@ -38,7 +38,7 @@ export function PriceProvider ({ price, children }) {
 export default function Price ({ className }) {
   const [asSats, setAsSats] = useState(undefined)
   useEffect(() => {
-    setAsSats(localStorage.getItem('asSats'))
+    setAsSats(window.localStorage.getItem('asSats'))
   }, [])
   const { price, fiatSymbol } = usePrice()
 
@@ -46,13 +46,13 @@ export default function Price ({ className }) {
 
   const handleClick = () => {
     if (asSats === 'yep') {
-      localStorage.setItem('asSats', '1btc')
+      window.localStorage.setItem('asSats', '1btc')
       setAsSats('1btc')
     } else if (asSats === '1btc') {
-      localStorage.removeItem('asSats')
+      window.localStorage.removeItem('asSats')
       setAsSats(undefined)
     } else {
-      localStorage.setItem('asSats', 'yep')
+      window.localStorage.setItem('asSats', 'yep')
       setAsSats('yep')
     }
   }

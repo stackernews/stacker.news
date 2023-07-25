@@ -3,7 +3,7 @@ import lnd from '../../../../api/lnd'
 import { createInvoice } from 'ln-service'
 import { lnurlPayDescriptionHashForUser } from '../../../../lib/lnurl'
 import serialize from '../../../../api/resolvers/serial'
-import { schnorr } from '@noble/curves/secp256k1';
+import { schnorr } from '@noble/curves/secp256k1'
 import { createHash } from 'crypto'
 
 export default async ({ query: { username, amount, nostr } }, res) => {
@@ -38,7 +38,7 @@ export default async ({ query: { username, amount, nostr } }, res) => {
     // generate invoice
     const expiresAt = new Date(new Date().setMinutes(new Date().getMinutes() + 1))
     const invoice = await createInvoice({
-      description: description,
+      description,
       description_hash: descriptionHash,
       lnd,
       mtokens: amount,

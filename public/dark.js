@@ -67,7 +67,7 @@ export const getTheme = () => {
   const supportsColorSchemeQuery = mql.media === PREFER_DARK_QUERY
   let localStorageTheme = null
   try {
-    localStorageTheme = localStorage.getItem(STORAGE_KEY)
+    localStorageTheme = window.localStorage.getItem(STORAGE_KEY)
   } catch (err) {}
   const localStorageExists = localStorageTheme !== null
   if (localStorageExists) {
@@ -82,7 +82,7 @@ export const getTheme = () => {
 }
 
 export const setTheme = (dark) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(dark))
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(dark))
   handleThemeChange(dark)
 }
 

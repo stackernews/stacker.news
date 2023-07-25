@@ -39,7 +39,7 @@ export default function Reply ({ item, onSuccess, replyOpen, children, placehold
   const parentId = item.id
 
   useEffect(() => {
-    setReply(replyOpen || !!localStorage.getItem('reply-' + parentId + '-' + 'text'))
+    setReply(replyOpen || !!window.localStorage.getItem('reply-' + parentId + '-' + 'text'))
   }, [])
 
   const [createComment] = useMutation(

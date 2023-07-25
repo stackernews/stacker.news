@@ -236,21 +236,21 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
             onShortPress={
             me
               ? async (e) => {
-                  if (!item) return
+                if (!item) return
 
-                  // we can't tip ourselves
-                  if (disabled) {
-                    return
-                  }
-
-                  if (meSats) {
-                    setVoteShow(false)
-                  }
-
-                  strike()
-
-                  setPendingSats(pendingSats + sats)
+                // we can't tip ourselves
+                if (disabled) {
+                  return
                 }
+
+                if (meSats) {
+                  setVoteShow(false)
+                }
+
+                strike()
+
+                setPendingSats(pendingSats + sats)
+              }
               : async () => await router.push({
                 pathname: '/signup',
                 query: { callbackUrl: window.location.origin + router.asPath }

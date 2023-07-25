@@ -1,3 +1,4 @@
+/* global self */
 import { precacheAndRoute } from 'workbox-precaching'
 import { offlineFallback } from 'workbox-recipes'
 import { setDefaultHandler } from 'workbox-routing'

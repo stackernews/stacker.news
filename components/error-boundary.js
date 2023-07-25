@@ -1,6 +1,7 @@
 import { Component } from 'react'
 import { StaticLayout } from './layout'
 import styles from '../styles/404.module.css'
+import Image from 'react-bootstrap/Image'
 
 class ErrorBoundary extends Component {
   constructor (props) {

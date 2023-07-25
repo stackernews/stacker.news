@@ -88,7 +88,7 @@ export default memo(function Text ({ topLevel, noFragments, nofollow, onlyImgPro
       if (imgRegexp.test(url)) {
         setUrlCache((prev) => ({ ...prev, [url]: CACHE_STATES.IS_LOADED }))
       } else if (!onlyImgProxy) {
-        const img = new Image()
+        const img = new window.Image()
         imgCache.current[url] = img
 
         setUrlCache((prev) => ({ ...prev, [url]: CACHE_STATES.IS_LOADING }))
@@ -157,8 +157,8 @@ export default memo(function Text ({ topLevel, noFragments, nofollow, onlyImgPro
             children = children?.map(e =>
               typeof e === 'string'
                 ? reactStringReplace(e, /:high\[([^\]]+)\]/g, (match, i) => {
-                    return <mark key={`mark-${match}-${i}`}>{match}</mark>
-                  })
+                  return <mark key={`mark-${match}-${i}`}>{match}</mark>
+                })
                 : e)
 
             return (

@@ -268,14 +268,14 @@ function NotificationAlert () {
     const isSupported = sw.support.serviceWorker && sw.support.pushManager && sw.support.notification
     if (isSupported) {
       const isDefaultPermission = sw.permission.notification === 'default'
-      setShowAlert(isDefaultPermission && !localStorage.getItem('hideNotifyPrompt'))
+      setShowAlert(isDefaultPermission && !window.localStorage.getItem('hideNotifyPrompt'))
       sw.registration?.pushManager.getSubscription().then(subscription => setHasSubscription(!!subscription))
       setSupported(true)
     }
   }, [sw])
 
   const close = () => {
-    localStorage.setItem('hideNotifyPrompt', 'yep')
+    window.localStorage.setItem('hideNotifyPrompt', 'yep')
     setShowAlert(false)
   }
 
@@ -299,7 +299,7 @@ function NotificationAlert () {
               }}
             >Yes
             </button>
-            <button className={`${styles.alertBtn}`} onClick={close}>No</button>
+            <button className={styles.alertBtn} onClick={close}>No</button>
           </Alert>
           )
         : (

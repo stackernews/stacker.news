@@ -1,6 +1,6 @@
 import { NextSeo } from 'next-seo'
 import { useRouter } from 'next/router'
-import RemoveMarkdown from 'remove-markdown'
+import removeMd from 'remove-markdown'
 
 export function SeoSearch ({ sub }) {
   const router = useRouter()
@@ -50,7 +50,7 @@ export default function Seo ({ sub, item, user }) {
     }
     // at least for now subs (ie the only one is jobs) will always have text
     if (item.text) {
-      desc = RemoveMarkdown(item.text)
+      desc = removeMd(item.text)
       if (desc) {
         desc = desc.replace(/\s+/g, ' ')
       }

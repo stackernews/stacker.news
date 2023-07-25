@@ -1,7 +1,7 @@
 // verify it's signed
 // store pubkey in db
 // create user with pubkey and name truncated pubkey
-import secp256k1 from 'secp256k1'
+import { secp256k1 } from '@noble/curves/secp256k1'
 import models from '../../api/models'
 
 const HOUR = 1000 * 60 * 60
@@ -11,8 +11,7 @@ export default async ({ query }, res) => {
     const sig = Buffer.from(query.sig, 'hex')
     const k1 = Buffer.from(query.k1, 'hex')
     const key = Buffer.from(query.key, 'hex')
-    const signature = secp256k1.signatureImport(sig)
-    if (secp256k1.ecdsaVerify(signature, k1, key)) {
+    if (secp256k1.verify(signature, k1, key)) {
       const auth = await models.lnAuth.findUnique({ where: { k1: query.k1 } })
       if (!auth || auth.pubkey || auth.createdAt < Date.now() - HOUR) {
         return res.status(400).json({ status: 'ERROR', reason: 'token expired' })

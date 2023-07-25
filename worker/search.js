@@ -1,5 +1,6 @@
 const { gql } = require('graphql-tag')
 const search = require('../api/search')
+const removeMd = require('remove-markdown')
 
 const ITEM_SEARCH_FIELDS = gql`
   fragment ItemSearchFields on Item {
@@ -49,6 +50,9 @@ async function _indexItem (item) {
   }
   if (!item.sub?.name && item.root?.subName) {
     itemcp.sub = { name: item.root.subName }
+  }
+  if (item.text) {
+    itemcp.text = removeMd(item.text)
   }
 
   try {

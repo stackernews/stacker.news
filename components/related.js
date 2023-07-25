@@ -7,7 +7,6 @@ const LIMIT = 5
 
 export default function Related ({ title, itemId }) {
   const variables = { title, id: itemId, limit: LIMIT }
-
   return (
     <AccordianItem
       header={<div className='fw-bold'>related</div>}

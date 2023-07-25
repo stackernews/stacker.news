@@ -2,7 +2,7 @@ import { gql } from 'graphql-tag'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { getGetServerSideProps } from '../../api/ssrApollo'
-import { CopyInput, Form, Select } from '../../components/form'
+import { CopyInput, Select } from '../../components/form'
 import { CenterLayout } from '../../components/layout'
 import { useMe } from '../../components/me'
 import { useQuery } from '@apollo/client'
@@ -43,23 +43,19 @@ export default function Referrals ({ ssrData }) {
 
   return (
     <CenterLayout footerLinks>
-      <Form
-        initial={{
-          when: router.query.when
-        }}
-      >
-        <h4 className='fw-bold text-muted text-center pt-5 pb-3 d-flex align-items-center justify-content-center'>
-          {totalReferrals} referrals & {totalSats} sats in the last
-          <Select
-            groupClassName='mb-0 ms-2'
-            className='w-auto'
-            name='when'
-            size='sm'
-            items={WHENS}
-            onChange={(formik, e) => router.push(`/referrals/${e.target.value}`)}
-          />
-        </h4>
-      </Form>
+      <h4 className='fw-bold text-muted text-center pt-5 pb-3 d-flex align-items-center justify-content-center'>
+        {totalReferrals} referrals & {totalSats} sats in the last
+        <Select
+          groupClassName='mb-0 ms-2'
+          className='w-auto'
+          name='when'
+          size='sm'
+          items={WHENS}
+          value={router.query.when || 'day'}
+          noForm
+          onChange={(formik, e) => router.push(`/referrals/${e.target.value}`)}
+        />
+      </h4>
       <WhenComposedChart data={stats} lineNames={['sats']} barNames={['referrals']} />
 
       <div

@@ -31,15 +31,15 @@ export default function TopHeader ({ sub, cat }) {
     })
   }
 
+  const what = cat
+  const by = router.query.by || ''
+  const when = router.query.when || ''
+
   return (
     <div className='d-flex'>
       <Form
         className='me-auto'
-        initial={{
-          what: cat,
-          by: router.query.by || '',
-          when: router.query.when || ''
-        }}
+        initial={{ what, by, when }}
         onSubmit={top}
       >
         <div className='text-muted fw-bold my-3 d-flex align-items-center'>
@@ -49,6 +49,7 @@ export default function TopHeader ({ sub, cat }) {
             onChange={(formik, e) => top({ ...formik?.values, what: e.target.value })}
             name='what'
             size='sm'
+            overrideValue={what}
             items={router?.query?.sub ? ['posts', 'comments'] : ['posts', 'comments', 'stackers', 'cowboys']}
           />
           {cat !== 'cowboys' &&
@@ -59,6 +60,7 @@ export default function TopHeader ({ sub, cat }) {
                 onChange={(formik, e) => top({ ...formik?.values, by: e.target.value })}
                 name='by'
                 size='sm'
+                overrideValue={by}
                 items={cat === 'stackers' ? USER_SORTS : ITEM_SORTS}
               />
               for
@@ -67,6 +69,7 @@ export default function TopHeader ({ sub, cat }) {
                 onChange={(formik, e) => top({ ...formik?.values, when: e.target.value })}
                 name='when'
                 size='sm'
+                overrideValue={when}
                 items={WHENS}
               />
             </>}

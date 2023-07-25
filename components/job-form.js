@@ -144,7 +144,7 @@ export default function JobForm ({ item, sub }) {
           required
           clear
         />
-        <PromoteJob item={item} sub={sub} storageKeyPrefix={storageKeyPrefix} />
+        <PromoteJob item={item} sub={sub} />
         {item && <StatusControl item={item} />}
         <div className='d-flex align-items-center justify-content-end mt-3'>
           {item
@@ -165,7 +165,7 @@ export default function JobForm ({ item, sub }) {
   )
 }
 
-function PromoteJob ({ item, sub, storageKeyPrefix }) {
+function PromoteJob ({ item, sub }) {
   const [monthly, setMonthly] = useState(satsMin2Mo(item?.maxBid || 0))
   const [getAuctionPosition, { data }] = useLazyQuery(gql`
     query AuctionPosition($id: ID, $bid: Int!) {
@@ -175,7 +175,7 @@ function PromoteJob ({ item, sub, storageKeyPrefix }) {
   const position = data?.auctionPosition
 
   useEffect(() => {
-    const initialMaxBid = Number(item?.maxBid || window.localStorage.getItem(storageKeyPrefix + '-maxBid')) || 0
+    const initialMaxBid = Number(item?.maxBid) || 0
     getAuctionPosition({ variables: { id: item?.id, bid: initialMaxBid } })
     setMonthly(satsMin2Mo(initialMaxBid))
   }, [])
@@ -211,7 +211,6 @@ function PromoteJob ({ item, sub, storageKeyPrefix }) {
             }}
             append={<InputGroup.Text className='text-monospace'>sats/min</InputGroup.Text>}
             hint={<PriceHint monthly={monthly} />}
-            storageKeyPrefix={storageKeyPrefix}
           />
           <><div className='fw-bold text-muted'>This bid puts your job in position: {position}</div></>
         </>

@@ -41,9 +41,9 @@ function UserItemsHeader ({ type, name }) {
 
   async function select (values) {
     let { type, ...query } = values
-    if (!type || !ITEM_TYPES('user').includes(type)) type = 'all'
-    if (!query.by || !ITEM_SORTS.includes(query.by)) delete query.by
-    if (!query.when || !WHENS.includes(query.when) || query.when === 'forever') delete query.when
+    if (!type || type === 'all' || !ITEM_TYPES('user').includes(type)) type = 'all'
+    if (!query.by || query.by === 'recent' || !ITEM_SORTS.includes(query.by)) delete query.by
+    if (!query.when || query.when === 'forever' || !WHENS.includes(query.when) || query.when === 'forever') delete query.when
 
     await router.push({
       pathname: `/${name}/${type}`,
@@ -51,13 +51,13 @@ function UserItemsHeader ({ type, name }) {
     })
   }
 
+  type ||= router.query.type || 'all'
+  const by = router.query.by || 'recent'
+  const when = router.query.when || 'forever'
+
   return (
     <Form
-      initial={{
-        type,
-        by: router.query.by || 'recent',
-        when: router.query.when || 'forever'
-      }}
+      initial={{ type, by, when }}
       onSubmit={select}
     >
       <div className='text-muted fw-bold mt-0 mb-3 d-flex justify-content-start align-items-center'>
@@ -66,6 +66,7 @@ function UserItemsHeader ({ type, name }) {
           className='w-auto'
           name='type'
           size='sm'
+          overrideValue={type}
           items={ITEM_TYPES('user')}
           onChange={(formik, e) => select({ ...formik?.values, type: e.target.value })}
         />
@@ -75,6 +76,7 @@ function UserItemsHeader ({ type, name }) {
           className='w-auto'
           name='by'
           size='sm'
+          overrideValue={by}
           items={['recent', ...ITEM_SORTS]}
           onChange={(formik, e) => select({ ...formik?.values, by: e.target.value })}
         />
@@ -85,6 +87,7 @@ function UserItemsHeader ({ type, name }) {
           name='when'
           size='sm'
           items={WHENS}
+          overrideValue={when}
           onChange={(formik, e) => select({ ...formik?.values, when: e.target.value })}
         />
       </div>

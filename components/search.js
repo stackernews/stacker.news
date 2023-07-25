@@ -42,9 +42,9 @@ export default function Search ({ sub }) {
         return
       }
 
-      if (values.what === '') delete values.what
-      if (values.sort === '') delete values.sort
-      if (values.when === '') delete values.when
+      if (values.what === '' || values.what === 'all') delete values.what
+      if (values.sort === '' || values.sort === 'match') delete values.sort
+      if (values.when === '' || values.when === 'forever') delete values.when
       await router.push({
         pathname: prefix + '/search',
         query: values
@@ -54,7 +54,10 @@ export default function Search ({ sub }) {
 
   const showSearch = atBottom || searching || router.query.q
   const filter = sub !== 'jobs'
-  const what = router.pathname.startsWith('/stackers') ? 'stackers' : router.query.what
+  const what = router.pathname.startsWith('/stackers') ? 'stackers' : router.query.what || 'all'
+  const sort = router.query.sort || 'match'
+  const when = router.query.when || 'forever'
+
   return (
     <>
       <div className={`${styles.searchSection} ${showSearch ? styles.solid : styles.hidden}`}>
@@ -63,12 +66,7 @@ export default function Search ({ sub }) {
             ? (
               <Form
                 className={styles.formActive}
-                initial={{
-                  q: router.query.q || '',
-                  what: what || '',
-                  sort: router.query.sort || '',
-                  when: router.query.when || ''
-                }}
+                initial={{ q, what, sort, when }}
                 onSubmit={search}
               >
                 {filter &&
@@ -78,6 +76,7 @@ export default function Search ({ sub }) {
                       onChange={(formik, e) => search({ ...formik?.values, what: e.target.value })}
                       name='what'
                       size='sm'
+                      overrideValue={what}
                       items={['all', 'posts', 'comments', 'stackers']}
                     />
                     {what !== 'stackers' &&
@@ -88,6 +87,7 @@ export default function Search ({ sub }) {
                           onChange={(formik, e) => search({ ...formik?.values, sort: e.target.value })}
                           name='sort'
                           size='sm'
+                          overrideValue={sort}
                           items={['match', 'recent', 'comments', 'sats', 'votes']}
                         />
                         for
@@ -96,6 +96,7 @@ export default function Search ({ sub }) {
                           onChange={(formik, e) => search({ ...formik?.values, when: e.target.value })}
                           name='when'
                           size='sm'
+                          overrideValue={when}
                           items={['forever', 'day', 'week', 'month', 'year']}
                         />
 
@@ -109,6 +110,7 @@ export default function Search ({ sub }) {
                     groupClassName='me-3 mb-0 flex-grow-1'
                     className='flex-grow-1'
                     clear
+                    overrideValue={q}
                     onChange={async (formik, e) => {
                       setSearching(true)
                       setQ(e.target.value?.trim())

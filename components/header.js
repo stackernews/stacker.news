@@ -17,7 +17,7 @@ import NoteIcon from '../svgs/notification-4-fill.svg'
 import { useQuery } from '@apollo/client'
 import LightningIcon from '../svgs/bolt.svg'
 import CowboyHat from './cowboy-hat'
-import { Form, Select } from './form'
+import { Select } from './form'
 import SearchIcon from '../svgs/search-line.svg'
 import BackArrow from '../svgs/arrow-left-line.svg'
 import { SUBS } from '../lib/constants'
@@ -181,18 +181,15 @@ function NavItems ({ className, sub, prefix }) {
   return (
     <>
       <Nav.Item className={className}>
-        <Form
-          initial={{ sub }}
-        >
-          <Select
-            groupClassName='mb-0'
-            onChange={(formik, e) => router.push(e.target.value === 'home' ? '/' : `/~${e.target.value}`)}
-            name='sub'
-            size='sm'
-            overrideValue={sub}
-            items={['home', ...SUBS]}
-          />
-        </Form>
+        <Select
+          groupClassName='mb-0'
+          onChange={(_, e) => router.push(e.target.value === 'home' ? '/' : `/~${e.target.value}`)}
+          name='sub'
+          size='sm'
+          value={sub}
+          noForm
+          items={['home', ...SUBS]}
+        />
       </Nav.Item>
       <Nav.Item className={className}>
         <Link href={prefix + '/'} passHref legacyBehavior>

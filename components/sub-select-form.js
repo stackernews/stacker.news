@@ -30,6 +30,9 @@ export default function SubSelect ({ label, sub, setSub, item, ...props }) {
     </Info>
   )
 
+  sub ||= router.query.sub
+  const extraProps = props.noForm ? { value: sub } : { overrideValue: sub }
+
   return (
     <Select
       className='w-auto d-flex'
@@ -45,7 +48,7 @@ export default function SubSelect ({ label, sub, setSub, item, ...props }) {
       }}
       name='sub'
       size='sm'
-      defaultValue={props.noForm ? sub : undefined}
+      {...extraProps}
       items={props.noForm ? ['pick sub', ...SUBS] : item ? SUBS_NO_JOBS : ['pick sub', ...SUBS_NO_JOBS]}
       label={label &&
         <>

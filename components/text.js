@@ -200,9 +200,9 @@ export function ZoomableImage ({ src, topLevel, ...props }) {
   if (!src) return null
   if (err) {
     return (
-      <span className='d-flex align-items-center text-warning fw-bold pb-1'>
-        <FileMissing width={18} height={18} className='fill-warning me-1' />
-        broken image <small>stacker probably used an unreliable host</small>
+      <span className='d-flex align-items-baseline text-warning-emphasis fw-bold pb-1'>
+        <FileMissing width={18} height={18} className='fill-warning me-1 align-self-center' />
+        broken image <small className='ms-1'>stacker probably used an unreliable host</small>
       </span>
     )
   }

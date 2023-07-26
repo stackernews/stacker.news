@@ -501,8 +501,9 @@ div[contenteditable]:focus,
 
 .btn-secondary,
 .btn-secondary:hover,
+.btn-secondary:active,
 .btn-secondary:disabled {
-  color: #ffffff;
+  color: #ffffff !important;
 }
 
 .btn-twitter svg {

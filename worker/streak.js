@@ -7,7 +7,7 @@ function computeStreaks ({ models }) {
     // get all eligible users in the last day
     // if the user doesn't have an active streak, add one
     // if they have an active streak but didn't maintain it, end it
-    await models.$executeRaw(
+    await models.$executeRawUnsafe(
       `WITH day_streaks (id) AS (
         SELECT "userId"
         FROM

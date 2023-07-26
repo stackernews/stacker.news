@@ -6,7 +6,7 @@ function views ({ models }) {
     for (const view of ['reg_growth_days', 'spender_growth_days', 'item_growth_days',
       'spending_growth_days', 'stackers_growth_days', 'stacking_growth_days',
       'user_stats_days']) {
-      await models.$queryRaw(`REFRESH MATERIALIZED VIEW CONCURRENTLY ${view}`)
+      await models.$queryRawUnsafe(`REFRESH MATERIALIZED VIEW CONCURRENTLY ${view}`)
     }
 
     console.log('done refreshing stats views')
@@ -19,7 +19,7 @@ function rankViews ({ models }) {
     console.log('refreshing rank views')
 
     for (const view of ['sat_rank_wwm_view', 'sat_rank_tender_view']) {
-      await models.$queryRaw(`REFRESH MATERIALIZED VIEW CONCURRENTLY ${view}`)
+      await models.$queryRawUnsafe(`REFRESH MATERIALIZED VIEW CONCURRENTLY ${view}`)
     }
 
     console.log('done refreshing rank views')

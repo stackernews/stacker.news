@@ -65,7 +65,7 @@ export default {
   Query: {
     registrationGrowth: async (parent, { when }, { models }) => {
       if (when !== 'day') {
-        return await models.$queryRaw(`
+        return await models.$queryRawUnsafe(`
           SELECT date_trunc('${timeUnit(when)}', day) as time, json_build_array(
             json_build_object('name', 'referrals', 'value', sum(referrals)),
             json_build_object('name', 'organic', 'value', sum(organic))
@@ -76,7 +76,7 @@ export default {
           ORDER BY time ASC`)
       }
 
-      return await models.$queryRaw(
+      return await models.$queryRawUnsafe(
         `${withClause(when)}
         SELECT time, json_build_array(
           json_build_object('name', 'referrals', 'value', count("referrerId")),
@@ -89,7 +89,7 @@ export default {
     },
     spenderGrowth: async (parent, { when }, { models }) => {
       if (when !== 'day') {
-        return await models.$queryRaw(`
+        return await models.$queryRawUnsafe(`
           SELECT date_trunc('${timeUnit(when)}', day) as time, json_build_array(
             json_build_object('name', 'any', 'value', floor(avg("any"))),
             json_build_object('name', 'jobs', 'value', floor(avg(jobs))),
@@ -104,7 +104,7 @@ export default {
           ORDER BY time ASC`)
       }
 
-      return await models.$queryRaw(
+      return await models.$queryRawUnsafe(
         `${withClause(when)}
         SELECT time, json_build_array(
           json_build_object('name', 'any', 'value', count(DISTINCT "userId")),
@@ -128,7 +128,7 @@ export default {
     },
     itemGrowth: async (parent, { when }, { models }) => {
       if (when !== 'day') {
-        return await models.$queryRaw(`
+        return await models.$queryRawUnsafe(`
           SELECT date_trunc('${timeUnit(when)}', day) as time, json_build_array(
             json_build_object('name', 'posts', 'value', sum(posts)),
             json_build_object('name', 'comments', 'value', sum(comments)),
@@ -140,7 +140,7 @@ export default {
           ORDER BY time ASC`)
       }
 
-      return await models.$queryRaw(
+      return await models.$queryRawUnsafe(
         `${withClause(when)}
         SELECT time, json_build_array(
           json_build_object('name', 'comments', 'value', count("parentId")),
@@ -154,7 +154,7 @@ export default {
     },
     spendingGrowth: async (parent, { when }, { models }) => {
       if (when !== 'day') {
-        return await models.$queryRaw(`
+        return await models.$queryRawUnsafe(`
           SELECT date_trunc('${timeUnit(when)}', day) as time, json_build_array(
             json_build_object('name', 'jobs', 'value', sum(jobs)),
             json_build_object('name', 'boost', 'value', sum(boost)),
@@ -168,7 +168,7 @@ export default {
           ORDER BY time ASC`)
       }
 
-      return await models.$queryRaw(
+      return await models.$queryRawUnsafe(
         `${withClause(when)}
         SELECT time, json_build_array(
           json_build_object('name', 'jobs', 'value', coalesce(floor(sum(CASE WHEN act = 'STREAM' THEN msats ELSE 0 END)/1000),0)),
@@ -191,7 +191,7 @@ export default {
     },
     stackerGrowth: async (parent, { when }, { models }) => {
       if (when !== 'day') {
-        return await models.$queryRaw(`
+        return await models.$queryRawUnsafe(`
           SELECT date_trunc('${timeUnit(when)}', day) as time, json_build_array(
             json_build_object('name', 'any', 'value', floor(avg("any"))),
             json_build_object('name', 'posts', 'value', floor(avg(posts))),
@@ -205,7 +205,7 @@ export default {
           ORDER BY time ASC`)
       }
 
-      return await models.$queryRaw(
+      return await models.$queryRawUnsafe(
         `${withClause(when)}
         SELECT time, json_build_array(
           json_build_object('name', 'any', 'value', count(distinct user_id)),
@@ -233,7 +233,7 @@ export default {
     },
     stackingGrowth: async (parent, { when }, { models }) => {
       if (when !== 'day') {
-        return await models.$queryRaw(`
+        return await models.$queryRawUnsafe(`
           SELECT date_trunc('${timeUnit(when)}', day) as time, json_build_array(
             json_build_object('name', 'rewards', 'value', sum(rewards)),
             json_build_object('name', 'posts', 'value', sum(posts)),
@@ -246,7 +246,7 @@ export default {
           ORDER BY time ASC`)
       }
 
-      return await models.$queryRaw(
+      return await models.$queryRawUnsafe(
         `${withClause(when)}
         SELECT time, json_build_array(
           json_build_object('name', 'rewards', 'value', coalesce(floor(sum(airdrop)/1000),0)),

@@ -42,7 +42,7 @@ export default {
       await ssValidate(amountSchema, { amount: sats })
 
       await serialize(models,
-        models.$queryRaw(
+        models.$queryRawUnsafe(
           'SELECT donate($1, $2)',
           sats, Number(me.id)))
 

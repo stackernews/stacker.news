@@ -145,7 +145,7 @@ export default {
         }
       }
 
-      let history = await models.$queryRaw(`
+      let history = await models.$queryRawUnsafe(`
       ${queries.join(' UNION ALL ')}
       ORDER BY "createdAt" DESC
       OFFSET $3
@@ -285,7 +285,7 @@ export default {
       if (fact.type !== 'spent' && fact.type !== 'stacked') {
         return null
       }
-      const [item] = await models.$queryRaw(`
+      const [item] = await models.$queryRawUnsafe(`
         ${SELECT}
         FROM "Item"
         WHERE id = $1`, Number(fact.factId))

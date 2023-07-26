@@ -8,21 +8,21 @@ export default {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
       }
 
-      const [{ totalSats }] = await models.$queryRaw(`
+      const [{ totalSats }] = await models.$queryRawUnsafe(`
         SELECT COALESCE(FLOOR(sum(msats) / 1000), 0) as "totalSats"
         FROM "ReferralAct"
         WHERE ${intervalClause(when, 'ReferralAct', true)}
         "ReferralAct"."referrerId" = $1
       `, Number(me.id))
 
-      const [{ totalReferrals }] = await models.$queryRaw(`
+      const [{ totalReferrals }] = await models.$queryRawUnsafe(`
         SELECT count(*) as "totalReferrals"
         FROM users
         WHERE ${intervalClause(when, 'users', true)}
         "referrerId" = $1
     `, Number(me.id))
 
-      const stats = await models.$queryRaw(
+      const stats = await models.$queryRawUnsafe(
         `${withClause(when)}
         SELECT time, json_build_array(
           json_build_object('name', 'referrals', 'value', count(*) FILTER (WHERE act = 'REFERREE')),

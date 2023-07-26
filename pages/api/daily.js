@@ -5,7 +5,7 @@ export default async (_, res) => {
   // this should probably be made more generic
   // eg if the title changes this will break
   // ... but this will need to change when we have more subs anyway
-  const [{ id }] = await models.$queryRaw(`
+  const [{ id }] = await models.$queryRawUnsafe(`
     SELECT id
     FROM "Item"
     WHERE "pinId" IS NOT NULL

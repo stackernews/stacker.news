@@ -119,7 +119,7 @@ export default {
     },
     topCowboys: async (parent, { cursor }, { models, me }) => {
       const decodedCursor = decodeCursor(cursor)
-      const users = await models.$queryRaw(`
+      const users = await models.$queryRawUnsafe(`
         SELECT users.*, floor(sum(msats_spent)/1000) as spent,
           sum(posts) as nposts, sum(comments) as ncomments, sum(referrals) as referrals,
           floor(sum(msats_stacked)/1000) as stacked
@@ -149,7 +149,7 @@ export default {
           default: column = 'stacked'; break
         }
 
-        users = await models.$queryRaw(`
+        users = await models.$queryRawUnsafe(`
           WITH u AS (
             SELECT users.*, floor(sum(msats_spent)/1000) as spent,
             sum(posts) as nposts, sum(comments) as ncomments, sum(referrals) as referrals,
@@ -172,7 +172,7 @@ export default {
       }
 
       if (by === 'spent') {
-        users = await models.$queryRaw(`
+        users = await models.$queryRawUnsafe(`
           SELECT users.*, sum(sats_spent) as spent
           FROM
           ((SELECT "userId", floor(sum("ItemAct".msats)/1000) as sats_spent
@@ -192,7 +192,7 @@ export default {
           OFFSET $2
           LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
       } else if (by === 'posts') {
-        users = await models.$queryRaw(`
+        users = await models.$queryRawUnsafe(`
         SELECT users.*, count(*) as nposts
           FROM users
           JOIN "Item" on "Item"."userId" = users.id
@@ -204,7 +204,7 @@ export default {
           OFFSET $2
           LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
       } else if (by === 'comments') {
-        users = await models.$queryRaw(`
+        users = await models.$queryRawUnsafe(`
         SELECT users.*, count(*) as ncomments
           FROM users
           JOIN "Item" on "Item"."userId" = users.id
@@ -216,7 +216,7 @@ export default {
           OFFSET $2
           LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
       } else if (by === 'referrals') {
-        users = await models.$queryRaw(`
+        users = await models.$queryRawUnsafe(`
           SELECT users.*, count(*) as referrals
           FROM users
           JOIN "users" referree on users.id = referree."referrerId"
@@ -228,7 +228,7 @@ export default {
           OFFSET $2
           LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
       } else {
-        users = await models.$queryRaw(`
+        users = await models.$queryRawUnsafe(`
           SELECT u.id, u.name, u.streak, u."photoId", u."hideCowboyHat", floor(sum(amount)/1000) as stacked
           FROM
           ((SELECT users.*, "ItemAct".msats as amount
@@ -270,7 +270,7 @@ export default {
 
       // check if any votes have been cast for them since checkedNotesAt
       if (user.noteItemSats) {
-        const votes = await models.$queryRaw(`
+        const votes = await models.$queryRawUnsafe(`
         SELECT 1
           FROM "Item"
           JOIN "ItemAct" ON
@@ -286,7 +286,7 @@ export default {
       }
 
       // check if they have any replies since checkedNotesAt
-      const newReplies = await models.$queryRaw(`
+      const newReplies = await models.$queryRawUnsafe(`
         SELECT 1
           FROM "Item"
           JOIN "Item" p ON
@@ -302,7 +302,7 @@ export default {
       }
 
       // break out thread subscription to decrease the search space of the already expensive reply query
-      const newtsubs = await models.$queryRaw(`
+      const newtsubs = await models.$queryRawUnsafe(`
       SELECT 1
         FROM "ThreadSubscription"
         JOIN "Item" p ON "ThreadSubscription"."itemId" = p.id
@@ -318,7 +318,7 @@ export default {
 
       // check if they have any mentions since checkedNotesAt
       if (user.noteMentions) {
-        const newMentions = await models.$queryRaw(`
+        const newMentions = await models.$queryRawUnsafe(`
         SELECT "Item".id, "Item".created_at
           FROM "Mention"
           JOIN "Item" ON "Mention"."itemId" = "Item".id
@@ -379,7 +379,7 @@ export default {
 
       // check if new invites have been redeemed
       if (user.noteInvites) {
-        const newInvitees = await models.$queryRaw(`
+        const newInvitees = await models.$queryRawUnsafe(`
         SELECT "Invite".id
           FROM users JOIN "Invite" on users."inviteId" = "Invite".id
           WHERE "Invite"."userId" = $1
@@ -503,7 +503,7 @@ export default {
         await updateItem(parent, { id: user.bioId, data: { text: bio, title: `@${user.name}'s bio` } }, { me, models })
       } else {
         const [item] = await serialize(models,
-          models.$queryRaw(`${SELECT} FROM create_bio($1, $2, $3) AS "Item"`,
+          models.$queryRawUnsafe(`${SELECT} FROM create_bio($1, $2, $3) AS "Item"`,
             `@${user.name}'s bio`, bio, Number(me.id)))
         await createMentions(item, models)
       }
@@ -645,7 +645,7 @@ export default {
         // forever
         return (user.stackedMsats && msatsToSats(user.stackedMsats)) || 0
       } else if (when === 'day') {
-        const [{ stacked }] = await models.$queryRaw(`
+        const [{ stacked }] = await models.$queryRawUnsafe(`
           SELECT sum(amount) as stacked
           FROM
           ((SELECT coalesce(sum("ItemAct".msats),0) as amount
@@ -673,8 +673,8 @@ export default {
         return user.spent
       }
 
-      const { sum: { msats } } = await models.itemAct.aggregate({
-        sum: {
+      const { _sum: { msats } } = await models.itemAct.aggregate({
+        _sum: {
           msats: true
         },
         where: {

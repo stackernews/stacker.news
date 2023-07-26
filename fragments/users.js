@@ -1,6 +1,6 @@
 import { gql } from '@apollo/client'
-import { COMMENTS_ITEM_EXT_FIELDS } from './comments'
-import { ITEM_FIELDS, ITEM_WITH_COMMENTS } from './items'
+import { COMMENTS, COMMENTS_ITEM_EXT_FIELDS } from './comments'
+import { ITEM_FIELDS, ITEM_FULL_FIELDS } from './items'
 
 export const ME = gql`
   {
@@ -174,12 +174,16 @@ export const TOP_COWBOYS = gql`
 
 export const USER_FULL = gql`
   ${USER_FIELDS}
-  ${ITEM_WITH_COMMENTS}
-  query User($name: String!) {
+  ${ITEM_FULL_FIELDS}
+  ${COMMENTS}
+  query User($name: String!, $sort: String) {
     user(name: $name) {
       ...UserFields
       bio {
-        ...ItemWithComments
+        ...ItemFullFields
+        comments(sort: $sort) {
+          ...CommentsRecursive
+        }
       }
   }
 }`

@@ -4,7 +4,6 @@ export default gql`
   extend type Query {
     items(sub: String, sort: String, type: String, cursor: String, name: String, when: String, by: String, limit: Int): Items
     item(id: ID!): Item
-    comments(id: ID!, sort: String): [Item!]!
     pageTitleAndUnshorted(url: String!): TitleUnshorted
     dupes(url: String!): [Item!]
     related(cursor: String, title: String, id: ID, minMatch: String, limit: Int): Items
@@ -99,7 +98,7 @@ export default gql`
     freebie: Boolean!
     paidImgLink: Boolean
     ncomments: Int!
-    comments: [Item!]!
+    comments(sort: String): [Item!]!
     path: String
     position: Int
     prior: Int

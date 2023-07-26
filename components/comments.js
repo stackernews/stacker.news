@@ -1,20 +1,17 @@
-import { gql, useApolloClient, useLazyQuery } from '@apollo/client'
-import { useState } from 'react'
 import Comment, { CommentSkeleton } from './comment'
 import styles from './header.module.css'
 import Nav from 'react-bootstrap/Nav'
 import Navbar from 'react-bootstrap/Navbar'
-import { COMMENTS_QUERY } from '../fragments/items'
-import { COMMENTS } from '../fragments/comments'
 import { abbrNum } from '../lib/format'
 import { defaultCommentSort } from '../lib/item'
+import { useRouter } from 'next/router'
 
 export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats }) {
-  const [sort, setSort] = useState(defaultCommentSort(pinned, bio, parentCreatedAt))
+  const router = useRouter()
+  const sort = router.query.sort || defaultCommentSort(pinned, bio, parentCreatedAt)
 
   const getHandleClick = sort => {
     return () => {
-      setSort(sort)
       handleSort(sort)
     }
   }
@@ -63,47 +60,26 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
 }
 
 export default function Comments ({ parentId, pinned, bio, parentCreatedAt, commentSats, comments, ...props }) {
-  const client = useApolloClient()
-
-  const [loading, setLoading] = useState()
-  const [getComments] = useLazyQuery(COMMENTS_QUERY, {
-    fetchPolicy: 'cache-first',
-    onCompleted: data => {
-      client.writeFragment({
-        id: `Item:${parentId}`,
-        fragment: gql`
-          ${COMMENTS}
-          fragment Comments on Item {
-            comments {
-              ...CommentsRecursive
-            }
-          }
-        `,
-        fragmentName: 'Comments',
-        data: {
-          comments: data.comments
-        }
-      })
-      setLoading(false)
-    }
-  })
+  const router = useRouter()
 
   return (
     <>
-      {comments.length
+      {comments?.length > 0
         ? <CommentsHeader
             commentSats={commentSats} parentCreatedAt={parentCreatedAt}
             pinned={pinned} bio={bio} handleSort={sort => {
-              setLoading(true)
-              getComments({ variables: { id: parentId, sort } })
+              const query = router.query
+              delete query.nodata
+              router.push({
+                pathname: router.pathname,
+                query: { ...router.query, sort }
+              }, router.asPath, { scroll: false })
             }}
           />
         : null}
-      {loading
-        ? <CommentsSkeleton />
-        : comments.map(item => (
-          <Comment depth={1} key={item.id} item={item} {...props} />
-        ))}
+      {comments.map(item => (
+        <Comment depth={1} key={item.id} item={item} {...props} />
+      ))}
     </>
   )
 }

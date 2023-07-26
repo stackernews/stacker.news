@@ -97,7 +97,7 @@ export default function User ({ ssrData }) {
   const router = useRouter()
   const me = useMe()
 
-  const { data } = useQuery(USER_FULL, { variables: { name: router.query.name } })
+  const { data } = useQuery(USER_FULL, { variables: { ...router.query } })
   if (!data && !ssrData) return <PageLoading />
 
   const { user } = data || ssrData

@@ -116,40 +116,20 @@ export const ITEM = gql`
     }
   }`
 
-export const COMMENTS_QUERY = gql`
-  ${COMMENTS}
-
-  query Comments($id: ID!, $sort: String) {
-    comments(id: $id, sort: $sort) {
-      ...CommentsRecursive
-    }
-  }
-`
-
 export const ITEM_FULL = gql`
   ${ITEM_FULL_FIELDS}
   ${POLL_FIELDS}
   ${COMMENTS}
-  query Item($id: ID!) {
+  query Item($id: ID!, $sort: String) {
     item(id: $id) {
       ...ItemFullFields
       prior
       ...PollFields
-      comments {
+      comments(sort: $sort) {
         ...CommentsRecursive
       }
     }
   }`
-
-export const ITEM_WITH_COMMENTS = gql`
-  ${ITEM_FULL_FIELDS}
-  ${COMMENTS}
-  fragment ItemWithComments on Item {
-      ...ItemFullFields
-      comments {
-        ...CommentsRecursive
-      }
-    }`
 
 export const RELATED_ITEMS = gql`
   ${ITEM_FIELDS}

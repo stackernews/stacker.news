@@ -12,7 +12,7 @@ export const getServerSideProps = getGetServerSideProps(ITEM_FULL, null,
 export default function Item ({ ssrData }) {
   const router = useRouter()
 
-  const { data } = useQuery(ITEM_FULL, { variables: { id: router.query.id } })
+  const { data } = useQuery(ITEM_FULL, { variables: { ...router.query } })
   if (!data && !ssrData) return <PageLoading />
 
   const { item } = data || ssrData

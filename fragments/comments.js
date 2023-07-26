@@ -49,6 +49,7 @@ export const COMMENTS_ITEM_EXT_FIELDS = gql`
     }
   }`
 
+// we only get the first COMMENT_DEPTH_LIMIT comments
 export const COMMENTS = gql`
   ${COMMENT_FIELDS}
 
@@ -72,54 +73,6 @@ export const COMMENTS = gql`
                     ...CommentFields
                     comments {
                       ...CommentFields
-                      comments {
-                        ...CommentFields
-                        comments {
-                          ...CommentFields
-                          comments {
-                            ...CommentFields
-                            comments {
-                              ...CommentFields
-                              comments {
-                                ...CommentFields
-                                comments {
-                                  ...CommentFields
-                                  comments {
-                                    ...CommentFields
-                                    comments {
-                                      ...CommentFields
-                                      comments {
-                                        ...CommentFields
-                                        comments {
-                                          ...CommentFields
-                                          comments {
-                                            ...CommentFields
-                                            comments {
-                                              ...CommentFields
-                                              comments {
-                                                ...CommentFields
-                                                comments {
-                                                  ...CommentFields
-                                                  comments {
-                                                    ...CommentFields
-                                                    comments {
-                                                      ...CommentFields
-                                                    }
-                                                  }
-                                                }
-                                              }
-                                            }
-                                          }
-                                        }
-                                      }
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
                     }
                   }
                 }

@@ -482,9 +482,6 @@ export default {
           LIMIT 3`
       }, similar)
     },
-    comments: async (parent, { id, sort }, { me, models }) => {
-      return comments(me, models, id, sort)
-    },
     auctionPosition: async (parent, { id, sub, bid }, { models, me }) => {
       const createdAt = id ? (await getItem(parent, { id }, { models, me })).createdAt : new Date()
       let where
@@ -848,12 +845,11 @@ export default {
       }
       return await models.user.findUnique({ where: { id: item.fwdUserId } })
     },
-    comments: async (item, args, { me, models }) => {
-      if (item.comments) {
-        return item.comments
-      }
+    comments: async (item, { sort }, { me, models }) => {
+      if (item.comments) return item.comments
+      if (item.ncomments === 0) return []
 
-      return comments(me, models, item.id, defaultCommentSort(item.pinId, item.bioId, item.createdAt))
+      return comments(me, models, item.id, sort || defaultCommentSort(item.pinId, item.bioId, item.createdAt))
     },
     wvotes: async (item) => {
       return item.weightedVotes - item.weightedDownVotes

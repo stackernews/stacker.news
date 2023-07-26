@@ -178,11 +178,9 @@ export default function ItemFull ({ item, bio, rank, ...props }) {
         {item.parentId
           ? <Comment topLevel item={item} replyOpen includeParent noComments {...props} />
           : (
-            <div className='mt-1'>{
-          bio
-            ? <BioItem item={item} {...props} />
-            : <TopLevelItem item={item} {...props} />
-          }
+            <div>{bio
+              ? <BioItem item={item} {...props} />
+              : <TopLevelItem item={item} {...props} />}
             </div>)}
         {item.comments &&
           <div className={styles.comments}>

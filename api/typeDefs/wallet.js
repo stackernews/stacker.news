@@ -16,17 +16,17 @@ export default gql`
 
   type Invoice {
     id: ID!
-    createdAt: String!
+    createdAt: Date!
     bolt11: String!
-    expiresAt: String!
+    expiresAt: Date!
     cancelled: Boolean!
-    confirmedAt: String
+    confirmedAt: Date
     satsReceived: Int
   }
 
   type Withdrawl {
     id: ID!
-    createdAt: String!
+    createdAt: Date!
     hash: String!
     bolt11: String!
     satsPaying: Int!
@@ -40,7 +40,7 @@ export default gql`
     id: ID!
     factId: ID!
     bolt11: String
-    createdAt: String!
+    createdAt: Date!
     sats: Float!
     satsFee: Float
     status: String

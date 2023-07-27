@@ -8,8 +8,8 @@ export default gql`
 
   type Sub {
     name: String!
-    createdAt: String!
-    updatedAt: String!
+    createdAt: Date!
+    updatedAt: Date!
     postTypes: [String!]!
     rankingType: String!
     baseCost: Int!

@@ -53,12 +53,12 @@ async function comments (me, models, id, sort) {
   const filter = await commentFilterClause(me, models)
   if (me) {
     const [{ item_comments_with_me: comments }] = await models.$queryRawUnsafe(
-      'SELECT item_comments_with_me($1, $2, $3, $4, $5)', Number(id), Number(me.id), COMMENT_DEPTH_LIMIT, filter, orderBy)
+      'SELECT item_comments_with_me($1::INTEGER, $2::INTEGER, $3::INTEGER, $4, $5)', Number(id), Number(me.id), COMMENT_DEPTH_LIMIT, filter, orderBy)
     return comments
   }
 
   const [{ item_comments: comments }] = await models.$queryRawUnsafe(
-    'SELECT item_comments($1, $2, $3, $4)', Number(id), COMMENT_DEPTH_LIMIT, filter, orderBy)
+    'SELECT item_comments($1::INTEGER, $2::INTEGER, $3, $4)', Number(id), COMMENT_DEPTH_LIMIT, filter, orderBy)
   return comments
 }
 
@@ -272,7 +272,7 @@ export default {
     itemRepetition: async (parent, { parentId }, { me, models }) => {
       if (!me) return 0
       // how many of the parents starting at parentId belong to me
-      const [{ item_spam: count }] = await models.$queryRawUnsafe(`SELECT item_spam($1, $2, '${ITEM_SPAM_INTERVAL}')`,
+      const [{ item_spam: count }] = await models.$queryRawUnsafe(`SELECT item_spam($1::INTEGER, $2::INTEGER, '${ITEM_SPAM_INTERVAL}')`,
         Number(parentId), Number(me.id))
 
       return count
@@ -621,7 +621,7 @@ export default {
           throw new GraphQLError('item does not belong to you', { extensions: { code: 'FORBIDDEN' } })
         }
         const [item] = await serialize(models,
-          models.$queryRawUnsafe(`${SELECT} FROM update_poll($1, $2, $3, $4, $5, $6, $7) AS "Item"`,
+          models.$queryRawUnsafe(`${SELECT} FROM update_poll($1, $2::INTEGER, $3, $4, $5::INTEGER, $6, $7::INTEGER) AS "Item"`,
             sub || 'bitcoin', Number(id), title, text, Number(boost || 0), options, Number(fwdUser?.id)))
 
         await createMentions(item, models)
@@ -629,7 +629,7 @@ export default {
         return item
       } else {
         const [item] = await serialize(models,
-          models.$queryRawUnsafe(`${SELECT} FROM create_poll($1, $2, $3, $4, $5, $6, $7, $8, '${ITEM_SPAM_INTERVAL}') AS "Item"`,
+          models.$queryRawUnsafe(`${SELECT} FROM create_poll($1, $2, $3, $4::INTEGER, $5::INTEGER, $6::INTEGER, $7, $8::INTEGER, '${ITEM_SPAM_INTERVAL}') AS "Item"`,
             sub || 'bitcoin', title, text, 1, Number(boost || 0), Number(me.id), options, Number(fwdUser?.id)))
 
         await createMentions(item, models)
@@ -659,12 +659,12 @@ export default {
         }
         ([item] = await serialize(models,
           models.$queryRawUnsafe(
-            `${SELECT} FROM update_job($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) AS "Item"`,
+            `${SELECT} FROM update_job($1::INTEGER, $2, $3, $4, $5::INTEGER, $6, $7, $8, $9::INTEGER, $10::"Status") AS "Item"`,
             Number(id), title, url, text, Number(maxBid), company, loc, remote, Number(logo), status)))
       } else {
         ([item] = await serialize(models,
           models.$queryRawUnsafe(
-            `${SELECT} FROM create_job($1, $2, $3, $4, $5, $6, $7, $8, $9) AS "Item"`,
+            `${SELECT} FROM create_job($1, $2, $3, $4::INTEGER, $5::INTEGER, $6, $7, $8, $9::INTEGER) AS "Item"`,
             title, url, text, Number(me.id), Number(maxBid), company, loc, remote, Number(logo))))
       }
 
@@ -702,7 +702,7 @@ export default {
       }
 
       await serialize(models,
-        models.$queryRawUnsafe(`${SELECT} FROM poll_vote($1, $2) AS "Item"`,
+        models.$queryRawUnsafe(`${SELECT} FROM poll_vote($1::INTEGER, $2::INTEGER) AS "Item"`,
           Number(id), Number(me.id)))
 
       return id
@@ -724,7 +724,7 @@ export default {
         throw new GraphQLError('cannot zap your self', { extensions: { code: 'BAD_INPUT' } })
       }
 
-      const [{ item_act: vote }] = await serialize(models, models.$queryRaw`SELECT item_act(${Number(id)}, ${me.id}, 'TIP', ${Number(sats)})`)
+      const [{ item_act: vote }] = await serialize(models, models.$queryRaw`SELECT item_act(${Number(id)}::INTEGER, ${me.id}::INTEGER, 'TIP', ${Number(sats)}::INTEGER)`)
 
       const updatedItem = await models.item.findUnique({ where: { id: Number(id) } })
       const title = `your ${updatedItem.title ? 'post' : 'reply'} ${updatedItem.fwdUser ? 'forwarded' : 'stacked'} ${Math.floor(Number(updatedItem.msats) / 1000)} sats${updatedItem.fwdUser ? ` to @${updatedItem.fwdUser.name}` : ''}`
@@ -755,7 +755,7 @@ export default {
         throw new GraphQLError('cannot downvote your self', { extensions: { code: 'BAD_INPUT' } })
       }
 
-      await serialize(models, models.$queryRaw`SELECT item_act(${Number(id)}, ${me.id}, 'DONT_LIKE_THIS', ${DONT_LIKE_THIS_COST})`)
+      await serialize(models, models.$queryRaw`SELECT item_act(${Number(id)}::INTEGER, ${me.id}::INTEGER, 'DONT_LIKE_THIS', ${DONT_LIKE_THIS_COST}::INTEGER)`)
 
       return true
     }
@@ -818,7 +818,7 @@ export default {
       }
 
       const options = await models.$queryRaw`
-        SELECT "PollOption".id, option, count("PollVote"."userId") as count,
+        SELECT "PollOption".id, option, count("PollVote"."userId")::INTEGER as count,
           coalesce(bool_or("PollVote"."userId" = ${me?.id}), 'f') as "meVoted"
         FROM "PollOption"
         LEFT JOIN "PollVote" on "PollVote"."pollOptionId" = "PollOption".id
@@ -826,6 +826,7 @@ export default {
         GROUP BY "PollOption".id
         ORDER BY "PollOption".id ASC
       `
+
       const poll = {}
       poll.options = options
       poll.meVoted = options.some(o => o.meVoted)
@@ -856,7 +857,9 @@ export default {
     },
     meSats: async (item, args, { me, models }) => {
       if (!me) return 0
-      if (typeof item.meMsats === 'number') return msatsToSats(item.meMsats)
+      if (typeof item.meMsats !== 'undefined') {
+        return msatsToSats(item.meMsats)
+      }
 
       const { _sum: { msats } } = await models.itemAct.aggregate({
         _sum: {
@@ -1035,7 +1038,7 @@ export const updateItem = async (parent, { id, data: { sub, title, url, text, bo
 
   const [item] = await serialize(models,
     models.$queryRawUnsafe(
-      `${SELECT} FROM update_item($1, $2, $3, $4, $5, $6, $7, $8) AS "Item"`,
+      `${SELECT} FROM update_item($1, $2::INTEGER, $3, $4, $5, $6::INTEGER, $7::INTEGER, $8::INTEGER) AS "Item"`,
       old.parentId ? null : sub || 'bitcoin', Number(id), title, url, text,
       Number(boost || 0), bounty ? Number(bounty) : null, Number(fwdUser?.id)))
 
@@ -1071,7 +1074,7 @@ const createItem = async (parent, { sub, title, url, text, boost, forward, bount
   const [item] = await serialize(
     models,
     models.$queryRawUnsafe(
-    `${SELECT} FROM create_item($1, $2, $3, $4, $5, $6, $7, $8, $9, '${ITEM_SPAM_INTERVAL}') AS "Item"`,
+    `${SELECT} FROM create_item($1, $2, $3, $4, $5::INTEGER, $6::INTEGER, $7::INTEGER, $8::INTEGER, $9::INTEGER, '${ITEM_SPAM_INTERVAL}') AS "Item"`,
     parentId ? null : sub || 'bitcoin',
     title,
     url,

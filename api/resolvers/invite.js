@@ -1,5 +1,6 @@
 import { GraphQLError } from 'graphql'
 import { inviteSchema, ssValidate } from '../../lib/validate'
+import { msatsToSats } from '../../lib/format'
 
 export default {
   Query: {
@@ -59,7 +60,7 @@ export default {
     },
     poor: async (invite, args, { me, models }) => {
       const user = await models.user.findUnique({ where: { id: invite.userId } })
-      return user.msats < invite.gift * 1000
+      return msatsToSats(user.msats) < invite.gift
     }
   }
 }

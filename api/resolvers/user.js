@@ -193,7 +193,7 @@ export default {
           LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
       } else if (by === 'posts') {
         users = await models.$queryRawUnsafe(`
-        SELECT users.*, count(*) as nposts
+        SELECT users.*, count(*)::INTEGER as nposts
           FROM users
           JOIN "Item" on "Item"."userId" = users.id
           WHERE "Item".created_at <= $1 AND "Item"."parentId" IS NULL
@@ -205,7 +205,7 @@ export default {
           LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
       } else if (by === 'comments') {
         users = await models.$queryRawUnsafe(`
-        SELECT users.*, count(*) as ncomments
+        SELECT users.*, count(*)::INTEGER as ncomments
           FROM users
           JOIN "Item" on "Item"."userId" = users.id
           WHERE "Item".created_at <= $1 AND "Item"."parentId" IS NOT NULL
@@ -217,7 +217,7 @@ export default {
           LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
       } else if (by === 'referrals') {
         users = await models.$queryRawUnsafe(`
-          SELECT users.*, count(*) as referrals
+          SELECT users.*, count(*)::INTEGER as referrals
           FROM users
           JOIN "users" referree on users.id = referree."referrerId"
           WHERE referree.created_at <= $1
@@ -503,7 +503,7 @@ export default {
         await updateItem(parent, { id: user.bioId, data: { text: bio, title: `@${user.name}'s bio` } }, { me, models })
       } else {
         const [item] = await serialize(models,
-          models.$queryRawUnsafe(`${SELECT} FROM create_bio($1, $2, $3) AS "Item"`,
+          models.$queryRawUnsafe(`${SELECT} FROM create_bio($1, $2, $3::INTEGER) AS "Item"`,
             `@${user.name}'s bio`, bio, Number(me.id)))
         await createMentions(item, models)
       }
@@ -579,7 +579,7 @@ export default {
       return max
     },
     nitems: async (user, { when }, { models }) => {
-      if (typeof user.nitems === 'number') {
+      if (typeof user.nitems !== 'undefined') {
         return user.nitems
       }
 
@@ -593,7 +593,7 @@ export default {
       })
     },
     nposts: async (user, { when }, { models }) => {
-      if (typeof user.nposts === 'number') {
+      if (typeof user.nposts !== 'undefined') {
         return user.nposts
       }
 
@@ -608,7 +608,7 @@ export default {
       })
     },
     ncomments: async (user, { when }, { models }) => {
-      if (typeof user.ncomments === 'number') {
+      if (typeof user.ncomments !== 'undefined') {
         return user.ncomments
       }
 
@@ -623,7 +623,7 @@ export default {
       })
     },
     nbookmarks: async (user, { when }, { models }) => {
-      if (typeof user.nBookmarks === 'number') {
+      if (typeof user.nBookmarks !== 'undefined') {
         return user.nBookmarks
       }
 
@@ -637,7 +637,7 @@ export default {
       })
     },
     stacked: async (user, { when }, { models }) => {
-      if (typeof user.stacked === 'number') {
+      if (typeof user.stacked !== 'undefined') {
         return user.stacked
       }
 
@@ -669,7 +669,7 @@ export default {
       return 0
     },
     spent: async (user, { when }, { models }) => {
-      if (typeof user.spent === 'number') {
+      if (typeof user.spent !== 'undefined') {
         return user.spent
       }
 
@@ -688,9 +688,10 @@ export default {
       return (msats && msatsToSats(msats)) || 0
     },
     referrals: async (user, { when }, { models }) => {
-      if (typeof user.referrals === 'number') {
+      if (typeof user.referrals !== 'undefined') {
         return user.referrals
       }
+
       return await models.user.count({
         where: {
           referrerId: user.id,

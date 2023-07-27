@@ -16,7 +16,7 @@ export default gql`
   }
 
   type TimeData {
-    time: String!
+    time: Date!
     data: [NameValue!]!
   }
 `

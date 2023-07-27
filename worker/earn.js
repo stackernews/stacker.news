@@ -21,7 +21,7 @@ function earn ({ models }) {
       SELECT coalesce(sum(sats), 0) as sum
       FROM "Donation"
       WHERE created_at > now_utc() - INTERVAL '1 day'`
-    sum += donatedSum * 1000
+    sum += donatedSum * 1000n
 
     /*
       How earnings (used to) work:
@@ -88,13 +88,13 @@ function earn ({ models }) {
     const now = new Date(new Date().getTime())
 
     // this is just a sanity check because it seems like a good idea
-    let total = 0
+    let total = 0n
 
     // for each earner, serialize earnings
     // we do this for each earner because we don't need to serialize
     // all earner updates together
     earners.forEach(async earner => {
-      const earnings = Math.floor(earner.proportion * sum)
+      const earnings = BigInt(Math.floor(earner.proportion * sum))
       total += earnings
       if (total > sum) {
         console.log('total exceeds sum', name)
@@ -103,8 +103,8 @@ function earn ({ models }) {
 
       if (earnings > 0) {
         await serialize(models,
-          models.$executeRaw`SELECT earn(${earner.userId}, ${earnings},
-          ${now}, ${earner.type}, ${earner.id}, ${earner.rank})`)
+          models.$executeRaw`SELECT earn(${earner.userId}::INTEGER, ${earnings},
+          ${now}::timestamp without time zone, ${earner.type}::"EarnType", ${earner.id}::INTEGER, ${earner.rank}::INTEGER)`)
       }
     })
 

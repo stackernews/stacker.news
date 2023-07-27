@@ -14,7 +14,7 @@ const apolloServer = new ApolloServer({
   plugins: [{
     requestDidStart (initialRequestContext) {
       return {
-        executionDidStart (executionRequestContext) {
+        executionDidStart () {
           return {
             willResolveField ({ source, args, context, info }) {
               const start = process.hrtime.bigint()
@@ -27,6 +27,11 @@ const apolloServer = new ApolloServer({
                 if (error) {
                   console.log(`Field ${info.parentType.name}.${info.fieldName} failed with ${error}`)
                 }
+              }
+            },
+            async executionDidEnd (err) {
+              if (err) {
+                console.error('hey bud', err)
               }
             }
           }

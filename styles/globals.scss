@@ -262,7 +262,7 @@ div[contenteditable]:disabled,
 .form-control[readonly] {
   background-color: var(--theme-inputDisabledBg);
   border-color: var(--theme-borderColor);
-  color: var(--theme-color);
+  color: var(--theme-borderColor);
   opacity: 1;
 }
 
@@ -488,7 +488,6 @@ div[contenteditable] {
 .dropdown-item {
   font-weight: 500;
 }
-
 
 .dropdown-item.active {
   text-shadow: 0 0 10px var(--bs-primary);

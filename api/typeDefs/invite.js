@@ -13,7 +13,7 @@ export default gql`
 
   type Invite {
     id: ID!
-    createdAt: String!
+    createdAt: Date!
     invitees: [User!]!
     gift: Int!
     limit: Int

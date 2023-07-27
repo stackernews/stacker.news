@@ -42,7 +42,7 @@ export default gql`
 
   type User {
     id: ID!
-    createdAt: String!
+    createdAt: Date!
     name: String
     nitems(when: String): Int!
     nposts(when: String): Int!

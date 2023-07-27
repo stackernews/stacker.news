@@ -16,7 +16,7 @@ export default {
       `, Number(me.id))
 
       const [{ totalReferrals }] = await models.$queryRawUnsafe(`
-        SELECT count(*) as "totalReferrals"
+        SELECT count(*)::INTEGER as "totalReferrals"
         FROM users
         WHERE ${intervalClause(when, 'users', true)}
         "referrerId" = $1

@@ -12,8 +12,36 @@ import search from './search'
 import rewards from './rewards'
 import referrals from './referrals'
 import price from './price'
-import { GraphQLJSONObject } from 'graphql-type-json'
+import { GraphQLJSONObject as JSONObject } from 'graphql-type-json'
 import admin from './admin'
+import { GraphQLScalarType, Kind } from 'graphql'
+
+const date = new GraphQLScalarType({
+  name: 'Date',
+  description: 'Date custom scalar type',
+  serialize (value) {
+    if (value instanceof Date) {
+      return value.toISOString() // Convert outgoing Date to string for JSON
+    } else if (typeof value === 'string') {
+      return value
+    }
+    throw Error('GraphQL Date Scalar serializer expected a `Date` object got `' + typeof value + '` ' + value)
+  },
+  parseValue (value) {
+    if (typeof value === 'string') {
+      return new Date(value) // Convert incoming string to Date
+    }
+    throw new Error('GraphQL Date Scalar parser expected a `string`')
+  },
+  parseLiteral (ast) {
+    if (ast.kind === Kind.STRING) {
+      // Convert hard-coded AST string to integer and then to Date
+      return new Date(ast.value)
+    }
+    // Invalid hard-coded value (not an integer)
+    return null
+  }
+})
 
 export default [user, item, message, wallet, lnurl, notifications, invite, sub,
-  upload, search, growth, rewards, referrals, price, admin, { JSONObject: GraphQLJSONObject }]
+  upload, search, growth, rewards, referrals, price, admin, { JSONObject }, { Date: date }]

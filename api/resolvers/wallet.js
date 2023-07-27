@@ -211,7 +211,7 @@ export default {
 
         const [inv] = await serialize(models,
           models.$queryRaw`SELECT * FROM create_invoice(${invoice.id}, ${invoice.request},
-            ${expiresAt}, ${amount * 1000}, ${me.id}, ${description})`)
+            ${expiresAt}, ${amount * 1000}, ${me.id}::INTEGER, ${description})`)
 
         return inv
       } catch (error) {

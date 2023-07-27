@@ -1,13 +1,13 @@
 const { GraphQLError } = require('graphql')
 const retry = require('async-retry')
+const Prisma = require('@prisma/client')
 
 async function serialize (models, call) {
   return await retry(async bail => {
     try {
-      const [, result] = await models.$transaction([
-        models.$executeRawUnsafe(SERIALIZE),
-        call
-      ])
+      const [, result] = await models.$transaction(
+        [models.$executeRaw`SELECT ASSERT_SERIALIZED()`, call],
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
       return result
     } catch (error) {
       console.log(error)
@@ -55,7 +55,5 @@ async function serialize (models, call) {
     retries: 5
   })
 }
-
-const SERIALIZE = 'SET TRANSACTION ISOLATION LEVEL SERIALIZABLE'
 
 module.exports = serialize

@@ -14,32 +14,32 @@ export default gql`
     id: ID!
     earnedSats: Int!
     item: Item!
-    sortTime: String!
+    sortTime: Date!
   }
 
   type Reply {
     id: ID!
     item: Item!
-    sortTime: String!
+    sortTime: Date!
   }
 
   type Mention {
     id: ID!
     mention: Boolean!
     item: Item!
-    sortTime: String!
+    sortTime: Date!
   }
 
   type Invitification {
     id: ID!
     invite: Invite!
-    sortTime: String!
+    sortTime: Date!
   }
 
   type JobChanged {
     id: ID!
     item: Item!
-    sortTime: String!
+    sortTime: Date!
   }
 
   type EarnSources {
@@ -52,14 +52,14 @@ export default gql`
 
   type Streak {
     id: ID!
-    sortTime: String!
+    sortTime: Date!
     days: Int
   }
 
   type Earn {
     id: ID!
     earnedSats: Int!
-    sortTime: String!
+    sortTime: Date!
     sources: EarnSources
   }
 
@@ -67,12 +67,12 @@ export default gql`
     id: ID!
     earnedSats: Int!
     invoice: Invoice!
-    sortTime: String!
+    sortTime: Date!
   }
 
   type Referral {
     id: ID!
-    sortTime: String!
+    sortTime: Date!
   }
 
   union Notification = Reply | Votification | Mention
@@ -80,7 +80,7 @@ export default gql`
     | Streak
 
   type Notifications {
-    lastChecked: String
+    lastChecked: Date
     cursor: String
     notifications: [Notification!]!
   }

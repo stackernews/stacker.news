@@ -15,7 +15,7 @@ import referrals from './referrals'
 import price from './price'
 import admin from './admin'
 
-const link = gql`
+const common = gql`
   type Query {
     _: Boolean
   }
@@ -27,7 +27,10 @@ const link = gql`
   type Subscription {
     _: Boolean
   }
+
+  scalar JSONObject
+  scalar Date
 `
 
-export default [link, user, item, message, wallet, lnurl, notifications, invite,
+export default [common, user, item, message, wallet, lnurl, notifications, invite,
   sub, upload, growth, rewards, referrals, price, admin]

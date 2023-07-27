@@ -126,10 +126,12 @@ export default function JobForm ({ item, sub }) {
               clear
             />
           </Col>
-          <Checkbox
-            label={<div className='fw-bold'>remote</div>} name='remote' hiddenLabel
-            groupClassName={styles.inlineCheckGroup}
-          />
+          <Col className='d-flex ps-0' xs='auto'>
+            <Checkbox
+              label={<div className='fw-bold'>remote</div>} name='remote' hiddenLabel
+              groupClassName={styles.inlineCheckGroup}
+            />
+          </Col>
         </Row>
         <MarkdownInput
           topLevel

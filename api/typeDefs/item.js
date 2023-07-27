@@ -65,9 +65,9 @@ export default gql`
 
   type Item {
     id: ID!
-    createdAt: String!
-    updatedAt: String!
-    deletedAt: String
+    createdAt: Date!
+    updatedAt: Date!
+    deletedAt: Date
     title: String
     searchTitle: String
     url: String
@@ -87,7 +87,7 @@ export default gql`
     bountyPaidTo: [Int]
     sats: Int!
     commentSats: Int!
-    lastCommentAt: String
+    lastCommentAt: Date
     upvotes: Int!
     wvotes: Float!
     meSats: Int!

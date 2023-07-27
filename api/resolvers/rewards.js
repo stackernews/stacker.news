@@ -43,7 +43,7 @@ export default {
 
       await serialize(models,
         models.$queryRawUnsafe(
-          'SELECT donate($1, $2)',
+          'SELECT donate($1::INTEGER, $2::INTEGER)',
           sats, Number(me.id)))
 
       return sats

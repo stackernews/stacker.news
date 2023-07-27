@@ -34,7 +34,7 @@ const createUserFilter = (tag) => {
 
 const createItemUrl = async ({ id }) => {
   const [rootItem] = await models.$queryRawUnsafe(
-    'SELECT subpath(path, -LEAST(nlevel(path), $1), 1)::text AS id FROM "Item" WHERE id = $2',
+    'SELECT subpath(path, -LEAST(nlevel(path), $1::INTEGER), 1)::text AS id FROM "Item" WHERE id = $2::INTEGER',
     COMMENT_DEPTH_LIMIT + 1, Number(id)
   )
   return `/items/${rootItem.id}` + (rootItem.id !== id ? `?commentId=${id}` : '')

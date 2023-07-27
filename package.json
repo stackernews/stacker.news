@@ -15,7 +15,7 @@
     "@graphql-tools/schema": "^10.0.0",
     "@noble/curves": "^1.1.0",
     "@opensearch-project/opensearch": "^2.3.1",
-    "@prisma/client": "^4.16.2",
+    "@prisma/client": "^5.0.0",
     "@synonymdev/slashtags-auth": "^1.0.0-alpha.5",
     "@synonymdev/slashtags-sdk": "^1.0.0-alpha.36",
     "acorn": "^8.10.0",
@@ -54,7 +54,6 @@
     "page-metadata-parser": "^1.1.4",
     "pageres": "^7.1.0",
     "pg-boss": "^9.0.3",
-    "prisma": "^4.16.2",
     "qrcode.react": "^3.1.0",
     "react": "^18.2.0",
     "react-avatar-editor": "^13.0.0",
@@ -105,6 +104,7 @@
     "@babel/eslint-parser": "^7.22.9",
     "@next/eslint-plugin-next": "^13.4.12",
     "eslint": "^8.45.0",
+    "prisma": "^5.0.0",
     "standard": "^17.1.0"
   }
 }

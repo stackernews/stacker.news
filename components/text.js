@@ -127,10 +127,10 @@ export default memo(function Text ({ topLevel, noFragments, nofollow, onlyImgPro
               <table className='table table-bordered table-sm' {...props} />
             </span>,
           p: ({ children, ...props }) => <div className={styles.p} {...props}>{children}</div>,
-          code ({ node, inline, className, children, ...props }) {
+          code ({ node, inline, className, children, style, ...props }) {
             return !inline
               ? (
-                <SyntaxHighlighter showLineNumbers style={atomDark} PreTag='div'>
+                <SyntaxHighlighter showLineNumbers style={atomDark} PreTag='div' {...props}>
                   {reactStringReplace(String(children).replace(/\n$/, ''), /:high\[([^\]]+)\]/g, (match, i) => {
                     return match
                   }).join('')}

@@ -137,7 +137,7 @@ module.exports = withPlausibleProxy()({
     ]
   },
   webpack: (config, { isServer }) => {
-    if (isServer && isProd) {
+    if (isServer) {
       generatePrecacheManifest()
       config.plugins.push(
         new InjectManifest({

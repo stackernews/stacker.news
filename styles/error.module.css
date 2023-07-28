@@ -1,0 +1,13 @@
+.status {
+    font-family: 'lightning';
+    font-size: 96px;
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+    margin-top: 1rem;
+    width: 100%;
+}
+
+.describe {
+    font-size: 24px;
+}

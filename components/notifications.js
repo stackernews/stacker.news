@@ -25,7 +25,7 @@ function Notification ({ n }) {
   switch (n.__typename) {
     case 'Earn': return <EarnNotification n={n} />
     case 'Invitification': return <Invitification n={n} />
-    case 'InvoicePaid': return <InvoicePaid n={n} />
+    case 'InvoicePaid': return n.invoice.nostr ? <NostrZap n={n} /> : <InvoicePaid n={n} />
     case 'Referral': return <Referral n={n} />
     case 'Streak': return <Streak n={n} />
     case 'Votification': return <Votification n={n} />
@@ -157,6 +157,19 @@ function Invitification ({ n }) {
         }
         />
       </div>
+    </NotificationLayout>
+  )
+}
+
+function NostrZap ({ n }) {
+  const { nostr } = n.invoice
+  return (
+    <NotificationLayout href={`/invoices/${n.invoice.id}`}>
+      <small className='fw-bold text-success ms-2'>
+        {nostr.pubkey.slice(0, 10)} zapped you {n.earnedSats} sats on nostr{nostr.content ? ' and included a message' : ''}
+      </small>
+      <small className='fw-bold text-muted ms-1'>{timeSince(new Date(n.sortTime))}</small>
+      {nostr.content ? <div className='px-3'><small style={{ lineHeight: '140%', display: 'inline-block' }}>{nostr.content}</small></div> : null}
     </NotificationLayout>
   )
 }

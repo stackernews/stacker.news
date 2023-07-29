@@ -32,7 +32,6 @@ function generatePrecacheManifest () {
 
   const staticDir = join(__dirname, '../public')
   const staticFiles = walkSync(staticDir)
-  console.log(staticFiles)
   const staticMatch = f => [/\.(gif|jpe?g|ico|png|ttf|woff|woff2|webmanifest)$/].some(m => m.test(f))
   staticFiles.filter(staticMatch).forEach(file => {
     const stats = statSync(file)

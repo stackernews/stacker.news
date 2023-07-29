@@ -136,19 +136,34 @@ module.exports = withPlausibleProxy()({
       }
     ]
   },
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, dev }) => {
     if (isServer) {
       generatePrecacheManifest()
-      config.plugins.push(
-        new InjectManifest({
-          // ignore the precached manifest which includes the webpack assets
-          // since they are not useful to us
-          exclude: [/.*/],
-          // by default, webpack saves service worker at .next/server/
-          swDest: '../../public/sw.js',
-          swSrc: './sw/index.js'
+      const workboxPlugin = new InjectManifest({
+        // ignore the precached manifest which includes the webpack assets
+        // since they are not useful to us
+        exclude: [/.*/],
+        // by default, webpack saves service worker at .next/server/
+        swDest: '../../public/sw.js',
+        swSrc: './sw/index.js'
+      })
+      if (dev) {
+        // Suppress the "InjectManifest has been called multiple times" warning by reaching into
+        // the private properties of the plugin and making sure it never ends up in the state
+        // where it makes that warning.
+        // https://github.com/GoogleChrome/workbox/blob/v6/packages/workbox-webpack-plugin/src/inject-manifest.ts#L260-L282
+        Object.defineProperty(workboxPlugin, 'alreadyCalled', {
+          get () {
+            return false
+          },
+          set () {
+            // do nothing; the internals try to set it to true, which then results in a warning
+            // on the next run of webpack.
+          }
         })
-      )
+      }
+
+      config.plugins.push(workboxPlugin)
     }
     return config
   }

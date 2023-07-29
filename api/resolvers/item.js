@@ -105,7 +105,7 @@ const orderByClause = async (by, me, models, type) => {
     case 'votes':
       return await topOrderByWeightedSats(me, models)
     default:
-      return `ORDER BY "${type === 'bookmarks' ? 'Bookmark' : 'Item'}".created_at DESC`
+      return `ORDER BY ${type === 'bookmarks' ? '"bookmarkCreatedAt"' : '"Item".created_at'} DESC`
   }
 }
 
@@ -221,13 +221,13 @@ async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ...args) 
   } else {
     return await models.$queryRawUnsafe(`
       SELECT "Item".*, to_json(users.*) as user, COALESCE("ItemAct"."meMsats", 0) as "meMsats",
-        COALESCE("ItemAct"."meDontLike", false) as "meDontLike", "Bookmark"."itemId" IS NOT NULL AS "meBookmark",
+        COALESCE("ItemAct"."meDontLike", false) as "meDontLike", b."itemId" IS NOT NULL AS "meBookmark",
         "ThreadSubscription"."itemId" IS NOT NULL AS "meSubscription"
       FROM (
         ${query}
       ) "Item"
       JOIN users ON "Item"."userId" = users.id
-      LEFT JOIN "Bookmark" ON "Bookmark"."itemId" = "Item".id AND "Bookmark"."userId" = ${me.id}
+      LEFT JOIN "Bookmark" b ON b."itemId" = "Item".id AND b."userId" = ${me.id}
       LEFT JOIN "ThreadSubscription" ON "ThreadSubscription"."itemId" = "Item".id AND "ThreadSubscription"."userId" = ${me.id}
       LEFT JOIN LATERAL (
         SELECT "itemId", sum("ItemAct".msats) FILTER (WHERE act = 'FEE' OR act = 'TIP') AS "meMsats",
@@ -260,6 +260,10 @@ const relationClause = (type) => {
       return ' FROM "Item" '
   }
 }
+
+const selectClause = (type) => type === 'bookmarks'
+  ? `${SELECT}, "Bookmark"."created_at" as "bookmarkCreatedAt"`
+  : SELECT
 
 const subClauseTable = (type) => COMMENT_TYPE_QUERY.includes(type) ? 'root' : 'Item'
 
@@ -301,7 +305,7 @@ export default {
             me,
             models,
             query: `
-              ${SELECT}
+              ${selectClause(type)}
               ${relationClause(type)}
               WHERE "${table}"."userId" = $2 AND "${table}".created_at <= $1
               ${subClause(sub, 5, subClauseTable(type))}
@@ -338,7 +342,7 @@ export default {
             me,
             models,
             query: `
-              ${SELECT}
+              ${selectClause(type)}
               ${relationClause(type)}
               WHERE "Item".created_at <= $1
               AND "Item"."pinId" IS NULL AND "Item"."deletedAt" IS NULL
@@ -883,7 +887,7 @@ export default {
     },
     meDontLike: async (item, args, { me, models }) => {
       if (!me) return false
-      if (typeof item.meDontLike === 'boolean') return item.meDontLike
+      if (typeof item.meDontLike !== 'undefined') return item.meDontLike
 
       const dontLike = await models.itemAct.findFirst({
         where: {
@@ -897,7 +901,7 @@ export default {
     },
     meBookmark: async (item, args, { me, models }) => {
       if (!me) return false
-      if (typeof item.meBookmark === 'boolean') return item.meBookmark
+      if (typeof item.meBookmark !== 'undefined') return item.meBookmark
 
       const bookmark = await models.bookmark.findUnique({
         where: {
@@ -912,7 +916,7 @@ export default {
     },
     meSubscription: async (item, args, { me, models }) => {
       if (!me) return false
-      if (typeof item.meSubscription === 'boolean') return item.meSubscription
+      if (typeof item.meSubscription !== 'undefined') return item.meSubscription
 
       const subscription = await models.threadSubscription.findUnique({
         where: {

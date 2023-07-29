@@ -41,19 +41,9 @@ module.exports = withPlausibleProxy()({
         headers: corsHeaders
       },
       {
-        source: '/darkmode.js',
+        source: '/dark.js',
         headers: [
           ...corsHeaders
-        ]
-      },
-      {
-        source: '/Lightningvolt-xoqm.ttf',
-        headers: [
-          ...corsHeaders,
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable'
-          }
         ]
       },
       {
@@ -79,7 +69,17 @@ module.exports = withPlausibleProxy()({
         headers: [
           ...corsHeaders
         ]
-      }
+      },
+      ...['tff', 'woff', 'woff2'].map(ext => ({
+        source: `/Lightningvolt-xoqm.${ext}`,
+        headers: [
+          ...corsHeaders,
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable'
+          }
+        ]
+      }))
     ]
   },
   async rewrites () {

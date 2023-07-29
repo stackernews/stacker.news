@@ -3,7 +3,7 @@ import { ITEM_OTS } from '../../../../fragments/items'
 import stringifyCanon from 'canonical-json'
 
 export default async function handler (req, res) {
-  const client = await getSSRApolloClient(req)
+  const client = await getSSRApolloClient({ req, res })
   const { data } = await client.query({
     query: ITEM_OTS,
     variables: { id: req.query.id }

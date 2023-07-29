@@ -1,4 +1,4 @@
-import { signIn } from 'next-auth/client'
+import { signIn } from 'next-auth/react'
 import styles from './login.module.css'
 import { Form, Input, SubmitButton } from '../components/form'
 import { useState } from 'react'
@@ -33,16 +33,15 @@ export function EmailLoginForm ({ text, callbackUrl }) {
 
 export default function Login ({ providers, callbackUrl, error, text, Header, Footer }) {
   const errors = {
-    Signin: 'Try signing with a different account.',
-    OAuthSignin: 'Try signing with a different account.',
-    OAuthCallback: 'Try signing with a different account.',
-    OAuthCreateAccount: 'Try signing with a different account.',
-    EmailCreateAccount: 'Try signing with a different account.',
-    Callback: 'Try signing with a different account.',
-    OAuthAccountNotLinked: 'To confirm your identity, sign in with the same account you used originally.',
-    EmailSignin: 'Check your email address.',
-    CredentialsSignin: 'Auth failed',
-    default: 'Unable to sign in.'
+    OAuthSignin: 'Error constructing OAuth URL. Try again or choose a different method.',
+    OAuthCallback: 'Error handling OAuth response. Try again or choose a different method.',
+    OAuthCreateAccount: 'Could not create OAuth account. Try again or choose a different method.',
+    EmailCreateAccount: 'Could not create Email account. Try again or choose a different method.',
+    Callback: 'Error in callback handler. Try again or choose a different method.',
+    OAuthAccountNotLinked: 'This auth method is linked to another account. To link to this account first unlink the other account.',
+    EmailSignin: 'Failed to send email. Make sure you entered your email address correctly.',
+    CredentialsSignin: 'Auth failed. Try again or choose a different method.',
+    default: 'Auth failed. Try again or choose a different method.'
   }
 
   const [errorMessage, setErrorMessage] = useState(error && (errors[error] ?? errors.default))
@@ -70,7 +69,7 @@ export default function Login ({ providers, callbackUrl, error, text, Header, Fo
         switch (provider.name) {
           case 'Email':
             return (
-              <div className='w-100' key={provider.name}>
+              <div className='w-100' key={provider.id}>
                 <div className='mt-2 text-center text-muted fw-bold'>or</div>
                 <EmailLoginForm text={text} callbackUrl={callbackUrl} />
               </div>
@@ -80,8 +79,8 @@ export default function Login ({ providers, callbackUrl, error, text, Header, Fo
             return (
               <LoginButton
                 className={`mt-2 ${styles.providerButton}`}
-                key={provider.name}
-                type={provider.name.toLowerCase()}
+                key={provider.id}
+                type={provider.id.toLowerCase()}
                 onClick={() => router.push({
                   pathname: router.pathname,
                   query: { callbackUrl: router.query.callbackUrl, type: provider.name.toLowerCase() }
@@ -93,8 +92,8 @@ export default function Login ({ providers, callbackUrl, error, text, Header, Fo
             return (
               <LoginButton
                 className={`mt-2 ${styles.providerButton}`}
-                key={provider.name}
-                type={provider.name.toLowerCase()}
+                key={provider.id}
+                type={provider.id.toLowerCase()}
                 onClick={() => signIn(provider.id, { callbackUrl })}
                 text={`${text || 'Login'} with`}
               />

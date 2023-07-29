@@ -8,6 +8,10 @@
     width: 100%;
 }
 
+.smaller {
+    font-size: 48px;
+}
+
 .describe {
     font-size: 24px;
 }

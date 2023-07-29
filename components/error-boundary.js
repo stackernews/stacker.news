@@ -1,6 +1,6 @@
 import { Component } from 'react'
 import { StaticLayout } from './layout'
-import styles from '../styles/404.module.css'
+import styles from '../styles/error.module.css'
 import Image from 'react-bootstrap/Image'
 
 class ErrorBoundary extends Component {
@@ -27,8 +27,8 @@ class ErrorBoundary extends Component {
       // You can render any custom fallback UI
       return (
         <StaticLayout>
-          <Image width='500' height='375' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/floating.gif`} fluid />
-          <h1 className={styles.fourZeroFour} style={{ fontSize: '48px' }}>something went wrong</h1>
+          <Image width='500' height='375' className='rounded-1 shadow-sm' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/floating.gif`} fluid />
+          <h1 className={styles.status} style={{ fontSize: '48px' }}>something went wrong</h1>
         </StaticLayout>
       )
     }

@@ -4,7 +4,8 @@ import resolvers from '../../api/resolvers'
 import models from '../../api/models'
 import lnd from '../../api/lnd'
 import typeDefs from '../../api/typeDefs'
-import { getSession } from 'next-auth/client'
+import { getServerSession } from 'next-auth/next'
+import { getAuthOptions } from './auth/[...nextauth]'
 import search from '../../api/search'
 import slashtags from '../../api/slashtags'
 
@@ -21,7 +22,7 @@ const apolloServer = new ApolloServer({
               return (error, result) => {
                 const end = process.hrtime.bigint()
                 const ms = (end - start) / 1000000n
-                if (ms > 20 && info.parentType.name !== 'User') {
+                if (ms > 5) {
                   console.log(`Field ${info.parentType.name}.${info.fieldName} took ${ms}ms`)
                 }
                 if (error) {
@@ -42,8 +43,8 @@ const apolloServer = new ApolloServer({
 })
 
 export default startServerAndCreateNextHandler(apolloServer, {
-  context: async (req) => {
-    const session = await getSession({ req })
+  context: async (req, res) => {
+    const session = await getServerSession(req, res, getAuthOptions(req))
     return {
       models,
       lnd,

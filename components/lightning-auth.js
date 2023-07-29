@@ -1,5 +1,5 @@
 import { gql, useMutation, useQuery } from '@apollo/client'
-import { signIn } from 'next-auth/client'
+import { signIn } from 'next-auth/react'
 import { useEffect } from 'react'
 import Col from 'react-bootstrap/Col'
 import Container from 'react-bootstrap/Container'
@@ -20,9 +20,11 @@ function QrAuth ({ k1, encodedUrl, slashtagUrl, callbackUrl }) {
   }`
   const { data } = useQuery(query, { pollInterval: 1000, nextFetchPolicy: 'cache-and-network' })
 
-  if (data && data.lnAuth.pubkey) {
-    signIn(encodedUrl ? 'lightning' : 'slashtags', { ...data.lnAuth, callbackUrl })
-  }
+  useEffect(() => {
+    if (data?.lnAuth?.pubkey) {
+      signIn(encodedUrl ? 'lightning' : 'slashtags', { ...data.lnAuth, callbackUrl })
+    }
+  }, [data?.lnAuth])
 
   // output pubkey and k1
   return (

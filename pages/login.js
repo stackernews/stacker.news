@@ -1,11 +1,13 @@
-import { providers, getSession } from 'next-auth/client'
+import { getProviders } from 'next-auth/react'
+import { getServerSession } from 'next-auth/next'
+import { getAuthOptions } from './api/auth/[...nextauth]'
 import Link from 'next/link'
 import { StaticLayout } from '../components/layout'
 import Login from '../components/login'
 import { isExternal } from '../lib/url'
 
 export async function getServerSideProps ({ req, res, query: { callbackUrl, error = null } }) {
-  const session = await getSession({ req })
+  const session = await getServerSession(req, res, getAuthOptions(req))
 
   // prevent open redirects. See https://github.com/stackernews/stacker.news/issues/264
   // let undefined urls through without redirect ... otherwise this interferes with multiple auth linking
@@ -20,17 +22,18 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, erro
     callbackUrl = '/'
   }
 
-  if (session && res && callbackUrl) {
-    res.writeHead(302, {
-      Location: callbackUrl
-    })
-    res.end()
-    return { props: {} }
+  if (session && callbackUrl) {
+    return {
+      redirect: {
+        destination: callbackUrl,
+        permanent: false
+      }
+    }
   }
 
   return {
     props: {
-      providers: await providers({ req, res }),
+      providers: await getProviders(),
       callbackUrl,
       error
     }

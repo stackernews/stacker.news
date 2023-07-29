@@ -35,7 +35,7 @@ const UpvotePopover = ({ target, show, handleClose }) => {
     >
       <Popover id='popover-basic'>
         <Popover.Body className='d-flex justify-content-between alert-dismissible' as='h3'>Zapping
-          <button type='button' className='close' onClick={handleClose}><span aria-hidden='true'>×</span><span className='sr-only'>Close alert</span></button>
+          <button type='button' className='close' onClick={handleClose}><span aria-hidden='true'>×</span><span className='visually-hidden-focusable'>Close alert</span></button>
         </Popover.Body>
         <Popover.Body>
           <div className='mb-2'>Press the bolt again to zap {me?.tipDefault || 1} more sat{me?.tipDefault > 1 ? 's' : ''}.</div>
@@ -54,7 +54,7 @@ const TipPopover = ({ target, show, handleClose }) => (
   >
     <Popover id='popover-basic'>
       <Popover.Body className='d-flex justify-content-between alert-dismissible' as='h3'>Press and hold
-        <button type='button' className='close' onClick={handleClose}><span aria-hidden='true'>×</span><span className='sr-only'>Close alert</span></button>
+        <button type='button' className='close' onClick={handleClose}><span aria-hidden='true'>×</span><span className='visually-hidden-focusable'>Close alert</span></button>
       </Popover.Body>
       <Popover.Body>
         <div className='mb-2'>Press and hold bolt to zap a custom amount.</div>

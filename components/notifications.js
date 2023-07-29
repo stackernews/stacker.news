@@ -126,7 +126,7 @@ function EarnNotification ({ n }) {
       <HandCoin className='align-self-center fill-boost mx-1' width={24} height={24} style={{ flex: '0 0 24px', transform: 'rotateY(180deg)' }} />
       <div className='ms-2'>
         <div className='fw-bold text-boost'>
-          you stacked {n.earnedSats} sats in rewards<small className='text-muted ms-1'>{timeSince(new Date(n.sortTime))}</small>
+          you stacked {n.earnedSats} sats in rewards<small className='text-muted ms-1 fw-normal'>{timeSince(new Date(n.sortTime))}</small>
         </div>
         {n.sources &&
           <div style={{ fontSize: '80%', color: 'var(--theme-grey)' }}>
@@ -166,7 +166,7 @@ function InvoicePaid ({ n }) {
     <NotificationLayout href={`/invoices/${n.invoice.id}`}>
       <div className='fw-bold text-info ms-2 py-1'>
         <Check className='fill-info me-1' />{n.earnedSats} sats were deposited in your account
-        <small className='text-muted ms-1'>{timeSince(new Date(n.sortTime))}</small>
+        <small className='text-muted ms-1 fw-normal'>{timeSince(new Date(n.sortTime))}</small>
       </div>
     </NotificationLayout>
   )
@@ -177,7 +177,7 @@ function Referral ({ n }) {
     <NotificationLayout>
       <small className='fw-bold text-secondary ms-2'>
         someone joined via one of your <Link href='/referrals/month' className='text-reset'>referral links</Link>
-        <small className='text-muted ms-1'>{timeSince(new Date(n.sortTime))}</small>
+        <small className='text-muted ms-1 fw-normal'>{timeSince(new Date(n.sortTime))}</small>
       </small>
     </NotificationLayout>
   )

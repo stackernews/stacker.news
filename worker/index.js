@@ -1,6 +1,5 @@
 const PgBoss = require('pg-boss')
-const dotenv = require('dotenv')
-dotenv.config({ path: '..' })
+require('@next/env').loadEnvConfig('..')
 const { PrismaClient } = require('@prisma/client')
 const { checkInvoice, checkWithdrawal } = require('./wallet')
 const { repin } = require('./repin')

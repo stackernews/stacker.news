@@ -1,40 +1,16 @@
 import NextAuth from 'next-auth'
-import Providers from 'next-auth/providers'
-import { PrismaLegacyAdapter } from '../../../lib/prisma-adapter'
+import CredentialsProvider from 'next-auth/providers/credentials'
+import GitHubProvider from 'next-auth/providers/github'
+import TwitterProvider from 'next-auth/providers/twitter'
+import EmailProvider from 'next-auth/providers/email'
 import prisma from '../../../api/models'
 import nodemailer from 'nodemailer'
-import { getSession } from 'next-auth/client'
+import { PrismaAdapter } from '@auth/prisma-adapter'
+import { getToken } from 'next-auth/jwt'
+import { NodeNextRequest } from 'next/dist/server/base-http/node'
 
-// node v16 and next don't give us parsed headers like v14, so we
-// do our best to parse them in a similar fashion to like in v14
-// getSession requires req.headers.cookie otherwise it will throw
-function parsedHeaders (req) {
-  return req.rawHeaders.reduce(
-    (obj, value, index, arr) => {
-      if (index % 2 === 0) {
-        const key = value.toLowerCase()
-        if (typeof obj[key] === 'string') {
-          if (key === 'cookie') {
-            obj[key] = obj[key] + '; ' + arr[index + 1]
-          } else if (key === 'set-cookie') {
-            obj[key] = obj[key].push(arr[index + 1])
-          } else {
-            obj[key] = obj[key] + ', ' + arr[index + 1]
-          }
-        } else {
-          if (key === 'set-cookie') {
-            obj[key] = [arr[index + 1]]
-          } else {
-            obj[key] = arr[index + 1]
-          }
-        }
-      }
-      return obj
-    }, {})
-}
-
-export default (req, res) => NextAuth(req, res, {
-  callbacks: {
+function getCallbacks (req) {
+  return {
     /**
      * @param  {object}  token     Decrypted JSON Web Token
      * @param  {object}  user      User object      (only available on sign in)
@@ -43,13 +19,18 @@ export default (req, res) => NextAuth(req, res, {
      * @param  {boolean} isNewUser True if new user (only available on sign in)
      * @return {object}            JSON Web Token that will be saved
      */
-    async jwt (token, user, account, profile, isNewUser) {
-      // Add additional session params
-      if (user?.id) {
+    async jwt ({ token, user, account, profile, isNewUser }) {
+      if (user) {
+        // token won't have an id on it for new logins, we add it
+        // note: token is what's kept in the jwt
         token.id = Number(user.id)
-        // HACK next-auth needs this to do account linking with jwts
-        // see: https://github.com/nextauthjs/next-auth/issues/625
-        token.user = { id: Number(user.id) }
+      }
+
+      if (token?.id) {
+        // HACK token.sub is used by nextjs v4 internally and is used like a userId
+        // setting it here allows us to link multiple auth method to an account
+        // ... in v3 this linking field was token.user.id
+        token.sub = Number(token.id)
       }
 
       if (isNewUser) {
@@ -82,149 +63,123 @@ export default (req, res) => NextAuth(req, res, {
 
       return token
     },
-    async session (session, token) {
-      // we need to add additional session params here
-      session.user.id = Number(token.id)
+    async session ({ session, token }) {
+      // note: this function takes the current token (result of running jwt above)
+      // and returns a new object session that's returned whenever get|use[Server]Session is called
+      session.user.id = token.id
+
       return session
     }
-  },
-  providers: [
-    Providers.Credentials({
-      id: 'lightning',
-      // The name to display on the sign in form (e.g. 'Sign in with...')
-      name: 'Lightning',
-      // The credentials is used to generate a suitable form on the sign in page.
-      // You can specify whatever fields you are expecting to be submitted.
-      // e.g. domain, username, password, 2FA token, etc.
-      credentials: {
-        pubkey: { label: 'publickey', type: 'text' },
-        k1: { label: 'k1', type: 'text' }
-      },
-      async authorize (credentials, req) {
-        const { k1, pubkey } = credentials
-        try {
-          const lnauth = await prisma.lnAuth.findUnique({ where: { k1 } })
-          await prisma.lnAuth.delete({ where: { k1 } })
-          if (lnauth.pubkey === pubkey) {
-            let user = await prisma.user.findUnique({ where: { pubkey } })
-            req.headers = parsedHeaders(req)
-            const session = await getSession({ req })
-            if (!user) {
-              // if we are logged in, update rather than create
-              if (session?.user) {
-                user = await prisma.user.update({ where: { id: session.user.id }, data: { pubkey } })
-              } else {
-                user = await prisma.user.create({ data: { name: pubkey.slice(0, 10), pubkey } })
-              }
-            } else if (session && session.user?.id !== user.id) {
-              throw new Error('account not linked')
-            }
+  }
+}
 
-            return user
-          }
-        } catch (error) {
-          console.log(error)
+async function pubkeyAuth (credentials, req, pubkeyColumnName) {
+  const { k1, pubkey } = credentials
+  try {
+    const lnauth = await prisma.lnAuth.findUnique({ where: { k1 } })
+    await prisma.lnAuth.delete({ where: { k1 } })
+    if (lnauth.pubkey === pubkey) {
+      let user = await prisma.user.findUnique({ where: { [pubkeyColumnName]: pubkey } })
+      const token = await getToken({ req })
+      if (!user) {
+        // if we are logged in, update rather than create
+        if (token?.id) {
+          user = await prisma.user.update({ where: { id: token.id }, data: { [pubkeyColumnName]: pubkey } })
+        } else {
+          user = await prisma.user.create({ data: { name: pubkey.slice(0, 10), [pubkeyColumnName]: pubkey } })
         }
-
+      } else if (token && token?.id !== user.id) {
         return null
       }
-    }),
-    Providers.Credentials({
-      id: 'slashtags',
-      // The name to display on the sign in form (e.g. 'Sign in with...')
-      name: 'Slashtags',
-      // The credentials is used to generate a suitable form on the sign in page.
-      // You can specify whatever fields you are expecting to be submitted.
-      // e.g. domain, username, password, 2FA token, etc.
-      credentials: {
-        pubkey: { label: 'publickey', type: 'text' },
-        k1: { label: 'k1', type: 'text' }
-      },
-      async authorize (credentials, req) {
-        const { k1, pubkey } = credentials
-        try {
-          const lnauth = await prisma.lnAuth.findUnique({ where: { k1 } })
-          await prisma.lnAuth.delete({ where: { k1 } })
-          if (lnauth.pubkey === pubkey) {
-            let user = await prisma.user.findUnique({ where: { slashtagId: pubkey } })
-            req.headers = parsedHeaders(req)
-            const session = await getSession({ req })
-            if (!user) {
-              // if we are logged in, update rather than create
-              if (session?.user) {
-                user = await prisma.user.update({ where: { id: session.user.id }, data: { slashtagId: pubkey } })
-              } else {
-                user = await prisma.user.create({ data: { name: pubkey.slice(0, 10), slashtagId: pubkey } })
-              }
-            } else if (session && session.user?.id !== user.id) {
-              throw new Error('account not linked')
-            }
 
-            return user
-          }
-        } catch (error) {
-          console.log(error)
-        }
+      return user
+    }
+  } catch (error) {
+    console.log(error)
+  }
 
-        return null
+  return null
+}
+
+const providers = [
+  CredentialsProvider({
+    id: 'lightning',
+    name: 'Lightning',
+    credentials: {
+      pubkey: { label: 'publickey', type: 'text' },
+      k1: { label: 'k1', type: 'text' }
+    },
+    authorize: async (credentials, req) => await pubkeyAuth(credentials, new NodeNextRequest(req), 'pubkey')
+  }),
+  CredentialsProvider({
+    id: 'slashtags',
+    name: 'Slashtags',
+    credentials: {
+      pubkey: { label: 'publickey', type: 'text' },
+      k1: { label: 'k1', type: 'text' }
+    },
+    authorize: async (credentials, req) => await pubkeyAuth(credentials, new NodeNextRequest(req), 'slashtagId')
+  }),
+  GitHubProvider({
+    clientId: process.env.GITHUB_ID,
+    clientSecret: process.env.GITHUB_SECRET,
+    authorization: {
+      url: 'https://github.com/login/oauth/authorize',
+      params: { scope: '' }
+    },
+    profile: profile => {
+      return {
+        ...profile,
+        name: profile.login
       }
-    }),
-    Providers.GitHub({
-      clientId: process.env.GITHUB_ID,
-      clientSecret: process.env.GITHUB_SECRET,
-      authorization: 'https://github.com/login/oauth/authorize',
-      scope: '', // read-only acces to public information
-      profile: profile => {
-        return {
-          ...profile,
-          name: profile.login
-        }
+    }
+  }),
+  TwitterProvider({
+    clientId: process.env.TWITTER_ID,
+    clientSecret: process.env.TWITTER_SECRET,
+    profile: profile => {
+      return {
+        ...profile,
+        name: profile.screen_name
       }
-    }),
-    Providers.Twitter({
-      clientId: process.env.TWITTER_ID,
-      clientSecret: process.env.TWITTER_SECRET,
-      profile: profile => {
-        return {
-          ...profile,
-          name: profile.screen_name
-        }
-      }
-    }),
-    Providers.Email({
-      server: process.env.LOGIN_EMAIL_SERVER,
-      from: process.env.LOGIN_EMAIL_FROM,
-      sendVerificationRequest,
-      profile: profile => {
-        return profile
-      }
-    })
-  ],
-  adapter: PrismaLegacyAdapter({ prisma }),
-  secret: process.env.NEXTAUTH_SECRET,
-  session: { jwt: true },
-  jwt: {
-    signingKey: process.env.JWT_SIGNING_PRIVATE_KEY
+    }
+  }),
+  EmailProvider({
+    server: process.env.LOGIN_EMAIL_SERVER,
+    from: process.env.LOGIN_EMAIL_FROM,
+    sendVerificationRequest
+  })
+]
+
+export const getAuthOptions = req => ({
+  callbacks: getCallbacks(req),
+  providers,
+  adapter: PrismaAdapter(prisma),
+  session: {
+    strategy: 'jwt'
   },
   pages: {
     signIn: '/login',
-    verifyRequest: '/email'
+    verifyRequest: '/email',
+    error: '/auth/error'
   }
 })
+
+export default async (req, res) => {
+  await NextAuth(req, res, getAuthOptions(req))
+}
 
 async function sendVerificationRequest ({
   identifier: email,
   url,
-  token,
-  baseUrl,
   provider
 }) {
   const user = await prisma.user.findUnique({ where: { email } })
 
   return new Promise((resolve, reject) => {
     const { server, from } = provider
-    // Strip protocol from URL and use domain as site name
-    const site = baseUrl.replace(/^https?:\/\//, '')
+
+    const site = new URL(url).host
 
     nodemailer.createTransport(server).sendMail(
       {

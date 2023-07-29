@@ -7,7 +7,7 @@ import { useState } from 'react'
 import { gql, useMutation, useQuery } from '@apollo/client'
 import { getGetServerSideProps } from '../api/ssrApollo'
 import LoginButton from '../components/login-button'
-import { signIn } from 'next-auth/client'
+import { signIn } from 'next-auth/react'
 import { LightningAuth, SlashtagsAuth } from '../components/lightning-auth'
 import { SETTINGS, SET_SETTINGS } from '../fragments/users'
 import { useRouter } from 'next/router'
@@ -359,7 +359,7 @@ function AuthMethods ({ methods }) {
     // if there's only one auth method left
     const links = providers.reduce((t, p) => t + (methods[p] ? 1 : 0), 0)
     if (links === 1) {
-      showModal(onClose => (<UnlinkObstacle onClose={onClose} type={type} />))
+      showModal(onClose => (<UnlinkObstacle onClose={onClose} type={type} unlinkAuth={unlinkAuth} />))
     } else {
       await unlinkAuth({ variables: { authType: type } })
     }

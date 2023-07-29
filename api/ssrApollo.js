@@ -1,7 +1,6 @@
 import { ApolloClient, InMemoryCache } from '@apollo/client'
 import { SchemaLink } from '@apollo/client/link/schema'
 import { makeExecutableSchema } from '@graphql-tools/schema'
-import { getSession } from 'next-auth/client'
 import resolvers from './resolvers'
 import typeDefs from './typeDefs'
 import models from './models'
@@ -11,9 +10,11 @@ import lnd from './lnd'
 import search from './search'
 import { ME } from '../fragments/users'
 import { PRICE } from '../fragments/price'
+import { getServerSession } from 'next-auth/next'
+import { getAuthOptions } from '../pages/api/auth/[...nextauth]'
 
-export default async function getSSRApolloClient (req, me = null) {
-  const session = req && await getSession({ req })
+export default async function getSSRApolloClient ({ req, res, me = null }) {
+  const session = req && await getServerSession(req, res, getAuthOptions(req))
   const client = new ApolloClient({
     ssrMode: true,
     link: new SchemaLink({
@@ -54,7 +55,7 @@ export default async function getSSRApolloClient (req, me = null) {
 }
 
 export function getGetServerSideProps (queryOrFunc, variablesOrFunc = null, notFoundFunc, requireVar) {
-  return async function ({ req, query: params }) {
+  return async function ({ req, res, query: params }) {
     const { nodata, ...realParams } = params
     // we want to use client-side cache
     if (nodata) return { props: { } }
@@ -63,7 +64,7 @@ export function getGetServerSideProps (queryOrFunc, variablesOrFunc = null, notF
     const vars = { ...realParams, ...variables }
     const query = typeof queryOrFunc === 'function' ? queryOrFunc(vars) : queryOrFunc
 
-    const client = await getSSRApolloClient(req)
+    const client = await getSSRApolloClient({ req, res })
 
     const { data: { me } } = await client.query({
       query: ME,

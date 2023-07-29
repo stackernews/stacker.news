@@ -1,6 +1,5 @@
 import '../styles/globals.scss'
 import { ApolloProvider, gql } from '@apollo/client'
-import { Provider } from 'next-auth/client'
 import { MeProvider } from '../components/me'
 import PlausibleProvider from 'next-plausible'
 import getApolloClient from '../lib/apollo'
@@ -28,7 +27,7 @@ function writeQuery (client, apollo, data) {
   }
 }
 
-function MyApp ({ Component, pageProps: { session, ...props } }) {
+function MyApp ({ Component, pageProps: { ...props } }) {
   const client = getApolloClient()
   const router = useRouter()
 
@@ -80,21 +79,19 @@ function MyApp ({ Component, pageProps: { session, ...props } }) {
       </Head>
       <ErrorBoundary>
         <PlausibleProvider domain='stacker.news' trackOutboundLinks>
-          <Provider session={session}>
-            <ApolloProvider client={client}>
-              <MeProvider me={me}>
-                <ServiceWorkerProvider>
-                  <PriceProvider price={price}>
-                    <LightningProvider>
-                      <ShowModalProvider>
-                        <Component ssrData={ssrData} {...otherProps} />
-                      </ShowModalProvider>
-                    </LightningProvider>
-                  </PriceProvider>
-                </ServiceWorkerProvider>
-              </MeProvider>
-            </ApolloProvider>
-          </Provider>
+          <ApolloProvider client={client}>
+            <MeProvider me={me}>
+              <ServiceWorkerProvider>
+                <PriceProvider price={price}>
+                  <LightningProvider>
+                    <ShowModalProvider>
+                      <Component ssrData={ssrData} {...otherProps} />
+                    </ShowModalProvider>
+                  </LightningProvider>
+                </PriceProvider>
+              </ServiceWorkerProvider>
+            </MeProvider>
+          </ApolloProvider>
         </PlausibleProvider>
       </ErrorBoundary>
     </>

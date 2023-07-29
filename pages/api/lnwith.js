@@ -61,7 +61,7 @@ async function doWithdrawal (query, res) {
   }
 
   // create withdrawal in gql
-  const client = await getSSRApolloClient(null, me)
+  const client = await getSSRApolloClient({ me })
   const { error, data } = await client.mutate({
     mutation: CREATE_WITHDRAWL,
     variables: { invoice: query.pr, maxFee: 10 }

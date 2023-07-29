@@ -847,7 +847,7 @@ export default {
       return await models.user.findUnique({ where: { id: item.fwdUserId } })
     },
     comments: async (item, { sort }, { me, models }) => {
-      if (item.comments) return item.comments
+      if (typeof item.comments !== 'undefined') return item.comments
       if (item.ncomments === 0) return []
 
       return comments(me, models, item.id, sort || defaultCommentSort(item.pinId, item.bioId, item.createdAt))

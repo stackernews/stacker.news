@@ -73,7 +73,7 @@ async function authMethods (user, args, { models, me }) {
     }
   })
 
-  const oauth = accounts.map(a => a.providerId)
+  const oauth = accounts.map(a => a.provider)
 
   return {
     lightning: !!user.pubkey,
@@ -87,7 +87,7 @@ async function authMethods (user, args, { models, me }) {
 export default {
   Query: {
     me: async (parent, { skipUpdate }, { models, me }) => {
-      if (!me) {
+      if (!me?.id) {
         return null
       }
 
@@ -518,7 +518,7 @@ export default {
       let user
       if (authType === 'twitter' || authType === 'github') {
         user = await models.user.findUnique({ where: { id: me.id } })
-        const account = await models.account.findFirst({ where: { userId: me.id, providerId: authType } })
+        const account = await models.account.findFirst({ where: { userId: me.id, provider: authType } })
         if (!account) {
           throw new GraphQLError('no such account', { extensions: { code: 'BAD_INPUT' } })
         }

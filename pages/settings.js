@@ -353,7 +353,8 @@ function AuthMethods ({ methods }) {
     }
   )
 
-  const providers = Object.keys(methods).filter(k => k !== '__typename')
+  // sort to prevent hydration mismatch
+  const providers = Object.keys(methods).filter(k => k !== '__typename').sort()
 
   const unlink = async type => {
     // if there's only one auth method left

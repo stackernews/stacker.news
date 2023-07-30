@@ -31,20 +31,24 @@ export function EmailLoginForm ({ text, callbackUrl }) {
   )
 }
 
-export default function Login ({ providers, callbackUrl, error, text, Header, Footer }) {
-  const errors = {
-    OAuthSignin: 'Error constructing OAuth URL. Try again or choose a different method.',
-    OAuthCallback: 'Error handling OAuth response. Try again or choose a different method.',
-    OAuthCreateAccount: 'Could not create OAuth account. Try again or choose a different method.',
-    EmailCreateAccount: 'Could not create Email account. Try again or choose a different method.',
-    Callback: 'Error in callback handler. Try again or choose a different method.',
-    OAuthAccountNotLinked: 'This auth method is linked to another account. To link to this account first unlink the other account.',
-    EmailSignin: 'Failed to send email. Make sure you entered your email address correctly.',
-    CredentialsSignin: 'Auth failed. Try again or choose a different method.',
-    default: 'Auth failed. Try again or choose a different method.'
-  }
+const authErrorMessages = {
+  OAuthSignin: 'Error constructing OAuth URL. Try again or choose a different method.',
+  OAuthCallback: 'Error handling OAuth response. Try again or choose a different method.',
+  OAuthCreateAccount: 'Could not create OAuth account. Try again or choose a different method.',
+  EmailCreateAccount: 'Could not create Email account. Try again or choose a different method.',
+  Callback: 'Error in callback handler. Try again or choose a different method.',
+  OAuthAccountNotLinked: 'This auth method is linked to another account. To link to this account first unlink the other account.',
+  EmailSignin: 'Failed to send email. Make sure you entered your email address correctly.',
+  CredentialsSignin: 'Auth failed. Try again or choose a different method.',
+  default: 'Auth failed. Try again or choose a different method.'
+}
 
-  const [errorMessage, setErrorMessage] = useState(error && (errors[error] ?? errors.default))
+export function authErrorMessage(error) {
+  return error && (authErrorMessages[error] ?? authErrorMessages.default)
+}
+
+export default function Login ({ providers, callbackUrl, error, text, Header, Footer }) {
+  const [errorMessage, setErrorMessage] = useState(authErrorMessage(error))
   const router = useRouter()
 
   if (router.query.type === 'lightning') {

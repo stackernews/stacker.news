@@ -20,6 +20,7 @@ import { emailSchema, lastAuthRemovalSchema, settingsSchema } from '../lib/valid
 import { SUPPORTED_CURRENCIES } from '../lib/currency'
 import PageLoading from '../components/page-loading'
 import { useShowModal } from '../components/modal'
+import { authErrorMessage } from '../components/login'
 
 export const getServerSideProps = getGetServerSideProps(SETTINGS)
 
@@ -330,6 +331,8 @@ function UnlinkObstacle ({ onClose, type, unlinkAuth }) {
 
 function AuthMethods ({ methods }) {
   const showModal = useShowModal()
+  const router = useRouter()
+  const [err, setErr] = useState(authErrorMessage(router.query.error))
   const [unlinkAuth] = useMutation(
     gql`
       mutation unlinkAuth($authType: String!) {
@@ -369,6 +372,15 @@ function AuthMethods ({ methods }) {
   return (
     <>
       <div className='form-label mt-3'>auth methods</div>
+      {err && <Alert variant='danger' onClose={() => {
+        const { pathname, query: { error, nodata, ...rest } } = router
+        router.replace({
+          pathname,
+          query: { nodata, ...rest }
+        }, { pathname, query: { ...rest } }, { shallow: true })
+        setErr(undefined)
+      }} dismissible>{err}</Alert>}
+
       {providers?.map(provider => {
         if (provider === 'email') {
           return methods.email

@@ -23,6 +23,14 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, erro
   }
 
   if (session && callbackUrl) {
+    // in the cause of auth linking we want to pass the error back to
+    // settings
+    if (error) {
+      const url = new URL(callbackUrl, process.env.PUBLIC_URL)
+      url.searchParams.set('error', error)
+      callbackUrl = url.pathname + url.search
+    }
+
     return {
       redirect: {
         destination: callbackUrl,

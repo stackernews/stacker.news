@@ -37,6 +37,7 @@
     "graphql": "^16.7.1",
     "graphql-tag": "^2.12.6",
     "graphql-type-json": "^0.3.2",
+    "jose1": "npm:jose@^1.27.2",
     "ln-service": "^56.9.0",
     "mathjs": "^11.9.1",
     "mdast-util-find-and-replace": "^3.0.0",

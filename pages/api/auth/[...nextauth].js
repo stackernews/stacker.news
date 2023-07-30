@@ -6,8 +6,9 @@ import EmailProvider from 'next-auth/providers/email'
 import prisma from '../../../api/models'
 import nodemailer from 'nodemailer'
 import { PrismaAdapter } from '@auth/prisma-adapter'
-import { getToken } from 'next-auth/jwt'
+import { decode, getToken } from 'next-auth/jwt'
 import { NodeNextRequest } from 'next/dist/server/base-http/node'
+import jose1 from 'jose1'
 
 function getCallbacks (req) {
   return {
@@ -157,6 +158,38 @@ export const getAuthOptions = req => ({
   adapter: PrismaAdapter(prisma),
   session: {
     strategy: 'jwt'
+  },
+  jwt: {
+    decode: async ({ token, secret }) => {
+      // attempt to decode using new jwt decode
+      try {
+        const _token = await decode({ token, secret })
+        if (_token) {
+          return _token
+        }
+      } catch (err) {
+        console.log('next-auth v4 jwt decode failed', err)
+      }
+
+      // attempt to decode using old jwt decode from next-auth v3
+      // https://github.com/nextauthjs/next-auth/blob/ab764e379377f9ffd68ff984b163c0edb5fc4bda/src/lib/jwt.js#L52
+      try {
+        const signingKey = jose1.JWK.asKey(JSON.parse(process.env.JWT_SIGNING_PRIVATE_KEY))
+        const verificationOptions = {
+          maxTokenAge: '2592000s',
+          algorithms: ['HS512']
+        }
+        const _token = jose1.JWT.verify(token, signingKey, verificationOptions)
+        if (_token) {
+          console.log('next-auth v3 jwt decode success')
+          return _token
+        }
+      } catch (err) {
+        console.log('next-auth v3 jwt decode failed', err)
+      }
+
+      return null
+    }
   },
   pages: {
     signIn: '/login',

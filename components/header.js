@@ -20,7 +20,7 @@ import CowboyHat from './cowboy-hat'
 import { Select } from './form'
 import SearchIcon from '../svgs/search-line.svg'
 import BackArrow from '../svgs/arrow-left-line.svg'
-import { SUBS } from '../lib/constants'
+import { SSR, SUBS } from '../lib/constants'
 import { useLightning } from './lightning'
 import { HAS_NOTIFICATIONS } from '../fragments/notifications'
 
@@ -34,7 +34,7 @@ function Back () {
   const [show, setShow] = useState()
 
   useEffect(() => {
-    setShow(typeof window !== 'undefined' && router.asPath !== '/' &&
+    setShow(router.asPath !== '/' &&
     (typeof window.navigation === 'undefined' || window.navigation.canGoBack === undefined || window?.navigation.canGoBack))
   }, [router.asPath])
 
@@ -45,10 +45,12 @@ function Back () {
 }
 
 function NotificationBell () {
-  const { data } = useQuery(HAS_NOTIFICATIONS, {
-    pollInterval: 30000,
-    nextFetchPolicy: 'cache-and-network'
-  })
+  const { data } = useQuery(HAS_NOTIFICATIONS, SSR
+    ? {}
+    : {
+        pollInterval: 30000,
+        nextFetchPolicy: 'cache-and-network'
+      })
 
   return (
     <>

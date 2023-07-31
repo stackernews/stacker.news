@@ -12,8 +12,7 @@ import { ShowModalProvider } from '../components/modal'
 import ErrorBoundary from '../components/error-boundary'
 import { LightningProvider } from '../components/lightning'
 import { ServiceWorkerProvider } from '../components/serviceworker'
-
-const SSR = typeof window === 'undefined'
+import { SSR } from '../lib/constants'
 
 function writeQuery (client, apollo, data) {
   if (apollo && data) {

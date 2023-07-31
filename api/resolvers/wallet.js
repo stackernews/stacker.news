@@ -166,7 +166,7 @@ export default {
         }
         switch (f.type) {
           case 'withdrawal':
-            f.msats = (-1 * f.msats) - f.msatsFee
+            f.msats = (-1 * Number(f.msats)) - Number(f.msatsFee)
             break
           case 'spent':
             f.msats *= -1

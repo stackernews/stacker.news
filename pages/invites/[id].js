@@ -8,10 +8,10 @@ import { INVITE_FIELDS } from '../../fragments/invites'
 import getSSRApolloClient from '../../api/ssrApollo'
 import Link from 'next/link'
 import { CenterLayout } from '../../components/layout'
-import { authOptions } from '../api/auth/[...nextauth]'
+import { getAuthOptions } from '../api/auth/[...nextauth]'
 
 export async function getServerSideProps ({ req, res, query: { id, error = null } }) {
-  const session = await getServerSession(req, res, authOptions(req))
+  const session = await getServerSession(req, res, getAuthOptions(req))
 
   const client = await getSSRApolloClient({ req, res })
   const { data } = await client.query({

@@ -85,10 +85,13 @@ export default function Login ({ providers, callbackUrl, error, text, Header, Fo
                 className={`mt-2 ${styles.providerButton}`}
                 key={provider.id}
                 type={provider.id.toLowerCase()}
-                onClick={() => router.push({
-                  pathname: router.pathname,
-                  query: { callbackUrl: router.query.callbackUrl, type: provider.name.toLowerCase() }
-                })}
+                onClick={() => {
+                  const { nodata, ...query } = router.query
+                  router.push({
+                    pathname: router.pathname,
+                    query: { ...query, type: provider.name.toLowerCase() }
+                  })
+                }}
                 text={`${text || 'Login'} with`}
               />
             )

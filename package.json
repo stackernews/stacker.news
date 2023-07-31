@@ -56,6 +56,7 @@
     "page-metadata-parser": "^1.1.4",
     "pageres": "^7.1.0",
     "pg-boss": "^9.0.3",
+    "prisma": "^5.0.0",
     "qrcode.react": "^3.1.0",
     "react": "^18.2.0",
     "react-avatar-editor": "^13.0.0",
@@ -107,7 +108,6 @@
     "@babel/eslint-parser": "^7.22.9",
     "@next/eslint-plugin-next": "^13.4.12",
     "eslint": "^8.46.0",
-    "prisma": "^5.0.0",
     "standard": "^17.1.0"
   }
 }

@@ -72,7 +72,7 @@ export function InputSkeleton ({ label, hint }) {
   return (
     <BootstrapForm.Group>
       {label && <BootstrapForm.Label>{label}</BootstrapForm.Label>}
-      <div className='form-control clouds' />
+      <div className='form-control clouds' style={{ color: 'transparent' }}>.</div>
       {hint &&
         <BootstrapForm.Text>
           {hint}

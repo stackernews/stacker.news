@@ -25,7 +25,7 @@ function satusClass (status) {
 
   switch (status) {
     case 'CONFIRMED':
-      return ''
+      return 'text-reset'
     case 'PENDING':
       return 'text-muted'
     default:
@@ -78,9 +78,9 @@ function Satus ({ status }) {
   }
 
   return (
-    <div>
+    <span className='d-block'>
       <Icon /><small className={`text-${color} fw-bold ms-2`}>{desc}</small>
-    </div>
+    </span>
   )
 }
 
@@ -110,10 +110,10 @@ function Detail ({ fact }) {
   if (!fact.item) {
     return (
       <div className='px-3'>
-        <div className={satusClass(fact.status)}>
+        <Link className={satusClass(fact.status)} href={`/${fact.type}s/${fact.factId}`}>
           {fact.description || 'no invoice description'}
-        </div>
-        <Satus status={fact.status} />
+          <Satus status={fact.status} />
+        </Link>
       </div>
     )
   }
@@ -206,7 +206,7 @@ export default function Satistics ({ ssrData }) {
             <div className={[styles.type, styles.head].join(' ')}>type</div>
             <div className={[styles.detail, styles.head].join(' ')}>detail</div>
             <div className={[styles.sats, styles.head].join(' ')}>sats</div>
-            {facts.map(f => <Fact key={f.factId} fact={f} />)}
+            {facts.map(f => <Fact key={f.id} fact={f} />)}
           </div>
         </div>
         <MoreFooter cursor={cursor} count={facts?.length} fetchMore={fetchMore} Skeleton={PageLoading} />

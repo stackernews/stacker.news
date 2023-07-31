@@ -372,14 +372,19 @@ function AuthMethods ({ methods }) {
   return (
     <>
       <div className='form-label mt-3'>auth methods</div>
-      {err && <Alert variant='danger' onClose={() => {
-        const { pathname, query: { error, nodata, ...rest } } = router
-        router.replace({
-          pathname,
-          query: { nodata, ...rest }
-        }, { pathname, query: { ...rest } }, { shallow: true })
-        setErr(undefined)
-      }} dismissible>{err}</Alert>}
+      {err && (
+        <Alert
+          variant='danger' onClose={() => {
+            const { pathname, query: { error, nodata, ...rest } } = router
+            router.replace({
+              pathname,
+              query: { nodata, ...rest }
+            }, { pathname, query: { ...rest } }, { shallow: true })
+            setErr(undefined)
+          }} dismissible
+        >{err}
+        </Alert>
+      )}
 
       {providers?.map(provider => {
         if (provider === 'email') {

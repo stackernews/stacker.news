@@ -43,7 +43,7 @@ const authErrorMessages = {
   default: 'Auth failed. Try again or choose a different method.'
 }
 
-export function authErrorMessage(error) {
+export function authErrorMessage (error) {
   return error && (authErrorMessages[error] ?? authErrorMessages.default)
 }
 

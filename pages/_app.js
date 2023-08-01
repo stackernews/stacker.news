@@ -31,14 +31,15 @@ function MyApp ({ Component, pageProps: { ...props } }) {
   const router = useRouter()
 
   useEffect(() => {
+    if (router.query.nodata || !router.isReady ||
+      Component?.name === 'Custom404') return
+
     // HACK: 'cause there's no way to tell Next to skip SSR
     // So every page load, we modify the route in browser history
     // to point to the same page but without SSR, ie ?nodata=true
     // this nodata var will get passed to the server on back/foward and
     // 1. prevent data from reloading and 2. perserve scroll
     // (2) is not possible while intercepting nav with beforePopState
-    if (router.query.nodata || !router.isReady) return
-
     router.replace({
       pathname: router.pathname,
       query: { ...router.query, nodata: true }
@@ -48,7 +49,7 @@ function MyApp ({ Component, pageProps: { ...props } }) {
         throw e
       }
     })
-  }, [router.pathname, router.query])
+  }, [router.pathname, router.query, Component?.name])
 
   /*
     If we are on the client, we populate the apollo cache with the

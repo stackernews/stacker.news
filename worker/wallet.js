@@ -73,7 +73,7 @@ function checkWithdrawal ({ boss, models, lnd }) {
         status = 'ROUTE_NOT_FOUND'
       }
       await serialize(models, models.$executeRaw`
-      SELECT reverse_withdrawl(${id}::INTEGER, ${status})`)
+      SELECT reverse_withdrawl(${id}::INTEGER, ${status}::"WithdrawlStatus")`)
     } else {
       // we need to requeue to check again in 5 seconds
       await boss.send('checkWithdrawal', { id, hash }, walletOptions)

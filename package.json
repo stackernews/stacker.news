@@ -6,7 +6,7 @@
     "dev": "NODE_OPTIONS='--trace-warnings' next dev",
     "build": "next build",
     "migrate": "prisma migrate deploy",
-    "start": "NODE_OPTIONS='--trace-warnings' next start -p $PORT --keepAliveTimeout 0"
+    "start": "NODE_OPTIONS='--trace-warnings' next start -p $PORT --keepAliveTimeout 120"
   },
   "dependencies": {
     "@apollo/client": "^3.7.17",

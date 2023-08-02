@@ -95,6 +95,15 @@ $grid-gutter-width: 2rem;
   }
 }
 
+#nprogress .bar {
+  background: var(--bs-primary) !important;
+  height: 2px !important;
+}
+
+#nprogress .peg {
+  box-shadow: 0 0 10px var(--bs-primary), 0 0 5px var(--bs-primary) !important;
+}
+
 .standalone {
   display: none;
 }
@@ -188,8 +197,8 @@ mark {
 }
 
 html, body {
-  background: var(--theme-body);
-  color: var(--theme-color);
+  background: var(--theme-body) !important;
+  color: var(--theme-color) !important;
   min-height: 100vh;
   min-height: 100svh;
 }

@@ -121,6 +121,10 @@ module.exports = withPlausibleProxy()({
         destination: '/api/web-app-origin-association'
       },
       {
+        source: '/~:sub/:slug*\\?:query*',
+        destination: '/~/:slug*?:query*&sub=:sub'
+      },
+      {
         source: '/~:sub/:slug*',
         destination: '/~/:slug*?sub=:sub'
       },

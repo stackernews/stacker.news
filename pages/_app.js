@@ -3,7 +3,6 @@ import { ApolloProvider, gql } from '@apollo/client'
 import { MeProvider } from '../components/me'
 import PlausibleProvider from 'next-plausible'
 import getApolloClient from '../lib/apollo'
-import NextNProgress from 'nextjs-progressbar'
 import { PriceProvider } from '../components/price'
 import Head from 'next/head'
 import { useRouter } from 'next/dist/client/router'
@@ -13,6 +12,12 @@ import ErrorBoundary from '../components/error-boundary'
 import { LightningProvider } from '../components/lightning'
 import { ServiceWorkerProvider } from '../components/serviceworker'
 import { SSR } from '../lib/constants'
+import NProgress from 'nprogress'
+import 'nprogress/nprogress.css'
+
+NProgress.configure({
+  showSpinner: false
+})
 
 function writeQuery (client, apollo, data) {
   if (apollo && data) {
@@ -31,9 +36,14 @@ function MyApp ({ Component, pageProps: { ...props } }) {
   const router = useRouter()
 
   useEffect(() => {
-    if (router.query.nodata || !router.isReady ||
-      Component?.name === 'Custom404') return
+    const nprogressStart = (_, { shallow }) => !shallow && NProgress.start()
+    const nprogressDone = (_, { shallow }) => !shallow && NProgress.done()
 
+    router.events.on('routeChangeStart', nprogressStart)
+    router.events.on('routeChangeComplete', nprogressDone)
+    router.events.on('routeChangeError', nprogressDone)
+
+    if (!props?.apollo) return
     // HACK: 'cause there's no way to tell Next to skip SSR
     // So every page load, we modify the route in browser history
     // to point to the same page but without SSR, ie ?nodata=true
@@ -46,10 +56,17 @@ function MyApp ({ Component, pageProps: { ...props } }) {
     }, router.asPath, { ...router.options, shallow: true }).catch((e) => {
       // workaround for https://github.com/vercel/next.js/issues/37362
       if (!e.cancelled) {
+        console.log(e)
         throw e
       }
     })
-  }, [router.pathname, router.query, Component?.name])
+
+    return () => {
+      router.events.off('routeChangeStart', nprogressStart)
+      router.events.off('routeChangeComplete', nprogressDone)
+      router.events.off('routeChangeError', nprogressDone)
+    }
+  }, [router.asPath, props?.apollo])
 
   /*
     If we are on the client, we populate the apollo cache with the
@@ -66,14 +83,6 @@ function MyApp ({ Component, pageProps: { ...props } }) {
 
   return (
     <>
-      <NextNProgress
-        color='var(--bs-primary)'
-        startPosition={0.3}
-        stopDelayMs={200}
-        height={2}
-        showOnShallow={false}
-        options={{ showSpinner: false }}
-      />
       <Head>
         <meta name='viewport' content='initial-scale=1.0, width=device-width' />
       </Head>

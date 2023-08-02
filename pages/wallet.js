@@ -137,7 +137,7 @@ export function WithdrawlForm () {
   const router = useRouter()
   const me = useMe()
 
-  const [createWithdrawl, { called, error }] = useMutation(CREATE_WITHDRAWL)
+  let [createWithdrawl, { called, error }] = useMutation(CREATE_WITHDRAWL)
 
   useEffect(() => {
     async function effect () {
@@ -158,6 +158,10 @@ export function WithdrawlForm () {
 
   if (called && !error) {
     return <WithdrawlSkeleton status='sending' />
+  }
+
+  if (error?.toString().includes('SN_DAILY_WITHDRAWL_LIMIT_EXCEEDED')) {
+    error = 'Withdrawal exceeds daily limit of 1m sats'
   }
 
   return (

@@ -114,8 +114,8 @@ export default function Comment ({
     if (Number(router.query.commentId) === Number(item.id)) {
       // HACK wait for other comments to collapse if they're collapsed
       setTimeout(() => {
-        ref.current.scrollIntoView()
-        ref.current.classList.add('flash-it')
+        ref.current.scrollIntoView({ behavior: 'instant', block: 'start' })
+        ref.current.classList.add('outline-it')
         router.replace({
           pathname: router.pathname,
           query: { id: router.query.id }

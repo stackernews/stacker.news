@@ -626,6 +626,22 @@ div[contenteditable]:focus,
   animation: flash 2s linear 1;
 }
 
+@keyframes outline {
+  from {
+    box-shadow: inset 0 0 1px 1px var(--bs-info);
+  }
+  90% {
+    box-shadow: inset 0 0 1px 1px var(--bs-info);
+  }
+  to {
+    box-shadow: inset 0 0 0px 0px var(--bs-info);
+  }
+}
+
+.outline-it {
+  animation: outline 3s linear 1;
+}
+
 @keyframes spin {
   0% {
     transform: rotate(0deg);

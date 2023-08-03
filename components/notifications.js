@@ -257,7 +257,7 @@ function Reply ({ n }) {
   )
 }
 
-function NotificationAlert () {
+export function NotificationAlert () {
   const [showAlert, setShowAlert] = useState(false)
   const [hasSubscription, setHasSubscription] = useState(false)
   const [error, setError] = useState(null)
@@ -319,35 +319,40 @@ function NotificationAlert () {
 export default function Notifications ({ ssrData }) {
   const { data, fetchMore } = useQuery(NOTIFICATIONS)
   const client = useApolloClient()
-
-  useEffect(() => {
-    client.writeQuery({
-      query: HAS_NOTIFICATIONS,
-      data: {
-        hasNewNotes: false
-      }
-    })
-  }, [client])
+  const router = useRouter()
 
   const { notifications: { notifications, earn, lastChecked, cursor } } = useMemo(() => {
-    if (!data && !ssrData) return { notifications: {} }
-    return data || ssrData
+    return data || ssrData || { notifications: {} }
   }, [data, ssrData])
+
+  const checkedAt = router?.query?.checkedAt
+
+  useEffect(() => {
+    if (lastChecked && !checkedAt) {
+      router.push({ query: { ...router.query, checkedAt: lastChecked } },
+        router.asPath, { shallow: true })
+      client?.writeQuery({
+        query: HAS_NOTIFICATIONS,
+        data: {
+          hasNewNotes: false
+        }
+      })
+    }
+  }, [lastChecked, checkedAt])
 
   const [fresh, old] = useMemo(() => {
     if (!notifications) return [[], []]
     return notifications.reduce((result, n) => {
-      result[new Date(n.sortTime).getTime() > lastChecked ? 0 : 1].push(n)
+      result[new Date(n.sortTime).getTime() > new Date(checkedAt)?.getTime() ? 0 : 1].push(n)
       return result
     },
     [[], []])
-  }, [notifications, lastChecked])
+  }, [notifications, checkedAt])
 
   if (!data && !ssrData) return <CommentsFlatSkeleton />
 
   return (
     <>
-      <NotificationAlert />
       <div className='fresh'>
         {earn && <Notification n={earn} key='earn' />}
         {fresh.map((n, i) => (

@@ -329,8 +329,15 @@ export default function Notifications ({ ssrData }) {
 
   useEffect(() => {
     if (lastChecked && !checkedAt) {
-      router.push({ query: { ...router.query, checkedAt: lastChecked } },
-        router.asPath, { shallow: true })
+      router.replace({
+        pathname: router.pathname,
+        query: {
+          ...router.query,
+          nodata: true, // make sure nodata is set so we don't fetch on back/forward
+          checkedAt: lastChecked
+        }
+      },
+      router.asPath, { ...router.options, shallow: true })
       client?.writeQuery({
         query: HAS_NOTIFICATIONS,
         data: {

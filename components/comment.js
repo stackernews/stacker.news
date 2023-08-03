@@ -116,10 +116,6 @@ export default function Comment ({
       setTimeout(() => {
         ref.current.scrollIntoView({ behavior: 'instant', block: 'start' })
         ref.current.classList.add('outline-it')
-        router.replace({
-          pathname: router.pathname,
-          query: { id: router.query.id }
-        }, undefined, { scroll: false })
       }, 20)
     }
   }, [item])

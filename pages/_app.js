@@ -25,7 +25,6 @@ function writeQuery (client, apollo, data) {
       query: gql`${apollo.query}`,
       data,
       variables: apollo.variables,
-      broadcast: !SSR,
       overwrite: SSR
     })
   }

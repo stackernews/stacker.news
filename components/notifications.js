@@ -42,9 +42,9 @@ function NotificationLayout ({ children, nid, href, as }) {
   return (
     <div
       className={`clickToContext ${router?.query?.nid === nid ? 'outline-it' : ''}`}
-      onClick={(e) => {
+      onClick={async (e) => {
         if (ignoreClick(e)) return
-        nid && router.replace({
+        nid && await router.replace({
           pathname: router.pathname,
           query: {
             ...router.query,
@@ -348,8 +348,7 @@ export default function Notifications ({ ssrData }) {
           nodata: true, // make sure nodata is set so we don't fetch on back/forward
           checkedAt: lastChecked
         }
-      },
-      router.asPath, { ...router.options, shallow: true })
+      }, router.asPath, { ...router.options, shallow: true })
       client?.writeQuery({
         query: HAS_NOTIFICATIONS,
         data: {
@@ -361,8 +360,9 @@ export default function Notifications ({ ssrData }) {
 
   const [fresh, old] = useMemo(() => {
     if (!notifications) return [[], []]
+    const freshTime = checkedAt || lastChecked
     return notifications.reduce((result, n) => {
-      result[new Date(n.sortTime).getTime() > new Date(checkedAt)?.getTime() ? 0 : 1].push(n)
+      result[new Date(n.sortTime).getTime() > new Date(freshTime)?.getTime() ? 0 : 1].push(n)
       return result
     },
     [[], []])

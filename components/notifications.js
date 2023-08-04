@@ -37,12 +37,22 @@ function Notification ({ n }) {
   return null
 }
 
-function NotificationLayout ({ children, href, as }) {
+function NotificationLayout ({ children, nid, href, as }) {
   const router = useRouter()
   return (
     <div
-      className='clickToContext'
-      onClick={(e) => !ignoreClick(e) && router.push(href, as)}
+      className={`clickToContext ${router?.query?.nid === nid ? 'outline-it' : ''}`}
+      onClick={(e) => {
+        if (ignoreClick(e)) return
+        nid && router.replace({
+          pathname: router.pathname,
+          query: {
+            ...router.query,
+            nid
+          }
+        }, router.asPath, { ...router.options, shallow: true })
+        router.push(href, as)
+      }}
     >
       {children}
     </div>
@@ -145,7 +155,7 @@ function EarnNotification ({ n }) {
 
 function Invitification ({ n }) {
   return (
-    <NotificationLayout href='/invites'>
+    <NotificationLayout nid={nid(n)} href='/invites'>
       <small className='fw-bold text-secondary ms-2'>
         your invite has been redeemed by {n.invite.invitees.length} stackers
       </small>
@@ -163,7 +173,7 @@ function Invitification ({ n }) {
 
 function InvoicePaid ({ n }) {
   return (
-    <NotificationLayout href={`/invoices/${n.invoice.id}`}>
+    <NotificationLayout nid={nid(n)} href={`/invoices/${n.invoice.id}`}>
       <div className='fw-bold text-info ms-2 py-1'>
         <Check className='fill-info me-1' />{n.earnedSats} sats were deposited in your account
         <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
@@ -174,7 +184,7 @@ function InvoicePaid ({ n }) {
 
 function Referral ({ n }) {
   return (
-    <NotificationLayout>
+    <NotificationLayout nid={nid(n)}>
       <small className='fw-bold text-secondary ms-2'>
         someone joined via one of your <Link href='/referrals/month' className='text-reset'>referral links</Link>
         <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
@@ -185,7 +195,7 @@ function Referral ({ n }) {
 
 function Votification ({ n }) {
   return (
-    <NotificationLayout {...defaultOnClick(n)}>
+    <NotificationLayout nid={nid(n)} {...defaultOnClick(n)}>
       <small className='fw-bold text-success ms-2'>
         your {n.item.title ? 'post' : 'reply'} {n.item.fwdUser ? 'forwarded' : 'stacked'} {n.earnedSats} sats{n.item.fwdUser && ` to @${n.item.fwdUser.name}`}
       </small>
@@ -206,7 +216,7 @@ function Votification ({ n }) {
 
 function Mention ({ n }) {
   return (
-    <NotificationLayout {...defaultOnClick(n)}>
+    <NotificationLayout nid={nid(n)} {...defaultOnClick(n)}>
       <small className='fw-bold text-info ms-2'>
         you were mentioned in
       </small>
@@ -226,7 +236,7 @@ function Mention ({ n }) {
 
 function JobChanged ({ n }) {
   return (
-    <NotificationLayout {...defaultOnClick(n)}>
+    <NotificationLayout nid={nid(n)} {...defaultOnClick(n)}>
       <small className={`fw-bold text-${n.item.status === 'ACTIVE' ? 'success' : 'boost'} ms-1`}>
         {n.item.status === 'ACTIVE'
           ? 'your job is active again'
@@ -241,7 +251,7 @@ function JobChanged ({ n }) {
 
 function Reply ({ n }) {
   return (
-    <NotificationLayout {...defaultOnClick(n)} rootText='replying on:'>
+    <NotificationLayout nid={nid(n)} {...defaultOnClick(n)} rootText='replying on:'>
       <div className='py-2'>
         {n.item.title
           ? <Item item={n.item} />
@@ -316,12 +326,14 @@ export function NotificationAlert () {
   )
 }
 
+const nid = n => n.__typename + n.id + n.sortTime
+
 export default function Notifications ({ ssrData }) {
   const { data, fetchMore } = useQuery(NOTIFICATIONS)
   const client = useApolloClient()
   const router = useRouter()
 
-  const { notifications: { notifications, earn, lastChecked, cursor } } = useMemo(() => {
+  const { notifications: { notifications, lastChecked, cursor } } = useMemo(() => {
     return data || ssrData || { notifications: {} }
   }, [data, ssrData])
 
@@ -361,13 +373,12 @@ export default function Notifications ({ ssrData }) {
   return (
     <>
       <div className='fresh'>
-        {earn && <Notification n={earn} key='earn' />}
         {fresh.map((n, i) => (
-          <Notification n={n} key={n.__typename + n.id + n.sortTime} />
+          <Notification n={n} key={nid(n)} />
         ))}
       </div>
       {old.map((n, i) => (
-        <Notification n={n} key={n.__typename + n.id + n.sortTime} />
+        <Notification n={n} key={nid(n)} />
       ))}
       <MoreFooter cursor={cursor} count={notifications?.length} fetchMore={fetchMore} Skeleton={CommentsFlatSkeleton} noMoreText='NO MORE' />
     </>

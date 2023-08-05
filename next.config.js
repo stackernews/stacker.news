@@ -41,7 +41,7 @@ module.exports = withPlausibleProxy()({
         headers: corsHeaders
       },
       {
-        source: '/bs-dark.js',
+        source: '/dark-mode.js',
         headers: [
           ...corsHeaders
         ]

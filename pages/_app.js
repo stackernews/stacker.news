@@ -72,10 +72,6 @@ function MyApp ({ Component, pageProps: { ...props } }) {
     ssr data
   */
   const { apollo, ssrData, me, price, ...otherProps } = props
-  // if we are on the server, useEffect won't run
-  if (SSR && client) {
-    writeQuery(client, apollo, ssrData)
-  }
   useEffect(() => {
     writeQuery(client, apollo, ssrData)
   }, [client, apollo, ssrData])

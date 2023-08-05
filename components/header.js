@@ -10,7 +10,7 @@ import Price from './price'
 import { useMe } from './me'
 import Head from 'next/head'
 import { signOut } from 'next-auth/react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect } from 'react'
 import { randInRange } from '../lib/rand'
 import { abbrNum } from '../lib/format'
 import NoteIcon from '../svgs/notification-4-fill.svg'
@@ -31,17 +31,19 @@ function WalletSummary ({ me }) {
 
 function Back () {
   const router = useRouter()
-  const [show, setShow] = useState()
 
-  useEffect(() => {
-    setShow(router.asPath !== '/' &&
-    (typeof window.navigation === 'undefined' || window.navigation.canGoBack === undefined || window?.navigation.canGoBack))
-  }, [router.asPath])
-
-  if (show) {
-    return <a role='button' tabIndex='0' className='nav-link standalone p-0' onClick={() => router.back()}><BackArrow className='theme me-1 me-md-2' width={22} height={22} /></a>
-  }
-  return null
+  return router.asPath !== '/' &&
+    <a
+      role='button' tabIndex='0' className='nav-link standalone p-0' onClick={() => {
+        if (typeof window.navigation === 'undefined' || window.navigation.canGoBack === undefined || window?.navigation.canGoBack) {
+          router.back()
+        } else {
+          router.push('/')
+        }
+      }}
+    >
+      <BackArrow className='theme me-1 me-md-2' width={22} height={22} />
+    </a>
 }
 
 function NotificationBell () {

@@ -58,7 +58,7 @@ class MyDocument extends Document {
           <link rel='apple-touch-startup-image' media='screen and (device-width: 810px) and (device-height: 1080px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)' href='/splash/10.2__iPad_portrait.png' />
           <link rel='apple-touch-startup-image' media='screen and (device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)' href='/splash/9.7__iPad_Pro__7.9__iPad_mini__9.7__iPad_Air__9.7__iPad_portrait.png' />
           <link rel='apple-touch-startup-image' media='screen and (device-width: 744px) and (device-height: 1133px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)' href='/splash/8.3__iPad_Mini_portrait.png' />
-          <script src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/dark.js`} crossOrigin='' type='module' />
+          <script src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/bs-dark.js`} crossOrigin='' type='module' />
         </Head>
         <body>
           <Main />

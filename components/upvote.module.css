@@ -27,7 +27,7 @@
 }
 
 .cover {
-    background: var(--theme-body);
+    background: var(--bs-body-bg);
     width: 100%;
     overflow: hidden;
     mix-blend-mode: color;

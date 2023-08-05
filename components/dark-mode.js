@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getTheme, listenForThemeChange, setTheme } from '../public/dark'
+import { getTheme, listenForThemeChange, setTheme } from '../public/bs-dark'
 
 export default function useDarkMode () {
   const [dark, setDark] = useState()

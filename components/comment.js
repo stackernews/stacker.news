@@ -118,7 +118,7 @@ export default function Comment ({
         ref.current.classList.add('outline-it')
       }, 20)
     }
-  }, [item])
+  }, [item.id, router.query.commentId])
 
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT
   const op = root.user.name === item.user.name

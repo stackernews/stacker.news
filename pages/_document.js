@@ -23,7 +23,7 @@ class MyDocument extends Document {
             }}
           />
           <meta name='apple-mobile-web-app-capable' content='yes' />
-          <meta name='theme-color' content='#000000' />
+          <meta name='theme-color' content='#121214' />
           <link rel='apple-touch-icon' href='/icons/icon_x192.png' />
           <link rel='apple-touch-startup-image' media='screen and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)' href='/splash/iPhone_14_Pro_Max_landscape.png' />
           <link rel='apple-touch-startup-image' media='screen and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)' href='/splash/iPhone_14_Pro_landscape.png' />

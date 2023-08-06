@@ -20,6 +20,7 @@ import styles from './notifications.module.css'
 import { useServiceWorker } from './serviceworker'
 import { Checkbox, Form } from './form'
 import { useRouter } from 'next/router'
+import { useData } from './use-data'
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
@@ -340,10 +341,11 @@ const nid = n => n.__typename + n.id + n.sortTime
 export default function Notifications ({ ssrData }) {
   const { data, fetchMore } = useQuery(NOTIFICATIONS)
   const router = useRouter()
+  const dat = useData(data, ssrData)
 
   const { notifications: { notifications, lastChecked, cursor } } = useMemo(() => {
-    return data || ssrData || { notifications: {} }
-  }, [data, ssrData])
+    return dat || { notifications: {} }
+  }, [dat])
 
   useEffect(() => {
     if (lastChecked && !router?.query?.checkedAt) {
@@ -358,7 +360,7 @@ export default function Notifications ({ ssrData }) {
     }
   }, [router, lastChecked])
 
-  if (!data && !ssrData) return <CommentsFlatSkeleton />
+  if (!dat) return <CommentsFlatSkeleton />
 
   return (
     <>

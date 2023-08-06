@@ -9,10 +9,10 @@
 
 .notification {
     position: absolute;
-    padding: 2px;
+    padding: 3px;
     background-color: var(--bs-info);
-    top: -1px;
-    right: -3px;
+    top: -3px;
+    right: -4px;
     border: 1px solid var(--bs-body-bg);
 }
 

@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useApolloClient, useQuery } from '@apollo/client'
+import { useQuery } from '@apollo/client'
 import Comment, { CommentSkeleton } from './comment'
 import Item from './item'
 import ItemJob from './item-job'
-import { HAS_NOTIFICATIONS, NOTIFICATIONS } from '../fragments/notifications'
+import { NOTIFICATIONS } from '../fragments/notifications'
 import MoreFooter from './more-footer'
 import Invite from './invite'
 import { ignoreClick } from '../lib/clicks'
@@ -21,27 +21,34 @@ import { useServiceWorker } from './serviceworker'
 import { Checkbox, Form } from './form'
 import { useRouter } from 'next/router'
 
-function Notification ({ n }) {
-  switch (n.__typename) {
-    case 'Earn': return <EarnNotification n={n} />
-    case 'Invitification': return <Invitification n={n} />
-    case 'InvoicePaid': return <InvoicePaid n={n} />
-    case 'Referral': return <Referral n={n} />
-    case 'Streak': return <Streak n={n} />
-    case 'Votification': return <Votification n={n} />
-    case 'Mention': return <Mention n={n} />
-    case 'JobChanged': return <JobChanged n={n} />
-    case 'Reply': return <Reply n={n} />
-  }
-  console.error('__typename not supported:', n.__typename)
-  return null
+function Notification ({ n, fresh }) {
+  const type = n.__typename
+
+  return (
+    <NotificationLayout nid={nid(n)} {...defaultOnClick(n)} fresh={fresh}>
+      {
+        (type === 'Earn' && <EarnNotification n={n} />) ||
+        (type === 'Invitification' && <Invitification n={n} />) ||
+        (type === 'InvoicePaid' && <InvoicePaid n={n} />) ||
+        (type === 'Referral' && <Referral n={n} />) ||
+        (type === 'Streak' && <Streak n={n} />) ||
+        (type === 'Votification' && <Votification n={n} />) ||
+        (type === 'Mention' && <Mention n={n} />) ||
+        (type === 'JobChanged' && <JobChanged n={n} />) ||
+        (type === 'Reply' && <Reply n={n} />)
+      }
+    </NotificationLayout>
+  )
 }
 
-function NotificationLayout ({ children, nid, href, as }) {
+function NotificationLayout ({ children, nid, href, as, fresh }) {
   const router = useRouter()
+  if (!href) return <div className={fresh ? styles.fresh : ''}>{children}</div>
   return (
     <div
-      className={`clickToContext ${router?.query?.nid === nid ? 'outline-it' : ''}`}
+      className={
+        `clickToContext ${fresh ? styles.fresh : ''} ${router?.query?.nid === nid ? 'outline-it' : ''}`
+      }
       onClick={async (e) => {
         if (ignoreClick(e)) return
         nid && await router.replace({
@@ -60,6 +67,14 @@ function NotificationLayout ({ children, nid, href, as }) {
 }
 
 const defaultOnClick = n => {
+  const type = n.__typename
+  if (type === 'Earn') return {}
+  if (type === 'Invitification') return { href: '/invites' }
+  if (type === 'InvoicePaid') return { href: `/invoices/${n.invoice.id}` }
+  if (type === 'Referral') return { href: '/referrals/month' }
+  if (type === 'Streak') return {}
+
+  // Votification, Mention, JobChanged, Reply all have item
   if (!n.item.title) {
     const path = n.item.path.split('.')
     if (path.length > COMMENT_DEPTH_LIMIT + 1) {
@@ -155,7 +170,7 @@ function EarnNotification ({ n }) {
 
 function Invitification ({ n }) {
   return (
-    <NotificationLayout nid={nid(n)} href='/invites'>
+    <>
       <small className='fw-bold text-secondary ms-2'>
         your invite has been redeemed by {n.invite.invitees.length} stackers
       </small>
@@ -167,35 +182,31 @@ function Invitification ({ n }) {
         }
         />
       </div>
-    </NotificationLayout>
+    </>
   )
 }
 
 function InvoicePaid ({ n }) {
   return (
-    <NotificationLayout nid={nid(n)} href={`/invoices/${n.invoice.id}`}>
-      <div className='fw-bold text-info ms-2 py-1'>
-        <Check className='fill-info me-1' />{n.earnedSats} sats were deposited in your account
-        <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
-      </div>
-    </NotificationLayout>
+    <div className='fw-bold text-info ms-2 py-1'>
+      <Check className='fill-info me-1' />{n.earnedSats} sats were deposited in your account
+      <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
+    </div>
   )
 }
 
 function Referral ({ n }) {
   return (
-    <NotificationLayout nid={nid(n)}>
-      <small className='fw-bold text-secondary ms-2'>
-        someone joined via one of your <Link href='/referrals/month' className='text-reset'>referral links</Link>
-        <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
-      </small>
-    </NotificationLayout>
+    <small className='fw-bold text-secondary ms-2'>
+      someone joined via one of your referral links
+      <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
+    </small>
   )
 }
 
 function Votification ({ n }) {
   return (
-    <NotificationLayout nid={nid(n)} {...defaultOnClick(n)}>
+    <>
       <small className='fw-bold text-success ms-2'>
         your {n.item.title ? 'post' : 'reply'} {n.item.fwdUser ? 'forwarded' : 'stacked'} {n.earnedSats} sats{n.item.fwdUser && ` to @${n.item.fwdUser.name}`}
       </small>
@@ -210,13 +221,13 @@ function Votification ({ n }) {
             </div>
             )}
       </div>
-    </NotificationLayout>
+    </>
   )
 }
 
 function Mention ({ n }) {
   return (
-    <NotificationLayout nid={nid(n)} {...defaultOnClick(n)}>
+    <>
       <small className='fw-bold text-info ms-2'>
         you were mentioned in
       </small>
@@ -230,13 +241,13 @@ function Mention ({ n }) {
               </RootProvider>
             </div>)}
       </div>
-    </NotificationLayout>
+    </>
   )
 }
 
 function JobChanged ({ n }) {
   return (
-    <NotificationLayout nid={nid(n)} {...defaultOnClick(n)}>
+    <>
       <small className={`fw-bold text-${n.item.status === 'ACTIVE' ? 'success' : 'boost'} ms-1`}>
         {n.item.status === 'ACTIVE'
           ? 'your job is active again'
@@ -245,25 +256,23 @@ function JobChanged ({ n }) {
               : 'your job has been stopped')}
       </small>
       <ItemJob item={n.item} />
-    </NotificationLayout>
+    </>
   )
 }
 
 function Reply ({ n }) {
   return (
-    <NotificationLayout nid={nid(n)} {...defaultOnClick(n)} rootText='replying on:'>
-      <div className='py-2'>
-        {n.item.title
-          ? <Item item={n.item} />
-          : (
-            <div className='pb-2'>
-              <RootProvider root={n.item.root}>
-                <Comment item={n.item} noReply includeParent clickToContext rootText='replying on:' />
-              </RootProvider>
-            </div>
-            )}
-      </div>
-    </NotificationLayout>
+    <div className='py-2'>
+      {n.item.title
+        ? <Item item={n.item} />
+        : (
+          <div className='pb-2'>
+            <RootProvider root={n.item.root}>
+              <Comment item={n.item} noReply includeParent clickToContext rootText='replying on:' />
+            </RootProvider>
+          </div>
+          )}
+    </div>
   )
 }
 
@@ -330,17 +339,14 @@ const nid = n => n.__typename + n.id + n.sortTime
 
 export default function Notifications ({ ssrData }) {
   const { data, fetchMore } = useQuery(NOTIFICATIONS)
-  const client = useApolloClient()
   const router = useRouter()
 
   const { notifications: { notifications, lastChecked, cursor } } = useMemo(() => {
     return data || ssrData || { notifications: {} }
   }, [data, ssrData])
 
-  const checkedAt = router?.query?.checkedAt
-
   useEffect(() => {
-    if (lastChecked && !checkedAt) {
+    if (lastChecked && !router?.query?.checkedAt) {
       router.replace({
         pathname: router.pathname,
         query: {
@@ -349,37 +355,18 @@ export default function Notifications ({ ssrData }) {
           checkedAt: lastChecked
         }
       }, router.asPath, { ...router.options, shallow: true })
-      client?.writeQuery({
-        query: HAS_NOTIFICATIONS,
-        data: {
-          hasNewNotes: false
-        }
-      })
     }
-  }, [lastChecked, checkedAt])
-
-  const [fresh, old] = useMemo(() => {
-    if (!notifications) return [[], []]
-    const freshTime = checkedAt || lastChecked
-    return notifications.reduce((result, n) => {
-      result[new Date(n.sortTime).getTime() > new Date(freshTime)?.getTime() ? 0 : 1].push(n)
-      return result
-    },
-    [[], []])
-  }, [notifications, checkedAt])
+  }, [router, lastChecked])
 
   if (!data && !ssrData) return <CommentsFlatSkeleton />
 
   return (
     <>
-      <div className='fresh'>
-        {fresh.map((n, i) => (
-          <Notification n={n} key={nid(n)} />
-        ))}
-      </div>
-      {old.map((n, i) => (
-        <Notification n={n} key={nid(n)} />
-      ))}
+      {notifications.map(n =>
+        <Notification
+          n={n} key={nid(n)}
+          fresh={new Date(n.sortTime) > new Date(router?.query?.checkedAt)}
+        />)}
       <MoreFooter cursor={cursor} count={notifications?.length} fetchMore={fetchMore} Skeleton={CommentsFlatSkeleton} noMoreText='NO MORE' />
     </>
   )

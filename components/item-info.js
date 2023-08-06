@@ -42,9 +42,12 @@ export default function ItemInfo ({ item, pendingSats, full, commentsText, class
           <span>{abbrNum(item.boost)} boost</span>
           <span> \ </span>
         </>}
-      <Link href={`/items/${item.id}`} title={`${item.commentSats} sats`} className='text-reset'>
+      <Link href={`/items/${item.id}`} title={`${item.commentSats} sats`} className='text-reset position-relative'>
         {item.ncomments} {commentsText || 'comments'}
-        {hasNewComments && <>{' '}<Badge className={styles.newComment} bg={null}>new</Badge></>}
+        {hasNewComments &&
+          <span className={styles.notification}>
+            <span className='invisible'>{' '}</span>
+          </span>}
       </Link>
       <span> \ </span>
       <span>

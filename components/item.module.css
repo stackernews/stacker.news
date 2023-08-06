@@ -7,6 +7,15 @@
     padding-bottom: .15rem;
 }
 
+.notification {
+    position: absolute;
+    padding: 2px;
+    background-color: var(--bs-info);
+    top: -1px;
+    right: -3px;
+    border: 1px solid var(--bs-body-bg);
+}
+
 .icon {
     display: inline-block;
 }

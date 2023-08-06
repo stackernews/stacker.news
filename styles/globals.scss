@@ -688,6 +688,10 @@ div[contenteditable]:focus,
   animation: outline 3s linear 1;
 }
 
+.outline-new-comment {
+  box-shadow: inset 0 0 1px 1px rgba(0, 123, 190, 0.35);
+}
+
 @keyframes spin {
   0% {
     transform: rotate(0deg);

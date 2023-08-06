@@ -5,7 +5,7 @@ import Badge from 'react-bootstrap/Badge'
 import Dropdown from 'react-bootstrap/Dropdown'
 import Countdown from './countdown'
 import { abbrNum } from '../lib/format'
-import { newComments } from '../lib/new-comments'
+import { newComments, commentsViewedAt } from '../lib/new-comments'
 import { timeSince } from '../lib/time'
 import CowboyHat from './cowboy-hat'
 import { DeleteDropdownItem } from './delete'
@@ -42,7 +42,17 @@ export default function ItemInfo ({ item, pendingSats, full, commentsText, class
           <span>{abbrNum(item.boost)} boost</span>
           <span> \ </span>
         </>}
-      <Link href={`/items/${item.id}`} title={`${item.commentSats} sats`} className='text-reset position-relative'>
+      <Link
+        href={`/items/${item.id}`} onClick={(e) => {
+          const viewedAt = commentsViewedAt(item)
+          if (viewedAt) {
+            e.preventDefault()
+            router.push(
+              `/items/${item.id}?commentsViewedAt=${viewedAt}`,
+              `/items/${item.id}`)
+          }
+        }} title={`${item.commentSats} sats`} className='text-reset position-relative'
+      >
         {item.ncomments} {commentsText || 'comments'}
         {hasNewComments &&
           <span className={styles.notification}>

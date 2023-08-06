@@ -12,6 +12,8 @@ import Flag from '../svgs/flag-fill.svg'
 import ImageIcon from '../svgs/image-fill.svg'
 import { abbrNum } from '../lib/format'
 import ItemInfo from './item-info'
+import { commentsViewedAt } from '../lib/new-comments'
+import { useRouter } from 'next/router'
 
 export function SearchTitle ({ title }) {
   return reactStringReplace(title, /:high\[([^\]]+)\]/g, (match, i) => {
@@ -21,6 +23,7 @@ export function SearchTitle ({ title }) {
 
 export default function Item ({ item, rank, belowTitle, right, full, children, siblingComments }) {
   const titleRef = useRef()
+  const router = useRouter()
   const [pendingSats, setPendingSats] = useState(0)
 
   const image = item.url && item.url.startsWith(process.env.NEXT_PUBLIC_IMGPROXY_URL)
@@ -39,7 +42,18 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
           : item.meDontLike ? <Flag width={24} height={24} className={styles.dontLike} /> : <UpVote item={item} className={styles.upvote} pendingSats={pendingSats} setPendingSats={setPendingSats} />}
         <div className={styles.hunk}>
           <div className={`${styles.main} flex-wrap`}>
-            <Link href={`/items/${item.id}`} ref={titleRef} className={`${styles.title} text-reset me-2`}>
+            <Link
+              href={`/items/${item.id}`}
+              onClick={(e) => {
+                const viewedAt = commentsViewedAt(item)
+                if (viewedAt) {
+                  e.preventDefault()
+                  router.push(
+                    `/items/${item.id}?commentsViewedAt=${viewedAt}`,
+                    `/items/${item.id}`)
+                }
+              }} ref={titleRef} className={`${styles.title} text-reset me-2`}
+            >
               {item.searchTitle ? <SearchTitle title={item.searchTitle} /> : item.title}
               {item.pollCost && <span className={styles.icon}> <PollIcon className='fill-grey ms-1' height={14} width={14} /></span>}
               {item.bounty > 0 &&

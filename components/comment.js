@@ -120,6 +120,14 @@ export default function Comment ({
     }
   }, [item.id, router.query.commentId])
 
+  useEffect(() => {
+    if (router.query.commentsViewedAt &&
+        me?.id !== item.user?.id &&
+        new Date(item.createdAt).getTime() > router.query.commentsViewedAt) {
+      ref.current.classList.add('outline-new-comment')
+    }
+  }, [item.id])
+
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT
   const op = root.user.name === item.user.name
   const bountyPaid = root.bountyPaidTo?.includes(Number(item.id))
@@ -127,6 +135,7 @@ export default function Comment ({
   return (
     <div
       ref={ref} className={includeParent ? '' : `${styles.comment} ${collapse === 'yep' ? styles.collapsed : ''}`}
+      onMouseEnter={() => ref.current.classList.remove('outline-new-comment')}
     >
       <div className={`${itemStyles.item} ${styles.item}`}>
         {item.meDontLike

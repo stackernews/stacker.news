@@ -12,6 +12,8 @@ export default {
         }
       })
 
+      if (!lastReward) return { total: 0, sources: [] }
+
       const [result] = await models.$queryRaw`
         SELECT coalesce(FLOOR(sum(sats)), 0) as total, json_build_array(
           json_build_object('name', 'donations', 'value', coalesce(FLOOR(sum(sats) FILTER(WHERE type = 'DONATION')), 0)),

@@ -130,7 +130,7 @@ const providers = [
     },
     profile: profile => {
       return {
-        ...profile,
+        id: profile.id,
         name: profile.login
       }
     }
@@ -140,7 +140,7 @@ const providers = [
     clientSecret: process.env.TWITTER_SECRET,
     profile: profile => {
       return {
-        ...profile,
+        id: profile.id,
         name: profile.screen_name
       }
     }

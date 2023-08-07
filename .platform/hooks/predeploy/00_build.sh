@@ -4,4 +4,4 @@ echo primsa migrate
 npm run migrate
 
 echo build with npm
-npm run build
+sudo -E -u webapp npm run build

@@ -54,7 +54,7 @@ export default function ItemJob ({ item, toc, rank, children }) {
                 @{item.user.name}<CowboyHat className='ms-1 fill-grey' user={item.user} height={12} width={12} />
               </Link>
               <span> </span>
-              <Link href={`/items/${item.id}`} title={item.createdAt} className='text-reset'>
+              <Link href={`/items/${item.id}`} title={item.createdAt} className='text-reset' suppressHydrationWarning>
                 {timeSince(new Date(item.createdAt))}
               </Link>
             </span>

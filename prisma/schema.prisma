@@ -443,6 +443,10 @@ model Account {
   id_token          String?
   session_state     String?
 
+  // twitter oauth 1.0 needs these https://authjs.dev/reference/core/providers_twitter#notes
+  oauth_token        String?
+  oauth_token_secret String?
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])

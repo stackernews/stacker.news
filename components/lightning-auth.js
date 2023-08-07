@@ -9,6 +9,7 @@ import Qr, { QrSkeleton } from './qr'
 import styles from './lightning-auth.module.css'
 import BackIcon from '../svgs/arrow-left-line.svg'
 import { useRouter } from 'next/router'
+import { SSR } from '../lib/constants'
 
 function QrAuth ({ k1, encodedUrl, slashtagUrl, callbackUrl }) {
   const query = gql`
@@ -18,7 +19,7 @@ function QrAuth ({ k1, encodedUrl, slashtagUrl, callbackUrl }) {
       k1
     }
   }`
-  const { data } = useQuery(query, { pollInterval: 1000, nextFetchPolicy: 'cache-and-network' })
+  const { data } = useQuery(query, SSR ? {} : { pollInterval: 1000, nextFetchPolicy: 'cache-and-network' })
 
   useEffect(() => {
     if (data?.lnAuth?.pubkey) {

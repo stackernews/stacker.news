@@ -14,6 +14,7 @@ import Alert from 'react-bootstrap/Alert'
 import { CREATE_WITHDRAWL, SEND_TO_LNADDR } from '../fragments/wallet'
 import { getGetServerSideProps } from '../api/ssrApollo'
 import { amountSchema, lnAddrSchema, withdrawlSchema } from '../lib/validate'
+import { SSR } from '../lib/constants'
 
 export const getServerSideProps = getGetServerSideProps()
 
@@ -210,7 +211,7 @@ function LnQRWith ({ k1, encodedUrl }) {
       k1
     }
   }`
-  const { data } = useQuery(query, { pollInterval: 1000, nextFetchPolicy: 'cache-and-network' })
+  const { data } = useQuery(query, SSR ? {} : { pollInterval: 1000, nextFetchPolicy: 'cache-and-network' })
 
   if (data?.lnWith?.withdrawalId) {
     router.push(`/withdrawals/${data.lnWith.withdrawalId}`)

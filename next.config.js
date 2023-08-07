@@ -41,12 +41,6 @@ module.exports = withPlausibleProxy()({
         headers: corsHeaders
       },
       {
-        source: '/dark.js',
-        headers: [
-          ...corsHeaders
-        ]
-      },
-      {
         source: '/.well-known/:slug*',
         headers: [
           ...corsHeaders
@@ -119,6 +113,10 @@ module.exports = withPlausibleProxy()({
       {
         source: '/.well-known/web-app-origin-association',
         destination: '/api/web-app-origin-association'
+      },
+      {
+        source: '/~:sub/:slug*\\?:query*',
+        destination: '/~/:slug*?:query*&sub=:sub'
       },
       {
         source: '/~:sub/:slug*',

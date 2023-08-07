@@ -245,7 +245,7 @@ export default function Settings ({ ssrData }) {
             name='greeterMode'
           />
           <AccordianItem
-            headerColor='var(--theme-color)'
+            headerColor='var(--bs-body-color)'
             show={settings?.nostrPubkey}
             header={<h4 className='text-left'>nostr <small><a href='https://github.com/nostr-protocol/nips/blob/master/05.md' target='_blank' rel='noreferrer'>NIP-05</a></small></h4>}
             body={
@@ -372,14 +372,19 @@ function AuthMethods ({ methods }) {
   return (
     <>
       <div className='form-label mt-3'>auth methods</div>
-      {err && <Alert variant='danger' onClose={() => {
-        const { pathname, query: { error, nodata, ...rest } } = router
-        router.replace({
-          pathname,
-          query: { nodata, ...rest }
-        }, { pathname, query: { ...rest } }, { shallow: true })
-        setErr(undefined)
-      }} dismissible>{err}</Alert>}
+      {err && (
+        <Alert
+          variant='danger' onClose={() => {
+            const { pathname, query: { error, nodata, ...rest } } = router
+            router.replace({
+              pathname,
+              query: { nodata, ...rest }
+            }, { pathname, query: { ...rest } }, { shallow: true })
+            setErr(undefined)
+          }} dismissible
+        >{err}
+        </Alert>
+      )}
 
       {providers?.map(provider => {
         if (provider === 'email') {

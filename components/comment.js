@@ -114,15 +114,19 @@ export default function Comment ({
     if (Number(router.query.commentId) === Number(item.id)) {
       // HACK wait for other comments to collapse if they're collapsed
       setTimeout(() => {
-        ref.current.scrollIntoView()
-        ref.current.classList.add('flash-it')
-        router.replace({
-          pathname: router.pathname,
-          query: { id: router.query.id }
-        }, undefined, { scroll: false })
+        ref.current.scrollIntoView({ behavior: 'instant', block: 'start' })
+        ref.current.classList.add('outline-it')
       }, 20)
     }
-  }, [item])
+  }, [item.id, router.query.commentId])
+
+  useEffect(() => {
+    if (router.query.commentsViewedAt &&
+        me?.id !== item.user?.id &&
+        new Date(item.createdAt).getTime() > router.query.commentsViewedAt) {
+      ref.current.classList.add('outline-new-comment')
+    }
+  }, [item.id])
 
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT
   const op = root.user.name === item.user.name
@@ -131,6 +135,8 @@ export default function Comment ({
   return (
     <div
       ref={ref} className={includeParent ? '' : `${styles.comment} ${collapse === 'yep' ? styles.collapsed : ''}`}
+      onMouseEnter={() => ref.current.classList.add('outline-new-comment-unset')}
+      onTouchStart={() => ref.current.classList.add('outline-new-comment-unset')}
     >
       <div className={`${itemStyles.item} ${styles.item}`}>
         {item.meDontLike

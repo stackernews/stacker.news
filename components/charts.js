@@ -89,7 +89,7 @@ export function WhenAreaChart ({ data }) {
           tick={{ fill: 'var(--theme-grey)' }}
         />
         <YAxis tickFormatter={abbrNum} tick={{ fill: 'var(--theme-grey)' }} />
-        <Tooltip labelFormatter={dateFormatter(when)} contentStyle={{ color: 'var(--theme-color)', backgroundColor: 'var(--theme-body)' }} />
+        <Tooltip labelFormatter={dateFormatter(when)} contentStyle={{ color: 'var(--bs-body-color)', backgroundColor: 'var(--bs-body-bg)' }} />
         <Legend />
         {Object.keys(data[0]).filter(v => v !== 'time' && v !== '__typename').map((v, i) =>
           <Area key={v} type='monotone' dataKey={v} name={v} stackId='1' stroke={COLORS[i]} fill={COLORS[i]} />)}
@@ -124,7 +124,7 @@ export function WhenLineChart ({ data }) {
           tick={{ fill: 'var(--theme-grey)' }}
         />
         <YAxis tickFormatter={abbrNum} tick={{ fill: 'var(--theme-grey)' }} />
-        <Tooltip labelFormatter={dateFormatter(when)} contentStyle={{ color: 'var(--theme-color)', backgroundColor: 'var(--theme-body)' }} />
+        <Tooltip labelFormatter={dateFormatter(when)} contentStyle={{ color: 'var(--bs-body-color)', backgroundColor: 'var(--bs-body-bg)' }} />
         <Legend />
         {Object.keys(data[0]).filter(v => v !== 'time' && v !== '__typename').map((v, i) =>
           <Line key={v} type='monotone' dataKey={v} name={v} stroke={COLORS[i]} fill={COLORS[i]} />)}
@@ -160,7 +160,7 @@ export function WhenComposedChart ({ data, lineNames, areaNames, barNames }) {
         />
         <YAxis yAxisId='left' orientation='left' allowDecimals={false} stroke='var(--theme-grey)' tickFormatter={abbrNum} tick={{ fill: 'var(--theme-grey)' }} />
         <YAxis yAxisId='right' orientation='right' allowDecimals={false} stroke='var(--theme-grey)' tickFormatter={abbrNum} tick={{ fill: 'var(--theme-grey)' }} />
-        <Tooltip labelFormatter={dateFormatter(when)} contentStyle={{ color: 'var(--theme-color)', backgroundColor: 'var(--theme-body)' }} />
+        <Tooltip labelFormatter={dateFormatter(when)} contentStyle={{ color: 'var(--bs-body-color)', backgroundColor: 'var(--bs-body-bg)' }} />
         <Legend />
         {barNames?.map((v, i) =>
           <Bar yAxisId='right' key={v} type='monotone' dataKey={v} name={v} stroke='var(--bs-info)' fill='var(--bs-info)' />)}

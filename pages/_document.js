@@ -1,11 +1,11 @@
 import Document, { Html, Head, Main, NextScript } from 'next/document'
+import Script from 'next/script'
 
 class MyDocument extends Document {
   render () {
     return (
       <Html lang='en'>
         <Head>
-          <script src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/dark-mode.js`} crossOrigin='' />
           <link rel='manifest' href='/site.webmanifest' />
           <link rel='preload' href={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.woff2`} as='font' type='font/woff2' crossOrigin='' />
           <link rel='preload' href={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.woff`} as='font' type='font/woff' crossOrigin='' />
@@ -25,6 +25,41 @@ class MyDocument extends Document {
           <meta name='apple-mobile-web-app-capable' content='yes' />
           <meta name='theme-color' content='#121214' />
           <link rel='apple-touch-icon' href='/icons/icon_x192.png' />
+          <Script id='dark-mode-js' strategy='beforeInteractive'>
+            {`const handleThemeChange = (dark) => {
+                const root = window.document.documentElement
+                root.setAttribute('data-bs-theme', dark ? 'dark' : 'light')
+              }
+
+              const STORAGE_KEY = 'darkMode'
+              const PREFER_DARK_QUERY = '(prefers-color-scheme: dark)'
+
+              const getTheme = () => {
+                const mql = window.matchMedia(PREFER_DARK_QUERY)
+                const supportsColorSchemeQuery = mql.media === PREFER_DARK_QUERY
+                let localStorageTheme = null
+                try {
+                  localStorageTheme = window.localStorage.getItem(STORAGE_KEY)
+                } catch (err) {}
+                const localStorageExists = localStorageTheme !== null
+                if (localStorageExists) {
+                  localStorageTheme = JSON.parse(localStorageTheme)
+                }
+
+                if (localStorageExists) {
+                  return { user: true, dark: localStorageTheme }
+                } else if (supportsColorSchemeQuery) {
+                  return { user: false, dark: mql.matches }
+                }
+              }
+
+              if (typeof window !== 'undefined') {
+                (function () {
+                  const { dark } = getTheme()
+                  handleThemeChange(dark)
+                })()
+              }`}
+          </Script>
           <link rel='apple-touch-startup-image' media='screen and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)' href='/splash/iPhone_14_Pro_Max_landscape.png' />
           <link rel='apple-touch-startup-image' media='screen and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)' href='/splash/iPhone_14_Pro_landscape.png' />
           <link rel='apple-touch-startup-image' media='screen and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)' href='/splash/iPhone_14_Plus__iPhone_13_Pro_Max__iPhone_12_Pro_Max_landscape.png' />

@@ -6,7 +6,8 @@
     "dev": "NODE_OPTIONS='--trace-warnings' next dev",
     "build": "next build",
     "migrate": "prisma migrate deploy",
-    "start": "NODE_OPTIONS='--trace-warnings' next start -p $PORT --keepAliveTimeout 120000"
+    "start": "NODE_OPTIONS='--trace-warnings' next start -p $PORT --keepAliveTimeout 120000",
+    "lint": "standard"
   },
   "dependencies": {
     "@apollo/client": "^3.7.17",
@@ -101,7 +102,8 @@
     ],
     "extends": [
       "next"
-    ]
+    ],
+    "ignore": ["**/spawn"]
   },
   "devDependencies": {
     "@babel/core": "^7.22.9",

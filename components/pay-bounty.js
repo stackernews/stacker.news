@@ -4,7 +4,7 @@ import styles from './pay-bounty.module.css'
 import ActionTooltip from './action-tooltip'
 import { useMutation, gql } from '@apollo/client'
 import { useMe } from './me'
-import { abbrNum } from '../lib/format'
+import { satsLabel } from '../lib/format'
 import { useShowModal } from './modal'
 import FundError from './fund-error'
 import { useRoot } from './root'
@@ -101,7 +101,7 @@ export default function PayBounty ({ children, item }) {
               </div>
               <div className='text-center'>
                 <Button className='mt-4' variant='primary' onClick={() => handlePayBounty(onClose)}>
-                  pay <small>{abbrNum(root.bounty)} sats</small>
+                  pay <small>{satsLabel(root.bounty)}</small>
                 </Button>
               </div>
             </>

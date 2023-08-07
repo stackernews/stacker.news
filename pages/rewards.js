@@ -9,7 +9,7 @@ import { useMutation, useQuery } from '@apollo/client'
 import Link from 'next/link'
 import { amountSchema } from '../lib/validate'
 import Countdown from 'react-countdown'
-import { abbrNum } from '../lib/format'
+import { abbrNum, satsLabel } from '../lib/format'
 import PageLoading from '../components/page-loading'
 import { useShowModal } from '../components/modal'
 import dynamic from 'next/dynamic'
@@ -52,7 +52,7 @@ export function RewardLine ({ total }) {
 
   return (
     <>
-      {abbrNum(total)} sats in rewards
+      {satsLabel(total)} in rewards
       {threshold &&
         <Countdown
           date={threshold}

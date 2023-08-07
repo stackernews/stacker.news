@@ -140,11 +140,11 @@ function TopLevelItem ({ item, noReply, ...props }) {
             {item.bountyPaidTo?.length
               ? (
                 <div className='px-3 py-1 d-inline-block bg-grey-medium rounded text-success'>
-                  <Check className='fill-success' /> {satsLabel(item.bounty)} paid
+                  <Check className='fill-success' /> {satsLabel(item.bounty, false)} paid
                 </div>)
               : (
                 <div className='px-3 py-1 d-inline-block bg-grey-darkmode rounded text-light'>
-                  {satsLabel(item.bounty)} bounty
+                  {satsLabel(item.bounty, false)} bounty
                 </div>)}
           </div>}
       </div>

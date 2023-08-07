@@ -54,7 +54,7 @@ function LoadWithdrawl () {
   let variant = 'default'
   switch (data.withdrawl.status) {
     case 'CONFIRMED':
-      status = `sent ${satsLabel(data.withdrawl.satsPaid)} with ${satsLabel(data.withdrawl.satsFeePaid)} in routing fees`
+      status = `sent ${satsLabel(data.withdrawl.satsPaid, false)} with ${satsLabel(data.withdrawl.satsFeePaid, false)} in routing fees`
       variant = 'confirmed'
       break
     case 'INSUFFICIENT_BALANCE':

@@ -31,7 +31,7 @@ function YouHaveSats () {
   const me = useMe()
   return (
     <h2 className={`${me ? 'visible' : 'invisible'} text-success pb-5`}>
-      you have <span className='text-monospace'>{me && satsLabel(me.sats)}</span>
+      you have <span className='text-monospace'>{me && satsLabel(me.sats, false)}</span>
     </h2>
   )
 }

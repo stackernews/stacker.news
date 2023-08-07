@@ -6,7 +6,7 @@ export function Invoice ({ invoice }) {
   let status = 'waiting for you'
   if (invoice.confirmedAt) {
     variant = 'confirmed'
-    status = `${satsLabel(invoice.satsReceived)} deposited`
+    status = `${satsLabel(invoice.satsReceived, false)} deposited`
   } else if (invoice.cancelled) {
     variant = 'failed'
     status = 'cancelled'

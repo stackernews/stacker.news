@@ -1,11 +1,12 @@
 import Qr from './qr'
+import { satsLabel } from '../lib/format';
 
 export function Invoice ({ invoice }) {
   let variant = 'default'
   let status = 'waiting for you'
   if (invoice.confirmedAt) {
     variant = 'confirmed'
-    status = `${invoice.satsReceived} sats deposited`
+    status = `${satsLabel(invoice.satsReceived)} deposited`
   } else if (invoice.cancelled) {
     variant = 'failed'
     status = 'cancelled'

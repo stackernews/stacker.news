@@ -16,6 +16,7 @@ import { amountSchema, bountySchema, commentSchema, discussionSchema, jobSchema,
 import { sendUserNotification } from '../webPush'
 import { proxyImages } from './imgproxy'
 import { defaultCommentSort } from '../../lib/item'
+import { satsLabel } from '../../lib/format'
 
 export async function commentFilterClause (me, models) {
   let clause = ` AND ("Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}`
@@ -731,7 +732,7 @@ export default {
       const [{ item_act: vote }] = await serialize(models, models.$queryRaw`SELECT item_act(${Number(id)}::INTEGER, ${me.id}::INTEGER, 'TIP', ${Number(sats)}::INTEGER)`)
 
       const updatedItem = await models.item.findUnique({ where: { id: Number(id) } })
-      const title = `your ${updatedItem.title ? 'post' : 'reply'} ${updatedItem.fwdUser ? 'forwarded' : 'stacked'} ${Math.floor(Number(updatedItem.msats) / 1000)} sats${updatedItem.fwdUser ? ` to @${updatedItem.fwdUser.name}` : ''}`
+      const title = `your ${updatedItem.title ? 'post' : 'reply'} ${updatedItem.fwdUser ? 'forwarded' : 'stacked'} ${satsLabel(Math.floor(Number(updatedItem.msats) / 1000))}${updatedItem.fwdUser ? ` to @${updatedItem.fwdUser.name}` : ''}`
       sendUserNotification(updatedItem.userId, {
         title,
         body: updatedItem.title ? updatedItem.title : updatedItem.text,

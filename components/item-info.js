@@ -51,7 +51,7 @@ export default function ItemInfo ({ item, pendingSats, full, commentsText, class
               `/items/${item.id}?commentsViewedAt=${viewedAt}`,
               `/items/${item.id}`)
           }
-        }} title={`${item.commentSats} sats`} className='text-reset position-relative'
+        }} title={satsLabel(item.commentSats)} className='text-reset position-relative'
       >
         {item.ncomments} {commentsText || 'comments'}
         {hasNewComments &&

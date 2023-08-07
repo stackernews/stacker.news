@@ -7,6 +7,7 @@ import { useRouter } from 'next/router'
 import { WITHDRAWL } from '../../fragments/wallet'
 import Link from 'next/link'
 import { SSR } from '../../lib/constants'
+import { satsLabel } from '../../lib/format'
 
 export default function Withdrawl () {
   return (
@@ -53,7 +54,7 @@ function LoadWithdrawl () {
   let variant = 'default'
   switch (data.withdrawl.status) {
     case 'CONFIRMED':
-      status = `sent ${data.withdrawl.satsPaid} sats with ${data.withdrawl.satsFeePaid} sats in routing fees`
+      status = `sent ${satsLabel(data.withdrawl.satsPaid)} with ${satsLabel(data.withdrawl.satsFeePaid)} in routing fees`
       variant = 'confirmed'
       break
     case 'INSUFFICIENT_BALANCE':

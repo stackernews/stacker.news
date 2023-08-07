@@ -90,7 +90,7 @@ export default function PayBounty ({ children, item }) {
   return (
     <ActionTooltip
       notForm
-      overlayText={`${root.bounty} sats`}
+      overlayText={satsLabel(root.bounty)}
     >
       <div
         className={styles.pay} onClick={() => {

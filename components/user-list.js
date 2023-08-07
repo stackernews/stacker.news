@@ -44,7 +44,7 @@ export default function UserList ({ ssrData, query, variables, destructureData }
   useEffect(() => {
     // shift the stat we are sorting by to the front
     const comps = [...STAT_COMPONENTS]
-    setStatComps(seperate([...comps.splice(STAT_POS[variables.by || 0], 1), ...comps], Seperator))
+    setStatComps(seperate([...comps.splice(STAT_POS[variables?.by || 0], 1), ...comps], Seperator))
   }, [variables?.by])
 
   const { users, cursor } = useMemo(() => {

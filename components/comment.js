@@ -135,7 +135,8 @@ export default function Comment ({
   return (
     <div
       ref={ref} className={includeParent ? '' : `${styles.comment} ${collapse === 'yep' ? styles.collapsed : ''}`}
-      onMouseEnter={() => ref.current.classList.remove('outline-new-comment')}
+      onMouseEnter={() => ref.current.classList.add('outline-new-comment-unset')}
+      onTouchStart={() => ref.current.classList.add('outline-new-comment-unset')}
     >
       <div className={`${itemStyles.item} ${styles.item}`}>
         {item.meDontLike

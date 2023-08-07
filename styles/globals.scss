@@ -689,7 +689,15 @@ div[contenteditable]:focus,
 }
 
 .outline-new-comment {
-  box-shadow: inset 0 0 1px 1px rgba(0, 123, 190, 0.35);
+  box-shadow: inset 0 0 1px 1px rgba(0, 123, 190, 0.25);
+}
+
+.outline-new-comment.outline-new-comment-unset {
+  box-shadow: none;
+}
+
+.outline-new-comment .outline-new-comment {
+  box-shadow: none;
 }
 
 @keyframes spin {

@@ -1,5 +1,5 @@
 import Qr from './qr'
-import { satsLabel } from '../lib/format';
+import { satsLabel } from '../lib/format'
 
 export function Invoice ({ invoice }) {
   let variant = 'default'

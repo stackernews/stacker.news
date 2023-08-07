@@ -46,6 +46,15 @@ module.exports = withPlausibleProxy()({
           ...corsHeaders
         ]
       },
+      // never cache service worker
+      // https://stackoverflow.com/questions/38843970/service-worker-javascript-update-frequency-every-24-hours/38854905#38854905
+      {
+        source: '/sw.js',
+        headers: [{
+          key: 'Cache-Control',
+          value: 'no-cache'
+        }]
+      },
       {
         source: '/api/lnauth',
         headers: [

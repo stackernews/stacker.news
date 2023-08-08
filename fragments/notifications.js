@@ -80,6 +80,7 @@ export const NOTIFICATIONS = gql`
           earnedSats
           invoice {
             id
+            nostr
           }
         }
       }

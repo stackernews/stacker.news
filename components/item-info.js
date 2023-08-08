@@ -17,7 +17,7 @@ import BookmarkDropdownItem from './bookmark'
 import SubscribeDropdownItem from './subscribe'
 import { CopyLinkDropdownItem } from './share'
 
-export default function ItemInfo ({ item, pendingSats, full, commentsText, className, embellishUser, extraInfo, onEdit, editText }) {
+export default function ItemInfo ({ item, pendingSats, full, commentsText, commentTextSingular, className, embellishUser, extraInfo, onEdit, editText }) {
   const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
   const me = useMe()
   const router = useRouter()
@@ -58,7 +58,7 @@ export default function ItemInfo ({ item, pendingSats, full, commentsText, class
           }
         }} title={numWithUnits(item.commentSats)} className='text-reset position-relative'
       >
-        {item.ncomments} {commentsText || 'comments'}
+        {item.ncomments} {item.ncomments === 1 ? commentTextSingular || 'comment' : commentsText || 'comments'}
         {hasNewComments &&
           <span className={styles.notification}>
             <span className='invisible'>{' '}</span>

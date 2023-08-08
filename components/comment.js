@@ -148,6 +148,7 @@ export default function Comment ({
               item={item}
               pendingSats={pendingSats}
               commentsText='replies'
+              commentTextSingular='reply'
               className={`${itemStyles.other} ${styles.other}`}
               embellishUser={op && <Badge bg='boost' className={`ms-1 ${styles.op} bg-opacity-75`}>OP</Badge>}
               extraInfo={

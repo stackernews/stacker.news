@@ -99,7 +99,7 @@ export const ServiceWorkerProvider = ({ children }) => {
     // since (a lot of) browsers don't support the pushsubscriptionchange event,
     // we sync with server manually by checking on every page reload if the push subscription changed.
     // see https://medium.com/@madridserginho/how-to-handle-webpush-api-pushsubscriptionchange-event-in-modern-browsers-6e47840d756f
-    navigator.serviceWorker.controller.postMessage({ action: 'SYNC_SUBSCRIPTION' })
+    navigator?.serviceWorker?.controller?.postMessage?.({ action: 'SYNC_SUBSCRIPTION' })
   }, [])
 
   useEffect(() => {

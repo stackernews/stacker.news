@@ -12,7 +12,7 @@ import styles from './lightning-auth.module.css'
 function ExtensionError ({ message, details }) {
   return (
     <>
-      <div className='fw-bold text-muted pb-1'>error: {message}</div>
+      <h4 className='fw-bold text-danger pb-1'>error: {message}</h4>
       <div className='text-muted pb-4'>{details}</div>
     </>
   )
@@ -21,16 +21,13 @@ function ExtensionError ({ message, details }) {
 function NostrExplainer ({ text }) {
   return (
     <>
-      <div className='fw-bold text-muted pb-1'>error: nostr extension not found</div>
-      <div className='text-muted pb-4'>Nostr extensions are the safest way to use your nostr identity on Stacker News.</div>
+      <ExtensionError message='nostr extension not found' details='Nostr extensions are the safest way to use your nostr identity on Stacker News.' />
       <Row className='w-100 text-muted'>
         <AccordianItem
-          header={`Which extensions can I use to ${(text || 'Login').toLowerCase()}?`}
+          header={`Which extensions can I use to ${(text || 'Login').toLowerCase()} with Nostr?`}
+          show
           body={
             <>
-              <Row className='mb-3 no-gutters'>
-                You can use any extension that supports signing. These are some extensions you can use:
-              </Row>
               <Row>
                 <Col>
                   <ul>
@@ -138,16 +135,13 @@ export function NostrAuth ({ text, callbackUrl }) {
 
   return (
     <>
-      {hasExtension === false ? <NostrExplainer text={text} /> : null}
-      {extensionError ? <ExtensionError {...extensionError} /> : null}
-      {hasExtension && !extensionError
-        ? (
-          <>
-            <div className='fw-bold text-muted pb-1'>nostr extension found</div>
-            <div className='text-muted pb-4'>authorize event signature in extension</div>
-          </>
-          )
-        : null}
+      {hasExtension === false && <NostrExplainer text={text} />}
+      {extensionError && <ExtensionError {...extensionError} />}
+      {hasExtension && !extensionError &&
+        <>
+          <h4 className='fw-bold text-success pb-1'>nostr extension found</h4>
+          <h6 className='text-muted pb-4'>authorize event signature in extension</h6>
+        </>}
     </>
   )
 }

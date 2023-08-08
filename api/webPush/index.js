@@ -1,6 +1,7 @@
 import webPush from 'web-push'
 import models from '../models'
 import { COMMENT_DEPTH_LIMIT } from '../../lib/constants'
+import removeMd from 'remove-markdown'
 
 const webPushEnabled = process.env.NODE_ENV === 'production' ||
   (process.env.VAPID_MAILTO && process.env.NEXT_PUBLIC_VAPID_PUBKEY && process.env.VAPID_PRIVKEY)
@@ -17,10 +18,12 @@ if (webPushEnabled) {
 
 const createPayload = (notification) => {
   // https://web.dev/push-notifications-display-a-notification/#visual-options
-  const { title, ...options } = notification
+  let { title, body, ...options } = notification
+  if (body) body = removeMd(body)
   return JSON.stringify({
     title,
     options: {
+      body,
       timestamp: Date.now(),
       icon: '/icons/icon_x96.png',
       ...options

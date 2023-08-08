@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Badge from 'react-bootstrap/Badge'
 import Dropdown from 'react-bootstrap/Dropdown'
 import Countdown from './countdown'
-import { abbrNum, satsLabel } from '../lib/format'
+import { abbrNum, numWithUnits } from '../lib/format'
 import { newComments, commentsViewedAt } from '../lib/new-comments'
 import { timeSince } from '../lib/time'
 import CowboyHat from './cowboy-hat'
@@ -34,7 +34,12 @@ export default function ItemInfo ({ item, pendingSats, full, commentsText, class
     <div className={className || `${styles.other}`}>
       {!item.position &&
         <>
-          <span title={`from ${item.upvotes} stackers ${item.mine ? `\\ ${satsLabel(item.meSats, false)} to post` : `(${satsLabel(item.meSats + pendingSats, false)} from me)`} `}>{satsLabel(item.sats + pendingSats)}</span>
+          <span title={`from ${item.upvotes} stackers ${item.mine
+            ? `\\ ${numWithUnits(item.meSats, { abbreviate: false })} to post`
+            : `(${numWithUnits(item.meSats + pendingSats, { abbreviate: false })} from me)`} `}
+          >
+            {numWithUnits(item.sats + pendingSats)}
+          </span>
           <span> \ </span>
         </>}
       {item.boost > 0 &&
@@ -51,7 +56,7 @@ export default function ItemInfo ({ item, pendingSats, full, commentsText, class
               `/items/${item.id}?commentsViewedAt=${viewedAt}`,
               `/items/${item.id}`)
           }
-        }} title={satsLabel(item.commentSats)} className='text-reset position-relative'
+        }} title={numWithUnits(item.commentSats)} className='text-reset position-relative'
       >
         {item.ncomments} {commentsText || 'comments'}
         {hasNewComments &&

@@ -15,7 +15,7 @@ import PayBounty from './pay-bounty'
 import BountyIcon from '../svgs/bounty-bag.svg'
 import ActionTooltip from './action-tooltip'
 import Flag from '../svgs/flag-fill.svg'
-import { satsLabel } from '../lib/format'
+import { numWithUnits } from '../lib/format'
 import Share from './share'
 import ItemInfo from './item-info'
 import Badge from 'react-bootstrap/Badge'
@@ -154,7 +154,7 @@ export default function Comment ({
                 <>
                   {includeParent && <Parent item={item} rootText={rootText} />}
                   {bountyPaid &&
-                    <ActionTooltip notForm overlayText={`${satsLabel(root.bounty)} paid`}>
+                    <ActionTooltip notForm overlayText={`${numWithUnits(root.bounty)} paid`}>
                       <BountyIcon className={`${styles.bountyIcon} ${'fill-success vertical-align-middle'}`} height={16} width={16} />
                     </ActionTooltip>}
                 </>

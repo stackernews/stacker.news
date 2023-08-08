@@ -2,7 +2,7 @@ import Comment, { CommentSkeleton } from './comment'
 import styles from './header.module.css'
 import Nav from 'react-bootstrap/Nav'
 import Navbar from 'react-bootstrap/Navbar'
-import { satsLabel } from '../lib/format'
+import { numWithUnits } from '../lib/format'
 import { defaultCommentSort } from '../lib/item'
 import { useRouter } from 'next/router'
 
@@ -23,7 +23,7 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
         activeKey={sort}
       >
         <Nav.Item className='text-muted'>
-          {satsLabel(commentSats)}
+          {numWithUnits(commentSats)}
         </Nav.Item>
         <div className='ms-auto d-flex'>
           <Nav.Item>

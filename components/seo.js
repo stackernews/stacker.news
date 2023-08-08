@@ -1,7 +1,7 @@
 import { NextSeo } from 'next-seo'
 import { useRouter } from 'next/router'
 import removeMd from 'remove-markdown'
-import { satsLabel } from '../lib/format'
+import { numWithUnits } from '../lib/format'
 
 export function SeoSearch ({ sub }) {
   const router = useRouter()
@@ -56,7 +56,7 @@ export default function Seo ({ sub, item, user }) {
         desc = desc.replace(/\s+/g, ' ')
       }
     } else {
-      desc = `@${item.user.name} stacked ${satsLabel(item.sats)} ${item.url ? `posting ${item.url}` : 'with this discussion'}`
+      desc = `@${item.user.name} stacked ${numWithUnits(item.sats)} ${item.url ? `posting ${item.url}` : 'with this discussion'}`
     }
     if (item.ncomments) {
       desc += ` [${item.ncomments} comments`

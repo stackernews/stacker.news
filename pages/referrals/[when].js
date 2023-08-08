@@ -9,7 +9,7 @@ import { useQuery } from '@apollo/client'
 import PageLoading from '../../components/page-loading'
 import { WHENS } from '../../lib/constants'
 import dynamic from 'next/dynamic'
-import { satsLabel } from '../../lib/format'
+import { numWithUnits } from '../../lib/format'
 
 const WhenComposedChart = dynamic(() => import('../../components/charts').then(mod => mod.WhenComposedChart), {
   loading: () => <div>Loading...</div>
@@ -45,7 +45,7 @@ export default function Referrals ({ ssrData }) {
   return (
     <CenterLayout footerLinks>
       <h4 className='fw-bold text-muted text-center pt-5 pb-3 d-flex align-items-center justify-content-center'>
-        {totalReferrals} referrals & {satsLabel(totalSats, false)} in the last
+        {totalReferrals} referrals & {numWithUnits(totalSats, { abbreviate: false })} in the last
         <Select
           groupClassName='mb-0 ms-2'
           className='w-auto'

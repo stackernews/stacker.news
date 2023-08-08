@@ -5,14 +5,14 @@ import styles from './fee-button.module.css'
 import { gql, useQuery } from '@apollo/client'
 import { useFormikContext } from 'formik'
 import { SSR } from '../lib/constants'
-import { satsLabel } from '../lib/format'
+import { numWithUnits } from '../lib/format'
 
 function Receipt ({ cost, repetition, hasImgLink, baseFee, parentId, boost }) {
   return (
     <Table className={styles.receipt} borderless size='sm'>
       <tbody>
         <tr>
-          <td>{satsLabel(baseFee, false)}</td>
+          <td>{numWithUnits(baseFee, { abbreviate: false })}</td>
           <td align='right' className='font-weight-light'>{parentId ? 'reply' : 'post'} fee</td>
         </tr>
         {hasImgLink &&
@@ -27,13 +27,13 @@ function Receipt ({ cost, repetition, hasImgLink, baseFee, parentId, boost }) {
           </tr>}
         {boost > 0 &&
           <tr>
-            <td>+ {satsLabel(boost, false)}</td>
+            <td>+ {numWithUnits(boost, { abbreviate: false })}</td>
             <td className='font-weight-light' align='right'>boost</td>
           </tr>}
       </tbody>
       <tfoot>
         <tr>
-          <td className='fw-bold'>{satsLabel(cost, false)}</td>
+          <td className='fw-bold'>{numWithUnits(cost, { abbreviate: false })}</td>
           <td align='right' className='font-weight-light'>total fee</td>
         </tr>
       </tfoot>
@@ -54,8 +54,8 @@ export default function FeeButton ({ parentId, hasImgLink, baseFee, ChildButton,
   const show = alwaysShow || !formik?.isSubmitting
   return (
     <div className='d-flex align-items-center'>
-      <ActionTooltip overlayText={satsLabel(cost, false)}>
-        <ChildButton variant={variant} disabled={disabled}>{text}{cost > baseFee && show && <small> {satsLabel(cost, false)}</small>}</ChildButton>
+      <ActionTooltip overlayText={numWithUnits(cost, { abbreviate: false })}>
+        <ChildButton variant={variant} disabled={disabled}>{text}{cost > baseFee && show && <small> {numWithUnits(cost, { abbreviate: false })}</small>}</ChildButton>
       </ActionTooltip>
       {cost > baseFee && show &&
         <Info>
@@ -72,7 +72,7 @@ function EditReceipt ({ cost, paidSats, addImgLink, boost, parentId }) {
         {addImgLink &&
           <>
             <tr>
-              <td>{satsLabel(paidSats, false)}</td>
+              <td>{numWithUnits(paidSats, { abbreviate: false })}</td>
               <td align='right' className='font-weight-light'>{parentId ? 'reply' : 'post'} fee</td>
             </tr>
             <tr>
@@ -80,19 +80,19 @@ function EditReceipt ({ cost, paidSats, addImgLink, boost, parentId }) {
               <td align='right' className='font-weight-light'>image/link fee</td>
             </tr>
             <tr>
-              <td>- {satsLabel(paidSats, false)}</td>
+              <td>- {numWithUnits(paidSats, { abbreviate: false })}</td>
               <td align='right' className='font-weight-light'>already paid</td>
             </tr>
           </>}
         {boost > 0 &&
           <tr>
-            <td>+ {satsLabel(boost, false)}</td>
+            <td>+ {numWithUnits(boost, { abbreviate: false })}</td>
             <td className='font-weight-light' align='right'>boost</td>
           </tr>}
       </tbody>
       <tfoot>
         <tr>
-          <td className='fw-bold'>{satsLabel(cost)}</td>
+          <td className='fw-bold'>{numWithUnits(cost)}</td>
           <td align='right' className='font-weight-light'>total fee</td>
         </tr>
       </tfoot>
@@ -109,8 +109,8 @@ export function EditFeeButton ({ paidSats, hadImgLink, hasImgLink, ChildButton, 
   const show = alwaysShow || !formik?.isSubmitting
   return (
     <div className='d-flex align-items-center'>
-      <ActionTooltip overlayText={satsLabel(cost, false)}>
-        <ChildButton variant={variant}>{text}{cost > 0 && show && <small> {satsLabel(cost, false)}</small>}</ChildButton>
+      <ActionTooltip overlayText={numWithUnits(cost, { abbreviate: false })}>
+        <ChildButton variant={variant}>{text}{cost > 0 && show && <small> {numWithUnits(cost, { abbreviate: false })}</small>}</ChildButton>
       </ActionTooltip>
       {cost > 0 && show &&
         <Info>

@@ -7,6 +7,7 @@ $twitter: #1da1f2;
 $boost: #8c25f4;
 $light: #f8f9fa;
 $dark: #212529;
+$nostr: #a915ff;
 
 $theme-colors: (
   "primary" : #FADA5E,
@@ -21,6 +22,7 @@ $theme-colors: (
   "grey" : #e9ecef,
   "grey-medium" : #d2d2d2,
   "grey-darkmode": #8c8c8c,
+  "nostr": #a915ff,
 );
 
 $body-bg: #fcfcff;
@@ -225,6 +227,13 @@ mark {
 
 .btn-twitter, .btn-twitter:hover, .btn-twitter:active {
   color: #ffffff !important;
+}
+
+.btn-nostr, .btn-nostr:hover, .btn-nostr:active {
+  fill: #ffffff !important;
+  stroke: #ffffff !important;
+  stroke-miterlimit: 10;
+  stroke-width: 6px;
 }
 
 .btn-outline-grey-darkmode:hover, .btn-outline-grey-darkmode:active {
@@ -566,6 +575,13 @@ div[contenteditable]:focus,
 
 .btn-twitter svg {
   fill: #ffffff;
+}
+
+.btn-nostr svg {
+  fill: #fff;
+  stroke: #fff;
+  stroke-miterlimit: 10;
+  stroke-width: 6px;
 }
 
 .btn-dark svg {

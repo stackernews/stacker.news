@@ -58,6 +58,7 @@ export const SETTINGS_FIELDS = gql`
     authMethods {
       lightning
       slashtags
+      nostr
       github
       twitter
       email

@@ -21,6 +21,7 @@ import { SUPPORTED_CURRENCIES } from '../lib/currency'
 import PageLoading from '../components/page-loading'
 import { useShowModal } from '../components/modal'
 import { authErrorMessage } from '../components/login'
+import { NostrAuth } from '../components/nostr-auth'
 
 export const getServerSideProps = getGetServerSideProps(SETTINGS)
 
@@ -297,6 +298,23 @@ function QRLinkButton ({ provider, unlink, status }) {
   )
 }
 
+function NostrLinkButton ({ unlink, status }) {
+  const showModal = useShowModal()
+  const text = status ? 'Unlink' : 'Link'
+  const onClick = status
+    ? unlink
+    : () => showModal(onClose =>
+      <div className='d-flex flex-column align-items-center'>
+        <NostrAuth text='Unlink' />
+      </div>)
+
+  return (
+    <LoginButton
+      className='d-block mt-2' type='nostr' text={text} onClick={onClick}
+    />
+  )
+}
+
 function UnlinkObstacle ({ onClose, type, unlinkAuth }) {
   const router = useRouter()
 
@@ -341,6 +359,7 @@ function AuthMethods ({ methods }) {
           email
           twitter
           github
+          nostr
         }
       }`, {
       update (cache, { data: { unlinkAuth } }) {
@@ -416,6 +435,8 @@ function AuthMethods ({ methods }) {
               status={methods[provider]} unlink={async () => await unlink(provider)}
             />
           )
+        } else if (provider === 'nostr') {
+          return <NostrLinkButton key='nostr' status={methods[provider]} unlink={async () => await unlink(provider)} />
         } else {
           return (
             <LoginButton

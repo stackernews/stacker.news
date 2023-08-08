@@ -23,6 +23,7 @@ import Toc from './table-of-contents'
 import Link from 'next/link'
 import { RootProvider } from './root'
 import { IMGPROXY_URL_REGEXP } from '../lib/url'
+import { satsLabel } from '../lib/format'
 
 function BioItem ({ item, handleClick }) {
   const me = useMe()
@@ -139,11 +140,11 @@ function TopLevelItem ({ item, noReply, ...props }) {
             {item.bountyPaidTo?.length
               ? (
                 <div className='px-3 py-1 d-inline-block bg-grey-medium rounded text-success'>
-                  <Check className='fill-success' /> {item.bounty} sats paid
+                  <Check className='fill-success' /> {satsLabel(item.bounty, false)} paid
                 </div>)
               : (
                 <div className='px-3 py-1 d-inline-block bg-grey-darkmode rounded text-light'>
-                  {item.bounty} sats bounty
+                  {satsLabel(item.bounty, false)} bounty
                 </div>)}
           </div>}
       </div>

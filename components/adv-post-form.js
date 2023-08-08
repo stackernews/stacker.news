@@ -3,6 +3,7 @@ import { Input, InputUserSuggest } from './form'
 import InputGroup from 'react-bootstrap/InputGroup'
 import { BOOST_MIN } from '../lib/constants'
 import Info from './info'
+import { satsLabel } from '../lib/format'
 
 export function AdvPostInitial ({ forward }) {
   return {
@@ -23,10 +24,10 @@ export default function AdvPostForm ({ edit }) {
                 <Info>
                   <ol className='fw-bold'>
                     <li>Boost ranks posts higher temporarily based on the amount</li>
-                    <li>The minimum boost is {BOOST_MIN} sats</li>
-                    <li>Each {BOOST_MIN} sats of boost is equivalent to one trusted upvote
+                    <li>The minimum boost is {satsLabel(BOOST_MIN, false)}</li>
+                    <li>Each {satsLabel(BOOST_MIN, false)} of boost is equivalent to one trusted upvote
                       <ul>
-                        <li>e.g. {BOOST_MIN * 2} sats is like 2 votes</li>
+                        <li>e.g. {satsLabel(BOOST_MIN * 2, false)} is like 2 votes</li>
                       </ul>
                     </li>
                     <li>The decay of boost "votes" increases at 2x the rate of organic votes

@@ -24,6 +24,7 @@ import { useData } from './use-data'
 import { nostrZapDetails } from '../lib/nostr'
 import Text from './text'
 import NostrIcon from '../svgs/nostr.svg'
+import { satsLabel } from '../lib/format'
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
@@ -155,14 +156,14 @@ function EarnNotification ({ n }) {
       <HandCoin className='align-self-center fill-boost mx-1' width={24} height={24} style={{ flex: '0 0 24px', transform: 'rotateY(180deg)' }} />
       <div className='ms-2'>
         <div className='fw-bold text-boost'>
-          you stacked {n.earnedSats} sats in rewards<small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
+          you stacked {satsLabel(n.earnedSats, false)} in rewards<small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
         </div>
         {n.sources &&
           <div style={{ fontSize: '80%', color: 'var(--theme-grey)' }}>
-            {n.sources.posts > 0 && <span>{n.sources.posts} sats for top posts</span>}
-            {n.sources.comments > 0 && <span>{n.sources.posts > 0 && ' \\ '}{n.sources.comments} sats for top comments</span>}
-            {n.sources.tipPosts > 0 && <span>{(n.sources.comments > 0 || n.sources.posts > 0) && ' \\ '}{n.sources.tipPosts} sats for zapping top posts early</span>}
-            {n.sources.tipComments > 0 && <span>{(n.sources.comments > 0 || n.sources.posts > 0 || n.sources.tipPosts > 0) && ' \\ '}{n.sources.tipComments} sats for zapping top comments early</span>}
+            {n.sources.posts > 0 && <span>{satsLabel(n.sources.posts, false)} for top posts</span>}
+            {n.sources.comments > 0 && <span>{n.sources.posts > 0 && ' \\ '}{satsLabel(n.sources.comments, false)} for top comments</span>}
+            {n.sources.tipPosts > 0 && <span>{(n.sources.comments > 0 || n.sources.posts > 0) && ' \\ '}{satsLabel(n.sources.tipPosts, false)} for zapping top posts early</span>}
+            {n.sources.tipComments > 0 && <span>{(n.sources.comments > 0 || n.sources.posts > 0 || n.sources.tipPosts > 0) && ' \\ '}{satsLabel(n.sources.tipComments, false)} for zapping top comments early</span>}
           </div>}
         <div className='pb-1' style={{ lineHeight: '140%' }}>
           SN distributes the sats it earns back to its best stackers daily. These sats come from <Link href='/~jobs'>jobs</Link>, boosts, posting fees, and donations. You can see the daily rewards pool and make a donation <Link href='/rewards'>here</Link>.
@@ -217,7 +218,7 @@ function NostrZap ({ n }) {
 function InvoicePaid ({ n }) {
   return (
     <div className='fw-bold text-info ms-2 py-1'>
-      <Check className='fill-info me-1' />{n.earnedSats} sats were deposited in your account
+      <Check className='fill-info me-1' />{satsLabel(n.earnedSats, false)} were deposited in your account
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
     </div>
   )
@@ -236,7 +237,7 @@ function Votification ({ n }) {
   return (
     <>
       <small className='fw-bold text-success ms-2'>
-        your {n.item.title ? 'post' : 'reply'} {n.item.fwdUser ? 'forwarded' : 'stacked'} {n.earnedSats} sats{n.item.fwdUser && ` to @${n.item.fwdUser.name}`}
+        your {n.item.title ? 'post' : 'reply'} {n.item.fwdUser ? 'forwarded' : 'stacked'} {satsLabel(n.earnedSats, false)}{n.item.fwdUser && ` to @${n.item.fwdUser.name}`}
       </small>
       <div>
         {n.item.title

@@ -1,5 +1,6 @@
 import AccordianItem from './accordian-item'
 import Qr from './qr'
+import { satsLabel } from '../lib/format'
 
 export function Invoice ({ invoice }) {
   let variant = 'default'
@@ -7,7 +8,7 @@ export function Invoice ({ invoice }) {
   let webLn = true
   if (invoice.confirmedAt) {
     variant = 'confirmed'
-    status = `${invoice.satsReceived} sats deposited`
+    status = `${satsLabel(invoice.satsReceived, false)} deposited`
     webLn = false
   } else if (invoice.cancelled) {
     variant = 'failed'

@@ -9,7 +9,7 @@ import {
   MAX_TITLE_LENGTH, ITEM_FILTER_THRESHOLD,
   DONT_LIKE_THIS_COST, COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY
 } from '../../lib/constants'
-import { msatsToSats } from '../../lib/format'
+import { msatsToSats, satsLabel } from '../../lib/format'
 import { parse } from 'tldts'
 import uu from 'url-unshort'
 import { amountSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, ssValidate } from '../../lib/validate'
@@ -731,7 +731,7 @@ export default {
       const [{ item_act: vote }] = await serialize(models, models.$queryRaw`SELECT item_act(${Number(id)}::INTEGER, ${me.id}::INTEGER, 'TIP', ${Number(sats)}::INTEGER)`)
 
       const updatedItem = await models.item.findUnique({ where: { id: Number(id) } })
-      const title = `your ${updatedItem.title ? 'post' : 'reply'} ${updatedItem.fwdUser ? 'forwarded' : 'stacked'} ${Math.floor(Number(updatedItem.msats) / 1000)} sats${updatedItem.fwdUser ? ` to @${updatedItem.fwdUser.name}` : ''}`
+      const title = `your ${updatedItem.title ? 'post' : 'reply'} ${updatedItem.fwdUser ? 'forwarded' : 'stacked'} ${satsLabel(Math.floor(Number(updatedItem.msats) / 1000))}${updatedItem.fwdUser ? ` to @${updatedItem.fwdUser.name}` : ''}`
       sendUserNotification(updatedItem.userId, {
         title,
         body: updatedItem.title ? updatedItem.title : updatedItem.text,

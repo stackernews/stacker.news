@@ -21,6 +21,10 @@ import { useServiceWorker } from './serviceworker'
 import { Checkbox, Form } from './form'
 import { useRouter } from 'next/router'
 import { useData } from './use-data'
+import { nostrZapDetails } from '../lib/nostr'
+import Text from './text'
+import NostrIcon from '../svgs/nostr.svg'
+import { numWithUnits } from '../lib/format'
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
@@ -30,7 +34,7 @@ function Notification ({ n, fresh }) {
       {
         (type === 'Earn' && <EarnNotification n={n} />) ||
         (type === 'Invitification' && <Invitification n={n} />) ||
-        (type === 'InvoicePaid' && <InvoicePaid n={n} />) ||
+        (type === 'InvoicePaid' && (n.invoice.nostr ? <NostrZap n={n} /> : <InvoicePaid n={n} />)) ||
         (type === 'Referral' && <Referral n={n} />) ||
         (type === 'Streak' && <Streak n={n} />) ||
         (type === 'Votification' && <Votification n={n} />) ||
@@ -152,14 +156,14 @@ function EarnNotification ({ n }) {
       <HandCoin className='align-self-center fill-boost mx-1' width={24} height={24} style={{ flex: '0 0 24px', transform: 'rotateY(180deg)' }} />
       <div className='ms-2'>
         <div className='fw-bold text-boost'>
-          you stacked {n.earnedSats} sats in rewards<small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
+          you stacked {numWithUnits(n.earnedSats, { abbreviate: false })} in rewards<small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
         </div>
         {n.sources &&
           <div style={{ fontSize: '80%', color: 'var(--theme-grey)' }}>
-            {n.sources.posts > 0 && <span>{n.sources.posts} sats for top posts</span>}
-            {n.sources.comments > 0 && <span>{n.sources.posts > 0 && ' \\ '}{n.sources.comments} sats for top comments</span>}
-            {n.sources.tipPosts > 0 && <span>{(n.sources.comments > 0 || n.sources.posts > 0) && ' \\ '}{n.sources.tipPosts} sats for zapping top posts early</span>}
-            {n.sources.tipComments > 0 && <span>{(n.sources.comments > 0 || n.sources.posts > 0 || n.sources.tipPosts > 0) && ' \\ '}{n.sources.tipComments} sats for zapping top comments early</span>}
+            {n.sources.posts > 0 && <span>{numWithUnits(n.sources.posts, { abbreviate: false })} for top posts</span>}
+            {n.sources.comments > 0 && <span>{n.sources.posts > 0 && ' \\ '}{numWithUnits(n.sources.comments, { abbreviate: false })} for top comments</span>}
+            {n.sources.tipPosts > 0 && <span>{(n.sources.comments > 0 || n.sources.posts > 0) && ' \\ '}{numWithUnits(n.sources.tipPosts, { abbreviate: false })} for zapping top posts early</span>}
+            {n.sources.tipComments > 0 && <span>{(n.sources.comments > 0 || n.sources.posts > 0 || n.sources.tipPosts > 0) && ' \\ '}{numWithUnits(n.sources.tipComments, { abbreviate: false })} for zapping top comments early</span>}
           </div>}
         <div className='pb-1' style={{ lineHeight: '140%' }}>
           SN distributes the sats it earns back to its best stackers daily. These sats come from <Link href='/~jobs'>jobs</Link>, boosts, posting fees, and donations. You can see the daily rewards pool and make a donation <Link href='/rewards'>here</Link>.
@@ -187,10 +191,34 @@ function Invitification ({ n }) {
   )
 }
 
+function NostrZap ({ n }) {
+  const { nostr } = n.invoice
+  const { npub, content, note } = nostrZapDetails(nostr)
+
+  return (
+    <>
+      <div className='fw-bold text-nostr ms-2 py-1'>
+        <NostrIcon width={24} height={24} className='fill-nostr me-1' />{n.earnedSats} sats zap from
+        <Link className='mx-1 text-reset text-underline' target='_blank' href={`https://snort.social/p/${npub}`} rel='noreferrer'>
+          {npub.slice(0, 10)}...
+        </Link>
+        on {note
+          ? (
+            <Link className='mx-1 text-reset text-underline' target='_blank' href={`https://snort.social/e/${note}`} rel='noreferrer'>
+              {note.slice(0, 12)}...
+            </Link>)
+          : 'nostr'}
+        <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
+        {content && <small className='d-block ms-4 ps-1 mt-1 mb-1 text-muted fw-normal'><Text>{content}</Text></small>}
+      </div>
+    </>
+  )
+}
+
 function InvoicePaid ({ n }) {
   return (
     <div className='fw-bold text-info ms-2 py-1'>
-      <Check className='fill-info me-1' />{n.earnedSats} sats were deposited in your account
+      <Check className='fill-info me-1' />{numWithUnits(n.earnedSats, { abbreviate: false })} were deposited in your account
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
     </div>
   )
@@ -209,7 +237,7 @@ function Votification ({ n }) {
   return (
     <>
       <small className='fw-bold text-success ms-2'>
-        your {n.item.title ? 'post' : 'reply'} {n.item.fwdUser ? 'forwarded' : 'stacked'} {n.earnedSats} sats{n.item.fwdUser && ` to @${n.item.fwdUser.name}`}
+        your {n.item.title ? 'post' : 'reply'} {n.item.fwdUser ? 'forwarded' : 'stacked'} {numWithUnits(n.earnedSats, { abbreviate: false })}{n.item.fwdUser && ` to @${n.item.fwdUser.name}`}
       </small>
       <div>
         {n.item.title

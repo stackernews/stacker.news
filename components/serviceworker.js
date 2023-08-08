@@ -62,6 +62,13 @@ export const ServiceWorkerProvider = ({ children }) => {
     let pushSubscription = await registration.pushManager.subscribe(subscribeOptions)
     // convert keys from ArrayBuffer to string
     pushSubscription = JSON.parse(JSON.stringify(pushSubscription))
+    // Send subscription to service worker to save it so we can use it later during `pushsubscriptionchange`
+    // see https://medium.com/@madridserginho/how-to-handle-webpush-api-pushsubscriptionchange-event-in-modern-browsers-6e47840d756f
+    navigator.serviceWorker.controller.postMessage({
+      action: 'STORE_SUBSCRIPTION',
+      subscription: pushSubscription
+    })
+    // send subscription to server
     const variables = {
       endpoint: pushSubscription.endpoint,
       p256dh: pushSubscription.keys.p256dh,
@@ -89,6 +96,10 @@ export const ServiceWorkerProvider = ({ children }) => {
       pushManager: 'PushManager' in window
     })
     setPermission({ notification: 'Notification' in window ? window.Notification.permission : 'denied' })
+    // since (a lot of) browsers don't support the pushsubscriptionchange event,
+    // we sync with server manually by checking on every page reload if the push subscription changed.
+    // see https://medium.com/@madridserginho/how-to-handle-webpush-api-pushsubscriptionchange-event-in-modern-browsers-6e47840d756f
+    navigator.serviceWorker.controller.postMessage({ action: 'SYNC_SUBSCRIPTION' })
   }, [])
 
   useEffect(() => {

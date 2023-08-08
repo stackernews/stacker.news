@@ -18,6 +18,14 @@ We're experimenting with providing an SN-like service on nostr in [Outer Space](
 
 You should then be able to access the site at `localhost:3000` and any changes you make will hot reload. If you want to login locally or use lnd you'll need to modify `.env.sample` appropriately. More details [here](./docs/local-auth.md) and [here](./docs/local-lnd.md). If you have trouble please open an issue so I can help and update the README for everyone else.
 
+# web push
+
+To enable Web Push locally, you will need to set the `VAPID_*` env vars. `VAPID_MAILTO` needs to be a email address using the `mailto:` scheme. For `NEXT_PUBLIC_VAPID_KEY` and `VAPID_PRIVKEY`, you can run `npx web-push generate-vapid-keys`.
+
+# imgproxy
+
+To configure the image proxy, you will need to set the `IMGPROXY_` env vars. `NEXT_PUBLIC_IMGPROXY_URL` needs to point to the image proxy service. `IMGPROXY_KEY` and `IMGPROXY_SALT` can be set using `openssl rand -hex 64`.
+
 # stack
 The site is written in javascript using Next.js, a React framework. The backend API is provided via graphql. The database is postgresql modelled with prisma. The job queue is also maintained in postgresql. We use lnd for our lightning node. A customized Bootstrap theme is used for styling.
 

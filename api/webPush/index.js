@@ -2,11 +2,18 @@ import webPush from 'web-push'
 import models from '../models'
 import { COMMENT_DEPTH_LIMIT } from '../../lib/constants'
 
-webPush.setVapidDetails(
-  process.env.VAPID_MAILTO,
-  process.env.NEXT_PUBLIC_VAPID_PUBKEY,
-  process.env.VAPID_PRIVKEY
-)
+const webPushEnabled = process.env.NODE_ENV === 'production' ||
+  (process.env.VAPID_MAILTO && process.env.NEXT_PUBLIC_VAPID_PUBKEY && process.env.VAPID_PRIVKEY)
+
+if (webPushEnabled) {
+  webPush.setVapidDetails(
+    process.env.VAPID_MAILTO,
+    process.env.NEXT_PUBLIC_VAPID_PUBKEY,
+    process.env.VAPID_PRIVKEY
+  )
+} else {
+  console.warn('VAPID_* env vars not set, skipping webPush setup')
+}
 
 const createPayload = (notification) => {
   // https://web.dev/push-notifications-display-a-notification/#visual-options
@@ -41,12 +48,16 @@ const createItemUrl = async ({ id }) => {
 }
 
 const sendNotification = (subscription, payload) => {
+  if (!webPushEnabled) {
+    console.warn('webPush not configured. skipping notification')
+    return
+  }
   const { id, endpoint, p256dh, auth } = subscription
   return webPush.sendNotification({ endpoint, keys: { p256dh, auth } }, payload)
     .catch((err) => {
       if (err.statusCode === 400) {
         console.log('[webPush] invalid request: ', err)
-      } else if (err.statusCode === 403) {
+      } else if ([401, 403].includes(err.statusCode)) {
         console.log('[webPush] auth error: ', err)
       } else if (err.statusCode === 404 || err.statusCode === 410) {
         console.log('[webPush] subscription has expired or is no longer valid: ', err)

@@ -45,7 +45,7 @@ export default function Referrals ({ ssrData }) {
   return (
     <CenterLayout footerLinks>
       <h4 className='fw-bold text-muted text-center pt-5 pb-3 d-flex align-items-center justify-content-center'>
-        {totalReferrals} referrals & {numWithUnits(totalSats, { abbreviate: false })} in the last
+        {numWithUnits(totalReferrals, { unitPlural: 'referrals', unitSingular: 'referral' })} & {numWithUnits(totalSats, { abbreviate: false })} in the last
         <Select
           groupClassName='mb-0 ms-2'
           className='w-auto'

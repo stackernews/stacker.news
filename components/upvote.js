@@ -13,6 +13,7 @@ import Popover from 'react-bootstrap/Popover'
 import { useShowModal } from './modal'
 import { useRouter } from 'next/router'
 import { LightningConsumer } from './lightning'
+import { numWithUnits } from '../lib/format'
 
 const getColor = (meSats) => {
   if (!meSats || meSats <= 10) {
@@ -211,7 +212,7 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
       sats = raiseTip - meSats
     }
 
-    return [meSats, sats, `${sats} sat${sats > 1 ? 's' : ''}`, getColor(meSats)]
+    return [meSats, sats, numWithUnits(sats, { abbreviate: false }), getColor(meSats)]
   }, [item?.meSats, pendingSats, me?.tipDefault, me?.turboDefault])
 
   return (

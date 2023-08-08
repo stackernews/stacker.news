@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import Image from 'react-bootstrap/Image'
-import { abbrNum } from '../lib/format'
+import { abbrNum, numWithUnits } from '../lib/format'
 import CowboyHat from './cowboy-hat'
 import styles from './item.module.css'
 import userStyles from './user-header.module.css'
@@ -14,13 +14,13 @@ const Stacked = ({ user }) => (<span>{abbrNum(user.stacked)} stacked</span>)
 const Spent = ({ user }) => (<span>{abbrNum(user.spent)} spent</span>)
 const Posts = ({ user }) => (
   <Link href={`/${user.name}/posts`} className='text-reset'>
-    {abbrNum(user.nposts)} posts
+    {numWithUnits(user.nposts, { unitSingular: 'post', unitPlural: 'posts' })}
   </Link>)
 const Comments = ({ user }) => (
   <Link href={`/${user.name}/comments`} className='text-reset'>
-    {abbrNum(user.ncomments)} comments
+    {numWithUnits(user.ncomments, { unitSingular: 'comment', unitPlural: 'comments' })}
   </Link>)
-const Referrals = ({ user }) => (<span>{abbrNum(user.referrals)} referrals</span>)
+const Referrals = ({ user }) => (<span>{numWithUnits(user.referrals, { unitSingular: 'referral', unitPlural: 'referrals' })}</span>)
 const Seperator = () => (<span> \ </span>)
 
 const STAT_POS = {

@@ -1,8 +1,9 @@
 .login {
-    justify-content: center;
+    justify-content: start;
     align-items: center;
     display: flex;
     flex-direction: column;
     padding-top: 3rem;
     padding-bottom: 3rem;
+    min-height: 600px;
 }

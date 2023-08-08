@@ -5,6 +5,7 @@ import { useState } from 'react'
 import Alert from 'react-bootstrap/Alert'
 import { useRouter } from 'next/router'
 import { LightningAuthWithExplainer, SlashtagsAuth } from './lightning-auth'
+import NostrAuth from './nostr-auth'
 import LoginButton from './login-button'
 import { emailSchema } from '../lib/validate'
 
@@ -59,6 +60,10 @@ export default function Login ({ providers, callbackUrl, error, text, Header, Fo
     return <SlashtagsAuth callbackUrl={callbackUrl} text={text} />
   }
 
+  if (router.query.type === 'nostr') {
+    return <NostrAuth callbackUrl={callbackUrl} text={text} />
+  }
+
   return (
     <div className={styles.login}>
       {Header && <Header />}
@@ -80,6 +85,7 @@ export default function Login ({ providers, callbackUrl, error, text, Header, Fo
             )
           case 'Lightning':
           case 'Slashtags':
+          case 'Nostr':
             return (
               <LoginButton
                 className={`mt-2 ${styles.providerButton}`}

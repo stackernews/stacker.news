@@ -1,6 +1,13 @@
 import { createHmac } from 'node:crypto'
 import { extractUrls } from '../../../lib/md'
 
+const imgProxyEnabled = process.env.NODE_ENV === 'production' ||
+  (process.env.NEXT_PUBLIC_IMGPROXY_URL && process.env.IMGPROXY_SALT && process.env.IMGPROXY_KEY)
+
+if (!imgProxyEnabled) {
+  console.warn('IMGPROXY_* env vars not set, imgproxy calls are no-ops now')
+}
+
 const IMGPROXY_URL = process.env.NEXT_PUBLIC_IMGPROXY_URL
 const IMGPROXY_SALT = process.env.IMGPROXY_SALT
 const IMGPROXY_KEY = process.env.IMGPROXY_KEY
@@ -36,6 +43,8 @@ const isImageURL = async url => {
 }
 
 export const proxyImages = async text => {
+  if (!imgProxyEnabled) return text
+
   const urls = extractUrls(text)
   for (const url of urls) {
     if (url.startsWith(IMGPROXY_URL)) continue

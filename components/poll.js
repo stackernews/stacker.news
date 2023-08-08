@@ -1,6 +1,6 @@
 import { gql, useMutation } from '@apollo/client'
 import Button from 'react-bootstrap/Button'
-import { fixedDecimal } from '../lib/format'
+import { fixedDecimal, numWithUnits } from '../lib/format'
 import { timeLeft } from '../lib/time'
 import { useMe } from './me'
 import styles from './poll.module.css'
@@ -86,7 +86,7 @@ export default function Poll ({ item }) {
               key={v.id} v={v}
               progress={item.poll.count ? fixedDecimal(v.count * 100 / item.poll.count, 1) : 0}
             />)}
-      <div className='text-muted mt-1'>{item.poll.count} votes \ {expiresIn ? `${expiresIn} left` : 'poll ended'}</div>
+      <div className='text-muted mt-1'>{numWithUnits(item.poll.count, { unitSingular: 'vote', unitPlural: 'votes' })} \ {expiresIn ? `${expiresIn} left` : 'poll ended'}</div>
     </div>
   )
 }

@@ -59,7 +59,7 @@ export default function Seo ({ sub, item, user }) {
       desc = `@${item.user.name} stacked ${numWithUnits(item.sats)} ${item.url ? `posting ${item.url}` : 'with this discussion'}`
     }
     if (item.ncomments) {
-      desc += ` [${item.ncomments} comments`
+      desc += ` [${numWithUnits(item.ncomments, { unitSingular: 'comment', unitPlural: 'comments' })}`
       if (item.boost) {
         desc += `, ${item.boost} boost`
       }
@@ -69,7 +69,7 @@ export default function Seo ({ sub, item, user }) {
     }
   }
   if (user) {
-    desc = `@${user.name} has [${user.stacked} stacked, ${user.nposts} posts, ${user.ncomments} comments]`
+    desc = `@${user.name} has [${user.stacked} stacked, ${numWithUnits(user.nitems, { unitSingular: 'item', unitPlural: 'items' })}]`
   }
 
   return (

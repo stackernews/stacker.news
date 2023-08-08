@@ -133,7 +133,11 @@ function Streak ({ n }) {
     ]
 
     if (n.days) {
-      return `After ${n.days} days, ` + LOST_BLURBS[index]
+      return `After ${numWithUnits(n.days, {
+        abbreviate: false,
+        unitSingular: 'day',
+         unitPlural: 'days'
+      })}, ` + LOST_BLURBS[index]
     }
 
     return FOUND_BLURBS[index]
@@ -177,7 +181,12 @@ function Invitification ({ n }) {
   return (
     <>
       <small className='fw-bold text-secondary ms-2'>
-        your invite has been redeemed by {n.invite.invitees.length} stackers
+        your invite has been redeemed by
+        {numWithUnits(n.invite.invitees.length, {
+          abbreviate: false,
+          unitSingular: 'stacker',
+          unitPlural: 'stackers'
+        })}
       </small>
       <div className='ms-4 me-2 mt-1'>
         <Invite
@@ -198,7 +207,7 @@ function NostrZap ({ n }) {
   return (
     <>
       <div className='fw-bold text-nostr ms-2 py-1'>
-        <NostrIcon width={24} height={24} className='fill-nostr me-1' />{n.earnedSats} sats zap from
+        <NostrIcon width={24} height={24} className='fill-nostr me-1' />{numWithUnits(n.earnedSats)} zap from
         <Link className='mx-1 text-reset text-underline' target='_blank' href={`https://snort.social/p/${npub}`} rel='noreferrer'>
           {npub.slice(0, 10)}...
         </Link>

@@ -17,7 +17,10 @@ import BookmarkDropdownItem from './bookmark'
 import SubscribeDropdownItem from './subscribe'
 import { CopyLinkDropdownItem } from './share'
 
-export default function ItemInfo ({ item, pendingSats, full, commentsText, commentTextSingular, className, embellishUser, extraInfo, onEdit, editText }) {
+export default function ItemInfo ({
+  item, pendingSats, full, commentsText = 'comments',
+  commentTextSingular = 'comment', className, embellishUser, extraInfo, onEdit, editText
+}) {
   const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
   const me = useMe()
   const router = useRouter()
@@ -34,7 +37,11 @@ export default function ItemInfo ({ item, pendingSats, full, commentsText, comme
     <div className={className || `${styles.other}`}>
       {!item.position &&
         <>
-          <span title={`from ${item.upvotes} stackers ${item.mine
+          <span title={`from ${numWithUnits(item.upvotes, {
+              abbreviate: false,
+              unitSingular: 'stacker',
+              unitPlural: 'stackers'
+            })} ${item.mine
             ? `\\ ${numWithUnits(item.meSats, { abbreviate: false })} to post`
             : `(${numWithUnits(item.meSats + pendingSats, { abbreviate: false })} from me)`} `}
           >
@@ -58,7 +65,11 @@ export default function ItemInfo ({ item, pendingSats, full, commentsText, comme
           }
         }} title={numWithUnits(item.commentSats)} className='text-reset position-relative'
       >
-        {item.ncomments} {item.ncomments === 1 ? commentTextSingular || 'comment' : commentsText || 'comments'}
+        {numWithUnits(item.ncomments, {
+          abbreviate: false,
+          unitPlural: commentsText,
+          unitSingular: commentTextSingular
+        })}
         {hasNewComments &&
           <span className={styles.notification}>
             <span className='invisible'>{' '}</span>

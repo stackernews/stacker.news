@@ -4,6 +4,7 @@ import Info from './info'
 import styles from './fee-button.module.css'
 import { gql, useQuery } from '@apollo/client'
 import { useFormikContext } from 'formik'
+import { SSR } from '../lib/constants'
 
 function Receipt ({ cost, repetition, hasImgLink, baseFee, parentId, boost }) {
   return (
@@ -43,7 +44,7 @@ export default function FeeButton ({ parentId, hasImgLink, baseFee, ChildButton,
   const query = parentId
     ? gql`{ itemRepetition(parentId: "${parentId}") }`
     : gql`{ itemRepetition }`
-  const { data } = useQuery(query, { pollInterval: 1000, nextFetchPolicy: 'cache-and-network' })
+  const { data } = useQuery(query, SSR ? {} : { pollInterval: 1000, nextFetchPolicy: 'cache-and-network' })
   const repetition = data?.itemRepetition || 0
   const formik = useFormikContext()
   const boost = Number(formik?.values?.boost) || 0

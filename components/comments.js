@@ -73,7 +73,7 @@ export default function Comments ({ parentId, pinned, bio, parentCreatedAt, comm
               router.push({
                 pathname: router.pathname,
                 query: { ...router.query, sort }
-              }, router.asPath, { scroll: false })
+              }, undefined, { scroll: false })
             }}
           />
         : null}

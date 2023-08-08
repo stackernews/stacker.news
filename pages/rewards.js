@@ -1,5 +1,5 @@
 import { gql } from 'graphql-tag'
-import { useEffect, useState } from 'react'
+import { useMemo } from 'react'
 import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
 import { getGetServerSideProps } from '../api/ssrApollo'
@@ -13,6 +13,7 @@ import { abbrNum } from '../lib/format'
 import PageLoading from '../components/page-loading'
 import { useShowModal } from '../components/modal'
 import dynamic from 'next/dynamic'
+import { SSR } from '../lib/constants'
 
 const GrowthPieChart = dynamic(() => import('../components/charts').then(mod => mod.GrowthPieChart), {
   loading: () => <div>Loading...</div>
@@ -47,11 +48,7 @@ function midnight (tz) {
 export const getServerSideProps = getGetServerSideProps(REWARDS)
 
 export function RewardLine ({ total }) {
-  const [threshold, setThreshold] = useState(0)
-
-  useEffect(() => {
-    setThreshold(midnight('America/Chicago'))
-  }, [])
+  const threshold = useMemo(() => midnight('America/Chicago'))
 
   return (
     <>
@@ -59,14 +56,14 @@ export function RewardLine ({ total }) {
       {threshold &&
         <Countdown
           date={threshold}
-          renderer={props => <small className='text-monospace'> {props.formatted.hours}:{props.formatted.minutes}:{props.formatted.seconds}</small>}
+          renderer={props => <small className='text-monospace' suppressHydrationWarning> {props.formatted.hours}:{props.formatted.minutes}:{props.formatted.seconds}</small>}
         />}
     </>
   )
 }
 
 export default function Rewards ({ ssrData }) {
-  const { data } = useQuery(REWARDS, { pollInterval: 1000, nextFetchPolicy: 'cache-and-network' })
+  const { data } = useQuery(REWARDS, SSR ? {} : { pollInterval: 1000, nextFetchPolicy: 'cache-and-network' })
   if (!data && !ssrData) return <PageLoading />
 
   const { expectedRewards: { total, sources } } = data || ssrData

@@ -5,6 +5,7 @@ import { useState } from 'react'
 import Alert from 'react-bootstrap/Alert'
 import { useRouter } from 'next/router'
 import { LightningAuthWithExplainer, SlashtagsAuth } from './lightning-auth'
+import NostrAuth from './nostr-auth'
 import LoginButton from './login-button'
 import { emailSchema } from '../lib/validate'
 
@@ -43,7 +44,7 @@ const authErrorMessages = {
   default: 'Auth failed. Try again or choose a different method.'
 }
 
-export function authErrorMessage(error) {
+export function authErrorMessage (error) {
   return error && (authErrorMessages[error] ?? authErrorMessages.default)
 }
 
@@ -57,6 +58,10 @@ export default function Login ({ providers, callbackUrl, error, text, Header, Fo
 
   if (router.query.type === 'slashtags') {
     return <SlashtagsAuth callbackUrl={callbackUrl} text={text} />
+  }
+
+  if (router.query.type === 'nostr') {
+    return <NostrAuth callbackUrl={callbackUrl} text={text} />
   }
 
   return (
@@ -80,15 +85,19 @@ export default function Login ({ providers, callbackUrl, error, text, Header, Fo
             )
           case 'Lightning':
           case 'Slashtags':
+          case 'Nostr':
             return (
               <LoginButton
                 className={`mt-2 ${styles.providerButton}`}
                 key={provider.id}
                 type={provider.id.toLowerCase()}
-                onClick={() => router.push({
-                  pathname: router.pathname,
-                  query: { callbackUrl: router.query.callbackUrl, type: provider.name.toLowerCase() }
-                })}
+                onClick={() => {
+                  const { nodata, ...query } = router.query
+                  router.push({
+                    pathname: router.pathname,
+                    query: { ...query, type: provider.name.toLowerCase() }
+                  })
+                }}
                 text={`${text || 'Login'} with`}
               />
             )

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import NextAuth from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import GitHubProvider from 'next-auth/providers/github'
@@ -9,6 +10,7 @@ import { PrismaAdapter } from '@auth/prisma-adapter'
 import { decode, getToken } from 'next-auth/jwt'
 import { NodeNextRequest } from 'next/dist/server/base-http/node'
 import jose1 from 'jose1'
+import { schnorr } from '@noble/curves/secp256k1'
 
 function getCallbacks (req) {
   return {
@@ -102,6 +104,37 @@ async function pubkeyAuth (credentials, req, pubkeyColumnName) {
   return null
 }
 
+async function nostrEventAuth (event) {
+  // parse event
+  const e = JSON.parse(event)
+
+  // is the event id a hash of this event
+  const id = createHash('sha256').update(
+    JSON.stringify(
+      [0, e.pubkey, e.created_at, e.kind, e.tags, e.content]
+    )
+  ).digest('hex')
+  if (id !== e.id) {
+    throw new Error('invalid event id')
+  }
+
+  // is the signature valid
+  if (!(await schnorr.verify(e.sig, e.id, e.pubkey))) {
+    throw new Error('invalid signature')
+  }
+
+  // is the challenge present in the event
+  if (!(e.tags[0].length === 2 && e.tags[0][0] === 'challenge')) {
+    throw new Error('expected tags = [["challenge", <challenge>]]')
+  }
+
+  const pubkey = e.pubkey
+  const k1 = e.tags[0][1]
+  await prisma.lnAuth.update({ data: { pubkey }, where: { k1 } })
+
+  return { k1, pubkey }
+}
+
 const providers = [
   CredentialsProvider({
     id: 'lightning',
@@ -111,6 +144,17 @@ const providers = [
       k1: { label: 'k1', type: 'text' }
     },
     authorize: async (credentials, req) => await pubkeyAuth(credentials, new NodeNextRequest(req), 'pubkey')
+  }),
+  CredentialsProvider({
+    id: 'nostr',
+    name: 'Nostr',
+    credentials: {
+      event: { label: 'event', type: 'text' }
+    },
+    authorize: async ({ event }, req) => {
+      const credentials = await nostrEventAuth(event)
+      return pubkeyAuth(credentials, new NodeNextRequest(req), 'nostrAuthPubkey')
+    }
   }),
   CredentialsProvider({
     id: 'slashtags',
@@ -130,7 +174,7 @@ const providers = [
     },
     profile: profile => {
       return {
-        ...profile,
+        id: profile.id,
         name: profile.login
       }
     }
@@ -140,7 +184,7 @@ const providers = [
     clientSecret: process.env.TWITTER_SECRET,
     profile: profile => {
       return {
-        ...profile,
+        id: profile.id,
         name: profile.screen_name
       }
     }

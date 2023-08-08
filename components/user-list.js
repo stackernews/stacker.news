@@ -7,6 +7,7 @@ import userStyles from './user-header.module.css'
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@apollo/client'
 import MoreFooter from './more-footer'
+import { useData } from './use-data'
 
 // all of this nonsense is to show the stat we are sorting by first
 const Stacked = ({ user }) => (<span>{abbrNum(user.stacked)} stacked</span>)
@@ -37,26 +38,25 @@ function seperate (arr, seperator) {
 
 export default function UserList ({ ssrData, query, variables, destructureData }) {
   const { data, fetchMore } = useQuery(query, { variables })
+  const dat = useData(data, ssrData)
   const [statComps, setStatComps] = useState(seperate(STAT_COMPONENTS, Seperator))
 
   useEffect(() => {
-    if (variables?.by) {
-      // shift the stat we are sorting by to the front
-      const comps = [...STAT_COMPONENTS]
-      setStatComps(seperate([...comps.splice(STAT_POS[variables.by], 1), ...comps], Seperator))
-    }
+    // shift the stat we are sorting by to the front
+    const comps = [...STAT_COMPONENTS]
+    setStatComps(seperate([...comps.splice(STAT_POS[variables?.by || 0], 1), ...comps], Seperator))
   }, [variables?.by])
 
   const { users, cursor } = useMemo(() => {
-    if (!data && !ssrData) return {}
+    if (!dat) return {}
     if (destructureData) {
-      return destructureData(data || ssrData)
+      return destructureData(dat)
     } else {
-      return data || ssrData
+      return dat
     }
-  }, [data, ssrData])
+  }, [dat])
 
-  if (!ssrData && !data) {
+  if (!dat) {
     return <UsersSkeleton />
   }
 

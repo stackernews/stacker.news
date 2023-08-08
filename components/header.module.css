@@ -38,7 +38,7 @@
     background-color: var(--bs-primary);
     top: 3px;
     right: 0px;
-    border: 1px solid var(--theme-body);
+    border: 1px solid var(--bs-body-bg);
 }
 
 .notification {
@@ -47,7 +47,7 @@
     background-color: var(--bs-danger);
     top: 1px;
     right: 8px;
-    border: 1px solid var(--theme-body);
+    border: 1px solid var(--bs-body-bg);
 }
 
 .navbarNav {

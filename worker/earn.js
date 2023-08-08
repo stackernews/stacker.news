@@ -9,7 +9,7 @@ function earn ({ models }) {
     console.log('running', name)
 
     // compute how much sn earned today
-    let [{ sum }] = await models.$queryRaw`
+    const [{ sum: actSum }] = await models.$queryRaw`
         SELECT coalesce(sum("ItemAct".msats - coalesce("ReferralAct".msats, 0)), 0) as sum
         FROM "ItemAct"
         JOIN "Item" ON "ItemAct"."itemId" = "Item".id
@@ -21,7 +21,24 @@ function earn ({ models }) {
       SELECT coalesce(sum(sats), 0) as sum
       FROM "Donation"
       WHERE created_at > now_utc() - INTERVAL '1 day'`
-    sum += donatedSum * 1000n
+
+    // XXX prisma returns wonky types from raw queries ... so be extra
+    // careful with them
+    const sum = Number(actSum) + (Number(donatedSum) * 1000)
+
+    if (sum <= 0) {
+      console.log('done', name, 'no sats to award today')
+      return
+    }
+
+    // extra sanity check on rewards ... if it more than 1m sats, we
+    // probably have a bug somewhere
+    if (sum > 1000000000) {
+      console.log('done', name, 'error: too many sats to award today')
+      return
+    }
+
+    console.log(name, 'giving away', sum, 'msats')
 
     /*
       How earnings (used to) work:
@@ -35,11 +52,6 @@ function earn ({ models }) {
 
       Now: 100% of earnings go to zappers of the top 21% of posts/comments
     */
-
-    if (sum <= 0) {
-      console.log('done', name, 'no earning')
-      return
-    }
 
     // get earners { userId, id, type, rank, proportion }
     const earners = await models.$queryRawUnsafe(`
@@ -88,18 +100,20 @@ function earn ({ models }) {
     const now = new Date(new Date().getTime())
 
     // this is just a sanity check because it seems like a good idea
-    let total = 0n
+    let total = 0
 
     // for each earner, serialize earnings
     // we do this for each earner because we don't need to serialize
     // all earner updates together
     earners.forEach(async earner => {
-      const earnings = BigInt(Math.floor(earner.proportion * sum))
+      const earnings = Math.floor(parseFloat(earner.proportion) * sum)
       total += earnings
       if (total > sum) {
-        console.log('total exceeds sum', name)
+        console.log(name, 'total exceeds sum', total, '>', sum)
         return
       }
+
+      console.log('stacker', earner.userId, 'earned', earnings)
 
       if (earnings > 0) {
         await serialize(models,

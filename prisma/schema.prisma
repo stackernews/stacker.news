@@ -51,6 +51,7 @@ model User {
   turboTipping        Boolean              @default(false)
   referrerId          Int?
   nostrPubkey         String?
+  nostrAuthPubkey     String?              @unique(map: "users.nostrAuthPubkey_unique")
   slashtagId          String?              @unique(map: "users.slashtagId_unique")
   noteCowboyHat       Boolean              @default(true)
   streak              Int?
@@ -442,6 +443,10 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
+
+  // twitter oauth 1.0 needs these https://authjs.dev/reference/core/providers_twitter#notes
+  oauth_token        String?
+  oauth_token_secret String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

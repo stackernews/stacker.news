@@ -10,7 +10,7 @@ import Price from './price'
 import { useMe } from './me'
 import Head from 'next/head'
 import { signOut } from 'next-auth/react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect } from 'react'
 import { randInRange } from '../lib/rand'
 import { abbrNum } from '../lib/format'
 import NoteIcon from '../svgs/notification-4-fill.svg'
@@ -20,7 +20,7 @@ import CowboyHat from './cowboy-hat'
 import { Select } from './form'
 import SearchIcon from '../svgs/search-line.svg'
 import BackArrow from '../svgs/arrow-left-line.svg'
-import { SUBS } from '../lib/constants'
+import { SSR, SUBS } from '../lib/constants'
 import { useLightning } from './lightning'
 import { HAS_NOTIFICATIONS } from '../fragments/notifications'
 
@@ -31,24 +31,28 @@ function WalletSummary ({ me }) {
 
 function Back () {
   const router = useRouter()
-  const [show, setShow] = useState()
 
-  useEffect(() => {
-    setShow(typeof window !== 'undefined' && router.asPath !== '/' &&
-    (typeof window.navigation === 'undefined' || window.navigation.canGoBack === undefined || window?.navigation.canGoBack))
-  }, [router.asPath])
-
-  if (show) {
-    return <a role='button' tabIndex='0' className='nav-link standalone p-0' onClick={() => router.back()}><BackArrow className='theme me-1 me-md-2' width={22} height={22} /></a>
-  }
-  return null
+  return router.asPath !== '/' &&
+    <a
+      role='button' tabIndex='0' className='nav-link standalone p-0' onClick={() => {
+        if (typeof window.navigation === 'undefined' || window.navigation.canGoBack === undefined || window?.navigation.canGoBack) {
+          router.back()
+        } else {
+          router.push('/')
+        }
+      }}
+    >
+      <BackArrow className='theme me-1 me-md-2' width={22} height={22} />
+    </a>
 }
 
 function NotificationBell () {
-  const { data } = useQuery(HAS_NOTIFICATIONS, {
-    pollInterval: 30000,
-    nextFetchPolicy: 'cache-and-network'
-  })
+  const { data } = useQuery(HAS_NOTIFICATIONS, SSR
+    ? {}
+    : {
+        pollInterval: 30000,
+        nextFetchPolicy: 'cache-and-network'
+      })
 
   return (
     <>

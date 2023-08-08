@@ -32,7 +32,7 @@ export default function TopHeader ({ sub, cat }) {
   }
 
   const what = cat
-  const by = router.query.by || ''
+  const by = router.query.by || (what === 'stackers' ? 'stacked' : 'votes')
   const when = router.query.when || ''
 
   return (

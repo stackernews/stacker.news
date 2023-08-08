@@ -6,6 +6,7 @@ import InvoiceStatus from '../../components/invoice-status'
 import { useRouter } from 'next/router'
 import { WITHDRAWL } from '../../fragments/wallet'
 import Link from 'next/link'
+import { SSR } from '../../lib/constants'
 
 export default function Withdrawl () {
   return (
@@ -31,11 +32,13 @@ export function WithdrawlSkeleton ({ status }) {
 
 function LoadWithdrawl () {
   const router = useRouter()
-  const { loading, error, data } = useQuery(WITHDRAWL, {
-    variables: { id: router.query.id },
-    pollInterval: 1000,
-    nextFetchPolicy: 'cache-and-network'
-  })
+  const { loading, error, data } = useQuery(WITHDRAWL, SSR
+    ? {}
+    : {
+        variables: { id: router.query.id },
+        pollInterval: 1000,
+        nextFetchPolicy: 'cache-and-network'
+      })
   if (error) return <div>error</div>
   if (!data || loading) {
     return <WithdrawlSkeleton status='loading' />

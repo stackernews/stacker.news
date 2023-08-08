@@ -11,13 +11,13 @@
 }
 
 .contrastLink {
-  color: var(--theme-color);
+  color: var(--bs-body-color);
 }
 .contrastLink:hover {
-    color: var(--theme-color);
+    color: var(--bs-body-color);
 }
 .contrastLink svg {
-    fill: var(--theme-color);
+    fill: var(--bs-body-color);
 }
 
 .version {

@@ -38,14 +38,14 @@ export default async function getSSRApolloClient ({ req, res, me = null }) {
     assumeImmutableResults: true,
     defaultOptions: {
       watchQuery: {
-        fetchPolicy: 'cache-only',
-        nextFetchPolicy: 'cache-only',
+        fetchPolicy: 'no-cache',
+        nextFetchPolicy: 'no-cache',
         canonizeResults: true,
         ssr: true
       },
       query: {
-        fetchPolicy: 'cache-first',
-        nextFetchPolicy: 'cache-only',
+        fetchPolicy: 'no-cache',
+        nextFetchPolicy: 'no-cache',
         canonizeResults: true,
         ssr: true
       }

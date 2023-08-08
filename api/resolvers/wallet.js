@@ -171,7 +171,7 @@ export default {
         }
         switch (f.type) {
           case 'withdrawal':
-            f.msats = (-1 * f.msats) - f.msatsFee
+            f.msats = (-1 * Number(f.msats)) - Number(f.msatsFee)
             break
           case 'spent':
             f.msats *= -1
@@ -216,7 +216,7 @@ export default {
 
         const [inv] = await serialize(models,
           models.$queryRaw`SELECT * FROM create_invoice(${invoice.id}, ${invoice.request},
-            ${expiresAt}, ${amount * 1000}, ${me.id}::INTEGER, ${description})`)
+            ${expiresAt}::timestamp, ${amount * 1000}, ${me.id}::INTEGER, ${description})`)
 
         return inv
       } catch (error) {

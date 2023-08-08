@@ -1,16 +1,16 @@
-.clickToContext {
-    border-radius: .4rem;
-    padding: .2rem 0;
-    cursor: pointer;
-}
-
-.clickToContext:hover {
-    background-color: rgba(0, 0, 0, 0.03);
-}
-
 .fresh {
-    background-color: rgba(0, 0, 0, 0.03);
-    border-radius: .4rem;
+    background-color: rgba(128, 128, 128, 0.1);
+    border-radius: 0;
+}
+
+.fresh:not(.fresh ~ .fresh) {
+    border-top-left-radius: .4rem;
+    border-top-right-radius: .4rem;
+}
+
+.fresh:has(+ :not(.fresh)) {
+    border-bottom-left-radius: .4rem;
+    border-bottom-right-radius: .4rem;
 }
 
 .alertBtn {

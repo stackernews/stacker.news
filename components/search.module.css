@@ -16,7 +16,7 @@
 
 .searchSection.solid {
     pointer-events: auto;
-    background: var(--theme-body);
+    background: var(--bs-body-bg);
     box-shadow: 0 -4px 12px hsl(0deg 0% 59% / 10%);
 }
 

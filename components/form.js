@@ -72,7 +72,7 @@ export function InputSkeleton ({ label, hint }) {
   return (
     <BootstrapForm.Group>
       {label && <BootstrapForm.Label>{label}</BootstrapForm.Label>}
-      <div className='form-control clouds' />
+      <div className='form-control clouds' style={{ color: 'transparent' }}>.</div>
       {hint &&
         <BootstrapForm.Text>
           {hint}
@@ -431,7 +431,7 @@ export function Checkbox ({ children, label, groupClassName, hiddenLabel, extra,
             handleChange && handleChange(e.target.checked, helpers.setValue)
           }}
         />
-        <BootstrapForm.Check.Label className={'d-flex' + (disabled ? ' text-muted' : '')}>
+        <BootstrapForm.Check.Label className={'d-inline-flex flex-nowrap align-items-center' + (disabled ? ' text-muted' : '')}>
           <div className='flex-grow-1'>{label}</div>
           {extra &&
             <div className={styles.checkboxExtra}>

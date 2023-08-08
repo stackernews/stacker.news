@@ -7,6 +7,7 @@ import AccordianItem from '../../components/accordian-item'
 import styles from '../../styles/invites.module.css'
 import Invite from '../../components/invite'
 import { inviteSchema } from '../../lib/validate'
+import { SSR } from '../../lib/constants'
 
 function InviteForm () {
   const [createInvite] = useMutation(
@@ -93,7 +94,7 @@ export default function Invites () {
           ...InviteFields
         }
       }
-    `, { fetchPolicy: 'cache-and-network' })
+    `, SSR ? {} : { fetchPolicy: 'cache-and-network' })
 
   const [active, inactive] = data && data.invites
     ? data.invites.reduce((result, invite) => {

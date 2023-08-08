@@ -5,6 +5,11 @@ import { setDefaultHandler } from 'workbox-routing'
 import { NetworkOnly } from 'workbox-strategies'
 import { enable } from 'workbox-navigation-preload'
 import manifest from './precache-manifest.json'
+import ServiceWorkerStorage from 'serviceworker-storage'
+
+self.__WB_DISABLE_DEV_LOGS = true
+
+const storage = new ServiceWorkerStorage('sw:storage', 1)
 
 // preloading improves startup performance
 // https://developer.chrome.com/docs/workbox/modules/workbox-navigation-preload/
@@ -80,35 +85,54 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close()
 })
 
-self.addEventListener('pushsubscriptionchange', (event) => {
+// https://medium.com/@madridserginho/how-to-handle-webpush-api-pushsubscriptionchange-event-in-modern-browsers-6e47840d756f
+self.addEventListener('message', (event) => {
+  if (event.data.action === 'STORE_SUBSCRIPTION') {
+    return event.waitUntil(storage.setItem('subscription', event.data.subscription))
+  }
+  if (event.data.action === 'SYNC_SUBSCRIPTION') {
+    return event.waitUntil(handlePushSubscriptionChange())
+  }
+})
+
+async function handlePushSubscriptionChange (oldSubscription, newSubscription) {
   // https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/pushsubscriptionchange_event
+  // fallbacks since browser may not set oldSubscription and newSubscription
+  oldSubscription ??= await storage.getItem('subscription')
+  newSubscription ??= await self.registration.pushManager.getSubscription()
+  if (!newSubscription) {
+    // no subscription exists at the moment
+    return
+  }
+  if (oldSubscription?.endpoint === newSubscription.endpoint) {
+    // subscription did not change. no need to sync with server
+    return
+  }
+  // convert keys from ArrayBuffer to string
+  newSubscription = JSON.parse(JSON.stringify(newSubscription))
+  const variables = {
+    endpoint: newSubscription.endpoint,
+    p256dh: newSubscription.keys.p256dh,
+    auth: newSubscription.keys.auth,
+    oldEndpoint: oldSubscription?.endpoint
+  }
   const query = `
   mutation savePushSubscription($endpoint: String!, $p256dh: String!, $auth: String!, $oldEndpoint: String!) {
     savePushSubscription(endpoint: $endpoint, p256dh: $p256dh, auth: $auth, oldEndpoint: $oldEndpoint) {
       id
     }
   }`
+  const body = JSON.stringify({ query, variables })
+  await fetch('/api/graphql', {
+    method: 'POST',
+    headers: {
+      'Content-type': 'application/json'
+    },
+    body
+  })
+  await storage.setItem('subscription', JSON.parse(JSON.stringify(newSubscription)))
+}
 
-  const subscription = self.registration.pushManager
-    .subscribe(event.oldSubscription.options)
-    .then((subscription) => {
-      // convert keys from ArrayBuffer to string
-      subscription = JSON.parse(JSON.stringify(subscription))
-      const variables = {
-        endpoint: subscription.endpoint,
-        p256dh: subscription.keys.p256dh,
-        auth: subscription.keys.auth,
-        oldEndpoint: event.oldSubscription.endpoint
-      }
-      const body = JSON.stringify({ query, variables })
-      return fetch('/api/graphql', {
-        method: 'POST',
-        headers: {
-          'Content-type': 'application/json'
-        },
-        body
-      })
-    })
-
-  event.waitUntil(subscription)
+self.addEventListener('pushsubscriptionchange', (event) => {
+  event.waitUntil(handlePushSubscriptionChange(event.oldSubscription, event.newSubscription))
 }, false)

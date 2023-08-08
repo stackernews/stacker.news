@@ -60,7 +60,7 @@ function checkWithdrawal ({ boss, models, lnd }) {
       const fee = Number(wdrwl.payment.fee_mtokens)
       const paid = Number(wdrwl.payment.mtokens) - fee
       await serialize(models, models.$executeRaw`
-      SELECT confirm_withdrawl(${id}, ${paid}, ${fee})`)
+      SELECT confirm_withdrawl(${id}::INTEGER, ${paid}, ${fee})`)
     } else if (wdrwl?.is_failed || notFound) {
       let status = 'UNKNOWN_FAILURE'
       if (wdrwl?.failed.is_insufficient_balance) {
@@ -73,7 +73,7 @@ function checkWithdrawal ({ boss, models, lnd }) {
         status = 'ROUTE_NOT_FOUND'
       }
       await serialize(models, models.$executeRaw`
-      SELECT reverse_withdrawl(${id}, ${status})`)
+      SELECT reverse_withdrawl(${id}::INTEGER, ${status}::"WithdrawlStatus")`)
     } else {
       // we need to requeue to check again in 5 seconds
       await boss.send('checkWithdrawal', { id, hash }, walletOptions)

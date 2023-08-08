@@ -4,6 +4,7 @@ import { fixedDecimal } from '../lib/format'
 import { useMe } from './me'
 import { PRICE } from '../fragments/price'
 import { CURRENCY_SYMBOLS } from '../lib/currency'
+import { SSR } from '../lib/constants'
 
 export const PriceContext = React.createContext({
   price: null,
@@ -19,8 +20,12 @@ export function PriceProvider ({ price, children }) {
   const fiatCurrency = me?.fiatCurrency
   const { data } = useQuery(PRICE, {
     variables: { fiatCurrency },
-    pollInterval: 30000,
-    nextFetchPolicy: 'cache-and-network'
+    ...(SSR
+      ? {}
+      : {
+          pollInterval: 30000,
+          nextFetchPolicy: 'cache-and-network'
+        })
   })
 
   const contextValue = {

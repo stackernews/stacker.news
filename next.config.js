@@ -14,10 +14,18 @@ const corsHeaders = [
   }
 ]
 
-// XXX this fragile ... eb could change the version label ... but it works for now
-const commitHash = isProd
-  ? Object.keys(require('/opt/elasticbeanstalk/deployment/app_version_manifest.json').RuntimeSources['stacker.news'])[0].match(/^app-(.+)-/)[1] // eslint-disable-line
-  : require('child_process').execSync('git rev-parse HEAD').toString().slice(0, 4)
+let commitHash
+if (isProd) {
+  // XXX this fragile ... eb could change the version label ... but it works for now
+  commitHash = Object.keys(require('/opt/elasticbeanstalk/deployment/app_version_manifest.json').RuntimeSources['stacker.news'])[0].match(/^app-(.+)-/)[1] // eslint-disable-line
+} else {
+  try {
+    commitHash = require('child_process').execSync('git rev-parse HEAD').toString().slice(0, 4)
+  } catch (e) {
+    console.log('could not get commit hash with `git rev-parse HEAD` ... using 0000')
+    commitHash = '0000'
+  }
+}
 
 module.exports = withPlausibleProxy()({
   env: {

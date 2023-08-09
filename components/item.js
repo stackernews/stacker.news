@@ -10,7 +10,7 @@ import BountyIcon from '../svgs/bounty-bag.svg'
 import ActionTooltip from './action-tooltip'
 import Flag from '../svgs/flag-fill.svg'
 import ImageIcon from '../svgs/image-fill.svg'
-import { abbrNum } from '../lib/format'
+import { numWithUnits } from '../lib/format'
 import ItemInfo from './item-info'
 import { commentsViewedAt } from '../lib/new-comments'
 import { useRouter } from 'next/router'
@@ -58,7 +58,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
               {item.pollCost && <span className={styles.icon}> <PollIcon className='fill-grey ms-1' height={14} width={14} /></span>}
               {item.bounty > 0 &&
                 <span className={styles.icon}>
-                  <ActionTooltip notForm overlayText={`${abbrNum(item.bounty)} ${item.bountyPaidTo?.length ? 'sats paid' : 'sats bounty'}`}>
+                  <ActionTooltip notForm overlayText={`${numWithUnits(item.bounty)} ${item.bountyPaidTo?.length ? ' paid' : ' bounty'}`}>
                     <BountyIcon className={`${styles.bountyIcon} ${item.bountyPaidTo?.length ? 'fill-success' : 'fill-grey'}`} height={16} width={16} />
                   </ActionTooltip>
                 </span>}

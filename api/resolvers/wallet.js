@@ -32,6 +32,11 @@ export async function getInvoice (parent, { id }, { me, models }) {
     throw new GraphQLError('not ur invoice', { extensions: { code: 'FORBIDDEN' } })
   }
 
+  try {
+    inv.nostr = JSON.parse(inv.desc)
+  } catch (err) {
+  }
+
   return inv
 }
 

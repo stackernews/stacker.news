@@ -15,6 +15,7 @@ import { CREATE_WITHDRAWL, SEND_TO_LNADDR } from '../fragments/wallet'
 import { getGetServerSideProps } from '../api/ssrApollo'
 import { amountSchema, lnAddrSchema, withdrawlSchema } from '../lib/validate'
 import { SSR } from '../lib/constants'
+import { numWithUnits } from '../lib/format'
 
 export const getServerSideProps = getGetServerSideProps()
 
@@ -30,7 +31,7 @@ function YouHaveSats () {
   const me = useMe()
   return (
     <h2 className={`${me ? 'visible' : 'invisible'} text-success pb-5`}>
-      you have <span className='text-monospace'>{me && me.sats}</span> sats
+      you have <span className='text-monospace'>{me && numWithUnits(me.sats, { abbreviate: false })}</span>
     </h2>
   )
 }

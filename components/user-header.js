@@ -17,6 +17,7 @@ import Avatar from './avatar'
 import CowboyHat from './cowboy-hat'
 import { userSchema } from '../lib/validate'
 import { useShowModal } from './modal'
+import { numWithUnits } from '../lib/format'
 
 export default function UserHeader ({ user }) {
   const router = useRouter()
@@ -35,7 +36,13 @@ export default function UserHeader ({ user }) {
         </Nav.Item>
         <Nav.Item>
           <Link href={'/' + user.name + '/all'} passHref legacyBehavior>
-            <Nav.Link eventKey>{user.nitems} items</Nav.Link>
+            <Nav.Link eventKey>
+              {numWithUnits(user.nitems, {
+                abbreviate: false,
+                unitSingular: 'item',
+                unitPlural: 'items'
+              })}
+            </Nav.Link>
           </Link>
         </Nav.Item>
       </Nav>

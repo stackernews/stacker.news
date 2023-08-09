@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Badge from 'react-bootstrap/Badge'
 import Dropdown from 'react-bootstrap/Dropdown'
 import Countdown from './countdown'
-import { abbrNum } from '../lib/format'
+import { abbrNum, numWithUnits } from '../lib/format'
 import { newComments, commentsViewedAt } from '../lib/new-comments'
 import { timeSince } from '../lib/time'
 import CowboyHat from './cowboy-hat'
@@ -17,7 +17,10 @@ import BookmarkDropdownItem from './bookmark'
 import SubscribeDropdownItem from './subscribe'
 import { CopyLinkDropdownItem } from './share'
 
-export default function ItemInfo ({ item, pendingSats, full, commentsText, className, embellishUser, extraInfo, onEdit, editText }) {
+export default function ItemInfo ({
+  item, pendingSats, full, commentsText = 'comments',
+  commentTextSingular = 'comment', className, embellishUser, extraInfo, onEdit, editText
+}) {
   const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
   const me = useMe()
   const router = useRouter()
@@ -40,7 +43,16 @@ export default function ItemInfo ({ item, pendingSats, full, commentsText, class
     <div className={className || `${styles.other}`}>
       {!item.position &&
         <>
-          <span title={`from ${item.upvotes} stackers ${item.mine ? `\\ ${item.meSats} sats to post` : `(${meTotalSats} sats from me)`} `}>{abbrNum(item.sats + pendingSats)} sats</span>
+          <span title={`from ${numWithUnits(item.upvotes, {
+              abbreviate: false,
+              unitSingular: 'stacker',
+              unitPlural: 'stackers'
+            })} ${item.mine
+            ? `\\ ${numWithUnits(item.meSats, { abbreviate: false })} to post`
+            : `(${numWithUnits(meTotalSats, { abbreviate: false })} from me)`} `}
+          >
+            {numWithUnits(item.sats + pendingSats)}
+          </span>
           <span> \ </span>
         </>}
       {item.boost > 0 &&
@@ -57,9 +69,13 @@ export default function ItemInfo ({ item, pendingSats, full, commentsText, class
               `/items/${item.id}?commentsViewedAt=${viewedAt}`,
               `/items/${item.id}`)
           }
-        }} title={`${item.commentSats} sats`} className='text-reset position-relative'
+        }} title={numWithUnits(item.commentSats)} className='text-reset position-relative'
       >
-        {item.ncomments} {commentsText || 'comments'}
+        {numWithUnits(item.ncomments, {
+          abbreviate: false,
+          unitPlural: commentsText,
+          unitSingular: commentTextSingular
+        })}
         {hasNewComments &&
           <span className={styles.notification}>
             <span className='invisible'>{' '}</span>

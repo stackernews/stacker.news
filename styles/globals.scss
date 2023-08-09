@@ -608,6 +608,10 @@ div[contenteditable]:focus,
   fill: var(--theme-grey);
 }
 
+.fill-nostr {
+  fill: var(--bs-nostr);
+}
+
 .fill-lgrey {
   fill: #a5a5a5;
 }

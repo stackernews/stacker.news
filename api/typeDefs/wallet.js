@@ -23,6 +23,7 @@ export default gql`
     cancelled: Boolean!
     confirmedAt: Date
     satsReceived: Int
+    nostr: JSONObject
   }
 
   type Withdrawl {

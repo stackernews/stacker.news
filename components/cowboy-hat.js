@@ -2,6 +2,7 @@ import Badge from 'react-bootstrap/Badge'
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import Tooltip from 'react-bootstrap/Tooltip'
 import CowboyHatIcon from '../svgs/cowboy.svg'
+import { numWithUnits } from '../lib/format'
 
 export default function CowboyHat ({ user, badge, className = 'ms-1', height = 16, width = 16 }) {
   if (user?.streak === null || user.hideCowboyHat) {
@@ -10,7 +11,10 @@ export default function CowboyHat ({ user, badge, className = 'ms-1', height = 1
 
   const streak = user.streak
   return (
-    <HatTooltip overlayText={streak ? `${streak} days` : 'new'}>
+    <HatTooltip overlayText={streak
+      ? `${numWithUnits(streak, { abbreviate: false, unitSingular: 'day', unitPlural: 'days' })}`
+      : 'new'}
+    >
       {badge
         ? (
           <Badge bg='grey-medium' className='ms-2 d-inline-flex align-items-center'>

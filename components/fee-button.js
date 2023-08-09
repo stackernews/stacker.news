@@ -1,19 +1,20 @@
+import { useEffect } from 'react'
 import Table from 'react-bootstrap/Table'
 import ActionTooltip from './action-tooltip'
 import Info from './info'
 import styles from './fee-button.module.css'
 import { gql, useQuery } from '@apollo/client'
 import { useFormikContext } from 'formik'
-import { useMe } from './me'
 import { SSR, ANON_COMMENT_FEE, ANON_POST_FEE } from '../lib/constants'
-import { useEffect } from 'react'
+import { numWithUnits } from '../lib/format'
+import { useMe } from './me'
 
 function Receipt ({ cost, repetition, hasImgLink, baseFee, parentId, boost }) {
   return (
     <Table className={styles.receipt} borderless size='sm'>
       <tbody>
         <tr>
-          <td>{baseFee} sats</td>
+          <td>{numWithUnits(baseFee, { abbreviate: false })}</td>
           <td align='right' className='font-weight-light'>{parentId ? 'reply' : 'post'} fee</td>
         </tr>
         {hasImgLink &&
@@ -28,13 +29,13 @@ function Receipt ({ cost, repetition, hasImgLink, baseFee, parentId, boost }) {
           </tr>}
         {boost > 0 &&
           <tr>
-            <td>+ {boost} sats</td>
+            <td>+ {numWithUnits(boost, { abbreviate: false })}</td>
             <td className='font-weight-light' align='right'>boost</td>
           </tr>}
       </tbody>
       <tfoot>
         <tr>
-          <td className='fw-bold'>{cost} sats</td>
+          <td className='fw-bold'>{numWithUnits(cost, { abbreviate: false })}</td>
           <td align='right' className='font-weight-light'>total fee</td>
         </tr>
       </tfoot>
@@ -61,8 +62,8 @@ export default function FeeButton ({ parentId, hasImgLink, baseFee, ChildButton,
   const show = alwaysShow || !formik?.isSubmitting
   return (
     <div className='d-flex align-items-center'>
-      <ActionTooltip overlayText={`${cost} sats`}>
-        <ChildButton variant={variant} disabled={disabled}>{text}{cost > baseFee && show && <small> {cost} sats</small>}</ChildButton>
+      <ActionTooltip overlayText={numWithUnits(cost, { abbreviate: false })}>
+        <ChildButton variant={variant} disabled={disabled}>{text}{cost > baseFee && show && <small> {numWithUnits(cost, { abbreviate: false })}</small>}</ChildButton>
       </ActionTooltip>
       {cost > baseFee && show &&
         <Info>
@@ -79,7 +80,7 @@ function EditReceipt ({ cost, paidSats, addImgLink, boost, parentId }) {
         {addImgLink &&
           <>
             <tr>
-              <td>{paidSats} sats</td>
+              <td>{numWithUnits(paidSats, { abbreviate: false })}</td>
               <td align='right' className='font-weight-light'>{parentId ? 'reply' : 'post'} fee</td>
             </tr>
             <tr>
@@ -87,19 +88,19 @@ function EditReceipt ({ cost, paidSats, addImgLink, boost, parentId }) {
               <td align='right' className='font-weight-light'>image/link fee</td>
             </tr>
             <tr>
-              <td>- {paidSats} sats</td>
+              <td>- {numWithUnits(paidSats, { abbreviate: false })}</td>
               <td align='right' className='font-weight-light'>already paid</td>
             </tr>
           </>}
         {boost > 0 &&
           <tr>
-            <td>+ {boost} sats</td>
+            <td>+ {numWithUnits(boost, { abbreviate: false })}</td>
             <td className='font-weight-light' align='right'>boost</td>
           </tr>}
       </tbody>
       <tfoot>
         <tr>
-          <td className='fw-bold'>{cost} sats</td>
+          <td className='fw-bold'>{numWithUnits(cost)}</td>
           <td align='right' className='font-weight-light'>total fee</td>
         </tr>
       </tfoot>
@@ -116,8 +117,8 @@ export function EditFeeButton ({ paidSats, hadImgLink, hasImgLink, ChildButton, 
   const show = alwaysShow || !formik?.isSubmitting
   return (
     <div className='d-flex align-items-center'>
-      <ActionTooltip overlayText={`${cost} sats`}>
-        <ChildButton variant={variant}>{text}{cost > 0 && show && <small> {cost} sats</small>}</ChildButton>
+      <ActionTooltip overlayText={numWithUnits(cost, { abbreviate: false })}>
+        <ChildButton variant={variant}>{text}{cost > 0 && show && <small> {numWithUnits(cost, { abbreviate: false })}</small>}</ChildButton>
       </ActionTooltip>
       {cost > 0 && show &&
         <Info>

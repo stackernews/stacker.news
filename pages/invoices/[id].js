@@ -6,7 +6,7 @@ import { useRouter } from 'next/router'
 import { INVOICE } from '../../fragments/wallet'
 import { SSR } from '../../lib/constants'
 
-export default function FullInvoice ({ id }) {
+export default function FullInvoice () {
   const router = useRouter()
   const { data, error } = useQuery(INVOICE, SSR
     ? {}

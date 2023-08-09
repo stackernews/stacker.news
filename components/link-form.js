@@ -14,7 +14,7 @@ import { linkSchema } from '../lib/validate'
 import Moon from '../svgs/moon-fill.svg'
 import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
-import { useAnonymous } from '../lib/anonymous'
+import { useInvoiceable } from './invoice'
 
 export function LinkForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
@@ -90,7 +90,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
       }
     }, [upsertLink, router])
 
-  const anonUpsertLink = useAnonymous(submitUpsertLink)
+  const invoiceableUpsertLink = useInvoiceable(submitUpsertLink)
 
   useEffect(() => {
     if (data?.pageTitleAndUnshorted?.title) {
@@ -119,7 +119,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
       }}
       schema={schema}
       onSubmit={async ({ boost, title, cost, ...values }) => {
-        await anonUpsertLink(cost, boost, title, values)
+        await invoiceableUpsertLink(cost, boost, title, values)
       }}
       storageKeyPrefix={item ? undefined : 'link'}
     >

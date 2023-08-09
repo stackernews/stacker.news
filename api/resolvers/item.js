@@ -17,7 +17,6 @@ import { amountSchema, bountySchema, commentSchema, discussionSchema, jobSchema,
 import { sendUserNotification } from '../webPush'
 import { proxyImages } from './imgproxy'
 import { defaultCommentSort } from '../../lib/item'
-import { checkInvoice } from '../../lib/anonymous'
 
 export async function commentFilterClause (me, models) {
   let clause = ` AND ("Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}`
@@ -36,6 +35,25 @@ export async function commentFilterClause (me, models) {
   clause += ')'
 
   return clause
+}
+
+async function checkInvoice (models, invoiceHash, fee) {
+  const invoice = await models.invoice.findUnique({
+    where: { hash: invoiceHash },
+    include: {
+      user: true
+    }
+  })
+  if (!invoice) {
+    throw new GraphQLError('invoice not found', { extensions: { code: 'BAD_INPUT' } })
+  }
+  if (!invoice.msatsReceived) {
+    throw new GraphQLError('invoice was not paid', { extensions: { code: 'BAD_INPUT' } })
+  }
+  if (msatsToSats(invoice.msatsReceived) < fee) {
+    throw new GraphQLError('invoice amount too low', { extensions: { code: 'BAD_INPUT' } })
+  }
+  return invoice
 }
 
 async function comments (me, models, id, sort) {

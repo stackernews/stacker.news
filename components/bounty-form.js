@@ -9,7 +9,7 @@ import { bountySchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
 import { useCallback } from 'react'
-import { useAnonymous } from '../lib/anonymous'
+import { useInvoiceable } from './invoice'
 
 export function BountyForm ({
   item,
@@ -75,7 +75,7 @@ export function BountyForm ({
       }
     }, [upsertBounty, router])
 
-  const anonUpsertBounty = useAnonymous(submitUpsertBounty, { requireSession: true })
+  const invoiceableUpsertBounty = useInvoiceable(submitUpsertBounty, { requireSession: true })
 
   return (
     <Form
@@ -90,7 +90,7 @@ export function BountyForm ({
       onSubmit={
         handleSubmit ||
         (async ({ boost, bounty, cost, ...values }) => {
-          await anonUpsertBounty(cost, boost, bounty, values)
+          await invoiceableUpsertBounty(cost, boost, bounty, values)
         })
       }
       storageKeyPrefix={item ? undefined : 'bounty'}

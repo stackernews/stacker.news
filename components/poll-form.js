@@ -11,7 +11,7 @@ import { pollSchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
 import { useCallback } from 'react'
-import { useAnonymous } from '../lib/anonymous'
+import { useInvoiceable } from './invoice'
 
 export function PollForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
@@ -54,7 +54,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
       }
     }, [upsertPoll, router])
 
-  const anonUpsertPoll = useAnonymous(submitUpsertPoll)
+  const invoiceableUpsertPoll = useInvoiceable(submitUpsertPoll)
 
   const initialOptions = item?.poll?.options.map(i => i.option)
 
@@ -69,7 +69,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
       }}
       schema={schema}
       onSubmit={async ({ boost, title, options, cost, ...values }) => {
-        await anonUpsertPoll(cost, boost, title, options, values)
+        await invoiceableUpsertPoll(cost, boost, title, options, values)
       }}
       storageKeyPrefix={item ? undefined : 'poll'}
     >

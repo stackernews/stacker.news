@@ -9,7 +9,7 @@ import FeeButton from './fee-button'
 import { commentsViewedAfterComment } from '../lib/new-comments'
 import { commentSchema } from '../lib/validate'
 import Info from './info'
-import { useAnonymous } from '../lib/anonymous'
+import { useInvoiceable } from './invoice'
 
 export function ReplyOnAnotherPage ({ parentId }) {
   return (
@@ -101,7 +101,7 @@ export default function Reply ({ item, onSuccess, replyOpen, children, placehold
       setReply(replyOpen || false)
     }, [createComment, setReply])
 
-  const anonCreateComment = useAnonymous(submitComment)
+  const invoiceableCreateComment = useInvoiceable(submitComment)
 
   const replyInput = useRef(null)
   useEffect(() => {
@@ -130,7 +130,7 @@ export default function Reply ({ item, onSuccess, replyOpen, children, placehold
             }}
             schema={commentSchema}
             onSubmit={async ({ cost, ...values }, { resetForm }) => {
-              await anonCreateComment(cost, values, parentId, resetForm)
+              await invoiceableCreateComment(cost, values, parentId, resetForm)
             }}
             storageKeyPrefix={'reply-' + parentId}
           >

@@ -5,7 +5,7 @@ import { Form, Input, SubmitButton } from './form'
 import { useMe } from './me'
 import UpBolt from '../svgs/bolt.svg'
 import { amountSchema } from '../lib/validate'
-import { useAnonymous } from '../lib/anonymous'
+import { useInvoiceable } from './invoice'
 
 const defaultTips = [100, 1000, 10000, 100000]
 
@@ -65,7 +65,7 @@ export default function ItemAct ({ onClose, itemId, act, strike }) {
       onClose()
     }, [act, onClose, strike, itemId])
 
-  const anonAct = useAnonymous(submitAct)
+  const invoiceableAct = useInvoiceable(submitAct)
 
   return (
     <Form
@@ -75,7 +75,7 @@ export default function ItemAct ({ onClose, itemId, act, strike }) {
       }}
       schema={amountSchema}
       onSubmit={async ({ amount }) => {
-        await anonAct(amount)
+        await invoiceableAct(amount)
       }}
     >
       <Input

@@ -13,7 +13,7 @@ import { discussionSchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
 import { useCallback } from 'react'
-import { useAnonymous } from '../lib/anonymous'
+import { useInvoiceable } from './invoice'
 
 export function DiscussionForm ({
   item, sub, editThreshold, titleLabel = 'title',
@@ -53,7 +53,7 @@ export function DiscussionForm ({
       }
     }, [upsertDiscussion, router])
 
-  const anonUpsertDiscussion = useAnonymous(submitUpsertDiscussion)
+  const invoiceableUpsertDiscussion = useInvoiceable(submitUpsertDiscussion)
 
   const [getRelated, { data: relatedData }] = useLazyQuery(gql`
     ${ITEM_FIELDS}
@@ -79,7 +79,7 @@ export function DiscussionForm ({
       }}
       schema={schema}
       onSubmit={handleSubmit || (async ({ boost, cost, ...values }) => {
-        await anonUpsertDiscussion(cost, boost, values)
+        await invoiceableUpsertDiscussion(cost, boost, values)
       })}
       storageKeyPrefix={item ? undefined : 'discussion'}
     >

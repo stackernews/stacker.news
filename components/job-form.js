@@ -17,7 +17,7 @@ import Avatar from './avatar'
 import ActionTooltip from './action-tooltip'
 import { jobSchema } from '../lib/validate'
 import CancelButton from './cancel-button'
-import { useAnonymous } from '../lib/anonymous'
+import { useInvoiceable } from './invoice'
 
 function satsMin2Mo (minute) {
   return minute * 30 * 24 * 60
@@ -82,7 +82,7 @@ export default function JobForm ({ item, sub }) {
       }
     }, [upsertJob, router])
 
-  const anonUpsertJob = useAnonymous(submitUpsertJob, { requireSession: true })
+  const invoiceableUpsertJob = useInvoiceable(submitUpsertJob, { requireSession: true })
 
   return (
     <>
@@ -102,7 +102,7 @@ export default function JobForm ({ item, sub }) {
         schema={jobSchema}
         storageKeyPrefix={storageKeyPrefix}
         onSubmit={(async ({ maxBid, stop, start, ...values }) => {
-          await anonUpsertJob(1000, maxBid, stop, start, values)
+          await invoiceableUpsertJob(1000, maxBid, stop, start, values)
         })}
       >
         <div className='form-group'>

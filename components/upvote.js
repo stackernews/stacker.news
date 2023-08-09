@@ -1,7 +1,7 @@
 import UpBolt from '../svgs/bolt.svg'
 import styles from './upvote.module.css'
 import { gql, useMutation } from '@apollo/client'
-import FundError from './fund-error'
+import FundError, { isInsufficientFundsError } from './fund-error'
 import ActionTooltip from './action-tooltip'
 import ItemAct from './item-act'
 import { useMe } from './me'
@@ -12,7 +12,6 @@ import Overlay from 'react-bootstrap/Overlay'
 import Popover from 'react-bootstrap/Popover'
 import { useShowModal } from './modal'
 import { LightningConsumer, useLightning } from './lightning'
-import { isInsufficientFundsError } from '../lib/anonymous'
 import { numWithUnits } from '../lib/format'
 
 const getColor = (meSats) => {

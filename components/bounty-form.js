@@ -53,7 +53,6 @@ export function BountyForm ({
 
   const submitUpsertBounty = useCallback(
     // we ignore the invoice since only stackers can post bounties
-    // the invoice is only for funding the wallet
     async (_, boost, bounty, values, __) => {
       const { error } = await upsertBounty({
         variables: {

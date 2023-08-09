@@ -52,8 +52,7 @@ export default function JobForm ({ item, sub }) {
   )
 
   const submitUpsertJob = useCallback(
-    // we ignore the invoice since only stackers can post bounties
-    // the invoice is only for funding the wallet
+    // we ignore the invoice since only stackers can post jobs
     async (_, maxBid, stop, start, values, __) => {
       let status
       if (start) {

@@ -111,6 +111,7 @@ function NymEdit ({ user, setEditting }) {
         name: user.name
       }}
       validateImmediately
+      validateOnChange={false}
       onSubmit={async ({ name }) => {
         if (name === user.name) {
           setEditting(false)
@@ -137,6 +138,7 @@ function NymEdit ({ user, setEditting }) {
           autoFocus
           groupClassName={styles.usernameForm}
           showValid
+          debounce={500}
         />
         <SubmitButton variant='link' onClick={() => setEditting(true)}>save</SubmitButton>
       </div>

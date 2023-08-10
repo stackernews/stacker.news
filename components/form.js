@@ -219,7 +219,7 @@ function FormGroup ({ className, label, children }) {
 
 function InputInner ({
   prepend, append, hint, showValid, onChange, overrideValue,
-  innerRef, noForm, clear, onKeyDown, ...props
+  innerRef, noForm, clear, onKeyDown, debounce, ...props
 }) {
   const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)
   const formik = noForm ? null : useFormikContext()
@@ -244,6 +244,18 @@ function InputInner ({
   }, [overrideValue])
 
   const invalid = (!formik || formik.submitCount > 0) && meta.touched && meta.error
+
+  const debounceRef = useRef(-1)
+
+  useEffect(() => {
+    if (debounceRef.current !== -1) {
+      clearTimeout(debounceRef.current)
+    }
+    if (!noForm && !isNaN(debounce) && debounce > 0) {
+      debounceRef.current = setTimeout(() => formik.validateForm(), debounce)
+    }
+    return () => clearTimeout(debounceRef.current)
+  }, [noForm, formik, field.value])
 
   return (
     <>
@@ -446,13 +458,14 @@ export function Checkbox ({ children, label, groupClassName, hiddenLabel, extra,
 const StorageKeyPrefixContext = createContext()
 
 export function Form ({
-  initial, schema, onSubmit, children, initialError, validateImmediately, storageKeyPrefix, ...props
+  initial, schema, onSubmit, children, initialError, validateImmediately, storageKeyPrefix, validateOnChange = true, ...props
 }) {
   const [error, setError] = useState(initialError)
 
   return (
     <Formik
       initialValues={initial}
+      validateOnChange={validateOnChange}
       validationSchema={schema}
       initialTouched={validateImmediately && initial}
       validateOnBlur={false}

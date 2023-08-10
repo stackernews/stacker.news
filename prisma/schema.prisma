@@ -350,6 +350,9 @@ model ReferralAct {
   msats      BigInt
   itemAct    ItemAct  @relation(fields: [itemActId], references: [id], onDelete: Cascade)
   referrer   User     @relation(fields: [referrerId], references: [id], onDelete: Cascade)
+
+  @@index([referrerId])
+  @@index([itemActId])
 }
 
 model ItemAct {

@@ -20,7 +20,6 @@ export function Invoice ({ invoice, onConfirmation, successVerb }) {
   if (invoice.confirmedAt) {
     variant = 'confirmed'
     status = `${numWithUnits(invoice.satsReceived, { abbreviate: false })} ${successVerb || 'deposited'}`
-    onConfirmation?.(invoice)
     webLn = false
   } else if (invoice.cancelled) {
     variant = 'failed'
@@ -31,6 +30,12 @@ export function Invoice ({ invoice, onConfirmation, successVerb }) {
     status = 'expired'
     webLn = false
   }
+
+  useEffect(() => {
+    if (invoice.confirmedAt) {
+      onConfirmation?.(invoice)
+    }
+  }, [invoice.confirmedAt])
 
   const { nostr } = invoice
 
@@ -150,14 +155,10 @@ export const useInvoiceable = (fn, options = defaultOptions) => {
   const [fnArgs, setFnArgs] = useState()
 
   // fix for bug where `showModal` runs the code for two modals and thus executes `onConfirmation` twice
-  let called = false
   let errorCount = 0
   const onConfirmation = useCallback(
     onClose => {
-      called = false
       return async ({ id, satsReceived, hash }) => {
-        if (called) return
-        called = true
         await sleep(2000)
         const repeat = () =>
           fn(satsReceived, ...fnArgs, hash)

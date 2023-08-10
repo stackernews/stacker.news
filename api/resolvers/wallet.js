@@ -211,7 +211,7 @@ export default {
       await ssValidate(amountSchema, { amount })
 
       const user = await models.user.findUnique({ where: { id: me ? me.id : ANON_USER_ID } })
-      const pivot = me ? { hours: 3 } : { minutes: 5 }
+      const pivot = me ? { hours: 3 } : { minutes: 3 }
 
       const expiresAt = datePivot(new Date(), pivot)
       const description = `Funding @${user.name} on stacker.news`

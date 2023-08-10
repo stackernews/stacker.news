@@ -3,6 +3,7 @@
 import models from '../../api/models'
 import getSSRApolloClient from '../../api/ssrApollo'
 import { CREATE_WITHDRAWL } from '../../fragments/wallet'
+import { datePivot } from '../../lib/time'
 
 export default async ({ query }, res) => {
   if (!query.k1) {
@@ -19,7 +20,7 @@ export default async ({ query }, res) => {
       where: {
         k1: query.k1,
         createdAt: {
-          gt: new Date(new Date().setHours(new Date().getHours() - 1))
+          gt: datePivot(new Date(), { hours: -1 })
         }
       }
     })

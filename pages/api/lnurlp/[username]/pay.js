@@ -5,6 +5,7 @@ import { lnurlPayDescriptionHashForUser } from '../../../../lib/lnurl'
 import serialize from '../../../../api/resolvers/serial'
 import { schnorr } from '@noble/curves/secp256k1'
 import { createHash } from 'crypto'
+import { datePivot } from '../../../../lib/time'
 
 export default async ({ query: { username, amount, nostr } }, res) => {
   const user = await models.user.findUnique({ where: { name: username } })
@@ -36,7 +37,7 @@ export default async ({ query: { username, amount, nostr } }, res) => {
     }
 
     // generate invoice
-    const expiresAt = new Date(new Date().setMinutes(new Date().getMinutes() + 1))
+    const expiresAt = datePivot(new Date(), { minutes: 1 })
     const invoice = await createInvoice({
       description,
       description_hash: descriptionHash,

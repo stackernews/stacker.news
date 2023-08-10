@@ -1,3 +1,4 @@
+import Dropdown from 'react-bootstrap/Dropdown'
 import Navbar from 'react-bootstrap/Navbar'
 import Nav from 'react-bootstrap/Nav'
 import Link from 'next/link'
@@ -5,7 +6,6 @@ import styles from './header.module.css'
 import { useRouter } from 'next/router'
 import Button from 'react-bootstrap/Button'
 import Container from 'react-bootstrap/Container'
-import NavDropdown from 'react-bootstrap/NavDropdown'
 import Price from './price'
 import { useMe } from './me'
 import Head from 'next/head'
@@ -72,6 +72,50 @@ function NotificationBell () {
   )
 }
 
+function NavProfileMenu ({ me, dropNavKey }) {
+  return (
+    <Dropdown className={styles.dropdown} align='end'>
+      <Dropdown.Toggle className='nav-link nav-item' id='profile' variant='custom'>
+        <Nav.Link eventKey={me.name} as='span' className='p-0'>
+          {`@${me.name}`}<CowboyHat user={me} />
+        </Nav.Link>
+      </Dropdown.Toggle>
+      <Dropdown.Menu>
+        <Link href={'/' + me.name} passHref legacyBehavior>
+          <Dropdown.Item active={me.name === dropNavKey}>
+            profile
+            {me && !me.bioId &&
+              <div className='p-1 d-inline-block bg-secondary ms-1'>
+                <span className='invisible'>{' '}</span>
+              </div>}
+          </Dropdown.Item>
+        </Link>
+        <Link href={'/' + me.name + '/bookmarks'} passHref legacyBehavior>
+          <Dropdown.Item active={me.name + '/bookmarks' === dropNavKey}>bookmarks</Dropdown.Item>
+        </Link>
+        <Link href='/wallet' passHref legacyBehavior>
+          <Dropdown.Item eventKey='wallet'>wallet</Dropdown.Item>
+        </Link>
+        <Link href='/satistics?inc=invoice,withdrawal,stacked,spent' passHref legacyBehavior>
+          <Dropdown.Item eventKey='satistics'>satistics</Dropdown.Item>
+        </Link>
+        <Dropdown.Divider />
+        <Link href='/referrals/month' passHref legacyBehavior>
+          <Dropdown.Item eventKey='referrals'>referrals</Dropdown.Item>
+        </Link>
+        <Dropdown.Divider />
+        <div className='d-flex align-items-center'>
+          <Link href='/settings' passHref legacyBehavior>
+            <Dropdown.Item eventKey='settings'>settings</Dropdown.Item>
+          </Link>
+        </div>
+        <Dropdown.Divider />
+        <Dropdown.Item onClick={() => signOut({ callbackUrl: '/' })}>logout</Dropdown.Item>
+      </Dropdown.Menu>
+    </Dropdown>
+  )
+}
+
 function StackerCorner ({ dropNavKey }) {
   const me = useMe()
 
@@ -79,46 +123,7 @@ function StackerCorner ({ dropNavKey }) {
     <div className='d-flex ms-auto'>
       <NotificationBell />
       <div className='position-relative'>
-        <NavDropdown
-          className={styles.dropdown}
-          title={
-            <Nav.Link eventKey={me.name} as='span' className='p-0' onClick={e => e.preventDefault()}>
-              {`@${me.name}`}<CowboyHat user={me} />
-            </Nav.Link>
-          }
-          align='end'
-        >
-          <Link href={'/' + me.name} passHref legacyBehavior>
-            <NavDropdown.Item active={me.name === dropNavKey}>
-              profile
-              {me && !me.bioId &&
-                <div className='p-1 d-inline-block bg-secondary ms-1'>
-                  <span className='invisible'>{' '}</span>
-                </div>}
-            </NavDropdown.Item>
-          </Link>
-          <Link href={'/' + me.name + '/bookmarks'} passHref legacyBehavior>
-            <NavDropdown.Item active={me.name + '/bookmarks' === dropNavKey}>bookmarks</NavDropdown.Item>
-          </Link>
-          <Link href='/wallet' passHref legacyBehavior>
-            <NavDropdown.Item eventKey='wallet'>wallet</NavDropdown.Item>
-          </Link>
-          <Link href='/satistics?inc=invoice,withdrawal,stacked,spent' passHref legacyBehavior>
-            <NavDropdown.Item eventKey='satistics'>satistics</NavDropdown.Item>
-          </Link>
-          <NavDropdown.Divider />
-          <Link href='/referrals/month' passHref legacyBehavior>
-            <NavDropdown.Item eventKey='referrals'>referrals</NavDropdown.Item>
-          </Link>
-          <NavDropdown.Divider />
-          <div className='d-flex align-items-center'>
-            <Link href='/settings' passHref legacyBehavior>
-              <NavDropdown.Item eventKey='settings'>settings</NavDropdown.Item>
-            </Link>
-          </div>
-          <NavDropdown.Divider />
-          <NavDropdown.Item onClick={() => signOut({ callbackUrl: '/' })}>logout</NavDropdown.Item>
-        </NavDropdown>
+        <NavProfileMenu me={me} dropNavKey={dropNavKey} />
         {!me.bioId &&
           <span className='position-absolute p-1 bg-secondary' style={{ top: '5px', right: '0px' }}>
             <span className='invisible'>{' '}</span>

@@ -86,9 +86,9 @@ function earn ({ models }) {
             WHERE act = 'TIP'
       ),
       -- isolate contiguous upzaps from the same user on the same item so that when we take the log
-      -- of the upzaps it accounts for successive zaps and does disproporionately reward them
+      -- of the upzaps it accounts for successive zaps and does not disproporionately reward them
       upvoters AS (
-        SELECT "userId", id, ratio, "parentId", log(sum(tipped) / 1000) as tipped, min(acted_at) as acted_at
+        SELECT "userId", id, ratio, "parentId", GREATEST(log(sum(tipped) / 1000), 0) as tipped, min(acted_at) as acted_at
         FROM upvoter_islands
         GROUP BY "userId", id, ratio, "parentId", island
       ),
@@ -96,7 +96,7 @@ function earn ({ models }) {
       -- early multiplier: 10/ln(early_rank + e)
       -- we also weight by trust in a step wise fashion
       upvoter_ratios AS (
-          SELECT "userId", sum(early_multiplier*tipped_ratio*ratio*CASE WHEN users.id = ANY (${REDUCE_REWARDS}) THEN 0.2 ELSE CEIL(users.trust*2) END) as upvoter_ratio,
+          SELECT "userId", sum(early_multiplier*tipped_ratio*ratio*CASE WHEN users.id = ANY (${REDUCE_REWARDS}) THEN 0.2 ELSE CEIL(users.trust*2)+1 END) as upvoter_ratio,
               "parentId" IS NULL as "isPost", CASE WHEN "parentId" IS NULL THEN 'TIP_POST' ELSE 'TIP_COMMENT' END as type
           FROM (
               SELECT *,

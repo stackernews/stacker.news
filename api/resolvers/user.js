@@ -4,7 +4,7 @@ import { msatsToSats } from '../../lib/format'
 import { bioSchema, emailSchema, settingsSchema, ssValidate, userSchema } from '../../lib/validate'
 import { createMentions, getItem, SELECT, updateItem, filterClause } from './item'
 import serialize from './serial'
-import { dayPivot } from '../../lib/time'
+import { datePivot } from '../../lib/time'
 
 export function within (table, within) {
   let interval = ' AND "' + table + '".created_at >= $1 - INTERVAL '
@@ -54,13 +54,13 @@ export function viewWithin (table, within) {
 export function withinDate (within) {
   switch (within) {
     case 'day':
-      return dayPivot(new Date(), -1)
+      return datePivot(new Date(), { days: -1 })
     case 'week':
-      return dayPivot(new Date(), -7)
+      return datePivot(new Date(), { days: -7 })
     case 'month':
-      return dayPivot(new Date(), -30)
+      return datePivot(new Date(), { days: -30 })
     case 'year':
-      return dayPivot(new Date(), -365)
+      return datePivot(new Date(), { days: -365 })
     default:
       return new Date(0)
   }

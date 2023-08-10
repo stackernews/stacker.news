@@ -12,7 +12,7 @@ export default function Snl ({ ignorePreference }) {
 
   useEffect(() => {
     const dismissed = window.localStorage.getItem('snl')
-    if (!ignorePreference && dismissed && dismissed > new Date(dismissed) < dayPivot(new Date(), -6)) {
+    if (!ignorePreference && dismissed && dismissed > new Date(dismissed) < datePivot(new Date(), { days: -6 })) {
       return
     }
 

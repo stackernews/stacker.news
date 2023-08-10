@@ -21,16 +21,16 @@ export function PollForm ({ item, sub, editThreshold, children }) {
   const [upsertPoll] = useMutation(
     gql`
       mutation upsertPoll($sub: String, $id: ID, $title: String!, $text: String,
-        $options: [String!]!, $boost: Int, $forward: String, $invoiceHash: String) {
+        $options: [String!]!, $boost: Int, $forward: String, $invoiceHash: String, $invoiceHmac: String) {
         upsertPoll(sub: $sub, id: $id, title: $title, text: $text,
-          options: $options, boost: $boost, forward: $forward, invoiceHash: $invoiceHash) {
+          options: $options, boost: $boost, forward: $forward, invoiceHash: $invoiceHash, invoiceHmac: $invoiceHmac) {
           id
         }
       }`
   )
 
   const submitUpsertPoll = useCallback(
-    async (_, boost, title, options, values, invoiceHash) => {
+    async (_, boost, title, options, values, invoiceHash, invoiceHmac) => {
       const optionsFiltered = options.slice(initialOptions?.length).filter(word => word.trim().length > 0)
       const { error } = await upsertPoll({
         variables: {
@@ -40,7 +40,8 @@ export function PollForm ({ item, sub, editThreshold, children }) {
           title: title.trim(),
           options: optionsFiltered,
           ...values,
-          invoiceHash
+          invoiceHash,
+          invoiceHmac
         }
       })
       if (error) {

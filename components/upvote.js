@@ -110,8 +110,8 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
 
   const [act] = useMutation(
     gql`
-      mutation act($id: ID!, $sats: Int!, $invoiceHash: String) {
-        act(id: $id, sats: $sats, invoiceHash: $invoiceHash) {
+      mutation act($id: ID!, $sats: Int!, $invoiceHash: String, $invoiceHmac: String) {
+        act(id: $id, sats: $sats, invoiceHash: $invoiceHash, invoiceHmac: $invoiceHmac) {
           sats
         }
       }`, {

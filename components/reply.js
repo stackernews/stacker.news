@@ -46,8 +46,8 @@ export default function Reply ({ item, onSuccess, replyOpen, children, placehold
   const [createComment] = useMutation(
     gql`
       ${COMMENTS}
-      mutation createComment($text: String!, $parentId: ID!, $invoiceHash: String) {
-        createComment(text: $text, parentId: $parentId, invoiceHash: $invoiceHash) {
+      mutation createComment($text: String!, $parentId: ID!, $invoiceHash: String, $invoiceHmac: String) {
+        createComment(text: $text, parentId: $parentId, invoiceHash: $invoiceHash, invoiceHmac: $invoiceHmac) {
           ...CommentFields
           comments {
             ...CommentsRecursive
@@ -92,8 +92,8 @@ export default function Reply ({ item, onSuccess, replyOpen, children, placehold
   )
 
   const submitComment = useCallback(
-    async (_, values, parentId, resetForm, invoiceHash) => {
-      const { error } = await createComment({ variables: { ...values, parentId, invoiceHash } })
+    async (_, values, parentId, resetForm, invoiceHash, invoiceHmac) => {
+      const { error } = await createComment({ variables: { ...values, parentId, invoiceHash, invoiceHmac } })
       if (error) {
         throw new Error({ message: error.toString() })
       }

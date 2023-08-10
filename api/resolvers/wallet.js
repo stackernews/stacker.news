@@ -1,5 +1,6 @@
 import { createInvoice, decodePaymentRequest, payViaPaymentRequest } from 'ln-service'
 import { GraphQLError } from 'graphql'
+import crypto from 'crypto'
 import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import lnpr from 'bolt11'
@@ -38,6 +39,11 @@ export async function getInvoice (parent, { id }, { me, models }) {
   }
 
   return inv
+}
+
+export function createHmac (hash) {
+  const key = Buffer.from(process.env.INVOICE_HMAC_KEY, 'hex')
+  return crypto.createHmac('sha256', key).update(Buffer.from(hash, 'hex')).digest('hex')
 }
 
 export default {
@@ -220,7 +226,12 @@ export default {
           models.$queryRaw`SELECT * FROM create_invoice(${invoice.id}, ${invoice.request},
             ${expiresAt}::timestamp, ${amount * 1000}, ${user.id}::INTEGER, ${description})`)
 
-        return inv
+        // the HMAC is only returned during invoice creation
+        // this makes sure that only the person who created this invoice
+        // has access to the HMAC
+        const hmac = createHmac(inv.hash)
+
+        return { ...inv, hmac }
       } catch (error) {
         console.log(error)
         throw error

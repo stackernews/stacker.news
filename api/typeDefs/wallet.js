@@ -24,6 +24,7 @@ export default gql`
     confirmedAt: Date
     satsReceived: Int
     nostr: JSONObject
+    hmac: String
   }
 
   type Withdrawl {

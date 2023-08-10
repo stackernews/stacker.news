@@ -60,7 +60,7 @@ export function Invoice ({ invoice, onConfirmation, successVerb }) {
   )
 }
 
-const Contacts = ({ invoiceHash }) => {
+const Contacts = ({ invoiceHash, invoiceHmac }) => {
   const subject = `Support request for payment hash: ${invoiceHash}`
   const body = 'Hi, I successfully paid for <insert action> but the action did not work.'
   return (
@@ -68,6 +68,10 @@ const Contacts = ({ invoiceHash }) => {
       <span>Payment hash</span>
       <div className='w-100'>
         <CopyInput type='text' placeholder={invoiceHash} readOnly noForm />
+      </div>
+      <span>Payment HMAC</span>
+      <div className='w-100'>
+        <CopyInput type='text' placeholder={invoiceHmac} readOnly noForm />
       </div>
       <div className='d-flex flex-row justify-content-center'>
         <a
@@ -102,7 +106,7 @@ const Contacts = ({ invoiceHash }) => {
   )
 }
 
-const ActionInvoice = ({ id, hash, errorCount, repeat, ...props }) => {
+const ActionInvoice = ({ id, hash, hmac, errorCount, repeat, ...props }) => {
   const { data, loading, error } = useQuery(INVOICE, {
     pollInterval: 1000,
     variables: { id }
@@ -130,7 +134,7 @@ const ActionInvoice = ({ id, hash, errorCount, repeat, ...props }) => {
             <InvoiceStatus variant='failed' status={errorStatus} />
             {errorCount === 1
               ? <div className='d-flex flex-row mt-3 justify-content-center'><Button variant='info' onClick={repeat}>Retry</Button></div>
-              : <Contacts invoiceHash={hash} />}
+              : <Contacts invoiceHash={hash} invoiceHmac={hmac} />}
           </>
           )
         : null}
@@ -149,6 +153,7 @@ export const useInvoiceable = (fn, options = defaultOptions) => {
       createInvoice(amount: $amount) {
         id
         hash
+        hmac
       }
     }`)
   const showModal = useShowModal()
@@ -157,11 +162,11 @@ export const useInvoiceable = (fn, options = defaultOptions) => {
   // fix for bug where `showModal` runs the code for two modals and thus executes `onConfirmation` twice
   let errorCount = 0
   const onConfirmation = useCallback(
-    onClose => {
+    (onClose, hmac) => {
       return async ({ id, satsReceived, hash }) => {
         await sleep(2000)
         const repeat = () =>
-          fn(satsReceived, ...fnArgs, hash)
+          fn(satsReceived, ...fnArgs, hash, hmac)
             .then(onClose)
             .catch((error) => {
               console.error(error)
@@ -171,7 +176,8 @@ export const useInvoiceable = (fn, options = defaultOptions) => {
                 <ActionInvoice
                   id={id}
                   hash={hash}
-                  onConfirmation={onConfirmation(onClose)}
+                  hmac={hmac}
+                  onConfirmation={onConfirmation(onClose, hmac)}
                   successVerb='received'
                   errorCount={errorCount}
                   repeat={repeat}
@@ -191,7 +197,8 @@ export const useInvoiceable = (fn, options = defaultOptions) => {
         <ActionInvoice
           id={invoice.id}
           hash={invoice.hash}
-          onConfirmation={onConfirmation(onClose)}
+          hmac={invoice.hmac}
+          onConfirmation={onConfirmation(onClose, invoice.hmac)}
           successVerb='received'
         />
       ), { keepOpen: true }
@@ -213,7 +220,7 @@ export const useInvoiceable = (fn, options = defaultOptions) => {
               <FundError
                 onClose={onClose}
                 amount={amount}
-                onPayment={async (_, invoiceHash) => { await fn(amount, ...args, invoiceHash) }}
+                onPayment={async (_, invoiceHash, invoiceHmac) => { await fn(amount, ...args, invoiceHash, invoiceHmac) }}
               />
             )
           })

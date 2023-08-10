@@ -53,7 +53,7 @@ export default function JobForm ({ item, sub }) {
 
   const submitUpsertJob = useCallback(
     // we ignore the invoice since only stackers can post jobs
-    async (_, maxBid, stop, start, values, __) => {
+    async (_, maxBid, stop, start, values, ...__) => {
       let status
       if (start) {
         status = 'ACTIVE'

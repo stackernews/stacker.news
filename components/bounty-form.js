@@ -53,7 +53,7 @@ export function BountyForm ({
 
   const submitUpsertBounty = useCallback(
     // we ignore the invoice since only stackers can post bounties
-    async (_, boost, bounty, values, __) => {
+    async (_, boost, bounty, values, ...__) => {
       const { error } = await upsertBounty({
         variables: {
           sub: item?.subName || sub?.name,

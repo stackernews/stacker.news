@@ -17,6 +17,7 @@ import { amountSchema, bountySchema, commentSchema, discussionSchema, jobSchema,
 import { sendUserNotification } from '../webPush'
 import { proxyImages } from './imgproxy'
 import { defaultCommentSort } from '../../lib/item'
+import { createHmac } from './wallet'
 
 export async function commentFilterClause (me, models) {
   let clause = ` AND ("Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}`
@@ -37,9 +38,17 @@ export async function commentFilterClause (me, models) {
   return clause
 }
 
-async function checkInvoice (models, invoiceHash, fee) {
+async function checkInvoice (models, hash, hmac, fee) {
+  if (!hmac) {
+    throw new GraphQLError('hmac required', { extensions: { code: 'BAD_INPUT' } })
+  }
+  const hmac2 = createHmac(hash)
+  if (hmac !== hmac2) {
+    throw new GraphQLError('bad hmac', { extensions: { code: 'FORBIDDEN' } })
+  }
+
   const invoice = await models.invoice.findUnique({
-    where: { hash: invoiceHash },
+    where: { hash },
     include: {
       user: true
     }
@@ -590,7 +599,7 @@ export default {
       if (id) {
         return await updateItem(parent, { id, data }, { me, models })
       } else {
-        return await createItem(parent, data, { me, models, invoiceHash: args.invoiceHash })
+        return await createItem(parent, data, { me, models, invoiceHash: args.invoiceHash, invoiceHmac: args.invoiceHmac })
       }
     },
     upsertDiscussion: async (parent, args, { me, models }) => {
@@ -601,7 +610,7 @@ export default {
       if (id) {
         return await updateItem(parent, { id, data }, { me, models })
       } else {
-        return await createItem(parent, data, { me, models, invoiceHash: args.invoiceHash })
+        return await createItem(parent, data, { me, models, invoiceHash: args.invoiceHash, invoiceHmac: args.invoiceHmac })
       }
     },
     upsertBounty: async (parent, args, { me, models }) => {
@@ -616,11 +625,11 @@ export default {
       }
     },
     upsertPoll: async (parent, { id, ...data }, { me, models }) => {
-      const { sub, forward, boost, title, text, options, invoiceHash } = data
+      const { sub, forward, boost, title, text, options, invoiceHash, invoiceHmac } = data
       let author = me
       const trx = []
       if (!me && invoiceHash) {
-        const invoice = await checkInvoice(models, invoiceHash, ANON_POST_FEE)
+        const invoice = await checkInvoice(models, invoiceHash, invoiceHmac, ANON_POST_FEE)
         author = invoice.user
         trx.push(models.invoice.delete({ where: { hash: invoiceHash } }))
       }
@@ -707,7 +716,7 @@ export default {
     },
     createComment: async (parent, data, { me, models }) => {
       await ssValidate(commentSchema, data)
-      const item = await createItem(parent, data, { me, models, invoiceHash: data.invoiceHash })
+      const item = await createItem(parent, data, { me, models, invoiceHash: data.invoiceHash, invoiceHmac: data.invoiceHmac })
       // fetch user to get up-to-date name
       const user = await models.user.findUnique({ where: { id: me?.id || ANON_USER_ID } })
 
@@ -740,7 +749,7 @@ export default {
 
       return id
     },
-    act: async (parent, { id, sats, invoiceHash }, { me, models }) => {
+    act: async (parent, { id, sats, invoiceHash, invoiceHmac }, { me, models }) => {
       // need to make sure we are logged in
       if (!me && !invoiceHash) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
@@ -749,8 +758,9 @@ export default {
       await ssValidate(amountSchema, { amount: sats })
 
       let user = me
+      let invoice
       if (!me && invoiceHash) {
-        const invoice = await checkInvoice(models, invoiceHash, sats)
+        invoice = await checkInvoice(models, invoiceHash, invoiceHmac, sats)
         user = invoice.user
       }
 
@@ -766,8 +776,8 @@ export default {
       const calls = [
         models.$queryRaw`SELECT item_act(${Number(id)}::INTEGER, ${user.id}::INTEGER, 'TIP', ${Number(sats)}::INTEGER)`
       ]
-      if (!me && invoiceHash) {
-        calls.push(models.invoice.delete({ where: { hash: invoiceHash } }))
+      if (invoice) {
+        calls.push(models.invoice.delete({ where: { hash: invoice.hash } }))
       }
 
       const [{ item_act: vote }] = await serialize(models, ...calls)
@@ -1093,11 +1103,11 @@ export const updateItem = async (parent, { id, data: { sub, title, url, text, bo
   return item
 }
 
-const createItem = async (parent, { sub, title, url, text, boost, forward, bounty, parentId }, { me, models, invoiceHash }) => {
+const createItem = async (parent, { sub, title, url, text, boost, forward, bounty, parentId }, { me, models, invoiceHash, invoiceHmac }) => {
   let author = me
   const trx = []
   if (!me && invoiceHash) {
-    const invoice = await checkInvoice(models, invoiceHash, parentId ? ANON_COMMENT_FEE : ANON_POST_FEE)
+    const invoice = await checkInvoice(models, invoiceHash, invoiceHmac, parentId ? ANON_COMMENT_FEE : ANON_POST_FEE)
     author = invoice.user
     trx.push(models.invoice.delete({ where: { hash: invoiceHash } }))
   }

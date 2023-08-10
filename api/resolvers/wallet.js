@@ -9,6 +9,7 @@ import { lnurlPayDescriptionHash } from '../../lib/lnurl'
 import { msatsToSats, msatsToSatsDecimal } from '../../lib/format'
 import { amountSchema, lnAddrSchema, ssValidate, withdrawlSchema } from '../../lib/validate'
 import { ANON_USER_ID } from '../../lib/constants'
+import { datePivot } from '../../lib/time'
 
 export async function getInvoice (parent, { id }, { me, models }) {
   const inv = await models.invoice.findUnique({
@@ -210,9 +211,9 @@ export default {
       await ssValidate(amountSchema, { amount })
 
       const user = await models.user.findUnique({ where: { id: me ? me.id : ANON_USER_ID } })
+      const pivot = me ? { hours: 3 } : { minutes: 5 }
 
-      // set expires at to 3 hours into future
-      const expiresAt = new Date(new Date().setHours(new Date().getHours() + 3))
+      const expiresAt = datePivot(new Date(), pivot)
       const description = `Funding @${user.name} on stacker.news`
       try {
         const invoice = await createInvoice({

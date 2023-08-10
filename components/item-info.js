@@ -7,7 +7,7 @@ import Countdown from './countdown'
 import { abbrNum, numWithUnits } from '../lib/format'
 import { newComments, commentsViewedAt } from '../lib/new-comments'
 import { timeSince } from '../lib/time'
-import CowboyHat from './cowboy-hat'
+import CowboyHat, { HatTooltip } from './cowboy-hat'
 import { DeleteDropdownItem } from './delete'
 import styles from './item.module.css'
 import { useMe } from './me'
@@ -16,6 +16,7 @@ import DontLikeThisDropdownItem from './dont-link-this'
 import BookmarkDropdownItem from './bookmark'
 import SubscribeDropdownItem from './subscribe'
 import { CopyLinkDropdownItem } from './share'
+import AnonIcon from '../svgs/spy-fill.svg'
 
 export default function ItemInfo ({
   item, pendingSats, full, commentsText = 'comments',
@@ -84,7 +85,10 @@ export default function ItemInfo ({
       <span> \ </span>
       <span>
         <Link href={`/${item.user.name}`}>
-          @{item.user.name}<CowboyHat className='ms-1 fill-grey' user={item.user} height={12} width={12} />
+          @{item.user.name}<span> </span>
+          {item.user.name === 'anon'
+            ? <HatTooltip overlayText='so sneaky!'><span><AnonIcon className='fill-grey align-middle' height={12} width={12} /></span></HatTooltip>
+            : <CowboyHat className='fill-grey' user={item.user} height={12} width={12} />}
           {embellishUser}
         </Link>
         <span> </span>

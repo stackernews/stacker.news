@@ -26,7 +26,7 @@ export default function CowboyHat ({ user, badge, className = 'ms-1', height = 1
   )
 }
 
-function HatTooltip ({ children, overlayText, placement }) {
+export function HatTooltip ({ children, overlayText, placement }) {
   return (
     <OverlayTrigger
       placement={placement || 'bottom'}

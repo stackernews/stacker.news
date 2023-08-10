@@ -134,9 +134,8 @@ const ActionInvoice = ({ id, hash, hmac, errorCount, repeat, ...props }) => {
             <div className='my-3'>
               <InvoiceStatus variant='failed' status={errorStatus} />
             </div>
-            {errorCount === 1
-              ? <div className='d-flex flex-row mt-3 justify-content-center'><Button variant='info' onClick={repeat}>Retry</Button></div>
-              : <Contacts invoiceHash={hash} invoiceHmac={hmac} />}
+            <div className='d-flex flex-row mt-3 justify-content-center'><Button variant='info' onClick={repeat}>Retry</Button></div>
+            <Contacts invoiceHash={hash} invoiceHmac={hmac} />
           </>
           )
         : null}

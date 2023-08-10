@@ -6,6 +6,15 @@
     width: 100%;
 }
 
+.feeButton {
+    display: flex;
+    align-items: center;
+}
+
+.feeButton small {
+    font-weight: 400;
+}
+
 .receipt td {
     padding: .25rem .1rem;
     background-color: var(--theme-inputBg);

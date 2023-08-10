@@ -64,7 +64,7 @@ const Contacts = ({ invoiceHash, invoiceHmac }) => {
   const subject = `Support request for payment hash: ${invoiceHash}`
   const body = 'Hi, I successfully paid for <insert action> but the action did not work.'
   return (
-    <div className='d-flex flex-column justify-content-center'>
+    <div className='d-flex flex-column justify-content-center mt-2'>
       <span>Payment hash</span>
       <div className='w-100'>
         <CopyInput type='text' placeholder={invoiceHash} readOnly noForm />
@@ -121,7 +121,7 @@ const ActionInvoice = ({ id, hash, hmac, errorCount, repeat, ...props }) => {
     return <QrSkeleton status='loading' />
   }
 
-  let errorStatus = 'Something went wrong. Please try again.'
+  let errorStatus = 'Something went wrong trying to perform the action after payment.'
   if (errorCount > 1) {
     errorStatus = 'Something still went wrong.\nPlease contact admins for support or to request a refund.'
   }
@@ -131,7 +131,9 @@ const ActionInvoice = ({ id, hash, hmac, errorCount, repeat, ...props }) => {
       {errorCount > 0
         ? (
           <>
-            <InvoiceStatus variant='failed' status={errorStatus} />
+            <div className='my-3'>
+              <InvoiceStatus variant='failed' status={errorStatus} />
+            </div>
             {errorCount === 1
               ? <div className='d-flex flex-row mt-3 justify-content-center'><Button variant='info' onClick={repeat}>Retry</Button></div>
               : <Contacts invoiceHash={hash} invoiceHmac={hmac} />}

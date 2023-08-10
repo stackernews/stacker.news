@@ -8,6 +8,9 @@ import { useFormikContext } from 'formik'
 import { SSR, ANON_COMMENT_FEE, ANON_POST_FEE } from '../lib/constants'
 import { numWithUnits } from '../lib/format'
 import { useMe } from './me'
+import AnonIcon from '../svgs/spy-fill.svg'
+import { useShowModal } from './modal'
+import Link from 'next/link'
 
 function Receipt ({ cost, repetition, hasImgLink, baseFee, parentId, boost }) {
   return (
@@ -43,6 +46,28 @@ function Receipt ({ cost, repetition, hasImgLink, baseFee, parentId, boost }) {
   )
 }
 
+function AnonInfo () {
+  const showModal = useShowModal()
+
+  return (
+    <AnonIcon
+      className='fill-muted ms-2 theme' height={22} width={22}
+      onClick={
+        (e) =>
+          showModal(onClose =>
+            <div><span className='fw-bold'>Hey sneaky! You are posting without an account.</span>
+              <ol className='mt-3'>
+                <li>You'll pay by invoice</li>
+                <li>Your content will be content-joined (get it?!) under the <Link href='/anon' target='_blank'>@anon</Link> account</li>
+                <li>Any sats your content earns will go toward <Link href='/rewards' target='_blank'>rewards</Link></li>
+                <li>We won't be able to notify about replies</li>
+              </ol>
+            </div>)
+      }
+    />
+  )
+}
+
 export default function FeeButton ({ parentId, hasImgLink, baseFee, ChildButton, variant, text, alwaysShow, disabled }) {
   const me = useMe()
   baseFee = me ? baseFee : (parentId ? ANON_COMMENT_FEE : ANON_POST_FEE)
@@ -61,10 +86,11 @@ export default function FeeButton ({ parentId, hasImgLink, baseFee, ChildButton,
 
   const show = alwaysShow || !formik?.isSubmitting
   return (
-    <div className='d-flex align-items-center'>
+    <div className={styles.feeButton}>
       <ActionTooltip overlayText={numWithUnits(cost, { abbreviate: false })}>
-        <ChildButton variant={variant} disabled={disabled}>{text}{cost > baseFee && show && <small> {numWithUnits(cost, { abbreviate: false })}</small>}</ChildButton>
+        <ChildButton variant={variant} disabled={disabled}>{text}{cost > 1 && show && <small> {numWithUnits(cost, { abbreviate: false })}</small>}</ChildButton>
       </ActionTooltip>
+      {!me && <AnonInfo />}
       {cost > baseFee && show &&
         <Info>
           <Receipt baseFee={baseFee} hasImgLink={hasImgLink} repetition={repetition} cost={cost} parentId={parentId} boost={boost} />

@@ -41,7 +41,7 @@ export function Invoice ({ invoice, onConfirmation, successVerb }) {
 
   return (
     <>
-      <Qr webLn={webLn} value={invoice.bolt11} statusVariant={variant} status={status} />
+      <Qr webLn={webLn} value={invoice.bolt11} description={numWithUnits(invoice.satsRequested)} statusVariant={variant} status={status} />
       <div className='w-100'>
         {nostr
           ? <AccordianItem

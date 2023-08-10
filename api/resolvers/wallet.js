@@ -296,7 +296,8 @@ export default {
   },
 
   Invoice: {
-    satsReceived: i => msatsToSats(i.msatsReceived)
+    satsReceived: i => msatsToSats(i.msatsReceived),
+    satsRequested: i => msatsToSats(i.msatsRequested)
   },
 
   Fact: {

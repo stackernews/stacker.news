@@ -7,6 +7,7 @@ export const INVOICE = gql`
       id
       hash
       bolt11
+      satsRequested
       satsReceived
       cancelled
       confirmedAt

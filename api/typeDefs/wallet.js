@@ -23,6 +23,7 @@ export default gql`
     cancelled: Boolean!
     confirmedAt: Date
     satsReceived: Int
+    satsRequested: Int!
     nostr: JSONObject
     hmac: String
   }

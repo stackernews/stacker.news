@@ -764,13 +764,15 @@ export default {
         user = invoice.user
       }
 
-      // disallow self tips
-      const [item] = await models.$queryRawUnsafe(`
-      ${SELECT}
-      FROM "Item"
-      WHERE id = $1 AND "userId" = $2`, Number(id), user.id)
-      if (item) {
-        throw new GraphQLError('cannot zap your self', { extensions: { code: 'BAD_INPUT' } })
+      // disallow self tips except anons
+      if (user.id !== ANON_USER_ID) {
+        const [item] = await models.$queryRawUnsafe(`
+        ${SELECT}
+        FROM "Item"
+        WHERE id = $1 AND "userId" = $2`, Number(id), user.id)
+        if (item) {
+          throw new GraphQLError('cannot zap your self', { extensions: { code: 'BAD_INPUT' } })
+        }
       }
 
       const calls = [

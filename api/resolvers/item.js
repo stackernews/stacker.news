@@ -8,7 +8,7 @@ import {
   BOOST_MIN, ITEM_SPAM_INTERVAL,
   MAX_TITLE_LENGTH, ITEM_FILTER_THRESHOLD,
   DONT_LIKE_THIS_COST, COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY,
-  ANON_COMMENT_FEE, ANON_USER_ID, ANON_POST_FEE
+  ANON_COMMENT_FEE, ANON_USER_ID, ANON_POST_FEE, ANON_ITEM_SPAM_INTERVAL
 } from '../../lib/constants'
 import { msatsToSats, numWithUnits } from '../../lib/format'
 import { parse } from 'tldts'
@@ -627,10 +627,12 @@ export default {
     upsertPoll: async (parent, { id, ...data }, { me, models }) => {
       const { sub, forward, boost, title, text, options, invoiceHash, invoiceHmac } = data
       let author = me
+      let spamInterval = ITEM_SPAM_INTERVAL
       const trx = []
       if (!me && invoiceHash) {
         const invoice = await checkInvoice(models, invoiceHash, invoiceHmac, ANON_POST_FEE)
         author = invoice.user
+        spamInterval = ANON_ITEM_SPAM_INTERVAL
         trx.push(models.invoice.delete({ where: { hash: invoiceHash } }))
       }
 
@@ -670,7 +672,7 @@ export default {
         return item
       } else {
         const [query] = await serialize(models,
-          models.$queryRawUnsafe(`${SELECT} FROM create_poll($1, $2, $3, $4::INTEGER, $5::INTEGER, $6::INTEGER, $7, $8::INTEGER, '${ITEM_SPAM_INTERVAL}') AS "Item"`,
+          models.$queryRawUnsafe(`${SELECT} FROM create_poll($1, $2, $3, $4::INTEGER, $5::INTEGER, $6::INTEGER, $7, $8::INTEGER, '${spamInterval}') AS "Item"`,
             sub || 'bitcoin', title, text, 1, Number(boost || 0), Number(author.id), options, Number(fwdUser?.id)), ...trx)
         const item = trx.length > 0 ? query[0] : query
 
@@ -1107,10 +1109,12 @@ export const updateItem = async (parent, { id, data: { sub, title, url, text, bo
 
 const createItem = async (parent, { sub, title, url, text, boost, forward, bounty, parentId }, { me, models, invoiceHash, invoiceHmac }) => {
   let author = me
+  let spamInterval = ITEM_SPAM_INTERVAL
   const trx = []
   if (!me && invoiceHash) {
     const invoice = await checkInvoice(models, invoiceHash, invoiceHmac, parentId ? ANON_COMMENT_FEE : ANON_POST_FEE)
     author = invoice.user
+    spamInterval = ANON_ITEM_SPAM_INTERVAL
     trx.push(models.invoice.delete({ where: { hash: invoiceHash } }))
   }
 
@@ -1140,7 +1144,7 @@ const createItem = async (parent, { sub, title, url, text, boost, forward, bount
   const [query] = await serialize(
     models,
     models.$queryRawUnsafe(
-    `${SELECT} FROM create_item($1, $2, $3, $4, $5::INTEGER, $6::INTEGER, $7::INTEGER, $8::INTEGER, $9::INTEGER, '${ITEM_SPAM_INTERVAL}') AS "Item"`,
+    `${SELECT} FROM create_item($1, $2, $3, $4, $5::INTEGER, $6::INTEGER, $7::INTEGER, $8::INTEGER, $9::INTEGER, '${spamInterval}') AS "Item"`,
     parentId ? null : sub || 'bitcoin',
     title,
     url,

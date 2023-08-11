@@ -8,7 +8,7 @@ import { SELECT } from './item'
 import { lnurlPayDescriptionHash } from '../../lib/lnurl'
 import { msatsToSats, msatsToSatsDecimal } from '../../lib/format'
 import { amountSchema, lnAddrSchema, ssValidate, withdrawlSchema } from '../../lib/validate'
-import { ANON_USER_ID } from '../../lib/constants'
+import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, ANON_USER_ID, BALANCE_LIMIT_MSATS, INV_PENDING_LIMIT } from '../../lib/constants'
 import { datePivot } from '../../lib/time'
 
 export async function getInvoice (parent, { id }, { me, models }) {
@@ -210,10 +210,20 @@ export default {
     createInvoice: async (parent, { amount }, { me, models, lnd }) => {
       await ssValidate(amountSchema, { amount })
 
-      const user = await models.user.findUnique({ where: { id: me ? me.id : ANON_USER_ID } })
-      const pivot = me ? { hours: 3 } : { minutes: 3 }
+      let expirePivot = { hours: 3 }
+      let invLimit = INV_PENDING_LIMIT
+      let balanceLimit = BALANCE_LIMIT_MSATS
+      let id = me?.id
+      if (!me) {
+        expirePivot = { minutes: 3 }
+        invLimit = ANON_INV_PENDING_LIMIT
+        balanceLimit = ANON_BALANCE_LIMIT_MSATS
+        id = ANON_USER_ID
+      }
 
-      const expiresAt = datePivot(new Date(), pivot)
+      const user = await models.user.findUnique({ where: { id } })
+
+      const expiresAt = datePivot(new Date(), expirePivot)
       const description = `Funding @${user.name} on stacker.news`
       try {
         const invoice = await createInvoice({
@@ -225,7 +235,8 @@ export default {
 
         const [inv] = await serialize(models,
           models.$queryRaw`SELECT * FROM create_invoice(${invoice.id}, ${invoice.request},
-            ${expiresAt}::timestamp, ${amount * 1000}, ${user.id}::INTEGER, ${description})`)
+            ${expiresAt}::timestamp, ${amount * 1000}, ${user.id}::INTEGER, ${description},
+            ${invLimit}::INTEGER, ${balanceLimit})`)
 
         // the HMAC is only returned during invoice creation
         // this makes sure that only the person who created this invoice

@@ -6,6 +6,7 @@ import serialize from '../../../../api/resolvers/serial'
 import { schnorr } from '@noble/curves/secp256k1'
 import { createHash } from 'crypto'
 import { datePivot } from '../../../../lib/time'
+import { BALANCE_LIMIT_MSATS, INV_PENDING_LIMIT } from '../../../../lib/constants'
 
 export default async ({ query: { username, amount, nostr } }, res) => {
   const user = await models.user.findUnique({ where: { name: username } })
@@ -13,7 +14,7 @@ export default async ({ query: { username, amount, nostr } }, res) => {
     return res.status(400).json({ status: 'ERROR', reason: `user @${username} does not exist` })
   }
   try {
-  // if nostr, decode, validate sig, check tags, set description hash
+    // if nostr, decode, validate sig, check tags, set description hash
     let description, descriptionHash, noteStr
     if (nostr) {
       noteStr = decodeURIComponent(nostr)
@@ -48,7 +49,8 @@ export default async ({ query: { username, amount, nostr } }, res) => {
 
     await serialize(models,
       models.$queryRaw`SELECT * FROM create_invoice(${invoice.id}, ${invoice.request},
-        ${expiresAt}::timestamp, ${Number(amount)}, ${user.id}::INTEGER, ${noteStr || description})`)
+        ${expiresAt}::timestamp, ${Number(amount)}, ${user.id}::INTEGER, ${noteStr || description},
+        ${INV_PENDING_LIMIT}::INTEGER, ${BALANCE_LIMIT_MSATS})`)
 
     return res.status(200).json({
       pr: invoice.request,

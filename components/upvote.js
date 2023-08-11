@@ -208,13 +208,12 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
     return item?.mine || (me && Number(me.id) === item?.fwdUserId) || item?.deletedAt
   }, [me?.id, item?.fwdUserId, item?.mine, item?.deletedAt])
 
-  const [meSats, meTotalSats, sats, overlayText, color] = useMemo(() => {
-    const meSats = (item?.meSats || 0) + pendingSats
-    const meTotalSats = meSats + (item?.meAnonSats || 0)
+  const [meSats, sats, overlayText, color] = useMemo(() => {
+    const meSats = (item?.meSats || item?.meAnonSats || 0) + pendingSats
 
     // what should our next tip be?
     let sats = me?.tipDefault || 1
-    if (me?.turboTipping && me) {
+    if (me?.turboTipping) {
       let raiseTip = sats
       while (meSats >= raiseTip) {
         raiseTip *= 10
@@ -223,7 +222,7 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
       sats = raiseTip - meSats
     }
 
-    return [meSats, meTotalSats, sats, numWithUnits(sats, { abbreviate: false }), getColor(meSats)]
+    return [meSats, sats, numWithUnits(sats, { abbreviate: false }), getColor(meSats)]
   }, [item?.meSats, item?.meAnonSats, pendingSats, me?.tipDefault, me?.turboDefault])
 
   return (
@@ -277,9 +276,9 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
                       `${styles.upvote}
                       ${className || ''}
                       ${disabled ? styles.noSelfTips : ''}
-                      ${meTotalSats ? styles.voted : ''}`
+                      ${meSats ? styles.voted : ''}`
                     }
-                  style={meTotalSats
+                  style={meSats
                     ? {
                         fill: color,
                         filter: `drop-shadow(0 0 6px ${color}90)`

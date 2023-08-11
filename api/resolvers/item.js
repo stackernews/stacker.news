@@ -672,7 +672,8 @@ export default {
         return item
       } else {
         const [query] = await serialize(models,
-          models.$queryRawUnsafe(`${SELECT} FROM create_poll($1, $2, $3, $4::INTEGER, $5::INTEGER, $6::INTEGER, $7, $8::INTEGER, '${spamInterval}') AS "Item"`,
+          models.$queryRawUnsafe(
+            `${SELECT} FROM create_poll($1, $2, $3, $4::INTEGER, $5::INTEGER, $6::INTEGER, $7, $8::INTEGER, '${spamInterval}') AS "Item"`,
             sub || 'bitcoin', title, text, 1, Number(boost || 0), Number(author.id), options, Number(fwdUser?.id)), ...trx)
         const item = trx.length > 0 ? query[0] : query
 
@@ -718,7 +719,8 @@ export default {
     },
     createComment: async (parent, data, { me, models }) => {
       await ssValidate(commentSchema, data)
-      const item = await createItem(parent, data, { me, models, invoiceHash: data.invoiceHash, invoiceHmac: data.invoiceHmac })
+      const item = await createItem(parent, data,
+        { me, models, invoiceHash: data.invoiceHash, invoiceHmac: data.invoiceHmac })
       // fetch user to get up-to-date name
       const user = await models.user.findUnique({ where: { id: me?.id || ANON_USER_ID } })
 
@@ -787,7 +789,8 @@ export default {
       const [{ item_act: vote }] = await serialize(models, ...calls)
 
       const updatedItem = await models.item.findUnique({ where: { id: Number(id) } })
-      const title = `your ${updatedItem.title ? 'post' : 'reply'} ${updatedItem.fwdUser ? 'forwarded' : 'stacked'} ${numWithUnits(msatsToSats(updatedItem.msats))}${updatedItem.fwdUser ? ` to @${updatedItem.fwdUser.name}` : ''}`
+      const title = `your ${updatedItem.title ? 'post' : 'reply'} ${updatedItem.fwdUser ? 'forwarded' : 'stacked'} ${
+        numWithUnits(msatsToSats(updatedItem.msats))}${updatedItem.fwdUser ? ` to @${updatedItem.fwdUser.name}` : ''}`
       sendUserNotification(updatedItem.userId, {
         title,
         body: updatedItem.title ? updatedItem.title : updatedItem.text,
@@ -815,7 +818,8 @@ export default {
         throw new GraphQLError('cannot downvote your self', { extensions: { code: 'BAD_INPUT' } })
       }
 
-      await serialize(models, models.$queryRaw`SELECT item_act(${Number(id)}::INTEGER, ${me.id}::INTEGER, 'DONT_LIKE_THIS', ${DONT_LIKE_THIS_COST}::INTEGER)`)
+      await serialize(models, models.$queryRaw`SELECT item_act(${Number(id)}::INTEGER,
+        ${me.id}::INTEGER, 'DONT_LIKE_THIS', ${DONT_LIKE_THIS_COST}::INTEGER)`)
 
       return true
     }

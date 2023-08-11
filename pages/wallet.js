@@ -92,7 +92,7 @@ export function FundForm () {
   }, [])
 
   if (called && !error) {
-    return <QrSkeleton status='generating' />
+    return <QrSkeleton description status='generating' />
   }
 
   return (

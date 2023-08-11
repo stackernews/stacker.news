@@ -6,12 +6,12 @@ export default function FundError ({ onClose, amount, onPayment }) {
   const createInvoice = useInvoiceable(onPayment, { forceInvoice: true })
   return (
     <>
-      <p className='fw-bolder'>you need more sats</p>
-      <div className='d-flex justify-content-end'>
+      <p className='fw-bolder text-center'>you need more sats</p>
+      <div className='d-flex pb-3 pt-2 justify-content-center'>
         <Link href='/wallet?type=fund'>
           <Button variant='success' onClick={onClose}>fund wallet</Button>
         </Link>
-        <span className='d-flex mx-3 font-weight-bold text-muted align-items-center'>or</span>
+        <span className='d-flex mx-3 fw-bold text-muted align-items-center'>or</span>
         <Button variant='success' onClick={() => createInvoice(amount)}>pay invoice</Button>
       </div>
     </>

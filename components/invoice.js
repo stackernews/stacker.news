@@ -118,7 +118,7 @@ const ActionInvoice = ({ id, hash, hmac, errorCount, repeat, ...props }) => {
     return <div>error</div>
   }
   if (!data || loading) {
-    return <QrSkeleton status='loading' />
+    return <QrSkeleton description status='loading' />
   }
 
   let errorStatus = 'Something went wrong trying to perform the action after payment.'

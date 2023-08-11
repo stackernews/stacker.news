@@ -310,9 +310,9 @@ select.form-select {
   appearance: none;
 }
 
-select option {
+select.form-select option {
   // fix dropdown items not visible in darkmode on some browsers
-  color: initial;
+  color: rgba(0, 0, 0, 0.9);
 }
 
 select:focus {

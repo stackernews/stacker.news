@@ -3,12 +3,13 @@ import { gql, useMutation } from '@apollo/client'
 import styles from './reply.module.css'
 import { COMMENTS } from '../fragments/comments'
 import { useMe } from './me'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import FeeButton from './fee-button'
 import { commentsViewedAfterComment } from '../lib/new-comments'
 import { commentSchema } from '../lib/validate'
 import Info from './info'
+import { useInvoiceable } from './invoice'
 
 export function ReplyOnAnotherPage ({ parentId }) {
   return (
@@ -45,8 +46,8 @@ export default function Reply ({ item, onSuccess, replyOpen, children, placehold
   const [createComment] = useMutation(
     gql`
       ${COMMENTS}
-      mutation createComment($text: String!, $parentId: ID!) {
-        createComment(text: $text, parentId: $parentId) {
+      mutation createComment($text: String!, $parentId: ID!, $invoiceHash: String, $invoiceHmac: String) {
+        createComment(text: $text, parentId: $parentId, invoiceHash: $invoiceHash, invoiceHmac: $invoiceHmac) {
           ...CommentFields
           comments {
             ...CommentsRecursive
@@ -90,6 +91,18 @@ export default function Reply ({ item, onSuccess, replyOpen, children, placehold
     }
   )
 
+  const submitComment = useCallback(
+    async (_, values, parentId, resetForm, invoiceHash, invoiceHmac) => {
+      const { error } = await createComment({ variables: { ...values, parentId, invoiceHash, invoiceHmac } })
+      if (error) {
+        throw new Error({ message: error.toString() })
+      }
+      resetForm({ text: '' })
+      setReply(replyOpen || false)
+    }, [createComment, setReply])
+
+  const invoiceableCreateComment = useInvoiceable(submitComment)
+
   const replyInput = useRef(null)
   useEffect(() => {
     if (replyInput.current && reply && !replyOpen) replyInput.current.focus()
@@ -116,13 +129,8 @@ export default function Reply ({ item, onSuccess, replyOpen, children, placehold
               text: ''
             }}
             schema={commentSchema}
-            onSubmit={async (values, { resetForm }) => {
-              const { error } = await createComment({ variables: { ...values, parentId } })
-              if (error) {
-                throw new Error({ message: error.toString() })
-              }
-              resetForm({ text: '' })
-              setReply(replyOpen || false)
+            onSubmit={async ({ cost, ...values }, { resetForm }) => {
+              return invoiceableCreateComment(cost, values, parentId, resetForm)
             }}
             storageKeyPrefix={'reply-' + parentId}
           >

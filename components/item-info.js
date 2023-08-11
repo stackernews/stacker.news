@@ -7,7 +7,6 @@ import Countdown from './countdown'
 import { abbrNum, numWithUnits } from '../lib/format'
 import { newComments, commentsViewedAt } from '../lib/new-comments'
 import { timeSince } from '../lib/time'
-import CowboyHat from './cowboy-hat'
 import { DeleteDropdownItem } from './delete'
 import styles from './item.module.css'
 import { useMe } from './me'
@@ -16,6 +15,7 @@ import DontLikeThisDropdownItem from './dont-link-this'
 import BookmarkDropdownItem from './bookmark'
 import SubscribeDropdownItem from './subscribe'
 import { CopyLinkDropdownItem } from './share'
+import Hat from './hat'
 
 export default function ItemInfo ({
   item, pendingSats, full, commentsText = 'comments',
@@ -27,11 +27,17 @@ export default function ItemInfo ({
   const [canEdit, setCanEdit] =
     useState(item.mine && (Date.now() < editThreshold))
   const [hasNewComments, setHasNewComments] = useState(false)
+  const [meTotalSats, setMeTotalSats] = useState(0)
+
   useEffect(() => {
     if (!full) {
       setHasNewComments(newComments(item))
     }
   }, [item])
+
+  useEffect(() => {
+    if (item) setMeTotalSats(item.meSats + item.meAnonSats + pendingSats)
+  }, [item?.meSats, item?.meAnonSats, pendingSats])
 
   return (
     <div className={className || `${styles.other}`}>
@@ -43,7 +49,7 @@ export default function ItemInfo ({
               unitPlural: 'stackers'
             })} ${item.mine
             ? `\\ ${numWithUnits(item.meSats, { abbreviate: false })} to post`
-            : `(${numWithUnits(item.meSats + pendingSats, { abbreviate: false })} from me)`} `}
+            : `(${numWithUnits(meTotalSats, { abbreviate: false })} from me)`} `}
           >
             {numWithUnits(item.sats + pendingSats)}
           </span>
@@ -78,7 +84,7 @@ export default function ItemInfo ({
       <span> \ </span>
       <span>
         <Link href={`/${item.user.name}`}>
-          @{item.user.name}<CowboyHat className='ms-1 fill-grey' user={item.user} height={12} width={12} />
+          @{item.user.name}<span> </span><Hat className='fill-grey' user={item.user} height={12} width={12} />
           {embellishUser}
         </Link>
         <span> </span>

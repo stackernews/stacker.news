@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Form, Input, SubmitButton } from '../components/form'
 import { useRouter } from 'next/router'
 import { gql, useApolloClient, useLazyQuery, useMutation } from '@apollo/client'
@@ -14,6 +14,7 @@ import { linkSchema } from '../lib/validate'
 import Moon from '../svgs/moon-fill.svg'
 import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
+import { useInvoiceable } from './invoice'
 
 export function LinkForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
@@ -66,12 +67,30 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
 
   const [upsertLink] = useMutation(
     gql`
-      mutation upsertLink($sub: String, $id: ID, $title: String!, $url: String!, $boost: Int, $forward: String) {
-        upsertLink(sub: $sub, id: $id, title: $title, url: $url, boost: $boost, forward: $forward) {
+      mutation upsertLink($sub: String, $id: ID, $title: String!, $url: String!, $boost: Int, $forward: String, $invoiceHash: String, $invoiceHmac: String) {
+        upsertLink(sub: $sub, id: $id, title: $title, url: $url, boost: $boost, forward: $forward, invoiceHash: $invoiceHash, invoiceHmac: $invoiceHmac) {
           id
         }
       }`
   )
+
+  const submitUpsertLink = useCallback(
+    async (_, boost, title, values, invoiceHash, invoiceHmac) => {
+      const { error } = await upsertLink({
+        variables: { sub: item?.subName || sub?.name, id: item?.id, boost: boost ? Number(boost) : undefined, title: title.trim(), invoiceHash, invoiceHmac, ...values }
+      })
+      if (error) {
+        throw new Error({ message: error.toString() })
+      }
+      if (item) {
+        await router.push(`/items/${item.id}`)
+      } else {
+        const prefix = sub?.name ? `/~${sub.name}` : ''
+        await router.push(prefix + '/recent')
+      }
+    }, [upsertLink, router])
+
+  const invoiceableUpsertLink = useInvoiceable(submitUpsertLink)
 
   useEffect(() => {
     if (data?.pageTitleAndUnshorted?.title) {
@@ -99,19 +118,8 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}
-      onSubmit={async ({ boost, title, ...values }) => {
-        const { error } = await upsertLink({
-          variables: { sub: item?.subName || sub?.name, id: item?.id, boost: boost ? Number(boost) : undefined, title: title.trim(), ...values }
-        })
-        if (error) {
-          throw new Error({ message: error.toString() })
-        }
-        if (item) {
-          await router.push(`/items/${item.id}`)
-        } else {
-          const prefix = sub?.name ? `/~${sub.name}` : ''
-          await router.push(prefix + '/recent')
-        }
+      onSubmit={async ({ boost, title, cost, ...values }) => {
+        return invoiceableUpsertLink(cost, boost, title, values)
       }}
       storageKeyPrefix={item ? undefined : 'link'}
     >

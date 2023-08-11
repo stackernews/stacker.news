@@ -2,10 +2,26 @@ import Badge from 'react-bootstrap/Badge'
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import Tooltip from 'react-bootstrap/Tooltip'
 import CowboyHatIcon from '../svgs/cowboy.svg'
+import AnonIcon from '../svgs/spy-fill.svg'
 import { numWithUnits } from '../lib/format'
+import { ANON_USER_ID } from '../lib/constants'
 
-export default function CowboyHat ({ user, badge, className = 'ms-1', height = 16, width = 16 }) {
-  if (user?.streak === null || user.hideCowboyHat) {
+export default function Hat ({ user, badge, className = 'ms-1', height = 16, width = 16 }) {
+  if (!user) return null
+  if (Number(user.id) === ANON_USER_ID) {
+    return (
+      <HatTooltip overlayText={badge ? 'anonymous' : 'posted anonymously'}>
+        {badge
+          ? (
+            <Badge bg='grey-medium' className='ms-2 d-inline-flex align-items-center'>
+              <AnonIcon className={`${className} align-middle`} height={height} width={width} />
+            </Badge>)
+          : <span><AnonIcon className={`${className} align-middle`} height={height} width={width} /></span>}
+      </HatTooltip>
+    )
+  }
+
+  if (user.streak === null || user.hideCowboyHat) {
     return null
   }
 
@@ -26,7 +42,7 @@ export default function CowboyHat ({ user, badge, className = 'ms-1', height = 1
   )
 }
 
-function HatTooltip ({ children, overlayText, placement }) {
+export function HatTooltip ({ children, overlayText, placement }) {
   return (
     <OverlayTrigger
       placement={placement || 'bottom'}

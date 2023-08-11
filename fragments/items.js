@@ -19,6 +19,7 @@ export const ITEM_FIELDS = gql`
     otsHash
     position
     sats
+    meAnonSats @client
     boost
     bounty
     bountyPaidTo

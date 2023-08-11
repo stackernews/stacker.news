@@ -9,7 +9,7 @@ import Link from 'next/link'
 import { timeSince } from '../lib/time'
 import EmailIcon from '../svgs/mail-open-line.svg'
 import Share from './share'
-import CowboyHat from './cowboy-hat'
+import Hat from './hat'
 
 export default function ItemJob ({ item, toc, rank, children }) {
   const isEmail = string().email().isValidSync(item.url)
@@ -51,7 +51,7 @@ export default function ItemJob ({ item, toc, rank, children }) {
             <span> \ </span>
             <span>
               <Link href={`/${item.user.name}`} className='d-inline-flex align-items-center'>
-                @{item.user.name}<CowboyHat className='ms-1 fill-grey' user={item.user} height={12} width={12} />
+                @{item.user.name}<Hat className='ms-1 fill-grey' user={item.user} height={12} width={12} />
               </Link>
               <span> </span>
               <Link href={`/items/${item.id}`} title={item.createdAt} className='text-reset' suppressHydrationWarning>

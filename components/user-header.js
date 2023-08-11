@@ -14,10 +14,10 @@ import QRCode from 'qrcode.react'
 import LightningIcon from '../svgs/bolt.svg'
 import { encodeLNUrl } from '../lib/lnurl'
 import Avatar from './avatar'
-import CowboyHat from './cowboy-hat'
 import { userSchema } from '../lib/validate'
 import { useShowModal } from './modal'
 import { numWithUnits } from '../lib/format'
+import Hat from './hat'
 
 export default function UserHeader ({ user }) {
   const router = useRouter()
@@ -149,7 +149,7 @@ function NymEdit ({ user, setEditting }) {
 function NymView ({ user, isMe, setEditting }) {
   return (
     <div className='d-flex align-items-center mb-2'>
-      <div className={styles.username}>@{user.name}<CowboyHat className='' user={user} badge /></div>
+      <div className={styles.username}>@{user.name}<Hat className='' user={user} badge /></div>
       {isMe &&
         <Button className='py-0' style={{ lineHeight: '1.25' }} variant='link' onClick={() => setEditting(true)}>edit nym</Button>}
     </div>

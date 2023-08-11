@@ -4,7 +4,7 @@ import InvoiceStatus from './invoice-status'
 import { requestProvider } from 'webln'
 import { useEffect } from 'react'
 
-export default function Qr ({ asIs, value, webLn, statusVariant, status }) {
+export default function Qr ({ asIs, value, webLn, statusVariant, description, status }) {
   const qrValue = asIs ? value : 'lightning:' + value.toUpperCase()
 
   useEffect(() => {
@@ -28,6 +28,7 @@ export default function Qr ({ asIs, value, webLn, statusVariant, status }) {
           className='h-auto mw-100' value={qrValue} renderAs='svg' size={300}
         />
       </a>
+      {description && <div className='mt-1 fst-italic text-center text-muted'>{description}</div>}
       <div className='mt-3 w-100'>
         <CopyInput type='text' placeholder={value} readOnly noForm />
       </div>
@@ -36,11 +37,12 @@ export default function Qr ({ asIs, value, webLn, statusVariant, status }) {
   )
 }
 
-export function QrSkeleton ({ status }) {
+export function QrSkeleton ({ status, description }) {
   return (
     <>
-      <div className='h-auto w-100 clouds' style={{ paddingTop: 'min(300px + 2rem, 100%)', maxWidth: 'calc(300px + 2rem)' }} />
-      <div className='mt-3 w-100'>
+      <div className='h-auto mx-auto w-100 clouds' style={{ paddingTop: 'min(300px, 100%)', maxWidth: 'calc(300px)' }} />
+      {description && <div className='mt-1 fst-italic text-center text-muted invisible'>.</div>}
+      <div className='my-3 w-100'>
         <InputSkeleton />
       </div>
       <InvoiceStatus variant='default' status={status} />

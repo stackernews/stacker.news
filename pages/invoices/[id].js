@@ -19,7 +19,7 @@ export default function FullInvoice () {
   return (
     <CenterLayout>
       {error && <div>{error.toString()}</div>}
-      {data ? <Invoice invoice={data.invoice} /> : <QrSkeleton status='loading' />}
+      {data ? <Invoice invoice={data.invoice} /> : <QrSkeleton description status='loading' />}
     </CenterLayout>
   )
 }

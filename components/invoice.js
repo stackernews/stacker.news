@@ -215,7 +215,7 @@ export const useInvoiceable = (fn, options = defaultOptions) => {
     if (!me && options.requireSession) {
       throw new Error('you must be logged in')
     }
-    if (me && !options.forceInvoice) {
+    if (!amount || (me && !options.forceInvoice)) {
       try {
         return await fn(amount, ...args)
       } catch (error) {

@@ -140,6 +140,10 @@ export function EditFeeButton ({ paidSats, hadImgLink, hasImgLink, ChildButton, 
   const addImgLink = hasImgLink && !hadImgLink
   const cost = (addImgLink ? paidSats * 9 : 0) + Number(boost)
 
+  useEffect(() => {
+    formik.setFieldValue('cost', cost)
+  }, [cost])
+
   const show = alwaysShow || !formik?.isSubmitting
   return (
     <div className='d-flex align-items-center'>

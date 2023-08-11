@@ -55,13 +55,14 @@ function AnonInfo () {
       onClick={
         (e) =>
           showModal(onClose =>
-            <div><span className='fw-bold'>Hey sneaky! You are posting without an account.</span>
-              <ol className='mt-3'>
+            <div><div className='fw-bold text-center'>You are posting without an account</div>
+              <ol className='my-3'>
                 <li>You'll pay by invoice</li>
                 <li>Your content will be content-joined (get it?!) under the <Link href='/anon' target='_blank'>@anon</Link> account</li>
                 <li>Any sats your content earns will go toward <Link href='/rewards' target='_blank'>rewards</Link></li>
-                <li>We won't be able to notify about replies</li>
+                <li>We won't be able to notify you when you receive replies</li>
               </ol>
+              <small className='text-center fst-italic text-muted'>btw if you don't need to be anonymouns posting is cheaper with an account</small>
             </div>)
       }
     />

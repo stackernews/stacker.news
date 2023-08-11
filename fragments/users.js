@@ -110,6 +110,7 @@ export const USER_SEARCH =
 gql`
   query searchUsers($q: String!, $limit: Int, $similarity: Float) {
     searchUsers(q: $q, limit: $limit, similarity: $similarity) {
+      id
       name
       streak
       hideCowboyHat
@@ -139,6 +140,7 @@ export const TOP_USERS = gql`
   query TopUsers($cursor: String, $when: String, $by: String) {
     topUsers(cursor: $cursor, when: $when, by: $by) {
       users {
+        id
         name
         streak
         hideCowboyHat
@@ -158,6 +160,7 @@ export const TOP_COWBOYS = gql`
   query TopCowboys($cursor: String) {
     topCowboys(cursor: $cursor) {
       users {
+        id
         name
         streak
         hideCowboyHat

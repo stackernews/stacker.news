@@ -1,13 +1,13 @@
 import Link from 'next/link'
 import Image from 'react-bootstrap/Image'
 import { abbrNum, numWithUnits } from '../lib/format'
-import CowboyHat from './cowboy-hat'
 import styles from './item.module.css'
 import userStyles from './user-header.module.css'
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@apollo/client'
 import MoreFooter from './more-footer'
 import { useData } from './use-data'
+import Hat from './hat'
 
 // all of this nonsense is to show the stat we are sorting by first
 const Stacked = ({ user }) => (<span>{abbrNum(user.stacked)} stacked</span>)
@@ -72,7 +72,7 @@ export default function UserList ({ ssrData, query, variables, destructureData }
           </Link>
           <div className={styles.hunk}>
             <Link href={`/${user.name}`} className={`${styles.title} d-inline-flex align-items-center text-reset`}>
-              @{user.name}<CowboyHat className='ms-1 fill-grey' height={14} width={14} user={user} />
+              @{user.name}<Hat className='ms-1 fill-grey' height={14} width={14} user={user} />
             </Link>
             <div className={styles.other}>
               {statComps.map((Comp, i) => <Comp key={i} user={user} />)}

@@ -16,7 +16,6 @@ import { abbrNum } from '../lib/format'
 import NoteIcon from '../svgs/notification-4-fill.svg'
 import { useQuery } from '@apollo/client'
 import LightningIcon from '../svgs/bolt.svg'
-import CowboyHat from './cowboy-hat'
 import { Select } from './form'
 import SearchIcon from '../svgs/search-line.svg'
 import BackArrow from '../svgs/arrow-left-line.svg'
@@ -24,6 +23,7 @@ import { SSR, SUBS } from '../lib/constants'
 import { useLightning } from './lightning'
 import { HAS_NOTIFICATIONS } from '../fragments/notifications'
 import AnonIcon from '../svgs/spy-fill.svg'
+import Hat from './hat'
 
 function WalletSummary ({ me }) {
   if (!me) return null
@@ -84,7 +84,7 @@ function StackerCorner ({ dropNavKey }) {
           className={styles.dropdown}
           title={
             <Nav.Link eventKey={me.name} as='span' className='p-0' onClick={e => e.preventDefault()}>
-              {`@${me.name}`}<CowboyHat user={me} />
+              {`@${me.name}`}<Hat user={me} />
             </Nav.Link>
           }
           align='end'

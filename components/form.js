@@ -218,8 +218,8 @@ function FormGroup ({ className, label, children }) {
 }
 
 function InputInner ({
-  prepend, append, hint, showValid, onChange, overrideValue,
-  innerRef, noForm, clear, onKeyDown, debounce, ...props
+  prepend, append, hint, showValid, onInput, onChange, overrideValue,
+  innerRef, noForm, clear, onKeyDown, debounce, autoRestrict, ...props
 }) {
   const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)
   const formik = noForm ? null : useFormikContext()
@@ -272,6 +272,11 @@ function InputInner ({
           }}
           ref={innerRef}
           {...field} {...props}
+          onInput={(e) => {
+            if (autoRestrict && e.target.value !== autoRestrict(e.target.value)) {
+              e.target.value = autoRestrict(e.target.value)
+            }
+          }}
           onChange={(e) => {
             field.onChange(e)
 
@@ -331,6 +336,7 @@ export function InputUserSuggest ({ label, groupClassName, ...props }) {
       <InputInner
         {...props}
         autoComplete='off'
+        autoRestrict={(s) => s.replace(/^[@ ]+|[ ]+$/g, '')} // handles copy-and-paste offenders
         onChange={(_, e) => getSuggestions({ variables: { q: e.target.value } })}
         overrideValue={ovalue}
         onKeyDown={(e) => {
@@ -364,6 +370,11 @@ export function InputUserSuggest ({ label, groupClassName, ...props }) {
               break
           }
         }}
+        onBlur={(e) => {
+          if (!document.getElementsByClassName(groupClassName)[0].contains(e.relatedTarget)) {
+            setSuggestions(INITIAL_SUGGESTIONS)
+          }
+        }}
       />
       <Dropdown show={suggestions.array.length > 0}>
         <Dropdown.Menu className={styles.suggestionsMenu}>
@@ -374,6 +385,11 @@ export function InputUserSuggest ({ label, groupClassName, ...props }) {
               onClick={() => {
                 setOValue(v.name)
                 setSuggestions(INITIAL_SUGGESTIONS)
+              }}
+              onBlur={(e) => {
+                if (!document.getElementsByClassName(groupClassName)[0].contains(e.relatedTarget)) {
+                  setSuggestions(INITIAL_SUGGESTIONS)
+                }
               }}
             >
               {v.name}

@@ -62,7 +62,7 @@ function AnonInfo () {
                 <li>Any sats your content earns will go toward <Link href='/rewards' target='_blank'>rewards</Link></li>
                 <li>We won't be able to notify you when you receive replies</li>
               </ol>
-              <small className='text-center fst-italic text-muted'>btw if you don't need to be anonymouns posting is cheaper with an account</small>
+              <small className='text-center fst-italic text-muted'>btw if you don't need to be anonymous posting is cheaper with an account</small>
             </div>)
       }
     />

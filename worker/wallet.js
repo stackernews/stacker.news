@@ -1,8 +1,10 @@
 const serialize = require('../api/resolvers/serial')
 const { getInvoice, getPayment } = require('ln-service')
+const { datePivot } = require('../lib/time')
 
 const walletOptions = { startAfter: 5, retryLimit: 21, retryBackoff: true }
 
+// TODO this should all be done via websockets
 function checkInvoice ({ boss, models, lnd }) {
   return async function ({ data: { hash } }) {
     let inv
@@ -32,8 +34,10 @@ function checkInvoice ({ boss, models, lnd }) {
           }
         }))
     } else if (new Date(inv.expires_at) > new Date()) {
-      // not expired, recheck in 5 seconds
-      await boss.send('checkInvoice', { hash }, walletOptions)
+      // not expired, recheck in 5 seconds if the invoice is younger than 5 minutes
+      // otherwise recheck in 60 seconds
+      const startAfter = new Date(inv.created_at) > datePivot(new Date(), { minutes: -5 }) ? 5 : 60
+      await boss.send('checkInvoice', { hash }, { ...walletOptions, startAfter })
     }
   }
 }
@@ -76,7 +80,8 @@ function checkWithdrawal ({ boss, models, lnd }) {
       SELECT reverse_withdrawl(${id}::INTEGER, ${status}::"WithdrawlStatus")`)
     } else {
       // we need to requeue to check again in 5 seconds
-      await boss.send('checkWithdrawal', { id, hash }, walletOptions)
+      const startAfter = new Date(wdrwl.created_at) > datePivot(new Date(), { minutes: -5 }) ? 5 : 60
+      await boss.send('checkWithdrawal', { id, hash }, { ...walletOptions, startAfter })
     }
   }
 }

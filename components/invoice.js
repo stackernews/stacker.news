@@ -165,7 +165,7 @@ export const useInvoiceable = (fn, options = defaultOptions) => {
   const onConfirmation = useCallback(
     (onClose, hmac) => {
       return async ({ id, satsReceived, hash }) => {
-        await sleep(2000)
+        await sleep(500)
         const repeat = () =>
           fn(satsReceived, ...fnArgs, hash, hmac)
             .then(onClose)

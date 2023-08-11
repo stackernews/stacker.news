@@ -222,7 +222,7 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
       sats = raiseTip - meSats
     }
 
-    return [meSats, sats, numWithUnits(sats, { abbreviate: false }), getColor(meSats)]
+    return [meSats, sats, me ? numWithUnits(sats, { abbreviate: false }) : 'zap it', getColor(meSats)]
   }, [item?.meSats, item?.meAnonSats, pendingSats, me?.tipDefault, me?.turboDefault])
 
   return (

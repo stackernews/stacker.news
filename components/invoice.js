@@ -69,13 +69,9 @@ const Contacts = ({ invoiceHash, invoiceHmac }) => {
   const body = 'Hi, I successfully paid for <insert action> but the action did not work.'
   return (
     <div className='d-flex flex-column justify-content-center mt-2'>
-      <span>Payment hash</span>
+      <div className='pb-2 fw-bold'>payment token</div>
       <div className='w-100'>
-        <CopyInput type='text' placeholder={invoiceHash} readOnly noForm />
-      </div>
-      <span>Payment HMAC</span>
-      <div className='w-100'>
-        <CopyInput type='text' placeholder={invoiceHmac} readOnly noForm />
+        <CopyInput type='text' placeholder={invoiceHash + '|' + invoiceHmac} readOnly noForm />
       </div>
       <div className='d-flex flex-row justify-content-center'>
         <a

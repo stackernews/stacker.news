@@ -207,10 +207,10 @@ export default {
   },
 
   Mutation: {
-    createInvoice: async (parent, { amount }, { me, models, lnd }) => {
+    createInvoice: async (parent, { amount, expireSecs = 3600 }, { me, models, lnd }) => {
       await ssValidate(amountSchema, { amount })
 
-      let expirePivot = { hours: 3 }
+      let expirePivot = { seconds: expireSecs }
       let invLimit = INV_PENDING_LIMIT
       let balanceLimit = BALANCE_LIMIT_MSATS
       let id = me?.id

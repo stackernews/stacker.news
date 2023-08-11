@@ -70,7 +70,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
       }}
       schema={schema}
       onSubmit={async ({ boost, title, options, cost, ...values }) => {
-        await invoiceableUpsertPoll(cost, boost, title, options, values)
+        return invoiceableUpsertPoll(cost, boost, title, options, values)
       }}
       storageKeyPrefix={item ? undefined : 'poll'}
     >

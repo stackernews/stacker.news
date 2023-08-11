@@ -90,7 +90,7 @@ export function BountyForm ({
       onSubmit={
         handleSubmit ||
         (async ({ boost, bounty, cost, ...values }) => {
-          await invoiceableUpsertBounty(cost, boost, bounty, values)
+          return invoiceableUpsertBounty(cost, boost, bounty, values)
         })
       }
       storageKeyPrefix={item ? undefined : 'bounty'}

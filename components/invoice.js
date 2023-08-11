@@ -225,13 +225,16 @@ export const useInvoiceable = (fn, options = defaultOptions) => {
               />
             )
           })
-          return
+          return { keepLocalStorage: true }
         }
         throw error
       }
     }
     setFnArgs(args)
-    return createInvoice({ variables: { amount } })
+    await createInvoice({ variables: { amount } })
+    // tell onSubmit handler that we want to keep local storage
+    // even though the submit handler was "successful"
+    return { keepLocalStorage: true }
   }, [fn, setFnArgs, createInvoice])
 
   return actionFn

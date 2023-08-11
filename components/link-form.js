@@ -119,7 +119,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
       }}
       schema={schema}
       onSubmit={async ({ boost, title, cost, ...values }) => {
-        await invoiceableUpsertLink(cost, boost, title, values)
+        return invoiceableUpsertLink(cost, boost, title, values)
       }}
       storageKeyPrefix={item ? undefined : 'link'}
     >

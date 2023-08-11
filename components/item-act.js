@@ -76,7 +76,7 @@ export default function ItemAct ({ onClose, itemId, act, strike }) {
       }}
       schema={amountSchema}
       onSubmit={async ({ amount }) => {
-        await invoiceableAct(amount)
+        return invoiceableAct(amount)
       }}
     >
       <Input

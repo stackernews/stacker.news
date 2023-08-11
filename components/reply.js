@@ -130,7 +130,7 @@ export default function Reply ({ item, onSuccess, replyOpen, children, placehold
             }}
             schema={commentSchema}
             onSubmit={async ({ cost, ...values }, { resetForm }) => {
-              await invoiceableCreateComment(cost, values, parentId, resetForm)
+              return invoiceableCreateComment(cost, values, parentId, resetForm)
             }}
             storageKeyPrefix={'reply-' + parentId}
           >

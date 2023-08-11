@@ -102,7 +102,7 @@ export default function JobForm ({ item, sub }) {
         schema={jobSchema}
         storageKeyPrefix={storageKeyPrefix}
         onSubmit={(async ({ maxBid, stop, start, ...values }) => {
-          await invoiceableUpsertJob(1000, maxBid, stop, start, values)
+          return invoiceableUpsertJob(1000, maxBid, stop, start, values)
         })}
       >
         <div className='form-group'>

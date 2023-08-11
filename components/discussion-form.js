@@ -79,7 +79,7 @@ export function DiscussionForm ({
       }}
       schema={schema}
       onSubmit={handleSubmit || (async ({ boost, cost, ...values }) => {
-        await invoiceableUpsertDiscussion(cost, boost, values)
+        return invoiceableUpsertDiscussion(cost, boost, values)
       })}
       storageKeyPrefix={item ? undefined : 'discussion'}
     >

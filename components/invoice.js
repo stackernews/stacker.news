@@ -231,7 +231,7 @@ export const useInvoiceable = (fn, options = defaultOptions) => {
           })
           return
         }
-        throw new Error({ message: error.toString() })
+        throw error
       }
     }
     setFnArgs(args)

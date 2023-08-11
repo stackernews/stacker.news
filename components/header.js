@@ -74,45 +74,51 @@ function NotificationBell () {
 
 function NavProfileMenu ({ me, dropNavKey }) {
   return (
-    <Dropdown className={styles.dropdown} align='end'>
-      <Dropdown.Toggle className='nav-link nav-item' id='profile' variant='custom'>
-        <Nav.Link eventKey={me.name} as='span' className='p-0'>
-          {`@${me.name}`}<CowboyHat user={me} />
-        </Nav.Link>
-      </Dropdown.Toggle>
-      <Dropdown.Menu>
-        <Link href={'/' + me.name} passHref legacyBehavior>
-          <Dropdown.Item active={me.name === dropNavKey}>
-            profile
-            {me && !me.bioId &&
-              <div className='p-1 d-inline-block bg-secondary ms-1'>
-                <span className='invisible'>{' '}</span>
-              </div>}
-          </Dropdown.Item>
-        </Link>
-        <Link href={'/' + me.name + '/bookmarks'} passHref legacyBehavior>
-          <Dropdown.Item active={me.name + '/bookmarks' === dropNavKey}>bookmarks</Dropdown.Item>
-        </Link>
-        <Link href='/wallet' passHref legacyBehavior>
-          <Dropdown.Item eventKey='wallet'>wallet</Dropdown.Item>
-        </Link>
-        <Link href='/satistics?inc=invoice,withdrawal,stacked,spent' passHref legacyBehavior>
-          <Dropdown.Item eventKey='satistics'>satistics</Dropdown.Item>
-        </Link>
-        <Dropdown.Divider />
-        <Link href='/referrals/month' passHref legacyBehavior>
-          <Dropdown.Item eventKey='referrals'>referrals</Dropdown.Item>
-        </Link>
-        <Dropdown.Divider />
-        <div className='d-flex align-items-center'>
-          <Link href='/settings' passHref legacyBehavior>
-            <Dropdown.Item eventKey='settings'>settings</Dropdown.Item>
+    <div className='position-relative'>
+      <Dropdown className={styles.dropdown} align='end'>
+        <Dropdown.Toggle className='nav-link nav-item' id='profile' variant='custom'>
+          <Nav.Link eventKey={me.name} as='span' className='p-0'>
+            {`@${me.name}`}<CowboyHat user={me} />
+          </Nav.Link>
+        </Dropdown.Toggle>
+        <Dropdown.Menu>
+          <Link href={'/' + me.name} passHref legacyBehavior>
+            <Dropdown.Item active={me.name === dropNavKey}>
+              profile
+              {me && !me.bioId &&
+                <div className='p-1 d-inline-block bg-secondary ms-1'>
+                  <span className='invisible'>{' '}</span>
+                </div>}
+            </Dropdown.Item>
           </Link>
-        </div>
-        <Dropdown.Divider />
-        <Dropdown.Item onClick={() => signOut({ callbackUrl: '/' })}>logout</Dropdown.Item>
-      </Dropdown.Menu>
-    </Dropdown>
+          <Link href={'/' + me.name + '/bookmarks'} passHref legacyBehavior>
+            <Dropdown.Item active={me.name + '/bookmarks' === dropNavKey}>bookmarks</Dropdown.Item>
+          </Link>
+          <Link href='/wallet' passHref legacyBehavior>
+            <Dropdown.Item eventKey='wallet'>wallet</Dropdown.Item>
+          </Link>
+          <Link href='/satistics?inc=invoice,withdrawal,stacked,spent' passHref legacyBehavior>
+            <Dropdown.Item eventKey='satistics'>satistics</Dropdown.Item>
+          </Link>
+          <Dropdown.Divider />
+          <Link href='/referrals/month' passHref legacyBehavior>
+            <Dropdown.Item eventKey='referrals'>referrals</Dropdown.Item>
+          </Link>
+          <Dropdown.Divider />
+          <div className='d-flex align-items-center'>
+            <Link href='/settings' passHref legacyBehavior>
+              <Dropdown.Item eventKey='settings'>settings</Dropdown.Item>
+            </Link>
+          </div>
+          <Dropdown.Divider />
+          <Dropdown.Item onClick={() => signOut({ callbackUrl: '/' })}>logout</Dropdown.Item>
+        </Dropdown.Menu>
+      </Dropdown>
+      {!me.bioId &&
+        <span className='position-absolute p-1 bg-secondary' style={{ top: '5px', right: '0px' }}>
+          <span className='invisible'>{' '}</span>
+        </span>}
+    </div>
   )
 }
 
@@ -122,13 +128,7 @@ function StackerCorner ({ dropNavKey }) {
   return (
     <div className='d-flex ms-auto'>
       <NotificationBell />
-      <div className='position-relative'>
-        <NavProfileMenu me={me} dropNavKey={dropNavKey} />
-        {!me.bioId &&
-          <span className='position-absolute p-1 bg-secondary' style={{ top: '5px', right: '0px' }}>
-            <span className='invisible'>{' '}</span>
-          </span>}
-      </div>
+      <NavProfileMenu me={me} dropNavKey={dropNavKey} />
       <Nav.Item>
         <Link href='/wallet' passHref legacyBehavior>
           <Nav.Link eventKey='wallet' className='text-success px-0 text-nowrap'><WalletSummary me={me} /></Nav.Link>

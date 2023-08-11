@@ -119,7 +119,7 @@ async function getGraph (models) {
         FROM "ItemAct"
         JOIN "Item" ON "Item".id = "ItemAct"."itemId" AND "ItemAct".act IN ('FEE', 'TIP', 'DONT_LIKE_THIS')
           AND "Item"."parentId" IS NULL AND NOT "Item".bio AND "Item"."userId" <> "ItemAct"."userId"
-        JOIN users ON "ItemAct"."userId" = users.id
+        JOIN users ON "ItemAct"."userId" = users.id AND users.id <> ${ANON_USER_ID}
         GROUP BY user_id, name, item_id, user_at, against
         HAVING CASE WHEN
           "ItemAct".act = 'DONT_LIKE_THIS' THEN sum("ItemAct".msats) > ${AGAINST_MSAT_MIN}
@@ -159,7 +159,6 @@ async function storeTrust (models, nodeTrust) {
   // convert nodeTrust into table literal string
   let values = ''
   for (const [id, trust] of Object.entries(nodeTrust)) {
-    if (id === ANON_USER_ID) continue
     if (values) values += ','
     values += `(${id}, ${trust})`
   }

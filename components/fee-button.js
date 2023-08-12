@@ -82,8 +82,8 @@ export default function FeeButton ({ parentId, hasImgLink, baseFee, ChildButton,
   const cost = baseFee * (hasImgLink ? 10 : 1) * Math.pow(10, repetition) + Number(boost)
 
   useEffect(() => {
-    formik.setFieldValue('cost', cost)
-  }, [cost])
+    formik?.setFieldValue('cost', cost)
+  }, [formik?.getFieldProps('cost').value, cost])
 
   const show = alwaysShow || !formik?.isSubmitting
   return (
@@ -142,8 +142,8 @@ export function EditFeeButton ({ paidSats, hadImgLink, hasImgLink, ChildButton, 
   const cost = (addImgLink ? paidSats * 9 : 0) + Number(boost)
 
   useEffect(() => {
-    formik.setFieldValue('cost', cost)
-  }, [cost])
+    formik?.setFieldValue('cost', cost)
+  }, [formik?.getFieldProps('cost').value, cost])
 
   const show = alwaysShow || !formik?.isSubmitting
   return (

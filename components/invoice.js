@@ -12,6 +12,7 @@ import { useMe } from './me'
 import { useShowModal } from './modal'
 import { sleep } from '../lib/time'
 import FundError, { isInsufficientFundsError } from './fund-error'
+import { usePaymentTokens } from './payment-tokens'
 
 export function Invoice ({ invoice, onConfirmation, successVerb }) {
   let variant = 'default'
@@ -161,15 +162,20 @@ export const useInvoiceable = (fn, options = defaultOptions) => {
     }`)
   const showModal = useShowModal()
   const [fnArgs, setFnArgs] = useState()
+  const { addPaymentToken, removePaymentToken } = usePaymentTokens()
 
   // fix for bug where `showModal` runs the code for two modals and thus executes `onConfirmation` twice
   let errorCount = 0
   const onConfirmation = useCallback(
     (onClose, hmac) => {
       return async ({ id, satsReceived, hash }) => {
+        addPaymentToken(hash, hmac, satsReceived)
         await sleep(500)
         const repeat = () =>
           fn(satsReceived, ...fnArgs, hash, hmac)
+            .then(() => {
+              removePaymentToken(hash, hmac)
+            })
             .then(onClose)
             .catch((error) => {
               console.error(error)

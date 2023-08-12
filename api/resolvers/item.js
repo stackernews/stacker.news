@@ -17,7 +17,7 @@ import { amountSchema, bountySchema, commentSchema, discussionSchema, jobSchema,
 import { sendUserNotification } from '../webPush'
 import { proxyImages } from './imgproxy'
 import { defaultCommentSort } from '../../lib/item'
-import { createHmac } from './wallet'
+import { createInvoiceHmac } from '../../lib/crypto'
 
 export async function commentFilterClause (me, models) {
   let clause = ` AND ("Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}`
@@ -42,7 +42,7 @@ async function checkInvoice (models, hash, hmac, fee) {
   if (!hmac) {
     throw new GraphQLError('hmac required', { extensions: { code: 'BAD_INPUT' } })
   }
-  const hmac2 = createHmac(hash)
+  const hmac2 = createInvoiceHmac(hash)
   if (hmac !== hmac2) {
     throw new GraphQLError('bad hmac', { extensions: { code: 'FORBIDDEN' } })
   }

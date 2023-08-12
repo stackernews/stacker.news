@@ -1,6 +1,5 @@
 import { createInvoice, decodePaymentRequest, payViaPaymentRequest } from 'ln-service'
 import { GraphQLError } from 'graphql'
-import crypto from 'crypto'
 import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import lnpr from 'bolt11'
@@ -10,6 +9,7 @@ import { msatsToSats, msatsToSatsDecimal } from '../../lib/format'
 import { amountSchema, lnAddrSchema, ssValidate, withdrawlSchema } from '../../lib/validate'
 import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, ANON_USER_ID, BALANCE_LIMIT_MSATS, INV_PENDING_LIMIT } from '../../lib/constants'
 import { datePivot } from '../../lib/time'
+import { createInvoiceHmac, xor } from '../../lib/crypto'
 
 export async function getInvoice (parent, { id }, { me, models }) {
   const inv = await models.invoice.findUnique({
@@ -42,19 +42,10 @@ export async function getInvoice (parent, { id }, { me, models }) {
   return inv
 }
 
-export function createHmac (hash) {
-  const key = Buffer.from(process.env.INVOICE_HMAC_KEY, 'hex')
-  return crypto.createHmac('sha256', key).update(Buffer.from(hash, 'hex')).digest('hex')
-}
-
 export default {
   Query: {
     invoice: getInvoice,
     withdrawl: async (parent, { id }, { me, models, lnd }) => {
-      if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
-      }
-
       const wdrwl = await models.withdrawl.findUnique({
         where: {
           id: Number(id)
@@ -64,7 +55,7 @@ export default {
         }
       })
 
-      if (wdrwl.user.id !== me.id) {
+      if (me ? wdrwl.user.id !== me.id : wdrwl.user.id !== ANON_USER_ID) {
         throw new GraphQLError('not ur withdrawal', { extensions: { code: 'FORBIDDEN' } })
       }
 
@@ -241,7 +232,7 @@ export default {
         // the HMAC is only returned during invoice creation
         // this makes sure that only the person who created this invoice
         // has access to the HMAC
-        const hmac = createHmac(inv.hash)
+        const hmac = createInvoiceHmac(inv.hash)
 
         return { ...inv, hmac }
       } catch (error) {
@@ -328,8 +319,31 @@ export default {
   }
 }
 
-async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd }) {
+async function createWithdrawal (parent, { invoice, maxFee, tokens }, { me, models, lnd }) {
   await ssValidate(withdrawlSchema, { invoice, maxFee })
+
+  const invoiceHashMap = []
+  if (!me && tokens) {
+    for (const token of tokens) {
+      const [oHash, hmac] = token.split('|')
+      if (!hmac) {
+        throw new GraphQLError('hmac required', { extensions: { code: 'BAD_INPUT' } })
+      }
+      if (createInvoiceHmac(oHash) !== hmac) {
+        throw new GraphQLError('bad hmac', { extensions: { code: 'FORBIDDEN' } })
+      }
+      // xor last half of invoice hash with HMAC of first half.
+      // this makes the invoice not usable while withdrawal is in process.
+      // if withdrawal failed, we can reverse this operation.
+      const xHash = xor(
+        Buffer.from(oHash, 'hex'),
+        Buffer.concat([
+          Buffer.alloc(16), Buffer.from(createInvoiceHmac(oHash.slice(0, 32)), 'hex').slice(0, 16)
+        ])
+      ).toString('hex')
+      invoiceHashMap.push({ oHash, xHash })
+    }
+  }
 
   // remove 'lightning:' prefix if present
   invoice = invoice.replace(/^lightning:/, '')
@@ -349,12 +363,45 @@ async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd 
 
   const msatsFee = Number(maxFee) * 1000
 
-  const user = await models.user.findUnique({ where: { id: me.id } })
+  const user = await models.user.findUnique({ where: { id: me ? me.id : ANON_USER_ID } })
+
+  const calls = [models.$queryRaw`SELECT * FROM create_withdrawl(
+    ${decoded.id}, ${invoice}, ${Number(decoded.mtokens)}, ${msatsFee}, ${user.name})`]
+
+  if (invoiceHashMap.length > 0) {
+    const invoices = await models.invoice.findMany({
+      where: {
+        hash: { in: invoiceHashMap.map(({ xHash }) => xHash) }
+      }
+    })
+    const allowedAmount = invoices.reduce((sum, { msatsReceived }) => sum + msatsReceived, 0n)
+    if (decoded.mtokens > allowedAmount) {
+      throw new GraphQLError('invoice exceeds balance', { extensions: { code: 'BAD_INPUT' } })
+    }
+    if (decoded.mtokens < allowedAmount) {
+      throw new GraphQLError('you need to withdraw your full balance', { extensions: { code: 'BAD_INPUT' } })
+    }
+    const minCreatedAt = Math.min.apply(null, invoices.map(({ createdAt }) => createdAt))
+    if (datePivot(new Date(), { minutes: -1 }) < minCreatedAt) {
+      // invoices must be at least 1 minute old to be eligible for refunds.
+      // this prevents race conditions where anon pays and immediately refunds
+      // before the action was able to be executed.
+      throw new GraphQLError('you need to wait one minute before refunds', { extensions: { code: 'BAD_INPUT' } })
+    }
+    for (const { oHash, xHash } of invoiceHashMap) {
+      // update invoice to prevent stealing from other anons while withdrawal is in process by reusing payment tokens.
+      // update will fail if the hash was not found
+      calls.push(models.invoice.update({ where: { hash: oHash }, data: { hash: xHash } }))
+    }
+    // add hashes to job so we can delete invoice or reverse invoice hash
+    calls.push(models.$queryRaw`
+    UPDATE pgboss.job SET data = jsonb_set(data, '{paymentTokenHashes}', to_jsonb(${invoiceHashMap.map(({ xHash }) => xHash)}))
+    WHERE data->>'hash' = ${decoded.id}`)
+  }
 
   // create withdrawl transactionally (id, bolt11, amount, fee)
-  const [withdrawl] = await serialize(models,
-    models.$queryRaw`SELECT * FROM create_withdrawl(${decoded.id}, ${invoice},
-      ${Number(decoded.mtokens)}, ${msatsFee}, ${user.name})`)
+  const [q] = await serialize(models, ...calls)
+  const withdrawl = calls.length > 1 ? q[0] : q
 
   payViaPaymentRequest({
     lnd,

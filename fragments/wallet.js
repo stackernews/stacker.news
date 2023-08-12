@@ -53,8 +53,8 @@ export const WALLET_HISTORY = gql`
 `
 
 export const CREATE_WITHDRAWL = gql`
-  mutation createWithdrawl($invoice: String!, $maxFee: Int!) {
-    createWithdrawl(invoice: $invoice, maxFee: $maxFee) {
+  mutation createWithdrawl($invoice: String!, $maxFee: Int!, $tokens: [String]) {
+    createWithdrawl(invoice: $invoice, maxFee: $maxFee, tokens: $tokens) {
       id
     }
 }`

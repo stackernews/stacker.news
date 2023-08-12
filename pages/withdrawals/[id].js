@@ -8,6 +8,8 @@ import { WITHDRAWL } from '../../fragments/wallet'
 import Link from 'next/link'
 import { SSR } from '../../lib/constants'
 import { numWithUnits } from '../../lib/format'
+import { usePaymentTokens } from '../../components/payment-tokens'
+import { useEffect } from 'react'
 
 export default function Withdrawl () {
   return (
@@ -40,10 +42,18 @@ function LoadWithdrawl () {
         pollInterval: 1000,
         nextFetchPolicy: 'cache-and-network'
       })
+
+  useEffect(() => {
+    if (data?.withdrawl.status === 'CONFIRMED') {
+      clearPaymentTokens()
+    }
+  }, [data?.withdrawl.status])
+
   if (error) return <div>error</div>
   if (!data || loading) {
     return <WithdrawlSkeleton status='loading' />
   }
+  const { clearPaymentTokens } = usePaymentTokens()
 
   const TryMaxFee = () =>
     <Link href='/wallet?type=withdraw' className='text-reset text-underline'>

@@ -28,8 +28,14 @@ export function PaymentTokenProvider ({ children }) {
     setTokens(newTokens)
   }, [tokens])
 
+  const clearPaymentTokens = useCallback(() => {
+    setTokens([])
+  }, [tokens])
+
+  const balance = tokens.reduce((sum, { amount }) => sum + amount, 0)
+
   return (
-    <PaymentTokenContext.Provider value={{ tokens, addPaymentToken, removePaymentToken }}>
+    <PaymentTokenContext.Provider value={{ tokens, addPaymentToken, removePaymentToken, clearPaymentTokens, balance }}>
       {children}
     </PaymentTokenContext.Provider>
   )

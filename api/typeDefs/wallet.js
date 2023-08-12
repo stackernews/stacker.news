@@ -10,7 +10,7 @@ export default gql`
 
   extend type Mutation {
     createInvoice(amount: Int!, expireSecs: Int): Invoice!
-    createWithdrawl(invoice: String!, maxFee: Int!): Withdrawl!
+    createWithdrawl(invoice: String!, maxFee: Int!, tokens: [String]): Withdrawl!
     sendToLnAddr(addr: String!, amount: Int!, maxFee: Int!): Withdrawl!
   }
 

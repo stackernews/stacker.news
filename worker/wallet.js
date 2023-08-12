@@ -1,6 +1,7 @@
 const serialize = require('../api/resolvers/serial')
 const { getInvoice, getPayment } = require('ln-service')
 const { datePivot } = require('../lib/time')
+const { xor, createInvoiceHmac } = require('../lib/crypto')
 
 const walletOptions = { startAfter: 5, retryLimit: 21, retryBackoff: true }
 
@@ -43,7 +44,7 @@ function checkInvoice ({ boss, models, lnd }) {
 }
 
 function checkWithdrawal ({ boss, models, lnd }) {
-  return async function ({ data: { id, hash } }) {
+  return async function ({ data: { id, hash, paymentTokenHashes } }) {
     let wdrwl
     let notFound = false
     try {
@@ -60,11 +61,15 @@ function checkWithdrawal ({ boss, models, lnd }) {
     }
     console.log(wdrwl)
 
+    const calls = []
     if (wdrwl?.is_confirmed) {
       const fee = Number(wdrwl.payment.fee_mtokens)
       const paid = Number(wdrwl.payment.mtokens) - fee
-      await serialize(models, models.$executeRaw`
-      SELECT confirm_withdrawl(${id}::INTEGER, ${paid}, ${fee})`)
+      calls.push(models.$executeRaw`SELECT confirm_withdrawl(${id}::INTEGER, ${paid}, ${fee})`)
+      if (paymentTokenHashes?.length > 0) {
+        calls.push(models.invoice.deleteMany({ where: { hash: { in: paymentTokenHashes } } }))
+      }
+      await serialize(models, ...calls)
     } else if (wdrwl?.is_failed || notFound) {
       let status = 'UNKNOWN_FAILURE'
       if (wdrwl?.failed.is_insufficient_balance) {
@@ -76,8 +81,20 @@ function checkWithdrawal ({ boss, models, lnd }) {
       } else if (wdrwl?.failed.is_route_not_found) {
         status = 'ROUTE_NOT_FOUND'
       }
-      await serialize(models, models.$executeRaw`
-      SELECT reverse_withdrawl(${id}::INTEGER, ${status}::"WithdrawlStatus")`)
+      calls.push(models.$executeRaw`SELECT reverse_withdrawl(${id}::INTEGER, ${status}::"WithdrawlStatus")`)
+      if (paymentTokenHashes?.length > 0) {
+        for (const xHash of paymentTokenHashes) {
+          // reverse invoice hash XOR
+          const rHash = xor(
+            Buffer.from(xHash, 'hex'),
+            Buffer.concat([
+              Buffer.alloc(16), Buffer.from(createInvoiceHmac(xHash.slice(0, 32)), 'hex').slice(0, 16)
+            ])
+          ).toString('hex')
+          calls.push(models.invoice.update({ where: { hash: xHash }, data: { hash: rHash } }))
+        }
+      }
+      await serialize(models, ...calls)
     } else {
       // we need to requeue to check again in 5 seconds
       const startAfter = new Date(wdrwl.created_at) > datePivot(new Date(), { minutes: -5 }) ? 5 : 60

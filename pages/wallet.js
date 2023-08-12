@@ -16,6 +16,7 @@ import { getGetServerSideProps } from '../api/ssrApollo'
 import { amountSchema, lnAddrSchema, withdrawlSchema } from '../lib/validate'
 import { SSR } from '../lib/constants'
 import { numWithUnits } from '../lib/format'
+import { usePaymentTokens } from '../components/payment-tokens'
 
 export const getServerSideProps = getGetServerSideProps()
 
@@ -29,9 +30,11 @@ export default function Wallet () {
 
 function YouHaveSats () {
   const me = useMe()
+  const { balance } = usePaymentTokens()
+  const sats = (me?.sats || 0) + balance
   return (
-    <h2 className={`${me ? 'visible' : 'invisible'} text-success pb-5`}>
-      you have <span className='text-monospace'>{me && numWithUnits(me.sats, { abbreviate: false })}</span>
+    <h2 className={`${sats > 0 ? 'visible' : 'invisible'} text-success pb-5`}>
+      you have <span className='text-monospace'>{numWithUnits(sats, { abbreviate: false })}</span>
     </h2>
   )
 }
@@ -137,6 +140,7 @@ const MAX_FEE_DEFAULT = 10
 export function WithdrawlForm () {
   const router = useRouter()
   const me = useMe()
+  const { tokens } = usePaymentTokens()
 
   const [createWithdrawl, { called, error }] = useMutation(CREATE_WITHDRAWL)
 
@@ -172,7 +176,11 @@ export function WithdrawlForm () {
         initialError={error ? error.toString() : undefined}
         schema={withdrawlSchema}
         onSubmit={async ({ invoice, maxFee }) => {
-          const { data } = await createWithdrawl({ variables: { invoice, maxFee: Number(maxFee) } })
+          const variables = { invoice, maxFee: Number(maxFee) }
+          if (!me) {
+            variables.tokens = tokens.map(({ token }) => token)
+          }
+          const { data } = await createWithdrawl({ variables })
           router.push(`/withdrawals/${data.createWithdrawl.id}`)
         }}
       >

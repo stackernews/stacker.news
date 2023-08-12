@@ -24,6 +24,7 @@ import { useLightning } from './lightning'
 import { HAS_NOTIFICATIONS } from '../fragments/notifications'
 import AnonIcon from '../svgs/spy-fill.svg'
 import Hat from './hat'
+import { usePaymentTokens } from './payment-tokens'
 
 function WalletSummary ({ me }) {
   if (!me) return null
@@ -137,6 +138,7 @@ function StackerCorner ({ dropNavKey }) {
 function LurkerCorner ({ path }) {
   const router = useRouter()
   const strike = useLightning()
+  const { balance } = usePaymentTokens()
 
   useEffect(() => {
     if (!window.localStorage.getItem('striked')) {
@@ -154,7 +156,7 @@ function LurkerCorner ({ path }) {
   }), [router])
 
   return path !== '/login' && path !== '/signup' && !path.startsWith('/invites') &&
-    <div className='ms-auto'>
+    <div className='d-flex ms-auto align-items-center'>
       <Button
         className='align-items-center px-3 py-1 me-2'
         id='signup'
@@ -176,6 +178,11 @@ function LurkerCorner ({ path }) {
           className='me-1'
         />sign up
       </Button>
+      {balance > 0 && (
+        <Link href='/refund' passHref legacyBehavior>
+          <span className='text-success px-1 text-nowrap pointer'>{balance}</span>
+        </Link>
+      )}
     </div>
 }
 

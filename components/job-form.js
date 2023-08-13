@@ -80,7 +80,7 @@ export default function JobForm ({ item, sub }) {
       } else {
         await router.push(`/~${sub.name}/recent`)
       }
-    }, [upsertJob, router])
+    }, [upsertJob, router, item?.id, sub?.name, logoId])
 
   const invoiceableUpsertJob = useInvoiceable(submitUpsertJob, { requireSession: true })
 

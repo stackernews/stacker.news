@@ -9,13 +9,14 @@ import { useShowModal } from './modal'
 
 export default function Avatar ({ onSuccess }) {
   const [uploading, setUploading] = useState()
-  const ref = useRef()
-  const [scale, setScale] = useState(1)
   const showModal = useShowModal()
 
   const Body = ({ onClose, file, upload }) => {
+    const [scale, setScale] = useState(1)
+    const ref = useRef()
+
     return (
-      <div className='text-right mt-1 p-4'>
+      <div className='text-end mt-1 p-4'>
         <AvatarEditor
           ref={ref} width={200} height={200}
           image={file}
@@ -26,20 +27,21 @@ export default function Avatar ({ onSuccess }) {
           }}
         />
         <BootstrapForm.Group controlId='formBasicRange'>
-          <BootstrapForm.Control
-            type='range' onChange={e => setScale(parseFloat(e.target.value))}
+          <BootstrapForm.Range
+            onChange={e => setScale(parseFloat(e.target.value))}
             min={1} max={2} step='0.05'
-            defaultValue={scale}
+            // defaultValue={scale}
           />
         </BootstrapForm.Group>
-        <Button onClick={() => {
-          ref.current.getImageScaledToCanvas().toBlob(blob => {
-            if (blob) {
-              upload(blob)
-              onClose()
-            }
-          }, 'image/jpeg')
-        }}
+        <Button
+          onClick={() => {
+            ref.current.getImageScaledToCanvas().toBlob(blob => {
+              if (blob) {
+                upload(blob)
+                onClose()
+              }
+            }, 'image/jpeg')
+          }}
         >save
         </Button>
       </div>

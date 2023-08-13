@@ -15,6 +15,8 @@ import { CREATE_WITHDRAWL, SEND_TO_LNADDR } from '../fragments/wallet'
 import { getGetServerSideProps } from '../api/ssrApollo'
 import { amountSchema, lnAddrSchema, withdrawlSchema } from '../lib/validate'
 import { SSR } from '../lib/constants'
+import Tab from 'react-bootstrap/Tab'
+import Tabs from 'react-bootstrap/Tabs'
 import { numWithUnits } from '../lib/format'
 
 export const getServerSideProps = getGetServerSideProps()
@@ -30,16 +32,19 @@ export default function Wallet () {
 function YouHaveSats () {
   const me = useMe()
   return (
-    <h2 className={`${me ? 'visible' : 'invisible'} text-success pb-5`}>
-      you have <span className='text-monospace'>{me && numWithUnits(me.sats, { abbreviate: false })}</span>
-    </h2>
+    <>
+      <h2 className={`${me ? 'visible' : 'invisible'} text-success`}>
+        you have <span className='text-monospace'>{me && numWithUnits(me.sats, { abbreviate: false })}</span>
+      </h2>
+      <WalletHistory />
+    </>
   )
 }
 
 function WalletHistory () {
   return (
-    <div className='pt-4'>
-      <Link href='/satistics?inc=invoice,withdrawal' className='text-muted fw-bold text-underline'>
+    <div className='pb-5' style={{fontWeight: 500}}>
+      <Link href='/satistics?inc=invoice,withdrawal' className='nav-link p-0'>
         wallet history
       </Link>
     </div>
@@ -60,19 +65,14 @@ export function WalletForm () {
         <Link href='/wallet?type=withdraw'>
           <Button variant='success'>withdraw</Button>
         </Link>
-        <WalletHistory />
       </div>
     )
   }
 
   if (router.query.type === 'fund') {
     return <FundForm />
-  } else if (router.query.type === 'withdraw') {
-    return <WithdrawlForm />
-  } else if (router.query.type === 'lnurl-withdraw') {
-    return <LnWithdrawal />
   } else {
-    return <LnAddrWithdrawal />
+    return <WithdrawalMethods />
   }
 }
 
@@ -127,9 +127,44 @@ export function FundForm () {
         />
         <SubmitButton variant='success' className='mt-2'>generate invoice</SubmitButton>
       </Form>
-      <WalletHistory />
     </>
   )
+}
+
+export function WithdrawalMethods() {
+  const router = useRouter()
+
+  return (
+    <>
+      <YouHaveSats />
+      <Tabs
+        defaultActiveKey={
+          router.query.type === 'lnurl-withdraw'?'qrcode':
+          router.query.type === 'lnaddr-withdraw'?'lnaddr':
+          'invoice'
+        }
+        id="withdrawal-tabs"
+        justify
+        mountOnEnter={true}
+        onSelect={(k,e) => {
+          router.replace(
+            k === 'qrcode'?'/wallet?type=lnurl-withdraw':
+            k === 'lnaddr'?'/wallet?type=lnaddr-withdraw':
+            '/wallet?type=withdraw')
+        }}
+      >
+        <Tab eventKey="invoice" title="Invoice">
+          <WithdrawlForm />
+        </Tab>
+        <Tab eventKey="qrcode" title="QR Code">
+          <LnWithdrawal />
+        </Tab>
+        <Tab eventKey="lnaddr" title="Lightning Address">
+          <LnAddrWithdrawal />
+        </Tab>
+      </Tabs>
+    </>
+  );
 }
 
 const MAX_FEE_DEFAULT = 10
@@ -163,7 +198,6 @@ export function WithdrawlForm () {
 
   return (
     <>
-      <YouHaveSats />
       <Form
         initial={{
           invoice: '',
@@ -191,14 +225,6 @@ export function WithdrawlForm () {
         />
         <SubmitButton variant='success' className='mt-2'>withdraw</SubmitButton>
       </Form>
-      <span className='my-3 fw-bold text-muted'>or via</span>
-      <Link href='/wallet?type=lnurl-withdraw'>
-        <Button variant='grey'>QR code</Button>
-      </Link>
-      <Link href='/wallet?type=lnaddr-withdraw'>
-        <Button className='mt-2' variant='grey'>Lightning Address</Button>
-      </Link>
-      <WalletHistory />
     </>
   )
 }
@@ -254,7 +280,6 @@ export function LnAddrWithdrawal () {
 
   return (
     <>
-      <YouHaveSats />
       <Form
         initial={{
           addr: '',

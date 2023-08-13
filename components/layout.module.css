@@ -40,6 +40,7 @@
     padding-bottom: 0.5em;
 }
 
+<<<<<<< HEAD
 .content button[role=tab]:not(:global(.active)) {
     border-bottom: 1px solid var(--theme-borderColor);
 }
@@ -48,6 +49,10 @@
     border-left: 1px solid var(--theme-borderColor);
     border-right: 1px solid var(--theme-borderColor);
     border-bottom: 1px solid var(--theme-borderColor);
+=======
+.content :global(.tab-content) {
+    border: 1px solid var(--theme-borderColor);
+>>>>>>> bbb41db (add tabs for different payment methods)
     align-self: stretch;
     display: grid;
 }

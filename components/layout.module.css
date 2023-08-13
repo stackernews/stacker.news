@@ -7,7 +7,7 @@
     align-items: center;
 }
 
-.content {
+.content, .content div[role=tabpanel] {
     flex-grow: 1;
     display: flex;
     align-items: center;
@@ -18,6 +18,39 @@
     padding-left: 15px;
     margin-top: 1.5rem;
     flex-direction: column;
+}
+
+.content [role=tablist] {
+    align-self: stretch;
+}
+
+.content button[role=tab] {
+    font-family: var(--bs-btn-font-family);
+    font-size: var(--bs-btn-font-size);
+    font-weight: var(--bs-btn-font-weight);
+    height: 100%;
+    padding-top: 0.5em;
+    padding-bottom: 0.5em;
+}
+
+.content :global(.tab-content) {
+    border: 1px solid var(--theme-borderColor);
+    align-self: stretch;
+    display: grid;
+}
+
+.content :global(.tab-content) > :global(.tab-pane) {
+    visibility: hidden;
+}
+
+.content :global(.tab-content) > :global(.active) {
+    visibility: visible;
+}
+
+.content div[role=tabpanel] {
+    grid-row-start: 1;
+    grid-column-start: 1;
+    margin-bottom: 1.5rem;
 }
 
 .content form {

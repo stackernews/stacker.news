@@ -8,7 +8,8 @@ import {
   BOOST_MIN, ITEM_SPAM_INTERVAL,
   MAX_TITLE_LENGTH, ITEM_FILTER_THRESHOLD,
   DONT_LIKE_THIS_COST, COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY,
-  ANON_COMMENT_FEE, ANON_USER_ID, ANON_POST_FEE, ANON_ITEM_SPAM_INTERVAL
+  ANON_COMMENT_FEE, ANON_USER_ID, ANON_POST_FEE, ANON_ITEM_SPAM_INTERVAL,
+  MAX_FORWARDS
 } from '../../lib/constants'
 import { msatsToSats, numWithUnits } from '../../lib/format'
 import { parse } from 'tldts'
@@ -1134,11 +1135,43 @@ const createItem = async (parent, { sub, title, url, text, boost, forward, bount
     throw new GraphQLError('title too long', { extensions: { code: 'BAD_INPUT' } })
   }
 
-  let fwdUser
+  const fwdUsers = []
   if (forward) {
-    fwdUser = await models.user.findUnique({ where: { name: forward } })
-    if (!fwdUser) {
-      throw new GraphQLError('forward user does not exist', { extensions: { code: 'BAD_INPUT' } })
+    if (Array.isArray(forward) && forward.length > 0) {
+      // validation:
+      // 1. no more than 5 forward entries
+      // 2. each percentage is a positive integer between 1 and 100 inclusive
+      // 3. the sum of all percentages is <= 100
+      // 4. each specified nym exists
+      if (forward.length > MAX_FORWARDS) {
+        throw new GraphQLError(`forward user count of [${forward.length}] exceeds limit of [${MAX_FORWARDS}]`, { extensions: { code: 'BAD_INPUT' } })
+      }
+      forward.forEach(fwd => {
+        const { pct } = fwd
+        if (isNaN(pct)) {
+          throw new GraphQLError(`forward percentage [${pct}] is not a number`, { extensions: { code: 'BAD_INPUT' } })
+        }
+        const castPct = Number(pct)
+        if (Math.floor(castPct) !== castPct) {
+          throw new GraphQLError(`forward percentage [${castPct}] is not an integer`, { extensions: { code: 'BAD_INPUT' } })
+        }
+        if (castPct < 1 || castPct > 100) {
+          throw new GraphQLError(`forward percentage [${castPct}] is not within the allowed range of 1, 100 inclusive`, { extensions: { code: 'BAD_INPUT' } })
+        }
+      })
+      if (forward.map(fwd => Number(fwd.pct)).reduce((sum, cur) => sum + cur, 0) > 100) {
+        throw new GraphQLError('the total forward percentage exceeds 100%', { extensions: { code: 'BAD_INPUT' } })
+      }
+      const userQueryResults = await Promise.allSettled(
+        forward.map(fwd => (models.user.findUnique({ where: { name: fwd.nym } })))
+      )
+      userQueryResults.forEach((promise, index) => {
+        if (promise.status === 'fulfilled') {
+          fwdUsers.push({ user: promise.value, pct: forward[index].pct })
+        } else {
+          throw new GraphQLError(`forward user [@${forward[index].nym}] does not exist`, { extensions: { code: 'BAD_INPUT' } })
+        }
+      })
     }
   }
 
@@ -1157,7 +1190,7 @@ const createItem = async (parent, { sub, title, url, text, boost, forward, bount
     bounty ? Number(bounty) : null,
     Number(parentId),
     Number(author.id),
-    Number(fwdUser?.id)),
+    Number(fwdUsers?.id)),
     ...trx)
   const item = trx.length > 0 ? query[0] : query
 

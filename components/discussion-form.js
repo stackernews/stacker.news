@@ -29,7 +29,7 @@ export function DiscussionForm ({
   // const me = useMe()
   const [upsertDiscussion] = useMutation(
     gql`
-      mutation upsertDiscussion($sub: String, $id: ID, $title: String!, $text: String, $boost: Int, $forward: String, $invoiceHash: String, $invoiceHmac: String) {
+      mutation upsertDiscussion($sub: String, $id: ID, $title: String!, $text: String, $boost: Int, $forward: [ItemForwardInput], $invoiceHash: String, $invoiceHmac: String) {
         upsertDiscussion(sub: $sub, id: $id, title: $title, text: $text, boost: $boost, forward: $forward, invoiceHash: $invoiceHash, invoiceHmac: $invoiceHmac) {
           id
         }
@@ -39,7 +39,15 @@ export function DiscussionForm ({
   const submitUpsertDiscussion = useCallback(
     async (_, boost, values, invoiceHash, invoiceHmac) => {
       const { error } = await upsertDiscussion({
-        variables: { sub: item?.subName || sub?.name, id: item?.id, boost: boost ? Number(boost) : undefined, ...values, invoiceHash, invoiceHmac }
+        variables: {
+          sub: item?.subName || sub?.name,
+          id: item?.id,
+          boost: boost ? Number(boost) : undefined,
+          ...values,
+          forward: values.forward ? values.forward.map(fwd => ({ ...fwd, pct: Number(fwd.pct) })) : undefined,
+          invoiceHash,
+          invoiceHmac
+        }
       })
       if (error) {
         throw new Error({ message: error.toString() })

@@ -8,7 +8,7 @@ import { numWithUnits } from '../lib/format'
 export function AdvPostInitial ({ forward }) {
   return {
     boost: '',
-    forward: forward || ''
+    forward: forward || []
   }
 }
 
@@ -44,13 +44,92 @@ export default function AdvPostForm ({ edit }) {
             hint={<span className='text-muted'>ranks posts higher temporarily based on the amount</span>}
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
           />
-          <InputUserSuggest
-            label={<>forward sats to</>}
-            name='forward'
-            hint={<span className='text-muted'>100% of sats will be sent to this stacker</span>}
-            prepend={<InputGroup.Text>@</InputGroup.Text>}
-            showValid
-          />
+          <div>Forward sats to up to 5 other stackers</div>
+          <div>
+            <InputUserSuggest
+              label={<>forward sats to</>}
+              name='forward[0].nym'
+              prepend={<InputGroup.Text>@</InputGroup.Text>}
+              showValid
+            />
+            <Input
+              label={<>percent</>}
+              name='forward[0].pct'
+              showValid
+              type='number'
+              step='1'
+              min='1'
+              max='100'
+            />
+          </div>
+          <div>
+            <InputUserSuggest
+              label={<>forward sats to</>}
+              name='forward[1].nym'
+              prepend={<InputGroup.Text>@</InputGroup.Text>}
+              showValid
+            />
+            <Input
+              label={<>percent</>}
+              name='forward[1].pct'
+              showValid
+              type='number'
+              step='1'
+              min='1'
+              max='100'
+            />
+          </div>
+          <div>
+            <InputUserSuggest
+              label={<>forward sats to</>}
+              name='forward[2].nym'
+              prepend={<InputGroup.Text>@</InputGroup.Text>}
+              showValid
+            />
+            <Input
+              label={<>percent</>}
+              name='forward[2].pct'
+              showValid
+              type='number'
+              step='1'
+              min='1'
+              max='100'
+            />
+          </div>
+          <div>
+            <InputUserSuggest
+              label={<>forward sats to</>}
+              name='forward[3].nym'
+              prepend={<InputGroup.Text>@</InputGroup.Text>}
+              showValid
+            />
+            <Input
+              label={<>percent</>}
+              name='forward[3].pct'
+              showValid
+              type='number'
+              step='1'
+              min='1'
+              max='100'
+            />
+          </div>
+          <div>
+            <InputUserSuggest
+              label={<>forward sats to</>}
+              name='forward[4].nym'
+              prepend={<InputGroup.Text>@</InputGroup.Text>}
+              showValid
+            />
+            <Input
+              label={<>percent</>}
+              name='forward[4].pct'
+              showValid
+              type='number'
+              step='1'
+              min='1'
+              max='100'
+            />
+          </div>
         </>
       }
     />

@@ -84,6 +84,7 @@ model User {
   referrees           User[]               @relation("referrals")
   Account             Account[]
   Session             Session[]
+  // itemForwards        ItemForward[]
 
   @@index([createdAt], map: "users.created_at_index")
   @@index([inviteId], map: "users.inviteId_index")
@@ -264,6 +265,7 @@ model Item {
   ThreadSubscription ThreadSubscription[]
   upload             Upload?
   User               User[]
+  // itemForwards       ItemForward[]
 
   @@index([bio], map: "Item.bio_index")
   @@index([createdAt], map: "Item.created_at_index")
@@ -281,6 +283,17 @@ model Item {
   @@index([weightedDownVotes], map: "Item.weightedDownVotes_index")
   @@index([weightedVotes], map: "Item.weightedVotes_index")
 }
+
+// model ItemForward {
+//   id        Int      @id @default(autoincrement())
+//   createdAt DateTime @default(now()) @map("created_at")
+//   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+//   itemId    Int      // The item from which sats are forwarded
+//   userId    Int      // The recipient of the forwarded sats
+//   pct       Int      // The percentage of sats from the item to forward to this user
+//   item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+//   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+// }
 
 model PollOption {
   id        Int        @id @default(autoincrement())

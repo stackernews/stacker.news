@@ -49,6 +49,7 @@ model User {
   fiatCurrency        String               @default("USD")
   hideFromTopUsers    Boolean              @default(false)
   turboTipping        Boolean              @default(false)
+  clickToLoadImg      Boolean              @default(false)
   referrerId          Int?
   nostrPubkey         String?
   nostrAuthPubkey     String?              @unique(map: "users.nostrAuthPubkey_unique")

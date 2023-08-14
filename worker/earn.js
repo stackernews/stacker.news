@@ -1,4 +1,5 @@
 const serialize = require('../api/resolvers/serial')
+const { ANON_USER_ID } = require('../lib/constants')
 
 // const ITEM_EACH_REWARD = 3.0
 // const UPVOTE_EACH_REWARD = 6.0
@@ -22,6 +23,12 @@ function earn ({ models }) {
         (SELECT sats * 1000 as msats
           FROM "Donation"
           WHERE date_trunc('day', created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = date_trunc('day', (now() - interval '1 day') AT TIME ZONE 'America/Chicago'))
+          UNION ALL
+        (SELECT "ItemAct".msats
+            FROM "Item"
+            JOIN "ItemAct" ON "ItemAct"."itemId" = "Item".id
+            WHERE "Item"."userId" = ${ANON_USER_ID} AND "ItemAct".act = 'TIP' AND "Item"."fwdUserId" IS NULL
+            AND date_trunc('day', "ItemAct".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = date_trunc('day', (now() - interval '1 day') AT TIME ZONE 'America/Chicago'))
       ) subquery`
 
     // XXX primsa will return a Decimal (https://mikemcl.github.io/decimal.js)

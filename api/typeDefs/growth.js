@@ -3,7 +3,7 @@ import { gql } from 'graphql-tag'
 export default gql`
   type NameValue {
     name: String!
-    value: Int!
+    value: Float!
   }
 
   extend type Query {

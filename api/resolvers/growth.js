@@ -132,7 +132,8 @@ export default {
           SELECT date_trunc('${timeUnit(when)}', day) as time, json_build_array(
             json_build_object('name', 'posts', 'value', sum(posts)),
             json_build_object('name', 'comments', 'value', sum(comments)),
-            json_build_object('name', 'jobs', 'value', sum(jobs))
+            json_build_object('name', 'jobs', 'value', sum(jobs)),
+            json_build_object('name', 'comments/posts', 'value', ROUND(sum(comments)/GREATEST(sum(posts), 1), 2))
           ) AS data
           FROM item_growth_days
           WHERE ${viewIntervalClause(when, 'item_growth_days', false)}
@@ -145,7 +146,8 @@ export default {
         SELECT time, json_build_array(
           json_build_object('name', 'comments', 'value', count("parentId")),
           json_build_object('name', 'jobs', 'value', count("subName") FILTER (WHERE "subName" = 'jobs')),
-          json_build_object('name', 'posts', 'value', count("Item".id)-count("parentId")-(count("subName") FILTER (WHERE "subName" = 'jobs')))
+          json_build_object('name', 'posts', 'value', count("Item".id)-count("parentId")-(count("subName") FILTER (WHERE "subName" = 'jobs'))),
+          json_build_object('name', 'comments/posts', 'value', ROUND(count("parentId")/GREATEST(count("Item".id)-count("parentId"), 1), 2))
         ) AS data
         FROM times
         LEFT JOIN "Item" ON ${intervalClause(when, 'Item', true)} time = date_trunc('${timeUnit(when)}', created_at)

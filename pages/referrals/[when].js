@@ -57,7 +57,7 @@ export default function Referrals ({ ssrData }) {
           onChange={(formik, e) => router.push(`/referrals/${e.target.value}`)}
         />
       </h4>
-      <WhenComposedChart data={stats} lineNames={['sats']} barNames={['referrals']} />
+      <WhenComposedChart data={stats} lineNames={['sats']} barNames={['referrals']} barAxis='right' />
 
       <div
         className='text-small pt-5 px-3 d-flex w-100 align-items-center'

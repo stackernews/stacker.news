@@ -133,7 +133,12 @@ export function WhenLineChart ({ data }) {
   )
 }
 
-export function WhenComposedChart ({ data, lineNames, areaNames, barNames }) {
+export function WhenComposedChart ({
+  data,
+  lineNames = [], lineAxis = 'left',
+  areaNames = [], areaAxis = 'left',
+  barNames = [], barAxis = 'left'
+}) {
   const router = useRouter()
   if (!data || data.length === 0) {
     return null
@@ -163,11 +168,11 @@ export function WhenComposedChart ({ data, lineNames, areaNames, barNames }) {
         <Tooltip labelFormatter={dateFormatter(when)} contentStyle={{ color: 'var(--bs-body-color)', backgroundColor: 'var(--bs-body-bg)' }} />
         <Legend />
         {barNames?.map((v, i) =>
-          <Bar yAxisId='right' key={v} type='monotone' dataKey={v} name={v} stroke='var(--bs-info)' fill='var(--bs-info)' />)}
+          <Bar yAxisId={barAxis} key={v} type='monotone' dataKey={v} name={v} stroke='var(--bs-info)' fill='var(--bs-info)' />)}
         {areaNames?.map((v, i) =>
-          <Area yAxisId='left' key={v} type='monotone' dataKey={v} name={v} stackId='1' stroke={COLORS[i]} fill={COLORS[i]} />)}
+          <Area yAxisId={areaAxis} key={v} type='monotone' dataKey={v} name={v} stackId='1' stroke={COLORS[i]} fill={COLORS[i]} />)}
         {lineNames?.map((v, i) =>
-          <Line yAxisId='left' key={v} type='monotone' dataKey={v} name={v} stackId='1' stroke={COLORS[i]} fill={COLORS[i]} />)}
+          <Line yAxisId={lineAxis} key={v} type='monotone' dataKey={v} name={v} stackId='1' stroke={COLORS[areaNames.length + i]} />)}
       </ComposedChart>
     </ResponsiveContainer>
   )

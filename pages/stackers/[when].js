@@ -14,6 +14,9 @@ const WhenAreaChart = dynamic(() => import('../../components/charts').then(mod =
 const WhenLineChart = dynamic(() => import('../../components/charts').then(mod => mod.WhenLineChart), {
   loading: () => <div>Loading...</div>
 })
+const WhenComposedChart = dynamic(() => import('../../components/charts').then(mod => mod.WhenComposedChart), {
+  loading: () => <div>Loading...</div>
+})
 
 const GROWTH_QUERY = gql`
   query Growth($when: String!)
@@ -104,7 +107,7 @@ export default function Growth ({ ssrData }) {
         </Col>
         <Col className='mt-3'>
           <div className='text-center text-muted fw-bold'>items</div>
-          <WhenAreaChart data={itemGrowth} />
+          <WhenComposedChart data={itemGrowth} areaNames={['posts', 'comments', 'jobs']} areaAxis='left' lineNames={['comments/posts']} lineAxis='right' />
         </Col>
       </Row>
     </Layout>

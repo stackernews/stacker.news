@@ -900,9 +900,12 @@ export default {
       }
       return await models.user.findUnique({ where: { id: item.userId } })
     },
-    // forwardUsers: async (item, args, { models }) => {
-    //   return await models.itemForward.find({ where: { itemId: item.id } })
-    // },
+    forwards: async (item, args, { models }) => {
+      const forwards = await models.itemForward.findMany({ where: { itemId: item.id } })
+      const userPromises = forwards.map(fwd => models.user.findUnique({ where: { id: fwd.userId } }))
+      const userResults = await Promise.allSettled(userPromises)
+      return forwards.map((fwd, index) => ({ ...fwd, user: userResults[index].value ?? null }))
+    },
     comments: async (item, { sort }, { me, models }) => {
       if (typeof item.comments !== 'undefined') return item.comments
       if (item.ncomments === 0) return []

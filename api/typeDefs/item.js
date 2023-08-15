@@ -113,16 +113,7 @@ export default gql`
     uploadId: Int
     otsHash: String
     parentOtsHash: String
-    itemForwards: [ItemForward]
-  }
-
-  type ItemForward {
-    id: ID!
-    created_at: Date!
-    updated_at: Date!
-    itemId: Int!
-    userId: Int!
-    pct: Int!
+    forwards: [ItemForward]
   }
 
   input ItemForwardInput {

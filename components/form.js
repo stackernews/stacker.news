@@ -321,6 +321,14 @@ function InputInner ({
 }
 
 export function InputUserSuggest ({ label, groupClassName, ...props }) {
+  const formik = useFormikContext()
+  const blurFunc = (e) => {
+    formik.handleBlur(e)
+    if (!document.getElementsByClassName(groupClassName)[0].contains(e.relatedTarget)) {
+      setSuggestions(INITIAL_SUGGESTIONS)
+    }
+  }
+
   const [getSuggestions] = useLazyQuery(USER_SEARCH, {
     onCompleted: data => {
       setSuggestions({ array: data.searchUsers, index: 0 })
@@ -370,11 +378,7 @@ export function InputUserSuggest ({ label, groupClassName, ...props }) {
               break
           }
         }}
-        onBlur={(e) => {
-          if (!document.getElementsByClassName(groupClassName)[0].contains(e.relatedTarget)) {
-            setSuggestions(INITIAL_SUGGESTIONS)
-          }
-        }}
+        onBlur={blurFunc}
       />
       <Dropdown show={suggestions.array.length > 0}>
         <Dropdown.Menu className={styles.suggestionsMenu}>
@@ -386,11 +390,7 @@ export function InputUserSuggest ({ label, groupClassName, ...props }) {
                 setOValue(v.name)
                 setSuggestions(INITIAL_SUGGESTIONS)
               }}
-              onBlur={(e) => {
-                if (!document.getElementsByClassName(groupClassName)[0].contains(e.relatedTarget)) {
-                  setSuggestions(INITIAL_SUGGESTIONS)
-                }
-              }}
+              onBlur={blurFunc}
             >
               {v.name}
             </Dropdown.Item>)}

@@ -179,15 +179,19 @@ export function WhenComposedChart ({
 }
 
 export function GrowthPieChart ({ data }) {
+  const nonZeroData = data.filter(d => d.value > 0)
+
   return (
     <ResponsiveContainer width='100%' height={250} minWidth={200}>
       <PieChart margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
         <Pie
           dataKey='value'
           isAnimationActive={false}
-          data={data}
+          data={nonZeroData}
           cx='50%'
           cy='50%'
+          minAngle={5}
+          paddingAngle={0}
           outerRadius={80}
           fill='var(--bs-secondary)'
           label

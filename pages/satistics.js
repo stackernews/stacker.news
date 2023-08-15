@@ -87,9 +87,9 @@ function Satus ({ status }) {
 function Detail ({ fact }) {
   if (fact.type === 'earn') {
     return (
-      <div className='px-3' style={{ lineHeight: '140%' }}>
-        SN distributes the sats it earns back to its best stackers daily. These sats come from <Link href='/~jobs'>jobs</Link>, boosts, posting fees, and donations. You can see the daily rewards pool and make a donation <Link href='/rewards'>here</Link>.
-      </div>
+      <Link href={`/rewards/${new Date(fact.createdAt).toISOString().slice(0, 10)}`} className='px-3 text-reset' style={{ lineHeight: '140%' }}>
+        SN distributes the sats it earns back to its best stackers daily. These sats come from <Link href='/~jobs'>jobs</Link>, boosts, posting fees, and donations.
+      </Link>
     )
   }
   if (fact.type === 'donation') {

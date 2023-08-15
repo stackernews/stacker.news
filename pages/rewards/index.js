@@ -2,26 +2,26 @@ import { gql } from 'graphql-tag'
 import { useMemo } from 'react'
 import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
-import { getGetServerSideProps } from '../api/ssrApollo'
-import { Form, Input, SubmitButton } from '../components/form'
-import { CenterLayout } from '../components/layout'
+import { getGetServerSideProps } from '../../api/ssrApollo'
+import { Form, Input, SubmitButton } from '../../components/form'
+import { CenterLayout } from '../../components/layout'
 import { useMutation, useQuery } from '@apollo/client'
 import Link from 'next/link'
-import { amountSchema } from '../lib/validate'
+import { amountSchema } from '../../lib/validate'
 import Countdown from 'react-countdown'
-import { numWithUnits } from '../lib/format'
-import PageLoading from '../components/page-loading'
-import { useShowModal } from '../components/modal'
+import { numWithUnits } from '../../lib/format'
+import PageLoading from '../../components/page-loading'
+import { useShowModal } from '../../components/modal'
 import dynamic from 'next/dynamic'
-import { SSR } from '../lib/constants'
+import { SSR } from '../../lib/constants'
 
-const GrowthPieChart = dynamic(() => import('../components/charts').then(mod => mod.GrowthPieChart), {
+const GrowthPieChart = dynamic(() => import('../../components/charts').then(mod => mod.GrowthPieChart), {
   loading: () => <div>Loading...</div>
 })
 
 const REWARDS = gql`
 {
-  expectedRewards {
+  rewards {
     total
     sources {
       name
@@ -66,7 +66,7 @@ export default function Rewards ({ ssrData }) {
   const { data } = useQuery(REWARDS, SSR ? {} : { pollInterval: 1000, nextFetchPolicy: 'cache-and-network' })
   if (!data && !ssrData) return <PageLoading />
 
-  const { expectedRewards: { total, sources } } = data || ssrData
+  const { rewards: { total, sources } } = data || ssrData
 
   return (
     <CenterLayout footerLinks>
@@ -74,7 +74,7 @@ export default function Rewards ({ ssrData }) {
         <div>
           <RewardLine total={total} />
         </div>
-        <Link href='/faq#how-do-i-earn-sats-on-stacker-news' className='text-reset'>
+        <Link href='/faq#how-do-i-earn-sats-on-stacker-news' className='text-info fw-normal'>
           <small><small><small>learn about rewards</small></small></small>
         </Link>
       </h4>

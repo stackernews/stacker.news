@@ -22,7 +22,7 @@ $theme-colors: (
   "grey" : #e9ecef,
   "grey-medium" : #d2d2d2,
   "grey-darkmode": #8c8c8c,
-  "nostr": #8d45dd,
+  "nostr": #8d45dd
 );
 
 $body-bg: #fcfcff;
@@ -165,6 +165,10 @@ $grid-gutter-width: 2rem;
   .standalone {
     display: flex
   }
+}
+
+.text-primary svg {
+  fill: var(--bs-primary);
 }
 
 .line-height-1 {

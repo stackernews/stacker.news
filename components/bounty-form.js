@@ -10,6 +10,7 @@ import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
 import { useCallback } from 'react'
 import { useInvoiceable } from './invoice'
+import { normalizeForwards } from '../lib/form'
 
 export function BountyForm ({
   item,
@@ -34,7 +35,7 @@ export function BountyForm ({
         $bounty: Int!
         $text: String
         $boost: Int
-        $forward: String
+        $forward: [ItemForwardInput]
       ) {
         upsertBounty(
           sub: $sub
@@ -60,7 +61,8 @@ export function BountyForm ({
           id: item?.id,
           boost: boost ? Number(boost) : undefined,
           bounty: bounty ? Number(bounty) : undefined,
-          ...values
+          ...values,
+          forward: normalizeForwards(values.forward)
         }
       })
       if (error) {

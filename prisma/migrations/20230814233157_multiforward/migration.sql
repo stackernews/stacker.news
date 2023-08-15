@@ -138,3 +138,56 @@ BEGIN
     RETURN item;
 END;
 $$;
+
+DROP FUNCTION IF EXISTS create_poll(
+    sub TEXT, title TEXT, text TEXT, poll_cost INTEGER, boost INTEGER, user_id INTEGER,
+    options TEXT[], fwd_user_id INTEGER, spam_within INTERVAL);
+
+CREATE OR REPLACE FUNCTION create_poll(
+    sub TEXT, title TEXT, text TEXT, poll_cost INTEGER, boost INTEGER, user_id INTEGER,
+    options TEXT[], forward JSON, spam_within INTERVAL)
+RETURNS "Item"
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    item "Item";
+    option TEXT;
+BEGIN
+    PERFORM ASSERT_SERIALIZED();
+
+    item := create_item(sub, title, null, text, boost, null, null, user_id, forward, spam_within);
+
+    UPDATE "Item" set "pollCost" = poll_cost where id = item.id;
+    FOREACH option IN ARRAY options LOOP
+        INSERT INTO "PollOption" (created_at, updated_at, "itemId", "option") values (now_utc(), now_utc(), item.id, option);
+    END LOOP;
+
+    RETURN item;
+END;
+$$;
+
+DROP FUNCTION IF EXISTS update_poll(
+    sub TEXT, id INTEGER, title TEXT, text TEXT, boost INTEGER,
+    options TEXT[], fwd_user_id INTEGER);
+
+CREATE OR REPLACE FUNCTION update_poll(
+    sub TEXT, id INTEGER, title TEXT, text TEXT, boost INTEGER,
+    options TEXT[], forward JSON)
+RETURNS "Item"
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    item "Item";
+    option TEXT;
+BEGIN
+    PERFORM ASSERT_SERIALIZED();
+
+    item := update_item(sub, id, title, null, text, boost, null, forward);
+
+    FOREACH option IN ARRAY options LOOP
+        INSERT INTO "PollOption" (created_at, updated_at, "itemId", "option") values (now_utc(), now_utc(), item.id, option);
+    END LOOP;
+
+    RETURN item;
+END;
+$$;

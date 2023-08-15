@@ -15,6 +15,7 @@ import Moon from '../svgs/moon-fill.svg'
 import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
 import { useInvoiceable } from './invoice'
+import { normalizeForwards } from '../lib/form'
 
 export function LinkForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
@@ -67,7 +68,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
 
   const [upsertLink] = useMutation(
     gql`
-      mutation upsertLink($sub: String, $id: ID, $title: String!, $url: String!, $boost: Int, $forward: String, $invoiceHash: String, $invoiceHmac: String) {
+      mutation upsertLink($sub: String, $id: ID, $title: String!, $url: String!, $boost: Int, $forward: [ItemForwardInput], $invoiceHash: String, $invoiceHmac: String) {
         upsertLink(sub: $sub, id: $id, title: $title, url: $url, boost: $boost, forward: $forward, invoiceHash: $invoiceHash, invoiceHmac: $invoiceHmac) {
           id
         }
@@ -77,7 +78,16 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
   const submitUpsertLink = useCallback(
     async (_, boost, title, values, invoiceHash, invoiceHmac) => {
       const { error } = await upsertLink({
-        variables: { sub: item?.subName || sub?.name, id: item?.id, boost: boost ? Number(boost) : undefined, title: title.trim(), invoiceHash, invoiceHmac, ...values }
+        variables: {
+          sub: item?.subName || sub?.name,
+          id: item?.id,
+          boost: boost ? Number(boost) : undefined,
+          title: title.trim(),
+          invoiceHash,
+          invoiceHmac,
+          ...values,
+          forward: normalizeForwards(values.forward)
+        }
       })
       if (error) {
         throw new Error({ message: error.toString() })

@@ -63,7 +63,6 @@ model User {
   Earn                Earn[]
   invites             Invite[]             @relation("Invites")
   invoices            Invoice[]
-  fwdItems            Item[]               @relation("FwdItem")
   items               Item[]               @relation("UserItems")
   actions             ItemAct[]
   mentions            Mention[]
@@ -228,7 +227,6 @@ model Item {
   statusUpdatedAt    DateTime?
   status             Status                @default(ACTIVE)
   company            String?
-  fwdUserId          Int?
   weightedVotes      Float                 @default(0)
   boost              Int                   @default(0)
   uploadId           Int?
@@ -250,7 +248,6 @@ model Item {
   upvotes            Int                   @default(0)
   weightedComments   Float                 @default(0)
   Bookmark           Bookmark[]
-  fwdUser            User?                 @relation("FwdItem", fields: [fwdUserId], references: [id])
   parent             Item?                 @relation("ParentChildren", fields: [parentId], references: [id])
   children           Item[]                @relation("ParentChildren")
   pin                Pin?                  @relation(fields: [pinId], references: [id])

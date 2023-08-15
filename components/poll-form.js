@@ -12,6 +12,7 @@ import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
 import { useCallback } from 'react'
 import { useInvoiceable } from './invoice'
+import { normalizeForwards } from '../lib/form'
 
 export function PollForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
@@ -21,7 +22,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
   const [upsertPoll] = useMutation(
     gql`
       mutation upsertPoll($sub: String, $id: ID, $title: String!, $text: String,
-        $options: [String!]!, $boost: Int, $forward: String, $invoiceHash: String, $invoiceHmac: String) {
+        $options: [String!]!, $boost: Int, $forward: [ItemForwardInput], $invoiceHash: String, $invoiceHmac: String) {
         upsertPoll(sub: $sub, id: $id, title: $title, text: $text,
           options: $options, boost: $boost, forward: $forward, invoiceHash: $invoiceHash, invoiceHmac: $invoiceHmac) {
           id
@@ -40,6 +41,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
           title: title.trim(),
           options: optionsFiltered,
           ...values,
+          forward: normalizeForwards(values.forward),
           invoiceHash,
           invoiceHmac
         }

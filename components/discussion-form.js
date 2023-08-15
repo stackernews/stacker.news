@@ -14,6 +14,7 @@ import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
 import { useCallback } from 'react'
 import { useInvoiceable } from './invoice'
+import { normalizeForwards } from '../lib/form'
 
 export function DiscussionForm ({
   item, sub, editThreshold, titleLabel = 'title',
@@ -44,7 +45,7 @@ export function DiscussionForm ({
           id: item?.id,
           boost: boost ? Number(boost) : undefined,
           ...values,
-          forward: values.forward ? values.forward.map(fwd => ({ ...fwd, pct: Number(fwd.pct) })) : undefined,
+          forward: normalizeForwards(values.forward),
           invoiceHash,
           invoiceHmac
         }

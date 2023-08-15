@@ -6,7 +6,7 @@ class MyDocument extends Document {
     return (
       <Html lang='en'>
         <Head>
-          <link rel='manifest' href='/site.webmanifest' />
+          <link rel='manifest' href='/api/site.webmanifest' />
           <link rel='preload' href={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.woff2`} as='font' type='font/woff2' crossOrigin='' />
           <link rel='preload' href={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.woff`} as='font' type='font/woff' crossOrigin='' />
           <link rel='preload' href={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.ttf`} as='font' type='font/ttf' crossOrigin='' />

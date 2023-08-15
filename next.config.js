@@ -45,6 +45,17 @@ module.exports = withPlausibleProxy()({
   async headers () {
     return [
       {
+        source: '/',
+        headers: [
+          {
+            // This tells the browser to send this client hint in subsequent requests
+            // Only added to the "/" path since that's what is initially loaded for the PWA
+            key: 'Accept-CH',
+            value: 'Sec-CH-Prefers-Color-Scheme'
+          }
+        ]
+      },
+      {
         source: '/_next/:asset*',
         headers: corsHeaders
       },

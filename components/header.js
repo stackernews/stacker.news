@@ -78,7 +78,7 @@ function NavProfileMenu ({ me, dropNavKey }) {
       <Dropdown className={styles.dropdown} align='end'>
         <Dropdown.Toggle className='nav-link nav-item' id='profile' variant='custom'>
           <Nav.Link eventKey={me.name} as='span' className='p-0'>
-            {`@${me.name}`}<CowboyHat user={me} />
+            {`@${me.name}`}<Hat user={me} />
           </Nav.Link>
         </Dropdown.Toggle>
         <Dropdown.Menu>

@@ -57,14 +57,15 @@ const sendNotification = (subscription, payload) => {
   }
   const { id, endpoint, p256dh, auth } = subscription
   return webPush.sendNotification({ endpoint, keys: { p256dh, auth } }, payload)
-    .catch((err) => {
+    .catch(async (err) => {
       if (err.statusCode === 400) {
         console.log('[webPush] invalid request: ', err)
       } else if ([401, 403].includes(err.statusCode)) {
         console.log('[webPush] auth error: ', err)
       } else if (err.statusCode === 404 || err.statusCode === 410) {
         console.log('[webPush] subscription has expired or is no longer valid: ', err)
-        return models.pushSubscription.delete({ where: { id } })
+        const deletedSubscripton = await models.pushSubscription.delete({ where: { id } })
+        console.log(`[webPush] deleted subscription ${id} of user ${deletedSubscripton.userId} due to push error`)
       } else if (err.statusCode === 413) {
         console.log('[webPush] payload too large: ', err)
       } else if (err.statusCode === 429) {

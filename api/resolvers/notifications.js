@@ -238,10 +238,12 @@ export default {
         dbPushSubscription = await models.pushSubscription.update({
           data: { userId: me.id, endpoint, p256dh, auth }, where: { endpoint: oldEndpoint }
         })
+        console.log(`[webPush] updated subscription of user ${me.id}: old=${oldEndpoint} new=${endpoint}`)
       } else {
         dbPushSubscription = await models.pushSubscription.create({
           data: { userId: me.id, endpoint, p256dh, auth }
         })
+        console.log(`[webPush] created subscription for user ${me.id}: endpoint=${endpoint}`)
       }
 
       await replyToSubscription(dbPushSubscription.id, { title: 'Stacker News notifications are now active' })
@@ -257,8 +259,10 @@ export default {
       if (!subscription) {
         throw new GraphQLError('endpoint not found', { extensions: { code: 'BAD_INPUT' } })
       }
-      await models.pushSubscription.delete({ where: { id: subscription.id } })
-      return subscription
+      const deletedSubscription = await models.pushSubscription.delete({ where: { id: subscription.id } })
+      console.log(`[webPush] deleted subscription ${deletedSubscription.id} of user ${deletedSubscription.userId} due to client request`)
+
+      return deletedSubscription
     }
   },
   Notification: {

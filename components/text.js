@@ -17,6 +17,7 @@ import copy from 'clipboard-copy'
 import { IMGPROXY_URL_REGEXP, IMG_URL_REGEXP } from '../lib/url'
 import { extractUrls } from '../lib/md'
 import FileMissing from '../svgs/file-warning-line.svg'
+import { useMe } from './me'
 
 function searchHighlighter () {
   return (tree) => {
@@ -33,6 +34,15 @@ function searchHighlighter () {
       }
     })
   }
+}
+
+function decodeOriginalUrl (imgProxyUrl) {
+  const parts = imgProxyUrl.split('/')
+  // base64url is not a known encoding in browsers
+  // so we need to replace the invalid chars
+  const b64Url = parts[parts.length - 1].replace(/-/g, '+').replace(/_/, '/')
+  const originalUrl = Buffer.from(b64Url, 'base64').toString('utf-8')
+  return originalUrl
 }
 
 function Heading ({ h, slugger, noFragments, topLevel, children, node, ...props }) {
@@ -183,8 +193,16 @@ export default memo(function Text ({ topLevel, noFragments, nofollow, onlyImgPro
   )
 })
 
+function ClickToLoad ({ children }) {
+  const [clicked, setClicked] = useState(false)
+  return clicked ? children : <div className='m-1 fst-italic pointer text-muted' onClick={() => setClicked(true)}>click to load image</div>
+}
+
 export function ZoomableImage ({ src, topLevel, ...props }) {
+  const me = useMe()
   const [err, setErr] = useState()
+  const [imgSrc, setImgSrc] = useState(src)
+  const [isImgProxy, setIsImgProxy] = useState(IMGPROXY_URL_REGEXP.test(src))
   const defaultMediaStyle = {
     maxHeight: topLevel ? '75vh' : '25vh',
     cursor: 'zoom-in'
@@ -199,19 +217,31 @@ export function ZoomableImage ({ src, topLevel, ...props }) {
 
   if (!src) return null
   if (err) {
-    return (
-      <span className='d-flex align-items-baseline text-warning-emphasis fw-bold pb-1'>
-        <FileMissing width={18} height={18} className='fill-warning me-1 align-self-center' />
-        broken image <small className='ms-1'>stacker probably used an unreliable host</small>
-      </span>
-    )
+    if (!isImgProxy) {
+      return (
+        <span className='d-flex align-items-baseline text-warning-emphasis fw-bold pb-1'>
+          <FileMissing width={18} height={18} className='fill-warning me-1 align-self-center' />
+          image error
+        </span>
+      )
+    }
+    try {
+      const originalUrl = decodeOriginalUrl(src)
+      setImgSrc(originalUrl)
+      setErr(null)
+    } catch (err) {
+      console.error(err)
+      setErr(err)
+    }
+    // always set to false since imgproxy returned error
+    setIsImgProxy(false)
   }
 
-  return (
+  const img = (
     <img
       className={topLevel ? styles.topLevel : undefined}
       style={mediaStyle}
-      src={src}
+      src={imgSrc}
       onClick={() => {
         if (mediaStyle.cursor === 'zoom-in') {
           setMediaStyle({
@@ -225,5 +255,12 @@ export function ZoomableImage ({ src, topLevel, ...props }) {
       onError={() => setErr(true)}
       {...props}
     />
+  )
+
+  return (
+    (!me || !me.clickToLoadImg || isImgProxy)
+      ? img
+      : <ClickToLoad>{img}</ClickToLoad>
+
   )
 }

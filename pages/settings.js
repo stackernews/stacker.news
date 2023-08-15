@@ -69,6 +69,7 @@ export default function Settings ({ ssrData }) {
             hideInvoiceDesc: settings?.hideInvoiceDesc,
             hideFromTopUsers: settings?.hideFromTopUsers,
             hideCowboyHat: settings?.hideCowboyHat,
+            clickToLoadImg: settings?.clickToLoadImg,
             wildWestMode: settings?.wildWestMode,
             greeterMode: settings?.greeterMode,
             nostrPubkey: settings?.nostrPubkey ? bech32encode(settings.nostrPubkey) : '',
@@ -215,6 +216,11 @@ export default function Settings ({ ssrData }) {
           <Checkbox
             label={<>hide my cowboy hat</>}
             name='hideCowboyHat'
+            groupClassName='mb-0'
+          />
+          <Checkbox
+            label={<>click to load external images</>}
+            name='clickToLoadImg'
           />
           <div className='form-label'>content</div>
           <Checkbox

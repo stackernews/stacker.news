@@ -23,7 +23,7 @@ export default gql`
     setSettings(tipDefault: Int!, turboTipping: Boolean!, fiatCurrency: String!, noteItemSats: Boolean!,
       noteEarning: Boolean!, noteAllDescendants: Boolean!, noteMentions: Boolean!, noteDeposits: Boolean!,
       noteInvites: Boolean!, noteJobIndicator: Boolean!, noteCowboyHat: Boolean!, hideInvoiceDesc: Boolean!,
-      hideFromTopUsers: Boolean!, hideCowboyHat: Boolean!,
+      hideFromTopUsers: Boolean!, hideCowboyHat: Boolean!, clickToLoadImg: Boolean!,
       wildWestMode: Boolean!, greeterMode: Boolean!, nostrPubkey: String, nostrRelays: [String!]): User
     setPhoto(photoId: ID!): Int!
     upsertBio(bio: String!): User!
@@ -80,6 +80,7 @@ export default gql`
     hideInvoiceDesc: Boolean!
     hideFromTopUsers: Boolean!
     hideCowboyHat: Boolean!
+    clickToLoadImg: Boolean!
     wildWestMode: Boolean!
     greeterMode: Boolean!
     lastCheckedJobs: String

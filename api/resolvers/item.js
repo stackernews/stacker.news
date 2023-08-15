@@ -1167,7 +1167,7 @@ const createItem = async (parent, { sub, title, url, text, boost, forward, bount
       )
       userQueryResults.forEach((promise, index) => {
         if (promise.status === 'fulfilled') {
-          fwdUsers.push({ user: promise.value, pct: forward[index].pct })
+          fwdUsers.push({ userId: promise.value.id, pct: forward[index].pct })
         } else {
           throw new GraphQLError(`forward user [@${forward[index].nym}] does not exist`, { extensions: { code: 'BAD_INPUT' } })
         }
@@ -1181,7 +1181,7 @@ const createItem = async (parent, { sub, title, url, text, boost, forward, bount
   const [query] = await serialize(
     models,
     models.$queryRawUnsafe(
-    `${SELECT} FROM create_item($1, $2, $3, $4, $5::INTEGER, $6::INTEGER, $7::INTEGER, $8::INTEGER, $9::INTEGER, '${spamInterval}') AS "Item"`,
+    `${SELECT} FROM create_item($1, $2, $3, $4, $5::INTEGER, $6::INTEGER, $7::INTEGER, $8::INTEGER, $9::JSON, '${spamInterval}') AS "Item"`,
     parentId ? null : sub || 'bitcoin',
     title,
     url,
@@ -1190,7 +1190,7 @@ const createItem = async (parent, { sub, title, url, text, boost, forward, bount
     bounty ? Number(bounty) : null,
     Number(parentId),
     Number(author.id),
-    Number(fwdUsers?.id)),
+    JSON.stringify(fwdUsers)),
     ...trx)
   const item = trx.length > 0 ? query[0] : query
 

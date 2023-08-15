@@ -1,6 +1,7 @@
 import path from 'path'
 import AWS from 'aws-sdk'
 import { PassThrough } from 'stream'
+import { datePivot } from '../../../lib/time'
 const { spawn } = require('child_process')
 const encodeS3URI = require('node-s3-url-encode')
 
@@ -28,7 +29,7 @@ export default async function handler (req, res) {
     aws.headObject({
       Bucket: bucketName,
       Key: s3PathPUT,
-      IfModifiedSince: new Date(new Date().getTime() - 15 * 60000)
+      IfModifiedSince: datePivot(new Date(), { minutes: -15 })
     }).promise().then(() => {
       // this path is cached so return it
       res.writeHead(302, { Location: bucketUrl + s3PathGET }).end()

@@ -9,7 +9,7 @@ export default gql`
   }
 
   extend type Mutation {
-    createInvoice(amount: Int!): Invoice!
+    createInvoice(amount: Int!, expireSecs: Int): Invoice!
     createWithdrawl(invoice: String!, maxFee: Int!): Withdrawl!
     sendToLnAddr(addr: String!, amount: Int!, maxFee: Int!): Withdrawl!
   }
@@ -17,12 +17,15 @@ export default gql`
   type Invoice {
     id: ID!
     createdAt: Date!
+    hash: String!
     bolt11: String!
     expiresAt: Date!
     cancelled: Boolean!
     confirmedAt: Date
     satsReceived: Int
+    satsRequested: Int!
     nostr: JSONObject
+    hmac: String
   }
 
   type Withdrawl {

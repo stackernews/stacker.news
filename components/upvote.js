@@ -1,7 +1,7 @@
 import UpBolt from '../svgs/bolt.svg'
 import styles from './upvote.module.css'
 import { gql, useMutation } from '@apollo/client'
-import FundError from './fund-error'
+import FundError, { isInsufficientFundsError } from './fund-error'
 import ActionTooltip from './action-tooltip'
 import ItemAct from './item-act'
 import { useMe } from './me'
@@ -11,8 +11,7 @@ import LongPressable from 'react-longpressable'
 import Overlay from 'react-bootstrap/Overlay'
 import Popover from 'react-bootstrap/Popover'
 import { useShowModal } from './modal'
-import { useRouter } from 'next/router'
-import { LightningConsumer } from './lightning'
+import { LightningConsumer, useLightning } from './lightning'
 import { numWithUnits } from '../lib/format'
 
 const getColor = (meSats) => {
@@ -67,12 +66,12 @@ const TipPopover = ({ target, show, handleClose }) => (
 
 export default function UpVote ({ item, className, pendingSats, setPendingSats }) {
   const showModal = useShowModal()
-  const router = useRouter()
   const [voteShow, _setVoteShow] = useState(false)
   const [tipShow, _setTipShow] = useState(false)
   const ref = useRef()
   const timerRef = useRef(null)
   const me = useMe()
+  const strike = useLightning()
   const [setWalkthrough] = useMutation(
     gql`
       mutation setWalkthrough($upvotePopover: Boolean, $tipPopover: Boolean) {
@@ -111,8 +110,8 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
 
   const [act] = useMutation(
     gql`
-      mutation act($id: ID!, $sats: Int!) {
-        act(id: $id, sats: $sats) {
+      mutation act($id: ID!, $sats: Int!, $invoiceHash: String, $invoiceHmac: String) {
+        act(id: $id, sats: $sats, invoiceHash: $invoiceHash, invoiceHmac: $invoiceHmac) {
           sats
         }
       }`, {
@@ -123,17 +122,19 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
             sats (existingSats = 0) {
               return existingSats + sats
             },
-            meSats (existingSats = 0) {
-              if (sats <= me.sats) {
-                if (existingSats === 0) {
-                  setVoteShow(true)
-                } else {
-                  setTipShow(true)
-                }
-              }
+            meSats: me
+              ? (existingSats = 0) => {
+                  if (sats <= me.sats) {
+                    if (existingSats === 0) {
+                      setVoteShow(true)
+                    } else {
+                      setTipShow(true)
+                    }
+                  }
 
-              return existingSats + sats
-            }
+                  return existingSats + sats
+                }
+              : undefined
           }
         })
 
@@ -164,10 +165,11 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
 
     if (pendingSats > 0) {
       timerRef.current = setTimeout(async (sats) => {
+        const variables = { id: item.id, sats: pendingSats }
         try {
           timerRef.current && setPendingSats(0)
           await act({
-            variables: { id: item.id, sats },
+            variables,
             optimisticResponse: {
               act: {
                 sats
@@ -175,14 +177,22 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
             }
           })
         } catch (error) {
-          if (!timerRef.current) return
-
-          if (error.toString().includes('insufficient funds')) {
+          if (isInsufficientFundsError(error)) {
             showModal(onClose => {
-              return <FundError onClose={onClose} />
+              return (
+                <FundError
+                  onClose={onClose}
+                  amount={pendingSats}
+                  onPayment={async (_, invoiceHash) => {
+                    await act({ variables: { ...variables, invoiceHash } })
+                    strike()
+                  }}
+                />
+              )
             })
             return
           }
+          if (!timerRef.current) return
           throw new Error({ message: error.toString() })
         }
       }, 500, pendingSats)
@@ -199,11 +209,11 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
   }, [me?.id, item?.fwdUserId, item?.mine, item?.deletedAt])
 
   const [meSats, sats, overlayText, color] = useMemo(() => {
-    const meSats = (item?.meSats || 0) + pendingSats
+    const meSats = (item?.meSats || item?.meAnonSats || 0) + pendingSats
 
     // what should our next tip be?
     let sats = me?.tipDefault || 1
-    if (me?.turboTipping && me) {
+    if (me?.turboTipping) {
       let raiseTip = sats
       while (meSats >= raiseTip) {
         raiseTip *= 10
@@ -212,8 +222,8 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
       sats = raiseTip - meSats
     }
 
-    return [meSats, sats, numWithUnits(sats, { abbreviate: false }), getColor(meSats)]
-  }, [item?.meSats, pendingSats, me?.tipDefault, me?.turboDefault])
+    return [meSats, sats, me ? numWithUnits(sats, { abbreviate: false }) : 'zap it', getColor(meSats)]
+  }, [item?.meSats, item?.meAnonSats, pendingSats, me?.tipDefault, me?.turboDefault])
 
   return (
     <LightningConsumer>
@@ -252,10 +262,7 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
 
                 setPendingSats(pendingSats + sats)
               }
-              : async () => await router.push({
-                pathname: '/signup',
-                query: { callbackUrl: window.location.origin + router.asPath }
-              })
+              : () => showModal(onClose => <ItemAct onClose={onClose} itemId={item.id} act={act} strike={strike} />)
           }
           >
             <ActionTooltip notForm disable={disabled} overlayText={overlayText}>

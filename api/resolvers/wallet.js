@@ -1,5 +1,6 @@
 import { createInvoice, decodePaymentRequest, payViaPaymentRequest } from 'ln-service'
 import { GraphQLError } from 'graphql'
+import crypto from 'crypto'
 import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import lnpr from 'bolt11'
@@ -7,12 +8,10 @@ import { SELECT } from './item'
 import { lnurlPayDescriptionHash } from '../../lib/lnurl'
 import { msatsToSats, msatsToSatsDecimal } from '../../lib/format'
 import { amountSchema, lnAddrSchema, ssValidate, withdrawlSchema } from '../../lib/validate'
+import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, ANON_USER_ID, BALANCE_LIMIT_MSATS, INV_PENDING_LIMIT } from '../../lib/constants'
+import { datePivot } from '../../lib/time'
 
 export async function getInvoice (parent, { id }, { me, models }) {
-  if (!me) {
-    throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
-  }
-
   const inv = await models.invoice.findUnique({
     where: {
       id: Number(id)
@@ -22,6 +21,15 @@ export async function getInvoice (parent, { id }, { me, models }) {
     }
   })
 
+  if (!inv) {
+    throw new GraphQLError('invoice not found', { extensions: { code: 'BAD_INPUT' } })
+  }
+  if (inv.user.id === ANON_USER_ID) {
+    return inv
+  }
+  if (!me) {
+    throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+  }
   if (inv.user.id !== me.id) {
     throw new GraphQLError('not ur invoice', { extensions: { code: 'FORBIDDEN' } })
   }
@@ -32,6 +40,11 @@ export async function getInvoice (parent, { id }, { me, models }) {
   }
 
   return inv
+}
+
+export function createHmac (hash) {
+  const key = Buffer.from(process.env.INVOICE_HMAC_KEY, 'hex')
+  return crypto.createHmac('sha256', key).update(Buffer.from(hash, 'hex')).digest('hex')
 }
 
 export default {
@@ -194,17 +207,23 @@ export default {
   },
 
   Mutation: {
-    createInvoice: async (parent, { amount }, { me, models, lnd }) => {
-      if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
-      }
-
+    createInvoice: async (parent, { amount, expireSecs = 3600 }, { me, models, lnd }) => {
       await ssValidate(amountSchema, { amount })
 
-      const user = await models.user.findUnique({ where: { id: me.id } })
+      let expirePivot = { seconds: expireSecs }
+      let invLimit = INV_PENDING_LIMIT
+      let balanceLimit = BALANCE_LIMIT_MSATS
+      let id = me?.id
+      if (!me) {
+        expirePivot = { minutes: 3 }
+        invLimit = ANON_INV_PENDING_LIMIT
+        balanceLimit = ANON_BALANCE_LIMIT_MSATS
+        id = ANON_USER_ID
+      }
 
-      // set expires at to 3 hours into future
-      const expiresAt = new Date(new Date().setHours(new Date().getHours() + 3))
+      const user = await models.user.findUnique({ where: { id } })
+
+      const expiresAt = datePivot(new Date(), expirePivot)
       const description = `Funding @${user.name} on stacker.news`
       try {
         const invoice = await createInvoice({
@@ -216,9 +235,15 @@ export default {
 
         const [inv] = await serialize(models,
           models.$queryRaw`SELECT * FROM create_invoice(${invoice.id}, ${invoice.request},
-            ${expiresAt}::timestamp, ${amount * 1000}, ${me.id}::INTEGER, ${description})`)
+            ${expiresAt}::timestamp, ${amount * 1000}, ${user.id}::INTEGER, ${description},
+            ${invLimit}::INTEGER, ${balanceLimit})`)
 
-        return inv
+        // the HMAC is only returned during invoice creation
+        // this makes sure that only the person who created this invoice
+        // has access to the HMAC
+        const hmac = createHmac(inv.hash)
+
+        return { ...inv, hmac }
       } catch (error) {
         console.log(error)
         throw error
@@ -282,7 +307,8 @@ export default {
   },
 
   Invoice: {
-    satsReceived: i => msatsToSats(i.msatsReceived)
+    satsReceived: i => msatsToSats(i.msatsReceived),
+    satsRequested: i => msatsToSats(i.msatsRequested)
   },
 
   Fact: {

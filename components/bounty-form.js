@@ -8,6 +8,8 @@ import InputGroup from 'react-bootstrap/InputGroup'
 import { bountySchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
+import { useCallback } from 'react'
+import { useInvoiceable } from './invoice'
 
 export function BountyForm ({
   item,
@@ -49,6 +51,32 @@ export function BountyForm ({
     `
   )
 
+  const submitUpsertBounty = useCallback(
+    // we ignore the invoice since only stackers can post bounties
+    async (_, boost, bounty, values, ...__) => {
+      const { error } = await upsertBounty({
+        variables: {
+          sub: item?.subName || sub?.name,
+          id: item?.id,
+          boost: boost ? Number(boost) : undefined,
+          bounty: bounty ? Number(bounty) : undefined,
+          ...values
+        }
+      })
+      if (error) {
+        throw new Error({ message: error.toString() })
+      }
+
+      if (item) {
+        await router.push(`/items/${item.id}`)
+      } else {
+        const prefix = sub?.name ? `/~${sub.name}` : ''
+        await router.push(prefix + '/recent')
+      }
+    }, [upsertBounty, router])
+
+  const invoiceableUpsertBounty = useInvoiceable(submitUpsertBounty, { requireSession: true })
+
   return (
     <Form
       initial={{
@@ -61,26 +89,8 @@ export function BountyForm ({
       schema={schema}
       onSubmit={
         handleSubmit ||
-        (async ({ boost, bounty, ...values }) => {
-          const { error } = await upsertBounty({
-            variables: {
-              sub: item?.subName || sub?.name,
-              id: item?.id,
-              boost: boost ? Number(boost) : undefined,
-              bounty: bounty ? Number(bounty) : undefined,
-              ...values
-            }
-          })
-          if (error) {
-            throw new Error({ message: error.toString() })
-          }
-
-          if (item) {
-            await router.push(`/items/${item.id}`)
-          } else {
-            const prefix = sub?.name ? `/~${sub.name}` : ''
-            await router.push(prefix + '/recent')
-          }
+        (async ({ boost, bounty, cost, ...values }) => {
+          return invoiceableUpsertBounty(cost, boost, bounty, values)
         })
       }
       storageKeyPrefix={item ? undefined : 'bounty'}

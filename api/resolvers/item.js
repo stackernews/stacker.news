@@ -7,7 +7,8 @@ import domino from 'domino'
 import {
   BOOST_MIN, ITEM_SPAM_INTERVAL,
   MAX_TITLE_LENGTH, ITEM_FILTER_THRESHOLD,
-  DONT_LIKE_THIS_COST, COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY
+  DONT_LIKE_THIS_COST, COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY,
+  ANON_COMMENT_FEE, ANON_USER_ID, ANON_POST_FEE, ANON_ITEM_SPAM_INTERVAL
 } from '../../lib/constants'
 import { msatsToSats, numWithUnits } from '../../lib/format'
 import { parse } from 'tldts'
@@ -16,6 +17,7 @@ import { amountSchema, bountySchema, commentSchema, discussionSchema, jobSchema,
 import { sendUserNotification } from '../webPush'
 import { proxyImages } from './imgproxy'
 import { defaultCommentSort } from '../../lib/item'
+import { createHmac } from './wallet'
 
 export async function commentFilterClause (me, models) {
   let clause = ` AND ("Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}`
@@ -34,6 +36,33 @@ export async function commentFilterClause (me, models) {
   clause += ')'
 
   return clause
+}
+
+async function checkInvoice (models, hash, hmac, fee) {
+  if (!hmac) {
+    throw new GraphQLError('hmac required', { extensions: { code: 'BAD_INPUT' } })
+  }
+  const hmac2 = createHmac(hash)
+  if (hmac !== hmac2) {
+    throw new GraphQLError('bad hmac', { extensions: { code: 'FORBIDDEN' } })
+  }
+
+  const invoice = await models.invoice.findUnique({
+    where: { hash },
+    include: {
+      user: true
+    }
+  })
+  if (!invoice) {
+    throw new GraphQLError('invoice not found', { extensions: { code: 'BAD_INPUT' } })
+  }
+  if (!invoice.msatsReceived) {
+    throw new GraphQLError('invoice was not paid', { extensions: { code: 'BAD_INPUT' } })
+  }
+  if (msatsToSats(invoice.msatsReceived) < fee) {
+    throw new GraphQLError('invoice amount too low', { extensions: { code: 'BAD_INPUT' } })
+  }
+  return invoice
 }
 
 async function comments (me, models, id, sort) {
@@ -570,7 +599,7 @@ export default {
       if (id) {
         return await updateItem(parent, { id, data }, { me, models })
       } else {
-        return await createItem(parent, data, { me, models })
+        return await createItem(parent, data, { me, models, invoiceHash: args.invoiceHash, invoiceHmac: args.invoiceHmac })
       }
     },
     upsertDiscussion: async (parent, args, { me, models }) => {
@@ -581,7 +610,7 @@ export default {
       if (id) {
         return await updateItem(parent, { id, data }, { me, models })
       } else {
-        return await createItem(parent, data, { me, models })
+        return await createItem(parent, data, { me, models, invoiceHash: args.invoiceHash, invoiceHmac: args.invoiceHmac })
       }
     },
     upsertBounty: async (parent, args, { me, models }) => {
@@ -596,8 +625,18 @@ export default {
       }
     },
     upsertPoll: async (parent, { id, ...data }, { me, models }) => {
-      const { forward, sub, boost, title, text, options } = data
-      if (!me) {
+      const { sub, forward, boost, title, text, options, invoiceHash, invoiceHmac } = data
+      let author = me
+      let spamInterval = ITEM_SPAM_INTERVAL
+      const trx = []
+      if (!me && invoiceHash) {
+        const invoice = await checkInvoice(models, invoiceHash, invoiceHmac, ANON_POST_FEE)
+        author = invoice.user
+        spamInterval = ANON_ITEM_SPAM_INTERVAL
+        trx.push(models.invoice.delete({ where: { hash: invoiceHash } }))
+      }
+
+      if (!author) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
       }
 
@@ -621,7 +660,7 @@ export default {
 
       if (id) {
         const old = await models.item.findUnique({ where: { id: Number(id) } })
-        if (Number(old.userId) !== Number(me?.id)) {
+        if (Number(old.userId) !== Number(author.id)) {
           throw new GraphQLError('item does not belong to you', { extensions: { code: 'FORBIDDEN' } })
         }
         const [item] = await serialize(models,
@@ -632,9 +671,11 @@ export default {
         item.comments = []
         return item
       } else {
-        const [item] = await serialize(models,
-          models.$queryRawUnsafe(`${SELECT} FROM create_poll($1, $2, $3, $4::INTEGER, $5::INTEGER, $6::INTEGER, $7, $8::INTEGER, '${ITEM_SPAM_INTERVAL}') AS "Item"`,
-            sub || 'bitcoin', title, text, 1, Number(boost || 0), Number(me.id), options, Number(fwdUser?.id)))
+        const [query] = await serialize(models,
+          models.$queryRawUnsafe(
+            `${SELECT} FROM create_poll($1, $2, $3, $4::INTEGER, $5::INTEGER, $6::INTEGER, $7, $8::INTEGER, '${spamInterval}') AS "Item"`,
+            sub || 'bitcoin', title, text, 1, Number(boost || 0), Number(author.id), options, Number(fwdUser?.id)), ...trx)
+        const item = trx.length > 0 ? query[0] : query
 
         await createMentions(item, models)
         item.comments = []
@@ -678,13 +719,14 @@ export default {
     },
     createComment: async (parent, data, { me, models }) => {
       await ssValidate(commentSchema, data)
-      const item = await createItem(parent, data, { me, models })
+      const item = await createItem(parent, data,
+        { me, models, invoiceHash: data.invoiceHash, invoiceHmac: data.invoiceHmac })
       // fetch user to get up-to-date name
-      const user = await models.user.findUnique({ where: { id: me.id } })
+      const user = await models.user.findUnique({ where: { id: me?.id || ANON_USER_ID } })
 
       const parents = await models.$queryRawUnsafe(
         'SELECT DISTINCT p."userId" FROM "Item" i JOIN "Item" p ON p.path @> i.path WHERE i.id = $1 and p."userId" <> $2',
-        Number(item.parentId), Number(me.id))
+        Number(item.parentId), Number(user.id))
       Promise.allSettled(
         parents.map(({ userId }) => sendUserNotification(userId, {
           title: `@${user.name} replied to you`,
@@ -711,27 +753,44 @@ export default {
 
       return id
     },
-    act: async (parent, { id, sats }, { me, models }) => {
+    act: async (parent, { id, sats, invoiceHash, invoiceHmac }, { me, models }) => {
       // need to make sure we are logged in
-      if (!me) {
+      if (!me && !invoiceHash) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
       }
 
       await ssValidate(amountSchema, { amount: sats })
 
-      // disallow self tips
-      const [item] = await models.$queryRawUnsafe(`
-      ${SELECT}
-      FROM "Item"
-      WHERE id = $1 AND "userId" = $2`, Number(id), me.id)
-      if (item) {
-        throw new GraphQLError('cannot zap your self', { extensions: { code: 'BAD_INPUT' } })
+      let user = me
+      let invoice
+      if (!me && invoiceHash) {
+        invoice = await checkInvoice(models, invoiceHash, invoiceHmac, sats)
+        user = invoice.user
       }
 
-      const [{ item_act: vote }] = await serialize(models, models.$queryRaw`SELECT item_act(${Number(id)}::INTEGER, ${me.id}::INTEGER, 'TIP', ${Number(sats)}::INTEGER)`)
+      // disallow self tips except anons
+      if (user.id !== ANON_USER_ID) {
+        const [item] = await models.$queryRawUnsafe(`
+        ${SELECT}
+        FROM "Item"
+        WHERE id = $1 AND "userId" = $2`, Number(id), user.id)
+        if (item) {
+          throw new GraphQLError('cannot zap your self', { extensions: { code: 'BAD_INPUT' } })
+        }
+      }
+
+      const calls = [
+        models.$queryRaw`SELECT item_act(${Number(id)}::INTEGER, ${user.id}::INTEGER, 'TIP', ${Number(sats)}::INTEGER)`
+      ]
+      if (invoice) {
+        calls.push(models.invoice.delete({ where: { hash: invoice.hash } }))
+      }
+
+      const [{ item_act: vote }] = await serialize(models, ...calls)
 
       const updatedItem = await models.item.findUnique({ where: { id: Number(id) } })
-      const title = `your ${updatedItem.title ? 'post' : 'reply'} ${updatedItem.fwdUser ? 'forwarded' : 'stacked'} ${numWithUnits(msatsToSats(updatedItem.msats))}${updatedItem.fwdUser ? ` to @${updatedItem.fwdUser.name}` : ''}`
+      const title = `your ${updatedItem.title ? 'post' : 'reply'} ${updatedItem.fwdUser ? 'forwarded' : 'stacked'} ${
+        numWithUnits(msatsToSats(updatedItem.msats))}${updatedItem.fwdUser ? ` to @${updatedItem.fwdUser.name}` : ''}`
       sendUserNotification(updatedItem.userId, {
         title,
         body: updatedItem.title ? updatedItem.title : updatedItem.text,
@@ -759,7 +818,8 @@ export default {
         throw new GraphQLError('cannot downvote your self', { extensions: { code: 'BAD_INPUT' } })
       }
 
-      await serialize(models, models.$queryRaw`SELECT item_act(${Number(id)}::INTEGER, ${me.id}::INTEGER, 'DONT_LIKE_THIS', ${DONT_LIKE_THIS_COST}::INTEGER)`)
+      await serialize(models, models.$queryRaw`SELECT item_act(${Number(id)}::INTEGER,
+        ${me.id}::INTEGER, 'DONT_LIKE_THIS', ${DONT_LIKE_THIS_COST}::INTEGER)`)
 
       return true
     }
@@ -1051,8 +1111,18 @@ export const updateItem = async (parent, { id, data: { sub, title, url, text, bo
   return item
 }
 
-const createItem = async (parent, { sub, title, url, text, boost, forward, bounty, parentId }, { me, models }) => {
-  if (!me) {
+const createItem = async (parent, { sub, title, url, text, boost, forward, bounty, parentId }, { me, models, invoiceHash, invoiceHmac }) => {
+  let author = me
+  let spamInterval = ITEM_SPAM_INTERVAL
+  const trx = []
+  if (!me && invoiceHash) {
+    const invoice = await checkInvoice(models, invoiceHash, invoiceHmac, parentId ? ANON_COMMENT_FEE : ANON_POST_FEE)
+    author = invoice.user
+    spamInterval = ANON_ITEM_SPAM_INTERVAL
+    trx.push(models.invoice.delete({ where: { hash: invoiceHash } }))
+  }
+
+  if (!author) {
     throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
   }
 
@@ -1075,10 +1145,10 @@ const createItem = async (parent, { sub, title, url, text, boost, forward, bount
   url = await proxyImages(url)
   text = await proxyImages(text)
 
-  const [item] = await serialize(
+  const [query] = await serialize(
     models,
     models.$queryRawUnsafe(
-    `${SELECT} FROM create_item($1, $2, $3, $4, $5::INTEGER, $6::INTEGER, $7::INTEGER, $8::INTEGER, $9::INTEGER, '${ITEM_SPAM_INTERVAL}') AS "Item"`,
+    `${SELECT} FROM create_item($1, $2, $3, $4, $5::INTEGER, $6::INTEGER, $7::INTEGER, $8::INTEGER, $9::INTEGER, '${spamInterval}') AS "Item"`,
     parentId ? null : sub || 'bitcoin',
     title,
     url,
@@ -1086,8 +1156,10 @@ const createItem = async (parent, { sub, title, url, text, boost, forward, bount
     Number(boost || 0),
     bounty ? Number(bounty) : null,
     Number(parentId),
-    Number(me.id),
-    Number(fwdUser?.id)))
+    Number(author.id),
+    Number(fwdUser?.id)),
+    ...trx)
+  const item = trx.length > 0 ? query[0] : query
 
   await createMentions(item, models)
 

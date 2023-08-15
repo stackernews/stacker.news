@@ -2,7 +2,7 @@ import Alert from 'react-bootstrap/Alert'
 import YouTube from '../svgs/youtube-line.svg'
 import { useEffect, useState } from 'react'
 import { gql, useQuery } from '@apollo/client'
-import { dayPivot } from '../lib/time'
+import { datePivot } from '../lib/time'
 
 export default function Snl ({ ignorePreference }) {
   const [show, setShow] = useState()
@@ -12,7 +12,7 @@ export default function Snl ({ ignorePreference }) {
 
   useEffect(() => {
     const dismissed = window.localStorage.getItem('snl')
-    if (!ignorePreference && dismissed && dismissed > new Date(dismissed) < dayPivot(new Date(), -6)) {
+    if (!ignorePreference && dismissed && dismissed > new Date(dismissed) < datePivot(new Date(), { days: -6 })) {
       return
     }
 

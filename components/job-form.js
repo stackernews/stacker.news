@@ -5,7 +5,7 @@ import InputGroup from 'react-bootstrap/InputGroup'
 import Image from 'react-bootstrap/Image'
 import BootstrapForm from 'react-bootstrap/Form'
 import Alert from 'react-bootstrap/Alert'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Info from './info'
 import AccordianItem from './accordian-item'
 import styles from '../styles/post.module.css'
@@ -17,6 +17,7 @@ import Avatar from './avatar'
 import ActionTooltip from './action-tooltip'
 import { jobSchema } from '../lib/validate'
 import CancelButton from './cancel-button'
+import { useInvoiceable } from './invoice'
 
 function satsMin2Mo (minute) {
   return minute * 30 * 24 * 60
@@ -50,6 +51,39 @@ export default function JobForm ({ item, sub }) {
     }`
   )
 
+  const submitUpsertJob = useCallback(
+    // we ignore the invoice since only stackers can post jobs
+    async (_, maxBid, stop, start, values, ...__) => {
+      let status
+      if (start) {
+        status = 'ACTIVE'
+      } else if (stop) {
+        status = 'STOPPED'
+      }
+
+      const { error } = await upsertJob({
+        variables: {
+          id: item?.id,
+          sub: item?.subName || sub?.name,
+          maxBid: Number(maxBid),
+          status,
+          logo: Number(logoId),
+          ...values
+        }
+      })
+      if (error) {
+        throw new Error({ message: error.toString() })
+      }
+
+      if (item) {
+        await router.push(`/items/${item.id}`)
+      } else {
+        await router.push(`/~${sub.name}/recent`)
+      }
+    }, [upsertJob, router, item?.id, sub?.name, logoId])
+
+  const invoiceableUpsertJob = useInvoiceable(submitUpsertJob, { requireSession: true })
+
   return (
     <>
       <Form
@@ -68,32 +102,7 @@ export default function JobForm ({ item, sub }) {
         schema={jobSchema}
         storageKeyPrefix={storageKeyPrefix}
         onSubmit={(async ({ maxBid, stop, start, ...values }) => {
-          let status
-          if (start) {
-            status = 'ACTIVE'
-          } else if (stop) {
-            status = 'STOPPED'
-          }
-
-          const { error } = await upsertJob({
-            variables: {
-              id: item?.id,
-              sub: item?.subName || sub?.name,
-              maxBid: Number(maxBid),
-              status,
-              logo: Number(logoId),
-              ...values
-            }
-          })
-          if (error) {
-            throw new Error({ message: error.toString() })
-          }
-
-          if (item) {
-            await router.push(`/items/${item.id}`)
-          } else {
-            await router.push(`/~${sub.name}/recent`)
-          }
+          return invoiceableUpsertJob(1000, maxBid, stop, start, values)
         })}
       >
         <div className='form-group'>

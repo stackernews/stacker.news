@@ -470,8 +470,8 @@ export function Form ({
       initialTouched={validateImmediately && initial}
       validateOnBlur={false}
       onSubmit={async (values, ...args) =>
-        onSubmit && onSubmit(values, ...args).then(() => {
-          if (!storageKeyPrefix) return
+        onSubmit && onSubmit(values, ...args).then((options) => {
+          if (!storageKeyPrefix || options?.keepLocalStorage) return
           Object.keys(values).forEach(v => {
             window.localStorage.removeItem(storageKeyPrefix + '-' + v)
             if (Array.isArray(values[v])) {

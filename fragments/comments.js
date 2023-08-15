@@ -14,6 +14,7 @@ export const COMMENT_FIELDS = gql`
       id
     }
     sats
+    meAnonSats @client
     upvotes
     wvotes
     boost

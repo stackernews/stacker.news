@@ -9,6 +9,22 @@
     color: var(--theme-brandColor) !important;
 }
 
+.postAnon {
+    border-width: 2px;
+}
+
+.postAnon svg {
+    fill: var(--bs-grey-darkmode);
+}
+
+.postAnon:hover, .postAnon:active, .postAnon:focus-visible {
+    color: var(--bs-white) !important;
+}
+
+.postAnon:hover svg, .postAnon:active svg, .postAnon:focus-visible svg {
+    fill: var(--bs-white);
+}
+
 .navLinkButton {
     border: 2px solid;
     padding: 0.2rem .9rem !important;

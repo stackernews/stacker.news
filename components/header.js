@@ -16,13 +16,14 @@ import { abbrNum } from '../lib/format'
 import NoteIcon from '../svgs/notification-4-fill.svg'
 import { useQuery } from '@apollo/client'
 import LightningIcon from '../svgs/bolt.svg'
-import CowboyHat from './cowboy-hat'
 import { Select } from './form'
 import SearchIcon from '../svgs/search-line.svg'
 import BackArrow from '../svgs/arrow-left-line.svg'
 import { SSR, SUBS } from '../lib/constants'
 import { useLightning } from './lightning'
 import { HAS_NOTIFICATIONS } from '../fragments/notifications'
+import AnonIcon from '../svgs/spy-fill.svg'
+import Hat from './hat'
 
 function WalletSummary ({ me }) {
   if (!me) return null
@@ -222,11 +223,21 @@ function NavItems ({ className, sub, prefix }) {
 
 function PostItem ({ className, prefix }) {
   const me = useMe()
-  if (!me) return null
+
+  if (me) {
+    return (
+      <Link href={prefix + '/post'} className={`${className} btn btn-md btn-primary px-3 py-1 `}>
+        post
+      </Link>
+    )
+  }
 
   return (
-    <Link href={prefix + '/post'} className={`${className} btn btn-md btn-primary px-3 py-1 `}>
-      post
+    <Link
+      href={prefix + '/post'}
+      className={`${className} ${styles.postAnon} btn btn-md btn-outline-grey-darkmode d-flex align-items-center px-3 py-0 py-lg-1`}
+    >
+      <AnonIcon className='me-1 fill-secondary' width={16} height={16} /> post
     </Link>
   )
 }

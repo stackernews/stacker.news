@@ -92,3 +92,7 @@
 .dropdown>a {
     padding-left: 0 !important;
 }
+
+.dropdown>button {
+    padding-left: 0 !important;
+}

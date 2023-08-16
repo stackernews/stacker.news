@@ -43,7 +43,7 @@ function YouHaveSats () {
 
 function WalletHistory () {
   return (
-    <div className='pb-5' style={{fontWeight: 500}}>
+    <div className='pb-5' style={{ fontWeight: 500 }}>
       <Link href='/satistics?inc=invoice,withdrawal' className='nav-link p-0'>
         wallet history
       </Link>
@@ -131,7 +131,7 @@ export function FundForm () {
   )
 }
 
-export function WithdrawalMethods() {
+export function WithdrawalMethods () {
   const router = useRouter()
 
   return (
@@ -139,32 +139,36 @@ export function WithdrawalMethods() {
       <YouHaveSats />
       <Tabs
         defaultActiveKey={
-          router.query.type === 'lnurl-withdraw'?'qrcode':
-          router.query.type === 'lnaddr-withdraw'?'lnaddr':
-          'invoice'
+          router.query.type === 'lnurl-withdraw'
+            ? 'qrcode'
+            : router.query.type === 'lnaddr-withdraw'
+              ? 'lnaddr'
+              : 'invoice'
         }
-        id="withdrawal-tabs"
+        id='withdrawal-tabs'
         justify
-        mountOnEnter={true}
-        onSelect={(k,e) => {
+        mountOnEnter
+        onSelect={(k, e) => {
           router.replace(
-            k === 'qrcode'?'/wallet?type=lnurl-withdraw':
-            k === 'lnaddr'?'/wallet?type=lnaddr-withdraw':
-            '/wallet?type=withdraw')
+            k === 'qrcode'
+              ? '/wallet?type=lnurl-withdraw'
+              : k === 'lnaddr'
+                ? '/wallet?type=lnaddr-withdraw'
+                : '/wallet?type=withdraw')
         }}
       >
-        <Tab eventKey="invoice" title="Invoice">
+        <Tab eventKey='invoice' title='Invoice'>
           <WithdrawlForm />
         </Tab>
-        <Tab eventKey="qrcode" title="QR Code">
+        <Tab eventKey='qrcode' title='QR Code'>
           <LnWithdrawal />
         </Tab>
-        <Tab eventKey="lnaddr" title="Lightning Address">
+        <Tab eventKey='lnaddr' title='Lightning Address'>
           <LnAddrWithdrawal />
         </Tab>
       </Tabs>
     </>
-  );
+  )
 }
 
 const MAX_FEE_DEFAULT = 10

@@ -243,14 +243,20 @@ function Referral ({ n }) {
 }
 
 function Votification ({ n }) {
+  let forwardedSats = 0
+  let forwardedUsers = ''
+  if (n.item.forwards?.length) {
+    forwardedSats = Math.floor(n.earnedSats * n.item.forwards.map(fwd => fwd.pct).reduce((sum, cur) => sum + cur) / 100)
+    forwardedUsers = n.item.forwards.map(fwd => `@${fwd.user.name}`).join(', ')
+  }
   return (
     <>
       <small className='fw-bold text-success ms-2'>
-        {n.item.title && n.item.forwards?.length === 0 && `your post stacked ${numWithUnits(n.earnedSats, { abbreviate: false })}`}
-        {n.item.title && n.item.forwards?.length > 0 && `your post forwarded ${numWithUnits(n.earnedSats, { abbreviate: false })} to ${n.item.forwards.map(fwd => `@${fwd.user.name}`).join(', ')}`}
-        {!n.item.title && n.item.forwards?.length === 0 && `your reply stacked ${numWithUnits(n.earnedSats, { abbreviate: false })}`}
+        {n.item.title && !n.item.forwards?.length && `your post stacked ${numWithUnits(n.earnedSats, { abbreviate: false })}`}
+        {n.item.title && n.item.forwards?.length > 0 && `your post forwarded ${numWithUnits(forwardedSats, { abbreviate: false })} to ${forwardedUsers}`}
+        {!n.item.title && !n.item.forwards?.length && `your reply stacked ${numWithUnits(n.earnedSats, { abbreviate: false })}`}
         {/* can you forward sats on a reply? I imagine not... */}
-        {!n.item.title && n.item.forwards?.length > 0 && `your reply forwarded ${numWithUnits(n.earnedSats, { abbreviate: false })} to ${n.item.forwards.map(fwd => `@${fwd.user.name}`).join(', ')}`}
+        {!n.item.title && n.item.forwards?.length > 0 && `your reply forwarded ${numWithUnits(forwardedSats, { abbreviate: false })} to ${forwardedUsers}`}
       </small>
       <div>
         {n.item.title

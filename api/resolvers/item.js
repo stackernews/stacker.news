@@ -784,21 +784,27 @@ export default {
       const [{ item_act: vote }] = await serialize(models, ...calls)
 
       const updatedItem = await models.item.findUnique({ where: { id: Number(id) } })
-      const forwards = await models.itemForward.findMany({ where: { itemId: id } })
+      const forwards = await models.itemForward.findMany({ where: { itemId: Number(id) } })
       const userPromises = forwards.map(fwd => models.user.findUnique({ where: { id: fwd.userId } }))
       const userResults = await Promise.allSettled(userPromises)
       const mappedForwards = forwards.map((fwd, index) => ({ ...fwd, user: userResults[index].value ?? null }))
+      let forwardedSats = 0
+      let forwardedUsers = ''
+      if (mappedForwards.length) {
+        forwardedSats = Math.floor(msatsToSats(updatedItem.msats) * mappedForwards.map(fwd => fwd.pct).reduce((sum, cur) => sum + cur) / 100)
+        forwardedUsers = mappedForwards.map(fwd => `@${fwd.user.name}`).join(', ')
+      }
       let notificationTitle
       if (updatedItem.title) {
         if (forwards.length > 0) {
-          notificationTitle = `your post forwarded ${numWithUnits(msatsToSats(updatedItem.msats))} to ${mappedForwards.map(fwd => `@${fwd.user.name}`).join(', ')}`
+          notificationTitle = `your post forwarded ${numWithUnits(forwardedSats)} to ${forwardedUsers}`
         } else {
           notificationTitle = `your post stacked ${numWithUnits(msatsToSats(updatedItem.msats))}`
         }
       } else {
         if (forwards.length > 0) {
-          // I don't think this is possible
-          notificationTitle = `your reply forwarded ${numWithUnits(msatsToSats(updatedItem.msats))} to ${mappedForwards.map(fwd => `@${fwd.user.name}`).join(', ')}`
+          // I don't think this case is possible
+          notificationTitle = `your reply forwarded ${numWithUnits(forwardedSats)} to ${forwardedUsers}`
         } else {
           notificationTitle = `your reply stacked ${numWithUnits(msatsToSats(updatedItem.msats))}`
         }

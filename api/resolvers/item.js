@@ -157,11 +157,11 @@ export async function joinSatRankView (me, models) {
   if (me) {
     const user = await models.user.findUnique({ where: { id: me.id } })
     if (user.wildWestMode) {
-      return 'JOIN sat_rank_wwm_view ON "Item".id = sat_rank_wwm_view.id'
+      return 'JOIN zap_rank_wwm_view ON "Item".id = zap_rank_wwm_view.id'
     }
   }
 
-  return 'JOIN sat_rank_tender_view ON "Item".id = sat_rank_tender_view.id'
+  return 'JOIN zap_rank_tender_view ON "Item".id = zap_rank_tender_view.id'
 }
 
 export async function filterClause (me, models, type) {

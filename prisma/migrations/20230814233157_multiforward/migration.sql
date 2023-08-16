@@ -248,15 +248,20 @@ BEGIN
             
             UPDATE users
             SET msats = msats + fwd_msats, "stackedMsats" = "stackedMsats" + fwd_msats
-            WHERE id = fwd_entry."userId";
-            -- TODO do we want to apply referrals to forwarded sats, too?
+            WHERE id = fwd_entry."userId"
+            RETURNING "referrerId" into referrer_id;
+
+            -- they have a referrer and the referrer isn't the one tipping them
+            IF referrer_id IS NOT NULL AND user_id <> referrer_id THEN
+                -- scale the referral fee to be proportional to the forwarding percentage
+                PERFORM referral_act(referrer_id, item_act_id, CEIL(fee_msats * fwd_entry.pct / 100));
+            END IF;
         END LOOP;
 
         -- Give OP any remaining msats after forwards have been applied
         UPDATE users
         SET msats = msats + act_msats - total_fwd_msats, "stackedMsats" = "stackedMsats" + act_msats - total_fwd_msats
         WHERE id = (SELECT "userId" FROM "Item" WHERE id = item_id)
-        -- TODO how to handle referrals here?
         RETURNING "referrerId" INTO referrer_id;
 
         -- leave the rest as a tip
@@ -267,6 +272,15 @@ BEGIN
         PERFORM sats_after_tip(item_id, user_id, act_msats + fee_msats);
         -- denormalize bounty paid
         PERFORM bounty_paid_after_act(item_id, user_id);
+
+        -- they have a referrer and the referrer isn't the one tipping them
+        IF referrer_id IS NOT NULL AND user_id <> referrer_id THEN
+            -- explicit referral amount, 10% of any sats that weren't forwarded (10% is the fee amount)
+            -- referral_act will scale it from 10% down to 2.1%, but we only want to refer based on
+            -- any sats that weren't forwarded
+            PERFORM referral_act(referrer_id, item_act_id, CEIL((act_msats - total_fwd_msats) * 0.1));
+        END IF;
+
     ELSE -- BOOST, POLL, DONT_LIKE_THIS, STREAM
         -- call to influence if DONT_LIKE_THIS weightedDownVotes
         IF act = 'DONT_LIKE_THIS' THEN
@@ -281,11 +295,39 @@ BEGIN
         INSERT INTO "ItemAct" (msats, "itemId", "userId", act, created_at, updated_at)
             VALUES (act_msats, item_id, user_id, act, now_utc(), now_utc())
             RETURNING id INTO item_act_id;
+
+        -- they have a referrer and the referrer isn't the one tipping them
+        IF referrer_id IS NOT NULL AND user_id <> referrer_id THEN
+            PERFORM referral_act(referrer_id, item_act_id);
+        END IF;
     END IF;
 
-    -- they have a referrer and the referrer isn't the one tipping them
-    IF referrer_id IS NOT NULL AND user_id <> referrer_id THEN
-        PERFORM referral_act(referrer_id, item_act_id);
+    RETURN 0;
+END;
+$$;
+
+-- A second implementation of referral_act that allows for an explicit msats amount,
+-- instead of pulling it from the item act itself, to accommodate the multi-forward
+-- use case where we are no longer forwarding 100% of sats from a post to a user
+CREATE OR REPLACE FUNCTION referral_act(referrer_id INTEGER, item_act_id INTEGER, msats BIGINT)
+RETURNS INTEGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    referral_act "ItemActType";
+    referral_msats BIGINT;
+BEGIN
+    PERFORM ASSERT_SERIALIZED();
+
+    SELECT act INTO referral_act FROM "ItemAct" WHERE id = item_act_id;
+
+    IF referral_act IN ('FEE', 'BOOST', 'STREAM') THEN
+        referral_msats := CEIL(msats * .21);
+        INSERT INTO "ReferralAct" ("referrerId", "itemActId", msats, created_at, updated_at)
+            VALUES(referrer_id, item_act_id, referral_msats, now_utc(), now_utc());
+        UPDATE users
+        SET msats = msats + referral_msats, "stackedMsats" = "stackedMsats" + referral_msats
+        WHERE id = referrer_id;
     END IF;
 
     RETURN 0;

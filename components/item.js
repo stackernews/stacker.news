@@ -2,7 +2,7 @@ import Link from 'next/link'
 import styles from './item.module.css'
 import UpVote from './upvote'
 import { useRef, useState } from 'react'
-import { NOFOLLOW_LIMIT } from '../lib/constants'
+import { AD_USER_ID, NOFOLLOW_LIMIT } from '../lib/constants'
 import Pin from '../svgs/pushpin-fill.svg'
 import reactStringReplace from 'react-string-replace'
 import PollIcon from '../svgs/bar-chart-horizontal-fill.svg'
@@ -14,6 +14,7 @@ import { numWithUnits } from '../lib/format'
 import ItemInfo from './item-info'
 import { commentsViewedAt } from '../lib/new-comments'
 import { useRouter } from 'next/router'
+import { Badge } from 'react-bootstrap'
 
 export function SearchTitle ({ title }) {
   return reactStringReplace(title, /:high\[([^\]]+)\]/g, (match, i) => {
@@ -75,7 +76,10 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
                 </a>
               </>}
           </div>
-          <ItemInfo full={full} item={item} pendingSats={pendingSats} />
+          <ItemInfo
+            full={full} item={item} pendingSats={pendingSats}
+            embellishUser={Number(item?.user?.id) === AD_USER_ID && <Badge bg='primary'>AD</Badge>}
+          />
           {belowTitle}
         </div>
         {right}

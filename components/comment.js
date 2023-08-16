@@ -150,7 +150,7 @@ export default function Comment ({
               commentsText='replies'
               commentTextSingular='reply'
               className={`${itemStyles.other} ${styles.other}`}
-              embellishUser={op && <Badge bg='boost' className={`ms-1 ${styles.op} bg-opacity-75`}>OP</Badge>}
+              embellishUser={op && <><span> </span><Badge bg='boost' className={`${styles.op} bg-opacity-75`}>OP</Badge></>}
               extraInfo={
                 <>
                   {includeParent && <Parent item={item} rootText={rootText} />}

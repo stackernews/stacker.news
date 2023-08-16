@@ -83,7 +83,7 @@ export function DiscussionForm ({
       initial={{
         title: item?.title || shareTitle || '',
         text: item?.text || '',
-        ...AdvPostInitial({ forward: item?.fwdUser?.name }),
+        ...AdvPostInitial({ forward: item?.forwards?.map(fwd => ({ nym: fwd.user.name, pct: fwd.pct })) }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}

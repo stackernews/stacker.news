@@ -4,8 +4,9 @@ import { Server } from '@synonymdev/slashtags-auth'
 
 const HOUR = 1000 * 60 * 60
 
-async function createProfile (slashtag) {
+async function createProfile (sdk, slashtag) {
   const publicDrive = slashtag.drivestore.get()
+  await sdk.swarm.flush()
   await publicDrive.ready()
   const exists = await publicDrive.get('/profile.json')
   if (!exists) {
@@ -17,7 +18,7 @@ async function createProfile (slashtag) {
   }
 }
 
-const slashtags = global.slashtags || (() => {
+const slashtags = global.slashtags || await (async () => {
   console.log('initing slashtags')
   const sdk = new SDK({
     primaryKey: process.env.SLASHTAGS_SECRET ? Buffer.from(process.env.SLASHTAGS_SECRET, 'hex') : undefined,
@@ -27,7 +28,7 @@ const slashtags = global.slashtags || (() => {
   // Get the default slashtag
   const slashtag = sdk.slashtag()
 
-  createProfile(slashtag)
+  await createProfile(sdk, slashtag)
 
   const server = new Server(slashtag, {
     onauthz: async (token, remote) => {

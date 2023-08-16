@@ -15,6 +15,7 @@ import ItemInfo from './item-info'
 import { commentsViewedAt } from '../lib/new-comments'
 import { useRouter } from 'next/router'
 import { Badge } from 'react-bootstrap'
+import AdIcon from '../svgs/advertisement-fill.svg'
 
 export function SearchTitle ({ title }) {
   return reactStringReplace(title, /:high\[([^\]]+)\]/g, (match, i) => {
@@ -40,7 +41,11 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
       <div className={`${styles.item} ${siblingComments ? 'pt-2' : ''}`}>
         {item.position
           ? <Pin width={24} height={24} className={styles.pin} />
-          : item.meDontLike ? <Flag width={24} height={24} className={styles.dontLike} /> : <UpVote item={item} className={styles.upvote} pendingSats={pendingSats} setPendingSats={setPendingSats} />}
+          : item.meDontLike
+            ? <Flag width={24} height={24} className={styles.dontLike} />
+            : Number(item.user?.id) === AD_USER_ID
+              ? <AdIcon width={24} height={24} className={styles.ad} />
+              : <UpVote item={item} className={styles.upvote} pendingSats={pendingSats} setPendingSats={setPendingSats} />}
         <div className={styles.hunk}>
           <div className={`${styles.main} flex-wrap`}>
             <Link
@@ -78,7 +83,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
           </div>
           <ItemInfo
             full={full} item={item} pendingSats={pendingSats}
-            embellishUser={Number(item?.user?.id) === AD_USER_ID && <Badge bg='primary'>AD</Badge>}
+            embellishUser={Number(item?.user?.id) === AD_USER_ID && <Badge className={styles.newComment} bg={null}>AD</Badge>}
           />
           {belowTitle}
         </div>

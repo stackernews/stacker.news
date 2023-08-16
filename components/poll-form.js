@@ -67,7 +67,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         title: item?.title || '',
         text: item?.text || '',
         options: initialOptions || ['', ''],
-        ...AdvPostInitial({ forward: item?.forwards?.map(fwd => ({ nym: fwd.user.name, pct: fwd.pct })) }),
+        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards) }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}

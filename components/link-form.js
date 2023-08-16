@@ -124,7 +124,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
       initial={{
         title: item?.title || shareTitle || '',
         url: item?.url || shareUrl || '',
-        ...AdvPostInitial({ forward: item?.forwards?.map(fwd => ({ nym: fwd.user.name, pct: fwd.pct })) }),
+        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards) }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}

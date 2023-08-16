@@ -85,7 +85,7 @@ export function BountyForm ({
         title: item?.title || '',
         text: item?.text || '',
         bounty: item?.bounty || 1000,
-        ...AdvPostInitial({ forward: item?.forwards?.map(fwd => ({ nym: fwd.user.name, pct: fwd.pct })) }),
+        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards) }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}

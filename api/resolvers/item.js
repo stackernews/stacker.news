@@ -784,11 +784,27 @@ export default {
       const [{ item_act: vote }] = await serialize(models, ...calls)
 
       const updatedItem = await models.item.findUnique({ where: { id: Number(id) } })
-      // TODO update the notification title to handle multiple forward users
-      const title = `your ${updatedItem.title ? 'post' : 'reply'} ${updatedItem.fwdUser ? 'forwarded' : 'stacked'} ${
-        numWithUnits(msatsToSats(updatedItem.msats))}${updatedItem.fwdUser ? ` to @${updatedItem.fwdUser.name}` : ''}`
+      const forwards = await models.itemForward.findMany({ where: { itemId: id } })
+      const userPromises = forwards.map(fwd => models.user.findUnique({ where: { id: fwd.userId } }))
+      const userResults = await Promise.allSettled(userPromises)
+      const mappedForwards = forwards.map((fwd, index) => ({ ...fwd, user: userResults[index].value ?? null }))
+      let notificationTitle
+      if (updatedItem.title) {
+        if (forwards.length > 0) {
+          notificationTitle = `your post forwarded ${numWithUnits(msatsToSats(updatedItem.msats))} to ${mappedForwards.map(fwd => `@${fwd.user.name}`).join(', ')}`
+        } else {
+          notificationTitle = `your post stacked ${numWithUnits(msatsToSats(updatedItem.msats))}`
+        }
+      } else {
+        if (forwards.length > 0) {
+          // I don't think this is possible
+          notificationTitle = `your reply forwarded ${numWithUnits(msatsToSats(updatedItem.msats))} to ${mappedForwards.map(fwd => `@${fwd.user.name}`).join(', ')}`
+        } else {
+          notificationTitle = `your reply stacked ${numWithUnits(msatsToSats(updatedItem.msats))}`
+        }
+      }
       sendUserNotification(updatedItem.userId, {
-        title,
+        title: notificationTitle,
         body: updatedItem.title ? updatedItem.title : updatedItem.text,
         item: updatedItem,
         tag: `TIP-${updatedItem.id}`

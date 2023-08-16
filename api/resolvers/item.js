@@ -1173,7 +1173,8 @@ const getForwardUsers = async (models, forward) => {
       // 1. no more than 5 forward entries
       // 2. each percentage is a positive integer between 1 and 100 inclusive
       // 3. the sum of all percentages is <= 100
-      // 4. each specified nym exists
+      // 4. no duplicate nyms
+      // 5. each specified nym exists
       if (forward.length > MAX_FORWARDS) {
         throw new GraphQLError(`forward user count of [${forward.length}] exceeds limit of [${MAX_FORWARDS}]`, { extensions: { code: 'BAD_INPUT' } })
       }
@@ -1192,6 +1193,9 @@ const getForwardUsers = async (models, forward) => {
       })
       if (forward.map(fwd => Number(fwd.pct)).reduce((sum, cur) => sum + cur, 0) > 100) {
         throw new GraphQLError('the total forward percentage exceeds 100%', { extensions: { code: 'BAD_INPUT' } })
+      }
+      if (new Set(forward.map(fwd => fwd.nym)).size !== forward.length) {
+        throw new GraphQLError('duplicate stackers cannot be specified.', { extensions: { code: 'BAD_INPUT' } })
       }
       const userQueryResults = await Promise.allSettled(
         forward.map(fwd => (models.user.findUnique({ where: { name: fwd.nym } })))

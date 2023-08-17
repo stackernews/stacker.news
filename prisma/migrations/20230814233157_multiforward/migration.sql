@@ -28,7 +28,7 @@ INSERT INTO "ItemForward" ("itemId", "userId", "pct")
     SELECT "id" AS "itemId", "fwdUserId", 100 FROM "Item" WHERE "fwdUserId" IS NOT NULL;
 
 -- Remove the existing fwdUserId column now that existing forwards have been migrated
--- ALTER TABLE "Item" DROP COLUMN "fwdUserId";
+ALTER TABLE "Item" DROP COLUMN "fwdUserId";
 
 -- Delete old create_item function
 DROP FUNCTION IF EXISTS create_item(

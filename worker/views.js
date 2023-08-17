@@ -18,7 +18,7 @@ function rankViews ({ models }) {
   return async function () {
     console.log('refreshing rank views')
 
-    for (const view of ['sat_rank_wwm_view', 'sat_rank_tender_view']) {
+    for (const view of ['zap_rank_wwm_view', 'zap_rank_tender_view']) {
       await models.$queryRawUnsafe(`REFRESH MATERIALIZED VIEW CONCURRENTLY ${view}`)
     }
 

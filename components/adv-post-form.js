@@ -44,92 +44,28 @@ export default function AdvPostForm ({ edit }) {
             hint={<span className='text-muted'>ranks posts higher temporarily based on the amount</span>}
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
           />
-          <div>Forward sats to up to 5 other stackers</div>
-          <div>
-            <InputUserSuggest
-              label={<>forward sats to</>}
-              name='forward[0].nym'
-              prepend={<InputGroup.Text>@</InputGroup.Text>}
-              showValid
-            />
-            <Input
-              label={<>percent</>}
-              name='forward[0].pct'
-              showValid
-              type='number'
-              step='1'
-              min='1'
-              max='100'
-            />
-          </div>
-          <div>
-            <InputUserSuggest
-              label={<>forward sats to</>}
-              name='forward[1].nym'
-              prepend={<InputGroup.Text>@</InputGroup.Text>}
-              showValid
-            />
-            <Input
-              label={<>percent</>}
-              name='forward[1].pct'
-              showValid
-              type='number'
-              step='1'
-              min='1'
-              max='100'
-            />
-          </div>
-          <div>
-            <InputUserSuggest
-              label={<>forward sats to</>}
-              name='forward[2].nym'
-              prepend={<InputGroup.Text>@</InputGroup.Text>}
-              showValid
-            />
-            <Input
-              label={<>percent</>}
-              name='forward[2].pct'
-              showValid
-              type='number'
-              step='1'
-              min='1'
-              max='100'
-            />
-          </div>
-          <div>
-            <InputUserSuggest
-              label={<>forward sats to</>}
-              name='forward[3].nym'
-              prepend={<InputGroup.Text>@</InputGroup.Text>}
-              showValid
-            />
-            <Input
-              label={<>percent</>}
-              name='forward[3].pct'
-              showValid
-              type='number'
-              step='1'
-              min='1'
-              max='100'
-            />
-          </div>
-          <div>
-            <InputUserSuggest
-              label={<>forward sats to</>}
-              name='forward[4].nym'
-              prepend={<InputGroup.Text>@</InputGroup.Text>}
-              showValid
-            />
-            <Input
-              label={<>percent</>}
-              name='forward[4].pct'
-              showValid
-              type='number'
-              step='1'
-              min='1'
-              max='100'
-            />
-          </div>
+          <label className='form-label'>Forward sats to up to 5 other stackers. Any remaining sats go to you.</label>
+          {Array(5).fill().map((_, index) => (
+            <div key={index} className='flex-row' style={{ display: 'flex' }}>
+              <InputUserSuggest
+                label={<>forward sats to</>}
+                name={`forward[${index}].nym`}
+                prepend={<InputGroup.Text>@</InputGroup.Text>}
+                showValid
+                groupClassName='flex-grow-1'
+              />
+              <Input
+                label={<>percent</>}
+                name={`forward[${index}].pct`}
+                showValid
+                type='number'
+                step='1'
+                min='1'
+                max='100'
+                groupClassName='flex-grow-1'
+              />
+            </div>
+          ))}
         </>
       }
     />

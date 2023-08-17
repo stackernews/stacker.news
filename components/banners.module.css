@@ -1,0 +1,7 @@
+.banner {
+  margin-top: 1em;
+}
+
+.banner p:last-of-type {
+  margin-bottom: 0;
+}

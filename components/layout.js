@@ -1,6 +1,7 @@
 import Header, { HeaderStatic } from './header'
 import Container from 'react-bootstrap/Container'
 import Footer from './footer'
+import NewVisitorBanner from './banners'
 import Seo, { SeoSearch } from './seo'
 import Search from './search'
 import styles from './layout.module.css'
@@ -16,6 +17,7 @@ export default function Layout ({
       {contain
         ? (
           <Container as='main' className={`px-sm-0 ${containClassName}`}>
+            <NewVisitorBanner />
             {children}
           </Container>
           )

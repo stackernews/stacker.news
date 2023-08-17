@@ -24,6 +24,7 @@ import Link from 'next/link'
 import { RootProvider } from './root'
 import { IMGPROXY_URL_REGEXP } from '../lib/url'
 import { numWithUnits } from '../lib/format'
+import { useRouter } from 'next/router'
 
 function BioItem ({ item, handleClick }) {
   const me = useMe()
@@ -163,9 +164,24 @@ function ItemText ({ item }) {
 }
 
 export default function ItemFull ({ item, bio, rank, ...props }) {
+  const router = useRouter()
+  const me = useMe()
+
+  console.log("hello")
+  console.log({ query: router.query })
+  console.log({ pathname: router.pathname})
+
   useEffect(() => {
+    if (me) {
+      // add referral fragment as param 
+      // i.e. /items/1?r=k00b
+      router.push({
+        pathname: router.pathname,
+        query: { ...router.query, r: me.name },
+      });
+    }
     commentsViewed(item)
-  }, [item.lastCommentAt])
+  }, [item.lastCommentAt, me])
 
   return (
     <>

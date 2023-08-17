@@ -1,18 +1,23 @@
 import { NextResponse } from 'next/server'
 
 export function middleware (request) {
-  const regex = /(\/.*)?\/r\/([\w_]+)/
-  const m = regex.exec(request.nextUrl.pathname)
+  const sn_referrer = request.nextUrl.searchParams.get("r")
+  if (sn_referrer) {
+    console.log({sn_referrer})
 
-  const url = new URL(m[1] || '/', request.url)
-  url.search = request.nextUrl.search
-  url.hash = request.nextUrl.hash
-
-  const resp = NextResponse.redirect(url)
-  resp.cookies.set('sn_referrer', m[2])
-  return resp
+    const url = new URL('/', request.url)
+    url.search = request.nextUrl.search
+    url.hash = request.nextUrl.hash
+  
+    console.log({url})
+  
+    //const resp = NextResponse.redirect(url)
+    const resp = NextResponse.next();
+    resp.cookies.set('sn_referrer', sn_referrer)
+    return resp
+  }
 }
 
 export const config = {
-  matcher: ['/(.*/|)r/([\\w_]+)([?#]?.*)']
+  matcher: ['/(.*/|)([?#]?.*)']
 }

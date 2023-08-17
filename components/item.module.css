@@ -50,13 +50,21 @@ a.title:visited {
     fill: #a5a5a5;
     margin-right: .4rem;
     margin-left: -.2rem;
+    flex-shrink: 0;
+}
+
+.ad {
+    fill: #a5a5a5ac;
+    margin-right: .4rem;
+    margin-left: -.2rem;
+    flex-shrink: 0;
 }
 
 .dontLike {
     fill: #a5a5a5;
-    margin-right: .2rem;
-    padding: 2px;
-    margin-left: 1px;
+    margin-right: .35rem;
+    margin-left: -.2rem;
+    flex-shrink: 0;
 }
 
 .case {

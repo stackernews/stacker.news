@@ -16,6 +16,7 @@ import BookmarkDropdownItem from './bookmark'
 import SubscribeDropdownItem from './subscribe'
 import { CopyLinkDropdownItem } from './share'
 import Hat from './hat'
+import { AD_USER_ID } from '../lib/constants'
 
 export default function ItemInfo ({
   item, pendingSats, full, commentsText = 'comments',
@@ -41,7 +42,7 @@ export default function ItemInfo ({
 
   return (
     <div className={className || `${styles.other}`}>
-      {!item.position &&
+      {!item.position && !(!item.parentId && Number(item.user?.id) === AD_USER_ID) &&
         <>
           <span title={`from ${numWithUnits(item.upvotes, {
               abbreviate: false,

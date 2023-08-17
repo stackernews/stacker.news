@@ -51,3 +51,6 @@
   grid-template-columns: max-content 1fr max-content;
 }
 
+form>div.options {
+  align-items: center;
+}

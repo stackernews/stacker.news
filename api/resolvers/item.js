@@ -774,6 +774,12 @@ export default {
         }
       }
 
+      // Disallow tips if me is one of the forward user recipients
+      const existingForwards = await models.itemForward.findMany({ where: { itemId: Number(id) } })
+      if (existingForwards.some(fwd => Number(fwd.userId) === Number(user.id))) {
+        throw new GraphQLError('cannot zap a post for which you are forwarded zaps', { extensions: { code: 'BAD_INPUT' } })
+      }
+
       const calls = [
         models.$queryRaw`SELECT item_act(${Number(id)}::INTEGER, ${user.id}::INTEGER, 'TIP', ${Number(sats)}::INTEGER)`
       ]

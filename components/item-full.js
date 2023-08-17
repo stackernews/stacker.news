@@ -171,10 +171,7 @@ export default function ItemFull ({ item, bio, rank, ...props }) {
     if (me) {
       // add referral fragment as param 
       // i.e. /items/1?r=k00b
-      router.push({
-        pathname: router.pathname,
-        query: { ...router.query, r: me.name },
-      });
+      router.push(`/items/${item.id}?r=${me.name}`)
     }
     commentsViewed(item)
   }, [item.lastCommentAt, me])

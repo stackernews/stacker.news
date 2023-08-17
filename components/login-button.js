@@ -1,7 +1,6 @@
 import GithubIcon from '../svgs/github-fill.svg'
 import TwitterIcon from '../svgs/twitter-fill.svg'
 import LightningIcon from '../svgs/bolt.svg'
-import SlashtagsIcon from '../svgs/slashtags.svg'
 import NostrIcon from '../svgs/nostr.svg'
 import Button from 'react-bootstrap/Button'
 
@@ -15,10 +14,6 @@ export default function LoginButton ({ text, type, className, onClick }) {
     case 'github':
       Icon = GithubIcon
       variant = 'dark'
-      break
-    case 'slashtags':
-      Icon = SlashtagsIcon
-      variant = 'grey-medium'
       break
     case 'nostr':
       Icon = NostrIcon

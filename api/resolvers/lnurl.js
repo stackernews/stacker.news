@@ -40,9 +40,6 @@ export default {
     encodedUrl: async (lnAuth, args, { models }) => {
       return encodedUrl(process.env.LNAUTH_URL, 'login', lnAuth.k1)
     }
-    // slashtagUrl: async (lnAuth, args, { models, slashtags }) => {
-    //   return slashtags.formatURL(lnAuth.k1)
-    // }
   },
   LnWith: {
     encodedUrl: async (lnWith, args, { models }) => {

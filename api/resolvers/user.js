@@ -80,7 +80,6 @@ async function authMethods (user, args, { models, me }) {
     email: user.emailVerified && user.email,
     twitter: oauth.indexOf('twitter') >= 0,
     github: oauth.indexOf('github') >= 0,
-    slashtags: !!user.slashtagId,
     nostr: !!user.nostrAuthPubkey
   }
 }
@@ -526,8 +525,6 @@ export default {
         await models.account.delete({ where: { id: account.id } })
       } else if (authType === 'lightning') {
         user = await models.user.update({ where: { id: me.id }, data: { pubkey: null } })
-      } else if (authType === 'slashtags') {
-        user = await models.user.update({ where: { id: me.id }, data: { slashtagId: null } })
       } else if (authType === 'nostr') {
         user = await models.user.update({ where: { id: me.id }, data: { nostrAuthPubkey: null } })
       } else if (authType === 'email') {

@@ -8,7 +8,7 @@ import { gql, useMutation, useQuery } from '@apollo/client'
 import { getGetServerSideProps } from '../api/ssrApollo'
 import LoginButton from '../components/login-button'
 import { signIn } from 'next-auth/react'
-import { LightningAuth, SlashtagsAuth } from '../components/lightning-auth'
+import { LightningAuth } from '../components/lightning-auth'
 import { SETTINGS, SET_SETTINGS } from '../fragments/users'
 import { useRouter } from 'next/router'
 import Info from '../components/info'
@@ -293,7 +293,7 @@ function QRLinkButton ({ provider, unlink, status }) {
     ? unlink
     : () => showModal(onClose =>
       <div className='d-flex flex-column align-items-center'>
-        {provider === 'slashtags' ? <SlashtagsAuth /> : <LightningAuth />}
+        <LightningAuth />
       </div>)
 
   return (
@@ -434,7 +434,7 @@ function AuthMethods ({ methods }) {
               </div>
               )
             : <div key={provider} className='mt-2'><EmailLinkForm /></div>
-        } else if (provider === 'lightning' || provider === 'slashtags') {
+        } else if (provider === 'lightning') {
           return (
             <QRLinkButton
               key={provider} provider={provider}

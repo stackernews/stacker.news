@@ -1,7 +1,7 @@
 import AccordianItem from './accordian-item'
 import { Input, InputUserSuggest } from './form'
 import InputGroup from 'react-bootstrap/InputGroup'
-import { BOOST_MIN } from '../lib/constants'
+import { BOOST_MIN, MAX_FORWARDS } from '../lib/constants'
 import Info from './info'
 import { numWithUnits } from '../lib/format'
 
@@ -45,7 +45,7 @@ export default function AdvPostForm ({ edit }) {
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
           />
           <label className='form-label'>Forward sats to up to 5 other stackers. Any remaining sats go to you.</label>
-          {Array(5).fill().map((_, index) => (
+          {Array(MAX_FORWARDS).fill().map((_, index) => (
             <div key={index} className='flex-row' style={{ display: 'flex' }}>
               <InputUserSuggest
                 label={<>forward sats to</>}

@@ -170,7 +170,9 @@ export default {
             "Item".id AS "factId",
             NULL AS bolt11,
             MAX("ItemAct".created_at) AS "createdAt",
-            SUM("ItemAct".msats) AS msats,
+            FLOOR(SUM("ItemForward".pct) / COUNT(DISTINCT "ItemAct".id))
+            / 100 *
+            FLOOR(SUM("ItemAct".msats) / COUNT(DISTINCT "ItemForward".id)) as msats,
             0 AS "msatsFee",
             NULL AS status,
             'stacked' AS type

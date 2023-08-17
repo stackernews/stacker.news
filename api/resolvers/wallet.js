@@ -142,7 +142,7 @@ export default {
             (
               (100 - FLOOR(SUM("ItemForward"."pct") / COUNT(DISTINCT "ItemAct".id)))
               / 100
-              * FLOOR(SUM("ItemAct".msats) / COUNT(DISTINCT "ItemAct".id))
+              * FLOOR(SUM("ItemAct".msats) / COUNT(DISTINCT "ItemForward".id))
             ) AS "msats",
             0 AS "msatsFee",
             NULL AS status,

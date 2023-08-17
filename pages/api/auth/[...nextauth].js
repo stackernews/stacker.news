@@ -156,15 +156,15 @@ const providers = [
       return pubkeyAuth(credentials, new NodeNextRequest(req), 'nostrAuthPubkey')
     }
   }),
-  CredentialsProvider({
-    id: 'slashtags',
-    name: 'Slashtags',
-    credentials: {
-      pubkey: { label: 'publickey', type: 'text' },
-      k1: { label: 'k1', type: 'text' }
-    },
-    authorize: async (credentials, req) => await pubkeyAuth(credentials, new NodeNextRequest(req), 'slashtagId')
-  }),
+  // CredentialsProvider({
+  //   id: 'slashtags',
+  //   name: 'Slashtags',
+  //   credentials: {
+  //     pubkey: { label: 'publickey', type: 'text' },
+  //     k1: { label: 'k1', type: 'text' }
+  //   },
+  //   authorize: async (credentials, req) => await pubkeyAuth(credentials, new NodeNextRequest(req), 'slashtagId')
+  // }),
   GitHubProvider({
     clientId: process.env.GITHUB_ID,
     clientSecret: process.env.GITHUB_SECRET,

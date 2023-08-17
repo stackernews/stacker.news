@@ -7,7 +7,6 @@ import typeDefs from '../../api/typeDefs'
 import { getServerSession } from 'next-auth/next'
 import { getAuthOptions } from './auth/[...nextauth]'
 import search from '../../api/search'
-import slashtags from '../../api/slashtags'
 
 const apolloServer = new ApolloServer({
   typeDefs,
@@ -51,8 +50,7 @@ export default startServerAndCreateNextHandler(apolloServer, {
       me: session
         ? session.user
         : null,
-      search,
-      slashtags
+      search
     }
   }
 })

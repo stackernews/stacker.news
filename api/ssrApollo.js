@@ -4,7 +4,6 @@ import { makeExecutableSchema } from '@graphql-tools/schema'
 import resolvers from './resolvers'
 import typeDefs from './typeDefs'
 import models from './models'
-import slashtags from './slashtags'
 import { print } from 'graphql'
 import lnd from './lnd'
 import search from './search'
@@ -28,8 +27,7 @@ export default async function getSSRApolloClient ({ req, res, me = null }) {
           ? session.user
           : me,
         lnd,
-        search,
-        slashtags
+        search
       }
     }),
     cache: new InMemoryCache({

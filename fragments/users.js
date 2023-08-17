@@ -59,7 +59,6 @@ export const SETTINGS_FIELDS = gql`
     greeterMode
     authMethods {
       lightning
-      slashtags
       nostr
       github
       twitter

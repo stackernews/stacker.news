@@ -156,7 +156,12 @@ export default {
           )
           AND "Item"."userId" = $1
           AND "ItemAct".created_at <= $2
-          GROUP BY "Item".id)`
+          GROUP BY "Item".id
+          HAVING (
+            (100 - FLOOR(SUM("ItemForward"."pct") / COUNT(DISTINCT "ItemAct".id)))
+            / 100
+            * FLOOR(SUM("ItemAct".msats) / COUNT(DISTINCT "ItemForward".id))
+          ) > 0)`
         )
         // query 3, get all sats stacked by the user by way of being forwarded to them from someone else
         queries.push(

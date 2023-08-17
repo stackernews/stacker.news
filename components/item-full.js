@@ -167,10 +167,6 @@ export default function ItemFull ({ item, bio, rank, ...props }) {
   const router = useRouter()
   const me = useMe()
 
-  console.log("hello")
-  console.log({ query: router.query })
-  console.log({ pathname: router.pathname})
-
   useEffect(() => {
     if (me) {
       // add referral fragment as param 

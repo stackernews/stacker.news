@@ -20,9 +20,18 @@ import { numWithUnits } from '../lib/format'
 export const getServerSideProps = getGetServerSideProps()
 
 export default function Wallet () {
+  const me = useMe()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!me) {
+      router.push('/login?callbackUrl=' + encodeURIComponent(router.pathname))
+    }
+  }, [])
+
   return (
     <CenterLayout>
-      <WalletForm />
+      {me ? (<WalletForm />) : (<p>Redirecting to login page...</p>)}
     </CenterLayout>
   )
 }

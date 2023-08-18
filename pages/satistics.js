@@ -1,5 +1,4 @@
 import Button from 'react-bootstrap/Button'
-import { CSVLink } from 'react-csv'
 import { useQuery } from '@apollo/client'
 import Link from 'next/link'
 import { getGetServerSideProps } from '../api/ssrApollo'
@@ -14,7 +13,6 @@ import { Checkbox, Form } from '../components/form'
 import { useRouter } from 'next/router'
 import Item from '../components/item'
 import { CommentFlat } from '../components/comment'
-import { useMemo } from 'react'
 import ItemJob from '../components/item-job'
 import PageLoading from '../components/page-loading'
 
@@ -168,42 +166,6 @@ export default function Satistics ({ ssrData }) {
 
   const { walletHistory: { facts, cursor } } = data || ssrData
 
-  const exportSource = useMemo(() => (data?.walletHistory.facts) ? data?.walletHistory.facts : [], [data])
-
-  // This defines the CSV format and transforms the internal data to it.
-  // The CSV format constitutes a public-facing API, so take care!
-  const csvData = [
-    ['Date', 'Type', 'Fee', 'Sats In', 'Sats Out', 'Status', 'Description'],
-    ...exportSource.map(({ createdAt, type, sats, satsFee, status, description, item }) => [
-      createdAt,
-      {
-        invoice: 'DEPOSIT',
-        withdrawal: 'WITHDRAWAL',
-        stacked: 'STACK',
-        earn: 'EARNINGS',
-        referral: 'REFERRAL',
-        spent: 'SPEND',
-        donation: 'DONATION'
-      }[type],
-      Math.abs(satsFee).toString() !== '0' ? Math.abs(satsFee) : '',
-      sats >= 0 ? sats : '',
-      sats < 0 ? -sats : '',
-      status
-        ? {
-            CONFIRMED: 'CONFIRMED',
-            EXPIRED: 'EXPIRED',
-            CANCELLED: 'CANCELLED',
-            PENDING: 'PENDING',
-            INSUFFICIENT_BALANCE: 'INSUFFICIENT BALANCE',
-            INVALID_PAYMENT: 'PAYMENT ERROR',
-            PATHFINDING_TIMEOUT: 'PAYMENT ERROR',
-            ROUTE_NOT_FOUND: 'PAYMENT ERROR'
-          }[status]
-        : '',
-      description || item?.title || ''
-    ])
-  ]
-
   return (
     <Layout>
       <div className='mt-3'>
@@ -238,9 +200,14 @@ export default function Satistics ({ ssrData }) {
               handleChange={c => filterRoutePush('spent', c)}
             />
             <div className='form-group undefined'>
-              <CSVLink className='btn btn-succes' filename='my-file.csv' data={csvData}>
+              <Link
+                className='btn btn-succes'
+                href={`/~/csv?inc=${router.query.inc}`}
+                download={`SN${new Date().toISOString().split('.')[0].replace(/[^\d]/gi, '')}.csv`}
+                target='_blank' rel='noreferrer'
+              >
                 <Button variant='success'>Download CSV</Button>
-              </CSVLink>
+              </Link>
             </div>
           </div>
         </Form>

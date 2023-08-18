@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Button from 'react-bootstrap/Button'
 import { gql, useMutation, useQuery } from '@apollo/client'
 import Qr, { QrSkeleton } from '../components/qr'
-import { CenterLayout } from '../components/layout'
+import { CenterLayout, TopDownLayout } from '../components/layout'
 import InputGroup from 'react-bootstrap/InputGroup'
 import { WithdrawlSkeleton } from './withdrawals/[id]'
 import { useMe } from '../components/me'
@@ -22,11 +22,34 @@ import { numWithUnits } from '../lib/format'
 export const getServerSideProps = getGetServerSideProps()
 
 export default function Wallet () {
-  return (
-    <CenterLayout>
-      <WalletForm />
-    </CenterLayout>
-  )
+  const router = useRouter()
+
+  if (!router.query.type) {
+    return (
+      <CenterLayout>
+        <YouHaveSats />
+        <WalletForm />
+      </CenterLayout>
+    )
+  } else {
+    if (router.query.type === 'fund') {
+      return (
+        <TopDownLayout>
+          <YouHaveSats />
+          <h5 className='pb-4'>Funding Options</h5>
+          <FundForm />
+        </TopDownLayout>
+      )
+    } else {
+      return (
+        <TopDownLayout>
+          <YouHaveSats />
+          <h5 className='pb-4'>Withdrawal Options</h5>
+          <WithdrawalMethods />
+        </TopDownLayout>
+      )
+    }
+  }
 }
 
 function YouHaveSats () {
@@ -52,28 +75,17 @@ function WalletHistory () {
 }
 
 export function WalletForm () {
-  const router = useRouter()
-
-  if (!router.query.type) {
-    return (
-      <div className='align-items-center text-center'>
-        <YouHaveSats />
-        <Link href='/wallet?type=fund'>
-          <Button variant='success'>fund</Button>
-        </Link>
-        <span className='mx-3 fw-bold text-muted'>or</span>
-        <Link href='/wallet?type=withdraw'>
-          <Button variant='success'>withdraw</Button>
-        </Link>
-      </div>
-    )
-  }
-
-  if (router.query.type === 'fund') {
-    return <FundForm />
-  } else {
-    return <WithdrawalMethods />
-  }
+  return (
+    <div className='align-items-center text-center'>
+      <Link href='/wallet?type=fund'>
+        <Button variant='success'>fund</Button>
+      </Link>
+      <span className='mx-3 fw-bold text-muted'>or</span>
+      <Link href='/wallet?type=withdraw'>
+        <Button variant='success'>withdraw</Button>
+      </Link>
+    </div>
+  )
 }
 
 export function FundForm () {
@@ -97,7 +109,6 @@ export function FundForm () {
 
   return (
     <>
-      <YouHaveSats />
       {me && showAlert &&
         <Alert
           variant='success' dismissible onClose={() => {
@@ -136,7 +147,6 @@ export function WithdrawalMethods () {
 
   return (
     <>
-      <YouHaveSats />
       <Tabs
         defaultActiveKey={
           router.query.type === 'lnurl-withdraw'

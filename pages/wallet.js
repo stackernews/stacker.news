@@ -14,10 +14,10 @@ import Alert from 'react-bootstrap/Alert'
 import { CREATE_WITHDRAWL, SEND_TO_LNADDR } from '../fragments/wallet'
 import { getGetServerSideProps } from '../api/ssrApollo'
 import { amountSchema, lnAddrSchema, withdrawlSchema } from '../lib/validate'
+import Nav from 'react-bootstrap/Nav'
 import { SSR } from '../lib/constants'
-import Tab from 'react-bootstrap/Tab'
-import Tabs from 'react-bootstrap/Tabs'
 import { numWithUnits } from '../lib/format'
+import styles from '../components/user-header.module.css'
 
 export const getServerSideProps = getGetServerSideProps()
 
@@ -36,7 +36,7 @@ export default function Wallet () {
       return (
         <TopDownLayout>
           <YouHaveSats />
-          <h5 className='pb-4'>Funding Options</h5>
+          <h5 className='pb-4'>funding options</h5>
           <FundForm />
         </TopDownLayout>
       )
@@ -44,7 +44,7 @@ export default function Wallet () {
       return (
         <TopDownLayout>
           <YouHaveSats />
-          <h5 className='pb-4'>Withdrawal Options</h5>
+          <h5 className='pb-4'>withdrawal options</h5>
           <WithdrawalMethods />
         </TopDownLayout>
       )
@@ -147,38 +147,42 @@ export function WithdrawalMethods () {
 
   return (
     <>
-      <Tabs
-        defaultActiveKey={
-          router.query.type === 'lnurl-withdraw'
-            ? 'qrcode'
-            : router.query.type === 'lnaddr-withdraw'
-              ? 'lnaddr'
-              : 'invoice'
-        }
-        id='withdrawal-tabs'
-        justify
-        mountOnEnter
-        onSelect={(k, e) => {
-          router.replace(
-            k === 'qrcode'
-              ? '/wallet?type=lnurl-withdraw'
-              : k === 'lnaddr'
-                ? '/wallet?type=lnaddr-withdraw'
-                : '/wallet?type=withdraw')
-        }}
+      <Nav
+        className={styles.nav}
+        activeKey={router.query.type}
       >
-        <Tab eventKey='invoice' title='Invoice'>
-          <WithdrawlForm />
-        </Tab>
-        <Tab eventKey='qrcode' title='QR Code'>
-          <LnWithdrawal />
-        </Tab>
-        <Tab eventKey='lnaddr' title='Lightning Address'>
-          <LnAddrWithdrawal />
-        </Tab>
-      </Tabs>
+        <Nav.Item>
+          <Link href='/wallet?type=withdraw' passHref legacyBehavior>
+            <Nav.Link eventKey='withdraw'>invoice</Nav.Link>
+          </Link>
+        </Nav.Item>
+        <Nav.Item>
+          <Link href='/wallet?type=lnurl-withdraw' passHref legacyBehavior>
+            <Nav.Link eventKey='lnurl-withdraw'>QR code</Nav.Link>
+          </Link>
+        </Nav.Item>
+        <Nav.Item>
+          <Link href='/wallet?type=lnaddr-withdraw' passHref legacyBehavior>
+            <Nav.Link eventKey='lnaddr-withdraw'>lightning address</Nav.Link>
+          </Link>
+        </Nav.Item>
+      </Nav>
+      <SelectedWithdrawalForm />
     </>
   )
+}
+
+export function SelectedWithdrawalForm () {
+  const router = useRouter()
+
+  switch (router.query.type) {
+    case 'withdraw':
+      return <WithdrawlForm />
+    case 'lnurl-withdraw':
+      return <LnWithdrawal />
+    case 'lnaddr-withdraw':
+      return <LnAddrWithdrawal />
+  }
 }
 
 const MAX_FEE_DEFAULT = 10

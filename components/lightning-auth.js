@@ -11,7 +11,7 @@ import BackIcon from '../svgs/arrow-left-line.svg'
 import { useRouter } from 'next/router'
 import { SSR } from '../lib/constants'
 
-function QrAuth ({ k1, encodedUrl, slashtagUrl, callbackUrl }) {
+function QrAuth ({ k1, encodedUrl, callbackUrl }) {
   const query = gql`
   {
     lnAuth(k1: "${k1}") {
@@ -23,13 +23,13 @@ function QrAuth ({ k1, encodedUrl, slashtagUrl, callbackUrl }) {
 
   useEffect(() => {
     if (data?.lnAuth?.pubkey) {
-      signIn(encodedUrl ? 'lightning' : 'slashtags', { ...data.lnAuth, callbackUrl })
+      signIn('lightning', { ...data.lnAuth, callbackUrl })
     }
   }, [data?.lnAuth])
 
   // output pubkey and k1
   return (
-    <Qr value={encodedUrl || slashtagUrl} asIs={!!slashtagUrl} status='waiting for you' />
+    <Qr value={encodedUrl} status='waiting for you' />
   )
 }
 
@@ -104,25 +104,6 @@ export function LightningAuth ({ callbackUrl }) {
       createAuth {
         k1
         encodedUrl
-      }
-    }`)
-
-  useEffect(() => {
-    createAuth()
-  }, [])
-
-  if (error) return <div>error</div>
-
-  return data ? <QrAuth {...data.createAuth} callbackUrl={callbackUrl} /> : <QrSkeleton status='generating' />
-}
-
-export function SlashtagsAuth ({ callbackUrl }) {
-  // query for challenge
-  const [createAuth, { data, error }] = useMutation(gql`
-    mutation createAuth {
-      createAuth {
-        k1
-        slashtagUrl
       }
     }`)
 

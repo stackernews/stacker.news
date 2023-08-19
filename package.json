@@ -18,8 +18,6 @@
     "@noble/curves": "^1.1.0",
     "@opensearch-project/opensearch": "^2.3.1",
     "@prisma/client": "^5.1.1",
-    "@synonymdev/slashtags-auth": "^1.0.0-alpha.5",
-    "@synonymdev/slashtags-sdk": "^1.0.0-alpha.36",
     "acorn": "^8.10.0",
     "ajv": "^8.12.0",
     "async-retry": "^1.3.1",

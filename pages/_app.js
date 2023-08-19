@@ -97,7 +97,6 @@ function MyApp ({ Component, pageProps: { ...props } }) {
                     </PaymentTokenProvider>
                   </LightningProvider>
                 </PriceProvider>
-
               </ServiceWorkerProvider>
             </MeProvider>
           </ApolloProvider>

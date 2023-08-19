@@ -218,7 +218,7 @@ function FormGroup ({ className, label, children }) {
 }
 
 function InputInner ({
-  prepend, append, hint, showValid, onChange, overrideValue,
+  prepend, append, hint, showValid, onChange, onBlur, overrideValue,
   innerRef, noForm, clear, onKeyDown, debounce, ...props
 }) {
   const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)
@@ -283,6 +283,10 @@ function InputInner ({
               onChange(formik, e)
             }
           }}
+          onBlur={(e) => {
+            field.onBlur(e)
+            onBlur && onBlur(e)
+          }}
           isInvalid={invalid}
           isValid={showValid && meta.initialValue !== meta.value && meta.touched && !meta.error}
         />
@@ -325,13 +329,15 @@ export function InputUserSuggest ({ label, groupClassName, ...props }) {
   const INITIAL_SUGGESTIONS = { array: [], index: 0 }
   const [suggestions, setSuggestions] = useState(INITIAL_SUGGESTIONS)
   const [ovalue, setOValue] = useState()
-
   return (
     <FormGroup label={label} className={groupClassName}>
       <InputInner
         {...props}
         autoComplete='off'
-        onChange={(_, e) => getSuggestions({ variables: { q: e.target.value } })}
+        onChange={(_, e) => {
+          setOValue(e.target.value)
+          getSuggestions({ variables: { q: e.target.value.replace(/^[@ ]+|[ ]+$/g, '') } })
+        }}
         overrideValue={ovalue}
         onKeyDown={(e) => {
           switch (e.code) {

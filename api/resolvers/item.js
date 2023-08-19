@@ -314,6 +314,21 @@ export default {
       const decodedCursor = decodeCursor(cursor)
       let items, user, pins, subFull, table
 
+      // special authorization for bookmarks depending on owning users' privacy settings
+      if (type === 'bookmarks' && name && me?.name !== name) {
+        // the calling user is either not logged in, or not the user upon which the query is made,
+        // so we need to check authz
+        user = await models.user.findUnique({ where: { name } })
+        if (user.hideBookmarks) {
+          // early return with no results if bookmarks are hidden
+          return {
+            cursor: null,
+            items: [],
+            pins: []
+          }
+        }
+      }
+
       // HACK we want to optionally include the subName in the query
       // but the query planner doesn't like unused parameters
       const subArr = sub ? [sub] : []

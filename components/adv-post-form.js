@@ -46,7 +46,6 @@ export default function AdvPostForm ({ edit }) {
           />
           <InputUserSuggest
             label={<>forward sats to</>}
-            groupClassName='forward-group'
             name='forward'
             hint={<span className='text-muted'>100% of sats will be sent to this stacker</span>}
             prepend={<InputGroup.Text>@</InputGroup.Text>}

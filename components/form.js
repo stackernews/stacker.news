@@ -218,8 +218,8 @@ function FormGroup ({ className, label, children }) {
 }
 
 function InputInner ({
-  prepend, append, hint, showValid, onInput, onChange, overrideValue,
-  innerRef, noForm, clear, onKeyDown, debounce, autoRestrict, ...props
+  prepend, append, hint, showValid, onInput, onChange, onBlur, overrideValue,
+  innerRef, noForm, clear, onKeyDown, debounce, ...props
 }) {
   const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)
   const formik = noForm ? null : useFormikContext()
@@ -272,11 +272,6 @@ function InputInner ({
           }}
           ref={innerRef}
           {...field} {...props}
-          onInput={(e) => {
-            if (autoRestrict && e.target.value !== autoRestrict(e.target.value)) {
-              e.target.value = autoRestrict(e.target.value)
-            }
-          }}
           onChange={(e) => {
             field.onChange(e)
 
@@ -287,6 +282,10 @@ function InputInner ({
             if (onChange) {
               onChange(formik, e)
             }
+          }}
+          onBlur={(e) => {
+            field.onBlur(e)
+            onBlur && onBlur(e)
           }}
           isInvalid={invalid}
           isValid={showValid && meta.initialValue !== meta.value && meta.touched && !meta.error}
@@ -321,14 +320,6 @@ function InputInner ({
 }
 
 export function InputUserSuggest ({ label, groupClassName, ...props }) {
-  const formik = useFormikContext()
-  const blurFunc = (e) => {
-    formik.handleBlur(e)
-    if (!document.getElementsByClassName(groupClassName)[0].contains(e.relatedTarget)) {
-      setSuggestions(INITIAL_SUGGESTIONS)
-    }
-  }
-
   const [getSuggestions] = useLazyQuery(USER_SEARCH, {
     onCompleted: data => {
       setSuggestions({ array: data.searchUsers, index: 0 })
@@ -338,14 +329,15 @@ export function InputUserSuggest ({ label, groupClassName, ...props }) {
   const INITIAL_SUGGESTIONS = { array: [], index: 0 }
   const [suggestions, setSuggestions] = useState(INITIAL_SUGGESTIONS)
   const [ovalue, setOValue] = useState()
-
   return (
     <FormGroup label={label} className={groupClassName}>
       <InputInner
         {...props}
         autoComplete='off'
-        autoRestrict={(s) => s.replace(/^[@ ]+|[ ]+$/g, '')} // handles copy-and-paste offenders
-        onChange={(_, e) => getSuggestions({ variables: { q: e.target.value } })}
+        onChange={(_, e) => {
+          setOValue(e.target.value)
+          getSuggestions({ variables: { q: e.target.value.replace(/^[@ ]+|[ ]+$/g, '') } })
+        }}
         overrideValue={ovalue}
         onKeyDown={(e) => {
           switch (e.code) {
@@ -378,7 +370,6 @@ export function InputUserSuggest ({ label, groupClassName, ...props }) {
               break
           }
         }}
-        onBlur={blurFunc}
       />
       <Dropdown show={suggestions.array.length > 0}>
         <Dropdown.Menu className={styles.suggestionsMenu}>
@@ -390,7 +381,6 @@ export function InputUserSuggest ({ label, groupClassName, ...props }) {
                 setOValue(v.name)
                 setSuggestions(INITIAL_SUGGESTIONS)
               }}
-              onBlur={blurFunc}
             >
               {v.name}
             </Dropdown.Item>)}

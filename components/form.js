@@ -218,7 +218,7 @@ function FormGroup ({ className, label, children }) {
 }
 
 function InputInner ({
-  prepend, append, hint, showValid, onInput, onChange, onBlur, overrideValue,
+  prepend, append, hint, showValid, onChange, onBlur, overrideValue,
   innerRef, noForm, clear, onKeyDown, debounce, ...props
 }) {
   const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)

@@ -9,7 +9,7 @@ import Eye from '../svgs/eye-fill.svg'
 import EyeClose from '../svgs/eye-close-line.svg'
 import { useRouter } from 'next/router'
 import CommentEdit from './comment-edit'
-import { COMMENT_DEPTH_LIMIT, NOFOLLOW_LIMIT } from '../lib/constants'
+import { ANON_USER_ID, COMMENT_DEPTH_LIMIT, NOFOLLOW_LIMIT } from '../lib/constants'
 import { ignoreClick } from '../lib/clicks'
 import PayBounty from './pay-bounty'
 import BountyIcon from '../svgs/bounty-bag.svg'
@@ -129,7 +129,8 @@ export default function Comment ({
   }, [item.id])
 
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT
-  const op = root.user.name === item.user.name
+  // Don't show OP badge when anon user comments on anon user posts
+  const op = root.user.name === item.user.name && Number(item.user.id) !== ANON_USER_ID
   const bountyPaid = root.bountyPaidTo?.includes(Number(item.id))
 
   return (

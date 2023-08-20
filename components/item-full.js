@@ -24,7 +24,6 @@ import Link from 'next/link'
 import { RootProvider } from './root'
 import { IMGPROXY_URL_REGEXP } from '../lib/url'
 import { numWithUnits } from '../lib/format'
-import { useRouter } from 'next/router'
 
 function BioItem ({ item, handleClick }) {
   const me = useMe()

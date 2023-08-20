@@ -14,23 +14,43 @@ import Alert from 'react-bootstrap/Alert'
 import { CREATE_WITHDRAWL, SEND_TO_LNADDR } from '../fragments/wallet'
 import { getGetServerSideProps } from '../api/ssrApollo'
 import { amountSchema, lnAddrSchema, withdrawlSchema } from '../lib/validate'
+import Nav from 'react-bootstrap/Nav'
 import { SSR } from '../lib/constants'
 import { numWithUnits } from '../lib/format'
+import styles from '../components/user-header.module.css'
 
 export const getServerSideProps = getGetServerSideProps()
 
 export default function Wallet () {
-  return (
-    <CenterLayout>
-      <WalletForm />
-    </CenterLayout>
-  )
+  const router = useRouter()
+
+  if (router.query.type === 'fund') {
+    return (
+      <CenterLayout>
+        <FundForm />
+      </CenterLayout>
+    )
+  } else if (router.query.type?.includes('withdraw')) {
+    return (
+      <CenterLayout>
+        <WithdrawalForm />
+      </CenterLayout>
+    )
+  } else {
+    return (
+      <CenterLayout>
+        <YouHaveSats />
+        <WalletForm />
+        <WalletHistory />
+      </CenterLayout>
+    )
+  }
 }
 
 function YouHaveSats () {
   const me = useMe()
   return (
-    <h2 className={`${me ? 'visible' : 'invisible'} text-success pb-5`}>
+    <h2 className={`${me ? 'visible' : 'invisible'} text-success`}>
       you have <span className='text-monospace'>{me && numWithUnits(me.sats, { abbreviate: false })}</span>
     </h2>
   )
@@ -38,42 +58,24 @@ function YouHaveSats () {
 
 function WalletHistory () {
   return (
-    <div className='pt-4'>
-      <Link href='/satistics?inc=invoice,withdrawal' className='text-muted fw-bold text-underline'>
-        wallet history
-      </Link>
-    </div>
+    <Link href='/satistics?inc=invoice,withdrawal' className='text-muted fw-bold text-underline'>
+      wallet history
+    </Link>
   )
 }
 
 export function WalletForm () {
-  const router = useRouter()
-
-  if (!router.query.type) {
-    return (
-      <div className='align-items-center text-center'>
-        <YouHaveSats />
-        <Link href='/wallet?type=fund'>
-          <Button variant='success'>fund</Button>
-        </Link>
-        <span className='mx-3 fw-bold text-muted'>or</span>
-        <Link href='/wallet?type=withdraw'>
-          <Button variant='success'>withdraw</Button>
-        </Link>
-        <WalletHistory />
-      </div>
-    )
-  }
-
-  if (router.query.type === 'fund') {
-    return <FundForm />
-  } else if (router.query.type === 'withdraw') {
-    return <WithdrawlForm />
-  } else if (router.query.type === 'lnurl-withdraw') {
-    return <LnWithdrawal />
-  } else {
-    return <LnAddrWithdrawal />
-  }
+  return (
+    <div className='align-items-center text-center py-5'>
+      <Link href='/wallet?type=fund'>
+        <Button variant='success'>fund</Button>
+      </Link>
+      <span className='mx-3 fw-bold text-muted'>or</span>
+      <Link href='/wallet?type=withdraw'>
+        <Button variant='success'>withdraw</Button>
+      </Link>
+    </div>
+  )
 }
 
 export function FundForm () {
@@ -98,43 +100,89 @@ export function FundForm () {
   return (
     <>
       <YouHaveSats />
-      {me && showAlert &&
-        <Alert
-          variant='success' dismissible onClose={() => {
-            window.localStorage.setItem('hideLnAddrAlert', 'yep')
-            setShowAlert(false)
+      <div className='w-100 py-5'>
+        {me && showAlert &&
+          <Alert
+            variant='success' dismissible onClose={() => {
+              window.localStorage.setItem('hideLnAddrAlert', 'yep')
+              setShowAlert(false)
+            }}
+          >
+            You can also fund your account via lightning address with <strong>{`${me.name}@stacker.news`}</strong>
+          </Alert>}
+        <Form
+          initial={{
+            amount: 1000
+          }}
+          initialError={error?.toString()}
+          schema={amountSchema}
+          onSubmit={async ({ amount }) => {
+            const { data } = await createInvoice({ variables: { amount: Number(amount) } })
+            router.push(`/invoices/${data.createInvoice.id}`)
           }}
         >
-          You can also fund your account via lightning address with <strong>{`${me.name}@stacker.news`}</strong>
-        </Alert>}
-      <Form
-        initial={{
-          amount: 1000
-        }}
-        initialError={error?.toString()}
-        schema={amountSchema}
-        onSubmit={async ({ amount }) => {
-          const { data } = await createInvoice({ variables: { amount: Number(amount) } })
-          router.push(`/invoices/${data.createInvoice.id}`)
-        }}
-      >
-        <Input
-          label='amount'
-          name='amount'
-          required
-          autoFocus
-          append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
-        />
-        <SubmitButton variant='success' className='mt-2'>generate invoice</SubmitButton>
-      </Form>
+          <Input
+            label='amount'
+            name='amount'
+            required
+            autoFocus
+            append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+          />
+          <SubmitButton variant='success' className='mt-2'>generate invoice</SubmitButton>
+        </Form>
+      </div>
       <WalletHistory />
     </>
   )
 }
 
+export function WithdrawalForm () {
+  const router = useRouter()
+
+  return (
+    <div className='w-100 d-flex flex-column align-items-center py-5'>
+      <YouHaveSats />
+      <Nav
+        className={styles.nav}
+        activeKey={router.query.type}
+      >
+        <Nav.Item>
+          <Link href='/wallet?type=withdraw' passHref legacyBehavior>
+            <Nav.Link eventKey='withdraw'>invoice</Nav.Link>
+          </Link>
+        </Nav.Item>
+        <Nav.Item>
+          <Link href='/wallet?type=lnurl-withdraw' passHref legacyBehavior>
+            <Nav.Link eventKey='lnurl-withdraw'>QR code</Nav.Link>
+          </Link>
+        </Nav.Item>
+        <Nav.Item>
+          <Link href='/wallet?type=lnaddr-withdraw' passHref legacyBehavior>
+            <Nav.Link eventKey='lnaddr-withdraw'>lightning address</Nav.Link>
+          </Link>
+        </Nav.Item>
+      </Nav>
+      <SelectedWithdrawalForm />
+    </div>
+  )
+}
+
+export function SelectedWithdrawalForm () {
+  const router = useRouter()
+
+  switch (router.query.type) {
+    case 'withdraw':
+      return <InvWithdrawal />
+    case 'lnurl-withdraw':
+      return <LnWithdrawal />
+    case 'lnaddr-withdraw':
+      return <LnAddrWithdrawal />
+  }
+}
+
 const MAX_FEE_DEFAULT = 10
 
-export function WithdrawlForm () {
+export function InvWithdrawal () {
   const router = useRouter()
   const me = useMe()
 
@@ -163,7 +211,6 @@ export function WithdrawlForm () {
 
   return (
     <>
-      <YouHaveSats />
       <Form
         initial={{
           invoice: '',
@@ -191,14 +238,6 @@ export function WithdrawlForm () {
         />
         <SubmitButton variant='success' className='mt-2'>withdraw</SubmitButton>
       </Form>
-      <span className='my-3 fw-bold text-muted'>or via</span>
-      <Link href='/wallet?type=lnurl-withdraw'>
-        <Button variant='grey'>QR code</Button>
-      </Link>
-      <Link href='/wallet?type=lnaddr-withdraw'>
-        <Button className='mt-2' variant='grey'>Lightning Address</Button>
-      </Link>
-      <WalletHistory />
     </>
   )
 }
@@ -254,7 +293,6 @@ export function LnAddrWithdrawal () {
 
   return (
     <>
-      <YouHaveSats />
       <Form
         initial={{
           addr: '',

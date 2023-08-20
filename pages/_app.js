@@ -54,7 +54,7 @@ function MyApp ({ Component, pageProps: { ...props } }) {
     router.replace({
       pathname: router.pathname,
       query: { ...router.query, nodata: true }
-    }, router.asPath, { ...router.options, shallow: true }).catch((e) => {
+    }, props.me ? `?r=${props.me.name}` : router.asPath, { ...router.options, shallow: true }).catch((e) => {
       // workaround for https://github.com/vercel/next.js/issues/37362
       if (!e.cancelled) {
         console.log(e)

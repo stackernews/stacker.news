@@ -164,17 +164,9 @@ function ItemText ({ item }) {
 }
 
 export default function ItemFull ({ item, bio, rank, ...props }) {
-  const router = useRouter()
-  const me = useMe()
-
   useEffect(() => {
-    if (me) {
-      // add referral fragment as param 
-      // i.e. /items/1?r=k00b
-      router.push(`/items/${item.id}?r=${me.name}`)
-    }
     commentsViewed(item)
-  }, [item.lastCommentAt, me])
+  }, [item.lastCommentAt])
 
   return (
     <>

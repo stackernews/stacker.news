@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Button from 'react-bootstrap/Button'
 import { gql, useMutation, useQuery } from '@apollo/client'
 import Qr, { QrSkeleton } from '../components/qr'
-import { CenterLayout, TopDownLayout } from '../components/layout'
+import { CenterLayout } from '../components/layout'
 import InputGroup from 'react-bootstrap/InputGroup'
 import { WithdrawlSkeleton } from './withdrawals/[id]'
 import { useMe } from '../components/me'
@@ -24,59 +24,49 @@ export const getServerSideProps = getGetServerSideProps()
 export default function Wallet () {
   const router = useRouter()
 
-  if (!router.query.type) {
+  if (router.query.type === 'fund') {
+    return (
+      <CenterLayout>
+        <FundForm />
+      </CenterLayout>
+    )
+  } else if (router.query.type?.includes('withdraw')) {
+    return (
+      <CenterLayout>
+        <WithdrawalForm />
+      </CenterLayout>
+    )
+  } else {
     return (
       <CenterLayout>
         <YouHaveSats />
         <WalletForm />
+        <WalletHistory />
       </CenterLayout>
     )
-  } else {
-    if (router.query.type === 'fund') {
-      return (
-        <TopDownLayout>
-          <YouHaveSats />
-          <h5 className='pb-4'>funding options</h5>
-          <FundForm />
-        </TopDownLayout>
-      )
-    } else {
-      return (
-        <TopDownLayout>
-          <YouHaveSats />
-          <h5 className='pb-4'>withdrawal options</h5>
-          <WithdrawalMethods />
-        </TopDownLayout>
-      )
-    }
   }
 }
 
 function YouHaveSats () {
   const me = useMe()
   return (
-    <>
-      <h2 className={`${me ? 'visible' : 'invisible'} text-success`}>
-        you have <span className='text-monospace'>{me && numWithUnits(me.sats, { abbreviate: false })}</span>
-      </h2>
-      <WalletHistory />
-    </>
+    <h2 className={`${me ? 'visible' : 'invisible'} text-success`}>
+      you have <span className='text-monospace'>{me && numWithUnits(me.sats, { abbreviate: false })}</span>
+    </h2>
   )
 }
 
 function WalletHistory () {
   return (
-    <div className='pb-5' style={{ fontWeight: 500 }}>
-      <Link href='/satistics?inc=invoice,withdrawal' className='nav-link p-0'>
-        wallet history
-      </Link>
-    </div>
+    <Link href='/satistics?inc=invoice,withdrawal' className='text-muted fw-bold text-underline'>
+      wallet history
+    </Link>
   )
 }
 
 export function WalletForm () {
   return (
-    <div className='align-items-center text-center'>
+    <div className='align-items-center text-center py-5'>
       <Link href='/wallet?type=fund'>
         <Button variant='success'>fund</Button>
       </Link>
@@ -109,44 +99,49 @@ export function FundForm () {
 
   return (
     <>
-      {me && showAlert &&
-        <Alert
-          variant='success' dismissible onClose={() => {
-            window.localStorage.setItem('hideLnAddrAlert', 'yep')
-            setShowAlert(false)
+      <YouHaveSats />
+      <div className='w-100 py-5'>
+        {me && showAlert &&
+          <Alert
+            variant='success' dismissible onClose={() => {
+              window.localStorage.setItem('hideLnAddrAlert', 'yep')
+              setShowAlert(false)
+            }}
+          >
+            You can also fund your account via lightning address with <strong>{`${me.name}@stacker.news`}</strong>
+          </Alert>}
+        <Form
+          initial={{
+            amount: 1000
+          }}
+          initialError={error?.toString()}
+          schema={amountSchema}
+          onSubmit={async ({ amount }) => {
+            const { data } = await createInvoice({ variables: { amount: Number(amount) } })
+            router.push(`/invoices/${data.createInvoice.id}`)
           }}
         >
-          You can also fund your account via lightning address with <strong>{`${me.name}@stacker.news`}</strong>
-        </Alert>}
-      <Form
-        initial={{
-          amount: 1000
-        }}
-        initialError={error?.toString()}
-        schema={amountSchema}
-        onSubmit={async ({ amount }) => {
-          const { data } = await createInvoice({ variables: { amount: Number(amount) } })
-          router.push(`/invoices/${data.createInvoice.id}`)
-        }}
-      >
-        <Input
-          label='amount'
-          name='amount'
-          required
-          autoFocus
-          append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
-        />
-        <SubmitButton variant='success' className='mt-2'>generate invoice</SubmitButton>
-      </Form>
+          <Input
+            label='amount'
+            name='amount'
+            required
+            autoFocus
+            append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+          />
+          <SubmitButton variant='success' className='mt-2'>generate invoice</SubmitButton>
+        </Form>
+      </div>
+      <WalletHistory />
     </>
   )
 }
 
-export function WithdrawalMethods () {
+export function WithdrawalForm () {
   const router = useRouter()
 
   return (
-    <>
+    <div className='w-100 d-flex flex-column align-items-center py-5'>
+      <YouHaveSats />
       <Nav
         className={styles.nav}
         activeKey={router.query.type}
@@ -168,7 +163,7 @@ export function WithdrawalMethods () {
         </Nav.Item>
       </Nav>
       <SelectedWithdrawalForm />
-    </>
+    </div>
   )
 }
 
@@ -177,7 +172,7 @@ export function SelectedWithdrawalForm () {
 
   switch (router.query.type) {
     case 'withdraw':
-      return <WithdrawlForm />
+      return <InvWithdrawal />
     case 'lnurl-withdraw':
       return <LnWithdrawal />
     case 'lnaddr-withdraw':
@@ -187,7 +182,7 @@ export function SelectedWithdrawalForm () {
 
 const MAX_FEE_DEFAULT = 10
 
-export function WithdrawlForm () {
+export function InvWithdrawal () {
   const router = useRouter()
   const me = useMe()
 

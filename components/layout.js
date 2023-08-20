@@ -47,23 +47,11 @@ export function StaticLayout ({ children, footer = true, footerLinks, ...props }
   )
 }
 
-export function TopDownLayout ({ children, ...props }) {
-  return (
-    <div className={styles.page}>
-      <Layout contain={false} {...props}>
-        <main className={`${styles.content} ${styles.topdown}`}>
-          {children}
-        </main>
-      </Layout>
-    </div>
-  )
-}
-
 export function CenterLayout ({ children, ...props }) {
   return (
     <div className={styles.page}>
       <Layout contain={false} {...props}>
-        <main className={`${styles.content} ${styles.verticalcenter}`}>
+        <main className={styles.content}>
           {children}
         </main>
       </Layout>

@@ -10,6 +10,7 @@ import { useEffect } from 'react'
 import { ShowModalProvider } from '../components/modal'
 import ErrorBoundary from '../components/error-boundary'
 import { LightningProvider } from '../components/lightning'
+import { ToastProvider } from '../components/toast'
 import { ServiceWorkerProvider } from '../components/serviceworker'
 import { SSR } from '../lib/constants'
 import NProgress from 'nprogress'
@@ -90,11 +91,13 @@ function MyApp ({ Component, pageProps: { ...props } }) {
               <ServiceWorkerProvider>
                 <PriceProvider price={price}>
                   <LightningProvider>
-                    <PaymentTokenProvider>
-                      <ShowModalProvider>
-                        <Component ssrData={ssrData} {...otherProps} />
-                      </ShowModalProvider>
-                    </PaymentTokenProvider>
+                    <ToastProvider>
+                      <PaymentTokenProvider>
+                        <ShowModalProvider>
+                          <Component ssrData={ssrData} {...otherProps} />
+                        </ShowModalProvider>
+                      </PaymentTokenProvider>
+                    </ToastProvider>
                   </LightningProvider>
                 </PriceProvider>
               </ServiceWorkerProvider>

@@ -1,8 +1,10 @@
 import { useMutation } from '@apollo/client'
 import { gql } from 'graphql-tag'
 import Dropdown from 'react-bootstrap/Dropdown'
+import { useToast } from './toast'
 
 export default function SubscribeDropdownItem ({ item: { id, meSubscription } }) {
+  const dispatchToast = useToast()
   const [subscribeItem] = useMutation(
     gql`
       mutation subscribeItem($id: ID!) {
@@ -22,7 +24,14 @@ export default function SubscribeDropdownItem ({ item: { id, meSubscription } })
   )
   return (
     <Dropdown.Item
-      onClick={() => subscribeItem({ variables: { id } })}
+      onClick={async () => {
+        try {
+          await subscribeItem({ variables: { id } })
+          dispatchToast({ body: meSubscription ? 'unsubscribe successful' : 'subscribe successful', variant: 'success', autohide: true, delay: 5000 })
+        } catch (err) {
+          console.error(err)
+        }
+      }}
     >
       {meSubscription ? 'remove subscription' : 'subscribe'}
     </Dropdown.Item>

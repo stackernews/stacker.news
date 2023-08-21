@@ -83,7 +83,7 @@ const CACHE_STATES = {
 export default memo(function Text ({ topLevel, noFragments, nofollow, fetchOnlyImgProxy, children }) {
   // all the reactStringReplace calls are to facilitate search highlighting
   const slugger = new GithubSlugger()
-  fetchOnlyImgProxy = fetchOnlyImgProxy ?? true
+  fetchOnlyImgProxy ??= true
 
   const HeadingWrapper = (props) => Heading({ topLevel, slugger, noFragments, ...props })
 

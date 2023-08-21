@@ -160,7 +160,7 @@ export default memo(function Text ({ topLevel, noFragments, nofollow, fetchOnlyI
             }
 
             if (urlCache[href] === CACHE_STATES.IS_LOADED) {
-              return <ZoomableImage topLevel={topLevel} {...props} src={href} />
+              return <ZoomableImage topLevel={topLevel} useClickToLoad={fetchOnlyImgProxy} {...props} src={href} />
             }
 
             // map: fix any highlighted links
@@ -183,7 +183,9 @@ export default memo(function Text ({ topLevel, noFragments, nofollow, fetchOnlyI
               </a>
             )
           },
-          img: ({ node, ...props }) => <ZoomableImage topLevel={topLevel} {...props} />
+          img: ({ node, ...props }) => {
+            return <ZoomableImage topLevel={topLevel} useClickToLoad={fetchOnlyImgProxy} {...props} />
+          }
         }}
         remarkPlugins={[gfm, mention, sub, remarkDirective, searchHighlighter]}
       >
@@ -198,7 +200,7 @@ function ClickToLoad ({ children }) {
   return clicked ? children : <div className='m-1 fst-italic pointer text-muted' onClick={() => setClicked(true)}>click to load image</div>
 }
 
-export function ZoomableImage ({ src, topLevel, ...props }) {
+export function ZoomableImage ({ src, topLevel, useClickToLoad, ...props }) {
   const me = useMe()
   const [err, setErr] = useState()
   const [imgSrc, setImgSrc] = useState(src)
@@ -207,6 +209,7 @@ export function ZoomableImage ({ src, topLevel, ...props }) {
     maxHeight: topLevel ? '75vh' : '25vh',
     cursor: 'zoom-in'
   }
+  useClickToLoad ??= true
 
   // if image changes we need to update state
   const [mediaStyle, setMediaStyle] = useState(defaultMediaStyle)
@@ -258,7 +261,7 @@ export function ZoomableImage ({ src, topLevel, ...props }) {
   )
 
   return (
-    (!me || !me.clickToLoadImg || isImgProxy)
+    (!me || !me.clickToLoadImg || isImgProxy || !useClickToLoad)
       ? img
       : <ClickToLoad>{img}</ClickToLoad>
 

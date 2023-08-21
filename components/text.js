@@ -80,10 +80,10 @@ const CACHE_STATES = {
 }
 
 // this is one of the slowest components to render
-export default memo(function Text ({ topLevel, noFragments, nofollow, onlyImgProxy, children }) {
+export default memo(function Text ({ topLevel, noFragments, nofollow, fetchOnlyImgProxy, children }) {
   // all the reactStringReplace calls are to facilitate search highlighting
   const slugger = new GithubSlugger()
-  onlyImgProxy = onlyImgProxy ?? true
+  fetchOnlyImgProxy = fetchOnlyImgProxy ?? true
 
   const HeadingWrapper = (props) => Heading({ topLevel, slugger, noFragments, ...props })
 
@@ -91,13 +91,13 @@ export default memo(function Text ({ topLevel, noFragments, nofollow, onlyImgPro
   const [urlCache, setUrlCache] = useState({})
 
   useEffect(() => {
-    const imgRegexp = onlyImgProxy ? IMGPROXY_URL_REGEXP : IMG_URL_REGEXP
+    const imgRegexp = fetchOnlyImgProxy ? IMGPROXY_URL_REGEXP : IMG_URL_REGEXP
     const urls = extractUrls(children)
 
     urls.forEach((url) => {
       if (imgRegexp.test(url)) {
         setUrlCache((prev) => ({ ...prev, [url]: CACHE_STATES.IS_LOADED }))
-      } else if (!onlyImgProxy) {
+      } else if (!fetchOnlyImgProxy) {
         const img = new window.Image()
         imgCache.current[url] = img
 

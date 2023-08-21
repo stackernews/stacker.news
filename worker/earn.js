@@ -27,7 +27,9 @@ function earn ({ models }) {
         (SELECT "ItemAct".msats
             FROM "Item"
             JOIN "ItemAct" ON "ItemAct"."itemId" = "Item".id
-            WHERE "Item"."userId" = ${ANON_USER_ID} AND "ItemAct".act = 'TIP' AND "Item"."fwdUserId" IS NULL
+            JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id
+            WHERE "Item"."userId" = ${ANON_USER_ID} AND "ItemAct".act = 'TIP'
+            AND (SELECT COUNT(*) FROM "ItemForward" WHERE "ItemForward"."itemId" = "Item".id) = 0
             AND date_trunc('day', "ItemAct".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = date_trunc('day', (now() - interval '1 day') AT TIME ZONE 'America/Chicago'))
       ) subquery`
 

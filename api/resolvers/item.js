@@ -8,8 +8,7 @@ import {
   BOOST_MIN, ITEM_SPAM_INTERVAL,
   MAX_TITLE_LENGTH, ITEM_FILTER_THRESHOLD,
   DONT_LIKE_THIS_COST, COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY,
-  ANON_COMMENT_FEE, ANON_USER_ID, ANON_POST_FEE, ANON_ITEM_SPAM_INTERVAL,
-  MAX_FORWARDS
+  ANON_COMMENT_FEE, ANON_USER_ID, ANON_POST_FEE, ANON_ITEM_SPAM_INTERVAL
 } from '../../lib/constants'
 import { msatsToSats, numWithUnits } from '../../lib/format'
 import { parse } from 'tldts'
@@ -789,38 +788,46 @@ export default {
 
       const [{ item_act: vote }] = await serialize(models, ...calls)
 
-      const updatedItem = await models.item.findUnique({ where: { id: Number(id) } })
-      const forwards = await models.itemForward.findMany({ where: { itemId: Number(id) } })
-      const userPromises = forwards.map(fwd => models.user.findUnique({ where: { id: fwd.userId } }))
-      const userResults = await Promise.allSettled(userPromises)
-      const mappedForwards = forwards.map((fwd, index) => ({ ...fwd, user: userResults[index].value ?? null }))
-      let forwardedSats = 0
-      let forwardedUsers = ''
-      if (mappedForwards.length) {
-        forwardedSats = Math.floor(msatsToSats(updatedItem.msats) * mappedForwards.map(fwd => fwd.pct).reduce((sum, cur) => sum + cur) / 100)
-        forwardedUsers = mappedForwards.map(fwd => `@${fwd.user.name}`).join(', ')
-      }
-      let notificationTitle
-      if (updatedItem.title) {
-        if (forwards.length > 0) {
-          notificationTitle = `your post forwarded ${numWithUnits(forwardedSats)} to ${forwardedUsers}`
-        } else {
-          notificationTitle = `your post stacked ${numWithUnits(msatsToSats(updatedItem.msats))}`
+      const notify = async () => {
+        try {
+          const updatedItem = await models.item.findUnique({ where: { id: Number(id) } })
+          const forwards = await models.itemForward.findMany({ where: { itemId: Number(id) } })
+          const userPromises = forwards.map(fwd => models.user.findUnique({ where: { id: fwd.userId } }))
+          const userResults = await Promise.allSettled(userPromises)
+          const mappedForwards = forwards.map((fwd, index) => ({ ...fwd, user: userResults[index].value ?? null }))
+          let forwardedSats = 0
+          let forwardedUsers = ''
+          if (mappedForwards.length) {
+            forwardedSats = Math.floor(msatsToSats(updatedItem.msats) * mappedForwards.map(fwd => fwd.pct).reduce((sum, cur) => sum + cur) / 100)
+            forwardedUsers = mappedForwards.map(fwd => `@${fwd.user.name}`).join(', ')
+          }
+          let notificationTitle
+          if (updatedItem.title) {
+            if (forwards.length > 0) {
+              notificationTitle = `your post forwarded ${numWithUnits(forwardedSats)} to ${forwardedUsers}`
+            } else {
+              notificationTitle = `your post stacked ${numWithUnits(msatsToSats(updatedItem.msats))}`
+            }
+          } else {
+            if (forwards.length > 0) {
+              // I don't think this case is possible
+              notificationTitle = `your reply forwarded ${numWithUnits(forwardedSats)} to ${forwardedUsers}`
+            } else {
+              notificationTitle = `your reply stacked ${numWithUnits(msatsToSats(updatedItem.msats))}`
+            }
+          }
+          await sendUserNotification(updatedItem.userId, {
+            title: notificationTitle,
+            body: updatedItem.title ? updatedItem.title : updatedItem.text,
+            item: updatedItem,
+            tag: `TIP-${updatedItem.id}`
+          })
+        } catch (err) {
+          console.error(err)
         }
-      } else {
-        if (forwards.length > 0) {
-          // I don't think this case is possible
-          notificationTitle = `your reply forwarded ${numWithUnits(forwardedSats)} to ${forwardedUsers}`
-        } else {
-          notificationTitle = `your reply stacked ${numWithUnits(msatsToSats(updatedItem.msats))}`
-        }
       }
-      sendUserNotification(updatedItem.userId, {
-        title: notificationTitle,
-        body: updatedItem.title ? updatedItem.title : updatedItem.text,
-        item: updatedItem,
-        tag: `TIP-${updatedItem.id}`
-      }).catch(console.error)
+
+      notify()
 
       return {
         vote,
@@ -929,10 +936,14 @@ export default {
       return await models.user.findUnique({ where: { id: item.userId } })
     },
     forwards: async (item, args, { models }) => {
-      const forwards = await models.itemForward.findMany({ where: { itemId: item.id } })
-      const userPromises = forwards.map(fwd => models.user.findUnique({ where: { id: fwd.userId } }))
-      const userResults = await Promise.allSettled(userPromises)
-      return forwards.map((fwd, index) => ({ ...fwd, user: userResults[index].value ?? null }))
+      return await models.itemForward.findMany({
+        where: {
+          itemId: item.id
+        },
+        include: {
+          user: true
+        }
+      })
     },
     comments: async (item, { sort }, { me, models }) => {
       if (typeof item.comments !== 'undefined') return item.comments
@@ -1180,46 +1191,15 @@ const createItem = async (parent, { sub, title, url, text, boost, forward, bount
 const getForwardUsers = async (models, forward) => {
   const fwdUsers = []
   if (forward) {
-    if (Array.isArray(forward) && forward.length > 0) {
-      // validation:
-      // 1. no more than 5 forward entries
-      // 2. each percentage is a positive integer between 1 and 100 inclusive
-      // 3. the sum of all percentages is <= 100
-      // 4. no duplicate nyms
-      // 5. each specified nym exists
-      if (forward.length > MAX_FORWARDS) {
-        throw new GraphQLError(`forward user count of [${forward.length}] exceeds limit of [${MAX_FORWARDS}]`, { extensions: { code: 'BAD_INPUT' } })
-      }
-      forward.forEach(fwd => {
-        const { pct } = fwd
-        if (isNaN(pct)) {
-          throw new GraphQLError(`forward percentage [${pct}] is not a number`, { extensions: { code: 'BAD_INPUT' } })
-        }
-        const castPct = Number(pct)
-        if (Math.floor(castPct) !== castPct) {
-          throw new GraphQLError(`forward percentage [${castPct}] is not an integer`, { extensions: { code: 'BAD_INPUT' } })
-        }
-        if (castPct < 1 || castPct > 100) {
-          throw new GraphQLError(`forward percentage [${castPct}] is not within the allowed range of 1, 100 inclusive`, { extensions: { code: 'BAD_INPUT' } })
-        }
+    // find all users in one db query
+    const users = await models.user.findMany({ where: { OR: forward.map(fwd => ({ name: fwd.nym })) } })
+    // map users to fwdUser entries with id and pct
+    users.forEach(user => {
+      fwdUsers.push({
+        userId: user.id,
+        pct: forward.find(fwd => fwd.nym === user.name).pct
       })
-      if (forward.map(fwd => Number(fwd.pct)).reduce((sum, cur) => sum + cur, 0) > 100) {
-        throw new GraphQLError('the total forward percentage exceeds 100%', { extensions: { code: 'BAD_INPUT' } })
-      }
-      if (new Set(forward.map(fwd => fwd.nym)).size !== forward.length) {
-        throw new GraphQLError('duplicate stackers cannot be specified.', { extensions: { code: 'BAD_INPUT' } })
-      }
-      const userQueryResults = await Promise.allSettled(
-        forward.map(fwd => (models.user.findUnique({ where: { name: fwd.nym } })))
-      )
-      userQueryResults.forEach((promise, index) => {
-        if (promise.status === 'fulfilled') {
-          fwdUsers.push({ userId: promise.value.id, pct: forward[index].pct })
-        } else {
-          throw new GraphQLError(`forward user [@${forward[index].nym}] does not exist`, { extensions: { code: 'BAD_INPUT' } })
-        }
-      })
-    }
+    })
   }
   return fwdUsers
 }

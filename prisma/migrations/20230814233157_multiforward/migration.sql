@@ -19,6 +19,12 @@ ALTER TABLE "ItemForward" ADD CONSTRAINT "ItemForward_userId_fkey" FOREIGN KEY (
 -- CreateIndex
 CREATE INDEX "ItemForward.itemId_index" ON "ItemForward"("itemId");
 
+-- CreateIndex
+CREATE INDEX "ItemForward.userId_index" ON "ItemForward"("userId");
+
+-- CreateIndex
+CREATE INDEX "ItemForward.createdAt_index" ON "ItemForward"("created_at");
+
 -- Type used in create_item below for JSON processing
 CREATE TYPE ItemForwardType as ("userId" INTEGER, "pct" INTEGER);
 
@@ -241,8 +247,7 @@ BEGIN
         FOR fwd_entry IN SELECT "userId", "pct" FROM "ItemForward" WHERE "itemId" = item_id
         LOOP
             -- fwd_msats represents the sats for this forward recipient from this particular tip action
-            -- use FLOOR just to ensure we don't introduce more msats than we should, give the rest to OP
-            fwd_msats := FLOOR(act_msats * fwd_entry.pct / 100);
+            fwd_msats := act_msats * fwd_entry.pct / 100;
             -- keep track of how many msats have been forwarded, so we can give any remaining to OP
             total_fwd_msats := fwd_msats + total_fwd_msats;
             
@@ -254,7 +259,7 @@ BEGIN
             -- they have a referrer and the referrer isn't the one tipping them
             IF referrer_id IS NOT NULL AND user_id <> referrer_id THEN
                 -- scale the referral fee to be proportional to the forwarding percentage
-                PERFORM referral_act(referrer_id, item_act_id, CEIL(fee_msats * fwd_entry.pct / 100));
+                PERFORM referral_act(referrer_id, item_act_id, fee_msats * fwd_entry.pct / 100);
             END IF;
         END LOOP;
 

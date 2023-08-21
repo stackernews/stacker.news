@@ -43,13 +43,6 @@ export const ITEM_FIELDS = gql`
     status
     uploadId
     mine
-    forwards {
-      userId
-      pct
-      user {
-        name
-      }
-    }
   }`
 
 export const ITEM_FULL_FIELDS = gql`
@@ -68,6 +61,13 @@ export const ITEM_FULL_FIELDS = gql`
         streak
         hideCowboyHat
         id
+      }
+    }
+    forwards {
+      userId
+      pct
+      user {
+        name
       }
     }
   }`

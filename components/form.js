@@ -398,7 +398,7 @@ export function Input ({ label, groupClassName, ...props }) {
   )
 }
 
-export function VariableInput ({ label, groupClassName, name, hint, max, min, readOnlyLen, ...props }) {
+export function VariableInput ({ label, groupClassName, name, hint, max, min, readOnlyLen, inputFn, emptyItem = '', ...props }) {
   return (
     <FormGroup label={label} className={groupClassName}>
       <FieldArray name={name}>
@@ -410,11 +410,16 @@ export function VariableInput ({ label, groupClassName, name, hint, max, min, re
                 <div key={i}>
                   <Row className='mb-2'>
                     <Col>
-                      <InputInner name={`${name}[${i}]`} {...props} readOnly={i < readOnlyLen} placeholder={i >= min ? 'optional' : undefined} />
+                      {inputFn
+                        ? inputFn({ index: i, readOnly: i < readOnlyLen, placeholder: i >= min ? 'optional' : undefined })
+                        : <InputInner name={`${name}[${i}]`} {...props} readOnly={i < readOnlyLen} placeholder={i >= min ? 'optional' : undefined} />}
                     </Col>
-                    {options.length - 1 === i && options.length !== max
-                      ? <Col className='d-flex ps-0' xs='auto'><AddIcon className='fill-grey align-self-center justify-self-center pointer' onClick={() => fieldArrayHelpers.push('')} /></Col>
-                      : null}
+                    <Col className='d-flex ps-0' xs='auto'>
+                      {options.length - 1 === i && options.length !== max
+                        ? <AddIcon className='fill-grey align-self-center justify-self-center pointer' onClick={() => fieldArrayHelpers.push(emptyItem)} />
+                        // filler div for col alignment across rows
+                        : <div style={{ width: '24px', height: '24px' }} />}
+                    </Col>
                   </Row>
                 </div>
               ))}

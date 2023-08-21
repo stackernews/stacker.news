@@ -291,7 +291,9 @@ model ItemForward {
   item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([itemId], map: "ItemForward.itemId_index")
+  @@index([itemId],     map: "ItemForward.itemId_index")
+  @@index([userId],     map: "ItemForward.userId_index")
+  @@index([createdAt],  map: "ItemForward.createdAt_index")
 }
 
 model PollOption {

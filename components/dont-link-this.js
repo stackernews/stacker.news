@@ -36,6 +36,7 @@ export default function DontLikeThisDropdownItem ({ id }) {
           })
           dispatchToast({ body: 'Item flagged successfully!', variant: 'success', autohide: true, delay: 5000 })
         } catch (error) {
+          console.error(error)
           if (error.toString().includes('insufficient funds')) {
             showModal(onClose => {
               return <FundError onClose={onClose} />

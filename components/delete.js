@@ -5,6 +5,7 @@ import Alert from 'react-bootstrap/Alert'
 import Button from 'react-bootstrap/Button'
 import Dropdown from 'react-bootstrap/Dropdown'
 import { useShowModal } from './modal'
+import { useToast } from './toast'
 
 export default function Delete ({ itemId, children, onDelete }) {
   const showModal = useShowModal()
@@ -61,6 +62,7 @@ export default function Delete ({ itemId, children, onDelete }) {
 
 function DeleteConfirm ({ onConfirm }) {
   const [error, setError] = useState()
+  const dispatchToast = useToast()
 
   return (
     <>
@@ -71,6 +73,7 @@ function DeleteConfirm ({ onConfirm }) {
           variant='danger' onClick={async () => {
             try {
               await onConfirm()
+              dispatchToast({ body: 'Delete successful!', variant: 'success', autohide: true, delay: 5000 })
             } catch (e) {
               setError(e.message || e)
             }

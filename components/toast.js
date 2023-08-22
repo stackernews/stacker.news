@@ -17,20 +17,28 @@ export const ToastProvider = ({ children }) => {
     }
     if (toastConfig.autohide && toastConfig.delay > 0) {
       setTimeout(() => {
-        setToasts(toasts.filter(toast => toast.id !== id))
+        setToasts(toasts => toasts.filter(toast => toast.id !== id))
       }, toastConfig.delay)
     }
-    setToasts([...toasts, toastConfig])
-  }, [toasts])
+    setToasts(toasts => [...toasts, toastConfig])
+  }, [])
   const removeToast = useCallback(id => {
-    setToasts(toasts.filter(toast => toast.id !== id))
-  }, [toasts])
+    setToasts(toasts => toasts.filter(toast => toast.id !== id))
+  }, [])
+  const getHeaderText = useCallback((toastConfig) => {
+    return toastConfig.header ?? {
+      success: 'Success',
+      warning: 'Warning',
+      danger: 'Danger',
+      info: 'Info'
+    }[toastConfig.variant] ?? toastConfig.variants
+  }, [])
   return (
     <ToastContext.Provider value={dispatchToast}>
-      <ToastContainer position='top-center'>
+      <ToastContainer position='bottom-end'>
         {toasts.map(toast => (
           <Toast key={toast.id} bg={toast.variant} show autohide={false} onClose={() => removeToast(toast.id)}>
-            <ToastHeader closeButton>{toast.variant}</ToastHeader>
+            <ToastHeader closeButton closeLabel='close'><span className='flex-grow-1'>{getHeaderText(toast)}</span></ToastHeader>
             <ToastBody>{toast.body}</ToastBody>
           </Toast>
         ))}

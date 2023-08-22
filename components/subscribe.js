@@ -27,9 +27,10 @@ export default function SubscribeDropdownItem ({ item: { id, meSubscription } })
       onClick={async () => {
         try {
           await subscribeItem({ variables: { id } })
-          dispatchToast({ body: meSubscription ? 'unsubscribe successful' : 'subscribe successful', variant: 'success', autohide: true, delay: 5000 })
+          dispatchToast({ body: meSubscription ? 'Unsubscribe successful!' : 'Subscribe successful!', variant: 'success', autohide: true, delay: 5000 })
         } catch (err) {
           console.error(err)
+          dispatchToast({ header: 'Error', body: meSubscription ? 'Unsubscribe failed' : 'Subscribe failed', variant: 'danger', autohide: false })
         }
       }}
     >

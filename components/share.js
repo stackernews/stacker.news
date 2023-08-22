@@ -2,9 +2,11 @@ import Dropdown from 'react-bootstrap/Dropdown'
 import ShareIcon from '../svgs/share-fill.svg'
 import copy from 'clipboard-copy'
 import { useMe } from './me'
+import { useToast } from './toast'
 
 export default function Share ({ item }) {
   const me = useMe()
+  const dispatchToast = useToast()
   const url = `https://stacker.news/items/${item.id}${me ? `/r/${me.name}` : ''}`
 
   return typeof window !== 'undefined' && navigator?.share
@@ -13,16 +15,17 @@ export default function Share ({ item }) {
         <ShareIcon
           width={20} height={20}
           className='mx-2 fill-grey theme'
-          onClick={() => {
-            if (navigator.share) {
-              navigator.share({
+          onClick={async () => {
+            try {
+              await navigator.share({
                 title: item.title || '',
                 text: '',
                 url
-              }).then(() => console.log('Successful share'))
-                .catch((error) => console.log('Error sharing', error))
-            } else {
-              console.log('no navigator.share')
+              })
+              dispatchToast({ body: 'Link shared!', variant: 'success', autohide: true, delay: 5000 })
+            } catch (err) {
+              console.error(err)
+              dispatchToast({ header: 'Error', body: 'Failed to share', variant: 'danger', autohide: false })
             }
           }}
         />
@@ -36,7 +39,13 @@ export default function Share ({ item }) {
         <Dropdown.Menu>
           <Dropdown.Item
             onClick={async () => {
-              copy(url)
+              try {
+                await copy(url)
+                dispatchToast({ body: 'Link copied!', variant: 'success', autohide: true, delay: 5000 })
+              } catch (err) {
+                console.error(err)
+                dispatchToast({ header: 'Error', body: 'Failed to copy link', variant: 'danger', autohide: false })
+              }
             }}
           >
             copy link
@@ -47,19 +56,25 @@ export default function Share ({ item }) {
 
 export function CopyLinkDropdownItem ({ item }) {
   const me = useMe()
+  const dispatchToast = useToast()
   const url = `https://stacker.news/items/${item.id}${me ? `/r/${me.name}` : ''}`
   return (
     <Dropdown.Item
       onClick={async () => {
-        if (navigator.share) {
-          navigator.share({
-            title: item.title || '',
-            text: '',
-            url
-          }).then(() => console.log('Successful share'))
-            .catch((error) => console.log('Error sharing', error))
-        } else {
-          copy(url)
+        try {
+          if (navigator.share) {
+            await navigator.share({
+              title: item.title || '',
+              text: '',
+              url
+            })
+          } else {
+            await copy(url)
+          }
+          dispatchToast({ body: 'Link copied!', variant: 'success', autohide: true, delay: 5000 })
+        } catch (err) {
+          console.error(err)
+          dispatchToast({ header: 'Error', body: 'Failed to copy link', variant: 'danger', autohide: false })
         }
       }}
     >

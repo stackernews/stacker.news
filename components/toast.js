@@ -35,7 +35,7 @@ export const ToastProvider = ({ children }) => {
   }, [])
   return (
     <ToastContext.Provider value={dispatchToast}>
-      <ToastContainer position='bottom-end'>
+      <ToastContainer position='bottom-end' containerPosition='fixed'>
         {toasts.map(toast => (
           <Toast key={toast.id} bg={toast.variant} show autohide={false} onClose={() => removeToast(toast.id)}>
             <ToastHeader closeButton closeLabel='close'><span className='flex-grow-1'>{getHeaderText(toast)}</span></ToastHeader>

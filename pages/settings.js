@@ -22,6 +22,7 @@ import PageLoading from '../components/page-loading'
 import { useShowModal } from '../components/modal'
 import { authErrorMessage } from '../components/login'
 import { NostrAuth } from '../components/nostr-auth'
+import { useToast } from '../components/toast'
 
 export const getServerSideProps = getGetServerSideProps(SETTINGS)
 
@@ -30,7 +31,7 @@ function bech32encode (hexString) {
 }
 
 export default function Settings ({ ssrData }) {
-  const [success, setSuccess] = useState()
+  const dispatchToast = useToast()
   const [setSettings] = useMutation(SET_SETTINGS, {
     update (cache, { data: { setSettings } }) {
       cache.modify({
@@ -89,18 +90,22 @@ export default function Settings ({ ssrData }) {
 
             const nostrRelaysFiltered = nostrRelays?.filter(word => word.trim().length > 0)
 
-            await setSettings({
-              variables: {
-                tipDefault: Number(tipDefault),
-                nostrPubkey,
-                nostrRelays: nostrRelaysFiltered,
-                ...values
-              }
-            })
-            setSuccess('settings saved')
+            try {
+              await setSettings({
+                variables: {
+                  tipDefault: Number(tipDefault),
+                  nostrPubkey,
+                  nostrRelays: nostrRelaysFiltered,
+                  ...values
+                }
+              })
+              dispatchToast({ body: 'Settings saved!', variant: 'success', autohide: true, delay: 5000 })
+            } catch (err) {
+              console.error(err)
+              dispatchToast({ header: 'Error', body: 'Failed to save settings', variant: 'danger', autohide: false })
+            }
           }}
         >
-          {success && <Alert variant='info' onClose={() => setSuccess(undefined)} dismissible>{success}</Alert>}
           <Input
             label='zap default'
             name='tipDefault'

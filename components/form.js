@@ -1,7 +1,6 @@
 import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
 import BootstrapForm from 'react-bootstrap/Form'
-import Alert from 'react-bootstrap/Alert'
 import { Formik, Form as FormikForm, useFormikContext, useField, FieldArray } from 'formik'
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react'
 import copy from 'clipboard-copy'
@@ -19,6 +18,7 @@ import CloseIcon from '../svgs/close-line.svg'
 import { useLazyQuery } from '@apollo/client'
 import { USER_SEARCH } from '../fragments/users'
 import TextareaAutosize from 'react-textarea-autosize'
+import { useToast } from './toast'
 
 export function SubmitButton ({
   children, variant, value, onClick, disabled, ...props
@@ -472,7 +472,12 @@ const StorageKeyPrefixContext = createContext()
 export function Form ({
   initial, schema, onSubmit, children, initialError, validateImmediately, storageKeyPrefix, validateOnChange = true, ...props
 }) {
-  const [error, setError] = useState(initialError)
+  const dispatchToast = useToast()
+  useEffect(() => {
+    if (initialError) {
+      dispatchToast({ header: 'Error', body: initialError.message || initialError.toString?.(), variant: 'danger', autohide: false })
+    }
+  }, [])
 
   return (
     <Formik
@@ -481,26 +486,31 @@ export function Form ({
       validationSchema={schema}
       initialTouched={validateImmediately && initial}
       validateOnBlur={false}
-      onSubmit={async (values, ...args) =>
-        onSubmit && onSubmit(values, ...args).then((options) => {
-          if (!storageKeyPrefix || options?.keepLocalStorage) return
-          Object.keys(values).forEach(v => {
-            window.localStorage.removeItem(storageKeyPrefix + '-' + v)
-            if (Array.isArray(values[v])) {
-              values[v].forEach(
-                (iv, i) => {
-                  Object.keys(iv).forEach(k => {
-                    window.localStorage.removeItem(`${storageKeyPrefix}-${v}[${i}].${k}`)
+      onSubmit={async (values, ...args) => {
+        try {
+          if (onSubmit) {
+            const options = await onSubmit(values, ...args)
+            if (!storageKeyPrefix || options?.keepLocalStorage) return
+            Object.keys(values).forEach(v => {
+              window.localStorage.removeItem(storageKeyPrefix + '-' + v)
+              if (Array.isArray(values[v])) {
+                values[v].forEach(
+                  (iv, i) => {
+                    Object.keys(iv).forEach(k => {
+                      window.localStorage.removeItem(`${storageKeyPrefix}-${v}[${i}].${k}`)
+                    })
+                    window.localStorage.removeItem(`${storageKeyPrefix}-${v}[${i}]`)
                   })
-                  window.localStorage.removeItem(`${storageKeyPrefix}-${v}[${i}]`)
-                })
-            }
+              }
+            })
           }
-          )
-        }).catch(e => setError(e.message || e))}
+        } catch (err) {
+          console.log(err)
+          dispatchToast({ header: 'Error', body: err.message || err.toString?.(), variant: 'danger', autohide: false })
+        }
+      }}
     >
       <FormikForm {...props} noValidate>
-        {error && <Alert variant='danger' onClose={() => setError(undefined)} dismissible>{error}</Alert>}
         <StorageKeyPrefixContext.Provider value={storageKeyPrefix}>
           {children}
         </StorageKeyPrefixContext.Provider>

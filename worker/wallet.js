@@ -1,5 +1,5 @@
 const serialize = require('../api/resolvers/serial')
-const { getInvoice, getPayment } = require('ln-service')
+const { getInvoice, getPayment, cancelHodlInvoice } = require('ln-service')
 const { datePivot } = require('../lib/time')
 
 const walletOptions = { startAfter: 5, retryLimit: 21, retryBackoff: true }
@@ -33,11 +33,17 @@ function checkInvoice ({ boss, models, lnd }) {
             cancelled: true
           }
         }))
+      if (inv.is_held) {
+        await cancelHodlInvoice({ id: hash, lnd })
+      }
     } else if (new Date(inv.expires_at) > new Date()) {
       // not expired, recheck in 5 seconds if the invoice is younger than 5 minutes
       // otherwise recheck in 60 seconds
       const startAfter = new Date(inv.created_at) > datePivot(new Date(), { minutes: -5 }) ? 5 : 60
       await boss.send('checkInvoice', { hash }, { ...walletOptions, startAfter })
+    } else if (inv.is_held) {
+      // invoice expired
+      await cancelHodlInvoice({ id: hash, lnd })
     }
   }
 }

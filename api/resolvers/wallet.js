@@ -1,4 +1,4 @@
-import { createInvoice, decodePaymentRequest, payViaPaymentRequest } from 'ln-service'
+import { createHodlInvoice, createInvoice, decodePaymentRequest, payViaPaymentRequest, getInvoice as lnGetInvoice, cancelHodlInvoice } from 'ln-service'
 import { GraphQLError } from 'graphql'
 import crypto from 'crypto'
 import serialize from './serial'
@@ -11,7 +11,7 @@ import { amountSchema, lnAddrSchema, ssValidate, withdrawlSchema } from '../../l
 import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, ANON_USER_ID, BALANCE_LIMIT_MSATS, INV_PENDING_LIMIT } from '../../lib/constants'
 import { datePivot } from '../../lib/time'
 
-export async function getInvoice (parent, { id }, { me, models }) {
+export async function getInvoice (parent, { id }, { me, models, lnd }) {
   const inv = await models.invoice.findUnique({
     where: {
       id: Number(id)
@@ -24,6 +24,13 @@ export async function getInvoice (parent, { id }, { me, models }) {
   if (!inv) {
     throw new GraphQLError('invoice not found', { extensions: { code: 'BAD_INPUT' } })
   }
+
+  const lnInvoice = await lnGetInvoice({ id: inv.hash, lnd })
+  if (lnInvoice.is_held) {
+    inv.isHeld = true
+    inv.msatsReceived = Number(lnInvoice.received_mtokens)
+  }
+
   if (inv.user.id === ANON_USER_ID) {
     return inv
   }
@@ -223,7 +230,7 @@ export default {
   },
 
   Mutation: {
-    createInvoice: async (parent, { amount, expireSecs = 3600 }, { me, models, lnd }) => {
+    createInvoice: async (parent, { amount, hodlInvoice = false, expireSecs = 3600 }, { me, models, lnd }) => {
       await ssValidate(amountSchema, { amount })
 
       let expirePivot = { seconds: expireSecs }
@@ -242,7 +249,7 @@ export default {
       const expiresAt = datePivot(new Date(), expirePivot)
       const description = `Funding @${user.name} on stacker.news`
       try {
-        const invoice = await createInvoice({
+        const invoice = await (hodlInvoice ? createHodlInvoice : createInvoice)({
           description: user.hideInvoiceDesc ? undefined : description,
           lnd,
           tokens: amount,
@@ -253,6 +260,8 @@ export default {
           models.$queryRaw`SELECT * FROM create_invoice(${invoice.id}, ${invoice.request},
             ${expiresAt}::timestamp, ${amount * 1000}, ${user.id}::INTEGER, ${description},
             ${invLimit}::INTEGER, ${balanceLimit})`)
+
+        if (hodlInvoice) await models.invoice.update({ where: { hash: invoice.id }, data: { preimage: invoice.secret } })
 
         // the HMAC is only returned during invoice creation
         // this makes sure that only the person who created this invoice
@@ -312,6 +321,23 @@ export default {
 
       // take pr and createWithdrawl
       return await createWithdrawal(parent, { invoice: res2.pr, maxFee }, { me, models, lnd })
+    },
+    cancelInvoice: async (parent, { hash, hmac }, { models, lnd }) => {
+      const hmac2 = createHmac(hash)
+      if (hmac !== hmac2) {
+        throw new GraphQLError('bad hmac', { extensions: { code: 'FORBIDDEN' } })
+      }
+      await cancelHodlInvoice({ id: hash, lnd })
+      const inv = await serialize(models,
+        models.invoice.update({
+          where: {
+            hash
+          },
+          data: {
+            cancelled: true
+          }
+        }))
+      return inv
     }
   },
 

@@ -17,6 +17,7 @@ import { sendUserNotification } from '../webPush'
 import { proxyImages } from './imgproxy'
 import { defaultCommentSort } from '../../lib/item'
 import { createHmac } from './wallet'
+import { getInvoice, settleHodlInvoice } from 'ln-service'
 
 export async function commentFilterClause (me, models) {
   let clause = ` AND ("Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}`
@@ -37,7 +38,7 @@ export async function commentFilterClause (me, models) {
   return clause
 }
 
-async function checkInvoice (models, hash, hmac, fee) {
+async function checkInvoice (models, lnd, hash, hmac, fee) {
   if (!hmac) {
     throw new GraphQLError('hmac required', { extensions: { code: 'BAD_INPUT' } })
   }
@@ -52,16 +53,27 @@ async function checkInvoice (models, hash, hmac, fee) {
       user: true
     }
   })
+
   if (!invoice) {
     throw new GraphQLError('invoice not found', { extensions: { code: 'BAD_INPUT' } })
   }
-  if (!invoice.msatsReceived) {
+
+  const { is_canceled: isCanceled, is_held: isHeld, received_mtokens: receivedMtokens } = await getInvoice({ id: hash, lnd })
+
+  if (isCanceled) {
+    throw new GraphQLError('invoice was canceled', { extensions: { code: 'BAD_INPUT' } })
+  }
+
+  const msatsReceived = isHeld ? Number(receivedMtokens) : invoice.msatsReceived
+
+  if (!msatsReceived) {
     throw new GraphQLError('invoice was not paid', { extensions: { code: 'BAD_INPUT' } })
   }
-  if (msatsToSats(invoice.msatsReceived) < fee) {
+  if (msatsToSats(msatsReceived) < fee) {
     throw new GraphQLError('invoice amount too low', { extensions: { code: 'BAD_INPUT' } })
   }
-  return invoice
+
+  return { ...invoice, isHeld }
 }
 
 async function comments (me, models, id, sort) {
@@ -706,7 +718,7 @@ export default {
 
       return id
     },
-    act: async (parent, { id, sats, invoiceHash, invoiceHmac }, { me, models }) => {
+    act: async (parent, { id, sats, invoiceHash, invoiceHmac }, { me, models, lnd }) => {
       // need to make sure we are logged in
       if (!me && !invoiceHash) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
@@ -717,7 +729,7 @@ export default {
       let user = me
       let invoice
       if (!me && invoiceHash) {
-        invoice = await checkInvoice(models, invoiceHash, invoiceHmac, sats)
+        invoice = await checkInvoice(models, lnd, invoiceHash, invoiceHmac, sats)
         user = invoice.user
       }
 
@@ -746,6 +758,8 @@ export default {
       }
 
       const [{ item_act: vote }] = await serialize(models, ...calls)
+
+      if (invoice?.isHeld) await settleHodlInvoice({ secret: invoice.preimage, lnd })
 
       const notify = async () => {
         try {
@@ -1106,13 +1120,14 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
   item.subName = item.sub
   delete item.sub
 
+  let invoice
   if (me) {
     item.userId = Number(me.id)
   } else {
     if (!invoiceHash) {
       throw new GraphQLError('you must be logged in or pay', { extensions: { code: 'FORBIDDEN' } })
     }
-    const invoice = await checkInvoice(models, invoiceHash, invoiceHmac, item.parentId ? ANON_COMMENT_FEE : ANON_POST_FEE)
+    invoice = await checkInvoice(models, invoiceHash, invoiceHmac, item.parentId ? ANON_COMMENT_FEE : ANON_POST_FEE)
     item.userId = invoice.user.id
     spamInterval = ANON_ITEM_SPAM_INTERVAL
     trx.push(models.invoice.delete({ where: { hash: invoiceHash } }))
@@ -1134,6 +1149,8 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
       JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options)),
     ...trx)
   item = Array.isArray(result) ? result[0] : result
+
+  if (invoice?.isHeld) await settleHodlInvoice({ secret: invoice.preimage, lnd })
 
   await createMentions(item, models)
 

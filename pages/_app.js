@@ -15,7 +15,6 @@ import { ServiceWorkerProvider } from '../components/serviceworker'
 import { SSR } from '../lib/constants'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
-import { PaymentTokenProvider } from '../components/payment-tokens'
 
 NProgress.configure({
   showSpinner: false
@@ -92,11 +91,9 @@ function MyApp ({ Component, pageProps: { ...props } }) {
                 <PriceProvider price={price}>
                   <LightningProvider>
                     <ToastProvider>
-                      <PaymentTokenProvider>
-                        <ShowModalProvider>
-                          <Component ssrData={ssrData} {...otherProps} />
-                        </ShowModalProvider>
-                      </PaymentTokenProvider>
+                      <ShowModalProvider>
+                        <Component ssrData={ssrData} {...otherProps} />
+                      </ShowModalProvider>
                     </ToastProvider>
                   </LightningProvider>
                 </PriceProvider>

@@ -420,6 +420,7 @@ model Invoice {
   updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at")
   userId         Int
   hash           String    @unique(map: "Invoice.hash_unique")
+  preimage       String?   @unique(map: "Invoice.preimage_unique")
   bolt11         String
   expiresAt      DateTime
   confirmedAt    DateTime?

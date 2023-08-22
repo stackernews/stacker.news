@@ -34,6 +34,7 @@ export default {
             FROM "Donation"
             WHERE date_trunc('day', created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = day_cte.day)
             UNION ALL
+          -- any earnings from anon's stack that are not forwarded to other users
           (SELECT "ItemAct".msats / 1000.0 as sats, 'ANON' as type
             FROM "Item"
             JOIN "ItemAct" ON "ItemAct"."itemId" = "Item".id

@@ -24,6 +24,7 @@ function earn ({ models }) {
           FROM "Donation"
           WHERE date_trunc('day', created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = date_trunc('day', (now() - interval '1 day') AT TIME ZONE 'America/Chicago'))
           UNION ALL
+        -- any earnings from anon's stack that are not forwarded to other users
         (SELECT "ItemAct".msats
           FROM "Item"
           JOIN "ItemAct" ON "ItemAct"."itemId" = "Item".id

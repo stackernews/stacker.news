@@ -244,16 +244,26 @@ function Referral ({ n }) {
 
 function Votification ({ n }) {
   let forwardedSats = 0
-  let forwardedUsers = ''
+  let ForwardedUsers = null
   if (n.item.forwards?.length) {
     forwardedSats = Math.floor(n.earnedSats * n.item.forwards.map(fwd => fwd.pct).reduce((sum, cur) => sum + cur) / 100)
-    forwardedUsers = n.item.forwards.map(fwd => `@${fwd.user.name}`).join(', ')
+    ForwardedUsers = () => n.item.forwards.map((fwd, i) =>
+      <span key={fwd.user.name}>
+        <Link className='text-success' href={`/${fwd.user.name}`}>
+          @{fwd.user.name}
+        </Link>
+        {i !== n.item.forwards.length - 1 && ', '}
+      </span>)
   }
   return (
     <>
       <small className='fw-bold text-success ms-2'>
         your {n.item.title ? 'post' : 'reply'} stacked {numWithUnits(n.earnedSats, { abbreviate: false })}
-        {n.item.forwards?.length > 0 && ` and forwarded ${numWithUnits(forwardedSats, { abbreviate: false })} to ${forwardedUsers}`}
+        {n.item.forwards?.length > 0 &&
+          <>
+            {' '}and forwarded {numWithUnits(forwardedSats, { abbreviate: false })} to{' '}
+            <ForwardedUsers />
+          </>}
       </small>
       <div>
         {n.item.title

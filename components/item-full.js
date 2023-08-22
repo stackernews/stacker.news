@@ -106,12 +106,13 @@ function ItemEmbed ({ item }) {
 function FwdUsers ({ forwards }) {
   return (
     <div className={styles.other}>
+      zaps forwarded to {' '}
       {forwards.map((fwd, index, arr) => (
         <span key={fwd.user.name}>
-          {fwd.pct}% of zaps are forwarded to{' '}
           <Link href={`/${fwd.user.name}`}>
             @{fwd.user.name}
-          </Link>{index !== arr.length - 1 && ', '}
+          </Link>
+          {` (${fwd.pct}%)`}{index !== arr.length - 1 && ', '}
         </span>))}
 
     </div>

@@ -252,11 +252,8 @@ function Votification ({ n }) {
   return (
     <>
       <small className='fw-bold text-success ms-2'>
-        {n.item.title && !n.item.forwards?.length && `your post stacked ${numWithUnits(n.earnedSats, { abbreviate: false })}`}
-        {n.item.title && n.item.forwards?.length > 0 && `your post forwarded ${numWithUnits(forwardedSats, { abbreviate: false })} to ${forwardedUsers}`}
-        {!n.item.title && !n.item.forwards?.length && `your reply stacked ${numWithUnits(n.earnedSats, { abbreviate: false })}`}
-        {/* can you forward sats on a reply? I imagine not... */}
-        {!n.item.title && n.item.forwards?.length > 0 && `your reply forwarded ${numWithUnits(forwardedSats, { abbreviate: false })} to ${forwardedUsers}`}
+        your {n.item.title ? 'post' : 'reply'} stacked {numWithUnits(n.earnedSats, { abbreviate: false })}
+        {n.item.forwards?.length > 0 && ` and forwarded ${numWithUnits(forwardedSats, { abbreviate: false })} to ${forwardedUsers}`}
       </small>
       <div>
         {n.item.title

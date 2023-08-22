@@ -111,68 +111,32 @@ export default {
       }
 
       if (include.has('stacked')) {
-        // query1 - get all sats stacked for OP with no forwards in play at all
+        // query1 - get all sats stacked as OP
         queries.push(
           `(SELECT
             ('stacked' || "Item".id) AS id,
             "Item".id AS "factId",
             NULL AS bolt11,
             MAX("ItemAct".created_at) AS "createdAt",
-            SUM("ItemAct".msats) AS msats,
+            FLOOR(SUM("ItemAct".msats) * COALESCE(1 - (SELECT SUM(pct) FROM "ItemForward" WHERE "itemId" = "Item".id) / 100.0, 1)) AS "msats",
             0 AS "msatsFee",
             NULL AS status,
             'stacked' AS type
           FROM "ItemAct"
           JOIN "Item" ON "ItemAct"."itemId" = "Item".id
           WHERE "ItemAct".act = 'TIP'
-          AND (
-            (SELECT COUNT(*) FROM "ItemForward" WHERE "ItemForward"."itemId" = "Item".id) = 0
-          )
           AND "Item"."userId" = $1
           AND "ItemAct".created_at <= $2
           GROUP BY "Item".id)`
         )
-        // query 2 - get all sats stacked for OP where there are forwards to other users, but maybe not 100%
+        // query 2, get all sats stacked by the user by way of being forwarded to them from someone else
         queries.push(
           `(SELECT
             ('stacked' || "Item".id) AS id,
             "Item".id AS "factId",
             NULL AS bolt11,
             MAX("ItemAct".created_at) AS "createdAt",
-            (
-              (100 - FLOOR(SUM("ItemForward"."pct") / COUNT(DISTINCT "ItemAct".id)))
-              / 100
-              * FLOOR(SUM("ItemAct".msats) / COUNT(DISTINCT "ItemForward".id))
-            ) AS "msats",
-            0 AS "msatsFee",
-            NULL AS status,
-            'stacked' AS type
-          FROM "ItemAct"
-          JOIN "Item" ON "ItemAct"."itemId" = "Item".id
-          JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id
-          WHERE "ItemAct".act = 'TIP'
-          AND (
-              (SELECT COUNT(*) FROM "ItemForward" WHERE "ItemForward"."itemId" = "Item".id) > 0
-          )
-          AND "Item"."userId" = $1
-          AND "ItemAct".created_at <= $2
-          GROUP BY "Item".id
-          HAVING (
-            (100 - FLOOR(SUM("ItemForward"."pct") / COUNT(DISTINCT "ItemAct".id)))
-            / 100
-            * FLOOR(SUM("ItemAct".msats) / COUNT(DISTINCT "ItemForward".id))
-          ) > 0)`
-        )
-        // query 3, get all sats stacked by the user by way of being forwarded to them from someone else
-        queries.push(
-          `(SELECT
-            ('stacked' || "Item".id) AS id,
-            "Item".id AS "factId",
-            NULL AS bolt11,
-            MAX("ItemAct".created_at) AS "createdAt",
-            FLOOR(SUM("ItemForward".pct) / COUNT(DISTINCT "ItemAct".id))
-            / 100 *
-            FLOOR(SUM("ItemAct".msats) / COUNT(DISTINCT "ItemForward".id)) as msats,
+            FLOOR(SUM("ItemAct".msats) * "ItemForward".pct / 100.0)  as msats,
             0 AS "msatsFee",
             NULL AS status,
             'stacked' AS type
@@ -182,7 +146,7 @@ export default {
           WHERE "ItemAct".act = 'TIP'
           AND "ItemAct"."userId" <> "Item"."userId"
           AND "ItemAct".created_at <= $2
-          GROUP BY "Item".id)`
+          GROUP BY "Item".id, "ItemForward".pct)`
         )
         queries.push(
             `(SELECT ('earn' || min("Earn".id)) as id, min("Earn".id) as "factId", NULL as bolt11,

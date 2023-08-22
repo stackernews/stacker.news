@@ -1,5 +1,3 @@
-import Button from 'react-bootstrap/Button'
-import { useFormikContext } from 'formik'
 import AccordianItem from './accordian-item'
 import { Input, InputUserSuggest, VariableInput } from './form'
 import InputGroup from 'react-bootstrap/InputGroup'
@@ -7,15 +5,16 @@ import { BOOST_MIN, MAX_FORWARDS } from '../lib/constants'
 import Info from './info'
 import { numWithUnits } from '../lib/format'
 
+const EMPTY_FORWARD = { nym: '', pct: '' }
+
 export function AdvPostInitial ({ forward }) {
   return {
     boost: '',
-    forward: forward || []
+    forward: forward?.length ? forward : [EMPTY_FORWARD]
   }
 }
 
 export default function AdvPostForm ({ edit }) {
-  const formik = useFormikContext()
   return (
     <AccordianItem
       header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>options</div>}
@@ -48,36 +47,35 @@ export default function AdvPostForm ({ edit }) {
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
           />
           <VariableInput
-            label='Forward sats to up to 5 other stackers. Any remaining sats go to you.'
+            label='forward sats to'
             name='forward'
-            min={1}
+            min={0}
             max={MAX_FORWARDS}
-            emptyItem={{ }}
-            inputFn={({ index }) => {
+            emptyItem={EMPTY_FORWARD}
+            hint={<span className='text-muted'>Forward sats to up to 5 other stackers. Any remaining sats go to you.</span>}
+          >
+            {({ index, placeholder }) => {
               return (
-                <div key={index} className='d-flex flex-row' style={{ display: 'flex' }}>
+                <div key={index} className='d-flex flex-row'>
                   <InputUserSuggest
-                    label={<>forward sats to</>}
                     name={`forward[${index}].nym`}
                     prepend={<InputGroup.Text>@</InputGroup.Text>}
                     showValid
-                    groupClassName='flex-grow-1'
+                    groupClassName='flex-grow-1 me-3 mb-0'
                   />
                   <Input
-                    label={<>percent</>}
                     name={`forward[${index}].pct`}
-                    showValid
                     type='number'
                     step='1'
                     min='1'
                     max='100'
-                    groupClassName='flex-grow-1'
+                    append={<InputGroup.Text className='text-monospace'>%</InputGroup.Text>}
+                    groupClassName='flex-shrink-1 mb-0'
                   />
                 </div>
               )
             }}
-          />
-          {formik.values.forward?.length === 0 && <Button variant='link' onClick={() => formik.setFieldValue('forward', [{}])}>Add stacker</Button>}
+          </VariableInput>
         </>
       }
     />

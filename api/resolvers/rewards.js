@@ -37,10 +37,11 @@ export default {
           (SELECT "ItemAct".msats / 1000.0 as sats, 'ANON' as type
             FROM "Item"
             JOIN "ItemAct" ON "ItemAct"."itemId" = "Item".id
-            JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id
+            LEFT JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id
             WHERE "Item"."userId" = ${ANON_USER_ID} AND "ItemAct".act = 'TIP'
-            AND (SELECT COUNT(*) FROM "ItemForward" WHERE "ItemForward"."itemId" = "Item".id) = 0
-            AND date_trunc('day', "ItemAct".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = day_cte.day)
+            AND date_trunc('day', "ItemAct".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = day_cte.day
+            GROUP BY "ItemAct".id, "ItemAct".msats
+            HAVING COUNT("ItemForward".id) = 0)
         ) subquery`
 
       return result || { total: 0, time: 0, sources: [] }

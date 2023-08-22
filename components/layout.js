@@ -29,8 +29,8 @@ export function SearchLayout ({ sub, children, ...props }) {
   return (
     <Layout sub={sub} seo={false} footer={false} {...props}>
       <SeoSearch sub={sub} />
-      {children}
       <Search />
+      {children}
     </Layout>
   )
 }

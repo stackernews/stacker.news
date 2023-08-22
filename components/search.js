@@ -3,7 +3,7 @@ import Container from 'react-bootstrap/Container'
 import styles from './search.module.css'
 import SearchIcon from '../svgs/search-line.svg'
 import CloseIcon from '../svgs/close-line.svg'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Form, Input, Select, SubmitButton } from './form'
 import { useRouter } from 'next/router'
 
@@ -11,17 +11,15 @@ export default function Search ({ sub }) {
   const router = useRouter()
   const [searching, setSearching] = useState(router.query.q)
   const [q, setQ] = useState(router.query.q || '')
-  const [atBottom, setAtBottom] = useState()
+  const [atTop, setAtTop] = useState()
+  const secRef = useRef()
+  const padRef = useRef()
 
   useEffect(() => {
-    setAtBottom(Math.ceil(window.innerHeight + window.pageYOffset) >= document.body.offsetHeight)
-    window.onscroll = function (ev) {
-      if (Math.ceil(window.innerHeight + window.pageYOffset) >= document.body.offsetHeight) {
-        setAtBottom(true)
-      } else {
-        setAtBottom(false)
-      }
+    window.onscroll = function () {
+      setAtTop(window.pageYOffset <= Math.max(padRef.current.offsetTop, secRef.current.offsetTop))
     }
+    window.onscroll()
   }, [])
 
   const search = async values => {
@@ -52,15 +50,16 @@ export default function Search ({ sub }) {
     }
   }
 
-  const showSearch = atBottom || searching || router.query.q
+  const showSearch = atTop || searching || router.query.q
   const filter = sub !== 'jobs'
   const what = router.pathname.startsWith('/stackers') ? 'stackers' : router.query.what || 'all'
   const sort = router.query.sort || 'match'
   const when = router.query.when || 'forever'
+  const floatStyle = atTop ? '' : ` ${styles.float}`
 
   return (
     <>
-      <div className={`${styles.searchSection} ${showSearch ? styles.solid : styles.hidden}`}>
+      <div ref={secRef} className={`${styles.searchSection} ${showSearch ? styles.solid : styles.hidden} ${floatStyle}`}>
         <Container className={`px-md-0 ${styles.searchContainer} ${filter ? styles.leaveRoom : ''}`}>
           {showSearch
             ? (
@@ -116,7 +115,7 @@ export default function Search ({ sub }) {
                       setQ(e.target.value?.trim())
                     }}
                   />
-                  {q || atBottom || router.query.q
+                  {q || atTop || router.query.q
                     ? (
                       <SubmitButton variant='primary' className={styles.search}>
                         <SearchIcon width={22} height={22} />
@@ -141,7 +140,7 @@ export default function Search ({ sub }) {
               )}
         </Container>
       </div>
-      <div className={`${styles.searchPadding} ${filter ? styles.leaveRoom : ''}`} />
+      <div ref={padRef} className={`${styles.searchPadding} ${filter ? styles.leaveRoom : ''} ${floatStyle}`} />
     </>
   )
 }

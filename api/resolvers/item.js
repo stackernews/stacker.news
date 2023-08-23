@@ -665,13 +665,7 @@ export default {
 
       await ssValidate(pollSchema, data, models, optionCount)
 
-      let fwdUser
-      if (forward) {
-        fwdUser = await models.user.findUnique({ where: { name: forward } })
-        if (!fwdUser) {
-          throw new GraphQLError('forward user does not exist', { extensions: { code: 'BAD_INPUT' } })
-        }
-      }
+      const fwdUsers = await getForwardUsers(models, forward)
 
       if (id) {
         const old = await models.item.findUnique({ where: { id: Number(id) } })
@@ -679,8 +673,8 @@ export default {
           throw new GraphQLError('item does not belong to you', { extensions: { code: 'FORBIDDEN' } })
         }
         const [item] = await serialize(models,
-          models.$queryRawUnsafe(`${SELECT} FROM update_poll($1, $2::INTEGER, $3, $4, $5::INTEGER, $6, $7::INTEGER) AS "Item"`,
-            sub || 'bitcoin', Number(id), title, text, Number(boost || 0), options, Number(fwdUser?.id)))
+          models.$queryRawUnsafe(`${SELECT} FROM update_poll($1, $2::INTEGER, $3, $4, $5::INTEGER, $6, $7::JSON) AS "Item"`,
+            sub || 'bitcoin', Number(id), title, text, Number(boost || 0), options, JSON.stringify(fwdUsers)))
 
         await createMentions(item, models)
         item.comments = []
@@ -688,8 +682,8 @@ export default {
       } else {
         const [query] = await serialize(models,
           models.$queryRawUnsafe(
-            `${SELECT} FROM create_poll($1, $2, $3, $4::INTEGER, $5::INTEGER, $6::INTEGER, $7, $8::INTEGER, '${spamInterval}') AS "Item"`,
-            sub || 'bitcoin', title, text, 1, Number(boost || 0), Number(author.id), options, Number(fwdUser?.id)), ...trx)
+            `${SELECT} FROM create_poll($1, $2, $3, $4::INTEGER, $5::INTEGER, $6::INTEGER, $7, $8::JSON, '${spamInterval}') AS "Item"`,
+            sub || 'bitcoin', title, text, 1, Number(boost || 0), Number(author.id), options, JSON.stringify(fwdUsers)), ...trx)
         const item = trx.length > 0 ? query[0] : query
 
         await createMentions(item, models)
@@ -794,6 +788,12 @@ export default {
         }
       }
 
+      // Disallow tips if me is one of the forward user recipients
+      const existingForwards = await models.itemForward.findMany({ where: { itemId: Number(id) } })
+      if (existingForwards.some(fwd => Number(fwd.userId) === Number(user.id))) {
+        throw new GraphQLError('cannot zap a post for which you are forwarded zaps', { extensions: { code: 'BAD_INPUT' } })
+      }
+
       const calls = [
         models.$queryRaw`SELECT item_act(${Number(id)}::INTEGER, ${user.id}::INTEGER, 'TIP', ${Number(sats)}::INTEGER)`
       ]
@@ -803,15 +803,46 @@ export default {
 
       const [{ item_act: vote }] = await serialize(models, ...calls)
 
-      const updatedItem = await models.item.findUnique({ where: { id: Number(id) } })
-      const title = `your ${updatedItem.title ? 'post' : 'reply'} ${updatedItem.fwdUser ? 'forwarded' : 'stacked'} ${
-        numWithUnits(msatsToSats(updatedItem.msats))}${updatedItem.fwdUser ? ` to @${updatedItem.fwdUser.name}` : ''}`
-      sendUserNotification(updatedItem.userId, {
-        title,
-        body: updatedItem.title ? updatedItem.title : updatedItem.text,
-        item: updatedItem,
-        tag: `TIP-${updatedItem.id}`
-      }).catch(console.error)
+      const notify = async () => {
+        try {
+          const updatedItem = await models.item.findUnique({ where: { id: Number(id) } })
+          const forwards = await models.itemForward.findMany({ where: { itemId: Number(id) } })
+          const userPromises = forwards.map(fwd => models.user.findUnique({ where: { id: fwd.userId } }))
+          const userResults = await Promise.allSettled(userPromises)
+          const mappedForwards = forwards.map((fwd, index) => ({ ...fwd, user: userResults[index].value ?? null }))
+          let forwardedSats = 0
+          let forwardedUsers = ''
+          if (mappedForwards.length) {
+            forwardedSats = Math.floor(msatsToSats(updatedItem.msats) * mappedForwards.map(fwd => fwd.pct).reduce((sum, cur) => sum + cur) / 100)
+            forwardedUsers = mappedForwards.map(fwd => `@${fwd.user.name}`).join(', ')
+          }
+          let notificationTitle
+          if (updatedItem.title) {
+            if (forwards.length > 0) {
+              notificationTitle = `your post forwarded ${numWithUnits(forwardedSats)} to ${forwardedUsers}`
+            } else {
+              notificationTitle = `your post stacked ${numWithUnits(msatsToSats(updatedItem.msats))}`
+            }
+          } else {
+            if (forwards.length > 0) {
+              // I don't think this case is possible
+              notificationTitle = `your reply forwarded ${numWithUnits(forwardedSats)} to ${forwardedUsers}`
+            } else {
+              notificationTitle = `your reply stacked ${numWithUnits(msatsToSats(updatedItem.msats))}`
+            }
+          }
+          await sendUserNotification(updatedItem.userId, {
+            title: notificationTitle,
+            body: updatedItem.title ? updatedItem.title : updatedItem.text,
+            item: updatedItem,
+            tag: `TIP-${updatedItem.id}`
+          })
+        } catch (err) {
+          console.error(err)
+        }
+      }
+
+      notify()
 
       return {
         vote,
@@ -919,11 +950,15 @@ export default {
       }
       return await models.user.findUnique({ where: { id: item.userId } })
     },
-    fwdUser: async (item, args, { models }) => {
-      if (!item.fwdUserId) {
-        return null
-      }
-      return await models.user.findUnique({ where: { id: item.fwdUserId } })
+    forwards: async (item, args, { models }) => {
+      return await models.itemForward.findMany({
+        where: {
+          itemId: item.id
+        },
+        include: {
+          user: true
+        }
+      })
     },
     comments: async (item, { sort }, { me, models }) => {
       if (typeof item.comments !== 'undefined') return item.comments
@@ -1104,22 +1139,15 @@ export const updateItem = async (parent, { id, data: { sub, title, url, text, bo
     throw new GraphQLError('title too long', { extensions: { code: 'BAD_INPUT' } })
   }
 
-  let fwdUser
-  if (forward) {
-    fwdUser = await models.user.findUnique({ where: { name: forward } })
-    if (!fwdUser) {
-      throw new GraphQLError('forward user does not exist', { extensions: { code: 'BAD_INPUT' } })
-    }
-  }
-
+  const fwdUsers = await getForwardUsers(models, forward)
   url = await proxyImages(url)
   text = await proxyImages(text)
 
   const [item] = await serialize(models,
     models.$queryRawUnsafe(
-      `${SELECT} FROM update_item($1, $2::INTEGER, $3, $4, $5, $6::INTEGER, $7::INTEGER, $8::INTEGER) AS "Item"`,
+      `${SELECT} FROM update_item($1, $2::INTEGER, $3, $4, $5, $6::INTEGER, $7::INTEGER, $8::JSON) AS "Item"`,
       old.parentId ? null : sub || 'bitcoin', Number(id), title, url, text,
-      Number(boost || 0), bounty ? Number(bounty) : null, Number(fwdUser?.id)))
+      Number(boost || 0), bounty ? Number(bounty) : null, JSON.stringify(fwdUsers)))
 
   await createMentions(item, models)
 
@@ -1149,21 +1177,14 @@ const createItem = async (parent, { sub, title, url, text, boost, forward, bount
     throw new GraphQLError('title too long', { extensions: { code: 'BAD_INPUT' } })
   }
 
-  let fwdUser
-  if (forward) {
-    fwdUser = await models.user.findUnique({ where: { name: forward } })
-    if (!fwdUser) {
-      throw new GraphQLError('forward user does not exist', { extensions: { code: 'BAD_INPUT' } })
-    }
-  }
-
+  const fwdUsers = await getForwardUsers(models, forward)
   url = await proxyImages(url)
   text = await proxyImages(text)
 
   const [query] = await serialize(
     models,
     models.$queryRawUnsafe(
-    `${SELECT} FROM create_item($1, $2, $3, $4, $5::INTEGER, $6::INTEGER, $7::INTEGER, $8::INTEGER, $9::INTEGER, '${spamInterval}') AS "Item"`,
+    `${SELECT} FROM create_item($1, $2, $3, $4, $5::INTEGER, $6::INTEGER, $7::INTEGER, $8::INTEGER, $9::JSON, '${spamInterval}') AS "Item"`,
     parentId ? null : sub || 'bitcoin',
     title,
     url,
@@ -1172,7 +1193,7 @@ const createItem = async (parent, { sub, title, url, text, boost, forward, bount
     bounty ? Number(bounty) : null,
     Number(parentId),
     Number(author.id),
-    Number(fwdUser?.id)),
+    JSON.stringify(fwdUsers)),
     ...trx)
   const item = trx.length > 0 ? query[0] : query
 
@@ -1182,11 +1203,27 @@ const createItem = async (parent, { sub, title, url, text, boost, forward, bount
   return item
 }
 
+const getForwardUsers = async (models, forward) => {
+  const fwdUsers = []
+  if (forward) {
+    // find all users in one db query
+    const users = await models.user.findMany({ where: { OR: forward.map(fwd => ({ name: fwd.nym })) } })
+    // map users to fwdUser entries with id and pct
+    users.forEach(user => {
+      fwdUsers.push({
+        userId: user.id,
+        pct: forward.find(fwd => fwd.nym === user.name).pct
+      })
+    })
+  }
+  return fwdUsers
+}
+
 // we have to do our own query because ltree is unsupported
 export const SELECT =
   `SELECT "Item".id, "Item".created_at, "Item".created_at as "createdAt", "Item".updated_at,
   "Item".updated_at as "updatedAt", "Item".title, "Item".text, "Item".url, "Item"."bounty",
-  "Item"."userId", "Item"."fwdUserId", "Item"."parentId", "Item"."pinId", "Item"."maxBid",
+  "Item"."userId", "Item"."parentId", "Item"."pinId", "Item"."maxBid",
   "Item"."rootId", "Item".upvotes, "Item".company, "Item".location, "Item".remote, "Item"."deletedAt",
   "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost", "Item".boost, "Item".msats,
   "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",

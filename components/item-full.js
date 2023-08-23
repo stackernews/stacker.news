@@ -103,13 +103,18 @@ function ItemEmbed ({ item }) {
   return null
 }
 
-function FwdUser ({ user }) {
+function FwdUsers ({ forwards }) {
   return (
     <div className={styles.other}>
-      100% of zaps are forwarded to{' '}
-      <Link href={`/${user.name}`}>
-        @{user.name}
-      </Link>
+      zaps forwarded to {' '}
+      {forwards.map((fwd, index, arr) => (
+        <span key={fwd.user.name}>
+          <Link href={`/${fwd.user.name}`}>
+            @{fwd.user.name}
+          </Link>
+          {` (${fwd.pct}%)`}{index !== arr.length - 1 && ', '}
+        </span>))}
+
     </div>
   )
 }
@@ -128,7 +133,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
             <Toc text={item.text} />
           </>
       }
-      belowTitle={item.fwdUser && <FwdUser user={item.fwdUser} />}
+      belowTitle={item.forwards && item.forwards.length > 0 && <FwdUsers forwards={item.forwards} />}
       {...props}
     >
       <div className={styles.fullItemContainer}>

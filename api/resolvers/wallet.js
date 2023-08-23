@@ -111,17 +111,33 @@ export default {
       }
 
       if (include.has('stacked')) {
+        // query1 - get all sats stacked as OP or as a forward
         queries.push(
-          `(SELECT ('stacked' || "Item".id) as id, "Item".id as "factId", NULL as bolt11,
-          MAX("ItemAct".created_at) as "createdAt", sum("ItemAct".msats) as msats,
-          0 as "msatsFee", NULL as status, 'stacked' as type
+          `(SELECT
+            ('stacked' || "Item".id) AS id,
+            "Item".id AS "factId",
+            NULL AS bolt11,
+            MAX("ItemAct".created_at) AS "createdAt",
+            FLOOR(
+              SUM("ItemAct".msats)
+              * (CASE WHEN "Item"."userId" = $1 THEN
+                  COALESCE(1 - ((SELECT SUM(pct) FROM "ItemForward" WHERE "itemId" = "Item".id) / 100.0), 1)
+                ELSE
+                  (SELECT pct FROM "ItemForward" WHERE "itemId" = "Item".id AND "userId" = $1) / 100.0
+                END)
+            ) AS "msats",
+            0 AS "msatsFee",
+            NULL AS status,
+            'stacked' AS type
           FROM "ItemAct"
-          JOIN "Item" on "ItemAct"."itemId" = "Item".id
-          WHERE act = 'TIP'
-          AND (("Item"."userId" = $1 AND "Item"."fwdUserId" IS NULL)
-                OR ("Item"."fwdUserId" = $1 AND "ItemAct"."userId" <> "Item"."userId"))
+          JOIN "Item" ON "ItemAct"."itemId" = "Item".id
+          -- only join to with item forward for items where we aren't the OP
+          LEFT JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id AND "Item"."userId" <> $1
+          WHERE "ItemAct".act = 'TIP'
+          AND ("Item"."userId" = $1 OR "ItemForward"."userId" = $1)
           AND "ItemAct".created_at <= $2
-          GROUP BY "Item".id)`)
+          GROUP BY "Item".id)`
+        )
         queries.push(
             `(SELECT ('earn' || min("Earn".id)) as id, min("Earn".id) as "factId", NULL as bolt11,
             created_at as "createdAt", sum(msats),

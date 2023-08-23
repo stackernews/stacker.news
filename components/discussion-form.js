@@ -14,6 +14,7 @@ import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
 import { useCallback } from 'react'
 import { useInvoiceable } from './invoice'
+import { normalizeForwards } from '../lib/form'
 
 export function DiscussionForm ({
   item, sub, editThreshold, titleLabel = 'title',
@@ -29,7 +30,7 @@ export function DiscussionForm ({
   // const me = useMe()
   const [upsertDiscussion] = useMutation(
     gql`
-      mutation upsertDiscussion($sub: String, $id: ID, $title: String!, $text: String, $boost: Int, $forward: String, $invoiceHash: String, $invoiceHmac: String) {
+      mutation upsertDiscussion($sub: String, $id: ID, $title: String!, $text: String, $boost: Int, $forward: [ItemForwardInput], $invoiceHash: String, $invoiceHmac: String) {
         upsertDiscussion(sub: $sub, id: $id, title: $title, text: $text, boost: $boost, forward: $forward, invoiceHash: $invoiceHash, invoiceHmac: $invoiceHmac) {
           id
         }
@@ -39,7 +40,15 @@ export function DiscussionForm ({
   const submitUpsertDiscussion = useCallback(
     async (_, boost, values, invoiceHash, invoiceHmac) => {
       const { error } = await upsertDiscussion({
-        variables: { sub: item?.subName || sub?.name, id: item?.id, boost: boost ? Number(boost) : undefined, ...values, invoiceHash, invoiceHmac }
+        variables: {
+          sub: item?.subName || sub?.name,
+          id: item?.id,
+          boost: boost ? Number(boost) : undefined,
+          ...values,
+          forward: normalizeForwards(values.forward),
+          invoiceHash,
+          invoiceHmac
+        }
       })
       if (error) {
         throw new Error({ message: error.toString() })
@@ -74,7 +83,7 @@ export function DiscussionForm ({
       initial={{
         title: item?.title || shareTitle || '',
         text: item?.text || '',
-        ...AdvPostInitial({ forward: item?.fwdUser?.name }),
+        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards) }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}

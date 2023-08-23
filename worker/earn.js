@@ -24,11 +24,15 @@ function earn ({ models }) {
           FROM "Donation"
           WHERE date_trunc('day', created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = date_trunc('day', (now() - interval '1 day') AT TIME ZONE 'America/Chicago'))
           UNION ALL
+        -- any earnings from anon's stack that are not forwarded to other users
         (SELECT "ItemAct".msats
-            FROM "Item"
-            JOIN "ItemAct" ON "ItemAct"."itemId" = "Item".id
-            WHERE "Item"."userId" = ${ANON_USER_ID} AND "ItemAct".act = 'TIP' AND "Item"."fwdUserId" IS NULL
-            AND date_trunc('day', "ItemAct".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = date_trunc('day', (now() - interval '1 day') AT TIME ZONE 'America/Chicago'))
+          FROM "Item"
+          JOIN "ItemAct" ON "ItemAct"."itemId" = "Item".id
+          LEFT JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id
+          WHERE "Item"."userId" = ${ANON_USER_ID} AND "ItemAct".act = 'TIP'
+          AND date_trunc('day', "ItemAct".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = date_trunc('day', (now() - interval '1 day') AT TIME ZONE 'America/Chicago')
+          GROUP BY "ItemAct".id, "ItemAct".msats
+          HAVING COUNT("ItemForward".id) = 0)
       ) subquery`
 
     // XXX primsa will return a Decimal (https://mikemcl.github.io/decimal.js)

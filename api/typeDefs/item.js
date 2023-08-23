@@ -26,12 +26,12 @@ export default gql`
     bookmarkItem(id: ID): Item
     subscribeItem(id: ID): Item
     deleteItem(id: ID): Item
-    upsertLink(id: ID, sub: String, title: String!, url: String!, boost: Int, forward: String, invoiceHash: String, invoiceHmac: String): Item!
-    upsertDiscussion(id: ID, sub: String, title: String!, text: String, boost: Int, forward: String, invoiceHash: String, invoiceHmac: String): Item!
-    upsertBounty(id: ID, sub: String, title: String!, text: String, bounty: Int!, boost: Int, forward: String): Item!
+    upsertLink(id: ID, sub: String, title: String!, url: String!, boost: Int, forward: [ItemForwardInput], invoiceHash: String, invoiceHmac: String): Item!
+    upsertDiscussion(id: ID, sub: String, title: String!, text: String, boost: Int, forward: [ItemForwardInput], invoiceHash: String, invoiceHmac: String): Item!
+    upsertBounty(id: ID, sub: String, title: String!, text: String, bounty: Int!, boost: Int, forward: [ItemForwardInput]): Item!
     upsertJob(id: ID, sub: String!, title: String!, company: String!, location: String, remote: Boolean,
       text: String!, url: String!, maxBid: Int!, status: String, logo: Int): Item!
-    upsertPoll(id: ID, sub: String, title: String!, text: String, options: [String!]!, boost: Int, forward: String, invoiceHash: String, invoiceHmac: String): Item!
+    upsertPoll(id: ID, sub: String, title: String!, text: String, options: [String!]!, boost: Int, forward: [ItemForwardInput], invoiceHash: String, invoiceHmac: String): Item!
     createComment(text: String!, parentId: ID!, invoiceHash: String, invoiceHmac: String): Item!
     updateComment(id: ID!, text: String!): Item!
     dontLikeThis(id: ID!): Boolean!
@@ -78,8 +78,6 @@ export default gql`
     root: Item
     user: User!
     userId: Int!
-    fwdUserId: Int
-    fwdUser: User
     depth: Int!
     mine: Boolean!
     boost: Int!
@@ -115,5 +113,11 @@ export default gql`
     uploadId: Int
     otsHash: String
     parentOtsHash: String
+    forwards: [ItemForward]
+  }
+
+  input ItemForwardInput {
+    nym: String!
+    pct: Int!
   }
 `

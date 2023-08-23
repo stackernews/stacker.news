@@ -398,10 +398,10 @@ export function Input ({ label, groupClassName, ...props }) {
   )
 }
 
-export function VariableInput ({ label, groupClassName, name, hint, max, min, readOnlyLen, ...props }) {
+export function VariableInput ({ label, groupClassName, name, hint, max, min, readOnlyLen, children, emptyItem = '', ...props }) {
   return (
     <FormGroup label={label} className={groupClassName}>
-      <FieldArray name={name}>
+      <FieldArray name={name} hasValidation>
         {({ form, ...fieldArrayHelpers }) => {
           const options = form.values[name]
           return (
@@ -410,11 +410,22 @@ export function VariableInput ({ label, groupClassName, name, hint, max, min, re
                 <div key={i}>
                   <Row className='mb-2'>
                     <Col>
-                      <InputInner name={`${name}[${i}]`} {...props} readOnly={i < readOnlyLen} placeholder={i >= min ? 'optional' : undefined} />
+                      {children
+                        ? children({ index: i, readOnly: i < readOnlyLen, placeholder: i >= min ? 'optional' : undefined })
+                        : <InputInner name={`${name}[${i}]`} {...props} readOnly={i < readOnlyLen} placeholder={i >= min ? 'optional' : undefined} />}
                     </Col>
-                    {options.length - 1 === i && options.length !== max
-                      ? <Col className='d-flex ps-0' xs='auto'><AddIcon className='fill-grey align-self-center justify-self-center pointer' onClick={() => fieldArrayHelpers.push('')} /></Col>
-                      : null}
+                    <Col className='d-flex ps-0' xs='auto'>
+                      {options.length - 1 === i && options.length !== max
+                        ? <AddIcon className='fill-grey align-self-center justify-self-center pointer' onClick={() => fieldArrayHelpers.push(emptyItem)} />
+                        // filler div for col alignment across rows
+                        : <div style={{ width: '24px', height: '24px' }} />}
+                    </Col>
+                    {options.length - 1 === i &&
+                      <>
+                        {hint && <BootstrapForm.Text>{hint}</BootstrapForm.Text>}
+                        {form.touched[name] && typeof form.errors[name] === 'string' &&
+                          <div className='invalid-feedback d-block'>{form.errors[name]}</div>}
+                      </>}
                   </Row>
                 </div>
               ))}
@@ -422,11 +433,6 @@ export function VariableInput ({ label, groupClassName, name, hint, max, min, re
           )
         }}
       </FieldArray>
-      {hint && (
-        <BootstrapForm.Text>
-          {hint}
-        </BootstrapForm.Text>
-      )}
     </FormGroup>
   )
 }
@@ -482,7 +488,12 @@ export function Form ({
             window.localStorage.removeItem(storageKeyPrefix + '-' + v)
             if (Array.isArray(values[v])) {
               values[v].forEach(
-                (_, i) => window.localStorage.removeItem(`${storageKeyPrefix}-${v}[${i}]`))
+                (iv, i) => {
+                  Object.keys(iv).forEach(k => {
+                    window.localStorage.removeItem(`${storageKeyPrefix}-${v}[${i}].${k}`)
+                  })
+                  window.localStorage.removeItem(`${storageKeyPrefix}-${v}[${i}]`)
+                })
             }
           }
           )

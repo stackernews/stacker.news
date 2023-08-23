@@ -63,7 +63,6 @@ model User {
   Earn                Earn[]
   invites             Invite[]             @relation("Invites")
   invoices            Invoice[]
-  fwdItems            Item[]               @relation("FwdItem")
   items               Item[]               @relation("UserItems")
   actions             ItemAct[]
   mentions            Mention[]
@@ -84,6 +83,7 @@ model User {
   referrees           User[]               @relation("referrals")
   Account             Account[]
   Session             Session[]
+  itemForwards        ItemForward[]
   hideBookmarks       Boolean              @default(false)
 
   @@index([createdAt], map: "users.created_at_index")
@@ -228,7 +228,6 @@ model Item {
   statusUpdatedAt    DateTime?
   status             Status                @default(ACTIVE)
   company            String?
-  fwdUserId          Int?
   weightedVotes      Float                 @default(0)
   boost              Int                   @default(0)
   uploadId           Int?
@@ -250,7 +249,6 @@ model Item {
   upvotes            Int                   @default(0)
   weightedComments   Float                 @default(0)
   Bookmark           Bookmark[]
-  fwdUser            User?                 @relation("FwdItem", fields: [fwdUserId], references: [id])
   parent             Item?                 @relation("ParentChildren", fields: [parentId], references: [id])
   children           Item[]                @relation("ParentChildren")
   pin                Pin?                  @relation(fields: [pinId], references: [id])
@@ -265,6 +263,7 @@ model Item {
   ThreadSubscription ThreadSubscription[]
   upload             Upload?
   User               User[]
+  itemForwards       ItemForward[]
 
   @@index([bio], map: "Item.bio_index")
   @@index([createdAt], map: "Item.created_at_index")
@@ -281,6 +280,23 @@ model Item {
   @@index([userId], map: "Item.userId_index")
   @@index([weightedDownVotes], map: "Item.weightedDownVotes_index")
   @@index([weightedVotes], map: "Item.weightedVotes_index")
+}
+
+// TODO: make all Item's forward 100% of sats to the OP by default
+// so that forwards aren't a special case everywhere
+model ItemForward {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  itemId    Int // The item from which sats are forwarded
+  userId    Int // The recipient of the forwarded sats
+  pct       Int // The percentage of sats from the item to forward to this user
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([itemId], map: "ItemForward.itemId_index")
+  @@index([userId], map: "ItemForward.userId_index")
+  @@index([createdAt], map: "ItemForward.createdAt_index")
 }
 
 model PollOption {
@@ -496,6 +512,8 @@ model Bookmark {
   @@index([createdAt], map: "Bookmark.created_at_index")
 }
 
+// TODO: make thread subscriptions for OP by default so they can
+// unsubscribe from their own threads and its not a special case
 model ThreadSubscription {
   userId    Int
   itemId    Int

@@ -3,6 +3,7 @@ import { gql } from 'graphql-tag'
 import user from './user'
 import message from './message'
 import item from './item'
+import itemForward from './itemForward'
 import wallet from './wallet'
 import lnurl from './lnurl'
 import notifications from './notifications'
@@ -32,5 +33,5 @@ const common = gql`
   scalar Date
 `
 
-export default [common, user, item, message, wallet, lnurl, notifications, invite,
+export default [common, user, item, itemForward, message, wallet, lnurl, notifications, invite,
   sub, upload, growth, rewards, referrals, price, admin]

@@ -15,7 +15,6 @@ export const ITEM_FIELDS = gql`
       hideCowboyHat
       id
     }
-    fwdUserId
     otsHash
     position
     sats
@@ -51,12 +50,6 @@ export const ITEM_FULL_FIELDS = gql`
   fragment ItemFullFields on Item {
     ...ItemFields
     text
-    fwdUser {
-      name
-      streak
-      hideCowboyHat
-      id
-    }
     root {
       id
       title
@@ -68,6 +61,13 @@ export const ITEM_FULL_FIELDS = gql`
         streak
         hideCowboyHat
         id
+      }
+    }
+    forwards {
+      userId
+      pct
+      user {
+        name
       }
     }
   }`

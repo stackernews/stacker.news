@@ -34,11 +34,15 @@ export default {
             FROM "Donation"
             WHERE date_trunc('day', created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = day_cte.day)
             UNION ALL
+          -- any earnings from anon's stack that are not forwarded to other users
           (SELECT "ItemAct".msats / 1000.0 as sats, 'ANON' as type
             FROM "Item"
             JOIN "ItemAct" ON "ItemAct"."itemId" = "Item".id
-            WHERE "Item"."userId" = ${ANON_USER_ID} AND "ItemAct".act = 'TIP' AND "Item"."fwdUserId" IS NULL
-            AND date_trunc('day', "ItemAct".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = day_cte.day)
+            LEFT JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id
+            WHERE "Item"."userId" = ${ANON_USER_ID} AND "ItemAct".act = 'TIP'
+            AND date_trunc('day', "ItemAct".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = day_cte.day
+            GROUP BY "ItemAct".id, "ItemAct".msats
+            HAVING COUNT("ItemForward".id) = 0)
         ) subquery`
 
       return result || { total: 0, time: 0, sources: [] }

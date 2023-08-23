@@ -84,6 +84,7 @@ model User {
   Account             Account[]
   Session             Session[]
   itemForwards        ItemForward[]
+  hideBookmarks       Boolean              @default(false)
 
   @@index([createdAt], map: "users.created_at_index")
   @@index([inviteId], map: "users.inviteId_index")

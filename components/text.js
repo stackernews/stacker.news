@@ -80,10 +80,10 @@ const CACHE_STATES = {
 }
 
 // this is one of the slowest components to render
-export default memo(function Text ({ topLevel, noFragments, nofollow, onlyImgProxy, children }) {
+export default memo(function Text ({ topLevel, noFragments, nofollow, fetchOnlyImgProxy, children }) {
   // all the reactStringReplace calls are to facilitate search highlighting
   const slugger = new GithubSlugger()
-  onlyImgProxy = onlyImgProxy ?? true
+  fetchOnlyImgProxy ??= true
 
   const HeadingWrapper = (props) => Heading({ topLevel, slugger, noFragments, ...props })
 
@@ -91,13 +91,13 @@ export default memo(function Text ({ topLevel, noFragments, nofollow, onlyImgPro
   const [urlCache, setUrlCache] = useState({})
 
   useEffect(() => {
-    const imgRegexp = onlyImgProxy ? IMGPROXY_URL_REGEXP : IMG_URL_REGEXP
+    const imgRegexp = fetchOnlyImgProxy ? IMGPROXY_URL_REGEXP : IMG_URL_REGEXP
     const urls = extractUrls(children)
 
     urls.forEach((url) => {
       if (imgRegexp.test(url)) {
         setUrlCache((prev) => ({ ...prev, [url]: CACHE_STATES.IS_LOADED }))
-      } else if (!onlyImgProxy) {
+      } else if (!fetchOnlyImgProxy) {
         const img = new window.Image()
         imgCache.current[url] = img
 
@@ -160,7 +160,7 @@ export default memo(function Text ({ topLevel, noFragments, nofollow, onlyImgPro
             }
 
             if (urlCache[href] === CACHE_STATES.IS_LOADED) {
-              return <ZoomableImage topLevel={topLevel} {...props} src={href} />
+              return <ZoomableImage topLevel={topLevel} useClickToLoad={fetchOnlyImgProxy} {...props} src={href} />
             }
 
             // map: fix any highlighted links
@@ -183,7 +183,9 @@ export default memo(function Text ({ topLevel, noFragments, nofollow, onlyImgPro
               </a>
             )
           },
-          img: ({ node, ...props }) => <ZoomableImage topLevel={topLevel} {...props} />
+          img: ({ node, ...props }) => {
+            return <ZoomableImage topLevel={topLevel} useClickToLoad={fetchOnlyImgProxy} {...props} />
+          }
         }}
         remarkPlugins={[gfm, mention, sub, remarkDirective, searchHighlighter]}
       >
@@ -198,7 +200,7 @@ function ClickToLoad ({ children }) {
   return clicked ? children : <div className='m-1 fst-italic pointer text-muted' onClick={() => setClicked(true)}>click to load image</div>
 }
 
-export function ZoomableImage ({ src, topLevel, ...props }) {
+export function ZoomableImage ({ src, topLevel, useClickToLoad, ...props }) {
   const me = useMe()
   const [err, setErr] = useState()
   const [imgSrc, setImgSrc] = useState(src)
@@ -207,6 +209,7 @@ export function ZoomableImage ({ src, topLevel, ...props }) {
     maxHeight: topLevel ? '75vh' : '25vh',
     cursor: 'zoom-in'
   }
+  useClickToLoad ??= true
 
   // if image changes we need to update state
   const [mediaStyle, setMediaStyle] = useState(defaultMediaStyle)
@@ -258,7 +261,7 @@ export function ZoomableImage ({ src, topLevel, ...props }) {
   )
 
   return (
-    (!me || !me.clickToLoadImg || isImgProxy)
+    (!me || !me.clickToLoadImg || isImgProxy || !useClickToLoad)
       ? img
       : <ClickToLoad>{img}</ClickToLoad>
 

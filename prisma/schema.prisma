@@ -84,6 +84,7 @@ model User {
   referrees           User[]               @relation("referrals")
   Account             Account[]
   Session             Session[]
+  hideBookmarks       Boolean              @default(false)
 
   @@index([createdAt], map: "users.created_at_index")
   @@index([inviteId], map: "users.inviteId_index")

@@ -73,7 +73,8 @@ export default function Settings ({ ssrData }) {
             wildWestMode: settings?.wildWestMode,
             greeterMode: settings?.greeterMode,
             nostrPubkey: settings?.nostrPubkey ? bech32encode(settings.nostrPubkey) : '',
-            nostrRelays: settings?.nostrRelays?.length ? settings?.nostrRelays : ['']
+            nostrRelays: settings?.nostrRelays?.length ? settings?.nostrRelays : [''],
+            hideBookmarks: settings?.hideBookmarks
           }}
           schema={settingsSchema}
           onSubmit={async ({ tipDefault, nostrPubkey, nostrRelays, ...values }) => {
@@ -221,6 +222,11 @@ export default function Settings ({ ssrData }) {
           <Checkbox
             label={<>click to load external images</>}
             name='clickToLoadImg'
+            groupClassName='mb-0'
+          />
+          <Checkbox
+            label={<>hide my bookmarks from other stackers</>}
+            name='hideBookmarks'
           />
           <div className='form-label'>content</div>
           <Checkbox

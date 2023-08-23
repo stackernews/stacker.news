@@ -215,7 +215,7 @@ export default {
       let balanceLimit = BALANCE_LIMIT_MSATS
       let id = me?.id
       if (!me) {
-        expirePivot = { minutes: 3 }
+        expirePivot = { seconds: Math.min(expireSecs, 180) }
         invLimit = ANON_INV_PENDING_LIMIT
         balanceLimit = ANON_BALANCE_LIMIT_MSATS
         id = ANON_USER_ID

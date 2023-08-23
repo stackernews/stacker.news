@@ -86,7 +86,7 @@ function ItemEmbed ({ item }) {
     return (
       <div style={{ maxWidth: '640px', paddingRight: '15px' }}>
         <YouTube
-          videoId={youtube.groups.id} containerClassName={styles.youtubeContainer} opts={{
+          videoId={youtube.groups.id} className={styles.youtubeContainer} opts={{
             playerVars: {
               start: youtube?.groups?.start
             }

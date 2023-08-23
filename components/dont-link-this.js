@@ -5,7 +5,7 @@ import { useShowModal } from './modal'
 import { useToast } from './toast'
 
 export default function DontLikeThisDropdownItem ({ id }) {
-  const dispatchToast = useToast()
+  const toaster = useToast()
   const showModal = useShowModal()
 
   const [dontLikeThis] = useMutation(
@@ -34,7 +34,7 @@ export default function DontLikeThisDropdownItem ({ id }) {
             variables: { id },
             optimisticResponse: { dontLikeThis: true }
           })
-          dispatchToast({ body: 'Item flagged successfully!', variant: 'success', autohide: true, delay: 5000 })
+          toaster.success('item flagged')
         } catch (error) {
           console.error(error)
           if (error.toString().includes('insufficient funds')) {
@@ -42,7 +42,7 @@ export default function DontLikeThisDropdownItem ({ id }) {
               return <FundError onClose={onClose} />
             })
           } else {
-            dispatchToast({ header: 'Error', body: 'Failed to flag this item', variant: 'danger', autohide: false })
+            toaster.danger('failed to flag item')
           }
         }
       }}

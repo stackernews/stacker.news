@@ -31,7 +31,7 @@ function bech32encode (hexString) {
 }
 
 export default function Settings ({ ssrData }) {
-  const dispatchToast = useToast()
+  const toaster = useToast()
   const [setSettings] = useMutation(SET_SETTINGS, {
     update (cache, { data: { setSettings } }) {
       cache.modify({
@@ -99,10 +99,10 @@ export default function Settings ({ ssrData }) {
                   ...values
                 }
               })
-              dispatchToast({ body: 'Settings saved!', variant: 'success', autohide: true, delay: 5000 })
+              toaster.success('saved settings')
             } catch (err) {
               console.error(err)
-              dispatchToast({ header: 'Error', body: 'Failed to save settings', variant: 'danger', autohide: false })
+              toaster.danger('failed to save settings')
             }
           }}
         >

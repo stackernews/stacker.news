@@ -4,7 +4,7 @@ import Dropdown from 'react-bootstrap/Dropdown'
 import { useToast } from './toast'
 
 export default function SubscribeDropdownItem ({ item: { id, meSubscription } }) {
-  const dispatchToast = useToast()
+  const toaster = useToast()
   const [subscribeItem] = useMutation(
     gql`
       mutation subscribeItem($id: ID!) {
@@ -27,10 +27,10 @@ export default function SubscribeDropdownItem ({ item: { id, meSubscription } })
       onClick={async () => {
         try {
           await subscribeItem({ variables: { id } })
-          dispatchToast({ body: meSubscription ? 'Unsubscribe successful!' : 'Subscribe successful!', variant: 'success', autohide: true, delay: 5000 })
+          toaster.success(meSubscription ? 'unsubscribed' : 'subscribed')
         } catch (err) {
           console.error(err)
-          dispatchToast({ header: 'Error', body: meSubscription ? 'Unsubscribe failed' : 'Subscribe failed', variant: 'danger', autohide: false })
+          toaster.danger(meSubscription ? 'failed to unsubscribe' : 'failed to subscribe')
         }
       }}
     >

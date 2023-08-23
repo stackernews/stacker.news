@@ -472,10 +472,10 @@ const StorageKeyPrefixContext = createContext()
 export function Form ({
   initial, schema, onSubmit, children, initialError, validateImmediately, storageKeyPrefix, validateOnChange = true, ...props
 }) {
-  const dispatchToast = useToast()
+  const toaster = useToast()
   useEffect(() => {
     if (initialError) {
-      dispatchToast({ header: 'Error', body: initialError.message || initialError.toString?.(), variant: 'danger', autohide: false })
+      toaster.danger(initialError.message || initialError.toString?.())
     }
   }, [])
 
@@ -506,7 +506,7 @@ export function Form ({
           }
         } catch (err) {
           console.log(err)
-          dispatchToast({ header: 'Error', body: err.message || err.toString?.(), variant: 'danger', autohide: false })
+          toaster.danger(err.message || err.toString?.())
         }
       }}
     >

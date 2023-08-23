@@ -4,7 +4,7 @@ import Dropdown from 'react-bootstrap/Dropdown'
 import { useToast } from './toast'
 
 export default function BookmarkDropdownItem ({ item: { id, meBookmark } }) {
-  const dispatchToast = useToast()
+  const toaster = useToast()
   const [bookmarkItem] = useMutation(
     gql`
       mutation bookmarkItem($id: ID!) {
@@ -27,10 +27,10 @@ export default function BookmarkDropdownItem ({ item: { id, meBookmark } }) {
       onClick={async () => {
         try {
           await bookmarkItem({ variables: { id } })
-          dispatchToast({ body: meBookmark ? 'Bookmarked successfully removed!' : 'Bookmark successfully added!', variant: 'success', autohide: true, delay: 5000 })
+          toaster.success(meBookmark ? 'bookmark removed' : 'bookmark added')
         } catch (err) {
           console.error(err)
-          dispatchToast({ header: 'Error', body: meBookmark ? 'Failed to remove bookmark' : 'Failed to bookmark', variant: 'danger', autohide: false })
+          toaster.danger(meBookmark ? 'failed to remove bookmark' : 'failed to bookmark')
         }
       }}
     >

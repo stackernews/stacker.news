@@ -62,7 +62,7 @@ export default function Delete ({ itemId, children, onDelete }) {
 
 function DeleteConfirm ({ onConfirm }) {
   const [error, setError] = useState()
-  const dispatchToast = useToast()
+  const toaster = useToast()
 
   return (
     <>
@@ -73,7 +73,7 @@ function DeleteConfirm ({ onConfirm }) {
           variant='danger' onClick={async () => {
             try {
               await onConfirm()
-              dispatchToast({ body: 'Delete successful!', variant: 'success', autohide: true, delay: 5000 })
+              toaster.success('deleted item')
             } catch (e) {
               setError(e.message || e)
             }

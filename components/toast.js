@@ -1,16 +1,18 @@
-import React, { createContext, useCallback, useContext, useState } from 'react'
+import React, { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import Button from 'react-bootstrap/Button'
 import Toast from 'react-bootstrap/Toast'
 import ToastBody from 'react-bootstrap/ToastBody'
 import ToastContainer from 'react-bootstrap/ToastContainer'
-import ToastHeader from 'react-bootstrap/ToastHeader'
-import { randInRange } from '../lib/rand'
+import CloseIcon from '../svgs/close-line.svg'
 
 const ToastContext = createContext(() => {})
+
+let toastId = 0
 
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([])
   const dispatchToast = useCallback((toastConfig) => {
-    const id = Array(10).fill(randInRange(0, 9)).join('')
+    const id = toastId++
     toastConfig = {
       ...toastConfig,
       id
@@ -22,24 +24,43 @@ export const ToastProvider = ({ children }) => {
     }
     setToasts(toasts => [...toasts, toastConfig])
   }, [])
+  const toaster = useMemo(() => ({
+    success: body => {
+      dispatchToast({
+        body,
+        variant: 'success',
+        autohide: true,
+        delay: 5000
+      })
+    },
+    danger: body => {
+      dispatchToast({
+        body,
+        variant: 'danger',
+        autohide: false
+      })
+    }
+  }), [dispatchToast])
   const removeToast = useCallback(id => {
     setToasts(toasts => toasts.filter(toast => toast.id !== id))
   }, [])
-  const getHeaderText = useCallback((toastConfig) => {
-    return toastConfig.header ?? {
-      success: 'Success',
-      warning: 'Warning',
-      danger: 'Danger',
-      info: 'Info'
-    }[toastConfig.variant] ?? toastConfig.variants
-  }, [])
   return (
-    <ToastContext.Provider value={dispatchToast}>
+    <ToastContext.Provider value={toaster}>
       <ToastContainer position='bottom-end' containerPosition='fixed'>
         {toasts.map(toast => (
           <Toast key={toast.id} bg={toast.variant} show autohide={false} onClose={() => removeToast(toast.id)}>
-            <ToastHeader closeButton closeLabel='close'><span className='flex-grow-1'>{getHeaderText(toast)}</span></ToastHeader>
-            <ToastBody>{toast.body}</ToastBody>
+            <ToastBody>
+              <div className='d-flex'>
+                <div className='flex-grow-1'>{toast.body}</div>
+                <Button
+                  variant={null}
+                  className='p-0'
+                  aria-label='close'
+                  onClick={() => removeToast(toast.id)}
+                ><CloseIcon className='fill-white' />
+                </Button>
+              </div>
+            </ToastBody>
           </Toast>
         ))}
       </ToastContainer>

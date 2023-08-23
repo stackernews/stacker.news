@@ -6,7 +6,7 @@ import { useToast } from './toast'
 
 export default function Share ({ item }) {
   const me = useMe()
-  const dispatchToast = useToast()
+  const toaster = useToast()
   const url = `https://stacker.news/items/${item.id}${me ? `/r/${me.name}` : ''}`
 
   return typeof window !== 'undefined' && navigator?.share
@@ -22,10 +22,10 @@ export default function Share ({ item }) {
                 text: '',
                 url
               })
-              dispatchToast({ body: 'Link shared!', variant: 'success', autohide: true, delay: 5000 })
+              toaster.success('link shared')
             } catch (err) {
               console.error(err)
-              dispatchToast({ header: 'Error', body: 'Failed to share', variant: 'danger', autohide: false })
+              toaster.danger('failed to share link')
             }
           }}
         />
@@ -41,10 +41,10 @@ export default function Share ({ item }) {
             onClick={async () => {
               try {
                 await copy(url)
-                dispatchToast({ body: 'Link copied!', variant: 'success', autohide: true, delay: 5000 })
+                toaster.success('link copied')
               } catch (err) {
                 console.error(err)
-                dispatchToast({ header: 'Error', body: 'Failed to copy link', variant: 'danger', autohide: false })
+                toaster.danger('failed to copy link')
               }
             }}
           >
@@ -56,7 +56,7 @@ export default function Share ({ item }) {
 
 export function CopyLinkDropdownItem ({ item }) {
   const me = useMe()
-  const dispatchToast = useToast()
+  const toaster = useToast()
   const url = `https://stacker.news/items/${item.id}${me ? `/r/${me.name}` : ''}`
   return (
     <Dropdown.Item
@@ -71,10 +71,10 @@ export function CopyLinkDropdownItem ({ item }) {
           } else {
             await copy(url)
           }
-          dispatchToast({ body: 'Link copied!', variant: 'success', autohide: true, delay: 5000 })
+          toaster.success('link copied')
         } catch (err) {
           console.error(err)
-          dispatchToast({ header: 'Error', body: 'Failed to copy link', variant: 'danger', autohide: false })
+          toaster.danger('failed to copy link')
         }
       }}
     >

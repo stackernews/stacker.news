@@ -25,7 +25,7 @@ export function Invoice ({ invoice, onPayment, successVerb }) {
     variant = 'failed'
     status = 'cancelled'
     webLn = false
-  } else if (invoice.expiresAt <= new Date()) {
+  } else if (new Date(invoice.expiresAt) <= new Date()) {
     variant = 'failed'
     status = 'expired'
     webLn = false

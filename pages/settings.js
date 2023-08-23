@@ -334,6 +334,7 @@ function NostrLinkButton ({ unlink, status }) {
 
 function UnlinkObstacle ({ onClose, type, unlinkAuth }) {
   const router = useRouter()
+  const toaster = useToast()
 
   return (
     <div>
@@ -349,9 +350,15 @@ function UnlinkObstacle ({ onClose, type, unlinkAuth }) {
         }}
         schema={lastAuthRemovalSchema}
         onSubmit={async () => {
-          await unlinkAuth({ variables: { authType: type } })
-          router.push('/settings')
-          onClose()
+          try {
+            await unlinkAuth({ variables: { authType: type } })
+            router.push('/settings')
+            onClose()
+            toaster.success('unlinked auth method')
+          } catch (err) {
+            console.error(err)
+            toaster.danger('failed to unlink auth method')
+          }
         }}
       >
         <Input
@@ -367,6 +374,7 @@ function UnlinkObstacle ({ onClose, type, unlinkAuth }) {
 function AuthMethods ({ methods }) {
   const showModal = useShowModal()
   const router = useRouter()
+  const toaster = useToast()
   const [err, setErr] = useState(authErrorMessage(router.query.error))
   const [unlinkAuth] = useMutation(
     gql`
@@ -401,7 +409,13 @@ function AuthMethods ({ methods }) {
     if (links === 1) {
       showModal(onClose => (<UnlinkObstacle onClose={onClose} type={type} unlinkAuth={unlinkAuth} />))
     } else {
-      await unlinkAuth({ variables: { authType: type } })
+      try {
+        await unlinkAuth({ variables: { authType: type } })
+        toaster.success('unlinked auth method')
+      } catch (err) {
+        console.error(err)
+        toaster.danger('failed to unlink auth method')
+      }
     }
   }
 

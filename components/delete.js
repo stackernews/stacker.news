@@ -7,7 +7,7 @@ import Dropdown from 'react-bootstrap/Dropdown'
 import { useShowModal } from './modal'
 import { useToast } from './toast'
 
-export default function Delete ({ itemId, children, onDelete }) {
+export default function Delete ({ itemId, children, onDelete, type = 'post' }) {
   const showModal = useShowModal()
 
   const [deleteItem] = useMutation(
@@ -41,6 +41,7 @@ export default function Delete ({ itemId, children, onDelete }) {
         showModal(onClose => {
           return (
             <DeleteConfirm
+              type={type}
               onConfirm={async () => {
                 const { error } = await deleteItem({ variables: { id: itemId } })
                 if (error) {
@@ -60,7 +61,7 @@ export default function Delete ({ itemId, children, onDelete }) {
   )
 }
 
-function DeleteConfirm ({ onConfirm }) {
+function DeleteConfirm ({ onConfirm, type }) {
   const [error, setError] = useState()
   const toaster = useToast()
 
@@ -73,7 +74,7 @@ function DeleteConfirm ({ onConfirm }) {
           variant='danger' onClick={async () => {
             try {
               await onConfirm()
-              toaster.success('deleted item')
+              toaster.success(`deleted ${type.toLowerCase()}`)
             } catch (e) {
               setError(e.message || e)
             }

@@ -3,7 +3,7 @@ import Button from 'react-bootstrap/Button'
 import Toast from 'react-bootstrap/Toast'
 import ToastBody from 'react-bootstrap/ToastBody'
 import ToastContainer from 'react-bootstrap/ToastContainer'
-import CloseIcon from '../svgs/close-line.svg'
+import styles from './toast.module.css'
 
 const ToastContext = createContext(() => {})
 
@@ -48,16 +48,16 @@ export const ToastProvider = ({ children }) => {
     <ToastContext.Provider value={toaster}>
       <ToastContainer position='bottom-end' containerPosition='fixed'>
         {toasts.map(toast => (
-          <Toast key={toast.id} bg={toast.variant} show autohide={false} onClose={() => removeToast(toast.id)}>
+          <Toast key={toast.id} bg={toast.variant} show autohide={false} className={styles.toast}>
             <ToastBody>
               <div className='d-flex'>
                 <div className='flex-grow-1'>{toast.body}</div>
                 <Button
                   variant={null}
-                  className='p-0'
+                  className='p-0 ps-2'
                   aria-label='close'
                   onClick={() => removeToast(toast.id)}
-                ><CloseIcon className='fill-white' />
+                ><div className={styles.toastClose}>X</div>
                 </Button>
               </div>
             </ToastBody>

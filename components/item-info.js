@@ -140,7 +140,7 @@ export default function ItemInfo ({
         {me && !item.meSats && !item.position && !item.meDontLike &&
           !item.mine && !item.deletedAt && <DontLikeThisDropdownItem id={item.id} />}
         {item.mine && !item.position && !item.deletedAt &&
-          <DeleteDropdownItem itemId={item.id} />}
+          <DeleteDropdownItem itemId={item.id} type={item.title ? 'post' : 'comment'} />}
       </ItemDropdown>
       {extraInfo}
     </div>

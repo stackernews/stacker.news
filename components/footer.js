@@ -26,14 +26,18 @@ const RssPopover = (
         <a href='/~bitcoin/rss' className='nav-link p-0 d-inline-flex'>
           bitcoin
         </a>
-      </div>
-      <div className='d-flex justify-content-center'>
+        <span className='mx-2 text-muted'> \ </span>
         <a href='/~nostr/rss' className='nav-link p-0 d-inline-flex'>
           nostr
         </a>
-        <span className='mx-2 text-muted'> \ </span>
+      </div>
+      <div className='d-flex justify-content-center'>
         <a href='/~tech/rss' className='nav-link p-0 d-inline-flex'>
           tech
+        </a>
+        <span className='mx-2 text-muted'> \ </span>
+        <a href='/~meta/rss' className='nav-link p-0 d-inline-flex'>
+          meta
         </a>
         <span className='mx-2 text-muted'> \ </span>
         <a href='/~jobs/rss' className='nav-link p-0 d-inline-flex'>

@@ -17,7 +17,7 @@ import { sendUserNotification } from '../webPush'
 import { proxyImages } from './imgproxy'
 import { defaultCommentSort } from '../../lib/item'
 import { createHmac } from './wallet'
-import { getInvoice, settleHodlInvoice } from 'ln-service'
+import { settleHodlInvoice } from 'ln-service'
 
 export async function commentFilterClause (me, models) {
   let clause = ` AND ("Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}`
@@ -58,22 +58,18 @@ async function checkInvoice (models, lnd, hash, hmac, fee) {
     throw new GraphQLError('invoice not found', { extensions: { code: 'BAD_INPUT' } })
   }
 
-  const { is_canceled: isCanceled, is_held: isHeld, received_mtokens: receivedMtokens } = await getInvoice({ id: hash, lnd })
-
-  if (isCanceled) {
+  if (invoice.cancelled) {
     throw new GraphQLError('invoice was canceled', { extensions: { code: 'BAD_INPUT' } })
   }
 
-  const msatsReceived = isHeld ? Number(receivedMtokens) : invoice.msatsReceived
-
-  if (!msatsReceived) {
+  if (!invoice.msatsReceived) {
     throw new GraphQLError('invoice was not paid', { extensions: { code: 'BAD_INPUT' } })
   }
-  if (msatsToSats(msatsReceived) < fee) {
+  if (msatsToSats(invoice.msatsReceived) < fee) {
     throw new GraphQLError('invoice amount too low', { extensions: { code: 'BAD_INPUT' } })
   }
 
-  return { ...invoice, isHeld }
+  return invoice
 }
 
 async function comments (me, models, id, sort) {
@@ -750,14 +746,15 @@ export default {
         throw new GraphQLError('cannot zap a post for which you are forwarded zaps', { extensions: { code: 'BAD_INPUT' } })
       }
 
-      const calls = [
+      const trx = [
         models.$queryRaw`SELECT item_act(${Number(id)}::INTEGER, ${user.id}::INTEGER, 'TIP', ${Number(sats)}::INTEGER)`
       ]
       if (invoice) {
-        calls.push(models.invoice.delete({ where: { hash: invoice.hash } }))
+        trx.unshift(models.$queryRaw`UPDATE users SET msats = msats + ${invoice.msatsReceived}`)
+        trx.push(models.invoice.delete({ where: { hash: invoice.hash } }))
       }
 
-      const [{ item_act: vote }] = await serialize(models, ...calls)
+      const [{ item_act: vote }] = await serialize(models, ...trx)
 
       if (invoice?.isHeld) await settleHodlInvoice({ secret: invoice.preimage, lnd })
 
@@ -1114,7 +1111,6 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
 
 export const createItem = async (parent, { forward, options, ...item }, { me, models, lnd, invoiceHash, invoiceHmac }) => {
   let spamInterval = ITEM_SPAM_INTERVAL
-  const trx = []
 
   // rename to match column name
   item.subName = item.sub
@@ -1130,7 +1126,6 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
     invoice = await checkInvoice(models, invoiceHash, invoiceHmac, item.parentId ? ANON_COMMENT_FEE : ANON_POST_FEE)
     item.userId = invoice.user.id
     spamInterval = ANON_ITEM_SPAM_INTERVAL
-    trx.push(models.invoice.delete({ where: { hash: invoiceHash } }))
   }
 
   const fwdUsers = await getForwardUsers(models, forward)
@@ -1143,12 +1138,17 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
     item.url = await proxyImages(item.url)
   }
 
-  const [result] = await serialize(
-    models,
+  const trx = [
     models.$queryRawUnsafe(`${SELECT} FROM create_item($1::JSONB, $2::JSONB, $3::JSONB, '${spamInterval}'::INTERVAL) AS "Item"`,
-      JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options)),
-    ...trx)
-  item = Array.isArray(result) ? result[0] : result
+      JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options))
+  ]
+  if (invoice) {
+    trx.unshift(models.$queryRaw`UPDATE users SET msats = msats + ${invoice.msatsReceived}`)
+    trx.push(models.invoice.delete({ where: { hash: invoice.hash } }))
+  }
+
+  const [query] = await serialize(models, ...trx)
+  item = trx.length > 0 ? query[0] : query
 
   if (invoice?.isHeld) await settleHodlInvoice({ secret: invoice.preimage, lnd })
 

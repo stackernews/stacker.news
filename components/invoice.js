@@ -17,25 +17,25 @@ export function Invoice ({ invoice, onPayment, successVerb }) {
   let variant = 'default'
   let status = 'waiting for you'
   let webLn = true
-  if (invoice.confirmedAt || invoice.isHeld) {
+  if (invoice.confirmedAt || (invoice.isHeld && invoice.satsReceived && !invoice.expired)) {
     variant = 'confirmed'
-    status = `${numWithUnits(invoice.satsReceived || invoice.satsHeld, { abbreviate: false })} ${successVerb || 'deposited'}`
+    status = `${numWithUnits(invoice.satsReceived, { abbreviate: false })} ${successVerb || 'deposited'}`
     webLn = false
   } else if (invoice.cancelled) {
     variant = 'failed'
     status = 'cancelled'
     webLn = false
-  } else if (new Date(invoice.expiresAt) <= new Date()) {
+  } else if (invoice.expired) {
     variant = 'failed'
     status = 'expired'
     webLn = false
   }
 
   useEffect(() => {
-    if (invoice.confirmedAt || invoice.isHeld) {
+    if (invoice.confirmedAt || (invoice.isHeld && invoice.satsReceived)) {
       onPayment?.(invoice)
     }
-  }, [invoice.confirmedAt, invoice.isHeld])
+  }, [invoice.confirmedAt, invoice.isHeld, invoice.satsReceived])
 
   const { nostr } = invoice
 

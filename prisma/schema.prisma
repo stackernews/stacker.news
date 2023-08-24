@@ -421,6 +421,7 @@ model Invoice {
   userId         Int
   hash           String    @unique(map: "Invoice.hash_unique")
   preimage       String?   @unique(map: "Invoice.preimage_unique")
+  isHeld         Boolean?
   bolt11         String
   expiresAt      DateTime
   confirmedAt    DateTime?

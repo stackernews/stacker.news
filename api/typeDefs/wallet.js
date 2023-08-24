@@ -21,6 +21,7 @@ export default gql`
     hash: String!
     bolt11: String!
     expiresAt: Date!
+    expired: Boolean!
     cancelled: Boolean!
     confirmedAt: Date
     satsReceived: Int

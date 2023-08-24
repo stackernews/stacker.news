@@ -1,4 +1,4 @@
-import { createHodlInvoice, createInvoice, decodePaymentRequest, payViaPaymentRequest, getInvoice as lnGetInvoice, cancelHodlInvoice } from 'ln-service'
+import { createHodlInvoice, createInvoice, decodePaymentRequest, payViaPaymentRequest, cancelHodlInvoice } from 'ln-service'
 import { GraphQLError } from 'graphql'
 import crypto from 'crypto'
 import serialize from './serial'
@@ -23,12 +23,6 @@ export async function getInvoice (parent, { id }, { me, models, lnd }) {
 
   if (!inv) {
     throw new GraphQLError('invoice not found', { extensions: { code: 'BAD_INPUT' } })
-  }
-
-  const lnInvoice = await lnGetInvoice({ id: inv.hash, lnd })
-  if (lnInvoice.is_held) {
-    inv.isHeld = true
-    inv.msatsReceived = Number(lnInvoice.received_mtokens)
   }
 
   if (inv.user.id === ANON_USER_ID) {
@@ -350,7 +344,8 @@ export default {
 
   Invoice: {
     satsReceived: i => msatsToSats(i.msatsReceived),
-    satsRequested: i => msatsToSats(i.msatsRequested)
+    satsRequested: i => msatsToSats(i.msatsRequested),
+    expired: i => new Date(i.expiresAt) <= new Date()
   },
 
   Fact: {

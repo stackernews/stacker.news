@@ -12,6 +12,7 @@ export const INVOICE = gql`
       cancelled
       confirmedAt
       expiresAt
+      expired
       nostr
       isHeld
     }

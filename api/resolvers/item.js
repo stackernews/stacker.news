@@ -58,6 +58,11 @@ async function checkInvoice (models, lnd, hash, hmac, fee) {
     throw new GraphQLError('invoice not found', { extensions: { code: 'BAD_INPUT' } })
   }
 
+  const expired = new Date(invoice.expiresAt) <= new Date()
+  if (expired) {
+    throw new GraphQLError('invoice expired', { extensions: { code: 'BAD_INPUT' } })
+  }
+
   if (invoice.cancelled) {
     throw new GraphQLError('invoice was canceled', { extensions: { code: 'BAD_INPUT' } })
   }

@@ -22,6 +22,9 @@ function nip57 ({ boss, lnd, models }) {
       return
     }
 
+    // check if invoice still exists since HODL invoices get deleted after usage
+    if (!inv) return
+
     try {
       // if parsing fails it's not a zap
       console.log('zapping', inv.desc)

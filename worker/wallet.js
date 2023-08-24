@@ -18,6 +18,10 @@ function checkInvoice ({ boss, models, lnd }) {
     }
     console.log(inv)
 
+    // check if invoice still exists since HODL invoices get deleted after usage
+    const dbInv = await models.invoice.findUnique({ where: { hash } })
+    if (!dbInv) return
+
     const expired = new Date(inv.expires_at) <= new Date()
 
     if (inv.is_confirmed) {

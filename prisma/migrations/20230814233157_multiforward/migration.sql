@@ -288,8 +288,8 @@ BEGIN
 END;
 $$;
 
-DROP FUNCTION referral_act(referrer_id INTEGER, item_act_id INTEGER);
-DROP FUNCTION referral_act(referrer_id INTEGER, item_act_id INTEGER, act_msats BIGINT);
+DROP FUNCTION IF EXISTS referral_act(referrer_id INTEGER, item_act_id INTEGER);
+DROP FUNCTION IF EXISTS referral_act(referrer_id INTEGER, item_act_id INTEGER, act_msats BIGINT);
 
 -- A new implementation of referral_act that accounts for forwards
 CREATE OR REPLACE FUNCTION referral_act(item_act_id INTEGER)

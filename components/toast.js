@@ -1,4 +1,5 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import { useRouter } from 'next/router'
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import Button from 'react-bootstrap/Button'
 import Toast from 'react-bootstrap/Toast'
 import ToastBody from 'react-bootstrap/ToastBody'
@@ -10,6 +11,7 @@ const ToastContext = createContext(() => {})
 let toastId = 0
 
 export const ToastProvider = ({ children }) => {
+  const router = useRouter()
   const [toasts, setToasts] = useState([])
   const dispatchToast = useCallback((toastConfig) => {
     const id = toastId++
@@ -44,6 +46,17 @@ export const ToastProvider = ({ children }) => {
   const removeToast = useCallback(id => {
     setToasts(toasts => toasts.filter(toast => toast.id !== id))
   }, [])
+
+  // Clear all toasts on page navigation
+  useEffect(() => {
+    const handleRouteChangeStart = () => setToasts([])
+    router.events.on('routeChangeStart', handleRouteChangeStart)
+
+    return () => {
+      router.events.off('routeChangeStart', handleRouteChangeStart)
+    }
+  }, [router])
+
   return (
     <ToastContext.Provider value={toaster}>
       <ToastContainer position='bottom-end' containerPosition='fixed'>

@@ -24,7 +24,7 @@ export default function Snl ({ ignorePreference }) {
   return (
     <div className='d-flex'>
       <Alert
-        variant='info' className='fw-bold mb-3 d-flex py-2 flex-shrink align-items-center'
+        variant='info' className='fw-bold mb-3 d-flex flex-shrink align-items-center'
         onClose={() => {
           setShow(undefined)
           window.localStorage.setItem('snl', new Date())

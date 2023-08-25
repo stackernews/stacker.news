@@ -32,8 +32,7 @@ export default gql`
     upsertJob(id: ID, sub: String!, title: String!, company: String!, location: String, remote: Boolean,
       text: String!, url: String!, maxBid: Int!, status: String, logo: Int): Item!
     upsertPoll(id: ID, sub: String, title: String!, text: String, options: [String!]!, boost: Int, forward: [ItemForwardInput], invoiceHash: String, invoiceHmac: String): Item!
-    createComment(text: String!, parentId: ID!, invoiceHash: String, invoiceHmac: String): Item!
-    updateComment(id: ID!, text: String!): Item!
+    upsertComment(id:ID, text: String!, parentId: ID, invoiceHash: String, invoiceHmac: String): Item!
     dontLikeThis(id: ID!): Boolean!
     act(id: ID!, sats: Int, invoiceHash: String, invoiceHmac: String): ItemActResult!
     pollVote(id: ID!): ID!

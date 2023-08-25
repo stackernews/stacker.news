@@ -376,7 +376,7 @@ model ReferralAct {
 model ItemAct {
   id          Int           @id(map: "Vote_pkey") @default(autoincrement())
   createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @updatedAt @map("updated_at")
+  updatedAt   DateTime      @default(now()) @updatedAt @map("updated_at")
   msats       BigInt
   act         ItemActType
   itemId      Int
@@ -400,7 +400,7 @@ model ItemAct {
 model Mention {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
   itemId    Int
   userId    Int
   item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
@@ -415,7 +415,7 @@ model Mention {
 model Invoice {
   id             Int       @id @default(autoincrement())
   createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at")
   userId         Int
   hash           String    @unique(map: "Invoice.hash_unique")
   bolt11         String
@@ -434,7 +434,7 @@ model Invoice {
 model Withdrawl {
   id             Int              @id @default(autoincrement())
   createdAt      DateTime         @default(now()) @map("created_at")
-  updatedAt      DateTime         @updatedAt @map("updated_at")
+  updatedAt      DateTime         @default(now()) @updatedAt @map("updated_at")
   userId         Int
   hash           String
   bolt11         String
@@ -452,7 +452,7 @@ model Withdrawl {
 model Account {
   id                Int      @id @default(autoincrement())
   createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at")
   userId            Int      @map("user_id")
   type              String   @map("provider_type")
   provider          String   @map("provider_id")
@@ -480,7 +480,7 @@ model Session {
   id           Int      @id @default(autoincrement())
   sessionToken String   @unique(map: "sessions.session_token_unique") @map("session_token")
   createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
   userId       Int      @map("user_id")
   expires      DateTime
 
@@ -492,7 +492,7 @@ model Session {
 model VerificationToken {
   id         Int      @id @default(autoincrement())
   createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
   identifier String
   token      String   @unique(map: "verification_requests.token_unique")
   expires    DateTime

@@ -109,13 +109,11 @@ export default {
     users: async (parent, args, { models }) =>
       await models.user.findMany(),
     nameAvailable: async (parent, { name }, { models, me }) => {
-      if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+      let user
+      if (me) {
+        user = await models.user.findUnique({ where: { id: me.id } })
       }
-
-      const user = await models.user.findUnique({ where: { id: me.id } })
-
-      return user.name?.toUpperCase() === name?.toUpperCase() || !(await models.user.findUnique({ where: { name } }))
+      return user?.name?.toUpperCase() === name?.toUpperCase() || !(await models.user.findUnique({ where: { name } }))
     },
     topCowboys: async (parent, { cursor }, { models, me }) => {
       const decodedCursor = decodeCursor(cursor)

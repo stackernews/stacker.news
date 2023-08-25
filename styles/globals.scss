@@ -90,6 +90,7 @@ $popover-body-padding-y: .5rem;
 $popover-max-width: 320px !default;
 $popover-border-color: var(--theme-borderColor);
 $grid-gutter-width: 2rem;
+$toast-spacing: .5rem;
 
 :root, [data-bs-theme=light] {
   --theme-navLink: rgba(0, 0, 0, 0.55);
@@ -151,6 +152,10 @@ $grid-gutter-width: 2rem;
 #nprogress .bar {
   background: var(--bs-primary) !important;
   height: 2px !important;
+}
+
+.toast-body {
+  padding: 0.75rem 1.25rem !important;
 }
 
 #nprogress .peg {

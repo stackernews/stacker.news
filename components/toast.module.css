@@ -1,8 +1,11 @@
 .toast {
-    width: auto;
+  width: auto;
+  border: 1px solid var(--bs-success-border-subtle);
+  color: #fff;
 }
 
 .toastClose {
+color: #fff;
   font-family: "lightning";
   font-size: 150%;
   line-height: 1rem;
@@ -13,11 +16,11 @@
 }
 
 .toastClose:hover {
-    opacity: 0.7;
+  opacity: 0.7;
 }
 
 @media screen and (min-width: 400px) {
-    .toast {
-        width: var(--bs-toast-max-width);
-    }
+  .toast {
+    width: var(--bs-toast-max-width);
+  }
 }

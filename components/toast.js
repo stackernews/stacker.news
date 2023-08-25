@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router'
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import Button from 'react-bootstrap/Button'
 import Toast from 'react-bootstrap/Toast'
 import ToastBody from 'react-bootstrap/ToastBody'
@@ -8,21 +8,14 @@ import styles from './toast.module.css'
 
 const ToastContext = createContext(() => {})
 
-let toastId = 0
-
 export const ToastProvider = ({ children }) => {
   const router = useRouter()
   const [toasts, setToasts] = useState([])
+  const toastId = useRef(0)
   const dispatchToast = useCallback((toastConfig) => {
-    const id = toastId++
     toastConfig = {
       ...toastConfig,
-      id
-    }
-    if (toastConfig.autohide && toastConfig.delay > 0) {
-      setTimeout(() => {
-        setToasts(toasts => toasts.filter(toast => toast.id !== id))
-      }, toastConfig.delay)
+      id: toastId.current++
     }
     setToasts(toasts => [...toasts, toastConfig])
   }, [])
@@ -59,11 +52,14 @@ export const ToastProvider = ({ children }) => {
 
   return (
     <ToastContext.Provider value={toaster}>
-      <ToastContainer position='bottom-end' containerPosition='fixed'>
+      <ToastContainer className='p-3' position='bottom-end' containerPosition='fixed'>
         {toasts.map(toast => (
-          <Toast key={toast.id} bg={toast.variant} show autohide={false} className={styles.toast}>
+          <Toast
+            key={toast.id} bg={toast.variant} show autohide={toast.autohide}
+            delay={toast.delay} className={styles.toast} onClose={() => removeToast(toast.id)}
+          >
             <ToastBody>
-              <div className='d-flex'>
+              <div className='d-flex align-items-center'>
                 <div className='flex-grow-1'>{toast.body}</div>
                 <Button
                   variant={null}

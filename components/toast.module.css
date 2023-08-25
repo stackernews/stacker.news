@@ -6,6 +6,7 @@
   font-family: "lightning";
   font-size: 150%;
   line-height: 1rem;
+  margin-bottom: -0.25rem;
   cursor: pointer;
   display: flex;
   align-items: center;

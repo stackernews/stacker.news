@@ -2,8 +2,10 @@ import { gql, useMutation } from '@apollo/client'
 import Dropdown from 'react-bootstrap/Dropdown'
 import FundError from './fund-error'
 import { useShowModal } from './modal'
+import { useToast } from './toast'
 
 export default function DontLikeThisDropdownItem ({ id }) {
+  const toaster = useToast()
   const showModal = useShowModal()
 
   const [dontLikeThis] = useMutation(
@@ -32,11 +34,15 @@ export default function DontLikeThisDropdownItem ({ id }) {
             variables: { id },
             optimisticResponse: { dontLikeThis: true }
           })
+          toaster.success('item flagged')
         } catch (error) {
+          console.error(error)
           if (error.toString().includes('insufficient funds')) {
             showModal(onClose => {
               return <FundError onClose={onClose} />
             })
+          } else {
+            toaster.danger('failed to flag item')
           }
         }
       }}

@@ -51,7 +51,7 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
           required
         />
         <div className='d-flex justify-content-between'>
-          <Delete itemId={comment.id} onDelete={onSuccess}>
+          <Delete itemId={comment.id} onDelete={onSuccess} type='comment'>
             <Button variant='grey-medium'>delete</Button>
           </Delete>
           <EditFeeButton

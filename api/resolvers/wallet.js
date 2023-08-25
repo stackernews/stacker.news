@@ -344,8 +344,7 @@ export default {
 
   Invoice: {
     satsReceived: i => msatsToSats(i.msatsReceived),
-    satsRequested: i => msatsToSats(i.msatsRequested),
-    expired: i => new Date(i.expiresAt) <= new Date()
+    satsRequested: i => msatsToSats(i.msatsRequested)
   },
 
   Fact: {

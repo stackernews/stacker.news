@@ -14,10 +14,12 @@ import FundError, { isInsufficientFundsError } from './fund-error'
 import Countdown from './countdown'
 
 export function Invoice ({ invoice, onPayment, successVerb }) {
+  const [expired, setExpired] = useState(new Date(invoice.expiredAt) <= new Date())
+
   let variant = 'default'
   let status = 'waiting for you'
   let webLn = true
-  if (invoice.confirmedAt || (invoice.isHeld && invoice.satsReceived && !invoice.expired)) {
+  if (invoice.confirmedAt || (invoice.isHeld && invoice.satsReceived && !expired)) {
     variant = 'confirmed'
     status = `${numWithUnits(invoice.satsReceived, { abbreviate: false })} ${successVerb || 'deposited'}`
     webLn = false
@@ -25,7 +27,7 @@ export function Invoice ({ invoice, onPayment, successVerb }) {
     variant = 'failed'
     status = 'cancelled'
     webLn = false
-  } else if (invoice.expired) {
+  } else if (expired) {
     variant = 'failed'
     status = 'expired'
     webLn = false
@@ -46,6 +48,13 @@ export function Invoice ({ invoice, onPayment, successVerb }) {
         description={numWithUnits(invoice.satsRequested, { abbreviate: false })}
         statusVariant={variant} status={status}
       />
+      <div className='text-muted text-center fw-bold'>
+        <Countdown
+          date={invoice.expiresAt} onComplete={() => {
+            setExpired(true)
+          }}
+        />
+      </div>
       <div className='w-100'>
         {nostr
           ? <AccordianItem
@@ -93,7 +102,6 @@ const ActionInvoice = ({ id, hash, hmac, errorCount, repeat, onClose, expiresAt,
   return (
     <>
       <Invoice invoice={data.invoice} {...props} />
-      <div className='text-muted text-center fw-bold'><Countdown date={expiresAt} /></div>
       {errorCount > 0
         ? (
           <>

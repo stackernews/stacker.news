@@ -15,6 +15,7 @@ import Item from '../components/item'
 import { CommentFlat } from '../components/comment'
 import ItemJob from '../components/item-job'
 import PageLoading from '../components/page-loading'
+import DownloadFile from '../svgs/file-download-line.svg'
 
 export const getServerSideProps = getGetServerSideProps({ query: WALLET_HISTORY, authRequired: true })
 
@@ -178,7 +179,7 @@ export default function Satistics ({ ssrData }) {
             spent: included('spent')
           }}
         >
-          <div className={`${styles.options} d-flex justify-content-around flex-wrap`}>
+          <div className={`${styles.options} d-flex justify-content-between flex-wrap`}>
             <Checkbox
               label='invoice' name='invoice' inline
               checked={included('invoice')}
@@ -201,12 +202,12 @@ export default function Satistics ({ ssrData }) {
             />
             <div className='form-group undefined'>
               <Link
-                className='btn btn-succes'
-                href={`/~/csv?inc=${router.query.inc}`}
-                download={`SN${new Date().toISOString().split('.')[0].replace(/[^\d]/gi, '')}.csv`}
+                className='btn btn-grey-darkmode btn-sm px-3'
+                href={`/satistics.csv?inc=${router.query.inc}`}
+                download={`statistics-${router.query.inc?.split(',').join('-')}.csv`}
                 target='_blank' rel='noreferrer'
               >
-                <Button variant='success'>Download CSV</Button>
+                <DownloadFile className='fill-white' height={18} weight={18} />
               </Link>
             </div>
           </div>

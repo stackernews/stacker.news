@@ -91,6 +91,7 @@ $popover-max-width: 320px !default;
 $popover-border-color: var(--theme-borderColor);
 $grid-gutter-width: 2rem;
 $toast-spacing: .5rem;
+$btn-close-bg: none;
 
 :root, [data-bs-theme=light] {
   --theme-navLink: rgba(0, 0, 0, 0.55);
@@ -200,7 +201,7 @@ $toast-spacing: .5rem;
   margin-left: auto;
   padding-right: 1.5rem;
   font-family: "lightning";
-  font-size: 150%;
+  font-size: 160%;
   line-height: 1rem;
 }
 
@@ -517,12 +518,14 @@ div[contenteditable] {
   font-weight: bold;
 }
 
-.alert-dismissible .close {
+.alert-dismissible .btn-close {
   font-weight: 300;
-  font-family: 'lightning';
+  font-family: "lightning";
+  font-size: 150%;
+  line-height: 1;
 }
 
-.popover-header.alert-dismissible .close {
+.popover-header.alert-dismissible .btn-close {
   padding: .5rem !important;
 }
 
@@ -541,7 +544,7 @@ div[contenteditable] {
 }
 
 
-.alert-dismissible .close::after {
+.alert-dismissible .btn-close::after {
   content: 'X';
 }
 

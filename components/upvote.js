@@ -34,9 +34,9 @@ const UpvotePopover = ({ target, show, handleClose }) => {
       placement='right'
     >
       <Popover id='popover-basic'>
-        <Popover.Body className='d-flex justify-content-between alert-dismissible' as='h3'>Zapping
-          <button type='button' className='close' onClick={handleClose}><span aria-hidden='true'>×</span><span className='visually-hidden-focusable'>Close alert</span></button>
-        </Popover.Body>
+        <Popover.Header className='d-flex justify-content-between alert-dismissible' as='h4'>Zapping
+          <button type='button' className='btn-close' onClick={handleClose}><span className='visually-hidden-focusable'>Close alert</span></button>
+        </Popover.Header>
         <Popover.Body>
           <div className='mb-2'>Press the bolt again to zap {me?.tipDefault || 1} more sat{me?.tipDefault > 1 ? 's' : ''}.</div>
           <div>Repeatedly press the bolt to zap more sats.</div>
@@ -53,9 +53,9 @@ const TipPopover = ({ target, show, handleClose }) => (
     placement='right'
   >
     <Popover id='popover-basic'>
-      <Popover.Body className='d-flex justify-content-between alert-dismissible' as='h3'>Press and hold
-        <button type='button' className='close' onClick={handleClose}><span aria-hidden='true'>×</span><span className='visually-hidden-focusable'>Close alert</span></button>
-      </Popover.Body>
+      <Popover.Header className='d-flex justify-content-between alert-dismissible' as='h4'>Press and hold
+        <button type='button' className='btn-close' onClick={handleClose}><span className='visually-hidden-focusable'>Close alert</span></button>
+      </Popover.Header>
       <Popover.Body>
         <div className='mb-2'>Press and hold bolt to zap a custom amount.</div>
         <div>As you zap more, the bolt color follows the rainbow.</div>

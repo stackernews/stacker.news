@@ -99,6 +99,8 @@ export default {
             JOIN "UserSubscription" ON "Item"."userId" = "UserSubscription"."followeeId"
             WHERE "UserSubscription"."followerId" = $1
               AND "Item".created_at <= $2
+              -- Only show items that have been created since subscribing to the user
+              AND "Item".created_at >= "UserSubscription".created_at
             ${await filterClause(me, models)}
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT}+$3)`

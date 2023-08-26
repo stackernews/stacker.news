@@ -1137,6 +1137,29 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
 
   await createMentions(item, models)
 
+  const notifyUserSubscribers = async () => {
+    try {
+      const userSubs = await models.userSubscription.findMany({
+        where: {
+          followeeId: Number(item.userId)
+        },
+        include: {
+          followee: true
+        }
+      })
+      const isPost = !!item.title
+      await Promise.allSettled(userSubs.map(({ followerId, followee }) => sendUserNotification(followerId, {
+        title: `@${followee.name} ${isPost ? 'created a post' : 'replied to a post'}`,
+        body: item.text,
+        item,
+        tag: 'FOLLOW'
+      })))
+    } catch (err) {
+      console.error(err)
+    }
+  }
+  notifyUserSubscribers()
+
   item.comments = []
   return item
 }

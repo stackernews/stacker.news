@@ -40,7 +40,8 @@ function Notification ({ n, fresh }) {
         (type === 'Votification' && <Votification n={n} />) ||
         (type === 'Mention' && <Mention n={n} />) ||
         (type === 'JobChanged' && <JobChanged n={n} />) ||
-        (type === 'Reply' && <Reply n={n} />)
+        (type === 'Reply' && <Reply n={n} />) ||
+        (type === 'FollowActivity' && <FollowActivity n={n} />)
       }
     </NotificationLayout>
   )
@@ -318,6 +319,25 @@ function JobChanged ({ n }) {
 function Reply ({ n }) {
   return (
     <div className='py-2'>
+      {n.item.title
+        ? <Item item={n.item} />
+        : (
+          <div className='pb-2'>
+            <RootProvider root={n.item.root}>
+              <Comment item={n.item} noReply includeParent clickToContext rootText='replying on:' />
+            </RootProvider>
+          </div>
+          )}
+    </div>
+  )
+}
+
+function FollowActivity ({ n }) {
+  return (
+    <div className='py-2'>
+      <small className='fw-bold text-info ms-2'>
+        a stacker you subscribe to posted
+      </small>
       {n.item.title
         ? <Item item={n.item} />
         : (

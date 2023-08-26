@@ -313,6 +313,19 @@ export default {
         return true
       }
 
+      const newUserSubs = await models.$queryRawUnsafe(`
+      SELECT 1
+        FROM "UserSubscription"
+        JOIN "Item" ON "UserSubscription"."followeeId" = "Item"."userId"
+        WHERE
+          "UserSubscription"."followerId" = $1
+        AND "Item".created_at > $2::timestamp(3) without time zone
+        ${await filterClause(me, models)}
+        LIMIT 1`, me.id, lastChecked)
+      if (newUserSubs.length > 0) {
+        return true
+      }
+
       // check if they have any mentions since checkedNotesAt
       if (user.noteMentions) {
         const newMentions = await models.$queryRawUnsafe(`

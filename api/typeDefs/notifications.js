@@ -17,6 +17,12 @@ export default gql`
     sortTime: Date!
   }
 
+  type FollowActivity {
+    id: ID!
+    item: Item!
+    sortTime: Date!
+  }
+
   type Reply {
     id: ID!
     item: Item!
@@ -77,7 +83,7 @@ export default gql`
 
   union Notification = Reply | Votification | Mention
     | Invitification | Earn | JobChanged | InvoicePaid | Referral
-    | Streak
+    | Streak | FollowActivity
 
   type Notifications {
     lastChecked: Date

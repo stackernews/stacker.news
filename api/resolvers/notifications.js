@@ -91,6 +91,16 @@ export default {
               AND "Item"."userId" <> $1 AND "Item".created_at <= $2
             ${await filterClause(me, models)}
             ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT}+$3)
+          UNION DISTINCT
+          (SELECT DISTINCT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL::BIGINT as "earnedSats",
+            'FollowActivity' AS type
+            FROM "Item"
+            JOIN "UserSubscription" ON "Item"."userId" = "UserSubscription"."followeeId"
+            WHERE "UserSubscription"."followerId" = $1
+              AND "Item".created_at <= $2
+            ${await filterClause(me, models)}
+            ORDER BY "sortTime" DESC
             LIMIT ${LIMIT}+$3)`
       )
 
@@ -272,6 +282,9 @@ export default {
     item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
   },
   Reply: {
+    item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
+  },
+  FollowActivity: {
     item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
   },
   JobChanged: {

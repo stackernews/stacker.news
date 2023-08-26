@@ -18,6 +18,8 @@ import { userSchema } from '../lib/validate'
 import { useShowModal } from './modal'
 import { numWithUnits } from '../lib/format'
 import Hat from './hat'
+import { ItemDropdown } from './item-info'
+import SubscribeUserDropdownItem from './subscribeUser'
 
 export default function UserHeader ({ user }) {
   const router = useRouter()
@@ -152,6 +154,10 @@ function NymView ({ user, isMe, setEditting }) {
       <div className={styles.username}>@{user.name}<Hat className='' user={user} badge /></div>
       {isMe &&
         <Button className='py-0' style={{ lineHeight: '1.25' }} variant='link' onClick={() => setEditting(true)}>edit nym</Button>}
+      {!isMe &&
+        <ItemDropdown>
+          <SubscribeUserDropdownItem user={user} />
+        </ItemDropdown>}
     </div>
   )
 }

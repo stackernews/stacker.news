@@ -30,6 +30,7 @@ export default gql`
     setWalkthrough(tipPopover: Boolean, upvotePopover: Boolean): Boolean
     unlinkAuth(authType: String!): AuthMethods!
     linkUnverifiedEmail(email: String!): Boolean
+    subscribeUser(id: ID): User
   }
 
   type AuthMethods {
@@ -85,5 +86,6 @@ export default gql`
     greeterMode: Boolean!
     lastCheckedJobs: String
     authMethods: AuthMethods!
+    meSubscription: Boolean!
   }
 `

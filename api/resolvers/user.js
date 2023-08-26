@@ -549,6 +549,16 @@ export default {
       }
 
       return true
+    },
+    subscribeUser: async (parent, { id }, { me, models }) => {
+      const data = { followerId: Number(me.id), followeeId: Number(id) }
+      const old = await models.userSubscription.findUnique({ where: { followerId_followeeId: data } })
+      if (old) {
+        await models.userSubscription.delete({ where: { followerId_followeeId: data } })
+      } else {
+        await models.userSubscription.create({ data })
+      }
+      return { id }
     }
   },
 
@@ -717,6 +727,21 @@ export default {
       })
 
       return relays?.map(r => r.nostrRelayAddr)
+    },
+    meSubscription: async (user, args, { me, models }) => {
+      if (!me) return false
+      if (typeof user.meSubscription !== 'undefined') return user.meSubscription
+
+      const subscription = await models.userSubscription.findUnique({
+        where: {
+          followerId_followeeId: {
+            followerId: Number(me.id),
+            followeeId: Number(user.id)
+          }
+        }
+      })
+
+      return !!subscription
     }
   }
 }

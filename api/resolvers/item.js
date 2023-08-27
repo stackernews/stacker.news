@@ -1097,7 +1097,7 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
   return item
 }
 
-const createItem = async (parent, { forward, options, ...item }, { me, models, lnd, invoiceHash, invoiceHmac }) => {
+export const createItem = async (parent, { forward, options, ...item }, { me, models, lnd, invoiceHash, invoiceHmac }) => {
   let spamInterval = ITEM_SPAM_INTERVAL
   const trx = []
 

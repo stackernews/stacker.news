@@ -2,8 +2,7 @@ import { GraphQLError } from 'graphql'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { msatsToSats } from '../../lib/format'
 import { bioSchema, emailSchema, settingsSchema, ssValidate, userSchema } from '../../lib/validate'
-import { createMentions, getItem, SELECT, updateItem, filterClause } from './item'
-import serialize from './serial'
+import { getItem, updateItem, filterClause, createItem } from './item'
 import { datePivot } from '../../lib/time'
 
 export function within (table, within) {
@@ -498,12 +497,9 @@ export default {
       const user = await models.user.findUnique({ where: { id: me.id } })
 
       if (user.bioId) {
-        await updateItem(parent, { id: user.bioId, data: { text: bio, title: `@${user.name}'s bio` } }, { me, models })
+        await updateItem(parent, { id: user.bioId, text: bio, title: `@${user.name}'s bio` }, { me, models })
       } else {
-        const [item] = await serialize(models,
-          models.$queryRawUnsafe(`${SELECT} FROM create_bio($1, $2, $3::INTEGER) AS "Item"`,
-            `@${user.name}'s bio`, bio, Number(me.id)))
-        await createMentions(item, models)
+        await createItem(parent, { bio: true, text: bio, title: `@${user.name}'s bio` }, { me, models })
       }
 
       return await models.user.findUnique({ where: { id: me.id } })

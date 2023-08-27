@@ -13,6 +13,9 @@ CREATE INDEX "UserSubscription.created_at_index" ON "UserSubscription"("created_
 -- CreateIndex
 CREATE INDEX "UserSubscription.follower_index" ON "UserSubscription"("followerId");
 
+-- CreateIndex
+CREATE INDEX "UserSubscription.followee_index" ON "UserSubscription"("followeeId");
+
 -- AddForeignKey
 ALTER TABLE "UserSubscription" ADD CONSTRAINT "UserSubscription_followerId_fkey" FOREIGN KEY ("followerId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 

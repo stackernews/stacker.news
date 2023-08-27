@@ -537,6 +537,7 @@ model UserSubscription {
   @@id([followerId, followeeId])
   @@index([createdAt], map: "UserSubscription.created_at_index")
   @@index([followerId], map: "UserSubscription.follower_index")
+  @@index([followeeId], map: "UserSubscription.followee_index")
 }
 
 model PushSubscription {

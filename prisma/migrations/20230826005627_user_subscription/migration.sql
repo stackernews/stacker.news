@@ -18,3 +18,6 @@ ALTER TABLE "UserSubscription" ADD CONSTRAINT "UserSubscription_followerId_fkey"
 
 -- AddForeignKey
 ALTER TABLE "UserSubscription" ADD CONSTRAINT "UserSubscription_followeeId_fkey" FOREIGN KEY ("followeeId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- Can't follow yourself
+ALTER TABLE "UserSubscription" ADD CONSTRAINT "UserSubscription_no_follow_self" CHECK ("followerId" <> "followeeId");

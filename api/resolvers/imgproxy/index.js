@@ -30,14 +30,27 @@ const createImageProxyUrl = url => {
   return `${IMGPROXY_URL}${signature}${target}`
 }
 
+async function fetchWithTimeout (resource, { timeout = 1000, ...options } = {}) {
+  const controller = new AbortController()
+  const id = setTimeout(() => controller.abort(), timeout)
+
+  const response = await fetch(resource, {
+    ...options,
+    signal: controller.signal
+  })
+  clearTimeout(id)
+
+  return response
+}
+
 const isImageURL = async url => {
   // https://stackoverflow.com/a/68118683
   try {
-    const res = await fetch(url, { method: 'HEAD' })
+    const res = await fetchWithTimeout(url, { method: 'HEAD' })
     const buf = await res.blob()
     return buf.type.startsWith('image/')
   } catch (err) {
-    console.log(err)
+    console.log(url, err)
     return false
   }
 }

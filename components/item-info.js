@@ -2,7 +2,6 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
 import Badge from 'react-bootstrap/Badge'
-import Dropdown from 'react-bootstrap/Dropdown'
 import Countdown from './countdown'
 import { abbrNum, numWithUnits } from '../lib/format'
 import { newComments, commentsViewedAt } from '../lib/new-comments'
@@ -10,13 +9,13 @@ import { timeSince } from '../lib/time'
 import { DeleteDropdownItem } from './delete'
 import styles from './item.module.css'
 import { useMe } from './me'
-import MoreIcon from '../svgs/more-fill.svg'
 import DontLikeThisDropdownItem from './dont-link-this'
 import BookmarkDropdownItem from './bookmark'
 import SubscribeDropdownItem from './subscribe'
 import { CopyLinkDropdownItem } from './share'
 import Hat from './hat'
 import { AD_USER_ID } from '../lib/constants'
+import ActionDropdown from './action-dropdown'
 
 export default function ItemInfo ({
   item, pendingSats, full, commentsText = 'comments',
@@ -129,7 +128,7 @@ export default function ItemInfo ({
             />
           </span>
         </>}
-      <ItemDropdown>
+      <ActionDropdown>
         <CopyLinkDropdownItem item={item} />
         {me && <BookmarkDropdownItem item={item} />}
         {me && item.user.id !== me.id && <SubscribeDropdownItem item={item} />}
@@ -141,21 +140,8 @@ export default function ItemInfo ({
           !item.mine && !item.deletedAt && <DontLikeThisDropdownItem id={item.id} />}
         {item.mine && !item.position && !item.deletedAt &&
           <DeleteDropdownItem itemId={item.id} type={item.title ? 'post' : 'comment'} />}
-      </ItemDropdown>
+      </ActionDropdown>
       {extraInfo}
     </div>
-  )
-}
-
-export function ItemDropdown ({ children }) {
-  return (
-    <Dropdown className={`pointer ${styles.dropdown}`} as='span'>
-      <Dropdown.Toggle variant='success' as='a'>
-        <MoreIcon className='fill-grey ms-1' height={16} width={16} />
-      </Dropdown.Toggle>
-      <Dropdown.Menu>
-        {children}
-      </Dropdown.Menu>
-    </Dropdown>
   )
 }

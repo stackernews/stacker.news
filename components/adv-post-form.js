@@ -66,11 +66,13 @@ export default function AdvPostForm ({ edit }) {
                   <Input
                     name={`forward[${index}].pct`}
                     type='number'
-                    step='1'
-                    min='1'
-                    max='100'
+                    step={5}
+                    min={1}
+                    max={100}
+                    style={{ minWidth: '3.5rem' }}
                     append={<InputGroup.Text className='text-monospace'>%</InputGroup.Text>}
-                    groupClassName='flex-shrink-1 mb-0'
+                    groupClassName='mb-0'
+                    inputGroupClassName='flex-nowrap'
                   />
                 </div>
               )

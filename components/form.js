@@ -219,7 +219,7 @@ function FormGroup ({ className, label, children }) {
 
 function InputInner ({
   prepend, append, hint, showValid, onChange, onBlur, overrideValue,
-  innerRef, noForm, clear, onKeyDown, debounce, ...props
+  innerRef, noForm, clear, onKeyDown, inputGroupClassName, debounce, ...props
 }) {
   const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)
   const formik = noForm ? null : useFormikContext()
@@ -259,7 +259,7 @@ function InputInner ({
 
   return (
     <>
-      <InputGroup hasValidation>
+      <InputGroup hasValidation className={inputGroupClassName}>
         {prepend}
         <BootstrapForm.Control
           onKeyDown={(e) => {

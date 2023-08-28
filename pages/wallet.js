@@ -19,7 +19,7 @@ import { SSR } from '../lib/constants'
 import { numWithUnits } from '../lib/format'
 import styles from '../components/user-header.module.css'
 
-export const getServerSideProps = getGetServerSideProps()
+export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
 export default function Wallet () {
   const router = useRouter()

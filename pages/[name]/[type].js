@@ -10,8 +10,13 @@ import { Form, Select } from '../../components/form'
 
 const staticVariables = { sort: 'user' }
 const variablesFunc = vars =>
-  ({ includeComments: COMMENT_TYPE_QUERY.includes(vars.type), ...staticVariables, ...vars })
-export const getServerSideProps = getGetServerSideProps(USER_WITH_ITEMS, variablesFunc, data => !data.user)
+  ({
+    includeComments: COMMENT_TYPE_QUERY.includes(vars.type),
+    ...staticVariables,
+    ...vars
+  })
+export const getServerSideProps = getGetServerSideProps(
+  { query: USER_WITH_ITEMS, variables: variablesFunc, notFound: data => !data.user })
 
 export default function UserItems ({ ssrData }) {
   const router = useRouter()

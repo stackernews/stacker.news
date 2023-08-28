@@ -52,15 +52,24 @@ export default async function getSSRApolloClient ({ req, res, me = null }) {
   return client
 }
 
-export function getGetServerSideProps (queryOrFunc, variablesOrFunc = null, notFoundFunc, requireVar) {
+/**
+ * Takes a query and variables and returns a getServerSideProps function
+ *
+ * @param opts Options
+ * @param opts.query graphql query or function that return graphql query
+ * @param opts.variables graphql variables or function that return graphql variables
+ * @param opts.notFound function that tests data to determine if 404
+ * @param opts.authRequired boolean that determines if auth is required
+ */
+export function getGetServerSideProps ({ query, variables, notFound, authRequired }) {
   return async function ({ req, res, query: params }) {
     const { nodata, ...realParams } = params
     // we want to use client-side cache
     if (nodata) return { props: { } }
 
-    const variables = typeof variablesOrFunc === 'function' ? variablesOrFunc(realParams) : variablesOrFunc
+    variables = typeof variables === 'function' ? variables(realParams) : variables
     const vars = { ...realParams, ...variables }
-    const query = typeof queryOrFunc === 'function' ? queryOrFunc(vars) : queryOrFunc
+    query = typeof query === 'function' ? query(vars) : query
 
     const client = await getSSRApolloClient({ req, res })
 
@@ -69,36 +78,27 @@ export function getGetServerSideProps (queryOrFunc, variablesOrFunc = null, notF
       variables: { skipUpdate: true }
     })
 
+    if (authRequired && !me) {
+      const callback = process.env.PUBLIC_URL + req.url
+      return {
+        redirect: {
+          destination: `/login?callbackUrl=${encodeURIComponent(callback)}`
+        }
+      }
+    }
+
     const { data: { price } } = await client.query({
       query: PRICE, variables: { fiatCurrency: me?.fiatCurrency }
     })
 
-    if (requireVar && !vars[requireVar]) {
-      return {
-        notFound: true
-      }
-    }
-
     let error = null; let data = null; let props = {}
     if (query) {
-      try {
-        ({ error, data } = await client.query({
-          query,
-          variables: vars
-        }))
-      } catch (err) {
-        if (err.message === 'you must be logged in') {
-          const callback = process.env.PUBLIC_URL + req.url
-          return {
-            redirect: {
-              destination: `/login?callbackUrl=${encodeURIComponent(callback)}`
-            }
-          }
-        }
-        throw err
-      }
+      ({ error, data } = await client.query({
+        query,
+        variables: vars
+      }))
 
-      if (error || !data || (notFoundFunc && notFoundFunc(data, vars))) {
+      if (error || !data || (notFound && notFound(data, vars))) {
         return {
           notFound: true
         }

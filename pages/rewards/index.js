@@ -45,7 +45,7 @@ function midnight (tz) {
   return date.getTime() + tzOffset(tz) * 60 * 60 * 1000
 }
 
-export const getServerSideProps = getGetServerSideProps(REWARDS)
+export const getServerSideProps = getGetServerSideProps({ query: REWARDS })
 
 export function RewardLine ({ total }) {
   const threshold = useMemo(() => midnight('America/Chicago'))

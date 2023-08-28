@@ -31,7 +31,7 @@ const REFERRALS = gql`
     }
   }`
 
-export const getServerSideProps = getGetServerSideProps(REFERRALS)
+export const getServerSideProps = getGetServerSideProps({ query: REFERRALS, authRequired: true })
 
 export default function Referrals ({ ssrData }) {
   const router = useRouter()

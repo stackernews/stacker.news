@@ -12,8 +12,10 @@ const GrowthPieChart = dynamic(() => import('../../components/charts').then(mod 
   loading: () => <div>Loading...</div>
 })
 
-export const getServerSideProps = getGetServerSideProps(ME_REWARDS, null,
-  (data, params) => data.rewards.total === 0 || new Date(data.rewards.time) > new Date())
+export const getServerSideProps = getGetServerSideProps({
+  query: ME_REWARDS,
+  notFound: (data, params) => data.rewards.total === 0 || new Date(data.rewards.time) > new Date()
+})
 
 const timeString = when => new Date(when).toISOString().slice(0, 10)
 

@@ -24,7 +24,7 @@ import { authErrorMessage } from '../components/login'
 import { NostrAuth } from '../components/nostr-auth'
 import { useToast } from '../components/toast'
 
-export const getServerSideProps = getGetServerSideProps(SETTINGS)
+export const getServerSideProps = getGetServerSideProps({ query: SETTINGS, authRequired: true })
 
 function bech32encode (hexString) {
   return bech32.encode('npub', bech32.toWords(Buffer.from(hexString, 'hex')))

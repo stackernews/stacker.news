@@ -91,6 +91,7 @@ export default gql`
     meDontLike: Boolean!
     meBookmark: Boolean!
     meSubscription: Boolean!
+    meForward: Boolean
     outlawed: Boolean!
     freebie: Boolean!
     paidImgLink: Boolean

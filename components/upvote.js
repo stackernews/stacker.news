@@ -204,18 +204,8 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
     }
   }, [pendingSats, act, item, showModal, setPendingSats])
 
-  const disabled = useMemo(() => {
-    if (item?.mine) {
-      return true
-    }
-    if (me && item?.forwards?.some?.(fwd => Number(fwd.userId) === Number(me?.id))) {
-      return true
-    }
-    if (item?.deletedAt) {
-      return true
-    }
-    return false
-  }, [me?.id, item?.forwards, item?.mine, item?.deletedAt])
+  const disabled = useMemo(() => item?.mine || item?.meForward || item?.deletedAt,
+    [item?.mine, item?.meForward, item?.deletedAt])
 
   const [meSats, sats, overlayText, color] = useMemo(() => {
     const meSats = (item?.meSats || item?.meAnonSats || 0) + pendingSats

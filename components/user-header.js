@@ -149,6 +149,7 @@ function NymEdit ({ user, setEditting }) {
 }
 
 function NymView ({ user, isMe, setEditting }) {
+  const me = useMe()
   return (
     <div className='d-flex align-items-center mb-2'>
       <div className={styles.username}>@{user.name}<Hat className='' user={user} badge /></div>
@@ -156,7 +157,7 @@ function NymView ({ user, isMe, setEditting }) {
         <Button className='py-0' style={{ lineHeight: '1.25' }} variant='link' onClick={() => setEditting(true)}>edit nym</Button>}
       {!isMe &&
         <ActionDropdown>
-          <SubscribeUserDropdownItem user={user} />
+          {me && <SubscribeUserDropdownItem user={user} />}
         </ActionDropdown>}
     </div>
   )

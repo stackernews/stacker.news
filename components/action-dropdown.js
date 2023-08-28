@@ -3,6 +3,9 @@ import styles from './item.module.css'
 import MoreIcon from '../svgs/more-fill.svg'
 
 export default function ActionDropdown ({ children }) {
+  if (!children) {
+    return null
+  }
   return (
     <Dropdown className={`pointer ${styles.dropdown}`} as='span'>
       <Dropdown.Toggle variant='success' as='a'>

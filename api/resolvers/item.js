@@ -684,7 +684,7 @@ export default {
             parents.map(({ userId }) => sendUserNotification(userId, {
               title: `@${user.name} replied to you`,
               body: item.text,
-              item,
+              item: rItem,
               tag: 'REPLY'
             }))
           )

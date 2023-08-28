@@ -755,7 +755,7 @@ export default {
         models.$queryRaw`SELECT item_act(${Number(id)}::INTEGER, ${user.id}::INTEGER, 'TIP', ${Number(sats)}::INTEGER)`
       ]
       if (invoice) {
-        trx.unshift(models.$queryRaw`UPDATE users SET msats = msats + ${invoice.msatsReceived}`)
+        trx.unshift(models.$queryRaw`UPDATE users SET msats = msats + ${invoice.msatsReceived} WHERE id = ${invoice.user.id}`)
         trx.push(models.invoice.delete({ where: { hash: invoice.hash } }))
       }
 
@@ -1149,7 +1149,7 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
       JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options))
   ]
   if (invoice) {
-    trx.unshift(models.$queryRaw`UPDATE users SET msats = msats + ${invoice.msatsReceived}`)
+    trx.unshift(models.$queryRaw`UPDATE users SET msats = msats + ${invoice.msatsReceived} WHERE id = ${invoice.user.id}`)
     trx.push(models.invoice.delete({ where: { hash: invoice.hash } }))
   }
 

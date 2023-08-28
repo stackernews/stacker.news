@@ -38,7 +38,7 @@ export async function commentFilterClause (me, models) {
   return clause
 }
 
-async function checkInvoice (models, lnd, hash, hmac, fee) {
+async function checkInvoice (models, hash, hmac, fee) {
   if (!hmac) {
     throw new GraphQLError('hmac required', { extensions: { code: 'BAD_INPUT' } })
   }
@@ -730,7 +730,7 @@ export default {
       let user = me
       let invoice
       if (!me && invoiceHash) {
-        invoice = await checkInvoice(models, lnd, invoiceHash, invoiceHmac, sats)
+        invoice = await checkInvoice(models, invoiceHash, invoiceHmac, sats)
         user = invoice.user
       }
 

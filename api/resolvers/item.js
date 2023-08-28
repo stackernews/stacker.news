@@ -70,7 +70,7 @@ async function checkInvoice (models, hash, hmac, fee) {
   if (!invoice.msatsReceived) {
     throw new GraphQLError('invoice was not paid', { extensions: { code: 'BAD_INPUT' } })
   }
-  if (msatsToSats(invoice.msatsReceived) < fee) {
+  if (fee && msatsToSats(invoice.msatsReceived) < fee) {
     throw new GraphQLError('invoice amount too low', { extensions: { code: 'BAD_INPUT' } })
   }
 
@@ -722,16 +722,16 @@ export default {
     act: async (parent, { id, sats, invoiceHash, invoiceHmac }, { me, models, lnd }) => {
       // need to make sure we are logged in
       if (!me && !invoiceHash) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+        throw new GraphQLError('you must be logged in or pay', { extensions: { code: 'FORBIDDEN' } })
       }
 
       await ssValidate(amountSchema, { amount: sats })
 
       let user = me
       let invoice
-      if (!me && invoiceHash) {
+      if (invoiceHash) {
         invoice = await checkInvoice(models, invoiceHash, invoiceHmac, sats)
-        user = invoice.user
+        if (!me) user = invoice.user
       }
 
       // disallow self tips except anons
@@ -1116,22 +1116,26 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
 }
 
 export const createItem = async (parent, { forward, options, ...item }, { me, models, lnd, invoiceHash, invoiceHmac }) => {
-  let spamInterval = ITEM_SPAM_INTERVAL
+  const spamInterval = me ? ITEM_SPAM_INTERVAL : ANON_ITEM_SPAM_INTERVAL
 
   // rename to match column name
   item.subName = item.sub
   delete item.sub
 
+  if (!me && !invoiceHash) {
+    throw new GraphQLError('you must be logged in or pay', { extensions: { code: 'FORBIDDEN' } })
+  }
   let invoice
+  if (invoiceHash) {
+    // if we are logged in, we don't compare the invoice amount with the fee
+    // since it's not a fixed amount that we could use here.
+    // we rely on the query telling us if the balance is too low
+    const fee = !me ? (item.parentId ? ANON_COMMENT_FEE : ANON_POST_FEE) : undefined
+    invoice = await checkInvoice(models, invoiceHash, invoiceHmac, fee)
+    item.userId = invoice.user.id
+  }
   if (me) {
     item.userId = Number(me.id)
-  } else {
-    if (!invoiceHash) {
-      throw new GraphQLError('you must be logged in or pay', { extensions: { code: 'FORBIDDEN' } })
-    }
-    invoice = await checkInvoice(models, invoiceHash, invoiceHmac, item.parentId ? ANON_COMMENT_FEE : ANON_POST_FEE)
-    item.userId = invoice.user.id
-    spamInterval = ANON_ITEM_SPAM_INTERVAL
   }
 
   const fwdUsers = await getForwardUsers(models, forward)

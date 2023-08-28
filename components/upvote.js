@@ -183,8 +183,8 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
                 <FundError
                   onClose={onClose}
                   amount={pendingSats}
-                  onPayment={async (_, invoiceHash) => {
-                    await act({ variables: { ...variables, invoiceHash } })
+                  onPayment={async (_, invoiceHash, invoiceHmac) => {
+                    await act({ variables: { ...variables, invoiceHash, invoiceHmac } })
                     strike()
                   }}
                 />

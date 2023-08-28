@@ -759,7 +759,8 @@ export default {
         trx.push(models.invoice.delete({ where: { hash: invoice.hash } }))
       }
 
-      const [{ item_act: vote }] = await serialize(models, ...trx)
+      const query = await serialize(models, ...trx)
+      const { item_act: vote } = trx.length > 1 ? query[1][0] : query[0]
 
       if (invoice?.isHeld) await settleHodlInvoice({ secret: invoice.preimage, lnd })
 
@@ -1152,8 +1153,8 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
     trx.push(models.invoice.delete({ where: { hash: invoice.hash } }))
   }
 
-  const [query] = await serialize(models, ...trx)
-  item = trx.length > 0 ? query[0] : query
+  const query = await serialize(models, ...trx)
+  item = trx.length > 1 ? query[1][0] : query[0]
 
   if (invoice?.isHeld) await settleHodlInvoice({ secret: invoice.preimage, lnd })
 

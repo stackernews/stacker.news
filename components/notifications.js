@@ -257,7 +257,7 @@ function Votification ({ n }) {
   }
   return (
     <>
-      <small className='fw-bold text-success ms-2'>
+      <small className='fw-bold text-success d-inline-block ms-2 my-1' style={{ lineHeight: '1.25' }}>
         your {n.item.title ? 'post' : 'reply'} stacked {numWithUnits(n.earnedSats, { abbreviate: false })}
         {n.item.forwards?.length > 0 &&
           <>

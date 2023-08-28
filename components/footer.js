@@ -244,6 +244,10 @@ export default function Footer ({ links = true }) {
             <Link href='/ekzyis' className='ms-1'>
               @ekzyis
             </Link>
+            <span className='ms-1'>&</span>
+            <Link href='https://github.com/stackernews/stacker.news/graphs/contributors' className='ms-1' target='_blank' rel='noreferrer'>
+              more
+            </Link>
           </span>
         </small>
         {version &&

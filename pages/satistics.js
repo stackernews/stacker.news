@@ -1,4 +1,3 @@
-import Button from 'react-bootstrap/Button'
 import { useQuery } from '@apollo/client'
 import Link from 'next/link'
 import { getGetServerSideProps } from '../api/ssrApollo'

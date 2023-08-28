@@ -112,7 +112,7 @@ function FwdUsers ({ forwards }) {
           <Link href={`/${fwd.user.name}`}>
             @{fwd.user.name}
           </Link>
-          {` (${fwd.pct}%)`}{index !== arr.length - 1 && ', '}
+          {` (${fwd.pct}%)`}{index !== arr.length - 1 && ' '}
         </span>))}
 
     </div>

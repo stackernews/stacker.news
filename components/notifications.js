@@ -252,7 +252,7 @@ function Votification ({ n }) {
         <Link className='text-success' href={`/${fwd.user.name}`}>
           @{fwd.user.name}
         </Link>
-        {i !== n.item.forwards.length - 1 && ', '}
+        {i !== n.item.forwards.length - 1 && ' '}
       </span>)
   }
   return (

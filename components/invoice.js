@@ -134,7 +134,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
   const me = useMe()
   const [createInvoice, { data }] = useMutation(gql`
     mutation createInvoice($amount: Int!) {
-      createInvoice(amount: $amount, hodlInvoice: true, expireSecs: 1800) {
+      createInvoice(amount: $amount, hodlInvoice: true, expireSecs: 180) {
         id
         hash
         hmac

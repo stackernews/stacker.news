@@ -2,6 +2,7 @@ import { GraphQLError } from 'graphql'
 import { amountSchema, ssValidate } from '../../lib/validate'
 import serialize from './serial'
 import { ANON_USER_ID } from '../../lib/constants'
+import { getItem } from './item'
 
 export default {
   Query: {
@@ -59,7 +60,7 @@ export default {
         SELECT coalesce(sum(sats), 0) as total, json_agg("Earn".*) as rewards
         FROM day_cte
         CROSS JOIN LATERAL (
-          (SELECT FLOOR("Earn".msats / 1000.0) as sats, type, rank
+          (SELECT FLOOR("Earn".msats / 1000.0) as sats, type, rank, "typeId"
             FROM "Earn"
             WHERE "Earn"."userId" = ${me.id}
             AND date_trunc('day', "Earn".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = day_cte.day
@@ -83,6 +84,15 @@ export default {
           sats, Number(me.id)))
 
       return sats
+    }
+  },
+  Reward: {
+    item: async (reward, args, { me, models }) => {
+      if (!reward.typeId) {
+        return null
+      }
+
+      return getItem(reward, { id: reward.typeId }, { me, models })
     }
   }
 }

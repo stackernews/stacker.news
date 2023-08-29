@@ -7,6 +7,7 @@ import { useRouter } from 'next/router'
 import { getGetServerSideProps } from '../../api/ssrApollo'
 import { fixedDecimal } from '../../lib/format'
 import Trophy from '../../svgs/trophy-fill.svg'
+import { ListItem } from '../../components/items'
 
 const GrowthPieChart = dynamic(() => import('../../components/charts').then(mod => mod.GrowthPieChart), {
   loading: () => <div>Loading...</div>
@@ -51,7 +52,7 @@ export default function Rewards ({ ssrData }) {
   )
 }
 
-function Reward ({ rank, type, sats }) {
+function Reward ({ rank, type, sats, item }) {
   if (!rank) return null
 
   const color = rank <= 3 ? 'text-primary' : 'text-muted'
@@ -73,8 +74,14 @@ function Reward ({ rank, type, sats }) {
   }
 
   return (
-    <div className={color}>
-      <Trophy height={20} width={20} /> <b>#{rank}</b> {category} for <i><b>{sats} sats</b></i>
+    <div>
+      <div className={color}>
+        <Trophy height={20} width={20} /> <b>#{rank}</b> {category} for <i><b>{sats} sats</b></i>
+      </div>
+      {item &&
+        <div className={item.parentId ? 'pt-0' : 'pt-2'}>
+          <ListItem item={item} />
+        </div>}
     </div>
   )
 }

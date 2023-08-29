@@ -20,6 +20,7 @@ export default gql`
     type: String
     rank: Int
     sats: Int!
+    item: Item
   }
 
   type MeRewards {

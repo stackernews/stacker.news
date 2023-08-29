@@ -1,11 +1,10 @@
 import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Form, Input, SubmitButton } from './form'
 import { useMe } from './me'
 import UpBolt from '../svgs/bolt.svg'
 import { amountSchema } from '../lib/validate'
-import { useInvoiceable } from './invoice'
 
 const defaultTips = [100, 1000, 10000, 100000]
 
@@ -46,28 +45,6 @@ export default function ItemAct ({ onClose, itemId, act, strike }) {
     inputRef.current?.focus()
   }, [onClose, itemId])
 
-  const submitAct = useCallback(
-    async (amount, invoiceHash, invoiceHmac) => {
-      if (!me) {
-        const storageKey = `TIP-item:${itemId}`
-        const existingAmount = Number(window.localStorage.getItem(storageKey) || '0')
-        window.localStorage.setItem(storageKey, existingAmount + amount)
-      }
-      await act({
-        variables: {
-          id: itemId,
-          sats: Number(amount),
-          invoiceHash,
-          invoiceHmac
-        }
-      })
-      await strike()
-      addCustomTip(Number(amount))
-      onClose()
-    }, [act, onClose, strike, itemId])
-
-  const invoiceableAct = useInvoiceable(submitAct)
-
   return (
     <Form
       initial={{
@@ -75,8 +52,24 @@ export default function ItemAct ({ onClose, itemId, act, strike }) {
         default: false
       }}
       schema={amountSchema}
-      onSubmit={async ({ amount }) => {
-        return invoiceableAct(amount)
+      invoiceable
+      onSubmit={async ({ amount, hash, hmac }) => {
+        if (!me) {
+          const storageKey = `TIP-item:${itemId}`
+          const existingAmount = Number(window.localStorage.getItem(storageKey) || '0')
+          window.localStorage.setItem(storageKey, existingAmount + amount)
+        }
+        await act({
+          variables: {
+            id: itemId,
+            sats: Number(amount),
+            hash,
+            hmac
+          }
+        })
+        await strike()
+        addCustomTip(Number(amount))
+        onClose()
       }}
     >
       <Input

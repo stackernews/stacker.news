@@ -16,15 +16,16 @@ export default function FundError ({ onClose, amount, onPayment }) {
           <Button variant='success' onClick={onClose}>fund wallet</Button>
         </Link>
         <span className='d-flex mx-3 fw-bold text-muted align-items-center'>or</span>
-        <Button variant='success' onClick={() => createInvoice(amount).catch(err => setError(err.message || err))}>pay invoice</Button>
+        <Button variant='success' onClick={() => createInvoice({ amount }).catch(err => setError(err.message || err))}>pay invoice</Button>
       </div>
     </>
   )
 }
 
-export const isInsufficientFundsError = (error) => {
+export const payOrLoginError = (error) => {
+  const matches = ['insufficient funds', 'you must be logged in or pay']
   if (Array.isArray(error)) {
-    return error.some(({ message }) => message.includes('insufficient funds'))
+    return error.some(({ message }) => matches.some(m => message.includes(m)))
   }
-  return error.toString().includes('insufficient funds')
+  return matches.some(m => error.toString().includes(m))
 }

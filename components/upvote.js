@@ -1,7 +1,7 @@
 import UpBolt from '../svgs/bolt.svg'
 import styles from './upvote.module.css'
 import { gql, useMutation } from '@apollo/client'
-import FundError, { isInsufficientFundsError } from './fund-error'
+import FundError, { payOrLoginError } from './fund-error'
 import ActionTooltip from './action-tooltip'
 import ItemAct from './item-act'
 import { useMe } from './me'
@@ -110,8 +110,8 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
 
   const [act] = useMutation(
     gql`
-      mutation act($id: ID!, $sats: Int!, $invoiceHash: String, $invoiceHmac: String) {
-        act(id: $id, sats: $sats, invoiceHash: $invoiceHash, invoiceHmac: $invoiceHmac) {
+      mutation act($id: ID!, $sats: Int!, $hash: String, $hmac: String) {
+        act(id: $id, sats: $sats, hash: $hash, hmac: $hmac) {
           sats
         }
       }`, {
@@ -177,14 +177,14 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
             }
           })
         } catch (error) {
-          if (isInsufficientFundsError(error)) {
+          if (payOrLoginError(error)) {
             showModal(onClose => {
               return (
                 <FundError
                   onClose={onClose}
                   amount={pendingSats}
-                  onPayment={async (_, invoiceHash, invoiceHmac) => {
-                    await act({ variables: { ...variables, invoiceHash, invoiceHmac } })
+                  onPayment={async ({ hash, hmac }) => {
+                    await act({ variables: { ...variables, hash, hmac } })
                     strike()
                   }}
                 />

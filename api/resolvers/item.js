@@ -617,34 +617,34 @@ export default {
 
       return await models.item.update({ where: { id: Number(id) }, data })
     },
-    upsertLink: async (parent, { id, invoiceHash, invoiceHmac, ...item }, { me, models, lnd }) => {
+    upsertLink: async (parent, { id, hash, hmac, ...item }, { me, models, lnd }) => {
       await ssValidate(linkSchema, item, models)
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models })
       } else {
-        return await createItem(parent, item, { me, models, lnd, invoiceHash, invoiceHmac })
+        return await createItem(parent, item, { me, models, lnd, hash, hmac })
       }
     },
-    upsertDiscussion: async (parent, { id, invoiceHash, invoiceHmac, ...item }, { me, models, lnd }) => {
+    upsertDiscussion: async (parent, { id, hash, hmac, ...item }, { me, models, lnd }) => {
       await ssValidate(discussionSchema, item, models)
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models })
       } else {
-        return await createItem(parent, item, { me, models, lnd, invoiceHash, invoiceHmac })
+        return await createItem(parent, item, { me, models, lnd, hash, hmac })
       }
     },
-    upsertBounty: async (parent, { id, invoiceHash, invoiceHmac, ...item }, { me, models, lnd }) => {
+    upsertBounty: async (parent, { id, hash, hmac, ...item }, { me, models, lnd }) => {
       await ssValidate(bountySchema, item, models)
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models })
       } else {
-        return await createItem(parent, item, { me, models, lnd, invoiceHash, invoiceHmac })
+        return await createItem(parent, item, { me, models, lnd, hash, hmac })
       }
     },
-    upsertPoll: async (parent, { id, invoiceHash, invoiceHmac, ...item }, { me, models, lnd }) => {
+    upsertPoll: async (parent, { id, hash, hmac, ...item }, { me, models, lnd }) => {
       const optionCount = id
         ? await models.pollOption.count({
           where: {
@@ -659,10 +659,10 @@ export default {
         return await updateItem(parent, { id, ...item }, { me, models })
       } else {
         item.pollCost = item.pollCost || POLL_COST
-        return await createItem(parent, item, { me, models, lnd, invoiceHash, invoiceHmac })
+        return await createItem(parent, item, { me, models, lnd, hash, hmac })
       }
     },
-    upsertJob: async (parent, { id, ...item }, { me, models }) => {
+    upsertJob: async (parent, { id, hash, hmac, ...item }, { me, models, lnd }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in to create job', { extensions: { code: 'FORBIDDEN' } })
       }
@@ -678,16 +678,16 @@ export default {
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models })
       } else {
-        return await createItem(parent, item, { me, models })
+        return await createItem(parent, item, { me, models, lnd, hash, hmac })
       }
     },
-    upsertComment: async (parent, { id, invoiceHash, invoiceHmac, ...item }, { me, models, lnd }) => {
+    upsertComment: async (parent, { id, hash, hmac, ...item }, { me, models, lnd }) => {
       await ssValidate(commentSchema, item)
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models })
       } else {
-        const rItem = await createItem(parent, item, { me, models, lnd, invoiceHash, invoiceHmac })
+        const rItem = await createItem(parent, item, { me, models, lnd, hash, hmac })
 
         const notify = async () => {
           const user = await models.user.findUnique({ where: { id: me?.id || ANON_USER_ID } })
@@ -719,9 +719,9 @@ export default {
 
       return id
     },
-    act: async (parent, { id, sats, invoiceHash, invoiceHmac }, { me, models, lnd }) => {
+    act: async (parent, { id, sats, hash, hmac }, { me, models, lnd }) => {
       // need to make sure we are logged in
-      if (!me && !invoiceHash) {
+      if (!me && !hash) {
         throw new GraphQLError('you must be logged in or pay', { extensions: { code: 'FORBIDDEN' } })
       }
 
@@ -729,8 +729,8 @@ export default {
 
       let user = me
       let invoice
-      if (invoiceHash) {
-        invoice = await checkInvoice(models, invoiceHash, invoiceHmac, sats)
+      if (hash) {
+        invoice = await checkInvoice(models, hash, hmac, sats)
         if (!me) user = invoice.user
       }
 
@@ -1115,23 +1115,23 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
   return item
 }
 
-export const createItem = async (parent, { forward, options, ...item }, { me, models, lnd, invoiceHash, invoiceHmac }) => {
+export const createItem = async (parent, { forward, options, ...item }, { me, models, lnd, hash, hmac }) => {
   const spamInterval = me ? ITEM_SPAM_INTERVAL : ANON_ITEM_SPAM_INTERVAL
 
   // rename to match column name
   item.subName = item.sub
   delete item.sub
 
-  if (!me && !invoiceHash) {
+  if (!me && !hash) {
     throw new GraphQLError('you must be logged in or pay', { extensions: { code: 'FORBIDDEN' } })
   }
   let invoice
-  if (invoiceHash) {
+  if (hash) {
     // if we are logged in, we don't compare the invoice amount with the fee
     // since it's not a fixed amount that we could use here.
     // we rely on the query telling us if the balance is too low
     const fee = !me ? (item.parentId ? ANON_COMMENT_FEE : ANON_POST_FEE) : undefined
-    invoice = await checkInvoice(models, invoiceHash, invoiceHmac, fee)
+    invoice = await checkInvoice(models, hash, hmac, fee)
     item.userId = invoice.user.id
   }
   if (me) {

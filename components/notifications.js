@@ -334,12 +334,12 @@ function Reply ({ n }) {
 
 function FollowActivity ({ n }) {
   return (
-    <div className='py-2'>
+    <>
       <small className='fw-bold text-info ms-2'>
-        a stacker you subscribe to posted
+        a stacker you subscribe to {n.item.parentId ? 'commented' : 'posted'}
       </small>
       {n.item.title
-        ? <Item item={n.item} />
+        ? <div className='ms-2'><Item item={n.item} /></div>
         : (
           <div className='pb-2'>
             <RootProvider root={n.item.root}>
@@ -347,7 +347,7 @@ function FollowActivity ({ n }) {
             </RootProvider>
           </div>
           )}
-    </div>
+    </>
   )
 }
 

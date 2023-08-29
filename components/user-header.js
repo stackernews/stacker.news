@@ -156,9 +156,11 @@ function NymView ({ user, isMe, setEditting }) {
       {isMe &&
         <Button className='py-0' style={{ lineHeight: '1.25' }} variant='link' onClick={() => setEditting(true)}>edit nym</Button>}
       {!isMe &&
-        <ActionDropdown>
-          {me && <SubscribeUserDropdownItem user={user} />}
-        </ActionDropdown>}
+        <div className='ms-2'>
+          <ActionDropdown>
+            {me && <SubscribeUserDropdownItem user={user} />}
+          </ActionDropdown>
+        </div>}
     </div>
   )
 }

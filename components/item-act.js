@@ -1,6 +1,6 @@
 import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { Form, Input, SubmitButton } from './form'
 import { useMe } from './me'
 import UpBolt from '../svgs/bolt.svg'
@@ -45,6 +45,25 @@ export default function ItemAct ({ onClose, itemId, act, strike }) {
     inputRef.current?.focus()
   }, [onClose, itemId])
 
+  const onSubmit = useCallback(async ({ amount, hash, hmac }) => {
+    if (!me) {
+      const storageKey = `TIP-item:${itemId}`
+      const existingAmount = Number(window.localStorage.getItem(storageKey) || '0')
+      window.localStorage.setItem(storageKey, existingAmount + amount)
+    }
+    await act({
+      variables: {
+        id: itemId,
+        sats: Number(amount),
+        hash,
+        hmac
+      }
+    })
+    await strike()
+    addCustomTip(Number(amount))
+    onClose()
+  }, [act])
+
   return (
     <Form
       initial={{
@@ -53,24 +72,7 @@ export default function ItemAct ({ onClose, itemId, act, strike }) {
       }}
       schema={amountSchema}
       invoiceable
-      onSubmit={async ({ amount, hash, hmac }) => {
-        if (!me) {
-          const storageKey = `TIP-item:${itemId}`
-          const existingAmount = Number(window.localStorage.getItem(storageKey) || '0')
-          window.localStorage.setItem(storageKey, existingAmount + amount)
-        }
-        await act({
-          variables: {
-            id: itemId,
-            sats: Number(amount),
-            hash,
-            hmac
-          }
-        })
-        await strike()
-        addCustomTip(Number(amount))
-        onClose()
-      }}
+      onSubmit={onSubmit}
     >
       <Input
         label='amount'

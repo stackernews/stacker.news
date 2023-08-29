@@ -62,6 +62,9 @@ async function checkInvoice (models, hash, hmac, fee) {
   if (expired) {
     throw new GraphQLError('invoice expired', { extensions: { code: 'BAD_INPUT' } })
   }
+  if (invoice.confirmedAt) {
+    throw new GraphQLError('invoice already used', { extensions: { code: 'BAD_INPUT' } })
+  }
 
   if (invoice.cancelled) {
     throw new GraphQLError('invoice was canceled', { extensions: { code: 'BAD_INPUT' } })
@@ -708,14 +711,25 @@ export default {
         return rItem
       }
     },
-    pollVote: async (parent, { id }, { me, models }) => {
+    pollVote: async (parent, { id, hash, hmac }, { me, models }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
       }
 
-      await serialize(models,
-        models.$queryRawUnsafe(`${SELECT} FROM poll_vote($1::INTEGER, $2::INTEGER) AS "Item"`,
-          Number(id), Number(me.id)))
+      let invoice
+      if (hash) {
+        invoice = await checkInvoice(models, hash, hmac)
+      }
+
+      const trx = [
+        models.$queryRawUnsafe(`${SELECT} FROM poll_vote($1::INTEGER, $2::INTEGER) AS "Item"`, Number(id), Number(me.id))
+      ]
+      if (invoice) {
+        trx.unshift(models.$queryRaw`UPDATE users SET msats = msats + ${invoice.msatsReceived} WHERE id = ${invoice.user.id}`)
+        trx.push(models.invoice.update({ where: { hash: invoice.hash }, data: { confirmedAt: new Date() } }))
+      }
+
+      await serialize(models, ...trx)
 
       return id
     },
@@ -756,7 +770,7 @@ export default {
       ]
       if (invoice) {
         trx.unshift(models.$queryRaw`UPDATE users SET msats = msats + ${invoice.msatsReceived} WHERE id = ${invoice.user.id}`)
-        trx.push(models.invoice.delete({ where: { hash: invoice.hash } }))
+        trx.push(models.invoice.update({ where: { hash: invoice.hash }, data: { confirmedAt: new Date() } }))
       }
 
       const query = await serialize(models, ...trx)
@@ -810,10 +824,15 @@ export default {
         sats
       }
     },
-    dontLikeThis: async (parent, { id }, { me, models }) => {
+    dontLikeThis: async (parent, { id, hash, hmac }, { me, models }) => {
       // need to make sure we are logged in
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+      }
+
+      let invoice
+      if (hash) {
+        invoice = await checkInvoice(models, hash, hmac, DONT_LIKE_THIS_COST)
       }
 
       // disallow self down votes
@@ -825,8 +844,16 @@ export default {
         throw new GraphQLError('cannot downvote your self', { extensions: { code: 'BAD_INPUT' } })
       }
 
-      await serialize(models, models.$queryRaw`SELECT item_act(${Number(id)}::INTEGER,
-        ${me.id}::INTEGER, 'DONT_LIKE_THIS', ${DONT_LIKE_THIS_COST}::INTEGER)`)
+      const trx = [
+        models.$queryRaw`SELECT item_act(${Number(id)}::INTEGER,
+        ${me.id}::INTEGER, 'DONT_LIKE_THIS', ${DONT_LIKE_THIS_COST}::INTEGER)`
+      ]
+      if (invoice) {
+        trx.unshift(models.$queryRaw`UPDATE users SET msats = msats + ${invoice.msatsReceived} WHERE id = ${invoice.user.id}`)
+        trx.push(models.invoice.update({ where: { hash: invoice.hash }, data: { confirmedAt: new Date() } }))
+      }
+
+      await serialize(models, ...trx)
 
       return true
     }
@@ -1154,7 +1181,7 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
   ]
   if (invoice) {
     trx.unshift(models.$queryRaw`UPDATE users SET msats = msats + ${invoice.msatsReceived} WHERE id = ${invoice.user.id}`)
-    trx.push(models.invoice.delete({ where: { hash: invoice.hash } }))
+    trx.push(models.invoice.update({ where: { hash: invoice.hash }, data: { confirmedAt: new Date() } }))
   }
 
   const query = await serialize(models, ...trx)

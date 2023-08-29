@@ -14,6 +14,7 @@ import Amboss from '../svgs/amboss.svg'
 import { useEffect, useState } from 'react'
 import Rewards from './footer-rewards'
 import useDarkMode from './dark-mode'
+import ActionTooltip from './action-tooltip'
 
 const RssPopover = (
   <Popover>
@@ -156,8 +157,12 @@ export default function Footer ({ links = true }) {
         {links &&
           <>
             <div className='mb-1'>
-              <DarkModeIcon onClick={darkModeToggle} width={20} height={20} className='fill-grey theme' suppressHydrationWarning />
-              <LnIcon onClick={toggleLightning} width={20} height={20} className='ms-2 fill-grey theme' suppressHydrationWarning />
+              <ActionTooltip notForm overlayText={`${darkMode ? 'disable' : 'enable'} dark mode`}>
+                <DarkModeIcon onClick={darkModeToggle} width={20} height={20} className='fill-grey theme' suppressHydrationWarning />
+              </ActionTooltip>
+              <ActionTooltip notForm overlayText={`${lightning === 'yes' ? 'disable' : 'enable'} lightning animations`}>
+                <LnIcon onClick={toggleLightning} width={20} height={20} className='ms-2 fill-grey theme' suppressHydrationWarning />
+              </ActionTooltip>
             </div>
             <div className='mb-0' style={{ fontWeight: 500 }}>
               <Rewards />
@@ -252,7 +257,7 @@ export default function Footer ({ links = true }) {
         </small>
         {version &&
           <div className={styles.version}>
-            running <a className='text-reset' href={`https://github.com/stackernews/stacker.news/commit/${version}`}>{version}</a>
+            running <a className='text-reset' href={`https://github.com/stackernews/stacker.news/commit/${version}`} target='_blank' rel='noreferrer'>{version}</a>
           </div>}
       </Container>
     </footer>

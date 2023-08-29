@@ -60,6 +60,14 @@ export const NOTIFICATIONS = gql`
             text
           }
         }
+        ... on FollowActivity {
+          id
+          sortTime
+          item {
+            ...ItemFullFields
+            text
+          }
+        }
         ... on Invitification {
           id
           sortTime

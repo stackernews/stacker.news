@@ -316,6 +316,19 @@ export default {
         return true
       }
 
+      const newUserSubs = await models.$queryRawUnsafe(`
+      SELECT 1
+        FROM "UserSubscription"
+        JOIN "Item" ON "UserSubscription"."followeeId" = "Item"."userId"
+        WHERE
+          "UserSubscription"."followerId" = $1
+        AND "Item".created_at > $2::timestamp(3) without time zone
+        ${await filterClause(me, models)}
+        LIMIT 1`, me.id, lastChecked)
+      if (newUserSubs.length > 0) {
+        return true
+      }
+
       // check if they have any mentions since checkedNotesAt
       if (user.noteMentions) {
         const newMentions = await models.$queryRawUnsafe(`
@@ -552,6 +565,16 @@ export default {
       }
 
       return true
+    },
+    subscribeUser: async (parent, { id }, { me, models }) => {
+      const data = { followerId: Number(me.id), followeeId: Number(id) }
+      const old = await models.userSubscription.findUnique({ where: { followerId_followeeId: data } })
+      if (old) {
+        await models.userSubscription.delete({ where: { followerId_followeeId: data } })
+      } else {
+        await models.userSubscription.create({ data })
+      }
+      return { id }
     }
   },
 
@@ -720,6 +743,21 @@ export default {
       })
 
       return relays?.map(r => r.nostrRelayAddr)
+    },
+    meSubscription: async (user, args, { me, models }) => {
+      if (!me) return false
+      if (typeof user.meSubscription !== 'undefined') return user.meSubscription
+
+      const subscription = await models.userSubscription.findUnique({
+        where: {
+          followerId_followeeId: {
+            followerId: Number(me.id),
+            followeeId: Number(user.id)
+          }
+        }
+      })
+
+      return !!subscription
     }
   }
 }

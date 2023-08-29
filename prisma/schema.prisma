@@ -85,6 +85,8 @@ model User {
   Session             Session[]
   itemForwards        ItemForward[]
   hideBookmarks       Boolean              @default(false)
+  followers           UserSubscription[]   @relation("follower")
+  followees           UserSubscription[]   @relation("followee")
 
   @@index([createdAt], map: "users.created_at_index")
   @@index([inviteId], map: "users.inviteId_index")
@@ -523,6 +525,19 @@ model ThreadSubscription {
 
   @@id([userId, itemId])
   @@index([createdAt], map: "ThreadSubscription.created_at_index")
+}
+
+model UserSubscription {
+  followerId    Int
+  followeeId    Int
+  createdAt     DateTime @default(now()) @map("created_at")
+  follower      User     @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  followee      User     @relation("followee", fields: [followeeId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followeeId])
+  @@index([createdAt], map: "UserSubscription.created_at_index")
+  @@index([followerId], map: "UserSubscription.follower_index")
+  @@index([followeeId], map: "UserSubscription.followee_index")
 }
 
 model PushSubscription {

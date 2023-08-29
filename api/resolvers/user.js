@@ -117,9 +117,12 @@ export default {
     topCowboys: async (parent, { cursor }, { models, me }) => {
       const decodedCursor = decodeCursor(cursor)
       const users = await models.$queryRawUnsafe(`
-        SELECT users.*, floor(sum(msats_spent)/1000) as spent,
-          sum(posts) as nposts, sum(comments) as ncomments, sum(referrals) as referrals,
-          floor(sum(msats_stacked)/1000) as stacked
+        SELECT users.*,
+          coalesce(floor(sum(msats_spent)/1000),0) as spent,
+          coalesce(sum(posts),0) as nposts,
+          coalesce(sum(comments),0) as ncomments,
+          coalesce(sum(referrals),0) as referrals,
+          coalesce(floor(sum(msats_stacked)/1000),0) as stacked
           FROM users
           LEFT JOIN user_stats_days on users.id = user_stats_days.id
           WHERE NOT "hideFromTopUsers" AND NOT "hideCowboyHat" AND streak IS NOT NULL

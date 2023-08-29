@@ -23,13 +23,13 @@ export function Invoice ({ invoice, onPayment, successVerb }) {
     variant = 'confirmed'
     status = `${numWithUnits(invoice.satsReceived, { abbreviate: false })} ${successVerb || 'deposited'}`
     webLn = false
-  } else if (invoice.cancelled) {
-    variant = 'failed'
-    status = 'cancelled'
-    webLn = false
   } else if (expired) {
     variant = 'failed'
     status = 'expired'
+    webLn = false
+  } else if (invoice.cancelled) {
+    variant = 'failed'
+    status = 'cancelled'
     webLn = false
   }
 

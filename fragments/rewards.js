@@ -15,7 +15,7 @@ export const REWARDS = gql`
 
 export const ME_REWARDS = gql`
   ${ITEM_FULL_FIELDS}
-  query meRewards($when: String) {
+  query meRewards($when: [String!]) {
     rewards(when: $when) {
       total
       time

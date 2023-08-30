@@ -8,6 +8,7 @@ import { getGetServerSideProps } from '../../api/ssrApollo'
 import { fixedDecimal } from '../../lib/format'
 import Trophy from '../../svgs/trophy-fill.svg'
 import { ListItem } from '../../components/items'
+import { dayMonthYear } from '../../lib/time'
 
 const GrowthPieChart = dynamic(() => import('../../components/charts').then(mod => mod.GrowthPieChart), {
   loading: () => <div>Loading...</div>
@@ -15,38 +16,39 @@ const GrowthPieChart = dynamic(() => import('../../components/charts').then(mod 
 
 export const getServerSideProps = getGetServerSideProps({
   query: ME_REWARDS,
-  notFound: (data, params) => data.rewards.total === 0 || new Date(data.rewards.time) > new Date()
+  notFound: (data, params) => data.rewards.reduce((a, r) => a || new Date(r.time) > new Date(), false)
 })
-
-const timeString = when => new Date(when).toISOString().slice(0, 10)
 
 export default function Rewards ({ ssrData }) {
   const router = useRouter()
   const { data } = useQuery(ME_REWARDS, { variables: { ...router.query } })
   if (!data && !ssrData) return <PageLoading />
 
-  const { rewards: { total, sources, time }, meRewards } = data || ssrData
-  const when = router.query.when
+  const { rewards, meRewards } = data || ssrData
 
   return (
     <CenterLayout footerLinks>
-      <div className='py-3'>
-        <h4 className='fw-bold text-muted ps-0'>
-          {when && <div className='text-muted fst-italic fs-6 fw-normal pb-1'>On {timeString(time)} at 12a CT</div>}
-          {total} sats were rewarded
-        </h4>
-        <div className='my-3 w-100'>
-          <GrowthPieChart data={sources} />
-        </div>
-        {meRewards &&
-          <>
-            <h4 className='fw-bold text-muted text-center'>
-              you earned {meRewards.total} sats ({fixedDecimal(meRewards.total * 100 / total, 2)}%)
+      <div className='mw-100'>
+        {rewards.map(({ total, sources, time }, i) => (
+          <div className='py-3 w-100 d-grid' key={time} style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
+            <h4 className='fw-bold text-muted ps-0'>
+              {time && <div className='text-muted fst-italic fs-6 fw-normal pb-1'>On {dayMonthYear(time)} at 12a CT</div>}
+              {total} sats were rewarded
             </h4>
-            <div>
-              {meRewards.rewards?.map((r, i) => <Reward key={[r.rank, r.type].join('-')} {...r} />)}
+            <div className='my-3 w-100 justify-self-center'>
+              <GrowthPieChart data={sources} />
             </div>
-          </>}
+            {meRewards[i] &&
+              <div className='justify-self-center mw-100'>
+                <h4 className='fw-bold text-muted'>
+                  you earned {meRewards[i].total} sats ({fixedDecimal(meRewards[i].total * 100 / total, 2)}%)
+                </h4>
+                <div>
+                  {meRewards[i].rewards?.map((r, i) => <Reward key={[r.rank, r.type].join('-')} {...r} />)}
+                </div>
+              </div>}
+          </div>
+        ))}
       </div>
     </CenterLayout>
   )

@@ -66,7 +66,7 @@ export default function Rewards ({ ssrData }) {
   const { data } = useQuery(REWARDS, SSR ? {} : { pollInterval: 1000, nextFetchPolicy: 'cache-and-network' })
   if (!data && !ssrData) return <PageLoading />
 
-  const { rewards: { total, sources } } = data || ssrData
+  const { rewards: [{ total, sources }] } = data || ssrData
 
   return (
     <CenterLayout footerLinks>

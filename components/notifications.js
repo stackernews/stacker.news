@@ -74,7 +74,14 @@ function NotificationLayout ({ children, nid, href, as, fresh }) {
 
 const defaultOnClick = n => {
   const type = n.__typename
-  if (type === 'Earn') return { href: `/rewards/${new Date(n.sortTime).toISOString().slice(0, 10)}` }
+  if (type === 'Earn') {
+    let href = '/rewards/'
+    if (n.minSortTime !== n.sortTime) {
+      href += `${new Date(n.minSortTime).toISOString().slice(0, 10)}/`
+    }
+    href += new Date(n.sortTime).toISOString().slice(0, 10)
+    return { href }
+  }
   if (type === 'Invitification') return { href: '/invites' }
   if (type === 'InvoicePaid') return { href: `/invoices/${n.invoice.id}` }
   if (type === 'Referral') return { href: '/referrals/month' }

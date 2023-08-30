@@ -93,10 +93,14 @@ export function getGetServerSideProps ({ query, variables, notFound, authRequire
 
     let error = null; let data = null; let props = {}
     if (query) {
-      ({ error, data } = await client.query({
-        query,
-        variables: vars
-      }))
+      try {
+        ({ error, data } = await client.query({
+          query,
+          variables: vars
+        }))
+      } catch (e) {
+        console.error(e)
+      }
 
       if (error || !data || (notFound && notFound(data, vars))) {
         return {

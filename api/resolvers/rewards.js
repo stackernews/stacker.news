@@ -16,6 +16,9 @@ export default {
             throw new GraphQLError('invalid date', { extensions: { code: 'BAD_USER_INPUT' } })
           }
         })
+        if (new Date(when[0]) > new Date(when[when.length - 1])) {
+          throw new GraphQLError('bad date range', { extensions: { code: 'BAD_USER_INPUT' } })
+        }
       }
 
       const results = await models.$queryRaw`
@@ -59,7 +62,7 @@ export default {
         GROUP BY days_cte.day
         ORDER BY days_cte.day ASC`
 
-      return results.length ? results : [{ total: 0, time: 0, sources: [] }]
+      return results.length ? results : [{ total: 0, time: '0', sources: [] }]
     },
     meRewards: async (parent, { when }, { me, models }) => {
       if (!me) {

@@ -2,21 +2,38 @@ import Alert from 'react-bootstrap/Alert'
 import styles from './banners.module.css'
 import { useEffect, useState } from 'react'
 import { useMe } from '../components/me'
+import { useMutation } from '@apollo/client'
+import { WELCOME_BANNER_MUTATION } from '../fragments/users'
 
 export default function NewVisitorBanner () {
+  const today = new Date()
   const sameDay = (a, b) => {
     return Math.abs(a.getTime() - b.getTime()) < 1000 * 24 * 60 * 60
   }
   const me = useMe()
-  const meHidden = me ? 'hidden_' + me.id : 'hidden'
   const [state, setState] = useState(null)
-  const handleClose = () => {
+  const handleClose = async () => {
     const obj = { date: state?.date || new Date().toJSON(), hidden: true }
-    obj[meHidden] = true
     const str = JSON.stringify(obj)
     window.localStorage.setItem('newVisitorInfo', str)
     setState(obj)
+    const { error } = await hideWelcomeBanner({ variables: { } })
+    if (error) {
+      throw new Error({ message: error.toString() })
+    }
   }
+  const [hideWelcomeBanner] = useMutation(WELCOME_BANNER_MUTATION, {
+    update (cache, { data: { _ } }) {
+      cache.modify({
+        id: `User:${me.id}`,
+        fields: {
+          hideWelcomeBanner () {
+            return true
+          }
+        }
+      })
+    }
+  })
   useEffect(() => {
     let str = window.localStorage.getItem('newVisitorInfo')
     let obj = JSON.parse(str)
@@ -25,18 +42,16 @@ export default function NewVisitorBanner () {
       str = JSON.stringify(obj)
       window.localStorage.setItem('newVisitorInfo', str)
     }
-    if (me && (new Date(me.createdAt).toJSON() !== today && !obj[meHidden])) {
+    if (me && (me.hideWelcomeBanner || !sameDay(new Date(me.createdAt), today))) {
       obj.hidden = true
-      obj[meHidden] = true
       str = JSON.stringify(obj)
       window.localStorage.setItem('newVisitorInfo', str)
     }
     setState(obj)
-  }, [])
+  }, [me?.hideWelcomeBanner])
 
-  const today = new Date()
-  if ((me && sameDay(new Date(me.createdAt), today) && !state[meHidden]) ||
-  (state && sameDay(new Date(state.date), today) && !state.hidden)) {
+  if ((me && sameDay(new Date(me.createdAt), today) && !me.hideWelcomeBanner) ||
+  (!me && state && sameDay(new Date(state.date), today) && !state.hidden)) {
     return (
       <Alert className={styles.banner} key='info' variant='info' onClose={handleClose} dismissible>
         <Alert.Heading>

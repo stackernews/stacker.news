@@ -34,6 +34,7 @@ export const ME = gql`
       greeterMode
       lastCheckedJobs
       createdAt
+      hideWelcomeBanner
     }
   }`
 
@@ -106,6 +107,13 @@ export const NAME_MUTATION =
 gql`
   mutation setName($name: String!) {
     setName(name: $name)
+  }
+`
+
+export const WELCOME_BANNER_MUTATION =
+gql`
+  mutation hideWelcomeBanner {
+    hideWelcomeBanner
   }
 `
 

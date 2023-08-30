@@ -68,8 +68,37 @@ export default function Search ({ sub }) {
                 initial={{ q, what, sort, when }}
                 onSubmit={search}
               >
+                <div className={`${styles.active} my-3`}>
+                  <Input
+                    name='q'
+                    required
+                    autoFocus
+                    groupClassName='me-3 mb-0 flex-grow-1'
+                    className='flex-grow-1'
+                    clear
+                    overrideValue={q}
+                    onChange={async (formik, e) => {
+                      setSearching(true)
+                      setQ(e.target.value?.trim())
+                    }}
+                  />
+                  {q || atTop || router.query.q
+                    ? (
+                      <SubmitButton variant='primary' className={styles.search}>
+                        <SearchIcon width={22} height={22} />
+                      </SubmitButton>
+                      )
+                    : (
+                      <Button
+                        className={styles.search} onClick={() => {
+                          setSearching(false)
+                        }}
+                      >
+                        <CloseIcon width={26} height={26} />
+                      </Button>)}
+                </div>
                 {filter &&
-                  <div className='text-muted fw-bold my-3 d-flex align-items-center'>
+                  <div className='text-muted fw-bold d-flex align-items-center'>
                     <Select
                       groupClassName='me-2 mb-0'
                       onChange={(formik, e) => search({ ...formik?.values, what: e.target.value })}
@@ -101,35 +130,6 @@ export default function Search ({ sub }) {
 
                       </>}
                   </div>}
-                <div className={styles.active}>
-                  <Input
-                    name='q'
-                    required
-                    autoFocus
-                    groupClassName='me-3 mb-0 flex-grow-1'
-                    className='flex-grow-1'
-                    clear
-                    overrideValue={q}
-                    onChange={async (formik, e) => {
-                      setSearching(true)
-                      setQ(e.target.value?.trim())
-                    }}
-                  />
-                  {q || atTop || router.query.q
-                    ? (
-                      <SubmitButton variant='primary' className={styles.search}>
-                        <SearchIcon width={22} height={22} />
-                      </SubmitButton>
-                      )
-                    : (
-                      <Button
-                        className={styles.search} onClick={() => {
-                          setSearching(false)
-                        }}
-                      >
-                        <CloseIcon width={26} height={26} />
-                      </Button>)}
-                </div>
 
               </Form>
               )

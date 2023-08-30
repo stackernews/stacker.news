@@ -40,13 +40,7 @@ export default function Items ({ ssrData, variables = {}, query, destructureData
         {items.filter(filter).map((item, i) => (
           <Fragment key={item.id}>
             {pinMap && pinMap[i + 1] && <Item item={pinMap[i + 1]} />}
-            {item.parentId
-              ? <CommentFlat item={item} rank={rank && i + 1} noReply includeParent clickToContext />
-              : (item.isJob
-                  ? <ItemJob item={item} rank={rank && i + 1} />
-                  : (item.searchText
-                      ? <ItemFull item={item} rank={rank && i + 1} noReply siblingComments={variables.includeComments} />
-                      : <Item item={item} rank={rank && i + 1} siblingComments={variables.includeComments} />))}
+            <ListItem item={item} rank={rank && i + 1} siblingComments={variables.includeComments} />
           </Fragment>
         ))}
       </div>
@@ -56,6 +50,18 @@ export default function Items ({ ssrData, variables = {}, query, destructureData
         Skeleton={Skeleton}
       />
     </>
+  )
+}
+
+export function ListItem ({ item, ...props }) {
+  return (
+    item.parentId
+      ? <CommentFlat item={item} noReply includeParent clickToContext {...props} />
+      : (item.isJob
+          ? <ItemJob item={item} />
+          : (item.searchText
+              ? <ItemFull item={item} noReply {...props} />
+              : <Item item={item} {...props} />))
   )
 }
 

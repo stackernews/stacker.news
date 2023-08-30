@@ -173,6 +173,10 @@ $btn-close-bg: none;
   }
 }
 
+.justify-self-center {
+  justify-self: center;
+}
+
 .text-primary svg {
   fill: var(--bs-primary);
 }

@@ -7,7 +7,7 @@ import { NOTIFICATIONS } from '../fragments/notifications'
 import MoreFooter from './more-footer'
 import Invite from './invite'
 import { ignoreClick } from '../lib/clicks'
-import { timeSince } from '../lib/time'
+import { dayMonthYear, timeSince } from '../lib/time'
 import Link from 'next/link'
 import Check from '../svgs/check-double-line.svg'
 import HandCoin from '../svgs/hand-coin-fill.svg'
@@ -156,12 +156,14 @@ function Streak ({ n }) {
 }
 
 function EarnNotification ({ n }) {
+  const time = n.minSortTime === n.sortTime ? dayMonthYear(new Date(n.minSortTime)) : `${dayMonthYear(new Date(n.minSortTime))} to ${dayMonthYear(new Date(n.sortTime))}`
+
   return (
     <div className='d-flex ms-2 py-1'>
       <HandCoin className='align-self-center fill-boost mx-1' width={24} height={24} style={{ flex: '0 0 24px', transform: 'rotateY(180deg)' }} />
       <div className='ms-2'>
         <div className='fw-bold text-boost'>
-          you stacked {numWithUnits(n.earnedSats, { abbreviate: false })} in rewards<small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
+          you stacked {numWithUnits(n.earnedSats, { abbreviate: false })} in rewards<small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{time}</small>
         </div>
         {n.sources &&
           <div style={{ fontSize: '80%', color: 'var(--theme-grey)' }}>

@@ -139,7 +139,7 @@ export default {
           FROM (
             SELECT *
             FROM (
-              ${itemDrivenQueries.map(q => `(${q})`).join(' UNION DISTINCT ')}
+              ${itemDrivenQueries.map(q => `(${q})`).join(' UNION ALL ')}
             ) as inner_union
             ORDER BY id ASC, CASE
               WHEN type = 'Mention' THEN 1

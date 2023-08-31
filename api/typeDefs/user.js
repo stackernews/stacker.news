@@ -25,7 +25,7 @@ export default gql`
       noteInvites: Boolean!, noteJobIndicator: Boolean!, noteCowboyHat: Boolean!, hideInvoiceDesc: Boolean!,
       hideFromTopUsers: Boolean!, hideCowboyHat: Boolean!, clickToLoadImg: Boolean!,
       wildWestMode: Boolean!, greeterMode: Boolean!, nostrPubkey: String, nostrRelays: [String!], hideBookmarks: Boolean!,
-      noteForwardedSats: Boolean!, hideWalletBalance: Boolean!): User
+      noteForwardedSats: Boolean!, hideWalletBalance: Boolean!, diagnostics: Boolean!): User
     setPhoto(photoId: ID!): Int!
     upsertBio(bio: String!): User!
     setWalkthrough(tipPopover: Boolean, upvotePopover: Boolean): Boolean
@@ -86,6 +86,7 @@ export default gql`
     hideBookmarks: Boolean!
     hideWelcomeBanner: Boolean!
     hideWalletBalance: Boolean!
+    diagnostics: Boolean!
     clickToLoadImg: Boolean!
     wildWestMode: Boolean!
     greeterMode: Boolean!

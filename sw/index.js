@@ -11,6 +11,7 @@ import ServiceWorkerStorage from 'serviceworker-storage'
 self.__WB_DISABLE_DEV_LOGS = true
 
 const storage = new ServiceWorkerStorage('sw:storage', 1)
+let messageChannelPort
 
 // preloading improves startup performance
 // https://developer.chrome.com/docs/workbox/modules/workbox-navigation-preload/
@@ -55,7 +56,9 @@ self.addEventListener('push', async function (event) {
     const notifications = await self.registration.getNotifications({ tag })
     // since we used a tag filter, there should only be zero or one notification
     if (notifications.length > 1) {
-      console.error(`more than one notification with tag ${tag} found`)
+      const message = `[sw:push] more than one notification with tag ${tag} found`
+      messageChannelPort?.postMessage({ level: 'error', message })
+      console.error(message)
       return null
     }
     if (notifications.length === 0) {
@@ -85,7 +88,12 @@ self.addEventListener('notificationclick', (event) => {
 
 // https://medium.com/@madridserginho/how-to-handle-webpush-api-pushsubscriptionchange-event-in-modern-browsers-6e47840d756f
 self.addEventListener('message', (event) => {
+  if (event.data.action === 'MESSAGE_PORT') {
+    messageChannelPort = event.ports[0]
+  }
+  messageChannelPort?.postMessage({ message: '[sw:message] received message', context: { action: event.data.action } })
   if (event.data.action === 'STORE_SUBSCRIPTION') {
+    messageChannelPort?.postMessage({ message: '[sw:message] storing subscription in IndexedDB', context: { endpoint: event.data.subscription.endpoint } })
     return event.waitUntil(storage.setItem('subscription', event.data.subscription))
   }
   if (event.data.action === 'SYNC_SUBSCRIPTION') {
@@ -96,14 +104,17 @@ self.addEventListener('message', (event) => {
 async function handlePushSubscriptionChange (oldSubscription, newSubscription) {
   // https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/pushsubscriptionchange_event
   // fallbacks since browser may not set oldSubscription and newSubscription
+  messageChannelPort?.postMessage({ message: '[sw:handlePushSubscriptionChange] invoked' })
   oldSubscription ??= await storage.getItem('subscription')
   newSubscription ??= await self.registration.pushManager.getSubscription()
   if (!newSubscription) {
     // no subscription exists at the moment
+    messageChannelPort?.postMessage({ message: '[sw:handlePushSubscriptionChange] no existing subscription found' })
     return
   }
   if (oldSubscription?.endpoint === newSubscription.endpoint) {
     // subscription did not change. no need to sync with server
+    messageChannelPort?.postMessage({ message: '[sw:handlePushSubscriptionChange] old subscription matches existing subscription' })
     return
   }
   // convert keys from ArrayBuffer to string
@@ -128,9 +139,11 @@ async function handlePushSubscriptionChange (oldSubscription, newSubscription) {
     },
     body
   })
+  messageChannelPort?.postMessage({ message: '[sw:handlePushSubscriptionChange] synced push subscription with server', context: { endpoint: variables.endpoint, oldEndpoint: variables.oldEndpoint } })
   await storage.setItem('subscription', JSON.parse(JSON.stringify(newSubscription)))
 }
 
 self.addEventListener('pushsubscriptionchange', (event) => {
+  messageChannelPort?.postMessage({ message: '[sw:pushsubscriptionchange] received event' })
   event.waitUntil(handlePushSubscriptionChange(event.oldSubscription, event.newSubscription))
 }, false)

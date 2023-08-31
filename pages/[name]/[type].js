@@ -1,7 +1,7 @@
 import { getGetServerSideProps } from '../../api/ssrApollo'
 import Items from '../../components/items'
 import { useRouter } from 'next/router'
-import { USER_WITH_ITEMS } from '../../fragments/users'
+import { USER, USER_WITH_ITEMS } from '../../fragments/users'
 import { useQuery } from '@apollo/client'
 import { COMMENT_TYPE_QUERY, ITEM_SORTS, ITEM_TYPES, WHENS } from '../../lib/constants'
 import PageLoading from '../../components/page-loading'
@@ -9,12 +9,11 @@ import { UserLayout } from '.'
 import { Form, Select } from '../../components/form'
 
 const staticVariables = { sort: 'user' }
-const variablesFunc = vars =>
-  ({
-    includeComments: COMMENT_TYPE_QUERY.includes(vars.type),
-    ...staticVariables,
-    ...vars
-  })
+const variablesFunc = vars => ({
+  includeComments: COMMENT_TYPE_QUERY.includes(vars.type),
+  ...staticVariables,
+  ...vars
+})
 export const getServerSideProps = getGetServerSideProps(
   { query: USER_WITH_ITEMS, variables: variablesFunc, notFound: data => !data.user })
 
@@ -22,7 +21,7 @@ export default function UserItems ({ ssrData }) {
   const router = useRouter()
   const variables = variablesFunc(router.query)
 
-  const { data } = useQuery(USER_WITH_ITEMS, { variables })
+  const { data } = useQuery(USER, { variables })
   if (!data && !ssrData) return <PageLoading />
 
   const { user } = data || ssrData
@@ -43,7 +42,6 @@ export default function UserItems ({ ssrData }) {
 
 function UserItemsHeader ({ type, name }) {
   const router = useRouter()
-
   async function select (values) {
     let { type, ...query } = values
     if (!type || type === 'all' || !ITEM_TYPES('user').includes(type)) type = 'all'

@@ -61,15 +61,16 @@ export default async function getSSRApolloClient ({ req, res, me = null }) {
  * @param opts.notFound function that tests data to determine if 404
  * @param opts.authRequired boolean that determines if auth is required
  */
-export function getGetServerSideProps ({ query, variables, notFound, authRequired }) {
+export function getGetServerSideProps (
+  { query: queryOrFunc, variables: varsOrFunc, notFound, authRequired }) {
   return async function ({ req, res, query: params }) {
     const { nodata, ...realParams } = params
     // we want to use client-side cache
     if (nodata) return { props: { } }
 
-    variables = typeof variables === 'function' ? variables(realParams) : variables
+    const variables = typeof varsOrFunc === 'function' ? varsOrFunc(realParams) : varsOrFunc
     const vars = { ...realParams, ...variables }
-    query = typeof query === 'function' ? query(vars) : query
+    const query = typeof queryOrFunc === 'function' ? queryOrFunc(vars) : queryOrFunc
 
     const client = await getSSRApolloClient({ req, res })
 

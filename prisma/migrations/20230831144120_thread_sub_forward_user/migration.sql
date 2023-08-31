@@ -134,6 +134,9 @@ BEGIN
     WHERE "itemId" = item.id
     AND (
         (SELECT COUNT(*) FROM jsonb_populate_recordset(NULL::"ItemForward", forward) as nf WHERE "ThreadSubscription"."userId" = nf."userId") = 0
+    )
+    AND (
+        (SELECT COUNT(*) FROM "ItemForward" WHERE "ItemForward"."itemId" = item.id AND "ItemForward"."userId" = "ThreadSubscription"."userId" ) > 0
     );
 
     -- Automatically subscribe any new forward recipients to the post

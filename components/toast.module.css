@@ -1,3 +1,7 @@
+.toastContainer {
+  transform: translate3d(0,0,0);
+}
+
 .toast {
   width: auto;
   border: 1px solid var(--bs-success-border-subtle);
@@ -5,7 +9,7 @@
 }
 
 .toastClose {
-color: #fff;
+  color: #fff;
   font-family: "lightning";
   font-size: 150%;
   line-height: 1rem;

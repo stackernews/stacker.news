@@ -17,6 +17,7 @@ import Avatar from './avatar'
 import ActionTooltip from './action-tooltip'
 import { jobSchema } from '../lib/validate'
 import CancelButton from './cancel-button'
+import { MAX_TITLE_LENGTH } from '../lib/constants'
 
 function satsMin2Mo (minute) {
   return minute * 30 * 24 * 60
@@ -116,6 +117,8 @@ export default function JobForm ({ item, sub }) {
           required
           autoFocus
           clear
+          hint={(formik) => <span className='text-muted'>{`${MAX_TITLE_LENGTH - (formik.values.title || '').length} characters remaining`}</span>}
+          maxLength={MAX_TITLE_LENGTH}
         />
         <Input
           label='company'

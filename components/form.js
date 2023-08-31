@@ -310,14 +310,14 @@ function InputInner ({
             className={`${styles.clearButton} ${styles.appendButton} ${invalid ? styles.isInvalid : ''}`}
           ><CloseIcon className='fill-grey' height={20} width={20} />
           </Button>}
-        {append}
+        {typeof append === 'function' ? append(formik) : append}
         <BootstrapForm.Control.Feedback type='invalid'>
           {meta.touched && meta.error}
         </BootstrapForm.Control.Feedback>
       </InputGroup>
       {hint && (
         <BootstrapForm.Text>
-          {hint}
+          {typeof hint === 'function' ? hint(formik) : hint}
         </BootstrapForm.Text>
       )}
     </>

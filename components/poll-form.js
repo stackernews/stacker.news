@@ -3,7 +3,7 @@ import { useRouter } from 'next/router'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
-import { MAX_POLL_NUM_CHOICES } from '../lib/constants'
+import { MAX_POLL_CHOICE_LENGTH, MAX_POLL_NUM_CHOICES, MAX_TITLE_LENGTH } from '../lib/constants'
 import FeeButton, { EditFeeButton } from './fee-button'
 import Delete from './delete'
 import Button from 'react-bootstrap/Button'
@@ -76,6 +76,8 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         label='title'
         name='title'
         required
+        hint={(formik) => <span className='text-muted'>{`${MAX_TITLE_LENGTH - (formik.values.title || '').length} characters remaining`}</span>}
+        maxLength={MAX_TITLE_LENGTH}
       />
       <MarkdownInput
         topLevel
@@ -92,7 +94,16 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         hint={editThreshold
           ? <div className='text-muted fw-bold'><Countdown date={editThreshold} /></div>
           : null}
-      />
+      >
+        {({ index, readOnly, placeholder }) => (
+          <Input
+            name={`options[${index}]`}
+            readOnly={readOnly}
+            placeholder={placeholder}
+            hint={(formik) => <span className='text-muted'>{`${MAX_POLL_CHOICE_LENGTH - (formik.values.options?.[index] || '').length} characters remaining`}</span>}
+            maxLength={MAX_POLL_CHOICE_LENGTH}
+          />)}
+      </VariableInput>
       <AdvPostForm edit={!!item} />
       <div className='mt-3'>
         {item

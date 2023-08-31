@@ -10,10 +10,9 @@ import InvoiceStatus from './invoice-status'
 import { useMe } from './me'
 import { useShowModal } from './modal'
 import { sleep } from '../lib/time'
-import FundError, { payOrLoginError } from './fund-error'
 import Countdown from './countdown'
 
-export function Invoice ({ invoice, onPayment, successVerb }) {
+export function Invoice ({ invoice, onPayment, info, successVerb }) {
   const [expired, setExpired] = useState(new Date(invoice.expiredAt) <= new Date())
 
   let variant = 'default'
@@ -55,6 +54,7 @@ export function Invoice ({ invoice, onPayment, successVerb }) {
           }}
         />
       </div>
+      {info && <div className='text-muted fst-italic text-center'>{info}</div>}
       <div className='w-100'>
         {nostr
           ? <AccordianItem
@@ -74,6 +74,7 @@ export function Invoice ({ invoice, onPayment, successVerb }) {
 }
 
 const MutationInvoice = ({ id, hash, hmac, errorCount, repeat, onClose, expiresAt, ...props }) => {
+  const me = useMe()
   const { data, loading, error } = useQuery(INVOICE, {
     pollInterval: 1000,
     variables: { id }
@@ -99,9 +100,10 @@ const MutationInvoice = ({ id, hash, hmac, errorCount, repeat, onClose, expiresA
   if (errorCount > 1) {
     errorStatus = 'Something still went wrong.\nYou can retry or cancel the invoice to return your funds.'
   }
+  const info = me ? 'Any additional received sats will fund your account' : null
   return (
     <>
-      <Invoice invoice={data.invoice} {...props} />
+      <Invoice invoice={data.invoice} info={info} {...props} />
       {errorCount > 0
         ? (
           <>
@@ -130,6 +132,7 @@ const defaultOptions = {
   forceInvoice: false,
   requireSession: false,
   callback: null // (formValues) => void
+  replaceModal: false
 }
 export const useInvoiceable = (onSubmit, options = defaultOptions) => {
   const me = useMe()
@@ -197,7 +200,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
           onPayment={onPayment(onClose, invoice.hmac)}
           successVerb='received'
         />
-      ), { keepOpen: true }
+      ), { replaceModal: options.replaceModal, keepOpen: true }
       )
     }
   }, [invoice?.id])
@@ -218,21 +221,9 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
       try {
         return await onSubmit(formValues, ...submitArgs)
       } catch (error) {
-        if (payOrLoginError(error)) {
-          showModal(onClose => {
-            return (
-              <FundError
-                onClose={onClose}
-                amount={cost}
-                onPayment={async ({ satsReceived, hash, hmac }) => {
-                  await onSubmit({ satsReceived, hash, hmac, ...formValues }, ...submitArgs)
-                }}
-              />
-            )
-          })
-          return { keepLocalStorage: true }
+        if (!payOrLoginError(error)) {
+          throw error
         }
-        throw error
       }
     }
     setFormValues(formValues)
@@ -244,4 +235,20 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
   }, [onSubmit, setFormValues, setSubmitArgs, createInvoice])
 
   return onSubmitWrapper
+}
+
+export const InvoiceModal = ({ onPayment, amount }) => {
+  const createInvoice = useInvoiceable(onPayment, { replaceModal: true })
+
+  useEffect(() => {
+    createInvoice({ amount })
+  }, [])
+}
+
+export const payOrLoginError = (error) => {
+  const matches = ['insufficient funds', 'you must be logged in or pay']
+  if (Array.isArray(error)) {
+    return error.some(({ message }) => matches.some(m => message.includes(m)))
+  }
+  return matches.some(m => error.toString().includes(m))
 }

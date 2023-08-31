@@ -24,7 +24,9 @@ function checkInvoice ({ boss, models, lnd }) {
 
     const expired = new Date(inv.expires_at) <= new Date()
 
-    if (inv.is_confirmed) {
+    if (inv.is_confirmed && !inv.is_held) {
+      // never mark hodl invoices as confirmed here because
+      // we manually confirm them when we settle them
       await serialize(models,
         models.$executeRaw`SELECT confirm_invoice(${inv.id}, ${Number(inv.received_mtokens)})`)
       return boss.send('nip57', { hash })

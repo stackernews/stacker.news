@@ -131,7 +131,7 @@ const MutationInvoice = ({ id, hash, hmac, errorCount, repeat, onClose, expiresA
 const defaultOptions = {
   forceInvoice: false,
   requireSession: false,
-  callback: null // (formValues) => void
+  callback: null, // (formValues) => void
   replaceModal: false
 }
 export const useInvoiceable = (onSubmit, options = defaultOptions) => {

@@ -6,11 +6,9 @@
   width: auto;
   border: 1px solid var(--bs-success-border-subtle);
   color: #fff;
-  transform: translate3d(0,0,0);
 }
 
 .toastClose {
-  transform: translate3d(0,0,0);
   color: #fff;
   font-family: "lightning";
   font-size: 150%;

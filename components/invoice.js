@@ -74,7 +74,6 @@ export function Invoice ({ invoice, onPayment, info, successVerb }) {
 }
 
 const MutationInvoice = ({ id, hash, hmac, errorCount, repeat, onClose, expiresAt, ...props }) => {
-  const me = useMe()
   const { data, loading, error } = useQuery(INVOICE, {
     pollInterval: 1000,
     variables: { id }
@@ -100,10 +99,10 @@ const MutationInvoice = ({ id, hash, hmac, errorCount, repeat, onClose, expiresA
   if (errorCount > 1) {
     errorStatus = 'Something still went wrong.\nYou can retry or cancel the invoice to return your funds.'
   }
-  const info = me ? 'Any additional received sats will fund your account' : null
+
   return (
     <>
-      <Invoice invoice={data.invoice} info={info} {...props} />
+      <Invoice invoice={data.invoice} {...props} />
       {errorCount > 0
         ? (
           <>

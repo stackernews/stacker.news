@@ -128,7 +128,8 @@ const MutationInvoice = ({ id, hash, hmac, errorCount, repeat, onClose, expiresA
 
 const defaultOptions = {
   forceInvoice: false,
-  requireSession: false
+  requireSession: false,
+  callback: null // (formValues) => void
 }
 export const useInvoiceable = (onSubmit, options = defaultOptions) => {
   const me = useMe()
@@ -153,7 +154,10 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
         const repeat = () =>
           // call onSubmit handler and pass invoice data
           onSubmit({ satsReceived, hash, hmac, ...formValues }, ...submitArgs)
-            .then(onClose)
+            .then(() => {
+              onClose()
+              options?.callback?.(formValues)
+            })
             .catch((error) => {
               // if error happened after payment, show repeat and cancel options
               // by passing `errorCount` and `repeat`

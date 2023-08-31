@@ -153,19 +153,18 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
     (onClose, hmac) => {
       return async ({ id, satsReceived, expiresAt, hash }) => {
         await sleep(500)
-        const repeat = () =>
+        const repeat = () => {
+          onClose()
           // call onSubmit handler and pass invoice data
           onSubmit({ satsReceived, hash, hmac, ...formValues }, ...submitArgs)
             .then(() => {
-              onClose()
               options?.callback?.(formValues)
             })
             .catch((error) => {
-              // if error happened after payment, show repeat and cancel options
-              // by passing `errorCount` and `repeat`
+            // if error happened after payment, show repeat and cancel options
+            // by passing `errorCount` and `repeat`
               console.error(error)
               errorCount++
-              onClose()
               showModal(onClose => (
                 <MutationInvoice
                   id={id}
@@ -180,6 +179,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
                 />
               ), { keepOpen: true })
             })
+        }
         // prevents infinite loop of calling `onPayment`
         if (errorCount === 0) await repeat()
       }

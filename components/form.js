@@ -484,6 +484,21 @@ export function Form ({
     }
   }, [])
 
+  function clearLocalStorage (values) {
+    Object.keys(values).forEach(v => {
+      window.localStorage.removeItem(storageKeyPrefix + '-' + v)
+      if (Array.isArray(values[v])) {
+        values[v].forEach(
+          (iv, i) => {
+            Object.keys(iv).forEach(k => {
+              window.localStorage.removeItem(`${storageKeyPrefix}-${v}[${i}].${k}`)
+            })
+            window.localStorage.removeItem(`${storageKeyPrefix}-${v}[${i}]`)
+          })
+      }
+    })
+  }
+
   // if `invoiceable` is set,
   // support for payment per invoice if they are lurking or don't have enough balance
   // is added to submit handlers.
@@ -491,7 +506,7 @@ export function Form ({
   // and use them as variables in their GraphQL mutation
   if (invoiceable && onSubmit) {
     const options = typeof invoiceable === 'object' ? invoiceable : undefined
-    onSubmit = useInvoiceable(onSubmit, options)
+    onSubmit = useInvoiceable(onSubmit, { callback: clearLocalStorage, ...options })
   }
 
   return (
@@ -506,18 +521,7 @@ export function Form ({
           if (onSubmit) {
             const options = await onSubmit(values, ...args)
             if (!storageKeyPrefix || options?.keepLocalStorage) return
-            Object.keys(values).forEach(v => {
-              window.localStorage.removeItem(storageKeyPrefix + '-' + v)
-              if (Array.isArray(values[v])) {
-                values[v].forEach(
-                  (iv, i) => {
-                    Object.keys(iv).forEach(k => {
-                      window.localStorage.removeItem(`${storageKeyPrefix}-${v}[${i}].${k}`)
-                    })
-                    window.localStorage.removeItem(`${storageKeyPrefix}-${v}[${i}]`)
-                  })
-              }
-            })
+            clearLocalStorage(values)
           }
         } catch (err) {
           console.log(err)

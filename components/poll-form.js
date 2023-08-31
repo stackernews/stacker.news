@@ -1,4 +1,4 @@
-import { Form, Input, MarkdownInput, SubmitButton, VariableInput } from '../components/form'
+import { Form, Input, MarkdownInput, SubmitButton, VariableInput, InputInner } from '../components/form'
 import { useRouter } from 'next/router'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
 import Countdown from './countdown'
@@ -96,7 +96,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
           : null}
       >
         {({ index, readOnly, placeholder }) => (
-          <Input
+          <InputInner
             name={`options[${index}]`}
             readOnly={readOnly}
             placeholder={placeholder}

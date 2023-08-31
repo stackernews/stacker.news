@@ -222,7 +222,7 @@ function FormGroup ({ className, label, children }) {
   )
 }
 
-function InputInner ({
+export function InputInner ({
   prepend, append, hint, showValid, onChange, onBlur, overrideValue,
   innerRef, noForm, clear, onKeyDown, inputGroupClassName, debounce, ...props
 }) {

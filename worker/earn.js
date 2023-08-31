@@ -65,7 +65,7 @@ function earn ({ models }) {
         - how early they upvoted it
         - how the post/comment scored
 
-      Now: 100% of earnings go to zappers of the top 21% of posts/comments
+      Now: 100% of earnings go to top 21% of posts/comments
     */
 
     // get earners { userId, id, type, rank, proportion }
@@ -118,11 +118,9 @@ function earn ({ models }) {
           JOIN users on "userId" = users.id
           GROUP BY "userId", "parentId" IS NULL
       )
-      SELECT "userId", NULL as id, type, ROW_NUMBER() OVER (PARTITION BY "isPost" ORDER BY upvoter_ratio DESC) as rank,
-          upvoter_ratio/(sum(upvoter_ratio) OVER (PARTITION BY "isPost"))/2 as proportion
-      FROM upvoter_ratios
-      WHERE upvoter_ratio > 0
-      ORDER BY "isPost", rank ASC`
+      SELECT "userId", id, type, rank, ratio/2.0 as proportion
+      FROM item_ratios
+      ORDER BY type, rank ASC`
 
     // in order to group earnings for users we use the same createdAt time for
     // all earnings

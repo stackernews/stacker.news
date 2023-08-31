@@ -65,6 +65,7 @@ export default gql`
   type Earn {
     id: ID!
     earnedSats: Int!
+    minSortTime: Date!
     sortTime: Date!
     sources: EarnSources
   }

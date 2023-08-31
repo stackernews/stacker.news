@@ -7,7 +7,7 @@ import { NOTIFICATIONS } from '../fragments/notifications'
 import MoreFooter from './more-footer'
 import Invite from './invite'
 import { ignoreClick } from '../lib/clicks'
-import { timeSince } from '../lib/time'
+import { dayMonthYear, timeSince } from '../lib/time'
 import Link from 'next/link'
 import Check from '../svgs/check-double-line.svg'
 import HandCoin from '../svgs/hand-coin-fill.svg'
@@ -74,7 +74,14 @@ function NotificationLayout ({ children, nid, href, as, fresh }) {
 
 const defaultOnClick = n => {
   const type = n.__typename
-  if (type === 'Earn') return { href: `/rewards/${new Date(n.sortTime).toISOString().slice(0, 10)}` }
+  if (type === 'Earn') {
+    let href = '/rewards/'
+    if (n.minSortTime !== n.sortTime) {
+      href += `${new Date(n.minSortTime).toISOString().slice(0, 10)}/`
+    }
+    href += new Date(n.sortTime).toISOString().slice(0, 10)
+    return { href }
+  }
   if (type === 'Invitification') return { href: '/invites' }
   if (type === 'InvoicePaid') return { href: `/invoices/${n.invoice.id}` }
   if (type === 'Referral') return { href: '/referrals/month' }
@@ -156,12 +163,14 @@ function Streak ({ n }) {
 }
 
 function EarnNotification ({ n }) {
+  const time = n.minSortTime === n.sortTime ? dayMonthYear(new Date(n.minSortTime)) : `${dayMonthYear(new Date(n.minSortTime))} to ${dayMonthYear(new Date(n.sortTime))}`
+
   return (
     <div className='d-flex ms-2 py-1'>
       <HandCoin className='align-self-center fill-boost mx-1' width={24} height={24} style={{ flex: '0 0 24px', transform: 'rotateY(180deg)' }} />
       <div className='ms-2'>
         <div className='fw-bold text-boost'>
-          you stacked {numWithUnits(n.earnedSats, { abbreviate: false })} in rewards<small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
+          you stacked {numWithUnits(n.earnedSats, { abbreviate: false })} in rewards<small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{time}</small>
         </div>
         {n.sources &&
           <div style={{ fontSize: '80%', color: 'var(--theme-grey)' }}>
@@ -170,9 +179,10 @@ function EarnNotification ({ n }) {
             {n.sources.tipPosts > 0 && <span>{(n.sources.comments > 0 || n.sources.posts > 0) && ' \\ '}{numWithUnits(n.sources.tipPosts, { abbreviate: false })} for zapping top posts early</span>}
             {n.sources.tipComments > 0 && <span>{(n.sources.comments > 0 || n.sources.posts > 0 || n.sources.tipPosts > 0) && ' \\ '}{numWithUnits(n.sources.tipComments, { abbreviate: false })} for zapping top comments early</span>}
           </div>}
-        <div className='pb-1' style={{ lineHeight: '140%' }}>
+        <div style={{ lineHeight: '140%' }}>
           SN distributes the sats it earns back to its best stackers daily. These sats come from <Link href='/~jobs'>jobs</Link>, boosts, posting fees, and donations. You can see the daily rewards pool and make a donation <Link href='/rewards'>here</Link>.
         </div>
+        <small className='text-muted ms-1 pb-1 fw-normal'>click for details</small>
       </div>
     </div>
   )

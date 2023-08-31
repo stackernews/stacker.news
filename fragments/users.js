@@ -195,6 +195,14 @@ export const USER_FULL = gql`
   }
 }`
 
+export const USER = gql`
+  ${USER_FIELDS}
+  query User($name: String!) {
+    user(name: $name) {
+      ...UserFields
+    }
+  }`
+
 export const USER_WITH_ITEMS = gql`
   ${USER_FIELDS}
   ${ITEM_FIELDS}

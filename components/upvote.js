@@ -1,7 +1,6 @@
 import UpBolt from '../svgs/bolt.svg'
 import styles from './upvote.module.css'
 import { gql, useMutation } from '@apollo/client'
-import FundError, { payOrLoginError } from './fund-error'
 import ActionTooltip from './action-tooltip'
 import ItemAct from './item-act'
 import { useMe } from './me'
@@ -13,6 +12,7 @@ import Popover from 'react-bootstrap/Popover'
 import { useShowModal } from './modal'
 import { LightningConsumer, useLightning } from './lightning'
 import { numWithUnits } from '../lib/format'
+import { InvoiceModal, payOrLoginError } from './invoice'
 
 const getColor = (meSats) => {
   if (!meSats || meSats <= 10) {
@@ -180,8 +180,7 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
           if (payOrLoginError(error)) {
             showModal(onClose => {
               return (
-                <FundError
-                  onClose={onClose}
+                <InvoiceModal
                   amount={pendingSats}
                   onPayment={async ({ hash, hmac }) => {
                     await act({ variables: { ...variables, hash, hmac } })

@@ -11,13 +11,14 @@ export default function NotificationPage ({ ssrData }) {
   const client = useApolloClient()
 
   useEffect(() => {
+    console.log('clearing notifications')
     client?.writeQuery({
       query: HAS_NOTIFICATIONS,
       data: {
         hasNewNotes: false
       }
     })
-  }, [])
+  }, [ssrData])
 
   return (
     <Layout>

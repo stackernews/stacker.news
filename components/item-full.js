@@ -68,7 +68,7 @@ function ItemEmbed ({ item }) {
   const [overflowing, setOverflowing] = useState(false)
   const [show, setShow] = useState(false)
 
-  const twitter = item.url?.match(/^https?:\/\/twitter\.com\/(?:#!\/)?\w+\/status(?:es)?\/(?<id>\d+)/)
+  const twitter = item.url?.match(/^https?:\/\/(?:twitter|x)\.com\/(?:#!\/)?\w+\/status(?:es)?\/(?<id>\d+)/)
   if (twitter?.groups?.id) {
     return (
       <div className={`${styles.twitterContainer} ${show ? '' : styles.twitterContained}`}>

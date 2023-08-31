@@ -48,7 +48,7 @@ export function Invoice ({ invoice, onPayment, successVerb }) {
         description={numWithUnits(invoice.satsRequested, { abbreviate: false })}
         statusVariant={variant} status={status}
       />
-      <div className='text-muted text-center fw-bold'>
+      <div className='text-muted text-center'>
         <Countdown
           date={invoice.expiresAt} onComplete={() => {
             setExpired(true)

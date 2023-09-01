@@ -87,6 +87,9 @@ model User {
   hideBookmarks       Boolean              @default(false)
   followers           UserSubscription[]   @relation("follower")
   followees           UserSubscription[]   @relation("followee")
+  csvRequest          CsvRequest           @default(NO_REQUEST)
+  csvRequestStatus    CsvRequestStatus     @default(NO_REQUEST)
+  csvRequestProgress  Int?
 
   @@index([createdAt], map: "users.created_at_index")
   @@index([inviteId], map: "users.inviteId_index")
@@ -596,4 +599,15 @@ enum WithdrawlStatus {
   ROUTE_NOT_FOUND
   CONFIRMED
   UNKNOWN_FAILURE
+}
+
+enum CsvRequest {
+  NO_REQUEST
+  FULL_REPORT
+}
+
+enum CsvRequestStatus {
+  NO_REQUEST
+  FULL_REPORT
+  GENERATING_REPORT
 }

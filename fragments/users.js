@@ -33,6 +33,8 @@ export const ME = gql`
       wildWestMode
       greeterMode
       lastCheckedJobs
+      csvRequest
+      csvRequestStatus
     }
   }`
 

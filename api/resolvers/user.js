@@ -575,10 +575,25 @@ export default {
         await models.userSubscription.create({ data })
       }
       return { id }
+    },
+    csvRequest: async (parent, { csvRequest }, { me, models }) => {
+      console.log('mutate csvRequest', csvRequest)
+      if (!me) {
+        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+      }
+
+      await models.user.update({ where: { id: me.id }, data: { csvRequest } })
+      return csvRequest
     }
   },
 
   User: {
+    csvRequest: async (user, args, { models }) => {
+      return user.csvRequest
+    },
+    csvRequestStatus: async (user, args, { models }) => {
+      return user.csvRequestStatus
+    },
     authMethods,
     since: async (user, args, { models }) => {
       // get the user's first item

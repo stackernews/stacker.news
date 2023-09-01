@@ -1,4 +1,5 @@
-import { useQuery } from '@apollo/client'
+import Button from 'react-bootstrap/Button'
+import { gql, useQuery, useMutation } from '@apollo/client'
 import Link from 'next/link'
 import { getGetServerSideProps } from '../api/ssrApollo'
 import Layout from '../components/layout'
@@ -12,9 +13,12 @@ import { Checkbox, Form } from '../components/form'
 import { useRouter } from 'next/router'
 import Item from '../components/item'
 import { CommentFlat } from '../components/comment'
+import { useEffect } from 'react'
 import ItemJob from '../components/item-job'
 import PageLoading from '../components/page-loading'
 import DownloadFile from '../svgs/file-download-line.svg'
+import { useMe } from '../components/me'
+import { CsvRequest, CsvRequestStatus } from '../api/constants'
 
 export const getServerSideProps = getGetServerSideProps({ query: WALLET_HISTORY, authRequired: true })
 
@@ -165,6 +169,39 @@ export default function Satistics ({ ssrData }) {
   }
 
   const { walletHistory: { facts, cursor } } = data || ssrData
+
+  const me = useMe()
+  const makeCsvRequest = async () => {
+    const { error } = await csvRequest({ variables: { csvRequest: CsvRequest.FULL_REPORT } })
+    if (error) {
+      throw new Error({ message: error.toString() })
+    }
+  }
+  const cancelCsvRequest = async () => {
+    const { error } = await csvRequest({ variables: { csvRequest: CsvRequest.NO_REQUEST } })
+    if (error) {
+      throw new Error({ message: error.toString() })
+    }
+  }
+  const [csvRequest] = useMutation(gql`
+  mutation csvRequest($csvRequest: CsvRequest!) {
+    csvRequest(csvRequest: $csvRequest)
+  }
+`, {
+    update (cache, { data: { csvRequest } }) {
+      cache.modify({
+        id: `User:${me.id}`,
+        fields: {
+          csvRequest: () => csvRequest
+        }
+      })
+    }
+  })
+  useEffect(() => {
+    if (me.csvRequest === CsvRequest.FULL_REPORT && me.csvRequestStatus === CsvRequestStatus.FULL_REPORT) {
+      cancelCsvRequest()
+    }
+  }, [me.csvRequest, me.CsvRequestStatus])
 
   return (
     <Layout>

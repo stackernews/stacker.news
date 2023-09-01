@@ -5,6 +5,7 @@ const { checkInvoice, checkWithdrawal } = require('./wallet')
 const { repin } = require('./repin')
 const { trust } = require('./trust')
 const { auction } = require('./auction')
+const { updateCsvs } = require('./csv')
 const { earn } = require('./earn')
 const { ApolloClient, HttpLink, InMemoryCache } = require('@apollo/client')
 const { indexItem, indexAllItems } = require('./search')
@@ -47,6 +48,8 @@ async function work () {
 
   boss.on('error', error => console.error(error))
 
+  boss.schedule('updateCsvs', '* * * * *')
+
   await boss.start()
   await boss.work('checkInvoice', checkInvoice(args))
   await boss.work('checkWithdrawal', checkWithdrawal(args))
@@ -62,6 +65,7 @@ async function work () {
   await boss.work('nip57', nip57(args))
   await boss.work('views', views(args))
   await boss.work('rankViews', rankViews(args))
+  await boss.work('updateCsvs', updateCsvs(args))
 
   console.log('working jobs')
 }

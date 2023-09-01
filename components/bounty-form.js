@@ -9,7 +9,7 @@ import { bountySchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
 import { useCallback } from 'react'
-import { normalizeForwards, titleInputHint } from '../lib/form'
+import { normalizeForwards } from '../lib/form'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
 
 export function BountyForm ({
@@ -105,7 +105,6 @@ export function BountyForm ({
         required
         autoFocus
         clear
-        hint={titleInputHint}
         maxLength={MAX_TITLE_LENGTH}
       />
       <Input

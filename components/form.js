@@ -20,6 +20,7 @@ import { USER_SEARCH } from '../fragments/users'
 import TextareaAutosize from 'react-textarea-autosize'
 import { useToast } from './toast'
 import { useInvoiceable } from './invoice'
+import { numWithUnits } from '../lib/format'
 
 export function SubmitButton ({
   children, variant, value, onClick, disabled, cost, ...props
@@ -222,7 +223,7 @@ function FormGroup ({ className, label, children }) {
   )
 }
 
-export function InputInner ({
+function InputInner ({
   prepend, append, hint, showValid, onChange, onBlur, overrideValue,
   innerRef, noForm, clear, onKeyDown, inputGroupClassName, debounce, ...props
 }) {
@@ -310,14 +311,19 @@ export function InputInner ({
             className={`${styles.clearButton} ${styles.appendButton} ${invalid ? styles.isInvalid : ''}`}
           ><CloseIcon className='fill-grey' height={20} width={20} />
           </Button>}
-        {typeof append === 'function' ? append(formik) : append}
+        {append}
         <BootstrapForm.Control.Feedback type='invalid'>
           {meta.touched && meta.error}
         </BootstrapForm.Control.Feedback>
       </InputGroup>
       {hint && (
         <BootstrapForm.Text>
-          {typeof hint === 'function' ? hint(formik) : hint}
+          {hint}
+        </BootstrapForm.Text>
+      )}
+      {props.maxLength && (
+        <BootstrapForm.Text>
+          {`${numWithUnits(props.maxLength - (field.value || '').length, { abbreviate: false, unitSingular: 'character', unitPlural: 'characters' })} remaining`}
         </BootstrapForm.Text>
       )}
     </>

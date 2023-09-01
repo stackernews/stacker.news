@@ -1,4 +1,4 @@
-import { Form, Input, MarkdownInput, SubmitButton, VariableInput, InputInner } from '../components/form'
+import { Form, Input, MarkdownInput, SubmitButton, VariableInput } from '../components/form'
 import { useRouter } from 'next/router'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
 import Countdown from './countdown'
@@ -11,8 +11,7 @@ import { pollSchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
 import { useCallback } from 'react'
-import { normalizeForwards, titleInputHint } from '../lib/form'
-import { numWithUnits } from '../lib/format'
+import { normalizeForwards } from '../lib/form'
 
 export function PollForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
@@ -77,7 +76,6 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         label='title'
         name='title'
         required
-        hint={titleInputHint}
         maxLength={MAX_TITLE_LENGTH}
       />
       <MarkdownInput
@@ -95,16 +93,8 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         hint={editThreshold
           ? <div className='text-muted fw-bold'><Countdown date={editThreshold} /></div>
           : null}
-      >
-        {({ index, readOnly, placeholder }) => (
-          <InputInner
-            name={`options[${index}]`}
-            readOnly={readOnly}
-            placeholder={placeholder}
-            hint={(formik) => <span className='text-muted'>{`${numWithUnits(MAX_POLL_CHOICE_LENGTH - (formik.values.options?.[index] || '').length, { abbreviate: false, unitSingular: 'character', unitPlural: 'characters' })} remaining`}</span>}
-            maxLength={MAX_POLL_CHOICE_LENGTH}
-          />)}
-      </VariableInput>
+        maxLength={MAX_POLL_CHOICE_LENGTH}
+      />
       <AdvPostForm edit={!!item} />
       <div className='mt-3'>
         {item

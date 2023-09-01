@@ -13,7 +13,7 @@ import { discussionSchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
 import { useCallback } from 'react'
-import { normalizeForwards, titleInputHint } from '../lib/form'
+import { normalizeForwards } from '../lib/form'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
 
 export function DiscussionForm ({
@@ -102,7 +102,6 @@ export function DiscussionForm ({
             })
           }
         }}
-        hint={titleInputHint}
         maxLength={MAX_TITLE_LENGTH}
       />
       <MarkdownInput

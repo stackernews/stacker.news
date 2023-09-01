@@ -14,7 +14,7 @@ import { linkSchema } from '../lib/validate'
 import Moon from '../svgs/moon-fill.svg'
 import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
-import { normalizeForwards, titleInputHint } from '../lib/form'
+import { normalizeForwards } from '../lib/form'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
 
 export function LinkForm ({ item, sub, editThreshold, children }) {
@@ -147,7 +147,6 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
               txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()))
           }
         }}
-        hint={titleInputHint}
         maxLength={MAX_TITLE_LENGTH}
       />
       <Input

@@ -12,6 +12,7 @@ import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
 import { useCallback } from 'react'
 import { normalizeForwards, titleInputHint } from '../lib/form'
+import { numWithUnits } from '../lib/format'
 
 export function PollForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
@@ -100,7 +101,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
             name={`options[${index}]`}
             readOnly={readOnly}
             placeholder={placeholder}
-            hint={(formik) => <span className='text-muted'>{`${MAX_POLL_CHOICE_LENGTH - (formik.values.options?.[index] || '').length} characters remaining`}</span>}
+            hint={(formik) => <span className='text-muted'>{`${numWithUnits(MAX_POLL_CHOICE_LENGTH - (formik.values.options?.[index] || '').length, { abbreviate: false, unitSingular: 'character', unitPlural: 'characters' })} remaining`}</span>}
             maxLength={MAX_POLL_CHOICE_LENGTH}
           />)}
       </VariableInput>

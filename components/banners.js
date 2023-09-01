@@ -23,7 +23,7 @@ export default function NewVisitorBanner () {
     }
   }
   const [hideWelcomeBanner] = useMutation(WELCOME_BANNER_MUTATION, {
-    update (cache, { data: { _ } }) {
+    update (cache) {
       cache.modify({
         id: `User:${me.id}`,
         fields: {

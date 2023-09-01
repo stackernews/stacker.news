@@ -176,6 +176,23 @@ export default {
         )
       }
 
+      if (meFull.noteForwardedSats) {
+        queries.push(
+          `(SELECT "Item".id::TEXT, MAX("ItemAct".created_at) AS "sortTime",
+            MAX("Item".msats / 1000 * "ItemForward".pct / 100) as "earnedSats", 'ForwardedVotification' AS type
+            FROM "Item"
+            JOIN "ItemAct" ON "ItemAct"."itemId" = "Item".id
+            JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id AND "ItemForward"."userId" = $1
+            WHERE "ItemAct"."userId" <> $1
+            AND "Item"."userId" <> $1
+            AND "ItemAct".created_at <= $2
+            AND "ItemAct".act IN ('TIP', 'FEE')
+            GROUP BY "Item".id
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT}+$3)`
+        )
+      }
+
       if (meFull.noteDeposits) {
         queries.push(
           `(SELECT "Invoice".id::text, "Invoice"."confirmedAt" AS "sortTime", FLOOR("msatsReceived" / 1000) as "earnedSats",
@@ -308,6 +325,9 @@ export default {
     __resolveType: async (n, args, { models }) => n.type
   },
   Votification: {
+    item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
+  },
+  ForwardedVotification: {
     item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
   },
   Reply: {

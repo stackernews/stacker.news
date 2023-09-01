@@ -32,6 +32,15 @@ export const NOTIFICATIONS = gql`
             text
           }
         }
+        ... on ForwardedVotification {
+          id
+          sortTime
+          earnedSats
+          item {
+            ...ItemFullFields
+            text
+          }
+        }
         ... on Streak {
           id
           sortTime

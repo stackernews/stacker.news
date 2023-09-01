@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useMe } from '../components/me'
 import { useMutation } from '@apollo/client'
 import { WELCOME_BANNER_MUTATION } from '../fragments/users'
+import { useToast } from '../components/toast'
 
 export default function NewVisitorBanner () {
   const today = new Date()
@@ -11,15 +12,21 @@ export default function NewVisitorBanner () {
     return Math.abs(a.getTime() - b.getTime()) < 1000 * 24 * 60 * 60
   }
   const me = useMe()
+  const toaster = useToast()
   const [state, setState] = useState(null)
   const handleClose = async () => {
     const obj = { date: state?.date || new Date().toJSON(), hidden: true }
     const str = JSON.stringify(obj)
     window.localStorage.setItem('newVisitorInfo', str)
     setState(obj)
-    const { error } = await hideWelcomeBanner({ variables: { } })
-    if (error) {
-      throw new Error({ message: error.toString() })
+    if (me) {
+      let error
+      try {
+        ({ error } = await hideWelcomeBanner({ variables: { } }))
+      } catch (e) {
+        error = e
+      }
+      if (error) toaster.danger(error.toString())
     }
   }
   const [hideWelcomeBanner] = useMutation(WELCOME_BANNER_MUTATION, {

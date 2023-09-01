@@ -1,4 +1,3 @@
-import Button from 'react-bootstrap/Button'
 import { gql, useQuery, useMutation } from '@apollo/client'
 import Link from 'next/link'
 import { getGetServerSideProps } from '../api/ssrApollo'
@@ -13,12 +12,12 @@ import { Checkbox, Form } from '../components/form'
 import { useRouter } from 'next/router'
 import Item from '../components/item'
 import { CommentFlat } from '../components/comment'
-import { useEffect } from 'react'
 import ItemJob from '../components/item-job'
 import PageLoading from '../components/page-loading'
 import DownloadFile from '../svgs/file-download-line.svg'
 import { useMe } from '../components/me'
 import { CsvRequest, CsvRequestStatus } from '../api/constants'
+import { useToast } from '../components/toast'
 
 export const getServerSideProps = getGetServerSideProps({ query: WALLET_HISTORY, authRequired: true })
 
@@ -146,6 +145,7 @@ function Fact ({ fact }) {
 
 export default function Satistics ({ ssrData }) {
   const router = useRouter()
+  const toaster = useToast()
   const { data, fetchMore } = useQuery(WALLET_HISTORY, { variables: { inc: router.query.inc } })
   if (!data && !ssrData) return <PageLoading />
 
@@ -171,16 +171,35 @@ export default function Satistics ({ ssrData }) {
   const { walletHistory: { facts, cursor } } = data || ssrData
 
   const me = useMe()
-  const makeCsvRequest = async () => {
-    const { error } = await csvRequest({ variables: { csvRequest: CsvRequest.FULL_REPORT } })
-    if (error) {
-      throw new Error({ message: error.toString() })
-    }
+  const getCsvBtnClass = () => {
+    return me.csvRequest === CsvRequest.NO_REQUEST
+      ? 'btn-grey-darkmode'
+      : me.csvRequestStatus === CsvRequestStatus.FULL_REPORT
+        ? 'btn-success'
+        : 'btn-danger'
   }
-  const cancelCsvRequest = async () => {
-    const { error } = await csvRequest({ variables: { csvRequest: CsvRequest.NO_REQUEST } })
-    if (error) {
-      throw new Error({ message: error.toString() })
+  const getIconClass = () => {
+    return me.csvRequest === CsvRequest.FULL_REPORT && me.csvRequestStatus !== CsvRequestStatus.FULL_REPORT
+      ? styles.busyanim
+      : ''
+  }
+  const handleCsvClick = async (event) => {
+    let newReq = CsvRequest.NO_REQUEST
+
+    if (me.csvRequest === CsvRequest.FULL_REPORT && me.csvRequestStatus === CsvRequestStatus.FULL_REPORT) {
+      toaster.success('Downloading...')
+    } else if (me.csvRequest === CsvRequest.NO_REQUEST) {
+      newReq = CsvRequest.FULL_REPORT
+      event.preventDefault()
+      toaster.success('Preparing CSV...please wait')
+    } else {
+      event.preventDefault()
+      toaster.success('Canceled')
+    }
+
+    if (newReq !== me.csvRequest) {
+      const { error } = await csvRequest({ variables: { csvRequest: newReq } })
+      if (error) toaster.danger(error.toString())
     }
   }
   const [csvRequest] = useMutation(gql`
@@ -197,11 +216,6 @@ export default function Satistics ({ ssrData }) {
       })
     }
   })
-  useEffect(() => {
-    if (me.csvRequest === CsvRequest.FULL_REPORT && me.csvRequestStatus === CsvRequestStatus.FULL_REPORT) {
-      cancelCsvRequest()
-    }
-  }, [me.csvRequest, me.CsvRequestStatus])
 
   return (
     <Layout>
@@ -238,12 +252,13 @@ export default function Satistics ({ ssrData }) {
             />
             <div className='form-group undefined'>
               <Link
-                className='btn btn-grey-darkmode btn-sm px-3'
+                className={`btn ${getCsvBtnClass()} btn-sm px-3`}
+                onClick={handleCsvClick}
                 href={`/satistics.csv?inc=${router.query.inc}`}
                 download={`statistics-${router.query.inc?.split(',').join('-')}.csv`}
                 target='_blank' rel='noreferrer'
               >
-                <DownloadFile className='fill-white' height={18} weight={18} />
+                <DownloadFile className={`fill-white ${getIconClass()}`} height={18} weight={18} />
               </Link>
             </div>
           </div>

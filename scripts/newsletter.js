@@ -62,7 +62,7 @@ Have a great weekend!
 ##### Top Posts
 ${top.data.items.items.slice(0, 10).map((item, i) =>
   `${i + 1}. [${item.title}](https://stacker.news/items/${item.id})${item.url ? `\n    - ${item.url}` : ''}
-    - ${abbrNum(item.sats)} sats \\ ${item.sats} boost \\ ${item.ncomments} comments\n`).join('')}
+    - ${abbrNum(item.sats)} sats${item.boost ? ` \\ ${abbrNum(item.boost)} boost` : ''} \\ ${item.ncomments} comments\n`).join('')}
 
 ##### Don't miss
 ${top.data.items.items.slice(0, 15).map((item, i) =>

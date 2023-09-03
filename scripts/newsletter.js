@@ -61,11 +61,12 @@ Have a great weekend!
 
 ##### Top Posts
 ${top.data.items.items.slice(0, 10).map((item, i) =>
-  `${i + 1}. [${item.title}](https://stacker.news/items/${item.id})${item.url ? `\n    - ${item.url}` : ''}
-    - ${abbrNum(item.sats)} sats${item.boost ? ` \\ ${abbrNum(item.boost)} boost` : ''} \\ ${item.ncomments} comments\n`).join('')}
+  `${i + 1}. [@${item.user.name}](https://stacker.news/${item.user.name}) [${item.title}](https://stacker.news/items/${item.id})
+    - [${item.title}](https://stacker.news/items/${item.id})
+      - ${abbrNum(item.sats)} sats${item.boost ? ` \\ ${abbrNum(item.boost)} boost` : ''} \\ ${item.ncomments} comments\n`).join('')}
 
 ##### Don't miss
-${top.data.items.items.slice(0, 15).map((item, i) =>
+${top.data.items.items.map((item, i) =>
   `- [${item.title}](https://stacker.news/items/${item.id})\n`).join('')}
 
 ##### Top meta

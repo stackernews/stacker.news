@@ -184,16 +184,19 @@ export default function Satistics ({ ssrData }) {
       : ''
   }
   const handleCsvClick = async (event) => {
-    let newReq = CsvRequest.NO_REQUEST
-
     if (me.csvRequest === CsvRequest.FULL_REPORT && me.csvRequestStatus === CsvRequestStatus.FULL_REPORT) {
       toaster.success('Downloading...')
-    } else if (me.csvRequest === CsvRequest.NO_REQUEST) {
+      return
+    }
+
+    event.preventDefault()
+    let newReq
+
+    if (me.csvRequest === CsvRequest.NO_REQUEST) {
       newReq = CsvRequest.FULL_REPORT
-      event.preventDefault()
       toaster.success('Preparing CSV...please wait')
     } else {
-      event.preventDefault()
+      newReq = CsvRequest.NO_REQUEST
       toaster.success('Canceled')
     }
 

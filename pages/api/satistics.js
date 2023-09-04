@@ -1,33 +1,38 @@
+import fs from 'fs'
 import getSSRApolloClient from '../../api/ssrApollo'
-import { WALLET_HISTORY } from '../../fragments/wallet'
+import { ME } from '../../fragments/users'
+import { CsvRequest, CsvRequestStatus } from '../../api/constants'
+import { gql } from '@apollo/client'
 
 export default async function handler (req, res) {
   const apollo = await getSSRApolloClient({ req, res })
-  let facts = []; let cursor = null
+  const { data: { me: { id, csvRequest, csvRequestStatus } } } = await apollo.query({ query: ME })
+  const fname = `satistics_${id}.csv`
   res.setHeader('Content-Type', 'text/csv')
   res.setHeader('Content-Disposition', 'attachment; filename=satistics.csv')
-  console.log(req.query.inc)
-  res.write('time,type,sats\n')
-  do {
-    // query for items
-    ({ data: { walletHistory: { facts, cursor } } } = await apollo.query({
-      query: WALLET_HISTORY,
-      variables: { cursor, limit: 1000, inc: req.query.inc }
-    }))
-
-    // for all items, index them
-    try {
-      for (const fact of facts) {
-        if (!fact.status || fact.status === 'CONFIRMED') {
-          res.write(`${fact.createdAt},${fact.type},${fact.sats}\n`)
-        }
-      }
-    } catch (e) {
-      // ignore errors
-      console.log(e)
-      res.status(500).end()
-    }
-  } while (cursor)
-
-  res.status(200).end()
+  if (id && csvRequest === CsvRequest.FULL_REPORT && csvRequestStatus === CsvRequestStatus.FULL_REPORT && fs.existsSync(fname)) {
+    fs.createReadStream(fname).pipe(res)
+      .on('error', () => res.status(500).end())
+      .on('finish', async () => {
+        res.status(200).end()
+        await apollo.mutate({
+          mutation: gql`
+            mutation csvRequest($csvRequest: CsvRequest!) {
+              csvRequest(csvRequest: $csvRequest)
+            }`,
+          variables: { csvRequest: CsvRequest.NO_REQUEST },
+          update:
+            function update (cache) {
+              cache.modify({
+                id: `User:${id}`,
+                fields: {
+                  csvRequest: () => CsvRequest.NO_REQUEST
+                }
+              })
+            }
+        })
+      })
+  } else {
+    res.status(400).end()
+  }
 }

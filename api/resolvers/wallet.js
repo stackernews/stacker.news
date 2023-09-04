@@ -75,7 +75,6 @@ export default {
     },
     walletHistory: async (parent, { cursor, inc, limit = LIMIT, id }, { me, models, lnd }) => {
       const decodedCursor = decodeCursor(cursor)
-      console.log('resolver:', me, id, limit, inc, cursor)
       if (!me && !id) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
       }

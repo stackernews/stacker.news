@@ -324,8 +324,8 @@ export default {
           "UserSubscription"."followerId" = $1
         AND "Item".created_at > $2::timestamp(3) without time zone
         AND (
-          ("Item"."parentId" IS NULL AND "UserSubscription".posts = TRUE)
-          OR ("Item"."parentId" IS NOT NULL AND "UserSubscription".comments = TRUE)
+          ("Item"."parentId" IS NULL AND "UserSubscription".posts = TRUE AND "UserSubscription"."postsUpdatedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."postsUpdatedAt")
+          OR ("Item"."parentId" IS NOT NULL AND "UserSubscription".comments = TRUE AND "UserSubscription"."commentsUpdatedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."commentsUpdatedAt")
         )
         ${await filterClause(me, models)}
         LIMIT 1`, me.id, lastChecked)
@@ -596,9 +596,9 @@ export default {
       const lookupData = { followerId: Number(me.id), followeeId: Number(id) }
       const existing = await models.userSubscription.findUnique({ where: { followerId_followeeId: lookupData } })
       if (existing) {
-        await models.userSubscription.update({ where: { followerId_followeeId: lookupData }, data: { posts: !existing.posts } })
+        await models.userSubscription.update({ where: { followerId_followeeId: lookupData }, data: { posts: !existing.posts, postsUpdatedAt: new Date() } })
       } else {
-        await models.userSubscription.create({ data: { ...lookupData, posts: true, comments: false } })
+        await models.userSubscription.create({ data: { ...lookupData, posts: true, comments: false, postsUpdatedAt: new Date() } })
       }
       return { id }
     },
@@ -606,9 +606,9 @@ export default {
       const lookupData = { followerId: Number(me.id), followeeId: Number(id) }
       const existing = await models.userSubscription.findUnique({ where: { followerId_followeeId: lookupData } })
       if (existing) {
-        await models.userSubscription.update({ where: { followerId_followeeId: lookupData }, data: { comments: !existing.comments } })
+        await models.userSubscription.update({ where: { followerId_followeeId: lookupData }, data: { comments: !existing.comments, commentsUpdatedAt: new Date() } })
       } else {
-        await models.userSubscription.create({ data: { ...lookupData, comments: true, posts: false } })
+        await models.userSubscription.create({ data: { ...lookupData, comments: true, posts: false, commentsUpdatedAt: new Date() } })
       }
       return { id }
     },

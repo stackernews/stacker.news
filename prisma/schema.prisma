@@ -89,7 +89,6 @@ model User {
   followees           UserSubscription[]   @relation("followee")
   csvRequest          CsvRequest           @default(NO_REQUEST)
   csvRequestStatus    CsvRequestStatus     @default(NO_REQUEST)
-  csvRequestProgress  Int?
 
   @@index([createdAt], map: "users.created_at_index")
   @@index([inviteId], map: "users.inviteId_index")

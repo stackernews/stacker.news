@@ -6,5 +6,4 @@ CREATE TYPE "CsvRequestStatus" AS ENUM ('NO_REQUEST', 'FULL_REPORT', 'GENERATING
 
 -- AlterTable
 ALTER TABLE "users" ADD COLUMN     "csvRequest" "CsvRequest" NOT NULL DEFAULT 'NO_REQUEST',
-ADD COLUMN     "csvRequestProgress" INTEGER,
 ADD COLUMN     "csvRequestStatus" "CsvRequestStatus" NOT NULL DEFAULT 'NO_REQUEST';

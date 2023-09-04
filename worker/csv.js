@@ -76,8 +76,8 @@ const ITEM_FULL_FIELDS = gql`
 const WALLET_HISTORY = gql`
   ${ITEM_FULL_FIELDS}
 
-  query WalletHistory($cursor: String, $inc: String, $limit: Int, $meId: Int) {
-    walletHistory(cursor: $cursor, inc: $inc, limit: $limit, meId: $meId) {
+  query WalletHistory($cursor: String, $inc: String, $limit: Int, $id: Int) {
+    walletHistory(cursor: $cursor, inc: $inc, limit: $limit, id: $id) {
       facts {
         id
         factId
@@ -123,17 +123,23 @@ function updateCsvs ({ models, apollo }) {
     console.log('checking', todo.length, 'CSV request(s)')
 
     for (const req of todo) {
+      console.log(req)
       if (req.csvRequest === 'FULL_REPORT' && req.csvRequestStatus === 'NO_REQUEST') {
-        console.log('starting CSV preparation', req)
+        console.log('starting CSV preparation')
         await models.$transaction([
           models.$executeRaw`UPDATE "users" SET "csvRequestStatus" = 'GENERATING_REPORT' WHERE "users"."id" = ${req.id}`])
         createCsv(`satistics_${req.id}.csv`, req.id, apollo, models)
       } else if (req.csvRequest === 'NO_REQUEST' && req.csvRequestStatus === 'FULL_REPORT') {
+        console.log('resetting completed CSV')
         await models.$transaction([
           models.$executeRaw`UPDATE "users" SET "csvRequestStatus" = 'NO_REQUEST' WHERE "users"."id" = ${req.id}`])
       } else if (req.csvRequest === 'NO_REQUEST' && req.csvRequestStatus === 'INCOPLETE') {
+        console.log('resetting incomplete CSV')
         await models.$transaction([
           models.$executeRaw`UPDATE "users" SET "csvRequestStatus" = 'NO_REQUEST' WHERE "users"."id" = ${req.id}`])
+      } else {
+        // await models.$transaction([
+        //   models.$executeRaw`UPDATE "users" SET "csvRequestStatus" = 'NO_REQUEST' WHERE "users"."id" = ${req.id}`])
       }
     }
 
@@ -151,7 +157,7 @@ async function createCsv (fname, id, apollo, models) {
     // query for items
     ({ data: { walletHistory: { facts, cursor } } } = await apollo.query({
       query: WALLET_HISTORY,
-      variables: { cursor, limit: 1000, inc: 'invoice,withdrawal,stacked,spent', meId: id }
+      variables: { cursor, limit: 1000, inc: 'invoice,withdrawal,stacked,spent', id }
     }))
 
     // for all items, index them

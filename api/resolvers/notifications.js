@@ -114,6 +114,10 @@ export default {
           AND "Item".created_at <= $2
           -- Only show items that have been created since subscribing to the user
           AND "Item".created_at >= "UserSubscription".created_at
+          AND (
+            ("Item"."parentId" IS NULL AND "UserSubscription".posts = TRUE)
+            OR ("Item"."parentId" IS NOT NULL AND "UserSubscription".comments = TRUE)
+          )
         ${await filterClause(me, models)}
         ORDER BY "sortTime" DESC
         LIMIT ${LIMIT}+$3`

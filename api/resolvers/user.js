@@ -323,6 +323,10 @@ export default {
         WHERE
           "UserSubscription"."followerId" = $1
         AND "Item".created_at > $2::timestamp(3) without time zone
+        AND (
+          ("Item"."parentId" IS NULL AND "UserSubscription".posts = TRUE)
+          OR ("Item"."parentId" IS NOT NULL AND "UserSubscription".comments = TRUE)
+        )
         ${await filterClause(me, models)}
         LIMIT 1`, me.id, lastChecked)
       if (newUserSubs.length > 0) {
@@ -588,13 +592,23 @@ export default {
 
       return true
     },
-    subscribeUser: async (parent, { id }, { me, models }) => {
-      const data = { followerId: Number(me.id), followeeId: Number(id) }
-      const old = await models.userSubscription.findUnique({ where: { followerId_followeeId: data } })
-      if (old) {
-        await models.userSubscription.delete({ where: { followerId_followeeId: data } })
+    subscribeUserPosts: async (parent, { id }, { me, models }) => {
+      const lookupData = { followerId: Number(me.id), followeeId: Number(id) }
+      const existing = await models.userSubscription.findUnique({ where: { followerId_followeeId: lookupData } })
+      if (existing) {
+        await models.userSubscription.update({ where: { followerId_followeeId: lookupData }, data: { posts: !existing.posts } })
       } else {
-        await models.userSubscription.create({ data })
+        await models.userSubscription.create({ data: { ...lookupData, posts: true, comments: false } })
+      }
+      return { id }
+    },
+    subscribeUserComments: async (parent, { id }, { me, models }) => {
+      const lookupData = { followerId: Number(me.id), followeeId: Number(id) }
+      const existing = await models.userSubscription.findUnique({ where: { followerId_followeeId: lookupData } })
+      if (existing) {
+        await models.userSubscription.update({ where: { followerId_followeeId: lookupData }, data: { comments: !existing.comments } })
+      } else {
+        await models.userSubscription.create({ data: { ...lookupData, comments: true, posts: false } })
       }
       return { id }
     },
@@ -774,9 +788,9 @@ export default {
 
       return relays?.map(r => r.nostrRelayAddr)
     },
-    meSubscription: async (user, args, { me, models }) => {
+    meSubscriptionPosts: async (user, args, { me, models }) => {
       if (!me) return false
-      if (typeof user.meSubscription !== 'undefined') return user.meSubscription
+      if (typeof user.meSubscriptionPosts !== 'undefined') return user.meSubscriptionPosts
 
       const subscription = await models.userSubscription.findUnique({
         where: {
@@ -787,7 +801,22 @@ export default {
         }
       })
 
-      return !!subscription
+      return !!subscription?.posts
+    },
+    meSubscriptionComments: async (user, args, { me, models }) => {
+      if (!me) return false
+      if (typeof user.meSubscriptionComments !== 'undefined') return user.meSubscriptionComments
+
+      const subscription = await models.userSubscription.findUnique({
+        where: {
+          followerId_followeeId: {
+            followerId: Number(me.id),
+            followeeId: Number(user.id)
+          }
+        }
+      })
+
+      return !!subscription?.comments
     }
   }
 }

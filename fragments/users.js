@@ -150,7 +150,8 @@ export const USER_FIELDS = gql`
     stacked
     since
     photoId
-    meSubscription
+    meSubscriptionPosts
+    meSubscriptionComments
   }`
 
 export const TOP_USERS = gql`

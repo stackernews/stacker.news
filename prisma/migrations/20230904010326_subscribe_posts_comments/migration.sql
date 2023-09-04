@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "UserSubscription"
+ADD COLUMN     "comments" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN     "posts" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;

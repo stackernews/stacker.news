@@ -48,8 +48,6 @@ async function work () {
 
   boss.on('error', error => console.error(error))
 
-  boss.schedule('updateCsvs', '* * * * *')
-
   await boss.start()
   await boss.work('checkInvoice', checkInvoice(args))
   await boss.work('checkWithdrawal', checkWithdrawal(args))
@@ -66,6 +64,8 @@ async function work () {
   await boss.work('views', views(args))
   await boss.work('rankViews', rankViews(args))
   await boss.work('updateCsvs', updateCsvs(args))
+
+  boss.schedule('updateCsvs', '* * * * *')
 
   console.log('working jobs')
 }

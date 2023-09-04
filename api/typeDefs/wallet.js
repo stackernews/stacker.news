@@ -5,7 +5,7 @@ export default gql`
     invoice(id: ID!): Invoice!
     withdrawl(id: ID!): Withdrawl!
     connectAddress: String!
-    walletHistory(cursor: String, inc: String, limit: Int): History
+    walletHistory(cursor: String, inc: String, limit: Int, id: Int): History
   }
 
   extend type Mutation {

@@ -31,8 +31,8 @@ export const WITHDRAWL = gql`
 export const WALLET_HISTORY = gql`
   ${ITEM_FULL_FIELDS}
 
-  query WalletHistory($cursor: String, $inc: String, $limit: Int) {
-    walletHistory(cursor: $cursor, inc: $inc, limit: $limit) {
+  query WalletHistory($cursor: String, $inc: String, $limit: Int, $id: Int) {
+    walletHistory(cursor: $cursor, inc: $inc, limit: $limit, id: $id) {
       facts {
         id
         factId

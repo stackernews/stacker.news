@@ -73,9 +73,10 @@ export default {
     connectAddress: async (parent, args, { lnd }) => {
       return process.env.LND_CONNECT_ADDRESS
     },
-    walletHistory: async (parent, { cursor, inc, limit = LIMIT }, { me, models, lnd }) => {
+    walletHistory: async (parent, { cursor, inc, limit = LIMIT, id }, { me, models, lnd }) => {
       const decodedCursor = decodeCursor(cursor)
-      if (!me) {
+      console.log('resolver:', me, id, limit, inc, cursor)
+      if (!me && !id) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
       }
 
@@ -183,7 +184,7 @@ export default {
       ${queries.join(' UNION ALL ')}
       ORDER BY "createdAt" DESC
       OFFSET $3
-      LIMIT ${limit}`, me.id, decodedCursor.time, decodedCursor.offset)
+      LIMIT ${limit}`, me?.id || id, decodedCursor.time, decodedCursor.offset)
 
       history = history.map(f => {
         if (f.bolt11) {

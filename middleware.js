@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server'
 
 export function middleware (request) {
-  const sn_referrer = request.nextUrl.searchParams.get("r")
-  if (sn_referrer) {
+  const snReferrer = request.nextUrl.searchParams.get('r')
+  if (snReferrer) {
     const url = new URL('/', request.url)
     url.search = request.nextUrl.search
     url.hash = request.nextUrl.hash
 
-    const resp = NextResponse.next();
-    resp.cookies.set('sn_referrer', sn_referrer)
+    const resp = NextResponse.next()
+    resp.cookies.set('sn_referrer', snReferrer)
     return resp
   }
 }

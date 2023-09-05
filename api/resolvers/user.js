@@ -2,8 +2,7 @@ import { GraphQLError } from 'graphql'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { msatsToSats } from '../../lib/format'
 import { bioSchema, emailSchema, settingsSchema, ssValidate, userSchema } from '../../lib/validate'
-import { createMentions, getItem, SELECT, updateItem, filterClause } from './item'
-import serialize from './serial'
+import { getItem, updateItem, filterClause, createItem } from './item'
 import { datePivot } from '../../lib/time'
 
 export function within (table, within) {
@@ -109,20 +108,21 @@ export default {
     users: async (parent, args, { models }) =>
       await models.user.findMany(),
     nameAvailable: async (parent, { name }, { models, me }) => {
-      if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+      let user
+      if (me) {
+        user = await models.user.findUnique({ where: { id: me.id } })
       }
-
-      const user = await models.user.findUnique({ where: { id: me.id } })
-
-      return user.name?.toUpperCase() === name?.toUpperCase() || !(await models.user.findUnique({ where: { name } }))
+      return user?.name?.toUpperCase() === name?.toUpperCase() || !(await models.user.findUnique({ where: { name } }))
     },
     topCowboys: async (parent, { cursor }, { models, me }) => {
       const decodedCursor = decodeCursor(cursor)
       const users = await models.$queryRawUnsafe(`
-        SELECT users.*, floor(sum(msats_spent)/1000) as spent,
-          sum(posts) as nposts, sum(comments) as ncomments, sum(referrals) as referrals,
-          floor(sum(msats_stacked)/1000) as stacked
+        SELECT users.*,
+          coalesce(floor(sum(msats_spent)/1000),0) as spent,
+          coalesce(sum(posts),0) as nposts,
+          coalesce(sum(comments),0) as ncomments,
+          coalesce(sum(referrals),0) as referrals,
+          coalesce(floor(sum(msats_stacked)/1000),0) as stacked
           FROM users
           LEFT JOIN user_stats_days on users.id = user_stats_days.id
           WHERE NOT "hideFromTopUsers" AND NOT "hideCowboyHat" AND streak IS NOT NULL
@@ -316,6 +316,19 @@ export default {
         return true
       }
 
+      const newUserSubs = await models.$queryRawUnsafe(`
+      SELECT 1
+        FROM "UserSubscription"
+        JOIN "Item" ON "UserSubscription"."followeeId" = "Item"."userId"
+        WHERE
+          "UserSubscription"."followerId" = $1
+        AND "Item".created_at > $2::timestamp(3) without time zone
+        ${await filterClause(me, models)}
+        LIMIT 1`, me.id, lastChecked)
+      if (newUserSubs.length > 0) {
+        return true
+      }
+
       // check if they have any mentions since checkedNotesAt
       if (user.noteMentions) {
         const newMentions = await models.$queryRawUnsafe(`
@@ -369,6 +382,9 @@ export default {
             userId: me.id,
             confirmedAt: {
               gt: lastChecked
+            },
+            isHeld: {
+              not: true
             }
           }
         })
@@ -500,12 +516,9 @@ export default {
       const user = await models.user.findUnique({ where: { id: me.id } })
 
       if (user.bioId) {
-        await updateItem(parent, { id: user.bioId, data: { text: bio, title: `@${user.name}'s bio` } }, { me, models })
+        await updateItem(parent, { id: user.bioId, text: bio, title: `@${user.name}'s bio` }, { me, models })
       } else {
-        const [item] = await serialize(models,
-          models.$queryRawUnsafe(`${SELECT} FROM create_bio($1, $2, $3::INTEGER) AS "Item"`,
-            `@${user.name}'s bio`, bio, Number(me.id)))
-        await createMentions(item, models)
+        await createItem(parent, { bio: true, text: bio, title: `@${user.name}'s bio` }, { me, models })
       }
 
       return await models.user.findUnique({ where: { id: me.id } })
@@ -555,6 +568,16 @@ export default {
       }
 
       return true
+    },
+    subscribeUser: async (parent, { id }, { me, models }) => {
+      const data = { followerId: Number(me.id), followeeId: Number(id) }
+      const old = await models.userSubscription.findUnique({ where: { followerId_followeeId: data } })
+      if (old) {
+        await models.userSubscription.delete({ where: { followerId_followeeId: data } })
+      } else {
+        await models.userSubscription.create({ data })
+      }
+      return { id }
     }
   },
 
@@ -723,6 +746,21 @@ export default {
       })
 
       return relays?.map(r => r.nostrRelayAddr)
+    },
+    meSubscription: async (user, args, { me, models }) => {
+      if (!me) return false
+      if (typeof user.meSubscription !== 'undefined') return user.meSubscription
+
+      const subscription = await models.userSubscription.findUnique({
+        where: {
+          followerId_followeeId: {
+            followerId: Number(me.id),
+            followeeId: Number(user.id)
+          }
+        }
+      })
+
+      return !!subscription
     }
   }
 }

@@ -11,7 +11,7 @@ import { pollSchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
 import { useCallback } from 'react'
-import { useInvoiceable } from './invoice'
+import { normalizeForwards } from '../lib/form'
 
 export function PollForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
@@ -21,16 +21,16 @@ export function PollForm ({ item, sub, editThreshold, children }) {
   const [upsertPoll] = useMutation(
     gql`
       mutation upsertPoll($sub: String, $id: ID, $title: String!, $text: String,
-        $options: [String!]!, $boost: Int, $forward: String, $invoiceHash: String, $invoiceHmac: String) {
+        $options: [String!]!, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String) {
         upsertPoll(sub: $sub, id: $id, title: $title, text: $text,
-          options: $options, boost: $boost, forward: $forward, invoiceHash: $invoiceHash, invoiceHmac: $invoiceHmac) {
+          options: $options, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac) {
           id
         }
       }`
   )
 
-  const submitUpsertPoll = useCallback(
-    async (_, boost, title, options, values, invoiceHash, invoiceHmac) => {
+  const onSubmit = useCallback(
+    async ({ boost, title, options, ...values }) => {
       const optionsFiltered = options.slice(initialOptions?.length).filter(word => word.trim().length > 0)
       const { error } = await upsertPoll({
         variables: {
@@ -40,8 +40,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
           title: title.trim(),
           options: optionsFiltered,
           ...values,
-          invoiceHash,
-          invoiceHmac
+          forward: normalizeForwards(values.forward)
         }
       })
       if (error) {
@@ -53,9 +52,8 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         const prefix = sub?.name ? `/~${sub.name}` : ''
         await router.push(prefix + '/recent')
       }
-    }, [upsertPoll, router])
-
-  const invoiceableUpsertPoll = useInvoiceable(submitUpsertPoll)
+    }, [upsertPoll, router]
+  )
 
   const initialOptions = item?.poll?.options.map(i => i.option)
 
@@ -65,13 +63,12 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         title: item?.title || '',
         text: item?.text || '',
         options: initialOptions || ['', ''],
-        ...AdvPostInitial({ forward: item?.fwdUser?.name }),
+        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards) }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}
-      onSubmit={async ({ boost, title, options, cost, ...values }) => {
-        return invoiceableUpsertPoll(cost, boost, title, options, values)
-      }}
+      invoiceable
+      onSubmit={onSubmit}
       storageKeyPrefix={item ? undefined : 'poll'}
     >
       {children}

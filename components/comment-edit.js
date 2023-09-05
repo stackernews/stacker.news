@@ -7,19 +7,19 @@ import Delete from './delete'
 import { commentSchema } from '../lib/validate'
 
 export default function CommentEdit ({ comment, editThreshold, onSuccess, onCancel }) {
-  const [updateComment] = useMutation(
+  const [upsertComment] = useMutation(
     gql`
-      mutation updateComment($id: ID! $text: String!) {
-        updateComment(id: $id, text: $text) {
+      mutation upsertComment($id: ID! $text: String!) {
+        upsertComment(id: $id, text: $text) {
           text
         }
       }`, {
-      update (cache, { data: { updateComment } }) {
+      update (cache, { data: { upsertComment } }) {
         cache.modify({
           id: `Item:${comment.id}`,
           fields: {
             text () {
-              return updateComment.text
+              return upsertComment.text
             }
           }
         })
@@ -35,7 +35,7 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
         }}
         schema={commentSchema}
         onSubmit={async (values, { resetForm }) => {
-          const { error } = await updateComment({ variables: { ...values, id: comment.id } })
+          const { error } = await upsertComment({ variables: { ...values, id: comment.id } })
           if (error) {
             throw new Error({ message: error.toString() })
           }
@@ -51,7 +51,7 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
           required
         />
         <div className='d-flex justify-content-between'>
-          <Delete itemId={comment.id} onDelete={onSuccess}>
+          <Delete itemId={comment.id} onDelete={onSuccess} type='comment'>
             <Button variant='grey-medium'>delete</Button>
           </Delete>
           <EditFeeButton

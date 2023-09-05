@@ -1,6 +1,10 @@
 # contributing
 We pay sats for PRs. Sats will be proportional to the impact of the PR. If there's something you'd like to work on, suggest how much you'd do it for on the issue. If there's something you'd like to work on that isn't already an issue, whether its a bug fix or a new feature, create one.
 
+We aim to have a quick pr turnaround time, but we are sometimes slower than we'd like. In most cases, if your pr is unambiguously good, it shouldn't take us more than 1 week.
+
+If you have a question about contributing start a [discussion](https://github.com/stackernews/stacker.news/discussions).
+
 # responsible disclosure
 
 If you found a vulnerability, we would greatly appreciate it if you contact us via [kk@stacker.news](mailto:kk@stacker.news) or t.me/k00bideh.

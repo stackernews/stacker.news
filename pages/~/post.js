@@ -6,8 +6,10 @@ import { useQuery } from '@apollo/client'
 import { useRouter } from 'next/router'
 import PageLoading from '../../components/page-loading'
 
-export const getServerSideProps = getGetServerSideProps(SUB, null,
-  (data, vars) => vars.sub && !data.sub)
+export const getServerSideProps = getGetServerSideProps({
+  query: SUB,
+  notFound: (data, vars) => vars.sub && !data.sub
+})
 
 export default function PostPage ({ ssrData }) {
   const router = useRouter()

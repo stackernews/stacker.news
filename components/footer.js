@@ -14,6 +14,7 @@ import Amboss from '../svgs/amboss.svg'
 import { useEffect, useState } from 'react'
 import Rewards from './footer-rewards'
 import useDarkMode from './dark-mode'
+import ActionTooltip from './action-tooltip'
 
 const RssPopover = (
   <Popover>
@@ -26,14 +27,18 @@ const RssPopover = (
         <a href='/~bitcoin/rss' className='nav-link p-0 d-inline-flex'>
           bitcoin
         </a>
-      </div>
-      <div className='d-flex justify-content-center'>
+        <span className='mx-2 text-muted'> \ </span>
         <a href='/~nostr/rss' className='nav-link p-0 d-inline-flex'>
           nostr
         </a>
-        <span className='mx-2 text-muted'> \ </span>
+      </div>
+      <div className='d-flex justify-content-center'>
         <a href='/~tech/rss' className='nav-link p-0 d-inline-flex'>
           tech
+        </a>
+        <span className='mx-2 text-muted'> \ </span>
+        <a href='/~meta/rss' className='nav-link p-0 d-inline-flex'>
+          meta
         </a>
         <span className='mx-2 text-muted'> \ </span>
         <a href='/~jobs/rss' className='nav-link p-0 d-inline-flex'>
@@ -152,8 +157,12 @@ export default function Footer ({ links = true }) {
         {links &&
           <>
             <div className='mb-1'>
-              <DarkModeIcon onClick={darkModeToggle} width={20} height={20} className='fill-grey theme' suppressHydrationWarning />
-              <LnIcon onClick={toggleLightning} width={20} height={20} className='ms-2 fill-grey theme' suppressHydrationWarning />
+              <ActionTooltip notForm overlayText={`${darkMode ? 'disable' : 'enable'} dark mode`}>
+                <DarkModeIcon onClick={darkModeToggle} width={20} height={20} className='fill-grey theme' suppressHydrationWarning />
+              </ActionTooltip>
+              <ActionTooltip notForm overlayText={`${lightning === 'yes' ? 'disable' : 'enable'} lightning animations`}>
+                <LnIcon onClick={toggleLightning} width={20} height={20} className='ms-2 fill-grey theme' suppressHydrationWarning />
+              </ActionTooltip>
             </div>
             <div className='mb-0' style={{ fontWeight: 500 }}>
               <Rewards />
@@ -240,11 +249,15 @@ export default function Footer ({ links = true }) {
             <Link href='/ekzyis' className='ms-1'>
               @ekzyis
             </Link>
+            <span className='ms-1'>&</span>
+            <Link href='https://github.com/stackernews/stacker.news/graphs/contributors' className='ms-1' target='_blank' rel='noreferrer'>
+              more
+            </Link>
           </span>
         </small>
         {version &&
           <div className={styles.version}>
-            running <a className='text-reset' href={`https://github.com/stackernews/stacker.news/commit/${version}`}>{version}</a>
+            running <a className='text-reset' href={`https://github.com/stackernews/stacker.news/commit/${version}`} target='_blank' rel='noreferrer'>{version}</a>
           </div>}
       </Container>
     </footer>

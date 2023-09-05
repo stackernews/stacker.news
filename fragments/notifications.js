@@ -40,6 +40,7 @@ export const NOTIFICATIONS = gql`
         ... on Earn {
           id
           sortTime
+          minSortTime
           earnedSats
           sources {
             posts
@@ -53,6 +54,14 @@ export const NOTIFICATIONS = gql`
           sortTime
         }
         ... on Reply {
+          id
+          sortTime
+          item {
+            ...ItemFullFields
+            text
+          }
+        }
+        ... on FollowActivity {
           id
           sortTime
           item {

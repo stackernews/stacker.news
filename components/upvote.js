@@ -1,7 +1,6 @@
 import UpBolt from '../svgs/bolt.svg'
 import styles from './upvote.module.css'
 import { gql, useMutation } from '@apollo/client'
-import FundError, { isInsufficientFundsError } from './fund-error'
 import ActionTooltip from './action-tooltip'
 import ItemAct from './item-act'
 import { useMe } from './me'
@@ -13,6 +12,7 @@ import Popover from 'react-bootstrap/Popover'
 import { useShowModal } from './modal'
 import { LightningConsumer, useLightning } from './lightning'
 import { numWithUnits } from '../lib/format'
+import { InvoiceModal, payOrLoginError } from './invoice'
 
 const getColor = (meSats) => {
   if (!meSats || meSats <= 10) {
@@ -34,9 +34,9 @@ const UpvotePopover = ({ target, show, handleClose }) => {
       placement='right'
     >
       <Popover id='popover-basic'>
-        <Popover.Body className='d-flex justify-content-between alert-dismissible' as='h3'>Zapping
-          <button type='button' className='close' onClick={handleClose}><span aria-hidden='true'>×</span><span className='visually-hidden-focusable'>Close alert</span></button>
-        </Popover.Body>
+        <Popover.Header className='d-flex justify-content-between alert-dismissible' as='h4'>Zapping
+          <button type='button' className='btn-close' onClick={handleClose}><span className='visually-hidden-focusable'>Close alert</span></button>
+        </Popover.Header>
         <Popover.Body>
           <div className='mb-2'>Press the bolt again to zap {me?.tipDefault || 1} more sat{me?.tipDefault > 1 ? 's' : ''}.</div>
           <div>Repeatedly press the bolt to zap more sats.</div>
@@ -53,9 +53,9 @@ const TipPopover = ({ target, show, handleClose }) => (
     placement='right'
   >
     <Popover id='popover-basic'>
-      <Popover.Body className='d-flex justify-content-between alert-dismissible' as='h3'>Press and hold
-        <button type='button' className='close' onClick={handleClose}><span aria-hidden='true'>×</span><span className='visually-hidden-focusable'>Close alert</span></button>
-      </Popover.Body>
+      <Popover.Header className='d-flex justify-content-between alert-dismissible' as='h4'>Press and hold
+        <button type='button' className='btn-close' onClick={handleClose}><span className='visually-hidden-focusable'>Close alert</span></button>
+      </Popover.Header>
       <Popover.Body>
         <div className='mb-2'>Press and hold bolt to zap a custom amount.</div>
         <div>As you zap more, the bolt color follows the rainbow.</div>
@@ -110,8 +110,8 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
 
   const [act] = useMutation(
     gql`
-      mutation act($id: ID!, $sats: Int!, $invoiceHash: String, $invoiceHmac: String) {
-        act(id: $id, sats: $sats, invoiceHash: $invoiceHash, invoiceHmac: $invoiceHmac) {
+      mutation act($id: ID!, $sats: Int!, $hash: String, $hmac: String) {
+        act(id: $id, sats: $sats, hash: $hash, hmac: $hmac) {
           sats
         }
       }`, {
@@ -177,14 +177,13 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
             }
           })
         } catch (error) {
-          if (isInsufficientFundsError(error)) {
+          if (payOrLoginError(error)) {
             showModal(onClose => {
               return (
-                <FundError
-                  onClose={onClose}
+                <InvoiceModal
                   amount={pendingSats}
-                  onPayment={async (_, invoiceHash) => {
-                    await act({ variables: { ...variables, invoiceHash } })
+                  onPayment={async ({ hash, hmac }) => {
+                    await act({ variables: { ...variables, hash, hmac } })
                     strike()
                   }}
                 />
@@ -204,9 +203,8 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
     }
   }, [pendingSats, act, item, showModal, setPendingSats])
 
-  const disabled = useMemo(() => {
-    return item?.mine || (me && Number(me.id) === item?.fwdUserId) || item?.deletedAt
-  }, [me?.id, item?.fwdUserId, item?.mine, item?.deletedAt])
+  const disabled = useMemo(() => item?.mine || item?.meForward || item?.deletedAt,
+    [item?.mine, item?.meForward, item?.deletedAt])
 
   const [meSats, sats, overlayText, color] = useMemo(() => {
     const meSats = (item?.meSats || item?.meAnonSats || 0) + pendingSats

@@ -5,8 +5,10 @@ import { SUB_SEARCH } from '../../fragments/subs'
 import Down from '../../svgs/arrow-down-line.svg'
 import Items from '../../components/items'
 
-export const getServerSideProps = getGetServerSideProps(SUB_SEARCH, null,
-  (data, vars) => vars.sub && !data.sub)
+export const getServerSideProps = getGetServerSideProps({
+  query: SUB_SEARCH,
+  notFound: (data, vars) => vars.sub && !data.sub
+})
 
 export default function Index ({ ssrData }) {
   const router = useRouter()

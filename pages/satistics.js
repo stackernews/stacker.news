@@ -16,7 +16,7 @@ import { Fragment } from 'react'
 import ItemJob from '../components/item-job'
 import PageLoading from '../components/page-loading'
 
-export const getServerSideProps = getGetServerSideProps(WALLET_HISTORY)
+export const getServerSideProps = getGetServerSideProps({ query: WALLET_HISTORY, authRequired: true })
 
 function satusClass (status) {
   if (!status) {

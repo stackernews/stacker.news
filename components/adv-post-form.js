@@ -1,14 +1,16 @@
 import AccordianItem from './accordian-item'
-import { Input, InputUserSuggest } from './form'
+import { Input, InputUserSuggest, VariableInput } from './form'
 import InputGroup from 'react-bootstrap/InputGroup'
-import { BOOST_MIN } from '../lib/constants'
+import { BOOST_MIN, MAX_FORWARDS } from '../lib/constants'
 import Info from './info'
 import { numWithUnits } from '../lib/format'
+
+const EMPTY_FORWARD = { nym: '', pct: '' }
 
 export function AdvPostInitial ({ forward }) {
   return {
     boost: '',
-    forward: forward || ''
+    forward: forward?.length ? forward : [EMPTY_FORWARD]
   }
 }
 
@@ -44,13 +46,38 @@ export default function AdvPostForm ({ edit }) {
             hint={<span className='text-muted'>ranks posts higher temporarily based on the amount</span>}
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
           />
-          <InputUserSuggest
-            label={<>forward sats to</>}
+          <VariableInput
+            label='forward sats to'
             name='forward'
-            hint={<span className='text-muted'>100% of sats will be sent to this stacker</span>}
-            prepend={<InputGroup.Text>@</InputGroup.Text>}
-            showValid
-          />
+            min={0}
+            max={MAX_FORWARDS}
+            emptyItem={EMPTY_FORWARD}
+            hint={<span className='text-muted'>Forward sats to up to 5 other stackers. Any remaining sats go to you.</span>}
+          >
+            {({ index, placeholder }) => {
+              return (
+                <div key={index} className='d-flex flex-row'>
+                  <InputUserSuggest
+                    name={`forward[${index}].nym`}
+                    prepend={<InputGroup.Text>@</InputGroup.Text>}
+                    showValid
+                    groupClassName='flex-grow-1 me-3 mb-0'
+                  />
+                  <Input
+                    name={`forward[${index}].pct`}
+                    type='number'
+                    step={5}
+                    min={1}
+                    max={100}
+                    style={{ minWidth: '3.5rem' }}
+                    append={<InputGroup.Text className='text-monospace'>%</InputGroup.Text>}
+                    groupClassName='mb-0'
+                    inputGroupClassName='flex-nowrap'
+                  />
+                </div>
+              )
+            }}
+          </VariableInput>
         </>
       }
     />

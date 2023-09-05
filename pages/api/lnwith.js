@@ -32,8 +32,8 @@ export default async ({ query }, res) => {
           callback: process.env.LNWITH_URL, // The URL which LN SERVICE would accept a withdrawal Lightning invoice as query parameter
           k1: query.k1, // Random or non-random string to identify the user's LN WALLET when using the callback URL
           defaultDescription: `Withdrawal for @${user.name} on SN`, // A default withdrawal invoice description
-          minWithdrawable: 1000, // Min amount (in millisatoshis) the user can withdraw from LN SERVICE, or 0
-          maxWithdrawable: Number(user.msats - 10000n) // Max amount (in millisatoshis) the user can withdraw from LN SERVICE, or equal to minWithdrawable if the user has no choice over the amounts
+          minWithdrawable: user.msats >= 1000n ? 1000 : 0, // Min amount (in millisatoshis) the user can withdraw from LN SERVICE
+          maxWithdrawable: Math.max(Number(user.msats - 10000n), 0) // Max amount (in millisatoshis) the user can withdraw from LN SERVICE
         })
       } else {
         reason = 'user not found'

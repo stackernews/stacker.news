@@ -8,15 +8,16 @@ import Check from '../svgs/checkbox-circle-fill.svg'
 import { signIn } from 'next-auth/react'
 import ActionTooltip from './action-tooltip'
 import { useShowModal } from './modal'
-import FundError from './fund-error'
+import { POLL_COST } from '../lib/constants'
+import { InvoiceModal } from './invoice'
 
 export default function Poll ({ item }) {
   const me = useMe()
   const showModal = useShowModal()
   const [pollVote] = useMutation(
     gql`
-      mutation pollVote($id: ID!) {
-        pollVote(id: $id)
+      mutation pollVote($id: ID!, $hash: String, $hmac: String) {
+        pollVote(id: $id, hash: $hash, hmac: $hmac)
       }`, {
       update (cache, { data: { pollVote } }) {
         cache.modify({
@@ -60,11 +61,16 @@ export default function Poll ({ item }) {
                   }
                 })
               } catch (error) {
-                if (error.toString().includes('insufficient funds')) {
-                  showModal(onClose => {
-                    return <FundError onClose={onClose} />
-                  })
-                }
+                showModal(onClose => {
+                  return (
+                    <InvoiceModal
+                      amount={item.pollCost || POLL_COST}
+                      onPayment={async ({ hash, hmac }) => {
+                        await pollVote({ variables: { id: v.id, hash, hmac } })
+                      }}
+                    />
+                  )
+                })
               }
             }
             : signIn}

@@ -6,8 +6,10 @@ import { useQuery } from '@apollo/client'
 import { useRouter } from 'next/router'
 import PageLoading from '../../../components/page-loading'
 
-export const getServerSideProps = getGetServerSideProps(ITEM_FULL, null,
-  data => !data.item || (data.item.status === 'STOPPED' && !data.item.mine))
+export const getServerSideProps = getGetServerSideProps({
+  query: ITEM_FULL,
+  notFound: data => !data.item || (data.item.status === 'STOPPED' && !data.item.mine)
+})
 
 export default function Item ({ ssrData }) {
   const router = useRouter()

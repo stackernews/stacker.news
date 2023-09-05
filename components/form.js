@@ -1,7 +1,6 @@
 import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
 import BootstrapForm from 'react-bootstrap/Form'
-import Alert from 'react-bootstrap/Alert'
 import { Formik, Form as FormikForm, useFormikContext, useField, FieldArray } from 'formik'
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react'
 import copy from 'clipboard-copy'
@@ -19,19 +18,25 @@ import CloseIcon from '../svgs/close-line.svg'
 import { useLazyQuery } from '@apollo/client'
 import { USER_SEARCH } from '../fragments/users'
 import TextareaAutosize from 'react-textarea-autosize'
+import { useToast } from './toast'
+import { useInvoiceable } from './invoice'
 
 export function SubmitButton ({
-  children, variant, value, onClick, disabled, ...props
+  children, variant, value, onClick, disabled, cost, ...props
 }) {
-  const { isSubmitting, setFieldValue } = useFormikContext()
+  const formik = useFormikContext()
+  useEffect(() => {
+    formik?.setFieldValue('cost', cost)
+  }, [formik?.setFieldValue, formik?.getFieldProps('cost').value, cost])
+
   return (
     <Button
       variant={variant || 'main'}
       type='submit'
-      disabled={disabled || isSubmitting}
+      disabled={disabled || formik.isSubmitting}
       onClick={value
         ? e => {
-          setFieldValue('submit', value)
+          formik.setFieldValue('submit', value)
           onClick && onClick(e)
         }
         : onClick}
@@ -161,7 +166,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
           : (
             <div className='form-group'>
               <div className={`${styles.text} form-control`}>
-                <Text topLevel={topLevel} noFragments onlyImgProxy={false}>{meta.value}</Text>
+                <Text topLevel={topLevel} noFragments fetchOnlyImgProxy={false}>{meta.value}</Text>
               </div>
             </div>
             )}
@@ -218,8 +223,8 @@ function FormGroup ({ className, label, children }) {
 }
 
 function InputInner ({
-  prepend, append, hint, showValid, onChange, overrideValue,
-  innerRef, noForm, clear, onKeyDown, debounce, ...props
+  prepend, append, hint, showValid, onChange, onBlur, overrideValue,
+  innerRef, noForm, clear, onKeyDown, inputGroupClassName, debounce, ...props
 }) {
   const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)
   const formik = noForm ? null : useFormikContext()
@@ -259,7 +264,7 @@ function InputInner ({
 
   return (
     <>
-      <InputGroup hasValidation>
+      <InputGroup hasValidation className={inputGroupClassName}>
         {prepend}
         <BootstrapForm.Control
           onKeyDown={(e) => {
@@ -282,6 +287,10 @@ function InputInner ({
             if (onChange) {
               onChange(formik, e)
             }
+          }}
+          onBlur={(e) => {
+            field.onBlur(e)
+            onBlur && onBlur(e)
           }}
           isInvalid={invalid}
           isValid={showValid && meta.initialValue !== meta.value && meta.touched && !meta.error}
@@ -325,13 +334,15 @@ export function InputUserSuggest ({ label, groupClassName, ...props }) {
   const INITIAL_SUGGESTIONS = { array: [], index: 0 }
   const [suggestions, setSuggestions] = useState(INITIAL_SUGGESTIONS)
   const [ovalue, setOValue] = useState()
-
   return (
     <FormGroup label={label} className={groupClassName}>
       <InputInner
         {...props}
         autoComplete='off'
-        onChange={(_, e) => getSuggestions({ variables: { q: e.target.value } })}
+        onChange={(_, e) => {
+          setOValue(e.target.value)
+          getSuggestions({ variables: { q: e.target.value.replace(/^[@ ]+|[ ]+$/g, '') } })
+        }}
         overrideValue={ovalue}
         onKeyDown={(e) => {
           switch (e.code) {
@@ -392,10 +403,10 @@ export function Input ({ label, groupClassName, ...props }) {
   )
 }
 
-export function VariableInput ({ label, groupClassName, name, hint, max, min, readOnlyLen, ...props }) {
+export function VariableInput ({ label, groupClassName, name, hint, max, min, readOnlyLen, children, emptyItem = '', ...props }) {
   return (
     <FormGroup label={label} className={groupClassName}>
-      <FieldArray name={name}>
+      <FieldArray name={name} hasValidation>
         {({ form, ...fieldArrayHelpers }) => {
           const options = form.values[name]
           return (
@@ -404,11 +415,22 @@ export function VariableInput ({ label, groupClassName, name, hint, max, min, re
                 <div key={i}>
                   <Row className='mb-2'>
                     <Col>
-                      <InputInner name={`${name}[${i}]`} {...props} readOnly={i < readOnlyLen} placeholder={i >= min ? 'optional' : undefined} />
+                      {children
+                        ? children({ index: i, readOnly: i < readOnlyLen, placeholder: i >= min ? 'optional' : undefined })
+                        : <InputInner name={`${name}[${i}]`} {...props} readOnly={i < readOnlyLen} placeholder={i >= min ? 'optional' : undefined} />}
                     </Col>
-                    {options.length - 1 === i && options.length !== max
-                      ? <Col className='d-flex ps-0' xs='auto'><AddIcon className='fill-grey align-self-center justify-self-center pointer' onClick={() => fieldArrayHelpers.push('')} /></Col>
-                      : null}
+                    <Col className='d-flex ps-0' xs='auto'>
+                      {options.length - 1 === i && options.length !== max
+                        ? <AddIcon className='fill-grey align-self-center justify-self-center pointer' onClick={() => fieldArrayHelpers.push(emptyItem)} />
+                        // filler div for col alignment across rows
+                        : <div style={{ width: '24px', height: '24px' }} />}
+                    </Col>
+                    {options.length - 1 === i &&
+                      <>
+                        {hint && <BootstrapForm.Text>{hint}</BootstrapForm.Text>}
+                        {form.touched[name] && typeof form.errors[name] === 'string' &&
+                          <div className='invalid-feedback d-block'>{form.errors[name]}</div>}
+                      </>}
                   </Row>
                 </div>
               ))}
@@ -416,11 +438,6 @@ export function VariableInput ({ label, groupClassName, name, hint, max, min, re
           )
         }}
       </FieldArray>
-      {hint && (
-        <BootstrapForm.Text>
-          {hint}
-        </BootstrapForm.Text>
-      )}
     </FormGroup>
   )
 }
@@ -458,9 +475,39 @@ export function Checkbox ({ children, label, groupClassName, hiddenLabel, extra,
 const StorageKeyPrefixContext = createContext()
 
 export function Form ({
-  initial, schema, onSubmit, children, initialError, validateImmediately, storageKeyPrefix, validateOnChange = true, ...props
+  initial, schema, onSubmit, children, initialError, validateImmediately, storageKeyPrefix, validateOnChange = true, invoiceable, ...props
 }) {
-  const [error, setError] = useState(initialError)
+  const toaster = useToast()
+  useEffect(() => {
+    if (initialError) {
+      toaster.danger(initialError.message || initialError.toString?.())
+    }
+  }, [])
+
+  function clearLocalStorage (values) {
+    Object.keys(values).forEach(v => {
+      window.localStorage.removeItem(storageKeyPrefix + '-' + v)
+      if (Array.isArray(values[v])) {
+        values[v].forEach(
+          (iv, i) => {
+            Object.keys(iv).forEach(k => {
+              window.localStorage.removeItem(`${storageKeyPrefix}-${v}[${i}].${k}`)
+            })
+            window.localStorage.removeItem(`${storageKeyPrefix}-${v}[${i}]`)
+          })
+      }
+    })
+  }
+
+  // if `invoiceable` is set,
+  // support for payment per invoice if they are lurking or don't have enough balance
+  // is added to submit handlers.
+  // submit handlers need to accept { satsReceived, hash, hmac } in their first argument
+  // and use them as variables in their GraphQL mutation
+  if (invoiceable && onSubmit) {
+    const options = typeof invoiceable === 'object' ? invoiceable : undefined
+    onSubmit = useInvoiceable(onSubmit, { callback: clearLocalStorage, ...options })
+  }
 
   return (
     <Formik
@@ -469,21 +516,20 @@ export function Form ({
       validationSchema={schema}
       initialTouched={validateImmediately && initial}
       validateOnBlur={false}
-      onSubmit={async (values, ...args) =>
-        onSubmit && onSubmit(values, ...args).then((options) => {
-          if (!storageKeyPrefix || options?.keepLocalStorage) return
-          Object.keys(values).forEach(v => {
-            window.localStorage.removeItem(storageKeyPrefix + '-' + v)
-            if (Array.isArray(values[v])) {
-              values[v].forEach(
-                (_, i) => window.localStorage.removeItem(`${storageKeyPrefix}-${v}[${i}]`))
-            }
+      onSubmit={async (values, ...args) => {
+        try {
+          if (onSubmit) {
+            const options = await onSubmit(values, ...args)
+            if (!storageKeyPrefix || options?.keepLocalStorage) return
+            clearLocalStorage(values)
           }
-          )
-        }).catch(e => setError(e.message || e))}
+        } catch (err) {
+          console.log(err)
+          toaster.danger(err.message || err.toString?.())
+        }
+      }}
     >
       <FormikForm {...props} noValidate>
-        {error && <Alert variant='danger' onClose={() => setError(undefined)} dismissible>{error}</Alert>}
         <StorageKeyPrefixContext.Provider value={storageKeyPrefix}>
           {children}
         </StorageKeyPrefixContext.Provider>

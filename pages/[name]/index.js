@@ -16,8 +16,10 @@ import CancelButton from '../../components/cancel-button'
 import { useRouter } from 'next/router'
 import PageLoading from '../../components/page-loading'
 
-export const getServerSideProps = getGetServerSideProps(USER_FULL, null,
-  data => !data.user)
+export const getServerSideProps = getGetServerSideProps({
+  query: USER_FULL,
+  notFound: data => !data.user
+})
 
 export function BioForm ({ handleDone, bio }) {
   const [upsertBio] = useMutation(

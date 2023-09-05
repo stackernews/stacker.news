@@ -22,15 +22,16 @@ import PageLoading from '../components/page-loading'
 import { useShowModal } from '../components/modal'
 import { authErrorMessage } from '../components/login'
 import { NostrAuth } from '../components/nostr-auth'
+import { useToast } from '../components/toast'
 
-export const getServerSideProps = getGetServerSideProps(SETTINGS)
+export const getServerSideProps = getGetServerSideProps({ query: SETTINGS, authRequired: true })
 
 function bech32encode (hexString) {
   return bech32.encode('npub', bech32.toWords(Buffer.from(hexString, 'hex')))
 }
 
 export default function Settings ({ ssrData }) {
-  const [success, setSuccess] = useState()
+  const toaster = useToast()
   const [setSettings] = useMutation(SET_SETTINGS, {
     update (cache, { data: { setSettings } }) {
       cache.modify({
@@ -73,7 +74,8 @@ export default function Settings ({ ssrData }) {
             wildWestMode: settings?.wildWestMode,
             greeterMode: settings?.greeterMode,
             nostrPubkey: settings?.nostrPubkey ? bech32encode(settings.nostrPubkey) : '',
-            nostrRelays: settings?.nostrRelays?.length ? settings?.nostrRelays : ['']
+            nostrRelays: settings?.nostrRelays?.length ? settings?.nostrRelays : [''],
+            hideBookmarks: settings?.hideBookmarks
           }}
           schema={settingsSchema}
           onSubmit={async ({ tipDefault, nostrPubkey, nostrRelays, ...values }) => {
@@ -88,18 +90,22 @@ export default function Settings ({ ssrData }) {
 
             const nostrRelaysFiltered = nostrRelays?.filter(word => word.trim().length > 0)
 
-            await setSettings({
-              variables: {
-                tipDefault: Number(tipDefault),
-                nostrPubkey,
-                nostrRelays: nostrRelaysFiltered,
-                ...values
-              }
-            })
-            setSuccess('settings saved')
+            try {
+              await setSettings({
+                variables: {
+                  tipDefault: Number(tipDefault),
+                  nostrPubkey,
+                  nostrRelays: nostrRelaysFiltered,
+                  ...values
+                }
+              })
+              toaster.success('saved settings')
+            } catch (err) {
+              console.error(err)
+              toaster.danger('failed to save settings')
+            }
           }}
         >
-          {success && <Alert variant='info' onClose={() => setSuccess(undefined)} dismissible>{success}</Alert>}
           <Input
             label='zap default'
             name='tipDefault'
@@ -221,6 +227,11 @@ export default function Settings ({ ssrData }) {
           <Checkbox
             label={<>click to load external images</>}
             name='clickToLoadImg'
+            groupClassName='mb-0'
+          />
+          <Checkbox
+            label={<>hide my bookmarks from other stackers</>}
+            name='hideBookmarks'
           />
           <div className='form-label'>content</div>
           <Checkbox
@@ -323,6 +334,7 @@ function NostrLinkButton ({ unlink, status }) {
 
 function UnlinkObstacle ({ onClose, type, unlinkAuth }) {
   const router = useRouter()
+  const toaster = useToast()
 
   return (
     <div>
@@ -338,9 +350,15 @@ function UnlinkObstacle ({ onClose, type, unlinkAuth }) {
         }}
         schema={lastAuthRemovalSchema}
         onSubmit={async () => {
-          await unlinkAuth({ variables: { authType: type } })
-          router.push('/settings')
-          onClose()
+          try {
+            await unlinkAuth({ variables: { authType: type } })
+            router.push('/settings')
+            onClose()
+            toaster.success('unlinked auth method')
+          } catch (err) {
+            console.error(err)
+            toaster.danger('failed to unlink auth method')
+          }
         }}
       >
         <Input
@@ -356,6 +374,7 @@ function UnlinkObstacle ({ onClose, type, unlinkAuth }) {
 function AuthMethods ({ methods }) {
   const showModal = useShowModal()
   const router = useRouter()
+  const toaster = useToast()
   const [err, setErr] = useState(authErrorMessage(router.query.error))
   const [unlinkAuth] = useMutation(
     gql`
@@ -390,7 +409,13 @@ function AuthMethods ({ methods }) {
     if (links === 1) {
       showModal(onClose => (<UnlinkObstacle onClose={onClose} type={type} unlinkAuth={unlinkAuth} />))
     } else {
-      await unlinkAuth({ variables: { authType: type } })
+      try {
+        await unlinkAuth({ variables: { authType: type } })
+        toaster.success('unlinked auth method')
+      } catch (err) {
+        console.error(err)
+        toaster.danger('failed to unlink auth method')
+      }
     }
   }
 

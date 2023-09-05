@@ -9,8 +9,10 @@ import Item from '../../../components/item'
 import { useQuery } from '@apollo/client'
 import PageLoading from '../../../components/page-loading'
 
-export const getServerSideProps = getGetServerSideProps(RELATED_ITEMS_WITH_ITEM, null,
-  data => !data.item)
+export const getServerSideProps = getGetServerSideProps({
+  query: RELATED_ITEMS_WITH_ITEM,
+  notFound: data => !data.item
+})
 
 export default function Related ({ ssrData }) {
   const router = useRouter()

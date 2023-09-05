@@ -1,12 +1,12 @@
 const serialize = require('../api/resolvers/serial')
-const { getInvoice, getPayment } = require('ln-service')
+const { getInvoice, getPayment, cancelHodlInvoice } = require('ln-service')
 const { datePivot } = require('../lib/time')
 
 const walletOptions = { startAfter: 5, retryLimit: 21, retryBackoff: true }
 
 // TODO this should all be done via websockets
 function checkInvoice ({ boss, models, lnd }) {
-  return async function ({ data: { hash } }) {
+  return async function ({ data: { hash, isHeldSet } }) {
     let inv
     try {
       inv = await getInvoice({ id: hash, lnd })
@@ -18,13 +18,22 @@ function checkInvoice ({ boss, models, lnd }) {
     }
     console.log(inv)
 
-    if (inv.is_confirmed) {
+    // check if invoice still exists since HODL invoices get deleted after usage
+    const dbInv = await models.invoice.findUnique({ where: { hash } })
+    if (!dbInv) return
+
+    const expired = new Date(inv.expires_at) <= new Date()
+
+    if (inv.is_confirmed && !inv.is_held) {
+      // never mark hodl invoices as confirmed here because
+      // we manually confirm them when we settle them
       await serialize(models,
         models.$executeRaw`SELECT confirm_invoice(${inv.id}, ${Number(inv.received_mtokens)})`)
-      await boss.send('nip57', { hash })
-    } else if (inv.is_canceled) {
-      // mark as cancelled
-      await serialize(models,
+      return boss.send('nip57', { hash })
+    }
+
+    if (inv.is_canceled) {
+      return serialize(models,
         models.invoice.update({
           where: {
             hash: inv.id
@@ -33,11 +42,27 @@ function checkInvoice ({ boss, models, lnd }) {
             cancelled: true
           }
         }))
-    } else if (new Date(inv.expires_at) > new Date()) {
-      // not expired, recheck in 5 seconds if the invoice is younger than 5 minutes
+    }
+
+    if (inv.is_held && !isHeldSet) {
+      // this is basically confirm_invoice without setting confirmed_at since it's not settled yet
+      // and without setting the user balance since that's done inside the same tx as the HODL invoice action.
+      await serialize(models,
+        models.invoice.update({ where: { hash }, data: { msatsReceived: Number(inv.received_mtokens), isHeld: true } }))
+      // remember that we already executed this if clause
+      // (even though the query above is idempotent but imo, this makes the flow more clear)
+      isHeldSet = true
+    }
+
+    if (!expired) {
+      // recheck in 5 seconds if the invoice is younger than 5 minutes
       // otherwise recheck in 60 seconds
       const startAfter = new Date(inv.created_at) > datePivot(new Date(), { minutes: -5 }) ? 5 : 60
-      await boss.send('checkInvoice', { hash }, { ...walletOptions, startAfter })
+      await boss.send('checkInvoice', { hash, isHeldSet }, { ...walletOptions, startAfter })
+    }
+
+    if (expired && inv.is_held) {
+      await cancelHodlInvoice({ id: hash, lnd })
     }
   }
 }

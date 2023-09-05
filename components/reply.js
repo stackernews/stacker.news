@@ -9,7 +9,6 @@ import FeeButton from './fee-button'
 import { commentsViewedAfterComment } from '../lib/new-comments'
 import { commentSchema } from '../lib/validate'
 import Info from './info'
-import { useInvoiceable } from './invoice'
 
 export function ReplyOnAnotherPage ({ parentId }) {
   return (
@@ -43,24 +42,24 @@ export default function Reply ({ item, onSuccess, replyOpen, children, placehold
     setReply(replyOpen || !!window.localStorage.getItem('reply-' + parentId + '-' + 'text'))
   }, [])
 
-  const [createComment] = useMutation(
+  const [upsertComment] = useMutation(
     gql`
       ${COMMENTS}
-      mutation createComment($text: String!, $parentId: ID!, $invoiceHash: String, $invoiceHmac: String) {
-        createComment(text: $text, parentId: $parentId, invoiceHash: $invoiceHash, invoiceHmac: $invoiceHmac) {
+      mutation upsertComment($text: String!, $parentId: ID!, $hash: String, $hmac: String) {
+        upsertComment(text: $text, parentId: $parentId, hash: $hash, hmac: $hmac) {
           ...CommentFields
           comments {
             ...CommentsRecursive
           }
         }
       }`, {
-      update (cache, { data: { createComment } }) {
+      update (cache, { data: { upsertComment } }) {
         cache.modify({
           id: `Item:${parentId}`,
           fields: {
             comments (existingCommentRefs = []) {
               const newCommentRef = cache.writeFragment({
-                data: createComment,
+                data: upsertComment,
                 fragment: COMMENTS,
                 fragmentName: 'CommentsRecursive'
               })
@@ -86,22 +85,16 @@ export default function Reply ({ item, onSuccess, replyOpen, children, placehold
         // so that we don't see indicator for our own comments, we record this comments as the latest time
         // but we also have record num comments, in case someone else commented when we did
         const root = ancestors[0]
-        commentsViewedAfterComment(root, createComment.createdAt)
+        commentsViewedAfterComment(root, upsertComment.createdAt)
       }
     }
   )
 
-  const submitComment = useCallback(
-    async (_, values, parentId, resetForm, invoiceHash, invoiceHmac) => {
-      const { error } = await createComment({ variables: { ...values, parentId, invoiceHash, invoiceHmac } })
-      if (error) {
-        throw new Error({ message: error.toString() })
-      }
-      resetForm({ text: '' })
-      setReply(replyOpen || false)
-    }, [createComment, setReply])
-
-  const invoiceableCreateComment = useInvoiceable(submitComment)
+  const onSubmit = useCallback(async ({ amount, hash, hmac, ...values }, { resetForm }) => {
+    await upsertComment({ variables: { parentId, hash, hmac, ...values } })
+    resetForm({ text: '' })
+    setReply(replyOpen || false)
+  }, [upsertComment, setReply])
 
   const replyInput = useRef(null)
   useEffect(() => {
@@ -129,9 +122,8 @@ export default function Reply ({ item, onSuccess, replyOpen, children, placehold
               text: ''
             }}
             schema={commentSchema}
-            onSubmit={async ({ cost, ...values }, { resetForm }) => {
-              return invoiceableCreateComment(cost, values, parentId, resetForm)
-            }}
+            invoiceable
+            onSubmit={onSubmit}
             storageKeyPrefix={'reply-' + parentId}
           >
             <MarkdownInput

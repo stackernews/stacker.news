@@ -68,7 +68,7 @@ function ItemEmbed ({ item }) {
   const [overflowing, setOverflowing] = useState(false)
   const [show, setShow] = useState(false)
 
-  const twitter = item.url?.match(/^https?:\/\/twitter\.com\/(?:#!\/)?\w+\/status(?:es)?\/(?<id>\d+)/)
+  const twitter = item.url?.match(/^https?:\/\/(?:twitter|x)\.com\/(?:#!\/)?\w+\/status(?:es)?\/(?<id>\d+)/)
   if (twitter?.groups?.id) {
     return (
       <div className={`${styles.twitterContainer} ${show ? '' : styles.twitterContained}`}>
@@ -86,7 +86,7 @@ function ItemEmbed ({ item }) {
     return (
       <div style={{ maxWidth: '640px', paddingRight: '15px' }}>
         <YouTube
-          videoId={youtube.groups.id} containerClassName={styles.youtubeContainer} opts={{
+          videoId={youtube.groups.id} className={styles.youtubeContainer} opts={{
             playerVars: {
               start: youtube?.groups?.start
             }
@@ -103,13 +103,18 @@ function ItemEmbed ({ item }) {
   return null
 }
 
-function FwdUser ({ user }) {
+function FwdUsers ({ forwards }) {
   return (
     <div className={styles.other}>
-      100% of zaps are forwarded to{' '}
-      <Link href={`/${user.name}`}>
-        @{user.name}
-      </Link>
+      zaps forwarded to {' '}
+      {forwards.map((fwd, index, arr) => (
+        <span key={fwd.user.name}>
+          <Link href={`/${fwd.user.name}`}>
+            @{fwd.user.name}
+          </Link>
+          {` (${fwd.pct}%)`}{index !== arr.length - 1 && ' '}
+        </span>))}
+
     </div>
   )
 }
@@ -128,7 +133,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
             <Toc text={item.text} />
           </>
       }
-      belowTitle={item.fwdUser && <FwdUser user={item.fwdUser} />}
+      belowTitle={item.forwards && item.forwards.length > 0 && <FwdUsers forwards={item.forwards} />}
       {...props}
     >
       <div className={styles.fullItemContainer}>
@@ -141,6 +146,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
               ? (
                 <div className='px-3 py-1 d-inline-block bg-grey-medium rounded text-success'>
                   <Check className='fill-success' /> {numWithUnits(item.bounty, { abbreviate: false })} paid
+                  {item.bountyPaidTo.length > 1 && <small className='fw-light'> {item.bountyPaidTo.length} times</small>}
                 </div>)
               : (
                 <div className='px-3 py-1 d-inline-block bg-grey-darkmode rounded text-light'>

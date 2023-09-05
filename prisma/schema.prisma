@@ -63,7 +63,6 @@ model User {
   Earn                Earn[]
   invites             Invite[]             @relation("Invites")
   invoices            Invoice[]
-  fwdItems            Item[]               @relation("FwdItem")
   items               Item[]               @relation("UserItems")
   actions             ItemAct[]
   mentions            Mention[]
@@ -84,6 +83,10 @@ model User {
   referrees           User[]               @relation("referrals")
   Account             Account[]
   Session             Session[]
+  itemForwards        ItemForward[]
+  hideBookmarks       Boolean              @default(false)
+  followers           UserSubscription[]   @relation("follower")
+  followees           UserSubscription[]   @relation("followee")
 
   @@index([createdAt], map: "users.created_at_index")
   @@index([inviteId], map: "users.inviteId_index")
@@ -227,7 +230,6 @@ model Item {
   statusUpdatedAt    DateTime?
   status             Status                @default(ACTIVE)
   company            String?
-  fwdUserId          Int?
   weightedVotes      Float                 @default(0)
   boost              Int                   @default(0)
   uploadId           Int?
@@ -249,7 +251,6 @@ model Item {
   upvotes            Int                   @default(0)
   weightedComments   Float                 @default(0)
   Bookmark           Bookmark[]
-  fwdUser            User?                 @relation("FwdItem", fields: [fwdUserId], references: [id])
   parent             Item?                 @relation("ParentChildren", fields: [parentId], references: [id])
   children           Item[]                @relation("ParentChildren")
   pin                Pin?                  @relation(fields: [pinId], references: [id])
@@ -264,6 +265,7 @@ model Item {
   ThreadSubscription ThreadSubscription[]
   upload             Upload?
   User               User[]
+  itemForwards       ItemForward[]
 
   @@index([bio], map: "Item.bio_index")
   @@index([createdAt], map: "Item.created_at_index")
@@ -280,6 +282,23 @@ model Item {
   @@index([userId], map: "Item.userId_index")
   @@index([weightedDownVotes], map: "Item.weightedDownVotes_index")
   @@index([weightedVotes], map: "Item.weightedVotes_index")
+}
+
+// TODO: make all Item's forward 100% of sats to the OP by default
+// so that forwards aren't a special case everywhere
+model ItemForward {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  itemId    Int // The item from which sats are forwarded
+  userId    Int // The recipient of the forwarded sats
+  pct       Int // The percentage of sats from the item to forward to this user
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([itemId], map: "ItemForward.itemId_index")
+  @@index([userId], map: "ItemForward.userId_index")
+  @@index([createdAt], map: "ItemForward.createdAt_index")
 }
 
 model PollOption {
@@ -359,7 +378,7 @@ model ReferralAct {
 model ItemAct {
   id          Int           @id(map: "Vote_pkey") @default(autoincrement())
   createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @updatedAt @map("updated_at")
+  updatedAt   DateTime      @default(now()) @updatedAt @map("updated_at")
   msats       BigInt
   act         ItemActType
   itemId      Int
@@ -383,7 +402,7 @@ model ItemAct {
 model Mention {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
   itemId    Int
   userId    Int
   item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
@@ -398,9 +417,11 @@ model Mention {
 model Invoice {
   id             Int       @id @default(autoincrement())
   createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at")
   userId         Int
   hash           String    @unique(map: "Invoice.hash_unique")
+  preimage       String?   @unique(map: "Invoice.preimage_unique")
+  isHeld         Boolean?
   bolt11         String
   expiresAt      DateTime
   confirmedAt    DateTime?
@@ -417,7 +438,7 @@ model Invoice {
 model Withdrawl {
   id             Int              @id @default(autoincrement())
   createdAt      DateTime         @default(now()) @map("created_at")
-  updatedAt      DateTime         @updatedAt @map("updated_at")
+  updatedAt      DateTime         @default(now()) @updatedAt @map("updated_at")
   userId         Int
   hash           String
   bolt11         String
@@ -435,7 +456,7 @@ model Withdrawl {
 model Account {
   id                Int      @id @default(autoincrement())
   createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at")
   userId            Int      @map("user_id")
   type              String   @map("provider_type")
   provider          String   @map("provider_id")
@@ -463,7 +484,7 @@ model Session {
   id           Int      @id @default(autoincrement())
   sessionToken String   @unique(map: "sessions.session_token_unique") @map("session_token")
   createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
   userId       Int      @map("user_id")
   expires      DateTime
 
@@ -475,7 +496,7 @@ model Session {
 model VerificationToken {
   id         Int      @id @default(autoincrement())
   createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
   identifier String
   token      String   @unique(map: "verification_requests.token_unique")
   expires    DateTime
@@ -495,6 +516,8 @@ model Bookmark {
   @@index([createdAt], map: "Bookmark.created_at_index")
 }
 
+// TODO: make thread subscriptions for OP by default so they can
+// unsubscribe from their own threads and its not a special case
 model ThreadSubscription {
   userId    Int
   itemId    Int
@@ -504,6 +527,19 @@ model ThreadSubscription {
 
   @@id([userId, itemId])
   @@index([createdAt], map: "ThreadSubscription.created_at_index")
+}
+
+model UserSubscription {
+  followerId    Int
+  followeeId    Int
+  createdAt     DateTime @default(now()) @map("created_at")
+  follower      User     @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  followee      User     @relation("followee", fields: [followeeId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followeeId])
+  @@index([createdAt], map: "UserSubscription.created_at_index")
+  @@index([followerId], map: "UserSubscription.follower_index")
+  @@index([followeeId], map: "UserSubscription.followee_index")
 }
 
 model PushSubscription {

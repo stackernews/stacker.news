@@ -90,6 +90,8 @@ $popover-body-padding-y: .5rem;
 $popover-max-width: 320px !default;
 $popover-border-color: var(--theme-borderColor);
 $grid-gutter-width: 2rem;
+$toast-spacing: .5rem;
+$btn-close-bg: none;
 
 :root, [data-bs-theme=light] {
   --theme-navLink: rgba(0, 0, 0, 0.55);
@@ -153,6 +155,10 @@ $grid-gutter-width: 2rem;
   height: 2px !important;
 }
 
+.toast-body {
+  padding: 0.75rem 1.25rem !important;
+}
+
 #nprogress .peg {
   box-shadow: 0 0 10px var(--bs-primary), 0 0 5px var(--bs-primary) !important;
 }
@@ -165,6 +171,10 @@ $grid-gutter-width: 2rem;
   .standalone {
     display: flex
   }
+}
+
+.justify-self-center {
+  justify-self: center;
 }
 
 .text-primary svg {
@@ -195,7 +205,7 @@ $grid-gutter-width: 2rem;
   margin-left: auto;
   padding-right: 1.5rem;
   font-family: "lightning";
-  font-size: 150%;
+  font-size: 160%;
   line-height: 1rem;
 }
 
@@ -512,12 +522,14 @@ div[contenteditable] {
   font-weight: bold;
 }
 
-.alert-dismissible .close {
+.alert-dismissible .btn-close {
   font-weight: 300;
-  font-family: 'lightning';
+  font-family: "lightning";
+  font-size: 150%;
+  line-height: 1;
 }
 
-.popover-header.alert-dismissible .close {
+.popover-header.alert-dismissible .btn-close {
   padding: .5rem !important;
 }
 
@@ -536,7 +548,7 @@ div[contenteditable] {
 }
 
 
-.alert-dismissible .close::after {
+.alert-dismissible .btn-close::after {
   content: 'X';
 }
 

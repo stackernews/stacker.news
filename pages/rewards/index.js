@@ -45,7 +45,7 @@ function midnight (tz) {
   return date.getTime() + tzOffset(tz) * 60 * 60 * 1000
 }
 
-export const getServerSideProps = getGetServerSideProps(REWARDS)
+export const getServerSideProps = getGetServerSideProps({ query: REWARDS })
 
 export function RewardLine ({ total }) {
   const threshold = useMemo(() => midnight('America/Chicago'))
@@ -66,7 +66,7 @@ export default function Rewards ({ ssrData }) {
   const { data } = useQuery(REWARDS, SSR ? {} : { pollInterval: 1000, nextFetchPolicy: 'cache-and-network' })
   if (!data && !ssrData) return <PageLoading />
 
-  const { rewards: { total, sources } } = data || ssrData
+  const { rewards: [{ total, sources }] } = data || ssrData
 
   return (
     <CenterLayout footerLinks>

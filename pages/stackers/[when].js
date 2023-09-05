@@ -65,7 +65,7 @@ const GROWTH_QUERY = gql`
     }
   }`
 
-export const getServerSideProps = getGetServerSideProps(GROWTH_QUERY)
+export const getServerSideProps = getGetServerSideProps({ query: GROWTH_QUERY })
 
 export default function Growth ({ ssrData }) {
   const router = useRouter()

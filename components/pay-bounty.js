@@ -6,8 +6,8 @@ import { useMutation, gql } from '@apollo/client'
 import { useMe } from './me'
 import { numWithUnits } from '../lib/format'
 import { useShowModal } from './modal'
-import FundError from './fund-error'
 import { useRoot } from './root'
+import { InvoiceModal, payOrLoginError } from './invoice'
 
 export default function PayBounty ({ children, item }) {
   const me = useMe()
@@ -16,8 +16,8 @@ export default function PayBounty ({ children, item }) {
 
   const [act] = useMutation(
     gql`
-      mutation act($id: ID!, $sats: Int!) {
-        act(id: $id, sats: $sats) {
+      mutation act($id: ID!, $sats: Int!, $hash: String, $hmac: String) {
+        act(id: $id, sats: $sats, hash: $hash, hmac: $hmac) {
           sats
         }
       }`, {
@@ -73,9 +73,16 @@ export default function PayBounty ({ children, item }) {
       })
       onComplete()
     } catch (error) {
-      if (error.toString().includes('insufficient funds')) {
+      if (payOrLoginError(error)) {
         showModal(onClose => {
-          return <FundError onClose={onClose} />
+          return (
+            <InvoiceModal
+              amount={root.bounty}
+              onPayment={async ({ hash, hmac }) => {
+                await act({ variables: { id: item.id, sats: root.bounty, hash, hmac } })
+              }}
+            />
+          )
         })
         return
       }

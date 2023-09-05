@@ -12,8 +12,11 @@ import { useQuery } from '@apollo/client'
 import { useRouter } from 'next/router'
 import PageLoading from '../../../components/page-loading'
 
-export const getServerSideProps = getGetServerSideProps(ITEM, null,
-  data => !data.item)
+export const getServerSideProps = getGetServerSideProps({
+  query: ITEM,
+  notFound: data => !data.item,
+  authRequired: true
+})
 
 export default function PostEdit ({ ssrData }) {
   const router = useRouter()

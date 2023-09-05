@@ -33,7 +33,6 @@ export const ME = gql`
       wildWestMode
       greeterMode
       lastCheckedJobs
-      createdAt
       hideWelcomeBanner
     }
   }`

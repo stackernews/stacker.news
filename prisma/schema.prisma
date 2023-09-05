@@ -55,6 +55,7 @@ model User {
   referrerId          Int?
   nostrPubkey         String?
   nostrAuthPubkey     String?              @unique(map: "users.nostrAuthPubkey_unique")
+  nostrCrossposting   Boolean              @default(false)
   slashtagId          String?              @unique(map: "users.slashtagId_unique")
   noteCowboyHat       Boolean              @default(true)
   streak              Int?

@@ -13,6 +13,7 @@ import { discussionSchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
 import { useCallback } from 'react'
+import { crosspostDiscussion } from '../lib/nostr'
 import { normalizeForwards } from '../lib/form'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
 import { useMe } from './me'
@@ -37,10 +38,20 @@ export function DiscussionForm ({
         }
       }`
   )
-
   const onSubmit = useCallback(
     async ({ boost, ...values }) => {
-      const { error } = await upsertDiscussion({
+
+      // Check if the user has cross-posting enabled
+      // Currently defaulting to true
+      const userHasCrosspostingEnabled = me?.crosspostingEnabled || true;
+      
+      if (userHasCrosspostingEnabled) {
+        await crosspostDiscussion(values);
+      } else {
+        console.log("Cross-posting is not enabled for the user");
+      }
+
+      const { error, item } = await upsertDiscussion({
         variables: {
           sub: item?.subName || sub?.name,
           id: item?.id,
@@ -49,6 +60,8 @@ export function DiscussionForm ({
           forward: normalizeForwards(values.forward)
         }
       })
+
+      console.log('itemm', item)
       if (error) {
         throw new Error({ message: error.toString() })
       }

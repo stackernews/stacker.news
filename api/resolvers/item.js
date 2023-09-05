@@ -815,12 +815,12 @@ export default {
 
           // send push notifications to forwarded recipients
           if (mappedForwards.length) {
-            await mappedForwards.map(forward => sendUserNotification(forward.user.id, {
+            await Promise.allSettled(mappedForwards.map(forward => sendUserNotification(forward.user.id, {
               title: `you were forwarded ${numWithUnits(msatsToSats(updatedItem.msats) * forward.pct / 100)}`,
               body: updatedItem.title ?? updatedItem.text,
               item: updatedItem,
               tag: `FORWARDEDTIP-${updatedItem.id}`
-            }))
+            })))
           }
         } catch (err) {
           console.error(err)

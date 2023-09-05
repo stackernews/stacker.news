@@ -18,6 +18,7 @@ import DownloadFile from '../svgs/file-download-line.svg'
 import { useMe } from '../components/me'
 import { CsvRequest, CsvRequestStatus } from '../api/constants'
 import { useToast } from '../components/toast'
+import { useEffect, useState } from 'react'
 
 export const getServerSideProps = getGetServerSideProps({ query: WALLET_HISTORY, authRequired: true })
 
@@ -219,6 +220,14 @@ export default function Satistics ({ ssrData }) {
       })
     }
   })
+  const [btnState, setBtnState] = useState('')
+  useEffect(() => {
+    const newState = getCsvBtnClass()
+    if (newState !== btnState) {
+      setBtnState(newState)
+      if (newState === 'btn-success') toaster.success('CSV file is ready to download')
+    }
+  }, [getCsvBtnClass()])
 
   return (
     <Layout>

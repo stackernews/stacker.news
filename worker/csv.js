@@ -97,19 +97,17 @@ const WALLET_HISTORY = gql`
   }
 `
 
-// this should be run regularly ... like, every 1-5 minutes
-function updateCsvs ({ models, apollo }) {
-  return async function () {
-    console.log('checking CSV work')
-    const todo = await models.user.findMany({
+function delay (millisec) {
+  return new Promise(resolve => {
+    setTimeout(() => { resolve('') }, millisec)
+  })
+}
+
+function checkCsv ({ models, apollo }) {
+  return async function ({ data: { id } }) {
+    const status = await models.user.findUnique({
       where: {
-        // conceptually, this is what we want:
-        // csvRequest: { not: models.user.fields.csvRequestStatus }
-        // but because the enums are of different types, we have to do this:
-        OR: [
-          { AND: [{ csvRequest: 'NO_REQUEST' }, { csvRequestStatus: { not: 'NO_REQUEST' } }] },
-          { AND: [{ csvRequest: 'FULL_REPORT' }, { csvRequestStatus: { not: 'FULL_REPORT' } }] }
-        ]
+        id
       },
       select: {
         id: true,
@@ -117,47 +115,33 @@ function updateCsvs ({ models, apollo }) {
         csvRequestStatus: true
       }
     })
-
-    if (todo.length === 0) return
-
-    console.log('checking', todo.length, 'CSV request(s)')
-
-    for (const req of todo) {
-      console.log(req)
-      if (req.csvRequest === 'FULL_REPORT' && req.csvRequestStatus === 'NO_REQUEST') {
-        console.log('starting CSV preparation')
-        await models.$transaction([
-          models.$executeRaw`UPDATE "users" SET "csvRequestStatus" = 'GENERATING_REPORT' WHERE "users"."id" = ${req.id}`])
-        createCsv(`satistics_${req.id}.csv`, req.id, apollo, models)
-      } else if (req.csvRequest === 'NO_REQUEST' && req.csvRequestStatus === 'FULL_REPORT') {
-        console.log('resetting completed CSV')
-        await models.$transaction([
-          models.$executeRaw`UPDATE "users" SET "csvRequestStatus" = 'NO_REQUEST' WHERE "users"."id" = ${req.id}`])
-      } else if (req.csvRequest === 'NO_REQUEST' && req.csvRequestStatus === 'INCOPLETE') {
-        console.log('resetting incomplete CSV')
-        await models.$transaction([
-          models.$executeRaw`UPDATE "users" SET "csvRequestStatus" = 'NO_REQUEST' WHERE "users"."id" = ${req.id}`])
-      } else {
-        // await models.$transaction([
-        //   models.$executeRaw`UPDATE "users" SET "csvRequestStatus" = 'NO_REQUEST' WHERE "users"."id" = ${req.id}`])
-      }
+    if (status.csvRequest === 'NO_REQUEST' && (status.csvRequestStatus === 'INCOMPLETE' || status.csvRequestStatus === 'FULL_REPORT')) {
+      console.log('user request cleared')
+      await models.$transaction([
+        models.$executeRaw`UPDATE "users" SET "csvRequestStatus" = 'NO_REQUEST' WHERE "users"."id" = ${id}`])
+    } else if (status.csvRequest === 'FULL_REPORT' && (status.csvRequestStatus === 'NO_REQUEST' || status.csvRequestStatus === 'INCOMPLETE')) {
+      makeCsv({ models, apollo, id })
     }
-
-    console.log('end of CSV management')
   }
 }
 
-async function createCsv (fname, id, apollo, models) {
+async function makeCsv ({ models, apollo, id }) {
+  await models.$transaction([
+    models.$executeRaw`UPDATE "users" SET "csvRequestStatus" = 'GENERATING_REPORT' WHERE "users"."id" = ${id}`])
+  const fname = `satistics_${id}.csv`
   const s = fs.createWriteStream(fname)
   let facts = []; let cursor = null
   let status; let incomplete = false
   console.log('started new CSV file')
   s.write('time,type,sats\n')
+  let i = 0
   do {
     // query for items
+    await delay(1000) // <- adjust delay and 'limit' variabele in query below for preferred work rate
+    console.log(++i);
     ({ data: { walletHistory: { facts, cursor } } } = await apollo.query({
       query: WALLET_HISTORY,
-      variables: { cursor, limit: 1000, inc: 'invoice,withdrawal,stacked,spent', id }
+      variables: { cursor, limit: 1, inc: 'invoice,withdrawal,stacked,spent', id }
     }))
 
     // for all items, index them
@@ -174,6 +158,7 @@ async function createCsv (fname, id, apollo, models) {
       s.end()
     }
 
+    // check for cancellation
     status = await models.user.findUnique({
       where: {
         id
@@ -190,6 +175,7 @@ async function createCsv (fname, id, apollo, models) {
     }
   } while (cursor && !incomplete)
 
+  // result
   s.end()
   const newState = incomplete ? 'INCOMPLETE' : 'FULL_REPORT'
   console.log('done with CSV file', newState)
@@ -197,4 +183,4 @@ async function createCsv (fname, id, apollo, models) {
     models.$executeRaw`UPDATE "users" SET "csvRequestStatus" = CAST(${newState} as "CsvRequestStatus") WHERE "users"."id" = ${id}`])
 }
 
-module.exports = { updateCsvs }
+module.exports = { checkCsv }

@@ -1204,7 +1204,7 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
       const isPost = !!item.title
       await Promise.allSettled(userSubs.map(({ followerId, followee }) => sendUserNotification(followerId, {
         title: `@${followee.name} ${isPost ? 'created a post' : 'replied to a post'}`,
-        body: item.text,
+        body: isPost ? item.title : item.text,
         item,
         tag: 'FOLLOW'
       })))

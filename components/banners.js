@@ -9,12 +9,10 @@ import { useToast } from '../components/toast'
 export default function NewVisitorBanner () {
   const me = useMe()
   const toaster = useToast()
-  const [state, setState] = useState(null)
+  const [hidden, setHidden] = useState(true)
   const handleClose = async () => {
-    const obj = { date: state?.date || new Date().toJSON(), hidden: true }
-    const str = JSON.stringify(obj)
-    window.localStorage.setItem('newVisitorInfo', str)
-    setState(obj)
+    window.localStorage.setItem('hideWelcomeBanner', true)
+    setHidden(true)
     if (me) {
       let error
       try {
@@ -38,20 +36,10 @@ export default function NewVisitorBanner () {
     }
   })
   useEffect(() => {
-    let str = window.localStorage.getItem('newVisitorInfo')
-    let obj = JSON.parse(str)
-    if (!str) {
-      obj = { date: new Date().toJSON(), hidden: false }
-    }
-    if (me?.hideWelcomeBanner) {
-      obj.hidden = true
-    }
-    str = JSON.stringify(obj)
-    window.localStorage.setItem('newVisitorInfo', str)
-    setState(obj)
+    setHidden(me?.hideWelcomeBanner || window.localStorage.getItem('hideWelcomeBanner'))
   }, [me?.hideWelcomeBanner])
 
-  if ((me && !me.hideWelcomeBanner) || (!me && state && !state.hidden)) {
+  if (!hidden) {
     return (
       <Alert className={styles.banner} key='info' variant='info' onClose={handleClose} dismissible>
         <Alert.Heading>

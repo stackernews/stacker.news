@@ -14,7 +14,7 @@ Let it rip:
 
 `./check-weekly-stories.sh` # This gathers a summary of how many stackers posted stories and posts it.
 
-`./check-stackers.sh` # This ranks the top 3 stackers and reports about it.
+`./check-stackers.sh` # This ranks the top 3 stackers and reports on it.
 
 `./send-all.sh <text>` # This broadcasts `<text>` to the social networks.
 

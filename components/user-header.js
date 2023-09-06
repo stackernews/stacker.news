@@ -205,13 +205,13 @@ function HeaderHeader ({ user }) {
             className='me-1'
           />{user.name}@stacker.news
         </Button>
-        {user.isContributor && <div>Verified stacker.news contributor</div>}
         <div className='d-flex flex-column mt-1 ms-0'>
           <small className='text-muted d-flex-inline'>stacking since: {user.since
             ? <Link href={`/items/${user.since}`} className='ms-1'>#{user.since}</Link>
             : <span>never</span>}
           </small>
           <small className='text-muted d-flex-inline'>longest cowboy streak: {user.maxStreak !== null ? user.maxStreak : 'none'}</small>
+          {user.isContributor && <small className='text-muted'>🧑‍💻✅ verified stacker.news contributor</small>}
         </div>
       </div>
     </div>

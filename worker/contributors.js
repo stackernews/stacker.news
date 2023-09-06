@@ -1,3 +1,10 @@
+/**
+ * Instructions: Once you make a contribution to the repo, add yourself to this map,
+ * where the key is your user id in stacker.news prod,
+ * and the value map contains your GitHub username, and your SN nym.
+ * Right now, the GitHub usernames and SN nyms are not used, but maybe we'll use them
+ * in the future for a fancier UI decoration.
+ */
 const contributorMap = {
   616: {
     github: 'huumn',

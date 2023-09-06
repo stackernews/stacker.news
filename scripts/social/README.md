@@ -34,4 +34,4 @@ For twitter, we use [twitter/twurl](https://github.com/twitter/twurl). Follow ex
 
 ## Notes and more info
 
-See issue #434.
+See [issue #434](https://github.com/stackernews/stacker.news/issues/434).

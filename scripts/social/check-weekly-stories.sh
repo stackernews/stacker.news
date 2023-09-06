@@ -33,7 +33,7 @@ NUM_POSTERS=$(( `cat $POSTER_RESULT` ))
 read -r -d '' BODY << EOM
 This week $NUM_POSTERS stackers created $NUM_POSTS Stacker News posts, catch up on all the top stories from the last week!
 
-https://stacker.news/top/posts/week @sn
+https://stacker.news/top/posts/week/r/sn
 EOM
 
 ./send-all.sh "$BODY"

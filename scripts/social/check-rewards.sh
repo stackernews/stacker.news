@@ -22,7 +22,7 @@ if (( $REWARDS_NUMBER >= $REWARDS_THRESHOLD )); then
 read -r -d '' BODY << EOM
 In 8 hours, we're giving away over $REWARDS_AMOUNT sats to all the best zappers on Stacker News!
 
-https://stacker.news/rewards @sn
+https://stacker.news/rewards/r/sn
 EOM
 
 ./send-all.sh "$BODY"

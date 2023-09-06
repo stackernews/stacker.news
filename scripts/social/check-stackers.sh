@@ -48,7 +48,7 @@ This week $NUM_STACKERS stackers earned $NUM_STACKED sats, who topped this week'
 
 Full leaderboard 👇
 
-https://stacker.news/top/stackers/week @sn
+https://stacker.news/top/stackers/week/r/sn
 EOM
 
 ./send-all.sh "$BODY"

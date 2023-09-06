@@ -27,7 +27,7 @@ read -r -d '' BODY << EOM
 🔥 Trending on SN 🔥
 
 $TOP_POST_TITLE
-https://stacker.news/items/$TOP_POST_ID @sn
+https://stacker.news/items/$TOP_POST_ID/r/sn
 EOM
 
 if [ -z "$1" ]; then

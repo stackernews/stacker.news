@@ -788,6 +788,12 @@ export default {
       })
 
       return !!subscription
+    },
+    isContributor: async (user, args, { me }) => {
+      if (me?.id === user.id) {
+        return user.isContributor
+      }
+      return !user.hideIsContributor && user.isContributor
     }
   }
 }

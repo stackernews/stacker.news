@@ -205,6 +205,7 @@ function HeaderHeader ({ user }) {
             className='me-1'
           />{user.name}@stacker.news
         </Button>
+        {user.isContributor && <div>Verified stacker.news contributor</div>}
         <div className='d-flex flex-column mt-1 ms-0'>
           <small className='text-muted d-flex-inline'>stacking since: {user.since
             ? <Link href={`/items/${user.since}`} className='ms-1'>#{user.since}</Link>

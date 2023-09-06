@@ -11,6 +11,7 @@ const { indexItem, indexAllItems } = require('./search')
 const { timestampItem } = require('./ots')
 const { computeStreaks, checkStreak } = require('./streak')
 const { nip57 } = require('./nostr')
+const { contributors } = require('./contributors')
 
 const fetch = require('cross-fetch')
 const { authenticatedLndGrpc } = require('ln-service')
@@ -62,6 +63,9 @@ async function work () {
   await boss.work('nip57', nip57(args))
   await boss.work('views', views(args))
   await boss.work('rankViews', rankViews(args))
+
+  // Run once
+  await contributors(args)()
 
   console.log('working jobs')
 }

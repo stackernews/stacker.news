@@ -6,11 +6,11 @@ import { gql } from '@apollo/client'
 
 export default async function handler (req, res) {
   const apollo = await getSSRApolloClient({ req, res })
-  const { data: { me: { id, csvRequest, csvRequestStatus } } } = await apollo.query({ query: ME })
-  const fname = `satistics_${id}.csv`
+  const { data: { me } } = await apollo.query({ query: ME })
+  const fname = `satistics_${me?.id}.csv`
   res.setHeader('Content-Type', 'text/csv')
   res.setHeader('Content-Disposition', 'attachment; filename=satistics.csv')
-  if (id && csvRequest === CsvRequest.FULL_REPORT && csvRequestStatus === CsvRequestStatus.FULL_REPORT && fs.existsSync(fname)) {
+  if (me?.csvRequest === CsvRequest.FULL_REPORT && me.csvRequestStatus === CsvRequestStatus.FULL_REPORT && fs.existsSync(fname)) {
     fs.createReadStream(fname).pipe(res)
       .on('error', () => res.status(500).end())
       .on('finish', async () => {
@@ -24,7 +24,7 @@ export default async function handler (req, res) {
           update:
             function update (cache) {
               cache.modify({
-                id: `User:${id}`,
+                id: `User:${me.id}`,
                 fields: {
                   csvRequest: () => CsvRequest.NO_REQUEST
                 }

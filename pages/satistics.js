@@ -179,11 +179,10 @@ export default function Satistics ({ ssrData }) {
         ? 'btn-success'
         : 'btn-danger'
   }
-  const getIconClass = () => {
-    return me.csvRequest === CsvRequest.FULL_REPORT && me.csvRequestStatus === CsvRequestStatus.GENERATING_REPORT
+  const iconClass =
+    me.csvRequest === CsvRequest.FULL_REPORT && me.csvRequestStatus === CsvRequestStatus.GENERATING_REPORT
       ? styles.busyanim
       : ''
-  }
   const handleCsvClick = async (event) => {
     if (me.csvRequest === CsvRequest.FULL_REPORT && me.csvRequestStatus === CsvRequestStatus.FULL_REPORT) {
       toaster.success('Downloading...')
@@ -270,7 +269,7 @@ export default function Satistics ({ ssrData }) {
                 download={`statistics-${router.query.inc?.split(',').join('-')}.csv`}
                 target='_blank' rel='noreferrer'
               >
-                <DownloadFile className={`fill-white ${getIconClass()}`} height={18} weight={18} />
+                <DownloadFile className={`fill-white ${iconClass}`} height={18} weight={18} />
               </Link>
             </div>
           </div>

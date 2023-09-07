@@ -16,7 +16,7 @@ import ItemJob from '../components/item-job'
 import PageLoading from '../components/page-loading'
 import DownloadFile from '../svgs/file-download-line.svg'
 import { useMe } from '../components/me'
-import { CsvRequest, CsvRequestStatus } from '../api/constants'
+import { CsvRequest, CsvRequestStatus } from '../lib/constants'
 import { useToast } from '../components/toast'
 import { useEffect, useState } from 'react'
 

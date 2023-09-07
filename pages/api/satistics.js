@@ -1,7 +1,7 @@
 import fs from 'fs'
 import getSSRApolloClient from '../../api/ssrApollo'
 import { ME } from '../../fragments/users'
-import { CsvRequest, CsvRequestStatus } from '../../api/constants'
+import { CsvRequest, CsvRequestStatus } from '../../lib/constants'
 import { gql } from '@apollo/client'
 
 export default async function handler (req, res) {

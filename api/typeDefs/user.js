@@ -1,5 +1,5 @@
 import { gql } from 'graphql-tag'
-import { CsvRequest, CsvRequestStatus } from '../constants'
+import { CsvRequest, CsvRequestStatus } from '../../lib/constants'
 
 export default gql`
   extend type Query {

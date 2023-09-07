@@ -1,5 +1,6 @@
 const { gql } = require('graphql-tag')
 const fs = require('fs')
+const { CsvRequest, CsvRequestStatus } = require('../lib/constants')
 
 const ITEM_FIELDS = gql`
   fragment ItemFields on Item {
@@ -115,11 +116,13 @@ function checkCsv ({ models, apollo }) {
         csvRequestStatus: true
       }
     })
-    if (status.csvRequest === 'NO_REQUEST' && (status.csvRequestStatus === 'INCOMPLETE' || status.csvRequestStatus === 'DONE')) {
+    if (status.csvRequest === CsvRequest.NO_REQUEST &&
+    (status.csvRequestStatus === CsvRequestStatus.INCOMPLETE || status.csvRequestStatus === CsvRequestStatus.DONE)) {
       console.log('user request cleared')
       await models.$transaction([
         models.$executeRaw`UPDATE "users" SET "csvRequestStatus" = 'NO_REQUEST' WHERE "users"."id" = ${id}`])
-    } else if (status.csvRequest === 'FULL_REPORT' && (status.csvRequestStatus === 'NO_REQUEST' || status.csvRequestStatus === 'INCOMPLETE')) {
+    } else if (status.csvRequest === CsvRequest.FULL_REPORT &&
+    (status.csvRequestStatus === CsvRequestStatus.NO_REQUEST || status.csvRequestStatus === CsvRequestStatus.INCOMPLETE)) {
       makeCsv({ models, apollo, id })
     }
   }
@@ -169,7 +172,7 @@ async function makeCsv ({ models, apollo, id }) {
         csvRequestStatus: true
       }
     })
-    if (status.csvRequest !== 'FULL_REPORT') {
+    if (status.csvRequest !== CsvRequest.FULL_REPORT) {
       // user canceled
       incomplete = true
     }
@@ -177,7 +180,7 @@ async function makeCsv ({ models, apollo, id }) {
 
   // result
   s.end()
-  const newState = incomplete ? 'INCOMPLETE' : 'DONE'
+  const newState = incomplete ? CsvRequestStatus.INCOMPLETE : CsvRequestStatus.DONE
   console.log('done with CSV file', newState)
   await models.$transaction([
     models.$executeRaw`UPDATE "users" SET "csvRequestStatus" = CAST(${newState} as "CsvRequestStatus") WHERE "users"."id" = ${id}`])

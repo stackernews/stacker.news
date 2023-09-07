@@ -48,7 +48,7 @@ function midnight (tz) {
 export const getServerSideProps = getGetServerSideProps({ query: REWARDS })
 
 export function RewardLine ({ total }) {
-  const threshold = useMemo(() => midnight('America/Chicago'))
+  const threshold = useMemo(() => midnight('America/Chicago'), [])
 
   return (
     <>

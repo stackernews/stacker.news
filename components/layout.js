@@ -35,7 +35,7 @@ export function SearchLayout ({ sub, children, ...props }) {
   )
 }
 
-export function StaticLayout ({ children, footer = true, footerLinks, ...props }) {
+export function StaticLayout ({ children, footer = true, footerLinks }) {
   return (
     <div className={styles.page}>
       <HeaderStatic />

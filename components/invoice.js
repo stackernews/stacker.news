@@ -36,7 +36,7 @@ export function Invoice ({ invoice, onPayment, info, successVerb }) {
     if (invoice.confirmedAt || (invoice.isHeld && invoice.satsReceived)) {
       onPayment?.(invoice)
     }
-  }, [invoice.confirmedAt, invoice.isHeld, invoice.satsReceived])
+  }, [invoice, onPayment])
 
   const { nostr } = invoice
 
@@ -73,7 +73,7 @@ export function Invoice ({ invoice, onPayment, info, successVerb }) {
   )
 }
 
-const MutationInvoice = ({ id, hash, hmac, errorCount, repeat, onClose, expiresAt, ...props }) => {
+const MutationInvoice = ({ id, hash, hmac, errorCount, repeat, onClose, ...props }) => {
   const { data, loading, error } = useQuery(INVOICE, {
     pollInterval: 1000,
     variables: { id }
@@ -133,7 +133,8 @@ const defaultOptions = {
   callback: null, // (formValues) => void
   replaceModal: false
 }
-export const useInvoiceable = (onSubmit, options = defaultOptions) => {
+export const useInvoiceable = (onSubmit, options) => {
+  options = Object.assign(defaultOptions, options)
   const me = useMe()
   const [createInvoice, { data }] = useMutation(gql`
     mutation createInvoice($amount: Int!) {
@@ -141,7 +142,6 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
         id
         hash
         hmac
-        expiresAt
       }
     }`)
   const showModal = useShowModal()
@@ -151,7 +151,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
   let errorCount = 0
   const onPayment = useCallback(
     (onClose, hmac) => {
-      return async ({ id, satsReceived, expiresAt, hash }) => {
+      return async ({ id, satsReceived, hash }) => {
         await sleep(500)
         const repeat = () => {
           onClose()
@@ -170,7 +170,6 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
                   id={id}
                   hash={hash}
                   hmac={hmac}
-                  expiresAt={expiresAt}
                   onClose={onClose}
                   onPayment={onPayment(onClose, hmac)}
                   successVerb='received'
@@ -183,18 +182,17 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
         // prevents infinite loop of calling `onPayment`
         if (errorCount === 0) await repeat()
       }
-    }, [onSubmit, submitArgs]
+    }, [onSubmit, submitArgs, formValues, options, showModal, errorCount]
   )
 
   const invoice = data?.createInvoice
   useEffect(() => {
-    if (invoice) {
+    if (invoice?.id) {
       showModal(onClose => (
         <MutationInvoice
           id={invoice.id}
           hash={invoice.hash}
           hmac={invoice.hmac}
-          expiresAt={invoice.expiresAt}
           onClose={onClose}
           onPayment={onPayment(onClose, invoice.hmac)}
           successVerb='received'
@@ -202,7 +200,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
       ), { replaceModal: options.replaceModal, keepOpen: true }
       )
     }
-  }, [invoice?.id])
+  }, [invoice?.id, invoice?.hash, invoice?.hmac, onPayment, options.replaceModal, showModal])
 
   // this function will be called before the Form's onSubmit handler is called
   // and the form must include `cost` or `amount` as a value
@@ -231,7 +229,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
     // tell onSubmit handler that we want to keep local storage
     // even though the submit handler was "successful"
     return { keepLocalStorage: true }
-  }, [onSubmit, setFormValues, setSubmitArgs, createInvoice])
+  }, [me, options.forceInvoice, options.requireSession, onSubmit, setFormValues, setSubmitArgs, createInvoice])
 
   return onSubmitWrapper
 }
@@ -241,7 +239,7 @@ export const InvoiceModal = ({ onPayment, amount }) => {
 
   useEffect(() => {
     createInvoice({ amount })
-  }, [])
+  }, [createInvoice, amount])
 }
 
 export const payOrLoginError = (error) => {

@@ -1,4 +1,3 @@
-import React from 'react'
 import Button from 'react-bootstrap/Button'
 import styles from './pay-bounty.module.css'
 import ActionTooltip from './action-tooltip'
@@ -9,7 +8,7 @@ import { useShowModal } from './modal'
 import { useRoot } from './root'
 import { InvoiceModal, payOrLoginError } from './invoice'
 
-export default function PayBounty ({ children, item }) {
+export default function PayBounty ({ item }) {
   const me = useMe()
   const showModal = useShowModal()
   const root = useRoot()
@@ -74,7 +73,7 @@ export default function PayBounty ({ children, item }) {
       onComplete()
     } catch (error) {
       if (payOrLoginError(error)) {
-        showModal(onClose => {
+        showModal(() => {
           return (
             <InvoiceModal
               amount={root.bounty}

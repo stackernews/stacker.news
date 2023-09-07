@@ -25,7 +25,7 @@ function QrAuth ({ k1, encodedUrl, callbackUrl }) {
     if (data?.lnAuth?.pubkey) {
       signIn('lightning', { ...data.lnAuth, callbackUrl })
     }
-  }, [data?.lnAuth])
+  }, [data?.lnAuth, callbackUrl])
 
   // output pubkey and k1
   return (
@@ -109,6 +109,8 @@ export function LightningAuth ({ callbackUrl }) {
 
   useEffect(() => {
     createAuth()
+    // only run once after first render
+    // eslint-disable-next-line
   }, [])
 
   if (error) return <div>error</div>

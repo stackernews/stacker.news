@@ -17,7 +17,7 @@ export default function NotificationPage ({ ssrData }) {
         hasNewNotes: false
       }
     })
-  }, [ssrData])
+  }, [client, ssrData])
 
   return (
     <Layout>

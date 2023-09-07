@@ -12,12 +12,15 @@ const apolloServer = new ApolloServer({
   typeDefs,
   resolvers,
   plugins: [{
+    // eslint-disable-next-line no-unused-vars
     requestDidStart (initialRequestContext) {
       return {
         executionDidStart () {
           return {
+            // eslint-disable-next-line no-unused-vars
             willResolveField ({ source, args, context, info }) {
               const start = process.hrtime.bigint()
+              // eslint-disable-next-line no-unused-vars
               return (error, result) => {
                 const end = process.hrtime.bigint()
                 const ms = (end - start) / 1000000n

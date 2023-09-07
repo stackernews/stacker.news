@@ -66,6 +66,7 @@ export default function Price ({ className }) {
 
   if (asSats === 'yep') {
     return (
+      // eslint-disable-next-line react/no-unknown-property
       <div className={compClassName} onClick={handleClick} variant='link'>
         {fixedDecimal(100000000 / price, 0) + ` sats/${fiatSymbol}`}
       </div>
@@ -74,6 +75,7 @@ export default function Price ({ className }) {
 
   if (asSats === '1btc') {
     return (
+      // eslint-disable-next-line react/no-unknown-property
       <div className={compClassName} onClick={handleClick} variant='link'>
         1sat=1sat
       </div>
@@ -81,6 +83,7 @@ export default function Price ({ className }) {
   }
 
   return (
+    // eslint-disable-next-line react/no-unknown-property
     <div className={compClassName} onClick={handleClick} variant='link'>
       {fiatSymbol + fixedDecimal(price, 0)}
     </div>

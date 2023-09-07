@@ -8,7 +8,7 @@ import sub from '../lib/remark-sub'
 import remarkDirective from 'remark-directive'
 import { visit } from 'unist-util-visit'
 import reactStringReplace from 'react-string-replace'
-import React, { useRef, useEffect, useState, memo } from 'react'
+import React, { useRef, useEffect, useState, memo, useMemo } from 'react'
 import GithubSlugger from 'github-slugger'
 import LinkIcon from '../svgs/link.svg'
 import Thumb from '../svgs/thumb-up-fill.svg'
@@ -93,13 +93,14 @@ export default memo(function Text ({ topLevel, noFragments, nofollow, fetchOnlyI
   useEffect(() => {
     const imgRegexp = fetchOnlyImgProxy ? IMGPROXY_URL_REGEXP : IMG_URL_REGEXP
     const urls = extractUrls(children)
+    const cache = imgCache
 
     urls.forEach((url) => {
       if (imgRegexp.test(url)) {
         setUrlCache((prev) => ({ ...prev, [url]: CACHE_STATES.IS_LOADED }))
       } else if (!fetchOnlyImgProxy) {
         const img = new window.Image()
-        imgCache.current[url] = img
+        cache.current[url] = img
 
         setUrlCache((prev) => ({ ...prev, [url]: CACHE_STATES.IS_LOADING }))
 
@@ -114,13 +115,13 @@ export default memo(function Text ({ topLevel, noFragments, nofollow, fetchOnlyI
     })
 
     return () => {
-      Object.values(imgCache.current).forEach((img) => {
+      Object.values(cache.current).forEach((img) => {
         img.onload = null
         img.onerror = null
         img.src = ''
       })
     }
-  }, [children])
+  }, [children, fetchOnlyImgProxy])
 
   return (
     <div className={styles.text}>
@@ -132,28 +133,31 @@ export default memo(function Text ({ topLevel, noFragments, nofollow, fetchOnlyI
           h4: (props) => HeadingWrapper({ h: topLevel ? 'h4' : 'h6', ...props }),
           h5: (props) => HeadingWrapper({ h: topLevel ? 'h5' : 'h6', ...props }),
           h6: (props) => HeadingWrapper({ h: 'h6', ...props }),
+          // eslint-disable-next-line no-unused-vars
           table: ({ node, ...props }) =>
             <span className='table-responsive'>
               <table className='table table-bordered table-sm' {...props} />
             </span>,
           p: ({ children, ...props }) => <div className={styles.p} {...props}>{children}</div>,
+          // eslint-disable-next-line no-unused-vars
           code ({ node, inline, className, children, style, ...props }) {
             return !inline
               ? (
                 <SyntaxHighlighter showLineNumbers style={atomDark} PreTag='div' {...props}>
-                  {reactStringReplace(String(children).replace(/\n$/, ''), /:high\[([^\]]+)\]/g, (match, i) => {
+                  {reactStringReplace(String(children).replace(/\n$/, ''), /:high\[([^\]]+)\]/g, (match) => {
                     return match
                   }).join('')}
                 </SyntaxHighlighter>
                 )
               : (
                 <code className={className} style={atomDark} {...props}>
-                  {reactStringReplace(String(children), /:high\[([^\]]+)\]/g, (match, i) => {
+                  {reactStringReplace(String(children), /:high\[([^\]]+)\]/g, (match) => {
                     return <mark key={`mark-${match}`}>{match}</mark>
                   })}
                 </code>
                 )
           },
+          // eslint-disable-next-line no-unused-vars
           a: ({ node, href, children, ...props }) => {
             if (children?.some(e => e?.props?.node?.tagName === 'img')) {
               return <>{children}</>
@@ -175,7 +179,7 @@ export default memo(function Text ({ topLevel, noFragments, nofollow, fetchOnlyI
               /*  eslint-disable-next-line */
               <a
                 target='_blank' rel={nofollow ? 'nofollow' : 'noreferrer'}
-                href={reactStringReplace(href, /:high%5B([^%5D]+)%5D/g, (match, i) => {
+                href={reactStringReplace(href, /:high%5B([^%5D]+)%5D/g, (match) => {
                   return match
                 }).join('')} {...props}
               >
@@ -183,6 +187,7 @@ export default memo(function Text ({ topLevel, noFragments, nofollow, fetchOnlyI
               </a>
             )
           },
+          // eslint-disable-next-line no-unused-vars
           img: ({ node, ...props }) => {
             return <ZoomableImage topLevel={topLevel} useClickToLoad={fetchOnlyImgProxy} {...props} />
           }
@@ -205,10 +210,10 @@ export function ZoomableImage ({ src, topLevel, useClickToLoad, ...props }) {
   const [err, setErr] = useState()
   const [imgSrc, setImgSrc] = useState(src)
   const [isImgProxy, setIsImgProxy] = useState(IMGPROXY_URL_REGEXP.test(src))
-  const defaultMediaStyle = {
+  const defaultMediaStyle = useMemo(() => ({
     maxHeight: topLevel ? '75vh' : '25vh',
     cursor: 'zoom-in'
-  }
+  }), [topLevel])
   useClickToLoad ??= true
 
   // if image changes we need to update state
@@ -216,7 +221,7 @@ export function ZoomableImage ({ src, topLevel, useClickToLoad, ...props }) {
   useEffect(() => {
     setMediaStyle(defaultMediaStyle)
     setErr(null)
-  }, [src])
+  }, [src, defaultMediaStyle])
 
   if (!src) return null
   if (err) {

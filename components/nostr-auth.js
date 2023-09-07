@@ -75,6 +75,8 @@ export function NostrAuth ({ text, callbackUrl }) {
 
   useEffect(() => {
     createAuth()
+    // only run once after first render
+    // eslint-disable-next-line
   }, [])
 
   const k1 = data?.createAuth.k1
@@ -129,7 +131,7 @@ export function NostrAuth ({ text, callbackUrl }) {
       }
     })()
     return () => { mounted = false }
-  }, [k1, hasExtension])
+  }, [k1, hasExtension, text, callbackUrl])
 
   if (error) return <div>error</div>
 

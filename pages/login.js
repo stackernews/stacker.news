@@ -50,7 +50,7 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, erro
 
 function LoginFooter ({ callbackUrl }) {
   return (
-    <small className='fw-bold text-muted pt-4'>Don't have an account? <Link href={{ pathname: '/signup', query: { callbackUrl } }}>sign up</Link></small>
+    <small className='fw-bold text-muted pt-4'>Don&#39;t have an account? <Link href={{ pathname: '/signup', query: { callbackUrl } }}>sign up</Link></small>
   )
 }
 

@@ -2,7 +2,7 @@ import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
 import BootstrapForm from 'react-bootstrap/Form'
 import { Formik, Form as FormikForm, useFormikContext, useField, FieldArray } from 'formik'
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import copy from 'clipboard-copy'
 import Thumb from '../svgs/thumb-up-fill.svg'
 import Col from 'react-bootstrap/Col'
@@ -27,6 +27,10 @@ export function SubmitButton ({
   const formik = useFormikContext()
   useEffect(() => {
     formik?.setFieldValue('cost', cost)
+    // If we add formik as an dependency, this becomes an infinite loop
+    // since formik changes when you change a field value.
+    // -- ekzyis
+    // eslint-disable-next-line
   }, [formik?.setFieldValue, formik?.getFieldProps('cost').value, cost])
 
   return (
@@ -100,12 +104,12 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
   }, [meta.value])
 
   useEffect(() => {
-    if (selectionRange.start <= selectionRange.end && innerRef?.current) {
-      const { start, end } = selectionRange
+    const { start, end } = selectionRange
+    if (start <= end && innerRef?.current) {
       const input = innerRef.current
       input.setSelectionRange(start, end)
     }
-  }, [innerRef, selectionRange.start, selectionRange.end])
+  }, [innerRef, selectionRange])
 
   return (
     <FormGroup label={label} className={groupClassName}>
@@ -195,7 +199,7 @@ function insertMarkdownFormatting (replaceFn, selectFn) {
 
 const insertMarkdownTabFormatting = insertMarkdownFormatting(
   val => `\t${val}`,
-  (start, end, mdFormatted) => ({ start: start + 1, end: end + 1 }) // move inside tab
+  (start, end) => ({ start: start + 1, end: end + 1 }) // move inside tab
 )
 const insertMarkdownLinkFormatting = insertMarkdownFormatting(
   val => `[${val}](url)`,
@@ -206,11 +210,11 @@ const insertMarkdownLinkFormatting = insertMarkdownFormatting(
 )
 const insertMarkdownBoldFormatting = insertMarkdownFormatting(
   val => `**${val}**`,
-  (start, end, mdFormatted) => ({ start: start + 2, end: end + 2 }) // move inside bold
+  (start, end) => ({ start: start + 2, end: end + 2 }) // move inside bold
 )
 const insertMarkdownItalicFormatting = insertMarkdownFormatting(
   val => `_${val}_`,
-  (start, end, mdFormatted) => ({ start: start + 1, end: end + 1 }) // move inside italic
+  (start, end) => ({ start: start + 1, end: end + 1 }) // move inside italic
 )
 
 function FormGroup ({ className, label, children }) {
@@ -246,7 +250,7 @@ function InputInner ({
         helpers.setValue(draft, false)
       }
     }
-  }, [overrideValue])
+  }, [overrideValue, helpers, storageKey])
 
   const invalid = (!formik || formik.submitCount > 0) && meta.touched && meta.error
 
@@ -260,7 +264,7 @@ function InputInner ({
       debounceRef.current = setTimeout(() => formik.validateForm(), debounce)
     }
     return () => clearTimeout(debounceRef.current)
-  }, [noForm, formik, field.value])
+  }, [noForm, formik, field.value, debounce])
 
   return (
     <>
@@ -298,7 +302,7 @@ function InputInner ({
         {(clear && field.value) &&
           <Button
             variant={null}
-            onClick={(e) => {
+            onClick={() => {
               helpers.setValue('')
               if (storageKey) {
                 window.localStorage.removeItem(storageKey)
@@ -442,6 +446,7 @@ export function VariableInput ({ label, groupClassName, name, hint, max, min, re
   )
 }
 
+// eslint-disable-next-line no-unused-vars -- exclude `children` from props
 export function Checkbox ({ children, label, groupClassName, hiddenLabel, extra, handleChange, inline, disabled, ...props }) {
   // React treats radios and checkbox inputs differently other input types, select, and textarea.
   // Formik does this too! When you specify `type` to useField(), it will
@@ -482,7 +487,7 @@ export function Form ({
     if (initialError) {
       toaster.danger(initialError.message || initialError.toString?.())
     }
-  }, [])
+  }, [initialError, toaster])
 
   function clearLocalStorage (values) {
     Object.keys(values).forEach(v => {
@@ -547,7 +552,7 @@ export function Select ({ label, items, groupClassName, onChange, noForm, overri
     if (overrideValue) {
       helpers.setValue(overrideValue)
     }
-  }, [overrideValue])
+  }, [overrideValue, helpers])
 
   return (
     <FormGroup label={label} className={groupClassName}>

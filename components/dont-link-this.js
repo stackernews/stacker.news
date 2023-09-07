@@ -39,7 +39,7 @@ export default function DontLikeThisDropdownItem ({ id }) {
         } catch (error) {
           console.error(error)
           if (payOrLoginError(error)) {
-            showModal(onClose => {
+            showModal(() => {
               return (
                 <InvoiceModal
                   amount={DONT_LIKE_THIS_COST}

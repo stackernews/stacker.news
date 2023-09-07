@@ -32,7 +32,7 @@ export default function Snl ({ ignorePreference }) {
         dismissible
       >
         <a href='https://www.youtube.com/@stackernews/live'>
-          <YouTube width={24} height={24} className='me-2 fill-info' />Stacker News Live is streaming this week's top stories
+          <YouTube width={24} height={24} className='me-2 fill-info' />Stacker News Live is streaming this week&#39;s top stories
         </a>
       </Alert>
     </div>

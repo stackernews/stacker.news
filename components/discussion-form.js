@@ -57,7 +57,7 @@ export function DiscussionForm ({
         const prefix = sub?.name ? `/~${sub.name}` : ''
         await router.push(prefix + '/recent')
       }
-    }, [upsertDiscussion, router]
+    }, [upsertDiscussion, router, item, sub?.name]
   )
 
   const [getRelated, { data: relatedData }] = useLazyQuery(gql`
@@ -138,7 +138,7 @@ export function DiscussionForm ({
             header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>similar</div>}
             body={
               <div>
-                {related.map((item, i) => (
+                {related.map((item) => (
                   <Item item={item} key={item.id} />
                 ))}
               </div>

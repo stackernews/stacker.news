@@ -6,7 +6,7 @@ import Button from 'react-bootstrap/Button'
 import Delete from './delete'
 import { commentSchema } from '../lib/validate'
 
-export default function CommentEdit ({ comment, editThreshold, onSuccess, onCancel }) {
+export default function CommentEdit ({ comment, onSuccess }) {
   const [upsertComment] = useMutation(
     gql`
       mutation upsertComment($id: ID! $text: String!) {
@@ -34,7 +34,7 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
           text: comment.text
         }}
         schema={commentSchema}
-        onSubmit={async (values, { resetForm }) => {
+        onSubmit={async (values) => {
           const { error } = await upsertComment({ variables: { ...values, id: comment.id } })
           if (error) {
             throw new Error({ message: error.toString() })

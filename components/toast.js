@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router'
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import Button from 'react-bootstrap/Button'
 import Toast from 'react-bootstrap/Toast'
 import ToastBody from 'react-bootstrap/ToastBody'

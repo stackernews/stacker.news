@@ -151,6 +151,8 @@ function LurkerCorner ({ path }) {
       }, randInRange(3000, 10000))
       return () => clearTimeout(to)
     }
+    // only run once after first render
+    // eslint-disable-next-line
   }, [])
 
   const handleLogin = useCallback(async pathname => await router.push({

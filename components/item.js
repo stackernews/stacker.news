@@ -18,7 +18,7 @@ import { Badge } from 'react-bootstrap'
 import AdIcon from '../svgs/advertisement-fill.svg'
 
 export function SearchTitle ({ title }) {
-  return reactStringReplace(title, /:high\[([^\]]+)\]/g, (match, i) => {
+  return reactStringReplace(title, /:high\[([^\]]+)\]/g, (match) => {
     return <mark key={`mark-${match}`}>{match}</mark>
   })
 }

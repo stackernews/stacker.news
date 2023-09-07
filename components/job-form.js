@@ -78,7 +78,7 @@ export default function JobForm ({ item, sub }) {
       } else {
         await router.push(`/~${sub.name}/recent`)
       }
-    }, [upsertJob, router]
+    }, [upsertJob, router, logoId, sub.name, item]
   )
 
   return (
@@ -185,6 +185,8 @@ function PromoteJob ({ item, sub }) {
     const initialMaxBid = Number(item?.maxBid) || 0
     getAuctionPosition({ variables: { id: item?.id, bid: initialMaxBid } })
     setMonthly(satsMin2Mo(initialMaxBid))
+    // only run once after first render
+    // eslint-disable-next-line
   }, [])
 
   return (

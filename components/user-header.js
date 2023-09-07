@@ -126,6 +126,7 @@ function NymEdit ({ user, setEditting }) {
 
         setEditting(false)
         // navigate to new name
+        // eslint-disable-next-line no-unused-vars
         const { nodata, ...query } = router.query
         router.replace({
           pathname: router.pathname,
@@ -189,7 +190,7 @@ function HeaderHeader ({ user }) {
         <Satistics user={user} />
         <Button
           className='fw-bold ms-0' onClick={() => {
-            showModal(({ onClose }) => (
+            showModal(() => (
               <>
                 <a className='d-flex m-auto p-3' style={{ background: 'white', width: 'fit-content' }} href={`lightning:${lnurlp}`}>
                   <QRCode className='d-flex m-auto' value={lnurlp} renderAs='svg' size={300} />

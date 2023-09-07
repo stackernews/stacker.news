@@ -22,13 +22,13 @@ export default function Items ({ ssrData, variables = {}, query, destructureData
     } else {
       return dat?.items
     }
-  }, [dat])
+  }, [dat, destructureData])
 
   const pinMap = useMemo(() =>
     pins?.reduce((a, p) => { a[p.position] = p; return a }, {}), [pins])
 
   const Skeleton = useCallback(() =>
-    <ItemsSkeleton rank={rank} startRank={items?.length} limit={variables.limit} />, [rank, items])
+    <ItemsSkeleton rank={rank} startRank={items?.length} limit={variables.limit} />, [rank, items, variables.limit])
 
   if (!dat) {
     return <Skeleton />

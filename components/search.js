@@ -15,7 +15,7 @@ export default function Search ({ sub }) {
 
   useEffect(() => {
     setAtBottom(Math.ceil(window.innerHeight + window.pageYOffset) >= document.body.offsetHeight)
-    window.onscroll = function (ev) {
+    window.onscroll = function () {
       if (Math.ceil(window.innerHeight + window.pageYOffset) >= document.body.offsetHeight) {
         setAtBottom(true)
       } else {

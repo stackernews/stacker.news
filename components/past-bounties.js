@@ -14,7 +14,7 @@ export default function PastBounties ({ item }) {
 
   return (
     <AccordianItem
-      header={<div className='fw-bold'>{item.user.name}'s bounties</div>}
+      header={<div className='fw-bold'>{item.user.name}&#39;s bounties</div>}
       body={
         <Items
           variables={variables}

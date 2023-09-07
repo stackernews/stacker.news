@@ -9,7 +9,7 @@ export default function Info ({ children, iconClassName = 'fill-theme-color' }) 
       width={18} height={18} className={`${iconClassName} pointer ms-1`}
       onClick={(e) => {
         e.preventDefault()
-        showModal(onClose => children)
+        showModal(() => children)
       }}
     />
   )

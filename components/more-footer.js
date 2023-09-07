@@ -36,7 +36,7 @@ export default function MoreFooter ({ cursor, count, fetchMore, Skeleton, noMore
   return <div className='d-flex justify-content-center mt-3 mb-1'><Footer /></div>
 }
 
-export function NavigateFooter ({ cursor, count, fetchMore, href, text, noMoreText = 'NO MORE' }) {
+export function NavigateFooter ({ cursor, count, href, text, noMoreText = 'NO MORE' }) {
   let Footer
   if (cursor) {
     Footer = () => (

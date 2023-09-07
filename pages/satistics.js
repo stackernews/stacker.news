@@ -12,7 +12,6 @@ import { Checkbox, Form } from '../components/form'
 import { useRouter } from 'next/router'
 import Item from '../components/item'
 import { CommentFlat } from '../components/comment'
-import { Fragment } from 'react'
 import ItemJob from '../components/item-job'
 import PageLoading from '../components/page-loading'
 

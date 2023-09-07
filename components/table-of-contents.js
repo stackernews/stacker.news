@@ -16,7 +16,7 @@ export default function Toc ({ text }) {
     const tree = fromMarkdown(text)
     const toc = []
     const slugger = new GithubSlugger()
-    visit(tree, 'heading', (node, position, parent) => {
+    visit(tree, 'heading', (node) => {
       const str = toString(node)
       toc.push({ heading: str, slug: slugger.slug(str.replace(/[^\w\-\s]+/gi, '')), depth: node.depth })
     })

@@ -38,6 +38,7 @@ module.exports = {
   ],
   rules: {
     'react/prop-types': 'off',
-    'react-hooks/exhaustive-deps': 'error'
+    'react-hooks/exhaustive-deps': 'error',
+    'react/display-name': 'off'
   }
 }

@@ -95,7 +95,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
         const prefix = sub?.name ? `/~${sub.name}` : ''
         await router.push(prefix + '/recent')
       }
-    }, [upsertLink, router]
+    }, [upsertLink, router, item, sub?.name]
   )
 
   useEffect(() => {
@@ -110,7 +110,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
         variables: { url: data?.pageTitleAndUnshorted?.unshorted }
       })
     }
-  }, [data?.pageTitleAndUnshorted?.unshorted])
+  }, [data?.pageTitleAndUnshorted?.unshorted, getDupes])
 
   const [postDisabled, setPostDisabled] = useState(false)
   const [titleOverride, setTitleOverride] = useState()
@@ -221,7 +221,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
                 header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>dupes</div>}
                 body={
                   <div>
-                    {dupesData.dupes.map((item, i) => (
+                    {dupesData.dupes.map((item) => (
                       <Item item={item} key={item.id} />
                     ))}
                   </div>
@@ -233,7 +233,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
               header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>similar</div>}
               body={
                 <div>
-                  {related.map((item, i) => (
+                  {related.map((item) => (
                     <Item item={item} key={item.id} />
                   ))}
                 </div>

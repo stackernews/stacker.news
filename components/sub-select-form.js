@@ -20,11 +20,11 @@ export default function SubSelect ({ label, sub, setSub, item, ...props }) {
       <div>
         <div className='fw-bold'>The sub your post will go in ...</div>
         <ul>
-          <li>If it's bitcoin related, put it in the bitcoin sub.</li>
-          <li>If it's nostr related, put it in the nostr sub.</li>
-          <li>If it's tech related, put it in the tech sub.</li>
-          <li>If it's stacker news related, put it in the meta sub.</li>
-          <li>If it's a job, put it in the jobs sub.</li>
+          <li>If it&#39;s bitcoin related, put it in the bitcoin sub.</li>
+          <li>If it&#39;s nostr related, put it in the nostr sub.</li>
+          <li>If it&#39;s tech related, put it in the tech sub.</li>
+          <li>If it&#39;s stacker news related, put it in the meta sub.</li>
+          <li>If it&#39;s a job, put it in the jobs sub.</li>
         </ul>
       </div>
     </Info>

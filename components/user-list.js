@@ -54,7 +54,7 @@ export default function UserList ({ ssrData, query, variables, destructureData }
     } else {
       return dat
     }
-  }, [dat])
+  }, [dat, destructureData])
 
   if (!dat) {
     return <UsersSkeleton />

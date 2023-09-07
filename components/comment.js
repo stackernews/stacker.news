@@ -68,7 +68,7 @@ export function CommentFlat ({ item, rank, ...props }) {
         query: { id: item.root.id, commentId: item.id }
       }, `/items/${item.root.id}`]
     }
-  }, [item?.id])
+  }, [item?.id, item?.parentId, item?.root.id, item?.path])
 
   return (
     <>
@@ -118,7 +118,7 @@ export default function Comment ({
         ref.current.classList.add('outline-it')
       }, 20)
     }
-  }, [item.id, router.query.commentId])
+  }, [item.id, router.query.commentId, collapse])
 
   useEffect(() => {
     if (router.query.commentsViewedAt &&
@@ -126,7 +126,7 @@ export default function Comment ({
         new Date(item.createdAt).getTime() > router.query.commentsViewedAt) {
       ref.current.classList.add('outline-new-comment')
     }
-  }, [item.id])
+  }, [item.id, item.createdAt, item.user?.id, me?.id, router.query.commentsViewedAt])
 
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT
   // Don't show OP badge when anon user comments on anon user posts
@@ -161,7 +161,7 @@ export default function Comment ({
                     </ActionTooltip>}
                 </>
               }
-              onEdit={e => { setEdit(!edit) }}
+              onEdit={() => { setEdit(!edit) }}
               editText={edit ? 'cancel' : 'edit'}
             />
             {!includeParent && (collapse === 'yep'

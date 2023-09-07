@@ -19,6 +19,8 @@ export default function Qr ({ asIs, value, webLn, statusVariant, description, st
       }
     }
     effect()
+    // only runce once after first render
+    // eslint-disable-next-line
   }, [])
 
   return (

@@ -12,7 +12,7 @@ const getTheme = () => {
   let localStorageTheme = null
   try {
     localStorageTheme = window.localStorage.getItem(STORAGE_KEY)
-  } catch (err) {}
+  } catch (err) { /* empty */ }
   const localStorageExists = localStorageTheme !== null
   if (localStorageExists) {
     localStorageTheme = JSON.parse(localStorageTheme)

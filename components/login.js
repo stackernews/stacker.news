@@ -88,6 +88,7 @@ export default function Login ({ providers, callbackUrl, error, text, Header, Fo
                 key={provider.id}
                 type={provider.id.toLowerCase()}
                 onClick={() => {
+                  // eslint-disable-next-line no-unused-vars -- exclude `nodata` from query
                   const { nodata, ...query } = router.query
                   router.push({
                     pathname: router.pathname,

@@ -200,7 +200,7 @@ export default function Settings ({ ssrData }) {
               <div className='d-flex align-items-center'>hide invoice descriptions
                 <Info>
                   <ul className='fw-bold'>
-                    <li>Use this if you don't want funding sources to be linkable to your SN identity.</li>
+                    <li>Use this if you don&#39;t want funding sources to be linkable to your SN identity.</li>
                     <li>It makes your invoice descriptions blank.</li>
                     <li>This only applies to invoices you create
                       <ul>
@@ -239,8 +239,8 @@ export default function Settings ({ ssrData }) {
               <div className='d-flex align-items-center'>wild west mode
                 <Info>
                   <ul className='fw-bold'>
-                    <li>don't hide flagged content</li>
-                    <li>don't down rank flagged content</li>
+                    <li>don&#39;t hide flagged content</li>
+                    <li>don&#39;t down rank flagged content</li>
                   </ul>
                 </Info>
               </div>
@@ -302,7 +302,7 @@ function QRLinkButton ({ provider, unlink, status }) {
   const text = status ? 'Unlink' : 'Link'
   const onClick = status
     ? unlink
-    : () => showModal(onClose =>
+    : () => showModal(() =>
       <div className='d-flex flex-column align-items-center'>
         <LightningAuth />
       </div>)
@@ -320,7 +320,7 @@ function NostrLinkButton ({ unlink, status }) {
   const text = status ? 'Unlink' : 'Link'
   const onClick = status
     ? unlink
-    : () => showModal(onClose =>
+    : () => showModal(() =>
       <div className='d-flex flex-column align-items-center'>
         <NostrAuth text='Unlink' />
       </div>)
@@ -339,7 +339,7 @@ function UnlinkObstacle ({ onClose, type, unlinkAuth }) {
   return (
     <div>
       You are removing your last auth method. It is recommended you link another auth method before removing
-      your last auth method. If you'd like to proceed anyway, type the following below
+      your last auth method. If you&#39;d like to proceed anyway, type the following below
       <div className='text-danger fw-bold my-2'>
         If I logout, even accidentally, I will never be able to access my account again
       </div>
@@ -425,6 +425,7 @@ function AuthMethods ({ methods }) {
       {err && (
         <Alert
           variant='danger' onClose={() => {
+            // eslint-disable-next-line no-unused-vars
             const { pathname, query: { error, nodata, ...rest } } = router
             router.replace({
               pathname,

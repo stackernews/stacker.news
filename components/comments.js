@@ -59,6 +59,7 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
   )
 }
 
+// eslint-disable-next-line no-unused-vars -- exclude `parentId` from props
 export default function Comments ({ parentId, pinned, bio, parentCreatedAt, commentSats, comments, ...props }) {
   const router = useRouter()
 

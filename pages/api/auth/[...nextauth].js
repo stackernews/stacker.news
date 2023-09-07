@@ -22,6 +22,7 @@ function getCallbacks (req) {
      * @param  {boolean} isNewUser True if new user (only available on sign in)
      * @return {object}            JSON Web Token that will be saved
      */
+    // eslint-disable-next-line no-unused-vars
     async jwt ({ token, user, account, profile, isNewUser }) {
       if (user) {
         // token won't have an id on it for new logins, we add it
@@ -326,7 +327,7 @@ const html = ({ url, site, email }) => {
 // Email text body –fallback for email clients that don't render HTML
 const text = ({ url, site }) => `Sign in to ${site}\n${url}\n\n`
 
-const newUserHtml = ({ url, site, email }) => {
+const newUserHtml = ({ url, email }) => {
   const escapedEmail = `${email.replace(/\./g, '&#8203;.')}`
 
   const replaceCb = (path) => {

@@ -67,7 +67,7 @@ function MyApp ({ Component, pageProps: { ...props } }) {
       router.events.off('routeChangeComplete', nprogressDone)
       router.events.off('routeChangeError', nprogressDone)
     }
-  }, [router.asPath, props?.apollo])
+  }, [router, router.asPath, props?.apollo])
 
   /*
     If we are on the client, we populate the apollo cache with the

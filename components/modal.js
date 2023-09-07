@@ -54,13 +54,13 @@ export default function useModal () {
         </Modal.Body>
       </Modal>
     )
-  }, [modalContent, onClose])
+  }, [modalContent, onClose, modalOptions?.keepOpen, modalStack.length, onBack])
 
   const showModal = useCallback(
     (getContent, options) => {
       if (modalContent) {
         if (options?.replaceModal) {
-          setModalStack(stack => ([]))
+          setModalStack(() => ([]))
         } else setModalStack(stack => ([...stack, modalContent]))
       }
       setModalOptions(options)

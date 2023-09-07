@@ -77,7 +77,7 @@ export function BountyForm ({
         const prefix = sub?.name ? `/~${sub.name}` : ''
         await router.push(prefix + '/recent')
       }
-    }, [upsertBounty, router]
+    }, [upsertBounty, router, sub?.name, item]
   )
 
   return (

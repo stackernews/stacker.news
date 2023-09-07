@@ -178,7 +178,7 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
           })
         } catch (error) {
           if (payOrLoginError(error)) {
-            showModal(onClose => {
+            showModal(() => {
               return (
                 <InvoiceModal
                   amount={pendingSats}
@@ -201,7 +201,7 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
       clearTimeout(timerRef.current)
       timerRef.current = null
     }
-  }, [pendingSats, act, item, showModal, setPendingSats])
+  }, [pendingSats, act, item, showModal, setPendingSats, strike])
 
   const disabled = useMemo(() => item?.mine || item?.meForward || item?.deletedAt,
     [item?.mine, item?.meForward, item?.deletedAt])
@@ -221,7 +221,7 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
     }
 
     return [meSats, sats, me ? numWithUnits(sats, { abbreviate: false }) : 'zap it', getColor(meSats)]
-  }, [item?.meSats, item?.meAnonSats, pendingSats, me?.tipDefault, me?.turboDefault])
+  }, [item?.meSats, item?.meAnonSats, pendingSats, me])
 
   return (
     <LightningConsumer>
@@ -229,7 +229,7 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
         <div ref={ref} className='upvoteParent'>
           <LongPressable
             onLongPress={
-              async (e) => {
+              async () => {
                 if (!item) return
 
                 // we can't tip ourselves
@@ -244,7 +244,7 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
             }
             onShortPress={
             me
-              ? async (e) => {
+              ? async () => {
                 if (!item) return
 
                 // we can't tip ourselves

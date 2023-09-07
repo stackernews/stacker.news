@@ -1,6 +1,6 @@
 import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Form, Input, SubmitButton } from './form'
 import { useMe } from './me'
 import UpBolt from '../svgs/bolt.svg'
@@ -62,7 +62,7 @@ export default function ItemAct ({ onClose, itemId, act, strike }) {
     await strike()
     addCustomTip(Number(amount))
     onClose()
-  }, [act])
+  }, [act, itemId, me, onClose, strike])
 
   return (
     <Form

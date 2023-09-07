@@ -17,6 +17,7 @@ export function useData (data, ssrData) {
 
   useEffect(() => {
     if (!firstRender && !fresh && data) setFresh(true)
+    // eslint-disable-next-line
   }, [data])
 
   // if we don't have data yet, use ssrData

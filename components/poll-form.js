@@ -29,6 +29,8 @@ export function PollForm ({ item, sub, editThreshold, children }) {
       }`
   )
 
+  const initialOptions = item?.poll?.options.map(i => i.option)
+
   const onSubmit = useCallback(
     async ({ boost, title, options, ...values }) => {
       const optionsFiltered = options.slice(initialOptions?.length).filter(word => word.trim().length > 0)
@@ -52,10 +54,8 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         const prefix = sub?.name ? `/~${sub.name}` : ''
         await router.push(prefix + '/recent')
       }
-    }, [upsertPoll, router]
+    }, [upsertPoll, router, initialOptions?.length, item, sub?.name]
   )
-
-  const initialOptions = item?.poll?.options.map(i => i.option)
 
   return (
     <Form

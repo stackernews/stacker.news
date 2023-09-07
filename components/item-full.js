@@ -171,6 +171,8 @@ function ItemText ({ item }) {
 export default function ItemFull ({ item, bio, rank, ...props }) {
   useEffect(() => {
     commentsViewed(item)
+    // we indeed only want to run this when item.lastCommentAt changed
+    // eslint-disable-next-line
   }, [item.lastCommentAt])
 
   return (

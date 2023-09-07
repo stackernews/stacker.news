@@ -64,6 +64,8 @@ export function Lightning ({ onDone }) {
       onDone
     })
     canvas.bolt.draw()
+    // only run once after first render
+    // eslint-disable-next-line
   }, [])
 
   return <canvas className='position-fixed' ref={canvasRef} style={{ zIndex: 100, pointerEvents: 'none' }} />

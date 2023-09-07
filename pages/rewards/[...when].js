@@ -16,7 +16,7 @@ const GrowthPieChart = dynamic(() => import('../../components/charts').then(mod 
 
 export const getServerSideProps = getGetServerSideProps({
   query: ME_REWARDS,
-  notFound: (data, params) => data.rewards.reduce((a, r) => a || new Date(r.time) > new Date(), false)
+  notFound: (data) => data.rewards.reduce((a, r) => a || new Date(r.time) > new Date(), false)
 })
 
 export default function Rewards ({ ssrData }) {
@@ -44,7 +44,7 @@ export default function Rewards ({ ssrData }) {
                   you earned {meRewards[i].total} sats ({fixedDecimal(meRewards[i].total * 100 / total, 2)}%)
                 </h4>
                 <div>
-                  {meRewards[i].rewards?.map((r, i) => <Reward key={[r.rank, r.type].join('-')} {...r} />)}
+                  {meRewards[i].rewards?.map((r) => <Reward key={[r.rank, r.type].join('-')} {...r} />)}
                 </div>
               </div>}
           </div>

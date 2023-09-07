@@ -53,16 +53,16 @@ function AnonInfo () {
     <AnonIcon
       className='fill-muted ms-2 theme' height={22} width={22}
       onClick={
-        (e) =>
-          showModal(onClose =>
+        () =>
+          showModal(() =>
             <div><div className='fw-bold text-center'>You are posting without an account</div>
               <ol className='my-3'>
-                <li>You'll pay by invoice</li>
+                <li>You&#39;ll pay by invoice</li>
                 <li>Your content will be content-joined (get it?!) under the <Link href='/anon' target='_blank'>@anon</Link> account</li>
                 <li>Any sats your content earns will go toward <Link href='/rewards' target='_blank'>rewards</Link></li>
-                <li>We won't be able to notify you when you receive replies</li>
+                <li>We won&#39;t be able to notify you when you receive replies</li>
               </ol>
-              <small className='text-center fst-italic text-muted'>btw if you don't need to be anonymous, posting is cheaper with an account</small>
+              <small className='text-center fst-italic text-muted'>btw if you don&#39;t need to be anonymous, posting is cheaper with an account</small>
             </div>)
       }
     />
@@ -83,6 +83,10 @@ export default function FeeButton ({ parentId, hasImgLink, baseFee, ChildButton,
 
   useEffect(() => {
     formik?.setFieldValue('cost', cost)
+    // If we add formik as an dependency, this becomes an infinite loop
+    // since formik changes when you change a field value.
+    // -- ekzyis
+    // eslint-disable-next-line
   }, [formik?.getFieldProps('cost').value, cost])
 
   const show = alwaysShow || !formik?.isSubmitting
@@ -143,6 +147,10 @@ export function EditFeeButton ({ paidSats, hadImgLink, hasImgLink, ChildButton, 
 
   useEffect(() => {
     formik?.setFieldValue('cost', cost)
+    // If we add formik as an dependency, this becomes an infinite loop
+    // since formik changes when you change a field value.
+    // -- ekzyis
+    // eslint-disable-next-line
   }, [formik?.getFieldProps('cost').value, cost])
 
   const show = alwaysShow || !formik?.isSubmitting

@@ -32,7 +32,7 @@ export default function AdvPostForm ({ edit }) {
                         <li>e.g. {numWithUnits(BOOST_MIN * 2, { abbreviate: false })} is like 2 votes</li>
                       </ul>
                     </li>
-                    <li>The decay of boost "votes" increases at 2x the rate of organic votes
+                    <li>The decay of boost &quot;votes&quot; increases at 2x the rate of organic votes
                       <ul>
                         <li>i.e. boost votes fall out of ranking faster</li>
                       </ul>
@@ -54,7 +54,7 @@ export default function AdvPostForm ({ edit }) {
             emptyItem={EMPTY_FORWARD}
             hint={<span className='text-muted'>Forward sats to up to 5 other stackers. Any remaining sats go to you.</span>}
           >
-            {({ index, placeholder }) => {
+            {({ index }) => {
               return (
                 <div key={index} className='d-flex flex-row'>
                   <InputUserSuggest

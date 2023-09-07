@@ -35,27 +35,7 @@ export const ServiceWorkerProvider = ({ children }) => {
         }
       `)
 
-  // I am not entirely sure if this is needed since at least in Brave,
-  // using `registration.pushManager.subscribe` also prompts the user.
-  // However, I am keeping this here since that's how it's done in most guides.
-  // Could be that this is required for the `registration.showNotification` call
-  // to work or that some browsers will break without this.
-  const requestNotificationPermission = useCallback(() => {
-    // https://web.dev/push-notifications-subscribing-a-user/#requesting-permission
-    return new Promise(function (resolve, reject) {
-      const permission = window.Notification.requestPermission(function (result) {
-        resolve(result)
-      })
-      if (permission) {
-        permission.then(resolve, reject)
-      }
-    }).then(function (permission) {
-      setPermission({ notification: permission })
-      if (permission === 'granted') return subscribeToPushNotifications()
-    })
-  })
-
-  const subscribeToPushNotifications = async () => {
+  const subscribeToPushNotifications = useCallback(async () => {
     const subscribeOptions = { userVisibleOnly: true, applicationServerKey }
     // Brave users must enable a flag in brave://settings/privacy first
     // see https://stackoverflow.com/a/69624651
@@ -75,19 +55,39 @@ export const ServiceWorkerProvider = ({ children }) => {
       auth: pushSubscription.keys.auth
     }
     await savePushSubscription({ variables })
-  }
+  }, [registration?.pushManager, savePushSubscription])
 
-  const unsubscribeFromPushNotifications = async (subscription) => {
+  // I am not entirely sure if this is needed since at least in Brave,
+  // using `registration.pushManager.subscribe` also prompts the user.
+  // However, I am keeping this here since that's how it's done in most guides.
+  // Could be that this is required for the `registration.showNotification` call
+  // to work or that some browsers will break without this.
+  const requestNotificationPermission = useCallback(() => {
+    // https://web.dev/push-notifications-subscribing-a-user/#requesting-permission
+    return new Promise(function (resolve, reject) {
+      const permission = window.Notification.requestPermission(function (result) {
+        resolve(result)
+      })
+      if (permission) {
+        permission.then(resolve, reject)
+      }
+    }).then(function (permission) {
+      setPermission({ notification: permission })
+      if (permission === 'granted') return subscribeToPushNotifications()
+    })
+  }, [subscribeToPushNotifications])
+
+  const unsubscribeFromPushNotifications = useCallback(async (subscription) => {
     await subscription.unsubscribe()
     const { endpoint } = subscription
     await deletePushSubscription({ variables: { endpoint } })
-  }
+  }, [deletePushSubscription])
 
   const togglePushSubscription = useCallback(async () => {
     const pushSubscription = await registration.pushManager.getSubscription()
     if (pushSubscription) return unsubscribeFromPushNotifications(pushSubscription)
     return subscribeToPushNotifications()
-  })
+  }, [registration?.pushManager, unsubscribeFromPushNotifications, subscribeToPushNotifications])
 
   useEffect(() => {
     setSupport({

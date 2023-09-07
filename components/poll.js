@@ -61,7 +61,7 @@ export default function Poll ({ item }) {
                   }
                 })
               } catch (error) {
-                showModal(onClose => {
+                showModal(() => {
                   return (
                     <InvoiceModal
                       amount={item.pollCost || POLL_COST}

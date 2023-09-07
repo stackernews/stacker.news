@@ -33,13 +33,15 @@ function FreebieDialog () {
   )
 }
 
-export default function Reply ({ item, onSuccess, replyOpen, children, placeholder }) {
+export default function Reply ({ item, replyOpen, children, placeholder }) {
   const [reply, setReply] = useState(replyOpen)
   const me = useMe()
   const parentId = item.id
 
   useEffect(() => {
     setReply(replyOpen || !!window.localStorage.getItem('reply-' + parentId + '-' + 'text'))
+    // only run once after first render
+    // eslint-disable-next-line
   }, [])
 
   const [upsertComment] = useMutation(
@@ -90,16 +92,16 @@ export default function Reply ({ item, onSuccess, replyOpen, children, placehold
     }
   )
 
-  const onSubmit = useCallback(async ({ amount, hash, hmac, ...values }, { resetForm }) => {
+  const onSubmit = useCallback(async ({ hash, hmac, ...values }, { resetForm }) => {
     await upsertComment({ variables: { parentId, hash, hmac, ...values } })
     resetForm({ text: '' })
     setReply(replyOpen || false)
-  }, [upsertComment, setReply])
+  }, [upsertComment, setReply, parentId, replyOpen])
 
   const replyInput = useRef(null)
   useEffect(() => {
     if (replyInput.current && reply && !replyOpen) replyInput.current.focus()
-  }, [reply])
+  }, [reply, replyOpen])
 
   return (
     <div>

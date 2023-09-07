@@ -33,11 +33,11 @@ export default function ItemInfo ({
     if (!full) {
       setHasNewComments(newComments(item))
     }
-  }, [item])
+  }, [item, full])
 
   useEffect(() => {
     if (item) setMeTotalSats(item.meSats + item.meAnonSats + pendingSats)
-  }, [item?.meSats, item?.meAnonSats, pendingSats])
+  }, [item?.meSats, item?.meAnonSats, pendingSats, item])
 
   return (
     <div className={className || `${styles.other}`}>

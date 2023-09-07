@@ -203,6 +203,8 @@ export function InvWithdrawal () {
       }
     }
     effect()
+    // only run once after first render
+    // eslint-disable-next-line
   }, [])
 
   if (called && !error) {
@@ -272,6 +274,8 @@ export function LnWithdrawal () {
 
   useEffect(() => {
     createWith()
+    // only runce once after first render
+    // eslint-disable-next-line
   }, [])
 
   if (error) return <div>error</div>

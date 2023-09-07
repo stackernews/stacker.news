@@ -14,7 +14,7 @@ const getTheme = () => {
   let localStorageTheme = null
   try {
     localStorageTheme = window.localStorage.getItem(STORAGE_KEY)
-  } catch (err) {}
+  } catch (err) { /* empty */ }
   const localStorageExists = localStorageTheme !== null
   if (localStorageExists) {
     localStorageTheme = JSON.parse(localStorageTheme)
@@ -34,7 +34,7 @@ const setTheme = (dark) => {
 
 const listenForThemeChange = (onChange) => {
   const mql = window.matchMedia(PREFER_DARK_QUERY)
-  mql.onchange = mql => {
+  mql.onchange = () => {
     const { user, dark } = getTheme()
     if (!user) {
       handleThemeChange(dark)

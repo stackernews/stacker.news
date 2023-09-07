@@ -167,7 +167,7 @@ export function WhenComposedChart ({
         <YAxis yAxisId='right' orientation='right' allowDecimals={false} stroke='var(--theme-grey)' tickFormatter={abbrNum} tick={{ fill: 'var(--theme-grey)' }} />
         <Tooltip labelFormatter={dateFormatter(when)} contentStyle={{ color: 'var(--bs-body-color)', backgroundColor: 'var(--bs-body-bg)' }} />
         <Legend />
-        {barNames?.map((v, i) =>
+        {barNames?.map((v) =>
           <Bar yAxisId={barAxis} key={v} type='monotone' dataKey={v} name={v} stroke='var(--bs-info)' fill='var(--bs-info)' />)}
         {areaNames?.map((v, i) =>
           <Area yAxisId={areaAxis} key={v} type='monotone' dataKey={v} name={v} stackId='1' stroke={COLORS[i]} fill={COLORS[i]} />)}

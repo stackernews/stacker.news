@@ -137,15 +137,15 @@ async function makeCsv ({ models, apollo, id }) {
   let i = 0
   do {
     // query for items
-    await delay(1000) // <- adjust delay and 'limit' variabele in query below for preferred work rate
-    console.log(++i);
-    ({ data: { walletHistory: { facts, cursor } } } = await apollo.query({
-      query: WALLET_HISTORY,
-      variables: { cursor, limit: 1, inc: 'invoice,withdrawal,stacked,spent', id }
-    }))
-
-    // for all items, index them
+    await delay(1000) // <- adjust delay and 'limit' (in query below) for preferred idle:work ratio
+    console.log(++i)
     try {
+      ({ data: { walletHistory: { facts, cursor } } } = await apollo.query({
+        query: WALLET_HISTORY,
+        variables: { cursor, limit: 1, inc: 'invoice,withdrawal,stacked,spent', id }
+      }))
+
+      // for all items, index them
       for (const fact of facts) {
         if (!fact.status || fact.status === 'CONFIRMED') {
           s.write(`${fact.createdAt},${fact.type},${fact.sats}\n`)

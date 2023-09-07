@@ -172,13 +172,12 @@ export default function Satistics ({ ssrData }) {
   const { walletHistory: { facts, cursor } } = data || ssrData
 
   const me = useMe()
-  const getCsvBtnClass = () => {
-    return me.csvRequest === CsvRequest.NO_REQUEST
+  const csvBtnClass =
+    me.csvRequest === CsvRequest.NO_REQUEST
       ? 'btn-grey-darkmode'
       : me.csvRequestStatus === CsvRequestStatus.FULL_REPORT
         ? 'btn-success'
         : 'btn-danger'
-  }
   const iconClass =
     me.csvRequest === CsvRequest.FULL_REPORT && me.csvRequestStatus === CsvRequestStatus.GENERATING_REPORT
       ? styles.busyanim
@@ -221,12 +220,11 @@ export default function Satistics ({ ssrData }) {
   })
   const [btnState, setBtnState] = useState('')
   useEffect(() => {
-    const newState = getCsvBtnClass()
-    if (newState !== btnState) {
-      setBtnState(newState)
-      if (newState === 'btn-success') toaster.success('CSV file is ready to download')
+    if (csvBtnClass !== btnState) {
+      setBtnState(csvBtnClass)
+      if (csvBtnClass === 'btn-success') toaster.success('CSV file is ready to download')
     }
-  }, [getCsvBtnClass()])
+  }, [csvBtnClass])
 
   return (
     <Layout>
@@ -263,7 +261,7 @@ export default function Satistics ({ ssrData }) {
             />
             <div className='form-group undefined'>
               <Link
-                className={`btn ${getCsvBtnClass()} btn-sm px-3`}
+                className={`btn ${csvBtnClass} btn-sm px-3`}
                 onClick={handleCsvClick}
                 href={`/satistics.csv?inc=${router.query.inc}`}
                 download={`statistics-${router.query.inc?.split(',').join('-')}.csv`}

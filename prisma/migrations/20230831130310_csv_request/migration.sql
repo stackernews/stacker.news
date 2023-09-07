@@ -11,7 +11,8 @@ ADD COLUMN     "csvRequestStatus" "CsvRequestStatus" NOT NULL DEFAULT 'NO_REQUES
 CREATE OR REPLACE FUNCTION csv_check() RETURNS TRIGGER AS $$
 DECLARE
 BEGIN
-    INSERT INTO pgboss.job (name, data, singletonkey) VALUES ('csvQueue', jsonb_build_object('id', NEW.id), NEW.id);
+    INSERT INTO pgboss.job (name, data, singletonkey) VALUES ('csvQueue', jsonb_build_object('id', NEW.id), NEW.id)
+    ON CONFLICT DO NOTHING;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;

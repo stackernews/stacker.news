@@ -4,7 +4,7 @@ import Items from '../../components/items'
 import Layout from '../../components/layout'
 import { SUB_ITEMS } from '../../fragments/subs'
 import Snl from '../../components/snl'
-import NewVisitorBanner from '../../components/banners'
+import WelcomeBanner from '../../components/banners'
 
 export const getServerSideProps = getGetServerSideProps({
   query: SUB_ITEMS,
@@ -18,7 +18,7 @@ export default function Sub ({ ssrData }) {
   return (
     <Layout sub={variables.sub}>
       <Snl />
-      <NewVisitorBanner />
+      <WelcomeBanner />
       <Items ssrData={ssrData} variables={variables} />
     </Layout>
   )

@@ -6,7 +6,7 @@ import { useMutation } from '@apollo/client'
 import { WELCOME_BANNER_MUTATION } from '../fragments/users'
 import { useToast } from '../components/toast'
 
-export default function NewVisitorBanner () {
+export default function WelcomeBanner () {
   const me = useMe()
   const toaster = useToast()
   const [hidden, setHidden] = useState(true)
@@ -14,13 +14,12 @@ export default function NewVisitorBanner () {
     window.localStorage.setItem('hideWelcomeBanner', true)
     setHidden(true)
     if (me) {
-      let error
       try {
-        ({ error } = await hideWelcomeBanner())
-      } catch (e) {
-        error = e
+        await hideWelcomeBanner()
+      } catch (err) {
+        console.log(err)
+        toaster.danger('mutation failed')
       }
-      if (error) toaster.danger(error.toString())
     }
   }
   const [hideWelcomeBanner] = useMutation(WELCOME_BANNER_MUTATION, {
@@ -36,35 +35,33 @@ export default function NewVisitorBanner () {
     }
   })
   useEffect(() => {
-    setHidden(me?.hideWelcomeBanner || window.localStorage.getItem('hideWelcomeBanner'))
+    setHidden(me?.hideWelcomeBanner || (!me && window.localStorage.getItem('hideWelcomeBanner')))
   }, [me?.hideWelcomeBanner])
 
-  if ((me && !me.hideWelcomeBanner) || !hidden) {
-    return (
-      <Alert className={styles.banner} key='info' variant='info' onClose={handleClose} dismissible>
-        <Alert.Heading>
-          👋 Welcome to Stacker News!
-        </Alert.Heading>
-        <p>
-          To get started, check out our{' '}
-          <Alert.Link href='/faq'>FAQs</Alert.Link> or{' '}
-          <Alert.Link href='/guide'>content guidelines</Alert.Link>, or go ahead and{' '}
-          {
-            me
-              ? (
-                <Alert.Link href='/post'>make a post</Alert.Link>
-                )
-              : (
-                <>
-                  <Alert.Link href='/signup'>signup</Alert.Link> or create an{' '}
-                  <Alert.Link href='/post'>anonymous post</Alert.Link>
-                </>
-                )
-          }.
-        </p>
-      </Alert>
-    )
-  } else {
-    return (<></>)
-  }
+  if (hidden) return
+
+  return (
+    <Alert className={styles.banner} key='info' variant='info' onClose={handleClose} dismissible>
+      <Alert.Heading>
+        👋 Welcome to Stacker News!
+      </Alert.Heading>
+      <p>
+        To get started, check out our{' '}
+        <Alert.Link href='/faq'>FAQs</Alert.Link> or{' '}
+        <Alert.Link href='/guide'>content guidelines</Alert.Link>, or go ahead and{' '}
+        {
+          me
+            ? (
+              <Alert.Link href='/post'>make a post</Alert.Link>
+              )
+            : (
+              <>
+                <Alert.Link href='/signup'>signup</Alert.Link> or create an{' '}
+                <Alert.Link href='/post'>anonymous post</Alert.Link>
+              </>
+              )
+        }.
+      </p>
+    </Alert>
+  )
 }

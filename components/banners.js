@@ -16,7 +16,7 @@ export default function NewVisitorBanner () {
     if (me) {
       let error
       try {
-        ({ error } = await hideWelcomeBanner({ variables: { } }))
+        ({ error } = await hideWelcomeBanner())
       } catch (e) {
         error = e
       }

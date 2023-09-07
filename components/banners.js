@@ -39,7 +39,7 @@ export default function NewVisitorBanner () {
     setHidden(me?.hideWelcomeBanner || window.localStorage.getItem('hideWelcomeBanner'))
   }, [me?.hideWelcomeBanner])
 
-  if (!hidden) {
+  if ((me && !me.hideWelcomeBanner) || !hidden) {
     return (
       <Alert className={styles.banner} key='info' variant='info' onClose={handleClose} dismissible>
         <Alert.Heading>

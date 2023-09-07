@@ -5,7 +5,7 @@ export const CsvRequest = {
 
 export const CsvRequestStatus = {
   NO_REQUEST: 'NO_REQUEST',
-  FULL_REPORT: 'FULL_REPORT',
-  GENERATING_REPORT: 'GENERATING_REPORT',
+  IN_PROGRESS: 'IN_PROGRESS',
+  DONE: 'DONE',
   INCOMPLETE: 'INCOMPLETE'
 }

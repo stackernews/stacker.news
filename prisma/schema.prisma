@@ -607,7 +607,7 @@ enum CsvRequest {
 
 enum CsvRequestStatus {
   NO_REQUEST
-  FULL_REPORT
-  GENERATING_REPORT
+  IN_PROGRESS
+  DONE
   INCOMPLETE
 }

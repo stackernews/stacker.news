@@ -10,7 +10,7 @@ export default async function handler (req, res) {
   const fname = `satistics_${me?.id}.csv`
   res.setHeader('Content-Type', 'text/csv')
   res.setHeader('Content-Disposition', 'attachment; filename=satistics.csv')
-  if (me?.csvRequest === CsvRequest.FULL_REPORT && me.csvRequestStatus === CsvRequestStatus.FULL_REPORT && fs.existsSync(fname)) {
+  if (me?.csvRequest === CsvRequest.FULL_REPORT && me.csvRequestStatus === CsvRequestStatus.DONE && fs.existsSync(fname)) {
     fs.createReadStream(fname).pipe(res)
       .on('error', () => res.status(500).end())
       .on('finish', async () => {

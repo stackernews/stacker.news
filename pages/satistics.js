@@ -175,15 +175,15 @@ export default function Satistics ({ ssrData }) {
   const csvBtnClass =
     me.csvRequest === CsvRequest.NO_REQUEST
       ? 'btn-grey-darkmode'
-      : me.csvRequestStatus === CsvRequestStatus.FULL_REPORT
+      : me.csvRequestStatus === CsvRequestStatus.DONE
         ? 'btn-success'
         : 'btn-danger'
   const iconClass =
-    me.csvRequest === CsvRequest.FULL_REPORT && me.csvRequestStatus === CsvRequestStatus.GENERATING_REPORT
+    me.csvRequest === CsvRequest.FULL_REPORT && me.csvRequestStatus === CsvRequestStatus.IN_PROGRESS
       ? styles.busyanim
       : ''
   const handleCsvClick = async (event) => {
-    if (me.csvRequest === CsvRequest.FULL_REPORT && me.csvRequestStatus === CsvRequestStatus.FULL_REPORT) {
+    if (me.csvRequest === CsvRequest.FULL_REPORT && me.csvRequestStatus === CsvRequestStatus.DONE) {
       toaster.success('Downloading...')
       return
     }

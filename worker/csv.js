@@ -115,7 +115,7 @@ function checkCsv ({ models, apollo }) {
         csvRequestStatus: true
       }
     })
-    if (status.csvRequest === 'NO_REQUEST' && (status.csvRequestStatus === 'INCOMPLETE' || status.csvRequestStatus === 'FULL_REPORT')) {
+    if (status.csvRequest === 'NO_REQUEST' && (status.csvRequestStatus === 'INCOMPLETE' || status.csvRequestStatus === 'DONE')) {
       console.log('user request cleared')
       await models.$transaction([
         models.$executeRaw`UPDATE "users" SET "csvRequestStatus" = 'NO_REQUEST' WHERE "users"."id" = ${id}`])
@@ -127,7 +127,7 @@ function checkCsv ({ models, apollo }) {
 
 async function makeCsv ({ models, apollo, id }) {
   await models.$transaction([
-    models.$executeRaw`UPDATE "users" SET "csvRequestStatus" = 'GENERATING_REPORT' WHERE "users"."id" = ${id}`])
+    models.$executeRaw`UPDATE "users" SET "csvRequestStatus" = 'IN_PROGRESS' WHERE "users"."id" = ${id}`])
   const fname = `satistics_${id}.csv`
   const s = fs.createWriteStream(fname)
   let facts = []; let cursor = null
@@ -177,7 +177,7 @@ async function makeCsv ({ models, apollo, id }) {
 
   // result
   s.end()
-  const newState = incomplete ? 'INCOMPLETE' : 'FULL_REPORT'
+  const newState = incomplete ? 'INCOMPLETE' : 'DONE'
   console.log('done with CSV file', newState)
   await models.$transaction([
     models.$executeRaw`UPDATE "users" SET "csvRequestStatus" = CAST(${newState} as "CsvRequestStatus") WHERE "users"."id" = ${id}`])

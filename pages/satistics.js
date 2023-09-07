@@ -180,7 +180,7 @@ export default function Satistics ({ ssrData }) {
         : 'btn-danger'
   }
   const getIconClass = () => {
-    return me.csvRequest === CsvRequest.FULL_REPORT && me.csvRequestStatus !== CsvRequestStatus.FULL_REPORT && me.csvRequestStatus !== CsvRequestStatus.INCOMPLETE
+    return me.csvRequest === CsvRequest.FULL_REPORT && me.csvRequestStatus === CsvRequestStatus.GENERATING_REPORT
       ? styles.busyanim
       : ''
   }

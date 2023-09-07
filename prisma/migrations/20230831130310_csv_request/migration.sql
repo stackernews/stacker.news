@@ -2,7 +2,7 @@
 CREATE TYPE "CsvRequest" AS ENUM ('NO_REQUEST', 'FULL_REPORT');
 
 -- CreateEnum
-CREATE TYPE "CsvRequestStatus" AS ENUM ('NO_REQUEST', 'IN_PROGRESS', 'DONE', 'INCOMPLETE');
+CREATE TYPE "CsvRequestStatus" AS ENUM ('NO_REQUEST', 'IN_PROGRESS', 'DONE', 'FAILED');
 
 -- AlterTable
 ALTER TABLE "users" ADD COLUMN     "csvRequest" "CsvRequest" NOT NULL DEFAULT 'NO_REQUEST',

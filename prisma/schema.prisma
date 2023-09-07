@@ -609,5 +609,5 @@ enum CsvRequestStatus {
   NO_REQUEST
   IN_PROGRESS
   DONE
-  INCOMPLETE
+  FAILED
 }

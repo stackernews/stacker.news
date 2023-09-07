@@ -117,12 +117,12 @@ function checkCsv ({ models, apollo }) {
       }
     })
     if (status.csvRequest === CsvRequest.NO_REQUEST &&
-    (status.csvRequestStatus === CsvRequestStatus.INCOMPLETE || status.csvRequestStatus === CsvRequestStatus.DONE)) {
+    (status.csvRequestStatus === CsvRequestStatus.FAILED || status.csvRequestStatus === CsvRequestStatus.DONE)) {
       console.log('user request cleared')
       await models.$transaction([
         models.$executeRaw`UPDATE "users" SET "csvRequestStatus" = 'NO_REQUEST' WHERE "users"."id" = ${id}`])
     } else if (status.csvRequest === CsvRequest.FULL_REPORT &&
-    (status.csvRequestStatus === CsvRequestStatus.NO_REQUEST || status.csvRequestStatus === CsvRequestStatus.INCOMPLETE)) {
+    (status.csvRequestStatus === CsvRequestStatus.NO_REQUEST || status.csvRequestStatus === CsvRequestStatus.FAILED)) {
       makeCsv({ models, apollo, id })
     }
   }
@@ -180,7 +180,7 @@ async function makeCsv ({ models, apollo, id }) {
 
   // result
   s.end()
-  const newState = incomplete ? CsvRequestStatus.INCOMPLETE : CsvRequestStatus.DONE
+  const newState = incomplete ? CsvRequestStatus.FAILED : CsvRequestStatus.DONE
   console.log('done with CSV file', newState)
   await models.$transaction([
     models.$executeRaw`UPDATE "users" SET "csvRequestStatus" = CAST(${newState} as "CsvRequestStatus") WHERE "users"."id" = ${id}`])

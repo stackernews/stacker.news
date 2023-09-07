@@ -110,7 +110,9 @@
     "@babel/core": "^7.22.10",
     "@babel/eslint-parser": "^7.22.10",
     "@next/eslint-plugin-next": "^13.4.16",
-    "eslint": "^8.47.0",
+    "eslint": "^8.48.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
     "standard": "^17.1.0"
   }
 }

@@ -588,12 +588,6 @@ export default {
   },
 
   User: {
-    csvRequest: async (user, args, { models }) => {
-      return user.csvRequest
-    },
-    csvRequestStatus: async (user, args, { models }) => {
-      return user.csvRequestStatus
-    },
     authMethods,
     since: async (user, args, { models }) => {
       // get the user's first item
@@ -773,6 +767,12 @@ export default {
       })
 
       return !!subscription
+    },
+    csvRequest: async (user) => {
+      return user.csvRequest
+    },
+    csvRequestStatus: async (user) => {
+      return user.csvRequestStatus
     }
   }
 }

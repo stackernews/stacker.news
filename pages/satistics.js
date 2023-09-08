@@ -184,31 +184,27 @@ export default function Satistics ({ ssrData }) {
       : ''
   const handleCsvClick = async (event) => {
     if (me.csvRequest === CsvRequest.FULL_REPORT && me.csvRequestStatus === CsvRequestStatus.DONE) {
-      toaster.success('Downloading...')
+      toaster.success('downloading...')
       return
     }
 
     event.preventDefault()
-    let newReq
-
-    if (me.csvRequest === CsvRequest.NO_REQUEST) {
-      newReq = CsvRequest.FULL_REPORT
-      toaster.success('Preparing CSV...please wait')
-    } else {
-      newReq = CsvRequest.NO_REQUEST
-      toaster.success('Canceled')
-    }
-
-    if (newReq !== me.csvRequest) {
-      const { error } = await csvRequest({ variables: { csvRequest: newReq } })
-      if (error) toaster.danger(error.toString())
+    const req = me.csvRequest === CsvRequest.NO_REQUEST
+      ? (toaster.success('preparing...please wait') && false) || CsvRequest.FULL_REPORT
+      : (toaster.success('canceled') && false) || CsvRequest.NO_REQUEST
+    if (req !== me.csvRequest) {
+      try {
+        await csvRequest({ variables: { csvRequest: req } })
+      } catch (err) {
+        console.log(err)
+        toaster.danger('mutation failed')
+      }
     }
   }
   const [csvRequest] = useMutation(gql`
-  mutation csvRequest($csvRequest: CsvRequest!) {
-    csvRequest(csvRequest: $csvRequest)
-  }
-`, {
+    mutation csvRequest($csvRequest: CsvRequest!) {
+      csvRequest(csvRequest: $csvRequest)
+    }`, {
     update (cache, { data: { csvRequest } }) {
       cache.modify({
         id: `User:${me.id}`,
@@ -222,7 +218,7 @@ export default function Satistics ({ ssrData }) {
   useEffect(() => {
     if (csvBtnClass !== btnState) {
       setBtnState(csvBtnClass)
-      if (csvBtnClass === 'btn-success') toaster.success('CSV file is ready to download')
+      if (csvBtnClass === 'btn-success') toaster.success('ready to download')
     }
   }, [csvBtnClass])
 

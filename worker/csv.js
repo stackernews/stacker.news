@@ -5,30 +5,34 @@ const path = require('path')
 
 function checkCsv ({ models, apollo }) {
   return async function ({ data: { id } }) {
-    const status = await models.user.findUnique({
-      where: {
-        id
-      },
-      select: {
-        csvRequest: true,
-        csvRequestStatus: true
+    try {
+      const u = await models.user.findUnique({
+        where: {
+          id
+        },
+        select: {
+          csvRequest: true,
+          csvRequestStatus: true
+        }
+      })
+      if (u.csvRequest === CsvRequest.NO_REQUEST && u.csvRequestStatus !== CsvRequestStatus.IN_PROGRESS) {
+        await models.$transaction([
+          models.$executeRaw`UPDATE "users" SET "csvRequestStatus" = 'NO_REQUEST' WHERE "users"."id" = ${id}`])
+      } else if (u.csvRequest === CsvRequest.FULL_REPORT && u.csvRequestStatus === CsvRequestStatus.NO_REQUEST) {
+        makeCsv({ models, id })
       }
-    })
-    if (status.csvRequest === CsvRequest.NO_REQUEST &&
-    (status.csvRequestStatus === CsvRequestStatus.FAILED || status.csvRequestStatus === CsvRequestStatus.DONE)) {
-      console.log('user request cleared')
-      await models.$transaction([
-        models.$executeRaw`UPDATE "users" SET "csvRequestStatus" = 'NO_REQUEST' WHERE "users"."id" = ${id}`])
-    } else if (status.csvRequest === CsvRequest.FULL_REPORT &&
-    (status.csvRequestStatus === CsvRequestStatus.NO_REQUEST || status.csvRequestStatus === CsvRequestStatus.FAILED)) {
-      makeCsv({ models, apollo, id })
+    } catch (err) {
+      console.log(err)
     }
   }
 }
 
-async function makeCsv ({ models, apollo, id }) {
+async function makeCsv ({ models, id }) {
   await models.$transaction([
-    models.$executeRaw`UPDATE "users" SET "csvRequestStatus" = 'IN_PROGRESS' WHERE "users"."id" = ${id}`])
+    models.$executeRaw`
+      UPDATE "users"
+      SET "csvRequestStatus" = 'IN_PROGRESS'
+      WHERE "users"."id" = ${id}`])
   const fname = path.join(process.env.CSV_PATH, `satistics_${id}.csv`)
   const s = fs.createWriteStream(fname)
   let facts = []; let cursor = null
@@ -38,9 +42,13 @@ async function makeCsv ({ models, apollo, id }) {
   do {
     // query for items
     try {
-      ({ cursor, facts } = await walletHistory(null, { cursor, inc: 'invoice,withdrawal,stacked,spent', limit: 1000 }, { me: { id }, models, lnd: null }))
+      ({ cursor, facts } = await walletHistory(null, {
+        cursor,
+        inc: 'invoice,withdrawal,stacked,spent',
+        limit: 1000
+      }, { me: { id }, models, lnd: null }))
 
-      // to backfill what the GQL pipeline does
+      // we want Fact fields
       for (const fact of facts) {
         fact.item = await Fact.item(fact, null, { models })
         fact.sats = Fact.sats(fact)
@@ -53,34 +61,36 @@ async function makeCsv ({ models, apollo, id }) {
           s.write(`${fact.createdAt},${fact.type},${fact.sats}\n`)
         }
       }
-    } catch (e) {
+
+      // check for user cancellation
+      status = await models.user.findUnique({
+        where: {
+          id
+        },
+        select: {
+          csvRequest: true
+        }
+      })
+      if (status.csvRequest !== CsvRequest.FULL_REPORT) {
+        // user canceled
+        incomplete = true
+      }
+    } catch (err) {
       // ignore errors
       incomplete = true
-      console.log(e)
-      s.end()
-    }
-
-    // check for cancellation
-    status = await models.user.findUnique({
-      where: {
-        id
-      },
-      select: {
-        csvRequest: true
-      }
-    })
-    if (status.csvRequest !== CsvRequest.FULL_REPORT) {
-      // user canceled
-      incomplete = true
+      console.log(err)
     }
   } while (cursor && !incomplete)
 
   // result
   s.end()
-  const newState = incomplete ? CsvRequestStatus.FAILED : CsvRequestStatus.DONE
-  console.log('done with CSV file', newState)
+  const endState = incomplete ? CsvRequestStatus.FAILED : CsvRequestStatus.DONE
+  console.log('done with CSV file', endState)
   await models.$transaction([
-    models.$executeRaw`UPDATE "users" SET "csvRequestStatus" = CAST(${newState} as "CsvRequestStatus") WHERE "users"."id" = ${id}`])
+    models.$executeRaw`
+      UPDATE "users"
+      SET "csvRequestStatus" = CAST(${endState} as "CsvRequestStatus")
+      WHERE "users"."id" = ${id}`])
 }
 
 module.exports = { checkCsv }

@@ -1,102 +1,213 @@
-const { gql } = require('graphql-tag')
 const fs = require('fs')
 const { CsvRequest, CsvRequestStatus } = require('../lib/constants')
+const lnpr = require('bolt11')
 
-const ITEM_FIELDS = gql`
-  fragment ItemFields on Item {
-    id
-    parentId
-    createdAt
-    deletedAt
-    title
-    url
-    user {
-      name
-      streak
-      hideCowboyHat
-      id
-    }
-    otsHash
-    position
-    sats
-    meAnonSats @client
-    boost
-    bounty
-    bountyPaidTo
-    path
-    upvotes
-    meSats
-    meDontLike
-    meBookmark
-    meSubscription
-    meForward
-    outlawed
-    freebie
-    ncomments
-    commentSats
-    lastCommentAt
-    maxBid
-    isJob
-    company
-    location
-    remote
-    subName
-    pollCost
-    status
-    uploadId
-    mine
-  }`
+//
+//
+// BEGINNING OF DUPLICATED CODE FROM APP /////////////////
 
-const ITEM_FULL_FIELDS = gql`
-  ${ITEM_FIELDS}
-  fragment ItemFullFields on Item {
-    ...ItemFields
-    text
-    root {
-      id
-      title
-      bounty
-      bountyPaidTo
-      subName
-      user {
-        name
-        streak
-        hideCowboyHat
-        id
-      }
-    }
-    forwards {
-      userId
-      pct
-      user {
-        name
-      }
-    }
-  }`
+const LIMIT = 21
 
-const WALLET_HISTORY = gql`
-  ${ITEM_FULL_FIELDS}
+function decodeCursor (cursor) {
+  if (!cursor) {
+    return { offset: 0, time: new Date() }
+  } else {
+    const res = JSON.parse(Buffer.from(cursor, 'base64'))
+    res.time = new Date(res.time)
+    return res
+  }
+}
 
-  query WalletHistory($cursor: String, $inc: String, $limit: Int, $id: Int) {
-    walletHistory(cursor: $cursor, inc: $inc, limit: $limit, id: $id) {
-      facts {
-        id
-        factId
-        type
-        createdAt
-        sats
-        satsFee
-        status
-        type
-        description
-        item {
-          ...ItemFullFields
-        }
-      }
-      cursor
+function nextCursorEncoded (cursor, limit = LIMIT) {
+  cursor.offset += limit
+  return Buffer.from(JSON.stringify(cursor)).toString('base64')
+}
+
+async function walletHistory (parent, { cursor, inc, limit = LIMIT, id }, { me, models, lnd }) {
+  const decodedCursor = decodeCursor(cursor)
+
+  const include = new Set(inc?.split(','))
+  const queries = []
+
+  if (include.has('invoice')) {
+    queries.push(
+      `(SELECT ('invoice' || id) as id, id as "factId", bolt11, created_at as "createdAt",
+      COALESCE("msatsReceived", "msatsRequested") as msats, NULL as "msatsFee",
+      CASE WHEN "confirmedAt" IS NOT NULL THEN 'CONFIRMED'
+          WHEN "expiresAt" <= $2 THEN 'EXPIRED'
+          WHEN cancelled THEN 'CANCELLED'
+          ELSE 'PENDING' END as status,
+      'invoice' as type
+      FROM "Invoice"
+      WHERE "userId" = $1
+        AND created_at <= $2)`)
+  }
+
+  if (include.has('withdrawal')) {
+    queries.push(
+      `(SELECT ('withdrawal' || id) as id, id as "factId", bolt11, created_at as "createdAt",
+      CASE WHEN status = 'CONFIRMED' THEN "msatsPaid"
+      ELSE "msatsPaying" END as msats,
+      CASE WHEN status = 'CONFIRMED' THEN "msatsFeePaid"
+      ELSE "msatsFeePaying" END as "msatsFee",
+      COALESCE(status::text, 'PENDING') as status,
+      'withdrawal' as type
+      FROM "Withdrawl"
+      WHERE "userId" = $1
+        AND created_at <= $2)`)
+  }
+
+  if (include.has('stacked')) {
+    // query1 - get all sats stacked as OP or as a forward
+    queries.push(
+      `(SELECT
+        ('stacked' || "Item".id) AS id,
+        "Item".id AS "factId",
+        NULL AS bolt11,
+        MAX("ItemAct".created_at) AS "createdAt",
+        FLOOR(
+          SUM("ItemAct".msats)
+          * (CASE WHEN "Item"."userId" = $1 THEN
+              COALESCE(1 - ((SELECT SUM(pct) FROM "ItemForward" WHERE "itemId" = "Item".id) / 100.0), 1)
+            ELSE
+              (SELECT pct FROM "ItemForward" WHERE "itemId" = "Item".id AND "userId" = $1) / 100.0
+            END)
+        ) AS "msats",
+        0 AS "msatsFee",
+        NULL AS status,
+        'stacked' AS type
+      FROM "ItemAct"
+      JOIN "Item" ON "ItemAct"."itemId" = "Item".id
+      -- only join to with item forward for items where we aren't the OP
+      LEFT JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id AND "Item"."userId" <> $1
+      WHERE "ItemAct".act = 'TIP'
+      AND ("Item"."userId" = $1 OR "ItemForward"."userId" = $1)
+      AND "ItemAct".created_at <= $2
+      GROUP BY "Item".id)`
+    )
+    queries.push(
+        `(SELECT ('earn' || min("Earn".id)) as id, min("Earn".id) as "factId", NULL as bolt11,
+        created_at as "createdAt", sum(msats),
+        0 as "msatsFee", NULL as status, 'earn' as type
+        FROM "Earn"
+        WHERE "Earn"."userId" = $1 AND "Earn".created_at <= $2
+        GROUP BY "userId", created_at)`)
+    queries.push(
+        `(SELECT ('referral' || "ReferralAct".id) as id, "ReferralAct".id as "factId", NULL as bolt11,
+        created_at as "createdAt", msats,
+        0 as "msatsFee", NULL as status, 'referral' as type
+        FROM "ReferralAct"
+        WHERE "ReferralAct"."referrerId" = $1 AND "ReferralAct".created_at <= $2)`)
+  }
+
+  if (include.has('spent')) {
+    queries.push(
+      `(SELECT ('spent' || "Item".id) as id, "Item".id as "factId", NULL as bolt11,
+      MAX("ItemAct".created_at) as "createdAt", sum("ItemAct".msats) as msats,
+      0 as "msatsFee", NULL as status, 'spent' as type
+      FROM "ItemAct"
+      JOIN "Item" on "ItemAct"."itemId" = "Item".id
+      WHERE "ItemAct"."userId" = $1
+      AND "ItemAct".created_at <= $2
+      GROUP BY "Item".id)`)
+    queries.push(
+        `(SELECT ('donation' || "Donation".id) as id, "Donation".id as "factId", NULL as bolt11,
+        created_at as "createdAt", sats * 1000 as msats,
+        0 as "msatsFee", NULL as status, 'donation' as type
+        FROM "Donation"
+        WHERE "userId" = $1
+        AND created_at <= $2)`)
+  }
+
+  if (queries.length === 0) {
+    return {
+      cursor: null,
+      facts: []
     }
   }
-`
+
+  let history = await models.$queryRawUnsafe(`
+  ${queries.join(' UNION ALL ')}
+  ORDER BY "createdAt" DESC
+  OFFSET $3
+  LIMIT ${limit}`, me?.id || id, decodedCursor.time, decodedCursor.offset)
+
+  history = history.map(f => {
+    if (f.bolt11) {
+      const inv = lnpr.decode(f.bolt11)
+      if (inv) {
+        const { tags } = inv
+        for (const tag of tags) {
+          if (tag.tagName === 'description') {
+            f.description = tag.data
+            break
+          }
+        }
+      }
+    }
+    switch (f.type) {
+      case 'withdrawal':
+        f.msats = (-1 * Number(f.msats)) - Number(f.msatsFee)
+        break
+      case 'spent':
+        f.msats *= -1
+        break
+      case 'donation':
+        f.msats *= -1
+        break
+      default:
+        break
+    }
+
+    return f
+  })
+
+  return {
+    cursor: history.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
+    facts: history
+  }
+}
+
+const Fact = {
+  item: async (fact, args, { models }) => {
+    if (fact.type !== 'spent' && fact.type !== 'stacked') {
+      return null
+    }
+    const [item] = await models.$queryRawUnsafe(`
+      ${SELECT}
+      FROM "Item"
+      WHERE id = $1`, Number(fact.factId))
+
+    return item
+  },
+  sats: fact => msatsToSatsDecimal(fact.msats),
+  satsFee: fact => msatsToSatsDecimal(fact.msatsFee)
+}
+
+const SELECT =
+  `SELECT "Item".id, "Item".created_at, "Item".created_at as "createdAt", "Item".updated_at,
+  "Item".updated_at as "updatedAt", "Item".title, "Item".text, "Item".url, "Item"."bounty",
+  "Item"."userId", "Item"."parentId", "Item"."pinId", "Item"."maxBid",
+  "Item"."rootId", "Item".upvotes, "Item".company, "Item".location, "Item".remote, "Item"."deletedAt",
+  "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost", "Item".boost, "Item".msats,
+  "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",
+  "Item"."weightedDownVotes", "Item".freebie, "Item"."otsHash", "Item"."bountyPaidTo",
+  ltree2text("Item"."path") AS "path", "Item"."weightedComments"`
+
+const msatsToSatsDecimal = msats => {
+  if (msats === null || msats === undefined) {
+    return null
+  }
+  return fixedDecimal(Number(msats) / 1000.0, 3)
+}
+
+const fixedDecimal = (n, f) => {
+  return Number.parseFloat(n).toFixed(f)
+}
+
+// END OF DUPLICATED CODE /////////////////
+//
+//
 
 function delay (millisec) {
   return new Promise(resolve => {
@@ -143,10 +254,14 @@ async function makeCsv ({ models, apollo, id }) {
     await delay(1000) // <- adjust delay and 'limit' (in query below) for preferred idle:work ratio
     console.log(++i)
     try {
-      ({ data: { walletHistory: { facts, cursor } } } = await apollo.query({
-        query: WALLET_HISTORY,
-        variables: { cursor, limit: 1, inc: 'invoice,withdrawal,stacked,spent', id }
-      }))
+      ({ cursor, facts } = await walletHistory(null, { cursor, inc: 'invoice,withdrawal,stacked,spent', limit: 1, id }, { me: null, models, lnd: null }))
+
+      // to backfill what the GQL pipeline does
+      for (const fact of facts) {
+        fact.item = await Fact.item(fact, null, { models })
+        fact.sats = Fact.sats(fact)
+        fact.satsFee = Fact.satsFee(fact)
+      }
 
       // for all items, index them
       for (const fact of facts) {

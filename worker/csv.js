@@ -1,6 +1,7 @@
 const fs = require('fs')
 const { CsvRequest, CsvRequestStatus } = require('../lib/constants')
 const { walletHistory, Fact } = require('../api/resolvers/wallet-common')
+const path = require('path')
 
 function delay (millisec) {
   return new Promise(resolve => {
@@ -35,7 +36,7 @@ function checkCsv ({ models, apollo }) {
 async function makeCsv ({ models, apollo, id }) {
   await models.$transaction([
     models.$executeRaw`UPDATE "users" SET "csvRequestStatus" = 'IN_PROGRESS' WHERE "users"."id" = ${id}`])
-  const fname = `satistics_${id}.csv`
+  const fname = path.join(process.env.CSV_PATH, `satistics_${id}.csv`)
   const s = fs.createWriteStream(fname)
   let facts = []; let cursor = null
   let status; let incomplete = false

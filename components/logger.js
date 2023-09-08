@@ -11,11 +11,35 @@ const generateFancyName = () => {
   return `${adj}-${noun}-${id}`
 }
 
+function detectOS () {
+  const userAgent = window.navigator.userAgent
+  const platform = window.navigator?.userAgentData?.platform || window.navigator.platform
+  const macosPlatforms = ['Macintosh', 'MacIntel', 'MacPPC', 'Mac68K']
+  const windowsPlatforms = ['Win32', 'Win64', 'Windows', 'WinCE']
+  const iosPlatforms = ['iPhone', 'iPad', 'iPod']
+  let os = null
+
+  if (macosPlatforms.indexOf(platform) !== -1) {
+    os = 'Mac OS'
+  } else if (iosPlatforms.indexOf(platform) !== -1) {
+    os = 'iOS'
+  } else if (windowsPlatforms.indexOf(platform) !== -1) {
+    os = 'Windows'
+  } else if (/Android/.test(userAgent)) {
+    os = 'Android'
+  } else if (/Linux/.test(platform)) {
+    os = 'Linux'
+  }
+
+  return os
+}
+
 const LoggerContext = createContext()
 
 export function LoggerProvider ({ children }) {
   const me = useMe()
   const [name, setName] = useState()
+  const [os, setOS] = useState()
 
   useEffect(() => {
     let name = window.localStorage.getItem('fancy-name')
@@ -24,13 +48,16 @@ export function LoggerProvider ({ children }) {
       window.localStorage.setItem('fancy-name', name)
     }
     setName(name)
+    setOS(detectOS())
   }, [])
 
   const log = useCallback(level => {
     return async (message, context) => {
       if (!me || !me.diagnostics) return
       const env = {
-        userAgent: window.navigator.userAgent
+        userAgent: window.navigator.userAgent,
+        // os may not be initialized yet
+        os: os || detectOS()
       }
       const body = {
         level,
@@ -49,7 +76,7 @@ export function LoggerProvider ({ children }) {
         body: JSON.stringify(body)
       }).catch(console.error)
     }
-  }, [me?.diagnostics, name])
+  }, [me?.diagnostics, name, os])
 
   const logger = useMemo(() => ({
     info: log('info'),

@@ -263,6 +263,7 @@ export default function Settings ({ ssrData }) {
                       <ul><li>timestamps</li></ul>
                       <ul><li>a randomly generated fancy name</li></ul>
                       <ul><li>your user agent</li></ul>
+                      <ul><li>your operating system</li></ul>
                     </li>
                   </ul>
                   <div className='text-muted fst-italic'>your fancy name: {logger.name}</div>

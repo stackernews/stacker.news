@@ -4,14 +4,12 @@ const slackApiUrl = 'https://slack.com/api'
 const botToken = process.env.SLACK_BOT_TOKEN
 const channelId = process.env.SLACK_CHANNEL_ID
 
+const toKV = (obj) => {
+  return obj ? Object.entries(obj).reduce((text, [k, v]) => text + ` ${k}=${v}`, '').trimStart() : '-'
+}
+
 const slackPostMessage = ({ id, level, name, message, env, context }) => {
-  let text = `${new Date().toISOString()} | ${id} [${level}] ${name} | ${message}`
-  if (context) {
-    text += `\n${JSON.stringify(context)}`
-  }
-  if (env) {
-    text += `\n${JSON.stringify(env)}`
-  }
+  const text = `\`${new Date().toISOString()}\` | \`${id} [${level}] ${name}\` | ${message} | ${toKV(context)} | ${toKV({ os: env.os })}`
   return fetch(slackApiUrl + '/chat.postMessage', {
     method: 'post',
     headers: {

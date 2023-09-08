@@ -187,18 +187,15 @@ export default function Satistics ({ ssrData }) {
       toaster.success('downloading...')
       return
     }
-
     event.preventDefault()
     const req = me.csvRequest === CsvRequest.NO_REQUEST
       ? (toaster.success('preparing...please wait') && false) || CsvRequest.FULL_REPORT
       : (toaster.success('canceled') && false) || CsvRequest.NO_REQUEST
-    if (req !== me.csvRequest) {
-      try {
-        await csvRequest({ variables: { csvRequest: req } })
-      } catch (err) {
-        console.log(err)
-        toaster.danger('mutation failed')
-      }
+    try {
+      await csvRequest({ variables: { csvRequest: req } })
+    } catch (err) {
+      console.log(err)
+      toaster.danger('mutation failed')
     }
   }
   const [csvRequest] = useMutation(gql`

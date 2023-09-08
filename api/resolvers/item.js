@@ -17,6 +17,7 @@ import { sendUserNotification } from '../webPush'
 import { proxyImages } from './imgproxy'
 import { defaultCommentSort } from '../../lib/item'
 import { createHmac } from './wallet'
+import { SELECT } from './item-common'
 
 export async function commentFilterClause (me, models) {
   let clause = ` AND ("Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}`
@@ -1179,17 +1180,6 @@ const getForwardUsers = async (models, forward) => {
   }
   return fwdUsers
 }
-
-// we have to do our own query because ltree is unsupported
-export const SELECT =
-  `SELECT "Item".id, "Item".created_at, "Item".created_at as "createdAt", "Item".updated_at,
-  "Item".updated_at as "updatedAt", "Item".title, "Item".text, "Item".url, "Item"."bounty",
-  "Item"."userId", "Item"."parentId", "Item"."pinId", "Item"."maxBid",
-  "Item"."rootId", "Item".upvotes, "Item".company, "Item".location, "Item".remote, "Item"."deletedAt",
-  "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost", "Item".boost, "Item".msats,
-  "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",
-  "Item"."weightedDownVotes", "Item".freebie, "Item"."otsHash", "Item"."bountyPaidTo",
-  ltree2text("Item"."path") AS "path", "Item"."weightedComments"`
 
 async function topOrderByWeightedSats (me, models) {
   return `ORDER BY ${await orderByNumerator(me, models)} DESC NULLS LAST, "Item".id DESC`

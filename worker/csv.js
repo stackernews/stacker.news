@@ -3,12 +3,6 @@ const { CsvRequest, CsvRequestStatus } = require('../lib/constants')
 const { walletHistory, Fact } = require('../api/resolvers/wallet-common')
 const path = require('path')
 
-function delay (millisec) {
-  return new Promise(resolve => {
-    setTimeout(() => { resolve('') }, millisec)
-  })
-}
-
 function checkCsv ({ models, apollo }) {
   return async function ({ data: { id } }) {
     const status = await models.user.findUnique({
@@ -16,7 +10,6 @@ function checkCsv ({ models, apollo }) {
         id
       },
       select: {
-        id: true,
         csvRequest: true,
         csvRequestStatus: true
       }
@@ -42,13 +35,10 @@ async function makeCsv ({ models, apollo, id }) {
   let status; let incomplete = false
   console.log('started new CSV file')
   s.write('time,type,sats\n')
-  let i = 0
   do {
     // query for items
-    await delay(1000) // <- adjust delay and 'limit' (in query below) for preferred idle:work ratio
-    console.log(++i)
     try {
-      ({ cursor, facts } = await walletHistory(null, { cursor, inc: 'invoice,withdrawal,stacked,spent', limit: 1 }, { me: { id }, models, lnd: null }))
+      ({ cursor, facts } = await walletHistory(null, { cursor, inc: 'invoice,withdrawal,stacked,spent', limit: 1000 }, { me: { id }, models, lnd: null }))
 
       // to backfill what the GQL pipeline does
       for (const fact of facts) {
@@ -76,9 +66,7 @@ async function makeCsv ({ models, apollo, id }) {
         id
       },
       select: {
-        id: true,
-        csvRequest: true,
-        csvRequestStatus: true
+        csvRequest: true
       }
     })
     if (status.csvRequest !== CsvRequest.FULL_REPORT) {

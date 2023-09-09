@@ -1,5 +1,5 @@
 const cache = new Map()
-const expiresIn = 30000 // in milliseconds
+const expiresIn = 1000 * 60 // in milliseconds
 
 async function fetchBlockHeight () {
   const url = 'https://mempool.space/api/blocks/tip/height'

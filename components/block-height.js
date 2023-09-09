@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react'
 import { useQuery } from '@apollo/client'
 import { SSR } from '../lib/constants'
-import { BLOCK_HEIGHT } from '../fragments/block-height'
+import { BLOCK_HEIGHT } from '../fragments/blockHeight'
 
 export const BlockHeightContext = createContext({
   height: 0
@@ -9,7 +9,7 @@ export const BlockHeightContext = createContext({
 
 export const useBlockHeight = () => useContext(BlockHeightContext)
 
-export const BlockHeightProvider = ({ children }) => {
+export const BlockHeightProvider = ({ blockHeight, children }) => {
   const { data } = useQuery(BLOCK_HEIGHT, {
     ...(SSR
       ? {}
@@ -19,7 +19,7 @@ export const BlockHeightProvider = ({ children }) => {
         })
   })
   const value = {
-    height: data?.blockHeight ?? 0
+    height: data?.blockHeight ?? blockHeight ?? 0
   }
   return (
     <BlockHeightContext.Provider value={value}>

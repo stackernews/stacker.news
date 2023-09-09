@@ -7,7 +7,7 @@ async function fetchBlockHeight () {
     .then(res => res.text())
     .then((body) => Number(body))
     .catch((err) => {
-      console.error(err)
+      console.error('blockHeight', err)
       return 0
     })
   cache.set('block', { height: blockHeight, createdAt: Date.now() })
@@ -23,7 +23,7 @@ async function getBlockHeight () {
   } else {
     fetchBlockHeight().catch(console.error)
   }
-  return null
+  return 0
 }
 
 export default {

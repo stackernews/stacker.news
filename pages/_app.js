@@ -74,7 +74,7 @@ function MyApp ({ Component, pageProps: { ...props } }) {
     If we are on the client, we populate the apollo cache with the
     ssr data
   */
-  const { apollo, ssrData, me, price, ...otherProps } = props
+  const { apollo, ssrData, me, price, blockHeight, ...otherProps } = props
   useEffect(() => {
     writeQuery(client, apollo, ssrData)
   }, [client, apollo, ssrData])
@@ -93,7 +93,7 @@ function MyApp ({ Component, pageProps: { ...props } }) {
                   <LightningProvider>
                     <ToastProvider>
                       <ShowModalProvider>
-                        <BlockHeightProvider>
+                        <BlockHeightProvider blockHeight={blockHeight}>
                           <Component ssrData={ssrData} {...otherProps} />
                         </BlockHeightProvider>
                       </ShowModalProvider>

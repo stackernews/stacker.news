@@ -16,7 +16,7 @@ import ItemJob from '../components/item-job'
 import PageLoading from '../components/page-loading'
 import DownloadFile from '../svgs/file-download-line.svg'
 import { useMe } from '../components/me'
-import { CsvRequest, CsvRequestStatus } from '../lib/constants'
+import { CsvStatus } from '../lib/constants'
 import { useToast } from '../components/toast'
 import { useEffect, useState } from 'react'
 
@@ -173,40 +173,39 @@ export default function Satistics ({ ssrData }) {
 
   const me = useMe()
   const csvBtnClass =
-    me.csvRequest === CsvRequest.NO_REQUEST
+    !me.requestingCsv
       ? 'btn-grey-darkmode'
-      : me.csvRequestStatus === CsvRequestStatus.DONE
+      : me.csvStatus === CsvStatus.DONE
         ? 'btn-success'
         : 'btn-danger'
   const iconClass =
-    me.csvRequest === CsvRequest.FULL_REPORT && me.csvRequestStatus === CsvRequestStatus.IN_PROGRESS
+    me.requestingCsv && me.csvStatus === CsvStatus.IN_PROGRESS
       ? styles.busyanim
       : ''
   const handleCsvClick = async (event) => {
-    if (me.csvRequest === CsvRequest.FULL_REPORT && me.csvRequestStatus === CsvRequestStatus.DONE) {
+    if (me.requestingCsv && me.csvStatus === CsvStatus.DONE) {
       toaster.success('downloading...')
       return
     }
     event.preventDefault()
-    const req = me.csvRequest === CsvRequest.NO_REQUEST
-      ? (toaster.success('preparing...please wait') && false) || CsvRequest.FULL_REPORT
-      : (toaster.success('canceled') && false) || CsvRequest.NO_REQUEST
+    const request = !me.requestingCsv
+    toaster.success(request ? 'preparing...please wait' : 'canceled')
     try {
-      await csvRequest({ variables: { csvRequest: req } })
+      await requestingCsv({ variables: { value: request } })
     } catch (err) {
       console.log(err)
       toaster.danger('mutation failed')
     }
   }
-  const [csvRequest] = useMutation(gql`
-    mutation csvRequest($csvRequest: CsvRequest!) {
-      csvRequest(csvRequest: $csvRequest)
+  const [requestingCsv] = useMutation(gql`
+    mutation requestingCsv($value: Boolean!) {
+      requestingCsv(value: $value)
     }`, {
-    update (cache, { data: { csvRequest } }) {
+    update (cache, { data: { requestingCsv } }) {
       cache.modify({
         id: `User:${me.id}`,
         fields: {
-          csvRequest: () => csvRequest
+          requestingCsv: () => requestingCsv
         }
       })
     }

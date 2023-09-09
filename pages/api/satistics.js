@@ -1,7 +1,7 @@
 import fs from 'fs'
 import getSSRApolloClient from '../../api/ssrApollo'
 import { ME } from '../../fragments/users'
-import { CsvRequest, CsvRequestStatus } from '../../lib/constants'
+import { CsvStatus } from '../../lib/constants'
 import { gql } from '@apollo/client'
 import path from 'path'
 
@@ -11,27 +11,25 @@ export default async function handler (req, res) {
   const fname = path.join(process.env.CSV_PATH, `satistics_${me?.id}.csv`)
   res.setHeader('Content-Type', 'text/csv')
   res.setHeader('Content-Disposition', 'attachment; filename=satistics.csv')
-  if (me?.csvRequest === CsvRequest.FULL_REPORT && me.csvRequestStatus === CsvRequestStatus.DONE && fs.existsSync(fname)) {
+  if (me?.requestingCsv && me.csvStatus === CsvStatus.DONE && fs.existsSync(fname)) {
     fs.createReadStream(fname).pipe(res)
-      .on('error', () => res.status(500).end())
-      .on('finish', async () => {
-        res.status(200).end()
-      })
+      .on('error', () => { res.status(500).end() })
+      .on('finish', () => { res.status(200).end() })
   } else {
     res.status(400).end()
   }
   await apollo.mutate({
     mutation: gql`
-      mutation csvRequest($csvRequest: CsvRequest!) {
-        csvRequest(csvRequest: $csvRequest)
+      mutation requestingCsv($value: Boolean!) {
+        requestingCsv(value: $value)
       }`,
-    variables: { csvRequest: CsvRequest.NO_REQUEST },
+    variables: { value: false },
     update:
       function update (cache) {
         cache.modify({
           id: `User:${me.id}`,
           fields: {
-            csvRequest: () => CsvRequest.NO_REQUEST
+            requestingCsv: () => false
           }
         })
       }

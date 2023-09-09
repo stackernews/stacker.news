@@ -576,14 +576,13 @@ export default {
       }
       return { id }
     },
-    csvRequest: async (parent, { csvRequest }, { me, models }) => {
-      console.log('mutate csvRequest', csvRequest)
+    requestingCsv: async (parent, { value }, { me, models }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
       }
 
-      await models.user.update({ where: { id: me.id }, data: { csvRequest } })
-      return csvRequest
+      await models.user.update({ where: { id: me.id }, data: { requestingCsv: value } })
+      return value
     }
   },
 
@@ -767,12 +766,6 @@ export default {
       })
 
       return !!subscription
-    },
-    csvRequest: async (user) => {
-      return user.csvRequest
-    },
-    csvRequestStatus: async (user) => {
-      return user.csvRequestStatus
     }
   }
 }

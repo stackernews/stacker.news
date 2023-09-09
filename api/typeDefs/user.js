@@ -1,5 +1,5 @@
 import { gql } from 'graphql-tag'
-import { CsvRequest, CsvRequestStatus } from '../../lib/constants'
+import { CsvStatus } from '../../lib/constants'
 
 export default gql`
   extend type Query {
@@ -32,7 +32,7 @@ export default gql`
     unlinkAuth(authType: String!): AuthMethods!
     linkUnverifiedEmail(email: String!): Boolean
     subscribeUser(id: ID): User
-    csvRequest(csvRequest: CsvRequest!): CsvRequest
+    requestingCsv(value: Boolean!): Boolean
   }
 
   type AuthMethods {
@@ -89,15 +89,11 @@ export default gql`
     lastCheckedJobs: String
     authMethods: AuthMethods!
     meSubscription: Boolean!
-    csvRequest: CsvRequest!
-    csvRequestStatus: CsvRequestStatus!
+    requestingCsv: Boolean!
+    csvStatus: CsvStatus!
   }
 
-  enum CsvRequest {
-    ${Object.keys(CsvRequest).join(' ')}
-  }
-
-  enum CsvRequestStatus {
-    ${Object.keys(CsvRequestStatus).join(' ')}
+  enum CsvStatus {
+    ${Object.keys(CsvStatus).join(' ')}
   }
 `

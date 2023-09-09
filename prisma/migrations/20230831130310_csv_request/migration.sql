@@ -1,12 +1,9 @@
 -- CreateEnum
-CREATE TYPE "CsvRequest" AS ENUM ('NO_REQUEST', 'FULL_REPORT');
-
--- CreateEnum
-CREATE TYPE "CsvRequestStatus" AS ENUM ('NO_REQUEST', 'IN_PROGRESS', 'DONE', 'FAILED');
+CREATE TYPE "CsvStatus" AS ENUM ('NO_REQUEST', 'IN_PROGRESS', 'DONE', 'FAILED');
 
 -- AlterTable
-ALTER TABLE "users" ADD COLUMN     "csvRequest" "CsvRequest" NOT NULL DEFAULT 'NO_REQUEST',
-ADD COLUMN     "csvRequestStatus" "CsvRequestStatus" NOT NULL DEFAULT 'NO_REQUEST';
+ALTER TABLE "users" ADD COLUMN     "requestingCsv" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "csvStatus" "CsvStatus" NOT NULL DEFAULT 'NO_REQUEST';
 
 CREATE OR REPLACE FUNCTION csv_check() RETURNS TRIGGER AS $$
 DECLARE
@@ -21,5 +18,5 @@ DROP TRIGGER IF EXISTS user_csv ON users;
 CREATE TRIGGER user_csv
     AFTER UPDATE ON users
     FOR EACH ROW
-    WHEN (NEW."csvRequest" <> OLD."csvRequest")
+    WHEN (NEW."requestingCsv" <> OLD."requestingCsv")
     EXECUTE PROCEDURE csv_check();

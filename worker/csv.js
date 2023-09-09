@@ -1,24 +1,19 @@
 const fs = require('fs')
-const { CsvRequest, CsvRequestStatus } = require('../lib/constants')
+const { CsvStatus } = require('../lib/constants')
 const { walletHistory, Fact } = require('../api/resolvers/wallet-common')
 const path = require('path')
 
 function checkCsv ({ models, apollo }) {
   return async function ({ data: { id } }) {
     try {
-      const u = await models.user.findUnique({
-        where: {
-          id
-        },
-        select: {
-          csvRequest: true,
-          csvRequestStatus: true
-        }
+      const user = await models.user.findUnique({
+        where: { id },
+        select: { requestingCsv: true, csvStatus: true }
       })
-      if (u.csvRequest === CsvRequest.NO_REQUEST && u.csvRequestStatus !== CsvRequestStatus.IN_PROGRESS) {
+      if (!user.requestingCsv && user.csvStatus !== CsvStatus.IN_PROGRESS) {
         await models.$transaction([
-          models.$executeRaw`UPDATE "users" SET "csvRequestStatus" = 'NO_REQUEST' WHERE "users"."id" = ${id}`])
-      } else if (u.csvRequest === CsvRequest.FULL_REPORT && u.csvRequestStatus === CsvRequestStatus.NO_REQUEST) {
+          models.$executeRaw`UPDATE "users" SET "csvStatus" = 'NO_REQUEST' WHERE "users"."id" = ${id}`])
+      } else if (user.requestingCsv && user.csvStatus === CsvStatus.NO_REQUEST) {
         makeCsv({ models, id })
       }
     } catch (err) {
@@ -29,14 +24,11 @@ function checkCsv ({ models, apollo }) {
 
 async function makeCsv ({ models, id }) {
   await models.$transaction([
-    models.$executeRaw`
-      UPDATE "users"
-      SET "csvRequestStatus" = 'IN_PROGRESS'
-      WHERE "users"."id" = ${id}`])
+    models.$executeRaw`UPDATE "users" SET "csvStatus" = 'IN_PROGRESS' WHERE "users"."id" = ${id}`])
   const fname = path.join(process.env.CSV_PATH, `satistics_${id}.csv`)
   const s = fs.createWriteStream(fname)
   let facts = []; let cursor = null
-  let status; let incomplete = false
+  let user; let incomplete = false
   console.log('started new CSV file')
   s.write('time,type,sats\n')
   do {
@@ -63,15 +55,11 @@ async function makeCsv ({ models, id }) {
       }
 
       // check for user cancellation
-      status = await models.user.findUnique({
-        where: {
-          id
-        },
-        select: {
-          csvRequest: true
-        }
+      user = await models.user.findUnique({
+        where: { id },
+        select: { requestingCsv: true }
       })
-      if (status.csvRequest !== CsvRequest.FULL_REPORT) {
+      if (!user.requestingCsv) {
         // user canceled
         incomplete = true
       }
@@ -84,13 +72,10 @@ async function makeCsv ({ models, id }) {
 
   // result
   s.end()
-  const endState = incomplete ? CsvRequestStatus.FAILED : CsvRequestStatus.DONE
+  const endState = incomplete ? CsvStatus.FAILED : CsvStatus.DONE
   console.log('done with CSV file', endState)
   await models.$transaction([
-    models.$executeRaw`
-      UPDATE "users"
-      SET "csvRequestStatus" = CAST(${endState} as "CsvRequestStatus")
-      WHERE "users"."id" = ${id}`])
+    models.$executeRaw`UPDATE "users" SET "csvStatus" = CAST(${endState} as "CsvStatus") WHERE "users"."id" = ${id}`])
 }
 
 module.exports = { checkCsv }

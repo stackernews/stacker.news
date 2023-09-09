@@ -254,10 +254,7 @@ export default function Settings ({ ssrData }) {
               <div className='d-flex align-items-center'>allow diagnostics
                 <Info>
                   <ul className='fw-bold'>
-                    {
-                    /** TODO: better disclaimer */
-                    }
-                    <li>collect and send back anonymized diagnostics data</li>
+                    <li>collect and send back diagnostics data</li>
                     <li>this information is used to identify and fix bugs</li>
                     <li>this information includes:
                       <ul><li>timestamps</li></ul>
@@ -265,6 +262,8 @@ export default function Settings ({ ssrData }) {
                       <ul><li>your user agent</li></ul>
                       <ul><li>your operating system</li></ul>
                     </li>
+                    <li>this information can not be traced back to you without your fancy name</li>
+                    <li>fancy names are generated in your browser</li>
                   </ul>
                   <div className='text-muted fst-italic'>your fancy name: {logger.name}</div>
                 </Info>

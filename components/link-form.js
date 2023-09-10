@@ -16,11 +16,13 @@ import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
 import { normalizeForwards } from '../lib/form'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
+import { useMe } from './me'
 
 export function LinkForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
   const client = useApolloClient()
-  const schema = linkSchema(client)
+  const me = useMe()
+  const schema = linkSchema(client, me)
   // if Web Share Target API was used
   const shareUrl = router.query.url
   const shareTitle = router.query.title

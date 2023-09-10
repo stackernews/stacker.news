@@ -15,6 +15,7 @@ import CancelButton from './cancel-button'
 import { useCallback } from 'react'
 import { normalizeForwards } from '../lib/form'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
+import { useMe } from './me'
 
 export function DiscussionForm ({
   item, sub, editThreshold, titleLabel = 'title',
@@ -23,11 +24,11 @@ export function DiscussionForm ({
 }) {
   const router = useRouter()
   const client = useApolloClient()
-  const schema = discussionSchema(client)
+  const me = useMe()
+  const schema = discussionSchema(client, me)
   // if Web Share Target API was used
   const shareTitle = router.query.title
 
-  // const me = useMe()
   const [upsertDiscussion] = useMutation(
     gql`
       mutation upsertDiscussion($sub: String, $id: ID, $title: String!, $text: String, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String) {

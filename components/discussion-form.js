@@ -40,18 +40,7 @@ export function DiscussionForm ({
   )
   const onSubmit = useCallback(
     async ({ boost, ...values }) => {
-
-      // Check if the user has cross-posting enabled
-      // Currently defaulting to true
-      const userHasCrosspostingEnabled = me?.crosspostingEnabled || true;
-      
-      if (userHasCrosspostingEnabled) {
-        await crosspostDiscussion(values);
-      } else {
-        console.log("Cross-posting is not enabled for the user");
-      }
-
-      const { error, item } = await upsertDiscussion({
+      const { data, error } = await upsertDiscussion({
         variables: {
           sub: item?.subName || sub?.name,
           id: item?.id,
@@ -61,9 +50,18 @@ export function DiscussionForm ({
         }
       })
 
-      console.log('itemm', item)
       if (error) {
         throw new Error({ message: error.toString() })
+      }
+
+      // Check if the user has cross-posting enabled
+      // Currently defaulting to true
+      const userHasCrosspostingEnabled = me?.crosspostingEnabled || true;
+      
+      if (userHasCrosspostingEnabled) {
+        await crosspostDiscussion(values, data.upsertDiscussion.id);
+      } else {
+        console.log("Cross-posting is not enabled for the user");
       }
 
       if (item) {

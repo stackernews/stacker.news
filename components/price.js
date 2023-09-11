@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react'
 import { useQuery } from '@apollo/client'
-import { fixedDecimal, numWithUnits } from '../lib/format'
+import { fixedDecimal } from '../lib/format'
 import { useMe } from './me'
 import { PRICE } from '../fragments/price'
 import { CURRENCY_SYMBOLS } from '../lib/currency'
@@ -90,7 +90,7 @@ export default function Price ({ className }) {
   if (asSats === 'blockHeight') {
     return (
       <div className={compClassName} onClick={handleClick} variant='link'>
-        {numWithUnits(blockHeight, { abbreviate: false, unitSingular: 'block', unitPlural: 'blocks' })}
+        {`block ${blockHeight}`}
       </div>
     )
   }

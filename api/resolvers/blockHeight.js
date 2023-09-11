@@ -1,15 +1,17 @@
+import lndService from 'ln-service'
+import lnd from '../lnd'
+
 const cache = new Map()
-const expiresIn = 1000 * 60 // in milliseconds
+const expiresIn = 1000 * 30 // 30 seconds in milliseconds
 
 async function fetchBlockHeight () {
-  const url = 'https://mempool.space/api/blocks/tip/height'
-  const blockHeight = await fetch(url)
-    .then(res => res.text())
-    .then((body) => Number(body))
-    .catch((err) => {
-      console.error('blockHeight', err)
-      return 0
-    })
+  let blockHeight = 0
+  try {
+    const height = await lndService.getHeight({ lnd })
+    blockHeight = height.current_block_height
+  } catch (err) {
+    console.error('fetchBlockHeight', err)
+  }
   cache.set('block', { height: blockHeight, createdAt: Date.now() })
   return blockHeight
 }

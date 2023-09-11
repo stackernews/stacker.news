@@ -146,7 +146,7 @@ const orderByClause = async (by, me, models, type) => {
       return 'ORDER BY "Item".ncomments DESC'
     case 'sats':
       return 'ORDER BY "Item".msats DESC'
-    case 'votes':
+    case 'zaprank':
       return await topOrderByWeightedSats(me, models)
     default:
       return `ORDER BY ${type === 'bookmarks' ? '"bookmarkCreatedAt"' : '"Item".created_at'} DESC`
@@ -410,10 +410,10 @@ export default {
               ${typeClause(type)}
               ${whenClause(when, type)}
               ${await filterClause(me, models, type)}
-              ${await orderByClause(by || 'votes', me, models, type)}
+              ${await orderByClause(by || 'zaprank', me, models, type)}
               OFFSET $2
               LIMIT $3`,
-            orderBy: await orderByClause(by || 'votes', me, models, type)
+            orderBy: await orderByClause(by || 'zaprank', me, models, type)
           }, decodedCursor.time, decodedCursor.offset, limit, ...subArr)
           break
         default:

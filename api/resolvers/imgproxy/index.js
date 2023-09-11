@@ -23,9 +23,8 @@ const sign = (target) => {
 }
 
 const createImageProxyUrl = url => {
-  const processingOptions = '/rs:fit:600:500:0/g:no'
   const b64Url = Buffer.from(url, 'utf-8').toString('base64url')
-  const target = `${processingOptions}/${b64Url}`
+  const target = `/${b64Url}`
   const signature = sign(target)
   return `${IMGPROXY_URL}${signature}${target}`
 }

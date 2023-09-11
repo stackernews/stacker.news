@@ -1,8 +1,9 @@
 .searchSection {
-    position: relative;
+    position: sticky;
     top: 0;
-    left: 0;
-    right: 0;
+    box-shadow: 0 4px 12px -4px hsl(0deg 0% 59% / 10%);
+    background-color: var(--bs-body-bg);
+    z-index: 1;
 }
 
 .searchContainer {
@@ -12,30 +13,6 @@
 
 .leaveRoom {
     height: 130px !important;
-}
-
-.searchSection.solid {
-    pointer-events: auto;
-    background: var(--bs-body-bg);
-}
-
-.searchSection.hidden {
-    pointer-events: none;
-    background: transparent;
-}
-
-.searchSection.float {
-    box-shadow: 0 4px 12px hsl(0deg 0% 59% / 10%);
-    position: fixed;
-    background-color: var(--bs-body-bg);
-    z-index: 1;
-}
-
-@media (max-width: 575.98px) {
-    .searchSection.float {
-        padding-left: calc(var(--bs-gutter-x) * 0.5);
-        padding-right: calc(var(--bs-gutter-x) * 0.5);
-    }
 }
 
 .search {
@@ -49,14 +26,6 @@
     left: auto !important;
 }
 
-.formActive {
-    pointer-events: auto;
-    bottom: 18px;
-    right: 0;
-    left: 0;
-    position: absolute;
-}
-
 form>.active {
     display: flex;
     pointer-events: auto;
@@ -66,13 +35,4 @@ form>.active {
 
 form>.active :global(.input-group) {
     flex-flow: nowrap;
-}
-
-.searchPadding {
-    padding-bottom: 88px;
-    display: none;
-}
-
-.searchPadding.float {
-    display: block;
 }

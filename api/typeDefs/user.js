@@ -31,6 +31,7 @@ export default gql`
     unlinkAuth(authType: String!): AuthMethods!
     linkUnverifiedEmail(email: String!): Boolean
     subscribeUser(id: ID): User
+    hideWelcomeBanner: Boolean
   }
 
   type AuthMethods {
@@ -81,6 +82,7 @@ export default gql`
     hideFromTopUsers: Boolean!
     hideCowboyHat: Boolean!
     hideBookmarks: Boolean!
+    hideWelcomeBanner: Boolean!
     clickToLoadImg: Boolean!
     wildWestMode: Boolean!
     greeterMode: Boolean!

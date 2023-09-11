@@ -578,6 +578,14 @@ export default {
         await models.userSubscription.create({ data })
       }
       return { id }
+    },
+    hideWelcomeBanner: async (parent, data, { me, models }) => {
+      if (!me) {
+        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+      }
+
+      await models.user.update({ where: { id: me.id }, data: { hideWelcomeBanner: true } })
+      return true
     }
   },
 

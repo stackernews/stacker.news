@@ -33,7 +33,7 @@ export default function Search ({ sub }) {
       }
 
       if (values.what === '' || values.what === 'all') delete values.what
-      if (values.sort === '' || values.sort === 'match') delete values.sort
+      if (values.sort === '' || values.sort === 'zaprank') delete values.sort
       if (values.when === '' || values.when === 'forever') delete values.when
       await router.push({
         pathname: prefix + '/search',
@@ -44,7 +44,7 @@ export default function Search ({ sub }) {
 
   const filter = sub !== 'jobs'
   const what = router.pathname.startsWith('/stackers') ? 'stackers' : router.query.what || 'all'
-  const sort = router.query.sort || 'match'
+  const sort = router.query.sort || 'zaprank'
   const when = router.query.when || 'forever'
 
   return (
@@ -92,7 +92,7 @@ export default function Search ({ sub }) {
                       name='sort'
                       size='sm'
                       overrideValue={sort}
-                      items={['match', 'recent', 'comments', 'sats', 'votes']}
+                      items={['zaprank', 'match', 'recent', 'comments', 'sats']}
                     />
                     for
                     <Select

@@ -131,10 +131,10 @@ export default {
         case 'sats':
           sortArr.push({ sats: 'desc' })
           break
-        case 'votes':
-          sortArr.push({ wvotes: 'desc' })
+        case 'match':
           break
         default:
+          sortArr.push({ wvotes: 'desc' })
           break
       }
       sortArr.push('_score')

@@ -52,11 +52,11 @@ export const ToastProvider = ({ children }) => {
 
   return (
     <ToastContext.Provider value={toaster}>
-      <ToastContainer className='pb-3 pe-3' position='bottom-end' containerPosition='fixed'>
+      <ToastContainer className={`pb-3 pe-3 ${styles.toastContainer}`} position='bottom-end' containerPosition='fixed'>
         {toasts.map(toast => (
           <Toast
             key={toast.id} bg={toast.variant} show autohide={toast.autohide}
-            delay={toast.delay} className={styles.toast} onClose={() => removeToast(toast.id)}
+            delay={toast.delay} className={`${styles.toast} ${styles[toast.variant]}`} onClose={() => removeToast(toast.id)}
           >
             <ToastBody>
               <div className='d-flex align-items-center'>

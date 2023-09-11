@@ -9,7 +9,6 @@ import { bountySchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
 import { useCallback } from 'react'
-import { useInvoiceable } from './invoice'
 import { normalizeForwards } from '../lib/form'
 
 export function BountyForm ({
@@ -36,6 +35,8 @@ export function BountyForm ({
         $text: String
         $boost: Int
         $forward: [ItemForwardInput]
+        $hash: String
+        $hmac: String
       ) {
         upsertBounty(
           sub: $sub
@@ -45,6 +46,8 @@ export function BountyForm ({
           text: $text
           boost: $boost
           forward: $forward
+          hash: $hash
+          hmac: $hmac
         ) {
           id
         }
@@ -52,9 +55,8 @@ export function BountyForm ({
     `
   )
 
-  const submitUpsertBounty = useCallback(
-    // we ignore the invoice since only stackers can post bounties
-    async (_, boost, bounty, values, ...__) => {
+  const onSubmit = useCallback(
+    async ({ boost, bounty, ...values }) => {
       const { error } = await upsertBounty({
         variables: {
           sub: item?.subName || sub?.name,
@@ -75,9 +77,8 @@ export function BountyForm ({
         const prefix = sub?.name ? `/~${sub.name}` : ''
         await router.push(prefix + '/recent')
       }
-    }, [upsertBounty, router])
-
-  const invoiceableUpsertBounty = useInvoiceable(submitUpsertBounty, { requireSession: true })
+    }, [upsertBounty, router]
+  )
 
   return (
     <Form
@@ -89,11 +90,10 @@ export function BountyForm ({
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}
+      invoiceable={{ requireSession: true }}
       onSubmit={
         handleSubmit ||
-        (async ({ boost, bounty, cost, ...values }) => {
-          return invoiceableUpsertBounty(cost, boost, bounty, values)
-        })
+        onSubmit
       }
       storageKeyPrefix={item ? undefined : 'bounty'}
     >

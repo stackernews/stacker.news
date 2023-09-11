@@ -3,7 +3,6 @@ import { amountSchema, ssValidate } from '../../lib/validate'
 import serialize from './serial'
 import { ANON_USER_ID } from '../../lib/constants'
 import { getItem } from './item'
-import { datePivot, dayMonthYear } from '../../lib/time'
 
 export default {
   Query: {
@@ -12,21 +11,23 @@ export default {
         if (when.length > 2) {
           throw new GraphQLError('too many dates', { extensions: { code: 'BAD_USER_INPUT' } })
         }
-        when = when.map(w => {
+        when.forEach(w => {
           if (isNaN(new Date(w))) {
             throw new GraphQLError('invalid date', { extensions: { code: 'BAD_USER_INPUT' } })
           }
-          return dayMonthYear(datePivot(new Date(w), { days: -1 }))
         })
-      } else {
-        // default to tomorrow's rewards
-        when = [dayMonthYear(new Date())]
+        if (new Date(when[0]) > new Date(when[when.length - 1])) {
+          throw new GraphQLError('bad date range', { extensions: { code: 'BAD_USER_INPUT' } })
+        }
       }
 
       const results = await models.$queryRaw`
         WITH days_cte (day) AS (
-          SELECT t::date
-          FROM generate_series(${when[0]}::text::timestamp, ${when[when.length - 1]}::text::timestamp, interval '1 day') AS t
+          SELECT date_trunc('day', t)
+          FROM generate_series(
+            COALESCE(${when?.[0]}::timestamp - interval '1 day', now() AT TIME ZONE 'America/Chicago'),
+            COALESCE(${when?.[when.length - 1]}::timestamp - interval '1 day', now() AT TIME ZONE 'America/Chicago'),
+            interval '1 day') AS t
         )
         SELECT coalesce(FLOOR(sum(sats)), 0) as total,
           days_cte.day + interval '1 day' as time,
@@ -61,14 +62,14 @@ export default {
         GROUP BY days_cte.day
         ORDER BY days_cte.day ASC`
 
-      return results || [{ total: 0, time: 0, sources: [] }]
+      return results.length ? results : [{ total: 0, time: '0', sources: [] }]
     },
     meRewards: async (parent, { when }, { me, models }) => {
       if (!me) {
         return null
       }
 
-      if (!when || !Array.isArray(when) || when.length > 2) {
+      if (!when || when.length > 2) {
         throw new GraphQLError('invalid date range', { extensions: { code: 'BAD_USER_INPUT' } })
       }
       for (const w of when) {
@@ -79,8 +80,11 @@ export default {
 
       const results = await models.$queryRaw`
         WITH days_cte (day) AS (
-          SELECT t::date
-          FROM generate_series(${when[0]}::text::timestamp, ${when[when.length - 1]}::text::timestamp, interval '1 day') AS t
+          SELECT date_trunc('day', t)
+          FROM generate_series(
+            ${when[0]}::timestamp,
+            ${when[when.length - 1]}::timestamp,
+            interval '1 day') AS t
         )
         SELECT coalesce(sum(sats), 0) as total, json_agg("Earn".*) as rewards
         FROM days_cte

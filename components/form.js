@@ -19,19 +19,24 @@ import { useLazyQuery } from '@apollo/client'
 import { USER_SEARCH } from '../fragments/users'
 import TextareaAutosize from 'react-textarea-autosize'
 import { useToast } from './toast'
+import { useInvoiceable } from './invoice'
 
 export function SubmitButton ({
-  children, variant, value, onClick, disabled, ...props
+  children, variant, value, onClick, disabled, cost, ...props
 }) {
-  const { isSubmitting, setFieldValue } = useFormikContext()
+  const formik = useFormikContext()
+  useEffect(() => {
+    formik?.setFieldValue('cost', cost)
+  }, [formik?.setFieldValue, formik?.getFieldProps('cost').value, cost])
+
   return (
     <Button
       variant={variant || 'main'}
       type='submit'
-      disabled={disabled || isSubmitting}
+      disabled={disabled || formik.isSubmitting}
       onClick={value
         ? e => {
-          setFieldValue('submit', value)
+          formik.setFieldValue('submit', value)
           onClick && onClick(e)
         }
         : onClick}
@@ -470,7 +475,7 @@ export function Checkbox ({ children, label, groupClassName, hiddenLabel, extra,
 const StorageKeyPrefixContext = createContext()
 
 export function Form ({
-  initial, schema, onSubmit, children, initialError, validateImmediately, storageKeyPrefix, validateOnChange = true, ...props
+  initial, schema, onSubmit, children, initialError, validateImmediately, storageKeyPrefix, validateOnChange = true, invoiceable, ...props
 }) {
   const toaster = useToast()
   useEffect(() => {
@@ -478,6 +483,31 @@ export function Form ({
       toaster.danger(initialError.message || initialError.toString?.())
     }
   }, [])
+
+  function clearLocalStorage (values) {
+    Object.keys(values).forEach(v => {
+      window.localStorage.removeItem(storageKeyPrefix + '-' + v)
+      if (Array.isArray(values[v])) {
+        values[v].forEach(
+          (iv, i) => {
+            Object.keys(iv).forEach(k => {
+              window.localStorage.removeItem(`${storageKeyPrefix}-${v}[${i}].${k}`)
+            })
+            window.localStorage.removeItem(`${storageKeyPrefix}-${v}[${i}]`)
+          })
+      }
+    })
+  }
+
+  // if `invoiceable` is set,
+  // support for payment per invoice if they are lurking or don't have enough balance
+  // is added to submit handlers.
+  // submit handlers need to accept { satsReceived, hash, hmac } in their first argument
+  // and use them as variables in their GraphQL mutation
+  if (invoiceable && onSubmit) {
+    const options = typeof invoiceable === 'object' ? invoiceable : undefined
+    onSubmit = useInvoiceable(onSubmit, { callback: clearLocalStorage, ...options })
+  }
 
   return (
     <Formik
@@ -491,18 +521,7 @@ export function Form ({
           if (onSubmit) {
             const options = await onSubmit(values, ...args)
             if (!storageKeyPrefix || options?.keepLocalStorage) return
-            Object.keys(values).forEach(v => {
-              window.localStorage.removeItem(storageKeyPrefix + '-' + v)
-              if (Array.isArray(values[v])) {
-                values[v].forEach(
-                  (iv, i) => {
-                    Object.keys(iv).forEach(k => {
-                      window.localStorage.removeItem(`${storageKeyPrefix}-${v}[${i}].${k}`)
-                    })
-                    window.localStorage.removeItem(`${storageKeyPrefix}-${v}[${i}]`)
-                  })
-              }
-            })
+            clearLocalStorage(values)
           }
         } catch (err) {
           console.log(err)

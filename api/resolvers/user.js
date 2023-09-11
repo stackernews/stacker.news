@@ -382,6 +382,9 @@ export default {
             userId: me.id,
             confirmedAt: {
               gt: lastChecked
+            },
+            isHeld: {
+              not: true
             }
           }
         })

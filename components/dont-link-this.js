@@ -1,8 +1,9 @@
 import { gql, useMutation } from '@apollo/client'
 import Dropdown from 'react-bootstrap/Dropdown'
-import FundError from './fund-error'
 import { useShowModal } from './modal'
 import { useToast } from './toast'
+import { InvoiceModal, payOrLoginError } from './invoice'
+import { DONT_LIKE_THIS_COST } from '../lib/constants'
 
 export default function DontLikeThisDropdownItem ({ id }) {
   const toaster = useToast()
@@ -10,8 +11,8 @@ export default function DontLikeThisDropdownItem ({ id }) {
 
   const [dontLikeThis] = useMutation(
     gql`
-      mutation dontLikeThis($id: ID!) {
-        dontLikeThis(id: $id)
+      mutation dontLikeThis($id: ID!, $hash: String, $hmac: String) {
+        dontLikeThis(id: $id, hash: $hash, hmac: $hmac)
       }`, {
       update (cache) {
         cache.modify({
@@ -37,9 +38,17 @@ export default function DontLikeThisDropdownItem ({ id }) {
           toaster.success('item flagged')
         } catch (error) {
           console.error(error)
-          if (error.toString().includes('insufficient funds')) {
+          if (payOrLoginError(error)) {
             showModal(onClose => {
-              return <FundError onClose={onClose} />
+              return (
+                <InvoiceModal
+                  amount={DONT_LIKE_THIS_COST}
+                  onPayment={async ({ hash, hmac }) => {
+                    await dontLikeThis({ variables: { id, hash, hmac } })
+                    toaster.success('item flagged')
+                  }}
+                />
+              )
             })
           } else {
             toaster.danger('failed to flag item')

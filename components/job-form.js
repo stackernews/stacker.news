@@ -17,7 +17,6 @@ import Avatar from './avatar'
 import ActionTooltip from './action-tooltip'
 import { jobSchema } from '../lib/validate'
 import CancelButton from './cancel-button'
-import { useInvoiceable } from './invoice'
 
 function satsMin2Mo (minute) {
   return minute * 30 * 24 * 60
@@ -42,18 +41,17 @@ export default function JobForm ({ item, sub }) {
   const [logoId, setLogoId] = useState(item?.uploadId)
   const [upsertJob] = useMutation(gql`
     mutation upsertJob($sub: String!, $id: ID, $title: String!, $company: String!, $location: String,
-      $remote: Boolean, $text: String!, $url: String!, $maxBid: Int!, $status: String, $logo: Int) {
+      $remote: Boolean, $text: String!, $url: String!, $maxBid: Int!, $status: String, $logo: Int, $hash: String, $hmac: String) {
       upsertJob(sub: $sub, id: $id, title: $title, company: $company,
         location: $location, remote: $remote, text: $text,
-        url: $url, maxBid: $maxBid, status: $status, logo: $logo) {
+        url: $url, maxBid: $maxBid, status: $status, logo: $logo, hash: $hash, hmac: $hmac) {
         id
       }
     }`
   )
 
-  const submitUpsertJob = useCallback(
-    // we ignore the invoice since only stackers can post jobs
-    async (_, maxBid, stop, start, values, ...__) => {
+  const onSubmit = useCallback(
+    async ({ maxBid, start, stop, ...values }) => {
       let status
       if (start) {
         status = 'ACTIVE'
@@ -80,9 +78,8 @@ export default function JobForm ({ item, sub }) {
       } else {
         await router.push(`/~${sub.name}/recent`)
       }
-    }, [upsertJob, router, item?.id, sub?.name, logoId])
-
-  const invoiceableUpsertJob = useInvoiceable(submitUpsertJob, { requireSession: true })
+    }, [upsertJob, router]
+  )
 
   return (
     <>
@@ -101,9 +98,8 @@ export default function JobForm ({ item, sub }) {
         }}
         schema={jobSchema}
         storageKeyPrefix={storageKeyPrefix}
-        onSubmit={(async ({ maxBid, stop, start, ...values }) => {
-          return invoiceableUpsertJob(1000, maxBid, stop, start, values)
-        })}
+        invoiceable={{ requireSession: true }}
+        onSubmit={onSubmit}
       >
         <div className='form-group'>
           <label className='form-label'>logo</label>
@@ -167,7 +163,7 @@ export default function JobForm ({ item, sub }) {
               )
             : (
               <ActionTooltip overlayText='1000 sats'>
-                <SubmitButton variant='secondary'>post <small> 1000 sats</small></SubmitButton>
+                <SubmitButton cost={1000} variant='secondary'>post <small> 1000 sats</small></SubmitButton>
               </ActionTooltip>
               )}
         </div>

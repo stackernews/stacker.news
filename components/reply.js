@@ -9,7 +9,6 @@ import FeeButton from './fee-button'
 import { commentsViewedAfterComment } from '../lib/new-comments'
 import { commentSchema } from '../lib/validate'
 import Info from './info'
-import { useInvoiceable } from './invoice'
 
 export function ReplyOnAnotherPage ({ parentId }) {
   return (
@@ -46,8 +45,8 @@ export default function Reply ({ item, onSuccess, replyOpen, children, placehold
   const [upsertComment] = useMutation(
     gql`
       ${COMMENTS}
-      mutation upsertComment($text: String!, $parentId: ID!, $invoiceHash: String, $invoiceHmac: String) {
-        upsertComment(text: $text, parentId: $parentId, invoiceHash: $invoiceHash, invoiceHmac: $invoiceHmac) {
+      mutation upsertComment($text: String!, $parentId: ID!, $hash: String, $hmac: String) {
+        upsertComment(text: $text, parentId: $parentId, hash: $hash, hmac: $hmac) {
           ...CommentFields
           comments {
             ...CommentsRecursive
@@ -91,17 +90,11 @@ export default function Reply ({ item, onSuccess, replyOpen, children, placehold
     }
   )
 
-  const submitComment = useCallback(
-    async (_, values, parentId, resetForm, invoiceHash, invoiceHmac) => {
-      const { error } = await upsertComment({ variables: { ...values, parentId, invoiceHash, invoiceHmac } })
-      if (error) {
-        throw new Error({ message: error.toString() })
-      }
-      resetForm({ text: '' })
-      setReply(replyOpen || false)
-    }, [upsertComment, setReply])
-
-  const invoiceableCreateComment = useInvoiceable(submitComment)
+  const onSubmit = useCallback(async ({ amount, hash, hmac, ...values }, { resetForm }) => {
+    await upsertComment({ variables: { parentId, hash, hmac, ...values } })
+    resetForm({ text: '' })
+    setReply(replyOpen || false)
+  }, [upsertComment, setReply, parentId])
 
   const replyInput = useRef(null)
   useEffect(() => {
@@ -129,9 +122,8 @@ export default function Reply ({ item, onSuccess, replyOpen, children, placehold
               text: ''
             }}
             schema={commentSchema}
-            onSubmit={async ({ cost, ...values }, { resetForm }) => {
-              return invoiceableCreateComment(cost, values, parentId, resetForm)
-            }}
+            invoiceable
+            onSubmit={onSubmit}
             storageKeyPrefix={'reply-' + parentId}
           >
             <MarkdownInput

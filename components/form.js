@@ -20,6 +20,7 @@ import { USER_SEARCH } from '../fragments/users'
 import TextareaAutosize from 'react-textarea-autosize'
 import { useToast } from './toast'
 import { useInvoiceable } from './invoice'
+import { numWithUnits } from '../lib/format'
 
 export function SubmitButton ({
   children, variant, value, onClick, disabled, cost, ...props
@@ -318,6 +319,11 @@ function InputInner ({
       {hint && (
         <BootstrapForm.Text>
           {hint}
+        </BootstrapForm.Text>
+      )}
+      {props.maxLength && (
+        <BootstrapForm.Text>
+          {`${numWithUnits(props.maxLength - (field.value || '').length, { abbreviate: false, unitSingular: 'character', unitPlural: 'characters' })} remaining`}
         </BootstrapForm.Text>
       )}
     </>

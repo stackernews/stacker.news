@@ -344,6 +344,25 @@ export default {
         }
       }
 
+      if (user.noteForwardedSats) {
+        const votes = await models.$queryRawUnsafe(`
+        SELECT 1
+          FROM "Item"
+          JOIN "ItemAct" ON
+            "ItemAct"."itemId" = "Item".id
+            AND "ItemAct"."userId" <> "Item"."userId"
+          JOIN "ItemForward" ON
+            "ItemForward"."itemId" = "Item".id
+            AND "ItemForward"."userId" = $1
+          WHERE "ItemAct".created_at > $2
+          AND "Item"."userId" <> $1
+          AND "ItemAct".act = 'TIP'
+          LIMIT 1`, me.id, lastChecked)
+        if (votes.length > 0) {
+          return true
+        }
+      }
+
       const job = await models.item.findFirst({
         where: {
           maxBid: {

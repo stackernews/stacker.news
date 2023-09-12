@@ -4,6 +4,7 @@ import { MeProvider } from '../components/me'
 import PlausibleProvider from 'next-plausible'
 import getApolloClient from '../lib/apollo'
 import { PriceProvider } from '../components/price'
+import { BlockHeightProvider } from '../components/block-height'
 import Head from 'next/head'
 import { useRouter } from 'next/dist/client/router'
 import { useEffect } from 'react'
@@ -73,7 +74,7 @@ function MyApp ({ Component, pageProps: { ...props } }) {
     If we are on the client, we populate the apollo cache with the
     ssr data
   */
-  const { apollo, ssrData, me, price, ...otherProps } = props
+  const { apollo, ssrData, me, price, blockHeight, ...otherProps } = props
   useEffect(() => {
     writeQuery(client, apollo, ssrData)
   }, [client, apollo, ssrData])
@@ -92,7 +93,9 @@ function MyApp ({ Component, pageProps: { ...props } }) {
                   <LightningProvider>
                     <ToastProvider>
                       <ShowModalProvider>
-                        <Component ssrData={ssrData} {...otherProps} />
+                        <BlockHeightProvider blockHeight={blockHeight}>
+                          <Component ssrData={ssrData} {...otherProps} />
+                        </BlockHeightProvider>
                       </ShowModalProvider>
                     </ToastProvider>
                   </LightningProvider>

@@ -38,6 +38,7 @@ function Notification ({ n, fresh }) {
         (type === 'Referral' && <Referral n={n} />) ||
         (type === 'Streak' && <Streak n={n} />) ||
         (type === 'Votification' && <Votification n={n} />) ||
+        (type === 'ForwardedVotification' && <ForwardedVotification n={n} />) ||
         (type === 'Mention' && <Mention n={n} />) ||
         (type === 'JobChanged' && <JobChanged n={n} />) ||
         (type === 'Reply' && <Reply n={n} />) ||
@@ -275,6 +276,27 @@ function Votification ({ n }) {
             {' '}and forwarded {numWithUnits(forwardedSats, { abbreviate: false })} to{' '}
             <ForwardedUsers />
           </>}
+      </small>
+      <div>
+        {n.item.title
+          ? <Item item={n.item} />
+          : (
+            <div className='pb-2'>
+              <RootProvider root={n.item.root}>
+                <Comment item={n.item} noReply includeParent clickToContext />
+              </RootProvider>
+            </div>
+            )}
+      </div>
+    </>
+  )
+}
+
+function ForwardedVotification ({ n }) {
+  return (
+    <>
+      <small className='fw-bold text-success d-inline-block ms-2 my-1' style={{ lineHeight: '1.25' }}>
+        you were forwarded {numWithUnits(n.earnedSats, { abbreviate: false })} from
       </small>
       <div>
         {n.item.title

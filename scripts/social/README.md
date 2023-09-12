@@ -32,6 +32,10 @@ For nostr, we use [fiatjaf/noscl](https://github.com/fiatjaf/noscl). Follow exis
 
 For twitter, we use [twitter/twurl](https://github.com/twitter/twurl). Follow existing installation and setup docs.
 
+## Additional dependencies
+
+`numfmt` - to pretty print numbers
+
 ## Notes and more info
 
 See [issue #434](https://github.com/stackernews/stacker.news/issues/434).

@@ -12,8 +12,10 @@ const generateFancyName = () => {
 }
 
 function detectOS () {
+  if (!window.navigator) return ''
+
   const userAgent = window.navigator.userAgent
-  const platform = window.navigator?.userAgentData?.platform || window.navigator.platform
+  const platform = window.navigator.userAgentData?.platform || window.navigator.platform
   const macosPlatforms = ['Macintosh', 'MacIntel', 'MacPPC', 'Mac68K']
   const windowsPlatforms = ['Win32', 'Win64', 'Windows', 'WinCE']
   const iosPlatforms = ['iPhone', 'iPad', 'iPod']

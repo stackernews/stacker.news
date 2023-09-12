@@ -56,7 +56,7 @@ export default function WelcomeBanner () {
               )
             : (
               <>
-                <Alert.Link href='/signup'>signup</Alert.Link> or create an{' '}
+                <Alert.Link href='/signup'>sign up</Alert.Link> or create an{' '}
                 <Alert.Link href='/post'>anonymous post</Alert.Link>
               </>
               )

@@ -14,7 +14,7 @@ export default function HiddenWalletSummary ({ abbreviate, fixedWidth }) {
   }, [])
 
   return (
-    <span ref={ref} style={{ width: fixedWidth ? width : undefined }} className='d-inline-block' align='right' onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+    <span ref={ref} style={{ width: fixedWidth ? width : undefined }} className='d-inline-block' align='right' onPointerEnter={() => setHover(true)} onPointerLeave={() => setHover(false)}>
       {hover ? (abbreviate ? abbrNum(me.sats) : numWithUnits(me.sats, { abbreviate: false })) : '*****'}
     </span>
   )

@@ -225,7 +225,7 @@ function FormGroup ({ className, label, children }) {
 
 function InputInner ({
   prepend, append, hint, showValid, onChange, onBlur, overrideValue,
-  innerRef, noForm, clear, onKeyDown, inputGroupClassName, debounce, ...props
+  innerRef, noForm, clear, onKeyDown, inputGroupClassName, debounce, maxLength, ...props
 }) {
   const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)
   const formik = noForm ? null : useFormikContext()
@@ -262,6 +262,8 @@ function InputInner ({
     }
     return () => clearTimeout(debounceRef.current)
   }, [noForm, formik, field.value])
+
+  const remaining = maxLength && maxLength - (field.value || '').length
 
   return (
     <>
@@ -321,9 +323,9 @@ function InputInner ({
           {hint}
         </BootstrapForm.Text>
       )}
-      {props.maxLength && (
-        <BootstrapForm.Text>
-          {`${numWithUnits(props.maxLength - (field.value || '').length, { abbreviate: false, unitSingular: 'character', unitPlural: 'characters' })} remaining`}
+      {maxLength && !(meta.touched && meta.error && invalid) && (
+        <BootstrapForm.Text className={remaining < 0 ? 'text-danger' : undefined}>
+          {`${numWithUnits(remaining, { abbreviate: false, unitSingular: 'character', unitPlural: 'characters' })} remaining`}
         </BootstrapForm.Text>
       )}
     </>

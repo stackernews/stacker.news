@@ -78,6 +78,7 @@ export default function Settings ({ ssrData }) {
             clickToLoadImg: settings?.clickToLoadImg,
             wildWestMode: settings?.wildWestMode,
             greeterMode: settings?.greeterMode,
+            nostrCrossposting: settings?.nostrCrossposting,
             nostrPubkey: settings?.nostrPubkey ? bech32encode(settings.nostrPubkey) : '',
             nostrRelays: settings?.nostrRelays?.length ? settings?.nostrRelays : [''],
             hideBookmarks: settings?.hideBookmarks,
@@ -315,6 +316,21 @@ export default function Settings ({ ssrData }) {
             header={<h4 className='text-start'>nostr <small><a href='https://github.com/nostr-protocol/nips/blob/master/05.md' target='_blank' rel='noreferrer'>NIP-05</a></small></h4>}
             body={
               <>
+                <Checkbox
+                  label={
+                    <div className='d-flex align-items-center'>crosspost to nostr
+                      <Info>
+                        <ul className='fw-bold'>
+                          <li>crosspost discussion items to nostr</li>
+                          <li>requires NIP-07 extension for signing</li>
+                          <li>we use your NIP-05 relays if set</li>
+                          <li>otherwise we default to the blastr relay wss://nostr.mutinywallet.com</li>
+                        </ul>
+                      </Info>
+                    </div>
+                  }
+                  name='nostrCrossposting'
+                />
                 <Input
                   label={<>pubkey <small className='text-muted ms-2'>optional</small></>}
                   name='nostrPubkey'

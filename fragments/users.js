@@ -18,6 +18,8 @@ export const ME = gql`
       bioId
       upvotePopover
       tipPopover
+      nostrCrossposting
+      nostrRelays
       noteItemSats
       noteEarning
       noteAllDescendants
@@ -64,6 +66,7 @@ export const SETTINGS_FIELDS = gql`
     clickToLoadImg
     hideWalletBalance
     diagnostics
+    nostrCrossposting
     nostrPubkey
     nostrRelays
     wildWestMode

@@ -72,6 +72,7 @@ export default gql`
     since: Int
     upvotePopover: Boolean!
     tipPopover: Boolean!
+    nostrCrossposting: Boolean!
     noteItemSats: Boolean!
     noteEarning: Boolean!
     noteAllDescendants: Boolean!

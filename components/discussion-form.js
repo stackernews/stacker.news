@@ -54,12 +54,10 @@ export function DiscussionForm ({
         throw new Error({ message: error.toString() })
       }
 
-      // Check if the user has cross-posting enabled
-      // Currently defaulting to true
-      const userHasCrosspostingEnabled = me?.crosspostingEnabled || true;
+      const userHasCrosspostingEnabled = me?.nostrCrossposting || false;
       
       if (userHasCrosspostingEnabled) {
-        await crosspostDiscussion(values, data.upsertDiscussion.id);
+        await crosspostDiscussion(values, data.upsertDiscussion.id, me.nostrRelays);
       } else {
         console.log("Cross-posting is not enabled for the user");
       }

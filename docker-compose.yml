@@ -50,9 +50,9 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command:
       - node worker/index.js
-  scripts:
-    container_name: scripts
-    build: ./scripts
+  social:
+    container_name: social
+    build: ./social
     depends_on:
       db:
         condition: service_started
@@ -68,7 +68,7 @@ services:
       - db
     entrypoint: ["/bin/sh", "-c"]
     command:
-      - node scripts/index.js
+      - node social/index.js
   imgproxy:
     container_name: imgproxy
     image: darthsim/imgproxy:v3.18.1

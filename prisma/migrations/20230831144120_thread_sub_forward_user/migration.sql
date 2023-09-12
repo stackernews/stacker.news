@@ -132,19 +132,17 @@ BEGIN
     -- Delete any old thread subs if the user is no longer a fwd recipient
     DELETE FROM "ThreadSubscription"
     WHERE "itemId" = item.id
-    AND (
-        (SELECT COUNT(*) FROM jsonb_populate_recordset(NULL::"ItemForward", forward) as nf WHERE "ThreadSubscription"."userId" = nf."userId") = 0
-    )
-    AND (
-        (SELECT COUNT(*) FROM "ItemForward" WHERE "ItemForward"."itemId" = item.id AND "ItemForward"."userId" = "ThreadSubscription"."userId" ) > 0
-    );
+    -- they aren't in the new forward list
+    AND NOT EXISTS (SELECT 1 FROM jsonb_populate_recordset(NULL::"ItemForward", forward) as nf WHERE "ThreadSubscription"."userId" = nf."userId")
+    -- and they are in the old forward list
+    AND EXISTS (SELECT 1 FROM "ItemForward" WHERE "ItemForward"."itemId" = item.id AND "ItemForward"."userId" = "ThreadSubscription"."userId" );
 
     -- Automatically subscribe any new forward recipients to the post
     INSERT INTO "ThreadSubscription" ("itemId", "userId")
         SELECT item.id, "userId" FROM jsonb_populate_recordset(NULL::"ItemForward", forward)
         EXCEPT
             SELECT item.id, "userId" FROM "ItemForward" WHERE "itemId" = item.id;
-    
+
     -- Delete all old forward entries, to recreate in next command
     DELETE FROM "ItemForward" WHERE "itemId" = item.id;
 

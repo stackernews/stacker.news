@@ -46,11 +46,6 @@ async function work () {
   await boss.schedule('topStories-social', '0 12 * * 6', null, { tz: 'America/Chicago' })
   await boss.schedule('topStackers-social', '0 12 * * 0', null, { tz: 'America/Chicago' })
 
-//  await boss.schedule('trending-social', '* 0 * * *', null, { tz: 'America/Chicago' })
-  await boss.schedule('rewards-social', '* * * * *', null, { tz: 'America/Chicago' })
-  await boss.schedule('topStories-social', '* * * * *', null, { tz: 'America/Chicago' })
-  await boss.schedule('topStackers-social', '* * * * *', null, { tz: 'America/Chicago' })
-
   console.log('working jobs')
 }
 

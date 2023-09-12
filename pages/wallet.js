@@ -18,6 +18,7 @@ import Nav from 'react-bootstrap/Nav'
 import { SSR } from '../lib/constants'
 import { numWithUnits } from '../lib/format'
 import styles from '../components/user-header.module.css'
+import HiddenWalletSummary from '../components/hidden-wallet-summary'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -51,7 +52,13 @@ function YouHaveSats () {
   const me = useMe()
   return (
     <h2 className={`${me ? 'visible' : 'invisible'} text-success`}>
-      you have <span className='text-monospace'>{me && numWithUnits(me.sats, { abbreviate: false })}</span>
+      you have{' '}
+      <span className='text-monospace'>{me && (
+        me.hideWalletBalance
+          ? <HiddenWalletSummary />
+          : numWithUnits(me.sats, { abbreviate: false })
+      )}
+      </span>
     </h2>
   )
 }

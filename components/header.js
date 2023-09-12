@@ -10,7 +10,7 @@ import Price from './price'
 import { useMe } from './me'
 import Head from 'next/head'
 import { signOut } from 'next-auth/react'
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { randInRange } from '../lib/rand'
 import { abbrNum } from '../lib/format'
 import NoteIcon from '../svgs/notification-4-fill.svg'
@@ -24,23 +24,7 @@ import { useLightning } from './lightning'
 import { HAS_NOTIFICATIONS } from '../fragments/notifications'
 import AnonIcon from '../svgs/spy-fill.svg'
 import Hat from './hat'
-
-function HiddenWalletSummary ({ me }) {
-  const [hover, setHover] = useState(false)
-
-  // prevent layout shifts when hovering by fixing width to initial rendered width
-  const ref = useRef()
-  const [width, setWidth] = useState(undefined)
-  useLayoutEffect(() => {
-    setWidth(ref.current?.offsetWidth)
-  }, [])
-
-  return (
-    <div ref={ref} style={{ width }} align='right' onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
-      {hover ? abbrNum(me.sats) : '*****'}
-    </div>
-  )
-}
+import HiddenWalletSummary from './hidden-wallet-summary'
 
 function WalletSummary ({ me, hideBalance }) {
   const [show, setShow] = useState(false)
@@ -53,7 +37,7 @@ function WalletSummary ({ me, hideBalance }) {
 
   if (!me || !show) return null
   if (me.hideWalletBalance) {
-    return <HiddenWalletSummary me={me} />
+    return <HiddenWalletSummary abbreviate fixedWidth />
   }
   return `${abbrNum(me.sats)}`
 }

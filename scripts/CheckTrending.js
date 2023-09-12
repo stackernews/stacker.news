@@ -7,9 +7,8 @@ const MAX_HISTORY = 1000
 
 exports.checkTrending = function ({ apollo }) {
   return async function () {
-    console.log('checkTrending()')
-
     try {
+      console.time('checkTrending')
       const { data: { items: { items } } } = await apollo.query({
         query: gql`
           query SubItems($sub: String, $sort: String, $cursor: String, $type: String, $name: String, $when: String, $by: String,$limit: Int) {
@@ -27,6 +26,7 @@ exports.checkTrending = function ({ apollo }) {
           limit: 1
         }
       })
+      console.timeEnd('checkTrending')
 
       if (items.length === 0) return
 

@@ -10,7 +10,7 @@ import Price from './price'
 import { useMe } from './me'
 import Head from 'next/head'
 import { signOut } from 'next-auth/react'
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { randInRange } from '../lib/rand'
 import { abbrNum } from '../lib/format'
 import NoteIcon from '../svgs/notification-4-fill.svg'
@@ -24,9 +24,21 @@ import { useLightning } from './lightning'
 import { HAS_NOTIFICATIONS } from '../fragments/notifications'
 import AnonIcon from '../svgs/spy-fill.svg'
 import Hat from './hat'
+import HiddenWalletSummary from './hidden-wallet-summary'
 
-function WalletSummary ({ me }) {
-  if (!me) return null
+function WalletSummary ({ me, hideBalance }) {
+  const [show, setShow] = useState(false)
+
+  useEffect(() => {
+    // fix warning about useLayoutEffect usage during SSR
+    // see https://reactjs.org/link/uselayouteffect-ssr
+    setShow(true)
+  }, [])
+
+  if (!me || !show) return null
+  if (me.hideWalletBalance) {
+    return <HiddenWalletSummary abbreviate fixedWidth />
+  }
   return `${abbrNum(me.sats)}`
 }
 
@@ -132,7 +144,9 @@ function StackerCorner ({ dropNavKey }) {
       <NavProfileMenu me={me} dropNavKey={dropNavKey} />
       <Nav.Item>
         <Link href='/wallet' passHref legacyBehavior>
-          <Nav.Link eventKey='wallet' className='text-success px-0 text-nowrap'><WalletSummary me={me} /></Nav.Link>
+          <Nav.Link eventKey='wallet' className='text-success px-0 text-nowrap'>
+            <WalletSummary me={me} />
+          </Nav.Link>
         </Link>
       </Nav.Item>
     </div>

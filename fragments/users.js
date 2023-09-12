@@ -35,6 +35,7 @@ export const ME = gql`
       greeterMode
       lastCheckedJobs
       hideWelcomeBanner
+      hideWalletBalance
     }
   }`
 
@@ -57,6 +58,7 @@ export const SETTINGS_FIELDS = gql`
     hideCowboyHat
     hideBookmarks
     clickToLoadImg
+    hideWalletBalance
     nostrPubkey
     nostrRelays
     wildWestMode
@@ -86,14 +88,14 @@ mutation setSettings($tipDefault: Int!, $turboTipping: Boolean!, $fiatCurrency: 
   $noteInvites: Boolean!, $noteJobIndicator: Boolean!, $noteCowboyHat: Boolean!, $hideInvoiceDesc: Boolean!,
   $hideFromTopUsers: Boolean!, $hideCowboyHat: Boolean!, $clickToLoadImg: Boolean!,
   $wildWestMode: Boolean!, $greeterMode: Boolean!, $nostrPubkey: String, $nostrRelays: [String!], $hideBookmarks: Boolean!,
-  $noteForwardedSats: Boolean!) {
+  $noteForwardedSats: Boolean!, $hideWalletBalance: Boolean!) {
   setSettings(tipDefault: $tipDefault, turboTipping: $turboTipping,  fiatCurrency: $fiatCurrency,
     noteItemSats: $noteItemSats, noteEarning: $noteEarning, noteAllDescendants: $noteAllDescendants,
     noteMentions: $noteMentions, noteDeposits: $noteDeposits, noteInvites: $noteInvites,
     noteJobIndicator: $noteJobIndicator, noteCowboyHat: $noteCowboyHat, hideInvoiceDesc: $hideInvoiceDesc,
     hideFromTopUsers: $hideFromTopUsers, hideCowboyHat: $hideCowboyHat, clickToLoadImg: $clickToLoadImg,
     wildWestMode: $wildWestMode, greeterMode: $greeterMode, nostrPubkey: $nostrPubkey, nostrRelays: $nostrRelays, hideBookmarks: $hideBookmarks,
-    noteForwardedSats: $noteForwardedSats) {
+    noteForwardedSats: $noteForwardedSats, hideWalletBalance: $hideWalletBalance) {
       ...SettingsFields
     }
   }

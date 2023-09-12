@@ -76,7 +76,8 @@ export default function Settings ({ ssrData }) {
             greeterMode: settings?.greeterMode,
             nostrPubkey: settings?.nostrPubkey ? bech32encode(settings.nostrPubkey) : '',
             nostrRelays: settings?.nostrRelays?.length ? settings?.nostrRelays : [''],
-            hideBookmarks: settings?.hideBookmarks
+            hideBookmarks: settings?.hideBookmarks,
+            hideWalletBalance: settings?.hideWalletBalance
           }}
           schema={settingsSchema}
           onSubmit={async ({ tipDefault, nostrPubkey, nostrRelays, ...values }) => {
@@ -228,6 +229,11 @@ export default function Settings ({ ssrData }) {
           <Checkbox
             label={<>hide my cowboy hat</>}
             name='hideCowboyHat'
+            groupClassName='mb-0'
+          />
+          <Checkbox
+            label={<>hide my wallet balance</>}
+            name='hideWalletBalance'
             groupClassName='mb-0'
           />
           <Checkbox

@@ -24,11 +24,17 @@ import { useLightning } from './lightning'
 import { HAS_NOTIFICATIONS } from '../fragments/notifications'
 import AnonIcon from '../svgs/spy-fill.svg'
 import Hat from './hat'
-import LongPress from 'react-longpressable'
 
 function WalletSummary ({ me, hideBalance }) {
+  const [hover, setHover] = useState(false)
   if (!me) return null
-  if (hideBalance) return '****'
+  if (me.hideWalletBalance) {
+    return (
+      <div onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+        {hover ? abbrNum(me.sats) : '****'}
+      </div>
+    )
+  }
   return `${abbrNum(me.sats)}`
 }
 
@@ -127,32 +133,17 @@ function NavProfileMenu ({ me, dropNavKey }) {
 
 function StackerCorner ({ dropNavKey }) {
   const me = useMe()
-  const router = useRouter()
-  const [hideBalance, setHideBalance] = useState(false)
-  const toggleHideBalance = () => {
-    setHideBalance(prev => {
-      window.localStorage.setItem('hideWalletBalance', !prev)
-      return !prev
-    })
-  }
-
-  useEffect(() => {
-    setHideBalance(JSON.parse(window.localStorage.getItem('hideWalletBalance')) || false)
-  }, [])
 
   return (
     <div className='d-flex ms-auto'>
       <NotificationBell />
       <NavProfileMenu me={me} dropNavKey={dropNavKey} />
       <Nav.Item>
-        <Nav.Link eventKey='wallet' className='text-success px-0 text-nowrap'>
-          <LongPress
-            onLongPress={toggleHideBalance}
-            onShortPress={() => { router.push('/wallet') }}
-          >
-            <WalletSummary me={me} hideBalance={hideBalance} />
-          </LongPress>
-        </Nav.Link>
+        <Link href='/wallet' passHref legacyBehavior>
+          <Nav.Link eventKey='wallet' className='text-success px-0 text-nowrap'>
+            <WalletSummary me={me} />
+          </Nav.Link>
+        </Link>
       </Nav.Item>
     </div>
   )

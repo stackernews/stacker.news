@@ -11,6 +11,7 @@ import CancelButton from './cancel-button'
 import { useCallback } from 'react'
 import { normalizeForwards } from '../lib/form'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
+import { useMe } from './me'
 
 export function BountyForm ({
   item,
@@ -25,7 +26,8 @@ export function BountyForm ({
 }) {
   const router = useRouter()
   const client = useApolloClient()
-  const schema = bountySchema(client)
+  const me = useMe()
+  const schema = bountySchema(client, me)
   const [upsertBounty] = useMutation(
     gql`
       mutation upsertBounty(

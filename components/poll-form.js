@@ -12,11 +12,13 @@ import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
 import { useCallback } from 'react'
 import { normalizeForwards } from '../lib/form'
+import { useMe } from './me'
 
 export function PollForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
   const client = useApolloClient()
-  const schema = pollSchema(client)
+  const me = useMe()
+  const schema = pollSchema(client, me)
 
   const [upsertPoll] = useMutation(
     gql`

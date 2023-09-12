@@ -621,7 +621,7 @@ export default {
       return await models.item.update({ where: { id: Number(id) }, data })
     },
     upsertLink: async (parent, { id, hash, hmac, ...item }, { me, models, lnd }) => {
-      await ssValidate(linkSchema, item, models)
+      await ssValidate(linkSchema, item, models, me)
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models })
@@ -630,7 +630,7 @@ export default {
       }
     },
     upsertDiscussion: async (parent, { id, hash, hmac, ...item }, { me, models, lnd }) => {
-      await ssValidate(discussionSchema, item, models)
+      await ssValidate(discussionSchema, item, models, me)
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models })
@@ -639,7 +639,7 @@ export default {
       }
     },
     upsertBounty: async (parent, { id, hash, hmac, ...item }, { me, models, lnd }) => {
-      await ssValidate(bountySchema, item, models)
+      await ssValidate(bountySchema, item, models, me)
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models })
@@ -656,7 +656,7 @@ export default {
         })
         : 0
 
-      await ssValidate(pollSchema, item, models, optionCount)
+      await ssValidate(pollSchema, item, models, me, optionCount)
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models })

@@ -14,6 +14,7 @@ import referrals from './referrals'
 import price from './price'
 import { GraphQLJSONObject as JSONObject } from 'graphql-type-json'
 import admin from './admin'
+import blockHeight from './blockHeight'
 import { GraphQLScalarType, Kind } from 'graphql'
 
 const date = new GraphQLScalarType({
@@ -44,4 +45,4 @@ const date = new GraphQLScalarType({
 })
 
 export default [user, item, message, wallet, lnurl, notifications, invite, sub,
-  upload, search, growth, rewards, referrals, price, admin, { JSONObject }, { Date: date }]
+  upload, search, growth, rewards, referrals, price, admin, blockHeight, { JSONObject }, { Date: date }]

@@ -25,7 +25,7 @@ import { HAS_NOTIFICATIONS } from '../fragments/notifications'
 import AnonIcon from '../svgs/spy-fill.svg'
 import Hat from './hat'
 
-function WalletSummary ({ me, hideBalance }) {
+function HiddenWalletSummary ({ me }) {
   const [hover, setHover] = useState(false)
 
   // prevent layout shifts when hovering by fixing width to initial rendered width
@@ -35,13 +35,25 @@ function WalletSummary ({ me, hideBalance }) {
     setWidth(ref.current?.offsetWidth)
   }, [])
 
-  if (!me) return null
+  return (
+    <div ref={ref} style={{ width }} align='right' onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+      {hover ? abbrNum(me.sats) : '*****'}
+    </div>
+  )
+}
+
+function WalletSummary ({ me, hideBalance }) {
+  const [show, setShow] = useState(false)
+
+  useEffect(() => {
+    // fix warning about useLayoutEffect usage during SSR
+    // see https://reactjs.org/link/uselayouteffect-ssr
+    setShow(true)
+  }, [])
+
+  if (!me || !show) return null
   if (me.hideWalletBalance) {
-    return (
-      <div ref={ref} style={{ width }} align='right' onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
-        {hover ? abbrNum(me.sats) : '*****'}
-      </div>
-    )
+    return <HiddenWalletSummary me={me} />
   }
   return `${abbrNum(me.sats)}`
 }

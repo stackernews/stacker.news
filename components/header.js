@@ -10,7 +10,7 @@ import Price from './price'
 import { useMe } from './me'
 import Head from 'next/head'
 import { signOut } from 'next-auth/react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect } from 'react'
 import { randInRange } from '../lib/rand'
 import { abbrNum } from '../lib/format'
 import NoteIcon from '../svgs/notification-4-fill.svg'
@@ -26,16 +26,8 @@ import AnonIcon from '../svgs/spy-fill.svg'
 import Hat from './hat'
 import HiddenWalletSummary from './hidden-wallet-summary'
 
-function WalletSummary ({ me, hideBalance }) {
-  const [show, setShow] = useState(false)
-
-  useEffect(() => {
-    // fix warning about useLayoutEffect usage during SSR
-    // see https://reactjs.org/link/uselayouteffect-ssr
-    setShow(true)
-  }, [])
-
-  if (!me || !show) return null
+function WalletSummary ({ me }) {
+  if (!me) return null
   if (me.hideWalletBalance) {
     return <HiddenWalletSummary abbreviate fixedWidth />
   }

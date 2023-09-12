@@ -8,4 +8,5 @@
 .percent {
   display: flex;
   flex: 0 1 fit-content;
+  height: fit-content;
 }

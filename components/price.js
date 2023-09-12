@@ -90,7 +90,7 @@ export default function Price ({ className }) {
   if (asSats === 'blockHeight') {
     return (
       <div className={compClassName} onClick={handleClick} variant='link'>
-        {`block ${blockHeight}`}
+        {blockHeight}
       </div>
     )
   }

@@ -97,6 +97,8 @@ export default {
           AND "Item"."userId" <> $1 AND "Item".created_at <= $2
           -- Only show items that have been created since subscribing to the thread
           AND "Item".created_at >= "ThreadSubscription".created_at
+          -- don't notify on posts
+          AND "Item"."parentId" IS NOT NULL
         ${await filterClause(me, models)}
         ORDER BY "sortTime" DESC
         LIMIT ${LIMIT}+$3`

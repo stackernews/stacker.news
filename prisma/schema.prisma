@@ -88,6 +88,7 @@ model User {
   hideBookmarks       Boolean              @default(false)
   followers           UserSubscription[]   @relation("follower")
   followees           UserSubscription[]   @relation("followee")
+  hideWelcomeBanner   Boolean              @default(false)
 
   @@index([createdAt], map: "users.created_at_index")
   @@index([inviteId], map: "users.inviteId_index")

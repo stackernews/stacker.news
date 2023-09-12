@@ -20,6 +20,7 @@ import { USER_SEARCH } from '../fragments/users'
 import TextareaAutosize from 'react-textarea-autosize'
 import { useToast } from './toast'
 import { useInvoiceable } from './invoice'
+import { numWithUnits } from '../lib/format'
 
 export function SubmitButton ({
   children, variant, value, onClick, disabled, cost, ...props
@@ -224,7 +225,7 @@ function FormGroup ({ className, label, children }) {
 
 function InputInner ({
   prepend, append, hint, showValid, onChange, onBlur, overrideValue,
-  innerRef, noForm, clear, onKeyDown, inputGroupClassName, debounce, ...props
+  innerRef, noForm, clear, onKeyDown, inputGroupClassName, debounce, maxLength, ...props
 }) {
   const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)
   const formik = noForm ? null : useFormikContext()
@@ -261,6 +262,8 @@ function InputInner ({
     }
     return () => clearTimeout(debounceRef.current)
   }, [noForm, formik, field.value])
+
+  const remaining = maxLength && maxLength - (field.value || '').length
 
   return (
     <>
@@ -318,6 +321,11 @@ function InputInner ({
       {hint && (
         <BootstrapForm.Text>
           {hint}
+        </BootstrapForm.Text>
+      )}
+      {maxLength && !(meta.touched && meta.error && invalid) && (
+        <BootstrapForm.Text className={remaining < 0 ? 'text-danger' : undefined}>
+          {`${numWithUnits(remaining, { abbreviate: false, unitSingular: 'character', unitPlural: 'characters' })} remaining`}
         </BootstrapForm.Text>
       )}
     </>

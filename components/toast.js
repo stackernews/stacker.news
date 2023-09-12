@@ -56,7 +56,7 @@ export const ToastProvider = ({ children }) => {
         {toasts.map(toast => (
           <Toast
             key={toast.id} bg={toast.variant} show autohide={toast.autohide}
-            delay={toast.delay} className={styles.toast} onClose={() => removeToast(toast.id)}
+            delay={toast.delay} className={`${styles.toast} ${styles[toast.variant]}`} onClose={() => removeToast(toast.id)}
           >
             <ToastBody>
               <div className='d-flex align-items-center'>

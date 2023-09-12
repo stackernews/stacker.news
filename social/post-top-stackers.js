@@ -17,8 +17,6 @@ exports.postTopStackers = function ({ apollo }) {
             }`,
           variables: {
             cursor,
-            sort: 'top',
-            type: 'stackers',
             when: 'week',
             by: 'stacked'
           }

@@ -39,7 +39,7 @@ Full leaderboard 👇
 https://stacker.news/top/stackers/week/r/sn
 `
 
-        sendOnAllNetworks(message)
+        await sendOnAllNetworks(message)
       } while (cursor)
     } catch (err) {
       console.log(err)

@@ -46,7 +46,7 @@ This week ${numPosters} stackers created ${numPosts} Stacker News posts, catch u
 https://stacker.news/top/posts/week/r/sn
 `
 
-      sendOnAllNetworks(message)
+      await sendOnAllNetworks(message)
     } catch (err) {
       console.log(err)
     }

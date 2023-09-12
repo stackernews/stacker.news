@@ -20,7 +20,7 @@ In 8 hours, we're giving away over ${total} sats to all the best zappers on Stac
 https://stacker.news/rewards/r/sn
 `
 
-      sendOnAllNetworks(message)
+      await sendOnAllNetworks(message)
     } catch (err) {
       console.log(err)
     }

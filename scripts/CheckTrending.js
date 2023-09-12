@@ -42,7 +42,7 @@ ${title}
 https://stacker.news/items/${id}/r/sn
 `
 
-      sendOnAllNetworks(message)
+      await sendOnAllNetworks(message)
 
       sentPosts.unshift(id)
       sentPosts.splice(MAX_HISTORY, 1)

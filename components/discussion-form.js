@@ -14,6 +14,7 @@ import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
 import { useCallback } from 'react'
 import { normalizeForwards } from '../lib/form'
+import { MAX_TITLE_LENGTH } from '../lib/constants'
 
 export function DiscussionForm ({
   item, sub, editThreshold, titleLabel = 'title',
@@ -101,6 +102,7 @@ export function DiscussionForm ({
             })
           }
         }}
+        maxLength={MAX_TITLE_LENGTH}
       />
       <MarkdownInput
         topLevel

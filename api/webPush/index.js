@@ -36,7 +36,8 @@ const createUserFilter = (tag) => {
   const tagMap = {
     REPLY: 'noteAllDescendants',
     MENTION: 'noteMentions',
-    TIP: 'noteItemSats'
+    TIP: 'noteItemSats',
+    FORWARDEDTIP: 'noteForwardedSats'
   }
   const key = tagMap[tag.split('-')[0]]
   return key ? { user: { [key]: true } } : undefined

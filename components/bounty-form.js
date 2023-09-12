@@ -10,6 +10,7 @@ import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
 import { useCallback } from 'react'
 import { normalizeForwards } from '../lib/form'
+import { MAX_TITLE_LENGTH } from '../lib/constants'
 
 export function BountyForm ({
   item,
@@ -98,7 +99,14 @@ export function BountyForm ({
       storageKeyPrefix={item ? undefined : 'bounty'}
     >
       {children}
-      <Input label={titleLabel} name='title' required autoFocus clear />
+      <Input
+        label={titleLabel}
+        name='title'
+        required
+        autoFocus
+        clear
+        maxLength={MAX_TITLE_LENGTH}
+      />
       <Input
         label={bountyLabel} name='bounty' required
         append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}

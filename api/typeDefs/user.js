@@ -24,13 +24,15 @@ export default gql`
       noteEarning: Boolean!, noteAllDescendants: Boolean!, noteMentions: Boolean!, noteDeposits: Boolean!,
       noteInvites: Boolean!, noteJobIndicator: Boolean!, noteCowboyHat: Boolean!, hideInvoiceDesc: Boolean!,
       hideFromTopUsers: Boolean!, hideCowboyHat: Boolean!, clickToLoadImg: Boolean!,
-      wildWestMode: Boolean!, greeterMode: Boolean!, nostrPubkey: String, nostrRelays: [String!], hideBookmarks: Boolean!): User
+      wildWestMode: Boolean!, greeterMode: Boolean!, nostrPubkey: String, nostrRelays: [String!], hideBookmarks: Boolean!,
+      noteForwardedSats: Boolean!): User
     setPhoto(photoId: ID!): Int!
     upsertBio(bio: String!): User!
     setWalkthrough(tipPopover: Boolean, upvotePopover: Boolean): Boolean
     unlinkAuth(authType: String!): AuthMethods!
     linkUnverifiedEmail(email: String!): Boolean
     subscribeUser(id: ID): User
+    hideWelcomeBanner: Boolean
   }
 
   type AuthMethods {
@@ -77,10 +79,12 @@ export default gql`
     noteInvites: Boolean!
     noteJobIndicator: Boolean!
     noteCowboyHat: Boolean!
+    noteForwardedSats: Boolean!
     hideInvoiceDesc: Boolean!
     hideFromTopUsers: Boolean!
     hideCowboyHat: Boolean!
     hideBookmarks: Boolean!
+    hideWelcomeBanner: Boolean!
     clickToLoadImg: Boolean!
     wildWestMode: Boolean!
     greeterMode: Boolean!

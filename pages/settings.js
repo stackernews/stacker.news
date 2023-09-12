@@ -67,6 +67,7 @@ export default function Settings ({ ssrData }) {
             noteInvites: settings?.noteInvites,
             noteJobIndicator: settings?.noteJobIndicator,
             noteCowboyHat: settings?.noteCowboyHat,
+            noteForwardedSats: settings?.noteForwardedSats,
             hideInvoiceDesc: settings?.hideInvoiceDesc,
             hideFromTopUsers: settings?.hideFromTopUsers,
             hideCowboyHat: settings?.hideCowboyHat,
@@ -158,6 +159,11 @@ export default function Settings ({ ssrData }) {
           <Checkbox
             label='I stack sats from posts and comments'
             name='noteItemSats'
+            groupClassName='mb-0'
+          />
+          <Checkbox
+            label='I get forwarded sats from a post'
+            name='noteForwardedSats'
             groupClassName='mb-0'
           />
           <Checkbox

@@ -4,8 +4,17 @@
 
 .toast {
   width: auto;
-  border: 1px solid var(--bs-success-border-subtle);
   color: #fff;
+  border-width: 1px;
+  border-style: solid;
+}
+
+.success {
+  border-color: var(--bs-success-border-subtle);
+}
+
+.danger {
+  border-color: var(--bs-danger-border-subtle);
 }
 
 .toastClose {

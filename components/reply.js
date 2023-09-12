@@ -94,7 +94,7 @@ export default function Reply ({ item, onSuccess, replyOpen, children, placehold
     await upsertComment({ variables: { parentId, hash, hmac, ...values } })
     resetForm({ text: '' })
     setReply(replyOpen || false)
-  }, [upsertComment, setReply])
+  }, [upsertComment, setReply, parentId])
 
   const replyInput = useRef(null)
   useEffect(() => {

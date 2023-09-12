@@ -4,10 +4,10 @@ const PgBoss = require('pg-boss')
 const { ApolloClient, HttpLink, InMemoryCache } = require('@apollo/client')
 const fetch = require('cross-fetch')
 
-const { checkTrending } = require('./CheckTrending')
-const { checkRewards } = require('./CheckRewards')
-const { postTopStories } = require('./PostTopStories')
-const { postTopStackers } = require('./PostTopStackers')
+const { checkTrending } = require('./check-trending')
+const { checkRewards } = require('./check-rewards')
+const { postTopStories } = require('./post-top-stories')
+const { postTopStackers } = require('./post-top-stackers')
 
 async function work () {
   console.log(process.env.DATABASE_URL)
@@ -41,7 +41,7 @@ async function work () {
   await boss.work('topStories-social', postTopStories(args))
   await boss.work('topStackers-social', postTopStackers(args))
 
-  await boss.schedule('trending-social', '* * * * *', null, { tz: 'America/Chicago' })
+  await boss.schedule('trending-social', '* * * * *', null, { tz: 'America/Chicago', singletonKey: '1' })
   await boss.schedule('rewards-social', '0 16 * * *', null, { tz: 'America/Chicago' })
   await boss.schedule('topStories-social', '0 12 * * 6', null, { tz: 'America/Chicago' })
   await boss.schedule('topStackers-social', '0 12 * * 0', null, { tz: 'America/Chicago' })

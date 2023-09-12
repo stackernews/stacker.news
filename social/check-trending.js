@@ -1,5 +1,5 @@
 const { gql } = require('graphql-tag')
-const { sendOnAllNetworks } = require('./Send')
+const { sendOnAllNetworks } = require('../lib/social')
 
 const excludedUsers = [9] // 9 is ads
 const sentPosts = [] // TODO: move this to persistent storage

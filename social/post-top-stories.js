@@ -1,5 +1,5 @@
 const { gql } = require('graphql-tag')
-const { sendOnAllNetworks } = require('./Send')
+const { sendOnAllNetworks } = require('../lib/social')
 
 const max = 100000
 

@@ -92,7 +92,6 @@ mutation setSettings($tipDefault: Int!, $turboTipping: Boolean!, $fiatCurrency: 
   $hideFromTopUsers: Boolean!, $hideCowboyHat: Boolean!, $clickToLoadImg: Boolean!,
   $wildWestMode: Boolean!, $greeterMode: Boolean!, $nostrPubkey: String, $nostrRelays: [String!], $hideBookmarks: Boolean!,
   $noteForwardedSats: Boolean!, $hideWalletBalance: Boolean!, $hideIsContributor: Boolean!) {
-  ) {
   setSettings(tipDefault: $tipDefault, turboTipping: $turboTipping,  fiatCurrency: $fiatCurrency,
     noteItemSats: $noteItemSats, noteEarning: $noteEarning, noteAllDescendants: $noteAllDescendants,
     noteMentions: $noteMentions, noteDeposits: $noteDeposits, noteInvites: $noteInvites,

@@ -136,7 +136,7 @@ function StackerCorner ({ dropNavKey }) {
       <NavProfileMenu me={me} dropNavKey={dropNavKey} />
       <Nav.Item>
         <Link href='/wallet' passHref legacyBehavior>
-          <Nav.Link eventKey='wallet' className='text-success px-0 text-nowrap'>
+          <Nav.Link eventKey='wallet' className='text-success text-monospace px-0 text-nowrap'>
             <WalletSummary me={me} />
           </Nav.Link>
         </Link>

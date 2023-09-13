@@ -150,6 +150,10 @@ $btn-close-bg: none;
   }
 }
 
+.text-monospace {
+  font-family: monospace;
+}
+
 #nprogress .bar {
   background: var(--bs-primary) !important;
   height: 2px !important;

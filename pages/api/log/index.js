@@ -1,7 +1,6 @@
 import models from '../../../api/models'
+import slackClient from '../../../api/slack'
 
-const slackApiUrl = 'https://slack.com/api'
-const botToken = process.env.SLACK_BOT_TOKEN
 const channelId = process.env.SLACK_CHANNEL_ID
 
 const toKV = (obj) => {
@@ -9,15 +8,9 @@ const toKV = (obj) => {
 }
 
 const slackPostMessage = ({ id, level, name, message, env, context }) => {
+  if (!slackClient) return
   const text = `\`${new Date().toISOString()}\` | \`${id} [${level}] ${name}\` | ${message} | ${toKV(context)} | ${toKV({ os: env.os })}`
-  return fetch(slackApiUrl + '/chat.postMessage', {
-    method: 'post',
-    headers: {
-      Authorization: `Bearer ${botToken}`,
-      'Content-type': 'application/json'
-    },
-    body: JSON.stringify({ channel: channelId, text })
-  })
+  return slackClient.chat.postMessage({ channel: channelId, text })
 }
 
 export default async (req, res) => {
@@ -27,8 +20,7 @@ export default async (req, res) => {
 
   const { id } = await models.log.create({ data: { level: level.toUpperCase(), name, message, env, context } })
 
-  if (botToken && channelId) {
-    slackPostMessage({ id, ...req.body })
-  }
+  slackPostMessage({ id, ...req.body })
+
   return res.status(200).json({ status: 200, message: 'ok' })
 }

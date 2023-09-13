@@ -114,8 +114,8 @@ export default {
           AND "Item".created_at <= $2
           AND (
             -- Only include posts or comments created after the corresponding subscription was enabled, not _all_ from history
-            ("Item"."parentId" IS NULL AND "UserSubscription".posts = TRUE AND "UserSubscription"."postsUpdatedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."postsUpdatedAt")
-            OR ("Item"."parentId" IS NOT NULL AND "UserSubscription".comments = TRUE AND "UserSubscription"."commentsUpdatedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."commentsUpdatedAt")
+            ("Item"."parentId" IS NULL AND "UserSubscription"."postsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."postsSubscribedAt")
+            OR ("Item"."parentId" IS NOT NULL AND "UserSubscription"."commentsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."commentsSubscribedAt")
           )
         ${await filterClause(me, models)}
         ORDER BY "sortTime" DESC

@@ -1207,7 +1207,7 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
       const userSubs = await models.userSubscription.findMany({
         where: {
           followeeId: Number(item.userId),
-          [isPost ? 'posts' : 'comments']: true
+          [isPost ? 'postsSubscribedAt' : 'commentsSubscribedAt']: { not: null }
         },
         include: {
           followee: true

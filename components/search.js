@@ -2,8 +2,9 @@ import Container from 'react-bootstrap/Container'
 import styles from './search.module.css'
 import SearchIcon from '../svgs/search-line.svg'
 import { useEffect, useRef, useState } from 'react'
-import { Form, Input, Select, SubmitButton } from './form'
+import { Form, Input, Select, DatePicker, SubmitButton } from './form'
 import { useRouter } from 'next/router'
+import { dayMonthYear } from '../lib/time'
 
 export default function Search ({ sub }) {
   const router = useRouter()
@@ -35,6 +36,7 @@ export default function Search ({ sub }) {
       if (values.what === '' || values.what === 'all') delete values.what
       if (values.sort === '' || values.sort === 'zaprank') delete values.sort
       if (values.when === '' || values.when === 'forever') delete values.when
+      if (values.when !== 'custom') { delete values.from; delete values.to }
       await router.push({
         pathname: prefix + '/search',
         query: values
@@ -46,13 +48,17 @@ export default function Search ({ sub }) {
   const what = router.pathname.startsWith('/stackers') ? 'stackers' : router.query.what || 'all'
   const sort = router.query.sort || 'zaprank'
   const when = router.query.when || 'forever'
+  const from = router.query.from
+  const to = router.query.to
+
+  const [datePicker, setDatePicker] = useState(when === 'custom')
 
   return (
     <>
       <div className={styles.searchSection}>
         <Container className={`px-md-0 ${styles.searchContainer} ${filter ? styles.leaveRoom : ''}`}>
           <Form
-            initial={{ q, what, sort, when }}
+            initial={{ q, what, sort, when, from, to }}
             onSubmit={search}
           >
             <div className={`${styles.active} my-3`}>
@@ -97,13 +103,26 @@ export default function Search ({ sub }) {
                     for
                     <Select
                       groupClassName='mb-0 ms-2'
-                      onChange={(formik, e) => search({ ...formik?.values, when: e.target.value })}
+                      onChange={(formik, e) => {
+                        search({ ...formik?.values, when: e.target.value, from: from || dayMonthYear(new Date()), to: to || dayMonthYear(new Date()) });
+                        setDatePicker(e.target.value === 'custom')
+                      }}
                       name='when'
                       size='sm'
                       overrideValue={when}
-                      items={['forever', 'day', 'week', 'month', 'year']}
+                      items={['custom', 'forever', 'day', 'week', 'month', 'year']}
                     />
-
+                    {datePicker &&
+                      <DatePicker
+                        className='form-control ms-2 p-0 px-2'
+                        onChange={(formik, [start, end], e) =>
+                          search({ ...formik?.values, from: start && dayMonthYear(start), to: end && dayMonthYear(end) })}
+                        selected={new Date(from)}
+                        startDate={new Date(from)}
+                        endDate={to && new Date(to)}
+                        selectsRange
+                        maxDate={new Date()}
+                      />}
                   </>}
               </div>}
           </Form>

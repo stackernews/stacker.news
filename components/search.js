@@ -16,6 +16,7 @@ export default function Search ({ sub }) {
   }, [])
 
   const search = async values => {
+    console.log(values)
     let prefix = ''
     if (sub) {
       prefix = `/~${sub}`
@@ -48,10 +49,14 @@ export default function Search ({ sub }) {
   const what = router.pathname.startsWith('/stackers') ? 'stackers' : router.query.what || 'all'
   const sort = router.query.sort || 'zaprank'
   const when = router.query.when || 'forever'
-  const from = router.query.from
-  const to = router.query.to
+  const from = router.query.from || dayMonthYear(new Date())
+  const to = router.query.to || dayMonthYear(new Date())
 
   const [datePicker, setDatePicker] = useState(when === 'custom')
+  // these (instead of using router.query from/to above) avoid network lag and timezone issues in the picker
+  const timepart = 'T' + new Date().toISOString().split('T')[1]
+  const [fromDate, setFromDate] = useState(new Date(from + timepart))
+  const [toDate, setToDate] = useState(new Date(to + timepart))
 
   return (
     <>
@@ -104,15 +109,7 @@ export default function Search ({ sub }) {
                     <Select
                       groupClassName='mb-0 ms-2'
                       onChange={(formik, e) => {
-<<<<<<< HEAD
-<<<<<<< HEAD
                         search({ ...formik?.values, when: e.target.value, from: from || dayMonthYear(new Date()), to: to || dayMonthYear(new Date()) })
-=======
-                        search({ ...formik?.values, when: e.target.value, from: from || dayMonthYear(new Date()), to: to || dayMonthYear(new Date()) });
->>>>>>> 9659a98 (add date picker)
-=======
-                        search({ ...formik?.values, when: e.target.value, from: from || dayMonthYear(new Date()), to: to || dayMonthYear(new Date()) })
->>>>>>> f1ec4ad (lint)
                         setDatePicker(e.target.value === 'custom')
                       }}
                       name='when'
@@ -123,11 +120,14 @@ export default function Search ({ sub }) {
                     {datePicker &&
                       <DatePicker
                         className='form-control ms-2 p-0 px-2'
-                        onChange={(formik, [start, end], e) =>
-                          search({ ...formik?.values, from: start && dayMonthYear(start), to: end && dayMonthYear(end) })}
-                        selected={new Date(from)}
-                        startDate={new Date(from)}
-                        endDate={to && new Date(to)}
+                        onChange={(formik, [start, end], e) => {
+                          setFromDate(start)
+                          setToDate(end)
+                          search({ ...formik?.values, from: start && dayMonthYear(start), to: end && dayMonthYear(end) })
+                        }}
+                        selected={fromDate}
+                        startDate={fromDate}
+                        endDate={toDate}
                         selectsRange
                         maxDate={new Date()}
                       />}

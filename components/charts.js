@@ -21,6 +21,7 @@ const dateFormatter = when => {
     switch (when) {
       case 'week':
       case 'month':
+      case 'custom':
         return `${('0' + (date.getUTCMonth() % 12 + 1)).slice(-2)}/${date.getUTCDate()}`
       case 'year':
       case 'forever':
@@ -35,6 +36,7 @@ function xAxisName (when) {
   switch (when) {
     case 'week':
     case 'month':
+    case 'custom':
       return 'days'
     case 'year':
     case 'forever':

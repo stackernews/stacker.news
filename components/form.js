@@ -21,6 +21,8 @@ import TextareaAutosize from 'react-textarea-autosize'
 import { useToast } from './toast'
 import { useInvoiceable } from './invoice'
 import { numWithUnits } from '../lib/format'
+import ReactDatePicker from 'react-datepicker'
+import 'react-datepicker/dist/react-datepicker.css'
 
 export function SubmitButton ({
   children, variant, value, onClick, disabled, cost, ...props
@@ -587,5 +589,19 @@ export function Select ({ label, items, groupClassName, onChange, noForm, overri
         {meta.touched && meta.error}
       </BootstrapForm.Control.Feedback>
     </FormGroup>
+  )
+}
+
+export function DatePicker ({ ...props }) {
+  const formik = useFormikContext()
+  const onChangeSupplied = props.onChange
+
+  return (
+    <ReactDatePicker
+      {...props}
+      onChange={(dates, e) => {
+        onChangeSupplied(formik, dates, e)
+      }}
+    />
   )
 }

@@ -104,7 +104,7 @@ export default function Search ({ sub }) {
                     <Select
                       groupClassName='mb-0 ms-2'
                       onChange={(formik, e) => {
-                        search({ ...formik?.values, when: e.target.value, from: from || dayMonthYear(new Date()), to: to || dayMonthYear(new Date()) });
+                        search({ ...formik?.values, when: e.target.value, from: from || dayMonthYear(new Date()), to: to || dayMonthYear(new Date()) })
                         setDatePicker(e.target.value === 'custom')
                       }}
                       name='when'

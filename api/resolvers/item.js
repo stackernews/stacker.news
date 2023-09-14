@@ -834,7 +834,7 @@ export default {
         sats
       }
     },
-    dontLikeThis: async (parent, { id, hash, hmac }, { me, models }) => {
+    dontLikeThis: async (parent, { id, sats, hash, hmac }, { me, models }) => {
       // need to make sure we are logged in
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
@@ -856,7 +856,7 @@ export default {
 
       const trx = [
         models.$queryRaw`SELECT item_act(${Number(id)}::INTEGER,
-        ${me.id}::INTEGER, 'DONT_LIKE_THIS', ${DONT_LIKE_THIS_COST}::INTEGER)`
+        ${me.id}::INTEGER, 'DONT_LIKE_THIS', ${sats || DONT_LIKE_THIS_COST}::INTEGER)`
       ]
       if (invoice) {
         trx.unshift(models.$queryRaw`UPDATE users SET msats = msats + ${invoice.msatsReceived} WHERE id = ${invoice.user.id}`)

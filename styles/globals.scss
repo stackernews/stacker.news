@@ -193,6 +193,33 @@ $btn-close-bg: none;
   margin-bottom: 0 !important;
 }
 
+.modal.fullscreen {
+  padding-right: 0;
+  background-color: color-mix(in srgb, var(--theme-inputBg) 66%, transparent);
+}
+.modal-dialog.fullscreen {
+  margin: 0;
+  max-width: 100vw;
+  max-height: 100vh;
+  background-color: transparent;
+}
+.modal-content.fullscreen {
+  border: none;
+  background-color: transparent;
+}
+.modal-body.fullscreen {
+  width: 100%;
+  height: calc(100vh - 5em);
+  padding: 3em;
+  background-color: transparent;
+}
+.modal-body.fullscreen > div > a {
+  width: fit-content;
+}
+.modal-close.fullscreen {
+  padding-right: 15px;
+}
+
 .modal-btn {
   cursor: pointer;
   display: flex;

@@ -208,7 +208,7 @@ export default function Comment ({
               )
             : (
               <div className={styles.text}>
-                <Text topLevel={topLevel} nofollow={item.sats + item.boost < NOFOLLOW_LIMIT}>
+                <Text topLevel={topLevel} nofollow={item.sats + item.boost < NOFOLLOW_LIMIT} imgproxyUrls={item.imgproxyUrls}>
                   {truncate ? truncateString(item.text) : item.searchText || item.text}
                 </Text>
               </div>

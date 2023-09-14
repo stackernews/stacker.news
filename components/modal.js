@@ -37,19 +37,26 @@ export default function useModal () {
   const onClose = useCallback(() => {
     setModalContent(null)
     setModalStack([])
-  }, [])
+    modalOptions?.onClose?.()
+  }, [modalOptions?.onClose])
 
   const modal = useMemo(() => {
     if (modalContent === null) {
       return null
     }
+    const className = modalOptions?.fullScreen ? 'fullscreen' : ''
     return (
-      <Modal onHide={modalOptions?.keepOpen ? null : onClose} show={!!modalContent}>
+      <Modal
+        onHide={modalOptions?.keepOpen ? null : onClose} show={!!modalContent}
+        className={className}
+        dialogClassName={className}
+        contentClassName={className}
+      >
         <div className='d-flex flex-row'>
           {modalStack.length > 0 ? <div className='modal-btn modal-back' onClick={onBack}><BackArrow width={18} height={18} className='fill-white' /></div> : null}
-          <div className='modal-btn modal-close' onClick={onClose}>X</div>
+          <div className={'modal-btn modal-close ' + className} onClick={onClose}>X</div>
         </div>
-        <Modal.Body>
+        <Modal.Body className={className}>
           {modalContent}
         </Modal.Body>
       </Modal>

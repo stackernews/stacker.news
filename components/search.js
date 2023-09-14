@@ -105,10 +105,14 @@ export default function Search ({ sub }) {
                       groupClassName='mb-0 ms-2'
                       onChange={(formik, e) => {
 <<<<<<< HEAD
+<<<<<<< HEAD
                         search({ ...formik?.values, when: e.target.value, from: from || dayMonthYear(new Date()), to: to || dayMonthYear(new Date()) })
 =======
                         search({ ...formik?.values, when: e.target.value, from: from || dayMonthYear(new Date()), to: to || dayMonthYear(new Date()) });
 >>>>>>> 9659a98 (add date picker)
+=======
+                        search({ ...formik?.values, when: e.target.value, from: from || dayMonthYear(new Date()), to: to || dayMonthYear(new Date()) })
+>>>>>>> f1ec4ad (lint)
                         setDatePicker(e.target.value === 'custom')
                       }}
                       name='when'

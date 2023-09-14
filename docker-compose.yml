@@ -50,6 +50,25 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command:
       - node worker/index.js
+  social:
+    container_name: social
+    build: ./social
+    depends_on:
+      db:
+        condition: service_started
+      app:
+        condition: service_healthy
+    env_file:
+      - ./.env.sample
+    ports:
+      - "9080:9080"
+    volumes:
+      - ./:/app
+    links:
+      - db
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - node social/index.js
   imgproxy:
     container_name: imgproxy
     image: darthsim/imgproxy:v3.18.1

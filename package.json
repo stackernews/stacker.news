@@ -76,6 +76,7 @@
     "sass": "^1.65.1",
     "serviceworker-storage": "^0.1.0",
     "tldts": "^6.0.14",
+    "twitter-api-v2": "^1.15.1",
     "typescript": "^5.1.6",
     "unist-util-visit": "^5.0.0",
     "url-unshort": "^6.1.0",

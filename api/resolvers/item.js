@@ -672,7 +672,7 @@ export default {
 
       item.location = item.location?.toLowerCase() === 'remote' ? undefined : item.location
       await ssValidate(jobSchema, item, models)
-      if (item.logo) {
+      if (item.logo !== undefined) {
         item.uploadId = item.logo
         delete item.logo
       }

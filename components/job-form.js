@@ -79,7 +79,7 @@ export default function JobForm ({ item, sub }) {
       } else {
         await router.push(`/~${sub.name}/recent`)
       }
-    }, [upsertJob, router]
+    }, [upsertJob, router, logoId]
   )
 
   return (

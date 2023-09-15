@@ -1,7 +1,7 @@
-const math = require('mathjs')
-const { ANON_USER_ID } = require('../lib/constants')
+import * as math from 'mathjs'
+import { ANON_USER_ID } from '../lib/constants.js'
 
-function trust ({ boss, models }) {
+export function trust ({ boss, models }) {
   return async function () {
     try {
       console.time('trust')
@@ -172,5 +172,3 @@ async function storeTrust (models, nodeTrust) {
         FROM (values ${values}) g(id, trust)
         WHERE users.id = g.id`)])
 }
-
-module.exports = { trust }

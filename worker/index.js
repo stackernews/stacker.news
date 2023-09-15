@@ -1,20 +1,26 @@
-const PgBoss = require('pg-boss')
-require('@next/env').loadEnvConfig('..')
-const { PrismaClient } = require('@prisma/client')
-const { checkInvoice, checkWithdrawal } = require('./wallet')
-const { repin } = require('./repin')
-const { trust } = require('./trust')
-const { auction } = require('./auction')
-const { earn } = require('./earn')
-const { ApolloClient, HttpLink, InMemoryCache } = require('@apollo/client')
-const { indexItem, indexAllItems } = require('./search')
-const { timestampItem } = require('./ots')
-const { computeStreaks, checkStreak } = require('./streak')
-const { nip57 } = require('./nostr')
+import PgBoss from 'pg-boss'
+import nextEnv from '@next/env'
+import { PrismaClient } from '@prisma/client'
+import { checkInvoice, checkWithdrawal } from './wallet.js'
+import { repin } from './repin.js'
+import { trust } from './trust.js'
+import { auction } from './auction.js'
+import { earn } from './earn.js'
+import apolloClient from '@apollo/client'
+import { indexItem, indexAllItems } from './search.js'
+import { timestampItem } from './ots.js'
+import { computeStreaks, checkStreak } from './streak.js'
+import { nip57 } from './nostr.js'
 
-const fetch = require('cross-fetch')
-const { authenticatedLndGrpc } = require('ln-service')
-const { views, rankViews } = require('./views')
+import fetch from 'cross-fetch'
+import { authenticatedLndGrpc } from 'ln-service'
+import { views, rankViews } from './views.js'
+
+const { loadEnvConfig } = nextEnv
+const { ApolloClient, HttpLink, InMemoryCache } = apolloClient
+
+loadEnvConfig('..')
+
 
 async function work () {
   const boss = new PgBoss(process.env.DATABASE_URL)

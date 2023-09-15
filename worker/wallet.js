@@ -1,11 +1,11 @@
-const serialize = require('../api/resolvers/serial')
-const { getInvoice, getPayment, cancelHodlInvoice } = require('ln-service')
-const { datePivot } = require('../lib/time')
+import serialize from '../api/resolvers/serial.js'
+import { getInvoice, getPayment, cancelHodlInvoice } from 'ln-service'
+import { datePivot } from '../lib/time.js'
 
 const walletOptions = { startAfter: 5, retryLimit: 21, retryBackoff: true }
 
 // TODO this should all be done via websockets
-function checkInvoice ({ boss, models, lnd }) {
+export function checkInvoice ({ boss, models, lnd }) {
   return async function ({ data: { hash, isHeldSet } }) {
     let inv
     try {
@@ -67,7 +67,7 @@ function checkInvoice ({ boss, models, lnd }) {
   }
 }
 
-function checkWithdrawal ({ boss, models, lnd }) {
+export function checkWithdrawal ({ boss, models, lnd }) {
   return async function ({ data: { id, hash } }) {
     let wdrwl
     let notFound = false
@@ -110,5 +110,3 @@ function checkWithdrawal ({ boss, models, lnd }) {
     }
   }
 }
-
-module.exports = { checkInvoice, checkWithdrawal }

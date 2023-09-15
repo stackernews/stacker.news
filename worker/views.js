@@ -1,5 +1,5 @@
 // this is intended to be run everyday after midnight CT
-function views ({ models }) {
+export function views ({ models }) {
   return async function () {
     console.log('refreshing stats views')
 
@@ -14,7 +14,7 @@ function views ({ models }) {
 }
 
 // this should be run regularly ... like, every 1-5 minutes
-function rankViews ({ models }) {
+export function rankViews ({ models }) {
   return async function () {
     console.log('refreshing rank views')
 
@@ -25,5 +25,3 @@ function rankViews ({ models }) {
     console.log('done refreshing rank views')
   }
 }
-
-module.exports = { views, rankViews }

@@ -2,7 +2,7 @@ import '../styles/globals.scss'
 import { ApolloProvider, gql } from '@apollo/client'
 import { MeProvider } from '../components/me'
 import PlausibleProvider from 'next-plausible'
-import getApolloClient from '../lib/apollo'
+import getApolloClient from '../lib/apollo.js'
 import { PriceProvider } from '../components/price'
 import { BlockHeightProvider } from '../components/block-height'
 import Head from 'next/head'
@@ -34,7 +34,7 @@ function writeQuery (client, apollo, data) {
   }
 }
 
-function MyApp ({ Component, pageProps: { ...props } }) {
+export default function MyApp ({ Component, pageProps: { ...props } }) {
   const client = getApolloClient()
   const router = useRouter()
 
@@ -111,5 +111,3 @@ function MyApp ({ Component, pageProps: { ...props } }) {
     </>
   )
 }
-
-export default MyApp

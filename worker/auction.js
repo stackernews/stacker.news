@@ -1,6 +1,6 @@
-const serialize = require('../api/resolvers/serial')
+import serialize from '../api/resolvers/serial.js'
 
-function auction ({ models }) {
+export function auction ({ models }) {
   return async function ({ name }) {
     console.log('running', name)
     // get all items we need to check
@@ -26,5 +26,3 @@ function auction ({ models }) {
     console.log('done', name)
   }
 }
-
-module.exports = { auction }

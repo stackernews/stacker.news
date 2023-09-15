@@ -1,6 +1,6 @@
-const { gql } = require('graphql-tag')
-const search = require('../api/search')
-const removeMd = require('remove-markdown')
+import { gql } from 'graphql-tag'
+import search from '../api/search/index.js'
+import removeMd from 'remove-markdown'
 
 const ITEM_SEARCH_FIELDS = gql`
   fragment ItemSearchFields on Item {
@@ -75,7 +75,7 @@ async function _indexItem (item) {
   console.log('done indexing item', item.id)
 }
 
-function indexItem ({ apollo }) {
+export function indexItem ({ apollo }) {
   return async function ({ data: { id } }) {
     // 1. grab item from database
     // could use apollo to avoid duping logic
@@ -95,7 +95,7 @@ function indexItem ({ apollo }) {
   }
 }
 
-function indexAllItems ({ apollo }) {
+export function indexAllItems ({ apollo }) {
   return async function () {
     // cursor over all items in the Item table
     let items = []; let cursor = null
@@ -125,5 +125,3 @@ function indexAllItems ({ apollo }) {
     } while (cursor)
   }
 }
-
-module.exports = { indexItem, indexAllItems }

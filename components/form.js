@@ -23,6 +23,7 @@ import { useInvoiceable } from './invoice'
 import { numWithUnits } from '../lib/format'
 import ReactDatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
+import { dayMonthYear } from '../lib/time'
 
 export function SubmitButton ({
   children, variant, value, onClick, disabled, cost, ...props
@@ -592,15 +593,27 @@ export function Select ({ label, items, groupClassName, onChange, noForm, overri
   )
 }
 
-export function DatePicker ({ ...props }) {
-  const formik = useFormikContext()
+export function DatePicker ({ fromName, toName, noForm, onMount, ...props }) {
+  const formik = noForm ? null : useFormikContext()
   const onChangeSupplied = props.onChange
+  const [,, fromHelpers] = noForm ? [{}, {}, {}] : useField({ ...props, name: fromName })
+  const [,, toHelpers] = noForm ? [{}, {}, {}] : useField({ ...props, name: toName })
+
+  useEffect(() => {
+    if (onMount) {
+      const [from, to] = onMount()
+      fromHelpers.setValue(from)
+      toHelpers.setValue(to)
+    }
+  }, [])
 
   return (
     <ReactDatePicker
       {...props}
-      onChange={(dates, e) => {
-        onChangeSupplied(formik, dates, e)
+      onChange={([from, to], e) => {
+        fromHelpers.setValue(dayMonthYear(from))
+        toHelpers.setValue(dayMonthYear(to))
+        onChangeSupplied(formik, [from, to], e)
       }}
     />
   )

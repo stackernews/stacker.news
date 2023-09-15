@@ -1,0 +1,29 @@
+.content {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+}
+.box {
+  border: 1px solid var(--theme-borderColor);
+  border-radius: 10px;
+  box-shadow: 2px 2px 10px var(--theme-borderColor);
+  min-width: 50%;
+  display: flex;
+  flex-direction: column;
+}
+.header {
+  border-bottom: 1px solid var(--theme-borderColor);
+}
+.body {
+  display: flex;
+  align-self: center;
+}
+.inner {
+  padding: 0.5rem 0;
+  display: flex;
+  flex-direction: column;
+}
+.inner > div {
+  padding: 5px 2rem;
+}

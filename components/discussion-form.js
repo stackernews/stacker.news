@@ -58,8 +58,6 @@ export function DiscussionForm ({
       
       if (userHasCrosspostingEnabled) {
         await crosspostDiscussion(values, data.upsertDiscussion.id, me.nostrRelays);
-      } else {
-        console.log("Cross-posting is not enabled for the user");
       }
 
       if (item) {

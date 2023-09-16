@@ -434,6 +434,7 @@ model Invoice {
   msatsRequested BigInt
   msatsReceived  BigInt?
   desc           String?
+  comment        String?
   user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([createdAt], map: "Invoice.created_at_index")

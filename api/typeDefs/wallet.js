@@ -53,6 +53,7 @@ export default gql`
     type: String!
     description: String
     item: Item
+    invoiceComment: String
   }
 
   type History {

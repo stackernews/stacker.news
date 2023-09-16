@@ -44,6 +44,7 @@ export const WALLET_HISTORY = gql`
         status
         type
         description
+        invoiceComment
         item {
           ...ItemFullFields
         }

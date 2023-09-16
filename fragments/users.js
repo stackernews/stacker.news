@@ -19,7 +19,6 @@ export const ME = gql`
       upvotePopover
       tipPopover
       nostrCrossposting
-      nostrRelays
       noteItemSats
       noteEarning
       noteAllDescendants

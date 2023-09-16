@@ -5,7 +5,6 @@ import { Form, Input, SubmitButton } from './form'
 import { useMe } from './me'
 import UpBolt from '../svgs/bolt.svg'
 import { amountSchema } from '../lib/validate'
-import { useInvoiceable } from './invoice'
 
 const defaultTips = [100, 1000, 10000, 100000]
 
@@ -37,7 +36,7 @@ const addCustomTip = (amount) => {
   window.localStorage.setItem('custom-tips', JSON.stringify(customTips))
 }
 
-export default function ItemAct ({ onClose, itemId, act, strike }) {
+export default function ItemAct ({ onClose, itemId, act, down, strike }) {
   const inputRef = useRef(null)
   const me = useMe()
   const [oValue, setOValue] = useState()
@@ -46,27 +45,24 @@ export default function ItemAct ({ onClose, itemId, act, strike }) {
     inputRef.current?.focus()
   }, [onClose, itemId])
 
-  const submitAct = useCallback(
-    async (amount, invoiceHash, invoiceHmac) => {
-      if (!me) {
-        const storageKey = `TIP-item:${itemId}`
-        const existingAmount = Number(window.localStorage.getItem(storageKey) || '0')
-        window.localStorage.setItem(storageKey, existingAmount + amount)
+  const onSubmit = useCallback(async ({ amount, hash, hmac }) => {
+    if (!me) {
+      const storageKey = `TIP-item:${itemId}`
+      const existingAmount = Number(window.localStorage.getItem(storageKey) || '0')
+      window.localStorage.setItem(storageKey, existingAmount + amount)
+    }
+    await act({
+      variables: {
+        id: itemId,
+        sats: Number(amount),
+        hash,
+        hmac
       }
-      await act({
-        variables: {
-          id: itemId,
-          sats: Number(amount),
-          invoiceHash,
-          invoiceHmac
-        }
-      })
-      await strike()
-      addCustomTip(Number(amount))
-      onClose()
-    }, [act, onClose, strike, itemId])
-
-  const invoiceableAct = useInvoiceable(submitAct)
+    })
+    strike && await strike()
+    addCustomTip(Number(amount))
+    onClose()
+  }, [act])
 
   return (
     <Form
@@ -75,9 +71,8 @@ export default function ItemAct ({ onClose, itemId, act, strike }) {
         default: false
       }}
       schema={amountSchema}
-      onSubmit={async ({ amount }) => {
-        return invoiceableAct(amount)
-      }}
+      invoiceable
+      onSubmit={onSubmit}
     >
       <Input
         label='amount'
@@ -93,7 +88,7 @@ export default function ItemAct ({ onClose, itemId, act, strike }) {
         <Tips setOValue={setOValue} />
       </div>
       <div className='d-flex'>
-        <SubmitButton variant='success' className='ms-auto mt-1 px-4' value='TIP'>zap</SubmitButton>
+        <SubmitButton variant={down ? 'danger' : 'success'} className='ms-auto mt-1 px-4' value='TIP'>{down && 'down '}zap</SubmitButton>
       </div>
     </Form>
   )

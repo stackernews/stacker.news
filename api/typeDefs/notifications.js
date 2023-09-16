@@ -17,6 +17,13 @@ export default gql`
     sortTime: Date!
   }
 
+  type ForwardedVotification {
+    id: ID!
+    earnedSats: Int!
+    item: Item!
+    sortTime: Date!
+  }
+
   type FollowActivity {
     id: ID!
     item: Item!
@@ -84,7 +91,7 @@ export default gql`
 
   union Notification = Reply | Votification | Mention
     | Invitification | Earn | JobChanged | InvoicePaid | Referral
-    | Streak | FollowActivity
+    | Streak | FollowActivity | ForwardedVotification
 
   type Notifications {
     lastChecked: Date

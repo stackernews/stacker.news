@@ -4,6 +4,7 @@ import { MeProvider } from '../components/me'
 import PlausibleProvider from 'next-plausible'
 import getApolloClient from '../lib/apollo'
 import { PriceProvider } from '../components/price'
+import { BlockHeightProvider } from '../components/block-height'
 import Head from 'next/head'
 import { useRouter } from 'next/dist/client/router'
 import { useEffect } from 'react'
@@ -15,7 +16,6 @@ import { ServiceWorkerProvider } from '../components/serviceworker'
 import { SSR } from '../lib/constants'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
-import { PaymentTokenProvider } from '../components/payment-tokens'
 
 NProgress.configure({
   showSpinner: false
@@ -74,7 +74,7 @@ function MyApp ({ Component, pageProps: { ...props } }) {
     If we are on the client, we populate the apollo cache with the
     ssr data
   */
-  const { apollo, ssrData, me, price, ...otherProps } = props
+  const { apollo, ssrData, me, price, blockHeight, ...otherProps } = props
   useEffect(() => {
     writeQuery(client, apollo, ssrData)
   }, [client, apollo, ssrData])
@@ -92,11 +92,11 @@ function MyApp ({ Component, pageProps: { ...props } }) {
                 <PriceProvider price={price}>
                   <LightningProvider>
                     <ToastProvider>
-                      <PaymentTokenProvider>
-                        <ShowModalProvider>
+                      <ShowModalProvider>
+                        <BlockHeightProvider blockHeight={blockHeight}>
                           <Component ssrData={ssrData} {...otherProps} />
-                        </ShowModalProvider>
-                      </PaymentTokenProvider>
+                        </BlockHeightProvider>
+                      </ShowModalProvider>
                     </ToastProvider>
                   </LightningProvider>
                 </PriceProvider>

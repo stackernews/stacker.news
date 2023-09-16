@@ -1,7 +1,6 @@
 import UpBolt from '../svgs/bolt.svg'
 import styles from './upvote.module.css'
 import { gql, useMutation } from '@apollo/client'
-import FundError, { isInsufficientFundsError } from './fund-error'
 import ActionTooltip from './action-tooltip'
 import ItemAct from './item-act'
 import { useMe } from './me'
@@ -13,6 +12,7 @@ import Popover from 'react-bootstrap/Popover'
 import { useShowModal } from './modal'
 import { LightningConsumer, useLightning } from './lightning'
 import { numWithUnits } from '../lib/format'
+import { InvoiceModal, payOrLoginError } from './invoice'
 
 const getColor = (meSats) => {
   if (!meSats || meSats <= 10) {
@@ -110,8 +110,8 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
 
   const [act] = useMutation(
     gql`
-      mutation act($id: ID!, $sats: Int!, $invoiceHash: String, $invoiceHmac: String) {
-        act(id: $id, sats: $sats, invoiceHash: $invoiceHash, invoiceHmac: $invoiceHmac) {
+      mutation act($id: ID!, $sats: Int!, $hash: String, $hmac: String) {
+        act(id: $id, sats: $sats, hash: $hash, hmac: $hmac) {
           sats
         }
       }`, {
@@ -177,14 +177,13 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
             }
           })
         } catch (error) {
-          if (isInsufficientFundsError(error)) {
+          if (payOrLoginError(error)) {
             showModal(onClose => {
               return (
-                <FundError
-                  onClose={onClose}
+                <InvoiceModal
                   amount={pendingSats}
-                  onPayment={async (_, invoiceHash) => {
-                    await act({ variables: { ...variables, invoiceHash } })
+                  onPayment={async ({ hash, hmac }) => {
+                    await act({ variables: { ...variables, hash, hmac } })
                     strike()
                   }}
                 />

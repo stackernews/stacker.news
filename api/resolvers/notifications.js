@@ -71,32 +71,42 @@ export default {
 
       const queries = []
 
-      queries.push(
-        `(SELECT DISTINCT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL::BIGINT as "earnedSats",
-            'Reply' AS type
-            FROM "Item"
-            JOIN "Item" p ON ${meFull.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
-            WHERE p."userId" = $1 AND "Item"."userId" <> $1 AND "Item".created_at <= $2
-            ${await filterClause(me, models)}
-            ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT}+$3)
-          UNION DISTINCT
-          (SELECT DISTINCT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL::BIGINT as "earnedSats",
-            'Reply' AS type
-            FROM "ThreadSubscription"
-            JOIN "Item" p ON "ThreadSubscription"."itemId" = p.id
-            JOIN "Item" ON ${meFull.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
-            WHERE
-              "ThreadSubscription"."userId" = $1
-              AND "Item"."userId" <> $1 AND "Item".created_at <= $2
-            ${await filterClause(me, models)}
-            ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT}+$3)`
+      const itemDrivenQueries = []
 
+      // Replies
+      itemDrivenQueries.push(
+        `SELECT DISTINCT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL::BIGINT as "earnedSats",
+        'Reply' AS type
+        FROM "Item"
+        JOIN "Item" p ON ${meFull.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
+        WHERE p."userId" = $1 AND "Item"."userId" <> $1 AND "Item".created_at <= $2
+        ${await filterClause(me, models)}
+        ORDER BY "sortTime" DESC
+        LIMIT ${LIMIT}+$3`
       )
 
-      queries.push(
-        `(SELECT DISTINCT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL::BIGINT as "earnedSats",
+      // Thread subscriptions
+      itemDrivenQueries.push(
+        `SELECT DISTINCT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL::BIGINT as "earnedSats",
+        'Reply' AS type
+        FROM "ThreadSubscription"
+        JOIN "Item" p ON "ThreadSubscription"."itemId" = p.id
+        JOIN "Item" ON ${meFull.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
+        WHERE
+          "ThreadSubscription"."userId" = $1
+          AND "Item"."userId" <> $1 AND "Item".created_at <= $2
+          -- Only show items that have been created since subscribing to the thread
+          AND "Item".created_at >= "ThreadSubscription".created_at
+          -- don't notify on posts
+          AND "Item"."parentId" IS NOT NULL
+        ${await filterClause(me, models)}
+        ORDER BY "sortTime" DESC
+        LIMIT ${LIMIT}+$3`
+      )
+
+      // User subscriptions
+      itemDrivenQueries.push(
+        `SELECT DISTINCT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL::BIGINT as "earnedSats",
         'FollowActivity' AS type
         FROM "Item"
         JOIN "UserSubscription" ON "Item"."userId" = "UserSubscription"."followeeId"
@@ -106,25 +116,40 @@ export default {
           AND "Item".created_at >= "UserSubscription".created_at
         ${await filterClause(me, models)}
         ORDER BY "sortTime" DESC
-        LIMIT ${LIMIT}+$3)`
+        LIMIT ${LIMIT}+$3`
       )
 
+      // mentions
       if (meFull.noteMentions) {
-        queries.push(
-          `(SELECT "Item".id::TEXT, "Mention".created_at AS "sortTime", NULL as "earnedSats",
+        itemDrivenQueries.push(
+          `SELECT "Item".id::TEXT, "Mention".created_at AS "sortTime", NULL as "earnedSats",
             'Mention' AS type
             FROM "Mention"
             JOIN "Item" ON "Mention"."itemId" = "Item".id
-            LEFT JOIN "Item" p ON "Item"."parentId" = p.id
             WHERE "Mention"."userId" = $1
             AND "Mention".created_at <= $2
             AND "Item"."userId" <> $1
-            AND (p."userId" IS NULL OR p."userId" <> $1)
             ${await filterClause(me, models)}
             ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT}+$3)`
+            LIMIT ${LIMIT}+$3`
         )
       }
+      // Inner union to de-dupe item-driven notifications
+      queries.push(
+        // Only record per item ID
+          `(SELECT DISTINCT ON (id) *
+          FROM (
+            SELECT *
+            FROM (
+              ${itemDrivenQueries.map(q => `(${q})`).join(' UNION ALL ')}
+            ) as inner_union
+            ORDER BY id ASC, CASE
+              WHEN type = 'Mention' THEN 1
+              WHEN type = 'Reply' THEN 2
+              WHEN type = 'FollowActivity' THEN 3
+            END ASC
+          ) as ordered_unioned)`
+      )
 
       queries.push(
         `(SELECT "Item".id::text, "Item"."statusUpdatedAt" AS "sortTime", NULL as "earnedSats",
@@ -153,6 +178,23 @@ export default {
         )
       }
 
+      if (meFull.noteForwardedSats) {
+        queries.push(
+          `(SELECT "Item".id::TEXT, MAX("ItemAct".created_at) AS "sortTime",
+            MAX("Item".msats / 1000 * "ItemForward".pct / 100) as "earnedSats", 'ForwardedVotification' AS type
+            FROM "Item"
+            JOIN "ItemAct" ON "ItemAct"."itemId" = "Item".id
+            JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id AND "ItemForward"."userId" = $1
+            WHERE "ItemAct"."userId" <> $1
+            AND "Item"."userId" <> $1
+            AND "ItemAct".created_at <= $2
+            AND "ItemAct".act IN ('TIP')
+            GROUP BY "Item".id
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT}+$3)`
+        )
+      }
+
       if (meFull.noteDeposits) {
         queries.push(
           `(SELECT "Invoice".id::text, "Invoice"."confirmedAt" AS "sortTime", FLOOR("msatsReceived" / 1000) as "earnedSats",
@@ -160,6 +202,7 @@ export default {
             FROM "Invoice"
             WHERE "Invoice"."userId" = $1
             AND "confirmedAt" IS NOT NULL
+            AND NOT "isHeld"
             AND created_at <= $2
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT}+$3)`
@@ -284,6 +327,9 @@ export default {
     __resolveType: async (n, args, { models }) => n.type
   },
   Votification: {
+    item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
+  },
+  ForwardedVotification: {
     item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
   },
   Reply: {

@@ -1,0 +1,12 @@
+.name {
+  display: flex;
+  flex: 1 1 60%;
+  height: fit-content;
+  flex-flow: column;
+}
+
+.percent {
+  display: flex;
+  flex: 0 1 fit-content;
+  height: fit-content;
+}

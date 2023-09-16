@@ -4,6 +4,7 @@ import InputGroup from 'react-bootstrap/InputGroup'
 import { BOOST_MIN, MAX_FORWARDS } from '../lib/constants'
 import Info from './info'
 import { numWithUnits } from '../lib/format'
+import styles from './adv-post-form.module.css'
 
 const EMPTY_FORWARD = { nym: '', pct: '' }
 
@@ -61,7 +62,7 @@ export default function AdvPostForm ({ edit }) {
                     name={`forward[${index}].nym`}
                     prepend={<InputGroup.Text>@</InputGroup.Text>}
                     showValid
-                    groupClassName='flex-grow-1 me-3 mb-0'
+                    groupClassName={`${styles.name} me-3 mb-0`}
                   />
                   <Input
                     name={`forward[${index}].pct`}
@@ -69,10 +70,8 @@ export default function AdvPostForm ({ edit }) {
                     step={5}
                     min={1}
                     max={100}
-                    style={{ minWidth: '3.5rem' }}
                     append={<InputGroup.Text className='text-monospace'>%</InputGroup.Text>}
-                    groupClassName='mb-0'
-                    inputGroupClassName='flex-nowrap'
+                    groupClassName={`${styles.percent} mb-0`}
                   />
                 </div>
               )

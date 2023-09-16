@@ -13,8 +13,9 @@ import { discussionSchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
 import { useCallback } from 'react'
-import { useInvoiceable } from './invoice'
 import { normalizeForwards } from '../lib/form'
+import { MAX_TITLE_LENGTH } from '../lib/constants'
+import { useMe } from './me'
 
 export function DiscussionForm ({
   item, sub, editThreshold, titleLabel = 'title',
@@ -23,31 +24,29 @@ export function DiscussionForm ({
 }) {
   const router = useRouter()
   const client = useApolloClient()
-  const schema = discussionSchema(client)
+  const me = useMe()
+  const schema = discussionSchema(client, me)
   // if Web Share Target API was used
   const shareTitle = router.query.title
 
-  // const me = useMe()
   const [upsertDiscussion] = useMutation(
     gql`
-      mutation upsertDiscussion($sub: String, $id: ID, $title: String!, $text: String, $boost: Int, $forward: [ItemForwardInput], $invoiceHash: String, $invoiceHmac: String) {
-        upsertDiscussion(sub: $sub, id: $id, title: $title, text: $text, boost: $boost, forward: $forward, invoiceHash: $invoiceHash, invoiceHmac: $invoiceHmac) {
+      mutation upsertDiscussion($sub: String, $id: ID, $title: String!, $text: String, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String) {
+        upsertDiscussion(sub: $sub, id: $id, title: $title, text: $text, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac) {
           id
         }
       }`
   )
 
-  const submitUpsertDiscussion = useCallback(
-    async (_, boost, values, invoiceHash, invoiceHmac) => {
+  const onSubmit = useCallback(
+    async ({ boost, ...values }) => {
       const { error } = await upsertDiscussion({
         variables: {
           sub: item?.subName || sub?.name,
           id: item?.id,
           boost: boost ? Number(boost) : undefined,
           ...values,
-          forward: normalizeForwards(values.forward),
-          invoiceHash,
-          invoiceHmac
+          forward: normalizeForwards(values.forward)
         }
       })
       if (error) {
@@ -60,9 +59,8 @@ export function DiscussionForm ({
         const prefix = sub?.name ? `/~${sub.name}` : ''
         await router.push(prefix + '/recent')
       }
-    }, [upsertDiscussion, router])
-
-  const invoiceableUpsertDiscussion = useInvoiceable(submitUpsertDiscussion)
+    }, [upsertDiscussion, router]
+  )
 
   const [getRelated, { data: relatedData }] = useLazyQuery(gql`
     ${ITEM_FIELDS}
@@ -87,9 +85,8 @@ export function DiscussionForm ({
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}
-      onSubmit={handleSubmit || (async ({ boost, cost, ...values }) => {
-        return invoiceableUpsertDiscussion(cost, boost, values)
-      })}
+      invoiceable
+      onSubmit={handleSubmit || onSubmit}
       storageKeyPrefix={item ? undefined : 'discussion'}
     >
       {children}
@@ -106,6 +103,7 @@ export function DiscussionForm ({
             })
           }
         }}
+        maxLength={MAX_TITLE_LENGTH}
       />
       <MarkdownInput
         topLevel

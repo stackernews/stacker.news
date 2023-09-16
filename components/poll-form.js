@@ -3,7 +3,7 @@ import { useRouter } from 'next/router'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
-import { MAX_POLL_NUM_CHOICES } from '../lib/constants'
+import { MAX_POLL_CHOICE_LENGTH, MAX_POLL_NUM_CHOICES, MAX_TITLE_LENGTH } from '../lib/constants'
 import FeeButton, { EditFeeButton } from './fee-button'
 import Delete from './delete'
 import Button from 'react-bootstrap/Button'
@@ -11,27 +11,28 @@ import { pollSchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
 import { useCallback } from 'react'
-import { useInvoiceable } from './invoice'
 import { normalizeForwards } from '../lib/form'
+import { useMe } from './me'
 
 export function PollForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
   const client = useApolloClient()
-  const schema = pollSchema(client)
+  const me = useMe()
+  const schema = pollSchema(client, me)
 
   const [upsertPoll] = useMutation(
     gql`
       mutation upsertPoll($sub: String, $id: ID, $title: String!, $text: String,
-        $options: [String!]!, $boost: Int, $forward: [ItemForwardInput], $invoiceHash: String, $invoiceHmac: String) {
+        $options: [String!]!, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String) {
         upsertPoll(sub: $sub, id: $id, title: $title, text: $text,
-          options: $options, boost: $boost, forward: $forward, invoiceHash: $invoiceHash, invoiceHmac: $invoiceHmac) {
+          options: $options, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac) {
           id
         }
       }`
   )
 
-  const submitUpsertPoll = useCallback(
-    async (_, boost, title, options, values, invoiceHash, invoiceHmac) => {
+  const onSubmit = useCallback(
+    async ({ boost, title, options, ...values }) => {
       const optionsFiltered = options.slice(initialOptions?.length).filter(word => word.trim().length > 0)
       const { error } = await upsertPoll({
         variables: {
@@ -41,9 +42,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
           title: title.trim(),
           options: optionsFiltered,
           ...values,
-          forward: normalizeForwards(values.forward),
-          invoiceHash,
-          invoiceHmac
+          forward: normalizeForwards(values.forward)
         }
       })
       if (error) {
@@ -55,9 +54,8 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         const prefix = sub?.name ? `/~${sub.name}` : ''
         await router.push(prefix + '/recent')
       }
-    }, [upsertPoll, router])
-
-  const invoiceableUpsertPoll = useInvoiceable(submitUpsertPoll)
+    }, [upsertPoll, router]
+  )
 
   const initialOptions = item?.poll?.options.map(i => i.option)
 
@@ -71,9 +69,8 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}
-      onSubmit={async ({ boost, title, options, cost, ...values }) => {
-        return invoiceableUpsertPoll(cost, boost, title, options, values)
-      }}
+      invoiceable
+      onSubmit={onSubmit}
       storageKeyPrefix={item ? undefined : 'poll'}
     >
       {children}
@@ -81,6 +78,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         label='title'
         name='title'
         required
+        maxLength={MAX_TITLE_LENGTH}
       />
       <MarkdownInput
         topLevel
@@ -97,6 +95,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         hint={editThreshold
           ? <div className='text-muted fw-bold'><Countdown date={editThreshold} /></div>
           : null}
+        maxLength={MAX_POLL_CHOICE_LENGTH}
       />
       <AdvPostForm edit={!!item} />
       <div className='mt-3'>

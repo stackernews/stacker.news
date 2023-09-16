@@ -9,9 +9,10 @@ export default gql`
   }
 
   extend type Mutation {
-    createInvoice(amount: Int!, expireSecs: Int): Invoice!
+    createInvoice(amount: Int!, expireSecs: Int, hodlInvoice: Boolean): Invoice!
     createWithdrawl(invoice: String!, maxFee: Int!): Withdrawl!
     sendToLnAddr(addr: String!, amount: Int!, maxFee: Int!): Withdrawl!
+    cancelInvoice(hash: String!, hmac: String!): Invoice!
   }
 
   type Invoice {
@@ -26,6 +27,7 @@ export default gql`
     satsRequested: Int!
     nostr: JSONObject
     hmac: String
+    isHeld: Boolean
   }
 
   type Withdrawl {

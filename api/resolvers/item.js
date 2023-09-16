@@ -18,6 +18,7 @@ import { proxyImages } from './imgproxy'
 import { defaultCommentSort } from '../../lib/item'
 import { createHmac } from './wallet'
 import { SELECT } from './item-common'
+import { settleHodlInvoice } from 'ln-service'
 
 export async function commentFilterClause (me, models) {
   let clause = ` AND ("Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}`
@@ -53,15 +54,30 @@ async function checkInvoice (models, hash, hmac, fee) {
       user: true
     }
   })
+
   if (!invoice) {
     throw new GraphQLError('invoice not found', { extensions: { code: 'BAD_INPUT' } })
   }
+
+  const expired = new Date(invoice.expiresAt) <= new Date()
+  if (expired) {
+    throw new GraphQLError('invoice expired', { extensions: { code: 'BAD_INPUT' } })
+  }
+  if (invoice.confirmedAt) {
+    throw new GraphQLError('invoice already used', { extensions: { code: 'BAD_INPUT' } })
+  }
+
+  if (invoice.cancelled) {
+    throw new GraphQLError('invoice was canceled', { extensions: { code: 'BAD_INPUT' } })
+  }
+
   if (!invoice.msatsReceived) {
     throw new GraphQLError('invoice was not paid', { extensions: { code: 'BAD_INPUT' } })
   }
-  if (msatsToSats(invoice.msatsReceived) < fee) {
+  if (fee && msatsToSats(invoice.msatsReceived) < fee) {
     throw new GraphQLError('invoice amount too low', { extensions: { code: 'BAD_INPUT' } })
   }
+
   return invoice
 }
 
@@ -131,7 +147,7 @@ const orderByClause = async (by, me, models, type) => {
       return 'ORDER BY "Item".ncomments DESC'
     case 'sats':
       return 'ORDER BY "Item".msats DESC'
-    case 'votes':
+    case 'zaprank':
       return await topOrderByWeightedSats(me, models)
     default:
       return `ORDER BY ${type === 'bookmarks' ? '"bookmarkCreatedAt"' : '"Item".created_at'} DESC`
@@ -395,10 +411,10 @@ export default {
               ${typeClause(type)}
               ${whenClause(when, type)}
               ${await filterClause(me, models, type)}
-              ${await orderByClause(by || 'votes', me, models, type)}
+              ${await orderByClause(by || 'zaprank', me, models, type)}
               OFFSET $2
               LIMIT $3`,
-            orderBy: await orderByClause(by || 'votes', me, models, type)
+            orderBy: await orderByClause(by || 'zaprank', me, models, type)
           }, decodedCursor.time, decodedCursor.offset, limit, ...subArr)
           break
         default:
@@ -605,34 +621,34 @@ export default {
 
       return await models.item.update({ where: { id: Number(id) }, data })
     },
-    upsertLink: async (parent, { id, invoiceHash, invoiceHmac, ...item }, { me, models, lnd }) => {
-      await ssValidate(linkSchema, item, models)
+    upsertLink: async (parent, { id, hash, hmac, ...item }, { me, models, lnd }) => {
+      await ssValidate(linkSchema, item, models, me)
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models })
       } else {
-        return await createItem(parent, item, { me, models, lnd, invoiceHash, invoiceHmac })
+        return await createItem(parent, item, { me, models, lnd, hash, hmac })
       }
     },
-    upsertDiscussion: async (parent, { id, invoiceHash, invoiceHmac, ...item }, { me, models, lnd }) => {
-      await ssValidate(discussionSchema, item, models)
+    upsertDiscussion: async (parent, { id, hash, hmac, ...item }, { me, models, lnd }) => {
+      await ssValidate(discussionSchema, item, models, me)
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models })
       } else {
-        return await createItem(parent, item, { me, models, lnd, invoiceHash, invoiceHmac })
+        return await createItem(parent, item, { me, models, lnd, hash, hmac })
       }
     },
-    upsertBounty: async (parent, { id, invoiceHash, invoiceHmac, ...item }, { me, models, lnd }) => {
-      await ssValidate(bountySchema, item, models)
+    upsertBounty: async (parent, { id, hash, hmac, ...item }, { me, models, lnd }) => {
+      await ssValidate(bountySchema, item, models, me)
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models })
       } else {
-        return await createItem(parent, item, { me, models, lnd, invoiceHash, invoiceHmac })
+        return await createItem(parent, item, { me, models, lnd, hash, hmac })
       }
     },
-    upsertPoll: async (parent, { id, invoiceHash, invoiceHmac, ...item }, { me, models, lnd }) => {
+    upsertPoll: async (parent, { id, hash, hmac, ...item }, { me, models, lnd }) => {
       const optionCount = id
         ? await models.pollOption.count({
           where: {
@@ -641,23 +657,23 @@ export default {
         })
         : 0
 
-      await ssValidate(pollSchema, item, models, optionCount)
+      await ssValidate(pollSchema, item, models, me, optionCount)
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models })
       } else {
         item.pollCost = item.pollCost || POLL_COST
-        return await createItem(parent, item, { me, models, lnd, invoiceHash, invoiceHmac })
+        return await createItem(parent, item, { me, models, lnd, hash, hmac })
       }
     },
-    upsertJob: async (parent, { id, ...item }, { me, models }) => {
+    upsertJob: async (parent, { id, hash, hmac, ...item }, { me, models, lnd }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in to create job', { extensions: { code: 'FORBIDDEN' } })
       }
 
       item.location = item.location?.toLowerCase() === 'remote' ? undefined : item.location
       await ssValidate(jobSchema, item, models)
-      if (item.logo) {
+      if (item.logo !== undefined) {
         item.uploadId = item.logo
         delete item.logo
       }
@@ -666,16 +682,16 @@ export default {
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models })
       } else {
-        return await createItem(parent, item, { me, models })
+        return await createItem(parent, item, { me, models, lnd, hash, hmac })
       }
     },
-    upsertComment: async (parent, { id, invoiceHash, invoiceHmac, ...item }, { me, models, lnd }) => {
+    upsertComment: async (parent, { id, hash, hmac, ...item }, { me, models, lnd }) => {
       await ssValidate(commentSchema, item)
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models })
       } else {
-        const rItem = await createItem(parent, item, { me, models, lnd, invoiceHash, invoiceHmac })
+        const rItem = await createItem(parent, item, { me, models, lnd, hash, hmac })
 
         const notify = async () => {
           const user = await models.user.findUnique({ where: { id: me?.id || ANON_USER_ID } })
@@ -696,30 +712,41 @@ export default {
         return rItem
       }
     },
-    pollVote: async (parent, { id }, { me, models }) => {
+    pollVote: async (parent, { id, hash, hmac }, { me, models }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
       }
 
-      await serialize(models,
-        models.$queryRawUnsafe(`${SELECT} FROM poll_vote($1::INTEGER, $2::INTEGER) AS "Item"`,
-          Number(id), Number(me.id)))
+      let invoice
+      if (hash) {
+        invoice = await checkInvoice(models, hash, hmac)
+      }
+
+      const trx = [
+        models.$queryRawUnsafe(`${SELECT} FROM poll_vote($1::INTEGER, $2::INTEGER) AS "Item"`, Number(id), Number(me.id))
+      ]
+      if (invoice) {
+        trx.unshift(models.$queryRaw`UPDATE users SET msats = msats + ${invoice.msatsReceived} WHERE id = ${invoice.user.id}`)
+        trx.push(models.invoice.update({ where: { hash: invoice.hash }, data: { confirmedAt: new Date() } }))
+      }
+
+      await serialize(models, ...trx)
 
       return id
     },
-    act: async (parent, { id, sats, invoiceHash, invoiceHmac }, { me, models }) => {
+    act: async (parent, { id, sats, hash, hmac }, { me, models, lnd }) => {
       // need to make sure we are logged in
-      if (!me && !invoiceHash) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+      if (!me && !hash) {
+        throw new GraphQLError('you must be logged in or pay', { extensions: { code: 'FORBIDDEN' } })
       }
 
       await ssValidate(amountSchema, { amount: sats })
 
       let user = me
       let invoice
-      if (!me && invoiceHash) {
-        invoice = await checkInvoice(models, invoiceHash, invoiceHmac, sats)
-        user = invoice.user
+      if (hash) {
+        invoice = await checkInvoice(models, hash, hmac, sats)
+        if (!me) user = invoice.user
       }
 
       // disallow self tips except anons
@@ -739,14 +766,18 @@ export default {
         throw new GraphQLError('cannot zap a post for which you are forwarded zaps', { extensions: { code: 'BAD_INPUT' } })
       }
 
-      const calls = [
+      const trx = [
         models.$queryRaw`SELECT item_act(${Number(id)}::INTEGER, ${user.id}::INTEGER, 'TIP', ${Number(sats)}::INTEGER)`
       ]
       if (invoice) {
-        calls.push(models.invoice.delete({ where: { hash: invoice.hash } }))
+        trx.unshift(models.$queryRaw`UPDATE users SET msats = msats + ${invoice.msatsReceived} WHERE id = ${invoice.user.id}`)
+        trx.push(models.invoice.update({ where: { hash: invoice.hash }, data: { confirmedAt: new Date() } }))
       }
 
-      const [{ item_act: vote }] = await serialize(models, ...calls)
+      const query = await serialize(models, ...trx)
+      const { item_act: vote } = trx.length > 1 ? query[1][0] : query[0]
+
+      if (invoice?.isHeld) await settleHodlInvoice({ secret: invoice.preimage, lnd })
 
       const notify = async () => {
         try {
@@ -782,6 +813,16 @@ export default {
             item: updatedItem,
             tag: `TIP-${updatedItem.id}`
           })
+
+          // send push notifications to forwarded recipients
+          if (mappedForwards.length) {
+            await Promise.allSettled(mappedForwards.map(forward => sendUserNotification(forward.user.id, {
+              title: `you were forwarded ${numWithUnits(msatsToSats(updatedItem.msats) * forward.pct / 100)}`,
+              body: updatedItem.title ?? updatedItem.text,
+              item: updatedItem,
+              tag: `FORWARDEDTIP-${updatedItem.id}`
+            })))
+          }
         } catch (err) {
           console.error(err)
         }
@@ -794,10 +835,15 @@ export default {
         sats
       }
     },
-    dontLikeThis: async (parent, { id }, { me, models }) => {
+    dontLikeThis: async (parent, { id, sats, hash, hmac }, { me, models }) => {
       // need to make sure we are logged in
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+      }
+
+      let invoice
+      if (hash) {
+        invoice = await checkInvoice(models, hash, hmac, DONT_LIKE_THIS_COST)
       }
 
       // disallow self down votes
@@ -809,8 +855,16 @@ export default {
         throw new GraphQLError('cannot downvote your self', { extensions: { code: 'BAD_INPUT' } })
       }
 
-      await serialize(models, models.$queryRaw`SELECT item_act(${Number(id)}::INTEGER,
-        ${me.id}::INTEGER, 'DONT_LIKE_THIS', ${DONT_LIKE_THIS_COST}::INTEGER)`)
+      const trx = [
+        models.$queryRaw`SELECT item_act(${Number(id)}::INTEGER,
+        ${me.id}::INTEGER, 'DONT_LIKE_THIS', ${sats || DONT_LIKE_THIS_COST}::INTEGER)`
+      ]
+      if (invoice) {
+        trx.unshift(models.$queryRaw`UPDATE users SET msats = msats + ${invoice.msatsReceived} WHERE id = ${invoice.user.id}`)
+        trx.push(models.invoice.update({ where: { hash: invoice.hash }, data: { confirmedAt: new Date() } }))
+      }
+
+      await serialize(models, ...trx)
 
       return true
     }
@@ -1099,24 +1153,27 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
   return item
 }
 
-export const createItem = async (parent, { forward, options, ...item }, { me, models, lnd, invoiceHash, invoiceHmac }) => {
-  let spamInterval = ITEM_SPAM_INTERVAL
-  const trx = []
+export const createItem = async (parent, { forward, options, ...item }, { me, models, lnd, hash, hmac }) => {
+  const spamInterval = me ? ITEM_SPAM_INTERVAL : ANON_ITEM_SPAM_INTERVAL
 
   // rename to match column name
   item.subName = item.sub
   delete item.sub
 
+  if (!me && !hash) {
+    throw new GraphQLError('you must be logged in or pay', { extensions: { code: 'FORBIDDEN' } })
+  }
+  let invoice
+  if (hash) {
+    // if we are logged in, we don't compare the invoice amount with the fee
+    // since it's not a fixed amount that we could use here.
+    // we rely on the query telling us if the balance is too low
+    const fee = !me ? (item.parentId ? ANON_COMMENT_FEE : ANON_POST_FEE) : undefined
+    invoice = await checkInvoice(models, hash, hmac, fee)
+    item.userId = invoice.user.id
+  }
   if (me) {
     item.userId = Number(me.id)
-  } else {
-    if (!invoiceHash) {
-      throw new GraphQLError('you must be logged in or pay', { extensions: { code: 'FORBIDDEN' } })
-    }
-    const invoice = await checkInvoice(models, invoiceHash, invoiceHmac, item.parentId ? ANON_COMMENT_FEE : ANON_POST_FEE)
-    item.userId = invoice.user.id
-    spamInterval = ANON_ITEM_SPAM_INTERVAL
-    trx.push(models.invoice.delete({ where: { hash: invoiceHash } }))
   }
 
   const fwdUsers = await getForwardUsers(models, forward)
@@ -1129,12 +1186,19 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
     item.url = await proxyImages(item.url)
   }
 
-  const [result] = await serialize(
-    models,
+  const trx = [
     models.$queryRawUnsafe(`${SELECT} FROM create_item($1::JSONB, $2::JSONB, $3::JSONB, '${spamInterval}'::INTERVAL) AS "Item"`,
-      JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options)),
-    ...trx)
-  item = Array.isArray(result) ? result[0] : result
+      JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options))
+  ]
+  if (invoice) {
+    trx.unshift(models.$queryRaw`UPDATE users SET msats = msats + ${invoice.msatsReceived} WHERE id = ${invoice.user.id}`)
+    trx.push(models.invoice.update({ where: { hash: invoice.hash }, data: { confirmedAt: new Date() } }))
+  }
+
+  const query = await serialize(models, ...trx)
+  item = trx.length > 1 ? query[1][0] : query[0]
+
+  if (invoice?.isHeld) await settleHodlInvoice({ secret: invoice.preimage, lnd })
 
   await createMentions(item, models)
 
@@ -1151,7 +1215,7 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
       const isPost = !!item.title
       await Promise.allSettled(userSubs.map(({ followerId, followee }) => sendUserNotification(followerId, {
         title: `@${followee.name} ${isPost ? 'created a post' : 'replied to a post'}`,
-        body: item.text,
+        body: isPost ? item.title : item.text,
         item,
         tag: 'FOLLOW'
       })))

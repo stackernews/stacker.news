@@ -5,38 +5,38 @@ import { gql } from 'graphql-tag'
 import { numWithUnits } from '../lib/format'
 import AccordianItem from './accordian-item'
 import Qr, { QrSkeleton } from './qr'
-import { CopyInput } from './form'
 import { INVOICE } from '../fragments/wallet'
 import InvoiceStatus from './invoice-status'
 import { useMe } from './me'
 import { useShowModal } from './modal'
 import { sleep } from '../lib/time'
-import FundError, { isInsufficientFundsError } from './fund-error'
-import { usePaymentTokens } from './payment-tokens'
+import Countdown from './countdown'
 
-export function Invoice ({ invoice, onConfirmation, successVerb }) {
+export function Invoice ({ invoice, onPayment, info, successVerb }) {
+  const [expired, setExpired] = useState(new Date(invoice.expiredAt) <= new Date())
+
   let variant = 'default'
   let status = 'waiting for you'
   let webLn = true
-  if (invoice.confirmedAt) {
+  if (invoice.confirmedAt || (invoice.isHeld && invoice.satsReceived && !expired)) {
     variant = 'confirmed'
     status = `${numWithUnits(invoice.satsReceived, { abbreviate: false })} ${successVerb || 'deposited'}`
+    webLn = false
+  } else if (expired) {
+    variant = 'failed'
+    status = 'expired'
     webLn = false
   } else if (invoice.cancelled) {
     variant = 'failed'
     status = 'cancelled'
     webLn = false
-  } else if (invoice.expiresAt <= new Date()) {
-    variant = 'failed'
-    status = 'expired'
-    webLn = false
   }
 
   useEffect(() => {
-    if (invoice.confirmedAt) {
-      onConfirmation?.(invoice)
+    if (invoice.confirmedAt || (invoice.isHeld && invoice.satsReceived)) {
+      onPayment?.(invoice)
     }
-  }, [invoice.confirmedAt])
+  }, [invoice.confirmedAt, invoice.isHeld, invoice.satsReceived])
 
   const { nostr } = invoice
 
@@ -47,6 +47,14 @@ export function Invoice ({ invoice, onConfirmation, successVerb }) {
         description={numWithUnits(invoice.satsRequested, { abbreviate: false })}
         statusVariant={variant} status={status}
       />
+      <div className='text-muted text-center'>
+        <Countdown
+          date={invoice.expiresAt} onComplete={() => {
+            setExpired(true)
+          }}
+        />
+      </div>
+      {info && <div className='text-muted fst-italic text-center'>{info}</div>}
       <div className='w-100'>
         {nostr
           ? <AccordianItem
@@ -65,55 +73,18 @@ export function Invoice ({ invoice, onConfirmation, successVerb }) {
   )
 }
 
-const Contacts = ({ invoiceHash, invoiceHmac }) => {
-  const subject = `Support request for payment hash: ${invoiceHash}`
-  const body = 'Hi, I successfully paid for <insert action> but the action did not work.'
-  return (
-    <div className='d-flex flex-column justify-content-center mt-2'>
-      <div className='w-100'>
-        <CopyInput
-          label={<>payment token <small className='text-danger fw-normal ms-2'>save this</small></>}
-          type='text' placeholder={invoiceHash + '|' + invoiceHmac} readOnly noForm
-        />
-      </div>
-      <div className='d-flex flex-row justify-content-center'>
-        <a
-          href={`mailto:kk@stacker.news?subject=${subject}&body=${body}`} className='nav-link p-0 d-inline-flex'
-          target='_blank' rel='noreferrer'
-        >
-          e-mail
-        </a>
-        <span className='mx-2 text-muted'> \ </span>
-        <a
-          href='https://tribes.sphinx.chat/t/stackerzchat' className='nav-link p-0 d-inline-flex'
-          target='_blank' rel='noreferrer'
-        >
-          sphinx
-        </a>
-        <span className='mx-2 text-muted'> \ </span>
-        <a
-          href='https://t.me/k00bideh' className='nav-link p-0 d-inline-flex'
-          target='_blank' rel='noreferrer'
-        >
-          telegram
-        </a>
-        <span className='mx-2 text-muted'> \ </span>
-        <a
-          href='https://simplex.chat/contact#/?v=1-2&smp=smp%3A%2F%2F6iIcWT_dF2zN_w5xzZEY7HI2Prbh3ldP07YTyDexPjE%3D%40smp10.simplex.im%2FebLYaEFGjsD3uK4fpE326c5QI1RZSxau%23%2F%3Fv%3D1-2%26dh%3DMCowBQYDK2VuAyEAV086Oj5yCsavWzIbRMCVuF6jq793Tt__rWvCec__viI%253D%26srv%3Drb2pbttocvnbrngnwziclp2f4ckjq65kebafws6g4hy22cdaiv5dwjqd.onion&data=%7B%22type%22%3A%22group%22%2C%22groupLinkId%22%3A%22cZwSGoQhyOUulzp7rwCdWQ%3D%3D%22%7D' className='nav-link p-0 d-inline-flex'
-          target='_blank' rel='noreferrer'
-        >
-          simplex
-        </a>
-      </div>
-    </div>
-  )
-}
-
-const ActionInvoice = ({ id, hash, hmac, errorCount, repeat, ...props }) => {
+const MutationInvoice = ({ id, hash, hmac, errorCount, repeat, onClose, expiresAt, ...props }) => {
   const { data, loading, error } = useQuery(INVOICE, {
     pollInterval: 1000,
     variables: { id }
   })
+  const [cancelInvoice] = useMutation(gql`
+    mutation cancelInvoice($hash: String!, $hmac: String!) {
+      cancelInvoice(hash: $hash, hmac: $hmac) {
+        id
+      }
+    }
+  `)
   if (error) {
     if (error.message?.includes('invoice not found')) {
       return
@@ -126,8 +97,9 @@ const ActionInvoice = ({ id, hash, hmac, errorCount, repeat, ...props }) => {
 
   let errorStatus = 'Something went wrong trying to perform the action after payment.'
   if (errorCount > 1) {
-    errorStatus = 'Something still went wrong.\nPlease contact admins for support or to request a refund.'
+    errorStatus = 'Something still went wrong.\nYou can retry or cancel the invoice to return your funds.'
   }
+
   return (
     <>
       <Invoice invoice={data.invoice} {...props} />
@@ -137,8 +109,17 @@ const ActionInvoice = ({ id, hash, hmac, errorCount, repeat, ...props }) => {
             <div className='my-3'>
               <InvoiceStatus variant='failed' status={errorStatus} />
             </div>
-            <div className='d-flex flex-row mt-3 justify-content-center'><Button variant='info' onClick={repeat}>Retry</Button></div>
-            <Contacts invoiceHash={hash} invoiceHmac={hmac} />
+            <div className='d-flex flex-row mt-3 justify-content-center'>
+              <Button className='mx-1' variant='info' onClick={repeat}>Retry</Button>
+              <Button
+                className='mx-1'
+                variant='danger' onClick={async () => {
+                  await cancelInvoice({ variables: { hash, hmac } })
+                  onClose()
+                }}
+              >Cancel
+              </Button>
+            </div>
           </>
           )
         : null}
@@ -148,102 +129,125 @@ const ActionInvoice = ({ id, hash, hmac, errorCount, repeat, ...props }) => {
 
 const defaultOptions = {
   forceInvoice: false,
-  requireSession: false
+  requireSession: false,
+  callback: null, // (formValues) => void
+  replaceModal: false
 }
-export const useInvoiceable = (fn, options = defaultOptions) => {
+export const useInvoiceable = (onSubmit, options = defaultOptions) => {
   const me = useMe()
   const [createInvoice, { data }] = useMutation(gql`
     mutation createInvoice($amount: Int!) {
-      createInvoice(amount: $amount, expireSecs: 1800) {
+      createInvoice(amount: $amount, hodlInvoice: true, expireSecs: 180) {
         id
         hash
         hmac
+        expiresAt
       }
     }`)
   const showModal = useShowModal()
-  const [fnArgs, setFnArgs] = useState()
-  const { addPaymentToken, removePaymentToken } = usePaymentTokens()
+  const [formValues, setFormValues] = useState()
+  const [submitArgs, setSubmitArgs] = useState()
 
-  // fix for bug where `showModal` runs the code for two modals and thus executes `onConfirmation` twice
   let errorCount = 0
-  const onConfirmation = useCallback(
+  const onPayment = useCallback(
     (onClose, hmac) => {
-      return async ({ id, satsReceived, hash }) => {
-        addPaymentToken(hash, hmac, satsReceived)
+      return async ({ id, satsReceived, expiresAt, hash }) => {
         await sleep(500)
-        const repeat = () =>
-          fn(satsReceived, ...fnArgs, hash, hmac)
+        const repeat = () => {
+          onClose()
+          // call onSubmit handler and pass invoice data
+          onSubmit({ satsReceived, hash, hmac, ...formValues }, ...submitArgs)
             .then(() => {
-              removePaymentToken(hash, hmac)
+              options?.callback?.(formValues)
             })
-            .then(onClose)
             .catch((error) => {
+            // if error happened after payment, show repeat and cancel options
+            // by passing `errorCount` and `repeat`
               console.error(error)
               errorCount++
-              onClose()
               showModal(onClose => (
-                <ActionInvoice
+                <MutationInvoice
                   id={id}
                   hash={hash}
                   hmac={hmac}
-                  onConfirmation={onConfirmation(onClose, hmac)}
+                  expiresAt={expiresAt}
+                  onClose={onClose}
+                  onPayment={onPayment(onClose, hmac)}
                   successVerb='received'
                   errorCount={errorCount}
                   repeat={repeat}
                 />
               ), { keepOpen: true })
             })
-        // prevents infinite loop of calling `onConfirmation`
+        }
+        // prevents infinite loop of calling `onPayment`
         if (errorCount === 0) await repeat()
       }
-    }, [fn, fnArgs]
+    }, [onSubmit, submitArgs]
   )
 
   const invoice = data?.createInvoice
   useEffect(() => {
     if (invoice) {
       showModal(onClose => (
-        <ActionInvoice
+        <MutationInvoice
           id={invoice.id}
           hash={invoice.hash}
           hmac={invoice.hmac}
-          onConfirmation={onConfirmation(onClose, invoice.hmac)}
+          expiresAt={invoice.expiresAt}
+          onClose={onClose}
+          onPayment={onPayment(onClose, invoice.hmac)}
           successVerb='received'
         />
-      ), { keepOpen: true }
+      ), { replaceModal: options.replaceModal, keepOpen: true }
       )
     }
   }, [invoice?.id])
 
-  const actionFn = useCallback(async (amount, ...args) => {
+  // this function will be called before the Form's onSubmit handler is called
+  // and the form must include `cost` or `amount` as a value
+  const onSubmitWrapper = useCallback(async (formValues, ...submitArgs) => {
+    let { cost, amount } = formValues
+    cost ??= amount
+
+    // action only allowed if logged in
     if (!me && options.requireSession) {
       throw new Error('you must be logged in')
     }
-    if (!amount || (me && !options.forceInvoice)) {
+
+    // if no cost is passed, just try the action first
+    if (!cost || (me && !options.forceInvoice)) {
       try {
-        return await fn(amount, ...args)
+        return await onSubmit(formValues, ...submitArgs)
       } catch (error) {
-        if (isInsufficientFundsError(error)) {
-          showModal(onClose => {
-            return (
-              <FundError
-                onClose={onClose}
-                amount={amount}
-                onPayment={async (_, invoiceHash, invoiceHmac) => { await fn(amount, ...args, invoiceHash, invoiceHmac) }}
-              />
-            )
-          })
-          return { keepLocalStorage: true }
+        if (!payOrLoginError(error)) {
+          throw error
         }
-        throw error
       }
     }
-    setFnArgs(args)
-    await createInvoice({ variables: { amount } })
+    setFormValues(formValues)
+    setSubmitArgs(submitArgs)
+    await createInvoice({ variables: { amount: cost } })
     // tell onSubmit handler that we want to keep local storage
     // even though the submit handler was "successful"
     return { keepLocalStorage: true }
-  }, [fn, setFnArgs, createInvoice])
+  }, [onSubmit, setFormValues, setSubmitArgs, createInvoice])
 
-  return actionFn
+  return onSubmitWrapper
+}
+
+export const InvoiceModal = ({ onPayment, amount }) => {
+  const createInvoice = useInvoiceable(onPayment, { replaceModal: true })
+
+  useEffect(() => {
+    createInvoice({ amount })
+  }, [])
+}
+
+export const payOrLoginError = (error) => {
+  const matches = ['insufficient funds', 'you must be logged in or pay']
+  if (Array.isArray(error)) {
+    return error.some(({ message }) => matches.some(m => message.includes(m)))
+  }
+  return matches.some(m => error.toString().includes(m))
 }

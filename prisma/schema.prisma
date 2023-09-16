@@ -39,6 +39,7 @@ model User {
   noteInvites         Boolean              @default(true)
   noteItemSats        Boolean              @default(true)
   noteMentions        Boolean              @default(true)
+  noteForwardedSats   Boolean              @default(true)
   lastCheckedJobs     DateTime?
   noteJobIndicator    Boolean              @default(true)
   photoId             Int?
@@ -50,6 +51,7 @@ model User {
   hideFromTopUsers    Boolean              @default(false)
   turboTipping        Boolean              @default(false)
   clickToLoadImg      Boolean              @default(false)
+  hideWalletBalance   Boolean              @default(false)
   referrerId          Int?
   nostrPubkey         String?
   nostrAuthPubkey     String?              @unique(map: "users.nostrAuthPubkey_unique")
@@ -87,6 +89,7 @@ model User {
   hideBookmarks       Boolean              @default(false)
   followers           UserSubscription[]   @relation("follower")
   followees           UserSubscription[]   @relation("followee")
+  hideWelcomeBanner   Boolean              @default(false)
   requestingCsv       Boolean              @default(false)
   csvStatus           CsvStatus            @default(NO_REQUEST)
 
@@ -422,6 +425,8 @@ model Invoice {
   updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at")
   userId         Int
   hash           String    @unique(map: "Invoice.hash_unique")
+  preimage       String?   @unique(map: "Invoice.preimage_unique")
+  isHeld         Boolean?
   bolt11         String
   expiresAt      DateTime
   confirmedAt    DateTime?

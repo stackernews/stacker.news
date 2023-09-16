@@ -67,6 +67,7 @@ export default function Settings ({ ssrData }) {
             noteInvites: settings?.noteInvites,
             noteJobIndicator: settings?.noteJobIndicator,
             noteCowboyHat: settings?.noteCowboyHat,
+            noteForwardedSats: settings?.noteForwardedSats,
             hideInvoiceDesc: settings?.hideInvoiceDesc,
             hideFromTopUsers: settings?.hideFromTopUsers,
             hideCowboyHat: settings?.hideCowboyHat,
@@ -75,7 +76,8 @@ export default function Settings ({ ssrData }) {
             greeterMode: settings?.greeterMode,
             nostrPubkey: settings?.nostrPubkey ? bech32encode(settings.nostrPubkey) : '',
             nostrRelays: settings?.nostrRelays?.length ? settings?.nostrRelays : [''],
-            hideBookmarks: settings?.hideBookmarks
+            hideBookmarks: settings?.hideBookmarks,
+            hideWalletBalance: settings?.hideWalletBalance
           }}
           schema={settingsSchema}
           onSubmit={async ({ tipDefault, nostrPubkey, nostrRelays, ...values }) => {
@@ -161,6 +163,11 @@ export default function Settings ({ ssrData }) {
             groupClassName='mb-0'
           />
           <Checkbox
+            label='I get forwarded sats from a post'
+            name='noteForwardedSats'
+            groupClassName='mb-0'
+          />
+          <Checkbox
             label='I get a daily airdrop'
             name='noteEarning'
             groupClassName='mb-0'
@@ -222,6 +229,11 @@ export default function Settings ({ ssrData }) {
           <Checkbox
             label={<>hide my cowboy hat</>}
             name='hideCowboyHat'
+            groupClassName='mb-0'
+          />
+          <Checkbox
+            label={<>hide my wallet balance</>}
+            name='hideWalletBalance'
             groupClassName='mb-0'
           />
           <Checkbox

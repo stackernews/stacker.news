@@ -34,4 +34,5 @@ export default async function handler (req, res) {
         })
       }
   })
+  fs.unlink(fname, () => console.log('error unlinking', fname))
 }

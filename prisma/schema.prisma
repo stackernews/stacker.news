@@ -90,6 +90,8 @@ model User {
   followers           UserSubscription[]   @relation("follower")
   followees           UserSubscription[]   @relation("followee")
   hideWelcomeBanner   Boolean              @default(false)
+  requestingCsv       Boolean              @default(false)
+  csvStatus           CsvStatus            @default(NO_REQUEST)
 
   @@index([createdAt], map: "users.created_at_index")
   @@index([inviteId], map: "users.inviteId_index")
@@ -601,4 +603,11 @@ enum WithdrawlStatus {
   ROUTE_NOT_FOUND
   CONFIRMED
   UNKNOWN_FAILURE
+}
+
+enum CsvStatus {
+  NO_REQUEST
+  IN_PROGRESS
+  DONE
+  FAILED
 }

@@ -1,4 +1,4 @@
-import { useQuery } from '@apollo/client'
+import { gql, useQuery, useMutation } from '@apollo/client'
 import Link from 'next/link'
 import { getGetServerSideProps } from '../api/ssrApollo'
 import Layout from '../components/layout'
@@ -12,9 +12,13 @@ import { Checkbox, Form } from '../components/form'
 import { useRouter } from 'next/router'
 import Item from '../components/item'
 import { CommentFlat } from '../components/comment'
-import { Fragment } from 'react'
 import ItemJob from '../components/item-job'
 import PageLoading from '../components/page-loading'
+import DownloadFile from '../svgs/file-download-line.svg'
+import { useMe } from '../components/me'
+import { CsvStatus } from '../lib/constants'
+import { useToast } from '../components/toast'
+import { useEffect, useState } from 'react'
 
 export const getServerSideProps = getGetServerSideProps({ query: WALLET_HISTORY, authRequired: true })
 
@@ -142,6 +146,7 @@ function Fact ({ fact }) {
 
 export default function Satistics ({ ssrData }) {
   const router = useRouter()
+  const toaster = useToast()
   const { data, fetchMore } = useQuery(WALLET_HISTORY, { variables: { inc: router.query.inc } })
   if (!data && !ssrData) return <PageLoading />
 
@@ -166,6 +171,53 @@ export default function Satistics ({ ssrData }) {
 
   const { walletHistory: { facts, cursor } } = data || ssrData
 
+  const me = useMe()
+  const csvBtnClass =
+    !me.requestingCsv
+      ? 'btn-grey-darkmode'
+      : me.csvStatus === CsvStatus.DONE
+        ? 'btn-success'
+        : 'btn-danger'
+  const iconClass =
+    me.requestingCsv && me.csvStatus === CsvStatus.IN_PROGRESS
+      ? styles.busyanim
+      : ''
+  const handleCsvClick = async (event) => {
+    if (me.requestingCsv && me.csvStatus === CsvStatus.DONE) {
+      toaster.success('downloading...')
+      return
+    }
+    event.preventDefault()
+    const request = !me.requestingCsv
+    toaster.success(request ? 'preparing...please wait' : 'canceled')
+    try {
+      await requestingCsv({ variables: { value: request } })
+    } catch (err) {
+      console.log(err)
+      toaster.danger('mutation failed')
+    }
+  }
+  const [requestingCsv] = useMutation(gql`
+    mutation requestingCsv($value: Boolean!) {
+      requestingCsv(value: $value)
+    }`, {
+    update (cache, { data: { requestingCsv } }) {
+      cache.modify({
+        id: `User:${me.id}`,
+        fields: {
+          requestingCsv: () => requestingCsv
+        }
+      })
+    }
+  })
+  const [btnState, setBtnState] = useState('')
+  useEffect(() => {
+    if (csvBtnClass !== btnState) {
+      setBtnState(csvBtnClass)
+      if (csvBtnClass === 'btn-success') toaster.success('ready to download')
+    }
+  }, [csvBtnClass])
+
   return (
     <Layout>
       <div className='mt-3'>
@@ -178,7 +230,7 @@ export default function Satistics ({ ssrData }) {
             spent: included('spent')
           }}
         >
-          <div className='d-flex justify-content-around flex-wrap'>
+          <div className={`${styles.options} d-flex justify-content-between flex-wrap`}>
             <Checkbox
               label='invoice' name='invoice' inline
               checked={included('invoice')}
@@ -199,6 +251,17 @@ export default function Satistics ({ ssrData }) {
               checked={included('spent')}
               handleChange={c => filterRoutePush('spent', c)}
             />
+            <div className='form-group undefined'>
+              <Link
+                className={`btn ${csvBtnClass} btn-sm px-3`}
+                onClick={handleCsvClick}
+                href={`/satistics.csv?inc=${router.query.inc}`}
+                download={`statistics-${router.query.inc?.split(',').join('-')}.csv`}
+                target='_blank' rel='noreferrer'
+              >
+                <DownloadFile className={`fill-white ${iconClass}`} height={18} weight={18} />
+              </Link>
+            </div>
           </div>
         </Form>
         <div className='py-2 px-0 mb-0 mw-100'>

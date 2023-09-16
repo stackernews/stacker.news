@@ -36,6 +36,8 @@ export const ME = gql`
       lastCheckedJobs
       hideWelcomeBanner
       hideWalletBalance
+      requestingCsv
+      csvStatus
     }
   }`
 

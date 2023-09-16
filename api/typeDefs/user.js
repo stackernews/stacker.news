@@ -1,4 +1,5 @@
 import { gql } from 'graphql-tag'
+import { CsvStatus } from '../../lib/constants'
 
 export default gql`
   extend type Query {
@@ -33,6 +34,7 @@ export default gql`
     linkUnverifiedEmail(email: String!): Boolean
     subscribeUser(id: ID): User
     hideWelcomeBanner: Boolean
+    requestingCsv(value: Boolean!): Boolean
   }
 
   type AuthMethods {
@@ -92,5 +94,11 @@ export default gql`
     lastCheckedJobs: String
     authMethods: AuthMethods!
     meSubscription: Boolean!
+    requestingCsv: Boolean!
+    csvStatus: CsvStatus!
+  }
+
+  enum CsvStatus {
+    ${Object.keys(CsvStatus).join(' ')}
   }
 `

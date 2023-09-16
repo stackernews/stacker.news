@@ -5,6 +5,7 @@ const { checkInvoice, checkWithdrawal } = require('./wallet')
 const { repin } = require('./repin')
 const { trust } = require('./trust')
 const { auction } = require('./auction')
+const { checkCsv } = require('./csv')
 const { earn } = require('./earn')
 const { ApolloClient, HttpLink, InMemoryCache } = require('@apollo/client')
 const { indexItem, indexAllItems } = require('./search')
@@ -62,6 +63,7 @@ async function work () {
   await boss.work('nip57', nip57(args))
   await boss.work('views', views(args))
   await boss.work('rankViews', rankViews(args))
+  await boss.work('csvQueue', checkCsv(args))
 
   console.log('working jobs')
 }

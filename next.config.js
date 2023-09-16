@@ -150,6 +150,10 @@ module.exports = withPlausibleProxy()({
         source: '/~:sub/:slug*',
         destination: '/~/:slug*?sub=:sub'
       },
+      {
+        source: '/satistics.csv',
+        destination: '/api/satistics'
+      },
       ...['/', '/post', '/search', '/rss', '/recent/:slug*', '/top/:slug*'].map(source => ({ source, destination: '/~' + source }))
     ]
   },

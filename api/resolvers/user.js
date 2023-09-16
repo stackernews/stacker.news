@@ -605,7 +605,7 @@ export default {
 
       await models.user.update({ where: { id: me.id }, data: { hideWelcomeBanner: true } })
       return true
-    }
+    },
     requestingCsv: async (parent, { value }, { me, models }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })

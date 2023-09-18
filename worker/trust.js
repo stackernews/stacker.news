@@ -24,7 +24,7 @@ const MAX_TRUST = 1
 const MIN_SUCCESS = 1
 // increasing disgree_mult increases distrust when there's disagreement
 // ... this cancels DISAGREE_MULT number of "successes" for every disagreement
-const DISAGREE_MULT = 10
+const DISAGREE_MULT = 100
 // https://en.wikipedia.org/wiki/Normal_distribution#Quantile_function
 const Z_CONFIDENCE = 6.109410204869 // 99.9999999% confidence
 const SEEDS = [616, 6030, 946, 4502]

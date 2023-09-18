@@ -4,6 +4,7 @@ import { useShowModal } from './modal'
 import { useToast } from './toast'
 import { InvoiceModal, payOrLoginError } from './invoice'
 import { DONT_LIKE_THIS_COST } from '../lib/constants'
+import ItemAct from './item-act'
 
 export default function DontLikeThisDropdownItem ({ id }) {
   const toaster = useToast()
@@ -11,8 +12,8 @@ export default function DontLikeThisDropdownItem ({ id }) {
 
   const [dontLikeThis] = useMutation(
     gql`
-      mutation dontLikeThis($id: ID!, $hash: String, $hmac: String) {
-        dontLikeThis(id: $id, hash: $hash, hmac: $hmac)
+      mutation dontLikeThis($id: ID!, $sats: Int, $hash: String, $hmac: String) {
+        dontLikeThis(id: $id, sats: $sats, hash: $hash, hmac: $hmac)
       }`, {
       update (cache) {
         cache.modify({
@@ -31,11 +32,13 @@ export default function DontLikeThisDropdownItem ({ id }) {
     <Dropdown.Item
       onClick={async () => {
         try {
-          await dontLikeThis({
-            variables: { id },
-            optimisticResponse: { dontLikeThis: true }
-          })
-          toaster.success('item flagged')
+          showModal(onClose =>
+            <ItemAct
+              onClose={() => {
+                onClose()
+                toaster.success('item flagged')
+              }} itemId={id} act={dontLikeThis} down
+            />)
         } catch (error) {
           console.error(error)
           if (payOrLoginError(error)) {

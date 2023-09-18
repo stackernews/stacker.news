@@ -150,7 +150,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
                 </div>)
               : (
                 <div className='px-3 py-1 d-inline-block bg-grey-darkmode rounded text-light'>
-                  {numWithUnits(item.bounty, { abbreviate: false })} bounty
+                  {numWithUnits(item.bounty, { abbreviate: false, format: true })} bounty
                 </div>)}
           </div>}
       </div>

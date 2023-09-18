@@ -136,7 +136,7 @@ export default function ItemInfo ({
           <Link href={`/items/${item.id}/ots`} className='text-reset dropdown-item'>
             ots timestamp
           </Link>}
-        {me && !item.meSats && !item.position && !item.meDontLike &&
+        {me && !item.meSats && !item.position &&
           !item.mine && !item.deletedAt && <DontLikeThisDropdownItem id={item.id} />}
         {item.mine && !item.position && !item.deletedAt &&
           <DeleteDropdownItem itemId={item.id} type={item.title ? 'post' : 'comment'} />}

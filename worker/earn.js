@@ -1,9 +1,9 @@
 const serialize = require('../api/resolvers/serial')
 const { ANON_USER_ID } = require('../lib/constants')
 
-// const ITEM_EACH_REWARD = 3.0
-// const UPVOTE_EACH_REWARD = 6.0
-const TOP_PERCENTILE = 21
+const ITEM_EACH_REWARD = 4.0
+const UPVOTE_EACH_REWARD = 4.0
+const TOP_PERCENTILE = 33
 const TOTAL_UPPER_BOUND_MSATS = 1000000000
 const REDUCE_REWARDS = [616, 6030, 946, 4502]
 
@@ -18,7 +18,8 @@ function earn ({ models }) {
         (SELECT ("ItemAct".msats - COALESCE("ReferralAct".msats, 0)) as msats
           FROM "ItemAct"
           LEFT JOIN "ReferralAct" ON "ReferralAct"."itemActId" = "ItemAct".id
-          WHERE date_trunc('day', "ItemAct".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = date_trunc('day', (now() - interval '1 day') AT TIME ZONE 'America/Chicago') AND "ItemAct".act <> 'TIP')
+          WHERE date_trunc('day', "ItemAct".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = date_trunc('day', (now() - interval '1 day') AT TIME ZONE 'America/Chicago')
+            AND "ItemAct".act <> 'TIP')
           UNION ALL
         (SELECT sats * 1000 as msats
           FROM "Donation"
@@ -118,9 +119,13 @@ function earn ({ models }) {
           JOIN users on "userId" = users.id
           GROUP BY "userId", "parentId" IS NULL
       )
-      SELECT "userId", id, type, rank, ratio/2.0 as proportion
-      FROM item_ratios
-      ORDER BY type, rank ASC`
+      SELECT "userId", NULL as id, type, ROW_NUMBER() OVER (PARTITION BY "isPost" ORDER BY upvoter_ratio DESC) as rank,
+          upvoter_ratio/(sum(upvoter_ratio) OVER (PARTITION BY "isPost"))/${UPVOTE_EACH_REWARD} as proportion
+      FROM upvoter_ratios
+      WHERE upvoter_ratio > 0
+      UNION ALL
+      SELECT "userId", id, type, rank, ratio/${ITEM_EACH_REWARD} as proportion
+      FROM item_ratios`
 
     // in order to group earnings for users we use the same createdAt time for
     // all earnings

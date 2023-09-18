@@ -24,6 +24,7 @@ import { authErrorMessage } from '../components/login'
 import { NostrAuth } from '../components/nostr-auth'
 import { useToast } from '../components/toast'
 import { useLogger } from '../components/logger'
+import { useMe } from '../components/me'
 
 export const getServerSideProps = getGetServerSideProps({ query: SETTINGS, authRequired: true })
 
@@ -33,6 +34,7 @@ function bech32encode (hexString) {
 
 export default function Settings ({ ssrData }) {
   const toaster = useToast()
+  const me = useMe()
   const [setSettings] = useMutation(SET_SETTINGS, {
     update (cache, { data: { setSettings } }) {
       cache.modify({
@@ -80,7 +82,8 @@ export default function Settings ({ ssrData }) {
             nostrRelays: settings?.nostrRelays?.length ? settings?.nostrRelays : [''],
             hideBookmarks: settings?.hideBookmarks,
             hideWalletBalance: settings?.hideWalletBalance,
-            diagnostics: settings?.diagnostics
+            diagnostics: settings?.diagnostics,
+            hideIsContributor: settings?.hideIsContributor
           }}
           schema={settingsSchema}
           onSubmit={async ({ tipDefault, nostrPubkey, nostrRelays, ...values }) => {
@@ -244,6 +247,12 @@ export default function Settings ({ ssrData }) {
             name='clickToLoadImg'
             groupClassName='mb-0'
           />
+          {me.isContributor &&
+            <Checkbox
+              label={<>hide that I'm a stacker.news contributor</>}
+              name='hideIsContributor'
+              groupClassName='mb-0'
+            />}
           <Checkbox
             label={<>hide my bookmarks from other stackers</>}
             name='hideBookmarks'

@@ -112,8 +112,11 @@ export default {
         JOIN "UserSubscription" ON "Item"."userId" = "UserSubscription"."followeeId"
         WHERE "UserSubscription"."followerId" = $1
           AND "Item".created_at <= $2
-          -- Only show items that have been created since subscribing to the user
-          AND "Item".created_at >= "UserSubscription".created_at
+          AND (
+            -- Only include posts or comments created after the corresponding subscription was enabled, not _all_ from history
+            ("Item"."parentId" IS NULL AND "UserSubscription"."postsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."postsSubscribedAt")
+            OR ("Item"."parentId" IS NOT NULL AND "UserSubscription"."commentsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."commentsSubscribedAt")
+          )
         ${await filterClause(me, models)}
         ORDER BY "sortTime" DESC
         LIMIT ${LIMIT}+$3`

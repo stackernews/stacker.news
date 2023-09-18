@@ -25,14 +25,15 @@ export default gql`
       noteInvites: Boolean!, noteJobIndicator: Boolean!, noteCowboyHat: Boolean!, hideInvoiceDesc: Boolean!,
       hideFromTopUsers: Boolean!, hideCowboyHat: Boolean!, clickToLoadImg: Boolean!,
       wildWestMode: Boolean!, greeterMode: Boolean!, nostrPubkey: String, nostrRelays: [String!], hideBookmarks: Boolean!,
-      noteForwardedSats: Boolean!, hideWalletBalance: Boolean!, diagnostics: Boolean!): User
+      noteForwardedSats: Boolean!, hideWalletBalance: Boolean!, hideIsContributor: Boolean!, diagnostics: Boolean!): User
     setPhoto(photoId: ID!): Int!
     upsertBio(bio: String!): User!
     setWalkthrough(tipPopover: Boolean, upvotePopover: Boolean): Boolean
     unlinkAuth(authType: String!): AuthMethods!
     linkUnverifiedEmail(email: String!): Boolean
-    subscribeUser(id: ID): User
     hideWelcomeBanner: Boolean
+    subscribeUserPosts(id: ID): User
+    subscribeUserComments(id: ID): User
   }
 
   type AuthMethods {
@@ -92,6 +93,9 @@ export default gql`
     greeterMode: Boolean!
     lastCheckedJobs: String
     authMethods: AuthMethods!
-    meSubscription: Boolean!
+    isContributor: Boolean!
+    hideIsContributor: Boolean!
+    meSubscriptionPosts: Boolean!
+    meSubscriptionComments: Boolean!
   }
 `

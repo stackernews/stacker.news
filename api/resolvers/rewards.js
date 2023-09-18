@@ -25,8 +25,8 @@ export default {
         WITH days_cte (day) AS (
           SELECT date_trunc('day', t)
           FROM generate_series(
-            COALESCE(${when?.[0]}::timestamp - interval '1 day', now() AT TIME ZONE 'America/Chicago'),
-            COALESCE(${when?.[when.length - 1]}::timestamp - interval '1 day', now() AT TIME ZONE 'America/Chicago'),
+            COALESCE(${when?.[0]}::text::timestamp - interval '1 day', now() AT TIME ZONE 'America/Chicago'),
+            COALESCE(${when?.[when.length - 1]}::text::timestamp - interval '1 day', now() AT TIME ZONE 'America/Chicago'),
             interval '1 day') AS t
         )
         SELECT coalesce(FLOOR(sum(sats)), 0) as total,
@@ -82,8 +82,8 @@ export default {
         WITH days_cte (day) AS (
           SELECT date_trunc('day', t)
           FROM generate_series(
-            ${when[0]}::timestamp,
-            ${when[when.length - 1]}::timestamp,
+            ${when[0]}::text::timestamp,
+            ${when[when.length - 1]}::text::timestamp,
             interval '1 day') AS t
         )
         SELECT coalesce(sum(sats), 0) as total, json_agg("Earn".*) as rewards

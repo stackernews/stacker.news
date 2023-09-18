@@ -23,6 +23,7 @@ import { useShowModal } from '../components/modal'
 import { authErrorMessage } from '../components/login'
 import { NostrAuth } from '../components/nostr-auth'
 import { useToast } from '../components/toast'
+import { useLogger } from '../components/logger'
 import { useMe } from '../components/me'
 
 export const getServerSideProps = getGetServerSideProps({ query: SETTINGS, authRequired: true })
@@ -47,6 +48,7 @@ export default function Settings ({ ssrData }) {
     }
   }
   )
+  const logger = useLogger()
 
   const { data } = useQuery(SETTINGS)
   const { settings } = data || ssrData
@@ -80,6 +82,7 @@ export default function Settings ({ ssrData }) {
             nostrRelays: settings?.nostrRelays?.length ? settings?.nostrRelays : [''],
             hideBookmarks: settings?.hideBookmarks,
             hideWalletBalance: settings?.hideWalletBalance,
+            diagnostics: settings?.diagnostics,
             hideIsContributor: settings?.hideIsContributor
           }}
           schema={settingsSchema}
@@ -253,6 +256,29 @@ export default function Settings ({ ssrData }) {
           <Checkbox
             label={<>hide my bookmarks from other stackers</>}
             name='hideBookmarks'
+            groupClassName='mb-0'
+          />
+          <Checkbox
+            label={
+              <div className='d-flex align-items-center'>allow diagnostics
+                <Info>
+                  <ul className='fw-bold'>
+                    <li>collect and send back diagnostics data</li>
+                    <li>this information is used to identify and fix bugs</li>
+                    <li>this information includes:
+                      <ul><li>timestamps</li></ul>
+                      <ul><li>a randomly generated fancy name</li></ul>
+                      <ul><li>your user agent</li></ul>
+                      <ul><li>your operating system</li></ul>
+                    </li>
+                    <li>this information can not be traced back to you without your fancy name</li>
+                    <li>fancy names are generated in your browser</li>
+                  </ul>
+                  <div className='text-muted fst-italic'>your fancy name: {logger.name}</div>
+                </Info>
+              </div>
+            }
+            name='diagnostics'
           />
           <div className='form-label'>content</div>
           <Checkbox

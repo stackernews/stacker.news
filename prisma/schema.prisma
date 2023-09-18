@@ -90,6 +90,7 @@ model User {
   followers           UserSubscription[]   @relation("follower")
   followees           UserSubscription[]   @relation("followee")
   hideWelcomeBanner   Boolean              @default(false)
+  diagnostics         Boolean              @default(false)
   hideIsContributor   Boolean              @default(false)
 
   @@index([createdAt], map: "users.created_at_index")
@@ -561,6 +562,18 @@ model PushSubscription {
   @@index([userId], map: "PushSubscription.userId_index")
 }
 
+model Log {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map("created_at")
+  level     LogLevel
+  name      String
+  message   String
+  env       Json?
+  context   Json?
+
+  @@index([createdAt, name], map: "Log.name_index")
+}
+
 enum EarnType {
   POST
   COMMENT
@@ -605,4 +618,11 @@ enum WithdrawlStatus {
   ROUTE_NOT_FOUND
   CONFIRMED
   UNKNOWN_FAILURE
+}
+
+enum LogLevel {
+  DEBUG
+  INFO
+  WARN
+  ERROR
 }

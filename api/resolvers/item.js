@@ -672,7 +672,7 @@ export default {
 
       item.location = item.location?.toLowerCase() === 'remote' ? undefined : item.location
       await ssValidate(jobSchema, item, models)
-      if (item.logo) {
+      if (item.logo !== undefined) {
         item.uploadId = item.logo
         delete item.logo
       }
@@ -834,7 +834,7 @@ export default {
         sats
       }
     },
-    dontLikeThis: async (parent, { id, hash, hmac }, { me, models }) => {
+    dontLikeThis: async (parent, { id, sats, hash, hmac }, { me, models }) => {
       // need to make sure we are logged in
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
@@ -856,7 +856,7 @@ export default {
 
       const trx = [
         models.$queryRaw`SELECT item_act(${Number(id)}::INTEGER,
-        ${me.id}::INTEGER, 'DONT_LIKE_THIS', ${DONT_LIKE_THIS_COST}::INTEGER)`
+        ${me.id}::INTEGER, 'DONT_LIKE_THIS', ${sats || DONT_LIKE_THIS_COST}::INTEGER)`
       ]
       if (invoice) {
         trx.unshift(models.$queryRaw`UPDATE users SET msats = msats + ${invoice.msatsReceived} WHERE id = ${invoice.user.id}`)
@@ -1203,15 +1203,16 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
 
   const notifyUserSubscribers = async () => {
     try {
+      const isPost = !!item.title
       const userSubs = await models.userSubscription.findMany({
         where: {
-          followeeId: Number(item.userId)
+          followeeId: Number(item.userId),
+          [isPost ? 'postsSubscribedAt' : 'commentsSubscribedAt']: { not: null }
         },
         include: {
           followee: true
         }
       })
-      const isPost = !!item.title
       await Promise.allSettled(userSubs.map(({ followerId, followee }) => sendUserNotification(followerId, {
         title: `@${followee.name} ${isPost ? 'created a post' : 'replied to a post'}`,
         body: isPost ? item.title : item.text,

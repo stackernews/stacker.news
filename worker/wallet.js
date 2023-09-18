@@ -11,7 +11,7 @@ function checkInvoice ({ boss, models, lnd }) {
     try {
       inv = await getInvoice({ id: hash, lnd })
     } catch (err) {
-      console.log(err)
+      console.log(err, hash)
       // on lnd related errors, we manually retry so we don't exponentially backoff
       await boss.send('checkInvoice', { hash }, walletOptions)
       return

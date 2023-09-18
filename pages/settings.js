@@ -243,8 +243,8 @@ export default function Settings ({ ssrData }) {
             groupClassName='mb-0'
           />
           <Checkbox
-            label={<>click to load external images</>}
-            name='clickToLoadImg'
+            label={<>hide my bookmarks from other stackers</>}
+            name='hideBookmarks'
             groupClassName='mb-0'
           />
           {me.isContributor &&
@@ -254,17 +254,17 @@ export default function Settings ({ ssrData }) {
               groupClassName='mb-0'
             />}
           <Checkbox
-            label={<>hide my bookmarks from other stackers</>}
-            name='hideBookmarks'
+            label={<>click to load external images</>}
+            name='clickToLoadImg'
             groupClassName='mb-0'
           />
           <Checkbox
             label={
-              <div className='d-flex align-items-center'>allow diagnostics
+              <div className='d-flex align-items-center'>allow anonymous diagnostics
                 <Info>
                   <ul className='fw-bold'>
-                    <li>collect and send back diagnostics data</li>
-                    <li>this information is used to identify and fix bugs</li>
+                    <li>collect and send back anonymous diagnostics data</li>
+                    <li>this information is used to fix bugs</li>
                     <li>this information includes:
                       <ul><li>timestamps</li></ul>
                       <ul><li>a randomly generated fancy name</li></ul>

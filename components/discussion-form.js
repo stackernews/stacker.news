@@ -17,6 +17,7 @@ import { crosspostDiscussion } from '../lib/nostr'
 import { normalizeForwards } from '../lib/form'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
 import { useMe } from './me'
+import { useToast } from './toast'
 
 export function DiscussionForm ({
   item, sub, editThreshold, titleLabel = 'title',
@@ -29,6 +30,7 @@ export function DiscussionForm ({
   const schema = discussionSchema({ client, me, existingBoost: item?.boost })
   // if Web Share Target API was used
   const shareTitle = router.query.title
+  const Toast = useToast()
 
   const [upsertDiscussion] = useMutation(
     gql`
@@ -55,9 +57,43 @@ export function DiscussionForm ({
       }
 
       const userHasCrosspostingEnabled = me?.nostrCrossposting || false;
+
+      const retryCrosspost = async (values, id, nostrRelays) => {
+        const { error: retryError } = await crosspostDiscussion(values, id, nostrRelays);
+        
+        if (retryError) {
+          Toast.danger(
+            <>
+              Crossposting failed. 
+              <Button variant="link" onClick={() => retryCrosspost(values, id, nostrRelays)}>Retry</Button>
+              {" | "}
+              <Button variant="link" onClick={handleSkip}>Skip</Button>
+            </>
+          );
+        } else {
+          Toast.success("Crossposting succeeded.");
+        }
+      };
+      
+      const handleSkip = () => {
+        // What do I show when the user skips?
+        Toast.success("Crossposting skipped.");
+      };
+      
       
       if (userHasCrosspostingEnabled) {
-        await crosspostDiscussion(values, data.upsertDiscussion.id, me.nostrRelays);
+        const { error: crosspostError } = await crosspostDiscussion(values, data.upsertDiscussion.id, me.nostrRelays);
+
+        if (crosspostError) {
+          Toast.danger(
+            <>
+              Crossposting failed. 
+              <Button variant="link" onClick={() => retryCrosspost(values, data.upsertDiscussion.id, me.nostrRelays)}>Retry</Button>
+              {" | "}
+              <Button variant="link" onClick={handleSkip}>Skip</Button>
+            </>
+          );
+        }
       }
 
       if (item) {

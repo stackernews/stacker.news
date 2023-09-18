@@ -7,7 +7,7 @@ import { useToast } from './toast'
 export default function Share ({ item }) {
   const me = useMe()
   const toaster = useToast()
-  const url = `https://stacker.news/items/${item.id}${me ? `/r/${me.name}` : ''}`
+  const url = `https://stacker.news/items/${item.id}${me ? `?r=${me.name}` : ''}`
 
   return typeof window !== 'undefined' && navigator?.share
     ? (
@@ -57,7 +57,7 @@ export default function Share ({ item }) {
 export function CopyLinkDropdownItem ({ item }) {
   const me = useMe()
   const toaster = useToast()
-  const url = `https://stacker.news/items/${item.id}${me ? `/r/${me.name}` : ''}`
+  const url = `https://stacker.news/items/${item.id}${me ? `?r=${me.name}` : ''}`
   return (
     <Dropdown.Item
       onClick={async () => {

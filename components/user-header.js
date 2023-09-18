@@ -158,7 +158,8 @@ function NymView ({ user, isMe, setEditting }) {
       {!isMe &&
         <div className='ms-2'>
           <ActionDropdown>
-            {me && <SubscribeUserDropdownItem user={user} />}
+            {me && <SubscribeUserDropdownItem user={user} target='posts' />}
+            {me && <SubscribeUserDropdownItem user={user} target='comments' />}
           </ActionDropdown>
         </div>}
     </div>

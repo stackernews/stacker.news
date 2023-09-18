@@ -3,20 +3,24 @@ import { gql } from 'graphql-tag'
 import Dropdown from 'react-bootstrap/Dropdown'
 import { useToast } from './toast'
 
-export default function SubscribeUserDropdownItem ({ user: { id, meSubscription } }) {
+export default function SubscribeUserDropdownItem ({ user, target = 'posts' }) {
+  const isPosts = target === 'posts'
+  const mutation = isPosts ? 'subscribeUserPosts' : 'subscribeUserComments'
+  const userField = isPosts ? 'meSubscriptionPosts' : 'meSubscriptionComments'
   const toaster = useToast()
+  const { id, [userField]: meSubscription } = user
   const [subscribeUser] = useMutation(
     gql`
-      mutation subscribeUser($id: ID!) {
-        subscribeUser(id: $id) {
-          meSubscription
+      mutation ${mutation}($id: ID!) {
+        ${mutation}(id: $id) {
+          ${userField}
         }
       }`, {
-      update (cache, { data: { subscribeUser } }) {
+      update (cache, { data: { [mutation]: subscribeUser } }) {
         cache.modify({
           id: `User:${id}`,
           fields: {
-            meSubscription: () => subscribeUser.meSubscription
+            [userField]: () => subscribeUser[userField]
           }
         })
       }
@@ -34,7 +38,9 @@ export default function SubscribeUserDropdownItem ({ user: { id, meSubscription 
         }
       }}
     >
-      {meSubscription ? 'remove subscription' : 'subscribe'}
+      {meSubscription
+        ? `unsubscribe from ${isPosts ? 'posts' : 'comments'}`
+        : `subscribe to ${isPosts ? 'posts' : 'comments'}`}
     </Dropdown.Item>
   )
 }

@@ -77,7 +77,7 @@ export default gql`
     root: Item
     user: User!
     userId: Int!
-    depth: Int!
+    depth: Int
     mine: Boolean!
     boost: Int!
     bounty: Int

@@ -20,6 +20,7 @@ import { numWithUnits } from '../lib/format'
 import Hat from './hat'
 import SubscribeUserDropdownItem from './subscribeUser'
 import ActionDropdown from './action-dropdown'
+import CodeIcon from '../svgs/terminal-box-fill.svg'
 
 export default function UserHeader ({ user }) {
   const router = useRouter()
@@ -212,7 +213,7 @@ function HeaderHeader ({ user }) {
             : <span>never</span>}
           </small>
           <small className='text-muted d-flex-inline'>longest cowboy streak: {user.maxStreak !== null ? user.maxStreak : 'none'}</small>
-          {user.isContributor && <small className='text-muted'>🧑‍💻✅ verified stacker.news contributor</small>}
+          {user.isContributor && <small className='text-muted d-flex align-items-center'><CodeIcon className='me-1' height={16} width={16} /> verified stacker.news contributor</small>}
         </div>
       </div>
     </div>

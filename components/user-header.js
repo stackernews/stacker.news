@@ -180,7 +180,10 @@ function HeaderHeader ({ user }) {
   const showModal = useShowModal()
 
   const isMe = me?.name === user.name
-  const Satistics = () => <div className={`mb-2 ms-0 ms-sm-1 ${styles.username} text-success`}>{user.stacked} stacked</div>
+  const Satistics = () => (
+    <div className={`mb-2 ms-0 ms-sm-1 ${styles.username} text-success`}>
+      {numWithUnits(user.stacked, { abbreviate: false, format: true })} stacked
+    </div>)
 
   const lnurlp = encodeLNUrl(new URL(`https://stacker.news/.well-known/lnurlp/${user.name}`))
   return (

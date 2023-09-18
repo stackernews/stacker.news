@@ -1,9 +1,25 @@
+import { readFile } from 'fs/promises'
+import { join, resolve } from 'path'
 import { GraphQLError } from 'graphql'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { msatsToSats } from '../../lib/format'
 import { bioSchema, emailSchema, settingsSchema, ssValidate, userSchema } from '../../lib/validate'
 import { getItem, updateItem, filterClause, createItem } from './item'
 import { datePivot } from '../../lib/time'
+
+const contributors = new Set()
+
+const loadContributors = async (set) => {
+  try {
+    const fileContent = await readFile(resolve(join(process.cwd(), 'contributors.txt')), 'utf-8')
+    fileContent.split('\n')
+      .map(line => line.trim())
+      .filter(line => !!line)
+      .forEach(name => set.add(name))
+  } catch (err) {
+    console.error('Error loading contributors', err)
+  }
+}
 
 export function within (table, within) {
   let interval = ' AND "' + table + '".created_at >= $1 - INTERVAL '
@@ -817,6 +833,16 @@ export default {
       })
 
       return !!subscription?.commentsSubscribedAt
+    },
+    isContributor: async (user, args, { me }) => {
+      // lazy init contributors only once
+      if (contributors.size === 0) {
+        await loadContributors(contributors)
+      }
+      if (me?.id === user.id) {
+        return contributors.has(user.name)
+      }
+      return !user.hideIsContributor && contributors.has(user.name)
     }
   }
 }

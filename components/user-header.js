@@ -212,6 +212,7 @@ function HeaderHeader ({ user }) {
             : <span>never</span>}
           </small>
           <small className='text-muted d-flex-inline'>longest cowboy streak: {user.maxStreak !== null ? user.maxStreak : 'none'}</small>
+          {user.isContributor && <small className='text-muted'>🧑‍💻✅ verified stacker.news contributor</small>}
         </div>
       </div>
     </div>

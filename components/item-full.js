@@ -146,7 +146,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
               ? (
                 <div className='px-3 py-1 d-inline-block bg-grey-medium rounded text-success'>
                   <Check className='fill-success' /> {numWithUnits(item.bounty, { abbreviate: false, format: true })} paid
-                  {item.bountyPaidTo.length > 1 && <small className='fw-light'> {item.bountyPaidTo.length} times</small>}
+                  {item.bountyPaidTo.length > 1 && <small className='fw-light'> {new Set(item.bountyPaidTo).size} times</small>}
                 </div>)
               : (
                 <div className='px-3 py-1 d-inline-block bg-grey-darkmode rounded text-light'>

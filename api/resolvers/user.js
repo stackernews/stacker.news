@@ -422,9 +422,7 @@ export default {
             confirmedAt: {
               gt: lastChecked
             },
-            isHeld: {
-              not: true
-            }
+            isHeld: null
           }
         })
         if (invoice) {

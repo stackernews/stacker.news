@@ -205,7 +205,7 @@ export default {
             FROM "Invoice"
             WHERE "Invoice"."userId" = $1
             AND "confirmedAt" IS NOT NULL
-            AND NOT "isHeld"
+            AND "isHeld" IS NULL
             AND created_at <= $2
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT}+$3)`

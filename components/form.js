@@ -486,9 +486,11 @@ export function Form ({
   initial, schema, onSubmit, children, initialError, validateImmediately, storageKeyPrefix, validateOnChange = true, invoiceable, ...props
 }) {
   const toaster = useToast()
+  const initialErrorToasted = useRef(false)
   useEffect(() => {
-    if (initialError) {
+    if (initialError && !initialErrorToasted) {
       toaster.danger(initialError.message || initialError.toString?.())
+      initialErrorToasted.current = true
     }
   }, [])
 

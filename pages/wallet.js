@@ -304,12 +304,13 @@ export function LnAddrWithdrawal () {
         initial={{
           addr: '',
           amount: 1,
-          maxFee: 10
+          maxFee: 10,
+          comment: ''
         }}
         schema={lnAddrSchema}
         initialError={error ? error.toString() : undefined}
-        onSubmit={async ({ addr, amount, maxFee }) => {
-          const { data } = await sendToLnAddr({ variables: { addr, amount: Number(amount), maxFee: Number(maxFee) } })
+        onSubmit={async ({ addr, amount, maxFee, comment }) => {
+          const { data } = await sendToLnAddr({ variables: { addr, amount: Number(amount), maxFee: Number(maxFee), comment } })
           router.push(`/withdrawals/${data.sendToLnAddr.id}`)
         }}
       >
@@ -331,6 +332,11 @@ export function LnAddrWithdrawal () {
           name='maxFee'
           required
           append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+        />
+        <Input
+          label='comment (optional)'
+          name='comment'
+          hint='only certain lightning addresses can accept comments, and only of a certain length'
         />
         <SubmitButton variant='success' className='mt-2'>send</SubmitButton>
       </Form>

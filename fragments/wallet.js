@@ -62,8 +62,8 @@ export const CREATE_WITHDRAWL = gql`
 }`
 
 export const SEND_TO_LNADDR = gql`
-  mutation sendToLnAddr($addr: String!, $amount: Int!, $maxFee: Int!) {
-    sendToLnAddr(addr: $addr, amount: $amount, maxFee: $maxFee) {
+  mutation sendToLnAddr($addr: String!, $amount: Int!, $maxFee: Int!, $comment: String) {
+    sendToLnAddr(addr: $addr, amount: $amount, maxFee: $maxFee, comment: $comment) {
       id
     }
 }`

@@ -276,8 +276,8 @@ export default {
       }
     },
     createWithdrawl: createWithdrawal,
-    sendToLnAddr: async (parent, { addr, amount, maxFee }, { me, models, lnd }) => {
-      await ssValidate(lnAddrSchema, { addr, amount, maxFee })
+    sendToLnAddr: async (parent, { addr, amount, maxFee, comment }, { me, models, lnd }) => {
+      await ssValidate(lnAddrSchema, { addr, amount, maxFee, comment })
 
       const [name, domain] = addr.split('@')
       let req
@@ -298,10 +298,26 @@ export default {
         throw new GraphQLError(`amount must be >= ${res1.minSendable / 1000} and <= ${res1.maxSendable / 1000}`, { extensions: { code: 'BAD_INPUT' } })
       }
 
+      // if a comment is provided by the user
+      if (comment?.length) {
+        // if the receiving address doesn't accept comments, reject the request and tell the user why
+        if (res1.commentAllowed === undefined) {
+          throw new GraphQLError('comments are not accepted by this lightning address provider', { extensions: { code: 'BAD_INPUT' } })
+        }
+        // if the receiving address accepts comments, verify the max length isn't violated
+        if (res1.commentAllowed && Number(res1.commentAllowed) && comment.length > Number(res1.commentAllowed)) {
+          throw new GraphQLError(`comments sent to this lightning address provider must not exceed ${res1.commentAllowed} characters in length`, { extensions: { code: 'BAD_INPUT' } })
+        }
+      }
+
       const callback = new URL(res1.callback)
       callback.searchParams.append('amount', milliamount)
 
-      // call callback with amount
+      if (comment?.length) {
+        callback.searchParams.append('comment', comment)
+      }
+
+      // call callback with amount and conditionally comment
       const res2 = await (await fetch(callback.toString())).json()
       if (res2.status === 'ERROR') {
         throw new Error(res2.reason)

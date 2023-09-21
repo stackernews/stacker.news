@@ -313,6 +313,9 @@ export default {
         throw new Error('description hash does not match')
       }
 
+      if (!decoded.mtokens || BigInt(decoded.mtokens) !== BigInt(milliamount)) {
+        throw new Error('invoice has incorrect amount')
+      }
       // take pr and createWithdrawl
       return await createWithdrawal(parent, { invoice: res2.pr, maxFee }, { me, models, lnd })
     },

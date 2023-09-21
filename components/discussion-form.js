@@ -58,49 +58,57 @@ export function DiscussionForm ({
 
       const userHasCrosspostingEnabled = me?.nostrCrossposting || false;
 
-      const retryCrosspost = async (values, id, nostrRelays) => {
-        const { error: retryError } = await crosspostDiscussion(values, id, nostrRelays);
-        
-        if (retryError) {
-          Toast.danger(
-            <>
-              Crossposting failed. 
-              <Button variant="link" onClick={() => retryCrosspost(values, id, nostrRelays)}>Retry</Button>
-              {" | "}
-              <Button variant="link" onClick={handleSkip}>Skip</Button>
-            </>
-          );
-        } else {
-          Toast.success("Crossposting succeeded.");
-        }
+      const showToastError = (error, values, id, nostrRelays) => {
+        Toast.danger(
+          <>
+            Crossposting failed: {error.message} <br />
+            <Button variant="link" onClick={() => retryCrosspost(values, id, nostrRelays)}>Retry</Button>
+            {" | "}
+            <Button variant="link" onClick={handleSkip}>Skip</Button>
+          </>
+        );
       };
       
       const handleSkip = () => {
-        // What do I show when the user skips?
         Toast.success("Crossposting skipped.");
+        proceedWithSubmit();
       };
       
+      const retryCrosspost = async (values, id, nostrRelays) => {
+        const { error: retryError } = await crosspostDiscussion(values, id, nostrRelays);
       
-      if (userHasCrosspostingEnabled) {
-        const { error: crosspostError } = await crosspostDiscussion(values, data.upsertDiscussion.id, me.nostrRelays);
-
-        if (crosspostError) {
-          Toast.danger(
-            <>
-              Crossposting failed. 
-              <Button variant="link" onClick={() => retryCrosspost(values, data.upsertDiscussion.id, me.nostrRelays)}>Retry</Button>
-              {" | "}
-              <Button variant="link" onClick={handleSkip}>Skip</Button>
-            </>
-          );
+        if (retryError) {
+          showToastError(values, id, me.nostrRelays);
+        } else {
+          Toast.success("Crossposting succeeded.");
+          proceedWithSubmit();
         }
-      }
+      };
 
-      if (item) {
-        await router.push(`/items/${item.id}`)
-      } else {
-        const prefix = sub?.name ? `/~${sub.name}` : ''
-        await router.push(prefix + '/recent')
+      const proceedWithSubmit = async () => {
+        if (item) {
+          await router.push(`/items/${item.id}`)
+        } else {
+          const prefix = sub?.name ? `/~${sub.name}` : ''
+          await router.push(prefix + '/recent')
+        }
+      };
+
+      try {
+        if (userHasCrosspostingEnabled && data?.upsertDiscussion?.id) {
+          const { error: crosspostError } = await crosspostDiscussion(values, data.upsertDiscussion.id, me.nostrRelays);
+          
+          if (crosspostError) {
+            showToastError(crosspostError, values, data.upsertDiscussion.id, me.nostrRelays);
+            return;
+          }
+        } else {
+          proceedWithSubmit();
+        }
+      } catch (error) {
+        console.error("Crossposting encountered an unexpected error:", error);
+        showToastError(values, data.upsertDiscussion.id, me.nostrRelays);
+        return;
       }
     }, [upsertDiscussion, router]
   )

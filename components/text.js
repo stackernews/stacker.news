@@ -5,7 +5,7 @@ import { LightAsync as SyntaxHighlighter } from 'react-syntax-highlighter'
 import atomDark from 'react-syntax-highlighter/dist/cjs/styles/prism/atom-dark'
 import mention from '../lib/remark-mention'
 import sub from '../lib/remark-sub'
-import remarkDirective from 'remark-directive'
+// import remarkDirective from 'remark-directive'
 import { visit } from 'unist-util-visit'
 import reactStringReplace from 'react-string-replace'
 import React, { useRef, useEffect, useState, memo } from 'react'
@@ -187,7 +187,8 @@ export default memo(function Text ({ topLevel, noFragments, nofollow, fetchOnlyI
             return <ZoomableImage topLevel={topLevel} useClickToLoad={fetchOnlyImgProxy} {...props} />
           }
         }}
-        remarkPlugins={[gfm, mention, sub, remarkDirective, searchHighlighter]}
+        // plugin remarkDirective removed, see https://github.com/stackernews/stacker.news/issues/499
+        remarkPlugins={[gfm, mention, sub, searchHighlighter]}
       >
         {children}
       </ReactMarkdown>

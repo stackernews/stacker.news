@@ -88,13 +88,13 @@ services:
         hard: 65536
     volumes:
       - opensearch-data:/usr/share/opensearch/data
-      - ./:/app
+      - ./opensearch:/sn
     ports:
       - 9200:9200 # REST API
       - 9600:9600 # Performance Analyzer
     entrypoint: ["/bin/sh", "-c"]
     command:
-      - /app/opensearch/init-shim.sh
+      - /sn/init-shim.sh
   dashboards:
     profiles:
       - aux

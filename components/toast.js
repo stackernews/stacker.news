@@ -5,6 +5,7 @@ import Toast from 'react-bootstrap/Toast'
 import ToastBody from 'react-bootstrap/ToastBody'
 import ToastContainer from 'react-bootstrap/ToastContainer'
 import styles from './toast.module.css'
+import { identity } from 'mathjs'
 
 const ToastContext = createContext(() => {})
 
@@ -19,6 +20,12 @@ export const ToastProvider = ({ children }) => {
     }
     setToasts(toasts => [...toasts, toastConfig])
   }, [])
+
+  const removeToast = useCallback(id => {
+    console.log("Removing toast with id:", id); // Add this line
+    setToasts(toasts => toasts.filter(toast => toast.id !== id))
+  }, [])
+
   const toaster = useMemo(() => ({
     success: body => {
       dispatchToast({
@@ -29,16 +36,19 @@ export const ToastProvider = ({ children }) => {
       })
     },
     danger: body => {
+      const id = toastId.current;
+      console.log('id', id)
       dispatchToast({
+        id,
         body,
         variant: 'danger',
-        autohide: false
+        autohide: false,
       })
+      return {
+        removeToast: () => removeToast(id)
+      };
     }
   }), [dispatchToast])
-  const removeToast = useCallback(id => {
-    setToasts(toasts => toasts.filter(toast => toast.id !== id))
-  }, [])
 
   // Clear all toasts on page navigation
   useEffect(() => {

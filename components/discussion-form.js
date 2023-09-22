@@ -1,4 +1,5 @@
 import { Form, Input, MarkdownInput, SubmitButton } from '../components/form'
+import { useRef } from 'react'
 import { useRouter } from 'next/router'
 import { gql, useApolloClient, useLazyQuery, useMutation } from '@apollo/client'
 import Countdown from './countdown'
@@ -18,9 +19,8 @@ import { normalizeForwards } from '../lib/form'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
 import { useMe } from './me'
 import { useToast } from './toast'
-import { re } from 'mathjs'
 
-export function DiscussionForm ({
+export function DiscussionForm({
   item, sub, editThreshold, titleLabel = 'title',
   textLabel = 'text', buttonText = 'post',
   handleSubmit, children
@@ -32,6 +32,7 @@ export function DiscussionForm ({
   // if Web Share Target API was used
   const shareTitle = router.query.title
   const Toast = useToast()
+  const currentRetryRemoveToastRef = useRef(null);
 
   const [upsertDiscussion] = useMutation(
     gql`
@@ -57,30 +58,38 @@ export function DiscussionForm ({
 
   const promptUserWithToast = (failedRelays) => {
     return new Promise((resolve) => {
-      Toast.danger(
+      const { removeToast } = Toast.danger(
         <>
           Crossposting failed for {failedRelays.join(", ")} <br />
-          <Button variant="link" onClick={() => resolve('retry')}>Retry</Button>
+          <Button variant="link" onClick={() => {
+            resolve('retry');
+            setTimeout(() => {
+              removeToast();
+            }, 1000);
+          }}>Retry</Button>
           {" | "}
-          <Button variant="link" onClick={() => resolve('skip')}>Skip</Button>
+          <Button variant="link" onClick={() => {
+            resolve('skip');
+          }}>Skip</Button>
         </>
       );
     });
   };
   
+
   const handleCrosspost = async (values, id) => {
     let failedRelays;
     let allSuccessful = false;
-  
+
     do {
       let result = await crosspostDiscussion(values, id, failedRelays || relays);
-      
+
       result.successfulRelays.forEach(relay => {
         Toast.success(`Crossposting succeeded on relay ${relay}`);
       });
-  
+
       failedRelays = result.failedRelays.map(relayObj => relayObj.relay);
-  
+
       if (failedRelays.length > 0) {
         console.log("failed relays", failedRelays);
         const userAction = await promptUserWithToast(failedRelays);
@@ -92,11 +101,11 @@ export function DiscussionForm ({
       } else {
         allSuccessful = true;
       }
-  
+
     } while (failedRelays.length > 0);
-  
+
     return { allSuccessful };
-  };      
+  };
 
   const onSubmit = useCallback(
     async ({ boost, ...values }) => {
@@ -119,14 +128,14 @@ export function DiscussionForm ({
       if (userHasCrosspostingEnabled && data?.upsertDiscussion?.id) {
         const results = await handleCrosspost(values, data.upsertDiscussion.id);
         if (results.allSuccessful) {
-            Toast.success("Crossposting succeeded.");
+          Toast.success("Crossposting succeeded.");
 
-            if (item) {
-              await router.push(`/items/${item.id}`)
-            } else {
-              const prefix = sub?.name ? `/~${sub.name}` : ''
-              await router.push(prefix + '/recent')
-            }
+          if (item) {
+            await router.push(`/items/${item.id}`)
+          } else {
+            const prefix = sub?.name ? `/~${sub.name}` : ''
+            await router.push(prefix + '/recent')
+          }
         }
       }
 
@@ -208,9 +217,9 @@ export function DiscussionForm ({
               </div>
             </div>)
           : <FeeButton
-              baseFee={1} parentId={null} text={buttonText}
-              ChildButton={SubmitButton} variant='secondary'
-            />}
+            baseFee={1} parentId={null} text={buttonText}
+            ChildButton={SubmitButton} variant='secondary'
+          />}
       </div>
       {!item &&
         <div className={`mt-3 ${related.length > 0 ? '' : 'invisible'}`}>
@@ -222,7 +231,7 @@ export function DiscussionForm ({
                   <Item item={item} key={item.id} />
                 ))}
               </div>
-              }
+            }
           />
         </div>}
     </Form>

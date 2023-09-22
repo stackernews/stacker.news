@@ -18,6 +18,7 @@ import { normalizeForwards } from '../lib/form'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
 import { useMe } from './me'
 import { useToast } from './toast'
+import { re } from 'mathjs'
 
 export function DiscussionForm ({
   item, sub, editThreshold, titleLabel = 'title',
@@ -40,6 +41,63 @@ export function DiscussionForm ({
         }
       }`
   )
+
+  let relays = [
+    "wss://nostrue.com/",
+    "wss://relay.damus.io/",
+    "wss://relay.nostr.band/",
+    "wss://relay.snort.social/",
+    "wss://nostr21.com/",
+    "wss://nostr.mutinywallet.com"
+  ];
+
+  if (me.nostrRelays) {
+    relays = relays.concat(me.nostrRelays);
+  }
+
+  const promptUserWithToast = (failedRelays) => {
+    return new Promise((resolve) => {
+      Toast.danger(
+        <>
+          Crossposting failed for {failedRelays.join(", ")} <br />
+          <Button variant="link" onClick={() => resolve('retry')}>Retry</Button>
+          {" | "}
+          <Button variant="link" onClick={() => resolve('skip')}>Skip</Button>
+        </>
+      );
+    });
+  };
+  
+  const handleCrosspost = async (values, id) => {
+    let failedRelays;
+    let allSuccessful = false;
+  
+    do {
+      let result = await crosspostDiscussion(values, id, failedRelays || relays);
+      
+      result.successfulRelays.forEach(relay => {
+        Toast.success(`Crossposting succeeded on relay ${relay}`);
+      });
+  
+      failedRelays = result.failedRelays.map(relayObj => relayObj.relay);
+  
+      if (failedRelays.length > 0) {
+        console.log("failed relays", failedRelays);
+        const userAction = await promptUserWithToast(failedRelays);
+
+        if (userAction === 'skip') {
+          Toast.success("Crossposting skipped.");
+          break;
+        }
+      } else {
+        allSuccessful = true;
+      }
+  
+    } while (failedRelays.length > 0);
+  
+    return { allSuccessful };
+  };      
+
   const onSubmit = useCallback(
     async ({ boost, ...values }) => {
       const { data, error } = await upsertDiscussion({
@@ -58,60 +116,28 @@ export function DiscussionForm ({
 
       const userHasCrosspostingEnabled = me?.nostrCrossposting || false;
 
-      const showToastError = (error, values, id, nostrRelays) => {
-        Toast.danger(
-          <>
-            Crossposting failed: {error.message} <br />
-            <Button variant="link" onClick={() => retryCrosspost(values, id, nostrRelays)}>Retry</Button>
-            {" | "}
-            <Button variant="link" onClick={handleSkip}>Skip</Button>
-          </>
-        );
-      };
-      
-      const handleSkip = () => {
-        Toast.success("Crossposting skipped.");
-        proceedWithSubmit();
-      };
-      
-      const retryCrosspost = async (values, id, nostrRelays) => {
-        const { error: retryError } = await crosspostDiscussion(values, id, nostrRelays);
-      
-        if (retryError) {
-          showToastError(values, id, me.nostrRelays);
-        } else {
-          Toast.success("Crossposting succeeded.");
-          proceedWithSubmit();
-        }
-      };
+      if (userHasCrosspostingEnabled && data?.upsertDiscussion?.id) {
+        const results = await handleCrosspost(values, data.upsertDiscussion.id);
+        if (results.allSuccessful) {
+            Toast.success("Crossposting succeeded.");
 
-      const proceedWithSubmit = async () => {
-        if (item) {
-          await router.push(`/items/${item.id}`)
-        } else {
-          const prefix = sub?.name ? `/~${sub.name}` : ''
-          await router.push(prefix + '/recent')
+            if (item) {
+              await router.push(`/items/${item.id}`)
+            } else {
+              const prefix = sub?.name ? `/~${sub.name}` : ''
+              await router.push(prefix + '/recent')
+            }
         }
-      };
+      }
 
-      try {
-        if (userHasCrosspostingEnabled && data?.upsertDiscussion?.id) {
-          const { error: crosspostError } = await crosspostDiscussion(values, data.upsertDiscussion.id, me.nostrRelays);
-          
-          if (crosspostError) {
-            showToastError(crosspostError, values, data.upsertDiscussion.id, me.nostrRelays);
-            return;
-          }
-        } else {
-          proceedWithSubmit();
-        }
-      } catch (error) {
-        console.error("Crossposting encountered an unexpected error:", error);
-        showToastError(values, data.upsertDiscussion.id, me.nostrRelays);
-        return;
+      if (item) {
+        await router.push(`/items/${item.id}`)
+      } else {
+        const prefix = sub?.name ? `/~${sub.name}` : ''
+        await router.push(prefix + '/recent')
       }
     }, [upsertDiscussion, router]
-  )
+  );
 
   const [getRelated, { data: relatedData }] = useLazyQuery(gql`
     ${ITEM_FIELDS}

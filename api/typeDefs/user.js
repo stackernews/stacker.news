@@ -24,7 +24,7 @@ export default gql`
       noteEarning: Boolean!, noteAllDescendants: Boolean!, noteMentions: Boolean!, noteDeposits: Boolean!,
       noteInvites: Boolean!, noteJobIndicator: Boolean!, noteCowboyHat: Boolean!, hideInvoiceDesc: Boolean!,
       hideFromTopUsers: Boolean!, hideCowboyHat: Boolean!, clickToLoadImg: Boolean!,
-      wildWestMode: Boolean!, greeterMode: Boolean!, nostrPubkey: String, nostrRelays: [String!], hideBookmarks: Boolean!,
+      wildWestMode: Boolean!, greeterMode: Boolean!, nostrPubkey: String, nostrCrossposting: Boolean, nostrRelays: [String!], hideBookmarks: Boolean!,
       noteForwardedSats: Boolean!, hideWalletBalance: Boolean!, hideIsContributor: Boolean!, diagnostics: Boolean!): User
     setPhoto(photoId: ID!): Int!
     upsertBio(bio: String!): User!

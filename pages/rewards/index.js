@@ -125,6 +125,7 @@ export function DonateButton () {
           <Input
             label='amount'
             name='amount'
+            type='number'
             required
             autoFocus
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}

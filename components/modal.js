@@ -1,6 +1,7 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import Modal from 'react-bootstrap/Modal'
 import BackArrow from '../svgs/arrow-left-line.svg'
+import { useRouter } from 'next/router'
 
 export const ShowModalContext = createContext(() => null)
 
@@ -39,6 +40,12 @@ export default function useModal () {
     setModalStack([])
     modalOptions?.onClose?.()
   }, [modalOptions?.onClose])
+
+  const router = useRouter()
+  useEffect(() => {
+    router.events.on('routeChangeStart', onClose)
+    return () => router.events.off('routeChangeStart', onClose)
+  }, [router, onClose])
 
   const modal = useMemo(() => {
     if (modalContent === null) {

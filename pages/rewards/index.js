@@ -92,8 +92,8 @@ export function DonateButton () {
   const toaster = useToast()
   const [donateToRewards] = useMutation(
     gql`
-      mutation donateToRewards($sats: Int!) {
-        donateToRewards(sats: $sats)
+      mutation donateToRewards($sats: Int!, $hash: String, $hmac: String) {
+        donateToRewards(sats: $sats, hash: $hash, hmac: $hmac)
       }`)
 
   return (
@@ -104,11 +104,14 @@ export function DonateButton () {
             amount: 1000
           }}
           schema={amountSchema}
-          onSubmit={async ({ amount }) => {
+          invoiceable
+          onSubmit={async ({ amount, hash, hmac }) => {
             try {
               await donateToRewards({
                 variables: {
-                  sats: Number(amount)
+                  sats: Number(amount),
+                  hash,
+                  hmac
                 }
               })
               onClose()

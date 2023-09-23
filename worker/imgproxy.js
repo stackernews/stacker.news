@@ -51,7 +51,7 @@ export function imgproxy ({ models }) {
   }
 }
 
-const createImgproxyUrls = async (text) => {
+export const createImgproxyUrls = async (text) => {
   const urls = extractUrls(text)
   console.log("[imgproxy] extracted urls:", urls)
   // resolutions that we target:

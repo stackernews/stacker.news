@@ -106,20 +106,20 @@ export function DonateButton () {
           schema={amountSchema}
           invoiceable
           onSubmit={async ({ amount, hash, hmac }) => {
-            try {
-              await donateToRewards({
-                variables: {
-                  sats: Number(amount),
-                  hash,
-                  hmac
-                }
-              })
-              onClose()
-              toaster.success('donated')
-            } catch (err) {
-              console.error(err)
+            const { error } = await donateToRewards({
+              variables: {
+                sats: Number(amount),
+                hash,
+                hmac
+              }
+            })
+            if (error) {
+              console.error(error)
               toaster.danger('failed to donate')
+            } else {
+              toaster.success('donated')
             }
+            onClose()
           }}
         >
           <Input

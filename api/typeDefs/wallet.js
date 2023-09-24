@@ -26,6 +26,7 @@ export default gql`
     satsReceived: Int
     satsRequested: Int!
     nostr: JSONObject
+    comment: String
     hmac: String
     isHeld: Boolean
   }

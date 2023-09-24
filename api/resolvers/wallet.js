@@ -259,7 +259,7 @@ export default {
 
         const [inv] = await serialize(models,
           models.$queryRaw`SELECT * FROM create_invoice(${invoice.id}, ${invoice.request},
-            ${expiresAt}::timestamp, ${amount * 1000}, ${user.id}::INTEGER, ${description},
+            ${expiresAt}::timestamp, ${amount * 1000}, ${user.id}::INTEGER, ${description}, NULL,
             ${invLimit}::INTEGER, ${balanceLimit})`)
 
         if (hodlInvoice) await models.invoice.update({ where: { hash: invoice.id }, data: { preimage: invoice.secret } })

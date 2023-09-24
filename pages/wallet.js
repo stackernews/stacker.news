@@ -324,7 +324,6 @@ export function LnAddrWithdrawal () {
           label='amount'
           name='amount'
           required
-          autoFocus
           append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
         />
         <Input
@@ -334,7 +333,7 @@ export function LnAddrWithdrawal () {
           append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
         />
         <Input
-          label='comment (optional)'
+          label={<>comment <small className='text-muted ms-2'>optional</small></>}
           name='comment'
           hint='only certain lightning addresses can accept comments, and only of a certain length'
         />

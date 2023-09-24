@@ -38,7 +38,10 @@ export async function commentFilterClause (me, models) {
   return clause
 }
 
-async function checkInvoice (models, hash, hmac, fee) {
+export async function checkInvoice (models, hash, hmac, fee) {
+  if (!hash) {
+    throw new GraphQLError('hash required', { extensions: { code: 'BAD_INPUT' } })
+  }
   if (!hmac) {
     throw new GraphQLError('hmac required', { extensions: { code: 'BAD_INPUT' } })
   }

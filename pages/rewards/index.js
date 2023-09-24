@@ -92,8 +92,8 @@ export function DonateButton () {
   const toaster = useToast()
   const [donateToRewards] = useMutation(
     gql`
-      mutation donateToRewards($sats: Int!) {
-        donateToRewards(sats: $sats)
+      mutation donateToRewards($sats: Int!, $hash: String, $hmac: String) {
+        donateToRewards(sats: $sats, hash: $hash, hmac: $hmac)
       }`)
 
   return (
@@ -104,24 +104,28 @@ export function DonateButton () {
             amount: 1000
           }}
           schema={amountSchema}
-          onSubmit={async ({ amount }) => {
-            try {
-              await donateToRewards({
-                variables: {
-                  sats: Number(amount)
-                }
-              })
-              onClose()
-              toaster.success('donated')
-            } catch (err) {
-              console.error(err)
+          invoiceable
+          onSubmit={async ({ amount, hash, hmac }) => {
+            const { error } = await donateToRewards({
+              variables: {
+                sats: Number(amount),
+                hash,
+                hmac
+              }
+            })
+            if (error) {
+              console.error(error)
               toaster.danger('failed to donate')
+            } else {
+              toaster.success('donated')
             }
+            onClose()
           }}
         >
           <Input
             label='amount'
             name='amount'
+            type='number'
             required
             autoFocus
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}

@@ -17,6 +17,9 @@ import { advSchema, amountSchema, bountySchema, commentSchema, discussionSchema,
 import { sendUserNotification } from '../webPush'
 import { defaultCommentSort } from '../../lib/item'
 import { notifyItemParents, notifyUserSubscribers, notifyZapped } from '../../lib/push-notifications'
+import { createHmac } from './wallet'
+import { settleHodlInvoice } from 'ln-service'
+import { extractArticlePublishedDate } from '../../lib/timedate-scraper'
 
 export async function commentFilterClause (me, models) {
   let clause = ` AND ("Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}`
@@ -541,7 +544,13 @@ export default {
         const html = await response.text()
         const doc = domino.createWindow(html).document
         const metadata = getMetadata(doc, url, { title: metadataRuleSets.title })
-        res.title = metadata?.title
+        const datedata = extractArticlePublishedDate({ url, doc })
+        console.log(datedata, (new Date() - datedata.date) / (1000 * 60 * 60 * 24))
+        const dateHint = (datedata && (new Date() - datedata.date) / (1000 * 60 * 60 * 24) > 365)
+          ? ` (${datedata.date.getFullYear()})`
+          : ''
+
+        res.title = metadata?.title + dateHint
       } catch { }
 
       try {

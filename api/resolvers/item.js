@@ -545,7 +545,6 @@ export default {
         const doc = domino.createWindow(html).document
         const metadata = getMetadata(doc, url, { title: metadataRuleSets.title })
         const datedata = extractArticlePublishedDate({ url, doc })
-        console.log(datedata, (new Date() - datedata.date) / (1000 * 60 * 60 * 24))
         const dateHint = (datedata && (new Date() - datedata.date) / (1000 * 60 * 60 * 24) > 365)
           ? ` (${datedata.date.getFullYear()})`
           : ''

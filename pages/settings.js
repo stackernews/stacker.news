@@ -23,6 +23,8 @@ import { useShowModal } from '../components/modal'
 import { authErrorMessage } from '../components/login'
 import { NostrAuth } from '../components/nostr-auth'
 import { useToast } from '../components/toast'
+import { useLogger } from '../components/logger'
+import { useMe } from '../components/me'
 
 export const getServerSideProps = getGetServerSideProps({ query: SETTINGS, authRequired: true })
 
@@ -32,6 +34,7 @@ function bech32encode (hexString) {
 
 export default function Settings ({ ssrData }) {
   const toaster = useToast()
+  const me = useMe()
   const [setSettings] = useMutation(SET_SETTINGS, {
     update (cache, { data: { setSettings } }) {
       cache.modify({
@@ -45,6 +48,7 @@ export default function Settings ({ ssrData }) {
     }
   }
   )
+  const logger = useLogger()
 
   const { data } = useQuery(SETTINGS)
   const { settings } = data || ssrData
@@ -77,7 +81,9 @@ export default function Settings ({ ssrData }) {
             nostrPubkey: settings?.nostrPubkey ? bech32encode(settings.nostrPubkey) : '',
             nostrRelays: settings?.nostrRelays?.length ? settings?.nostrRelays : [''],
             hideBookmarks: settings?.hideBookmarks,
-            hideWalletBalance: settings?.hideWalletBalance
+            hideWalletBalance: settings?.hideWalletBalance,
+            diagnostics: settings?.diagnostics,
+            hideIsContributor: settings?.hideIsContributor
           }}
           schema={settingsSchema}
           onSubmit={async ({ tipDefault, nostrPubkey, nostrRelays, ...values }) => {
@@ -237,13 +243,42 @@ export default function Settings ({ ssrData }) {
             groupClassName='mb-0'
           />
           <Checkbox
+            label={<>hide my bookmarks from other stackers</>}
+            name='hideBookmarks'
+            groupClassName='mb-0'
+          />
+          {me.isContributor &&
+            <Checkbox
+              label={<>hide that I'm a stacker.news contributor</>}
+              name='hideIsContributor'
+              groupClassName='mb-0'
+            />}
+          <Checkbox
             label={<>click to load external images</>}
             name='clickToLoadImg'
             groupClassName='mb-0'
           />
           <Checkbox
-            label={<>hide my bookmarks from other stackers</>}
-            name='hideBookmarks'
+            label={
+              <div className='d-flex align-items-center'>allow anonymous diagnostics
+                <Info>
+                  <ul className='fw-bold'>
+                    <li>collect and send back anonymous diagnostics data</li>
+                    <li>this information is used to fix bugs</li>
+                    <li>this information includes:
+                      <ul><li>timestamps</li></ul>
+                      <ul><li>a randomly generated fancy name</li></ul>
+                      <ul><li>your user agent</li></ul>
+                      <ul><li>your operating system</li></ul>
+                    </li>
+                    <li>this information can not be traced back to you without your fancy name</li>
+                    <li>fancy names are generated in your browser</li>
+                  </ul>
+                  <div className='text-muted fst-italic'>your fancy name: {logger.name}</div>
+                </Info>
+              </div>
+            }
+            name='diagnostics'
           />
           <div className='form-label'>content</div>
           <Checkbox

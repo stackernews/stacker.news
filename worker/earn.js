@@ -1,13 +1,13 @@
-const serialize = require('../api/resolvers/serial')
-const { ANON_USER_ID } = require('../lib/constants')
+import serialize from '../api/resolvers/serial.js'
+import { ANON_USER_ID } from '../lib/constants.js'
 
-// const ITEM_EACH_REWARD = 3.0
-// const UPVOTE_EACH_REWARD = 6.0
+const ITEM_EACH_REWARD = 4.0
+const UPVOTE_EACH_REWARD = 4.0
 const TOP_PERCENTILE = 33
 const TOTAL_UPPER_BOUND_MSATS = 1000000000
 const REDUCE_REWARDS = [616, 6030, 946, 4502]
 
-function earn ({ models }) {
+export function earn ({ models }) {
   return async function ({ name }) {
     console.log('running', name)
 
@@ -119,9 +119,13 @@ function earn ({ models }) {
           JOIN users on "userId" = users.id
           GROUP BY "userId", "parentId" IS NULL
       )
-      SELECT "userId", id, type, rank, ratio/2.0 as proportion
-      FROM item_ratios
-      ORDER BY type, rank ASC`
+      SELECT "userId", NULL as id, type, ROW_NUMBER() OVER (PARTITION BY "isPost" ORDER BY upvoter_ratio DESC) as rank,
+          upvoter_ratio/(sum(upvoter_ratio) OVER (PARTITION BY "isPost"))/${UPVOTE_EACH_REWARD} as proportion
+      FROM upvoter_ratios
+      WHERE upvoter_ratio > 0
+      UNION ALL
+      SELECT "userId", id, type, rank, ratio/${ITEM_EACH_REWARD} as proportion
+      FROM item_ratios`
 
     // in order to group earnings for users we use the same createdAt time for
     // all earnings
@@ -153,5 +157,3 @@ function earn ({ models }) {
     console.log('done', name)
   }
 }
-
-module.exports = { earn }

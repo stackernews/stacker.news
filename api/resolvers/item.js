@@ -38,7 +38,10 @@ export async function commentFilterClause (me, models) {
   return clause
 }
 
-async function checkInvoice (models, hash, hmac, fee) {
+export async function checkInvoice (models, hash, hmac, fee) {
+  if (!hash) {
+    throw new GraphQLError('hash required', { extensions: { code: 'BAD_INPUT' } })
+  }
   if (!hmac) {
     throw new GraphQLError('hmac required', { extensions: { code: 'BAD_INPUT' } })
   }
@@ -1203,15 +1206,16 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
 
   const notifyUserSubscribers = async () => {
     try {
+      const isPost = !!item.title
       const userSubs = await models.userSubscription.findMany({
         where: {
-          followeeId: Number(item.userId)
+          followeeId: Number(item.userId),
+          [isPost ? 'postsSubscribedAt' : 'commentsSubscribedAt']: { not: null }
         },
         include: {
           followee: true
         }
       })
-      const isPost = !!item.title
       await Promise.allSettled(userSubs.map(({ followerId, followee }) => sendUserNotification(followerId, {
         title: `@${followee.name} ${isPost ? 'created a post' : 'replied to a post'}`,
         body: isPost ? item.title : item.text,

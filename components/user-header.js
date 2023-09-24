@@ -20,6 +20,7 @@ import { numWithUnits } from '../lib/format'
 import Hat from './hat'
 import SubscribeUserDropdownItem from './subscribeUser'
 import ActionDropdown from './action-dropdown'
+import CodeIcon from '../svgs/terminal-box-fill.svg'
 
 export default function UserHeader ({ user }) {
   const router = useRouter()
@@ -158,7 +159,8 @@ function NymView ({ user, isMe, setEditting }) {
       {!isMe &&
         <div className='ms-2'>
           <ActionDropdown>
-            {me && <SubscribeUserDropdownItem user={user} />}
+            {me && <SubscribeUserDropdownItem user={user} target='posts' />}
+            {me && <SubscribeUserDropdownItem user={user} target='comments' />}
           </ActionDropdown>
         </div>}
     </div>
@@ -178,7 +180,10 @@ function HeaderHeader ({ user }) {
   const showModal = useShowModal()
 
   const isMe = me?.name === user.name
-  const Satistics = () => <div className={`mb-2 ms-0 ms-sm-1 ${styles.username} text-success`}>{user.stacked} stacked</div>
+  const Satistics = () => (
+    <div className={`mb-2 ms-0 ms-sm-1 ${styles.username} text-success`}>
+      {numWithUnits(user.stacked, { abbreviate: false, format: true })} stacked
+    </div>)
 
   const lnurlp = encodeLNUrl(new URL(`https://stacker.news/.well-known/lnurlp/${user.name}`))
   return (
@@ -211,6 +216,7 @@ function HeaderHeader ({ user }) {
             : <span>never</span>}
           </small>
           <small className='text-muted d-flex-inline'>longest cowboy streak: {user.maxStreak !== null ? user.maxStreak : 'none'}</small>
+          {user.isContributor && <small className='text-muted d-flex align-items-center'><CodeIcon className='me-1' height={16} width={16} /> verified stacker.news contributor</small>}
         </div>
       </div>
     </div>

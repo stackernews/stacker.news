@@ -1,4 +1,4 @@
-const os = require('@opensearch-project/opensearch')
+import os from '@opensearch-project/opensearch'
 
 const options = process.env.NODE_ENV === 'development'
   ? { node: process.env.OPENSEARCH_URL || 'http://localhost:9200' }
@@ -12,4 +12,4 @@ const options = process.env.NODE_ENV === 'development'
 
 global.os = global.os || new os.Client(options)
 
-module.exports = global.os
+export default global.os

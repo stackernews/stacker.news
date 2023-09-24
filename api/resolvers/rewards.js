@@ -1,8 +1,9 @@
 import { GraphQLError } from 'graphql'
+import { settleHodlInvoice } from 'ln-service'
 import { amountSchema, ssValidate } from '../../lib/validate'
 import serialize from './serial'
 import { ANON_USER_ID } from '../../lib/constants'
-import { getItem } from './item'
+import { getItem, checkInvoice } from './item'
 
 export default {
   Query: {
@@ -25,8 +26,8 @@ export default {
         WITH days_cte (day) AS (
           SELECT date_trunc('day', t)
           FROM generate_series(
-            COALESCE(${when?.[0]}::timestamp - interval '1 day', now() AT TIME ZONE 'America/Chicago'),
-            COALESCE(${when?.[when.length - 1]}::timestamp - interval '1 day', now() AT TIME ZONE 'America/Chicago'),
+            COALESCE(${when?.[0]}::text::timestamp - interval '1 day', now() AT TIME ZONE 'America/Chicago'),
+            COALESCE(${when?.[when.length - 1]}::text::timestamp - interval '1 day', now() AT TIME ZONE 'America/Chicago'),
             interval '1 day') AS t
         )
         SELECT coalesce(FLOOR(sum(sats)), 0) as total,
@@ -82,8 +83,8 @@ export default {
         WITH days_cte (day) AS (
           SELECT date_trunc('day', t)
           FROM generate_series(
-            ${when[0]}::timestamp,
-            ${when[when.length - 1]}::timestamp,
+            ${when[0]}::text::timestamp,
+            ${when[when.length - 1]}::text::timestamp,
             interval '1 day') AS t
         )
         SELECT coalesce(sum(sats), 0) as total, json_agg("Earn".*) as rewards
@@ -102,17 +103,38 @@ export default {
     }
   },
   Mutation: {
-    donateToRewards: async (parent, { sats }, { me, models }) => {
-      if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+    donateToRewards: async (parent, { sats, hash, hmac }, { me, models, lnd }) => {
+      if (!me && !hash) {
+        throw new GraphQLError('you must be logged in or pay', { extensions: { code: 'FORBIDDEN' } })
+      }
+      let user
+      if (me) {
+        user = me
+      }
+
+      let invoice
+      if (hash) {
+        invoice = await checkInvoice(models, hash, hmac, sats)
+        user = invoice.user
       }
 
       await ssValidate(amountSchema, { amount: sats })
 
-      await serialize(models,
+      const trx = [
         models.$queryRawUnsafe(
           'SELECT donate($1::INTEGER, $2::INTEGER)',
-          sats, Number(me.id)))
+          sats, Number(user.id))
+      ]
+
+      if (invoice) {
+        trx.unshift(models.$queryRaw`UPDATE users SET msats = msats + ${invoice.msatsReceived} WHERE id = ${user.id}`)
+        trx.push(models.invoice.update({ where: { hash: invoice.hash }, data: { confirmedAt: new Date() } }))
+      }
+      await serialize(models, ...trx)
+
+      if (invoice?.isHeld) {
+        await settleHodlInvoice({ secret: invoice.preimage, lnd })
+      }
 
       return sats
     }

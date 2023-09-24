@@ -90,6 +90,8 @@ model User {
   followers           UserSubscription[]   @relation("follower")
   followees           UserSubscription[]   @relation("followee")
   hideWelcomeBanner   Boolean              @default(false)
+  diagnostics         Boolean              @default(false)
+  hideIsContributor   Boolean              @default(false)
 
   @@index([createdAt], map: "users.created_at_index")
   @@index([inviteId], map: "users.inviteId_index")
@@ -432,6 +434,7 @@ model Invoice {
   msatsRequested BigInt
   msatsReceived  BigInt?
   desc           String?
+  comment        String?
   user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([createdAt], map: "Invoice.created_at_index")
@@ -533,11 +536,14 @@ model ThreadSubscription {
 }
 
 model UserSubscription {
-  followerId    Int
-  followeeId    Int
-  createdAt     DateTime @default(now()) @map("created_at")
-  follower      User     @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
-  followee      User     @relation("followee", fields: [followeeId], references: [id], onDelete: Cascade)
+  followerId            Int
+  followeeId            Int
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @default(now()) @map("updated_at") @updatedAt
+  postsSubscribedAt     DateTime?
+  commentsSubscribedAt  DateTime?
+  follower              User     @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  followee              User     @relation("followee", fields: [followeeId], references: [id], onDelete: Cascade)
 
   @@id([followerId, followeeId])
   @@index([createdAt], map: "UserSubscription.created_at_index")
@@ -555,6 +561,18 @@ model PushSubscription {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId], map: "PushSubscription.userId_index")
+}
+
+model Log {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map("created_at")
+  level     LogLevel
+  name      String
+  message   String
+  env       Json?
+  context   Json?
+
+  @@index([createdAt, name], map: "Log.name_index")
 }
 
 enum EarnType {
@@ -601,4 +619,11 @@ enum WithdrawlStatus {
   ROUTE_NOT_FOUND
   CONFIRMED
   UNKNOWN_FAILURE
+}
+
+enum LogLevel {
+  DEBUG
+  INFO
+  WARN
+  ERROR
 }

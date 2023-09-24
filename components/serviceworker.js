@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { Workbox } from 'workbox-window'
 import { gql, useMutation } from '@apollo/client'
+import { useLogger } from './logger'
 
 const applicationServerKey = process.env.NEXT_PUBLIC_VAPID_PUBKEY
 
@@ -34,6 +35,7 @@ export const ServiceWorkerProvider = ({ children }) => {
           }
         }
       `)
+  const logger = useLogger()
 
   // I am not entirely sure if this is needed since at least in Brave,
   // using `registration.pushManager.subscribe` also prompts the user.
@@ -60,6 +62,8 @@ export const ServiceWorkerProvider = ({ children }) => {
     // Brave users must enable a flag in brave://settings/privacy first
     // see https://stackoverflow.com/a/69624651
     let pushSubscription = await registration.pushManager.subscribe(subscribeOptions)
+    const { endpoint } = pushSubscription
+    logger.info('subscribed to push notifications', { endpoint })
     // convert keys from ArrayBuffer to string
     pushSubscription = JSON.parse(JSON.stringify(pushSubscription))
     // Send subscription to service worker to save it so we can use it later during `pushsubscriptionchange`
@@ -68,24 +72,30 @@ export const ServiceWorkerProvider = ({ children }) => {
       action: 'STORE_SUBSCRIPTION',
       subscription: pushSubscription
     })
+    logger.info('sent STORE_SUBSCRIPTION to service worker', { endpoint })
     // send subscription to server
     const variables = {
-      endpoint: pushSubscription.endpoint,
+      endpoint,
       p256dh: pushSubscription.keys.p256dh,
       auth: pushSubscription.keys.auth
     }
     await savePushSubscription({ variables })
+    logger.info('sent push subscription to server', { endpoint })
   }
 
   const unsubscribeFromPushNotifications = async (subscription) => {
     await subscription.unsubscribe()
     const { endpoint } = subscription
+    logger.info('unsubscribed from push notifications', { endpoint })
     await deletePushSubscription({ variables: { endpoint } })
+    logger.info('deleted push subscription from server', { endpoint })
   }
 
   const togglePushSubscription = useCallback(async () => {
     const pushSubscription = await registration.pushManager.getSubscription()
-    if (pushSubscription) return unsubscribeFromPushNotifications(pushSubscription)
+    if (pushSubscription) {
+      return unsubscribeFromPushNotifications(pushSubscription)
+    }
     return subscribeToPushNotifications()
   })
 
@@ -100,12 +110,17 @@ export const ServiceWorkerProvider = ({ children }) => {
     // we sync with server manually by checking on every page reload if the push subscription changed.
     // see https://medium.com/@madridserginho/how-to-handle-webpush-api-pushsubscriptionchange-event-in-modern-browsers-6e47840d756f
     navigator?.serviceWorker?.controller?.postMessage?.({ action: 'SYNC_SUBSCRIPTION' })
+    logger.info('sent SYNC_SUBSCRIPTION to service worker')
   }, [])
 
   useEffect(() => {
-    if (!support.serviceWorker) return
+    if (!support.serviceWorker) {
+      logger.info('device does not support service worker')
+      return
+    }
     const wb = new Workbox('/sw.js', { scope: '/' })
     wb.register().then(registration => {
+      logger.info('service worker registration successful')
       setRegistration(registration)
     })
   }, [support.serviceWorker])

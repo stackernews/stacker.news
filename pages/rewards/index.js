@@ -14,6 +14,7 @@ import PageLoading from '../../components/page-loading'
 import { useShowModal } from '../../components/modal'
 import dynamic from 'next/dynamic'
 import { SSR } from '../../lib/constants'
+import { useToast } from '../../components/toast'
 
 const GrowthPieChart = dynamic(() => import('../../components/charts').then(mod => mod.GrowthPieChart), {
   loading: () => <div>Loading...</div>
@@ -88,6 +89,7 @@ export default function Rewards ({ ssrData }) {
 
 export function DonateButton () {
   const showModal = useShowModal()
+  const toaster = useToast()
   const [donateToRewards] = useMutation(
     gql`
       mutation donateToRewards($sats: Int!) {
@@ -103,12 +105,18 @@ export function DonateButton () {
           }}
           schema={amountSchema}
           onSubmit={async ({ amount }) => {
-            await donateToRewards({
-              variables: {
-                sats: Number(amount)
-              }
-            })
-            onClose()
+            try {
+              await donateToRewards({
+                variables: {
+                  sats: Number(amount)
+                }
+              })
+              onClose()
+              toaster.success('donated')
+            } catch (err) {
+              console.error(err)
+              toaster.danger('failed to donate')
+            }
           }}
         >
           <Input

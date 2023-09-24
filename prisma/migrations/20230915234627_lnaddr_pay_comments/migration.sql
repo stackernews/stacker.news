@@ -43,3 +43,7 @@ BEGIN
     RETURN invoice;
 END;
 $$;
+
+-- make sure old function is gone
+DROP FUNCTION IF EXISTS create_invoice(hash TEXT, bolt11 TEXT, expires_at timestamp(3) without time zone,
+    msats_req BIGINT, user_id INTEGER, idesc TEXT, inv_limit INTEGER, balance_limit_msats BIGINT);

@@ -91,6 +91,8 @@ export default {
               WHEN "expiresAt" <= $2 THEN 'EXPIRED'
               WHEN cancelled THEN 'CANCELLED'
               ELSE 'PENDING' END as status,
+              "desc" as description,
+            comment as "invoiceComment",
           'invoice' as type
           FROM "Invoice"
           WHERE "userId" = $1
@@ -105,6 +107,8 @@ export default {
           CASE WHEN status = 'CONFIRMED' THEN "msatsFeePaid"
           ELSE "msatsFeePaying" END as "msatsFee",
           COALESCE(status::text, 'PENDING') as status,
+          NULL as description,
+          NULL as "invoiceComment",
           'withdrawal' as type
           FROM "Withdrawl"
           WHERE "userId" = $1
@@ -129,6 +133,8 @@ export default {
             ) AS "msats",
             0 AS "msatsFee",
             NULL AS status,
+            NULL as description,
+            NULL as "invoiceComment",
             'stacked' AS type
           FROM "ItemAct"
           JOIN "Item" ON "ItemAct"."itemId" = "Item".id
@@ -142,14 +148,14 @@ export default {
         queries.push(
             `(SELECT ('earn' || min("Earn".id)) as id, min("Earn".id) as "factId", NULL as bolt11,
             created_at as "createdAt", sum(msats),
-            0 as "msatsFee", NULL as status, 'earn' as type
+            0 as "msatsFee", NULL as status, NULL as description, NULL as "invoiceComment", 'earn' as type
             FROM "Earn"
             WHERE "Earn"."userId" = $1 AND "Earn".created_at <= $2
             GROUP BY "userId", created_at)`)
         queries.push(
             `(SELECT ('referral' || "ReferralAct".id) as id, "ReferralAct".id as "factId", NULL as bolt11,
             created_at as "createdAt", msats,
-            0 as "msatsFee", NULL as status, 'referral' as type
+            0 as "msatsFee", NULL as status, NULL as description, NULL as "invoiceComment", 'referral' as type
             FROM "ReferralAct"
             WHERE "ReferralAct"."referrerId" = $1 AND "ReferralAct".created_at <= $2)`)
       }
@@ -158,7 +164,7 @@ export default {
         queries.push(
           `(SELECT ('spent' || "Item".id) as id, "Item".id as "factId", NULL as bolt11,
           MAX("ItemAct".created_at) as "createdAt", sum("ItemAct".msats) as msats,
-          0 as "msatsFee", NULL as status, 'spent' as type
+          0 as "msatsFee", NULL as status, NULL as description, NULL as "invoiceComment", 'spent' as type
           FROM "ItemAct"
           JOIN "Item" on "ItemAct"."itemId" = "Item".id
           WHERE "ItemAct"."userId" = $1
@@ -167,7 +173,7 @@ export default {
         queries.push(
             `(SELECT ('donation' || "Donation".id) as id, "Donation".id as "factId", NULL as bolt11,
             created_at as "createdAt", sats * 1000 as msats,
-            0 as "msatsFee", NULL as status, 'donation' as type
+            0 as "msatsFee", NULL as status, NULL as description, NULL as "invoiceComment", 'donation' as type
             FROM "Donation"
             WHERE "userId" = $1
             AND created_at <= $2)`)
@@ -193,6 +199,7 @@ export default {
             const { tags } = inv
             for (const tag of tags) {
               if (tag.tagName === 'description') {
+                // prioritize description from bolt11 over description from our DB
                 f.description = tag.data
                 break
               }
@@ -252,7 +259,7 @@ export default {
 
         const [inv] = await serialize(models,
           models.$queryRaw`SELECT * FROM create_invoice(${invoice.id}, ${invoice.request},
-            ${expiresAt}::timestamp, ${amount * 1000}, ${user.id}::INTEGER, ${description},
+            ${expiresAt}::timestamp, ${amount * 1000}, ${user.id}::INTEGER, ${description}, NULL,
             ${invLimit}::INTEGER, ${balanceLimit})`)
 
         if (hodlInvoice) await models.invoice.update({ where: { hash: invoice.id }, data: { preimage: invoice.secret } })
@@ -269,8 +276,8 @@ export default {
       }
     },
     createWithdrawl: createWithdrawal,
-    sendToLnAddr: async (parent, { addr, amount, maxFee }, { me, models, lnd }) => {
-      await ssValidate(lnAddrSchema, { addr, amount, maxFee })
+    sendToLnAddr: async (parent, { addr, amount, maxFee, comment }, { me, models, lnd }) => {
+      await ssValidate(lnAddrSchema, { addr, amount, maxFee, comment })
 
       const [name, domain] = addr.split('@')
       let req
@@ -291,10 +298,26 @@ export default {
         throw new GraphQLError(`amount must be >= ${res1.minSendable / 1000} and <= ${res1.maxSendable / 1000}`, { extensions: { code: 'BAD_INPUT' } })
       }
 
+      // if a comment is provided by the user
+      if (comment?.length) {
+        // if the receiving address doesn't accept comments, reject the request and tell the user why
+        if (res1.commentAllowed === undefined) {
+          throw new GraphQLError('comments are not accepted by this lightning address provider', { extensions: { code: 'BAD_INPUT' } })
+        }
+        // if the receiving address accepts comments, verify the max length isn't violated
+        if (res1.commentAllowed && Number(res1.commentAllowed) && comment.length > Number(res1.commentAllowed)) {
+          throw new GraphQLError(`comments sent to this lightning address provider must not exceed ${res1.commentAllowed} characters in length`, { extensions: { code: 'BAD_INPUT' } })
+        }
+      }
+
       const callback = new URL(res1.callback)
       callback.searchParams.append('amount', milliamount)
 
-      // call callback with amount
+      if (comment?.length) {
+        callback.searchParams.append('comment', comment)
+      }
+
+      // call callback with amount and conditionally comment
       const res2 = await (await fetch(callback.toString())).json()
       if (res2.status === 'ERROR') {
         throw new Error(res2.reason)

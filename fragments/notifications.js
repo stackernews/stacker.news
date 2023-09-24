@@ -99,6 +99,7 @@ export const NOTIFICATIONS = gql`
           invoice {
             id
             nostr
+            comment
           }
         }
       }

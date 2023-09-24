@@ -6,9 +6,9 @@ import serialize from '../../../../api/resolvers/serial'
 import { schnorr } from '@noble/curves/secp256k1'
 import { createHash } from 'crypto'
 import { datePivot } from '../../../../lib/time'
-import { BALANCE_LIMIT_MSATS, INV_PENDING_LIMIT } from '../../../../lib/constants'
+import { BALANCE_LIMIT_MSATS, INV_PENDING_LIMIT, LNURLP_COMMENT_MAX_LENGTH } from '../../../../lib/constants'
 
-export default async ({ query: { username, amount, nostr } }, res) => {
+export default async ({ query: { username, amount, nostr, comment } }, res) => {
   const user = await models.user.findUnique({ where: { name: username } })
   if (!user) {
     return res.status(400).json({ status: 'ERROR', reason: `user @${username} does not exist` })
@@ -37,6 +37,10 @@ export default async ({ query: { username, amount, nostr } }, res) => {
       return res.status(400).json({ status: 'ERROR', reason: 'amount must be >=1000 msats' })
     }
 
+    if (comment && comment.length > LNURLP_COMMENT_MAX_LENGTH) {
+      return res.status(400).json({ status: 'ERROR', reason: `comment cannot exceed ${LNURLP_COMMENT_MAX_LENGTH} characters in length` })
+    }
+
     // generate invoice
     const expiresAt = datePivot(new Date(), { minutes: 1 })
     const invoice = await createInvoice({
@@ -50,7 +54,7 @@ export default async ({ query: { username, amount, nostr } }, res) => {
     await serialize(models,
       models.$queryRaw`SELECT * FROM create_invoice(${invoice.id}, ${invoice.request},
         ${expiresAt}::timestamp, ${Number(amount)}, ${user.id}::INTEGER, ${noteStr || description},
-        ${INV_PENDING_LIMIT}::INTEGER, ${BALANCE_LIMIT_MSATS})`)
+        ${comment || null}, ${INV_PENDING_LIMIT}::INTEGER, ${BALANCE_LIMIT_MSATS})`)
 
     return res.status(200).json({
       pr: invoice.request,

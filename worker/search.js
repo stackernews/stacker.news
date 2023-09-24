@@ -77,6 +77,7 @@ async function _indexItem (item) {
 
 export function indexItem ({ apollo }) {
   return async function ({ data: { id } }) {
+    console.log('indexing item, fetching ...', id)
     // 1. grab item from database
     // could use apollo to avoid duping logic
     // when grabbing sats and user name, etc

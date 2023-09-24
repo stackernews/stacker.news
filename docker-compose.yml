@@ -31,6 +31,7 @@ services:
       - ./:/app
     links:
       - db
+      - opensearch
   worker:
     container_name: worker
     build: ./worker
@@ -47,6 +48,8 @@ services:
       - ./:/app
     links:
       - db
+      - app
+      - opensearch
     entrypoint: ["/bin/sh", "-c"]
     command:
       - node worker/index.js
@@ -67,5 +70,46 @@ services:
       - "3001:8080"
     links:
       - app
+  opensearch:
+    image: opensearchproject/opensearch:latest
+    container_name: opensearch
+    environment:
+      - discovery.type=single-node
+      - plugins.security.disabled=true
+    ports:
+      - 9200:9200 # REST API
+      - 9600:9600 # Performance Analyzer
+    volumes:
+      - os:/usr/share/opensearch/data
+      - ./:/app
+    command: >
+      bash -c '
+        set -m
+        /usr/share/opensearch/opensearch-docker-entrypoint.sh &
+        until curl -sS "http://localhost:9200/_cat/health?h=status" -ku admin:admin | grep -q "green\|yellow"; do
+          echo "Waiting for OpenSearch to start..."
+          sleep 1
+        done
+        echo "OpenSearch started."
+        curl -X PUT "http://localhost:9200/item" -ku admin:admin
+        echo "OpenSearch index created."
+        fg
+      '
+  os-dashboard:
+    image: opensearchproject/opensearch-dashboards:latest
+    container_name: os-dashboard
+    environment:
+      - opensearch.ssl.verificationMode=none
+      - server.ssl.enabled=false
+      - plugins.security.disabled=true
+      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
+      - OPENSEARCH_HOSTS=http://opensearch:9200
+    ports:
+      - 5601:5601
+    expose:
+      - "5601"
+    links:
+      - opensearch
 volumes:
   db:
+  os:

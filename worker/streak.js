@@ -1,6 +1,6 @@
 const STREAK_THRESHOLD = 100
 
-function computeStreaks ({ models }) {
+export function computeStreaks ({ models }) {
   return async function () {
     console.log('computing streaks')
 
@@ -64,7 +64,7 @@ function computeStreaks ({ models }) {
   }
 }
 
-function checkStreak ({ models }) {
+export function checkStreak ({ models }) {
   return async function ({ data: { id } }) {
     console.log('checking streak', id)
 
@@ -108,5 +108,3 @@ function checkStreak ({ models }) {
     console.log('done checking streak', id)
   }
 }
-
-module.exports = { checkStreak, computeStreaks }

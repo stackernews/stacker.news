@@ -1,6 +1,6 @@
-const { GraphQLError } = require('graphql')
-const retry = require('async-retry')
-const Prisma = require('@prisma/client')
+import { GraphQLError } from 'graphql'
+import retry from 'async-retry'
+import Prisma from '@prisma/client'
 
 async function serialize (models, ...calls) {
   return await retry(async bail => {
@@ -56,4 +56,4 @@ async function serialize (models, ...calls) {
   })
 }
 
-module.exports = serialize
+export default serialize

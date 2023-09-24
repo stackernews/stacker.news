@@ -104,7 +104,10 @@
       "next"
     ],
     "ignore": [
-      "**/spawn"
+      "**/spawn",
+      "**/worker",
+      "**/api",
+      "**/lib"
     ]
   },
   "devDependencies": {

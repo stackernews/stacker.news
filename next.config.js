@@ -1,6 +1,6 @@
 const { withPlausibleProxy } = require('next-plausible')
 const { InjectManifest } = require('workbox-webpack-plugin')
-const { generatePrecacheManifest } = require('./sw/build')
+const { generatePrecacheManifest } = require('./sw/build.js')
 
 const isProd = process.env.NODE_ENV === 'production'
 const corsHeaders = [

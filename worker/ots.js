@@ -1,7 +1,7 @@
-const { gql } = require('graphql-tag')
-const stringifyCanon = require('canonical-json')
-const { createHash } = require('crypto')
-const Ots = require('opentimestamps')
+import { gql } from 'graphql-tag'
+import stringifyCanon from 'canonical-json'
+import { createHash } from 'crypto'
+import Ots from 'opentimestamps'
 
 const ITEM_OTS_FIELDS = gql`
   fragment ItemOTSFields on Item {
@@ -12,7 +12,7 @@ const ITEM_OTS_FIELDS = gql`
     url
   }`
 
-function timestampItem ({ apollo, models }) {
+export function timestampItem ({ apollo, models }) {
   return async function ({ data: { id } }) {
     console.log('timestamping item', id)
 
@@ -48,5 +48,3 @@ function timestampItem ({ apollo, models }) {
     console.log('done timestamping item', id)
   }
 }
-
-module.exports = { timestampItem }

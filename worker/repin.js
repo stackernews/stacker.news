@@ -1,4 +1,4 @@
-function repin ({ models }) {
+export function repin ({ models }) {
   return async function ({ name }) {
     console.log('doing', name)
 
@@ -40,5 +40,3 @@ function repin ({ models }) {
     })
   }
 }
-
-module.exports = { repin }

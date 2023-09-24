@@ -1,9 +1,9 @@
-const { getInvoice } = require('ln-service')
-const { Relay, signId, calculateId, getPublicKey } = require('nostr')
+import { getInvoice } from 'ln-service'
+import { Relay, signId, calculateId, getPublicKey } from 'nostr'
 
 const nostrOptions = { startAfter: 5, retryLimit: 21, retryBackoff: true }
 
-function nip57 ({ boss, lnd, models }) {
+export function nip57 ({ boss, lnd, models }) {
   return async function ({ data: { hash } }) {
     console.log('running nip57')
 
@@ -84,5 +84,3 @@ function nip57 ({ boss, lnd, models }) {
     console.log('done running nip57')
   }
 }
-
-module.exports = { nip57 }

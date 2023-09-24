@@ -9,7 +9,7 @@ done
 # check if index is missing
 ERR_RESP=`curl http://localhost:9200/item 2>/dev/null |grep index_not_found_exception`
 if [ "$ERR_RESP" != "" ]; then
-  echo $0: first-time run detected: creating index and mappings
+  echo "$0: first-time run detected: creating index and mappings"
   set -x
 
   curl 2>/dev/null -X PUT -H "Content-Type: application/json" http://localhost:9200/item \
@@ -22,9 +22,9 @@ if [ "$ERR_RESP" != "" ]; then
     --data "{\"properties\":{\"sats\":{\"type\":\"integer\"}}}"
 
   set +x
-  echo $0: one-time initialization done
+  echo "$0: one-time initialization done"
 else
-  echo $0: "indices and mappings detected: first-time check done"
+  echo "$0: indices and mappings detected: first-time check done"
 fi
 
 

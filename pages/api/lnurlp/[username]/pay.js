@@ -1,14 +1,15 @@
 import models from '../../../../api/models'
 import lnd from '../../../../api/lnd'
 import { createInvoice } from 'ln-service'
-import { lnurlPayDescriptionHashForUser } from '../../../../lib/lnurl'
+import { lnurlPayDescriptionHashForUser, lnurlPayMetadataString, lnurlPayDescriptionHash } from '../../../../lib/lnurl'
 import serialize from '../../../../api/resolvers/serial'
 import { schnorr } from '@noble/curves/secp256k1'
 import { createHash } from 'crypto'
 import { datePivot } from '../../../../lib/time'
 import { BALANCE_LIMIT_MSATS, INV_PENDING_LIMIT, LNURLP_COMMENT_MAX_LENGTH } from '../../../../lib/constants'
+import { ssValidate, lud18PayerDataSchema } from '../../../../lib/validate'
 
-export default async ({ query: { username, amount, nostr, comment } }, res) => {
+export default async ({ query: { username, amount, nostr, comment, payerdata: payerData, k1 } }, res) => {
   const user = await models.user.findUnique({ where: { name: username } })
   if (!user) {
     return res.status(400).json({ status: 'ERROR', reason: `user @${username} does not exist` })
@@ -43,6 +44,26 @@ export default async ({ query: { username, amount, nostr, comment } }, res) => {
 
     if (comment && comment.length > LNURLP_COMMENT_MAX_LENGTH) {
       return res.status(400).json({ status: 'ERROR', reason: `comment cannot exceed ${LNURLP_COMMENT_MAX_LENGTH} characters in length` })
+    }
+
+    if (payerData) {
+      let parsedPayerData
+      try {
+        parsedPayerData = JSON.parse(payerData)
+      } catch (err) {
+        console.error('failed to parse payerdata', err)
+        return res.status(400).json({ status: 'ERROR', reason: 'Invalid JSON supplied for payerdata parameter' })
+      }
+
+      try {
+        await ssValidate(lud18PayerDataSchema, parsedPayerData, k1)
+      } catch (err) {
+        return res.status(400).json({ status: 'ERROR', reason: err.toString() })
+      }
+
+      // Update description hash to include the passed payer data
+      const metadataStr = `${lnurlPayMetadataString(username)}${payerData}`
+      descriptionHash = lnurlPayDescriptionHash(metadataStr)
     }
 
     // generate invoice

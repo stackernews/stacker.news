@@ -123,7 +123,6 @@ export function DonateButton () {
               if (!didStrike) {
                 toaster.success('donated')
               }
-              toaster.success('donated')
             }
             onClose()
           }}

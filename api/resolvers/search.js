@@ -109,7 +109,7 @@ export default {
       query = queryArr.filter(word => !exclude.includes(word)).join(' ')
 
       if (url) {
-        whatArr.push({ wildcard: { url: `*${url.slice(4).toLowerCase()}*` } })
+        whatArr.push({ match_phrase: { url: `${url.slice(4).toLowerCase()}` } })
       }
 
       if (nym) {

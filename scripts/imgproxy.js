@@ -36,8 +36,8 @@ async function main (tableName) {
     const r = await prisma.$queryRawUnsafe(`SELECT * FROM "${tableName}" WHERE "imgproxyUrls" IS NULL`)
 
     queue.on('job', async ({ id, ...item }) => {
-      // only process 100 items at once.
-      // if there are already 100 items in the queue, wait.
+      // only process MAX_QUEUE items at once.
+      // if there are already MAX_QUEUE items in the queue, wait.
       // eslint-disable-next-line no-unmodified-loop-condition
       while (queued > MAX_QUEUE) {
         await sleep(QUEUE_POLL)

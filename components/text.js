@@ -110,7 +110,7 @@ export default memo(function Text ({ topLevel, noFragments, nofollow, imgproxyUr
 
             if (imgUrlCache[href] === IMG_CACHE_STATES.LOADED) {
               const url = IMGPROXY_URL_REGEXP.test(href) ? decodeOriginalUrl(href) : href
-              // if `srcSet` is undefined, it means there image was not processed by worker yet
+              // if `srcSet` is undefined, it means the image was not processed by worker yet
               // if `srcSet` is null, image was processed but this specific url was not detected as an image by the worker
               const srcSet = imgproxyUrls ? (imgproxyUrls[url] || null) : undefined
               return <ZoomableImage topLevel={topLevel} srcSet={srcSet} {...props} src={href} />
@@ -138,7 +138,7 @@ export default memo(function Text ({ topLevel, noFragments, nofollow, imgproxyUr
           },
           img: ({ node, src, ...props }) => {
             const url = IMGPROXY_URL_REGEXP.test(src) ? decodeOriginalUrl(src) : src
-            // if `srcSet` is undefined, it means there image was not processed by worker yet
+            // if `srcSet` is undefined, it means the image was not processed by worker yet
             // if `srcSet` is null, image was processed but this specific url was not detected as an image by the worker
             const srcSet = imgproxyUrls ? (imgproxyUrls[url] || null) : undefined
             return <ZoomableImage topLevel={topLevel} srcSet={srcSet} src={src} {...props} />

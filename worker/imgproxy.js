@@ -79,10 +79,10 @@ export const createImgproxyUrls = async (text) => {
   const urls = extractUrls(text)
   console.log("[imgproxy] extracted urls:", urls)
   // resolutions that we target:
-  //   - nHD:  640x360
-  //   - qHD:  960x540
-  //   - HD:  1280x720
-  //   - HD+: 1600x900
+  //   - nHD:  640x 360
+  //   - qHD:  960x 540
+  //   - HD:  1280x 720
+  //   - HD+: 1600x 900
   //   - FHD: 1920x1080
   //   - QHD: 2560x1440
   // reference:

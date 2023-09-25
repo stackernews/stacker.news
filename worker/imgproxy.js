@@ -14,6 +14,30 @@ const IMGPROXY_KEY = process.env.IMGPROXY_KEY
 
 const cache = new Map()
 
+const knownPositives = [
+  /\.(jpe?g|png|gif|webp|avif)$/,
+  /^https:\/\/i\.postimg\.cc\//,
+  /^https:\/\/i\.imgflip\.com\//,
+  /^https:\/\/i\.imgur\.com\//,
+  /^https:\/\/pbs\.twimg\.com\//,
+  /^https:\/\/www\.zapread\.com\/i\//,
+  /^https:\/\/substackcdn\.com\/image/,
+]
+const knownNegatives = [
+  /^https:\/\/(twitter\.com|x\.com|nitter\.(net|it|at))\/\w+\/status/,
+  /^https:\/\/postimg\.cc/,
+  /^https:\/\/imgur\.com/,
+  /^https:\/\/youtu\.be/,
+  /^https:\/\/(www\.)?youtube\.com/,
+  /^mailto:/,
+  /^https:\/\/stacker\.news\/items/,
+  /^https:\/\/news\.ycombinator\.com\/(item|user)\?id=/,
+  /^https:\/\/\w+\.substack.com/,
+  /^http:\/\/\w+\.onion/,
+  /^http:\/\/nitter\.priv\.loki/,
+  /^http:\/\/\w+\.b32\.i2p/,
+]
+
 function decodeOriginalUrl (imgproxyUrl) {
   const parts = imgproxyUrl.split('/')
   const b64Url = parts[parts.length - 1]
@@ -109,6 +133,9 @@ async function fetchWithTimeout (resource, { timeout = 1000, ...options } = {}) 
 
 const isImageURL = async url => {
   if (cache.has(url)) return cache.get(url)
+
+  if (knownPositives.some(regexp => regexp.test(url))) return true
+  if (knownNegatives.some(regexp => regexp.test(url))) return false
 
   let isImage
 

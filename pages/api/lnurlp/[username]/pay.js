@@ -8,11 +8,21 @@ import { createHash } from 'crypto'
 import { datePivot } from '../../../../lib/time'
 import { BALANCE_LIMIT_MSATS, INV_PENDING_LIMIT, LNURLP_COMMENT_MAX_LENGTH } from '../../../../lib/constants'
 import { ssValidate, lud18PayerDataSchema } from '../../../../lib/validate'
+import { k1Cache } from './index'
 
 export default async ({ query: { username, amount, nostr, comment, payerdata: payerData, k1 } }, res) => {
   const user = await models.user.findUnique({ where: { name: username } })
   if (!user) {
     return res.status(400).json({ status: 'ERROR', reason: `user @${username} does not exist` })
+  }
+  if (!k1) {
+    return res.status(400).json({ status: 'ERROR', reason: `k1 value required` })
+  }
+  if (!k1Cache.has(k1)) {
+    return res.status(400).json({ status: 'ERROR', reason: `k1 has already been used or expired, request another` })
+  }
+  if (k1Cache.get(k1) !== username) {
+    return res.status(400).json({ status: 'ERROR', reason: `k1 value is not associated with user @${username}, request another for user @${username}` })
   }
   try {
     // if nostr, decode, validate sig, check tags, set description hash
@@ -49,7 +59,7 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
     if (payerData) {
       let parsedPayerData
       try {
-        parsedPayerData = JSON.parse(payerData)
+        parsedPayerData = JSON.parse(decodeURIComponent(payerData))
       } catch (err) {
         console.error('failed to parse payerdata', err)
         return res.status(400).json({ status: 'ERROR', reason: 'Invalid JSON supplied for payerdata parameter' })
@@ -58,6 +68,7 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
       try {
         await ssValidate(lud18PayerDataSchema, parsedPayerData, k1)
       } catch (err) {
+        console.error('error validating payer data', err)
         return res.status(400).json({ status: 'ERROR', reason: err.toString() })
       }
 
@@ -80,6 +91,9 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
       models.$queryRaw`SELECT * FROM create_invoice(${invoice.id}, ${invoice.request},
         ${expiresAt}::timestamp, ${Number(amount)}, ${user.id}::INTEGER, ${noteStr || description},
         ${comment || null}, ${INV_PENDING_LIMIT}::INTEGER, ${BALANCE_LIMIT_MSATS})`)
+
+    // delete k1 after it's been used successfully
+    k1Cache.delete(k1)
 
     return res.status(200).json({
       pr: invoice.request,

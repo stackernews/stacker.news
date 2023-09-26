@@ -22,7 +22,6 @@ export const ToastProvider = ({ children }) => {
   }, [])
 
   const removeToast = useCallback(id => {
-    console.log("Removing toast with id:", id); // Add this line
     setToasts(toasts => toasts.filter(toast => toast.id !== id))
   }, [])
 
@@ -35,14 +34,14 @@ export const ToastProvider = ({ children }) => {
         delay: 5000
       })
     },
-    danger: body => {
+    danger: (body, onCloseCallback) => {
       const id = toastId.current;
-      console.log('id', id)
       dispatchToast({
         id,
         body,
         variant: 'danger',
         autohide: false,
+        onCloseCallback,
       })
       return {
         removeToast: () => removeToast(id)
@@ -75,7 +74,10 @@ export const ToastProvider = ({ children }) => {
                   variant={null}
                   className='p-0 ps-2'
                   aria-label='close'
-                  onClick={() => removeToast(toast.id)}
+                  onClick={() => {
+                    if (toast.onCloseCallback) toast.onCloseCallback();
+                    removeToast(toast.id);
+                  }}
                 ><div className={styles.toastClose}>X</div>
                 </Button>
               </div>

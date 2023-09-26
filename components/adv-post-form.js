@@ -1,7 +1,8 @@
 import AccordianItem from './accordian-item'
-import { Input, InputUserSuggest, VariableInput } from './form'
+import { Input, InputUserSuggest, VariableInput, Checkbox } from './form'
 import InputGroup from 'react-bootstrap/InputGroup'
 import { BOOST_MIN, BOOST_MULT, MAX_FORWARDS } from '../lib/constants'
+import { DEFAULT_CROSSPOSTING_RELAYS } from '../lib/nostr'
 import Info from './info'
 import { numWithUnits } from '../lib/format'
 import styles from './adv-post-form.module.css'
@@ -77,6 +78,27 @@ export default function AdvPostForm () {
               )
             }}
           </VariableInput>
+          <Checkbox
+            label={
+              <div className='d-flex align-items-center'>crosspost to nostr
+                <Info>
+                  <ul className='fw-bold'>
+                    <li>crosspost this discussion item to nostr</li>
+                    <li>requires NIP-07 extension for signing</li>
+                    <li>we use your NIP-05 relays if set</li>
+                    <li>otherwise we default to these relays:</li>
+                    <ul>
+                    {DEFAULT_CROSSPOSTING_RELAYS.map((relay, i) => (
+                      <li key={i}>{relay}</li>
+                    ))}
+                    </ul>
+                  </ul>
+                </Info>
+              </div>
+            }
+            name='crosspost'
+            hint={<span className='text-muted'>crosspost to nostr</span>}
+            />
         </>
       }
     />

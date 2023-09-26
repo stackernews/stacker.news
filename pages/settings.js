@@ -18,6 +18,7 @@ import { bech32 } from 'bech32'
 import { NOSTR_MAX_RELAY_NUM, NOSTR_PUBKEY_BECH32 } from '../lib/nostr'
 import { emailSchema, lastAuthRemovalSchema, settingsSchema } from '../lib/validate'
 import { SUPPORTED_CURRENCIES } from '../lib/currency'
+import {DEFAULT_CROSSPOSTING_RELAYS} from '../lib/nostr'
 import PageLoading from '../components/page-loading'
 import { useShowModal } from '../components/modal'
 import { authErrorMessage } from '../components/login'
@@ -310,41 +311,38 @@ export default function Settings ({ ssrData }) {
             }
             name='greeterMode'
           />
-          <AccordianItem
-            headerColor='var(--bs-body-color)'
-            show={settings?.nostrPubkey}
-            header={<h4 className='text-start'>nostr <small><a href='https://github.com/nostr-protocol/nips/blob/master/05.md' target='_blank' rel='noreferrer'>NIP-05</a></small></h4>}
-            body={
-              <>
-                <Checkbox
-                  label={
-                    <div className='d-flex align-items-center'>crosspost to nostr
-                      <Info>
-                        <ul className='fw-bold'>
-                          <li>crosspost discussion items to nostr</li>
-                          <li>requires NIP-07 extension for signing</li>
-                          <li>we use your NIP-05 relays if set</li>
-                          <li>otherwise we default to the blastr relay wss://nostr.mutinywallet.com</li>
-                        </ul>
-                      </Info>
-                    </div>
-                  }
-                  name='nostrCrossposting'
-                />
-                <Input
-                  label={<>pubkey <small className='text-muted ms-2'>optional</small></>}
-                  name='nostrPubkey'
-                  clear
-                />
-                <VariableInput
-                  label={<>relays <small className='text-muted ms-2'>optional</small></>}
-                  name='nostrRelays'
-                  clear
-                  min={0}
-                  max={NOSTR_MAX_RELAY_NUM}
-                />
-              </>
-              }
+          <div className='form-label'>nostr</div>
+          <Checkbox
+            label={
+              <div className='d-flex align-items-center'>crosspost to nostr
+                <Info>
+                  <ul className='fw-bold'>
+                    <li>crosspost discussion items to nostr</li>
+                    <li>requires NIP-07 extension for signing</li>
+                    <li>we use your NIP-05 relays if set</li>
+                    <li>otherwise we default to these relays:</li>
+                    <ul>
+                    {DEFAULT_CROSSPOSTING_RELAYS.map((relay, i) => (
+                      <li key={i}>{relay}</li>
+                    ))}
+                    </ul>
+                  </ul>
+                </Info>
+              </div>
+            }
+            name='nostrCrossposting'
+          />
+          <Input
+            label={<>pubkey <small className='text-muted ms-2'>optional</small></>}
+            name='nostrPubkey'
+            clear
+          />
+          <VariableInput
+            label={<>relays <small className='text-muted ms-2'>optional</small></>}
+            name='nostrRelays'
+            clear
+            min={0}
+            max={NOSTR_MAX_RELAY_NUM}
           />
           <div className='d-flex'>
             <SubmitButton variant='info' className='ms-auto mt-1 px-4'>save</SubmitButton>

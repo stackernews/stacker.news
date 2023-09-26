@@ -1,5 +1,4 @@
 import { Form, Input, MarkdownInput, SubmitButton } from '../components/form'
-import { useRef } from 'react'
 import { useRouter } from 'next/router'
 import { gql, useApolloClient, useLazyQuery, useMutation } from '@apollo/client'
 import Countdown from './countdown'
@@ -17,6 +16,7 @@ import { useCallback } from 'react'
 import { crosspostDiscussion } from '../lib/nostr'
 import { normalizeForwards } from '../lib/form'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
+import {DEFAULT_CROSSPOSTING_RELAYS} from '../lib/nostr'
 import { useMe } from './me'
 import { useToast } from './toast'
 
@@ -32,7 +32,7 @@ export function DiscussionForm({
   // if Web Share Target API was used
   const shareTitle = router.query.title
   const Toast = useToast()
-  const currentRetryRemoveToastRef = useRef(null);
+  const relays = [...DEFAULT_CROSSPOSTING_RELAYS, ...me?.nostrRelays || []];
 
   const [upsertDiscussion] = useMutation(
     gql`
@@ -43,20 +43,7 @@ export function DiscussionForm({
       }`
   )
 
-  let relays = [
-    "wss://nostrue.com/",
-    "wss://relay.damus.io/",
-    "wss://relay.nostr.band/",
-    "wss://relay.snort.social/",
-    "wss://nostr21.com/",
-    "wss://nostr.mutinywallet.com"
-  ];
-
-  if (me.nostrRelays) {
-    relays = relays.concat(me.nostrRelays);
-  }
-
-  const promptUserWithToast = (failedRelays) => {
+  const relayError = (failedRelays) => {
     return new Promise((resolve) => {
       const { removeToast } = Toast.danger(
         <>
@@ -71,12 +58,12 @@ export function DiscussionForm({
           <Button variant="link" onClick={() => {
             resolve('skip');
           }}>Skip</Button>
-        </>
+        </>,
+        () => resolve('skip') // will skip if user closes the toast
       );
     });
   };
   
-
   const handleCrosspost = async (values, id) => {
     let failedRelays;
     let allSuccessful = false;
@@ -91,8 +78,7 @@ export function DiscussionForm({
       failedRelays = result.failedRelays.map(relayObj => relayObj.relay);
 
       if (failedRelays.length > 0) {
-        console.log("failed relays", failedRelays);
-        const userAction = await promptUserWithToast(failedRelays);
+        const userAction = await relayError(failedRelays);
 
         if (userAction === 'skip') {
           Toast.success("Crossposting skipped.");
@@ -108,7 +94,7 @@ export function DiscussionForm({
   };
 
   const onSubmit = useCallback(
-    async ({ boost, ...values }) => {
+    async ({ boost, crosspost, ...values }) => {
       const { data, error } = await upsertDiscussion({
         variables: {
           sub: item?.subName || sub?.name,
@@ -123,13 +109,11 @@ export function DiscussionForm({
         throw new Error({ message: error.toString() })
       }
 
-      const userHasCrosspostingEnabled = me?.nostrCrossposting || false;
+      const shouldCrosspost = me?.nostrCrossposting && crosspost
 
-      if (userHasCrosspostingEnabled && data?.upsertDiscussion?.id) {
+      if (shouldCrosspost && data?.upsertDiscussion?.id) {
         const results = await handleCrosspost(values, data.upsertDiscussion.id);
         if (results.allSuccessful) {
-          Toast.success("Crossposting succeeded.");
-
           if (item) {
             await router.push(`/items/${item.id}`)
           } else {
@@ -167,6 +151,7 @@ export function DiscussionForm({
       initial={{
         title: item?.title || shareTitle || '',
         text: item?.text || '',
+        crosspost: me?.nostrCrossposting,
         ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}

@@ -23,7 +23,6 @@ import { useInvoiceable } from './invoice'
 import { numWithUnits } from '../lib/format'
 import ReactDatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
-import { dayMonthYear } from '../lib/time'
 
 export function SubmitButton ({
   children, variant, value, onClick, disabled, cost, ...props

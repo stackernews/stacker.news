@@ -96,23 +96,15 @@
     "node": "18.17.0"
   },
   "standard": {
-    "parser": "@babel/eslint-parser",
     "plugins": [
       "@next/next"
     ],
     "extends": [
       "next"
-    ],
-    "ignore": [
-      "**/spawn",
-      "**/worker",
-      "**/api",
-      "**/lib"
     ]
   },
   "devDependencies": {
     "@babel/core": "^7.22.10",
-    "@babel/eslint-parser": "^7.22.10",
     "@next/eslint-plugin-next": "^13.4.16",
     "eslint": "^8.47.0",
     "standard": "^17.1.0"

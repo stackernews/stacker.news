@@ -52,10 +52,10 @@ async function main (tableName) {
       let imgproxyUrls = {}
       try {
         if (item.text) {
-          imgproxyUrls = await createImgproxyUrls(item.text)
+          imgproxyUrls = await createImgproxyUrls(id, item.text)
         }
         if (item.url && !isJob) {
-          imgproxyUrls = { ...imgproxyUrls, ...(await createImgproxyUrls(item.url)) }
+          imgproxyUrls = { ...imgproxyUrls, ...(await createImgproxyUrls(id, item.url)) }
         }
       } catch (err) {
         console.log('[imgproxy] error:', err)

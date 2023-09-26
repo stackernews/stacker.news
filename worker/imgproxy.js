@@ -58,10 +58,10 @@ export function imgproxy ({ models }) {
     let imgproxyUrls = {}
     try {
       if (item.text) {
-        imgproxyUrls = await createImgproxyUrls(item.text)
+        imgproxyUrls = await createImgproxyUrls(id, item.text)
       }
       if (item.url && !isJob) {
-        imgproxyUrls = { ...imgproxyUrls, ...(await createImgproxyUrls(item.url)) }
+        imgproxyUrls = { ...imgproxyUrls, ...(await createImgproxyUrls(id, item.url)) }
       }
     } catch(err) {
       console.log("[imgproxy] error:", err)
@@ -75,9 +75,9 @@ export function imgproxy ({ models }) {
   }
 }
 
-export const createImgproxyUrls = async (text) => {
+export const createImgproxyUrls = async (id, text) => {
   const urls = extractUrls(text)
-  console.log("[imgproxy] extracted urls:", urls)
+  console.log("[imgproxy] id:", id, "-- extracted urls:", urls)
   // resolutions that we target:
   //   - nHD:  640x 360
   //   - qHD:  960x 540
@@ -91,15 +91,15 @@ export const createImgproxyUrls = async (text) => {
   const widths = [640, 960, 1280, 1600, 1920, 2560]
   const imgproxyUrls = {}
   for (let url of urls) {
-    console.log("[imgproxy] processing url:", url)
+    console.log("[imgproxy] id:", id, "-- processing url:", url)
     if (url.startsWith(IMGPROXY_URL)) {
-      console.log("[imgproxy] proxy url, decoding original url:", url)
+      console.log("[imgproxy] id:", id, "-- proxy url, decoding original url:", url)
       // backwards compatibility: we used to replace image urls with imgproxy urls
       url = decodeOriginalUrl(url)
-      console.log("[imgproxy] original url:", url)
+      console.log("[imgproxy] id:", id, "-- original url:", url)
     }
     if (!(await isImageURL(url))) {
-      console.log("[imgproxy] not image url:", url)
+      console.log("[imgproxy] id:", id, "-- not image url:", url)
       continue
     }
     imgproxyUrls[url] = {}

@@ -1,8 +1,11 @@
 import { GraphQLError } from 'graphql'
 import retry from 'async-retry'
 import Prisma from '@prisma/client'
+import { settleHodlInvoice } from 'ln-service'
+import { createHmac } from './wallet'
+import { msatsToSats } from '../../lib/format'
 
-async function serialize (models, ...calls) {
+export default async function serialize (models, ...calls) {
   return await retry(async bail => {
     try {
       const [, ...result] = await models.$transaction(
@@ -56,4 +59,72 @@ async function serialize (models, ...calls) {
   })
 }
 
-export default serialize
+export async function serializeInvoicable (query, { models, lnd, hash, hmac, me, enforceFee }) {
+  if (!me && !hash) {
+    throw new Error('you must be logged in or pay')
+  }
+
+  let trx = [query]
+
+  let invoice
+  if (hash) {
+    invoice = await checkInvoice(models, hash, hmac, enforceFee)
+    trx = [
+      models.$queryRaw`UPDATE users SET msats = msats + ${invoice.msatsReceived} WHERE id = ${invoice.user.id}`,
+      query,
+      models.invoice.update({ where: { hash: invoice.hash }, data: { confirmedAt: new Date() } })
+    ]
+  }
+
+  const results = await serialize(models, ...trx)
+  const result = trx.length > 1 ? results[1][0] : results[0]
+
+  if (invoice?.isHeld) await settleHodlInvoice({ secret: invoice.preimage, lnd })
+
+  return result
+}
+
+export async function checkInvoice (models, hash, hmac, fee) {
+  if (!hash) {
+    throw new GraphQLError('hash required', { extensions: { code: 'BAD_INPUT' } })
+  }
+  if (!hmac) {
+    throw new GraphQLError('hmac required', { extensions: { code: 'BAD_INPUT' } })
+  }
+  const hmac2 = createHmac(hash)
+  if (hmac !== hmac2) {
+    throw new GraphQLError('bad hmac', { extensions: { code: 'FORBIDDEN' } })
+  }
+
+  const invoice = await models.invoice.findUnique({
+    where: { hash },
+    include: {
+      user: true
+    }
+  })
+
+  if (!invoice) {
+    throw new GraphQLError('invoice not found', { extensions: { code: 'BAD_INPUT' } })
+  }
+
+  const expired = new Date(invoice.expiresAt) <= new Date()
+  if (expired) {
+    throw new GraphQLError('invoice expired', { extensions: { code: 'BAD_INPUT' } })
+  }
+  if (invoice.confirmedAt) {
+    throw new GraphQLError('invoice already used', { extensions: { code: 'BAD_INPUT' } })
+  }
+
+  if (invoice.cancelled) {
+    throw new GraphQLError('invoice was canceled', { extensions: { code: 'BAD_INPUT' } })
+  }
+
+  if (!invoice.msatsReceived) {
+    throw new GraphQLError('invoice was not paid', { extensions: { code: 'BAD_INPUT' } })
+  }
+  if (fee && msatsToSats(invoice.msatsReceived) < fee) {
+    throw new GraphQLError('invoice amount too low', { extensions: { code: 'BAD_INPUT' } })
+  }
+
+  return invoice
+}

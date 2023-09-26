@@ -132,7 +132,7 @@ export default function Comment ({
   // Don't show OP badge when anon user comments on anon user posts
   const op = root.user.name === item.user.name && Number(item.user.id) !== ANON_USER_ID
     ? 'OP'
-    : root.forwards.some(f => f.user.name === item.user.name) && Number(item.user.id) !== ANON_USER_ID
+    : root.forwards?.some(f => f.user.name === item.user.name) && Number(item.user.id) !== ANON_USER_ID
       ? 'OPG'
       : null
   const bountyPaid = root.bountyPaidTo?.includes(Number(item.id))

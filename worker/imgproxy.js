@@ -14,29 +14,36 @@ const IMGPROXY_KEY = process.env.IMGPROXY_KEY
 
 const cache = new Map()
 
-const knownPositives = [
-  /\.(jpe?g|png|gif|webp|avif)$/,
-  /^https:\/\/i\.postimg\.cc\//,
-  /^https:\/\/i\.imgflip\.com\//,
-  /^https:\/\/i\.imgur\.com\//,
-  /^https:\/\/pbs\.twimg\.com\//,
-  /^https:\/\/www\.zapread\.com\/i\//,
-  /^https:\/\/substackcdn\.com\/image/,
+// based on heuristics. see https://stacker.news/items/266838
+const imageUrlMatchers = [
+  u => u.host === 'i.postimg.cc',
+  u => u.host === 'pbs.twimg.com',
+  u => u.host === 'i.ibb.co',
+  u => u.host === 'nostr.build' || u.host === 'cdn.nostr.build',
+  u => u.host === 'www.zapread.com' && u.pathname.startsWith('/i'),
+  u => u.host === 'i.imgflip.com',
+  u => u.host === 'i.redd.it',
+  u => u.host === 'media.tenor.com',
+  u => u.host === 'i.imgur.com'
 ]
-const knownNegatives = [
-  /^https:\/\/(twitter\.com|x\.com|nitter\.(net|it|at))\/\w+\/status/,
-  /^https:\/\/postimg\.cc/,
-  /^https:\/\/imgur\.com/,
-  /^https:\/\/youtu\.be/,
-  /^https:\/\/(www\.)?youtube\.com/,
-  /^mailto:/,
-  /^https:\/\/stacker\.news\/items/,
-  /^https:\/\/news\.ycombinator\.com\/(item|user)\?id=/,
-  /^https:\/\/\w+\.substack.com/,
-  /^http:\/\/\w+\.onion/,
-  /^http:\/\/nitter\.priv\.loki/,
-  /^http:\/\/\w+\.b32\.i2p/,
+const exclude = [
+  u => u.protocol === 'mailto:',
+  u => u.host.endsWith('.onion') || u.host.endsWith('.b32.ip') || u.host.endsWith('.loki'),
+  u => ['twitter.com', 'x.com', 'nitter.it', 'nitter.at'].includes(u.host),
+  u => u.host === 'stacker.news',
+  u => u.host === 'news.ycombinator.com',
+  u => u.host === 'www.youtube.com' || u.host === 'youtu.be',
+  u => u.host === 'github.com'
 ]
+
+function matchUrl(matchers, url) {
+  try {
+    return matchers.some(matcher => matcher(new URL(url)))
+  } catch(err) {
+    console.log(url, err)
+    return false
+  }
+}
 
 function decodeOriginalUrl (imgproxyUrl) {
   const parts = imgproxyUrl.split('/')
@@ -46,7 +53,7 @@ function decodeOriginalUrl (imgproxyUrl) {
 }
 
 export function imgproxy ({ models }) {
-  return async function ({ data: { id } }) {
+  return async function ({ data: { id, forceFetch = false} }) {
     if (!imgProxyEnabled) return
 
     console.log('running imgproxy job', id)
@@ -58,10 +65,10 @@ export function imgproxy ({ models }) {
     let imgproxyUrls = {}
     try {
       if (item.text) {
-        imgproxyUrls = await createImgproxyUrls(id, item.text)
+        imgproxyUrls = await createImgproxyUrls(id, item.text, { forceFetch })
       }
       if (item.url && !isJob) {
-        imgproxyUrls = { ...imgproxyUrls, ...(await createImgproxyUrls(id, item.url)) }
+        imgproxyUrls = { ...imgproxyUrls, ...(await createImgproxyUrls(id, item.url, { forceFetch })) }
       }
     } catch(err) {
       console.log("[imgproxy] error:", err)
@@ -75,7 +82,7 @@ export function imgproxy ({ models }) {
   }
 }
 
-export const createImgproxyUrls = async (id, text) => {
+export const createImgproxyUrls = async (id, text, { forceFetch }) => {
   const urls = extractUrls(text)
   console.log("[imgproxy] id:", id, "-- extracted urls:", urls)
   // resolutions that we target:
@@ -100,7 +107,7 @@ export const createImgproxyUrls = async (id, text) => {
       url = decodeOriginalUrl(url)
       console.log("[imgproxy] id:", id, "-- original url:", url)
     }
-    if (!(await isImageURL(url))) {
+    if (!(await isImageURL(url, { forceFetch }))) {
       console.log("[imgproxy] id:", id, "-- not image url:", url)
       continue
     }
@@ -134,11 +141,15 @@ async function fetchWithTimeout (resource, { timeout = 1000, ...options } = {}) 
   return response
 }
 
-const isImageURL = async url => {
+const isImageURL = async (url, { forceFetch }) => {
   if (cache.has(url)) return cache.get(url)
 
-  if (knownPositives.some(regexp => regexp.test(url))) return true
-  if (knownNegatives.some(regexp => regexp.test(url))) return false
+  if (!forceFetch && matchUrl(imageUrlMatchers, url)) {
+    return true
+  }
+  if (!forceFetch && matchUrl(exclude, url)) {
+    return false
+  }
 
   let isImage
 

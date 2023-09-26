@@ -4,7 +4,6 @@ import SearchIcon from '../svgs/search-line.svg'
 import { useEffect, useRef, useState } from 'react'
 import { Form, Input, Select, DatePicker, SubmitButton } from './form'
 import { useRouter } from 'next/router'
-import { dayMonthYear } from '../lib/time'
 
 export default function Search ({ sub }) {
   const router = useRouter()
@@ -48,14 +47,13 @@ export default function Search ({ sub }) {
   const what = router.pathname.startsWith('/stackers') ? 'stackers' : router.query.what || 'all'
   const sort = router.query.sort || 'zaprank'
   const when = router.query.when || 'forever'
-  const from = router.query.from || dayMonthYear(new Date())
-  const to = router.query.to || dayMonthYear(new Date())
+  const from = router.query.from || new Date().toISOString()
+  const to = router.query.to || new Date().toISOString()
 
   const [datePicker, setDatePicker] = useState(when === 'custom')
   // The following state is needed for the date picker (and driven by the date picker).
   // Substituting router.query or formik values would cause network lag and/or timezone issues.
-  const timepart = 'T' + new Date().toISOString().split('T')[1]
-  const [range, setRange] = useState({ start: new Date(from + timepart), end: new Date(to + timepart) })
+  const [range, setRange] = useState({ start: new Date(from), end: new Date(to) })
 
   return (
     <>
@@ -108,7 +106,7 @@ export default function Search ({ sub }) {
                     <Select
                       groupClassName='mb-0 ms-2'
                       onChange={(formik, e) => {
-                        search({ ...formik?.values, when: e.target.value, from: from || dayMonthYear(new Date()), to: to || dayMonthYear(new Date()) })
+                        search({ ...formik?.values, when: e.target.value, from: from || new Date().toISOString(), to: to || new Date().toISOString() })
                         setDatePicker(e.target.value === 'custom')
                         if (e.target.value === 'custom') setRange({ start: new Date(), end: new Date() })
                       }}
@@ -122,12 +120,12 @@ export default function Search ({ sub }) {
                         fromName='from' toName='to'
                         className='form-control ms-2 p-0 px-2'
                         onMount={() => {
-                          setRange({ start: new Date(from + timepart), end: new Date(to + timepart) })
+                          setRange({ start: new Date(from), end: new Date(to) })
                           return [from, to]
                         }}
                         onChange={(formik, [start, end], e) => {
                           setRange({ start, end })
-                          search({ ...formik?.values, from: start && dayMonthYear(start), to: end && dayMonthYear(end) })
+                          search({ ...formik?.values, from: start && start.toISOString(), to: end && end.toISOString() })
                         }}
                         selected={range.start}
                         startDate={range.start} endDate={range.end}

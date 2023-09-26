@@ -13,14 +13,13 @@ import { discussionSchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
 import { useCallback } from 'react'
-import { crosspostDiscussion } from '../lib/nostr'
+import { crosspostDiscussion, DEFAULT_CROSSPOSTING_RELAYS } from '../lib/nostr'
 import { normalizeForwards } from '../lib/form'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
-import {DEFAULT_CROSSPOSTING_RELAYS} from '../lib/nostr'
 import { useMe } from './me'
 import { useToast } from './toast'
 
-export function DiscussionForm({
+export function DiscussionForm ({
   item, sub, editThreshold, titleLabel = 'title',
   textLabel = 'text', buttonText = 'post',
   handleSubmit, children
@@ -32,7 +31,7 @@ export function DiscussionForm({
   // if Web Share Target API was used
   const shareTitle = router.query.title
   const Toast = useToast()
-  const relays = [...DEFAULT_CROSSPOSTING_RELAYS, ...me?.nostrRelays || []];
+  const relays = [...DEFAULT_CROSSPOSTING_RELAYS, ...me?.nostrRelays || []]
 
   const [upsertDiscussion] = useMutation(
     gql`
@@ -47,51 +46,56 @@ export function DiscussionForm({
     return new Promise((resolve) => {
       const { removeToast } = Toast.danger(
         <>
-          Crossposting failed for {failedRelays.join(", ")} <br />
-          <Button variant="link" onClick={() => {
-            resolve('retry');
-            setTimeout(() => {
-              removeToast();
-            }, 1000);
-          }}>Retry</Button>
-          {" | "}
-          <Button variant="link" onClick={() => {
-            resolve('skip');
-          }}>Skip</Button>
+          Crossposting failed for {failedRelays.join(', ')} <br />
+          <Button
+            variant='link' onClick={() => {
+              resolve('retry')
+              setTimeout(() => {
+                removeToast()
+              }, 1000)
+            }}
+          >Retry
+          </Button>
+          {' | '}
+          <Button
+            variant='link' onClick={() => {
+              resolve('skip')
+            }}
+          >Skip
+          </Button>
         </>,
         () => resolve('skip') // will skip if user closes the toast
-      );
-    });
-  };
-  
+      )
+    })
+  }
+
   const handleCrosspost = async (values, id) => {
-    let failedRelays;
-    let allSuccessful = false;
+    let failedRelays
+    let allSuccessful = false
 
     do {
-      let result = await crosspostDiscussion(values, id, failedRelays || relays);
+      const result = await crosspostDiscussion(values, id, failedRelays || relays)
 
       result.successfulRelays.forEach(relay => {
-        Toast.success(`Crossposting succeeded on relay ${relay}`);
-      });
+        Toast.success(`Crossposting succeeded on relay ${relay}`)
+      })
 
-      failedRelays = result.failedRelays.map(relayObj => relayObj.relay);
+      failedRelays = result.failedRelays.map(relayObj => relayObj.relay)
 
       if (failedRelays.length > 0) {
-        const userAction = await relayError(failedRelays);
+        const userAction = await relayError(failedRelays)
 
         if (userAction === 'skip') {
-          Toast.success("Crossposting skipped.");
-          break;
+          Toast.success('Crossposting skipped.')
+          break
         }
       } else {
-        allSuccessful = true;
+        allSuccessful = true
       }
+    } while (failedRelays.length > 0)
 
-    } while (failedRelays.length > 0);
-
-    return { allSuccessful };
-  };
+    return { allSuccessful }
+  }
 
   const onSubmit = useCallback(
     async ({ boost, crosspost, ...values }) => {
@@ -112,7 +116,7 @@ export function DiscussionForm({
       const shouldCrosspost = me?.nostrCrossposting && crosspost
 
       if (shouldCrosspost && data?.upsertDiscussion?.id) {
-        const results = await handleCrosspost(values, data.upsertDiscussion.id);
+        const results = await handleCrosspost(values, data.upsertDiscussion.id)
         if (results.allSuccessful) {
           if (item) {
             await router.push(`/items/${item.id}`)

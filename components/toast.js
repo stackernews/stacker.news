@@ -34,17 +34,17 @@ export const ToastProvider = ({ children }) => {
       })
     },
     danger: (body, onCloseCallback) => {
-      const id = toastId.current;
+      const id = toastId.current
       dispatchToast({
         id,
         body,
         variant: 'danger',
         autohide: false,
-        onCloseCallback,
+        onCloseCallback
       })
       return {
         removeToast: () => removeToast(id)
-      };
+      }
     }
   }), [dispatchToast])
 
@@ -74,8 +74,8 @@ export const ToastProvider = ({ children }) => {
                   className='p-0 ps-2'
                   aria-label='close'
                   onClick={() => {
-                    if (toast.onCloseCallback) toast.onCloseCallback();
-                    removeToast(toast.id);
+                    if (toast.onCloseCallback) toast.onCloseCallback()
+                    removeToast(toast.id)
                   }}
                 ><div className={styles.toastClose}>X</div>
                 </Button>

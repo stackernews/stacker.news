@@ -88,9 +88,9 @@ export default function AdvPostForm () {
                     <li>we use your NIP-05 relays if set</li>
                     <li>otherwise we default to these relays:</li>
                     <ul>
-                    {DEFAULT_CROSSPOSTING_RELAYS.map((relay, i) => (
-                      <li key={i}>{relay}</li>
-                    ))}
+                      {DEFAULT_CROSSPOSTING_RELAYS.map((relay, i) => (
+                        <li key={i}>{relay}</li>
+                      ))}
                     </ul>
                   </ul>
                 </Info>
@@ -98,7 +98,7 @@ export default function AdvPostForm () {
             }
             name='crosspost'
             hint={<span className='text-muted'>crosspost to nostr</span>}
-            />
+          />
         </>
       }
     />

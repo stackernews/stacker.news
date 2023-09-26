@@ -15,10 +15,9 @@ import Info from '../components/info'
 import Link from 'next/link'
 import AccordianItem from '../components/accordian-item'
 import { bech32 } from 'bech32'
-import { NOSTR_MAX_RELAY_NUM, NOSTR_PUBKEY_BECH32 } from '../lib/nostr'
+import { NOSTR_MAX_RELAY_NUM, NOSTR_PUBKEY_BECH32, DEFAULT_CROSSPOSTING_RELAYS } from '../lib/nostr'
 import { emailSchema, lastAuthRemovalSchema, settingsSchema } from '../lib/validate'
 import { SUPPORTED_CURRENCIES } from '../lib/currency'
-import {DEFAULT_CROSSPOSTING_RELAYS} from '../lib/nostr'
 import PageLoading from '../components/page-loading'
 import { useShowModal } from '../components/modal'
 import { authErrorMessage } from '../components/login'
@@ -322,9 +321,9 @@ export default function Settings ({ ssrData }) {
                     <li>we use your NIP-05 relays if set</li>
                     <li>otherwise we default to these relays:</li>
                     <ul>
-                    {DEFAULT_CROSSPOSTING_RELAYS.map((relay, i) => (
-                      <li key={i}>{relay}</li>
-                    ))}
+                      {DEFAULT_CROSSPOSTING_RELAYS.map((relay, i) => (
+                        <li key={i}>{relay}</li>
+                      ))}
                     </ul>
                   </ul>
                 </Info>

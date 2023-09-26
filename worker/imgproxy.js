@@ -88,7 +88,7 @@ export const createImgproxyUrls = async (id, text) => {
   // reference:
   //   - https://en.wikipedia.org/wiki/Graphics_display_resolution#High-definition_(HD_and_derivatives)
   //   - https://www.browserstack.com/guide/ideal-screen-sizes-for-responsive-design
-  const widths = [640, 960, 1280, 1600, 1920, 2560]
+  const resolutions = ['640x360', '960x540', '1280x720', '1600x900', '1920x1080', '2560x1440']
   const imgproxyUrls = {}
   for (let url of urls) {
     console.log("[imgproxy] id:", id, "-- processing url:", url)
@@ -103,8 +103,9 @@ export const createImgproxyUrls = async (id, text) => {
       continue
     }
     imgproxyUrls[url] = {}
-    for (const w of widths) {
-      const processingOptions = `/rs:fill:${w}`
+    for (const res of resolutions) {
+      const [w, h] = res.split('x')
+      const processingOptions = `/rs:fill:${w}:${h}`
       imgproxyUrls[url][`${w}w`] = createImgproxyUrl(url, processingOptions)
     }
   }

@@ -137,7 +137,7 @@ function EditReceipt ({ cost, paidSats, addImgLink, boost, parentId }) {
 
 export function EditFeeButton ({ paidSats, hadImgLink, hasImgLink, ChildButton, variant, text, alwaysShow, parentId }) {
   const formik = useFormikContext()
-  const boost = formik?.values?.boost || 0
+  const boost = (formik?.values?.boost || 0) - (formik?.initialValues?.boost || 0)
   const addImgLink = hasImgLink && !hadImgLink
   const cost = (addImgLink ? paidSats * 9 : 0) + Number(boost)
 
@@ -148,7 +148,7 @@ export function EditFeeButton ({ paidSats, hadImgLink, hasImgLink, ChildButton, 
   const show = alwaysShow || !formik?.isSubmitting
   return (
     <div className='d-flex align-items-center'>
-      <ActionTooltip overlayText={numWithUnits(cost, { abbreviate: false })}>
+      <ActionTooltip overlayText={numWithUnits(cost >= 0 ? cost : 0, { abbreviate: false })}>
         <ChildButton variant={variant}>{text}{cost > 0 && show && <small> {numWithUnits(cost, { abbreviate: false })}</small>}</ChildButton>
       </ActionTooltip>
       {cost > 0 && show &&

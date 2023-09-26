@@ -12,7 +12,7 @@ import {
 import { msatsToSats, numWithUnits } from '../../lib/format'
 import { parse } from 'tldts'
 import uu from 'url-unshort'
-import { amountSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, ssValidate } from '../../lib/validate'
+import { advSchema, amountSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, ssValidate } from '../../lib/validate'
 import { sendUserNotification } from '../webPush'
 import { proxyImages } from './imgproxy'
 import { defaultCommentSort } from '../../lib/item'
@@ -624,34 +624,34 @@ export default {
       return await models.item.update({ where: { id: Number(id) }, data })
     },
     upsertLink: async (parent, { id, hash, hmac, ...item }, { me, models, lnd }) => {
-      await ssValidate(linkSchema, item, models, me)
+      await ssValidate(linkSchema, item, { models, me })
 
       if (id) {
-        return await updateItem(parent, { id, ...item }, { me, models })
+        return await updateItem(parent, { id, ...item }, { me, models, lnd, hash, hmac })
       } else {
         return await createItem(parent, item, { me, models, lnd, hash, hmac })
       }
     },
     upsertDiscussion: async (parent, { id, hash, hmac, ...item }, { me, models, lnd }) => {
-      await ssValidate(discussionSchema, item, models, me)
+      await ssValidate(discussionSchema, item, { models, me })
 
       if (id) {
-        return await updateItem(parent, { id, ...item }, { me, models })
+        return await updateItem(parent, { id, ...item }, { me, models, lnd, hash, hmac })
       } else {
         return await createItem(parent, item, { me, models, lnd, hash, hmac })
       }
     },
     upsertBounty: async (parent, { id, hash, hmac, ...item }, { me, models, lnd }) => {
-      await ssValidate(bountySchema, item, models, me)
+      await ssValidate(bountySchema, item, { models, me })
 
       if (id) {
-        return await updateItem(parent, { id, ...item }, { me, models })
+        return await updateItem(parent, { id, ...item }, { me, models, lnd, hash, hmac })
       } else {
         return await createItem(parent, item, { me, models, lnd, hash, hmac })
       }
     },
     upsertPoll: async (parent, { id, hash, hmac, ...item }, { me, models, lnd }) => {
-      const optionCount = id
+      const numExistingChoices = id
         ? await models.pollOption.count({
           where: {
             itemId: Number(id)
@@ -659,10 +659,10 @@ export default {
         })
         : 0
 
-      await ssValidate(pollSchema, item, models, me, optionCount)
+      await ssValidate(pollSchema, item, { models, me, numExistingChoices })
 
       if (id) {
-        return await updateItem(parent, { id, ...item }, { me, models })
+        return await updateItem(parent, { id, ...item }, { me, models, lnd, hash, hmac })
       } else {
         item.pollCost = item.pollCost || POLL_COST
         return await createItem(parent, item, { me, models, lnd, hash, hmac })
@@ -674,7 +674,7 @@ export default {
       }
 
       item.location = item.location?.toLowerCase() === 'remote' ? undefined : item.location
-      await ssValidate(jobSchema, item, models)
+      await ssValidate(jobSchema, item, { models })
       if (item.logo !== undefined) {
         item.uploadId = item.logo
         delete item.logo
@@ -1119,12 +1119,14 @@ export const createMentions = async (item, models) => {
   }
 }
 
-export const updateItem = async (parent, { sub: subName, forward, options, ...item }, { me, models }) => {
+export const updateItem = async (parent, { sub: subName, forward, options, ...item }, { me, models, lnd, hash, hmac }) => {
   // update iff this item belongs to me
   const old = await models.item.findUnique({ where: { id: Number(item.id) } })
   if (Number(old.userId) !== Number(me?.id)) {
     throw new GraphQLError('item does not belong to you', { extensions: { code: 'FORBIDDEN' } })
   }
+
+  await ssValidate(advSchema, { boost: item.boost }, { models, me, existingBoost: old.boost })
 
   // if it's not the FAQ, not their bio, and older than 10 minutes
   const user = await models.user.findUnique({ where: { id: me.id } })
@@ -1141,18 +1143,43 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
     item.url = removeTracking(item.url)
     item.url = await proxyImages(item.url)
   }
+  // only update item with the boost delta ... this is a bit of hack given the way
+  // boost used to work
+  if (item.boost > 0 && old.boost > 0) {
+    // only update the boost if it is higher than the old boost
+    if (item.boost > old.boost) {
+      item.boost = item.boost - old.boost
+    } else {
+      delete item.boost
+    }
+  }
 
   item = { subName, userId: me.id, ...item }
   const fwdUsers = await getForwardUsers(models, forward)
 
-  const [rItem] = await serialize(models,
+  let invoice
+  if (hash) {
+    invoice = await checkInvoice(models, hash, hmac)
+  }
+
+  const trx = [
     models.$queryRawUnsafe(`${SELECT} FROM update_item($1::JSONB, $2::JSONB, $3::JSONB) AS "Item"`,
-      JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options)))
+      JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options))
+  ]
+  if (invoice) {
+    trx.unshift(models.$queryRaw`UPDATE users SET msats = msats + ${invoice.msatsReceived} WHERE id = ${invoice.user.id}`)
+    trx.push(models.invoice.update({ where: { hash: invoice.hash }, data: { confirmedAt: new Date() } }))
+  }
+
+  const query = await serialize(models, ...trx)
+  const rItem = trx.length > 1 ? query[1][0] : query[0]
+
+  if (invoice?.isHeld) await settleHodlInvoice({ secret: invoice.preimage, lnd })
 
   await createMentions(rItem, models)
 
-  item.comments = []
-  return item
+  rItem.comments = []
+  return rItem
 }
 
 export const createItem = async (parent, { forward, options, ...item }, { me, models, lnd, hash, hmac }) => {

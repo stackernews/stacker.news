@@ -1,21 +1,21 @@
 import AccordianItem from './accordian-item'
 import { Input, InputUserSuggest, VariableInput } from './form'
 import InputGroup from 'react-bootstrap/InputGroup'
-import { BOOST_MIN, MAX_FORWARDS } from '../lib/constants'
+import { BOOST_MIN, BOOST_MULT, MAX_FORWARDS } from '../lib/constants'
 import Info from './info'
 import { numWithUnits } from '../lib/format'
 import styles from './adv-post-form.module.css'
 
 const EMPTY_FORWARD = { nym: '', pct: '' }
 
-export function AdvPostInitial ({ forward }) {
+export function AdvPostInitial ({ forward, boost }) {
   return {
-    boost: '',
+    boost: boost || '',
     forward: forward?.length ? forward : [EMPTY_FORWARD]
   }
 }
 
-export default function AdvPostForm ({ edit }) {
+export default function AdvPostForm () {
   return (
     <AccordianItem
       header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>options</div>}
@@ -23,17 +23,17 @@ export default function AdvPostForm ({ edit }) {
         <>
           <Input
             label={
-              <div className='d-flex align-items-center'>{edit ? 'add boost' : 'boost'}
+              <div className='d-flex align-items-center'>boost
                 <Info>
                   <ol className='fw-bold'>
                     <li>Boost ranks posts higher temporarily based on the amount</li>
                     <li>The minimum boost is {numWithUnits(BOOST_MIN, { abbreviate: false })}</li>
-                    <li>Each {numWithUnits(BOOST_MIN, { abbreviate: false })} of boost is equivalent to one trusted upvote
+                    <li>Each {numWithUnits(BOOST_MULT, { abbreviate: false })} of boost is equivalent to one trusted upvote
                       <ul>
-                        <li>e.g. {numWithUnits(BOOST_MIN * 2, { abbreviate: false })} is like 2 votes</li>
+                        <li>e.g. {numWithUnits(BOOST_MULT * 5, { abbreviate: false })} is like 5 votes</li>
                       </ul>
                     </li>
-                    <li>The decay of boost "votes" increases at 2x the rate of organic votes
+                    <li>The decay of boost "votes" increases at 1.25x the rate of organic votes
                       <ul>
                         <li>i.e. boost votes fall out of ranking faster</li>
                       </ul>

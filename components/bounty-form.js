@@ -27,7 +27,7 @@ export function BountyForm ({
   const router = useRouter()
   const client = useApolloClient()
   const me = useMe()
-  const schema = bountySchema(client, me)
+  const schema = bountySchema({ client, me, existingBoost: item?.boost })
   const [upsertBounty] = useMutation(
     gql`
       mutation upsertBounty(
@@ -89,7 +89,7 @@ export function BountyForm ({
         title: item?.title || '',
         text: item?.text || '',
         bounty: item?.bounty || 1000,
-        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards) }),
+        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}

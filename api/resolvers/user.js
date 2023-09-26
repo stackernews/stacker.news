@@ -484,7 +484,7 @@ export default {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
       }
 
-      await ssValidate(userSchema, data, models)
+      await ssValidate(userSchema, data, { models })
 
       try {
         await models.user.update({ where: { id: me.id }, data })

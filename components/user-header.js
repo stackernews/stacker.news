@@ -105,7 +105,7 @@ function NymEdit ({ user, setEditting }) {
     }
   })
   const client = useApolloClient()
-  const schema = userSchema(client)
+  const schema = userSchema({ client })
 
   return (
     <Form

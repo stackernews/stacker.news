@@ -25,7 +25,7 @@ export function DiscussionForm ({
   const router = useRouter()
   const client = useApolloClient()
   const me = useMe()
-  const schema = discussionSchema(client, me)
+  const schema = discussionSchema({ client, me, existingBoost: item?.boost })
   // if Web Share Target API was used
   const shareTitle = router.query.title
 
@@ -81,7 +81,7 @@ export function DiscussionForm ({
       initial={{
         title: item?.title || shareTitle || '',
         text: item?.text || '',
-        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards) }),
+        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}

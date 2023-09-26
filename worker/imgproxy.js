@@ -91,6 +91,8 @@ export const createImgproxyUrls = async (id, text) => {
   const resolutions = ['640x360', '960x540', '1280x720', '1600x900', '1920x1080', '2560x1440']
   const imgproxyUrls = {}
   for (let url of urls) {
+    if(!url) continue
+
     console.log("[imgproxy] id:", id, "-- processing url:", url)
     if (url.startsWith(IMGPROXY_URL)) {
       console.log("[imgproxy] id:", id, "-- proxy url, decoding original url:", url)

@@ -130,7 +130,7 @@ export function DiscussionForm({
         await router.push(prefix + '/recent')
       }
     }, [upsertDiscussion, router]
-  );
+  )
 
   const [getRelated, { data: relatedData }] = useLazyQuery(gql`
     ${ITEM_FIELDS}
@@ -202,9 +202,9 @@ export function DiscussionForm({
               </div>
             </div>)
           : <FeeButton
-            baseFee={1} parentId={null} text={buttonText}
-            ChildButton={SubmitButton} variant='secondary'
-          />}
+              baseFee={1} parentId={null} text={buttonText}
+              ChildButton={SubmitButton} variant='secondary'
+            />}
       </div>
       {!item &&
         <div className={`mt-3 ${related.length > 0 ? '' : 'invisible'}`}>
@@ -216,7 +216,7 @@ export function DiscussionForm({
                   <Item item={item} key={item.id} />
                 ))}
               </div>
-            }
+              }
           />
         </div>}
     </Form>

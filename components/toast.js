@@ -5,7 +5,6 @@ import Toast from 'react-bootstrap/Toast'
 import ToastBody from 'react-bootstrap/ToastBody'
 import ToastContainer from 'react-bootstrap/ToastContainer'
 import styles from './toast.module.css'
-import { identity } from 'mathjs'
 
 const ToastContext = createContext(() => {})
 

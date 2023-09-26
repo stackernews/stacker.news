@@ -29,7 +29,7 @@ const imageUrlMatchers = [
 const exclude = [
   u => u.protocol === 'mailto:',
   u => u.host.endsWith('.onion') || u.host.endsWith('.b32.ip') || u.host.endsWith('.loki'),
-  u => ['twitter.com', 'x.com', 'nitter.it', 'nitter.at'].includes(u.host),
+  u => ['twitter.com', 'x.com', 'nitter.it', 'nitter.at'].some(h => h === u.host),
   u => u.host === 'stacker.news',
   u => u.host === 'news.ycombinator.com',
   u => u.host === 'www.youtube.com' || u.host === 'youtu.be',

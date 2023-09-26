@@ -79,7 +79,7 @@ export default {
         items
       }
     },
-    search: async (parent, { q: query, sub, cursor, sort, what, when }, { me, models, search }) => {
+    search: async (parent, { q: query, sub, cursor, sort, what, when, from: whenFrom, to: whenTo }, { me, models, search }) => {
       const decodedCursor = decodeCursor(cursor)
       let sitems
 
@@ -199,6 +199,18 @@ export default {
           break
       }
 
+      const whenRange = when === 'custom'
+        ?
+          {
+            gte: new Date(whenFrom),
+            lte: new Date(Math.min(new Date(whenTo), decodedCursor.time))
+          }
+        :
+          {
+            lte: decodedCursor.time,
+            gte: whenGte
+          }
+
       try {
         sitems = await search.search({
           index: 'item',
@@ -232,10 +244,7 @@ export default {
                   {
                     range:
                     {
-                      createdAt: {
-                        lte: decodedCursor.time,
-                        gte: whenGte
-                      }
+                      createdAt: whenRange
                     }
                   },
                   { range: { wvotes: { gt: -1 * ITEM_FILTER_THRESHOLD } } }

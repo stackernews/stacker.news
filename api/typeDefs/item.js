@@ -7,7 +7,7 @@ export default gql`
     pageTitleAndUnshorted(url: String!): TitleUnshorted
     dupes(url: String!): [Item!]
     related(cursor: String, title: String, id: ID, minMatch: String, limit: Int): Items
-    search(q: String, sub: String, cursor: String, what: String, sort: String, when: String): Items
+    search(q: String, sub: String, cursor: String, what: String, sort: String, when: String, from: String, to: String): Items
     auctionPosition(sub: String, id: ID, bid: Int!): Int!
     itemRepetition(parentId: ID): Int!
   }

@@ -137,6 +137,7 @@ export default function Comment ({
       : null
   const bountyPaid = root.bountyPaidTo?.includes(Number(item.id))
   const replyRef = useRef()
+  const contentContainerRef = useRef()
 
   return (
     <div
@@ -209,7 +210,7 @@ export default function Comment ({
               />
               )
             : (
-              <div className={styles.text}>
+              <div className={styles.text} ref={contentContainerRef}>
                 <Text topLevel={topLevel} nofollow={item.sats + item.boost < NOFOLLOW_LIMIT}>
                   {truncate ? truncateString(item.text) : item.searchText || item.text}
                 </Text>
@@ -223,7 +224,7 @@ export default function Comment ({
           : (
             <div className={styles.children}>
               {!noReply &&
-                <Reply depth={depth + 1} item={item} replyOpen={replyOpen} ref={replyRef}>
+                <Reply depth={depth + 1} item={item} replyOpen={replyOpen} ref={replyRef} contentContainerRef={contentContainerRef}>
                   {root.bounty && !bountyPaid && <PayBounty item={item} />}
                 </Reply>}
               {children}

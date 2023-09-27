@@ -122,6 +122,7 @@ function FwdUsers ({ forwards }) {
 function TopLevelItem ({ item, noReply, ...props }) {
   const ItemComponent = item.isJob ? ItemJob : Item
   const replyRef = useRef()
+  const contentContainerRef = useRef()
 
   return (
     <ItemComponent
@@ -138,7 +139,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
       belowTitle={item.forwards && item.forwards.length > 0 && <FwdUsers forwards={item.forwards} />}
       {...props}
     >
-      <div className={styles.fullItemContainer}>
+      <div className={styles.fullItemContainer} ref={contentContainerRef}>
         {item.text && <ItemText item={item} />}
         {item.url && <ItemEmbed item={item} />}
         {item.poll && <Poll item={item} />}
@@ -158,7 +159,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
       </div>
       {!noReply &&
         <>
-          <Reply item={item} replyOpen placeholder={item.ncomments ? undefined : 'start the conversation ...'} ref={replyRef} />
+          <Reply item={item} replyOpen placeholder={item.ncomments ? undefined : 'start the conversation ...'} ref={replyRef} contentContainerRef={contentContainerRef} />
           {!item.position && !item.isJob && !item.parentId && !item.bounty > 0 && <Related title={item.title} itemId={item.id} />}
           {item.bounty > 0 && <PastBounties item={item} />}
         </>}

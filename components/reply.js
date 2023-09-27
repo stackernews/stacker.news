@@ -34,7 +34,7 @@ function FreebieDialog () {
   )
 }
 
-export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children, placeholder }, ref) {
+export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children, placeholder, contentContainerRef }, ref) {
   const [reply, setReply] = useState(replyOpen)
   const me = useMe()
   const parentId = item.id
@@ -46,7 +46,9 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
         setReply(true)
       }
       const selection = window.getSelection()
-      const textToQuote = selection.isCollapsed ? item.text : selection.toString()
+      const selectedText = selection.isCollapsed ? undefined : selection.toString()
+      const isSelectedTextInTarget = contentContainerRef?.current?.contains(selection.anchorNode)
+      const textToQuote = isSelectedTextInTarget ? selectedText : item.text
       let updatedValue
       if (formInnerRef.current && formInnerRef.current.values && !formInnerRef.current.values.text) {
         updatedValue = quote(textToQuote)

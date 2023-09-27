@@ -45,12 +45,14 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
       if (!reply) {
         setReply(true)
       }
+      const selection = window.getSelection()
+      const textToQuote = selection.isCollapsed ? item.text : selection.toString()
       let updatedValue
       if (formInnerRef.current && formInnerRef.current.values && !formInnerRef.current.values.text) {
-        updatedValue = quote(item.text)
+        updatedValue = quote(textToQuote)
       } else if (formInnerRef.current?.values?.text) {
         // append quote reply text if the input already has content
-        updatedValue = `${replyInput.current.value}\n${quote(item.text)}`
+        updatedValue = `${replyInput.current.value}\n${quote(textToQuote)}`
       }
       if (updatedValue) {
         replyInput.current.value = updatedValue

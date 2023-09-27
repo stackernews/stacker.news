@@ -166,9 +166,7 @@ export default function Comment ({
                   commentTextSingular='reply'
                   className={`${itemStyles.other} ${styles.other}`}
                   embellishUser={op && <><span> </span><Badge bg={op === 'fwd' ? 'secondary' : 'boost'} className={`${styles.op} bg-opacity-75`}>{op}</Badge></>}
-                  onQuoteReply={() => {
-                    replyRef.current?.quoteReply?.()
-                  }}
+                  onQuoteReply={replyRef?.current?.quoteReply}
                   extraInfo={
                     <>
                       {includeParent && <Parent item={item} rootText={rootText} />}

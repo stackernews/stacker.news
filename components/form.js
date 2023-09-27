@@ -483,7 +483,7 @@ export function Checkbox ({ children, label, groupClassName, hiddenLabel, extra,
 const StorageKeyPrefixContext = createContext()
 
 export function Form ({
-  initial, schema, onSubmit, children, initialError, validateImmediately, storageKeyPrefix, validateOnChange = true, invoiceable, ...props
+  initial, schema, onSubmit, children, initialError, validateImmediately, storageKeyPrefix, validateOnChange = true, invoiceable, innerRef, ...props
 }) {
   const toaster = useToast()
   const initialErrorToasted = useRef(false)
@@ -538,6 +538,7 @@ export function Form ({
           toaster.danger(err.message || err.toString?.())
         }
       }}
+      innerRef={innerRef}
     >
       <FormikForm {...props} noValidate>
         <StorageKeyPrefixContext.Provider value={storageKeyPrefix}>

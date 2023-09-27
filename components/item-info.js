@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
 import Badge from 'react-bootstrap/Badge'
+import Dropdown from 'react-bootstrap/Dropdown'
 import Countdown from './countdown'
 import { abbrNum, numWithUnits } from '../lib/format'
 import { newComments, commentsViewedAt } from '../lib/new-comments'
@@ -20,7 +21,8 @@ import MuteDropdownItem from './mute'
 
 export default function ItemInfo ({
   item, pendingSats, full, commentsText = 'comments',
-  commentTextSingular = 'comment', className, embellishUser, extraInfo, onEdit, editText
+  commentTextSingular = 'comment', className, embellishUser, extraInfo, onEdit, editText,
+  onQuoteReply
 }) {
   const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
   const me = useMe()
@@ -146,6 +148,8 @@ export default function ItemInfo ({
             <hr className='dropdown-divider' />
             <MuteDropdownItem user={item.user} />
           </>}
+        {(item.parentId || item.text) && onQuoteReply &&
+          <Dropdown.Item onClick={onQuoteReply}>quote reply</Dropdown.Item>}
       </ActionDropdown>
       {extraInfo}
     </div>

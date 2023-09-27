@@ -9,6 +9,7 @@ import FeeButton from './fee-button'
 import { commentsViewedAfterComment } from '../lib/new-comments'
 import { commentSchema } from '../lib/validate'
 import Info from './info'
+import { quote } from '../lib/md'
 
 export function ReplyOnAnotherPage ({ parentId }) {
   return (
@@ -33,10 +34,32 @@ function FreebieDialog () {
   )
 }
 
-export default function Reply ({ item, onSuccess, replyOpen, children, placeholder }) {
+export default function Reply ({ item, onSuccess, replyOpen, children, placeholder, innerRef }) {
   const [reply, setReply] = useState(replyOpen)
   const me = useMe()
   const parentId = item.id
+  const replyInput = useRef(null)
+  const formInnerRef = useRef()
+  const quoteReply = useCallback(() => {
+    if (!reply) {
+      setReply(true)
+    }
+    let updatedValue
+    if (formInnerRef.current && formInnerRef.current.values && !formInnerRef.current.values.text) {
+      updatedValue = quote(item.text)
+    } else if (formInnerRef.current?.values?.text) {
+      // append quote reply text if the input already has content
+      updatedValue = `${replyInput.current.value}\n${quote(item.text)}`
+    }
+    if (updatedValue) {
+      replyInput.current.value = updatedValue
+      formInnerRef.current.setValues({ text: updatedValue })
+      window.localStorage.setItem(`reply-${parentId}-text`, updatedValue)
+    }
+  }, [reply, item])
+  if (innerRef) {
+    innerRef.current = { quoteReply }
+  }
 
   useEffect(() => {
     setReply(replyOpen || !!window.localStorage.getItem('reply-' + parentId + '-' + 'text'))
@@ -96,7 +119,6 @@ export default function Reply ({ item, onSuccess, replyOpen, children, placehold
     setReply(replyOpen || false)
   }, [upsertComment, setReply, parentId])
 
-  const replyInput = useRef(null)
   useEffect(() => {
     if (replyInput.current && reply && !replyOpen) replyInput.current.focus()
   }, [reply])
@@ -115,35 +137,35 @@ export default function Reply ({ item, onSuccess, replyOpen, children, placehold
             {/* HACK if we need more items, we should probably do a comment toolbar */}
             {children}
           </div>)}
-      {reply &&
-        <div className={styles.reply}>
-          <Form
-            initial={{
-              text: ''
-            }}
-            schema={commentSchema}
-            invoiceable
-            onSubmit={onSubmit}
-            storageKeyPrefix={'reply-' + parentId}
-          >
-            <MarkdownInput
-              name='text'
-              minRows={6}
-              autoFocus={!replyOpen}
-              required
-              placeholder={placeholder}
-              hint={me?.sats < 1 && <FreebieDialog />}
-              innerRef={replyInput}
-            />
-            {reply &&
-              <div className='mt-1'>
-                <FeeButton
-                  baseFee={1} parentId={parentId} text='reply'
-                  ChildButton={SubmitButton} variant='secondary' alwaysShow
-                />
-              </div>}
-          </Form>
-        </div>}
+      <div className={styles.reply} style={{ display: reply ? 'block' : 'none' }}>
+        <Form
+          initial={{
+            text: ''
+          }}
+          schema={commentSchema}
+          invoiceable
+          onSubmit={onSubmit}
+          storageKeyPrefix={`reply-${parentId}`}
+          innerRef={formInnerRef}
+        >
+          <MarkdownInput
+            name='text'
+            minRows={6}
+            autoFocus={!replyOpen}
+            required
+            placeholder={placeholder}
+            hint={me?.sats < 1 && <FreebieDialog />}
+            innerRef={replyInput}
+          />
+          {reply &&
+            <div className='mt-1'>
+              <FeeButton
+                baseFee={1} parentId={parentId} text='reply'
+                ChildButton={SubmitButton} variant='secondary' alwaysShow
+              />
+            </div>}
+        </Form>
+      </div>
     </div>
   )
 }

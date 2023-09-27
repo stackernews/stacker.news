@@ -7,7 +7,8 @@
     "build": "next build",
     "migrate": "prisma migrate deploy",
     "start": "NODE_OPTIONS='--trace-warnings' next start -p $PORT --keepAliveTimeout 120000",
-    "lint": "standard"
+    "lint": "standard",
+    "worker": "tsx --trace-warnings worker/index.js"
   },
   "dependencies": {
     "@apollo/client": "^3.8.1",
@@ -77,6 +78,7 @@
     "sass": "^1.65.1",
     "serviceworker-storage": "^0.1.0",
     "tldts": "^6.0.14",
+    "tsx": "^3.13.0",
     "typescript": "^5.1.6",
     "unist-util-visit": "^5.0.0",
     "url-unshort": "^6.1.0",

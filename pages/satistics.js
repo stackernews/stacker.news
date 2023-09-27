@@ -110,12 +110,12 @@ function Detail ({ fact }) {
   if (!fact.item) {
     let zap
     try {
-      zap = JSON.parse(fact.zapMessage)
+      zap = JSON.parse(fact.description)
     } catch { }
     return (
       <div className='px-3'>
         <Link className={satusClass(fact.status)} href={`/${fact.type}s/${fact.factId}`}>
-          {(zap && <span className='d-block'>nostr zap</span>) ||
+          {(zap && <span className='d-block'>nostr zap{zap.content && `: ${zap.content}`}</span>) ||
            (fact.description && <span className='d-block'>{fact.description}</span>)}
           {fact.invoiceComment && <small className='text-muted'>sender says: {fact.invoiceComment}</small>}
           {!fact.invoiceComment && !fact.description && <span className='d-block'>no description</span>}

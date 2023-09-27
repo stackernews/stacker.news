@@ -3,7 +3,7 @@ import { gql, useMutation } from '@apollo/client'
 import styles from './reply.module.css'
 import { COMMENTS } from '../fragments/comments'
 import { useMe } from './me'
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { forwardRef, useCallback, useEffect, useState, useRef, useImperativeHandle } from 'react'
 import Link from 'next/link'
 import FeeButton from './fee-button'
 import { commentsViewedAfterComment } from '../lib/new-comments'
@@ -34,32 +34,31 @@ function FreebieDialog () {
   )
 }
 
-export default function Reply ({ item, onSuccess, replyOpen, children, placeholder, innerRef }) {
+export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children, placeholder }, ref) {
   const [reply, setReply] = useState(replyOpen)
   const me = useMe()
   const parentId = item.id
   const replyInput = useRef(null)
   const formInnerRef = useRef()
-  const quoteReply = useCallback(() => {
-    if (!reply) {
-      setReply(true)
+  useImperativeHandle(ref, () => ({
+    quoteReply: () => {
+      if (!reply) {
+        setReply(true)
+      }
+      let updatedValue
+      if (formInnerRef.current && formInnerRef.current.values && !formInnerRef.current.values.text) {
+        updatedValue = quote(item.text)
+      } else if (formInnerRef.current?.values?.text) {
+        // append quote reply text if the input already has content
+        updatedValue = `${replyInput.current.value}\n${quote(item.text)}`
+      }
+      if (updatedValue) {
+        replyInput.current.value = updatedValue
+        formInnerRef.current.setValues({ text: updatedValue })
+        window.localStorage.setItem(`reply-${parentId}-text`, updatedValue)
+      }
     }
-    let updatedValue
-    if (formInnerRef.current && formInnerRef.current.values && !formInnerRef.current.values.text) {
-      updatedValue = quote(item.text)
-    } else if (formInnerRef.current?.values?.text) {
-      // append quote reply text if the input already has content
-      updatedValue = `${replyInput.current.value}\n${quote(item.text)}`
-    }
-    if (updatedValue) {
-      replyInput.current.value = updatedValue
-      formInnerRef.current.setValues({ text: updatedValue })
-      window.localStorage.setItem(`reply-${parentId}-text`, updatedValue)
-    }
-  }, [reply, item])
-  if (innerRef) {
-    innerRef.current = { quoteReply }
-  }
+  }), [reply, item])
 
   useEffect(() => {
     setReply(replyOpen || !!window.localStorage.getItem('reply-' + parentId + '-' + 'text'))
@@ -168,7 +167,7 @@ export default function Reply ({ item, onSuccess, replyOpen, children, placehold
       </div>
     </div>
   )
-}
+})
 
 export function ReplySkeleton () {
   return (

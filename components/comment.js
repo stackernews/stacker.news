@@ -223,7 +223,7 @@ export default function Comment ({
           : (
             <div className={styles.children}>
               {!noReply &&
-                <Reply depth={depth + 1} item={item} replyOpen={replyOpen} innerRef={replyRef}>
+                <Reply depth={depth + 1} item={item} replyOpen={replyOpen} ref={replyRef}>
                   {root.bounty && !bountyPaid && <PayBounty item={item} />}
                 </Reply>}
               {children}

@@ -764,7 +764,7 @@ export default {
           ((SELECT coalesce(sum("ItemAct".msats),0) as amount
             FROM "ItemAct"
             JOIN "Item" on "ItemAct"."itemId" = "Item".id
-            WHERE act <> 'BOOST' AND "ItemAct"."userId" <> $2 AND "Item"."userId" = $2
+            WHERE act = 'TIP' AND "ItemAct"."userId" <> $2 AND "Item"."userId" = $2
             AND "ItemAct".created_at >= $1)
           UNION ALL
             (SELECT coalesce(sum("ReferralAct".msats),0) as amount

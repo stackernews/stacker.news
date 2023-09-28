@@ -71,12 +71,6 @@ export const COMMENTS = gql`
                 ...CommentFields
                 comments {
                   ...CommentFields
-                  comments {
-                    ...CommentFields
-                    comments {
-                      ...CommentFields
-                    }
-                  }
                 }
               }
             }

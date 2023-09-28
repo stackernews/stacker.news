@@ -38,7 +38,7 @@ export function Invoice ({ invoice, onPayment, info, successVerb }) {
     }
   }, [invoice.confirmedAt, invoice.isHeld, invoice.satsReceived])
 
-  const { nostr } = invoice
+  const { nostr, comment, lud18Data } = invoice
 
   return (
     <>
@@ -70,6 +70,18 @@ export function Invoice ({ invoice, onPayment, info, successVerb }) {
             />
           : null}
       </div>
+      {lud18Data && <div className='w-100'>
+        <AccordianItem
+          header='sender identity'
+          body={<>{Object.entries(JSON.parse(decodeURIComponent(lud18Data))).map(([key, value]) => <div>{value} ({key})</div>)}</>}
+        />
+      </div>}
+      {comment && <div className='w-100'>
+        <AccordianItem
+          header='sender comments'
+          body={<span>{comment}</span>}
+        />
+      </div>}
     </>
   )
 }

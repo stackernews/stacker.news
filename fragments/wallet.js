@@ -14,6 +14,8 @@ export const INVOICE = gql`
       expiresAt
       nostr
       isHeld
+      comment
+      lud18Data
     }
   }`
 
@@ -45,6 +47,7 @@ export const WALLET_HISTORY = gql`
         type
         description
         invoiceComment
+        payerData
         item {
           ...ItemFullFields
         }

@@ -27,6 +27,7 @@ export default gql`
     satsRequested: Int!
     nostr: JSONObject
     comment: String
+    lud18Data: String
     hmac: String
     isHeld: Boolean
   }
@@ -55,6 +56,7 @@ export default gql`
     description: String
     item: Item
     invoiceComment: String
+    payerData: String
   }
 
   type History {

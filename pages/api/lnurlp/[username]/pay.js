@@ -8,7 +8,6 @@ import { createHash } from 'crypto'
 import { datePivot } from '../../../../lib/time'
 import { BALANCE_LIMIT_MSATS, INV_PENDING_LIMIT, LNURLP_COMMENT_MAX_LENGTH } from '../../../../lib/constants'
 import { ssValidate, lud18PayerDataSchema } from '../../../../lib/validate'
-import { k1Cache } from './index'
 
 export default async ({ query: { username, amount, nostr, comment, payerdata: payerData, k1 } }, res) => {
   const user = await models.user.findUnique({ where: { name: username } })
@@ -18,11 +17,12 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
   if (!k1) {
     return res.status(400).json({ status: 'ERROR', reason: `k1 value required` })
   }
-  if (!k1Cache.has(k1)) {
-    return res.status(400).json({ status: 'ERROR', reason: `k1 has already been used or expired, request another` })
+  const lnUrlpRequest = await models.lnUrlpRequest.findUnique({ where: { k1, userId: user.id } })
+  if (!lnUrlpRequest) {
+    return res.status(400).json({ status: 'ERROR', reason: `k1 has already been used, has expired, or does not exist, request another` })
   }
-  if (k1Cache.get(k1) !== username) {
-    return res.status(400).json({ status: 'ERROR', reason: `k1 value is not associated with user @${username}, request another for user @${username}` })
+  if (datePivot(new Date(lnUrlpRequest.createdAt), { minutes: 10 }) < new Date()) {
+    return res.status(400).json({ status: 'ERROR', reason: `k1 has expired, request another` })
   }
   try {
     // if nostr, decode, validate sig, check tags, set description hash
@@ -90,10 +90,10 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
     await serialize(models,
       models.$queryRaw`SELECT * FROM create_invoice(${invoice.id}, ${invoice.request},
         ${expiresAt}::timestamp, ${Number(amount)}, ${user.id}::INTEGER, ${noteStr || description},
-        ${comment || null}, ${INV_PENDING_LIMIT}::INTEGER, ${BALANCE_LIMIT_MSATS})`)
+        ${comment || null}, ${payerData || null}, ${INV_PENDING_LIMIT}::INTEGER, ${BALANCE_LIMIT_MSATS})`)
 
     // delete k1 after it's been used successfully
-    k1Cache.delete(k1)
+    await models.lnUrlpRequest.delete({ where: { id: lnUrlpRequest.id } })
 
     return res.status(200).json({
       pr: invoice.request,

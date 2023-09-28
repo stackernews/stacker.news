@@ -94,6 +94,7 @@ model User {
   hideIsContributor   Boolean              @default(false)
   muters              Mute[]               @relation("muter")
   muteds              Mute[]               @relation("muted")
+  LnUrlpRequest       LnUrlpRequest[]      @relation("LnUrlpRequests")
 
   @@index([createdAt], map: "users.created_at_index")
   @@index([inviteId], map: "users.inviteId_index")
@@ -202,6 +203,16 @@ model LnWith {
   k1           String   @unique(map: "LnWith.k1_unique")
   userId       Int
   withdrawalId Int?
+}
+
+// Very similar structure to LnWith, but serves a different purpose so it gets a separate model
+model LnUrlpRequest {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  k1        String   @unique(map: "LnUrlpRequest.k1_unique")
+  userId    Int
+  user      User     @relation("LnUrlpRequests", fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Invite {
@@ -449,6 +460,7 @@ model Invoice {
   msatsReceived  BigInt?
   desc           String?
   comment        String?
+  lud18Data      String?
   user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([createdAt], map: "Invoice.created_at_index")

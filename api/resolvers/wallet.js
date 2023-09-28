@@ -93,6 +93,7 @@ export default {
               ELSE 'PENDING' END as status,
               "desc" as description,
             comment as "invoiceComment",
+            "lud18Data" as "payerData",
           'invoice' as type
           FROM "Invoice"
           WHERE "userId" = $1
@@ -109,6 +110,7 @@ export default {
           COALESCE(status::text, 'PENDING') as status,
           NULL as description,
           NULL as "invoiceComment",
+          NULL as "payerData",
           'withdrawal' as type
           FROM "Withdrawl"
           WHERE "userId" = $1
@@ -135,6 +137,7 @@ export default {
             NULL AS status,
             NULL as description,
             NULL as "invoiceComment",
+            NULL as "payerData",
             'stacked' AS type
           FROM "ItemAct"
           JOIN "Item" ON "ItemAct"."itemId" = "Item".id
@@ -148,14 +151,14 @@ export default {
         queries.push(
             `(SELECT ('earn' || min("Earn".id)) as id, min("Earn".id) as "factId", NULL as bolt11,
             created_at as "createdAt", sum(msats),
-            0 as "msatsFee", NULL as status, NULL as description, NULL as "invoiceComment", 'earn' as type
+            0 as "msatsFee", NULL as status, NULL as description, NULL as "invoiceComment", NULL as "payerData", 'earn' as type
             FROM "Earn"
             WHERE "Earn"."userId" = $1 AND "Earn".created_at <= $2
             GROUP BY "userId", created_at)`)
         queries.push(
             `(SELECT ('referral' || "ReferralAct".id) as id, "ReferralAct".id as "factId", NULL as bolt11,
             created_at as "createdAt", msats,
-            0 as "msatsFee", NULL as status, NULL as description, NULL as "invoiceComment", 'referral' as type
+            0 as "msatsFee", NULL as status, NULL as description, NULL as "invoiceComment", NULL as "payerData", 'referral' as type
             FROM "ReferralAct"
             WHERE "ReferralAct"."referrerId" = $1 AND "ReferralAct".created_at <= $2)`)
       }
@@ -164,7 +167,7 @@ export default {
         queries.push(
           `(SELECT ('spent' || "Item".id) as id, "Item".id as "factId", NULL as bolt11,
           MAX("ItemAct".created_at) as "createdAt", sum("ItemAct".msats) as msats,
-          0 as "msatsFee", NULL as status, NULL as description, NULL as "invoiceComment", 'spent' as type
+          0 as "msatsFee", NULL as status, NULL as description, NULL as "invoiceComment", NULL as "payerData", 'spent' as type
           FROM "ItemAct"
           JOIN "Item" on "ItemAct"."itemId" = "Item".id
           WHERE "ItemAct"."userId" = $1
@@ -173,7 +176,7 @@ export default {
         queries.push(
             `(SELECT ('donation' || "Donation".id) as id, "Donation".id as "factId", NULL as bolt11,
             created_at as "createdAt", sats * 1000 as msats,
-            0 as "msatsFee", NULL as status, NULL as description, NULL as "invoiceComment", 'donation' as type
+            0 as "msatsFee", NULL as status, NULL as description, NULL as "invoiceComment", NULL as "payerData", 'donation' as type
             FROM "Donation"
             WHERE "userId" = $1
             AND created_at <= $2)`)
@@ -259,7 +262,7 @@ export default {
 
         const [inv] = await serialize(models,
           models.$queryRaw`SELECT * FROM create_invoice(${invoice.id}, ${invoice.request},
-            ${expiresAt}::timestamp, ${amount * 1000}, ${user.id}::INTEGER, ${description}, NULL,
+            ${expiresAt}::timestamp, ${amount * 1000}, ${user.id}::INTEGER, ${description}, NULL, NULL,
             ${invLimit}::INTEGER, ${balanceLimit})`)
 
         if (hodlInvoice) await models.invoice.update({ where: { hash: invoice.id }, data: { preimage: invoice.secret } })

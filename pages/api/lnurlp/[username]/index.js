@@ -6,8 +6,6 @@ import { LNURLP_COMMENT_MAX_LENGTH } from '../../../../lib/constants'
 
 const generateK1 = () => randomBytes(32).toString('hex')
 
-export const k1Cache = new Map()
-
 export default async ({ query: { username } }, res) => {
   const user = await models.user.findUnique({ where: { name: username } })
   if (!user) {
@@ -16,11 +14,7 @@ export default async ({ query: { username } }, res) => {
 
   // Generate a random k1, cache it with the requested username for validation upon invoice request
   const k1 = generateK1()
-  k1Cache.set(k1, username)
-  // Invalidate the k1 after 10 minutes, if unused
-  setTimeout(() => {
-    k1Cache.delete(k1)
-  }, 1000 * 60 * 10)
+  await models.lnUrlpRequest.create({ data: { k1, userId: user.id } })
 
   return res.status(200).json({
     callback: `${process.env.PUBLIC_URL}/api/lnurlp/${username}/pay?k1=${k1}`, // The URL from LN SERVICE which will accept the pay request parameters

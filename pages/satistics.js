@@ -117,7 +117,7 @@ function Detail ({ fact }) {
         <Link className={satusClass(fact.status)} href={`/${fact.type}s/${fact.factId}`}>
           {(zap && <span className='d-block'>nostr zap{zap.content && `: ${zap.content}`}</span>) ||
            (fact.description && <span className='d-block'>{fact.description}</span>)}
-          <PayerData data={fact.payerData} className='text-muted' header />
+          <PayerData data={fact.invoicePayerData} className='text-muted' header />
           {fact.invoiceComment && <small className='text-muted'><b>sender says:</b> {fact.invoiceComment}</small>}
           {!fact.invoiceComment && !fact.description && <span className='d-block'>no description</span>}
           <Satus status={fact.status} />

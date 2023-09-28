@@ -56,7 +56,7 @@ export default gql`
     description: String
     item: Item
     invoiceComment: String
-    payerData: String
+    invoicePayerData: String
   }
 
   type History {

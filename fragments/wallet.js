@@ -47,7 +47,7 @@ export const WALLET_HISTORY = gql`
         type
         description
         invoiceComment
-        payerData
+        invoicePayerData
         item {
           ...ItemFullFields
         }

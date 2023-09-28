@@ -1,3 +1,6 @@
+import { sendUserNotification } from '../api/webPush'
+import { FOUND_BLURBS } from '../lib/constants'
+
 const STREAK_THRESHOLD = 100
 
 export function computeStreaks ({ models }) {
@@ -81,7 +84,7 @@ export function checkStreak ({ models }) {
       return
     }
 
-    await models.$executeRaw`
+    const affected = await models.$executeRaw`
       WITH streak_started (id) AS (
           SELECT "userId"
           FROM
@@ -106,5 +109,16 @@ export function checkStreak ({ models }) {
       FROM streak_started`
 
     console.log('done checking streak', id)
+
+    if (!affected) return
+
+    // new streak started for user
+    const index = Math.floor(Math.random() * FOUND_BLURBS.length)
+    const blurb = FOUND_BLURBS[index]
+    sendUserNotification(id, {
+      title: 'you found a cowboy hat',
+      body: blurb,
+      tag: 'STREAK'
+    })
   }
 }

@@ -1,4 +1,5 @@
 import serialize from '../api/resolvers/serial.js'
+import { sendUserNotification } from '../api/webPush/index.js'
 import { ANON_USER_ID } from '../lib/constants.js'
 
 const ITEM_EACH_REWARD = 4.0
@@ -151,6 +152,10 @@ export function earn ({ models }) {
         await serialize(models,
           models.$executeRaw`SELECT earn(${earner.userId}::INTEGER, ${earnings},
           ${now}::timestamp without time zone, ${earner.type}::"EarnType", ${earner.id}::INTEGER, ${earner.rank}::INTEGER)`)
+        sendUserNotification(earner.userId, {
+          title: `you stacked ${earnings} in rewards`,
+          tag: 'EARN'
+        }).catch(console.error)
       }
     })
 

@@ -49,7 +49,8 @@ self.addEventListener('push', async function (event) {
   if (!payload) return
   const { tag } = payload.options
   event.waitUntil((async () => {
-    if (!['REPLY', 'MENTION'].includes(tag)) {
+    // TIP notifications simply replace the previous notifications
+    if (!tag || tag.split('-')[0] === 'TIP') {
       return self.registration.showNotification(payload.title, payload.options)
     }
 
@@ -71,6 +72,8 @@ self.addEventListener('push', async function (event) {
       title = `You have ${amount} new replies`
     } else if (tag === 'MENTION') {
       title = `You were mentioned ${amount} times`
+    } else if (tag === 'REFERRAL') {
+      title = `${amount} stackers joined via your referral links`
     }
     currentNotification.close()
     const { icon } = currentNotification

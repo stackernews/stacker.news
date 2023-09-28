@@ -75,28 +75,6 @@ export async function getItem (parent, { id }, { me, models }) {
   return item
 }
 
-function whenClause (when, type) {
-  let interval = ` AND "${type === 'bookmarks' ? 'Bookmark' : 'Item'}".created_at >= $1 - INTERVAL `
-  switch (when) {
-    case 'forever':
-      interval = ''
-      break
-    case 'week':
-      interval += "'7 days'"
-      break
-    case 'month':
-      interval += "'1 month'"
-      break
-    case 'year':
-      interval += "'1 year'"
-      break
-    default:
-      interval += "'1 day'"
-      break
-  }
-  return interval
-}
-
 const orderByClause = async (by, me, models, type) => {
   switch (by) {
     case 'comments':
@@ -205,6 +183,28 @@ const subClauseTable = (type) => COMMENT_TYPE_QUERY.includes(type) ? 'root' : 'I
 export const whereClause = (...clauses) => {
   const clause = clauses.flat(Infinity).filter(c => c).join(' AND ')
   return clause ? ` WHERE ${clause} ` : ''
+}
+
+function whenClause (when, type) {
+  let interval = `"${type === 'bookmarks' ? 'Bookmark' : 'Item'}".created_at >= $1 - INTERVAL `
+  switch (when) {
+    case 'forever':
+      interval = ''
+      break
+    case 'week':
+      interval += "'7 days'"
+      break
+    case 'month':
+      interval += "'1 month'"
+      break
+    case 'year':
+      interval += "'1 year'"
+      break
+    default:
+      interval += "'1 day'"
+      break
+  }
+  return interval
 }
 
 const activeOrMine = (me) => {

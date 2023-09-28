@@ -241,6 +241,7 @@ function InvoicePaid ({ n }) {
     <div className='fw-bold text-info ms-2 py-1'>
       <Check className='fill-info me-1' />{numWithUnits(n.earnedSats, { abbreviate: false })} were deposited in your account
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
+      {n.invoice.lud18Data && <small className='d-block ms-4 ps-1 mt-1 mb-1 text-muted fw-normal'><Text>{n.invoice.lud18Data}</Text></small>}
       {n.invoice.comment && <small className='d-block ms-4 ps-1 mt-1 mb-1 text-muted fw-normal'><Text>{n.invoice.comment}</Text></small>}
     </div>
   )

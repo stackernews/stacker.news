@@ -14,6 +14,7 @@ export const ITEM_FIELDS = gql`
       streak
       hideCowboyHat
       id
+      meMute
     }
     otsHash
     position

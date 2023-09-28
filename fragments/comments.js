@@ -12,6 +12,7 @@ export const COMMENT_FIELDS = gql`
       streak
       hideCowboyHat
       id
+      meMute
     }
     sats
     meAnonSats @client

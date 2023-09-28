@@ -136,77 +136,6 @@ export async function joinSatRankView (me, models) {
   return 'JOIN zap_rank_tender_view ON "Item".id = zap_rank_tender_view.id'
 }
 
-export async function filterClause (me, models, type) {
-  // if you are explicitly asking for marginal content, don't filter them
-  if (['outlawed', 'borderland', 'freebies'].includes(type)) {
-    if (me && ['outlawed', 'borderland'].includes(type)) {
-      // unless the item is mine
-      return ` AND "Item"."userId" <> ${me.id} `
-    }
-
-    return ''
-  }
-
-  // by default don't include freebies unless they have upvotes
-  let clause = ' AND (NOT "Item".freebie OR "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0'
-  if (me) {
-    const user = await models.user.findUnique({ where: { id: me.id } })
-    // wild west mode has everything
-    if (user.wildWestMode) {
-      return ''
-    }
-    // greeter mode includes freebies if feebies haven't been flagged
-    if (user.greeterMode) {
-      clause = ' AND (NOT "Item".freebie OR ("Item"."weightedVotes" - "Item"."weightedDownVotes" >= 0 AND "Item".freebie)'
-    }
-
-    // always include if it's mine
-    clause += ` OR "Item"."userId" = ${me.id})`
-  } else {
-    // close default freebie clause
-    clause += ')'
-  }
-
-  // if the item is above the threshold or is mine
-  clause += ` AND ("Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}`
-  if (me) {
-    clause += ` OR "Item"."userId" = ${me.id}`
-  }
-  clause += ')'
-
-  return clause
-}
-
-function typeClause (type) {
-  switch (type) {
-    case 'links':
-      return ' AND "Item".url IS NOT NULL AND "Item"."parentId" IS NULL'
-    case 'discussions':
-      return ' AND "Item".url IS NULL AND "Item".bio = false AND "Item"."pollCost"  IS NULL AND "Item"."parentId" IS NULL'
-    case 'polls':
-      return ' AND "Item"."pollCost" IS NOT NULL AND "Item"."parentId" IS NULL'
-    case 'bios':
-      return ' AND "Item".bio = true AND "Item"."parentId" IS NULL'
-    case 'bounties':
-      return ' AND "Item".bounty IS NOT NULL AND "Item"."parentId" IS NULL'
-    case 'comments':
-      return ' AND "Item"."parentId" IS NOT NULL'
-    case 'freebies':
-      return ' AND "Item".freebie'
-    case 'outlawed':
-      return ` AND "Item"."weightedVotes" - "Item"."weightedDownVotes" <= -${ITEM_FILTER_THRESHOLD}`
-    case 'borderland':
-      return ' AND "Item"."weightedVotes" - "Item"."weightedDownVotes" < 0 '
-    case 'all':
-    case 'bookmarks':
-      return ''
-    case 'jobs':
-      return ' AND "Item"."subName" = \'jobs\''
-    default:
-      return ' AND "Item"."parentId" IS NULL'
-  }
-}
-
 // this grabs all the stuff we need to display the item list and only
 // hits the db once ... orderBy needs to be duplicated on the outer query because
 // joining does not preserve the order of the inner query
@@ -221,13 +150,15 @@ async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ...args) 
       ${orderBy}`, ...args)
   } else {
     return await models.$queryRawUnsafe(`
-      SELECT "Item".*, to_json(users.*) as user, COALESCE("ItemAct"."meMsats", 0) as "meMsats",
+      SELECT "Item".*, to_jsonb(users.*) || jsonb_build_object('meMute', "Mute"."mutedId" IS NOT NULL) as user,
+        COALESCE("ItemAct"."meMsats", 0) as "meMsats",
         COALESCE("ItemAct"."meDontLike", false) as "meDontLike", b."itemId" IS NOT NULL AS "meBookmark",
         "ThreadSubscription"."itemId" IS NOT NULL AS "meSubscription", "ItemForward"."itemId" IS NOT NULL AS "meForward"
       FROM (
         ${query}
       ) "Item"
       JOIN users ON "Item"."userId" = users.id
+      LEFT JOIN "Mute" ON "Mute"."muterId" = ${me.id} AND "Mute"."mutedId" = "Item"."userId"
       LEFT JOIN "Bookmark" b ON b."itemId" = "Item".id AND b."userId" = ${me.id}
       LEFT JOIN "ThreadSubscription" ON "ThreadSubscription"."itemId" = "Item".id AND "ThreadSubscription"."userId" = ${me.id}
       LEFT JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id AND "ItemForward"."userId" = ${me.id}
@@ -243,24 +174,26 @@ async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ...args) 
   }
 }
 
-const subClause = (sub, num, table, solo) => {
-  return sub ? ` ${solo ? 'WHERE' : 'AND'} ${table ? `"${table}".` : ''}"subName" = $${num} ` : ''
-}
-
 const relationClause = (type) => {
+  let clause = ''
   switch (type) {
     case 'comments':
-      return ' FROM "Item" JOIN "Item" root ON "Item"."rootId" = root.id '
+      clause += ' FROM "Item" JOIN "Item" root ON "Item"."rootId" = root.id '
+      break
     case 'bookmarks':
-      return ' FROM "Item" JOIN "Bookmark" ON "Bookmark"."itemId" = "Item"."id" '
+      clause += ' FROM "Item" JOIN "Bookmark" ON "Bookmark"."itemId" = "Item"."id" '
+      break
     case 'outlawed':
     case 'borderland':
     case 'freebies':
     case 'all':
-      return ' FROM "Item" LEFT JOIN "Item" root ON "Item"."rootId" = root.id '
+      clause += ' FROM "Item" LEFT JOIN "Item" root ON "Item"."rootId" = root.id '
+      break
     default:
-      return ' FROM "Item" '
+      clause += ' FROM "Item" '
   }
+
+  return clause
 }
 
 const selectClause = (type) => type === 'bookmarks'
@@ -269,8 +202,91 @@ const selectClause = (type) => type === 'bookmarks'
 
 const subClauseTable = (type) => COMMENT_TYPE_QUERY.includes(type) ? 'root' : 'Item'
 
+export const whereClause = (...clauses) => {
+  const clause = clauses.flat(Infinity).filter(c => c).join(' AND ')
+  return clause ? ` WHERE ${clause} ` : ''
+}
+
 const activeOrMine = (me) => {
-  return me ? ` AND ("Item".status <> 'STOPPED' OR "Item"."userId" = ${me.id}) ` : ' AND "Item".status <> \'STOPPED\' '
+  return me ? `("Item".status <> 'STOPPED' OR "Item"."userId" = ${me.id})` : '"Item".status <> \'STOPPED\''
+}
+
+export const muteClause = me =>
+  me ? `NOT EXISTS (SELECT 1 FROM "Mute" WHERE "Mute"."muterId" = ${me.id} AND "Mute"."mutedId" = "Item"."userId")` : ''
+
+const subClause = (sub, num, table) => {
+  return sub ? `${table ? `"${table}".` : ''}"subName" = $${num}` : ''
+}
+
+export async function filterClause (me, models, type) {
+  // if you are explicitly asking for marginal content, don't filter them
+  if (['outlawed', 'borderland', 'freebies'].includes(type)) {
+    if (me && ['outlawed', 'borderland'].includes(type)) {
+      // unless the item is mine
+      return `"Item"."userId" <> ${me.id}`
+    }
+
+    return ''
+  }
+
+  // handle freebies
+  // by default don't include freebies unless they have upvotes
+  let freebieClauses = ['NOT "Item".freebie', '"Item"."weightedVotes" - "Item"."weightedDownVotes" > 0']
+  if (me) {
+    const user = await models.user.findUnique({ where: { id: me.id } })
+    // wild west mode has everything
+    if (user.wildWestMode) {
+      return ''
+    }
+    // greeter mode includes freebies if feebies haven't been flagged
+    if (user.greeterMode) {
+      freebieClauses = ['NOT "Item".freebie', '"Item"."weightedVotes" - "Item"."weightedDownVotes" >= 0']
+    }
+
+    // always include if it's mine
+    freebieClauses.push(`"Item"."userId" = ${me.id}`)
+  }
+  const freebieClause = '(' + freebieClauses.join(' OR ') + ')'
+
+  // handle outlawed
+  // if the item is above the threshold or is mine
+  const outlawClauses = [`"Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}`]
+  if (me) {
+    outlawClauses.push(`"Item"."userId" = ${me.id}`)
+  }
+  const outlawClause = '(' + outlawClauses.join(' OR ') + ')'
+
+  return [freebieClause, outlawClause]
+}
+
+function typeClause (type) {
+  switch (type) {
+    case 'links':
+      return ['"Item".url IS NOT NULL', '"Item"."parentId" IS NULL']
+    case 'discussions':
+      return ['"Item".url IS NULL', '"Item".bio = false', '"Item"."pollCost" IS NULL', '"Item"."parentId" IS NULL']
+    case 'polls':
+      return ['"Item"."pollCost" IS NOT NULL', '"Item"."parentId" IS NULL']
+    case 'bios':
+      return ['"Item".bio = true', '"Item"."parentId" IS NULL']
+    case 'bounties':
+      return ['"Item".bounty IS NOT NULL', '"Item"."parentId" IS NULL']
+    case 'comments':
+      return '"Item"."parentId" IS NOT NULL'
+    case 'freebies':
+      return '"Item".freebie'
+    case 'outlawed':
+      return `"Item"."weightedVotes" - "Item"."weightedDownVotes" <= -${ITEM_FILTER_THRESHOLD}`
+    case 'borderland':
+      return '"Item"."weightedVotes" - "Item"."weightedDownVotes" < 0'
+    case 'all':
+    case 'bookmarks':
+      return ''
+    case 'jobs':
+      return '"Item"."subName" = \'jobs\''
+    default:
+      return '"Item"."parentId" IS NULL'
+  }
 }
 
 export default {
@@ -324,12 +340,14 @@ export default {
             query: `
               ${selectClause(type)}
               ${relationClause(type)}
-              WHERE "${table}"."userId" = $2 AND "${table}".created_at <= $1
-              ${subClause(sub, 5, subClauseTable(type))}
-              ${activeOrMine(me)}
-              ${await filterClause(me, models, type)}
-              ${typeClause(type)}
-              ${whenClause(when || 'forever', type)}
+              ${whereClause(
+                `"${table}"."userId" = $2`,
+                `"${table}".created_at <= $1`,
+                subClause(sub, 5, subClauseTable(type)),
+                activeOrMine(me),
+                await filterClause(me, models, type),
+                typeClause(type),
+                whenClause(when || 'forever', type))}
               ${await orderByClause(by, me, models, type)}
               OFFSET $3
               LIMIT $4`,
@@ -343,11 +361,14 @@ export default {
             query: `
               ${SELECT}
               ${relationClause(type)}
-              WHERE "Item".created_at <= $1
-              ${subClause(sub, 4, subClauseTable(type))}
-              ${activeOrMine(me)}
-              ${await filterClause(me, models, type)}
-              ${typeClause(type)}
+              ${whereClause(
+                '"Item".created_at <= $1',
+                subClause(sub, 4, subClauseTable(type)),
+                activeOrMine(me),
+                await filterClause(me, models, type),
+                typeClause(type),
+                muteClause(me)
+              )}
               ORDER BY "Item".created_at DESC
               OFFSET $2
               LIMIT $3`,
@@ -361,12 +382,15 @@ export default {
             query: `
               ${selectClause(type)}
               ${relationClause(type)}
-              WHERE "Item".created_at <= $1
-              AND "Item"."pinId" IS NULL AND "Item"."deletedAt" IS NULL
-              ${subClause(sub, 4, subClauseTable(type))}
-              ${typeClause(type)}
-              ${whenClause(when, type)}
-              ${await filterClause(me, models, type)}
+              ${whereClause(
+                '"Item".created_at <= $1',
+                '"Item"."pinId" IS NULL',
+                '"Item"."deletedAt" IS NULL',
+                subClause(sub, 4, subClauseTable(type)),
+                typeClause(type),
+                whenClause(when, type),
+                await filterClause(me, models, type),
+                muteClause(me))}
               ${await orderByClause(by || 'zaprank', me, models, type)}
               OFFSET $2
               LIMIT $3`,
@@ -392,10 +416,13 @@ export default {
                          THEN rank() OVER (ORDER BY "maxBid" DESC, created_at ASC)
                          ELSE rank() OVER (ORDER BY created_at DESC) END AS rank
                     FROM "Item"
-                    WHERE "parentId" IS NULL AND created_at <= $1
-                    AND "pinId" IS NULL
-                    ${subClause(sub, 4)}
-                    AND status IN ('ACTIVE', 'NOSATS')
+                    ${whereClause(
+                      '"parentId" IS NULL',
+                      'created_at <= $1',
+                      '"pinId" IS NULL',
+                      subClause(sub, 4),
+                      "status IN ('ACTIVE', 'NOSATS')"
+                    )}
                     ORDER BY group_rank, rank
                   OFFSET $2
                   LIMIT $3`,
@@ -410,7 +437,9 @@ export default {
                     ${SELECT}, rank
                     FROM "Item"
                     ${await joinSatRankView(me, models)}
-                    ${subClause(sub, 3, 'Item', true)}
+                    ${whereClause(
+                      subClause(sub, 3, 'Item', true),
+                      muteClause(me))}
                     ORDER BY rank ASC
                     OFFSET $1
                     LIMIT $2`,
@@ -428,11 +457,12 @@ export default {
                         ${SELECT},
                         rank() OVER (
                             PARTITION BY "pinId"
-                            ORDER BY created_at DESC
+                            ORDER BY "Item".created_at DESC
                         )
                         FROM "Item"
-                        WHERE "pinId" IS NOT NULL
-                        ${subClause(sub, 1)}
+                        ${whereClause(
+                          '"pinId" IS NOT NULL',
+                          subClause(sub, 1))}
                     ) rank_filter WHERE RANK = 1`
                 }, ...subArr)
               }

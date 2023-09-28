@@ -99,9 +99,9 @@ export default function Comment ({
 }) {
   const [edit, setEdit] = useState()
   const me = useMe()
+  const isHiddenFreebie = !me?.wildWestMode && !me?.greeterMode && !item.mine && item.freebie && item.wvotes <= 0
   const [collapse, setCollapse] = useState(
-    !me?.wildWestMode && !me?.greeterMode &&
-    !item.mine && item.freebie && item.wvotes <= 0
+    isHiddenFreebie || item?.user?.meMute
       ? 'yep'
       : 'nope')
   const ref = useRef(null)
@@ -149,25 +149,35 @@ export default function Comment ({
           : <UpVote item={item} className={styles.upvote} pendingSats={pendingSats} setPendingSats={setPendingSats} />}
         <div className={`${itemStyles.hunk} ${styles.hunk}`}>
           <div className='d-flex align-items-center'>
-            <ItemInfo
-              item={item}
-              pendingSats={pendingSats}
-              commentsText='replies'
-              commentTextSingular='reply'
-              className={`${itemStyles.other} ${styles.other}`}
-              embellishUser={op && <><span> </span><Badge bg={op === 'fwd' ? 'secondary' : 'boost'} className={`${styles.op} bg-opacity-75`}>{op}</Badge></>}
-              extraInfo={
-                <>
-                  {includeParent && <Parent item={item} rootText={rootText} />}
-                  {bountyPaid &&
-                    <ActionTooltip notForm overlayText={`${numWithUnits(root.bounty)} paid`}>
-                      <BountyIcon className={`${styles.bountyIcon} ${'fill-success vertical-align-middle'}`} height={16} width={16} />
-                    </ActionTooltip>}
-                </>
-              }
-              onEdit={e => { setEdit(!edit) }}
-              editText={edit ? 'cancel' : 'edit'}
-            />
+            {item.user?.meMute && !includeParent && collapse === 'yep'
+              ? (
+                <span
+                  className={`${itemStyles.other} ${styles.other} pointer`} onClick={() => {
+                    setCollapse('nope')
+                    window.localStorage.setItem(`commentCollapse:${item.id}`, 'nope')
+                  }}
+                >reply from someone you muted
+                </span>)
+              : <ItemInfo
+                  item={item}
+                  pendingSats={pendingSats}
+                  commentsText='replies'
+                  commentTextSingular='reply'
+                  className={`${itemStyles.other} ${styles.other}`}
+                  embellishUser={op && <><span> </span><Badge bg={op === 'fwd' ? 'secondary' : 'boost'} className={`${styles.op} bg-opacity-75`}>{op}</Badge></>}
+                  extraInfo={
+                    <>
+                      {includeParent && <Parent item={item} rootText={rootText} />}
+                      {bountyPaid &&
+                        <ActionTooltip notForm overlayText={`${numWithUnits(root.bounty)} paid`}>
+                          <BountyIcon className={`${styles.bountyIcon} ${'fill-success vertical-align-middle'}`} height={16} width={16} />
+                        </ActionTooltip>}
+                    </>
+                  }
+                  onEdit={e => { setEdit(!edit) }}
+                  editText={edit ? 'cancel' : 'edit'}
+                />}
+
             {!includeParent && (collapse === 'yep'
               ? <Eye
                   className={styles.collapser} height={10} width={10} onClick={() => {

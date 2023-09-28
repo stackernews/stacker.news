@@ -16,6 +16,7 @@ import { CopyLinkDropdownItem } from './share'
 import Hat from './hat'
 import { AD_USER_ID } from '../lib/constants'
 import ActionDropdown from './action-dropdown'
+import MuteDropdownItem from './mute'
 
 export default function ItemInfo ({
   item, pendingSats, full, commentsText = 'comments',
@@ -131,15 +132,20 @@ export default function ItemInfo ({
       <ActionDropdown>
         <CopyLinkDropdownItem item={item} />
         {me && <BookmarkDropdownItem item={item} />}
-        {me && item.user.id !== me.id && <SubscribeDropdownItem item={item} />}
+        {me && !item.mine && <SubscribeDropdownItem item={item} />}
         {item.otsHash &&
           <Link href={`/items/${item.id}/ots`} className='text-reset dropdown-item'>
-            ots timestamp
+            opentimestamp
           </Link>}
         {me && !item.meSats && !item.position &&
           !item.mine && !item.deletedAt && <DontLikeThisDropdownItem id={item.id} />}
         {item.mine && !item.position && !item.deletedAt &&
           <DeleteDropdownItem itemId={item.id} type={item.title ? 'post' : 'comment'} />}
+        {me && !item.mine &&
+          <>
+            <hr className='dropdown-divider' />
+            <MuteDropdownItem user={item.user} />
+          </>}
       </ActionDropdown>
       {extraInfo}
     </div>

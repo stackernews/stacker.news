@@ -34,6 +34,7 @@ export default gql`
     hideWelcomeBanner: Boolean
     subscribeUserPosts(id: ID): User
     subscribeUserComments(id: ID): User
+    toggleMute(id: ID): User
   }
 
   type AuthMethods {
@@ -97,5 +98,6 @@ export default gql`
     hideIsContributor: Boolean!
     meSubscriptionPosts: Boolean!
     meSubscriptionComments: Boolean!
+    meMute: Boolean
   }
 `

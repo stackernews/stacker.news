@@ -21,6 +21,7 @@ import Hat from './hat'
 import SubscribeUserDropdownItem from './subscribeUser'
 import ActionDropdown from './action-dropdown'
 import CodeIcon from '../svgs/terminal-box-fill.svg'
+import MuteDropdownItem from './mute'
 
 export default function UserHeader ({ user }) {
   const router = useRouter()
@@ -156,11 +157,12 @@ function NymView ({ user, isMe, setEditting }) {
       <div className={styles.username}>@{user.name}<Hat className='' user={user} badge /></div>
       {isMe &&
         <Button className='py-0' style={{ lineHeight: '1.25' }} variant='link' onClick={() => setEditting(true)}>edit nym</Button>}
-      {!isMe &&
+      {!isMe && me &&
         <div className='ms-2'>
           <ActionDropdown>
-            {me && <SubscribeUserDropdownItem user={user} target='posts' />}
-            {me && <SubscribeUserDropdownItem user={user} target='comments' />}
+            <SubscribeUserDropdownItem user={user} target='posts' />
+            <SubscribeUserDropdownItem user={user} target='comments' />
+            <MuteDropdownItem user={user} />
           </ActionDropdown>
         </div>}
     </div>

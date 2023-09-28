@@ -6,6 +6,7 @@ import { NetworkOnly } from 'workbox-strategies'
 import { enable } from 'workbox-navigation-preload'
 import manifest from './precache-manifest.json'
 import ServiceWorkerStorage from 'serviceworker-storage'
+import { numWithUnits } from '../lib/format'
 
 // comment out to enable workbox console logs
 self.__WB_DISABLE_DEV_LOGS = true
@@ -47,6 +48,7 @@ offlineFallback({ pageFallback: '/offline' })
 self.addEventListener('push', async function (event) {
   const payload = event.data?.json()
   if (!payload) return
+  const { title } = payload
   const { tag } = payload.options
   event.waitUntil((async () => {
     // TIP and EARN notifications simply replace the previous notifications
@@ -67,17 +69,22 @@ self.addEventListener('push', async function (event) {
     }
     const currentNotification = notifications[0]
     const amount = currentNotification.data?.amount ? currentNotification.data.amount + 1 : 2
-    let title = ''
+    let newTitle = ''
     if (tag === 'REPLY') {
-      title = `You have ${amount} new replies`
+      newTitle = `You have ${amount} new replies`
     } else if (tag === 'MENTION') {
-      title = `You were mentioned ${amount} times`
+      newTitle = `You were mentioned ${amount} times`
     } else if (tag === 'REFERRAL') {
-      title = `${amount} stackers joined via your referral links`
+      newTitle = `${amount} stackers joined via your referral links`
+    } else if (tag === 'DEPOSIT') {
+      const currentAmount = Number(currentNotification.title.split(' ')[0])
+      const incomingAmount = Number(title.split(' ')[0])
+      const newAmount = currentAmount + incomingAmount
+      newTitle = `${numWithUnits(newAmount, { abbreviate: false })} were deposited in your account`
     }
     currentNotification.close()
     const { icon } = currentNotification
-    return self.registration.showNotification(title, { icon, tag, data: { url: '/notifications', amount } })
+    return self.registration.showNotification(newTitle, { icon, tag, data: { url: '/notifications', amount } })
   })())
 })
 

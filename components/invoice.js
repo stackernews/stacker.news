@@ -11,6 +11,7 @@ import { useMe } from './me'
 import { useShowModal } from './modal'
 import { sleep } from '../lib/time'
 import Countdown from './countdown'
+import PayerData from './payer-data'
 
 export function Invoice ({ invoice, onPayment, info, successVerb }) {
   const [expired, setExpired] = useState(new Date(invoice.expiredAt) <= new Date())
@@ -72,8 +73,8 @@ export function Invoice ({ invoice, onPayment, info, successVerb }) {
       </div>
       {lud18Data && <div className='w-100'>
         <AccordianItem
-          header='sender identity'
-          body={<>{Object.entries(JSON.parse(decodeURIComponent(lud18Data))).map(([key, value]) => <div>{value} ({key})</div>)}</>}
+          header='sender information'
+          body={<PayerData data={lud18Data} />}
         />
       </div>}
       {comment && <div className='w-100'>

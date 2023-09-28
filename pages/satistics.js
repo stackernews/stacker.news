@@ -12,9 +12,9 @@ import { Checkbox, Form } from '../components/form'
 import { useRouter } from 'next/router'
 import Item from '../components/item'
 import { CommentFlat } from '../components/comment'
-import { Fragment } from 'react'
 import ItemJob from '../components/item-job'
 import PageLoading from '../components/page-loading'
+import PayerData from '../components/payer-data'
 
 export const getServerSideProps = getGetServerSideProps({ query: WALLET_HISTORY, authRequired: true })
 
@@ -112,22 +112,13 @@ function Detail ({ fact }) {
     try {
       zap = JSON.parse(fact.description)
     } catch { }
-    let payerData = null
-    if (fact.payerData) {
-      const parsed = JSON.parse(decodeURIComponent(fact.payerData))
-      payerData = (
-        <div>
-          <small>sender information: <span>{Object.entries(parsed).map(([key, value]) => <div>{value} ({key})</div>)}</span></small>
-        </div>
-      )
-    }
     return (
       <div className='px-3'>
         <Link className={satusClass(fact.status)} href={`/${fact.type}s/${fact.factId}`}>
           {(zap && <span className='d-block'>nostr zap{zap.content && `: ${zap.content}`}</span>) ||
            (fact.description && <span className='d-block'>{fact.description}</span>)}
-          {payerData}
-          {fact.invoiceComment && <small className='text-muted'>sender says: {fact.invoiceComment}</small>}
+          <PayerData data={fact.payerData} className='text-muted' header />
+          {fact.invoiceComment && <small className='text-muted'><b>sender says:</b> {fact.invoiceComment}</small>}
           {!fact.invoiceComment && !fact.description && <span className='d-block'>no description</span>}
           <Satus status={fact.status} />
         </Link>

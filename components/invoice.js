@@ -71,18 +71,20 @@ export function Invoice ({ invoice, onPayment, info, successVerb }) {
             />
           : null}
       </div>
-      {lud18Data && <div className='w-100'>
-        <AccordianItem
-          header='sender information'
-          body={<PayerData data={lud18Data} />}
-        />
-      </div>}
-      {comment && <div className='w-100'>
-        <AccordianItem
-          header='sender comments'
-          body={<span>{comment}</span>}
-        />
-      </div>}
+      {lud18Data &&
+        <div className='w-100'>
+          <AccordianItem
+            header='sender information'
+            body={<PayerData data={lud18Data} />}
+          />
+        </div>}
+      {comment &&
+        <div className='w-100'>
+          <AccordianItem
+            header='sender comments'
+            body={<span>{comment}</span>}
+          />
+        </div>}
     </>
   )
 }

@@ -462,7 +462,8 @@ export default {
                         FROM "Item"
                         ${whereClause(
                           '"pinId" IS NOT NULL',
-                          subClause(sub, 1))}
+                          subClause(sub, 1),
+                          muteClause(me))}
                     ) rank_filter WHERE RANK = 1`
                 }, ...subArr)
               }

@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router'
-import { Form, Input, SubmitButton } from '../components/form'
+import { Checkbox, Form, Input, SubmitButton } from '../components/form'
 import Link from 'next/link'
 import Button from 'react-bootstrap/Button'
 import { gql, useMutation, useQuery } from '@apollo/client'
@@ -293,9 +293,48 @@ export function LnWithdrawal () {
 export function LnAddrWithdrawal () {
   const router = useRouter()
   const [sendToLnAddr, { called, error }] = useMutation(SEND_TO_LNADDR)
+  const [min, setMin] = useState(1)
+  const [max, setMax] = useState()
+  const [commentAllowed, setCommentAllowed] = useState()
+  const [payerData, setPayerData] = useState({})
 
   if (called && !error) {
     return <WithdrawlSkeleton status='sending' />
+  }
+
+  const onAddrChange = async (formik, e) => {
+    const addr = e.target.value
+    try {
+      await lnAddrSchema.fields.addr.validate(addr)
+    } catch (e) {
+      // invalid ln addr, don't proceed
+      return
+    }
+
+    const [name, domain] = addr.split('@')
+    let req
+    try {
+      req = await fetch(`https://${domain}/.well-known/lnurlp/${name}`)
+    } catch (e) {
+      // failed to fetch, eat it
+      return
+    }
+    let res
+    try {
+      res = await req.json()
+    } catch (e) {
+      // failed to parse to json, eat it
+      return
+    }
+    if (res.status === 'ERROR') {
+      // error response, we can't extract anything useful from it
+      return
+    }
+    const { minSendable, maxSendable, commentAllowed, payerData } = res
+    setMin(minSendable * 1000)
+    setMax(maxSendable * 1000)
+    setCommentAllowed(commentAllowed)
+    setPayerData(payerData)
   }
 
   return (
@@ -305,12 +344,25 @@ export function LnAddrWithdrawal () {
           addr: '',
           amount: 1,
           maxFee: 10,
-          comment: ''
+          comment: '',
+          includeIdentifier: false,
+          name: '',
+          email: ''
         }}
         schema={lnAddrSchema}
         initialError={error ? error.toString() : undefined}
-        onSubmit={async ({ addr, amount, maxFee, comment }) => {
-          const { data } = await sendToLnAddr({ variables: { addr, amount: Number(amount), maxFee: Number(maxFee), comment } })
+        onSubmit={async ({ addr, amount, maxFee, comment, includeIdentifier, name, email }) => {
+          const { data } = await sendToLnAddr({
+            variables: {
+              addr,
+              amount: Number(amount),
+              maxFee: Number(maxFee),
+              comment,
+              includeIdentifier,
+              name,
+              email
+            }
+          })
           router.push(`/withdrawals/${data.sendToLnAddr.id}`)
         }}
       >
@@ -319,11 +371,14 @@ export function LnAddrWithdrawal () {
           name='addr'
           required
           autoFocus
+          onChange={onAddrChange}
         />
         <Input
           label='amount'
           name='amount'
           required
+          min={min}
+          max={max}
           append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
         />
         <Input
@@ -332,11 +387,30 @@ export function LnAddrWithdrawal () {
           required
           append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
         />
-        <Input
-          label={<>comment <small className='text-muted ms-2'>optional</small></>}
-          name='comment'
-          hint='only certain lightning addresses can accept comments, and only of a certain length'
-        />
+        {commentAllowed &&
+          <Input
+            label={<>comment <small className='text-muted ms-2'>optional</small></>}
+            name='comment'
+            maxLength={commentAllowed}
+          />}
+        {payerData?.identifier &&
+          <Checkbox
+            name='includeIdentifier'
+            required={payerData.identifier.mandatory}
+            label={<>include your nym@stacker.news identifier{!payerData.name.identifier && <>{' '}<small className='text-muted ms-2'>optional</small></>}</>}
+          />}
+        {payerData?.name &&
+          <Input
+            name='name'
+            required={payerData.name.mandatory}
+            label={<>attach your name to the payment{!payerData.name.mandatory && <>{' '}<small className='text-muted ms-2'>optional</small></>}</>}
+          />}
+        {payerData?.email &&
+          <Input
+            name='email'
+            required={payerData.email.mandatory}
+            label={<>attach your email to the payment{!payerData.email.mandatory && <>{' '}<small className='text-muted ms-2'>optional</small></>}</>}
+          />}
         <SubmitButton variant='success' className='mt-2'>send</SubmitButton>
       </Form>
     </>

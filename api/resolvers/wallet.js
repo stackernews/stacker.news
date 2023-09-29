@@ -276,7 +276,7 @@ export default {
       }
     },
     createWithdrawl: createWithdrawal,
-    sendToLnAddr: async (parent, { addr, amount, maxFee, comment }, { me, models, lnd }) => {
+    sendToLnAddr: async (parent, { addr, amount, maxFee, comment, includeIdentifier, name: payerName, email }, { me, models, lnd }) => {
       await ssValidate(lnAddrSchema, { addr, amount, maxFee, comment })
 
       const [name, domain] = addr.split('@')
@@ -310,11 +310,35 @@ export default {
         }
       }
 
+      let payerData
+      if (includeIdentifier && res1.payerData?.identifier) {
+        payerData = {
+          ...(payerData || {}),
+          identifier: me.name
+        }
+      }
+      if (payerName && res1.payerData?.name) {
+        payerData = {
+          ...(payerData || {}),
+          name: payerName
+        }
+      }
+      if (email && res1.payerData?.email) {
+        payerData = {
+          ...(payerData || {}), email
+        }
+      }
+      const encodedPayerData = payerData ? encodeURIComponent(JSON.stringify(payerData)) : ''
+
       const callback = new URL(res1.callback)
       callback.searchParams.append('amount', milliamount)
 
       if (comment?.length) {
         callback.searchParams.append('comment', comment)
+      }
+
+      if (payerData) {
+        callback.searchParams.append('payerdata', encodedPayerData)
       }
 
       // call callback with amount and conditionally comment
@@ -332,7 +356,7 @@ export default {
         throw new Error('could not decode invoice')
       }
 
-      if (decoded.description_hash !== lnurlPayDescriptionHash(res1.metadata)) {
+      if (decoded.description_hash !== lnurlPayDescriptionHash(`${res1.metadata}${encodedPayerData}`)) {
         throw new Error('description hash does not match')
       }
 

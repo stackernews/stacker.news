@@ -42,7 +42,7 @@ export function useImgUrlCache (text, imgproxyUrls) {
         updateCache(url, IMG_CACHE_STATES.LOADED)
       } else {
         // don't use image detection by trying to load as an image if user opted-out of loading external images automatically
-        if (me.clickToLoadImg) return
+        if (me?.clickToLoadImg) return
         // make sure it's not a false negative by trying to load URL as <img>
         const img = new window.Image()
         ref.current[url] = img

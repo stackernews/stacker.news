@@ -417,7 +417,7 @@ export function LnAddrWithdrawal () {
           <Checkbox
             name='includeIdentifier'
             required={payerData.identifier.mandatory}
-            label={<>include your nym@stacker.news identifier{!payerData.name.identifier && <>{' '}<small className='text-muted ms-2'>optional</small></>}</>}
+            label={<>include your nym@stacker.news identifier{!payerData.identifier.mandatory && <>{' '}<small className='text-muted ms-2'>optional</small></>}</>}
           />}
         {payerData?.name &&
           <Input

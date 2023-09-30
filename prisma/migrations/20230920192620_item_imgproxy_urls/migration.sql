@@ -53,7 +53,7 @@ BEGIN
     -- there's no great way to set default column values when using json_populate_record
     -- so we need to only select fields with non-null values that way when func input
     -- does not include a value, the default value is used instead of null
-    SELECT string_agg('"' || key || '"', ',') INTO select_clause
+    SELECT string_agg(quote_ident(key), ',') INTO select_clause
     FROM jsonb_object_keys(jsonb_strip_nulls(jitem)) k(key);
     -- insert the item
     EXECUTE format($fmt$
@@ -127,7 +127,7 @@ BEGIN
         WHERE id = item.id AND status <> item.status;
     END IF;
 
-    SELECT string_agg('"' || key || '"', ',') INTO select_clause
+    SELECT string_agg(quote_ident(key), ',') INTO select_clause
     FROM jsonb_object_keys(jsonb_strip_nulls(jitem)) k(key)
     WHERE key <> 'boost';
 

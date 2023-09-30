@@ -1,4 +1,5 @@
 import { useRouter } from 'next/router'
+import { string, object, boolean } from 'yup'
 import { Checkbox, Form, Input, SubmitButton } from '../components/form'
 import Link from 'next/link'
 import Button from 'react-bootstrap/Button'
@@ -297,10 +298,7 @@ export function LnAddrWithdrawal () {
   const [max, setMax] = useState()
   const [commentAllowed, setCommentAllowed] = useState()
   const [payerData, setPayerData] = useState({})
-
-  if (called && !error) {
-    return <WithdrawlSkeleton status='sending' />
-  }
+  const [formSchema, setFormSchema] = useState(lnAddrSchema)
 
   const onAddrChange = async (formik, e) => {
     const addr = e.target.value
@@ -331,35 +329,33 @@ export function LnAddrWithdrawal () {
       return
     }
     const { minSendable, maxSendable, commentAllowed, payerData } = res
-    setMin(minSendable * 1000)
-    setMax(maxSendable * 1000)
+    setMin(minSendable / 1000)
+    setMax(maxSendable / 1000)
     setCommentAllowed(commentAllowed)
     setPayerData(payerData)
-
-    // clear comment if the provider doesn't support them
-    if (!commentAllowed) {
-      formik.setValues({ comment: '' })
-    }
-
-    // set includeIdentifier to false if not supported by the provider
-    if (!payerData?.identifier) {
-      formik.setValues({ includeIdentifier: false })
-    }
-
-    // clear name if the provider doesn't support it
-    if (!payerData?.name) {
-      formik.setValues({ name: '' })
-    }
-
-    // clear email if the provider doesn't support it
-    if (!payerData?.email) {
-      formik.setValues({ email: '' })
-    }
+    const payerDataSchema = object().shape(Object.keys(payerData || {}).reduce((accum, key) => {
+      const entry = payerData[key]
+      if (key === 'email') {
+        accum[key] = string().email()
+      } else if (key === 'identifier') {
+        accum[key] = boolean()
+      } else {
+        accum[key] = string()
+      }
+      if (entry?.mandatory) {
+        accum[key] = accum[key].required()
+      }
+      return accum
+    }, {}))
+    setFormSchema(lnAddrSchema.concat(payerDataSchema))
   }
 
   return (
     <>
+      {called && !error && <WithdrawlSkeleton status='sending' />}
       <Form
+        // hide/show instead of add/remove from react tree to avoid re-initializing the form state on error
+        style={{ display: !(called && !error) ? 'block' : 'none' }}
         initial={{
           addr: '',
           amount: 1,
@@ -369,7 +365,7 @@ export function LnAddrWithdrawal () {
           name: '',
           email: ''
         }}
-        schema={lnAddrSchema}
+        schema={formSchema}
         initialError={error ? error.toString() : undefined}
         onSubmit={async ({ addr, amount, maxFee, comment, includeIdentifier, name, email }) => {
           const { data } = await sendToLnAddr({
@@ -378,9 +374,9 @@ export function LnAddrWithdrawal () {
               amount: Number(amount),
               maxFee: Number(maxFee),
               comment,
-              includeIdentifier,
-              name,
-              email
+              includeIdentifier: payerData?.identifier ? includeIdentifier : undefined,
+              name: payerData?.name ? name : undefined,
+              email: payerData?.email ? email : undefined
             }
           })
           router.push(`/withdrawals/${data.sendToLnAddr.id}`)
@@ -396,6 +392,8 @@ export function LnAddrWithdrawal () {
         <Input
           label='amount'
           name='amount'
+          type='number'
+          step={10}
           required
           min={min}
           max={max}
@@ -404,6 +402,8 @@ export function LnAddrWithdrawal () {
         <Input
           label='max fee'
           name='maxFee'
+          type='number'
+          step={10}
           required
           append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
         />

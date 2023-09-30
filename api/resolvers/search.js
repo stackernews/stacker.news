@@ -200,13 +200,11 @@ export default {
       }
 
       const whenRange = when === 'custom'
-        ?
-          {
+        ? {
             gte: new Date(whenFrom),
             lte: new Date(Math.min(new Date(whenTo), decodedCursor.time))
           }
-        :
-          {
+        : {
             lte: decodedCursor.time,
             gte: whenGte
           }

@@ -36,10 +36,10 @@ const exclude = [
   u => u.host === 'github.com'
 ]
 
-function matchUrl(matchers, url) {
+function matchUrl (matchers, url) {
   try {
     return matchers.some(matcher => matcher(new URL(url)))
-  } catch(err) {
+  } catch (err) {
     console.log(url, err)
     return false
   }
@@ -53,7 +53,7 @@ function decodeOriginalUrl (imgproxyUrl) {
 }
 
 export function imgproxy ({ models }) {
-  return async function ({ data: { id, forceFetch = false} }) {
+  return async function ({ data: { id, forceFetch = false } }) {
     if (!imgProxyEnabled) return
 
     console.log('running imgproxy job', id)
@@ -70,13 +70,13 @@ export function imgproxy ({ models }) {
       if (item.url && !isJob) {
         imgproxyUrls = { ...imgproxyUrls, ...(await createImgproxyUrls(id, item.url, { forceFetch })) }
       }
-    } catch(err) {
-      console.log("[imgproxy] error:", err)
+    } catch (err) {
+      console.log('[imgproxy] error:', err)
       // rethrow for retry
       throw err
     }
 
-    console.log("[imgproxy] updating item", id, "with urls", imgproxyUrls)
+    console.log('[imgproxy] updating item', id, 'with urls', imgproxyUrls)
 
     await models.item.update({ where: { id }, data: { imgproxyUrls } })
   }
@@ -84,7 +84,7 @@ export function imgproxy ({ models }) {
 
 export const createImgproxyUrls = async (id, text, { forceFetch }) => {
   const urls = extractUrls(text)
-  console.log("[imgproxy] id:", id, "-- extracted urls:", urls)
+  console.log('[imgproxy] id:', id, '-- extracted urls:', urls)
   // resolutions that we target:
   //   - nHD:  640x 360
   //   - qHD:  960x 540
@@ -98,17 +98,17 @@ export const createImgproxyUrls = async (id, text, { forceFetch }) => {
   const resolutions = ['640x360', '960x540', '1280x720', '1600x900', '1920x1080', '2560x1440']
   const imgproxyUrls = {}
   for (let url of urls) {
-    if(!url) continue
+    if (!url) continue
 
-    console.log("[imgproxy] id:", id, "-- processing url:", url)
+    console.log('[imgproxy] id:', id, '-- processing url:', url)
     if (url.startsWith(IMGPROXY_URL)) {
-      console.log("[imgproxy] id:", id, "-- proxy url, decoding original url:", url)
+      console.log('[imgproxy] id:', id, '-- proxy url, decoding original url:', url)
       // backwards compatibility: we used to replace image urls with imgproxy urls
       url = decodeOriginalUrl(url)
-      console.log("[imgproxy] id:", id, "-- original url:", url)
+      console.log('[imgproxy] id:', id, '-- original url:', url)
     }
     if (!(await isImageURL(url, { forceFetch }))) {
-      console.log("[imgproxy] id:", id, "-- not image url:", url)
+      console.log('[imgproxy] id:', id, '-- not image url:', url)
       continue
     }
     imgproxyUrls[url] = {}

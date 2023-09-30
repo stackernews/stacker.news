@@ -335,6 +335,26 @@ export function LnAddrWithdrawal () {
     setMax(maxSendable * 1000)
     setCommentAllowed(commentAllowed)
     setPayerData(payerData)
+
+    // clear comment if the provider doesn't support them
+    if (!commentAllowed) {
+      formik.setValues({ comment: '' })
+    }
+
+    // set includeIdentifier to false if not supported by the provider
+    if (!payerData?.identifier) {
+      formik.setValues({ includeIdentifier: false })
+    }
+
+    // clear name if the provider doesn't support it
+    if (!payerData?.name) {
+      formik.setValues({ name: '' })
+    }
+
+    // clear email if the provider doesn't support it
+    if (!payerData?.email) {
+      formik.setValues({ email: '' })
+    }
   }
 
   return (

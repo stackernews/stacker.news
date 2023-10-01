@@ -16,7 +16,6 @@ if (!imgProxyEnabled) {
 const MAX_QUEUE = 1000
 
 async function main () {
-  console.log('starting imgproxy job', Prisma.AnyNull)
   const { createImgproxyUrls } = await import('../worker/imgproxy.js')
   let cursor = 1
   try {
@@ -61,6 +60,8 @@ async function main () {
         }
 
         console.log('[imgproxy] updating item', id, 'with urls', imgproxyUrls)
+
+        await prisma.item.update({ where: { id }, data: { imgproxyUrls } })
       }
     }
   } catch (err) {

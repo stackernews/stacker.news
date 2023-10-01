@@ -73,7 +73,6 @@ export function useImgUrlCache (text, imgproxyUrls) {
 
 export function ZoomableImage ({ src, topLevel, srcSet: srcSetObj, ...props }) {
   const me = useMe()
-  const [fullScreen, setFullScreen] = useState(false)
   const showModal = useShowModal()
   const [originalUrlConsent, setOriginalUrlConsent] = useState(!me ? true : !me.clickToLoadImg)
   // if there is no srcset obj, image is still processing (srcSetObj === undefined) or it wasn't detected as an image by the worker (srcSetObj === null).
@@ -118,28 +117,24 @@ export function ZoomableImage ({ src, topLevel, srcSet: srcSetObj, ...props }) {
     }
   }, [setImgproxyErr, setOriginalErr, imgproxyErr, originalUrl])
 
-  useEffect(() => {
-    if (fullScreen) {
-      showModal(close => (
-        <div className='d-flex flex-column w-100 h-100'>
-          <img
-            style={{ cursor: 'zoom-out', width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center' }}
-            // also load original url in fullscreen if the original url was loaded
-            src={loadOriginalUrl ? originalUrl : bestResSrc}
-            onClick={() => {
-              close()
-              setFullScreen(false)
-            }}
-            onError={onError}
-            {...props}
-          />
-          <a target='_blank' className='text-muted fst-italic' href={originalUrl} rel='noreferrer'>
-            {loadOriginalUrl ? 'open in new tab' : 'open original'}
-          </a>
-        </div>
-      ), { fullScreen: true, onClose: () => setFullScreen(false) })
-    }
-  }, [fullScreen])
+  const onFullscreen = useCallback(() => showModal(close => (
+    <div
+      className='d-grid w-100 h-100' style={{ '--bs-columns': 1, '--bs-rows': 2, placeContent: 'center' }} onClick={() => {
+        close()
+      }}
+    >
+      <img
+        style={{ cursor: 'zoom-out', maxWidth: '100%', maxHeight: '100%', minHeight: 0, minWidth: 0, gridRow: 1 }}
+      // also load original url in fullscreen if the original url was loaded
+        src={loadOriginalUrl ? originalUrl : bestResSrc}
+        onError={onError}
+        {...props}
+      />
+      <a target='_blank' className='text-muted d-block fst-italic' href={originalUrl} rel='noreferrer' style={{ gridRow: 2 }}>
+        {loadOriginalUrl ? 'open in new tab' : 'open original'}
+      </a>
+    </div>
+  ), { fullScreen: true }), [showModal, loadOriginalUrl, originalUrl, bestResSrc, onError, props])
 
   if (!src) return null
 
@@ -150,7 +145,7 @@ export function ZoomableImage ({ src, topLevel, srcSet: srcSetObj, ...props }) {
         className={topLevel ? styles.topLevel : undefined}
         style={{ cursor: 'zoom-in', maxHeight: topLevel ? '75vh' : '25vh' }}
         src={originalUrl}
-        onClick={() => setFullScreen(true)}
+        onClick={onFullscreen}
         onError={() => setOriginalErr(true)}
         {...props}
       />
@@ -214,7 +209,7 @@ export function ZoomableImage ({ src, topLevel, srcSet: srcSetObj, ...props }) {
       // we need to disable srcset and sizes to force browsers to use src
       srcSet={loadOriginalUrl ? undefined : srcSet}
       sizes={loadOriginalUrl ? undefined : sizes}
-      onClick={() => setFullScreen(true)}
+      onClick={onFullscreen}
       onError={onError}
       {...props}
     />

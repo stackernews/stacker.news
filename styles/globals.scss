@@ -201,6 +201,7 @@ $btn-close-bg: none;
   margin: 0;
   max-width: 100vw;
   max-height: 100vh;
+  max-height: 100svh;
   background-color: transparent;
 }
 .modal-content.fullscreen {
@@ -209,15 +210,12 @@ $btn-close-bg: none;
 }
 .modal-body.fullscreen {
   width: 100%;
-  height: calc(100vh - 5em);
-  padding: 3em;
+  height: calc(100svh - 6rem);
+  padding: 0;
   background-color: transparent;
 }
-.modal-body.fullscreen > div > a {
-  width: fit-content;
-}
 .modal-close.fullscreen {
-  padding-right: 15px;
+  padding: 1.25rem;
 }
 
 .modal-btn {

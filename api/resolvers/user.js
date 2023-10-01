@@ -151,7 +151,7 @@ export default {
         users
       }
     },
-    topUsers: async (parent, { cursor, when, by }, { models, me }) => {
+    topUsers: async (parent, { cursor, when, by, limit = LIMIT }, { models, me }) => {
       const decodedCursor = decodeCursor(cursor)
       let users
 
@@ -179,10 +179,10 @@ export default {
           )
           SELECT * FROM u WHERE ${column} > 0
           OFFSET $2
-          LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+          LIMIT ${limit}`, decodedCursor.time, decodedCursor.offset)
 
         return {
-          cursor: users.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
+          cursor: users.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
           users
         }
       }
@@ -206,7 +206,7 @@ export default {
           GROUP BY users.id, users.name
           ORDER BY spent DESC NULLS LAST, users.created_at DESC
           OFFSET $2
-          LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+          LIMIT ${limit}`, decodedCursor.time, decodedCursor.offset)
       } else if (by === 'posts') {
         users = await models.$queryRawUnsafe(`
         SELECT users.*, count(*)::INTEGER as nposts
@@ -218,7 +218,7 @@ export default {
           GROUP BY users.id
           ORDER BY nposts DESC NULLS LAST, users.created_at DESC
           OFFSET $2
-          LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+          LIMIT ${limit}`, decodedCursor.time, decodedCursor.offset)
       } else if (by === 'comments') {
         users = await models.$queryRawUnsafe(`
         SELECT users.*, count(*)::INTEGER as ncomments
@@ -230,7 +230,7 @@ export default {
           GROUP BY users.id
           ORDER BY ncomments DESC NULLS LAST, users.created_at DESC
           OFFSET $2
-          LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+          LIMIT ${limit}`, decodedCursor.time, decodedCursor.offset)
       } else if (by === 'referrals') {
         users = await models.$queryRawUnsafe(`
           SELECT users.*, count(*)::INTEGER as referrals
@@ -242,7 +242,7 @@ export default {
           GROUP BY users.id
           ORDER BY referrals DESC NULLS LAST, users.created_at DESC
           OFFSET $2
-          LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+          LIMIT ${limit}`, decodedCursor.time, decodedCursor.offset)
       } else {
         users = await models.$queryRawUnsafe(`
           SELECT u.id, u.name, u.streak, u."photoId", u."hideCowboyHat", floor(sum(amount)/1000) as stacked
@@ -269,11 +269,11 @@ export default {
           GROUP BY u.id, u.name, u.created_at, u."photoId", u.streak, u."hideCowboyHat"
           ORDER BY stacked DESC NULLS LAST, created_at DESC
           OFFSET $2
-          LIMIT ${LIMIT}`, decodedCursor.time, decodedCursor.offset)
+          LIMIT ${limit}`, decodedCursor.time, decodedCursor.offset)
       }
 
       return {
-        cursor: users.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
+        cursor: users.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
         users
       }
     },

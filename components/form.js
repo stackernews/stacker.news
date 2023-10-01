@@ -2,7 +2,7 @@ import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
 import BootstrapForm from 'react-bootstrap/Form'
 import { Formik, Form as FormikForm, useFormikContext, useField, FieldArray } from 'formik'
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import copy from 'clipboard-copy'
 import Thumb from '../svgs/thumb-up-fill.svg'
 import Col from 'react-bootstrap/Col'
@@ -16,11 +16,12 @@ import AddIcon from '../svgs/add-fill.svg'
 import { mdHas } from '../lib/md'
 import CloseIcon from '../svgs/close-line.svg'
 import { useLazyQuery } from '@apollo/client'
-import { USER_SEARCH } from '../fragments/users'
+import { TOP_USERS, USER_SEARCH } from '../fragments/users'
 import TextareaAutosize from 'react-textarea-autosize'
 import { useToast } from './toast'
 import { useInvoiceable } from './invoice'
 import { numWithUnits } from '../lib/format'
+import textAreaCaret from 'textarea-caret'
 
 export function SubmitButton ({
   children, variant, value, onClick, disabled, cost, ...props
@@ -117,6 +118,20 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
     }
   }, [innerRef, selectionRange.start, selectionRange.end])
 
+  const [mentionQuery, setMentionQuery] = useState()
+  const [mentionIndices, setMentionIndices] = useState({ start: -1, end: -1 })
+  const [userSuggestDropdownStyle, setUserSuggestDropdownStyle] = useState({})
+  const insertMention = useCallback((name) => {
+    const { start, end } = mentionIndices
+    const first = `${innerRef.current.value.substring(0, start)}@${name}`
+    const second = innerRef.current.value.substring(end)
+    const updatedValue = `${first}${second}`
+    innerRef.current.value = updatedValue
+    helpers.setValue(updatedValue)
+    setSelectionRange({ start: first.length, end: first.length })
+    innerRef.current.focus()
+  }, [mentionIndices, innerRef, helpers])
+
   return (
     <FormGroup label={label} className={groupClassName}>
       <div className={`${styles.markdownInput} ${tab === 'write' ? styles.noTopLeftRadius : ''}`}>
@@ -134,42 +149,85 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
             <Markdown width={18} height={18} />
           </a>
         </Nav>
-        <div className={tab === 'write' ? '' : 'd-none'}>
-          <InputInner
-            {...props} onChange={(formik, e) => {
-              if (onChange) onChange(formik, e)
-              if (setHasImgLink) {
-                setHasImgLink(mdHas(e.target.value, ['link', 'image']))
-              }
-            }}
-            innerRef={innerRef}
-            onKeyDown={(e) => {
-              const metaOrCtrl = e.metaKey || e.ctrlKey
-              if (metaOrCtrl) {
-                if (e.key === 'k') {
-                  // some browsers use CTRL+K to focus search bar so we have to prevent that behavior
-                  e.preventDefault()
-                  insertMarkdownLinkFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+        <div className={`position-relative ${tab === 'write' ? '' : 'd-none'}`}>
+          <UserSuggest
+            query={mentionQuery}
+            onSelect={insertMention}
+            dropdownStyle={userSuggestDropdownStyle}
+          >{({ onKeyDown: userSuggestOnKeyDown }) => (
+            <InputInner
+              {...props} onChange={(formik, e) => {
+                if (onChange) onChange(formik, e)
+                if (setHasImgLink) {
+                  setHasImgLink(mdHas(e.target.value, ['link', 'image']))
                 }
-                if (e.key === 'b') {
-                  // some browsers use CTRL+B to open bookmarks so we have to prevent that behavior
-                  e.preventDefault()
-                  insertMarkdownBoldFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+                // check for mention editing
+                const { value, selectionStart } = e.target
+                let priorSpace = -1
+                for (let i = selectionStart - 1; i >= 0; i--) {
+                  if (/\s|\n/.test(value[i])) {
+                    priorSpace = i
+                    break
+                  }
                 }
-                if (e.key === 'i') {
-                  // some browsers might use CTRL+I to do something else so prevent that behavior too
-                  e.preventDefault()
-                  insertMarkdownItalicFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+                let nextSpace = value.length
+                for (let i = selectionStart; i <= value.length; i++) {
+                  if (/\s|\n/.test(value[i])) {
+                    nextSpace = i
+                    break
+                  }
                 }
-                if (e.key === 'Tab' && e.altKey) {
-                  e.preventDefault()
-                  insertMarkdownTabFormatting(innerRef.current, helpers.setValue, setSelectionRange)
-                }
-              }
+                const currentSegment = value.substring(priorSpace + 1, nextSpace)
 
-              if (onKeyDown) onKeyDown(e)
-            }}
-          />
+                // set the query to the current character segment and note where it appears
+                if (/^@\w*/.test(currentSegment)) {
+                  setMentionQuery(currentSegment)
+                  setMentionIndices({ start: priorSpace + 1, end: nextSpace })
+                } else {
+                  setMentionQuery(undefined)
+                  setMentionIndices({ start: -1, end: -1 })
+                }
+
+                const { top, left } = textAreaCaret(e.target, e.target.selectionStart)
+                setUserSuggestDropdownStyle({
+                  position: 'absolute',
+                  top: `${top + Number(window.getComputedStyle(e.target).lineHeight.replace('px', ''))}px`,
+                  left: `${left}px`
+                })
+              }}
+              innerRef={innerRef}
+              onKeyDown={(e) => {
+                const metaOrCtrl = e.metaKey || e.ctrlKey
+                if (metaOrCtrl) {
+                  if (e.key === 'k') {
+                    // some browsers use CTRL+K to focus search bar so we have to prevent that behavior
+                    e.preventDefault()
+                    insertMarkdownLinkFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+                  }
+                  if (e.key === 'b') {
+                    // some browsers use CTRL+B to open bookmarks so we have to prevent that behavior
+                    e.preventDefault()
+                    insertMarkdownBoldFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+                  }
+                  if (e.key === 'i') {
+                    // some browsers might use CTRL+I to do something else so prevent that behavior too
+                    e.preventDefault()
+                    insertMarkdownItalicFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+                  }
+                  if (e.key === 'Tab' && e.altKey) {
+                    e.preventDefault()
+                    insertMarkdownTabFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+                  }
+                }
+
+                if (!metaOrCtrl) {
+                  userSuggestOnKeyDown(e)
+                }
+
+                if (onKeyDown) onKeyDown(e)
+              }}
+            />)}
+          </UserSuggest>
         </div>
         {tab !== 'write' &&
           <div className='form-group'>
@@ -338,7 +396,12 @@ function InputInner ({
   )
 }
 
-export function InputUserSuggest ({ label, groupClassName, ...props }) {
+export function UserSuggest ({ query, onSelect, dropdownStyle, children }) {
+  const [getUsers] = useLazyQuery(TOP_USERS, {
+    onCompleted: data => {
+      setSuggestions({ array: data.topUsers.users, index: 0 })
+    }
+  })
   const [getSuggestions] = useLazyQuery(USER_SEARCH, {
     onCompleted: data => {
       setSuggestions({ array: data.searchUsers, index: 0 })
@@ -347,64 +410,106 @@ export function InputUserSuggest ({ label, groupClassName, ...props }) {
 
   const INITIAL_SUGGESTIONS = { array: [], index: 0 }
   const [suggestions, setSuggestions] = useState(INITIAL_SUGGESTIONS)
-  const [ovalue, setOValue] = useState()
+  const resetSuggestions = useCallback(() => setSuggestions(INITIAL_SUGGESTIONS), [])
+
+  useEffect(() => {
+    if (query !== undefined) {
+      const q = query?.replace(/^[@ ]+|[ ]+$/g, '')
+      if (q === '') {
+        getUsers({ variables: { by: 'stacked', when: 'day', limit: 5 } })
+      } else {
+        getSuggestions({ variables: { q } })
+      }
+    } else {
+      resetSuggestions()
+    }
+  }, [query])
+
+  const onKeyDown = useCallback(e => {
+    switch (e.code) {
+      case 'ArrowUp':
+        if (suggestions.array.length === 0) {
+          break
+        }
+        e.preventDefault()
+        setSuggestions(suggestions =>
+          ({
+            ...suggestions,
+            index: Math.max(suggestions.index - 1, 0)
+          }))
+        break
+      case 'ArrowDown':
+        if (suggestions.array.length === 0) {
+          break
+        }
+        e.preventDefault()
+        setSuggestions(suggestions =>
+          ({
+            ...suggestions,
+            index: Math.min(suggestions.index + 1, suggestions.array.length - 1)
+          }))
+        break
+      case 'Tab':
+      case 'Enter':
+        if (suggestions.array?.length === 0) {
+          break
+        }
+        e.preventDefault()
+        onSelect(suggestions.array[suggestions.index].name)
+        resetSuggestions()
+        break
+      case 'Escape':
+        e.preventDefault()
+        resetSuggestions()
+        break
+      default:
+        break
+    }
+  }, [onSelect, resetSuggestions, suggestions])
   return (
-    <FormGroup label={label} className={groupClassName}>
-      <InputInner
-        {...props}
-        autoComplete='off'
-        onChange={(_, e) => {
-          setOValue(e.target.value)
-          getSuggestions({ variables: { q: e.target.value.replace(/^[@ ]+|[ ]+$/g, '') } })
-        }}
-        overrideValue={ovalue}
-        onKeyDown={(e) => {
-          switch (e.code) {
-            case 'ArrowUp':
-              e.preventDefault()
-              setSuggestions(
-                {
-                  ...suggestions,
-                  index: Math.max(suggestions.index - 1, 0)
-                })
-              break
-            case 'ArrowDown':
-              e.preventDefault()
-              setSuggestions(
-                {
-                  ...suggestions,
-                  index: Math.min(suggestions.index + 1, suggestions.array.length - 1)
-                })
-              break
-            case 'Enter':
-              e.preventDefault()
-              setOValue(suggestions.array[suggestions.index].name)
-              setSuggestions(INITIAL_SUGGESTIONS)
-              break
-            case 'Escape':
-              e.preventDefault()
-              setSuggestions(INITIAL_SUGGESTIONS)
-              break
-            default:
-              break
-          }
-        }}
-      />
-      <Dropdown show={suggestions.array.length > 0}>
+    <>
+      {children?.({ onKeyDown })}
+      <Dropdown show={suggestions.array.length > 0} style={dropdownStyle}>
         <Dropdown.Menu className={styles.suggestionsMenu}>
           {suggestions.array.map((v, i) =>
             <Dropdown.Item
               key={v.name}
               active={suggestions.index === i}
               onClick={() => {
-                setOValue(v.name)
-                setSuggestions(INITIAL_SUGGESTIONS)
+                onSelect(v.name)
+                resetSuggestions()
               }}
             >
               {v.name}
             </Dropdown.Item>)}
         </Dropdown.Menu>
       </Dropdown>
+    </>
+  )
+}
+
+export function InputUserSuggest ({ label, groupClassName, ...props }) {
+  const [ovalue, setOValue] = useState()
+  const [query, setQuery] = useState()
+  return (
+    <FormGroup label={label} className={groupClassName}>
+      <UserSuggest
+        onSelect={setOValue}
+        query={query}
+      >
+        {({ onKeyDown }) => (
+          <InputInner
+            {...props}
+            autoComplete='off'
+            onChange={(_, e) => {
+              setOValue(e.target.value)
+              setQuery(e.target.value.replace(/^[@ ]+|[ ]+$/g, ''))
+            }}
+            overrideValue={ovalue}
+            onKeyDown={onKeyDown}
+          />
+        )}
+      </UserSuggest>
     </FormGroup>
   )
 }

@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import Modal from 'react-bootstrap/Modal'
 import BackArrow from '../svgs/arrow-left-line.svg'
 import { useRouter } from 'next/router'
+import ActionDropdown from './action-dropdown'
 
 export const ShowModalContext = createContext(() => null)
 
@@ -60,6 +61,12 @@ export default function useModal () {
         contentClassName={className}
       >
         <div className='d-flex flex-row'>
+          {modalOptions?.overflow &&
+            <div className={'modal-btn modal-overflow ' + className}>
+              <ActionDropdown>
+                {modalOptions.overflow}
+              </ActionDropdown>
+            </div>}
           {modalStack.length > 0 ? <div className='modal-btn modal-back' onClick={onBack}><BackArrow width={18} height={18} className='fill-white' /></div> : null}
           <div className={'modal-btn modal-close ' + className} onClick={onClose}>X</div>
         </div>

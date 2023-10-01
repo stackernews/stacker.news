@@ -217,6 +217,10 @@ $btn-close-bg: none;
 .modal-close.fullscreen {
   padding: 1.25rem;
 }
+.modal-overflow.fullscreen {
+  padding: 1.25rem;
+  margin-top: -10px;
+}
 
 .modal-btn {
   cursor: pointer;

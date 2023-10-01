@@ -5,6 +5,7 @@ import { IMGPROXY_URL_REGEXP, IMG_URL_REGEXP } from '../lib/url'
 import FileMissing from '../svgs/file-warning-line.svg'
 import { useShowModal } from './modal'
 import { useMe } from './me'
+import { Dropdown } from 'react-bootstrap'
 
 export function decodeOriginalUrl (imgproxyUrl) {
   const parts = imgproxyUrl.split('/')
@@ -117,24 +118,27 @@ export function ZoomableImage ({ src, topLevel, srcSet: srcSetObj, ...props }) {
     }
   }, [setImgproxyErr, setOriginalErr, imgproxyErr, originalUrl])
 
-  const onFullscreen = useCallback(() => showModal(close => (
+  const handleClick = useCallback(() => showModal(close => (
     <div
-      className='d-grid w-100 h-100' style={{ '--bs-columns': 1, '--bs-rows': 2, placeContent: 'center' }} onClick={() => {
-        close()
-      }}
+      className='d-grid w-100 h-100' style={{ placeContent: 'center' }} onClick={close}
     >
       <img
-        style={{ cursor: 'zoom-out', maxWidth: '100%', maxHeight: '100%', minHeight: 0, minWidth: 0, gridRow: 1 }}
+        style={{ cursor: 'zoom-out', maxWidth: '100%', maxHeight: '100%', minHeight: 0, minWidth: 0 }}
       // also load original url in fullscreen if the original url was loaded
         src={loadOriginalUrl ? originalUrl : bestResSrc}
         onError={onError}
         {...props}
       />
-      <a target='_blank' className='text-muted d-block fst-italic' href={originalUrl} rel='noreferrer' style={{ gridRow: 2 }}>
-        {loadOriginalUrl ? 'open in new tab' : 'open original'}
-      </a>
     </div>
-  ), { fullScreen: true }), [showModal, loadOriginalUrl, originalUrl, bestResSrc, onError, props])
+  ), {
+    fullScreen: true,
+    overflow: (
+      <Dropdown.Item
+        href={originalUrl} target='_blank' rel='noreferrer'
+      >
+        {loadOriginalUrl ? 'open in new tab' : 'open original'}
+      </Dropdown.Item>)
+  }), [showModal, loadOriginalUrl, originalUrl, bestResSrc, onError, props])
 
   if (!src) return null
 
@@ -145,7 +149,7 @@ export function ZoomableImage ({ src, topLevel, srcSet: srcSetObj, ...props }) {
         className={topLevel ? styles.topLevel : undefined}
         style={{ cursor: 'zoom-in', maxHeight: topLevel ? '75vh' : '25vh' }}
         src={originalUrl}
-        onClick={onFullscreen}
+        onClick={handleClick}
         onError={() => setOriginalErr(true)}
         {...props}
       />
@@ -209,7 +213,7 @@ export function ZoomableImage ({ src, topLevel, srcSet: srcSetObj, ...props }) {
       // we need to disable srcset and sizes to force browsers to use src
       srcSet={loadOriginalUrl ? undefined : srcSet}
       sizes={loadOriginalUrl ? undefined : sizes}
-      onClick={onFullscreen}
+      onClick={handleClick}
       onError={onError}
       {...props}
     />

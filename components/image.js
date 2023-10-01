@@ -147,7 +147,7 @@ export function ZoomableImage ({ src, topLevel, srcSet: srcSetObj, ...props }) {
     return (
       <img
         className={topLevel ? styles.topLevel : undefined}
-        style={{ cursor: 'zoom-in', maxHeight: topLevel ? '75vh' : '25vh' }}
+        style={{ cursor: 'zoom-in', maxHeight: topLevel ? '35vh' : '25vh' }}
         src={originalUrl}
         onClick={handleClick}
         onError={() => setOriginalErr(true)}
@@ -207,7 +207,7 @@ export function ZoomableImage ({ src, topLevel, srcSet: srcSetObj, ...props }) {
   return (
     <img
       className={topLevel ? styles.topLevel : undefined}
-      style={{ cursor: 'zoom-in', maxHeight: topLevel ? '75vh' : '25vh' }}
+      style={{ cursor: 'zoom-in', maxHeight: topLevel ? '35vh' : '25vh' }}
       // browsers that don't support srcSet and sizes will use src. use best resolution possible in that case
       src={loadOriginalUrl ? originalUrl : bestResSrc}
       // we need to disable srcset and sizes to force browsers to use src

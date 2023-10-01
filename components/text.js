@@ -8,16 +8,14 @@ import sub from '../lib/remark-sub'
 import remarkDirective from 'remark-directive'
 import { visit } from 'unist-util-visit'
 import reactStringReplace from 'react-string-replace'
-import React, { useRef, useEffect, useState, memo } from 'react'
+import React, { useState, memo } from 'react'
 import GithubSlugger from 'github-slugger'
 import LinkIcon from '../svgs/link.svg'
 import Thumb from '../svgs/thumb-up-fill.svg'
 import { toString } from 'mdast-util-to-string'
 import copy from 'clipboard-copy'
-import { IMGPROXY_URL_REGEXP, IMG_URL_REGEXP } from '../lib/url'
-import { extractUrls } from '../lib/md'
-import FileMissing from '../svgs/file-warning-line.svg'
-import { useMe } from './me'
+import { useImgUrlCache, IMG_CACHE_STATES, ZoomableImage, decodeOriginalUrl } from './image'
+import { IMGPROXY_URL_REGEXP } from '../lib/url'
 
 function searchHighlighter () {
   return (tree) => {
@@ -34,15 +32,6 @@ function searchHighlighter () {
       }
     })
   }
-}
-
-function decodeOriginalUrl (imgProxyUrl) {
-  const parts = imgProxyUrl.split('/')
-  // base64url is not a known encoding in browsers
-  // so we need to replace the invalid chars
-  const b64Url = parts[parts.length - 1].replace(/-/g, '+').replace(/_/, '/')
-  const originalUrl = Buffer.from(b64Url, 'base64').toString('utf-8')
-  return originalUrl
 }
 
 function Heading ({ h, slugger, noFragments, topLevel, children, node, ...props }) {
@@ -73,54 +62,14 @@ function Heading ({ h, slugger, noFragments, topLevel, children, node, ...props 
   )
 }
 
-const CACHE_STATES = {
-  IS_LOADING: 'IS_LOADING',
-  IS_LOADED: 'IS_LOADED',
-  IS_ERROR: 'IS_ERROR'
-}
-
 // this is one of the slowest components to render
-export default memo(function Text ({ topLevel, noFragments, nofollow, fetchOnlyImgProxy, children }) {
+export default memo(function Text ({ topLevel, noFragments, nofollow, imgproxyUrls, children }) {
   // all the reactStringReplace calls are to facilitate search highlighting
   const slugger = new GithubSlugger()
-  fetchOnlyImgProxy ??= true
 
   const HeadingWrapper = (props) => Heading({ topLevel, slugger, noFragments, ...props })
 
-  const imgCache = useRef({})
-  const [urlCache, setUrlCache] = useState({})
-
-  useEffect(() => {
-    const imgRegexp = fetchOnlyImgProxy ? IMGPROXY_URL_REGEXP : IMG_URL_REGEXP
-    const urls = extractUrls(children)
-
-    urls.forEach((url) => {
-      if (imgRegexp.test(url)) {
-        setUrlCache((prev) => ({ ...prev, [url]: CACHE_STATES.IS_LOADED }))
-      } else if (!fetchOnlyImgProxy) {
-        const img = new window.Image()
-        imgCache.current[url] = img
-
-        setUrlCache((prev) => ({ ...prev, [url]: CACHE_STATES.IS_LOADING }))
-
-        const callback = (state) => {
-          setUrlCache((prev) => ({ ...prev, [url]: state }))
-          delete imgCache.current[url]
-        }
-        img.onload = () => callback(CACHE_STATES.IS_LOADED)
-        img.onerror = () => callback(CACHE_STATES.IS_ERROR)
-        img.src = url
-      }
-    })
-
-    return () => {
-      Object.values(imgCache.current).forEach((img) => {
-        img.onload = null
-        img.onerror = null
-        img.src = ''
-      })
-    }
-  }, [children])
+  const imgUrlCache = useImgUrlCache(children, imgproxyUrls)
 
   return (
     <div className={styles.text}>
@@ -159,8 +108,12 @@ export default memo(function Text ({ topLevel, noFragments, nofollow, fetchOnlyI
               return <>{children}</>
             }
 
-            if (urlCache[href] === CACHE_STATES.IS_LOADED) {
-              return <ZoomableImage topLevel={topLevel} useClickToLoad={fetchOnlyImgProxy} {...props} src={href} />
+            if (imgUrlCache[href] === IMG_CACHE_STATES.LOADED) {
+              const url = IMGPROXY_URL_REGEXP.test(href) ? decodeOriginalUrl(href) : href
+              // if `srcSet` is undefined, it means the image was not processed by worker yet
+              // if `srcSet` is null, image was processed but this specific url was not detected as an image by the worker
+              const srcSet = imgproxyUrls ? (imgproxyUrls[url] || null) : undefined
+              return <ZoomableImage topLevel={topLevel} srcSet={srcSet} {...props} src={href} />
             }
 
             // map: fix any highlighted links
@@ -183,8 +136,12 @@ export default memo(function Text ({ topLevel, noFragments, nofollow, fetchOnlyI
               </a>
             )
           },
-          img: ({ node, ...props }) => {
-            return <ZoomableImage topLevel={topLevel} useClickToLoad={fetchOnlyImgProxy} {...props} />
+          img: ({ node, src, ...props }) => {
+            const url = IMGPROXY_URL_REGEXP.test(src) ? decodeOriginalUrl(src) : src
+            // if `srcSet` is undefined, it means the image was not processed by worker yet
+            // if `srcSet` is null, image was processed but this specific url was not detected as an image by the worker
+            const srcSet = imgproxyUrls ? (imgproxyUrls[url] || null) : undefined
+            return <ZoomableImage topLevel={topLevel} srcSet={srcSet} src={src} {...props} />
           }
         }}
         remarkPlugins={[gfm, mention, sub, remarkDirective, searchHighlighter]}
@@ -194,76 +151,3 @@ export default memo(function Text ({ topLevel, noFragments, nofollow, fetchOnlyI
     </div>
   )
 })
-
-function ClickToLoad ({ children }) {
-  const [clicked, setClicked] = useState(false)
-  return clicked ? children : <div className='m-1 fst-italic pointer text-muted' onClick={() => setClicked(true)}>click to load image</div>
-}
-
-export function ZoomableImage ({ src, topLevel, useClickToLoad, ...props }) {
-  const me = useMe()
-  const [err, setErr] = useState()
-  const [imgSrc, setImgSrc] = useState(src)
-  const [isImgProxy, setIsImgProxy] = useState(IMGPROXY_URL_REGEXP.test(src))
-  const defaultMediaStyle = {
-    maxHeight: topLevel ? '75vh' : '25vh',
-    cursor: 'zoom-in'
-  }
-  useClickToLoad ??= true
-
-  // if image changes we need to update state
-  const [mediaStyle, setMediaStyle] = useState(defaultMediaStyle)
-  useEffect(() => {
-    setMediaStyle(defaultMediaStyle)
-    setErr(null)
-  }, [src])
-
-  if (!src) return null
-  if (err) {
-    if (!isImgProxy) {
-      return (
-        <span className='d-flex align-items-baseline text-warning-emphasis fw-bold pb-1'>
-          <FileMissing width={18} height={18} className='fill-warning me-1 align-self-center' />
-          image error
-        </span>
-      )
-    }
-    try {
-      const originalUrl = decodeOriginalUrl(src)
-      setImgSrc(originalUrl)
-      setErr(null)
-    } catch (err) {
-      console.error(err)
-      setErr(err)
-    }
-    // always set to false since imgproxy returned error
-    setIsImgProxy(false)
-  }
-
-  const img = (
-    <img
-      className={topLevel ? styles.topLevel : undefined}
-      style={mediaStyle}
-      src={imgSrc}
-      onClick={() => {
-        if (mediaStyle.cursor === 'zoom-in') {
-          setMediaStyle({
-            width: '100%',
-            cursor: 'zoom-out'
-          })
-        } else {
-          setMediaStyle(defaultMediaStyle)
-        }
-      }}
-      onError={() => setErr(true)}
-      {...props}
-    />
-  )
-
-  return (
-    (!me || !me.clickToLoadImg || isImgProxy || !useClickToLoad)
-      ? img
-      : <ClickToLoad>{img}</ClickToLoad>
-
-  )
-}

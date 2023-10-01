@@ -165,7 +165,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
 }
 
 function ItemText ({ item }) {
-  return <Text topLevel nofollow={item.sats + item.boost < NOFOLLOW_LIMIT}>{item.searchText || item.text}</Text>
+  return <Text topLevel nofollow={item.sats + item.boost < NOFOLLOW_LIMIT} imgproxyUrls={item.imgproxyUrls}>{item.searchText || item.text}</Text>
 }
 
 export default function ItemFull ({ item, bio, rank, ...props }) {

@@ -264,6 +264,7 @@ model Item {
   deletedAt          DateTime?
   otsFile            Bytes?
   otsHash            String?
+  imgproxyUrls       Json?
   bounty             Int?
   rootId             Int?
   bountyPaidTo       Int[]

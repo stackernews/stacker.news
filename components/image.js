@@ -72,10 +72,10 @@ export function useImgUrlCache (text, imgproxyUrls) {
   return imgUrlCache
 }
 
-export function ZoomableImage ({ src, topLevel, srcSet: srcSetObj, ...props }) {
+export function ZoomableImage ({ src, topLevel, srcSet: srcSetObj, tab, ...props }) {
   const me = useMe()
   const showModal = useShowModal()
-  const [originalUrlConsent, setOriginalUrlConsent] = useState(!me ? true : !me.clickToLoadImg)
+  const [originalUrlConsent, setOriginalUrlConsent] = useState(!me || tab === 'preview' ? true : !me.clickToLoadImg)
   // if there is no srcset obj, image is still processing (srcSetObj === undefined) or it wasn't detected as an image by the worker (srcSetObj === null).
   // we handle both cases the same as imgproxy errors.
   const [imgproxyErr, setImgproxyErr] = useState(!srcSetObj)

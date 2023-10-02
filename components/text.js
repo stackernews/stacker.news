@@ -63,7 +63,7 @@ function Heading ({ h, slugger, noFragments, topLevel, children, node, ...props 
 }
 
 // this is one of the slowest components to render
-export default memo(function Text ({ topLevel, noFragments, nofollow, imgproxyUrls, children }) {
+export default memo(function Text ({ topLevel, noFragments, nofollow, imgproxyUrls, children, tab }) {
   // all the reactStringReplace calls are to facilitate search highlighting
   const slugger = new GithubSlugger()
 
@@ -113,7 +113,7 @@ export default memo(function Text ({ topLevel, noFragments, nofollow, imgproxyUr
               // if `srcSet` is undefined, it means the image was not processed by worker yet
               // if `srcSet` is null, image was processed but this specific url was not detected as an image by the worker
               const srcSet = imgproxyUrls ? (imgproxyUrls[url] || null) : undefined
-              return <ZoomableImage topLevel={topLevel} srcSet={srcSet} {...props} src={href} />
+              return <ZoomableImage topLevel={topLevel} srcSet={srcSet} tab={tab} {...props} src={href} />
             }
 
             // map: fix any highlighted links
@@ -141,7 +141,7 @@ export default memo(function Text ({ topLevel, noFragments, nofollow, imgproxyUr
             // if `srcSet` is undefined, it means the image was not processed by worker yet
             // if `srcSet` is null, image was processed but this specific url was not detected as an image by the worker
             const srcSet = imgproxyUrls ? (imgproxyUrls[url] || null) : undefined
-            return <ZoomableImage topLevel={topLevel} srcSet={srcSet} src={src} {...props} />
+            return <ZoomableImage topLevel={topLevel} srcSet={srcSet} tab={tab} src={src} {...props} />
           }
         }}
         remarkPlugins={[gfm, mention, sub, remarkDirective, searchHighlighter]}

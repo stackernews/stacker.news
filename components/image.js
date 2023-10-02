@@ -120,7 +120,7 @@ export function ZoomableImage ({ src, topLevel, srcSet: srcSetObj, tab, ...props
 
   const handleClick = useCallback(() => showModal(close => (
     <div
-      className='d-grid w-100 h-100' style={{ placeContent: 'center' }} onClick={close}
+      className='d-flex w-100 h-100' style={{ placeContent: 'center' }} onClick={close}
     >
       <img
         style={{ cursor: 'zoom-out', maxWidth: '100%', maxHeight: '100%', minHeight: 0, minWidth: 0 }}

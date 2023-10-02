@@ -69,7 +69,7 @@ export default memo(function Text ({ topLevel, noFragments, nofollow, imgproxyUr
 
   const HeadingWrapper = (props) => Heading({ topLevel, slugger, noFragments, ...props })
 
-  const imgUrlCache = useImgUrlCache(children, imgproxyUrls)
+  const imgUrlCache = useImgUrlCache(children, { imgproxyUrls, tab })
 
   return (
     <div className={styles.text}>

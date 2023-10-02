@@ -38,7 +38,10 @@ export function useImgUrlCache (text, { imgproxyUrls, tab }) {
     const urls = extractUrls(text)
 
     urls.forEach((url) => {
-      if (IMG_URL_REGEXP.test(url) || !!imgproxyUrls?.[url]) {
+      let processedAsImage = !!imgproxyUrls?.[url]
+      url = IMGPROXY_URL_REGEXP.test(url) ? decodeOriginalUrl(url) : url
+      processedAsImage ||= !!imgproxyUrls?.[url]
+      if (IMG_URL_REGEXP.test(url) || processedAsImage) {
         // it's probably an image if the regexp matches or if we processed the URL as an image in the worker
         updateCache(url, IMG_CACHE_STATES.LOADED)
       } else {

@@ -114,7 +114,7 @@ export const createImgproxyUrls = async (id, text, { forceFetch }) => {
     imgproxyUrls[url] = {}
     for (const res of resolutions) {
       const [w, h] = res.split('x')
-      const processingOptions = `/rs:fill:${w}:${h}`
+      const processingOptions = `/rs:fit:${w}:${h}`
       imgproxyUrls[url][`${w}w`] = createImgproxyUrl(url, processingOptions)
     }
   }

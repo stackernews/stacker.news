@@ -209,7 +209,7 @@ $btn-close-bg: none;
   background-color: transparent;
 }
 .modal-body.fullscreen {
-  width: 100%;
+  width: 100vw;
   height: calc(100svh - 6rem);
   padding: 0;
   background-color: transparent;

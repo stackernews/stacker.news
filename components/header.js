@@ -222,7 +222,7 @@ function NavItems ({ className, sub, prefix }) {
                 asPath = `/~${sub}` + router.asPath
               } else {
                 // otherwise, just go to the sub
-                router.push(`/~${sub}`)
+                router.push(sub ? `/~${sub}` : '/')
                 return
               }
             }

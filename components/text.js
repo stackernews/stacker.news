@@ -124,6 +124,13 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, ...o
               return <>{children}</>
             }
 
+            // If [text](url) was parsed as <a> and text is not empty and not a link itself,
+            // we don't render it as an image since it was probably a concious choice to include text.
+            const text = children?.[0]
+            if (!!text && !/^https?:\/\//.test(text)) {
+              return <a target='_blank' rel={`noreferrer ${nofollow ? 'nofollow' : ''} noopener`} href={href}>{text}</a>
+            }
+
             // assume the link is an image which will fallback to link if it's not
             return <Img src={href} nofollow={nofollow} {...props}>{children}</Img>
           },

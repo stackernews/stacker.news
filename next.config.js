@@ -15,7 +15,7 @@ const corsHeaders = [
 ]
 const noCacheHeader = {
   key: 'Cache-Control',
-  value: 'no-cache'
+  value: 'no-cache, max-age=0, must-revalidate'
 }
 
 let commitHash

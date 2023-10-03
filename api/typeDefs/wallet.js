@@ -27,7 +27,7 @@ export default gql`
     satsRequested: Int!
     nostr: JSONObject
     comment: String
-    lud18Data: String
+    lud18Data: JSONObject
     hmac: String
     isHeld: Boolean
   }

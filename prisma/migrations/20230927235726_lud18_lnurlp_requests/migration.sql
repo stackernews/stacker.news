@@ -16,11 +16,11 @@ CREATE UNIQUE INDEX "LnUrlpRequest.k1_unique" ON "LnUrlpRequest"("k1");
 ALTER TABLE "LnUrlpRequest" ADD CONSTRAINT "LnUrlpRequest_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AlterTable
-ALTER TABLE "Invoice" ADD COLUMN     "lud18Data" TEXT;
+ALTER TABLE "Invoice" ADD COLUMN "lud18Data" JSONB;
 
 -- Add lud18 data parameter to invoice creation
 CREATE OR REPLACE FUNCTION create_invoice(hash TEXT, bolt11 TEXT, expires_at timestamp(3) without time zone,
-    msats_req BIGINT, user_id INTEGER, idesc TEXT, comment TEXT, lud18_data TEXT, inv_limit INTEGER, balance_limit_msats BIGINT)
+    msats_req BIGINT, user_id INTEGER, idesc TEXT, comment TEXT, lud18_data JSONB, inv_limit INTEGER, balance_limit_msats BIGINT)
 RETURNS "Invoice"
 LANGUAGE plpgsql
 AS $$

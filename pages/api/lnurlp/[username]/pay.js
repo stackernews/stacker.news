@@ -14,16 +14,7 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
   if (!user) {
     return res.status(400).json({ status: 'ERROR', reason: `user @${username} does not exist` })
   }
-  if (!k1) {
-    return res.status(400).json({ status: 'ERROR', reason: 'k1 value required' })
-  }
-  const lnUrlpRequest = await models.lnUrlpRequest.findUnique({ where: { k1, userId: user.id } })
-  if (!lnUrlpRequest) {
-    return res.status(400).json({ status: 'ERROR', reason: 'k1 has already been used, has expired, or does not exist, request another' })
-  }
-  if (datePivot(new Date(lnUrlpRequest.createdAt), { minutes: 10 }) < new Date()) {
-    return res.status(400).json({ status: 'ERROR', reason: 'k1 has expired, request another' })
-  }
+
   try {
     // if nostr, decode, validate sig, check tags, set description hash
     let description, descriptionHash, noteStr
@@ -57,6 +48,24 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
     }
 
     if (payerData) {
+      if (!k1) {
+        return res.status(400).json({ status: 'ERROR', reason: 'k1 value required' })
+      }
+
+      const lnUrlpRequest = await models.lnUrlpRequest.findUnique({
+        where: {
+          k1,
+          userId: user.id,
+          createdAt: {
+            gte: datePivot(new Date(), { minutes: -10 })
+          }
+        }
+      })
+
+      if (!lnUrlpRequest) {
+        return res.status(400).json({ status: 'ERROR', reason: 'k1 has already been used, has expired, or does not exist, request another' })
+      }
+
       let parsedPayerData
       try {
         parsedPayerData = JSON.parse(decodeURIComponent(payerData))

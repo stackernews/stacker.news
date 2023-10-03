@@ -20,6 +20,7 @@ import { notifyItemParents, notifyUserSubscribers, notifyZapped } from '../../li
 import { createHmac } from './wallet'
 import { settleHodlInvoice } from 'ln-service'
 import { initDateRule } from '../../lib/timedate-scraper'
+import { moreThanOneYearAgo } from '../../lib/time'
 
 export async function commentFilterClause (me, models) {
   let clause = ` AND ("Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}`
@@ -545,11 +546,12 @@ export default {
         const doc = domino.createWindow(html).document
         initDateRule()
         const metadata = getMetadata(doc, url, { title: metadataRuleSets.title, publicationDate: metadataRuleSets.publicationDate })
-        const dateHint = (metadata && (new Date() - metadata.publicationDate) / (1000 * 60 * 60 * 24) > 365)
-          ? ` (${metadata.publicationDate.getFullYear()})`
-          : ''
+        const dateHint = ` (${metadata.publicationDate.getFullYear()})`
 
-        res.title = metadata?.title + dateHint
+        res.title = metadata?.title
+        if (moreThanOneYearAgo(metadata.publicationDate)) {
+          res.title += dateHint
+        }
       } catch { }
 
       try {

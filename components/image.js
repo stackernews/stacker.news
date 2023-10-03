@@ -31,7 +31,7 @@ function ImageOriginal ({ src, topLevel, nofollow, tab, children, onClick, ...pr
     }
   }, [src, showImage])
 
-  if (showImage && (tab === 'preview' || !me?.clickToLoadImg)) {
+  if (showImage) {
     return (
       <img
         className={topLevel ? styles.topLevel : undefined}

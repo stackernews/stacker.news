@@ -100,6 +100,7 @@ export const NOTIFICATIONS = gql`
             id
             nostr
             comment
+            lud18Data
           }
         }
       }

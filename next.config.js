@@ -13,6 +13,10 @@ const corsHeaders = [
     value: 'GET, HEAD, OPTIONS'
   }
 ]
+const noCacheHeader = {
+  key: 'Cache-Control',
+  value: 'no-cache, max-age=0, must-revalidate'
+}
 
 let commitHash
 if (isProd) {
@@ -62,17 +66,15 @@ module.exports = withPlausibleProxy()({
       {
         source: '/.well-known/:slug*',
         headers: [
-          ...corsHeaders
+          ...corsHeaders,
+          noCacheHeader
         ]
       },
       // never cache service worker
       // https://stackoverflow.com/questions/38843970/service-worker-javascript-update-frequency-every-24-hours/38854905#38854905
       {
         source: '/sw.js',
-        headers: [{
-          key: 'Cache-Control',
-          value: 'no-cache'
-        }]
+        headers: [noCacheHeader]
       },
       {
         source: '/api/lnauth',
@@ -83,7 +85,8 @@ module.exports = withPlausibleProxy()({
       {
         source: '/api/lnurlp/:slug*',
         headers: [
-          ...corsHeaders
+          ...corsHeaders,
+          noCacheHeader
         ]
       },
       {

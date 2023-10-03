@@ -1,6 +1,6 @@
 import itemStyles from './item.module.css'
 import styles from './comment.module.css'
-import Text from './text'
+import Text, { SearchText } from './text'
 import Link from 'next/link'
 import Reply, { ReplyOnAnotherPage } from './reply'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -208,9 +208,12 @@ export default function Comment ({
               )
             : (
               <div className={styles.text}>
-                <Text topLevel={topLevel} nofollow={item.sats + item.boost < NOFOLLOW_LIMIT}>
-                  {truncate ? truncateString(item.text) : item.searchText || item.text}
-                </Text>
+                {item.searchText
+                  ? <SearchText text={item.searchText} />
+                  : (
+                    <Text topLevel={topLevel} nofollow={item.sats + item.boost < NOFOLLOW_LIMIT} imgproxyUrls={item.imgproxyUrls}>
+                      {truncate ? truncateString(item.text) : item.text}
+                    </Text>)}
               </div>
               )}
         </div>

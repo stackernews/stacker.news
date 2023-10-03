@@ -52,7 +52,7 @@ services:
       - opensearch
     entrypoint: ["/bin/sh", "-c"]
     command:
-      - node worker/index.js
+      - npm run worker
   imgproxy:
     container_name: imgproxy
     image: darthsim/imgproxy:v3.18.1

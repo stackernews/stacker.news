@@ -31,12 +31,12 @@ export function nip57 ({ boss, lnd, models }) {
       const desc = JSON.parse(inv.desc)
       const ptag = desc.tags.filter(t => t?.length >= 2 && t[0] === 'p')[0]
       const etag = desc.tags.filter(t => t?.length >= 2 && t[0] === 'e')[0]
+      const atag = desc.tags.filter(t => t?.length >= 2 && t[0] === 'a')[0]
       const relays = desc.tags.find(t => t?.length >= 2 && t[0] === 'relays').slice(1)
 
       const tags = [ptag]
-      if (etag) {
-        tags.push(etag)
-      }
+      if (etag) tags.push(etag)
+      if (atag) tags.push(atag)
       tags.push(['bolt11', lnInv.request])
       tags.push(['description', inv.desc])
       tags.push(['preimage', lnInv.secret])

@@ -76,11 +76,34 @@
     border-radius: .4rem;
     width: auto;
     max-width: 100%;
+    cursor: zoom-in;
+    max-height: 25vh;
 }
 
 .text img.topLevel {
     margin-top: .75rem;
     margin-bottom: .75rem;
+    max-height: 35vh;
+}
+
+img.fullScreen {
+    cursor: zoom-out !important;
+    max-height: 100%;
+    max-width: 100vw;
+    min-width: 0;
+    min-height: 0;
+    align-self: center;
+    justify-self: center;
+}
+
+.fullScreenContainer {
+    --bs-columns: 1;
+    --bs-rows: 1;
+    display: grid;
+    width: 100%;
+    height: 100%;
+    align-content: center;
+    justify-content: center;
 }
 
 .text table {

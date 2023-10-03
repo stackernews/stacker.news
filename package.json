@@ -7,7 +7,8 @@
     "build": "next build",
     "migrate": "prisma migrate deploy",
     "start": "NODE_OPTIONS='--trace-warnings' next start -p $PORT --keepAliveTimeout 120000",
-    "lint": "standard"
+    "lint": "standard",
+    "worker": "tsx --trace-warnings worker/index.js"
   },
   "dependencies": {
     "@apollo/client": "^3.8.1",
@@ -71,12 +72,12 @@
     "react-twitter-embed": "^4.0.4",
     "react-youtube": "^10.1.0",
     "recharts": "^2.7.3",
-    "remark-directive": "^2.0.1",
     "remark-gfm": "^3.0.1",
     "remove-markdown": "^0.5.0",
     "sass": "^1.65.1",
     "serviceworker-storage": "^0.1.0",
     "tldts": "^6.0.14",
+    "tsx": "^3.13.0",
     "typescript": "^5.1.6",
     "unist-util-visit": "^5.0.0",
     "url-unshort": "^6.1.0",
@@ -96,23 +97,15 @@
     "node": "18.17.0"
   },
   "standard": {
-    "parser": "@babel/eslint-parser",
     "plugins": [
       "@next/next"
     ],
     "extends": [
       "next"
-    ],
-    "ignore": [
-      "**/spawn",
-      "**/worker",
-      "**/api",
-      "**/lib"
     ]
   },
   "devDependencies": {
     "@babel/core": "^7.22.10",
-    "@babel/eslint-parser": "^7.22.10",
     "@next/eslint-plugin-next": "^13.4.16",
     "eslint": "^8.47.0",
     "standard": "^17.1.0"

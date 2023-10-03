@@ -11,16 +11,15 @@ import { indexItem, indexAllItems } from './search.js'
 import { timestampItem } from './ots.js'
 import { computeStreaks, checkStreak } from './streak.js'
 import { nip57 } from './nostr.js'
-
 import fetch from 'cross-fetch'
 import { authenticatedLndGrpc } from 'ln-service'
 import { views, rankViews } from './views.js'
+import { imgproxy } from './imgproxy.js'
 
 const { loadEnvConfig } = nextEnv
 const { ApolloClient, HttpLink, InMemoryCache } = apolloClient
 
 loadEnvConfig('..')
-
 
 async function work () {
   const boss = new PgBoss(process.env.DATABASE_URL)
@@ -68,6 +67,7 @@ async function work () {
   await boss.work('nip57', nip57(args))
   await boss.work('views', views(args))
   await boss.work('rankViews', rankViews(args))
+  await boss.work('imgproxy', imgproxy(args))
 
   console.log('working jobs')
 }

@@ -245,8 +245,8 @@ export default {
             sort: sortArr,
             highlight: {
               fields: {
-                title: { number_of_fragments: 0, pre_tags: [':high['], post_tags: [']'] },
-                text: { number_of_fragments: 5, order: 'score', pre_tags: [':high['], post_tags: [']'] }
+                title: { number_of_fragments: 0, pre_tags: ['***'], post_tags: ['***'] },
+                text: { number_of_fragments: 5, order: 'score', pre_tags: ['***'], post_tags: ['***'] }
               }
             }
           }
@@ -265,7 +265,7 @@ export default {
         const item = await getItem(parent, { id: e._source.id }, { me, models })
 
         item.searchTitle = (e.highlight?.title && e.highlight.title[0]) || item.title
-        item.searchText = (e.highlight?.text && e.highlight.text.join(' `...` ')) || undefined
+        item.searchText = (e.highlight?.text && e.highlight.text.join(' ... ')) || undefined
 
         return item
       })

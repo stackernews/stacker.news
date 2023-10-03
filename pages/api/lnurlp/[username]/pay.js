@@ -19,9 +19,13 @@ export default async ({ query: { username, amount, nostr, comment } }, res) => {
     if (nostr) {
       noteStr = decodeURIComponent(nostr)
       const note = JSON.parse(noteStr)
-      const hasPTag = note.tags?.filter(t => t[0] === 'p').length >= 1
+      // It MUST have only one p tag
+      const hasPTag = note.tags?.filter(t => t[0] === 'p').length === 1
+      // It MUST have 0 or 1 e tags
       const hasETag = note.tags?.filter(t => t[0] === 'e').length <= 1
-      if (schnorr.verify(note.sig, note.id, note.pubkey) && hasPTag && hasETag) {
+      // If there is an amount tag, it MUST be equal to the amount query parameter
+      const eventAmount = note.tags?.find(t => t[0] === 'amount')?.[1]
+      if (schnorr.verify(note.sig, note.id, note.pubkey) && hasPTag && hasETag && (!eventAmount || Number(eventAmount) === Number(amount))) {
         description = user.hideInvoiceDesc ? undefined : 'zap'
         descriptionHash = createHash('sha256').update(noteStr).digest('hex')
       } else {

@@ -1,6 +1,6 @@
 import { GraphQLError } from 'graphql'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
-import { getItem, filterClause } from './item'
+import { getItem, filterClause, whereClause, muteClause } from './item'
 import { getInvoice } from './wallet'
 import { pushSubscriptionSchema, ssValidate } from '../../lib/validate'
 import { replyToSubscription } from '../webPush'
@@ -75,64 +75,60 @@ export default {
 
       // Replies
       itemDrivenQueries.push(
-        `SELECT DISTINCT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL::BIGINT as "earnedSats",
-        'Reply' AS type
-        FROM "Item"
-        JOIN "Item" p ON ${meFull.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
-        WHERE p."userId" = $1 AND "Item"."userId" <> $1 AND "Item".created_at <= $2
-        ${await filterClause(me, models)}
-        ORDER BY "sortTime" DESC
-        LIMIT ${LIMIT}+$3`
+        `SELECT "Item".*, "Item".created_at AS "sortTime", 'Reply' AS type
+          FROM "Item"
+          JOIN "Item" p ON ${meFull.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
+          ${whereClause(
+            'p."userId" = $1',
+            '"Item"."userId" <> $1'
+          )}
+          ORDER BY "sortTime" DESC
+          LIMIT ${LIMIT}+$3`
       )
 
       // Thread subscriptions
       itemDrivenQueries.push(
-        `SELECT DISTINCT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL::BIGINT as "earnedSats",
-        'Reply' AS type
-        FROM "ThreadSubscription"
-        JOIN "Item" p ON "ThreadSubscription"."itemId" = p.id
-        JOIN "Item" ON ${meFull.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
-        WHERE
-          "ThreadSubscription"."userId" = $1
-          AND "Item"."userId" <> $1 AND "Item".created_at <= $2
-          -- Only show items that have been created since subscribing to the thread
-          AND "Item".created_at >= "ThreadSubscription".created_at
-          -- don't notify on posts
-          AND "Item"."parentId" IS NOT NULL
-        ${await filterClause(me, models)}
-        ORDER BY "sortTime" DESC
-        LIMIT ${LIMIT}+$3`
+        `SELECT "Item".*, "Item".created_at AS "sortTime", 'Reply' AS type
+          FROM "ThreadSubscription"
+          JOIN "Item" p ON "ThreadSubscription"."itemId" = p.id
+          JOIN "Item" ON ${meFull.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
+          ${whereClause(
+            '"ThreadSubscription"."userId" = $1',
+            '"Item"."userId" <> $1',
+            '"Item".created_at >= "ThreadSubscription".created_at',
+            '"Item"."parentId" IS NOT NULL'
+          )}
+          ORDER BY "sortTime" DESC
+          LIMIT ${LIMIT}+$3`
       )
 
       // User subscriptions
+      // Only include posts or comments created after the corresponding subscription was enabled, not _all_ from history
       itemDrivenQueries.push(
-        `SELECT DISTINCT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL::BIGINT as "earnedSats",
-        'FollowActivity' AS type
-        FROM "Item"
-        JOIN "UserSubscription" ON "Item"."userId" = "UserSubscription"."followeeId"
-        WHERE "UserSubscription"."followerId" = $1
-          AND "Item".created_at <= $2
-          AND (
-            -- Only include posts or comments created after the corresponding subscription was enabled, not _all_ from history
-            ("Item"."parentId" IS NULL AND "UserSubscription"."postsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."postsSubscribedAt")
-            OR ("Item"."parentId" IS NOT NULL AND "UserSubscription"."commentsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."commentsSubscribedAt")
-          )
-        ${await filterClause(me, models)}
-        ORDER BY "sortTime" DESC
-        LIMIT ${LIMIT}+$3`
+        `SELECT "Item".*, "Item".created_at AS "sortTime", 'FollowActivity' AS type
+          FROM "Item"
+          JOIN "UserSubscription" ON "Item"."userId" = "UserSubscription"."followeeId"
+          ${whereClause(
+            '"UserSubscription"."followerId" = $1',
+            `(
+              ("Item"."parentId" IS NULL AND "UserSubscription"."postsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."postsSubscribedAt")
+              OR ("Item"."parentId" IS NOT NULL AND "UserSubscription"."commentsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."commentsSubscribedAt")
+            )`
+          )}
+          ORDER BY "sortTime" DESC
+          LIMIT ${LIMIT}+$3`
       )
 
       // mentions
       if (meFull.noteMentions) {
         itemDrivenQueries.push(
-          `SELECT "Item".id::TEXT, "Mention".created_at AS "sortTime", NULL as "earnedSats",
-            'Mention' AS type
+          `SELECT "Item".*, "Mention".created_at AS "sortTime", 'Mention' AS type
             FROM "Mention"
             JOIN "Item" ON "Mention"."itemId" = "Item".id
-            WHERE "Mention"."userId" = $1
-            AND "Mention".created_at <= $2
-            AND "Item"."userId" <> $1
-            ${await filterClause(me, models)}
+            ${whereClause(
+              '"Mention"."userId" = $1',
+              '"Item"."userId" <> $1'
+            )}
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT}+$3`
         )
@@ -140,18 +136,21 @@ export default {
       // Inner union to de-dupe item-driven notifications
       queries.push(
         // Only record per item ID
-          `(SELECT DISTINCT ON (id) *
+        `(
+          SELECT DISTINCT ON (id) "Item".id::TEXT, "Item"."sortTime", NULL::BIGINT AS "earnedSats", "Item".type
           FROM (
-            SELECT *
-            FROM (
-              ${itemDrivenQueries.map(q => `(${q})`).join(' UNION ALL ')}
-            ) as inner_union
-            ORDER BY id ASC, CASE
-              WHEN type = 'Mention' THEN 1
-              WHEN type = 'Reply' THEN 2
-              WHEN type = 'FollowActivity' THEN 3
-            END ASC
-          ) as ordered_unioned)`
+            ${itemDrivenQueries.map(q => `(${q})`).join(' UNION ALL ')}
+          ) as "Item"
+          ${whereClause(
+            '"Item".created_at <= $2',
+            await filterClause(me, models),
+            muteClause(me))}
+          ORDER BY id ASC, CASE
+            WHEN type = 'Mention' THEN 1
+            WHEN type = 'Reply' THEN 2
+            WHEN type = 'FollowActivity' THEN 3
+          END ASC
+        )`
       )
 
       queries.push(

@@ -12,6 +12,7 @@ export const COMMENT_FIELDS = gql`
       streak
       hideCowboyHat
       id
+      meMute
     }
     sats
     meAnonSats @client
@@ -29,6 +30,7 @@ export const COMMENT_FIELDS = gql`
     mine
     otsHash
     ncomments
+    imgproxyUrls
   }
 `
 
@@ -70,12 +72,6 @@ export const COMMENTS = gql`
                 ...CommentFields
                 comments {
                   ...CommentFields
-                  comments {
-                    ...CommentFields
-                    comments {
-                      ...CommentFields
-                    }
-                  }
                 }
               }
             }

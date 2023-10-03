@@ -92,10 +92,24 @@ model User {
   hideWelcomeBanner   Boolean              @default(false)
   diagnostics         Boolean              @default(false)
   hideIsContributor   Boolean              @default(false)
+  muters              Mute[]               @relation("muter")
+  muteds              Mute[]               @relation("muted")
 
   @@index([createdAt], map: "users.created_at_index")
   @@index([inviteId], map: "users.inviteId_index")
   @@map("users")
+}
+
+model Mute {
+  muterId   Int
+  mutedId   Int
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  muter     User     @relation("muter", fields: [muterId], references: [id], onDelete: Cascade)
+  muted     User     @relation("muted", fields: [mutedId], references: [id], onDelete: Cascade)
+
+  @@id([muterId, mutedId])
+  @@index([mutedId, muterId])
 }
 
 model Streak {
@@ -250,6 +264,7 @@ model Item {
   deletedAt          DateTime?
   otsFile            Bytes?
   otsHash            String?
+  imgproxyUrls       Json?
   bounty             Int?
   rootId             Int?
   bountyPaidTo       Int[]
@@ -536,14 +551,14 @@ model ThreadSubscription {
 }
 
 model UserSubscription {
-  followerId            Int
-  followeeId            Int
-  createdAt             DateTime @default(now()) @map("created_at")
-  updatedAt             DateTime @default(now()) @map("updated_at") @updatedAt
-  postsSubscribedAt     DateTime?
-  commentsSubscribedAt  DateTime?
-  follower              User     @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
-  followee              User     @relation("followee", fields: [followeeId], references: [id], onDelete: Cascade)
+  followerId           Int
+  followeeId           Int
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @default(now()) @updatedAt @map("updated_at")
+  postsSubscribedAt    DateTime?
+  commentsSubscribedAt DateTime?
+  follower             User      @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  followee             User      @relation("followee", fields: [followeeId], references: [id], onDelete: Cascade)
 
   @@id([followerId, followeeId])
   @@index([createdAt], map: "UserSubscription.created_at_index")

@@ -18,7 +18,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
   const client = useApolloClient()
   const me = useMe()
-  const schema = pollSchema(client, me)
+  const schema = pollSchema({ client, me, existingBoost: item?.boost })
 
   const [upsertPoll] = useMutation(
     gql`
@@ -65,7 +65,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         title: item?.title || '',
         text: item?.text || '',
         options: initialOptions || ['', ''],
-        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards) }),
+        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}

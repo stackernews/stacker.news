@@ -158,6 +158,7 @@ export const USER_FIELDS = gql`
     isContributor
     meSubscriptionPosts
     meSubscriptionComments
+    meMute
   }`
 
 export const TOP_USERS = gql`

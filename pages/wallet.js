@@ -1,5 +1,4 @@
 import { useRouter } from 'next/router'
-import { string, object, boolean } from 'yup'
 import { Checkbox, Form, Input, SubmitButton } from '../components/form'
 import Link from 'next/link'
 import Button from 'react-bootstrap/Button'
@@ -20,6 +19,8 @@ import { SSR } from '../lib/constants'
 import { numWithUnits } from '../lib/format'
 import styles from '../components/user-header.module.css'
 import HiddenWalletSummary from '../components/hidden-wallet-summary'
+import AccordianItem from '../components/accordian-item'
+import { lnAddrOptions } from '../lib/lnurl'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -292,62 +293,25 @@ export function LnWithdrawal () {
 }
 
 export function LnAddrWithdrawal () {
+  const me = useMe()
   const router = useRouter()
   const [sendToLnAddr, { called, error }] = useMutation(SEND_TO_LNADDR)
-  const [min, setMin] = useState(1)
-  const [max, setMax] = useState()
-  const [commentAllowed, setCommentAllowed] = useState()
-  const [payerData, setPayerData] = useState({})
-  const [formSchema, setFormSchema] = useState(lnAddrSchema)
+  const defaultOptions = { min: 1 }
+  const [addrOptions, setAddrOptions] = useState(defaultOptions)
+  const [formSchema, setFormSchema] = useState(lnAddrSchema())
 
   const onAddrChange = async (formik, e) => {
-    const addr = e.target.value
+    let options
     try {
-      await lnAddrSchema.fields.addr.validate(addr)
+      options = await lnAddrOptions(e.target.value)
     } catch (e) {
-      // invalid ln addr, don't proceed
+      console.log(e)
+      setAddrOptions(defaultOptions)
       return
     }
 
-    const [name, domain] = addr.split('@')
-    let req
-    try {
-      req = await fetch(`https://${domain}/.well-known/lnurlp/${name}`)
-    } catch (e) {
-      // failed to fetch, eat it
-      return
-    }
-    let res
-    try {
-      res = await req.json()
-    } catch (e) {
-      // failed to parse to json, eat it
-      return
-    }
-    if (res.status === 'ERROR') {
-      // error response, we can't extract anything useful from it
-      return
-    }
-    const { minSendable, maxSendable, commentAllowed, payerData } = res
-    setMin(minSendable / 1000)
-    setMax(maxSendable / 1000)
-    setCommentAllowed(commentAllowed)
-    setPayerData(payerData)
-    const payerDataSchema = object().shape(Object.keys(payerData || {}).reduce((accum, key) => {
-      const entry = payerData[key]
-      if (key === 'email') {
-        accum[key] = string().email()
-      } else if (key === 'identifier') {
-        accum[key] = boolean()
-      } else {
-        accum[key] = string()
-      }
-      if (entry?.mandatory) {
-        accum[key] = accum[key].required()
-      }
-      return accum
-    }, {}))
-    setFormSchema(lnAddrSchema.concat(payerDataSchema))
+    setAddrOptions(options)
+    setFormSchema(lnAddrSchema(options))
   }
 
   return (
@@ -361,22 +325,18 @@ export function LnAddrWithdrawal () {
           amount: 1,
           maxFee: 10,
           comment: '',
-          includeIdentifier: false,
+          identifier: false,
           name: '',
           email: ''
         }}
         schema={formSchema}
         initialError={error ? error.toString() : undefined}
-        onSubmit={async ({ addr, amount, maxFee, comment, includeIdentifier, name, email }) => {
+        onSubmit={async ({ amount, maxFee, ...values }) => {
           const { data } = await sendToLnAddr({
             variables: {
-              addr,
               amount: Number(amount),
               maxFee: Number(maxFee),
-              comment,
-              includeIdentifier: payerData?.identifier ? includeIdentifier : undefined,
-              name: payerData?.name ? name : undefined,
-              email: payerData?.email ? email : undefined
+              ...values
             }
           })
           router.push(`/withdrawals/${data.sendToLnAddr.id}`)
@@ -395,8 +355,8 @@ export function LnAddrWithdrawal () {
           type='number'
           step={10}
           required
-          min={min}
-          max={max}
+          min={addrOptions.min}
+          max={addrOptions.max}
           append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
         />
         <Input
@@ -407,30 +367,57 @@ export function LnAddrWithdrawal () {
           required
           append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
         />
-        {commentAllowed &&
-          <Input
-            label={<>comment <small className='text-muted ms-2'>optional</small></>}
-            name='comment'
-            maxLength={commentAllowed}
-          />}
-        {payerData?.identifier &&
-          <Checkbox
-            name='includeIdentifier'
-            required={payerData.identifier.mandatory}
-            label={<>include your nym@stacker.news identifier{!payerData.identifier.mandatory && <>{' '}<small className='text-muted ms-2'>optional</small></>}</>}
-          />}
-        {payerData?.name &&
-          <Input
-            name='name'
-            required={payerData.name.mandatory}
-            label={<>attach your name to the payment{!payerData.name.mandatory && <>{' '}<small className='text-muted ms-2'>optional</small></>}</>}
-          />}
-        {payerData?.email &&
-          <Input
-            name='email'
-            required={payerData.email.mandatory}
-            label={<>attach your email to the payment{!payerData.email.mandatory && <>{' '}<small className='text-muted ms-2'>optional</small></>}</>}
-          />}
+        {(addrOptions?.commentAllowed || addrOptions?.payerData) &&
+          <div className='my-3 border border-3 rounded'>
+            <div className='p-3'>
+              <AccordianItem
+                show
+                header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>attach</div>}
+                body={
+                  <>
+                    {addrOptions.commentAllowed &&
+                      <Input
+                        label={<>comment <small className='text-muted ms-2'>optional</small></>}
+                        name='comment'
+                        maxLength={addrOptions.commentAllowed}
+                      />}
+                    {addrOptions.payerData?.identifier &&
+                      <Checkbox
+                        name='identifier'
+                        required={addrOptions.payerData.identifier.mandatory}
+                        label={
+                          <>your {me?.name}@stacker.news identifier
+                            {!addrOptions.payerData.identifier.mandatory &&
+                              <>{' '}<small className='text-muted ms-2'>optional</small></>}
+                          </>
+}
+                      />}
+                    {addrOptions.payerData?.name &&
+                      <Input
+                        name='name'
+                        required={addrOptions.payerData.name.mandatory}
+                        label={
+                          <>name{!addrOptions.payerData.name.mandatory &&
+                            <>{' '}<small className='text-muted ms-2'>optional</small></>}
+                          </>
+}
+                      />}
+                    {addrOptions.payerData?.email &&
+                      <Input
+                        name='email'
+                        required={addrOptions.payerData.email.mandatory}
+                        label={
+                          <>
+                            email{!addrOptions.payerData.email.mandatory &&
+                              <>{' '}<small className='text-muted ms-2'>optional</small></>}
+                          </>
+}
+                      />}
+                  </>
+                }
+              />
+            </div>
+          </div>}
         <SubmitButton variant='success' className='mt-2'>send</SubmitButton>
       </Form>
     </>

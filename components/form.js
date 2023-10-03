@@ -292,7 +292,7 @@ function InputInner ({
             }
           }}
           onBlur={(e) => {
-            field.onBlur(e)
+            field.onBlur?.(e)
             onBlur && onBlur(e)
           }}
           isInvalid={invalid}

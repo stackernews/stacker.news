@@ -5,7 +5,7 @@ import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import lnpr from 'bolt11'
 import { SELECT } from './item'
-import { lnurlPayDescriptionHash } from '../../lib/lnurl'
+import { lnAddrOptions, lnurlPayDescriptionHash } from '../../lib/lnurl'
 import { msatsToSats, msatsToSatsDecimal } from '../../lib/format'
 import { amountSchema, lnAddrSchema, ssValidate, withdrawlSchema } from '../../lib/validate'
 import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, ANON_USER_ID, BALANCE_LIMIT_MSATS, INV_PENDING_LIMIT } from '../../lib/constants'
@@ -279,71 +279,57 @@ export default {
       }
     },
     createWithdrawl: createWithdrawal,
-    sendToLnAddr: async (parent, { addr, amount, maxFee, comment }, { me, models, lnd }) => {
-      await ssValidate(lnAddrSchema, { addr, amount, maxFee, comment })
-
-      const [name, domain] = addr.split('@')
-      let req
-      try {
-        req = await fetch(`https://${domain}/.well-known/lnurlp/${name}`)
-      } catch (e) {
-        throw new Error(`error initiating protocol with https://${domain}`)
+    sendToLnAddr: async (parent, { addr, amount, maxFee, comment, ...payer }, { me, models, lnd }) => {
+      if (!me) {
+        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
       }
 
-      const res1 = await req.json()
-      if (res1.status === 'ERROR') {
-        throw new Error(res1.reason)
-      }
+      const options = await lnAddrOptions(addr)
+      await ssValidate(lnAddrSchema, { addr, amount, maxFee, comment, ...payer }, options)
 
-      const milliamount = amount * 1000
-      // check that amount is within min and max sendable
-      if (milliamount < res1.minSendable || milliamount > res1.maxSendable) {
-        throw new GraphQLError(`amount must be >= ${res1.minSendable / 1000} and <= ${res1.maxSendable / 1000}`, { extensions: { code: 'BAD_INPUT' } })
-      }
-
-      // if a comment is provided by the user
-      if (comment?.length) {
-        // if the receiving address doesn't accept comments, reject the request and tell the user why
-        if (res1.commentAllowed === undefined) {
-          throw new GraphQLError('comments are not accepted by this lightning address provider', { extensions: { code: 'BAD_INPUT' } })
-        }
-        // if the receiving address accepts comments, verify the max length isn't violated
-        if (res1.commentAllowed && Number(res1.commentAllowed) && comment.length > Number(res1.commentAllowed)) {
-          throw new GraphQLError(`comments sent to this lightning address provider must not exceed ${res1.commentAllowed} characters in length`, { extensions: { code: 'BAD_INPUT' } })
+      if (payer) {
+        payer = {
+          ...payer,
+          identifier: payer.identifier ? me.name : undefined
         }
       }
 
-      const callback = new URL(res1.callback)
+      const milliamount = 1000 * amount
+      const callback = new URL(options.callback)
       callback.searchParams.append('amount', milliamount)
 
       if (comment?.length) {
         callback.searchParams.append('comment', comment)
       }
 
+      let encodedPayerData = ''
+      if (payer) {
+        encodedPayerData = encodeURIComponent(JSON.stringify(payer))
+        callback.searchParams.append('payerdata', encodedPayerData)
+      }
+
       // call callback with amount and conditionally comment
-      const res2 = await (await fetch(callback.toString())).json()
-      if (res2.status === 'ERROR') {
-        throw new Error(res2.reason)
+      const res = await (await fetch(callback.toString())).json()
+      if (res.status === 'ERROR') {
+        throw new Error(res.reason)
       }
 
       // decode invoice
-      let decoded
       try {
-        decoded = await decodePaymentRequest({ lnd, request: res2.pr })
-      } catch (error) {
-        console.log(error)
-        throw new Error('could not decode invoice')
+        const decoded = await decodePaymentRequest({ lnd, request: res.pr })
+        if (decoded.description_hash !== lnurlPayDescriptionHash(`${options.metadata}${encodedPayerData}`)) {
+          throw new Error('description hash does not match')
+        }
+        if (!decoded.mtokens || BigInt(decoded.mtokens) !== BigInt(milliamount)) {
+          throw new Error('invoice has incorrect amount')
+        }
+      } catch (e) {
+        console.log(e)
+        throw e
       }
 
-      if (decoded.description_hash !== lnurlPayDescriptionHash(res1.metadata)) {
-        throw new Error('description hash does not match')
-      }
-
-      if (!decoded.mtokens || BigInt(decoded.mtokens) !== BigInt(milliamount)) {
-        throw new Error('invoice has incorrect amount')
-      }
       // take pr and createWithdrawl
-      return await createWithdrawal(parent, { invoice: res2.pr, maxFee }, { me, models, lnd })
+      return await createWithdrawal(parent, { invoice: res.pr, maxFee }, { me, models, lnd })
     },
     cancelInvoice: async (parent, { hash, hmac }, { models, lnd }) => {
       const hmac2 = createHmac(hash)

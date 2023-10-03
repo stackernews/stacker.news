@@ -75,7 +75,7 @@ export default function Settings ({ ssrData }) {
             hideInvoiceDesc: settings?.hideInvoiceDesc,
             hideFromTopUsers: settings?.hideFromTopUsers,
             hideCowboyHat: settings?.hideCowboyHat,
-            clickToLoadImg: settings?.clickToLoadImg,
+            imgproxyOnly: settings?.imgproxyOnly,
             wildWestMode: settings?.wildWestMode,
             greeterMode: settings?.greeterMode,
             nostrPubkey: settings?.nostrPubkey ? bech32encode(settings.nostrPubkey) : '',
@@ -254,8 +254,8 @@ export default function Settings ({ ssrData }) {
               groupClassName='mb-0'
             />}
           <Checkbox
-            label={<>click to load external images</>}
-            name='clickToLoadImg'
+            label={<>only load images from proxy</>}
+            name='imgproxyOnly'
             groupClassName='mb-0'
           />
           <Checkbox

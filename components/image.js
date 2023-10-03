@@ -19,7 +19,7 @@ function ImageOriginal ({ src, topLevel, nofollow, tab, children, onClick, ...pr
   const [showImage, setShowImage] = useState(false)
 
   useEffect(() => {
-    if (me?.clickToLoadImg && tab !== 'preview') return
+    if (me?.imgproxyOnly && tab !== 'preview') return
     // make sure it's not a false negative by trying to load URL as <img>
     const img = new window.Image()
     img.onload = () => setShowImage(true)

@@ -254,7 +254,17 @@ export default function Settings ({ ssrData }) {
               groupClassName='mb-0'
             />}
           <Checkbox
-            label={<>only load images from proxy</>}
+            label={
+              <div className='d-flex align-items-center'>only load images from proxy
+                <Info>
+                  <ul className='fw-bold'>
+                    <li>only load images from our image proxy automatically</li>
+                    <li>this prevents IP address leaks to arbitrary sites</li>
+                    <li>if we fail to load an image, the raw link will be shown</li>
+                  </ul>
+                </Info>
+              </div>
+            }
             name='imgproxyOnly'
             groupClassName='mb-0'
           />

@@ -122,7 +122,7 @@ const defaultOnClick = n => {
 
 function Streak ({ n }) {
   function blurb (n) {
-    const index = Number(n.id) % 6
+    const index = Number(n.id) % Math.min(FOUND_BLURBS.length, LOST_BLURBS.length)
     if (n.days) {
       return `After ${numWithUnits(n.days, {
         abbreviate: false,

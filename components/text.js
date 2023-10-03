@@ -101,8 +101,6 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, ...o
 
   const Img = useCallback(({ node, src, ...props }) => {
     const url = IMGPROXY_URL_REGEXP.test(src) ? decodeOriginalUrl(src) : src
-    // if `srcSet` is undefined, it means the image was not processed by worker yet
-    // if `srcSet` is null, image was processed but this specific url was not detected as an image by the worker
     const srcSet = imgproxyUrls?.[url]
     return <ZoomableImage srcSet={srcSet} tab={tab} src={src} {...props} {...outerProps} />
   }, [imgproxyUrls, outerProps, tab])

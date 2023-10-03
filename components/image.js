@@ -89,8 +89,8 @@ function ImageProxy ({ src, srcSet: srcSetObj, onClick, topLevel, onError, ...pr
 export function ZoomableImage ({ src, srcSet, ...props }) {
   const showModal = useShowModal()
 
-  // if `srcSet` is undefined, it means the image was not processed by worker yet
-  const [imgproxy, setImgproxy] = useState(srcSet || IMGPROXY_URL_REGEXP.test(src))
+  // if `srcSet` is falsy, it means the image was not processed by worker yet
+  const [imgproxy, setImgproxy] = useState(!!srcSet || IMGPROXY_URL_REGEXP.test(src))
 
   // backwards compatibility:
   // src may already be imgproxy url since we used to replace image urls with imgproxy urls

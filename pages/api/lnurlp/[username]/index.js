@@ -15,6 +15,12 @@ export default async ({ query: { username } }, res) => {
     maxSendable: 1000000000,
     metadata: lnurlPayMetadataString(username), // Metadata json which must be presented as raw string here, this is required to pass signature verification at a later step
     commentAllowed: LNURLP_COMMENT_MAX_LENGTH, // LUD-12 Comments for payRequests https://github.com/lnurl/luds/blob/luds/12.md
+    payerData: { // LUD-18 payer data for payRequests https://github.com/lnurl/luds/blob/luds/18.md
+      name: { mandatory: false },
+      pubkey: { mandatory: false },
+      identifier: { mandatory: false },
+      email: { mandatory: false }
+    },
     tag: 'payRequest', // Type of LNURL
     nostrPubkey: process.env.NOSTR_PRIVATE_KEY ? getPublicKey(process.env.NOSTR_PRIVATE_KEY) : undefined,
     allowsNostr: !!process.env.NOSTR_PRIVATE_KEY

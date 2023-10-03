@@ -5,39 +5,50 @@ import { LightAsync as SyntaxHighlighter } from 'react-syntax-highlighter'
 import atomDark from 'react-syntax-highlighter/dist/cjs/styles/prism/atom-dark'
 import mention from '../lib/remark-mention'
 import sub from '../lib/remark-sub'
-import remarkDirective from 'remark-directive'
-import { visit } from 'unist-util-visit'
-import reactStringReplace from 'react-string-replace'
-import React, { useState, memo } from 'react'
+import React, { useState, memo, useRef, useCallback, useMemo } from 'react'
 import GithubSlugger from 'github-slugger'
 import LinkIcon from '../svgs/link.svg'
 import Thumb from '../svgs/thumb-up-fill.svg'
 import { toString } from 'mdast-util-to-string'
 import copy from 'clipboard-copy'
-import { useImgUrlCache, IMG_CACHE_STATES, ZoomableImage, decodeOriginalUrl } from './image'
+import { ZoomableImage, decodeOriginalUrl } from './image'
 import { IMGPROXY_URL_REGEXP } from '../lib/url'
+import reactStringReplace from 'react-string-replace'
 
-function searchHighlighter () {
-  return (tree) => {
-    visit(tree, (node) => {
-      if (
-        node.type === 'textDirective' ||
-        node.type === 'leafDirective'
-      ) {
-        if (node.name !== 'high') return
-
-        const data = node.data || (node.data = {})
-        data.hName = 'mark'
-        data.hProperties = {}
-      }
-    })
-  }
+export function SearchText ({ text }) {
+  return (
+    <div className={styles.text}>
+      <p className={styles.p}>
+        {reactStringReplace(text, /\*\*\*([^*]+)\*\*\*/g, (match, i) => {
+          return <mark key={`strong-${match}`}>{match}</mark>
+        })}
+      </p>
+    </div>
+  )
 }
 
-function Heading ({ h, slugger, noFragments, topLevel, children, node, ...props }) {
+function Heading ({ level, slugger, noFragments, topLevel, children, node, ...props }) {
   const [copied, setCopied] = useState(false)
-  const [id] = useState(noFragments ? undefined : slugger.slug(toString(node).replace(/[^\w\-\s]+/gi, '')))
-
+  const id = useMemo(() =>
+    noFragments ? undefined : slugger.slug(toString(node).replace(/[^\w\-\s]+/gi, '')), [node, noFragments, slugger])
+  const h = useMemo(() => {
+    switch (level) {
+      case 1:
+        return topLevel ? 'h1' : 'h4'
+      case 2:
+        return topLevel ? 'h2' : 'h5'
+      case 3:
+        return topLevel ? 'h3' : 'h6'
+      case 4:
+        return topLevel ? 'h4' : 'h6'
+      case 5:
+        return topLevel ? 'h5' : 'h6'
+      case 6:
+        return 'h6'
+      default:
+        return 'h6'
+    }
+  }, [level, topLevel])
   const Icon = copied ? Thumb : LinkIcon
 
   return (
@@ -63,88 +74,64 @@ function Heading ({ h, slugger, noFragments, topLevel, children, node, ...props 
 }
 
 // this is one of the slowest components to render
-export default memo(function Text ({ topLevel, noFragments, nofollow, imgproxyUrls, children, tab }) {
+export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, ...outerProps }) {
   // all the reactStringReplace calls are to facilitate search highlighting
-  const slugger = new GithubSlugger()
+  const slugger = useRef(new GithubSlugger())
 
-  const HeadingWrapper = (props) => Heading({ topLevel, slugger, noFragments, ...props })
+  const Table = useCallback(({ node, ...props }) =>
+    <span className='table-responsive'>
+      <table className='table table-bordered table-sm' {...props} />
+    </span>, [])
 
-  const imgUrlCache = useImgUrlCache(children, { imgproxyUrls, tab })
+  const Code = useCallback(({ node, inline, className, children, style, ...props }) => {
+    return inline
+      ? (
+        <code className={className} style={atomDark} {...props}>
+          {children}
+        </code>
+        )
+      : (
+        <SyntaxHighlighter showLineNumbers style={atomDark} PreTag='div' {...props}>
+          {children}
+        </SyntaxHighlighter>
+        )
+  }, [])
+
+  const P = useCallback(({ children, ...props }) => <div className={styles.p} {...props}>{children}</div>, [])
+
+  const Img = useCallback(({ node, src, ...props }) => {
+    const url = IMGPROXY_URL_REGEXP.test(src) ? decodeOriginalUrl(src) : src
+    // if `srcSet` is undefined, it means the image was not processed by worker yet
+    // if `srcSet` is null, image was processed but this specific url was not detected as an image by the worker
+    const srcSet = imgproxyUrls?.[url]
+    return <ZoomableImage srcSet={srcSet} tab={tab} src={src} {...props} {...outerProps} />
+  }, [imgproxyUrls, outerProps, tab])
 
   return (
     <div className={styles.text}>
       <ReactMarkdown
         components={{
-          h1: (props) => HeadingWrapper({ h: topLevel ? 'h1' : 'h3', ...props }),
-          h2: (props) => HeadingWrapper({ h: topLevel ? 'h2' : 'h4', ...props }),
-          h3: (props) => HeadingWrapper({ h: topLevel ? 'h3' : 'h5', ...props }),
-          h4: (props) => HeadingWrapper({ h: topLevel ? 'h4' : 'h6', ...props }),
-          h5: (props) => HeadingWrapper({ h: topLevel ? 'h5' : 'h6', ...props }),
-          h6: (props) => HeadingWrapper({ h: 'h6', ...props }),
-          table: ({ node, ...props }) =>
-            <span className='table-responsive'>
-              <table className='table table-bordered table-sm' {...props} />
-            </span>,
-          p: ({ children, ...props }) => <div className={styles.p} {...props}>{children}</div>,
-          code ({ node, inline, className, children, style, ...props }) {
-            return !inline
-              ? (
-                <SyntaxHighlighter showLineNumbers style={atomDark} PreTag='div' {...props}>
-                  {reactStringReplace(String(children).replace(/\n$/, ''), /:high\[([^\]]+)\]/g, (match, i) => {
-                    return match
-                  }).join('')}
-                </SyntaxHighlighter>
-                )
-              : (
-                <code className={className} style={atomDark} {...props}>
-                  {reactStringReplace(String(children), /:high\[([^\]]+)\]/g, (match, i) => {
-                    return <mark key={`mark-${match}`}>{match}</mark>
-                  })}
-                </code>
-                )
-          },
+          h1: (props) => <Heading {...props} {...outerProps} slugger={slugger.current} />,
+          h2: (props) => <Heading {...props} {...outerProps} slugger={slugger.current} />,
+          h3: (props) => <Heading {...props} {...outerProps} slugger={slugger.current} />,
+          h4: (props) => <Heading {...props} {...outerProps} slugger={slugger.current} />,
+          h5: (props) => <Heading {...props} {...outerProps} slugger={slugger.current} />,
+          h6: (props) => <Heading {...props} {...outerProps} slugger={slugger.current} />,
+          table: Table,
+          p: P,
+          code: Code,
           a: ({ node, href, children, ...props }) => {
+            // don't allow zoomable images to be wrapped in links
             if (children?.some(e => e?.props?.node?.tagName === 'img')) {
               return <>{children}</>
             }
 
-            if (imgUrlCache[href] === IMG_CACHE_STATES.LOADED) {
-              const url = IMGPROXY_URL_REGEXP.test(href) ? decodeOriginalUrl(href) : href
-              // if `srcSet` is undefined, it means the image was not processed by worker yet
-              // if `srcSet` is null, image was processed but this specific url was not detected as an image by the worker
-              const srcSet = imgproxyUrls ? (imgproxyUrls[url] || null) : undefined
-              return <ZoomableImage topLevel={topLevel} srcSet={srcSet} tab={tab} {...props} src={href} />
-            }
-
-            // map: fix any highlighted links
-            children = children?.map(e =>
-              typeof e === 'string'
-                ? reactStringReplace(e, /:high\[([^\]]+)\]/g, (match, i) => {
-                  return <mark key={`mark-${match}-${i}`}>{match}</mark>
-                })
-                : e)
-
-            return (
-              /*  eslint-disable-next-line */
-              <a
-                target='_blank' rel={nofollow ? 'nofollow' : 'noreferrer'}
-                href={reactStringReplace(href, /:high%5B([^%5D]+)%5D/g, (match, i) => {
-                  return match
-                }).join('')} {...props}
-              >
-                {children}
-              </a>
-            )
+            // assume the link is an image which will fallback to link if it's not
+            return <Img src={href} nofollow={nofollow} {...props}>{children}</Img>
           },
-          img: ({ node, src, ...props }) => {
-            const url = IMGPROXY_URL_REGEXP.test(src) ? decodeOriginalUrl(src) : src
-            // if `srcSet` is undefined, it means the image was not processed by worker yet
-            // if `srcSet` is null, image was processed but this specific url was not detected as an image by the worker
-            const srcSet = imgproxyUrls ? (imgproxyUrls[url] || null) : undefined
-            return <ZoomableImage topLevel={topLevel} srcSet={srcSet} tab={tab} src={src} {...props} />
-          }
+          img: Img
         }}
-        remarkPlugins={[gfm, mention, sub, remarkDirective, searchHighlighter]}
+        remarkPlugins={[gfm, mention, sub]}
       >
         {children}
       </ReactMarkdown>

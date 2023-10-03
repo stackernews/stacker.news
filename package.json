@@ -72,7 +72,6 @@
     "react-twitter-embed": "^4.0.4",
     "react-youtube": "^10.1.0",
     "recharts": "^2.7.3",
-    "remark-directive": "^2.0.1",
     "remark-gfm": "^3.0.1",
     "remove-markdown": "^0.5.0",
     "sass": "^1.65.1",

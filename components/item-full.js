@@ -2,7 +2,8 @@ import Item from './item'
 import ItemJob from './item-job'
 import Reply from './reply'
 import Comment from './comment'
-import Text, { ZoomableImage } from './text'
+import Text, { SearchText } from './text'
+import ZoomableImage from './image'
 import Comments from './comments'
 import styles from '../styles/item.module.css'
 import itemStyles from './item.module.css'
@@ -165,7 +166,9 @@ function TopLevelItem ({ item, noReply, ...props }) {
 }
 
 function ItemText ({ item }) {
-  return <Text topLevel nofollow={item.sats + item.boost < NOFOLLOW_LIMIT} imgproxyUrls={item.imgproxyUrls}>{item.searchText || item.text}</Text>
+  return item.searchText
+    ? <SearchText text={item.searchText} />
+    : <Text topLevel nofollow={item.sats + item.boost < NOFOLLOW_LIMIT} imgproxyUrls={item.imgproxyUrls}>{item.text}</Text>
 }
 
 export default function ItemFull ({ item, bio, rank, ...props }) {

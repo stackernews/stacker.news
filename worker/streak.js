@@ -72,7 +72,7 @@ export function checkStreak ({ models }) {
     console.log('checking streak', id)
 
     // if user is actively streaking skip
-    const streak = await models.streak.findFirst({
+    let streak = await models.streak.findFirst({
       where: {
         userId: Number(id),
         endedAt: null
@@ -84,7 +84,7 @@ export function checkStreak ({ models }) {
       return
     }
 
-    const affected = await models.$executeRaw`
+    [streak] = await models.$queryRaw`
       WITH streak_started (id) AS (
           SELECT "userId"
           FROM
@@ -106,14 +106,15 @@ export function checkStreak ({ models }) {
       )
       INSERT INTO "Streak" ("userId", "startedAt", created_at, updated_at)
       SELECT id, (now() AT TIME ZONE 'America/Chicago')::date, now_utc(), now_utc()
-      FROM streak_started`
+      FROM streak_started
+      RETURNING "Streak".id`
 
     console.log('done checking streak', id)
 
-    if (!affected) return
+    if (!streak) return
 
     // new streak started for user
-    const index = Math.floor(Math.random() * FOUND_BLURBS.length)
+    const index = streak.id % FOUND_BLURBS.length
     const blurb = FOUND_BLURBS[index]
     sendUserNotification(id, {
       title: 'you found a cowboy hat',

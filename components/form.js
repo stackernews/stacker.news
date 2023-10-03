@@ -167,7 +167,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
           : (
             <div className='form-group'>
               <div className={`${styles.text} form-control`}>
-                <Text topLevel={topLevel} noFragments fetchOnlyImgProxy={false}>{meta.value}</Text>
+                <Text topLevel={topLevel} noFragments tab={tab}>{meta.value}</Text>
               </div>
             </div>
             )}
@@ -292,7 +292,7 @@ function InputInner ({
             }
           }}
           onBlur={(e) => {
-            field.onBlur(e)
+            field.onBlur?.(e)
             onBlur && onBlur(e)
           }}
           isInvalid={invalid}

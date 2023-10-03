@@ -30,6 +30,7 @@ export const COMMENT_FIELDS = gql`
     mine
     otsHash
     ncomments
+    imgproxyUrls
   }
 `
 

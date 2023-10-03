@@ -50,7 +50,7 @@ model User {
   fiatCurrency        String               @default("USD")
   hideFromTopUsers    Boolean              @default(false)
   turboTipping        Boolean              @default(false)
-  clickToLoadImg      Boolean              @default(false)
+  imgproxyOnly        Boolean              @default(false)
   hideWalletBalance   Boolean              @default(false)
   referrerId          Int?
   nostrPubkey         String?
@@ -264,6 +264,7 @@ model Item {
   deletedAt          DateTime?
   otsFile            Bytes?
   otsHash            String?
+  imgproxyUrls       Json?
   bounty             Int?
   rootId             Int?
   bountyPaidTo       Int[]
@@ -449,6 +450,7 @@ model Invoice {
   msatsReceived  BigInt?
   desc           String?
   comment        String?
+  lud18Data      Json?
   user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([createdAt], map: "Invoice.created_at_index")

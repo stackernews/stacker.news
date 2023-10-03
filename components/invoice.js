@@ -75,14 +75,14 @@ export function Invoice ({ invoice, onPayment, info, successVerb }) {
         <div className='w-100'>
           <AccordianItem
             header='sender information'
-            body={<PayerData data={lud18Data} />}
+            body={<PayerData data={lud18Data} className='text-muted ms-3 mb-3' />}
           />
         </div>}
       {comment &&
         <div className='w-100'>
           <AccordianItem
             header='sender comments'
-            body={<span>{comment}</span>}
+            body={<span className='text-muted ms-3'>{comment}</span>}
           />
         </div>}
     </>

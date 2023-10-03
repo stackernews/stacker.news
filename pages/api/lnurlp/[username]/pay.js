@@ -9,7 +9,7 @@ import { datePivot } from '../../../../lib/time'
 import { BALANCE_LIMIT_MSATS, INV_PENDING_LIMIT, LNURLP_COMMENT_MAX_LENGTH } from '../../../../lib/constants'
 import { ssValidate, lud18PayerDataSchema } from '../../../../lib/validate'
 
-export default async ({ query: { username, amount, nostr, comment, payerdata: payerData, k1 } }, res) => {
+export default async ({ query: { username, amount, nostr, comment, payerdata: payerData } }, res) => {
   const user = await models.user.findUnique({ where: { name: username } })
   if (!user) {
     return res.status(400).json({ status: 'ERROR', reason: `user @${username} does not exist` })
@@ -48,24 +48,6 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
     }
 
     if (payerData) {
-      if (!k1) {
-        return res.status(400).json({ status: 'ERROR', reason: 'k1 value required' })
-      }
-
-      const lnUrlpRequest = await models.lnUrlpRequest.findUnique({
-        where: {
-          k1,
-          userId: user.id,
-          createdAt: {
-            gte: datePivot(new Date(), { minutes: -10 })
-          }
-        }
-      })
-
-      if (!lnUrlpRequest) {
-        return res.status(400).json({ status: 'ERROR', reason: 'k1 has already been used, has expired, or does not exist, request another' })
-      }
-
       let parsedPayerData
       try {
         parsedPayerData = JSON.parse(decodeURIComponent(payerData))
@@ -75,7 +57,7 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
       }
 
       try {
-        await ssValidate(lud18PayerDataSchema, parsedPayerData, k1)
+        await ssValidate(lud18PayerDataSchema, parsedPayerData)
       } catch (err) {
         console.error('error validating payer data', err)
         return res.status(400).json({ status: 'ERROR', reason: err.toString() })
@@ -99,10 +81,7 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
     await serialize(models,
       models.$queryRaw`SELECT * FROM create_invoice(${invoice.id}, ${invoice.request},
         ${expiresAt}::timestamp, ${Number(amount)}, ${user.id}::INTEGER, ${noteStr || description},
-        ${comment || null}, ${payerData || null}, ${INV_PENDING_LIMIT}::INTEGER, ${BALANCE_LIMIT_MSATS})`)
-
-    // delete k1 after it's been used successfully
-    await models.lnUrlpRequest.delete({ where: { id: lnUrlpRequest.id } })
+        ${comment || null}, ${payerData || null}::JSONB, ${INV_PENDING_LIMIT}::INTEGER, ${BALANCE_LIMIT_MSATS})`)
 
     return res.status(200).json({
       pr: invoice.request,

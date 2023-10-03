@@ -32,7 +32,6 @@ function ImageOriginal ({ src, topLevel, nofollow, tab, children, onClick, ...pr
   }, [src, showImage])
 
   if (showImage && (tab === 'preview' || !me?.clickToLoadImg)) {
-    // image is still processing and user is okay with loading original url automatically
     return (
       <img
         className={topLevel ? styles.topLevel : undefined}
@@ -42,7 +41,7 @@ function ImageOriginal ({ src, topLevel, nofollow, tab, children, onClick, ...pr
       />
     )
   } else {
-    // image is still processing or user is not okay with loading original url automatically
+    // user is not okay with loading original url automatically or there was an error loading the image
     return (
       <a
         target='_blank'

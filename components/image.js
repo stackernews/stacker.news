@@ -42,12 +42,16 @@ function ImageOriginal ({ src, topLevel, nofollow, tab, children, onClick, ...pr
     )
   } else {
     // user is not okay with loading original url automatically or there was an error loading the image
+
+    // If element parsed by markdown is a raw URL, we use src as the text to not mislead users.
+    // This will not be the case if [text](url) format is used. Then we will show what was chosen as text.
+    const isRawURL = /^https?:\/\//.test(children?.[0])
     return (
       <a
         target='_blank'
         rel={`noreferrer ${nofollow ? 'nofollow' : ''} noopener`}
         href={src}
-      >{src}
+      >{isRawURL ? src : children}
       </a>
     )
   }

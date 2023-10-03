@@ -19,7 +19,7 @@ import { defaultCommentSort } from '../../lib/item'
 import { notifyItemParents, notifyUserSubscribers, notifyZapped } from '../../lib/push-notifications'
 import { createHmac } from './wallet'
 import { settleHodlInvoice } from 'ln-service'
-import { extractArticlePublishedDate } from '../../lib/timedate-scraper'
+import { initDateRule } from '../../lib/timedate-scraper'
 
 export async function commentFilterClause (me, models) {
   let clause = ` AND ("Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}`
@@ -543,10 +543,10 @@ export default {
         const response = await fetch(ensureProtocol(url), { redirect: 'follow' })
         const html = await response.text()
         const doc = domino.createWindow(html).document
-        const metadata = getMetadata(doc, url, { title: metadataRuleSets.title })
-        const datedata = extractArticlePublishedDate({ url, doc })
-        const dateHint = (datedata && (new Date() - datedata.date) / (1000 * 60 * 60 * 24) > 365)
-          ? ` (${datedata.date.getFullYear()})`
+        initDateRule()
+        const metadata = getMetadata(doc, url, { title: metadataRuleSets.title, publicationDate: metadataRuleSets.publicationDate })
+        const dateHint = (metadata && (new Date() - metadata.publicationDate) / (1000 * 60 * 60 * 24) > 365)
+          ? ` (${metadata.publicationDate.getFullYear()})`
           : ''
 
         res.title = metadata?.title + dateHint

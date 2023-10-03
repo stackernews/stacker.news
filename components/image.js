@@ -48,7 +48,7 @@ function ImageOriginal ({ src, topLevel, nofollow, tab, children, onClick, ...pr
         target='_blank'
         rel={`noreferrer ${nofollow ? 'nofollow' : ''} noopener`}
         href={src}
-      >{children || src}
+      >{src}
       </a>
     )
   }

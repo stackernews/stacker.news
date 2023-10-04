@@ -418,7 +418,7 @@ export function UserSuggest ({ query, onSelect, dropdownStyle, children }) {
     if (query !== undefined) {
       const q = query?.replace(/^[@ ]+|[ ]+$/g, '')
       if (q === '') {
-        getUsers({ variables: { by: 'stacked', when: 'day', limit: 5 } })
+        getUsers({ variables: { by: 'stacked', when: 'week', limit: 5 } })
       } else {
         getSuggestions({ variables: { q } })
       }

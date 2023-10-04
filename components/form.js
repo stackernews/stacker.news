@@ -22,6 +22,8 @@ import { useToast } from './toast'
 import { useInvoiceable } from './invoice'
 import { numWithUnits } from '../lib/format'
 import textAreaCaret from 'textarea-caret'
+import ReactDatePicker from 'react-datepicker'
+import 'react-datepicker/dist/react-datepicker.css'
 
 export function SubmitButton ({
   children, variant, value, onClick, disabled, cost, ...props
@@ -692,5 +694,31 @@ export function Select ({ label, items, groupClassName, onChange, noForm, overri
         {meta.touched && meta.error}
       </BootstrapForm.Control.Feedback>
     </FormGroup>
+  )
+}
+
+export function DatePicker ({ fromName, toName, noForm, onMount, ...props }) {
+  const formik = noForm ? null : useFormikContext()
+  const onChangeHandler = props.onChange
+  const [,, fromHelpers] = noForm ? [{}, {}, {}] : useField({ ...props, name: fromName })
+  const [,, toHelpers] = noForm ? [{}, {}, {}] : useField({ ...props, name: toName })
+
+  useEffect(() => {
+    if (onMount) {
+      const [from, to] = onMount()
+      fromHelpers.setValue(from)
+      toHelpers.setValue(to)
+    }
+  }, [])
+
+  return (
+    <ReactDatePicker
+      {...props}
+      onChange={([from, to], e) => {
+        fromHelpers.setValue(from?.toISOString())
+        toHelpers.setValue(to?.toISOString())
+        onChangeHandler(formik, [from, to], e)
+      }}
+    />
   )
 }

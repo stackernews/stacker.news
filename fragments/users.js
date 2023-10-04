@@ -18,6 +18,7 @@ export const ME = gql`
       bioId
       upvotePopover
       tipPopover
+      nostrCrossposting
       noteItemSats
       noteEarning
       noteAllDescendants
@@ -65,6 +66,7 @@ export const SETTINGS_FIELDS = gql`
     hideWalletBalance
     diagnostics
     nostrPubkey
+    nostrCrossposting
     nostrRelays
     wildWestMode
     greeterMode
@@ -92,14 +94,14 @@ mutation setSettings($tipDefault: Int!, $turboTipping: Boolean!, $fiatCurrency: 
   $noteEarning: Boolean!, $noteAllDescendants: Boolean!, $noteMentions: Boolean!, $noteDeposits: Boolean!,
   $noteInvites: Boolean!, $noteJobIndicator: Boolean!, $noteCowboyHat: Boolean!, $hideInvoiceDesc: Boolean!,
   $hideFromTopUsers: Boolean!, $hideCowboyHat: Boolean!, $imgproxyOnly: Boolean!,
-  $wildWestMode: Boolean!, $greeterMode: Boolean!, $nostrPubkey: String, $nostrRelays: [String!], $hideBookmarks: Boolean!,
+  $wildWestMode: Boolean!, $greeterMode: Boolean!, $nostrPubkey: String, $nostrCrossposting: Boolean!, $nostrRelays: [String!], $hideBookmarks: Boolean!,
   $noteForwardedSats: Boolean!, $hideWalletBalance: Boolean!, $hideIsContributor: Boolean!, $diagnostics: Boolean!) {
   setSettings(tipDefault: $tipDefault, turboTipping: $turboTipping,  fiatCurrency: $fiatCurrency,
     noteItemSats: $noteItemSats, noteEarning: $noteEarning, noteAllDescendants: $noteAllDescendants,
     noteMentions: $noteMentions, noteDeposits: $noteDeposits, noteInvites: $noteInvites,
     noteJobIndicator: $noteJobIndicator, noteCowboyHat: $noteCowboyHat, hideInvoiceDesc: $hideInvoiceDesc,
     hideFromTopUsers: $hideFromTopUsers, hideCowboyHat: $hideCowboyHat, imgproxyOnly: $imgproxyOnly,
-    wildWestMode: $wildWestMode, greeterMode: $greeterMode, nostrPubkey: $nostrPubkey, nostrRelays: $nostrRelays, hideBookmarks: $hideBookmarks,
+    wildWestMode: $wildWestMode, greeterMode: $greeterMode, nostrPubkey: $nostrPubkey, nostrCrossposting: $nostrCrossposting, nostrRelays: $nostrRelays, hideBookmarks: $hideBookmarks,
     noteForwardedSats: $noteForwardedSats, hideWalletBalance: $hideWalletBalance, hideIsContributor: $hideIsContributor, diagnostics: $diagnostics) {
       ...SettingsFields
     }

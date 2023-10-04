@@ -164,8 +164,8 @@ export const USER_FIELDS = gql`
   }`
 
 export const TOP_USERS = gql`
-  query TopUsers($cursor: String, $when: String, $by: String) {
-    topUsers(cursor: $cursor, when: $when, by: $by) {
+  query TopUsers($cursor: String, $when: String, $by: String, $limit: Int) {
+    topUsers(cursor: $cursor, when: $when, by: $by, limit: $limit) {
       users {
         id
         name

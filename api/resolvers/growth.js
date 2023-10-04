@@ -9,7 +9,6 @@ export function interval (when) {
     case 'year':
       return '1 year'
     case 'forever':
-    case 'custom':
       return null
     default:
       return '1 day'
@@ -20,7 +19,6 @@ export function timeUnit (when) {
   switch (when) {
     case 'week':
     case 'month':
-    case 'custom':
       return 'day'
     case 'year':
     case 'forever':
@@ -48,7 +46,7 @@ export function withClause (when) {
 // HACKY AF this is a performance enhancement that allows us to use the created_at indices on tables
 export function intervalClause (when, table, and) {
   const unit = timeUnit(when)
-  if (when === 'forever' || when === 'custom') {
+  if (when === 'forever') {
     return and ? '' : 'TRUE'
   }
 
@@ -56,7 +54,7 @@ export function intervalClause (when, table, and) {
 }
 
 export function viewIntervalClause (when, view, and) {
-  if (when === 'forever' || when === 'custom') {
+  if (when === 'forever') {
     return and ? '' : 'TRUE'
   }
 

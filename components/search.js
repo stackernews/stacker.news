@@ -58,7 +58,7 @@ export default function Search ({ sub }) {
   return (
     <>
       <div className={styles.searchSection}>
-        <Container className={`px-md-0 ${styles.searchContainer} ${filter ? styles.leaveRoom : ''}`}>
+        <Container className={`px-md-0 ${styles.searchContainer}`}>
           <Form
             initial={{ q, what, sort, when, from, to }}
             onSubmit={search}
@@ -82,7 +82,7 @@ export default function Search ({ sub }) {
               </SubmitButton>
             </div>
             {filter &&
-              <div className='text-muted fw-bold d-flex align-items-center flex-wrap'>
+              <div className='text-muted fw-bold d-flex align-items-center flex-wrap pb-2'>
                 <div className='text-muted fw-bold d-flex align-items-center pb-2'>
                   <Select
                     groupClassName='me-2 mb-0'
@@ -121,7 +121,7 @@ export default function Search ({ sub }) {
                 {datePicker &&
                   <DatePicker
                     fromName='from' toName='to'
-                    className='form-control p-0 px-2 mb-2'
+                    className='form-control p-0 px-2 mb-2 text-center'
                     onMount={() => {
                       setRange({ start: new Date(from), end: new Date(to) })
                       return [from, to]
@@ -133,7 +133,9 @@ export default function Search ({ sub }) {
                     selected={range.start}
                     startDate={range.start} endDate={range.end}
                     selectsRange
+                    dateFormat='MM/dd/yy'
                     maxDate={new Date()}
+                    minDate={new Date('2021-05-01')}
                   />}
               </div>}
           </Form>

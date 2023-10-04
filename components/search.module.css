@@ -7,12 +7,7 @@
 }
 
 .searchContainer {
-    height: 88px;
     position: relative;
-}
-
-.leaveRoom {
-    height: 130px !important;
 }
 
 .search {

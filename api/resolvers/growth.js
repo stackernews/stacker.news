@@ -52,7 +52,7 @@ export function intervalClause (when, table, and) {
     return and ? '' : 'TRUE'
   }
 
-  return `"${table}".created_at >= date_trunc('${unit}', now_utc() - interval '${(when)}') ${and ? 'AND' : ''} `
+  return `"${table}".created_at >= date_trunc('${unit}', now_utc() - interval '${interval(when)}') ${and ? 'AND' : ''} `
 }
 
 export function viewIntervalClause (when, view, and) {

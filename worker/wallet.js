@@ -34,7 +34,8 @@ export function checkInvoice ({ boss, models, lnd }) {
       sendUserNotification(dbInv.userId, {
         title: `${numWithUnits(msatsToSats(inv.received_mtokens), { abbreviate: false })} were deposited in your account`,
         body: dbInv.comment || undefined,
-        tag: 'DEPOSIT'
+        tag: 'DEPOSIT',
+        data: { sats: msatsToSats(inv.received_mtokens) }
       }).catch(console.error)
       return boss.send('nip57', { hash })
     }

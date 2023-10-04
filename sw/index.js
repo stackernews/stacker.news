@@ -48,7 +48,6 @@ offlineFallback({ pageFallback: '/offline' })
 self.addEventListener('push', async function (event) {
   const payload = event.data?.json()
   if (!payload) return
-  const { title } = payload
   const { tag } = payload.options
   event.waitUntil((async () => {
     // TIP and EARN notifications simply replace the previous notifications
@@ -70,6 +69,7 @@ self.addEventListener('push', async function (event) {
     const currentNotification = notifications[0]
     const amount = currentNotification.data?.amount ? currentNotification.data.amount + 1 : 2
     let newTitle = ''
+    const data = {}
     if (tag === 'REPLY') {
       newTitle = `You have ${amount} new replies`
     } else if (tag === 'MENTION') {
@@ -79,14 +79,15 @@ self.addEventListener('push', async function (event) {
     } else if (tag === 'INVITE') {
       newTitle = `your invite has been redeemed by ${amount} stackers`
     } else if (tag === 'DEPOSIT') {
-      const currentAmount = Number(currentNotification.title.split(' ')[0])
-      const incomingAmount = Number(title.split(' ')[0])
-      const newAmount = currentAmount + incomingAmount
-      newTitle = `${numWithUnits(newAmount, { abbreviate: false })} were deposited in your account`
+      const currentSats = currentNotification.data.sats
+      const incomingSats = payload.options.data.sats
+      const newSats = currentSats + incomingSats
+      data.sats = newSats
+      newTitle = `${numWithUnits(newSats, { abbreviate: false })} were deposited in your account`
     }
     currentNotification.close()
     const { icon } = currentNotification
-    return self.registration.showNotification(newTitle, { icon, tag, data: { url: '/notifications', amount } })
+    return self.registration.showNotification(newTitle, { icon, tag, data: { url: '/notifications', amount, ...data } })
   })())
 })
 

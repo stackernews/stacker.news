@@ -1,5 +1,5 @@
 import { sendUserNotification } from '../api/webPush'
-import { FOUND_BLURBS } from '../lib/constants'
+import { FOUND_BLURBS, LOST_BLURBS } from '../lib/constants'
 
 const STREAK_THRESHOLD = 100
 
@@ -10,8 +10,8 @@ export function computeStreaks ({ models }) {
     // get all eligible users in the last day
     // if the user doesn't have an active streak, add one
     // if they have an active streak but didn't maintain it, end it
-    await models.$executeRawUnsafe(
-      `WITH day_streaks (id) AS (
+    const endingStreaks = await models.$queryRaw`
+      WITH day_streaks (id) AS (
         SELECT "userId"
         FROM
         ((SELECT "userId", floor(sum("ItemAct".msats)/1000) as sats_spent
@@ -61,7 +61,20 @@ export function computeStreaks ({ models }) {
       UPDATE "Streak"
       SET "endedAt" = (now() AT TIME ZONE 'America/Chicago' - interval '1 day')::date, updated_at = now_utc()
       FROM ending_streaks
-      WHERE ending_streaks.id = "Streak"."userId" AND "endedAt" IS NULL`)
+      WHERE ending_streaks.id = "Streak"."userId" AND "endedAt" IS NULL
+      RETURNING "Streak".id, ending_streaks."id" AS "userId"`
+
+    Promise.allSettled(
+      endingStreaks.map(({ id, userId }) => {
+        const index = id % LOST_BLURBS.length
+        const blurb = LOST_BLURBS[index]
+        return sendUserNotification(userId, {
+          title: 'you lost your cowboy hat',
+          body: blurb,
+          tag: 'STREAK'
+        }).catch(console.error)
+      })
+    )
 
     console.log('done computing streaks')
   }

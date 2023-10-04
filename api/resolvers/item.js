@@ -14,7 +14,6 @@ import { parse } from 'tldts'
 import uu from 'url-unshort'
 import { advSchema, amountSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, ssValidate } from '../../lib/validate'
 import { sendUserNotification } from '../webPush'
-import { proxyImages } from './imgproxy'
 import { defaultCommentSort } from '../../lib/item'
 import { notifyItemParents, notifyUserSubscribers, notifyZapped } from '../../lib/push-notifications'
 
@@ -1019,13 +1018,9 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
     throw new GraphQLError('item can no longer be editted', { extensions: { code: 'BAD_INPUT' } })
   }
 
-  if (item.text) {
-    item.text = await proxyImages(item.text)
-  }
   if (item.url && typeof item.maxBid === 'undefined') {
     item.url = ensureProtocol(item.url)
     item.url = removeTracking(item.url)
-    item.url = await proxyImages(item.url)
   }
   // only update item with the boost delta ... this is a bit of hack given the way
   // boost used to work
@@ -1063,13 +1058,9 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
   item.userId = me ? Number(me.id) : ANON_USER_ID
 
   const fwdUsers = await getForwardUsers(models, forward)
-  if (item.text) {
-    item.text = await proxyImages(item.text)
-  }
   if (item.url && typeof item.maxBid === 'undefined') {
     item.url = ensureProtocol(item.url)
     item.url = removeTracking(item.url)
-    item.url = await proxyImages(item.url)
   }
 
   const enforceFee = me ? undefined : (item.parentId ? ANON_COMMENT_FEE : (ANON_POST_FEE + (item.boost || 0)))
@@ -1113,7 +1104,7 @@ export const SELECT =
   "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost", "Item".boost, "Item".msats,
   "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",
   "Item"."weightedDownVotes", "Item".freebie, "Item"."otsHash", "Item"."bountyPaidTo",
-  ltree2text("Item"."path") AS "path", "Item"."weightedComments"`
+  ltree2text("Item"."path") AS "path", "Item"."weightedComments", "Item"."imgproxyUrls"`
 
 async function topOrderByWeightedSats (me, models) {
   return `ORDER BY ${await orderByNumerator(me, models)} DESC NULLS LAST, "Item".id DESC`

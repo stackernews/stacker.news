@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router'
-import { Form, Input, SubmitButton } from '../components/form'
+import { Checkbox, Form, Input, SubmitButton } from '../components/form'
 import Link from 'next/link'
 import Button from 'react-bootstrap/Button'
 import { gql, useMutation, useQuery } from '@apollo/client'
@@ -19,6 +19,8 @@ import { SSR } from '../lib/constants'
 import { numWithUnits } from '../lib/format'
 import styles from '../components/user-header.module.css'
 import HiddenWalletSummary from '../components/hidden-wallet-summary'
+import AccordianItem from '../components/accordian-item'
+import { lnAddrOptions } from '../lib/lnurl'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -291,26 +293,52 @@ export function LnWithdrawal () {
 }
 
 export function LnAddrWithdrawal () {
+  const me = useMe()
   const router = useRouter()
   const [sendToLnAddr, { called, error }] = useMutation(SEND_TO_LNADDR)
+  const defaultOptions = { min: 1 }
+  const [addrOptions, setAddrOptions] = useState(defaultOptions)
+  const [formSchema, setFormSchema] = useState(lnAddrSchema())
 
-  if (called && !error) {
-    return <WithdrawlSkeleton status='sending' />
+  const onAddrChange = async (formik, e) => {
+    let options
+    try {
+      options = await lnAddrOptions(e.target.value)
+    } catch (e) {
+      console.log(e)
+      setAddrOptions(defaultOptions)
+      return
+    }
+
+    setAddrOptions(options)
+    setFormSchema(lnAddrSchema(options))
   }
 
   return (
     <>
+      {called && !error && <WithdrawlSkeleton status='sending' />}
       <Form
+        // hide/show instead of add/remove from react tree to avoid re-initializing the form state on error
+        style={{ display: !(called && !error) ? 'block' : 'none' }}
         initial={{
           addr: '',
           amount: 1,
           maxFee: 10,
-          comment: ''
+          comment: '',
+          identifier: false,
+          name: '',
+          email: ''
         }}
-        schema={lnAddrSchema}
+        schema={formSchema}
         initialError={error ? error.toString() : undefined}
-        onSubmit={async ({ addr, amount, maxFee, comment }) => {
-          const { data } = await sendToLnAddr({ variables: { addr, amount: Number(amount), maxFee: Number(maxFee), comment } })
+        onSubmit={async ({ amount, maxFee, ...values }) => {
+          const { data } = await sendToLnAddr({
+            variables: {
+              amount: Number(amount),
+              maxFee: Number(maxFee),
+              ...values
+            }
+          })
           router.push(`/withdrawals/${data.sendToLnAddr.id}`)
         }}
       >
@@ -319,24 +347,77 @@ export function LnAddrWithdrawal () {
           name='addr'
           required
           autoFocus
+          onChange={onAddrChange}
         />
         <Input
           label='amount'
           name='amount'
+          type='number'
+          step={10}
           required
+          min={addrOptions.min}
+          max={addrOptions.max}
           append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
         />
         <Input
           label='max fee'
           name='maxFee'
+          type='number'
+          step={10}
           required
           append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
         />
-        <Input
-          label={<>comment <small className='text-muted ms-2'>optional</small></>}
-          name='comment'
-          hint='only certain lightning addresses can accept comments, and only of a certain length'
-        />
+        {(addrOptions?.commentAllowed || addrOptions?.payerData) &&
+          <div className='my-3 border border-3 rounded'>
+            <div className='p-3'>
+              <AccordianItem
+                show
+                header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>attach</div>}
+                body={
+                  <>
+                    {addrOptions.commentAllowed &&
+                      <Input
+                        label={<>comment <small className='text-muted ms-2'>optional</small></>}
+                        name='comment'
+                        maxLength={addrOptions.commentAllowed}
+                      />}
+                    {addrOptions.payerData?.identifier &&
+                      <Checkbox
+                        name='identifier'
+                        required={addrOptions.payerData.identifier.mandatory}
+                        label={
+                          <>your {me?.name}@stacker.news identifier
+                            {!addrOptions.payerData.identifier.mandatory &&
+                              <>{' '}<small className='text-muted ms-2'>optional</small></>}
+                          </>
+}
+                      />}
+                    {addrOptions.payerData?.name &&
+                      <Input
+                        name='name'
+                        required={addrOptions.payerData.name.mandatory}
+                        label={
+                          <>name{!addrOptions.payerData.name.mandatory &&
+                            <>{' '}<small className='text-muted ms-2'>optional</small></>}
+                          </>
+}
+                      />}
+                    {addrOptions.payerData?.email &&
+                      <Input
+                        name='email'
+                        required={addrOptions.payerData.email.mandatory}
+                        label={
+                          <>
+                            email{!addrOptions.payerData.email.mandatory &&
+                              <>{' '}<small className='text-muted ms-2'>optional</small></>}
+                          </>
+}
+                      />}
+                  </>
+                }
+              />
+            </div>
+          </div>}
         <SubmitButton variant='success' className='mt-2'>send</SubmitButton>
       </Form>
     </>

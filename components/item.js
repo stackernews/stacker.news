@@ -19,12 +19,12 @@ import { Badge } from 'react-bootstrap'
 import AdIcon from '../svgs/advertisement-fill.svg'
 
 export function SearchTitle ({ title }) {
-  return reactStringReplace(title, /:high\[([^\]]+)\]/g, (match, i) => {
-    return <mark key={`mark-${match}`}>{match}</mark>
+  return reactStringReplace(title, /\*\*\*([^*]+)\*\*\*/g, (match, i) => {
+    return <mark key={`strong-${match}`}>{match}</mark>
   })
 }
 
-export default function Item ({ item, rank, belowTitle, right, full, children, siblingComments }) {
+export default function Item ({ item, rank, belowTitle, right, full, children, siblingComments, replyRef }) {
   const titleRef = useRef()
   const router = useRouter()
   const [pendingSats, setPendingSats] = useState(0)
@@ -85,6 +85,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
           </div>
           <ItemInfo
             full={full} item={item} pendingSats={pendingSats}
+            onQuoteReply={replyRef?.current?.quoteReply}
             embellishUser={Number(item?.user?.id) === AD_USER_ID && <Badge className={styles.newComment} bg={null}>AD</Badge>}
           />
           {belowTitle}

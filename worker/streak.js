@@ -120,6 +120,6 @@ export function checkStreak ({ models }) {
       title: 'you found a cowboy hat',
       body: blurb,
       tag: 'STREAK'
-    })
+    }).catch(console.error)
   }
 }

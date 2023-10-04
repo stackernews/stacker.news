@@ -4,7 +4,7 @@ import { GraphQLError } from 'graphql'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { msatsToSats } from '../../lib/format'
 import { bioSchema, emailSchema, settingsSchema, ssValidate, userSchema } from '../../lib/validate'
-import { getItem, updateItem, filterClause, createItem } from './item'
+import { getItem, updateItem, filterClause, createItem, whereClause, muteClause } from './item'
 import { datePivot } from '../../lib/time'
 
 const contributors = new Set()
@@ -286,87 +286,97 @@ export default {
 
       // check if any votes have been cast for them since checkedNotesAt
       if (user.noteItemSats) {
-        const votes = await models.$queryRawUnsafe(`
-        SELECT 1
-          FROM "Item"
-          JOIN "ItemAct" ON
-            "ItemAct"."itemId" = "Item".id
-            AND "ItemAct"."userId" <> "Item"."userId"
-          WHERE "ItemAct".created_at > $2
-          AND "Item"."userId" = $1
-          AND "ItemAct".act = 'TIP'
-          LIMIT 1`, me.id, lastChecked)
-        if (votes.length > 0) {
+        const [newSats] = await models.$queryRawUnsafe(`
+          SELECT EXISTS(
+            SELECT *
+            FROM "Item"
+            JOIN "ItemAct" ON
+              "ItemAct"."itemId" = "Item".id
+              AND "ItemAct"."userId" <> "Item"."userId"
+            WHERE "ItemAct".created_at > $2
+            AND "Item"."userId" = $1
+            AND "ItemAct".act = 'TIP')`, me.id, lastChecked)
+        if (newSats.exists) {
           return true
         }
       }
 
       // check if they have any replies since checkedNotesAt
-      const newReplies = await models.$queryRawUnsafe(`
-        SELECT 1
+      const [newReply] = await models.$queryRawUnsafe(`
+        SELECT EXISTS(
+          SELECT *
           FROM "Item"
           JOIN "Item" p ON
-            "Item".created_at >= p.created_at
-            AND ${user.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
-            AND "Item"."userId" <> $1
-          WHERE p."userId" = $1
-          AND "Item".created_at > $2::timestamp(3) without time zone
-          ${await filterClause(me, models)}
-          LIMIT 1`, me.id, lastChecked)
-      if (newReplies.length > 0) {
+            ${user.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
+          ${whereClause(
+            'p."userId" = $1',
+            '"Item"."userId" <> $1',
+            '"Item".created_at > $2::timestamp(3) without time zone',
+            await filterClause(me, models),
+            muteClause(me)
+          )})`, me.id, lastChecked)
+      if (newReply.exists) {
         return true
       }
 
       // break out thread subscription to decrease the search space of the already expensive reply query
-      const newtsubs = await models.$queryRawUnsafe(`
-      SELECT 1
-        FROM "ThreadSubscription"
-        JOIN "Item" p ON "ThreadSubscription"."itemId" = p.id
-        JOIN "Item" ON ${user.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
-        WHERE
-          "ThreadSubscription"."userId" = $1
-        AND "Item".created_at > $2::timestamp(3) without time zone
-        ${await filterClause(me, models)}
-        LIMIT 1`, me.id, lastChecked)
-      if (newtsubs.length > 0) {
+      const [newThreadSubReply] = await models.$queryRawUnsafe(`
+        SELECT EXISTS(
+          SELECT *
+          FROM "ThreadSubscription"
+          JOIN "Item" p ON "ThreadSubscription"."itemId" = p.id
+          JOIN "Item" ON ${user.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
+          ${whereClause(
+            '"ThreadSubscription"."userId" = $1',
+            '"Item".created_at > $2::timestamp(3) without time zone',
+            await filterClause(me, models),
+            muteClause(me)
+          )})`, me.id, lastChecked)
+      if (newThreadSubReply.exists) {
         return true
       }
 
-      const newUserSubs = await models.$queryRawUnsafe(`
-      SELECT 1
-        FROM "UserSubscription"
-        JOIN "Item" ON "UserSubscription"."followeeId" = "Item"."userId"
-        WHERE
-          "UserSubscription"."followerId" = $1
-        AND "Item".created_at > $2::timestamp(3) without time zone
-        AND (
-          ("Item"."parentId" IS NULL AND "UserSubscription"."postsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."postsSubscribedAt")
-          OR ("Item"."parentId" IS NOT NULL AND "UserSubscription"."commentsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."commentsSubscribedAt")
-        )
-        ${await filterClause(me, models)}
-        LIMIT 1`, me.id, lastChecked)
-      if (newUserSubs.length > 0) {
+      const [newUserSubs] = await models.$queryRawUnsafe(`
+        SELECT EXISTS(
+          SELECT *
+          FROM "UserSubscription"
+          JOIN "Item" ON "UserSubscription"."followeeId" = "Item"."userId"
+          ${whereClause(
+            '"UserSubscription"."followerId" = $1',
+            '"Item".created_at > $2::timestamp(3) without time zone',
+            `(
+              ("Item"."parentId" IS NULL AND "UserSubscription"."postsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."postsSubscribedAt")
+              OR ("Item"."parentId" IS NOT NULL AND "UserSubscription"."commentsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."commentsSubscribedAt")
+            )`,
+            await filterClause(me, models),
+            muteClause(me))})`, me.id, lastChecked)
+      if (newUserSubs.exists) {
         return true
       }
 
       // check if they have any mentions since checkedNotesAt
       if (user.noteMentions) {
-        const newMentions = await models.$queryRawUnsafe(`
-        SELECT "Item".id, "Item".created_at
+        const [newMentions] = await models.$queryRawUnsafe(`
+        SELECT EXISTS(
+          SELECT *
           FROM "Mention"
           JOIN "Item" ON "Mention"."itemId" = "Item".id
-          WHERE "Mention"."userId" = $1
-          AND "Mention".created_at > $2
-          AND "Item"."userId" <> $1
-          LIMIT 1`, me.id, lastChecked)
-        if (newMentions.length > 0) {
+          ${whereClause(
+            '"Mention"."userId" = $1',
+            '"Mention".created_at > $2',
+            '"Item"."userId" <> $1',
+            await filterClause(me, models),
+            muteClause(me)
+          )})`, me.id, lastChecked)
+        if (newMentions.exists) {
           return true
         }
       }
 
       if (user.noteForwardedSats) {
-        const votes = await models.$queryRawUnsafe(`
-        SELECT 1
+        const [newFwdSats] = await models.$queryRawUnsafe(`
+        SELECT EXISTS(
+          SELECT *
           FROM "Item"
           JOIN "ItemAct" ON
             "ItemAct"."itemId" = "Item".id
@@ -376,9 +386,8 @@ export default {
             AND "ItemForward"."userId" = $1
           WHERE "ItemAct".created_at > $2
           AND "Item"."userId" <> $1
-          AND "ItemAct".act = 'TIP'
-          LIMIT 1`, me.id, lastChecked)
-        if (votes.length > 0) {
+          AND "ItemAct".act = 'TIP')`, me.id, lastChecked)
+        if (newFwdSats.exists) {
           return true
         }
       }
@@ -432,13 +441,13 @@ export default {
 
       // check if new invites have been redeemed
       if (user.noteInvites) {
-        const newInvitees = await models.$queryRawUnsafe(`
-        SELECT "Invite".id
-          FROM users JOIN "Invite" on users."inviteId" = "Invite".id
-          WHERE "Invite"."userId" = $1
-          AND users.created_at > $2
-          LIMIT 1`, me.id, lastChecked)
-        if (newInvitees.length > 0) {
+        const [newInvites] = await models.$queryRawUnsafe(`
+          SELECT EXISTS(
+            SELECT *
+            FROM users JOIN "Invite" on users."inviteId" = "Invite".id
+            WHERE "Invite"."userId" = $1
+            AND users.created_at > $2)`, me.id, lastChecked)
+        if (newInvites.exists) {
           return true
         }
 
@@ -626,6 +635,17 @@ export default {
       }
       return { id }
     },
+    toggleMute: async (parent, { id }, { me, models }) => {
+      const lookupData = { muterId: Number(me.id), mutedId: Number(id) }
+      const where = { muterId_mutedId: lookupData }
+      const existing = await models.mute.findUnique({ where })
+      if (existing) {
+        await models.mute.delete({ where })
+      } else {
+        await models.mute.create({ data: { ...lookupData } })
+      }
+      return { id }
+    },
     hideWelcomeBanner: async (parent, data, { me, models }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
@@ -669,6 +689,21 @@ export default {
           }
         }
       })
+    },
+    meMute: async (user, args, { me, models }) => {
+      if (!me) return false
+      if (typeof user.meMute !== 'undefined') return user.meMute
+
+      const mute = await models.mute.findUnique({
+        where: {
+          muterId_mutedId: {
+            muterId: Number(me.id),
+            mutedId: Number(user.id)
+          }
+        }
+      })
+
+      return !!mute
     },
     nposts: async (user, { when }, { models }) => {
       if (typeof user.nposts !== 'undefined') {
@@ -729,7 +764,7 @@ export default {
           ((SELECT coalesce(sum("ItemAct".msats),0) as amount
             FROM "ItemAct"
             JOIN "Item" on "ItemAct"."itemId" = "Item".id
-            WHERE act <> 'BOOST' AND "ItemAct"."userId" <> $2 AND "Item"."userId" = $2
+            WHERE act = 'TIP' AND "ItemAct"."userId" <> $2 AND "Item"."userId" = $2
             AND "ItemAct".created_at >= $1)
           UNION ALL
             (SELECT coalesce(sum("ReferralAct".msats),0) as amount

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
 import Badge from 'react-bootstrap/Badge'
+import Dropdown from 'react-bootstrap/Dropdown'
 import Countdown from './countdown'
 import { abbrNum, numWithUnits } from '../lib/format'
 import { newComments, commentsViewedAt } from '../lib/new-comments'
@@ -16,10 +17,12 @@ import { CopyLinkDropdownItem } from './share'
 import Hat from './hat'
 import { AD_USER_ID } from '../lib/constants'
 import ActionDropdown from './action-dropdown'
+import MuteDropdownItem from './mute'
 
 export default function ItemInfo ({
   item, pendingSats, full, commentsText = 'comments',
-  commentTextSingular = 'comment', className, embellishUser, extraInfo, onEdit, editText
+  commentTextSingular = 'comment', className, embellishUser, extraInfo, onEdit, editText,
+  onQuoteReply
 }) {
   const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
   const me = useMe()
@@ -130,16 +133,23 @@ export default function ItemInfo ({
         </>}
       <ActionDropdown>
         <CopyLinkDropdownItem item={item} />
+        {(item.parentId || item.text) && onQuoteReply &&
+          <Dropdown.Item onClick={onQuoteReply}>quote reply</Dropdown.Item>}
         {me && <BookmarkDropdownItem item={item} />}
-        {me && item.user.id !== me.id && <SubscribeDropdownItem item={item} />}
+        {me && !item.mine && <SubscribeDropdownItem item={item} />}
         {item.otsHash &&
           <Link href={`/items/${item.id}/ots`} className='text-reset dropdown-item'>
-            ots timestamp
+            opentimestamp
           </Link>}
         {me && !item.meSats && !item.position &&
           !item.mine && !item.deletedAt && <DontLikeThisDropdownItem id={item.id} />}
         {item.mine && !item.position && !item.deletedAt &&
           <DeleteDropdownItem itemId={item.id} type={item.title ? 'post' : 'comment'} />}
+        {me && !item.mine &&
+          <>
+            <hr className='dropdown-divider' />
+            <MuteDropdownItem user={item.user} />
+          </>}
       </ActionDropdown>
       {extraInfo}
     </div>

@@ -92,6 +92,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
   const [, meta, helpers] = useField(props)
   const [selectionRange, setSelectionRange] = useState({ start: 0, end: 0 })
   innerRef = innerRef || useRef(null)
+  const previousTab = useRef(tab)
 
   props.as ||= TextareaAutosize
   props.rows ||= props.minRows || 6
@@ -99,6 +100,14 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
   useEffect(() => {
     !meta.value && setTab('write')
   }, [meta.value])
+
+  useEffect(() => {
+    // focus on input when switching to write tab from preview tab
+    if (innerRef?.current && tab === 'write' && previousTab?.current !== 'write') {
+      innerRef.current.focus()
+    }
+    previousTab.current = tab
+  }, [tab])
 
   useEffect(() => {
     if (selectionRange.start <= selectionRange.end && innerRef?.current) {
@@ -125,53 +134,49 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
             <Markdown width={18} height={18} />
           </a>
         </Nav>
-        {tab === 'write'
-          ? (
-            <div>
-              <InputInner
-                {...props} onChange={(formik, e) => {
-                  if (onChange) onChange(formik, e)
-                  if (setHasImgLink) {
-                    setHasImgLink(mdHas(e.target.value, ['link', 'image']))
-                  }
-                }}
-                innerRef={innerRef}
-                onKeyDown={(e) => {
-                  const metaOrCtrl = e.metaKey || e.ctrlKey
-                  if (metaOrCtrl) {
-                    if (e.key === 'k') {
-                      // some browsers use CTRL+K to focus search bar so we have to prevent that behavior
-                      e.preventDefault()
-                      insertMarkdownLinkFormatting(innerRef.current, helpers.setValue, setSelectionRange)
-                    }
-                    if (e.key === 'b') {
-                      // some browsers use CTRL+B to open bookmarks so we have to prevent that behavior
-                      e.preventDefault()
-                      insertMarkdownBoldFormatting(innerRef.current, helpers.setValue, setSelectionRange)
-                    }
-                    if (e.key === 'i') {
-                      // some browsers might use CTRL+I to do something else so prevent that behavior too
-                      e.preventDefault()
-                      insertMarkdownItalicFormatting(innerRef.current, helpers.setValue, setSelectionRange)
-                    }
-                    if (e.key === 'Tab' && e.altKey) {
-                      e.preventDefault()
-                      insertMarkdownTabFormatting(innerRef.current, helpers.setValue, setSelectionRange)
-                    }
-                  }
+        <div className={tab === 'write' ? '' : 'd-none'}>
+          <InputInner
+            {...props} onChange={(formik, e) => {
+              if (onChange) onChange(formik, e)
+              if (setHasImgLink) {
+                setHasImgLink(mdHas(e.target.value, ['link', 'image']))
+              }
+            }}
+            innerRef={innerRef}
+            onKeyDown={(e) => {
+              const metaOrCtrl = e.metaKey || e.ctrlKey
+              if (metaOrCtrl) {
+                if (e.key === 'k') {
+                  // some browsers use CTRL+K to focus search bar so we have to prevent that behavior
+                  e.preventDefault()
+                  insertMarkdownLinkFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+                }
+                if (e.key === 'b') {
+                  // some browsers use CTRL+B to open bookmarks so we have to prevent that behavior
+                  e.preventDefault()
+                  insertMarkdownBoldFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+                }
+                if (e.key === 'i') {
+                  // some browsers might use CTRL+I to do something else so prevent that behavior too
+                  e.preventDefault()
+                  insertMarkdownItalicFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+                }
+                if (e.key === 'Tab' && e.altKey) {
+                  e.preventDefault()
+                  insertMarkdownTabFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+                }
+              }
 
-                  if (onKeyDown) onKeyDown(e)
-                }}
-              />
-            </div>)
-          : (
-            <div className='form-group'>
-              <div className={`${styles.text} form-control`}>
-                <Text topLevel={topLevel} noFragments fetchOnlyImgProxy={false}>{meta.value}</Text>
-              </div>
+              if (onKeyDown) onKeyDown(e)
+            }}
+          />
+        </div>
+        {tab !== 'write' &&
+          <div className='form-group'>
+            <div className={`${styles.text} form-control`}>
+              <Text topLevel={topLevel} noFragments tab={tab}>{meta.value}</Text>
             </div>
-            )}
-
+          </div>}
       </div>
     </FormGroup>
   )
@@ -225,7 +230,8 @@ function FormGroup ({ className, label, children }) {
 
 function InputInner ({
   prepend, append, hint, showValid, onChange, onBlur, overrideValue,
-  innerRef, noForm, clear, onKeyDown, inputGroupClassName, debounce, maxLength, ...props
+  innerRef, noForm, clear, onKeyDown, inputGroupClassName, debounce, maxLength,
+  ...props
 }) {
   const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)
   const formik = noForm ? null : useFormikContext()
@@ -292,7 +298,7 @@ function InputInner ({
             }
           }}
           onBlur={(e) => {
-            field.onBlur(e)
+            field.onBlur?.(e)
             onBlur && onBlur(e)
           }}
           isInvalid={invalid}
@@ -483,7 +489,7 @@ export function Checkbox ({ children, label, groupClassName, hiddenLabel, extra,
 const StorageKeyPrefixContext = createContext()
 
 export function Form ({
-  initial, schema, onSubmit, children, initialError, validateImmediately, storageKeyPrefix, validateOnChange = true, invoiceable, ...props
+  initial, schema, onSubmit, children, initialError, validateImmediately, storageKeyPrefix, validateOnChange = true, invoiceable, innerRef, ...props
 }) {
   const toaster = useToast()
   const initialErrorToasted = useRef(false)
@@ -538,6 +544,7 @@ export function Form ({
           toaster.danger(err.message || err.toString?.())
         }
       }}
+      innerRef={innerRef}
     >
       <FormikForm {...props} noValidate>
         <StorageKeyPrefixContext.Provider value={storageKeyPrefix}>

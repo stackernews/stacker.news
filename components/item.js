@@ -12,18 +12,19 @@ import Flag from '../svgs/flag-fill.svg'
 import ImageIcon from '../svgs/image-fill.svg'
 import { numWithUnits } from '../lib/format'
 import ItemInfo from './item-info'
+import Prism from '../svgs/prism.svg'
 import { commentsViewedAt } from '../lib/new-comments'
 import { useRouter } from 'next/router'
 import { Badge } from 'react-bootstrap'
 import AdIcon from '../svgs/advertisement-fill.svg'
 
 export function SearchTitle ({ title }) {
-  return reactStringReplace(title, /:high\[([^\]]+)\]/g, (match, i) => {
-    return <mark key={`mark-${match}`}>{match}</mark>
+  return reactStringReplace(title, /\*\*\*([^*]+)\*\*\*/g, (match, i) => {
+    return <mark key={`strong-${match}`}>{match}</mark>
   })
 }
 
-export default function Item ({ item, rank, belowTitle, right, full, children, siblingComments }) {
+export default function Item ({ item, rank, belowTitle, right, full, children, siblingComments, replyRef }) {
   const titleRef = useRef()
   const router = useRouter()
   const [pendingSats, setPendingSats] = useState(0)
@@ -68,6 +69,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
                     <BountyIcon className={`${styles.bountyIcon} ${item.bountyPaidTo?.length ? 'fill-success' : 'fill-grey'}`} height={16} width={16} />
                   </ActionTooltip>
                 </span>}
+              {item.forwards?.length > 0 && <span className={styles.icon}><Prism className='fill-grey ms-1' height={14} width={14} /></span>}
               {image && <span className={styles.icon}><ImageIcon className='fill-grey ms-2' height={16} width={16} /></span>}
             </Link>
             {item.url && !image &&
@@ -83,6 +85,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
           </div>
           <ItemInfo
             full={full} item={item} pendingSats={pendingSats}
+            onQuoteReply={replyRef?.current?.quoteReply}
             embellishUser={Number(item?.user?.id) === AD_USER_ID && <Badge className={styles.newComment} bg={null}>AD</Badge>}
           />
           {belowTitle}

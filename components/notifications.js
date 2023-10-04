@@ -237,11 +237,27 @@ function NostrZap ({ n }) {
 }
 
 function InvoicePaid ({ n }) {
+  let payerSig
+  if (n.invoice.lud18Data) {
+    const { name, identifier, email, pubkey } = n.invoice.lud18Data
+    const id = identifier || email || pubkey
+    payerSig = '- '
+    if (name) {
+      payerSig += name
+      if (id) payerSig += ' \\ '
+    }
+
+    if (id) payerSig += id
+  }
   return (
     <div className='fw-bold text-info ms-2 py-1'>
-      <Check className='fill-info me-1' />{numWithUnits(n.earnedSats, { abbreviate: false })} were deposited in your account
+      <Check className='fill-info me-1' />{numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'sat was', unitPlural: 'sats were' })} deposited in your account
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
-      {n.invoice.comment && <small className='d-block ms-4 ps-1 mt-1 mb-1 text-muted fw-normal'><Text>{n.invoice.comment}</Text></small>}
+      {n.invoice.comment &&
+        <small className='d-block ms-4 ps-1 mt-1 mb-1 text-muted fw-normal'>
+          <Text>{n.invoice.comment}</Text>
+          {payerSig}
+        </small>}
     </div>
   )
 }

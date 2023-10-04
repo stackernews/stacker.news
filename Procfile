@@ -1,2 +1,2 @@
 web: npm run start
-worker: node --trace-warnings worker/index.js
+worker: npm run worker

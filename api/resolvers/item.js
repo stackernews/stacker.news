@@ -1,6 +1,6 @@
 import { GraphQLError } from 'graphql'
 import { ensureProtocol, removeTracking } from '../../lib/url'
-import serialize from './serial'
+import { serializeInvoicable } from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
 import domino from 'domino'
@@ -9,15 +9,13 @@ import {
   DONT_LIKE_THIS_COST, COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY,
   ANON_COMMENT_FEE, ANON_USER_ID, ANON_POST_FEE, ANON_ITEM_SPAM_INTERVAL, POLL_COST
 } from '../../lib/constants'
-import { msatsToSats, numWithUnits } from '../../lib/format'
+import { msatsToSats } from '../../lib/format'
 import { parse } from 'tldts'
 import uu from 'url-unshort'
 import { advSchema, amountSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, ssValidate } from '../../lib/validate'
 import { sendUserNotification } from '../webPush'
-import { proxyImages } from './imgproxy'
 import { defaultCommentSort } from '../../lib/item'
-import { createHmac } from './wallet'
-import { settleHodlInvoice } from 'ln-service'
+import { notifyItemParents, notifyUserSubscribers, notifyZapped } from '../../lib/push-notifications'
 
 export async function commentFilterClause (me, models) {
   let clause = ` AND ("Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}`
@@ -36,51 +34,6 @@ export async function commentFilterClause (me, models) {
   clause += ')'
 
   return clause
-}
-
-export async function checkInvoice (models, hash, hmac, fee) {
-  if (!hash) {
-    throw new GraphQLError('hash required', { extensions: { code: 'BAD_INPUT' } })
-  }
-  if (!hmac) {
-    throw new GraphQLError('hmac required', { extensions: { code: 'BAD_INPUT' } })
-  }
-  const hmac2 = createHmac(hash)
-  if (hmac !== hmac2) {
-    throw new GraphQLError('bad hmac', { extensions: { code: 'FORBIDDEN' } })
-  }
-
-  const invoice = await models.invoice.findUnique({
-    where: { hash },
-    include: {
-      user: true
-    }
-  })
-
-  if (!invoice) {
-    throw new GraphQLError('invoice not found', { extensions: { code: 'BAD_INPUT' } })
-  }
-
-  const expired = new Date(invoice.expiresAt) <= new Date()
-  if (expired) {
-    throw new GraphQLError('invoice expired', { extensions: { code: 'BAD_INPUT' } })
-  }
-  if (invoice.confirmedAt) {
-    throw new GraphQLError('invoice already used', { extensions: { code: 'BAD_INPUT' } })
-  }
-
-  if (invoice.cancelled) {
-    throw new GraphQLError('invoice was canceled', { extensions: { code: 'BAD_INPUT' } })
-  }
-
-  if (!invoice.msatsReceived) {
-    throw new GraphQLError('invoice was not paid', { extensions: { code: 'BAD_INPUT' } })
-  }
-  if (fee && msatsToSats(invoice.msatsReceived) < fee) {
-    throw new GraphQLError('invoice amount too low', { extensions: { code: 'BAD_INPUT' } })
-  }
-
-  return invoice
 }
 
 async function comments (me, models, id, sort) {
@@ -119,28 +72,6 @@ export async function getItem (parent, { id }, { me, models }) {
       WHERE id = $1`
   }, Number(id))
   return item
-}
-
-function whenClause (when, type) {
-  let interval = ` AND "${type === 'bookmarks' ? 'Bookmark' : 'Item'}".created_at >= $1 - INTERVAL `
-  switch (when) {
-    case 'forever':
-      interval = ''
-      break
-    case 'week':
-      interval += "'7 days'"
-      break
-    case 'month':
-      interval += "'1 month'"
-      break
-    case 'year':
-      interval += "'1 year'"
-      break
-    default:
-      interval += "'1 day'"
-      break
-  }
-  return interval
 }
 
 const orderByClause = async (by, me, models, type) => {
@@ -182,77 +113,6 @@ export async function joinSatRankView (me, models) {
   return 'JOIN zap_rank_tender_view ON "Item".id = zap_rank_tender_view.id'
 }
 
-export async function filterClause (me, models, type) {
-  // if you are explicitly asking for marginal content, don't filter them
-  if (['outlawed', 'borderland', 'freebies'].includes(type)) {
-    if (me && ['outlawed', 'borderland'].includes(type)) {
-      // unless the item is mine
-      return ` AND "Item"."userId" <> ${me.id} `
-    }
-
-    return ''
-  }
-
-  // by default don't include freebies unless they have upvotes
-  let clause = ' AND (NOT "Item".freebie OR "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0'
-  if (me) {
-    const user = await models.user.findUnique({ where: { id: me.id } })
-    // wild west mode has everything
-    if (user.wildWestMode) {
-      return ''
-    }
-    // greeter mode includes freebies if feebies haven't been flagged
-    if (user.greeterMode) {
-      clause = ' AND (NOT "Item".freebie OR ("Item"."weightedVotes" - "Item"."weightedDownVotes" >= 0 AND "Item".freebie)'
-    }
-
-    // always include if it's mine
-    clause += ` OR "Item"."userId" = ${me.id})`
-  } else {
-    // close default freebie clause
-    clause += ')'
-  }
-
-  // if the item is above the threshold or is mine
-  clause += ` AND ("Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}`
-  if (me) {
-    clause += ` OR "Item"."userId" = ${me.id}`
-  }
-  clause += ')'
-
-  return clause
-}
-
-function typeClause (type) {
-  switch (type) {
-    case 'links':
-      return ' AND "Item".url IS NOT NULL AND "Item"."parentId" IS NULL'
-    case 'discussions':
-      return ' AND "Item".url IS NULL AND "Item".bio = false AND "Item"."pollCost"  IS NULL AND "Item"."parentId" IS NULL'
-    case 'polls':
-      return ' AND "Item"."pollCost" IS NOT NULL AND "Item"."parentId" IS NULL'
-    case 'bios':
-      return ' AND "Item".bio = true AND "Item"."parentId" IS NULL'
-    case 'bounties':
-      return ' AND "Item".bounty IS NOT NULL AND "Item"."parentId" IS NULL'
-    case 'comments':
-      return ' AND "Item"."parentId" IS NOT NULL'
-    case 'freebies':
-      return ' AND "Item".freebie'
-    case 'outlawed':
-      return ` AND "Item"."weightedVotes" - "Item"."weightedDownVotes" <= -${ITEM_FILTER_THRESHOLD}`
-    case 'borderland':
-      return ' AND "Item"."weightedVotes" - "Item"."weightedDownVotes" < 0 '
-    case 'all':
-    case 'bookmarks':
-      return ''
-    case 'jobs':
-      return ' AND "Item"."subName" = \'jobs\''
-    default:
-      return ' AND "Item"."parentId" IS NULL'
-  }
-}
-
 // this grabs all the stuff we need to display the item list and only
 // hits the db once ... orderBy needs to be duplicated on the outer query because
 // joining does not preserve the order of the inner query
@@ -267,13 +127,15 @@ async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ...args) 
       ${orderBy}`, ...args)
   } else {
     return await models.$queryRawUnsafe(`
-      SELECT "Item".*, to_json(users.*) as user, COALESCE("ItemAct"."meMsats", 0) as "meMsats",
+      SELECT "Item".*, to_jsonb(users.*) || jsonb_build_object('meMute', "Mute"."mutedId" IS NOT NULL) as user,
+        COALESCE("ItemAct"."meMsats", 0) as "meMsats",
         COALESCE("ItemAct"."meDontLike", false) as "meDontLike", b."itemId" IS NOT NULL AS "meBookmark",
         "ThreadSubscription"."itemId" IS NOT NULL AS "meSubscription", "ItemForward"."itemId" IS NOT NULL AS "meForward"
       FROM (
         ${query}
       ) "Item"
       JOIN users ON "Item"."userId" = users.id
+      LEFT JOIN "Mute" ON "Mute"."muterId" = ${me.id} AND "Mute"."mutedId" = "Item"."userId"
       LEFT JOIN "Bookmark" b ON b."itemId" = "Item".id AND b."userId" = ${me.id}
       LEFT JOIN "ThreadSubscription" ON "ThreadSubscription"."itemId" = "Item".id AND "ThreadSubscription"."userId" = ${me.id}
       LEFT JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id AND "ItemForward"."userId" = ${me.id}
@@ -289,24 +151,26 @@ async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ...args) 
   }
 }
 
-const subClause = (sub, num, table, solo) => {
-  return sub ? ` ${solo ? 'WHERE' : 'AND'} ${table ? `"${table}".` : ''}"subName" = $${num} ` : ''
-}
-
 const relationClause = (type) => {
+  let clause = ''
   switch (type) {
     case 'comments':
-      return ' FROM "Item" JOIN "Item" root ON "Item"."rootId" = root.id '
+      clause += ' FROM "Item" JOIN "Item" root ON "Item"."rootId" = root.id '
+      break
     case 'bookmarks':
-      return ' FROM "Item" JOIN "Bookmark" ON "Bookmark"."itemId" = "Item"."id" '
+      clause += ' FROM "Item" JOIN "Bookmark" ON "Bookmark"."itemId" = "Item"."id" '
+      break
     case 'outlawed':
     case 'borderland':
     case 'freebies':
     case 'all':
-      return ' FROM "Item" LEFT JOIN "Item" root ON "Item"."rootId" = root.id '
+      clause += ' FROM "Item" LEFT JOIN "Item" root ON "Item"."rootId" = root.id '
+      break
     default:
-      return ' FROM "Item" '
+      clause += ' FROM "Item" '
   }
+
+  return clause
 }
 
 const selectClause = (type) => type === 'bookmarks'
@@ -315,8 +179,113 @@ const selectClause = (type) => type === 'bookmarks'
 
 const subClauseTable = (type) => COMMENT_TYPE_QUERY.includes(type) ? 'root' : 'Item'
 
+export const whereClause = (...clauses) => {
+  const clause = clauses.flat(Infinity).filter(c => c).join(' AND ')
+  return clause ? ` WHERE ${clause} ` : ''
+}
+
+function whenClause (when, type) {
+  let interval = `"${type === 'bookmarks' ? 'Bookmark' : 'Item'}".created_at >= $1 - INTERVAL `
+  switch (when) {
+    case 'forever':
+      interval = ''
+      break
+    case 'week':
+      interval += "'7 days'"
+      break
+    case 'month':
+      interval += "'1 month'"
+      break
+    case 'year':
+      interval += "'1 year'"
+      break
+    default:
+      interval += "'1 day'"
+      break
+  }
+  return interval
+}
+
 const activeOrMine = (me) => {
-  return me ? ` AND ("Item".status <> 'STOPPED' OR "Item"."userId" = ${me.id}) ` : ' AND "Item".status <> \'STOPPED\' '
+  return me ? `("Item".status <> 'STOPPED' OR "Item"."userId" = ${me.id})` : '"Item".status <> \'STOPPED\''
+}
+
+export const muteClause = me =>
+  me ? `NOT EXISTS (SELECT 1 FROM "Mute" WHERE "Mute"."muterId" = ${me.id} AND "Mute"."mutedId" = "Item"."userId")` : ''
+
+const subClause = (sub, num, table) => {
+  return sub ? `${table ? `"${table}".` : ''}"subName" = $${num}` : ''
+}
+
+export async function filterClause (me, models, type) {
+  // if you are explicitly asking for marginal content, don't filter them
+  if (['outlawed', 'borderland', 'freebies'].includes(type)) {
+    if (me && ['outlawed', 'borderland'].includes(type)) {
+      // unless the item is mine
+      return `"Item"."userId" <> ${me.id}`
+    }
+
+    return ''
+  }
+
+  // handle freebies
+  // by default don't include freebies unless they have upvotes
+  let freebieClauses = ['NOT "Item".freebie', '"Item"."weightedVotes" - "Item"."weightedDownVotes" > 0']
+  if (me) {
+    const user = await models.user.findUnique({ where: { id: me.id } })
+    // wild west mode has everything
+    if (user.wildWestMode) {
+      return ''
+    }
+    // greeter mode includes freebies if feebies haven't been flagged
+    if (user.greeterMode) {
+      freebieClauses = ['NOT "Item".freebie', '"Item"."weightedVotes" - "Item"."weightedDownVotes" >= 0']
+    }
+
+    // always include if it's mine
+    freebieClauses.push(`"Item"."userId" = ${me.id}`)
+  }
+  const freebieClause = '(' + freebieClauses.join(' OR ') + ')'
+
+  // handle outlawed
+  // if the item is above the threshold or is mine
+  const outlawClauses = [`"Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}`]
+  if (me) {
+    outlawClauses.push(`"Item"."userId" = ${me.id}`)
+  }
+  const outlawClause = '(' + outlawClauses.join(' OR ') + ')'
+
+  return [freebieClause, outlawClause]
+}
+
+function typeClause (type) {
+  switch (type) {
+    case 'links':
+      return ['"Item".url IS NOT NULL', '"Item"."parentId" IS NULL']
+    case 'discussions':
+      return ['"Item".url IS NULL', '"Item".bio = false', '"Item"."pollCost" IS NULL', '"Item"."parentId" IS NULL']
+    case 'polls':
+      return ['"Item"."pollCost" IS NOT NULL', '"Item"."parentId" IS NULL']
+    case 'bios':
+      return ['"Item".bio = true', '"Item"."parentId" IS NULL']
+    case 'bounties':
+      return ['"Item".bounty IS NOT NULL', '"Item"."parentId" IS NULL']
+    case 'comments':
+      return '"Item"."parentId" IS NOT NULL'
+    case 'freebies':
+      return '"Item".freebie'
+    case 'outlawed':
+      return `"Item"."weightedVotes" - "Item"."weightedDownVotes" <= -${ITEM_FILTER_THRESHOLD}`
+    case 'borderland':
+      return '"Item"."weightedVotes" - "Item"."weightedDownVotes" < 0'
+    case 'all':
+    case 'bookmarks':
+      return ''
+    case 'jobs':
+      return '"Item"."subName" = \'jobs\''
+    default:
+      return '"Item"."parentId" IS NULL'
+  }
 }
 
 export default {
@@ -370,12 +339,14 @@ export default {
             query: `
               ${selectClause(type)}
               ${relationClause(type)}
-              WHERE "${table}"."userId" = $2 AND "${table}".created_at <= $1
-              ${subClause(sub, 5, subClauseTable(type))}
-              ${activeOrMine(me)}
-              ${await filterClause(me, models, type)}
-              ${typeClause(type)}
-              ${whenClause(when || 'forever', type)}
+              ${whereClause(
+                `"${table}"."userId" = $2`,
+                `"${table}".created_at <= $1`,
+                subClause(sub, 5, subClauseTable(type)),
+                activeOrMine(me),
+                await filterClause(me, models, type),
+                typeClause(type),
+                whenClause(when || 'forever', type))}
               ${await orderByClause(by, me, models, type)}
               OFFSET $3
               LIMIT $4`,
@@ -389,11 +360,14 @@ export default {
             query: `
               ${SELECT}
               ${relationClause(type)}
-              WHERE "Item".created_at <= $1
-              ${subClause(sub, 4, subClauseTable(type))}
-              ${activeOrMine(me)}
-              ${await filterClause(me, models, type)}
-              ${typeClause(type)}
+              ${whereClause(
+                '"Item".created_at <= $1',
+                subClause(sub, 4, subClauseTable(type)),
+                activeOrMine(me),
+                await filterClause(me, models, type),
+                typeClause(type),
+                muteClause(me)
+              )}
               ORDER BY "Item".created_at DESC
               OFFSET $2
               LIMIT $3`,
@@ -407,12 +381,15 @@ export default {
             query: `
               ${selectClause(type)}
               ${relationClause(type)}
-              WHERE "Item".created_at <= $1
-              AND "Item"."pinId" IS NULL AND "Item"."deletedAt" IS NULL
-              ${subClause(sub, 4, subClauseTable(type))}
-              ${typeClause(type)}
-              ${whenClause(when, type)}
-              ${await filterClause(me, models, type)}
+              ${whereClause(
+                '"Item".created_at <= $1',
+                '"Item"."pinId" IS NULL',
+                '"Item"."deletedAt" IS NULL',
+                subClause(sub, 4, subClauseTable(type)),
+                typeClause(type),
+                whenClause(when, type),
+                await filterClause(me, models, type),
+                muteClause(me))}
               ${await orderByClause(by || 'zaprank', me, models, type)}
               OFFSET $2
               LIMIT $3`,
@@ -438,10 +415,13 @@ export default {
                          THEN rank() OVER (ORDER BY "maxBid" DESC, created_at ASC)
                          ELSE rank() OVER (ORDER BY created_at DESC) END AS rank
                     FROM "Item"
-                    WHERE "parentId" IS NULL AND created_at <= $1
-                    AND "pinId" IS NULL
-                    ${subClause(sub, 4)}
-                    AND status IN ('ACTIVE', 'NOSATS')
+                    ${whereClause(
+                      '"parentId" IS NULL',
+                      'created_at <= $1',
+                      '"pinId" IS NULL',
+                      subClause(sub, 4),
+                      "status IN ('ACTIVE', 'NOSATS')"
+                    )}
                     ORDER BY group_rank, rank
                   OFFSET $2
                   LIMIT $3`,
@@ -456,7 +436,9 @@ export default {
                     ${SELECT}, rank
                     FROM "Item"
                     ${await joinSatRankView(me, models)}
-                    ${subClause(sub, 3, 'Item', true)}
+                    ${whereClause(
+                      subClause(sub, 3, 'Item', true),
+                      muteClause(me))}
                     ORDER BY rank ASC
                     OFFSET $1
                     LIMIT $2`,
@@ -474,11 +456,13 @@ export default {
                         ${SELECT},
                         rank() OVER (
                             PARTITION BY "pinId"
-                            ORDER BY created_at DESC
+                            ORDER BY "Item".created_at DESC
                         )
                         FROM "Item"
-                        WHERE "pinId" IS NOT NULL
-                        ${subClause(sub, 1)}
+                        ${whereClause(
+                          '"pinId" IS NOT NULL',
+                          subClause(sub, 1),
+                          muteClause(me))}
                     ) rank_filter WHERE RANK = 1`
                 }, ...subArr)
               }
@@ -693,159 +677,62 @@ export default {
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models })
       } else {
-        const rItem = await createItem(parent, item, { me, models, lnd, hash, hmac })
-
-        const notify = async () => {
-          const user = await models.user.findUnique({ where: { id: me?.id || ANON_USER_ID } })
-          const parents = await models.$queryRawUnsafe(
-            'SELECT DISTINCT p."userId" FROM "Item" i JOIN "Item" p ON p.path @> i.path WHERE i.id = $1 and p."userId" <> $2',
-            Number(item.parentId), Number(user.id))
-          Promise.allSettled(
-            parents.map(({ userId }) => sendUserNotification(userId, {
-              title: `@${user.name} replied to you`,
-              body: item.text,
-              item: rItem,
-              tag: 'REPLY'
-            }))
-          )
-        }
-        notify().catch(e => console.error(e))
-
-        return rItem
+        item = await createItem(parent, item, { me, models, lnd, hash, hmac })
+        notifyItemParents({ item, me, models })
+        return item
       }
     },
-    pollVote: async (parent, { id, hash, hmac }, { me, models }) => {
+    pollVote: async (parent, { id, hash, hmac }, { me, models, lnd }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
       }
 
-      let invoice
-      if (hash) {
-        invoice = await checkInvoice(models, hash, hmac)
-      }
-
-      const trx = [
-        models.$queryRawUnsafe(`${SELECT} FROM poll_vote($1::INTEGER, $2::INTEGER) AS "Item"`, Number(id), Number(me.id))
-      ]
-      if (invoice) {
-        trx.unshift(models.$queryRaw`UPDATE users SET msats = msats + ${invoice.msatsReceived} WHERE id = ${invoice.user.id}`)
-        trx.push(models.invoice.update({ where: { hash: invoice.hash }, data: { confirmedAt: new Date() } }))
-      }
-
-      await serialize(models, ...trx)
+      await serializeInvoicable(
+        models.$queryRawUnsafe(`${SELECT} FROM poll_vote($1::INTEGER, $2::INTEGER) AS "Item"`, Number(id), Number(me.id)),
+        { me, models, lnd, hash, hmac }
+      )
 
       return id
     },
     act: async (parent, { id, sats, hash, hmac }, { me, models, lnd }) => {
-      // need to make sure we are logged in
-      if (!me && !hash) {
-        throw new GraphQLError('you must be logged in or pay', { extensions: { code: 'FORBIDDEN' } })
-      }
-
       await ssValidate(amountSchema, { amount: sats })
 
-      let user = me
-      let invoice
-      if (hash) {
-        invoice = await checkInvoice(models, hash, hmac, sats)
-        if (!me) user = invoice.user
-      }
-
       // disallow self tips except anons
-      if (user.id !== ANON_USER_ID) {
+      if (me) {
         const [item] = await models.$queryRawUnsafe(`
         ${SELECT}
         FROM "Item"
-        WHERE id = $1 AND "userId" = $2`, Number(id), user.id)
+        WHERE id = $1 AND "userId" = $2`, Number(id), me.id)
         if (item) {
           throw new GraphQLError('cannot zap your self', { extensions: { code: 'BAD_INPUT' } })
         }
-      }
 
-      // Disallow tips if me is one of the forward user recipients
-      const existingForwards = await models.itemForward.findMany({ where: { itemId: Number(id) } })
-      if (existingForwards.some(fwd => Number(fwd.userId) === Number(user.id))) {
-        throw new GraphQLError('cannot zap a post for which you are forwarded zaps', { extensions: { code: 'BAD_INPUT' } })
-      }
-
-      const trx = [
-        models.$queryRaw`SELECT item_act(${Number(id)}::INTEGER, ${user.id}::INTEGER, 'TIP', ${Number(sats)}::INTEGER)`
-      ]
-      if (invoice) {
-        trx.unshift(models.$queryRaw`UPDATE users SET msats = msats + ${invoice.msatsReceived} WHERE id = ${invoice.user.id}`)
-        trx.push(models.invoice.update({ where: { hash: invoice.hash }, data: { confirmedAt: new Date() } }))
-      }
-
-      const query = await serialize(models, ...trx)
-      const { item_act: vote } = trx.length > 1 ? query[1][0] : query[0]
-
-      if (invoice?.isHeld) await settleHodlInvoice({ secret: invoice.preimage, lnd })
-
-      const notify = async () => {
-        try {
-          const updatedItem = await models.item.findUnique({ where: { id: Number(id) } })
-          const forwards = await models.itemForward.findMany({ where: { itemId: Number(id) } })
-          const userPromises = forwards.map(fwd => models.user.findUnique({ where: { id: fwd.userId } }))
-          const userResults = await Promise.allSettled(userPromises)
-          const mappedForwards = forwards.map((fwd, index) => ({ ...fwd, user: userResults[index].value ?? null }))
-          let forwardedSats = 0
-          let forwardedUsers = ''
-          if (mappedForwards.length) {
-            forwardedSats = Math.floor(msatsToSats(updatedItem.msats) * mappedForwards.map(fwd => fwd.pct).reduce((sum, cur) => sum + cur) / 100)
-            forwardedUsers = mappedForwards.map(fwd => `@${fwd.user.name}`).join(', ')
-          }
-          let notificationTitle
-          if (updatedItem.title) {
-            if (forwards.length > 0) {
-              notificationTitle = `your post forwarded ${numWithUnits(forwardedSats)} to ${forwardedUsers}`
-            } else {
-              notificationTitle = `your post stacked ${numWithUnits(msatsToSats(updatedItem.msats))}`
-            }
-          } else {
-            if (forwards.length > 0) {
-              // I don't think this case is possible
-              notificationTitle = `your reply forwarded ${numWithUnits(forwardedSats)} to ${forwardedUsers}`
-            } else {
-              notificationTitle = `your reply stacked ${numWithUnits(msatsToSats(updatedItem.msats))}`
-            }
-          }
-          await sendUserNotification(updatedItem.userId, {
-            title: notificationTitle,
-            body: updatedItem.title ? updatedItem.title : updatedItem.text,
-            item: updatedItem,
-            tag: `TIP-${updatedItem.id}`
-          })
-
-          // send push notifications to forwarded recipients
-          if (mappedForwards.length) {
-            await Promise.allSettled(mappedForwards.map(forward => sendUserNotification(forward.user.id, {
-              title: `you were forwarded ${numWithUnits(msatsToSats(updatedItem.msats) * forward.pct / 100)}`,
-              body: updatedItem.title ?? updatedItem.text,
-              item: updatedItem,
-              tag: `FORWARDEDTIP-${updatedItem.id}`
-            })))
-          }
-        } catch (err) {
-          console.error(err)
+        // Disallow tips if me is one of the forward user recipients
+        const existingForwards = await models.itemForward.findMany({ where: { itemId: Number(id) } })
+        if (existingForwards.some(fwd => Number(fwd.userId) === Number(me.id))) {
+          throw new GraphQLError('cannot zap a post for which you are forwarded zaps', { extensions: { code: 'BAD_INPUT' } })
         }
       }
 
-      notify()
+      const { item_act: vote } = await serializeInvoicable(
+        models.$queryRaw`
+          SELECT
+            item_act(${Number(id)}::INTEGER,
+            ${me?.id || ANON_USER_ID}::INTEGER, 'TIP', ${Number(sats)}::INTEGER)`,
+        { me, models, lnd, hash, hmac, enforceFee: sats }
+      )
+
+      notifyZapped({ models, id })
 
       return {
         vote,
         sats
       }
     },
-    dontLikeThis: async (parent, { id, sats, hash, hmac }, { me, models }) => {
+    dontLikeThis: async (parent, { id, sats = DONT_LIKE_THIS_COST, hash, hmac }, { me, lnd, models }) => {
       // need to make sure we are logged in
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
-      }
-
-      let invoice
-      if (hash) {
-        invoice = await checkInvoice(models, hash, hmac, DONT_LIKE_THIS_COST)
       }
 
       // disallow self down votes
@@ -857,16 +744,11 @@ export default {
         throw new GraphQLError('cannot downvote your self', { extensions: { code: 'BAD_INPUT' } })
       }
 
-      const trx = [
+      await serializeInvoicable(
         models.$queryRaw`SELECT item_act(${Number(id)}::INTEGER,
-        ${me.id}::INTEGER, 'DONT_LIKE_THIS', ${sats || DONT_LIKE_THIS_COST}::INTEGER)`
-      ]
-      if (invoice) {
-        trx.unshift(models.$queryRaw`UPDATE users SET msats = msats + ${invoice.msatsReceived} WHERE id = ${invoice.user.id}`)
-        trx.push(models.invoice.update({ where: { hash: invoice.hash }, data: { confirmedAt: new Date() } }))
-      }
-
-      await serialize(models, ...trx)
+          ${me.id}::INTEGER, 'DONT_LIKE_THIS', ${sats}::INTEGER)`,
+        { me, models, lnd, hash, hmac }
+      )
 
       return true
     }
@@ -1126,6 +1008,7 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
     throw new GraphQLError('item does not belong to you', { extensions: { code: 'FORBIDDEN' } })
   }
 
+  // in case they lied about their existing boost
   await ssValidate(advSchema, { boost: item.boost }, { models, me, existingBoost: old.boost })
 
   // if it's not the FAQ, not their bio, and older than 10 minutes
@@ -1135,13 +1018,9 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
     throw new GraphQLError('item can no longer be editted', { extensions: { code: 'BAD_INPUT' } })
   }
 
-  if (item.text) {
-    item.text = await proxyImages(item.text)
-  }
   if (item.url && typeof item.maxBid === 'undefined') {
     item.url = ensureProtocol(item.url)
     item.url = removeTracking(item.url)
-    item.url = await proxyImages(item.url)
   }
   // only update item with the boost delta ... this is a bit of hack given the way
   // boost used to work
@@ -1157,29 +1036,16 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
   item = { subName, userId: me.id, ...item }
   const fwdUsers = await getForwardUsers(models, forward)
 
-  let invoice
-  if (hash) {
-    invoice = await checkInvoice(models, hash, hmac)
-  }
-
-  const trx = [
+  item = await serializeInvoicable(
     models.$queryRawUnsafe(`${SELECT} FROM update_item($1::JSONB, $2::JSONB, $3::JSONB) AS "Item"`,
-      JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options))
-  ]
-  if (invoice) {
-    trx.unshift(models.$queryRaw`UPDATE users SET msats = msats + ${invoice.msatsReceived} WHERE id = ${invoice.user.id}`)
-    trx.push(models.invoice.update({ where: { hash: invoice.hash }, data: { confirmedAt: new Date() } }))
-  }
+      JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options)),
+    { models, lnd, hash, hmac, me }
+  )
 
-  const query = await serialize(models, ...trx)
-  const rItem = trx.length > 1 ? query[1][0] : query[0]
+  await createMentions(item, models)
 
-  if (invoice?.isHeld) await settleHodlInvoice({ secret: invoice.preimage, lnd })
-
-  await createMentions(rItem, models)
-
-  rItem.comments = []
-  return rItem
+  item.comments = []
+  return item
 }
 
 export const createItem = async (parent, { forward, options, ...item }, { me, models, lnd, hash, hmac }) => {
@@ -1189,71 +1055,25 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
   item.subName = item.sub
   delete item.sub
 
-  if (!me && !hash) {
-    throw new GraphQLError('you must be logged in or pay', { extensions: { code: 'FORBIDDEN' } })
-  }
-  let invoice
-  if (hash) {
-    // if we are logged in, we don't compare the invoice amount with the fee
-    // since it's not a fixed amount that we could use here.
-    // we rely on the query telling us if the balance is too low
-    const fee = !me ? (item.parentId ? ANON_COMMENT_FEE : ANON_POST_FEE) : undefined
-    invoice = await checkInvoice(models, hash, hmac, fee)
-    item.userId = invoice.user.id
-  }
-  if (me) {
-    item.userId = Number(me.id)
-  }
+  item.userId = me ? Number(me.id) : ANON_USER_ID
 
   const fwdUsers = await getForwardUsers(models, forward)
-  if (item.text) {
-    item.text = await proxyImages(item.text)
-  }
   if (item.url && typeof item.maxBid === 'undefined') {
     item.url = ensureProtocol(item.url)
     item.url = removeTracking(item.url)
-    item.url = await proxyImages(item.url)
   }
 
-  const trx = [
-    models.$queryRawUnsafe(`${SELECT} FROM create_item($1::JSONB, $2::JSONB, $3::JSONB, '${spamInterval}'::INTERVAL) AS "Item"`,
-      JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options))
-  ]
-  if (invoice) {
-    trx.unshift(models.$queryRaw`UPDATE users SET msats = msats + ${invoice.msatsReceived} WHERE id = ${invoice.user.id}`)
-    trx.push(models.invoice.update({ where: { hash: invoice.hash }, data: { confirmedAt: new Date() } }))
-  }
-
-  const query = await serialize(models, ...trx)
-  item = trx.length > 1 ? query[1][0] : query[0]
-
-  if (invoice?.isHeld) await settleHodlInvoice({ secret: invoice.preimage, lnd })
+  const enforceFee = me ? undefined : (item.parentId ? ANON_COMMENT_FEE : (ANON_POST_FEE + (item.boost || 0)))
+  item = await serializeInvoicable(
+    models.$queryRawUnsafe(
+      `${SELECT} FROM create_item($1::JSONB, $2::JSONB, $3::JSONB, '${spamInterval}'::INTERVAL) AS "Item"`,
+      JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options)),
+    { models, lnd, hash, hmac, me, enforceFee }
+  )
 
   await createMentions(item, models)
 
-  const notifyUserSubscribers = async () => {
-    try {
-      const isPost = !!item.title
-      const userSubs = await models.userSubscription.findMany({
-        where: {
-          followeeId: Number(item.userId),
-          [isPost ? 'postsSubscribedAt' : 'commentsSubscribedAt']: { not: null }
-        },
-        include: {
-          followee: true
-        }
-      })
-      await Promise.allSettled(userSubs.map(({ followerId, followee }) => sendUserNotification(followerId, {
-        title: `@${followee.name} ${isPost ? 'created a post' : 'replied to a post'}`,
-        body: isPost ? item.title : item.text,
-        item,
-        tag: 'FOLLOW'
-      })))
-    } catch (err) {
-      console.error(err)
-    }
-  }
-  notifyUserSubscribers()
+  notifyUserSubscribers({ models, item })
 
   item.comments = []
   return item
@@ -1284,7 +1104,7 @@ export const SELECT =
   "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost", "Item".boost, "Item".msats,
   "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",
   "Item"."weightedDownVotes", "Item".freebie, "Item"."otsHash", "Item"."bountyPaidTo",
-  ltree2text("Item"."path") AS "path", "Item"."weightedComments"`
+  ltree2text("Item"."path") AS "path", "Item"."weightedComments", "Item"."imgproxyUrls"`
 
 async function topOrderByWeightedSats (me, models) {
   return `ORDER BY ${await orderByNumerator(me, models)} DESC NULLS LAST, "Item".id DESC`

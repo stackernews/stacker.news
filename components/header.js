@@ -199,7 +199,43 @@ function NavItems ({ className, sub, prefix }) {
       <Nav.Item className={className}>
         <Select
           groupClassName='mb-0'
-          onChange={(_, e) => router.push(e.target.value === 'home' ? '/' : `/~${e.target.value}`)}
+          onChange={(_, e) => {
+            const sub = e.target.value === 'home' ? undefined : e.target.value
+            let asPath
+            // are we currently in a sub (ie not home)
+            if (router.query.sub) {
+              // are we going to a sub or home?
+              const subReplace = sub ? `/~${sub}` : ''
+
+              // if we are going to a sub, replace the current sub with the new one
+              asPath = router.asPath.replace(`/~${router.query.sub}`, subReplace)
+              // if we're going to home, just go there directly
+              if (asPath === '') {
+                router.push('/')
+                return
+              }
+            } else {
+              // we're currently on the home sub
+              // are we in a sub aware route?
+              if (router.pathname.startsWith('/~')) {
+                // if we are, go to the same path but in the sub
+                asPath = `/~${sub}` + router.asPath
+              } else {
+                // otherwise, just go to the sub
+                router.push(sub ? `/~${sub}` : '/')
+                return
+              }
+            }
+            const query = {
+              ...router.query,
+              sub
+            }
+            delete query.nodata
+            router.push({
+              pathname: router.pathname,
+              query
+            }, asPath)
+          }}
           name='sub'
           size='sm'
           value={sub}

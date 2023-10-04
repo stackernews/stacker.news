@@ -5,50 +5,50 @@ import { LightAsync as SyntaxHighlighter } from 'react-syntax-highlighter'
 import atomDark from 'react-syntax-highlighter/dist/cjs/styles/prism/atom-dark'
 import mention from '../lib/remark-mention'
 import sub from '../lib/remark-sub'
-import remarkDirective from 'remark-directive'
-import { visit } from 'unist-util-visit'
-import reactStringReplace from 'react-string-replace'
-import React, { useRef, useEffect, useState, memo } from 'react'
+import React, { useState, memo, useRef, useCallback, useMemo } from 'react'
 import GithubSlugger from 'github-slugger'
 import LinkIcon from '../svgs/link.svg'
 import Thumb from '../svgs/thumb-up-fill.svg'
 import { toString } from 'mdast-util-to-string'
 import copy from 'clipboard-copy'
-import { IMGPROXY_URL_REGEXP, IMG_URL_REGEXP } from '../lib/url'
-import { extractUrls } from '../lib/md'
-import FileMissing from '../svgs/file-warning-line.svg'
-import { useMe } from './me'
+import { ZoomableImage, decodeOriginalUrl } from './image'
+import { IMGPROXY_URL_REGEXP } from '../lib/url'
+import reactStringReplace from 'react-string-replace'
 
-function searchHighlighter () {
-  return (tree) => {
-    visit(tree, (node) => {
-      if (
-        node.type === 'textDirective' ||
-        node.type === 'leafDirective'
-      ) {
-        if (node.name !== 'high') return
-
-        const data = node.data || (node.data = {})
-        data.hName = 'mark'
-        data.hProperties = {}
-      }
-    })
-  }
+export function SearchText ({ text }) {
+  return (
+    <div className={styles.text}>
+      <p className={styles.p}>
+        {reactStringReplace(text, /\*\*\*([^*]+)\*\*\*/g, (match, i) => {
+          return <mark key={`strong-${match}`}>{match}</mark>
+        })}
+      </p>
+    </div>
+  )
 }
 
-function decodeOriginalUrl (imgProxyUrl) {
-  const parts = imgProxyUrl.split('/')
-  // base64url is not a known encoding in browsers
-  // so we need to replace the invalid chars
-  const b64Url = parts[parts.length - 1].replace(/-/g, '+').replace(/_/, '/')
-  const originalUrl = Buffer.from(b64Url, 'base64').toString('utf-8')
-  return originalUrl
-}
-
-function Heading ({ h, slugger, noFragments, topLevel, children, node, ...props }) {
+function Heading ({ level, slugger, noFragments, topLevel, children, node, ...props }) {
   const [copied, setCopied] = useState(false)
-  const [id] = useState(noFragments ? undefined : slugger.slug(toString(node).replace(/[^\w\-\s]+/gi, '')))
-
+  const id = useMemo(() =>
+    noFragments ? undefined : slugger.slug(toString(node).replace(/[^\w\-\s]+/gi, '')), [node, noFragments, slugger])
+  const h = useMemo(() => {
+    switch (level) {
+      case 1:
+        return topLevel ? 'h1' : 'h4'
+      case 2:
+        return topLevel ? 'h2' : 'h5'
+      case 3:
+        return topLevel ? 'h3' : 'h6'
+      case 4:
+        return topLevel ? 'h4' : 'h6'
+      case 5:
+        return topLevel ? 'h5' : 'h6'
+      case 6:
+        return 'h6'
+      default:
+        return 'h6'
+    }
+  }, [level, topLevel])
   const Icon = copied ? Thumb : LinkIcon
 
   return (
@@ -73,197 +73,73 @@ function Heading ({ h, slugger, noFragments, topLevel, children, node, ...props 
   )
 }
 
-const CACHE_STATES = {
-  IS_LOADING: 'IS_LOADING',
-  IS_LOADED: 'IS_LOADED',
-  IS_ERROR: 'IS_ERROR'
-}
-
 // this is one of the slowest components to render
-export default memo(function Text ({ topLevel, noFragments, nofollow, fetchOnlyImgProxy, children }) {
+export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, ...outerProps }) {
   // all the reactStringReplace calls are to facilitate search highlighting
-  const slugger = new GithubSlugger()
-  fetchOnlyImgProxy ??= true
+  const slugger = useRef(new GithubSlugger())
 
-  const HeadingWrapper = (props) => Heading({ topLevel, slugger, noFragments, ...props })
+  const Table = useCallback(({ node, ...props }) =>
+    <span className='table-responsive'>
+      <table className='table table-bordered table-sm' {...props} />
+    </span>, [])
 
-  const imgCache = useRef({})
-  const [urlCache, setUrlCache] = useState({})
+  const Code = useCallback(({ node, inline, className, children, style, ...props }) => {
+    return inline
+      ? (
+        <code className={className} style={atomDark} {...props}>
+          {children}
+        </code>
+        )
+      : (
+        <SyntaxHighlighter showLineNumbers style={atomDark} PreTag='div' {...props}>
+          {children}
+        </SyntaxHighlighter>
+        )
+  }, [])
 
-  useEffect(() => {
-    const imgRegexp = fetchOnlyImgProxy ? IMGPROXY_URL_REGEXP : IMG_URL_REGEXP
-    const urls = extractUrls(children)
+  const P = useCallback(({ children, ...props }) => <div className={styles.p} {...props}>{children}</div>, [])
 
-    urls.forEach((url) => {
-      if (imgRegexp.test(url)) {
-        setUrlCache((prev) => ({ ...prev, [url]: CACHE_STATES.IS_LOADED }))
-      } else if (!fetchOnlyImgProxy) {
-        const img = new window.Image()
-        imgCache.current[url] = img
-
-        setUrlCache((prev) => ({ ...prev, [url]: CACHE_STATES.IS_LOADING }))
-
-        const callback = (state) => {
-          setUrlCache((prev) => ({ ...prev, [url]: state }))
-          delete imgCache.current[url]
-        }
-        img.onload = () => callback(CACHE_STATES.IS_LOADED)
-        img.onerror = () => callback(CACHE_STATES.IS_ERROR)
-        img.src = url
-      }
-    })
-
-    return () => {
-      Object.values(imgCache.current).forEach((img) => {
-        img.onload = null
-        img.onerror = null
-        img.src = ''
-      })
-    }
-  }, [children])
+  const Img = useCallback(({ node, src, ...props }) => {
+    const url = IMGPROXY_URL_REGEXP.test(src) ? decodeOriginalUrl(src) : src
+    const srcSet = imgproxyUrls?.[url]
+    return <ZoomableImage srcSet={srcSet} tab={tab} src={src} {...props} {...outerProps} />
+  }, [imgproxyUrls, outerProps, tab])
 
   return (
     <div className={styles.text}>
       <ReactMarkdown
         components={{
-          h1: (props) => HeadingWrapper({ h: topLevel ? 'h1' : 'h3', ...props }),
-          h2: (props) => HeadingWrapper({ h: topLevel ? 'h2' : 'h4', ...props }),
-          h3: (props) => HeadingWrapper({ h: topLevel ? 'h3' : 'h5', ...props }),
-          h4: (props) => HeadingWrapper({ h: topLevel ? 'h4' : 'h6', ...props }),
-          h5: (props) => HeadingWrapper({ h: topLevel ? 'h5' : 'h6', ...props }),
-          h6: (props) => HeadingWrapper({ h: 'h6', ...props }),
-          table: ({ node, ...props }) =>
-            <span className='table-responsive'>
-              <table className='table table-bordered table-sm' {...props} />
-            </span>,
-          p: ({ children, ...props }) => <div className={styles.p} {...props}>{children}</div>,
-          code ({ node, inline, className, children, style, ...props }) {
-            return !inline
-              ? (
-                <SyntaxHighlighter showLineNumbers style={atomDark} PreTag='div' {...props}>
-                  {reactStringReplace(String(children).replace(/\n$/, ''), /:high\[([^\]]+)\]/g, (match, i) => {
-                    return match
-                  }).join('')}
-                </SyntaxHighlighter>
-                )
-              : (
-                <code className={className} style={atomDark} {...props}>
-                  {reactStringReplace(String(children), /:high\[([^\]]+)\]/g, (match, i) => {
-                    return <mark key={`mark-${match}`}>{match}</mark>
-                  })}
-                </code>
-                )
-          },
+          h1: (props) => <Heading {...props} {...outerProps} slugger={slugger.current} />,
+          h2: (props) => <Heading {...props} {...outerProps} slugger={slugger.current} />,
+          h3: (props) => <Heading {...props} {...outerProps} slugger={slugger.current} />,
+          h4: (props) => <Heading {...props} {...outerProps} slugger={slugger.current} />,
+          h5: (props) => <Heading {...props} {...outerProps} slugger={slugger.current} />,
+          h6: (props) => <Heading {...props} {...outerProps} slugger={slugger.current} />,
+          table: Table,
+          p: P,
+          code: Code,
           a: ({ node, href, children, ...props }) => {
+            // don't allow zoomable images to be wrapped in links
             if (children?.some(e => e?.props?.node?.tagName === 'img')) {
               return <>{children}</>
             }
 
-            if (urlCache[href] === CACHE_STATES.IS_LOADED) {
-              return <ZoomableImage topLevel={topLevel} useClickToLoad={fetchOnlyImgProxy} {...props} src={href} />
+            // If [text](url) was parsed as <a> and text is not empty and not a link itself,
+            // we don't render it as an image since it was probably a concious choice to include text.
+            const text = children?.[0]
+            if (!!text && !/^https?:\/\//.test(text)) {
+              return <a target='_blank' rel={`noreferrer ${nofollow ? 'nofollow' : ''} noopener`} href={href}>{text}</a>
             }
 
-            // map: fix any highlighted links
-            children = children?.map(e =>
-              typeof e === 'string'
-                ? reactStringReplace(e, /:high\[([^\]]+)\]/g, (match, i) => {
-                  return <mark key={`mark-${match}-${i}`}>{match}</mark>
-                })
-                : e)
-
-            return (
-              /*  eslint-disable-next-line */
-              <a
-                target='_blank' rel={nofollow ? 'nofollow' : 'noreferrer'}
-                href={reactStringReplace(href, /:high%5B([^%5D]+)%5D/g, (match, i) => {
-                  return match
-                }).join('')} {...props}
-              >
-                {children}
-              </a>
-            )
+            // assume the link is an image which will fallback to link if it's not
+            return <Img src={href} nofollow={nofollow} {...props}>{children}</Img>
           },
-          img: ({ node, ...props }) => {
-            return <ZoomableImage topLevel={topLevel} useClickToLoad={fetchOnlyImgProxy} {...props} />
-          }
+          img: Img
         }}
-        remarkPlugins={[gfm, mention, sub, remarkDirective, searchHighlighter]}
+        remarkPlugins={[gfm, mention, sub]}
       >
         {children}
       </ReactMarkdown>
     </div>
   )
 })
-
-function ClickToLoad ({ children }) {
-  const [clicked, setClicked] = useState(false)
-  return clicked ? children : <div className='m-1 fst-italic pointer text-muted' onClick={() => setClicked(true)}>click to load image</div>
-}
-
-export function ZoomableImage ({ src, topLevel, useClickToLoad, ...props }) {
-  const me = useMe()
-  const [err, setErr] = useState()
-  const [imgSrc, setImgSrc] = useState(src)
-  const [isImgProxy, setIsImgProxy] = useState(IMGPROXY_URL_REGEXP.test(src))
-  const defaultMediaStyle = {
-    maxHeight: topLevel ? '75vh' : '25vh',
-    cursor: 'zoom-in'
-  }
-  useClickToLoad ??= true
-
-  // if image changes we need to update state
-  const [mediaStyle, setMediaStyle] = useState(defaultMediaStyle)
-  useEffect(() => {
-    setMediaStyle(defaultMediaStyle)
-    setErr(null)
-  }, [src])
-
-  if (!src) return null
-  if (err) {
-    if (!isImgProxy) {
-      return (
-        <span className='d-flex align-items-baseline text-warning-emphasis fw-bold pb-1'>
-          <FileMissing width={18} height={18} className='fill-warning me-1 align-self-center' />
-          image error
-        </span>
-      )
-    }
-    try {
-      const originalUrl = decodeOriginalUrl(src)
-      setImgSrc(originalUrl)
-      setErr(null)
-    } catch (err) {
-      console.error(err)
-      setErr(err)
-    }
-    // always set to false since imgproxy returned error
-    setIsImgProxy(false)
-  }
-
-  const img = (
-    <img
-      className={topLevel ? styles.topLevel : undefined}
-      style={mediaStyle}
-      src={imgSrc}
-      onClick={() => {
-        if (mediaStyle.cursor === 'zoom-in') {
-          setMediaStyle({
-            width: '100%',
-            cursor: 'zoom-out'
-          })
-        } else {
-          setMediaStyle(defaultMediaStyle)
-        }
-      }}
-      onError={() => setErr(true)}
-      {...props}
-    />
-  )
-
-  return (
-    (!me || !me.clickToLoadImg || isImgProxy || !useClickToLoad)
-      ? img
-      : <ClickToLoad>{img}</ClickToLoad>
-
-  )
-}

@@ -1,9 +1,8 @@
 import { GraphQLError } from 'graphql'
-import { settleHodlInvoice } from 'ln-service'
 import { amountSchema, ssValidate } from '../../lib/validate'
-import serialize from './serial'
+import { serializeInvoicable } from './serial'
 import { ANON_USER_ID } from '../../lib/constants'
-import { getItem, checkInvoice } from './item'
+import { getItem } from './item'
 
 export default {
   Query: {
@@ -104,37 +103,12 @@ export default {
   },
   Mutation: {
     donateToRewards: async (parent, { sats, hash, hmac }, { me, models, lnd }) => {
-      if (!me && !hash) {
-        throw new GraphQLError('you must be logged in or pay', { extensions: { code: 'FORBIDDEN' } })
-      }
-      let user
-      if (me) {
-        user = me
-      }
-
-      let invoice
-      if (hash) {
-        invoice = await checkInvoice(models, hash, hmac, sats)
-        user = invoice.user
-      }
-
       await ssValidate(amountSchema, { amount: sats })
 
-      const trx = [
-        models.$queryRawUnsafe(
-          'SELECT donate($1::INTEGER, $2::INTEGER)',
-          sats, Number(user.id))
-      ]
-
-      if (invoice) {
-        trx.unshift(models.$queryRaw`UPDATE users SET msats = msats + ${invoice.msatsReceived} WHERE id = ${user.id}`)
-        trx.push(models.invoice.update({ where: { hash: invoice.hash }, data: { confirmedAt: new Date() } }))
-      }
-      await serialize(models, ...trx)
-
-      if (invoice?.isHeld) {
-        await settleHodlInvoice({ secret: invoice.preimage, lnd })
-      }
+      await serializeInvoicable(
+        models.$queryRaw`SELECT donate(${sats}::INTEGER, ${me?.id || ANON_USER_ID}::INTEGER)`,
+        { models, lnd, hash, hmac, me, enforceFee: sats }
+      )
 
       return sats
     }

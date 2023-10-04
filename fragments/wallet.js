@@ -14,6 +14,8 @@ export const INVOICE = gql`
       expiresAt
       nostr
       isHeld
+      comment
+      lud18Data
     }
   }`
 
@@ -45,6 +47,7 @@ export const WALLET_HISTORY = gql`
         type
         description
         invoiceComment
+        invoicePayerData
         item {
           ...ItemFullFields
         }
@@ -62,8 +65,8 @@ export const CREATE_WITHDRAWL = gql`
 }`
 
 export const SEND_TO_LNADDR = gql`
-  mutation sendToLnAddr($addr: String!, $amount: Int!, $maxFee: Int!, $comment: String) {
-    sendToLnAddr(addr: $addr, amount: $amount, maxFee: $maxFee, comment: $comment) {
+  mutation sendToLnAddr($addr: String!, $amount: Int!, $maxFee: Int!, $comment: String, $identifier: Boolean, $name: String, $email: String) {
+    sendToLnAddr(addr: $addr, amount: $amount, maxFee: $maxFee, comment: $comment, identifier: $identifier, name: $name, email: $email) {
       id
     }
 }`

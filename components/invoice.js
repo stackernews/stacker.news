@@ -11,6 +11,7 @@ import { useMe } from './me'
 import { useShowModal } from './modal'
 import { sleep } from '../lib/time'
 import Countdown from './countdown'
+import PayerData from './payer-data'
 
 export function Invoice ({ invoice, onPayment, info, successVerb }) {
   const [expired, setExpired] = useState(new Date(invoice.expiredAt) <= new Date())
@@ -38,7 +39,7 @@ export function Invoice ({ invoice, onPayment, info, successVerb }) {
     }
   }, [invoice.confirmedAt, invoice.isHeld, invoice.satsReceived])
 
-  const { nostr } = invoice
+  const { nostr, comment, lud18Data } = invoice
 
   return (
     <>
@@ -47,13 +48,14 @@ export function Invoice ({ invoice, onPayment, info, successVerb }) {
         description={numWithUnits(invoice.satsRequested, { abbreviate: false })}
         statusVariant={variant} status={status}
       />
-      <div className='text-muted text-center'>
-        <Countdown
-          date={invoice.expiresAt} onComplete={() => {
-            setExpired(true)
-          }}
-        />
-      </div>
+      {!invoice.confirmedAt &&
+        <div className='text-muted text-center'>
+          <Countdown
+            date={invoice.expiresAt} onComplete={() => {
+              setExpired(true)
+            }}
+          />
+        </div>}
       {info && <div className='text-muted fst-italic text-center'>{info}</div>}
       <div className='w-100'>
         {nostr
@@ -69,6 +71,20 @@ export function Invoice ({ invoice, onPayment, info, successVerb }) {
             />
           : null}
       </div>
+      {lud18Data &&
+        <div className='w-100'>
+          <AccordianItem
+            header='sender information'
+            body={<PayerData data={lud18Data} className='text-muted ms-3 mb-3' />}
+          />
+        </div>}
+      {comment &&
+        <div className='w-100'>
+          <AccordianItem
+            header='sender comments'
+            body={<span className='text-muted ms-3'>{comment}</span>}
+          />
+        </div>}
     </>
   )
 }

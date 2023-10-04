@@ -89,7 +89,7 @@ function ImageProxy ({ src, srcSet: srcSetObj, onClick, topLevel, onError, ...pr
   )
 }
 
-export function ZoomableImage ({ src, srcSet, ...props }) {
+export default function ZoomableImage ({ src, srcSet, ...props }) {
   const showModal = useShowModal()
 
   // if `srcSet` is falsy, it means the image was not processed by worker yet

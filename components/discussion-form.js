@@ -13,11 +13,10 @@ import { discussionSchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
 import { useCallback } from 'react'
-import { crosspostDiscussion, DEFAULT_CROSSPOSTING_RELAYS } from '../lib/nostr'
 import { normalizeForwards } from '../lib/form'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
 import { useMe } from './me'
-import { useToast } from './toast'
+import useCrossposter from './use-crossposter'
 
 export function DiscussionForm ({
   item, sub, editThreshold, titleLabel = 'title',
@@ -30,8 +29,7 @@ export function DiscussionForm ({
   const schema = discussionSchema({ client, me, existingBoost: item?.boost })
   // if Web Share Target API was used
   const shareTitle = router.query.title
-  const Toast = useToast()
-  const relays = [...DEFAULT_CROSSPOSTING_RELAYS, ...me?.nostrRelays || []]
+  const crossposter = useCrossposter()
 
   const [upsertDiscussion] = useMutation(
     gql`
@@ -42,63 +40,16 @@ export function DiscussionForm ({
       }`
   )
 
-  const relayError = (failedRelays) => {
-    return new Promise((resolve) => {
-      const { removeToast } = Toast.danger(
-        <>
-          Crossposting failed for {failedRelays.join(', ')} <br />
-          <Button
-            variant='link' onClick={() => {
-              resolve('retry')
-              setTimeout(() => {
-                removeToast()
-              }, 1000)
-            }}
-          >Retry
-          </Button>
-          {' | '}
-          <Button
-            variant='link' onClick={() => {
-              resolve('skip')
-            }}
-          >Skip
-          </Button>
-        </>,
-        () => resolve('skip') // will skip if user closes the toast
-      )
-    })
-  }
-
-  const handleCrosspost = async (values, id) => {
-    let failedRelays
-    let allSuccessful = false
-
-    do {
-      const result = await crosspostDiscussion(values, id, failedRelays || relays)
-
-      result.successfulRelays.forEach(relay => {
-        Toast.success(`Crossposting succeeded on relay ${relay}`)
-      })
-
-      failedRelays = result.failedRelays.map(relayObj => relayObj.relay)
-
-      if (failedRelays.length > 0) {
-        const userAction = await relayError(failedRelays)
-
-        if (userAction === 'skip') {
-          Toast.success('Crossposting skipped.')
-          break
-        }
-      } else {
-        allSuccessful = true
-      }
-    } while (failedRelays.length > 0)
-
-    return { allSuccessful }
-  }
-
   const onSubmit = useCallback(
     async ({ boost, crosspost, ...values }) => {
+      try {
+        if (crosspost && !(await window.nostr.getPublicKey())) {
+          throw new Error('not available')
+        }
+      } catch (e) {
+        throw new Error(`Nostr extension error: ${e.message}`)
+      }
+
       const { data, error } = await upsertDiscussion({
         variables: {
           sub: item?.subName || sub?.name,
@@ -113,18 +64,12 @@ export function DiscussionForm ({
         throw new Error({ message: error.toString() })
       }
 
-      const shouldCrosspost = me?.nostrCrossposting && crosspost
-
-      if (shouldCrosspost && data?.upsertDiscussion?.id) {
-        const results = await handleCrosspost(values, data.upsertDiscussion.id)
-        if (results.allSuccessful) {
-          if (item) {
-            await router.push(`/items/${item.id}`)
-          } else {
-            const prefix = sub?.name ? `/~${sub.name}` : ''
-            await router.push(prefix + '/recent')
-          }
+      try {
+        if (crosspost && data?.upsertDiscussion?.id) {
+          await crossposter({ ...values, id: data.upsertDiscussion.id })
         }
+      } catch (e) {
+        console.error(e)
       }
 
       if (item) {
@@ -133,7 +78,7 @@ export function DiscussionForm ({
         const prefix = sub?.name ? `/~${sub.name}` : ''
         await router.push(prefix + '/recent')
       }
-    }, [upsertDiscussion, router]
+    }, [upsertDiscussion, router, item, sub, crossposter]
   )
 
   const [getRelated, { data: relatedData }] = useLazyQuery(gql`

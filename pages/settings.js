@@ -320,13 +320,13 @@ export default function Settings ({ ssrData }) {
             }
             name='greeterMode'
           />
-          <div className='form-label'>nostr</div>
+          <h4>nostr</h4>
           <Checkbox
             label={
               <div className='d-flex align-items-center'>crosspost to nostr
                 <Info>
                   <ul className='fw-bold'>
-                    <li>crosspost discussion items to nostr</li>
+                    <li>crosspost discussions to nostr</li>
                     <li>requires NIP-07 extension for signing</li>
                     <li>we use your NIP-05 relays if set</li>
                     <li>otherwise we default to these relays:</li>
@@ -345,6 +345,7 @@ export default function Settings ({ ssrData }) {
             label={<>pubkey <small className='text-muted ms-2'>optional</small></>}
             name='nostrPubkey'
             clear
+            hint={<small className='text-muted'>used for NIP-05</small>}
           />
           <VariableInput
             label={<>relays <small className='text-muted ms-2'>optional</small></>}
@@ -352,6 +353,7 @@ export default function Settings ({ ssrData }) {
             clear
             min={0}
             max={NOSTR_MAX_RELAY_NUM}
+            hint={<small className='text-muted'>used for NIP-05 and crossposting</small>}
           />
           <div className='d-flex'>
             <SubmitButton variant='info' className='ms-auto mt-1 px-4'>save</SubmitButton>

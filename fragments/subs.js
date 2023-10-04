@@ -48,11 +48,11 @@ export const SUB_ITEMS = gql`
 export const SUB_SEARCH = gql`
   ${SUB_FIELDS}
   ${ITEM_FULL_FIELDS}
-  query SubSearch($sub: String, $q: String, $cursor: String, $sort: String, $what: String, $when: String) {
+  query SubSearch($sub: String, $q: String, $cursor: String, $sort: String, $what: String, $when: String, $from: String, $to: String) {
     sub(name: $sub) {
       ...SubFields
     }
-    search(sub: $sub, q: $q, cursor: $cursor, sort: $sort, what: $what, when: $when) {
+    search(sub: $sub, q: $q, cursor: $cursor, sort: $sort, what: $what, when: $when, from: $from, to: $to) {
       cursor
       items {
         ...ItemFullFields

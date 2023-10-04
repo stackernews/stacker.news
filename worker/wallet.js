@@ -1,6 +1,8 @@
 import serialize from '../api/resolvers/serial.js'
 import { getInvoice, getPayment, cancelHodlInvoice } from 'ln-service'
 import { datePivot } from '../lib/time.js'
+import { sendUserNotification } from '../api/webPush/index.js'
+import { msatsToSats, numWithUnits } from '../lib/format'
 
 const walletOptions = { startAfter: 5, retryLimit: 21, retryBackoff: true }
 
@@ -29,6 +31,12 @@ export function checkInvoice ({ boss, models, lnd }) {
       // we manually confirm them when we settle them
       await serialize(models,
         models.$executeRaw`SELECT confirm_invoice(${inv.id}, ${Number(inv.received_mtokens)})`)
+      sendUserNotification(dbInv.userId, {
+        title: `${numWithUnits(msatsToSats(inv.received_mtokens), { abbreviate: false })} were deposited in your account`,
+        body: dbInv.comment || undefined,
+        tag: 'DEPOSIT',
+        data: { sats: msatsToSats(inv.received_mtokens) }
+      }).catch(console.error)
       return boss.send('nip57', { hash })
     }
 

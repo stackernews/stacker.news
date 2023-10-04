@@ -6,6 +6,7 @@ import { NetworkOnly } from 'workbox-strategies'
 import { enable } from 'workbox-navigation-preload'
 import manifest from './precache-manifest.json'
 import ServiceWorkerStorage from 'serviceworker-storage'
+import { numWithUnits } from '../lib/format'
 
 // comment out to enable workbox console logs
 self.__WB_DISABLE_DEV_LOGS = true
@@ -49,7 +50,8 @@ self.addEventListener('push', async function (event) {
   if (!payload) return
   const { tag } = payload.options
   event.waitUntil((async () => {
-    if (!['REPLY', 'MENTION'].includes(tag)) {
+    // TIP and EARN notifications simply replace the previous notifications
+    if (!tag || ['TIP', 'EARN'].includes(tag.split('-')[0])) {
       return self.registration.showNotification(payload.title, payload.options)
     }
 
@@ -66,15 +68,26 @@ self.addEventListener('push', async function (event) {
     }
     const currentNotification = notifications[0]
     const amount = currentNotification.data?.amount ? currentNotification.data.amount + 1 : 2
-    let title = ''
+    let newTitle = ''
+    const data = {}
     if (tag === 'REPLY') {
-      title = `You have ${amount} new replies`
+      newTitle = `You have ${amount} new replies`
     } else if (tag === 'MENTION') {
-      title = `You were mentioned ${amount} times`
+      newTitle = `You were mentioned ${amount} times`
+    } else if (tag === 'REFERRAL') {
+      newTitle = `${amount} stackers joined via your referral links`
+    } else if (tag === 'INVITE') {
+      newTitle = `your invite has been redeemed by ${amount} stackers`
+    } else if (tag === 'DEPOSIT') {
+      const currentSats = currentNotification.data.sats
+      const incomingSats = payload.options.data.sats
+      const newSats = currentSats + incomingSats
+      data.sats = newSats
+      newTitle = `${numWithUnits(newSats, { abbreviate: false })} were deposited in your account`
     }
     currentNotification.close()
     const { icon } = currentNotification
-    return self.registration.showNotification(title, { icon, tag, data: { url: '/notifications', amount } })
+    return self.registration.showNotification(newTitle, { icon, tag, data: { url: '/notifications', amount, ...data } })
   })())
 })
 

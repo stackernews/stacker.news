@@ -11,7 +11,7 @@ import { dayMonthYear, timeSince } from '../lib/time'
 import Link from 'next/link'
 import Check from '../svgs/check-double-line.svg'
 import HandCoin from '../svgs/hand-coin-fill.svg'
-import { COMMENT_DEPTH_LIMIT } from '../lib/constants'
+import { COMMENT_DEPTH_LIMIT, LOST_BLURBS, FOUND_BLURBS } from '../lib/constants'
 import CowboyHatIcon from '../svgs/cowboy.svg'
 import BaldIcon from '../svgs/bald.svg'
 import { RootProvider } from './root'
@@ -122,25 +122,7 @@ const defaultOnClick = n => {
 
 function Streak ({ n }) {
   function blurb (n) {
-    const index = Number(n.id) % 6
-    const FOUND_BLURBS = [
-      'The harsh frontier is no place for the unprepared. This hat will protect you from the sun, dust, and other elements Mother Nature throws your way.',
-      'A cowboy is nothing without a cowboy hat. Take good care of it, and it will protect you from the sun, dust, and other elements on your journey.',
-      "This is not just a hat, it's a matter of survival. Take care of this essential tool, and it will shield you from the scorching sun and the elements.",
-      "A cowboy hat isn't just a fashion statement. It's your last defense against the unforgiving elements of the Wild West. Hang onto it tight.",
-      "A good cowboy hat is worth its weight in gold, shielding you from the sun, wind, and dust of the western frontier. Don't lose it.",
-      'Your cowboy hat is the key to your survival in the wild west. Treat it with respect and it will protect you from the elements.'
-    ]
-
-    const LOST_BLURBS = [
-      'your cowboy hat was taken by the wind storm that blew in from the west. No worries, a true cowboy always finds another hat.',
-      "you left your trusty cowboy hat in the saloon before leaving town. You'll need a replacement for the long journey west.",
-      'you lost your cowboy hat in a wild shoot-out on the outskirts of town. Tough luck, tIme to start searching for another one.',
-      'you ran out of food and had to trade your hat for supplies. Better start looking for another hat.',
-      "your hat was stolen by a mischievous prairie dog. You won't catch the dog, but you can always find another hat.",
-      'you lost your hat while crossing the river on your journey west. Maybe you can find a replacement hat in the next town.'
-    ]
-
+    const index = Number(n.id) % Math.min(FOUND_BLURBS.length, LOST_BLURBS.length)
     if (n.days) {
       return `After ${numWithUnits(n.days, {
         abbreviate: false,

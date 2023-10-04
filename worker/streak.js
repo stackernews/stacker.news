@@ -71,7 +71,7 @@ export function computeStreaks ({ models }) {
         return sendUserNotification(userId, {
           title: 'you lost your cowboy hat',
           body: blurb,
-          tag: 'STREAK'
+          tag: 'STREAK-LOST'
         }).catch(console.error)
       })
     )
@@ -132,7 +132,7 @@ export function checkStreak ({ models }) {
     sendUserNotification(id, {
       title: 'you found a cowboy hat',
       body: blurb,
-      tag: 'STREAK'
+      tag: 'STREAK-FOUND'
     }).catch(console.error)
   }
 }

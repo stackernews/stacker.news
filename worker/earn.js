@@ -55,8 +55,13 @@ export function earn ({ models }) {
     }
 
     const sum = Number(sumDecimal)
+    const heads = Math.random() < 0.5
+    // if this category is selected, double its proportion
+    // if it isn't select, zero its proportion
+    const itemRewardMult = heads ? 0 : 2.0
+    const upvoteRewardMult = heads ? 2.0 : 0
 
-    console.log(name, 'giving away', sum, 'msats')
+    console.log(name, 'giving away', sum, 'msats', 'rewarding', heads ? 'items' : 'upvotes')
 
     /*
       How earnings (used to) work:
@@ -68,7 +73,7 @@ export function earn ({ models }) {
         - how early they upvoted it
         - how the post/comment scored
 
-      Now: 100% of earnings go to top 21% of posts/comments
+      Now: 100% of earnings go to either top 33% of comments/posts or top 33% of upvoters
     */
 
     // get earners { userId, id, type, rank, proportion }
@@ -120,14 +125,18 @@ export function earn ({ models }) {
           ) u
           JOIN users on "userId" = users.id
           GROUP BY "userId", "parentId" IS NULL
-      )
-      SELECT "userId", NULL as id, type, ROW_NUMBER() OVER (PARTITION BY "isPost" ORDER BY upvoter_ratio DESC) as rank,
-          upvoter_ratio/(sum(upvoter_ratio) OVER (PARTITION BY "isPost"))/${UPVOTE_EACH_REWARD} as proportion
-      FROM upvoter_ratios
-      WHERE upvoter_ratio > 0
-      UNION ALL
-      SELECT "userId", id, type, rank, ratio/${ITEM_EACH_REWARD} as proportion
-      FROM item_ratios`
+      ),
+      proportions AS (
+        SELECT "userId", NULL as id, type, ROW_NUMBER() OVER (PARTITION BY "isPost" ORDER BY upvoter_ratio DESC) as rank,
+            ${itemRewardMult}*upvoter_ratio/(sum(upvoter_ratio) OVER (PARTITION BY "isPost"))/${UPVOTE_EACH_REWARD} as proportion
+        FROM upvoter_ratios
+        WHERE upvoter_ratio > 0
+        UNION ALL
+        SELECT "userId", id, type, rank, ${upvoteRewardMult}*ratio/${ITEM_EACH_REWARD} as proportion
+        FROM item_ratios)
+      SELECT "userId", id, type, rank, proportion
+      FROM proportions
+      WHERE proportion > 0.0001`
 
     // in order to group earnings for users we use the same createdAt time for
     // all earnings

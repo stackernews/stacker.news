@@ -7,7 +7,7 @@ export default gql`
     user(name: String!): User
     users: [User!]
     nameAvailable(name: String!): Boolean!
-    topUsers(cursor: String, when: String, by: String): Users
+    topUsers(cursor: String, when: String, by: String, limit: Int): Users
     topCowboys(cursor: String): Users
     searchUsers(q: String!, limit: Int, similarity: Float): [User!]!
     hasNewNotes: Boolean!
@@ -23,8 +23,8 @@ export default gql`
     setSettings(tipDefault: Int!, turboTipping: Boolean!, fiatCurrency: String!, noteItemSats: Boolean!,
       noteEarning: Boolean!, noteAllDescendants: Boolean!, noteMentions: Boolean!, noteDeposits: Boolean!,
       noteInvites: Boolean!, noteJobIndicator: Boolean!, noteCowboyHat: Boolean!, hideInvoiceDesc: Boolean!,
-      hideFromTopUsers: Boolean!, hideCowboyHat: Boolean!, clickToLoadImg: Boolean!,
-      wildWestMode: Boolean!, greeterMode: Boolean!, nostrPubkey: String, nostrRelays: [String!], hideBookmarks: Boolean!,
+      hideFromTopUsers: Boolean!, hideCowboyHat: Boolean!, imgproxyOnly: Boolean!,
+      wildWestMode: Boolean!, greeterMode: Boolean!, nostrPubkey: String, nostrCrossposting: Boolean, nostrRelays: [String!], hideBookmarks: Boolean!,
       noteForwardedSats: Boolean!, hideWalletBalance: Boolean!, hideIsContributor: Boolean!, diagnostics: Boolean!): User
     setPhoto(photoId: ID!): Int!
     upsertBio(bio: String!): User!
@@ -73,6 +73,7 @@ export default gql`
     since: Int
     upvotePopover: Boolean!
     tipPopover: Boolean!
+    nostrCrossposting: Boolean!
     noteItemSats: Boolean!
     noteEarning: Boolean!
     noteAllDescendants: Boolean!
@@ -89,7 +90,7 @@ export default gql`
     hideWelcomeBanner: Boolean!
     hideWalletBalance: Boolean!
     diagnostics: Boolean!
-    clickToLoadImg: Boolean!
+    imgproxyOnly: Boolean!
     wildWestMode: Boolean!
     greeterMode: Boolean!
     lastCheckedJobs: String

@@ -16,6 +16,7 @@ import { useCallback } from 'react'
 import { normalizeForwards } from '../lib/form'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
 import { useMe } from './me'
+import useCrossposter from './use-crossposter'
 
 export function DiscussionForm ({
   item, sub, editThreshold, titleLabel = 'title',
@@ -28,6 +29,7 @@ export function DiscussionForm ({
   const schema = discussionSchema({ client, me, existingBoost: item?.boost })
   // if Web Share Target API was used
   const shareTitle = router.query.title
+  const crossposter = useCrossposter()
 
   const [upsertDiscussion] = useMutation(
     gql`
@@ -39,8 +41,16 @@ export function DiscussionForm ({
   )
 
   const onSubmit = useCallback(
-    async ({ boost, ...values }) => {
-      const { error } = await upsertDiscussion({
+    async ({ boost, crosspost, ...values }) => {
+      try {
+        if (crosspost && !(await window.nostr.getPublicKey())) {
+          throw new Error('not available')
+        }
+      } catch (e) {
+        throw new Error(`Nostr extension error: ${e.message}`)
+      }
+
+      const { data, error } = await upsertDiscussion({
         variables: {
           sub: item?.subName || sub?.name,
           id: item?.id,
@@ -49,8 +59,17 @@ export function DiscussionForm ({
           forward: normalizeForwards(values.forward)
         }
       })
+
       if (error) {
         throw new Error({ message: error.toString() })
+      }
+
+      try {
+        if (crosspost && data?.upsertDiscussion?.id) {
+          await crossposter({ ...values, id: data.upsertDiscussion.id })
+        }
+      } catch (e) {
+        console.error(e)
       }
 
       if (item) {
@@ -59,7 +78,7 @@ export function DiscussionForm ({
         const prefix = sub?.name ? `/~${sub.name}` : ''
         await router.push(prefix + '/recent')
       }
-    }, [upsertDiscussion, router]
+    }, [upsertDiscussion, router, item, sub, crossposter]
   )
 
   const [getRelated, { data: relatedData }] = useLazyQuery(gql`
@@ -81,6 +100,7 @@ export function DiscussionForm ({
       initial={{
         title: item?.title || shareTitle || '',
         text: item?.text || '',
+        crosspost: me?.nostrCrossposting,
         ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}

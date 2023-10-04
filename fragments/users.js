@@ -18,6 +18,7 @@ export const ME = gql`
       bioId
       upvotePopover
       tipPopover
+      nostrCrossposting
       noteItemSats
       noteEarning
       noteAllDescendants
@@ -30,7 +31,7 @@ export const ME = gql`
       hideInvoiceDesc
       hideFromTopUsers
       hideCowboyHat
-      clickToLoadImg
+      imgproxyOnly
       diagnostics
       wildWestMode
       greeterMode
@@ -61,10 +62,11 @@ export const SETTINGS_FIELDS = gql`
     hideCowboyHat
     hideBookmarks
     hideIsContributor
-    clickToLoadImg
+    imgproxyOnly
     hideWalletBalance
     diagnostics
     nostrPubkey
+    nostrCrossposting
     nostrRelays
     wildWestMode
     greeterMode
@@ -91,15 +93,15 @@ ${SETTINGS_FIELDS}
 mutation setSettings($tipDefault: Int!, $turboTipping: Boolean!, $fiatCurrency: String!, $noteItemSats: Boolean!,
   $noteEarning: Boolean!, $noteAllDescendants: Boolean!, $noteMentions: Boolean!, $noteDeposits: Boolean!,
   $noteInvites: Boolean!, $noteJobIndicator: Boolean!, $noteCowboyHat: Boolean!, $hideInvoiceDesc: Boolean!,
-  $hideFromTopUsers: Boolean!, $hideCowboyHat: Boolean!, $clickToLoadImg: Boolean!,
-  $wildWestMode: Boolean!, $greeterMode: Boolean!, $nostrPubkey: String, $nostrRelays: [String!], $hideBookmarks: Boolean!,
+  $hideFromTopUsers: Boolean!, $hideCowboyHat: Boolean!, $imgproxyOnly: Boolean!,
+  $wildWestMode: Boolean!, $greeterMode: Boolean!, $nostrPubkey: String, $nostrCrossposting: Boolean!, $nostrRelays: [String!], $hideBookmarks: Boolean!,
   $noteForwardedSats: Boolean!, $hideWalletBalance: Boolean!, $hideIsContributor: Boolean!, $diagnostics: Boolean!) {
   setSettings(tipDefault: $tipDefault, turboTipping: $turboTipping,  fiatCurrency: $fiatCurrency,
     noteItemSats: $noteItemSats, noteEarning: $noteEarning, noteAllDescendants: $noteAllDescendants,
     noteMentions: $noteMentions, noteDeposits: $noteDeposits, noteInvites: $noteInvites,
     noteJobIndicator: $noteJobIndicator, noteCowboyHat: $noteCowboyHat, hideInvoiceDesc: $hideInvoiceDesc,
-    hideFromTopUsers: $hideFromTopUsers, hideCowboyHat: $hideCowboyHat, clickToLoadImg: $clickToLoadImg,
-    wildWestMode: $wildWestMode, greeterMode: $greeterMode, nostrPubkey: $nostrPubkey, nostrRelays: $nostrRelays, hideBookmarks: $hideBookmarks,
+    hideFromTopUsers: $hideFromTopUsers, hideCowboyHat: $hideCowboyHat, imgproxyOnly: $imgproxyOnly,
+    wildWestMode: $wildWestMode, greeterMode: $greeterMode, nostrPubkey: $nostrPubkey, nostrCrossposting: $nostrCrossposting, nostrRelays: $nostrRelays, hideBookmarks: $hideBookmarks,
     noteForwardedSats: $noteForwardedSats, hideWalletBalance: $hideWalletBalance, hideIsContributor: $hideIsContributor, diagnostics: $diagnostics) {
       ...SettingsFields
     }
@@ -162,8 +164,8 @@ export const USER_FIELDS = gql`
   }`
 
 export const TOP_USERS = gql`
-  query TopUsers($cursor: String, $when: String, $by: String) {
-    topUsers(cursor: $cursor, when: $when, by: $by) {
+  query TopUsers($cursor: String, $when: String, $by: String, $limit: Int) {
+    topUsers(cursor: $cursor, when: $when, by: $by, limit: $limit) {
       users {
         id
         name

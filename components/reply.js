@@ -3,12 +3,13 @@ import { gql, useMutation } from '@apollo/client'
 import styles from './reply.module.css'
 import { COMMENTS } from '../fragments/comments'
 import { useMe } from './me'
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { forwardRef, useCallback, useEffect, useState, useRef, useImperativeHandle } from 'react'
 import Link from 'next/link'
 import FeeButton from './fee-button'
 import { commentsViewedAfterComment } from '../lib/new-comments'
 import { commentSchema } from '../lib/validate'
 import Info from './info'
+import { quote } from '../lib/md'
 
 export function ReplyOnAnotherPage ({ parentId }) {
   return (
@@ -33,10 +34,36 @@ function FreebieDialog () {
   )
 }
 
-export default function Reply ({ item, onSuccess, replyOpen, children, placeholder }) {
+export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children, placeholder, contentContainerRef }, ref) {
   const [reply, setReply] = useState(replyOpen)
   const me = useMe()
   const parentId = item.id
+  const replyInput = useRef(null)
+  const formInnerRef = useRef()
+  useImperativeHandle(ref, () => ({
+    quoteReply: ({ selectionOnly }) => {
+      if (!reply) {
+        setReply(true)
+      }
+      const selection = window.getSelection()
+      const selectedText = selection.isCollapsed ? undefined : selection.toString()
+      const isSelectedTextInTarget = contentContainerRef?.current?.contains(selection.anchorNode)
+      if ((selection.isCollapsed || !isSelectedTextInTarget) && selectionOnly) return
+      const textToQuote = isSelectedTextInTarget ? selectedText : item.text
+      let updatedValue
+      if (formInnerRef.current && formInnerRef.current.values && !formInnerRef.current.values.text) {
+        updatedValue = quote(textToQuote)
+      } else if (formInnerRef.current?.values?.text) {
+        // append quote reply text if the input already has content
+        updatedValue = `${replyInput.current.value}\n${quote(textToQuote)}`
+      }
+      if (updatedValue) {
+        replyInput.current.value = updatedValue
+        formInnerRef.current.setValues({ text: updatedValue })
+        window.localStorage.setItem(`reply-${parentId}-text`, updatedValue)
+      }
+    }
+  }), [reply, item])
 
   useEffect(() => {
     setReply(replyOpen || !!window.localStorage.getItem('reply-' + parentId + '-' + 'text'))
@@ -96,7 +123,6 @@ export default function Reply ({ item, onSuccess, replyOpen, children, placehold
     setReply(replyOpen || false)
   }, [upsertComment, setReply, parentId])
 
-  const replyInput = useRef(null)
   useEffect(() => {
     if (replyInput.current && reply && !replyOpen) replyInput.current.focus()
   }, [reply])
@@ -108,45 +134,51 @@ export default function Reply ({ item, onSuccess, replyOpen, children, placehold
         : (
           <div className={styles.replyButtons}>
             <div
-              onClick={() => setReply(!reply)}
+              onPointerDown={e => {
+                if (!reply) {
+                  e.preventDefault()
+                  ref?.current?.quoteReply({ selectionOnly: true })
+                }
+                setReply(!reply)
+              }}
             >
               {reply ? 'cancel' : 'reply'}
             </div>
             {/* HACK if we need more items, we should probably do a comment toolbar */}
             {children}
           </div>)}
-      {reply &&
-        <div className={styles.reply}>
-          <Form
-            initial={{
-              text: ''
-            }}
-            schema={commentSchema}
-            invoiceable
-            onSubmit={onSubmit}
-            storageKeyPrefix={'reply-' + parentId}
-          >
-            <MarkdownInput
-              name='text'
-              minRows={6}
-              autoFocus={!replyOpen}
-              required
-              placeholder={placeholder}
-              hint={me?.sats < 1 && <FreebieDialog />}
-              innerRef={replyInput}
-            />
-            {reply &&
-              <div className='mt-1'>
-                <FeeButton
-                  baseFee={1} parentId={parentId} text='reply'
-                  ChildButton={SubmitButton} variant='secondary' alwaysShow
-                />
-              </div>}
-          </Form>
-        </div>}
+      <div className={styles.reply} style={{ display: reply ? 'block' : 'none' }}>
+        <Form
+          initial={{
+            text: ''
+          }}
+          schema={commentSchema}
+          invoiceable
+          onSubmit={onSubmit}
+          storageKeyPrefix={`reply-${parentId}`}
+          innerRef={formInnerRef}
+        >
+          <MarkdownInput
+            name='text'
+            minRows={6}
+            autoFocus={!replyOpen}
+            required
+            placeholder={placeholder}
+            hint={me?.sats < 1 && <FreebieDialog />}
+            innerRef={replyInput}
+          />
+          {reply &&
+            <div className='mt-1'>
+              <FeeButton
+                baseFee={1} parentId={parentId} text='reply'
+                ChildButton={SubmitButton} variant='secondary' alwaysShow
+              />
+            </div>}
+        </Form>
+      </div>
     </div>
   )
-}
+})
 
 export function ReplySkeleton () {
   return (

@@ -11,7 +11,7 @@ import LinkIcon from '../svgs/link.svg'
 import Thumb from '../svgs/thumb-up-fill.svg'
 import { toString } from 'mdast-util-to-string'
 import copy from 'clipboard-copy'
-import { ZoomableImage, decodeOriginalUrl } from './image'
+import ZoomableImage, { decodeOriginalUrl } from './image'
 import { IMGPROXY_URL_REGEXP } from '../lib/url'
 import reactStringReplace from 'react-string-replace'
 
@@ -101,8 +101,6 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, ...o
 
   const Img = useCallback(({ node, src, ...props }) => {
     const url = IMGPROXY_URL_REGEXP.test(src) ? decodeOriginalUrl(src) : src
-    // if `srcSet` is undefined, it means the image was not processed by worker yet
-    // if `srcSet` is null, image was processed but this specific url was not detected as an image by the worker
     const srcSet = imgproxyUrls?.[url]
     return <ZoomableImage srcSet={srcSet} tab={tab} src={src} {...props} {...outerProps} />
   }, [imgproxyUrls, outerProps, tab])
@@ -124,6 +122,13 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, ...o
             // don't allow zoomable images to be wrapped in links
             if (children?.some(e => e?.props?.node?.tagName === 'img')) {
               return <>{children}</>
+            }
+
+            // If [text](url) was parsed as <a> and text is not empty and not a link itself,
+            // we don't render it as an image since it was probably a concious choice to include text.
+            const text = children?.[0]
+            if (!!text && !/^https?:\/\//.test(text)) {
+              return <a target='_blank' rel={`noreferrer ${nofollow ? 'nofollow' : ''} noopener`} href={href}>{text}</a>
             }
 
             // assume the link is an image which will fallback to link if it's not

@@ -136,6 +136,8 @@ export default function Comment ({
       ? 'fwd'
       : null
   const bountyPaid = root.bountyPaidTo?.includes(Number(item.id))
+  const replyRef = useRef()
+  const contentContainerRef = useRef()
 
   return (
     <div
@@ -165,6 +167,7 @@ export default function Comment ({
                   commentTextSingular='reply'
                   className={`${itemStyles.other} ${styles.other}`}
                   embellishUser={op && <><span> </span><Badge bg={op === 'fwd' ? 'secondary' : 'boost'} className={`${styles.op} bg-opacity-75`}>{op}</Badge></>}
+                  onQuoteReply={replyRef?.current?.quoteReply}
                   extraInfo={
                     <>
                       {includeParent && <Parent item={item} rootText={rootText} />}
@@ -207,7 +210,7 @@ export default function Comment ({
               />
               )
             : (
-              <div className={styles.text}>
+              <div className={styles.text} ref={contentContainerRef}>
                 {item.searchText
                   ? <SearchText text={item.searchText} />
                   : (
@@ -224,7 +227,7 @@ export default function Comment ({
           : (
             <div className={styles.children}>
               {!noReply &&
-                <Reply depth={depth + 1} item={item} replyOpen={replyOpen}>
+                <Reply depth={depth + 1} item={item} replyOpen={replyOpen} ref={replyRef} contentContainerRef={contentContainerRef}>
                   {root.bounty && !bountyPaid && <PayBounty item={item} />}
                 </Reply>}
               {children}

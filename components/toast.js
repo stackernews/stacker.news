@@ -19,6 +19,11 @@ export const ToastProvider = ({ children }) => {
     }
     setToasts(toasts => [...toasts, toastConfig])
   }, [])
+
+  const removeToast = useCallback(id => {
+    setToasts(toasts => toasts.filter(toast => toast.id !== id))
+  }, [])
+
   const toaster = useMemo(() => ({
     success: body => {
       dispatchToast({
@@ -28,17 +33,20 @@ export const ToastProvider = ({ children }) => {
         delay: 5000
       })
     },
-    danger: body => {
+    danger: (body, onCloseCallback) => {
+      const id = toastId.current
       dispatchToast({
+        id,
         body,
         variant: 'danger',
-        autohide: false
+        autohide: false,
+        onCloseCallback
       })
+      return {
+        removeToast: () => removeToast(id)
+      }
     }
   }), [dispatchToast])
-  const removeToast = useCallback(id => {
-    setToasts(toasts => toasts.filter(toast => toast.id !== id))
-  }, [])
 
   // Clear all toasts on page navigation
   useEffect(() => {
@@ -65,7 +73,10 @@ export const ToastProvider = ({ children }) => {
                   variant={null}
                   className='p-0 ps-2'
                   aria-label='close'
-                  onClick={() => removeToast(toast.id)}
+                  onClick={() => {
+                    if (toast.onCloseCallback) toast.onCloseCallback()
+                    removeToast(toast.id)
+                  }}
                 ><div className={styles.toastClose}>X</div>
                 </Button>
               </div>

@@ -11,7 +11,7 @@ import LinkIcon from '../svgs/link.svg'
 import Thumb from '../svgs/thumb-up-fill.svg'
 import { toString } from 'mdast-util-to-string'
 import copy from 'clipboard-copy'
-import { ZoomableImage, decodeOriginalUrl } from './image'
+import ZoomableImage, { decodeOriginalUrl } from './image'
 import { IMGPROXY_URL_REGEXP } from '../lib/url'
 import reactStringReplace from 'react-string-replace'
 

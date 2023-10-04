@@ -15,7 +15,7 @@ import Info from '../components/info'
 import Link from 'next/link'
 import AccordianItem from '../components/accordian-item'
 import { bech32 } from 'bech32'
-import { NOSTR_MAX_RELAY_NUM, NOSTR_PUBKEY_BECH32 } from '../lib/nostr'
+import { NOSTR_MAX_RELAY_NUM, NOSTR_PUBKEY_BECH32, DEFAULT_CROSSPOSTING_RELAYS } from '../lib/nostr'
 import { emailSchema, lastAuthRemovalSchema, settingsSchema } from '../lib/validate'
 import { SUPPORTED_CURRENCIES } from '../lib/currency'
 import PageLoading from '../components/page-loading'
@@ -79,6 +79,7 @@ export default function Settings ({ ssrData }) {
             wildWestMode: settings?.wildWestMode,
             greeterMode: settings?.greeterMode,
             nostrPubkey: settings?.nostrPubkey ? bech32encode(settings.nostrPubkey) : '',
+            nostrCrossposting: settings?.nostrCrossposting,
             nostrRelays: settings?.nostrRelays?.length ? settings?.nostrRelays : [''],
             hideBookmarks: settings?.hideBookmarks,
             hideWalletBalance: settings?.hideWalletBalance,
@@ -319,26 +320,40 @@ export default function Settings ({ ssrData }) {
             }
             name='greeterMode'
           />
-          <AccordianItem
-            headerColor='var(--bs-body-color)'
-            show={settings?.nostrPubkey}
-            header={<h4 className='text-start'>nostr <small><a href='https://github.com/nostr-protocol/nips/blob/master/05.md' target='_blank' rel='noreferrer'>NIP-05</a></small></h4>}
-            body={
-              <>
-                <Input
-                  label={<>pubkey <small className='text-muted ms-2'>optional</small></>}
-                  name='nostrPubkey'
-                  clear
-                />
-                <VariableInput
-                  label={<>relays <small className='text-muted ms-2'>optional</small></>}
-                  name='nostrRelays'
-                  clear
-                  min={0}
-                  max={NOSTR_MAX_RELAY_NUM}
-                />
-              </>
-              }
+          <h4>nostr</h4>
+          <Checkbox
+            label={
+              <div className='d-flex align-items-center'>crosspost to nostr
+                <Info>
+                  <ul className='fw-bold'>
+                    <li>crosspost discussions to nostr</li>
+                    <li>requires NIP-07 extension for signing</li>
+                    <li>we use your NIP-05 relays if set</li>
+                    <li>otherwise we default to these relays:</li>
+                    <ul>
+                      {DEFAULT_CROSSPOSTING_RELAYS.map((relay, i) => (
+                        <li key={i}>{relay}</li>
+                      ))}
+                    </ul>
+                  </ul>
+                </Info>
+              </div>
+            }
+            name='nostrCrossposting'
+          />
+          <Input
+            label={<>pubkey <small className='text-muted ms-2'>optional</small></>}
+            name='nostrPubkey'
+            clear
+            hint={<small className='text-muted'>used for NIP-05</small>}
+          />
+          <VariableInput
+            label={<>relays <small className='text-muted ms-2'>optional</small></>}
+            name='nostrRelays'
+            clear
+            min={0}
+            max={NOSTR_MAX_RELAY_NUM}
+            hint={<small className='text-muted'>used for NIP-05 and crossposting</small>}
           />
           <div className='d-flex'>
             <SubmitButton variant='info' className='ms-auto mt-1 px-4'>save</SubmitButton>

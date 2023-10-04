@@ -33,7 +33,7 @@ export function checkInvoice ({ boss, models, lnd }) {
         models.$executeRaw`SELECT confirm_invoice(${inv.id}, ${Number(inv.received_mtokens)})`)
       sendUserNotification(dbInv.userId, {
         title: `${numWithUnits(msatsToSats(inv.received_mtokens), { abbreviate: false })} were deposited in your account`,
-        body: dbInv.comment,
+        body: dbInv.comment || undefined,
         tag: 'DEPOSIT'
       }).catch(console.error)
       return boss.send('nip57', { hash })

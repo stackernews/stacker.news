@@ -9,6 +9,7 @@ import getSSRApolloClient from '../../api/ssrApollo'
 import Link from 'next/link'
 import { CenterLayout } from '../../components/layout'
 import { getAuthOptions } from '../api/auth/[...nextauth]'
+import { sendUserNotification } from '../../api/webPush'
 
 export async function getServerSideProps ({ req, res, query: { id, error = null } }) {
   const session = await getServerSession(req, res, getAuthOptions(req))
@@ -36,6 +37,8 @@ export async function getServerSideProps ({ req, res, query: { id, error = null 
       // catch any errors and just ignore them for now
       await serialize(models,
         models.$queryRawUnsafe('SELECT invite_drain($1::INTEGER, $2::INTEGER)', session.user.id, id))
+      const invite = await models.invite.findUnique({ where: { id } })
+      sendUserNotification(invite.userId, { title: 'your invite has been redeemed', tag: 'INVITE' }).catch(console.error)
     } catch (e) {
       console.log(e)
     }

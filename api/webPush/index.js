@@ -39,6 +39,7 @@ const createUserFilter = (tag) => {
     TIP: 'noteItemSats',
     FORWARDEDTIP: 'noteForwardedSats',
     REFERRAL: 'noteInvites',
+    INVITE: 'noteInvites',
     EARN: 'noteEarning',
     DEPOSIT: 'noteDeposits',
     STREAK: 'noteCowboyHat'

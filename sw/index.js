@@ -76,6 +76,8 @@ self.addEventListener('push', async function (event) {
       newTitle = `You were mentioned ${amount} times`
     } else if (tag === 'REFERRAL') {
       newTitle = `${amount} stackers joined via your referral links`
+    } else if (tag === 'INVITE') {
+      newTitle = `your invite has been redeemed by ${amount} stackers`
     } else if (tag === 'DEPOSIT') {
       const currentAmount = Number(currentNotification.title.split(' ')[0])
       const incomingAmount = Number(title.split(' ')[0])

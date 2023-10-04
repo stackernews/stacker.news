@@ -82,57 +82,59 @@ export default function Search ({ sub }) {
               </SubmitButton>
             </div>
             {filter &&
-              <div className='text-muted fw-bold d-flex align-items-center'>
-                <Select
-                  groupClassName='me-2 mb-0'
-                  onChange={(formik, e) => search({ ...formik?.values, what: e.target.value })}
-                  name='what'
-                  size='sm'
-                  overrideValue={what}
-                  items={['all', 'posts', 'comments', 'stackers']}
-                />
-                {what !== 'stackers' &&
-                  <>
-                    by
-                    <Select
-                      groupClassName='mx-2 mb-0'
-                      onChange={(formik, e) => search({ ...formik?.values, sort: e.target.value })}
-                      name='sort'
-                      size='sm'
-                      overrideValue={sort}
-                      items={['zaprank', 'match', 'recent', 'comments', 'sats']}
-                    />
-                    for
-                    <Select
-                      groupClassName='mb-0 ms-2'
-                      onChange={(formik, e) => {
-                        search({ ...formik?.values, when: e.target.value, from: from || new Date().toISOString(), to: to || new Date().toISOString() })
-                        setDatePicker(e.target.value === 'custom')
-                        if (e.target.value === 'custom') setRange({ start: new Date(), end: new Date() })
-                      }}
-                      name='when'
-                      size='sm'
-                      overrideValue={when}
-                      items={['custom', 'forever', 'day', 'week', 'month', 'year']}
-                    />
-                    {datePicker &&
-                      <DatePicker
-                        fromName='from' toName='to'
-                        className='form-control ms-2 p-0 px-2'
-                        onMount={() => {
-                          setRange({ start: new Date(from), end: new Date(to) })
-                          return [from, to]
+              <div className='text-muted fw-bold d-flex align-items-center flex-wrap'>
+                <div className='text-muted fw-bold d-flex align-items-center pb-2'>
+                  <Select
+                    groupClassName='me-2 mb-0'
+                    onChange={(formik, e) => search({ ...formik?.values, what: e.target.value })}
+                    name='what'
+                    size='sm'
+                    overrideValue={what}
+                    items={['all', 'posts', 'comments', 'stackers']}
+                  />
+                  {what !== 'stackers' &&
+                    <>
+                      by
+                      <Select
+                        groupClassName='mx-2 mb-0'
+                        onChange={(formik, e) => search({ ...formik?.values, sort: e.target.value })}
+                        name='sort'
+                        size='sm'
+                        overrideValue={sort}
+                        items={['zaprank', 'match', 'recent', 'comments', 'sats']}
+                      />
+                      for
+                      <Select
+                        groupClassName='mb-0 mx-2'
+                        onChange={(formik, e) => {
+                          search({ ...formik?.values, when: e.target.value, from: from || new Date().toISOString(), to: to || new Date().toISOString() })
+                          setDatePicker(e.target.value === 'custom')
+                          if (e.target.value === 'custom') setRange({ start: new Date(), end: new Date() })
                         }}
-                        onChange={(formik, [start, end], e) => {
-                          setRange({ start, end })
-                          search({ ...formik?.values, from: start && start.toISOString(), to: end && end.toISOString() })
-                        }}
-                        selected={range.start}
-                        startDate={range.start} endDate={range.end}
-                        selectsRange
-                        maxDate={new Date()}
-                      />}
-                  </>}
+                        name='when'
+                        size='sm'
+                        overrideValue={when}
+                        items={['custom', 'forever', 'day', 'week', 'month', 'year']}
+                      />
+                    </>}
+                </div>
+                {datePicker &&
+                  <DatePicker
+                    fromName='from' toName='to'
+                    className='form-control p-0 px-2 mb-2'
+                    onMount={() => {
+                      setRange({ start: new Date(from), end: new Date(to) })
+                      return [from, to]
+                    }}
+                    onChange={(formik, [start, end], e) => {
+                      setRange({ start, end })
+                      search({ ...formik?.values, from: start && start.toISOString(), to: end && end.toISOString() })
+                    }}
+                    selected={range.start}
+                    startDate={range.start} endDate={range.end}
+                    selectsRange
+                    maxDate={new Date()}
+                  />}
               </div>}
           </Form>
         </Container>

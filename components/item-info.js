@@ -133,6 +133,8 @@ export default function ItemInfo ({
         </>}
       <ActionDropdown>
         <CopyLinkDropdownItem item={item} />
+        {(item.parentId || item.text) && onQuoteReply &&
+          <Dropdown.Item onClick={onQuoteReply}>quote reply</Dropdown.Item>}
         {me && <BookmarkDropdownItem item={item} />}
         {me && !item.mine && <SubscribeDropdownItem item={item} />}
         {item.otsHash &&
@@ -148,8 +150,6 @@ export default function ItemInfo ({
             <hr className='dropdown-divider' />
             <MuteDropdownItem user={item.user} />
           </>}
-        {(item.parentId || item.text) && onQuoteReply &&
-          <Dropdown.Item onClick={onQuoteReply}>quote reply</Dropdown.Item>}
       </ActionDropdown>
       {extraInfo}
     </div>

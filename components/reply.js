@@ -41,13 +41,14 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
   const replyInput = useRef(null)
   const formInnerRef = useRef()
   useImperativeHandle(ref, () => ({
-    quoteReply: () => {
+    quoteReply: ({ selectionOnly }) => {
       if (!reply) {
         setReply(true)
       }
       const selection = window.getSelection()
       const selectedText = selection.isCollapsed ? undefined : selection.toString()
       const isSelectedTextInTarget = contentContainerRef?.current?.contains(selection.anchorNode)
+      if ((selection.isCollapsed || !isSelectedTextInTarget) && selectionOnly) return
       const textToQuote = isSelectedTextInTarget ? selectedText : item.text
       let updatedValue
       if (formInnerRef.current && formInnerRef.current.values && !formInnerRef.current.values.text) {
@@ -133,7 +134,13 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
         : (
           <div className={styles.replyButtons}>
             <div
-              onClick={() => setReply(!reply)}
+              onPointerDown={e => {
+                if (!reply) {
+                  e.preventDefault()
+                  ref?.current?.quoteReply({ selectionOnly: true })
+                }
+                setReply(!reply)
+              }}
             >
               {reply ? 'cancel' : 'reply'}
             </div>

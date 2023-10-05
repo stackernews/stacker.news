@@ -292,6 +292,9 @@ export default {
           ...payer,
           identifier: payer.identifier ? me.name : undefined
         }
+        payer = Object.fromEntries(
+          Object.entries(payer).filter(([, value]) => !!value)
+        )
       }
 
       const milliamount = 1000 * amount
@@ -303,7 +306,7 @@ export default {
       }
 
       let encodedPayerData = ''
-      if (payer) {
+      if (payer && Object.entries(payer).length) {
         encodedPayerData = encodeURIComponent(JSON.stringify(payer))
         callback.searchParams.append('payerdata', encodedPayerData)
       }

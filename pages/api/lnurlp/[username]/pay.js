@@ -47,8 +47,8 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
       return res.status(400).json({ status: 'ERROR', reason: `comment cannot exceed ${LNURLP_COMMENT_MAX_LENGTH} characters in length` })
     }
 
+    let parsedPayerData
     if (payerData) {
-      let parsedPayerData
       try {
         parsedPayerData = JSON.parse(decodeURIComponent(payerData))
       } catch (err) {
@@ -81,7 +81,7 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
     await serialize(models,
       models.$queryRaw`SELECT * FROM create_invoice(${invoice.id}, ${invoice.request},
         ${expiresAt}::timestamp, ${Number(amount)}, ${user.id}::INTEGER, ${noteStr || description},
-        ${comment || null}, ${payerData || null}::JSONB, ${INV_PENDING_LIMIT}::INTEGER, ${BALANCE_LIMIT_MSATS})`)
+        ${comment || null}, ${parsedPayerData || null}::JSONB, ${INV_PENDING_LIMIT}::INTEGER, ${BALANCE_LIMIT_MSATS})`)
 
     return res.status(200).json({
       pr: invoice.request,

@@ -290,7 +290,7 @@ export default {
       if (payer) {
         payer = {
           ...payer,
-          identifier: payer.identifier ? me.name : undefined
+          identifier: payer.identifier ? `${me.name}@stacker.news` : undefined
         }
         payer = Object.fromEntries(
           Object.entries(payer).filter(([, value]) => !!value)
@@ -305,10 +305,10 @@ export default {
         callback.searchParams.append('comment', comment)
       }
 
-      let encodedPayerData = ''
+      let stringifiedPayerData = ''
       if (payer && Object.entries(payer).length) {
-        encodedPayerData = encodeURIComponent(JSON.stringify(payer))
-        callback.searchParams.append('payerdata', encodedPayerData)
+        stringifiedPayerData = JSON.stringify(payer)
+        callback.searchParams.append('payerdata', stringifiedPayerData)
       }
 
       // call callback with amount and conditionally comment
@@ -320,7 +320,7 @@ export default {
       // decode invoice
       try {
         const decoded = await decodePaymentRequest({ lnd, request: res.pr })
-        if (decoded.description_hash !== lnurlPayDescriptionHash(`${options.metadata}${encodedPayerData}`)) {
+        if (decoded.description_hash !== lnurlPayDescriptionHash(`${options.metadata}${stringifiedPayerData}`)) {
           throw new Error('description hash does not match')
         }
         if (!decoded.mtokens || BigInt(decoded.mtokens) !== BigInt(milliamount)) {

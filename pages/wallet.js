@@ -319,7 +319,7 @@ export function LnAddrWithdrawal () {
 
     setAddrOptions(options)
     setFormSchema(lnAddrSchema(options))
-  }, 500, [])
+  }, 500, [setAddrOptions, setFormSchema])
 
   return (
     <>

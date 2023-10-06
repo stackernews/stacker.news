@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
+import useNoInitialEffect from './use-no-initial-effect'
 
 export function debounce (fn, time) {
   let timeoutId
@@ -19,6 +20,6 @@ export function debounce (fn, time) {
 export default function useDebounceCallback (fn, time, deps = []) {
   const [args, setArgs] = useState([])
   const memoFn = useCallback(fn, deps)
-  useEffect(debounce(() => memoFn(...args), time), [memoFn, time, args, ...deps])
+  useNoInitialEffect(debounce(() => memoFn(...args), time), [memoFn, time, args, ...deps])
   return useCallback((...args) => setArgs(args), [])
 }

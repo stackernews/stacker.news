@@ -2,8 +2,6 @@ import { gql, useMutation } from '@apollo/client'
 import Dropdown from 'react-bootstrap/Dropdown'
 import { useShowModal } from './modal'
 import { useToast } from './toast'
-import { InvoiceModal, payOrLoginError } from './invoice'
-import { DONT_LIKE_THIS_COST } from '../lib/constants'
 import ItemAct from './item-act'
 
 export default function DontLikeThisDropdownItem ({ id }) {
@@ -40,22 +38,7 @@ export default function DontLikeThisDropdownItem ({ id }) {
               }} itemId={id} act={dontLikeThis} down
             />)
         } catch (error) {
-          console.error(error)
-          if (payOrLoginError(error)) {
-            showModal(onClose => {
-              return (
-                <InvoiceModal
-                  amount={DONT_LIKE_THIS_COST}
-                  onPayment={async ({ hash, hmac }) => {
-                    await dontLikeThis({ variables: { id, hash, hmac } })
-                    toaster.success('item flagged')
-                  }}
-                />
-              )
-            })
-          } else {
-            toaster.danger('failed to flag item')
-          }
+          toaster.danger('failed to flag item')
         }
       }}
     >

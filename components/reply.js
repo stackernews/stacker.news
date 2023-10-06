@@ -40,15 +40,42 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
   const parentId = item.id
   const replyInput = useRef(null)
   const formInnerRef = useRef()
+
+  // Start block to handle iOS Safari's weird selection clearing behavior
+  const savedRange = useRef()
+  const savedRangeNode = useRef()
+  const onTouchEnd = useCallback(() => {
+    const selection = document.getSelection()
+    if (!selection || selection.rangeCount === 0 || selection.getRangeAt(0).length === 0) {
+      return
+    }
+    const range = selection.getRangeAt(0)
+    savedRangeNode.current = range.commonAncestorContainer
+    savedRange.current = range.cloneContents()
+  }, [])
+  useEffect(() => {
+    document.addEventListener('touchend', onTouchEnd)
+    return () => document.removeEventListener('touchend', onTouchEnd)
+  }, [])
+  // End block to handle iOS Safari's weird selection clearing behavior
+
   useImperativeHandle(ref, () => ({
     quoteReply: ({ selectionOnly }) => {
       if (!reply) {
         setReply(true)
       }
       const selection = window.getSelection()
-      const selectedText = selection.isCollapsed ? undefined : selection.toString()
-      const isSelectedTextInTarget = contentContainerRef?.current?.contains(selection.anchorNode)
-      if ((selection.isCollapsed || !isSelectedTextInTarget) && selectionOnly) return
+      let selectedText = selection.isCollapsed ? undefined : selection.toString()
+      let isSelectedTextInTarget = contentContainerRef?.current?.contains(selection.anchorNode)
+
+      // Start block to handle iOS Safari's weird selection clearing behavior
+      if (!selectedText && savedRange.current && savedRangeNode.current) {
+        selectedText = savedRange.current.textContent
+        isSelectedTextInTarget = contentContainerRef?.current?.contains(savedRangeNode.current)
+      }
+      // End block to handle iOS Safari's weird selection clearing behavior
+
+      if ((selection.isCollapsed || !isSelectedTextInTarget || !selectedText) && selectionOnly) return
       const textToQuote = isSelectedTextInTarget ? selectedText : item.text
       let updatedValue
       if (formInnerRef.current && formInnerRef.current.values && !formInnerRef.current.values.text) {

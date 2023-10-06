@@ -20,6 +20,6 @@ export function debounce (fn, time) {
 export default function useDebounceCallback (fn, time, deps = []) {
   const [args, setArgs] = useState([])
   const memoFn = useCallback(fn, deps)
-  useNoInitialEffect(debounce(() => memoFn(...args), time), [memoFn, time, args, ...deps])
+  useNoInitialEffect(debounce(() => memoFn(...args), time), [memoFn, time, args])
   return useCallback((...args) => setArgs(args), [])
 }

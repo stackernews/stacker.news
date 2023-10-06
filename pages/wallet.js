@@ -302,6 +302,12 @@ export function LnAddrWithdrawal () {
   const [formSchema, setFormSchema] = useState(lnAddrSchema())
 
   const onAddrChange = useDebounceCallback(async (formik, e) => {
+    if (!e?.target?.value) {
+      setAddrOptions(defaultOptions)
+      setFormSchema(lnAddrSchema())
+      return
+    }
+
     let options
     try {
       options = await lnAddrOptions(e.target.value)
@@ -313,7 +319,7 @@ export function LnAddrWithdrawal () {
 
     setAddrOptions(options)
     setFormSchema(lnAddrSchema(options))
-  }, 500, [lnAddrOptions, lnAddrSchema])
+  }, 500, [])
 
   return (
     <>

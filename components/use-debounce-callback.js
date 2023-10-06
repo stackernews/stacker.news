@@ -18,6 +18,7 @@ export function debounce (fn, time) {
 
 export default function useDebounceCallback (fn, time, deps = []) {
   const [args, setArgs] = useState([])
-  useEffect(debounce(() => fn(...args), time), [fn, time, args, ...deps])
+  const memoFn = useCallback(fn, deps)
+  useEffect(debounce(() => memoFn(...args), time), [memoFn, time, args, ...deps])
   return useCallback((...args) => setArgs(args), [])
 }

@@ -86,12 +86,12 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, ...o
   const Code = useCallback(({ node, inline, className, children, style, ...props }) => {
     return inline
       ? (
-        <code className={className} style={atomDark} {...props}>
+        <code className={className} {...props}>
           {children}
         </code>
         )
       : (
-        <SyntaxHighlighter showLineNumbers style={atomDark} PreTag='div' {...props}>
+        <SyntaxHighlighter style={atomDark} language='text' PreTag='div' {...props}>
           {children}
         </SyntaxHighlighter>
         )

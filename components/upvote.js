@@ -5,14 +5,15 @@ import ActionTooltip from './action-tooltip'
 import ItemAct from './item-act'
 import { useMe } from './me'
 import Rainbow from '../lib/rainbow'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import LongPressable from 'react-longpressable'
 import Overlay from 'react-bootstrap/Overlay'
 import Popover from 'react-bootstrap/Popover'
 import { useShowModal } from './modal'
 import { LightningConsumer, useLightning } from './lightning'
 import { numWithUnits } from '../lib/format'
-import { InvoiceModal, payOrLoginError } from './invoice'
+import { payOrLoginError, useInvoiceModal } from './invoice'
+import useDebounceCallback from './use-debounce-callback'
 
 const getColor = (meSats) => {
   if (!meSats || meSats <= 10) {
@@ -69,7 +70,6 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
   const [voteShow, _setVoteShow] = useState(false)
   const [tipShow, _setTipShow] = useState(false)
   const ref = useRef()
-  const timerRef = useRef(null)
   const me = useMe()
   const strike = useLightning()
   const [setWalkthrough] = useMutation(
@@ -153,55 +153,33 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
       }
     }
   )
+  const showInvoiceModal = useInvoiceModal(
+    async ({ hash, hmac }, { variables }) => {
+      await act({ variables: { ...variables, hash, hmac } })
+      strike()
+    }, [act, strike])
 
-  // if we want to use optimistic response, we need to buffer the votes
-  // because if someone votes in quick succession, responses come back out of order
-  // so we wait a bit to see if there are more votes coming in
-  // this effectively performs our own debounced optimistic response
-  useEffect(() => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current)
-    }
-
-    if (pendingSats > 0) {
-      timerRef.current = setTimeout(async (sats) => {
-        const variables = { id: item.id, sats: pendingSats }
-        try {
-          timerRef.current && setPendingSats(0)
-          await act({
-            variables,
-            optimisticResponse: {
-              act: {
-                sats
-              }
-            }
-          })
-        } catch (error) {
-          if (payOrLoginError(error)) {
-            showModal(onClose => {
-              return (
-                <InvoiceModal
-                  amount={pendingSats}
-                  onPayment={async ({ hash, hmac }) => {
-                    await act({ variables: { ...variables, hash, hmac } })
-                    strike()
-                  }}
-                />
-              )
-            })
-            return
+  const zap = useDebounceCallback(async (sats) => {
+    if (!sats) return
+    const variables = { id: item.id, sats }
+    try {
+      setPendingSats(0)
+      await act({
+        variables,
+        optimisticResponse: {
+          act: {
+            sats
           }
-          if (!timerRef.current) return
-          throw new Error({ message: error.toString() })
         }
-      }, 500, pendingSats)
+      })
+    } catch (error) {
+      if (payOrLoginError(error)) {
+        showInvoiceModal({ amount: sats }, { variables })
+        return
+      }
+      throw new Error({ message: error.toString() })
     }
-
-    return async () => {
-      clearTimeout(timerRef.current)
-      timerRef.current = null
-    }
-  }, [pendingSats, act, item, showModal, setPendingSats])
+  }, 500, [act, item?.id, showInvoiceModal, setPendingSats])
 
   const disabled = useMemo(() => item?.mine || item?.meForward || item?.deletedAt,
     [item?.mine, item?.meForward, item?.deletedAt])
@@ -258,7 +236,11 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
 
                 strike()
 
-                setPendingSats(pendingSats + sats)
+                setPendingSats(pendingSats => {
+                  const zapAmount = pendingSats + sats
+                  zap(zapAmount)
+                  return zapAmount
+                })
               }
               : () => showModal(onClose => <ItemAct onClose={onClose} itemId={item.id} act={act} strike={strike} />)
           }

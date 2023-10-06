@@ -50,7 +50,7 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
     let parsedPayerData
     if (payerData) {
       try {
-        parsedPayerData = JSON.parse(decodeURIComponent(payerData))
+        parsedPayerData = JSON.parse(payerData)
       } catch (err) {
         console.error('failed to parse payerdata', err)
         return res.status(400).json({ status: 'ERROR', reason: 'Invalid JSON supplied for payerdata parameter' })

@@ -7,13 +7,11 @@ import styles from './poll.module.css'
 import Check from '../svgs/checkbox-circle-fill.svg'
 import { signIn } from 'next-auth/react'
 import ActionTooltip from './action-tooltip'
-import { useShowModal } from './modal'
 import { POLL_COST } from '../lib/constants'
-import { InvoiceModal } from './invoice'
+import { payOrLoginError, useInvoiceModal } from './invoice'
 
 export default function Poll ({ item }) {
   const me = useMe()
-  const showModal = useShowModal()
   const [pollVote] = useMutation(
     gql`
       mutation pollVote($id: ID!, $hash: String, $hmac: String) {
@@ -47,6 +45,12 @@ export default function Poll ({ item }) {
   )
 
   const PollButton = ({ v }) => {
+    const showInvoiceModal = useInvoiceModal(async ({ hash, hmac }, { variables }) => {
+      await pollVote({ variables: { ...variables, hash, hmac } })
+    }, [pollVote])
+
+    const variables = { id: v.id }
+
     return (
       <ActionTooltip placement='left' notForm>
         <Button
@@ -55,22 +59,17 @@ export default function Poll ({ item }) {
             ? async () => {
               try {
                 await pollVote({
-                  variables: { id: v.id },
+                  variables,
                   optimisticResponse: {
                     pollVote: v.id
                   }
                 })
               } catch (error) {
-                showModal(onClose => {
-                  return (
-                    <InvoiceModal
-                      amount={item.pollCost || POLL_COST}
-                      onPayment={async ({ hash, hmac }) => {
-                        await pollVote({ variables: { id: v.id, hash, hmac } })
-                      }}
-                    />
-                  )
-                })
+                if (payOrLoginError(error)) {
+                  showInvoiceModal({ amount: item.pollCost || POLL_COST }, { variables })
+                  return
+                }
+                throw new Error({ message: error.toString() })
               }
             }
             : signIn}

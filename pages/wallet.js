@@ -21,6 +21,7 @@ import styles from '../components/user-header.module.css'
 import HiddenWalletSummary from '../components/hidden-wallet-summary'
 import AccordianItem from '../components/accordian-item'
 import { lnAddrOptions } from '../lib/lnurl'
+import useDebounceCallback from '../components/use-debounce-callback'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -300,7 +301,13 @@ export function LnAddrWithdrawal () {
   const [addrOptions, setAddrOptions] = useState(defaultOptions)
   const [formSchema, setFormSchema] = useState(lnAddrSchema())
 
-  const onAddrChange = async (formik, e) => {
+  const onAddrChange = useDebounceCallback(async (formik, e) => {
+    if (!e?.target?.value) {
+      setAddrOptions(defaultOptions)
+      setFormSchema(lnAddrSchema())
+      return
+    }
+
     let options
     try {
       options = await lnAddrOptions(e.target.value)
@@ -312,7 +319,7 @@ export function LnAddrWithdrawal () {
 
     setAddrOptions(options)
     setFormSchema(lnAddrSchema(options))
-  }
+  }, 500, [setAddrOptions, setFormSchema])
 
   return (
     <>

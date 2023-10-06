@@ -149,6 +149,9 @@ const defaultOptions = {
   callback: null, // (formValues) => void
   replaceModal: false
 }
+// TODO: refactor this so it can be easily understood
+// there's lots of state cascading paired with logic
+// independent of the state, and it's hard to follow
 export const useInvoiceable = (onSubmit, options = defaultOptions) => {
   const me = useMe()
   const [createInvoice, { data }] = useMutation(gql`
@@ -247,17 +250,14 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
     // tell onSubmit handler that we want to keep local storage
     // even though the submit handler was "successful"
     return { keepLocalStorage: true }
-  }, [onSubmit, setFormValues, setSubmitArgs, createInvoice])
+  }, [onSubmit, setFormValues, setSubmitArgs, createInvoice, !!me])
 
   return onSubmitWrapper
 }
 
-export const InvoiceModal = ({ onPayment, amount }) => {
-  const createInvoice = useInvoiceable(onPayment, { replaceModal: true })
-
-  useEffect(() => {
-    createInvoice({ amount })
-  }, [])
+export const useInvoiceModal = (onPayment, deps) => {
+  const onPaymentMemo = useCallback(onPayment, deps)
+  return useInvoiceable(onPaymentMemo, { replaceModal: true })
 }
 
 export const payOrLoginError = (error) => {

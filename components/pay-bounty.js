@@ -7,7 +7,7 @@ import { useMe } from './me'
 import { numWithUnits } from '../lib/format'
 import { useShowModal } from './modal'
 import { useRoot } from './root'
-import { InvoiceModal, payOrLoginError } from './invoice'
+import { payOrLoginError, useInvoiceModal } from './invoice'
 
 export default function PayBounty ({ children, item }) {
   const me = useMe()
@@ -59,6 +59,9 @@ export default function PayBounty ({ children, item }) {
       }
     }
   )
+  const showInvoiceModal = useInvoiceModal(async ({ hash, hmac }, { variables }) => {
+    await act({ variables: { ...variables, hash, hmac } })
+  }, [act])
 
   const handlePayBounty = async onComplete => {
     try {
@@ -74,16 +77,7 @@ export default function PayBounty ({ children, item }) {
       onComplete()
     } catch (error) {
       if (payOrLoginError(error)) {
-        showModal(onClose => {
-          return (
-            <InvoiceModal
-              amount={root.bounty}
-              onPayment={async ({ hash, hmac }) => {
-                await act({ variables: { id: item.id, sats: root.bounty, hash, hmac } })
-              }}
-            />
-          )
-        })
+        showInvoiceModal({ amount: root.bounty }, { variables: { id: item.id, sats: root.bounty } })
         return
       }
       throw new Error({ message: error.toString() })

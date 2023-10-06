@@ -24,6 +24,7 @@ import { numWithUnits } from '../lib/format'
 import textAreaCaret from 'textarea-caret'
 import ReactDatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
+import { debounce } from './use-debounce-callback'
 
 export function SubmitButton ({
   children, variant, value, onClick, disabled, cost, ...props
@@ -290,7 +291,7 @@ function FormGroup ({ className, label, children }) {
 
 function InputInner ({
   prepend, append, hint, showValid, onChange, onBlur, overrideValue,
-  innerRef, noForm, clear, onKeyDown, inputGroupClassName, debounce, maxLength,
+  innerRef, noForm, clear, onKeyDown, inputGroupClassName, debounce: debounceTime, maxLength,
   ...props
 }) {
   const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)
@@ -317,17 +318,11 @@ function InputInner ({
 
   const invalid = (!formik || formik.submitCount > 0) && meta.touched && meta.error
 
-  const debounceRef = useRef(-1)
-
-  useEffect(() => {
-    if (debounceRef.current !== -1) {
-      clearTimeout(debounceRef.current)
+  useEffect(debounce(() => {
+    if (!noForm && !isNaN(debounceTime) && debounceTime > 0) {
+      formik.validateForm()
     }
-    if (!noForm && !isNaN(debounce) && debounce > 0) {
-      debounceRef.current = setTimeout(() => formik.validateForm(), debounce)
-    }
-    return () => clearTimeout(debounceRef.current)
-  }, [noForm, formik, field.value])
+  }, debounceTime), [noForm, formik, field.value])
 
   const remaining = maxLength && maxLength - (field.value || '').length
 

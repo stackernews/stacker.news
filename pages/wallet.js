@@ -8,7 +8,7 @@ import { CenterLayout } from '../components/layout'
 import InputGroup from 'react-bootstrap/InputGroup'
 import { WithdrawlSkeleton } from './withdrawals/[id]'
 import { useMe } from '../components/me'
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { requestProvider } from 'webln'
 import Alert from 'react-bootstrap/Alert'
 import { CREATE_WITHDRAWL, SEND_TO_LNADDR } from '../fragments/wallet'
@@ -21,7 +21,7 @@ import styles from '../components/user-header.module.css'
 import HiddenWalletSummary from '../components/hidden-wallet-summary'
 import AccordianItem from '../components/accordian-item'
 import { lnAddrOptions } from '../lib/lnurl'
-import debounce from 'lodash.debounce'
+import useDebounceCallback from '../components/use-debounce-callback'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -301,7 +301,7 @@ export function LnAddrWithdrawal () {
   const [addrOptions, setAddrOptions] = useState(defaultOptions)
   const [formSchema, setFormSchema] = useState(lnAddrSchema())
 
-  const onAddrChange = useCallback(debounce(async (formik, e) => {
+  const onAddrChange = useDebounceCallback(async (formik, e) => {
     let options
     try {
       options = await lnAddrOptions(e.target.value)
@@ -313,7 +313,7 @@ export function LnAddrWithdrawal () {
 
     setAddrOptions(options)
     setFormSchema(lnAddrSchema(options))
-  }, 500), [lnAddrOptions, lnAddrSchema])
+  }, 500, [lnAddrOptions, lnAddrSchema])
 
   return (
     <>

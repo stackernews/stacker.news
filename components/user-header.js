@@ -22,6 +22,8 @@ import SubscribeUserDropdownItem from './subscribeUser'
 import ActionDropdown from './action-dropdown'
 import CodeIcon from '../svgs/terminal-box-fill.svg'
 import MuteDropdownItem from './mute'
+import copy from 'clipboard-copy'
+import { useToast } from './toast'
 
 export default function UserHeader ({ user }) {
   const router = useRouter()
@@ -180,6 +182,7 @@ function HeaderNym ({ user, isMe }) {
 function HeaderHeader ({ user }) {
   const me = useMe()
   const showModal = useShowModal()
+  const toaster = useToast()
 
   const isMe = me?.name === user.name
   const Satistics = () => (
@@ -196,6 +199,12 @@ function HeaderHeader ({ user }) {
         <Satistics user={user} />
         <Button
           className='fw-bold ms-0' onClick={() => {
+            copy(`${user.name}@stacker.news`)
+              .then(() => {
+                toaster.success(`copied ${user.name}@stacker.news to clipboard`)
+              }).catch(() => {
+                toaster.error(`failed to copy ${user.name}@stacker.news to clipboard`)
+              })
             showModal(({ onClose }) => (
               <>
                 <a className='d-flex m-auto p-3' style={{ background: 'white', width: 'fit-content' }} href={`lightning:${lnurlp}`}>

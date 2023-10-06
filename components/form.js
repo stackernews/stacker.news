@@ -596,7 +596,7 @@ export function Form ({
   const toaster = useToast()
   const initialErrorToasted = useRef(false)
   useEffect(() => {
-    if (initialError && !initialErrorToasted) {
+    if (initialError && !initialErrorToasted.current) {
       toaster.danger(initialError.message || initialError.toString?.())
       initialErrorToasted.current = true
     }

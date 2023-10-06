@@ -183,7 +183,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
                 const currentSegment = value.substring(priorSpace + 1, nextSpace)
 
                 // set the query to the current character segment and note where it appears
-                if (/^@[\w_]+$/.test(currentSegment)) {
+                if (/^@[\w_]*$/.test(currentSegment)) {
                   setMentionQuery(currentSegment)
                   setMentionIndices({ start: priorSpace + 1, end: nextSpace })
                 } else {

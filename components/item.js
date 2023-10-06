@@ -74,10 +74,9 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
             </Link>
             {item.url && !image &&
               <>
-                {/*  eslint-disable-next-line */}
                 <a
                   className={styles.link} target='_blank' href={item.url}
-                  rel={item.sats + item.boost >= NOFOLLOW_LIMIT ? null : 'nofollow'}
+                  rel={`noreferrer ${item.sats + item.boost >= NOFOLLOW_LIMIT ? '' : 'nofollow'} noopener`}
                 >
                   {item.url.replace(/(^https?:|^)\/\//, '')}
                 </a>

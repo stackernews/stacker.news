@@ -112,7 +112,8 @@ export default function ZoomableImage ({ src, srcSet, ...props }) {
     fullScreen: true,
     overflow: (
       <Dropdown.Item
-        href={originalUrl} target='_blank' rel='noreferrer'
+        href={originalUrl} target='_blank'
+        rel={`noreferrer ${props.nofollow ? 'nofollow' : ''} noopener`}
       >
         open original
       </Dropdown.Item>)

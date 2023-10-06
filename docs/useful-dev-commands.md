@@ -3,7 +3,7 @@
 ### `nvm use 18`
 Switch to use nodejs version 18 in your current shell
 
-### `docker-compose up -d`
+### `docker-compose up --build -d`
 Bring up stacker news app via local docker services
 
 ### `docker-compose down`

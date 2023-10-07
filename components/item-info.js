@@ -110,7 +110,7 @@ export default function ItemInfo ({
         <Link href='/recent/outlawed'>
           {' '}<Badge className={styles.newComment} bg={null}>outlawed</Badge>
         </Link>) ||
-        (item.freebie &&
+        (item.freebie && !item.position &&
           <Link href='/recent/freebies'>
             {' '}<Badge className={styles.newComment} bg={null}>freebie</Badge>
           </Link>

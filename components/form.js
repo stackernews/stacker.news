@@ -4,7 +4,6 @@ import BootstrapForm from 'react-bootstrap/Form'
 import { Formik, Form as FormikForm, useFormikContext, useField, FieldArray } from 'formik'
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import copy from 'clipboard-copy'
-import Thumb from '../svgs/thumb-up-fill.svg'
 import Col from 'react-bootstrap/Col'
 import Dropdown from 'react-bootstrap/Dropdown'
 import Nav from 'react-bootstrap/Nav'
@@ -53,12 +52,15 @@ export function SubmitButton ({
 }
 
 export function CopyInput (props) {
-  const [copied, setCopied] = useState(false)
+  const toaster = useToast()
 
-  const handleClick = () => {
-    copy(props.placeholder)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
+  const handleClick = async () => {
+    try {
+      await copy(props.placeholder)
+      toaster.success('copied')
+    } catch (err) {
+      toaster.danger('failed to copy')
+    }
   }
 
   return (
@@ -69,10 +71,9 @@ export function CopyInput (props) {
           className={styles.appendButton}
           size={props.size}
           onClick={handleClick}
-        >
-          {copied ? <Thumb width={18} height={18} /> : 'copy'}
+        >copy
         </Button>
-}
+      }
       {...props}
     />
   )

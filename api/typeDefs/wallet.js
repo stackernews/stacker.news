@@ -30,6 +30,7 @@ export default gql`
     lud18Data: JSONObject
     hmac: String
     isHeld: Boolean
+    preimage: String
   }
 
   type Withdrawl {
@@ -42,6 +43,7 @@ export default gql`
     satsFeePaying: Int!
     satsFeePaid: Int
     status: String
+    preimage: String
   }
 
   type Fact {

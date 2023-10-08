@@ -1,4 +1,4 @@
-import { createHodlInvoice, createInvoice, decodePaymentRequest, payViaPaymentRequest, cancelHodlInvoice } from 'ln-service'
+import { createHodlInvoice, createInvoice, decodePaymentRequest, payViaPaymentRequest, cancelHodlInvoice, getInvoice as getInvoiceFromLnd } from 'ln-service'
 import { GraphQLError } from 'graphql'
 import crypto from 'crypto'
 import serialize from './serial'
@@ -40,6 +40,13 @@ export async function getInvoice (parent, { id }, { me, models, lnd }) {
   } catch (err) {
   }
 
+  try {
+    const lnInv = await getInvoiceFromLnd({ id: inv.hash, lnd })
+    inv.preimage = lnInv.secret
+  } catch (err) {
+    console.error('error fetching invoice from LND', err)
+  }
+
   return inv
 }
 
@@ -67,6 +74,13 @@ export default {
 
       if (wdrwl.user.id !== me.id) {
         throw new GraphQLError('not ur withdrawal', { extensions: { code: 'FORBIDDEN' } })
+      }
+
+      try {
+        const lnInv = await getInvoiceFromLnd({ id: wdrwl.hash, lnd })
+        wdrwl.preimage = lnInv.secret
+      } catch (err) {
+        console.error('error fetching invoice from LND', err)
       }
 
       return wdrwl

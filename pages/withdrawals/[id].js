@@ -8,6 +8,7 @@ import { WITHDRAWL } from '../../fragments/wallet'
 import Link from 'next/link'
 import { SSR } from '../../lib/constants'
 import { numWithUnits } from '../../lib/format'
+import Bolt11Info from '../../components/bolt11-info'
 
 export default function Withdrawl () {
   return (
@@ -97,6 +98,7 @@ function LoadWithdrawl () {
         />
       </div>
       <InvoiceStatus variant={variant} status={status} />
+      <Bolt11Info bolt11={data.withdrawl.bolt11} />
     </>
   )
 }

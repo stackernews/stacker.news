@@ -12,6 +12,7 @@ import { useShowModal } from './modal'
 import { sleep } from '../lib/time'
 import Countdown from './countdown'
 import PayerData from './payer-data'
+import Bolt11Info from './bolt11-info'
 
 export function Invoice ({ invoice, onPayment, info, successVerb }) {
   const [expired, setExpired] = useState(new Date(invoice.expiredAt) <= new Date())
@@ -39,7 +40,9 @@ export function Invoice ({ invoice, onPayment, info, successVerb }) {
     }
   }, [invoice.confirmedAt, invoice.isHeld, invoice.satsReceived])
 
-  const { nostr, comment, lud18Data } = invoice
+  const { nostr, comment, lud18Data, bolt11, preimage } = invoice
+
+  // console.log(invoice)
 
   return (
     <>
@@ -85,6 +88,7 @@ export function Invoice ({ invoice, onPayment, info, successVerb }) {
             body={<span className='text-muted ms-3'>{comment}</span>}
           />
         </div>}
+      <Bolt11Info bolt11={bolt11} preimage={preimage} />
     </>
   )
 }

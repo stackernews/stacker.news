@@ -16,6 +16,7 @@ export const INVOICE = gql`
       isHeld
       comment
       lud18Data
+      preimage
     }
   }`
 
@@ -28,6 +29,7 @@ export const WITHDRAWL = gql`
       satsFeePaying
       satsFeePaid
       status
+      preimage
     }
   }`
 

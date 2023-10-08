@@ -42,8 +42,6 @@ export function Invoice ({ invoice, onPayment, info, successVerb }) {
 
   const { nostr, comment, lud18Data, bolt11, preimage } = invoice
 
-  // console.log(invoice)
-
   return (
     <>
       <Qr

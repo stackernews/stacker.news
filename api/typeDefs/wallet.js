@@ -43,7 +43,6 @@ export default gql`
     satsFeePaying: Int!
     satsFeePaid: Int
     status: String
-    preimage: String
   }
 
   type Fact {

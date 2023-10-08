@@ -76,13 +76,6 @@ export default {
         throw new GraphQLError('not ur withdrawal', { extensions: { code: 'FORBIDDEN' } })
       }
 
-      try {
-        const lnInv = await getInvoiceFromLnd({ id: wdrwl.hash, lnd })
-        wdrwl.preimage = lnInv.secret
-      } catch (err) {
-        console.error('error fetching invoice from LND', err)
-      }
-
       return wdrwl
     },
     connectAddress: async (parent, args, { lnd }) => {

@@ -29,7 +29,6 @@ export const WITHDRAWL = gql`
       satsFeePaying
       satsFeePaid
       status
-      preimage
     }
   }`
 

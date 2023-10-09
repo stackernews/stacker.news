@@ -7,6 +7,7 @@ import Info from './info'
 import { numWithUnits } from '../lib/format'
 import styles from './adv-post-form.module.css'
 import { useMe } from './me'
+import { useRouter } from 'next/router'
 
 const EMPTY_FORWARD = { nym: '', pct: '' }
 
@@ -19,6 +20,7 @@ export function AdvPostInitial ({ forward, boost }) {
 
 export default function AdvPostForm () {
   const me = useMe()
+  const router = useRouter()
 
   return (
     <AccordianItem
@@ -81,7 +83,7 @@ export default function AdvPostForm () {
               )
             }}
           </VariableInput>
-          {me &&
+          {me && router.query.type === 'discussion' &&
             <Checkbox
               label={
                 <div className='d-flex align-items-center'>crosspost to nostr

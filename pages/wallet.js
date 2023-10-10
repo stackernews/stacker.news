@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router'
-import { Checkbox, Form, Input, SubmitButton } from '../components/form'
+import { Checkbox, Form, Input, InputUserSuggest, SubmitButton } from '../components/form'
 import Link from 'next/link'
 import Button from 'react-bootstrap/Button'
 import { gql, useMutation, useQuery } from '@apollo/client'
@@ -349,12 +349,13 @@ export function LnAddrWithdrawal () {
           router.push(`/withdrawals/${data.sendToLnAddr.id}`)
         }}
       >
-        <Input
+        <InputUserSuggest
           label='lightning address'
           name='addr'
           required
           autoFocus
           onChange={onAddrChange}
+          transformUser={user => ({ ...user, name: `${user.name}@stacker.news` })}
         />
         <Input
           label='amount'

@@ -20,7 +20,7 @@ export default gql`
 
   extend type Mutation {
     setName(name: String!): String
-    setSettings(tipDefault: Int!, turboTipping: Boolean!, fiatCurrency: String!, noteItemSats: Boolean!,
+    setSettings(tipDefault: Int!, turboTipping: Boolean!, fiatCurrency: String!, withdrawMaxFeeDefault: Int!, noteItemSats: Boolean!,
       noteEarning: Boolean!, noteAllDescendants: Boolean!, noteMentions: Boolean!, noteDeposits: Boolean!,
       noteInvites: Boolean!, noteJobIndicator: Boolean!, noteCowboyHat: Boolean!, hideInvoiceDesc: Boolean!,
       hideFromTopUsers: Boolean!, hideCowboyHat: Boolean!, imgproxyOnly: Boolean!,
@@ -62,6 +62,7 @@ export default gql`
     tipDefault: Int!
     turboTipping: Boolean!
     fiatCurrency: String!
+    withdrawMaxFeeDefault: Int!
     nostrPubkey: String
     nostrRelays: [String!]
     bio: Item

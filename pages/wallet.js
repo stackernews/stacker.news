@@ -190,13 +190,13 @@ export function SelectedWithdrawalForm () {
   }
 }
 
-const MAX_FEE_DEFAULT = 10
-
 export function InvWithdrawal () {
   const router = useRouter()
   const me = useMe()
 
   const [createWithdrawl, { called, error }] = useMutation(CREATE_WITHDRAWL)
+
+  const maxFeeDefault = me?.withdrawMaxFeeDefault || 21
 
   useEffect(() => {
     async function effect () {
@@ -204,9 +204,9 @@ export function InvWithdrawal () {
         const provider = await requestProvider()
         const { paymentRequest: invoice } = await provider.makeInvoice({
           defaultMemo: `Withdrawal for @${me.name} on SN`,
-          maximumAmount: Math.max(me.sats - MAX_FEE_DEFAULT, 0)
+          maximumAmount: Math.max(me.sats - maxFeeDefault, 0)
         })
-        const { data } = await createWithdrawl({ variables: { invoice, maxFee: MAX_FEE_DEFAULT } })
+        const { data } = await createWithdrawl({ variables: { invoice, maxFee: maxFeeDefault } })
         router.push(`/withdrawals/${data.createWithdrawl.id}`)
       } catch (e) {
         console.log(e.message)
@@ -224,7 +224,7 @@ export function InvWithdrawal () {
       <Form
         initial={{
           invoice: '',
-          maxFee: MAX_FEE_DEFAULT
+          maxFee: maxFeeDefault
         }}
         initialError={error ? error.toString() : undefined}
         schema={withdrawlSchema}
@@ -300,6 +300,7 @@ export function LnAddrWithdrawal () {
   const defaultOptions = { min: 1 }
   const [addrOptions, setAddrOptions] = useState(defaultOptions)
   const [formSchema, setFormSchema] = useState(lnAddrSchema())
+  const maxFeeDefault = me?.withdrawMaxFeeDefault || 21
 
   const onAddrChange = useDebounceCallback(async (formik, e) => {
     if (!e?.target?.value) {
@@ -329,7 +330,7 @@ export function LnAddrWithdrawal () {
         initial={{
           addr: '',
           amount: 1,
-          maxFee: 10,
+          maxFee: maxFeeDefault,
           comment: '',
           identifier: false,
           name: '',

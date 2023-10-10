@@ -356,6 +356,14 @@ export function LnAddrWithdrawal () {
           autoFocus
           onChange={onAddrChange}
           transformUser={user => ({ ...user, name: `${user.name}@stacker.news` })}
+          selectWithTab={false}
+          filterUsers={(query) => {
+            if (!query.includes('@')) {
+              return true
+            }
+            const [, domain] = query.split('@')
+            return 'stacker.news'.startsWith(domain)
+          }}
         />
         <Input
           label='amount'

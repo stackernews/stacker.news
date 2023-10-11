@@ -14,8 +14,7 @@ async function discussionToEvent (item) {
     kind: 30023,
     content: item.text,
     tags: [
-      ['d', `https://stacker.news/items/${item.id}`],
-      ['a', `30023:${pubkey}:https://stacker.news/items/${item.id}`, 'wss://relay.nostr.band'],
+      ['d', `${item.id}`],
       ['title', item.title],
       ['published_at', createdAt.toString()]
     ]

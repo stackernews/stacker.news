@@ -6,7 +6,6 @@ import { useQuery } from '@apollo/client'
 import { SETTINGS } from '../fragments/users'
 
 async function discussionToEvent (item) {
-  const pubkey = await window.nostr.getPublicKey()
   const createdAt = Math.floor(Date.now() / 1000)
 
   return {
@@ -14,8 +13,7 @@ async function discussionToEvent (item) {
     kind: 30023,
     content: item.text,
     tags: [
-      ['d', `https://stacker.news/items/${item.id}`],
-      ['a', `30023:${pubkey}:https://stacker.news/items/${item.id}`, 'wss://relay.nostr.band'],
+      ['d', item.id.toString()],
       ['title', item.title],
       ['published_at', createdAt.toString()]
     ]

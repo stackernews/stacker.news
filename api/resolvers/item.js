@@ -971,7 +971,9 @@ export const createMentions = async (item, models) => {
     if (mentions?.length > 0) {
       const users = await models.user.findMany({
         where: {
-          name: { in: mentions }
+          name: { in: mentions },
+          // Don't create mentions when mentioning yourself
+          id: { not: item.userId }
         }
       })
 

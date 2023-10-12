@@ -91,6 +91,7 @@ export function InputSkeleton ({ label, hint }) {
   )
 }
 
+const DEFAULT_MENTION_INDICES = { start: -1, end: -1 }
 export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setHasImgLink, onKeyDown, innerRef, ...props }) {
   const [tab, setTab] = useState('write')
   const [, meta, helpers] = useField(props)
@@ -122,7 +123,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
   }, [innerRef, selectionRange.start, selectionRange.end])
 
   const [mentionQuery, setMentionQuery] = useState()
-  const [mentionIndices, setMentionIndices] = useState({ start: -1, end: -1 })
+  const [mentionIndices, setMentionIndices] = useState(DEFAULT_MENTION_INDICES)
   const [userSuggestDropdownStyle, setUserSuggestDropdownStyle] = useState({})
   const insertMention = useCallback((name) => {
     const { start, end } = mentionIndices
@@ -133,7 +134,79 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
     helpers.setValue(updatedValue)
     setSelectionRange({ start: first.length, end: first.length })
     innerRef.current.focus()
-  }, [mentionIndices, innerRef, helpers])
+  }, [mentionIndices, innerRef, helpers?.setValue])
+
+  const onChangeInner = useCallback((formik, e) => {
+    if (onChange) onChange(formik, e)
+    if (setHasImgLink) {
+      setHasImgLink(mdHas(e.target.value, ['link', 'image']))
+    }
+    // check for mention editing
+    const { value, selectionStart } = e.target
+    let priorSpace = -1
+    for (let i = selectionStart - 1; i >= 0; i--) {
+      if (/\s|\n/.test(value[i])) {
+        priorSpace = i
+        break
+      }
+    }
+    let nextSpace = value.length
+    for (let i = selectionStart; i <= value.length; i++) {
+      if (/\s|\n/.test(value[i])) {
+        nextSpace = i
+        break
+      }
+    }
+    const currentSegment = value.substring(priorSpace + 1, nextSpace)
+
+    // set the query to the current character segment and note where it appears
+    if (/^@[\w_]*$/.test(currentSegment)) {
+      setMentionQuery(currentSegment)
+      setMentionIndices({ start: priorSpace + 1, end: nextSpace })
+      const { top, left } = textAreaCaret(e.target, e.target.selectionStart)
+      setUserSuggestDropdownStyle({
+        position: 'absolute',
+        top: `${top + Number(window.getComputedStyle(e.target).lineHeight.replace('px', ''))}px`,
+        left: `${left}px`
+      })
+    } else {
+      setMentionQuery(undefined)
+      setMentionIndices(DEFAULT_MENTION_INDICES)
+    }
+  }, [onChange, setHasImgLink, setMentionQuery, setMentionIndices, setUserSuggestDropdownStyle])
+
+  const onKeyDownInner = useCallback((userSuggestOnKeyDown) => {
+    return (e) => {
+      const metaOrCtrl = e.metaKey || e.ctrlKey
+      if (metaOrCtrl) {
+        if (e.key === 'k') {
+          // some browsers use CTRL+K to focus search bar so we have to prevent that behavior
+          e.preventDefault()
+          insertMarkdownLinkFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+        }
+        if (e.key === 'b') {
+          // some browsers use CTRL+B to open bookmarks so we have to prevent that behavior
+          e.preventDefault()
+          insertMarkdownBoldFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+        }
+        if (e.key === 'i') {
+          // some browsers might use CTRL+I to do something else so prevent that behavior too
+          e.preventDefault()
+          insertMarkdownItalicFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+        }
+        if (e.key === 'Tab' && e.altKey) {
+          e.preventDefault()
+          insertMarkdownTabFormatting(innerRef.current, helpers.setValue, setSelectionRange)
+        }
+      }
+
+      if (!metaOrCtrl) {
+        userSuggestOnKeyDown(e)
+      }
+
+      if (onKeyDown) onKeyDown(e)
+    }
+  }, [innerRef, helpers?.setValue, setSelectionRange, onKeyDown])
 
   return (
     <FormGroup label={label} className={groupClassName}>
@@ -159,76 +232,10 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
             dropdownStyle={userSuggestDropdownStyle}
           >{({ onKeyDown: userSuggestOnKeyDown }) => (
             <InputInner
-              {...props} onChange={(formik, e) => {
-                if (onChange) onChange(formik, e)
-                if (setHasImgLink) {
-                  setHasImgLink(mdHas(e.target.value, ['link', 'image']))
-                }
-                // check for mention editing
-                const { value, selectionStart } = e.target
-                let priorSpace = -1
-                for (let i = selectionStart - 1; i >= 0; i--) {
-                  if (/\s|\n/.test(value[i])) {
-                    priorSpace = i
-                    break
-                  }
-                }
-                let nextSpace = value.length
-                for (let i = selectionStart; i <= value.length; i++) {
-                  if (/\s|\n/.test(value[i])) {
-                    nextSpace = i
-                    break
-                  }
-                }
-                const currentSegment = value.substring(priorSpace + 1, nextSpace)
-
-                // set the query to the current character segment and note where it appears
-                if (/^@[\w_]*$/.test(currentSegment)) {
-                  setMentionQuery(currentSegment)
-                  setMentionIndices({ start: priorSpace + 1, end: nextSpace })
-                } else {
-                  setMentionQuery(undefined)
-                  setMentionIndices({ start: -1, end: -1 })
-                }
-
-                const { top, left } = textAreaCaret(e.target, e.target.selectionStart)
-                setUserSuggestDropdownStyle({
-                  position: 'absolute',
-                  top: `${top + Number(window.getComputedStyle(e.target).lineHeight.replace('px', ''))}px`,
-                  left: `${left}px`
-                })
-              }}
               innerRef={innerRef}
-              onKeyDown={(e) => {
-                const metaOrCtrl = e.metaKey || e.ctrlKey
-                if (metaOrCtrl) {
-                  if (e.key === 'k') {
-                    // some browsers use CTRL+K to focus search bar so we have to prevent that behavior
-                    e.preventDefault()
-                    insertMarkdownLinkFormatting(innerRef.current, helpers.setValue, setSelectionRange)
-                  }
-                  if (e.key === 'b') {
-                    // some browsers use CTRL+B to open bookmarks so we have to prevent that behavior
-                    e.preventDefault()
-                    insertMarkdownBoldFormatting(innerRef.current, helpers.setValue, setSelectionRange)
-                  }
-                  if (e.key === 'i') {
-                    // some browsers might use CTRL+I to do something else so prevent that behavior too
-                    e.preventDefault()
-                    insertMarkdownItalicFormatting(innerRef.current, helpers.setValue, setSelectionRange)
-                  }
-                  if (e.key === 'Tab' && e.altKey) {
-                    e.preventDefault()
-                    insertMarkdownTabFormatting(innerRef.current, helpers.setValue, setSelectionRange)
-                  }
-                }
-
-                if (!metaOrCtrl) {
-                  userSuggestOnKeyDown(e)
-                }
-
-                if (onKeyDown) onKeyDown(e)
-              }}
+              {...props}
+              onChange={onChangeInner}
+              onKeyDown={onKeyDownInner(userSuggestOnKeyDown)}
             />)}
           </UserSuggest>
         </div>
@@ -300,6 +307,32 @@ function InputInner ({
 
   const storageKey = storageKeyPrefix ? storageKeyPrefix + '-' + props.name : undefined
 
+  const onKeyDownInner = useCallback((e) => {
+    const metaOrCtrl = e.metaKey || e.ctrlKey
+    if (metaOrCtrl) {
+      if (e.key === 'Enter') formik?.submitForm()
+    }
+
+    if (onKeyDown) onKeyDown(e)
+  }, [formik?.submitForm, onKeyDown])
+
+  const onChangeInner = useCallback((e) => {
+    field?.onChange(e)
+
+    if (storageKey) {
+      window.localStorage.setItem(storageKey, e.target.value)
+    }
+
+    if (onChange) {
+      onChange(formik, e)
+    }
+  }, [field?.onChange, storageKey, onChange])
+
+  const onBlurInner = useCallback((e) => {
+    field?.onBlur?.(e)
+    onBlur && onBlur(e)
+  }, [field?.onBlur, onBlur])
+
   useEffect(() => {
     if (overrideValue) {
       helpers.setValue(overrideValue)
@@ -331,31 +364,12 @@ function InputInner ({
       <InputGroup hasValidation className={inputGroupClassName}>
         {prepend}
         <BootstrapForm.Control
-          onKeyDown={(e) => {
-            const metaOrCtrl = e.metaKey || e.ctrlKey
-            if (metaOrCtrl) {
-              if (e.key === 'Enter') formik?.submitForm()
-            }
-
-            if (onKeyDown) onKeyDown(e)
-          }}
           ref={innerRef}
-          {...field} {...props}
-          onChange={(e) => {
-            field.onChange(e)
-
-            if (storageKey) {
-              window.localStorage.setItem(storageKey, e.target.value)
-            }
-
-            if (onChange) {
-              onChange(formik, e)
-            }
-          }}
-          onBlur={(e) => {
-            field.onBlur?.(e)
-            onBlur && onBlur(e)
-          }}
+          {...field}
+          {...props}
+          onKeyDown={onKeyDownInner}
+          onChange={onChangeInner}
+          onBlur={onBlurInner}
           isInvalid={invalid}
           isValid={showValid && meta.initialValue !== meta.value && meta.touched && !meta.error}
         />
@@ -393,6 +407,7 @@ function InputInner ({
   )
 }
 
+const INITIAL_SUGGESTIONS = { array: [], index: 0 }
 export function UserSuggest ({ query, onSelect, dropdownStyle, children }) {
   const [getUsers] = useLazyQuery(TOP_USERS, {
     onCompleted: data => {
@@ -405,7 +420,6 @@ export function UserSuggest ({ query, onSelect, dropdownStyle, children }) {
     }
   })
 
-  const INITIAL_SUGGESTIONS = { array: [], index: 0 }
   const [suggestions, setSuggestions] = useState(INITIAL_SUGGESTIONS)
   const resetSuggestions = useCallback(() => setSuggestions(INITIAL_SUGGESTIONS), [])
 
@@ -602,7 +616,7 @@ export function Form ({
     }
   }, [])
 
-  function clearLocalStorage (values) {
+  const clearLocalStorage = useCallback((values) => {
     Object.keys(values).forEach(v => {
       window.localStorage.removeItem(storageKeyPrefix + '-' + v)
       if (Array.isArray(values[v])) {
@@ -615,7 +629,7 @@ export function Form ({
           })
       }
     })
-  }
+  }, [storageKeyPrefix])
 
   // if `invoiceable` is set,
   // support for payment per invoice if they are lurking or don't have enough balance
@@ -627,6 +641,19 @@ export function Form ({
     onSubmit = useInvoiceable(onSubmit, { callback: clearLocalStorage, ...options })
   }
 
+  const onSubmitInner = useCallback(async (values, ...args) => {
+    try {
+      if (onSubmit) {
+        const options = await onSubmit(values, ...args)
+        if (!storageKeyPrefix || options?.keepLocalStorage) return
+        clearLocalStorage(values)
+      }
+    } catch (err) {
+      console.log(err)
+      toaster.danger(err.message || err.toString?.())
+    }
+  }, [onSubmit, toaster, clearLocalStorage, storageKeyPrefix])
+
   return (
     <Formik
       initialValues={initial}
@@ -634,18 +661,7 @@ export function Form ({
       validationSchema={schema}
       initialTouched={validateImmediately && initial}
       validateOnBlur={false}
-      onSubmit={async (values, ...args) => {
-        try {
-          if (onSubmit) {
-            const options = await onSubmit(values, ...args)
-            if (!storageKeyPrefix || options?.keepLocalStorage) return
-            clearLocalStorage(values)
-          }
-        } catch (err) {
-          console.log(err)
-          toaster.danger(err.message || err.toString?.())
-        }
-      }}
+      onSubmit={onSubmitInner}
       innerRef={innerRef}
     >
       <FormikForm {...props} noValidate>

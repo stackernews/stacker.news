@@ -59,8 +59,8 @@ export default async function serialize (models, ...calls) {
   })
 }
 
-export async function serializeInvoicable (query, { models, lnd, hash, hmac, me, enforceFee }) {
-  if (!me && !hash) {
+export async function serializeInvoicable (query, { models, lnd, hash, hmac, me, enforceFee, noCost }) {
+  if (!me && !hash && !noCost) {
     throw new Error('you must be logged in or pay')
   }
 

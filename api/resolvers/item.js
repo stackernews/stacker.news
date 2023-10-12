@@ -671,7 +671,7 @@ export default {
         return await updateItem(parent, { id, ...item }, { me, models, lnd, hash, hmac })
       } else {
         const linkItem = await createItem(parent, item, { me, models, lnd, hash, hmac })
-        if (comment) await createItem(parent, { text: comment, parentId: linkItem.id }, { me, models, lnd, hash, hmac, noCost: true })
+        if (comment) await createItem(parent, { text: comment, parentId: linkItem.id }, { me, models, lnd, noCost: true, hmac })
         return linkItem
       }
     },
@@ -1129,7 +1129,7 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
     models.$queryRawUnsafe(
       `${SELECT} FROM create_item($1::JSONB, $2::JSONB, $3::JSONB, '${spamInterval}'::INTERVAL) AS "Item"`,
       JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify({ noCost, poll_options: options })),
-    { models, lnd, hash, hmac, me, enforceFee }
+    { models, lnd, hash, hmac, me, enforceFee, noCost }
   )
 
   await createMentions(item, models)

@@ -236,7 +236,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
               {...props}
               onChange={onChangeInner}
               onKeyDown={onKeyDownInner(userSuggestOnKeyDown)}
-              onBlur={resetSuggestions}
+              onBlur={() => setTimeout(resetSuggestions, 100)}
             />)}
           </UserSuggest>
         </div>

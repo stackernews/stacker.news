@@ -230,12 +230,13 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
             query={mentionQuery}
             onSelect={insertMention}
             dropdownStyle={userSuggestDropdownStyle}
-          >{({ onKeyDown: userSuggestOnKeyDown }) => (
+          >{({ onKeyDown: userSuggestOnKeyDown, resetSuggestions }) => (
             <InputInner
               innerRef={innerRef}
               {...props}
               onChange={onChangeInner}
               onKeyDown={onKeyDownInner(userSuggestOnKeyDown)}
+              onBlur={resetSuggestions}
             />)}
           </UserSuggest>
         </div>
@@ -408,15 +409,28 @@ function InputInner ({
 }
 
 const INITIAL_SUGGESTIONS = { array: [], index: 0 }
-export function UserSuggest ({ query, onSelect, dropdownStyle, children }) {
+export function UserSuggest ({
+  query, onSelect, dropdownStyle, children,
+  transformUser = user => user, selectWithTab = true, filterUsers = () => true
+}) {
   const [getUsers] = useLazyQuery(TOP_USERS, {
     onCompleted: data => {
-      setSuggestions({ array: data.topUsers.users, index: 0 })
+      setSuggestions({
+        array: data.topUsers.users
+          .filter((...args) => filterUsers(query, ...args))
+          .map(transformUser),
+        index: 0
+      })
     }
   })
   const [getSuggestions] = useLazyQuery(USER_SEARCH, {
     onCompleted: data => {
-      setSuggestions({ array: data.searchUsers, index: 0 })
+      setSuggestions({
+        array: data.searchUsers
+          .filter((...args) => filterUsers(query, ...args))
+          .map(transformUser),
+        index: 0
+      })
     }
   })
 
@@ -462,6 +476,9 @@ export function UserSuggest ({ query, onSelect, dropdownStyle, children }) {
         break
       case 'Tab':
       case 'Enter':
+        if (e.code === 'Tab' && !selectWithTab) {
+          break
+        }
         if (suggestions.array?.length === 0) {
           break
         }
@@ -479,7 +496,7 @@ export function UserSuggest ({ query, onSelect, dropdownStyle, children }) {
   }, [onSelect, resetSuggestions, suggestions])
   return (
     <>
-      {children?.({ onKeyDown })}
+      {children?.({ onKeyDown, resetSuggestions })}
       <Dropdown show={suggestions.array.length > 0} style={dropdownStyle}>
         <Dropdown.Menu className={styles.suggestionsMenu}>
           {suggestions.array.map((v, i) =>
@@ -499,16 +516,19 @@ export function UserSuggest ({ query, onSelect, dropdownStyle, children }) {
   )
 }
 
-export function InputUserSuggest ({ label, groupClassName, ...props }) {
+export function InputUserSuggest ({ label, groupClassName, transformUser, filterUsers, selectWithTab, ...props }) {
   const [ovalue, setOValue] = useState()
   const [query, setQuery] = useState()
   return (
     <FormGroup label={label} className={groupClassName}>
       <UserSuggest
+        transformUser={transformUser}
+        filterUsers={filterUsers}
+        selectWithTab={selectWithTab}
         onSelect={setOValue}
         query={query}
       >
-        {({ onKeyDown }) => (
+        {({ onKeyDown, resetSuggestions }) => (
           <InputInner
             {...props}
             autoComplete='off'
@@ -518,6 +538,7 @@ export function InputUserSuggest ({ label, groupClassName, ...props }) {
             }}
             overrideValue={ovalue}
             onKeyDown={onKeyDown}
+            onBlur={resetSuggestions}
           />
         )}
       </UserSuggest>

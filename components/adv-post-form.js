@@ -1,5 +1,5 @@
 import AccordianItem from './accordian-item'
-import { Input, InputUserSuggest, VariableInput, Checkbox } from './form'
+import { MarkdownInput, Input, InputUserSuggest, VariableInput, Checkbox } from './form'
 import InputGroup from 'react-bootstrap/InputGroup'
 import { BOOST_MIN, BOOST_MULT, MAX_FORWARDS } from '../lib/constants'
 import { DEFAULT_CROSSPOSTING_RELAYS } from '../lib/nostr'
@@ -18,7 +18,7 @@ export function AdvPostInitial ({ forward, boost }) {
   }
 }
 
-export default function AdvPostForm () {
+export default function AdvPostForm ({ edit, isLink }) {
   const me = useMe()
   const router = useRouter()
 
@@ -27,6 +27,26 @@ export default function AdvPostForm () {
       header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>options</div>}
       body={
         <>
+          {!edit && isLink &&
+            <MarkdownInput
+              label={
+                <div className='d-flex align-items-center'>comment
+                  <Info>
+                    <span className='fw-bold'>Use this initial comment to do e.g. any of the following:</span>
+                    <ul>
+                      <li>Provide context</li>
+                      <li>Summarize the link</li>
+                      <li>Note the reason why you are posting the link</li>
+                      <li>Respect readers time by helping them decide whether to click the link or not</li>
+                      <li>Spur great conversation!</li>
+                    </ul>
+                  </Info>
+                </div>
+              }
+              name='comment'
+              hint={<span className='text-muted'>free, but compounds any future spam penalty</span>}
+              minRows={6}
+            />}
           <Input
             label={
               <div className='d-flex align-items-center'>boost

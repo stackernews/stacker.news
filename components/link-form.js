@@ -70,8 +70,8 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
 
   const [upsertLink] = useMutation(
     gql`
-      mutation upsertLink($sub: String, $id: ID, $title: String!, $url: String!, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String) {
-        upsertLink(sub: $sub, id: $id, title: $title, url: $url, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac) {
+      mutation upsertLink($sub: String, $id: ID, $title: String!, $url: String!, $comment: String, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String) {
+        upsertLink(sub: $sub, id: $id, title: $title, url: $url, comment: $comment, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac) {
           id
         }
       }`
@@ -123,7 +123,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
       initial={{
         title: item?.title || shareTitle || '',
         url: item?.url || shareUrl || '',
-        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
+        ...AdvPostInitial({ comment: '', forward: normalizeForwards(item?.forwards), boost: item?.boost }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}
@@ -185,7 +185,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
           }
         }}
       />
-      <AdvPostForm edit={!!item} />
+      <AdvPostForm edit={!!item} isLink />
       <div className='mt-3'>
         {item
           ? (

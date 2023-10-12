@@ -439,7 +439,8 @@ export function UserSuggest ({
 
   useEffect(() => {
     if (query !== undefined) {
-      const q = query?.replace(/^[@ ]+|[ ]+$/g, '')
+      // remove both the leading @ and any @domain after nym
+      const q = query?.replace(/^[@ ]+|[ ]+$/g, '').replace(/@[^\s]*$/, '')
       if (q === '') {
         getUsers({ variables: { by: 'stacked', when: 'week', limit: 5 } })
       } else {
@@ -516,7 +517,10 @@ export function UserSuggest ({
   )
 }
 
-export function InputUserSuggest ({ label, groupClassName, transformUser, filterUsers, selectWithTab, ...props }) {
+export function InputUserSuggest ({
+  label, groupClassName, transformUser, filterUsers,
+  selectWithTab, onChange, transformQuery, ...props
+}) {
   const [ovalue, setOValue] = useState()
   const [query, setQuery] = useState()
   return (
@@ -525,20 +529,25 @@ export function InputUserSuggest ({ label, groupClassName, transformUser, filter
         transformUser={transformUser}
         filterUsers={filterUsers}
         selectWithTab={selectWithTab}
-        onSelect={setOValue}
+        onSelect={(v) => {
+          // HACK ... ovalue does not trigger onChange
+          onChange && onChange(undefined, { target: { value: v } })
+          setOValue(v)
+        }}
         query={query}
       >
         {({ onKeyDown, resetSuggestions }) => (
           <InputInner
             {...props}
             autoComplete='off'
-            onChange={(_, e) => {
+            onChange={(formik, e) => {
+              onChange && onChange(formik, e)
               setOValue(e.target.value)
               setQuery(e.target.value.replace(/^[@ ]+|[ ]+$/g, ''))
             }}
             overrideValue={ovalue}
             onKeyDown={onKeyDown}
-            onBlur={resetSuggestions}
+            onBlur={() => setTimeout(resetSuggestions, 100)}
           />
         )}
       </UserSuggest>

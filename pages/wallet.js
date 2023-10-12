@@ -311,14 +311,13 @@ export function LnAddrWithdrawal () {
     let options
     try {
       options = await lnAddrOptions(e.target.value)
+      setAddrOptions(options)
+      setFormSchema(lnAddrSchema(options))
     } catch (e) {
       console.log(e)
       setAddrOptions(defaultOptions)
-      return
+      setFormSchema(lnAddrSchema())
     }
-
-    setAddrOptions(options)
-    setFormSchema(lnAddrSchema(options))
   }, 500, [setAddrOptions, setFormSchema])
 
   return (
@@ -358,11 +357,8 @@ export function LnAddrWithdrawal () {
           transformUser={user => ({ ...user, name: `${user.name}@stacker.news` })}
           selectWithTab={false}
           filterUsers={(query) => {
-            if (!query.includes('@')) {
-              return true
-            }
             const [, domain] = query.split('@')
-            return 'stacker.news'.startsWith(domain)
+            return !domain || 'stacker.news'.startsWith(domain)
           }}
         />
         <Input

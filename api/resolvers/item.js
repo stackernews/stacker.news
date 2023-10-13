@@ -15,7 +15,7 @@ import { parse } from 'tldts'
 import uu from 'url-unshort'
 import { advSchema, amountSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, ssValidate } from '../../lib/validate'
 import { sendUserNotification } from '../webPush'
-import { defaultCommentSort } from '../../lib/item'
+import { defaultCommentSort, isJob } from '../../lib/item'
 import { notifyItemParents, notifyUserSubscribers, notifyZapped } from '../../lib/push-notifications'
 
 export async function commentFilterClause (me, models) {
@@ -1015,11 +1015,11 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
   // prevent update if it's not explicitly allowed, not their bio, not their job and older than 10 minutes
   const user = await models.user.findUnique({ where: { id: me.id } })
   if (!ITEM_ALLOW_EDITS.includes(old.id) && user.bioId !== old.id &&
-    typeof item.maxBid === 'undefined' && Date.now() > new Date(old.createdAt).getTime() + 10 * 60000) {
+    !isJob(item) && Date.now() > new Date(old.createdAt).getTime() + 10 * 60000) {
     throw new GraphQLError('item can no longer be editted', { extensions: { code: 'BAD_INPUT' } })
   }
 
-  if (item.url && typeof item.maxBid === 'undefined') {
+  if (item.url && !isJob(item)) {
     item.url = ensureProtocol(item.url)
     item.url = removeTracking(item.url)
   }
@@ -1059,7 +1059,7 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
   item.userId = me ? Number(me.id) : ANON_USER_ID
 
   const fwdUsers = await getForwardUsers(models, forward)
-  if (item.url && typeof item.maxBid === 'undefined') {
+  if (item.url && !isJob(item)) {
     item.url = ensureProtocol(item.url)
     item.url = removeTracking(item.url)
   }

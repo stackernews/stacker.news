@@ -8,13 +8,17 @@ const storage = new ServiceWorkerStorage('sw:storage', 1)
 // see https://developer.mozilla.org/en-US/docs/Web/API/MessageChannel
 let messageChannelPort
 
+// keep track of item ids where we received a MENTION notification already to not show one again
+const itemMentions = []
+
 export function onPush (sw) {
   return async (event) => {
     const payload = event.data?.json()
     if (!payload) return
     const { tag } = payload.options
     event.waitUntil((async () => {
-      if (immediatelyShowNotification(tag)) {
+      if (skipNotification(payload)) return
+      if (immediatelyShowNotification(payload)) {
         return sw.registration.showNotification(payload.title, payload.options)
       }
 
@@ -28,6 +32,10 @@ export function onPush (sw) {
         console.error(message)
         return null
       }
+
+      // save item id of MENTION notification so we can skip following ones
+      if (tag === 'MENTION' && payload.options.data?.itemId) itemMentions.push(payload.options.data.itemId)
+
       if (notifications.length === 0) {
         // incoming notification is first notification with this tag
         return sw.registration.showNotification(payload.title, payload.options)
@@ -39,9 +47,13 @@ export function onPush (sw) {
   }
 }
 
+const skipNotification = ({ options: { tag, data } }) => {
+  return tag === 'MENTION' && itemMentions.includes(data.itemId)
+}
+
 // if there is no tag or it's a TIP or EARN notification
 // we don't need to merge notifications and thus the notification should be immediately shown using `showNotification`
-const immediatelyShowNotification = tag => !tag || ['TIP', 'EARN'].includes(tag.split('-')[0])
+const immediatelyShowNotification = ({ options: { tag } }) => !tag || ['TIP', 'EARN'].includes(tag.split('-')[0])
 
 const mergeAndShowNotification = (sw, payload, currentNotification) => {
   const { data: incomingData } = payload.options

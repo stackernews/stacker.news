@@ -14,12 +14,13 @@ export function onPush (sw) {
     if (!payload) return
     const { tag } = payload.options
     event.waitUntil((async () => {
-      // TIP and EARN notifications simply replace the previous notifications
-      if (!tag || ['TIP', 'EARN'].includes(tag.split('-')[0])) {
+      if (immediatelyShowNotification(tag)) {
         return sw.registration.showNotification(payload.title, payload.options)
       }
 
+      // fetch existing notifications with same tag
       const notifications = await sw.registration.getNotifications({ tag })
+
       // since we used a tag filter, there should only be zero or one notification
       if (notifications.length > 1) {
         const message = `[sw:push] more than one notification with tag ${tag} found`
@@ -28,32 +29,50 @@ export function onPush (sw) {
         return null
       }
       if (notifications.length === 0) {
+        // incoming notification is first notification with this tag
         return sw.registration.showNotification(payload.title, payload.options)
       }
+
       const currentNotification = notifications[0]
-      const amount = currentNotification.data?.amount ? currentNotification.data.amount + 1 : 2
-      let newTitle = ''
-      const data = {}
-      if (tag === 'REPLY') {
-        newTitle = `You have ${amount} new replies`
-      } else if (tag === 'MENTION') {
-        newTitle = `You were mentioned ${amount} times`
-      } else if (tag === 'REFERRAL') {
-        newTitle = `${amount} stackers joined via your referral links`
-      } else if (tag === 'INVITE') {
-        newTitle = `your invite has been redeemed by ${amount} stackers`
-      } else if (tag === 'DEPOSIT') {
-        const currentSats = currentNotification.data.sats
-        const incomingSats = payload.options.data.sats
-        const newSats = currentSats + incomingSats
-        data.sats = newSats
-        newTitle = `${numWithUnits(newSats, { abbreviate: false })} were deposited in your account`
-      }
-      currentNotification.close()
-      const { icon } = currentNotification
-      return sw.registration.showNotification(newTitle, { icon, tag, data: { url: '/notifications', amount, ...data } })
+      return mergeAndShowNotification(sw, payload, currentNotification)
     })())
   }
+}
+
+// if there is no tag or it's a TIP or EARN notification
+// we don't need to merge notifications and thus the notification should be immediately shown using `showNotification`
+const immediatelyShowNotification = tag => !tag || ['TIP', 'EARN'].includes(tag.split('-')[0])
+
+const mergeAndShowNotification = (sw, payload, currentNotification) => {
+  const { data: incomingData } = payload.options
+  const { tag, data: currentData } = currentNotification
+
+  // how many notification with this tag are there already?
+  // (start from 2 and +1 to include incoming notification)
+  const amount = currentNotification.data?.amount ? currentNotification.data.amount + 1 : 2
+
+  let title = ''
+  const newData = {}
+  if (tag === 'REPLY') {
+    title = `You have ${amount} new replies`
+  } else if (tag === 'MENTION') {
+    title = `You were mentioned ${amount} times`
+  } else if (tag === 'REFERRAL') {
+    title = `${amount} stackers joined via your referral links`
+  } else if (tag === 'INVITE') {
+    title = `your invite has been redeemed by ${amount} stackers`
+  } else if (tag === 'DEPOSIT') {
+    const currentSats = currentData.sats
+    const incomingSats = incomingData.sats
+    const newSats = currentSats + incomingSats
+    title = `${numWithUnits(newSats, { abbreviate: false })} were deposited in your account`
+    newData.sats = newSats
+  }
+
+  // close current notification before showing new one to "merge" notifications
+  currentNotification.close()
+  const newNotificationOptions = { icon: currentNotification.icon, tag, data: { url: '/notifications', amount, ...newData } }
+  return sw.registration.showNotification(title, newNotificationOptions)
 }
 
 export function onNotificationClick (sw) {

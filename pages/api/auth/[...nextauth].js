@@ -48,7 +48,7 @@ function getCallbacks (req) {
         }
 
         // sign them up for the newsletter
-        if (profile.email) {
+        if (user?.email) {
           fetch(process.env.LIST_MONK_URL + '/api/subscribers', {
             method: 'POST',
             headers: {
@@ -56,7 +56,7 @@ function getCallbacks (req) {
               Authorization: 'Basic ' + Buffer.from(process.env.LIST_MONK_AUTH).toString('base64')
             },
             body: JSON.stringify({
-              email: profile.email,
+              email: user.email,
               name: 'blank',
               lists: [2],
               status: 'enabled',

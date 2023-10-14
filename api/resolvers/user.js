@@ -329,6 +329,7 @@ export default {
           ${whereClause(
             '"ThreadSubscription"."userId" = $1',
             '"Item".created_at > $2::timestamp(3) without time zone',
+            '"Item"."userId" <> $1',
             await filterClause(me, models),
             muteClause(me)
           )})`, me.id, lastChecked)

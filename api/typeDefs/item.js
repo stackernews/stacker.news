@@ -82,6 +82,7 @@ export default gql`
     boost: Int!
     bounty: Int
     bountyPaidTo: [Int]
+    nEventId: String
     sats: Int!
     commentSats: Int!
     lastCommentAt: Date

@@ -296,6 +296,7 @@ model Item {
   otsHash            String?
   imgproxyUrls       Json?
   bounty             Int?
+  nEventId           String?               @unique(map: "Item.nEventId_unique")
   rootId             Int?
   bountyPaidTo       Int[]
   upvotes            Int                   @default(0)

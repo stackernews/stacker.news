@@ -127,6 +127,7 @@ export function joinZapRankPersonalView (me, models) {
 // hits the db once ... orderBy needs to be duplicated on the outer query because
 // joining does not preserve the order of the inner query
 async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ...args) {
+  console.log('QUERY', query)
   if (!me) {
     return await models.$queryRawUnsafe(`
       SELECT "Item".*, to_json(users.*) as user
@@ -194,26 +195,32 @@ export const whereClause = (...clauses) => {
   return clause ? ` WHERE ${clause} ` : ''
 }
 
-function whenClause (when, type) {
-  let interval = `"${type === 'bookmarks' ? 'Bookmark' : 'Item'}".created_at >= $1 - INTERVAL `
+function whenClause (when, table) {
+  return (when === 'forever')
+    ? `"${table}".created_at <= $2`
+    : `"${table}".created_at <= $2 and "${table}".created_at >= $1`
+}
+
+function whenStart (when, origin, custom) {
+  console.log('whenStart', when, origin, custom)
   switch (when) {
+    case 'custom':
+      return custom
     case 'forever':
-      interval = ''
-      break
+      return origin // unused, but a date type needs to be returned
     case 'week':
-      interval += "'7 days'"
-      break
+      return datePivot(origin, { days: -7 })
     case 'month':
-      interval += "'1 month'"
-      break
+      return datePivot(origin, { months: -1 })
     case 'year':
-      interval += "'1 year'"
-      break
+      return datePivot(origin, { years: -1 })
     default:
-      interval += "'1 day'"
-      break
+      return datePivot(origin, { days: -1 })
   }
-  return interval
+}
+
+function whenEnd (when, origin, custom) {
+  return when === 'custom' ? custom : origin
 }
 
 const activeOrMine = (me) => {
@@ -308,7 +315,7 @@ export default {
 
       return count
     },
-    items: async (parent, { sub, sort, type, cursor, name, when, by, limit = LIMIT }, { me, models }) => {
+    items: async (parent, { sub, sort, type, cursor, name, when, from, to, by, limit = LIMIT }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
       let items, user, pins, subFull, table
 
@@ -353,18 +360,17 @@ export default {
               ${selectClause(type)}
               ${relationClause(type)}
               ${whereClause(
-                `"${table}"."userId" = $2`,
-                `"${table}".created_at <= $1`,
+                `"${table}"."userId" = $3`,
                 subClause(sub, 5, subClauseTable(type)),
                 activeOrMine(me),
                 await filterClause(me, models, type),
                 typeClause(type),
-                whenClause(when || 'forever', type))}
+                whenClause(when || 'forever', table))}
               ${orderByClause(by, me, models, type)}
-              OFFSET $3
-              LIMIT $4`,
+              OFFSET $4
+              LIMIT $5`,
             orderBy: orderByClause(by, me, models, type)
-          }, decodedCursor.time, user.id, decodedCursor.offset, limit, ...subArr)
+          }, whenStart(when, decodedCursor.time, new Date(from)), whenEnd(when, decodedCursor.time, new Date(to)), user.id, decodedCursor.offset, limit, ...subArr)
           break
         case 'recent':
           items = await itemQueryWithMeta({
@@ -419,19 +425,18 @@ export default {
               ${selectClause(type)}
               ${relationClause(type)}
               ${whereClause(
-                '"Item".created_at <= $1',
                 '"Item"."pinId" IS NULL',
                 '"Item"."deletedAt" IS NULL',
                 subClause(sub, 4, subClauseTable(type)),
                 typeClause(type),
-                whenClause(when, type),
+                whenClause(when, 'Item'),
                 await filterClause(me, models, type),
                 muteClause(me))}
               ${orderByClause(by || 'zaprank', me, models, type)}
-              OFFSET $2
-              LIMIT $3`,
+              OFFSET $3
+              LIMIT $4`,
               orderBy: orderByClause(by || 'zaprank', me, models, type)
-            }, decodedCursor.time, decodedCursor.offset, limit, ...subArr)
+            }, whenStart(when, decodedCursor.time, new Date(from)), whenEnd(when, decodedCursor.time, new Date(to)), decodedCursor.offset, limit, ...subArr)
           }
           break
         default:

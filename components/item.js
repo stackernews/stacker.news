@@ -20,7 +20,7 @@ import AdIcon from '../svgs/advertisement-fill.svg'
 
 export function SearchTitle ({ title }) {
   return reactStringReplace(title, /\*\*\*([^*]+)\*\*\*/g, (match, i) => {
-    return <mark key={`strong-${match}`}>{match}</mark>
+    return <mark key={`strong-${match}-${i}`}>{match}</mark>
   })
 }
 

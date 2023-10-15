@@ -20,7 +20,7 @@ export function SearchText ({ text }) {
     <div className={styles.text}>
       <p className={styles.p}>
         {reactStringReplace(text, /\*\*\*([^*]+)\*\*\*/g, (match, i) => {
-          return <mark key={`strong-${match}`}>{match}</mark>
+          return <mark key={`strong-${match}-${i}`}>{match}</mark>
         })}
       </p>
     </div>

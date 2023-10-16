@@ -19,44 +19,44 @@ const WhenComposedChart = dynamic(() => import('../../components/charts').then(m
 })
 
 const GROWTH_QUERY = gql`
-  query Growth($when: String!)
+  query Growth($when: String!, $from: String, $to: String)
   {
-    registrationGrowth(when: $when) {
+    registrationGrowth(when: $when, from: $from, to: $to) {
       time
       data {
         name
         value
       }
     }
-    itemGrowth(when: $when) {
+    itemGrowth(when: $when, from: $from, to: $to) {
       time
       data {
         name
         value
       }
     }
-    spendingGrowth(when: $when) {
+    spendingGrowth(when: $when, from: $from, to: $to) {
       time
       data {
         name
         value
       }
     }
-    spenderGrowth(when: $when) {
+    spenderGrowth(when: $when, from: $from, to: $to) {
       time
       data {
         name
         value
       }
     }
-    stackingGrowth(when: $when) {
+    stackingGrowth(when: $when, from: $from, to: $to) {
       time
       data {
         name
         value
       }
     }
-    stackerGrowth(when: $when) {
+    stackerGrowth(when: $when, from: $from, to: $to) {
       time
       data {
         name

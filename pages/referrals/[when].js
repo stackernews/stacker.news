@@ -2,23 +2,24 @@ import { gql } from 'graphql-tag'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { getGetServerSideProps } from '../../api/ssrApollo'
-import { CopyInput, Select } from '../../components/form'
+import { CopyInput, Select, DatePicker } from '../../components/form'
 import { CenterLayout } from '../../components/layout'
 import { useMe } from '../../components/me'
 import { useQuery } from '@apollo/client'
 import PageLoading from '../../components/page-loading'
-import { WHENS } from '../../lib/constants'
+import { WHENS_CUSTOM as WHENS } from '../../lib/constants'
 import dynamic from 'next/dynamic'
 import { numWithUnits } from '../../lib/format'
+import { useState } from 'react'
 
 const WhenComposedChart = dynamic(() => import('../../components/charts').then(mod => mod.WhenComposedChart), {
   loading: () => <div>Loading...</div>
 })
 
 const REFERRALS = gql`
-  query Referrals($when: String!)
+  query Referrals($when: String!, $from: String, $to: String)
   {
-    referrals(when: $when) {
+    referrals(when: $when, from: $from, to: $to) {
       totalSats
       totalReferrals
       stats {
@@ -37,26 +38,73 @@ export default function Referrals ({ ssrData }) {
   const router = useRouter()
   const me = useMe()
 
-  const { data } = useQuery(REFERRALS, { variables: { when: router.query.when } })
+  const select = async values => {
+    const { when, ...query } = values
+
+    if (when !== 'custom') { delete query.from; delete query.to }
+    if (query.from && !query.to) return
+
+    await router.push({
+      pathname: `/referrals/${when}`,
+      query
+    })
+  }
+
+  const { data } = useQuery(REFERRALS, { variables: { when: router.query.when, from: router.query.from, to: router.query.to } })
   if (!data && !ssrData) return <PageLoading />
 
   const { referrals: { totalSats, totalReferrals, stats } } = data || ssrData
 
+  const when = router.query.when
+  const from = router.query.from || new Date().toISOString()
+  const to = router.query.to || new Date().toISOString()
+
+  const [datePicker, setDatePicker] = useState(when === 'custom' && router.query.when === 'custom')
+  // The following state is needed for the date picker (and driven by the date picker).
+  // Substituting router.query or formik values would cause network lag and/or timezone issues.
+  const [range, setRange] = useState({ start: new Date(from), end: new Date(to) })
+
   return (
     <CenterLayout footerLinks>
-      <h4 className='fw-bold text-muted text-center pt-5 pb-3 d-flex align-items-center justify-content-center'>
-        {numWithUnits(totalReferrals, { unitPlural: 'referrals', unitSingular: 'referral' })} & {numWithUnits(totalSats, { abbreviate: false })} in the last
-        <Select
-          groupClassName='mb-0 ms-2'
-          className='w-auto'
-          name='when'
-          size='sm'
-          items={WHENS}
-          value={router.query.when || 'day'}
-          noForm
-          onChange={(formik, e) => router.push(`/referrals/${e.target.value}`)}
-        />
-      </h4>
+      <div className='fw-bold text-muted text-center pt-5 pb-3 d-flex align-items-center justify-content-center flex-wrap'>
+        <h4 className='fw-bold text-muted text-center d-flex align-items-center justify-content-center'>
+          {numWithUnits(totalReferrals, { unitPlural: 'referrals', unitSingular: 'referral' })} & {numWithUnits(totalSats, { abbreviate: false })} in the last
+          <Select
+            groupClassName='mb-0 mx-2'
+            className='w-auto'
+            name='when'
+            size='sm'
+            items={WHENS}
+            value={router.query.when || 'day'}
+            noForm
+            onChange={(formik, e) => {
+              select({ ...formik?.values, when: e.target.value, from: from || new Date().toISOString(), to: to || new Date().toISOString() })
+              setDatePicker(e.target.value === 'custom')
+              if (e.target.value === 'custom') setRange({ start: new Date(), end: new Date() })
+            }}
+          />
+        </h4>
+        {datePicker &&
+          <DatePicker
+            noForm
+            fromName='from' toName='to'
+            className='form-control p-0 px-2 mb-2 text-center'
+            onMount={() => {
+              setRange({ start: new Date(from), end: new Date(to) })
+              return [from, to]
+            }}
+            onChange={(formik, [start, end], e) => {
+              setRange({ start, end })
+              select({ ...formik?.values, when, from: start && start.toISOString(), to: end && end.toISOString() })
+            }}
+            selected={range.start}
+            startDate={range.start} endDate={range.end}
+            selectsRange
+            dateFormat='MM/dd/yy'
+            maxDate={new Date()}
+            minDate={new Date('2021-05-01')}
+          />}
+      </div>
       <WhenComposedChart data={stats} lineNames={['sats']} barNames={['referrals']} barAxis='right' />
 
       <div

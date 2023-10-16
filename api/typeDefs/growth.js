@@ -7,12 +7,12 @@ export default gql`
   }
 
   extend type Query {
-    registrationGrowth(when: String): [TimeData!]!
-    itemGrowth(when: String): [TimeData!]!
-    spendingGrowth(when: String): [TimeData!]!
-    spenderGrowth(when: String): [TimeData!]!
-    stackingGrowth(when: String): [TimeData!]!
-    stackerGrowth(when: String): [TimeData!]!
+    registrationGrowth(when: String, from: String, to: String): [TimeData!]!
+    itemGrowth(when: String, from: String, to: String): [TimeData!]!
+    spendingGrowth(when: String, from: String, to: String): [TimeData!]!
+    spenderGrowth(when: String, from: String, to: String): [TimeData!]!
+    stackingGrowth(when: String, from: String, to: String): [TimeData!]!
+    stackerGrowth(when: String, from: String, to: String): [TimeData!]!
   }
 
   type TimeData {

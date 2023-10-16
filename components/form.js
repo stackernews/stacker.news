@@ -748,8 +748,10 @@ export function DatePicker ({ fromName, toName, noForm, onMount, ...props }) {
   useEffect(() => {
     if (onMount) {
       const [from, to] = onMount()
-      fromHelpers.setValue(from)
-      toHelpers.setValue(to)
+      if (!noForm) {
+        fromHelpers.setValue(from)
+        toHelpers.setValue(to)
+      }
     }
   }, [])
 
@@ -757,8 +759,10 @@ export function DatePicker ({ fromName, toName, noForm, onMount, ...props }) {
     <ReactDatePicker
       {...props}
       onChange={([from, to], e) => {
-        fromHelpers.setValue(from?.toISOString())
-        toHelpers.setValue(to?.toISOString())
+        if (!noForm) {
+          fromHelpers.setValue(from?.toISOString())
+          toHelpers.setValue(to?.toISOString())
+        }
         onChangeHandler(formik, [from, to], e)
       }}
     />

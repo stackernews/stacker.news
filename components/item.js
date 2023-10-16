@@ -30,6 +30,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
   const [pendingSats, setPendingSats] = useState(0)
 
   const image = item.url && item.url.startsWith(process.env.NEXT_PUBLIC_IMGPROXY_URL)
+  const nofollow = item.sats + item.boost < NOFOLLOW_LIMIT && !item.position ? 'nofollow' : ''
 
   return (
     <>
@@ -50,6 +51,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
         <div className={styles.hunk}>
           <div className={`${styles.main} flex-wrap`}>
             <Link
+              rel={nofollow}
               href={`/items/${item.id}`}
               onClick={(e) => {
                 const viewedAt = commentsViewedAt(item)
@@ -76,7 +78,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
               <>
                 <a
                   className={styles.link} target='_blank' href={item.url}
-                  rel={`noreferrer ${item.sats + item.boost >= NOFOLLOW_LIMIT ? '' : 'nofollow'} noopener`}
+                  rel={`noreferrer ${nofollow} noopener`}
                 >
                   {item.url.replace(/(^https?:|^)\/\//, '')}
                 </a>
@@ -85,6 +87,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
           <ItemInfo
             full={full} item={item} pendingSats={pendingSats}
             onQuoteReply={replyRef?.current?.quoteReply}
+            nofollow={nofollow}
             embellishUser={Number(item?.user?.id) === AD_USER_ID && <Badge className={styles.newComment} bg={null}>AD</Badge>}
           />
           {belowTitle}

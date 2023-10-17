@@ -168,7 +168,6 @@ export default function Settings ({ ssrData }) {
           <Input
             label='default max fee for withdrawals'
             name='withdrawMaxFeeDefault'
-            groupClassName='mb-0'
             required
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
           />

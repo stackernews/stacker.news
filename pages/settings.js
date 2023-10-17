@@ -63,7 +63,7 @@ export default function Settings ({ ssrData }) {
             tipDefault: settings?.tipDefault || 21,
             turboTipping: settings?.turboTipping,
             fiatCurrency: settings?.fiatCurrency || 'USD',
-            withdrawMaxFeeDefault: settings?.withdrawMaxFeeDefault || 21,
+            withdrawMaxFeeDefault: settings?.withdrawMaxFeeDefault,
             noteItemSats: settings?.noteItemSats,
             noteEarning: settings?.noteEarning,
             noteAllDescendants: settings?.noteAllDescendants,

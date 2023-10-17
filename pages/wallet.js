@@ -196,7 +196,7 @@ export function InvWithdrawal () {
 
   const [createWithdrawl, { called, error }] = useMutation(CREATE_WITHDRAWL)
 
-  const maxFeeDefault = me?.withdrawMaxFeeDefault || 21
+  const maxFeeDefault = me?.withdrawMaxFeeDefault
 
   useEffect(() => {
     async function effect () {
@@ -300,7 +300,7 @@ export function LnAddrWithdrawal () {
   const defaultOptions = { min: 1 }
   const [addrOptions, setAddrOptions] = useState(defaultOptions)
   const [formSchema, setFormSchema] = useState(lnAddrSchema())
-  const maxFeeDefault = me?.withdrawMaxFeeDefault || 21
+  const maxFeeDefault = me?.withdrawMaxFeeDefault
 
   const onAddrChange = useDebounceCallback(async (formik, e) => {
     if (!e?.target?.value) {

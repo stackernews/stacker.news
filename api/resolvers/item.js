@@ -16,7 +16,7 @@ import { parse } from 'tldts'
 import uu from 'url-unshort'
 import { advSchema, amountSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, ssValidate } from '../../lib/validate'
 import { sendUserNotification } from '../webPush'
-import { defaultCommentSort, isJob } from '../../lib/item'
+import { defaultCommentSort, isJob, deleteItemByAuthor, getDeleteCommand, hasDeleteCommand } from '../../lib/item'
 import { notifyItemParents, notifyUserSubscribers, notifyZapped } from '../../lib/push-notifications'
 import { datePivot } from '../../lib/time'
 
@@ -654,21 +654,7 @@ export default {
         throw new GraphQLError('item does not belong to you', { extensions: { code: 'FORBIDDEN' } })
       }
 
-      const data = { deletedAt: new Date() }
-      if (old.text) {
-        data.text = '*deleted by author*'
-      }
-      if (old.title) {
-        data.title = 'deleted by author'
-      }
-      if (old.url) {
-        data.url = null
-      }
-      if (old.pollCost) {
-        data.pollCost = null
-      }
-
-      return await models.item.update({ where: { id: Number(id) }, data })
+      return await deleteItemByAuthor({ models, id, item: old })
     },
     upsertLink: async (parent, { id, hash, hmac, ...item }, { me, models, lnd }) => {
       await ssValidate(linkSchema, item, { models, me })
@@ -1109,6 +1095,12 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
 
   await createMentions(item, models)
 
+  if (hasDeleteCommand(old.text)) {
+    // delete any deletion jobs that were created from a prior version of the item
+    await clearDeletionJobs(item, models)
+  }
+  await enqueueDeletionJob(item, models)
+
   item.comments = []
   return item
 }
@@ -1138,10 +1130,25 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
 
   await createMentions(item, models)
 
+  await enqueueDeletionJob(item, models)
+
   notifyUserSubscribers({ models, item })
 
   item.comments = []
   return item
+}
+
+const clearDeletionJobs = async (item, models) => {
+  await models.$queryRawUnsafe(`DELETE FROM pgboss.job WHERE name = 'deleteItem' AND data->>'id' = '${item.id}';`)
+}
+
+const enqueueDeletionJob = async (item, models) => {
+  const deleteCommand = getDeleteCommand(item.text)
+  if (deleteCommand) {
+    await models.$queryRawUnsafe(`
+      INSERT INTO pgboss.job (name, data, startafter)
+      VALUES ('deleteItem', jsonb_build_object('id', ${item.id}), now() + interval '${deleteCommand.number} ${deleteCommand.unit}s');`)
+  }
 }
 
 const getForwardUsers = async (models, forward) => {

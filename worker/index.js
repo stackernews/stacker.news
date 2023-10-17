@@ -15,6 +15,7 @@ import fetch from 'cross-fetch'
 import { authenticatedLndGrpc } from 'ln-service'
 import { views, rankViews } from './views.js'
 import { imgproxy } from './imgproxy.js'
+import { deleteItem } from './ephemeralItems.js'
 
 const { loadEnvConfig } = nextEnv
 const { ApolloClient, HttpLink, InMemoryCache } = apolloClient
@@ -68,6 +69,7 @@ async function work () {
   await boss.work('views', views(args))
   await boss.work('rankViews', rankViews(args))
   await boss.work('imgproxy', imgproxy(args))
+  await boss.work('deleteItem', deleteItem(args))
 
   console.log('working jobs')
 }

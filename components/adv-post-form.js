@@ -19,7 +19,7 @@ export function AdvPostInitial ({ text, forward, boost }) {
   }
 }
 
-export default function AdvPostForm ({ edit, isLink }) {
+export default function AdvPostForm ({ isLink }) {
   const me = useMe()
   const router = useRouter()
 

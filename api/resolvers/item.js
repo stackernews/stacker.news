@@ -201,7 +201,6 @@ function whenClause (when, table) {
 }
 
 function whenStart (when, origin, custom) {
-  console.log('whenStart', when, origin, custom)
   switch (when) {
     case 'custom':
       return custom

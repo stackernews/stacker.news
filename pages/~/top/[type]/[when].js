@@ -8,7 +8,6 @@ import { COMMENT_TYPE_QUERY } from '../../../../lib/constants'
 
 const staticVariables = { sort: 'top' }
 const variablesFunc = vars => {
-  console.log('VARS', vars)
   return ({ includeComments: COMMENT_TYPE_QUERY.includes(vars.type), ...staticVariables, ...vars })
 }
 export const getServerSideProps = getGetServerSideProps({

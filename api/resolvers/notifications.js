@@ -73,19 +73,6 @@ export default {
 
       const itemDrivenQueries = []
 
-      // Replies
-      itemDrivenQueries.push(
-        `SELECT "Item".*, "Item".created_at AS "sortTime", 'Reply' AS type
-          FROM "Item"
-          JOIN "Item" p ON ${meFull.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
-          ${whereClause(
-            'p."userId" = $1',
-            '"Item"."userId" <> $1'
-          )}
-          ORDER BY "sortTime" DESC
-          LIMIT ${LIMIT}+$3`
-      )
-
       // Thread subscriptions
       itemDrivenQueries.push(
         `SELECT "Item".*, "Item".created_at AS "sortTime", 'Reply' AS type

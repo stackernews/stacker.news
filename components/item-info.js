@@ -137,7 +137,7 @@ export default function ItemInfo ({
         {(item.parentId || item.text) && onQuoteReply &&
           <Dropdown.Item onClick={onQuoteReply}>quote reply</Dropdown.Item>}
         {me && <BookmarkDropdownItem item={item} />}
-        {me && !item.mine && <SubscribeDropdownItem item={item} />}
+        {me && <SubscribeDropdownItem item={item} />}
         {item.otsHash &&
           <Link href={`/items/${item.id}/ots`} className='text-reset dropdown-item'>
             opentimestamp

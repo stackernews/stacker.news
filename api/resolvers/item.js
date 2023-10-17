@@ -664,15 +664,13 @@ export default {
 
       return await models.item.update({ where: { id: Number(id) }, data })
     },
-    upsertLink: async (parent, { id, hash, hmac, comment, ...item }, { me, models, lnd }) => {
+    upsertLink: async (parent, { id, hash, hmac, ...item }, { me, models, lnd }) => {
       await ssValidate(linkSchema, item, { models, me })
 
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models, lnd, hash, hmac })
       } else {
-        const linkItem = await createItem(parent, item, { me, models, lnd, hash, hmac })
-        if (comment) await createItem(parent, { text: comment, parentId: linkItem.id }, { me, models, lnd, noCost: true, hmac })
-        return linkItem
+        return await createItem(parent, item, { me, models, lnd, hash, hmac })
       }
     },
     upsertDiscussion: async (parent, { id, hash, hmac, ...item }, { me, models, lnd }) => {
@@ -1109,7 +1107,7 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
   return item
 }
 
-export const createItem = async (parent, { forward, options, ...item }, { me, models, lnd, hash, hmac, noCost }) => {
+export const createItem = async (parent, { forward, options, ...item }, { me, models, lnd, hash, hmac }) => {
   const spamInterval = me ? ITEM_SPAM_INTERVAL : ANON_ITEM_SPAM_INTERVAL
 
   // rename to match column name
@@ -1128,8 +1126,8 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
   item = await serializeInvoicable(
     models.$queryRawUnsafe(
       `${SELECT} FROM create_item($1::JSONB, $2::JSONB, $3::JSONB, '${spamInterval}'::INTERVAL) AS "Item"`,
-      JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify({ noCost, poll_options: options })),
-    { models, lnd, hash, hmac, me, enforceFee, noCost }
+      JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options)),
+    { models, lnd, hash, hmac, me, enforceFee }
   )
 
   await createMentions(item, models)

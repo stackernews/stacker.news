@@ -11,8 +11,9 @@ import { useRouter } from 'next/router'
 
 const EMPTY_FORWARD = { nym: '', pct: '' }
 
-export function AdvPostInitial ({ forward, boost }) {
+export function AdvPostInitial ({ text, forward, boost }) {
   return {
+    text: text || '',
     boost: boost || '',
     forward: forward?.length ? forward : [EMPTY_FORWARD]
   }
@@ -27,12 +28,12 @@ export default function AdvPostForm ({ edit, isLink }) {
       header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>options</div>}
       body={
         <>
-          {!edit && isLink &&
+          {isLink &&
             <MarkdownInput
               label={
-                <div className='d-flex align-items-center'>comment
+                <div className='d-flex align-items-center'>text
                   <Info>
-                    <span className='fw-bold'>You can use this initial comment to ...</span>
+                    <span className='fw-bold'>You can use this text to ...</span>
                     <ul>
                       <li>provide context</li>
                       <li>summarize the link</li>
@@ -42,7 +43,7 @@ export default function AdvPostForm ({ edit, isLink }) {
                   </Info>
                 </div>
               }
-              name='comment'
+              name='text'
               hint={<span className='text-muted'>free, but compounds any future spam penalty</span>}
               minRows={6}
             />}

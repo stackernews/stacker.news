@@ -77,7 +77,7 @@ self.addEventListener('push', async function (event) {
   const { tag } = payload.options
   event.waitUntil((async () => {
     // TIP and EARN notifications simply replace the previous notifications
-    if (!tag || ['TIP', 'EARN'].includes(tag.split('-')[0])) {
+    if (!tag || ['TIP', 'FORWARDEDTIP', 'EARN'].includes(tag.split('-')[0])) {
       return self.registration.showNotification(payload.title, payload.options)
     }
 

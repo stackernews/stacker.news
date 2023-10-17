@@ -195,7 +195,7 @@ export default {
             json_build_object('name', 'donations', 'value', sum(donations))
           ) AS data
           FROM spending_growth_days
-          WHERE ${viewIntervalClause(when, '$1', '$2', 'spending_growth_days', false)}
+          WHERE ${viewIntervalClause(when, from, to, 'spending_growth_days', false)}
           GROUP BY time
           ORDER BY time ASC`, fromDate, toDate)
       }

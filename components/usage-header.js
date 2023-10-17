@@ -4,6 +4,7 @@ import { WHENS_CUSTOM as WHENS } from '../lib/constants'
 import { useState } from 'react'
 
 export function UsageHeader () {
+  const yesterday = new Date(Date.now() - 8.64e7)
   const router = useRouter()
 
   const select = async values => {
@@ -19,8 +20,8 @@ export function UsageHeader () {
   }
 
   const when = router.query.when
-  const from = router.query.from || new Date().toISOString()
-  const to = router.query.to || new Date().toISOString()
+  const from = router.query.from || yesterday.toISOString()
+  const to = router.query.to || yesterday.toISOString()
 
   const [datePicker, setDatePicker] = useState(when === 'custom' && router.query.when === 'custom')
   // The following state is needed for the date picker (and driven by the date picker).
@@ -40,9 +41,9 @@ export function UsageHeader () {
           value={router.query.when || 'day'}
           noForm
           onChange={(formik, e) => {
-            select({ ...formik?.values, when: e.target.value, from: from || new Date().toISOString(), to: to || new Date().toISOString() })
+            select({ ...formik?.values, when: e.target.value, from: from || yesterday.toISOString(), to: to || yesterday.toISOString() })
             setDatePicker(e.target.value === 'custom')
-            if (e.target.value === 'custom') setRange({ start: new Date(), end: new Date() })
+            if (e.target.value === 'custom') setRange({ start: yesterday, end: yesterday })
           }}
         />
       </div>
@@ -63,7 +64,7 @@ export function UsageHeader () {
           startDate={range.start} endDate={range.end}
           selectsRange
           dateFormat='MM/dd/yy'
-          maxDate={new Date()}
+          maxDate={yesterday}
           minDate={new Date('2021-05-01')}
         />}
     </div>

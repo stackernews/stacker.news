@@ -15,7 +15,17 @@ import { Pie } from 'recharts/lib/polar/Pie'
 import { abbrNum } from '../lib/format'
 import { useRouter } from 'next/router'
 
-const dateFormatter = when => {
+const whenRange = (when, from, to) => {
+  if (when !== 'custom') return when
+  const days = Math.round(Math.abs((+new Date(from)) - (+new Date(to))) / 8.64e7)
+  if (days > 365) {
+    return 'year'
+  } else {
+    return 'month'
+  }
+}
+
+const dateFormatter = (when) => {
   return timeStr => {
     const date = new Date(timeStr)
     switch (when) {
@@ -72,6 +82,8 @@ export function WhenAreaChart ({ data }) {
   data = transformData(data)
   // need to grab when
   const when = router.query.when
+  const from = router.query.from
+  const to = router.query.to
 
   return (
     <ResponsiveContainer width='100%' height={300} minWidth={300}>
@@ -85,11 +97,11 @@ export function WhenAreaChart ({ data }) {
         }}
       >
         <XAxis
-          dataKey='time' tickFormatter={dateFormatter(when)} name={xAxisName(when)}
+          dataKey='time' tickFormatter={dateFormatter(whenRange(when, from, to))} name={xAxisName(whenRange(when, from, to))}
           tick={{ fill: 'var(--theme-grey)' }}
         />
         <YAxis tickFormatter={abbrNum} tick={{ fill: 'var(--theme-grey)' }} />
-        <Tooltip labelFormatter={dateFormatter(when)} contentStyle={{ color: 'var(--bs-body-color)', backgroundColor: 'var(--bs-body-bg)' }} />
+        <Tooltip labelFormatter={dateFormatter(whenRange(when, from, to))} contentStyle={{ color: 'var(--bs-body-color)', backgroundColor: 'var(--bs-body-bg)' }} />
         <Legend />
         {Object.keys(data[0]).filter(v => v !== 'time' && v !== '__typename').map((v, i) =>
           <Area key={v} type='monotone' dataKey={v} name={v} stackId='1' stroke={COLORS[i]} fill={COLORS[i]} />)}
@@ -107,6 +119,8 @@ export function WhenLineChart ({ data }) {
   data = transformData(data)
   // need to grab when
   const when = router.query.when
+  const from = router.query.from
+  const to = router.query.to
 
   return (
     <ResponsiveContainer width='100%' height={300} minWidth={300}>
@@ -120,11 +134,11 @@ export function WhenLineChart ({ data }) {
         }}
       >
         <XAxis
-          dataKey='time' tickFormatter={dateFormatter(when)} name={xAxisName(when)}
+          dataKey='time' tickFormatter={dateFormatter(whenRange(when, from, to))} name={xAxisName(whenRange(when, from, to))}
           tick={{ fill: 'var(--theme-grey)' }}
         />
         <YAxis tickFormatter={abbrNum} tick={{ fill: 'var(--theme-grey)' }} />
-        <Tooltip labelFormatter={dateFormatter(when)} contentStyle={{ color: 'var(--bs-body-color)', backgroundColor: 'var(--bs-body-bg)' }} />
+        <Tooltip labelFormatter={dateFormatter(whenRange(when, from, to))} contentStyle={{ color: 'var(--bs-body-color)', backgroundColor: 'var(--bs-body-bg)' }} />
         <Legend />
         {Object.keys(data[0]).filter(v => v !== 'time' && v !== '__typename').map((v, i) =>
           <Line key={v} type='monotone' dataKey={v} name={v} stroke={COLORS[i]} fill={COLORS[i]} />)}
@@ -147,6 +161,8 @@ export function WhenComposedChart ({
   data = transformData(data)
   // need to grab when
   const when = router.query.when
+  const from = router.query.from
+  const to = router.query.to
 
   return (
     <ResponsiveContainer width='100%' height={300} minWidth={300}>
@@ -160,12 +176,12 @@ export function WhenComposedChart ({
         }}
       >
         <XAxis
-          dataKey='time' tickFormatter={dateFormatter(when)} name={xAxisName(when)}
+          dataKey='time' tickFormatter={dateFormatter(whenRange(when, from, to))} name={xAxisName(whenRange(when, from, to))}
           tick={{ fill: 'var(--theme-grey)' }}
         />
         <YAxis yAxisId='left' orientation='left' allowDecimals={false} stroke='var(--theme-grey)' tickFormatter={abbrNum} tick={{ fill: 'var(--theme-grey)' }} />
         <YAxis yAxisId='right' orientation='right' allowDecimals={false} stroke='var(--theme-grey)' tickFormatter={abbrNum} tick={{ fill: 'var(--theme-grey)' }} />
-        <Tooltip labelFormatter={dateFormatter(when)} contentStyle={{ color: 'var(--bs-body-color)', backgroundColor: 'var(--bs-body-bg)' }} />
+        <Tooltip labelFormatter={dateFormatter(whenRange(when, from, to))} contentStyle={{ color: 'var(--bs-body-color)', backgroundColor: 'var(--bs-body-bg)' }} />
         <Legend />
         {barNames?.map((v, i) =>
           <Bar yAxisId={barAxis} key={v} type='monotone' dataKey={v} name={v} stroke='var(--bs-info)' fill='var(--bs-info)' />)}

@@ -32,13 +32,12 @@ export default function AdvPostForm ({ edit, isLink }) {
               label={
                 <div className='d-flex align-items-center'>comment
                   <Info>
-                    <span className='fw-bold'>Use this initial comment to do e.g. any of the following:</span>
+                    <span className='fw-bold'>You can use this initial comment to ...</span>
                     <ul>
-                      <li>Provide context</li>
-                      <li>Summarize the link</li>
-                      <li>Note the reason why you are posting the link</li>
-                      <li>Respect readers time by helping them decide whether to click the link or not</li>
-                      <li>Spur great conversation!</li>
+                      <li>provide context</li>
+                      <li>summarize the link</li>
+                      <li>spur great conversation!</li>
+                      <li>or for anything else that comes to your mind</li>
                     </ul>
                   </Info>
                 </div>

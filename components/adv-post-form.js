@@ -44,7 +44,6 @@ export default function AdvPostForm ({ edit, isLink }) {
                 </div>
               }
               name='text'
-              hint={<span className='text-muted'>free, but compounds any future spam penalty</span>}
               minRows={6}
             />}
           <Input

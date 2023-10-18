@@ -36,6 +36,8 @@ export default function Search ({ sub }) {
       if (values.sort === '' || values.sort === 'zaprank') delete values.sort
       if (values.when === '' || values.when === 'forever') delete values.when
       if (values.when !== 'custom') { delete values.from; delete values.to }
+      if (values.from && !values.to) return
+
       await router.push({
         pathname: prefix + '/search',
         query: values

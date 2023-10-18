@@ -742,6 +742,30 @@ export function Select ({ label, items, groupClassName, onChange, noForm, overri
 export function DatePicker ({ fromName, toName, noForm, onMount, ...props }) {
   const formik = noForm ? null : useFormikContext()
   const onChangeHandler = props.onChange
+  const onChangeRawHandler = (e) => {
+    // raw user data can be incomplete while typing, so quietly bail on exceptions
+    try {
+      const dateStrings = e.target.value.split('-', 2)
+      const dates = dateStrings.map(s => new Date(s))
+      let [from, to] = dates
+      if (from) {
+        if (props.minDate) from = new Date(Math.max(from, props.minDate))
+        try {
+          if (props.maxDate) to = new Date(Math.min(to, props.maxDate))
+
+          // if end date isn't valid, set it to the start date
+          if (!(to instanceof Date && !isNaN(to)) || to < from) to = from
+        } catch {
+          to = from
+        }
+        if (!noForm) {
+          fromHelpers.setValue(from?.toISOString())
+          toHelpers.setValue(to?.toISOString())
+        }
+        onChangeHandler(formik, [from, to], e)
+      }
+    } catch { }
+  }
   const [,, fromHelpers] = noForm ? [{}, {}, {}] : useField({ ...props, name: fromName })
   const [,, toHelpers] = noForm ? [{}, {}, {}] : useField({ ...props, name: toName })
 
@@ -758,6 +782,8 @@ export function DatePicker ({ fromName, toName, noForm, onMount, ...props }) {
   return (
     <ReactDatePicker
       {...props}
+      onBlur={onChangeRawHandler}
+      onChangeRaw={onChangeRawHandler}
       onChange={([from, to], e) => {
         if (!noForm) {
           fromHelpers.setValue(from?.toISOString())

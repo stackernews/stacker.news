@@ -3,6 +3,7 @@ import { ensureProtocol, removeTracking } from '../../lib/url'
 import { serializeInvoicable } from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
+import { ruleSet as publicationDateRuleSet } from '../../lib/timedate-scraper'
 import domino from 'domino'
 import {
   ITEM_SPAM_INTERVAL, ITEM_FILTER_THRESHOLD,
@@ -17,7 +18,6 @@ import { advSchema, amountSchema, bountySchema, commentSchema, discussionSchema,
 import { sendUserNotification } from '../webPush'
 import { defaultCommentSort } from '../../lib/item'
 import { notifyItemParents, notifyUserSubscribers, notifyZapped } from '../../lib/push-notifications'
-import { initDateRule } from '../../lib/timedate-scraper'
 import { datePivot } from '../../lib/time'
 
 export async function commentFilterClause (me, models) {
@@ -542,8 +542,7 @@ export default {
         const response = await fetch(ensureProtocol(url), { redirect: 'follow' })
         const html = await response.text()
         const doc = domino.createWindow(html).document
-        initDateRule()
-        const metadata = getMetadata(doc, url, { title: metadataRuleSets.title, publicationDate: metadataRuleSets.publicationDate })
+        const metadata = getMetadata(doc, url, { title: metadataRuleSets.title, publicationDate: publicationDateRuleSet })
         const dateHint = ` (${metadata.publicationDate?.getFullYear()})`
         const moreThanOneYearAgo = metadata.publicationDate && metadata.publicationDate < datePivot(new Date(), { years: -1 })
 

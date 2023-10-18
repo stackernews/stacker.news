@@ -20,7 +20,12 @@ import { notifyItemParents, notifyUserSubscribers, notifyZapped } from '../../li
 import { createHmac } from './wallet'
 import { settleHodlInvoice } from 'ln-service'
 import { initDateRule } from '../../lib/timedate-scraper'
+<<<<<<< HEAD
 import { moreThanOneYearAgo } from '../../lib/time'
+=======
+import { datePivot } from '../../lib/time'
+import { notifyItemParents, notifyUserSubscribers, notifyZapped } from '../../lib/push-notifications'
+>>>>>>> 7be35e0 (address review comments)
 
 export async function commentFilterClause (me, models) {
   let clause = ` AND ("Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}`
@@ -546,12 +551,11 @@ export default {
         const doc = domino.createWindow(html).document
         initDateRule()
         const metadata = getMetadata(doc, url, { title: metadataRuleSets.title, publicationDate: metadataRuleSets.publicationDate })
-        const dateHint = ` (${metadata.publicationDate.getFullYear()})`
+        const dateHint = ` (${metadata.publicationDate?.getFullYear()})`
+        const moreThanOneYearAgo = metadata.publicationDate && metadata.publicationDate < datePivot(new Date(), { years: -1 })
 
         res.title = metadata?.title
-        if (moreThanOneYearAgo(metadata.publicationDate)) {
-          res.title += dateHint
-        }
+        if (moreThanOneYearAgo) res.title += dateHint
       } catch { }
 
       try {

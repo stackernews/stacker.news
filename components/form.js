@@ -9,6 +9,7 @@ import Dropdown from 'react-bootstrap/Dropdown'
 import Nav from 'react-bootstrap/Nav'
 import Row from 'react-bootstrap/Row'
 import Markdown from '../svgs/markdown-line.svg'
+import AddImageIcon from '../svgs/image-add-line.svg'
 import styles from './form.module.css'
 import Text from '../components/text'
 import AddIcon from '../svgs/add-fill.svg'
@@ -219,12 +220,15 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
           <Nav.Item>
             <Nav.Link className={styles.previewTab} eventKey='preview' disabled={!meta.value}>preview</Nav.Link>
           </Nav.Item>
-          <a
-            className='ms-auto text-muted d-flex align-items-center'
-            href='https://guides.github.com/features/mastering-markdown/' target='_blank' rel='noreferrer'
-          >
-            <Markdown width={18} height={18} />
-          </a>
+          <span className='ms-auto text-muted d-flex align-items-center'>
+            <AddImageIcon className='me-1' width={18} height={18} />
+            <a
+              className='d-flex align-items-center'
+              href='https://guides.github.com/features/mastering-markdown/' target='_blank' rel='noreferrer'
+            >
+              <Markdown width={18} height={18} />
+            </a>
+          </span>
         </Nav>
         <div className={`position-relative ${tab === 'write' ? '' : 'd-none'}`}>
           <UserSuggest

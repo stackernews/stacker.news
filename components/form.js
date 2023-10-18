@@ -25,6 +25,7 @@ import textAreaCaret from 'textarea-caret'
 import ReactDatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
 import { debounce } from './use-debounce-callback'
+import { ImageUpload } from './image'
 
 export function SubmitButton ({
   children, variant, value, onClick, disabled, cost, ...props
@@ -221,7 +222,9 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
             <Nav.Link className={styles.previewTab} eventKey='preview' disabled={!meta.value}>preview</Nav.Link>
           </Nav.Item>
           <span className='ms-auto text-muted d-flex align-items-center'>
-            <AddImageIcon className='me-1' width={18} height={18} />
+            <ImageUpload className='d-flex align-items-center me-1'>
+              <AddImageIcon width={18} height={18} onClick={() => console.log('icon click')} />
+            </ImageUpload>
             <a
               className='d-flex align-items-center'
               href='https://guides.github.com/features/mastering-markdown/' target='_blank' rel='noreferrer'

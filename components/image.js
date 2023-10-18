@@ -1,9 +1,11 @@
 import styles from './text.module.css'
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { Fragment, useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { IMGPROXY_URL_REGEXP } from '../lib/url'
 import { useShowModal } from './modal'
 import { useMe } from './me'
 import { Dropdown } from 'react-bootstrap'
+import { UPLOAD_TYPES_ALLOW } from '../lib/constants'
+import { useToast } from './toast'
 
 export function decodeOriginalUrl (imgproxyUrl) {
   const parts = imgproxyUrl.split('/')
@@ -131,4 +133,36 @@ export default function ZoomableImage ({ src, srcSet, ...props }) {
   }
 
   return <ImageOriginal src={originalUrl} onClick={handleClick} {...props} />
+}
+
+export function ImageUpload ({ children, className, onSelect, onSuccess }) {
+  const ref = useRef()
+  const toaster = useToast()
+
+  return (
+    <>
+      <input
+        ref={ref}
+        type='file'
+        className='d-none'
+        accept={UPLOAD_TYPES_ALLOW.join(', ')}
+        onChange={(e) => {
+          if (e.target.files.length === 0) {
+            return
+          }
+          const file = e.target.files[0]
+          if (UPLOAD_TYPES_ALLOW.indexOf(file.type) === -1) {
+            toaster.danger(`image must be ${UPLOAD_TYPES_ALLOW.map(t => t.replace('image/', '')).join(', ')}`)
+            return
+          }
+          onSelect?.(file)
+          // TODO find out if this is needed and if so, why (copied from components/upload.js)
+          e.target.value = null
+        }}
+      />
+      <div className={className} onClick={() => ref.current?.click()} style={{ cursor: 'pointer' }}>
+        {children}
+      </div>
+    </>
+  )
 }

@@ -108,18 +108,22 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, ...o
 
   const renderYoutubeUrl = useCallback((url) => {
     if (url) {
-      const regExp = /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\/(watch\?v=|embed\/)?([^&#\?]+)/;
-      const match = url.match(regExp);
+      const regExp = /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\/(watch\?v=|embed\/)?([^&#?]+)/
+      const match = url.match(regExp)
       if (match && match[4]) {
-        return <YouTube videoId={match[4]} className={styles.videoContainer} opts={{
-          height: '100%',
-          width: '100%',
-        }} />;
+        return (
+          <YouTube
+            videoId={match[4]} className={styles.videoContainer} opts={{
+              height: '100%',
+              width: '100%'
+            }}
+          />
+        )
       }
     }
 
-    return null;
-  }, []);
+    return null
+  }, [])
 
   return (
     <div className={styles.text}>
@@ -146,13 +150,13 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, ...o
             const text = children[0]
             if (!!text && !/^https?:\/\//.test(text)) {
               // Render video if it's a valid Youtube url, otherwise null
-              const video = renderYoutubeUrl(href);
+              const video = renderYoutubeUrl(href)
               return (
                 <>
                   <a target='_blank' rel={`noreferrer ${nofollow ? 'nofollow' : ''} noopener`} href={href}>{text}</a>
                   {video}
-                </>                
-              );
+                </>
+              )
             }
 
             // assume the link is an image which will fallback to link if it's not

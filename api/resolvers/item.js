@@ -17,15 +17,8 @@ import { advSchema, amountSchema, bountySchema, commentSchema, discussionSchema,
 import { sendUserNotification } from '../webPush'
 import { defaultCommentSort } from '../../lib/item'
 import { notifyItemParents, notifyUserSubscribers, notifyZapped } from '../../lib/push-notifications'
-import { createHmac } from './wallet'
-import { settleHodlInvoice } from 'ln-service'
 import { initDateRule } from '../../lib/timedate-scraper'
-<<<<<<< HEAD
-import { moreThanOneYearAgo } from '../../lib/time'
-=======
 import { datePivot } from '../../lib/time'
-import { notifyItemParents, notifyUserSubscribers, notifyZapped } from '../../lib/push-notifications'
->>>>>>> 7be35e0 (address review comments)
 
 export async function commentFilterClause (me, models) {
   let clause = ` AND ("Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}`

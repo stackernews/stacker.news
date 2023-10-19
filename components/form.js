@@ -103,7 +103,7 @@ function ImageSelector ({ file, name, url, text, setText, onDelete }) {
   }
 
   return (
-    <span className='d-flex align-items-center text-muted'>
+    <span className='d-flex align-items-center text-muted mt-2'>
       <img className='me-1' src={file ? window.URL.createObjectURL(file) : url} width={32} height={32} style={{ objectFit: 'contain' }} />
       <a href={url} target='_blank' rel='noreferrer'>{name || url}</a>
       <LinkIcon className='ms-auto me-1' width={18} height={18} onClick={onLink} style={{ cursor: 'pointer' }} />

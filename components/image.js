@@ -11,6 +11,8 @@ import { useMutation, useQuery } from '@apollo/client'
 
 const ImageContext = createContext({ unsubmitted: [] })
 
+const imageIdToUrl = id => `https://${process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET}.s3.amazonaws.com/${id}`
+
 export function ImageProvider ({ me, children }) {
   const { data, loading } = useQuery(
     gql`
@@ -42,14 +44,12 @@ export function ImageProvider ({ me, children }) {
   })
   const [unsubmittedImages, setUnsubmittedImages] = useState([])
 
-  const imageIdToUrl = id => `https://${process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET}.s3.amazonaws.com/${id}`
-
   useEffect(() => {
     const images = data?.me?.images
     if (images) {
       setUnsubmittedImages(images.map(img => ({ ...img, url: imageIdToUrl(img.id) })))
     }
-  }, [loading])
+  }, [setUnsubmittedImages, loading])
 
   const contextValue = {
     unsubmittedImages,

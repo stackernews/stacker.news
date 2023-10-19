@@ -12,6 +12,7 @@ if (!imgProxyEnabled) {
 const IMGPROXY_URL = process.env.NEXT_PUBLIC_IMGPROXY_URL
 const IMGPROXY_SALT = process.env.IMGPROXY_SALT
 const IMGPROXY_KEY = process.env.IMGPROXY_KEY
+const AWS_S3_URL = `https://${process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET}.s3.amazonaws.com/`
 
 const cache = new Map()
 
@@ -64,10 +65,10 @@ export function imgproxy ({ models }) {
     let imgproxyUrls = {}
     try {
       if (item.text) {
-        imgproxyUrls = await createImgproxyUrls(id, item.text, { forceFetch })
+        imgproxyUrls = await createImgproxyUrls(id, item.text, { models, forceFetch })
       }
       if (item.url && !isJob(item)) {
-        imgproxyUrls = { ...imgproxyUrls, ...(await createImgproxyUrls(id, item.url, { forceFetch })) }
+        imgproxyUrls = { ...imgproxyUrls, ...(await createImgproxyUrls(id, item.url, { models, forceFetch })) }
       }
     } catch (err) {
       console.log('[imgproxy] error:', err)
@@ -81,7 +82,7 @@ export function imgproxy ({ models }) {
   }
 }
 
-export const createImgproxyUrls = async (id, text, { forceFetch }) => {
+export const createImgproxyUrls = async (id, text, { models, forceFetch }) => {
   const urls = extractUrls(text)
   console.log('[imgproxy] id:', id, '-- extracted urls:', urls)
   // resolutions that we target:
@@ -105,6 +106,10 @@ export const createImgproxyUrls = async (id, text, { forceFetch }) => {
       // backwards compatibility: we used to replace image urls with imgproxy urls
       url = decodeOriginalUrl(url)
       console.log('[imgproxy] id:', id, '-- original url:', url)
+    }
+    if (url.startsWith(AWS_S3_URL)) {
+      const s3Key = url.split('/').pop()
+      await models.upload.update({ data: { itemId: Number(id) }, where: { id: Number(s3Key) } })
     }
     if (!(await isImageURL(url, { forceFetch }))) {
       console.log('[imgproxy] id:', id, '-- not image url:', url)

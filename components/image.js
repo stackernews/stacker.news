@@ -188,7 +188,7 @@ export function ImageUpload ({ children, className, onSelect, onSuccess }) {
       }
 
       const url = `https://${process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET}.s3.amazonaws.com/${data.getSignedPOST.fields.key}`
-      onSuccess?.(url)
+      onSuccess?.(file, url)
     }
   }, [toaster, getSignedPOST])
 

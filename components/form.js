@@ -94,6 +94,15 @@ export function InputSkeleton ({ label, hint }) {
   )
 }
 
+function ImageSelector ({ file, url }) {
+  return (
+    <span className='d-flex align-items-center'>
+      <img className='me-1' src={window.URL.createObjectURL(file)} width={32} height={32} style={{ 'object-fit': 'contain' }} />
+      <a href={url} target='_blank' rel='noreferrer'>{file.name}</a>
+    </span>
+  )
+}
+
 const DEFAULT_MENTION_INDICES = { start: -1, end: -1 }
 export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setHasImgLink, onKeyDown, innerRef, ...props }) {
   const [tab, setTab] = useState('write')
@@ -211,6 +220,8 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
     }
   }, [innerRef, helpers?.setValue, setSelectionRange, onKeyDown])
 
+  const [uploadedImages, setUploadedImages] = useState([])
+
   return (
     <FormGroup label={label} className={groupClassName}>
       <div className={`${styles.markdownInput} ${tab === 'write' ? styles.noTopLeftRadius : ''}`}>
@@ -223,8 +234,8 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
           </Nav.Item>
           <span className='ms-auto text-muted d-flex align-items-center'>
             <ImageUpload
-              className='d-flex align-items-center me-1' onSuccess={(url) => {
-                console.log('image uploaded to', url)
+              className='d-flex align-items-center me-1' onSuccess={(file, url) => {
+                setUploadedImages(prev => [...prev, { file, url }])
               }}
             >
               <AddImageIcon width={18} height={18} />
@@ -251,6 +262,9 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
               onBlur={() => setTimeout(resetSuggestions, 100)}
             />)}
           </UserSuggest>
+          {uploadedImages.map((props, i) => {
+            return <ImageSelector {...props} key={i} />
+          })}
         </div>
         {tab !== 'write' &&
           <div className='form-group'>

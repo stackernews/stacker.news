@@ -8,6 +8,7 @@ import { UPLOAD_TYPES_ALLOW } from '../lib/constants'
 import { useToast } from './toast'
 import gql from 'graphql-tag'
 import { useMutation, useQuery } from '@apollo/client'
+import { extractUrls } from '../lib/md'
 
 const ImageContext = createContext({ unsubmitted: [] })
 
@@ -44,6 +45,18 @@ export function ImageProvider ({ me, children }) {
   })
   const [unsubmittedImages, setUnsubmittedImages] = useState([])
 
+  const markImagesAsSubmitted = useCallback((text) => {
+    // mark images from S3 included in the text as submitted on the client
+    const urls = extractUrls(text)
+    const s3UrlPrefix = `https://${process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET}.s3.amazonaws.com/`
+    urls
+      .filter(url => url.startsWith(s3UrlPrefix))
+      .forEach(url => {
+        const s3Key = url.split('/').pop()
+        setUnsubmittedImages(prev => prev.filter(img => img.id !== s3Key))
+      })
+  }, [setUnsubmittedImages])
+
   useEffect(() => {
     const images = data?.me?.images
     if (images) {
@@ -54,7 +67,8 @@ export function ImageProvider ({ me, children }) {
   const contextValue = {
     unsubmittedImages,
     setUnsubmittedImages,
-    deleteImage
+    deleteImage,
+    markImagesAsSubmitted
   }
 
   return (

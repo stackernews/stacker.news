@@ -11,6 +11,7 @@ import { commentSchema } from '../lib/validate'
 import Info from './info'
 import { quote } from '../lib/md'
 import { COMMENT_DEPTH_LIMIT } from '../lib/constants'
+import { useImages } from './image'
 
 export function ReplyOnAnotherPage ({ item }) {
   const path = item.path.split('.')
@@ -49,6 +50,7 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
   const parentId = item.id
   const replyInput = useRef(null)
   const formInnerRef = useRef()
+  const { markImagesAsSubmitted } = useImages()
 
   // Start block to handle iOS Safari's weird selection clearing behavior
   const savedRange = useRef()
@@ -116,6 +118,9 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
           }
         }
       }`, {
+      onCompleted ({ upsertComment: { text } }) {
+        markImagesAsSubmitted(text)
+      },
       update (cache, { data: { upsertComment } }) {
         cache.modify({
           id: `Item:${parentId}`,

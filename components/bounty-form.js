@@ -12,6 +12,7 @@ import { useCallback } from 'react'
 import { normalizeForwards } from '../lib/form'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
 import { useMe } from './me'
+import { useImages } from './image'
 
 export function BountyForm ({
   item,
@@ -27,6 +28,7 @@ export function BountyForm ({
   const router = useRouter()
   const client = useApolloClient()
   const me = useMe()
+  const { markImagesAsSubmitted } = useImages()
   const schema = bountySchema({ client, me, existingBoost: item?.boost })
   const [upsertBounty] = useMutation(
     gql`
@@ -55,7 +57,11 @@ export function BountyForm ({
           id
         }
       }
-    `
+    `, {
+      onCompleted ({ upsertBounty: { text } }) {
+        markImagesAsSubmitted(text)
+      }
+    }
   )
 
   const onSubmit = useCallback(

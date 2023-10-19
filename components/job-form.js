@@ -18,6 +18,7 @@ import ActionTooltip from './action-tooltip'
 import { jobSchema } from '../lib/validate'
 import CancelButton from './cancel-button'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
+import { useImages } from './image'
 
 function satsMin2Mo (minute) {
   return minute * 30 * 24 * 60
@@ -40,6 +41,7 @@ export default function JobForm ({ item, sub }) {
   const storageKeyPrefix = item ? undefined : `${sub.name}-job`
   const router = useRouter()
   const [logoId, setLogoId] = useState(item?.uploadId)
+  const { markImagesAsSubmitted } = useImages()
   const [upsertJob] = useMutation(gql`
     mutation upsertJob($sub: String!, $id: ID, $title: String!, $company: String!, $location: String,
       $remote: Boolean, $text: String!, $url: String!, $maxBid: Int!, $status: String, $logo: Int, $hash: String, $hmac: String) {
@@ -47,8 +49,13 @@ export default function JobForm ({ item, sub }) {
         location: $location, remote: $remote, text: $text,
         url: $url, maxBid: $maxBid, status: $status, logo: $logo, hash: $hash, hmac: $hmac) {
         id
+        text
       }
-    }`
+    }`, {
+    onCompleted ({ upsertJob: { text } }) {
+      markImagesAsSubmitted(text)
+    }
+  }
   )
 
   const onSubmit = useCallback(

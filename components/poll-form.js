@@ -13,12 +13,14 @@ import CancelButton from './cancel-button'
 import { useCallback } from 'react'
 import { normalizeForwards } from '../lib/form'
 import { useMe } from './me'
+import { useImages } from './image'
 
 export function PollForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
   const client = useApolloClient()
   const me = useMe()
   const schema = pollSchema({ client, me, existingBoost: item?.boost })
+  const { markImagesAsSubmitted } = useImages()
 
   const [upsertPoll] = useMutation(
     gql`
@@ -27,8 +29,13 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         upsertPoll(sub: $sub, id: $id, title: $title, text: $text,
           options: $options, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac) {
           id
+          text
         }
-      }`
+      }`, {
+      onCompleted ({ upsertPoll: { text } }) {
+        markImagesAsSubmitted(text)
+      }
+    }
   )
 
   const onSubmit = useCallback(

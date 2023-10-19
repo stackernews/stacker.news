@@ -1,5 +1,5 @@
 import styles from './text.module.css'
-import { Fragment, useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { Fragment, useState, useEffect, useMemo, useCallback, useRef, createContext, useContext } from 'react'
 import { IMGPROXY_URL_REGEXP } from '../lib/url'
 import { useShowModal } from './modal'
 import { useMe } from './me'
@@ -7,7 +7,67 @@ import { Dropdown } from 'react-bootstrap'
 import { UPLOAD_TYPES_ALLOW } from '../lib/constants'
 import { useToast } from './toast'
 import gql from 'graphql-tag'
-import { useMutation } from '@apollo/client'
+import { useMutation, useQuery } from '@apollo/client'
+
+const ImageContext = createContext({ unsubmitted: [] })
+
+export function ImageProvider ({ me, children }) {
+  const { data, loading } = useQuery(
+    gql`
+      query images($submitted: Boolean) {
+        me {
+          images(submitted: $submitted) {
+            id
+            createdAt
+            updatedAt
+            type
+            size
+            width
+            height
+            itemId
+          }
+        }
+      }`, {
+      variables: { submitted: false }
+    }
+  )
+  const [deleteImage] = useMutation(gql`
+    mutation deleteImage($id: ID!) {
+      deleteImage(id: $id)
+    }`, {
+    onCompleted: (_, options) => {
+      const id = options.variables.id
+      setUnsubmittedImages(prev => prev.filter(img => img.id !== id))
+    }
+  })
+  const [unsubmittedImages, setUnsubmittedImages] = useState([])
+
+  const imageIdToUrl = id => `https://${process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET}.s3.amazonaws.com/${id}`
+
+  useEffect(() => {
+    const images = data?.me?.images
+    if (images) {
+      setUnsubmittedImages(images.map(img => ({ ...img, url: imageIdToUrl(img.id) })))
+    }
+  }, [loading])
+
+  const contextValue = {
+    unsubmittedImages,
+    setUnsubmittedImages,
+    deleteImage
+  }
+
+  return (
+    <ImageContext.Provider value={contextValue}>
+      {children}
+    </ImageContext.Provider>
+  )
+}
+
+export function useImages () {
+  const images = useContext(ImageContext)
+  return images
+}
 
 export function decodeOriginalUrl (imgproxyUrl) {
   const parts = imgproxyUrl.split('/')
@@ -155,15 +215,14 @@ export function ImageUpload ({ children, className, onSelect, onSuccess }) {
     img.src = window.URL.createObjectURL(file)
     img.onload = async () => {
       let data
+      const variables = {
+        type: file.type,
+        size: file.size,
+        width: img.width,
+        height: img.height
+      }
       try {
-        ({ data } = await getSignedPOST({
-          variables: {
-            type: file.type,
-            size: file.size,
-            width: img.width,
-            height: img.height
-          }
-        }))
+        ({ data } = await getSignedPOST({ variables }))
       } catch (e) {
         toaster.danger(e.message || e.toString?.())
         return
@@ -188,7 +247,9 @@ export function ImageUpload ({ children, className, onSelect, onSuccess }) {
       }
 
       const url = `https://${process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET}.s3.amazonaws.com/${data.getSignedPOST.fields.key}`
-      onSuccess?.(file, url)
+      // key is upload id in database
+      const id = data.getSignedPOST.fields.key
+      onSuccess?.({ ...variables, id, name: file.name, url, file })
     }
   }, [toaster, getSignedPOST])
 

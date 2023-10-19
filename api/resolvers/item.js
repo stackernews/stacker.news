@@ -803,6 +803,21 @@ export default {
       )
 
       return true
+    },
+    deleteImage: async (parent, { id }, { me, models }) => {
+      if (!me) {
+        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+      }
+
+      id = Number(id)
+
+      const img = await models.upload.findUnique({ where: { id } })
+      if (img.userId !== me.id) {
+        throw new GraphQLError('not your image', { extensions: { code: 'FORBIDDEN' } })
+      }
+      await models.upload.delete({ where: { id } })
+
+      return id
     }
   },
   Item: {

@@ -896,6 +896,16 @@ export default {
         return contributors.has(user.name)
       }
       return !user.hideIsContributor && contributors.has(user.name)
+    },
+    images: async (user, { submitted }, { me, models }) => {
+      if (!me) return null
+      const uploads = await models.upload.findMany({
+        where: {
+          userId: me.id,
+          itemId: submitted !== undefined ? submitted ? { not: null } : null : undefined
+        }
+      })
+      return uploads
     }
   }
 }

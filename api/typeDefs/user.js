@@ -45,6 +45,18 @@ export default gql`
     email: String
   }
 
+  type Image {
+    id: ID!
+    createdAt: Date!
+    updatedAt: Date!
+    type: String!
+    size: Int!
+    width: Int
+    height: Int
+    itemId: Int
+    userId: Int!
+  }
+
   type User {
     id: ID!
     createdAt: Date!
@@ -101,5 +113,6 @@ export default gql`
     meSubscriptionPosts: Boolean!
     meSubscriptionComments: Boolean!
     meMute: Boolean
+    images(submitted: Boolean): [Image]
   }
 `

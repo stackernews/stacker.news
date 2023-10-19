@@ -25,7 +25,7 @@ import textAreaCaret from 'textarea-caret'
 import ReactDatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
 import { debounce } from './use-debounce-callback'
-import { ImageUpload } from './image'
+import { ImageUpload, useImages } from './image'
 import LinkIcon from '../svgs/link.svg'
 
 export function SubmitButton ({
@@ -95,7 +95,7 @@ export function InputSkeleton ({ label, hint }) {
   )
 }
 
-function ImageSelector ({ file, url, text, setText, onRemove }) {
+function ImageSelector ({ file, name, url, text, setText, onDelete }) {
   const onLink = () => {
     let newText = text ? text + '\n\n' : ''
     newText += url
@@ -104,10 +104,10 @@ function ImageSelector ({ file, url, text, setText, onRemove }) {
 
   return (
     <span className='d-flex align-items-center text-muted'>
-      <img className='me-1' src={window.URL.createObjectURL(file)} width={32} height={32} style={{ objectFit: 'contain' }} />
-      <a href={url} target='_blank' rel='noreferrer'>{file.name}</a>
+      <img className='me-1' src={file ? window.URL.createObjectURL(file) : url} width={32} height={32} style={{ objectFit: 'contain' }} />
+      <a href={url} target='_blank' rel='noreferrer'>{name || url}</a>
       <LinkIcon className='ms-auto me-1' width={18} height={18} onClick={onLink} style={{ cursor: 'pointer' }} />
-      <CloseIcon width={18} height={18} onClick={onRemove} style={{ cursor: 'pointer' }} />
+      <CloseIcon width={18} height={18} onClick={onDelete} style={{ cursor: 'pointer' }} />
     </span>
   )
 }
@@ -119,6 +119,8 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
   const [selectionRange, setSelectionRange] = useState({ start: 0, end: 0 })
   innerRef = innerRef || useRef(null)
   const previousTab = useRef(tab)
+  const toaster = useToast()
+  const { unsubmittedImages, setUnsubmittedImages, deleteImage } = useImages()
 
   props.as ||= TextareaAutosize
   props.rows ||= props.minRows || 6
@@ -229,11 +231,6 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
     }
   }, [innerRef, helpers?.setValue, setSelectionRange, onKeyDown])
 
-  const [uploadedImages, setUploadedImages] = useState([])
-  const removeUploadedImage = useCallback((i) => {
-    setUploadedImages(prev => prev.slice(0, i).concat(prev.slice(i + 1)))
-  }, [setUploadedImages])
-
   return (
     <FormGroup label={label} className={groupClassName}>
       <div className={`${styles.markdownInput} ${tab === 'write' ? styles.noTopLeftRadius : ''}`}>
@@ -246,9 +243,8 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
           </Nav.Item>
           <span className='ms-auto text-muted d-flex align-items-center'>
             <ImageUpload
-              className='d-flex align-items-center me-1' onSuccess={(file, url) => {
-                setUploadedImages(prev => [...prev, { file, url }])
-              }}
+              className='d-flex align-items-center me-1'
+              onSuccess={img => setUnsubmittedImages(prev => [...prev, img])}
             >
               <AddImageIcon width={18} height={18} />
             </ImageUpload>
@@ -274,8 +270,26 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
               onBlur={() => setTimeout(resetSuggestions, 100)}
             />)}
           </UserSuggest>
-          {uploadedImages.map((props, i) => {
-            return <ImageSelector key={i} {...props} text={meta.value} setText={helpers.setValue} onRemove={() => removeUploadedImage(i)} />
+          {unsubmittedImages.map((img, i) => {
+            return (
+              <ImageSelector
+                name={img.name}
+                file={img.file}
+                url={img.url}
+                key={i}
+                text={meta.value}
+                setText={helpers.setValue}
+                onDelete={async () => {
+                  try {
+                    await deleteImage({ variables: { id: img.id } })
+                    toaster.success('image deleted')
+                  } catch (err) {
+                    console.error(err)
+                    toaster.danger('failed to delete image')
+                  }
+                }}
+              />
+            )
           })}
         </div>
         {tab !== 'write' &&

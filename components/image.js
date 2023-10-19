@@ -6,6 +6,8 @@ import { useMe } from './me'
 import { Dropdown } from 'react-bootstrap'
 import { UPLOAD_TYPES_ALLOW } from '../lib/constants'
 import { useToast } from './toast'
+import gql from 'graphql-tag'
+import { useMutation } from '@apollo/client'
 
 export function decodeOriginalUrl (imgproxyUrl) {
   const parts = imgproxyUrl.split('/')
@@ -139,6 +141,57 @@ export function ImageUpload ({ children, className, onSelect, onSuccess }) {
   const ref = useRef()
   const toaster = useToast()
 
+  const [getSignedPOST] = useMutation(
+    gql`
+      mutation getSignedPOST($type: String!, $size: Int!, $width: Int!, $height: Int!) {
+        getSignedPOST(type: $type, size: $size, width: $width, height: $height) {
+          url
+          fields
+        }
+      }`)
+
+  const s3Upload = useCallback(file => {
+    const img = new window.Image()
+    img.src = window.URL.createObjectURL(file)
+    img.onload = async () => {
+      let data
+      try {
+        ({ data } = await getSignedPOST({
+          variables: {
+            type: file.type,
+            size: file.size,
+            width: img.width,
+            height: img.height
+          }
+        }))
+      } catch (e) {
+        toaster.danger(e.message || e.toString?.())
+        return
+      }
+
+      const form = new FormData()
+      Object.keys(data.getSignedPOST.fields).forEach(key => form.append(key, data.getSignedPOST.fields[key]))
+      form.append('Content-Type', file.type)
+      form.append('Cache-Control', 'max-age=31536000')
+      form.append('acl', 'public-read')
+      form.append('file', file)
+
+      const res = await fetch(data.getSignedPOST.url, {
+        method: 'POST',
+        body: form
+      })
+
+      if (!res.ok) {
+        // TODO make sure this is actually a helpful error message and does not expose anything to the user we don't want
+        toaster.danger(res.statusText)
+        return
+      }
+
+      const url = `https://${process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET}.s3.amazonaws.com/${data.getSignedPOST.fields.key}`
+      onSuccess?.(url)
+    }
+  }, [toaster, getSignedPOST])
+
   return (
     <>
       <input
@@ -155,7 +208,7 @@ export function ImageUpload ({ children, className, onSelect, onSuccess }) {
             toaster.danger(`image must be ${UPLOAD_TYPES_ALLOW.map(t => t.replace('image/', '')).join(', ')}`)
             return
           }
-          onSelect?.(file)
+          s3Upload(file)
           // TODO find out if this is needed and if so, why (copied from components/upload.js)
           e.target.value = null
         }}

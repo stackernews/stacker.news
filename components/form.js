@@ -222,8 +222,12 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
             <Nav.Link className={styles.previewTab} eventKey='preview' disabled={!meta.value}>preview</Nav.Link>
           </Nav.Item>
           <span className='ms-auto text-muted d-flex align-items-center'>
-            <ImageUpload className='d-flex align-items-center me-1'>
-              <AddImageIcon width={18} height={18} onClick={() => console.log('icon click')} />
+            <ImageUpload
+              className='d-flex align-items-center me-1' onSuccess={(url) => {
+                console.log('image uploaded to', url)
+              }}
+            >
+              <AddImageIcon width={18} height={18} />
             </ImageUpload>
             <a
               className='d-flex align-items-center'

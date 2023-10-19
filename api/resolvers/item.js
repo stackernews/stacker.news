@@ -19,6 +19,7 @@ import { sendUserNotification } from '../webPush'
 import { defaultCommentSort, isJob, deleteItemByAuthor, getDeleteCommand, hasDeleteCommand } from '../../lib/item'
 import { notifyItemParents, notifyUserSubscribers, notifyZapped } from '../../lib/push-notifications'
 import { datePivot } from '../../lib/time'
+import { deleteObject } from '../s3'
 
 export async function commentFilterClause (me, models) {
   let clause = ` AND ("Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}`
@@ -809,13 +810,15 @@ export default {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
       }
 
-      id = Number(id)
-
-      const img = await models.upload.findUnique({ where: { id } })
+      const img = await models.upload.findUnique({ where: { id: Number(id) } })
       if (img.userId !== me.id) {
         throw new GraphQLError('not your image', { extensions: { code: 'FORBIDDEN' } })
       }
-      await models.upload.delete({ where: { id } })
+      if (img.itemId) {
+        throw new GraphQLError('image already included in an item', { extensions: { code: 'BAD_INPUT' } })
+      }
+      await models.upload.delete({ where: { id: Number(id) } })
+      await deleteObject(id)
 
       return id
     }

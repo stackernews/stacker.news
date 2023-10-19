@@ -1,12 +1,6 @@
 import { GraphQLError } from 'graphql'
-import AWS from 'aws-sdk'
 import { IMAGE_PIXELS_MAX, UPLOAD_SIZE_MAX, UPLOAD_TYPES_ALLOW } from '../../lib/constants'
-
-const bucketRegion = 'us-east-1'
-
-AWS.config.update({
-  region: bucketRegion
-})
+import { createPresignedPost } from '../s3'
 
 export default {
   Mutation: {
@@ -38,25 +32,8 @@ export default {
         }
       })
 
-      // get presigned POST ur
-      const s3 = new AWS.S3({ apiVersion: '2006-03-01' })
-      const res = await new Promise((resolve, reject) => {
-        s3.createPresignedPost({
-          Bucket: process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET,
-          Fields: {
-            key: String(upload.id)
-          },
-          Expires: 300,
-          Conditions: [
-            { 'Content-Type': type },
-            { 'Cache-Control': 'max-age=31536000' },
-            { acl: 'public-read' },
-            ['content-length-range', size, size]
-          ]
-        }, (err, preSigned) => { if (err) { reject(err) } else { resolve(preSigned) } })
-      })
-
-      return res
+      // get presigned POST url
+      return createPresignedPost({ key: String(upload.id), type, size })
     }
   }
 }

@@ -176,7 +176,7 @@ model Upload {
   size      Int
   width     Int?
   height    Int?
-  itemId    Int?     @unique(map: "Upload.itemId_unique")
+  itemId    Int?
   userId    Int
   item      Item?    @relation(fields: [itemId], references: [id])
   user      User     @relation("Uploads", fields: [userId], references: [id], onDelete: Cascade)
@@ -299,7 +299,7 @@ model Item {
   PollOption         PollOption[]
   PollVote           PollVote[]
   ThreadSubscription ThreadSubscription[]
-  upload             Upload?
+  uploads            Upload[]
   User               User[]
   itemForwards       ItemForward[]
 

@@ -5,8 +5,8 @@ import { UPLOAD_TYPES_ALLOW } from '../lib/constants'
 export default function Upload ({ as: Component, onSelect, onStarted, onError, onSuccess }) {
   const [getSignedPOST] = useMutation(
     gql`
-      mutation getSignedPOST($type: String!, $size: Int!, $width: Int!, $height: Int!) {
-        getSignedPOST(type: $type, size: $size, width: $width, height: $height) {
+      mutation getSignedPOST($type: String!, $size: Int!, $width: Int!, $height: Int!, $avatar: Boolean!) {
+        getSignedPOST(type: $type, size: $size, width: $width, height: $height, avatar: $avatar) {
           url
           fields
         }
@@ -23,6 +23,7 @@ export default function Upload ({ as: Component, onSelect, onStarted, onError, o
       try {
         ({ data } = await getSignedPOST({
           variables: {
+            avatar: true,
             type: file.type,
             size: file.size,
             width: img.width,

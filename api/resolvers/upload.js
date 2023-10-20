@@ -4,7 +4,7 @@ import { createPresignedPost } from '../s3'
 
 export default {
   Mutation: {
-    getSignedPOST: async (parent, { type, size, width, height }, { models, me }) => {
+    getSignedPOST: async (parent, { type, size, width, height, avatar }, { models, me }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in to get a signed url', { extensions: { code: 'FORBIDDEN' } })
       }
@@ -21,19 +21,30 @@ export default {
         throw new GraphQLError(`image must be less than ${IMAGE_PIXELS_MAX} pixels`, { extensions: { code: 'BAD_INPUT' } })
       }
 
-      // create upload record
-      const upload = await models.upload.create({
-        data: {
-          type,
-          size,
-          width,
-          height,
-          userId: me.id
-        }
-      })
+      const data = {
+        type,
+        size,
+        width,
+        height,
+        userId: me.id
+      }
+
+      let uploadId
+      if (avatar) {
+        const { photoId } = await models.user.findUnique({ where: { id: me.id } })
+        if (photoId) uploadId = photoId
+      }
+      if (uploadId) {
+        // update upload record
+        await models.upload.update({ data, where: { id: uploadId } })
+      } else {
+        // create upload record
+        const upload = await models.upload.create({ data })
+        uploadId = upload.id
+      }
 
       // get presigned POST url
-      return createPresignedPost({ key: String(upload.id), type, size })
+      return createPresignedPost({ key: String(uploadId), type, size })
     }
   }
 }

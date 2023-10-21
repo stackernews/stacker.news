@@ -34,7 +34,6 @@ export default function Share ({ item }) {
               toaster.success('link shared')
             } catch (err) {
               console.error(err)
-              toaster.danger('failed to share link')
             }
           }}
         />

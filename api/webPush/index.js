@@ -87,6 +87,7 @@ export async function sendUserNotification (userId, notification) {
     notification.data ??= {}
     if (notification.item) {
       notification.data.url ??= await createItemUrl(notification.item)
+      notification.data.itemId ??= notification.item.id
       delete notification.item
     }
     const userFilter = createUserFilter(notification.tag)

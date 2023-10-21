@@ -1,7 +1,7 @@
 import serialize from '../api/resolvers/serial.js'
-// import { sendUserNotification } from '../api/webPush/index.js'
+import { sendUserNotification } from '../api/webPush/index.js'
 import { ANON_USER_ID } from '../lib/constants.js'
-// import { msatsToSats, numWithUnits } from '../lib/format.js'
+import { msatsToSats, numWithUnits } from '../lib/format.js'
 
 const ITEM_EACH_REWARD = 4.0
 const UPVOTE_EACH_REWARD = 4.0
@@ -145,10 +145,8 @@ export function earn ({ models }) {
     // this is just a sanity check because it seems like a good idea
     let total = 0
 
-    // for each earner, serialize earnings
-    // we do this for each earner because we don't need to serialize
-    // all earner updates together
-    earners.forEach(async earner => {
+    const notifications = {}
+    for (const earner of earners) {
       const earnings = Math.floor(parseFloat(earner.proportion) * sum)
       total += earnings
       if (total > sum) {
@@ -162,13 +160,32 @@ export function earn ({ models }) {
         await serialize(models,
           models.$executeRaw`SELECT earn(${earner.userId}::INTEGER, ${earnings},
           ${now}::timestamp without time zone, ${earner.type}::"EarnType", ${earner.id}::INTEGER, ${earner.rank}::INTEGER)`)
-        // sendUserNotification(earner.userId, {
-        //   title: `you stacked ${numWithUnits(msatsToSats(earnings), { abbreviate: false })} in rewards`,
-        //   tag: 'EARN'
-        // }).catch(console.error)
+        notifications[earner.userId] = {
+          ...notifications[earner.userId],
+          total: earnings + (notifications[earner.userId]?.total || 0),
+          [earner.type]: { msats: earnings, rank: earner.rank }
+        }
       }
-    })
+    }
+
+    Promise.allSettled(Object.entries(notifications).map(([userId, earnings]) =>
+      sendUserNotification(parseInt(userId, 10), buildUserNotification(earnings))
+    )).catch(console.error)
 
     console.log('done', name)
   }
+}
+
+function buildUserNotification (earnings) {
+  const fmt = msats => numWithUnits(msatsToSats(msats, { abbreviate: false }))
+
+  const title = `you stacked ${fmt(earnings.total)} in rewards`
+  const tag = 'EARN'
+  let body = ''
+  if (earnings.POST) body += `#${earnings.POST.rank} among posts for ${fmt(earnings.POST.msats)}\n`
+  if (earnings.COMMENT) body += `#${earnings.COMMENT.rank} among comments for ${fmt(earnings.COMMENT.msats)}\n`
+  if (earnings.TIP_POST) body += `#${earnings.TIP_POST.rank} in post zapping for ${fmt(earnings.TIP_POST.msats)}\n`
+  if (earnings.TIP_COMMENT) body += `#${earnings.TIP_COMMENT.rank} in comment zapping for ${fmt(earnings.TIP_COMMENT.msats)}\n`
+
+  return { title, tag, body }
 }

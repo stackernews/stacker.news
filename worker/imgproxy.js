@@ -1,5 +1,6 @@
 import { createHmac } from 'node:crypto'
 import { extractUrls } from '../lib/md.js'
+import { isJob } from '../lib/item.js'
 
 const imgProxyEnabled = process.env.NODE_ENV === 'production' ||
   (process.env.NEXT_PUBLIC_IMGPROXY_URL && process.env.IMGPROXY_SALT && process.env.IMGPROXY_KEY)
@@ -60,14 +61,12 @@ export function imgproxy ({ models }) {
 
     const item = await models.item.findUnique({ where: { id } })
 
-    const isJob = typeof item.maxBid !== 'undefined'
-
     let imgproxyUrls = {}
     try {
       if (item.text) {
         imgproxyUrls = await createImgproxyUrls(id, item.text, { forceFetch })
       }
-      if (item.url && !isJob) {
+      if (item.url && !isJob(item)) {
         imgproxyUrls = { ...imgproxyUrls, ...(await createImgproxyUrls(id, item.url, { forceFetch })) }
       }
     } catch (err) {

@@ -8,14 +8,14 @@ import {
   ITEM_SPAM_INTERVAL, ITEM_FILTER_THRESHOLD,
   DONT_LIKE_THIS_COST, COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY,
   ANON_COMMENT_FEE, ANON_USER_ID, ANON_POST_FEE, ANON_ITEM_SPAM_INTERVAL, POLL_COST,
-  GLOBAL_SEED
+  ITEM_ALLOW_EDITS, GLOBAL_SEED
 } from '../../lib/constants'
 import { msatsToSats } from '../../lib/format'
 import { parse } from 'tldts'
 import uu from 'url-unshort'
 import { advSchema, amountSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, ssValidate } from '../../lib/validate'
 import { sendUserNotification } from '../webPush'
-import { defaultCommentSort } from '../../lib/item'
+import { defaultCommentSort, isJob } from '../../lib/item'
 import { notifyItemParents, notifyUserSubscribers, notifyZapped } from '../../lib/push-notifications'
 
 export async function commentFilterClause (me, models) {
@@ -1070,14 +1070,14 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
   // in case they lied about their existing boost
   await ssValidate(advSchema, { boost: item.boost }, { models, me, existingBoost: old.boost })
 
-  // if it's not the FAQ, not their bio, and older than 10 minutes
+  // prevent update if it's not explicitly allowed, not their bio, not their job and older than 10 minutes
   const user = await models.user.findUnique({ where: { id: me.id } })
-  if (![349, 76894, 78763, 81862].includes(old.id) && user.bioId !== old.id &&
-    typeof item.maxBid === 'undefined' && Date.now() > new Date(old.createdAt).getTime() + 10 * 60000) {
+  if (!ITEM_ALLOW_EDITS.includes(old.id) && user.bioId !== old.id &&
+    !isJob(item) && Date.now() > new Date(old.createdAt).getTime() + 10 * 60000) {
     throw new GraphQLError('item can no longer be editted', { extensions: { code: 'BAD_INPUT' } })
   }
 
-  if (item.url && typeof item.maxBid === 'undefined') {
+  if (item.url && !isJob(item)) {
     item.url = ensureProtocol(item.url)
     item.url = removeTracking(item.url)
   }
@@ -1117,7 +1117,7 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
   item.userId = me ? Number(me.id) : ANON_USER_ID
 
   const fwdUsers = await getForwardUsers(models, forward)
-  if (item.url && typeof item.maxBid === 'undefined') {
+  if (item.url && !isJob(item)) {
     item.url = ensureProtocol(item.url)
     item.url = removeTracking(item.url)
   }

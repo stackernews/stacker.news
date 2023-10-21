@@ -30,6 +30,7 @@ export default gql`
     lud18Data: JSONObject
     hmac: String
     isHeld: Boolean
+    preimage: String
   }
 
   type Withdrawl {

@@ -1,4 +1,4 @@
-import { createHodlInvoice, createInvoice, decodePaymentRequest, payViaPaymentRequest, cancelHodlInvoice } from 'ln-service'
+import { createHodlInvoice, createInvoice, decodePaymentRequest, payViaPaymentRequest, cancelHodlInvoice, getInvoice as getInvoiceFromLnd } from 'ln-service'
 import { GraphQLError } from 'graphql'
 import crypto from 'crypto'
 import serialize from './serial'
@@ -38,6 +38,15 @@ export async function getInvoice (parent, { id }, { me, models, lnd }) {
   try {
     inv.nostr = JSON.parse(inv.desc)
   } catch (err) {
+  }
+
+  try {
+    if (inv.confirmedAt) {
+      const lnInv = await getInvoiceFromLnd({ id: inv.hash, lnd })
+      inv.preimage = lnInv.secret
+    }
+  } catch (err) {
+    console.error('error fetching invoice from LND', err)
   }
 
   return inv

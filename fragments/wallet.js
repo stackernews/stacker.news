@@ -16,6 +16,7 @@ export const INVOICE = gql`
       isHeld
       comment
       lud18Data
+      preimage
     }
   }`
 

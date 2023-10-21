@@ -8,13 +8,14 @@ export function trust ({ boss, models }) {
       console.timeLog('trust', 'getting graph')
       const graph = await getGraph(models)
       console.timeLog('trust', 'computing trust')
-      const trust = await trustGivenGraph(graph)
+      const [vGlobal, mPersonal] = await trustGivenGraph(graph)
       console.timeLog('trust', 'storing trust')
-      await storeTrust(models, trust)
-      console.timeEnd('trust')
+      await storeTrust(models, graph, vGlobal, mPersonal)
     } catch (e) {
       console.error(e)
       throw e
+    } finally {
+      console.timeEnd('trust')
     }
   }
 }
@@ -28,9 +29,11 @@ const DISAGREE_MULT = 10
 // https://en.wikipedia.org/wiki/Normal_distribution#Quantile_function
 const Z_CONFIDENCE = 6.109410204869 // 99.9999999% confidence
 const SEEDS = [616, 6030, 946, 4502]
+const GLOBAL_ROOT = 616
 const SEED_WEIGHT = 0.25
 const AGAINST_MSAT_MIN = 1000
 const MSAT_MIN = 1000
+const SIG_DIFF = 0.1 // need to differ by at least 10 percent
 
 /*
  Given a graph and start this function returns an object where
@@ -38,7 +41,7 @@ const MSAT_MIN = 1000
 */
 function trustGivenGraph (graph) {
   // empty matrix of proper size nstackers x nstackers
-  const mat = math.zeros(graph.length, graph.length, 'sparse')
+  let mat = math.zeros(graph.length, graph.length, 'sparse')
 
   // create a map of user id to position in matrix
   const posByUserId = {}
@@ -69,34 +72,45 @@ function trustGivenGraph (graph) {
     matT = math.add(math.multiply(1 - SEED_WEIGHT, matT), math.multiply(SEED_WEIGHT, original))
   }
 
-  console.timeLog('trust', 'normalizing result')
-  // we normalize the result taking the z-score, then min-max to [0,1]
-  // we remove seeds and 0 trust people from the result because they are known outliers
-  // but we need to keep them in the result to keep positions correct
-  function resultForId (id) {
-    let result = math.squeeze(math.subset(math.transpose(matT), math.index(posByUserId[id], math.range(0, graph.length))))
-    const outliers = SEEDS.concat([id])
-    outliers.forEach(id => result.set([posByUserId[id]], 0))
-    const withoutZero = math.filter(result, val => val > 0)
-    // NOTE: this might be improved by using median and mad (modified z score)
-    // given the distribution is skewed
-    const mean = math.mean(withoutZero)
-    const std = math.std(withoutZero)
-    result = result.map(val => val >= 0 ? (val - mean) / std : 0)
-    const min = math.min(result)
-    const max = math.max(result)
-    result = math.map(result, val => (val - min) / (max - min))
-    outliers.forEach(id => result.set([posByUserId[id]], MAX_TRUST))
-    return result
+  console.timeLog('trust', 'transforming result')
+
+  const seedIdxs = SEEDS.map(id => posByUserId[id])
+  const isOutlier = (fromIdx, idx) => [...seedIdxs, fromIdx].includes(idx)
+  const sqapply = (mat, fn) => {
+    let idx = 0
+    return math.squeeze(math.apply(mat, 1, d => {
+      const filtered = math.filter(d, (val, fidx) => {
+        return val !== 0 && !isOutlier(idx, fidx[0])
+      })
+      idx++
+      if (filtered.length === 0) return 0
+      return fn(filtered)
+    }))
   }
 
-  // turn the result vector into an object
-  const result = {}
-  resultForId(616).forEach((val, idx) => {
-    result[graph[idx].id] = val
+  console.timeLog('trust', 'normalizing')
+  console.timeLog('trust', 'stats')
+  mat = math.transpose(matT)
+  const std = sqapply(mat, math.std) // math.squeeze(math.std(mat, 1))
+  const mean = sqapply(mat, math.mean) // math.squeeze(math.mean(mat, 1))
+  const zscore = math.map(mat, (val, idx) => {
+    const zstd = math.subset(std, math.index(idx[0]))
+    const zmean = math.subset(mean, math.index(idx[0]))
+    return zstd ? (val - zmean) / zstd : 0
   })
+  console.timeLog('trust', 'minmax')
+  const min = sqapply(zscore, math.min) // math.squeeze(math.min(zscore, 1))
+  const max = sqapply(zscore, math.max) // math.squeeze(math.max(zscore, 1))
+  const mPersonal = math.map(zscore, (val, idx) => {
+    const zmin = math.subset(min, math.index(idx[0]))
+    const zmax = math.subset(max, math.index(idx[0]))
+    const zrange = zmax - zmin
+    if (val > zmax) return MAX_TRUST
+    return zrange ? (val - zmin) / zrange : 0
+  })
+  const vGlobal = math.squeeze(math.row(mPersonal, posByUserId[GLOBAL_ROOT]))
 
-  return result
+  return [vGlobal, mPersonal]
 }
 
 /*
@@ -108,7 +122,7 @@ function trustGivenGraph (graph) {
 */
 async function getGraph (models) {
   return await models.$queryRaw`
-    SELECT id, array_agg(json_build_object(
+    SELECT id, json_agg(json_build_object(
       'node', oid,
       'trust', CASE WHEN total_trust > 0 THEN trust / total_trust::float ELSE 0 END)) AS hops
     FROM (
@@ -144,9 +158,12 @@ async function getGraph (models) {
         FROM user_pair
         WHERE b_id <> ANY (${SEEDS})
         UNION ALL
-        SELECT a_id AS id, seed_id AS oid, ${MAX_TRUST}::numeric/ARRAY_LENGTH(${SEEDS}::int[], 1) as trust
+        SELECT a_id AS id, seed_id AS oid, ${MAX_TRUST}::numeric as trust
         FROM user_pair, unnest(${SEEDS}::int[]) seed_id
         GROUP BY a_id, a_total, seed_id
+        UNION ALL
+        SELECT a_id AS id, a_id AS oid, ${MAX_TRUST}::float as trust
+        FROM user_pair
       )
       SELECT id, oid, trust, sum(trust) OVER (PARTITION BY id) AS total_trust
       FROM trust_pairs
@@ -155,13 +172,24 @@ async function getGraph (models) {
     ORDER BY id ASC`
 }
 
-async function storeTrust (models, nodeTrust) {
+async function storeTrust (models, graph, vGlobal, mPersonal) {
   // convert nodeTrust into table literal string
-  let values = ''
-  for (const [id, trust] of Object.entries(nodeTrust)) {
-    if (values) values += ','
-    values += `(${id}, ${trust})`
-  }
+  let globalValues = ''
+  let personalValues = ''
+  vGlobal.forEach((val, [idx]) => {
+    if (isNaN(val)) return
+    if (globalValues) globalValues += ','
+    globalValues += `(${graph[idx].id}, ${val}::FLOAT)`
+    if (personalValues) personalValues += ','
+    personalValues += `(${GLOBAL_ROOT}, ${graph[idx].id}, ${val}::FLOAT)`
+  })
+
+  math.forEach(mPersonal, (val, [fromIdx, toIdx]) => {
+    const globalVal = vGlobal.get([toIdx])
+    if (isNaN(val) || val - globalVal <= SIG_DIFF) return
+    if (personalValues) personalValues += ','
+    personalValues += `(${graph[fromIdx].id}, ${graph[toIdx].id}, ${val}::FLOAT)`
+  })
 
   // update the trust of each user in graph
   await models.$transaction([
@@ -169,6 +197,13 @@ async function storeTrust (models, nodeTrust) {
     models.$executeRawUnsafe(
       `UPDATE users
         SET trust = g.trust
-        FROM (values ${values}) g(id, trust)
-        WHERE users.id = g.id`)])
+        FROM (values ${globalValues}) g(id, trust)
+        WHERE users.id = g.id`),
+    models.$executeRawUnsafe(
+      `INSERT INTO "Arc" ("fromId", "toId", "zapTrust")
+        SELECT id, oid, trust
+        FROM (values ${personalValues}) g(id, oid, trust)
+        ON CONFLICT ("fromId", "toId") DO UPDATE SET "zapTrust" = EXCLUDED."zapTrust"`
+    )
+  ])
 }

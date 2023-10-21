@@ -30,10 +30,36 @@ self.addEventListener('install', () => self.skipWaiting())
 // The browser may use own caching (HTTP cache).
 // Also, the offline fallback only works if request matched a route
 setDefaultHandler(new NetworkOnly({
-  // tell us why a request failed in dev
   plugins: [{
     fetchDidFail: async (args) => {
+      //  tell us why a request failed in dev
       process.env.NODE_ENV !== 'production' && console.log('fetch did fail', ...args)
+    },
+    fetchDidSucceed: async ({ request, response, event, state }) => {
+      if (
+        response.ok &&
+        request.headers.get('x-nextjs-data') &&
+        response.headers.get('x-nextjs-matched-path') &&
+        response.headers.get('content-type') === 'application/json' &&
+        response.headers.get('content-length') === '2' &&
+        response.status === 200) {
+        console.log('service worker detected a successful yet empty nextjs SSR data response')
+        console.log('nextjs has a bug where it returns a 200 with empty data when it should return a 404')
+        console.log('see https://github.com/vercel/next.js/issues/56852')
+        console.log('HACK ... intercepting response and returning 404')
+
+        const headers = new Headers(response.headers)
+        headers.delete('x-nextjs-matched-path')
+        headers.delete('content-type')
+        headers.delete('content-length')
+        return new Response(null, {
+          status: 404,
+          statusText: 'Not Found',
+          headers,
+          ok: false
+        })
+      }
+      return response
     }
   }]
 }))

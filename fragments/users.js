@@ -15,6 +15,7 @@ export const ME = gql`
       tipDefault
       turboTipping
       fiatCurrency
+      withdrawMaxFeeDefault
       bioId
       upvotePopover
       tipPopover
@@ -48,6 +49,7 @@ export const SETTINGS_FIELDS = gql`
     tipDefault
     turboTipping
     fiatCurrency
+    withdrawMaxFeeDefault
     noteItemSats
     noteEarning
     noteAllDescendants
@@ -90,13 +92,13 @@ ${SETTINGS_FIELDS}
 export const SET_SETTINGS =
 gql`
 ${SETTINGS_FIELDS}
-mutation setSettings($tipDefault: Int!, $turboTipping: Boolean!, $fiatCurrency: String!, $noteItemSats: Boolean!,
+mutation setSettings($tipDefault: Int!, $turboTipping: Boolean!, $fiatCurrency: String!, $withdrawMaxFeeDefault: Int!, $noteItemSats: Boolean!,
   $noteEarning: Boolean!, $noteAllDescendants: Boolean!, $noteMentions: Boolean!, $noteDeposits: Boolean!,
   $noteInvites: Boolean!, $noteJobIndicator: Boolean!, $noteCowboyHat: Boolean!, $hideInvoiceDesc: Boolean!,
   $hideFromTopUsers: Boolean!, $hideCowboyHat: Boolean!, $imgproxyOnly: Boolean!,
   $wildWestMode: Boolean!, $greeterMode: Boolean!, $nostrPubkey: String, $nostrCrossposting: Boolean!, $nostrRelays: [String!], $hideBookmarks: Boolean!,
   $noteForwardedSats: Boolean!, $hideWalletBalance: Boolean!, $hideIsContributor: Boolean!, $diagnostics: Boolean!) {
-  setSettings(tipDefault: $tipDefault, turboTipping: $turboTipping,  fiatCurrency: $fiatCurrency,
+  setSettings(tipDefault: $tipDefault, turboTipping: $turboTipping,  fiatCurrency: $fiatCurrency, withdrawMaxFeeDefault: $withdrawMaxFeeDefault,
     noteItemSats: $noteItemSats, noteEarning: $noteEarning, noteAllDescendants: $noteAllDescendants,
     noteMentions: $noteMentions, noteDeposits: $noteDeposits, noteInvites: $noteInvites,
     noteJobIndicator: $noteJobIndicator, noteCowboyHat: $noteCowboyHat, hideInvoiceDesc: $hideInvoiceDesc,

@@ -3,13 +3,22 @@ import ShareIcon from '../svgs/share-fill.svg'
 import copy from 'clipboard-copy'
 import { useMe } from './me'
 import { useToast } from './toast'
+import { SSR } from '../lib/constants'
+
+const getShareUrl = (item, me) => {
+  const path = `/items/${item?.id}${me ? `/r/${me.name}` : ''}`
+  if (!SSR) {
+    return `${window.location.protocol}//${window.location.host}${path}`
+  }
+  return `https://stacker.news${path}`
+}
 
 export default function Share ({ item }) {
   const me = useMe()
   const toaster = useToast()
-  const url = `https://stacker.news/items/${item.id}${me ? `/r/${me.name}` : ''}`
+  const url = getShareUrl(item, me)
 
-  return typeof window !== 'undefined' && navigator?.share
+  return !SSR && navigator?.share
     ? (
       <div className='ms-auto pointer d-flex align-items-center'>
         <ShareIcon
@@ -57,7 +66,7 @@ export default function Share ({ item }) {
 export function CopyLinkDropdownItem ({ item }) {
   const me = useMe()
   const toaster = useToast()
-  const url = `https://stacker.news/items/${item.id}${me ? `/r/${me.name}` : ''}`
+  const url = getShareUrl(item, me)
   return (
     <Dropdown.Item
       onClick={async () => {

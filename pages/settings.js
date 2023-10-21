@@ -63,6 +63,7 @@ export default function Settings ({ ssrData }) {
             tipDefault: settings?.tipDefault || 21,
             turboTipping: settings?.turboTipping,
             fiatCurrency: settings?.fiatCurrency || 'USD',
+            withdrawMaxFeeDefault: settings?.withdrawMaxFeeDefault,
             noteItemSats: settings?.noteItemSats,
             noteEarning: settings?.noteEarning,
             noteAllDescendants: settings?.noteAllDescendants,
@@ -87,7 +88,7 @@ export default function Settings ({ ssrData }) {
             hideIsContributor: settings?.hideIsContributor
           }}
           schema={settingsSchema}
-          onSubmit={async ({ tipDefault, nostrPubkey, nostrRelays, ...values }) => {
+          onSubmit={async ({ tipDefault, withdrawMaxFeeDefault, nostrPubkey, nostrRelays, ...values }) => {
             if (nostrPubkey.length === 0) {
               nostrPubkey = null
             } else {
@@ -103,6 +104,7 @@ export default function Settings ({ ssrData }) {
               await setSettings({
                 variables: {
                   tipDefault: Number(tipDefault),
+                  withdrawMaxFeeDefault: Number(withdrawMaxFeeDefault),
                   nostrPubkey,
                   nostrRelays: nostrRelaysFiltered,
                   ...values
@@ -162,6 +164,12 @@ export default function Settings ({ ssrData }) {
             size='sm'
             items={SUPPORTED_CURRENCIES}
             required
+          />
+          <Input
+            label='default max fee for withdrawals'
+            name='withdrawMaxFeeDefault'
+            required
+            append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
           />
           <div className='form-label'>notify me when ...</div>
           <Checkbox

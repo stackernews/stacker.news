@@ -22,7 +22,7 @@ import MuteDropdownItem from './mute'
 export default function ItemInfo ({
   item, pendingSats, full, commentsText = 'comments',
   commentTextSingular = 'comment', className, embellishUser, extraInfo, onEdit, editText,
-  onQuoteReply
+  onQuoteReply, nofollow
 }) {
   const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
   const me = useMe()
@@ -64,6 +64,7 @@ export default function ItemInfo ({
           <span> \ </span>
         </>}
       <Link
+        rel={nofollow}
         href={`/items/${item.id}`} onClick={(e) => {
           const viewedAt = commentsViewedAt(item)
           if (viewedAt) {
@@ -91,7 +92,7 @@ export default function ItemInfo ({
           {embellishUser}
         </Link>
         <span> </span>
-        <Link href={`/items/${item.id}`} title={item.createdAt} className='text-reset' suppressHydrationWarning>
+        <Link rel={nofollow} href={`/items/${item.id}`} title={item.createdAt} className='text-reset' suppressHydrationWarning>
           {timeSince(new Date(item.createdAt))}
         </Link>
         {item.prior &&

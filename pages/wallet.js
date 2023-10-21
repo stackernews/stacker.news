@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router'
-import { Checkbox, Form, Input, SubmitButton } from '../components/form'
+import { Checkbox, Form, Input, InputUserSuggest, SubmitButton } from '../components/form'
 import Link from 'next/link'
 import Button from 'react-bootstrap/Button'
 import { gql, useMutation, useQuery } from '@apollo/client'
@@ -311,14 +311,13 @@ export function LnAddrWithdrawal () {
     let options
     try {
       options = await lnAddrOptions(e.target.value)
+      setAddrOptions(options)
+      setFormSchema(lnAddrSchema(options))
     } catch (e) {
       console.log(e)
       setAddrOptions(defaultOptions)
-      return
+      setFormSchema(lnAddrSchema())
     }
-
-    setAddrOptions(options)
-    setFormSchema(lnAddrSchema(options))
   }, 500, [setAddrOptions, setFormSchema])
 
   return (
@@ -349,12 +348,18 @@ export function LnAddrWithdrawal () {
           router.push(`/withdrawals/${data.sendToLnAddr.id}`)
         }}
       >
-        <Input
+        <InputUserSuggest
           label='lightning address'
           name='addr'
           required
           autoFocus
           onChange={onAddrChange}
+          transformUser={user => ({ ...user, name: `${user.name}@stacker.news` })}
+          selectWithTab={false}
+          filterUsers={(query) => {
+            const [, domain] = query.split('@')
+            return !domain || 'stacker.news'.startsWith(domain)
+          }}
         />
         <Input
           label='amount'

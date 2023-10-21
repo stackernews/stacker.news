@@ -20,7 +20,7 @@ export function SearchText ({ text }) {
     <div className={styles.text}>
       <p className={styles.p}>
         {reactStringReplace(text, /\*\*\*([^*]+)\*\*\*/g, (match, i) => {
-          return <mark key={`strong-${match}`}>{match}</mark>
+          return <mark key={`strong-${match}-${i}`}>{match}</mark>
         })}
       </p>
     </div>
@@ -119,14 +119,15 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, ...o
           p: P,
           code: Code,
           a: ({ node, href, children, ...props }) => {
+            children = children ? Array.isArray(children) ? children : [children] : []
             // don't allow zoomable images to be wrapped in links
-            if (children?.some(e => e?.props?.node?.tagName === 'img')) {
+            if (children.some(e => e?.props?.node?.tagName === 'img')) {
               return <>{children}</>
             }
 
             // If [text](url) was parsed as <a> and text is not empty and not a link itself,
             // we don't render it as an image since it was probably a concious choice to include text.
-            const text = children?.[0]
+            const text = children[0]
             if (!!text && !/^https?:\/\//.test(text)) {
               return <a target='_blank' rel={`noreferrer ${nofollow ? 'nofollow' : ''} noopener`} href={href}>{text}</a>
             }

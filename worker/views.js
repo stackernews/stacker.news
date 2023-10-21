@@ -13,12 +13,12 @@ export function views ({ models }) {
   }
 }
 
-// this should be run regularly ... like, every 1-5 minutes
+// this should be run regularly ... like, every 5 minutes
 export function rankViews ({ models }) {
   return async function () {
     console.log('refreshing rank views')
 
-    for (const view of ['zap_rank_wwm_view', 'zap_rank_tender_view']) {
+    for (const view of ['zap_rank_personal_view']) {
       await models.$queryRawUnsafe(`REFRESH MATERIALIZED VIEW CONCURRENTLY ${view}`)
     }
 

@@ -8,7 +8,7 @@ import {
   ITEM_SPAM_INTERVAL, ITEM_FILTER_THRESHOLD,
   DONT_LIKE_THIS_COST, COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY,
   ANON_COMMENT_FEE, ANON_USER_ID, ANON_POST_FEE, ANON_ITEM_SPAM_INTERVAL, POLL_COST,
-  ITEM_ALLOW_EDITS
+  ITEM_ALLOW_EDITS, GLOBAL_SEED
 } from '../../lib/constants'
 import { msatsToSats } from '../../lib/format'
 import { parse } from 'tldts'
@@ -37,24 +37,39 @@ export async function commentFilterClause (me, models) {
   return clause
 }
 
-async function comments (me, models, id, sort) {
-  let orderBy
-  switch (sort) {
-    case 'top':
-      orderBy = `ORDER BY ${await orderByNumerator(me, models)} DESC, "Item".msats DESC, ("Item".freebie IS FALSE) DESC,  "Item".id DESC`
-      break
-    case 'recent':
-      orderBy = 'ORDER BY "Item".created_at DESC, "Item".msats DESC, ("Item".freebie IS FALSE) DESC, "Item".id DESC'
-      break
-    default:
-      orderBy = `ORDER BY ${await orderByNumerator(me, models)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".freebie IS FALSE) DESC, "Item".id DESC`
-      break
+function commentsOrderByClause (me, models, sort) {
+  if (sort === 'recent') {
+    return 'ORDER BY "Item".created_at DESC, "Item".id DESC'
   }
+
+  if (me) {
+    if (sort === 'top') {
+      return `ORDER BY COALESCE(
+        personal_top_score,
+        ${orderByNumerator(models, 0)}) DESC NULLS LAST,
+        "Item".msats DESC, ("Item".freebie IS FALSE) DESC, "Item".id DESC`
+    } else {
+      return `ORDER BY COALESCE(
+        personal_hot_score,
+        ${orderByNumerator(models, 0)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3)) DESC NULLS LAST,
+        "Item".msats DESC, ("Item".freebie IS FALSE) DESC, "Item".id DESC`
+    }
+  } else {
+    if (sort === 'top') {
+      return `ORDER BY ${orderByNumerator(models, 0)} DESC NULLS LAST, "Item".msats DESC, ("Item".freebie IS FALSE) DESC,  "Item".id DESC`
+    } else {
+      return `ORDER BY ${orderByNumerator(models, 0)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".freebie IS FALSE) DESC, "Item".id DESC`
+    }
+  }
+}
+
+async function comments (me, models, id, sort) {
+  const orderBy = commentsOrderByClause(me, models, sort)
 
   const filter = await commentFilterClause(me, models)
   if (me) {
-    const [{ item_comments_with_me: comments }] = await models.$queryRawUnsafe(
-      'SELECT item_comments_with_me($1::INTEGER, $2::INTEGER, $3::INTEGER, $4, $5)', Number(id), Number(me.id), COMMENT_DEPTH_LIMIT, filter, orderBy)
+    const [{ item_comments_zaprank_with_me: comments }] = await models.$queryRawUnsafe(
+      'SELECT item_comments_zaprank_with_me($1::INTEGER, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5, $6)', Number(id), GLOBAL_SEED, Number(me.id), COMMENT_DEPTH_LIMIT, filter, orderBy)
     return comments
   }
 
@@ -75,43 +90,35 @@ export async function getItem (parent, { id }, { me, models }) {
   return item
 }
 
-const orderByClause = async (by, me, models, type) => {
+const orderByClause = (by, me, models, type) => {
   switch (by) {
     case 'comments':
       return 'ORDER BY "Item".ncomments DESC'
     case 'sats':
       return 'ORDER BY "Item".msats DESC'
     case 'zaprank':
-      return await topOrderByWeightedSats(me, models)
+      return topOrderByWeightedSats(me, models)
     default:
       return `ORDER BY ${type === 'bookmarks' ? '"bookmarkCreatedAt"' : '"Item".created_at'} DESC`
   }
 }
 
-export async function orderByNumerator (me, models) {
-  if (me) {
-    const user = await models.user.findUnique({ where: { id: me.id } })
-    if (user.wildWestMode) {
-      return '(GREATEST("Item"."weightedVotes", POWER("Item"."weightedVotes", 1.2)) + "Item"."weightedComments"/2)'
-    }
-  }
-
-  return `(CASE WHEN "Item"."weightedVotes" > "Item"."weightedDownVotes"
-                THEN 1
-                ELSE -1 END
-          * GREATEST(ABS("Item"."weightedVotes" - "Item"."weightedDownVotes"), POWER(ABS("Item"."weightedVotes" - "Item"."weightedDownVotes"), 1.2))
-          + "Item"."weightedComments"/2)`
+export function orderByNumerator (models, commentScaler = 0.5) {
+  return `(CASE WHEN "Item"."weightedVotes" - "Item"."weightedDownVotes" > 0 THEN
+              GREATEST("Item"."weightedVotes" - "Item"."weightedDownVotes", POWER("Item"."weightedVotes" - "Item"."weightedDownVotes", 1.2))
+            ELSE
+              "Item"."weightedVotes" - "Item"."weightedDownVotes"
+            END + "Item"."weightedComments"*${commentScaler})`
 }
 
-export async function joinSatRankView (me, models) {
+export function joinZapRankPersonalView (me, models) {
+  let join = ` JOIN zap_rank_personal_view g ON g.id = "Item".id AND g."viewerId" = ${GLOBAL_SEED} `
+
   if (me) {
-    const user = await models.user.findUnique({ where: { id: me.id } })
-    if (user.wildWestMode) {
-      return 'JOIN zap_rank_wwm_view ON "Item".id = zap_rank_wwm_view.id'
-    }
+    join += ` LEFT JOIN zap_rank_personal_view l ON l.id = g.id AND l."viewerId" = ${me.id} `
   }
 
-  return 'JOIN zap_rank_tender_view ON "Item".id = zap_rank_tender_view.id'
+  return join
 }
 
 // this grabs all the stuff we need to display the item list and only
@@ -348,10 +355,10 @@ export default {
                 await filterClause(me, models, type),
                 typeClause(type),
                 whenClause(when || 'forever', type))}
-              ${await orderByClause(by, me, models, type)}
+              ${orderByClause(by, me, models, type)}
               OFFSET $3
               LIMIT $4`,
-            orderBy: await orderByClause(by, me, models, type)
+            orderBy: orderByClause(by, me, models, type)
           }, decodedCursor.time, user.id, decodedCursor.offset, limit, ...subArr)
           break
         case 'recent':
@@ -376,10 +383,34 @@ export default {
           }, decodedCursor.time, decodedCursor.offset, limit, ...subArr)
           break
         case 'top':
-          items = await itemQueryWithMeta({
-            me,
-            models,
-            query: `
+          if (me && (!by || by === 'zaprank') && (when === 'day' || when === 'week')) {
+            // personalized zaprank only goes back 7 days
+            items = await itemQueryWithMeta({
+              me,
+              models,
+              query: `
+              ${SELECT}, GREATEST(g.tf_top_score, l.tf_top_score) AS rank
+              ${relationClause(type)}
+              ${joinZapRankPersonalView(me, models)}
+              ${whereClause(
+                '"Item".created_at <= $1',
+                '"Item"."pinId" IS NULL',
+                '"Item"."deletedAt" IS NULL',
+                subClause(sub, 4, subClauseTable(type)),
+                typeClause(type),
+                whenClause(when, type),
+                await filterClause(me, models, type),
+                muteClause(me))}
+              ORDER BY rank DESC
+              OFFSET $2
+              LIMIT $3`,
+              orderBy: 'ORDER BY rank DESC'
+            }, decodedCursor.time, decodedCursor.offset, limit, ...subArr)
+          } else {
+            items = await itemQueryWithMeta({
+              me,
+              models,
+              query: `
               ${selectClause(type)}
               ${relationClause(type)}
               ${whereClause(
@@ -391,11 +422,12 @@ export default {
                 whenClause(when, type),
                 await filterClause(me, models, type),
                 muteClause(me))}
-              ${await orderByClause(by || 'zaprank', me, models, type)}
+              ${orderByClause(by || 'zaprank', me, models, type)}
               OFFSET $2
               LIMIT $3`,
-            orderBy: await orderByClause(by || 'zaprank', me, models, type)
-          }, decodedCursor.time, decodedCursor.offset, limit, ...subArr)
+              orderBy: orderByClause(by || 'zaprank', me, models, type)
+            }, decodedCursor.time, decodedCursor.offset, limit, ...subArr)
+          }
           break
         default:
           // sub so we know the default ranking
@@ -434,17 +466,41 @@ export default {
                 me,
                 models,
                 query: `
-                    ${SELECT}, rank
+                    ${SELECT}, ${me ? 'GREATEST(g.tf_hot_score, l.tf_hot_score)' : 'g.tf_hot_score'} AS rank
                     FROM "Item"
-                    ${await joinSatRankView(me, models)}
+                    ${joinZapRankPersonalView(me, models)}
                     ${whereClause(
+                      '"Item"."pinId" IS NULL',
+                      '"Item"."deletedAt" IS NULL',
+                      '"Item"."parentId" IS NULL',
+                      '"Item".bio = false',
                       subClause(sub, 3, 'Item', true),
                       muteClause(me))}
-                    ORDER BY rank ASC
+                    ORDER BY rank DESC
                     OFFSET $1
                     LIMIT $2`,
-                orderBy: 'ORDER BY rank ASC'
+                orderBy: 'ORDER BY rank DESC'
               }, decodedCursor.offset, limit, ...subArr)
+
+              // XXX this is just for migration purposes ... can remove after initial deployment
+              // and views have been populated
+              if (items.length === 0) {
+                items = await itemQueryWithMeta({
+                  me,
+                  models,
+                  query: `
+                      ${SELECT}, rank
+                      FROM "Item"
+                      JOIN zap_rank_tender_view ON "Item".id = zap_rank_tender_view.id
+                      ${whereClause(
+                        subClause(sub, 3, 'Item', true),
+                        muteClause(me))}
+                      ORDER BY rank ASC
+                      OFFSET $1
+                      LIMIT $2`,
+                  orderBy: 'ORDER BY rank ASC'
+                }, decodedCursor.offset, limit, ...subArr)
+              }
 
               if (decodedCursor.offset === 0) {
                 // get pins for the page and return those separately
@@ -462,7 +518,7 @@ export default {
                         FROM "Item"
                         ${whereClause(
                           '"pinId" IS NOT NULL',
-                          subClause(sub, 1),
+                          sub ? '("subName" = $1 OR "subName" IS NULL)' : '"subName" IS NULL',
                           muteClause(me))}
                     ) rank_filter WHERE RANK = 1`
                 }, ...subArr)
@@ -972,7 +1028,9 @@ export const createMentions = async (item, models) => {
     if (mentions?.length > 0) {
       const users = await models.user.findMany({
         where: {
-          name: { in: mentions }
+          name: { in: mentions },
+          // Don't create mentions when mentioning yourself
+          id: { not: item.userId }
         }
       })
 
@@ -1107,6 +1165,6 @@ export const SELECT =
   "Item"."weightedDownVotes", "Item".freebie, "Item"."otsHash", "Item"."bountyPaidTo",
   ltree2text("Item"."path") AS "path", "Item"."weightedComments", "Item"."imgproxyUrls"`
 
-async function topOrderByWeightedSats (me, models) {
-  return `ORDER BY ${await orderByNumerator(me, models)} DESC NULLS LAST, "Item".id DESC`
+function topOrderByWeightedSats (me, models) {
+  return `ORDER BY ${orderByNumerator(models)} DESC NULLS LAST, "Item".id DESC`
 }

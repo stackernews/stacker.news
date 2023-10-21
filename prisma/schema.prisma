@@ -95,6 +95,8 @@ model User {
   hideIsContributor   Boolean              @default(false)
   muters              Mute[]               @relation("muter")
   muteds              Mute[]               @relation("muted")
+  ArcOut              Arc[]                @relation("fromUser")
+  ArcIn               Arc[]                @relation("toUser")
 
   @@index([createdAt], map: "users.created_at_index")
   @@index([inviteId], map: "users.inviteId_index")
@@ -111,6 +113,17 @@ model Mute {
 
   @@id([muterId, mutedId])
   @@index([mutedId, muterId])
+}
+
+model Arc {
+  fromId   Int
+  fromUser User  @relation("fromUser", fields: [fromId], references: [id], onDelete: Cascade)
+  toId     Int
+  toUser   User  @relation("toUser", fields: [toId], references: [id], onDelete: Cascade)
+  zapTrust Float
+
+  @@id([fromId, toId])
+  @@index([toId, fromId])
 }
 
 model Streak {

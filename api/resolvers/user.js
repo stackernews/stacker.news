@@ -301,24 +301,6 @@ export default {
         }
       }
 
-      // check if they have any replies since checkedNotesAt
-      const [newReply] = await models.$queryRawUnsafe(`
-        SELECT EXISTS(
-          SELECT *
-          FROM "Item"
-          JOIN "Item" p ON
-            ${user.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
-          ${whereClause(
-            'p."userId" = $1',
-            '"Item"."userId" <> $1',
-            '"Item".created_at > $2::timestamp(3) without time zone',
-            await filterClause(me, models),
-            muteClause(me)
-          )})`, me.id, lastChecked)
-      if (newReply.exists) {
-        return true
-      }
-
       // break out thread subscription to decrease the search space of the already expensive reply query
       const [newThreadSubReply] = await models.$queryRawUnsafe(`
         SELECT EXISTS(

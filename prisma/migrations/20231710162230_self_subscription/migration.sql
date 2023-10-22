@@ -1,6 +1,6 @@
 -- migrate old items to ThreadSubscription model
-INSERT INTO "ThreadSubscription" ("itemId", "userId")
-    SELECT "Item".id, "Item"."userId" FROM "Item" ON CONFLICT DO NOTHING;
+INSERT INTO "ThreadSubscription" ("itemId", "userId", created_at)
+    SELECT "Item".id, "Item"."userId", "Item".created_at FROM "Item" ON CONFLICT DO NOTHING;
 
 -- auto self-subscribe
 CREATE OR REPLACE FUNCTION create_item(
@@ -29,7 +29,7 @@ BEGIN
         cost_msats := 1000 * POWER(10, item_spam(item."parentId", item."userId", spam_within));
     END IF;
     -- it's only a freebie if it's a 1 sat cost, they have < 1 sat, and boost = 0
-    freebie := (cost_msats <= 1000) AND (user_msats < 1000) AND (item.boost = 0);
+    freebie := (cost_msats <= 1000) AND (user_msats < 1000) AND (item.boost IS NULL OR item.boost = 0);
 
     IF NOT freebie AND cost_msats > user_msats THEN
         RAISE EXCEPTION 'SN_INSUFFICIENT_FUNDS';
@@ -58,10 +58,10 @@ BEGIN
     FROM jsonb_object_keys(jsonb_strip_nulls(jitem)) k(key);
     -- insert the item
     EXECUTE format($fmt$
-        INSERT INTO "Item" (%s, "weightedDownVotes")
-        SELECT %1$s, %L
+        INSERT INTO "Item" (%s, "weightedDownVotes", freebie)
+        SELECT %1$s, %L, %L
         FROM jsonb_populate_record(NULL::"Item", %L) RETURNING *
-    $fmt$, select_clause, med_votes, jitem) INTO item;
+    $fmt$, select_clause, med_votes, freebie, jitem) INTO item;
 
     INSERT INTO "ItemForward" ("itemId", "userId", "pct")
         SELECT item.id, "userId", "pct" FROM jsonb_populate_recordset(NULL::"ItemForward", forward);

@@ -19,7 +19,7 @@ import LightningIcon from '../svgs/bolt.svg'
 import { Select } from './form'
 import SearchIcon from '../svgs/search-line.svg'
 import BackArrow from '../svgs/arrow-left-line.svg'
-import { SSR, SUBS } from '../lib/constants'
+import { SUBS } from '../lib/constants'
 import { useLightning } from './lightning'
 import { HAS_NOTIFICATIONS } from '../fragments/notifications'
 import AnonIcon from '../svgs/spy-fill.svg'
@@ -52,12 +52,19 @@ function Back () {
 }
 
 function NotificationBell () {
-  const { data } = useQuery(HAS_NOTIFICATIONS, SSR
-    ? {}
-    : {
-        pollInterval: 30000,
-        nextFetchPolicy: 'cache-and-network'
-      })
+  const { data, startPolling, stopPolling } = useQuery(HAS_NOTIFICATIONS, {
+    nextFetchPolicy: 'cache-and-network'
+  })
+
+  // fine controlled polling
+  useEffect(() => {
+    if (data?.hasNewNotes) {
+      stopPolling()
+    } else {
+      startPolling(30000)
+    }
+    return stopPolling
+  }, [data?.hasNewNotes, startPolling, stopPolling])
 
   return (
     <>

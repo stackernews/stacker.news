@@ -149,3 +149,10 @@ img.fullScreen {
 .text h6 {
     font-size: .85rem;
 }
+
+.videoContainer {
+    aspect-ratio: 16/9;
+    margin-bottom: .5rem;
+    margin-top: .5rem;
+    max-width: 640px;
+}

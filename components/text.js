@@ -1,5 +1,6 @@
 import styles from './text.module.css'
 import ReactMarkdown from 'react-markdown'
+import YouTube from 'react-youtube'
 import gfm from 'remark-gfm'
 import { LightAsync as SyntaxHighlighter } from 'react-syntax-highlighter'
 import atomDark from 'react-syntax-highlighter/dist/cjs/styles/prism/atom-dark'
@@ -105,6 +106,25 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, ...o
     return <ZoomableImage srcSet={srcSet} tab={tab} src={src} {...props} {...outerProps} />
   }, [imgproxyUrls, outerProps, tab])
 
+  const renderYoutubeUrl = useCallback((url) => {
+    if (url) {
+      const regExp = /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\/(watch\?v=|embed\/)?([^&#?]+)/
+      const match = url.match(regExp)
+      if (match && match[4]) {
+        return (
+          <YouTube
+            videoId={match[4]} className={styles.videoContainer} opts={{
+              height: '100%',
+              width: '100%'
+            }}
+          />
+        )
+      }
+    }
+
+    return null
+  }, [])
+
   return (
     <div className={styles.text}>
       <ReactMarkdown
@@ -129,7 +149,14 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, ...o
             // we don't render it as an image since it was probably a conscious choice to include text.
             const text = children[0]
             if (!!text && !/^https?:\/\//.test(text)) {
-              return <a target='_blank' rel={`noreferrer ${nofollow ? 'nofollow' : ''} noopener`} href={href}>{text}</a>
+              // Render video if it's a valid Youtube url, otherwise null
+              const video = renderYoutubeUrl(href)
+              return (
+                <>
+                  <a target='_blank' rel={`noreferrer ${nofollow ? 'nofollow' : ''} noopener`} href={href}>{text}</a>
+                  {video}
+                </>
+              )
             }
 
             // assume the link is an image which will fallback to link if it's not

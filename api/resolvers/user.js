@@ -463,6 +463,9 @@ export default {
         }
       }
 
+      // since they don't have notifications, we can update their checkedNotesAt
+      await models.user.update({ where: { id: me.id }, data: { checkedNotesAt: new Date() } })
+
       return false
     },
     searchUsers: async (parent, { q, limit, similarity }, { models }) => {

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Form, Input, SubmitButton } from '../components/form'
+import { Form, Input, MarkdownInput, SubmitButton } from '../components/form'
 import { useRouter } from 'next/router'
 import { gql, useApolloClient, useLazyQuery, useMutation } from '@apollo/client'
 import Countdown from './countdown'
@@ -123,7 +123,8 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
       initial={{
         title: item?.title || shareTitle || '',
         url: item?.url || shareUrl || '',
-        ...AdvPostInitial({ text: item?.text, forward: normalizeForwards(item?.forwards), boost: item?.boost }),
+        text: item?.text || '',
+        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}
@@ -185,7 +186,13 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
           }
         }}
       />
-      <AdvPostForm edit={!!item} isLink />
+      <AdvPostForm edit={!!item}>
+        <MarkdownInput
+          label='context'
+          name='text'
+          minRows={2}
+        />
+      </AdvPostForm>
       <div className='mt-3'>
         {item
           ? (

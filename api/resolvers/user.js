@@ -284,6 +284,14 @@ export default {
       const user = await models.user.findUnique({ where: { id: me.id } })
       const lastChecked = user.checkedNotesAt || new Date(0)
 
+      // if we've already recorded finding notes after they last checked, return true
+      // this saves us from rechecking notifications
+      if (user.foundNotesAt > lastChecked) {
+        return true
+      }
+
+      const foundNotes = () => models.user.update({ where: { id: me.id }, data: { foundNotesAt: new Date() } }).catch(console.error)
+
       // check if any votes have been cast for them since checkedNotesAt
       if (user.noteItemSats) {
         const [newSats] = await models.$queryRawUnsafe(`
@@ -297,6 +305,7 @@ export default {
             AND "Item"."userId" = $1
             AND "ItemAct".act = 'TIP')`, me.id, lastChecked)
         if (newSats.exists) {
+          foundNotes()
           return true
         }
       }
@@ -317,6 +326,7 @@ export default {
             muteClause(me)
           )})`, me.id, lastChecked)
       if (newThreadSubReply.exists) {
+        foundNotes()
         return true
       }
 
@@ -335,6 +345,7 @@ export default {
             await filterClause(me, models),
             muteClause(me))})`, me.id, lastChecked)
       if (newUserSubs.exists) {
+        foundNotes()
         return true
       }
 
@@ -353,6 +364,7 @@ export default {
             muteClause(me)
           )})`, me.id, lastChecked)
         if (newMentions.exists) {
+          foundNotes()
           return true
         }
       }
@@ -372,6 +384,7 @@ export default {
           AND "Item"."userId" <> $1
           AND "ItemAct".act = 'TIP')`, me.id, lastChecked)
         if (newFwdSats.exists) {
+          foundNotes()
           return true
         }
       }
@@ -388,6 +401,7 @@ export default {
         }
       })
       if (job && job.statusUpdatedAt > job.createdAt) {
+        foundNotes()
         return true
       }
 
@@ -404,6 +418,7 @@ export default {
           }
         })
         if (earn) {
+          foundNotes()
           return true
         }
       }
@@ -419,6 +434,7 @@ export default {
           }
         })
         if (invoice) {
+          foundNotes()
           return true
         }
       }
@@ -432,6 +448,7 @@ export default {
             WHERE "Invite"."userId" = $1
             AND users.created_at > $2)`, me.id, lastChecked)
         if (newInvites.exists) {
+          foundNotes()
           return true
         }
 
@@ -444,6 +461,7 @@ export default {
           }
         })
         if (referral) {
+          foundNotes()
           return true
         }
       }
@@ -459,6 +477,7 @@ export default {
         })
 
         if (streak) {
+          foundNotes()
           return true
         }
       }

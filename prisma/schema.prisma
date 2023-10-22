@@ -24,6 +24,7 @@ model User {
   freeComments          Int                  @default(5)
   freePosts             Int                  @default(2)
   checkedNotesAt        DateTime?
+  foundNotesAt          DateTime?
   pubkey                String?              @unique(map: "users.pubkey_unique")
   tipDefault            Int                  @default(100)
   bioId                 Int?

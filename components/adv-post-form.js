@@ -1,5 +1,5 @@
 import AccordianItem from './accordian-item'
-import { Input, InputUserSuggest, VariableInput, Checkbox } from './form'
+import { MarkdownInput, Input, InputUserSuggest, VariableInput, Checkbox } from './form'
 import InputGroup from 'react-bootstrap/InputGroup'
 import { BOOST_MIN, BOOST_MULT, MAX_FORWARDS } from '../lib/constants'
 import { DEFAULT_CROSSPOSTING_RELAYS } from '../lib/nostr'
@@ -11,14 +11,15 @@ import { useRouter } from 'next/router'
 
 const EMPTY_FORWARD = { nym: '', pct: '' }
 
-export function AdvPostInitial ({ forward, boost }) {
+export function AdvPostInitial ({ text, forward, boost }) {
   return {
+    text: text || '',
     boost: boost || '',
     forward: forward?.length ? forward : [EMPTY_FORWARD]
   }
 }
 
-export default function AdvPostForm () {
+export default function AdvPostForm ({ isLink }) {
   const me = useMe()
   const router = useRouter()
 
@@ -27,6 +28,24 @@ export default function AdvPostForm () {
       header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>options</div>}
       body={
         <>
+          {isLink &&
+            <MarkdownInput
+              label={
+                <div className='d-flex align-items-center'>text
+                  <Info>
+                    <span className='fw-bold'>You can use this text to ...</span>
+                    <ul>
+                      <li>provide context</li>
+                      <li>summarize the link</li>
+                      <li>spur great conversation!</li>
+                      <li>or for anything else that comes to your mind</li>
+                    </ul>
+                  </Info>
+                </div>
+              }
+              name='text'
+              minRows={6}
+            />}
           <Input
             label={
               <div className='d-flex align-items-center'>boost

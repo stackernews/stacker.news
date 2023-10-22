@@ -106,25 +106,6 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, ...o
     return <ZoomableImage srcSet={srcSet} tab={tab} src={src} {...props} {...outerProps} />
   }, [imgproxyUrls, outerProps, tab])
 
-  const renderYoutubeUrl = useCallback((url) => {
-    if (url) {
-      const regExp = /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\/(watch\?v=|embed\/)?([^&#?]+)/
-      const match = url.match(regExp)
-      if (match && match[4]) {
-        return (
-          <YouTube
-            videoId={match[4]} className={styles.videoContainer} opts={{
-              height: '100%',
-              width: '100%'
-            }}
-          />
-        )
-      }
-    }
-
-    return null
-  }, [])
-
   return (
     <div className={styles.text}>
       <ReactMarkdown
@@ -149,13 +130,24 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, ...o
             // we don't render it as an image since it was probably a conscious choice to include text.
             const text = children[0]
             if (!!text && !/^https?:\/\//.test(text)) {
-              // Render video if it's a valid Youtube url, otherwise null
-              const video = renderYoutubeUrl(href)
               return (
-                <>
-                  <a target='_blank' rel={`noreferrer ${nofollow ? 'nofollow' : ''} noopener`} href={href}>{text}</a>
-                  {video}
-                </>
+                <a target='_blank' rel={`noreferrer ${nofollow ? 'nofollow' : ''} noopener`} href={href}>{text}</a>
+              )
+            }
+
+            // if the link is to a youtube video, render the video
+            const youtube = href.match(/(https?:\/\/)?((www\.)?(youtube(-nocookie)?|youtube.googleapis)\.com.*(v\/|v=|vi=|vi\/|e\/|embed\/|user\/.*\/u\/\d+\/)|youtu\.be\/)(?<id>[_0-9a-z-]+)((?:\?|&)(?:t|start)=(?<start>\d+))?/i)
+            if (youtube?.groups?.id) {
+              return (
+                <div style={{ maxWidth: outerProps.topLevel ? '640px' : '320px', paddingRight: '15px', margin: '0.5rem 0' }}>
+                  <YouTube
+                    videoId={youtube.groups.id} className={styles.youtubeContainer} opts={{
+                      playerVars: {
+                        start: youtube?.groups?.start
+                      }
+                    }}
+                  />
+                </div>
               )
             }
 

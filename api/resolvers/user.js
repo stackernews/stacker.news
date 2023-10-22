@@ -310,7 +310,8 @@ export default {
           JOIN "Item" ON ${user.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
           ${whereClause(
             '"ThreadSubscription"."userId" = $1',
-            '"Item".created_at > $2::timestamp(3) without time zone',
+            '"Item".created_at > $2',
+            '"Item".created_at >= "ThreadSubscription".created_at',
             '"Item"."userId" <> $1',
             await filterClause(me, models),
             muteClause(me)
@@ -326,7 +327,7 @@ export default {
           JOIN "Item" ON "UserSubscription"."followeeId" = "Item"."userId"
           ${whereClause(
             '"UserSubscription"."followerId" = $1',
-            '"Item".created_at > $2::timestamp(3) without time zone',
+            '"Item".created_at > $2',
             `(
               ("Item"."parentId" IS NULL AND "UserSubscription"."postsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."postsSubscribedAt")
               OR ("Item"."parentId" IS NOT NULL AND "UserSubscription"."commentsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."commentsSubscribedAt")

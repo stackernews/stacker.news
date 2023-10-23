@@ -113,6 +113,5 @@ export default gql`
     meSubscriptionPosts: Boolean!
     meSubscriptionComments: Boolean!
     meMute: Boolean
-    images(submitted: Boolean): [Image]
   }
 `

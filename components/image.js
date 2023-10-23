@@ -1,5 +1,5 @@
 import styles from './text.module.css'
-import { Fragment, useState, useEffect, useMemo, useCallback, useRef, createContext, useContext } from 'react'
+import { Fragment, useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { IMGPROXY_URL_REGEXP } from '../lib/url'
 import { useShowModal } from './modal'
 import { useMe } from './me'
@@ -7,81 +7,7 @@ import { Dropdown } from 'react-bootstrap'
 import { UPLOAD_TYPES_ALLOW } from '../lib/constants'
 import { useToast } from './toast'
 import gql from 'graphql-tag'
-import { useMutation, useQuery } from '@apollo/client'
-import { extractUrls } from '../lib/md'
-
-const ImageContext = createContext({ unsubmitted: [] })
-
-const imageIdToUrl = id => `https://${process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET}.s3.amazonaws.com/${id}`
-
-export function ImageProvider ({ me, children }) {
-  const { data, loading } = useQuery(
-    gql`
-      query images($submitted: Boolean) {
-        me {
-          images(submitted: $submitted) {
-            id
-            createdAt
-            updatedAt
-            type
-            size
-            width
-            height
-            itemId
-          }
-        }
-      }`, {
-      variables: { submitted: false }
-    }
-  )
-  const [deleteImage] = useMutation(gql`
-    mutation deleteImage($id: ID!) {
-      deleteImage(id: $id)
-    }`, {
-    onCompleted: (_, options) => {
-      const id = options.variables.id
-      setUnsubmittedImages(prev => prev.filter(img => img.id !== id))
-    }
-  })
-  const [unsubmittedImages, setUnsubmittedImages] = useState([])
-
-  const markImagesAsSubmitted = useCallback((text) => {
-    // mark images from S3 included in the text as submitted on the client
-    const urls = extractUrls(text)
-    const s3UrlPrefix = `https://${process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET}.s3.amazonaws.com/`
-    urls
-      .filter(url => url.startsWith(s3UrlPrefix))
-      .forEach(url => {
-        const s3Key = url.split('/').pop()
-        setUnsubmittedImages(prev => prev.filter(img => img.id !== s3Key))
-      })
-  }, [setUnsubmittedImages])
-
-  useEffect(() => {
-    const images = data?.me?.images
-    if (images) {
-      setUnsubmittedImages(images.map(img => ({ ...img, url: imageIdToUrl(img.id) })))
-    }
-  }, [setUnsubmittedImages, loading])
-
-  const contextValue = {
-    unsubmittedImages,
-    setUnsubmittedImages,
-    deleteImage,
-    markImagesAsSubmitted
-  }
-
-  return (
-    <ImageContext.Provider value={contextValue}>
-      {children}
-    </ImageContext.Provider>
-  )
-}
-
-export function useImages () {
-  const images = useContext(ImageContext)
-  return images
-}
+import { useMutation } from '@apollo/client'
 
 export function decodeOriginalUrl (imgproxyUrl) {
   const parts = imgproxyUrl.split('/')
@@ -228,6 +154,7 @@ export function ImageUpload ({ children, className, onSelect, onSuccess }) {
     const img = new window.Image()
     img.src = window.URL.createObjectURL(file)
     img.onload = async () => {
+      onSelect?.(file)
       let data
       const variables = {
         type: file.type,

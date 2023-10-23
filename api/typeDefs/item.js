@@ -36,7 +36,6 @@ export default gql`
     dontLikeThis(id: ID!, sats: Int, hash: String, hmac: String): Boolean!
     act(id: ID!, sats: Int, hash: String, hmac: String): ItemActResult!
     pollVote(id: ID!, hash: String, hmac: String): ID!
-    deleteImage(id: ID!): ID!
   }
 
   type PollOption {

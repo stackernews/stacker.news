@@ -17,7 +17,6 @@ import CancelButton from './cancel-button'
 import { normalizeForwards } from '../lib/form'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
 import { useMe } from './me'
-import { useImages } from './image'
 
 export function LinkForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
@@ -53,7 +52,6 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
         }
       }
     }`)
-  const { markImagesAsSubmitted } = useImages
 
   const related = []
   for (const item of relatedData?.related?.items || []) {
@@ -77,12 +75,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
           id
           text
         }
-      }`,
-    {
-      onCompleted ({ upsertLink: { text } }) {
-        markImagesAsSubmitted(text)
-      }
-    }
+      }`
   )
 
   const onSubmit = useCallback(

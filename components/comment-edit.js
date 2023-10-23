@@ -5,10 +5,8 @@ import { EditFeeButton } from './fee-button'
 import Button from 'react-bootstrap/Button'
 import Delete from './delete'
 import { commentSchema } from '../lib/validate'
-import { useImages } from './image'
 
 export default function CommentEdit ({ comment, editThreshold, onSuccess, onCancel }) {
-  const { markImagesAsSubmitted } = useImages()
   const [upsertComment] = useMutation(
     gql`
       mutation upsertComment($id: ID! $text: String!) {
@@ -16,9 +14,6 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
           text
         }
       }`, {
-      onCompleted ({ upsertComment: { text } }) {
-        markImagesAsSubmitted(text)
-      },
       update (cache, { data: { upsertComment } }) {
         cache.modify({
           id: `Item:${comment.id}`,

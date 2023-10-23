@@ -17,7 +17,6 @@ import { SSR } from '../lib/constants'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
 import { LoggerProvider } from '../components/logger'
-import { ImageProvider } from '../components/image'
 
 NProgress.configure({
   showSpinner: false
@@ -90,23 +89,21 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
         <PlausibleProvider domain='stacker.news' trackOutboundLinks>
           <ApolloProvider client={client}>
             <MeProvider me={me}>
-              <ImageProvider>
-                <LoggerProvider>
-                  <ServiceWorkerProvider>
-                    <PriceProvider price={price}>
-                      <LightningProvider>
-                        <ToastProvider>
-                          <ShowModalProvider>
-                            <BlockHeightProvider blockHeight={blockHeight}>
-                              <Component ssrData={ssrData} {...otherProps} />
-                            </BlockHeightProvider>
-                          </ShowModalProvider>
-                        </ToastProvider>
-                      </LightningProvider>
-                    </PriceProvider>
-                  </ServiceWorkerProvider>
-                </LoggerProvider>
-              </ImageProvider>
+              <LoggerProvider>
+                <ServiceWorkerProvider>
+                  <PriceProvider price={price}>
+                    <LightningProvider>
+                      <ToastProvider>
+                        <ShowModalProvider>
+                          <BlockHeightProvider blockHeight={blockHeight}>
+                            <Component ssrData={ssrData} {...otherProps} />
+                          </BlockHeightProvider>
+                        </ShowModalProvider>
+                      </ToastProvider>
+                    </LightningProvider>
+                  </PriceProvider>
+                </ServiceWorkerProvider>
+              </LoggerProvider>
             </MeProvider>
           </ApolloProvider>
         </PlausibleProvider>

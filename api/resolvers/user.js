@@ -6,6 +6,7 @@ import { msatsToSats } from '../../lib/format'
 import { bioSchema, emailSchema, settingsSchema, ssValidate, userSchema } from '../../lib/validate'
 import { getItem, updateItem, filterClause, createItem, whereClause, muteClause } from './item'
 import { datePivot } from '../../lib/time'
+import { ANON_USER_ID, DELETE_USER_ID, RESERVED_MAX_USER_ID } from '../../lib/constants'
 
 const contributors = new Set()
 
@@ -489,7 +490,10 @@ export default {
     },
     searchUsers: async (parent, { q, limit, similarity }, { models }) => {
       return await models.$queryRaw`
-        SELECT * FROM users where id > 615 AND SIMILARITY(name, ${q}) > ${Number(similarity) || 0.1} ORDER BY SIMILARITY(name, ${q}) DESC LIMIT ${Number(limit) || 5}`
+        SELECT *
+        FROM users
+        WHERE (id > ${RESERVED_MAX_USER_ID} OR id IN (${ANON_USER_ID}, ${DELETE_USER_ID}))
+        AND SIMILARITY(name, ${q}) > ${Number(similarity) || 0.1} ORDER BY SIMILARITY(name, ${q}) DESC LIMIT ${Number(limit) || 5}`
     }
   },
 

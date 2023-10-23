@@ -15,6 +15,7 @@ import copy from 'clipboard-copy'
 import ZoomableImage, { decodeOriginalUrl } from './image'
 import { IMGPROXY_URL_REGEXP } from '../lib/url'
 import reactStringReplace from 'react-string-replace'
+import { rehypeInlineCodeProperty } from '../lib/md'
 
 export function SearchText ({ text }) {
   return (
@@ -28,28 +29,18 @@ export function SearchText ({ text }) {
   )
 }
 
-function Heading ({ level, slugger, noFragments, topLevel, children, node, ...props }) {
+function Heading ({ slugger, noFragments, topLevel, children, node, ...props }) {
   const [copied, setCopied] = useState(false)
   const id = useMemo(() =>
     noFragments ? undefined : slugger.slug(toString(node).replace(/[^\w\-\s]+/gi, '')), [node, noFragments, slugger])
   const h = useMemo(() => {
-    switch (level) {
-      case 1:
-        return topLevel ? 'h1' : 'h4'
-      case 2:
-        return topLevel ? 'h2' : 'h5'
-      case 3:
-        return topLevel ? 'h3' : 'h6'
-      case 4:
-        return topLevel ? 'h4' : 'h6'
-      case 5:
-        return topLevel ? 'h5' : 'h6'
-      case 6:
-        return 'h6'
-      default:
-        return 'h6'
-    }
-  }, [level, topLevel])
+    if (topLevel) return node?.TagName
+
+    const h = parseInt(node?.tagName)
+    if (h < 4) return `h${h + 3}`
+
+    return 'h6'
+  }, [node?.tagName, topLevel])
   const Icon = copied ? Thumb : LinkIcon
 
   return (
@@ -98,7 +89,7 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, ...o
         )
   }, [])
 
-  const P = useCallback(({ children, ...props }) => <div className={styles.p} {...props}>{children}</div>, [])
+  const P = useCallback(({ children, node, ...props }) => <div className={styles.p} {...props}>{children}</div>, [])
 
   const Img = useCallback(({ node, src, ...props }) => {
     const url = IMGPROXY_URL_REGEXP.test(src) ? decodeOriginalUrl(src) : src
@@ -110,12 +101,7 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, ...o
     <div className={styles.text}>
       <ReactMarkdown
         components={{
-          h1: (props) => <Heading {...props} {...outerProps} slugger={slugger.current} />,
-          h2: (props) => <Heading {...props} {...outerProps} slugger={slugger.current} />,
-          h3: (props) => <Heading {...props} {...outerProps} slugger={slugger.current} />,
-          h4: (props) => <Heading {...props} {...outerProps} slugger={slugger.current} />,
-          h5: (props) => <Heading {...props} {...outerProps} slugger={slugger.current} />,
-          h6: (props) => <Heading {...props} {...outerProps} slugger={slugger.current} />,
+          heading: (props) => <Heading {...props} {...outerProps} slugger={slugger.current} />,
           table: Table,
           p: P,
           code: Code,
@@ -157,6 +143,7 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, ...o
           img: Img
         }}
         remarkPlugins={[gfm, mention, sub]}
+        rehypePlugins={[rehypeInlineCodeProperty]}
       >
         {children}
       </ReactMarkdown>

@@ -102,14 +102,11 @@ async function authMethods (user, args, { models, me }) {
 
 export default {
   Query: {
-    me: async (parent, { skipUpdate }, { models, me }) => {
+    me: async (parent, args, { models, me }) => {
       if (!me?.id) {
         return null
       }
 
-      if (!skipUpdate) {
-        models.user.update({ where: { id: me.id }, data: { lastSeenAt: new Date() } }).catch(console.error)
-      }
       return await models.user.findUnique({ where: { id: me.id } })
     },
     settings: async (parent, args, { models, me }) => {
@@ -291,7 +288,14 @@ export default {
         return true
       }
 
-      const foundNotes = () => models.user.update({ where: { id: me.id }, data: { foundNotesAt: new Date() } }).catch(console.error)
+      const foundNotes = () =>
+        models.user.update({
+          where: { id: me.id },
+          data: {
+            foundNotesAt: new Date(),
+            lastSeenAt: new Date()
+          }
+        }).catch(console.error)
 
       // check if any votes have been cast for them since checkedNotesAt
       if (user.noteItemSats) {
@@ -483,8 +487,14 @@ export default {
         }
       }
 
-      // since they don't have notifications, we can update their checkedNotesAt
-      await models.user.update({ where: { id: me.id }, data: { checkedNotesAt: new Date() } })
+      // update checkedNotesAt to prevent rechecking same time period
+      models.user.update({
+        where: { id: me.id },
+        data: {
+          checkedNotesAt: new Date(),
+          lastSeenAt: new Date()
+        }
+      }).catch(console.error)
 
       return false
     },

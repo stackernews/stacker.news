@@ -2,7 +2,7 @@ import { gql } from 'graphql-tag'
 
 export default gql`
   extend type Query {
-    me(skipUpdate: Boolean): User
+    me: User
     settings: User
     user(name: String!): User
     users: [User!]

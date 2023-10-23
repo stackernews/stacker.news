@@ -75,10 +75,7 @@ export function getGetServerSideProps (
 
     const client = await getSSRApolloClient({ req, res })
 
-    const { data: { me } } = await client.query({
-      query: ME,
-      variables: { skipUpdate: true }
-    })
+    const { data: { me } } = await client.query({ query: ME })
 
     if (authRequired && !me) {
       const callback = process.env.PUBLIC_URL + req.url

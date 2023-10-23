@@ -43,7 +43,7 @@ export async function getInvoice (parent, { id }, { me, models, lnd }) {
   try {
     if (inv.confirmedAt) {
       const lnInv = await getInvoiceFromLnd({ id: inv.hash, lnd })
-      inv.preimage = lnInv.secret
+      inv.confirmedPreimage = lnInv.secret
     }
   } catch (err) {
     console.error('error fetching invoice from LND', err)

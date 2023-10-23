@@ -40,7 +40,7 @@ export function Invoice ({ invoice, onPayment, info, successVerb }) {
     }
   }, [invoice.confirmedAt, invoice.isHeld, invoice.satsReceived])
 
-  const { nostr, comment, lud18Data, bolt11, preimage } = invoice
+  const { nostr, comment, lud18Data, bolt11, confirmedPreimage } = invoice
 
   return (
     <>
@@ -86,7 +86,7 @@ export function Invoice ({ invoice, onPayment, info, successVerb }) {
             body={<span className='text-muted ms-3'>{comment}</span>}
           />
         </div>}
-      <Bolt11Info bolt11={bolt11} preimage={preimage} />
+      <Bolt11Info bolt11={bolt11} preimage={confirmedPreimage} />
     </>
   )
 }

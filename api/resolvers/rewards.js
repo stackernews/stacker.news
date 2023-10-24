@@ -23,7 +23,6 @@ async function getCachedRewards (staleIn, when, models) {
 }
 
 async function getRewards (when, models) {
-  console.log('getRewards', when)
   if (when) {
     if (when.length > 2) {
       throw new GraphQLError('too many dates', { extensions: { code: 'BAD_USER_INPUT' } })

@@ -143,7 +143,7 @@ function Fact ({ fact }) {
       <div className={`${styles.type} ${satusClass(fact.status)} ${fact.sats > 0 ? '' : 'text-muted'}`}>{fact.type}</div>
       <div className={styles.detail}>
         <Detail fact={fact} />
-        <div className='text-muted px-3' title={fact.createdAt}>{timeSince(new Date(fact.createdAt))}</div>
+        <div className='text-muted px-3' title={fact.createdAt} suppressHydrationWarning>{timeSince(new Date(fact.createdAt))}</div>
       </div>
       <div className={`${styles.sats} ${satusClass(fact.status)} ${fact.sats > 0 ? '' : 'text-muted'}`}>{fact.sats}</div>
     </>

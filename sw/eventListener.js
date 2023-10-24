@@ -51,9 +51,9 @@ const skipNotification = ({ options: { tag, data } }) => {
   return tag === 'MENTION' && itemMentions.includes(data.itemId)
 }
 
-// if there is no tag or it's a TIP or EARN notification
+// if there is no tag or it's a TIP, FORWARDEDTIP or EARN notification
 // we don't need to merge notifications and thus the notification should be immediately shown using `showNotification`
-const immediatelyShowNotification = ({ options: { tag } }) => !tag || ['TIP', 'EARN'].includes(tag.split('-')[0])
+const immediatelyShowNotification = ({ options: { tag } }) => !tag || ['TIP', 'FORWARDEDTIP', 'EARN'].includes(tag.split('-')[0])
 
 const mergeAndShowNotification = (sw, payload, currentNotification) => {
   const { data: incomingData } = payload.options

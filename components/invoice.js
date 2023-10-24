@@ -14,7 +14,7 @@ import Countdown from './countdown'
 import PayerData from './payer-data'
 import Bolt11Info from './bolt11-info'
 
-export function Invoice ({ invoice, onPayment, info, successVerb }) {
+export function Invoice ({ invoice, modal, onPayment, info, successVerb }) {
   const [expired, setExpired] = useState(new Date(invoice.expiredAt) <= new Date())
 
   let variant = 'default'
@@ -57,36 +57,40 @@ export function Invoice ({ invoice, onPayment, info, successVerb }) {
             }}
           />
         </div>}
-      {info && <div className='text-muted fst-italic text-center'>{info}</div>}
-      <div className='w-100'>
-        {nostr
-          ? <AccordianItem
-              header='Nostr Zap Request'
-              body={
-                <pre>
-                  <code>
-                    {JSON.stringify(nostr, null, 2)}
-                  </code>
-                </pre>
+      {!modal &&
+        <>
+          {info && <div className='text-muted fst-italic text-center'>{info}</div>}
+          <div className='w-100'>
+            {nostr
+              ? <AccordianItem
+                  header='Nostr Zap Request'
+                  body={
+                    <pre>
+                      <code>
+                        {JSON.stringify(nostr, null, 2)}
+                      </code>
+                    </pre>
             }
-            />
-          : null}
-      </div>
-      {lud18Data &&
-        <div className='w-100'>
-          <AccordianItem
-            header='sender information'
-            body={<PayerData data={lud18Data} className='text-muted ms-3 mb-3' />}
-          />
-        </div>}
-      {comment &&
-        <div className='w-100'>
-          <AccordianItem
-            header='sender comments'
-            body={<span className='text-muted ms-3'>{comment}</span>}
-          />
-        </div>}
-      <Bolt11Info bolt11={bolt11} preimage={confirmedPreimage} />
+                />
+              : null}
+          </div>
+          {lud18Data &&
+            <div className='w-100'>
+              <AccordianItem
+                header='sender information'
+                body={<PayerData data={lud18Data} className='text-muted ms-3 mb-3' />}
+              />
+            </div>}
+          {comment &&
+            <div className='w-100'>
+              <AccordianItem
+                header='sender comments'
+                body={<span className='text-muted ms-3'>{comment}</span>}
+              />
+            </div>}
+          <Bolt11Info bolt11={bolt11} preimage={confirmedPreimage} />
+        </>}
+
     </>
   )
 }
@@ -120,7 +124,7 @@ const MutationInvoice = ({ id, hash, hmac, errorCount, repeat, onClose, expiresA
 
   return (
     <>
-      <Invoice invoice={data.invoice} {...props} />
+      <Invoice invoice={data.invoice} modal {...props} />
       {errorCount > 0
         ? (
           <>

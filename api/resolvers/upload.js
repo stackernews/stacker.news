@@ -28,7 +28,8 @@ export default {
         size,
         width,
         height,
-        userId: me.id
+        userId: me.id,
+        paid: avatar ? undefined : false
       }
 
       let uploadId

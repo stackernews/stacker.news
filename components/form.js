@@ -100,6 +100,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
   const [, meta, helpers] = useField(props)
   const [selectionRange, setSelectionRange] = useState({ start: 0, end: 0 })
   innerRef = innerRef || useRef(null)
+  const imageUploadRef = useRef(null)
   const previousTab = useRef(tab)
   const formik = useFormikContext()
   const toaster = useToast()
@@ -228,6 +229,21 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
     }
   }, [innerRef, helpers?.setValue, setSelectionRange, onKeyDown])
 
+  const onDrop = useCallback((event) => {
+    event.preventDefault()
+    const changeEvent = new Event('change', { bubbles: true })
+    imageUploadRef.current.files = event.dataTransfer.files
+    imageUploadRef.current.dispatchEvent(changeEvent)
+  }, [imageUploadRef])
+
+  const [dragStyle, setDragStyle] = useState(null)
+  const onDragEnter = useCallback((e) => {
+    setDragStyle('over')
+  }, [setDragStyle])
+  const onDragLeave = useCallback((e) => {
+    setDragStyle(null)
+  }, [setDragStyle])
+
   return (
     <FormGroup label={label} className={groupClassName}>
       <div className={`${styles.markdownInput} ${tab === 'write' ? styles.noTopLeftRadius : ''}`}>
@@ -240,6 +256,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
           </Nav.Item>
           <span className='ms-auto text-muted d-flex align-items-center'>
             <ImageUpload
+              ref={imageUploadRef}
               className='d-flex align-items-center me-1'
               onSelect={file => {
                 let text = innerRef.current.value
@@ -287,6 +304,10 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
                 updateImageFees({ variables: { s3Keys } })
                 setTimeout(resetSuggestions, 100)
               }}
+              onDragEnter={onDragEnter}
+              onDragLeave={onDragLeave}
+              onDrop={onDrop}
+              className={dragStyle === 'over' ? styles.dragOver : ''}
             />)}
           </UserSuggest>
         </div>

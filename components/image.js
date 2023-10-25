@@ -1,5 +1,5 @@
 import styles from './text.module.css'
-import { Fragment, useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { Fragment, useState, useEffect, useMemo, useCallback, forwardRef } from 'react'
 import { IMGPROXY_URL_REGEXP } from '../lib/url'
 import { useShowModal } from './modal'
 import { useMe } from './me'
@@ -137,8 +137,7 @@ export default function ZoomableImage ({ src, srcSet, ...props }) {
   return <ImageOriginal src={originalUrl} onClick={handleClick} {...props} />
 }
 
-export function ImageUpload ({ children, className, onSelect, onSuccess, onError }) {
-  const ref = useRef()
+export const ImageUpload = forwardRef(({ children, className, onSelect, onSuccess, onError }, ref) => {
   const toaster = useToast()
 
   const [getSignedPOST] = useMutation(
@@ -228,4 +227,4 @@ export function ImageUpload ({ children, className, onSelect, onSuccess, onError
       </div>
     </>
   )
-}
+})

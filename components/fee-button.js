@@ -20,15 +20,15 @@ function Receipt ({ cost, repetition, imageFees, baseFee, parentId, boost }) {
           <td>{numWithUnits(baseFee, { abbreviate: false })}</td>
           <td align='right' className='font-weight-light'>{parentId ? 'reply' : 'post'} fee</td>
         </tr>
-        {imageFees &&
-          <tr>
-            <td>+ {imageFees.unpaid} x {numWithUnits(imageFees.fees, { abbreviate: false })}</td>
-            <td align='right' className='font-weight-light'>image fees</td>
-          </tr>}
         {repetition > 0 &&
           <tr>
             <td>x 10<sup>{repetition}</sup></td>
             <td className='font-weight-light' align='right'>{repetition} {parentId ? 'repeat or self replies' : 'posts'} in 10m</td>
+          </tr>}
+        {imageFees &&
+          <tr>
+            <td>+ {imageFees.unpaid} x {numWithUnits(imageFees.fees, { abbreviate: false })}</td>
+            <td align='right' className='font-weight-light'>image fees</td>
           </tr>}
         {boost > 0 &&
           <tr>

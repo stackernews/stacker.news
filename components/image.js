@@ -153,47 +153,53 @@ export function ImageUpload ({ children, className, onSelect, onSuccess, onError
   const s3Upload = useCallback(file => {
     const img = new window.Image()
     img.src = window.URL.createObjectURL(file)
-    img.onload = async () => {
-      onSelect?.(file)
-      let data
-      const variables = {
-        type: file.type,
-        size: file.size,
-        width: img.width,
-        height: img.height
+    return new Promise((resolve, reject) => {
+      img.onload = async () => {
+        onSelect?.(file)
+        let data
+        const variables = {
+          type: file.type,
+          size: file.size,
+          width: img.width,
+          height: img.height
+        }
+        try {
+          ({ data } = await getSignedPOST({ variables }))
+        } catch (e) {
+          toaster.danger(e.message || e.toString?.())
+          onError?.({ ...variables, name: file.name, file })
+          reject(e)
+          return
+        }
+
+        const form = new FormData()
+        Object.keys(data.getSignedPOST.fields).forEach(key => form.append(key, data.getSignedPOST.fields[key]))
+        form.append('Content-Type', file.type)
+        form.append('Cache-Control', 'max-age=31536000')
+        form.append('acl', 'public-read')
+        form.append('file', file)
+
+        const res = await fetch(data.getSignedPOST.url, {
+          method: 'POST',
+          body: form
+        })
+
+        if (!res.ok) {
+          // TODO make sure this is actually a helpful error message and does not expose anything to the user we don't want
+          const err = res.statusText
+          toaster.danger(err)
+          onError?.({ ...variables, name: file.name, file })
+          reject(err)
+          return
+        }
+
+        const url = `https://${process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET}.s3.amazonaws.com/${data.getSignedPOST.fields.key}`
+        // key is upload id in database
+        const id = data.getSignedPOST.fields.key
+        onSuccess?.({ ...variables, id, name: file.name, url, file })
+        resolve(id)
       }
-      try {
-        ({ data } = await getSignedPOST({ variables }))
-      } catch (e) {
-        toaster.danger(e.message || e.toString?.())
-        onError?.({ ...variables, name: file.name, file })
-        return
-      }
-
-      const form = new FormData()
-      Object.keys(data.getSignedPOST.fields).forEach(key => form.append(key, data.getSignedPOST.fields[key]))
-      form.append('Content-Type', file.type)
-      form.append('Cache-Control', 'max-age=31536000')
-      form.append('acl', 'public-read')
-      form.append('file', file)
-
-      const res = await fetch(data.getSignedPOST.url, {
-        method: 'POST',
-        body: form
-      })
-
-      if (!res.ok) {
-        // TODO make sure this is actually a helpful error message and does not expose anything to the user we don't want
-        toaster.danger(res.statusText)
-        onError?.({ ...variables, name: file.name, file })
-        return
-      }
-
-      const url = `https://${process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET}.s3.amazonaws.com/${data.getSignedPOST.fields.key}`
-      // key is upload id in database
-      const id = data.getSignedPOST.fields.key
-      onSuccess?.({ ...variables, id, name: file.name, url, file })
-    }
+    })
   }, [toaster, getSignedPOST])
 
   return (
@@ -201,20 +207,20 @@ export function ImageUpload ({ children, className, onSelect, onSuccess, onError
       <input
         ref={ref}
         type='file'
+        multiple
         className='d-none'
         accept={UPLOAD_TYPES_ALLOW.join(', ')}
-        onChange={(e) => {
-          if (e.target.files.length === 0) {
-            return
+        onChange={async (e) => {
+          const fileList = e.target.files
+          for (const file of Array.from(fileList)) {
+            if (UPLOAD_TYPES_ALLOW.indexOf(file.type) === -1) {
+              toaster.danger(`image must be ${UPLOAD_TYPES_ALLOW.map(t => t.replace('image/', '')).join(', ')}`)
+              continue
+            }
+            await s3Upload(file)
+            // TODO find out if this is needed and if so, why (copied from components/upload.js)
+            e.target.value = null
           }
-          const file = e.target.files[0]
-          if (UPLOAD_TYPES_ALLOW.indexOf(file.type) === -1) {
-            toaster.danger(`image must be ${UPLOAD_TYPES_ALLOW.map(t => t.replace('image/', '')).join(', ')}`)
-            return
-          }
-          s3Upload(file)
-          // TODO find out if this is needed and if so, why (copied from components/upload.js)
-          e.target.value = null
         }}
       />
       <div className={className} onClick={() => ref.current?.click()} style={{ cursor: 'pointer' }}>

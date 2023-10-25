@@ -270,7 +270,12 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
               {...props}
               onChange={onChangeInner}
               onKeyDown={onKeyDownInner(userSuggestOnKeyDown)}
-              onBlur={() => setTimeout(resetSuggestions, 100)}
+              onBlur={() => {
+                const text = innerRef?.current.value
+                const s3Keys = text ? [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1])) : []
+                updateImageFees({ variables: { s3Keys } })
+                setTimeout(resetSuggestions, 100)
+              }}
             />)}
           </UserSuggest>
         </div>

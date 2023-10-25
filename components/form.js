@@ -231,6 +231,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
 
   const onDrop = useCallback((event) => {
     event.preventDefault()
+    setDragStyle(null)
     const changeEvent = new Event('change', { bubbles: true })
     imageUploadRef.current.files = event.dataTransfer.files
     imageUploadRef.current.dispatchEvent(changeEvent)

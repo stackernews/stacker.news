@@ -1184,17 +1184,13 @@ async function imageFees (text, { models, me }) {
     return [queries(ANON_USER_ID, unpaidS3Keys, fees), fees]
   }
 
-  // we want to ignore avatars during fee calculation
-  const { photoId } = await models.user.findUnique({ where: { id: me.id } })
-
-  // check how much stacker uploaded in last 24 hours (excluding avatar)
+  // check how much stacker uploaded in last 24 hours
   const { _sum: { size: size24h } } = await models.upload.aggregate({
     _sum: { size: true },
     where: {
       userId: me.id,
       createdAt: { gt: datePivot(new Date(), { days: -1 }) },
-      paid: true,
-      id: photoId ? { not: photoId } : undefined
+      paid: true
     }
   })
 

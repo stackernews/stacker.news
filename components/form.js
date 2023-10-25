@@ -247,7 +247,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
                 text += `![Uploading ${file.name}…]()`
                 helpers.setValue(text)
               }}
-              onSuccess={async ({ url, name }) => {
+              onSuccess={({ url, name }) => {
                 let text = innerRef.current.value
                 text = text.replace(`![Uploading ${name}…]()`, `![${name}](${url})`)
                 helpers.setValue(text)

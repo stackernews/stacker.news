@@ -27,7 +27,7 @@ export async function imageFees (s3Keys, { models, me }) {
     return itemId => {
       return [
         // pay fees
-        models.$queryRawUnsafe('SELECT * FROM user_fee($1::INTEGER, $2::INTEGER, $3::BIGINT)', userId, itemId, imgFees),
+        models.$queryRawUnsafe('SELECT * FROM user_fee($1::INTEGER, $2::INTEGER, $3::BIGINT)', userId, itemId, imgFees * 1000),
         // mark images as paid
         models.upload.updateMany({ where: { id: { in: imgIds } }, data: { paid: true } })
       ]

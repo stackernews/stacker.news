@@ -105,7 +105,12 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
   const toaster = useToast()
   const [updateImageFees] = useLazyQuery(gql`
   query imageFees($s3Keys: [Int]!) {
-    imageFees(s3Keys: $s3Keys)
+    imageFees(s3Keys: $s3Keys) {
+      fees
+      unpaid
+      size24h
+      sizeNow
+    }
   }`, {
     onError: (err) => {
       console.log(err)

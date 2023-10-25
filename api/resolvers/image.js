@@ -4,8 +4,8 @@ import { datePivot } from '../../lib/time'
 export default {
   Query: {
     imageFees: async (parent, { s3Keys }, { models, me }) => {
-      const [, fees] = await imageFees(s3Keys, { models, me })
-      return fees
+      const { fees, unpaid, size24h, sizeNow } = await imageFees(s3Keys, { models, me })
+      return { fees, unpaid, size24h, sizeNow }
     }
   }
 }
@@ -39,12 +39,12 @@ export async function imageFees (s3Keys, { models, me }) {
   const unpaidS3Keys = (await models.upload.findMany({ select: { id: true }, where: { id: { in: s3Keys }, paid: false } })).map(({ id }) => id)
   const unpaid = unpaidS3Keys.length
 
-  if (!unpaid) return [itemId => [], 0]
+  if (!unpaid) return { queries: itemId => [], fees: 0 }
 
   if (!me) {
     // anons pay for every new image 100 sats
     const fees = unpaid * 100
-    return [queries(ANON_USER_ID, unpaidS3Keys, fees), fees]
+    return { queries: queries(ANON_USER_ID, unpaidS3Keys, fees), fees, unpaid }
   }
 
   // check how much stacker uploaded in last 24 hours
@@ -81,5 +81,5 @@ export async function imageFees (s3Keys, { models, me }) {
   } else {
     fees = 10000 * unpaid
   }
-  return [queries(me.id, unpaidS3Keys, fees), fees]
+  return { queries: queries(me.id, unpaidS3Keys, fees), fees, unpaid, size24h, sizeNow }
 }

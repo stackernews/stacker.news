@@ -1091,7 +1091,7 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
   item = { subName, userId: me.id, ...item }
   const fwdUsers = await getForwardUsers(models, forward)
 
-  const [imgQueriesFn, imgFees] = await imageFeesFromText(item.text, { models, me })
+  const { queries: imgQueriesFn, fees: imgFees } = await imageFeesFromText(item.text, { models, me })
   item = await serializeInvoicable(
     [
       models.$queryRawUnsafe(`${SELECT} FROM update_item($1::JSONB, $2::JSONB, $3::JSONB) AS "Item"`,
@@ -1128,7 +1128,7 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
     item.url = removeTracking(item.url)
   }
 
-  const [imgQueriesFn, imgFees] = await imageFeesFromText(item.text, { models, me })
+  const { queries: imgQueriesFn, fees: imgFees } = await imageFeesFromText(item.text, { models, me })
   const enforceFee = (me ? undefined : (item.parentId ? ANON_COMMENT_FEE : (ANON_POST_FEE + (item.boost || 0)))) + imgFees
   item = await serializeInvoicable(
     models.$queryRawUnsafe(

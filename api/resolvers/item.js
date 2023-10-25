@@ -317,7 +317,10 @@ export default {
         // the calling user is either not logged in, or not the user upon which the query is made,
         // so we need to check authz
         user = await models.user.findUnique({ where: { name } })
-        if (user?.hideBookmarks) {
+        // additionally check if the user ids are not the same since if the nym changed
+        // since the last session update we would hide bookmarks from their owners
+        // see https://github.com/stackernews/stacker.news/issues/586
+        if (user?.hideBookmarks && user.id !== me.id) {
           // early return with no results if bookmarks are hidden
           return {
             cursor: null,

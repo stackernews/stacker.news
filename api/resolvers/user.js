@@ -100,6 +100,20 @@ async function authMethods (user, args, { models, me }) {
   }
 }
 
+const getNameCost = async ({ name, me, models }) => {
+  if (me?.name === name) {
+    return 0
+  }
+  const distanceResult = await models.$queryRawUnsafe('select name, levenshtein(name, $1) as dist from users where id <> $2 order by dist asc limit 1;', name, me?.id)
+  const { dist } = distanceResult[0]
+  let cost = 100000 / Math.pow(10, dist - 1)
+  console.log({ name, distanceResult, dist, cost })
+  if (cost < 1) {
+    cost = 0
+  }
+  return cost
+}
+
 export default {
   Query: {
     me: async (parent, args, { models, me }) => {
@@ -121,6 +135,9 @@ export default {
     },
     users: async (parent, args, { models }) =>
       await models.user.findMany(),
+    nymCost: async (parent, { name }, { models, me }) => {
+      return await getNameCost({ name, me, models })
+    },
     nameAvailable: async (parent, { name }, { models, me }) => {
       let user
       if (me) {
@@ -515,8 +532,17 @@ export default {
 
       await ssValidate(userSchema, data, { models })
 
+      const cost = await getNameCost({ name: data.name, me, models })
+
+      if (me.sats < cost) {
+        throw new GraphQLError('insufficient funds', { extensions: { code: 'BAD_INPUT' } })
+      }
+
       try {
-        await models.user.update({ where: { id: me.id }, data })
+        await models.user.update({
+          where: { id: me.id },
+          data: { ...data, msats: me.msats - (cost * 1000) }
+        })
         return data.name
       } catch (error) {
         if (error.code === 'P2002') {

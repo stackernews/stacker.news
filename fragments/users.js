@@ -117,6 +117,13 @@ gql`
   }
 `
 
+export const NAME_COST_QUERY =
+gql`
+  query nymCost($name: String!) {
+    nymCost(name: $name)
+  }
+`
+
 export const NAME_MUTATION =
 gql`
   mutation setName($name: String!) {

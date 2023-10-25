@@ -7,6 +7,7 @@ export default gql`
     user(name: String!): User
     users: [User!]
     nameAvailable(name: String!): Boolean!
+    nymCost(name: String!): Int!
     topUsers(cursor: String, when: String, by: String, limit: Int): Users
     topCowboys(cursor: String): Users
     searchUsers(q: String!, limit: Int, similarity: Float): [User!]!

@@ -13,9 +13,8 @@ import AddImageIcon from '../svgs/image-add-line.svg'
 import styles from './form.module.css'
 import Text from '../components/text'
 import AddIcon from '../svgs/add-fill.svg'
-import { mdHas } from '../lib/md'
 import CloseIcon from '../svgs/close-line.svg'
-import { useLazyQuery } from '@apollo/client'
+import { gql, useLazyQuery } from '@apollo/client'
 import { TOP_USERS, USER_SEARCH } from '../fragments/users'
 import TextareaAutosize from 'react-textarea-autosize'
 import { useToast } from './toast'
@@ -26,6 +25,7 @@ import ReactDatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
 import { debounce } from './use-debounce-callback'
 import { ImageUpload } from './image'
+import { AWS_S3_URL_REGEXP } from '../lib/constants'
 
 export function SubmitButton ({
   children, variant, value, onClick, disabled, cost, ...props
@@ -95,12 +95,26 @@ export function InputSkeleton ({ label, hint }) {
 }
 
 const DEFAULT_MENTION_INDICES = { start: -1, end: -1 }
-export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setHasImgLink, onKeyDown, innerRef, ...props }) {
+export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKeyDown, innerRef, ...props }) {
   const [tab, setTab] = useState('write')
   const [, meta, helpers] = useField(props)
   const [selectionRange, setSelectionRange] = useState({ start: 0, end: 0 })
   innerRef = innerRef || useRef(null)
   const previousTab = useRef(tab)
+  const formik = useFormikContext()
+  const toaster = useToast()
+  const [updateImageFees] = useLazyQuery(gql`
+  query imageFees($s3Keys: [Int]!) {
+    imageFees(s3Keys: $s3Keys)
+  }`, {
+    onError: (err) => {
+      console.log(err)
+      toaster.danger(err.message || err.toString?.())
+    },
+    onCompleted: ({ imageFees }) => {
+      formik?.setFieldValue('imageFees', imageFees)
+    }
+  })
 
   props.as ||= TextareaAutosize
   props.rows ||= props.minRows || 6
@@ -141,9 +155,6 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
 
   const onChangeInner = useCallback((formik, e) => {
     if (onChange) onChange(formik, e)
-    if (setHasImgLink) {
-      setHasImgLink(mdHas(e.target.value, ['link', 'image']))
-    }
     // check for mention editing
     const { value, selectionStart } = e.target
     let priorSpace = -1
@@ -176,7 +187,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
       setMentionQuery(undefined)
       setMentionIndices(DEFAULT_MENTION_INDICES)
     }
-  }, [onChange, setHasImgLink, setMentionQuery, setMentionIndices, setUserSuggestDropdownStyle])
+  }, [onChange, setMentionQuery, setMentionIndices, setUserSuggestDropdownStyle])
 
   const onKeyDownInner = useCallback((userSuggestOnKeyDown) => {
     return (e) => {
@@ -230,10 +241,12 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
                 text += `![Uploading ${file.name}…]()`
                 helpers.setValue(text)
               }}
-              onSuccess={({ url, name }) => {
+              onSuccess={async ({ url, name }) => {
                 let text = innerRef.current.value
                 text = text.replace(`![Uploading ${name}…]()`, `![${name}](${url})`)
                 helpers.setValue(text)
+                const s3Keys = [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1]))
+                updateImageFees({ variables: { s3Keys } })
               }}
             >
               <AddImageIcon width={18} height={18} />

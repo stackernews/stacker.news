@@ -19,6 +19,7 @@ import { sendUserNotification } from '../webPush'
 import { defaultCommentSort, isJob, deleteItemByAuthor, getDeleteCommand, hasDeleteCommand } from '../../lib/item'
 import { notifyItemParents, notifyUserSubscribers, notifyZapped } from '../../lib/push-notifications'
 import { datePivot } from '../../lib/time'
+import { imageFeesFromText } from './image'
 
 export async function commentFilterClause (me, models) {
   let clause = ` AND ("Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}`
@@ -1090,7 +1091,7 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
   item = { subName, userId: me.id, ...item }
   const fwdUsers = await getForwardUsers(models, forward)
 
-  const [imgQueriesFn, imgFees] = await imageFees(item.text, { models, me })
+  const [imgQueriesFn, imgFees] = await imageFeesFromText(item.text, { models, me })
   item = await serializeInvoicable(
     [
       models.$queryRawUnsafe(`${SELECT} FROM update_item($1::JSONB, $2::JSONB, $3::JSONB) AS "Item"`,
@@ -1127,7 +1128,7 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
     item.url = removeTracking(item.url)
   }
 
-  const [imgQueriesFn, imgFees] = await imageFees(item.text, { models, me })
+  const [imgQueriesFn, imgFees] = await imageFeesFromText(item.text, { models, me })
   const enforceFee = (me ? undefined : (item.parentId ? ANON_COMMENT_FEE : (ANON_POST_FEE + (item.boost || 0)))) + imgFees
   item = await serializeInvoicable(
     models.$queryRawUnsafe(
@@ -1148,77 +1149,6 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
 
   item.comments = []
   return item
-}
-
-const AWS_S3_URL_REGEXP = new RegExp(`https://${process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET}.s3.amazonaws.com/([0-9]+)`, 'g')
-async function imageFees (text, { models, me }) {
-  // To apply image fees, we return queries which need to be run, preferably in the same transaction as creating or updating an item.
-  function queries (userId, imgIds, imgFees) {
-    return itemId => {
-      return [
-        // pay fees
-        models.$queryRawUnsafe('SELECT * FROM user_fee($1::INTEGER, $2::INTEGER, $3::BIGINT)', userId, itemId, imgFees),
-        // mark images as paid
-        models.upload.updateMany({ where: { id: { in: imgIds } }, data: { paid: true } })
-      ]
-    }
-  }
-
-  // no text means no image fees
-  if (!text) return [itemId => [], 0]
-
-  // parse all s3 keys (= image ids) from text
-  const textS3Keys = [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1]))
-  if (!textS3Keys.length) return [itemId => [], 0]
-
-  // we want to ignore image ids in text for which someone already paid during fee calculation
-  // to make sure that every image is only paid once
-  const unpaidS3Keys = (await models.upload.findMany({ select: { id: true }, where: { id: { in: textS3Keys }, paid: false } })).map(({ id }) => id)
-  const unpaid = unpaidS3Keys.length
-
-  if (!unpaid) return [itemId => [], 0]
-
-  if (!me) {
-    // anons pay for every new image 100 sats
-    const fees = unpaid * 100
-    return [queries(ANON_USER_ID, unpaidS3Keys, fees), fees]
-  }
-
-  // check how much stacker uploaded in last 24 hours
-  const { _sum: { size: size24h } } = await models.upload.aggregate({
-    _sum: { size: true },
-    where: {
-      userId: me.id,
-      createdAt: { gt: datePivot(new Date(), { days: -1 }) },
-      paid: true
-    }
-  })
-
-  // check how much stacker uploaded now in size
-  const { _sum: { size: sizeNow } } = await models.upload.aggregate({
-    _count: { id: true },
-    _sum: { size: true },
-    where: { id: { in: unpaidS3Keys } }
-  })
-
-  // total size that we consider to calculate fees includes size of images within last 24 hours and size of incoming images
-  const size = size24h + sizeNow
-  const MB = 1024 * 1024 // factor for bytes -> megabytes
-
-  // 10 MB per 24 hours are free. fee is also 0 if there are no incoming images (obviously)
-  let fees
-  if (!sizeNow || size <= 10 * MB) {
-    fees = 0
-  } else if (size <= 25 * MB) {
-    fees = 10 * unpaid
-  } else if (size <= 50 * MB) {
-    fees = 100 * unpaid
-  } else if (size <= 100 * MB) {
-    fees = 1000 * unpaid
-  } else {
-    fees = 10000 * unpaid
-  }
-  return [queries(me.id, unpaidS3Keys, fees), fees]
 }
 
 const clearDeletionJobs = async (item, models) => {

@@ -254,6 +254,11 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
                 const s3Keys = [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1]))
                 updateImageFees({ variables: { s3Keys } })
               }}
+              onError={({ name }) => {
+                let text = innerRef.current.value
+                text = text.replace(`![Uploading ${name}…]()`, '')
+                helpers.setValue(text)
+              }}
             >
               <AddImageIcon width={18} height={18} />
             </ImageUpload>

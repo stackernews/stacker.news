@@ -137,7 +137,7 @@ export default function ZoomableImage ({ src, srcSet, ...props }) {
   return <ImageOriginal src={originalUrl} onClick={handleClick} {...props} />
 }
 
-export function ImageUpload ({ children, className, onSelect, onSuccess }) {
+export function ImageUpload ({ children, className, onSelect, onSuccess, onError }) {
   const ref = useRef()
   const toaster = useToast()
 
@@ -166,6 +166,7 @@ export function ImageUpload ({ children, className, onSelect, onSuccess }) {
         ({ data } = await getSignedPOST({ variables }))
       } catch (e) {
         toaster.danger(e.message || e.toString?.())
+        onError?.({ ...variables, name: file.name, file })
         return
       }
 
@@ -184,6 +185,7 @@ export function ImageUpload ({ children, className, onSelect, onSuccess }) {
       if (!res.ok) {
         // TODO make sure this is actually a helpful error message and does not expose anything to the user we don't want
         toaster.danger(res.statusText)
+        onError?.({ ...variables, name: file.name, file })
         return
       }
 

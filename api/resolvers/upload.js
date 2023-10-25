@@ -25,16 +25,16 @@ export default {
         width,
         height,
         userId: me?.id || ANON_USER_ID,
+        // avatar uploads are always free
         paid: avatar && !!me ? undefined : false
       }
 
       let uploadId
+      // avatar uploads overwrite the previous avatar
       if (avatar && photoId) uploadId = photoId
       if (uploadId) {
-        // update upload record
         await models.upload.update({ data, where: { id: uploadId } })
       } else {
-        // create upload record
         const upload = await models.upload.create({ data })
         uploadId = upload.id
       }

@@ -74,6 +74,7 @@ export default function Settings ({ ssrData }) {
             noteCowboyHat: settings?.noteCowboyHat,
             noteForwardedSats: settings?.noteForwardedSats,
             hideInvoiceDesc: settings?.hideInvoiceDesc,
+            autoDropWdInvoices: settings?.autoDropWdInvoices,
             hideFromTopUsers: settings?.hideFromTopUsers,
             hideCowboyHat: settings?.hideCowboyHat,
             imgproxyOnly: settings?.imgproxyOnly,
@@ -234,6 +235,25 @@ export default function Settings ({ ssrData }) {
               </div>
             }
             name='hideInvoiceDesc'
+            groupClassName='mb-0'
+          />
+          <Checkbox
+            label={
+              <div className='d-flex align-items-center'>auto forget withdrawal invoices after 7 days
+                <Info>
+                  <ul className='fw-bold'>
+                    <li>use this to protect receiver privacy</li>
+                    <li>withdrawal invoices are kept at least 7 days:
+                      <ul>
+                        <li>for debugging purposes</li>
+                        <li>to prevent a thief from covering his tracks</li>
+                      </ul>
+                    </li>
+                  </ul>
+                </Info>
+              </div>
+            }
+            name='autoDropWdInvoices'
             groupClassName='mb-0'
           />
           <Checkbox

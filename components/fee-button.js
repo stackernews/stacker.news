@@ -109,7 +109,7 @@ function EditReceipt ({ cost, paidSats, imageFees, boost, parentId }) {
       <tbody>
         {imageFees &&
           <tr>
-            <td>+ {numWithUnits(imageFees, { abbreviate: false })}</td>
+            <td>+ {imageFees.unpaid} x {numWithUnits(imageFees.fees, { abbreviate: false })}</td>
             <td align='right' className='font-weight-light'>image fees</td>
           </tr>}
         {boost > 0 &&
@@ -137,7 +137,7 @@ export function EditFeeButton ({ paidSats, ChildButton, variant, text, alwaysSho
     formik?.setFieldValue('cost', cost)
   }, [formik?.getFieldProps('cost').value, cost])
 
-  const imageFees = formik?.getFieldProps('imageFees').value?.fees || { fees: 0 }
+  const imageFees = formik?.getFieldProps('imageFees').value || { fees: 0 }
   const totalCost = cost + imageFees.fees
 
   const show = alwaysShow || !formik?.isSubmitting

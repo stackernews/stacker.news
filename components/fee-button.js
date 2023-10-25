@@ -107,6 +107,10 @@ function EditReceipt ({ cost, paidSats, imageFees, boost, parentId }) {
   return (
     <Table className={styles.receipt} borderless size='sm'>
       <tbody>
+        <tr>
+          <td>{numWithUnits(0, { abbreviate: false })}</td>
+          <td align='right' className='font-weight-light'>edit fee</td>
+        </tr>
         {imageFees &&
           <tr>
             <td>+ {imageFees.unpaid} x {numWithUnits(imageFees.fees, { abbreviate: false })}</td>

@@ -24,12 +24,14 @@ export function createPresignedPost ({ key, type, size }) {
   })
 }
 
-export function deleteObject (key) {
+export function deleteObjects (keys) {
   const s3 = new AWS.S3({ apiVersion: '2006-03-01' })
   return new Promise((resolve, reject) => {
-    s3.deleteObject({
+    s3.deleteObjects({
       Bucket,
-      Key: key
-    }, (err, data) => { err ? reject(err) : resolve(key) })
+      Delete: {
+        Objects: keys.map(key => ({ Key: String(key) }))
+      }
+    }, (err, data) => { err ? reject(err) : resolve(keys) })
   })
 }

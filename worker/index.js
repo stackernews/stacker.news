@@ -16,6 +16,7 @@ import { authenticatedLndGrpc } from 'ln-service'
 import { views, rankViews } from './views.js'
 import { imgproxy } from './imgproxy.js'
 import { deleteItem } from './ephemeralItems.js'
+import { deleteUnusedImages } from './deleteUnusedImages.js'
 
 const { loadEnvConfig } = nextEnv
 const { ApolloClient, HttpLink, InMemoryCache } = apolloClient
@@ -70,6 +71,7 @@ async function work () {
   await boss.work('rankViews', rankViews(args))
   await boss.work('imgproxy', imgproxy(args))
   await boss.work('deleteItem', deleteItem(args))
+  await boss.work('deleteUnusedImages', deleteUnusedImages(args))
 
   console.log('working jobs')
 }

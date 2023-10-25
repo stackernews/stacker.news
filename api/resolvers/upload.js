@@ -10,7 +10,8 @@ export default {
       }
 
       if (size > UPLOAD_SIZE_MAX) {
-        throw new GraphQLError(`image must be less than ${UPLOAD_SIZE_MAX} bytes`, { extensions: { code: 'BAD_INPUT' } })
+        const UPLOAD_SIZE_MAX_MB = UPLOAD_SIZE_MAX / 1024 / 1024
+        throw new GraphQLError(`image must be less than ${UPLOAD_SIZE_MAX_MB} megabytes`, { extensions: { code: 'BAD_INPUT' } })
       }
 
       if (width * height > IMAGE_PIXELS_MAX) {

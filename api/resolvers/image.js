@@ -70,7 +70,7 @@ export async function imageFees (s3Keys, { models, me }) {
 
   // 10 MB per 24 hours are free. fee is also 0 if there are no incoming images (obviously)
   let fees
-  if (!sizeNow || size <= 1 * MB) {
+  if (!sizeNow || size <= 10 * MB) {
     fees = 0
   } else if (size <= 25 * MB) {
     fees = 10 * unpaid

@@ -1,14 +1,10 @@
 import { GraphQLError } from 'graphql'
-import { IMAGE_PIXELS_MAX, UPLOAD_SIZE_MAX, UPLOAD_TYPES_ALLOW } from '../../lib/constants'
+import { ANON_USER_ID, IMAGE_PIXELS_MAX, UPLOAD_SIZE_MAX, UPLOAD_TYPES_ALLOW } from '../../lib/constants'
 import { createPresignedPost } from '../s3'
 
 export default {
   Mutation: {
     getSignedPOST: async (parent, { type, size, width, height, avatar }, { models, me }) => {
-      if (!me) {
-        throw new GraphQLError('you must be logged in to get a signed url', { extensions: { code: 'FORBIDDEN' } })
-      }
-
       if (UPLOAD_TYPES_ALLOW.indexOf(type) === -1) {
         throw new GraphQLError(`image must be ${UPLOAD_TYPES_ALLOW.map(t => t.replace('image/', '')).join(', ')}`, { extensions: { code: 'BAD_INPUT' } })
       }
@@ -21,15 +17,15 @@ export default {
         throw new GraphQLError(`image must be less than ${IMAGE_PIXELS_MAX} pixels`, { extensions: { code: 'BAD_INPUT' } })
       }
 
-      const { photoId } = await models.user.findUnique({ where: { id: me.id } })
+      const { photoId } = me ? await models.user.findUnique({ where: { id: me.id } }) : {}
 
       const data = {
         type,
         size,
         width,
         height,
-        userId: me.id,
-        paid: avatar ? undefined : false
+        userId: me?.id || ANON_USER_ID,
+        paid: avatar && !!me ? undefined : false
       }
 
       let uploadId

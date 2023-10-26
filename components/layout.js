@@ -30,7 +30,7 @@ export function SearchLayout ({ sub, children, ...props }) {
     <Layout sub={sub} seo={false} contain={false} {...props}>
       <SeoSearch sub={sub} />
       <Search sub={sub} />
-      <Container as='main' className='py-4 px-sm-0'>
+      <Container as='main' className='pt-3 pb-4 px-sm-0'>
         {children}
       </Container>
     </Layout>

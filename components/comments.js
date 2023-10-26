@@ -68,12 +68,15 @@ export default function Comments ({ parentId, pinned, bio, parentCreatedAt, comm
         ? <CommentsHeader
             commentSats={commentSats} parentCreatedAt={parentCreatedAt}
             pinned={pinned} bio={bio} handleSort={sort => {
-              const query = router.query
+              const { commentsViewedAt, commentId, ...query } = router.query
               delete query.nodata
               router.push({
                 pathname: router.pathname,
-                query: { ...router.query, sort }
-              }, undefined, { scroll: false })
+                query: { ...query, commentsViewedAt, sort }
+              }, {
+                pathname: `/items/${parentId}`,
+                query: sort === defaultCommentSort(pinned, bio, parentCreatedAt) ? undefined : { sort }
+              }, { scroll: false })
             }}
           />
         : null}

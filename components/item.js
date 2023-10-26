@@ -59,7 +59,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
                   e.preventDefault()
                   if (e.ctrlKey || e.metaKey) {
                     window.open(
-                      `/items/${item.id}?commentsViewedAt=${viewedAt}`,
+                      `/items/${item.id}`,
                       '_blank',
                       'noopener,noreferrer'
                     )

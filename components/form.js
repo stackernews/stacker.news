@@ -401,7 +401,7 @@ function InputInner ({
         </BootstrapForm.Text>
       )}
       {maxLength && !(meta.touched && meta.error && invalid) && (
-        <BootstrapForm.Text className={remaining < 0 ? 'text-danger' : undefined}>
+        <BootstrapForm.Text className={remaining < 0 ? 'text-danger' : 'text-muted'}>
           {`${numWithUnits(remaining, { abbreviate: false, unitSingular: 'character', unitPlural: 'characters' })} remaining`}
         </BootstrapForm.Text>
       )}

@@ -109,6 +109,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
     imageFees(s3Keys: $s3Keys) {
       fees
       unpaid
+      feesPerImage
       size24h
       sizeNow
     }

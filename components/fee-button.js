@@ -27,7 +27,7 @@ function Receipt ({ cost, repetition, imageFees, baseFee, parentId, boost }) {
           </tr>}
         {imageFees.fees > 0 &&
           <tr>
-            <td>+ {imageFees.unpaid} x {numWithUnits(imageFees.fees, { abbreviate: false })}</td>
+            <td>+ {imageFees.unpaid} x {numWithUnits(imageFees.feesPerImage, { abbreviate: false })}</td>
             <td align='right' className='font-weight-light'>image fee</td>
           </tr>}
         {boost > 0 &&
@@ -113,7 +113,7 @@ function EditReceipt ({ cost, paidSats, imageFees, boost, parentId }) {
         </tr>
         {imageFees.fees > 0 &&
           <tr>
-            <td>+ {imageFees.unpaid} x {numWithUnits(imageFees.fees, { abbreviate: false })}</td>
+            <td>+ {imageFees.unpaid} x {numWithUnits(imageFees.feesPerImage, { abbreviate: false })}</td>
             <td align='right' className='font-weight-light'>image fee</td>
           </tr>}
         {boost > 0 &&

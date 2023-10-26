@@ -4,8 +4,10 @@ import { datePivot } from '../../lib/time'
 export default {
   Query: {
     imageFees: async (parent, { s3Keys }, { models, me }) => {
-      const { fees, unpaid, size24h, sizeNow } = await imageFees(s3Keys, { models, me })
-      return { fees, unpaid, size24h, sizeNow }
+      const imgFees = await imageFees(s3Keys, { models, me })
+      delete imgFees.queries
+      // add defaults so we can be sure these properties always exist in the frontend
+      return Object.assign({ fees: 0, unpaid: 0, feesPerImage: 0, size24h: 0, sizeNow: 0 }, imgFees)
     }
   }
 }
@@ -43,8 +45,9 @@ export async function imageFees (s3Keys, { models, me }) {
 
   if (!me) {
     // anons pay for every new image 100 sats
-    const fees = unpaid * 100
-    return { queries: queries(ANON_USER_ID, unpaidS3Keys, fees), fees, unpaid }
+    const feesPerImage = 100
+    const fees = feesPerImage * unpaid
+    return { queries: queries(ANON_USER_ID, unpaidS3Keys, fees), fees, feesPerImage, unpaid }
   }
 
   // check how much stacker uploaded in last 24 hours
@@ -69,17 +72,18 @@ export async function imageFees (s3Keys, { models, me }) {
   const MB = 1024 * 1024 // factor for bytes -> megabytes
 
   // 10 MB per 24 hours are free. fee is also 0 if there are no incoming images (obviously)
-  let fees
+  let feesPerImage
   if (!sizeNow || size <= 10 * MB) {
-    fees = 0
+    feesPerImage = 0
   } else if (size <= 25 * MB) {
-    fees = 10 * unpaid
+    feesPerImage = 10
   } else if (size <= 50 * MB) {
-    fees = 100 * unpaid
+    feesPerImage = 100
   } else if (size <= 100 * MB) {
-    fees = 1000 * unpaid
+    feesPerImage = 1000
   } else {
-    fees = 10000 * unpaid
+    feesPerImage = 10000
   }
-  return { queries: queries(me.id, unpaidS3Keys, fees), fees, unpaid, size24h, sizeNow }
+  const fees = feesPerImage * unpaid
+  return { queries: queries(me.id, unpaidS3Keys, fees * unpaid), fees, feesPerImage, unpaid, size24h, sizeNow }
 }

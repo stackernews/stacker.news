@@ -110,7 +110,7 @@ function Detail ({ fact }) {
   if (fact.nonItemActType) {
     return (
       <div className='px-3'>
-        {fact.nonItemActType === 'NYM_CHANGE' && 'You changed your nym'}
+        {fact.nonItemActType === 'NYM_CHANGE' && 'You paid to change your nym'}
       </div>
     )
   }

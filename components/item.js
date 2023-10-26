@@ -57,9 +57,17 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
                 const viewedAt = commentsViewedAt(item)
                 if (viewedAt) {
                   e.preventDefault()
-                  router.push(
+                  if (e.ctrlKey || e.metaKey) {
+                    window.open(
+                      `/items/${item.id}?commentsViewedAt=${viewedAt}`,
+                      '_blank',
+                      'noopener,noreferrer'
+                    )
+                  } else {
+                    router.push(
                     `/items/${item.id}?commentsViewedAt=${viewedAt}`,
                     `/items/${item.id}`)
+                  }
                 }
               }} ref={titleRef} className={`${styles.title} text-reset me-2`}
             >

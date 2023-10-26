@@ -54,7 +54,7 @@ const truncateString = (string = '', maxLength = 140) =>
     ? `${string.substring(0, maxLength)} […]`
     : string
 
-export function CommentFlat ({ item, rank, ...props }) {
+export function CommentFlat ({ item, rank, siblingComments, ...props }) {
   const router = useRouter()
   const [href, as] = useMemo(() => {
     if (item.path.split('.').length > COMMENT_DEPTH_LIMIT + 1) {
@@ -79,7 +79,7 @@ export function CommentFlat ({ item, rank, ...props }) {
           </div>)
         : <div />}
       <div
-        className='clickToContext py-2'
+        className={`clickToContext ${siblingComments ? 'py-3' : 'py-2'}`}
         onClick={e => {
           if (ignoreClick(e)) return
           router.push(href, as)

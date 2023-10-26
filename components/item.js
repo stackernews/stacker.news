@@ -40,7 +40,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
             {rank}
           </div>)
         : <div />}
-      <div className={`${styles.item} ${siblingComments ? 'pt-2' : ''}`}>
+      <div className={`${styles.item} ${siblingComments ? 'pt-3' : ''}`}>
         {item.position
           ? <Pin width={24} height={24} className={styles.pin} />
           : item.meDontLike

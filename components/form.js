@@ -114,6 +114,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
     }
   }`, {
     fetchPolicy: 'no-cache',
+    nextFetchPolicy: 'no-cache',
     onError: (err) => {
       console.log(err)
       toaster.danger(err.message || err.toString?.())

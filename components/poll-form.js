@@ -27,7 +27,6 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         upsertPoll(sub: $sub, id: $id, title: $title, text: $text,
           options: $options, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac) {
           id
-          text
         }
       }`
   )

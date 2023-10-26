@@ -47,7 +47,6 @@ export default function JobForm ({ item, sub }) {
         location: $location, remote: $remote, text: $text,
         url: $url, maxBid: $maxBid, status: $status, logo: $logo, hash: $hash, hmac: $hmac) {
         id
-        text
       }
     }`
   )

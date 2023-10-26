@@ -73,7 +73,6 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
       mutation upsertLink($sub: String, $id: ID, $title: String!, $url: String!, $text: String, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String) {
         upsertLink(sub: $sub, id: $id, title: $title, url: $url, text: $text, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac) {
           id
-          text
         }
       }`
   )

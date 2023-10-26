@@ -207,7 +207,7 @@ function HeaderHeader ({ user }) {
               })
             showModal(({ onClose }) => (
               <>
-                <a className='d-flex m-auto p-3' style={{ background: 'white', width: 'fit-content' }} href={`lightning:${lnurlp}`}>
+                <a className='d-flex m-auto p-3' style={{ background: 'white', maxWidth: 'fit-content' }} href={`lightning:${lnurlp}`}>
                   <QRCode className='d-flex m-auto' value={lnurlp} renderAs='svg' size={300} />
                 </a>
                 <div className='text-center fw-bold text-muted mt-3'>click or scan</div>

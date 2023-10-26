@@ -168,7 +168,6 @@ export const EditNymFeeButton = ({ onClick }) => {
     fetchPolicy: 'no-cache',
     nextFetchPolicy: 'no-cache',
     onCompleted: data => {
-      console.log('nameCost', data)
       setCost(data.nymCost)
     }
   })

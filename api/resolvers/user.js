@@ -108,7 +108,6 @@ export const getNameCost = async ({ name, me, models }) => {
   const distanceResult = await models.$queryRawUnsafe('select name, levenshtein(name, $1) as dist from users where id <> $2 order by dist asc limit 1;', name, me?.id ?? -1)
   const { dist } = distanceResult[0]
   let cost = 100000 / Math.pow(10, dist - 1)
-  console.log({ name, distanceResult, dist, cost })
   if (cost < 1) {
     cost = 0
   }

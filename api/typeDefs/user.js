@@ -20,7 +20,7 @@ export default gql`
   }
 
   extend type Mutation {
-    setName(name: String!): String
+    setName(name: String!, hash: String, hmac: String): String
     setSettings(tipDefault: Int!, turboTipping: Boolean!, fiatCurrency: String!, withdrawMaxFeeDefault: Int!, noteItemSats: Boolean!,
       noteEarning: Boolean!, noteAllDescendants: Boolean!, noteMentions: Boolean!, noteDeposits: Boolean!,
       noteInvites: Boolean!, noteJobIndicator: Boolean!, noteCowboyHat: Boolean!, hideInvoiceDesc: Boolean!,

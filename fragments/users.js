@@ -126,8 +126,8 @@ gql`
 
 export const NAME_MUTATION =
 gql`
-  mutation setName($name: String!) {
-    setName(name: $name)
+  mutation setName($name: String!, $hash: String, $hmac: String) {
+    setName(name: $name, hash: $hash, hmac: $hmac)
   }
 `
 

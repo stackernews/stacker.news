@@ -117,14 +117,15 @@ function NymEdit ({ user, setEditting }) {
       initial={{
         name: user.name
       }}
+      invoiceable
       validateImmediately
       validateOnChange={false}
-      onSubmit={async ({ name }) => {
+      onSubmit={async ({ name, hash, hmac }) => {
         if (name === user.name) {
           setEditting(false)
           return
         }
-        const { error } = await setName({ variables: { name } })
+        const { error } = await setName({ variables: { name, hash, hmac } })
         if (error) {
           throw new Error({ message: error.toString() })
         }

@@ -7,6 +7,7 @@ import { bioSchema, emailSchema, settingsSchema, ssValidate, userSchema } from '
 import { getItem, updateItem, filterClause, createItem, whereClause, muteClause } from './item'
 import { datePivot } from '../../lib/time'
 import { ANON_USER_ID, DELETE_USER_ID, RESERVED_MAX_USER_ID } from '../../lib/constants'
+import { serializeInvoicable } from './serial'
 
 const contributors = new Set()
 
@@ -525,25 +526,21 @@ export default {
   },
 
   Mutation: {
-    setName: async (parent, data, { me, models }) => {
+    setName: async (parent, data, { me, models, lnd }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
       }
 
       await ssValidate(userSchema, data, { models })
-
-      const cost = await getNameCost({ name: data.name, me, models })
-
-      if (me.sats < cost) {
-        throw new GraphQLError('insufficient funds', { extensions: { code: 'BAD_INPUT' } })
-      }
+      const { name, hash, hmac } = data
+      const cost = await getNameCost({ name, me, models })
 
       try {
-        await models.user.update({
-          where: { id: me.id },
-          data: { ...data, msats: me.msats - (cost * 1000) }
-        })
-        return data.name
+        await serializeInvoicable(
+          models.$queryRawUnsafe('SELECT 1 FROM edit_nym($1::INTEGER, $2::TEXT, $3::BIGINT);', me.id, name, cost),
+          { models, lnd, me, hash, hmac }
+        )
+        return name
       } catch (error) {
         if (error.code === 'P2002') {
           throw new GraphQLError('name taken', { extensions: { code: 'BAD_INPUT' } })

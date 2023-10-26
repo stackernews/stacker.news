@@ -58,6 +58,7 @@ export default gql`
     item: Item
     invoiceComment: String
     invoicePayerData: JSONObject
+    nonItemActType: String
   }
 
   type History {

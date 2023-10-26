@@ -116,7 +116,7 @@ export default function Comment ({
       setTimeout(() => {
         ref.current.scrollIntoView({ behavior: 'instant', block: 'start' })
         ref.current.classList.add('outline-it')
-      }, 20)
+      }, 100)
     }
   }, [item.id, router.query.commentId])
 
@@ -223,7 +223,7 @@ export default function Comment ({
       </div>
       {collapse !== 'yep' && (
         bottomedOut
-          ? <DepthLimit item={item} />
+          ? <div className={styles.children}><ReplyOnAnotherPage item={item} /></div>
           : (
             <div className={styles.children}>
               {!noReply &&
@@ -241,22 +241,6 @@ export default function Comment ({
             </div>
             )
       )}
-    </div>
-  )
-}
-
-function DepthLimit ({ item }) {
-  if (item.ncomments > 0) {
-    return (
-      <Link href={`/items/${item.id}`} className='d-block p-3 fw-bold text-muted w-100 text-center'>
-        view replies
-      </Link>
-    )
-  }
-
-  return (
-    <div className={styles.children}>
-      <ReplyOnAnotherPage parentId={item.id} />
     </div>
   )
 }

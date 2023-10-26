@@ -10,11 +10,20 @@ import { commentsViewedAfterComment } from '../lib/new-comments'
 import { commentSchema } from '../lib/validate'
 import Info from './info'
 import { quote } from '../lib/md'
+import { COMMENT_DEPTH_LIMIT } from '../lib/constants'
 
-export function ReplyOnAnotherPage ({ parentId }) {
+export function ReplyOnAnotherPage ({ item }) {
+  const path = item.path.split('.')
+  const rootId = path.slice(-(COMMENT_DEPTH_LIMIT - 1))[0]
+
+  let text = 'reply on another page'
+  if (item.ncomments > 0) {
+    text = 'view replies'
+  }
+
   return (
-    <Link href={`/items/${parentId}`} className={`${styles.replyButtons} text-muted`}>
-      reply on another page
+    <Link href={`/items/${rootId}?commentId=${item.id}`} as={`/items/${rootId}`} className='d-block py-3 fw-bold text-muted'>
+      {text}
     </Link>
   )
 }

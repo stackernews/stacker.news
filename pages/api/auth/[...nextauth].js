@@ -195,7 +195,8 @@ export const getAuthOptions = req => ({
   adapter: {
     ...PrismaAdapter(prisma),
     createUser: async (data) => {
-      let { name } = data
+      let { name, email } = data
+      name ??= email
       let nymCost = await getNameCost({ name, models: prisma })
       while (nymCost > 0) {
         name = randomBytes(4).toString('hex')

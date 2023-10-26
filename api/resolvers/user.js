@@ -105,6 +105,12 @@ export const getNameCost = async ({ name, me, models }) => {
   if (me?.name === name) {
     return 0
   }
+
+  if (me && (await models.user.findUnique({ where: { id: me.id } })).name === name) {
+    // This handles the case where a user has changed their nym in the current session, so `me.name` is old
+    return 0
+  }
+
   const distanceResult = await models.$queryRawUnsafe('select name, levenshtein(name, $1) as dist from users where id <> $2 order by dist asc limit 1;', name, me?.id ?? -1)
   const { dist } = distanceResult[0]
   let cost = 100000 / Math.pow(10, dist - 1)
@@ -539,6 +545,8 @@ export default {
           models.$queryRawUnsafe('SELECT 1 FROM edit_nym($1::INTEGER, $2::TEXT, $3::BIGINT);', me.id, name, cost),
           { models, lnd, me, hash, hmac }
         )
+        // update name in server session
+        me.name = name
         return name
       } catch (error) {
         if (error.code === 'P2002') {

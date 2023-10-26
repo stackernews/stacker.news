@@ -189,7 +189,7 @@ export const EditNymFeeButton = ({ onClick }) => {
   return (
     <div className={styles.feeButton}>
       <ActionTooltip overlayText={numWithUnits(cost, { abbreviate: false })}>
-        <SubmitButton variant='secondary' onClick={onClick}>save{cost > 0 && show && <small> {numWithUnits(cost, { abbreviate: false, format: true })}</small>}</SubmitButton>
+        <SubmitButton variant='secondary' onClick={onClick} disabled={formik?.isSubmitting}>save{cost > 0 && show && <small> {numWithUnits(cost, { abbreviate: false, format: true })}</small>}</SubmitButton>
       </ActionTooltip>
       {cost > 0 && show &&
         <Info>

@@ -168,16 +168,16 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
       {replyOpen
         ? <div className={styles.replyButtons} />
         : (
-          <div
-            className={styles.replyButtons} onPointerDown={e => {
-              if (!reply) {
-                e.preventDefault()
-                ref?.current?.quoteReply({ selectionOnly: true })
-              }
-              setReply(!reply)
-            }}
-          >
-            <div>
+          <div className={styles.replyButtons}>
+            <div
+              className='pe-3' onPointerDown={e => {
+                if (!reply) {
+                  e.preventDefault()
+                  ref?.current?.quoteReply({ selectionOnly: true })
+                }
+                setReply(!reply)
+              }}
+            >
               {reply ? 'cancel' : 'reply'}
             </div>
             {/* HACK if we need more items, we should probably do a comment toolbar */}

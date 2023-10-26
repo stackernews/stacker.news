@@ -101,11 +101,11 @@ async function authMethods (user, args, { models, me }) {
   }
 }
 
-const getNameCost = async ({ name, me, models }) => {
+export const getNameCost = async ({ name, me, models }) => {
   if (me?.name === name) {
     return 0
   }
-  const distanceResult = await models.$queryRawUnsafe('select name, levenshtein(name, $1) as dist from users where id <> $2 order by dist asc limit 1;', name, me?.id)
+  const distanceResult = await models.$queryRawUnsafe('select name, levenshtein(name, $1) as dist from users where id <> $2 order by dist asc limit 1;', name, me?.id ?? -1)
   const { dist } = distanceResult[0]
   let cost = 100000 / Math.pow(10, dist - 1)
   console.log({ name, distanceResult, dist, cost })

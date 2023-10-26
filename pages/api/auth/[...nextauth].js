@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
 import NextAuth from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import GitHubProvider from 'next-auth/providers/github'
@@ -11,6 +11,7 @@ import { getToken } from 'next-auth/jwt'
 import { NodeNextRequest } from 'next/dist/server/base-http/node'
 import { schnorr } from '@noble/curves/secp256k1'
 import { sendUserNotification } from '../../../api/webPush'
+import { getNameCost } from '../../../api/resolvers/user'
 
 function getCallbacks (req) {
   return {
@@ -191,7 +192,18 @@ const providers = [
 export const getAuthOptions = req => ({
   callbacks: getCallbacks(req),
   providers,
-  adapter: PrismaAdapter(prisma),
+  adapter: {
+    ...PrismaAdapter(prisma),
+    createUser: async (data) => {
+      let { name } = data
+      let nymCost = await getNameCost({ name, models: prisma })
+      while (nymCost > 0) {
+        name = randomBytes(4).toString('hex')
+        nymCost = await getNameCost({ name, models: prisma })
+      }
+      return await prisma.user.create({ data: { ...data, name } })
+    }
+  },
   session: {
     strategy: 'jwt'
   },

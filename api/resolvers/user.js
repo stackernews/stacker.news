@@ -102,12 +102,9 @@ async function authMethods (user, args, { models, me }) {
 }
 
 export const getNameCost = async ({ name, me, models }) => {
-  if (me?.name === name) {
-    return 0
-  }
-
+  // This is necessary because in the case where a user has changed their nym in the current session,
+  // `me.name` is stale, so we can't do a comparison on `me.name` to accurately report fees for a name change.
   if (me && (await models.user.findUnique({ where: { id: me.id } })).name === name) {
-    // This handles the case where a user has changed their nym in the current session, so `me.name` is old
     return 0
   }
 

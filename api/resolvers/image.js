@@ -12,11 +12,11 @@ export default {
 
 export async function imageFeesFromText (text, { models, me }) {
   // no text means no image fees
-  if (!text) return [itemId => [], 0]
+  if (!text) return { queries: itemId => [], fees: 0 }
 
   // parse all s3 keys (= image ids) from text
   const textS3Keys = [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1]))
-  if (!textS3Keys.length) return [itemId => [], 0]
+  if (!textS3Keys.length) return { queries: itemId => [], fees: 0 }
 
   return imageFees(textS3Keys, { models, me })
 }

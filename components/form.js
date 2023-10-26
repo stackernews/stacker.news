@@ -259,9 +259,10 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
           </Nav.Item>
           <span className='ms-auto text-muted d-flex align-items-center'>
             <ImageUpload
+              multiple
               ref={imageUploadRef}
               className='d-flex align-items-center me-1'
-              onSelect={file => {
+              onUpload={file => {
                 let text = innerRef.current.value
                 if (text) text += '\n\n'
                 text += `![Uploading ${file.name}…]()`

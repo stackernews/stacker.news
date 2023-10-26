@@ -1,5 +1,5 @@
 import styles from './text.module.css'
-import { Fragment, useState, useEffect, useMemo, useCallback, forwardRef } from 'react'
+import { Fragment, useState, useEffect, useMemo, useCallback, forwardRef, useRef } from 'react'
 import { IMGPROXY_URL_REGEXP } from '../lib/url'
 import { useShowModal } from './modal'
 import { useMe } from './me'
@@ -137,13 +137,14 @@ export default function ZoomableImage ({ src, srcSet, ...props }) {
   return <ImageOriginal src={originalUrl} onClick={handleClick} {...props} />
 }
 
-export const ImageUpload = forwardRef(({ children, className, onSelect, onSuccess, onError }, ref) => {
+export const ImageUpload = forwardRef(({ children, className, onSelect, onUpload, onSuccess, onError, multiple, avatar }, ref) => {
   const toaster = useToast()
+  ref ??= useRef(null)
 
   const [getSignedPOST] = useMutation(
     gql`
-      mutation getSignedPOST($type: String!, $size: Int!, $width: Int!, $height: Int!) {
-        getSignedPOST(type: $type, size: $size, width: $width, height: $height) {
+      mutation getSignedPOST($type: String!, $size: Int!, $width: Int!, $height: Int!, $avatar: Boolean) {
+        getSignedPOST(type: $type, size: $size, width: $width, height: $height, avatar: $avatar) {
           url
           fields
         }
@@ -154,9 +155,10 @@ export const ImageUpload = forwardRef(({ children, className, onSelect, onSucces
     img.src = window.URL.createObjectURL(file)
     return new Promise((resolve, reject) => {
       img.onload = async () => {
-        onSelect?.(file)
+        onUpload?.(file)
         let data
         const variables = {
+          avatar,
           type: file.type,
           size: file.size,
           width: img.width,
@@ -206,7 +208,7 @@ export const ImageUpload = forwardRef(({ children, className, onSelect, onSucces
       <input
         ref={ref}
         type='file'
-        multiple
+        multiple={multiple}
         className='d-none'
         accept={UPLOAD_TYPES_ALLOW.join(', ')}
         onChange={async (e) => {
@@ -216,7 +218,8 @@ export const ImageUpload = forwardRef(({ children, className, onSelect, onSucces
               toaster.danger(`image must be ${UPLOAD_TYPES_ALLOW.map(t => t.replace('image/', '')).join(', ')}`)
               continue
             }
-            await s3Upload(file)
+            if (onSelect) await onSelect?.(file, s3Upload)
+            else await s3Upload(file)
             // TODO find out if this is needed and if so, why (copied from components/upload.js)
             e.target.value = null
           }

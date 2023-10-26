@@ -45,3 +45,8 @@
     opacity: 1 !important;
     pointer-events: unset !important;
 }
+
+.previewTab {
+    padding-top: .2rem;
+    padding-bottom: .3rem;
+}

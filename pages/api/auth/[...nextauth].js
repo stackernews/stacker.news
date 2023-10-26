@@ -199,7 +199,7 @@ export const getAuthOptions = req => ({
       name ??= email
       let nymCost = await getNameCost({ name, models: prisma })
       while (nymCost > 0) {
-        name = randomBytes(4).toString('hex')
+        name = randomBytes(8).toString('hex')
         nymCost = await getNameCost({ name, models: prisma })
       }
       return await prisma.user.create({ data: { ...data, name } })

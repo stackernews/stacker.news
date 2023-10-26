@@ -1,14 +1,16 @@
 import { gql } from 'graphql-tag'
 
 export default gql`
-  type ImageFees {
-    fees: Int!
-    unpaid: Int!
-    feesPerImage: Int!
-    sizeNow: Int!
-    size24h: Int!
+  type ImageFeesInfo {
+    totalFees: Int!
+    totalFeesMsats: Int!
+    imageFee: Int!
+    imageFeeMsats: Int!
+    nUnpaid: Int!
+    bytesUnpaid: Int!
+    bytes24h: Int!
   }
   extend type Query {
-    imageFees(s3Keys: [Int]!): ImageFees!
+    imageFeesInfo(s3Keys: [Int]!): ImageFeesInfo!
   }
 `

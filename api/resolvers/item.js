@@ -1,6 +1,6 @@
 import { GraphQLError } from 'graphql'
 import { ensureProtocol, removeTracking } from '../../lib/url'
-import serialize, { serializeInvoicable } from './serial'
+import { serializeInvoicable } from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
 import { ruleSet as publicationDateRuleSet } from '../../lib/timedate-scraper'
@@ -19,7 +19,7 @@ import { sendUserNotification } from '../webPush'
 import { defaultCommentSort, isJob, deleteItemByAuthor, getDeleteCommand, hasDeleteCommand } from '../../lib/item'
 import { notifyItemParents, notifyUserSubscribers, notifyZapped } from '../../lib/push-notifications'
 import { datePivot } from '../../lib/time'
-import { imageFeesFromText } from './image'
+import { imageFeesInfo, uploadIdsFromText } from './image'
 
 export async function commentFilterClause (me, models) {
   let clause = ` AND ("Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}`
@@ -1091,13 +1091,12 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
   item = { subName, userId: me.id, ...item }
   const fwdUsers = await getForwardUsers(models, forward)
 
-  const { queries: imgQueriesFn, fees: imgFees } = await imageFeesFromText(item.text, { models, me })
+  const uploadIds = uploadIdsFromText(item.text, { models })
+  const { fees: imgFees } = await imageFeesInfo(uploadIds, { models, me })
+
   item = await serializeInvoicable(
-    [
-      models.$queryRawUnsafe(`${SELECT} FROM update_item($1::JSONB, $2::JSONB, $3::JSONB) AS "Item"`,
-        JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options)),
-      ...imgQueriesFn(Number(item.id))
-    ],
+    models.$queryRawUnsafe(`${SELECT} FROM update_item($1::JSONB, $2::JSONB, $3::JSONB, $4::INTEGER[]) AS "Item"`,
+      JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options), uploadIds),
     { models, lnd, hash, hmac, me, enforceFee: imgFees }
   )
 
@@ -1128,18 +1127,16 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
     item.url = removeTracking(item.url)
   }
 
-  const { queries: imgQueriesFn, fees: imgFees } = await imageFeesFromText(item.text, { models, me })
+  const uploadIds = uploadIdsFromText(item.text, { models })
+  const { fees: imgFees } = await imageFeesInfo(uploadIds, { models, me })
+
   const enforceFee = (me ? undefined : (item.parentId ? ANON_COMMENT_FEE : (ANON_POST_FEE + (item.boost || 0)))) + imgFees
   item = await serializeInvoicable(
     models.$queryRawUnsafe(
-      `${SELECT} FROM create_item($1::JSONB, $2::JSONB, $3::JSONB, '${spamInterval}'::INTERVAL) AS "Item"`,
-      JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options)),
+      `${SELECT} FROM create_item($1::JSONB, $2::JSONB, $3::JSONB, '${spamInterval}'::INTERVAL, $4::INTEGER[]) AS "Item"`,
+      JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options), uploadIds),
     { models, lnd, hash, hmac, me, enforceFee }
   )
-
-  // TODO run image queries in same transaction as create_item
-  const imgQueries = imgQueriesFn(item.id)
-  if (imgQueries.length > 0) await serialize(models, ...imgQueries)
 
   await createMentions(item, models)
 

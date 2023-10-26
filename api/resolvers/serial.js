@@ -59,29 +59,25 @@ export default async function serialize (models, ...calls) {
   })
 }
 
-export async function serializeInvoicable (queries, { models, lnd, hash, hmac, me, enforceFee }) {
+export async function serializeInvoicable (query, { models, lnd, hash, hmac, me, enforceFee }) {
   if (!me && !hash) {
     throw new Error('you must be logged in or pay')
   }
 
-  let trx = Array.isArray(queries) ? queries : [queries]
-  // save offset to the first query in arguments relative to queries that we will run
-  let queryOffset = 0
+  let trx = [query]
 
   let invoice
   if (hash) {
     invoice = await checkInvoice(models, hash, hmac, enforceFee)
     trx = [
       models.$queryRaw`UPDATE users SET msats = msats + ${invoice.msatsReceived} WHERE id = ${invoice.user.id}`,
-      ...trx,
+      query,
       models.invoice.update({ where: { hash: invoice.hash }, data: { confirmedAt: new Date() } })
     ]
-    // first query in arguments is now at index 1
-    queryOffset = 1
   }
 
   const results = await serialize(models, ...trx)
-  const result = trx.length > 1 ? results[queryOffset][0] : results[0]
+  const result = trx.length > 1 ? results[1][0] : results[0]
 
   if (invoice?.isHeld) await settleHodlInvoice({ secret: invoice.preimage, lnd })
 

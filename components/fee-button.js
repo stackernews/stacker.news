@@ -12,7 +12,7 @@ import AnonIcon from '../svgs/spy-fill.svg'
 import { useShowModal } from './modal'
 import Link from 'next/link'
 
-function Receipt ({ cost, repetition, imageFees, baseFee, parentId, boost }) {
+function Receipt ({ cost, repetition, imageFeesInfo, baseFee, parentId, boost }) {
   return (
     <Table className={styles.receipt} borderless size='sm'>
       <tbody>
@@ -25,9 +25,9 @@ function Receipt ({ cost, repetition, imageFees, baseFee, parentId, boost }) {
             <td>x 10<sup>{repetition}</sup></td>
             <td className='font-weight-light' align='right'>{repetition} {parentId ? 'repeat or self replies' : 'posts'} in 10m</td>
           </tr>}
-        {imageFees.fees > 0 &&
+        {imageFeesInfo.totalFees > 0 &&
           <tr>
-            <td>+ {imageFees.unpaid} x {numWithUnits(imageFees.feesPerImage, { abbreviate: false })}</td>
+            <td>+ {imageFeesInfo.nUnpaid} x {numWithUnits(imageFeesInfo.imageFee, { abbreviate: false })}</td>
             <td align='right' className='font-weight-light'>image fee</td>
           </tr>}
         {boost > 0 &&
@@ -85,8 +85,8 @@ export default function FeeButton ({ parentId, baseFee, ChildButton, variant, te
     formik?.setFieldValue('cost', cost)
   }, [formik?.getFieldProps('cost').value, cost])
 
-  const imageFees = formik?.getFieldProps('imageFees').value || { fees: 0 }
-  const totalCost = cost + imageFees.fees
+  const imageFeesInfo = formik?.getFieldProps('imageFeesInfo').value || { totalFees: 0 }
+  const totalCost = cost + imageFeesInfo.totalFees
 
   const show = alwaysShow || !formik?.isSubmitting
   return (
@@ -97,13 +97,13 @@ export default function FeeButton ({ parentId, baseFee, ChildButton, variant, te
       {!me && <AnonInfo />}
       {totalCost > baseFee && show &&
         <Info>
-          <Receipt baseFee={baseFee} imageFees={imageFees} repetition={repetition} cost={totalCost} parentId={parentId} boost={boost} />
+          <Receipt baseFee={baseFee} imageFeesInfo={imageFeesInfo} repetition={repetition} cost={totalCost} parentId={parentId} boost={boost} />
         </Info>}
     </div>
   )
 }
 
-function EditReceipt ({ cost, paidSats, imageFees, boost, parentId }) {
+function EditReceipt ({ cost, paidSats, imageFeesInfo, boost, parentId }) {
   return (
     <Table className={styles.receipt} borderless size='sm'>
       <tbody>
@@ -111,9 +111,9 @@ function EditReceipt ({ cost, paidSats, imageFees, boost, parentId }) {
           <td>{numWithUnits(0, { abbreviate: false })}</td>
           <td align='right' className='font-weight-light'>edit fee</td>
         </tr>
-        {imageFees.fees > 0 &&
+        {imageFeesInfo.totalFees > 0 &&
           <tr>
-            <td>+ {imageFees.unpaid} x {numWithUnits(imageFees.feesPerImage, { abbreviate: false })}</td>
+            <td>+ {imageFeesInfo.nUnpaid} x {numWithUnits(imageFeesInfo.imageFee, { abbreviate: false })}</td>
             <td align='right' className='font-weight-light'>image fee</td>
           </tr>}
         {boost > 0 &&
@@ -141,8 +141,8 @@ export function EditFeeButton ({ paidSats, ChildButton, variant, text, alwaysSho
     formik?.setFieldValue('cost', cost)
   }, [formik?.getFieldProps('cost').value, cost])
 
-  const imageFees = formik?.getFieldProps('imageFees').value || { fees: 0 }
-  const totalCost = cost + imageFees.fees
+  const imageFeesInfo = formik?.getFieldProps('imageFeesInfo').value || { totalFees: 0 }
+  const totalCost = cost + imageFeesInfo.totalFees
 
   const show = alwaysShow || !formik?.isSubmitting
   return (
@@ -152,7 +152,7 @@ export function EditFeeButton ({ paidSats, ChildButton, variant, text, alwaysSho
       </ActionTooltip>
       {totalCost > 0 && show &&
         <Info>
-          <EditReceipt paidSats={paidSats} imageFees={imageFees} cost={totalCost} parentId={parentId} boost={boost} />
+          <EditReceipt paidSats={paidSats} imageFeesInfo={imageFeesInfo} cost={totalCost} parentId={parentId} boost={boost} />
         </Info>}
     </div>
   )

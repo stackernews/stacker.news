@@ -104,14 +104,13 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
   const previousTab = useRef(tab)
   const formik = useFormikContext()
   const toaster = useToast()
-  const [updateImageFees] = useLazyQuery(gql`
-  query imageFees($s3Keys: [Int]!) {
-    imageFees(s3Keys: $s3Keys) {
-      fees
-      unpaid
-      feesPerImage
-      size24h
-      sizeNow
+  const [updateImageFeesInfo] = useLazyQuery(gql`
+  query imageFeesInfo($s3Keys: [Int]!) {
+    imageFeesInfo(s3Keys: $s3Keys) {
+      totalFees
+      nUnpaid
+      imageFee
+      bytes24h
     }
   }`, {
     fetchPolicy: 'no-cache',
@@ -120,8 +119,8 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
       console.log(err)
       toaster.danger(err.message || err.toString?.())
     },
-    onCompleted: ({ imageFees }) => {
-      formik?.setFieldValue('imageFees', imageFees)
+    onCompleted: ({ imageFeesInfo }) => {
+      formik?.setFieldValue('imageFeesInfo', imageFeesInfo)
     }
   })
 
@@ -273,7 +272,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
                 text = text.replace(`![Uploading ${name}…]()`, `![${name}](${url})`)
                 helpers.setValue(text)
                 const s3Keys = [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1]))
-                updateImageFees({ variables: { s3Keys } })
+                updateImageFeesInfo({ variables: { s3Keys } })
               }}
               onError={({ name }) => {
                 let text = innerRef.current.value
@@ -305,7 +304,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
               onBlur={() => {
                 const text = innerRef?.current.value
                 const s3Keys = text ? [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1])) : []
-                updateImageFees({ variables: { s3Keys } })
+                updateImageFeesInfo({ variables: { s3Keys } })
                 setTimeout(resetSuggestions, 100)
               }}
               onDragEnter={onDragEnter}

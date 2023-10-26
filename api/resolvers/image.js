@@ -6,6 +6,9 @@ export default {
     imageFees: async (parent, { s3Keys }, { models, me }) => {
       const imgFees = await imageFees(s3Keys, { models, me })
       delete imgFees.queries
+      // database returns NULL for sizes if no rows are found
+      imgFees.size24h ??= 0
+      imgFees.sizeNow ??= 0
       // add defaults so we can be sure these properties always exist in the frontend
       return Object.assign({ fees: 0, unpaid: 0, feesPerImage: 0, size24h: 0, sizeNow: 0 }, imgFees)
     }

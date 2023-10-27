@@ -1,5 +1,5 @@
 import { GraphQLError } from 'graphql'
-import { ANON_USER_ID, IMAGE_PIXELS_MAX, UPLOAD_SIZE_MAX, UPLOAD_TYPES_ALLOW } from '../../lib/constants'
+import { ANON_USER_ID, IMAGE_PIXELS_MAX, UPLOAD_SIZE_MAX, UPLOAD_SIZE_MAX_AVATAR, UPLOAD_TYPES_ALLOW } from '../../lib/constants'
 import { createPresignedPost } from '../s3'
 
 export default {
@@ -10,8 +10,11 @@ export default {
       }
 
       if (size > UPLOAD_SIZE_MAX) {
-        const UPLOAD_SIZE_MAX_MB = UPLOAD_SIZE_MAX / 1024 / 1024
-        throw new GraphQLError(`image must be less than ${UPLOAD_SIZE_MAX_MB} megabytes`, { extensions: { code: 'BAD_INPUT' } })
+        throw new GraphQLError(`image must be less than ${UPLOAD_SIZE_MAX / (1024 ** 2)} megabytes`, { extensions: { code: 'BAD_INPUT' } })
+      }
+
+      if (avatar && size > UPLOAD_SIZE_MAX_AVATAR) {
+        throw new GraphQLError(`image must be less than ${UPLOAD_SIZE_MAX_AVATAR / (1024 ** 2)} megabytes`, { extensions: { code: 'BAD_INPUT' } })
       }
 
       if (width * height > IMAGE_PIXELS_MAX) {

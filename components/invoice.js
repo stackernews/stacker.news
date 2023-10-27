@@ -234,7 +234,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
   const onSubmitWrapper = useCallback(async (formValues, ...submitArgs) => {
     let { cost, imageFeesInfo, amount } = formValues
     cost ??= amount
-    if (imageFeesInfo?.fees) cost += imageFeesInfo.fees
+    if (imageFeesInfo?.totalFees) cost += imageFeesInfo.totalFees
 
     // action only allowed if logged in
     if (!me && options.requireSession) {

@@ -220,7 +220,8 @@ export const ImageUpload = forwardRef(({ children, className, onSelect, onUpload
             }
             if (onSelect) await onSelect?.(file, s3Upload)
             else await s3Upload(file)
-            // TODO find out if this is needed and if so, why (copied from components/upload.js)
+            // reset file input
+            // see https://bobbyhadz.com/blog/react-reset-file-input#reset-a-file-input-in-react
             e.target.value = null
           }
         }}

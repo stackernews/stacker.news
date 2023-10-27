@@ -108,7 +108,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
             <div className='d-flex align-items-center ms-auto'>
               <CancelButton />
               <FeeButton
-                text={item ? 'save' : 'post'} variant='secondary'
+                text={item ? 'save' : 'post'} variant='secondary' hasPaidUpperTitleFee={item ? item.upperTitleFeePaid : undefined}
               />
             </div>
           </div>

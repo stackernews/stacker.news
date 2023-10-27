@@ -300,6 +300,7 @@ model Item {
   bountyPaidTo       Int[]
   upvotes            Int                   @default(0)
   weightedComments   Float                 @default(0)
+  upperTitleFeePaid  Boolean               @default(false)
   Bookmark           Bookmark[]
   parent             Item?                 @relation("ParentChildren", fields: [parentId], references: [id])
   children           Item[]                @relation("ParentChildren")

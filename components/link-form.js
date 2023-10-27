@@ -145,10 +145,6 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
               variables: { title: e.target.value }
             })
           }
-          if (e.target.value === e.target.value.toUpperCase()) {
-            setTitleOverride(e.target.value.replace(/\w\S*/g, txt =>
-              txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()))
-          }
         }}
         maxLength={MAX_TITLE_LENGTH}
       />
@@ -209,6 +205,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
             <CancelButton />
             <FeeButton
               text={item ? 'save' : 'post'} disabled={postDisabled} variant='secondary'
+              hasPaidUpperTitleFee={item ? item.upperTitleFeePaid : undefined}
             />
           </div>
         </div>

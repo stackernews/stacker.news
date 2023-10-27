@@ -9,14 +9,14 @@ import {
   ITEM_SPAM_INTERVAL, ITEM_FILTER_THRESHOLD,
   DONT_LIKE_THIS_COST, COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY,
   ANON_COMMENT_FEE, ANON_USER_ID, ANON_POST_FEE, ANON_ITEM_SPAM_INTERVAL, POLL_COST,
-  ITEM_ALLOW_EDITS, GLOBAL_SEED
+  ITEM_ALLOW_EDITS, GLOBAL_SEED, UPPER_CHARS_TITLE_FEE_MULT
 } from '../../lib/constants'
 import { msatsToSats } from '../../lib/format'
 import { parse } from 'tldts'
 import uu from 'url-unshort'
 import { advSchema, amountSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, ssValidate } from '../../lib/validate'
 import { sendUserNotification } from '../webPush'
-import { defaultCommentSort, isJob, deleteItemByAuthor, getDeleteCommand, hasDeleteCommand } from '../../lib/item'
+import { defaultCommentSort, isJob, deleteItemByAuthor, getDeleteCommand, hasDeleteCommand, titleExceedsFreeUppercase } from '../../lib/item'
 import { notifyItemParents, notifyUserSubscribers, notifyZapped } from '../../lib/push-notifications'
 import { datePivot, whenRange } from '../../lib/time'
 import { imageFeesInfo, uploadIdsFromText } from './image'
@@ -1080,10 +1080,34 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
   const uploadIds = uploadIdsFromText(item.text, { models })
   const { fees: imgFees } = await imageFeesInfo(uploadIds, { models, me })
 
+  const hasPaidUpperTitleFee = old.upperTitleFeePaid
+  const titleUpperMult = !hasPaidUpperTitleFee && titleExceedsFreeUppercase(item) ? UPPER_CHARS_TITLE_FEE_MULT : 1
+  let additionalFeeMsats = 0
+  if (titleUpperMult > 1) {
+    const { _sum: { msats: paidMsats } } = await models.itemAct.aggregate({
+      _sum: {
+        msats: true
+      },
+      where: {
+        itemId: Number(item.id),
+        userId: me.id,
+        act: 'FEE'
+      }
+    })
+    // If the original post was a freebie, that doesn't mean this edit should be free
+    if (Number(paidMsats) === 0) {
+      additionalFeeMsats = titleUpperMult * 1000 // implicit 1 sat fee, since the post was a freebie
+      item.freebie = false
+    } else {
+      additionalFeeMsats = (titleUpperMult - 1) * Number(paidMsats)
+    }
+    item.upperTitleFeePaid = true
+  }
+
   item = await serializeInvoicable(
-    models.$queryRawUnsafe(`${SELECT} FROM update_item($1::JSONB, $2::JSONB, $3::JSONB, $4::INTEGER[]) AS "Item"`,
-      JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options), uploadIds),
-    { models, lnd, hash, hmac, me, enforceFee: imgFees }
+    models.$queryRawUnsafe(`${SELECT} FROM update_item($1::JSONB, $2::JSONB, $3::JSONB, $4::INTEGER[], $5::BIGINT) AS "Item"`,
+      JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options), uploadIds, additionalFeeMsats),
+    { models, lnd, hash, hmac, me, enforceFee: imgFees + additionalFeeMsats }
   )
 
   await createMentions(item, models)
@@ -1116,11 +1140,14 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
   const uploadIds = uploadIdsFromText(item.text, { models })
   const { fees: imgFees } = await imageFeesInfo(uploadIds, { models, me })
 
-  const enforceFee = (me ? undefined : (item.parentId ? ANON_COMMENT_FEE : (ANON_POST_FEE + (item.boost || 0)))) + imgFees
+  const titleUpperMult = titleExceedsFreeUppercase(item) ? UPPER_CHARS_TITLE_FEE_MULT : 1
+  item.upperTitleFeePaid = titleUpperMult > 1
+
+  const enforceFee = (me ? undefined : (item.parentId ? ANON_COMMENT_FEE : (ANON_POST_FEE * titleUpperMult + (item.boost || 0)))) + imgFees
   item = await serializeInvoicable(
     models.$queryRawUnsafe(
-      `${SELECT} FROM create_item($1::JSONB, $2::JSONB, $3::JSONB, '${spamInterval}'::INTERVAL, $4::INTEGER[]) AS "Item"`,
-      JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options), uploadIds),
+      `${SELECT} FROM create_item($1::JSONB, $2::JSONB, $3::JSONB, '${spamInterval}'::INTERVAL, $4::INTEGER[], $5::INTEGER) AS "Item"`,
+      JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options), uploadIds, titleUpperMult),
     { models, lnd, hash, hmac, me, enforceFee }
   )
 
@@ -1172,7 +1199,8 @@ export const SELECT =
   "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost", "Item".boost, "Item".msats,
   "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",
   "Item"."weightedDownVotes", "Item".freebie, "Item"."otsHash", "Item"."bountyPaidTo",
-  ltree2text("Item"."path") AS "path", "Item"."weightedComments", "Item"."imgproxyUrls"`
+  ltree2text("Item"."path") AS "path", "Item"."weightedComments", "Item"."imgproxyUrls",
+  "Item"."upperTitleFeePaid"`
 
 function topOrderByWeightedSats (me, models) {
   return `ORDER BY ${orderByNumerator(models)} DESC NULLS LAST, "Item".id DESC`

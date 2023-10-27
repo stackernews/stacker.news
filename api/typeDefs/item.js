@@ -115,6 +115,7 @@ export default gql`
     parentOtsHash: String
     forwards: [ItemForward]
     imgproxyUrls: JSONObject
+    upperTitleFeePaid: Boolean
   }
 
   input ItemForwardInput {

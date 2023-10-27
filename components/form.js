@@ -246,6 +246,12 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
     setDragStyle(null)
   }, [setDragStyle])
 
+  useEffect(debounce(() => {
+    const text = innerRef?.current.value
+    const s3Keys = text ? [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1])) : []
+    updateImageFeesInfo({ variables: { s3Keys } })
+  }, 1000), [innerRef?.current?.value])
+
   return (
     <FormGroup label={label} className={groupClassName}>
       <div className={`${styles.markdownInput} ${tab === 'write' ? styles.noTopLeftRadius : ''}`}>
@@ -301,12 +307,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
               {...props}
               onChange={onChangeInner}
               onKeyDown={onKeyDownInner(userSuggestOnKeyDown)}
-              onBlur={() => {
-                const text = innerRef?.current.value
-                const s3Keys = text ? [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1])) : []
-                updateImageFeesInfo({ variables: { s3Keys } })
-                setTimeout(resetSuggestions, 100)
-              }}
+              onBlur={() => setTimeout(resetSuggestions, 100)}
               onDragEnter={onDragEnter}
               onDragLeave={onDragLeave}
               onDrop={onDrop}

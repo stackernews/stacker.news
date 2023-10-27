@@ -3,7 +3,10 @@ import AccordianItem from './accordian-item'
 import { CopyInput } from './form'
 
 export default ({ bolt11, preimage }) => {
-  const { tagsObject: { description, payment_hash: paymentHash } } = decode(bolt11)
+  let description, paymentHash
+  try {
+    ({ tagsObject: { description, payment_hash: paymentHash } } = decode(bolt11))
+  } catch { }
   if (!description && !paymentHash && !preimage) {
     return null
   }

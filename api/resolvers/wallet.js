@@ -206,7 +206,10 @@ export default {
 
       history = history.map(f => {
         if (f.bolt11) {
-          const inv = lnpr.decode(f.bolt11)
+          let inv
+          try {
+            inv = lnpr.decode(f.bolt11)
+          } catch { }
           if (inv) {
             const { tags } = inv
             for (const tag of tags) {

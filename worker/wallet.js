@@ -118,3 +118,21 @@ export function checkWithdrawal ({ boss, models, lnd }) {
     }
   }
 }
+
+export function autoDropWdInvoices ({ boss, models, lnd }) {
+  return async function ({ data: { id, hash } }) {
+    console.log('forgetting invoices')
+    try {
+      await serialize(models, models.$executeRaw`
+      UPDATE "Withdrawl" SET
+        hash = 'f0rg0tten',
+        bolt11 = 'f0rg0tten'
+      WHERE "userId" IN (SELECT id FROM users WHERE "autoDropWdInvoices" = true)
+        AND created_at::timestamp < (now() - interval '2 minutes')::timestamp
+        AND hash != 'f0rg0tten';`)
+    } catch (err) {
+      console.log(err)
+    }
+    await boss.send('autoDropWdInvoices', { })
+  }
+}

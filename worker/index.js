@@ -72,8 +72,6 @@ async function work () {
   await boss.work('imgproxy', imgproxy(args))
   await boss.work('deleteItem', deleteItem(args))
 
-  await boss.send('autoDropWdInvoices', { })
-
   console.log('working jobs')
 }
 

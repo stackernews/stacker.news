@@ -120,8 +120,8 @@ export function checkWithdrawal ({ boss, models, lnd }) {
   }
 }
 
-export function autoDropWdInvoices ({ boss, models, lnd }) {
-  return async function ({ data: { id, hash } }) {
+export function autoDropWdInvoices ({ models }) {
+  return async function () {
     console.log('forgetting invoices')
     try {
       await serialize(models, models.$executeRaw`
@@ -134,6 +134,5 @@ export function autoDropWdInvoices ({ boss, models, lnd }) {
     } catch (err) {
       console.log(err)
     }
-    await boss.send('autoDropWdInvoices', { })
   }
 }

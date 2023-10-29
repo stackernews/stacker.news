@@ -119,7 +119,7 @@ function PrivacyOption ({ wd }) {
   if (!oldEnough) {
     return (
       <>
-        {`this invoice hash ${me.autoDropWdInvoices ? 'will be auto-forgotten' : 'can be manually forgotten'} in ${timeLeft(keepUntil)}`}
+        {`this invoice hash ${me.autoDropWdInvoices ? 'will be auto-forgotten' : 'can be forgotten'} in ${timeLeft(keepUntil)}`}
       </>
     )
   }

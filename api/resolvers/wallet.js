@@ -8,7 +8,7 @@ import { SELECT } from './item'
 import { lnAddrOptions, lnurlPayDescriptionHash } from '../../lib/lnurl'
 import { msatsToSats, msatsToSatsDecimal } from '../../lib/format'
 import { amountSchema, lnAddrSchema, ssValidate, withdrawlSchema } from '../../lib/validate'
-import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, ANON_USER_ID, BALANCE_LIMIT_MSATS, INV_PENDING_LIMIT } from '../../lib/constants'
+import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, ANON_USER_ID, BALANCE_LIMIT_MSATS, INV_PENDING_LIMIT, FORGOTTEN_HASH } from '../../lib/constants'
 import { datePivot } from '../../lib/time'
 
 export async function getInvoice (parent, { id }, { me, models, lnd }) {
@@ -362,6 +362,14 @@ export default {
           }
         }))
       return inv
+    },
+    forgetWdInvoice: async (parent, { id }, { me, models }) => {
+      if (!me) {
+        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+      }
+
+      await models.withdrawl.update({ where: { userId: me.id, id: Number(id) }, data: { bolt11: FORGOTTEN_HASH, hash: FORGOTTEN_HASH } })
+      return { id }
     }
   },
 

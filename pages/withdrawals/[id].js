@@ -1,4 +1,4 @@
-import { useQuery } from '@apollo/client'
+import { useQuery, useMutation } from '@apollo/client'
 import { CenterLayout } from '../../components/layout'
 import { CopyInput, Input, InputSkeleton } from '../../components/form'
 import InputGroup from 'react-bootstrap/InputGroup'
@@ -6,9 +6,13 @@ import InvoiceStatus from '../../components/invoice-status'
 import { useRouter } from 'next/router'
 import { WITHDRAWL } from '../../fragments/wallet'
 import Link from 'next/link'
-import { SSR } from '../../lib/constants'
+import { SSR, INVOICE_RETENTION_DAYS, FORGOTTEN_HASH } from '../../lib/constants'
 import { numWithUnits } from '../../lib/format'
 import Bolt11Info from '../../components/bolt11-info'
+import { datePivot } from '../../lib/time'
+import { useMe } from '../../components/me'
+import { useToast } from '../../components/toast'
+import { gql } from 'graphql-tag'
 
 export default function Withdrawl () {
   return (
@@ -99,6 +103,47 @@ function LoadWithdrawl () {
       </div>
       <InvoiceStatus variant={variant} status={status} />
       <Bolt11Info bolt11={data.withdrawl.bolt11} />
+      <PrivacyOption wd={data.withdrawl} />
     </>
   )
+}
+
+function PrivacyOption ({ wd }) {
+  if (wd.bolt11 === FORGOTTEN_HASH) return
+  const keepUntil = datePivot(new Date(wd.createdAt), { days: INVOICE_RETENTION_DAYS })
+  const oldEnough = new Date() >= keepUntil
+  if (!oldEnough) return
+
+  const me = useMe()
+  const toaster = useToast()
+  const [forgetWdInvoice] = useMutation(
+    gql`
+      mutation forgetWdInvoice($id: ID!) {
+        forgetWdInvoice(id: $id) {
+          id
+        }
+      }`, {
+      update (cache) {
+        cache.modify({
+          id: `Withdrawl:${wd.id}`,
+          fields: {
+            bolt11: () => FORGOTTEN_HASH,
+            hash: () => FORGOTTEN_HASH
+          }
+        })
+      }
+    })
+  const handleClick = async () => {
+    if (me) {
+      try {
+        await forgetWdInvoice({ variables: { id: wd.id } })
+        toaster.success('invoice forgotten')
+      } catch (err) {
+        console.error(err)
+        toaster.danger('unable to forget invoice')
+      }
+    }
+  }
+
+  return (<span className='fw-bold text-underline pointer' style={{ color: 'red' }} onClick={handleClick}>forget invoice hash</span>)
 }

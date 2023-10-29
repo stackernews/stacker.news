@@ -243,6 +243,7 @@ export default function Settings ({ ssrData }) {
                 <Info>
                   <ul className='fw-bold'>
                     <li>use this to protect receiver privacy</li>
+                    <li>applies retroactively, cannot be reversed</li>
                     <li>withdrawal invoices are kept at least 7 days:
                       <ul>
                         <li>for debugging purposes</li>

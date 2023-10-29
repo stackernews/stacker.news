@@ -30,6 +30,7 @@ export const ME = gql`
       noteCowboyHat
       noteForwardedSats
       hideInvoiceDesc
+      autoDropWdInvoices
       hideFromTopUsers
       hideCowboyHat
       imgproxyOnly

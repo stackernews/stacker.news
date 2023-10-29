@@ -9,10 +9,12 @@ import Link from 'next/link'
 import { SSR, INVOICE_RETENTION_DAYS, FORGOTTEN_HASH } from '../../lib/constants'
 import { numWithUnits } from '../../lib/format'
 import Bolt11Info from '../../components/bolt11-info'
-import { datePivot } from '../../lib/time'
+import { datePivot, timeLeft } from '../../lib/time'
 import { useMe } from '../../components/me'
 import { useToast } from '../../components/toast'
 import { gql } from 'graphql-tag'
+import { useShowModal } from '../../components/modal'
+import { DeleteConfirm } from '../../components/delete'
 
 export default function Withdrawl () {
   return (
@@ -110,11 +112,19 @@ function LoadWithdrawl () {
 
 function PrivacyOption ({ wd }) {
   if (wd.bolt11 === FORGOTTEN_HASH) return
-  const keepUntil = datePivot(new Date(wd.createdAt), { days: INVOICE_RETENTION_DAYS })
-  const oldEnough = new Date() >= keepUntil
-  if (!oldEnough) return
 
   const me = useMe()
+  const keepUntil = datePivot(new Date(wd.createdAt), { days: INVOICE_RETENTION_DAYS })
+  const oldEnough = new Date() >= keepUntil
+  if (!oldEnough) {
+    return (
+      <>
+        {`this invoice hash ${me.autoDropWdInvoices ? 'will be auto-forgotten' : 'can be manually forgotten'} in ${timeLeft(keepUntil)}`}
+      </>
+    )
+  }
+
+  const showModal = useShowModal()
   const toaster = useToast()
   const [forgetWdInvoice] = useMutation(
     gql`
@@ -133,17 +143,30 @@ function PrivacyOption ({ wd }) {
         })
       }
     })
-  const handleClick = async () => {
-    if (me) {
-      try {
-        await forgetWdInvoice({ variables: { id: wd.id } })
-        toaster.success('invoice forgotten')
-      } catch (err) {
-        console.error(err)
-        toaster.danger('unable to forget invoice')
-      }
-    }
-  }
 
-  return (<span className='fw-bold text-underline pointer' style={{ color: 'red' }} onClick={handleClick}>forget invoice hash</span>)
+  return (
+    <span
+      className='fw-bold text-underline pointer' style={{ color: 'red' }} onClick={() => {
+        showModal(onClose => {
+          return (
+            <DeleteConfirm
+              type='invoice hash'
+              onConfirm={async () => {
+                if (me) {
+                  try {
+                    await forgetWdInvoice({ variables: { id: wd.id } })
+                  } catch (err) {
+                    console.error(err)
+                    toaster.danger('unable to forget invoice')
+                  }
+                }
+                onClose()
+              }}
+            />
+          )
+        })
+      }}
+    >forget invoice hash
+    </span>
+  )
 }

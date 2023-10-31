@@ -57,22 +57,26 @@ export function Ghost ({ onDone }) {
     const texture = textureRef.current
     if (canvas.ghost) return
 
-    canvas.ghost = new GhostCanvas(canvas, texture, {
-      size: getRandom(0.025, 0.075),
-      tail: {
-        dotsNumber: 25, // Math.floor(getRandom(10, 50)),
-        spring: 1.4, // getRandom(1, 1.8),
-        friction: 0.25, // getRandom(0.1, 0.25),
-        maxGravity: 250,
-        gravity: getRandom(5, 250)
-      },
-      smile: 1,
-      mainColor: [getRandom(0.8, 1), getRandom(0.8, 1), getRandom(0.8, 1)],
-      borderColor: [getRandom(0, 0.2), getRandom(0, 0.2), getRandom(0, 0.2)], // [0.2, 0.5, 0.7],
-      isFlatColor: false,
-      onDone
-    })
-  }, [])
+    try {
+      canvas.ghost = new GhostCanvas(canvas, texture, {
+        size: getRandom(0.025, 0.075),
+        tail: {
+          dotsNumber: 25, // Math.floor(getRandom(10, 50)),
+          spring: 1.4, // getRandom(1, 1.8),
+          friction: 0.25, // getRandom(0.1, 0.25),
+          maxGravity: 250,
+          gravity: getRandom(5, 250)
+        },
+        smile: 1,
+        mainColor: [getRandom(0.8, 1), getRandom(0.8, 1), getRandom(0.8, 1)],
+        borderColor: [getRandom(0, 0.2), getRandom(0, 0.2), getRandom(0, 0.2)], // [0.2, 0.5, 0.7],
+        isFlatColor: false,
+        onDone
+      })
+    } catch (e) {
+      console.error(e)
+    }
+  }, [canvasRef, textureRef, onDone])
 
   return (
     <>
@@ -137,6 +141,7 @@ const GhostCanvas = (canvas, texture, params) => {
 
   let uniforms
   const gl = initShader()
+  if (!gl) return
 
   function generateRandomPath () {
     const startPoint = {
@@ -167,7 +172,7 @@ const GhostCanvas = (canvas, texture, params) => {
   const path = generateRandomPath()
   let currentPathIndex = 0
   let pathStartTime = null
-  const segmentDuration = getRandom(750, 3000) // How long each Bezier segment should take
+  const segmentDuration = getRandom(750, 1500) // How long each Bezier segment should take
 
   function evaluateBezier (bezier, t) {
     const [p0, p1, p2, p3] = bezier

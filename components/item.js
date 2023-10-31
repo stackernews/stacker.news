@@ -40,7 +40,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
             {rank}
           </div>)
         : <div />}
-      <div className={`${styles.item} ${siblingComments ? 'pt-2' : ''}`}>
+      <div className={`${styles.item} ${siblingComments ? 'pt-3' : ''}`}>
         {item.position
           ? <Pin width={24} height={24} className={styles.pin} />
           : item.meDontLike
@@ -57,9 +57,17 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
                 const viewedAt = commentsViewedAt(item)
                 if (viewedAt) {
                   e.preventDefault()
-                  router.push(
+                  if (e.ctrlKey || e.metaKey) {
+                    window.open(
+                      `/items/${item.id}`,
+                      '_blank',
+                      'noopener,noreferrer'
+                    )
+                  } else {
+                    router.push(
                     `/items/${item.id}?commentsViewedAt=${viewedAt}`,
                     `/items/${item.id}`)
+                  }
                 }
               }} ref={titleRef} className={`${styles.title} text-reset me-2`}
             >

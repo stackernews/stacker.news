@@ -5,13 +5,13 @@
 }
 
 .replyButtons {
-    font-size: 70%;
+    font-size: 75%;
     color: var(--theme-grey);
     font-weight: bold;
     display: flex;
     align-items: center;
     cursor: pointer;
-    padding: .25rem 0 .5rem 0;
+    padding: .25rem 0 .8rem 0;
     line-height: 1rem;
     vertical-align: middle;
 }

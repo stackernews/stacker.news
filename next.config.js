@@ -19,16 +19,16 @@ const noCacheHeader = {
 }
 
 let commitHash
-if (isProd) {
-  // XXX this fragile ... eb could change the version label ... but it works for now
-  commitHash = Object.keys(require('/opt/elasticbeanstalk/deployment/app_version_manifest.json').RuntimeSources['stacker.news'])[0].match(/^app-(.+)-/)[1] // eslint-disable-line
-} else {
-  try {
-    commitHash = require('child_process').execSync('git rev-parse HEAD').toString().slice(0, 4)
-  } catch (e) {
-    console.log('could not get commit hash with `git rev-parse HEAD` ... using 0000')
-    commitHash = '0000'
+try {
+  if (isProd) {
+    // XXX this fragile ... eb could change the version label location ... it also require we set the label on deploy
+    commitHash = Object.keys(require('/opt/elasticbeanstalk/deployment/app_version_manifest.json').RuntimeSources['stacker.news'])[0].slice(0, 6) // eslint-disable-line
+  } else {
+    commitHash = require('child_process').execSync('git rev-parse HEAD').toString().slice(0, 6)
   }
+} catch (e) {
+  console.log('could not get commit hash with `git rev-parse HEAD` ... using 0000')
+  commitHash = '0000'
 }
 
 module.exports = withPlausibleProxy()({

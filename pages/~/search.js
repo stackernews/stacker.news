@@ -12,7 +12,7 @@ export const getServerSideProps = getGetServerSideProps({
 
 export default function Index ({ ssrData }) {
   const router = useRouter()
-  const variables = { ...router.query }
+  const variables = { ...router.query, includeComments: true }
 
   return (
     <SearchLayout sub={variables.sub}>

@@ -214,10 +214,10 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
       <div className={`${styles.markdownInput} ${tab === 'write' ? styles.noTopLeftRadius : ''}`}>
         <Nav variant='tabs' defaultActiveKey='write' activeKey={tab} onSelect={tab => setTab(tab)}>
           <Nav.Item>
-            <Nav.Link eventKey='write'>write</Nav.Link>
+            <Nav.Link className='py-1' eventKey='write'>write</Nav.Link>
           </Nav.Item>
           <Nav.Item>
-            <Nav.Link eventKey='preview' disabled={!meta.value}>preview</Nav.Link>
+            <Nav.Link className={styles.previewTab} eventKey='preview' disabled={!meta.value}>preview</Nav.Link>
           </Nav.Item>
           <a
             className='ms-auto text-muted d-flex align-items-center'
@@ -401,7 +401,7 @@ function InputInner ({
         </BootstrapForm.Text>
       )}
       {maxLength && !(meta.touched && meta.error && invalid) && (
-        <BootstrapForm.Text className={remaining < 0 ? 'text-danger' : undefined}>
+        <BootstrapForm.Text className={remaining < 0 ? 'text-danger' : 'text-muted'}>
           {`${numWithUnits(remaining, { abbreviate: false, unitSingular: 'character', unitPlural: 'characters' })} remaining`}
         </BootstrapForm.Text>
       )}

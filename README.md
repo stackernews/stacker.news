@@ -1,7 +1,7 @@
 # contributing
 We pay sats for PRs. Sats will be proportional to the impact of the PR. If there's something you'd like to work on, suggest how much you'd do it for on the issue. If there's something you'd like to work on that isn't already an issue, whether its a bug fix or a new feature, create one.
 
-We aim to have a quick pr turnaround time, but we are sometimes slower than we'd like. In most cases, if your pr is unambiguously good, it shouldn't take us more than 1 week.
+We aim to have a quick PR turnaround time, but we are sometimes slower than we'd like. In most cases, if your PR is unambiguously good, it shouldn't take us more than 1 week.
 
 If you have a question about contributing start a [discussion](https://github.com/stackernews/stacker.news/discussions).
 
@@ -24,14 +24,14 @@ You should then be able to access the site at `localhost:3000` and any changes y
 
 # web push
 
-To enable Web Push locally, you will need to set the `VAPID_*` env vars. `VAPID_MAILTO` needs to be a email address using the `mailto:` scheme. For `NEXT_PUBLIC_VAPID_KEY` and `VAPID_PRIVKEY`, you can run `npx web-push generate-vapid-keys`.
+To enable Web Push locally, you will need to set the `VAPID_*` env vars. `VAPID_MAILTO` needs to be an email address using the `mailto:` scheme. For `NEXT_PUBLIC_VAPID_KEY` and `VAPID_PRIVKEY`, you can run `npx web-push generate-vapid-keys`.
 
 # imgproxy
 
 To configure the image proxy, you will need to set the `IMGPROXY_` env vars. `NEXT_PUBLIC_IMGPROXY_URL` needs to point to the image proxy service. `IMGPROXY_KEY` and `IMGPROXY_SALT` can be set using `openssl rand -hex 64`.
 
 # stack
-The site is written in javascript using Next.js, a React framework. The backend API is provided via graphql. The database is postgresql modelled with prisma. The job queue is also maintained in postgresql. We use lnd for our lightning node. A customized Bootstrap theme is used for styling.
+The site is written in javascript using Next.js, a React framework. The backend API is provided via GraphQL. The database is PostgreSQL modeled with Prisma. The job queue is also maintained in PostgreSQL. We use lnd for our lightning node. A customized Bootstrap theme is used for styling.
 
 # processes
 There are two. 1. the web app and 2. the worker, which dequeues jobs sent to it by the web app, e.g. polling lnd for invoice/payment status

@@ -3,7 +3,7 @@ import { getInvoice, getPayment, cancelHodlInvoice } from 'ln-service'
 import { datePivot } from '../lib/time.js'
 import { sendUserNotification } from '../api/webPush/index.js'
 import { msatsToSats, numWithUnits } from '../lib/format'
-import { INVOICE_RETENTION_DAYS, FORGOTTEN_HASH } from '../lib/constants'
+import { INVOICE_RETENTION_DAYS } from '../lib/constants'
 
 const walletOptions = { startAfter: 5, retryLimit: 21, retryBackoff: true }
 
@@ -122,15 +122,15 @@ export function checkWithdrawal ({ boss, models, lnd }) {
 
 export function autoDropWdInvoices ({ models }) {
   return async function () {
-    console.log('forgetting invoices')
+    console.log('deleting invoices')
     try {
       await serialize(models, models.$executeRaw`
       UPDATE "Withdrawl" SET
-        hash = '${FORGOTTEN_HASH}',
-        bolt11 = '${FORGOTTEN_HASH}'
+        hash = NULL,
+        bolt11 = NULL
       WHERE "userId" IN (SELECT id FROM users WHERE "autoDropWdInvoices" = true)
-        AND now() > (created_at::timestamp + interval '${INVOICE_RETENTION_DAYS} days')::timestamp
-        AND hash != '${FORGOTTEN_HASH}';`)
+        AND now() > (created_at::timestamp + interval '${INVOICE_RETENTION_DAYS} minutes')::timestamp
+        AND hash IS NOT NULL;`)
     } catch (err) {
       console.log(err)
     }

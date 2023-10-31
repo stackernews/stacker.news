@@ -4,9 +4,9 @@ import { CopyInput } from './form'
 
 export default ({ bolt11, preimage }) => {
   let description, paymentHash
-  try {
+  if (bolt11) {
     ({ tagsObject: { description, payment_hash: paymentHash } } = decode(bolt11))
-  } catch { }
+  }
   if (!description && !paymentHash && !preimage) {
     return null
   }

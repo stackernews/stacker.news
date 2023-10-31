@@ -6,7 +6,7 @@ import InvoiceStatus from '../../components/invoice-status'
 import { useRouter } from 'next/router'
 import { WITHDRAWL } from '../../fragments/wallet'
 import Link from 'next/link'
-import { SSR, INVOICE_RETENTION_DAYS, FORGOTTEN_HASH } from '../../lib/constants'
+import { SSR, INVOICE_RETENTION_DAYS } from '../../lib/constants'
 import { numWithUnits } from '../../lib/format'
 import Bolt11Info from '../../components/bolt11-info'
 import { datePivot, timeLeft } from '../../lib/time'
@@ -93,7 +93,7 @@ function LoadWithdrawl () {
       <div className='w-100'>
         <CopyInput
           label='invoice' type='text'
-          placeholder={data.withdrawl.bolt11} readOnly noForm
+          placeholder={data.withdrawl.bolt11 || 'deleted'} readOnly noForm
         />
       </div>
       <div className='w-100'>
@@ -111,25 +111,26 @@ function LoadWithdrawl () {
 }
 
 function PrivacyOption ({ wd }) {
-  if (wd.bolt11 === FORGOTTEN_HASH) return
+  if (!wd.bolt11) return
+  console.log(wd.bolt11)
 
   const me = useMe()
-  const keepUntil = datePivot(new Date(wd.createdAt), { days: INVOICE_RETENTION_DAYS })
+  const keepUntil = datePivot(new Date(wd.createdAt), { minutes: INVOICE_RETENTION_DAYS })
   const oldEnough = new Date() >= keepUntil
   if (!oldEnough) {
     return (
-      <>
-        {`this invoice hash ${me.autoDropWdInvoices ? 'will be auto-forgotten' : 'can be forgotten'} in ${timeLeft(keepUntil)}`}
-      </>
+      <span className='text-muted fst-italic'>
+        {`this invoice hash ${me.autoDropWdInvoices ? 'will be auto-deleted' : 'can be deleted'} in ${timeLeft(keepUntil)}`}
+      </span>
     )
   }
 
   const showModal = useShowModal()
   const toaster = useToast()
-  const [forgetWdInvoice] = useMutation(
+  const [dropWdInvoice] = useMutation(
     gql`
-      mutation forgetWdInvoice($id: ID!) {
-        forgetWdInvoice(id: $id) {
+      mutation dropWdInvoice($id: ID!) {
+        dropWdInvoice(id: $id) {
           id
         }
       }`, {
@@ -137,8 +138,8 @@ function PrivacyOption ({ wd }) {
         cache.modify({
           id: `Withdrawl:${wd.id}`,
           fields: {
-            bolt11: () => FORGOTTEN_HASH,
-            hash: () => FORGOTTEN_HASH
+            bolt11: () => null,
+            hash: () => null
           }
         })
       }
@@ -154,10 +155,10 @@ function PrivacyOption ({ wd }) {
               onConfirm={async () => {
                 if (me) {
                   try {
-                    await forgetWdInvoice({ variables: { id: wd.id } })
+                    await dropWdInvoice({ variables: { id: wd.id } })
                   } catch (err) {
                     console.error(err)
-                    toaster.danger('unable to forget invoice')
+                    toaster.danger('unable to delete invoice')
                   }
                 }
                 onClose()
@@ -166,7 +167,7 @@ function PrivacyOption ({ wd }) {
           )
         })
       }}
-    >forget invoice hash
+    >delete invoice
     </span>
   )
 }

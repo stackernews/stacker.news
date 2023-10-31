@@ -13,7 +13,7 @@ export default gql`
     createWithdrawl(invoice: String!, maxFee: Int!): Withdrawl!
     sendToLnAddr(addr: String!, amount: Int!, maxFee: Int!, comment: String, identifier: Boolean, name: String, email: String): Withdrawl!
     cancelInvoice(hash: String!, hmac: String!): Invoice!
-    forgetWdInvoice(id: ID): Withdrawl
+    dropWdInvoice(id: ID): Withdrawl
   }
 
   type Invoice {
@@ -37,8 +37,8 @@ export default gql`
   type Withdrawl {
     id: ID!
     createdAt: Date!
-    hash: String!
-    bolt11: String!
+    hash: String
+    bolt11: String
     satsPaying: Int!
     satsPaid: Int
     satsFeePaying: Int!

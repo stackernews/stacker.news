@@ -1,5 +1,7 @@
 -- AlterTable
 ALTER TABLE "users" ADD COLUMN "autoDropWdInvoices" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Withdrawl" ALTER COLUMN "hash" DROP NOT NULL;
+ALTER TABLE "Withdrawl" ALTER COLUMN "bolt11" DROP NOT NULL;
 
 -- hack ... prisma doesn't know about our other schemas (e.g. pgboss)
 -- and this is only really a problem on their "shadow database"
@@ -16,7 +18,7 @@ BEGIN
     INSERT INTO pgboss.schedule (name, cron, timezone) VALUES ('streak', '15 0 * * *','America/Chicago') ON CONFLICT DO NOTHING;
     INSERT INTO pgboss.schedule (name, cron, timezone) VALUES ('views', '0 0 * * *', 'America/Chicago') ON CONFLICT DO NOTHING;
     INSERT INTO pgboss.schedule (name, cron, timezone) VALUES ('rankViews', '* * * * *', 'America/Chicago') ON CONFLICT DO NOTHING;
-    INSERT INTO pgboss.schedule (name, cron, timezone) VALUES ('autoDropWdInvoices', '* * * * *', 'America/Chicago') ON CONFLICT DO NOTHING;
+    INSERT INTO pgboss.schedule (name, cron, timezone) VALUES ('autoDropWdInvoices', '10 1 * * *', 'America/Chicago') ON CONFLICT DO NOTHING;
     return 0;
 EXCEPTION WHEN OTHERS THEN
     return 0;

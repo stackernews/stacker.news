@@ -239,17 +239,12 @@ export default function Settings ({ ssrData }) {
           />
           <Checkbox
             label={
-              <div className='d-flex align-items-center'>auto forget withdrawal invoices after 7 days
+              <div className='d-flex align-items-center'>auto delete withdrawal invoices after 7 days
                 <Info>
                   <ul className='fw-bold'>
                     <li>use this to protect receiver privacy</li>
                     <li>applies retroactively, cannot be reversed</li>
-                    <li>withdrawal invoices are kept at least 7 days:
-                      <ul>
-                        <li>for debugging purposes</li>
-                        <li>to prevent a thief from covering his tracks</li>
-                      </ul>
-                    </li>
+                    <li>withdrawal invoices are kept at least 7 days for security and debugging purposes</li>
                   </ul>
                 </Info>
               </div>

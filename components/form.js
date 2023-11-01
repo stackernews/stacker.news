@@ -161,6 +161,12 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
     innerRef.current.focus()
   }, [mentionIndices, innerRef, helpers?.setValue])
 
+  const imageFeesUpdate = useCallback(debounce(
+    (text) => {
+      const s3Keys = text ? [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1])) : []
+      updateImageFeesInfo({ variables: { s3Keys } })
+    }, 1000), [debounce, updateImageFeesInfo])
+
   const onChangeInner = useCallback((formik, e) => {
     if (onChange) onChange(formik, e)
     // check for mention editing
@@ -195,7 +201,9 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
       setMentionQuery(undefined)
       setMentionIndices(DEFAULT_MENTION_INDICES)
     }
-  }, [onChange, setMentionQuery, setMentionIndices, setUserSuggestDropdownStyle])
+
+    imageFeesUpdate(value)
+  }, [onChange, setMentionQuery, setMentionIndices, setUserSuggestDropdownStyle, imageFeesUpdate])
 
   const onKeyDownInner = useCallback((userSuggestOnKeyDown) => {
     return (e) => {
@@ -245,12 +253,6 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
   const onDragLeave = useCallback((e) => {
     setDragStyle(null)
   }, [setDragStyle])
-
-  useEffect(debounce(() => {
-    const text = innerRef?.current.value
-    const s3Keys = text ? [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1])) : []
-    updateImageFeesInfo({ variables: { s3Keys } })
-  }, 1000), [innerRef?.current?.value])
 
   return (
     <FormGroup label={label} className={groupClassName}>

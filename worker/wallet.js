@@ -129,7 +129,7 @@ export function autoDropWdInvoices ({ models }) {
         hash = NULL,
         bolt11 = NULL
       WHERE "userId" IN (SELECT id FROM users WHERE "autoDropWdInvoices" = true)
-        AND now() > (created_at::timestamp + interval '${INVOICE_RETENTION_DAYS} minutes')::timestamp
+        AND now() > (created_at::timestamp + interval '${INVOICE_RETENTION_DAYS} days')::timestamp
         AND hash IS NOT NULL;`)
     } catch (err) {
       console.log(err)

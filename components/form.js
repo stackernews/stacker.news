@@ -2,7 +2,7 @@ import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
 import BootstrapForm from 'react-bootstrap/Form'
 import { Formik, Form as FormikForm, useFormikContext, useField, FieldArray } from 'formik'
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState, forwardRef } from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import copy from 'clipboard-copy'
 import Col from 'react-bootstrap/Col'
 import Dropdown from 'react-bootstrap/Dropdown'
@@ -603,7 +603,7 @@ export function VariableInput ({ label, groupClassName, name, hint, max, min, re
   )
 }
 
-export const Checkbox = forwardRef(({ children, label, groupClassName, hiddenLabel, extra, handleChange, inline, disabled, ...props }, ref) => {
+export function Checkbox ({ children, label, groupClassName, hiddenLabel, extra, handleChange, inline, disabled, ...props }) {
   // React treats radios and checkbox inputs differently other input types, select, and textarea.
   // Formik does this too! When you specify `type` to useField(), it will
   // return the correct bag of props for you
@@ -616,7 +616,6 @@ export const Checkbox = forwardRef(({ children, label, groupClassName, hiddenLab
         inline={inline}
       >
         <BootstrapForm.Check.Input
-          ref={ref}
           {...field} {...props} disabled={disabled} type='checkbox' onChange={(e) => {
             field.onChange(e)
             handleChange && handleChange(e.target.checked, helpers.setValue)
@@ -632,7 +631,7 @@ export const Checkbox = forwardRef(({ children, label, groupClassName, hiddenLab
       </BootstrapForm.Check>
     </FormGroup>
   )
-})
+}
 
 const StorageKeyPrefixContext = createContext()
 

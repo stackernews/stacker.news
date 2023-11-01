@@ -21,30 +21,38 @@ export default {
         throw new GraphQLError(`image must be less than ${IMAGE_PIXELS_MAX} pixels`, { extensions: { code: 'BAD_INPUT' } })
       }
 
-      const { photoId } = me ? await models.user.findUnique({ where: { id: me.id } }) : {}
-
-      const data = {
+      const imgParams = {
         type,
         size,
         width,
         height,
-        userId: me?.id || ANON_USER_ID,
-        // avatar uploads are always free
-        paid: avatar && !!me ? undefined : false
+        userId: me?.id || ANON_USER_ID
       }
 
-      let uploadId
-      // avatar uploads overwrite the previous avatar
-      if (avatar && photoId) uploadId = photoId
-      if (uploadId) {
-        await models.upload.update({ data, where: { id: uploadId } })
-      } else {
-        const upload = await models.upload.create({ data })
-        uploadId = upload.id
+      if (avatar) {
+        if (!me) throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+        return avatarGetSignedPOST({ me, models, imgParams })
       }
 
-      // get presigned POST url
-      return createPresignedPost({ key: String(uploadId), type, size })
+      const upload = await models.upload.create({ data: { ...imgParams, paid: false } })
+      return createPresignedPost({ key: String(upload.id), type, size })
     }
   }
+}
+
+async function avatarGetSignedPOST ({ me, models, imgParams }) {
+  // avatar uploads are always free
+  imgParams.paid = undefined
+
+  const { photoId } = await models.user.findUnique({ where: { id: me.id } })
+  let uploadId
+  if (photoId) {
+    await models.upload.update({ data: imgParams, where: { id: photoId } })
+    uploadId = photoId
+  } else {
+    const upload = await models.upload.create({ data: imgParams })
+    uploadId = upload.id
+  }
+
+  return createPresignedPost({ key: String(uploadId), type: imgParams.type, size: imgParams.size })
 }

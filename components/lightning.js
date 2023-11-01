@@ -44,8 +44,8 @@ export class LightningProvider extends React.Component {
   }
 }
 
-export const GhostConsumer = LightningContext.Consumer
-export function useGhost () {
+export const LightningConsumer = LightningContext.Consumer
+export function useLightning () {
   return useContext(LightningContext)
 }
 

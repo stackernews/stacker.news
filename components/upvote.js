@@ -10,7 +10,7 @@ import LongPressable from 'react-longpressable'
 import Overlay from 'react-bootstrap/Overlay'
 import Popover from 'react-bootstrap/Popover'
 import { useShowModal } from './modal'
-import { GhostConsumer, useGhost } from './ghost'
+import { LightningConsumer, useLightning } from './lightning'
 import { numWithUnits } from '../lib/format'
 import { payOrLoginError, useInvoiceModal } from './invoice'
 import useDebounceCallback from './use-debounce-callback'
@@ -71,7 +71,7 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
   const [tipShow, _setTipShow] = useState(false)
   const ref = useRef()
   const me = useMe()
-  const strike = useGhost()
+  const strike = useLightning()
   const [setWalkthrough] = useMutation(
     gql`
       mutation setWalkthrough($upvotePopover: Boolean, $tipPopover: Boolean) {
@@ -202,7 +202,7 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
   }, [item?.meSats, item?.meAnonSats, pendingSats, me?.tipDefault, me?.turboDefault])
 
   return (
-    <GhostConsumer>
+    <LightningConsumer>
       {(strike) =>
         <div ref={ref} className='upvoteParent'>
           <LongPressable
@@ -271,6 +271,6 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
           <TipPopover target={ref.current} show={tipShow} handleClose={() => setTipShow(false)} />
           <UpvotePopover target={ref.current} show={voteShow} handleClose={() => setVoteShow(false)} />
         </div>}
-    </GhostConsumer>
+    </LightningConsumer>
   )
 }

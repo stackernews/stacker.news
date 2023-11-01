@@ -20,7 +20,7 @@ import { Select } from './form'
 import SearchIcon from '../svgs/search-line.svg'
 import BackArrow from '../svgs/arrow-left-line.svg'
 import { SSR, SUBS } from '../lib/constants'
-import { useGhost } from './ghost'
+import { useLightning } from './lightning'
 import { HAS_NOTIFICATIONS } from '../fragments/notifications'
 import AnonIcon from '../svgs/spy-fill.svg'
 import Hat from './hat'
@@ -147,7 +147,7 @@ function StackerCorner ({ dropNavKey }) {
 
 function LurkerCorner ({ path }) {
   const router = useRouter()
-  const strike = useGhost()
+  const strike = useLightning()
 
   useEffect(() => {
     if (!window.localStorage.getItem('striked')) {

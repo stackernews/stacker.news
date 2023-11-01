@@ -61,20 +61,21 @@ export default function Delete ({ itemId, children, onDelete, type = 'post' }) {
   )
 }
 
-export function DeleteConfirm ({ onConfirm, type }) {
+export function DeleteConfirm ({ onConfirm, info, type }) {
   const [error, setError] = useState()
   const toaster = useToast()
 
   return (
     <>
       {error && <Alert variant='danger' onClose={() => setError(undefined)} dismissible>{error}</Alert>}
+      {info && <p className='fw-bolder'>{info}</p>}
       <p className='fw-bolder'>Are you sure? This is a gone forever kind of delete.</p>
       <div className='d-flex justify-content-end'>
         <Button
           variant='danger' onClick={async () => {
             try {
               await onConfirm()
-              toaster.success(`deleted ${type.toLowerCase()}`)
+              if (type) toaster.success(`deleted ${type.toLowerCase()}`)
             } catch (e) {
               setError(e.message || e)
             }

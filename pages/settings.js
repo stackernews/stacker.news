@@ -3,7 +3,7 @@ import Alert from 'react-bootstrap/Alert'
 import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
 import { CenterLayout } from '../components/layout'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { gql, useMutation, useQuery } from '@apollo/client'
 import { getGetServerSideProps } from '../api/ssrApollo'
 import LoginButton from '../components/login-button'
@@ -25,6 +25,7 @@ import { NostrAuth } from '../components/nostr-auth'
 import { useToast } from '../components/toast'
 import { useLogger } from '../components/logger'
 import { useMe } from '../components/me'
+import { DeleteConfirm } from '../components/delete'
 
 export const getServerSideProps = getGetServerSideProps({ query: SETTINGS, authRequired: true })
 
@@ -237,21 +238,7 @@ export default function Settings ({ ssrData }) {
             name='hideInvoiceDesc'
             groupClassName='mb-0'
           />
-          <Checkbox
-            label={
-              <div className='d-flex align-items-center'>auto delete withdrawal invoices after 7 days
-                <Info>
-                  <ul className='fw-bold'>
-                    <li>use this to protect receiver privacy</li>
-                    <li>applies retroactively, cannot be reversed</li>
-                    <li>withdrawal invoices are kept at least 7 days for security and debugging purposes</li>
-                  </ul>
-                </Info>
-              </div>
-            }
-            name='autoDropWdInvoices'
-            groupClassName='mb-0'
-          />
+          <DropWdInvoicesCheckbox ssrData={ssrData} />
           <Checkbox
             label={<>hide me from  <Link href='/top/stackers/day'>top stackers</Link></>}
             name='hideFromTopUsers'
@@ -390,6 +377,53 @@ export default function Settings ({ ssrData }) {
         </div>
       </div>
     </CenterLayout>
+  )
+}
+
+const DropWdInvoicesCheckbox = ({ ssrData }) => {
+  const showModal = useShowModal()
+  const { data } = useQuery(gql`{ numWdInvoices }`)
+  const { numWdInvoices } = data || ssrData
+  const dropWdInvoiceCheckboxRef = useRef()
+  const [confirmed, setConfirmed] = useState(false)
+
+  return (
+    <Checkbox
+      ref={dropWdInvoiceCheckboxRef}
+      checked={confirmed}
+      onClick={e => {
+        dropWdInvoiceCheckboxRef.current.checked = confirmed
+        if (!confirmed) {
+          showModal(onClose => {
+            return (
+              <DeleteConfirm
+                info={`${numWdInvoices} withdrawal invoices will be deleted in a day if you save this setting.`}
+                onConfirm={async () => {
+                  setConfirmed(true)
+                  dropWdInvoiceCheckboxRef.current.click()
+                  onClose()
+                }}
+              />
+            )
+          })
+        } else {
+          setConfirmed(false)
+        }
+      }}
+      label={
+        <div className='d-flex align-items-center'>auto-delete withdrawal invoices after 7 days
+          <Info>
+            <ul className='fw-bold'>
+              <li>use this to protect receiver privacy</li>
+              <li>applies retroactively, cannot be reversed</li>
+              <li>withdrawal invoices are kept at least 7 days for security and debugging purposes</li>
+            </ul>
+          </Info>
+        </div>
+      }
+      name='autoDropWdInvoices'
+      groupClassName='mb-0'
+    />
   )
 }
 

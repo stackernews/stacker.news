@@ -112,7 +112,6 @@ function LoadWithdrawl () {
 
 function PrivacyOption ({ wd }) {
   if (!wd.bolt11) return
-  console.log(wd.bolt11)
 
   const me = useMe()
   const keepUntil = datePivot(new Date(wd.createdAt), { minutes: INVOICE_RETENTION_DAYS })

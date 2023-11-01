@@ -4,6 +4,7 @@ export default gql`
   extend type Query {
     invoice(id: ID!): Invoice!
     withdrawl(id: ID!): Withdrawl!
+    numWdInvoices: Int!
     connectAddress: String!
     walletHistory(cursor: String, inc: String): History
   }

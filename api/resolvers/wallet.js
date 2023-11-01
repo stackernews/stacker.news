@@ -80,6 +80,16 @@ export default {
 
       return wdrwl
     },
+    numWdInvoices: async (parent, args, { me, models, lnd }) => {
+      if (!me) {
+        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+      }
+
+      const [{ count }] = await models.$queryRawUnsafe(`
+        SELECT COUNT(*) FROM "Withdrawl" WHERE "userId" = $1 AND hash IS NOT NULL`, me.id)
+
+      return Number(count)
+    },
     connectAddress: async (parent, args, { lnd }) => {
       return process.env.LND_CONNECT_ADDRESS
     },
@@ -206,7 +216,6 @@ export default {
 
       history = history.map(f => {
         if (f.bolt11) {
-          console.log(f.bolt11)
           const inv = lnpr.decode(f.bolt11)
           if (inv) {
             const { tags } = inv

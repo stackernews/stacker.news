@@ -1,5 +1,6 @@
 import ServiceWorkerStorage from 'serviceworker-storage'
 import { numWithUnits } from '../lib/format'
+import { setAppBadge } from '../lib/badge'
 
 // we store existing push subscriptions to keep them in sync with server
 const storage = new ServiceWorkerStorage('sw:storage', 1)
@@ -19,6 +20,7 @@ export function onPush (sw) {
     event.waitUntil((async () => {
       if (skipNotification(payload)) return
       if (immediatelyShowNotification(payload)) {
+        setAppBadge(sw)
         return sw.registration.showNotification(payload.title, payload.options)
       }
 
@@ -37,11 +39,13 @@ export function onPush (sw) {
       if (tag === 'MENTION' && payload.options.data?.itemId) itemMentions.push(payload.options.data.itemId)
 
       if (notifications.length === 0) {
+        setAppBadge(sw)
         // incoming notification is first notification with this tag
         return sw.registration.showNotification(payload.title, payload.options)
       }
 
       const currentNotification = notifications[0]
+      setAppBadge(sw)
       return mergeAndShowNotification(sw, payload, currentNotification)
     })())
   }

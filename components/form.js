@@ -751,7 +751,14 @@ export function Form ({
   const onSubmitInner = useCallback(async (values, ...args) => {
     try {
       if (onSubmit) {
-        const options = await onSubmit(values, ...args)
+        // extract cost from formik fields
+        // (cost may also be set in a formik field named 'amount')
+        let cost = values?.cost || values?.amount
+        // add potential image fees which are set in a different field
+        // to differentiate between fees (in receipts for example)
+        cost += (values?.imageFeesInfo?.totalFees || 0)
+
+        const options = await onSubmit(cost, values, ...args)
         if (!storageKeyPrefix || options?.keepLocalStorage) return
         clearLocalStorage(values)
       }

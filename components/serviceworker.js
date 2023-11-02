@@ -119,13 +119,26 @@ export const ServiceWorkerProvider = ({ children }) => {
     wb.register().then(registration => {
       logger.info('service worker registration successful')
       setRegistration(registration)
-      // since (a lot of) browsers don't support the pushsubscriptionchange event,
-      // we sync with server manually by checking on every page reload if the push subscription changed.
-      // see https://medium.com/@madridserginho/how-to-handle-webpush-api-pushsubscriptionchange-event-in-modern-browsers-6e47840d756f
-      navigator?.serviceWorker?.controller?.postMessage?.({ action: 'SYNC_SUBSCRIPTION' })
-      logger.info('sent SYNC_SUBSCRIPTION to service worker')
     })
   }, [])
+
+  useEffect(() => {
+    // wait until successful registration
+    if (!registration) return
+    // setup channel between app and service worker
+    const channel = new MessageChannel()
+    navigator?.serviceWorker?.controller?.postMessage({ action: 'ACTION_PORT' }, [channel.port2])
+    channel.port1.onmessage = (event) => {
+      if (event.data.action === 'RESUBSCRIBE') {
+        return subscribeToPushNotifications()
+      }
+    }
+    // since (a lot of) browsers don't support the pushsubscriptionchange event,
+    // we sync with server manually by checking on every page reload if the push subscription changed.
+    // see https://medium.com/@madridserginho/how-to-handle-webpush-api-pushsubscriptionchange-event-in-modern-browsers-6e47840d756f
+    navigator?.serviceWorker?.controller?.postMessage?.({ action: 'SYNC_SUBSCRIPTION' })
+    logger.info('sent SYNC_SUBSCRIPTION to service worker')
+  }, [registration])
 
   return (
     <ServiceWorkerContext.Provider value={{ registration, support, permission, requestNotificationPermission, togglePushSubscription }}>

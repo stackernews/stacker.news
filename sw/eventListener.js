@@ -66,9 +66,9 @@ const mergeAndShowNotification = (sw, payload, currentNotification) => {
   let title = ''
   const newData = {}
   if (tag === 'REPLY') {
-    title = `You have ${amount} new replies`
+    title = `you have ${amount} new replies`
   } else if (tag === 'MENTION') {
-    title = `You were mentioned ${amount} times`
+    title = `you were mentioned ${amount} times`
   } else if (tag === 'REFERRAL') {
     title = `${amount} stackers joined via your referral links`
   } else if (tag === 'INVITE') {

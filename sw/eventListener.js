@@ -99,7 +99,8 @@ export function onNotificationClick (sw) {
 
 export function onPushSubscriptionChange (sw) {
   // https://medium.com/@madridserginho/how-to-handle-webpush-api-pushsubscriptionchange-event-in-modern-browsers-6e47840d756f
-  return async (oldSubscription, newSubscription) => {
+  return async (event) => {
+    let { oldSubscription, newSubscription } = event
     // https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/pushsubscriptionchange_event
     // fallbacks since browser may not set oldSubscription and newSubscription
     messageChannelPort?.postMessage({ message: '[sw:handlePushSubscriptionChange] invoked' })
@@ -153,7 +154,7 @@ export function onMessage (sw) {
       return event.waitUntil(storage.setItem('subscription', event.data.subscription))
     }
     if (event.data.action === 'SYNC_SUBSCRIPTION') {
-      return event.waitUntil(onPushSubscriptionChange(sw)(event.oldSubscription, event.newSubscription))
+      return event.waitUntil(onPushSubscriptionChange(sw)(event))
     }
     if (event.data.action === 'DELETE_SUBSCRIPTION') {
       return event.waitUntil(storage.removeItem('subscription'))

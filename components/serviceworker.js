@@ -109,24 +109,23 @@ export const ServiceWorkerProvider = ({ children }) => {
       pushManager: 'PushManager' in window
     })
     setPermission({ notification: 'Notification' in window ? window.Notification.permission : 'denied' })
-    // since (a lot of) browsers don't support the pushsubscriptionchange event,
-    // we sync with server manually by checking on every page reload if the push subscription changed.
-    // see https://medium.com/@madridserginho/how-to-handle-webpush-api-pushsubscriptionchange-event-in-modern-browsers-6e47840d756f
-    navigator?.serviceWorker?.controller?.postMessage?.({ action: 'SYNC_SUBSCRIPTION' })
-    logger.info('sent SYNC_SUBSCRIPTION to service worker')
-  }, [])
 
-  useEffect(() => {
-    if (!support.serviceWorker) {
+    if (!('serviceWorker' in navigator)) {
       logger.info('device does not support service worker')
       return
     }
+
     const wb = new Workbox('/sw.js', { scope: '/' })
     wb.register().then(registration => {
       logger.info('service worker registration successful')
       setRegistration(registration)
+      // since (a lot of) browsers don't support the pushsubscriptionchange event,
+      // we sync with server manually by checking on every page reload if the push subscription changed.
+      // see https://medium.com/@madridserginho/how-to-handle-webpush-api-pushsubscriptionchange-event-in-modern-browsers-6e47840d756f
+      navigator?.serviceWorker?.controller?.postMessage?.({ action: 'SYNC_SUBSCRIPTION' })
+      logger.info('sent SYNC_SUBSCRIPTION to service worker')
     })
-  }, [support.serviceWorker])
+  }, [])
 
   return (
     <ServiceWorkerContext.Provider value={{ registration, support, permission, requestNotificationPermission, togglePushSubscription }}>

@@ -1,6 +1,6 @@
 import ServiceWorkerStorage from 'serviceworker-storage'
 import { numWithUnits } from '../lib/format'
-import { setAppBadge } from '../lib/badge'
+import { clearAppBadge, setAppBadge } from '../lib/badge'
 
 // we store existing push subscriptions to keep them in sync with server
 const storage = new ServiceWorkerStorage('sw:storage', 1)
@@ -12,15 +12,19 @@ let messageChannelPort
 // keep track of item ids where we received a MENTION notification already to not show one again
 const itemMentions = []
 
+// track push ids to display a count in the app notification badge
+const receivedPushIds = new Set()
+
 export function onPush (sw) {
   return async (event) => {
     const payload = event.data?.json()
     if (!payload) return
-    const { tag } = payload.options
+    const { tag, data: { id } } = payload.options
     event.waitUntil((async () => {
       if (skipNotification(payload)) return
       if (immediatelyShowNotification(payload)) {
-        setAppBadge(sw)
+        receivedPushIds.add(id)
+        setAppBadge(sw, receivedPushIds.size)
         return sw.registration.showNotification(payload.title, payload.options)
       }
 
@@ -39,13 +43,15 @@ export function onPush (sw) {
       if (tag === 'MENTION' && payload.options.data?.itemId) itemMentions.push(payload.options.data.itemId)
 
       if (notifications.length === 0) {
-        setAppBadge(sw)
+        receivedPushIds.add(id)
+        setAppBadge(sw, receivedPushIds.size)
         // incoming notification is first notification with this tag
         return sw.registration.showNotification(payload.title, payload.options)
       }
 
       const currentNotification = notifications[0]
-      setAppBadge(sw)
+      receivedPushIds.add(id)
+      setAppBadge(sw, receivedPushIds.size)
       return mergeAndShowNotification(sw, payload, currentNotification)
     })())
   }
@@ -93,9 +99,15 @@ const mergeAndShowNotification = (sw, payload, currentNotification) => {
 
 export function onNotificationClick (sw) {
   return (event) => {
-    const url = event.notification.data?.url
+    const { url, id } = event.notification.data || {}
     if (url) {
       event.waitUntil(sw.clients.openWindow(url))
+    }
+    if (id) {
+      receivedPushIds.delete(id)
+      if (receivedPushIds.size === 0) {
+        clearAppBadge(sw)
+      }
     }
     event.notification.close()
   }
@@ -158,6 +170,10 @@ export function onMessage (sw) {
     }
     if (event.data.action === 'SYNC_SUBSCRIPTION') {
       return event.waitUntil(onPushSubscriptionChange(sw)(event.oldSubscription, event.newSubscription))
+    }
+    if (event.data.action === 'CLEAR_BADGE') {
+      receivedPushIds.clear()
+      return event.waitUntil(clearAppBadge(sw))
     }
   }
 }

@@ -26,7 +26,11 @@ const createPayload = (notification) => {
       body,
       timestamp: Date.now(),
       icon: '/icons/icon_x96.png',
-      ...options
+      ...options,
+      data: {
+        ...(options.data || {}),
+        id: Math.random(0, 1).toString().substring(2)
+      }
     }
   })
 }

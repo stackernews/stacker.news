@@ -155,5 +155,8 @@ export function onMessage (sw) {
     if (event.data.action === 'SYNC_SUBSCRIPTION') {
       return event.waitUntil(onPushSubscriptionChange(sw)(event.oldSubscription, event.newSubscription))
     }
+    if (event.data.action === 'DELETE_SUBSCRIPTION') {
+      return event.waitUntil(storage.removeItem('subscription'))
+    }
   }
 }

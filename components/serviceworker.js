@@ -88,6 +88,9 @@ export const ServiceWorkerProvider = ({ children }) => {
     const { endpoint } = subscription
     logger.info('unsubscribed from push notifications', { endpoint })
     await deletePushSubscription({ variables: { endpoint } })
+    // also delete push subscription in IndexedDB so we can tell if the user disabled push subscriptions
+    // or we lost the push subscription due to a bug
+    navigator.serviceWorker.controller.postMessage({ action: 'DELETE_SUBSCRIPTION' })
     logger.info('deleted push subscription from server', { endpoint })
   }
 

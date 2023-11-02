@@ -4,6 +4,7 @@ import Layout from '../components/layout'
 import Notifications, { NotificationAlert } from '../components/notifications'
 import { HAS_NOTIFICATIONS, NOTIFICATIONS } from '../fragments/notifications'
 import { useApolloClient } from '@apollo/client'
+import { dispatchClearBadgeAction } from '../lib/badge'
 
 export const getServerSideProps = getGetServerSideProps({ query: NOTIFICATIONS, authRequired: true })
 
@@ -17,7 +18,7 @@ export default function NotificationPage ({ ssrData }) {
         hasNewNotes: false
       }
     })
-    navigator.serviceWorker?.controller?.postMessage({ action: 'CLEAR_BADGE' })
+    dispatchClearBadgeAction()
   }, [ssrData])
 
   return (

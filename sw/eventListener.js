@@ -1,6 +1,6 @@
 import ServiceWorkerStorage from 'serviceworker-storage'
 import { numWithUnits } from '../lib/format'
-import { clearAppBadge, setAppBadge } from '../lib/badge'
+import { CLEAR_BADGE_ACTION, clearAppBadge, setAppBadge } from '../lib/badge'
 
 // we store existing push subscriptions to keep them in sync with server
 const storage = new ServiceWorkerStorage('sw:storage', 1)
@@ -107,6 +107,8 @@ export function onNotificationClick (sw) {
       receivedPushIds.delete(id)
       if (receivedPushIds.size === 0) {
         clearAppBadge(sw)
+      } else {
+        setAppBadge(sw, receivedPushIds.size)
       }
     }
     event.notification.close()
@@ -171,7 +173,7 @@ export function onMessage (sw) {
     if (event.data.action === 'SYNC_SUBSCRIPTION') {
       return event.waitUntil(onPushSubscriptionChange(sw)(event.oldSubscription, event.newSubscription))
     }
-    if (event.data.action === 'CLEAR_BADGE') {
+    if (event.data.action === CLEAR_BADGE_ACTION) {
       receivedPushIds.clear()
       return event.waitUntil(clearAppBadge(sw))
     }

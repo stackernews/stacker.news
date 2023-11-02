@@ -95,7 +95,7 @@ const mergeAndShowNotification = (sw, payload, currentNotification) => {
 
 export function onNotificationClick (sw) {
   return (event) => {
-    const url = event.notification.data.url
+    const url = event.notification.data?.url
     if (url) {
       event.waitUntil(sw.clients.openWindow(url))
     }

@@ -12,19 +12,18 @@ let messageChannelPort
 // keep track of item ids where we received a MENTION notification already to not show one again
 const itemMentions = []
 
-// track push ids to display a count in the app notification badge
-const receivedPushIds = new Set()
+// current push notification count for badge purposes
+let activeCount = 0
 
 export function onPush (sw) {
   return async (event) => {
     const payload = event.data?.json()
     if (!payload) return
-    const { tag, data: { id } } = payload.options
+    const { tag } = payload.options
     event.waitUntil((async () => {
       if (skipNotification(payload)) return
       if (immediatelyShowNotification(payload)) {
-        receivedPushIds.add(id)
-        setAppBadge(sw, receivedPushIds.size)
+        setAppBadge(sw, ++activeCount)
         return sw.registration.showNotification(payload.title, payload.options)
       }
 
@@ -43,15 +42,12 @@ export function onPush (sw) {
       if (tag === 'MENTION' && payload.options.data?.itemId) itemMentions.push(payload.options.data.itemId)
 
       if (notifications.length === 0) {
-        receivedPushIds.add(id)
-        setAppBadge(sw, receivedPushIds.size)
         // incoming notification is first notification with this tag
+        setAppBadge(sw, ++activeCount)
         return sw.registration.showNotification(payload.title, payload.options)
       }
 
       const currentNotification = notifications[0]
-      receivedPushIds.add(id)
-      setAppBadge(sw, receivedPushIds.size)
       return mergeAndShowNotification(sw, payload, currentNotification)
     })())
   }
@@ -99,17 +95,15 @@ const mergeAndShowNotification = (sw, payload, currentNotification) => {
 
 export function onNotificationClick (sw) {
   return (event) => {
-    const { url, id } = event.notification.data || {}
+    const url = event.notification.data.url
     if (url) {
       event.waitUntil(sw.clients.openWindow(url))
     }
-    if (id) {
-      receivedPushIds.delete(id)
-      if (receivedPushIds.size === 0) {
-        clearAppBadge(sw)
-      } else {
-        setAppBadge(sw, receivedPushIds.size)
-      }
+    activeCount--
+    if (activeCount === 0) {
+      clearAppBadge(sw)
+    } else {
+      setAppBadge(sw, activeCount)
     }
     event.notification.close()
   }
@@ -161,7 +155,7 @@ export function onPushSubscriptionChange (sw) {
 }
 
 export function onMessage (sw) {
-  return (event) => {
+  return async (event) => {
     if (event.data.action === 'MESSAGE_PORT') {
       messageChannelPort = event.ports[0]
     }
@@ -174,7 +168,9 @@ export function onMessage (sw) {
       return event.waitUntil(onPushSubscriptionChange(sw)(event.oldSubscription, event.newSubscription))
     }
     if (event.data.action === CLEAR_BADGE_ACTION) {
-      receivedPushIds.clear()
+      const notifications = await sw.registration.getNotifications()
+      notifications.forEach(notification => notification.close())
+      activeCount = 0
       return event.waitUntil(clearAppBadge(sw))
     }
   }

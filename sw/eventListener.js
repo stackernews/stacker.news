@@ -99,7 +99,7 @@ export function onNotificationClick (sw) {
     if (url) {
       event.waitUntil(sw.clients.openWindow(url))
     }
-    activeCount--
+    activeCount = Math.max(0, activeCount - 1)
     if (activeCount === 0) {
       clearAppBadge(sw)
     } else {
@@ -155,7 +155,7 @@ export function onPushSubscriptionChange (sw) {
 }
 
 export function onMessage (sw) {
-  return async (event) => {
+  return (event) => {
     if (event.data.action === 'MESSAGE_PORT') {
       messageChannelPort = event.ports[0]
     }
@@ -168,10 +168,17 @@ export function onMessage (sw) {
       return event.waitUntil(onPushSubscriptionChange(sw)(event.oldSubscription, event.newSubscription))
     }
     if (event.data.action === CLEAR_BADGE_ACTION) {
-      const notifications = await sw.registration.getNotifications()
-      notifications.forEach(notification => notification.close())
-      activeCount = 0
-      return event.waitUntil(clearAppBadge(sw))
+      return event.waitUntil((async () => {
+        let notifications = []
+        try {
+          notifications = await sw.registration.getNotifications()
+        } catch (err) {
+          console.error('failed to get notifications')
+        }
+        notifications.forEach(notification => notification.close())
+        activeCount = 0
+        return await clearAppBadge(sw)
+      })())
     }
   }
 }

@@ -33,8 +33,8 @@ export function DiscussionForm ({
 
   const [upsertDiscussion] = useMutation(
     gql`
-      mutation upsertDiscussion($sub: String, $id: ID, $title: String!, $text: String, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String) {
-        upsertDiscussion(sub: $sub, id: $id, title: $title, text: $text, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac) {
+      mutation upsertDiscussion($sub: String, $id: ID, $title: String!, $text: String, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String, $nEventId: String) {
+        upsertDiscussion(sub: $sub, id: $id, title: $title, text: $text, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac, nEventId: $nEventId) {
           id
           deleteScheduledAt
         }
@@ -72,7 +72,7 @@ export function DiscussionForm ({
           forward: normalizeForwards(values.forward)
         }
       })
-
+      
       if (error) {
         throw new Error({ message: error.toString() })
       }
@@ -97,6 +97,21 @@ export function DiscussionForm ({
         console.error(e)
         toaster.danger('Error crossposting to Nostr', e.message)
       }
+      
+      // If crossposting was successful, save the event id
+      if (eventId) {
+        await upsertDiscussion({
+          variables: {
+            sub: item?.subName || sub?.name,
+            id: discussionId,
+            boost: boost ? Number(boost) : undefined,
+            ...values,
+            forward: normalizeForwards(values.forward),
+            crosspost: true,
+            nEventId: eventId
+          }
+        })
+      }      
 
       if (item) {
         await router.push(`/items/${item.id}`)

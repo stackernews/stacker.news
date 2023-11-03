@@ -1,14 +1,24 @@
 import useCrossposter from './use-crossposter'
 import Dropdown from 'react-bootstrap/Dropdown'
-import { useToast } from './toast'
-import { useMe } from './me'
+import { ITEM } from '../fragments/items'
+import { gql, useQuery, useMutation } from '@apollo/client'
+import { normalizeForwards } from '../lib/form'
 
 export default function CrosspostDropdownItem({ item }) {
-    const toaster = useToast()
-    const me = useMe()
     // Update createdAt
+    const { data } = useQuery(ITEM, { variables: { id: item.id } })
+
+    const [upsertDiscussion] = useMutation(
+        gql`
+          mutation upsertDiscussion($sub: String, $id: ID, $title: String!, $text: String, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String, $nEventId: String) {
+            upsertDiscussion(sub: $sub, id: $id, title: $title, text: $text, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac, nEventId: $nEventId) {
+              id
+            }
+          }`
+      )
+
     const crossposter = useCrossposter()
-    return (
+    return !item?.nEventId ? (
         <Dropdown.Item
             onClick={async () => {
                 try {
@@ -21,17 +31,31 @@ export default function CrosspostDropdownItem({ item }) {
 
                 try {
                     if (item?.id) {
-                        await crossposter({ ...item, id: item.id, createdAt: item.createdAt })
+                        const crosspostResult = await crossposter({ ...data.item, id: item.id, createdAt: item.createdAt })
+                        const eventId = crosspostResult?.eventId;
+                        console.log('eventId', item.boost)
+                        if (eventId) {
+                            await upsertDiscussion({
+                              variables: {
+                                sub: item?.subName || sub?.name,
+                                id: item?.id,
+                                boost: item?.boost ? (Number(item?.boost) >= 25000 ? Number(item?.boost) : undefined) : undefined,
+                                nEventId: eventId,
+                                title: item?.title
+                              }
+                            })
+                        }
                     }
                 } catch (e) {
                     console.error(e)
                 }
             }}
         >
-            {me && !me.nEventId ? 'crosspost to nostr' :
-                <Link href={`https://habla.news`} className='text-reset dropdown-item'>
-                    nostr note
-                </Link>}
+            crosspost to nostr
+        </Dropdown.Item>
+    ) : (
+        <Dropdown.Item onClick={() => window.open(`https://nostr.band/${item.nEventId}`, '_blank')}>
+            nostr note
         </Dropdown.Item>
     )
 }

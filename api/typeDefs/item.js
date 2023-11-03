@@ -27,7 +27,7 @@ export default gql`
     subscribeItem(id: ID): Item
     deleteItem(id: ID): Item
     upsertLink(id: ID, sub: String, title: String!, url: String!, text: String, boost: Int, forward: [ItemForwardInput], hash: String, hmac: String): Item!
-    upsertDiscussion(id: ID, sub: String, title: String!, text: String, boost: Int, forward: [ItemForwardInput], hash: String, hmac: String): Item!
+    upsertDiscussion(id: ID, sub: String, title: String!, text: String, boost: Int, forward: [ItemForwardInput], hash: String, hmac: String, nEventId: String): Item!
     upsertBounty(id: ID, sub: String, title: String!, text: String, bounty: Int, hash: String, hmac: String, boost: Int, forward: [ItemForwardInput]): Item!
     upsertJob(id: ID, sub: String!, title: String!, company: String!, location: String, remote: Boolean,
       text: String!, url: String!, maxBid: Int!, status: String, logo: Int, hash: String, hmac: String): Item!

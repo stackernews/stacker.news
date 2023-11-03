@@ -53,11 +53,14 @@ export default function useCrossposter () {
   return useCallback(async item => {
     let failedRelays
     let allSuccessful = false
+    let eventId
 
     do {
       // XXX we only use discussions right now
       const event = await discussionToEvent(item)
       const result = await crosspost(event, failedRelays || relays)
+
+      eventId = result.eventId
 
       failedRelays = result.failedRelays.map(relayObj => relayObj.relay)
 
@@ -73,6 +76,6 @@ export default function useCrossposter () {
       }
     } while (failedRelays.length > 0)
 
-    return { allSuccessful }
+    return { allSuccessful, eventId }
   }, [relays, toast])
 }

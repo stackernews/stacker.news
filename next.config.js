@@ -95,7 +95,7 @@ module.exports = withPlausibleProxy()({
           ...corsHeaders
         ]
       },
-      ...['tff', 'woff', 'woff2'].map(ext => ({
+      ...['ttf', 'woff', 'woff2'].map(ext => ({
         source: `/Lightningvolt-xoqm.${ext}`,
         headers: [
           ...corsHeaders,

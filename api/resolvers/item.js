@@ -564,16 +564,24 @@ export default {
     },
     dupes: async (parent, { url }, { me, models }) => {
       const urlObj = new URL(ensureProtocol(url))
-      let uri = urlObj.hostname + '(:[0-9]+)?' + urlObj.pathname
-      uri = uri.endsWith('/') ? uri.slice(0, -1) : uri
+      let { hostname, pathname } = urlObj
 
+      hostname = hostname + '(:[0-9]+)?'
       const parseResult = parse(urlObj.hostname)
       if (parseResult?.subdomain?.length) {
         const { subdomain } = parseResult
-        uri = uri.replace(subdomain, '(%)?')
+        hostname = hostname.replace(subdomain, '(%)?')
       } else {
-        uri = `(%.)?${uri}`
+        hostname = `(%.)?${hostname}`
       }
+
+      // escape postgres regex meta characters
+      pathname = pathname.replace(/\+/g, '\\+')
+      pathname = pathname.replace(/%/g, '\\%')
+      pathname = pathname.replace(/_/g, '\\_')
+
+      let uri = hostname + pathname
+      uri = uri.endsWith('/') ? uri.slice(0, -1) : uri
 
       let similar = `(http(s)?://)?${uri}/?`
       const whitelist = ['news.ycombinator.com/item', 'bitcointalk.org/index.php']

@@ -176,12 +176,15 @@ model Upload {
   size      Int
   width     Int?
   height    Int?
+  itemId    Int?     @unique(map: "Upload.itemId_unique")
   userId    Int
+  paid      Boolean?
+  item      Item?    @relation(fields: [itemId], references: [id])
   user      User     @relation("Uploads", fields: [userId], references: [id], onDelete: Cascade)
   User      User[]
-  paid      Boolean?
 
   @@index([createdAt], map: "Upload.created_at_index")
+  @@index([itemId], map: "Upload.itemId_index")
   @@index([userId], map: "Upload.userId_index")
 }
 
@@ -297,6 +300,7 @@ model Item {
   PollOption         PollOption[]
   PollVote           PollVote[]
   ThreadSubscription ThreadSubscription[]
+  upload             Upload?
   User               User[]
   itemForwards       ItemForward[]
 

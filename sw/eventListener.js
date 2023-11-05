@@ -64,11 +64,11 @@ const mergeAndShowNotification = (sw, payload, currentNotification) => {
   const amount = currentNotification.data?.amount ? currentNotification.data.amount + 1 : 2
 
   let title = ''
-  const newData = {}
+  let newData = {}
   if (tag === 'REPLY') {
-    title = `You have ${amount} new replies`
+    title = `you have ${amount} new replies`
   } else if (tag === 'MENTION') {
-    title = `You were mentioned ${amount} times`
+    title = `you were mentioned ${amount} times`
   } else if (tag === 'REFERRAL') {
     title = `${amount} stackers joined via your referral links`
   } else if (tag === 'INVITE') {
@@ -79,6 +79,10 @@ const mergeAndShowNotification = (sw, payload, currentNotification) => {
     const newSats = currentSats + incomingSats
     title = `${numWithUnits(newSats, { abbreviate: false })} were deposited in your account`
     newData.sats = newSats
+  } else if (tag.split('-')[0] === 'FOLLOW') {
+    const { followeeName, subType } = incomingData
+    title = `@${followeeName} ${subType === 'POST' ? `created ${amount} posts` : `replied ${amount} times`}`
+    newData = incomingData
   }
 
   // close current notification before showing new one to "merge" notifications

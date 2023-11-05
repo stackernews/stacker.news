@@ -757,8 +757,9 @@ export function Form ({
         // add potential image fees which are set in a different field
         // to differentiate between fees (in receipts for example)
         cost += (values?.imageFeesInfo?.totalFees || 0)
+        values.cost = cost
 
-        const options = await onSubmit(cost, values, ...args)
+        const options = await onSubmit(values, ...args)
         if (!storageKeyPrefix || options?.keepLocalStorage) return
         clearLocalStorage(values)
       }

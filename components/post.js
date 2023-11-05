@@ -11,8 +11,34 @@ import { PollForm } from './poll-form'
 import { BountyForm } from './bounty-form'
 import SubSelect from './sub-select-form'
 import Info from './info'
-import { useCallback, useState } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
+import { SSR, ANON_COMMENT_FEE, ANON_POST_FEE } from '../lib/constants'
+import { gql, useQuery } from '@apollo/client'
+import { useFormikContext } from 'formik'
+
+export function FreebieCheck ({ children, parentId, hasImgLink, baseFee, alwaysShow }) {
+  const me = useMe()
+  baseFee = me ? baseFee : (parentId ? ANON_COMMENT_FEE : ANON_POST_FEE)
+  const query = parentId
+    ? gql`{ itemRepetition(parentId: "${parentId}") }`
+    : gql`{ itemRepetition }`
+  const { data } = useQuery(query, SSR ? {} : { pollInterval: 1000, nextFetchPolicy: 'cache-and-network' })
+  const repetition = me ? data?.itemRepetition || 0 : 0
+  const formik = useFormikContext()
+  const boost = Number(formik?.values?.boost) || 0
+  const cost = baseFee * (hasImgLink ? 10 : 1) * Math.pow(10, repetition) + Number(boost)
+
+  useEffect(() => {
+    formik?.setFieldValue('cost', cost)
+  }, [formik?.getFieldProps('cost').value, cost])
+
+  const show = alwaysShow || !formik?.isSubmitting
+
+  if (me?.sats < 1 && cost <= 1 && show) {
+    return (<>{children}</>)
+  }
+}
 
 function FreebieDialog () {
   return (
@@ -49,7 +75,9 @@ export function PostForm ({ type, sub, children }) {
           <Alert className='position-absolute' style={{ top: '-6rem' }} variant='danger' onClose={() => setErrorMessage(undefined)} dismissible>
             {errorMessage}
           </Alert>}
-        {me?.sats < 1 && <FreebieDialog />}
+        <FreebieCheck baseFee={1} parentId={null}>
+          <FreebieDialog />
+        </FreebieCheck>
         <SubSelect noForm sub={sub?.name} />
         <Link href={prefix + '/post?type=link'}>
           <Button variant='secondary'>link</Button>

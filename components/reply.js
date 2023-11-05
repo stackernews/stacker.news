@@ -11,6 +11,7 @@ import { commentSchema } from '../lib/validate'
 import Info from './info'
 import { quote } from '../lib/md'
 import { COMMENT_DEPTH_LIMIT } from '../lib/constants'
+import { FreebieCheck } from './post'
 
 export function ReplyOnAnotherPage ({ item }) {
   const path = item.path.split('.')
@@ -205,7 +206,11 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
                 autoFocus={!replyOpen}
                 required
                 placeholder={placeholder}
-                hint={me?.sats < 1 && <FreebieDialog />}
+                hint={
+                  <FreebieCheck baseFee={1} parentId={parentId}>
+                    <FreebieDialog />
+                  </FreebieCheck>
+                }
                 innerRef={replyInput}
               />
               <div className='d-flex mt-1'>

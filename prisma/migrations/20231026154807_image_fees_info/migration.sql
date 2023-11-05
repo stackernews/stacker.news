@@ -68,6 +68,7 @@ BEGIN
     -- add image fees
     IF upload_ids IS NOT NULL THEN
         cost_msats := cost_msats + (SELECT "nUnpaid" * "imageFeeMsats" FROM image_fees_info(item."userId", upload_ids));
+        UPDATE "Upload" SET paid = 't' WHERE id = ANY(upload_ids);
     END IF;
 
     -- it's only a freebie if it's a 1 sat cost, they have < 1 sat, and boost = 0
@@ -141,11 +142,6 @@ BEGIN
         UPDATE users SET "bioId" = item.id WHERE id = item."userId";
     END IF;
 
-    -- we paid for the image fees, so mark them as paid
-    IF upload_ids IS NOT NULL THEN
-        UPDATE "Upload" SET paid = 't', "itemId" =  item.id WHERE id = ANY(upload_ids);
-    END IF;
-
     -- schedule imgproxy job
     INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
     VALUES ('imgproxy', jsonb_build_object('id', item.id), 21, true, now() + interval '5 seconds');
@@ -176,7 +172,7 @@ BEGIN
     -- add image fees
     IF upload_ids IS NOT NULL THEN
         cost_msats := cost_msats + (SELECT "nUnpaid" * "imageFeeMsats" FROM image_fees_info(item."userId", upload_ids));
-        UPDATE "Upload" SET paid = 't', "itemId" = item.id WHERE id = ANY(upload_ids);
+        UPDATE "Upload" SET paid = 't' WHERE id = ANY(upload_ids);
     END IF;
 
     IF cost_msats > 0 AND cost_msats > user_msats THEN

@@ -168,18 +168,33 @@ model Donation {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model Upload {
-  id        Int      @id @default(autoincrement())
+model ItemUpload {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
-  type      String
-  size      Int
-  width     Int?
-  height    Int?
-  userId    Int
-  user      User     @relation("Uploads", fields: [userId], references: [id], onDelete: Cascade)
-  User      User[]
-  paid      Boolean?
+  itemId    Int
+  uploadId  Int
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  upload    Upload   @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+
+  @@id([itemId, uploadId])
+  @@index([createdAt])
+  @@index([itemId])
+  @@index([uploadId])
+}
+
+model Upload {
+  id         Int          @id @default(autoincrement())
+  createdAt  DateTime     @default(now()) @map("created_at")
+  updatedAt  DateTime     @default(now()) @updatedAt @map("updated_at")
+  type       String
+  size       Int
+  width      Int?
+  height     Int?
+  userId     Int
+  paid       Boolean?
+  user       User         @relation("Uploads", fields: [userId], references: [id], onDelete: Cascade)
+  User       User[]
+  ItemUpload ItemUpload[]
 
   @@index([createdAt], map: "Upload.created_at_index")
   @@index([userId], map: "Upload.userId_index")
@@ -265,7 +280,6 @@ model Item {
   company            String?
   weightedVotes      Float                 @default(0)
   boost              Int                   @default(0)
-  uploadId           Int?
   pollCost           Int?
   paidImgLink        Boolean               @default(false)
   commentMsats       BigInt                @default(0)
@@ -299,6 +313,8 @@ model Item {
   ThreadSubscription ThreadSubscription[]
   User               User[]
   itemForwards       ItemForward[]
+  ItemUpload         ItemUpload[]
+  uploadId           Int?
 
   @@index([bio], map: "Item.bio_index")
   @@index([createdAt], map: "Item.created_at_index")

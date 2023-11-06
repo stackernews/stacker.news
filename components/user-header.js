@@ -73,9 +73,7 @@ function HeaderPhoto ({ user, isMe }) {
         })
       },
       onCompleted ({ setPhoto: photoId }) {
-        // add random query param for cache busting
-        const randomParam = (Math.random() + 1).toString(16).substring(2)
-        const src = `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}/${user.photoId}?r=${randomParam}`
+        const src = `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}/${user.photoId}`
         setSrc(src)
       }
     }

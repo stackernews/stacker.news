@@ -100,6 +100,7 @@ model User {
   ArcOut                Arc[]                @relation("fromUser")
   ArcIn                 Arc[]                @relation("toUser")
 
+  @@index([photoId])
   @@index([createdAt], map: "users.created_at_index")
   @@index([inviteId], map: "users.inviteId_index")
   @@map("users")
@@ -316,6 +317,7 @@ model Item {
   ItemUpload         ItemUpload[]
   uploadId           Int?
 
+  @@index([uploadId])
   @@index([bio], map: "Item.bio_index")
   @@index([createdAt], map: "Item.created_at_index")
   @@index([freebie], map: "Item.freebie_index")

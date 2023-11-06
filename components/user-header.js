@@ -71,14 +71,20 @@ function HeaderPhoto ({ user, isMe }) {
             }
           }
         })
+      },
+      onCompleted ({ setPhoto: photoId }) {
+        const src = `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}/${user.photoId}`
+        setSrc(src)
       }
     }
   )
+  const initialSrc = user.photoId ? `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}/${user.photoId}` : '/dorian400.jpg'
+  const [src, setSrc] = useState(initialSrc)
 
   return (
     <div className='position-relative align-self-start' style={{ width: 'fit-content' }}>
       <Image
-        src={user.photoId ? `https://${process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET}.s3.amazonaws.com/${user.photoId}` : '/dorian400.jpg'} width='135' height='135'
+        src={src} width='135' height='135'
         className={styles.userimg}
       />
       {isMe &&

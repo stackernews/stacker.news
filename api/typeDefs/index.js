@@ -16,6 +16,7 @@ import referrals from './referrals'
 import price from './price'
 import admin from './admin'
 import blockHeight from './blockHeight'
+import image from './image'
 
 const common = gql`
   type Query {
@@ -35,4 +36,4 @@ const common = gql`
 `
 
 export default [common, user, item, itemForward, message, wallet, lnurl, notifications, invite,
-  sub, upload, growth, rewards, referrals, price, admin, blockHeight]
+  sub, upload, growth, rewards, referrals, price, admin, blockHeight, image]

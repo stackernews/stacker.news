@@ -12,7 +12,7 @@ import AnonIcon from '../svgs/spy-fill.svg'
 import { useShowModal } from './modal'
 import Link from 'next/link'
 
-function Receipt ({ cost, repetition, hasImgLink, baseFee, parentId, boost }) {
+function Receipt ({ cost, repetition, imageFeesInfo, baseFee, parentId, boost }) {
   return (
     <Table className={styles.receipt} borderless size='sm'>
       <tbody>
@@ -20,15 +20,15 @@ function Receipt ({ cost, repetition, hasImgLink, baseFee, parentId, boost }) {
           <td>{numWithUnits(baseFee, { abbreviate: false })}</td>
           <td align='right' className='font-weight-light'>{parentId ? 'reply' : 'post'} fee</td>
         </tr>
-        {hasImgLink &&
-          <tr>
-            <td>x 10</td>
-            <td align='right' className='font-weight-light'>image/link fee</td>
-          </tr>}
         {repetition > 0 &&
           <tr>
             <td>x 10<sup>{repetition}</sup></td>
             <td className='font-weight-light' align='right'>{repetition} {parentId ? 'repeat or self replies' : 'posts'} in 10m</td>
+          </tr>}
+        {imageFeesInfo.totalFees > 0 &&
+          <tr>
+            <td>+ {imageFeesInfo.nUnpaid} x {numWithUnits(imageFeesInfo.imageFee, { abbreviate: false })}</td>
+            <td align='right' className='font-weight-light'>image fee</td>
           </tr>}
         {boost > 0 &&
           <tr>
@@ -69,7 +69,7 @@ function AnonInfo () {
   )
 }
 
-export default function FeeButton ({ parentId, hasImgLink, baseFee, ChildButton, variant, text, alwaysShow, disabled }) {
+export default function FeeButton ({ parentId, baseFee, ChildButton, variant, text, alwaysShow, disabled }) {
   const me = useMe()
   baseFee = me ? baseFee : (parentId ? ANON_COMMENT_FEE : ANON_POST_FEE)
   const query = parentId
@@ -79,46 +79,43 @@ export default function FeeButton ({ parentId, hasImgLink, baseFee, ChildButton,
   const repetition = me ? data?.itemRepetition || 0 : 0
   const formik = useFormikContext()
   const boost = Number(formik?.values?.boost) || 0
-  const cost = baseFee * (hasImgLink ? 10 : 1) * Math.pow(10, repetition) + Number(boost)
+  const cost = baseFee * Math.pow(10, repetition) + Number(boost)
 
   useEffect(() => {
     formik?.setFieldValue('cost', cost)
   }, [formik?.getFieldProps('cost').value, cost])
 
+  const imageFeesInfo = formik?.getFieldProps('imageFeesInfo').value || { totalFees: 0 }
+  const totalCost = cost + imageFeesInfo.totalFees
+
   const show = alwaysShow || !formik?.isSubmitting
   return (
     <div className={styles.feeButton}>
-      <ActionTooltip overlayText={numWithUnits(cost, { abbreviate: false })}>
-        <ChildButton variant={variant} disabled={disabled}>{text}{cost > 1 && show && <small> {numWithUnits(cost, { abbreviate: false })}</small>}</ChildButton>
+      <ActionTooltip overlayText={numWithUnits(totalCost, { abbreviate: false })}>
+        <ChildButton variant={variant} disabled={disabled}>{text}{totalCost > 1 && show && <small> {numWithUnits(totalCost, { abbreviate: false })}</small>}</ChildButton>
       </ActionTooltip>
       {!me && <AnonInfo />}
-      {cost > baseFee && show &&
+      {totalCost > baseFee && show &&
         <Info>
-          <Receipt baseFee={baseFee} hasImgLink={hasImgLink} repetition={repetition} cost={cost} parentId={parentId} boost={boost} />
+          <Receipt baseFee={baseFee} imageFeesInfo={imageFeesInfo} repetition={repetition} cost={totalCost} parentId={parentId} boost={boost} />
         </Info>}
     </div>
   )
 }
 
-function EditReceipt ({ cost, paidSats, addImgLink, boost, parentId }) {
+function EditReceipt ({ cost, paidSats, imageFeesInfo, boost, parentId }) {
   return (
     <Table className={styles.receipt} borderless size='sm'>
       <tbody>
-        {addImgLink &&
-          <>
-            <tr>
-              <td>{numWithUnits(paidSats, { abbreviate: false })}</td>
-              <td align='right' className='font-weight-light'>{parentId ? 'reply' : 'post'} fee</td>
-            </tr>
-            <tr>
-              <td>x 10</td>
-              <td align='right' className='font-weight-light'>image/link fee</td>
-            </tr>
-            <tr>
-              <td>- {numWithUnits(paidSats, { abbreviate: false })}</td>
-              <td align='right' className='font-weight-light'>already paid</td>
-            </tr>
-          </>}
+        <tr>
+          <td>{numWithUnits(0, { abbreviate: false })}</td>
+          <td align='right' className='font-weight-light'>edit fee</td>
+        </tr>
+        {imageFeesInfo.totalFees > 0 &&
+          <tr>
+            <td>+ {imageFeesInfo.nUnpaid} x {numWithUnits(imageFeesInfo.imageFee, { abbreviate: false })}</td>
+            <td align='right' className='font-weight-light'>image fee</td>
+          </tr>}
         {boost > 0 &&
           <tr>
             <td>+ {numWithUnits(boost, { abbreviate: false })}</td>
@@ -135,25 +132,27 @@ function EditReceipt ({ cost, paidSats, addImgLink, boost, parentId }) {
   )
 }
 
-export function EditFeeButton ({ paidSats, hadImgLink, hasImgLink, ChildButton, variant, text, alwaysShow, parentId }) {
+export function EditFeeButton ({ paidSats, ChildButton, variant, text, alwaysShow, parentId }) {
   const formik = useFormikContext()
   const boost = (formik?.values?.boost || 0) - (formik?.initialValues?.boost || 0)
-  const addImgLink = hasImgLink && !hadImgLink
-  const cost = (addImgLink ? paidSats * 9 : 0) + Number(boost)
+  const cost = Number(boost)
 
   useEffect(() => {
     formik?.setFieldValue('cost', cost)
   }, [formik?.getFieldProps('cost').value, cost])
 
+  const imageFeesInfo = formik?.getFieldProps('imageFeesInfo').value || { totalFees: 0 }
+  const totalCost = cost + imageFeesInfo.totalFees
+
   const show = alwaysShow || !formik?.isSubmitting
   return (
     <div className='d-flex align-items-center'>
-      <ActionTooltip overlayText={numWithUnits(cost >= 0 ? cost : 0, { abbreviate: false })}>
-        <ChildButton variant={variant}>{text}{cost > 0 && show && <small> {numWithUnits(cost, { abbreviate: false })}</small>}</ChildButton>
+      <ActionTooltip overlayText={numWithUnits(totalCost >= 0 ? totalCost : 0, { abbreviate: false })}>
+        <ChildButton variant={variant}>{text}{totalCost > 0 && show && <small> {numWithUnits(totalCost, { abbreviate: false })}</small>}</ChildButton>
       </ActionTooltip>
-      {cost > 0 && show &&
+      {totalCost > 0 && show &&
         <Info>
-          <EditReceipt paidSats={paidSats} addImgLink={addImgLink} cost={cost} parentId={parentId} boost={boost} />
+          <EditReceipt paidSats={paidSats} imageFeesInfo={imageFeesInfo} cost={totalCost} parentId={parentId} boost={boost} />
         </Info>}
     </div>
   )

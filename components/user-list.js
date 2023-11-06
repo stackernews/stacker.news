@@ -66,7 +66,7 @@ export default function UserList ({ ssrData, query, variables, destructureData }
         <div className={`${styles.item} mb-2`} key={user.name}>
           <Link href={`/${user.name}`}>
             <Image
-              src={user.photoId ? `https://${process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET}.s3.amazonaws.com/${user.photoId}` : '/dorian400.jpg'} width='32' height='32'
+              src={user.photoId ? `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}/${user.photoId}` : '/dorian400.jpg'} width='32' height='32'
               className={`${userStyles.userimg} me-2`}
             />
           </Link>

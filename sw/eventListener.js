@@ -1,6 +1,6 @@
 import ServiceWorkerStorage from 'serviceworker-storage'
 import { numWithUnits } from '../lib/format'
-import { CLEAR_BADGE_ACTION, clearAppBadge, setAppBadge } from '../lib/badge'
+import { CLEAR_NOTIFICATIONS, clearAppBadge, setAppBadge } from '../lib/badge'
 
 // we store existing push subscriptions to keep them in sync with server
 const storage = new ServiceWorkerStorage('sw:storage', 1)
@@ -167,7 +167,7 @@ export function onMessage (sw) {
     if (event.data.action === 'SYNC_SUBSCRIPTION') {
       return event.waitUntil(onPushSubscriptionChange(sw)(event.oldSubscription, event.newSubscription))
     }
-    if (event.data.action === CLEAR_BADGE_ACTION) {
+    if (event.data.action === CLEAR_NOTIFICATIONS) {
       return event.waitUntil((async () => {
         let notifications = []
         try {

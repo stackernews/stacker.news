@@ -25,7 +25,7 @@ import { HAS_NOTIFICATIONS } from '../fragments/notifications'
 import AnonIcon from '../svgs/spy-fill.svg'
 import Hat from './hat'
 import HiddenWalletSummary from './hidden-wallet-summary'
-import { dispatchClearBadgeAction } from '../lib/badge'
+import { clearNotifications } from '../lib/badge'
 
 function WalletSummary ({ me }) {
   if (!me) return null
@@ -60,7 +60,7 @@ function NotificationBell () {
         nextFetchPolicy: 'cache-and-network',
         onCompleted: ({ hasNewNotes }) => {
           if (!hasNewNotes) {
-            dispatchClearBadgeAction()
+            clearNotifications()
           }
         }
       })

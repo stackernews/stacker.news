@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import Nav from 'react-bootstrap/Nav'
 import { useState } from 'react'
-import { Form, Input, SubmitButton } from './form'
+import { Form, Input } from './form'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
 import styles from './user-header.module.css'
 import { useMe } from './me'
@@ -24,6 +24,7 @@ import CodeIcon from '../svgs/terminal-box-fill.svg'
 import MuteDropdownItem from './mute'
 import copy from 'clipboard-copy'
 import { useToast } from './toast'
+import { EditNymFeeButton } from './fee-button'
 
 export default function UserHeader ({ user }) {
   const router = useRouter()
@@ -116,14 +117,15 @@ function NymEdit ({ user, setEditting }) {
       initial={{
         name: user.name
       }}
+      invoiceable
       validateImmediately
       validateOnChange={false}
-      onSubmit={async ({ name }) => {
+      onSubmit={async ({ name, hash, hmac }) => {
         if (name === user.name) {
           setEditting(false)
           return
         }
-        const { error } = await setName({ variables: { name } })
+        const { error } = await setName({ variables: { name, hash, hmac } })
         if (error) {
           throw new Error({ message: error.toString() })
         }
@@ -146,7 +148,10 @@ function NymEdit ({ user, setEditting }) {
           showValid
           debounce={500}
         />
-        <SubmitButton variant='link' onClick={() => setEditting(true)}>save</SubmitButton>
+      </div>
+      <div className='d-flex justify-content-start mb-2'>
+        <Button variant='grey-medium' onClick={() => setEditting(false)} className='me-2'>cancel</Button>
+        <EditNymFeeButton onClick={() => setEditting(true)} />
       </div>
     </Form>
   )

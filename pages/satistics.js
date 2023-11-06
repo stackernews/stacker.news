@@ -107,6 +107,14 @@ function Detail ({ fact }) {
     )
   }
 
+  if (fact.nonItemActType) {
+    return (
+      <div className='px-3'>
+        {fact.nonItemActType === 'NYM_CHANGE' && 'You paid to change your nym'}
+      </div>
+    )
+  }
+
   if (!fact.item) {
     let zap
     try {
@@ -138,9 +146,13 @@ function Detail ({ fact }) {
 
 function Fact ({ fact }) {
   const factDate = new Date(fact.createdAt)
+  let typeLabel = fact.type
+  if (fact.type === 'nonItemSpent') {
+    typeLabel = 'spent'
+  }
   return (
     <>
-      <div className={`${styles.type} ${satusClass(fact.status)} ${fact.sats > 0 ? '' : 'text-muted'}`}>{fact.type}</div>
+      <div className={`${styles.type} ${satusClass(fact.status)} ${fact.sats > 0 ? '' : 'text-muted'}`}>{typeLabel}</div>
       <div className={styles.detail}>
         <Detail fact={fact} />
         <div className='text-muted px-3'>{`${factDate.toLocaleDateString()} ${factDate.toLocaleTimeString()}`}</div>

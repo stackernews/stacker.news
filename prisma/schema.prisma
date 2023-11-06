@@ -99,6 +99,7 @@ model User {
   muteds                Mute[]               @relation("muted")
   ArcOut                Arc[]                @relation("fromUser")
   ArcIn                 Arc[]                @relation("toUser")
+  NonItemAct            NonItemAct[]
 
   @@index([createdAt], map: "users.created_at_index")
   @@index([inviteId], map: "users.inviteId_index")
@@ -607,6 +608,23 @@ model Log {
   @@index([createdAt, name], map: "Log.name_index")
 }
 
+model NonItemAct {
+  id        Int            @id @default(autoincrement())
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @default(now()) @updatedAt @map("updated_at")
+  userId    Int
+  msats     BigInt
+  type      NonItemActType
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "NonItemAct.userId_index")
+  @@index([userId, type], map: "NonItemAct.userId_type_index")
+  @@index([type], map: "NonItemAct.type_index")
+  @@index([createdAt], map: "NonItemAct.created_at_index")
+  @@index([createdAt, type], map: "NonItemAct.created_at_type_index")
+  @@index([userId, createdAt, type], map: "NonItemAct.userId_created_at_type_index")
+}
+
 enum EarnType {
   POST
   COMMENT
@@ -642,6 +660,10 @@ enum ItemActType {
   POLL
   DONT_LIKE_THIS
   FEE
+}
+
+enum NonItemActType {
+  NYM_CHANGE
 }
 
 enum WithdrawlStatus {

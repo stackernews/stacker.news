@@ -103,7 +103,8 @@ export default {
               "desc" as description,
             comment as "invoiceComment",
             "lud18Data" as "invoicePayerData",
-          'invoice' as type
+          'invoice' as type,
+          NULL::"NonItemActType" as "nonItemActType"
           FROM "Invoice"
           WHERE "userId" = $1
             AND created_at <= $2)`)
@@ -120,7 +121,8 @@ export default {
           NULL as description,
           NULL as "invoiceComment",
           NULL as "invoicePayerData",
-          'withdrawal' as type
+          'withdrawal' as type,
+          NULL::"NonItemActType" as "nonItemActType"
           FROM "Withdrawl"
           WHERE "userId" = $1
             AND created_at <= $2)`)
@@ -147,7 +149,8 @@ export default {
             NULL as description,
             NULL as "invoiceComment",
             NULL as "invoicePayerData",
-            'stacked' AS type
+            'stacked' AS type,
+            NULL::"NonItemActType" as "nonItemActType"
           FROM "ItemAct"
           JOIN "Item" ON "ItemAct"."itemId" = "Item".id
           -- only join to with item forward for items where we aren't the OP
@@ -160,14 +163,16 @@ export default {
         queries.push(
             `(SELECT ('earn' || min("Earn".id)) as id, min("Earn".id) as "factId", NULL as bolt11,
             created_at as "createdAt", sum(msats),
-            0 as "msatsFee", NULL as status, NULL as description, NULL as "invoiceComment", NULL as "invoicePayerData", 'earn' as type
+            0 as "msatsFee", NULL as status, NULL as description, NULL as "invoiceComment", NULL as "invoicePayerData", 'earn' as type,
+            NULL::"NonItemActType" as "nonItemActType"
             FROM "Earn"
             WHERE "Earn"."userId" = $1 AND "Earn".created_at <= $2
             GROUP BY "userId", created_at)`)
         queries.push(
             `(SELECT ('referral' || "ReferralAct".id) as id, "ReferralAct".id as "factId", NULL as bolt11,
             created_at as "createdAt", msats,
-            0 as "msatsFee", NULL as status, NULL as description, NULL as "invoiceComment", NULL as "invoicePayerData", 'referral' as type
+            0 as "msatsFee", NULL as status, NULL as description, NULL as "invoiceComment", NULL as "invoicePayerData", 'referral' as type,
+            NULL::"NonItemActType" as "nonItemActType"
             FROM "ReferralAct"
             WHERE "ReferralAct"."referrerId" = $1 AND "ReferralAct".created_at <= $2)`)
       }
@@ -176,7 +181,8 @@ export default {
         queries.push(
           `(SELECT ('spent' || "Item".id) as id, "Item".id as "factId", NULL as bolt11,
           MAX("ItemAct".created_at) as "createdAt", sum("ItemAct".msats) as msats,
-          0 as "msatsFee", NULL as status, NULL as description, NULL as "invoiceComment", NULL as "invoicePayerData", 'spent' as type
+          0 as "msatsFee", NULL as status, NULL as description, NULL as "invoiceComment", NULL as "invoicePayerData", 'spent' as type,
+          NULL::"NonItemActType" as "nonItemActType"
           FROM "ItemAct"
           JOIN "Item" on "ItemAct"."itemId" = "Item".id
           WHERE "ItemAct"."userId" = $1
@@ -185,10 +191,21 @@ export default {
         queries.push(
             `(SELECT ('donation' || "Donation".id) as id, "Donation".id as "factId", NULL as bolt11,
             created_at as "createdAt", sats * 1000 as msats,
-            0 as "msatsFee", NULL as status, NULL as description, NULL as "invoiceComment", NULL as "invoicePayerData", 'donation' as type
+            0 as "msatsFee", NULL as status, NULL as description, NULL as "invoiceComment", NULL as "invoicePayerData", 'donation' as type,
+            NULL::"NonItemActType" as "nonItemActType"
             FROM "Donation"
             WHERE "userId" = $1
             AND created_at <= $2)`)
+        queries.push(
+          `(SELECT ('nonItemSpent' || "NonItemAct".id) as id, "NonItemAct".id as "factId", NULL as bolt11,
+          MAX("NonItemAct".created_at) as "createdAt", "NonItemAct".msats as msats,
+          0 as "msatsFee", NULL as status, NULL as description, NULL as "invoiceComment", NULL as "invoicePayerData", 'nonItemSpent' as type,
+          "NonItemAct".type as "nonItemActType"
+          FROM "NonItemAct"
+          WHERE "userId" = $1
+          AND created_at <= $2
+          GROUP BY "NonItemAct".id)`
+        )
       }
 
       if (queries.length === 0) {

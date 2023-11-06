@@ -7,6 +7,7 @@ import { bioSchema, emailSchema, settingsSchema, ssValidate, userSchema } from '
 import { getItem, updateItem, filterClause, createItem, whereClause, muteClause } from './item'
 import { datePivot } from '../../lib/time'
 import { ANON_USER_ID, DELETE_USER_ID, RESERVED_MAX_USER_ID } from '../../lib/constants'
+import { serializeInvoicable } from './serial'
 
 const contributors = new Set()
 
@@ -100,6 +101,22 @@ async function authMethods (user, args, { models, me }) {
   }
 }
 
+export const getNameCost = async ({ name, me, models }) => {
+  // This is necessary because in the case where a user has changed their nym in the current session,
+  // `me.name` is stale, so we can't do a comparison on `me.name` to accurately report fees for a name change.
+  if (me && (await models.user.findUnique({ where: { id: me.id } })).name === name) {
+    return 0
+  }
+
+  const distanceResult = await models.$queryRawUnsafe('select name, levenshtein(name, $1) as dist from users where id <> $2 order by dist asc limit 1;', name, me?.id ?? -1)
+  const { dist } = distanceResult[0]
+  let cost = 100000 / Math.pow(10, dist - 1)
+  if (cost < 1) {
+    cost = 0
+  }
+  return cost
+}
+
 export default {
   Query: {
     me: async (parent, args, { models, me }) => {
@@ -121,6 +138,9 @@ export default {
     },
     users: async (parent, args, { models }) =>
       await models.user.findMany(),
+    nymCost: async (parent, { name }, { models, me }) => {
+      return await getNameCost({ name, me, models })
+    },
     nameAvailable: async (parent, { name }, { models, me }) => {
       let user
       if (me) {
@@ -508,16 +528,23 @@ export default {
   },
 
   Mutation: {
-    setName: async (parent, data, { me, models }) => {
+    setName: async (parent, data, { me, models, lnd }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
       }
 
       await ssValidate(userSchema, data, { models })
+      const { name, hash, hmac } = data
+      const cost = await getNameCost({ name, me, models })
 
       try {
-        await models.user.update({ where: { id: me.id }, data })
-        return data.name
+        await serializeInvoicable(
+          models.$queryRawUnsafe('SELECT 1 FROM edit_nym($1::INTEGER, $2::TEXT, $3::BIGINT);', me.id, name, cost),
+          { models, lnd, me, hash, hmac }
+        )
+        // update name in server session
+        me.name = name
+        return name
       } catch (error) {
         if (error.code === 'P2002') {
           throw new GraphQLError('name taken', { extensions: { code: 'BAD_INPUT' } })

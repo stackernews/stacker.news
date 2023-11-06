@@ -7,6 +7,7 @@ export default gql`
     user(name: String!): User
     users: [User!]
     nameAvailable(name: String!): Boolean!
+    nymCost(name: String!): Int!
     topUsers(cursor: String, when: String, by: String, limit: Int): Users
     topCowboys(cursor: String): Users
     searchUsers(q: String!, limit: Int, similarity: Float): [User!]!
@@ -19,7 +20,7 @@ export default gql`
   }
 
   extend type Mutation {
-    setName(name: String!): String
+    setName(name: String!, hash: String, hmac: String): String
     setSettings(tipDefault: Int!, turboTipping: Boolean!, fiatCurrency: String!, withdrawMaxFeeDefault: Int!, noteItemSats: Boolean!,
       noteEarning: Boolean!, noteAllDescendants: Boolean!, noteMentions: Boolean!, noteDeposits: Boolean!,
       noteInvites: Boolean!, noteJobIndicator: Boolean!, noteCowboyHat: Boolean!, hideInvoiceDesc: Boolean!,

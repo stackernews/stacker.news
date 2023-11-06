@@ -1,9 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Table from 'react-bootstrap/Table'
 import ActionTooltip from './action-tooltip'
 import Info from './info'
 import styles from './fee-button.module.css'
-import { gql, useQuery } from '@apollo/client'
+import { gql, useQuery, useLazyQuery } from '@apollo/client'
 import { useFormikContext } from 'formik'
 import { SSR, ANON_COMMENT_FEE, ANON_POST_FEE } from '../lib/constants'
 import { numWithUnits } from '../lib/format'
@@ -11,6 +11,8 @@ import { useMe } from './me'
 import AnonIcon from '../svgs/spy-fill.svg'
 import { useShowModal } from './modal'
 import Link from 'next/link'
+import { NAME_COST_QUERY } from '../fragments/users'
+import { SubmitButton } from './form'
 
 function Receipt ({ cost, repetition, hasImgLink, baseFee, parentId, boost }) {
   return (
@@ -156,5 +158,67 @@ export function EditFeeButton ({ paidSats, hadImgLink, hasImgLink, ChildButton, 
           <EditReceipt paidSats={paidSats} addImgLink={addImgLink} cost={cost} parentId={parentId} boost={boost} />
         </Info>}
     </div>
+  )
+}
+
+export const EditNymFeeButton = ({ onClick }) => {
+  const formik = useFormikContext()
+  const [cost, setCost] = useState(0)
+  const [getNymCost] = useLazyQuery(NAME_COST_QUERY, {
+    fetchPolicy: 'no-cache',
+    nextFetchPolicy: 'no-cache',
+    onCompleted: data => {
+      setCost(data.nymCost)
+    }
+  })
+
+  useEffect(() => {
+    formik?.setFieldValue('cost', cost)
+  }, [formik?.getFieldProps('cost').value, cost])
+
+  useEffect(() => {
+    const name = formik?.getFieldProps('name').value
+    if (name) {
+      getNymCost({ variables: { name } })
+    } else {
+      setCost(0)
+    }
+  }, [formik?.getFieldProps('name').value])
+
+  const show = !formik?.isSubmitting
+  return (
+    <div className={styles.feeButton}>
+      <ActionTooltip overlayText={numWithUnits(cost, { abbreviate: false })}>
+        <SubmitButton variant='secondary' onClick={onClick} disabled={formik?.isSubmitting}>save{cost > 0 && show && <small> {numWithUnits(cost, { abbreviate: false, format: true })}</small>}</SubmitButton>
+      </ActionTooltip>
+      {cost > 0 && show &&
+        <Info>
+          <EditNymReceipt baseFee={0} cost={cost} />
+        </Info>}
+    </div>
+  )
+}
+
+function EditNymReceipt ({ cost, baseFee }) {
+  return (
+    <Table className={styles.receipt} borderless size='sm'>
+      <tbody>
+        <tr>
+          <td>{numWithUnits(baseFee, { abbreviate: false, format: true })}</td>
+          <td align='right' className='font-weight-light'>edit nym fee</td>
+        </tr>
+        {cost > 0 &&
+          <tr>
+            <td>+ {numWithUnits(cost, { abbreviate: false, format: true })}</td>
+            <td className='font-weight-light' align='right'>extra cost due to similarities with existing nyms</td>
+          </tr>}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td className='fw-bold'>{numWithUnits(cost, { abbreviate: false })}</td>
+          <td align='right' className='font-weight-light'>total fee</td>
+        </tr>
+      </tfoot>
+    </Table>
   )
 }

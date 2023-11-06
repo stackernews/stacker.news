@@ -75,12 +75,12 @@ function HeaderPhoto ({ user, isMe }) {
       onCompleted ({ setPhoto: photoId }) {
         // add random query param for cache busting
         const randomParam = (Math.random() + 1).toString(16).substring(2)
-        const src = `https://${process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET}.s3.amazonaws.com/${user.photoId}?r=${randomParam}`
+        const src = `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}/${user.photoId}?r=${randomParam}`
         setSrc(src)
       }
     }
   )
-  const initialSrc = user.photoId ? `https://${process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET}.s3.amazonaws.com/${user.photoId}` : '/dorian400.jpg'
+  const initialSrc = user.photoId ? `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}/${user.photoId}` : '/dorian400.jpg'
   const [src, setSrc] = useState(initialSrc)
 
   return (

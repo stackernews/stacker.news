@@ -194,7 +194,7 @@ export const ImageUpload = forwardRef(({ children, className, onSelect, onUpload
           return
         }
 
-        const url = `https://${process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET}.s3.amazonaws.com/${data.getSignedPOST.fields.key}`
+        const url = `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}/${data.getSignedPOST.fields.key}`
         // key is upload id in database
         const id = data.getSignedPOST.fields.key
         onSuccess?.({ ...variables, id, name: file.name, url, file })

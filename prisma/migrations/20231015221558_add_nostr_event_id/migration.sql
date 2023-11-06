@@ -1,4 +1,4 @@
-ALTER TABLE "Item" ADD COLUMN     "nEventId" TEXT;
+ALTER TABLE "Item" ADD COLUMN     "noteId" TEXT;
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Item.nEventId_unique" ON "Item"("nEventId");
+CREATE UNIQUE INDEX "Item.noteId_unique" ON "Item"("noteId");

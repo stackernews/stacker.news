@@ -1061,14 +1061,13 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
   // in case they lied about their existing boost
   await ssValidate(advSchema, { boost: item.boost }, { models, me, existingBoost: old.boost })
 
-  // Check if we ar ejust updating nEventId
-  if (item.nEventId) {
-    // Update only nEventId and return
+  // Check if we are just updating noteId
+  if (item.noteId) {
     await models.item.update({
       where: { id: Number(item.id) },
-      data: { nEventId: item.nEventId }
+      data: { noteId: item.noteId }
     });
-    return { id: item.id, nEventId: item.nEventId }; // Or any other relevant data you want to return
+    return { id: item.id, noteId: item.noteId };
   }
 
   // prevent update if it's not explicitly allowed, not their bio, not their job and older than 10 minutes
@@ -1186,7 +1185,7 @@ const getForwardUsers = async (models, forward) => {
 export const SELECT =
   `SELECT "Item".id, "Item".created_at, "Item".created_at as "createdAt", "Item".updated_at,
   "Item".updated_at as "updatedAt", "Item".title, "Item".text, "Item".url, "Item"."bounty",
-  "Item"."nEventId", "Item"."userId", "Item"."parentId", "Item"."pinId", "Item"."maxBid",
+  "Item"."noteId", "Item"."userId", "Item"."parentId", "Item"."pinId", "Item"."maxBid",
   "Item"."rootId", "Item".upvotes, "Item".company, "Item".location, "Item".remote, "Item"."deletedAt",
   "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost", "Item".boost, "Item".msats,
   "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",

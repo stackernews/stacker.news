@@ -33,8 +33,8 @@ export function DiscussionForm ({
 
   const [upsertDiscussion] = useMutation(
     gql`
-      mutation upsertDiscussion($sub: String, $id: ID, $title: String!, $text: String, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String, $nEventId: String) {
-        upsertDiscussion(sub: $sub, id: $id, title: $title, text: $text, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac, nEventId: $nEventId) {
+      mutation upsertDiscussion($sub: String, $id: ID, $title: String!, $text: String, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String, $noteId: String) {
+        upsertDiscussion(sub: $sub, id: $id, title: $title, text: $text, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac, noteId: $noteId) {
           id
           deleteScheduledAt
         }
@@ -108,7 +108,7 @@ export function DiscussionForm ({
             ...values,
             forward: normalizeForwards(values.forward),
             crosspost: true,
-            nEventId: eventId
+            noteId: eventId
           }
         })
       }      

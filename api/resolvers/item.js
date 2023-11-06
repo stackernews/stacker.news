@@ -1252,14 +1252,13 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
   // in case they lied about their existing boost
   await ssValidate(advSchema, { boost: item.boost }, { models, me, existingBoost: old.boost })
 
-  // Check if we ar ejust updating nEventId
-  if (item.nEventId) {
-    // Update only nEventId and return
+  // Check if we are just updating noteId
+  if (item.noteId) {
     await models.item.update({
       where: { id: Number(item.id) },
-      data: { nEventId: item.nEventId }
+      data: { noteId: item.noteId }
     });
-    return { id: item.id, nEventId: item.nEventId }; // Or any other relevant data you want to return
+    return { id: item.id, noteId: item.noteId };
   }
 
   // prevent update if it's not explicitly allowed, not their bio, not their job and older than 10 minutes

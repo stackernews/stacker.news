@@ -1,24 +1,24 @@
 import useCrossposter from './use-crossposter'
 import Dropdown from 'react-bootstrap/Dropdown'
 import { ITEM } from '../fragments/items'
+import { useRouter } from 'next/router'
 import { gql, useQuery, useMutation } from '@apollo/client'
-import { normalizeForwards } from '../lib/form'
 
 export default function CrosspostDropdownItem({ item }) {
-    // Update createdAt
     const { data } = useQuery(ITEM, { variables: { id: item.id } })
+    const router = useRouter()
 
     const [upsertDiscussion] = useMutation(
         gql`
-          mutation upsertDiscussion($sub: String, $id: ID, $title: String!, $text: String, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String, $nEventId: String) {
-            upsertDiscussion(sub: $sub, id: $id, title: $title, text: $text, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac, nEventId: $nEventId) {
+          mutation upsertDiscussion($sub: String, $id: ID, $title: String!, $text: String, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String, $noteId: String) {
+            upsertDiscussion(sub: $sub, id: $id, title: $title, text: $text, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac, noteId: $noteId) {
               id
             }
           }`
       )
 
     const crossposter = useCrossposter()
-    return !item?.nEventId ? (
+    return !item?.noteId ? (
         <Dropdown.Item
             onClick={async () => {
                 try {
@@ -31,20 +31,21 @@ export default function CrosspostDropdownItem({ item }) {
 
                 try {
                     if (item?.id) {
-                        const crosspostResult = await crossposter({ ...data.item, id: item.id, createdAt: item.createdAt })
+                        const createdAt = Math.floor(Date.now() / 1000)
+                        const crosspostResult = await crossposter({ ...data.item, createdAt: createdAt })
                         const eventId = crosspostResult?.eventId;
-                        console.log('eventId', item.boost)
                         if (eventId) {
                             await upsertDiscussion({
                               variables: {
                                 sub: item?.subName || sub?.name,
                                 id: item?.id,
                                 boost: item?.boost ? (Number(item?.boost) >= 25000 ? Number(item?.boost) : undefined) : undefined,
-                                nEventId: eventId,
+                                noteId: eventId,
                                 title: item?.title
                               }
                             })
                         }
+                        await router.push(`/items/${item.id}`)
                     }
                 } catch (e) {
                     console.error(e)
@@ -54,7 +55,7 @@ export default function CrosspostDropdownItem({ item }) {
             crosspost to nostr
         </Dropdown.Item>
     ) : (
-        <Dropdown.Item onClick={() => window.open(`https://nostr.band/${item.nEventId}`, '_blank')}>
+        <Dropdown.Item onClick={() => window.open(`https://nostr.band/${item.noteId}`, '_blank')}>
             nostr note
         </Dropdown.Item>
     )

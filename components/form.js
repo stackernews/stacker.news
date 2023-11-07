@@ -9,12 +9,12 @@ import Dropdown from 'react-bootstrap/Dropdown'
 import Nav from 'react-bootstrap/Nav'
 import Row from 'react-bootstrap/Row'
 import Markdown from '../svgs/markdown-line.svg'
+import AddImageIcon from '../svgs/image-add-line.svg'
 import styles from './form.module.css'
 import Text from '../components/text'
 import AddIcon from '../svgs/add-fill.svg'
-import { mdHas } from '../lib/md'
 import CloseIcon from '../svgs/close-line.svg'
-import { useLazyQuery } from '@apollo/client'
+import { gql, useLazyQuery } from '@apollo/client'
 import { TOP_USERS, USER_SEARCH } from '../fragments/users'
 import TextareaAutosize from 'react-textarea-autosize'
 import { useToast } from './toast'
@@ -24,6 +24,8 @@ import textAreaCaret from 'textarea-caret'
 import ReactDatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
 import { debounce } from './use-debounce-callback'
+import { ImageUpload } from './image'
+import { AWS_S3_URL_REGEXP } from '../lib/constants'
 
 export function SubmitButton ({
   children, variant, value, onClick, disabled, cost, ...props
@@ -93,12 +95,34 @@ export function InputSkeleton ({ label, hint }) {
 }
 
 const DEFAULT_MENTION_INDICES = { start: -1, end: -1 }
-export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setHasImgLink, onKeyDown, innerRef, ...props }) {
+export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKeyDown, innerRef, ...props }) {
   const [tab, setTab] = useState('write')
   const [, meta, helpers] = useField(props)
   const [selectionRange, setSelectionRange] = useState({ start: 0, end: 0 })
   innerRef = innerRef || useRef(null)
+  const imageUploadRef = useRef(null)
   const previousTab = useRef(tab)
+  const formik = useFormikContext()
+  const toaster = useToast()
+  const [updateImageFeesInfo] = useLazyQuery(gql`
+  query imageFeesInfo($s3Keys: [Int]!) {
+    imageFeesInfo(s3Keys: $s3Keys) {
+      totalFees
+      nUnpaid
+      imageFee
+      bytes24h
+    }
+  }`, {
+    fetchPolicy: 'no-cache',
+    nextFetchPolicy: 'no-cache',
+    onError: (err) => {
+      console.log(err)
+      toaster.danger(err.message || err.toString?.())
+    },
+    onCompleted: ({ imageFeesInfo }) => {
+      formik?.setFieldValue('imageFeesInfo', imageFeesInfo)
+    }
+  })
 
   props.as ||= TextareaAutosize
   props.rows ||= props.minRows || 6
@@ -137,11 +161,14 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
     innerRef.current.focus()
   }, [mentionIndices, innerRef, helpers?.setValue])
 
+  const imageFeesUpdate = useCallback(debounce(
+    (text) => {
+      const s3Keys = text ? [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1])) : []
+      updateImageFeesInfo({ variables: { s3Keys } })
+    }, 1000), [debounce, updateImageFeesInfo])
+
   const onChangeInner = useCallback((formik, e) => {
     if (onChange) onChange(formik, e)
-    if (setHasImgLink) {
-      setHasImgLink(mdHas(e.target.value, ['link', 'image']))
-    }
     // check for mention editing
     const { value, selectionStart } = e.target
     let priorSpace = -1
@@ -174,7 +201,9 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
       setMentionQuery(undefined)
       setMentionIndices(DEFAULT_MENTION_INDICES)
     }
-  }, [onChange, setHasImgLink, setMentionQuery, setMentionIndices, setUserSuggestDropdownStyle])
+
+    imageFeesUpdate(value)
+  }, [onChange, setMentionQuery, setMentionIndices, setUserSuggestDropdownStyle, imageFeesUpdate])
 
   const onKeyDownInner = useCallback((userSuggestOnKeyDown) => {
     return (e) => {
@@ -209,6 +238,22 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
     }
   }, [innerRef, helpers?.setValue, setSelectionRange, onKeyDown])
 
+  const onDrop = useCallback((event) => {
+    event.preventDefault()
+    setDragStyle(null)
+    const changeEvent = new Event('change', { bubbles: true })
+    imageUploadRef.current.files = event.dataTransfer.files
+    imageUploadRef.current.dispatchEvent(changeEvent)
+  }, [imageUploadRef])
+
+  const [dragStyle, setDragStyle] = useState(null)
+  const onDragEnter = useCallback((e) => {
+    setDragStyle('over')
+  }, [setDragStyle])
+  const onDragLeave = useCallback((e) => {
+    setDragStyle(null)
+  }, [setDragStyle])
+
   return (
     <FormGroup label={label} className={groupClassName}>
       <div className={`${styles.markdownInput} ${tab === 'write' ? styles.noTopLeftRadius : ''}`}>
@@ -219,12 +264,39 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
           <Nav.Item>
             <Nav.Link className={styles.previewTab} eventKey='preview' disabled={!meta.value}>preview</Nav.Link>
           </Nav.Item>
-          <a
-            className='ms-auto text-muted d-flex align-items-center'
-            href='https://guides.github.com/features/mastering-markdown/' target='_blank' rel='noreferrer'
-          >
-            <Markdown width={18} height={18} />
-          </a>
+          <span className='ms-auto text-muted d-flex align-items-center'>
+            <ImageUpload
+              multiple
+              ref={imageUploadRef}
+              className='d-flex align-items-center me-1'
+              onUpload={file => {
+                let text = innerRef.current.value
+                if (text) text += '\n\n'
+                text += `![Uploading ${file.name}…]()`
+                helpers.setValue(text)
+              }}
+              onSuccess={({ url, name }) => {
+                let text = innerRef.current.value
+                text = text.replace(`![Uploading ${name}…]()`, `![${name}](${url})`)
+                helpers.setValue(text)
+                const s3Keys = [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1]))
+                updateImageFeesInfo({ variables: { s3Keys } })
+              }}
+              onError={({ name }) => {
+                let text = innerRef.current.value
+                text = text.replace(`![Uploading ${name}…]()`, '')
+                helpers.setValue(text)
+              }}
+            >
+              <AddImageIcon width={18} height={18} />
+            </ImageUpload>
+            <a
+              className='d-flex align-items-center'
+              href='https://guides.github.com/features/mastering-markdown/' target='_blank' rel='noreferrer'
+            >
+              <Markdown width={18} height={18} />
+            </a>
+          </span>
         </Nav>
         <div className={`position-relative ${tab === 'write' ? '' : 'd-none'}`}>
           <UserSuggest
@@ -238,6 +310,10 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, setH
               onChange={onChangeInner}
               onKeyDown={onKeyDownInner(userSuggestOnKeyDown)}
               onBlur={() => setTimeout(resetSuggestions, 100)}
+              onDragEnter={onDragEnter}
+              onDragLeave={onDragLeave}
+              onDrop={onDrop}
+              className={dragStyle === 'over' ? styles.dragOver : ''}
             />)}
           </UserSuggest>
         </div>
@@ -675,6 +751,14 @@ export function Form ({
   const onSubmitInner = useCallback(async (values, ...args) => {
     try {
       if (onSubmit) {
+        // extract cost from formik fields
+        // (cost may also be set in a formik field named 'amount')
+        let cost = values?.cost || values?.amount
+        // add potential image fees which are set in a different field
+        // to differentiate between fees (in receipts for example)
+        cost += (values?.imageFeesInfo?.totalFees || 0)
+        values.cost = cost
+
         const options = await onSubmit(values, ...args)
         if (!storageKeyPrefix || options?.keepLocalStorage) return
         clearLocalStorage(values)

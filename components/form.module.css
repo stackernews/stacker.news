@@ -19,6 +19,10 @@
     height: auto;
 }
 
+.dragOver {
+    box-shadow: 0 0 10px var(--bs-info);
+}
+
 .appendButton {
     border-left: 0 !important;
     border-top-left-radius: 0;

@@ -7,6 +7,7 @@ const storage = new ServiceWorkerStorage('sw:storage', 1)
 // for communication between app and service worker
 // see https://developer.mozilla.org/en-US/docs/Web/API/MessageChannel
 let messageChannelPort
+let actionChannelPort
 
 // keep track of item ids where we received a MENTION notification already to not show one again
 const itemMentions = []
@@ -64,11 +65,11 @@ const mergeAndShowNotification = (sw, payload, currentNotification) => {
   const amount = currentNotification.data?.amount ? currentNotification.data.amount + 1 : 2
 
   let title = ''
-  const newData = {}
+  let newData = {}
   if (tag === 'REPLY') {
-    title = `You have ${amount} new replies`
+    title = `you have ${amount} new replies`
   } else if (tag === 'MENTION') {
-    title = `You were mentioned ${amount} times`
+    title = `you were mentioned ${amount} times`
   } else if (tag === 'REFERRAL') {
     title = `${amount} stackers joined via your referral links`
   } else if (tag === 'INVITE') {
@@ -79,6 +80,10 @@ const mergeAndShowNotification = (sw, payload, currentNotification) => {
     const newSats = currentSats + incomingSats
     title = `${numWithUnits(newSats, { abbreviate: false })} were deposited in your account`
     newData.sats = newSats
+  } else if (tag.split('-')[0] === 'FOLLOW') {
+    const { followeeName, subType } = incomingData
+    title = `@${followeeName} ${subType === 'POST' ? `created ${amount} posts` : `replied ${amount} times`}`
+    newData = incomingData
   }
 
   // close current notification before showing new one to "merge" notifications
@@ -99,14 +104,23 @@ export function onNotificationClick (sw) {
 
 export function onPushSubscriptionChange (sw) {
   // https://medium.com/@madridserginho/how-to-handle-webpush-api-pushsubscriptionchange-event-in-modern-browsers-6e47840d756f
-  return async (oldSubscription, newSubscription) => {
+  // `isSync` is passed if function was called because of 'SYNC_SUBSCRIPTION' event
+  // this makes sure we can differentiate between 'pushsubscriptionchange' events and our custom 'SYNC_SUBSCRIPTION' event
+  return async (event, isSync) => {
+    let { oldSubscription, newSubscription } = event
     // https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/pushsubscriptionchange_event
     // fallbacks since browser may not set oldSubscription and newSubscription
     messageChannelPort?.postMessage({ message: '[sw:handlePushSubscriptionChange] invoked' })
     oldSubscription ??= await storage.getItem('subscription')
     newSubscription ??= await sw.registration.pushManager.getSubscription()
     if (!newSubscription) {
-    // no subscription exists at the moment
+      if (isSync && oldSubscription) {
+        // service worker lost the push subscription somehow
+        messageChannelPort?.postMessage({ message: '[sw:handlePushSubscriptionChange] service worker lost subscription' })
+        actionChannelPort?.postMessage({ action: 'RESUBSCRIBE' })
+        return
+      }
+      // no subscription exists at the moment
       messageChannelPort?.postMessage({ message: '[sw:handlePushSubscriptionChange] no existing subscription found' })
       return
     }
@@ -144,6 +158,10 @@ export function onPushSubscriptionChange (sw) {
 
 export function onMessage (sw) {
   return (event) => {
+    if (event.data.action === 'ACTION_PORT') {
+      actionChannelPort = event.ports[0]
+      return
+    }
     if (event.data.action === 'MESSAGE_PORT') {
       messageChannelPort = event.ports[0]
     }
@@ -153,7 +171,10 @@ export function onMessage (sw) {
       return event.waitUntil(storage.setItem('subscription', event.data.subscription))
     }
     if (event.data.action === 'SYNC_SUBSCRIPTION') {
-      return event.waitUntil(onPushSubscriptionChange(sw)(event.oldSubscription, event.newSubscription))
+      return event.waitUntil(onPushSubscriptionChange(sw)(event, true))
+    }
+    if (event.data.action === 'DELETE_SUBSCRIPTION') {
+      return event.waitUntil(storage.removeItem('subscription'))
     }
   }
 }

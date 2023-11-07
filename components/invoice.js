@@ -231,10 +231,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
 
   // this function will be called before the Form's onSubmit handler is called
   // and the form must include `cost` or `amount` as a value
-  const onSubmitWrapper = useCallback(async (formValues, ...submitArgs) => {
-    let { cost, amount } = formValues
-    cost ??= amount
-
+  const onSubmitWrapper = useCallback(async ({ cost, ...formValues }, ...submitArgs) => {
     // action only allowed if logged in
     if (!me && options.requireSession) {
       throw new Error('you must be logged in')

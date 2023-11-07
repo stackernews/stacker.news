@@ -106,7 +106,7 @@ export default function JobForm ({ item, sub }) {
           <label className='form-label'>logo</label>
           <div className='position-relative' style={{ width: 'fit-content' }}>
             <Image
-              src={logoId ? `https://${process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET}.s3.amazonaws.com/${logoId}` : '/jobs-default.png'} width='135' height='135' roundedCircle
+              src={logoId ? `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}/${logoId}` : '/jobs-default.png'} width='135' height='135' roundedCircle
             />
             <Avatar onSuccess={setLogoId} />
           </div>

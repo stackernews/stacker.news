@@ -64,10 +64,10 @@ export function imgproxy ({ models }) {
     let imgproxyUrls = {}
     try {
       if (item.text) {
-        imgproxyUrls = await createImgproxyUrls(id, item.text, { forceFetch })
+        imgproxyUrls = await createImgproxyUrls(id, item.text, { models, forceFetch })
       }
       if (item.url && !isJob(item)) {
-        imgproxyUrls = { ...imgproxyUrls, ...(await createImgproxyUrls(id, item.url, { forceFetch })) }
+        imgproxyUrls = { ...imgproxyUrls, ...(await createImgproxyUrls(id, item.url, { models, forceFetch })) }
       }
     } catch (err) {
       console.log('[imgproxy] error:', err)
@@ -81,7 +81,7 @@ export function imgproxy ({ models }) {
   }
 }
 
-export const createImgproxyUrls = async (id, text, { forceFetch }) => {
+export const createImgproxyUrls = async (id, text, { models, forceFetch }) => {
   const urls = extractUrls(text)
   console.log('[imgproxy] id:', id, '-- extracted urls:', urls)
   // resolutions that we target:

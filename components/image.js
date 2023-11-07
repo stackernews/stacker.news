@@ -1,9 +1,13 @@
 import styles from './text.module.css'
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { Fragment, useState, useEffect, useMemo, useCallback, forwardRef, useRef } from 'react'
 import { IMGPROXY_URL_REGEXP } from '../lib/url'
 import { useShowModal } from './modal'
 import { useMe } from './me'
 import { Dropdown } from 'react-bootstrap'
+import { UPLOAD_TYPES_ALLOW } from '../lib/constants'
+import { useToast } from './toast'
+import gql from 'graphql-tag'
+import { useMutation } from '@apollo/client'
 
 export function decodeOriginalUrl (imgproxyUrl) {
   const parts = imgproxyUrl.split('/')
@@ -132,3 +136,99 @@ export default function ZoomableImage ({ src, srcSet, ...props }) {
 
   return <ImageOriginal src={originalUrl} onClick={handleClick} {...props} />
 }
+
+export const ImageUpload = forwardRef(({ children, className, onSelect, onUpload, onSuccess, onError, multiple, avatar }, ref) => {
+  const toaster = useToast()
+  ref ??= useRef(null)
+
+  const [getSignedPOST] = useMutation(
+    gql`
+      mutation getSignedPOST($type: String!, $size: Int!, $width: Int!, $height: Int!, $avatar: Boolean) {
+        getSignedPOST(type: $type, size: $size, width: $width, height: $height, avatar: $avatar) {
+          url
+          fields
+        }
+      }`)
+
+  const s3Upload = useCallback(file => {
+    const img = new window.Image()
+    img.src = window.URL.createObjectURL(file)
+    return new Promise((resolve, reject) => {
+      img.onload = async () => {
+        onUpload?.(file)
+        let data
+        const variables = {
+          avatar,
+          type: file.type,
+          size: file.size,
+          width: img.width,
+          height: img.height
+        }
+        try {
+          ({ data } = await getSignedPOST({ variables }))
+        } catch (e) {
+          toaster.danger(e.message || e.toString?.())
+          onError?.({ ...variables, name: file.name, file })
+          reject(e)
+          return
+        }
+
+        const form = new FormData()
+        Object.keys(data.getSignedPOST.fields).forEach(key => form.append(key, data.getSignedPOST.fields[key]))
+        form.append('Content-Type', file.type)
+        form.append('Cache-Control', 'max-age=31536000')
+        form.append('acl', 'public-read')
+        form.append('file', file)
+
+        const res = await fetch(data.getSignedPOST.url, {
+          method: 'POST',
+          body: form
+        })
+
+        if (!res.ok) {
+          // TODO make sure this is actually a helpful error message and does not expose anything to the user we don't want
+          const err = res.statusText
+          toaster.danger(err)
+          onError?.({ ...variables, name: file.name, file })
+          reject(err)
+          return
+        }
+
+        const url = `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}/${data.getSignedPOST.fields.key}`
+        // key is upload id in database
+        const id = data.getSignedPOST.fields.key
+        onSuccess?.({ ...variables, id, name: file.name, url, file })
+        resolve(id)
+      }
+    })
+  }, [toaster, getSignedPOST])
+
+  return (
+    <>
+      <input
+        ref={ref}
+        type='file'
+        multiple={multiple}
+        className='d-none'
+        accept={UPLOAD_TYPES_ALLOW.join(', ')}
+        onChange={async (e) => {
+          const fileList = e.target.files
+          for (const file of Array.from(fileList)) {
+            if (UPLOAD_TYPES_ALLOW.indexOf(file.type) === -1) {
+              toaster.danger(`image must be ${UPLOAD_TYPES_ALLOW.map(t => t.replace('image/', '')).join(', ')}`)
+              continue
+            }
+            if (onSelect) await onSelect?.(file, s3Upload)
+            else await s3Upload(file)
+            // reset file input
+            // see https://bobbyhadz.com/blog/react-reset-file-input#reset-a-file-input-in-react
+            e.target.value = null
+          }
+        }}
+      />
+      <div className={className} onClick={() => ref.current?.click()} style={{ cursor: 'pointer' }}>
+        {children}
+      </div>
+    </>
+  )
+})

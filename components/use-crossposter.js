@@ -5,12 +5,7 @@ import { DEFAULT_CROSSPOSTING_RELAYS, crosspost } from '../lib/nostr'
 import { useQuery } from '@apollo/client'
 import { SETTINGS } from '../fragments/users'
 
-async function discussionToEvent (item, publishedAt=null) {
-
-  if (!publishedAt) {
-    publishedAt = Math.floor(Date.now() / 1000)
-  }
-
+async function discussionToEvent (item) {
   return {
     created_at: Math.floor(Date.now() / 1000),
     kind: 30023,
@@ -18,7 +13,7 @@ async function discussionToEvent (item, publishedAt=null) {
     tags: [
       ['d', item.id.toString()],
       ['title', item.title],
-      ['published_at', publishedAt.toString()]
+      ['published_at', Math.floor(Date.now() / 1000).toString()]
     ]
   }
 }

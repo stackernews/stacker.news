@@ -25,7 +25,6 @@ export default function ItemInfo ({
   commentTextSingular = 'comment', className, embellishUser, extraInfo, onEdit, editText,
   onQuoteReply, nofollow
 }) {
-  console.log('item', item)
   const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
   const me = useMe()
   const router = useRouter()
@@ -146,7 +145,7 @@ export default function ItemInfo ({
           </Link>}
         {me && !item.meSats && !item.position &&
           !item.mine && !item.deletedAt && <DontLikeThisDropdownItem id={item.id} />}
-        {me && <CrosspostDropdownItem item={item} />}
+        {me && !item.pollCost && !item.url && !item.bounty && <CrosspostDropdownItem item={item} />}
         {item.mine && !item.position && !item.deletedAt &&
           <DeleteDropdownItem itemId={item.id} type={item.title ? 'post' : 'comment'} />}
         {me && !item.mine &&

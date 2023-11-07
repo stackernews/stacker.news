@@ -27,7 +27,6 @@ export default function ItemInfo ({
   commentTextSingular = 'comment', className, embellishUser, extraInfo, onEdit, editText,
   onQuoteReply, nofollow, extraBadges, nested, pinnable
 }) {
-  console.log('item', item)
   const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
   const me = useMe()
   const router = useRouter()

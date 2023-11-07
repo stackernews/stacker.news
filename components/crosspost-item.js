@@ -31,8 +31,7 @@ export default function CrosspostDropdownItem({ item }) {
 
                 try {
                     if (item?.id) {
-                        const createdAt = Math.floor(Date.now() / 1000)
-                        const crosspostResult = await crossposter({ ...data.item, createdAt: createdAt })
+                        const crosspostResult = await crossposter({ ...data.item })
                         const eventId = crosspostResult?.eventId;
                         if (eventId) {
                             await upsertDiscussion({

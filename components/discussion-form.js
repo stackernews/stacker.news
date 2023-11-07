@@ -98,16 +98,12 @@ export function DiscussionForm ({
         toaster.danger('Error crossposting to Nostr', e.message)
       }
       
-      // If crossposting was successful, save the event id
       if (eventId) {
         await upsertDiscussion({
           variables: {
-            sub: item?.subName || sub?.name,
             id: discussionId,
-            boost: boost ? Number(boost) : undefined,
             ...values,
             forward: normalizeForwards(values.forward),
-            crosspost: true,
             noteId: eventId
           }
         })

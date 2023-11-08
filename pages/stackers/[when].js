@@ -69,10 +69,10 @@ export const getServerSideProps = getGetServerSideProps({ query: GROWTH_QUERY })
 
 export default function Growth ({ ssrData }) {
   const router = useRouter()
-  const { when } = router.query
+  const { when, from, to } = router.query
   const avg = ['year', 'forever'].includes(when) ? 'avg daily ' : ''
 
-  const { data } = useQuery(GROWTH_QUERY, { variables: { when } })
+  const { data } = useQuery(GROWTH_QUERY, { variables: { when, from, to } })
   if (!data && !ssrData) return <PageLoading />
 
   const { registrationGrowth, itemGrowth, spendingGrowth, spenderGrowth, stackingGrowth, stackerGrowth } = data || ssrData

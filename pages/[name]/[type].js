@@ -3,11 +3,11 @@ import Items from '../../components/items'
 import { useRouter } from 'next/router'
 import { USER, USER_WITH_ITEMS } from '../../fragments/users'
 import { useQuery } from '@apollo/client'
-import { COMMENT_TYPE_QUERY, ITEM_SORTS, ITEM_TYPES, WHENS_CUSTOM as WHENS } from '../../lib/constants'
+import { COMMENT_TYPE_QUERY, ITEM_SORTS, ITEM_TYPES, WHENS } from '../../lib/constants'
 import PageLoading from '../../components/page-loading'
 import { UserLayout } from '.'
 import { Form, Select, DatePicker } from '../../components/form'
-import { useState } from 'react'
+import { dayMonthYear, whenToFrom } from '../../lib/time'
 
 const staticVariables = { sort: 'user' }
 const variablesFunc = vars => ({
@@ -64,21 +64,14 @@ function UserItemsHeader ({ type, name }) {
   type ||= router.query.type || 'all'
   const by = router.query.by || 'recent'
   const when = router.query.when || 'forever'
-  const from = router.query.from || new Date().toISOString()
-  const to = router.query.to || new Date().toISOString()
-
-  const [datePicker, setDatePicker] = useState(when === 'custom' && router.query.when === 'custom')
-  // The following state is needed for the date picker (and driven by the date picker).
-  // Substituting router.query or formik values would cause network lag and/or timezone issues.
-  const [range, setRange] = useState({ start: new Date(from), end: new Date(to) })
 
   return (
     <Form
-      initial={{ type, by, when }}
+      initial={{ type, by, when, from: '', to: '' }}
       onSubmit={select}
     >
       <div className='text-muted fw-bold mt-0 mb-3 d-flex justify-content-start align-items-center flex-wrap'>
-        <div className='text-muted fw-bold mt-0 mb-3 d-flex justify-content-start align-items-center'>
+        <div className='text-muted fw-bold mt-0 mb-2 d-flex justify-content-start align-items-center'>
           <Select
             groupClassName='mb-0 me-2'
             className='w-auto'
@@ -107,30 +100,21 @@ function UserItemsHeader ({ type, name }) {
             items={WHENS}
             overrideValue={when}
             onChange={(formik, e) => {
-              select({ ...formik?.values, when: e.target.value, from: from || new Date().toISOString(), to: to || new Date().toISOString() })
-              setDatePicker(e.target.value === 'custom')
-              if (e.target.value === 'custom') setRange({ start: new Date(), end: new Date() })
+              const range = e.target.value === 'custom' ? { from: whenToFrom(when), to: dayMonthYear(new Date()) } : {}
+              select({ ...formik?.values, when: e.target.value, ...range })
             }}
           />
         </div>
-        {datePicker &&
+        {when === 'custom' &&
           <DatePicker
             fromName='from' toName='to'
-            className='form-control p-0 px-2 mb-3 text-center'
-            onMount={() => {
-              setRange({ start: new Date(from), end: new Date(to) })
-              return [from, to]
+            className='p-0 px-2 mb-2'
+            onChange={(formik, [from, to], e) => {
+              select({ ...formik?.values, from, to })
             }}
-            onChange={(formik, [start, end], e) => {
-              setRange({ start, end })
-              select({ ...formik?.values, from: start && start.toISOString(), to: end && end.toISOString() })
-            }}
-            selected={range.start}
-            startDate={range.start} endDate={range.end}
-            selectsRange
-            dateFormat='MM/dd/yy'
-            maxDate={new Date()}
-            minDate={new Date('2021-05-01')}
+            from={router.query.from}
+            to={router.query.to}
+            when={when}
           />}
       </div>
     </Form>

@@ -2,7 +2,7 @@ import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
 import BootstrapForm from 'react-bootstrap/Form'
 import { Formik, Form as FormikForm, useFormikContext, useField, FieldArray } from 'formik'
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import copy from 'clipboard-copy'
 import Col from 'react-bootstrap/Col'
 import Dropdown from 'react-bootstrap/Dropdown'
@@ -26,13 +26,16 @@ import 'react-datepicker/dist/react-datepicker.css'
 import { debounce } from './use-debounce-callback'
 import { ImageUpload } from './image'
 import { AWS_S3_URL_REGEXP } from '../lib/constants'
+import { dayMonthYear, dayMonthYearToDate, whenToFrom } from '../lib/time'
 
 export function SubmitButton ({
   children, variant, value, onClick, disabled, cost, ...props
 }) {
   const formik = useFormikContext()
   useEffect(() => {
-    formik?.setFieldValue('cost', cost)
+    if (cost) {
+      formik?.setFieldValue('cost', cost)
+    }
   }, [formik?.setFieldValue, formik?.getFieldProps('cost').value, cost])
 
   return (
@@ -712,7 +715,8 @@ export function Checkbox ({ children, label, groupClassName, hiddenLabel, extra,
 const StorageKeyPrefixContext = createContext()
 
 export function Form ({
-  initial, schema, onSubmit, children, initialError, validateImmediately, storageKeyPrefix, validateOnChange = true, invoiceable, innerRef, ...props
+  initial, schema, onSubmit, children, initialError, validateImmediately,
+  storageKeyPrefix, validateOnChange = true, invoiceable, innerRef, ...props
 }) {
   const toaster = useToast()
   const initialErrorToasted = useRef(false)
@@ -754,10 +758,12 @@ export function Form ({
         // extract cost from formik fields
         // (cost may also be set in a formik field named 'amount')
         let cost = values?.cost || values?.amount
-        // add potential image fees which are set in a different field
-        // to differentiate between fees (in receipts for example)
-        cost += (values?.imageFeesInfo?.totalFees || 0)
-        values.cost = cost
+        if (cost) {
+          // add potential image fees which are set in a different field
+          // to differentiate between fees (in receipts for example)
+          cost += (values?.imageFeesInfo?.totalFees || 0)
+          values.cost = cost
+        }
 
         const options = await onSubmit(values, ...args)
         if (!storageKeyPrefix || options?.keepLocalStorage) return
@@ -814,7 +820,7 @@ export function Select ({ label, items, groupClassName, onChange, noForm, overri
         }}
         isInvalid={invalid}
       >
-        {items.map(item => <option key={item}>{item}</option>)}
+        {items?.map(item => <option key={item}>{item}</option>)}
       </BootstrapForm.Select>
       <BootstrapForm.Control.Feedback type='invalid'>
         {meta.touched && meta.error}
@@ -823,9 +829,47 @@ export function Select ({ label, items, groupClassName, onChange, noForm, overri
   )
 }
 
-export function DatePicker ({ fromName, toName, noForm, onMount, ...props }) {
+export function DatePicker ({ fromName, toName, noForm, onChange, when, from, to, className, ...props }) {
   const formik = noForm ? null : useFormikContext()
-  const onChangeHandler = props.onChange
+  const [,, fromHelpers] = noForm ? [{}, {}, {}] : useField({ ...props, name: fromName })
+  const [,, toHelpers] = noForm ? [{}, {}, {}] : useField({ ...props, name: toName })
+  const { minDate, maxDate } = props
+
+  const [{ innerFrom, innerTo }, setRange] = useState({
+    innerFrom: from || whenToFrom(when),
+    innerTo: to || dayMonthYear(new Date())
+  })
+
+  useEffect(() => {
+    const tfrom = from || whenToFrom(when)
+    const tto = to || dayMonthYear(new Date())
+    setRange({ innerFrom: tfrom, innerTo: tto })
+    if (!noForm) {
+      fromHelpers.setValue(tfrom)
+      toHelpers.setValue(tto)
+    }
+  }, [when, from, to])
+
+  const dateFormat = useMemo(() => {
+    const now = new Date(2013, 11, 31)
+    let str = now.toLocaleDateString()
+    str = str.replace('31', 'dd')
+    str = str.replace('12', 'MM')
+    str = str.replace('2013', 'yy')
+    return str
+  }, [])
+
+  const innerOnChange = ([from, to], e) => {
+    from = dayMonthYear(from)
+    to = to ? dayMonthYear(to) : undefined
+    setRange({ innerFrom: from, innerTo: to })
+    if (!noForm) {
+      fromHelpers.setValue(from)
+      toHelpers.setValue(to)
+    }
+    onChange(formik, [from, to], e)
+  }
+
   const onChangeRawHandler = (e) => {
     // raw user data can be incomplete while typing, so quietly bail on exceptions
     try {
@@ -833,48 +877,33 @@ export function DatePicker ({ fromName, toName, noForm, onMount, ...props }) {
       const dates = dateStrings.map(s => new Date(s))
       let [from, to] = dates
       if (from) {
-        if (props.minDate) from = new Date(Math.max(from, props.minDate))
+        if (minDate) from = new Date(Math.max(from, minDate))
         try {
-          if (props.maxDate) to = new Date(Math.min(to, props.maxDate))
+          if (maxDate) to = new Date(Math.min(to, maxDate))
 
           // if end date isn't valid, set it to the start date
           if (!(to instanceof Date && !isNaN(to)) || to < from) to = from
         } catch {
           to = from
         }
-        if (!noForm) {
-          fromHelpers.setValue(from?.toISOString())
-          toHelpers.setValue(to?.toISOString())
-        }
-        onChangeHandler(formik, [from, to], e)
+        innerOnChange([from, to], e)
       }
     } catch { }
   }
-  const [,, fromHelpers] = noForm ? [{}, {}, {}] : useField({ ...props, name: fromName })
-  const [,, toHelpers] = noForm ? [{}, {}, {}] : useField({ ...props, name: toName })
-
-  useEffect(() => {
-    if (onMount) {
-      const [from, to] = onMount()
-      if (!noForm) {
-        fromHelpers.setValue(from)
-        toHelpers.setValue(to)
-      }
-    }
-  }, [])
 
   return (
     <ReactDatePicker
+      className={`form-control text-center ${className}`}
+      selectsRange
+      maxDate={new Date()}
+      minDate={new Date('2021-05-01')}
       {...props}
-      onBlur={onChangeRawHandler}
+      selected={dayMonthYearToDate(innerFrom)}
+      startDate={dayMonthYearToDate(innerFrom)}
+      endDate={innerTo ? dayMonthYearToDate(innerTo) : undefined}
+      dateFormat={dateFormat}
       onChangeRaw={onChangeRawHandler}
-      onChange={([from, to], e) => {
-        if (!noForm) {
-          fromHelpers.setValue(from?.toISOString())
-          toHelpers.setValue(to?.toISOString())
-        }
-        onChangeHandler(formik, [from, to], e)
-      }}
+      onChange={innerOnChange}
     />
   )
 }

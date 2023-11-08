@@ -18,7 +18,7 @@ import { advSchema, amountSchema, bountySchema, commentSchema, discussionSchema,
 import { sendUserNotification } from '../webPush'
 import { defaultCommentSort, isJob, deleteItemByAuthor, getDeleteCommand, hasDeleteCommand } from '../../lib/item'
 import { notifyItemParents, notifyUserSubscribers, notifyZapped } from '../../lib/push-notifications'
-import { datePivot } from '../../lib/time'
+import { datePivot, dayMonthYearToDate, whenToFrom } from '../../lib/time'
 import { imageFeesInfo, uploadIdsFromText } from './image'
 
 export async function commentFilterClause (me, models) {
@@ -196,30 +196,16 @@ export const whereClause = (...clauses) => {
 }
 
 function whenClause (when, table) {
-  return (when === 'forever')
-    ? `"${table}".created_at <= $2`
-    : `"${table}".created_at <= $2 and "${table}".created_at >= $1`
+  return `"${table}".created_at <= $2 and "${table}".created_at >= $1`
 }
 
-function whenStart (when, origin, custom) {
+export function whenRange (when, from, to = new Date()) {
   switch (when) {
     case 'custom':
-      return custom
-    case 'forever':
-      return origin // unused, but a date type needs to be returned
-    case 'week':
-      return datePivot(origin, { days: -7 })
-    case 'month':
-      return datePivot(origin, { months: -1 })
-    case 'year':
-      return datePivot(origin, { years: -1 })
+      return [new Date(from), new Date(to)]
     default:
-      return datePivot(origin, { days: -1 })
+      return [dayMonthYearToDate(whenToFrom(when)), new Date(to)]
   }
-}
-
-function whenEnd (when, origin, custom) {
-  return when === 'custom' ? custom : origin
 }
 
 const activeOrMine = (me) => {
@@ -360,7 +346,6 @@ export default {
               ${relationClause(type)}
               ${whereClause(
                 `"${table}"."userId" = $3`,
-                subClause(sub, 5, subClauseTable(type)),
                 activeOrMine(me),
                 await filterClause(me, models, type),
                 typeClause(type),
@@ -369,7 +354,7 @@ export default {
               OFFSET $4
               LIMIT $5`,
             orderBy: orderByClause(by, me, models, type)
-          }, whenStart(when, decodedCursor.time, new Date(from)), whenEnd(when, decodedCursor.time, new Date(to)), user.id, decodedCursor.offset, limit, ...subArr)
+          }, ...whenRange(when, from, to || decodedCursor.time), user.id, decodedCursor.offset, limit)
           break
         case 'recent':
           items = await itemQueryWithMeta({
@@ -403,19 +388,18 @@ export default {
               ${relationClause(type)}
               ${joinZapRankPersonalView(me, models)}
               ${whereClause(
-                '"Item".created_at <= $1',
                 '"Item"."pinId" IS NULL',
                 '"Item"."deletedAt" IS NULL',
-                subClause(sub, 4, subClauseTable(type)),
+                subClause(sub, 5, subClauseTable(type)),
                 typeClause(type),
-                whenClause(when, type),
+                whenClause(when, 'Item'),
                 await filterClause(me, models, type),
                 muteClause(me))}
               ORDER BY rank DESC
-              OFFSET $2
-              LIMIT $3`,
+              OFFSET $3
+              LIMIT $4`,
               orderBy: 'ORDER BY rank DESC'
-            }, decodedCursor.time, decodedCursor.offset, limit, ...subArr)
+            }, ...whenRange(when, from, to || decodedCursor.time), decodedCursor.offset, limit, ...subArr)
           } else {
             items = await itemQueryWithMeta({
               me,
@@ -426,7 +410,7 @@ export default {
               ${whereClause(
                 '"Item"."pinId" IS NULL',
                 '"Item"."deletedAt" IS NULL',
-                subClause(sub, 4, subClauseTable(type)),
+                subClause(sub, 5, subClauseTable(type)),
                 typeClause(type),
                 whenClause(when, 'Item'),
                 await filterClause(me, models, type),
@@ -435,7 +419,7 @@ export default {
               OFFSET $3
               LIMIT $4`,
               orderBy: orderByClause(by || 'zaprank', me, models, type)
-            }, whenStart(when, decodedCursor.time, new Date(from)), whenEnd(when, decodedCursor.time, new Date(to)), decodedCursor.offset, limit, ...subArr)
+            }, ...whenRange(when, from, to || decodedCursor.time), decodedCursor.offset, limit, ...subArr)
           }
           break
         default:
@@ -1055,7 +1039,7 @@ export const createMentions = async (item, models) => {
       })
     }
   } catch (e) {
-    console.log('mention failure', e)
+    console.error('mention failure', e)
   }
 }
 

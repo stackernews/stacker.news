@@ -7,10 +7,10 @@ import { CenterLayout } from '../../components/layout'
 import { useMe } from '../../components/me'
 import { useQuery } from '@apollo/client'
 import PageLoading from '../../components/page-loading'
-import { WHENS_CUSTOM as WHENS } from '../../lib/constants'
+import { WHENS } from '../../lib/constants'
 import dynamic from 'next/dynamic'
 import { numWithUnits } from '../../lib/format'
-import { useState } from 'react'
+import { dayMonthYear, whenToFrom } from '../../lib/time'
 
 const WhenComposedChart = dynamic(() => import('../../components/charts').then(mod => mod.WhenComposedChart), {
   loading: () => <div>Loading...</div>
@@ -56,13 +56,6 @@ export default function Referrals ({ ssrData }) {
   const { referrals: { totalSats, totalReferrals, stats } } = data || ssrData
 
   const when = router.query.when
-  const from = router.query.from || new Date().toISOString()
-  const to = router.query.to || new Date().toISOString()
-
-  const [datePicker, setDatePicker] = useState(when === 'custom' && router.query.when === 'custom')
-  // The following state is needed for the date picker (and driven by the date picker).
-  // Substituting router.query or formik values would cause network lag and/or timezone issues.
-  const [range, setRange] = useState({ start: new Date(from), end: new Date(to) })
 
   return (
     <CenterLayout footerLinks>
@@ -78,31 +71,23 @@ export default function Referrals ({ ssrData }) {
             value={router.query.when || 'day'}
             noForm
             onChange={(formik, e) => {
-              select({ ...formik?.values, when: e.target.value, from: from || new Date().toISOString(), to: to || new Date().toISOString() })
-              setDatePicker(e.target.value === 'custom')
-              if (e.target.value === 'custom') setRange({ start: new Date(), end: new Date() })
+              const range = e.target.value === 'custom' ? { from: whenToFrom(when), to: dayMonthYear(new Date()) } : {}
+              select({ when: e.target.value, ...range })
             }}
           />
         </h4>
-        {datePicker &&
+        {when === 'custom' &&
           <DatePicker
             noForm
-            fromName='from' toName='to'
-            className='form-control p-0 px-2 mb-2 text-center'
-            onMount={() => {
-              setRange({ start: new Date(from), end: new Date(to) })
-              return [from, to]
+            fromName='from'
+            toName='to'
+            className='p-0 px-2 mb-2'
+            onChange={(formik, [from, to], e) => {
+              select({ when, from, to })
             }}
-            onChange={(formik, [start, end], e) => {
-              setRange({ start, end })
-              select({ ...formik?.values, when, from: start && start.toISOString(), to: end && end.toISOString() })
-            }}
-            selected={range.start}
-            startDate={range.start} endDate={range.end}
-            selectsRange
-            dateFormat='MM/dd/yy'
-            maxDate={new Date()}
-            minDate={new Date('2021-05-01')}
+            from={router.query.from}
+            to={router.query.to}
+            when={router.query.when}
           />}
       </div>
       <WhenComposedChart data={stats} lineNames={['sats']} barNames={['referrals']} barAxis='right' />

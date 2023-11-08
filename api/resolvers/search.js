@@ -1,5 +1,6 @@
 import { ITEM_FILTER_THRESHOLD } from '../../lib/constants'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
+import { whenToFrom } from '../../lib/time'
 import { getItem } from './item'
 
 const STOP_WORDS = ['a', 'an', 'and', 'are', 'as', 'at', 'be', 'but',
@@ -124,20 +125,25 @@ export default {
       switch (sort) {
         case 'recent':
           sortArr.push({ createdAt: 'desc' })
+          sortArr.push('_score')
           break
         case 'comments':
           sortArr.push({ ncomments: 'desc' })
+          sortArr.push('_score')
           break
         case 'sats':
           sortArr.push({ sats: 'desc' })
+          sortArr.push('_score')
           break
         case 'match':
+          sortArr.push('_score')
+          sortArr.push({ wvotes: 'desc' })
           break
         default:
           sortArr.push({ wvotes: 'desc' })
+          sortArr.push('_score')
           break
       }
-      sortArr.push('_score')
 
       if (query.length) {
         whatArr.push({
@@ -181,32 +187,14 @@ export default {
         })
       }
 
-      let whenGte
-      switch (when) {
-        case 'day':
-          whenGte = 'now-1d'
-          break
-        case 'week':
-          whenGte = 'now-7d'
-          break
-        case 'month':
-          whenGte = 'now-30d'
-          break
-        case 'year':
-          whenGte = 'now-365d'
-          break
-        default:
-          break
-      }
-
       const whenRange = when === 'custom'
         ? {
-            gte: new Date(whenFrom),
+            gte: whenFrom,
             lte: new Date(Math.min(new Date(whenTo), decodedCursor.time))
           }
         : {
             lte: decodedCursor.time,
-            gte: whenGte
+            gte: whenToFrom(when)
           }
 
       try {

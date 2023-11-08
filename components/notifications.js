@@ -78,9 +78,9 @@ const defaultOnClick = n => {
   if (type === 'Earn') {
     let href = '/rewards/'
     if (n.minSortTime !== n.sortTime) {
-      href += `${new Date(n.minSortTime).toISOString().slice(0, 10)}/`
+      href += `${dayMonthYear(new Date(n.minSortTime))}/`
     }
-    href += new Date(n.sortTime).toISOString().slice(0, 10)
+    href += dayMonthYear(new Date(n.sortTime))
     return { href }
   }
   if (type === 'Invitification') return { href: '/invites' }

@@ -114,8 +114,11 @@ export function onPushSubscriptionChange (sw) {
     oldSubscription ??= await storage.getItem('subscription')
     newSubscription ??= await sw.registration.pushManager.getSubscription()
     if (!newSubscription) {
-      if (isSync && oldSubscription) {
-        // service worker lost the push subscription somehow
+      if (isSync && oldSubscription?.swVersion === 2) {
+        // service worker lost the push subscription somehow, we assume this is a bug -> resubscribe
+        // see https://github.com/stackernews/stacker.news/issues/411#issuecomment-1790675861
+        // NOTE: this is only run on IndexedDB subscriptions stored under service worker version 2 since this is not backwards compatible
+        // see discussion in https://github.com/stackernews/stacker.news/pull/597
         messageChannelPort?.postMessage({ message: '[sw:handlePushSubscriptionChange] service worker lost subscription' })
         actionChannelPort?.postMessage({ action: 'RESUBSCRIBE' })
         return
@@ -168,7 +171,7 @@ export function onMessage (sw) {
     messageChannelPort?.postMessage({ message: '[sw:message] received message', context: { action: event.data.action } })
     if (event.data.action === 'STORE_SUBSCRIPTION') {
       messageChannelPort?.postMessage({ message: '[sw:message] storing subscription in IndexedDB', context: { endpoint: event.data.subscription.endpoint } })
-      return event.waitUntil(storage.setItem('subscription', event.data.subscription))
+      return event.waitUntil(storage.setItem('subscription', { ...event.data.subscription, swVersion: 2 }))
     }
     if (event.data.action === 'SYNC_SUBSCRIPTION') {
       return event.waitUntil(onPushSubscriptionChange(sw)(event, true))

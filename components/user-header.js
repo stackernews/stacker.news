@@ -71,15 +71,10 @@ function HeaderPhoto ({ user, isMe }) {
             }
           }
         })
-      },
-      onCompleted ({ setPhoto: photoId }) {
-        const src = `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}/${user.photoId}`
-        setSrc(src)
       }
     }
   )
-  const initialSrc = user.photoId ? `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}/${user.photoId}` : '/dorian400.jpg'
-  const [src, setSrc] = useState(initialSrc)
+  const src = user.photoId ? `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}/${user.photoId}` : '/dorian400.jpg'
 
   return (
     <div className='position-relative align-self-start' style={{ width: 'fit-content' }}>

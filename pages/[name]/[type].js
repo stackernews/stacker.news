@@ -48,10 +48,6 @@ function UserItemsHeader ({ type, name }) {
     if (!type || type === 'all' || !ITEM_TYPES('user').includes(type)) type = 'all'
     if (!query.by || query.by === 'recent' || !ITEM_SORTS.includes(query.by)) delete query.by
     if (!query.when || query.when === 'forever' || !WHENS.includes(query.when) || query.when === 'forever') delete query.when
-    if (!query.when === 'custom') {
-      delete query.from
-      delete query.to
-    }
     if (query.when !== 'custom') { delete query.from; delete query.to }
     if (query.from && !query.to) return
 

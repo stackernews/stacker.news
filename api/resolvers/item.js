@@ -18,7 +18,7 @@ import { advSchema, amountSchema, bountySchema, commentSchema, discussionSchema,
 import { sendUserNotification } from '../webPush'
 import { defaultCommentSort, isJob, deleteItemByAuthor, getDeleteCommand, hasDeleteCommand } from '../../lib/item'
 import { notifyItemParents, notifyUserSubscribers, notifyZapped } from '../../lib/push-notifications'
-import { datePivot } from '../../lib/time'
+import { datePivot, dayMonthYearToDate, whenToFrom } from '../../lib/time'
 import { imageFeesInfo, uploadIdsFromText } from './image'
 
 export async function commentFilterClause (me, models) {
@@ -195,26 +195,17 @@ export const whereClause = (...clauses) => {
   return clause ? ` WHERE ${clause} ` : ''
 }
 
-function whenClause (when, type) {
-  let interval = `"${type === 'bookmarks' ? 'Bookmark' : 'Item'}".created_at >= $1 - INTERVAL `
+function whenClause (when, table) {
+  return `"${table}".created_at <= $2 and "${table}".created_at >= $1`
+}
+
+export function whenRange (when, from, to = new Date()) {
   switch (when) {
-    case 'forever':
-      interval = ''
-      break
-    case 'week':
-      interval += "'7 days'"
-      break
-    case 'month':
-      interval += "'1 month'"
-      break
-    case 'year':
-      interval += "'1 year'"
-      break
+    case 'custom':
+      return [new Date(from), new Date(to)]
     default:
-      interval += "'1 day'"
-      break
+      return [dayMonthYearToDate(whenToFrom(when)), new Date(to)]
   }
-  return interval
 }
 
 const activeOrMine = (me) => {
@@ -309,7 +300,7 @@ export default {
 
       return count
     },
-    items: async (parent, { sub, sort, type, cursor, name, when, by, limit = LIMIT }, { me, models }) => {
+    items: async (parent, { sub, sort, type, cursor, name, when, from, to, by, limit = LIMIT }, { me, models }) => {
       const decodedCursor = decodeCursor(cursor)
       let items, user, pins, subFull, table
 
@@ -354,18 +345,16 @@ export default {
               ${selectClause(type)}
               ${relationClause(type)}
               ${whereClause(
-                `"${table}"."userId" = $2`,
-                `"${table}".created_at <= $1`,
-                subClause(sub, 5, subClauseTable(type)),
+                `"${table}"."userId" = $3`,
                 activeOrMine(me),
                 await filterClause(me, models, type),
                 typeClause(type),
-                whenClause(when || 'forever', type))}
+                whenClause(when || 'forever', table))}
               ${orderByClause(by, me, models, type)}
-              OFFSET $3
-              LIMIT $4`,
+              OFFSET $4
+              LIMIT $5`,
             orderBy: orderByClause(by, me, models, type)
-          }, decodedCursor.time, user.id, decodedCursor.offset, limit, ...subArr)
+          }, ...whenRange(when, from, to || decodedCursor.time), user.id, decodedCursor.offset, limit)
           break
         case 'recent':
           items = await itemQueryWithMeta({
@@ -399,19 +388,18 @@ export default {
               ${relationClause(type)}
               ${joinZapRankPersonalView(me, models)}
               ${whereClause(
-                '"Item".created_at <= $1',
                 '"Item"."pinId" IS NULL',
                 '"Item"."deletedAt" IS NULL',
-                subClause(sub, 4, subClauseTable(type)),
+                subClause(sub, 5, subClauseTable(type)),
                 typeClause(type),
-                whenClause(when, type),
+                whenClause(when, 'Item'),
                 await filterClause(me, models, type),
                 muteClause(me))}
               ORDER BY rank DESC
-              OFFSET $2
-              LIMIT $3`,
+              OFFSET $3
+              LIMIT $4`,
               orderBy: 'ORDER BY rank DESC'
-            }, decodedCursor.time, decodedCursor.offset, limit, ...subArr)
+            }, ...whenRange(when, from, to || decodedCursor.time), decodedCursor.offset, limit, ...subArr)
           } else {
             items = await itemQueryWithMeta({
               me,
@@ -420,19 +408,18 @@ export default {
               ${selectClause(type)}
               ${relationClause(type)}
               ${whereClause(
-                '"Item".created_at <= $1',
                 '"Item"."pinId" IS NULL',
                 '"Item"."deletedAt" IS NULL',
-                subClause(sub, 4, subClauseTable(type)),
+                subClause(sub, 5, subClauseTable(type)),
                 typeClause(type),
-                whenClause(when, type),
+                whenClause(when, 'Item'),
                 await filterClause(me, models, type),
                 muteClause(me))}
               ${orderByClause(by || 'zaprank', me, models, type)}
-              OFFSET $2
-              LIMIT $3`,
+              OFFSET $3
+              LIMIT $4`,
               orderBy: orderByClause(by || 'zaprank', me, models, type)
-            }, decodedCursor.time, decodedCursor.offset, limit, ...subArr)
+            }, ...whenRange(when, from, to || decodedCursor.time), decodedCursor.offset, limit, ...subArr)
           }
           break
         default:
@@ -565,16 +552,24 @@ export default {
     },
     dupes: async (parent, { url }, { me, models }) => {
       const urlObj = new URL(ensureProtocol(url))
-      let uri = urlObj.hostname + '(:[0-9]+)?' + urlObj.pathname
-      uri = uri.endsWith('/') ? uri.slice(0, -1) : uri
+      let { hostname, pathname } = urlObj
 
+      hostname = hostname + '(:[0-9]+)?'
       const parseResult = parse(urlObj.hostname)
       if (parseResult?.subdomain?.length) {
         const { subdomain } = parseResult
-        uri = uri.replace(subdomain, '(%)?')
+        hostname = hostname.replace(subdomain, '(%)?')
       } else {
-        uri = `(%.)?${uri}`
+        hostname = `(%.)?${hostname}`
       }
+
+      // escape postgres regex meta characters
+      pathname = pathname.replace(/\+/g, '\\+')
+      pathname = pathname.replace(/%/g, '\\%')
+      pathname = pathname.replace(/_/g, '\\_')
+
+      let uri = hostname + pathname
+      uri = uri.endsWith('/') ? uri.slice(0, -1) : uri
 
       let similar = `(http(s)?://)?${uri}/?`
       const whitelist = ['news.ycombinator.com/item', 'bitcointalk.org/index.php']
@@ -1052,7 +1047,7 @@ export const createMentions = async (item, models) => {
       })
     }
   } catch (e) {
-    console.log('mention failure', e)
+    console.error('mention failure', e)
   }
 }
 

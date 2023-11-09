@@ -22,6 +22,11 @@ import HiddenWalletSummary from '../components/hidden-wallet-summary'
 import AccordianItem from '../components/accordian-item'
 import { lnAddrOptions } from '../lib/lnurl'
 import useDebounceCallback from '../components/use-debounce-callback'
+import { QrScanner } from '@yudiel/react-qr-scanner'
+import CameraIcon from '../svgs/camera-line.svg'
+import { useShowModal } from '../components/modal'
+import { useField } from 'formik'
+import { useToast } from '../components/toast'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -239,6 +244,7 @@ export function InvWithdrawal () {
           required
           autoFocus
           clear
+          append={<InvoiceScanner fieldName='invoice' />}
         />
         <Input
           label='max fee'
@@ -249,6 +255,40 @@ export function InvWithdrawal () {
         <SubmitButton variant='success' className='mt-2'>withdraw</SubmitButton>
       </Form>
     </>
+  )
+}
+
+function InvoiceScanner ({ fieldName }) {
+  const showModal = useShowModal()
+  const [,, helpers] = useField(fieldName)
+  const toaster = useToast()
+  return (
+    <InputGroup.Text
+      style={{ cursor: 'pointer' }}
+      onClick={() => {
+        showModal(onClose => {
+          return (
+            <QrScanner
+              onDecode={(result) => {
+                helpers.setValue(result.replace(/^lightning:/, '').toLowerCase())
+                onClose()
+              }}
+              onError={(error) => {
+                if (error instanceof DOMException) {
+                  console.log(error)
+                } else {
+                  toaster.danger(error?.message || error?.toString?.())
+                }
+              }}
+            />
+          )
+        })
+      }}
+    >
+      <CameraIcon
+        height={20} width={20} fill='var(--bs-body-color)'
+      />
+    </InputGroup.Text>
   )
 }
 

@@ -4,6 +4,7 @@ import SearchIcon from '../svgs/search-line.svg'
 import { useEffect, useRef, useState } from 'react'
 import { Form, Input, Select, DatePicker, SubmitButton } from './form'
 import { useRouter } from 'next/router'
+import { dayMonthYear, whenToFrom } from '../lib/time'
 
 export default function Search ({ sub }) {
   const router = useRouter()
@@ -36,6 +37,8 @@ export default function Search ({ sub }) {
       if (values.sort === '' || values.sort === 'zaprank') delete values.sort
       if (values.when === '' || values.when === 'forever') delete values.when
       if (values.when !== 'custom') { delete values.from; delete values.to }
+      if (values.from && !values.to) return
+
       await router.push({
         pathname: prefix + '/search',
         query: values
@@ -47,21 +50,14 @@ export default function Search ({ sub }) {
   const what = router.pathname.startsWith('/stackers') ? 'stackers' : router.query.what || 'all'
   const sort = router.query.sort || 'zaprank'
   const when = router.query.when || 'forever'
-  const from = router.query.from || new Date().toISOString()
-  const to = router.query.to || new Date().toISOString()
-
-  const [datePicker, setDatePicker] = useState(when === 'custom')
-  // The following state is needed for the date picker (and driven by the date picker).
-  // Substituting router.query or formik values would cause network lag and/or timezone issues.
-  const [range, setRange] = useState({ start: new Date(from), end: new Date(to) })
 
   return (
     <>
       <div className={styles.searchSection}>
         <Container className={`px-md-0 ${styles.searchContainer}`}>
           <Form
-            initial={{ q, what, sort, when, from, to }}
-            onSubmit={search}
+            initial={{ q, what, sort, when, from: '', to: '' }}
+            onSubmit={values => search({ ...values })}
           >
             <div className={`${styles.active} my-3`}>
               <Input
@@ -81,7 +77,7 @@ export default function Search ({ sub }) {
                 <SearchIcon width={22} height={22} />
               </SubmitButton>
             </div>
-            {filter &&
+            {filter && router.query.q &&
               <div className='text-muted fw-bold d-flex align-items-center flex-wrap pb-2'>
                 <div className='text-muted fw-bold d-flex align-items-center pb-2'>
                   <Select
@@ -107,9 +103,8 @@ export default function Search ({ sub }) {
                       <Select
                         groupClassName='mb-0 mx-2'
                         onChange={(formik, e) => {
-                          search({ ...formik?.values, when: e.target.value, from: from || new Date().toISOString(), to: to || new Date().toISOString() })
-                          setDatePicker(e.target.value === 'custom')
-                          if (e.target.value === 'custom') setRange({ start: new Date(), end: new Date() })
+                          const range = e.target.value === 'custom' ? { from: whenToFrom(when), to: dayMonthYear(new Date()) } : {}
+                          search({ ...formik?.values, when: e.target.value, ...range })
                         }}
                         name='when'
                         size='sm'
@@ -118,24 +113,17 @@ export default function Search ({ sub }) {
                       />
                     </>}
                 </div>
-                {datePicker &&
+                {when === 'custom' &&
                   <DatePicker
-                    fromName='from' toName='to'
-                    className='form-control p-0 px-2 mb-2 text-center'
-                    onMount={() => {
-                      setRange({ start: new Date(from), end: new Date(to) })
-                      return [from, to]
+                    fromName='from'
+                    toName='to'
+                    className='p-0 px-2 mb-2'
+                    onChange={(formik, [from, to], e) => {
+                      search({ ...formik?.values, from, to })
                     }}
-                    onChange={(formik, [start, end], e) => {
-                      setRange({ start, end })
-                      search({ ...formik?.values, from: start && start.toISOString(), to: end && end.toISOString() })
-                    }}
-                    selected={range.start}
-                    startDate={range.start} endDate={range.end}
-                    selectsRange
-                    dateFormat='MM/dd/yy'
-                    maxDate={new Date()}
-                    minDate={new Date('2021-05-01')}
+                    from={router.query.from}
+                    to={router.query.to}
+                    when={when}
                   />}
               </div>}
           </Form>

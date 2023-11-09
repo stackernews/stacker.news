@@ -24,12 +24,12 @@ export const SUB_ITEMS = gql`
   ${ITEM_FIELDS}
   ${COMMENTS_ITEM_EXT_FIELDS}
 
-  query SubItems($sub: String, $sort: String, $cursor: String, $type: String, $name: String, $when: String, $by: String, $limit: Int, $includeComments: Boolean = false) {
+  query SubItems($sub: String, $sort: String, $cursor: String, $type: String, $name: String, $when: String, $from: String, $to: String, $by: String, $limit: Int, $includeComments: Boolean = false) {
     sub(name: $sub) {
       ...SubFields
     }
 
-    items(sub: $sub, sort: $sort, cursor: $cursor, type: $type, name: $name, when: $when, by: $by, limit: $limit) {
+    items(sub: $sub, sort: $sort, cursor: $cursor, type: $type, name: $name, when: $when, from: $from, to: $to, by: $by, limit: $limit) {
       cursor
       items {
         ...ItemFields

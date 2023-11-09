@@ -1,5 +1,6 @@
 import ServiceWorkerStorage from 'serviceworker-storage'
 import { numWithUnits } from '../lib/format'
+import { CLEAR_NOTIFICATIONS, clearAppBadge, setAppBadge } from '../lib/badge'
 
 // we store existing push subscriptions to keep them in sync with server
 const storage = new ServiceWorkerStorage('sw:storage', 1)
@@ -12,6 +13,9 @@ let actionChannelPort
 // keep track of item ids where we received a MENTION notification already to not show one again
 const itemMentions = []
 
+// current push notification count for badge purposes
+let activeCount = 0
+
 export function onPush (sw) {
   return async (event) => {
     const payload = event.data?.json()
@@ -20,6 +24,7 @@ export function onPush (sw) {
     event.waitUntil((async () => {
       if (skipNotification(payload)) return
       if (immediatelyShowNotification(payload)) {
+        setAppBadge(sw, ++activeCount)
         return sw.registration.showNotification(payload.title, payload.options)
       }
 
@@ -39,6 +44,7 @@ export function onPush (sw) {
 
       if (notifications.length === 0) {
         // incoming notification is first notification with this tag
+        setAppBadge(sw, ++activeCount)
         return sw.registration.showNotification(payload.title, payload.options)
       }
 
@@ -98,6 +104,12 @@ export function onNotificationClick (sw) {
     if (url) {
       event.waitUntil(sw.clients.openWindow(url))
     }
+    activeCount = Math.max(0, activeCount - 1)
+    if (activeCount === 0) {
+      clearAppBadge(sw)
+    } else {
+      setAppBadge(sw, activeCount)
+    }
     event.notification.close()
   }
 }
@@ -114,8 +126,11 @@ export function onPushSubscriptionChange (sw) {
     oldSubscription ??= await storage.getItem('subscription')
     newSubscription ??= await sw.registration.pushManager.getSubscription()
     if (!newSubscription) {
-      if (isSync && oldSubscription) {
-        // service worker lost the push subscription somehow
+      if (isSync && oldSubscription?.swVersion === 2) {
+        // service worker lost the push subscription somehow, we assume this is a bug -> resubscribe
+        // see https://github.com/stackernews/stacker.news/issues/411#issuecomment-1790675861
+        // NOTE: this is only run on IndexedDB subscriptions stored under service worker version 2 since this is not backwards compatible
+        // see discussion in https://github.com/stackernews/stacker.news/pull/597
         messageChannelPort?.postMessage({ message: '[sw:handlePushSubscriptionChange] service worker lost subscription' })
         actionChannelPort?.postMessage({ action: 'RESUBSCRIBE' })
         return
@@ -168,13 +183,26 @@ export function onMessage (sw) {
     messageChannelPort?.postMessage({ message: '[sw:message] received message', context: { action: event.data.action } })
     if (event.data.action === 'STORE_SUBSCRIPTION') {
       messageChannelPort?.postMessage({ message: '[sw:message] storing subscription in IndexedDB', context: { endpoint: event.data.subscription.endpoint } })
-      return event.waitUntil(storage.setItem('subscription', event.data.subscription))
+      return event.waitUntil(storage.setItem('subscription', { ...event.data.subscription, swVersion: 2 }))
     }
     if (event.data.action === 'SYNC_SUBSCRIPTION') {
       return event.waitUntil(onPushSubscriptionChange(sw)(event, true))
     }
     if (event.data.action === 'DELETE_SUBSCRIPTION') {
       return event.waitUntil(storage.removeItem('subscription'))
+    }
+    if (event.data.action === CLEAR_NOTIFICATIONS) {
+      return event.waitUntil((async () => {
+        let notifications = []
+        try {
+          notifications = await sw.registration.getNotifications()
+        } catch (err) {
+          console.error('failed to get notifications')
+        }
+        notifications.forEach(notification => notification.close())
+        activeCount = 0
+        return await clearAppBadge(sw)
+      })())
     }
   }
 }

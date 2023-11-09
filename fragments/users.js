@@ -168,19 +168,19 @@ export const USER_FIELDS = gql`
   }`
 
 export const TOP_USERS = gql`
-  query TopUsers($cursor: String, $when: String, $by: String, $limit: Int) {
-    topUsers(cursor: $cursor, when: $when, by: $by, limit: $limit) {
+  query TopUsers($cursor: String, $when: String, $from: String, $to: String, $by: String, $limit: Int) {
+    topUsers(cursor: $cursor, when: $when, from: $from, to: $to, by: $by, limit: $limit) {
       users {
         id
         name
         streak
         hideCowboyHat
         photoId
-        stacked(when: $when)
-        spent(when: $when)
-        ncomments(when: $when)
-        nposts(when: $when)
-        referrals(when: $when)
+        stacked(when: $when, from: $from, to: $to)
+        spent(when: $when, from: $from, to: $to)
+        ncomments(when: $when, from: $from, to: $to)
+        nposts(when: $when, from: $from, to: $to)
+        referrals(when: $when, from: $from, to: $to)
       }
       cursor
     }
@@ -235,11 +235,11 @@ export const USER_WITH_ITEMS = gql`
   ${USER_FIELDS}
   ${ITEM_FIELDS}
   ${COMMENTS_ITEM_EXT_FIELDS}
-  query UserWithItems($name: String!, $sub: String, $cursor: String, $type: String, $when: String, $by: String, $limit: Int, $includeComments: Boolean = false) {
+  query UserWithItems($name: String!, $sub: String, $cursor: String, $type: String, $when: String, $from: String, $to: String, $by: String, $limit: Int, $includeComments: Boolean = false) {
     user(name: $name) {
       ...UserFields
     }
-    items(sub: $sub, sort: "user", cursor: $cursor, type: $type, name: $name, when: $when, by: $by, limit: $limit) {
+    items(sub: $sub, sort: "user", cursor: $cursor, type: $type, name: $name, when: $when, from: $from, to: $to, by: $by, limit: $limit) {
       cursor
       items {
         ...ItemFields

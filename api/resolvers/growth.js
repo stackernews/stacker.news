@@ -1,3 +1,6 @@
+import { timeUnitForRange } from '../../lib/time'
+import { whenRange } from './item'
+
 const PLACEHOLDERS_NUM = 616
 
 export function interval (when) {
@@ -15,27 +18,13 @@ export function interval (when) {
   }
 }
 
-export function timeUnit (when) {
-  switch (when) {
-    case 'week':
-    case 'month':
-      return 'day'
-    case 'year':
-    case 'forever':
-      return 'month'
-    default:
-      return 'hour'
-  }
-}
-
-export function withClause (when) {
-  const ival = interval(when)
-  const unit = timeUnit(when)
+export function withClause (range) {
+  const unit = timeUnitForRange(range)
 
   return `
     WITH range_values AS (
-      SELECT date_trunc('${unit}', ${ival ? "now_utc() - interval '" + ival + "'" : "'2021-06-07'::timestamp"}) as minval,
-            date_trunc('${unit}', now_utc()) as maxval),
+      SELECT date_trunc('${unit}', $1) as minval,
+            date_trunc('${unit}', $2) as maxval),
     times AS (
       SELECT generate_series(minval, maxval, interval '1 ${unit}') as time
       FROM range_values
@@ -43,54 +32,50 @@ export function withClause (when) {
   `
 }
 
-// HACKY AF this is a performance enhancement that allows us to use the created_at indices on tables
-export function intervalClause (when, table, and) {
-  const unit = timeUnit(when)
-  if (when === 'forever') {
-    return and ? '' : 'TRUE'
-  }
+export function intervalClause (range, table) {
+  const unit = timeUnitForRange(range)
 
-  return `"${table}".created_at >= date_trunc('${unit}', now_utc() - interval '${interval(when)}') ${and ? 'AND' : ''} `
+  return `"${table}".created_at >= date_trunc('${unit}', timezone('America/Chicago', $1)) AND "${table}".created_at <= date_trunc('${unit}', timezone('America/Chicago', $2)) `
 }
 
-export function viewIntervalClause (when, view, and) {
-  if (when === 'forever') {
-    return and ? '' : 'TRUE'
-  }
-
-  return `"${view}".day >= date_trunc('day', timezone('America/Chicago', now() - interval '${interval(when)}')) ${and ? 'AND' : ''} `
+export function viewIntervalClause (range, view) {
+  return `"${view}".day >= date_trunc('day', timezone('America/Chicago', $1)) AND "${view}".day <= date_trunc('day', timezone('America/Chicago', $2)) `
 }
 
 export default {
   Query: {
-    registrationGrowth: async (parent, { when }, { models }) => {
+    registrationGrowth: async (parent, { when, from, to }, { models }) => {
+      const range = whenRange(when, from, to)
+
       if (when !== 'day') {
         return await models.$queryRawUnsafe(`
-          SELECT date_trunc('${timeUnit(when)}', day) as time, json_build_array(
+          SELECT date_trunc('${timeUnitForRange(range)}', day) as time, json_build_array(
             json_build_object('name', 'referrals', 'value', sum(referrals)),
             json_build_object('name', 'organic', 'value', sum(organic))
           ) AS data
           FROM reg_growth_days
-          WHERE ${viewIntervalClause(when, 'reg_growth_days', false)}
+          WHERE ${viewIntervalClause(range, 'reg_growth_days')}
           GROUP BY time
-          ORDER BY time ASC`)
+          ORDER BY time ASC`, ...range)
       }
 
       return await models.$queryRawUnsafe(
-        `${withClause(when)}
+        `${withClause(range)}
         SELECT time, json_build_array(
           json_build_object('name', 'referrals', 'value', count("referrerId")),
           json_build_object('name', 'organic', 'value', count(users.id) FILTER(WHERE id > ${PLACEHOLDERS_NUM}) - count("inviteId"))
         ) AS data
         FROM times
-        LEFT JOIN users ON ${intervalClause(when, 'users', true)} time = date_trunc('${timeUnit(when)}', created_at)
+        LEFT JOIN users ON ${intervalClause(range, 'users')} AND time = date_trunc('${timeUnitForRange(range)}', created_at)
         GROUP BY time
-        ORDER BY time ASC`)
+        ORDER BY time ASC`, ...range)
     },
-    spenderGrowth: async (parent, { when }, { models }) => {
+    spenderGrowth: async (parent, { when, to, from }, { models }) => {
+      const range = whenRange(when, from, to)
+
       if (when !== 'day') {
         return await models.$queryRawUnsafe(`
-          SELECT date_trunc('${timeUnit(when)}', day) as time, json_build_array(
+          SELECT date_trunc('${timeUnitForRange(range)}', day) as time, json_build_array(
             json_build_object('name', 'any', 'value', floor(avg("any"))),
             json_build_object('name', 'jobs', 'value', floor(avg(jobs))),
             json_build_object('name', 'boost', 'value', floor(avg(boost))),
@@ -99,13 +84,13 @@ export default {
             json_build_object('name', 'donation', 'value', floor(avg(donations)))
           ) AS data
           FROM spender_growth_days
-          WHERE ${viewIntervalClause(when, 'spender_growth_days', false)}
+          WHERE ${viewIntervalClause(range, 'spender_growth_days')}
           GROUP BY time
-          ORDER BY time ASC`)
+          ORDER BY time ASC`, ...range)
       }
 
       return await models.$queryRawUnsafe(
-        `${withClause(when)}
+        `${withClause(range)}
         SELECT time, json_build_array(
           json_build_object('name', 'any', 'value', count(DISTINCT "userId")),
           json_build_object('name', 'jobs', 'value', count(DISTINCT "userId") FILTER (WHERE act = 'STREAM')),
@@ -118,31 +103,33 @@ export default {
         LEFT JOIN
         ((SELECT "ItemAct".created_at, "userId", act::text as act
           FROM "ItemAct"
-          WHERE ${intervalClause(when, 'ItemAct', false)})
+          WHERE ${intervalClause(range, 'ItemAct')})
         UNION ALL
         (SELECT created_at, "userId", 'DONATION' as act
           FROM "Donation"
-          WHERE ${intervalClause(when, 'Donation', false)})) u ON time = date_trunc('${timeUnit(when)}', u.created_at)
+          WHERE ${intervalClause(range, 'Donation')})) u ON time = date_trunc('${timeUnitForRange(range)}', u.created_at)
         GROUP BY time
-        ORDER BY time ASC`)
+        ORDER BY time ASC`, ...range)
     },
-    itemGrowth: async (parent, { when }, { models }) => {
+    itemGrowth: async (parent, { when, to, from }, { models }) => {
+      const range = whenRange(when, from, to)
+
       if (when !== 'day') {
         return await models.$queryRawUnsafe(`
-          SELECT date_trunc('${timeUnit(when)}', day) as time, json_build_array(
+          SELECT date_trunc('${timeUnitForRange(range)}', day) as time, json_build_array(
             json_build_object('name', 'posts', 'value', sum(posts)),
             json_build_object('name', 'comments', 'value', sum(comments)),
             json_build_object('name', 'jobs', 'value', sum(jobs)),
             json_build_object('name', 'comments/posts', 'value', ROUND(sum(comments)/GREATEST(sum(posts), 1), 2))
           ) AS data
           FROM item_growth_days
-          WHERE ${viewIntervalClause(when, 'item_growth_days', false)}
+          WHERE ${viewIntervalClause(range, 'item_growth_days')}
           GROUP BY time
-          ORDER BY time ASC`)
+          ORDER BY time ASC`, ...range)
       }
 
       return await models.$queryRawUnsafe(
-        `${withClause(when)}
+        `${withClause(range)}
         SELECT time, json_build_array(
           json_build_object('name', 'comments', 'value', count("parentId")),
           json_build_object('name', 'jobs', 'value', count("subName") FILTER (WHERE "subName" = 'jobs')),
@@ -150,14 +137,16 @@ export default {
           json_build_object('name', 'comments/posts', 'value', ROUND(count("parentId")/GREATEST(count("Item".id)-count("parentId"), 1), 2))
         ) AS data
         FROM times
-        LEFT JOIN "Item" ON ${intervalClause(when, 'Item', true)} time = date_trunc('${timeUnit(when)}', created_at)
+        LEFT JOIN "Item" ON ${intervalClause(range, 'Item')} AND time = date_trunc('${timeUnitForRange(range)}', created_at)
         GROUP BY time
-        ORDER BY time ASC`)
+        ORDER BY time ASC`, ...range)
     },
-    spendingGrowth: async (parent, { when }, { models }) => {
+    spendingGrowth: async (parent, { when, to, from }, { models }) => {
+      const range = whenRange(when, from, to)
+
       if (when !== 'day') {
         return await models.$queryRawUnsafe(`
-          SELECT date_trunc('${timeUnit(when)}', day) as time, json_build_array(
+          SELECT date_trunc('${timeUnitForRange(range)}', day) as time, json_build_array(
             json_build_object('name', 'jobs', 'value', sum(jobs)),
             json_build_object('name', 'boost', 'value', sum(boost)),
             json_build_object('name', 'fees', 'value', sum(fees)),
@@ -165,13 +154,13 @@ export default {
             json_build_object('name', 'donations', 'value', sum(donations))
           ) AS data
           FROM spending_growth_days
-          WHERE ${viewIntervalClause(when, 'spending_growth_days', false)}
+          WHERE ${viewIntervalClause(range, 'spending_growth_days')}
           GROUP BY time
-          ORDER BY time ASC`)
+          ORDER BY time ASC`, ...range)
       }
 
       return await models.$queryRawUnsafe(
-        `${withClause(when)}
+        `${withClause(range)}
         SELECT time, json_build_array(
           json_build_object('name', 'jobs', 'value', coalesce(floor(sum(CASE WHEN act = 'STREAM' THEN msats ELSE 0 END)/1000),0)),
           json_build_object('name', 'boost', 'value', coalesce(floor(sum(CASE WHEN act = 'BOOST' THEN msats ELSE 0 END)/1000),0)),
@@ -183,18 +172,20 @@ export default {
         LEFT JOIN
         ((SELECT "ItemAct".created_at, msats, act::text as act
           FROM "ItemAct"
-          WHERE ${intervalClause(when, 'ItemAct', false)})
+          WHERE ${intervalClause(range, 'ItemAct')})
         UNION ALL
         (SELECT created_at, sats * 1000 as msats, 'DONATION' as act
           FROM "Donation"
-          WHERE ${intervalClause(when, 'Donation', false)})) u ON time = date_trunc('${timeUnit(when)}', u.created_at)
+          WHERE ${intervalClause(range, 'Donation')})) u ON time = date_trunc('${timeUnitForRange(range)}', u.created_at)
         GROUP BY time
-        ORDER BY time ASC`)
+        ORDER BY time ASC`, ...range)
     },
-    stackerGrowth: async (parent, { when }, { models }) => {
+    stackerGrowth: async (parent, { when, to, from }, { models }) => {
+      const range = whenRange(when, from, to)
+
       if (when !== 'day') {
         return await models.$queryRawUnsafe(`
-          SELECT date_trunc('${timeUnit(when)}', day) as time, json_build_array(
+          SELECT date_trunc('${timeUnitForRange(range)}', day) as time, json_build_array(
             json_build_object('name', 'any', 'value', floor(avg("any"))),
             json_build_object('name', 'posts', 'value', floor(avg(posts))),
             json_build_object('name', 'comments', 'value', floor(floor(avg(comments)))),
@@ -202,13 +193,13 @@ export default {
             json_build_object('name', 'referrals', 'value', floor(avg(referrals)))
           ) AS data
           FROM stackers_growth_days
-          WHERE ${viewIntervalClause(when, 'stackers_growth_days', false)}
+          WHERE ${viewIntervalClause(range, 'stackers_growth_days')}
           GROUP BY time
-          ORDER BY time ASC`)
+          ORDER BY time ASC`, ...range)
       }
 
       return await models.$queryRawUnsafe(
-        `${withClause(when)}
+        `${withClause(range)}
         SELECT time, json_build_array(
           json_build_object('name', 'any', 'value', count(distinct user_id)),
           json_build_object('name', 'posts', 'value', count(distinct user_id) FILTER (WHERE type = 'POST')),
@@ -221,35 +212,37 @@ export default {
         ((SELECT "ItemAct".created_at, "Item"."userId" as user_id, CASE WHEN "Item"."parentId" IS NULL THEN 'POST' ELSE 'COMMENT' END as type
           FROM "ItemAct"
           JOIN "Item" on "ItemAct"."itemId" = "Item".id
-          WHERE ${intervalClause(when, 'ItemAct', true)} "ItemAct".act = 'TIP')
+          WHERE ${intervalClause(range, 'ItemAct')} AND "ItemAct".act = 'TIP')
         UNION ALL
         (SELECT created_at, "userId" as user_id, 'EARN' as type
           FROM "Earn"
-          WHERE ${intervalClause(when, 'Earn', false)})
+          WHERE ${intervalClause(range, 'Earn')})
         UNION ALL
           (SELECT created_at, "referrerId" as user_id, 'REFERRAL' as type
             FROM "ReferralAct"
-            WHERE ${intervalClause(when, 'ReferralAct', false)})) u ON time = date_trunc('${timeUnit(when)}', u.created_at)
+            WHERE ${intervalClause(range, 'ReferralAct')})) u ON time = date_trunc('${timeUnitForRange(range)}', u.created_at)
         GROUP BY time
-        ORDER BY time ASC`)
+        ORDER BY time ASC`, ...range)
     },
-    stackingGrowth: async (parent, { when }, { models }) => {
+    stackingGrowth: async (parent, { when, to, from }, { models }) => {
+      const range = whenRange(when, from, to)
+
       if (when !== 'day') {
         return await models.$queryRawUnsafe(`
-          SELECT date_trunc('${timeUnit(when)}', day) as time, json_build_array(
+          SELECT date_trunc('${timeUnitForRange(range)}', day) as time, json_build_array(
             json_build_object('name', 'rewards', 'value', sum(rewards)),
             json_build_object('name', 'posts', 'value', sum(posts)),
             json_build_object('name', 'comments', 'value', sum(comments)),
             json_build_object('name', 'referrals', 'value', sum(referrals))
           ) AS data
           FROM stacking_growth_days
-          WHERE ${viewIntervalClause(when, 'stacking_growth_days', false)}
+          WHERE ${viewIntervalClause(range, 'stacking_growth_days')}
           GROUP BY time
-          ORDER BY time ASC`)
+          ORDER BY time ASC`, ...range)
       }
 
       return await models.$queryRawUnsafe(
-        `${withClause(when)}
+        `${withClause(range)}
         SELECT time, json_build_array(
           json_build_object('name', 'rewards', 'value', coalesce(floor(sum(airdrop)/1000),0)),
           json_build_object('name', 'posts', 'value', coalesce(floor(sum(post)/1000),0)),
@@ -264,17 +257,17 @@ export default {
           0 as referral
           FROM "ItemAct"
           JOIN "Item" on "ItemAct"."itemId" = "Item".id
-          WHERE ${intervalClause(when, 'ItemAct', true)} "ItemAct".act = 'TIP')
+          WHERE ${intervalClause(range, 'ItemAct')} AND "ItemAct".act = 'TIP')
         UNION ALL
           (SELECT created_at, 0 as airdrop, 0 as post, 0 as comment, msats as referral
             FROM "ReferralAct"
-            WHERE ${intervalClause(when, 'ReferralAct', false)})
+            WHERE ${intervalClause(range, 'ReferralAct')})
         UNION ALL
         (SELECT created_at, msats as airdrop, 0 as post, 0 as comment, 0 as referral
           FROM "Earn"
-          WHERE ${intervalClause(when, 'Earn', false)})) u ON time = date_trunc('${timeUnit(when)}', u.created_at)
+          WHERE ${intervalClause(range, 'Earn')})) u ON time = date_trunc('${timeUnitForRange(range)}', u.created_at)
         GROUP BY time
-        ORDER BY time ASC`)
+        ORDER BY time ASC`, ...range)
     }
   }
 }

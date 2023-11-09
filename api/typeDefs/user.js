@@ -7,7 +7,7 @@ export default gql`
     user(name: String!): User
     users: [User!]
     nameAvailable(name: String!): Boolean!
-    topUsers(cursor: String, when: String, by: String, limit: Int): Users
+    topUsers(cursor: String, when: String, from: String, to: String, by: String, limit: Int): Users
     topCowboys(cursor: String): Users
     searchUsers(q: String!, limit: Int, similarity: Float): [User!]!
     hasNewNotes: Boolean!
@@ -61,13 +61,13 @@ export default gql`
     id: ID!
     createdAt: Date!
     name: String
-    nitems(when: String): Int!
-    nposts(when: String): Int!
-    ncomments(when: String): Int!
-    nbookmarks(when: String): Int!
-    stacked(when: String): Int!
-    spent(when: String): Int!
-    referrals(when: String): Int!
+    nitems(when: String, from: String, to: String): Int!
+    nposts(when: String, from: String, to: String): Int!
+    ncomments(when: String, from: String, to: String): Int!
+    nbookmarks(when: String, from: String, to: String): Int!
+    stacked(when: String, from: String, to: String): Int!
+    spent(when: String, from: String, to: String): Int!
+    referrals(when: String, from: String, to: String): Int!
     freePosts: Int!
     freeComments: Int!
     hasInvites: Boolean!

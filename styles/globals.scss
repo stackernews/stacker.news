@@ -856,3 +856,11 @@ div[contenteditable]:focus,
     color: var(--bs-body-color);
   }
 }
+
+// To satisfy assumptions of the date picker component.
+.react-datepicker__navigation-icon {
+  line-height: normal;
+}
+.react-datepicker__navigation-icon::before, .react-datepicker__navigation-icon::after {
+  box-sizing: content-box;
+}

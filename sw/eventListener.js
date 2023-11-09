@@ -1,5 +1,6 @@
 import ServiceWorkerStorage from 'serviceworker-storage'
 import { numWithUnits } from '../lib/format'
+import { CLEAR_NOTIFICATIONS, clearAppBadge, setAppBadge } from '../lib/badge'
 
 // we store existing push subscriptions to keep them in sync with server
 const storage = new ServiceWorkerStorage('sw:storage', 1)
@@ -12,6 +13,9 @@ let actionChannelPort
 // keep track of item ids where we received a MENTION notification already to not show one again
 const itemMentions = []
 
+// current push notification count for badge purposes
+let activeCount = 0
+
 export function onPush (sw) {
   return async (event) => {
     const payload = event.data?.json()
@@ -20,6 +24,7 @@ export function onPush (sw) {
     event.waitUntil((async () => {
       if (skipNotification(payload)) return
       if (immediatelyShowNotification(payload)) {
+        setAppBadge(sw, ++activeCount)
         return sw.registration.showNotification(payload.title, payload.options)
       }
 
@@ -39,6 +44,7 @@ export function onPush (sw) {
 
       if (notifications.length === 0) {
         // incoming notification is first notification with this tag
+        setAppBadge(sw, ++activeCount)
         return sw.registration.showNotification(payload.title, payload.options)
       }
 
@@ -97,6 +103,12 @@ export function onNotificationClick (sw) {
     const url = event.notification.data?.url
     if (url) {
       event.waitUntil(sw.clients.openWindow(url))
+    }
+    activeCount = Math.max(0, activeCount - 1)
+    if (activeCount === 0) {
+      clearAppBadge(sw)
+    } else {
+      setAppBadge(sw, activeCount)
     }
     event.notification.close()
   }
@@ -175,6 +187,19 @@ export function onMessage (sw) {
     }
     if (event.data.action === 'DELETE_SUBSCRIPTION') {
       return event.waitUntil(storage.removeItem('subscription'))
+    }
+    if (event.data.action === CLEAR_NOTIFICATIONS) {
+      return event.waitUntil((async () => {
+        let notifications = []
+        try {
+          notifications = await sw.registration.getNotifications()
+        } catch (err) {
+          console.error('failed to get notifications')
+        }
+        notifications.forEach(notification => notification.close())
+        activeCount = 0
+        return await clearAppBadge(sw)
+      })())
     }
   }
 }

@@ -115,11 +115,12 @@ function Detail ({ fact }) {
     return (
       <div className='px-3'>
         <Link className={satusClass(fact.status)} href={`/${fact.type}s/${fact.factId}`}>
-          {(zap && <span className='d-block'>nostr zap{zap.content && `: ${zap.content}`}</span>) ||
+          {(!fact.bolt11 && <span className='d-block text-muted fw-bold fst-italic'>invoice deleted</span>) ||
+           (zap && <span className='d-block'>nostr zap{zap.content && `: ${zap.content}`}</span>) ||
            (fact.description && <span className='d-block'>{fact.description}</span>)}
           <PayerData data={fact.invoicePayerData} className='text-muted' header />
           {fact.invoiceComment && <small className='text-muted'><b>sender says:</b> {fact.invoiceComment}</small>}
-          {!fact.invoiceComment && !fact.description && <span className='d-block'>no description</span>}
+          {!fact.invoiceComment && !fact.description && fact.bolt11 && <span className='d-block'>no description</span>}
           <Satus status={fact.status} />
         </Link>
       </div>

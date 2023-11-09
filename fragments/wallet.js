@@ -24,6 +24,7 @@ export const WITHDRAWL = gql`
   query Withdrawl($id: ID!) {
     withdrawl(id: $id) {
       id
+      createdAt
       bolt11
       satsPaid
       satsFeePaying
@@ -40,6 +41,7 @@ export const WALLET_HISTORY = gql`
       facts {
         id
         factId
+        bolt11
         type
         createdAt
         sats

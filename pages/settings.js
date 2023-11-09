@@ -25,6 +25,7 @@ import { NostrAuth } from '../components/nostr-auth'
 import { useToast } from '../components/toast'
 import { useLogger } from '../components/logger'
 import { useMe } from '../components/me'
+import { INVOICE_RETENTION_DAYS } from '../lib/constants'
 
 export const getServerSideProps = getGetServerSideProps({ query: SETTINGS, authRequired: true })
 
@@ -74,6 +75,7 @@ export default function Settings ({ ssrData }) {
             noteCowboyHat: settings?.noteCowboyHat,
             noteForwardedSats: settings?.noteForwardedSats,
             hideInvoiceDesc: settings?.hideInvoiceDesc,
+            autoDropBolt11s: settings?.autoDropBolt11s,
             hideFromTopUsers: settings?.hideFromTopUsers,
             hideCowboyHat: settings?.hideCowboyHat,
             imgproxyOnly: settings?.imgproxyOnly,
@@ -236,6 +238,23 @@ export default function Settings ({ ssrData }) {
             name='hideInvoiceDesc'
             groupClassName='mb-0'
           />
+          <DropBolt11sCheckbox
+            ssrData={ssrData}
+            label={
+              <div className='d-flex align-items-center'>autodelete withdrawal invoices
+                <Info>
+                  <ul className='fw-bold'>
+                    <li>use this to protect receiver privacy</li>
+                    <li>applies retroactively, cannot be reversed</li>
+                    <li>withdrawal invoices are kept at least {INVOICE_RETENTION_DAYS} days for security and debugging purposes</li>
+                    <li>autodeletions are run a daily basis at night</li>
+                  </ul>
+                </Info>
+              </div>
+            }
+            name='autoDropBolt11s'
+            groupClassName='mb-0'
+          />
           <Checkbox
             label={<>hide me from  <Link href='/top/stackers/day'>top stackers</Link></>}
             name='hideFromTopUsers'
@@ -374,6 +393,38 @@ export default function Settings ({ ssrData }) {
         </div>
       </div>
     </CenterLayout>
+  )
+}
+
+const DropBolt11sCheckbox = ({ ssrData, ...props }) => {
+  const showModal = useShowModal()
+  const { data } = useQuery(gql`{ numBolt11s }`)
+  const { numBolt11s } = data || ssrData
+
+  return (
+    <Checkbox
+      onClick={e => {
+        if (e.target.checked) {
+          showModal(onClose => {
+            return (
+              <>
+                <p className='fw-bolder'>{numBolt11s} withdrawal invoices will be deleted with this setting.</p>
+                <p className='fw-bolder'>You sure? This is a gone forever kind of delete.</p>
+                <div className='d-flex justify-content-end'>
+                  <Button
+                    variant='danger' onClick={async () => {
+                      await onClose()
+                    }}
+                  >I am sure
+                  </Button>
+                </div>
+              </>
+            )
+          })
+        }
+      }}
+      {...props}
+    />
   )
 }
 

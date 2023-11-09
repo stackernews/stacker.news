@@ -50,6 +50,7 @@ model User {
   greeterMode           Boolean              @default(false)
   fiatCurrency          String               @default("USD")
   withdrawMaxFeeDefault Int                  @default(10)
+  autoDropBolt11s       Boolean              @default(false)
   hideFromTopUsers      Boolean              @default(false)
   turboTipping          Boolean              @default(false)
   imgproxyOnly          Boolean              @default(false)
@@ -493,8 +494,8 @@ model Withdrawl {
   createdAt      DateTime         @default(now()) @map("created_at")
   updatedAt      DateTime         @default(now()) @updatedAt @map("updated_at")
   userId         Int
-  hash           String
-  bolt11         String
+  hash           String?
+  bolt11         String?
   msatsPaying    BigInt
   msatsPaid      BigInt?
   msatsFeePaying BigInt

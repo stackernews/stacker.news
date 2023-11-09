@@ -80,6 +80,18 @@ export default {
 
       return wdrwl
     },
+    numBolt11s: async (parent, args, { me, models, lnd }) => {
+      if (!me) {
+        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+      }
+
+      return await models.withdrawl.count({
+        where: {
+          userId: me.id,
+          hash: { not: null }
+        }
+      })
+    },
     connectAddress: async (parent, args, { lnd }) => {
       return process.env.LND_CONNECT_ADDRESS
     },
@@ -359,6 +371,23 @@ export default {
           }
         }))
       return inv
+    },
+    dropBolt11: async (parent, { id }, { me, models }) => {
+      if (!me) {
+        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+      }
+
+      await models.withdrawl.update({
+        where: {
+          userId: me.id,
+          id: Number(id),
+          createdAt: {
+            lte: datePivot(new Date(), { days: -7 })
+          }
+        },
+        data: { bolt11: null, hash: null }
+      })
+      return { id }
     }
   },
 

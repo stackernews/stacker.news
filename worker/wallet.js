@@ -3,6 +3,7 @@ import { getInvoice, getPayment, cancelHodlInvoice } from 'ln-service'
 import { datePivot } from '../lib/time.js'
 import { sendUserNotification } from '../api/webPush/index.js'
 import { msatsToSats, numWithUnits } from '../lib/format'
+import { INVOICE_RETENTION_DAYS } from '../lib/constants'
 
 const walletOptions = { startAfter: 5, retryLimit: 21, retryBackoff: true }
 
@@ -115,6 +116,23 @@ export function checkWithdrawal ({ boss, models, lnd }) {
       // we need to requeue to check again in 5 seconds
       const startAfter = new Date(wdrwl.created_at) > datePivot(new Date(), { minutes: -5 }) ? 5 : 60
       await boss.send('checkWithdrawal', { id, hash }, { ...walletOptions, startAfter })
+    }
+  }
+}
+
+export function autoDropBolt11s ({ models }) {
+  return async function () {
+    console.log('deleting invoices')
+    try {
+      await serialize(models, models.$executeRaw`
+        UPDATE "Withdrawl"
+        SET hash = NULL, bolt11 = NULL
+        WHERE "userId" IN (SELECT id FROM users WHERE "autoDropBolt11s")
+        AND now() > created_at + interval '${INVOICE_RETENTION_DAYS} days'
+        AND hash IS NOT NULL;`
+      )
+    } catch (err) {
+      console.log(err)
     }
   }
 }

@@ -22,7 +22,7 @@ export default gql`
     setName(name: String!): String
     setSettings(tipDefault: Int!, turboTipping: Boolean!, fiatCurrency: String!, withdrawMaxFeeDefault: Int!, noteItemSats: Boolean!,
       noteEarning: Boolean!, noteAllDescendants: Boolean!, noteMentions: Boolean!, noteDeposits: Boolean!,
-      noteInvites: Boolean!, noteJobIndicator: Boolean!, noteCowboyHat: Boolean!, hideInvoiceDesc: Boolean!,
+      noteInvites: Boolean!, noteJobIndicator: Boolean!, noteCowboyHat: Boolean!, hideInvoiceDesc: Boolean!, autoDropBolt11s: Boolean!,
       hideFromTopUsers: Boolean!, hideCowboyHat: Boolean!, imgproxyOnly: Boolean!,
       wildWestMode: Boolean!, greeterMode: Boolean!, nostrPubkey: String, nostrCrossposting: Boolean, nostrRelays: [String!], hideBookmarks: Boolean!,
       noteForwardedSats: Boolean!, hideWalletBalance: Boolean!, hideIsContributor: Boolean!, diagnostics: Boolean!): User
@@ -97,6 +97,7 @@ export default gql`
     noteCowboyHat: Boolean!
     noteForwardedSats: Boolean!
     hideInvoiceDesc: Boolean!
+    autoDropBolt11s: Boolean!
     hideFromTopUsers: Boolean!
     hideCowboyHat: Boolean!
     hideBookmarks: Boolean!

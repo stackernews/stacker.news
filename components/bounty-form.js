@@ -12,6 +12,7 @@ import { useCallback } from 'react'
 import { normalizeForwards } from '../lib/form'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
 import { useMe } from './me'
+import { useToast } from './toast'
 
 export function BountyForm ({
   item,
@@ -27,6 +28,7 @@ export function BountyForm ({
   const router = useRouter()
   const client = useApolloClient()
   const me = useMe()
+  const toaster = useToast()
   const schema = bountySchema({ client, me, existingBoost: item?.boost })
   const [upsertBounty] = useMutation(
     gql`
@@ -53,6 +55,7 @@ export function BountyForm ({
           hmac: $hmac
         ) {
           id
+          deleteScheduledAt
         }
       }
     `
@@ -60,7 +63,7 @@ export function BountyForm ({
 
   const onSubmit = useCallback(
     async ({ boost, bounty, ...values }) => {
-      const { error } = await upsertBounty({
+      const { data, error } = await upsertBounty({
         variables: {
           sub: item?.subName || sub?.name,
           id: item?.id,
@@ -73,12 +76,21 @@ export function BountyForm ({
       if (error) {
         throw new Error({ message: error.toString() })
       }
-
+      let deleteScheduledAt
+      if (data.upsertBounty.deleteScheduledAt) {
+        deleteScheduledAt = new Date(data.upsertBounty.deleteScheduledAt)
+      }
       if (item) {
         await router.push(`/items/${item.id}`)
+        if (deleteScheduledAt) {
+          toaster.success(`this bounty will be deleted at ${deleteScheduledAt.toLocaleDateString()} ${deleteScheduledAt.toLocaleTimeString()}`)
+        }
       } else {
         const prefix = sub?.name ? `/~${sub.name}` : ''
         await router.push(prefix + '/recent')
+        if (deleteScheduledAt) {
+          toaster.success(`your new bounty will be deleted at ${deleteScheduledAt.toLocaleDateString()} ${deleteScheduledAt.toLocaleTimeString()}`)
+        }
       }
     }, [upsertBounty, router]
   )

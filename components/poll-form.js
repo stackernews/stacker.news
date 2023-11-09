@@ -13,11 +13,13 @@ import CancelButton from './cancel-button'
 import { useCallback } from 'react'
 import { normalizeForwards } from '../lib/form'
 import { useMe } from './me'
+import { useToast } from './toast'
 
 export function PollForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
   const client = useApolloClient()
   const me = useMe()
+  const toaster = useToast()
   const schema = pollSchema({ client, me, existingBoost: item?.boost })
 
   const [upsertPoll] = useMutation(
@@ -27,6 +29,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         upsertPoll(sub: $sub, id: $id, title: $title, text: $text,
           options: $options, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac) {
           id
+          deleteScheduledAt
         }
       }`
   )
@@ -34,7 +37,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
   const onSubmit = useCallback(
     async ({ boost, title, options, ...values }) => {
       const optionsFiltered = options.slice(initialOptions?.length).filter(word => word.trim().length > 0)
-      const { error } = await upsertPoll({
+      const { data, error } = await upsertPoll({
         variables: {
           id: item?.id,
           sub: item?.subName || sub?.name,
@@ -48,11 +51,21 @@ export function PollForm ({ item, sub, editThreshold, children }) {
       if (error) {
         throw new Error({ message: error.toString() })
       }
+      let deleteScheduledAt
+      if (data.upsertPoll.deleteScheduledAt) {
+        deleteScheduledAt = new Date(data.upsertPoll.deleteScheduledAt)
+      }
       if (item) {
         await router.push(`/items/${item.id}`)
+        if (deleteScheduledAt) {
+          toaster.success(`this poll will be deleted at ${deleteScheduledAt.toLocaleDateString()} ${deleteScheduledAt.toLocaleTimeString()}`)
+        }
       } else {
         const prefix = sub?.name ? `/~${sub.name}` : ''
         await router.push(prefix + '/recent')
+        if (deleteScheduledAt) {
+          toaster.success(`your new poll will be deleted at ${deleteScheduledAt.toLocaleDateString()} ${deleteScheduledAt.toLocaleTimeString()}`)
+        }
       }
     }, [upsertPoll, router]
   )

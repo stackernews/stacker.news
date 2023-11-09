@@ -11,6 +11,7 @@ import { commentSchema } from '../lib/validate'
 import Info from './info'
 import { quote } from '../lib/md'
 import { COMMENT_DEPTH_LIMIT } from '../lib/constants'
+import { useToast } from './toast'
 
 export function ReplyOnAnotherPage ({ item }) {
   const path = item.path.split('.')
@@ -49,6 +50,7 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
   const parentId = item.id
   const replyInput = useRef(null)
   const formInnerRef = useRef()
+  const toaster = useToast()
 
   // Start block to handle iOS Safari's weird selection clearing behavior
   const savedRange = useRef()
@@ -154,7 +156,11 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
   )
 
   const onSubmit = useCallback(async ({ amount, hash, hmac, ...values }, { resetForm }) => {
-    await upsertComment({ variables: { parentId, hash, hmac, ...values } })
+    const { data } = await upsertComment({ variables: { parentId, hash, hmac, ...values } })
+    if (data?.upsertComment?.deleteScheduledAt) {
+      const deleteScheduledAt = new Date(data.upsertComment.deleteScheduledAt)
+      toaster.success(`your comment will be deleted at ${deleteScheduledAt.toLocaleDateString()} ${deleteScheduledAt.toLocaleTimeString()}`)
+    }
     resetForm({ text: '' })
     setReply(replyOpen || false)
   }, [upsertComment, setReply, parentId])

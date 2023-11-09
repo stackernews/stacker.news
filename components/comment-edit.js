@@ -5,13 +5,16 @@ import Button from 'react-bootstrap/Button'
 import Delete from './delete'
 import { commentSchema } from '../lib/validate'
 import FeeButton, { FeeButtonProvider } from './fee-button'
+import { useToast } from './toast'
 
 export default function CommentEdit ({ comment, editThreshold, onSuccess, onCancel }) {
+  const toaster = useToast()
   const [upsertComment] = useMutation(
     gql`
       mutation upsertComment($id: ID! $text: String!) {
         upsertComment(id: $id, text: $text) {
           text
+          deleteScheduledAt
         }
       }`, {
       update (cache, { data: { upsertComment } }) {
@@ -36,9 +39,13 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
           }}
           schema={commentSchema}
           onSubmit={async (values, { resetForm }) => {
-            const { error } = await upsertComment({ variables: { ...values, id: comment.id } })
+            const { data, error } = await upsertComment({ variables: { ...values, id: comment.id } })
             if (error) {
               throw new Error({ message: error.toString() })
+            }
+            if (data?.upsertComment?.deleteScheduledAt) {
+              const deleteScheduledAt = new Date(data.upsertComment.deleteScheduledAt)
+              toaster.success(`your comment will be deleted at ${deleteScheduledAt.toLocaleDateString()} ${deleteScheduledAt.toLocaleTimeString()}`)
             }
             if (onSuccess) {
               onSuccess()

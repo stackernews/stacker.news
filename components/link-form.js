@@ -17,11 +17,13 @@ import CancelButton from './cancel-button'
 import { normalizeForwards } from '../lib/form'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
 import { useMe } from './me'
+import { useToast } from './toast'
 
 export function LinkForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
   const client = useApolloClient()
   const me = useMe()
+  const toaster = useToast()
   const schema = linkSchema({ client, me, existingBoost: item?.boost })
   // if Web Share Target API was used
   const shareUrl = router.query.url
@@ -73,13 +75,14 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
       mutation upsertLink($sub: String, $id: ID, $title: String!, $url: String!, $text: String, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String) {
         upsertLink(sub: $sub, id: $id, title: $title, url: $url, text: $text, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac) {
           id
+          deleteScheduledAt
         }
       }`
   )
 
   const onSubmit = useCallback(
     async ({ boost, title, ...values }) => {
-      const { error } = await upsertLink({
+      const { data, error } = await upsertLink({
         variables: {
           sub: item?.subName || sub?.name,
           id: item?.id,
@@ -92,11 +95,21 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
       if (error) {
         throw new Error({ message: error.toString() })
       }
+      let deleteScheduledAt
+      if (data.upsertLink.deleteScheduledAt) {
+        deleteScheduledAt = new Date(data.upsertLink.deleteScheduledAt)
+      }
       if (item) {
         await router.push(`/items/${item.id}`)
+        if (deleteScheduledAt) {
+          toaster.success(`this link post will be deleted at ${deleteScheduledAt.toLocaleDateString()} ${deleteScheduledAt.toLocaleTimeString()}`)
+        }
       } else {
         const prefix = sub?.name ? `/~${sub.name}` : ''
         await router.push(prefix + '/recent')
+        if (deleteScheduledAt) {
+          toaster.success(`your new link post will be deleted at ${deleteScheduledAt.toLocaleDateString()} ${deleteScheduledAt.toLocaleTimeString()}`)
+        }
       }
     }, [upsertLink, router]
   )

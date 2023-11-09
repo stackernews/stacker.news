@@ -4,9 +4,9 @@ import { GraphQLError } from 'graphql'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { msatsToSats } from '../../lib/format'
 import { bioSchema, emailSchema, settingsSchema, ssValidate, userSchema } from '../../lib/validate'
-import { getItem, updateItem, filterClause, createItem, whereClause, muteClause } from './item'
-import { datePivot } from '../../lib/time'
+import { getItem, updateItem, filterClause, createItem, whereClause, muteClause, whenRange } from './item'
 import { ANON_USER_ID, DELETE_USER_ID, RESERVED_MAX_USER_ID } from '../../lib/constants'
+import { viewIntervalClause, intervalClause } from './growth'
 
 const contributors = new Set()
 
@@ -19,66 +19,6 @@ const loadContributors = async (set) => {
       .forEach(name => set.add(name))
   } catch (err) {
     console.error('Error loading contributors', err)
-  }
-}
-
-export function within (table, within) {
-  let interval = ' AND "' + table + '".created_at >= $1 - INTERVAL '
-  switch (within) {
-    case 'day':
-      interval += "'1 day'"
-      break
-    case 'week':
-      interval += "'7 days'"
-      break
-    case 'month':
-      interval += "'1 month'"
-      break
-    case 'year':
-      interval += "'1 year'"
-      break
-    default:
-      interval = ''
-      break
-  }
-  return interval
-}
-
-export function viewWithin (table, within) {
-  let interval = ' AND "' + table + '".day >= date_trunc(\'day\', timezone(\'America/Chicago\', $1 at time zone \'UTC\' - interval '
-  switch (within) {
-    case 'day':
-      interval += "'1 day'))"
-      break
-    case 'week':
-      interval += "'7 days'))"
-      break
-    case 'month':
-      interval += "'1 month'))"
-      break
-    case 'year':
-      interval += "'1 year'))"
-      break
-    default:
-      // HACK: we need to use the time parameter otherwise prisma *cries* about it
-      interval = ' AND users.created_at <= $1'
-      break
-  }
-  return interval
-}
-
-export function withinDate (within) {
-  switch (within) {
-    case 'day':
-      return datePivot(new Date(), { days: -1 })
-    case 'week':
-      return datePivot(new Date(), { days: -7 })
-    case 'month':
-      return datePivot(new Date(), { days: -30 })
-    case 'year':
-      return datePivot(new Date(), { days: -365 })
-    default:
-      return new Date(0)
   }
 }
 
@@ -149,8 +89,9 @@ export default {
         users
       }
     },
-    topUsers: async (parent, { cursor, when, by, limit = LIMIT }, { models, me }) => {
+    topUsers: async (parent, { cursor, when, by, from, to, limit = LIMIT }, { models, me }) => {
       const decodedCursor = decodeCursor(cursor)
+      const range = whenRange(when, from, to || decodeCursor.time)
       let users
 
       if (when !== 'day') {
@@ -171,13 +112,13 @@ export default {
             FROM user_stats_days
             JOIN users on users.id = user_stats_days.id
             WHERE NOT users."hideFromTopUsers"
-            ${viewWithin('user_stats_days', when)}
+            AND ${viewIntervalClause(range, 'user_stats_days')}
             GROUP BY users.id
             ORDER BY ${column} DESC NULLS LAST, users.created_at DESC
           )
           SELECT * FROM u WHERE ${column} > 0
-          OFFSET $2
-          LIMIT ${limit}`, decodedCursor.time, decodedCursor.offset)
+          OFFSET $3
+          LIMIT $4`, ...range, decodedCursor.offset, limit)
 
         return {
           cursor: users.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
@@ -191,56 +132,53 @@ export default {
           FROM
           ((SELECT "userId", floor(sum("ItemAct".msats)/1000) as sats_spent
             FROM "ItemAct"
-            WHERE "ItemAct".created_at <= $1
-            ${within('ItemAct', when)}
+            WHERE ${intervalClause(range, 'ItemAct')}
             GROUP BY "userId")
             UNION ALL
           (SELECT "userId", sats as sats_spent
             FROM "Donation"
-            WHERE created_at <= $1
-            ${within('Donation', when)})) spending
+            WHERE ${intervalClause(range, 'Donation')})) spending
           JOIN users on spending."userId" = users.id
           AND NOT users."hideFromTopUsers"
           GROUP BY users.id, users.name
           ORDER BY spent DESC NULLS LAST, users.created_at DESC
-          OFFSET $2
-          LIMIT ${limit}`, decodedCursor.time, decodedCursor.offset)
+          OFFSET $3
+          LIMIT $4`, ...range, decodedCursor.offset, limit)
       } else if (by === 'posts') {
         users = await models.$queryRawUnsafe(`
         SELECT users.*, count(*)::INTEGER as nposts
           FROM users
           JOIN "Item" on "Item"."userId" = users.id
-          WHERE "Item".created_at <= $1 AND "Item"."parentId" IS NULL
+          WHERE "Item"."parentId" IS NULL
           AND NOT users."hideFromTopUsers"
-          ${within('Item', when)}
+          AND ${viewIntervalClause(range, 'Item')}
           GROUP BY users.id
           ORDER BY nposts DESC NULLS LAST, users.created_at DESC
-          OFFSET $2
-          LIMIT ${limit}`, decodedCursor.time, decodedCursor.offset)
+          OFFSET $3
+          LIMIT $4`, ...range, decodedCursor.offset, limit)
       } else if (by === 'comments') {
         users = await models.$queryRawUnsafe(`
         SELECT users.*, count(*)::INTEGER as ncomments
           FROM users
           JOIN "Item" on "Item"."userId" = users.id
-          WHERE "Item".created_at <= $1 AND "Item"."parentId" IS NOT NULL
+          WHERE "Item"."parentId" IS NOT NULL
           AND NOT users."hideFromTopUsers"
-          ${within('Item', when)}
+          AND ${intervalClause(range, 'Item')}
           GROUP BY users.id
           ORDER BY ncomments DESC NULLS LAST, users.created_at DESC
-          OFFSET $2
-          LIMIT ${limit}`, decodedCursor.time, decodedCursor.offset)
+          OFFSET $3
+          LIMIT $4`, ...range, decodedCursor.offset, limit)
       } else if (by === 'referrals') {
         users = await models.$queryRawUnsafe(`
           SELECT users.*, count(*)::INTEGER as referrals
           FROM users
           JOIN "users" referree on users.id = referree."referrerId"
-          WHERE referree.created_at <= $1
           AND NOT users."hideFromTopUsers"
-          ${within('referree', when)}
+          AND ${intervalClause(range, 'referree')}
           GROUP BY users.id
           ORDER BY referrals DESC NULLS LAST, users.created_at DESC
-          OFFSET $2
-          LIMIT ${limit}`, decodedCursor.time, decodedCursor.offset)
+          OFFSET $3
+          LIMIT $4`, ...range, decodedCursor.offset, limit)
       } else {
         users = await models.$queryRawUnsafe(`
           SELECT u.id, u.name, u.streak, u."photoId", u."hideCowboyHat", floor(sum(amount)/1000) as stacked
@@ -249,25 +187,27 @@ export default {
             FROM "ItemAct"
             JOIN "Item" on "ItemAct"."itemId" = "Item".id
             JOIN users on "Item"."userId" = users.id
-            WHERE act <> 'BOOST' AND "ItemAct"."userId" <> users.id AND "ItemAct".created_at <= $1
+            WHERE act <> 'BOOST' AND "ItemAct"."userId" <> users.id
             AND NOT users."hideFromTopUsers"
-            ${within('ItemAct', when)})
+            AND ${intervalClause(range, 'ItemAct')})
           UNION ALL
           (SELECT users.*, "Earn".msats as amount
             FROM "Earn"
             JOIN users on users.id = "Earn"."userId"
-            WHERE "Earn".msats > 0 ${within('Earn', when)}
+            WHERE "Earn".msats > 0
+            AND ${intervalClause(range, 'Earn')}
             AND NOT users."hideFromTopUsers")
           UNION ALL
           (SELECT users.*, "ReferralAct".msats as amount
               FROM "ReferralAct"
               JOIN users on users.id = "ReferralAct"."referrerId"
-              WHERE "ReferralAct".msats > 0 ${within('ReferralAct', when)}
+              WHERE "ReferralAct".msats > 0
+              AND ${intervalClause(range, 'ReferralAct')}
               AND NOT users."hideFromTopUsers")) u
           GROUP BY u.id, u.name, u.created_at, u."photoId", u.streak, u."hideCowboyHat"
           ORDER BY stacked DESC NULLS LAST, created_at DESC
-          OFFSET $2
-          LIMIT ${limit}`, decodedCursor.time, decodedCursor.offset)
+          OFFSET $3
+          LIMIT $4`, ...range, decodedCursor.offset, limit)
       }
 
       return {
@@ -696,16 +636,18 @@ export default {
       FROM "Streak" WHERE "userId" = ${user.id}`
       return max
     },
-    nitems: async (user, { when }, { models }) => {
+    nitems: async (user, { when, from, to }, { models }) => {
       if (typeof user.nitems !== 'undefined') {
         return user.nitems
       }
 
+      const [gte, lte] = whenRange(when, from, to)
       return await models.item.count({
         where: {
           userId: user.id,
           createdAt: {
-            gte: withinDate(when)
+            gte,
+            lte
           }
         }
       })
@@ -725,51 +667,57 @@ export default {
 
       return !!mute
     },
-    nposts: async (user, { when }, { models }) => {
+    nposts: async (user, { when, from, to }, { models }) => {
       if (typeof user.nposts !== 'undefined') {
         return user.nposts
       }
 
+      const [gte, lte] = whenRange(when, from, to)
       return await models.item.count({
         where: {
           userId: user.id,
           parentId: null,
           createdAt: {
-            gte: withinDate(when)
+            gte,
+            lte
           }
         }
       })
     },
-    ncomments: async (user, { when }, { models }) => {
+    ncomments: async (user, { when, from, to }, { models }) => {
       if (typeof user.ncomments !== 'undefined') {
         return user.ncomments
       }
 
+      const [gte, lte] = whenRange(when, from, to)
       return await models.item.count({
         where: {
           userId: user.id,
           parentId: { not: null },
           createdAt: {
-            gte: withinDate(when)
+            gte,
+            lte
           }
         }
       })
     },
-    nbookmarks: async (user, { when }, { models }) => {
+    nbookmarks: async (user, { when, from, to }, { models }) => {
       if (typeof user.nBookmarks !== 'undefined') {
         return user.nBookmarks
       }
 
+      const [gte, lte] = whenRange(when, from, to)
       return await models.bookmark.count({
         where: {
           userId: user.id,
           createdAt: {
-            gte: withinDate(when)
+            gte,
+            lte
           }
         }
       })
     },
-    stacked: async (user, { when }, { models }) => {
+    stacked: async (user, { when, from, to }, { models }) => {
       if (typeof user.stacked !== 'undefined') {
         return user.stacked
       }
@@ -778,34 +726,36 @@ export default {
         // forever
         return (user.stackedMsats && msatsToSats(user.stackedMsats)) || 0
       } else if (when === 'day') {
+        const range = whenRange(when, from, to)
         const [{ stacked }] = await models.$queryRawUnsafe(`
           SELECT sum(amount) as stacked
           FROM
           ((SELECT coalesce(sum("ItemAct".msats),0) as amount
             FROM "ItemAct"
             JOIN "Item" on "ItemAct"."itemId" = "Item".id
-            WHERE act = 'TIP' AND "ItemAct"."userId" <> $2 AND "Item"."userId" = $2
-            AND "ItemAct".created_at >= $1)
+            WHERE act = 'TIP' AND "ItemAct"."userId" <> $3 AND "Item"."userId" = $3
+            AND ${intervalClause(range, 'ItemAct')})
           UNION ALL
             (SELECT coalesce(sum("ReferralAct".msats),0) as amount
               FROM "ReferralAct"
-              WHERE "ReferralAct".msats > 0 AND "ReferralAct"."referrerId" = $2
-              AND "ReferralAct".created_at >= $1)
+              WHERE "ReferralAct".msats > 0 AND "ReferralAct"."referrerId" = $3
+              AND ${intervalClause(range, 'ReferralAct')})
           UNION ALL
           (SELECT coalesce(sum("Earn".msats), 0) as amount
             FROM "Earn"
-            WHERE "Earn".msats > 0 AND "Earn"."userId" = $2
-            AND "Earn".created_at >= $1)) u`, withinDate(when), Number(user.id))
+            WHERE "Earn".msats > 0 AND "Earn"."userId" = $3
+            AND ${intervalClause(range, 'Earn')})) u`, ...range, Number(user.id))
         return (stacked && msatsToSats(stacked)) || 0
       }
 
       return 0
     },
-    spent: async (user, { when }, { models }) => {
+    spent: async (user, { when, from, to }, { models }) => {
       if (typeof user.spent !== 'undefined') {
         return user.spent
       }
 
+      const [gte, lte] = whenRange(when, from, to)
       const { _sum: { msats } } = await models.itemAct.aggregate({
         _sum: {
           msats: true
@@ -813,23 +763,26 @@ export default {
         where: {
           userId: user.id,
           createdAt: {
-            gte: withinDate(when)
+            gte,
+            lte
           }
         }
       })
 
       return (msats && msatsToSats(msats)) || 0
     },
-    referrals: async (user, { when }, { models }) => {
+    referrals: async (user, { when, from, to }, { models }) => {
       if (typeof user.referrals !== 'undefined') {
         return user.referrals
       }
 
+      const [gte, lte] = whenRange(when, from, to)
       return await models.user.count({
         where: {
           referrerId: user.id,
           createdAt: {
-            gte: withinDate(when)
+            gte,
+            lte
           }
         }
       })

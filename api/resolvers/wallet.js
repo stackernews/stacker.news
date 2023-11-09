@@ -377,7 +377,16 @@ export default {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
       }
 
-      await models.withdrawl.update({ where: { userId: me.id, id: Number(id) }, data: { bolt11: null, hash: null } })
+      await models.withdrawl.update({
+        where: {
+          userId: me.id,
+          id: Number(id),
+          createdAt: {
+            lte: datePivot(new Date(), { days: -7 })
+          }
+        },
+        data: { bolt11: null, hash: null }
+      })
       return { id }
     }
   },

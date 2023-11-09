@@ -2,7 +2,7 @@ import { decode } from 'bolt11'
 import AccordianItem from './accordian-item'
 import { CopyInput } from './form'
 
-export default ({ bolt11, preimage }) => {
+export default ({ bolt11, preimage, children }) => {
   let description, paymentHash
   if (bolt11) {
     ({ tagsObject: { description, payment_hash: paymentHash } } = decode(bolt11))
@@ -44,6 +44,7 @@ export default ({ bolt11, preimage }) => {
                 noForm
                 placeholder={preimage}
               />}
+            {children}
           </>
           }
       />

@@ -104,8 +104,9 @@ function LoadWithdrawl () {
         />
       </div>
       <InvoiceStatus variant={variant} status={status} />
-      <Bolt11Info bolt11={data.withdrawl.bolt11} />
-      <PrivacyOption wd={data.withdrawl} />
+      <Bolt11Info bolt11={data.withdrawl.bolt11}>
+        <PrivacyOption wd={data.withdrawl} />
+      </Bolt11Info>
     </>
   )
 }
@@ -119,7 +120,7 @@ function PrivacyOption ({ wd }) {
   if (!oldEnough) {
     return (
       <span className='text-muted fst-italic'>
-        {`this invoice hash ${me.autoDropBolt11s ? 'will be auto-deleted' : 'can be deleted'} in ${timeLeft(keepUntil)}`}
+        {`this invoice ${me.autoDropBolt11s ? 'will be auto-deleted' : 'can be deleted'} in ${timeLeft(keepUntil)}`}
       </span>
     )
   }
@@ -146,7 +147,7 @@ function PrivacyOption ({ wd }) {
 
   return (
     <span
-      className='fw-bold text-underline pointer text-danger' onClick={() => {
+      className='btn btn-md btn-danger' onClick={() => {
         showModal(onClose => {
           return (
             <DeleteConfirm

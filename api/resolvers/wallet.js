@@ -80,15 +80,17 @@ export default {
 
       return wdrwl
     },
-    numWdInvoices: async (parent, args, { me, models, lnd }) => {
+    numBolt11s: async (parent, args, { me, models, lnd }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
       }
 
-      const [{ count }] = await models.$queryRawUnsafe(`
-        SELECT COUNT(*) FROM "Withdrawl" WHERE "userId" = $1 AND hash IS NOT NULL`, me.id)
-
-      return Number(count)
+      return await models.withdrawl.count({
+        where: {
+          userId: me.id,
+          hash: { not: null }
+        }
+      })
     },
     connectAddress: async (parent, args, { lnd }) => {
       return process.env.LND_CONNECT_ADDRESS
@@ -370,7 +372,7 @@ export default {
         }))
       return inv
     },
-    dropWdInvoice: async (parent, { id }, { me, models }) => {
+    dropBolt11: async (parent, { id }, { me, models }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
       }

@@ -41,6 +41,7 @@ export const WALLET_HISTORY = gql`
       facts {
         id
         factId
+        bolt11
         type
         createdAt
         sats

@@ -120,17 +120,17 @@ export function checkWithdrawal ({ boss, models, lnd }) {
   }
 }
 
-export function autoDropWdInvoices ({ models }) {
+export function autoDropBolt11s ({ models }) {
   return async function () {
     console.log('deleting invoices')
     try {
       await serialize(models, models.$executeRaw`
-      UPDATE "Withdrawl" SET
-        hash = NULL,
-        bolt11 = NULL
-      WHERE "userId" IN (SELECT id FROM users WHERE "autoDropWdInvoices" = true)
-        AND now() > (created_at::timestamp + interval '${INVOICE_RETENTION_DAYS} days')::timestamp
-        AND hash IS NOT NULL;`)
+        UPDATE "Withdrawl"
+        SET hash = NULL, bolt11 = NULL
+        WHERE "userId" IN (SELECT id FROM users WHERE "autoDropBolt11s")
+        AND now() > created_at + interval '${INVOICE_RETENTION_DAYS} days'
+        AND hash IS NOT NULL;`
+      )
     } catch (err) {
       console.log(err)
     }

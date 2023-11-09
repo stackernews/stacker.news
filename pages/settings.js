@@ -75,7 +75,7 @@ export default function Settings ({ ssrData }) {
             noteCowboyHat: settings?.noteCowboyHat,
             noteForwardedSats: settings?.noteForwardedSats,
             hideInvoiceDesc: settings?.hideInvoiceDesc,
-            autoDropWdInvoices: settings?.autoDropWdInvoices,
+            autoDropBolt11s: settings?.autoDropBolt11s,
             hideFromTopUsers: settings?.hideFromTopUsers,
             hideCowboyHat: settings?.hideCowboyHat,
             imgproxyOnly: settings?.imgproxyOnly,
@@ -238,10 +238,10 @@ export default function Settings ({ ssrData }) {
             name='hideInvoiceDesc'
             groupClassName='mb-0'
           />
-          <DropWdInvoicesCheckbox
+          <DropBolt11sCheckbox
             ssrData={ssrData}
             label={
-              <div className='d-flex align-items-center'>auto-delete withdrawal invoices after {INVOICE_RETENTION_DAYS} days
+              <div className='d-flex align-items-center'>autodelete withdrawal invoices
                 <Info>
                   <ul className='fw-bold'>
                     <li>use this to protect receiver privacy</li>
@@ -251,7 +251,7 @@ export default function Settings ({ ssrData }) {
                 </Info>
               </div>
             }
-            name='autoDropWdInvoices'
+            name='autoDropBolt11s'
             groupClassName='mb-0'
           />
           <Checkbox
@@ -395,10 +395,10 @@ export default function Settings ({ ssrData }) {
   )
 }
 
-const DropWdInvoicesCheckbox = ({ ssrData, ...props }) => {
+const DropBolt11sCheckbox = ({ ssrData, ...props }) => {
   const showModal = useShowModal()
-  const { data } = useQuery(gql`{ numWdInvoices }`)
-  const { numWdInvoices } = data || ssrData
+  const { data } = useQuery(gql`{ numBolt11s }`)
+  const { numBolt11s } = data || ssrData
 
   return (
     <Checkbox
@@ -407,14 +407,14 @@ const DropWdInvoicesCheckbox = ({ ssrData, ...props }) => {
           showModal(onClose => {
             return (
               <>
-                <p className='fw-bolder'>{numWdInvoices} withdrawal invoices will be deleted with this setting.</p>
-                <p className='fw-bolder'>Be sure. This is a gone forever kind of delete.</p>
+                <p className='fw-bolder'>{numBolt11s} withdrawal invoices will be deleted with this setting.</p>
+                <p className='fw-bolder'>You sure? This is a gone forever kind of delete.</p>
                 <div className='d-flex justify-content-end'>
                   <Button
                     variant='danger' onClick={async () => {
                       await onClose()
                     }}
-                  >ok
+                  >I am sure
                   </Button>
                 </div>
               </>

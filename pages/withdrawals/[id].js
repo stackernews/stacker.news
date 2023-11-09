@@ -119,17 +119,17 @@ function PrivacyOption ({ wd }) {
   if (!oldEnough) {
     return (
       <span className='text-muted fst-italic'>
-        {`this invoice hash ${me.autoDropWdInvoices ? 'will be auto-deleted' : 'can be deleted'} in ${timeLeft(keepUntil)}`}
+        {`this invoice hash ${me.autoDropBolt11s ? 'will be auto-deleted' : 'can be deleted'} in ${timeLeft(keepUntil)}`}
       </span>
     )
   }
 
   const showModal = useShowModal()
   const toaster = useToast()
-  const [dropWdInvoice] = useMutation(
+  const [dropBolt11] = useMutation(
     gql`
-      mutation dropWdInvoice($id: ID!) {
-        dropWdInvoice(id: $id) {
+      mutation dropBolt11($id: ID!) {
+        dropBolt11(id: $id) {
           id
         }
       }`, {
@@ -146,15 +146,15 @@ function PrivacyOption ({ wd }) {
 
   return (
     <span
-      className='fw-bold text-underline pointer' style={{ color: 'red' }} onClick={() => {
+      className='fw-bold text-underline pointer text-danger' onClick={() => {
         showModal(onClose => {
           return (
             <DeleteConfirm
-              type='invoice hash'
+              type='invoice'
               onConfirm={async () => {
                 if (me) {
                   try {
-                    await dropWdInvoice({ variables: { id: wd.id } })
+                    await dropBolt11({ variables: { id: wd.id } })
                   } catch (err) {
                     console.error(err)
                     toaster.danger('unable to delete invoice')

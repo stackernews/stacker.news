@@ -4,7 +4,7 @@ export default gql`
   extend type Query {
     invoice(id: ID!): Invoice!
     withdrawl(id: ID!): Withdrawl!
-    numWdInvoices: Int!
+    numBolt11s: Int!
     connectAddress: String!
     walletHistory(cursor: String, inc: String): History
   }
@@ -14,7 +14,7 @@ export default gql`
     createWithdrawl(invoice: String!, maxFee: Int!): Withdrawl!
     sendToLnAddr(addr: String!, amount: Int!, maxFee: Int!, comment: String, identifier: Boolean, name: String, email: String): Withdrawl!
     cancelInvoice(hash: String!, hmac: String!): Invoice!
-    dropWdInvoice(id: ID): Withdrawl
+    dropBolt11(id: ID): Withdrawl
   }
 
   type Invoice {

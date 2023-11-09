@@ -76,6 +76,7 @@ export function BountyForm ({
       if (error) {
         throw new Error({ message: error.toString() })
       }
+
       if (item) {
         await router.push(`/items/${item.id}`)
       } else {

@@ -74,6 +74,7 @@ export function DiscussionForm ({
       } catch (e) {
         console.error(e)
       }
+
       if (item) {
         await router.push(`/items/${item.id}`)
       } else {

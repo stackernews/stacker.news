@@ -274,7 +274,11 @@ function InvoiceScanner ({ fieldName }) {
                 onClose()
               }}
               onError={(error) => {
-                toaster.danger(error?.message || error?.toString?.())
+                if (error instanceof DOMException) {
+                  console.log(error)
+                } else {
+                  toaster.danger(error?.message || error?.toString?.())
+                }
               }}
             />
           )

@@ -11,7 +11,7 @@ import { pollSchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
 import { useCallback } from 'react'
-import { normalizeForwards, toastSuccessfulDeleteScheduled } from '../lib/form'
+import { normalizeForwards, toastDeleteScheduled } from '../lib/form'
 import { useMe } from './me'
 import { useToast } from './toast'
 
@@ -57,7 +57,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         const prefix = sub?.name ? `/~${sub.name}` : ''
         await router.push(prefix + '/recent')
       }
-      toastSuccessfulDeleteScheduled(toaster, data, !!item)
+      toastDeleteScheduled(toaster, data, !!item, values.text)
     }, [upsertPoll, router]
   )
 

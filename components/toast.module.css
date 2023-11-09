@@ -17,6 +17,10 @@
   border-color: var(--bs-danger-border-subtle);
 }
 
+.warning {
+  border-color: var(--bs-warning-border-subtle);
+}
+
 .toastClose {
   color: #fff;
   font-family: "lightning";

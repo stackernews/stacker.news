@@ -19,7 +19,7 @@ import CancelButton from './cancel-button'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
 import FeeButton from './fee-button'
 import { useToast } from './toast'
-import { toastSuccessfulDeleteScheduled } from '../lib/form'
+import { toastDeleteScheduled } from '../lib/form'
 
 function satsMin2Mo (minute) {
   return minute * 30 * 24 * 60
@@ -83,7 +83,7 @@ export default function JobForm ({ item, sub }) {
       } else {
         await router.push(`/~${sub.name}/recent`)
       }
-      toastSuccessfulDeleteScheduled(toaster, data, !!item)
+      toastDeleteScheduled(toaster, data, !!item, values.text)
     }, [upsertJob, router, logoId]
   )
 

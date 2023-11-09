@@ -25,12 +25,20 @@ export const ToastProvider = ({ children }) => {
   }, [])
 
   const toaster = useMemo(() => ({
-    success: body => {
+    success: (body, delay = 5000) => {
       dispatchToast({
         body,
         variant: 'success',
         autohide: true,
-        delay: 5000
+        delay
+      })
+    },
+    warning: (body, delay = 5000) => {
+      dispatchToast({
+        body,
+        variant: 'warning',
+        autohide: true,
+        delay
       })
     },
     danger: (body, onCloseCallback) => {
@@ -64,7 +72,7 @@ export const ToastProvider = ({ children }) => {
         {toasts.map(toast => (
           <Toast
             key={toast.id} bg={toast.variant} show autohide={toast.autohide}
-            delay={toast.delay} className={`${styles.toast} ${styles[toast.variant]}`} onClose={() => removeToast(toast.id)}
+            delay={toast.delay} className={`${styles.toast} ${styles[toast.variant]} ${toast.variant === 'warning' ? 'text-dark' : ''}`} onClose={() => removeToast(toast.id)}
           >
             <ToastBody>
               <div className='d-flex align-items-center'>
@@ -77,7 +85,7 @@ export const ToastProvider = ({ children }) => {
                     if (toast.onCloseCallback) toast.onCloseCallback()
                     removeToast(toast.id)
                   }}
-                ><div className={styles.toastClose}>X</div>
+                ><div className={`${styles.toastClose} ${toast.variant === 'warning' ? 'text-dark' : ''}`}>X</div>
                 </Button>
               </div>
             </ToastBody>

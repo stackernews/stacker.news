@@ -19,6 +19,7 @@ import CancelButton from './cancel-button'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
 import FeeButton from './fee-button'
 import { useToast } from './toast'
+import { toastSuccessfulDeleteScheduled } from '../lib/form'
 
 function satsMin2Mo (minute) {
   return minute * 30 * 24 * 60
@@ -76,21 +77,12 @@ export default function JobForm ({ item, sub }) {
       if (error) {
         throw new Error({ message: error.toString() })
       }
-      let deleteScheduledAt
-      if (data.upsertJob.deleteScheduledAt) {
-        deleteScheduledAt = new Date(data.upsertJob.deleteScheduledAt)
-      }
       if (item) {
         await router.push(`/items/${item.id}`)
-        if (deleteScheduledAt) {
-          toaster.success(`this job will be deleted at ${deleteScheduledAt.toLocaleDateString()} ${deleteScheduledAt.toLocaleTimeString()}`)
-        }
       } else {
         await router.push(`/~${sub.name}/recent`)
-        if (deleteScheduledAt) {
-          toaster.success(`your new job will be deleted at ${deleteScheduledAt.toLocaleDateString()} ${deleteScheduledAt.toLocaleTimeString()}`)
-        }
       }
+      toastSuccessfulDeleteScheduled(toaster, data, !!item)
     }, [upsertJob, router, logoId]
   )
 

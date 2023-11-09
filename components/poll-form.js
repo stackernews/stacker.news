@@ -11,7 +11,7 @@ import { pollSchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
 import { useCallback } from 'react'
-import { normalizeForwards } from '../lib/form'
+import { normalizeForwards, toastSuccessfulDeleteScheduled } from '../lib/form'
 import { useMe } from './me'
 import { useToast } from './toast'
 
@@ -51,22 +51,13 @@ export function PollForm ({ item, sub, editThreshold, children }) {
       if (error) {
         throw new Error({ message: error.toString() })
       }
-      let deleteScheduledAt
-      if (data.upsertPoll.deleteScheduledAt) {
-        deleteScheduledAt = new Date(data.upsertPoll.deleteScheduledAt)
-      }
       if (item) {
         await router.push(`/items/${item.id}`)
-        if (deleteScheduledAt) {
-          toaster.success(`this poll will be deleted at ${deleteScheduledAt.toLocaleDateString()} ${deleteScheduledAt.toLocaleTimeString()}`)
-        }
       } else {
         const prefix = sub?.name ? `/~${sub.name}` : ''
         await router.push(prefix + '/recent')
-        if (deleteScheduledAt) {
-          toaster.success(`your new poll will be deleted at ${deleteScheduledAt.toLocaleDateString()} ${deleteScheduledAt.toLocaleTimeString()}`)
-        }
       }
+      toastSuccessfulDeleteScheduled(toaster, data, !!item)
     }, [upsertPoll, router]
   )
 

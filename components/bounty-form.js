@@ -9,7 +9,7 @@ import { bountySchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
 import { useCallback } from 'react'
-import { normalizeForwards } from '../lib/form'
+import { normalizeForwards, toastSuccessfulDeleteScheduled } from '../lib/form'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
 import { useMe } from './me'
 import { useToast } from './toast'
@@ -76,22 +76,13 @@ export function BountyForm ({
       if (error) {
         throw new Error({ message: error.toString() })
       }
-      let deleteScheduledAt
-      if (data.upsertBounty.deleteScheduledAt) {
-        deleteScheduledAt = new Date(data.upsertBounty.deleteScheduledAt)
-      }
       if (item) {
         await router.push(`/items/${item.id}`)
-        if (deleteScheduledAt) {
-          toaster.success(`this bounty will be deleted at ${deleteScheduledAt.toLocaleDateString()} ${deleteScheduledAt.toLocaleTimeString()}`)
-        }
       } else {
         const prefix = sub?.name ? `/~${sub.name}` : ''
         await router.push(prefix + '/recent')
-        if (deleteScheduledAt) {
-          toaster.success(`your new bounty will be deleted at ${deleteScheduledAt.toLocaleDateString()} ${deleteScheduledAt.toLocaleTimeString()}`)
-        }
       }
+      toastSuccessfulDeleteScheduled(toaster, data, !!item)
     }, [upsertBounty, router]
   )
 

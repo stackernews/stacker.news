@@ -6,6 +6,7 @@ import Delete from './delete'
 import { commentSchema } from '../lib/validate'
 import FeeButton, { FeeButtonProvider } from './fee-button'
 import { useToast } from './toast'
+import { toastSuccessfulDeleteScheduled } from '../lib/form'
 
 export default function CommentEdit ({ comment, editThreshold, onSuccess, onCancel }) {
   const toaster = useToast()
@@ -43,10 +44,7 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
             if (error) {
               throw new Error({ message: error.toString() })
             }
-            if (data?.upsertComment?.deleteScheduledAt) {
-              const deleteScheduledAt = new Date(data.upsertComment.deleteScheduledAt)
-              toaster.success(`your comment will be deleted at ${deleteScheduledAt.toLocaleDateString()} ${deleteScheduledAt.toLocaleTimeString()}`)
-            }
+            toastSuccessfulDeleteScheduled(toaster, data, true)
             if (onSuccess) {
               onSuccess()
             }

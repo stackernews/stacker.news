@@ -13,7 +13,7 @@ import { discussionSchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
 import { useCallback } from 'react'
-import { normalizeForwards } from '../lib/form'
+import { normalizeForwards, toastSuccessfulDeleteScheduled } from '../lib/form'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
 import { useMe } from './me'
 import useCrossposter from './use-crossposter'
@@ -74,22 +74,13 @@ export function DiscussionForm ({
       } catch (e) {
         console.error(e)
       }
-      let deleteScheduledAt
-      if (data.upsertDiscussion.deleteScheduledAt) {
-        deleteScheduledAt = new Date(data.upsertDiscussion.deleteScheduledAt)
-      }
       if (item) {
         await router.push(`/items/${item.id}`)
-        if (deleteScheduledAt) {
-          toaster.success(`this discussion post will be deleted at ${deleteScheduledAt.toLocaleDateString()} ${deleteScheduledAt.toLocaleTimeString()}`)
-        }
       } else {
         const prefix = sub?.name ? `/~${sub.name}` : ''
         await router.push(prefix + '/recent')
-        if (deleteScheduledAt) {
-          toaster.success(`your new discussion post will be deleted at ${deleteScheduledAt.toLocaleDateString()} ${deleteScheduledAt.toLocaleTimeString()}`)
-        }
       }
+      toastSuccessfulDeleteScheduled(toaster, data, !!item)
     }, [upsertDiscussion, router, item, sub, crossposter]
   )
 

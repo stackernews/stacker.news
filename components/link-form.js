@@ -14,7 +14,7 @@ import { linkSchema } from '../lib/validate'
 import Moon from '../svgs/moon-fill.svg'
 import { SubSelectInitial } from './sub-select-form'
 import CancelButton from './cancel-button'
-import { normalizeForwards } from '../lib/form'
+import { normalizeForwards, toastSuccessfulDeleteScheduled } from '../lib/form'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
 import { useMe } from './me'
 import { useToast } from './toast'
@@ -95,22 +95,13 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
       if (error) {
         throw new Error({ message: error.toString() })
       }
-      let deleteScheduledAt
-      if (data.upsertLink.deleteScheduledAt) {
-        deleteScheduledAt = new Date(data.upsertLink.deleteScheduledAt)
-      }
       if (item) {
         await router.push(`/items/${item.id}`)
-        if (deleteScheduledAt) {
-          toaster.success(`this link post will be deleted at ${deleteScheduledAt.toLocaleDateString()} ${deleteScheduledAt.toLocaleTimeString()}`)
-        }
       } else {
         const prefix = sub?.name ? `/~${sub.name}` : ''
         await router.push(prefix + '/recent')
-        if (deleteScheduledAt) {
-          toaster.success(`your new link post will be deleted at ${deleteScheduledAt.toLocaleDateString()} ${deleteScheduledAt.toLocaleTimeString()}`)
-        }
       }
+      toastSuccessfulDeleteScheduled(toaster, data, !!item)
     }, [upsertLink, router]
   )
 

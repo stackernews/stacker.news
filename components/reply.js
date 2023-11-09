@@ -12,6 +12,7 @@ import Info from './info'
 import { quote } from '../lib/md'
 import { COMMENT_DEPTH_LIMIT } from '../lib/constants'
 import { useToast } from './toast'
+import { toastSuccessfulDeleteScheduled } from '../lib/form'
 
 export function ReplyOnAnotherPage ({ item }) {
   const path = item.path.split('.')
@@ -157,10 +158,7 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
 
   const onSubmit = useCallback(async ({ amount, hash, hmac, ...values }, { resetForm }) => {
     const { data } = await upsertComment({ variables: { parentId, hash, hmac, ...values } })
-    if (data?.upsertComment?.deleteScheduledAt) {
-      const deleteScheduledAt = new Date(data.upsertComment.deleteScheduledAt)
-      toaster.success(`your comment will be deleted at ${deleteScheduledAt.toLocaleDateString()} ${deleteScheduledAt.toLocaleTimeString()}`)
-    }
+    toastSuccessfulDeleteScheduled(toaster, data, false)
     resetForm({ text: '' })
     setReply(replyOpen || false)
   }, [upsertComment, setReply, parentId])

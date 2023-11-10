@@ -5,17 +5,18 @@ export const INVITE_FIELDS = gql`
     id
     createdAt
     invitees {
-      name
       id
+      name
     }
     gift
     limit
     revoked
     user {
-      name
-      streak
-      hideCowboyHat
       id
+      name
+      optional {
+        streak
+      }
     }
     poor
   }

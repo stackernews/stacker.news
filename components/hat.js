@@ -21,11 +21,11 @@ export default function Hat ({ user, badge, className = 'ms-1', height = 16, wid
     )
   }
 
-  if (user.streak === null || user.hideCowboyHat) {
+  const streak = user.optional.streak
+  if (streak === null) {
     return null
   }
 
-  const streak = user.streak
   return (
     <HatTooltip overlayText={streak
       ? `${numWithUnits(streak, { abbreviate: false, unitSingular: 'day', unitPlural: 'days' })}`

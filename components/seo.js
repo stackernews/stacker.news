@@ -69,7 +69,7 @@ export default function Seo ({ sub, item, user }) {
     }
   }
   if (user) {
-    desc = `@${user.name} has [${user.stacked} stacked, ${numWithUnits(user.nitems, { unitSingular: 'item', unitPlural: 'items' })}]`
+    desc = `@${user.name} has [${user.optional.stacked ? `${user.optional.stacked} stacked,` : ''}${numWithUnits(user.nitems, { unitSingular: 'item', unitPlural: 'items' })}]`
   }
 
   return (

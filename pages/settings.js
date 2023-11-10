@@ -52,7 +52,7 @@ export default function Settings ({ ssrData }) {
   const logger = useLogger()
 
   const { data } = useQuery(SETTINGS)
-  const { settings } = data || ssrData
+  const { settings: { privates: settings } } = data || ssrData
   if (!data && !ssrData) return <PageLoading />
 
   return (
@@ -105,11 +105,13 @@ export default function Settings ({ ssrData }) {
             try {
               await setSettings({
                 variables: {
-                  tipDefault: Number(tipDefault),
-                  withdrawMaxFeeDefault: Number(withdrawMaxFeeDefault),
-                  nostrPubkey,
-                  nostrRelays: nostrRelaysFiltered,
-                  ...values
+                  settings: {
+                    tipDefault: Number(tipDefault),
+                    withdrawMaxFeeDefault: Number(withdrawMaxFeeDefault),
+                    nostrPubkey,
+                    nostrRelays: nostrRelaysFiltered,
+                    ...values
+                  }
                 }
               })
               toaster.success('saved settings')

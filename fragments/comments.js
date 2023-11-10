@@ -8,10 +8,11 @@ export const COMMENT_FIELDS = gql`
     deletedAt
     text
     user {
-      name
-      streak
-      hideCowboyHat
       id
+      name
+      optional {
+        streak
+      }
       meMute
     }
     sats
@@ -45,8 +46,9 @@ export const COMMENTS_ITEM_EXT_FIELDS = gql`
       subName
       user {
         name
-        streak
-        hideCowboyHat
+        optional {
+          streak
+        }
         id
       }
     }

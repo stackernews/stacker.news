@@ -187,9 +187,11 @@ function HeaderHeader ({ user }) {
 
   const isMe = me?.name === user.name
   const Satistics = () => (
-    <div className={`mb-2 ms-0 ms-sm-1 ${styles.username} text-success`}>
-      {numWithUnits(user.stacked, { abbreviate: false, format: true })} stacked
-    </div>)
+    user.optional.stacked !== null &&
+      <div className={`mb-2 ms-0 ms-sm-1 ${styles.username} text-success`}>
+        {numWithUnits(user.optional.stacked, { abbreviate: false, format: true })} stacked
+      </div>
+  )
 
   const lnurlp = encodeLNUrl(new URL(`https://stacker.news/.well-known/lnurlp/${user.name}`))
   return (
@@ -227,8 +229,8 @@ function HeaderHeader ({ user }) {
             ? <Link href={`/items/${user.since}`} className='ms-1'>#{user.since}</Link>
             : <span>never</span>}
           </small>
-          <small className='text-muted d-flex-inline'>longest cowboy streak: {user.maxStreak !== null ? user.maxStreak : 'none'}</small>
-          {user.isContributor && <small className='text-muted d-flex align-items-center'><CodeIcon className='me-1' height={16} width={16} /> verified stacker.news contributor</small>}
+          {user.optional.maxStreak !== null && <small className='text-muted d-flex-inline'>longest cowboy streak: {user.optional.maxStreak}</small>}
+          {user.optional.isContributor && <small className='text-muted d-flex align-items-center'><CodeIcon className='me-1' height={16} width={16} /> verified stacker.news contributor</small>}
         </div>
       </div>
     </div>

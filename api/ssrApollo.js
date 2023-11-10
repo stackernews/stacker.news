@@ -87,7 +87,7 @@ export function getGetServerSideProps (
     }
 
     const { data: { price } } = await client.query({
-      query: PRICE, variables: { fiatCurrency: me?.fiatCurrency }
+      query: PRICE, variables: { fiatCurrency: me?.privates?.fiatCurrency }
     })
 
     const { data: { blockHeight } } = await client.query({

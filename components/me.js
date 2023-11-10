@@ -9,9 +9,12 @@ export const MeContext = React.createContext({
 
 export function MeProvider ({ me, children }) {
   const { data } = useQuery(ME, SSR ? {} : { pollInterval: 1000, nextFetchPolicy: 'cache-and-network' })
+  const futureMe = data?.me || me
 
   const contextValue = {
-    me: data?.me || me
+    me: futureMe
+      ? { ...futureMe, ...futureMe.privates, ...futureMe.optional }
+      : null
   }
 
   return (

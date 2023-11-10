@@ -23,6 +23,15 @@ const loadContributors = async (set) => {
 }
 
 async function authMethods (user, args, { models, me }) {
+  if (!me || me.id !== user.id) {
+    return {
+      lightning: false,
+      twitter: false,
+      github: false,
+      nostr: false
+    }
+  }
+
   const accounts = await models.account.findMany({
     where: {
       userId: me.id
@@ -465,7 +474,7 @@ export default {
         throw error
       }
     },
-    setSettings: async (parent, { nostrRelays, ...data }, { me, models }) => {
+    setSettings: async (parent, { settings: { nostrRelays, ...data } }, { me, models }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
       }
@@ -617,7 +626,59 @@ export default {
   },
 
   User: {
-    authMethods,
+    privates: async (user, args, { me, models }) => {
+      if (!me || me.id !== user.id) {
+        return null
+      }
+
+      return user
+    },
+    optional: user => user,
+    meSubscriptionPosts: async (user, args, { me, models }) => {
+      if (!me) return false
+      if (typeof user.meSubscriptionPosts !== 'undefined') return user.meSubscriptionPosts
+
+      const subscription = await models.userSubscription.findUnique({
+        where: {
+          followerId_followeeId: {
+            followerId: Number(me.id),
+            followeeId: Number(user.id)
+          }
+        }
+      })
+
+      return !!subscription?.postsSubscribedAt
+    },
+    meSubscriptionComments: async (user, args, { me, models }) => {
+      if (!me) return false
+      if (typeof user.meSubscriptionComments !== 'undefined') return user.meSubscriptionComments
+
+      const subscription = await models.userSubscription.findUnique({
+        where: {
+          followerId_followeeId: {
+            followerId: Number(me.id),
+            followeeId: Number(user.id)
+          }
+        }
+      })
+
+      return !!subscription?.commentsSubscribedAt
+    },
+    meMute: async (user, args, { me, models }) => {
+      if (!me) return false
+      if (typeof user.meMute !== 'undefined') return user.meMute
+
+      const mute = await models.mute.findUnique({
+        where: {
+          muterId_mutedId: {
+            muterId: Number(me.id),
+            mutedId: Number(user.id)
+          }
+        }
+      })
+
+      return !!mute
+    },
     since: async (user, args, { models }) => {
       // get the user's first item
       const item = await models.item.findFirst({
@@ -629,12 +690,6 @@ export default {
         }
       })
       return item?.id
-    },
-    maxStreak: async (user, args, { models }) => {
-      const [{ max }] = await models.$queryRaw`
-      SELECT MAX(COALESCE("endedAt", (now() AT TIME ZONE 'America/Chicago')::date) - "startedAt")
-      FROM "Streak" WHERE "userId" = ${user.id}`
-      return max
     },
     nitems: async (user, { when, from, to }, { models }) => {
       if (typeof user.nitems !== 'undefined') {
@@ -651,21 +706,6 @@ export default {
           }
         }
       })
-    },
-    meMute: async (user, args, { me, models }) => {
-      if (!me) return false
-      if (typeof user.meMute !== 'undefined') return user.meMute
-
-      const mute = await models.mute.findUnique({
-        where: {
-          muterId_mutedId: {
-            muterId: Number(me.id),
-            mutedId: Number(user.id)
-          }
-        }
-      })
-
-      return !!mute
     },
     nposts: async (user, { when, from, to }, { models }) => {
       if (typeof user.nposts !== 'undefined') {
@@ -701,23 +741,72 @@ export default {
         }
       })
     },
-    nbookmarks: async (user, { when, from, to }, { models }) => {
-      if (typeof user.nBookmarks !== 'undefined') {
-        return user.nBookmarks
+    bio: async (user, args, { models, me }) => {
+      return getItem(user, { id: user.bioId }, { models, me })
+    }
+  },
+
+  UserPrivates: {
+    sats: async (user, args, { models, me }) => {
+      if (!me || me.id !== user.id) {
+        return 0
+      }
+      return msatsToSats(user.msats)
+    },
+    authMethods,
+    hasInvites: async (user, args, { models }) => {
+      const invites = await models.user.findUnique({
+        where: { id: user.id }
+      }).invites({ take: 1 })
+
+      return invites.length > 0
+    },
+    nostrRelays: async (user, args, { models, me }) => {
+      if (user.id !== me.id) {
+        return []
       }
 
-      const [gte, lte] = whenRange(when, from, to)
-      return await models.bookmark.count({
-        where: {
-          userId: user.id,
-          createdAt: {
-            gte,
-            lte
-          }
-        }
+      const relays = await models.userNostrRelay.findMany({
+        where: { userId: user.id }
       })
+
+      return relays?.map(r => r.nostrRelayAddr)
+    }
+  },
+
+  UserOptional: {
+    streak: async (user, args, { models }) => {
+      if (user.hideCowboyHat) {
+        return null
+      }
+
+      return user.streak
     },
-    stacked: async (user, { when, from, to }, { models }) => {
+    maxStreak: async (user, args, { models }) => {
+      if (user.hideCowboyHat) {
+        return null
+      }
+
+      const [{ max }] = await models.$queryRaw`
+        SELECT MAX(COALESCE("endedAt", (now() AT TIME ZONE 'America/Chicago')::date) - "startedAt")
+        FROM "Streak" WHERE "userId" = ${user.id}`
+      return max
+    },
+    isContributor: async (user, args, { me }) => {
+      // lazy init contributors only once
+      if (contributors.size === 0) {
+        await loadContributors(contributors)
+      }
+      if (me?.id === user.id) {
+        return contributors.has(user.name)
+      }
+      return !user.hideIsContributor && contributors.has(user.name)
+    },
+    stacked: async (user, { when, from, to }, { models, me }) => {
+      if ((!me || me.id !== user.id) && user.hideFromTopUsers) {
+        return null
+      }
+
       if (typeof user.stacked !== 'undefined') {
         return user.stacked
       }
@@ -750,7 +839,11 @@ export default {
 
       return 0
     },
-    spent: async (user, { when, from, to }, { models }) => {
+    spent: async (user, { when, from, to }, { models, me }) => {
+      if ((!me || me.id !== user.id) && user.hideFromTopUsers) {
+        return null
+      }
+
       if (typeof user.spent !== 'undefined') {
         return user.spent
       }
@@ -771,7 +864,11 @@ export default {
 
       return (msats && msatsToSats(msats)) || 0
     },
-    referrals: async (user, { when, from, to }, { models }) => {
+    referrals: async (user, { when, from, to }, { models, me }) => {
+      if ((!me || me.id !== user.id) && user.hideFromTopUsers) {
+        return null
+      }
+
       if (typeof user.referrals !== 'undefined') {
         return user.referrals
       }
@@ -786,69 +883,6 @@ export default {
           }
         }
       })
-    },
-    sats: async (user, args, { models, me }) => {
-      if (me?.id !== user.id) {
-        return 0
-      }
-      return msatsToSats(user.msats)
-    },
-    bio: async (user, args, { models, me }) => {
-      return getItem(user, { id: user.bioId }, { models, me })
-    },
-    hasInvites: async (user, args, { models }) => {
-      const invites = await models.user.findUnique({
-        where: { id: user.id }
-      }).invites({ take: 1 })
-
-      return invites.length > 0
-    },
-    nostrRelays: async (user, args, { models }) => {
-      const relays = await models.userNostrRelay.findMany({
-        where: { userId: user.id }
-      })
-
-      return relays?.map(r => r.nostrRelayAddr)
-    },
-    meSubscriptionPosts: async (user, args, { me, models }) => {
-      if (!me) return false
-      if (typeof user.meSubscriptionPosts !== 'undefined') return user.meSubscriptionPosts
-
-      const subscription = await models.userSubscription.findUnique({
-        where: {
-          followerId_followeeId: {
-            followerId: Number(me.id),
-            followeeId: Number(user.id)
-          }
-        }
-      })
-
-      return !!subscription?.postsSubscribedAt
-    },
-    meSubscriptionComments: async (user, args, { me, models }) => {
-      if (!me) return false
-      if (typeof user.meSubscriptionComments !== 'undefined') return user.meSubscriptionComments
-
-      const subscription = await models.userSubscription.findUnique({
-        where: {
-          followerId_followeeId: {
-            followerId: Number(me.id),
-            followeeId: Number(user.id)
-          }
-        }
-      })
-
-      return !!subscription?.commentsSubscribedAt
-    },
-    isContributor: async (user, args, { me }) => {
-      // lazy init contributors only once
-      if (contributors.size === 0) {
-        await loadContributors(contributors)
-      }
-      if (me?.id === user.id) {
-        return contributors.has(user.name)
-      }
-      return !user.hideIsContributor && contributors.has(user.name)
     }
   }
 }

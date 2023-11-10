@@ -10,10 +10,11 @@ export const ITEM_FIELDS = gql`
     title
     url
     user {
-      name
-      streak
-      hideCowboyHat
       id
+      name
+      optional {
+        streak
+      }
       meMute
     }
     otsHash
@@ -60,10 +61,11 @@ export const ITEM_FULL_FIELDS = gql`
       bountyPaidTo
       subName
       user {
-        name
-        streak
-        hideCowboyHat
         id
+        name
+        optional {
+          streak
+        }
       }
     }
     forwards {

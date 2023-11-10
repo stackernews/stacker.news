@@ -7,19 +7,53 @@ export const ME = gql`
     me {
       id
       name
-      streak
-      sats
-      stacked
-      freePosts
-      freeComments
+      bioId
+      privates {
+        autoDropBolt11s
+        diagnostics
+        fiatCurrency
+        greeterMode
+        hideCowboyHat
+        hideFromTopUsers
+        hideInvoiceDesc
+        hideIsContributor
+        hideWalletBalance
+        hideWelcomeBanner
+        imgproxyOnly
+        lastCheckedJobs
+        nostrCrossposting
+        noteAllDescendants
+        noteCowboyHat
+        noteDeposits
+        noteEarning
+        noteForwardedSats
+        noteInvites
+        noteItemSats
+        noteJobIndicator
+        noteMentions
+        sats
+        tipDefault
+        tipPopover
+        turboTipping
+        upvotePopover
+        wildWestMode
+        withdrawMaxFeeDefault
+      }
+      optional {
+        isContributor
+        stacked
+        streak
+      }
+    }
+  }`
+
+export const SETTINGS_FIELDS = gql`
+  fragment SettingsFields on User {
+    privates {
       tipDefault
       turboTipping
       fiatCurrency
       withdrawMaxFeeDefault
-      bioId
-      upvotePopover
-      tipPopover
-      nostrCrossposting
       noteItemSats
       noteEarning
       noteAllDescendants
@@ -33,53 +67,23 @@ export const ME = gql`
       autoDropBolt11s
       hideFromTopUsers
       hideCowboyHat
+      hideBookmarks
+      hideIsContributor
       imgproxyOnly
+      hideWalletBalance
       diagnostics
+      nostrPubkey
+      nostrCrossposting
+      nostrRelays
       wildWestMode
       greeterMode
-      lastCheckedJobs
-      hideWelcomeBanner
-      hideWalletBalance
-      isContributor
-      hideIsContributor
-    }
-  }`
-
-export const SETTINGS_FIELDS = gql`
-  fragment SettingsFields on User {
-    tipDefault
-    turboTipping
-    fiatCurrency
-    withdrawMaxFeeDefault
-    noteItemSats
-    noteEarning
-    noteAllDescendants
-    noteMentions
-    noteDeposits
-    noteInvites
-    noteJobIndicator
-    noteCowboyHat
-    noteForwardedSats
-    hideInvoiceDesc
-    autoDropBolt11s
-    hideFromTopUsers
-    hideCowboyHat
-    hideBookmarks
-    hideIsContributor
-    imgproxyOnly
-    hideWalletBalance
-    diagnostics
-    nostrPubkey
-    nostrCrossposting
-    nostrRelays
-    wildWestMode
-    greeterMode
-    authMethods {
-      lightning
-      nostr
-      github
-      twitter
-      email
+      authMethods {
+        lightning
+        nostr
+        github
+        twitter
+        email
+      }
     }
   }`
 
@@ -94,22 +98,11 @@ ${SETTINGS_FIELDS}
 export const SET_SETTINGS =
 gql`
 ${SETTINGS_FIELDS}
-mutation setSettings($tipDefault: Int!, $turboTipping: Boolean!, $fiatCurrency: String!, $withdrawMaxFeeDefault: Int!, $noteItemSats: Boolean!,
-  $noteEarning: Boolean!, $noteAllDescendants: Boolean!, $noteMentions: Boolean!, $noteDeposits: Boolean!,
-  $noteInvites: Boolean!, $noteJobIndicator: Boolean!, $noteCowboyHat: Boolean!, $hideInvoiceDesc: Boolean!, $autoDropBolt11s: Boolean!,
-  $hideFromTopUsers: Boolean!, $hideCowboyHat: Boolean!, $imgproxyOnly: Boolean!,
-  $wildWestMode: Boolean!, $greeterMode: Boolean!, $nostrPubkey: String, $nostrCrossposting: Boolean!, $nostrRelays: [String!], $hideBookmarks: Boolean!,
-  $noteForwardedSats: Boolean!, $hideWalletBalance: Boolean!, $hideIsContributor: Boolean!, $diagnostics: Boolean!) {
-  setSettings(tipDefault: $tipDefault, turboTipping: $turboTipping,  fiatCurrency: $fiatCurrency, withdrawMaxFeeDefault: $withdrawMaxFeeDefault,
-    noteItemSats: $noteItemSats, noteEarning: $noteEarning, noteAllDescendants: $noteAllDescendants,
-    noteMentions: $noteMentions, noteDeposits: $noteDeposits, noteInvites: $noteInvites,
-    noteJobIndicator: $noteJobIndicator, noteCowboyHat: $noteCowboyHat, hideInvoiceDesc: $hideInvoiceDesc, autoDropBolt11s: $autoDropBolt11s,
-    hideFromTopUsers: $hideFromTopUsers, hideCowboyHat: $hideCowboyHat, imgproxyOnly: $imgproxyOnly,
-    wildWestMode: $wildWestMode, greeterMode: $greeterMode, nostrPubkey: $nostrPubkey, nostrCrossposting: $nostrCrossposting, nostrRelays: $nostrRelays, hideBookmarks: $hideBookmarks,
-    noteForwardedSats: $noteForwardedSats, hideWalletBalance: $hideWalletBalance, hideIsContributor: $hideIsContributor, diagnostics: $diagnostics) {
-      ...SettingsFields
-    }
+mutation setSettings($settings: SettingsInput!) {
+  setSettings(settings: $settings) {
+    ...SettingsFields
   }
+}
 `
 
 export const NAME_QUERY =
@@ -139,14 +132,16 @@ gql`
     searchUsers(q: $q, limit: $limit, similarity: $similarity) {
       id
       name
-      streak
-      hideCowboyHat
       photoId
-      stacked
-      spent
       ncomments
       nposts
-      referrals
+
+      optional {
+        streak
+        stacked
+        spent
+        referrals
+      }
     }
   }`
 
@@ -154,17 +149,19 @@ export const USER_FIELDS = gql`
   fragment UserFields on User {
     id
     name
-    streak
-    maxStreak
-    hideCowboyHat
-    nitems
-    stacked
     since
     photoId
-    isContributor
+    nitems
     meSubscriptionPosts
     meSubscriptionComments
     meMute
+
+    optional {
+      stacked
+      streak
+      maxStreak
+      isContributor
+    }
   }`
 
 export const TOP_USERS = gql`
@@ -173,14 +170,16 @@ export const TOP_USERS = gql`
       users {
         id
         name
-        streak
-        hideCowboyHat
         photoId
-        stacked(when: $when, from: $from, to: $to)
-        spent(when: $when, from: $from, to: $to)
         ncomments(when: $when, from: $from, to: $to)
         nposts(when: $when, from: $from, to: $to)
-        referrals(when: $when, from: $from, to: $to)
+
+        optional {
+          streak
+          stacked(when: $when, from: $from, to: $to)
+          spent(when: $when, from: $from, to: $to)
+          referrals(when: $when, from: $from, to: $to)
+        }
       }
       cursor
     }
@@ -193,14 +192,16 @@ export const TOP_COWBOYS = gql`
       users {
         id
         name
-        streak
-        hideCowboyHat
         photoId
-        stacked(when: "forever")
-        spent(when: "forever")
         ncomments(when: "forever")
         nposts(when: "forever")
-        referrals(when: "forever")
+
+        optional {
+          streak
+          stacked(when: "forever")
+          spent(when: "forever")
+          referrals(when: "forever")
+        }
       }
       cursor
     }

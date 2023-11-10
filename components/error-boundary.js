@@ -2,23 +2,32 @@ import { Component } from 'react'
 import { StaticLayout } from './layout'
 import styles from '../styles/error.module.css'
 import Image from 'react-bootstrap/Image'
+import copy from 'clipboard-copy'
+import { LoggerContext } from './logger'
 
 class ErrorBoundary extends Component {
   constructor (props) {
     super(props)
 
     // Define a state variable to track whether is an error or not
-    this.state = { hasError: false }
+    this.state = {
+      hasError: false,
+      error: undefined,
+      errorInfo: undefined
+    }
   }
 
-  static getDerivedStateFromError () {
+  static getDerivedStateFromError (error) {
     // Update state so the next render will show the fallback UI
-    return { hasError: true }
+    return { hasError: true, error }
   }
 
   componentDidCatch (error, errorInfo) {
     // You can use your own error logging service here
     console.log({ error, errorInfo })
+    this.setState({ errorInfo })
+    const logger = this.context
+    logger?.error(error + '\n' + errorInfo.componentStack)
   }
 
   render () {
@@ -29,6 +38,11 @@ class ErrorBoundary extends Component {
         <StaticLayout>
           <Image width='500' height='375' className='rounded-1 shadow-sm' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/floating.gif`} fluid />
           <h1 className={styles.status} style={{ fontSize: '48px' }}>something went wrong</h1>
+          {this.state.error &&
+            <>
+              <textarea readOnly value={this.state.error.stack + '\n' + this.state.errorInfo?.componentStack} style={{ width: '500px' }} />
+              <button onClick={() => { copy(this.state.error.stack + '\n' + this.state.errorInfo?.componentStack) }}>copy error</button>
+            </>}
         </StaticLayout>
       )
     }
@@ -38,5 +52,7 @@ class ErrorBoundary extends Component {
     return this.props.children
   }
 }
+
+ErrorBoundary.contextType = LoggerContext
 
 export default ErrorBoundary

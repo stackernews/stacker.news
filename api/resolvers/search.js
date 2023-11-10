@@ -1,4 +1,3 @@
-import { ITEM_FILTER_THRESHOLD } from '../../lib/constants'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { whenToFrom } from '../../lib/time'
 import { getItem } from './item'
@@ -121,27 +120,16 @@ export default {
         whatArr.push({ match: { 'sub.name': sub } })
       }
 
-      const sortArr = []
+      let sortField
       switch (sort) {
-        case 'recent':
-          sortArr.push({ createdAt: 'desc' })
-          sortArr.push('_score')
-          break
         case 'comments':
-          sortArr.push({ ncomments: 'desc' })
-          sortArr.push('_score')
+          sortField = 'ncomments'
           break
         case 'sats':
-          sortArr.push({ sats: 'desc' })
-          sortArr.push('_score')
-          break
-        case 'match':
-          sortArr.push('_score')
-          sortArr.push({ wvotes: 'desc' })
+          sortField = 'sats'
           break
         default:
-          sortArr.push({ wvotes: 'desc' })
-          sortArr.push('_score')
+          sortField = 'wvotes'
           break
       }
 
@@ -154,21 +142,21 @@ export default {
                 multi_match: {
                   query,
                   type: 'most_fields',
-                  fields: ['title^100', 'text'],
+                  fields: ['title^1000', 'text'],
                   minimum_should_match: '100%',
-                  boost: 400
+                  boost: 1000
                 }
               },
               {
-                // all terms are matched in fields
+                // all terms are matched in fields fuzzily
                 multi_match: {
                   query,
                   type: 'most_fields',
-                  fields: ['title^100', 'text'],
+                  fields: ['title^1000', 'text'],
                   fuzziness: 'AUTO',
                   prefix_length: 3,
                   minimum_should_match: '100%',
-                  boost: 20
+                  boost: 10
                 }
               },
               {
@@ -176,10 +164,10 @@ export default {
                 multi_match: {
                   query,
                   type: 'most_fields',
-                  fields: ['title^100', 'text'],
+                  fields: ['title^1000', 'text'],
                   fuzziness: 'AUTO',
                   prefix_length: 3,
-                  minimum_should_match: sortArr.length > 1 ? '100%' : '60%'
+                  minimum_should_match: '60%'
                 }
               }
             ]
@@ -204,40 +192,49 @@ export default {
           from: decodedCursor.offset,
           body: {
             query: {
-              bool: {
-                must: [
-                  ...whatArr,
-                  me
-                    ? {
-                        bool: {
-                          should: [
-                            { match: { status: 'ACTIVE' } },
-                            { match: { status: 'NOSATS' } },
-                            { match: { userId: me.id } }
-                          ]
+              function_score: {
+                query: {
+                  bool: {
+                    must: [
+                      ...whatArr,
+                      me
+                        ? {
+                            bool: {
+                              should: [
+                                { match: { status: 'ACTIVE' } },
+                                { match: { status: 'NOSATS' } },
+                                { match: { userId: me.id } }
+                              ]
+                            }
+                          }
+                        : {
+                            bool: {
+                              should: [
+                                { match: { status: 'ACTIVE' } },
+                                { match: { status: 'NOSATS' } }
+                              ]
+                            }
+                          }
+                    ],
+                    filter: [
+                      {
+                        range:
+                        {
+                          createdAt: whenRange
                         }
-                      }
-                    : {
-                        bool: {
-                          should: [
-                            { match: { status: 'ACTIVE' } },
-                            { match: { status: 'NOSATS' } }
-                          ]
-                        }
-                      }
-                ],
-                filter: [
-                  {
-                    range:
-                    {
-                      createdAt: whenRange
-                    }
-                  },
-                  { range: { wvotes: { gt: -1 * ITEM_FILTER_THRESHOLD } } }
-                ]
+                      },
+                      { range: { wvotes: { gte: 0 } } }
+                    ]
+                  }
+                },
+                field_value_factor: {
+                  field: sortField,
+                  modifier: sort === 'comments' ? 'square' : 'log2p',
+                  factor: 1.2
+                },
+                boost_mode: 'multiply'
               }
             },
-            sort: sortArr,
             highlight: {
               fields: {
                 title: { number_of_fragments: 0, pre_tags: ['***'], post_tags: ['***'] },

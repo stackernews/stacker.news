@@ -22,5 +22,5 @@
 }
 
 .receipt tfoot {
-    border-top: 2px solid var(--theme-borderColor);
+    border-top: 2px solid var(--theme-borderColor) !important;
 }

@@ -93,8 +93,6 @@ export function DiscussionForm ({
 
   const related = relatedData?.related?.items || []
 
-  // const cost = linkOrImg ? 10 : me?.freePosts ? 0 : 1
-
   return (
     <Form
       initial={{

@@ -8,6 +8,7 @@ import { numWithUnits } from '../lib/format'
 import styles from './adv-post-form.module.css'
 import { useMe } from './me'
 import { useRouter } from 'next/router'
+import { useFeeButton } from './fee-button'
 
 const EMPTY_FORWARD = { nym: '', pct: '' }
 
@@ -21,6 +22,7 @@ export function AdvPostInitial ({ forward, boost }) {
 export default function AdvPostForm ({ children }) {
   const me = useMe()
   const router = useRouter()
+  const { merge } = useFeeButton()
 
   return (
     <AccordianItem
@@ -51,6 +53,13 @@ export default function AdvPostForm ({ children }) {
               </div>
             }
             name='boost'
+            onChange={(_, e) => merge({
+              boost: {
+                term: `+ ${e.target.value}`,
+                label: 'boost',
+                modifier: cost => cost + Number(e.target.value)
+              }
+            })}
             hint={<span className='text-muted'>ranks posts higher temporarily based on the amount</span>}
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
           />

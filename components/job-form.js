@@ -1,4 +1,4 @@
-import { Checkbox, Form, Input, MarkdownInput, SubmitButton } from './form'
+import { Checkbox, Form, Input, MarkdownInput } from './form'
 import Row from 'react-bootstrap/Row'
 import Col from 'react-bootstrap/Col'
 import InputGroup from 'react-bootstrap/InputGroup'
@@ -14,10 +14,10 @@ import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { usePrice } from './price'
 import Avatar from './avatar'
-import ActionTooltip from './action-tooltip'
 import { jobSchema } from '../lib/validate'
 import CancelButton from './cancel-button'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
+import FeeButton from './fee-button'
 
 function satsMin2Mo (minute) {
   return minute * 30 * 24 * 60
@@ -156,18 +156,11 @@ export default function JobForm ({ item, sub }) {
         <PromoteJob item={item} sub={sub} />
         {item && <StatusControl item={item} />}
         <div className='d-flex align-items-center justify-content-end mt-3'>
-          {item
-            ? (
-              <div className='d-flex'>
-                <CancelButton />
-                <SubmitButton variant='secondary'>save</SubmitButton>
-              </div>
-              )
-            : (
-              <ActionTooltip overlayText='1000 sats'>
-                <SubmitButton cost={1000} variant='secondary'>post <small> 1000 sats</small></SubmitButton>
-              </ActionTooltip>
-              )}
+          <CancelButton />
+          <FeeButton
+            text={item ? 'save' : 'post'}
+            variant='secondary'
+          />
         </div>
       </Form>
     </>

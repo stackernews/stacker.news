@@ -103,7 +103,7 @@ export function DonateButton () {
       <Button onClick={() => showModal(onClose => (
         <Form
           initial={{
-            amount: 1000
+            amount: 10000
           }}
           schema={amountSchema}
           invoiceable

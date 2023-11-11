@@ -1,9 +1,9 @@
-import { Form, Input, MarkdownInput, SubmitButton } from '../components/form'
+import { Form, Input, MarkdownInput } from '../components/form'
 import { useRouter } from 'next/router'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
-import FeeButton, { EditFeeButton } from './fee-button'
+import FeeButton from './fee-button'
 import InputGroup from 'react-bootstrap/InputGroup'
 import { bountySchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select-form'
@@ -133,29 +133,12 @@ export function BountyForm ({
         }
       />
       <AdvPostForm edit={!!item} />
-      <div className='mt-3'>
-        {item
-          ? (
-            <div className='d-flex'>
-              <CancelButton />
-              <EditFeeButton
-                paidSats={item.meSats}
-                parentId={null}
-                text='save'
-                ChildButton={SubmitButton}
-                variant='secondary'
-              />
-            </div>
-            )
-          : (
-            <FeeButton
-              baseFee={1}
-              parentId={null}
-              text={buttonText}
-              ChildButton={SubmitButton}
-              variant='secondary'
-            />
-            )}
+      <div className='d-flex mt-3'>
+        <CancelButton />
+        <FeeButton
+          text={buttonText}
+          variant='secondary'
+        />
       </div>
     </Form>
   )

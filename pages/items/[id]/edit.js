@@ -11,6 +11,7 @@ import { useState } from 'react'
 import { useQuery } from '@apollo/client'
 import { useRouter } from 'next/router'
 import PageLoading from '../../../components/page-loading'
+import { FeeButtonProvider } from '../../../components/fee-button'
 
 export const getServerSideProps = getGetServerSideProps({
   query: ITEM,
@@ -39,11 +40,23 @@ export default function PostEdit ({ ssrData }) {
     FormType = BountyForm
   }
 
+  const existingBoostLineItem = item.boost
+    ? {
+        existingBoost: {
+          label: 'old boost',
+          term: `- ${item.boost}`,
+          modifier: cost => cost - item.boost
+        }
+      }
+    : undefined
+
   return (
     <CenterLayout sub={sub}>
-      <FormType item={item} editThreshold={editThreshold}>
-        {!item.isJob && <SubSelect label='sub' item={item} setSub={setSub} sub={sub} />}
-      </FormType>
+      <FeeButtonProvider baseLineItems={existingBoostLineItem}>
+        <FormType item={item} editThreshold={editThreshold}>
+          {!item.isJob && <SubSelect label='sub' item={item} setSub={setSub} sub={sub} />}
+        </FormType>
+      </FeeButtonProvider>
     </CenterLayout>
   )
 }

@@ -5,12 +5,12 @@ import Button from 'react-bootstrap/Button'
 import styles from '../../styles/user.module.css'
 import { useState } from 'react'
 import ItemFull from '../../components/item-full'
-import { Form, MarkdownInput, SubmitButton } from '../../components/form'
+import { Form, MarkdownInput } from '../../components/form'
 import { useMe } from '../../components/me'
 import { USER_FULL } from '../../fragments/users'
 import { ITEM_FIELDS } from '../../fragments/items'
 import { getGetServerSideProps } from '../../api/ssrApollo'
-import FeeButton, { EditFeeButton } from '../../components/fee-button'
+import FeeButton, { FeeButtonProvider } from '../../components/fee-button'
 import { bioSchema } from '../../lib/validate'
 import CancelButton from '../../components/cancel-button'
 import { useRouter } from 'next/router'
@@ -69,15 +69,9 @@ export function BioForm ({ handleDone, bio }) {
         />
         <div className='d-flex mt-3 justify-content-end'>
           <CancelButton onClick={handleDone} />
-          {bio?.text
-            ? <EditFeeButton
-                paidSats={bio?.meSats}
-                parentId={null} text='save' ChildButton={SubmitButton} variant='secondary'
-              />
-            : <FeeButton
-                baseFee={1} parentId={null} text='create'
-                ChildButton={SubmitButton} variant='secondary'
-              />}
+          <FeeButtonProvider>
+            <FeeButton text='save' variant='secondary' />
+          </FeeButtonProvider>
         </div>
       </Form>
     </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Form, Input, MarkdownInput, SubmitButton } from '../components/form'
+import { Form, Input, MarkdownInput } from '../components/form'
 import { useRouter } from 'next/router'
 import { gql, useApolloClient, useLazyQuery, useMutation } from '@apollo/client'
 import Countdown from './countdown'
@@ -7,7 +7,7 @@ import AdvPostForm, { AdvPostInitial } from './adv-post-form'
 import { ITEM_FIELDS } from '../fragments/items'
 import Item from './item'
 import AccordianItem from './accordian-item'
-import FeeButton, { EditFeeButton } from './fee-button'
+import FeeButton from './fee-button'
 import Delete from './delete'
 import Button from 'react-bootstrap/Button'
 import { linkSchema } from '../lib/validate'
@@ -194,33 +194,24 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
         />
       </AdvPostForm>
       <div className='mt-3'>
-        {item
-          ? (
-            <div className='d-flex justify-content-between'>
+        <div className='d-flex justify-content-between'>
+          {item
+            ? (
               <Delete itemId={item.id} onDelete={() => router.push(`/items/${item.id}`)}>
                 <Button variant='grey-medium'>delete</Button>
-              </Delete>
-              <div className='d-flex'>
-                <CancelButton />
-                <EditFeeButton
-                  paidSats={item.meSats}
-                  parentId={null} text='save' ChildButton={SubmitButton} variant='secondary'
-                />
-              </div>
-            </div>)
-          : (
-            <div className='d-flex align-items-center'>
-              <FeeButton
-                baseFee={1} parentId={null} text='post' disabled={postDisabled}
-                ChildButton={SubmitButton} variant='secondary'
-              />
-              {dupesLoading &&
-                <div className='d-flex ms-3 justify-content-center'>
-                  <Moon className='spin fill-grey' />
-                  <div className='ms-2 text-muted' style={{ fontWeight: '600' }}>searching for dupes</div>
-                </div>}
-            </div>
-            )}
+              </Delete>)
+            : dupesLoading &&
+              <div className='d-flex justify-content-center'>
+                <Moon className='spin fill-grey' />
+                <div className='ms-2 text-muted' style={{ fontWeight: '600' }}>searching for dupes</div>
+              </div>}
+          <div className='d-flex align-items-center ms-auto'>
+            <CancelButton />
+            <FeeButton
+              text={item ? 'save' : 'post'} disabled={postDisabled} variant='secondary'
+            />
+          </div>
+        </div>
       </div>
       {!item &&
         <>

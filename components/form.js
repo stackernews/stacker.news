@@ -23,20 +23,17 @@ import { numWithUnits } from '../lib/format'
 import textAreaCaret from 'textarea-caret'
 import ReactDatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
-import { debounce } from './use-debounce-callback'
+import useDebounceCallback, { debounce } from './use-debounce-callback'
 import { ImageUpload } from './image'
 import { AWS_S3_URL_REGEXP } from '../lib/constants'
 import { dayMonthYear, dayMonthYearToDate, whenToFrom } from '../lib/time'
+import { useFeeButton } from './fee-button'
+import Thumb from '../svgs/thumb-up-fill.svg'
 
 export function SubmitButton ({
-  children, variant, value, onClick, disabled, cost, ...props
+  children, variant, value, onClick, disabled, ...props
 }) {
   const formik = useFormikContext()
-  useEffect(() => {
-    if (cost) {
-      formik?.setFieldValue('cost', cost)
-    }
-  }, [formik?.setFieldValue, formik?.getFieldProps('cost').value, cost])
 
   return (
     <Button
@@ -58,11 +55,14 @@ export function SubmitButton ({
 
 export function CopyInput (props) {
   const toaster = useToast()
+  const [copied, setCopied] = useState(false)
 
   const handleClick = async () => {
     try {
       await copy(props.placeholder)
       toaster.success('copied')
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
     } catch (err) {
       toaster.danger('failed to copy')
     }
@@ -76,7 +76,7 @@ export function CopyInput (props) {
           className={styles.appendButton}
           size={props.size}
           onClick={handleClick}
-        >copy
+        >{copied ? <Thumb width={18} height={18} /> : 'copy'}
         </Button>
       }
       {...props}
@@ -105,7 +105,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
   innerRef = innerRef || useRef(null)
   const imageUploadRef = useRef(null)
   const previousTab = useRef(tab)
-  const formik = useFormikContext()
+  const { merge } = useFeeButton()
   const toaster = useToast()
   const [updateImageFeesInfo] = useLazyQuery(gql`
   query imageFeesInfo($s3Keys: [Int]!) {
@@ -123,7 +123,14 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
       toaster.danger(err.message || err.toString?.())
     },
     onCompleted: ({ imageFeesInfo }) => {
-      formik?.setFieldValue('imageFeesInfo', imageFeesInfo)
+      merge({
+        imageFee: {
+          term: `+ ${numWithUnits(imageFeesInfo.totalFees, { abbreviate: false })}`,
+          label: 'image fee',
+          modifier: cost => cost + imageFeesInfo.totalFees,
+          omit: !imageFeesInfo.totalFees
+        }
+      })
     }
   })
 
@@ -164,11 +171,11 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
     innerRef.current.focus()
   }, [mentionIndices, innerRef, helpers?.setValue])
 
-  const imageFeesUpdate = useCallback(debounce(
+  const imageFeesUpdate = useDebounceCallback(
     (text) => {
       const s3Keys = text ? [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1])) : []
       updateImageFeesInfo({ variables: { s3Keys } })
-    }, 1000), [debounce, updateImageFeesInfo])
+    }, 1000, [updateImageFeesInfo])
 
   const onChangeInner = useCallback((formik, e) => {
     if (onChange) onChange(formik, e)
@@ -426,6 +433,7 @@ function InputInner ({
         // for some reason we have to turn off validation to get formik to
         // not assume this is invalid
         helpers.setValue(draft, false)
+        onChange && onChange(formik, { target: { value: draft } })
       }
     }
   }, [overrideValue])
@@ -720,6 +728,7 @@ export function Form ({
 }) {
   const toaster = useToast()
   const initialErrorToasted = useRef(false)
+  const feeButton = useFeeButton()
   useEffect(() => {
     if (initialError && !initialErrorToasted.current) {
       toaster.danger(initialError.message || initialError.toString?.())
@@ -757,11 +766,8 @@ export function Form ({
       if (onSubmit) {
         // extract cost from formik fields
         // (cost may also be set in a formik field named 'amount')
-        let cost = values?.cost || values?.amount
+        const cost = feeButton?.total || values?.amount
         if (cost) {
-          // add potential image fees which are set in a different field
-          // to differentiate between fees (in receipts for example)
-          cost += (values?.imageFeesInfo?.totalFees || 0)
           values.cost = cost
         }
 

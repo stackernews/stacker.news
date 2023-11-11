@@ -1,10 +1,10 @@
-import { Form, Input, MarkdownInput, SubmitButton, VariableInput } from '../components/form'
+import { Form, Input, MarkdownInput, VariableInput } from '../components/form'
 import { useRouter } from 'next/router'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
 import { MAX_POLL_CHOICE_LENGTH, MAX_POLL_NUM_CHOICES, MAX_TITLE_LENGTH } from '../lib/constants'
-import FeeButton, { EditFeeButton } from './fee-button'
+import FeeButton from './fee-button'
 import Delete from './delete'
 import Button from 'react-bootstrap/Button'
 import { pollSchema } from '../lib/validate'
@@ -99,24 +99,20 @@ export function PollForm ({ item, sub, editThreshold, children }) {
       />
       <AdvPostForm edit={!!item} />
       <div className='mt-3'>
-        {item
-          ? (
-            <div className='d-flex justify-content-between'>
+        <div className='mt-3'>
+          <div className='d-flex justify-content-between'>
+            {item &&
               <Delete itemId={item.id} onDelete={() => router.push(`/items/${item.id}`)}>
                 <Button variant='grey-medium'>delete</Button>
-              </Delete>
-              <div className='d-flex'>
-                <CancelButton />
-                <EditFeeButton
-                  paidSats={item.meSats}
-                  parentId={null} text='save' ChildButton={SubmitButton} variant='secondary'
-                />
-              </div>
-            </div>)
-          : <FeeButton
-              baseFee={1} parentId={null} text='post'
-              ChildButton={SubmitButton} variant='secondary'
-            />}
+              </Delete>}
+            <div className='d-flex align-items-center ms-auto'>
+              <CancelButton />
+              <FeeButton
+                text={item ? 'save' : 'post'} variant='secondary'
+              />
+            </div>
+          </div>
+        </div>
       </div>
     </Form>
   )

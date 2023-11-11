@@ -1,9 +1,9 @@
-import { Form, Input, MarkdownInput, SubmitButton } from '../components/form'
+import { Form, Input, MarkdownInput } from '../components/form'
 import { useRouter } from 'next/router'
 import { gql, useApolloClient, useLazyQuery, useMutation } from '@apollo/client'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
-import FeeButton, { EditFeeButton } from './fee-button'
+import FeeButton from './fee-button'
 import { ITEM_FIELDS } from '../fragments/items'
 import AccordianItem from './accordian-item'
 import Item from './item'
@@ -134,24 +134,19 @@ export function DiscussionForm ({
       />
       <AdvPostForm edit={!!item} />
       <div className='mt-3'>
-        {item
-          ? (
-            <div className='d-flex justify-content-between'>
-              <Delete itemId={item.id} onDelete={() => router.push(`/items/${item.id}`)}>
-                <Button variant='grey-medium'>delete</Button>
-              </Delete>
-              <div className='d-flex'>
-                <CancelButton />
-                <EditFeeButton
-                  paidSats={item.meSats}
-                  parentId={null} text='save' ChildButton={SubmitButton} variant='secondary'
-                />
-              </div>
-            </div>)
-          : <FeeButton
-              baseFee={1} parentId={null} text={buttonText}
-              ChildButton={SubmitButton} variant='secondary'
-            />}
+        <div className='d-flex justify-content-between'>
+          {item &&
+            <Delete itemId={item.id} onDelete={() => router.push(`/items/${item.id}`)}>
+              <Button variant='grey-medium'>delete</Button>
+            </Delete>}
+          <div className='d-flex align-items-center ms-auto'>
+            <CancelButton />
+            <FeeButton
+              text={buttonText}
+              variant='secondary'
+            />
+          </div>
+        </div>
       </div>
       {!item &&
         <div className={`mt-3 ${related.length > 0 ? '' : 'invisible'}`}>

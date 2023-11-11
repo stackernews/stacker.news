@@ -12,6 +12,7 @@ import { BountyForm } from './bounty-form'
 import SubSelect from './sub-select-form'
 import Info from './info'
 import { useCallback, useState } from 'react'
+import { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
 
 function FreebieDialog () {
   return (
@@ -94,7 +95,14 @@ export function PostForm ({ type, sub, children }) {
     FormType = BountyForm
   }
 
-  return <FormType sub={sub}>{children}</FormType>
+  return (
+    <FeeButtonProvider
+      baseLineItems={sub ? postCommentBaseLineItems({ baseCost: sub.baseCost, me: !!me }) : undefined}
+      useRemoteLineItems={postCommentUseRemoteLineItems({ me: !!me })}
+    >
+      <FormType sub={sub}>{children}</FormType>
+    </FeeButtonProvider>
+  )
 }
 
 export default function Post ({ sub }) {

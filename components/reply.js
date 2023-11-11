@@ -1,11 +1,11 @@
-import { Form, MarkdownInput, SubmitButton } from '../components/form'
+import { Form, MarkdownInput } from '../components/form'
 import { gql, useMutation } from '@apollo/client'
 import styles from './reply.module.css'
 import { COMMENTS } from '../fragments/comments'
 import { useMe } from './me'
 import { forwardRef, useCallback, useEffect, useState, useRef, useImperativeHandle } from 'react'
 import Link from 'next/link'
-import FeeButton from './fee-button'
+import FeeButton, { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
 import { commentsViewedAfterComment } from '../lib/new-comments'
 import { commentSchema } from '../lib/validate'
 import Info from './info'
@@ -183,35 +183,43 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
             {/* HACK if we need more items, we should probably do a comment toolbar */}
             {children}
           </div>)}
-      <div className={styles.reply} style={{ display: reply ? 'block' : 'none' }}>
-        <Form
-          initial={{
-            text: ''
-          }}
-          schema={commentSchema}
-          invoiceable
-          onSubmit={onSubmit}
-          storageKeyPrefix={`reply-${parentId}`}
-          innerRef={formInnerRef}
-        >
-          <MarkdownInput
-            name='text'
-            minRows={6}
-            autoFocus={!replyOpen}
-            required
-            placeholder={placeholder}
-            hint={me?.sats < 1 && <FreebieDialog />}
-            innerRef={replyInput}
-          />
-          {reply &&
-            <div className='mt-1'>
-              <FeeButton
-                baseFee={1} parentId={parentId} text='reply'
-                ChildButton={SubmitButton} variant='secondary' alwaysShow
+      {reply &&
+        <div className={styles.reply}>
+          <FeeButtonProvider
+            baseLineItems={postCommentBaseLineItems({ baseCost: 1, comment: true, me: !!me })}
+            useRemoteLineItems={postCommentUseRemoteLineItems({ parentId: item.id, me: !!me })}
+          >
+            <Form
+              initial={{
+                text: ''
+              }}
+              schema={commentSchema}
+              invoiceable
+              onSubmit={onSubmit}
+              storageKeyPrefix={`reply-${parentId}`}
+              innerRef={formInnerRef}
+            >
+              <MarkdownInput
+                name='text'
+                minRows={6}
+                autoFocus={!replyOpen}
+                required
+                placeholder={placeholder}
+                hint={me?.sats < 1 && <FreebieDialog />}
+                innerRef={replyInput}
               />
-            </div>}
-        </Form>
-      </div>
+              <div className='d-flex mt-1'>
+                <div className='ms-auto'>
+                  <FeeButton
+                    text='reply'
+                    variant='secondary'
+                    alwaysShow
+                  />
+                </div>
+              </div>
+            </Form>
+          </FeeButtonProvider>
+        </div>}
     </div>
   )
 })

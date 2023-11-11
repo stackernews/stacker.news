@@ -14,23 +14,30 @@ const STOP_WORDS = ['a', 'an', 'and', 'are', 'as', 'at', 'be', 'but',
   'levels', 'from', 'cryptocurrencies', 'confirmed', 'news', 'network',
   'about', 'sources', 'vote', 'considerations', 'hope',
   'keep', 'keeps', 'including', 'we', 'brings', "don't", 'do',
-  'interesting', 'us', 'welcome']
+  'interesting', 'us', 'welcome', 'thoughts', 'results']
 
 export default {
   Query: {
     related: async (parent, { title, id, cursor, limit, minMatch }, { me, models, search }) => {
       const decodedCursor = decodeCursor(cursor)
-      if (!title || title.trim().split(/\s+/).length < 1) {
-        if (id) {
-          const item = await getItem(parent, { id }, { me, models })
-          title = item?.title
+
+      if (!id && (!title || title.trim().split(/\s+/).length < 1)) {
+        return {
+          items: [],
+          cursor: null
         }
-        if (!title) {
-          return {
-            items: [],
-            cursor: null
-          }
-        }
+      }
+
+      const like = []
+      if (id) {
+        like.push({
+          _index: 'item',
+          _id: id
+        })
+      }
+
+      if (title) {
+        like.push(title)
       }
 
       const mustNot = []
@@ -44,28 +51,78 @@ export default {
         from: decodedCursor.offset,
         body: {
           query: {
-            bool: {
-              must: [
-                {
-                  more_like_this: {
-                    fields: ['title'],
-                    like: title,
-                    min_term_freq: 1,
-                    min_doc_freq: 1,
-                    min_word_length: 2,
-                    max_query_terms: 25,
-                    minimum_should_match: minMatch || '20%',
-                    stop_words: STOP_WORDS
+            function_score: {
+              query: {
+                bool: {
+                  should: [
+                    {
+                      more_like_this: {
+                        fields: ['title'],
+                        like,
+                        min_term_freq: 1,
+                        min_doc_freq: 1,
+                        min_word_length: 2,
+                        max_query_terms: 12,
+                        minimum_should_match: minMatch || '80%',
+                        stop_words: STOP_WORDS,
+                        boost: 10000
+                      }
+                    },
+                    {
+                      more_like_this: {
+                        fields: ['title'],
+                        like,
+                        min_term_freq: 1,
+                        min_doc_freq: 1,
+                        min_word_length: 2,
+                        max_query_terms: 12,
+                        minimum_should_match: minMatch || '60%',
+                        stop_words: STOP_WORDS,
+                        boost: 1000
+                      }
+                    },
+                    {
+                      more_like_this: {
+                        fields: ['title'],
+                        like,
+                        min_term_freq: 1,
+                        min_doc_freq: 1,
+                        min_word_length: 2,
+                        max_query_terms: 12,
+                        minimum_should_match: minMatch || '30%',
+                        stop_words: STOP_WORDS,
+                        boost: 100
+                      }
+                    },
+                    {
+                      more_like_this: {
+                        fields: ['text'],
+                        like,
+                        min_term_freq: 1,
+                        min_doc_freq: 1,
+                        min_word_length: 2,
+                        max_query_terms: 25,
+                        minimum_should_match: minMatch || '30%',
+                        stop_words: STOP_WORDS,
+                        boost: 10
+                      }
+                    }
+                  ],
+                  must_not: [{ exists: { field: 'parentId' } }, ...mustNot],
+                  filter: {
+                    range: { wvotes: { gte: minMatch ? 0 : 0.2 } }
                   }
                 }
-              ],
-              must_not: [{ exists: { field: 'parentId' } }, ...mustNot],
-              filter: {
-                range: { wvotes: { gte: minMatch ? 0 : 0.2 } }
-              }
+              },
+              field_value_factor: {
+                field: 'wvotes',
+                modifier: 'log1p',
+                factor: 1.2,
+                missing: 0
+              },
+              boost_mode: 'multiply'
             }
-          },
-          sort: ['_score', { wvotes: 'desc' }, { sats: 'desc' }]
+          }
         }
       })
 

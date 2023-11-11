@@ -779,7 +779,7 @@ export function Form ({
       console.log(err)
       toaster.danger(err.message || err.toString?.())
     }
-  }, [onSubmit, toaster, clearLocalStorage, storageKeyPrefix])
+  }, [onSubmit, feeButton?.total, toaster, clearLocalStorage, storageKeyPrefix])
 
   return (
     <Formik

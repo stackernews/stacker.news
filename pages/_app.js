@@ -87,27 +87,45 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
       </Head>
       <ErrorBoundary>
         <PlausibleProvider domain='stacker.news' trackOutboundLinks>
-          <ApolloProvider client={client}>
-            <MeProvider me={me}>
-              <LoggerProvider>
-                <ServiceWorkerProvider>
-                  <PriceProvider price={price}>
-                    <LightningProvider>
-                      <ToastProvider>
-                        <ShowModalProvider>
-                          <BlockHeightProvider blockHeight={blockHeight}>
-                            <ErrorBoundary>
-                              <Component ssrData={ssrData} {...otherProps} />
-                            </ErrorBoundary>
-                          </BlockHeightProvider>
-                        </ShowModalProvider>
-                      </ToastProvider>
-                    </LightningProvider>
-                  </PriceProvider>
-                </ServiceWorkerProvider>
-              </LoggerProvider>
-            </MeProvider>
-          </ApolloProvider>
+          <ErrorBoundary>
+            <ApolloProvider client={client}>
+              <ErrorBoundary>
+                <MeProvider me={me}>
+                  <ErrorBoundary>
+                    <LoggerProvider>
+                      <ErrorBoundary>
+                        <ServiceWorkerProvider>
+                          <ErrorBoundary>
+                            <PriceProvider price={price}>
+                              <ErrorBoundary>
+                                <LightningProvider>
+                                  <ErrorBoundary>
+                                    <ToastProvider>
+                                      <ErrorBoundary>
+                                        <ShowModalProvider>
+                                          <ErrorBoundary>
+                                            <BlockHeightProvider blockHeight={blockHeight}>
+                                              <ErrorBoundary>
+                                                <Component ssrData={ssrData} {...otherProps} />
+                                              </ErrorBoundary>
+                                            </BlockHeightProvider>
+                                          </ErrorBoundary>
+                                        </ShowModalProvider>
+                                      </ErrorBoundary>
+                                    </ToastProvider>
+                                  </ErrorBoundary>
+                                </LightningProvider>
+                              </ErrorBoundary>
+                            </PriceProvider>
+                          </ErrorBoundary>
+                        </ServiceWorkerProvider>
+                      </ErrorBoundary>
+                    </LoggerProvider>
+                  </ErrorBoundary>
+                </MeProvider>
+              </ErrorBoundary>
+            </ApolloProvider>
+          </ErrorBoundary>
         </PlausibleProvider>
       </ErrorBoundary>
     </>

@@ -77,6 +77,8 @@ async function bountyWinner (q) {
 }
 
 async function main () {
+  const { quote } = await import('../lib/md.js')
+
   const top = await client.query({
     query: ITEMS,
     variables: { sort: 'top', when: 'week' }
@@ -122,7 +124,7 @@ ${meta.data.items.items.slice(0, 10).map((item, i) =>
 [**all monday memes**](https://stacker.news/items/${topMeme.bounty})
 
 ##### Top Friday fun fact \\ ${abbrNum(topFact.winner.sats)} sats \\ [@${topFact.winner.user.name}](https://stacker.news/${topFact.winner.user.name})
-${topFact.winner.text}
+${quote(topFact.winner.text)}
 
 [**all friday fun facts**](https://stacker.news/items/${topFact.bounty})
 

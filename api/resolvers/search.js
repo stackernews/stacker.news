@@ -201,7 +201,7 @@ export default {
                   type: 'most_fields',
                   fields: ['title^1000', 'text'],
                   minimum_should_match: '100%',
-                  boost: 1000
+                  boost: 10000
                 }
               },
               {
@@ -210,10 +210,8 @@ export default {
                   query,
                   type: 'most_fields',
                   fields: ['title^1000', 'text'],
-                  fuzziness: 'AUTO',
-                  prefix_length: 3,
-                  minimum_should_match: '100%',
-                  boost: 10
+                  minimum_should_match: '60%',
+                  boost: 1000
                 }
               },
               {
@@ -284,11 +282,22 @@ export default {
                     ]
                   }
                 },
-                field_value_factor: {
-                  field: sortField,
-                  modifier: sort === 'comments' ? 'square' : 'log2p',
-                  factor: 1.2
-                },
+                functions: [
+                  {
+                    field_value_factor: {
+                      field: sortField,
+                      modifier: sort === 'comments' ? 'square' : 'log2p',
+                      factor: 1.2
+                    }
+                  },
+                  {
+                    field_value_factor: {
+                      field: 'ncomments',
+                      modifier: 'ln1p',
+                      factor: 1
+                    }
+                  }
+                ],
                 boost_mode: 'multiply'
               }
             },

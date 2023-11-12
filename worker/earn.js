@@ -136,7 +136,7 @@ export function earn ({ models }) {
         FROM item_ratios)
       SELECT "userId", id, type, rank, proportion
       FROM proportions
-      WHERE proportion > 0.0001`
+      WHERE proportion > 0.000001`
 
     // in order to group earnings for users we use the same createdAt time for
     // all earnings

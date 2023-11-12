@@ -29,46 +29,49 @@ export function SearchText ({ text }) {
   )
 }
 
-function Heading ({ slugger, noFragments, topLevel, children, node, ...props }) {
-  const [copied, setCopied] = useState(false)
-  const id = useMemo(() =>
-    noFragments ? undefined : slugger.slug(toString(node).replace(/[^\w\-\s]+/gi, '')), [node, noFragments, slugger])
-  const h = useMemo(() => {
-    if (topLevel) return node?.TagName
-
-    const h = parseInt(node?.tagName)
-    if (h < 4) return `h${h + 3}`
-
-    return 'h6'
-  }, [node?.tagName, topLevel])
-  const Icon = copied ? Thumb : LinkIcon
-
-  return (
-    <span className={styles.heading}>
-      {React.createElement(h, { id, ...props }, children)}
-      {!noFragments && topLevel &&
-        <a className={`${styles.headingLink} ${copied ? styles.copied : ''}`} href={`#${id}`}>
-          <Icon
-            onClick={() => {
-              const location = new URL(window.location)
-              location.hash = `${id}`
-              copy(location.href)
-              setTimeout(() => setCopied(false), 1500)
-              setCopied(true)
-            }}
-            width={18}
-            height={18}
-            className='fill-grey'
-          />
-        </a>}
-    </span>
-  )
-}
-
 // this is one of the slowest components to render
 export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, ...outerProps }) {
   // all the reactStringReplace calls are to facilitate search highlighting
   const slugger = useRef(new GithubSlugger())
+
+  const Heading = useCallback(({ children, node, ...props }) => {
+    const [copied, setCopied] = useState(false)
+    const { noFragments, topLevel } = outerProps
+    const id = useMemo(() =>
+      noFragments ? undefined : slugger?.current?.slug(toString(node).replace(/[^\w\-\s]+/gi, '')), [node, noFragments, slugger])
+    const h = useMemo(() => {
+      if (topLevel) {
+        return node?.TagName
+      }
+
+      const h = parseInt(node?.tagName?.replace('h', '') || 0)
+      if (h < 4) return `h${h + 3}`
+
+      return 'h6'
+    }, [node, topLevel])
+    const Icon = copied ? Thumb : LinkIcon
+
+    return (
+      <span className={styles.heading}>
+        {React.createElement(h || node?.tagName, { id, ...props }, children)}
+        {!noFragments && topLevel &&
+          <a className={`${styles.headingLink} ${copied ? styles.copied : ''}`} href={`#${id}`}>
+            <Icon
+              onClick={() => {
+                const location = new URL(window.location)
+                location.hash = `${id}`
+                copy(location.href)
+                setTimeout(() => setCopied(false), 1500)
+                setCopied(true)
+              }}
+              width={18}
+              height={18}
+              className='fill-grey'
+            />
+          </a>}
+      </span>
+    )
+  }, [outerProps, slugger.current])
 
   const Table = useCallback(({ node, ...props }) =>
     <span className='table-responsive'>
@@ -101,7 +104,12 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, ...o
     <div className={styles.text}>
       <ReactMarkdown
         components={{
-          heading: (props) => <Heading {...props} {...outerProps} slugger={slugger.current} />,
+          h1: Heading,
+          h2: Heading,
+          h3: Heading,
+          h4: Heading,
+          h5: Heading,
+          h6: Heading,
           table: Table,
           p: P,
           code: Code,

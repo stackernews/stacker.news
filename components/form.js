@@ -319,7 +319,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
               {...props}
               onChange={onChangeInner}
               onKeyDown={onKeyDownInner(userSuggestOnKeyDown)}
-              onBlur={() => setTimeout(resetSuggestions, 100)}
+              onBlur={() => setTimeout(resetSuggestions, 500)}
               onDragEnter={onDragEnter}
               onDragLeave={onDragLeave}
               onDrop={onDrop}
@@ -532,12 +532,12 @@ export function UserSuggest ({
       if (q === '') {
         getUsers({ variables: { by: 'stacked', when: 'week', limit: 5 } })
       } else {
-        getSuggestions({ variables: { q } })
+        getSuggestions({ variables: { q, limit: 5 } })
       }
     } else {
       resetSuggestions()
     }
-  }, [query])
+  }, [query, resetSuggestions, getUsers, getSuggestions])
 
   const onKeyDown = useCallback(e => {
     switch (e.code) {
@@ -583,6 +583,7 @@ export function UserSuggest ({
         break
     }
   }, [onSelect, resetSuggestions, suggestions])
+
   return (
     <>
       {children?.({ onKeyDown, resetSuggestions })}

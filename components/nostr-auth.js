@@ -69,25 +69,25 @@ export function NostrAuth ({ text, callbackUrl }) {
       createAuth {
         k1
       }
-    }`)
+    }`, {
+    // don't cache this mutation
+    fetchPolicy: 'no-cache'
+  })
   const [hasExtension, setHasExtension] = useState(undefined)
   const [extensionError, setExtensionError] = useState(null)
 
   useEffect(() => {
     createAuth()
+    setHasExtension(!!window.nostr)
   }, [])
 
   const k1 = data?.createAuth.k1
 
   useEffect(() => {
-    if (!k1) return
-    setHasExtension(!!window.nostr)
-    if (!window.nostr) {
-      const err = { message: 'nostr extension not found' }
-      console.error(err.message)
-      return
-    }
+    if (!k1 || !hasExtension) return
+
     console.info('nostr extension detected')
+
     let mounted = true;
     (async function () {
       try {
@@ -102,29 +102,23 @@ export function NostrAuth ({ text, callbackUrl }) {
           })
           if (!event) throw new Error('extension returned empty event')
         } catch (e) {
-          if (e.message === 'window.nostr call already executing') return
+          if (e.message === 'window.nostr call already executing' || !mounted) return
           setExtensionError({ message: 'nostr extension failed to sign event', details: e.message })
           return
         }
 
         // sign them in
         try {
-          const { error, ok } = await signIn('nostr', {
+          await signIn('nostr', {
             event: JSON.stringify(event),
             callbackUrl
           })
-
-          if (error) {
-            throw new Error(error)
-          }
-          if (!ok) {
-            throw new Error('auth failed')
-          }
         } catch (e) {
           throw new Error('authorization failed', e)
         }
       } catch (e) {
         if (!mounted) return
+        console.log('nostr auth error', e)
         setExtensionError({ message: `${text} failed`, details: e.message })
       }
     })()

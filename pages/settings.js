@@ -525,7 +525,13 @@ function AuthMethods ({ methods }) {
           id: 'ROOT_QUERY',
           fields: {
             settings (existing) {
-              return { ...existing, authMethods: { ...unlinkAuth } }
+              return {
+                ...existing,
+                privates: {
+                  ...existing.privates,
+                  authMethods: { ...unlinkAuth }
+                }
+              }
             }
           }
         })

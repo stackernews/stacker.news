@@ -154,7 +154,7 @@ const providers = [
     },
     authorize: async ({ event }, req) => {
       const credentials = await nostrEventAuth(event)
-      return pubkeyAuth(credentials, new NodeNextRequest(req), 'nostrAuthPubkey')
+      return await pubkeyAuth(credentials, new NodeNextRequest(req), 'nostrAuthPubkey')
     }
   }),
   GitHubProvider({

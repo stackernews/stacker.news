@@ -6,14 +6,16 @@ import { useQuery } from '@apollo/client'
 import { SETTINGS } from '../fragments/users'
 
 async function discussionToEvent (item) {
+  const createdAt = Math.floor(Date.now() / 1000)
+
   return {
-    created_at: Math.floor(Date.now() / 1000),
+    created_at: createdAt,
     kind: 30023,
     content: item.text,
     tags: [
       ['d', item.id.toString()],
       ['title', item.title],
-      ['published_at', Math.floor(Date.now() / 1000).toString()]
+      ['published_at', createdAt.toString()]
     ]
   }
 }

@@ -105,7 +105,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
   innerRef = innerRef || useRef(null)
   const imageUploadRef = useRef(null)
   const previousTab = useRef(tab)
-  const { merge } = useFeeButton()
+  const { merge, setDisabled: setSubmitDisabled } = useFeeButton()
   const toaster = useToast()
   const [updateImageFeesInfo] = useLazyQuery(gql`
   query imageFeesInfo($s3Keys: [Int]!) {
@@ -284,6 +284,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
                 if (text) text += '\n\n'
                 text += `![Uploading ${file.name}…]()`
                 helpers.setValue(text)
+                setSubmitDisabled?.(true)
               }}
               onSuccess={({ url, name }) => {
                 let text = innerRef.current.value
@@ -291,11 +292,13 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
                 helpers.setValue(text)
                 const s3Keys = [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1]))
                 updateImageFeesInfo({ variables: { s3Keys } })
+                setSubmitDisabled?.(false)
               }}
               onError={({ name }) => {
                 let text = innerRef.current.value
                 text = text.replace(`![Uploading ${name}…]()`, '')
                 helpers.setValue(text)
+                setSubmitDisabled?.(false)
               }}
             >
               <AddImageIcon width={18} height={18} />

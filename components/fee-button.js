@@ -64,6 +64,7 @@ export function postCommentUseRemoteLineItems ({ parentId, me } = {}) {
 
 export function FeeButtonProvider ({ baseLineItems = {}, useRemoteLineItems = () => null, children }) {
   const [lineItems, setLineItems] = useState({})
+  const [disabled, setDisabled] = useState(false)
 
   const remoteLineItems = useRemoteLineItems()
 
@@ -79,9 +80,11 @@ export function FeeButtonProvider ({ baseLineItems = {}, useRemoteLineItems = ()
     return {
       lines,
       merge: mergeLineItems,
-      total: Object.values(lines).reduce((acc, { modifier }) => modifier(acc), 0)
+      total: Object.values(lines).reduce((acc, { modifier }) => modifier(acc), 0),
+      disabled,
+      setDisabled
     }
-  }, [baseLineItems, lineItems, remoteLineItems, mergeLineItems])
+  }, [baseLineItems, lineItems, remoteLineItems, mergeLineItems, disabled, setDisabled])
 
   return (
     <FeeButtonContext.Provider value={value}>
@@ -96,12 +99,12 @@ export function useFeeButton () {
 
 export default function FeeButton ({ ChildButton = SubmitButton, variant, text, disabled }) {
   const me = useMe()
-  const { lines, total } = useFeeButton()
+  const { lines, total, disabled: ctxDisabled } = useFeeButton()
 
   return (
     <div className={styles.feeButton}>
       <ActionTooltip overlayText={numWithUnits(total, { abbreviate: false })}>
-        <ChildButton variant={variant} disabled={disabled}>{text}{total > 1 && <small> {numWithUnits(total, { abbreviate: false, format: true })}</small>}</ChildButton>
+        <ChildButton variant={variant} disabled={disabled || ctxDisabled}>{text}{total > 1 && <small> {numWithUnits(total, { abbreviate: false, format: true })}</small>}</ChildButton>
       </ActionTooltip>
       {!me && <AnonInfo />}
       {total > 1 &&

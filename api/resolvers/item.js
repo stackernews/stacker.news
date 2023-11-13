@@ -202,7 +202,7 @@ function whenClause (when, table) {
 export function whenRange (when, from, to = new Date()) {
   switch (when) {
     case 'custom':
-      return [new Date(from), new Date(to)]
+      return [dayMonthYearToDate(from), dayMonthYearToDate(to)]
     default:
       return [dayMonthYearToDate(whenToFrom(when)), new Date(to)]
   }

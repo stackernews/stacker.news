@@ -24,7 +24,7 @@ export default {
         FROM users
         WHERE ${intervalClause(range, 'users')}
         AND "referrerId" = $3
-    `, ...range, Number(me.id))
+      `, ...range, Number(me.id))
 
       const stats = await models.$queryRawUnsafe(
         `${withClause(range)}

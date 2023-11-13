@@ -49,31 +49,33 @@ export function BioForm ({ handleDone, bio }) {
 
   return (
     <div className={styles.createFormContainer}>
-      <Form
-        initial={{
-          bio: bio?.text || ''
-        }}
-        schema={bioSchema}
-        onSubmit={async values => {
-          const { error } = await upsertBio({ variables: values })
-          if (error) {
-            throw new Error({ message: error.toString() })
-          }
-          handleDone?.()
-        }}
-      >
-        <MarkdownInput
-          topLevel
-          name='bio'
-          minRows={6}
-        />
-        <div className='d-flex mt-3 justify-content-end'>
-          <CancelButton onClick={handleDone} />
-          <FeeButtonProvider>
-            <FeeButton text='save' variant='secondary' />
-          </FeeButtonProvider>
-        </div>
-      </Form>
+      <FeeButtonProvider>
+        <Form
+          initial={{
+            bio: bio?.text || ''
+          }}
+          schema={bioSchema}
+          onSubmit={async values => {
+            const { error } = await upsertBio({ variables: values })
+            if (error) {
+              throw new Error({ message: error.toString() })
+            }
+            handleDone?.()
+          }}
+        >
+          <MarkdownInput
+            topLevel
+            name='bio'
+            minRows={6}
+          />
+          <div className='d-flex mt-3 justify-content-end'>
+            <CancelButton onClick={handleDone} />
+            <FeeButtonProvider>
+              <FeeButton text='save' variant='secondary' />
+            </FeeButtonProvider>
+          </div>
+        </Form>
+      </FeeButtonProvider>
     </div>
   )
 }

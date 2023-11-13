@@ -1,4 +1,5 @@
 import { deleteObjects } from '../api/s3'
+import { ANON_USER_ID } from '../lib/constants'
 
 export function deleteUnusedImages ({ models }) {
   return async function ({ name }) {
@@ -16,7 +17,7 @@ export function deleteUnusedImages ({ models }) {
         AND NOT EXISTS (SELECT * FROM users WHERE "photoId" = "Upload".id)
         AND NOT EXISTS (SELECT * FROM "Item" WHERE "uploadId" = "Upload".id)
       ))
-      AND created_at < date_trunc('hour', now() - interval '24 hours')`
+      AND created_at < date_trunc('hour', now() - CASE WHEN "userId" = ${ANON_USER_ID} THEN interval '1 hour' ELSE interval '24 hours' END)`
 
     const s3Keys = unpaidImages.map(({ id }) => id)
     console.log('deleting images:', s3Keys)

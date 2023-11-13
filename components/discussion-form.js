@@ -72,7 +72,7 @@ export function DiscussionForm ({
           forward: normalizeForwards(values.forward)
         }
       })
-      
+
       if (error) {
         throw new Error({ message: error.toString() })
       }
@@ -97,7 +97,7 @@ export function DiscussionForm ({
         console.error(e)
         toaster.danger('Error crossposting to Nostr', e.message)
       }
-      
+
       if (eventId) {
         await upsertDiscussion({
           variables: {
@@ -107,7 +107,7 @@ export function DiscussionForm ({
             noteId: eventId
           }
         })
-      }      
+      }
 
       if (item) {
         await router.push(`/items/${item.id}`)

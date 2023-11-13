@@ -59,23 +59,23 @@ export function DiscussionForm ({
           forward: normalizeForwards(values.forward)
         }
       })
-      
+
       if (error) {
         throw new Error({ message: error.toString() })
       }
-      
-      let eventId = null;
-      let discussionId = data?.upsertDiscussion?.id;
-      
+
+      let eventId = null
+      const discussionId = data?.upsertDiscussion?.id
+
       try {
         if (crosspost && discussionId) {
           const crosspostResult = await crossposter({ ...values, id: discussionId })
-          eventId = crosspostResult?.eventId;
+          eventId = crosspostResult?.eventId
         }
       } catch (e) {
         console.error(e)
       }
-      
+
       if (eventId) {
         await upsertDiscussion({
           variables: {
@@ -85,7 +85,7 @@ export function DiscussionForm ({
             noteId: eventId
           }
         })
-      }      
+      }
 
       if (item) {
         await router.push(`/items/${item.id}`)

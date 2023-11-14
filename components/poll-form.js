@@ -7,7 +7,8 @@ import { MAX_POLL_CHOICE_LENGTH, MAX_POLL_NUM_CHOICES, MAX_TITLE_LENGTH } from '
 import { pollSchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select'
 import { useCallback } from 'react'
-import { normalizeForwards, toastDeleteScheduled } from '../lib/form'
+import { normalizeForwards } from '../lib/form'
+import useCrossposter from './use-crossposter'
 import { useMe } from './me'
 import { useToast } from './toast'
 import { ItemButtonBar } from './post'
@@ -19,12 +20,14 @@ export function PollForm ({ item, sub, editThreshold, children }) {
   const toaster = useToast()
   const schema = pollSchema({ client, me, existingBoost: item?.boost })
 
+  const crossposter = useCrossposter()
+
   const [upsertPoll] = useMutation(
     gql`
       mutation upsertPoll($sub: String, $id: ID, $title: String!, $text: String,
-        $options: [String!]!, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String) {
+        $options: [String!]!, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String, $noteId: String) {
         upsertPoll(sub: $sub, id: $id, title: $title, text: $text,
-          options: $options, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac) {
+          options: $options, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac, noteId: $noteId) {
           id
           deleteScheduledAt
         }
@@ -32,7 +35,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
   )
 
   const onSubmit = useCallback(
-    async ({ boost, title, options, ...values }) => {
+    async ({ boost, title, options, crosspost, ...values }) => {
       const optionsFiltered = options.slice(initialOptions?.length).filter(word => word.trim().length > 0)
       const { data, error } = await upsertPoll({
         variables: {
@@ -48,6 +51,40 @@ export function PollForm ({ item, sub, editThreshold, children }) {
       if (error) {
         throw new Error({ message: error.toString() })
       }
+
+      try {
+        if (crosspost && !(await window.nostr.getPublicKey())) {
+          throw new Error('not available')
+        }
+      } catch (e) {
+        throw new Error(`Nostr extension error: ${e.message}`)
+      }
+
+      let eventId = null
+      const pollId = data?.upsertPoll?.id
+
+      try {
+        if (crosspost && pollId) {
+          const crosspostResult = await crossposter({ ...values, options: options, title: title, id: pollId })
+          eventId = crosspostResult?.eventId
+        }
+      } catch (e) {
+        console.error(e)
+      }
+
+      if (eventId) {
+        await upsertPoll({
+          variables: {
+            id: pollId,
+            title: title.trim(),
+            options: optionsFiltered,
+            ...values,
+            forward: normalizeForwards(values.forward),
+            noteId: eventId
+          }
+        })
+      }
+
       if (item) {
         await router.push(`/items/${item.id}`)
       } else {
@@ -66,6 +103,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         title: item?.title || '',
         text: item?.text || '',
         options: initialOptions || ['', ''],
+        crosspost: me?.nostrCrossposting,
         ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}

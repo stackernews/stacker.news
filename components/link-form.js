@@ -13,6 +13,8 @@ import { normalizeForwards, toastDeleteScheduled } from '../lib/form'
 import { useToast } from './toast'
 import { SubSelectInitial } from './sub-select'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
+import useCrossposter from './use-crossposter';
+
 import { useMe } from './me'
 import { ItemButtonBar } from './post'
 
@@ -25,6 +27,8 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
   // if Web Share Target API was used
   const shareUrl = router.query.url
   const shareTitle = router.query.title
+
+  const crossposter = useCrossposter();
 
   const [getPageTitleAndUnshorted, { data }] = useLazyQuery(gql`
     query PageTitleAndUnshorted($url: String!) {
@@ -92,6 +96,39 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
       if (error) {
         throw new Error({ message: error.toString() })
       }
+
+      try {
+        if (crosspost && !(await window.nostr.getPublicKey())) {
+          throw new Error('not available')
+        }
+      } catch (e) {
+        throw new Error(`Nostr extension error: ${e.message}`)
+      }
+
+      let eventId = null
+      const linkId = data?.upsertLink?.id
+
+      try {
+        if (crosspost && linkId) {
+          const crosspostResult = await crossposter({ ...values, title: title, id: linkId })
+          eventId = crosspostResult?.eventId
+        }
+      } catch (e) {
+        console.error(e)
+      }
+
+      if (eventId) {
+        await upsertLink({
+          variables: {
+            id: linkId,
+            title: title.trim(),
+            ...values,
+            forward: normalizeForwards(values.forward),
+            noteId: eventId
+          }
+        })
+      }
+
       if (item) {
         await router.push(`/items/${item.id}`)
       } else {
@@ -125,6 +162,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
         title: item?.title || shareTitle || '',
         url: item?.url || shareUrl || '',
         text: item?.text || '',
+        crosspost: me?.nostrCrossposting,
         ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}

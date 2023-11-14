@@ -5,6 +5,28 @@ import { DEFAULT_CROSSPOSTING_RELAYS, crosspost } from '../lib/nostr'
 import { useQuery } from '@apollo/client'
 import { SETTINGS } from '../fragments/users'
 
+function determineItemType(item) {
+  console.log('item in determineItemType', item)
+  const typeMap = {
+    isJob: 'job',
+    url: 'link',
+    bounty: 'bounty',
+    options: 'poll'
+  };
+
+  for (const [key, type] of Object.entries(typeMap)) {
+    console.log('key', key)
+    console.log('type', type)
+    if (item[key]) {
+      return type;
+    }
+  }
+
+  // Default
+  return 'discussion'; 
+}
+
+
 async function discussionToEvent (item) {
   const createdAt = Math.floor(Date.now() / 1000)
 
@@ -16,6 +38,33 @@ async function discussionToEvent (item) {
       ['d', item.id.toString()],
       ['title', item.title],
       ['published_at', createdAt.toString()]
+    ]
+  }
+}
+
+async function linkToEvent (item) {
+  const createdAt = Math.floor(Date.now() / 1000)
+
+  return {
+    created_at: createdAt,
+    kind: 1,
+    content: `${item.title} \n ${item.url}`,
+    tags: []
+  }
+}
+
+async function pollToEvent (item) {
+  console.log('item in pollToEvent', item)
+  const createdAt = Math.floor(Date.now() / 1000)
+
+  const expiresAt = createdAt + 86400
+
+  return {
+    created_at: createdAt,
+    kind: 1,
+    content: item.text,
+    tags: [
+      ['poll', 'single', expiresAt.toString(), item.title, item.options.map(op => op.option).join(',')]
     ]
   }
 }
@@ -50,14 +99,34 @@ export default function useCrossposter () {
     })
   }
 
+  const handleEventCreation = async (itemType, item) => {
+    switch (itemType) {
+      case 'discussion':
+        return await discussionToEvent(item);
+      case 'link':
+        return await linkToEvent(item);
+      case 'bounty':
+        return null; // Or handle bounty case
+      case 'poll':
+        return await pollToEvent(item);
+      case 'job':
+        return null; // Or handle job case
+      default:
+        return null; // handle error
+    }
+  };
+
   return useCallback(async item => {
     let failedRelays
     let allSuccessful = false
     let noteId
 
     do {
-      // XXX we only use discussions right now
-      const event = await discussionToEvent(item)
+      const itemType = determineItemType(item);
+      console.log('itemType', itemType)
+      const event = await handleEventCreation(itemType, item);
+      if (!event) break; // Break if event creation fails
+
       const result = await crosspost(event, failedRelays || relays)
 
       noteId = result.noteId

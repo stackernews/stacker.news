@@ -93,13 +93,13 @@ export default function AdvPostForm ({ children }) {
               )
             }}
           </VariableInput>
-          {me && router.query.type === 'discussion' &&
+          {me && router.query.type === 'discussion' || router.query.type === 'link' || router.query.type === 'poll' &&
             <Checkbox
               label={
                 <div className='d-flex align-items-center'>crosspost to nostr
                   <Info>
                     <ul className='fw-bold'>
-                      <li>crosspost this discussion item to nostr</li>
+                      <li>crosspost this item to nostr</li>
                       <li>requires NIP-07 extension for signing</li>
                       <li>we use your NIP-05 relays if set</li>
                       <li>otherwise we default to these relays:</li>

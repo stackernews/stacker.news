@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react'
+import { createContext, useContext, useMemo } from 'react'
 import { useQuery } from '@apollo/client'
 import { SSR } from '../lib/constants'
 import { BLOCK_HEIGHT } from '../fragments/blockHeight'
@@ -18,9 +18,9 @@ export const BlockHeightProvider = ({ blockHeight, children }) => {
           nextFetchPolicy: 'cache-and-network'
         })
   })
-  const value = {
+  const value = useMemo(() => ({
     height: data?.blockHeight ?? blockHeight ?? 0
-  }
+  }), [data, blockHeight])
   return (
     <BlockHeightContext.Provider value={value}>
       {children}

@@ -35,7 +35,7 @@ class ErrorBoundary extends Component {
     if (this.state.hasError) {
       // You can render any custom fallback UI
       return (
-        <StaticLayout>
+        <StaticLayout footer={false}>
           <Image width='500' height='375' className='rounded-1 shadow-sm' src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/floating.gif`} fluid />
           <h1 className={styles.status} style={{ fontSize: '48px' }}>something went wrong</h1>
           {this.state.error &&
@@ -48,7 +48,6 @@ class ErrorBoundary extends Component {
     }
 
     // Return children components in case of no error
-
     return this.props.children
   }
 }

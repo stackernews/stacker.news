@@ -4,7 +4,7 @@ import SearchIcon from '../svgs/search-line.svg'
 import { useEffect, useRef, useState } from 'react'
 import { Form, Input, Select, DatePicker, SubmitButton } from './form'
 import { useRouter } from 'next/router'
-import { dayMonthYear, whenToFrom } from '../lib/time'
+import { whenToFrom } from '../lib/time'
 
 export default function Search ({ sub }) {
   const router = useRouter()
@@ -103,7 +103,7 @@ export default function Search ({ sub }) {
                       <Select
                         groupClassName='mb-0 mx-2'
                         onChange={(formik, e) => {
-                          const range = e.target.value === 'custom' ? { from: whenToFrom(when), to: dayMonthYear(new Date()) } : {}
+                          const range = e.target.value === 'custom' ? { from: whenToFrom(when), to: Date.now() } : {}
                           search({ ...formik?.values, when: e.target.value, ...range })
                         }}
                         name='when'
@@ -119,7 +119,7 @@ export default function Search ({ sub }) {
                     toName='to'
                     className='p-0 px-2 mb-2'
                     onChange={(formik, [from, to], e) => {
-                      search({ ...formik?.values, from, to })
+                      search({ ...formik?.values, from: from.getTime(), to: to.getTime() })
                     }}
                     from={router.query.from}
                     to={router.query.to}

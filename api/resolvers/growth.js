@@ -1,5 +1,4 @@
-import { timeUnitForRange } from '../../lib/time'
-import { whenRange } from './item'
+import { timeUnitForRange, whenRange } from '../../lib/time'
 
 const PLACEHOLDERS_NUM = 616
 

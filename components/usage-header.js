@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router'
 import { Select, DatePicker } from './form'
 import { WHENS } from '../lib/constants'
-import { dayMonthYear, whenToFrom } from '../lib/time'
+import { whenToFrom } from '../lib/time'
 
 export function UsageHeader () {
   const router = useRouter()
@@ -33,7 +33,7 @@ export function UsageHeader () {
           value={when}
           noForm
           onChange={(formik, e) => {
-            const range = e.target.value === 'custom' ? { from: whenToFrom(when), to: dayMonthYear(new Date()) } : {}
+            const range = e.target.value === 'custom' ? { from: whenToFrom(when), to: Date.now() } : {}
             select({ when: e.target.value, ...range })
           }}
         />
@@ -45,7 +45,7 @@ export function UsageHeader () {
           toName='to'
           className='p-0 px-2 mb-0'
           onChange={(formik, [from, to], e) => {
-            select({ when, from, to })
+            select({ when, from: from.getTime(), to: to.getTime() })
           }}
           from={router.query.from}
           to={router.query.to}

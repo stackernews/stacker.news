@@ -238,6 +238,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
     }
 
     // if no cost is passed, just try the action first
+    cost ??= formValues.amount
     if (!cost || (me && !options.forceInvoice)) {
       try {
         return await onSubmit(formValues, ...submitArgs)

@@ -177,55 +177,88 @@ export default {
         whatArr.push({ match: { 'sub.name': sub } })
       }
 
+      const should = [
+        {
+          // all terms are matched in fields
+          multi_match: {
+            query,
+            type: 'most_fields',
+            fields: ['title^1000', 'text'],
+            minimum_should_match: '100%',
+            boost: 10000
+          }
+        },
+        {
+          // all terms are matched in fields fuzzily
+          multi_match: {
+            query,
+            type: 'most_fields',
+            fields: ['title^1000', 'text'],
+            minimum_should_match: '60%',
+            boost: 1000
+          }
+        }
+      ]
+
+      let boostMode = 'multiply'
       let sortField
+      let sortMod = 'log1p'
       switch (sort) {
         case 'comments':
           sortField = 'ncomments'
+          sortMod = 'square'
           break
         case 'sats':
           sortField = 'sats'
           break
+        case 'recent':
+          sortField = 'createdAt'
+          sortMod = 'square'
+          boostMode = 'replace'
+          break
         default:
           sortField = 'wvotes'
+          sortMod = 'none'
           break
+      }
+
+      const functions = [
+        {
+          field_value_factor: {
+            field: sortField,
+            modifier: sortMod,
+            factor: 1.2
+          }
+        }
+      ]
+
+      // allow fuzzy matching for single terms
+      if (sort !== 'recent') {
+        should.push({
+          // only some terms must match unless we're sorting
+          multi_match: {
+            query,
+            type: 'most_fields',
+            fields: ['title^1000', 'text'],
+            fuzziness: 'AUTO',
+            prefix_length: 3,
+            minimum_should_match: '60%'
+          }
+        })
+        // small bias toward posts with comments
+        functions.push({
+          field_value_factor: {
+            field: 'ncomments',
+            modifier: 'ln1p',
+            factor: 1
+          }
+        })
       }
 
       if (query.length) {
         whatArr.push({
           bool: {
-            should: [
-              {
-              // all terms are matched in fields
-                multi_match: {
-                  query,
-                  type: 'most_fields',
-                  fields: ['title^1000', 'text'],
-                  minimum_should_match: '100%',
-                  boost: 10000
-                }
-              },
-              {
-                // all terms are matched in fields fuzzily
-                multi_match: {
-                  query,
-                  type: 'most_fields',
-                  fields: ['title^1000', 'text'],
-                  minimum_should_match: '60%',
-                  boost: 1000
-                }
-              },
-              {
-                // only some terms must match unless we're sorting
-                multi_match: {
-                  query,
-                  type: 'most_fields',
-                  fields: ['title^1000', 'text'],
-                  fuzziness: 'AUTO',
-                  prefix_length: 3,
-                  minimum_should_match: '60%'
-                }
-              }
-            ]
+            should
           }
         })
       }
@@ -282,23 +315,8 @@ export default {
                     ]
                   }
                 },
-                functions: [
-                  {
-                    field_value_factor: {
-                      field: sortField,
-                      modifier: sort === 'comments' ? 'square' : 'log2p',
-                      factor: 1.2
-                    }
-                  },
-                  {
-                    field_value_factor: {
-                      field: 'ncomments',
-                      modifier: 'ln1p',
-                      factor: 1
-                    }
-                  }
-                ],
-                boost_mode: 'multiply'
+                functions,
+                boost_mode: boostMode
               }
             },
             highlight: {

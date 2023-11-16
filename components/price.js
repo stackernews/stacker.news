@@ -29,8 +29,6 @@ export function PriceProvider ({ price, children }) {
         })
   })
 
-  console.log('data',data);
-
   const contextValue = {
     price: data?.price || price,
     fiatSymbol: CURRENCY_SYMBOLS[fiatCurrency] || '$'
@@ -46,8 +44,8 @@ export function PriceProvider ({ price, children }) {
 export default function Price ({ className }) {
   const [asSats, setAsSats] = useState(undefined)
   useEffect(() => {
-    const ticker = window.localStorage.getItem('asSats');
-    setAsSats(ticker ?? 'fiat')
+    const satSelection = window.localStorage.getItem('asSats');
+    setAsSats(satSelection ?? 'fiat')
   }, [])
   const { price, fiatSymbol } = usePrice()
   const { height: blockHeight } = useBlockHeight()

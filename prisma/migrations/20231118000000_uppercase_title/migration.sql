@@ -165,7 +165,7 @@ BEGIN
     END IF;
 
     -- add addl fees
-    cost_msats := cost_msats + additional_fee_msats
+    cost_msats := cost_msats + additional_fee_msats;
 
     IF cost_msats > 0 AND cost_msats > user_msats THEN
         RAISE EXCEPTION 'SN_INSUFFICIENT_FUNDS';

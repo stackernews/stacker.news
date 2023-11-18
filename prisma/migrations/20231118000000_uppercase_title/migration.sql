@@ -1,16 +1,18 @@
 -- AlterTable
 ALTER TABLE "Item" ADD COLUMN     "upperTitleFeePaid" BOOLEAN NOT NULL DEFAULT false;
 
-DROP FUNCTION IF EXISTS create_item(JSONB, JSONB, JSONB, INTERVAL);
+DROP FUNCTION IF EXISTS create_item(JSONB, JSONB, JSONB, INTERVAL, INTEGER[]);
+
 -- support uppercase chars in title fee multiplier
 CREATE OR REPLACE FUNCTION create_item(
-    jitem JSONB, forward JSONB, poll_options JSONB, spam_within INTERVAL, upper_title_fee_mult INTEGER)
+    jitem JSONB, forward JSONB, poll_options JSONB, spam_within INTERVAL, upload_ids INTEGER[], upper_title_fee_mult INTEGER)
 RETURNS "Item"
 LANGUAGE plpgsql
 AS $$
 DECLARE
     user_msats BIGINT;
-    cost_msats BIGINT;
+    cost_msats BIGINT := 1000;
+    base_cost_msats BIGINT := 1000;
     freebie BOOLEAN;
     item "Item";
     med_votes FLOAT;
@@ -23,13 +25,30 @@ BEGIN
 
     SELECT msats INTO user_msats FROM users WHERE id = item."userId";
 
-    IF item."maxBid" IS NOT NULL THEN
-        cost_msats := 1000000;
-    ELSE
-        cost_msats := 1000 * POWER(10, item_spam(item."parentId", item."userId", spam_within)) * upper_title_fee_mult;
+    -- if this is a post, get the base cost of the sub
+    IF item."parentId" IS NULL AND item."subName" IS NOT NULL THEN
+        SELECT "baseCost" * 1000, "baseCost" * 1000
+        INTO base_cost_msats, cost_msats
+        FROM "Sub"
+        WHERE name = item."subName";
     END IF;
-    -- it's only a freebie if it's a 1 sat cost, they have < 1 sat, and boost = 0
-    freebie := (cost_msats <= 1000) AND (user_msats < 1000) AND (item.boost IS NULL OR item.boost = 0);
+
+    IF item."maxBid" IS NULL THEN
+        -- spam multiplier
+        cost_msats := cost_msats * POWER(10, item_spam(item."parentId", item."userId", spam_within));
+    END IF;
+
+    -- Uppercase title fee multiplier (before image fees or after?)
+    cost_msats := cost_msats * upper_title_fee_mult;
+
+    -- add image fees
+    IF upload_ids IS NOT NULL THEN
+        cost_msats := cost_msats + (SELECT "nUnpaid" * "imageFeeMsats" FROM image_fees_info(item."userId", upload_ids));
+        UPDATE "Upload" SET paid = 't' WHERE id = ANY(upload_ids);
+    END IF;
+
+    -- it's only a freebie if it's no greater than the base cost, they have less than the cost, and boost = 0
+    freebie := (cost_msats <= base_cost_msats) AND (user_msats < cost_msats) AND (item.boost IS NULL OR item.boost = 0);
 
     IF NOT freebie AND cost_msats > user_msats THEN
         RAISE EXCEPTION 'SN_INSUFFICIENT_FUNDS';
@@ -99,6 +118,12 @@ BEGIN
         UPDATE users SET "bioId" = item.id WHERE id = item."userId";
     END IF;
 
+    -- record attachments
+    IF upload_ids IS NOT NULL THEN
+        INSERT INTO "ItemUpload" ("itemId", "uploadId")
+            SELECT item.id, * FROM UNNEST(upload_ids);
+    END IF;
+
     -- schedule imgproxy job
     INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
     VALUES ('imgproxy', jsonb_build_object('id', item.id), 21, true, now() + interval '5 seconds');
@@ -107,15 +132,17 @@ BEGIN
 END;
 $$;
 
-DROP FUNCTION IF EXISTS update_item(JSONB, JSONB, JSONB);
+DROP FUNCTION IF EXISTS update_item(JSONB, JSONB, JSONB, INTEGER[]);
+
 -- support an additional fee parameter to incur on edits
 CREATE OR REPLACE FUNCTION update_item(
-    jitem JSONB, forward JSONB, poll_options JSONB, additional_fee_msats BIGINT)
+    jitem JSONB, forward JSONB, poll_options JSONB, upload_ids INTEGER[], additional_fee_msats BIGINT)
 RETURNS "Item"
 LANGUAGE plpgsql
 AS $$
 DECLARE
     user_msats INTEGER;
+    cost_msats BIGINT;
     item "Item";
     select_clause TEXT;
 BEGIN
@@ -124,14 +151,29 @@ BEGIN
     item := jsonb_populate_record(NULL::"Item", jitem);
 
     SELECT msats INTO user_msats FROM users WHERE id = item."userId";
-    IF additional_fee_msats > user_msats THEN
-        RAISE EXCEPTION 'SN_INSUFFICIENT_FUNDS';
+    cost_msats := 0;
+
+    -- add image fees
+    IF upload_ids IS NOT NULL THEN
+        cost_msats := cost_msats + (SELECT "nUnpaid" * "imageFeeMsats" FROM image_fees_info(item."userId", upload_ids));
+        UPDATE "Upload" SET paid = 't' WHERE id = ANY(upload_ids);
+        -- delete any old uploads that are no longer attached
+        DELETE FROM "ItemUpload" WHERE "itemId" = item.id AND "uploadId" <> ANY(upload_ids);
+        -- insert any new uploads that are not already attached
+        INSERT INTO "ItemUpload" ("itemId", "uploadId")
+            SELECT item.id, * FROM UNNEST(upload_ids) ON CONFLICT DO NOTHING;
     END IF;
 
-    UPDATE users SET msats = user_msats - additional_fee_msats WHERE id = item."userId";
+    -- add addl fees
+    cost_msats := cost_msats + additional_fee_msats
 
-    INSERT INTO "ItemAct" (msats, "itemId", "userId", act)
-        VALUES (additional_fee_msats, item.id, item."userId", 'FEE');
+    IF cost_msats > 0 AND cost_msats > user_msats THEN
+        RAISE EXCEPTION 'SN_INSUFFICIENT_FUNDS';
+    ELSE
+        UPDATE users SET msats = msats - cost_msats WHERE id = item."userId";
+        INSERT INTO "ItemAct" (msats, "itemId", "userId", act)
+        VALUES (cost_msats, item.id, item."userId", 'FEE');
+    END IF;
 
     IF item.boost > 0 THEN
         UPDATE "Item" SET boost = boost + item.boost WHERE id = item.id;

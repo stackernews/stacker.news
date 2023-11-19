@@ -146,7 +146,7 @@ export default function ItemInfo ({
         {me && !item.meSats && !item.position &&
           !item.mine && !item.deletedAt && <DontLikeThisDropdownItem id={item.id} />}
         {me && !item.pollCost && !item.url && !item.bounty && <CrosspostDropdownItem item={item} />}
-        {item.mine && !item.position && !item.deletedAt &&
+        {item.mine && !item.position && !item.deletedAt && !item.bio &&
           <DeleteDropdownItem itemId={item.id} type={item.title ? 'post' : 'comment'} />}
         {me && !item.mine &&
           <>

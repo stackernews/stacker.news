@@ -26,7 +26,7 @@ import 'react-datepicker/dist/react-datepicker.css'
 import useDebounceCallback, { debounce } from './use-debounce-callback'
 import { ImageUpload } from './image'
 import { AWS_S3_URL_REGEXP } from '../lib/constants'
-import { dayMonthYear, dayMonthYearToDate, whenToFrom } from '../lib/time'
+import { whenRange } from '../lib/time'
 import { useFeeButton } from './fee-button'
 import Thumb from '../svgs/thumb-up-fill.svg'
 
@@ -845,18 +845,13 @@ export function DatePicker ({ fromName, toName, noForm, onChange, when, from, to
   const [,, toHelpers] = noForm ? [{}, {}, {}] : useField({ ...props, name: toName })
   const { minDate, maxDate } = props
 
-  const [{ innerFrom, innerTo }, setRange] = useState({
-    innerFrom: from || whenToFrom(when),
-    innerTo: to || dayMonthYear(new Date())
-  })
+  const [[innerFrom, innerTo], setRange] = useState(whenRange(when, from, to))
 
   useEffect(() => {
-    const tfrom = from || whenToFrom(when)
-    const tto = to || dayMonthYear(new Date())
-    setRange({ innerFrom: tfrom, innerTo: tto })
+    setRange(whenRange(when, from, to))
     if (!noForm) {
-      fromHelpers.setValue(tfrom)
-      toHelpers.setValue(tto)
+      fromHelpers.setValue(new Date(to))
+      toHelpers.setValue(new Date(to))
     }
   }, [when, from, to])
 
@@ -870,9 +865,7 @@ export function DatePicker ({ fromName, toName, noForm, onChange, when, from, to
   }, [])
 
   const innerOnChange = ([from, to], e) => {
-    from = dayMonthYear(from)
-    to = to ? dayMonthYear(to) : undefined
-    setRange({ innerFrom: from, innerTo: to })
+    setRange(whenRange(when, from, to))
     if (!noForm) {
       fromHelpers.setValue(from)
       toHelpers.setValue(to)
@@ -887,9 +880,9 @@ export function DatePicker ({ fromName, toName, noForm, onChange, when, from, to
       const dates = dateStrings.map(s => new Date(s))
       let [from, to] = dates
       if (from) {
-        if (minDate) from = new Date(Math.max(from, minDate))
+        if (minDate) from = new Date(Math.max(from.getTime(), minDate.getTime()))
         try {
-          if (maxDate) to = new Date(Math.min(to, maxDate))
+          if (maxDate) to = new Date(Math.min(to.getTime(), maxDate.getTime()))
 
           // if end date isn't valid, set it to the start date
           if (!(to instanceof Date && !isNaN(to)) || to < from) to = from
@@ -908,9 +901,9 @@ export function DatePicker ({ fromName, toName, noForm, onChange, when, from, to
       maxDate={new Date()}
       minDate={new Date('2021-05-01')}
       {...props}
-      selected={dayMonthYearToDate(innerFrom)}
-      startDate={dayMonthYearToDate(innerFrom)}
-      endDate={innerTo ? dayMonthYearToDate(innerTo) : undefined}
+      selected={new Date(innerFrom)}
+      startDate={new Date(innerFrom)}
+      endDate={innerTo ? new Date(innerTo) : undefined}
       dateFormat={dateFormat}
       onChangeRaw={onChangeRawHandler}
       onChange={innerOnChange}

@@ -10,7 +10,7 @@ import PageLoading from '../../components/page-loading'
 import { WHENS } from '../../lib/constants'
 import dynamic from 'next/dynamic'
 import { numWithUnits } from '../../lib/format'
-import { dayMonthYear, whenToFrom } from '../../lib/time'
+import { whenToFrom } from '../../lib/time'
 
 const WhenComposedChart = dynamic(() => import('../../components/charts').then(mod => mod.WhenComposedChart), {
   loading: () => <div>Loading...</div>
@@ -71,7 +71,7 @@ export default function Referrals ({ ssrData }) {
             value={router.query.when || 'day'}
             noForm
             onChange={(formik, e) => {
-              const range = e.target.value === 'custom' ? { from: whenToFrom(when), to: dayMonthYear(new Date()) } : {}
+              const range = e.target.value === 'custom' ? { from: whenToFrom(when), to: Date.now() } : {}
               select({ when: e.target.value, ...range })
             }}
           />
@@ -83,7 +83,7 @@ export default function Referrals ({ ssrData }) {
             toName='to'
             className='p-0 px-2 mb-2'
             onChange={(formik, [from, to], e) => {
-              select({ when, from, to })
+              select({ when, from: from.getTime(), to: to.getTime() })
             }}
             from={router.query.from}
             to={router.query.to}

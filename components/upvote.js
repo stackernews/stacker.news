@@ -162,23 +162,21 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
   const zap = useDebounceCallback(async (sats) => {
     if (!sats) return
     const variables = { id: item.id, sats }
-    try {
-      setPendingSats(0)
-      await act({
-        variables,
-        optimisticResponse: {
-          act: {
-            sats
-          }
+    act({
+      variables,
+      optimisticResponse: {
+        act: {
+          sats
         }
-      })
-    } catch (error) {
+      }
+    }).catch((error) => {
       if (payOrLoginError(error)) {
         showInvoiceModal({ amount: sats }, { variables })
         return
       }
-      throw new Error({ message: error.toString() })
-    }
+      console.error(error)
+    })
+    setPendingSats(0)
   }, 500, [act, item?.id, showInvoiceModal, setPendingSats])
 
   const disabled = useMemo(() => item?.mine || item?.meForward || item?.deletedAt,

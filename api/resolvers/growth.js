@@ -1,5 +1,4 @@
-import { timeUnitForRange } from '../../lib/time'
-import { whenRange } from './item'
+import { timeUnitForRange, whenRange } from '../../lib/time'
 
 const PLACEHOLDERS_NUM = 616
 
@@ -24,7 +23,8 @@ export function withClause (range) {
   return `
     WITH range_values AS (
       SELECT date_trunc('${unit}', $1) as minval,
-            date_trunc('${unit}', $2) as maxval),
+             date_trunc('${unit}', $2) as maxval
+    ),
     times AS (
       SELECT generate_series(minval, maxval, interval '1 ${unit}') as time
       FROM range_values
@@ -35,7 +35,7 @@ export function withClause (range) {
 export function intervalClause (range, table) {
   const unit = timeUnitForRange(range)
 
-  return `"${table}".created_at >= date_trunc('${unit}', timezone('America/Chicago', $1)) AND "${table}".created_at <= date_trunc('${unit}', timezone('America/Chicago', $2)) `
+  return `date_trunc('${unit}', "${table}".created_at)  >= date_trunc('${unit}', $1) AND date_trunc('${unit}', "${table}".created_at) <= date_trunc('${unit}', $2) `
 }
 
 export function viewIntervalClause (range, view) {
@@ -63,7 +63,7 @@ export default {
         `${withClause(range)}
         SELECT time, json_build_array(
           json_build_object('name', 'referrals', 'value', count("referrerId")),
-          json_build_object('name', 'organic', 'value', count(users.id) FILTER(WHERE id > ${PLACEHOLDERS_NUM}) - count("inviteId"))
+          json_build_object('name', 'organic', 'value', count(users.id) FILTER(WHERE id > ${PLACEHOLDERS_NUM}) - count("referrerId"))
         ) AS data
         FROM times
         LEFT JOIN users ON ${intervalClause(range, 'users')} AND time = date_trunc('${timeUnitForRange(range)}', created_at)

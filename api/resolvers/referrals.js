@@ -1,7 +1,6 @@
 import { GraphQLError } from 'graphql'
 import { withClause, intervalClause } from './growth'
-import { whenRange } from './item'
-import { timeUnitForRange } from '../../lib/time'
+import { timeUnitForRange, whenRange } from '../../lib/time'
 
 export default {
   Query: {
@@ -24,7 +23,7 @@ export default {
         FROM users
         WHERE ${intervalClause(range, 'users')}
         AND "referrerId" = $3
-    `, ...range, Number(me.id))
+      `, ...range, Number(me.id))
 
       const stats = await models.$queryRawUnsafe(
         `${withClause(range)}

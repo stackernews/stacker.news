@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react'
+import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@apollo/client'
 import { fixedDecimal } from '../lib/format'
 import { useMe } from './me'
@@ -29,10 +29,10 @@ export function PriceProvider ({ price, children }) {
         })
   })
 
-  const contextValue = {
+  const contextValue = useMemo(() => ({
     price: data?.price || price,
     fiatSymbol: CURRENCY_SYMBOLS[fiatCurrency] || '$'
-  }
+  }), [data?.price, price, me?.fiatCurrency])
 
   return (
     <PriceContext.Provider value={contextValue}>
@@ -44,7 +44,8 @@ export function PriceProvider ({ price, children }) {
 export default function Price ({ className }) {
   const [asSats, setAsSats] = useState(undefined)
   useEffect(() => {
-    setAsSats(window.localStorage.getItem('asSats'))
+    const satSelection = window.localStorage.getItem('asSats')
+    setAsSats(satSelection ?? 'fiat')
   }, [])
   const { price, fiatSymbol } = usePrice()
   const { height: blockHeight } = useBlockHeight()
@@ -62,7 +63,7 @@ export default function Price ({ className }) {
       setAsSats('blockHeight')
     } else if (asSats === 'blockHeight') {
       window.localStorage.removeItem('asSats')
-      setAsSats(undefined)
+      setAsSats('fiat')
     } else {
       window.localStorage.setItem('asSats', 'yep')
       setAsSats('yep')
@@ -95,9 +96,11 @@ export default function Price ({ className }) {
     )
   }
 
-  return (
-    <div className={compClassName} onClick={handleClick} variant='link'>
-      {fiatSymbol + fixedDecimal(price, 0)}
-    </div>
-  )
+  if (asSats === 'fiat') {
+    return (
+      <div className={compClassName} onClick={handleClick} variant='link'>
+        {fiatSymbol + fixedDecimal(price, 0)}
+      </div>
+    )
+  }
 }

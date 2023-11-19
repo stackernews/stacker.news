@@ -67,6 +67,7 @@ export default gql`
     createdAt: Date!
     updatedAt: Date!
     deletedAt: Date
+    deleteScheduledAt: Date
     title: String
     searchTitle: String
     url: String
@@ -95,6 +96,7 @@ export default gql`
     meForward: Boolean
     outlawed: Boolean!
     freebie: Boolean!
+    bio: Boolean!
     paidImgLink: Boolean
     ncomments: Int!
     comments(sort: String): [Item!]!

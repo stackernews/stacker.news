@@ -5,12 +5,14 @@ import { COMMENTS } from '../fragments/comments'
 import { useMe } from './me'
 import { forwardRef, useCallback, useEffect, useState, useRef, useImperativeHandle } from 'react'
 import Link from 'next/link'
-import FeeButton, { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
+import { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
 import { commentsViewedAfterComment } from '../lib/new-comments'
 import { commentSchema } from '../lib/validate'
-import Info from './info'
 import { quote } from '../lib/md'
 import { COMMENT_DEPTH_LIMIT } from '../lib/constants'
+import { useToast } from './toast'
+import { toastDeleteScheduled } from '../lib/form'
+import { ItemButtonBar } from './post'
 
 export function ReplyOnAnotherPage ({ item }) {
   const path = item.path.split('.')
@@ -28,27 +30,13 @@ export function ReplyOnAnotherPage ({ item }) {
   )
 }
 
-function FreebieDialog () {
-  return (
-    <div className='text-muted'>
-      you have no sats, so this one is on us
-      <Info>
-        <ul className='fw-bold'>
-          <li>Free comments have limited visibility and are listed at the bottom of the comment section until other stackers zap them.</li>
-          <li>Free comments will not cover comments that cost more than 1 sat.</li>
-          <li>To get fully visibile and unrestricted comments right away, fund your account with a few sats or earn some on Stacker News.</li>
-        </ul>
-      </Info>
-    </div>
-  )
-}
-
 export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children, placeholder, contentContainerRef }, ref) {
   const [reply, setReply] = useState(replyOpen)
   const me = useMe()
   const parentId = item.id
   const replyInput = useRef(null)
   const formInnerRef = useRef()
+  const toaster = useToast()
 
   // Start block to handle iOS Safari's weird selection clearing behavior
   const savedRange = useRef()
@@ -154,7 +142,8 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
   )
 
   const onSubmit = useCallback(async ({ amount, hash, hmac, ...values }, { resetForm }) => {
-    await upsertComment({ variables: { parentId, hash, hmac, ...values } })
+    const { data } = await upsertComment({ variables: { parentId, hash, hmac, ...values } })
+    toastDeleteScheduled(toaster, data, false, values.text)
     resetForm({ text: '' })
     setReply(replyOpen || false)
   }, [upsertComment, setReply, parentId])
@@ -205,18 +194,9 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
                 autoFocus={!replyOpen}
                 required
                 placeholder={placeholder}
-                hint={me?.sats < 1 && <FreebieDialog />}
                 innerRef={replyInput}
               />
-              <div className='d-flex mt-1'>
-                <div className='ms-auto'>
-                  <FeeButton
-                    text='reply'
-                    variant='secondary'
-                    alwaysShow
-                  />
-                </div>
-              </div>
+              <ItemButtonBar createText='reply' hasCancel={false} />
             </Form>
           </FeeButtonProvider>
         </div>}

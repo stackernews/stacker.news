@@ -18,7 +18,7 @@ import { advSchema, amountSchema, bountySchema, commentSchema, discussionSchema,
 import { sendUserNotification } from '../webPush'
 import { defaultCommentSort, isJob, deleteItemByAuthor, getDeleteCommand, hasDeleteCommand } from '../../lib/item'
 import { notifyItemParents, notifyUserSubscribers, notifyZapped } from '../../lib/push-notifications'
-import { datePivot, dayMonthYearToDate, whenToFrom } from '../../lib/time'
+import { datePivot, whenRange } from '../../lib/time'
 import { imageFeesInfo, uploadIdsFromText } from './image'
 
 export async function commentFilterClause (me, models) {
@@ -197,15 +197,6 @@ export const whereClause = (...clauses) => {
 
 function whenClause (when, table) {
   return `"${table}".created_at <= $2 and "${table}".created_at >= $1`
-}
-
-export function whenRange (when, from, to = new Date()) {
-  switch (when) {
-    case 'custom':
-      return [new Date(from), new Date(to)]
-    default:
-      return [dayMonthYearToDate(whenToFrom(when)), new Date(to)]
-  }
 }
 
 const activeOrMine = (me) => {
@@ -652,6 +643,9 @@ export default {
       if (Number(old.userId) !== Number(me?.id)) {
         throw new GraphQLError('item does not belong to you', { extensions: { code: 'FORBIDDEN' } })
       }
+      if (old.bio) {
+        throw new GraphQLError('cannot delete bio', { extensions: { code: 'BAD_INPUT' } })
+      }
 
       return await deleteItemByAuthor({ models, id, item: old })
     },
@@ -1000,6 +994,15 @@ export default {
       }
       const parent = await models.item.findUnique({ where: { id: item.parentId } })
       return parent.otsHash
+    },
+    deleteScheduledAt: async (item, args, { me, models }) => {
+      const meId = me?.id ?? ANON_USER_ID
+      if (meId !== item.userId) {
+        // Only query for deleteScheduledAt for your own items to keep DB queries minimized
+        return null
+      }
+      const deleteJobs = await models.$queryRawUnsafe(`SELECT startafter FROM pgboss.job WHERE name = 'deleteItem' AND data->>'id' = '${item.id}'`)
+      return deleteJobs[0]?.startafter ?? null
     }
   }
 }
@@ -1189,7 +1192,7 @@ export const SELECT =
   "Item"."rootId", "Item".upvotes, "Item".company, "Item".location, "Item".remote, "Item"."deletedAt",
   "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost", "Item".boost, "Item".msats,
   "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",
-  "Item"."weightedDownVotes", "Item".freebie, "Item"."otsHash", "Item"."bountyPaidTo",
+  "Item"."weightedDownVotes", "Item".freebie, "Item".bio, "Item"."otsHash", "Item"."bountyPaidTo",
   ltree2text("Item"."path") AS "path", "Item"."weightedComments", "Item"."imgproxyUrls"`
 
 function topOrderByWeightedSats (me, models) {

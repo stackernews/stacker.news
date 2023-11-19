@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router'
 import { Form, Select, DatePicker } from './form'
 import { ITEM_SORTS, USER_SORTS, WHENS } from '../lib/constants'
-import { dayMonthYear, whenToFrom } from '../lib/time'
+import { whenToFrom } from '../lib/time'
 
 export default function TopHeader ({ sub, cat }) {
   const router = useRouter()
@@ -71,7 +71,7 @@ export default function TopHeader ({ sub, cat }) {
                 <Select
                   groupClassName='mb-0 mx-2'
                   onChange={(formik, e) => {
-                    const range = e.target.value === 'custom' ? { from: whenToFrom(when), to: dayMonthYear(new Date()) } : {}
+                    const range = e.target.value === 'custom' ? { from: whenToFrom(when), to: Date.now() } : {}
                     top({ ...formik?.values, when: e.target.value, ...range })
                   }}
                   name='when'
@@ -88,7 +88,7 @@ export default function TopHeader ({ sub, cat }) {
               toName='to'
               className='p-0 px-2 my-2'
               onChange={(formik, [from, to], e) => {
-                top({ ...formik?.values, from, to })
+                top({ ...formik?.values, from: from.getTime(), to: to.getTime() })
               }}
               from={router.query.from}
               to={router.query.to}

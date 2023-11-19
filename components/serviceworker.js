@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
 import { Workbox } from 'workbox-window'
 import { gql, useMutation } from '@apollo/client'
 import { useLogger } from './logger'
@@ -140,8 +140,16 @@ export const ServiceWorkerProvider = ({ children }) => {
     logger.info('sent SYNC_SUBSCRIPTION to service worker')
   }, [registration])
 
+  const contextValue = useMemo(() => ({
+    registration,
+    support,
+    permission,
+    requestNotificationPermission,
+    togglePushSubscription
+  }), [registration, support, permission, requestNotificationPermission, togglePushSubscription])
+
   return (
-    <ServiceWorkerContext.Provider value={{ registration, support, permission, requestNotificationPermission, togglePushSubscription }}>
+    <ServiceWorkerContext.Provider value={contextValue}>
       {children}
     </ServiceWorkerContext.Provider>
   )

@@ -3,15 +3,16 @@ import { useRouter } from 'next/router'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
-import FeeButton, { useFeeButton, uppercaseTitleFeeHandler } from './fee-button'
+import { useFeeButton, uppercaseTitleFeeHandler } from './fee-button'
 import InputGroup from 'react-bootstrap/InputGroup'
 import { bountySchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select-form'
-import CancelButton from './cancel-button'
 import { useCallback } from 'react'
-import { normalizeForwards } from '../lib/form'
+import { normalizeForwards, toastDeleteScheduled } from '../lib/form'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
 import { useMe } from './me'
+import { useToast } from './toast'
+import { ItemButtonBar } from './post'
 
 export function BountyForm ({
   item,
@@ -20,13 +21,13 @@ export function BountyForm ({
   titleLabel = 'title',
   bountyLabel = 'bounty',
   textLabel = 'text',
-  buttonText = 'post',
   handleSubmit,
   children
 }) {
   const router = useRouter()
   const client = useApolloClient()
   const me = useMe()
+  const toaster = useToast()
   const schema = bountySchema({ client, me, existingBoost: item?.boost })
   const [upsertBounty] = useMutation(
     gql`
@@ -53,6 +54,7 @@ export function BountyForm ({
           hmac: $hmac
         ) {
           id
+          deleteScheduledAt
         }
       }
     `
@@ -60,7 +62,7 @@ export function BountyForm ({
 
   const onSubmit = useCallback(
     async ({ boost, bounty, ...values }) => {
-      const { error } = await upsertBounty({
+      const { data, error } = await upsertBounty({
         variables: {
           sub: item?.subName || sub?.name,
           id: item?.id,
@@ -80,6 +82,7 @@ export function BountyForm ({
         const prefix = sub?.name ? `/~${sub.name}` : ''
         await router.push(prefix + '/recent')
       }
+      toastDeleteScheduled(toaster, data, !!item, values.text)
     }, [upsertBounty, router]
   )
   const feeButton = useFeeButton()
@@ -139,13 +142,7 @@ export function BountyForm ({
         }
       />
       <AdvPostForm edit={!!item} />
-      <div className='d-flex mt-3'>
-        <CancelButton />
-        <FeeButton
-          text={buttonText}
-          variant='secondary'
-        />
-      </div>
+      <ItemButtonBar itemId={item?.id} canDelete={false} />
     </Form>
   )
 }

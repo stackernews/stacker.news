@@ -4,7 +4,7 @@ import ActionTooltip from './action-tooltip'
 import Info from './info'
 import styles from './fee-button.module.css'
 import { gql, useQuery } from '@apollo/client'
-import { SSR, UPPER_CHARS_TITLE_FEE_MULT } from '../lib/constants'
+import { SSR, UPPER_CHARS_TITLE_FEE_MULT, FREEBIE_BASE_COST_THRESHOLD } from '../lib/constants'
 import { numWithUnits } from '../lib/format'
 import { useMe } from './me'
 import AnonIcon from '../svgs/spy-fill.svg'
@@ -110,20 +110,39 @@ export function useFeeButton () {
   return useContext(FeeButtonContext)
 }
 
+function FreebieDialog () {
+  return (
+    <>
+      <div className='fw-bold'>you don't have enough sats, so this one is on us</div>
+      <ul className='mt-2'>
+        <li>Free items have limited visibility until other stackers zap them.</li>
+        <li>To get fully visibile right away, fund your account with a few sats or earn some on Stacker News.</li>
+      </ul>
+    </>
+  )
+}
+
 export default function FeeButton ({ ChildButton = SubmitButton, variant, text, disabled }) {
   const me = useMe()
   const { lines, total, disabled: ctxDisabled } = useFeeButton()
+  // freebies: there's only a base cost, it's less than 10, and we have less than 10 sats
+  const free = total === lines.baseCost?.modifier(0) &&
+    total <= FREEBIE_BASE_COST_THRESHOLD &&
+    me?.sats < FREEBIE_BASE_COST_THRESHOLD
+  const feeText = free
+    ? 'free'
+    : total > 1
+      ? numWithUnits(total, { abbreviate: false, format: true })
+      : undefined
 
   return (
     <div className={styles.feeButton}>
       <ActionTooltip overlayText={numWithUnits(total, { abbreviate: false })}>
-        <ChildButton variant={variant} disabled={disabled || ctxDisabled}>{text}{total > 1 && <small> {numWithUnits(total, { abbreviate: false, format: true })}</small>}</ChildButton>
+        <ChildButton variant={variant} disabled={disabled || ctxDisabled}>{text}{feeText && <small> {feeText}</small>}</ChildButton>
       </ActionTooltip>
       {!me && <AnonInfo />}
-      {total > 1 &&
-        <Info>
-          <Receipt lines={lines} total={total} />
-        </Info>}
+      {(free && <Info><FreebieDialog /></Info>) ||
+       (total > 1 && <Info><Receipt lines={lines} total={total} /></Info>)}
     </div>
   )
 }

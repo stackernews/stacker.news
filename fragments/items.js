@@ -33,6 +33,7 @@ export const ITEM_FIELDS = gql`
     meForward
     outlawed
     freebie
+    bio
     ncomments
     commentSats
     lastCommentAt
@@ -55,6 +56,7 @@ export const ITEM_FULL_FIELDS = gql`
   fragment ItemFullFields on Item {
     ...ItemFields
     text
+    deleteScheduledAt
     root {
       id
       title

@@ -10,11 +10,11 @@ import { useMe } from '../../components/me'
 import { USER_FULL } from '../../fragments/users'
 import { ITEM_FIELDS } from '../../fragments/items'
 import { getGetServerSideProps } from '../../api/ssrApollo'
-import FeeButton, { FeeButtonProvider } from '../../components/fee-button'
+import { FeeButtonProvider } from '../../components/fee-button'
 import { bioSchema } from '../../lib/validate'
-import CancelButton from '../../components/cancel-button'
 import { useRouter } from 'next/router'
 import PageLoading from '../../components/page-loading'
+import { ItemButtonBar } from '../../components/post'
 
 export const getServerSideProps = getGetServerSideProps({
   query: USER_FULL,
@@ -68,12 +68,7 @@ export function BioForm ({ handleDone, bio }) {
             name='bio'
             minRows={6}
           />
-          <div className='d-flex mt-3 justify-content-end'>
-            <CancelButton onClick={handleDone} />
-            <FeeButtonProvider>
-              <FeeButton text='save' variant='secondary' />
-            </FeeButtonProvider>
-          </div>
+          <ItemButtonBar createText='save' onCancel={handleDone} />
         </Form>
       </FeeButtonProvider>
     </div>

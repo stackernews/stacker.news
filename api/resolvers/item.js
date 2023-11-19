@@ -643,6 +643,9 @@ export default {
       if (Number(old.userId) !== Number(me?.id)) {
         throw new GraphQLError('item does not belong to you', { extensions: { code: 'FORBIDDEN' } })
       }
+      if (old.bio) {
+        throw new GraphQLError('cannot delete bio', { extensions: { code: 'BAD_INPUT' } })
+      }
 
       return await deleteItemByAuthor({ models, id, item: old })
     },
@@ -991,6 +994,15 @@ export default {
       }
       const parent = await models.item.findUnique({ where: { id: item.parentId } })
       return parent.otsHash
+    },
+    deleteScheduledAt: async (item, args, { me, models }) => {
+      const meId = me?.id ?? ANON_USER_ID
+      if (meId !== item.userId) {
+        // Only query for deleteScheduledAt for your own items to keep DB queries minimized
+        return null
+      }
+      const deleteJobs = await models.$queryRawUnsafe(`SELECT startafter FROM pgboss.job WHERE name = 'deleteItem' AND data->>'id' = '${item.id}'`)
+      return deleteJobs[0]?.startafter ?? null
     }
   }
 }
@@ -1199,7 +1211,7 @@ export const SELECT =
   "Item"."rootId", "Item".upvotes, "Item".company, "Item".location, "Item".remote, "Item"."deletedAt",
   "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost", "Item".boost, "Item".msats,
   "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",
-  "Item"."weightedDownVotes", "Item".freebie, "Item"."otsHash", "Item"."bountyPaidTo",
+  "Item"."weightedDownVotes", "Item".freebie, "Item".bio, "Item"."otsHash", "Item"."bountyPaidTo",
   ltree2text("Item"."path") AS "path", "Item"."weightedComments", "Item"."imgproxyUrls",
   "Item"."upperTitleFeePaid"`
 

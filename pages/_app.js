@@ -96,7 +96,9 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
                       <ToastProvider>
                         <ShowModalProvider>
                           <BlockHeightProvider blockHeight={blockHeight}>
-                            <Component ssrData={ssrData} {...otherProps} />
+                            <ErrorBoundary>
+                              <Component ssrData={ssrData} {...otherProps} />
+                            </ErrorBoundary>
                           </BlockHeightProvider>
                         </ShowModalProvider>
                       </ToastProvider>

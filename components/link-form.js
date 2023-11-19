@@ -7,21 +7,21 @@ import AdvPostForm, { AdvPostInitial } from './adv-post-form'
 import { ITEM_FIELDS } from '../fragments/items'
 import Item from './item'
 import AccordianItem from './accordian-item'
-import FeeButton, { useFeeButton, uppercaseTitleFeeHandler } from './fee-button'
-import Delete from './delete'
-import Button from 'react-bootstrap/Button'
+import { useFeeButton, uppercaseTitleFeeHandler } from './fee-button'
 import { linkSchema } from '../lib/validate'
 import Moon from '../svgs/moon-fill.svg'
 import { SubSelectInitial } from './sub-select-form'
-import CancelButton from './cancel-button'
-import { normalizeForwards } from '../lib/form'
+import { normalizeForwards, toastDeleteScheduled } from '../lib/form'
+import { useToast } from './toast'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
 import { useMe } from './me'
+import { ItemButtonBar } from './post'
 
 export function LinkForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
   const client = useApolloClient()
   const me = useMe()
+  const toaster = useToast()
   const schema = linkSchema({ client, me, existingBoost: item?.boost })
   // if Web Share Target API was used
   const shareUrl = router.query.url
@@ -73,13 +73,14 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
       mutation upsertLink($sub: String, $id: ID, $title: String!, $url: String!, $text: String, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String) {
         upsertLink(sub: $sub, id: $id, title: $title, url: $url, text: $text, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac) {
           id
+          deleteScheduledAt
         }
       }`
   )
 
   const onSubmit = useCallback(
     async ({ boost, title, ...values }) => {
-      const { error } = await upsertLink({
+      const { data, error } = await upsertLink({
         variables: {
           sub: item?.subName || sub?.name,
           id: item?.id,
@@ -98,6 +99,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
         const prefix = sub?.name ? `/~${sub.name}` : ''
         await router.push(prefix + '/recent')
       }
+      toastDeleteScheduled(toaster, data, !!item, values.text)
     }, [upsertLink, router]
   )
 
@@ -191,26 +193,13 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
           minRows={2}
         />
       </AdvPostForm>
-      <div className='mt-3'>
-        <div className='d-flex justify-content-between'>
-          {item
-            ? (
-              <Delete itemId={item.id} onDelete={() => router.push(`/items/${item.id}`)}>
-                <Button variant='grey-medium'>delete</Button>
-              </Delete>)
-            : dupesLoading &&
-              <div className='d-flex justify-content-center'>
-                <Moon className='spin fill-grey' />
-                <div className='ms-2 text-muted' style={{ fontWeight: '600' }}>searching for dupes</div>
-              </div>}
-          <div className='d-flex align-items-center ms-auto'>
-            <CancelButton />
-            <FeeButton
-              text={item ? 'save' : 'post'} disabled={postDisabled} variant='secondary'
-            />
-          </div>
-        </div>
-      </div>
+      <ItemButtonBar itemId={item?.id} disable={postDisabled}>
+        {!item && dupesLoading &&
+          <div className='d-flex justify-content-center'>
+            <Moon className='spin fill-grey' />
+            <div className='ms-2 text-muted' style={{ fontWeight: '600' }}>searching for dupes</div>
+          </div>}
+      </ItemButtonBar>
       {!item &&
         <>
           {dupesData?.dupes?.length > 0 &&

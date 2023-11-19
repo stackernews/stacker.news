@@ -1,17 +1,20 @@
 import { Form, MarkdownInput } from '../components/form'
 import { gql, useMutation } from '@apollo/client'
 import styles from './reply.module.css'
-import Button from 'react-bootstrap/Button'
-import Delete from './delete'
 import { commentSchema } from '../lib/validate'
-import FeeButton, { FeeButtonProvider } from './fee-button'
+import { useToast } from './toast'
+import { toastDeleteScheduled } from '../lib/form'
+import { FeeButtonProvider } from './fee-button'
+import { ItemButtonBar } from './post'
 
 export default function CommentEdit ({ comment, editThreshold, onSuccess, onCancel }) {
+  const toaster = useToast()
   const [upsertComment] = useMutation(
     gql`
       mutation upsertComment($id: ID! $text: String!) {
         upsertComment(id: $id, text: $text) {
           text
+          deleteScheduledAt
         }
       }`, {
       update (cache, { data: { upsertComment } }) {
@@ -36,10 +39,11 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
           }}
           schema={commentSchema}
           onSubmit={async (values, { resetForm }) => {
-            const { error } = await upsertComment({ variables: { ...values, id: comment.id } })
+            const { data, error } = await upsertComment({ variables: { ...values, id: comment.id } })
             if (error) {
               throw new Error({ message: error.toString() })
             }
+            toastDeleteScheduled(toaster, data, true, values.text)
             if (onSuccess) {
               onSuccess()
             }
@@ -51,17 +55,7 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
             autoFocus
             required
           />
-          <div className='d-flex justify-content-between'>
-            <Delete itemId={comment.id} onDelete={onSuccess} type='comment'>
-              <Button variant='grey-medium'>delete</Button>
-            </Delete>
-            <div className='d-flex mt-3'>
-              <FeeButton
-                text='save'
-                variant='secondary'
-              />
-            </div>
-          </div>
+          <ItemButtonBar itemId={comment.id} onDelete={onSuccess} hasCancel={false} />
         </Form>
       </FeeButtonProvider>
     </div>

@@ -1096,7 +1096,8 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
     })
     // If the original post was a freebie, that doesn't mean this edit should be free
     if (Number(paidMsats) === 0) {
-      additionalFeeMsats = titleUpperMult * 1000 // implicit 1 sat fee, since the post was a freebie
+      const { baseCost } = await models.sub.findUnique({ where: { name: item.subName || item.root?.subName } })
+      additionalFeeMsats = titleUpperMult * baseCost * 1000
       item.freebie = false
     } else {
       additionalFeeMsats = (titleUpperMult - 1) * Number(paidMsats)

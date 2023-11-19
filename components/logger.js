@@ -36,7 +36,7 @@ function detectOS () {
   return os
 }
 
-const LoggerContext = createContext()
+export const LoggerContext = createContext()
 
 export function LoggerProvider ({ children }) {
   const me = useMe()

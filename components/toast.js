@@ -46,7 +46,7 @@ export const ToastProvider = ({ children }) => {
         removeToast: () => removeToast(id)
       }
     }
-  }), [dispatchToast])
+  }), [dispatchToast, removeToast])
 
   // Clear all toasts on page navigation
   useEffect(() => {

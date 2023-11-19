@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react'
+import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@apollo/client'
 import { fixedDecimal } from '../lib/format'
 import { useMe } from './me'
@@ -29,10 +29,10 @@ export function PriceProvider ({ price, children }) {
         })
   })
 
-  const contextValue = {
+  const contextValue = useMemo(() => ({
     price: data?.price || price,
     fiatSymbol: CURRENCY_SYMBOLS[fiatCurrency] || '$'
-  }
+  }), [data?.price, price, me?.fiatCurrency])
 
   return (
     <PriceContext.Provider value={contextValue}>

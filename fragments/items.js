@@ -33,6 +33,7 @@ export const ITEM_FIELDS = gql`
     meForward
     outlawed
     freebie
+    bio
     ncomments
     commentSats
     lastCommentAt

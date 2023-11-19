@@ -15,9 +15,8 @@ import Link from 'next/link'
 import { usePrice } from './price'
 import Avatar from './avatar'
 import { jobSchema } from '../lib/validate'
-import CancelButton from './cancel-button'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
-import FeeButton from './fee-button'
+import { ItemButtonBar } from './post'
 
 function satsMin2Mo (minute) {
   return minute * 30 * 24 * 60
@@ -155,13 +154,7 @@ export default function JobForm ({ item, sub }) {
         />
         <PromoteJob item={item} sub={sub} />
         {item && <StatusControl item={item} />}
-        <div className='d-flex align-items-center justify-content-end mt-3'>
-          <CancelButton />
-          <FeeButton
-            text={item ? 'save' : 'post'}
-            variant='secondary'
-          />
-        </div>
+        <ItemButtonBar itemId={item?.id} canDelete={false} />
       </Form>
     </>
   )

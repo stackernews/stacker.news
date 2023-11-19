@@ -44,7 +44,7 @@ export function PriceProvider ({ price, children }) {
 export default function Price ({ className }) {
   const [asSats, setAsSats] = useState(undefined)
   useEffect(() => {
-    const satSelection = window.localStorage.getItem('asSats');
+    const satSelection = window.localStorage.getItem('asSats')
     setAsSats(satSelection ?? 'fiat')
   }, [])
   const { price, fiatSymbol } = usePrice()

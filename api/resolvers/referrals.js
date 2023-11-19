@@ -1,7 +1,6 @@
 import { GraphQLError } from 'graphql'
 import { withClause, intervalClause } from './growth'
-import { whenRange } from './item'
-import { timeUnitForRange } from '../../lib/time'
+import { timeUnitForRange, whenRange } from '../../lib/time'
 
 export default {
   Query: {

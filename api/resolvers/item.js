@@ -18,7 +18,7 @@ import { advSchema, amountSchema, bountySchema, commentSchema, discussionSchema,
 import { sendUserNotification } from '../webPush'
 import { defaultCommentSort, isJob, deleteItemByAuthor, getDeleteCommand, hasDeleteCommand } from '../../lib/item'
 import { notifyItemParents, notifyUserSubscribers, notifyZapped } from '../../lib/push-notifications'
-import { datePivot, dayMonthYearToDate, whenToFrom } from '../../lib/time'
+import { datePivot, whenRange } from '../../lib/time'
 import { imageFeesInfo, uploadIdsFromText } from './image'
 
 export async function commentFilterClause (me, models) {
@@ -197,15 +197,6 @@ export const whereClause = (...clauses) => {
 
 function whenClause (when, table) {
   return `"${table}".created_at <= $2 and "${table}".created_at >= $1`
-}
-
-export function whenRange (when, from, to = new Date()) {
-  switch (when) {
-    case 'custom':
-      return [dayMonthYearToDate(from), dayMonthYearToDate(to)]
-    default:
-      return [dayMonthYearToDate(whenToFrom(when)), new Date(to)]
-  }
 }
 
 const activeOrMine = (me) => {

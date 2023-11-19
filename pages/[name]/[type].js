@@ -7,7 +7,7 @@ import { COMMENT_TYPE_QUERY, ITEM_SORTS, ITEM_TYPES, WHENS } from '../../lib/con
 import PageLoading from '../../components/page-loading'
 import { UserLayout } from '.'
 import { Form, Select, DatePicker } from '../../components/form'
-import { dayMonthYear, whenToFrom } from '../../lib/time'
+import { whenToFrom } from '../../lib/time'
 
 const staticVariables = { sort: 'user' }
 const variablesFunc = vars => ({
@@ -96,7 +96,7 @@ function UserItemsHeader ({ type, name }) {
             items={WHENS}
             overrideValue={when}
             onChange={(formik, e) => {
-              const range = e.target.value === 'custom' ? { from: whenToFrom(when), to: dayMonthYear(new Date()) } : {}
+              const range = e.target.value === 'custom' ? { from: whenToFrom(when), to: Date.now() } : {}
               select({ ...formik?.values, when: e.target.value, ...range })
             }}
           />
@@ -106,7 +106,7 @@ function UserItemsHeader ({ type, name }) {
             fromName='from' toName='to'
             className='p-0 px-2 mb-2'
             onChange={(formik, [from, to], e) => {
-              select({ ...formik?.values, from, to })
+              select({ ...formik?.values, from: from.getTime(), to: to.getTime() })
             }}
             from={router.query.from}
             to={router.query.to}

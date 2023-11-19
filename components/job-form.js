@@ -17,7 +17,7 @@ import Avatar from './avatar'
 import { jobSchema } from '../lib/validate'
 import CancelButton from './cancel-button'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
-import FeeButton from './fee-button'
+import FeeButton, { useFeeButton, uppercaseTitleFeeHandler } from './fee-button'
 
 function satsMin2Mo (minute) {
   return minute * 30 * 24 * 60
@@ -81,6 +81,7 @@ export default function JobForm ({ item, sub }) {
       }
     }, [upsertJob, router, logoId]
   )
+  const feeButton = useFeeButton()
 
   return (
     <>
@@ -118,6 +119,11 @@ export default function JobForm ({ item, sub }) {
           autoFocus
           clear
           maxLength={MAX_TITLE_LENGTH}
+          onChange={async (formik, e) => {
+            if (e.target.value) {
+              uppercaseTitleFeeHandler(feeButton, e.target.value, item)
+            }
+          }}
         />
         <Input
           label='company'

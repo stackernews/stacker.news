@@ -7,7 +7,7 @@ import AdvPostForm, { AdvPostInitial } from './adv-post-form'
 import { ITEM_FIELDS } from '../fragments/items'
 import Item from './item'
 import AccordianItem from './accordian-item'
-import FeeButton from './fee-button'
+import FeeButton, { useFeeButton, uppercaseTitleFeeHandler } from './fee-button'
 import Delete from './delete'
 import Button from 'react-bootstrap/Button'
 import { linkSchema } from '../lib/validate'
@@ -117,6 +117,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
 
   const [postDisabled, setPostDisabled] = useState(false)
   const [titleOverride, setTitleOverride] = useState()
+  const feeButton = useFeeButton()
 
   return (
     <Form
@@ -144,6 +145,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
             getRelated({
               variables: { title: e.target.value }
             })
+            uppercaseTitleFeeHandler(feeButton, e.target.value, item)
           }
         }}
         maxLength={MAX_TITLE_LENGTH}

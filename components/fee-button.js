@@ -4,15 +4,14 @@ import ActionTooltip from './action-tooltip'
 import Info from './info'
 import styles from './fee-button.module.css'
 import { gql, useQuery } from '@apollo/client'
-// TODO needs to implement uppercase title multiplier in this module after the rebase
-// import { useFormikContext } from 'formik'
-import { SSR /* , ANON_COMMENT_FEE, ANON_POST_FEE, UPPER_CHARS_TITLE_FEE_MULT */ } from '../lib/constants'
+import { SSR, UPPER_CHARS_TITLE_FEE_MULT } from '../lib/constants'
 import { numWithUnits } from '../lib/format'
 import { useMe } from './me'
 import AnonIcon from '../svgs/spy-fill.svg'
 import { useShowModal } from './modal'
 import Link from 'next/link'
 import { SubmitButton } from './form'
+import { titleExceedsFreeUppercase } from '../lib/item'
 
 const FeeButtonContext = createContext()
 
@@ -82,7 +81,19 @@ export function FeeButtonProvider ({ baseLineItems = {}, useRemoteLineItems = ()
     return {
       lines,
       merge: mergeLineItems,
-      total: Object.values(lines).reduce((acc, { modifier }) => modifier(acc), 0),
+      total: Object.entries(lines)
+        .sort((entryA, entryB) => {
+          // boost comes last, so it doesn't get multiplied by any multipliers
+          if (entryB[0] === 'boost') {
+            return -1
+          }
+          if (entryA[0] === 'boost') {
+            return 1
+          }
+          return 0
+        })
+        .map(entry => entry[1])
+        .reduce((acc, { modifier }) => modifier(acc), 0),
       disabled,
       setDisabled
     }
@@ -115,6 +126,18 @@ export default function FeeButton ({ ChildButton = SubmitButton, variant, text, 
         </Info>}
     </div>
   )
+}
+
+export const uppercaseTitleFeeHandler = (feeButtonHook, title, item) => {
+  const tooManyUppercase = !item?.hasPaidUpperTitleFee && titleExceedsFreeUppercase({ title })
+  feeButtonHook.merge({
+    uppercaseTitle: {
+      term: `x ${UPPER_CHARS_TITLE_FEE_MULT}`,
+      label: 'uppercase title mult',
+      modifier: cost => cost * (tooManyUppercase ? UPPER_CHARS_TITLE_FEE_MULT : 1),
+      omit: !tooManyUppercase
+    }
+  })
 }
 
 function Receipt ({ lines, total }) {

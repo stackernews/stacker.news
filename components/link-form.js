@@ -207,7 +207,6 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
             <CancelButton />
             <FeeButton
               text={item ? 'save' : 'post'} disabled={postDisabled} variant='secondary'
-              hasPaidUpperTitleFee={item ? item.upperTitleFeePaid : undefined}
             />
           </div>
         </div>

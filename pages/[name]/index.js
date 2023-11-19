@@ -71,7 +71,7 @@ export function BioForm ({ handleDone, bio }) {
           <div className='d-flex mt-3 justify-content-end'>
             <CancelButton onClick={handleDone} />
             <FeeButtonProvider>
-              <FeeButton text='save' variant='secondary' hasPaidUpperTitleFee={bio ? bio.upperTitleFeePaid : undefined} />
+              <FeeButton text='save' variant='secondary' />
             </FeeButtonProvider>
           </div>
         </Form>

@@ -144,7 +144,6 @@ export function BountyForm ({
         <FeeButton
           text={buttonText}
           variant='secondary'
-          hasPaidUpperTitleFee={item ? item.upperTitleFeePaid : undefined}
         />
       </div>
     </Form>

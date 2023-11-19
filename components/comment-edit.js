@@ -2,15 +2,19 @@ import { Form, MarkdownInput } from '../components/form'
 import { gql, useMutation } from '@apollo/client'
 import styles from './reply.module.css'
 import { commentSchema } from '../lib/validate'
+import { useToast } from './toast'
+import { toastDeleteScheduled } from '../lib/form'
 import { FeeButtonProvider } from './fee-button'
 import { ItemButtonBar } from './post'
 
 export default function CommentEdit ({ comment, editThreshold, onSuccess, onCancel }) {
+  const toaster = useToast()
   const [upsertComment] = useMutation(
     gql`
       mutation upsertComment($id: ID! $text: String!) {
         upsertComment(id: $id, text: $text) {
           text
+          deleteScheduledAt
         }
       }`, {
       update (cache, { data: { upsertComment } }) {
@@ -35,10 +39,11 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
           }}
           schema={commentSchema}
           onSubmit={async (values, { resetForm }) => {
-            const { error } = await upsertComment({ variables: { ...values, id: comment.id } })
+            const { data, error } = await upsertComment({ variables: { ...values, id: comment.id } })
             if (error) {
               throw new Error({ message: error.toString() })
             }
+            toastDeleteScheduled(toaster, data, true, values.text)
             if (onSuccess) {
               onSuccess()
             }

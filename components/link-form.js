@@ -10,7 +10,8 @@ import AccordianItem from './accordian-item'
 import { linkSchema } from '../lib/validate'
 import Moon from '../svgs/moon-fill.svg'
 import { SubSelectInitial } from './sub-select-form'
-import { normalizeForwards } from '../lib/form'
+import { normalizeForwards, toastDeleteScheduled } from '../lib/form'
+import { useToast } from './toast'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
 import { useMe } from './me'
 import { ItemButtonBar } from './post'
@@ -19,6 +20,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
   const client = useApolloClient()
   const me = useMe()
+  const toaster = useToast()
   const schema = linkSchema({ client, me, existingBoost: item?.boost })
   // if Web Share Target API was used
   const shareUrl = router.query.url
@@ -70,13 +72,14 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
       mutation upsertLink($sub: String, $id: ID, $title: String!, $url: String!, $text: String, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String) {
         upsertLink(sub: $sub, id: $id, title: $title, url: $url, text: $text, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac) {
           id
+          deleteScheduledAt
         }
       }`
   )
 
   const onSubmit = useCallback(
     async ({ boost, title, ...values }) => {
-      const { error } = await upsertLink({
+      const { data, error } = await upsertLink({
         variables: {
           sub: item?.subName || sub?.name,
           id: item?.id,
@@ -95,6 +98,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
         const prefix = sub?.name ? `/~${sub.name}` : ''
         await router.push(prefix + '/recent')
       }
+      toastDeleteScheduled(toaster, data, !!item, values.text)
     }, [upsertLink, router]
   )
 

@@ -16,6 +16,8 @@ import { usePrice } from './price'
 import Avatar from './avatar'
 import { jobSchema } from '../lib/validate'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
+import { useToast } from './toast'
+import { toastDeleteScheduled } from '../lib/form'
 import { ItemButtonBar } from './post'
 
 function satsMin2Mo (minute) {
@@ -38,6 +40,7 @@ function PriceHint ({ monthly }) {
 export default function JobForm ({ item, sub }) {
   const storageKeyPrefix = item ? undefined : `${sub.name}-job`
   const router = useRouter()
+  const toaster = useToast()
   const [logoId, setLogoId] = useState(item?.uploadId)
   const [upsertJob] = useMutation(gql`
     mutation upsertJob($sub: String!, $id: ID, $title: String!, $company: String!, $location: String,
@@ -46,6 +49,7 @@ export default function JobForm ({ item, sub }) {
         location: $location, remote: $remote, text: $text,
         url: $url, maxBid: $maxBid, status: $status, logo: $logo, hash: $hash, hmac: $hmac) {
         id
+        deleteScheduledAt
       }
     }`
   )
@@ -59,7 +63,7 @@ export default function JobForm ({ item, sub }) {
         status = 'STOPPED'
       }
 
-      const { error } = await upsertJob({
+      const { data, error } = await upsertJob({
         variables: {
           id: item?.id,
           sub: item?.subName || sub?.name,
@@ -78,6 +82,7 @@ export default function JobForm ({ item, sub }) {
       } else {
         await router.push(`/~${sub.name}/recent`)
       }
+      toastDeleteScheduled(toaster, data, !!item, values.text)
     }, [upsertJob, router, logoId]
   )
 

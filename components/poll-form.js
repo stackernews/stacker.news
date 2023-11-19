@@ -7,14 +7,16 @@ import { MAX_POLL_CHOICE_LENGTH, MAX_POLL_NUM_CHOICES, MAX_TITLE_LENGTH } from '
 import { pollSchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select-form'
 import { useCallback } from 'react'
-import { normalizeForwards } from '../lib/form'
+import { normalizeForwards, toastDeleteScheduled } from '../lib/form'
 import { useMe } from './me'
+import { useToast } from './toast'
 import { ItemButtonBar } from './post'
 
 export function PollForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
   const client = useApolloClient()
   const me = useMe()
+  const toaster = useToast()
   const schema = pollSchema({ client, me, existingBoost: item?.boost })
 
   const [upsertPoll] = useMutation(
@@ -24,6 +26,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         upsertPoll(sub: $sub, id: $id, title: $title, text: $text,
           options: $options, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac) {
           id
+          deleteScheduledAt
         }
       }`
   )
@@ -31,7 +34,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
   const onSubmit = useCallback(
     async ({ boost, title, options, ...values }) => {
       const optionsFiltered = options.slice(initialOptions?.length).filter(word => word.trim().length > 0)
-      const { error } = await upsertPoll({
+      const { data, error } = await upsertPoll({
         variables: {
           id: item?.id,
           sub: item?.subName || sub?.name,
@@ -51,6 +54,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         const prefix = sub?.name ? `/~${sub.name}` : ''
         await router.push(prefix + '/recent')
       }
+      toastDeleteScheduled(toaster, data, !!item, values.text)
     }, [upsertPoll, router]
   )
 

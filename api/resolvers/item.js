@@ -994,6 +994,15 @@ export default {
       }
       const parent = await models.item.findUnique({ where: { id: item.parentId } })
       return parent.otsHash
+    },
+    deleteScheduledAt: async (item, args, { me, models }) => {
+      const meId = me?.id ?? ANON_USER_ID
+      if (meId !== item.userId) {
+        // Only query for deleteScheduledAt for your own items to keep DB queries minimized
+        return null
+      }
+      const deleteJobs = await models.$queryRawUnsafe(`SELECT startafter FROM pgboss.job WHERE name = 'deleteItem' AND data->>'id' = '${item.id}'`)
+      return deleteJobs[0]?.startafter ?? null
     }
   }
 }

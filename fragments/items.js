@@ -55,6 +55,7 @@ export const ITEM_FULL_FIELDS = gql`
   fragment ItemFullFields on Item {
     ...ItemFields
     text
+    deleteScheduledAt
     root {
       id
       title

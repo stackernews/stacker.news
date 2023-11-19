@@ -7,9 +7,10 @@ import InputGroup from 'react-bootstrap/InputGroup'
 import { bountySchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select-form'
 import { useCallback } from 'react'
-import { normalizeForwards } from '../lib/form'
+import { normalizeForwards, toastDeleteScheduled } from '../lib/form'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
 import { useMe } from './me'
+import { useToast } from './toast'
 import { ItemButtonBar } from './post'
 
 export function BountyForm ({
@@ -25,6 +26,7 @@ export function BountyForm ({
   const router = useRouter()
   const client = useApolloClient()
   const me = useMe()
+  const toaster = useToast()
   const schema = bountySchema({ client, me, existingBoost: item?.boost })
   const [upsertBounty] = useMutation(
     gql`
@@ -51,6 +53,7 @@ export function BountyForm ({
           hmac: $hmac
         ) {
           id
+          deleteScheduledAt
         }
       }
     `
@@ -58,7 +61,7 @@ export function BountyForm ({
 
   const onSubmit = useCallback(
     async ({ boost, bounty, ...values }) => {
-      const { error } = await upsertBounty({
+      const { data, error } = await upsertBounty({
         variables: {
           sub: item?.subName || sub?.name,
           id: item?.id,
@@ -78,6 +81,7 @@ export function BountyForm ({
         const prefix = sub?.name ? `/~${sub.name}` : ''
         await router.push(prefix + '/recent')
       }
+      toastDeleteScheduled(toaster, data, !!item, values.text)
     }, [upsertBounty, router]
   )
 

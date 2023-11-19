@@ -9,10 +9,11 @@ import Item from './item'
 import { discussionSchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select-form'
 import { useCallback } from 'react'
-import { normalizeForwards } from '../lib/form'
+import { normalizeForwards, toastDeleteScheduled } from '../lib/form'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
 import { useMe } from './me'
 import useCrossposter from './use-crossposter'
+import { useToast } from './toast'
 import { ItemButtonBar } from './post'
 
 export function DiscussionForm ({
@@ -27,12 +28,14 @@ export function DiscussionForm ({
   // if Web Share Target API was used
   const shareTitle = router.query.title
   const crossposter = useCrossposter()
+  const toaster = useToast()
 
   const [upsertDiscussion] = useMutation(
     gql`
       mutation upsertDiscussion($sub: String, $id: ID, $title: String!, $text: String, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String) {
         upsertDiscussion(sub: $sub, id: $id, title: $title, text: $text, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac) {
           id
+          deleteScheduledAt
         }
       }`
   )
@@ -75,6 +78,7 @@ export function DiscussionForm ({
         const prefix = sub?.name ? `/~${sub.name}` : ''
         await router.push(prefix + '/recent')
       }
+      toastDeleteScheduled(toaster, data, !!item, values.text)
     }, [upsertDiscussion, router, item, sub, crossposter]
   )
 

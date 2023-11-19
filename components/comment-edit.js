@@ -1,10 +1,9 @@
 import { Form, MarkdownInput } from '../components/form'
 import { gql, useMutation } from '@apollo/client'
 import styles from './reply.module.css'
-import Button from 'react-bootstrap/Button'
-import Delete from './delete'
 import { commentSchema } from '../lib/validate'
-import FeeButton, { FeeButtonProvider } from './fee-button'
+import { FeeButtonProvider } from './fee-button'
+import { ItemButtonBar } from './post'
 
 export default function CommentEdit ({ comment, editThreshold, onSuccess, onCancel }) {
   const [upsertComment] = useMutation(
@@ -51,17 +50,7 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
             autoFocus
             required
           />
-          <div className='d-flex justify-content-between'>
-            <Delete itemId={comment.id} onDelete={onSuccess} type='comment'>
-              <Button variant='grey-medium'>delete</Button>
-            </Delete>
-            <div className='d-flex mt-3'>
-              <FeeButton
-                text='save'
-                variant='secondary'
-              />
-            </div>
-          </div>
+          <ItemButtonBar itemId={comment.id} onDelete={onSuccess} hasCancel={false} />
         </Form>
       </FeeButtonProvider>
     </div>

@@ -94,6 +94,7 @@ export default gql`
     meForward: Boolean
     outlawed: Boolean!
     freebie: Boolean!
+    bio: Boolean!
     paidImgLink: Boolean
     ncomments: Int!
     comments(sort: String): [Item!]!

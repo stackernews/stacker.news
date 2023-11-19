@@ -133,14 +133,24 @@ export const uppercaseTitleFeeHandler = (feeButtonHook, title, item) => {
   const tooManyUppercase = !item?.hasPaidUpperTitleFee && titleExceedsFreeUppercase({ title })
   feeButtonHook.merge({
     uppercaseTitle: {
-      term: freebie ? `+ ${numWithUnits(UPPER_CHARS_TITLE_FEE_MULT * sub.baseCost)}` : `x ${UPPER_CHARS_TITLE_FEE_MULT}`,
+      term: (() => {
+        if (freebie) {
+          return `+ ${numWithUnits(UPPER_CHARS_TITLE_FEE_MULT * sub.baseCost)}`
+        }
+        if (item) {
+          return `+ ${numWithUnits((UPPER_CHARS_TITLE_FEE_MULT - 1) * sub.baseCost)}`
+        }
+        return `x ${UPPER_CHARS_TITLE_FEE_MULT}`
+      })(),
       label: 'uppercase title mult',
       modifier: cost => {
         if (freebie) {
           return cost + (tooManyUppercase ? UPPER_CHARS_TITLE_FEE_MULT * sub.baseCost : 0)
-        } else {
-          return cost * (tooManyUppercase ? UPPER_CHARS_TITLE_FEE_MULT : 1)
         }
+        if (item) {
+          return cost + (tooManyUppercase ? (UPPER_CHARS_TITLE_FEE_MULT - 1) * sub.baseCost : 0)
+        }
+        return cost * (tooManyUppercase ? UPPER_CHARS_TITLE_FEE_MULT : 1)
       },
       omit: !tooManyUppercase
     }

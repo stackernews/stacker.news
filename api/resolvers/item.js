@@ -643,6 +643,9 @@ export default {
       if (Number(old.userId) !== Number(me?.id)) {
         throw new GraphQLError('item does not belong to you', { extensions: { code: 'FORBIDDEN' } })
       }
+      if (old.bio) {
+        throw new GraphQLError('cannot delete bio', { extensions: { code: 'BAD_INPUT' } })
+      }
 
       return await deleteItemByAuthor({ models, id, item: old })
     },
@@ -1180,7 +1183,7 @@ export const SELECT =
   "Item"."rootId", "Item".upvotes, "Item".company, "Item".location, "Item".remote, "Item"."deletedAt",
   "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost", "Item".boost, "Item".msats,
   "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",
-  "Item"."weightedDownVotes", "Item".freebie, "Item"."otsHash", "Item"."bountyPaidTo",
+  "Item"."weightedDownVotes", "Item".freebie, "Item".bio, "Item"."otsHash", "Item"."bountyPaidTo",
   ltree2text("Item"."path") AS "path", "Item"."weightedComments", "Item"."imgproxyUrls"`
 
 function topOrderByWeightedSats (me, models) {

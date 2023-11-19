@@ -3,25 +3,22 @@ import { useRouter } from 'next/router'
 import { gql, useApolloClient, useLazyQuery, useMutation } from '@apollo/client'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
-import FeeButton from './fee-button'
 import { ITEM_FIELDS } from '../fragments/items'
 import AccordianItem from './accordian-item'
 import Item from './item'
-import Delete from './delete'
-import Button from 'react-bootstrap/Button'
 import { discussionSchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select-form'
-import CancelButton from './cancel-button'
 import { useCallback } from 'react'
 import { normalizeForwards, toastDeleteScheduled } from '../lib/form'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
 import { useMe } from './me'
 import useCrossposter from './use-crossposter'
 import { useToast } from './toast'
+import { ItemButtonBar } from './post'
 
 export function DiscussionForm ({
   item, sub, editThreshold, titleLabel = 'title',
-  textLabel = 'text', buttonText = 'post',
+  textLabel = 'text',
   handleSubmit, children
 }) {
   const router = useRouter()
@@ -137,21 +134,7 @@ export function DiscussionForm ({
           : null}
       />
       <AdvPostForm edit={!!item} />
-      <div className='mt-3'>
-        <div className='d-flex justify-content-between'>
-          {item &&
-            <Delete itemId={item.id} onDelete={() => router.push(`/items/${item.id}`)}>
-              <Button variant='grey-medium'>delete</Button>
-            </Delete>}
-          <div className='d-flex align-items-center ms-auto'>
-            <CancelButton />
-            <FeeButton
-              text={buttonText}
-              variant='secondary'
-            />
-          </div>
-        </div>
-      </div>
+      <ItemButtonBar itemId={item?.id} />
       {!item &&
         <div className={`mt-3 ${related.length > 0 ? '' : 'invisible'}`}>
           <AccordianItem

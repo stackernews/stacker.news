@@ -10,24 +10,10 @@ import { LinkForm } from './link-form'
 import { PollForm } from './poll-form'
 import { BountyForm } from './bounty-form'
 import SubSelect from './sub-select-form'
-import Info from './info'
 import { useCallback, useState } from 'react'
-import { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
-
-function FreebieDialog () {
-  return (
-    <div className='text-center mb-4 text-muted'>
-      you have no sats, so this one is on us
-      <Info>
-        <ul className='fw-bold'>
-          <li>Free posts have limited visibility and are hidden on the recent tab until other stackers zap them.</li>
-          <li>Free posts will not cover posts that cost more than 1 sat.</li>
-          <li>To get fully visibile and unrestricted posts right away, fund your account with a few sats or earn some on Stacker News.</li>
-        </ul>
-      </Info>
-    </div>
-  )
-}
+import FeeButton, { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
+import Delete from './delete'
+import CancelButton from './cancel-button'
 
 export function PostForm ({ type, sub, children }) {
   const me = useMe()
@@ -49,7 +35,6 @@ export function PostForm ({ type, sub, children }) {
           <Alert className='position-absolute' style={{ top: '-6rem' }} variant='danger' onClose={() => setErrorMessage(undefined)} dismissible>
             {errorMessage}
           </Alert>}
-        {me?.sats < 1 && <FreebieDialog />}
         <SubSelect noForm sub={sub?.name} />
         <Link href={prefix + '/post?type=link'}>
           <Button variant='secondary'>link</Button>
@@ -119,5 +104,36 @@ export default function Post ({ sub }) {
         {sub?.name !== 'jobs' && <SubSelect label='sub' />}
       </PostForm>
     </>
+  )
+}
+
+export function ItemButtonBar ({
+  itemId, canDelete = true, disable,
+  className, children, onDelete, onCancel, hasCancel = true,
+  createText = 'post', editText = 'save'
+}) {
+  const router = useRouter()
+
+  return (
+    <div className={`mt-3 ${className}`}>
+      <div className='d-flex justify-content-between'>
+        {itemId && canDelete &&
+          <Delete
+            itemId={itemId}
+            onDelete={onDelete || (() => router.push(`/items/${itemId}`))}
+          >
+            <Button variant='grey-medium'>delete</Button>
+          </Delete>}
+        {children}
+        <div className='d-flex align-items-center ms-auto'>
+          {hasCancel && <CancelButton onClick={onCancel} />}
+          <FeeButton
+            text={itemId ? editText : createText}
+            variant='secondary'
+            disabled={disable}
+          />
+        </div>
+      </div>
+    </div>
   )
 }

@@ -3,16 +3,15 @@ import { useRouter } from 'next/router'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
-import FeeButton from './fee-button'
 import InputGroup from 'react-bootstrap/InputGroup'
 import { bountySchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select-form'
-import CancelButton from './cancel-button'
 import { useCallback } from 'react'
 import { normalizeForwards, toastDeleteScheduled } from '../lib/form'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
 import { useMe } from './me'
 import { useToast } from './toast'
+import { ItemButtonBar } from './post'
 
 export function BountyForm ({
   item,
@@ -21,7 +20,6 @@ export function BountyForm ({
   titleLabel = 'title',
   bountyLabel = 'bounty',
   textLabel = 'text',
-  buttonText = 'post',
   handleSubmit,
   children
 }) {
@@ -137,13 +135,7 @@ export function BountyForm ({
         }
       />
       <AdvPostForm edit={!!item} />
-      <div className='d-flex mt-3'>
-        <CancelButton />
-        <FeeButton
-          text={buttonText}
-          variant='secondary'
-        />
-      </div>
+      <ItemButtonBar itemId={item?.id} canDelete={false} />
     </Form>
   )
 }

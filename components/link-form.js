@@ -7,17 +7,14 @@ import AdvPostForm, { AdvPostInitial } from './adv-post-form'
 import { ITEM_FIELDS } from '../fragments/items'
 import Item from './item'
 import AccordianItem from './accordian-item'
-import FeeButton from './fee-button'
-import Delete from './delete'
-import Button from 'react-bootstrap/Button'
 import { linkSchema } from '../lib/validate'
 import Moon from '../svgs/moon-fill.svg'
 import { SubSelectInitial } from './sub-select-form'
-import CancelButton from './cancel-button'
 import { normalizeForwards, toastDeleteScheduled } from '../lib/form'
+import { useToast } from './toast'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
 import { useMe } from './me'
-import { useToast } from './toast'
+import { ItemButtonBar } from './post'
 
 export function LinkForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
@@ -197,26 +194,13 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
           minRows={2}
         />
       </AdvPostForm>
-      <div className='mt-3'>
-        <div className='d-flex justify-content-between'>
-          {item
-            ? (
-              <Delete itemId={item.id} onDelete={() => router.push(`/items/${item.id}`)}>
-                <Button variant='grey-medium'>delete</Button>
-              </Delete>)
-            : dupesLoading &&
-              <div className='d-flex justify-content-center'>
-                <Moon className='spin fill-grey' />
-                <div className='ms-2 text-muted' style={{ fontWeight: '600' }}>searching for dupes</div>
-              </div>}
-          <div className='d-flex align-items-center ms-auto'>
-            <CancelButton />
-            <FeeButton
-              text={item ? 'save' : 'post'} disabled={postDisabled} variant='secondary'
-            />
-          </div>
-        </div>
-      </div>
+      <ItemButtonBar itemId={item?.id} disable={postDisabled}>
+        {!item && dupesLoading &&
+          <div className='d-flex justify-content-center'>
+            <Moon className='spin fill-grey' />
+            <div className='ms-2 text-muted' style={{ fontWeight: '600' }}>searching for dupes</div>
+          </div>}
+      </ItemButtonBar>
       {!item &&
         <>
           {dupesData?.dupes?.length > 0 &&

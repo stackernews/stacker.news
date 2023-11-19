@@ -42,6 +42,7 @@ module.exports = withPlausibleProxy()({
     scrollRestoration: true
   },
   reactStrictMode: true,
+  productionBrowserSourceMaps: true,
   generateBuildId: isProd ? async () => commitHash : undefined,
   // Use the CDN in production and localhost for development.
   assetPrefix: isProd ? 'https://a.stacker.news' : undefined,

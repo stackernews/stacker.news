@@ -69,6 +69,9 @@ export const ITEM_FULL_FIELDS = gql`
         }
       }
     }
+    sub {
+      baseCost
+    }
     forwards {
       userId
       pct

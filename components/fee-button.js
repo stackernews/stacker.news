@@ -82,12 +82,12 @@ export function FeeButtonProvider ({ baseLineItems = {}, useRemoteLineItems = ()
       lines,
       merge: mergeLineItems,
       total: Object.entries(lines)
-        .sort((entryA, entryB) => {
-          // boost comes last, so it doesn't get multiplied by any multipliers
-          if (entryB[0] === 'boost') {
+        .sort(([keyA], [keyB]) => {
+          // boost and image uploads comes last, so they don't get multiplied by any multipliers
+          if (['boost', 'imageFee'].includes(keyB)) {
             return -1
           }
-          if (entryA[0] === 'boost') {
+          if (['boost', 'imageFee'].includes(keyA)) {
             return 1
           }
           return 0
@@ -129,12 +129,19 @@ export default function FeeButton ({ ChildButton = SubmitButton, variant, text, 
 }
 
 export const uppercaseTitleFeeHandler = (feeButtonHook, title, item) => {
+  const { freebie, sub } = item ?? {}
   const tooManyUppercase = !item?.hasPaidUpperTitleFee && titleExceedsFreeUppercase({ title })
   feeButtonHook.merge({
     uppercaseTitle: {
-      term: `x ${UPPER_CHARS_TITLE_FEE_MULT}`,
+      term: freebie ? `+ ${numWithUnits(UPPER_CHARS_TITLE_FEE_MULT * sub.baseCost)}` : `x ${UPPER_CHARS_TITLE_FEE_MULT}`,
       label: 'uppercase title mult',
-      modifier: cost => cost * (tooManyUppercase ? UPPER_CHARS_TITLE_FEE_MULT : 1),
+      modifier: cost => {
+        if (freebie) {
+          return cost + (tooManyUppercase ? UPPER_CHARS_TITLE_FEE_MULT * sub.baseCost : 0)
+        } else {
+          return cost * (tooManyUppercase ? UPPER_CHARS_TITLE_FEE_MULT : 1)
+        }
+      },
       omit: !tooManyUppercase
     }
   })

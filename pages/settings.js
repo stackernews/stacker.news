@@ -277,7 +277,7 @@ export default function Settings ({ ssrData }) {
             name='hideBookmarks'
             groupClassName='mb-0'
           />
-          {me.isContributor &&
+          {me.optional?.isContributor &&
             <Checkbox
               label={<>hide that I'm a stacker.news contributor</>}
               name='hideIsContributor'

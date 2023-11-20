@@ -115,7 +115,7 @@ export default function FeeButton ({ ChildButton = SubmitButton, variant, text, 
   // freebies: there's only a base cost, it's less than 10, and we have less than 10 sats
   const free = total === lines.baseCost?.modifier(0) &&
     total <= FREEBIE_BASE_COST_THRESHOLD &&
-    me?.sats < FREEBIE_BASE_COST_THRESHOLD
+    me?.privates?.sats < FREEBIE_BASE_COST_THRESHOLD
   const feeText = free
     ? 'free'
     : total > 1

@@ -55,7 +55,7 @@ export function LoggerProvider ({ children }) {
 
   const log = useCallback(level => {
     return async (message, context) => {
-      if (!me || !me.diagnostics) return
+      if (!me || !me.privates?.diagnostics) return
       const env = {
         userAgent: window.navigator.userAgent,
         // os may not be initialized yet
@@ -78,7 +78,7 @@ export function LoggerProvider ({ children }) {
         body: JSON.stringify(body)
       }).catch(console.error)
     }
-  }, [me?.diagnostics, name, os])
+  }, [me?.privates?.diagnostics, name, os])
 
   const logger = useMemo(() => ({
     info: log('info'),

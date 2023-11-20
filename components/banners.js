@@ -35,8 +35,8 @@ export default function WelcomeBanner () {
     }
   })
   useEffect(() => {
-    setHidden(me?.hideWelcomeBanner || (!me && window.localStorage.getItem('hideWelcomeBanner')))
-  }, [me?.hideWelcomeBanner])
+    setHidden(me?.privates?.hideWelcomeBanner || (!me && window.localStorage.getItem('hideWelcomeBanner')))
+  }, [me?.privates?.hideWelcomeBanner])
 
   if (hidden) return
 

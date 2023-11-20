@@ -99,7 +99,7 @@ export function DiscussionForm ({
       initial={{
         title: item?.title || shareTitle || '',
         text: item?.text || '',
-        crosspost: me?.nostrCrossposting,
+        crosspost: me?.privates?.nostrCrossposting,
         ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}

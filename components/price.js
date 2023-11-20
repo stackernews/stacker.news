@@ -18,7 +18,7 @@ export function usePrice () {
 
 export function PriceProvider ({ price, children }) {
   const me = useMe()
-  const fiatCurrency = me?.fiatCurrency
+  const fiatCurrency = me?.privates?.fiatCurrency
   const { data } = useQuery(PRICE, {
     variables: { fiatCurrency },
     ...(SSR
@@ -32,7 +32,7 @@ export function PriceProvider ({ price, children }) {
   const contextValue = useMemo(() => ({
     price: data?.price || price,
     fiatSymbol: CURRENCY_SYMBOLS[fiatCurrency] || '$'
-  }), [data?.price, price, me?.fiatCurrency])
+  }), [data?.price, price, me?.privates?.fiatCurrency])
 
   return (
     <PriceContext.Provider value={contextValue}>

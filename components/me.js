@@ -1,4 +1,4 @@
-import React, { useContext, useMemo } from 'react'
+import React, { useContext } from 'react'
 import { useQuery } from '@apollo/client'
 import { ME } from '../fragments/users'
 import { SSR } from '../lib/constants'
@@ -9,22 +9,14 @@ export const MeContext = React.createContext({
 
 export function MeProvider ({ me, children }) {
   const { data } = useQuery(ME, SSR ? {} : { pollInterval: 1000, nextFetchPolicy: 'cache-and-network' })
-  const futureMe = data?.me || me
-
-  const contextValue = useMemo(() => ({
-    me: futureMe
-      ? { ...futureMe, ...futureMe.privates, ...futureMe.optional }
-      : null
-  }), [me, data])
 
   return (
-    <MeContext.Provider value={contextValue}>
+    <MeContext.Provider value={data?.me || me}>
       {children}
     </MeContext.Provider>
   )
 }
 
 export function useMe () {
-  const { me } = useContext(MeContext)
-  return me
+  return useContext(MeContext)
 }

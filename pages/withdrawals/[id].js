@@ -120,7 +120,7 @@ function PrivacyOption ({ wd }) {
   if (!oldEnough) {
     return (
       <span className='text-muted fst-italic'>
-        {`this invoice ${me.autoDropBolt11s ? 'will be auto-deleted' : 'can be deleted'} in ${timeLeft(keepUntil)}`}
+        {`this invoice ${me.privates?.autoDropBolt11s ? 'will be auto-deleted' : 'can be deleted'} in ${timeLeft(keepUntil)}`}
       </span>
     )
   }

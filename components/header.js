@@ -29,10 +29,10 @@ import { clearNotifications } from '../lib/badge'
 
 function WalletSummary ({ me }) {
   if (!me) return null
-  if (me.hideWalletBalance) {
+  if (me.privates?.hideWalletBalance) {
     return <HiddenWalletSummary abbreviate fixedWidth />
   }
-  return `${abbrNum(me.sats)}`
+  return `${abbrNum(me.privates?.sats)}`
 }
 
 function Back () {

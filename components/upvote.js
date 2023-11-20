@@ -39,7 +39,7 @@ const UpvotePopover = ({ target, show, handleClose }) => {
           <button type='button' className='btn-close' onClick={handleClose}><span className='visually-hidden-focusable'>Close alert</span></button>
         </Popover.Header>
         <Popover.Body>
-          <div className='mb-2'>Press the bolt again to zap {me?.tipDefault || 1} more sat{me?.tipDefault > 1 ? 's' : ''}.</div>
+          <div className='mb-2'>Press the bolt again to zap {me?.privates?.tipDefault || 1} more sat{me?.privates?.tipDefault > 1 ? 's' : ''}.</div>
           <div>Repeatedly press the bolt to zap more sats.</div>
         </Popover.Body>
       </Popover>
@@ -83,7 +83,7 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
     if (!me) return
 
     // if they haven't seen the walkthrough and they have sats
-    if (yes && !me.upvotePopover && me.sats) {
+    if (yes && !me.privates?.upvotePopover && me.privates?.sats) {
       _setVoteShow(true)
     }
 
@@ -97,7 +97,7 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
     if (!me) return
 
     // if we want to show it, yet we still haven't shown
-    if (yes && !me.tipPopover && me.sats) {
+    if (yes && !me.privates?.tipPopover && me.privates?.sats) {
       _setTipShow(true)
     }
 
@@ -124,7 +124,7 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
             },
             meSats: me
               ? (existingSats = 0) => {
-                  if (sats <= me.sats) {
+                  if (sats <= me.privates?.sats) {
                     if (existingSats === 0) {
                       setVoteShow(true)
                     } else {
@@ -186,8 +186,8 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
     const meSats = (item?.meSats || item?.meAnonSats || 0) + pendingSats
 
     // what should our next tip be?
-    let sats = me?.tipDefault || 1
-    if (me?.turboTipping) {
+    let sats = me?.privates?.tipDefault || 1
+    if (me?.privates?.turboTipping) {
       let raiseTip = sats
       while (meSats >= raiseTip) {
         raiseTip *= 10
@@ -197,7 +197,7 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
     }
 
     return [meSats, sats, me ? numWithUnits(sats, { abbreviate: false }) : 'zap it', getColor(meSats)]
-  }, [item?.meSats, item?.meAnonSats, pendingSats, me?.tipDefault, me?.turboDefault])
+  }, [item?.meSats, item?.meAnonSats, pendingSats, me?.privates?.tipDefault, me?.privates?.turboDefault])
 
   return (
     <LightningConsumer>

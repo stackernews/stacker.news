@@ -67,7 +67,7 @@ export default function ItemAct ({ onClose, itemId, act, down, strike }) {
   return (
     <Form
       initial={{
-        amount: me?.tipDefault || defaultTips[0],
+        amount: me?.privates?.tipDefault || defaultTips[0],
         default: false
       }}
       schema={amountSchema}

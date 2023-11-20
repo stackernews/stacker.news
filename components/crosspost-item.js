@@ -8,14 +8,14 @@ export default function CrosspostDropdownItem ({ item }) {
   const { data } = useQuery(ITEM, { variables: { id: item.id } })
   const router = useRouter()
 
-  const [upsertDiscussion] = useMutation(
+  const [upsertNoteId] = useMutation(
     gql`
-      mutation upsertDiscussion($sub: String, $id: ID, $title: String!, $text: String, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String, $noteId: String) {
-        upsertDiscussion(sub: $sub, id: $id, title: $title, text: $text, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac, noteId: $noteId) {
+      mutation upsertNoteId($id: ID!, $noteId: String!) {
+        upsertNoteId(id: $id, noteId: $noteId) {
           id
+          noteId
         }
-      }
-    `
+      }`
   )
 
   const crossposter = useCrossposter()
@@ -37,13 +37,10 @@ export default function CrosspostDropdownItem ({ item }) {
               const crosspostResult = await crossposter({ ...data.item })
               const noteId = crosspostResult?.noteId
               if (noteId) {
-                await upsertDiscussion({
+                await upsertNoteId({
                   variables: {
-                    sub: item?.subName,
-                    id: item?.id,
-                    boost: item?.boost ? (Number(item?.boost) >= 25000 ? Number(item?.boost) : undefined) : undefined,
-                    noteId: noteId,
-                    title: item?.title
+                    id: item.id,
+                    noteId
                   }
                 })
               }

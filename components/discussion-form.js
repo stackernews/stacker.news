@@ -40,6 +40,16 @@ export function DiscussionForm ({
       }`
   )
 
+  const [upsertNoteId] = useMutation(
+    gql`
+      mutation upsertNoteId($id: ID!, $noteId: String!) {
+        upsertNoteId(id: $id, noteId: $noteId) {
+          id
+          noteId
+        }
+      }`
+  )
+
   const onSubmit = useCallback(
     async ({ boost, crosspost, ...values }) => {
       try {
@@ -77,12 +87,10 @@ export function DiscussionForm ({
       }
 
       if (noteId) {
-        await upsertDiscussion({
+        await upsertNoteId({
           variables: {
             id: discussionId,
-            ...values,
-            forward: normalizeForwards(values.forward),
-            noteId: noteId
+            noteId
           }
         })
       }

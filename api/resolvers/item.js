@@ -724,6 +724,13 @@ export default {
         return item
       }
     },
+    upsertNoteId: async (parent, { id, noteId }, { models }) => {
+      await models.item.update({
+        where: { id: Number(id) },
+        data: { noteId }
+      })
+      return { id, noteId }
+    },
     pollVote: async (parent, { id, hash, hmac }, { me, models, lnd }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })

@@ -96,7 +96,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
             full={full} item={item} pendingSats={pendingSats}
             onQuoteReply={replyRef?.current?.quoteReply}
             nofollow={nofollow}
-            embellishUser={Number(item?.user?.id) === AD_USER_ID && <Badge className={styles.newComment} bg={null}>AD</Badge>}
+            extraBadges={Number(item?.user?.id) === AD_USER_ID && <Badge className={styles.newComment} bg={null}>AD</Badge>}
           />
           {belowTitle}
         </div>

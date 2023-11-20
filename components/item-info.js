@@ -22,7 +22,7 @@ import MuteDropdownItem from './mute'
 export default function ItemInfo ({
   item, pendingSats, full, commentsText = 'comments',
   commentTextSingular = 'comment', className, embellishUser, extraInfo, onEdit, editText,
-  onQuoteReply, nofollow
+  onQuoteReply, nofollow, extraBadges
 }) {
   const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
   const me = useMe()
@@ -116,6 +116,7 @@ export default function ItemInfo ({
             {' '}<Badge className={styles.newComment} bg={null}>freebie</Badge>
           </Link>
         )}
+      {extraBadges}
       {canEdit && !item.deletedAt &&
         <>
           <span> \ </span>

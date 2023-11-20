@@ -64,25 +64,25 @@ export function DiscussionForm ({
         throw new Error({ message: error.toString() })
       }
 
-      let eventId = null
+      let noteId = null
       const discussionId = data?.upsertDiscussion?.id
 
       try {
         if (crosspost && discussionId) {
           const crosspostResult = await crossposter({ ...values, id: discussionId })
-          eventId = crosspostResult?.eventId
+          noteId = crosspostResult?.noteId
         }
       } catch (e) {
         console.error(e)
       }
 
-      if (eventId) {
+      if (noteId) {
         await upsertDiscussion({
           variables: {
             id: discussionId,
             ...values,
             forward: normalizeForwards(values.forward),
-            noteId: eventId
+            noteId: noteId
           }
         })
       }

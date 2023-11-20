@@ -41,14 +41,15 @@ export function postCommentUseRemoteLineItems ({ parentId, me } = {}) {
   const query = parentId
     ? gql`{ itemRepetition(parentId: "${parentId}") }`
     : gql`{ itemRepetition }`
+
   return function useRemoteLineItems () {
     const [line, setLine] = useState({})
 
     const { data } = useQuery(query, SSR ? {} : { pollInterval: 1000, nextFetchPolicy: 'cache-and-network' })
 
     useEffect(() => {
-      const repetition = data?.itemRepetition || 0
-      if (!repetition) return
+      const repetition = data?.itemRepetition
+      if (!repetition) return setLine({})
       setLine({
         itemRepetition: {
           term: <>x 10<sup>{repetition}</sup></>,
@@ -124,7 +125,7 @@ export default function FeeButton ({ ChildButton = SubmitButton, variant, text, 
 
   return (
     <div className={styles.feeButton}>
-      <ActionTooltip overlayText={numWithUnits(total, { abbreviate: false })}>
+      <ActionTooltip overlayText={feeText}>
         <ChildButton variant={variant} disabled={disabled || ctxDisabled}>{text}{feeText && <small> {feeText}</small>}</ChildButton>
       </ActionTooltip>
       {!me && <AnonInfo />}

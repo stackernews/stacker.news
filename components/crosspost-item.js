@@ -35,14 +35,14 @@ export default function CrosspostDropdownItem ({ item }) {
           try {
             if (item?.id) {
               const crosspostResult = await crossposter({ ...data.item })
-              const eventId = crosspostResult?.eventId
-              if (eventId) {
+              const noteId = crosspostResult?.noteId
+              if (noteId) {
                 await upsertDiscussion({
                   variables: {
                     sub: item?.subName,
                     id: item?.id,
                     boost: item?.boost ? (Number(item?.boost) >= 25000 ? Number(item?.boost) : undefined) : undefined,
-                    noteId: eventId,
+                    noteId: noteId,
                     title: item?.title
                   }
                 })

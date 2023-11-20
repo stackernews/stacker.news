@@ -98,13 +98,13 @@ export function DiscussionForm ({
         toaster.danger('Error crossposting to Nostr', e.message)
       }
 
-      if (eventId) {
+      if (noteId) {
         await upsertDiscussion({
           variables: {
             id: discussionId,
             ...values,
             forward: normalizeForwards(values.forward),
-            noteId: eventId
+            noteId: noteId
           }
         })
       }

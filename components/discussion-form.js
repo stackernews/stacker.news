@@ -99,12 +99,10 @@ export function DiscussionForm ({
       }
 
       if (noteId) {
-        await upsertDiscussion({
+        await upsertNoteId({
           variables: {
             id: discussionId,
-            ...values,
-            forward: normalizeForwards(values.forward),
-            noteId: noteId
+            noteId
           }
         })
       }

@@ -99,6 +99,7 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
       mutation upsertComment($text: String!, $parentId: ID!, $hash: String, $hmac: String) {
         upsertComment(text: $text, parentId: $parentId, hash: $hash, hmac: $hmac) {
           ...CommentFields
+          deleteScheduledAt
           comments {
             ...CommentsRecursive
           }

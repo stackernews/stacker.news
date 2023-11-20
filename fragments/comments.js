@@ -6,7 +6,6 @@ export const COMMENT_FIELDS = gql`
     parentId
     createdAt
     deletedAt
-    deleteScheduledAt
     text
     user {
       id

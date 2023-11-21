@@ -36,6 +36,10 @@
     position: relative;
 }
 
+.twitterContainer iframe {
+    border-radius: 12px;
+}
+
 .twitterContained {
     height: 200px;
     overflow: hidden;

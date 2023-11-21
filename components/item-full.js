@@ -74,7 +74,7 @@ function ItemEmbed ({ item }) {
   if (twitter?.groups?.id) {
     return (
       <div className={`${styles.twitterContainer} ${show ? '' : styles.twitterContained}`}>
-        <TwitterTweetEmbed tweetId={twitter.groups.id} options={{ width: '550px', theme: darkMode ? 'dark' : 'light' }} placeholder={<TweetSkeleton />} onLoad={() => setOverflowing(true)} />
+        <TwitterTweetEmbed tweetId={twitter.groups.id} options={{ theme: darkMode ? 'dark' : 'light', width: '550px' }} key={darkMode ? '1' : '2'} placeholder={<TweetSkeleton />} onLoad={() => setOverflowing(true)} />
         {overflowing && !show &&
           <Button size='lg' variant='info' className={styles.twitterShowFull} onClick={() => setShow(true)}>
             show full tweet

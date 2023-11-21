@@ -10,6 +10,7 @@ export default gql`
     topUsers(cursor: String, when: String, from: String, to: String, by: String, limit: Int): Users
     topCowboys(cursor: String): Users
     searchUsers(q: String!, limit: Int, similarity: Float): [User!]!
+    userSuggestions(q: String, limit: Int): [User!]!
     hasNewNotes: Boolean!
   }
 

@@ -15,7 +15,7 @@ import Text from '../components/text'
 import AddIcon from '../svgs/add-fill.svg'
 import CloseIcon from '../svgs/close-line.svg'
 import { gql, useLazyQuery } from '@apollo/client'
-import { TOP_USERS, USER_SEARCH } from '../fragments/users'
+import { USER_SUGGESTIONS } from '../fragments/users'
 import TextareaAutosize from 'react-textarea-autosize'
 import { useToast } from './toast'
 import { useInvoiceable } from './invoice'
@@ -97,7 +97,6 @@ export function InputSkeleton ({ label, hint }) {
   )
 }
 
-const DEFAULT_MENTION_INDICES = { start: -1, end: -1 }
 export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKeyDown, innerRef, ...props }) {
   const [tab, setTab] = useState('write')
   const [, meta, helpers] = useField(props)
@@ -108,18 +107,18 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
   const { merge, setDisabled: setSubmitDisabled } = useFeeButton()
   const toaster = useToast()
   const [updateImageFeesInfo] = useLazyQuery(gql`
-  query imageFeesInfo($s3Keys: [Int]!) {
-    imageFeesInfo(s3Keys: $s3Keys) {
-      totalFees
-      nUnpaid
-      imageFee
-      bytes24h
-    }
-  }`, {
+    query imageFeesInfo($s3Keys: [Int]!) {
+      imageFeesInfo(s3Keys: $s3Keys) {
+        totalFees
+        nUnpaid
+        imageFee
+        bytes24h
+      }
+    }`, {
     fetchPolicy: 'no-cache',
     nextFetchPolicy: 'no-cache',
     onError: (err) => {
-      console.log(err)
+      console.error(err)
       toaster.danger(err.message || err.toString?.())
     },
     onCompleted: ({ imageFeesInfo }) => {
@@ -157,19 +156,18 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
     }
   }, [innerRef, selectionRange.start, selectionRange.end])
 
-  const [mentionQuery, setMentionQuery] = useState()
-  const [mentionIndices, setMentionIndices] = useState(DEFAULT_MENTION_INDICES)
-  const [userSuggestDropdownStyle, setUserSuggestDropdownStyle] = useState({})
+  const [mention, setMention] = useState()
   const insertMention = useCallback((name) => {
-    const { start, end } = mentionIndices
-    const first = `${innerRef.current.value.substring(0, start)}@${name}`
-    const second = innerRef.current.value.substring(end)
+    if (mention?.start === undefined || mention?.end === undefined) return
+    const { start, end } = mention
+    setMention(undefined)
+    const first = `${meta?.value.substring(0, start)}@${name}`
+    const second = meta?.value.substring(end)
     const updatedValue = `${first}${second}`
-    innerRef.current.value = updatedValue
     helpers.setValue(updatedValue)
     setSelectionRange({ start: first.length, end: first.length })
     innerRef.current.focus()
-  }, [mentionIndices, innerRef, helpers?.setValue])
+  }, [mention, meta?.value, helpers?.setValue])
 
   const imageFeesUpdate = useDebounceCallback(
     (text) => {
@@ -181,16 +179,23 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
     if (onChange) onChange(formik, e)
     // check for mention editing
     const { value, selectionStart } = e.target
+    imageFeesUpdate(value)
+
+    if (!value || selectionStart === undefined) {
+      setMention(undefined)
+      return
+    }
+
     let priorSpace = -1
     for (let i = selectionStart - 1; i >= 0; i--) {
-      if (/\s|\n/.test(value[i])) {
+      if (/\s/.test(value[i])) {
         priorSpace = i
         break
       }
     }
     let nextSpace = value.length
     for (let i = selectionStart; i <= value.length; i++) {
-      if (/\s|\n/.test(value[i])) {
+      if (/\b/.test(value[i])) {
         nextSpace = i
         break
       }
@@ -198,22 +203,22 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
     const currentSegment = value.substring(priorSpace + 1, nextSpace)
 
     // set the query to the current character segment and note where it appears
-    if (/^@[\w_]*$/.test(currentSegment)) {
-      setMentionQuery(currentSegment)
-      setMentionIndices({ start: priorSpace + 1, end: nextSpace })
+    if (/^@\w*$/.test(currentSegment)) {
       const { top, left } = textAreaCaret(e.target, e.target.selectionStart)
-      setUserSuggestDropdownStyle({
-        position: 'absolute',
-        top: `${top + Number(window.getComputedStyle(e.target).lineHeight.replace('px', ''))}px`,
-        left: `${left}px`
+      setMention({
+        query: currentSegment,
+        start: priorSpace + 1,
+        end: nextSpace,
+        style: {
+          position: 'absolute',
+          top: `${top + Number(window.getComputedStyle(e.target).lineHeight.replace('px', ''))}px`,
+          left: `${left}px`
+        }
       })
     } else {
-      setMentionQuery(undefined)
-      setMentionIndices(DEFAULT_MENTION_INDICES)
+      setMention(undefined)
     }
-
-    imageFeesUpdate(value)
-  }, [onChange, setMentionQuery, setMentionIndices, setUserSuggestDropdownStyle, imageFeesUpdate])
+  }, [onChange, setMention, imageFeesUpdate])
 
   const onKeyDownInner = useCallback((userSuggestOnKeyDown) => {
     return (e) => {
@@ -313,9 +318,9 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
         </Nav>
         <div className={`position-relative ${tab === 'write' ? '' : 'd-none'}`}>
           <UserSuggest
-            query={mentionQuery}
+            query={mention?.query}
             onSelect={insertMention}
-            dropdownStyle={userSuggestDropdownStyle}
+            dropdownStyle={mention?.userSuggestDropdownStyle}
           >{({ onKeyDown: userSuggestOnKeyDown, resetSuggestions }) => (
             <InputInner
               innerRef={innerRef}
@@ -515,20 +520,10 @@ export function UserSuggest ({
   query, onSelect, dropdownStyle, children,
   transformUser = user => user, selectWithTab = true, filterUsers = () => true
 }) {
-  const [getUsers] = useLazyQuery(TOP_USERS, {
+  const [getSuggestions] = useLazyQuery(USER_SUGGESTIONS, {
     onCompleted: data => {
-      setSuggestions({
-        array: data.topUsers.users
-          .filter((...args) => filterUsers(query, ...args))
-          .map(transformUser),
-        index: 0
-      })
-    }
-  })
-  const [getSuggestions] = useLazyQuery(USER_SEARCH, {
-    onCompleted: data => {
-      setSuggestions({
-        array: data.searchUsers
+      query !== undefined && setSuggestions({
+        array: data.userSuggestions
           .filter((...args) => filterUsers(query, ...args))
           .map(transformUser),
         index: 0
@@ -543,15 +538,11 @@ export function UserSuggest ({
     if (query !== undefined) {
       // remove both the leading @ and any @domain after nym
       const q = query?.replace(/^[@ ]+|[ ]+$/g, '').replace(/@[^\s]*$/, '')
-      if (q === '') {
-        getUsers({ variables: { by: 'stacked', when: 'week', limit: 5 } })
-      } else {
-        getSuggestions({ variables: { q, limit: 5 } })
-      }
+      getSuggestions({ variables: { q, limit: 5 } })
     } else {
       resetSuggestions()
     }
-  }, [query, resetSuggestions, getUsers, getSuggestions])
+  }, [query, resetSuggestions, getSuggestions])
 
   const onKeyDown = useCallback(e => {
     switch (e.code) {
@@ -650,7 +641,7 @@ export function InputUserSuggest ({
             }}
             overrideValue={ovalue}
             onKeyDown={onKeyDown}
-            onBlur={() => setTimeout(resetSuggestions, 100)}
+            onBlur={() => setTimeout(resetSuggestions, 500)}
           />
         )}
       </UserSuggest>
@@ -791,7 +782,7 @@ export function Form ({
         clearLocalStorage(values)
       }
     } catch (err) {
-      console.log(err)
+      console.error(err)
       toaster.danger(err.message || err.toString?.())
     }
   }, [onSubmit, feeButton?.total, toaster, clearLocalStorage, storageKeyPrefix])

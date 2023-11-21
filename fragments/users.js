@@ -126,6 +126,14 @@ gql`
   }
 `
 
+export const USER_SUGGESTIONS =
+gql`
+  query userSuggestions($q: String!, $limit: Int) {
+    userSuggestions(q: $q, limit: $limit) {
+      name
+    }
+  }`
+
 export const USER_SEARCH =
 gql`
   query searchUsers($q: String!, $limit: Int, $similarity: Float) {

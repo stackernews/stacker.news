@@ -99,6 +99,31 @@ export default {
         users
       }
     },
+    userSuggestions: async (parent, { q, limit = 5 }, { models }) => {
+      let users = []
+      if (q) {
+        users = await models.$queryRaw`
+          SELECT name
+          FROM users
+          WHERE (
+            id > ${RESERVED_MAX_USER_ID} OR id IN (${ANON_USER_ID}, ${DELETE_USER_ID})
+          )
+          AND SIMILARITY(name, ${q}) > 0.1
+          ORDER BY SIMILARITY(name, ${q}) DESC
+          LIMIT ${limit}`
+      } else {
+        users = await models.$queryRaw`
+          SELECT name
+          FROM user_stats_days
+          JOIN users on users.id = user_stats_days.id
+          WHERE NOT users."hideFromTopUsers"
+          AND user_stats_days.day = (SELECT max(day) FROM user_stats_days)
+          ORDER BY msats_stacked DESC, users.created_at ASC
+          LIMIT ${limit}`
+      }
+
+      return users
+    },
     topUsers: async (parent, { cursor, when, by, from, to, limit = LIMIT }, { models, me }) => {
       const decodedCursor = decodeCursor(cursor)
       const range = whenRange(when, from, to || decodeCursor.time)

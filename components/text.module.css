@@ -9,6 +9,9 @@
     .text {
         line-height: 130%;
     }
+    .text img {
+        min-width: 30% !important;
+    }
 }
 
 .heading {
@@ -79,7 +82,7 @@
     max-height: 25vh;
     object-fit: contain;
     object-position: left top;
-    min-width: 40vw;
+    min-width: 50%;
 }
 
 .text img.topLevel {

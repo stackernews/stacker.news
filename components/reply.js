@@ -12,6 +12,8 @@ import { COMMENT_DEPTH_LIMIT } from '../lib/constants'
 import { useToast } from './toast'
 import { toastDeleteScheduled } from '../lib/form'
 import { ItemButtonBar } from './post'
+import { useShowModal } from './modal'
+import { Button } from 'react-bootstrap'
 
 export function ReplyOnAnotherPage ({ item }) {
   const path = item.path.split('.')
@@ -35,6 +37,7 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
   const parentId = item.id
   const replyInput = useRef(null)
   const toaster = useToast()
+  const showModal = useShowModal()
 
   useEffect(() => {
     if (replyOpen || quote || !!window.localStorage.getItem('reply-' + parentId + '-' + 'text')) {
@@ -102,6 +105,12 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
     if (replyInput.current && reply && !replyOpen) replyInput.current.focus()
   }, [reply])
 
+  const onCancel = useCallback(() => {
+    window.localStorage.removeItem('reply-' + parentId + '-' + 'text')
+    setReply(false)
+    onCancelQuote?.()
+  }, [setReply, parentId, onCancelQuote])
+
   return (
     <div>
       {replyOpen
@@ -112,9 +121,25 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
               className='pe-3'
               onClick={e => {
                 if (reply) {
-                  window.localStorage.removeItem('reply-' + parentId + '-' + 'text')
-                  setReply(false)
-                  onCancelQuote?.()
+                  const text = window.localStorage.getItem('reply-' + parentId + '-' + 'text')
+                  if (text?.trim()) {
+                    showModal(onClose => (
+                      <>
+                        <p className='fw-bolder'>Are you sure? You will lose your work</p>
+                        <div className='d-flex justify-content-end'>
+                          <Button
+                            variant='info' onClick={() => {
+                              onCancel()
+                              onClose()
+                            }}
+                          >yep
+                          </Button>
+                        </div>
+                      </>
+                    ))
+                  } else {
+                    onCancel()
+                  }
                 } else {
                   e.preventDefault()
                   onQuoteReply({ selectionOnly: true })

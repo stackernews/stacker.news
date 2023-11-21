@@ -110,7 +110,7 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
           <div className={styles.replyButtons}>
             <div
               className='pe-3'
-              onPointerDown={e => {
+              onClick={e => {
                 if (reply) {
                   window.localStorage.removeItem('reply-' + parentId + '-' + 'text')
                   setReply(false)

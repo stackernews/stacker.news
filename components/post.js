@@ -9,7 +9,7 @@ import { DiscussionForm } from './discussion-form'
 import { LinkForm } from './link-form'
 import { PollForm } from './poll-form'
 import { BountyForm } from './bounty-form'
-import SubSelect from './sub-select-form'
+import SubSelect, { SubInfo } from './sub-select'
 import { useCallback, useState } from 'react'
 import FeeButton, { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
 import Delete from './delete'
@@ -29,33 +29,89 @@ export function PostForm ({ type, sub, children }) {
   }, [me, setErrorMessage])
 
   if (!type) {
+    let postButtons = []
+    let morePostButtons = []
+
+    if (sub) {
+      if (sub?.postTypes?.includes('LINK')) {
+        postButtons.push(
+          <Link key='LINK' href={prefix + '/post?type=link'}>
+            <Button variant='secondary'>link</Button>
+          </Link>
+        )
+      }
+
+      if (sub?.postTypes?.includes('DISCUSSION')) {
+        postButtons.push(
+          <Link key='DISCUSSION' href={prefix + '/post?type=discussion'}>
+            <Button variant='secondary'>discussion</Button>
+          </Link>
+        )
+      }
+
+      if (sub?.postTypes?.includes('POLL')) {
+        const array = postButtons.length < 2 ? postButtons : morePostButtons
+        array.push(
+          <Link key='POLL' href={prefix + '/post?type=poll'}>
+            <Button variant={postButtons.length < 2 ? 'secondary' : 'info'}>poll</Button>
+          </Link>
+        )
+      }
+
+      if (sub?.postTypes?.includes('BOUNTY')) {
+        const array = postButtons.length < 2 ? postButtons : morePostButtons
+        array.push(
+          <Link key='BOUNTY' href={prefix + '/post?type=bounty'}>
+            <Button onClick={checkSession} variant={postButtons.length < 2 ? 'secondary' : 'info'}>bounty</Button>
+          </Link>
+        )
+      }
+    } else {
+      postButtons = [
+        <Link key='LINK' href={prefix + '/post?type=link'}>
+          <Button variant='secondary'>link</Button>
+        </Link>,
+        <Link key='DISCUSSION' href={prefix + '/post?type=discussion'}>
+          <Button variant='secondary'>discussion</Button>
+        </Link>
+      ]
+      morePostButtons = [
+        <Link key='POLL' href={prefix + '/post?type=poll'}>
+          <Button variant='info'>poll</Button>
+        </Link>,
+        <Link key='BOUNTY' href={prefix + '/post?type=bounty'}>
+          <Button onClick={checkSession} variant='info'>bounty</Button>
+        </Link>
+      ]
+    }
+
+    postButtons = postButtons.reduce((acc, cur) => {
+      if (acc.length) acc.push(<span key='OR-post-buttons' className='mx-3 fw-bold text-muted'>or</span>)
+      acc.push(cur)
+      return acc
+    }, [])
+
+    morePostButtons = morePostButtons.reduce((acc, cur) => {
+      if (acc.length) acc.push(<span key='OR-more-post-buttons' className='mx-3 fw-bold text-muted'>or</span>)
+      acc.push(cur)
+      return acc
+    }, [])
+
     return (
       <div className='position-relative align-items-center'>
         {errorMessage &&
           <Alert className='position-absolute' style={{ top: '-6rem' }} variant='danger' onClose={() => setErrorMessage(undefined)} dismissible>
             {errorMessage}
           </Alert>}
-        <SubSelect noForm sub={sub?.name} />
-        <Link href={prefix + '/post?type=link'}>
-          <Button variant='secondary'>link</Button>
-        </Link>
-        <span className='mx-3 fw-bold text-muted'>or</span>
-        <Link href={prefix + '/post?type=discussion'}>
-          <Button variant='secondary'>discussion</Button>
-        </Link>
+        <SubSelect prependSubs={['pick territory']} className='w-auto d-flex' noForm sub={sub?.name} />
+        {postButtons}
         <div className='d-flex mt-4'>
           <AccordianItem
             headerColor='#6c757d'
             header={<div className='fw-bold text-muted'>more types</div>}
             body={
               <div className='align-items-center'>
-                <Link href={prefix + '/post?type=poll'}>
-                  <Button variant='info'>poll</Button>
-                </Link>
-                <span className='mx-3 fw-bold text-muted'>or</span>
-                <Link href={prefix + '/post?type=bounty'}>
-                  <Button onClick={checkSession} variant='info'>bounty</Button>
-                </Link>
+                {morePostButtons}
                 <div className='mt-3 d-flex justify-content-center'>
                   <Link href='/~jobs/post'>
                     <Button onClick={checkSession} variant='info'>job</Button>
@@ -101,7 +157,19 @@ export default function Post ({ sub }) {
   return (
     <>
       <PostForm type={type} sub={sub}>
-        {sub?.name !== 'jobs' && <SubSelect label='sub' />}
+        {sub?.name !== 'jobs' &&
+          <SubSelect
+            sub={sub?.name}
+            prependSubs={sub?.name ? undefined : ['pick territory']}
+            filterSubs={s => s.postTypes?.includes(type.toUpperCase())}
+            className='w-auto d-flex'
+            label={
+              <span className='d-flex align-items-center'>
+                territory
+                <SubInfo />
+              </span>
+}
+          />}
       </PostForm>
     </>
   )

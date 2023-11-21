@@ -40,17 +40,16 @@ export const WALLET_HISTORY = gql`
     walletHistory(cursor: $cursor, inc: $inc) {
       facts {
         id
-        factId
         bolt11
         type
         createdAt
         sats
-        satsFee
         status
         type
         description
         invoiceComment
         invoicePayerData
+        subName
         item {
           ...ItemFullFields
         }

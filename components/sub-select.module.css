@@ -1,0 +1,6 @@
+.subSelect {
+  width: 100px !important;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis !important;
+}

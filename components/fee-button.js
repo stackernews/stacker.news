@@ -4,7 +4,7 @@ import ActionTooltip from './action-tooltip'
 import Info from './info'
 import styles from './fee-button.module.css'
 import { gql, useQuery } from '@apollo/client'
-import { FREEBIE_BASE_COST_THRESHOLD, SSR } from '../lib/constants'
+import { SSR } from '../lib/constants'
 import { numWithUnits } from '../lib/format'
 import { useMe } from './me'
 import AnonIcon from '../svgs/spy-fill.svg'
@@ -95,7 +95,8 @@ export function FeeButtonProvider ({ baseLineItems = {}, useRemoteLineItems = ()
 }
 
 export function useFeeButton () {
-  return useContext(FeeButtonContext)
+  const context = useContext(FeeButtonContext)
+  return context
 }
 
 function FreebieDialog () {
@@ -114,9 +115,7 @@ export default function FeeButton ({ ChildButton = SubmitButton, variant, text, 
   const me = useMe()
   const { lines, total, disabled: ctxDisabled } = useFeeButton()
   // freebies: there's only a base cost, it's less than 10, and we have less than 10 sats
-  const free = total === lines.baseCost?.modifier(0) &&
-    total <= FREEBIE_BASE_COST_THRESHOLD &&
-    me?.privates?.sats < FREEBIE_BASE_COST_THRESHOLD
+  const free = total === lines.baseCost?.modifier(0) && me?.privates?.sats < total
   const feeText = free
     ? 'free'
     : total > 1

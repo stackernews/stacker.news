@@ -105,7 +105,7 @@ export function getGetServerSideProps (
         console.error(e)
       }
 
-      if (error || !data || (notFound && notFound(data, vars))) {
+      if (error || !data || (notFound && notFound(data, vars, me))) {
         return {
           notFound: true
         }

@@ -32,6 +32,12 @@ export const NOTIFICATIONS = gql`
             text
           }
         }
+        ... on Revenue {
+          id
+          sortTime
+          earnedSats
+          subName
+        }
         ... on ForwardedVotification {
           id
           sortTime

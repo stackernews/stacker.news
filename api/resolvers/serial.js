@@ -15,7 +15,13 @@ export default async function serialize (models, ...calls) {
       return calls.length > 1 ? result : result[0]
     } catch (error) {
       console.log(error)
-      if (error.message.includes('SN_INSUFFICIENT_FUNDS')) {
+      // two cases where we get insufficient funds:
+      // 1. plpgsql function raises
+      // 2. constraint violation via a prisma call
+      // XXX prisma does not provide a way to distinguish these cases so we
+      // have to check the error message
+      if (error.message.includes('SN_INSUFFICIENT_FUNDS') ||
+        error.message.includes('\\"users\\" violates check constraint \\"msats_positive\\"')) {
         bail(new GraphQLError('insufficient funds', { extensions: { code: 'BAD_INPUT' } }))
       }
       if (error.message.includes('SN_NOT_SERIALIZABLE')) {
@@ -65,24 +71,28 @@ export async function serializeInvoicable (query, { models, lnd, hash, hmac, me,
     throw new Error('you must be logged in or pay')
   }
 
-  let trx = [query]
+  let trx = Array.isArray(query) ? query : [query]
 
   let invoice
   if (hash) {
     invoice = await checkInvoice(models, hash, hmac, enforceFee)
     trx = [
       models.$queryRaw`UPDATE users SET msats = msats + ${invoice.msatsReceived} WHERE id = ${invoice.user.id}`,
-      query,
+      ...trx,
       models.invoice.update({ where: { hash: invoice.hash }, data: { confirmedAt: new Date() } })
     ]
   }
 
-  const results = await serialize(models, ...trx)
-  const result = trx.length > 1 ? results[1][0] : results[0]
+  let results = await serialize(models, ...trx)
 
-  if (invoice?.isHeld) await settleHodlInvoice({ secret: invoice.preimage, lnd })
+  if (hash) {
+    if (invoice?.isHeld) await settleHodlInvoice({ secret: invoice.preimage, lnd })
+    results = results.slice(1, -1)
+  }
 
-  return result
+  // if there is only one result, return it directly, else the array
+  results = results.flat(2)
+  return results.length > 1 ? results : results[0]
 }
 
 export async function checkInvoice (models, hash, hmac, fee) {

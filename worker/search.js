@@ -37,7 +37,6 @@ const ITEM_SEARCH_FIELDS = gql`
 
 async function _indexItem (item, { models }) {
   console.log('indexing item', item.id)
-
   // HACK: modify the title for jobs so that company/location are searchable
   // and highlighted without further modification
   const itemcp = { ...item }
@@ -78,38 +77,33 @@ async function _indexItem (item, { models }) {
     console.log(e)
     throw e
   }
-  console.log('done indexing item', item.id)
 }
 
-export function indexItem ({ apollo, models }) {
-  return async function ({ data: { id } }) {
-    console.log('indexing item, fetching ...', id)
-    // 1. grab item from database
-    // could use apollo to avoid duping logic
-    // when grabbing sats and user name, etc
-    const { data: { item } } = await apollo.query({
-      query: gql`
+export async function indexItem ({ data: { id }, apollo, models }) {
+  // 1. grab item from database
+  // could use apollo to avoid duping logic
+  // when grabbing sats and user name, etc
+  const { data: { item } } = await apollo.query({
+    query: gql`
         ${ITEM_SEARCH_FIELDS}
         query Item {
           item(id: ${id}) {
             ...ItemSearchFields
           }
         }`
-    })
+  })
 
-    // 2. index it with external version based on updatedAt
-    await _indexItem(item, { models })
-  }
+  // 2. index it with external version based on updatedAt
+  await _indexItem(item, { models })
 }
 
-export function indexAllItems ({ apollo, models }) {
-  return async function () {
-    // cursor over all items in the Item table
-    let items = []; let cursor = null
-    do {
-      // query for items
-      ({ data: { items: { items, cursor } } } = await apollo.query({
-        query: gql`
+export async function indexAllItems ({ apollo, models }) {
+  // cursor over all items in the Item table
+  let items = []; let cursor = null
+  do {
+    // query for items
+    ({ data: { items: { items, cursor } } } = await apollo.query({
+      query: gql`
           ${ITEM_SEARCH_FIELDS}
           query AllItems($cursor: String) {
             items(cursor: $cursor, sort: "recent", limit: 1000, type: "all") {
@@ -119,16 +113,15 @@ export function indexAllItems ({ apollo, models }) {
               cursor
             }
           }`,
-        variables: { cursor }
-      }))
+      variables: { cursor }
+    }))
 
-      // for all items, index them
-      try {
-        items.forEach(i => _indexItem(i, { models }))
-      } catch (e) {
-        // ignore errors
-        console.log(e)
-      }
-    } while (cursor)
-  }
+    // for all items, index them
+    try {
+      items.forEach(i => _indexItem(i, { models }))
+    } catch (e) {
+      // ignore errors
+      console.log(e)
+    }
+  } while (cursor)
 }

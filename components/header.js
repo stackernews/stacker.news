@@ -16,10 +16,9 @@ import { abbrNum } from '../lib/format'
 import NoteIcon from '../svgs/notification-4-fill.svg'
 import { useQuery } from '@apollo/client'
 import LightningIcon from '../svgs/bolt.svg'
-import { Select } from './form'
 import SearchIcon from '../svgs/search-line.svg'
 import BackArrow from '../svgs/arrow-left-line.svg'
-import { SSR, SUBS } from '../lib/constants'
+import { SSR } from '../lib/constants'
 import { useLightning } from './lightning'
 import { HAS_NOTIFICATIONS } from '../fragments/notifications'
 import AnonIcon from '../svgs/spy-fill.svg'
@@ -27,6 +26,7 @@ import Hat from './hat'
 import HiddenWalletSummary from './hidden-wallet-summary'
 import { clearNotifications } from '../lib/badge'
 import { useServiceWorker } from './serviceworker'
+import SubSelect from './sub-select'
 
 function WalletSummary ({ me }) {
   if (!me) return null
@@ -213,57 +213,17 @@ function LurkerCorner ({ path }) {
     </div>
 }
 
+const PREPEND_SUBS = ['home']
+const APPEND_SUBS = [{ label: '--------', items: ['create'] }]
 function NavItems ({ className, sub, prefix }) {
-  const router = useRouter()
   sub ||= 'home'
 
   return (
     <>
       <Nav.Item className={className}>
-        <Select
+        <SubSelect
+          sub={sub} prependSubs={PREPEND_SUBS} appendSubs={APPEND_SUBS} noForm
           groupClassName='mb-0'
-          onChange={(_, e) => {
-            const sub = e.target.value === 'home' ? undefined : e.target.value
-            let asPath
-            // are we currently in a sub (ie not home)
-            if (router.query.sub) {
-              // are we going to a sub or home?
-              const subReplace = sub ? `/~${sub}` : ''
-
-              // if we are going to a sub, replace the current sub with the new one
-              asPath = router.asPath.replace(`/~${router.query.sub}`, subReplace)
-              // if we're going to home, just go there directly
-              if (asPath === '') {
-                router.push('/')
-                return
-              }
-            } else {
-              // we're currently on the home sub
-              // are we in a sub aware route?
-              if (router.pathname.startsWith('/~')) {
-                // if we are, go to the same path but in the sub
-                asPath = `/~${sub}` + router.asPath
-              } else {
-                // otherwise, just go to the sub
-                router.push(sub ? `/~${sub}` : '/')
-                return
-              }
-            }
-            const query = {
-              ...router.query,
-              sub
-            }
-            delete query.nodata
-            router.push({
-              pathname: router.pathname,
-              query
-            }, asPath)
-          }}
-          name='sub'
-          size='sm'
-          value={sub}
-          noForm
-          items={['home', ...SUBS]}
         />
       </Nav.Item>
       <Nav.Item className={className}>

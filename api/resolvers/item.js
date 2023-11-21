@@ -466,23 +466,21 @@ export default {
                 orderBy: 'ORDER BY rank DESC'
               }, decodedCursor.offset, limit, ...subArr)
 
-              // XXX this is just for migration purposes ... can remove after initial deployment
-              // and views have been populated
-              if (items.length === 0) {
+              // XXX this is just for subs that are really empty
+              if (decodedCursor.offset === 0 && items.length < limit) {
                 items = await itemQueryWithMeta({
                   me,
                   models,
                   query: `
-                      ${SELECT}, rank
+                      ${SELECT}
                       FROM "Item"
-                      JOIN zap_rank_tender_view ON "Item".id = zap_rank_tender_view.id
                       ${whereClause(
                         subClause(sub, 3, 'Item', true),
                         muteClause(me))}
-                      ORDER BY rank ASC
+                        ORDER BY ${orderByNumerator(models, 0)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".freebie IS FALSE) DESC, "Item".id DESC
                       OFFSET $1
                       LIMIT $2`,
-                  orderBy: 'ORDER BY rank ASC'
+                  orderBy: `ORDER BY ${orderByNumerator(models, 0)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".freebie IS FALSE) DESC, "Item".id DESC`
                 }, decodedCursor.offset, limit, ...subArr)
               }
 

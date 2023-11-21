@@ -53,32 +53,22 @@ function decodeOriginalUrl (imgproxyUrl) {
   return originalUrl
 }
 
-export function imgproxy ({ models }) {
-  return async function ({ data: { id, forceFetch = false } }) {
-    if (!imgProxyEnabled) return
+export async function imgproxy ({ data: { id, forceFetch = false }, models }) {
+  if (!imgProxyEnabled) return
 
-    console.log('running imgproxy job', id)
+  const item = await models.item.findUnique({ where: { id } })
 
-    const item = await models.item.findUnique({ where: { id } })
-
-    let imgproxyUrls = {}
-    try {
-      if (item.text) {
-        imgproxyUrls = await createImgproxyUrls(id, item.text, { models, forceFetch })
-      }
-      if (item.url && !isJob(item)) {
-        imgproxyUrls = { ...imgproxyUrls, ...(await createImgproxyUrls(id, item.url, { models, forceFetch })) }
-      }
-    } catch (err) {
-      console.log('[imgproxy] error:', err)
-      // rethrow for retry
-      throw err
-    }
-
-    console.log('[imgproxy] updating item', id, 'with urls', imgproxyUrls)
-
-    await models.item.update({ where: { id }, data: { imgproxyUrls } })
+  let imgproxyUrls = {}
+  if (item.text) {
+    imgproxyUrls = await createImgproxyUrls(id, item.text, { models, forceFetch })
   }
+  if (item.url && !isJob(item)) {
+    imgproxyUrls = { ...imgproxyUrls, ...(await createImgproxyUrls(id, item.url, { models, forceFetch })) }
+  }
+
+  console.log('[imgproxy] updating item', id, 'with urls', imgproxyUrls)
+
+  await models.item.update({ where: { id }, data: { imgproxyUrls } })
 }
 
 export const createImgproxyUrls = async (id, text, { models, forceFetch }) => {

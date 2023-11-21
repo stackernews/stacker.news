@@ -17,6 +17,7 @@ import { views, rankViews } from './views.js'
 import { imgproxy } from './imgproxy.js'
 import { deleteItem } from './ephemeralItems.js'
 import { deleteUnusedImages } from './deleteUnusedImages.js'
+import { territoryBilling } from './territory.js'
 
 const { loadEnvConfig } = nextEnv
 const { ApolloClient, HttpLink, InMemoryCache } = apolloClient
@@ -54,25 +55,39 @@ async function work () {
 
   boss.on('error', error => console.error(error))
 
+  function jobWrapper (fn) {
+    return async function (job) {
+      console.log(`running ${job.name} with args`, job.data)
+      try {
+        await fn({ ...job, ...args })
+      } catch (error) {
+        console.error(`error running ${job.name}`, error)
+        throw error
+      }
+      console.log(`finished ${job.name}`)
+    }
+  }
+
   await boss.start()
-  await boss.work('checkInvoice', checkInvoice(args))
-  await boss.work('checkWithdrawal', checkWithdrawal(args))
-  await boss.work('autoDropBolt11s', autoDropBolt11s(args))
-  await boss.work('repin-*', repin(args))
-  await boss.work('trust', trust(args))
-  await boss.work('timestampItem', timestampItem(args))
-  await boss.work('indexItem', indexItem(args))
-  await boss.work('indexAllItems', indexAllItems(args))
-  await boss.work('auction', auction(args))
-  await boss.work('earn', earn(args))
-  await boss.work('streak', computeStreaks(args))
-  await boss.work('checkStreak', checkStreak(args))
-  await boss.work('nip57', nip57(args))
-  await boss.work('views', views(args))
-  await boss.work('rankViews', rankViews(args))
-  await boss.work('imgproxy', imgproxy(args))
-  await boss.work('deleteItem', deleteItem(args))
-  await boss.work('deleteUnusedImages', deleteUnusedImages(args))
+  await boss.work('checkInvoice', jobWrapper(checkInvoice))
+  await boss.work('checkWithdrawal', jobWrapper(checkWithdrawal))
+  await boss.work('autoDropBolt11s', jobWrapper(autoDropBolt11s))
+  await boss.work('repin-*', jobWrapper(repin))
+  await boss.work('trust', jobWrapper(trust))
+  await boss.work('timestampItem', jobWrapper(timestampItem))
+  await boss.work('indexItem', jobWrapper(indexItem))
+  await boss.work('indexAllItems', jobWrapper(indexAllItems))
+  await boss.work('auction', jobWrapper(auction))
+  await boss.work('earn', jobWrapper(earn))
+  await boss.work('streak', jobWrapper(computeStreaks))
+  await boss.work('checkStreak', jobWrapper(checkStreak))
+  await boss.work('nip57', jobWrapper(nip57))
+  await boss.work('views', jobWrapper(views))
+  await boss.work('rankViews', jobWrapper(rankViews))
+  await boss.work('imgproxy', jobWrapper(imgproxy))
+  await boss.work('deleteItem', jobWrapper(deleteItem))
+  await boss.work('deleteUnusedImages', jobWrapper(deleteUnusedImages))
+  await boss.work('territoryBilling', jobWrapper(territoryBilling))
 
   console.log('working jobs')
 }

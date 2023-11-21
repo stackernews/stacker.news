@@ -25,6 +25,7 @@ import { nostrZapDetails } from '../lib/nostr'
 import Text from './text'
 import NostrIcon from '../svgs/nostr.svg'
 import { numWithUnits } from '../lib/format'
+import BountyIcon from '../svgs/bounty-bag.svg'
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
@@ -33,6 +34,7 @@ function Notification ({ n, fresh }) {
     <NotificationLayout nid={nid(n)} {...defaultOnClick(n)} fresh={fresh}>
       {
         (type === 'Earn' && <EarnNotification n={n} />) ||
+        (type === 'Revenue' && <RevenueNotification n={n} />) ||
         (type === 'Invitification' && <Invitification n={n} />) ||
         (type === 'InvoicePaid' && (n.invoice.nostr ? <NostrZap n={n} /> : <InvoicePaid n={n} />)) ||
         (type === 'Referral' && <Referral n={n} />) ||
@@ -83,6 +85,7 @@ const defaultOnClick = n => {
     href += dayMonthYear(new Date(n.sortTime))
     return { href }
   }
+  if (type === 'Revenue') return { href: `/~${n.subName}` }
   if (type === 'Invitification') return { href: '/invites' }
   if (type === 'InvoicePaid') return { href: `/invoices/${n.invoice.id}` }
   if (type === 'Referral') return { href: '/referrals/month' }
@@ -135,10 +138,10 @@ function Streak ({ n }) {
   }
 
   return (
-    <div className='d-flex fw-bold ms-2 py-1'>
+    <div className='d-flex ms-2 py-1'>
       <div style={{ fontSize: '2rem' }}>{n.days ? <BaldIcon className='fill-grey' height={40} width={40} /> : <CowboyHatIcon className='fill-grey' height={40} width={40} />}</div>
       <div className='ms-1 p-1'>
-        you {n.days ? 'lost your' : 'found a'} cowboy hat
+        <span className='fw-bold'>you {n.days ? 'lost your' : 'found a'} cowboy hat</span>
         <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>{blurb(n)}</small></div>
       </div>
     </div>
@@ -166,6 +169,22 @@ function EarnNotification ({ n }) {
           SN distributes the sats it earns back to its best stackers daily. These sats come from <Link href='/~jobs'>jobs</Link>, boosts, posting fees, and donations. You can see the daily rewards pool and make a donation <Link href='/rewards'>here</Link>.
         </div>
         <small className='text-muted ms-1 pb-1 fw-normal'>click for details</small>
+      </div>
+    </div>
+  )
+}
+
+function RevenueNotification ({ n }) {
+  return (
+    <div className='d-flex ms-2 py-1'>
+      <BountyIcon className='align-self-center fill-success mx-1' width={24} height={24} style={{ flex: '0 0 24px' }} />
+      <div className='ms-2 pb-1'>
+        <div className='fw-bold text-success'>
+          you stacked {numWithUnits(n.earnedSats, { abbreviate: false })} in territory revenue<small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
+        </div>
+        <div style={{ lineHeight: '140%' }}>
+          As the founder of territory <Link href={`/~${n.subName}`}>~{n.subName}</Link>, you receive 50% of the revenue it generates and the other 50% go to <Link href='/rewards'>rewards</Link>.
+        </div>
       </div>
     </div>
   )

@@ -49,17 +49,16 @@ export default gql`
 
   type Fact {
     id: ID!
-    factId: ID!
-    bolt11: String
     createdAt: Date!
     sats: Float!
-    satsFee: Float
-    status: String
     type: String!
+    bolt11: String
+    status: String
     description: String
     item: Item
     invoiceComment: String
     invoicePayerData: JSONObject
+    subName: String
   }
 
   type History {

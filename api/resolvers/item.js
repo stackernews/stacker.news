@@ -891,8 +891,8 @@ export default {
 
       return comments(me, models, item.id, sort || defaultCommentSort(item.pinId, item.bioId, item.createdAt))
     },
-    wvotes: async (item) => {
-      return item.weightedVotes - item.weightedDownVotes
+    freedFreebie: async (item) => {
+      return item.weightedVotes - item.weightedDownVotes > 0
     },
     meSats: async (item, args, { me, models }) => {
       if (!me) return 0

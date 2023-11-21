@@ -87,7 +87,6 @@ export default gql`
     commentSats: Int!
     lastCommentAt: Date
     upvotes: Int!
-    wvotes: Float!
     meSats: Int!
     meDontLike: Boolean!
     meBookmark: Boolean!
@@ -95,6 +94,7 @@ export default gql`
     meForward: Boolean
     outlawed: Boolean!
     freebie: Boolean!
+    freedFreebie: Boolean!
     bio: Boolean!
     paidImgLink: Boolean
     ncomments: Int!

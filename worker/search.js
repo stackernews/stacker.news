@@ -27,7 +27,6 @@ const ITEM_SEARCH_FIELDS = gql`
     location
     remote
     upvotes
-    wvotes
     sats
     boost
     lastCommentAt
@@ -36,7 +35,7 @@ const ITEM_SEARCH_FIELDS = gql`
     ncomments
   }`
 
-async function _indexItem (item) {
+async function _indexItem (item, { models }) {
   console.log('indexing item', item.id)
 
   // HACK: modify the title for jobs so that company/location are searchable
@@ -54,6 +53,13 @@ async function _indexItem (item) {
   if (item.text) {
     itemcp.text = removeMd(item.text)
   }
+
+  const itemdb = await models.item.findUnique({
+    where: { id: Number(item.id) },
+    select: { weightedVotes: true, weightedDownVotes: true }
+  })
+
+  itemcp.wvotes = itemdb.weightedVotes - itemdb.weightedDownVotes
 
   try {
     await search.index({
@@ -75,7 +81,7 @@ async function _indexItem (item) {
   console.log('done indexing item', item.id)
 }
 
-export function indexItem ({ apollo }) {
+export function indexItem ({ apollo, models }) {
   return async function ({ data: { id } }) {
     console.log('indexing item, fetching ...', id)
     // 1. grab item from database
@@ -92,11 +98,11 @@ export function indexItem ({ apollo }) {
     })
 
     // 2. index it with external version based on updatedAt
-    await _indexItem(item)
+    await _indexItem(item, { models })
   }
 }
 
-export function indexAllItems ({ apollo }) {
+export function indexAllItems ({ apollo, models }) {
   return async function () {
     // cursor over all items in the Item table
     let items = []; let cursor = null
@@ -118,7 +124,7 @@ export function indexAllItems ({ apollo }) {
 
       // for all items, index them
       try {
-        items.forEach(_indexItem)
+        items.forEach(i => _indexItem(i, { models }))
       } catch (e) {
         // ignore errors
         console.log(e)

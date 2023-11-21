@@ -100,7 +100,7 @@ export default function Comment ({
 }) {
   const [edit, setEdit] = useState()
   const me = useMe()
-  const isHiddenFreebie = !me?.privates?.wildWestMode && !me?.privates?.greeterMode && !item.mine && item.freebie && item.wvotes <= 0
+  const isHiddenFreebie = !me?.privates?.wildWestMode && !me?.privates?.greeterMode && !item.mine && item.freebie && !item.freedFreebie
   const [collapse, setCollapse] = useState(
     isHiddenFreebie || item?.user?.meMute
       ? 'yep'

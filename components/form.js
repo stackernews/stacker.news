@@ -388,7 +388,7 @@ function FormGroup ({ className, label, children }) {
 }
 
 function InputInner ({
-  prepend, append, hint, showValid, onChange, onBlur, overrideValue,
+  prepend, append, hint, showValid, onChange, onBlur, overrideValue, appendValue,
   innerRef, noForm, clear, onKeyDown, inputGroupClassName, debounce: debounceTime, maxLength,
   ...props
 }) {
@@ -440,6 +440,17 @@ function InputInner ({
       }
     }
   }, [overrideValue])
+
+  useEffect(() => {
+    if (appendValue) {
+      const updatedValue = meta.value ? `${meta.value}\n${appendValue}` : appendValue
+      helpers.setValue(updatedValue)
+      if (storageKey) {
+        window.localStorage.setItem(storageKey, updatedValue)
+      }
+      innerRef?.current?.focus()
+    }
+  }, [appendValue])
 
   const invalid = (!formik || formik.submitCount > 0) && meta.touched && meta.error
 

@@ -24,7 +24,7 @@ export function SearchTitle ({ title }) {
   })
 }
 
-export default function Item ({ item, rank, belowTitle, right, full, children, siblingComments, replyRef }) {
+export default function Item ({ item, rank, belowTitle, right, full, children, siblingComments, onQuoteReply }) {
   const titleRef = useRef()
   const router = useRouter()
   const [pendingSats, setPendingSats] = useState(0)
@@ -94,7 +94,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
           </div>
           <ItemInfo
             full={full} item={item} pendingSats={pendingSats}
-            onQuoteReply={replyRef?.current?.quoteReply}
+            onQuoteReply={onQuoteReply}
             nofollow={nofollow}
             extraBadges={Number(item?.user?.id) === AD_USER_ID && <Badge className={styles.newComment} bg={null}>AD</Badge>}
           />

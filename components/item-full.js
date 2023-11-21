@@ -13,7 +13,7 @@ import Button from 'react-bootstrap/Button'
 import { TwitterTweetEmbed } from 'react-twitter-embed'
 import YouTube from 'react-youtube'
 import useDarkMode from './dark-mode'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import Poll from './poll'
 import { commentsViewed } from '../lib/new-comments'
 import Related from './related'
@@ -25,6 +25,7 @@ import Link from 'next/link'
 import { RootProvider } from './root'
 import { IMGPROXY_URL_REGEXP } from '../lib/url'
 import { numWithUnits } from '../lib/format'
+import { useQuoteReply } from './use-quote-reply'
 
 function BioItem ({ item, handleClick }) {
   const me = useMe()
@@ -122,14 +123,13 @@ function FwdUsers ({ forwards }) {
 
 function TopLevelItem ({ item, noReply, ...props }) {
   const ItemComponent = item.isJob ? ItemJob : Item
-  const replyRef = useRef()
-  const contentContainerRef = useRef()
+  const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text })
 
   return (
     <ItemComponent
       item={item}
-      replyRef={replyRef}
       full
+      onQuoteReply={quoteReply}
       right={
         !noReply &&
           <>
@@ -140,7 +140,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
       belowTitle={item.forwards && item.forwards.length > 0 && <FwdUsers forwards={item.forwards} />}
       {...props}
     >
-      <div className={styles.fullItemContainer} ref={contentContainerRef}>
+      <div className={styles.fullItemContainer} ref={textRef}>
         {item.text && <ItemText item={item} />}
         {item.url && <ItemEmbed item={item} />}
         {item.poll && <Poll item={item} />}
@@ -160,7 +160,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
       </div>
       {!noReply &&
         <>
-          <Reply item={item} replyOpen placeholder={item.ncomments ? undefined : 'start the conversation ...'} ref={replyRef} contentContainerRef={contentContainerRef} />
+          <Reply item={item} replyOpen placeholder={item.ncomments ? undefined : 'start the conversation ...'} onCancelQuote={cancelQuote} onQuoteReply={quoteReply} quote={quote} />
           {!item.position && !item.isJob && !item.parentId && !item.bounty > 0 && <Related title={item.title} itemId={item.id} />}
           {item.bounty > 0 && <PastBounties item={item} />}
         </>}

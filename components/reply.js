@@ -3,12 +3,11 @@ import { gql, useMutation } from '@apollo/client'
 import styles from './reply.module.css'
 import { COMMENTS } from '../fragments/comments'
 import { useMe } from './me'
-import { forwardRef, useCallback, useEffect, useState, useRef, useImperativeHandle } from 'react'
+import { forwardRef, useCallback, useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
 import { commentsViewedAfterComment } from '../lib/new-comments'
 import { commentSchema } from '../lib/validate'
-import { quote } from '../lib/md'
 import { COMMENT_DEPTH_LIMIT } from '../lib/constants'
 import { useToast } from './toast'
 import { toastDeleteScheduled } from '../lib/form'
@@ -30,68 +29,18 @@ export function ReplyOnAnotherPage ({ item }) {
   )
 }
 
-export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children, placeholder, contentContainerRef }, ref) {
-  const [reply, setReply] = useState(replyOpen)
+export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children, placeholder, onQuoteReply, onCancelQuote, quote }, ref) {
+  const [reply, setReply] = useState(replyOpen || quote)
   const me = useMe()
   const parentId = item.id
   const replyInput = useRef(null)
-  const formInnerRef = useRef()
   const toaster = useToast()
 
-  // Start block to handle iOS Safari's weird selection clearing behavior
-  const savedRange = useRef()
-  const savedRangeNode = useRef()
-  const onTouchEnd = useCallback(() => {
-    const selection = document.getSelection()
-    if (!selection || selection.rangeCount === 0 || selection.getRangeAt(0).length === 0) {
-      return
-    }
-    const range = selection.getRangeAt(0)
-    savedRangeNode.current = range.commonAncestorContainer
-    savedRange.current = range.cloneContents()
-  }, [])
   useEffect(() => {
-    document.addEventListener('touchend', onTouchEnd)
-    return () => document.removeEventListener('touchend', onTouchEnd)
-  }, [])
-  // End block to handle iOS Safari's weird selection clearing behavior
-
-  useImperativeHandle(ref, () => ({
-    quoteReply: ({ selectionOnly }) => {
-      if (!reply) {
-        setReply(true)
-      }
-      const selection = window.getSelection()
-      let selectedText = selection.isCollapsed ? undefined : selection.toString()
-      let isSelectedTextInTarget = contentContainerRef?.current?.contains(selection.anchorNode)
-
-      // Start block to handle iOS Safari's weird selection clearing behavior
-      if (!selectedText && savedRange.current && savedRangeNode.current) {
-        selectedText = savedRange.current.textContent
-        isSelectedTextInTarget = contentContainerRef?.current?.contains(savedRangeNode.current)
-      }
-      // End block to handle iOS Safari's weird selection clearing behavior
-
-      if ((selection.isCollapsed || !isSelectedTextInTarget || !selectedText) && selectionOnly) return
-      const textToQuote = isSelectedTextInTarget ? selectedText : item.text
-      let updatedValue
-      if (formInnerRef.current && formInnerRef.current.values && !formInnerRef.current.values.text) {
-        updatedValue = quote(textToQuote)
-      } else if (formInnerRef.current?.values?.text) {
-        // append quote reply text if the input already has content
-        updatedValue = `${replyInput.current.value}\n${quote(textToQuote)}`
-      }
-      if (updatedValue) {
-        replyInput.current.value = updatedValue
-        formInnerRef.current.setValues({ text: updatedValue })
-        window.localStorage.setItem(`reply-${parentId}-text`, updatedValue)
-      }
+    if (replyOpen || quote || !!window.localStorage.getItem('reply-' + parentId + '-' + 'text')) {
+      setReply(true)
     }
-  }), [reply, item])
-
-  useEffect(() => {
-    setReply(replyOpen || !!window.localStorage.getItem('reply-' + parentId + '-' + 'text'))
-  }, [])
+  }, [replyOpen, quote, parentId])
 
   const [upsertComment] = useMutation(
     gql`
@@ -160,12 +109,17 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
         : (
           <div className={styles.replyButtons}>
             <div
-              className='pe-3' onPointerDown={e => {
-                if (!reply) {
+              className='pe-3'
+              onPointerDown={e => {
+                if (reply) {
+                  window.localStorage.removeItem('reply-' + parentId + '-' + 'text')
+                  setReply(false)
+                  onCancelQuote?.()
+                } else {
                   e.preventDefault()
-                  ref?.current?.quoteReply({ selectionOnly: true })
+                  onQuoteReply({ selectionOnly: true })
+                  setReply(true)
                 }
-                setReply(!reply)
               }}
             >
               {reply ? 'cancel' : 'reply'}
@@ -187,15 +141,14 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
               invoiceable
               onSubmit={onSubmit}
               storageKeyPrefix={`reply-${parentId}`}
-              innerRef={formInnerRef}
             >
               <MarkdownInput
                 name='text'
                 minRows={6}
                 autoFocus={!replyOpen}
                 required
+                appendValue={quote}
                 placeholder={placeholder}
-                innerRef={replyInput}
               />
               <ItemButtonBar createText='reply' hasCancel={false} />
             </Form>

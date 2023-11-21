@@ -21,6 +21,7 @@ import ItemInfo from './item-info'
 import Badge from 'react-bootstrap/Badge'
 import { RootProvider, useRoot } from './root'
 import { useMe } from './me'
+import { useQuoteReply } from './use-quote-reply'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -108,6 +109,7 @@ export default function Comment ({
   const router = useRouter()
   const root = useRoot()
   const [pendingSats, setPendingSats] = useState(0)
+  const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text })
 
   useEffect(() => {
     setCollapse(window.localStorage.getItem(`commentCollapse:${item.id}`) || collapse)
@@ -136,8 +138,6 @@ export default function Comment ({
       ? 'fwd'
       : null
   const bountyPaid = root.bountyPaidTo?.includes(Number(item.id))
-  const replyRef = useRef()
-  const contentContainerRef = useRef()
 
   return (
     <div
@@ -167,7 +167,7 @@ export default function Comment ({
                   commentTextSingular='reply'
                   className={`${itemStyles.other} ${styles.other}`}
                   embellishUser={op && <><span> </span><Badge bg={op === 'fwd' ? 'secondary' : 'boost'} className={`${styles.op} bg-opacity-75`}>{op}</Badge></>}
-                  onQuoteReply={replyRef?.current?.quoteReply}
+                  onQuoteReply={quoteReply}
                   extraInfo={
                     <>
                       {includeParent && <Parent item={item} rootText={rootText} />}
@@ -210,7 +210,7 @@ export default function Comment ({
               />
               )
             : (
-              <div className={styles.text} ref={contentContainerRef}>
+              <div className={styles.text} ref={textRef}>
                 {item.searchText
                   ? <SearchText text={item.searchText} />
                   : (
@@ -227,7 +227,7 @@ export default function Comment ({
           : (
             <div className={styles.children}>
               {!noReply &&
-                <Reply depth={depth + 1} item={item} replyOpen={replyOpen} ref={replyRef} contentContainerRef={contentContainerRef}>
+                <Reply depth={depth + 1} item={item} replyOpen={replyOpen} onCancelQuote={cancelQuote} onQuoteReply={quoteReply} quote={quote}>
                   {root.bounty && !bountyPaid && <PayBounty item={item} />}
                 </Reply>}
               {children}

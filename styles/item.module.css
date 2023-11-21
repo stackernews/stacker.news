@@ -36,6 +36,19 @@
     position: relative;
 }
 
+.youtubeContainerContainer {
+    max-width: 640px;
+    padding-right: 15px;
+}
+
+.twitterContainer:not(:first-child) {
+    margin-top: .75rem;
+}
+
+.youtubeContainerContainer:not(:first-child) {
+    margin-top: .75rem;
+}
+
 .twitterContainer iframe {
     border-radius: 12px;
 }

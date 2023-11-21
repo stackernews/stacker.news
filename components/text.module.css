@@ -73,11 +73,13 @@
     display: block;
     margin-top: .5rem;
     margin-bottom: .5rem;
-    border-radius: .4rem;
     width: auto;
     max-width: 100%;
     cursor: zoom-in;
     max-height: 25vh;
+    object-fit: contain;
+    object-position: left top;
+    min-width: 40vw;
 }
 
 .text img.topLevel {

@@ -128,7 +128,7 @@ gql`
 
 export const USER_SUGGESTIONS =
 gql`
-  query userSuggestions($q: String!, $limit: Int) {
+  query userSuggestions($q: String!, $limit: Limit) {
     userSuggestions(q: $q, limit: $limit) {
       name
     }
@@ -136,7 +136,7 @@ gql`
 
 export const USER_SEARCH =
 gql`
-  query searchUsers($q: String!, $limit: Int, $similarity: Float) {
+  query searchUsers($q: String!, $limit: Limit, $similarity: Float) {
     searchUsers(q: $q, limit: $limit, similarity: $similarity) {
       id
       name
@@ -173,8 +173,8 @@ export const USER_FIELDS = gql`
   }`
 
 export const TOP_USERS = gql`
-  query TopUsers($cursor: String, $when: String, $from: String, $to: String, $by: String, $limit: Int) {
-    topUsers(cursor: $cursor, when: $when, from: $from, to: $to, by: $by, limit: $limit) {
+  query TopUsers($cursor: String, $when: String, $from: String, $to: String, $by: String, ) {
+    topUsers(cursor: $cursor, when: $when, from: $from, to: $to, by: $by) {
       users {
         id
         name
@@ -244,7 +244,7 @@ export const USER_WITH_ITEMS = gql`
   ${USER_FIELDS}
   ${ITEM_FIELDS}
   ${COMMENTS_ITEM_EXT_FIELDS}
-  query UserWithItems($name: String!, $sub: String, $cursor: String, $type: String, $when: String, $from: String, $to: String, $by: String, $limit: Int, $includeComments: Boolean = false) {
+  query UserWithItems($name: String!, $sub: String, $cursor: String, $type: String, $when: String, $from: String, $to: String, $by: String, $limit: Limit, $includeComments: Boolean = false) {
     user(name: $name) {
       ...UserFields
     }

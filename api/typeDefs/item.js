@@ -2,11 +2,11 @@ import { gql } from 'graphql-tag'
 
 export default gql`
   extend type Query {
-    items(sub: String, sort: String, type: String, cursor: String, name: String, when: String, from: String, to: String, by: String, limit: Int): Items
+    items(sub: String, sort: String, type: String, cursor: String, name: String, when: String, from: String, to: String, by: String, limit: Limit): Items
     item(id: ID!): Item
     pageTitleAndUnshorted(url: String!): TitleUnshorted
     dupes(url: String!): [Item!]
-    related(cursor: String, title: String, id: ID, minMatch: String, limit: Int): Items
+    related(cursor: String, title: String, id: ID, minMatch: String, limit: Limit): Items
     search(q: String, sub: String, cursor: String, what: String, sort: String, when: String, from: String, to: String): Items
     auctionPosition(sub: String, id: ID, bid: Int!): Int!
     itemRepetition(parentId: ID): Int!

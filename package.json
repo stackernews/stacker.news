@@ -36,6 +36,7 @@
     "formik": "^2.4.5",
     "github-slugger": "^2.0.0",
     "graphql": "^16.8.1",
+    "graphql-scalar": "^0.1.0",
     "graphql-tag": "^2.12.6",
     "graphql-type-json": "^0.3.2",
     "ln-service": "^57.0.1",

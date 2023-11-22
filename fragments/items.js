@@ -140,7 +140,7 @@ export const ITEM_FULL = gql`
 
 export const RELATED_ITEMS = gql`
   ${ITEM_FIELDS}
-  query Related($title: String, $id: ID, $cursor: String, $limit: Int) {
+  query Related($title: String, $id: ID, $cursor: String, $limit: Limit) {
     related(title: $title, id: $id, cursor: $cursor, limit: $limit) {
       cursor
       items {
@@ -152,7 +152,7 @@ export const RELATED_ITEMS = gql`
 
 export const RELATED_ITEMS_WITH_ITEM = gql`
   ${ITEM_FIELDS}
-  query Related($title: String, $id: ID, $cursor: String, $limit: Int) {
+  query Related($title: String, $id: ID!, $cursor: String, $limit: Limit) {
     item(id: $id) {
       ...ItemFields
     }

@@ -83,7 +83,22 @@ export default {
             '"ThreadSubscription"."userId" = $1',
             '"Item"."userId" <> $1',
             '"Item".created_at >= "ThreadSubscription".created_at',
-            '"Item"."parentId" IS NOT NULL'
+            '"Item"."parentId" IS NOT NULL',
+            '"ThreadSubscription"."mode" = true',
+            `"Item"."id" NOT IN (
+              SELECT "Item".id
+                FROM "ThreadSubscription"
+                JOIN "Item" p ON "ThreadSubscription"."itemId" = p.id
+                JOIN "Item" ON ${meFull.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
+                ${whereClause(
+                  '"ThreadSubscription"."userId" = $1',
+                  '"Item"."userId" <> $1',
+                  '"Item".created_at >= "ThreadSubscription".created_at',
+                  '"Item"."parentId" IS NOT NULL',
+                  '"ThreadSubscription"."mode" = false'
+                )}
+                ORDER BY "Item".created_at DESC
+            )`
           )}
           ORDER BY "sortTime" DESC
           LIMIT ${LIMIT}+$3`

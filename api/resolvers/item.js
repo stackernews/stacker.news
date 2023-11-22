@@ -141,14 +141,17 @@ async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ...args) 
       SELECT "Item".*, to_jsonb(users.*) || jsonb_build_object('meMute', "Mute"."mutedId" IS NOT NULL) as user,
         COALESCE("ItemAct"."meMsats", 0) as "meMsats",
         COALESCE("ItemAct"."meDontLike", false) as "meDontLike", b."itemId" IS NOT NULL AS "meBookmark",
-        "ThreadSubscription"."itemId" IS NOT NULL AS "meSubscription", "ItemForward"."itemId" IS NOT NULL AS "meForward"
+        ts1."itemId" IS NOT NULL AS "meSubscription",
+        ts2."itemId" IS NOT NULL AS "meUnsubscription",
+        "ItemForward"."itemId" IS NOT NULL AS "meForward"
       FROM (
         ${query}
       ) "Item"
       JOIN users ON "Item"."userId" = users.id
       LEFT JOIN "Mute" ON "Mute"."muterId" = ${me.id} AND "Mute"."mutedId" = "Item"."userId"
       LEFT JOIN "Bookmark" b ON b."itemId" = "Item".id AND b."userId" = ${me.id}
-      LEFT JOIN "ThreadSubscription" ON "ThreadSubscription"."itemId" = "Item".id AND "ThreadSubscription"."userId" = ${me.id}
+      LEFT JOIN "ThreadSubscription" ts1 ON ts1."itemId" = "Item".id AND ts1."userId" = ${me.id} AND ts1."mode" = true
+      LEFT JOIN "ThreadSubscription" ts2 ON ts2."itemId" = "Item".id AND ts2."userId" = ${me.id} AND ts2."mode" = false
       LEFT JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id AND "ItemForward"."userId" = ${me.id}
       LEFT JOIN LATERAL (
         SELECT "itemId", sum("ItemAct".msats) FILTER (WHERE act = 'FEE' OR act = 'TIP') AS "meMsats",
@@ -641,10 +644,19 @@ export default {
     },
     subscribeItem: async (parent, { id }, { me, models }) => {
       const data = { itemId: Number(id), userId: me.id }
-      const old = await models.threadSubscription.findUnique({ where: { userId_itemId: data } })
+      const old = await models.threadSubscription.findUnique({ where: { userId_itemId: data, mode: true } })
       if (old) {
         await models.threadSubscription.delete({ where: { userId_itemId: data } })
       } else await models.threadSubscription.create({ data })
+      return { id }
+    },
+    unsubscribeItem: async (parent, { id }, { me, models }) => {
+      const data = { itemId: Number(id), userId: me.id }
+      const dataExt = { ...data, mode: false }
+      const old = await models.threadSubscription.findUnique({ where: { userId_itemId: data, mode: false } })
+      if (old) {
+        await models.threadSubscription.delete({ where: { userId_itemId: data, mode: false } })
+      } else await models.threadSubscription.create({ data: dataExt })
       return { id }
     },
     deleteItem: async (parent, { id }, { me, models }) => {
@@ -964,11 +976,28 @@ export default {
           userId_itemId: {
             itemId: Number(item.id),
             userId: me.id
-          }
+          },
+          mode: true
         }
       })
 
       return !!subscription
+    },
+    meUnsubscription: async (item, args, { me, models }) => {
+      if (!me) return false
+      if (typeof item.meUnsubscription !== 'undefined') return item.meUnsubscription
+
+      const unsubscription = await models.threadSubscription.findUnique({
+        where: {
+          userId_itemId: {
+            itemId: Number(item.id),
+            userId: me.id
+          },
+          mode: false
+        }
+      })
+
+      return !!unsubscription
     },
     outlawed: async (item, args, { me, models }) => {
       if (me && Number(item.userId) === Number(me.id)) {

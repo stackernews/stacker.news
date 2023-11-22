@@ -3,10 +3,12 @@ import Dropdown from 'react-bootstrap/Dropdown'
 import { ITEM } from '../fragments/items'
 import { useRouter } from 'next/router'
 import { gql, useQuery, useMutation } from '@apollo/client'
+import { useToast } from './toast'
 
 export default function CrosspostDropdownItem ({ item }) {
   const { data } = useQuery(ITEM, { variables: { id: item.id } })
   const router = useRouter()
+  const toaster = useToast()
 
   const [upsertNoteId] = useMutation(
     gql`
@@ -26,28 +28,32 @@ export default function CrosspostDropdownItem ({ item }) {
         onClick={async () => {
           try {
             if (!(await window.nostr.getPublicKey())) {
-              throw new Error('not available')
+              throw new Error('not available');
             }
           } catch (e) {
-            throw new Error(`Nostr extension error: ${e.message}`)
+            toaster.danger(`Nostr extension error: ${e.message}`);
+            return;
           }
-
+          
           try {
             if (item?.id) {
-              const crosspostResult = await crossposter({ ...data.item })
-              const noteId = crosspostResult?.noteId
+              const crosspostResult = await crossposter({ ...data.item });
+              const noteId = crosspostResult?.noteId;
               if (noteId) {
                 await upsertNoteId({
                   variables: {
                     id: item.id,
-                    noteId
-                  }
-                })
+                    noteId,
+                  },
+                });
               }
-              await router.push(`/items/${item.id}`)
+              toaster.success('Crosspost successful');
+            } else {
+              toaster.warning('Item ID not available');
             }
           } catch (e) {
-            console.error(e)
+            console.error(e);
+            toaster.danger('Crosspost failed');
           }
         }}
       >

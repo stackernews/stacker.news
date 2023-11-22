@@ -320,7 +320,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
           <UserSuggest
             query={mention?.query}
             onSelect={insertMention}
-            dropdownStyle={mention?.userSuggestDropdownStyle}
+            dropdownStyle={mention?.style}
           >{({ onKeyDown: userSuggestOnKeyDown, resetSuggestions }) => (
             <InputInner
               innerRef={innerRef}

@@ -1,0 +1,301 @@
+/* Base Styles */
+body {
+  height: 100vh;
+  background-color: #000;
+  font-family: Overpass, sans-serif;
+}
+
+/* Font Faces */
+@font-face {
+  font-family: 'Volt';
+  src: url('https://stacker.news/Lightningvolt-xoqm.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Navigation Bar */
+.nav-bar {
+  z-index: 1;
+  height: 60px;
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between; 
+}
+
+/* Logo Styling */
+.logo {
+  color: #ffcc02;
+  margin-top: 0;
+  margin-bottom: 0;
+  font-family: Volt, sans-serif;
+  font-size: 36px;
+  line-height: 36px;
+}
+
+/* Button Styling */
+.buttons {
+  grid-column-gap: 10px;
+  grid-row-gap: 10px;
+  display: flex;
+}
+
+/* Button Styling Reset and Redefinition */
+.button, .button-secondary {
+  color: #000;
+  background-color: transparent;
+  background-image: linear-gradient(to bottom, #fc0, rgba(255, 204, 0, .8));
+  border-radius: 10px;
+  font-family: Lato, sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  padding: 9px 15px; 
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  cursor: pointer;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+.button-secondary {
+  color: #c4c4c4;
+  background-image: linear-gradient(to bottom, #000, rgba(196, 196, 196, .20));
+  border: 2px solid #c4c4c4;
+  padding: 7px 13px; 
+}
+
+/* Hero Section */
+.hero {
+  z-index: 1;
+  height: calc(100vh - 60px); 
+  max-width: 940px; 
+  margin-left: auto; 
+  margin-right: auto; 
+  display: flex;
+  flex-direction: column;
+  gap: 80px; 
+  position: relative;
+}
+
+/* Main Heading */
+.main-heading {
+  color: #fff;
+  text-align: center;
+  font-family: Overpass, sans-serif;
+  font-size: 72px;
+  font-weight: 700;
+  line-height: 72px;
+  margin-bottom: 10px;
+  background-image: linear-gradient(#fff, #c4c4c4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Sub Heading */
+.sub-heading {
+  color: #c4c4c4;
+  text-align: center;
+  font-family: Overpass, sans-serif;
+  font-size: 22px;
+  font-weight: 200;
+  line-height: 30px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+/* Email Subscription Form */
+.email-div-block {
+  display: flex;
+  justify-content: center;
+}
+
+.form {
+  display: flex;
+  gap: 10px;
+}
+
+.form .button {
+  border: none;
+  box-shadow: none;
+  margin: 0px;
+}
+
+.text-field {
+  width: 200px;
+  border-radius: 8px;
+  margin-bottom: 0;
+  font-family: 'Lato', sans-serif; 
+  font-size: 14px;
+  padding-left: 10px;
+  border: none;
+}
+
+/* Stats Section */
+.stats-div-block {
+  display: flex;
+  margin: 10px auto;
+  padding: 0;
+  gap: 20px;
+}
+
+.stat-description-div-block {
+  text-align: center;
+  background-image: linear-gradient(45deg, rgba(255, 204, 2, .33), rgba(234, 119, 4, .33));
+  border: 1px solid rgba(255, 204, 2, .15);
+  border-radius: 10px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-div-block {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.stat-text-block, .description-text-block {
+  color: #fff;
+  font-family: Lato, sans-serif;
+  line-height: 32px;
+  margin: 0;
+}
+
+.stat-text-block {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.description-text-block {
+  font-size: 20px;
+  font-weight: 200;
+}
+
+.stat-button {
+  color: #000;
+  background-color: transparent;
+  background-image: linear-gradient(#0f6, rgba(0, 255, 102, .8));
+  border-radius: 10px;
+  padding: 5px 10px;
+  font-family: Lato, sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Div Block with Radial Gradients */
+.gradient {
+  z-index: 0;
+  background-image: 
+    radial-gradient(circle closest-corner at 50% 66%, rgba(255, 205, 0, .1), rgba(255, 255, 255, 0)), 
+    radial-gradient(circle farthest-side at 50% 33%, rgba(255, 145, 0, .1), rgba(255, 255, 255, 0));
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+/* Explore Div Block */
+.explore-div-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.explore-sub-heading {
+  color: #c4c4c4;
+  text-align: center;
+  font-family: Overpass, sans-serif;
+  font-size: 22px;
+  font-weight: 200;
+  line-height: 30px;
+  margin-bottom: 0px;
+}
+
+/* Responsive Design */
+@media screen and (max-width: 991px) {
+  body {
+    padding-left: 10px; 
+    padding-right: 10px; 
+  }
+
+  .hero {
+    gap: 50px;
+  }
+
+  .main-heading {
+    font-size: 48px;
+    line-height: 60px;
+  }
+
+  .explore-sub-heading {
+    font-size: 18px;
+    line-height: 24px;
+  }
+
+  .description-text-block {
+    font-size: 16px;
+    line-height: 24px;
+  }
+
+  .stat-text-block {
+    font-size: 24px;
+    font-weight: 700;
+  }
+
+  .stat-button {
+    font-size: 14px;
+    font-weight: 700;
+  }
+}
+
+@media screen and (max-width: 767px) {
+
+  .hide-on-mobile {
+      display: none;
+  }
+
+  .stat-description-div-block {
+    width: 270px;
+    padding: 10px 20px;
+  }
+
+  .explore-sub-heading {
+    padding-top: 0px;
+    padding-bottom: 0px;
+    margin-top: 0px;
+    margin-bottom: 0px;
+  }
+}
+
+@media screen and (max-width: 479px) {
+
+  .description-text-block {
+    font-size: 16px;
+  }
+
+  .stats-div-block {
+    width: 100%;
+  }
+
+  .stat-description-div-block {
+    width: 100%; 
+    padding: 10px 20px; 
+    box-sizing: border-box;
+  }
+
+  .explore-sub-heading {
+    font-size: 16px;
+  }
+}

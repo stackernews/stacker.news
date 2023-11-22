@@ -1,13 +1,11 @@
 import useCrossposter from './use-crossposter'
 import Dropdown from 'react-bootstrap/Dropdown'
 import { ITEM } from '../fragments/items'
-import { useRouter } from 'next/router'
 import { gql, useQuery, useMutation } from '@apollo/client'
 import { useToast } from './toast'
 
 export default function CrosspostDropdownItem ({ item }) {
   const { data } = useQuery(ITEM, { variables: { id: item.id } })
-  const router = useRouter()
   const toaster = useToast()
 
   const [upsertNoteId] = useMutation(
@@ -28,32 +26,31 @@ export default function CrosspostDropdownItem ({ item }) {
         onClick={async () => {
           try {
             if (!(await window.nostr.getPublicKey())) {
-              throw new Error('not available');
+              throw new Error('not available')
             }
           } catch (e) {
-            toaster.danger(`Nostr extension error: ${e.message}`);
-            return;
+            toaster.danger(`Nostr extension error: ${e.message}`)
+            return
           }
-          
           try {
             if (item?.id) {
-              const crosspostResult = await crossposter({ ...data.item });
-              const noteId = crosspostResult?.noteId;
+              const crosspostResult = await crossposter({ ...data.item })
+              const noteId = crosspostResult?.noteId
               if (noteId) {
                 await upsertNoteId({
                   variables: {
                     id: item.id,
-                    noteId,
-                  },
-                });
+                    noteId
+                  }
+                })
               }
-              toaster.success('Crosspost successful');
+              toaster.success('Crosspost successful')
             } else {
-              toaster.warning('Item ID not available');
+              toaster.warning('Item ID not available')
             }
           } catch (e) {
-            console.error(e);
-            toaster.danger('Crosspost failed');
+            console.error(e)
+            toaster.danger('Crosspost failed')
           }
         }}
       >

@@ -26,6 +26,7 @@ import AnonIcon from '../svgs/spy-fill.svg'
 import Hat from './hat'
 import HiddenWalletSummary from './hidden-wallet-summary'
 import { clearNotifications } from '../lib/badge'
+import { useServiceWorker } from './serviceworker'
 
 function WalletSummary ({ me }) {
   if (!me) return null
@@ -84,6 +85,7 @@ function NotificationBell () {
 }
 
 function NavProfileMenu ({ me, dropNavKey }) {
+  const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
   return (
     <div className='position-relative'>
       <Dropdown className={styles.dropdown} align='end'>
@@ -122,7 +124,22 @@ function NavProfileMenu ({ me, dropNavKey }) {
             </Link>
           </div>
           <Dropdown.Divider />
-          <Dropdown.Item onClick={() => signOut({ callbackUrl: '/' })}>logout</Dropdown.Item>
+          <Dropdown.Item
+            onClick={async () => {
+              try {
+                // order is important because we need to be logged in to delete push subscription on server
+                const pushSubscription = await swRegistration?.pushManager.getSubscription()
+                if (pushSubscription) {
+                  await togglePushSubscription()
+                }
+              } catch (err) {
+                // don't prevent signout because of an unsubscription error
+                console.error(err)
+              }
+              await signOut({ callbackUrl: '/' })
+            }}
+          >logout
+          </Dropdown.Item>
         </Dropdown.Menu>
       </Dropdown>
       {!me.bioId &&

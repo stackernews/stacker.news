@@ -7,6 +7,7 @@ import AdvPostForm, { AdvPostInitial } from './adv-post-form'
 import { ITEM_FIELDS } from '../fragments/items'
 import Item from './item'
 import AccordianItem from './accordian-item'
+import { useFeeButton, uppercaseTitleFeeHandler } from './fee-button'
 import { linkSchema } from '../lib/validate'
 import Moon from '../svgs/moon-fill.svg'
 import { SubSelectInitial } from './sub-select-form'
@@ -118,6 +119,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
 
   const [postDisabled, setPostDisabled] = useState(false)
   const [titleOverride, setTitleOverride] = useState()
+  const feeButton = useFeeButton()
 
   return (
     <Form
@@ -145,10 +147,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
             getRelated({
               variables: { title: e.target.value }
             })
-          }
-          if (e.target.value === e.target.value.toUpperCase()) {
-            setTitleOverride(e.target.value.replace(/\w\S*/g, txt =>
-              txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()))
+            uppercaseTitleFeeHandler(feeButton, e.target.value, item)
           }
         }}
         maxLength={MAX_TITLE_LENGTH}

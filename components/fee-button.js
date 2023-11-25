@@ -4,13 +4,14 @@ import ActionTooltip from './action-tooltip'
 import Info from './info'
 import styles from './fee-button.module.css'
 import { gql, useQuery } from '@apollo/client'
-import { FREEBIE_BASE_COST_THRESHOLD, SSR } from '../lib/constants'
+import { SSR, UPPER_CHARS_TITLE_FEE_MULT, FREEBIE_BASE_COST_THRESHOLD } from '../lib/constants'
 import { numWithUnits } from '../lib/format'
 import { useMe } from './me'
 import AnonIcon from '../svgs/spy-fill.svg'
 import { useShowModal } from './modal'
 import Link from 'next/link'
 import { SubmitButton } from './form'
+import { titleExceedsFreeUppercase } from '../lib/item'
 
 const FeeButtonContext = createContext()
 
@@ -81,7 +82,19 @@ export function FeeButtonProvider ({ baseLineItems = {}, useRemoteLineItems = ()
     return {
       lines,
       merge: mergeLineItems,
-      total: Object.values(lines).reduce((acc, { modifier }) => modifier(acc), 0),
+      total: Object.entries(lines)
+        .sort(([keyA], [keyB]) => {
+          // boost and image uploads comes last, so they don't get multiplied by any multipliers
+          if (['boost', 'imageFee'].includes(keyB)) {
+            return -1
+          }
+          if (['boost', 'imageFee'].includes(keyA)) {
+            return 1
+          }
+          return 0
+        })
+        .map(entry => entry[1])
+        .reduce((acc, { modifier }) => modifier(acc), 0),
       disabled,
       setDisabled
     }
@@ -133,6 +146,35 @@ export default function FeeButton ({ ChildButton = SubmitButton, variant, text, 
        (total > 1 && <Info><Receipt lines={lines} total={total} /></Info>)}
     </div>
   )
+}
+
+export const uppercaseTitleFeeHandler = (feeButtonHook, title, item) => {
+  const { freebie, sub } = item ?? {}
+  const tooManyUppercase = !item?.hasPaidUpperTitleFee && titleExceedsFreeUppercase({ title })
+  feeButtonHook.merge({
+    uppercaseTitle: {
+      term: (() => {
+        if (freebie) {
+          return `+ ${numWithUnits(UPPER_CHARS_TITLE_FEE_MULT * sub.baseCost)}`
+        }
+        if (item) {
+          return `+ ${numWithUnits((UPPER_CHARS_TITLE_FEE_MULT - 1) * sub.baseCost)}`
+        }
+        return `x ${UPPER_CHARS_TITLE_FEE_MULT}`
+      })(),
+      label: 'uppercase title mult',
+      modifier: cost => {
+        if (freebie) {
+          return cost + (tooManyUppercase ? UPPER_CHARS_TITLE_FEE_MULT * sub.baseCost : 0)
+        }
+        if (item) {
+          return cost + (tooManyUppercase ? (UPPER_CHARS_TITLE_FEE_MULT - 1) * sub.baseCost : 0)
+        }
+        return cost * (tooManyUppercase ? UPPER_CHARS_TITLE_FEE_MULT : 1)
+      },
+      omit: !tooManyUppercase
+    }
+  })
 }
 
 function Receipt ({ lines, total }) {

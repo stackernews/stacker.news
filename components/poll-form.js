@@ -4,6 +4,7 @@ import { gql, useApolloClient, useMutation } from '@apollo/client'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
 import { MAX_POLL_CHOICE_LENGTH, MAX_POLL_NUM_CHOICES, MAX_TITLE_LENGTH } from '../lib/constants'
+import { useFeeButton, uppercaseTitleFeeHandler } from './fee-button'
 import { pollSchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select-form'
 import { useCallback } from 'react'
@@ -59,6 +60,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
   )
 
   const initialOptions = item?.poll?.options.map(i => i.option)
+  const feeButton = useFeeButton()
 
   return (
     <Form
@@ -80,6 +82,11 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         name='title'
         required
         maxLength={MAX_TITLE_LENGTH}
+        onChange={async (formik, e) => {
+          if (e.target.value) {
+            uppercaseTitleFeeHandler(feeButton, e.target.value, item)
+          }
+        }}
       />
       <MarkdownInput
         topLevel

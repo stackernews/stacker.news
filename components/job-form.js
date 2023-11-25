@@ -16,6 +16,7 @@ import { usePrice } from './price'
 import Avatar from './avatar'
 import { jobSchema } from '../lib/validate'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
+import { useFeeButton, uppercaseTitleFeeHandler } from './fee-button'
 import { useToast } from './toast'
 import { toastDeleteScheduled } from '../lib/form'
 import { ItemButtonBar } from './post'
@@ -85,6 +86,7 @@ export default function JobForm ({ item, sub }) {
       toastDeleteScheduled(toaster, data, !!item, values.text)
     }, [upsertJob, router, logoId]
   )
+  const feeButton = useFeeButton()
 
   return (
     <>
@@ -122,6 +124,11 @@ export default function JobForm ({ item, sub }) {
           autoFocus
           clear
           maxLength={MAX_TITLE_LENGTH}
+          onChange={async (formik, e) => {
+            if (e.target.value) {
+              uppercaseTitleFeeHandler(feeButton, e.target.value, item)
+            }
+          }}
         />
         <Input
           label='company'

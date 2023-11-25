@@ -55,9 +55,10 @@ export default function AdvPostForm ({ children }) {
             name='boost'
             onChange={(_, e) => merge({
               boost: {
-                term: `+ ${e.target.value}`,
+                term: `+ ${numWithUnits(e.target.value, { abbreviate: false, format: true })}`,
                 label: 'boost',
-                modifier: cost => cost + Number(e.target.value)
+                modifier: cost => cost + Number(e.target.value),
+                omit: !Number(e.target.value)
               }
             })}
             hint={<span className='text-muted'>ranks posts higher temporarily based on the amount</span>}

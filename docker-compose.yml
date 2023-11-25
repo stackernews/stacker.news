@@ -39,7 +39,7 @@ services:
       db:
         condition: service_started
       app:
-        condition: service_healthy
+        condition: service_started
     env_file:
       - ./.env.sample
     ports:

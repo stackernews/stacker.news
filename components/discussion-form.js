@@ -3,6 +3,7 @@ import { useRouter } from 'next/router'
 import { gql, useApolloClient, useLazyQuery, useMutation } from '@apollo/client'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
+import { useFeeButton, uppercaseTitleFeeHandler } from './fee-button'
 import { ITEM_FIELDS } from '../fragments/items'
 import AccordianItem from './accordian-item'
 import Item from './item'
@@ -93,6 +94,7 @@ export function DiscussionForm ({
     }`)
 
   const related = relatedData?.related?.items || []
+  const feeButton = useFeeButton()
 
   return (
     <Form
@@ -120,6 +122,7 @@ export function DiscussionForm ({
             getRelated({
               variables: { title: e.target.value }
             })
+            uppercaseTitleFeeHandler(feeButton, e.target.value, item)
           }
         }}
         maxLength={MAX_TITLE_LENGTH}

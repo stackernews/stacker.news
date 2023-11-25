@@ -48,6 +48,7 @@ export const ITEM_FIELDS = gql`
     uploadId
     mine
     imgproxyUrls
+    upperTitleFeePaid
   }`
 
 export const ITEM_FULL_FIELDS = gql`
@@ -68,6 +69,9 @@ export const ITEM_FULL_FIELDS = gql`
           streak
         }
       }
+    }
+    sub {
+      baseCost
     }
     forwards {
       userId

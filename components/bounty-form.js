@@ -3,6 +3,7 @@ import { useRouter } from 'next/router'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
+import { useFeeButton, uppercaseTitleFeeHandler } from './fee-button'
 import InputGroup from 'react-bootstrap/InputGroup'
 import { bountySchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select-form'
@@ -84,6 +85,7 @@ export function BountyForm ({
       toastDeleteScheduled(toaster, data, !!item, values.text)
     }, [upsertBounty, router]
   )
+  const feeButton = useFeeButton()
 
   return (
     <Form
@@ -110,6 +112,11 @@ export function BountyForm ({
         autoFocus
         clear
         maxLength={MAX_TITLE_LENGTH}
+        onChange={async (formik, e) => {
+          if (e.target.value) {
+            uppercaseTitleFeeHandler(feeButton, e.target.value, item)
+          }
+        }}
       />
       <Input
         label={bountyLabel} name='bounty' required

@@ -73,7 +73,7 @@ export default function Share ({ item }) {
           >
             copy link
           </Dropdown.Item>
-          {!item.noteId && isOP && (
+          {isOP && !item?.noteId && (
             <Dropdown.Item
               onClick={async () => {
                 try {

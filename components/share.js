@@ -20,8 +20,21 @@ const referrurl = (ipath, me) => {
 
 export default function Share ({ path, title, className = '' }) {
   const me = useMe()
+  const crossposter = useCrossposter()
   const toaster = useToast()
   const url = referrurl(path, me)
+
+  const isOP = item?.user?.id === me?.id;
+
+  const [upsertNoteId] = useMutation(
+    gql`
+      mutation upsertNoteId($id: ID!, $noteId: String!) {
+        upsertNoteId(id: $id, noteId: $noteId) {
+          id
+          noteId
+        }
+      }`
+  )
 
   return !SSR && navigator?.share
     ? (
@@ -62,6 +75,42 @@ export default function Share ({ path, title, className = '' }) {
           >
             copy link
           </Dropdown.Item>
+          {!item.noteId && isOP && (
+            <Dropdown.Item
+              onClick={async () => {
+                try {
+                  if (!(await window.nostr.getPublicKey())) {
+                    throw new Error('not available')
+                  }
+                } catch (e) {
+                  toaster.danger(`Nostr extension error: ${e.message}`)
+                  return
+                }
+                try {
+                  if (item?.id) {
+                    const crosspostResult = await crossposter({ ...item })
+                    const noteId = crosspostResult?.noteId
+                    if (noteId) {
+                      await upsertNoteId({
+                        variables: {
+                          id: item.id,
+                          noteId
+                        }
+                      })
+                    }
+                    toaster.success('Crosspost successful')
+                  } else {
+                    toaster.warning('Item ID not available')
+                  }
+                } catch (e) {
+                  console.error(e)
+                  toaster.danger('Crosspost failed')
+                }
+              }}
+              >
+              crosspost to nostr
+            </Dropdown.Item>
+          )}
         </Dropdown.Menu>
       </Dropdown>)
 }

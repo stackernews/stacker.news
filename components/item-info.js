@@ -18,7 +18,6 @@ import Hat from './hat'
 import { AD_USER_ID } from '../lib/constants'
 import ActionDropdown from './action-dropdown'
 import MuteDropdownItem from './mute'
-import CrosspostDropdownItem from './crosspost-item'
 
 export default function ItemInfo ({
   item, pendingSats, full, commentsText = 'comments',
@@ -145,7 +144,11 @@ export default function ItemInfo ({
           </Link>}
         {me && !item.meSats && !item.position &&
           !item.mine && !item.deletedAt && <DontLikeThisDropdownItem id={item.id} />}
-        {me && !item.pollCost && !item.url && !item.bounty && <CrosspostDropdownItem item={item} />}
+        {me && !item.pollCost && !item.url && !item.bounty && item?.noteId && (
+          <Dropdown.Item onClick={() => window.open(`https://nostr.band/${item.noteId}`, '_blank')}>
+            nostr note
+          </Dropdown.Item>
+        )}
         {item.mine && !item.position && !item.deletedAt && !item.bio &&
           <DeleteDropdownItem itemId={item.id} type={item.title ? 'post' : 'comment'} />}
         {me && !item.mine &&

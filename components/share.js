@@ -21,7 +21,7 @@ export default function Share ({ item }) {
   const toaster = useToast()
   const url = getShareUrl(item, me)
 
-  const isOP = item?.user?.id === me?.id;
+  const isOP = item?.user?.id === me?.id
 
   const [upsertNoteId] = useMutation(
     gql`
@@ -105,7 +105,7 @@ export default function Share ({ item }) {
                   toaster.danger('Crosspost failed')
                 }
               }}
-              >
+            >
               crosspost to nostr
             </Dropdown.Item>
           )}

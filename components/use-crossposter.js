@@ -23,7 +23,7 @@ async function discussionToEvent (item) {
 export default function useCrossposter () {
   const toast = useToast()
   const { data } = useQuery(SETTINGS)
-  const relays = [...DEFAULT_CROSSPOSTING_RELAYS, ...(data?.settings?.nostRelays || [])]
+  const relays = [...DEFAULT_CROSSPOSTING_RELAYS, ...(data?.settings?.nostrRelays || [])]
 
   const relayError = (failedRelays) => {
     return new Promise(resolve => {

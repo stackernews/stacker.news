@@ -188,14 +188,14 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
 
     let priorSpace = -1
     for (let i = selectionStart - 1; i >= 0; i--) {
-      if (/\s/.test(value[i])) {
+      if (/[^\w@]/.test(value[i])) {
         priorSpace = i
         break
       }
     }
     let nextSpace = value.length
     for (let i = selectionStart; i <= value.length; i++) {
-      if (/\b/.test(value[i])) {
+      if (/[^\w]/.test(value[i])) {
         nextSpace = i
         break
       }

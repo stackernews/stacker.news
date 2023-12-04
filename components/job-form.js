@@ -13,9 +13,12 @@ import { useLazyQuery, gql, useMutation } from '@apollo/client'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { usePrice } from './price'
+import useCrossposter from './use-crossposter'
+import { useMe } from './me'
 import Avatar from './avatar'
 import { jobSchema } from '../lib/validate'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
+import { DEFAULT_CROSSPOSTING_RELAYS } from '../lib/nostr'
 import { useToast } from './toast'
 import { toastDeleteScheduled } from '../lib/form'
 import { ItemButtonBar } from './post'
@@ -41,6 +44,8 @@ export default function JobForm ({ item, sub }) {
   const storageKeyPrefix = item ? undefined : `${sub.name}-job`
   const router = useRouter()
   const toaster = useToast()
+  const me = useMe()
+  const crossposter = useCrossposter()
   const [logoId, setLogoId] = useState(item?.uploadId)
   const [upsertJob] = useMutation(gql`
     mutation upsertJob($sub: String!, $id: ID, $title: String!, $company: String!, $location: String,
@@ -54,8 +59,18 @@ export default function JobForm ({ item, sub }) {
     }`
   )
 
+  const [upsertNoteId] = useMutation(
+    gql`
+      mutation upsertNoteId($id: ID!, $noteId: String!) {
+        upsertNoteId(id: $id, noteId: $noteId) {
+          id
+          noteId
+        }
+      }`
+  )
+
   const onSubmit = useCallback(
-    async ({ maxBid, start, stop, ...values }) => {
+    async ({ maxBid, start, stop, crosspost, ...values }) => {
       let status
       if (start) {
         status = 'ACTIVE'
@@ -75,6 +90,35 @@ export default function JobForm ({ item, sub }) {
       })
       if (error) {
         throw new Error({ message: error.toString() })
+      }
+
+      try {
+        if (crosspost && !(await window.nostr.getPublicKey())) {
+          throw new Error('not available')
+        }
+      } catch (e) {
+        throw new Error(`Nostr extension error: ${e.message}`)
+      }
+
+      let noteId = null
+      const jobId = data?.upsertJob?.id
+
+      try {
+        if (crosspost && jobId) {
+          const crosspostResult = await crossposter({ ...values, id: jobId })
+          noteId = crosspostResult?.noteId
+        }
+      } catch (e) {
+        console.error(e)
+      }
+
+      if (noteId) {
+        await upsertNoteId({
+          variables: {
+            id: jobId,
+            noteId
+          }
+        })
       }
 
       if (item) {
@@ -98,6 +142,7 @@ export default function JobForm ({ item, sub }) {
           text: item?.text || '',
           url: item?.url || '',
           maxBid: item?.maxBid || 0,
+          crosspost: me?.nostrCrossposting,
           stop: false,
           start: false
         }}
@@ -157,6 +202,27 @@ export default function JobForm ({ item, sub }) {
           required
           clear
         />
+        {me &&
+            <Checkbox
+              label={
+                <div className='d-flex align-items-center'>crosspost to nostr
+                  <Info>
+                    <ul className='fw-bold'>
+                      <li>crosspost this item to nostr</li>
+                      <li>requires NIP-07 extension for signing</li>
+                      <li>we use your NIP-05 relays if set</li>
+                      <li>otherwise we default to these relays:</li>
+                      <ul>
+                        {DEFAULT_CROSSPOSTING_RELAYS.map((relay, i) => (
+                          <li key={i}>{relay}</li>
+                        ))}
+                      </ul>
+                    </ul>
+                  </Info>
+                </div>
+            }
+              name='crosspost'
+            />}
         <PromoteJob item={item} sub={sub} />
         {item && <StatusControl item={item} />}
         <ItemButtonBar itemId={item?.id} canDelete={false} />

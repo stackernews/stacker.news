@@ -131,6 +131,7 @@ export function BountyForm ({
       initial={{
         title: item?.title || '',
         text: item?.text || '',
+        crosspost: me?.nostrCrossposting,
         bounty: item?.bounty || 1000,
         ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })

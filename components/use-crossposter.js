@@ -8,7 +8,7 @@ import { SETTINGS } from '../fragments/users'
 function determineItemType(item) {
   console.log('item in determineItemType', item)
   const typeMap = {
-    isJob: 'job',
+    company: 'job',
     url: 'link',
     bounty: 'bounty',
     options: 'poll'
@@ -91,11 +91,13 @@ async function jobToEvent (item) {
 
   return {
     created_at: createdAt,
-    kind: 30023,
+    kind: 30402,
     content: item.text,
     tags: [
       ['d', item.id.toString()],
       ['title', item.title],
+      ["location", item?.location || "remote"],
+      ["company", item.company],
       ['t', "job"],
       ['published_at', createdAt.toString()]
     ]
@@ -143,7 +145,7 @@ export default function useCrossposter () {
       case 'poll':
         return await pollToEvent(item);
       case 'job':
-        return null; // Or handle job case
+        return await jobToEvent(item)
       default:
         return null; // handle error
     }
@@ -155,6 +157,7 @@ export default function useCrossposter () {
     let noteId
 
     do {
+      console.log('item before item type', item)
       const itemType = determineItemType(item);
       console.log('itemType', itemType)
       const event = await handleEventCreation(itemType, item);

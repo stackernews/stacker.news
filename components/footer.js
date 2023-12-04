@@ -130,13 +130,20 @@ const AnalyticsPopover = (
 const LegalPopover = (
   <Popover>
     <Popover.Body style={{ fontWeight: 500, fontSize: '.9rem' }}>
-      <Link href='/tos' className='nav-link p-0 d-inline-flex'>
-        terms of service
-      </Link>
-      <span className='mx-2 text-muted'> \ </span>
-      <Link href='/privacy' className='nav-link p-0 d-inline-flex'>
-        privacy policy
-      </Link>
+      <div className='d-flex justify-content-center'>
+        <Link href='/tos' className='nav-link p-0 d-inline-flex'>
+          terms of service
+        </Link>
+        <span className='mx-2 text-muted'> \ </span>
+        <Link href='/privacy' className='nav-link p-0 d-inline-flex'>
+          privacy policy
+        </Link>
+      </div>
+      <div className='d-flex justify-content-center'>
+        <Link href='/copyright' className='nav-link p-0 d-inline-flex'>
+          copyright policy
+        </Link>
+      </div>
     </Popover.Body>
   </Popover>
 )

@@ -123,6 +123,10 @@ module.exports = withPlausibleProxy()({
         destination: '/items/338369'
       },
       {
+        source: '/copyright',
+        destination: '/items/338453'
+      },
+      {
         source: '/tos',
         destination: '/items/338393'
       },

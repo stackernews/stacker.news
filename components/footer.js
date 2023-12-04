@@ -127,6 +127,20 @@ const AnalyticsPopover = (
   </Popover>
 )
 
+const LegalPopover = (
+  <Popover>
+    <Popover.Body style={{ fontWeight: 500, fontSize: '.9rem' }}>
+      <Link href='/tos' className='nav-link p-0 d-inline-flex'>
+        terms of service
+      </Link>
+      <span className='mx-2 text-muted'> \ </span>
+      <Link href='/privacy' className='nav-link p-0 d-inline-flex'>
+        privacy policy
+      </Link>
+    </Popover.Body>
+  </Popover>
+)
+
 export default function Footer ({ links = true }) {
   const [darkMode, darkModeToggle] = useDarkMode()
 
@@ -209,9 +223,11 @@ export default function Footer ({ links = true }) {
                 changes
               </Link>
               <span className='mx-2 text-muted'> \ </span>
-              <Link href='/privacy' className='nav-link p-0 p-0 d-inline-flex'>
-                privacy
-              </Link>
+              <OverlayTrigger trigger='click' placement='top' overlay={LegalPopover} rootClose>
+                <div className='nav-link p-0 p-0 d-inline-flex' style={{ cursor: 'pointer' }}>
+                  legal
+                </div>
+              </OverlayTrigger>
             </div>
           </>}
         {process.env.NEXT_PUBLIC_LND_CONNECT_ADDRESS &&

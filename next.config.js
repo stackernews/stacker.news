@@ -120,7 +120,11 @@ module.exports = withPlausibleProxy()({
       },
       {
         source: '/privacy',
-        destination: '/items/76894'
+        destination: '/items/338369'
+      },
+      {
+        source: '/tos',
+        destination: '/items/338393'
       },
       {
         source: '/changes',

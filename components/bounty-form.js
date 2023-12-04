@@ -4,6 +4,7 @@ import { gql, useApolloClient, useMutation } from '@apollo/client'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
 import InputGroup from 'react-bootstrap/InputGroup'
+import useCrossposter from './use-crossposter'
 import { bountySchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select'
 import { useCallback } from 'react'
@@ -27,6 +28,7 @@ export function BountyForm ({
   const client = useApolloClient()
   const me = useMe()
   const toaster = useToast()
+  const crossposter = useCrossposter()
   const schema = bountySchema({ client, me, existingBoost: item?.boost })
   const [upsertBounty] = useMutation(
     gql`
@@ -59,8 +61,18 @@ export function BountyForm ({
     `
   )
 
+  const [upsertNoteId] = useMutation(
+    gql`
+      mutation upsertNoteId($id: ID!, $noteId: String!) {
+        upsertNoteId(id: $id, noteId: $noteId) {
+          id
+          noteId
+        }
+      }`
+  )
+
   const onSubmit = useCallback(
-    async ({ boost, bounty, ...values }) => {
+    async ({ boost, bounty, crosspost, ...values }) => {
       const { data, error } = await upsertBounty({
         variables: {
           sub: item?.subName || sub?.name,
@@ -73,6 +85,35 @@ export function BountyForm ({
       })
       if (error) {
         throw new Error({ message: error.toString() })
+      }
+
+      try {
+        if (crosspost && !(await window.nostr.getPublicKey())) {
+          throw new Error('not available')
+        }
+      } catch (e) {
+        throw new Error(`Nostr extension error: ${e.message}`)
+      }
+
+      let noteId = null
+      const bountyId = data?.upsertBounty?.id
+
+      try {
+        if (crosspost && bountyId) {
+          const crosspostResult = await crossposter({ ...values, id: bountyId })
+          noteId = crosspostResult?.noteId
+        }
+      } catch (e) {
+        console.error(e)
+      }
+
+      if (noteId) {
+        await upsertNoteId({
+          variables: {
+            id: bountyId,
+            noteId
+          }
+        })
       }
 
       if (item) {

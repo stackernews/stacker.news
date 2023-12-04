@@ -93,7 +93,7 @@ export default function AdvPostForm ({ children }) {
               )
             }}
           </VariableInput>
-          {me && router.query.type === 'discussion' || router.query.type === 'link' || router.query.type === 'poll' &&
+          {me &&
             <Checkbox
               label={
                 <div className='d-flex align-items-center'>crosspost to nostr

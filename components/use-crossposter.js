@@ -69,6 +69,39 @@ async function pollToEvent (item) {
   }
 }
 
+async function bountyToEvent (item) {
+  const createdAt = Math.floor(Date.now() / 1000)
+
+  return {
+    created_at: createdAt,
+    kind: 30402,
+    content: item.text,
+    tags: [
+      ['d', item.id.toString()],
+      ['title', item.title],
+      ['reward', item.bounty.toString()],
+      ['t', "bounty"],
+      ['published_at', createdAt.toString()]
+    ]
+  }
+}
+
+async function jobToEvent (item) {
+  const createdAt = Math.floor(Date.now() / 1000)
+
+  return {
+    created_at: createdAt,
+    kind: 30023,
+    content: item.text,
+    tags: [
+      ['d', item.id.toString()],
+      ['title', item.title],
+      ['t', "job"],
+      ['published_at', createdAt.toString()]
+    ]
+  }
+}
+
 export default function useCrossposter () {
   const toast = useToast()
   const { data } = useQuery(SETTINGS)
@@ -106,7 +139,7 @@ export default function useCrossposter () {
       case 'link':
         return await linkToEvent(item);
       case 'bounty':
-        return null; // Or handle bounty case
+        return await bountyToEvent(item)
       case 'poll':
         return await pollToEvent(item);
       case 'job':

@@ -81,8 +81,18 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
       }`
   )
 
+  const [upsertNoteId] = useMutation(
+    gql`
+      mutation upsertNoteId($id: ID!, $noteId: String!) {
+        upsertNoteId(id: $id, noteId: $noteId) {
+          id
+          noteId
+        }
+      }`
+  )
+
   const onSubmit = useCallback(
-    async ({ boost, title, ...values }) => {
+    async ({ boost, crosspost, title, ...values }) => {
       const { data, error } = await upsertLink({
         variables: {
           sub: item?.subName || sub?.name,
@@ -105,26 +115,23 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
         throw new Error(`Nostr extension error: ${e.message}`)
       }
 
-      let eventId = null
+      let noteId = null
       const linkId = data?.upsertLink?.id
 
       try {
         if (crosspost && linkId) {
           const crosspostResult = await crossposter({ ...values, title: title, id: linkId })
-          eventId = crosspostResult?.eventId
+          noteId = crosspostResult?.noteId
         }
       } catch (e) {
         console.error(e)
       }
 
-      if (eventId) {
-        await upsertLink({
+      if (noteId) {
+        await upsertNoteId({
           variables: {
             id: linkId,
-            title: title.trim(),
-            ...values,
-            forward: normalizeForwards(values.forward),
-            noteId: eventId
+            noteId
           }
         })
       }

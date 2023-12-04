@@ -34,6 +34,16 @@ export function PollForm ({ item, sub, editThreshold, children }) {
       }`
   )
 
+  const [upsertNoteId] = useMutation(
+    gql`
+      mutation upsertNoteId($id: ID!, $noteId: String!) {
+        upsertNoteId(id: $id, noteId: $noteId) {
+          id
+          noteId
+        }
+      }`
+  )
+
   const onSubmit = useCallback(
     async ({ boost, title, options, crosspost, ...values }) => {
       const optionsFiltered = options.slice(initialOptions?.length).filter(word => word.trim().length > 0)
@@ -60,27 +70,23 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         throw new Error(`Nostr extension error: ${e.message}`)
       }
 
-      let eventId = null
+      let noteId = null
       const pollId = data?.upsertPoll?.id
 
       try {
         if (crosspost && pollId) {
           const crosspostResult = await crossposter({ ...values, options: options, title: title, id: pollId })
-          eventId = crosspostResult?.eventId
+          noteId = crosspostResult?.noteId
         }
       } catch (e) {
         console.error(e)
       }
 
-      if (eventId) {
-        await upsertPoll({
+      if (noteId) {
+        await upsertNoteId({
           variables: {
             id: pollId,
-            title: title.trim(),
-            options: optionsFiltered,
-            ...values,
-            forward: normalizeForwards(values.forward),
-            noteId: eventId
+            noteId
           }
         })
       }

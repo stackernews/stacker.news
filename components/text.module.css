@@ -3,6 +3,32 @@
     font-family: inherit;
     word-break: break-word;
     line-height: 140%;
+    overflow-y: hidden;
+    position: relative;
+}
+
+.textContained {
+    max-height: 200vh;
+}
+
+.textContained::before {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 50vh;
+    pointer-events: none;
+    z-index: 1;
+    background: linear-gradient(rgba(255, 255, 255, 0), var(--bs-body-bg) 200%);
+}
+
+.textShowFull {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    border-radius: 0;
+    z-index: 2;
 }
 
 @media screen and (min-width: 767px) {
@@ -47,6 +73,7 @@
 }
 
 .text .p {
+    display: block;
     margin-bottom: .5rem;
     white-space: pre-wrap;
     word-break: break-word;

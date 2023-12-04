@@ -6,7 +6,7 @@ import { LightAsync as SyntaxHighlighter } from 'react-syntax-highlighter'
 import atomDark from 'react-syntax-highlighter/dist/cjs/styles/prism/atom-dark'
 import mention from '../lib/remark-mention'
 import sub from '../lib/remark-sub'
-import React, { useState, memo, useRef, useCallback, useMemo } from 'react'
+import React, { useState, memo, useRef, useCallback, useMemo, useEffect } from 'react'
 import GithubSlugger from 'github-slugger'
 import LinkIcon from '../svgs/link.svg'
 import Thumb from '../svgs/thumb-up-fill.svg'
@@ -16,6 +16,7 @@ import ZoomableImage, { decodeOriginalUrl } from './image'
 import { IMGPROXY_URL_REGEXP } from '../lib/url'
 import reactStringReplace from 'react-string-replace'
 import { rehypeInlineCodeProperty } from '../lib/md'
+import { Button } from 'react-bootstrap'
 
 export function SearchText ({ text }) {
   return (
@@ -31,6 +32,17 @@ export function SearchText ({ text }) {
 
 // this is one of the slowest components to render
 export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, ...outerProps }) {
+  const [overflowing, setOverflowing] = useState(false)
+  const [show, setShow] = useState(false)
+  const containerRef = useRef(null)
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container || overflowing) return
+
+    setOverflowing(container.scrollHeight > window.innerHeight)
+  }, [containerRef.current])
+
   // all the reactStringReplace calls are to facilitate search highlighting
   const slugger = useRef(new GithubSlugger())
 
@@ -101,7 +113,7 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, ...o
   }, [imgproxyUrls, outerProps, tab])
 
   return (
-    <div className={styles.text}>
+    <div className={`${styles.text} ${overflowing && !show ? styles.textContained : ''}`} ref={containerRef}>
       <ReactMarkdown
         components={{
           h1: Heading,
@@ -155,6 +167,10 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, ...o
       >
         {children}
       </ReactMarkdown>
+      {overflowing && !show &&
+        <Button size='lg' variant='info' className={styles.textShowFull} onClick={() => setShow(true)}>
+          show full text
+        </Button>}
     </div>
   )
 })

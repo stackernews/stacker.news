@@ -8,7 +8,7 @@ import { SELECT } from './item'
 import { lnAddrOptions, lnurlPayDescriptionHash } from '../../lib/lnurl'
 import { msatsToSats, msatsToSatsDecimal } from '../../lib/format'
 import { amountSchema, lnAddrSchema, ssValidate, withdrawlSchema } from '../../lib/validate'
-import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, ANON_USER_ID, BALANCE_LIMIT_MSATS, INV_PENDING_LIMIT } from '../../lib/constants'
+import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, ANON_USER_ID, BALANCE_LIMIT_MSATS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT } from '../../lib/constants'
 import { datePivot } from '../../lib/time'
 
 export async function getInvoice (parent, { id }, { me, models, lnd }) {
@@ -260,7 +260,7 @@ export default {
 
       let expirePivot = { seconds: expireSecs }
       let invLimit = INV_PENDING_LIMIT
-      let balanceLimit = BALANCE_LIMIT_MSATS
+      let balanceLimit = hodlInvoice || USER_IDS_BALANCE_NO_LIMIT.includes(Number(me.id)) ? 0 : BALANCE_LIMIT_MSATS
       let id = me?.id
       if (!me) {
         expirePivot = { seconds: Math.min(expireSecs, 180) }

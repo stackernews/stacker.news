@@ -1,13 +1,12 @@
 import serialize from '../api/resolvers/serial.js'
 import { sendUserNotification } from '../api/webPush/index.js'
-import { ANON_USER_ID } from '../lib/constants.js'
+import { ANON_USER_ID, SN_USER_IDS } from '../lib/constants.js'
 import { msatsToSats, numWithUnits } from '../lib/format.js'
 
 const ITEM_EACH_REWARD = 4.0
 const UPVOTE_EACH_REWARD = 4.0
 const TOP_PERCENTILE = 33
 const TOTAL_UPPER_BOUND_MSATS = 1000000000
-const REDUCE_REWARDS = [616, 6030, 946, 4502]
 
 export function earn ({ models }) {
   return async function ({ name }) {
@@ -115,7 +114,7 @@ export function earn ({ models }) {
       -- early multiplier: 10/ln(early_rank + e)
       -- we also weight by trust in a step wise fashion
       upvoter_ratios AS (
-          SELECT "userId", sum(early_multiplier*tipped_ratio*ratio*CASE WHEN users.id = ANY (${REDUCE_REWARDS}) THEN 0.2 ELSE CEIL(users.trust*2)+1 END) as upvoter_ratio,
+          SELECT "userId", sum(early_multiplier*tipped_ratio*ratio*CASE WHEN users.id = ANY (${SN_USER_IDS}) THEN 0.2 ELSE CEIL(users.trust*2)+1 END) as upvoter_ratio,
               "parentId" IS NULL as "isPost", CASE WHEN "parentId" IS NULL THEN 'TIP_POST' ELSE 'TIP_COMMENT' END as type
           FROM (
               SELECT *,

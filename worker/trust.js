@@ -1,5 +1,5 @@
 import * as math from 'mathjs'
-import { ANON_USER_ID } from '../lib/constants.js'
+import { ANON_USER_ID, SN_USER_IDS } from '../lib/constants.js'
 
 export function trust ({ boss, models }) {
   return async function () {
@@ -28,7 +28,6 @@ const MIN_SUCCESS = 1
 const DISAGREE_MULT = 10
 // https://en.wikipedia.org/wiki/Normal_distribution#Quantile_function
 const Z_CONFIDENCE = 6.109410204869 // 99.9999999% confidence
-const SEEDS = [616, 6030, 946, 4502]
 const GLOBAL_ROOT = 616
 const SEED_WEIGHT = 0.25
 const AGAINST_MSAT_MIN = 1000
@@ -74,7 +73,7 @@ function trustGivenGraph (graph) {
 
   console.timeLog('trust', 'transforming result')
 
-  const seedIdxs = SEEDS.map(id => posByUserId[id])
+  const seedIdxs = SN_USER_IDS.map(id => posByUserId[id])
   const isOutlier = (fromIdx, idx) => [...seedIdxs, fromIdx].includes(idx)
   const sqapply = (mat, fn) => {
     let idx = 0
@@ -156,10 +155,10 @@ async function getGraph (models) {
             confidence(before - disagree, b_total - after, ${Z_CONFIDENCE})
           ELSE 0 END AS trust
         FROM user_pair
-        WHERE b_id <> ANY (${SEEDS})
+        WHERE b_id <> ANY (${SN_USER_IDS})
         UNION ALL
         SELECT a_id AS id, seed_id AS oid, ${MAX_TRUST}::numeric as trust
-        FROM user_pair, unnest(${SEEDS}::int[]) seed_id
+        FROM user_pair, unnest(${SN_USER_IDS}::int[]) seed_id
         GROUP BY a_id, a_total, seed_id
         UNION ALL
         SELECT a_id AS id, a_id AS oid, ${MAX_TRUST}::float as trust

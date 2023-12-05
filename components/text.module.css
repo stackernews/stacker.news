@@ -5,10 +5,11 @@
     line-height: 140%;
     overflow-y: hidden;
     position: relative;
+    max-height: 200vh;
 }
 
-.textContained {
-    max-height: 200vh;
+.textUncontained {
+    max-height: none;
 }
 
 .textContained::before {

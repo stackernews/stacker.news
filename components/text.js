@@ -113,7 +113,7 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, ...o
   }, [imgproxyUrls, outerProps, tab])
 
   return (
-    <div className={`${styles.text} ${overflowing && !show ? styles.textContained : ''}`} ref={containerRef}>
+    <div className={`${styles.text} ${show ? styles.textUncontained : overflowing ? styles.textContained : ''}`} ref={containerRef}>
       <ReactMarkdown
         components={{
           h1: Heading,

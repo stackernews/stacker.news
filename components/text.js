@@ -40,7 +40,7 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, ...o
     const container = containerRef.current
     if (!container || overflowing) return
 
-    setOverflowing(container.scrollHeight > window.innerHeight)
+    setOverflowing(container.scrollHeight > window.innerHeight * 2)
   }, [containerRef.current])
 
   // all the reactStringReplace calls are to facilitate search highlighting

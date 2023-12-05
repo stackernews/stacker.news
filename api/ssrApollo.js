@@ -10,6 +10,7 @@ import search from './search'
 import { ME } from '../fragments/users'
 import { PRICE } from '../fragments/price'
 import { BLOCK_HEIGHT } from '../fragments/blockHeight'
+import { CHAIN_FEE } from '../fragments/chainFee'
 import { getServerSession } from 'next-auth/next'
 import { getAuthOptions } from '../pages/api/auth/[...nextauth]'
 
@@ -94,6 +95,10 @@ export function getGetServerSideProps (
       query: BLOCK_HEIGHT, variables: {}
     })
 
+    const { data: { chainFee } } = await client.query({
+      query: CHAIN_FEE, variables: {}
+    })
+
     let error = null; let data = null; let props = {}
     if (query) {
       try {
@@ -125,6 +130,7 @@ export function getGetServerSideProps (
         me,
         price,
         blockHeight,
+        chainFee,
         ssrData: data
       }
     }

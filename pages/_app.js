@@ -17,6 +17,7 @@ import { SSR } from '../lib/constants'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
 import { LoggerProvider } from '../components/logger'
+import { ChainFeeProvider } from '../components/chain-fee.js'
 
 NProgress.configure({
   showSpinner: false
@@ -75,7 +76,7 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
     If we are on the client, we populate the apollo cache with the
     ssr data
   */
-  const { apollo, ssrData, me, price, blockHeight, ...otherProps } = props
+  const { apollo, ssrData, me, price, blockHeight, chainFee, ...otherProps } = props
   useEffect(() => {
     writeQuery(client, apollo, ssrData)
   }, [client, apollo, ssrData])
@@ -96,9 +97,11 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
                       <ToastProvider>
                         <ShowModalProvider>
                           <BlockHeightProvider blockHeight={blockHeight}>
-                            <ErrorBoundary>
-                              <Component ssrData={ssrData} {...otherProps} />
-                            </ErrorBoundary>
+                            <ChainFeeProvider chainFee={chainFee}>
+                              <ErrorBoundary>
+                                <Component ssrData={ssrData} {...otherProps} />
+                              </ErrorBoundary>
+                            </ChainFeeProvider>
                           </BlockHeightProvider>
                         </ShowModalProvider>
                       </ToastProvider>

@@ -53,6 +53,8 @@ export default function Price ({ className }) {
   const { height: blockHeight } = useBlockHeight()
   const { fee: chainFee } = useChainFee()
 
+  if (!price || price < 0 || blockHeight <= 0 || chainFee <= 0) return null
+
   // Options: yep, 1btc, blockHeight, undefined
   // yep -> 1btc -> blockHeight -> chainFee -> undefined -> yep
   const handleClick = () => {

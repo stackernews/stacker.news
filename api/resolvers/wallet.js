@@ -270,7 +270,7 @@ export default {
 
       let expirePivot = { seconds: expireSecs }
       let invLimit = INV_PENDING_LIMIT
-      let balanceLimit = hodlInvoice || USER_IDS_BALANCE_NO_LIMIT.includes(Number(me.id)) ? 0 : BALANCE_LIMIT_MSATS
+      let balanceLimit = (hodlInvoice || USER_IDS_BALANCE_NO_LIMIT.includes(Number(me?.id))) ? 0 : BALANCE_LIMIT_MSATS
       let id = me?.id
       if (!me) {
         expirePivot = { seconds: Math.min(expireSecs, 180) }

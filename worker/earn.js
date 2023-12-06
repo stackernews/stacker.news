@@ -217,7 +217,7 @@ function buildUserNotification (earnings) {
   if (earnings.POST) body += `#${earnings.POST.rank} among posts for ${fmt(earnings.POST.msats)}\n`
   if (earnings.COMMENT) body += `#${earnings.COMMENT.rank} among comments for ${fmt(earnings.COMMENT.msats)}\n`
   if (earnings.TIP_POST) body += `#${earnings.TIP_POST.rank} in post zapping for ${fmt(earnings.TIP_POST.msats)}\n`
-  if (earnings.TIP_COMMENT) body += `#${earnings.TIP_COMMENT.rank} in comment zapping for ${fmt(earnings.TIP_COMMENT.msats)}\n`
+  if (earnings.TIP_COMMENT) body += `#${earnings.TIP_COMMENT.rank} in comment zapping for ${fmt(earnings.TIP_COMMENT.msats)}`
 
   return { title, tag, body }
 }

@@ -1,5 +1,5 @@
 .subSelect {
-  width: 100px !important;
+  max-width: 120px !important;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis !important;

@@ -220,7 +220,7 @@ function NavItems ({ className, sub, prefix }) {
 
   return (
     <>
-      <Nav.Item className={className}>
+      <Nav.Item className={`me-1 ${className}`}>
         <SubSelect
           sub={sub} prependSubs={PREPEND_SUBS} appendSubs={APPEND_SUBS} noForm
           groupClassName='mb-0'
@@ -308,9 +308,9 @@ export default function Header ({ sub }) {
           className={styles.navbarNav}
           activeKey={topNavKey}
         >
-          <NavItems className='me-1' prefix={prefix} sub={sub} />
+          <NavItems prefix={prefix} sub={sub} />
           <Link href={prefix + '/search'} passHref legacyBehavior>
-            <Nav.Link eventKey='search' className='position-relative ms-auto d-flex me-1'>
+            <Nav.Link eventKey='search' className='position-relative me-auto ms-auto me-sm-1 d-flex'>
               <SearchIcon className='theme' width={22} height={22} />
             </Nav.Link>
           </Link>

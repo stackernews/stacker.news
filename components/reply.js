@@ -142,7 +142,7 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
                   }
                 } else {
                   e.preventDefault()
-                  onQuoteReply({ selectionOnly: true })
+                  onQuoteReply?.({ selectionOnly: true })
                   setReply(true)
                 }
               }}

@@ -430,6 +430,7 @@ export function LnAddrWithdrawal () {
                   <>
                     {addrOptions.commentAllowed &&
                       <Input
+                        as='textarea'
                         label={<>comment <small className='text-muted ms-2'>optional</small></>}
                         name='comment'
                         maxLength={addrOptions.commentAllowed}

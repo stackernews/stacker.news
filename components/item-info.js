@@ -145,7 +145,7 @@ export default function ItemInfo ({
         {me && !item.meSats && !item.position &&
           !item.mine && !item.deletedAt && <DontLikeThisDropdownItem id={item.id} />}
         {me && item?.noteId && (
-          <Dropdown.Item onClick={() => window.open(`https://nostr.band/${item.noteId}`, '_blank')}>
+          <Dropdown.Item onClick={() => window.open(`https://nostr.com/${item.noteId}`, '_blank')}>
             nostr note
           </Dropdown.Item>
         )}

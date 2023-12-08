@@ -77,7 +77,7 @@ export default function Share ({ item }) {
             <Dropdown.Item
               onClick={async () => {
                 try {
-                  if (!(await window.nostr.getPublicKey())) {
+                  if (!(await window.nostr?.getPublicKey())) {
                     throw new Error('not available')
                   }
                 } catch (e) {

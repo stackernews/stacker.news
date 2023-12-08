@@ -21,12 +21,12 @@ export default function Share ({ item }) {
   const toaster = useToast()
   const url = getShareUrl(item, me)
 
-  const isOP = item?.user?.id === me?.id
+  const mine = item?.user?.id === me?.id
 
-  const [upsertNoteId] = useMutation(
+  const [updateNoteId] = useMutation(
     gql`
-      mutation upsertNoteId($id: ID!, $noteId: String!) {
-        upsertNoteId(id: $id, noteId: $noteId) {
+      mutation updateNoteId($id: ID!, $noteId: String!) {
+        updateNoteId(id: $id, noteId: $noteId) {
           id
           noteId
         }
@@ -73,7 +73,7 @@ export default function Share ({ item }) {
           >
             copy link
           </Dropdown.Item>
-          {isOP && !item?.noteId && (
+          {mine && !item?.noteId && (
             <Dropdown.Item
               onClick={async () => {
                 try {
@@ -89,7 +89,7 @@ export default function Share ({ item }) {
                     const crosspostResult = await crossposter({ ...item })
                     const noteId = crosspostResult?.noteId
                     if (noteId) {
-                      await upsertNoteId({
+                      await updateNoteId({
                         variables: {
                           id: item.id,
                           noteId

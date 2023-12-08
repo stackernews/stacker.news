@@ -32,18 +32,18 @@ export function DiscussionForm ({
 
   const [upsertDiscussion] = useMutation(
     gql`
-      mutation upsertDiscussion($sub: String, $id: ID, $title: String!, $text: String, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String, $noteId: String) {
-        upsertDiscussion(sub: $sub, id: $id, title: $title, text: $text, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac, noteId: $noteId) {
+      mutation upsertDiscussion($sub: String, $id: ID, $title: String!, $text: String, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String) {
+        upsertDiscussion(sub: $sub, id: $id, title: $title, text: $text, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac) {
           id
           deleteScheduledAt
         }
       }`
   )
 
-  const [upsertNoteId] = useMutation(
+  const [updateNoteId] = useMutation(
     gql`
-      mutation upsertNoteId($id: ID!, $noteId: String!) {
-        upsertNoteId(id: $id, noteId: $noteId) {
+      mutation updateNoteId($id: ID!, $noteId: String!) {
+        updateNoteId(id: $id, noteId: $noteId) {
           id
           noteId
         }
@@ -87,7 +87,7 @@ export function DiscussionForm ({
       }
 
       if (noteId) {
-        await upsertNoteId({
+        await updateNoteId({
           variables: {
             id: discussionId,
             noteId

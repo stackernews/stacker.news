@@ -15,6 +15,7 @@
     "@apollo/server": "^4.9.4",
     "@as-integrations/next": "^2.0.2",
     "@auth/prisma-adapter": "^1.0.3",
+    "@getalby/bitcoin-connect-react": "^2.4.3",
     "@graphql-tools/schema": "^10.0.0",
     "@noble/curves": "^1.2.0",
     "@opensearch-project/opensearch": "^2.4.0",

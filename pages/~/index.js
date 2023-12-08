@@ -17,6 +17,7 @@ import Hat from '../../components/hat'
 import styles from '../../components/item.module.css'
 import TerritoryPaymentDue from '../../components/territory-payment-due'
 import Badge from 'react-bootstrap/Badge'
+import { numWithUnits } from '../../lib/format'
 
 export const getServerSideProps = getGetServerSideProps({
   query: SUB_ITEMS,
@@ -53,6 +54,11 @@ export default function Sub ({ ssrData }) {
                       <Link href={`/${sub.user.name}`}>
                         @{sub.user.name}<span> </span><Hat className='fill-grey' user={sub.user} height={12} width={12} />
                       </Link>
+                    </div>
+                    <div className='text-muted'>
+                      <span>post cost</span>
+                      <span> </span>
+                      <span className='fw-bold'>{numWithUnits(sub.baseCost)}</span>
                     </div>
                   </CardFooter>
                 </AccordianCard>

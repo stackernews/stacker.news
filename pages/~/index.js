@@ -15,7 +15,7 @@ import PageLoading from '../../components/page-loading'
 import CardFooter from 'react-bootstrap/CardFooter'
 import Hat from '../../components/hat'
 import styles from '../../components/item.module.css'
-import TerritoryPaymentDue from '../../components/territory-payment-due'
+import TerritoryPaymentDue, { TerritoryBillingLine } from '../../components/territory-payment-due'
 import Badge from 'react-bootstrap/Badge'
 import { numWithUnits } from '../../lib/format'
 
@@ -49,17 +49,16 @@ export default function Sub ({ ssrData }) {
                   </div>
                   <CardFooter className={`py-1 ${styles.other}`}>
                     <div className='text-muted'>
-                      <span>founded by</span>
-                      <span> </span>
+                      <span>founded by </span>
                       <Link href={`/${sub.user.name}`}>
                         @{sub.user.name}<span> </span><Hat className='fill-grey' user={sub.user} height={12} width={12} />
                       </Link>
                     </div>
                     <div className='text-muted'>
-                      <span>post cost</span>
-                      <span> </span>
+                      <span>post cost </span>
                       <span className='fw-bold'>{numWithUnits(sub.baseCost)}</span>
                     </div>
+                    <TerritoryBillingLine sub={sub} />
                   </CardFooter>
                 </AccordianCard>
               </div>

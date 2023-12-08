@@ -9,6 +9,7 @@ export const SUB_FIELDS = gql`
     rankingType
     billingType
     billingCost
+    billingAutoRenew
     billedLastAt
     baseCost
     userId

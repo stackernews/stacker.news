@@ -10,12 +10,7 @@ export async function territoryBilling ({ data: { subName }, boss, models }) {
     }
   })
 
-  try {
-    const queries = paySubQueries(sub, models)
-    await serialize(models, ...queries)
-  } catch (e) {
-    console.error(e)
-
+  async function territoryStatusUpdate () {
     await models.sub.update({
       where: {
         name: subName
@@ -26,5 +21,18 @@ export async function territoryBilling ({ data: { subName }, boss, models }) {
     })
     // retry billing in one day
     await boss.send('territoryBilling', { subName }, { startAfter: datePivot(new Date(), { days: 1 }) })
+  }
+
+  if (!sub.billingAutoRenew) {
+    await territoryStatusUpdate()
+    return
+  }
+
+  try {
+    const queries = paySubQueries(sub, models)
+    await serialize(models, ...queries)
+  } catch (e) {
+    console.error(e)
+    await territoryStatusUpdate()
   }
 }

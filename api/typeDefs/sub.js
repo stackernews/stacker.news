@@ -9,7 +9,8 @@ export default gql`
 
   extend type Mutation {
     upsertSub(name: String!, desc: String, baseCost: Int!,
-      postTypes: [String!]!, billingType: String!, hash: String, hmac: String): Sub
+      postTypes: [String!]!, billingType: String!, billingAutoRenew: Boolean!,
+       hash: String, hmac: String): Sub
     paySub(name: String!, hash: String, hmac: String): Sub
   }
 
@@ -23,6 +24,7 @@ export default gql`
     postTypes: [String!]!
     billingCost: Int!
     billingType: String!
+    billingAutoRenew: Boolean!
     rankingType: String!
     billedLastAt: Date!
     baseCost: Int!

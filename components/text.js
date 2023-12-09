@@ -126,6 +126,9 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, ...o
           p: P,
           code: Code,
           a: ({ node, href, children, ...props }) => {
+            // fix href passed with ampersands parsed as &amp; already for some reason
+            href = href.replace(/&amp;/g, '&')
+
             children = children ? Array.isArray(children) ? children : [children] : []
             // don't allow zoomable images to be wrapped in links
             if (children.some(e => e?.props?.node?.tagName === 'img')) {

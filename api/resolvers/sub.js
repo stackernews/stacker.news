@@ -114,7 +114,7 @@ export default {
       }
 
       // XXX this is because we did the wrong thing and used the subName as a primary key
-      const existing = await models.sub.findUnique({
+      const old = await models.sub.findUnique({
         where: {
           name: data.name,
           userId: me.id
@@ -123,8 +123,8 @@ export default {
 
       await ssValidate(territorySchema, data, { models, me })
 
-      if (existing) {
-        return await updateSub(parent, data, { me, models, lnd, hash, hmac })
+      if (old) {
+        return await updateSub(parent, data, { me, models, lnd, hash, hmac, old })
       } else {
         return await createSub(parent, data, { me, models, lnd, hash, hmac })
       }
@@ -236,24 +236,14 @@ async function createSub (parent, data, { me, models, lnd, hash, hmac }) {
 }
 
 async function updateSub (parent, { name, ...data }, { me, models, lnd, hash, hmac }) {
-  const { billingType } = data
-
-  let billingCost = TERRITORY_COST_MONTHLY
-  if (billingType === 'ONCE') {
-    billingCost = TERRITORY_COST_ONCE
-  } else if (billingType === 'YEARLY') {
-    billingCost = TERRITORY_COST_YEARLY
-  }
+  // prevent modification of billingType
+  delete data.billingType
 
   try {
     const results = await serialize(models,
       // update 'em
       models.sub.update({
-        data: {
-          ...data,
-          billingCost,
-          billingType
-        },
+        data,
         where: {
           name
         }

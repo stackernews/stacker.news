@@ -51,7 +51,7 @@ export default function TerritoryForm ({ sub }) {
     }, [client, upsertSub, router]
   )
 
-  const [billing, setBilling] = useState('monthly')
+  const [billing, setBilling] = useState((sub?.billingType || 'MONTHLY').toLowerCase())
 
   return (
     <FeeButtonProvider baseLineItems={sub ? undefined : { territory: TERRITORY_BILLING_OPTIONS('first')[billing] }}>

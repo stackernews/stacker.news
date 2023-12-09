@@ -725,8 +725,8 @@ export default {
       }
     },
     updateNoteId: async (parent, { id, noteId }, { models }) => {
-      if (id === undefined) {
-        throw new Error('ID is required for updateNoteId')
+      if (!id) {
+        throw new GraphQLError('id required', { extensions: { code: 'BAD_INPUT' } })
       }
 
       await models.item.update({

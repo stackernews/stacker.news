@@ -131,6 +131,7 @@ export default {
               COALESCE("msatsPaid", "msatsPaying") as msats,
               'withdrawal' as type,
               jsonb_build_object(
+                'bolt11', bolt11,
                 'status', COALESCE(status::text, 'PENDING'),
                 'msatsFee', COALESCE("msatsFeePaid", "msatsFeePaying")) as other
             FROM "Withdrawl"

@@ -4,7 +4,7 @@ import ActionTooltip from './action-tooltip'
 import Info from './info'
 import styles from './fee-button.module.css'
 import { gql, useQuery } from '@apollo/client'
-import { SSR } from '../lib/constants'
+import { ANON_FEE_MULTIPLIER, SSR } from '../lib/constants'
 import { numWithUnits } from '../lib/format'
 import { useMe } from './me'
 import AnonIcon from '../svgs/spy-fill.svg'
@@ -15,15 +15,13 @@ import { SubmitButton } from './form'
 const FeeButtonContext = createContext()
 
 export function postCommentBaseLineItems ({ baseCost = 1, comment = false, allowFreebies = true, me }) {
-  // XXX this doesn't match the logic on the server but it has the same
-  // result on fees ... will need to change the server logic to match
   const anonCharge = me
     ? {}
     : {
         anonCharge: {
-          term: 'x 100',
+          term: `x ${ANON_FEE_MULTIPLIER}`,
           label: 'anon mult',
-          modifier: (cost) => cost * 100
+          modifier: (cost) => cost * ANON_FEE_MULTIPLIER
         }
       }
   return {

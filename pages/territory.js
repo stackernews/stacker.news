@@ -2,7 +2,7 @@ import { getGetServerSideProps } from '../api/ssrApollo'
 import { CenterLayout } from '../components/layout'
 import TerritoryForm from '../components/territory-form'
 
-export const getServerSideProps = getGetServerSideProps({})
+export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
 export default function TerritoryPage () {
   return (

@@ -8,8 +8,8 @@ import domino from 'domino'
 import {
   ITEM_SPAM_INTERVAL, ITEM_FILTER_THRESHOLD,
   DONT_LIKE_THIS_COST, COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY,
-  ANON_COMMENT_FEE, ANON_USER_ID, ANON_POST_FEE, ANON_ITEM_SPAM_INTERVAL, POLL_COST,
-  ITEM_ALLOW_EDITS, GLOBAL_SEED
+  ANON_USER_ID, ANON_ITEM_SPAM_INTERVAL, POLL_COST,
+  ITEM_ALLOW_EDITS, GLOBAL_SEED, ANON_FEE_MULTIPLIER
 } from '../../lib/constants'
 import { msatsToSats } from '../../lib/format'
 import { parse } from 'tldts'
@@ -476,7 +476,8 @@ export default {
                       FROM "Item"
                       ${whereClause(
                         subClause(sub, 3, 'Item', true),
-                        muteClause(me))}
+                        muteClause(me),
+                        await filterClause(me, models, type))}
                         ORDER BY ${orderByNumerator(models, 0)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".freebie IS FALSE) DESC, "Item".id DESC
                       OFFSET $1
                       LIMIT $2`,
@@ -1126,7 +1127,17 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
   const uploadIds = uploadIdsFromText(item.text, { models })
   const { fees: imgFees } = await imageFeesInfo(uploadIds, { models, me })
 
-  const enforceFee = (me ? undefined : (item.parentId ? ANON_COMMENT_FEE : (ANON_POST_FEE + (item.boost || 0)))) + imgFees
+  let enforceFee
+  if (!me) {
+    if (item.parentId) {
+      enforceFee = ANON_FEE_MULTIPLIER
+    } else {
+      const sub = await models.sub.findUnique({ where: { name: item.subName } })
+      enforceFee = sub.baseCost * ANON_FEE_MULTIPLIER + (item.boost || 0)
+    }
+    enforceFee += imgFees
+  }
+
   item = await serializeInvoicable(
     models.$queryRawUnsafe(
       `${SELECT} FROM create_item($1::JSONB, $2::JSONB, $3::JSONB, '${spamInterval}'::INTERVAL, $4::INTEGER[]) AS "Item"`,

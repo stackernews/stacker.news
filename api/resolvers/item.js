@@ -1055,9 +1055,19 @@ export const createMentions = async (item, models) => {
 
 export const updateItem = async (parent, { sub: subName, forward, options, ...item }, { me, models, lnd, hash, hmac }) => {
   // update iff this item belongs to me
-  const old = await models.item.findUnique({ where: { id: Number(item.id) } })
+  const old = await models.item.findUnique({ where: { id: Number(item.id) }, include: { sub: true } })
   if (Number(old.userId) !== Number(me?.id)) {
     throw new GraphQLError('item does not belong to you', { extensions: { code: 'FORBIDDEN' } })
+  }
+  if (old.subName !== subName) {
+    const sub = await models.sub.findUnique({ where: { name: subName } })
+    if (old.freebie) {
+      if (!sub.allowFreebies) {
+        throw new GraphQLError(`~${subName} does not allow freebies`, { extensions: { code: 'BAD_INPUT' } })
+      }
+    } else if (sub.baseCost > old.sub.baseCost) {
+      throw new GraphQLError('cannot change to a more expensive sub', { extensions: { code: 'BAD_INPUT' } })
+    }
   }
 
   // in case they lied about their existing boost

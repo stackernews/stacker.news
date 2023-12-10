@@ -31,15 +31,17 @@ import { useFeeButton } from './fee-button'
 import Thumb from '../svgs/thumb-up-fill.svg'
 
 export function SubmitButton ({
-  children, variant, value, onClick, disabled, ...props
+  children, variant, value, onClick, disabled, nonDisabledText, ...props
 }) {
   const formik = useFormikContext()
+
+  disabled ||= formik.isSubmitting
 
   return (
     <Button
       variant={variant || 'main'}
       type='submit'
-      disabled={disabled || formik.isSubmitting}
+      disabled={disabled}
       onClick={value
         ? e => {
           formik.setFieldValue('submit', value)
@@ -48,7 +50,7 @@ export function SubmitButton ({
         : onClick}
       {...props}
     >
-      {children}
+      {children}{!disabled && nonDisabledText && <small> {nonDisabledText}</small>}
     </Button>
   )
 }

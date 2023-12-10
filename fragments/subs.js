@@ -6,6 +6,7 @@ export const SUB_FIELDS = gql`
   fragment SubFields on Sub {
     name
     postTypes
+    allowFreebies
     rankingType
     billingType
     billingCost

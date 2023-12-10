@@ -15,10 +15,10 @@ export default function TerritoryForm ({ sub }) {
   const [upsertSub] = useMutation(
     gql`
       mutation upsertSub($name: String!, $desc: String, $baseCost: Int!,
-        $postTypes: [String!]!, $billingType: String!, $billingAutoRenew: Boolean!,
-        $hash: String, $hmac: String) {
+        $postTypes: [String!]!, $allowFreebies: Boolean!, $billingType: String!,
+        $billingAutoRenew: Boolean!, $hash: String, $hmac: String) {
           upsertSub(name: $name, desc: $desc, baseCost: $baseCost,
-            postTypes: $postTypes, billingType: $billingType,
+            postTypes: $postTypes, allowFreebies: $allowFreebies, billingType: $billingType,
             billingAutoRenew: $billingAutoRenew, hash: $hash, hmac: $hmac) {
           name
         }
@@ -61,6 +61,7 @@ export default function TerritoryForm ({ sub }) {
           desc: sub?.desc || '',
           baseCost: sub?.baseCost || 10,
           postTypes: sub?.postTypes || POST_TYPES,
+          allowFreebies: typeof sub?.allowFreebies === 'undefined' ? true : sub?.allowFreebies,
           billingType: sub?.billingType || 'MONTHLY',
           billingAutoRenew: sub?.billingAutoRenew || false
         }}
@@ -98,8 +99,14 @@ export default function TerritoryForm ({ sub }) {
           label='post cost'
           name='baseCost'
           type='number'
+          groupClassName='mb-2'
           required
           append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+        />
+        <Checkbox
+          label='allow free posts'
+          name='allowFreebies'
+          groupClassName='ms-1'
         />
         <CheckboxGroup label='post types' name='postTypes'>
           <Row>

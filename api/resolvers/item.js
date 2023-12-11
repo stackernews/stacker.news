@@ -1059,7 +1059,7 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
   if (Number(old.userId) !== Number(me?.id)) {
     throw new GraphQLError('item does not belong to you', { extensions: { code: 'FORBIDDEN' } })
   }
-  if (old.subName !== subName) {
+  if (subName && old.subName !== subName) {
     const sub = await models.sub.findUnique({ where: { name: subName } })
     if (old.freebie) {
       if (!sub.allowFreebies) {

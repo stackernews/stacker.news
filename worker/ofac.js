@@ -2,8 +2,7 @@ import { createReadStream, createWriteStream, unlinkSync } from 'fs'
 import unzipper from 'unzipper'
 import csvParser from 'csv-parser'
 import stream from 'stream'
-
-const sanctionedCountryCodes = ['IR', 'KP', 'SY', 'RU']
+import { SANCTIONED_COUNTRY_CODES } from '../lib/constants.js'
 
 const IPV4_URL = 'https://ipapi.is/data/geolocationDatabaseIPv4.csv.zip'
 const IPV6_URL = 'https://ipapi.is/data/geolocationDatabaseIPv6.csv.zip'
@@ -19,7 +18,7 @@ export async function ofac ({ models }) {
       createReadStream(csvFilePath)
         .pipe(csvParser())
         .on('data', (data) => {
-          if (sanctionedCountryCodes.includes(data.country_code)) {
+          if (SANCTIONED_COUNTRY_CODES.includes(data.country_code)) {
             results.push({
               startIP: data.start_ip,
               endIP: data.end_ip,

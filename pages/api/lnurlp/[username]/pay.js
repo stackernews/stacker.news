@@ -8,14 +8,16 @@ import { createHash } from 'crypto'
 import { datePivot } from '../../../../lib/time'
 import { BALANCE_LIMIT_MSATS, INV_PENDING_LIMIT, LNURLP_COMMENT_MAX_LENGTH } from '../../../../lib/constants'
 import { ssValidate, lud18PayerDataSchema } from '../../../../lib/validate'
+import assertGofacYourself from '../../../../api/resolvers/ofac'
 
-export default async ({ query: { username, amount, nostr, comment, payerdata: payerData } }, res) => {
+export default async ({ query: { username, amount, nostr, comment, payerdata: payerData }, headers }, res) => {
   const user = await models.user.findUnique({ where: { name: username } })
   if (!user) {
     return res.status(400).json({ status: 'ERROR', reason: `user @${username} does not exist` })
   }
 
   try {
+    await assertGofacYourself({ models, headers })
     // if nostr, decode, validate sig, check tags, set description hash
     let description, descriptionHash, noteStr
     if (nostr) {

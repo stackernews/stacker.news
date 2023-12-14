@@ -10,6 +10,7 @@ import { msatsToSats, msatsToSatsDecimal } from '../../lib/format'
 import { amountSchema, lnAddrSchema, ssValidate, withdrawlSchema } from '../../lib/validate'
 import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, ANON_USER_ID, BALANCE_LIMIT_MSATS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT } from '../../lib/constants'
 import { datePivot } from '../../lib/time'
+import assertGofacYourself from './ofac'
 
 export async function getInvoice (parent, { id }, { me, models, lnd }) {
   const inv = await models.invoice.findUnique({
@@ -266,8 +267,9 @@ export default {
   },
 
   Mutation: {
-    createInvoice: async (parent, { amount, hodlInvoice = false, expireSecs = 3600 }, { me, models, lnd }) => {
+    createInvoice: async (parent, { amount, hodlInvoice = false, expireSecs = 3600 }, { me, models, lnd, headers }) => {
       await ssValidate(amountSchema, { amount })
+      await assertGofacYourself({ models, headers })
 
       let expirePivot = { seconds: expireSecs }
       let invLimit = INV_PENDING_LIMIT
@@ -313,7 +315,9 @@ export default {
       }
     },
     createWithdrawl: createWithdrawal,
-    sendToLnAddr: async (parent, { addr, amount, maxFee, comment, ...payer }, { me, models, lnd }) => {
+    sendToLnAddr: async (parent, { addr, amount, maxFee, comment, ...payer }, { me, models, lnd, headers }) => {
+      await assertGofacYourself({ models, headers })
+
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
       }
@@ -432,8 +436,10 @@ export default {
   }
 }
 
-async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd }) {
+async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd, headers }) {
   await ssValidate(withdrawlSchema, { invoice, maxFee })
+
+  await assertGofacYourself({ models, headers })
 
   // remove 'lightning:' prefix if present
   invoice = invoice.replace(/^lightning:/, '')

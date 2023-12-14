@@ -588,6 +588,14 @@ model Account {
   @@map("accounts")
 }
 
+model OFAC {
+  id          Int                      @id @default(autoincrement())
+  startIP     Unsupported("ipaddress")
+  endIP       Unsupported("ipaddress")
+  country     String
+  countryCode String
+}
+
 model Session {
   id           Int      @id @default(autoincrement())
   sessionToken String   @unique(map: "sessions.session_token_unique") @map("session_token")

@@ -56,6 +56,7 @@ export default startServerAndCreateNextHandler(apolloServer, {
     const session = await getServerSession(req, res, getAuthOptions(req))
     return {
       models,
+      headers: req.headers,
       lnd,
       me: session
         ? session.user

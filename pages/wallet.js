@@ -129,7 +129,6 @@ export function FundForm () {
           initial={{
             amount: 1000
           }}
-          initialError={error?.toString()}
           schema={amountSchema}
           onSubmit={async ({ amount }) => {
             const { data } = await createInvoice({ variables: { amount: Number(amount) } })
@@ -231,7 +230,6 @@ export function InvWithdrawal () {
           invoice: '',
           maxFee: maxFeeDefault
         }}
-        initialError={error ? error.toString() : undefined}
         schema={withdrawlSchema}
         onSubmit={async ({ invoice, maxFee }) => {
           const { data } = await createWithdrawl({ variables: { invoice, maxFee: Number(maxFee) } })
@@ -319,12 +317,15 @@ export function LnWithdrawal () {
         encodedUrl
       }
     }`)
+  const toaster = useToast()
 
   useEffect(() => {
-    createWith()
-  }, [])
+    createWith().catch(e => {
+      toaster.danger(e?.message || e?.toString?.())
+    })
+  }, [createWith, toaster])
 
-  if (error) return <div>error</div>
+  if (error) return <QrSkeleton status='error' />
 
   if (!data) {
     return <QrSkeleton status='generating' />
@@ -377,7 +378,6 @@ export function LnAddrWithdrawal () {
           email: ''
         }}
         schema={formSchema}
-        initialError={error ? error.toString() : undefined}
         onSubmit={async ({ amount, maxFee, ...values }) => {
           const { data } = await sendToLnAddr({
             variables: {

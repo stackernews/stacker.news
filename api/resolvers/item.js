@@ -20,6 +20,7 @@ import { defaultCommentSort, isJob, deleteItemByAuthor, getDeleteCommand, hasDel
 import { notifyItemParents, notifyUserSubscribers, notifyZapped } from '../../lib/push-notifications'
 import { datePivot, whenRange } from '../../lib/time'
 import { imageFeesInfo, uploadIdsFromText } from './image'
+import assertGofacYourself from './ofac'
 
 export async function commentFilterClause (me, models) {
   let clause = ` AND ("Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}`
@@ -291,7 +292,7 @@ export default {
 
       return count
     },
-    items: async (parent, { sub, sort, type, cursor, name, when, from, to, by, limit = LIMIT }, { me, models }) => {
+    items: async (parent, { sub, sort, type, cursor, name, when, from, to, by, limit = LIMIT }, { me, models, headers }) => {
       const decodedCursor = decodeCursor(cursor)
       let items, user, pins, subFull, table
 
@@ -735,8 +736,9 @@ export default {
 
       return id
     },
-    act: async (parent, { id, sats, hash, hmac }, { me, models, lnd }) => {
+    act: async (parent, { id, sats, hash, hmac }, { me, models, lnd, headers }) => {
       await ssValidate(amountSchema, { amount: sats })
+      await assertGofacYourself({ models, headers })
 
       // disallow self tips except anons
       if (me) {

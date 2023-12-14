@@ -14,6 +14,7 @@ import { LightningConsumer, useLightning } from './lightning'
 import { numWithUnits } from '../lib/format'
 import { payOrLoginError, useInvoiceModal } from './invoice'
 import useDebounceCallback from './use-debounce-callback'
+import { useToast } from './toast'
 
 const getColor = (meSats) => {
   if (!meSats || meSats <= 10) {
@@ -72,6 +73,7 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
   const ref = useRef()
   const me = useMe()
   const strike = useLightning()
+  const toaster = useToast()
   const [setWalkthrough] = useMutation(
     gql`
       mutation setWalkthrough($upvotePopover: Boolean, $tipPopover: Boolean) {
@@ -175,9 +177,10 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
         return
       }
       console.error(error)
+      toaster.danger(error?.message || error?.toString?.())
     })
     setPendingSats(0)
-  }, 500, [act, item?.id, showInvoiceModal, setPendingSats])
+  }, 500, [act, toaster, item?.id, showInvoiceModal, setPendingSats])
 
   const disabled = useMemo(() => item?.mine || item?.meForward || item?.deletedAt,
     [item?.mine, item?.meForward, item?.deletedAt])

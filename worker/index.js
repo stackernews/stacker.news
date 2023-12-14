@@ -18,6 +18,7 @@ import { imgproxy } from './imgproxy.js'
 import { deleteItem } from './ephemeralItems.js'
 import { deleteUnusedImages } from './deleteUnusedImages.js'
 import { territoryBilling } from './territory.js'
+import { ofac } from './ofac.js'
 
 const { loadEnvConfig } = nextEnv
 const { ApolloClient, HttpLink, InMemoryCache } = apolloClient
@@ -27,6 +28,7 @@ loadEnvConfig('..')
 async function work () {
   const boss = new PgBoss(process.env.DATABASE_URL)
   const models = new PrismaClient()
+
   const apollo = new ApolloClient({
     link: new HttpLink({
       uri: `${process.env.SELF_URL}/api/graphql`,
@@ -88,6 +90,7 @@ async function work () {
   await boss.work('deleteItem', jobWrapper(deleteItem))
   await boss.work('deleteUnusedImages', jobWrapper(deleteUnusedImages))
   await boss.work('territoryBilling', jobWrapper(territoryBilling))
+  await boss.work('ofac', jobWrapper(ofac))
 
   console.log('working jobs')
 }

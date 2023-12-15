@@ -13,7 +13,7 @@ import { useMe } from './me'
 import DontLikeThisDropdownItem, { OutlawDropdownItem } from './dont-link-this'
 import BookmarkDropdownItem from './bookmark'
 import SubscribeDropdownItem from './subscribe'
-import { CopyLinkDropdownItem } from './share'
+import { CopyLinkDropdownItem, CrosspostDropdownItem } from './share'
 import Hat from './hat'
 import { AD_USER_ID } from '../lib/constants'
 import ActionDropdown from './action-dropdown'
@@ -149,11 +149,13 @@ export default function ItemInfo ({
           <Link href={`/items/${item.id}/ots`} className='text-reset dropdown-item'>
             opentimestamp
           </Link>}
-        {me && item?.noteId && (
+        {item?.noteId && (
           <Dropdown.Item onClick={() => window.open(`https://nostr.com/${item.noteId}`, '_blank', 'noopener')}>
             nostr note
           </Dropdown.Item>
         )}
+        {item?.mine && !item?.noteId &&
+          <CrosspostDropdownItem item={item} />}
         {me && !item.position &&
           !item.mine && !item.deletedAt &&
           (item.meDontLikeSats > meTotalSats

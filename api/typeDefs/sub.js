@@ -13,6 +13,7 @@ export default gql`
       billingType: String!, billingAutoRenew: Boolean!,
       moderated: Boolean!, hash: String, hmac: String): Sub
     paySub(name: String!, hash: String, hmac: String): Sub
+    toggleMuteSub(name: String!): Boolean!
   }
 
   type Sub {
@@ -33,5 +34,6 @@ export default gql`
     status: String!
     moderated: Boolean!
     moderatedCount: Int!
+    meMuteSub: Boolean!
   }
 `

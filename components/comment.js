@@ -197,7 +197,7 @@ export default function Comment ({
                 />)}
             {topLevel && (
               <span className='d-flex ms-auto align-items-center'>
-                <Share item={item} />
+                <Share title={item?.title} path={`/items/${item?.id}`} />
               </span>
             )}
           </div>

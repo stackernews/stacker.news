@@ -133,7 +133,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
       right={
         !noReply &&
           <>
-            <Share item={item} />
+            <Share title={item?.title} path={`/items/${item?.id}`} />
             <Toc text={item.text} />
           </>
       }

@@ -187,6 +187,23 @@ $accordion-button-active-icon-dark:  $accordion-button-icon;
   }
 }
 
+.btn-outline-grey {
+  --bs-btn-color: var(--theme-grey);
+  --bs-btn-border-color: var(--theme-grey);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--theme-grey);
+  --bs-btn-hover-border-color: var(--theme-grey);
+  --bs-btn-focus-shadow-rgb: 233, 236, 239;
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: var(--theme-grey);
+  --bs-btn-active-border-color: var(--theme-grey);
+  --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+  --bs-btn-disabled-color: var(--theme-grey);
+  --bs-btn-disabled-bg: transparent;
+  --bs-btn-disabled-border-color: var(--theme-grey);
+  --bs-gradient: none;
+}
+
 .text-monospace {
   font-family: monospace;
 }

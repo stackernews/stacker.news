@@ -65,28 +65,31 @@ export default {
     sub: async (parent, { name }, { models, me }) => {
       if (!name) return null
 
-      if (me && name === 'jobs') {
-        models.user.update({
-          where: {
-            id: me.id
-          },
-          data: {
-            lastCheckedJobs: new Date()
-          }
-        }).catch(console.log)
-      }
-
       return await models.sub.findUnique({
         where: {
           name
+        },
+        include: {
+          MuteSub: {
+            where: {
+              userId: Number(me.id)
+            }
+          }
         }
       })
     },
-    subs: async (parent, args, { models }) => {
+    subs: async (parent, args, { models, me }) => {
       return await models.sub.findMany({
         where: {
           status: {
             not: 'STOPPED'
+          }
+        },
+        include: {
+          MuteSub: {
+            where: {
+              userId: Number(me.id)
+            }
           }
         },
         orderBy: {
@@ -158,6 +161,22 @@ export default {
         queries,
         { models, lnd, hash, hmac, me, enforceFee: sub.billingCost })
       return results[1]
+    },
+    toggleMuteSub: async (parent, { name }, { me, models }) => {
+      if (!me) {
+        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+      }
+
+      const lookupData = { userId: Number(me.id), subName: name }
+      const where = { userId_subName: lookupData }
+      const existing = await models.muteSub.findUnique({ where })
+      if (existing) {
+        await models.muteSub.delete({ where })
+        return false
+      } else {
+        await models.muteSub.create({ data: { ...lookupData } })
+        return true
+      }
     }
   },
   Sub: {
@@ -166,6 +185,9 @@ export default {
         return sub.user
       }
       return await models.user.findUnique({ where: { id: sub.userId } })
+    },
+    meMuteSub: async (sub, args, { models }) => {
+      return sub.MuteSub.length > 0
     }
   }
 }

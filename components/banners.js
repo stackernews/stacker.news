@@ -40,7 +40,7 @@ export function WelcomeBanner () {
     setHidden(me?.privates?.hideWelcomeBanner || (!me && window.localStorage.getItem('hideWelcomeBanner')))
   }, [me?.privates?.hideWelcomeBanner])
 
-  if (hidden) return
+  if (hidden) return null
 
   return (
     <Alert className={styles.banner} key='info' variant='info' onClose={handleClose} dismissible>

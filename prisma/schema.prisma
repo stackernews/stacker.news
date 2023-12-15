@@ -77,7 +77,6 @@ model User {
   PushSubscriptions     PushSubscription[]
   ReferralAct           ReferralAct[]
   Streak                Streak[]
-  Subscriptions         Subscription[]
   ThreadSubscriptions   ThreadSubscription[]
   Upload                Upload[]             @relation("Uploads")
   nostrRelays           UserNostrRelay[]
@@ -102,6 +101,7 @@ model User {
   ArcIn                 Arc[]                @relation("toUser")
   Sub                   Sub[]
   SubAct                SubAct[]
+  MuteSub               MuteSub[]
 
   @@index([photoId])
   @@index([createdAt], map: "users.created_at_index")
@@ -419,12 +419,12 @@ model Sub {
   moderated        Boolean     @default(false)
   moderatedCount   Int         @default(0)
 
-  parent       Sub?           @relation("ParentChildren", fields: [parentName], references: [name])
-  children     Sub[]          @relation("ParentChildren")
-  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  Item         Item[]
-  Subscription Subscription[]
-  SubAct       SubAct[]
+  parent   Sub?      @relation("ParentChildren", fields: [parentName], references: [name])
+  children Sub[]     @relation("ParentChildren")
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Item     Item[]
+  SubAct   SubAct[]
+  MuteSub  MuteSub[]
 
   @@index([parentName])
   @@index([createdAt])
@@ -451,14 +451,17 @@ model SubAct {
   @@index([userId, createdAt, type])
 }
 
-model Subscription {
-  id        Int      @id @default(autoincrement())
+model MuteSub {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
   subName   String   @db.Citext
   userId    Int
   sub       Sub      @relation(fields: [subName], references: [name], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, subName])
+  @@index([subName])
+  @@index([createdAt])
 }
 
 model Pin {

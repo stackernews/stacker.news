@@ -191,8 +191,12 @@ const activeOrMine = (me) => {
 export const muteClause = me =>
   me ? `NOT EXISTS (SELECT 1 FROM "Mute" WHERE "Mute"."muterId" = ${me.id} AND "Mute"."mutedId" = "Item"."userId")` : ''
 
-const subClause = (sub, num, table) => {
-  return sub ? `${table ? `"${table}".` : ''}"subName" = $${num}` : ''
+const subClause = (sub, num, table, me) => {
+  return sub
+    ? `${table ? `"${table}".` : ''}"subName" = $${num}`
+    : me
+      ? `NOT EXISTS (SELECT 1 FROM "MuteSub" WHERE "MuteSub"."userId" = ${me.id} AND "MuteSub"."subName" = ${table ? `"${table}".` : ''}"subName")`
+      : ''
 }
 
 export async function filterClause (me, models, type) {
@@ -341,7 +345,7 @@ export default {
               ${relationClause(type)}
               ${whereClause(
                 '"Item".created_at <= $1',
-                subClause(sub, 4, subClauseTable(type)),
+                subClause(sub, 4, subClauseTable(type), me),
                 activeOrMine(me),
                 await filterClause(me, models, type),
                 typeClause(type),
@@ -366,7 +370,7 @@ export default {
               ${whereClause(
                 '"Item"."pinId" IS NULL',
                 '"Item"."deletedAt" IS NULL',
-                subClause(sub, 5, subClauseTable(type)),
+                subClause(sub, 5, subClauseTable(type), me),
                 typeClause(type),
                 whenClause(when, 'Item'),
                 await filterClause(me, models, type),
@@ -386,7 +390,7 @@ export default {
               ${whereClause(
                 '"Item"."pinId" IS NULL',
                 '"Item"."deletedAt" IS NULL',
-                subClause(sub, 5, subClauseTable(type)),
+                subClause(sub, 5, subClauseTable(type), me),
                 typeClause(type),
                 whenClause(when, 'Item'),
                 await filterClause(me, models, type),
@@ -443,7 +447,7 @@ export default {
                       '"Item"."deletedAt" IS NULL',
                       '"Item"."parentId" IS NULL',
                       '"Item".bio = false',
-                      subClause(sub, 3, 'Item', true),
+                      subClause(sub, 3, 'Item', me),
                       muteClause(me))}
                     ORDER BY rank DESC
                     OFFSET $1
@@ -460,7 +464,7 @@ export default {
                       ${SELECT}
                       FROM "Item"
                       ${whereClause(
-                        subClause(sub, 3, 'Item', true),
+                        subClause(sub, 3, 'Item', me),
                         muteClause(me),
                         '"Item"."pinId" IS NULL',
                         '"Item"."deletedAt" IS NULL',
@@ -856,6 +860,10 @@ export default {
     sub: async (item, args, { models }) => {
       if (!item.subName && !item.root) {
         return null
+      }
+
+      if (item.sub) {
+        return item.sub
       }
 
       return await models.sub.findUnique({ where: { name: item.subName || item.root?.subName } })

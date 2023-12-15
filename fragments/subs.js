@@ -18,6 +18,7 @@ export const SUB_FIELDS = gql`
     status
     moderated
     moderatedCount
+    meMuteSub
   }`
 
 export const SUB_FULL_FIELDS = gql`

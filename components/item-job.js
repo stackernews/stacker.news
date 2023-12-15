@@ -73,7 +73,7 @@ export default function ItemJob ({ item, toc, rank, children }) {
         </div>
         {toc &&
           <>
-            <Share item={item} />
+            <Share title={item?.title} path={`/items/${item?.id}`} />
             <Toc text={item.text} />
           </>}
       </div>

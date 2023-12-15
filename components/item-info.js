@@ -12,7 +12,7 @@ import styles from './item.module.css'
 import { useMe } from './me'
 import DontLikeThisDropdownItem from './dont-link-this'
 import BookmarkDropdownItem from './bookmark'
-import SubscribeDropdownItem from './subscribe'
+import SubscribeDropdownItem, { UnsubscribeDropdownItem } from './subscribe'
 import { CopyLinkDropdownItem } from './share'
 import Hat from './hat'
 import { AD_USER_ID } from '../lib/constants'
@@ -138,7 +138,8 @@ export default function ItemInfo ({
         {(item.parentId || item.text) && onQuoteReply &&
           <Dropdown.Item onClick={onQuoteReply}>quote reply</Dropdown.Item>}
         {me && <BookmarkDropdownItem item={item} />}
-        {me && <SubscribeDropdownItem item={item} />}
+        {me && !item.meUnsubscription && <SubscribeDropdownItem item={item} />}
+        {me && !item.meSubscription && <UnsubscribeDropdownItem item={item} />}
         {item.otsHash &&
           <Link href={`/items/${item.id}/ots`} className='text-reset dropdown-item'>
             opentimestamp

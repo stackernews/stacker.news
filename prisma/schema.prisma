@@ -640,6 +640,7 @@ model ThreadSubscription {
   createdAt DateTime @default(now()) @map("created_at")
   item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mode      Boolean  @default(true)
 
   @@id([userId, itemId])
   @@index([createdAt], map: "ThreadSubscription.created_at_index")

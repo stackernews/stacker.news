@@ -27,14 +27,50 @@ export default function SubscribeDropdownItem ({ item: { id, meSubscription } })
       onClick={async () => {
         try {
           await subscribeItem({ variables: { id } })
-          toaster.success(meSubscription ? 'unsubscribed' : 'subscribed')
+          toaster.success(meSubscription ? 'removed subscription' : 'subscribed')
         } catch (err) {
           console.error(err)
-          toaster.danger(meSubscription ? 'failed to unsubscribe' : 'failed to subscribe')
+          toaster.danger(meSubscription ? 'failed to remove subscription' : 'failed to subscribe')
         }
       }}
     >
       {meSubscription ? 'remove subscription' : 'subscribe'}
+    </Dropdown.Item>
+  )
+}
+
+export function UnsubscribeDropdownItem ({ item: { id, meUnsubscription } }) {
+  const toaster = useToast()
+  const [unsubscribeItem] = useMutation(
+    gql`
+      mutation unsubscribeItem($id: ID!) {
+        unsubscribeItem(id: $id) {
+          meUnsubscription
+        }
+      }`, {
+      update (cache, { data: { unsubscribeItem } }) {
+        cache.modify({
+          id: `Item:${id}`,
+          fields: {
+            meUnsubscription: () => unsubscribeItem.meUnsubscription
+          }
+        })
+      }
+    }
+  )
+  return (
+    <Dropdown.Item
+      onClick={async () => {
+        try {
+          await unsubscribeItem({ variables: { id } })
+          toaster.success(meUnsubscription ? 'removed unsubscription' : 'unsubscribed')
+        } catch (err) {
+          console.error(err)
+          toaster.danger(meUnsubscription ? 'failed to remove unsubscription' : 'failed to unsubscribe')
+        }
+      }}
+    >
+      {meUnsubscription ? 'remove unsubscription' : 'unsubscribe'}
     </Dropdown.Item>
   )
 }

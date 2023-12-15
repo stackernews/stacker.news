@@ -30,6 +30,7 @@ export const ITEM_FIELDS = gql`
     meDontLike
     meBookmark
     meSubscription
+    meUnsubscription
     meForward
     outlawed
     freebie

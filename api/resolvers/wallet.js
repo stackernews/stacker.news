@@ -436,10 +436,8 @@ export default {
   }
 }
 
-async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd, headers }) {
+async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd }) {
   await ssValidate(withdrawlSchema, { invoice, maxFee })
-
-  await assertGofacYourself({ models, headers })
 
   // remove 'lightning:' prefix if present
   invoice = invoice.replace(/^lightning:/, '')

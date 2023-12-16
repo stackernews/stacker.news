@@ -1,17 +1,23 @@
 // verify k1 exists
 // send back
 import models from '../../api/models'
+import assertGofacYourself from '../../api/resolvers/ofac'
 import getSSRApolloClient from '../../api/ssrApollo'
 import { CREATE_WITHDRAWL } from '../../fragments/wallet'
 import { datePivot } from '../../lib/time'
 
-export default async ({ query }, res) => {
+export default async ({ query, headers }, res) => {
   if (!query.k1) {
     return res.status(400).json({ status: 'ERROR', reason: 'k1 not provided' })
   }
 
   if (query.pr) {
-    return doWithdrawal(query, res)
+    try {
+      await assertGofacYourself({ models, headers })
+      return doWithdrawal(query, res)
+    } catch (e) {
+      return res.status(400).json({ status: 'ERROR', reason: e.message })
+    }
   }
 
   let reason

@@ -44,11 +44,17 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, ...o
       setOverflowing(container.scrollHeight > window.innerHeight * 2)
     }
 
+    let resizeObserver
+    if (!overflowing && 'ResizeObserver' in window) {
+      resizeObserver = new window.ResizeObserver(checkOverflow).observe(container)
+    }
+
     window.addEventListener('resize', checkOverflow)
     checkOverflow()
 
     return () => {
       window.removeEventListener('resize', checkOverflow)
+      resizeObserver?.disconnect()
     }
   }, [containerRef.current, setOverflowing])
 

@@ -1,8 +1,8 @@
 import { GraphQLError } from 'graphql'
 
 // this function makes america more secure apparently
-export default async function assertGofacYourself ({ models, headers }) {
-  const country = await gOFACYourself({ models, headers })
+export default async function assertGofacYourself ({ models, headers, ip }) {
+  const country = await gOFACYourself({ models, headers, ip })
   if (!country) return
 
   throw new GraphQLError(
@@ -10,9 +10,9 @@ export default async function assertGofacYourself ({ models, headers }) {
     { extensions: { code: 'FORBIDDEN' } })
 }
 
-export async function gOFACYourself ({ models, headers }) {
+export async function gOFACYourself ({ models, headers = {}, ip }) {
   const { 'x-forwarded-for': xForwardedFor, 'x-real-ip': xRealIp } = headers
-  const ip = xRealIp || xForwardedFor?.split(',')?.[0]
+  ip ||= xRealIp || xForwardedFor?.split(',')?.[0]
   if (!ip) return false
 
   const countries = await models.$queryRaw`

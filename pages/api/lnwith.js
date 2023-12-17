@@ -1,10 +1,9 @@
 // verify k1 exists
 // send back
 import models from '../../api/models'
-import assertGofacYourself from '../../api/resolvers/ofac'
-import getSSRApolloClient from '../../api/ssrApollo'
-import { CREATE_WITHDRAWL } from '../../fragments/wallet'
 import { datePivot } from '../../lib/time'
+import lnd from '../../api/lnd'
+import { createWithdrawal } from '../../api/resolvers/wallet'
 
 export default async ({ query, headers }, res) => {
   if (!query.k1) {
@@ -13,8 +12,7 @@ export default async ({ query, headers }, res) => {
 
   if (query.pr) {
     try {
-      await assertGofacYourself({ models, headers })
-      return doWithdrawal(query, res)
+      return await doWithdrawal(query, res, headers)
     } catch (e) {
       return res.status(400).json({ status: 'ERROR', reason: e.message })
     }
@@ -57,7 +55,7 @@ export default async ({ query, headers }, res) => {
   return res.status(400).json({ status: 'ERROR', reason })
 }
 
-async function doWithdrawal (query, res) {
+async function doWithdrawal (query, res, headers) {
   const lnwith = await models.lnWith.findUnique({ where: { k1: query.k1 } })
   if (!lnwith) {
     return res.status(400).json({ status: 'ERROR', reason: 'invalid k1' })
@@ -67,19 +65,17 @@ async function doWithdrawal (query, res) {
     return res.status(400).json({ status: 'ERROR', reason: 'user not found' })
   }
 
-  // create withdrawal in gql
-  const client = await getSSRApolloClient({ me })
-  const { error, data } = await client.mutate({
-    mutation: CREATE_WITHDRAWL,
-    variables: { invoice: query.pr, maxFee: 10 }
-  })
+  try {
+    const withdrawal = await createWithdrawal(null,
+      { invoice: query.pr, maxFee: me.withdrawMaxFeeDefault },
+      { me, models, lnd, headers })
 
-  if (error || !data?.createWithdrawl) {
-    return res.status(400).json({ status: 'ERROR', reason: error?.toString() || 'could not generate withdrawl' })
+    // store withdrawal id lnWith so client can show it
+    await models.lnWith.update({ where: { k1: query.k1 }, data: { withdrawalId: Number(withdrawal.id) } })
+
+    return res.status(200).json({ status: 'OK' })
+  } catch (e) {
+    console.log(e)
+    return res.status(400).json({ status: 'ERROR', reason: e.message || e.toString?.() || 'error creating withdrawal' })
   }
-
-  // store withdrawal id lnWith so client can show it
-  await models.lnWith.update({ where: { k1: query.k1 }, data: { withdrawalId: Number(data.createWithdrawl.id) } })
-
-  return res.status(200).json({ status: 'OK' })
 }

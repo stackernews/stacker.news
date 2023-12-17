@@ -1,4 +1,4 @@
-import { createHodlInvoice, createInvoice, decodePaymentRequest, payViaPaymentRequest, cancelHodlInvoice, getInvoice as getInvoiceFromLnd } from 'ln-service'
+import { createHodlInvoice, createInvoice, decodePaymentRequest, payViaPaymentRequest, cancelHodlInvoice, getInvoice as getInvoiceFromLnd, getNode } from 'ln-service'
 import { GraphQLError } from 'graphql'
 import crypto from 'crypto'
 import serialize from './serial'
@@ -316,8 +316,6 @@ export default {
     },
     createWithdrawl: createWithdrawal,
     sendToLnAddr: async (parent, { addr, amount, maxFee, comment, ...payer }, { me, models, lnd, headers }) => {
-      await assertGofacYourself({ models, headers })
-
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
       }
@@ -370,7 +368,7 @@ export default {
       }
 
       // take pr and createWithdrawl
-      return await createWithdrawal(parent, { invoice: res.pr, maxFee }, { me, models, lnd })
+      return await createWithdrawal(parent, { invoice: res.pr, maxFee }, { me, models, lnd, headers })
     },
     cancelInvoice: async (parent, { hash, hmac }, { models, lnd }) => {
       const hmac2 = createHmac(hash)
@@ -436,19 +434,28 @@ export default {
   }
 }
 
-async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd }) {
+export async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd, headers }) {
   await ssValidate(withdrawlSchema, { invoice, maxFee })
+  await assertGofacYourself({ models, headers })
 
   // remove 'lightning:' prefix if present
   invoice = invoice.replace(/^lightning:/, '')
 
   // decode invoice to get amount
-  let decoded
+  let decoded, node
   try {
     decoded = await decodePaymentRequest({ lnd, request: invoice })
+    node = await getNode({ lnd, public_key: decoded.destination, is_omitting_channels: true })
   } catch (error) {
     console.log(error)
     throw new GraphQLError('could not decode invoice', { extensions: { code: 'BAD_INPUT' } })
+  }
+
+  if (node) {
+    for (const { socket } of node.sockets) {
+      const ip = socket.split(':')[0]
+      await assertGofacYourself({ models, headers, ip })
+    }
   }
 
   if (!decoded.mtokens || BigInt(decoded.mtokens) <= 0) {

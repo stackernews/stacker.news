@@ -3,8 +3,7 @@ import retry from 'async-retry'
 import Prisma from '@prisma/client'
 import { settleHodlInvoice } from 'ln-service'
 import { createHmac } from './wallet'
-import { msatsToSats, numWithUnits } from '../../lib/format'
-import { BALANCE_LIMIT_MSATS } from '../../lib/constants'
+import { msatsToSats } from '../../lib/format'
 
 export default async function serialize (models, ...calls) {
   return await retry(async bail => {
@@ -49,7 +48,7 @@ export default async function serialize (models, ...calls) {
         bail(new Error('too many pending invoices'))
       }
       if (error.message.includes('SN_INV_EXCEED_BALANCE')) {
-        bail(new Error(`pending invoices must not cause balance to exceed ${numWithUnits(msatsToSats(BALANCE_LIMIT_MSATS))}`))
+        bail(new Error('too many pending invoices'))
       }
       if (error.message.includes('40001') || error.code === 'P2034') {
         throw new Error('wallet balance serialization failure - try again')

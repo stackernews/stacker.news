@@ -8,6 +8,7 @@ import { useRouter } from 'next/router'
 import AccordianItem from './accordian-item'
 import BackIcon from '../svgs/arrow-left-line.svg'
 import styles from './lightning-auth.module.css'
+import { callWithTimeout } from '../lib/nostr'
 
 function ExtensionError ({ message, details }) {
   return (
@@ -94,12 +95,12 @@ export function NostrAuth ({ text, callbackUrl }) {
         // have them sign a message with the challenge
         let event
         try {
-          event = await window.nostr.signEvent({
+          event = await callWithTimeout(() => window.nostr.signEvent({
             kind: 22242,
             created_at: Math.floor(Date.now() / 1000),
             tags: [['challenge', k1]],
             content: 'Stacker News Authentication'
-          })
+          }), 5000)
           if (!event) throw new Error('extension returned empty event')
         } catch (e) {
           if (e.message === 'window.nostr call already executing' || !mounted) return

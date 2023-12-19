@@ -6,6 +6,7 @@ import { useMutation, gql } from '@apollo/client'
 import { useMe } from './me'
 import { useToast } from './toast'
 import { SSR } from '../lib/constants'
+import { callWithTimeout } from '../lib/nostr'
 
 const getShareUrl = (item, me) => {
   const path = `/items/${item?.id}${me ? `/r/${me.name}` : ''}`
@@ -77,7 +78,8 @@ export default function Share ({ item }) {
             <Dropdown.Item
               onClick={async () => {
                 try {
-                  if (!(await window.nostr?.getPublicKey())) {
+                  const pubkey = await callWithTimeout(() => window.nostr.getPublicKey(), 5000)
+                  if (!pubkey) {
                     throw new Error('not available')
                   }
                 } catch (e) {

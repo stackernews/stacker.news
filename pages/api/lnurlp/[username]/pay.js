@@ -91,6 +91,6 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
     })
   } catch (error) {
     console.log(error)
-    res.status(400).json({ status: 'ERROR', reason: error.message })
+    res.status(400).json({ status: 'ERROR', reason: 'could not generate invoice' })
   }
 }

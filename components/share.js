@@ -1,6 +1,8 @@
 import Dropdown from 'react-bootstrap/Dropdown'
 import ShareIcon from '../svgs/share-fill.svg'
 import copy from 'clipboard-copy'
+import useCrossposter from './use-crossposter'
+import { useMutation, gql } from '@apollo/client'
 import { useMe } from './me'
 import { useToast } from './toast'
 import { SSR } from '../lib/constants'
@@ -15,8 +17,21 @@ const getShareUrl = (item, me) => {
 
 export default function Share ({ item }) {
   const me = useMe()
+  const crossposter = useCrossposter()
   const toaster = useToast()
   const url = getShareUrl(item, me)
+
+  const mine = item?.user?.id === me?.id
+
+  const [updateNoteId] = useMutation(
+    gql`
+      mutation updateNoteId($id: ID!, $noteId: String!) {
+        updateNoteId(id: $id, noteId: $noteId) {
+          id
+          noteId
+        }
+      }`
+  )
 
   return !SSR && navigator?.share
     ? (
@@ -58,6 +73,42 @@ export default function Share ({ item }) {
           >
             copy link
           </Dropdown.Item>
+          {mine && !item?.noteId && (
+            <Dropdown.Item
+              onClick={async () => {
+                try {
+                  if (!(await window.nostr?.getPublicKey())) {
+                    throw new Error('not available')
+                  }
+                } catch (e) {
+                  toaster.danger(`Nostr extension error: ${e.message}`)
+                  return
+                }
+                try {
+                  if (item?.id) {
+                    const crosspostResult = await crossposter({ ...item })
+                    const noteId = crosspostResult?.noteId
+                    if (noteId) {
+                      await updateNoteId({
+                        variables: {
+                          id: item.id,
+                          noteId
+                        }
+                      })
+                    }
+                    toaster.success('Crosspost successful')
+                  } else {
+                    toaster.warning('Item ID not available')
+                  }
+                } catch (e) {
+                  console.error(e)
+                  toaster.danger('Crosspost failed')
+                }
+              }}
+            >
+              crosspost to nostr
+            </Dropdown.Item>
+          )}
         </Dropdown.Menu>
       </Dropdown>)
 }

@@ -40,6 +40,16 @@ export function DiscussionForm ({
       }`
   )
 
+  const [updateNoteId] = useMutation(
+    gql`
+      mutation updateNoteId($id: ID!, $noteId: String!) {
+        updateNoteId(id: $id, noteId: $noteId) {
+          id
+          noteId
+        }
+      }`
+  )
+
   const onSubmit = useCallback(
     async ({ boost, crosspost, ...values }) => {
       try {
@@ -64,12 +74,25 @@ export function DiscussionForm ({
         throw new Error({ message: error.toString() })
       }
 
+      let noteId = null
+      const discussionId = data?.upsertDiscussion?.id
+
       try {
-        if (crosspost && data?.upsertDiscussion?.id) {
-          await crossposter({ ...values, id: data.upsertDiscussion.id })
+        if (crosspost && discussionId) {
+          const crosspostResult = await crossposter({ ...values, id: discussionId })
+          noteId = crosspostResult?.noteId
         }
       } catch (e) {
         console.error(e)
+      }
+
+      if (noteId) {
+        await updateNoteId({
+          variables: {
+            id: discussionId,
+            noteId
+          }
+        })
       }
 
       if (item) {

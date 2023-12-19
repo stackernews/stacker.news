@@ -32,6 +32,7 @@ export default gql`
     upsertJob(id: ID, sub: String!, title: String!, company: String!, location: String, remote: Boolean,
       text: String!, url: String!, maxBid: Int!, status: String, logo: Int, hash: String, hmac: String): Item!
     upsertPoll(id: ID, sub: String, title: String!, text: String, options: [String!]!, boost: Int, forward: [ItemForwardInput], hash: String, hmac: String): Item!
+    updateNoteId(id: ID!, noteId: String!): Item!
     upsertComment(id:ID, text: String!, parentId: ID, hash: String, hmac: String): Item!
     dontLikeThis(id: ID!, sats: Int, hash: String, hmac: String): Boolean!
     act(id: ID!, sats: Int, hash: String, hmac: String): ItemActResult!
@@ -83,6 +84,7 @@ export default gql`
     boost: Int!
     bounty: Int
     bountyPaidTo: [Int]
+    noteId: String
     sats: Int!
     commentSats: Int!
     lastCommentAt: Date

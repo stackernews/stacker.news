@@ -145,6 +145,11 @@ export default function ItemInfo ({
           </Link>}
         {me && !item.meSats && !item.position &&
           !item.mine && !item.deletedAt && <DontLikeThisDropdownItem id={item.id} />}
+        {me && item?.noteId && (
+          <Dropdown.Item onClick={() => window.open(`https://nostr.com/${item.noteId}`, '_blank', 'noopener')}>
+            nostr note
+          </Dropdown.Item>
+        )}
         {item.mine && !item.position && !item.deletedAt && !item.bio &&
           <DeleteDropdownItem itemId={item.id} type={item.title ? 'post' : 'comment'} />}
         {me && !item.mine &&

@@ -724,6 +724,18 @@ export default {
         return item
       }
     },
+    updateNoteId: async (parent, { id, noteId }, { models }) => {
+      if (!id) {
+        throw new GraphQLError('id required', { extensions: { code: 'BAD_INPUT' } })
+      }
+
+      await models.item.update({
+        where: { id: Number(id) },
+        data: { noteId }
+      })
+
+      return { id, noteId }
+    },
     pollVote: async (parent, { id, hash, hmac }, { me, models, lnd }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
@@ -1200,7 +1212,7 @@ const getForwardUsers = async (models, forward) => {
 export const SELECT =
   `SELECT "Item".id, "Item".created_at, "Item".created_at as "createdAt", "Item".updated_at,
   "Item".updated_at as "updatedAt", "Item".title, "Item".text, "Item".url, "Item"."bounty",
-  "Item"."userId", "Item"."parentId", "Item"."pinId", "Item"."maxBid",
+  "Item"."noteId", "Item"."userId", "Item"."parentId", "Item"."pinId", "Item"."maxBid",
   "Item"."rootId", "Item".upvotes, "Item".company, "Item".location, "Item".remote, "Item"."deletedAt",
   "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost", "Item".boost, "Item".msats,
   "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",

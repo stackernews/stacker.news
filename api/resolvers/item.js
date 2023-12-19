@@ -724,13 +724,13 @@ export default {
         return item
       }
     },
-    updateNoteId: async (parent, { id, noteId }, { models }) => {
+    updateNoteId: async (parent, { id, noteId }, { me, models }) => {
       if (!id) {
         throw new GraphQLError('id required', { extensions: { code: 'BAD_INPUT' } })
       }
 
       await models.item.update({
-        where: { id: Number(id) },
+        where: { id: Number(id), userId: Number(me.id) },
         data: { noteId }
       })
 

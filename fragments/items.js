@@ -28,7 +28,7 @@ export const ITEM_FIELDS = gql`
     path
     upvotes
     meSats
-    meDontLike
+    meDontLikeSats
     meBookmark
     meSubscription
     meForward

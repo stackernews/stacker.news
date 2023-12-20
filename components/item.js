@@ -8,7 +8,6 @@ import reactStringReplace from 'react-string-replace'
 import PollIcon from '../svgs/bar-chart-horizontal-fill.svg'
 import BountyIcon from '../svgs/bounty-bag.svg'
 import ActionTooltip from './action-tooltip'
-import Flag from '../svgs/flag-fill.svg'
 import ImageIcon from '../svgs/image-fill.svg'
 import { numWithUnits } from '../lib/format'
 import ItemInfo from './item-info'
@@ -17,6 +16,7 @@ import { commentsViewedAt } from '../lib/new-comments'
 import { useRouter } from 'next/router'
 import { Badge } from 'react-bootstrap'
 import AdIcon from '../svgs/advertisement-fill.svg'
+import { DownZap } from './dont-link-this'
 
 export function SearchTitle ({ title }) {
   return reactStringReplace(title, /\*\*\*([^*]+)\*\*\*/g, (match, i) => {
@@ -43,8 +43,8 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
       <div className={`${styles.item} ${siblingComments ? 'pt-3' : ''}`}>
         {item.position
           ? <Pin width={24} height={24} className={styles.pin} />
-          : item.meDontLike
-            ? <Flag width={24} height={24} className={styles.dontLike} />
+          : item.meDontLikeSats > item.meSats
+            ? <DownZap width={24} height={24} className={styles.dontLike} id={item.id} meDontLikeSats={item.meDontLikeSats} />
             : Number(item.user?.id) === AD_USER_ID
               ? <AdIcon width={24} height={24} className={styles.ad} />
               : <UpVote item={item} className={styles.upvote} pendingSats={pendingSats} setPendingSats={setPendingSats} />}

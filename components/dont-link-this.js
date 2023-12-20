@@ -4,8 +4,23 @@ import { useShowModal } from './modal'
 import { useToast } from './toast'
 import ItemAct from './item-act'
 import AccordianItem from './accordian-item'
+import Flag from '../svgs/flag-fill.svg'
+import { useMemo } from 'react'
+import getColor from '../lib/rainbow'
 
-export default function DontLikeThisDropdownItem ({ id }) {
+export function DownZap ({ id, meDontLikeSats, ...props }) {
+  const style = useMemo(() => (meDontLikeSats
+    ? {
+        fill: getColor(meDontLikeSats),
+        filter: `drop-shadow(0 0 6px ${getColor(meDontLikeSats)}90)`
+      }
+    : undefined), [meDontLikeSats])
+  return (
+    <DownZapper id={id} As={({ ...oprops }) => <Flag {...props} {...oprops} style={style} />} />
+  )
+}
+
+function DownZapper ({ id, As, children }) {
   const toaster = useToast()
   const showModal = useShowModal()
 
@@ -14,12 +29,12 @@ export default function DontLikeThisDropdownItem ({ id }) {
       mutation dontLikeThis($id: ID!, $sats: Int, $hash: String, $hmac: String) {
         dontLikeThis(id: $id, sats: $sats, hash: $hash, hmac: $hmac)
       }`, {
-      update (cache) {
+      update (cache, { data: { dontLikeThis } }) {
         cache.modify({
           id: `Item:${id}`,
           fields: {
-            meDontLike () {
-              return true
+            meDontLikeSats (existingSats = 0) {
+              return existingSats + dontLikeThis
             }
           }
         })
@@ -28,7 +43,7 @@ export default function DontLikeThisDropdownItem ({ id }) {
   )
 
   return (
-    <Dropdown.Item
+    <As
       onClick={async () => {
         try {
           showModal(onClose =>
@@ -53,7 +68,18 @@ export default function DontLikeThisDropdownItem ({ id }) {
         }
       }}
     >
+      {children}
+    </As>
+  )
+}
+
+export default function DontLikeThisDropdownItem ({ id }) {
+  return (
+    <DownZapper
+      As={Dropdown.Item}
+      id={id}
+    >
       <span className='text-danger'>downzap</span>
-    </Dropdown.Item>
+    </DownZapper>
   )
 }

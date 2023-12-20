@@ -65,6 +65,7 @@ a.title:visited {
     margin-right: .35rem;
     margin-left: -.2rem;
     flex-shrink: 0;
+    cursor: pointer;
 }
 
 .case {

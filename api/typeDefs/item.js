@@ -34,7 +34,7 @@ export default gql`
     upsertPoll(id: ID, sub: String, title: String!, text: String, options: [String!]!, boost: Int, forward: [ItemForwardInput], hash: String, hmac: String): Item!
     updateNoteId(id: ID!, noteId: String!): Item!
     upsertComment(id:ID, text: String!, parentId: ID, hash: String, hmac: String): Item!
-    dontLikeThis(id: ID!, sats: Int, hash: String, hmac: String): Boolean!
+    dontLikeThis(id: ID!, sats: Int, hash: String, hmac: String): Int!
     act(id: ID!, sats: Int, hash: String, hmac: String): ItemActResult!
     pollVote(id: ID!, hash: String, hmac: String): ID!
   }
@@ -90,7 +90,7 @@ export default gql`
     lastCommentAt: Date
     upvotes: Int!
     meSats: Int!
-    meDontLike: Boolean!
+    meDontLikeSats: Int!
     meBookmark: Boolean!
     meSubscription: Boolean!
     meForward: Boolean

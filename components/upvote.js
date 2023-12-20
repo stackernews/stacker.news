@@ -4,7 +4,7 @@ import { gql, useMutation } from '@apollo/client'
 import ActionTooltip from './action-tooltip'
 import ItemAct from './item-act'
 import { useMe } from './me'
-import Rainbow from '../lib/rainbow'
+import getColor from '../lib/rainbow'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import LongPressable from 'react-longpressable'
 import Overlay from 'react-bootstrap/Overlay'
@@ -15,17 +15,7 @@ import { numWithUnits } from '../lib/format'
 import { payOrLoginError, useInvoiceModal } from './invoice'
 import useDebounceCallback from './use-debounce-callback'
 import { useToast } from './toast'
-
-const getColor = (meSats) => {
-  if (!meSats || meSats <= 10) {
-    return 'var(--bs-secondary)'
-  }
-
-  const idx = Math.min(
-    Math.floor((Math.log(meSats) / Math.log(10000)) * (Rainbow.length - 1)),
-    Rainbow.length - 1)
-  return Rainbow[idx]
-}
+import { Dropdown } from 'react-bootstrap'
 
 const UpvotePopover = ({ target, show, handleClose }) => {
   const me = useMe()
@@ -65,6 +55,72 @@ const TipPopover = ({ target, show, handleClose }) => (
     </Popover>
   </Overlay>
 )
+
+function useAct ({ item, setVoteShow = () => {}, setTipShow = () => {} }) {
+  const me = useMe()
+  return useMutation(
+    gql`
+      mutation act($id: ID!, $sats: Int!, $hash: String, $hmac: String) {
+        act(id: $id, sats: $sats, hash: $hash, hmac: $hmac) {
+          sats
+        }
+      }`, {
+      update (cache, { data: { act: { sats } } }) {
+        cache.modify({
+          id: `Item:${item.id}`,
+          fields: {
+            sats (existingSats = 0) {
+              return existingSats + sats
+            },
+            meSats: me
+              ? (existingSats = 0) => {
+                  if (sats <= me.privates?.sats) {
+                    if (existingSats === 0) {
+                      setVoteShow(true)
+                    } else {
+                      setTipShow(true)
+                    }
+                  }
+
+                  return existingSats + sats
+                }
+              : undefined
+          }
+        })
+
+        // update all ancestors
+        item.path.split('.').forEach(id => {
+          if (Number(id) === Number(item.id)) return
+          cache.modify({
+            id: `Item:${id}`,
+            fields: {
+              commentSats (existingCommentSats = 0) {
+                return existingCommentSats + sats
+              }
+            }
+          })
+        })
+      }
+    }
+  )
+}
+
+export function DropdownItemUpVote ({ item }) {
+  const showModal = useShowModal()
+
+  const [act] = useAct({ item })
+
+  return (
+    <Dropdown.Item
+      onClick={async () => {
+        showModal(onClose =>
+          <ItemAct onClose={onClose} itemId={item.id} act={act} />)
+      }}
+    >
+      <span className='text-success'>zap</span>
+    </Dropdown.Item>
+  )
+}
 
 export default function UpVote ({ item, className, pendingSats, setPendingSats }) {
   const showModal = useShowModal()
@@ -110,51 +166,8 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
     }
   }, [me, tipShow, setWalkthrough])
 
-  const [act] = useMutation(
-    gql`
-      mutation act($id: ID!, $sats: Int!, $hash: String, $hmac: String) {
-        act(id: $id, sats: $sats, hash: $hash, hmac: $hmac) {
-          sats
-        }
-      }`, {
-      update (cache, { data: { act: { sats } } }) {
-        cache.modify({
-          id: `Item:${item.id}`,
-          fields: {
-            sats (existingSats = 0) {
-              return existingSats + sats
-            },
-            meSats: me
-              ? (existingSats = 0) => {
-                  if (sats <= me.privates?.sats) {
-                    if (existingSats === 0) {
-                      setVoteShow(true)
-                    } else {
-                      setTipShow(true)
-                    }
-                  }
+  const [act] = useAct({ item, setVoteShow, setTipShow })
 
-                  return existingSats + sats
-                }
-              : undefined
-          }
-        })
-
-        // update all ancestors
-        item.path.split('.').forEach(id => {
-          if (Number(id) === Number(item.id)) return
-          cache.modify({
-            id: `Item:${id}`,
-            fields: {
-              commentSats (existingCommentSats = 0) {
-                return existingCommentSats + sats
-              }
-            }
-          })
-        })
-      }
-    }
-  )
   const showInvoiceModal = useInvoiceModal(
     async ({ hash, hmac }, { variables }) => {
       await act({ variables: { ...variables, hash, hmac } })

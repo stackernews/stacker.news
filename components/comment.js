@@ -14,7 +14,6 @@ import { ignoreClick } from '../lib/clicks'
 import PayBounty from './pay-bounty'
 import BountyIcon from '../svgs/bounty-bag.svg'
 import ActionTooltip from './action-tooltip'
-import Flag from '../svgs/flag-fill.svg'
 import { numWithUnits } from '../lib/format'
 import Share from './share'
 import ItemInfo from './item-info'
@@ -22,6 +21,7 @@ import Badge from 'react-bootstrap/Badge'
 import { RootProvider, useRoot } from './root'
 import { useMe } from './me'
 import { useQuoteReply } from './use-quote-reply'
+import { DownZap } from './dont-link-this'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -146,8 +146,8 @@ export default function Comment ({
       onTouchStart={() => ref.current.classList.add('outline-new-comment-unset')}
     >
       <div className={`${itemStyles.item} ${styles.item}`}>
-        {item.meDontLike
-          ? <Flag width={24} height={24} className={styles.dontLike} />
+        {item.meDontLikeSats > item.meSats
+          ? <DownZap width={24} height={24} className={styles.dontLike} id={item.id} meDontLikeSats={item.meDontLikeSats} />
           : <UpVote item={item} className={styles.upvote} pendingSats={pendingSats} setPendingSats={setPendingSats} />}
         <div className={`${itemStyles.hunk} ${styles.hunk}`}>
           <div className='d-flex align-items-center'>

@@ -21,7 +21,7 @@ export const COMMENT_FIELDS = gql`
     freedFreebie
     boost
     meSats
-    meDontLike
+    meDontLikeSats
     meBookmark
     meSubscription
     outlawed

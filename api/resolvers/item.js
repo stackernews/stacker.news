@@ -141,7 +141,7 @@ async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ...args) 
     return await models.$queryRawUnsafe(`
       SELECT "Item".*, to_jsonb(users.*) || jsonb_build_object('meMute', "Mute"."mutedId" IS NOT NULL) as user,
         COALESCE("ItemAct"."meMsats", 0) as "meMsats",
-        COALESCE("ItemAct"."meDontLike", false) as "meDontLike", b."itemId" IS NOT NULL AS "meBookmark",
+        COALESCE("ItemAct"."meDontLikeMsats", 0) as "meDontLikeMsats", b."itemId" IS NOT NULL AS "meBookmark",
         "ThreadSubscription"."itemId" IS NOT NULL AS "meSubscription", "ItemForward"."itemId" IS NOT NULL AS "meForward"
       FROM (
         ${query}
@@ -153,7 +153,7 @@ async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ...args) 
       LEFT JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id AND "ItemForward"."userId" = ${me.id}
       LEFT JOIN LATERAL (
         SELECT "itemId", sum("ItemAct".msats) FILTER (WHERE act = 'FEE' OR act = 'TIP') AS "meMsats",
-               bool_or(act = 'DONT_LIKE_THIS') AS "meDontLike"
+          sum("ItemAct".msats) FILTER (WHERE act = 'DONT_LIKE_THIS') AS "meDontLikeMsats"
         FROM "ItemAct"
         WHERE "ItemAct"."userId" = ${me.id}
         AND "ItemAct"."itemId" = "Item".id
@@ -805,7 +805,7 @@ export default {
         { me, models, lnd, hash, hmac }
       )
 
-      return true
+      return sats
     }
   },
   Item: {
@@ -933,11 +933,16 @@ export default {
 
       return (msats && msatsToSats(msats)) || 0
     },
-    meDontLike: async (item, args, { me, models }) => {
+    meDontLikeSats: async (item, args, { me, models }) => {
       if (!me) return false
-      if (typeof item.meDontLike !== 'undefined') return item.meDontLike
+      if (typeof item.meMsats !== 'undefined') {
+        return msatsToSats(item.meDontLikeMsats)
+      }
 
-      const dontLike = await models.itemAct.findFirst({
+      const { _sum: { msats } } = await models.itemAct.aggregate({
+        _sum: {
+          msats: true
+        },
         where: {
           itemId: Number(item.id),
           userId: me.id,
@@ -945,7 +950,7 @@ export default {
         }
       })
 
-      return !!dontLike
+      return (msats && msatsToSats(msats)) || 0
     },
     meBookmark: async (item, args, { me, models }) => {
       if (!me) return false

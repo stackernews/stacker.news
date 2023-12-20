@@ -6,6 +6,7 @@ import { PRICE } from '../fragments/price'
 import { CURRENCY_SYMBOLS } from '../lib/currency'
 import { SSR } from '../lib/constants'
 import { useBlockHeight } from './block-height'
+import { useChainFee } from './chain-fee'
 
 export const PriceContext = React.createContext({
   price: null,
@@ -47,13 +48,15 @@ export default function Price ({ className }) {
     const satSelection = window.localStorage.getItem('asSats')
     setAsSats(satSelection ?? 'fiat')
   }, [])
+
   const { price, fiatSymbol } = usePrice()
   const { height: blockHeight } = useBlockHeight()
+  const { fee: chainFee } = useChainFee()
 
-  if (!price || price < 0 || blockHeight <= 0) return null
+  if (!price || price < 0 || blockHeight <= 0 || chainFee <= 0) return null
 
   // Options: yep, 1btc, blockHeight, undefined
-  // yep -> 1btc -> blockHeight -> undefined -> yep
+  // yep -> 1btc -> blockHeight -> chainFee -> undefined -> yep
   const handleClick = () => {
     if (asSats === 'yep') {
       window.localStorage.setItem('asSats', '1btc')
@@ -62,6 +65,9 @@ export default function Price ({ className }) {
       window.localStorage.setItem('asSats', 'blockHeight')
       setAsSats('blockHeight')
     } else if (asSats === 'blockHeight') {
+      window.localStorage.setItem('asSats', 'chainFee')
+      setAsSats('chainFee')
+    } else if (asSats === 'chainFee') {
       window.localStorage.removeItem('asSats')
       setAsSats('fiat')
     } else {
@@ -92,6 +98,14 @@ export default function Price ({ className }) {
     return (
       <div className={compClassName} onClick={handleClick} variant='link'>
         {blockHeight}
+      </div>
+    )
+  }
+
+  if (asSats === 'chainFee') {
+    return (
+      <div className={compClassName} onClick={handleClick} variant='link'>
+        {chainFee} sat/vB
       </div>
     )
   }

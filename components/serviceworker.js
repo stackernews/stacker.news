@@ -99,7 +99,15 @@ export const ServiceWorkerProvider = ({ children }) => {
     if (pushSubscription) {
       return unsubscribeFromPushNotifications(pushSubscription)
     }
-    return subscribeToPushNotifications()
+    return subscribeToPushNotifications().then(async () => {
+      // request persistent storage: https://web.dev/learn/pwa/offline-data#data_persistence
+      const persisted = await navigator?.storage?.persisted?.()
+      if (!persisted && navigator?.storage?.persist) {
+        return navigator.storage.persist().then(persistent => {
+          logger.info('persistent storage:', persistent)
+        }).catch(logger.error)
+      }
+    })
   })
 
   useEffect(() => {
@@ -138,13 +146,6 @@ export const ServiceWorkerProvider = ({ children }) => {
     // see https://medium.com/@madridserginho/how-to-handle-webpush-api-pushsubscriptionchange-event-in-modern-browsers-6e47840d756f
     navigator?.serviceWorker?.controller?.postMessage?.({ action: 'SYNC_SUBSCRIPTION' })
     logger.info('sent SYNC_SUBSCRIPTION to service worker')
-
-    // request persistent storage: https://web.dev/learn/pwa/offline-data#data_persistence
-    if (navigator?.storage?.persist) {
-      navigator.storage.persist().then(persistent => {
-        logger.info('persistent storage:', persistent)
-      }).catch(logger.error)
-    }
   }, [registration])
 
   const contextValue = useMemo(() => ({

@@ -36,7 +36,7 @@ const addCustomTip = (amount) => {
   window.localStorage.setItem('custom-tips', JSON.stringify(customTips))
 }
 
-export default function ItemAct ({ onClose, itemId, act, down, strike }) {
+export default function ItemAct ({ onClose, itemId, act, down, strike, children }) {
   const inputRef = useRef(null)
   const me = useMe()
   const [oValue, setOValue] = useState()
@@ -87,8 +87,9 @@ export default function ItemAct ({ onClose, itemId, act, down, strike }) {
       <div>
         <Tips setOValue={setOValue} />
       </div>
+      {children}
       <div className='d-flex'>
-        <SubmitButton variant={down ? 'danger' : 'success'} className='ms-auto mt-1 px-4' value='TIP'>{down && 'down '}zap</SubmitButton>
+        <SubmitButton variant={down ? 'danger' : 'success'} className='ms-auto mt-1 px-4' value='TIP'>{down && 'down'}zap</SubmitButton>
       </div>
     </Form>
   )

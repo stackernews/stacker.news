@@ -464,12 +464,12 @@ div[contenteditable]:disabled,
   border-color: var(--theme-borderColor);
 }
 
-.nav-link:not(.text-success) {
+.nav-link:not(.text-success, .text-warning) {
   color: var(--theme-navLink) !important;
 }
 
-.nav-link:not(.text-success):hover,
-.nav-link:not(.text-success):focus {
+.nav-link:not(.text-success, .text-warning):hover,
+.nav-link:not(.text-success, .text-warning):focus {
   color: var(--theme-navLinkFocus) !important;
 }
 
@@ -691,7 +691,7 @@ div[contenteditable]:focus,
   font-weight: bold;
 }
 
-.nav-link.active:not(.text-success) {
+.nav-link.active:not(.text-success, .text-warning) {
   color: var(--theme-navLinkActive) !important;
 }
 

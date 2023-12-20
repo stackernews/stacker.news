@@ -12,13 +12,13 @@ import Head from 'next/head'
 import { signOut } from 'next-auth/react'
 import { useCallback, useEffect } from 'react'
 import { randInRange } from '../lib/rand'
-import { abbrNum } from '../lib/format'
+import { abbrNum, msatsToSats } from '../lib/format'
 import NoteIcon from '../svgs/notification-4-fill.svg'
 import { useQuery } from '@apollo/client'
 import LightningIcon from '../svgs/bolt.svg'
 import SearchIcon from '../svgs/search-line.svg'
 import BackArrow from '../svgs/arrow-left-line.svg'
-import { SSR } from '../lib/constants'
+import { BALANCE_LIMIT_MSATS, SSR } from '../lib/constants'
 import { useLightning } from './lightning'
 import { HAS_NOTIFICATIONS } from '../fragments/notifications'
 import AnonIcon from '../svgs/spy-fill.svg'
@@ -153,13 +153,15 @@ function NavProfileMenu ({ me, dropNavKey }) {
 function StackerCorner ({ dropNavKey }) {
   const me = useMe()
 
+  const walletLimitReached = me.privates?.sats >= msatsToSats(BALANCE_LIMIT_MSATS)
+
   return (
     <div className='d-flex ms-auto'>
       <NotificationBell />
       <NavProfileMenu me={me} dropNavKey={dropNavKey} />
       <Nav.Item>
         <Link href='/wallet' passHref legacyBehavior>
-          <Nav.Link eventKey='wallet' className='text-success text-monospace px-0 text-nowrap'>
+          <Nav.Link eventKey='wallet' className={`${walletLimitReached ? 'text-warning' : 'text-success'} text-monospace px-0 text-nowrap`}>
             <WalletSummary me={me} />
           </Nav.Link>
         </Link>

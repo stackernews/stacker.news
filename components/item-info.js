@@ -18,6 +18,7 @@ import Hat from './hat'
 import { AD_USER_ID } from '../lib/constants'
 import ActionDropdown from './action-dropdown'
 import MuteDropdownItem from './mute'
+import { DropdownItemUpVote } from './upvote'
 
 export default function ItemInfo ({
   item, pendingSats, full, commentsText = 'comments',
@@ -39,7 +40,7 @@ export default function ItemInfo ({
   }, [item])
 
   useEffect(() => {
-    if (item) setMeTotalSats(item.meSats + item.meAnonSats + pendingSats)
+    if (item) setMeTotalSats((item.meSats || 0) + (item.meAnonSats || 0) + (pendingSats || 0))
   }, [item?.meSats, item?.meAnonSats, pendingSats])
 
   return (
@@ -52,7 +53,9 @@ export default function ItemInfo ({
               unitPlural: 'stackers'
             })} ${item.mine
             ? `\\ ${numWithUnits(item.meSats, { abbreviate: false })} to post`
-            : `(${numWithUnits(meTotalSats, { abbreviate: false })} from me)`} `}
+            : `(${numWithUnits(meTotalSats, { abbreviate: false })}${item.meDontLikeSats
+              ? ` & ${numWithUnits(item.meDontLikeSats, { abbreviate: false, unitSingular: 'downsat', unitPlural: 'downsats' })}`
+              : ''} from me)`} `}
           >
             {numWithUnits(item.sats + pendingSats)}
           </span>
@@ -143,8 +146,16 @@ export default function ItemInfo ({
           <Link href={`/items/${item.id}/ots`} className='text-reset dropdown-item'>
             opentimestamp
           </Link>}
-        {me && !item.meSats && !item.position &&
-          !item.mine && !item.deletedAt && <DontLikeThisDropdownItem id={item.id} />}
+        {me && !item.position &&
+          !item.mine && !item.deletedAt &&
+          (item.meDontLikeSats > meTotalSats
+            ? <DropdownItemUpVote item={item} />
+            : <DontLikeThisDropdownItem id={item.id} />)}
+        {me && item?.noteId && (
+          <Dropdown.Item onClick={() => window.open(`https://nostr.com/${item.noteId}`, '_blank', 'noopener')}>
+            nostr note
+          </Dropdown.Item>
+        )}
         {item.mine && !item.position && !item.deletedAt && !item.bio &&
           <DeleteDropdownItem itemId={item.id} type={item.title ? 'post' : 'comment'} />}
         {me && !item.mine &&

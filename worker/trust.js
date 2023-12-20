@@ -1,22 +1,17 @@
 import * as math from 'mathjs'
 import { ANON_USER_ID, SN_USER_IDS } from '../lib/constants.js'
 
-export function trust ({ boss, models }) {
-  return async function () {
-    try {
-      console.time('trust')
-      console.timeLog('trust', 'getting graph')
-      const graph = await getGraph(models)
-      console.timeLog('trust', 'computing trust')
-      const [vGlobal, mPersonal] = await trustGivenGraph(graph)
-      console.timeLog('trust', 'storing trust')
-      await storeTrust(models, graph, vGlobal, mPersonal)
-    } catch (e) {
-      console.error(e)
-      throw e
-    } finally {
-      console.timeEnd('trust')
-    }
+export async function trust ({ boss, models }) {
+  try {
+    console.time('trust')
+    console.timeLog('trust', 'getting graph')
+    const graph = await getGraph(models)
+    console.timeLog('trust', 'computing trust')
+    const [vGlobal, mPersonal] = await trustGivenGraph(graph)
+    console.timeLog('trust', 'storing trust')
+    await storeTrust(models, graph, vGlobal, mPersonal)
+  } finally {
+    console.timeEnd('trust')
   }
 }
 

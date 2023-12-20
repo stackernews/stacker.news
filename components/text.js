@@ -40,8 +40,23 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, ...o
     const container = containerRef.current
     if (!container || overflowing) return
 
-    setOverflowing(container.scrollHeight > window.innerHeight * 2)
-  }, [containerRef.current])
+    function checkOverflow () {
+      setOverflowing(container.scrollHeight > window.innerHeight * 2)
+    }
+
+    let resizeObserver
+    if (!overflowing && 'ResizeObserver' in window) {
+      resizeObserver = new window.ResizeObserver(checkOverflow).observe(container)
+    }
+
+    window.addEventListener('resize', checkOverflow)
+    checkOverflow()
+
+    return () => {
+      window.removeEventListener('resize', checkOverflow)
+      resizeObserver?.disconnect()
+    }
+  }, [containerRef.current, setOverflowing])
 
   // all the reactStringReplace calls are to facilitate search highlighting
   const slugger = useRef(new GithubSlugger())

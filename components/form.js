@@ -31,15 +31,17 @@ import { useFeeButton } from './fee-button'
 import Thumb from '../svgs/thumb-up-fill.svg'
 
 export function SubmitButton ({
-  children, variant, value, onClick, disabled, ...props
+  children, variant, value, onClick, disabled, nonDisabledText, ...props
 }) {
   const formik = useFormikContext()
+
+  disabled ||= formik.isSubmitting
 
   return (
     <Button
       variant={variant || 'main'}
       type='submit'
-      disabled={disabled || formik.isSubmitting}
+      disabled={disabled}
       onClick={value
         ? e => {
           formik.setFieldValue('submit', value)
@@ -48,7 +50,7 @@ export function SubmitButton ({
         : onClick}
       {...props}
     >
-      {children}
+      {children}{!disabled && nonDisabledText && <small> {nonDisabledText}</small>}
     </Button>
   )
 }
@@ -696,11 +698,14 @@ export function VariableInput ({ label, groupClassName, name, hint, max, min, re
   )
 }
 
-export function Checkbox ({ children, label, groupClassName, hiddenLabel, extra, handleChange, inline, disabled, ...props }) {
+export function Checkbox ({
+  children, label, groupClassName, type = 'checkbox',
+  hiddenLabel, extra, handleChange, inline, disabled, ...props
+}) {
   // React treats radios and checkbox inputs differently other input types, select, and textarea.
   // Formik does this too! When you specify `type` to useField(), it will
   // return the correct bag of props for you
-  const [field,, helpers] = useField({ ...props, type: 'checkbox' })
+  const [field, meta, helpers] = useField({ ...props, type })
   return (
     <FormGroup className={groupClassName}>
       {hiddenLabel && <BootstrapForm.Label className='invisible'>{label}</BootstrapForm.Label>}
@@ -709,7 +714,8 @@ export function Checkbox ({ children, label, groupClassName, hiddenLabel, extra,
         inline={inline}
       >
         <BootstrapForm.Check.Input
-          {...field} {...props} disabled={disabled} type='checkbox' onChange={(e) => {
+          isInvalid={meta.touched && meta.error}
+          {...field} {...props} disabled={disabled} type={type} onChange={(e) => {
             field.onChange(e)
             handleChange && handleChange(e.target.checked, helpers.setValue)
           }}
@@ -722,6 +728,19 @@ export function Checkbox ({ children, label, groupClassName, hiddenLabel, extra,
             </div>}
         </BootstrapForm.Check.Label>
       </BootstrapForm.Check>
+    </FormGroup>
+  )
+}
+
+export function CheckboxGroup ({ label, groupClassName, children, ...props }) {
+  const [, meta] = useField(props)
+  return (
+    <FormGroup label={label} className={groupClassName}>
+      {children}
+      {/* force the feedback to display with d-block */}
+      <BootstrapForm.Control.Feedback className='d-block' type='invalid'>
+        {meta.touched && meta.error}
+      </BootstrapForm.Control.Feedback>
     </FormGroup>
   )
 }
@@ -832,7 +851,17 @@ export function Select ({ label, items, groupClassName, onChange, noForm, overri
         }}
         isInvalid={invalid}
       >
-        {items?.map(item => <option key={item}>{item}</option>)}
+        {items.map(item => {
+          if (item && typeof item === 'object') {
+            return (
+              <optgroup key={item.label} label={item.label}>
+                {item.items.map(item => <option key={item}>{item}</option>)}
+              </optgroup>
+            )
+          } else {
+            return <option key={item}>{item}</option>
+          }
+        })}
       </BootstrapForm.Select>
       <BootstrapForm.Control.Feedback type='invalid'>
         {meta.touched && meta.error}

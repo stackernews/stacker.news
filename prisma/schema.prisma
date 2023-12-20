@@ -100,6 +100,8 @@ model User {
   muteds                Mute[]               @relation("muted")
   ArcOut                Arc[]                @relation("fromUser")
   ArcIn                 Arc[]                @relation("toUser")
+  Sub                   Sub[]
+  SubAct                SubAct[]
 
   @@index([photoId])
   @@index([createdAt], map: "users.created_at_index")
@@ -296,6 +298,7 @@ model Item {
   otsHash            String?
   imgproxyUrls       Json?
   bounty             Int?
+  noteId             String?               @unique(map: "Item.noteId_unique")
   rootId             Int?
   bountyPaidTo       Int[]
   upvotes            Int                   @default(0)
@@ -381,16 +384,68 @@ model PollVote {
   @@index([userId], map: "PollVote.userId_index")
 }
 
+enum BillingType {
+  MONTHLY
+  YEARLY
+  ONCE
+}
+
+enum RankingType {
+  WOT
+  RECENT
+  AUCTION
+}
+
 model Sub {
-  name         String         @id @db.Citext
-  createdAt    DateTime       @default(now()) @map("created_at")
-  updatedAt    DateTime       @default(now()) @updatedAt @map("updated_at")
-  postTypes    PostType[]
-  rankingType  RankingType
-  baseCost     Int            @default(1)
-  desc         String?
+  name       String                @id @db.Citext
+  createdAt  DateTime              @default(now()) @map("created_at")
+  updatedAt  DateTime              @default(now()) @updatedAt @map("updated_at")
+  userId     Int
+  parentName String?               @db.Citext
+  path       Unsupported("ltree")?
+
+  postTypes        PostType[]
+  rankingType      RankingType
+  allowFreebies    Boolean     @default(true)
+  baseCost         Int         @default(1)
+  rewardsPct       Int         @default(50)
+  desc             String?
+  status           Status      @default(ACTIVE)
+  billingType      BillingType
+  billingCost      Int
+  billingAutoRenew Boolean     @default(false)
+  billedLastAt     DateTime    @default(now())
+
+  parent       Sub?           @relation("ParentChildren", fields: [parentName], references: [name])
+  children     Sub[]          @relation("ParentChildren")
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   Item         Item[]
   Subscription Subscription[]
+  SubAct       SubAct[]
+
+  @@index([parentName])
+  @@index([createdAt])
+  @@index([userId])
+  @@index([path], type: Gist)
+}
+
+model SubAct {
+  id        Int        @id @default(autoincrement())
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @default(now()) @updatedAt @map("updated_at")
+  userId    Int
+  subName   String     @db.Citext
+  msats     BigInt
+  type      SubActType
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sub       Sub        @relation(fields: [subName], references: [name], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, type])
+  @@index([type])
+  @@index([createdAt])
+  @@index([createdAt, type])
+  @@index([userId, createdAt, type])
 }
 
 model Subscription {
@@ -534,6 +589,14 @@ model Account {
   @@map("accounts")
 }
 
+model OFAC {
+  id          Int                      @id @default(autoincrement())
+  startIP     Unsupported("ipaddress")
+  endIP       Unsupported("ipaddress")
+  country     String
+  countryCode String
+}
+
 model Session {
   id           Int      @id @default(autoincrement())
   sessionToken String   @unique(map: "sessions.session_token_unique") @map("session_token")
@@ -630,10 +693,16 @@ enum EarnType {
   TIP_POST
 }
 
+enum SubActType {
+  BILLING
+  REVENUE
+}
+
 enum Status {
   ACTIVE
   STOPPED
   NOSATS
+  GRACE
 }
 
 enum PostType {
@@ -642,12 +711,6 @@ enum PostType {
   JOB
   POLL
   BOUNTY
-}
-
-enum RankingType {
-  WOT
-  RECENT
-  AUCTION
 }
 
 enum ItemActType {

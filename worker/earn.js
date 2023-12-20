@@ -8,16 +8,19 @@ const UPVOTE_EACH_REWARD = 4.0
 const TOP_PERCENTILE = 33
 const TOTAL_UPPER_BOUND_MSATS = 1000000000
 
-export function earn ({ models }) {
-  return async function ({ name }) {
-    console.log('running', name)
+export async function earn ({ name, models }) {
+  // rewards are calculated sitewide still
+  // however for user gen subs currently only 50% of their fees go to rewards
+  // the other 50% goes to the founder of the sub
 
-    // compute how much sn earned today
-    const [{ sum: sumDecimal }] = await models.$queryRaw`
+  // compute how much sn earned today
+  const [{ sum: sumDecimal }] = await models.$queryRaw`
       SELECT coalesce(sum(msats), 0) as sum
       FROM (
-        (SELECT ("ItemAct".msats - COALESCE("ReferralAct".msats, 0)) as msats
+        (SELECT ("ItemAct".msats - COALESCE("ReferralAct".msats, 0)) * COALESCE("Sub"."rewardsPct", 100) * 0.01  as msats
           FROM "ItemAct"
+          JOIN "Item" ON "Item"."id" = "ItemAct"."itemId"
+          LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
           LEFT JOIN "ReferralAct" ON "ReferralAct"."itemActId" = "ItemAct".id
           WHERE date_trunc('day', "ItemAct".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = date_trunc('day', (now() - interval '1 day') AT TIME ZONE 'America/Chicago')
             AND "ItemAct".act <> 'TIP')
@@ -37,32 +40,32 @@ export function earn ({ models }) {
           HAVING COUNT("ItemForward".id) = 0)
       ) subquery`
 
-    // XXX primsa will return a Decimal (https://mikemcl.github.io/decimal.js)
-    // because sum of a BIGINT returns a NUMERIC type (https://www.postgresql.org/docs/13/functions-aggregate.html)
-    // and Decimal is what prisma maps it to https://www.prisma.io/docs/concepts/components/prisma-client/raw-database-access#raw-query-type-mapping
-    // so check it before coercing to Number
-    if (!sumDecimal || sumDecimal.lessThanOrEqualTo(0)) {
-      console.log('done', name, 'no sats to award today')
-      return
-    }
+  // XXX primsa will return a Decimal (https://mikemcl.github.io/decimal.js)
+  // because sum of a BIGINT returns a NUMERIC type (https://www.postgresql.org/docs/13/functions-aggregate.html)
+  // and Decimal is what prisma maps it to https://www.prisma.io/docs/concepts/components/prisma-client/raw-database-access#raw-query-type-mapping
+  // so check it before coercing to Number
+  if (!sumDecimal || sumDecimal.lessThanOrEqualTo(0)) {
+    console.log('done', name, 'no sats to award today')
+    return
+  }
 
-    // extra sanity check on rewards ... if it's more than upper bound, we
-    // probably have a bug somewhere or we've grown A LOT
-    if (sumDecimal.greaterThan(TOTAL_UPPER_BOUND_MSATS)) {
-      console.log('done', name, 'error: too many sats to award today', sumDecimal)
-      return
-    }
+  // extra sanity check on rewards ... if it's more than upper bound, we
+  // probably have a bug somewhere or we've grown A LOT
+  if (sumDecimal.greaterThan(TOTAL_UPPER_BOUND_MSATS)) {
+    console.log('done', name, 'error: too many sats to award today', sumDecimal)
+    return
+  }
 
-    const sum = Number(sumDecimal)
-    const heads = Math.random() < 0.5
-    // if this category is selected, double its proportion
-    // if it isn't select, zero its proportion
-    const itemRewardMult = heads ? 0 : 2.0
-    const upvoteRewardMult = heads ? 2.0 : 0
+  const sum = Number(sumDecimal)
+  const heads = Math.random() < 0.5
+  // if this category is selected, double its proportion
+  // if it isn't select, zero its proportion
+  const itemRewardMult = heads ? 0 : 2.0
+  const upvoteRewardMult = heads ? 2.0 : 0
 
-    console.log(name, 'giving away', sum, 'msats', 'rewarding', heads ? 'items' : 'upvotes')
+  console.log(name, 'giving away', sum, 'msats', 'rewarding', heads ? 'items' : 'upvotes')
 
-    /*
+  /*
       How earnings (used to) work:
       1/3: top 21% posts over last 36 hours, scored on a relative basis
       1/3: top 21% comments over last 36 hours, scored on a relative basis
@@ -75,8 +78,8 @@ export function earn ({ models }) {
       Now: 100% of earnings go to either top 33% of comments/posts or top 33% of upvoters
     */
 
-    // get earners { userId, id, type, rank, proportion }
-    const earners = await models.$queryRaw`
+  // get earners { userId, id, type, rank, proportion }
+  const earners = await models.$queryRaw`
       -- get top 21% of posts and comments
       WITH item_ratios AS (
           SELECT *,
@@ -137,42 +140,72 @@ export function earn ({ models }) {
       FROM proportions
       WHERE proportion > 0.000001`
 
-    // in order to group earnings for users we use the same createdAt time for
-    // all earnings
-    const now = new Date(new Date().getTime())
+  // in order to group earnings for users we use the same createdAt time for
+  // all earnings
+  const now = new Date(new Date().getTime())
 
-    // this is just a sanity check because it seems like a good idea
-    let total = 0
+  // this is just a sanity check because it seems like a good idea
+  let total = 0
 
-    const notifications = {}
-    for (const earner of earners) {
-      const earnings = Math.floor(parseFloat(earner.proportion) * sum)
-      total += earnings
-      if (total > sum) {
-        console.log(name, 'total exceeds sum', total, '>', sum)
-        return
-      }
-
-      console.log('stacker', earner.userId, 'earned', earnings, 'proportion', earner.proportion, 'rank', earner.rank, 'type', earner.type)
-
-      if (earnings > 0) {
-        await serialize(models,
-          models.$executeRaw`SELECT earn(${earner.userId}::INTEGER, ${earnings},
-          ${now}::timestamp without time zone, ${earner.type}::"EarnType", ${earner.id}::INTEGER, ${earner.rank}::INTEGER)`)
-        notifications[earner.userId] = {
-          ...notifications[earner.userId],
-          total: earnings + (notifications[earner.userId]?.total || 0),
-          [earner.type]: { msats: earnings, rank: earner.rank }
-        }
-      }
+  const notifications = {}
+  for (const earner of earners) {
+    const earnings = Math.floor(parseFloat(earner.proportion) * sum)
+    total += earnings
+    if (total > sum) {
+      console.log(name, 'total exceeds sum', total, '>', sum)
+      return
     }
 
-    Promise.allSettled(Object.entries(notifications).map(([userId, earnings]) =>
-      sendUserNotification(parseInt(userId, 10), buildUserNotification(earnings))
-    )).catch(console.error)
+    console.log('stacker', earner.userId, 'earned', earnings, 'proportion', earner.proportion, 'rank', earner.rank, 'type', earner.type)
 
-    console.log('done', name)
+    if (earnings > 0) {
+      await serialize(models,
+        models.$executeRaw`SELECT earn(${earner.userId}::INTEGER, ${earnings},
+          ${now}::timestamp without time zone, ${earner.type}::"EarnType", ${earner.id}::INTEGER, ${earner.rank}::INTEGER)`)
+      notifications[earner.userId] = {
+        ...notifications[earner.userId],
+        total: earnings + (notifications[earner.userId]?.total || 0),
+        [earner.type]: { msats: earnings, rank: earner.rank }
+      }
+    }
   }
+
+  await territoryRevenue({ models })
+
+  Promise.allSettled(Object.entries(notifications).map(([userId, earnings]) =>
+    sendUserNotification(parseInt(userId, 10), buildUserNotification(earnings))
+  )).catch(console.error)
+}
+
+async function territoryRevenue ({ models }) {
+  await serialize(models,
+    models.$executeRaw`
+      WITH revenue AS (
+        SELECT coalesce(sum(msats), 0) as revenue, "subName", "userId"
+        FROM (
+          SELECT ("ItemAct".msats - COALESCE("ReferralAct".msats, 0)) * (1 - (COALESCE("Sub"."rewardsPct", 100) * 0.01)) as msats,
+            "Sub"."name" as "subName", "Sub"."userId" as "userId"
+            FROM "ItemAct"
+            JOIN "Item" ON "Item"."id" = "ItemAct"."itemId"
+            JOIN "Sub" ON "Sub"."name" = "Item"."subName"
+            LEFT JOIN "ReferralAct" ON "ReferralAct"."itemActId" = "ItemAct".id
+            WHERE date_trunc('day', "ItemAct".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = date_trunc('day', (now() - interval '1 day') AT TIME ZONE 'America/Chicago')
+              AND "ItemAct".act <> 'TIP'
+              AND "Sub".status <> 'STOPPED'
+        ) subquery
+        GROUP BY "subName", "userId"
+      ),
+      "SubActResult" AS (
+        INSERT INTO "SubAct" (msats, "subName", "userId", type)
+        SELECT revenue, "subName", "userId", 'REVENUE'
+        FROM revenue
+        WHERE revenue > 1000
+        RETURNING *
+      )
+      UPDATE users SET msats = users.msats + "SubActResult".msats
+      FROM "SubActResult"
+      WHERE users.id = "SubActResult"."userId"`
+  )
 }
 
 function buildUserNotification (earnings) {

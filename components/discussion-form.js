@@ -7,7 +7,7 @@ import { ITEM_FIELDS } from '../fragments/items'
 import AccordianItem from './accordian-item'
 import Item from './item'
 import { discussionSchema } from '../lib/validate'
-import { SubSelectInitial } from './sub-select-form'
+import { SubSelectInitial } from './sub-select'
 import { useCallback } from 'react'
 import { normalizeForwards, toastDeleteScheduled } from '../lib/form'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
@@ -15,6 +15,7 @@ import { useMe } from './me'
 import useCrossposter from './use-crossposter'
 import { useToast } from './toast'
 import { ItemButtonBar } from './post'
+import { callWithTimeout } from '../lib/nostr'
 
 export function DiscussionForm ({
   item, sub, editThreshold, titleLabel = 'title',
@@ -40,13 +41,25 @@ export function DiscussionForm ({
       }`
   )
 
+  const [updateNoteId] = useMutation(
+    gql`
+      mutation updateNoteId($id: ID!, $noteId: String!) {
+        updateNoteId(id: $id, noteId: $noteId) {
+          id
+          noteId
+        }
+      }`
+  )
+
   const onSubmit = useCallback(
     async ({ boost, crosspost, ...values }) => {
       try {
-        if (crosspost && !(await window.nostr.getPublicKey())) {
-          throw new Error('not available')
+        if (crosspost) {
+          const pubkey = await callWithTimeout(() => window.nostr.getPublicKey(), 5000)
+          if (!pubkey) throw new Error('failed to get pubkey')
         }
       } catch (e) {
+        console.log(e)
         throw new Error(`Nostr extension error: ${e.message}`)
       }
 
@@ -64,12 +77,25 @@ export function DiscussionForm ({
         throw new Error({ message: error.toString() })
       }
 
+      let noteId = null
+      const discussionId = data?.upsertDiscussion?.id
+
       try {
-        if (crosspost && data?.upsertDiscussion?.id) {
-          await crossposter({ ...values, id: data.upsertDiscussion.id })
+        if (crosspost && discussionId) {
+          const crosspostResult = await crossposter({ ...values, id: discussionId })
+          noteId = crosspostResult?.noteId
+          if (noteId) {
+            await updateNoteId({
+              variables: {
+                id: discussionId,
+                noteId
+              }
+            })
+          }
         }
       } catch (e) {
         console.error(e)
+        toaster.danger('Error crossposting to Nostr', e.message)
       }
 
       if (item) {
@@ -99,7 +125,7 @@ export function DiscussionForm ({
       initial={{
         title: item?.title || shareTitle || '',
         text: item?.text || '',
-        crosspost: me?.privates?.nostrCrossposting,
+        crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
         ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}

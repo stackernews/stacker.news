@@ -4,7 +4,7 @@ import { gql, useMutation } from '@apollo/client'
 import ActionTooltip from './action-tooltip'
 import ItemAct from './item-act'
 import { useMe } from './me'
-import Rainbow from '../lib/rainbow'
+import getColor from '../lib/rainbow'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import LongPressable from 'react-longpressable'
 import Overlay from 'react-bootstrap/Overlay'
@@ -14,17 +14,8 @@ import { LightningConsumer, useLightning } from './lightning'
 import { numWithUnits } from '../lib/format'
 import { payOrLoginError, useInvoiceModal } from './invoice'
 import useDebounceCallback from './use-debounce-callback'
-
-const getColor = (meSats) => {
-  if (!meSats || meSats <= 10) {
-    return 'var(--bs-secondary)'
-  }
-
-  const idx = Math.min(
-    Math.floor((Math.log(meSats) / Math.log(10000)) * (Rainbow.length - 1)),
-    Rainbow.length - 1)
-  return Rainbow[idx]
-}
+import { useToast } from './toast'
+import { Dropdown } from 'react-bootstrap'
 
 const UpvotePopover = ({ target, show, handleClose }) => {
   const me = useMe()
@@ -65,50 +56,9 @@ const TipPopover = ({ target, show, handleClose }) => (
   </Overlay>
 )
 
-export default function UpVote ({ item, className, pendingSats, setPendingSats }) {
-  const showModal = useShowModal()
-  const [voteShow, _setVoteShow] = useState(false)
-  const [tipShow, _setTipShow] = useState(false)
-  const ref = useRef()
+function useAct ({ item, setVoteShow = () => {}, setTipShow = () => {} }) {
   const me = useMe()
-  const strike = useLightning()
-  const [setWalkthrough] = useMutation(
-    gql`
-      mutation setWalkthrough($upvotePopover: Boolean, $tipPopover: Boolean) {
-        setWalkthrough(upvotePopover: $upvotePopover, tipPopover: $tipPopover)
-      }`
-  )
-
-  const setVoteShow = useCallback((yes) => {
-    if (!me) return
-
-    // if they haven't seen the walkthrough and they have sats
-    if (yes && !me.privates?.upvotePopover && me.privates?.sats) {
-      _setVoteShow(true)
-    }
-
-    if (voteShow && !yes) {
-      _setVoteShow(false)
-      setWalkthrough({ variables: { upvotePopover: true } })
-    }
-  }, [me, voteShow, setWalkthrough])
-
-  const setTipShow = useCallback((yes) => {
-    if (!me) return
-
-    // if we want to show it, yet we still haven't shown
-    if (yes && !me.privates?.tipPopover && me.privates?.sats) {
-      _setTipShow(true)
-    }
-
-    // if it's currently showing and we want to hide it
-    if (tipShow && !yes) {
-      _setTipShow(false)
-      setWalkthrough({ variables: { tipPopover: true } })
-    }
-  }, [me, tipShow, setWalkthrough])
-
-  const [act] = useMutation(
+  return useMutation(
     gql`
       mutation act($id: ID!, $sats: Int!, $hash: String, $hmac: String) {
         act(id: $id, sats: $sats, hash: $hash, hmac: $hmac) {
@@ -153,6 +103,71 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
       }
     }
   )
+}
+
+export function DropdownItemUpVote ({ item }) {
+  const showModal = useShowModal()
+
+  const [act] = useAct({ item })
+
+  return (
+    <Dropdown.Item
+      onClick={async () => {
+        showModal(onClose =>
+          <ItemAct onClose={onClose} itemId={item.id} act={act} />)
+      }}
+    >
+      <span className='text-success'>zap</span>
+    </Dropdown.Item>
+  )
+}
+
+export default function UpVote ({ item, className, pendingSats, setPendingSats }) {
+  const showModal = useShowModal()
+  const [voteShow, _setVoteShow] = useState(false)
+  const [tipShow, _setTipShow] = useState(false)
+  const ref = useRef()
+  const me = useMe()
+  const strike = useLightning()
+  const toaster = useToast()
+  const [setWalkthrough] = useMutation(
+    gql`
+      mutation setWalkthrough($upvotePopover: Boolean, $tipPopover: Boolean) {
+        setWalkthrough(upvotePopover: $upvotePopover, tipPopover: $tipPopover)
+      }`
+  )
+
+  const setVoteShow = useCallback((yes) => {
+    if (!me) return
+
+    // if they haven't seen the walkthrough and they have sats
+    if (yes && !me.privates?.upvotePopover && me.privates?.sats) {
+      _setVoteShow(true)
+    }
+
+    if (voteShow && !yes) {
+      _setVoteShow(false)
+      setWalkthrough({ variables: { upvotePopover: true } })
+    }
+  }, [me, voteShow, setWalkthrough])
+
+  const setTipShow = useCallback((yes) => {
+    if (!me) return
+
+    // if we want to show it, yet we still haven't shown
+    if (yes && !me.privates?.tipPopover && me.privates?.sats) {
+      _setTipShow(true)
+    }
+
+    // if it's currently showing and we want to hide it
+    if (tipShow && !yes) {
+      _setTipShow(false)
+      setWalkthrough({ variables: { tipPopover: true } })
+    }
+  }, [me, tipShow, setWalkthrough])
+
+  const [act] = useAct({ item, setVoteShow, setTipShow })
+
   const showInvoiceModal = useInvoiceModal(
     async ({ hash, hmac }, { variables }) => {
       await act({ variables: { ...variables, hash, hmac } })
@@ -175,9 +190,10 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
         return
       }
       console.error(error)
+      toaster.danger(error?.message || error?.toString?.())
     })
     setPendingSats(0)
-  }, 500, [act, item?.id, showInvoiceModal, setPendingSats])
+  }, 500, [act, toaster, item?.id, showInvoiceModal, setPendingSats])
 
   const disabled = useMemo(() => item?.mine || item?.meForward || item?.deletedAt,
     [item?.mine, item?.meForward, item?.deletedAt])

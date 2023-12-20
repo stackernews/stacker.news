@@ -23,7 +23,7 @@ async function discussionToEvent (item) {
 export default function useCrossposter () {
   const toast = useToast()
   const { data } = useQuery(SETTINGS)
-  const relays = [...DEFAULT_CROSSPOSTING_RELAYS, ...(data?.settings?.nostRelays || [])]
+  const relays = [...DEFAULT_CROSSPOSTING_RELAYS, ...(data?.settings?.nostrRelays || [])]
 
   const relayError = (failedRelays) => {
     return new Promise(resolve => {
@@ -53,11 +53,14 @@ export default function useCrossposter () {
   return useCallback(async item => {
     let failedRelays
     let allSuccessful = false
+    let noteId
 
     do {
       // XXX we only use discussions right now
       const event = await discussionToEvent(item)
       const result = await crosspost(event, failedRelays || relays)
+
+      noteId = result.noteId
 
       failedRelays = result.failedRelays.map(relayObj => relayObj.relay)
 
@@ -73,6 +76,6 @@ export default function useCrossposter () {
       }
     } while (failedRelays.length > 0)
 
-    return { allSuccessful }
+    return { allSuccessful, noteId }
   }, [relays, toast])
 }

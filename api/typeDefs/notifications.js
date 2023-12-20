@@ -77,6 +77,13 @@ export default gql`
     sources: EarnSources
   }
 
+  type Revenue {
+    id: ID!
+    earnedSats: Int!
+    sortTime: Date!
+    subName: String!
+  }
+
   type InvoicePaid {
     id: ID!
     earnedSats: Int!
@@ -91,7 +98,7 @@ export default gql`
 
   union Notification = Reply | Votification | Mention
     | Invitification | Earn | JobChanged | InvoicePaid | Referral
-    | Streak | FollowActivity | ForwardedVotification
+    | Streak | FollowActivity | ForwardedVotification | Revenue
 
   type Notifications {
     lastChecked: Date

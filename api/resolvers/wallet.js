@@ -1,4 +1,4 @@
-import { createHodlInvoice, createInvoice, decodePaymentRequest, payViaPaymentRequest, cancelHodlInvoice, getInvoice as getInvoiceFromLnd } from 'ln-service'
+import { createHodlInvoice, createInvoice, decodePaymentRequest, payViaPaymentRequest, cancelHodlInvoice, getInvoice as getInvoiceFromLnd, getNode } from 'ln-service'
 import { GraphQLError } from 'graphql'
 import crypto from 'crypto'
 import serialize from './serial'
@@ -10,6 +10,7 @@ import { msatsToSats, msatsToSatsDecimal } from '../../lib/format'
 import { amountSchema, lnAddrSchema, ssValidate, withdrawlSchema } from '../../lib/validate'
 import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, ANON_USER_ID, BALANCE_LIMIT_MSATS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT } from '../../lib/constants'
 import { datePivot } from '../../lib/time'
+import assertGofacYourself from './ofac'
 
 export async function getInvoice (parent, { id }, { me, models, lnd }) {
   const inv = await models.invoice.findUnique({
@@ -106,101 +107,109 @@ export default {
 
       if (include.has('invoice')) {
         queries.push(
-          `(SELECT ('invoice' || id) as id, id as "factId", bolt11, created_at as "createdAt",
-          COALESCE("msatsReceived", "msatsRequested") as msats, NULL as "msatsFee",
-          CASE WHEN "confirmedAt" IS NOT NULL THEN 'CONFIRMED'
-              WHEN "expiresAt" <= $2 THEN 'EXPIRED'
-              WHEN cancelled THEN 'CANCELLED'
-              ELSE 'PENDING' END as status,
-              "desc" as description,
-            comment as "invoiceComment",
-            "lud18Data" as "invoicePayerData",
-          'invoice' as type
-          FROM "Invoice"
-          WHERE "userId" = $1
-            AND created_at <= $2)`)
+          `(SELECT
+              id, created_at as "createdAt", COALESCE("msatsReceived", "msatsRequested") as msats,
+              'invoice' as type,
+              jsonb_build_object(
+                'bolt11', bolt11,
+                'status', CASE WHEN "confirmedAt" IS NOT NULL THEN 'CONFIRMED'
+                              WHEN "expiresAt" <= $2 THEN 'EXPIRED'
+                              WHEN cancelled THEN 'CANCELLED'
+                              ELSE 'PENDING' END,
+                'description', "desc",
+                'invoiceComment', comment,
+                'invoicePayerData', "lud18Data") as other
+            FROM "Invoice"
+            WHERE "userId" = $1
+            AND created_at <= $2)`
+        )
       }
 
       if (include.has('withdrawal')) {
         queries.push(
-          `(SELECT ('withdrawal' || id) as id, id as "factId", bolt11, created_at as "createdAt",
-          CASE WHEN status = 'CONFIRMED' THEN "msatsPaid"
-          ELSE "msatsPaying" END as msats,
-          CASE WHEN status = 'CONFIRMED' THEN "msatsFeePaid"
-          ELSE "msatsFeePaying" END as "msatsFee",
-          COALESCE(status::text, 'PENDING') as status,
-          NULL as description,
-          NULL as "invoiceComment",
-          NULL as "invoicePayerData",
-          'withdrawal' as type
-          FROM "Withdrawl"
-          WHERE "userId" = $1
-            AND created_at <= $2)`)
+          `(SELECT
+              id, created_at as "createdAt",
+              COALESCE("msatsPaid", "msatsPaying") as msats,
+              'withdrawal' as type,
+              jsonb_build_object(
+                'bolt11', bolt11,
+                'status', COALESCE(status::text, 'PENDING'),
+                'msatsFee', COALESCE("msatsFeePaid", "msatsFeePaying")) as other
+            FROM "Withdrawl"
+            WHERE "userId" = $1
+            AND created_at <= $2)`
+        )
       }
 
       if (include.has('stacked')) {
         // query1 - get all sats stacked as OP or as a forward
         queries.push(
           `(SELECT
-            ('stacked' || "Item".id) AS id,
-            "Item".id AS "factId",
-            NULL AS bolt11,
-            MAX("ItemAct".created_at) AS "createdAt",
-            FLOOR(
-              SUM("ItemAct".msats)
-              * (CASE WHEN "Item"."userId" = $1 THEN
-                  COALESCE(1 - ((SELECT SUM(pct) FROM "ItemForward" WHERE "itemId" = "Item".id) / 100.0), 1)
-                ELSE
-                  (SELECT pct FROM "ItemForward" WHERE "itemId" = "Item".id AND "userId" = $1) / 100.0
-                END)
-            ) AS "msats",
-            0 AS "msatsFee",
-            NULL AS status,
-            NULL as description,
-            NULL as "invoiceComment",
-            NULL as "invoicePayerData",
-            'stacked' AS type
-          FROM "ItemAct"
-          JOIN "Item" ON "ItemAct"."itemId" = "Item".id
-          -- only join to with item forward for items where we aren't the OP
-          LEFT JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id AND "Item"."userId" <> $1
-          WHERE "ItemAct".act = 'TIP'
-          AND ("Item"."userId" = $1 OR "ItemForward"."userId" = $1)
-          AND "ItemAct".created_at <= $2
-          GROUP BY "Item".id)`
+              "Item".id,
+              MAX("ItemAct".created_at) AS "createdAt",
+              FLOOR(
+                SUM("ItemAct".msats)
+                * (CASE WHEN "Item"."userId" = $1 THEN
+                    COALESCE(1 - ((SELECT SUM(pct) FROM "ItemForward" WHERE "itemId" = "Item".id) / 100.0), 1)
+                  ELSE
+                    (SELECT pct FROM "ItemForward" WHERE "itemId" = "Item".id AND "userId" = $1) / 100.0
+                  END)
+              ) AS msats,
+              'stacked' AS type, NULL::JSONB AS other
+            FROM "ItemAct"
+            JOIN "Item" ON "ItemAct"."itemId" = "Item".id
+            -- only join to with item forward for items where we aren't the OP
+            LEFT JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id AND "Item"."userId" <> $1
+            WHERE "ItemAct".act = 'TIP'
+            AND ("Item"."userId" = $1 OR "ItemForward"."userId" = $1)
+            AND "ItemAct".created_at <= $2
+            GROUP BY "Item".id)`
         )
         queries.push(
-            `(SELECT ('earn' || min("Earn".id)) as id, min("Earn".id) as "factId", NULL as bolt11,
-            created_at as "createdAt", sum(msats),
-            0 as "msatsFee", NULL as status, NULL as description, NULL as "invoiceComment", NULL as "invoicePayerData", 'earn' as type
+          `(SELECT
+              min("Earn".id) as id, created_at as "createdAt",
+              sum(msats) as msats, 'earn' as type, NULL::JSONB AS other
             FROM "Earn"
             WHERE "Earn"."userId" = $1 AND "Earn".created_at <= $2
-            GROUP BY "userId", created_at)`)
+            GROUP BY "userId", created_at)`
+        )
         queries.push(
-            `(SELECT ('referral' || "ReferralAct".id) as id, "ReferralAct".id as "factId", NULL as bolt11,
-            created_at as "createdAt", msats,
-            0 as "msatsFee", NULL as status, NULL as description, NULL as "invoiceComment", NULL as "invoicePayerData", 'referral' as type
+          `(SELECT id, created_at as "createdAt", msats, 'referral' as type, NULL::JSONB AS other
             FROM "ReferralAct"
-            WHERE "ReferralAct"."referrerId" = $1 AND "ReferralAct".created_at <= $2)`)
+            WHERE "ReferralAct"."referrerId" = $1 AND "ReferralAct".created_at <= $2)`
+        )
+        queries.push(
+          `(SELECT id, created_at as "createdAt", msats, 'revenue' as type,
+              jsonb_build_object('subName', "SubAct"."subName") as other
+            FROM "SubAct"
+            WHERE "userId" = $1 AND type = 'REVENUE'
+            AND created_at <= $2)`
+        )
       }
 
       if (include.has('spent')) {
         queries.push(
-          `(SELECT ('spent' || "Item".id) as id, "Item".id as "factId", NULL as bolt11,
-          MAX("ItemAct".created_at) as "createdAt", sum("ItemAct".msats) as msats,
-          0 as "msatsFee", NULL as status, NULL as description, NULL as "invoiceComment", NULL as "invoicePayerData", 'spent' as type
-          FROM "ItemAct"
-          JOIN "Item" on "ItemAct"."itemId" = "Item".id
-          WHERE "ItemAct"."userId" = $1
-          AND "ItemAct".created_at <= $2
-          GROUP BY "Item".id)`)
+          `(SELECT "Item".id, MAX("ItemAct".created_at) as "createdAt", sum("ItemAct".msats) as msats,
+              'spent' as type, NULL::JSONB AS other
+            FROM "ItemAct"
+            JOIN "Item" on "ItemAct"."itemId" = "Item".id
+            WHERE "ItemAct"."userId" = $1
+            AND "ItemAct".created_at <= $2
+            GROUP BY "Item".id)`
+        )
         queries.push(
-            `(SELECT ('donation' || "Donation".id) as id, "Donation".id as "factId", NULL as bolt11,
-            created_at as "createdAt", sats * 1000 as msats,
-            0 as "msatsFee", NULL as status, NULL as description, NULL as "invoiceComment", NULL as "invoicePayerData", 'donation' as type
+          `(SELECT id, created_at as "createdAt", sats * 1000 as msats,'donation' as type, NULL::JSONB AS other
             FROM "Donation"
             WHERE "userId" = $1
-            AND created_at <= $2)`)
+            AND created_at <= $2)`
+        )
+        queries.push(
+            `(SELECT id, created_at as "createdAt", msats, 'billing' as type,
+                jsonb_build_object('subName', "SubAct"."subName") as other
+              FROM "SubAct"
+              WHERE "userId" = $1 AND type = 'BILLING'
+              AND created_at <= $2)`
+        )
       }
 
       if (queries.length === 0) {
@@ -211,12 +220,15 @@ export default {
       }
 
       let history = await models.$queryRawUnsafe(`
-      ${queries.join(' UNION ALL ')}
-      ORDER BY "createdAt" DESC
-      OFFSET $3
-      LIMIT ${LIMIT}`, me.id, decodedCursor.time, decodedCursor.offset)
+        ${queries.join(' UNION ALL ')}
+        ORDER BY "createdAt" DESC
+        OFFSET $3
+        LIMIT ${LIMIT}`,
+      me.id, decodedCursor.time, decodedCursor.offset)
 
       history = history.map(f => {
+        f = { ...f, ...f.other }
+
         if (f.bolt11) {
           const inv = lnpr.decode(f.bolt11)
           if (inv) {
@@ -230,14 +242,14 @@ export default {
             }
           }
         }
+
         switch (f.type) {
           case 'withdrawal':
             f.msats = (-1 * Number(f.msats)) - Number(f.msatsFee)
             break
           case 'spent':
-            f.msats *= -1
-            break
           case 'donation':
+          case 'billing':
             f.msats *= -1
             break
           default:
@@ -255,12 +267,13 @@ export default {
   },
 
   Mutation: {
-    createInvoice: async (parent, { amount, hodlInvoice = false, expireSecs = 3600 }, { me, models, lnd }) => {
+    createInvoice: async (parent, { amount, hodlInvoice = false, expireSecs = 3600 }, { me, models, lnd, headers }) => {
       await ssValidate(amountSchema, { amount })
+      await assertGofacYourself({ models, headers })
 
       let expirePivot = { seconds: expireSecs }
       let invLimit = INV_PENDING_LIMIT
-      let balanceLimit = hodlInvoice || USER_IDS_BALANCE_NO_LIMIT.includes(Number(me.id)) ? 0 : BALANCE_LIMIT_MSATS
+      let balanceLimit = (hodlInvoice || USER_IDS_BALANCE_NO_LIMIT.includes(Number(me?.id))) ? 0 : BALANCE_LIMIT_MSATS
       let id = me?.id
       if (!me) {
         expirePivot = { seconds: Math.min(expireSecs, 180) }
@@ -281,6 +294,8 @@ export default {
           expires_at: expiresAt
         })
 
+        console.log('invoice', balanceLimit)
+
         const [inv] = await serialize(models,
           models.$queryRaw`SELECT * FROM create_invoice(${invoice.id}, ${invoice.request},
             ${expiresAt}::timestamp, ${amount * 1000}, ${user.id}::INTEGER, ${description}, NULL, NULL,
@@ -300,7 +315,7 @@ export default {
       }
     },
     createWithdrawl: createWithdrawal,
-    sendToLnAddr: async (parent, { addr, amount, maxFee, comment, ...payer }, { me, models, lnd }) => {
+    sendToLnAddr: async (parent, { addr, amount, maxFee, comment, ...payer }, { me, models, lnd, headers }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
       }
@@ -353,7 +368,7 @@ export default {
       }
 
       // take pr and createWithdrawl
-      return await createWithdrawal(parent, { invoice: res.pr, maxFee }, { me, models, lnd })
+      return await createWithdrawal(parent, { invoice: res.pr, maxFee }, { me, models, lnd, headers })
     },
     cancelInvoice: async (parent, { hash, hmac }, { models, lnd }) => {
       const hmac2 = createHmac(hash)
@@ -411,28 +426,36 @@ export default {
       const [item] = await models.$queryRawUnsafe(`
         ${SELECT}
         FROM "Item"
-        WHERE id = $1`, Number(fact.factId))
+        WHERE id = $1`, Number(fact.id))
 
       return item
     },
-    sats: fact => msatsToSatsDecimal(fact.msats),
-    satsFee: fact => msatsToSatsDecimal(fact.msatsFee)
+    sats: fact => msatsToSatsDecimal(fact.msats)
   }
 }
 
-async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd }) {
+export async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd, headers }) {
   await ssValidate(withdrawlSchema, { invoice, maxFee })
+  await assertGofacYourself({ models, headers })
 
   // remove 'lightning:' prefix if present
   invoice = invoice.replace(/^lightning:/, '')
 
   // decode invoice to get amount
-  let decoded
+  let decoded, node
   try {
     decoded = await decodePaymentRequest({ lnd, request: invoice })
+    node = await getNode({ lnd, public_key: decoded.destination, is_omitting_channels: true })
   } catch (error) {
     console.log(error)
     throw new GraphQLError('could not decode invoice', { extensions: { code: 'BAD_INPUT' } })
+  }
+
+  if (node) {
+    for (const { socket } of node.sockets) {
+      const ip = socket.split(':')[0]
+      await assertGofacYourself({ models, headers, ip })
+    }
   }
 
   if (!decoded.mtokens || BigInt(decoded.mtokens) <= 0) {

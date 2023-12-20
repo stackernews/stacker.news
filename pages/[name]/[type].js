@@ -3,7 +3,7 @@ import Items from '../../components/items'
 import { useRouter } from 'next/router'
 import { USER, USER_WITH_ITEMS } from '../../fragments/users'
 import { useQuery } from '@apollo/client'
-import { COMMENT_TYPE_QUERY, ITEM_SORTS, ITEM_TYPES, WHENS } from '../../lib/constants'
+import { COMMENT_TYPE_QUERY, ITEM_SORTS, ITEM_TYPES_USER, WHENS } from '../../lib/constants'
 import PageLoading from '../../components/page-loading'
 import { UserLayout } from '.'
 import { Form, Select, DatePicker } from '../../components/form'
@@ -45,7 +45,7 @@ function UserItemsHeader ({ type, name }) {
   const router = useRouter()
   async function select (values) {
     let { type, ...query } = values
-    if (!type || type === 'all' || !ITEM_TYPES('user').includes(type)) type = 'all'
+    if (!type || type === 'all' || !ITEM_TYPES_USER.includes(type)) type = 'all'
     if (!query.by || query.by === 'recent' || !ITEM_SORTS.includes(query.by)) delete query.by
     if (!query.when || query.when === 'forever' || !WHENS.includes(query.when) || query.when === 'forever') delete query.when
     if (query.when !== 'custom') { delete query.from; delete query.to }
@@ -74,7 +74,7 @@ function UserItemsHeader ({ type, name }) {
             name='type'
             size='sm'
             overrideValue={type}
-            items={ITEM_TYPES('user')}
+            items={ITEM_TYPES_USER}
             onChange={(formik, e) => select({ ...formik?.values, type: e.target.value })}
           />
           by

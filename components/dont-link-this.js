@@ -3,8 +3,24 @@ import Dropdown from 'react-bootstrap/Dropdown'
 import { useShowModal } from './modal'
 import { useToast } from './toast'
 import ItemAct from './item-act'
+import AccordianItem from './accordian-item'
+import Flag from '../svgs/flag-fill.svg'
+import { useMemo } from 'react'
+import getColor from '../lib/rainbow'
 
-export default function DontLikeThisDropdownItem ({ id }) {
+export function DownZap ({ id, meDontLikeSats, ...props }) {
+  const style = useMemo(() => (meDontLikeSats
+    ? {
+        fill: getColor(meDontLikeSats),
+        filter: `drop-shadow(0 0 6px ${getColor(meDontLikeSats)}90)`
+      }
+    : undefined), [meDontLikeSats])
+  return (
+    <DownZapper id={id} As={({ ...oprops }) => <Flag {...props} {...oprops} style={style} />} />
+  )
+}
+
+function DownZapper ({ id, As, children }) {
   const toaster = useToast()
   const showModal = useShowModal()
 
@@ -13,12 +29,12 @@ export default function DontLikeThisDropdownItem ({ id }) {
       mutation dontLikeThis($id: ID!, $sats: Int, $hash: String, $hmac: String) {
         dontLikeThis(id: $id, sats: $sats, hash: $hash, hmac: $hmac)
       }`, {
-      update (cache) {
+      update (cache, { data: { dontLikeThis } }) {
         cache.modify({
           id: `Item:${id}`,
           fields: {
-            meDontLike () {
-              return true
+            meDontLikeSats (existingSats = 0) {
+              return existingSats + dontLikeThis
             }
           }
         })
@@ -27,22 +43,43 @@ export default function DontLikeThisDropdownItem ({ id }) {
   )
 
   return (
-    <Dropdown.Item
+    <As
       onClick={async () => {
         try {
           showModal(onClose =>
             <ItemAct
               onClose={() => {
                 onClose()
-                toaster.success('item flagged')
+                toaster.success('item downzapped')
               }} itemId={id} act={dontLikeThis} down
-            />)
+            >
+              <AccordianItem
+                header='what is a downzap?' body={
+                  <ul>
+                    <li>downzaps are just like zaps but cause items to lose ranking position</li>
+                    <li>downzaps also reduce trust between you and whoever zaps it so you'll see less of what they zap in the future</li>
+                    <li>all sats from downzaps go to rewards</li>
+                  </ul>
+              }
+              />
+            </ItemAct>)
         } catch (error) {
-          toaster.danger('failed to flag item')
+          toaster.danger('failed to downzap item')
         }
       }}
     >
-      flag
-    </Dropdown.Item>
+      {children}
+    </As>
+  )
+}
+
+export default function DontLikeThisDropdownItem ({ id }) {
+  return (
+    <DownZapper
+      As={Dropdown.Item}
+      id={id}
+    >
+      <span className='text-danger'>downzap</span>
+    </DownZapper>
   )
 }

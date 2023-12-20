@@ -229,6 +229,15 @@ export default {
           AND created_at <= $2
           GROUP BY "userId", created_at`
         )
+        queries.push(
+          `SELECT min(id)::text, created_at AS "sortTime", FLOOR(sum(msats) / 1000) as "earnedSats",
+          'Revenue' AS type
+          FROM "SubAct"
+          WHERE "userId" = $1
+          AND type = 'REVENUE'
+          AND created_at <= $2
+          GROUP BY "userId", "subName", created_at`
+        )
       }
 
       if (meFull.noteCowboyHat) {
@@ -329,6 +338,17 @@ export default {
   },
   JobChanged: {
     item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
+  },
+  Revenue: {
+    subName: async (n, args, { models }) => {
+      const subAct = await models.subAct.findUnique({
+        where: {
+          id: Number(n.id)
+        }
+      })
+
+      return subAct.subName
+    }
   },
   Streak: {
     days: async (n, args, { models }) => {

@@ -66,14 +66,18 @@ async function bountyWinner (q) {
     variables: { q: `${q} nym:sn`, sort: 'recent', what: 'posts', when: 'week' }
   })
 
-  const item = await client.query({
-    query: WINNER,
-    variables: { id: bounty.data.search.items[0].bountyPaidTo[0] }
-  })
+  try {
+    const item = await client.query({
+      query: WINNER,
+      variables: { id: bounty.data.search.items[0].bountyPaidTo[0] }
+    })
 
-  const winner = { ...item.data.item, image: Object.values(item.data.item.imgproxyUrls)[0]?.['640w'] }
+    const winner = { ...item.data.item, image: Object.values(item.data.item.imgproxyUrls)[0]?.['640w'] }
 
-  return { bounty: bounty.data.search.items[0].id, winner }
+    return { bounty: bounty.data.search.items[0].id, winner }
+  } catch (e) {
+
+  }
 }
 
 async function main () {
@@ -112,27 +116,37 @@ ${top.data.items.items.slice(0, 10).map((item, i) =>
 ${top.data.items.items.map((item, i) =>
   `- [${item.title}](https://stacker.news/items/${item.id})\n`).join('')}
 
+[**all of this week's top posts**](https://stacker.news/top/posts/week)
+
+-------
+
 ##### Top meta
 ${meta.data.items.items.slice(0, 10).map((item, i) =>
   `- [${item.title}](https://stacker.news/items/${item.id})\n`).join('')}
 
-[**all of this week's top posts**](https://stacker.news/top/posts/week)
+-------
 
-##### Top Monday meme \\ ${abbrNum(topMeme.winner.sats)} sats \\ [@${topMeme.winner.user.name}](https://stacker.news/${topMeme.winner.user.name})
-![](${topMeme.winner.image})
+##### Top Monday meme \\ ${abbrNum(topMeme?.winner.sats)} sats \\ [@${topMeme?.winner.user.name}](https://stacker.news/${topMeme?.winner.user.name})
+![](${topMeme?.winner.image})
 
-[**all monday memes**](https://stacker.news/items/${topMeme.bounty})
+[**all monday memes**](https://stacker.news/items/${topMeme?.bounty})
 
-##### Top Friday fun fact \\ ${abbrNum(topFact.winner.sats)} sats \\ [@${topFact.winner.user.name}](https://stacker.news/${topFact.winner.user.name})
-${quote(topFact.winner.text)}
+------
+
+##### Top Friday fun fact \\ ${abbrNum(topFact?.winner.sats)} sats \\ [@${topFact?.winner.user.name}](https://stacker.news/${topFact?.winner.user.name})
+${quote(topFact?.winner.text)}
 
 [**all friday fun facts**](https://stacker.news/items/${topFact.bounty})
+
+------
 
 ##### Promoted jobs
 ${jobs.data.items.items.filter(i => i.maxBid > 0 && i.status === 'ACTIVE').slice(0, 5).map((item, i) =>
   `${i + 1}. [${item.title.trim()} \\ ${item.company} \\ ${item.location}${item.remote ? ' or Remote' : ''}](https://stacker.news/items/${item.id})\n`).join('')}
 
 [**all jobs**](https://stacker.news/~jobs)
+
+------
 
 Yeehaw,
 Keyan

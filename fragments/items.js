@@ -24,10 +24,11 @@ export const ITEM_FIELDS = gql`
     boost
     bounty
     bountyPaidTo
+    noteId
     path
     upvotes
     meSats
-    meDontLike
+    meDontLikeSats
     meBookmark
     meSubscription
     meForward

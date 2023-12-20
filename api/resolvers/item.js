@@ -8,8 +8,8 @@ import domino from 'domino'
 import {
   ITEM_SPAM_INTERVAL, ITEM_FILTER_THRESHOLD,
   DONT_LIKE_THIS_COST, COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY,
-  ANON_COMMENT_FEE, ANON_USER_ID, ANON_POST_FEE, ANON_ITEM_SPAM_INTERVAL, POLL_COST,
-  ITEM_ALLOW_EDITS, GLOBAL_SEED
+  ANON_USER_ID, ANON_ITEM_SPAM_INTERVAL, POLL_COST,
+  ITEM_ALLOW_EDITS, GLOBAL_SEED, ANON_FEE_MULTIPLIER
 } from '../../lib/constants'
 import { msatsToSats } from '../../lib/format'
 import { parse } from 'tldts'
@@ -20,6 +20,7 @@ import { defaultCommentSort, isJob, deleteItemByAuthor, getDeleteCommand, hasDel
 import { notifyItemParents, notifyUserSubscribers, notifyZapped } from '../../lib/push-notifications'
 import { datePivot, whenRange } from '../../lib/time'
 import { imageFeesInfo, uploadIdsFromText } from './image'
+import assertGofacYourself from './ofac'
 
 export async function commentFilterClause (me, models) {
   let clause = ` AND ("Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}`
@@ -140,7 +141,7 @@ async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ...args) 
     return await models.$queryRawUnsafe(`
       SELECT "Item".*, to_jsonb(users.*) || jsonb_build_object('meMute', "Mute"."mutedId" IS NOT NULL) as user,
         COALESCE("ItemAct"."meMsats", 0) as "meMsats",
-        COALESCE("ItemAct"."meDontLike", false) as "meDontLike", b."itemId" IS NOT NULL AS "meBookmark",
+        COALESCE("ItemAct"."meDontLikeMsats", 0) as "meDontLikeMsats", b."itemId" IS NOT NULL AS "meBookmark",
         "ThreadSubscription"."itemId" IS NOT NULL AS "meSubscription", "ItemForward"."itemId" IS NOT NULL AS "meForward"
       FROM (
         ${query}
@@ -152,7 +153,7 @@ async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ...args) 
       LEFT JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id AND "ItemForward"."userId" = ${me.id}
       LEFT JOIN LATERAL (
         SELECT "itemId", sum("ItemAct".msats) FILTER (WHERE act = 'FEE' OR act = 'TIP') AS "meMsats",
-               bool_or(act = 'DONT_LIKE_THIS') AS "meDontLike"
+          sum("ItemAct".msats) FILTER (WHERE act = 'DONT_LIKE_THIS') AS "meDontLikeMsats"
         FROM "ItemAct"
         WHERE "ItemAct"."userId" = ${me.id}
         AND "ItemAct"."itemId" = "Item".id
@@ -466,23 +467,22 @@ export default {
                 orderBy: 'ORDER BY rank DESC'
               }, decodedCursor.offset, limit, ...subArr)
 
-              // XXX this is just for migration purposes ... can remove after initial deployment
-              // and views have been populated
-              if (items.length === 0) {
+              // XXX this is just for subs that are really empty
+              if (decodedCursor.offset === 0 && items.length < limit) {
                 items = await itemQueryWithMeta({
                   me,
                   models,
                   query: `
-                      ${SELECT}, rank
+                      ${SELECT}
                       FROM "Item"
-                      JOIN zap_rank_tender_view ON "Item".id = zap_rank_tender_view.id
                       ${whereClause(
                         subClause(sub, 3, 'Item', true),
-                        muteClause(me))}
-                      ORDER BY rank ASC
+                        muteClause(me),
+                        await filterClause(me, models, type))}
+                        ORDER BY ${orderByNumerator(models, 0)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".freebie IS FALSE) DESC, "Item".id DESC
                       OFFSET $1
                       LIMIT $2`,
-                  orderBy: 'ORDER BY rank ASC'
+                  orderBy: `ORDER BY ${orderByNumerator(models, 0)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".freebie IS FALSE) DESC, "Item".id DESC`
                 }, decodedCursor.offset, limit, ...subArr)
               }
 
@@ -724,6 +724,18 @@ export default {
         return item
       }
     },
+    updateNoteId: async (parent, { id, noteId }, { me, models }) => {
+      if (!id) {
+        throw new GraphQLError('id required', { extensions: { code: 'BAD_INPUT' } })
+      }
+
+      await models.item.update({
+        where: { id: Number(id), userId: Number(me.id) },
+        data: { noteId }
+      })
+
+      return { id, noteId }
+    },
     pollVote: async (parent, { id, hash, hmac }, { me, models, lnd }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
@@ -736,8 +748,9 @@ export default {
 
       return id
     },
-    act: async (parent, { id, sats, hash, hmac }, { me, models, lnd }) => {
+    act: async (parent, { id, sats, hash, hmac }, { me, models, lnd, headers }) => {
       await ssValidate(amountSchema, { amount: sats })
+      await assertGofacYourself({ models, headers })
 
       // disallow self tips except anons
       if (me) {
@@ -792,7 +805,7 @@ export default {
         { me, models, lnd, hash, hmac }
       )
 
-      return true
+      return sats
     }
   },
   Item: {
@@ -920,11 +933,16 @@ export default {
 
       return (msats && msatsToSats(msats)) || 0
     },
-    meDontLike: async (item, args, { me, models }) => {
+    meDontLikeSats: async (item, args, { me, models }) => {
       if (!me) return false
-      if (typeof item.meDontLike !== 'undefined') return item.meDontLike
+      if (typeof item.meMsats !== 'undefined') {
+        return msatsToSats(item.meDontLikeMsats)
+      }
 
-      const dontLike = await models.itemAct.findFirst({
+      const { _sum: { msats } } = await models.itemAct.aggregate({
+        _sum: {
+          msats: true
+        },
         where: {
           itemId: Number(item.id),
           userId: me.id,
@@ -932,7 +950,7 @@ export default {
         }
       })
 
-      return !!dontLike
+      return (msats && msatsToSats(msats)) || 0
     },
     meBookmark: async (item, args, { me, models }) => {
       if (!me) return false
@@ -1056,9 +1074,19 @@ export const createMentions = async (item, models) => {
 
 export const updateItem = async (parent, { sub: subName, forward, options, ...item }, { me, models, lnd, hash, hmac }) => {
   // update iff this item belongs to me
-  const old = await models.item.findUnique({ where: { id: Number(item.id) } })
+  const old = await models.item.findUnique({ where: { id: Number(item.id) }, include: { sub: true } })
   if (Number(old.userId) !== Number(me?.id)) {
     throw new GraphQLError('item does not belong to you', { extensions: { code: 'FORBIDDEN' } })
+  }
+  if (subName && old.subName !== subName) {
+    const sub = await models.sub.findUnique({ where: { name: subName } })
+    if (old.freebie) {
+      if (!sub.allowFreebies) {
+        throw new GraphQLError(`~${subName} does not allow freebies`, { extensions: { code: 'BAD_INPUT' } })
+      }
+    } else if (sub.baseCost > old.sub.baseCost) {
+      throw new GraphQLError('cannot change to a more expensive sub', { extensions: { code: 'BAD_INPUT' } })
+    }
   }
 
   // in case they lied about their existing boost
@@ -1128,7 +1156,17 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
   const uploadIds = uploadIdsFromText(item.text, { models })
   const { fees: imgFees } = await imageFeesInfo(uploadIds, { models, me })
 
-  const enforceFee = (me ? undefined : (item.parentId ? ANON_COMMENT_FEE : (ANON_POST_FEE + (item.boost || 0)))) + imgFees
+  let enforceFee
+  if (!me) {
+    if (item.parentId) {
+      enforceFee = ANON_FEE_MULTIPLIER
+    } else {
+      const sub = await models.sub.findUnique({ where: { name: item.subName } })
+      enforceFee = sub.baseCost * ANON_FEE_MULTIPLIER + (item.boost || 0)
+    }
+    enforceFee += imgFees
+  }
+
   item = await serializeInvoicable(
     models.$queryRawUnsafe(
       `${SELECT} FROM create_item($1::JSONB, $2::JSONB, $3::JSONB, '${spamInterval}'::INTERVAL, $4::INTEGER[]) AS "Item"`,
@@ -1179,7 +1217,7 @@ const getForwardUsers = async (models, forward) => {
 export const SELECT =
   `SELECT "Item".id, "Item".created_at, "Item".created_at as "createdAt", "Item".updated_at,
   "Item".updated_at as "updatedAt", "Item".title, "Item".text, "Item".url, "Item"."bounty",
-  "Item"."userId", "Item"."parentId", "Item"."pinId", "Item"."maxBid",
+  "Item"."noteId", "Item"."userId", "Item"."parentId", "Item"."pinId", "Item"."maxBid",
   "Item"."rootId", "Item".upvotes, "Item".company, "Item".location, "Item".remote, "Item"."deletedAt",
   "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost", "Item".boost, "Item".msats,
   "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",

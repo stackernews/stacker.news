@@ -88,7 +88,7 @@ function Detail ({ fact }) {
   if (fact.type === 'earn') {
     return (
       <Link href={`/rewards/${new Date(fact.createdAt).toISOString().slice(0, 10)}`} className='px-3 text-reset' style={{ lineHeight: '140%' }}>
-        SN distributes the sats it earns back to its best stackers daily. These sats come from <Link href='/~jobs'>jobs</Link>, boosts, posting fees, and donations.
+        SN distributes the sats it earns back to its best stackers daily. These sats come from jobs, boosts, posting fees, and donations.
       </Link>
     )
   }
@@ -107,6 +107,18 @@ function Detail ({ fact }) {
     )
   }
 
+  if (fact.type === 'billing') {
+    return (
+      <div className='px-3'>billing for <Link href={`/~${fact.subName}`}>~{fact.subName}</Link></div>
+    )
+  }
+
+  if (fact.type === 'revenue') {
+    return (
+      <div className='px-3'>revenue for <Link href={`/~${fact.subName}`}>~{fact.subName}</Link></div>
+    )
+  }
+
   if (!fact.item) {
     let zap
     try {
@@ -114,7 +126,7 @@ function Detail ({ fact }) {
     } catch { }
     return (
       <div className='px-3'>
-        <Link className={satusClass(fact.status)} href={`/${fact.type}s/${fact.factId}`}>
+        <Link className={satusClass(fact.status)} href={`/${fact.type}s/${fact.id}`}>
           {(!fact.bolt11 && <span className='d-block text-muted fw-bold fst-italic'>invoice deleted</span>) ||
            (zap && <span className='d-block'>nostr zap{zap.content && `: ${zap.content}`}</span>) ||
            (fact.description && <span className='d-block'>{fact.description}</span>)}
@@ -217,7 +229,7 @@ export default function Satistics ({ ssrData }) {
             <div className={[styles.type, styles.head].join(' ')}>type</div>
             <div className={[styles.detail, styles.head].join(' ')}>detail</div>
             <div className={[styles.sats, styles.head].join(' ')}>sats</div>
-            {facts.map(f => <Fact key={f.id} fact={f} />)}
+            {facts.map(f => <Fact key={f.type + f.id} fact={f} />)}
           </div>
         </div>
         <MoreFooter cursor={cursor} count={facts?.length} fetchMore={fetchMore} Skeleton={PageLoading} />

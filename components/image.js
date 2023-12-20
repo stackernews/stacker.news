@@ -8,6 +8,7 @@ import { UPLOAD_TYPES_ALLOW } from '../lib/constants'
 import { useToast } from './toast'
 import gql from 'graphql-tag'
 import { useMutation } from '@apollo/client'
+import piexif from 'piexifjs'
 
 export function decodeOriginalUrl (imgproxyUrl) {
   const parts = imgproxyUrl.split('/')
@@ -153,7 +154,6 @@ export const ImageUpload = forwardRef(({ children, className, onSelect, onUpload
   const s3Upload = useCallback(async file => {
     const img = new window.Image()
     file = await removeExifData(file)
-    img.src = window.URL.createObjectURL(file)
     return new Promise((resolve, reject) => {
       img.onload = async () => {
         onUpload?.(file)
@@ -201,6 +201,8 @@ export const ImageUpload = forwardRef(({ children, className, onSelect, onUpload
         onSuccess?.({ ...variables, id, name: file.name, url, file })
         resolve(id)
       }
+      img.onerror = reject
+      img.src = window.URL.createObjectURL(file)
     })
   }, [toaster, getSignedPOST])
 
@@ -235,7 +237,8 @@ export const ImageUpload = forwardRef(({ children, className, onSelect, onUpload
 })
 
 // from https://stackoverflow.com/a/77472484
-const removeExifData = (file) => {
+const removeExifData = async (file) => {
+  if (!file || !file.type.startsWith('image/')) return file
   const cleanBuffer = (arrayBuffer) => {
     let dataView = new DataView(arrayBuffer)
     const exifMarker = 0xffe1
@@ -260,8 +263,50 @@ const removeExifData = (file) => {
     modifiedBuffer.set(new Uint8Array(buffer.slice(offset + length)), offset)
     return modifiedBuffer.buffer
   }
-  return new Promise((resolve) => {
-    if (!file || !file.type.startsWith('image/')) return resolve(file)
+  function getOrientation (file) {
+    const fr = new window.FileReader()
+    return new Promise((resolve, reject) => {
+      fr.onload = function () {
+        const view = new DataView(this.result)
+        if (view.getUint16(0, false) !== 0xFFD8) {
+          // not JPEG
+          return resolve(-2)
+        }
+        const length = view.byteLength; let offset = 2
+        while (offset < length) {
+          if (view.getUint16(offset + 2, false) <= 8) return resolve(-1) // no orientation available
+          const marker = view.getUint16(offset, false)
+          offset += 2
+          if (marker === 0xFFE1) {
+            if (view.getUint32(offset += 2, false) !== 0x45786966) {
+              // no orientation available
+              return resolve(-1)
+            }
+            const little = view.getUint16(offset += 6, false) === 0x4949
+            offset += view.getUint32(offset + 4, little)
+            const tags = view.getUint16(offset, little)
+            offset += 2
+            for (let i = 0; i < tags; i++) {
+              if (view.getUint16(offset + (i * 12), little) === 0x0112) {
+                // orientation available
+                return resolve(view.getUint16(offset + (i * 12) + 8, little))
+              }
+            }
+          } else if ((marker & 0xFF00) !== 0xFF00) {
+            break
+          } else {
+            offset += view.getUint16(offset, false)
+          }
+        }
+        // no orientation available
+        return resolve(-1)
+      }
+      fr.onerror = reject
+      fr.readAsArrayBuffer(file)
+    })
+  }
+  const orientation = await getOrientation(file)
+  const cleanFile = await new Promise((resolve, reject) => {
     const fr = new window.FileReader()
     fr.onload = function () {
       const cleanedBuffer = cleanBuffer(this.result)
@@ -269,6 +314,38 @@ const removeExifData = (file) => {
       const newFile = new File([blob], file.name, { type: file.type })
       resolve(newFile)
     }
+    fr.onerror = reject
     fr.readAsArrayBuffer(file)
+  })
+  if (orientation <= 0) {
+    // not orientation available (-1) or not JPEG (-2)
+    return cleanFile
+  }
+  // put orientation value back in
+  return new Promise((resolve, reject) => {
+    const fr = new window.FileReader()
+    fr.onload = function () {
+      const zeroth = {}
+      // Orientation is of type SHORT so single int is ok, see https://piexifjs.readthedocs.io/en/latest/appendices.html
+      zeroth[piexif.ImageIFD.Orientation] = orientation
+      const exifObj = { '0th': zeroth }
+      const exifStr = piexif.dump(exifObj)
+      const inserted = piexif.insert(exifStr, this.result)
+      const dataUriToBuffer = (dataUri) => {
+        // data-uri scheme regexp from https://github.com/ragingwind/data-uri-regex/blob/a9d7474c833e8fbf5b1821fe65d8cccd6aea4536/index.js
+        // data:[<media type>][;charset=<character set>][;base64],<data>
+        const regexp = /^(data:)([\w/+-]*)(;charset=[\w-]+|;base64){0,1},(.*)/gi
+        const b64 = regexp.exec(dataUri)[4]
+        const buf = Buffer.from(b64, 'base64')
+        return buf
+      }
+      const buf = dataUriToBuffer(inserted)
+      const blob = new Blob([buf], { type: file.type })
+      const newFile = new File([blob], file.name, { type: file.type })
+      resolve(newFile)
+    }
+    fr.onerror = reject
+    // piexifjs library needs data URI as input
+    fr.readAsDataURL(cleanFile)
   })
 }

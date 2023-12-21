@@ -76,10 +76,14 @@ export function WalletLimitBanner () {
 
   return (
     <Alert className={styles.banner} key='info' variant='warning'>
+      <Alert.Heading>
+        Your wallet is over the current limit ({numWithUnits(msatsToSats(BALANCE_LIMIT_MSATS))})
+      </Alert.Heading>
+      <p className='mb-1'>
+        You will not be able to deposit any more funds or receive sats from <strong>outside</strong> of SN.
+      </p>
       <p>
-        Your wallet is over the current limit ({numWithUnits(msatsToSats(BALANCE_LIMIT_MSATS))}).<br />
-        You will not be able to deposit any more funds or receive sats from outside of SN.<br />
-        Please withdraw sats to restore full wallet functionality.
+        Please spend or withdraw sats to restore full wallet functionality.
       </p>
     </Alert>
   )

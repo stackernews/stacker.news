@@ -18,6 +18,7 @@ import reactStringReplace from 'react-string-replace'
 import { rehypeInlineCodeProperty } from '../lib/md'
 import { Button } from 'react-bootstrap'
 import { useRouter } from 'next/router'
+import Link from 'next/link'
 
 export function SearchText ({ text }) {
   return (
@@ -32,7 +33,7 @@ export function SearchText ({ text }) {
 }
 
 // this is one of the slowest components to render
-export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, ...outerProps }) {
+export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, itemId, ...outerProps }) {
   const [overflowing, setOverflowing] = useState(false)
   const router = useRouter()
   const [show, setShow] = useState(false)
@@ -153,6 +154,9 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, ...o
           h6: Heading,
           table: Table,
           p: P,
+          li: props => {
+            return <li {...props} id={props.id && itemId ? `${props.id}-${itemId}` : props.id} />
+          },
           code: Code,
           a: ({ node, href, children, ...props }) => {
             children = children ? Array.isArray(children) ? children : [children] : []
@@ -165,8 +169,19 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, ...o
             // we don't render it as an image since it was probably a conscious choice to include text.
             const text = children[0]
             if (!!text && !/^https?:\/\//.test(text)) {
+              if (props['data-footnote-ref'] || typeof props['data-footnote-backref'] !== 'undefined') {
+                return (
+                  <Link
+                    {...props}
+                    id={props.id && itemId ? `${props.id}-${itemId}` : props.id}
+                    rel={`noreferrer ${nofollow ? 'nofollow' : ''} noopener`}
+                    href={itemId ? `${href}-${itemId}` : href}
+                  >{text}
+                  </Link>
+                )
+              }
               return (
-                <a target='_blank' rel={`noreferrer ${nofollow ? 'nofollow' : ''} noopener`} href={href}>{text}</a>
+                <a id={props.id} target='_blank' rel={`noreferrer ${nofollow ? 'nofollow' : ''} noopener`} href={href}>{text}</a>
               )
             }
 

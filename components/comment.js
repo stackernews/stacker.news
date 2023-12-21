@@ -214,7 +214,7 @@ export default function Comment ({
                 {item.searchText
                   ? <SearchText text={item.searchText} />
                   : (
-                    <Text topLevel={topLevel} nofollow={item.sats + item.boost < NOFOLLOW_LIMIT} imgproxyUrls={item.imgproxyUrls}>
+                    <Text itemId={item.id} topLevel={topLevel} nofollow={item.sats + item.boost < NOFOLLOW_LIMIT} imgproxyUrls={item.imgproxyUrls}>
                       {truncate ? truncateString(item.text) : item.text}
                     </Text>)}
               </div>

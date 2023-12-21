@@ -171,7 +171,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
 function ItemText ({ item }) {
   return item.searchText
     ? <SearchText text={item.searchText} />
-    : <Text topLevel nofollow={item.sats + item.boost < NOFOLLOW_LIMIT} imgproxyUrls={item.imgproxyUrls}>{item.text}</Text>
+    : <Text itemId={item.id} topLevel nofollow={item.sats + item.boost < NOFOLLOW_LIMIT} imgproxyUrls={item.imgproxyUrls}>{item.text}</Text>
 }
 
 export default function ItemFull ({ item, bio, rank, ...props }) {

@@ -162,10 +162,25 @@ export async function earn ({ name, models }) {
       await serialize(models,
         models.$executeRaw`SELECT earn(${earner.userId}::INTEGER, ${earnings},
           ${now}::timestamp without time zone, ${earner.type}::"EarnType", ${earner.id}::INTEGER, ${earner.rank}::INTEGER)`)
+
+      const userN = notifications[earner.userId] || {}
+
+      // sum total
+      const prevMsats = userN.msats || 0
+      const msats = earnings + prevMsats
+
+      // sum total per earn type (POST, COMMENT, TIP_COMMENT, TIP_POST)
+      const prevEarnTypeMsats = userN[earner.type]?.msats || 0
+      const earnTypeMsats = earnings + prevEarnTypeMsats
+
+      // best (=lowest) rank per earn type
+      const prevEarnTypeBestRank = userN[earner.type]?.bestRank
+      const earnTypeBestRank = prevEarnTypeBestRank ? Math.min(prevEarnTypeBestRank, Number(earner.rank)) : Number(earner.rank)
+
       notifications[earner.userId] = {
-        ...notifications[earner.userId],
-        total: earnings + (notifications[earner.userId]?.total || 0),
-        [earner.type]: { msats: earnings, rank: earner.rank }
+        ...userN,
+        msats,
+        [earner.type]: { msats: earnTypeMsats, bestRank: earnTypeBestRank }
       }
     }
   }
@@ -211,13 +226,13 @@ async function territoryRevenue ({ models }) {
 function buildUserNotification (earnings) {
   const fmt = msats => numWithUnits(msatsToSats(msats, { abbreviate: false }))
 
-  const title = `you stacked ${fmt(earnings.total)} in rewards`
+  const title = `you stacked ${fmt(earnings.msats)} in rewards`
   const tag = 'EARN'
   let body = ''
-  if (earnings.POST) body += `#${earnings.POST.rank} among posts for ${fmt(earnings.POST.msats)}\n`
-  if (earnings.COMMENT) body += `#${earnings.COMMENT.rank} among comments for ${fmt(earnings.COMMENT.msats)}\n`
-  if (earnings.TIP_POST) body += `#${earnings.TIP_POST.rank} in post zapping for ${fmt(earnings.TIP_POST.msats)}\n`
-  if (earnings.TIP_COMMENT) body += `#${earnings.TIP_COMMENT.rank} in comment zapping for ${fmt(earnings.TIP_COMMENT.msats)}\n`
+  if (earnings.POST) body += `#${earnings.POST.bestRank} among posts with ${fmt(earnings.POST.msats)} in total\n`
+  if (earnings.COMMENT) body += `#${earnings.COMMENT.bestRank} among comments with ${fmt(earnings.COMMENT.msats)} in total\n`
+  if (earnings.TIP_POST) body += `#${earnings.TIP_POST.bestRank} in post zapping with ${fmt(earnings.TIP_POST.msats)} in total\n`
+  if (earnings.TIP_COMMENT) body += `#${earnings.TIP_COMMENT.bestRank} in comment zapping with ${fmt(earnings.TIP_COMMENT.msats)} in total`
 
   return { title, tag, body }
 }

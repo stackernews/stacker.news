@@ -2,16 +2,19 @@ import serialize from '../api/resolvers/serial.js'
 import { sendUserNotification } from '../api/webPush/index.js'
 import { ANON_USER_ID, SN_USER_IDS } from '../lib/constants.js'
 import { msatsToSats, numWithUnits } from '../lib/format.js'
+import { PrismaClient } from '@prisma/client'
 
 const ITEM_EACH_REWARD = 4.0
 const UPVOTE_EACH_REWARD = 4.0
 const TOP_PERCENTILE = 33
 const TOTAL_UPPER_BOUND_MSATS = 1000000000
 
-export async function earn ({ name, models }) {
+export async function earn ({ name }) {
   // rewards are calculated sitewide still
   // however for user gen subs currently only 50% of their fees go to rewards
   // the other 50% goes to the founder of the sub
+
+  const models = new PrismaClient()
 
   // compute how much sn earned today
   const [{ sum: sumDecimal }] = await models.$queryRaw`

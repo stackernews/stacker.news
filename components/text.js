@@ -17,6 +17,7 @@ import { IMGPROXY_URL_REGEXP } from '../lib/url'
 import reactStringReplace from 'react-string-replace'
 import { rehypeInlineCodeProperty } from '../lib/md'
 import { Button } from 'react-bootstrap'
+import { useRouter } from 'next/router'
 
 export function SearchText ({ text }) {
   return (
@@ -33,8 +34,22 @@ export function SearchText ({ text }) {
 // this is one of the slowest components to render
 export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, ...outerProps }) {
   const [overflowing, setOverflowing] = useState(false)
+  const router = useRouter()
   const [show, setShow] = useState(false)
   const containerRef = useRef(null)
+
+  useEffect(() => {
+    setShow(router.asPath.includes('#'))
+    const handleRouteChange = (url, { shallow }) => {
+      setShow(url.includes('#'))
+    }
+
+    router.events.on('hashChangeStart', handleRouteChange)
+
+    return () => {
+      router.events.off('hashChangeStart', handleRouteChange)
+    }
+  }, [router])
 
   useEffect(() => {
     const container = containerRef.current
@@ -58,14 +73,13 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, ...o
     }
   }, [containerRef.current, setOverflowing])
 
-  // all the reactStringReplace calls are to facilitate search highlighting
-  const slugger = useRef(new GithubSlugger())
+  const slugger = new GithubSlugger()
 
   const Heading = useCallback(({ children, node, ...props }) => {
     const [copied, setCopied] = useState(false)
     const { noFragments, topLevel } = outerProps
     const id = useMemo(() =>
-      noFragments ? undefined : slugger?.current?.slug(toString(node).replace(/[^\w\-\s]+/gi, '')), [node, noFragments, slugger])
+      noFragments ? undefined : slugger?.slug(toString(node).replace(/[^\w\-\s]+/gi, '')), [node, noFragments, slugger])
     const h = useMemo(() => {
       if (topLevel) {
         return node?.TagName

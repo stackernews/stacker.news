@@ -6,8 +6,10 @@ import { fromMarkdown } from 'mdast-util-from-markdown'
 import { visit } from 'unist-util-visit'
 import { toString } from 'mdast-util-to-string'
 import GithubSlugger from 'github-slugger'
+import { useRouter } from 'next/router'
 
 export default function Toc ({ text }) {
+  const router = useRouter()
   if (!text || text.length === 0) {
     return null
   }
@@ -42,6 +44,8 @@ export default function Toc ({ text }) {
                 marginLeft: `${(v.depth - 1) * 5}px`
               }}
               href={`#${v.slug}`} key={v.slug}
+              // nextjs router doesn't emit hashChangeStart events
+              onClick={() => router.events.emit('hashChangeStart', `#${v.slug}`, { shallow: true })}
             >{v.heading}
             </Dropdown.Item>
           )

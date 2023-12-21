@@ -8,7 +8,7 @@ import { useToast } from '../components/toast'
 import { BALANCE_LIMIT_MSATS } from '../lib/constants'
 import { msatsToSats, numWithUnits } from '../lib/format'
 
-export default function WelcomeBanner () {
+export function WelcomeBanner () {
   const me = useMe()
   const toaster = useToast()
   const [hidden, setHidden] = useState(true)

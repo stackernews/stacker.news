@@ -15,10 +15,15 @@ export async function gOFACYourself ({ models, headers = {}, ip }) {
   ip ||= xRealIp || xForwardedFor?.split(',')?.[0]
   if (!ip) return false
 
-  const countries = await models.$queryRaw`
-    SELECT * FROM "OFAC" WHERE iprange("startIP","endIP") >>= ${ip}::ipaddress`
+  try {
+    const countries = await models.$queryRaw`
+      SELECT * FROM "OFAC" WHERE iprange("startIP","endIP") >>= ${ip}::ipaddress`
 
-  if (countries.length === 0) return false
+    if (countries.length === 0) return false
 
-  return countries[0].country
+    return countries[0].country
+  } catch (e) {
+    console.error('gOFACYourself', e)
+    return false
+  }
 }

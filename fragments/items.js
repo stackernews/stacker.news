@@ -17,6 +17,11 @@ export const ITEM_FIELDS = gql`
       }
       meMute
     }
+    sub {
+      name
+      userId
+      moderated
+    }
     otsHash
     position
     sats
@@ -68,6 +73,11 @@ export const ITEM_FULL_FIELDS = gql`
         optional {
           streak
         }
+      }
+      sub {
+        name
+        userId
+        moderated
       }
     }
     forwards {

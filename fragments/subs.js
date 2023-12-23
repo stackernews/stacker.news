@@ -16,6 +16,8 @@ export const SUB_FIELDS = gql`
     userId
     desc
     status
+    moderated
+    moderatedCount
   }`
 
 export const SUB_FULL_FIELDS = gql`

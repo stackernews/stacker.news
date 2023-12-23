@@ -103,7 +103,8 @@ export function PostForm ({ type, sub, children }) {
           <Alert className='position-absolute' style={{ top: '-6rem' }} variant='danger' onClose={() => setErrorMessage(undefined)} dismissible>
             {errorMessage}
           </Alert>}
-        <SubSelect prependSubs={['pick territory']} className='w-auto d-flex' noForm sub={sub?.name} />
+        <SubSelect prependSubs={['pick territory']} className='w-auto d-flex' noForm sub={sub?.name} hint={sub.moderated && 'this territory is moderated'} />
+
         {postButtons}
         <div className='d-flex mt-4'>
           <AccordianItem
@@ -168,7 +169,8 @@ export default function Post ({ sub }) {
                 territory
                 <SubInfo />
               </span>
-}
+              }
+            hint={sub.moderated && 'this territory is moderated'}
           />}
       </PostForm>
     </>

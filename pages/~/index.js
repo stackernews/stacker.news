@@ -42,7 +42,13 @@ export default function Sub ({ ssrData }) {
             <div className='mb-3 d-flex'>
               <div className='flex-grow-1'>
                 <AccordianCard
-                  header={<small className='text-muted fw-bold'>territory details{sub.status === 'STOPPED' && <Badge className='ms-2' bg='danger'>archived</Badge>}</small>}
+                  header={
+                    <small className='text-muted fw-bold align-items-center d-flex'>
+                      territory details
+                      {sub.status === 'STOPPED' && <Badge className='ms-2' bg='danger'>archived</Badge>}
+                      {(sub.moderated || sub.moderatedCount) && <Badge className='ms-2' bg='secondary'>moderated{sub.moderatedCount && ` ${sub.moderatedCount}`}</Badge>}
+                    </small>
+                  }
                 >
                   <div className='py-2'>
                     <Text>{sub.desc}</Text>

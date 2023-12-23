@@ -11,7 +11,7 @@ export default gql`
     upsertSub(name: String!, desc: String, baseCost: Int!,
       postTypes: [String!]!, allowFreebies: Boolean!,
       billingType: String!, billingAutoRenew: Boolean!,
-      hash: String, hmac: String): Sub
+      moderated: Boolean!, hash: String, hmac: String): Sub
     paySub(name: String!, hash: String, hmac: String): Sub
   }
 
@@ -31,5 +31,7 @@ export default gql`
     billedLastAt: Date!
     baseCost: Int!
     status: String!
+    moderated: Boolean!
+    moderatedCount: Int!
   }
 `

@@ -38,6 +38,7 @@ export default gql`
     upsertComment(id:ID, text: String!, parentId: ID, hash: String, hmac: String): Item!
     act(id: ID!, sats: Int, act: String, idempotent: Boolean, hash: String, hmac: String): ItemActResult!
     pollVote(id: ID!, hash: String, hmac: String): ID!
+    toggleOutlaw(id: ID!): Item!
   }
 
   type PollOption {

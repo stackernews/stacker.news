@@ -1,4 +1,4 @@
-import { Col, InputGroup, Row } from 'react-bootstrap'
+import { Col, InputGroup, Row, Form as BootstrapForm, Badge } from 'react-bootstrap'
 import { Checkbox, CheckboxGroup, Form, Input, MarkdownInput } from './form'
 import FeeButton, { FeeButtonProvider } from './fee-button'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
@@ -7,6 +7,7 @@ import { useRouter } from 'next/router'
 import { MAX_TERRITORY_DESC_LENGTH, POST_TYPES, TERRITORY_BILLING_OPTIONS } from '../lib/constants'
 import { territorySchema } from '../lib/validate'
 import { useMe } from './me'
+import Info from './info'
 
 export default function TerritoryForm ({ sub }) {
   const router = useRouter()
@@ -16,10 +17,10 @@ export default function TerritoryForm ({ sub }) {
     gql`
       mutation upsertSub($name: String!, $desc: String, $baseCost: Int!,
         $postTypes: [String!]!, $allowFreebies: Boolean!, $billingType: String!,
-        $billingAutoRenew: Boolean!, $hash: String, $hmac: String) {
+        $billingAutoRenew: Boolean!, $moderated: Boolean!, $hash: String, $hmac: String) {
           upsertSub(name: $name, desc: $desc, baseCost: $baseCost,
             postTypes: $postTypes, allowFreebies: $allowFreebies, billingType: $billingType,
-            billingAutoRenew: $billingAutoRenew, hash: $hash, hmac: $hmac) {
+            billingAutoRenew: $billingAutoRenew, moderated: $moderated, hash: $hash, hmac: $hmac) {
           name
         }
       }`
@@ -63,7 +64,8 @@ export default function TerritoryForm ({ sub }) {
           postTypes: sub?.postTypes || POST_TYPES,
           allowFreebies: typeof sub?.allowFreebies === 'undefined' ? true : sub?.allowFreebies,
           billingType: sub?.billingType || 'MONTHLY',
-          billingAutoRenew: sub?.billingAutoRenew || false
+          billingAutoRenew: sub?.billingAutoRenew || false,
+          moderated: sub?.moderated || false
         }}
         schema={territorySchema({ client, me })}
         invoiceable
@@ -148,6 +150,22 @@ export default function TerritoryForm ({ sub }) {
             </Col>
           </Row>
         </CheckboxGroup>
+        <BootstrapForm.Label>moderation</BootstrapForm.Label>
+        <Checkbox
+          inline
+          label={
+            <div className='d-flex align-items-center'>enable moderation
+              <Info>
+                <ol>
+                  <li>Outlaw posts and comments with a click</li>
+                  <li>Your territory will get a <Badge bg='secondary'>moderated</Badge> badge</li>
+                </ol>
+              </Info>
+            </div>
+          }
+          name='moderated'
+          groupClassName='ms-1'
+        />
         <CheckboxGroup
           label='billing'
           name='billing'

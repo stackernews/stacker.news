@@ -6,6 +6,7 @@ import AccordianItem from './accordian-item'
 import Flag from '../svgs/flag-fill.svg'
 import { useMemo } from 'react'
 import getColor from '../lib/rainbow'
+import { gql, useMutation } from '@apollo/client'
 
 export function DownZap ({ id, meDontLikeSats, ...props }) {
   const style = useMemo(() => (meDontLikeSats
@@ -62,5 +63,43 @@ export default function DontLikeThisDropdownItem ({ id }) {
     >
       <span className='text-danger'>downzap</span>
     </DownZapper>
+  )
+}
+
+export function OutlawDropdownItem ({ item }) {
+  const toaster = useToast()
+
+  const [toggleOutlaw] = useMutation(
+    gql`
+      mutation toggleOutlaw($id: ID!) {
+        toggleOutlaw(id: $id) {
+          outlawed
+        }
+      }`, {
+      update (cache, { data: { toggleOutlaw } }) {
+        cache.modify({
+          id: `Item:${item.id}`,
+          fields: {
+            outlawed: () => true
+          }
+        })
+      }
+    }
+  )
+
+  return (
+    <Dropdown.Item onClick={async () => {
+      try {
+        await toggleOutlaw({ variables: { id: item.id } })
+      } catch {
+        toaster.danger('failed to outlaw')
+        return
+      }
+
+      toaster.success('item outlawed')
+    }}
+    >
+      outlaw
+    </Dropdown.Item>
   )
 }

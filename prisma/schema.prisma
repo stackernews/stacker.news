@@ -320,6 +320,7 @@ model Item {
   itemForwards       ItemForward[]
   ItemUpload         ItemUpload[]
   uploadId           Int?
+  outlawed           Boolean               @default(false)
 
   @@index([uploadId])
   @@index([bio], map: "Item.bio_index")
@@ -415,6 +416,8 @@ model Sub {
   billingCost      Int
   billingAutoRenew Boolean     @default(false)
   billedLastAt     DateTime    @default(now())
+  moderated        Boolean     @default(false)
+  moderatedCount   Int         @default(0)
 
   parent       Sub?           @relation("ParentChildren", fields: [parentName], references: [name])
   children     Sub[]          @relation("ParentChildren")

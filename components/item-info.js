@@ -10,7 +10,7 @@ import { timeSince } from '../lib/time'
 import { DeleteDropdownItem } from './delete'
 import styles from './item.module.css'
 import { useMe } from './me'
-import DontLikeThisDropdownItem from './dont-link-this'
+import DontLikeThisDropdownItem, { OutlawDropdownItem } from './dont-link-this'
 import BookmarkDropdownItem from './bookmark'
 import SubscribeDropdownItem from './subscribe'
 import { CopyLinkDropdownItem } from './share'
@@ -19,6 +19,7 @@ import { AD_USER_ID } from '../lib/constants'
 import ActionDropdown from './action-dropdown'
 import MuteDropdownItem from './mute'
 import { DropdownItemUpVote } from './upvote'
+import { useRoot } from './root'
 
 export default function ItemInfo ({
   item, full, commentsText = 'comments',
@@ -32,6 +33,8 @@ export default function ItemInfo ({
     useState(item.mine && (Date.now() < editThreshold))
   const [hasNewComments, setHasNewComments] = useState(false)
   const [meTotalSats, setMeTotalSats] = useState(0)
+  const root = useRoot()
+  const sub = item?.sub || root?.sub
 
   useEffect(() => {
     if (!full) {
@@ -146,18 +149,23 @@ export default function ItemInfo ({
           <Link href={`/items/${item.id}/ots`} className='text-reset dropdown-item'>
             opentimestamp
           </Link>}
-        {me && !item.position &&
-          !item.mine && !item.deletedAt &&
-          (item.meDontLikeSats > meTotalSats
-            ? <DropdownItemUpVote item={item} />
-            : <DontLikeThisDropdownItem id={item.id} />)}
         {me && item?.noteId && (
           <Dropdown.Item onClick={() => window.open(`https://nostr.com/${item.noteId}`, '_blank', 'noopener')}>
             nostr note
           </Dropdown.Item>
         )}
+        {me && !item.position &&
+          !item.mine && !item.deletedAt &&
+          (item.meDontLikeSats > meTotalSats
+            ? <DropdownItemUpVote item={item} />
+            : <DontLikeThisDropdownItem id={item.id} />)}
         {item.mine && !item.position && !item.deletedAt && !item.bio &&
           <DeleteDropdownItem itemId={item.id} type={item.title ? 'post' : 'comment'} />}
+        {me && sub && !item.mine && !item.outlawed && Number(me.id) === Number(sub.userId) && sub.moderated &&
+          <>
+            <hr className='dropdown-divider' />
+            <OutlawDropdownItem item={item} />
+          </>}
         {me && !item.mine &&
           <>
             <hr className='dropdown-divider' />

@@ -124,7 +124,7 @@ export default {
       await ssValidate(territorySchema, data, { models, me })
 
       if (old) {
-        return await updateSub(parent, data, { me, models, lnd, hash, hmac, old })
+        return await updateSub(parent, data, { me, models, lnd, hash, hmac })
       } else {
         return await createSub(parent, data, { me, models, lnd, hash, hmac })
       }

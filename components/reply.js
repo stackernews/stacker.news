@@ -14,6 +14,7 @@ import { toastDeleteScheduled } from '../lib/form'
 import { ItemButtonBar } from './post'
 import { useShowModal } from './modal'
 import { Button } from 'react-bootstrap'
+import { useRoot } from './root'
 
 export function ReplyOnAnotherPage ({ item }) {
   const path = item.path.split('.')
@@ -38,6 +39,8 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
   const replyInput = useRef(null)
   const toaster = useToast()
   const showModal = useShowModal()
+  const root = useRoot()
+  const sub = item?.sub || root?.sub
 
   useEffect(() => {
     if (replyOpen || quote || !!window.localStorage.getItem('reply-' + parentId + '-' + 'text')) {
@@ -174,6 +177,7 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
                 required
                 appendValue={quote}
                 placeholder={placeholder}
+                hint={sub?.moderated && 'this territory is moderated'}
               />
               <ItemButtonBar createText='reply' hasCancel={false} />
             </Form>

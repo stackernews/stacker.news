@@ -825,7 +825,7 @@ export function Form ({
   )
 }
 
-export function Select ({ label, items, groupClassName, onChange, noForm, overrideValue, ...props }) {
+export function Select ({ label, items, groupClassName, onChange, noForm, overrideValue, hint, ...props }) {
   const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)
   const formik = noForm ? null : useFormikContext()
   const invalid = meta.touched && meta.error
@@ -866,6 +866,10 @@ export function Select ({ label, items, groupClassName, onChange, noForm, overri
       <BootstrapForm.Control.Feedback type='invalid'>
         {meta.touched && meta.error}
       </BootstrapForm.Control.Feedback>
+      {hint &&
+        <BootstrapForm.Text>
+          {hint}
+        </BootstrapForm.Text>}
     </FormGroup>
   )
 }

@@ -112,18 +112,20 @@ export function joinZapRankPersonalView (me, models) {
 async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ...args) {
   if (!me) {
     return await models.$queryRawUnsafe(`
-      SELECT "Item".*, to_json(users.*) as user
+      SELECT "Item".*, to_json(users.*) as user, to_jsonb("Sub".*) as sub
       FROM (
         ${query}
       ) "Item"
       JOIN users ON "Item"."userId" = users.id
+      LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
       ${orderBy}`, ...args)
   } else {
     return await models.$queryRawUnsafe(`
       SELECT "Item".*, to_jsonb(users.*) || jsonb_build_object('meMute', "Mute"."mutedId" IS NOT NULL) as user,
         COALESCE("ItemAct"."meMsats", 0) as "meMsats",
         COALESCE("ItemAct"."meDontLikeMsats", 0) as "meDontLikeMsats", b."itemId" IS NOT NULL AS "meBookmark",
-        "ThreadSubscription"."itemId" IS NOT NULL AS "meSubscription", "ItemForward"."itemId" IS NOT NULL AS "meForward"
+        "ThreadSubscription"."itemId" IS NOT NULL AS "meSubscription", "ItemForward"."itemId" IS NOT NULL AS "meForward",
+        to_jsonb("Sub".*) as sub
       FROM (
         ${query}
       ) "Item"
@@ -132,6 +134,7 @@ async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ...args) 
       LEFT JOIN "Bookmark" b ON b."itemId" = "Item".id AND b."userId" = ${me.id}
       LEFT JOIN "ThreadSubscription" ON "ThreadSubscription"."itemId" = "Item".id AND "ThreadSubscription"."userId" = ${me.id}
       LEFT JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id AND "ItemForward"."userId" = ${me.id}
+      LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
       LEFT JOIN LATERAL (
         SELECT "itemId", sum("ItemAct".msats) FILTER (WHERE act = 'FEE' OR act = 'TIP') AS "meMsats",
           sum("ItemAct".msats) FILTER (WHERE act = 'DONT_LIKE_THIS') AS "meDontLikeMsats"
@@ -224,7 +227,7 @@ export async function filterClause (me, models, type) {
 
   // handle outlawed
   // if the item is above the threshold or is mine
-  const outlawClauses = [`"Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}`]
+  const outlawClauses = [`"Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD} AND NOT "Item".outlawed`]
   if (me) {
     outlawClauses.push(`"Item"."userId" = ${me.id}`)
   }
@@ -250,7 +253,7 @@ function typeClause (type) {
     case 'freebies':
       return '"Item".freebie'
     case 'outlawed':
-      return `"Item"."weightedVotes" - "Item"."weightedDownVotes" <= -${ITEM_FILTER_THRESHOLD}`
+      return `"Item"."weightedVotes" - "Item"."weightedDownVotes" <= -${ITEM_FILTER_THRESHOLD} OR "Item".outlawed`
     case 'borderland':
       return '"Item"."weightedVotes" - "Item"."weightedDownVotes" < 0'
     case 'all':
@@ -787,6 +790,57 @@ export default {
         act,
         path: item.path
       }
+    },
+    toggleOutlaw: async (parent, { id }, { me, models }) => {
+      if (!me) {
+        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+      }
+
+      const item = await models.item.findUnique({
+        where: { id: Number(id) },
+        include: {
+          sub: true,
+          root: {
+            include: {
+              sub: true
+            }
+          }
+        }
+      })
+
+      const sub = item.sub || item.root?.sub
+
+      if (Number(sub.userId) !== Number(me.id)) {
+        throw new GraphQLError('you cant do this broh', { extensions: { code: 'FORBIDDEN' } })
+      }
+
+      if (item.outlawed) {
+        return item
+      }
+
+      const [result] = await models.$transaction(
+        [
+          models.item.update({
+            where: {
+              id: Number(id)
+            },
+            data: {
+              outlawed: true
+            }
+          }),
+          models.sub.update({
+            where: {
+              name: sub.name
+            },
+            data: {
+              moderatedCount: {
+                increment: 1
+              }
+            }
+          })
+        ])
+
+      return result
     }
   },
   Item: {
@@ -967,7 +1021,7 @@ export default {
       if (me && Number(item.userId) === Number(me.id)) {
         return false
       }
-      return item.weightedVotes - item.weightedDownVotes <= -ITEM_FILTER_THRESHOLD
+      return item.outlawed || item.weightedVotes - item.weightedDownVotes <= -ITEM_FILTER_THRESHOLD
     },
     mine: async (item, args, { me, models }) => {
       return me?.id === item.userId
@@ -979,7 +1033,10 @@ export default {
       if (item.root) {
         return item.root
       }
-      return await models.item.findUnique({ where: { id: item.rootId } })
+      return await models.item.findUnique({
+        where: { id: item.rootId },
+        include: { sub: true }
+      })
     },
     parent: async (item, args, { models }) => {
       if (!item.parentId) {
@@ -1207,7 +1264,7 @@ export const SELECT =
   "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost", "Item".boost, "Item".msats,
   "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",
   "Item"."weightedDownVotes", "Item".freebie, "Item".bio, "Item"."otsHash", "Item"."bountyPaidTo",
-  ltree2text("Item"."path") AS "path", "Item"."weightedComments", "Item"."imgproxyUrls"`
+  ltree2text("Item"."path") AS "path", "Item"."weightedComments", "Item"."imgproxyUrls", "Item".outlawed`
 
 function topOrderByWeightedSats (me, models) {
   return `ORDER BY ${orderByNumerator(models)} DESC NULLS LAST, "Item".id DESC`

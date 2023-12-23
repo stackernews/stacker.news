@@ -445,10 +445,16 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
   let decoded, node
   try {
     decoded = await decodePaymentRequest({ lnd, request: invoice })
-    node = await getNode({ lnd, public_key: decoded.destination, is_omitting_channels: true })
   } catch (error) {
     console.log(error)
     throw new GraphQLError('could not decode invoice', { extensions: { code: 'BAD_INPUT' } })
+  }
+
+  try {
+    node = await getNode({ lnd, public_key: decoded.destination, is_omitting_channels: true })
+  } catch (error) {
+    // likely not found if it's an unannounced channel, e.g. phoenix
+    console.log(error)
   }
 
   if (node) {

@@ -350,6 +350,7 @@ mark {
 }
 
 html, body {
+  // background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
   background: var(--bs-body-bg) !important;
   color: var(--bs-body-color) !important;
   min-height: 100vh;

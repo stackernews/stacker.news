@@ -19,7 +19,7 @@ import LightningIcon from '../svgs/bolt.svg'
 import SearchIcon from '../svgs/search-line.svg'
 import BackArrow from '../svgs/arrow-left-line.svg'
 import { BALANCE_LIMIT_MSATS, SSR } from '../lib/constants'
-import { useLightning } from './lightning'
+import { useSnow } from './snow'
 import { HAS_NOTIFICATIONS } from '../fragments/notifications'
 import AnonIcon from '../svgs/spy-fill.svg'
 import Hat from './hat'
@@ -172,12 +172,12 @@ function StackerCorner ({ dropNavKey }) {
 
 function LurkerCorner ({ path }) {
   const router = useRouter()
-  const strike = useLightning()
+  const snow = useSnow()
 
   useEffect(() => {
     if (!window.localStorage.getItem('striked')) {
       const to = setTimeout(() => {
-        strike()
+        snow()
         window.localStorage.setItem('striked', 'yep')
       }, randInRange(3000, 10000))
       return () => clearTimeout(to)

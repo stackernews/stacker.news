@@ -15,7 +15,7 @@ import { useShowModal } from '../../components/modal'
 import dynamic from 'next/dynamic'
 import { SSR } from '../../lib/constants'
 import { useToast } from '../../components/toast'
-import { useLightning } from '../../components/lightning'
+import { useSnow } from '../../components/snow'
 
 const GrowthPieChart = dynamic(() => import('../../components/charts').then(mod => mod.GrowthPieChart), {
   loading: () => <div>Loading...</div>
@@ -91,7 +91,7 @@ export default function Rewards ({ ssrData }) {
 export function DonateButton () {
   const showModal = useShowModal()
   const toaster = useToast()
-  const strike = useLightning()
+  const snow = useSnow()
   const [donateToRewards] = useMutation(
     gql`
       mutation donateToRewards($sats: Int!, $hash: String, $hmac: String) {
@@ -119,7 +119,7 @@ export function DonateButton () {
               console.error(error)
               toaster.danger('failed to donate')
             } else {
-              const didStrike = strike()
+              const didStrike = snow()
               if (!didStrike) {
                 toaster.success('donated')
               }

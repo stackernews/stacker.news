@@ -1,4 +1,5 @@
 import '../styles/globals.scss'
+import '../styles/snow.scss'
 import { ApolloProvider, gql } from '@apollo/client'
 import { MeProvider } from '../components/me'
 import PlausibleProvider from 'next-plausible'
@@ -10,7 +11,7 @@ import { useRouter } from 'next/dist/client/router'
 import { useEffect } from 'react'
 import { ShowModalProvider } from '../components/modal'
 import ErrorBoundary from '../components/error-boundary'
-import { LightningProvider } from '../components/lightning'
+import { SnowProvider } from '../components/snow'
 import { ToastProvider } from '../components/toast'
 import { ServiceWorkerProvider } from '../components/serviceworker'
 import { SSR } from '../lib/constants'
@@ -93,7 +94,7 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
               <LoggerProvider>
                 <ServiceWorkerProvider>
                   <PriceProvider price={price}>
-                    <LightningProvider>
+                    <SnowProvider>
                       <ToastProvider>
                         <ShowModalProvider>
                           <BlockHeightProvider blockHeight={blockHeight}>
@@ -105,7 +106,7 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
                           </BlockHeightProvider>
                         </ShowModalProvider>
                       </ToastProvider>
-                    </LightningProvider>
+                    </SnowProvider>
                   </PriceProvider>
                 </ServiceWorkerProvider>
               </LoggerProvider>

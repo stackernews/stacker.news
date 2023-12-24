@@ -26,8 +26,8 @@
 
 
         &:nth-child(#{$i}) {
-            // -50px to fix x-overflow if flake is blown out of right screen
-            left: clamp(0% + $wind-max-swing + $size, #{random(100) + "%"}, 100% - $size - $wind-max-swing - 50px);
+            // +-50px to fix x-overflow if flake is blown out of right screen
+            left: clamp(0% + $wind-max-swing + $size + 50px, #{random(100) + "%"}, 100% - $size - $wind-max-swing - 50px);
             animation: fall-#{$i} $fall-duration linear 0s 1;
         }
 

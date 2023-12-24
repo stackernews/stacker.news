@@ -1,0 +1,70 @@
+// reference: https://codepen.io/alphardex/pen/dyPorwJ
+
+@function random_range($min, $max) {
+    $rand: random();
+    $random_range: $min + floor($rand * (($max - $min) + 1));
+    @return $random_range;
+}
+
+.snow {
+    z-index: 999;
+    position: absolute;
+    // position before and after animation (out of view)
+    top: -10vh;
+
+    // compile random styles for 1024 snowflakes
+    @for $i from 1 through 1024 {
+        $size: #{random_range(1, 10)}px;
+        // lower fall duration means faster fall speed
+        $fall-duration: random_range(5, 25) * 1s;
+        $fall-delay: random(10) * 1s;
+        $wind-max-swing: #{random_range(10, 50)}px;
+        // lower duration means faster swing
+        $wind-swing-duration: random_range(2.5, 4) * 1s;
+        $wind-delay: 0s;
+
+        &:nth-child(#{$i}) {
+            // +-50px to fix x-overflow if flake is blown out of right screen
+            left: clamp(0% + $wind-max-swing + $size + 50px, #{random(100) + "%"}, 100% - $size - $wind-max-swing - 50px);
+            animation: fall-#{$i} $fall-duration linear 0s 1;
+        }
+
+        &:nth-child(#{$i})::after {
+            content: '';
+            display: block;
+            background: var(--theme-snow);
+            filter: drop-shadow(0 0 10px var(--theme-snow));
+            border-radius: 50%;
+            width: $size;
+            height: $size;
+            opacity: random();
+            animation: wind $wind-swing-duration ease-in-out $wind-delay infinite alternate;
+        }
+
+        @keyframes wind {
+            0% {
+                transform: translateX($wind-max-swing);
+            }
+
+            100% {
+                transform: translateX(calc(-1 * $wind-max-swing));
+            }
+        }
+
+        @keyframes fall-#{$i} {
+            0% {
+                opacity: inherit;
+                top: -2vh;
+            }
+
+            90% {
+                opacity: 0;
+            }
+
+            100% {
+                opacity: 0;
+                top: 100vh;
+            }
+        }
+    }
+}

@@ -18,12 +18,10 @@
         // lower fall duration means faster fall speed
         $fall-duration: random_range(5, 25) * 1s;
         $fall-delay: random(10) * 1s;
-        // simulate inertia by making bigger flakes less affected by wind
         $wind-max-swing: #{random_range(10, 50)}px;
         // lower duration means faster swing
         $wind-swing-duration: random_range(2.5, 4) * 1s;
         $wind-delay: 0s;
-
 
         &:nth-child(#{$i}) {
             // +-50px to fix x-overflow if flake is blown out of right screen

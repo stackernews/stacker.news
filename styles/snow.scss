@@ -32,8 +32,8 @@
         &:nth-child(#{$i})::after {
             content: '';
             display: block;
-            background: white;
-            filter: drop-shadow(0 0 10px white);
+            background: var(--theme-snow);
+            filter: drop-shadow(0 0 10px var(--theme-snow));
             border-radius: 50%;
             width: $size;
             height: $size;

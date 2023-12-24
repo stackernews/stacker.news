@@ -147,6 +147,8 @@ $accordion-button-active-icon-dark:  $accordion-button-icon;
   --theme-quoteBar: rgb(206, 208, 212);
   --theme-linkHover: #004a72;
   --theme-linkVisited: #53758;
+  // snow
+  --theme-snow: #6c757d;
 }
 
 [data-bs-theme=dark] {
@@ -171,6 +173,8 @@ $accordion-button-active-icon-dark:  $accordion-button-icon;
   --theme-quoteColor: rgb(141, 144, 150);
   --theme-linkHover: #007cbe;
   --theme-linkVisited: #56798E;
+  // snow
+  --theme-snow: white;
 }
 
 @import '../node_modules/bootstrap/scss/bootstrap.scss';

@@ -148,7 +148,7 @@ $accordion-button-active-icon-dark:  $accordion-button-icon;
   --theme-linkHover: #004a72;
   --theme-linkVisited: #53758;
   // snow
-  --theme-snow: #6c757d;
+  --theme-snowDropShadow: drop-shadow(0 0 4px black) ;
 }
 
 [data-bs-theme=dark] {
@@ -174,7 +174,7 @@ $accordion-button-active-icon-dark:  $accordion-button-icon;
   --theme-linkHover: #007cbe;
   --theme-linkVisited: #56798E;
   // snow
-  --theme-snow: white;
+  --theme-snowDropShadow: drop-shadow(0 0 10px white);
 }
 
 @import '../node_modules/bootstrap/scss/bootstrap.scss';

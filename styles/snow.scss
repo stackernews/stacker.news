@@ -8,9 +8,7 @@
 
 .snow {
     z-index: 999;
-    position: absolute;
-    // position before and after animation (out of view)
-    top: -10vh;
+    position: fixed;
 
     // compile random styles for 1024 snowflakes
     @for $i from 1 through 1024 {
@@ -27,21 +25,21 @@
             // +-50px to fix x-overflow if flake is blown out of right screen
             left: clamp(0% + $wind-max-swing + $size + 50px, #{random(100) + "%"}, 100% - $size - $wind-max-swing - 50px);
             animation: fall-#{$i} $fall-duration linear 0s 1;
+            opacity: 0;
         }
 
         &:nth-child(#{$i})::after {
             content: '';
             display: block;
-            background: var(--theme-snow);
-            filter: drop-shadow(0 0 10px var(--theme-snow));
+            background: white;
+            filter: var(--theme-snowDropShadow);
             border-radius: 50%;
             width: $size;
             height: $size;
-            opacity: random();
-            animation: wind $wind-swing-duration ease-in-out $wind-delay infinite alternate;
+            animation: wind-#{$i} $wind-swing-duration ease-in-out $wind-delay infinite alternate;
         }
 
-        @keyframes wind {
+        @keyframes wind-#{$i} {
             0% {
                 transform: translateX($wind-max-swing);
             }
@@ -54,16 +52,12 @@
         @keyframes fall-#{$i} {
             0% {
                 opacity: inherit;
-                top: -2vh;
-            }
-
-            90% {
-                opacity: 0;
+                transform: translateY(-#{random_range(1, 10)}vh);
             }
 
             100% {
                 opacity: 0;
-                top: 100vh;
+                transform: translateY(100vh);
             }
         }
     }

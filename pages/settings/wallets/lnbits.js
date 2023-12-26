@@ -5,36 +5,12 @@ import { WalletButtonBar, WalletCard } from '../../../components/wallet-card'
 import { lnbitsSchema } from '../../../lib/validate'
 import { useToast } from '../../../components/toast'
 import { useRouter } from 'next/router'
-import { useCallback, useEffect, useState } from 'react'
+import { useWebLN } from '../../../components/webln'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
-const useLNbits = () => {
-  const [config, setConfig] = useState(null)
-  const storageKey = 'lnbitsConfig'
-
-  useEffect(() => {
-    const config = window.localStorage.getItem(storageKey)
-    if (config) setConfig(JSON.parse(config))
-  }, [])
-
-  const setLNbits = useCallback(({ url, adminKey }) => {
-    const config = { url, adminKey }
-    // TODO encrypt credentials / see how mutiny encrypts wallets
-    window.localStorage.setItem(storageKey, JSON.stringify(config))
-    setConfig(config)
-  }, [])
-
-  const removeLNbits = useCallback(() => {
-    window.localStorage.removeItem(storageKey)
-    setConfig(null)
-  })
-
-  return { config, isEnabled: !!config, setLNbits, removeLNbits }
-}
-
 export default function LNbits () {
-  const { config, isEnabled, setLNbits, removeLNbits } = useLNbits()
+  const { config, setConfig, clearConfig, isEnabled } = useWebLN('lnbits')
   const toaster = useToast()
   const router = useRouter()
 
@@ -51,7 +27,7 @@ export default function LNbits () {
         schema={lnbitsSchema}
         onSubmit={async (values) => {
           try {
-            await setLNbits(values)
+            await setConfig(values)
             toaster.success('saved settings')
             router.push('/settings/wallets')
           } catch (err) {
@@ -75,7 +51,7 @@ export default function LNbits () {
         <WalletButtonBar
           enabled={isEnabled} onDelete={async () => {
             try {
-              await removeLNbits()
+              await clearConfig()
               toaster.success('saved settings')
               router.push('/settings/wallets')
             } catch (err) {
@@ -90,7 +66,7 @@ export default function LNbits () {
 }
 
 export function LNbitsCard () {
-  const { isEnabled } = useLNbits()
+  const { isEnabled } = useWebLN('lnbits')
   return (
     <WalletCard
       title='lnbits'

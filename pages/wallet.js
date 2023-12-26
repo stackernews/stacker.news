@@ -28,7 +28,6 @@ import { useShowModal } from '../components/modal'
 import { useField } from 'formik'
 import { useToast } from '../components/toast'
 import { WalletLimitBanner } from '../components/banners'
-import dynamic from 'next/dynamic'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -102,16 +101,17 @@ export function WalletForm () {
   )
 }
 
-const WalletConnectButton = dynamic(
-  () => import('@getalby/bitcoin-connect-react').then((mod) => mod.Button),
-  {
-    ssr: false
-  }
-)
-
 function WalletConnect () {
   return (
-    <WalletConnectButton />
+    <Button
+      variant='info'
+      onClick={async () => {
+        const launchModal = await import('@getalby/bitcoin-connect-react').then((mod) => mod.launchModal)
+        launchModal()
+      }}
+    >
+      connect wallet
+    </Button>
   )
 }
 

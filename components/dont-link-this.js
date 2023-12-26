@@ -1,4 +1,3 @@
-import { gql, useMutation } from '@apollo/client'
 import Dropdown from 'react-bootstrap/Dropdown'
 import { useShowModal } from './modal'
 import { useToast } from './toast'
@@ -7,6 +6,7 @@ import AccordianItem from './accordian-item'
 import Flag from '../svgs/flag-fill.svg'
 import { useMemo } from 'react'
 import getColor from '../lib/rainbow'
+import { useLightning } from './lightning'
 
 export function DownZap ({ id, meDontLikeSats, ...props }) {
   const style = useMemo(() => (meDontLikeSats
@@ -23,24 +23,7 @@ export function DownZap ({ id, meDontLikeSats, ...props }) {
 function DownZapper ({ id, As, children }) {
   const toaster = useToast()
   const showModal = useShowModal()
-
-  const [dontLikeThis] = useMutation(
-    gql`
-      mutation dontLikeThis($id: ID!, $sats: Int, $hash: String, $hmac: String) {
-        dontLikeThis(id: $id, sats: $sats, hash: $hash, hmac: $hmac)
-      }`, {
-      update (cache, { data: { dontLikeThis } }) {
-        cache.modify({
-          id: `Item:${id}`,
-          fields: {
-            meDontLikeSats (existingSats = 0) {
-              return existingSats + dontLikeThis
-            }
-          }
-        })
-      }
-    }
-  )
+  const strike = useLightning()
 
   return (
     <As
@@ -51,7 +34,7 @@ function DownZapper ({ id, As, children }) {
               onClose={() => {
                 onClose()
                 toaster.success('item downzapped')
-              }} itemId={id} act={dontLikeThis} down
+              }} itemId={id} strike={strike} down
             >
               <AccordianItem
                 header='what is a downzap?' body={

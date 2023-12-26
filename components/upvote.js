@@ -2,7 +2,7 @@ import UpBolt from '../svgs/bolt.svg'
 import styles from './upvote.module.css'
 import { gql, useMutation } from '@apollo/client'
 import ActionTooltip from './action-tooltip'
-import ItemAct from './item-act'
+import ItemAct, { useAct } from './item-act'
 import { useMe } from './me'
 import getColor from '../lib/rainbow'
 import { useCallback, useMemo, useRef, useState } from 'react'
@@ -56,60 +56,15 @@ const TipPopover = ({ target, show, handleClose }) => (
   </Overlay>
 )
 
-function useAct () {
-  const me = useMe()
-
-  const update = useCallback((cache, { data: { act: { id, sats, path } } }) => {
-    cache.modify({
-      id: `Item:${id}`,
-      fields: {
-        sats (existingSats = 0) {
-          return existingSats + sats
-        },
-        meSats: me
-          ? (existingSats = 0) => {
-              return existingSats + sats
-            }
-          : undefined
-      }
-    })
-
-    // update all ancestors
-    path.split('.').forEach(aId => {
-      if (Number(aId) === Number(id)) return
-      cache.modify({
-        id: `Item:${aId}`,
-        fields: {
-          commentSats (existingCommentSats = 0) {
-            return existingCommentSats + sats
-          }
-        }
-      })
-    })
-  }, [!!me])
-
-  return useMutation(
-    gql`
-      mutation act($id: ID!, $sats: Int!, $hash: String, $hmac: String) {
-        act(id: $id, sats: $sats, hash: $hash, hmac: $hmac) {
-          id
-          sats
-          path
-        }
-      }`, { update }
-  )
-}
-
 export function DropdownItemUpVote ({ item }) {
   const showModal = useShowModal()
-
-  const [act] = useAct({ item })
+  const strike = useLightning()
 
   return (
     <Dropdown.Item
       onClick={async () => {
         showModal(onClose =>
-          <ItemAct onClose={onClose} itemId={item.id} act={act} />)
+          <ItemAct onClose={onClose} itemId={item.id} strike={strike} />)
       }}
     >
       <span className='text-success'>zap</span>
@@ -145,7 +100,6 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
       setWalkthrough({ variables: { upvotePopover: true } })
     }
   }, [me, voteShow, setWalkthrough])
-
   const setTipShow = useCallback((yes) => {
     if (!me) return
 
@@ -161,7 +115,7 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
     }
   }, [me, tipShow, setWalkthrough])
 
-  const [act] = useAct({ item, setVoteShow, setTipShow })
+  const [act] = useAct()
 
   const showInvoiceModal = useInvoiceModal(
     async ({ hash, hmac }, { variables }) => {
@@ -171,7 +125,7 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
 
   const zap = useDebounceCallback(async (sats) => {
     if (!sats) return
-    const variables = { id: item.id, sats }
+    const variables = { id: item.id, sats, act: 'TIP' }
 
     act({
       variables,
@@ -179,7 +133,8 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
         act: {
           id: item.id,
           sats,
-          path: item.path
+          path: item.path,
+          act: 'TIP'
         }
       }
     }).catch((error) => {
@@ -229,7 +184,7 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
 
                 setTipShow(false)
                 showModal(onClose =>
-                  <ItemAct onClose={onClose} itemId={item.id} act={act} strike={strike} />)
+                  <ItemAct onClose={onClose} itemId={item.id} strike={strike} />)
               }
             }
             onShortPress={
@@ -244,6 +199,8 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
 
                 if (meSats) {
                   setVoteShow(false)
+                } else {
+                  setTipShow(true)
                 }
 
                 strike()

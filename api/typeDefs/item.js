@@ -21,6 +21,7 @@ export default gql`
     id: ID!
     sats: Int!
     path: String!
+    act: String!
   }
 
   extend type Mutation {
@@ -35,8 +36,7 @@ export default gql`
     upsertPoll(id: ID, sub: String, title: String!, text: String, options: [String!]!, boost: Int, forward: [ItemForwardInput], hash: String, hmac: String): Item!
     updateNoteId(id: ID!, noteId: String!): Item!
     upsertComment(id:ID, text: String!, parentId: ID, hash: String, hmac: String): Item!
-    dontLikeThis(id: ID!, sats: Int, hash: String, hmac: String): Int!
-    act(id: ID!, sats: Int, hash: String, hmac: String): ItemActResult!
+    act(id: ID!, sats: Int, act: String, hash: String, hmac: String): ItemActResult!
     pollVote(id: ID!, hash: String, hmac: String): ID!
   }
 

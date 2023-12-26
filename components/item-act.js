@@ -5,6 +5,7 @@ import { Form, Input, SubmitButton } from './form'
 import { useMe } from './me'
 import UpBolt from '../svgs/bolt.svg'
 import { amountSchema } from '../lib/validate'
+import { gql, useMutation } from '@apollo/client'
 
 const defaultTips = [100, 1000, 10000, 100000]
 
@@ -36,7 +37,7 @@ const addCustomTip = (amount) => {
   window.localStorage.setItem('custom-tips', JSON.stringify(customTips))
 }
 
-export default function ItemAct ({ onClose, itemId, act, down, strike, children }) {
+export default function ItemAct ({ onClose, itemId, down, strike, children }) {
   const inputRef = useRef(null)
   const me = useMe()
   const [oValue, setOValue] = useState()
@@ -44,6 +45,8 @@ export default function ItemAct ({ onClose, itemId, act, down, strike, children 
   useEffect(() => {
     inputRef.current?.focus()
   }, [onClose, itemId])
+
+  const [act] = useAct()
 
   const onSubmit = useCallback(async ({ amount, hash, hmac }) => {
     if (!me) {
@@ -55,6 +58,7 @@ export default function ItemAct ({ onClose, itemId, act, down, strike, children 
       variables: {
         id: itemId,
         sats: Number(amount),
+        act: down ? 'DONT_LIKE_THIS' : 'TIP',
         hash,
         hmac
       }
@@ -62,7 +66,7 @@ export default function ItemAct ({ onClose, itemId, act, down, strike, children 
     strike && await strike()
     addCustomTip(Number(amount))
     onClose()
-  }, [act])
+  }, [act, down, itemId, strike])
 
   return (
     <Form
@@ -92,5 +96,73 @@ export default function ItemAct ({ onClose, itemId, act, down, strike, children 
         <SubmitButton variant={down ? 'danger' : 'success'} className='ms-auto mt-1 px-4' value='TIP'>{down && 'down'}zap</SubmitButton>
       </div>
     </Form>
+  )
+}
+
+export function useAct ({ onUpdate } = {}) {
+  const me = useMe()
+
+  const update = useCallback((cache, args) => {
+    const { data: { act: { id, sats, path, act } } } = args
+
+    cache.modify({
+      id: `Item:${id}`,
+      fields: {
+        sats (existingSats = 0) {
+          if (act === 'TIP') {
+            return existingSats + sats
+          }
+
+          return existingSats
+        },
+        meSats: me
+          ? (existingSats = 0) => {
+              if (act === 'TIP') {
+                return existingSats + sats
+              }
+
+              return existingSats
+            }
+          : undefined,
+        meDontLikeSats: me
+          ? (existingSats = 0) => {
+              if (act === 'DONT_LIKE_THIS') {
+                return existingSats + sats
+              }
+
+              return existingSats
+            }
+          : undefined
+      }
+    })
+
+    if (act === 'TIP') {
+      // update all ancestors
+      path.split('.').forEach(aId => {
+        if (Number(aId) === Number(id)) return
+        cache.modify({
+          id: `Item:${aId}`,
+          fields: {
+            commentSats (existingCommentSats = 0) {
+              return existingCommentSats + sats
+            }
+          }
+        })
+      })
+
+      onUpdate && onUpdate(cache, args)
+    }
+  }, [!!me, onUpdate])
+
+  return useMutation(
+    gql`
+      mutation act($id: ID!, $sats: Int!, $act: String, $hash: String, $hmac: String) {
+        act(id: $id, sats: $sats, act: $act, hash: $hash, hmac: $hmac) {
+          id
+          sats
+          path
+          act
+        }
+      }`, { update }
   )
 }

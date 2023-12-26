@@ -7,14 +7,14 @@ import { ruleSet as publicationDateRuleSet } from '../../lib/timedate-scraper'
 import domino from 'domino'
 import {
   ITEM_SPAM_INTERVAL, ITEM_FILTER_THRESHOLD,
-  DONT_LIKE_THIS_COST, COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY,
+  COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY,
   ANON_USER_ID, ANON_ITEM_SPAM_INTERVAL, POLL_COST,
   ITEM_ALLOW_EDITS, GLOBAL_SEED, ANON_FEE_MULTIPLIER
 } from '../../lib/constants'
 import { msatsToSats } from '../../lib/format'
 import { parse } from 'tldts'
 import uu from 'url-unshort'
-import { advSchema, amountSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, ssValidate } from '../../lib/validate'
+import { actSchema, advSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, ssValidate } from '../../lib/validate'
 import { sendUserNotification } from '../webPush'
 import { defaultCommentSort, isJob, deleteItemByAuthor, getDeleteCommand, hasDeleteCommand } from '../../lib/item'
 import { notifyItemParents, notifyUserSubscribers, notifyZapped } from '../../lib/push-notifications'
@@ -478,6 +478,10 @@ export default {
                       ${whereClause(
                         subClause(sub, 3, 'Item', true),
                         muteClause(me),
+                        '"Item"."pinId" IS NULL',
+                        '"Item"."deletedAt" IS NULL',
+                        '"Item"."parentId" IS NULL',
+                        '"Item".bio = false',
                         await filterClause(me, models, type))}
                         ORDER BY ${orderByNumerator(models, 0)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3) DESC NULLS LAST, "Item".msats DESC, ("Item".freebie IS FALSE) DESC, "Item".id DESC
                       OFFSET $1
@@ -748,8 +752,8 @@ export default {
 
       return id
     },
-    act: async (parent, { id, sats, hash, hmac }, { me, models, lnd, headers }) => {
-      await ssValidate(amountSchema, { amount: sats })
+    act: async (parent, { id, sats, act = 'TIP', hash, hmac }, { me, models, lnd, headers }) => {
+      await ssValidate(actSchema, { sats, act })
       await assertGofacYourself({ models, headers })
 
       const [item] = await models.$queryRawUnsafe(`
@@ -764,9 +768,11 @@ export default {
         }
 
         // Disallow tips if me is one of the forward user recipients
-        const existingForwards = await models.itemForward.findMany({ where: { itemId: Number(id) } })
-        if (existingForwards.some(fwd => Number(fwd.userId) === Number(me.id))) {
-          throw new GraphQLError('cannot zap a post for which you are forwarded zaps', { extensions: { code: 'BAD_INPUT' } })
+        if (act === 'TIP') {
+          const existingForwards = await models.itemForward.findMany({ where: { itemId: Number(id) } })
+          if (existingForwards.some(fwd => Number(fwd.userId) === Number(me.id))) {
+            throw new GraphQLError('cannot zap a post for which you are forwarded zaps', { extensions: { code: 'BAD_INPUT' } })
+          }
         }
       }
 
@@ -774,7 +780,7 @@ export default {
         models.$queryRaw`
           SELECT
             item_act(${Number(id)}::INTEGER,
-            ${me?.id || ANON_USER_ID}::INTEGER, 'TIP', ${Number(sats)}::INTEGER)`,
+            ${me?.id || ANON_USER_ID}::INTEGER, ${act}::"ItemActType", ${Number(sats)}::INTEGER)`,
         { me, models, lnd, hash, hmac, enforceFee: sats }
       )
 
@@ -783,31 +789,9 @@ export default {
       return {
         id,
         sats,
+        act,
         path: item.path
       }
-    },
-    dontLikeThis: async (parent, { id, sats = DONT_LIKE_THIS_COST, hash, hmac }, { me, lnd, models }) => {
-      // need to make sure we are logged in
-      if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
-      }
-
-      // disallow self down votes
-      const [item] = await models.$queryRawUnsafe(`
-            ${SELECT}
-            FROM "Item"
-            WHERE id = $1 AND "userId" = $2`, Number(id), me.id)
-      if (item) {
-        throw new GraphQLError('cannot downvote your self', { extensions: { code: 'BAD_INPUT' } })
-      }
-
-      await serializeInvoicable(
-        models.$queryRaw`SELECT item_act(${Number(id)}::INTEGER,
-          ${me.id}::INTEGER, 'DONT_LIKE_THIS', ${sats}::INTEGER)`,
-        { me, models, lnd, hash, hmac }
-      )
-
-      return sats
     }
   },
   Item: {

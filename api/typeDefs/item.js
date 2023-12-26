@@ -18,8 +18,9 @@ export default gql`
   }
 
   type ItemActResult {
-    vote: Int!
+    id: ID!
     sats: Int!
+    path: String!
   }
 
   extend type Mutation {

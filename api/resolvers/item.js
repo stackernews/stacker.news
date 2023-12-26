@@ -752,13 +752,14 @@ export default {
       await ssValidate(amountSchema, { amount: sats })
       await assertGofacYourself({ models, headers })
 
-      // disallow self tips except anons
-      if (me) {
-        const [item] = await models.$queryRawUnsafe(`
+      const [item] = await models.$queryRawUnsafe(`
         ${SELECT}
         FROM "Item"
-        WHERE id = $1 AND "userId" = $2`, Number(id), me.id)
-        if (item) {
+        WHERE id = $1`, Number(id))
+
+      // disallow self tips except anons
+      if (me) {
+        if (Number(item.userId) === Number(me.id)) {
           throw new GraphQLError('cannot zap your self', { extensions: { code: 'BAD_INPUT' } })
         }
 
@@ -769,7 +770,7 @@ export default {
         }
       }
 
-      const { item_act: vote } = await serializeInvoicable(
+      await serializeInvoicable(
         models.$queryRaw`
           SELECT
             item_act(${Number(id)}::INTEGER,
@@ -780,8 +781,9 @@ export default {
       notifyZapped({ models, id })
 
       return {
-        vote,
-        sats
+        id,
+        sats,
+        path: item.path
       }
     },
     dontLikeThis: async (parent, { id, sats = DONT_LIKE_THIS_COST, hash, hmac }, { me, lnd, models }) => {

@@ -56,52 +56,47 @@ const TipPopover = ({ target, show, handleClose }) => (
   </Overlay>
 )
 
-function useAct ({ item, setVoteShow = () => {}, setTipShow = () => {} }) {
+function useAct () {
   const me = useMe()
+
+  const update = useCallback((cache, { data: { act: { id, sats, path } } }) => {
+    cache.modify({
+      id: `Item:${id}`,
+      fields: {
+        sats (existingSats = 0) {
+          return existingSats + sats
+        },
+        meSats: me
+          ? (existingSats = 0) => {
+              return existingSats + sats
+            }
+          : undefined
+      }
+    })
+
+    // update all ancestors
+    path.split('.').forEach(aId => {
+      if (Number(aId) === Number(id)) return
+      cache.modify({
+        id: `Item:${aId}`,
+        fields: {
+          commentSats (existingCommentSats = 0) {
+            return existingCommentSats + sats
+          }
+        }
+      })
+    })
+  }, [!!me])
+
   return useMutation(
     gql`
       mutation act($id: ID!, $sats: Int!, $hash: String, $hmac: String) {
         act(id: $id, sats: $sats, hash: $hash, hmac: $hmac) {
+          id
           sats
+          path
         }
-      }`, {
-      update (cache, { data: { act: { sats } } }) {
-        cache.modify({
-          id: `Item:${item.id}`,
-          fields: {
-            sats (existingSats = 0) {
-              return existingSats + sats
-            },
-            meSats: me
-              ? (existingSats = 0) => {
-                  if (sats <= me.privates?.sats) {
-                    if (existingSats === 0) {
-                      setVoteShow(true)
-                    } else {
-                      setTipShow(true)
-                    }
-                  }
-
-                  return existingSats + sats
-                }
-              : undefined
-          }
-        })
-
-        // update all ancestors
-        item.path.split('.').forEach(id => {
-          if (Number(id) === Number(item.id)) return
-          cache.modify({
-            id: `Item:${id}`,
-            fields: {
-              commentSats (existingCommentSats = 0) {
-                return existingCommentSats + sats
-              }
-            }
-          })
-        })
-      }
-    }
+      }`, { update }
   )
 }
 
@@ -177,11 +172,14 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
   const zap = useDebounceCallback(async (sats) => {
     if (!sats) return
     const variables = { id: item.id, sats }
+
     act({
       variables,
       optimisticResponse: {
         act: {
-          sats
+          id: item.id,
+          sats,
+          path: item.path
         }
       }
     }).catch((error) => {
@@ -193,7 +191,7 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
       toaster.danger(error?.message || error?.toString?.())
     })
     setPendingSats(0)
-  }, 500, [act, toaster, item?.id, showInvoiceModal, setPendingSats])
+  }, 500, [act, toaster, item?.id, item?.path, showInvoiceModal, setPendingSats])
 
   const disabled = useMemo(() => item?.mine || item?.meForward || item?.deletedAt,
     [item?.mine, item?.meForward, item?.deletedAt])

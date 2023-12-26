@@ -28,6 +28,7 @@ import { useShowModal } from '../components/modal'
 import { useField } from 'formik'
 import { useToast } from '../components/toast'
 import { WalletLimitBanner } from '../components/banners'
+import { useWebLN } from '../components/webln'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -67,7 +68,7 @@ function YouHaveSats () {
       <span className='text-monospace'>{me && (
         me.privates?.hideWalletBalance
           ? <HiddenWalletSummary />
-          : numWithUnits(me.privates?.sats, { abbreviate: false, format: true })
+          : numWithUnits(me.privates?.sats + me.weblnSats, { abbreviate: false, format: true })
       )}
       </span>
     </h2>
@@ -102,16 +103,26 @@ export function WalletForm () {
 }
 
 function WalletConnect () {
+  const { provider, info } = useWebLN()
+  const [label, setLabel] = useState('connect wallet')
+
+  useEffect(() => {
+    setLabel(provider ? 'connected' : 'connect wallet')
+  }, [provider])
+
   return (
-    <Button
-      variant='info'
-      onClick={async () => {
-        const launchModal = await import('@getalby/bitcoin-connect-react').then((mod) => mod.launchModal)
-        launchModal()
-      }}
-    >
-      connect wallet
-    </Button>
+    <>
+      <Button
+        className='mb-1'
+        variant='info'
+        onClick={async () => {
+          const launchModal = await import('@getalby/bitcoin-connect-react').then((mod) => mod.launchModal)
+          launchModal()
+        }}
+      >{label}
+      </Button>
+      {info?.connection && <div className='text-muted fst-italic'>{info.connection}</div>}
+    </>
   )
 }
 

@@ -33,7 +33,8 @@ function WalletSummary ({ me }) {
   if (me.privates?.hideWalletBalance) {
     return <HiddenWalletSummary abbreviate fixedWidth />
   }
-  return `${abbrNum(me.privates?.sats)}`
+  const sats = me.privates?.sats + me.weblnSats
+  return `${abbrNum(sats)}`
 }
 
 function Back () {

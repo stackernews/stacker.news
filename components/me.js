@@ -10,6 +10,10 @@ export const MeContext = React.createContext({
 export function MeProvider ({ me, children }) {
   const { data } = useQuery(ME, SSR ? {} : { pollInterval: 1000, nextFetchPolicy: 'cache-and-network' })
 
+  const futureMe = data?.me || me
+  // weblnSats is initially undefined on page load for some reason
+  if (futureMe.weblnSats === undefined) futureMe.weblnSats = 0
+
   return (
     <MeContext.Provider value={data?.me || me}>
       {children}

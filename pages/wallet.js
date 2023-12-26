@@ -28,6 +28,7 @@ import { useShowModal } from '../components/modal'
 import { useField } from 'formik'
 import { useToast } from '../components/toast'
 import { WalletLimitBanner } from '../components/banners'
+import dynamic from 'next/dynamic'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -85,14 +86,32 @@ function WalletHistory () {
 export function WalletForm () {
   return (
     <div className='align-items-center text-center py-5'>
-      <Link href='/wallet?type=fund'>
-        <Button variant='success'>fund</Button>
-      </Link>
-      <span className='mx-3 fw-bold text-muted'>or</span>
-      <Link href='/wallet?type=withdraw'>
-        <Button variant='success'>withdraw</Button>
-      </Link>
+      <div className='pb-3'>
+        <Link href='/wallet?type=fund'>
+          <Button variant='success'>fund</Button>
+        </Link>
+        <span className='mx-3 fw-bold text-muted'>or</span>
+        <Link href='/wallet?type=withdraw'>
+          <Button variant='success'>withdraw</Button>
+        </Link>
+      </div>
+      <div>
+        <WalletConnect />
+      </div>
     </div>
+  )
+}
+
+const WalletConnectButton = dynamic(
+  () => import('@getalby/bitcoin-connect-react').then((mod) => mod.Button),
+  {
+    ssr: false
+  }
+)
+
+function WalletConnect () {
+  return (
+    <WalletConnectButton />
   )
 }
 

@@ -147,8 +147,6 @@ $accordion-button-active-icon-dark:  $accordion-button-icon;
   --theme-quoteBar: rgb(206, 208, 212);
   --theme-linkHover: #004a72;
   --theme-linkVisited: #53758;
-  // snow
-  --theme-snowDropShadow: drop-shadow(0 0 4px black) ;
 }
 
 [data-bs-theme=dark] {
@@ -173,8 +171,6 @@ $accordion-button-active-icon-dark:  $accordion-button-icon;
   --theme-quoteColor: rgb(141, 144, 150);
   --theme-linkHover: #007cbe;
   --theme-linkVisited: #56798E;
-  // snow
-  --theme-snowDropShadow: drop-shadow(0 0 10px white);
 }
 
 @import '../node_modules/bootstrap/scss/bootstrap.scss';
@@ -354,7 +350,6 @@ mark {
 }
 
 html, body {
-  // background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
   background: var(--bs-body-bg) !important;
   color: var(--bs-body-color) !important;
   min-height: 100vh;

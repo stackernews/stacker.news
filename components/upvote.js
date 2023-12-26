@@ -10,12 +10,12 @@ import LongPressable from 'react-longpressable'
 import Overlay from 'react-bootstrap/Overlay'
 import Popover from 'react-bootstrap/Popover'
 import { useShowModal } from './modal'
+import { LightningConsumer, useLightning } from './lightning'
 import { numWithUnits } from '../lib/format'
 import { payOrLoginError, useInvoiceModal } from './invoice'
 import useDebounceCallback from './use-debounce-callback'
 import { useToast } from './toast'
 import { Dropdown } from 'react-bootstrap'
-import { SnowConsumer, useSnow } from './snow'
 
 const UpvotePopover = ({ target, show, handleClose }) => {
   const me = useMe()
@@ -128,7 +128,7 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
   const [tipShow, _setTipShow] = useState(false)
   const ref = useRef()
   const me = useMe()
-  const snow = useSnow()
+  const strike = useLightning()
   const toaster = useToast()
   const [setWalkthrough] = useMutation(
     gql`
@@ -171,8 +171,8 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
   const showInvoiceModal = useInvoiceModal(
     async ({ hash, hmac }, { variables }) => {
       await act({ variables: { ...variables, hash, hmac } })
-      snow()
-    }, [act, snow])
+      strike()
+    }, [act, strike])
 
   const zap = useDebounceCallback(async (sats) => {
     if (!sats) return
@@ -216,7 +216,7 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
   }, [item?.meSats, item?.meAnonSats, pendingSats, me?.privates?.tipDefault, me?.privates?.turboDefault])
 
   return (
-    <SnowConsumer>
+    <LightningConsumer>
       {(strike) =>
         <div ref={ref} className='upvoteParent'>
           <LongPressable
@@ -285,6 +285,6 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
           <TipPopover target={ref.current} show={tipShow} handleClose={() => setTipShow(false)} />
           <UpvotePopover target={ref.current} show={voteShow} handleClose={() => setVoteShow(false)} />
         </div>}
-    </SnowConsumer>
+    </LightningConsumer>
   )
 }

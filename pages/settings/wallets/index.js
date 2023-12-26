@@ -3,6 +3,7 @@ import Layout from '../../../components/layout'
 import styles from '../../../styles/wallet.module.css'
 import { WalletCard } from '../../../components/wallet-card'
 import { LightningAddressWalletCard } from './lightning-address'
+import { LNbitsCard } from './lnbits'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -14,6 +15,7 @@ export default function Wallet () {
         <h6 className='text-muted text-center'>attach wallets to supplement your SN wallet</h6>
         <div className={styles.walletGrid}>
           <LightningAddressWalletCard />
+          <LNbitsCard />
           <WalletCard title='coming soon' badges={['probably']} />
           <WalletCard title='coming soon' badges={['we hope']} />
           <WalletCard title='coming soon' badges={['tm']} />

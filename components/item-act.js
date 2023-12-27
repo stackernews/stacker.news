@@ -173,7 +173,7 @@ export function useAct ({ onUpdate } = {}) {
 
 export function useZap () {
   const update = useCallback((cache, args) => {
-    const { data: { idempotentAct: { id, sats, path } } } = args
+    const { data: { act: { id, sats, path } } } = args
 
     // determine how much we increased existing sats by by checking the
     // difference between result sats and meSats
@@ -221,8 +221,8 @@ export function useZap () {
 
   const [zap] = useMutation(
     gql`
-      mutation idempotentAct($id: ID!, $sats: Int!, $hash: String, $hmac: String) {
-        idempotentAct(id: $id, sats: $sats, hash: $hash, hmac: $hmac) {
+      mutation idempotentAct($id: ID!, $sats: Int!) {
+        act(id: $id, sats: $sats, idempotent: true) {
           id
           sats
           path
@@ -241,7 +241,6 @@ export function useZap () {
     }, [act, strike])
 
   return useCallback(async ({ item, me }) => {
-    console.log(item)
     const meSats = (item?.meSats || 0)
 
     // what should our next tip be?
@@ -259,7 +258,7 @@ export function useZap () {
       await zap({
         variables,
         optimisticResponse: {
-          idempotentAct: {
+          act: {
             path: item.path,
             ...variables
           }

@@ -1,6 +1,6 @@
 import { GraphQLError } from 'graphql'
 import { ensureProtocol, removeTracking } from '../../lib/url'
-import { serializeInvoicable } from './serial'
+import serialize, { serializeInvoicable } from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
 import { ruleSet as publicationDateRuleSet } from '../../lib/timedate-scraper'
@@ -752,7 +752,7 @@ export default {
 
       return id
     },
-    act: async (parent, { id, sats, act = 'TIP', hash, hmac }, { me, models, lnd, headers }) => {
+    act: async (parent, { id, sats, act = 'TIP', idempotent, hash, hmac }, { me, models, lnd, headers }) => {
       await ssValidate(actSchema, { sats, act })
       await assertGofacYourself({ models, headers })
 
@@ -776,59 +776,27 @@ export default {
         }
       }
 
-      await serializeInvoicable(
-        models.$queryRaw`
+      if (idempotent) {
+        await serialize(
+          models,
+          models.$queryRaw`
           SELECT
-            item_act(${Number(id)}::INTEGER,
-            ${me?.id || ANON_USER_ID}::INTEGER, ${act}::"ItemActType", ${Number(sats)}::INTEGER)`,
-        { me, models, lnd, hash, hmac, enforceFee: sats }
-      )
-
-      notifyZapped({ models, id })
-
-      return {
-        id,
-        sats,
-        act,
-        path: item.path
+            item_act(${Number(id)}::INTEGER, ${me.id}::INTEGER, ${act}::"ItemActType",
+            (SELECT ${Number(sats)}::INTEGER - COALESCE(sum(msats) / 1000, 0)
+             FROM "ItemAct"
+             WHERE act IN ('TIP', 'FEE')
+             AND "itemId" = ${Number(id)}::INTEGER
+             AND "userId" = ${me.id}::INTEGER)::INTEGER)`
+        )
+      } else {
+        await serializeInvoicable(
+          models.$queryRaw`
+            SELECT
+              item_act(${Number(id)}::INTEGER,
+              ${me?.id || ANON_USER_ID}::INTEGER, ${act}::"ItemActType", ${Number(sats)}::INTEGER)`,
+          { me, models, lnd, hash, hmac, enforceFee: sats }
+        )
       }
-    },
-    idempotentAct: async (parent, { id, sats, act = 'TIP', hash, hmac }, { me, models, lnd, headers }) => {
-      if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
-      }
-
-      await ssValidate(actSchema, { sats, act })
-      await assertGofacYourself({ models, headers })
-
-      const [item] = await models.$queryRawUnsafe(`
-      ${SELECT}
-      FROM "Item"
-      WHERE id = $1`, Number(id))
-
-      if (Number(item.userId) === Number(me.id)) {
-        throw new GraphQLError('cannot zap your self', { extensions: { code: 'BAD_INPUT' } })
-      }
-
-      // Disallow tips if me is one of the forward user recipients
-      if (act === 'TIP') {
-        const existingForwards = await models.itemForward.findMany({ where: { itemId: Number(id) } })
-        if (existingForwards.some(fwd => Number(fwd.userId) === Number(me.id))) {
-          throw new GraphQLError('cannot zap a post for which you are forwarded zaps', { extensions: { code: 'BAD_INPUT' } })
-        }
-      }
-
-      await serializeInvoicable(
-        models.$queryRaw`
-        SELECT
-          item_act(${Number(id)}::INTEGER, ${me.id}::INTEGER, ${act}::"ItemActType",
-          (SELECT ${Number(sats)}::INTEGER - COALESCE(sum(msats) / 1000, 0)
-           FROM "ItemAct"
-           WHERE act IN ('TIP', 'FEE')
-           AND "itemId" = ${Number(id)}::INTEGER
-           AND "userId" = ${me.id}::INTEGER)::INTEGER)`,
-        { me, models, lnd, hash, hmac, enforceFee: sats }
-      )
 
       notifyZapped({ models, id })
 

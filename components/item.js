@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import styles from './item.module.css'
 import UpVote from './upvote'
-import { useRef, useState } from 'react'
+import { useRef } from 'react'
 import { AD_USER_ID, NOFOLLOW_LIMIT } from '../lib/constants'
 import Pin from '../svgs/pushpin-fill.svg'
 import reactStringReplace from 'react-string-replace'
@@ -27,7 +27,6 @@ export function SearchTitle ({ title }) {
 export default function Item ({ item, rank, belowTitle, right, full, children, siblingComments, onQuoteReply }) {
   const titleRef = useRef()
   const router = useRouter()
-  const [pendingSats, setPendingSats] = useState(0)
 
   const image = item.url && item.url.startsWith(process.env.NEXT_PUBLIC_IMGPROXY_URL)
   const nofollow = item.sats + item.boost < NOFOLLOW_LIMIT && !item.position ? 'nofollow' : ''
@@ -47,7 +46,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
             ? <DownZap width={24} height={24} className={styles.dontLike} id={item.id} meDontLikeSats={item.meDontLikeSats} />
             : Number(item.user?.id) === AD_USER_ID
               ? <AdIcon width={24} height={24} className={styles.ad} />
-              : <UpVote item={item} className={styles.upvote} pendingSats={pendingSats} setPendingSats={setPendingSats} />}
+              : <UpVote item={item} className={styles.upvote} />}
         <div className={styles.hunk}>
           <div className={`${styles.main} flex-wrap`}>
             <Link
@@ -93,7 +92,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
               </>}
           </div>
           <ItemInfo
-            full={full} item={item} pendingSats={pendingSats}
+            full={full} item={item}
             onQuoteReply={onQuoteReply}
             nofollow={nofollow}
             extraBadges={Number(item?.user?.id) === AD_USER_ID && <Badge className={styles.newComment} bg={null}>AD</Badge>}

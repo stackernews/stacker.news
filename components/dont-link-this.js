@@ -6,7 +6,6 @@ import AccordianItem from './accordian-item'
 import Flag from '../svgs/flag-fill.svg'
 import { useMemo } from 'react'
 import getColor from '../lib/rainbow'
-import { useLightning } from './lightning'
 
 export function DownZap ({ id, meDontLikeSats, ...props }) {
   const style = useMemo(() => (meDontLikeSats
@@ -23,7 +22,6 @@ export function DownZap ({ id, meDontLikeSats, ...props }) {
 function DownZapper ({ id, As, children }) {
   const toaster = useToast()
   const showModal = useShowModal()
-  const strike = useLightning()
 
   return (
     <As
@@ -34,7 +32,7 @@ function DownZapper ({ id, As, children }) {
               onClose={() => {
                 onClose()
                 toaster.success('item downzapped')
-              }} itemId={id} strike={strike} down
+              }} itemId={id} down
             >
               <AccordianItem
                 header='what is a downzap?' body={

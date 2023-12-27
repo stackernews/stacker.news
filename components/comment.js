@@ -108,7 +108,6 @@ export default function Comment ({
   const ref = useRef(null)
   const router = useRouter()
   const root = useRoot()
-  const [pendingSats, setPendingSats] = useState(0)
   const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text })
 
   useEffect(() => {
@@ -148,7 +147,7 @@ export default function Comment ({
       <div className={`${itemStyles.item} ${styles.item}`}>
         {item.meDontLikeSats > item.meSats
           ? <DownZap width={24} height={24} className={styles.dontLike} id={item.id} meDontLikeSats={item.meDontLikeSats} />
-          : <UpVote item={item} className={styles.upvote} pendingSats={pendingSats} setPendingSats={setPendingSats} />}
+          : <UpVote item={item} className={styles.upvote} />}
         <div className={`${itemStyles.hunk} ${styles.hunk}`}>
           <div className='d-flex align-items-center'>
             {item.user?.meMute && !includeParent && collapse === 'yep'
@@ -162,7 +161,6 @@ export default function Comment ({
                 </span>)
               : <ItemInfo
                   item={item}
-                  pendingSats={pendingSats}
                   commentsText='replies'
                   commentTextSingular='reply'
                   className={`${itemStyles.other} ${styles.other}`}

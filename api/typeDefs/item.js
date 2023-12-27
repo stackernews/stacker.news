@@ -37,6 +37,7 @@ export default gql`
     updateNoteId(id: ID!, noteId: String!): Item!
     upsertComment(id:ID, text: String!, parentId: ID, hash: String, hmac: String): Item!
     act(id: ID!, sats: Int, act: String, hash: String, hmac: String): ItemActResult!
+    idempotentAct(id: ID!, sats: Int, hash: String, hmac: String): ItemActResult!
     pollVote(id: ID!, hash: String, hmac: String): ID!
   }
 

@@ -6,6 +6,9 @@ import { useMe } from './me'
 import UpBolt from '../svgs/bolt.svg'
 import { amountSchema } from '../lib/validate'
 import { gql, useMutation } from '@apollo/client'
+import { payOrLoginError, useInvoiceModal } from './invoice'
+import { useToast } from './toast'
+import { useLightning } from './lightning'
 
 const defaultTips = [100, 1000, 10000, 100000]
 
@@ -37,10 +40,11 @@ const addCustomTip = (amount) => {
   window.localStorage.setItem('custom-tips', JSON.stringify(customTips))
 }
 
-export default function ItemAct ({ onClose, itemId, down, strike, children }) {
+export default function ItemAct ({ onClose, itemId, down, children }) {
   const inputRef = useRef(null)
   const me = useMe()
   const [oValue, setOValue] = useState()
+  const strike = useLightning()
 
   useEffect(() => {
     inputRef.current?.focus()
@@ -63,7 +67,7 @@ export default function ItemAct ({ onClose, itemId, down, strike, children }) {
         hmac
       }
     })
-    strike && await strike()
+    await strike()
     addCustomTip(Number(amount))
     onClose()
   }, [act, down, itemId, strike])
@@ -165,4 +169,111 @@ export function useAct ({ onUpdate } = {}) {
         }
       }`, { update }
   )
+}
+
+export function useZap () {
+  const update = useCallback((cache, args) => {
+    const { data: { idempotentAct: { id, sats, path } } } = args
+
+    // determine how much we increased existing sats by by checking the
+    // difference between result sats and meSats
+    // if it's negative, skip the cache as it's an out of order update
+    // if it's positive, add it to sats and commentSats
+
+    const item = cache.readFragment({
+      id: `Item:${id}`,
+      fragment: gql`
+        fragment ItemMeSats on Item {
+          meSats
+        }
+      `
+    })
+
+    const satsDelta = sats - item.meSats
+
+    if (satsDelta > 0) {
+      cache.modify({
+        id: `Item:${id}`,
+        fields: {
+          sats (existingSats = 0) {
+            return existingSats + satsDelta
+          },
+          meSats: () => {
+            return sats
+          }
+        }
+      })
+
+      // update all ancestors
+      path.split('.').forEach(aId => {
+        if (Number(aId) === Number(id)) return
+        cache.modify({
+          id: `Item:${aId}`,
+          fields: {
+            commentSats (existingCommentSats = 0) {
+              return existingCommentSats + satsDelta
+            }
+          }
+        })
+      })
+    }
+  }, [])
+
+  const [zap] = useMutation(
+    gql`
+      mutation idempotentAct($id: ID!, $sats: Int!, $hash: String, $hmac: String) {
+        idempotentAct(id: $id, sats: $sats, hash: $hash, hmac: $hmac) {
+          id
+          sats
+          path
+        }
+      }`, { update }
+  )
+
+  const toaster = useToast()
+  const strike = useLightning()
+  const [act] = useAct()
+
+  const showInvoiceModal = useInvoiceModal(
+    async ({ hash, hmac }, { variables }) => {
+      await act({ variables: { ...variables, hash, hmac } })
+      strike()
+    }, [act, strike])
+
+  return useCallback(async ({ item, me }) => {
+    console.log(item)
+    const meSats = (item?.meSats || 0)
+
+    // what should our next tip be?
+    let sats = me?.privates?.tipDefault || 1
+    if (me?.privates?.turboTipping) {
+      while (meSats >= sats) {
+        sats *= 10
+      }
+    } else {
+      sats = meSats + sats
+    }
+
+    const variables = { id: item.id, sats, act: 'TIP' }
+    try {
+      await zap({
+        variables,
+        optimisticResponse: {
+          idempotentAct: {
+            path: item.path,
+            ...variables
+          }
+        }
+      })
+    } catch (error) {
+      if (payOrLoginError(error)) {
+        // call non-idempotent version
+        const amount = sats - meSats
+        showInvoiceModal({ amount }, { variables: { ...variables, sats: amount } })
+        return
+      }
+      console.error(error)
+      toaster.danger(error?.message || error?.toString?.())
+    }
+  })
 }

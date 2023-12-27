@@ -2,7 +2,7 @@ import UpBolt from '../svgs/bolt.svg'
 import styles from './upvote.module.css'
 import { gql, useMutation } from '@apollo/client'
 import ActionTooltip from './action-tooltip'
-import ItemAct, { useAct } from './item-act'
+import ItemAct, { useAct, useZap } from './item-act'
 import { useMe } from './me'
 import getColor from '../lib/rainbow'
 import { useCallback, useMemo, useRef, useState } from 'react'
@@ -10,11 +10,8 @@ import LongPressable from 'react-longpressable'
 import Overlay from 'react-bootstrap/Overlay'
 import Popover from 'react-bootstrap/Popover'
 import { useShowModal } from './modal'
-import { LightningConsumer, useLightning } from './lightning'
+import { useLightning } from './lightning'
 import { numWithUnits } from '../lib/format'
-import { payOrLoginError, useInvoiceModal } from './invoice'
-import useDebounceCallback from './use-debounce-callback'
-import { useToast } from './toast'
 import { Dropdown } from 'react-bootstrap'
 
 const UpvotePopover = ({ target, show, handleClose }) => {
@@ -58,13 +55,12 @@ const TipPopover = ({ target, show, handleClose }) => (
 
 export function DropdownItemUpVote ({ item }) {
   const showModal = useShowModal()
-  const strike = useLightning()
 
   return (
     <Dropdown.Item
       onClick={async () => {
         showModal(onClose =>
-          <ItemAct onClose={onClose} itemId={item.id} strike={strike} />)
+          <ItemAct onClose={onClose} itemId={item.id} />)
       }}
     >
       <span className='text-success'>zap</span>
@@ -72,14 +68,12 @@ export function DropdownItemUpVote ({ item }) {
   )
 }
 
-export default function UpVote ({ item, className, pendingSats, setPendingSats }) {
+export default function UpVote ({ item, className }) {
   const showModal = useShowModal()
   const [voteShow, _setVoteShow] = useState(false)
   const [tipShow, _setTipShow] = useState(false)
   const ref = useRef()
   const me = useMe()
-  const strike = useLightning()
-  const toaster = useToast()
   const [setWalkthrough] = useMutation(
     gql`
       mutation setWalkthrough($upvotePopover: Boolean, $tipPopover: Boolean) {
@@ -116,64 +110,35 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
   }, [me, tipShow, setWalkthrough])
 
   const [act] = useAct()
-
-  const showInvoiceModal = useInvoiceModal(
-    async ({ hash, hmac }, { variables }) => {
-      await act({ variables: { ...variables, hash, hmac } })
-      strike()
-    }, [act, strike])
-
-  const zap = useDebounceCallback(async (sats) => {
-    if (!sats) return
-    const variables = { id: item.id, sats, act: 'TIP' }
-
-    act({
-      variables,
-      optimisticResponse: {
-        act: {
-          id: item.id,
-          sats,
-          path: item.path,
-          act: 'TIP'
-        }
-      }
-    }).catch((error) => {
-      if (payOrLoginError(error)) {
-        showInvoiceModal({ amount: sats }, { variables })
-        return
-      }
-      console.error(error)
-      toaster.danger(error?.message || error?.toString?.())
-    })
-    setPendingSats(0)
-  }, 500, [act, toaster, item?.id, item?.path, showInvoiceModal, setPendingSats])
+  const zap = useZap()
+  const strike = useLightning()
 
   const disabled = useMemo(() => item?.mine || item?.meForward || item?.deletedAt,
     [item?.mine, item?.meForward, item?.deletedAt])
 
-  const [meSats, sats, overlayText, color] = useMemo(() => {
-    const meSats = (item?.meSats || item?.meAnonSats || 0) + pendingSats
+  const [meSats, overlayText, color] = useMemo(() => {
+    const meSats = (item?.meSats || item?.meAnonSats || 0)
 
     // what should our next tip be?
     let sats = me?.privates?.tipDefault || 1
+    let raiseSats = sats
     if (me?.privates?.turboTipping) {
-      let raiseTip = sats
-      while (meSats >= raiseTip) {
-        raiseTip *= 10
+      while (meSats >= raiseSats) {
+        raiseSats *= 10
       }
 
-      sats = raiseTip - meSats
+      sats = raiseSats - meSats
+    } else {
+      raiseSats = meSats + sats
     }
 
-    return [meSats, sats, me ? numWithUnits(sats, { abbreviate: false }) : 'zap it', getColor(meSats)]
-  }, [item?.meSats, item?.meAnonSats, pendingSats, me?.privates?.tipDefault, me?.privates?.turboDefault])
+    return [meSats, me ? numWithUnits(sats, { abbreviate: false }) : 'zap it', getColor(meSats)]
+  }, [item?.meSats, item?.meAnonSats, me?.privates?.tipDefault, me?.privates?.turboDefault])
 
   return (
-    <LightningConsumer>
-      {(strike) =>
-        <div ref={ref} className='upvoteParent'>
-          <LongPressable
-            onLongPress={
+    <div ref={ref} className='upvoteParent'>
+      <LongPressable
+        onLongPress={
               async (e) => {
                 if (!item) return
 
@@ -184,10 +149,10 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
 
                 setTipShow(false)
                 showModal(onClose =>
-                  <ItemAct onClose={onClose} itemId={item.id} strike={strike} />)
+                  <ItemAct onClose={onClose} itemId={item.id} />)
               }
             }
-            onShortPress={
+        onShortPress={
             me
               ? async (e) => {
                 if (!item) return
@@ -205,41 +170,36 @@ export default function UpVote ({ item, className, pendingSats, setPendingSats }
 
                 strike()
 
-                setPendingSats(pendingSats => {
-                  const zapAmount = pendingSats + sats
-                  zap(zapAmount)
-                  return zapAmount
-                })
+                zap({ item, me })
               }
-              : () => showModal(onClose => <ItemAct onClose={onClose} itemId={item.id} act={act} strike={strike} />)
+              : () => showModal(onClose => <ItemAct onClose={onClose} itemId={item.id} act={act} />)
           }
+      >
+        <ActionTooltip notForm disable={disabled} overlayText={overlayText}>
+          <div
+            className={`${disabled ? styles.noSelfTips : ''} ${styles.upvoteWrapper}`}
           >
-            <ActionTooltip notForm disable={disabled} overlayText={overlayText}>
-              <div
-                className={`${disabled ? styles.noSelfTips : ''} ${styles.upvoteWrapper}`}
-              >
-                <UpBolt
-                  width={26}
-                  height={26}
-                  className={
+            <UpBolt
+              width={26}
+              height={26}
+              className={
                       `${styles.upvote}
                       ${className || ''}
                       ${disabled ? styles.noSelfTips : ''}
                       ${meSats ? styles.voted : ''}`
                     }
-                  style={meSats
-                    ? {
-                        fill: color,
-                        filter: `drop-shadow(0 0 6px ${color}90)`
-                      }
-                    : undefined}
-                />
-              </div>
-            </ActionTooltip>
-          </LongPressable>
-          <TipPopover target={ref.current} show={tipShow} handleClose={() => setTipShow(false)} />
-          <UpvotePopover target={ref.current} show={voteShow} handleClose={() => setVoteShow(false)} />
-        </div>}
-    </LightningConsumer>
+              style={meSats
+                ? {
+                    fill: color,
+                    filter: `drop-shadow(0 0 6px ${color}90)`
+                  }
+                : undefined}
+            />
+          </div>
+        </ActionTooltip>
+      </LongPressable>
+      <TipPopover target={ref.current} show={tipShow} handleClose={() => setTipShow(false)} />
+      <UpvotePopover target={ref.current} show={voteShow} handleClose={() => setVoteShow(false)} />
+    </div>
   )
 }

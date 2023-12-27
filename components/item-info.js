@@ -21,7 +21,7 @@ import MuteDropdownItem from './mute'
 import { DropdownItemUpVote } from './upvote'
 
 export default function ItemInfo ({
-  item, pendingSats, full, commentsText = 'comments',
+  item, full, commentsText = 'comments',
   commentTextSingular = 'comment', className, embellishUser, extraInfo, onEdit, editText,
   onQuoteReply, nofollow, extraBadges
 }) {
@@ -40,8 +40,8 @@ export default function ItemInfo ({
   }, [item])
 
   useEffect(() => {
-    if (item) setMeTotalSats((item.meSats || 0) + (item.meAnonSats || 0) + (pendingSats || 0))
-  }, [item?.meSats, item?.meAnonSats, pendingSats])
+    if (item) setMeTotalSats((item.meSats || 0) + (item.meAnonSats || 0))
+  }, [item?.meSats, item?.meAnonSats])
 
   return (
     <div className={className || `${styles.other}`}>
@@ -57,7 +57,7 @@ export default function ItemInfo ({
               ? ` & ${numWithUnits(item.meDontLikeSats, { abbreviate: false, unitSingular: 'downsat', unitPlural: 'downsats' })}`
               : ''} from me)`} `}
           >
-            {numWithUnits(item.sats + pendingSats)}
+            {numWithUnits(item.sats)}
           </span>
           <span> \ </span>
         </>}

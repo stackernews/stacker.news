@@ -22,10 +22,11 @@ export function onPush (sw) {
     if (!payload) return
     const { tag } = payload.options
     event.waitUntil((async () => {
+      // TODO fix silent push here
       if (skipNotification(payload)) return
       if (immediatelyShowNotification(payload)) {
         setAppBadge(sw, ++activeCount)
-        return sw.registration.showNotification(payload.title, payload.options)
+        return await sw.registration.showNotification(payload.title, payload.options)
       }
 
       // fetch existing notifications with same tag
@@ -45,11 +46,11 @@ export function onPush (sw) {
       if (notifications.length === 0) {
         // incoming notification is first notification with this tag
         setAppBadge(sw, ++activeCount)
-        return sw.registration.showNotification(payload.title, payload.options)
+        return await sw.registration.showNotification(payload.title, payload.options)
       }
 
       const currentNotification = notifications[0]
-      return mergeAndShowNotification(sw, payload, currentNotification)
+      return await mergeAndShowNotification(sw, payload, currentNotification)
     })())
   }
 }

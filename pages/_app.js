@@ -18,6 +18,9 @@ import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
 import { LoggerProvider } from '../components/logger'
 import { ChainFeeProvider } from '../components/chain-fee.js'
+import dynamic from 'next/dynamic'
+
+const PWAPrompt = dynamic(() => import('react-ios-pwa-prompt'), { ssr: false })
 
 NProgress.configure({
   showSpinner: false
@@ -100,6 +103,7 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
                             <ChainFeeProvider chainFee={chainFee}>
                               <ErrorBoundary>
                                 <Component ssrData={ssrData} {...otherProps} />
+                                <PWAPrompt copyBody='This website has app functionality. Add it to your home screen to use it in fullscreen and receive notifications.' promptOnVisit={2} />
                               </ErrorBoundary>
                             </ChainFeeProvider>
                           </BlockHeightProvider>

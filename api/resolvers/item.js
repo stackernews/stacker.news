@@ -1033,19 +1033,23 @@ export const createMentions = async (item, models) => {
           userId: user.id
         }
 
-        await models.mention.upsert({
+        const mention = await models.mention.upsert({
           where: {
             itemId_userId: data
           },
           update: data,
           create: data
         })
-        sendUserNotification(user.id, {
-          title: 'you were mentioned',
-          body: item.text,
-          item,
-          tag: 'MENTION'
-        }).catch(console.error)
+
+        // only send if mention is new to avoid duplicates
+        if (mention.createdAt.getTime() === mention.updatedAt.getTime()) {
+          sendUserNotification(user.id, {
+            title: 'you were mentioned',
+            body: item.text,
+            item,
+            tag: 'MENTION'
+          }).catch(console.error)
+        }
       })
     }
   } catch (e) {

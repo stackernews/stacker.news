@@ -10,9 +10,6 @@ const storage = new ServiceWorkerStorage('sw:storage', 1)
 let messageChannelPort
 let actionChannelPort
 
-// keep track of item ids where we received a MENTION notification already to not show one again
-const itemMentions = []
-
 // current push notification count for badge purposes
 let activeCount = 0
 
@@ -22,10 +19,9 @@ export function onPush (sw) {
     if (!payload) return
     const { tag } = payload.options
     event.waitUntil((async () => {
-      if (skipNotification(payload)) return
       if (immediatelyShowNotification(payload)) {
         setAppBadge(sw, ++activeCount)
-        return sw.registration.showNotification(payload.title, payload.options)
+        return await sw.registration.showNotification(payload.title, payload.options)
       }
 
       // fetch existing notifications with same tag
@@ -39,30 +35,23 @@ export function onPush (sw) {
         return null
       }
 
-      // save item id of MENTION notification so we can skip following ones
-      if (tag === 'MENTION' && payload.options.data?.itemId) itemMentions.push(payload.options.data.itemId)
-
       if (notifications.length === 0) {
         // incoming notification is first notification with this tag
         setAppBadge(sw, ++activeCount)
-        return sw.registration.showNotification(payload.title, payload.options)
+        return await sw.registration.showNotification(payload.title, payload.options)
       }
 
       const currentNotification = notifications[0]
-      return mergeAndShowNotification(sw, payload, currentNotification)
+      return await mergeAndShowNotification(sw, payload, currentNotification)
     })())
   }
-}
-
-const skipNotification = ({ options: { tag, data } }) => {
-  return tag === 'MENTION' && itemMentions.includes(data.itemId)
 }
 
 // if there is no tag or it's a TIP, FORWARDEDTIP or EARN notification
 // we don't need to merge notifications and thus the notification should be immediately shown using `showNotification`
 const immediatelyShowNotification = ({ options: { tag } }) => !tag || ['TIP', 'FORWARDEDTIP', 'EARN'].includes(tag.split('-')[0])
 
-const mergeAndShowNotification = (sw, payload, currentNotification) => {
+const mergeAndShowNotification = async (sw, payload, currentNotification) => {
   const { data: incomingData } = payload.options
   const { tag, data: currentData } = currentNotification
 
@@ -95,7 +84,7 @@ const mergeAndShowNotification = (sw, payload, currentNotification) => {
   // close current notification before showing new one to "merge" notifications
   currentNotification.close()
   const newNotificationOptions = { icon: currentNotification.icon, tag, data: { url: '/notifications', amount, ...newData } }
-  return sw.registration.showNotification(title, newNotificationOptions)
+  return await sw.registration.showNotification(title, newNotificationOptions)
 }
 
 export function onNotificationClick (sw) {

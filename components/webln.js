@@ -81,9 +81,11 @@ export function WebLNProvider ({ children }) {
   }, [])
 
   // poll balance
+  // TODO is there a better way?
   useEffect(() => {
     if (!provider) return
-    const BALANCE_POLL = 15000 // 1 minute
+    // TODO check rate limiting of services - is every 15 seconds too often? (it probably is)
+    const BALANCE_POLL = 15000 // 15 seconds
     const interval = setInterval(() => {
       provider?.getBalance().then(({ balance }) => setBalance(balance)).catch(console.error)
     }, BALANCE_POLL)

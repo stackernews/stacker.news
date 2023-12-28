@@ -22,25 +22,6 @@ import { datePivot, whenRange } from '../../lib/time'
 import { imageFeesInfo, uploadIdsFromText } from './image'
 import assertGofacYourself from './ofac'
 
-export async function commentFilterClause (me, models) {
-  let clause = ` AND ("Item"."weightedVotes" - "Item"."weightedDownVotes" > -${ITEM_FILTER_THRESHOLD}`
-  if (me) {
-    const user = await models.user.findUnique({ where: { id: me.id } })
-    // wild west mode has everything
-    if (user.wildWestMode) {
-      return ''
-    }
-
-    // always include if it's mine
-    clause += ` OR "Item"."userId" = ${me.id}`
-  }
-
-  // close the clause
-  clause += ')'
-
-  return clause
-}
-
 function commentsOrderByClause (me, models, sort) {
   if (sort === 'recent') {
     return 'ORDER BY "Item".created_at DESC, "Item".id DESC'
@@ -70,7 +51,7 @@ function commentsOrderByClause (me, models, sort) {
 async function comments (me, models, id, sort) {
   const orderBy = commentsOrderByClause(me, models, sort)
 
-  const filter = await commentFilterClause(me, models)
+  const filter = '' // empty filter as we filter clientside now
   if (me) {
     const [{ item_comments_zaprank_with_me: comments }] = await models.$queryRawUnsafe(
       'SELECT item_comments_zaprank_with_me($1::INTEGER, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5, $6)', Number(id), GLOBAL_SEED, Number(me.id), COMMENT_DEPTH_LIMIT, filter, orderBy)

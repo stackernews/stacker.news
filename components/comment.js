@@ -22,6 +22,7 @@ import { RootProvider, useRoot } from './root'
 import { useMe } from './me'
 import { useQuoteReply } from './use-quote-reply'
 import { DownZap } from './dont-link-this'
+import Skull from '../svgs/death-skull.svg'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -102,7 +103,7 @@ export default function Comment ({
   const me = useMe()
   const isHiddenFreebie = !me?.privates?.wildWestMode && !me?.privates?.greeterMode && !item.mine && item.freebie && !item.freedFreebie
   const [collapse, setCollapse] = useState(
-    isHiddenFreebie || item?.user?.meMute
+    (isHiddenFreebie || item?.user?.meMute || (item?.outlawed && !me?.privates?.wildWestMode)) && !includeParent
       ? 'yep'
       : 'nope')
   const ref = useRef(null)
@@ -145,9 +146,11 @@ export default function Comment ({
       onTouchStart={() => ref.current.classList.add('outline-new-comment-unset')}
     >
       <div className={`${itemStyles.item} ${styles.item}`}>
-        {item.meDontLikeSats > item.meSats
-          ? <DownZap width={24} height={24} className={styles.dontLike} id={item.id} meDontLikeSats={item.meDontLikeSats} />
-          : <UpVote item={item} className={styles.upvote} />}
+        {item.outlawed && !me?.privates?.wildWestMode
+          ? <Skull className={styles.dontLike} width={24} height={24} />
+          : item.meDontLikeSats > item.meSats
+            ? <DownZap width={24} height={24} className={styles.dontLike} id={item.id} meDontLikeSats={item.meDontLikeSats} />
+            : <UpVote item={item} className={styles.upvote} />}
         <div className={`${itemStyles.hunk} ${styles.hunk}`}>
           <div className='d-flex align-items-center'>
             {item.user?.meMute && !includeParent && collapse === 'yep'
@@ -213,7 +216,9 @@ export default function Comment ({
                   ? <SearchText text={item.searchText} />
                   : (
                     <Text itemId={item.id} topLevel={topLevel} nofollow={item.sats + item.boost < NOFOLLOW_LIMIT} imgproxyUrls={item.imgproxyUrls}>
-                      {truncate ? truncateString(item.text) : item.text}
+                      {item.outlawed && !me?.privates?.wildWestMode
+                        ? '*stackers have outlawed this. turn on wild west mode in your [settings](/settings) to see outlawed content.*'
+                        : truncate ? truncateString(item.text) : item.text}
                     </Text>)}
               </div>
               )}
@@ -224,10 +229,12 @@ export default function Comment ({
           ? <div className={styles.children}><ReplyOnAnotherPage item={item} /></div>
           : (
             <div className={styles.children}>
-              {!noReply &&
-                <Reply depth={depth + 1} item={item} replyOpen={replyOpen} onCancelQuote={cancelQuote} onQuoteReply={quoteReply} quote={quote}>
-                  {root.bounty && !bountyPaid && <PayBounty item={item} />}
-                </Reply>}
+              {item.outlawed && !me?.privates?.wildWestMode
+                ? <div className='py-2' />
+                : !noReply &&
+                  <Reply depth={depth + 1} item={item} replyOpen={replyOpen} onCancelQuote={cancelQuote} onQuoteReply={quoteReply} quote={quote}>
+                    {root.bounty && !bountyPaid && <PayBounty item={item} />}
+                  </Reply>}
               {children}
               <div className={styles.comments}>
                 {item.comments && !noComments

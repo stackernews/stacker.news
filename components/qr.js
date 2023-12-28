@@ -1,18 +1,23 @@
 import QRCode from 'qrcode.react'
 import { CopyInput, InputSkeleton } from './form'
 import InvoiceStatus from './invoice-status'
-import { requestProvider } from 'webln'
 import { useEffect } from 'react'
+import { useWebLN } from './webln'
 
 export default function Qr ({ asIs, value, webLn, statusVariant, description, status }) {
   const qrValue = asIs ? value : 'lightning:' + value.toUpperCase()
+  const { provider } = useWebLN()
 
   useEffect(() => {
     async function effect () {
       if (webLn) {
         try {
-          const provider = await requestProvider()
-          await provider.sendPayment(value)
+          if (provider) {
+            // TODO in strict mode, this tries to pay the invoice twice
+            //   so an error is logged to the console for the second attempt.
+            //   but the payment still succeeds. (only tested with LNbits so far)
+            await provider.sendPayment(value)
+          }
         } catch (e) {
           console.log(e.message)
         }

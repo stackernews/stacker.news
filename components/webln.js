@@ -40,6 +40,7 @@ export function WebLNProvider ({ children }) {
   const clearProvider = () => {
     setProvider(null)
     setInfo(null)
+    setBalance(0)
   }
 
   useEffect(() => {

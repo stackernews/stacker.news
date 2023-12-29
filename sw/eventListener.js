@@ -94,7 +94,7 @@ const mergeAndShowNotification = async (sw, payload, currentNotifications, tag) 
   const SUM_SATS_TAGS = ['DEPOSIT']
   // this should reflect the amount of notifications that were already merged before
   const initialAmount = currentNotifications[0].data?.amount || 1
-  const mergedPayload = currentNotifications.reduce((acc, { tag, data }) => {
+  const mergedPayload = currentNotifications.reduce((acc, { data }) => {
     let newAmount, newSats
     if (AMOUNT_TAGS.includes(compareTag)) {
       newAmount = acc.amount + 1

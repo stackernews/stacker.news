@@ -21,11 +21,10 @@ export function onPush (sw) {
     event.waitUntil((async () => {
       if (immediatelyShowNotification(tag)) {
         setAppBadge(sw, ++activeCount)
-        // FIXME(iOS) this also doesn't work on iOS as expected. it displays multiple notifications with same tag.
-        //   due to missing proper tag support in Safari on iOS, we can't rely on the tag property to replace notifications.
-        //   see https://bugs.webkit.org/show_bug.cgi?id=258922 for more information
-        //   we therefore fetch all notifications with the same tag (+ manual filter),
-        //   close them and then we display the notification.
+        // due to missing proper tag support in Safari on iOS, we can't rely on the tag property to replace notifications.
+        // see https://bugs.webkit.org/show_bug.cgi?id=258922 for more information
+        // we therefore fetch all notifications with the same tag (+ manual filter),
+        // close them and then we display the notification.
         const notifications = await sw.registration.getNotifications({ tag })
         notifications.filter(({ tag: nTag }) => nTag === tag).forEach(n => n.close())
         return await sw.registration.showNotification(payload.title, payload.options)

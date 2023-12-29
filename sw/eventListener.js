@@ -98,7 +98,6 @@ const mergeAndShowNotification = async (sw, payload, currentNotifications, tag) 
     }
     const newPayload = { ...data, amount: newAmount, sats: newSats }
     return newPayload
-    // we start with amount: 1 since we know the user agent already is showing one notification
   }, { ...incomingData, amount: initialAmount })
 
   // calculate title from merged payload

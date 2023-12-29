@@ -100,7 +100,7 @@ const mergeAndShowNotification = async (sw, payload, currentNotifications, tag) 
       newAmount = acc.amount + 1
     }
     if (SUM_SATS_TAGS.includes(compareTag)) {
-      newSats = acc.sats
+      newSats = acc.sats + data.sats
     }
     const newPayload = { ...data, amount: newAmount, sats: newSats }
     return newPayload

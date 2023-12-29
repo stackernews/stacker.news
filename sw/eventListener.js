@@ -104,15 +104,15 @@ const mergeAndShowNotification = async (sw, payload, currentNotifications, tag) 
   const { amount, followeeName, subType, sats } = mergedPayload
   let title = ''
   if (AMOUNT_TAGS.includes(compareTag)) {
-    if (tag === 'REPLY') {
+    if (compareTag === 'REPLY') {
       title = `you have ${amount} new replies`
-    } else if (tag === 'MENTION') {
+    } else if (compareTag === 'MENTION') {
       title = `you were mentioned ${amount} times`
-    } else if (tag === 'REFERRAL') {
+    } else if (compareTag === 'REFERRAL') {
       title = `${amount} stackers joined via your referral links`
-    } else if (tag === 'INVITE') {
+    } else if (compareTag === 'INVITE') {
       title = `your invite has been redeemed by ${amount} stackers`
-    } else if (tag === 'FOLLOW') {
+    } else if (compareTag === 'FOLLOW') {
       title = `@${followeeName} ${subType === 'POST' ? `created ${amount} posts` : `replied ${amount} times`}`
     }
   } else if (SUM_SATS_TAGS.includes(compareTag)) {

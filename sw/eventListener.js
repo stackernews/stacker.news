@@ -19,7 +19,7 @@ export function onPush (sw) {
     if (!payload) return
     const { tag } = payload.options
     event.waitUntil((async () => {
-      if (immediatelyShowNotification(payload)) {
+      if (immediatelyShowNotification(tag)) {
         setAppBadge(sw, ++activeCount)
         // FIXME(iOS) this also doesn't work on iOS as expected. it displays multiple notifications with same tag.
         return await sw.registration.showNotification(payload.title, payload.options)
@@ -62,7 +62,7 @@ export function onPush (sw) {
 
 // if there is no tag or it's a TIP, FORWARDEDTIP or EARN notification
 // we don't need to merge notifications and thus the notification should be immediately shown using `showNotification`
-const immediatelyShowNotification = ({ options: { tag } }) => !tag || ['TIP', 'FORWARDEDTIP', 'EARN'].includes(tag.split('-')[0])
+const immediatelyShowNotification = (tag) => !tag || ['TIP', 'FORWARDEDTIP', 'EARN'].includes(tag.split('-')[0])
 
 const mergeAndShowNotification = async (sw, payload, currentNotifications, tag) => {
   // sanity check

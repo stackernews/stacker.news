@@ -99,7 +99,7 @@ const mergeAndShowNotification = async (sw, payload, currentNotifications, tag) 
     const newPayload = { ...data, amount: newAmount, sats: newSats }
     return newPayload
     // we start with amount: 1 since we know the user agent already is showing one notification
-  }, { ...incomingData, sats: undefined, amount: initialAmount })
+  }, { ...incomingData, amount: initialAmount })
 
   // calculate title from merged payload
   const { amount, followeeName, subType, sats } = mergedPayload
@@ -115,9 +115,10 @@ const mergeAndShowNotification = async (sw, payload, currentNotifications, tag) 
       title = `your invite has been redeemed by ${amount} stackers`
     } else if (tag === 'FOLLOW') {
       title = `@${followeeName} ${subType === 'POST' ? `created ${amount} posts` : `replied ${amount} times`}`
-    } else if (tag === 'DEPOSIT') {
-      title = `${numWithUnits(sats, { abbreviate: false })} were deposited in your account`
     }
+  } else if (SUM_SATS_TAGS.includes(compareTag)) {
+    // there is only DEPOSIT in this array
+    title = `${numWithUnits(sats, { abbreviate: false })} were deposited in your account`
   }
 
   // close all current notifications before showing new one to "merge" notifications

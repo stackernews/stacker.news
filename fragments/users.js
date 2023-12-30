@@ -8,7 +8,6 @@ export const ME = gql`
       id
       name
       bioId
-      weblnSats @client
       privates {
         autoDropBolt11s
         diagnostics

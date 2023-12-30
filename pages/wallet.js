@@ -68,7 +68,7 @@ function YouHaveSats () {
       <span className='text-monospace'>{me && (
         me.privates?.hideWalletBalance
           ? <HiddenWalletSummary />
-          : numWithUnits(me.privates?.sats + me.weblnSats, { abbreviate: false, format: true })
+          : numWithUnits(me.privates?.sats, { abbreviate: false, format: true })
       )}
       </span>
     </h2>

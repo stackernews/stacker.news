@@ -1,7 +1,6 @@
-import { createContext, createRef, useContext, useEffect, useImperativeHandle, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 
 const WebLNContext = createContext({})
-export const WebLNContextRef = createRef()
 
 const fetchWebLNProvider = async () => {
   // sync provider from local storage
@@ -18,7 +17,6 @@ const fetchWebLNProvider = async () => {
 export function WebLNProvider ({ children }) {
   const [provider, setProvider] = useState(null)
   const [info, setInfo] = useState(null)
-  const [balance, setBalance] = useState(0)
 
   const initProvider = async (provider) => {
     const WebLNProviders = await import('@getalby/bitcoin-connect').then((mod) => mod.WebLNProviders)
@@ -33,14 +31,11 @@ export function WebLNProvider ({ children }) {
     setProvider(provider)
     const info = await provider.getInfo()
     setInfo(o => ({ ...o, ...info }))
-    const { balance } = await provider.getBalance()
-    setBalance(balance)
   }
 
   const clearProvider = () => {
     setProvider(null)
     setInfo(null)
-    setBalance(0)
   }
 
   useEffect(() => {
@@ -80,23 +75,7 @@ export function WebLNProvider ({ children }) {
     }
   }, [])
 
-  // poll balance
-  // TODO is there a better way?
-  useEffect(() => {
-    if (!provider) return
-    // TODO check rate limiting of services - is every 15 seconds too often? (it probably is)
-    const BALANCE_POLL = 15000 // 15 seconds
-    const interval = setInterval(() => {
-      provider?.getBalance().then(({ balance }) => setBalance(balance)).catch(console.error)
-    }, BALANCE_POLL)
-    return () => clearInterval(interval)
-  }, [provider])
-
-  const value = { provider, setProvider, info, balance }
-
-  // required to resolve fields marked with @client using values from WebLN context
-  useImperativeHandle(WebLNContextRef, () => value)
-
+  const value = { provider, setProvider, info }
   return (
     <WebLNContext.Provider value={value}>
       {children}

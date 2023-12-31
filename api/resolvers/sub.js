@@ -79,17 +79,21 @@ export default {
       })
     },
     subs: async (parent, args, { models, me }) => {
+      if (me) {
+        return await models.$queryRaw`
+          SELECT "Sub".*, COALESCE(json_agg("MuteSub".*) FILTER (WHERE "MuteSub"."userId" IS NOT NULL), '[]') AS "MuteSub"
+          FROM "Sub"
+          LEFT JOIN "MuteSub" ON "Sub".name = "MuteSub"."subName" AND "MuteSub"."userId" = ${me.id}::INTEGER
+          WHERE status <> 'STOPPED'
+          GROUP BY "Sub".name, "MuteSub"."userId"
+          ORDER BY "MuteSub"."userId" NULLS FIRST, "Sub".name ASC
+        `
+      }
+
       return await models.sub.findMany({
         where: {
           status: {
             not: 'STOPPED'
-          }
-        },
-        include: {
-          MuteSub: {
-            where: {
-              userId: Number(me.id)
-            }
           }
         },
         orderBy: {
@@ -187,7 +191,7 @@ export default {
       return await models.user.findUnique({ where: { id: sub.userId } })
     },
     meMuteSub: async (sub, args, { models }) => {
-      return sub.MuteSub.length > 0
+      return sub.MuteSub?.length > 0
     }
   }
 }

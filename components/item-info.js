@@ -20,6 +20,7 @@ import ActionDropdown from './action-dropdown'
 import MuteDropdownItem from './mute'
 import { DropdownItemUpVote } from './upvote'
 import { useRoot } from './root'
+import { MuteSubDropdownItem } from './territory-header'
 
 export default function ItemInfo ({
   item, full, commentsText = 'comments',
@@ -167,6 +168,11 @@ export default function ItemInfo ({
           <>
             <hr className='dropdown-divider' />
             <OutlawDropdownItem item={item} />
+          </>}
+        {me && !item.mine && sub && Number(me.id) !== Number(sub.userId) &&
+          <>
+            <hr className='dropdown-divider' />
+            <MuteSubDropdownItem item={item} sub={sub} />
           </>}
         {me && !item.mine &&
           <>

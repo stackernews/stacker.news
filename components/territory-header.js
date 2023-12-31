@@ -1,4 +1,4 @@
-import { Badge, Button, CardFooter } from 'react-bootstrap'
+import { Badge, Button, CardFooter, Dropdown } from 'react-bootstrap'
 import { AccordianCard } from './accordian-item'
 import TerritoryPaymentDue, { TerritoryBillingLine } from './territory-payment-due'
 import Link from 'next/link'
@@ -24,7 +24,7 @@ export default function TerritoryHeader ({ sub }) {
         cache.modify({
           id: `Sub:{"name":"${sub.name}"}`,
           fields: {
-            meMuteSub: () => toggleMuteSub.meMuteSub
+            meMuteSub: () => toggleMuteSub
           }
         })
       }
@@ -88,5 +88,41 @@ export default function TerritoryHeader ({ sub }) {
         </div>
       </div>
     </>
+  )
+}
+
+export function MuteSubDropdownItem ({ item, sub }) {
+  const toaster = useToast()
+
+  const [toggleMuteSub] = useMutation(
+    gql`
+      mutation toggleMuteSub($name: String!) {
+        toggleMuteSub(name: $name)
+      }`, {
+      update (cache, { data: { toggleMuteSub } }) {
+        console.log(sub, toggleMuteSub)
+        cache.modify({
+          id: `Sub:{"name":"${sub.name}"}`,
+          fields: {
+            meMuteSub: () => toggleMuteSub
+          }
+        })
+      }
+    }
+  )
+
+  return (
+    <Dropdown.Item
+      onClick={async () => {
+        try {
+          await toggleMuteSub({ variables: { name: sub.name } })
+        } catch {
+          toaster.danger(`failed to ${sub.meMuteSub ? 'join' : 'mute'} territory`)
+          return
+        }
+        toaster.success(`${sub.meMuteSub ? 'joined' : 'muted'} territory`)
+      }}
+    >{sub.meMuteSub ? 'unmute' : 'mute'} ~{sub.name}
+    </Dropdown.Item>
   )
 }

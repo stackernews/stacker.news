@@ -44,6 +44,12 @@ export const COMMENTS_ITEM_EXT_FIELDS = gql`
       bounty
       bountyPaidTo
       subName
+      sub {
+        name
+        userId
+        moderated
+        meMuteSub
+      }
       user {
         name
         optional {

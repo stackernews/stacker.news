@@ -86,7 +86,7 @@ export default {
           LEFT JOIN "MuteSub" ON "Sub".name = "MuteSub"."subName" AND "MuteSub"."userId" = ${me.id}::INTEGER
           WHERE status <> 'STOPPED'
           GROUP BY "Sub".name, "MuteSub"."userId"
-          ORDER BY "MuteSub"."userId" NULLS FIRST, "Sub".name ASC
+          ORDER BY "Sub".name ASC
         `
       }
 
@@ -191,7 +191,7 @@ export default {
       return await models.user.findUnique({ where: { id: sub.userId } })
     },
     meMuteSub: async (sub, args, { models }) => {
-      return sub.MuteSub?.length > 0
+      return sub.meMuteSub || sub.MuteSub?.length > 0
     }
   }
 }

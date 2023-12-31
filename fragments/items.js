@@ -21,6 +21,7 @@ export const ITEM_FIELDS = gql`
       name
       userId
       moderated
+      meMuteSub
     }
     otsHash
     position
@@ -78,6 +79,7 @@ export const ITEM_FULL_FIELDS = gql`
         name
         userId
         moderated
+        meMuteSub
       }
     }
     forwards {

@@ -125,7 +125,7 @@ async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ...args) 
         COALESCE("ItemAct"."meMsats", 0) as "meMsats",
         COALESCE("ItemAct"."meDontLikeMsats", 0) as "meDontLikeMsats", b."itemId" IS NOT NULL AS "meBookmark",
         "ThreadSubscription"."itemId" IS NOT NULL AS "meSubscription", "ItemForward"."itemId" IS NOT NULL AS "meForward",
-        to_jsonb("Sub".*) as sub
+        to_jsonb("Sub".*) || jsonb_build_object('meMuteSub', "MuteSub"."userId" IS NOT NULL) as sub
       FROM (
         ${query}
       ) "Item"
@@ -135,6 +135,7 @@ async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ...args) 
       LEFT JOIN "ThreadSubscription" ON "ThreadSubscription"."itemId" = "Item".id AND "ThreadSubscription"."userId" = ${me.id}
       LEFT JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id AND "ItemForward"."userId" = ${me.id}
       LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
+      LEFT JOIN "MuteSub" ON "Sub"."name" = "MuteSub"."subName" AND "MuteSub"."userId" = ${me.id}
       LEFT JOIN LATERAL (
         SELECT "itemId", sum("ItemAct".msats) FILTER (WHERE act = 'FEE' OR act = 'TIP') AS "meMsats",
           sum("ItemAct".msats) FILTER (WHERE act = 'DONT_LIKE_THIS') AS "meDontLikeMsats"
@@ -1034,17 +1035,14 @@ export default {
     mine: async (item, args, { me, models }) => {
       return me?.id === item.userId
     },
-    root: async (item, args, { models }) => {
+    root: async (item, args, { models, me }) => {
       if (!item.rootId) {
         return null
       }
       if (item.root) {
         return item.root
       }
-      return await models.item.findUnique({
-        where: { id: item.rootId },
-        include: { sub: true }
-      })
+      return await getItem(item, { id: item.rootId }, { me, models })
     },
     parent: async (item, args, { models }) => {
       if (!item.parentId) {

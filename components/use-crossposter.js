@@ -5,27 +5,26 @@ import { DEFAULT_CROSSPOSTING_RELAYS, crosspost } from '../lib/nostr'
 import { useQuery } from '@apollo/client'
 import { SETTINGS } from '../fragments/users'
 
-function determineItemType(item) {
+function determineItemType (item) {
   console.log('item in determineItemType', item)
   const typeMap = {
     company: 'job',
     url: 'link',
     bounty: 'bounty',
     options: 'poll'
-  };
+  }
 
   for (const [key, type] of Object.entries(typeMap)) {
     console.log('key', key)
     console.log('type', type)
     if (item[key]) {
-      return type;
+      return type
     }
   }
 
   // Default
-  return 'discussion'; 
+  return 'discussion'
 }
-
 
 async function discussionToEvent (item) {
   const createdAt = Math.floor(Date.now() / 1000)
@@ -80,7 +79,7 @@ async function bountyToEvent (item) {
       ['d', item.id.toString()],
       ['title', item.title],
       ['reward', item.bounty.toString()],
-      ['t', "bounty"],
+      ['t', 'bounty'],
       ['published_at', createdAt.toString()]
     ]
   }
@@ -96,9 +95,9 @@ async function jobToEvent (item) {
     tags: [
       ['d', item.id.toString()],
       ['title', item.title],
-      ["location", item?.location || "remote"],
-      ["company", item.company],
-      ['t', "job"],
+      ['location', item?.location || 'remote'],
+      ['company', item.company],
+      ['t', 'job'],
       ['published_at', createdAt.toString()]
     ]
   }
@@ -137,19 +136,19 @@ export default function useCrossposter () {
   const handleEventCreation = async (itemType, item) => {
     switch (itemType) {
       case 'discussion':
-        return await discussionToEvent(item);
+        return await discussionToEvent(item)
       case 'link':
-        return await linkToEvent(item);
+        return await linkToEvent(item)
       case 'bounty':
         return await bountyToEvent(item)
       case 'poll':
-        return await pollToEvent(item);
+        return await pollToEvent(item)
       case 'job':
         return await jobToEvent(item)
       default:
-        return null; // handle error
+        return null // handle error
     }
-  };
+  }
 
   return useCallback(async item => {
     let failedRelays
@@ -158,10 +157,10 @@ export default function useCrossposter () {
 
     do {
       console.log('item before item type', item)
-      const itemType = determineItemType(item);
+      const itemType = determineItemType(item)
       console.log('itemType', itemType)
-      const event = await handleEventCreation(itemType, item);
-      if (!event) break; // Break if event creation fails
+      const event = await handleEventCreation(itemType, item)
+      if (!event) break // Break if event creation fails
 
       const result = await crosspost(event, failedRelays || relays)
 

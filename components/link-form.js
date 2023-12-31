@@ -13,7 +13,7 @@ import { normalizeForwards, toastDeleteScheduled } from '../lib/form'
 import { useToast } from './toast'
 import { SubSelectInitial } from './sub-select'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
-import useCrossposter from './use-crossposter';
+import useCrossposter from './use-crossposter'
 
 import { useMe } from './me'
 import { ItemButtonBar } from './post'
@@ -28,7 +28,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
   const shareUrl = router.query.url
   const shareTitle = router.query.title
 
-  const crossposter = useCrossposter();
+  const crossposter = useCrossposter()
 
   const [getPageTitleAndUnshorted, { data }] = useLazyQuery(gql`
     query PageTitleAndUnshorted($url: String!) {
@@ -81,10 +81,10 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
       }`
   )
 
-  const [upsertNoteId] = useMutation(
+  const [updateNoteId] = useMutation(
     gql`
-      mutation upsertNoteId($id: ID!, $noteId: String!) {
-        upsertNoteId(id: $id, noteId: $noteId) {
+      mutation updateNoteId($id: ID!, $noteId: String!) {
+        updateNoteId(id: $id, noteId: $noteId) {
           id
           noteId
         }
@@ -128,7 +128,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
       }
 
       if (noteId) {
-        await upsertNoteId({
+        await updateNoteId({
           variables: {
             id: linkId,
             noteId

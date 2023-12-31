@@ -7,7 +7,6 @@ import Info from './info'
 import { numWithUnits } from '../lib/format'
 import styles from './adv-post-form.module.css'
 import { useMe } from './me'
-import { useRouter } from 'next/router'
 import { useFeeButton } from './fee-button'
 
 const EMPTY_FORWARD = { nym: '', pct: '' }
@@ -21,7 +20,6 @@ export function AdvPostInitial ({ forward, boost }) {
 
 export default function AdvPostForm ({ children }) {
   const me = useMe()
-  const router = useRouter()
   const { merge } = useFeeButton()
 
   return (

@@ -25,19 +25,19 @@ export function PollForm ({ item, sub, editThreshold, children }) {
   const [upsertPoll] = useMutation(
     gql`
       mutation upsertPoll($sub: String, $id: ID, $title: String!, $text: String,
-        $options: [String!]!, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String, $noteId: String) {
+        $options: [String!]!, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String) {
         upsertPoll(sub: $sub, id: $id, title: $title, text: $text,
-          options: $options, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac, noteId: $noteId) {
+          options: $options, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac) {
           id
           deleteScheduledAt
         }
       }`
   )
 
-  const [upsertNoteId] = useMutation(
+  const [updateNoteId] = useMutation(
     gql`
-      mutation upsertNoteId($id: ID!, $noteId: String!) {
-        upsertNoteId(id: $id, noteId: $noteId) {
+      mutation updateNoteId($id: ID!, $noteId: String!) {
+        updateNoteId(id: $id, noteId: $noteId) {
           id
           noteId
         }
@@ -83,7 +83,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
       }
 
       if (noteId) {
-        await upsertNoteId({
+        await updateNoteId({
           variables: {
             id: pollId,
             noteId

@@ -59,10 +59,10 @@ export default function JobForm ({ item, sub }) {
     }`
   )
 
-  const [upsertNoteId] = useMutation(
+  const [updateNoteId] = useMutation(
     gql`
-      mutation upsertNoteId($id: ID!, $noteId: String!) {
-        upsertNoteId(id: $id, noteId: $noteId) {
+      mutation updateNoteId($id: ID!, $noteId: String!) {
+        updateNoteId(id: $id, noteId: $noteId) {
           id
           noteId
         }
@@ -113,7 +113,7 @@ export default function JobForm ({ item, sub }) {
       }
 
       if (noteId) {
-        await upsertNoteId({
+        await updateNoteId({
           variables: {
             id: jobId,
             noteId
@@ -203,26 +203,26 @@ export default function JobForm ({ item, sub }) {
           clear
         />
         {me &&
-            <Checkbox
-              label={
-                <div className='d-flex align-items-center'>crosspost to nostr
-                  <Info>
-                    <ul className='fw-bold'>
-                      <li>crosspost this item to nostr</li>
-                      <li>requires NIP-07 extension for signing</li>
-                      <li>we use your NIP-05 relays if set</li>
-                      <li>otherwise we default to these relays:</li>
-                      <ul>
-                        {DEFAULT_CROSSPOSTING_RELAYS.map((relay, i) => (
-                          <li key={i}>{relay}</li>
-                        ))}
-                      </ul>
+          <Checkbox
+            label={
+              <div className='d-flex align-items-center'>crosspost to nostr
+                <Info>
+                  <ul className='fw-bold'>
+                    <li>crosspost this item to nostr</li>
+                    <li>requires NIP-07 extension for signing</li>
+                    <li>we use your NIP-05 relays if set</li>
+                    <li>otherwise we default to these relays:</li>
+                    <ul>
+                      {DEFAULT_CROSSPOSTING_RELAYS.map((relay, i) => (
+                        <li key={i}>{relay}</li>
+                      ))}
                     </ul>
-                  </Info>
-                </div>
-            }
-              name='crosspost'
-            />}
+                  </ul>
+                </Info>
+              </div>
+          }
+            name='crosspost'
+          />}
         <PromoteJob item={item} sub={sub} />
         {item && <StatusControl item={item} />}
         <ItemButtonBar itemId={item?.id} canDelete={false} />

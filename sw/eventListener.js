@@ -13,6 +13,12 @@ let actionChannelPort
 // current push notification count for badge purposes
 let activeCount = 0
 
+const log = (message, level = 'info', context) => {
+  messageChannelPort?.postMessage({ level, message, context })
+  if (level === 'error') console.error(message)
+  else console.log(message)
+}
+
 export function onPush (sw) {
   return async (event) => {
     const payload = event.data?.json()
@@ -44,14 +50,12 @@ export function onPush (sw) {
       // handle unexpected case here
       if (notifications.length > 1) {
         const message = `[sw:push] more than one notification with tag ${tag} found`
-        messageChannelPort?.postMessage({ level: 'error', message })
-        console.error(message)
+        log(message, 'error')
         // due to missing proper tag support in Safari on iOS,
         // we only acknowledge this error in our logs and don't bail here anymore
         // see https://bugs.webkit.org/show_bug.cgi?id=258922 for more information
         const message2 = '[sw:push] skip bail -- merging notifications manually'
-        messageChannelPort?.postMessage({ level: 'info', message: message2 })
-        console.log(message2)
+        log(message2, 'info')
         // return null
       }
 
@@ -75,8 +79,7 @@ const mergeAndShowNotification = async (sw, payload, currentNotifications, tag) 
   if (otherTagNotifications.length > 0) {
     // we can't recover from this here. bail.
     const message = `[sw:push] more than one notification with tag ${tag} after filter`
-    messageChannelPort?.postMessage({ level: 'error', message })
-    console.error(message)
+    log(message, 'error')
     return
   }
 
@@ -155,7 +158,7 @@ export function onPushSubscriptionChange (sw) {
     let { oldSubscription, newSubscription } = event
     // https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/pushsubscriptionchange_event
     // fallbacks since browser may not set oldSubscription and newSubscription
-    messageChannelPort?.postMessage({ message: '[sw:handlePushSubscriptionChange] invoked' })
+    log('[sw:handlePushSubscriptionChange] invoked')
     oldSubscription ??= await storage.getItem('subscription')
     newSubscription ??= await sw.registration.pushManager.getSubscription()
     if (!newSubscription) {
@@ -164,17 +167,17 @@ export function onPushSubscriptionChange (sw) {
         // see https://github.com/stackernews/stacker.news/issues/411#issuecomment-1790675861
         // NOTE: this is only run on IndexedDB subscriptions stored under service worker version 2 since this is not backwards compatible
         // see discussion in https://github.com/stackernews/stacker.news/pull/597
-        messageChannelPort?.postMessage({ message: '[sw:handlePushSubscriptionChange] service worker lost subscription' })
+        log('[sw:handlePushSubscriptionChange] service worker lost subscription')
         actionChannelPort?.postMessage({ action: 'RESUBSCRIBE' })
         return
       }
       // no subscription exists at the moment
-      messageChannelPort?.postMessage({ message: '[sw:handlePushSubscriptionChange] no existing subscription found' })
+      log('[sw:handlePushSubscriptionChange] no existing subscription found')
       return
     }
     if (oldSubscription?.endpoint === newSubscription.endpoint) {
     // subscription did not change. no need to sync with server
-      messageChannelPort?.postMessage({ message: '[sw:handlePushSubscriptionChange] old subscription matches existing subscription' })
+      log('[sw:handlePushSubscriptionChange] old subscription matches existing subscription')
       return
     }
     // convert keys from ArrayBuffer to string
@@ -199,7 +202,7 @@ export function onPushSubscriptionChange (sw) {
       },
       body
     })
-    messageChannelPort?.postMessage({ message: '[sw:handlePushSubscriptionChange] synced push subscription with server', context: { endpoint: variables.endpoint, oldEndpoint: variables.oldEndpoint } })
+    log('[sw:handlePushSubscriptionChange] synced push subscription with server', 'info', { endpoint: variables.endpoint, oldEndpoint: variables.oldEndpoint })
     await storage.setItem('subscription', JSON.parse(JSON.stringify(newSubscription)))
   }
 }
@@ -213,9 +216,9 @@ export function onMessage (sw) {
     if (event.data.action === 'MESSAGE_PORT') {
       messageChannelPort = event.ports[0]
     }
-    messageChannelPort?.postMessage({ message: '[sw:message] received message', context: { action: event.data.action } })
+    log('[sw:message] received message', 'info', { action: event.data.action })
     if (event.data.action === 'STORE_SUBSCRIPTION') {
-      messageChannelPort?.postMessage({ message: '[sw:message] storing subscription in IndexedDB', context: { endpoint: event.data.subscription.endpoint } })
+      log('[sw:message] storing subscription in IndexedDB', 'info', { endpoint: event.data.subscription.endpoint })
       return event.waitUntil(storage.setItem('subscription', { ...event.data.subscription, swVersion: 2 }))
     }
     if (event.data.action === 'SYNC_SUBSCRIPTION') {

@@ -169,6 +169,7 @@ export default function Comment ({
                   className={`${itemStyles.other} ${styles.other}`}
                   embellishUser={op && <><span> </span><Badge bg={op === 'fwd' ? 'secondary' : 'boost'} className={`${styles.op} bg-opacity-75`}>{op}</Badge></>}
                   onQuoteReply={quoteReply}
+                  nested={!includeParent}
                   extraInfo={
                     <>
                       {includeParent && <Parent item={item} rootText={rootText} />}

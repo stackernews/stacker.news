@@ -41,7 +41,7 @@ export default function TerritoryHeader ({ sub }) {
               <small className='text-muted fw-bold align-items-center d-flex'>
                 territory details
                 {sub.status === 'STOPPED' && <Badge className='ms-2' bg='danger'>archived</Badge>}
-                {(sub.moderated || sub.moderatedCount > 0) && <Badge className='ms-2' bg='secondary'>moderated{sub.moderatedCount && ` ${sub.moderatedCount}`}</Badge>}
+                {(sub.moderated || sub.moderatedCount > 0) && <Badge className='ms-2' bg='secondary'>moderated{sub.moderatedCount > 0 && ` ${sub.moderatedCount}`}</Badge>}
               </small>
             }
           >

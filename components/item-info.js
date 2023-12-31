@@ -25,7 +25,7 @@ import { MuteSubDropdownItem } from './territory-header'
 export default function ItemInfo ({
   item, full, commentsText = 'comments',
   commentTextSingular = 'comment', className, embellishUser, extraInfo, onEdit, editText,
-  onQuoteReply, nofollow, extraBadges
+  onQuoteReply, nofollow, extraBadges, nested
 }) {
   const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
   const me = useMe()
@@ -169,7 +169,7 @@ export default function ItemInfo ({
             <hr className='dropdown-divider' />
             <OutlawDropdownItem item={item} />
           </>}
-        {me && !item.mine && sub && Number(me.id) !== Number(sub.userId) &&
+        {me && !nested && !item.mine && sub && Number(me.id) !== Number(sub.userId) &&
           <>
             <hr className='dropdown-divider' />
             <MuteSubDropdownItem item={item} sub={sub} />

@@ -25,46 +25,55 @@ export function onPush (sw) {
     if (!payload) return
     const { tag } = payload.options
     event.waitUntil((async () => {
+      // generate random ID for every incoming push for better tracing in logs
+      const nid = crypto.randomUUID()
+      log(`[sw:push] ${nid} - received notification with tag ${tag}`)
+
+      // due to missing proper tag support in Safari on iOS, we can't rely on the tag built-in filter.
+      // we therefore fetch all notifications with the same tag and manually filter them, too.
+      // see https://bugs.webkit.org/show_bug.cgi?id=258922
+      const notifications = await sw.registration.getNotifications({ tag })
+      log(`[sw:push] ${nid} - found ${notifications.length} ${tag} notifications`)
+      log(`[sw:push] ${nid} - built-in tag filter: ${JSON.stringify(notifications.map(({ tag }) => tag))}`)
+
+      // we're not sure if the built-in tag filter actually filters by tag on iOS
+      // or if it just returns all currently displayed notifications (?)
+      const filtered = notifications.filter(({ tag: nTag }) => nTag === tag)
+      log(`[sw:push] ${nid} - found ${filtered.length} ${tag} notifications after manual tag filter`)
+      log(`[sw:push] ${nid} - manual tag filter: ${JSON.stringify(filtered.map(({ tag }) => tag))}`)
+
       if (immediatelyShowNotification(tag)) {
+        // we can't rely on the tag property to replace notifications on Safari on iOS.
+        // we therefore close them manually and then we display the notification.
+        log(`[sw:push] ${nid} - ${tag} notifications replace previous notifications`)
         setAppBadge(sw, ++activeCount)
-        // due to missing proper tag support in Safari on iOS, we can't rely on the tag property to replace notifications.
-        // see https://bugs.webkit.org/show_bug.cgi?id=258922 for more information
-        // we therefore fetch all notifications with the same tag (+ manual filter),
-        // close them and then we display the notification.
-        const notifications = await sw.registration.getNotifications({ tag })
-        notifications.filter(({ tag: nTag }) => nTag === tag).forEach(n => n.close())
+        log(`[sw:push] ${nid} - closing existing notifications`)
+        filtered.forEach(n => n.close())
+        log(`[sw:push] ${nid} - show notification: ${payload.title} ${JSON.stringify(payload.options)}`)
         return await sw.registration.showNotification(payload.title, payload.options)
       }
-
-      // fetch existing notifications with same tag
-      let notifications = await sw.registration.getNotifications({ tag })
 
       // according to the spec, there should only be zero or one notification since we used a tag filter
       // handle zero case here
       if (notifications.length === 0) {
         // incoming notification is first notification with this tag
+        log(`[sw:push] ${nid} - no existing ${tag} notifications found`)
         setAppBadge(sw, ++activeCount)
+        log(`[sw:push] ${nid} - show notification: ${payload.title} ${JSON.stringify(payload.options)}`)
         return await sw.registration.showNotification(payload.title, payload.options)
       }
 
       // handle unexpected case here
       if (notifications.length > 1) {
-        const message = `[sw:push] more than one notification with tag ${tag} found`
-        log(message, 'error')
+        log(`[sw:push] ${nid} - more than one notification with tag ${tag} found`, 'error')
         // due to missing proper tag support in Safari on iOS,
         // we only acknowledge this error in our logs and don't bail here anymore
         // see https://bugs.webkit.org/show_bug.cgi?id=258922 for more information
-        const message2 = '[sw:push] skip bail -- merging notifications manually'
-        log(message2, 'info')
+        log(`[sw:push] ${nid} - skip bail -- merging notifications with tag ${tag} manually`)
         // return null
       }
 
-      // we manually filter notifications by their tag since iOS doesn't properly support tag
-      // and we're not sure if the built-in tag filter actually filters by tag on iOS
-      // or if it just returns all currently displayed notifications.
-      notifications = notifications.filter(({ tag: nTag }) => nTag === tag)
-
-      return await mergeAndShowNotification(sw, payload, notifications, tag)
+      return await mergeAndShowNotification(sw, payload, notifications, tag, nid)
     })())
   }
 }
@@ -73,20 +82,22 @@ export function onPush (sw) {
 // we don't need to merge notifications and thus the notification should be immediately shown using `showNotification`
 const immediatelyShowNotification = (tag) => !tag || ['TIP', 'FORWARDEDTIP', 'EARN', 'STREAK'].includes(tag.split('-')[0])
 
-const mergeAndShowNotification = async (sw, payload, currentNotifications, tag) => {
+const mergeAndShowNotification = async (sw, payload, currentNotifications, tag, nid) => {
   // sanity check
   const otherTagNotifications = currentNotifications.filter(({ tag: nTag }) => nTag !== tag)
   if (otherTagNotifications.length > 0) {
     // we can't recover from this here. bail.
-    const message = `[sw:push] more than one notification with tag ${tag} after filter`
+    const message = `[sw:push] ${nid} - bailing -- more than one notification with tag ${tag} found after manual filter`
     log(message, 'error')
     return
   }
 
   const { data: incomingData } = payload.options
+  log(`[sw:push] ${nid} - incoming payload.options.data: ${JSON.stringify(incomingData)}`)
 
   // we can ignore everything after the first dash in the tag for our control flow
   const compareTag = tag.split('-')[0]
+  log(`[sw:push] ${nid} - using ${compareTag} for control flow`)
 
   // merge notifications into single notification payload
   // ---
@@ -96,6 +107,7 @@ const mergeAndShowNotification = async (sw, payload, currentNotifications, tag) 
   const SUM_SATS_TAGS = ['DEPOSIT']
   // this should reflect the amount of notifications that were already merged before
   const initialAmount = currentNotifications[0].data?.amount || 1
+  log(`[sw:push] ${nid} - initial amount: ${initialAmount}`)
   const mergedPayload = currentNotifications.reduce((acc, { data }) => {
     let newAmount, newSats
     if (AMOUNT_TAGS.includes(compareTag)) {
@@ -107,6 +119,8 @@ const mergeAndShowNotification = async (sw, payload, currentNotifications, tag) 
     const newPayload = { ...data, amount: newAmount, sats: newSats }
     return newPayload
   }, { ...incomingData, amount: initialAmount })
+
+  log(`[sw:push] ${nid} - merged payload: ${JSON.stringify(mergedPayload)}`)
 
   // calculate title from merged payload
   const { amount, followeeName, subType, sats } = mergedPayload
@@ -127,10 +141,14 @@ const mergeAndShowNotification = async (sw, payload, currentNotifications, tag) 
     // there is only DEPOSIT in this array
     title = `${numWithUnits(sats, { abbreviate: false })} were deposited in your account`
   }
+  log(`[sw:push] ${nid} - calculated title: ${title}`)
 
   // close all current notifications before showing new one to "merge" notifications
+  log(`[sw:push] ${nid} - closing existing notifications`)
   currentNotifications.forEach(n => n.close())
+
   const options = { icon: payload.options?.icon, tag, data: { url: '/notifications', ...mergedPayload } }
+  log(`[sw:push] ${nid} - show notification: ${title} ${JSON.stringify(options)}`)
   return await sw.registration.showNotification(title, options)
 }
 

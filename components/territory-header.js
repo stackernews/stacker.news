@@ -11,6 +11,38 @@ import Share from './share'
 import { gql, useMutation } from '@apollo/client'
 import { useToast } from './toast'
 
+export function TerritoryDetails ({ sub, show }) {
+  return (
+    <AccordianCard
+      show={show}
+      header={
+        <small className='text-muted fw-bold align-items-center d-flex'>
+          territory details
+          {sub.status === 'STOPPED' && <Badge className='ms-2' bg='danger'>archived</Badge>}
+          {(sub.moderated || sub.moderatedCount > 0) && <Badge className='ms-2' bg='secondary'>moderated{sub.moderatedCount > 0 && ` ${sub.moderatedCount}`}</Badge>}
+        </small>
+      }
+    >
+      <div className='py-2'>
+        <Text>{sub.desc}</Text>
+      </div>
+      <CardFooter className={`py-1 ${styles.other}`}>
+        <div className='text-muted'>
+          <span>founded by </span>
+          <Link href={`/${sub.user.name}`}>
+            @{sub.user.name}<span> </span><Hat className='fill-grey' user={sub.user} height={12} width={12} />
+          </Link>
+        </div>
+        <div className='text-muted'>
+          <span>post cost </span>
+          <span className='fw-bold'>{numWithUnits(sub.baseCost)}</span>
+        </div>
+        <TerritoryBillingLine sub={sub} />
+      </CardFooter>
+    </AccordianCard>
+  )
+}
+
 export default function TerritoryHeader ({ sub }) {
   const me = useMe()
   const toaster = useToast()
@@ -36,32 +68,7 @@ export default function TerritoryHeader ({ sub }) {
       <TerritoryPaymentDue sub={sub} />
       <div className='mb-3'>
         <div>
-          <AccordianCard
-            header={
-              <small className='text-muted fw-bold align-items-center d-flex'>
-                territory details
-                {sub.status === 'STOPPED' && <Badge className='ms-2' bg='danger'>archived</Badge>}
-                {(sub.moderated || sub.moderatedCount > 0) && <Badge className='ms-2' bg='secondary'>moderated{sub.moderatedCount > 0 && ` ${sub.moderatedCount}`}</Badge>}
-              </small>
-            }
-          >
-            <div className='py-2'>
-              <Text>{sub.desc}</Text>
-            </div>
-            <CardFooter className={`py-1 ${styles.other}`}>
-              <div className='text-muted'>
-                <span>founded by </span>
-                <Link href={`/${sub.user.name}`}>
-                  @{sub.user.name}<span> </span><Hat className='fill-grey' user={sub.user} height={12} width={12} />
-                </Link>
-              </div>
-              <div className='text-muted'>
-                <span>post cost </span>
-                <span className='fw-bold'>{numWithUnits(sub.baseCost)}</span>
-              </div>
-              <TerritoryBillingLine sub={sub} />
-            </CardFooter>
-          </AccordianCard>
+          <TerritoryDetails sub={sub} />
         </div>
         <div className='d-flex my-2 justify-content-end'>
           <Share path={`/~${sub.name}`} title={`~${sub.name} stacker news territory`} className='mx-3' />

@@ -69,13 +69,17 @@ export default {
         where: {
           name
         },
-        include: {
-          MuteSub: {
-            where: {
-              userId: Number(me.id)
+        ...(me
+          ? {
+              include: {
+                MuteSub: {
+                  where: {
+                    userId: Number(me?.id)
+                  }
+                }
+              }
             }
-          }
-        }
+          : {})
       })
     },
     subs: async (parent, args, { models, me }) => {

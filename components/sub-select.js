@@ -30,7 +30,6 @@ export function useSubs ({ prependSubs = [], sub, filterSubs = () => true, appen
     ...appendSubs.filter(s => s !== sub)])
   useEffect(() => {
     if (!data) return
-    console.log(data)
     const joined = data.subs.filter(filterSubs).filter(s => !s.meMuteSub).map(s => s.name)
     const muted = data.subs.filter(filterSubs).filter(s => s.meMuteSub).map(s => s.name)
     const mutedSection = muted.length ? [{ label: 'muted', items: muted }] : []

@@ -5,19 +5,25 @@ const WebLNContext = createContext({})
 export function WebLNProvider ({ children }) {
   const [provider, setProvider] = useState(null)
   const [info, setInfo] = useState(null)
-  // NOTE launchModal is undefined initially - can this be a problem?
+  // NOTE these functions are undefined initially - can this be a problem?
   const [launchModal, setLaunchModal] = useState()
+  const [launchPaymentModal, setLaunchPaymentModal] = useState()
+  const [closeModal, setCloseModal] = useState()
+  const [isConnected, setIsConnected] = useState()
 
   useEffect(() => {
     const unsub = []
     async function effect () {
-      const [isConnected, onConnected, onDisconnected, requestProvider, launchModal] = await import('@getalby/bitcoin-connect-react').then(
-        (mod) => [mod.isConnected, mod.onConnected, mod.onDisconnected, mod.requestProvider, mod.launchModal]
+      const [isConnected, onConnected, onDisconnected, requestProvider, launchModal, launchPaymentModal, closeModal] = await import('@getalby/bitcoin-connect-react').then(
+        (mod) => [mod.isConnected, mod.onConnected, mod.onDisconnected, mod.requestProvider, mod.launchModal, mod.launchPaymentModal, mod.closeModal]
       )
 
       // if you want to store a function, you need to wrap it with another function because of updater functions
       // see https://react.dev/reference/react/useState#updating-state-based-on-the-previous-state
       setLaunchModal(() => launchModal)
+      setLaunchPaymentModal(() => launchPaymentModal)
+      setCloseModal(() => closeModal)
+      setIsConnected(() => isConnected)
 
       if (isConnected()) {
         // requestProvider will not launch a modal because a provider is already available.
@@ -40,7 +46,7 @@ export function WebLNProvider ({ children }) {
     return () => unsub.forEach(fn => fn())
   }, [setProvider])
 
-  const value = { provider, info, launchModal }
+  const value = { provider, info, launchModal, launchPaymentModal, closeModal, isConnected }
   return (
     <WebLNContext.Provider value={value}>
       {children}

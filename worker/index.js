@@ -12,7 +12,7 @@ import { timestampItem } from './ots.js'
 import { computeStreaks, checkStreak } from './streak.js'
 import { nip57 } from './nostr.js'
 import fetch from 'cross-fetch'
-import { authenticatedLndGrpc } from 'ln-service'
+import { authenticatedLndGrpc, subscribeToInvoices } from 'ln-service'
 import { views, rankViews } from './views.js'
 import { imgproxy } from './imgproxy.js'
 import { deleteItem } from './ephemeralItems.js'
@@ -70,8 +70,29 @@ async function work () {
     }
   }
 
+  async function subWrapper (sub, event, fn) {
+    sub.on(event, async (...args) => {
+      console.log(`event ${event} triggered with args`, args)
+      try {
+        await fn(...args)
+      } catch (error) {
+        console.error(`error running ${event}`, error)
+        return
+      }
+      console.log(`finished ${event}`)
+    })
+    sub.on('error', () => {
+      // LND connection lost
+      // see https://www.npmjs.com/package/ln-service#subscriptions
+      sub.removeAllListeners()
+    })
+  }
+
   await boss.start()
+
+  subWrapper(subscribeToInvoices({ lnd }), 'invoice_updated', (inv) => checkInvoice({ data: { hash: inv.id }, ...args }))
   await boss.work('checkInvoice', jobWrapper(checkInvoice))
+
   await boss.work('checkWithdrawal', jobWrapper(checkWithdrawal))
   await boss.work('autoDropBolt11s', jobWrapper(autoDropBolt11s))
   await boss.work('repin-*', jobWrapper(repin))

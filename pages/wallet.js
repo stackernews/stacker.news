@@ -103,7 +103,7 @@ export function WalletForm () {
 }
 
 function WalletConnect () {
-  const { provider, info } = useWebLN()
+  const { provider, info, launchModal } = useWebLN()
   const [label, setLabel] = useState('connect wallet')
 
   useEffect(() => {
@@ -115,10 +115,7 @@ function WalletConnect () {
       <Button
         className='mb-1'
         variant='info'
-        onClick={async () => {
-          const launchModal = await import('@getalby/bitcoin-connect-react').then((mod) => mod.launchModal)
-          launchModal()
-        }}
+        onClick={launchModal}
       >{label}
       </Button>
       {info?.connection && <div className='text-muted fst-italic'>{info.connection}</div>}

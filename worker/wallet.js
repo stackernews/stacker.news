@@ -8,7 +8,7 @@ import { INVOICE_RETENTION_DAYS } from '../lib/constants'
 const walletOptions = { startAfter: 5, retryLimit: 21, retryBackoff: true }
 
 // TODO this should all be done via websockets
-export async function checkInvoice ({ data: { hash, isHeldSet }, boss, models, lnd }) {
+export async function checkInvoice ({ data: { hash, isHeldSet, sub }, boss, models, lnd }) {
   let inv
   try {
     inv = await getInvoice({ id: hash, lnd })
@@ -31,13 +31,18 @@ export async function checkInvoice ({ data: { hash, isHeldSet }, boss, models, l
     // we manually confirm them when we settle them
     await serialize(models,
       models.$executeRaw`SELECT confirm_invoice(${inv.id}, ${Number(inv.received_mtokens)})`)
-    sendUserNotification(dbInv.userId, {
-      title: `${numWithUnits(msatsToSats(inv.received_mtokens), { abbreviate: false })} were deposited in your account`,
-      body: dbInv.comment || undefined,
-      tag: 'DEPOSIT',
-      data: { sats: msatsToSats(inv.received_mtokens) }
-    }).catch(console.error)
-    return boss.send('nip57', { hash })
+    if (sub) {
+      // only send push notifications in the context of a LND subscription.
+      // else, when this code is run from polling context, we would send another push notification.
+      sendUserNotification(dbInv.userId, {
+        title: `${numWithUnits(msatsToSats(inv.received_mtokens), { abbreviate: false })} were deposited in your account`,
+        body: dbInv.comment || undefined,
+        tag: 'DEPOSIT',
+        data: { sats: msatsToSats(inv.received_mtokens) }
+      }).catch(console.error)
+    }
+    // only schedule nip57 from polling context
+    return sub ? null : boss.send('nip57', { hash })
   }
 
   if (inv.is_canceled) {
@@ -62,7 +67,7 @@ export async function checkInvoice ({ data: { hash, isHeldSet }, boss, models, l
     isHeldSet = true
   }
 
-  if (!expired) {
+  if (!expired && !sub) {
     // recheck in 5 seconds if the invoice is younger than 5 minutes
     // otherwise recheck in 60 seconds
     const startAfter = new Date(inv.created_at) > datePivot(new Date(), { minutes: -5 }) ? 5 : 60

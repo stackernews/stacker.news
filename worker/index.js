@@ -90,7 +90,7 @@ async function work () {
 
   await boss.start()
 
-  subWrapper(subscribeToInvoices({ lnd }), 'invoice_updated', (inv) => checkInvoice({ data: { hash: inv.id }, ...args }))
+  subWrapper(subscribeToInvoices({ lnd }), 'invoice_updated', (inv) => checkInvoice({ data: { hash: inv.id, sub: true }, ...args }))
   await boss.work('checkInvoice', jobWrapper(checkInvoice))
 
   await boss.work('checkWithdrawal', jobWrapper(checkWithdrawal))

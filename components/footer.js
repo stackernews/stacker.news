@@ -11,6 +11,7 @@ import Moon from '../svgs/moon-fill.svg'
 import No from '../svgs/no.svg'
 import Bolt from '../svgs/bolt.svg'
 import Amboss from '../svgs/amboss.svg'
+import Mempool from '../svgs/bimi.svg'
 import { useEffect, useState } from 'react'
 import Rewards from './footer-rewards'
 import useDarkMode from './dark-mode'
@@ -241,7 +242,7 @@ export default function Footer ({ links = true }) {
           <div
             className={`text-small mx-auto mb-2 ${styles.connect}`}
           >
-            <span className='nav-item text-muted me-2'>connect:</span>
+            <small className='nav-item text-muted me-2'>connect:</small>
             <CopyInput
               size='sm'
               groupClassName='mb-0 w-100'
@@ -254,6 +255,12 @@ export default function Footer ({ links = true }) {
               target='_blank' rel='noreferrer'
             >
               <Amboss className='ms-2 theme' width={20} height={20} />
+            </a>
+            <a
+              href='https://mempool.space/lightning/node/03cc1d0932bb99b0697f5b5e5961b83ab7fd66f1efc4c9f5c7bad66c1bcbe78f02'
+              target='_blank' rel='noreferrer'
+            >
+              <Mempool className='ms-2' width={20} height={20} />
             </a>
           </div>}
         <small className='d-flex justify-content-center align-items-center text-muted flex-wrap'>

@@ -61,6 +61,11 @@ export const ServiceWorkerProvider = ({ children }) => {
   })
 
   const subscribeToPushNotifications = async () => {
+    // serviceWorker.controller is null on forced refreshes
+    // see https://w3c.github.io/ServiceWorker/#navigator-service-worker-controller
+    if (!navigator.serviceWorker.controller) {
+      throw new Error('no active service worker found. try refreshing page.')
+    }
     const subscribeOptions = { userVisibleOnly: true, applicationServerKey }
     // Brave users must enable a flag in brave://settings/privacy first
     // see https://stackoverflow.com/a/69624651

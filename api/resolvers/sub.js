@@ -3,17 +3,15 @@ import serialize, { serializeInvoicable } from './serial'
 import { TERRITORY_COST_MONTHLY, TERRITORY_COST_ONCE, TERRITORY_COST_YEARLY } from '../../lib/constants'
 import { datePivot } from '../../lib/time'
 import { ssValidate, territorySchema } from '../../lib/validate'
+import { nextBilling, nextNextBilling } from '../../lib/territory'
 
 export function paySubQueries (sub, models) {
-  let billingAt = datePivot(sub.billedLastAt, { months: 1 })
-  let billAt = datePivot(sub.billedLastAt, { months: 2 })
   if (sub.billingType === 'ONCE') {
     return []
-  } else if (sub.billingType === 'YEARLY') {
-    billingAt = datePivot(sub.billedLastAt, { years: 1 })
-    billAt = datePivot(sub.billedLastAt, { years: 2 })
   }
 
+  const billingAt = nextBilling(sub)
+  const billAt = nextNextBilling(sub)
   const cost = BigInt(sub.billingCost) * BigInt(1000)
 
   return [
@@ -53,35 +51,37 @@ export function paySubQueries (sub, models) {
               AND completedon IS NULL`,
     // schedule 'em
     models.$queryRaw`
-          INSERT INTO pgboss.job (name, data, startafter) VALUES ('territoryBilling',
+          INSERT INTO pgboss.job (name, data, startafter, keepuntil) VALUES ('territoryBilling',
             ${JSON.stringify({
               subName: sub.name
-            })}::JSONB, ${billAt})`
+            })}::JSONB, ${billAt}, ${datePivot(billAt, { days: 1 })})`
   ]
+}
+
+export async function getSub (parent, { name }, { models, me }) {
+  if (!name) return null
+
+  return await models.sub.findUnique({
+    where: {
+      name
+    },
+    ...(me
+      ? {
+          include: {
+            MuteSub: {
+              where: {
+                userId: Number(me?.id)
+              }
+            }
+          }
+        }
+      : {})
+  })
 }
 
 export default {
   Query: {
-    sub: async (parent, { name }, { models, me }) => {
-      if (!name) return null
-
-      return await models.sub.findUnique({
-        where: {
-          name
-        },
-        ...(me
-          ? {
-              include: {
-                MuteSub: {
-                  where: {
-                    userId: Number(me?.id)
-                  }
-                }
-              }
-            }
-          : {})
-      })
-    },
+    sub: getSub,
     subs: async (parent, args, { models, me }) => {
       if (me) {
         return await models.$queryRaw`
@@ -249,10 +249,10 @@ async function createSub (parent, data, { me, models, lnd, hash, hmac }) {
       // schedule 'em
       ...(billAt
         ? [models.$queryRaw`
-          INSERT INTO pgboss.job (name, data, startafter) VALUES ('territoryBilling',
+          INSERT INTO pgboss.job (name, data, startafter, keepuntil) VALUES ('territoryBilling',
             ${JSON.stringify({
               subName: data.name
-            })}::JSONB, ${billAt})`]
+            })}::JSONB, ${billAt}, ${datePivot(billAt, { days: 1 })})`]
         : [])
     ], { models, lnd, hash, hmac, me, enforceFee: billingCost })
 

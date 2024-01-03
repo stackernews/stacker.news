@@ -412,6 +412,7 @@ model Sub {
   rewardsPct       Int         @default(50)
   desc             String?
   status           Status      @default(ACTIVE)
+  statusUpdatedAt  DateTime?
   billingType      BillingType
   billingCost      Int
   billingAutoRenew Boolean     @default(false)
@@ -429,6 +430,7 @@ model Sub {
   @@index([parentName])
   @@index([createdAt])
   @@index([userId])
+  @@index([statusUpdatedAt])
   @@index([path], type: Gist)
 }
 

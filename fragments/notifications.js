@@ -1,12 +1,14 @@
 import { gql } from '@apollo/client'
 import { ITEM_FULL_FIELDS } from './items'
 import { INVITE_FIELDS } from './invites'
+import { SUB_FIELDS } from './subs'
 
 export const HAS_NOTIFICATIONS = gql`{ hasNewNotes }`
 
 export const NOTIFICATIONS = gql`
   ${ITEM_FULL_FIELDS}
   ${INVITE_FIELDS}
+  ${SUB_FIELDS}
 
   query Notifications($cursor: String, $inc: String) {
     notifications(cursor: $cursor, inc: $inc) {
@@ -96,6 +98,13 @@ export const NOTIFICATIONS = gql`
           sortTime
           item {
             ...ItemFields
+          }
+        }
+        ... on SubStatus {
+          id
+          sortTime
+          sub {
+            ...SubFields
           }
         }
         ... on InvoicePaid {

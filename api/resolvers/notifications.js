@@ -4,6 +4,7 @@ import { getItem, filterClause, whereClause, muteClause } from './item'
 import { getInvoice } from './wallet'
 import { pushSubscriptionSchema, ssValidate } from '../../lib/validate'
 import { replyToSubscription } from '../webPush'
+import { getSub } from './sub'
 
 export default {
   Query: {
@@ -249,6 +250,17 @@ export default {
         )
       }
 
+      queries.push(
+        `(SELECT "Sub".name::text, "Sub"."statusUpdatedAt" AS "sortTime", NULL as "earnedSats",
+          'SubStatus' AS type
+          FROM "Sub"
+          WHERE "Sub"."userId" = $1
+          AND "status" <> 'ACTIVE'
+          AND "statusUpdatedAt" <= $2
+          ORDER BY "sortTime" DESC
+          LIMIT ${LIMIT}+$3)`
+      )
+
       // we do all this crazy subquery stuff to make 'reward' islands
       const notifications = await models.$queryRawUnsafe(
         `SELECT MAX(id) AS id, MAX("sortTime") AS "sortTime", sum("earnedSats") AS "earnedSats", type,
@@ -338,6 +350,9 @@ export default {
   },
   JobChanged: {
     item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
+  },
+  SubStatus: {
+    sub: async (n, args, { models, me }) => getSub(n, { name: n.id }, { models, me })
   },
   Revenue: {
     subName: async (n, args, { models }) => {

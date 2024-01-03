@@ -1,25 +1,14 @@
 import { Alert } from 'react-bootstrap'
 import { useMe } from './me'
 import FeeButton, { FeeButtonProvider } from './fee-button'
-import { TERRITORY_BILLING_OPTIONS, TERRITORY_GRACE_DAYS } from '../lib/constants'
+import { TERRITORY_BILLING_OPTIONS } from '../lib/constants'
 import { Form } from './form'
-import { datePivot, timeSince } from '../lib/time'
+import { timeSince } from '../lib/time'
 import { LongCountdown } from './countdown'
 import { useCallback } from 'react'
 import { useApolloClient, useMutation } from '@apollo/client'
 import { SUB_PAY } from '../fragments/subs'
-
-const billingDueDate = (sub, grace) => {
-  if (!sub || sub.billingType === 'ONCE') return null
-
-  const pivot = sub.billingType === 'MONTHLY'
-    ? { months: 1 }
-    : { years: 1 }
-
-  pivot.days = grace ? TERRITORY_GRACE_DAYS : 0
-
-  return datePivot(new Date(sub.billedLastAt), pivot)
-}
+import { nextBilling, nextBillingWithGrace } from '../lib/territory'
 
 export default function TerritoryPaymentDue ({ sub }) {
   const me = useMe()
@@ -39,8 +28,7 @@ export default function TerritoryPaymentDue ({ sub }) {
 
   if (!sub || sub.userId !== Number(me?.id) || sub.status === 'ACTIVE') return null
 
-  const dueDate = billingDueDate(sub, true)
-
+  const dueDate = nextBillingWithGrace(sub)
   if (!dueDate) return null
 
   return (
@@ -90,12 +78,13 @@ export function TerritoryBillingLine ({ sub }) {
   const me = useMe()
   if (!sub || sub.userId !== Number(me?.id)) return null
 
-  const dueDate = billingDueDate(sub, false)
+  const dueDate = nextBilling(sub)
+  const pastDue = dueDate && dueDate < new Date()
 
   return (
     <div className='text-muted'>
-      <span>billing {sub.billingAutoRenew ? 'automatically renews' : 'due'} on </span>
-      <span className='fw-bold'>{dueDate ? timeSince(dueDate) : 'never again'}</span>
+      <span>billing {sub.billingAutoRenew ? 'automatically renews' : 'due'} </span>
+      <span className='fw-bold'>{pastDue ? 'past due' : dueDate ? timeSince(dueDate) : 'never again'}</span>
     </div>
   )
 }

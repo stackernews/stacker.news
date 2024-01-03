@@ -96,9 +96,15 @@ export default gql`
     sortTime: Date!
   }
 
+  type SubStatus {
+    id: ID!
+    sub: Sub!
+    sortTime: Date!
+  }
+
   union Notification = Reply | Votification | Mention
     | Invitification | Earn | JobChanged | InvoicePaid | Referral
-    | Streak | FollowActivity | ForwardedVotification | Revenue
+    | Streak | FollowActivity | ForwardedVotification | Revenue | SubStatus
 
   type Notifications {
     lastChecked: Date

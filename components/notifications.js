@@ -26,6 +26,8 @@ import Text from './text'
 import NostrIcon from '../svgs/nostr.svg'
 import { numWithUnits } from '../lib/format'
 import BountyIcon from '../svgs/bounty-bag.svg'
+import { LongCountdown } from './countdown'
+import { nextBillingWithGrace } from '../lib/territory'
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
@@ -44,6 +46,7 @@ function Notification ({ n, fresh }) {
         (type === 'Mention' && <Mention n={n} />) ||
         (type === 'JobChanged' && <JobChanged n={n} />) ||
         (type === 'Reply' && <Reply n={n} />) ||
+        (type === 'SubStatus' && <SubStatus n={n} />) ||
         (type === 'FollowActivity' && <FollowActivity n={n} />)
       }
     </NotificationLayout>
@@ -86,6 +89,7 @@ const defaultOnClick = n => {
     return { href }
   }
   if (type === 'Revenue') return { href: `/~${n.subName}` }
+  if (type === 'SubStatus') return { href: `/~${n.sub.name}` }
   if (type === 'Invitification') return { href: '/invites' }
   if (type === 'InvoicePaid') return { href: `/invoices/${n.invoice.id}` }
   if (type === 'Referral') return { href: '/referrals/month' }
@@ -186,6 +190,20 @@ function RevenueNotification ({ n }) {
           As the founder of territory <Link href={`/~${n.subName}`}>~{n.subName}</Link>, you receive 50% of the revenue it generates and the other 50% go to <Link href='/rewards'>rewards</Link>.
         </div>
       </div>
+    </div>
+  )
+}
+
+function SubStatus ({ n }) {
+  const dueDate = nextBillingWithGrace(n.sub)
+  return (
+    <div className={`fw-bold text-${n.sub.status === 'ACTIVE' ? 'success' : 'danger'} ms-2`}>
+      {n.sub.status === 'ACTIVE'
+        ? 'your territory is active again'
+        : (n.sub.status === 'GRACE'
+            ? <>your territory payment for ~{n.sub.name} is due or your territory will be archived in <LongCountdown date={dueDate} /></>
+            : <>your territory ~{n.sub.name} has been archived</>)}
+      <small className='text-muted d-block pb-1 fw-normal'>click to visit territory and pay</small>
     </div>
   )
 }

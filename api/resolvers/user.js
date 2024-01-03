@@ -462,6 +462,23 @@ export default {
         }
       }
 
+      const subStatus = await models.sub.findFirst({
+        where: {
+          userId: me.id,
+          statusUpdatedAt: {
+            gt: lastChecked
+          },
+          status: {
+            not: 'ACTIVE'
+          }
+        }
+      })
+
+      if (subStatus) {
+        foundNotes()
+        return true
+      }
+
       // update checkedNotesAt to prevent rechecking same time period
       models.user.update({
         where: { id: me.id },

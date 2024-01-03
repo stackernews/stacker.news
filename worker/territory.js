@@ -1,6 +1,6 @@
 import serialize from '../api/resolvers/serial'
 import { paySubQueries } from '../api/resolvers/sub'
-import { TERRITORY_GRACE_DAYS } from '../lib/constants'
+import { nextBillingWithGrace } from '../lib/territory'
 import { datePivot } from '../lib/time'
 
 export async function territoryBilling ({ data: { subName }, boss, models }) {
@@ -11,14 +11,18 @@ export async function territoryBilling ({ data: { subName }, boss, models }) {
   })
 
   async function territoryStatusUpdate () {
-    await models.sub.update({
-      where: {
-        name: subName
-      },
-      data: {
-        status: sub.billedLastAt >= datePivot(new Date(), { days: -TERRITORY_GRACE_DAYS }) ? 'GRACE' : 'STOPPED'
-      }
-    })
+    if (sub.status !== 'STOPPED') {
+      await models.sub.update({
+        where: {
+          name: subName
+        },
+        data: {
+          status: nextBillingWithGrace(sub) >= new Date() ? 'GRACE' : 'STOPPED',
+          statusUpdatedAt: new Date()
+        }
+      })
+    }
+
     // retry billing in one day
     await boss.send('territoryBilling', { subName }, { startAfter: datePivot(new Date(), { days: 1 }) })
   }

@@ -1,11 +1,14 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
 import { Workbox } from 'workbox-window'
 import { gql, useMutation } from '@apollo/client'
-import { useLogger } from './logger'
+import { detectOS, useLogger } from './logger'
 
 const applicationServerKey = process.env.NEXT_PUBLIC_VAPID_PUBKEY
 
 const ServiceWorkerContext = createContext()
+
+// message types for communication between app and service worker
+export const STORE_OS = 'STORE_OS'
 
 export const ServiceWorkerProvider = ({ children }) => {
   const [registration, setRegistration] = useState(null)
@@ -151,6 +154,7 @@ export const ServiceWorkerProvider = ({ children }) => {
     // see https://medium.com/@madridserginho/how-to-handle-webpush-api-pushsubscriptionchange-event-in-modern-browsers-6e47840d756f
     navigator?.serviceWorker?.controller?.postMessage?.({ action: 'SYNC_SUBSCRIPTION' })
     logger.info('sent SYNC_SUBSCRIPTION to service worker')
+    navigator?.serviceWorker?.controller?.postMessage?.({ action: STORE_OS, os: detectOS() })
   }, [registration])
 
   const contextValue = useMemo(() => ({

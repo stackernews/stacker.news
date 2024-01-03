@@ -11,7 +11,7 @@ const generateFancyName = () => {
   return `${adj}-${noun}-${id}`
 }
 
-function detectOS () {
+export function detectOS () {
   if (!window.navigator) return ''
 
   const userAgent = window.navigator.userAgent

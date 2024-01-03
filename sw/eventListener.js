@@ -1,7 +1,7 @@
 import ServiceWorkerStorage from 'serviceworker-storage'
 import { numWithUnits } from '../lib/format'
 import { CLEAR_NOTIFICATIONS, clearAppBadge, setAppBadge } from '../lib/badge'
-import { STORE_OS } from '../components/serviceworker'
+import { ACTION_PORT, DELETE_SUBSCRIPTION, MESSAGE_PORT, STORE_OS, STORE_SUBSCRIPTION, SYNC_SUBSCRIPTION } from '../components/serviceworker'
 
 // we store existing push subscriptions to keep them in sync with server
 const storage = new ServiceWorkerStorage('sw:storage', 1)
@@ -243,7 +243,7 @@ export function onPushSubscriptionChange (sw) {
 
 export function onMessage (sw) {
   return (event) => {
-    if (event.data.action === 'ACTION_PORT') {
+    if (event.data.action === ACTION_PORT) {
       actionChannelPort = event.ports[0]
       return
     }
@@ -251,18 +251,18 @@ export function onMessage (sw) {
       os = event.data.os
       return
     }
-    if (event.data.action === 'MESSAGE_PORT') {
+    if (event.data.action === MESSAGE_PORT) {
       messageChannelPort = event.ports[0]
     }
     log('[sw:message] received message', 'info', { action: event.data.action })
-    if (event.data.action === 'STORE_SUBSCRIPTION') {
+    if (event.data.action === STORE_SUBSCRIPTION) {
       log('[sw:message] storing subscription in IndexedDB', 'info', { endpoint: event.data.subscription.endpoint })
       return event.waitUntil(storage.setItem('subscription', { ...event.data.subscription, swVersion: 2 }))
     }
-    if (event.data.action === 'SYNC_SUBSCRIPTION') {
+    if (event.data.action === SYNC_SUBSCRIPTION) {
       return event.waitUntil(onPushSubscriptionChange(sw)(event, true))
     }
-    if (event.data.action === 'DELETE_SUBSCRIPTION') {
+    if (event.data.action === DELETE_SUBSCRIPTION) {
       return event.waitUntil(storage.removeItem('subscription'))
     }
     if (event.data.action === CLEAR_NOTIFICATIONS) {

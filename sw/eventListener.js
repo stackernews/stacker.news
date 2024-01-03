@@ -13,6 +13,7 @@ let actionChannelPort
 
 // operating system. the value will be received via a STORE_OS message from app since service workers don't have access to window.navigator
 let os = ''
+const iOS = () => os === 'iOS'
 
 // current push notification count for badge purposes
 let activeCount = 0
@@ -31,7 +32,7 @@ export function onPush (sw) {
         // close them and then we display the notification.
         const notifications = await sw.registration.getNotifications({ tag })
         // we only close notifications manually on iOS because we don't want to degrade android UX just because iOS is behind in their support.
-        if (os === 'iOS') notifications.filter(({ tag: nTag }) => nTag === tag).forEach(n => n.close())
+        if (iOS()) notifications.filter(({ tag: nTag }) => nTag === tag).forEach(n => n.close())
         return await sw.registration.showNotification(payload.title, payload.options)
       }
 
@@ -132,7 +133,7 @@ const mergeAndShowNotification = async (sw, payload, currentNotifications, tag) 
 
   // close all current notifications before showing new one to "merge" notifications
   // we only do this on iOS because we don't want to degrade android UX just because iOS is behind in their support.
-  if (os === 'iOS') currentNotifications.forEach(n => n.close()) && console.log('closing notifications')
+  if (iOS()) currentNotifications.forEach(n => n.close()) && console.log('closing notifications')
   const options = { icon: payload.options?.icon, tag, data: { url: '/notifications', ...mergedPayload } }
   return await sw.registration.showNotification(title, options)
 }

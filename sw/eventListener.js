@@ -1,6 +1,7 @@
 import ServiceWorkerStorage from 'serviceworker-storage'
 import { numWithUnits } from '../lib/format'
 import { CLEAR_NOTIFICATIONS, clearAppBadge, setAppBadge } from '../lib/badge'
+import { STORE_OS } from '../components/serviceworker'
 
 // we store existing push subscriptions to keep them in sync with server
 const storage = new ServiceWorkerStorage('sw:storage', 1)
@@ -9,6 +10,9 @@ const storage = new ServiceWorkerStorage('sw:storage', 1)
 // see https://developer.mozilla.org/en-US/docs/Web/API/MessageChannel
 let messageChannelPort
 let actionChannelPort
+
+// operating system. the value will be received via a STORE_OS message from app since service workers don't have access to window.navigator
+let os = ''
 
 // current push notification count for badge purposes
 let activeCount = 0
@@ -26,7 +30,8 @@ export function onPush (sw) {
         // we therefore fetch all notifications with the same tag (+ manual filter),
         // close them and then we display the notification.
         const notifications = await sw.registration.getNotifications({ tag })
-        notifications.filter(({ tag: nTag }) => nTag === tag).forEach(n => n.close())
+        // we only close notifications manually on iOS because we don't want to degrade android UX just because iOS is behind in their support.
+        if (os === 'iOS') notifications.filter(({ tag: nTag }) => nTag === tag).forEach(n => n.close())
         return await sw.registration.showNotification(payload.title, payload.options)
       }
 
@@ -126,7 +131,8 @@ const mergeAndShowNotification = async (sw, payload, currentNotifications, tag) 
   }
 
   // close all current notifications before showing new one to "merge" notifications
-  currentNotifications.forEach(n => n.close())
+  // we only do this on iOS because we don't want to degrade android UX just because iOS is behind in their support.
+  if (os === 'iOS') currentNotifications.forEach(n => n.close()) && console.log('closing notifications')
   const options = { icon: payload.options?.icon, tag, data: { url: '/notifications', ...mergedPayload } }
   return await sw.registration.showNotification(title, options)
 }
@@ -208,6 +214,10 @@ export function onMessage (sw) {
   return (event) => {
     if (event.data.action === 'ACTION_PORT') {
       actionChannelPort = event.ports[0]
+      return
+    }
+    if (event.data.action === STORE_OS) {
+      os = event.data.os
       return
     }
     if (event.data.action === 'MESSAGE_PORT') {

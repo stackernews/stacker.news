@@ -82,7 +82,7 @@ export default function JobForm ({ item, sub }) {
       } else {
         await router.push(`/~${sub.name}/recent`)
       }
-      toastDeleteScheduled(toaster, data, !!item, values.text)
+      toastDeleteScheduled(toaster, data, 'upsertJob', !!item, values.text)
     }, [upsertJob, router, logoId]
   )
 

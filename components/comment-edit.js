@@ -43,7 +43,7 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
             if (error) {
               throw new Error({ message: error.toString() })
             }
-            toastDeleteScheduled(toaster, data, true, values.text)
+            toastDeleteScheduled(toaster, data, 'upsertComment', true, values.text)
             if (onSuccess) {
               onSuccess()
             }

@@ -104,7 +104,7 @@ export function DiscussionForm ({
         const prefix = sub?.name ? `/~${sub.name}` : ''
         await router.push(prefix + '/recent')
       }
-      toastDeleteScheduled(toaster, data, !!item, values.text)
+      toastDeleteScheduled(toaster, data, 'upsertDiscussion', !!item, values.text)
     }, [upsertDiscussion, router, item, sub, crossposter]
   )
 

@@ -98,7 +98,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
         const prefix = sub?.name ? `/~${sub.name}` : ''
         await router.push(prefix + '/recent')
       }
-      toastDeleteScheduled(toaster, data, !!item, values.text)
+      toastDeleteScheduled(toaster, data, 'upsertLink', !!item, values.text)
     }, [upsertLink, router]
   )
 

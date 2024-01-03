@@ -81,7 +81,7 @@ export function BountyForm ({
         const prefix = sub?.name ? `/~${sub.name}` : ''
         await router.push(prefix + '/recent')
       }
-      toastDeleteScheduled(toaster, data, !!item, values.text)
+      toastDeleteScheduled(toaster, data, 'upsertBounty', !!item, values.text)
     }, [upsertBounty, router]
   )
 

@@ -64,16 +64,17 @@ export default function SubSelect ({ prependSubs, sub, onChange, appendSubs, fil
   const subs = useSubs({ prependSubs, sub, filterSubs, appendSubs })
   const valueProps = props.noForm
     ? {
-        value: sub
+        value: sub.toLowerCase()
       }
     : {
-        overrideValue: sub
+        overrideValue: sub.toLowerCase()
       }
 
   return (
     <Select
       onChange={onChange || ((_, e) => {
-        const sub = ['home', 'pick territory'].includes(e.target.value) ? undefined : e.target.value
+        const target = e.target.selectedOptions[0].text
+        const sub = ['home', 'pick territory'].includes(target) ? undefined : target
         if (sub === 'create') {
           router.push('/territory')
           return

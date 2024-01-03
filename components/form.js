@@ -855,11 +855,11 @@ export function Select ({ label, items, groupClassName, onChange, noForm, overri
           if (item && typeof item === 'object') {
             return (
               <optgroup key={item.label} label={item.label}>
-                {item.items.map(item => <option key={item}>{item}</option>)}
+                {item.items.map(item => <option key={item} value={item.toLowerCase()}>{item}</option>)}
               </optgroup>
             )
           } else {
-            return <option key={item}>{item}</option>
+            return <option key={item} value={item.toLowerCase()}>{item}</option>
           }
         })}
       </BootstrapForm.Select>

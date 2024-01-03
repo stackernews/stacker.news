@@ -8,7 +8,13 @@ const applicationServerKey = process.env.NEXT_PUBLIC_VAPID_PUBKEY
 const ServiceWorkerContext = createContext()
 
 // message types for communication between app and service worker
-export const STORE_OS = 'STORE_OS'
+export const MESSAGE_PORT = 'MESSAGE_PORT' // message to exchange message channel on which service worker will send messages back to app
+export const ACTION_PORT = 'ACTION_PORT' // message to exchange action channel on which service worker will send actions back to app
+export const SYNC_SUBSCRIPTION = 'SYNC_SUBSCRIPTION' // trigger onPushSubscriptionChange event in service worker manually
+export const RESUBSCRIBE = 'RESUBSCRIBE' // trigger resubscribing to push notifications (sw -> app)
+export const DELETE_SUBSCRIPTION = 'DELETE_SUBSCRIPTION' // delete subscription in IndexedDB (app -> sw)
+export const STORE_SUBSCRIPTION = 'STORE_SUBSCRIPTION' // store subscription in IndexedDB (app -> sw)
+export const STORE_OS = 'STORE_OS' // store OS in service worker
 
 export const ServiceWorkerProvider = ({ children }) => {
   const [registration, setRegistration] = useState(null)
@@ -77,7 +83,7 @@ export const ServiceWorkerProvider = ({ children }) => {
     // Send subscription to service worker to save it so we can use it later during `pushsubscriptionchange`
     // see https://medium.com/@madridserginho/how-to-handle-webpush-api-pushsubscriptionchange-event-in-modern-browsers-6e47840d756f
     navigator.serviceWorker.controller.postMessage({
-      action: 'STORE_SUBSCRIPTION',
+      action: STORE_SUBSCRIPTION,
       subscription: pushSubscription
     })
     logger.info('sent STORE_SUBSCRIPTION to service worker', { endpoint })
@@ -98,7 +104,7 @@ export const ServiceWorkerProvider = ({ children }) => {
     await deletePushSubscription({ variables: { endpoint } })
     // also delete push subscription in IndexedDB so we can tell if the user disabled push subscriptions
     // or we lost the push subscription due to a bug
-    navigator.serviceWorker.controller.postMessage({ action: 'DELETE_SUBSCRIPTION' })
+    navigator.serviceWorker.controller.postMessage({ action: DELETE_SUBSCRIPTION })
     logger.info('deleted push subscription from server', { endpoint })
   }
 
@@ -143,16 +149,16 @@ export const ServiceWorkerProvider = ({ children }) => {
     if (!registration) return
     // setup channel between app and service worker
     const channel = new MessageChannel()
-    navigator?.serviceWorker?.controller?.postMessage({ action: 'ACTION_PORT' }, [channel.port2])
+    navigator?.serviceWorker?.controller?.postMessage({ action: ACTION_PORT }, [channel.port2])
     channel.port1.onmessage = (event) => {
-      if (event.data.action === 'RESUBSCRIBE') {
+      if (event.data.action === RESUBSCRIBE) {
         return subscribeToPushNotifications()
       }
     }
     // since (a lot of) browsers don't support the pushsubscriptionchange event,
     // we sync with server manually by checking on every page reload if the push subscription changed.
     // see https://medium.com/@madridserginho/how-to-handle-webpush-api-pushsubscriptionchange-event-in-modern-browsers-6e47840d756f
-    navigator?.serviceWorker?.controller?.postMessage?.({ action: 'SYNC_SUBSCRIPTION' })
+    navigator?.serviceWorker?.controller?.postMessage?.({ action: SYNC_SUBSCRIPTION })
     logger.info('sent SYNC_SUBSCRIPTION to service worker')
     navigator?.serviceWorker?.controller?.postMessage?.({ action: STORE_OS, os: detectOS() })
   }, [registration])

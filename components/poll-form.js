@@ -54,7 +54,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         const prefix = sub?.name ? `/~${sub.name}` : ''
         await router.push(prefix + '/recent')
       }
-      toastDeleteScheduled(toaster, data, !!item, values.text)
+      toastDeleteScheduled(toaster, data, 'upsertPoll', !!item, values.text)
     }, [upsertPoll, router]
   )
 

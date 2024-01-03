@@ -99,7 +99,7 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
 
   const onSubmit = useCallback(async ({ amount, hash, hmac, ...values }, { resetForm }) => {
     const { data } = await upsertComment({ variables: { parentId, hash, hmac, ...values } })
-    toastDeleteScheduled(toaster, data, false, values.text)
+    toastDeleteScheduled(toaster, data, 'upsertComment', false, values.text)
     resetForm({ text: '' })
     setReply(replyOpen || false)
   }, [upsertComment, setReply, parentId])

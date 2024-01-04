@@ -540,6 +540,7 @@ model Invoice {
   bolt11         String
   expiresAt      DateTime
   confirmedAt    DateTime?
+  confirmedIndex BigInt?
   cancelled      Boolean   @default(false)
   msatsRequested BigInt
   msatsReceived  BigInt?
@@ -550,6 +551,7 @@ model Invoice {
 
   @@index([createdAt], map: "Invoice.created_at_index")
   @@index([userId], map: "Invoice.userId_index")
+  @@index([confirmedIndex], map: "Invoice.confirmedIndex_index")
 }
 
 model Withdrawl {

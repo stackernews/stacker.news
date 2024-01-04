@@ -30,7 +30,9 @@ export async function checkInvoice ({ data: { hash, isHeldSet, sub }, boss, mode
     // never mark hodl invoices as confirmed here because
     // we manually confirm them when we settle them
     await serialize(models,
-      models.$executeRaw`SELECT confirm_invoice(${inv.id}, ${Number(inv.received_mtokens)})`)
+      models.$executeRaw`SELECT confirm_invoice(${inv.id}, ${Number(inv.received_mtokens)})`,
+      models.invoice.update({ where: { hash }, data: { confirmedIndex: inv.confirmed_index } })
+    )
     if (sub) {
       // only send push notifications in the context of a LND subscription.
       // else, when this code is run from polling context, we would send another push notification.
@@ -61,7 +63,7 @@ export async function checkInvoice ({ data: { hash, isHeldSet, sub }, boss, mode
     // this is basically confirm_invoice without setting confirmed_at since it's not settled yet
     // and without setting the user balance since that's done inside the same tx as the HODL invoice action.
     await serialize(models,
-      models.invoice.update({ where: { hash }, data: { msatsReceived: Number(inv.received_mtokens), isHeld: true } }))
+      models.invoice.update({ where: { hash }, data: { msatsReceived: Number(inv.received_mtokens), isHeld: true, confirmedIndex: inv.confirmed_index } }))
     // remember that we already executed this if clause
     // (even though the query above is idempotent but imo, this makes the flow more clear)
     isHeldSet = true

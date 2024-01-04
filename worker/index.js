@@ -91,7 +91,9 @@ async function work () {
 
   await boss.start()
 
-  subWrapper(subscribeToInvoices({ lnd }), 'invoice_updated', (inv) => checkInvoice({ data: { hash: inv.id, sub: true }, ...args }))
+  const [lastConfirmed] = await models.$queryRaw`SELECT "confirmedIndex" FROM "Invoice" ORDER BY "confirmedIndex" DESC NULLS LAST LIMIT 1`
+  subWrapper(subscribeToInvoices({ lnd, confirmed_after: lastConfirmed?.confirmedIndex }),
+    'invoice_updated', (inv) => checkInvoice({ data: { hash: inv.id, sub: true }, ...args }))
   await boss.work('checkInvoice', jobWrapper(checkInvoice))
 
   await boss.work('checkWithdrawal', jobWrapper(checkWithdrawal))

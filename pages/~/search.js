@@ -14,8 +14,10 @@ export default function Index ({ ssrData }) {
   const router = useRouter()
   const variables = { ...router.query, includeComments: true }
 
+  const sub = ssrData?.sub?.name || variables.sub
+
   return (
-    <SearchLayout sub={variables.sub}>
+    <SearchLayout sub={sub}>
       {variables.q
         ? <Items
             ssrData={ssrData}

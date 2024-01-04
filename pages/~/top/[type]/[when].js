@@ -20,8 +20,10 @@ export default function Index ({ ssrData }) {
   const router = useRouter()
   const variables = variablesFunc(router.query)
 
+  const sub = ssrData?.sub?.name || variables.sub
+
   return (
-    <Layout sub={variables.sub}>
+    <Layout sub={sub}>
       <TopHeader sub={variables.sub} cat={variables.type} />
       <Items
         ssrData={ssrData}

@@ -81,20 +81,42 @@ export async function checkInvoice ({ data: { hash, isHeldSet, sub }, boss, mode
   }
 }
 
-export async function checkWithdrawal ({ data: { id, hash }, boss, models, lnd }) {
+export async function checkWithdrawal ({ data: { id, hash, sub }, boss, models, lnd }) {
   let wdrwl
   let notFound = false
+  // function was called by pgboss if it wasn't called because we subscribed to outgoing payments
+  const isPoll = !sub
   try {
     wdrwl = await getPayment({ id: hash, lnd })
   } catch (err) {
     console.log(err)
     if (err[1] === 'SentPaymentNotFound') {
+      // withdrawal was not found by LND
       notFound = true
     } else {
       // on lnd related errors, we manually retry so we don't exponentially backoff
-      await boss.send('checkWithdrawal', { id, hash }, walletOptions)
+      if (isPoll) await boss.send('checkWithdrawal', { id, hash }, walletOptions)
       return
     }
+  }
+
+  if (!id) {
+    // no id provided. this is the case if this function was called via LND subscription: fetch id from database via hash
+
+    // sanity check
+    if (isPoll) console.error('id not set during withdrawal status poll: this should NEVER be the case')
+
+    const dbWdrwl = await models.withdrawl.findFirst({ where: { hash } })
+    if (!dbWdrwl) {
+      // [WARNING] Withdrawal was not found in database!
+      // This might be the case if we're subscribed to outgoing payments
+      // but for some reason, LND paid an invoice that wasn't created via the SN GraphQL API.
+      // >>> If this line ever gets hit, an adversary might be draining our funds right now <<<
+      console.error('[warn] unexpected outgoing payment detected:', hash)
+      // TODO: log this in Slack
+      return
+    }
+    id = dbWdrwl.id
   }
 
   if (wdrwl?.is_confirmed) {
@@ -115,7 +137,7 @@ export async function checkWithdrawal ({ data: { id, hash }, boss, models, lnd }
     }
     await serialize(models, models.$executeRaw`
       SELECT reverse_withdrawl(${id}::INTEGER, ${status}::"WithdrawlStatus")`)
-  } else {
+  } else if (isPoll) {
     // we need to requeue to check again in 5 seconds
     const startAfter = new Date(wdrwl.created_at) > datePivot(new Date(), { minutes: -5 }) ? 5 : 60
     await boss.send('checkWithdrawal', { id, hash }, { ...walletOptions, startAfter })

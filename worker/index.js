@@ -12,7 +12,7 @@ import { timestampItem } from './ots.js'
 import { computeStreaks, checkStreak } from './streak.js'
 import { nip57 } from './nostr.js'
 import fetch from 'cross-fetch'
-import { authenticatedLndGrpc, subscribeToInvoices } from 'ln-service'
+import { authenticatedLndGrpc, subscribeToInvoices, subscribeToPayments } from 'ln-service'
 import { views, rankViews } from './views.js'
 import { imgproxy } from './imgproxy.js'
 import { deleteItem } from './ephemeralItems.js'
@@ -70,17 +70,20 @@ async function work () {
     }
   }
 
-  async function subWrapper (sub, event, fn) {
-    sub.on(event, async (...args) => {
-      console.log(`event ${event} triggered with args`, args)
-      try {
-        await fn(...args)
-      } catch (error) {
-        console.error(`error running ${event}`, error)
-        return
-      }
-      console.log(`finished ${event}`)
-    })
+  async function subWrapper (sub, ...eventFns) {
+    for (let i = 0; i < eventFns.length; i += 2) {
+      const [event, fn] = [eventFns[i], eventFns[i + 1]]
+      sub.on(event, async (...args) => {
+        console.log(`event ${event} triggered with args`, args)
+        try {
+          await fn(...args)
+        } catch (error) {
+          console.error(`error running ${event}`, error)
+          return
+        }
+        console.log(`finished ${event}`)
+      })
+    }
     sub.on('error', (err) => {
       console.error(err)
       // LND connection lost
@@ -96,7 +99,13 @@ async function work () {
     'invoice_updated', (inv) => checkInvoice({ data: { hash: inv.id, sub: true }, ...args }))
   await boss.work('checkInvoice', jobWrapper(checkInvoice))
 
+  subWrapper(subscribeToPayments({ lnd }),
+    'confirmed', (inv) => checkWithdrawal({ data: { hash: inv.id, sub: true }, ...args }),
+    'failed', (inv) => checkWithdrawal({ data: { hash: inv.id, sub: true } }, ...args),
+    'paying', (inv) => {} // ignore payment attempts
+  )
   await boss.work('checkWithdrawal', jobWrapper(checkWithdrawal))
+
   await boss.work('autoDropBolt11s', jobWrapper(autoDropBolt11s))
   await boss.work('repin-*', jobWrapper(repin))
   await boss.work('trust', jobWrapper(trust))

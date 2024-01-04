@@ -64,10 +64,10 @@ export default function SubSelect ({ prependSubs, sub, onChange, appendSubs, fil
   const subs = useSubs({ prependSubs, sub, filterSubs, appendSubs })
   const valueProps = props.noForm
     ? {
-        value: sub.toLowerCase()
+        value: sub?.toLowerCase()
       }
     : {
-        overrideValue: sub.toLowerCase()
+        overrideValue: sub?.toLowerCase()
       }
 
   return (

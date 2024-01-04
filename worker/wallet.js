@@ -138,7 +138,11 @@ export async function checkWithdrawal ({ data: { id, hash, sub }, boss, models, 
     await serialize(models, models.$executeRaw`
       SELECT reverse_withdrawl(${id}::INTEGER, ${status}::"WithdrawlStatus")`)
   } else if (isPoll) {
-    // we need to requeue to check again in 5 seconds
+    // TODO: remove requeuing when we fully switched to LND subscriptions.
+    //   We won't need this anymore since any status update for outgoing payments will be handled using TrackPayments [0].
+    //   However, we still need the worker+pgboss to check if payments got paid while the worker was down.
+    //   [0] see https://lightning.engineering/api-docs/api/lnd/router/track-payments/index.html
+    //   and https://www.npmjs.com/package/ln-service#subscribetopayments.
     const startAfter = new Date(wdrwl.created_at) > datePivot(new Date(), { minutes: -5 }) ? 5 : 60
     await boss.send('checkWithdrawal', { id, hash }, { ...walletOptions, startAfter })
   }

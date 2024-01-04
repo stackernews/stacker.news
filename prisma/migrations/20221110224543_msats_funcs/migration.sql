@@ -300,6 +300,7 @@ BEGIN
 
     UPDATE users SET msats = msats - msats_amount - msats_max_fee WHERE id = user_id;
 
+    -- TODO: remove this in a new database migration when we fully migrated from polling to LND subscriptions
     INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
     VALUES ('checkWithdrawal', jsonb_build_object('id', withdrawl.id, 'hash', lnd_id), 21, true, now() + interval '10 seconds');
 

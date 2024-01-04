@@ -81,7 +81,8 @@ async function work () {
       }
       console.log(`finished ${event}`)
     })
-    sub.on('error', () => {
+    sub.on('error', (err) => {
+      console.error(err)
       // LND connection lost
       // see https://www.npmjs.com/package/ln-service#subscriptions
       sub.removeAllListeners()

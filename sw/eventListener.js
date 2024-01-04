@@ -20,8 +20,6 @@ let activeCount = 0
 
 const log = (message, level = 'info', context) => {
   messageChannelPort?.postMessage({ level, message, context })
-  if (level === 'error') console.error(message)
-  else console.log(message)
 }
 
 export function onPush (sw) {
@@ -62,7 +60,7 @@ export function onPush (sw) {
           log(`[sw:push] ${nid} - closing existing notifications`)
           notifications.filter(({ tag: nTag }) => nTag === tag).forEach(n => n.close())
         }
-        log(`[sw:push] ${nid} - show notification: ${payload.title} ${JSON.stringify(payload.options)}`)
+        log(`[sw:push] ${nid} - show notification with title "${payload.title}"`)
         return await sw.registration.showNotification(payload.title, payload.options)
       }
 
@@ -72,7 +70,7 @@ export function onPush (sw) {
         // incoming notification is first notification with this tag
         log(`[sw:push] ${nid} - no existing ${tag} notifications found`)
         setAppBadge(sw, ++activeCount)
-        log(`[sw:push] ${nid} - show notification: ${payload.title} ${JSON.stringify(payload.options)}`)
+        log(`[sw:push] ${nid} - show notification with title "${payload.title}"`)
         return await sw.registration.showNotification(payload.title, payload.options)
       }
 
@@ -164,7 +162,7 @@ const mergeAndShowNotification = async (sw, payload, currentNotifications, tag, 
   }
 
   const options = { icon: payload.options?.icon, tag, data: { url: '/notifications', ...mergedPayload } }
-  log(`[sw:push] ${nid} - show notification: ${title} ${JSON.stringify(options)}`)
+  log(`[sw:push] ${nid} - show notification with title "${payload.title}"`)
   return await sw.registration.showNotification(title, options)
 }
 

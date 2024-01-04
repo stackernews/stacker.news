@@ -106,12 +106,6 @@ async function work () {
   )
   await boss.work('checkWithdrawal', jobWrapper(checkWithdrawal))
 
-  // queue status check of all pending withdrawals since they might have been paid by LND while worker was down
-  await models.$queryRaw`
-    INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
-    SELECT 'checkWithdrawal', json_build_object('id', w.id, 'hash', w.hash), 21, true, now() + interval '10 seconds'
-    FROM "Withdrawl" w WHERE w.status IS NULL`
-
   await boss.work('autoDropBolt11s', jobWrapper(autoDropBolt11s))
   await boss.work('repin-*', jobWrapper(repin))
   await boss.work('trust', jobWrapper(trust))
@@ -130,6 +124,13 @@ async function work () {
   await boss.work('deleteUnusedImages', jobWrapper(deleteUnusedImages))
   await boss.work('territoryBilling', jobWrapper(territoryBilling))
   await boss.work('ofac', jobWrapper(ofac))
+
+  // check pending withdrawals since they might have been paid while worker was down.
+  const pendingWithdrawals = await models.withdrawl.findMany({ where: { status: null } })
+  for (const w of pendingWithdrawals) {
+    // use sub: true to prevent queueing of jobs
+    await checkWithdrawal({ data: { id: w.id, hash: w.hash, sub: true }, ...args })
+  }
 
   console.log('working jobs')
 }

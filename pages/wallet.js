@@ -230,7 +230,7 @@ export function InvWithdrawal () {
   return (
     <>
       <Form
-        autocomplete='off'
+        autoComplete='off'
         initial={{
           invoice: '',
           maxFee: maxFeeDefault

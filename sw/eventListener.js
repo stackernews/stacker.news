@@ -20,8 +20,6 @@ let activeCount = 0
 
 const log = (message, level = 'info', context) => {
   messageChannelPort?.postMessage({ level, message, context })
-  if (level === 'error') console.error(message)
-  else console.log(message)
 }
 
 export function onPush (sw) {

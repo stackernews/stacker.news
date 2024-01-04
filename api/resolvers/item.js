@@ -194,7 +194,7 @@ export const muteClause = me =>
 
 const subClause = (sub, num, table, me) => {
   return sub
-    ? `${table ? `"${table}".` : ''}"subName" = $${num}::CITEXT`
+    ? `${table ? `"${table}".` : ''}"subName" = $${num}`
     : me
       ? `NOT EXISTS (SELECT 1 FROM "MuteSub" WHERE "MuteSub"."userId" = ${me.id} AND "MuteSub"."subName" = ${table ? `"${table}".` : ''}"subName")`
       : ''
@@ -504,7 +504,6 @@ export default {
           }
           break
       }
-
       return {
         cursor: items.length === limit ? nextCursorEncoded(decodedCursor) : null,
         items,

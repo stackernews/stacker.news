@@ -8,6 +8,7 @@ import { WelcomeBanner } from '../../components/banners'
 import { useQuery } from '@apollo/client'
 import PageLoading from '../../components/page-loading'
 import TerritoryHeader from '../../components/territory-header'
+import { useEffect } from 'react'
 
 export const getServerSideProps = getGetServerSideProps({
   query: SUB_ITEMS,
@@ -21,6 +22,16 @@ export default function Sub ({ ssrData }) {
 
   if (!data && !ssrData) return <PageLoading />
   const { sub } = data || ssrData
+
+  // basically a client-side redirect to the canonical url
+  useEffect(() => {
+    if (sub?.name && sub?.name !== router.query.sub) {
+      router.replace({
+        pathname: router.pathname,
+        query: { ...router.query, sub: sub.name }
+      }, `/~${sub.name}`)
+    }
+  }, [sub?.name])
 
   return (
     <Layout sub={variables.sub}>

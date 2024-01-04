@@ -9,6 +9,7 @@ const walletOptions = { startAfter: 5, retryLimit: 21, retryBackoff: true }
 
 // TODO this should all be done via websockets
 export async function checkInvoice ({ data: { hash, isHeldSet, sub }, boss, models, lnd }) {
+  const isPoll = !sub
   let inv
   try {
     inv = await getInvoice({ id: hash, lnd })
@@ -69,7 +70,7 @@ export async function checkInvoice ({ data: { hash, isHeldSet, sub }, boss, mode
     isHeldSet = true
   }
 
-  if (!expired && !sub) {
+  if (!expired && isPoll) {
     // recheck in 5 seconds if the invoice is younger than 5 minutes
     // otherwise recheck in 60 seconds
     const startAfter = new Date(inv.created_at) > datePivot(new Date(), { minutes: -5 }) ? 5 : 60

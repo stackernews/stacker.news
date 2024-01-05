@@ -1,11 +1,54 @@
 import serialize from '../api/resolvers/serial.js'
 import { getInvoice, getPayment, cancelHodlInvoice } from 'ln-service'
-import { datePivot } from '../lib/time.js'
+import { datePivot, sleep } from '../lib/time.js'
 import { sendUserNotification } from '../api/webPush/index.js'
 import { msatsToSats, numWithUnits } from '../lib/format'
 import { INVOICE_RETENTION_DAYS } from '../lib/constants'
 
 const walletOptions = { startAfter: 5, retryLimit: 21, retryBackoff: true }
+
+export async function subWrapper (subFn, ...eventFns) {
+  while (true) {
+    try {
+      await new Promise((resolve, reject) => {
+        const sub = subFn()
+        for (let i = 0; i < eventFns.length; i += 2) {
+          const [event, fn] = [eventFns[i], eventFns[i + 1]]
+          sub.on(event, async (...args) => {
+            console.log(`event ${event} triggered with args`, args)
+            try {
+              await fn(...args)
+            } catch (error) {
+              console.error(`error running ${event}`, error)
+              return
+            }
+            console.log(`finished ${event}`)
+          })
+        }
+        sub.on('error', (err) => {
+          // LND connection lost
+          // see https://www.npmjs.com/package/ln-service#subscriptions
+          sub.removeAllListeners()
+          reject(err)
+        })
+      })
+    } catch (err) {
+      console.error(err)
+    }
+    await sleep(5000)
+    console.log('attempting to reconnect to LND gRPC API ...')
+  }
+}
+
+export async function checkPendingWithdrawals ({ models, lnd, boss }) {
+  const args = { models, lnd, boss }
+  // check pending withdrawals since they might have been paid while worker was down.
+  const pendingWithdrawals = await models.withdrawl.findMany({ where: { status: null } })
+  for (const w of pendingWithdrawals) {
+    // use sub: true to prevent queueing of jobs
+    await checkWithdrawal({ data: { id: w.id, hash: w.hash, sub: true }, ...args })
+  }
+}
 
 // TODO this should all be done via websockets
 export async function checkInvoice ({ data: { hash, isHeldSet, sub }, boss, models, lnd }) {

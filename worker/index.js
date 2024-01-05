@@ -1,7 +1,7 @@
 import PgBoss from 'pg-boss'
 import nextEnv from '@next/env'
 import { PrismaClient } from '@prisma/client'
-import { checkInvoice, checkWithdrawal, autoDropBolt11s } from './wallet.js'
+import { checkInvoice, checkWithdrawal, autoDropBolt11s, subWrapper, checkPendingWithdrawals } from './wallet.js'
 import { repin } from './repin.js'
 import { trust } from './trust.js'
 import { auction } from './auction.js'
@@ -19,7 +19,6 @@ import { deleteItem } from './ephemeralItems.js'
 import { deleteUnusedImages } from './deleteUnusedImages.js'
 import { territoryBilling } from './territory.js'
 import { ofac } from './ofac.js'
-import { sleep } from '../lib/time.js'
 
 const { loadEnvConfig } = nextEnv
 const { ApolloClient, HttpLink, InMemoryCache } = apolloClient
@@ -71,39 +70,6 @@ async function work () {
     }
   }
 
-  async function subWrapper (subFn, ...eventFns) {
-    while (true) {
-      try {
-        await new Promise((resolve, reject) => {
-          const sub = subFn({ lnd })
-          for (let i = 0; i < eventFns.length; i += 2) {
-            const [event, fn] = [eventFns[i], eventFns[i + 1]]
-            sub.on(event, async (...args) => {
-              console.log(`event ${event} triggered with args`, args)
-              try {
-                await fn(...args)
-              } catch (error) {
-                console.error(`error running ${event}`, error)
-                return
-              }
-              console.log(`finished ${event}`)
-            })
-          }
-          sub.on('error', (err) => {
-            // LND connection lost
-            // see https://www.npmjs.com/package/ln-service#subscriptions
-            sub.removeAllListeners()
-            reject(err)
-          })
-        })
-      } catch (err) {
-        console.error(err)
-      }
-      await sleep(5000)
-      console.log('attempting to reconnect to LND gRPC API ...')
-    }
-  }
-
   await boss.start()
 
   const [lastConfirmed] = await models.$queryRaw`SELECT "confirmedIndex" FROM "Invoice" ORDER BY "confirmedIndex" DESC NULLS LAST LIMIT 1`
@@ -111,7 +77,7 @@ async function work () {
     'invoice_updated', (inv) => checkInvoice({ data: { hash: inv.id, sub: true }, ...args }))
   await boss.work('checkInvoice', jobWrapper(checkInvoice))
 
-  subWrapper(subscribeToPayments,
+  subWrapper(() => subscribeToPayments({ lnd }),
     'confirmed', (inv) => checkWithdrawal({ data: { hash: inv.id, sub: true }, ...args }),
     'failed', (inv) => checkWithdrawal({ data: { hash: inv.id, sub: true } }, ...args),
     'paying', (inv) => {} // ignore payment attempts
@@ -137,12 +103,7 @@ async function work () {
   await boss.work('territoryBilling', jobWrapper(territoryBilling))
   await boss.work('ofac', jobWrapper(ofac))
 
-  // check pending withdrawals since they might have been paid while worker was down.
-  const pendingWithdrawals = await models.withdrawl.findMany({ where: { status: null } })
-  for (const w of pendingWithdrawals) {
-    // use sub: true to prevent queueing of jobs
-    await checkWithdrawal({ data: { id: w.id, hash: w.hash, sub: true }, ...args })
-  }
+  await checkPendingWithdrawals(args)
 
   console.log('working jobs')
 }

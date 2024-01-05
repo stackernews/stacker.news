@@ -1,7 +1,7 @@
 import PgBoss from 'pg-boss'
 import nextEnv from '@next/env'
 import { PrismaClient } from '@prisma/client'
-import { checkInvoice, checkWithdrawal, autoDropBolt11s, subWrapper, checkPendingWithdrawals } from './wallet.js'
+import { checkInvoice, checkWithdrawal, autoDropBolt11s, lndSubscriptions } from './wallet.js'
 import { repin } from './repin.js'
 import { trust } from './trust.js'
 import { auction } from './auction.js'
@@ -12,7 +12,7 @@ import { timestampItem } from './ots.js'
 import { computeStreaks, checkStreak } from './streak.js'
 import { nip57 } from './nostr.js'
 import fetch from 'cross-fetch'
-import { authenticatedLndGrpc, subscribeToInvoices, subscribeToPayments } from 'ln-service'
+import { authenticatedLndGrpc } from 'ln-service'
 import { views, rankViews } from './views.js'
 import { imgproxy } from './imgproxy.js'
 import { deleteItem } from './ephemeralItems.js'
@@ -72,16 +72,8 @@ async function work () {
 
   await boss.start()
 
-  const [lastConfirmed] = await models.$queryRaw`SELECT "confirmedIndex" FROM "Invoice" ORDER BY "confirmedIndex" DESC NULLS LAST LIMIT 1`
-  subWrapper(() => subscribeToInvoices({ lnd, confirmed_after: lastConfirmed?.confirmedIndex }),
-    'invoice_updated', (inv) => checkInvoice({ data: { hash: inv.id, sub: true }, ...args }))
+  lndSubscriptions(args).catch(console.error)
   await boss.work('checkInvoice', jobWrapper(checkInvoice))
-
-  subWrapper(() => subscribeToPayments({ lnd }),
-    'confirmed', (inv) => checkWithdrawal({ data: { hash: inv.id, sub: true }, ...args }),
-    'failed', (inv) => checkWithdrawal({ data: { hash: inv.id, sub: true } }, ...args),
-    'paying', (inv) => {} // ignore payment attempts
-  )
   await boss.work('checkWithdrawal', jobWrapper(checkWithdrawal))
 
   await boss.work('autoDropBolt11s', jobWrapper(autoDropBolt11s))
@@ -102,8 +94,6 @@ async function work () {
   await boss.work('deleteUnusedImages', jobWrapper(deleteUnusedImages))
   await boss.work('territoryBilling', jobWrapper(territoryBilling))
   await boss.work('ofac', jobWrapper(ofac))
-
-  await checkPendingWithdrawals(args)
 
   console.log('working jobs')
 }

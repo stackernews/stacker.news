@@ -1,5 +1,5 @@
 import serialize from '../api/resolvers/serial.js'
-import { getInvoice, getPayment, cancelHodlInvoice } from 'ln-service'
+import { getInvoice, getPayment, cancelHodlInvoice, subscribeToInvoices, subscribeToPayments } from 'ln-service'
 import { datePivot, sleep } from '../lib/time.js'
 import { sendUserNotification } from '../api/webPush/index.js'
 import { msatsToSats, numWithUnits } from '../lib/format'
@@ -7,25 +7,33 @@ import { INVOICE_RETENTION_DAYS } from '../lib/constants'
 
 const walletOptions = { startAfter: 5, retryLimit: 21, retryBackoff: true }
 
-export async function subWrapper (subFn, ...eventFns) {
+export async function lndSubscriptions (args) {
+  subscribeToDeposits(args).catch(console.error)
+  subscribeToWithdrawals(args).catch(console.error)
+}
+
+const logEvent = (name, args) => console.log(`event ${name} triggered with args`, args)
+const logEventError = (name, error) => console.error(`error running ${name}`, error)
+
+async function subscribeToDeposits (args) {
+  const { models, lnd } = args
   while (true) {
     try {
-      await new Promise((resolve, reject) => {
-        const sub = subFn()
-        for (let i = 0; i < eventFns.length; i += 2) {
-          const [event, fn] = [eventFns[i], eventFns[i + 1]]
-          sub.on(event, async (...args) => {
-            console.log(`event ${event} triggered with args`, args)
-            try {
-              await fn(...args)
-            } catch (error) {
-              console.error(`error running ${event}`, error)
-              return
-            }
-            console.log(`finished ${event}`)
-          })
-        }
-        sub.on('error', (err) => {
+      // eslint-disable-next-line no-async-promise-executor
+      await new Promise(async (resolve, reject) => {
+        const [lastConfirmed] = await models.$queryRaw`SELECT "confirmedIndex" FROM "Invoice" ORDER BY "confirmedIndex" DESC NULLS LAST LIMIT 1`
+        // https://www.npmjs.com/package/ln-service#subscribetoinvoices
+        const sub = subscribeToInvoices({ lnd, confirmed_after: lastConfirmed?.confirmedIndex })
+        const eventName = 'invoice_updated'
+        sub.on(eventName, async (inv) => {
+          logEvent(eventName, inv)
+          try {
+            await checkInvoice({ data: { hash: inv.id, sub: true }, ...args })
+          } catch (error) {
+            logEventError(eventName, error)
+          }
+        })
+        sub.on('error', err => {
           // LND connection lost
           // see https://www.npmjs.com/package/ln-service#subscriptions
           sub.removeAllListeners()
@@ -36,13 +44,55 @@ export async function subWrapper (subFn, ...eventFns) {
       console.error(err)
     }
     await sleep(5000)
-    console.log('attempting to reconnect to LND gRPC API ...')
+    console.log('attempting to reconnect to LND gRPC API for deposits ...')
   }
 }
 
-export async function checkPendingWithdrawals ({ models, lnd, boss }) {
-  const args = { models, lnd, boss }
+async function subscribeToWithdrawals (args) {
+  const { lnd } = args
   // check pending withdrawals since they might have been paid while worker was down.
+  await checkPendingWithdrawals(args)
+  while (true) {
+    try {
+      // eslint-disable-next-line no-async-promise-executor
+      await new Promise(async (resolve, reject) => {
+        // https://www.npmjs.com/package/ln-service#subscribetopayments
+        const sub = subscribeToPayments({ lnd })
+        sub.on('confirmed', async (payment) => {
+          logEvent('confirmed', payment)
+          try {
+            await checkWithdrawal({ data: { hash: payment.id, sub: true }, ...args })
+          } catch (error) {
+            logEventError('confirmed', error)
+          }
+        })
+        sub.on('failed', async (payment) => {
+          logEvent('failed', payment)
+          try {
+            await checkWithdrawal({ data: { hash: payment.id, sub: true }, ...args })
+          } catch (error) {
+            logEventError('failed', error)
+          }
+        })
+        // ignore payment attempts
+        sub.on('paying', (attempt) => {})
+        sub.on('error', err => {
+          // LND connection lost
+          // see https://www.npmjs.com/package/ln-service#subscriptions
+          sub.removeAllListeners()
+          reject(err)
+        })
+      })
+    } catch (err) {
+      console.error(err)
+    }
+    await sleep(5000)
+    console.log('attempting to reconnect to LND gRPC API for withdrawals ...')
+  }
+}
+
+async function checkPendingWithdrawals (args) {
+  const { models } = args
   const pendingWithdrawals = await models.withdrawl.findMany({ where: { status: null } })
   for (const w of pendingWithdrawals) {
     // use sub: true to prevent queueing of jobs

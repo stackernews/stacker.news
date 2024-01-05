@@ -1,18 +1,11 @@
 import serialize from '../api/resolvers/serial.js'
 import { getInvoice, getPayment, cancelHodlInvoice, subscribeToInvoices, subscribeToPayments } from 'ln-service'
-import { sleep } from '../lib/time.js'
 import { sendUserNotification } from '../api/webPush/index.js'
 import { msatsToSats, numWithUnits } from '../lib/format'
 import { INVOICE_RETENTION_DAYS } from '../lib/constants'
 
 export async function lndSubscriptions (args) {
   subscribeToDeposits(args).catch(console.error)
-  // NOTE:
-  //   This can be removed when all pending invoices that were created before we switched off polling ("pre-migration invoices") have finalized.
-  //   This is one hour after deployment since that's when these invoices expire if they weren't paid already.
-  //   This is required to sync the database with any invoice that was paid and thus will not trigger the callback of `subscribeToInvoices` anymore.
-  //   For pre-migration invoices that weren't paid, we can rely on the LND subscription to trigger on updates.
-  await checkPendingDeposits(args)
   subscribeToWithdrawals(args).catch(console.error)
 }
 
@@ -21,78 +14,56 @@ const logEventError = (name, error) => console.error(`error running ${name}`, er
 
 async function subscribeToDeposits (args) {
   const { models, lnd } = args
-  while (true) {
+
+  const [lastConfirmed] = await models.$queryRaw`SELECT "confirmedIndex" FROM "Invoice" ORDER BY "confirmedIndex" DESC NULLS LAST LIMIT 1`
+
+  // https://www.npmjs.com/package/ln-service#subscribetoinvoices
+  const sub = subscribeToInvoices({ lnd, confirmed_after: lastConfirmed?.confirmedIndex })
+  sub.on('invoice_updated', async (inv) => {
+    logEvent('invoice_updated', inv)
     try {
-      // eslint-disable-next-line no-async-promise-executor
-      await new Promise(async (resolve, reject) => {
-        const [lastConfirmed] = await models.$queryRaw`SELECT "confirmedIndex" FROM "Invoice" ORDER BY "confirmedIndex" DESC NULLS LAST LIMIT 1`
-        // https://www.npmjs.com/package/ln-service#subscribetoinvoices
-        const sub = subscribeToInvoices({ lnd, confirmed_after: lastConfirmed?.confirmedIndex })
-        const eventName = 'invoice_updated'
-        sub.on(eventName, async (inv) => {
-          logEvent(eventName, inv)
-          try {
-            await checkInvoice({ data: { hash: inv.id }, ...args })
-          } catch (error) {
-            logEventError(eventName, error)
-          }
-        })
-        sub.on('error', err => {
-          // LND connection lost
-          // see https://www.npmjs.com/package/ln-service#subscriptions
-          sub.removeAllListeners()
-          reject(err)
-        })
-      })
-    } catch (err) {
-      console.error(err)
+      await checkInvoice({ data: { hash: inv.id }, ...args })
+    } catch (error) {
+      logEventError('invoice_updated', error)
     }
-    await sleep(5000)
-    console.log('attempting to reconnect to LND gRPC API for deposits ...')
-  }
+  })
+  sub.on('error', console.error)
+
+  // NOTE:
+  //   This can be removed when all pending invoices that were created before we switched off polling ("pre-migration invoices") have finalized.
+  //   This is one hour after deployment since that's when these invoices expire if they weren't paid already.
+  //   This is required to sync the database with any invoice that was paid and thus will not trigger the callback of `subscribeToInvoices` anymore.
+  //   For pre-migration invoices that weren't paid, we can rely on the LND subscription to trigger on updates.
+  await checkPendingDeposits(args)
 }
 
 async function subscribeToWithdrawals (args) {
   const { lnd } = args
+
+  // https://www.npmjs.com/package/ln-service#subscribetopayments
+  const sub = subscribeToPayments({ lnd })
+  sub.on('confirmed', async (payment) => {
+    logEvent('confirmed', payment)
+    try {
+      await checkWithdrawal({ data: { hash: payment.id }, ...args })
+    } catch (error) {
+      logEventError('confirmed', error)
+    }
+  })
+  sub.on('failed', async (payment) => {
+    logEvent('failed', payment)
+    try {
+      await checkWithdrawal({ data: { hash: payment.id }, ...args })
+    } catch (error) {
+      logEventError('failed', error)
+    }
+  })
+  // ignore payment attempts
+  sub.on('paying', (attempt) => {})
+  sub.on('error', console.error)
+
   // check pending withdrawals since they might have been paid while worker was down.
   await checkPendingWithdrawals(args)
-  while (true) {
-    try {
-      // eslint-disable-next-line no-async-promise-executor
-      await new Promise(async (resolve, reject) => {
-        // https://www.npmjs.com/package/ln-service#subscribetopayments
-        const sub = subscribeToPayments({ lnd })
-        sub.on('confirmed', async (payment) => {
-          logEvent('confirmed', payment)
-          try {
-            await checkWithdrawal({ data: { hash: payment.id }, ...args })
-          } catch (error) {
-            logEventError('confirmed', error)
-          }
-        })
-        sub.on('failed', async (payment) => {
-          logEvent('failed', payment)
-          try {
-            await checkWithdrawal({ data: { hash: payment.id }, ...args })
-          } catch (error) {
-            logEventError('failed', error)
-          }
-        })
-        // ignore payment attempts
-        sub.on('paying', (attempt) => {})
-        sub.on('error', err => {
-          // LND connection lost
-          // see https://www.npmjs.com/package/ln-service#subscriptions
-          sub.removeAllListeners()
-          reject(err)
-        })
-      })
-    } catch (err) {
-      console.error(err)
-    }
-    await sleep(5000)
-    console.log('attempting to reconnect to LND gRPC API for withdrawals ...')
-  }
 }
 
 async function checkPendingWithdrawals (args) {

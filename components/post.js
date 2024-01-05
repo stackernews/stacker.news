@@ -99,16 +99,18 @@ export function PostForm ({ type, sub, children }) {
     }, [])
 
     return (
-      <div className='position-relative align-items-center'>
+      <div className='position-relative d-flex flex-column align-items-center'>
         {errorMessage &&
           <Alert className='position-absolute' style={{ top: '-6rem' }} variant='danger' onClose={() => setErrorMessage(undefined)} dismissible>
             {errorMessage}
           </Alert>}
         <SubSelect prependSubs={['pick territory']} className='w-auto d-flex' noForm sub={sub?.name} hint={sub?.moderated && 'this territory is moderated'} />
-        <div className='my-3'>
+        <div className='mb-3 w-100'>
           {sub && <TerritoryDetails sub={sub} show />}
         </div>
-        {postButtons}
+        <div>
+          {postButtons}
+        </div>
         <div className='d-flex mt-4'>
           <AccordianItem
             headerColor='#6c757d'

@@ -19,13 +19,6 @@ export const SUB_FIELDS = gql`
     moderated
     moderatedCount
     meMuteSub
-    user {
-      name
-      id
-      optional {
-        streak
-      }
-    }
   }`
 
 export const SUB_FULL_FIELDS = gql`

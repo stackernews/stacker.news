@@ -11,10 +11,9 @@ import Share from './share'
 import { gql, useMutation } from '@apollo/client'
 import { useToast } from './toast'
 
-export function TerritoryDetails ({ sub, show }) {
+export function TerritoryDetails ({ sub }) {
   return (
     <AccordianCard
-      show={show}
       header={
         <small className='text-muted fw-bold align-items-center d-flex'>
           territory details

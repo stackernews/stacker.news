@@ -3,7 +3,7 @@ import AccordionContext from 'react-bootstrap/AccordionContext'
 import { useAccordionButton } from 'react-bootstrap/AccordionButton'
 import ArrowRight from '../svgs/arrow-right-s-fill.svg'
 import ArrowDown from '../svgs/arrow-down-s-fill.svg'
-import { useContext, useState } from 'react'
+import { useContext } from 'react'
 
 function ContextAwareToggle ({ children, headerColor = 'var(--theme-grey)', eventKey }) {
   const { activeEventKey } = useContext(AccordionContext)
@@ -33,10 +33,8 @@ export default function AccordianItem ({ header, body, headerColor = 'var(--them
 }
 
 export function AccordianCard ({ header, children, show }) {
-  const [open, setOpen] = useState(show)
-  const toggleOpen = () => setOpen(open => !open)
   return (
-    <Accordion activeKey={open ? '0' : undefined} defaultActiveKey={show ? '0' : undefined} onClick={toggleOpen}>
+    <Accordion defaultActiveKey={show ? '0' : undefined}>
       <Accordion.Item eventKey='0'>
         <Accordion.Header>{header}</Accordion.Header>
         <Accordion.Body>

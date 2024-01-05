@@ -106,7 +106,7 @@ export function PostForm ({ type, sub, children }) {
           </Alert>}
         <SubSelect prependSubs={['pick territory']} className='w-auto d-flex' noForm sub={sub?.name} hint={sub?.moderated && 'this territory is moderated'} />
         <div className='mb-3 w-100'>
-          {sub && <TerritoryDetails sub={sub} show />}
+          {sub && <TerritoryDetails sub={sub} />}
         </div>
         <div>
           {postButtons}

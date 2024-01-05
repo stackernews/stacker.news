@@ -160,7 +160,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
       </div>
       {!noReply &&
         <>
-          <Reply item={item} replyOpen placeholder={item.ncomments ? undefined : 'start the conversation ...'} onCancelQuote={cancelQuote} onQuoteReply={quoteReply} quote={quote} />
+          <Reply item={item} replyOpen placeholder={item.ncomments > 3 ? 'fractions of a penny for your thoughts?' : 'early comments get more zaps'} onCancelQuote={cancelQuote} onQuoteReply={quoteReply} quote={quote} />
           {!item.position && !item.isJob && !item.parentId && !item.bounty > 0 && <Related title={item.title} itemId={item.id} />}
           {item.bounty > 0 && <PastBounties item={item} />}
         </>}

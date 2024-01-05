@@ -80,7 +80,7 @@ export function WalletLimitBanner () {
         Your wallet is over the current limit ({numWithUnits(msatsToSats(BALANCE_LIMIT_MSATS))})
       </Alert.Heading>
       <p className='mb-1'>
-        You will not be able to deposit any more funds from <strong>outside</strong> of SN.
+        Deposits to your wallet from <strong>outside</strong> of SN are blocked.
       </p>
       <p>
         Please spend or withdraw sats to restore full wallet functionality.

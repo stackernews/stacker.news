@@ -147,8 +147,6 @@ async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
       models.$executeRaw`SELECT confirm_invoice(${inv.id}, ${Number(inv.received_mtokens)})`,
       models.invoice.update({ where: { hash }, data: { confirmedIndex: inv.confirmed_index } })
     )
-    // only send push notifications in the context of a LND subscription.
-    // else, when this code is run from polling context, we would send another push notification.
     sendUserNotification(dbInv.userId, {
       title: `${numWithUnits(msatsToSats(inv.received_mtokens), { abbreviate: false })} were deposited in your account`,
       body: dbInv.comment || undefined,

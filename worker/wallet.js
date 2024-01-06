@@ -1,5 +1,5 @@
 import serialize from '../api/resolvers/serial.js'
-import { getInvoice, getPayment, cancelHodlInvoice, subscribeToInvoices, subscribeToPayments } from 'ln-service'
+import { getInvoice, getPayment, cancelHodlInvoice, subscribeToInvoices, subscribeToPayments, subscribeToInvoice } from 'ln-service'
 import { sendUserNotification } from '../api/webPush/index.js'
 import { msatsToSats, numWithUnits } from '../lib/format'
 import { INVOICE_RETENTION_DAYS } from '../lib/constants'
@@ -20,6 +20,13 @@ async function subscribeToDeposits (args) {
   // https://www.npmjs.com/package/ln-service#subscribetoinvoices
   const sub = subscribeToInvoices({ lnd, confirmed_after: lastConfirmed?.confirmedIndex })
   sub.on('invoice_updated', async (inv) => {
+    if (!inv.secret) {
+      // this is a HODL invoice. We need to use SubscribeToInvoice
+      // to get all state transition since SubscribeToInvoices is only for invoice creation and settlement.
+      // see https://api.lightning.community/api/lnd/invoices/subscribe-single-invoice
+      //  vs https://api.lightning.community/api/lnd/lightning/subscribe-invoices
+      return subscribeToHodlInvoice({ hash: inv.id, ...args }).catch(console.error)
+    }
     logEvent('invoice_updated', inv)
     try {
       await checkInvoice({ data: { hash: inv.id }, ...args })
@@ -35,6 +42,36 @@ async function subscribeToDeposits (args) {
   //   This is required to sync the database with any invoice that was paid and thus will not trigger the callback of `subscribeToInvoices` anymore.
   //   For pre-migration invoices that weren't paid, we can rely on the LND subscription to trigger on updates.
   await checkPendingDeposits(args)
+}
+
+async function subscribeToHodlInvoice (args) {
+  const { lnd, hash } = args
+  let sub
+  try {
+    await new Promise((resolve, reject) => {
+      // https://www.npmjs.com/package/ln-service#subscribetoinvoice
+      sub = subscribeToInvoice({ id: hash, lnd })
+      sub.on('invoice_updated', async (inv) => {
+        logEvent('invoice_updated', inv)
+        try {
+          await checkInvoice({ data: { hash: inv.id }, ...args })
+          const expired = new Date(inv.expires_at) <= new Date()
+          // on any of these conditions, the invoice was finalized
+          // and we are thus no longer interested in invoice updates
+          if (expired || inv.is_held || inv.is_canceled) {
+            return resolve()
+          }
+        } catch (error) {
+          logEventError('invoice_updated', error)
+          reject(error)
+        }
+      })
+      sub.on('error', reject)
+    })
+  } catch (error) {
+    console.error(error)
+  }
+  sub?.removeAllListeners()
 }
 
 async function subscribeToWithdrawals (args) {

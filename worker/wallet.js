@@ -92,7 +92,9 @@ async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
   }
   console.log(inv)
 
-  // check if invoice still exists since HODL invoices get deleted after usage
+  // check if invoice exists since it might just have been created by LND and wasn't inserted into the database yet
+  // but that is not a problem since this function will be called again with the update
+  // FIXME: there might be a race condition here if the invoice gets paid before the invoice was inserted into the db.
   const dbInv = await models.invoice.findUnique({ where: { hash } })
   if (!dbInv) {
     console.log('invoice not found in database', hash)

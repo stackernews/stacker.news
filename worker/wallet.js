@@ -235,8 +235,7 @@ async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
       status = 'PATHFINDING_TIMEOUT'
     } else if (wdrwl?.failed.is_route_not_found) {
       status = 'ROUTE_NOT_FOUND'
-    }
-    await serialize(models, models.$executeRaw`SELECT reverse_withdrawl(${id}::INTEGER, ${status}::"WithdrawlStatus")`)
+    } else await serialize(models, models.$executeRaw`SELECT reverse_withdrawl(${id}::INTEGER, ${status}::"WithdrawlStatus")`)
   }
 }
 

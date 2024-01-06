@@ -301,7 +301,12 @@ export default {
             ${expiresAt}::timestamp, ${amount * 1000}, ${user.id}::INTEGER, ${description}, NULL, NULL,
             ${invLimit}::INTEGER, ${balanceLimit})`)
 
-        if (hodlInvoice) await models.invoice.update({ where: { hash: invoice.id }, data: { preimage: invoice.secret } })
+        if (hodlInvoice) {
+          await models.invoice.update({ where: { hash: invoice.id }, data: { preimage: invoice.secret } })
+          await models.$queryRaw`
+          INSERT INTO pgboss.job(name, data, startafter)
+          VALUES ('finalizeHodlInvoice', ${JSON.stringify({ hash: invoice.id })}::JSONB, ${expiresAt})`
+        }
 
         // the HMAC is only returned during invoice creation
         // this makes sure that only the person who created this invoice

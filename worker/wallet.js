@@ -52,17 +52,19 @@ async function subscribeToHodlInvoice (args) {
       // https://www.npmjs.com/package/ln-service#subscribetoinvoice
       sub = subscribeToInvoice({ id: hash, lnd })
       sub.on('invoice_updated', async (inv) => {
-        logEvent('invoice_updated', inv)
+        logEvent('hodl_invoice_updated', inv)
         try {
           await checkInvoice({ data: { hash: inv.id }, ...args })
-          const expired = new Date(inv.expires_at) <= new Date()
-          // on any of these conditions, the invoice was finalized
-          // and we are thus no longer interested in invoice updates
-          if (expired || inv.is_held || inv.is_canceled) {
+          // If invoice is canceled, the invoice was finalized and there will be no more updates for this HODL invoice.
+          // On expiration, the callback will also get called with `is_canceled` set, so expiration is the same as cancelation.
+          // However, the callback will NOT get called if the HODL invoice was already paid.
+          // We run a job for this case to manually cancel the invoice if it wasn't settled yet.
+          // That's why we can also stop listening for updates when the invoice was already paid (`is_held` set).
+          if (inv.is_held || inv.is_canceled) {
             return resolve()
           }
         } catch (error) {
-          logEventError('invoice_updated', error)
+          logEventError('hodl_invoice_updated', error)
           reject(error)
         }
       })
@@ -72,6 +74,17 @@ async function subscribeToHodlInvoice (args) {
     console.error(error)
   }
   sub?.removeAllListeners()
+}
+
+export async function finalizeHodlInvoice ({ data: { hash }, models, lnd }) {
+  let inv
+  try {
+    inv = await getInvoice({ id: hash, lnd })
+  } catch (err) {
+    console.log(err, hash)
+    return
+  }
+  if (!inv.is_confirmed) await cancelHodlInvoice({ id: hash, lnd })
 }
 
 async function subscribeToWithdrawals (args) {

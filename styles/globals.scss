@@ -144,6 +144,8 @@ $accordion-button-active-icon-dark:  $accordion-button-icon;
   --theme-brandColor: rgba(0, 0, 0, 0.9);
   --theme-grey: #707070;
   --theme-link: #007cbe;
+  --theme-toolbarActive: rgba(0, 0, 0, 0.10);
+  --theme-toolbarHover: rgba(0, 0, 0, 0.20);
   --theme-quoteBar: rgb(206, 208, 212);
   --theme-linkHover: #004a72;
   --theme-linkVisited: #53758;
@@ -753,7 +755,7 @@ div[contenteditable]:focus,
 }
 
 .fill-danger {
-  fill: var(--bs-danger);
+  fill: var(--bs-danger) !important;
 }
 
 .fill-theme-color {

@@ -30,6 +30,7 @@ export const WITHDRAWL = gql`
       satsFeePaying
       satsFeePaid
       status
+      autoWithdraw
     }
   }`
 
@@ -41,6 +42,7 @@ export const WALLET_HISTORY = gql`
       facts {
         id
         bolt11
+        autoWithdraw
         type
         createdAt
         sats

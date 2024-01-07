@@ -45,6 +45,7 @@ export default gql`
     satsFeePaying: Int!
     satsFeePaid: Int
     status: String
+    autoWithdraw: Boolean!
   }
 
   type Fact {
@@ -55,6 +56,7 @@ export default gql`
     bolt11: String
     status: String
     description: String
+    autoWithdraw: Boolean
     item: Item
     invoiceComment: String
     invoicePayerData: JSONObject

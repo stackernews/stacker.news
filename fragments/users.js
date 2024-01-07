@@ -39,6 +39,9 @@ export const ME = gql`
         upvotePopover
         wildWestMode
         withdrawMaxFeeDefault
+        lnAddr
+        autoWithdrawMaxFeePercent
+        autoWithdrawThreshold
       }
       optional {
         isContributor
@@ -104,6 +107,20 @@ mutation setSettings($settings: SettingsInput!) {
   setSettings(settings: $settings) {
     ...SettingsFields
   }
+}
+`
+
+export const SET_AUTOWITHDRAW =
+gql`
+mutation setAutoWithdraw($lnAddr: String!, $autoWithdrawThreshold: Int!, $autoWithdrawMaxFeePercent: Float!) {
+  setAutoWithdraw(lnAddr: $lnAddr, autoWithdrawThreshold: $autoWithdrawThreshold, autoWithdrawMaxFeePercent: $autoWithdrawMaxFeePercent)
+}
+`
+
+export const REMOVE_AUTOWITHDRAW =
+gql`
+mutation removeAutoWithdraw {
+  removeAutoWithdraw
 }
 `
 

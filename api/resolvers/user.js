@@ -3,7 +3,7 @@ import { join, resolve } from 'path'
 import { GraphQLError } from 'graphql'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { msatsToSats } from '../../lib/format'
-import { bioSchema, emailSchema, settingsSchema, ssValidate, userSchema } from '../../lib/validate'
+import { bioSchema, emailSchema, lnAddrAutowithdrawSchema, settingsSchema, ssValidate, userSchema } from '../../lib/validate'
 import { getItem, updateItem, filterClause, createItem, whereClause, muteClause } from './item'
 import { ANON_USER_ID, DELETE_USER_ID, RESERVED_MAX_USER_ID } from '../../lib/constants'
 import { viewIntervalClause, intervalClause } from './growth'
@@ -516,6 +516,36 @@ export default {
         }
         throw error
       }
+    },
+    setAutoWithdraw: async (parent, data, { me, models }) => {
+      if (!me) {
+        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+      }
+
+      await ssValidate(lnAddrAutowithdrawSchema, data, { models })
+
+      await models.user.update({
+        where: { id: me.id },
+        data
+      })
+
+      return true
+    },
+    removeAutoWithdraw: async (parent, data, { me, models }) => {
+      if (!me) {
+        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+      }
+
+      await models.user.update({
+        where: { id: me.id },
+        data: {
+          lnAddr: null,
+          autoWithdrawThreshold: null,
+          autoWithdrawMaxFeePercent: null
+        }
+      })
+
+      return true
     },
     setSettings: async (parent, { settings: { nostrRelays, ...data } }, { me, models }) => {
       if (!me) {

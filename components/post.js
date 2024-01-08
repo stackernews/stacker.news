@@ -14,6 +14,7 @@ import { useCallback, useState } from 'react'
 import FeeButton, { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
 import Delete from './delete'
 import CancelButton from './cancel-button'
+import { TerritoryDetails } from './territory-header'
 
 export function PostForm ({ type, sub, children }) {
   const me = useMe()
@@ -98,14 +99,18 @@ export function PostForm ({ type, sub, children }) {
     }, [])
 
     return (
-      <div className='position-relative align-items-center'>
+      <div className='position-relative d-flex flex-column align-items-center'>
         {errorMessage &&
           <Alert className='position-absolute' style={{ top: '-6rem' }} variant='danger' onClose={() => setErrorMessage(undefined)} dismissible>
             {errorMessage}
           </Alert>}
         <SubSelect prependSubs={['pick territory']} className='w-auto d-flex' noForm sub={sub?.name} hint={sub?.moderated && 'this territory is moderated'} />
-
-        {postButtons}
+        <div className='mb-3 w-100'>
+          {sub && <TerritoryDetails sub={sub} />}
+        </div>
+        <div>
+          {postButtons}
+        </div>
         <div className='d-flex mt-4'>
           <AccordianItem
             headerColor='#6c757d'

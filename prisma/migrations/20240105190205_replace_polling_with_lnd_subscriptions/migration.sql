@@ -1,7 +1,8 @@
--- This is an empty migration.
-
 -- remove 'checkInvoice' job insertion since we're using LND subscriptions now
-CREATE OR REPLACE FUNCTION create_invoice(hash TEXT, bolt11 TEXT, expires_at timestamp(3) without time zone,
+-- also allow function to take preimage as an argument
+DROP FUNCTION IF EXISTS create_invoice(hash TEXT, bolt11 TEXT, expires_at timestamp(3) without time zone,
+    msats_req BIGINT, user_id INTEGER, idesc TEXT, comment TEXT, lud18_data JSONB, inv_limit INTEGER, balance_limit_msats BIGINT);
+CREATE OR REPLACE FUNCTION create_invoice(hash TEXT, preimage TEXT, bolt11 TEXT, expires_at timestamp(3) without time zone,
     msats_req BIGINT, user_id INTEGER, idesc TEXT, comment TEXT, lud18_data JSONB, inv_limit INTEGER, balance_limit_msats BIGINT)
 RETURNS "Invoice"
 LANGUAGE plpgsql
@@ -33,8 +34,13 @@ BEGIN
     END IF;
 
     -- we good, proceed frens
-    INSERT INTO "Invoice" (hash, bolt11, "expiresAt", "msatsRequested", "userId", created_at, updated_at, "desc", comment, "lud18Data")
-    VALUES (hash, bolt11, expires_at, msats_req, user_id, now_utc(), now_utc(), idesc, comment, lud18_data) RETURNING * INTO invoice;
+    INSERT INTO "Invoice" (hash, preimage, bolt11, "expiresAt", "msatsRequested", "userId", created_at, updated_at, "desc", comment, "lud18Data")
+    VALUES (hash, preimage, bolt11, expires_at, msats_req, user_id, now_utc(), now_utc(), idesc, comment, lud18_data) RETURNING * INTO invoice;
+
+    IF preimage IS NOT NULL THEN
+        INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
+        VALUES ('finalizeHodlInvoice', jsonb_build_object('hash', hash), 21, true, expires_at);
+    END IF;
 
     RETURN invoice;
 END;
@@ -73,3 +79,20 @@ BEGIN
     RETURN withdrawl;
 END;
 $$;
+
+CREATE OR REPLACE FUNCTION check_invoices_and_withdrawals()
+RETURNS INTEGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+BEGIN
+    INSERT INTO pgboss.schedule (name, cron, timezone) VALUES ('checkPendingDeposits', '*/10 * * * *', 'America/Chicago') ON CONFLICT DO NOTHING;
+    INSERT INTO pgboss.schedule (name, cron, timezone) VALUES ('checkPendingWithdrawals', '*/10 * * * *', 'America/Chicago') ON CONFLICT DO NOTHING;
+    return 0;
+EXCEPTION WHEN OTHERS THEN
+    return 0;
+END;
+$$;
+
+SELECT check_invoices_and_withdrawals();
+DROP FUNCTION check_invoices_and_withdrawals();

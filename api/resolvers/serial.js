@@ -77,9 +77,8 @@ export async function serializeInvoicable (query, { models, lnd, hash, hmac, me,
   if (hash) {
     invoice = await checkInvoice(models, hash, hmac, enforceFee)
     trx = [
-      models.$queryRaw`UPDATE users SET msats = msats + ${invoice.msatsReceived} WHERE id = ${invoice.user.id}`,
-      ...trx,
-      models.invoice.update({ where: { hash: invoice.hash }, data: { confirmedAt: new Date() } })
+      models.$executeRaw`SELECT confirm_invoice(${hash}, ${invoice.msatsReceived})`,
+      ...trx
     ]
   }
 

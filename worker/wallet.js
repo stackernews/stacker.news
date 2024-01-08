@@ -1,47 +1,130 @@
 import serialize from '../api/resolvers/serial.js'
-import { getInvoice, getPayment, cancelHodlInvoice } from 'ln-service'
-import { datePivot } from '../lib/time.js'
+import {
+  getInvoice, getPayment, cancelHodlInvoice,
+  subscribeToInvoices, subscribeToPayments, subscribeToInvoice
+} from 'ln-service'
 import { sendUserNotification } from '../api/webPush/index.js'
 import { msatsToSats, numWithUnits } from '../lib/format'
 import { INVOICE_RETENTION_DAYS } from '../lib/constants'
+import { sleep } from '../lib/time.js'
 
-const walletOptions = { startAfter: 5, retryLimit: 21, retryBackoff: true }
+export async function subscribeToWallet (args) {
+  await subscribeToDeposits(args)
+  await subscribeToWithdrawals(args)
+}
 
-// TODO this should all be done via websockets
-export async function checkInvoice ({ data: { hash, isHeldSet }, boss, models, lnd }) {
-  let inv
+const logEvent = (name, args) => console.log(`event ${name} triggered with args`, args)
+const logEventError = (name, error) => console.error(`error running ${name}`, error)
+
+async function subscribeToDeposits (args) {
+  const { models, lnd } = args
+
+  const [lastConfirmed] = await models.$queryRaw`
+    SELECT "confirmedIndex"
+    FROM "Invoice"
+    ORDER BY "confirmedIndex" DESC NULLS LAST
+    LIMIT 1`
+
+  // https://www.npmjs.com/package/ln-service#subscribetoinvoices
+  const sub = subscribeToInvoices({ lnd, confirmed_after: lastConfirmed?.confirmedIndex })
+  sub.on('invoice_updated', async (inv) => {
+    try {
+      if (inv.secret) {
+        logEvent('invoice_updated', inv)
+        await checkInvoice({ data: { hash: inv.id }, ...args })
+      } else {
+        // this is a HODL invoice. We need to use SubscribeToInvoice which has is_held transitions
+        // https://api.lightning.community/api/lnd/invoices/subscribe-single-invoice
+        // SubscribeToInvoices is only for invoice creation and settlement transitions
+        // https://api.lightning.community/api/lnd/lightning/subscribe-invoices
+        await subscribeToHodlInvoice({ hash: inv.id, ...args })
+      }
+    } catch (error) {
+      // XXX This is a critical error
+      // It might mean that we failed to record an invoice confirming
+      // and we won't get another chance to record it until restart
+      logEventError('invoice_updated', error)
+    }
+  })
+  sub.on('error', console.error)
+
+  // check pending deposits as a redundancy in case we failed to record
+  // an invoice_updated event
+  await checkPendingDeposits(args)
+}
+
+async function subscribeToHodlInvoice (args) {
+  const { lnd, hash, models } = args
+  let sub
   try {
-    inv = await getInvoice({ id: hash, lnd })
-  } catch (err) {
-    console.log(err, hash)
-    // on lnd related errors, we manually retry so we don't exponentially backoff
-    await boss.send('checkInvoice', { hash }, walletOptions)
+    await new Promise((resolve, reject) => {
+      // https://www.npmjs.com/package/ln-service#subscribetoinvoice
+      sub = subscribeToInvoice({ id: hash, lnd })
+      sub.on('invoice_updated', async (inv) => {
+        logEvent('hodl_invoice_updated', inv)
+        try {
+          // record the is_held transition
+          if (inv.is_held) {
+            // this is basically confirm_invoice without setting confirmed_at
+            // and without setting the user balance
+            // those will be set when the invoice is settled by user action
+            await models.invoice.update({
+              where: { hash },
+              data: {
+                msatsReceived: Number(inv.received_mtokens),
+                isHeld: true
+              }
+            })
+            // after that we can stop listening for updates
+            resolve()
+          }
+        } catch (error) {
+          logEventError('hodl_invoice_updated', error)
+          reject(error)
+        }
+      })
+      sub.on('error', reject)
+    })
+  } finally {
+    sub?.removeAllListeners()
+  }
+}
+
+async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
+  const inv = await getInvoice({ id: hash, lnd })
+
+  // invoice could be created by LND but wasn't inserted into the database yet
+  // this is expected and the function will be called again with the updates
+  const dbInv = await models.invoice.findUnique({ where: { hash } })
+  if (!dbInv) {
+    console.log('invoice not found in database', hash)
     return
   }
-  console.log(inv)
 
-  // check if invoice still exists since HODL invoices get deleted after usage
-  const dbInv = await models.invoice.findUnique({ where: { hash } })
-  if (!dbInv) return
-
-  const expired = new Date(inv.expires_at) <= new Date()
-
-  if (inv.is_confirmed && !inv.is_held) {
-    // never mark hodl invoices as confirmed here because
-    // we manually confirm them when we settle them
+  if (inv.is_confirmed) {
+    // NOTE: confirm invoice prevents double confirmations (idempotent)
+    // ALSO: is_confirmed and is_held are mutually exclusive
+    // that is, a hold invoice will first be is_held but not is_confirmed
+    // and once it's settled it will be is_confirmed but not is_held
     await serialize(models,
-      models.$executeRaw`SELECT confirm_invoice(${inv.id}, ${Number(inv.received_mtokens)})`)
+      models.$executeRaw`SELECT confirm_invoice(${inv.id}, ${Number(inv.received_mtokens)})`,
+      models.invoice.update({ where: { hash }, data: { confirmedIndex: inv.confirmed_index } })
+    )
+
+    // don't send notifications for hodl invoices
+    if (dbInv.preimage) return
+
     sendUserNotification(dbInv.userId, {
       title: `${numWithUnits(msatsToSats(inv.received_mtokens), { abbreviate: false })} were deposited in your account`,
       body: dbInv.comment || undefined,
       tag: 'DEPOSIT',
       data: { sats: msatsToSats(inv.received_mtokens) }
     }).catch(console.error)
-    return boss.send('nip57', { hash })
+    return await boss.send('nip57', { hash })
   }
 
   if (inv.is_canceled) {
-    return serialize(models,
+    return await serialize(models,
       models.invoice.update({
         where: {
           hash: inv.id
@@ -51,41 +134,62 @@ export async function checkInvoice ({ data: { hash, isHeldSet }, boss, models, l
         }
       }))
   }
-
-  if (inv.is_held && !isHeldSet) {
-    // this is basically confirm_invoice without setting confirmed_at since it's not settled yet
-    // and without setting the user balance since that's done inside the same tx as the HODL invoice action.
-    await serialize(models,
-      models.invoice.update({ where: { hash }, data: { msatsReceived: Number(inv.received_mtokens), isHeld: true } }))
-    // remember that we already executed this if clause
-    // (even though the query above is idempotent but imo, this makes the flow more clear)
-    isHeldSet = true
-  }
-
-  if (!expired) {
-    // recheck in 5 seconds if the invoice is younger than 5 minutes
-    // otherwise recheck in 60 seconds
-    const startAfter = new Date(inv.created_at) > datePivot(new Date(), { minutes: -5 }) ? 5 : 60
-    await boss.send('checkInvoice', { hash, isHeldSet }, { ...walletOptions, startAfter })
-  }
-
-  if (expired && inv.is_held) {
-    await cancelHodlInvoice({ id: hash, lnd })
-  }
 }
 
-export async function checkWithdrawal ({ data: { id, hash }, boss, models, lnd }) {
+async function subscribeToWithdrawals (args) {
+  const { lnd } = args
+
+  // https://www.npmjs.com/package/ln-service#subscribetopayments
+  const sub = subscribeToPayments({ lnd })
+  sub.on('confirmed', async (payment) => {
+    logEvent('confirmed', payment)
+    try {
+      await checkWithdrawal({ data: { hash: payment.id }, ...args })
+    } catch (error) {
+      // XXX This is a critical error
+      // It might mean that we failed to record an invoice confirming
+      // and we won't get another chance to record it until restart
+      logEventError('confirmed', error)
+    }
+  })
+  sub.on('failed', async (payment) => {
+    logEvent('failed', payment)
+    try {
+      await checkWithdrawal({ data: { hash: payment.id }, ...args })
+    } catch (error) {
+      // XXX This is a critical error
+      // It might mean that we failed to record an invoice confirming
+      // and we won't get another chance to record it until restart
+      logEventError('failed', error)
+    }
+  })
+  // ignore payment attempts
+  sub.on('paying', (attempt) => {})
+  sub.on('error', console.error)
+
+  // check pending withdrawals since they might have been paid while worker was down
+  await checkPendingWithdrawals(args)
+}
+
+async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
+  const dbWdrwl = await models.withdrawl.findFirst({ where: { hash } })
+  if (!dbWdrwl) {
+    // [WARNING] LND paid an invoice that wasn't created via the SN GraphQL API.
+    // >>> an adversary might be draining our funds right now <<<
+    console.error('unexpected outgoing payment detected:', hash)
+    // TODO: log this in Slack
+    return
+  }
+
   let wdrwl
   let notFound = false
   try {
     wdrwl = await getPayment({ id: hash, lnd })
   } catch (err) {
-    console.log(err)
     if (err[1] === 'SentPaymentNotFound') {
       notFound = true
     } else {
-      // on lnd related errors, we manually retry so we don't exponentially backoff
-      await boss.send('checkWithdrawal', { id, hash }, walletOptions)
+      console.error('error getting payment', err)
       return
     }
   }
@@ -94,7 +198,7 @@ export async function checkWithdrawal ({ data: { id, hash }, boss, models, lnd }
     const fee = Number(wdrwl.payment.fee_mtokens)
     const paid = Number(wdrwl.payment.mtokens) - fee
     await serialize(models, models.$executeRaw`
-      SELECT confirm_withdrawl(${id}::INTEGER, ${paid}, ${fee})`)
+      SELECT confirm_withdrawl(${dbWdrwl.id}::INTEGER, ${paid}, ${fee})`)
   } else if (wdrwl?.is_failed || notFound) {
     let status = 'UNKNOWN_FAILURE'
     if (wdrwl?.failed.is_insufficient_balance) {
@@ -106,12 +210,11 @@ export async function checkWithdrawal ({ data: { id, hash }, boss, models, lnd }
     } else if (wdrwl?.failed.is_route_not_found) {
       status = 'ROUTE_NOT_FOUND'
     }
-    await serialize(models, models.$executeRaw`
-      SELECT reverse_withdrawl(${id}::INTEGER, ${status}::"WithdrawlStatus")`)
-  } else {
-    // we need to requeue to check again in 5 seconds
-    const startAfter = new Date(wdrwl.created_at) > datePivot(new Date(), { minutes: -5 }) ? 5 : 60
-    await boss.send('checkWithdrawal', { id, hash }, { ...walletOptions, startAfter })
+
+    await serialize(models,
+      models.$executeRaw`
+        SELECT reverse_withdrawl(${dbWdrwl.id}::INTEGER, ${status}::"WithdrawlStatus")`
+    )
   }
 }
 
@@ -123,4 +226,41 @@ export async function autoDropBolt11s ({ models }) {
     AND now() > created_at + interval '${INVOICE_RETENTION_DAYS} days'
     AND hash IS NOT NULL;`
   )
+}
+
+// The callback subscriptions above will NOT get called for HODL invoices that are already paid.
+// So we manually cancel the HODL invoice here if it wasn't settled by user action
+export async function finalizeHodlInvoice ({ data: { hash }, models, lnd }) {
+  const inv = await getInvoice({ id: hash, lnd })
+  if (inv.is_confirmed) {
+    return
+  }
+
+  await cancelHodlInvoice({ id: hash, lnd })
+}
+
+export async function checkPendingDeposits (args) {
+  const { models } = args
+  const pendingDeposits = await models.invoice.findMany({ where: { confirmedAt: null, cancelled: false } })
+  for (const d of pendingDeposits) {
+    try {
+      await checkInvoice({ data: { id: d.id, hash: d.hash }, ...args })
+      await sleep(10)
+    } catch {
+      console.error('error checking invoice', d.hash)
+    }
+  }
+}
+
+export async function checkPendingWithdrawals (args) {
+  const { models } = args
+  const pendingWithdrawals = await models.withdrawl.findMany({ where: { status: null } })
+  for (const w of pendingWithdrawals) {
+    try {
+      await checkWithdrawal({ data: { id: w.id, hash: w.hash }, ...args })
+      await sleep(10)
+    } catch {
+      console.error('error checking withdrawal', w.hash)
+    }
+  }
 }

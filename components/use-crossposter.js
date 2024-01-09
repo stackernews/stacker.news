@@ -107,7 +107,7 @@ async function jobToEvent (item) {
 export default function useCrossposter () {
   const toaster = useToast()
   const { data } = useQuery(SETTINGS)
-  const relays = [...DEFAULT_CROSSPOSTING_RELAYS, ...(data?.settings?.nostrRelays || [])]
+  const relays = [...DEFAULT_CROSSPOSTING_RELAYS, ...(data?.settings?.privates?.nostrRelays || [])]
 
   const [updateNoteId] = useMutation(
     gql`
@@ -210,7 +210,7 @@ export default function useCrossposter () {
         if (noteId) {
           await updateNoteId({
             variables: {
-              id: discussionId,
+              id: itemId,
               noteId
             }
           })

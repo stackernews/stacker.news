@@ -9,12 +9,12 @@ import { DiscussionForm } from './discussion-form'
 import { LinkForm } from './link-form'
 import { PollForm } from './poll-form'
 import { BountyForm } from './bounty-form'
-import SubSelect, { SubInfo } from './sub-select'
+import SubSelect from './sub-select'
 import { useCallback, useState } from 'react'
 import FeeButton, { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
 import Delete from './delete'
 import CancelButton from './cancel-button'
-import { TerritoryDetails } from './territory-header'
+import { TerritoryInfo } from './territory-header'
 
 export function PostForm ({ type, sub, children }) {
   const me = useMe()
@@ -99,15 +99,20 @@ export function PostForm ({ type, sub, children }) {
     }, [])
 
     return (
-      <div className='position-relative d-flex flex-column align-items-center'>
+      <div className='position-relative d-flex flex-column align-items-start'>
         {errorMessage &&
           <Alert className='position-absolute' style={{ top: '-6rem' }} variant='danger' onClose={() => setErrorMessage(undefined)} dismissible>
             {errorMessage}
           </Alert>}
-        <SubSelect prependSubs={['pick territory']} className='w-auto d-flex' noForm sub={sub?.name} hint={sub?.moderated && 'this territory is moderated'} />
-        <div className='mb-3 w-100'>
-          {sub && <TerritoryDetails sub={sub} />}
-        </div>
+        <SubSelect
+          prependSubs={['pick territory']}
+          className='w-auto d-flex'
+          noForm
+          large
+          sub={sub?.name}
+          info={sub && <TerritoryInfo sub={sub} />}
+          hint={sub?.moderated && 'this territory is moderated'}
+        />
         <div>
           {postButtons}
         </div>
@@ -169,12 +174,9 @@ export default function Post ({ sub }) {
             prependSubs={sub?.name ? undefined : ['pick territory']}
             filterSubs={s => s.postTypes?.includes(type.toUpperCase())}
             className='w-auto d-flex'
-            label={
-              <span className='d-flex align-items-center'>
-                territory
-                <SubInfo />
-              </span>
-              }
+            large
+            label='territory'
+            info={sub && <TerritoryInfo sub={sub} />}
             hint={sub?.moderated && 'this territory is moderated'}
           />}
       </PostForm>

@@ -29,6 +29,7 @@ import { AWS_S3_URL_REGEXP } from '../lib/constants'
 import { whenRange } from '../lib/time'
 import { useFeeButton } from './fee-button'
 import Thumb from '../svgs/thumb-up-fill.svg'
+import Info from './info'
 
 export function SubmitButton ({
   children, variant, value, onClick, disabled, nonDisabledText, ...props
@@ -825,7 +826,7 @@ export function Form ({
   )
 }
 
-export function Select ({ label, items, groupClassName, onChange, noForm, overrideValue, hint, ...props }) {
+export function Select ({ label, items, info, groupClassName, onChange, noForm, overrideValue, hint, ...props }) {
   const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)
   const formik = noForm ? null : useFormikContext()
   const invalid = meta.touched && meta.error
@@ -838,31 +839,34 @@ export function Select ({ label, items, groupClassName, onChange, noForm, overri
 
   return (
     <FormGroup label={label} className={groupClassName}>
-      <BootstrapForm.Select
-        {...field} {...props}
-        onChange={(e) => {
-          if (field?.onChange) {
-            field.onChange(e)
-          }
+      <span className='d-flex align-items-center'>
+        <BootstrapForm.Select
+          {...field} {...props}
+          onChange={(e) => {
+            if (field?.onChange) {
+              field.onChange(e)
+            }
 
-          if (onChange) {
-            onChange(formik, e)
-          }
-        }}
-        isInvalid={invalid}
-      >
-        {items.map(item => {
-          if (item && typeof item === 'object') {
-            return (
-              <optgroup key={item.label} label={item.label}>
-                {item.items.map(item => <option key={item}>{item}</option>)}
-              </optgroup>
-            )
-          } else {
-            return <option key={item}>{item}</option>
-          }
-        })}
-      </BootstrapForm.Select>
+            if (onChange) {
+              onChange(formik, e)
+            }
+          }}
+          isInvalid={invalid}
+        >
+          {items.map(item => {
+            if (item && typeof item === 'object') {
+              return (
+                <optgroup key={item.label} label={item.label}>
+                  {item.items.map(item => <option key={item}>{item}</option>)}
+                </optgroup>
+              )
+            } else {
+              return <option key={item}>{item}</option>
+            }
+          })}
+        </BootstrapForm.Select>
+        {info && <Info>{info}</Info>}
+      </span>
       <BootstrapForm.Control.Feedback type='invalid'>
         {meta.touched && meta.error}
       </BootstrapForm.Control.Feedback>

@@ -1,6 +1,9 @@
 .subSelect {
-  max-width: 90px !important;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis !important;
+}
+
+.subSelectSmall {
+  max-width: 90px !important;
 }

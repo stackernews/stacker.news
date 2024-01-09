@@ -22,6 +22,14 @@ export function TerritoryDetails ({ sub }) {
         </small>
       }
     >
+      <TerritoryInfo sub={sub} />
+    </AccordianCard>
+  )
+}
+
+export function TerritoryInfo ({ sub }) {
+  return (
+    <>
       <div className='py-2'>
         <Text>{sub.desc}</Text>
       </div>
@@ -38,7 +46,7 @@ export function TerritoryDetails ({ sub }) {
         </div>
         <TerritoryBillingLine sub={sub} />
       </CardFooter>
-    </AccordianCard>
+    </>
   )
 }
 

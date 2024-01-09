@@ -1,6 +1,5 @@
 import { useRouter } from 'next/router'
 import { Select } from './form'
-import Info from './info'
 import { SSR } from '../lib/constants'
 import { SUBS } from '../fragments/subs'
 import { useQuery } from '@apollo/client'
@@ -43,23 +42,7 @@ export function useSubs ({ prependSubs = [], sub, filterSubs = () => true, appen
   return subs
 }
 
-export const SubInfo = () => (
-  <Info>
-    <div>
-      <div className='fw-bold'>The territory your post will go in ...</div>
-      <ul>
-        <li>If it's bitcoin related, put it in the bitcoin territory.</li>
-        <li>If it's nostr related, put it in the nostr territory.</li>
-        <li>If it's tech related, put it in the tech territory.</li>
-        <li>If it's stacker news related, put it in the meta territory.</li>
-        <li>If it's a job, put it in the jobs territory.</li>
-        <li>etc...</li>
-      </ul>
-    </div>
-  </Info>
-)
-
-export default function SubSelect ({ prependSubs, sub, onChange, appendSubs, filterSubs, className, ...props }) {
+export default function SubSelect ({ prependSubs, sub, onChange, large, appendSubs, filterSubs, className, ...props }) {
   const router = useRouter()
   const subs = useSubs({ prependSubs, sub, filterSubs, appendSubs })
   const valueProps = props.noForm
@@ -118,7 +101,7 @@ export default function SubSelect ({ prependSubs, sub, onChange, appendSubs, fil
       size='sm'
       {...valueProps}
       {...props}
-      className={`${className} ${styles.subSelect}`}
+      className={`${className} ${styles.subSelect} ${large ? '' : styles.subSelectSmall}`}
       items={subs}
     />
   )

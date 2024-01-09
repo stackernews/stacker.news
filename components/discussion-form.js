@@ -15,7 +15,6 @@ import { useMe } from './me'
 import useCrossposter from './use-crossposter'
 import { useToast } from './toast'
 import { ItemButtonBar } from './post'
-import { callWithTimeout } from '../lib/nostr'
 
 export function DiscussionForm ({
   item, sub, editThreshold, titleLabel = 'title',
@@ -41,28 +40,8 @@ export function DiscussionForm ({
       }`
   )
 
-  const [updateNoteId] = useMutation(
-    gql`
-      mutation updateNoteId($id: ID!, $noteId: String!) {
-        updateNoteId(id: $id, noteId: $noteId) {
-          id
-          noteId
-        }
-      }`
-  )
-
   const onSubmit = useCallback(
     async ({ boost, crosspost, ...values }) => {
-      try {
-        if (crosspost) {
-          const pubkey = await callWithTimeout(() => window.nostr.getPublicKey(), 5000)
-          if (!pubkey) throw new Error('failed to get pubkey')
-        }
-      } catch (e) {
-        console.log(e)
-        throw new Error(`Nostr extension error: ${e.message}`)
-      }
-
       const { data, error } = await upsertDiscussion({
         variables: {
           sub: item?.subName || sub?.name,
@@ -77,34 +56,10 @@ export function DiscussionForm ({
         throw new Error({ message: error.toString() })
       }
 
-      let noteId = null
       const discussionId = data?.upsertDiscussion?.id
 
-      try {
-        if (crosspost && discussionId) {
-          const crosspostResult = await crossposter({ ...values, id: discussionId })
-          noteId = crosspostResult?.noteId
-          if (noteId) {
-            await updateNoteId({
-              variables: {
-                id: discussionId,
-                noteId
-              }
-            })
-          }
-        }
-      } catch (e) {
-        console.error(e)
-        toaster.danger('Error crossposting to Nostr', e.message)
-      }
-
-      if (noteId) {
-        await updateNoteId({
-          variables: {
-            id: discussionId,
-            noteId
-          }
-        })
+      if (crosspost && discussionId) {
+        await crossposter(values, discussionId)
       }
 
       if (item) {

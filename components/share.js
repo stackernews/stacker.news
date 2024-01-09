@@ -18,13 +18,13 @@ const referrurl = (ipath, me) => {
   return `https://stacker.news${path}`
 }
 
-export default function Share ({ path, title, className = '' }) {
+export default function Share ({ path, title, className = '', ...props }) {
   const me = useMe()
   const crossposter = useCrossposter()
   const toaster = useToast()
   const url = referrurl(path, me)
 
-  const mine = item?.user?.id === me?.id
+  const mine = props?.user?.id === me?.id
 
   const [updateNoteId] = useMutation(
     gql`

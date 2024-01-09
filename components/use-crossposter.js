@@ -2,8 +2,9 @@ import { useCallback } from 'react'
 import { useToast } from './toast'
 import { Button } from 'react-bootstrap'
 import { DEFAULT_CROSSPOSTING_RELAYS, crosspost } from '../lib/nostr'
-import { useQuery } from '@apollo/client'
+import { gql, useMutation, useQuery } from '@apollo/client'
 import { SETTINGS } from '../fragments/users'
+import { callWithTimeout } from '../lib/nostr'
 
 function determineItemType (item) {
   console.log('item in determineItemType', item)
@@ -104,9 +105,19 @@ async function jobToEvent (item) {
 }
 
 export default function useCrossposter () {
-  const toast = useToast()
+  const toaster = useToast()
   const { data } = useQuery(SETTINGS)
   const relays = [...DEFAULT_CROSSPOSTING_RELAYS, ...(data?.settings?.nostrRelays || [])]
+
+  const [updateNoteId] = useMutation(
+    gql`
+      mutation updateNoteId($id: ID!, $noteId: String!) {
+        updateNoteId(id: $id, noteId: $noteId) {
+          id
+          noteId
+        }
+      }`
+  )
 
   const relayError = (failedRelays) => {
     return new Promise(resolve => {
@@ -150,36 +161,75 @@ export default function useCrossposter () {
     }
   }
 
-  return useCallback(async item => {
-    let failedRelays
-    let allSuccessful = false
-    let noteId
+  const crosspostItem = async item => {
+    let failedRelays;
+    let allSuccessful = false;
+    let noteId;
 
     do {
-      console.log('item before item type', item)
-      const itemType = determineItemType(item)
-      console.log('itemType', itemType)
-      const event = await handleEventCreation(itemType, item)
-      if (!event) break // Break if event creation fails
+      const itemType = determineItemType(item);
+      const event = await handleEventCreation(itemType, item);
+      if (!event) break; // Break if event creation fails
 
-      const result = await crosspost(event, failedRelays || relays)
+      const result = await crosspost(event, failedRelays || relays);
 
-      noteId = result.noteId
+      console.log('result', result)
 
-      failedRelays = result.failedRelays.map(relayObj => relayObj.relay)
+      noteId = result.noteId;
+      failedRelays = result.failedRelays.map(relayObj => relayObj.relay);
 
       if (failedRelays.length > 0) {
-        const userAction = await relayError(failedRelays)
-
+        const userAction = await relayError(failedRelays);
         if (userAction === 'skip') {
-          toast.success('Skipped failed relays.')
-          break
+          toaster.success('Skipped failed relays.');
+          break;
         }
       } else {
-        allSuccessful = true
+        allSuccessful = true;
       }
-    } while (failedRelays.length > 0)
+    } while (failedRelays.length > 0);
 
-    return { allSuccessful, noteId }
-  }, [relays, toast])
+    return { allSuccessful, noteId };
+  };
+
+  const handleCrosspost = useCallback(async (values, itemId) => {
+    try {
+      const pubkey = await callWithTimeout(() => window.nostr.getPublicKey(), 5000)
+      if (!pubkey) throw new Error('failed to get pubkey')
+    } catch (e) {
+      console.log(e)
+      throw new Error(`Nostr extension error: ${e.message}`)
+    }
+
+    let noteId;
+
+    try {
+      if (itemId) {
+        const crosspostResult = await crosspostItem({ ...values, id: itemId })
+        noteId = crosspostResult?.noteId
+        if (noteId) {
+          await updateNoteId({
+            variables: {
+              id: discussionId,
+              noteId
+            }
+          })
+        }
+      }
+    } catch (e) {
+      console.error(e)
+      toaster.danger('Error crossposting to Nostr', e.message)
+    }
+
+    if (noteId) {
+      await updateNoteId({
+        variables: {
+          id: itemId,
+          noteId
+        }
+      })
+    }
+  }, [updateNoteId, relays, toaster])
+
+  return handleCrosspost
 }

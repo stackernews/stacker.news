@@ -8,7 +8,6 @@ const toKV = (obj) => {
 }
 
 const slackPostMessage = ({ id, level, name, message, env, context }) => {
-  if (!slackClient) return
   const text = `\`${new Date().toISOString()}\` | \`${id} [${level}] ${name}\` | ${message} | ${toKV(context)} | ${toKV({ os: env.os })}`
   return slackClient.chat.postMessage({ channel: channelId, text })
 }
@@ -20,7 +19,7 @@ export default async (req, res) => {
 
   const { id } = await models.log.create({ data: { level: level.toUpperCase(), name, message, env, context } })
 
-  slackPostMessage({ id, ...req.body }).catch(console.error)
+  if (slackClient) slackPostMessage({ id, ...req.body }).catch(console.error)
 
   return res.status(200).json({ status: 200, message: 'ok' })
 }

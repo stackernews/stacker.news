@@ -117,7 +117,8 @@ const mergeAndShowNotification = async (sw, payload, currentNotifications, tag, 
   // tags that need to know the sum of sats of notifications with same tag for merging
   const SUM_SATS_TAGS = ['DEPOSIT']
   // this should reflect the amount of notifications that were already merged before
-  const initialAmount = currentNotifications[0].data?.amount || 1
+  let initialAmount = currentNotifications[0]?.data?.amount || 1
+  if (iOS()) initialAmount = 1
   log(`[sw:push] ${nid} - initial amount: ${initialAmount}`)
   const mergedPayload = currentNotifications.reduce((acc, { data }) => {
     let newAmount, newSats

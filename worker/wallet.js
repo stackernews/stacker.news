@@ -123,6 +123,16 @@ async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
     return await boss.send('nip57', { hash })
   }
 
+  if (inv.is_held) {
+    return await models.invoice.update({
+      where: { hash },
+      data: {
+        msatsReceived: Number(inv.received_mtokens),
+        isHeld: true
+      }
+    })
+  }
+
   if (inv.is_canceled) {
     return await serialize(models,
       models.invoice.update({

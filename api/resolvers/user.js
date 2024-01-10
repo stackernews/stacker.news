@@ -66,8 +66,9 @@ export default {
 
       return await models.user.findUnique({ where: { id: me.id } })
     },
-    user: async (parent, { name }, { models }) => {
-      return await models.user.findUnique({ where: { name } })
+    user: async (parent, { id, name }, { models }) => {
+      if (id) id = Number(id)
+      return await models.user.findUnique({ where: { id, name } })
     },
     users: async (parent, args, { models }) =>
       await models.user.findMany(),

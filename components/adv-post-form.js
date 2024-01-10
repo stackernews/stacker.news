@@ -20,7 +20,7 @@ export function AdvPostInitial ({ forward, boost }) {
 }
 
 export default function AdvPostForm ({ children }) {
-  const me = useMe()
+  const { me } = useMe()
   const router = useRouter()
   const { merge } = useFeeButton()
 

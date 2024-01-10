@@ -10,7 +10,7 @@ import { payOrLoginError, useInvoiceModal } from './invoice'
 import { useAct } from './item-act'
 
 export default function PayBounty ({ children, item }) {
-  const me = useMe()
+  const { me } = useMe()
   const showModal = useShowModal()
   const root = useRoot()
 

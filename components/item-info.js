@@ -28,7 +28,7 @@ export default function ItemInfo ({
   onQuoteReply, nofollow, extraBadges, nested
 }) {
   const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
-  const me = useMe()
+  const { me } = useMe()
   const router = useRouter()
   const [canEdit, setCanEdit] =
     useState(item.mine && (Date.now() < editThreshold))

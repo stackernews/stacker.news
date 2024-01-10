@@ -28,7 +28,7 @@ import { numWithUnits } from '../lib/format'
 import { useQuoteReply } from './use-quote-reply'
 
 function BioItem ({ item, handleClick }) {
-  const me = useMe()
+  const { me } = useMe()
   if (!item.text) {
     return null
   }

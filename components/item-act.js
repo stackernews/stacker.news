@@ -42,7 +42,7 @@ const addCustomTip = (amount) => {
 
 export default function ItemAct ({ onClose, itemId, down, children }) {
   const inputRef = useRef(null)
-  const me = useMe()
+  const { me } = useMe()
   const [oValue, setOValue] = useState()
   const strike = useLightning()
 

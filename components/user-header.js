@@ -154,7 +154,7 @@ function NymEdit ({ user, setEditting }) {
 }
 
 function NymView ({ user, isMe, setEditting }) {
-  const me = useMe()
+  const { me } = useMe()
   return (
     <div className='d-flex align-items-center mb-2'>
       <div className={styles.username}>@{user.name}<Hat className='' user={user} badge /></div>
@@ -181,7 +181,7 @@ function HeaderNym ({ user, isMe }) {
 }
 
 function HeaderHeader ({ user }) {
-  const me = useMe()
+  const { me } = useMe()
   const showModal = useShowModal()
   const toaster = useToast()
 

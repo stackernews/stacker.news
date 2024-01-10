@@ -9,7 +9,7 @@ import { BALANCE_LIMIT_MSATS } from '../lib/constants'
 import { msatsToSats, numWithUnits } from '../lib/format'
 
 export function WelcomeBanner () {
-  const me = useMe()
+  const { me } = useMe()
   const toaster = useToast()
   const [hidden, setHidden] = useState(true)
   const handleClose = async () => {

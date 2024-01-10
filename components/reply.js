@@ -34,7 +34,7 @@ export function ReplyOnAnotherPage ({ item }) {
 
 export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children, placeholder, onQuoteReply, onCancelQuote, quote }, ref) {
   const [reply, setReply] = useState(replyOpen || quote)
-  const me = useMe()
+  const { me } = useMe()
   const parentId = item.id
   const replyInput = useRef(null)
   const toaster = useToast()
@@ -159,7 +159,7 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
         <div className={styles.reply}>
           <FeeButtonProvider
             baseLineItems={postCommentBaseLineItems({ baseCost: 1, comment: true, me: !!me })}
-            useRemoteLineItems={postCommentUseRemoteLineItems({ parentId: item.id, me: !!me })}
+            useRemoteLineItems={postCommentUseRemoteLineItems({ parentId: item.id })}
           >
             <Form
               initial={{

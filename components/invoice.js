@@ -159,7 +159,7 @@ const defaultOptions = {
 // there's lots of state cascading paired with logic
 // independent of the state, and it's hard to follow
 export const useInvoiceable = (onSubmit, options = defaultOptions) => {
-  const me = useMe()
+  const { me } = useMe()
   const [createInvoice, { data }] = useMutation(gql`
     mutation createInvoice($amount: Int!) {
       createInvoice(amount: $amount, hodlInvoice: true, expireSecs: 180) {

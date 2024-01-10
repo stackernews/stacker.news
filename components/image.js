@@ -20,7 +20,7 @@ export function decodeOriginalUrl (imgproxyUrl) {
 }
 
 function ImageOriginal ({ src, topLevel, nofollow, tab, children, onClick, ...props }) {
-  const me = useMe()
+  const { me } = useMe()
   const [showImage, setShowImage] = useState(false)
 
   useEffect(() => {

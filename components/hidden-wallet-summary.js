@@ -3,7 +3,7 @@ import { abbrNum, numWithUnits } from '../lib/format'
 import { useMe } from './me'
 
 export default function HiddenWalletSummary ({ abbreviate, fixedWidth }) {
-  const me = useMe()
+  const { me } = useMe()
   const [hover, setHover] = useState(false)
 
   // prevent layout shifts when hovering by fixing width to initial rendered width

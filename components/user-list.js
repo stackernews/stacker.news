@@ -36,6 +36,31 @@ function seperate (arr, seperator) {
   return arr.flatMap((x, i) => i < arr.length - 1 ? [x, seperator] : [x])
 }
 
+export const UserListRow = ({ user, stats, className, onNymClick, showHat = true }) => {
+  return (
+    <div className={`${styles.item} mb-2`} key={user.name}>
+      <Link href={`/${user.name}`}>
+        <Image
+          src={user.photoId ? `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}/${user.photoId}` : '/dorian400.jpg'} width='32' height='32'
+          className={`${userStyles.userimg} me-2`}
+        />
+      </Link>
+      <div className={`${styles.hunk} ${className}`}>
+        <Link
+          href={`/${user.name}`} className={`${styles.title} d-inline-flex align-items-center text-reset`} onClick={onNymClick}
+        >
+          @{user.name}{showHat && <Hat className='ms-1 fill-grey' height={14} width={14} user={user} />}
+        </Link>
+        {stats && (
+          <div className={styles.other}>
+            {stats.map((Comp, i) => <Comp key={i} user={user} />)}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function UserList ({ ssrData, query, variables, destructureData }) {
   const { data, fetchMore } = useQuery(query, { variables })
   const dat = useData(data, ssrData)
@@ -62,24 +87,7 @@ export default function UserList ({ ssrData, query, variables, destructureData }
 
   return (
     <>
-      {users?.map(user => (
-        <div className={`${styles.item} mb-2`} key={user.name}>
-          <Link href={`/${user.name}`}>
-            <Image
-              src={user.photoId ? `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}/${user.photoId}` : '/dorian400.jpg'} width='32' height='32'
-              className={`${userStyles.userimg} me-2`}
-            />
-          </Link>
-          <div className={styles.hunk}>
-            <Link href={`/${user.name}`} className={`${styles.title} d-inline-flex align-items-center text-reset`}>
-              @{user.name}<Hat className='ms-1 fill-grey' height={14} width={14} user={user} />
-            </Link>
-            <div className={styles.other}>
-              {statComps.map((Comp, i) => <Comp key={i} user={user} />)}
-            </div>
-          </div>
-        </div>
-      ))}
+      {users?.map(user => <UserListRow key={user.id} user={user} stats={statComps} />)}
       <MoreFooter cursor={cursor} count={users?.length} fetchMore={fetchMore} Skeleton={UsersSkeleton} noMoreText='NO MORE' />
     </>
   )

@@ -8,6 +8,7 @@ export const ME = gql`
       id
       name
       bioId
+      photoId
       privates {
         autoDropBolt11s
         diagnostics
@@ -234,8 +235,8 @@ export const USER_FULL = gql`
 
 export const USER = gql`
   ${USER_FIELDS}
-  query User($name: String!) {
-    user(name: $name) {
+  query User($id: ID, $name: String) {
+    user(id: $id, name: $name) {
       ...UserFields
     }
   }`

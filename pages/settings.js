@@ -35,7 +35,7 @@ function bech32encode (hexString) {
 
 export default function Settings ({ ssrData }) {
   const toaster = useToast()
-  const me = useMe()
+  const { me } = useMe()
   const [setSettings] = useMutation(SET_SETTINGS, {
     update (cache, { data: { setSettings } }) {
       cache.modify({
@@ -54,6 +54,13 @@ export default function Settings ({ ssrData }) {
   const { data } = useQuery(SETTINGS)
   const { settings: { privates: settings } } = data || ssrData
   if (!data && !ssrData) return <PageLoading />
+
+  // if we switched to anon, me is no longer defined
+  const router = useRouter()
+  if (!me) {
+    router.push('/login')
+    return null
+  }
 
   return (
     <CenterLayout>

@@ -19,7 +19,7 @@ import { ItemButtonBar } from './post'
 export function LinkForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
   const client = useApolloClient()
-  const me = useMe()
+  const { me } = useMe()
   const toaster = useToast()
   const schema = linkSchema({ client, me, existingBoost: item?.boost })
   // if Web Share Target API was used

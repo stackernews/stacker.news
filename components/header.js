@@ -27,6 +27,8 @@ import HiddenWalletSummary from './hidden-wallet-summary'
 import { clearNotifications } from '../lib/badge'
 import { useServiceWorker } from './serviceworker'
 import SubSelect from './sub-select'
+import { useShowModal } from './modal'
+import SwitchAccountList, { useAccounts } from './account'
 
 function WalletSummary ({ me }) {
   if (!me) return null
@@ -86,6 +88,8 @@ function NotificationBell () {
 
 function NavProfileMenu ({ me, dropNavKey }) {
   const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
+  const showModal = useShowModal()
+  const { multiAuthSignout } = useAccounts()
   return (
     <div className='position-relative'>
       <Dropdown className={styles.dropdown} align='end'>
@@ -124,8 +128,12 @@ function NavProfileMenu ({ me, dropNavKey }) {
             </Link>
           </div>
           <Dropdown.Divider />
+          <Dropdown.Item onClick={() => showModal(onClose => <SwitchAccountList onClose={onClose} />)}>switch account</Dropdown.Item>
           <Dropdown.Item
             onClick={async () => {
+              const status = await multiAuthSignout()
+              // only signout if multiAuth did not find a next available account
+              if (status === 201) return
               try {
                 // order is important because we need to be logged in to delete push subscription on server
                 const pushSubscription = await swRegistration?.pushManager.getSubscription()
@@ -151,7 +159,7 @@ function NavProfileMenu ({ me, dropNavKey }) {
 }
 
 function StackerCorner ({ dropNavKey }) {
-  const me = useMe()
+  const { me } = useMe()
 
   const walletLimitReached = me.privates?.sats >= msatsToSats(BALANCE_LIMIT_MSATS)
 
@@ -173,6 +181,8 @@ function StackerCorner ({ dropNavKey }) {
 function LurkerCorner ({ path }) {
   const router = useRouter()
   const strike = useLightning()
+  const { isAnon } = useAccounts()
+  const showModal = useShowModal()
 
   useEffect(() => {
     if (!window.localStorage.getItem('striked')) {
@@ -188,6 +198,23 @@ function LurkerCorner ({ path }) {
     pathname,
     query: { callbackUrl: window.location.origin + router.asPath }
   }), [router])
+
+  if (isAnon) {
+    return (
+      <div className='d-flex ms-auto'>
+        <Dropdown className={styles.dropdown} align='end'>
+          <Dropdown.Toggle className='nav-link nav-item' id='profile' variant='custom'>
+            <Nav.Link eventKey='anon' as='span' className='p-0'>
+              <AnonIcon className='me-1 fill-muted' width={20} height={20} />@anon
+            </Nav.Link>
+          </Dropdown.Toggle>
+          <Dropdown.Menu>
+            <Dropdown.Item onClick={() => showModal(onClose => <SwitchAccountList onClose={onClose} />)}>switch account</Dropdown.Item>
+          </Dropdown.Menu>
+        </Dropdown>
+      </div>
+    )
+  }
 
   return path !== '/login' && path !== '/signup' && !path.startsWith('/invites') &&
     <div className='ms-auto'>
@@ -249,7 +276,7 @@ function NavItems ({ className, sub, prefix }) {
 }
 
 function PostItem ({ className, prefix }) {
-  const me = useMe()
+  const { me } = useMe()
 
   if (me) {
     return (
@@ -275,7 +302,7 @@ export default function Header ({ sub }) {
   const prefix = sub ? `/~${sub}` : ''
   const topNavKey = path.split('/')[sub ? 2 : 1] ?? ''
   const dropNavKey = path.split('/').slice(sub ? 2 : 1).join('/')
-  const me = useMe()
+  const { me } = useMe()
 
   return (
     <Container as='header' className='px-sm-0'>

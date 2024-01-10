@@ -17,7 +17,7 @@ const referrurl = (ipath, me) => {
 }
 
 export default function Share ({ path, title, className = '' }) {
-  const me = useMe()
+  const { me } = useMe()
   const toaster = useToast()
   const url = referrurl(path, me)
 
@@ -65,7 +65,7 @@ export default function Share ({ path, title, className = '' }) {
 }
 
 export function CopyLinkDropdownItem ({ item }) {
-  const me = useMe()
+  const { me } = useMe()
   const toaster = useToast()
   const url = referrurl(`/items/${item.id}`, me)
   return (

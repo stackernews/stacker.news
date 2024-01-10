@@ -11,7 +11,7 @@ import { POLL_COST } from '../lib/constants'
 import { payOrLoginError, useInvoiceModal } from './invoice'
 
 export default function Poll ({ item }) {
-  const me = useMe()
+  const { me } = useMe()
   const [pollVote] = useMutation(
     gql`
       mutation pollVote($id: ID!, $hash: String, $hmac: String) {

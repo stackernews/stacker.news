@@ -85,11 +85,9 @@ export async function serializeInvoicable (query, { models, lnd, hash, hmac, me,
   let results = await serialize(models, ...trx)
 
   if (hash) {
-    if (invoice?.isHeld) {
-      await settleHodlInvoice({ secret: invoice.preimage, lnd });
-      // remove first element since that is the confirmed invoice
-      ([, ...results] = results)
-    }
+    if (invoice?.isHeld) { await settleHodlInvoice({ secret: invoice.preimage, lnd }) }
+    // remove first element since that is the confirmed invoice
+    [, ...results] = results
   }
 
   // if there is only one result, return it directly, else the array

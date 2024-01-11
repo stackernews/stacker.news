@@ -135,7 +135,7 @@ const mergeAndShowNotification = async (sw, payload, currentNotifications, tag, 
   log(`[sw:push] ${nid} - merged payload: ${JSON.stringify(mergedPayload)}`)
 
   // calculate title from merged payload
-  const { amount, followeeName, subType, sats } = mergedPayload
+  const { amount, followeeName, subName, subType, sats } = mergedPayload
   let title = ''
   if (AMOUNT_TAGS.includes(compareTag)) {
     if (compareTag === 'REPLY') {
@@ -149,7 +149,7 @@ const mergeAndShowNotification = async (sw, payload, currentNotifications, tag, 
     } else if (compareTag === 'FOLLOW') {
       title = `@${followeeName} ${subType === 'POST' ? `created ${amount} posts` : `replied ${amount} times`}`
     } else if (compareTag === 'TERRITORY_POST') {
-      title = `you have ${amount} new territory posts`
+      title = `you have ${amount} new posts in ~${subName}`
     }
   } else if (SUM_SATS_TAGS.includes(compareTag)) {
     // there is only DEPOSIT in this array

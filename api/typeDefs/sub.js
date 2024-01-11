@@ -8,7 +8,7 @@ export default gql`
   }
 
   extend type Mutation {
-    upsertSub(name: String!, desc: String, baseCost: Int!,
+    upsertSub(oldName: String, name: String!, desc: String, baseCost: Int!,
       postTypes: [String!]!, allowFreebies: Boolean!,
       billingType: String!, billingAutoRenew: Boolean!,
       moderated: Boolean!, hash: String, hmac: String): Sub

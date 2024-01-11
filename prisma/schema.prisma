@@ -313,7 +313,7 @@ model Item {
   pin                Pin?                  @relation(fields: [pinId], references: [id])
   root               Item?                 @relation("RootDescendant", fields: [rootId], references: [id])
   descendants        Item[]                @relation("RootDescendant")
-  sub                Sub?                  @relation(fields: [subName], references: [name])
+  sub                Sub?                  @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
   user               User                  @relation("UserItems", fields: [userId], references: [id], onDelete: Cascade)
   actions            ItemAct[]
   mentions           Mention[]
@@ -447,7 +447,7 @@ model SubAct {
   msats     BigInt
   type      SubActType
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sub       Sub        @relation(fields: [subName], references: [name], onDelete: Cascade)
+  sub       Sub        @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
 
   @@index([userId])
   @@index([userId, type])
@@ -462,7 +462,7 @@ model MuteSub {
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
   subName   String   @db.Citext
   userId    Int
-  sub       Sub      @relation(fields: [subName], references: [name], onDelete: Cascade)
+  sub       Sub      @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, subName])

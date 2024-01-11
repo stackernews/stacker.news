@@ -15,10 +15,10 @@ export default function TerritoryForm ({ sub }) {
   const me = useMe()
   const [upsertSub] = useMutation(
     gql`
-      mutation upsertSub($name: String!, $desc: String, $baseCost: Int!,
+      mutation upsertSub($oldName: String, $name: String!, $desc: String, $baseCost: Int!,
         $postTypes: [String!]!, $allowFreebies: Boolean!, $billingType: String!,
         $billingAutoRenew: Boolean!, $moderated: Boolean!, $hash: String, $hmac: String) {
-          upsertSub(name: $name, desc: $desc, baseCost: $baseCost,
+          upsertSub(oldName: $oldName, name: $name, desc: $desc, baseCost: $baseCost,
             postTypes: $postTypes, allowFreebies: $allowFreebies, billingType: $billingType,
             billingAutoRenew: $billingAutoRenew, moderated: $moderated, hash: $hash, hmac: $hmac) {
           name
@@ -29,7 +29,7 @@ export default function TerritoryForm ({ sub }) {
   const onSubmit = useCallback(
     async ({ ...variables }) => {
       const { error } = await upsertSub({
-        variables
+        variables: { oldName: sub?.name, ...variables }
       })
 
       if (error) {
@@ -40,9 +40,9 @@ export default function TerritoryForm ({ sub }) {
       client.cache.modify({
         fields: {
           subs (existing = []) {
-            console.log('existing', existing, variables.name)
+            const filtered = existing.filter(s => s.name !== variables.name && s.name !== sub?.name)
             return [
-              ...existing,
+              ...filtered,
               { __typename: 'Sub', name: variables.name }]
           }
         }
@@ -72,24 +72,15 @@ export default function TerritoryForm ({ sub }) {
         onSubmit={onSubmit}
         className='mb-5'
         storageKeyPrefix={sub ? undefined : 'territory'}
-      >
-        {sub?.name
-          ? <Input
-            label={<>name <small className='text-muted ms-2'>read only</small></>}
-            name='name'
-            readOnly
-            prepend={<InputGroup.Text className='text-monospace'>~</InputGroup.Text>}
-            className='text-muted'
-            />
-          : <Input
-              label='name'
-              name='name'
-              required
-              autoFocus
-              clear
-              maxLength={32}
-              prepend={<InputGroup.Text className='text-monospace'>~</InputGroup.Text>}
-            />}
+      > <Input
+        label='name'
+        name='name'
+        required
+        autoFocus
+        clear
+        maxLength={32}
+        prepend={<InputGroup.Text className='text-monospace'>~</InputGroup.Text>}
+        />
         <MarkdownInput
           label='description'
           name='desc'

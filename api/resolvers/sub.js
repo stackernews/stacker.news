@@ -1,5 +1,5 @@
 import { GraphQLError } from 'graphql'
-import serialize, { serializeInvoicable } from './serial'
+import { serializeInvoicable } from './serial'
 import { TERRITORY_COST_MONTHLY, TERRITORY_COST_ONCE, TERRITORY_COST_YEARLY } from '../../lib/constants'
 import { datePivot } from '../../lib/time'
 import { ssValidate, territorySchema } from '../../lib/validate'
@@ -124,17 +124,9 @@ export default {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
       }
 
-      // XXX this is because we did the wrong thing and used the subName as a primary key
-      const old = await models.sub.findUnique({
-        where: {
-          name: data.name,
-          userId: me.id
-        }
-      })
-
       await ssValidate(territorySchema, data, { models, me })
 
-      if (old) {
+      if (data.oldName) {
         return await updateSub(parent, data, { me, models, lnd, hash, hmac })
       } else {
         return await createSub(parent, data, { me, models, lnd, hash, hmac })
@@ -265,19 +257,25 @@ async function createSub (parent, data, { me, models, lnd, hash, hmac }) {
   }
 }
 
-async function updateSub (parent, { name, ...data }, { me, models, lnd, hash, hmac }) {
+async function updateSub (parent, { oldName, ...data }, { me, models, lnd, hash, hmac }) {
   // prevent modification of billingType
   delete data.billingType
 
   try {
-    const results = await serialize(models,
-      // update 'em
+    const results = await models.$transaction([
       models.sub.update({
         data,
         where: {
-          name
+          name: oldName,
+          userId: me.id
         }
-      }))
+      }),
+      models.$queryRaw`
+        UPDATE pgboss.job
+          SET data = ${JSON.stringify({ subName: data.name })}::JSONB
+          WHERE name = 'territoryBilling'
+          AND data->>'subName' = ${oldName}`
+    ])
 
     return results[0]
   } catch (error) {

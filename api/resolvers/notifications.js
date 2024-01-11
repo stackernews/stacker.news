@@ -112,7 +112,7 @@ export default {
           `SELECT "Item".*, "Item".created_at AS "sortTime", 'TerritoryPost' AS type
             FROM "Item"
             JOIN "Sub" ON "Item"."subName" = "Sub".name
-            WHERE "Sub"."userId" = $1
+            WHERE "Sub"."userId" = $1 AND "Item"."userId" <> $1
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT}+$3`
         )

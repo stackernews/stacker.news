@@ -101,7 +101,7 @@ export default function SubSelect ({ prependSubs, sub, onChange, large, appendSu
       size='sm'
       {...valueProps}
       {...props}
-      className={`${className} ${styles.subSelect} ${large ? '' : styles.subSelectSmall}`}
+      className={`${className} ${styles.subSelect} ${large ? 'me-2' : styles.subSelectSmall}`}
       items={subs}
     />
   )

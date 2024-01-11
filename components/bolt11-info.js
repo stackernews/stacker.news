@@ -7,12 +7,9 @@ export default ({ bolt11, preimage, children }) => {
   if (bolt11) {
     ({ tagsObject: { description, payment_hash: paymentHash } } = decode(bolt11))
   }
-  if (!description && !paymentHash && !preimage) {
-    return null
-  }
 
   return (
-    <div className='w-100'>
+    <div className={`w-100 ${!description && !paymentHash && !preimage ? 'invisible' : ''}`}>
       <AccordianItem
         header='BOLT11 information'
         body={

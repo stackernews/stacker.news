@@ -133,6 +133,7 @@ export default {
               'withdrawal' as type,
               jsonb_build_object(
                 'bolt11', bolt11,
+                'autoWithdraw', "autoWithdraw",
                 'status', COALESCE(status::text, 'PENDING'),
                 'msatsFee', COALESCE("msatsFeePaid", "msatsFeePaying")) as other
             FROM "Withdrawl"
@@ -313,61 +314,7 @@ export default {
       }
     },
     createWithdrawl: createWithdrawal,
-    sendToLnAddr: async (parent, { addr, amount, maxFee, comment, ...payer }, { me, models, lnd, headers }) => {
-      if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
-      }
-
-      const options = await lnAddrOptions(addr)
-      await ssValidate(lnAddrSchema, { addr, amount, maxFee, comment, ...payer }, options)
-
-      if (payer) {
-        payer = {
-          ...payer,
-          identifier: payer.identifier ? `${me.name}@stacker.news` : undefined
-        }
-        payer = Object.fromEntries(
-          Object.entries(payer).filter(([, value]) => !!value)
-        )
-      }
-
-      const milliamount = 1000 * amount
-      const callback = new URL(options.callback)
-      callback.searchParams.append('amount', milliamount)
-
-      if (comment?.length) {
-        callback.searchParams.append('comment', comment)
-      }
-
-      let stringifiedPayerData = ''
-      if (payer && Object.entries(payer).length) {
-        stringifiedPayerData = JSON.stringify(payer)
-        callback.searchParams.append('payerdata', stringifiedPayerData)
-      }
-
-      // call callback with amount and conditionally comment
-      const res = await (await fetch(callback.toString())).json()
-      if (res.status === 'ERROR') {
-        throw new Error(res.reason)
-      }
-
-      // decode invoice
-      try {
-        const decoded = await decodePaymentRequest({ lnd, request: res.pr })
-        if (decoded.description_hash !== lnurlPayDescriptionHash(`${options.metadata}${stringifiedPayerData}`)) {
-          throw new Error('description hash does not match')
-        }
-        if (!decoded.mtokens || BigInt(decoded.mtokens) !== BigInt(milliamount)) {
-          throw new Error('invoice has incorrect amount')
-        }
-      } catch (e) {
-        console.log(e)
-        throw e
-      }
-
-      // take pr and createWithdrawl
-      return await createWithdrawal(parent, { invoice: res.pr, maxFee }, { me, models, lnd, headers })
-    },
+    sendToLnAddr,
     cancelInvoice: async (parent, { hash, hmac }, { models, lnd }) => {
       const hmac2 = createHmac(hash)
       if (hmac !== hmac2) {
@@ -432,7 +379,7 @@ export default {
   }
 }
 
-export async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd, headers }) {
+export async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd, headers, autoWithdraw = false }) {
   await ssValidate(withdrawlSchema, { invoice, maxFee })
   await assertGofacYourself({ models, headers })
 
@@ -473,7 +420,7 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
   // create withdrawl transactionally (id, bolt11, amount, fee)
   const [withdrawl] = await serialize(models,
     models.$queryRaw`SELECT * FROM create_withdrawl(${decoded.id}, ${invoice},
-      ${Number(decoded.mtokens)}, ${msatsFee}, ${user.name})`)
+      ${Number(decoded.mtokens)}, ${msatsFee}, ${user.name}, ${autoWithdraw})`)
 
   payViaPaymentRequest({
     lnd,
@@ -481,7 +428,64 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
     // can't use max_fee_mtokens https://github.com/alexbosworth/ln-service/issues/141
     max_fee: Number(maxFee),
     pathfinding_timeout: 30000
-  })
+  }).catch(console.error)
 
   return withdrawl
+}
+
+export async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...payer },
+  { me, models, lnd, headers, autoWithdraw = false }) {
+  if (!me) {
+    throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+  }
+
+  const options = await lnAddrOptions(addr)
+  await ssValidate(lnAddrSchema, { addr, amount, maxFee, comment, ...payer }, options)
+
+  if (payer) {
+    payer = {
+      ...payer,
+      identifier: payer.identifier ? `${me.name}@stacker.news` : undefined
+    }
+    payer = Object.fromEntries(
+      Object.entries(payer).filter(([, value]) => !!value)
+    )
+  }
+
+  const milliamount = 1000 * amount
+  const callback = new URL(options.callback)
+  callback.searchParams.append('amount', milliamount)
+
+  if (comment?.length) {
+    callback.searchParams.append('comment', comment)
+  }
+
+  let stringifiedPayerData = ''
+  if (payer && Object.entries(payer).length) {
+    stringifiedPayerData = JSON.stringify(payer)
+    callback.searchParams.append('payerdata', stringifiedPayerData)
+  }
+
+  // call callback with amount and conditionally comment
+  const res = await (await fetch(callback.toString())).json()
+  if (res.status === 'ERROR') {
+    throw new Error(res.reason)
+  }
+
+  // decode invoice
+  try {
+    const decoded = await decodePaymentRequest({ lnd, request: res.pr })
+    if (decoded.description_hash !== lnurlPayDescriptionHash(`${options.metadata}${stringifiedPayerData}`)) {
+      throw new Error('description hash does not match')
+    }
+    if (!decoded.mtokens || BigInt(decoded.mtokens) !== BigInt(milliamount)) {
+      throw new Error('invoice has incorrect amount')
+    }
+  } catch (e) {
+    console.log(e)
+    throw e
+  }
+
+  // take pr and createWithdrawl
+  return await createWithdrawal(parent, { invoice: res.pr, maxFee }, { me, models, lnd, headers, autoWithdraw })
 }

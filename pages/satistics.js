@@ -15,6 +15,7 @@ import { CommentFlat } from '../components/comment'
 import ItemJob from '../components/item-job'
 import PageLoading from '../components/page-loading'
 import PayerData from '../components/payer-data'
+import { Badge } from 'react-bootstrap'
 
 export const getServerSideProps = getGetServerSideProps({ query: WALLET_HISTORY, authRequired: true })
 
@@ -78,7 +79,7 @@ function Satus ({ status }) {
   }
 
   return (
-    <span className='d-block'>
+    <span className='d-inline-block'>
       <Icon /><small className={`text-${color} fw-bold ms-2`}>{desc}</small>
     </span>
   )
@@ -132,8 +133,7 @@ function Detail ({ fact }) {
            (fact.description && <span className='d-block'>{fact.description}</span>)}
           <PayerData data={fact.invoicePayerData} className='text-muted' header />
           {fact.invoiceComment && <small className='text-muted'><b>sender says:</b> {fact.invoiceComment}</small>}
-          {!fact.invoiceComment && !fact.description && fact.bolt11 && <span className='d-block'>no description</span>}
-          <Satus status={fact.status} />
+          <Satus status={fact.status} />{fact.autoWithdraw && <Badge className={styles.badge} bg={null}>autowithdraw</Badge>}
         </Link>
       </div>
     )

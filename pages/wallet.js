@@ -28,6 +28,7 @@ import { useShowModal } from '../components/modal'
 import { useField } from 'formik'
 import { useToast } from '../components/toast'
 import { WalletLimitBanner } from '../components/banners'
+import Plug from '../svgs/plug.svg'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -84,7 +85,7 @@ function WalletHistory () {
 
 export function WalletForm () {
   return (
-    <div className='align-items-center text-center py-5'>
+    <div className='align-items-center text-center pt-5 pb-4'>
       <Link href='/wallet?type=fund'>
         <Button variant='success'>fund</Button>
       </Link>
@@ -92,6 +93,11 @@ export function WalletForm () {
       <Link href='/wallet?type=withdraw'>
         <Button variant='success'>withdraw</Button>
       </Link>
+      <div className='mt-5'>
+        <Link href='/settings/wallets'>
+          <Button variant='info'>attach wallets <Plug className='fill-white ms-1' width={16} height={16} /></Button>
+        </Link>
+      </div>
     </div>
   )
 }

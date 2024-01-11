@@ -17,7 +17,7 @@ import uu from 'url-unshort'
 import { actSchema, advSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, ssValidate } from '../../lib/validate'
 import { sendUserNotification } from '../webPush'
 import { defaultCommentSort, isJob, deleteItemByAuthor, getDeleteCommand, hasDeleteCommand } from '../../lib/item'
-import { notifyItemParents, notifyUserSubscribers, notifyZapped } from '../../lib/push-notifications'
+import { notifyItemParents, notifyUserSubscribers, notifyZapped, notifyFounders } from '../../lib/push-notifications'
 import { datePivot, whenRange } from '../../lib/time'
 import { imageFeesInfo, uploadIdsFromText } from './image'
 import assertGofacYourself from './ofac'
@@ -1227,6 +1227,8 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
   await enqueueDeletionJob(item, models)
 
   notifyUserSubscribers({ models, item })
+
+  notifyFounders({ models, item })
 
   item.comments = []
   return item

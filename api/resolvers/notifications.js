@@ -107,6 +107,17 @@ export default {
           LIMIT ${LIMIT}+$3`
       )
 
+      if (meFull.noteTerritoryPosts) {
+        itemDrivenQueries.push(
+          `SELECT "Item".*, "Item".created_at AS "sortTime", 'TerritoryPost' AS type
+            FROM "Item"
+            JOIN "Sub" ON "Item"."subName" = "Sub".name
+            WHERE "Sub"."userId" = $1 AND "Item"."userId" <> $1
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT}+$3`
+        )
+      }
+
       // mentions
       if (meFull.noteMentions) {
         itemDrivenQueries.push(
@@ -137,6 +148,7 @@ export default {
             WHEN type = 'Mention' THEN 1
             WHEN type = 'Reply' THEN 2
             WHEN type = 'FollowActivity' THEN 3
+            WHEN type = 'TerritoryPost' THEN 4
           END ASC
         )`
       )
@@ -346,6 +358,9 @@ export default {
     item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
   },
   FollowActivity: {
+    item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
+  },
+  TerritoryPost: {
     item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
   },
   JobChanged: {

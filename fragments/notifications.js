@@ -86,6 +86,14 @@ export const NOTIFICATIONS = gql`
             text
           }
         }
+        ... on TerritoryPost {
+          id
+          sortTime
+          item {
+            ...ItemFullFields
+            text
+          }
+        }
         ... on Invitification {
           id
           sortTime

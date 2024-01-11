@@ -47,7 +47,8 @@ function Notification ({ n, fresh }) {
         (type === 'JobChanged' && <JobChanged n={n} />) ||
         (type === 'Reply' && <Reply n={n} />) ||
         (type === 'SubStatus' && <SubStatus n={n} />) ||
-        (type === 'FollowActivity' && <FollowActivity n={n} />)
+        (type === 'FollowActivity' && <FollowActivity n={n} />) ||
+        (type === 'TerritoryPost' && <TerritoryPost n={n} />)
       }
     </NotificationLayout>
   )
@@ -415,6 +416,19 @@ function FollowActivity ({ n }) {
             </RootProvider>
           </div>
           )}
+    </>
+  )
+}
+
+function TerritoryPost ({ n }) {
+  return (
+    <>
+      <small className='fw-bold text-info ms-2'>
+        new post in ~{n.item.sub.name}
+      </small>
+      <div>
+        <Item item={n.item} />
+      </div>
     </>
   )
 }

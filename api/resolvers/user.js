@@ -522,7 +522,7 @@ export default {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
       }
 
-      await ssValidate(lnAddrAutowithdrawSchema, data, { models })
+      await ssValidate(lnAddrAutowithdrawSchema, data, { me, models })
 
       await models.user.update({
         where: { id: me.id },

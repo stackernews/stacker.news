@@ -44,6 +44,7 @@ async function discussionToEvent (item) {
 
 async function linkToEvent (item) {
   const createdAt = Math.floor(Date.now() / 1000)
+  console.log('item in linkToEvent', item)
 
   return {
     created_at: createdAt,
@@ -64,7 +65,7 @@ async function pollToEvent (item) {
     kind: 1,
     content: item.text,
     tags: [
-      ['poll', 'single', expiresAt.toString(), item.title, item.options.map(op => op.option).join(',')]
+      ['poll', 'single', expiresAt.toString(), item.title, ...item.options.map(op => op.toString())]
     ]
   }
 }
@@ -107,7 +108,8 @@ async function jobToEvent (item) {
 export default function useCrossposter () {
   const toaster = useToast()
   const { data } = useQuery(SETTINGS)
-  const relays = [...DEFAULT_CROSSPOSTING_RELAYS, ...(data?.settings?.privates?.nostrRelays || [])]
+  const userRelays = data?.settings?.privates?.nostrRelays || []
+  const relays = [...DEFAULT_CROSSPOSTING_RELAYS, ...userRelays]
 
   const [updateNoteId] = useMutation(
     gql`
@@ -173,15 +175,22 @@ export default function useCrossposter () {
 
       const result = await crosspost(event, failedRelays || relays);
 
-      console.log('result', result)
+      if (result?.error) {
+        toaster.danger('Error crossposting to Nostr', result.error?.message);
+        // wait 2 seconds then break
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        return { allSuccessful, noteId };
+      }
 
       noteId = result.noteId;
-      failedRelays = result.failedRelays.map(relayObj => relayObj.relay);
+      failedRelays = result?.failedRelays.map(relayObj => relayObj.relay);
 
       if (failedRelays.length > 0) {
         const userAction = await relayError(failedRelays);
         if (userAction === 'skip') {
           toaster.success('Skipped failed relays.');
+          // wait 2 seconds then break
+          await new Promise(resolve => setTimeout(resolve, 2000));
           break;
         }
       } else {
@@ -193,11 +202,12 @@ export default function useCrossposter () {
   };
 
   const handleCrosspost = useCallback(async (values, itemId) => {
+    console.log('values', values)
+    console.log('itemId', itemId)
     try {
-      const pubkey = await callWithTimeout(() => window.nostr.getPublicKey(), 5000)
+      const pubkey = await callWithTimeout(() => window.nostr.getPublicKey(), 10000)
       if (!pubkey) throw new Error('failed to get pubkey')
     } catch (e) {
-      console.log(e)
       throw new Error(`Nostr extension error: ${e.message}`)
     }
 

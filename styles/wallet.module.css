@@ -1,17 +1,15 @@
 .walletGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   grid-gap: 20px;
   justify-items: center;
   align-items: center;
   margin-top: 3rem;
-  margin-left: 20px;
-  margin-right: 20px;
 }
 
 .card {
-  width: 200px;
-  height: 150px;
+  width: 160px;
+  height: 180px;
 }
 
 .badge {

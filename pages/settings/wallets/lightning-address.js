@@ -35,7 +35,7 @@ export default function LightningAddress () {
   return (
     <CenterLayout>
       <h2 className='pb-2'>lightning address</h2>
-      <h6 className='text-muted text-center pb-3'>autowithdraw to a lightning address when threshold is breached</h6>
+      <h6 className='text-muted text-center pb-3'>autowithdraw to a lightning address when desired balance is breached</h6>
       <Form
         initial={{
           lnAddr: me?.privates?.lnAddr || '',
@@ -67,13 +67,13 @@ export default function LightningAddress () {
           autoFocus
         />
         <Input
-          label='threshold'
+          label='desired balance'
           name='autoWithdrawThreshold'
           onChange={(formik, e) => {
             const value = e.target.value
             setSendThreshold(Math.max(Math.floor(value / 10), 1))
           }}
-          hint={isNaN(sendThreshold) ? undefined : `note: will attempt withdraw when threshold is exceeded by ${sendThreshold} sats`}
+          hint={isNaN(sendThreshold) ? undefined : `note: will attempt withdrawal when desired balance is exceeded by ${sendThreshold} sats`}
           append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
         />
         <Input

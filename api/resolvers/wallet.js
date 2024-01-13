@@ -1,4 +1,4 @@
-import { createHodlInvoice, createInvoice, decodePaymentRequest, payViaPaymentRequest, cancelHodlInvoice, getInvoice as getInvoiceFromLnd, getNode } from 'ln-service'
+import { getIdentity, createHodlInvoice, createInvoice, decodePaymentRequest, payViaPaymentRequest, cancelHodlInvoice, getInvoice as getInvoiceFromLnd, getNode } from 'ln-service'
 import { GraphQLError } from 'graphql'
 import crypto from 'crypto'
 import serialize from './serial'
@@ -475,6 +475,19 @@ export async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...
   // decode invoice
   try {
     const decoded = await decodePaymentRequest({ lnd, request: res.pr })
+    const ourPubkey = (await getIdentity({ lnd })).public_key
+    if (autoWithdraw && decoded.destination === ourPubkey) {
+      // unset lnaddr so we don't trigger another withdrawal with same destination
+      await models.user.update({
+        where: { id: me.id },
+        data: {
+          lnAddr: null,
+          autoWithdrawThreshold: null,
+          autoWithdrawMaxFeePercent: null
+        }
+      })
+      throw new Error('automated withdrawals to other stackers are not allowed')
+    }
     if (decoded.description_hash !== lnurlPayDescriptionHash(`${options.metadata}${stringifiedPayerData}`)) {
       throw new Error('description hash does not match')
     }

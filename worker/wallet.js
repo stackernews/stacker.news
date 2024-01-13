@@ -9,6 +9,7 @@ import { INVOICE_RETENTION_DAYS } from '../lib/constants'
 import { sleep } from '../lib/time.js'
 import { sendToLnAddr } from '../api/resolvers/wallet.js'
 import retry from 'async-retry'
+import { isNumber } from '../lib/validate.js'
 
 export async function subscribeToWallet (args) {
   await subscribeToDeposits(args)
@@ -292,8 +293,8 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
   const user = await models.user.findUnique({ where: { id } })
   if (!user ||
     !user.lnAddr ||
-    isNaN(user.autoWithdrawThreshold) ||
-    isNaN(user.autoWithdrawMaxFeePercent)) return
+    !isNumber(user.autoWithdrawThreshold) ||
+    !isNumber(user.autoWithdrawMaxFeePercent)) return
 
   const threshold = satsToMsats(user.autoWithdrawThreshold)
   const excess = Number(user.msats - threshold)

@@ -7,7 +7,7 @@ import { WalletButtonBar, WalletCard } from '../../../components/wallet-card'
 import { useMutation } from '@apollo/client'
 import { REMOVE_AUTOWITHDRAW, SET_AUTOWITHDRAW } from '../../../fragments/users'
 import { useToast } from '../../../components/toast'
-import { lnAddrAutowithdrawSchema } from '../../../lib/validate'
+import { lnAddrAutowithdrawSchema, isNumber } from '../../../lib/validate'
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
 
@@ -15,7 +15,7 @@ export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
 function useAutoWithdrawEnabled () {
   const me = useMe()
-  return me?.privates?.lnAddr && !isNaN(me?.privates?.autoWithdrawThreshold) && !isNaN(me?.privates?.autoWithdrawMaxFeePercent)
+  return me?.privates?.lnAddr && isNumber(me?.privates?.autoWithdrawThreshold) && isNumber(me?.privates?.autoWithdrawMaxFeePercent)
 }
 
 export default function LightningAddress () {
@@ -25,7 +25,7 @@ export default function LightningAddress () {
   const [setAutoWithdraw] = useMutation(SET_AUTOWITHDRAW)
   const enabled = useAutoWithdrawEnabled()
   const [removeAutoWithdraw] = useMutation(REMOVE_AUTOWITHDRAW)
-  const autoWithdrawThreshold = isNaN(me?.privates?.autoWithdrawThreshold) ? 10000 : me?.privates?.autoWithdrawThreshold
+  const autoWithdrawThreshold = isNumber(me?.privates?.autoWithdrawThreshold) ? me?.privates?.autoWithdrawThreshold : 10000
   const [sendThreshold, setSendThreshold] = useState(Math.max(Math.floor(autoWithdrawThreshold / 10), 1))
 
   useEffect(() => {
@@ -39,8 +39,8 @@ export default function LightningAddress () {
       <Form
         initial={{
           lnAddr: me?.privates?.lnAddr || '',
-          autoWithdrawThreshold: isNaN(me?.privates?.autoWithdrawThreshold) ? 10000 : me?.privates?.autoWithdrawThreshold,
-          autoWithdrawMaxFeePercent: isNaN(me?.privates?.autoWithdrawMaxFeePercent) ? 1 : me?.privates?.autoWithdrawMaxFeePercent
+          autoWithdrawThreshold,
+          autoWithdrawMaxFeePercent: isNumber(me?.privates?.autoWithdrawMaxFeePercent) ? me?.privates?.autoWithdrawMaxFeePercent : 1
         }}
         schema={lnAddrAutowithdrawSchema({ me })}
         onSubmit={async ({ autoWithdrawThreshold, autoWithdrawMaxFeePercent, ...values }) => {
@@ -73,7 +73,7 @@ export default function LightningAddress () {
             const value = e.target.value
             setSendThreshold(Math.max(Math.floor(value / 10), 1))
           }}
-          hint={isNaN(sendThreshold) ? undefined : `note: will attempt withdrawal when desired balance is exceeded by ${sendThreshold} sats`}
+          hint={isNumber(sendThreshold) ? `note: will attempt withdraw when threshold is exceeded by ${sendThreshold} sats` : undefined}
           append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
         />
         <Input

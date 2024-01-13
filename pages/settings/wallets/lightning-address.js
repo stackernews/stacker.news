@@ -10,6 +10,7 @@ import { useToast } from '../../../components/toast'
 import { lnAddrAutowithdrawSchema, isNumber } from '../../../lib/validate'
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
+import { numWithUnits } from '../../../lib/format'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -35,7 +36,7 @@ export default function LightningAddress () {
   return (
     <CenterLayout>
       <h2 className='pb-2'>lightning address</h2>
-      <h6 className='text-muted text-center pb-3'>autowithdraw to a lightning address when desired balance is breached</h6>
+      <h6 className='text-muted text-center pb-3'>autowithdraw to a lightning address to maintain desired balance</h6>
       <Form
         initial={{
           lnAddr: me?.privates?.lnAddr || '',
@@ -73,7 +74,7 @@ export default function LightningAddress () {
             const value = e.target.value
             setSendThreshold(Math.max(Math.floor(value / 10), 1))
           }}
-          hint={isNumber(sendThreshold) ? `note: will attempt withdraw when threshold is exceeded by ${sendThreshold} sats` : undefined}
+          hint={isNumber(sendThreshold) ? `note: attempts to keep your balance within ${numWithUnits(sendThreshold)} of this amount` : undefined}
           append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
         />
         <Input

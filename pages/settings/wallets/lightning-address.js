@@ -40,7 +40,7 @@ export default function LightningAddress () {
         initial={{
           lnAddr: me?.privates?.lnAddr || '',
           autoWithdrawThreshold: isNaN(me?.privates?.autoWithdrawThreshold) ? 10000 : me?.privates?.autoWithdrawThreshold,
-          autoWithdrawMaxFeePercent: isNaN(me?.privantes?.autoWithdrawMaxFeePercent) ? 1 : me?.privantes?.autoWithdrawMaxFeePercent
+          autoWithdrawMaxFeePercent: isNaN(me?.privates?.autoWithdrawMaxFeePercent) ? 1 : me?.privates?.autoWithdrawMaxFeePercent
         }}
         schema={lnAddrAutowithdrawSchema({ me })}
         onSubmit={async ({ autoWithdrawThreshold, autoWithdrawMaxFeePercent, ...values }) => {

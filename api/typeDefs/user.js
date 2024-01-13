@@ -143,7 +143,7 @@ export default gql`
     wildWestMode: Boolean!
     withdrawMaxFeeDefault: Int!
     autoWithdrawThreshold: Int
-    autoWithdrawMaxFeePercent: Int
+    autoWithdrawMaxFeePercent: Float
   }
 
   type UserOptional {

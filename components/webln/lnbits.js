@@ -52,7 +52,30 @@ export default {
       supports: ['lightning']
     }
   },
+  async sendPayment (bolt11) {
+    const response = await this._request(
+      'POST',
+      '/api/v1/payments',
+      {
+        bolt11,
+        out: true
+      }
+    )
+
+    const checkResponse = await this._request(
+      'GET',
+      `/api/v1/payments/${response.payment_hash}`
+    )
+
+    if (!checkResponse.preimage) {
+      throw new Error('No preimage')
+    }
+    return {
+      preimage: checkResponse.preimage
+    }
+  },
   async _request (method, path, args) {
+    if (!(this._url && this._adminKey)) throw new Error('provider not configured')
     // https://github.com/getAlby/bitcoin-connect/blob/v3.2.0-alpha/src/connectors/LnbitsConnector.ts
     let body = null
     const query = ''

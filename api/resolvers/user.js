@@ -186,7 +186,7 @@ export default {
           JOIN "Item" on "Item"."userId" = users.id
           WHERE "Item"."parentId" IS NULL
           AND NOT users."hideFromTopUsers"
-          AND ${viewIntervalClause(range, 'Item')}
+          AND ${intervalClause(range, 'Item')}
           GROUP BY users.id
           ORDER BY nposts DESC NULLS LAST, users.created_at DESC
           OFFSET $3

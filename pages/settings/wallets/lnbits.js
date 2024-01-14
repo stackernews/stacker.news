@@ -19,7 +19,6 @@ export default function LNbits () {
       <h2 className='pb-2'>lnbits</h2>
       <h6 className='text-muted text-center pb-3'>use lnbits for zapping</h6>
       <Form
-        // FIXME initial values are empty since we config is initialized after first render
         initial={{
           url: config?.url || '',
           adminKey: config?.adminKey || ''

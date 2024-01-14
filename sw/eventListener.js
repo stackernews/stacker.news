@@ -165,7 +165,7 @@ const mergeAndShowNotification = async (sw, payload, currentNotifications, tag, 
   }
 
   const options = { icon: payload.options?.icon, tag, data: { url: '/notifications', ...mergedPayload } }
-  log(`[sw:push] ${nid} - show notification with title "${payload.title}"`)
+  log(`[sw:push] ${nid} - show notification with title "${title}"`)
   return await sw.registration.showNotification(title, options)
 }
 

@@ -10,7 +10,7 @@ import { useWebLN } from '../../../components/webln'
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
 export default function LNbits () {
-  const { config, setConfig, clearConfig, isEnabled } = useWebLN('lnbits')
+  const { config, setConfig, clearConfig, enabled } = useWebLN('lnbits')
   const toaster = useToast()
   const router = useRouter()
 
@@ -32,7 +32,7 @@ export default function LNbits () {
             router.push('/settings/wallets')
           } catch (err) {
             console.error(err)
-            toaster.danger('failed to attach:' + err.message || err.toString?.())
+            toaster.danger('failed to attach: ' + err.message || err.toString?.())
           }
         }}
       >
@@ -49,14 +49,14 @@ export default function LNbits () {
           name='adminKey'
         />
         <WalletButtonBar
-          enabled={isEnabled} onDelete={async () => {
+          enabled={enabled} onDelete={async () => {
             try {
               await clearConfig()
               toaster.success('saved settings')
               router.push('/settings/wallets')
             } catch (err) {
               console.error(err)
-              toaster.danger('failed to unattach:' + err.message || err.toString?.())
+              toaster.danger('failed to unattach: ' + err.message || err.toString?.())
             }
           }}
         />
@@ -66,13 +66,13 @@ export default function LNbits () {
 }
 
 export function LNbitsCard () {
-  const { isEnabled } = useWebLN('lnbits')
+  const { enabled } = useWebLN('lnbits')
   return (
     <WalletCard
       title='lnbits'
       badges={['send only', 'non-custodialish']}
       provider='lnbits'
-      enabled={isEnabled}
+      enabled={enabled}
     />
   )
 }

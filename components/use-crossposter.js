@@ -71,15 +71,17 @@ async function pollToEvent (item) {
 }
 
 async function bountyToEvent (item) {
+  console.log('item in bountyToEvent', item)
   const createdAt = Math.floor(Date.now() / 1000)
 
   return {
     created_at: createdAt,
-    kind: 30402,
+    kind: 30023,
     content: item.text,
     tags: [
       ['d', item.id.toString()],
       ['title', item.title],
+      ['location', `https://stacker.news/items/${item.id}`],
       ['reward', item.bounty.toString()],
       ['t', 'bounty'],
       ['published_at', createdAt.toString()]

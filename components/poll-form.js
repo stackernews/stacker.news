@@ -62,33 +62,12 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         throw new Error({ message: error.toString() })
       }
 
-      try {
-        if (crosspost && !(await window.nostr.getPublicKey())) {
-          throw new Error('not available')
-        }
-      } catch (e) {
-        throw new Error(`Nostr extension error: ${e.message}`)
-      }
-
-      let noteId = null
       const pollId = data?.upsertPoll?.id
 
-      try {
-        if (crosspost && pollId) {
-          const crosspostResult = await crossposter({ ...values, options: options, title: title, id: pollId })
-          noteId = crosspostResult?.noteId
-        }
-      } catch (e) {
-        console.error(e)
-      }
-
-      if (noteId) {
-        await updateNoteId({
-          variables: {
-            id: pollId,
-            noteId
-          }
-        })
+      if (crosspost && pollId) {
+        values.title = title.trim()
+        values.options = optionsFiltered
+        await crossposter(values, pollId)
       }
 
       if (item) {

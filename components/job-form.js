@@ -92,35 +92,12 @@ export default function JobForm ({ item, sub }) {
         throw new Error({ message: error.toString() })
       }
 
-      try {
-        if (crosspost && !(await window.nostr.getPublicKey())) {
-          throw new Error('not available')
-        }
-      } catch (e) {
-        throw new Error(`Nostr extension error: ${e.message}`)
-      }
-
-      let noteId = null
       const jobId = data?.upsertJob?.id
 
-      try {
-        if (crosspost && jobId) {
-          const crosspostResult = await crossposter({ ...values, id: jobId })
-          noteId = crosspostResult?.noteId
-        }
-      } catch (e) {
-        console.error(e)
+      if (crosspost && jobId) {
+        await crossposter(values, jobId)
       }
-
-      if (noteId) {
-        await updateNoteId({
-          variables: {
-            id: jobId,
-            noteId
-          }
-        })
-      }
-
+      
       if (item) {
         await router.push(`/items/${item.id}`)
       } else {

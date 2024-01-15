@@ -107,33 +107,11 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
         throw new Error({ message: error.toString() })
       }
 
-      try {
-        if (crosspost && !(await window.nostr.getPublicKey())) {
-          throw new Error('not available')
-        }
-      } catch (e) {
-        throw new Error(`Nostr extension error: ${e.message}`)
-      }
-
-      let noteId = null
       const linkId = data?.upsertLink?.id
 
-      try {
-        if (crosspost && linkId) {
-          const crosspostResult = await crossposter({ ...values, title: title, id: linkId })
-          noteId = crosspostResult?.noteId
-        }
-      } catch (e) {
-        console.error(e)
-      }
-
-      if (noteId) {
-        await updateNoteId({
-          variables: {
-            id: linkId,
-            noteId
-          }
-        })
+      if (crosspost && linkId) {
+        values.title = title.trim()
+        await crossposter(values, linkId)
       }
 
       if (item) {

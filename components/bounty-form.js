@@ -87,33 +87,11 @@ export function BountyForm ({
         throw new Error({ message: error.toString() })
       }
 
-      try {
-        if (crosspost && !(await window.nostr.getPublicKey())) {
-          throw new Error('not available')
-        }
-      } catch (e) {
-        throw new Error(`Nostr extension error: ${e.message}`)
-      }
-
-      let noteId = null
       const bountyId = data?.upsertBounty?.id
 
-      try {
-        if (crosspost && bountyId) {
-          const crosspostResult = await crossposter({ ...values, id: bountyId })
-          noteId = crosspostResult?.noteId
-        }
-      } catch (e) {
-        console.error(e)
-      }
-
-      if (noteId) {
-        await updateNoteId({
-          variables: {
-            id: bountyId,
-            noteId
-          }
-        })
+      if (crosspost && bountyId) {
+        values.bounty = bounty ? Number(bounty) : undefined
+        await crossposter(values, bountyId)
       }
 
       if (item) {

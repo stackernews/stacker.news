@@ -94,18 +94,11 @@ export function Invoice ({ invoice, modal, onPayment, info, successVerb }) {
   )
 }
 
-const JITInvoice = ({ invoice: { id, hash, hmac, expiresAt }, onClose, onPayment, onCancel, onRetry }) => {
+const JITInvoice = ({ invoice: { id, hash, hmac, expiresAt }, onPayment, onCancel, onRetry }) => {
   const { data, loading, error } = useQuery(INVOICE, {
     pollInterval: 1000,
     variables: { id }
   })
-  const [cancelInvoice] = useMutation(gql`
-    mutation cancelInvoice($hash: String!, $hmac: String!) {
-      cancelInvoice(hash: $hash, hmac: $hmac) {
-        id
-      }
-    }
-  `)
   const [retryError, setRetryError] = useState(0)
   if (error) {
     if (error.message?.includes('invoice not found')) {
@@ -117,7 +110,7 @@ const JITInvoice = ({ invoice: { id, hash, hmac, expiresAt }, onClose, onPayment
     return <QrSkeleton description status='loading' />
   }
 
-  const retry = !!onRetry && !!onCancel
+  const retry = !!onRetry
   let errorStatus = 'Something went wrong trying to perform the action after payment.'
   if (retryError > 0) {
     errorStatus = 'Something still went wrong.\nYou can retry or cancel the invoice to return your funds.'
@@ -147,10 +140,7 @@ const JITInvoice = ({ invoice: { id, hash, hmac, expiresAt }, onClose, onPayment
               <Button
                 className='mx-1'
                 variant='danger'
-                onClick={async () => {
-                  await cancelInvoice({ variables: { hash, hmac } })
-                  onCancel()
-                }}
+                onClick={onCancel}
               >Cancel
               </Button>
             </div>
@@ -176,6 +166,13 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
         expiresAt
       }
     }`)
+  const [cancelInvoice] = useMutation(gql`
+    mutation cancelInvoice($hash: String!, $hmac: String!) {
+      cancelInvoice(hash: $hash, hmac: $hmac) {
+        id
+      }
+    }
+  `)
 
   const showModal = useShowModal()
 
@@ -208,35 +205,28 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
     }
     const inv = data.createInvoice
 
-    // wait until invoice is paid
+    // wait until (modal is closed because invoice was canceled) OR invoice was paid
     // eslint-disable-next-line no-async-promise-executor, promise/param-names
-    await new Promise(async (resolvePayment, rejectPayment) => {
+    await new Promise(async (resolveModal, rejectModal) => {
       try {
-        // wait until modal closed or error
+        // wait until invoice is paid or canceled
         // eslint-disable-next-line promise/param-names
-        await new Promise((resolveModal, rejectModal) => {
+        await new Promise((resolvePayment, rejectPayment) => {
+          const reject = () => rejectPayment(new Error('modal closed'))
           showModal(onClose => {
             return (
               <JITInvoice
                 invoice={inv}
-                onClose={() => {
-                  onClose()
-                  rejectModal(new Error('modal closed'))
-                }}
-                onPayment={(inv) => {
-                  // resolve promise but don't close modal yet
-                  resolveModal(inv)
-                }}
+                onPayment={resolvePayment}
                 successVerb='received'
               />
             )
-          }, { keepOpen: true, onClose: rejectModal })
+          }, { keepOpen: true, onClose: reject })
         })
-        resolvePayment()
       } catch (err) {
-        console.error('payment rejected:', err)
-        rejectPayment(err)
+        rejectModal(err)
       }
+      resolveModal()
     })
 
     const retry = () => onSubmit({ hash: inv.hash, hmac: inv.hmac, ...formValues }, ...submitArgs)
@@ -250,13 +240,17 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
     // retry until success or cancel
     // eslint-disable-next-line no-async-promise-executor, promise/param-names
     return await new Promise(async (resolveAction, rejectAction) => {
+      const reject = async () => {
+        await cancelInvoice({ variables: { hash: inv.hash, hmac: inv.hmac } })
+        rejectAction(new Error('invoice canceled'))
+      }
       showModal(onClose => {
         return (
           <JITInvoice
             invoice={inv}
-            onCancel={() => {
+            onCancel={async () => {
+              await reject()
               onClose()
-              rejectAction(new Error('user canceled'))
             }}
             onRetry={async () => {
               resolveAction(await retry())
@@ -264,7 +258,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
             successVerb='received'
           />
         )
-      }, { keepOpen: true, onClose: rejectAction })
+      }, { keepOpen: true, onClose: reject })
     })
   }, [onSubmit, createInvoice, !!me])
 

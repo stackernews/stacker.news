@@ -33,6 +33,7 @@ export default function useModal () {
     }
     const previousModalContent = modalStack[modalStack.length - 1]
     setModalStack(modalStack.slice(0, -1))
+    modalOptions?.onClose?.()
     return setModalContent(previousModalContent)
   }, [modalStack, setModalStack])
 

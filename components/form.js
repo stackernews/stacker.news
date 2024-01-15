@@ -801,7 +801,9 @@ export function Form ({
         clearLocalStorage(values)
       }
     } catch (err) {
-      console.error(err)
+      const msg = err.message || err.toString?.()
+      // handle errors from JIT invoices by ignoring them
+      if (msg === 'modal closed' || msg === 'invoice canceled') return
       toaster.danger(err.message || err.toString?.())
     }
   }, [onSubmit, feeButton?.total, toaster, clearLocalStorage, storageKeyPrefix])

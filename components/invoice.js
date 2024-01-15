@@ -9,7 +9,6 @@ import { INVOICE } from '../fragments/wallet'
 import InvoiceStatus from './invoice-status'
 import { useMe } from './me'
 import { useShowModal } from './modal'
-import { sleep } from '../lib/time'
 import Countdown from './countdown'
 import PayerData from './payer-data'
 import Bolt11Info from './bolt11-info'
@@ -95,7 +94,7 @@ export function Invoice ({ invoice, modal, onPayment, info, successVerb }) {
   )
 }
 
-const MutationInvoice = ({ id, hash, hmac, errorCount, repeat, onClose, expiresAt, ...props }) => {
+const JITInvoice = ({ invoice: { id, hash, hmac, expiresAt }, onClose, onPayment, onCancel, onRetry }) => {
   const { data, loading, error } = useQuery(INVOICE, {
     pollInterval: 1000,
     variables: { id }
@@ -107,6 +106,7 @@ const MutationInvoice = ({ id, hash, hmac, errorCount, repeat, onClose, expiresA
       }
     }
   `)
+  const [retryError, setRetryError] = useState(0)
   if (error) {
     if (error.message?.includes('invoice not found')) {
       return
@@ -117,27 +117,39 @@ const MutationInvoice = ({ id, hash, hmac, errorCount, repeat, onClose, expiresA
     return <QrSkeleton description status='loading' />
   }
 
+  const retry = !!onRetry && !!onCancel
   let errorStatus = 'Something went wrong trying to perform the action after payment.'
-  if (errorCount > 1) {
+  if (retryError > 0) {
     errorStatus = 'Something still went wrong.\nYou can retry or cancel the invoice to return your funds.'
   }
 
   return (
     <>
-      <Invoice invoice={data.invoice} modal {...props} />
-      {errorCount > 0
+      <Invoice invoice={data.invoice} modal onPayment={onPayment} />
+      {retry
         ? (
           <>
             <div className='my-3'>
               <InvoiceStatus variant='failed' status={errorStatus} />
             </div>
             <div className='d-flex flex-row mt-3 justify-content-center'>
-              <Button className='mx-1' variant='info' onClick={repeat}>Retry</Button>
+              <Button
+                className='mx-1' variant='info' onClick={async () => {
+                  try {
+                    await onRetry()
+                  } catch (err) {
+                    console.error('retry error:', err)
+                    setRetryError(retryError + 1)
+                  }
+                }}
+              >Retry
+              </Button>
               <Button
                 className='mx-1'
-                variant='danger' onClick={async () => {
+                variant='danger'
+                onClick={async () => {
                   await cancelInvoice({ variables: { hash, hmac } })
-                  onClose()
+                  onCancel()
                 }}
               >Cancel
               </Button>
@@ -150,17 +162,12 @@ const MutationInvoice = ({ id, hash, hmac, errorCount, repeat, onClose, expiresA
 }
 
 const defaultOptions = {
-  forceInvoice: false,
   requireSession: false,
-  callback: null, // (formValues) => void
-  replaceModal: false
+  forceInvoice: false
 }
-// TODO: refactor this so it can be easily understood
-// there's lots of state cascading paired with logic
-// independent of the state, and it's hard to follow
 export const useInvoiceable = (onSubmit, options = defaultOptions) => {
   const me = useMe()
-  const [createInvoice, { data }] = useMutation(gql`
+  const [createInvoice] = useMutation(gql`
     mutation createInvoice($amount: Int!) {
       createInvoice(amount: $amount, hodlInvoice: true, expireSecs: 180) {
         id
@@ -169,92 +176,97 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
         expiresAt
       }
     }`)
+
   const showModal = useShowModal()
-  const [formValues, setFormValues] = useState()
-  const [submitArgs, setSubmitArgs] = useState()
 
-  let errorCount = 0
-  const onPayment = useCallback(
-    (onClose, hmac) => {
-      return async ({ id, satsReceived, expiresAt, hash }) => {
-        await sleep(500)
-        const repeat = () => {
-          onClose()
-          // call onSubmit handler and pass invoice data
-          onSubmit({ satsReceived, hash, hmac, ...formValues }, ...submitArgs)
-            .then(() => {
-              options?.callback?.(formValues)
-            })
-            .catch((error) => {
-            // if error happened after payment, show repeat and cancel options
-            // by passing `errorCount` and `repeat`
-              console.error(error)
-              errorCount++
-              showModal(onClose => (
-                <MutationInvoice
-                  id={id}
-                  hash={hash}
-                  hmac={hmac}
-                  expiresAt={expiresAt}
-                  onClose={onClose}
-                  onPayment={onPayment(onClose, hmac)}
-                  successVerb='received'
-                  errorCount={errorCount}
-                  repeat={repeat}
-                />
-              ), { keepOpen: true })
-            })
-        }
-        // prevents infinite loop of calling `onPayment`
-        if (errorCount === 0) await repeat()
-      }
-    }, [onSubmit, submitArgs]
-  )
-
-  const invoice = data?.createInvoice
-  useEffect(() => {
-    if (invoice) {
-      showModal(onClose => (
-        <MutationInvoice
-          id={invoice.id}
-          hash={invoice.hash}
-          hmac={invoice.hmac}
-          expiresAt={invoice.expiresAt}
-          onClose={onClose}
-          onPayment={onPayment(onClose, invoice.hmac)}
-          successVerb='received'
-        />
-      ), { replaceModal: options.replaceModal, keepOpen: true }
-      )
-    }
-  }, [invoice?.id])
-
-  // this function will be called before the Form's onSubmit handler is called
-  // and the form must include `cost` or `amount` as a value
   const onSubmitWrapper = useCallback(async ({ cost, ...formValues }, ...submitArgs) => {
-    // action only allowed if logged in
+    // some actions require a session
     if (!me && options.requireSession) {
       throw new Error('you must be logged in')
     }
 
-    // if no cost is passed, just try the action first
+    // educated guesses where action might pass in the invoice amount
+    // (field 'cost' has highest precedence)
     cost ??= formValues.amount
+
+    // attempt action for the first time
     if (!cost || (me && !options.forceInvoice)) {
       try {
         return await onSubmit(formValues, ...submitArgs)
       } catch (error) {
-        if (!payOrLoginError(error)) {
+        if (!payOrLoginError(error) || !cost) {
+          // can't handle error here - bail
           throw error
         }
       }
     }
-    setFormValues(formValues)
-    setSubmitArgs(submitArgs)
-    await createInvoice({ variables: { amount: cost } })
-    // tell onSubmit handler that we want to keep local storage
-    // even though the submit handler was "successful"
-    return { keepLocalStorage: true }
-  }, [onSubmit, setFormValues, setSubmitArgs, createInvoice, !!me])
+
+    // initial attempt of action failed. we will create an invoice, pay and retry now.
+    const { data, error } = await createInvoice({ variables: { amount: cost } })
+    if (error) {
+      throw error
+    }
+    const inv = data.createInvoice
+
+    // wait until invoice is paid
+    // eslint-disable-next-line no-async-promise-executor, promise/param-names
+    await new Promise(async (resolvePayment, rejectPayment) => {
+      try {
+        // wait until modal closed or error
+        // eslint-disable-next-line promise/param-names
+        await new Promise((resolveModal, rejectModal) => {
+          showModal(onClose => {
+            return (
+              <JITInvoice
+                invoice={inv}
+                onClose={() => {
+                  onClose()
+                  rejectModal(new Error('modal closed'))
+                }}
+                onPayment={(inv) => {
+                  // resolve promise but don't close modal yet
+                  resolveModal(inv)
+                }}
+                successVerb='received'
+              />
+            )
+          }, { keepOpen: true, onClose: rejectModal })
+        })
+        resolvePayment()
+      } catch (err) {
+        console.error('payment rejected:', err)
+        rejectPayment(err)
+      }
+    })
+
+    const retry = () => onSubmit({ hash: inv.hash, hmac: inv.hmac, ...formValues }, ...submitArgs)
+    // first retry
+    try {
+      return await retry()
+    } catch (error) {
+      console.error('retry error:', error)
+    }
+
+    // retry until success or cancel
+    // eslint-disable-next-line no-async-promise-executor, promise/param-names
+    return await new Promise(async (resolveAction, rejectAction) => {
+      showModal(onClose => {
+        return (
+          <JITInvoice
+            invoice={inv}
+            onCancel={() => {
+              onClose()
+              rejectAction(new Error('user canceled'))
+            }}
+            onRetry={async () => {
+              resolveAction(await retry())
+            }}
+            successVerb='received'
+          />
+        )
+      }, { keepOpen: true, onClose: rejectAction })
+    })
+  }, [onSubmit, createInvoice, !!me])
 
   return onSubmitWrapper
 }

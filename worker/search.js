@@ -63,7 +63,7 @@ async function _indexItem (item, { models }) {
   try {
     await search.index({
       id: item.id,
-      index: 'item',
+      index: process.env.OPENSEARCH_INDEX,
       version: new Date(item.updatedAt).getTime(),
       versionType: 'external_gte',
       body: itemcp

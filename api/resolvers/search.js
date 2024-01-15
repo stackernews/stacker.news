@@ -2,23 +2,9 @@ import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { whenToFrom } from '../../lib/time'
 import { getItem } from './item'
 
-const STOP_WORDS = ['a', 'an', 'and', 'are', 'as', 'at', 'be', 'but',
-  'by', 'for', 'if', 'in', 'into', 'is', 'it', 'no', 'not',
-  'of', 'on', 'or', 'such', 'that', 'the', 'their', 'then',
-  'there', 'these', 'they', 'this', 'to', 'was', 'will',
-  'with', 'bitcoin', 'page', 'adds', 'how', 'why', 'what',
-  'works', 'now', 'available', 'breaking', 'app', 'powered',
-  'just', 'dev', 'using', 'crypto', 'has', 'my', 'i', 'apps',
-  'really', 'new', 'era', 'application', 'best', 'year',
-  'latest', 'still', 'few', 'crypto', 'keep', 'public', 'current',
-  'levels', 'from', 'cryptocurrencies', 'confirmed', 'news', 'network',
-  'about', 'sources', 'vote', 'considerations', 'hope',
-  'keep', 'keeps', 'including', 'we', 'brings', "don't", 'do',
-  'interesting', 'us', 'welcome', 'thoughts', 'results']
-
 export default {
   Query: {
-    related: async (parent, { title, id, cursor, limit, minMatch }, { me, models, search }) => {
+    related: async (parent, { title, id, cursor, limit = LIMIT, minMatch }, { me, models, search }) => {
       const decodedCursor = decodeCursor(cursor)
 
       if (!id && (!title || title.trim().split(/\s+/).length < 1)) {
@@ -31,7 +17,7 @@ export default {
       const like = []
       if (id) {
         like.push({
-          _index: 'item',
+          _index: process.env.OPENSEARCH_INDEX,
           _id: id
         })
       }
@@ -40,86 +26,98 @@ export default {
         like.push(title)
       }
 
-      const mustNot = []
+      const mustNot = [{ exists: { field: 'parentId' } }]
       if (id) {
         mustNot.push({ term: { id } })
       }
 
+      let should = [
+        {
+          more_like_this: {
+            fields: ['title', 'text'],
+            like,
+            min_term_freq: 1,
+            min_doc_freq: 1,
+            max_doc_freq: 5,
+            min_word_length: 2,
+            max_query_terms: 25,
+            minimum_should_match: minMatch || '10%'
+          }
+        }
+      ]
+
+      if (process.env.OPENSEARCH_MODEL_ID) {
+        let qtitle = title
+        let qtext = title
+        if (id) {
+          const item = await getItem(parent, { id }, { me, models })
+          qtitle = item.title || item.text
+          qtext = item.text || item.title
+        }
+
+        should = [
+          {
+            neural: {
+              title_embedding: {
+                query_text: qtext,
+                model_id: process.env.OPENSEARCH_MODEL_ID,
+                k: decodedCursor.offset + LIMIT
+              }
+            }
+          },
+          {
+            neural: {
+              text_embedding: {
+                query_text: qtitle,
+                model_id: process.env.OPENSEARCH_MODEL_ID,
+                k: decodedCursor.offset + LIMIT
+              }
+            }
+          }
+        ]
+      }
+
       let items = await search.search({
-        index: 'item',
-        size: limit || LIMIT,
+        index: process.env.OPENSEARCH_INDEX,
+        size: limit,
         from: decodedCursor.offset,
+        _source: {
+          excludes: [
+            'text',
+            'text_embedding',
+            'title_embedding'
+          ]
+        },
         body: {
           query: {
             function_score: {
               query: {
                 bool: {
-                  should: [
+                  should,
+                  filter: [
                     {
-                      more_like_this: {
-                        fields: ['title'],
-                        like,
-                        min_term_freq: 1,
-                        min_doc_freq: 1,
-                        min_word_length: 2,
-                        max_query_terms: 12,
-                        minimum_should_match: minMatch || '80%',
-                        stop_words: STOP_WORDS,
-                        boost: 10000
+                      bool: {
+                        should: [
+                          { match: { status: 'ACTIVE' } },
+                          { match: { status: 'NOSATS' } }
+                        ],
+                        must_not: mustNot
                       }
                     },
                     {
-                      more_like_this: {
-                        fields: ['title'],
-                        like,
-                        min_term_freq: 1,
-                        min_doc_freq: 1,
-                        min_word_length: 2,
-                        max_query_terms: 12,
-                        minimum_should_match: minMatch || '60%',
-                        stop_words: STOP_WORDS,
-                        boost: 1000
-                      }
-                    },
-                    {
-                      more_like_this: {
-                        fields: ['title'],
-                        like,
-                        min_term_freq: 1,
-                        min_doc_freq: 1,
-                        min_word_length: 2,
-                        max_query_terms: 12,
-                        minimum_should_match: minMatch || '30%',
-                        stop_words: STOP_WORDS,
-                        boost: 100
-                      }
-                    },
-                    {
-                      more_like_this: {
-                        fields: ['text'],
-                        like,
-                        min_term_freq: 1,
-                        min_doc_freq: 1,
-                        min_word_length: 2,
-                        max_query_terms: 25,
-                        minimum_should_match: minMatch || '30%',
-                        stop_words: STOP_WORDS,
-                        boost: 10
-                      }
+                      range: { wvotes: { gte: minMatch ? 0 : 0.2 } }
                     }
-                  ],
-                  must_not: [{ exists: { field: 'parentId' } }, ...mustNot],
-                  filter: {
-                    range: { wvotes: { gte: minMatch ? 0 : 0.2 } }
-                  }
+                  ]
                 }
               },
-              field_value_factor: {
-                field: 'wvotes',
-                modifier: 'log1p',
-                factor: 1.2,
-                missing: 0
-              },
+              functions: [{
+                field_value_factor: {
+                  field: 'wvotes',
+                  modifier: 'none',
+                  factor: 1,
+                  missing: 0
+                }
+              }],
               boost_mode: 'multiply'
             }
           }
@@ -177,24 +175,14 @@ export default {
         whatArr.push({ match: { 'sub.name': sub } })
       }
 
-      const should = [
+      let termQueries = [
         {
           // all terms are matched in fields
           multi_match: {
             query,
-            type: 'most_fields',
-            fields: ['title^1000', 'text'],
+            type: 'best_fields',
+            fields: ['title^100', 'text'],
             minimum_should_match: '100%',
-            boost: 10000
-          }
-        },
-        {
-          // all terms are matched in fields fuzzily
-          multi_match: {
-            query,
-            type: 'most_fields',
-            fields: ['title^1000', 'text'],
-            minimum_should_match: '60%',
             boost: 1000
           }
         }
@@ -232,35 +220,87 @@ export default {
         }
       ]
 
-      // allow fuzzy matching for single terms
-      if (sort !== 'recent') {
-        should.push({
-          // only some terms must match unless we're sorting
+      if (sort === 'recent') {
+        // prioritize exact matches
+        termQueries.push({
+          multi_match: {
+            query,
+            type: 'phrase',
+            fields: ['title^100', 'text'],
+            boost: 1000
+          }
+        })
+      } else {
+        // allow fuzzy matching with partial matches
+        termQueries.push({
           multi_match: {
             query,
             type: 'most_fields',
-            fields: ['title^1000', 'text'],
+            fields: ['title^100', 'text'],
             fuzziness: 'AUTO',
             prefix_length: 3,
             minimum_should_match: '60%'
           }
         })
-        // small bias toward posts with comments
         functions.push({
+          // small bias toward posts with comments
           field_value_factor: {
             field: 'ncomments',
             modifier: 'ln1p',
+            factor: 1
+          }
+        },
+        {
+          // small bias toward recent posts
+          field_value_factor: {
+            field: 'createdAt',
+            modifier: 'log1p',
             factor: 1
           }
         })
       }
 
       if (query.length) {
-        whatArr.push({
-          bool: {
-            should
+        // if we have a model id and we aren't sort by recent, use neural search
+        if (process.env.OPENSEARCH_MODEL_ID && sort !== 'recent') {
+          termQueries = {
+            hybrid: {
+              queries: [
+                {
+                  bool: {
+                    should: [
+                      {
+                        neural: {
+                          title_embedding: {
+                            query_text: query,
+                            model_id: process.env.OPENSEARCH_MODEL_ID,
+                            k: decodedCursor.offset + LIMIT
+                          }
+                        }
+                      },
+                      {
+                        neural: {
+                          text_embedding: {
+                            query_text: query,
+                            model_id: process.env.OPENSEARCH_MODEL_ID,
+                            k: decodedCursor.offset + LIMIT
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  bool: {
+                    should: termQueries
+                  }
+                }
+              ]
+            }
           }
-        })
+        }
+      } else {
+        termQueries = []
       }
 
       const whenRange = when === 'custom'
@@ -275,15 +315,23 @@ export default {
 
       try {
         sitems = await search.search({
-          index: 'item',
+          index: process.env.OPENSEARCH_INDEX,
           size: LIMIT,
+          _source: {
+            excludes: [
+              'text',
+              'text_embedding',
+              'title_embedding'
+            ]
+          },
           from: decodedCursor.offset,
           body: {
             query: {
               function_score: {
                 query: {
                   bool: {
-                    must: [
+                    ...(sort === 'recent' ? { must: termQueries } : { should: termQueries }),
+                    filter: [
                       ...whatArr,
                       me
                         ? {
@@ -302,9 +350,7 @@ export default {
                                 { match: { status: 'NOSATS' } }
                               ]
                             }
-                          }
-                    ],
-                    filter: [
+                          },
                       {
                         range:
                         {

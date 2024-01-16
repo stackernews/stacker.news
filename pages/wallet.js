@@ -29,6 +29,7 @@ import { useField } from 'formik'
 import { useToast } from '../components/toast'
 import { WalletLimitBanner } from '../components/banners'
 import Plug from '../svgs/plug.svg'
+import { decode } from 'bolt11'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -279,7 +280,13 @@ function InvoiceScanner ({ fieldName }) {
           return (
             <QrScanner
               onDecode={(result) => {
-                helpers.setValue(result.replace(/^lightning:/, '').toLowerCase())
+                if (result.split('lightning=')[1]) {
+                  helpers.setValue(result.split('lightning=')[1].split(/[&?]/)[0].toLowerCase())
+                } else if (decode(result.replace(/^lightning:/, ''))) {
+                  helpers.setValue(result.replace(/^lightning:/, '').toLowerCase())
+                } else {
+                  throw new Error('Not a proper lightning payment request')
+                }
                 onClose()
               }}
               onError={(error) => {
@@ -288,6 +295,7 @@ function InvoiceScanner ({ fieldName }) {
                 } else {
                   toaster.danger(error?.message || error?.toString?.())
                 }
+                onClose()
               }}
             />
           )

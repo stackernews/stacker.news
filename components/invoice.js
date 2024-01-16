@@ -118,7 +118,7 @@ const JITInvoice = ({ invoice: { id, hash, hmac, expiresAt }, onPayment, onCance
 
   return (
     <>
-      <Invoice invoice={data.invoice} modal onPayment={onPayment} />
+      <Invoice invoice={data.invoice} modal onPayment={onPayment} successVerb='received' />
       {retry
         ? (
           <>
@@ -218,7 +218,6 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
               <JITInvoice
                 invoice={inv}
                 onPayment={resolvePayment}
-                successVerb='received'
               />
             )
           }, { keepOpen: true, onClose: reject })
@@ -255,7 +254,6 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
             onRetry={async () => {
               resolveAction(await retry())
             }}
-            successVerb='received'
           />
         )
       }, { keepOpen: true, onClose: reject })

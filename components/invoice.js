@@ -205,33 +205,26 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
     }
     const inv = data.createInvoice
 
-    // wait until (modal is closed because invoice was canceled) OR invoice was paid
-    // eslint-disable-next-line no-async-promise-executor, promise/param-names
-    await new Promise(async (resolveModal, rejectModal) => {
-      try {
-        // wait until invoice is paid or canceled
-        // eslint-disable-next-line promise/param-names
-        await new Promise((resolvePayment, rejectPayment) => {
-          const reject = () => rejectPayment(new Error('modal closed'))
-          showModal(onClose => {
-            return (
-              <JITInvoice
-                invoice={inv}
-                onPayment={resolvePayment}
-              />
-            )
-          }, { keepOpen: true, onClose: reject })
-        })
-      } catch (err) {
-        rejectModal(err)
-      }
-      resolveModal()
+    // wait until invoice is paid or modal is closed
+    let modalClose
+    await new Promise((resolve, reject) => {
+      showModal(onClose => {
+        modalClose = onClose
+        return (
+          <JITInvoice
+            invoice={inv}
+            onPayment={resolve}
+          />
+        )
+      }, { keepOpen: true, onClose: reject })
     })
 
     const retry = () => onSubmit({ hash: inv.hash, hmac: inv.hmac, ...formValues }, ...submitArgs)
     // first retry
     try {
-      return await retry()
+      const ret = await retry()
+      modalClose()
+      return ret
     } catch (error) {
       console.error('retry error:', error)
     }

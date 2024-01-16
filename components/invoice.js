@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
-import { useMutation, useQuery } from '@apollo/client'
+import { useApolloClient, useMutation, useQuery } from '@apollo/client'
 import { Button } from 'react-bootstrap'
 import { gql } from 'graphql-tag'
 import { numWithUnits } from '../lib/format'
@@ -12,6 +12,7 @@ import { useShowModal } from './modal'
 import Countdown from './countdown'
 import PayerData from './payer-data'
 import Bolt11Info from './bolt11-info'
+import { useWebLN } from './webln'
 
 export function Invoice ({ invoice, modal, onPayment, info, successVerb }) {
   const [expired, setExpired] = useState(new Date(invoice.expiredAt) <= new Date())
@@ -161,6 +162,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
     mutation createInvoice($amount: Int!) {
       createInvoice(amount: $amount, hodlInvoice: true, expireSecs: 180) {
         id
+        bolt11
         hash
         hmac
         expiresAt
@@ -175,6 +177,9 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
   `)
 
   const showModal = useShowModal()
+  const provider = useWebLN()
+  const client = useApolloClient()
+  const pollInvoice = (id) => client.query({ query: INVOICE, variables: { id } })
 
   const onSubmitWrapper = useCallback(async ({ cost, ...formValues }, ...submitArgs) => {
     // some actions require a session
@@ -206,24 +211,13 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
     const inv = data.createInvoice
 
     // wait until invoice is paid or modal is closed
-    let modalClose
-    await new Promise((resolve, reject) => {
-      showModal(onClose => {
-        modalClose = onClose
-        return (
-          <JITInvoice
-            invoice={inv}
-            onPayment={resolve}
-          />
-        )
-      }, { keepOpen: true, onClose: reject })
-    })
+    const modalClose = await waitForPayment(inv, showModal, provider, pollInvoice)
 
     const retry = () => onSubmit({ hash: inv.hash, hmac: inv.hmac, ...formValues }, ...submitArgs)
     // first retry
     try {
       const ret = await retry()
-      modalClose()
+      modalClose?.()
       return ret
     } catch (error) {
       console.error('retry error:', error)
@@ -253,6 +247,49 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
   }, [onSubmit, createInvoice, !!me])
 
   return onSubmitWrapper
+}
+
+const waitForPayment = async (inv, showModal, provider, pollInvoice) => {
+  try {
+    // try WebLN provider first
+    return await new Promise((resolve, reject) => {
+      // don't use await here since we're using HODL invoices
+      // and sendPaymentAsync is not supported yet.
+      // see https://www.webln.guide/building-lightning-apps/webln-reference/webln.sendpaymentasync
+      provider.sendPayment(inv.bolt11)
+      const interval = setInterval(async () => {
+        try {
+          const { data, error } = await pollInvoice(inv.id)
+          if (error) {
+            clearInterval(interval)
+            return reject(error)
+          }
+          const { invoice } = data
+          if (invoice.isHeld && invoice.satsReceived) {
+            clearInterval(interval)
+            resolve()
+          }
+        } catch (err) {
+          clearInterval(interval)
+          reject(err)
+        }
+      }, 1000)
+    })
+  } catch (err) {
+    console.error('WebLN payment failed:', err)
+  }
+
+  // QR code as fallback
+  return await new Promise((resolve, reject) => {
+    showModal(onClose => {
+      return (
+        <JITInvoice
+          invoice={inv}
+          onPayment={() => resolve(onClose)}
+        />
+      )
+    }, { keepOpen: true, onClose: reject })
+  })
 }
 
 export const useInvoiceModal = (onPayment, deps) => {

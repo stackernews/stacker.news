@@ -231,14 +231,12 @@ export function useZap () {
   )
 
   const toaster = useToast()
-  const strike = useLightning()
   const [act] = useAct()
 
   const showInvoiceModal = useInvoiceModal(
     async ({ hash, hmac }, { variables }) => {
       await act({ variables: { ...variables, hash, hmac } })
-      strike()
-    }, [act, strike])
+    }, [act])
 
   return useCallback(async ({ item, me }) => {
     const meSats = (item?.meSats || 0)

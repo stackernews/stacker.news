@@ -168,9 +168,8 @@ export default function UpVote ({ item, className }) {
                   setTipShow(true)
                 }
 
+                await zap({ item, me })
                 strike()
-
-                zap({ item, me })
               }
               : () => showModal(onClose => <ItemAct onClose={onClose} itemId={item.id} act={act} />)
           }

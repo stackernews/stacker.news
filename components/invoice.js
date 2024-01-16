@@ -230,26 +230,25 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
     }
 
     // retry until success or cancel
-    // eslint-disable-next-line no-async-promise-executor, promise/param-names
-    return await new Promise(async (resolveAction, rejectAction) => {
-      const reject = async () => {
+    return await new Promise((resolve, reject) => {
+      const cancelAndReject = async () => {
         await cancelInvoice({ variables: { hash: inv.hash, hmac: inv.hmac } })
-        rejectAction(new Error('invoice canceled'))
+        reject(new Error('invoice canceled'))
       }
       showModal(onClose => {
         return (
           <JITInvoice
             invoice={inv}
             onCancel={async () => {
-              await reject()
+              await cancelAndReject()
               onClose()
             }}
             onRetry={async () => {
-              resolveAction(await retry())
+              resolve(await retry())
             }}
           />
         )
-      }, { keepOpen: true, onClose: reject })
+      }, { keepOpen: true, onClose: cancelAndReject })
     })
   }, [onSubmit, createInvoice, !!me])
 

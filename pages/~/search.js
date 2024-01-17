@@ -38,6 +38,7 @@ export default function Index ({ ssrData }) {
                 <div className={styles.inner}>
                   <div><b>nym:</b>&#8203;<em>sn</em> - limit results by stacker nym</div>
                   <div><b>url:</b>&#8203;<em>stacker&#8203;.news</em> - limit to specific site</div>
+                  <div><b>"</b>exact phrase<b>"</b> - demand results contain exact phrase</div>
                   <div>you are searching <em>{variables.sub || 'home'}</em><br /><em>home</em> searches show results from all</div>
                 </div>
               </div>

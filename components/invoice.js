@@ -132,7 +132,7 @@ const JITInvoice = ({ invoice: { id, hash, hmac, expiresAt }, onPayment, onCance
                     await onRetry()
                   } catch (err) {
                     console.error('retry error:', err)
-                    setRetryError(retryError + 1)
+                    setRetryError(retryError => retryError + 1)
                   }
                 }}
               >Retry

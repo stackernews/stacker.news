@@ -268,7 +268,9 @@ export function useZap () {
       if (payOrLoginError(error)) {
         // call non-idempotent version
         const amount = sats - meSats
-        showInvoiceModal({ amount }, { variables: { ...variables, sats: amount } })
+        try {
+          await showInvoiceModal({ amount }, { variables: { ...variables, sats: amount } })
+        } catch (error) {}
         return
       }
       console.error(error)

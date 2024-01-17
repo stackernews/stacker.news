@@ -784,7 +784,7 @@ export function Form ({
   // and use them as variables in their GraphQL mutation
   if (invoiceable && onSubmit) {
     const options = typeof invoiceable === 'object' ? invoiceable : undefined
-    onSubmit = useInvoiceable(onSubmit, { callback: clearLocalStorage, ...options })
+    onSubmit = useInvoiceable(onSubmit, options)
   }
 
   const onSubmitInner = useCallback(async (values, ...args) => {
@@ -796,13 +796,14 @@ export function Form ({
         if (cost) {
           values.cost = cost
         }
-
-        const options = await onSubmit(values, ...args)
-        if (!storageKeyPrefix || options?.keepLocalStorage) return
+        await onSubmit(values, ...args)
+        if (!storageKeyPrefix) return
         clearLocalStorage(values)
       }
     } catch (err) {
-      console.error(err)
+      const msg = err.message || err.toString?.()
+      // handle errors from JIT invoices by ignoring them
+      if (msg === 'modal closed' || msg === 'invoice canceled') return
       toaster.danger(err.message || err.toString?.())
     }
   }, [onSubmit, feeButton?.total, toaster, clearLocalStorage, storageKeyPrefix])

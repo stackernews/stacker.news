@@ -2,6 +2,23 @@ import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { whenToFrom } from '../../lib/time'
 import { getItem } from './item'
 
+function queryParts (q) {
+  const regex = /"([^"]*)"/gm
+
+  const queryArr = q.replace(regex, '').trim().split(/\s+/)
+  const url = queryArr.find(word => word.startsWith('url:'))
+  const nym = queryArr.find(word => word.startsWith('nym:'))
+  const exclude = [url, nym]
+  const query = queryArr.filter(word => !exclude.includes(word)).join(' ')
+
+  return {
+    quotes: [...q.matchAll(regex)].map(m => m[1]),
+    nym,
+    url,
+    query
+  }
+}
+
 export default {
   Query: {
     related: async (parent, { title, id, cursor, limit = LIMIT, minMatch }, { me, models, search }) => {
@@ -134,11 +151,11 @@ export default {
         items
       }
     },
-    search: async (parent, { q: query, sub, cursor, sort, what, when, from: whenFrom, to: whenTo }, { me, models, search }) => {
+    search: async (parent, { q, sub, cursor, sort, what, when, from: whenFrom, to: whenTo }, { me, models, search }) => {
       const decodedCursor = decodeCursor(cursor)
       let sitems
 
-      if (!query) {
+      if (!q) {
         return {
           items: [],
           cursor: null
@@ -157,11 +174,7 @@ export default {
           break
       }
 
-      const queryArr = query.trim().split(/\s+/)
-      const url = queryArr.find(word => word.startsWith('url:'))
-      const nym = queryArr.find(word => word.startsWith('nym:'))
-      const exclude = [url, nym]
-      query = queryArr.filter(word => !exclude.includes(word)).join(' ')
+      const { query, quotes, nym, url } = queryParts(q)
 
       if (url) {
         whatArr.push({ match_phrase_prefix: { url: `${url.slice(4).toLowerCase()}` } })
@@ -188,7 +201,19 @@ export default {
         }
       ]
 
-      let boostMode = 'multiply'
+      for (const quote of quotes) {
+        whatArr.push({
+          multi_match: {
+            query: quote,
+            type: 'phrase',
+            fields: ['title', 'text']
+          }
+        })
+      }
+
+      // if we search for an exact string only, everything must match
+      // so score purely on sort field
+      let boostMode = query ? 'multiply' : 'replace'
       let sortField
       let sortMod = 'log1p'
       switch (sort) {

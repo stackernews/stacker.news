@@ -76,13 +76,13 @@ async function bountyToEvent (item) {
 
   return {
     created_at: createdAt,
-    kind: 30023,
+    kind: 30402,
     content: item.text,
     tags: [
       ['d', item.id.toString()],
       ['title', item.title],
       ['location', `https://stacker.news/items/${item.id}`],
-      ['reward', item.bounty.toString()],
+      ['price', item.bounty.toString(), "SATS"],
       ['t', 'bounty'],
       ['published_at', createdAt.toString()]
     ]

@@ -253,10 +253,17 @@ const waitForPayment = async (inv, showModal, provider, pollInvoice) => {
   try {
     // try WebLN provider first
     return await new Promise((resolve, reject) => {
-      // don't use await here since we're using HODL invoices
+      // can't use await here since we might be paying HODL invoices
       // and sendPaymentAsync is not supported yet.
       // see https://www.webln.guide/building-lightning-apps/webln-reference/webln.sendpaymentasync
       provider.sendPayment(inv.bolt11)
+        // WebLN payment will never resolve here for HODL invoices
+        // since they only get resolved after settlement which can't happen here
+        .then(resolve)
+        .catch(err => {
+          clearInterval(interval)
+          reject(err)
+        })
       const interval = setInterval(async () => {
         try {
           const { data, error } = await pollInvoice(inv.id)

@@ -109,7 +109,7 @@ export function joinZapRankPersonalView (me, models) {
 // this grabs all the stuff we need to display the item list and only
 // hits the db once ... orderBy needs to be duplicated on the outer query because
 // joining does not preserve the order of the inner query
-async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ...args) {
+export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ...args) {
   if (!me) {
     return await models.$queryRawUnsafe(`
       SELECT "Item".*, to_json(users.*) as user, to_jsonb("Sub".*) as sub

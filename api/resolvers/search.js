@@ -1,6 +1,6 @@
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { whenToFrom } from '../../lib/time'
-import { getItem } from './item'
+import { getItem, itemQueryWithMeta, SELECT } from './item'
 
 function queryParts (q) {
   const regex = /"([^"]*)"/gm
@@ -58,7 +58,8 @@ export default {
             max_doc_freq: 5,
             min_word_length: 2,
             max_query_terms: 25,
-            minimum_should_match: minMatch || '10%'
+            minimum_should_match: minMatch || '10%',
+            boost_terms: 100
           }
         }
       ]
@@ -94,7 +95,7 @@ export default {
         ]
       }
 
-      let items = await search.search({
+      const results = await search.search({
         index: process.env.OPENSEARCH_INDEX,
         size: limit,
         from: decodedCursor.offset,
@@ -141,9 +142,19 @@ export default {
         }
       })
 
-      items = items.body.hits.hits.map(async e => {
-        // this is super inefficient but will suffice until we do something more generic
-        return await getItem(parent, { id: e._source.id }, { me, models })
+      const values = results.body.hits.hits.map((e, i) => {
+        return `(${e._source.id}, ${i})`
+      }).join(',')
+
+      const items = await itemQueryWithMeta({
+        me,
+        models,
+        query: `
+          WITH r(id, rank) AS (VALUES ${values})
+          ${SELECT}, rank
+          FROM "Item"
+          JOIN r ON "Item".id = r.id`,
+        orderBy: 'ORDER BY rank ASC'
       })
 
       return {
@@ -406,14 +417,23 @@ export default {
         }
       }
 
-      // return highlights
-      const items = sitems.body.hits.hits.map(async e => {
-        // this is super inefficient but will suffice until we do something more generic
-        const item = await getItem(parent, { id: e._source.id }, { me, models })
+      const values = sitems.body.hits.hits.map((e, i) => {
+        return `(${e._source.id}, ${i})`
+      }).join(',')
 
+      const items = (await itemQueryWithMeta({
+        me,
+        models,
+        query: `
+          WITH r(id, rank) AS (VALUES ${values})
+          ${SELECT}, rank
+          FROM "Item"
+          JOIN r ON "Item".id = r.id`,
+        orderBy: 'ORDER BY rank ASC'
+      })).map((item, i) => {
+        const e = sitems.body.hits.hits[i]
         item.searchTitle = (e.highlight?.title && e.highlight.title[0]) || item.title
         item.searchText = (e.highlight?.text && e.highlight.text.join(' ... ')) || undefined
-
         return item
       })
 

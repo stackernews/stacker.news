@@ -28,7 +28,7 @@ export default function Items ({ ssrData, variables = {}, query, destructureData
     pins?.reduce((a, p) => { a[p.position] = p; return a }, {}), [pins])
 
   const Skeleton = useCallback(() =>
-    <ItemsSkeleton rank={rank} startRank={items?.length} limit={variables.limit} />, [rank, items])
+    <ItemsSkeleton rank={rank} startRank={items?.length} limit={variables.limit} Footer={Foooter} />, [rank, items])
 
   if (!dat) {
     return <Skeleton />
@@ -65,14 +65,17 @@ export function ListItem ({ item, ...props }) {
   )
 }
 
-export function ItemsSkeleton ({ rank, startRank = 0, limit = LIMIT }) {
+export function ItemsSkeleton ({ rank, startRank = 0, limit = LIMIT, Footer }) {
   const items = new Array(limit).fill(null)
 
   return (
-    <div className={styles.grid}>
-      {items.map((_, i) => (
-        <ItemSkeleton rank={rank && i + startRank + 1} key={i + startRank} />
-      ))}
-    </div>
+    <>
+      <div className={styles.grid}>
+        {items.map((_, i) => (
+          <ItemSkeleton rank={rank && i + startRank + 1} key={i + startRank} />
+        ))}
+      </div>
+      <Footer invisible cursor />
+    </>
   )
 }

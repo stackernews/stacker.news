@@ -5,7 +5,7 @@ import { NavigateFooter } from './more-footer'
 
 const LIMIT = 5
 
-export default function Related ({ title, itemId }) {
+export default function Related ({ title, itemId, ...props }) {
   const variables = { title, id: itemId, limit: LIMIT }
   return (
     <AccordianItem
@@ -18,6 +18,7 @@ export default function Related ({ title, itemId }) {
           Footer={props => <NavigateFooter {...props} href={`/items/${itemId}/related`} text='view all related items' />}
         />
       }
+      {...props}
     />
   )
 }

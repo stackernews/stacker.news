@@ -35,7 +35,7 @@ export function withClause (range) {
 export function intervalClause (range, table) {
   const unit = timeUnitForRange(range)
 
-  return `date_trunc('${unit}', "${table}".created_at)  >= date_trunc('${unit}', $1) AND date_trunc('${unit}', "${table}".created_at) <= date_trunc('${unit}', $2) `
+  return `date_trunc('${unit}', timezone('America/Chicago', "${table}".created_at))  >= date_trunc('${unit}', timezone('America/Chicago', $1)) AND date_trunc('${unit}', timezone('America/Chicago', "${table}".created_at)) <= date_trunc('${unit}', timezone('America/Chicago', $2)) `
 }
 
 export function viewIntervalClause (range, view) {

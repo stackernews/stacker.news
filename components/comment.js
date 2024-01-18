@@ -23,6 +23,7 @@ import { useMe } from './me'
 import { useQuoteReply } from './use-quote-reply'
 import { DownZap } from './dont-link-this'
 import Skull from '../svgs/death-skull.svg'
+import { commentSubTreeRootId } from '../lib/item'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -59,17 +60,11 @@ const truncateString = (string = '', maxLength = 140) =>
 export function CommentFlat ({ item, rank, siblingComments, ...props }) {
   const router = useRouter()
   const [href, as] = useMemo(() => {
-    if (item.path.split('.').length > COMMENT_DEPTH_LIMIT + 1) {
-      return [{
-        pathname: '/items/[id]',
-        query: { id: item.parentId, commentId: item.id }
-      }, `/items/${item.parentId}`]
-    } else {
-      return [{
-        pathname: '/items/[id]',
-        query: { id: item.root.id, commentId: item.id }
-      }, `/items/${item.root.id}`]
-    }
+    const rootId = commentSubTreeRootId(item)
+    return [{
+      pathname: '/items/[id]',
+      query: { id: rootId, commentId: item.id }
+    }, `/items/${rootId}`]
   }, [item?.id])
 
   return (

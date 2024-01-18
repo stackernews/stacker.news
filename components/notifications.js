@@ -11,7 +11,7 @@ import { dayMonthYear, timeSince } from '../lib/time'
 import Link from 'next/link'
 import Check from '../svgs/check-double-line.svg'
 import HandCoin from '../svgs/hand-coin-fill.svg'
-import { COMMENT_DEPTH_LIMIT, LOST_BLURBS, FOUND_BLURBS } from '../lib/constants'
+import { LOST_BLURBS, FOUND_BLURBS } from '../lib/constants'
 import CowboyHatIcon from '../svgs/cowboy.svg'
 import BaldIcon from '../svgs/bald.svg'
 import { RootProvider } from './root'
@@ -28,6 +28,7 @@ import { numWithUnits } from '../lib/format'
 import BountyIcon from '../svgs/bounty-bag.svg'
 import { LongCountdown } from './countdown'
 import { nextBillingWithGrace } from '../lib/territory'
+import { commentSubTreeRootId } from '../lib/item'
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
@@ -98,24 +99,13 @@ const defaultOnClick = n => {
 
   // Votification, Mention, JobChanged, Reply all have item
   if (!n.item.title) {
-    const path = n.item.path.split('.')
-    if (path.length > COMMENT_DEPTH_LIMIT + 1) {
-      const rootId = path.slice(-(COMMENT_DEPTH_LIMIT + 1))[0]
-      return {
-        href: {
-          pathname: '/items/[id]',
-          query: { id: rootId, commentId: n.item.id }
-        },
-        as: `/items/${rootId}`
-      }
-    } else {
-      return {
-        href: {
-          pathname: '/items/[id]',
-          query: { id: n.item.root.id, commentId: n.item.id }
-        },
-        as: `/items/${n.item.root.id}`
-      }
+    const rootId = commentSubTreeRootId(n.item)
+    return {
+      href: {
+        pathname: '/items/[id]',
+        query: { id: rootId, commentId: n.item.id }
+      },
+      as: `/items/${rootId}`
     }
   } else {
     return {

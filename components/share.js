@@ -7,6 +7,8 @@ import { useMe } from './me'
 import { useToast } from './toast'
 import { SSR } from '../lib/constants'
 import { callWithTimeout } from '../lib/nostr'
+import { commentSubTreeRootId } from '../lib/item'
+import { useRouter } from 'next/router'
 
 const referrurl = (ipath, me) => {
   const path = `${ipath}${me ? `/r/${me.name}` : ''}`
@@ -67,7 +69,16 @@ export default function Share ({ path, title, className = '' }) {
 export function CopyLinkDropdownItem ({ item }) {
   const me = useMe()
   const toaster = useToast()
-  const url = referrurl(`/items/${item.id}`, me)
+  const router = useRouter()
+  let url = referrurl(`/items/${item.id}`, me)
+
+  // if this is a comment and we're not directly on the comment page
+  // link to the comment in context
+  if (item.parentId && !router.asPath.includes(`/items/${item.id}`)) {
+    const rootId = commentSubTreeRootId(item)
+    url = referrurl(`/items/${rootId}`, me) + `?commentId=${item.id}`
+  }
+
   return (
     <Dropdown.Item
       onClick={async () => {

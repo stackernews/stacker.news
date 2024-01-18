@@ -8,17 +8,16 @@ import Link from 'next/link'
 import { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
 import { commentsViewedAfterComment } from '../lib/new-comments'
 import { commentSchema } from '../lib/validate'
-import { COMMENT_DEPTH_LIMIT } from '../lib/constants'
 import { useToast } from './toast'
 import { toastDeleteScheduled } from '../lib/form'
 import { ItemButtonBar } from './post'
 import { useShowModal } from './modal'
 import { Button } from 'react-bootstrap'
 import { useRoot } from './root'
+import { commentSubTreeRootId } from '../lib/item'
 
 export function ReplyOnAnotherPage ({ item }) {
-  const path = item.path.split('.')
-  const rootId = path.slice(-(COMMENT_DEPTH_LIMIT - 1))[0]
+  const rootId = commentSubTreeRootId(item)
 
   let text = 'reply on another page'
   if (item.ncomments > 0) {

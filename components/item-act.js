@@ -199,7 +199,7 @@ export function useZap () {
             return existingSats + (undo ? -amount : satsDelta)
           },
           meSats: () => {
-            return sats
+            return undo ? sats - amount : sats
           }
         }
       })

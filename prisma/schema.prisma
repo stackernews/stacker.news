@@ -107,11 +107,35 @@ model User {
   Sub                       Sub[]
   SubAct                    SubAct[]
   MuteSub                   MuteSub[]
+  Wallet                    Wallet[]
 
   @@index([photoId])
   @@index([createdAt], map: "users.created_at_index")
   @@index([inviteId], map: "users.inviteId_index")
   @@map("users")
+}
+
+enum WalletType {
+  LIGHTNING_ADDRESS
+}
+
+model Wallet {
+  id        Int        @id @default(autoincrement())
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @default(now()) @updatedAt @map("updated_at")
+  userId    Int
+  type      WalletType
+  typeId    Int
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model WalletLightningAddress {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  address   String
 }
 
 model Mute {

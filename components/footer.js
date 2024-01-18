@@ -111,23 +111,6 @@ const ChatPopover = (
   </Popover>
 )
 
-const AnalyticsPopover = (
-  <Popover>
-    <Popover.Body style={{ fontWeight: 500, fontSize: '.9rem' }}>
-      <a
-        href='https://plausible.io/stacker.news' className='nav-link p-0 d-inline-flex'
-        target='_blank' rel='noreferrer'
-      >
-        visitors
-      </a>
-      <span className='mx-2 text-muted'> \ </span>
-      <Link href='/stackers/day' className='nav-link p-0 d-inline-flex'>
-        stackers
-      </Link>
-    </Popover.Body>
-  </Popover>
-)
-
 const LegalPopover = (
   <Popover>
     <Popover.Body style={{ fontWeight: 500, fontSize: '.9rem' }}>
@@ -190,11 +173,9 @@ export default function Footer ({ links = true }) {
               <Rewards />
             </div>
             <div className='mb-0' style={{ fontWeight: 500 }}>
-              <OverlayTrigger trigger='click' placement='top' overlay={AnalyticsPopover} rootClose>
-                <div className='nav-link p-0 p-0 d-inline-flex' style={{ cursor: 'pointer' }}>
-                  analytics
-                </div>
-              </OverlayTrigger>
+              <Link href='/stackers/day' className='nav-link p-0 p-0 d-inline-flex'>
+                analytics
+              </Link>
               <span className='mx-2 text-muted'> \ </span>
               <OverlayTrigger trigger='click' placement='top' overlay={ChatPopover} rootClose>
                 <div className='nav-link p-0 p-0 d-inline-flex' style={{ cursor: 'pointer' }}>

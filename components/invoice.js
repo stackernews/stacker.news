@@ -181,7 +181,9 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
   const client = useApolloClient()
   const pollInvoice = (id) => client.query({ query: INVOICE, variables: { id } })
 
-  const onSubmitWrapper = useCallback(async ({ cost, ...formValues }, ...submitArgs) => {
+  const onSubmitWrapper = useCallback(async (
+    { cost, ...formValues },
+    { variables, optimisticResponse, update, ...apolloArgs }) => {
     // some actions require a session
     if (!me && options.requireSession) {
       throw new Error('you must be logged in')
@@ -194,7 +196,9 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
     // attempt action for the first time
     if (!cost || (me && !options.forceInvoice)) {
       try {
-        return await onSubmit(formValues, ...submitArgs)
+        const insufficientFunds = me?.privates.sats < cost
+        return await onSubmit(formValues,
+          { variables, optimisticsResponse: insufficientFunds ? null : optimisticResponse, ...apolloArgs })
       } catch (error) {
         if (!payOrLoginError(error) || !cost) {
           // can't handle error here - bail
@@ -211,9 +215,19 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
     const inv = data.createInvoice
 
     // wait until invoice is paid or modal is closed
-    const modalClose = await waitForPayment(inv, showModal, provider, pollInvoice)
+    const modalClose = await waitForPayment({
+      invoice: inv,
+      showModal,
+      provider,
+      pollInvoice,
+      updateCache: () => update?.(client.cache, { data: optimisticResponse }),
+      undoUpdate: () => update?.(client.cache, { data: optimisticResponse }, true)
+    })
 
-    const retry = () => onSubmit({ hash: inv.hash, hmac: inv.hmac, ...formValues }, ...submitArgs)
+    const retry = () => onSubmit(
+      { hash: inv.hash, hmac: inv.hmac, ...formValues },
+      // unset update function since we already ran an cache update
+      { variables, update: null })
     // first retry
     try {
       const ret = await retry()
@@ -249,14 +263,16 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
   return onSubmitWrapper
 }
 
-const waitForPayment = async (inv, showModal, provider, pollInvoice) => {
+const waitForPayment = async ({ invoice, showModal, provider, pollInvoice, updateCache, undoUpdate }) => {
   try {
     // try WebLN provider first
     return await new Promise((resolve, reject) => {
+      // be optimistic and pretend zap was already successful for consistent zapping UX
+      updateCache?.()
       // can't use await here since we might be paying HODL invoices
       // and sendPaymentAsync is not supported yet.
       // see https://www.webln.guide/building-lightning-apps/webln-reference/webln.sendpaymentasync
-      provider.sendPayment(inv.bolt11)
+      provider.sendPayment(invoice.bolt11)
         // WebLN payment will never resolve here for HODL invoices
         // since they only get resolved after settlement which can't happen here
         .then(resolve)
@@ -266,13 +282,13 @@ const waitForPayment = async (inv, showModal, provider, pollInvoice) => {
         })
       const interval = setInterval(async () => {
         try {
-          const { data, error } = await pollInvoice(inv.id)
+          const { data, error } = await pollInvoice(invoice.id)
           if (error) {
             clearInterval(interval)
             return reject(error)
           }
-          const { invoice } = data
-          if (invoice.isHeld && invoice.satsReceived) {
+          const { invoice: inv } = data
+          if (inv.isHeld && inv.satsReceived) {
             clearInterval(interval)
             resolve()
           }
@@ -284,6 +300,8 @@ const waitForPayment = async (inv, showModal, provider, pollInvoice) => {
     })
   } catch (err) {
     console.error('WebLN payment failed:', err)
+    // undo attempt to make zapping UX consistent
+    undoUpdate?.()
   }
 
   // QR code as fallback
@@ -291,7 +309,7 @@ const waitForPayment = async (inv, showModal, provider, pollInvoice) => {
     showModal(onClose => {
       return (
         <JITInvoice
-          invoice={inv}
+          invoice={invoice}
           onPayment={() => resolve(onClose)}
         />
       )

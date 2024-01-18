@@ -106,15 +106,15 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
 export function useAct ({ onUpdate } = {}) {
   const me = useMe()
 
-  const update = useCallback((cache, args) => {
-    const { data: { act: { id, sats, path, act } } } = args
+  const update = useCallback((cache, args, undo) => {
+    const { data: { act: { id, sats, path, act, tip } } } = args
 
     cache.modify({
       id: `Item:${id}`,
       fields: {
         sats (existingSats = 0) {
           if (act === 'TIP') {
-            return existingSats + sats
+            return existingSats + (undo ? -tip : sats)
           }
 
           return existingSats
@@ -122,7 +122,7 @@ export function useAct ({ onUpdate } = {}) {
         meSats: me
           ? (existingSats = 0) => {
               if (act === 'TIP') {
-                return existingSats + sats
+                return existingSats + (undo ? -tip : sats)
               }
 
               return existingSats
@@ -131,7 +131,7 @@ export function useAct ({ onUpdate } = {}) {
         meDontLikeSats: me
           ? (existingSats = 0) => {
               if (act === 'DONT_LIKE_THIS') {
-                return existingSats + sats
+                return existingSats + (undo ? -tip : sats)
               }
 
               return existingSats
@@ -148,7 +148,7 @@ export function useAct ({ onUpdate } = {}) {
           id: `Item:${aId}`,
           fields: {
             commentSats (existingCommentSats = 0) {
-              return existingCommentSats + sats
+              return existingCommentSats + (undo ? -tip : sats)
             }
           }
         })
@@ -172,8 +172,8 @@ export function useAct ({ onUpdate } = {}) {
 }
 
 export function useZap () {
-  const update = useCallback((cache, args) => {
-    const { data: { act: { id, sats, path } } } = args
+  const update = useCallback((cache, args, undo) => {
+    const { data: { act: { id, sats, path, tip } } } = args
 
     // determine how much we increased existing sats by by checking the
     // difference between result sats and meSats
@@ -191,12 +191,12 @@ export function useZap () {
 
     const satsDelta = sats - item.meSats
 
-    if (satsDelta > 0) {
+    if (satsDelta >= 0) {
       cache.modify({
         id: `Item:${id}`,
         fields: {
           sats (existingSats = 0) {
-            return existingSats + satsDelta
+            return existingSats + (undo ? -tip : satsDelta)
           },
           meSats: () => {
             return sats
@@ -211,7 +211,7 @@ export function useZap () {
           id: `Item:${aId}`,
           fields: {
             commentSats (existingCommentSats = 0) {
-              return existingCommentSats + satsDelta
+              return existingCommentSats + (undo ? -tip : satsDelta)
             }
           }
         })
@@ -234,9 +234,9 @@ export function useZap () {
   const strike = useLightning()
   const [act] = useAct()
 
-  const showInvoiceModal = useInvoiceModal(
-    async ({ hash, hmac }, { variables }) => {
-      await act({ variables: { ...variables, hash, hmac } })
+  const invoiceableAct = useInvoiceModal(
+    async ({ hash, hmac }, { variables, ...apolloArgs }) => {
+      await act({ variables: { ...variables, hash, hmac }, ...apolloArgs })
       strike()
     }, [act, strike])
 
@@ -254,22 +254,21 @@ export function useZap () {
     }
 
     const variables = { id: item.id, sats, act: 'TIP' }
+    const insufficientFunds = me?.privates.sats < sats
+    const optimisticResponse = { act: { path: item.path, ...variables } }
     try {
-      await zap({
-        variables,
-        optimisticResponse: {
-          act: {
-            path: item.path,
-            ...variables
-          }
-        }
-      })
+      await zap({ variables, optimisticResponse: insufficientFunds ? null : optimisticResponse })
     } catch (error) {
       if (payOrLoginError(error)) {
         // call non-idempotent version
         const amount = sats - meSats
+        optimisticResponse.act.tip = amount
         try {
-          await showInvoiceModal({ amount }, { variables: { ...variables, sats: amount } })
+          await invoiceableAct({ amount }, {
+            variables: { ...variables, sats: amount },
+            optimisticResponse,
+            update
+          })
         } catch (error) {}
         return
       }

@@ -11,13 +11,13 @@ export function WebLNProvider ({ children }) {
   useEffect(() => {
     const initProvider = async key => {
       const config = await _providers[key].load()
-      const { sendPayment, enabled } = _providers[key]
+      const pkey = _providers[key]
       setProviders(p => ({
         ...p,
         [key]: {
           config,
-          enabled,
-          sendPayment: sendPayment.bind(_providers[key])
+          enabled: pkey.enabled,
+          sendPayment: pkey.sendPayment.bind(pkey)
         }
       }))
     }
@@ -54,9 +54,9 @@ export function useWebLN (key) {
   }
 
   const p = provider[key]
-  const { config, enabled, sendPayment } = p
+  const { config, enabled } = p
   const setConfig = (config) => _setConfig(key, config)
   const clearConfig = () => _clearConfig(key)
 
-  return { name: key, config, setConfig, clearConfig, enabled, sendPayment }
+  return { name: key, config, setConfig, clearConfig, enabled, sendPayment: p.sendPayment.bind(p) }
 }

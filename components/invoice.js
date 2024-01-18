@@ -215,7 +215,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
     const inv = data.createInvoice
 
     // wait until invoice is paid or modal is closed
-    const modalClose = await waitForPayment({
+    const payment = await waitForPayment({
       invoice: inv,
       showModal,
       provider,
@@ -223,11 +223,12 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
       updateCache: () => update?.(client.cache, { data: optimisticResponse }),
       undoUpdate: () => update?.(client.cache, { data: optimisticResponse }, true)
     })
+    const { webLN, modalClose } = payment
 
     const retry = () => onSubmit(
       { hash: inv.hash, hmac: inv.hmac, ...formValues },
       // unset update function since we already ran an cache update
-      { variables, update: null })
+      { variables, update: null }, webLN)
     // first retry
     try {
       const ret = await retry()
@@ -275,7 +276,7 @@ const waitForPayment = async ({ invoice, showModal, provider, pollInvoice, updat
       provider.sendPayment(invoice.bolt11)
         // WebLN payment will never resolve here for HODL invoices
         // since they only get resolved after settlement which can't happen here
-        .then(resolve)
+        .then(() => resolve({ webLN: true }))
         .catch(err => {
           clearInterval(interval)
           reject(err)
@@ -290,7 +291,7 @@ const waitForPayment = async ({ invoice, showModal, provider, pollInvoice, updat
           const { invoice: inv } = data
           if (inv.isHeld && inv.satsReceived) {
             clearInterval(interval)
-            resolve()
+            resolve({ webLN: true })
           }
         } catch (err) {
           clearInterval(interval)
@@ -310,7 +311,7 @@ const waitForPayment = async ({ invoice, showModal, provider, pollInvoice, updat
       return (
         <JITInvoice
           invoice={invoice}
-          onPayment={() => resolve(onClose)}
+          onPayment={() => resolve({ modalClose: onClose })}
         />
       )
     }, { keepOpen: true, onClose: reject })

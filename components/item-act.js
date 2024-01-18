@@ -107,14 +107,14 @@ export function useAct ({ onUpdate } = {}) {
   const me = useMe()
 
   const update = useCallback((cache, args, undo) => {
-    const { data: { act: { id, sats, path, act, tip } } } = args
+    const { data: { act: { id, sats, path, act, amount } } } = args
 
     cache.modify({
       id: `Item:${id}`,
       fields: {
         sats (existingSats = 0) {
           if (act === 'TIP') {
-            return existingSats + (undo ? -tip : sats)
+            return existingSats + (undo ? -amount : sats)
           }
 
           return existingSats
@@ -122,7 +122,7 @@ export function useAct ({ onUpdate } = {}) {
         meSats: me
           ? (existingSats = 0) => {
               if (act === 'TIP') {
-                return existingSats + (undo ? -tip : sats)
+                return existingSats + (undo ? -amount : sats)
               }
 
               return existingSats
@@ -131,7 +131,7 @@ export function useAct ({ onUpdate } = {}) {
         meDontLikeSats: me
           ? (existingSats = 0) => {
               if (act === 'DONT_LIKE_THIS') {
-                return existingSats + (undo ? -tip : sats)
+                return existingSats + (undo ? -amount : sats)
               }
 
               return existingSats
@@ -148,7 +148,7 @@ export function useAct ({ onUpdate } = {}) {
           id: `Item:${aId}`,
           fields: {
             commentSats (existingCommentSats = 0) {
-              return existingCommentSats + (undo ? -tip : sats)
+              return existingCommentSats + (undo ? -amount : sats)
             }
           }
         })
@@ -173,7 +173,7 @@ export function useAct ({ onUpdate } = {}) {
 
 export function useZap () {
   const update = useCallback((cache, args, undo) => {
-    const { data: { act: { id, sats, path, tip } } } = args
+    const { data: { act: { id, sats, path, amount } } } = args
 
     // determine how much we increased existing sats by by checking the
     // difference between result sats and meSats
@@ -196,7 +196,7 @@ export function useZap () {
         id: `Item:${id}`,
         fields: {
           sats (existingSats = 0) {
-            return existingSats + (undo ? -tip : satsDelta)
+            return existingSats + (undo ? -amount : satsDelta)
           },
           meSats: () => {
             return sats
@@ -211,7 +211,7 @@ export function useZap () {
           id: `Item:${aId}`,
           fields: {
             commentSats (existingCommentSats = 0) {
-              return existingCommentSats + (undo ? -tip : satsDelta)
+              return existingCommentSats + (undo ? -amount : satsDelta)
             }
           }
         })
@@ -264,7 +264,7 @@ export function useZap () {
       if (payOrLoginError(error)) {
         // call non-idempotent version
         const amount = sats - meSats
-        optimisticResponse.act.tip = amount
+        optimisticResponse.act.amount = amount
         try {
           await invoiceableAct({ amount }, {
             variables: { ...variables, sats: amount },

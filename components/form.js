@@ -905,12 +905,13 @@ export function DatePicker ({ fromName, toName, noForm, onChange, when, from, to
   }, [])
 
   const innerOnChange = ([from, to], e) => {
-    setRange(whenRange(when, from, to))
+    setRange([from, to])
     if (!noForm) {
       fromHelpers.setValue(from)
       toHelpers.setValue(to)
     }
-    onChange(formik, [from, to], e)
+    if (!from || !to) return
+    onChange?.(formik, [from, to], e)
   }
 
   const onChangeRawHandler = (e) => {

@@ -1,9 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import LNbitsProvider from './lnbits'
+import NWCProvider from './nwc'
 
 const WebLNContext = createContext({})
 
-const _providers = { lnbits: LNbitsProvider }
+const _providers = { lnbits: LNbitsProvider, nwc: NWCProvider }
 
 export function WebLNProvider ({ children }) {
   const [providers, setProviders] = useState(_providers)
@@ -17,12 +18,13 @@ export function WebLNProvider ({ children }) {
         [key]: {
           config,
           enabled: pkey.enabled,
-          sendPayment: pkey.sendPayment.bind(pkey)
+          sendPayment: pkey.sendPayment?.bind(pkey)
         }
       }))
     }
     // init providers on client
     initProvider('lnbits')
+    initProvider('nwc')
     // TODO support more WebLN providers
   }, [])
 
@@ -58,5 +60,5 @@ export function useWebLN (key) {
   const setConfig = (config) => _setConfig(key, config)
   const clearConfig = () => _clearConfig(key)
 
-  return { name: key, config, setConfig, clearConfig, enabled, sendPayment: p.sendPayment.bind(p) }
+  return { name: key, config, setConfig, clearConfig, enabled, sendPayment: p.sendPayment?.bind(p) }
 }

@@ -8,20 +8,17 @@ import { callWithTimeout } from '../lib/nostr'
 
 function determineItemType (item) {
   const typeMap = {
-    company: 'job',
     url: 'link',
     bounty: 'bounty',
     options: 'poll'
   }
 
   for (const [key, type] of Object.entries(typeMap)) {
-    console.log('key', key)
-    console.log('type', type)
     if (item[key]) {
       return type
     }
   }
-
+  
   // Default
   return 'discussion'
 }
@@ -85,24 +82,6 @@ async function bountyToEvent (item) {
   }
 }
 
-async function jobToEvent (item) {
-  const createdAt = Math.floor(Date.now() / 1000)
-
-  return {
-    created_at: createdAt,
-    kind: 30402,
-    content: item.text,
-    tags: [
-      ['d', item.id.toString()],
-      ['title', item.title],
-      ['location', item?.location || 'remote'],
-      ['company', item.company],
-      ['t', 'job'],
-      ['published_at', createdAt.toString()]
-    ]
-  }
-}
-
 export default function useCrossposter () {
   const toaster = useToast()
   const { data } = useQuery(SETTINGS)
@@ -154,8 +133,6 @@ export default function useCrossposter () {
         return await bountyToEvent(item)
       case 'poll':
         return await pollToEvent(item)
-      case 'job':
-        return await jobToEvent(item)
       default:
         return null // handle error
     }

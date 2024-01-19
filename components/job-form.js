@@ -13,12 +13,10 @@ import { useLazyQuery, gql, useMutation } from '@apollo/client'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { usePrice } from './price'
-import useCrossposter from './use-crossposter'
 import { useMe } from './me'
 import Avatar from './avatar'
 import { jobSchema } from '../lib/validate'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
-import { DEFAULT_CROSSPOSTING_RELAYS } from '../lib/nostr'
 import { useToast } from './toast'
 import { toastDeleteScheduled } from '../lib/form'
 import { ItemButtonBar } from './post'
@@ -60,7 +58,7 @@ export default function JobForm ({ item, sub }) {
   )
 
   const onSubmit = useCallback(
-    async ({ maxBid, start, stop, crosspost, ...values }) => {
+    async ({ maxBid, start, stop, ...values }) => {
       let status
       if (start) {
         status = 'ACTIVE'
@@ -80,12 +78,6 @@ export default function JobForm ({ item, sub }) {
       })
       if (error) {
         throw new Error({ message: error.toString() })
-      }
-
-      const jobId = data?.upsertJob?.id
-
-      if (crosspost && jobId) {
-        await crossposter(values, jobId)
       }
       
       if (item) {
@@ -109,7 +101,6 @@ export default function JobForm ({ item, sub }) {
           text: item?.text || '',
           url: item?.url || '',
           maxBid: item?.maxBid || 0,
-          crosspost: me?.nostrCrossposting,
           stop: false,
           start: false
         }}

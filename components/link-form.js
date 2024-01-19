@@ -14,7 +14,6 @@ import { useToast } from './toast'
 import { SubSelectInitial } from './sub-select'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
 import useCrossposter from './use-crossposter'
-
 import { useMe } from './me'
 import { ItemButtonBar } from './post'
 

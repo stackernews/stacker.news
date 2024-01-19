@@ -146,6 +146,13 @@ export default {
         return `(${e._source.id}, ${i})`
       }).join(',')
 
+      if (values.length === 0) {
+        return {
+          cursor: null,
+          items: []
+        }
+      }
+
       const items = await itemQueryWithMeta({
         me,
         models,
@@ -342,7 +349,7 @@ export default {
       const whenRange = when === 'custom'
         ? {
             gte: whenFrom,
-            lte: new Date(Math.min(new Date(whenTo), decodedCursor.time))
+            lte: new Date(Math.min(new Date(Number(whenTo)), decodedCursor.time))
           }
         : {
             lte: decodedCursor.time,
@@ -366,7 +373,7 @@ export default {
               function_score: {
                 query: {
                   bool: {
-                    ...(sort === 'recent' ? { must: termQueries } : { should: termQueries }),
+                    must: termQueries,
                     filter: [
                       ...whatArr,
                       me
@@ -420,6 +427,13 @@ export default {
       const values = sitems.body.hits.hits.map((e, i) => {
         return `(${e._source.id}, ${i})`
       }).join(',')
+
+      if (values.length === 0) {
+        return {
+          cursor: null,
+          items: []
+        }
+      }
 
       const items = (await itemQueryWithMeta({
         me,

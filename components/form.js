@@ -890,8 +890,8 @@ export function DatePicker ({ fromName, toName, noForm, onChange, when, from, to
   useEffect(() => {
     setRange(whenRange(when, from, to))
     if (!noForm) {
-      fromHelpers.setValue(new Date(to))
-      toHelpers.setValue(new Date(to))
+      fromHelpers.setValue(from)
+      toHelpers.setValue(to)
     }
   }, [when, from, to])
 

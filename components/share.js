@@ -2,7 +2,6 @@ import Dropdown from 'react-bootstrap/Dropdown'
 import ShareIcon from '../svgs/share-fill.svg'
 import copy from 'clipboard-copy'
 import useCrossposter from './use-crossposter'
-import { useMutation, gql } from '@apollo/client'
 import { useMe } from './me'
 import { useToast } from './toast'
 import { SSR } from '../lib/constants'
@@ -25,16 +24,6 @@ export default function Share ({ path, title, className = '', ...props }) {
   const url = referrurl(path, me)
 
   const mine = props?.user?.id === me?.id
-
-  const [updateNoteId] = useMutation(
-    gql`
-      mutation updateNoteId($id: ID!, $noteId: String!) {
-        updateNoteId(id: $id, noteId: $noteId) {
-          id
-          noteId
-        }
-      }`
-  )
 
   return !SSR && navigator?.share
     ? (
@@ -88,17 +77,7 @@ export default function Share ({ path, title, className = '', ...props }) {
                 }
                 try {
                   if (item?.id) {
-                    const crosspostResult = await crossposter({ ...item })
-                    const noteId = crosspostResult?.noteId
-                    if (noteId) {
-                      await updateNoteId({
-                        variables: {
-                          id: item.id,
-                          noteId
-                        }
-                      })
-                    }
-                    toaster.success('Crosspost successful')
+                    await crossposter(item, item.id)
                   } else {
                     toaster.warning('Item ID not available')
                   }

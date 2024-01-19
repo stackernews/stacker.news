@@ -7,7 +7,6 @@ import { SETTINGS } from '../fragments/users'
 import { callWithTimeout } from '../lib/nostr'
 
 function determineItemType (item) {
-  console.log('item in determineItemType', item)
   const typeMap = {
     company: 'job',
     url: 'link',
@@ -44,7 +43,6 @@ async function discussionToEvent (item) {
 
 async function linkToEvent (item) {
   const createdAt = Math.floor(Date.now() / 1000)
-  console.log('item in linkToEvent', item)
 
   return {
     created_at: createdAt,
@@ -55,7 +53,6 @@ async function linkToEvent (item) {
 }
 
 async function pollToEvent (item) {
-  console.log('item in pollToEvent', item)
   const createdAt = Math.floor(Date.now() / 1000)
 
   const expiresAt = createdAt + 86400
@@ -71,7 +68,6 @@ async function pollToEvent (item) {
 }
 
 async function bountyToEvent (item) {
-  console.log('item in bountyToEvent', item)
   const createdAt = Math.floor(Date.now() / 1000)
 
   return {
@@ -204,8 +200,6 @@ export default function useCrossposter () {
   };
 
   const handleCrosspost = useCallback(async (values, itemId) => {
-    console.log('values', values)
-    console.log('itemId', itemId)
     try {
       const pubkey = await callWithTimeout(() => window.nostr.getPublicKey(), 10000)
       if (!pubkey) throw new Error('failed to get pubkey')
@@ -231,15 +225,6 @@ export default function useCrossposter () {
     } catch (e) {
       console.error(e)
       toaster.danger('Error crossposting to Nostr', e.message)
-    }
-
-    if (noteId) {
-      await updateNoteId({
-        variables: {
-          id: itemId,
-          noteId
-        }
-      })
     }
   }, [updateNoteId, relays, toaster])
 

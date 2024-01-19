@@ -34,16 +34,6 @@ export function PollForm ({ item, sub, editThreshold, children }) {
       }`
   )
 
-  const [updateNoteId] = useMutation(
-    gql`
-      mutation updateNoteId($id: ID!, $noteId: String!) {
-        updateNoteId(id: $id, noteId: $noteId) {
-          id
-          noteId
-        }
-      }`
-  )
-
   const onSubmit = useCallback(
     async ({ boost, title, options, crosspost, ...values }) => {
       const optionsFiltered = options.slice(initialOptions?.length).filter(word => word.trim().length > 0)

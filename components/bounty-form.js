@@ -61,16 +61,6 @@ export function BountyForm ({
     `
   )
 
-  const [updateNoteId] = useMutation(
-    gql`
-      mutation updateNoteId($id: ID!, $noteId: String!) {
-        updateNoteId(id: $id, noteId: $noteId) {
-          id
-          noteId
-        }
-      }`
-  )
-
   const onSubmit = useCallback(
     async ({ boost, bounty, crosspost, ...values }) => {
       const { data, error } = await upsertBounty({

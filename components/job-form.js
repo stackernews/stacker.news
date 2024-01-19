@@ -59,16 +59,6 @@ export default function JobForm ({ item, sub }) {
     }`
   )
 
-  const [updateNoteId] = useMutation(
-    gql`
-      mutation updateNoteId($id: ID!, $noteId: String!) {
-        updateNoteId(id: $id, noteId: $noteId) {
-          id
-          noteId
-        }
-      }`
-  )
-
   const onSubmit = useCallback(
     async ({ maxBid, start, stop, crosspost, ...values }) => {
       let status

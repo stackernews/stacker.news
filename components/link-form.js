@@ -81,16 +81,6 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
       }`
   )
 
-  const [updateNoteId] = useMutation(
-    gql`
-      mutation updateNoteId($id: ID!, $noteId: String!) {
-        updateNoteId(id: $id, noteId: $noteId) {
-          id
-          noteId
-        }
-      }`
-  )
-
   const onSubmit = useCallback(
     async ({ boost, crosspost, title, ...values }) => {
       const { data, error } = await upsertLink({

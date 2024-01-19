@@ -91,7 +91,7 @@ async function work () {
   await boss.work('streak', jobWrapper(computeStreaks))
   await boss.work('checkStreak', jobWrapper(checkStreak))
   await boss.work('nip57', jobWrapper(nip57))
-  await boss.work('views', jobWrapper(views))
+  await boss.work('views-*', jobWrapper(views))
   await boss.work('rankViews', jobWrapper(rankViews))
   await boss.work('imgproxy', jobWrapper(imgproxy))
   await boss.work('deleteItem', jobWrapper(deleteItem))

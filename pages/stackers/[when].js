@@ -70,7 +70,6 @@ export const getServerSideProps = getGetServerSideProps({ query: GROWTH_QUERY })
 export default function Growth ({ ssrData }) {
   const router = useRouter()
   const { when, from, to } = router.query
-  const avg = ['year', 'forever'].includes(when) ? 'avg daily ' : ''
 
   const { data } = useQuery(GROWTH_QUERY, { variables: { when, from, to } })
   if (!data && !ssrData) return <PageLoading />
@@ -82,7 +81,7 @@ export default function Growth ({ ssrData }) {
       <UsageHeader />
       <Row>
         <Col className='mt-3'>
-          <div className='text-center text-muted fw-bold'>{avg}stackers</div>
+          <div className='text-center text-muted fw-bold'>stackers</div>
           <WhenLineChart data={stackerGrowth} />
         </Col>
         <Col className='mt-3'>
@@ -92,7 +91,7 @@ export default function Growth ({ ssrData }) {
       </Row>
       <Row>
         <Col className='mt-3'>
-          <div className='text-center text-muted fw-bold'>{avg}spenders</div>
+          <div className='text-center text-muted fw-bold'>spenders</div>
           <WhenLineChart data={spenderGrowth} />
         </Col>
         <Col className='mt-3'>
@@ -107,7 +106,7 @@ export default function Growth ({ ssrData }) {
         </Col>
         <Col className='mt-3'>
           <div className='text-center text-muted fw-bold'>items</div>
-          <WhenComposedChart data={itemGrowth} areaNames={['posts', 'comments', 'jobs']} areaAxis='left' lineNames={['comments/posts']} lineAxis='right' />
+          <WhenComposedChart data={itemGrowth} areaNames={['posts', 'comments', 'jobs']} areaAxis='left' lineNames={['comments/posts', 'territories']} lineAxis='right' barNames={['zaps']} />
         </Col>
       </Row>
     </Layout>

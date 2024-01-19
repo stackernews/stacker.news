@@ -6,7 +6,7 @@ import { msatsToSats } from '../../lib/format'
 import { bioSchema, emailSchema, lnAddrAutowithdrawSchema, settingsSchema, ssValidate, userSchema } from '../../lib/validate'
 import { getItem, updateItem, filterClause, createItem, whereClause, muteClause } from './item'
 import { ANON_USER_ID, DELETE_USER_ID, RESERVED_MAX_USER_ID } from '../../lib/constants'
-import { viewIntervalClause, intervalClause } from './growth'
+import { viewGroup } from './growth'
 import { whenRange } from '../../lib/time'
 
 const contributors = new Set()
@@ -80,6 +80,8 @@ export default {
     },
     topCowboys: async (parent, { cursor }, { models, me }) => {
       const decodedCursor = decodeCursor(cursor)
+      const range = whenRange('forever')
+
       const users = await models.$queryRawUnsafe(`
         SELECT users.*,
           coalesce(floor(sum(msats_spent)/1000),0) as spent,
@@ -87,13 +89,13 @@ export default {
           coalesce(sum(comments),0) as ncomments,
           coalesce(sum(referrals),0) as referrals,
           coalesce(floor(sum(msats_stacked)/1000),0) as stacked
-          FROM users
-          LEFT JOIN user_stats_days on users.id = user_stats_days.id
+          FROM ${viewGroup(range, 'user_stats')}
+          JOIN users on users.id = u.id
           WHERE NOT "hideFromTopUsers" AND NOT "hideCowboyHat" AND streak IS NOT NULL
           GROUP BY users.id
           ORDER BY streak DESC, created_at ASC
-          OFFSET $1
-          LIMIT ${LIMIT}`, decodedCursor.offset)
+          OFFSET $3
+          LIMIT ${LIMIT}`, ...range, decodedCursor.offset)
       return {
         cursor: users.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
         users
@@ -127,123 +129,30 @@ export default {
     topUsers: async (parent, { cursor, when, by, from, to, limit = LIMIT }, { models, me }) => {
       const decodedCursor = decodeCursor(cursor)
       const range = whenRange(when, from, to || decodeCursor.time)
-      let users
 
-      if (when !== 'day') {
-        let column
-        switch (by) {
-          case 'spent': column = 'spent'; break
-          case 'posts': column = 'nposts'; break
-          case 'comments': column = 'ncomments'; break
-          case 'referrals': column = 'referrals'; break
-          default: column = 'stacked'; break
-        }
-
-        users = await models.$queryRawUnsafe(`
-          WITH u AS (
-            SELECT users.*, floor(sum(msats_spent)/1000) as spent,
-            sum(posts) as nposts, sum(comments) as ncomments, sum(referrals) as referrals,
-            floor(sum(msats_stacked)/1000) as stacked
-            FROM user_stats_days
-            JOIN users on users.id = user_stats_days.id
-            WHERE NOT users."hideFromTopUsers"
-            AND ${viewIntervalClause(range, 'user_stats_days')}
-            GROUP BY users.id
-            ORDER BY ${column} DESC NULLS LAST, users.created_at DESC
-          )
-          SELECT * FROM u WHERE ${column} > 0
-          OFFSET $3
-          LIMIT $4`, ...range, decodedCursor.offset, limit)
-
-        return {
-          cursor: users.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
-          users
-        }
+      let column
+      switch (by) {
+        case 'spent': column = 'spent'; break
+        case 'posts': column = 'nposts'; break
+        case 'comments': column = 'ncomments'; break
+        case 'referrals': column = 'referrals'; break
+        default: column = 'stacked'; break
       }
 
-      if (by === 'spent') {
-        users = await models.$queryRawUnsafe(`
-          SELECT users.*, sum(sats_spent) as spent
-          FROM
-          ((SELECT "userId", floor(sum("ItemAct".msats)/1000) as sats_spent
-            FROM "ItemAct"
-            WHERE ${intervalClause(range, 'ItemAct')}
-            GROUP BY "userId")
-            UNION ALL
-          (SELECT "userId", sats as sats_spent
-            FROM "Donation"
-            WHERE ${intervalClause(range, 'Donation')})) spending
-          JOIN users on spending."userId" = users.id
-          AND NOT users."hideFromTopUsers"
-          GROUP BY users.id, users.name
-          ORDER BY spent DESC NULLS LAST, users.created_at DESC
-          OFFSET $3
-          LIMIT $4`, ...range, decodedCursor.offset, limit)
-      } else if (by === 'posts') {
-        users = await models.$queryRawUnsafe(`
-        SELECT users.*, count(*)::INTEGER as nposts
-          FROM users
-          JOIN "Item" on "Item"."userId" = users.id
-          WHERE "Item"."parentId" IS NULL
-          AND NOT users."hideFromTopUsers"
-          AND ${intervalClause(range, 'Item')}
+      const users = await models.$queryRawUnsafe(`
+          SELECT users.*,
+            COALESCE(floor(sum(msats_spent)/1000), 0) as spent,
+            COALESCE(sum(posts), 0) as nposts,
+            COALESCE(sum(comments), 0) as ncomments,
+            COALESCE(sum(referrals), 0) as referrals,
+            COALESCE(floor(sum(msats_stacked)/1000), 0) as stacked
+          FROM ${viewGroup(range, 'user_stats')}
+          JOIN users on users.id = u.id
+          WHERE NOT users."hideFromTopUsers"
           GROUP BY users.id
-          ORDER BY nposts DESC NULLS LAST, users.created_at DESC
+          ORDER BY ${column} DESC NULLS LAST, users.created_at ASC
           OFFSET $3
           LIMIT $4`, ...range, decodedCursor.offset, limit)
-      } else if (by === 'comments') {
-        users = await models.$queryRawUnsafe(`
-        SELECT users.*, count(*)::INTEGER as ncomments
-          FROM users
-          JOIN "Item" on "Item"."userId" = users.id
-          WHERE "Item"."parentId" IS NOT NULL
-          AND NOT users."hideFromTopUsers"
-          AND ${intervalClause(range, 'Item')}
-          GROUP BY users.id
-          ORDER BY ncomments DESC NULLS LAST, users.created_at DESC
-          OFFSET $3
-          LIMIT $4`, ...range, decodedCursor.offset, limit)
-      } else if (by === 'referrals') {
-        users = await models.$queryRawUnsafe(`
-          SELECT users.*, count(*)::INTEGER as referrals
-          FROM users
-          JOIN "users" referree on users.id = referree."referrerId"
-          AND NOT users."hideFromTopUsers"
-          AND ${intervalClause(range, 'referree')}
-          GROUP BY users.id
-          ORDER BY referrals DESC NULLS LAST, users.created_at DESC
-          OFFSET $3
-          LIMIT $4`, ...range, decodedCursor.offset, limit)
-      } else {
-        users = await models.$queryRawUnsafe(`
-          SELECT u.id, u.name, u.streak, u."photoId", u."hideCowboyHat", floor(sum(amount)/1000) as stacked
-          FROM
-          ((SELECT users.*, "ItemAct".msats as amount
-            FROM "ItemAct"
-            JOIN "Item" on "ItemAct"."itemId" = "Item".id
-            JOIN users on "Item"."userId" = users.id
-            WHERE act <> 'BOOST' AND "ItemAct"."userId" <> users.id
-            AND NOT users."hideFromTopUsers"
-            AND ${intervalClause(range, 'ItemAct')})
-          UNION ALL
-          (SELECT users.*, "Earn".msats as amount
-            FROM "Earn"
-            JOIN users on users.id = "Earn"."userId"
-            WHERE "Earn".msats > 0
-            AND ${intervalClause(range, 'Earn')}
-            AND NOT users."hideFromTopUsers")
-          UNION ALL
-          (SELECT users.*, "ReferralAct".msats as amount
-              FROM "ReferralAct"
-              JOIN users on users.id = "ReferralAct"."referrerId"
-              WHERE "ReferralAct".msats > 0
-              AND ${intervalClause(range, 'ReferralAct')}
-              AND NOT users."hideFromTopUsers")) u
-          GROUP BY u.id, u.name, u.created_at, u."photoId", u.streak, u."hideCowboyHat"
-          ORDER BY stacked DESC NULLS LAST, created_at DESC
-          OFFSET $3
-          LIMIT $4`, ...range, decodedCursor.offset, limit)
-      }
 
       return {
         cursor: users.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
@@ -887,30 +796,14 @@ export default {
       if (!when || when === 'forever') {
         // forever
         return (user.stackedMsats && msatsToSats(user.stackedMsats)) || 0
-      } else if (when === 'day') {
-        const range = whenRange(when, from, to)
-        const [{ stacked }] = await models.$queryRawUnsafe(`
-          SELECT sum(amount) as stacked
-          FROM
-          ((SELECT coalesce(sum("ItemAct".msats),0) as amount
-            FROM "ItemAct"
-            JOIN "Item" on "ItemAct"."itemId" = "Item".id
-            WHERE act = 'TIP' AND "ItemAct"."userId" <> $3 AND "Item"."userId" = $3
-            AND ${intervalClause(range, 'ItemAct')})
-          UNION ALL
-            (SELECT coalesce(sum("ReferralAct".msats),0) as amount
-              FROM "ReferralAct"
-              WHERE "ReferralAct".msats > 0 AND "ReferralAct"."referrerId" = $3
-              AND ${intervalClause(range, 'ReferralAct')})
-          UNION ALL
-          (SELECT coalesce(sum("Earn".msats), 0) as amount
-            FROM "Earn"
-            WHERE "Earn".msats > 0 AND "Earn"."userId" = $3
-            AND ${intervalClause(range, 'Earn')})) u`, ...range, Number(user.id))
-        return (stacked && msatsToSats(stacked)) || 0
       }
 
-      return 0
+      const range = whenRange(when, from, to)
+      const [{ stacked }] = await models.$queryRawUnsafe(`
+        SELECT sum(msats_stacked) as stacked
+        FROM ${viewGroup(range, 'user_stats')}
+        WHERE id = $3`, ...range, Number(user.id))
+      return (stacked && msatsToSats(stacked)) || 0
     },
     spent: async (user, { when, from, to }, { models, me }) => {
       if ((!me || me.id !== user.id) && user.hideFromTopUsers) {
@@ -921,21 +814,13 @@ export default {
         return user.spent
       }
 
-      const [gte, lte] = whenRange(when, from, to)
-      const { _sum: { msats } } = await models.itemAct.aggregate({
-        _sum: {
-          msats: true
-        },
-        where: {
-          userId: user.id,
-          createdAt: {
-            gte,
-            lte
-          }
-        }
-      })
+      const range = whenRange(when, from, to)
+      const [{ spent }] = await models.$queryRawUnsafe(`
+        SELECT sum(msats_spent) as spent
+        FROM ${viewGroup(range, 'user_stats')}
+        WHERE id = $3`, ...range, Number(user.id))
 
-      return (msats && msatsToSats(msats)) || 0
+      return (spent && msatsToSats(spent)) || 0
     },
     referrals: async (user, { when, from, to }, { models, me }) => {
       if ((!me || me.id !== user.id) && user.hideFromTopUsers) {

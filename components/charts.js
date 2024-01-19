@@ -70,8 +70,13 @@ const COLORS = [
   'var(--bs-success)',
   'var(--bs-boost)',
   'var(--theme-grey)',
-  'var(--bs-danger)'
+  'var(--bs-danger)',
+  'var(--bs-code-color)'
 ]
+
+function getColor (i) {
+  return COLORS[i % COLORS.length]
+}
 
 export function WhenAreaChart ({ data }) {
   const router = useRouter()
@@ -104,7 +109,7 @@ export function WhenAreaChart ({ data }) {
         <Tooltip labelFormatter={labelFormatter(when, from, to)} contentStyle={{ color: 'var(--bs-body-color)', backgroundColor: 'var(--bs-body-bg)' }} />
         <Legend />
         {Object.keys(data[0]).filter(v => v !== 'time' && v !== '__typename').map((v, i) =>
-          <Area key={v} type='monotone' dataKey={v} name={v} stackId='1' stroke={COLORS[i]} fill={COLORS[i]} />)}
+          <Area key={v} type='monotone' dataKey={v} name={v} stackId='1' stroke={getColor(i)} fill={getColor(i)} />)}
       </AreaChart>
     </ResponsiveContainer>
   )
@@ -141,7 +146,7 @@ export function WhenLineChart ({ data }) {
         <Tooltip labelFormatter={labelFormatter(when, from, to)} contentStyle={{ color: 'var(--bs-body-color)', backgroundColor: 'var(--bs-body-bg)' }} />
         <Legend />
         {Object.keys(data[0]).filter(v => v !== 'time' && v !== '__typename').map((v, i) =>
-          <Line key={v} type='monotone' dataKey={v} name={v} stroke={COLORS[i]} fill={COLORS[i]} />)}
+          <Line key={v} type='monotone' dataKey={v} name={v} stroke={getColor(i)} fill={getColor(i)} />)}
       </LineChart>
     </ResponsiveContainer>
   )
@@ -184,11 +189,11 @@ export function WhenComposedChart ({
         <Tooltip labelFormatter={labelFormatter(when, from, to)} contentStyle={{ color: 'var(--bs-body-color)', backgroundColor: 'var(--bs-body-bg)' }} />
         <Legend />
         {barNames?.map((v, i) =>
-          <Bar yAxisId={barAxis} key={v} type='monotone' dataKey={v} name={v} stroke='var(--bs-info)' fill='var(--bs-info)' />)}
+          <Bar yAxisId={barAxis} key={v} type='monotone' dataKey={v} name={v} stroke={getColor(i)} fill={getColor(i)} />)}
         {areaNames?.map((v, i) =>
-          <Area yAxisId={areaAxis} key={v} type='monotone' dataKey={v} name={v} stackId='1' stroke={COLORS[i]} fill={COLORS[i]} />)}
+          <Area yAxisId={areaAxis} key={v} type='monotone' dataKey={v} name={v} stackId='1' stroke={getColor(barNames.length + i)} fill={getColor(barNames.length + i)} />)}
         {lineNames?.map((v, i) =>
-          <Line yAxisId={lineAxis} key={v} type='monotone' dataKey={v} name={v} stackId='1' stroke={COLORS[areaNames.length + i]} />)}
+          <Line yAxisId={lineAxis} key={v} type='monotone' dataKey={v} name={v} stackId='1' stroke={getColor(barNames.length + areaNames.length + i)} />)}
       </ComposedChart>
     </ResponsiveContainer>
   )
@@ -214,7 +219,7 @@ export function GrowthPieChart ({ data }) {
         >
           {
             data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index]} />
+              <Cell key={`cell-${index}`} fill={getColor(index)} />
             ))
           }
         </Pie>

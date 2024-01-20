@@ -221,7 +221,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
       provider,
       pollInvoice,
       updateCache: () => update?.(client.cache, { data: optimisticResponse }),
-      undoUpdate: () => update?.(client.cache, { data: optimisticResponse }, true)
+      undoUpdate: () => update?.(client.cache, { data: { ...optimisticResponse, undo: true } })
     })
     const { webLN, modalClose } = payment
 

@@ -172,8 +172,8 @@ export function useAct ({ onUpdate } = {}) {
 }
 
 export function useZap () {
-  const update = useCallback((cache, args, undo) => {
-    const { data: { act: { id, sats, path, amount } } } = args
+  const update = useCallback((cache, args) => {
+    const { data: { act: { id, sats, path, amount, undo } } } = args
 
     // determine how much we increased existing sats by by checking the
     // difference between result sats and meSats

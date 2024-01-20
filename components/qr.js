@@ -17,8 +17,8 @@ export default function Qr ({ asIs, value, webLn, statusVariant, description, st
         try {
           await provider.sendPayment(value)
         } catch (e) {
-          console.log(e.message)
-          toaster.danger(`${provider.name}: ${e.message}`)
+          console.log(e?.message)
+          toaster.danger(`${provider.name}: ${e?.message}`)
         }
       }
     }

@@ -9,11 +9,7 @@ export default {
     const configJSON = JSON.parse(config)
     this._url = configJSON.url
     this._adminKey = configJSON.adminKey
-    try {
-      await this._updateEnabled()
-    } catch (err) {
-      console.error(err)
-    }
+    await this._updateEnabled()
     return configJSON
   },
   async save (config) {
@@ -107,7 +103,12 @@ export default {
       this.enabled = false
       return
     }
-    await this.getInfo()
-    this.enabled = true
+    try {
+      await this.getInfo()
+      this.enabled = true
+    } catch (err) {
+      console.error(err)
+      this.enabled = false
+    }
   }
 }

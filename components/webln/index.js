@@ -52,7 +52,7 @@ export function useWebLN (key) {
 
   if (!key) {
     // TODO pick preferred enabled WebLN provider here
-    key = 'lnbits'
+    key = 'nwc'
   }
 
   const p = provider[key]
@@ -60,5 +60,5 @@ export function useWebLN (key) {
   const setConfig = (config) => _setConfig(key, config)
   const clearConfig = () => _clearConfig(key)
 
-  return { name: key, config, setConfig, clearConfig, enabled, sendPayment: p.sendPayment?.bind(p) }
+  return { name: key, config, setConfig, clearConfig, enabled, sendPayment: p.sendPayment.bind(p) }
 }

@@ -1,6 +1,6 @@
 // https://github.com/getAlby/js-sdk/blob/master/src/webln/NostrWeblnProvider.ts
 
-import { Relay, nip04 } from 'nostr-tools'
+import { Relay, finalizeEvent, nip04 } from 'nostr-tools'
 
 function parseWalletConnectUrl (walletConnectUrl) {
   walletConnectUrl = walletConnectUrl
@@ -79,6 +79,58 @@ export default {
     }
     const decrypted = await nip04.decrypt(this._secret, pubkey, content)
     return decrypted
+  },
+  async sendPayment (bolt11) {
+    const relayUrl = this._relayUrl
+    const walletPubkey = this._walletPubkey
+    const secret = this._secret
+    return new Promise(function (resolve, reject) {
+      (async function () {
+        // need big timeout since NWC is async (user needs to confirm payment in wallet)
+        const timeout = 60000
+        let timer
+        const resetTimer = () => {
+          clearTimeout(timer)
+          timer = setTimeout(() => reject(new Error('timeout')), timeout)
+        }
+        resetTimer()
+        const relay = await Relay.connect(relayUrl)
+        const payload = {
+          method: 'pay_invoice',
+          params: { invoice: bolt11 }
+        }
+        const content = await nip04.encrypt(secret, walletPubkey, JSON.stringify(payload))
+        const request = finalizeEvent({
+          pubkey: walletPubkey,
+          kind: 23194,
+          created_at: Math.floor(Date.now() / 1000),
+          tags: [],
+          content
+        }, secret)
+        await relay.publish(request)
+        const sub = relay.subscribe([
+          {
+            kinds: [23195],
+            authors: [walletPubkey],
+            '#e': [request.id]
+          }
+        ], {
+          async onevent (response) {
+            resetTimer()
+            try {
+              const content = JSON.parse(await nip04.decrypt(secret, walletPubkey, response.content))
+              if (content.error) return reject(new Error(content.error.message))
+              if (content.result) return resolve(content.result.preimage)
+            } catch (err) {
+              return reject(err)
+            } finally {
+              clearTimeout(timer)
+              sub.close()
+            }
+          }
+        })
+      })().catch(reject)
+    })
   },
   // WebLN compatible response
   // TODO: use NIP-47 get_info call

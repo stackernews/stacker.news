@@ -905,6 +905,12 @@ export function DatePicker ({ fromName, toName, noForm, onChange, when, from, to
   }, [])
 
   const innerOnChange = ([from, to], e) => {
+    if (from) {
+      from = new Date(new Date(from).setHours(0, 0, 0, 0))
+    }
+    if (to) {
+      to = new Date(new Date(to).setHours(23, 59, 59, 999))
+    }
     setRange([from, to])
     if (!noForm) {
       fromHelpers.setValue(from)
@@ -921,14 +927,18 @@ export function DatePicker ({ fromName, toName, noForm, onChange, when, from, to
       const dates = dateStrings.map(s => new Date(s))
       let [from, to] = dates
       if (from) {
+        from = new Date(from.setHours(0, 0, 0, 0))
         if (minDate) from = new Date(Math.max(from.getTime(), minDate.getTime()))
         try {
-          if (maxDate) to = new Date(Math.min(to.getTime(), maxDate.getTime()))
+          if (to) {
+            to = new Date(to.setHours(23, 59, 59, 999))
+            if (maxDate) to = new Date(Math.min(to.getTime(), maxDate.getTime()))
+          }
 
           // if end date isn't valid, set it to the start date
-          if (!(to instanceof Date && !isNaN(to)) || to < from) to = from
+          if (!(to instanceof Date && !isNaN(to)) || to < from) to = new Date(from.setHours(23, 59, 59, 999))
         } catch {
-          to = from
+          to = new Date(from.setHours(23, 59, 59, 999))
         }
         innerOnChange([from, to], e)
       }

@@ -57,10 +57,13 @@ export default {
     this.enabled = false
   },
   async _updateEnabled () {
+    if (!(this._nwcUrl && this._walletPubkey && this._relayUrl && this._secret)) {
+      this.enabled = false
+      return
+    }
     try {
-      // FIXME: this doesn't work since relay responds with EOSE immediately
-      // await this.getInfo()
-      this.enabled = !!this._nwcUrl && !!this._walletPubkey && !!this._relayUrl && !!this._secret
+      await this.getInfo()
+      this.enabled = true
     } catch (err) {
       console.error(err)
       this.enabled = false
@@ -148,16 +151,12 @@ export default {
             authors: [walletPubkey]
           }
         ], {
-          onevent (event) {
-            clearTimeout(timer)
-            sub.close()
-            // TODO: verify event
-            resolve(event)
-          },
+          // some relays like nostr.mutinywallet.com don't support NIP-47 info events
+          // so we simply check that we received EOSE
           oneose () {
             clearTimeout(timer)
             sub.close()
-            reject(new Error('EOSE'))
+            resolve()
           }
         })
       })().catch(reject)

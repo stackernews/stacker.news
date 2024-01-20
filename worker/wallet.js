@@ -22,11 +22,16 @@ function subscribeForever (subscribe) {
     let sub
     try {
       return await new Promise((resolve, reject) => {
-        sub = subscribe(resolve, bail)
+        const sub = subscribe(resolve, bail)
         if (!sub) {
-          return bail(new Error('function passed to subscribeForever must return a subscription object'))
+          return bail(new Error('function passed to subscribeForever must return a subscription object or promise'))
         }
-        sub.on('error', reject)
+        if (sub.then) {
+          // sub is promise
+          sub.then(sub => sub.on('error', reject))
+        } else {
+          sub.on('error', reject)
+        }
       })
     } catch (error) {
       console.error(error)
@@ -45,13 +50,12 @@ const logEventError = (name, error) => console.error(`error running ${name}`, er
 async function subscribeToDeposits (args) {
   const { models, lnd } = args
 
-  const [lastConfirmed] = await models.$queryRaw`
+  subscribeForever(async () => {
+    const [lastConfirmed] = await models.$queryRaw`
     SELECT "confirmedIndex"
     FROM "Invoice"
     ORDER BY "confirmedIndex" DESC NULLS LAST
     LIMIT 1`
-
-  subscribeForever(() => {
     const sub = subscribeToInvoices({ lnd, confirmed_after: lastConfirmed?.confirmedIndex })
 
     sub.on('invoice_updated', async (inv) => {

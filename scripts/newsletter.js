@@ -101,7 +101,7 @@ async function main () {
     variables: { sub: 'jobs' }
   })
 
-  const topMeme = await bountyWinner('monday meme')
+  const topMeme = await bountyWinner('meme monday')
   const topFact = await bountyWinner('fun fact')
 
   process.stdout.write(
@@ -137,9 +137,9 @@ ${meta.data.items.items.slice(0, 10).map((item, i) =>
 ------
 
 ##### Top Friday fun fact \\ ${abbrNum(topFact?.winner.sats)} sats \\ [@${topFact?.winner.user.name}](https://stacker.news/${topFact?.winner.user.name})
-${quote(topFact?.winner.text)}
+${topFact && quote(topFact?.winner.text)}
 
-[**all friday fun facts**](https://stacker.news/items/${topFact.bounty})
+[**all friday fun facts**](https://stacker.news/items/${topFact?.bounty})
 
 ------
 

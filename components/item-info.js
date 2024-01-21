@@ -166,7 +166,7 @@ export default function ItemInfo ({
           </Dropdown.Item>
         )}
         {item?.mine && !item?.noteId && !item?.isJob &&
-          <CrosspostDropdownItem item={item} />}
+          <CrosspostDropdownItem item={item} full={full} />}
         {me && !item.position &&
           !item.mine && !item.deletedAt &&
           (item.meDontLikeSats > meTotalSats

@@ -18,7 +18,7 @@ function determineItemType (item) {
       return type
     }
   }
-  
+
   // Default
   return 'discussion'
 }
@@ -59,7 +59,7 @@ async function pollToEvent (item) {
     kind: 1,
     content: item.text,
     tags: [
-      ['poll', 'single', expiresAt.toString(), item.title, ...item.options.map(op => op.toString())]
+      ['poll', 'single', expiresAt.toString(), item.title, ...item.options.map(op => op?.option.toString())]
     ]
   }
 }

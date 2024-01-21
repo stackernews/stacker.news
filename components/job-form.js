@@ -13,7 +13,6 @@ import { useLazyQuery, gql, useMutation } from '@apollo/client'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { usePrice } from './price'
-import { useMe } from './me'
 import Avatar from './avatar'
 import { jobSchema } from '../lib/validate'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
@@ -42,8 +41,6 @@ export default function JobForm ({ item, sub }) {
   const storageKeyPrefix = item ? undefined : `${sub.name}-job`
   const router = useRouter()
   const toaster = useToast()
-  const me = useMe()
-  const crossposter = useCrossposter()
   const [logoId, setLogoId] = useState(item?.uploadId)
   const [upsertJob] = useMutation(gql`
     mutation upsertJob($sub: String!, $id: ID, $title: String!, $company: String!, $location: String,
@@ -160,27 +157,6 @@ export default function JobForm ({ item, sub }) {
           required
           clear
         />
-        {me &&
-          <Checkbox
-            label={
-              <div className='d-flex align-items-center'>crosspost to nostr
-                <Info>
-                  <ul className='fw-bold'>
-                    <li>crosspost this item to nostr</li>
-                    <li>requires NIP-07 extension for signing</li>
-                    <li>we use your NIP-05 relays if set</li>
-                    <li>otherwise we default to these relays:</li>
-                    <ul>
-                      {DEFAULT_CROSSPOSTING_RELAYS.map((relay, i) => (
-                        <li key={i}>{relay}</li>
-                      ))}
-                    </ul>
-                  </ul>
-                </Info>
-              </div>
-          }
-            name='crosspost'
-          />}
         <PromoteJob item={item} sub={sub} />
         {item && <StatusControl item={item} />}
         <ItemButtonBar itemId={item?.id} canDelete={false} />

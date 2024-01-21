@@ -1,11 +1,13 @@
+import React, { useState, useEffect } from 'react'
 import Dropdown from 'react-bootstrap/Dropdown'
 import ShareIcon from '../svgs/share-fill.svg'
 import copy from 'clipboard-copy'
 import useCrossposter from './use-crossposter'
+import { useLazyQuery, gql } from '@apollo/client'
+import { ITEM_FULL_FIELDS, POLL_FIELDS } from '../fragments/items'
 import { useMe } from './me'
 import { useToast } from './toast'
 import { SSR } from '../lib/constants'
-import { callWithTimeout } from '../lib/nostr'
 import { commentSubTreeRootId } from '../lib/item'
 import { useRouter } from 'next/router'
 
@@ -17,13 +19,10 @@ const referrurl = (ipath, me) => {
   return `https://stacker.news${path}`
 }
 
-export default function Share ({ path, title, className = '', ...props }) {
+export default function Share ({ path, title, className = '' }) {
   const me = useMe()
-  const crossposter = useCrossposter()
   const toaster = useToast()
   const url = referrurl(path, me)
-
-  const mine = props?.user?.id === me?.id
 
   return !SSR && navigator?.share
     ? (
@@ -64,37 +63,11 @@ export default function Share ({ path, title, className = '', ...props }) {
           >
             copy link
           </Dropdown.Item>
-          {mine && !item?.noteId && (
-            <Dropdown.Item
-              onClick={async () => {
-                try {
-                  if (!(await window.nostr?.getPublicKey())) {
-                    throw new Error('not available')
-                  }
-                } catch (e) {
-                  toaster.danger(`Nostr extension error: ${e.message}`)
-                  return
-                }
-                try {
-                  if (item?.id) {
-                    await crossposter(item, item.id)
-                  } else {
-                    toaster.warning('Item ID not available')
-                  }
-                } catch (e) {
-                  console.error(e)
-                  toaster.danger('Crosspost failed')
-                }
-              }}
-            >
-              crosspost to nostr
-            </Dropdown.Item>
-          )}
         </Dropdown.Menu>
       </Dropdown>)
 }
 
-export function CopyLinkDropdownItem ({ item }) {
+export function CopyLinkDropdownItem ({ item, full }) {
   const me = useMe()
   const toaster = useToast()
   const router = useRouter()
@@ -132,35 +105,62 @@ export function CopyLinkDropdownItem ({ item }) {
   )
 }
 
-export function CrosspostDropdownItem ({ item }) {
-  const crossposter = useCrossposter()
-  const toaster = useToast()
+export function CrosspostDropdownItem({ item, full }) {
+  const crossposter = useCrossposter();
+  const toaster = useToast();
+  const [fullItem, setFullItem] = useState(null);
+
+  const [fetchItem, { data, loading, error }] = useLazyQuery(
+    gql`
+    ${ITEM_FULL_FIELDS}
+    ${POLL_FIELDS}
+    query Item($id: ID!) {
+      item(id: $id) {
+        ...ItemFullFields
+        ...PollFields
+      }
+    }`,
+    { variables: { id: item.id } }
+  );
+
+  useEffect(() => {
+    if (!full && (item?.pollCost || !item?.text)) {
+      fetchItem();
+    }
+  }, [item, fetchItem]);
+
+  useEffect(() => {
+    if (data && data.item) {
+      setFullItem(processFetchedItem(data.item));
+    }
+  }, [data]);
+
+  const processFetchedItem = (fetchedItem) => {
+    if (fetchedItem.poll) {
+      return { ...item, ...fetchedItem, options: fetchedItem.poll.options };
+    }
+    return fetchedItem;
+  }
+
+  const handleCrosspostClick = async () => {
+    if (!fullItem || !fullItem.id) {
+      toaster.warning('Item ID not available');
+      return;
+    }
+    try {
+      console.log('fillItem before:', fullItem);
+      await crossposter(fullItem, fullItem.id);
+    } catch (e) {
+      console.error(e);
+      toaster.danger('Crosspost failed');
+    }
+  }
 
   return (
-    <Dropdown.Item
-      onClick={async () => {
-        try {
-          const pubkey = await callWithTimeout(() => window.nostr.getPublicKey(), 5000)
-          if (!pubkey) {
-            throw new Error('not available')
-          }
-        } catch (e) {
-          toaster.danger(`Nostr extension error: ${e.message}`)
-          return
-        }
-        try {
-          if (item?.id) {
-              await crossposter(item, item.id)
-          } else {
-            toaster.warning('Item ID not available')
-          }
-        } catch (e) {
-          console.error(e)
-          toaster.danger('Crosspost failed')
-        }
-      }}
-    >
+    <Dropdown.Item onClick={handleCrosspostClick}>
       crosspost to nostr
+      {loading && <span>Loading...</span>}
+      {error && <span>Error: {error.message}</span>}
     </Dropdown.Item>
-  )
+  );
 }

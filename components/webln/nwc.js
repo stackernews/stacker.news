@@ -1,92 +1,39 @@
 // https://github.com/getAlby/js-sdk/blob/master/src/webln/NostrWeblnProvider.ts
 
+import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { Relay, finalizeEvent, nip04 } from 'nostr-tools'
 
-function parseWalletConnectUrl (walletConnectUrl) {
-  walletConnectUrl = walletConnectUrl
-    .replace('nostrwalletconnect://', 'http://')
-    .replace('nostr+walletconnect://', 'http://') // makes it possible to parse with URL in the different environments (browser/node/...)
-  const url = new URL(walletConnectUrl)
-  const options = {}
-  options.walletPubkey = url.host
-  const secret = url.searchParams.get('secret')
-  const relayUrl = url.searchParams.get('relay')
-  if (secret) {
-    options.secret = secret
-  }
-  if (relayUrl) {
-    options.relayUrl = relayUrl
-  }
-  return options
-}
+const NWCContext = createContext()
 
-export default {
-  storageKey: 'webln:provider:nwc',
-  _nwcUrl: null,
-  _walletPubkey: null,
-  _relayUrl: null,
-  _secret: null,
-  enabled: false,
-  async load () {
-    const config = window.localStorage.getItem(this.storageKey)
+export function NWCProvider ({ children }) {
+  const [nwcUrl, setNwcUrl] = useState()
+  const [walletPubkey, setWalletPubkey] = useState()
+  const [relayUrl, setRelayUrl] = useState()
+  const [secret, setSecret] = useState()
+  const [enabled, setEnabled] = useState()
+
+  const storageKey = 'webln:provider:nwc'
+
+  const loadConfig = useCallback(() => {
+    const config = window.localStorage.getItem(storageKey)
     if (!config) return null
     const configJSON = JSON.parse(config)
-    this._nwcUrl = configJSON.nwcUrl
-    this._walletPubkey = configJSON.walletPubkey
-    this._relayUrl = configJSON.relayUrl
-    this._secret = configJSON.secret
-    try {
-      await this._updateEnabled()
-    } catch (err) {
-      console.error(err)
-    }
-    return configJSON
-  },
-  async save (config) {
-    this._nwcUrl = config.nwcUrl
-    const params = parseWalletConnectUrl(config.nwcUrl)
-    this._walletPubkey = config.walletPubkey = params.walletPubkey
-    this._relayUrl = config.relayUrl = params.relayUrl
-    this._secret = config.secret = params.secret
-    await this._updateEnabled()
-    window.localStorage.setItem(this.storageKey, JSON.stringify(config))
-  },
-  clear () {
-    window.localStorage.removeItem(this.storageKey)
-    this._nwcUrl = null
-    this.enabled = false
-  },
-  async _updateEnabled () {
-    if (!(this._nwcUrl && this._walletPubkey && this._relayUrl && this._secret)) {
-      this.enabled = false
-      return
-    }
-    try {
-      await this.getInfo()
-      this.enabled = true
-    } catch (err) {
-      console.error(err)
-      this.enabled = false
-    }
-  },
-  async encrypt (pubkey, content) {
-    if (!this.secret) {
-      throw new Error('Missing secret')
-    }
-    const encrypted = await nip04.encrypt(this._secret, pubkey, content)
-    return encrypted
-  },
-  async decrypt (pubkey, content) {
-    if (!this.secret) {
-      throw new Error('Missing secret')
-    }
-    const decrypted = await nip04.decrypt(this._secret, pubkey, content)
-    return decrypted
-  },
-  async sendPayment (bolt11) {
-    const relayUrl = this._relayUrl
-    const walletPubkey = this._walletPubkey
-    const secret = this._secret
+    setNwcUrl(configJSON.nwcUrl)
+  }, [])
+
+  const saveConfig = useCallback(async (config) => {
+    setNwcUrl(config.nwcUrl)
+    // XXX Even though NWC allows to configure budget,
+    // this is definitely not ideal from a security perspective.
+    window.localStorage.setItem(storageKey, JSON.stringify(config))
+  }, [])
+
+  const clearConfig = useCallback(() => {
+    window.localStorage.removeItem(storageKey)
+    setNwcUrl(null)
+  }, [])
+
+  const sendPayment = useCallback((bolt11) => {
     return new Promise(function (resolve, reject) {
       (async function () {
         // need big timeout since NWC is async (user needs to confirm payment in wallet)
@@ -134,12 +81,9 @@ export default {
         })
       })().catch(reject)
     })
-  },
-  // WebLN compatible response
-  // TODO: use NIP-47 get_info call
-  async getInfo () {
-    const relayUrl = this._relayUrl
-    const walletPubkey = this._walletPubkey
+  }, [relayUrl, walletPubkey, secret])
+
+  const getInfo = useCallback(() => {
     return new Promise(function (resolve, reject) {
       (async function () {
         const timeout = 5000
@@ -161,5 +105,65 @@ export default {
         })
       })().catch(reject)
     })
+  }, [relayUrl, walletPubkey])
+
+  useEffect(() => {
+    // update enabled
+    (async function () {
+      if (!(relayUrl && walletPubkey && secret)) return setEnabled(false)
+      try {
+        await getInfo()
+        setEnabled(true)
+      } catch (err) {
+        console.error(err)
+        setEnabled(false)
+      }
+    })()
+  }, [relayUrl, walletPubkey, secret, getInfo])
+
+  useEffect(() => {
+    // parse nwc URL on updates
+    // and sync with other state variables
+    if (!nwcUrl) {
+      setRelayUrl(null)
+      setWalletPubkey(null)
+      setSecret(null)
+      return
+    }
+    const params = parseWalletConnectUrl(nwcUrl)
+    setRelayUrl(params.relayUrl)
+    setWalletPubkey(params.walletPubkey)
+    setSecret(params.secret)
+  }, [nwcUrl])
+
+  useEffect(loadConfig, [])
+
+  const value = { nwcUrl, relayUrl, walletPubkey, secret, saveConfig, clearConfig, enabled, sendPayment }
+  return (
+    <NWCContext.Provider value={value}>
+      {children}
+    </NWCContext.Provider>
+  )
+}
+
+export function useNWC () {
+  return useContext(NWCContext)
+}
+
+function parseWalletConnectUrl (walletConnectUrl) {
+  walletConnectUrl = walletConnectUrl
+    .replace('nostrwalletconnect://', 'http://')
+    .replace('nostr+walletconnect://', 'http://') // makes it possible to parse with URL in the different environments (browser/node/...)
+  const url = new URL(walletConnectUrl)
+  const options = {}
+  options.walletPubkey = url.host
+  const secret = url.searchParams.get('secret')
+  const relayUrl = url.searchParams.get('relay')
+  if (secret) {
+    options.secret = secret
   }
+  if (relayUrl) {
+    options.relayUrl = relayUrl
+  }
+  return options
 }

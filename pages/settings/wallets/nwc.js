@@ -5,12 +5,12 @@ import { WalletButtonBar, WalletCard } from '../../../components/wallet-card'
 import { nwcSchema } from '../../../lib/validate'
 import { useToast } from '../../../components/toast'
 import { useRouter } from 'next/router'
-import { useWebLN } from '../../../components/webln'
+import { useNWC } from '../../../components/webln/nwc'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
 export default function NWC () {
-  const { config, setConfig, clearConfig, enabled } = useWebLN('nwc')
+  const { nwcUrl, saveConfig, clearConfig, enabled } = useNWC()
   const toaster = useToast()
   const router = useRouter()
 
@@ -20,12 +20,12 @@ export default function NWC () {
       <h6 className='text-muted text-center pb-3'>use Nostr Wallet Connect for zapping</h6>
       <Form
         initial={{
-          nwcUrl: config?.nwcUrl || ''
+          nwcUrl: nwcUrl || ''
         }}
         schema={nwcSchema}
         onSubmit={async (values) => {
           try {
-            await setConfig(values)
+            await saveConfig(values)
             toaster.success('saved settings')
             router.push('/settings/wallets')
           } catch (err) {
@@ -58,7 +58,7 @@ export default function NWC () {
 }
 
 export function NWCCard () {
-  const { enabled } = useWebLN('nwc')
+  const { enabled } = useNWC()
   return (
     <WalletCard
       title='nwc'

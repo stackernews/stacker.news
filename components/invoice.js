@@ -259,7 +259,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
         )
       }, { keepOpen: true, onClose: cancelAndReject })
     })
-  }, [onSubmit, createInvoice, !!me])
+  }, [onSubmit, provider, createInvoice, !!me])
 
   return onSubmitWrapper
 }

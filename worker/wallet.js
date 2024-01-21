@@ -200,7 +200,7 @@ async function subscribeToWithdrawals (args) {
 }
 
 async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
-  const dbWdrwl = await models.withdrawl.findFirst({ where: { hash } })
+  const dbWdrwl = await models.withdrawl.findFirst({ where: { hash, status: null } })
   if (!dbWdrwl) {
     // [WARNING] LND paid an invoice that wasn't created via the SN GraphQL API.
     // >>> an adversary might be draining our funds right now <<<

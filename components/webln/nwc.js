@@ -70,6 +70,8 @@ export function NWCProvider ({ children }) {
         const sub = relay.subscribe([filter], {
           async onevent (response) {
             resetTimer()
+            // TODO: check if we need verification here. does nostr-tools verify events?
+            // can we trust the NWC relay to respect our filters?
             try {
               const content = JSON.parse(await nip04.decrypt(secret, walletPubkey, response.content))
               if (content.error) return reject(new Error(content.error.message))

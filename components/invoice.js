@@ -267,6 +267,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
 }
 
 const waitForPayment = async ({ invoice, showModal, provider, pollInvoice, updateCache, undoUpdate }) => {
+  const INVOICE_CANCELED_ERROR = 'invoice was canceled'
   try {
     // try WebLN provider first
     return await new Promise((resolve, reject) => {
@@ -275,7 +276,7 @@ const waitForPayment = async ({ invoice, showModal, provider, pollInvoice, updat
       // can't use await here since we might be paying HODL invoices
       // and sendPaymentAsync is not supported yet.
       // see https://www.webln.guide/building-lightning-apps/webln-reference/webln.sendpaymentasync
-      provider.sendPayment(invoice.bolt11)
+      provider.sendPayment(invoice)
         // WebLN payment will never resolve here for HODL invoices
         // since they only get resolved after settlement which can't happen here
         .then(resolve)
@@ -295,6 +296,10 @@ const waitForPayment = async ({ invoice, showModal, provider, pollInvoice, updat
             clearInterval(interval)
             resolve()
           }
+          if (inv.cancelled) {
+            clearInterval(interval)
+            reject(new Error(INVOICE_CANCELED_ERROR))
+          }
         } catch (err) {
           clearInterval(interval)
           reject(err)
@@ -302,9 +307,12 @@ const waitForPayment = async ({ invoice, showModal, provider, pollInvoice, updat
       }, 1000)
     })
   } catch (err) {
-    console.error('WebLN payment failed:', err)
     // undo attempt to make zapping UX consistent
     undoUpdate?.()
+    console.error('WebLN payment failed:', err)
+    if (err.message === INVOICE_CANCELED_ERROR) {
+      throw err
+    }
   }
 
   // QR code as fallback

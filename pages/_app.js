@@ -92,14 +92,14 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
       </Head>
       <ErrorBoundary>
         <PlausibleProvider domain='stacker.news' trackOutboundLinks>
-          <WebLNProvider>
-            <ApolloProvider client={client}>
-              <MeProvider me={me}>
-                <LoggerProvider>
-                  <ServiceWorkerProvider>
-                    <PriceProvider price={price}>
-                      <LightningProvider>
-                        <ToastProvider>
+          <ApolloProvider client={client}>
+            <MeProvider me={me}>
+              <LoggerProvider>
+                <ServiceWorkerProvider>
+                  <PriceProvider price={price}>
+                    <LightningProvider>
+                      <ToastProvider>
+                        <WebLNProvider>
                           <ShowModalProvider>
                             <BlockHeightProvider blockHeight={blockHeight}>
                               <ChainFeeProvider chainFee={chainFee}>
@@ -110,14 +110,14 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
                               </ChainFeeProvider>
                             </BlockHeightProvider>
                           </ShowModalProvider>
-                        </ToastProvider>
-                      </LightningProvider>
-                    </PriceProvider>
-                  </ServiceWorkerProvider>
-                </LoggerProvider>
-              </MeProvider>
-            </ApolloProvider>
-          </WebLNProvider>
+                        </WebLNProvider>
+                      </ToastProvider>
+                    </LightningProvider>
+                  </PriceProvider>
+                </ServiceWorkerProvider>
+              </LoggerProvider>
+            </MeProvider>
+          </ApolloProvider>
         </PlausibleProvider>
       </ErrorBoundary>
     </>

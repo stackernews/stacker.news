@@ -53,7 +53,7 @@ export function NWCProvider ({ children }) {
         const request = finalizeEvent({
           kind: 23194,
           created_at: Math.floor(Date.now() / 1000),
-          tags: [],
+          tags: [['p', walletPubkey]],
           content
         }, secret)
         await relay.publish(request)

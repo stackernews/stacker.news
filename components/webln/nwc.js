@@ -60,6 +60,8 @@ export function NWCProvider ({ children }) {
         const sub = relay.subscribe([
           {
             kinds: [23195],
+            // for some reason, 'authors' must be set in the filter else you will debug your code for hours.
+            // this doesn't seem to be documented in NIP-01 or NIP-47.
             authors: [walletPubkey],
             '#e': [request.id]
           }

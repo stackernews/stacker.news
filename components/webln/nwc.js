@@ -16,7 +16,7 @@ export function NWCProvider ({ children }) {
 
   const loadConfig = useCallback(() => {
     const config = window.localStorage.getItem(storageKey)
-    if (!config) return null
+    if (!config) return
     const configJSON = JSON.parse(config)
     setNwcUrl(configJSON.nwcUrl)
   }, [])

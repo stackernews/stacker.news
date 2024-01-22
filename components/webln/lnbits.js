@@ -82,7 +82,7 @@ export function LNbitsProvider ({ children }) {
 
   const loadConfig = useCallback(() => {
     const config = window.localStorage.getItem(storageKey)
-    if (!config) return null
+    if (!config) return
     const configJSON = JSON.parse(config)
     setUrl(configJSON.url)
     setAdminKey(configJSON.adminKey)

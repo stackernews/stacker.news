@@ -106,8 +106,8 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
 export function useAct ({ onUpdate } = {}) {
   const me = useMe()
 
-  const update = useCallback((cache, args, undo) => {
-    const { data: { act: { id, sats, path, act, amount } } } = args
+  const update = useCallback((cache, args) => {
+    const { data: { act: { id, sats, path, act, amount } }, undo } = args
 
     cache.modify({
       id: `Item:${id}`,
@@ -173,7 +173,7 @@ export function useAct ({ onUpdate } = {}) {
 
 export function useZap () {
   const update = useCallback((cache, args) => {
-    const { data: { act: { id, sats, path, amount, undo } } } = args
+    const { data: { act: { id, sats, path, amount } }, undo } = args
 
     // determine how much we increased existing sats by by checking the
     // difference between result sats and meSats

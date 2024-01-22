@@ -224,7 +224,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
       provider,
       pollInvoice,
       updateCache: () => update?.(client.cache, { data: optimisticResponse }),
-      undoUpdate: () => update?.(client.cache, { data: { ...optimisticResponse, undo: true } })
+      undoUpdate: () => update?.(client.cache, { data: { ...optimisticResponse }, undo: true })
     })
 
     const retry = () => onSubmit(

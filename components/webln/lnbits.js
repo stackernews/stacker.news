@@ -9,6 +9,7 @@ export function LNbitsProvider ({ children }) {
   const [adminKey, setAdminKey] = useState()
   const [enabled, setEnabled] = useState()
 
+  const name = 'LNbits'
   const storageKey = 'webln:provider:lnbits'
 
   const request = useCallback(async (method, path, args) => {
@@ -122,7 +123,7 @@ export function LNbitsProvider ({ children }) {
 
   useEffect(loadConfig, [])
 
-  const value = { url, adminKey, saveConfig, clearConfig, enabled, sendPayment }
+  const value = { name, url, adminKey, saveConfig, clearConfig, enabled, sendPayment }
   return (
     <LNbitsContext.Provider value={value}>
       {children}

@@ -12,6 +12,7 @@ export function NWCProvider ({ children }) {
   const [secret, setSecret] = useState()
   const [enabled, setEnabled] = useState()
 
+  const name = 'NWC'
   const storageKey = 'webln:provider:nwc'
 
   const loadConfig = useCallback(() => {
@@ -149,7 +150,7 @@ export function NWCProvider ({ children }) {
 
   useEffect(loadConfig, [])
 
-  const value = { nwcUrl, relayUrl, walletPubkey, secret, saveConfig, clearConfig, enabled, sendPayment }
+  const value = { name, nwcUrl, relayUrl, walletPubkey, secret, saveConfig, clearConfig, enabled, sendPayment }
   return (
     <NWCContext.Provider value={value}>
       {children}

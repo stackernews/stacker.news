@@ -9,7 +9,7 @@ import { SubmitButton } from './form'
 export function WalletCard ({ title, badges, provider, enabled }) {
   return (
     <Card className={styles.card}>
-      <div className={`${styles.indicator} ${enabled ? styles.success : styles.disabled}`} />
+      <div className={`${styles.indicator} ${enabled === true ? styles.success : enabled === false ? styles.error : styles.disabled}`} />
       <Card.Body>
         <Card.Title>{title}</Card.Title>
         <Card.Subtitle className='mt-2'>

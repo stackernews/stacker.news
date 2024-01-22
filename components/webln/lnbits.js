@@ -101,12 +101,15 @@ export function LNbitsProvider ({ children }) {
     window.localStorage.removeItem(storageKey)
     setUrl(null)
     setAdminKey(null)
-    setEnabled(false)
   }, [])
 
   useEffect(() => {
+    // update enabled
     (async function () {
-      if (!(url && adminKey)) return setEnabled(false)
+      if (!(url && adminKey)) {
+        setEnabled(undefined)
+        return
+      }
       try {
         await getInfo()
         setEnabled(true)

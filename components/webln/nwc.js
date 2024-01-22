@@ -110,7 +110,10 @@ export function NWCProvider ({ children }) {
   useEffect(() => {
     // update enabled
     (async function () {
-      if (!(relayUrl && walletPubkey && secret)) return setEnabled(false)
+      if (!(relayUrl && walletPubkey && secret)) {
+        setEnabled(undefined)
+        return
+      }
       try {
         await getInfo()
         setEnabled(true)

@@ -10,7 +10,6 @@ import LongPressable from 'react-longpressable'
 import Overlay from 'react-bootstrap/Overlay'
 import Popover from 'react-bootstrap/Popover'
 import { useShowModal } from './modal'
-import { useLightning } from './lightning'
 import { numWithUnits } from '../lib/format'
 import { Dropdown } from 'react-bootstrap'
 
@@ -111,7 +110,6 @@ export default function UpVote ({ item, className }) {
 
   const [act] = useAct()
   const zap = useZap()
-  const strike = useLightning()
 
   const disabled = useMemo(() => item?.mine || item?.meForward || item?.deletedAt,
     [item?.mine, item?.meForward, item?.deletedAt])
@@ -167,8 +165,6 @@ export default function UpVote ({ item, className }) {
                 } else {
                   setTipShow(true)
                 }
-
-                strike()
 
                 zap({ item, me })
               }

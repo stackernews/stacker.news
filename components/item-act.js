@@ -257,6 +257,7 @@ export function useZap () {
     const insufficientFunds = me?.privates.sats < sats
     const optimisticResponse = { act: { path: item.path, ...variables } }
     try {
+      if (!insufficientFunds) strike()
       await zap({ variables, optimisticResponse: insufficientFunds ? null : optimisticResponse })
     } catch (error) {
       if (payOrLoginError(error)) {

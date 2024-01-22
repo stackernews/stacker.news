@@ -38,11 +38,24 @@ export function NWCProvider ({ children }) {
     return new Promise(function (resolve, reject) {
       (async function () {
         // need big timeout since NWC is async (user needs to confirm payment in wallet)
-        const timeout = 60000
+
+        // XXX set this to mock NWC relays
+        const MOCK_NWC_RELAY = 1
+
+        const timeout = MOCK_NWC_RELAY ? 3000 : 60000
         let timer
         const resetTimer = () => {
           clearTimeout(timer)
-          timer = setTimeout(() => reject(new Error('timeout')), timeout)
+          timer = setTimeout(() => {
+            if (MOCK_NWC_RELAY) {
+              const heads = Math.random() < 0.5
+              if (heads) {
+                return resolve()
+              }
+              return reject(new Error('mock error'))
+            }
+            return reject(new Error('timeout'))
+          }, timeout)
         }
 
         const relay = await Relay.connect(relayUrl)

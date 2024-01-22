@@ -43,8 +43,9 @@ export function NWCProvider ({ children }) {
           clearTimeout(timer)
           timer = setTimeout(() => reject(new Error('timeout')), timeout)
         }
-        resetTimer()
+
         const relay = await Relay.connect(relayUrl)
+
         const payload = {
           method: 'pay_invoice',
           params: { invoice: bolt11 }
@@ -57,15 +58,16 @@ export function NWCProvider ({ children }) {
           content
         }, secret)
         await relay.publish(request)
-        const sub = relay.subscribe([
-          {
-            kinds: [23195],
-            // for some reason, 'authors' must be set in the filter else you will debug your code for hours.
-            // this doesn't seem to be documented in NIP-01 or NIP-47.
-            authors: [walletPubkey],
-            '#e': [request.id]
-          }
-        ], {
+        resetTimer()
+
+        const filter = {
+          kinds: [23195],
+          // for some reason, 'authors' must be set in the filter else you will debug your code for hours.
+          // this doesn't seem to be documented in NIP-01 or NIP-47.
+          authors: [walletPubkey],
+          '#e': [request.id]
+        }
+        const sub = relay.subscribe([filter], {
           async onevent (response) {
             resetTimer()
             try {
@@ -78,6 +80,9 @@ export function NWCProvider ({ children }) {
               clearTimeout(timer)
               sub.close()
             }
+          },
+          onclose (reason) {
+            reject(new Error(reason))
           }
         })
       })().catch(reject)

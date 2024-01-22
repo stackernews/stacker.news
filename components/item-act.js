@@ -235,11 +235,9 @@ export function useZap () {
   const [act] = useAct()
 
   const invoiceableAct = useInvoiceModal(
-    async ({ hash, hmac }, { variables, ...apolloArgs }, webLN) => {
+    async ({ hash, hmac }, { variables, ...apolloArgs }) => {
       await act({ variables: { ...variables, hash, hmac }, ...apolloArgs })
-      if (!strike({ webLN })) {
-        toaster.success('WebLN zap successful')
-      }
+      strike()
     }, [act, strike])
 
   return useCallback(async ({ item, me }) => {

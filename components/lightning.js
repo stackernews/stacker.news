@@ -12,12 +12,12 @@ export class LightningProvider extends React.Component {
    * Strike lightning on the screen, if the user has the setting enabled
    * @returns boolean indicating whether the strike actually happened, based on user preferences
    */
-  strike = ({ webLN } = {}) => {
+  strike = () => {
     const should = window.localStorage.getItem('lnAnimate') || 'yes'
     if (should === 'yes') {
       this.setState(state => {
         return {
-          bolts: [...state.bolts, <Lightning key={state.bolts.length} webLN={webLN} onDone={() => this.unstrike(state.bolts.length)} />]
+          bolts: [...state.bolts, <Lightning key={state.bolts.length} onDone={() => this.unstrike(state.bolts.length)} />]
         }
       })
       return true
@@ -49,7 +49,7 @@ export function useLightning () {
   return useContext(LightningContext)
 }
 
-export function Lightning ({ onDone, webLN }) {
+export function Lightning ({ onDone }) {
   const canvasRef = useRef(null)
 
   useEffect(() => {
@@ -67,8 +67,7 @@ export function Lightning ({ onDone, webLN }) {
       speed: 100,
       spread: 30,
       branches: 20,
-      onDone,
-      lineWidth: webLN ? 7 : 3
+      onDone
     })
     canvas.bolt.draw()
   }, [])
@@ -85,6 +84,7 @@ function Bolt (ctx, options) {
     spread: 50,
     branches: 10,
     maxBranches: 10,
+    lineWidth: 3,
     ...options
   }
   this.point = [this.options.startPoint[0], this.options.startPoint[1]]

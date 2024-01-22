@@ -14,12 +14,15 @@ import PayerData from './payer-data'
 import Bolt11Info from './bolt11-info'
 import { useWebLN } from './webln'
 
-export function Invoice ({ invoice, modal, onPayment, info, successVerb }) {
+export function Invoice ({ invoice, modal, onPayment, info, successVerb, webLn }) {
   const [expired, setExpired] = useState(new Date(invoice.expiredAt) <= new Date())
+
+  // if webLn was not passed, use true by default
+  if (webLn === undefined) webLn = true
 
   let variant = 'default'
   let status = 'waiting for you'
-  let webLn = true
+
   if (invoice.cancelled) {
     variant = 'failed'
     status = 'cancelled'
@@ -119,7 +122,7 @@ const JITInvoice = ({ invoice: { id, hash, hmac, expiresAt }, onPayment, onCance
 
   return (
     <>
-      <Invoice invoice={data.invoice} modal onPayment={onPayment} successVerb='received' />
+      <Invoice invoice={data.invoice} modal onPayment={onPayment} successVerb='received' webLn={false} />
       {retry
         ? (
           <>

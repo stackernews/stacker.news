@@ -51,7 +51,6 @@ export function NWCProvider ({ children }) {
         }
         const content = await nip04.encrypt(secret, walletPubkey, JSON.stringify(payload))
         const request = finalizeEvent({
-          pubkey: walletPubkey,
           kind: 23194,
           created_at: Math.floor(Date.now() / 1000),
           tags: [],

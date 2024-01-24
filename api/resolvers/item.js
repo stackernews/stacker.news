@@ -623,6 +623,46 @@ export default {
       } else await models.bookmark.create({ data })
       return { id }
     },
+    pinItem: async (parent, { id }, { me, models }) => {
+      if (!me) {
+        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+      }
+
+      const old = await models.item.findUnique({ where: { id: Number(id) }, include: { pin: true } })
+      const sub = await models.sub.findUnique({ where: { name: old.subName } })
+      if (Number(me.id) !== sub.userId) throw new GraphQLError('not your sub', { extensions: { code: 'FORBIDDEN' } })
+
+      let pinId
+      if (old.pin?.id) {
+        await serialize(
+          models,
+          models.item.update({ where: { id: old.id }, data: { pinId: null } }),
+          models.pin.delete({ where: { id: old.pinId } }),
+          // make sure that pins in a sub have no gaps
+          models.$queryRaw`
+          UPDATE "Pin"
+          SET position = position - 1
+          WHERE position > ${old.pin.position} AND id IN (
+            SELECT "pinId" FROM "Item" WHERE "subName" = ${old.subName} AND "pinId" IS NOT NULL
+          )
+          `
+        )
+        pinId = null
+      } else {
+        const [{ id: newPinId }] = await models.$queryRaw`
+          INSERT INTO "Pin" (position)
+          SELECT COALESCE(MAX(p.position), 0) + 1
+          FROM "Pin" p
+          JOIN "Item" i ON i."pinId" = p.id
+          WHERE i."subName" = ${old.subName}
+          RETURNING id
+        `
+        await models.item.update({ where: { id: Number(old.id) }, data: { pinId: newPinId } })
+        pinId = newPinId
+      }
+
+      return { id, pinId }
+    },
     subscribeItem: async (parent, { id }, { me, models }) => {
       const data = { itemId: Number(id), userId: me.id }
       const old = await models.threadSubscription.findUnique({ where: { userId_itemId: data } })

@@ -34,15 +34,41 @@ export default function Items ({ ssrData, variables = {}, query, destructureData
     return <Skeleton />
   }
 
+  // keep track of pins
+  let remainingPins = pinMap ? Object.values(pinMap) : []
+
+  const mergePins = (item, i) => {
+    // we loop over unpinned items here.
+    // we will use this array to return pins together with the current item.
+    const items = []
+    // current position in feed (excluding pins)
+    let position = i + 1
+    let pin = pinMap?.[position]
+    // make sure this pin wasn't already inserted
+    let notInserted = pin ? remainingPins.some(({ id }) => id === pin?.id) : undefined
+    // insert all consecutive pins at this position
+    while (pin && notInserted) {
+      remainingPins = remainingPins.filter(({ id }) => id !== pin.id)
+      items.push(<Item key={`pin-${position}`} item={pin} />)
+      pin = pinMap[++position]
+      notInserted = pin ? remainingPins.some(({ id }) => id === pin.id) : undefined
+    }
+
+    // add "normal" item after pins
+    items.push(<ListItem key={`item-${item.id}`} item={item} rank={rank && i + 1} siblingComments={variables.includeComments} />)
+
+    return (
+      <Fragment key={item.id}>
+        {items}
+      </Fragment>
+    )
+  }
+
   return (
     <>
       <div className={styles.grid}>
-        {items.filter(filter).map((item, i) => (
-          <Fragment key={item.id}>
-            {pinMap && pinMap[i + 1] && <Item item={pinMap[i + 1]} />}
-            <ListItem item={item} rank={rank && i + 1} siblingComments={variables.includeComments} />
-          </Fragment>
-        ))}
+        {items.filter(filter).map(mergePins)}
+        {remainingPins.map((item, i) => <Item key={item.id} item={item} />)}
       </div>
       <Foooter
         cursor={cursor} fetchMore={fetchMore} noMoreText={noMoreText}

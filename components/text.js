@@ -165,6 +165,21 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, item
               return <>{children}</>
             }
 
+            try {
+              const url = new URL(href)
+              const { pathname, searchParams } = url
+              const itemId = pathname.match(/items\/(\w+)/)[1]
+              // don't format invalid item links
+              const valid = !/[a-zA-Z_]/.test(itemId)
+              if (valid && itemId) {
+                const commentId = searchParams.get('commentId')
+                const linkText = `#${commentId || itemId}`
+                return <a target='_blank' href={href} rel='noreferrer'>{linkText}</a>
+              }
+            } catch {
+              // ignore invalid URLs
+            }
+
             // If [text](url) was parsed as <a> and text is not empty and not a link itself,
             // we don't render it as an image since it was probably a conscious choice to include text.
             const text = children[0]

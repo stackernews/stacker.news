@@ -185,6 +185,21 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, item
               )
             }
 
+            try {
+              const url = new URL(href)
+              const { pathname, searchParams } = url
+              const itemId = pathname.match(/items\/(\w+)/)[1]
+              // don't format invalid item links
+              const valid = !/[a-zA-Z_]/.test(itemId)
+              if (valid && itemId) {
+                const commentId = searchParams.get('commentId')
+                const linkText = `#${commentId || itemId}`
+                return <a target='_blank' href={href} rel='noreferrer'>{linkText}</a>
+              }
+            } catch {
+              // ignore invalid URLs
+            }
+
             // if the link is to a youtube video, render the video
             const youtube = href.match(/(https?:\/\/)?((www\.)?(youtube(-nocookie)?|youtube.googleapis)\.com.*(v\/|v=|vi=|vi\/|e\/|embed\/|user\/.*\/u\/\d+\/)|youtu\.be\/)(?<id>[_0-9a-z-]+)((?:\?|&)(?:t|start)=(?<start>\d+))?/i)
             if (youtube?.groups?.id) {

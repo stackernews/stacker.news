@@ -123,6 +123,17 @@ export default function useCrossposter () {
     })
   }
 
+  const crosspostError = (errorMessage) => {
+    return new Promise(resolve => {
+      toaster.danger(
+        <>
+          Error crossposting: {errorMessage} <br />
+        </>,
+        () => resolve('close')
+      )
+    })
+  }
+
   const handleEventCreation = async (itemType, item) => {
     switch (itemType) {
       case 'discussion':
@@ -151,7 +162,8 @@ export default function useCrossposter () {
       const result = await crosspost(event, failedRelays || relays);
 
       if (result?.error) {
-        toaster.danger('Error crossposting to Nostr', result.error?.message);
+        await crosspostError(result.error?.message);
+        
         // wait 2 seconds then break
         await new Promise(resolve => setTimeout(resolve, 2000));
         return { allSuccessful, noteId };
@@ -201,7 +213,7 @@ export default function useCrossposter () {
       }
     } catch (e) {
       console.error(e)
-      toaster.danger('Error crossposting to Nostr', e.message)
+      await crosspostError(e.message)
     }
   }, [updateNoteId, relays, toaster])
 

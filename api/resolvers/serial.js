@@ -60,9 +60,9 @@ export default async function serialize (models, ...calls) {
       bail(error)
     }
   }, {
-    minTimeout: 100,
-    factor: 1.1,
-    retries: 5
+    minTimeout: 10,
+    maxTimeout: 100,
+    retries: 10
   })
 }
 

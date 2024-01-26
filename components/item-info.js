@@ -171,7 +171,7 @@ export default function ItemInfo ({
           </>}
         {me && !nested && sub &&
           <>
-            <hr className='dropdown-divider' />
+            {((!item.mine && Number(me.id) !== Number(sub.userId)) || Number(me.id) === Number(sub.userId)) && <hr className='dropdown-divider' />}
             {!item.mine && Number(me.id) !== Number(sub.userId) && <MuteSubDropdownItem item={item} sub={sub} />}
             {Number(me.id) === Number(sub.userId) && <PinSubDropdownItem item={item} />}
           </>}

@@ -105,12 +105,12 @@ export function CopyLinkDropdownItem ({ item, full }) {
   )
 }
 
-export function CrosspostDropdownItem({ item, full }) {
-  const crossposter = useCrossposter();
-  const toaster = useToast();
-  const [fullItem, setFullItem] = useState(null);
+export function CrosspostDropdownItem ({ item, full }) {
+  const crossposter = useCrossposter()
+  const toaster = useToast()
+  const [fullItem, setFullItem] = useState(null)
 
-  const [fetchItem, { data, loading, error }] = useLazyQuery(
+  const [fetchItem, { data }] = useLazyQuery(
     gql`
     ${ITEM_FULL_FIELDS}
     ${POLL_FIELDS}
@@ -121,46 +121,45 @@ export function CrosspostDropdownItem({ item, full }) {
       }
     }`,
     { variables: { id: item.id } }
-  );
+  )
 
   useEffect(() => {
+    // fetch missing fields required for poll / discussion crossposts
     if (!full && (item?.pollCost || !item?.text)) {
-      fetchItem();
+      fetchItem()
     }
-  }, [item, fetchItem]);
+  }, [item, fetchItem])
 
   useEffect(() => {
     if (data && data.item) {
-      setFullItem(processFetchedItem(data.item));
+      setFullItem(processFetchedItem(data.item))
     }
-  }, [data]);
+  }, [data])
 
   const processFetchedItem = (fetchedItem) => {
     if (fetchedItem.poll) {
-      return { ...item, ...fetchedItem, options: fetchedItem.poll.options };
+      return { ...item, ...fetchedItem, options: fetchedItem.poll.options }
     }
-    return fetchedItem;
+    return fetchedItem
   }
 
   const handleCrosspostClick = async () => {
     if (!fullItem || !fullItem.id) {
-      toaster.warning('Item ID not available');
-      return;
+      toaster.warning('Item ID not available')
+      return
     }
     try {
-      console.log('fillItem before:', fullItem);
-      await crossposter(fullItem, fullItem.id);
+      console.log('fillItem before:', fullItem)
+      await crossposter(fullItem, fullItem.id)
     } catch (e) {
-      console.error(e);
-      toaster.danger('Crosspost failed');
+      console.error(e)
+      toaster.danger('Crosspost failed')
     }
   }
 
   return (
     <Dropdown.Item onClick={handleCrosspostClick}>
       crosspost to nostr
-      {loading && <span>Loading...</span>}
-      {error && <span>Error: {error.message}</span>}
     </Dropdown.Item>
-  );
+  )
 }

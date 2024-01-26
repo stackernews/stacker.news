@@ -1,10 +1,9 @@
 import { useCallback } from 'react'
 import { useToast } from './toast'
 import { Button } from 'react-bootstrap'
-import { DEFAULT_CROSSPOSTING_RELAYS, crosspost } from '../lib/nostr'
+import { DEFAULT_CROSSPOSTING_RELAYS, crosspost, callWithTimeout } from '../lib/nostr'
 import { gql, useMutation, useQuery } from '@apollo/client'
 import { SETTINGS } from '../fragments/users'
-import { callWithTimeout } from '../lib/nostr'
 
 function determineItemType (item) {
   const typeMap = {
@@ -75,7 +74,7 @@ async function bountyToEvent (item) {
       ['d', item.id.toString()],
       ['title', item.title],
       ['location', `https://stacker.news/items/${item.id}`],
-      ['price', item.bounty.toString(), "SATS"],
+      ['price', item.bounty.toString(), 'SATS'],
       ['t', 'bounty'],
       ['published_at', createdAt.toString()]
     ]
@@ -145,48 +144,48 @@ export default function useCrossposter () {
       case 'poll':
         return await pollToEvent(item)
       default:
-        return null // handle error
+        return crosspostError('Unknown item type')
     }
   }
 
   const crosspostItem = async item => {
-    let failedRelays;
-    let allSuccessful = false;
-    let noteId;
+    let failedRelays
+    let allSuccessful = false
+    let noteId
 
     do {
-      const itemType = determineItemType(item);
-      const event = await handleEventCreation(itemType, item);
-      if (!event) break; // Break if event creation fails
+      const itemType = determineItemType(item)
+      const event = await handleEventCreation(itemType, item)
+      if (!event) break
 
-      const result = await crosspost(event, failedRelays || relays);
+      const result = await crosspost(event, failedRelays || relays)
 
       if (result?.error) {
-        await crosspostError(result.error?.message);
-        
-        // wait 2 seconds then break
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        return { allSuccessful, noteId };
+        await crosspostError(result.error?.message)
+
+        // wait 2 seconds to show error then break
+        await new Promise(resolve => setTimeout(resolve, 2000))
+        return { allSuccessful, noteId }
       }
 
-      noteId = result.noteId;
-      failedRelays = result?.failedRelays.map(relayObj => relayObj.relay);
+      noteId = result.noteId
+      failedRelays = result?.failedRelays.map(relayObj => relayObj.relay)
 
       if (failedRelays.length > 0) {
-        const userAction = await relayError(failedRelays);
+        const userAction = await relayError(failedRelays)
         if (userAction === 'skip') {
-          toaster.success('Skipped failed relays.');
+          toaster.success('Skipped failed relays.')
           // wait 2 seconds then break
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          break;
+          await new Promise(resolve => setTimeout(resolve, 2000))
+          break
         }
       } else {
-        allSuccessful = true;
+        allSuccessful = true
       }
-    } while (failedRelays.length > 0);
+    } while (failedRelays.length > 0)
 
-    return { allSuccessful, noteId };
-  };
+    return { allSuccessful, noteId }
+  }
 
   const handleCrosspost = useCallback(async (values, itemId) => {
     try {
@@ -196,7 +195,7 @@ export default function useCrossposter () {
       throw new Error(`Nostr extension error: ${e.message}`)
     }
 
-    let noteId;
+    let noteId
 
     try {
       if (itemId) {

@@ -122,7 +122,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
     nextFetchPolicy: 'no-cache',
     onError: (err) => {
       console.error(err)
-      toaster.danger(err.message || err.toString?.())
+      toaster.danger(`unabled to get image fees: ${err.message || err.toString?.()}`)
     },
     onCompleted: ({ imageFeesInfo }) => {
       merge({
@@ -757,7 +757,7 @@ export function Form ({
   const feeButton = useFeeButton()
   useEffect(() => {
     if (initialError && !initialErrorToasted.current) {
-      toaster.danger(initialError.message || initialError.toString?.())
+      toaster.danger('form error: ' + initialError.message || initialError.toString?.())
       initialErrorToasted.current = true
     }
   }, [])
@@ -804,7 +804,7 @@ export function Form ({
       const msg = err.message || err.toString?.()
       // handle errors from JIT invoices by ignoring them
       if (msg === 'modal closed' || msg === 'invoice canceled') return
-      toaster.danger(err.message || err.toString?.())
+      toaster.danger('submit error:' + msg)
     }
   }, [onSubmit, feeButton?.total, toaster, clearLocalStorage, storageKeyPrefix])
 

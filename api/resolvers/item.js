@@ -495,6 +495,7 @@ export default {
                         FROM "Item"
                         ${whereClause(
                           '"pinId" IS NOT NULL',
+                          '"parentId" IS NULL',
                           sub ? '("subName" = $1 OR "subName" IS NULL)' : '"subName" IS NULL',
                           muteClause(me))}
                     ) rank_filter WHERE RANK = 1`
@@ -628,35 +629,50 @@ export default {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
       }
 
-      const old = await models.item.findUnique({ where: { id: Number(id) }, include: { pin: true } })
-      const sub = await models.sub.findUnique({ where: { name: old.subName } })
-      if (Number(me.id) !== sub.userId) throw new GraphQLError('not your sub', { extensions: { code: 'FORBIDDEN' } })
+      const [old] = await models.$queryRawUnsafe(`${SELECT}, p.position FROM "Item" LEFT JOIN "Pin" p ON p.id = "Item"."pinId" WHERE "Item".id = $1`, Number(id))
+      if (old.subName) {
+        // is post since replies don't have subName set
+        const sub = await models.sub.findUnique({ where: { name: old.subName } })
+        if (Number(me.id) !== sub.userId) throw new GraphQLError('not your sub', { extensions: { code: 'FORBIDDEN' } })
+      }
+      if (old.parentId) {
+        if (old.path.split('.').length > 2) throw new GraphQLError('can only pin root replies', { extensions: { code: 'FORBIDDEN' } })
+        const root = await models.item.findUnique({ where: { id: Number(old.parentId) }, include: { pin: true } })
+        if (root.userId !== Number(me.id)) throw new GraphQLError('not your post', { extensions: { code: 'FORBIDDEN' } })
+      }
 
       let pinId
-      if (old.pin?.id) {
+      if (old.pinId) {
+        const args = [old.position]
+        if (old.subName) args.push(old.subName)
+        else args.push(old.parentId)
         await serialize(
           models,
           models.item.update({ where: { id: old.id }, data: { pinId: null } }),
           models.pin.delete({ where: { id: old.pinId } }),
           // make sure that pins in a sub have no gaps
-          models.$queryRaw`
+          models.$queryRawUnsafe(`
           UPDATE "Pin"
           SET position = position - 1
-          WHERE position > ${old.pin.position} AND id IN (
-            SELECT "pinId" FROM "Item" WHERE "subName" = ${old.subName} AND "pinId" IS NOT NULL
+          WHERE position > $1 AND id IN (
+            SELECT "pinId" FROM "Item" i
+            ${whereClause('"pinId" IS NOT NULL', old.subName ? 'i."subName" = $1' : 'i."parentId" = $1')}
           )
-          `
+          `, ...args)
         )
         pinId = null
       } else {
-        const [{ id: newPinId }] = await models.$queryRaw`
+        const args = []
+        if (old.subName) args.push(old.subName)
+        else args.push(old.parentId)
+        const [{ id: newPinId }] = await models.$queryRawUnsafe(`
           INSERT INTO "Pin" (position)
           SELECT COALESCE(MAX(p.position), 0) + 1
           FROM "Pin" p
           JOIN "Item" i ON i."pinId" = p.id
-          WHERE i."subName" = ${old.subName}
+          ${whereClause(old.subName ? 'i."subName" = $1' : 'i."parentId" = $1')}
           RETURNING id
-        `
+        `, ...args)
         await models.item.update({ where: { id: Number(old.id) }, data: { pinId: newPinId } })
         pinId = newPinId
       }

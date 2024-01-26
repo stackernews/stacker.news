@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import Comment, { CommentSkeleton } from './comment'
 import styles from './header.module.css'
 import Nav from 'react-bootstrap/Nav'
@@ -62,6 +63,8 @@ export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, comm
 export default function Comments ({ parentId, pinned, bio, parentCreatedAt, commentSats, comments, ...props }) {
   const router = useRouter()
 
+  const pins = comments?.filter(({ position }) => !!position).sort((a, b) => a.position - b.position)
+
   return (
     <>
       {comments?.length > 0
@@ -80,7 +83,12 @@ export default function Comments ({ parentId, pinned, bio, parentCreatedAt, comm
             }}
           />
         : null}
-      {comments.map(item => (
+      {pins.map(item => (
+        <Fragment key={item.id}>
+          <Comment depth={1} item={item} {...props} pin />
+        </Fragment>
+      ))}
+      {comments.filter(({ position }) => !position).map(item => (
         <Comment depth={1} key={item.id} item={item} {...props} />
       ))}
     </>

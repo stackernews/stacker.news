@@ -47,6 +47,14 @@ export default function ItemInfo ({
     if (item) setMeTotalSats((item.meSats || 0) + (item.meAnonSats || 0))
   }, [item?.meSats, item?.meAnonSats])
 
+  // territory founders can pin any post in their territory
+  // and OPs can pin any root reply in their post
+  const isPost = !item.parentId
+  const mySub = (me && sub && Number(me.id) === sub.userId)
+  const myPost = (me && root && Number(me.id) === Number(root.user.id))
+  const rootReply = item.path.split('.').length === 2
+  const canPin = (isPost && mySub) || (myPost && rootReply)
+
   return (
     <div className={className || `${styles.other}`}>
       {!item.position && !(!item.parentId && Number(item.user?.id) === AD_USER_ID) &&
@@ -145,6 +153,7 @@ export default function ItemInfo ({
         {(item.parentId || item.text) && onQuoteReply &&
           <Dropdown.Item onClick={onQuoteReply}>quote reply</Dropdown.Item>}
         {me && <BookmarkDropdownItem item={item} />}
+        {canPin && <PinSubDropdownItem item={item} />}
         {me && <SubscribeDropdownItem item={item} />}
         {item.otsHash &&
           <Link href={`/items/${item.id}/ots`} className='text-reset dropdown-item'>
@@ -169,11 +178,10 @@ export default function ItemInfo ({
             <hr className='dropdown-divider' />
             <OutlawDropdownItem item={item} />
           </>}
-        {me && !nested && sub &&
+        {me && !nested && !item.mine && sub && Number(me.id) !== Number(sub.userId) &&
           <>
-            {((!item.mine && Number(me.id) !== Number(sub.userId)) || Number(me.id) === Number(sub.userId)) && <hr className='dropdown-divider' />}
-            {!item.mine && Number(me.id) !== Number(sub.userId) && <MuteSubDropdownItem item={item} sub={sub} />}
-            {Number(me.id) === Number(sub.userId) && <PinSubDropdownItem item={item} />}
+            <hr className='dropdown-divider' />
+            <MuteSubDropdownItem item={item} sub={sub} />
           </>}
         {me && !item.mine &&
           <>

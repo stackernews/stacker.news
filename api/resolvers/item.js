@@ -629,51 +629,58 @@ export default {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
       }
 
-      const [old] = await models.$queryRawUnsafe(`${SELECT}, p.position FROM "Item" LEFT JOIN "Pin" p ON p.id = "Item"."pinId" WHERE "Item".id = $1`, Number(id))
-      if (old.subName) {
+      const [item] = await models.$queryRawUnsafe(`${SELECT}, p.position FROM "Item" LEFT JOIN "Pin" p ON p.id = "Item"."pinId" WHERE "Item".id = $1`, Number(id))
+
+      if (!item.subName && !item.parentId) throw new GraphQLError('item must have subName or parentId', { extensions: { code: 'BAD_INPUT' } })
+
+      if (item.subName) {
         // is post since replies don't have subName set
-        const sub = await models.sub.findUnique({ where: { name: old.subName } })
+        // only territory founder can pin posts
+        const sub = await models.sub.findUnique({ where: { name: item.subName } })
         if (Number(me.id) !== sub.userId) throw new GraphQLError('not your sub', { extensions: { code: 'FORBIDDEN' } })
       }
-      if (old.parentId) {
-        if (old.path.split('.').length > 2) throw new GraphQLError('can only pin root replies', { extensions: { code: 'FORBIDDEN' } })
-        const root = await models.item.findUnique({ where: { id: Number(old.parentId) }, include: { pin: true } })
+      if (item.parentId) {
+        // OPs can only pin top level replies
+        if (item.path.split('.').length > 2) throw new GraphQLError('can only pin root replies', { extensions: { code: 'FORBIDDEN' } })
+        const root = await models.item.findUnique({ where: { id: Number(item.parentId) }, include: { pin: true } })
         if (root.userId !== Number(me.id)) throw new GraphQLError('not your post', { extensions: { code: 'FORBIDDEN' } })
       }
 
       let pinId
-      if (old.pinId) {
-        const args = [old.position]
-        if (old.subName) args.push(old.subName)
-        else args.push(old.parentId)
+      if (item.pinId) {
+        // item is already pinned. remove pin
+        const args = [item.position]
+        if (item.subName) args.push(item.subName)
+        else args.push(item.parentId)
         await serialize(
           models,
-          models.item.update({ where: { id: old.id }, data: { pinId: null } }),
-          models.pin.delete({ where: { id: old.pinId } }),
-          // make sure that pins in a sub have no gaps
+          models.item.update({ where: { id: item.id }, data: { pinId: null } }),
+          models.pin.delete({ where: { id: item.pinId } }),
+          // make sure that pins have no gaps
           models.$queryRawUnsafe(`
           UPDATE "Pin"
           SET position = position - 1
           WHERE position > $1 AND id IN (
             SELECT "pinId" FROM "Item" i
-            ${whereClause('"pinId" IS NOT NULL', old.subName ? 'i."subName" = $1' : 'i."parentId" = $1')}
+            ${whereClause('"pinId" IS NOT NULL', item.subName ? 'i."subName" = $1' : 'i."parentId" = $1')}
           )
           `, ...args)
         )
         pinId = null
       } else {
+        // pin item
         const args = []
-        if (old.subName) args.push(old.subName)
-        else args.push(old.parentId)
+        if (item.subName) args.push(item.subName)
+        else args.push(item.parentId)
         const [{ id: newPinId }] = await models.$queryRawUnsafe(`
-          INSERT INTO "Pin" (position)
-          SELECT COALESCE(MAX(p.position), 0) + 1
-          FROM "Pin" p
-          JOIN "Item" i ON i."pinId" = p.id
-          ${whereClause(old.subName ? 'i."subName" = $1' : 'i."parentId" = $1')}
-          RETURNING id
+        INSERT INTO "Pin" (position)
+        SELECT COALESCE(MAX(p.position), 0) + 1
+        FROM "Pin" p
+        JOIN "Item" i ON i."pinId" = p.id
+        ${whereClause(item.subName ? 'i."subName" = $1' : 'i."parentId" = $1')}
+        RETURNING id
         `, ...args)
-        await models.item.update({ where: { id: Number(old.id) }, data: { pinId: newPinId } })
+        await models.item.update({ where: { id: Number(item.id) }, data: { pinId: newPinId } })
         pinId = newPinId
       }
 

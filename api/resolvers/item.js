@@ -672,6 +672,14 @@ export default {
         const args = []
         if (item.subName) args.push(item.subName)
         else args.push(item.parentId)
+
+        // only max 3 pins allowed per territory and post
+        const [{ count: npins }] = await models.$queryRawUnsafe(`
+        SELECT COUNT(p.id) FROM "Pin" p
+        JOIN "Item" i ON i."pinId" = p.id
+        ${whereClause(item.subName ? 'i."subName" = $1' : 'i."parentId" = $1')}`, ...args)
+        if (npins >= 3) throw new GraphQLError('max 3 pins allowed', { extensions: { code: 'FORBIDDEN' } })
+
         const [{ id: newPinId }] = await models.$queryRawUnsafe(`
         INSERT INTO "Pin" (position)
         SELECT COALESCE(MAX(p.position), 0) + 1

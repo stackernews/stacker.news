@@ -182,7 +182,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
   const showModal = useShowModal()
   const provider = useWebLN()
   const client = useApolloClient()
-  const pollInvoice = (id) => client.query({ query: INVOICE, variables: { id } })
+  const pollInvoice = (id) => client.query({ query: INVOICE, fetchPolicy: 'no-cache', variables: { id } })
 
   const onSubmitWrapper = useCallback(async (
     { cost, ...formValues },

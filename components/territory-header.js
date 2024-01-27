@@ -162,8 +162,7 @@ export function PinSubDropdownItem ({ item: { id, position } }) {
           await pinItem({ variables: { id } })
           toaster.success(position ? 'pin removed' : 'pin added')
         } catch (err) {
-          console.error(err)
-          toaster.danger(position ? 'failed to remove pin' : 'failed to pin')
+          toaster.danger(err.message)
         }
       }}
     >

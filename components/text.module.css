@@ -144,9 +144,8 @@ img.fullScreen {
 }
 
 .text blockquote {
-    border-left: 4px solid var(--theme-quoteBar);
-    padding-left: 1rem;
-    margin-left: 1.25rem;
+    border-left: 2px solid var(--theme-quoteBar);
+    padding-left: .75rem;
     margin-bottom: 0;
 }
 

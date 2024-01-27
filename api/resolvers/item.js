@@ -662,7 +662,7 @@ export default {
           SET position = position - 1
           WHERE position > $1 AND id IN (
             SELECT "pinId" FROM "Item" i
-            ${whereClause('"pinId" IS NOT NULL', item.subName ? 'i."subName" = $1' : 'i."parentId" = $1')}
+            ${whereClause('"pinId" IS NOT NULL', item.subName ? 'i."subName" = $2' : 'i."parentId" = $2')}
           )
           `, ...args)
         )

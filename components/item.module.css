@@ -53,6 +53,12 @@ a.title:visited {
     flex-shrink: 0;
 }
 
+.pinComment {
+    fill: #a5a5a5;
+    margin-right: .4rem;
+    flex-shrink: 0;
+}
+
 .ad {
     fill: #a5a5a5ac;
     margin-right: .4rem;

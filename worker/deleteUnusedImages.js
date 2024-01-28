@@ -17,7 +17,12 @@ export async function deleteUnusedImages ({ models }) {
     AND created_at < date_trunc('hour', now() - CASE WHEN "userId" = ${ANON_USER_ID} THEN interval '1 hour' ELSE interval '24 hours' END)`
 
   const s3Keys = unpaidImages.map(({ id }) => id)
+  if (s3Keys.length === 0) {
+    console.log('no images to delete.')
+    return
+  }
   console.log('deleting images:', s3Keys)
-  await deleteObjects(s3Keys)
-  await models.upload.deleteMany({ where: { id: { in: s3Keys } } })
+  const deleted = await deleteObjects(s3Keys)
+  console.log('deleted images:', deleted)
+  await models.upload.deleteMany({ where: { id: { in: deleted } } })
 }

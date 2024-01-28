@@ -24,14 +24,29 @@ export function createPresignedPost ({ key, type, size }) {
   })
 }
 
-export function deleteObjects (keys) {
+export async function deleteObjects (keys) {
   const s3 = new AWS.S3({ apiVersion: '2006-03-01' })
-  return new Promise((resolve, reject) => {
-    s3.deleteObjects({
-      Bucket,
-      Delete: {
-        Objects: keys.map(key => ({ Key: String(key) }))
+  // max 1000 keys per request
+  // see https://docs.aws.amazon.com/cli/latest/reference/s3api/delete-objects.html
+  const batchSize = 1000
+  const deleted = []
+  for (let i = 0; i < keys.length; i += batchSize) {
+    const batch = keys.slice(i, i + batchSize)
+    await new Promise((resolve, reject) => {
+      const params = {
+        Bucket,
+        Delete: {
+          Objects: batch.map(key => ({ Key: String(key) }))
+        }
       }
-    }, (err, data) => { err ? reject(err) : resolve(keys) })
-  })
+      s3.deleteObjects(params, (err, data) => {
+        if (err) return reject(err)
+        const deleted = data.Deleted?.map(({ Key }) => parseInt(Key)) || []
+        resolve(deleted)
+      })
+    }).then((deleteConfirmed) => {
+      deleted.push(...deleteConfirmed)
+    }).catch(console.error)
+  }
+  return deleted
 }

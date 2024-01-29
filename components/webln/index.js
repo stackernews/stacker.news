@@ -40,7 +40,7 @@ function RawWebLNProvider ({ children }) {
       .then(() => {
         if (canceled) return
         removeToast?.()
-        if (!canceled) toaster.success('zap successful')
+        toaster.success('zap successful')
       }).catch((err) => {
         if (canceled) return
         removeToast?.()

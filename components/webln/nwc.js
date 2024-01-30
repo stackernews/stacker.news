@@ -117,12 +117,20 @@ export function NWCProvider ({ children }) {
             authors: [walletPubkey]
           }
         ], {
+          onevent (event) {
+            console.log(event)
+            const supported = event.content.split()
+            resolve(supported)
+          },
           // some relays like nostr.mutinywallet.com don't support NIP-47 info events
           // so we simply check that we received EOSE
           oneose () {
             clearTimeout(timer)
             sub.close()
-            resolve()
+            // we assume that pay_invoice is supported
+            // (which should be mandatory to support since it's described in NIP-47)
+            const supported = ['pay_invoice']
+            resolve(supported)
           }
         })
       })().catch(reject)
@@ -137,8 +145,8 @@ export function NWCProvider ({ children }) {
         return
       }
       try {
-        await getInfo()
-        setEnabled(true)
+        const supported = await getInfo()
+        setEnabled(supported.includes('pay_invoice'))
       } catch (err) {
         console.error(err)
         setEnabled(false)

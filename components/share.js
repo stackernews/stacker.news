@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect } from 'react'
 import Dropdown from 'react-bootstrap/Dropdown'
 import ShareIcon from '../svgs/share-fill.svg'
 import copy from 'clipboard-copy'
@@ -108,49 +108,35 @@ export function CopyLinkDropdownItem ({ item, full }) {
 export function CrosspostDropdownItem ({ item, full }) {
   const crossposter = useCrossposter()
   const toaster = useToast()
-  const [fullItem, setFullItem] = useState(null)
 
   const [fetchItem, { data }] = useLazyQuery(
     gql`
-    ${ITEM_FULL_FIELDS}
-    ${POLL_FIELDS}
-    query Item($id: ID!) {
-      item(id: $id) {
-        ...ItemFullFields
-        ...PollFields
-      }
-    }`,
+      ${ITEM_FULL_FIELDS}
+      ${POLL_FIELDS}
+      query Item($id: ID!) {
+        item(id: $id) {
+          ...ItemFullFields
+          ...PollFields
+        }
+      }`,
     { variables: { id: item.id } }
   )
 
   useEffect(() => {
-    // fetch missing fields required for poll / discussion crossposts
+    // Fetch missing fields required for poll/discussion crossposts
     if (!full && (item?.pollCost || !item?.text)) {
       fetchItem()
     }
-  }, [item, fetchItem])
-
-  useEffect(() => {
-    if (data && data.item) {
-      setFullItem(processFetchedItem(data.item))
-    }
-  }, [data])
-
-  const processFetchedItem = (fetchedItem) => {
-    if (fetchedItem.poll) {
-      return { ...item, ...fetchedItem, options: fetchedItem.poll.options }
-    }
-    return fetchedItem
-  }
+  }, [item, fetchItem, full])
 
   const handleCrosspostClick = async () => {
-    if (!fullItem || !fullItem.id) {
-      toaster.warning('Item ID not available')
+    const crosspostItem = data?.item || item
+    if (!crosspostItem.id) {
+      toaster.danger('Item ID not available')
       return
     }
     try {
-      console.log('fillItem before:', fullItem)
-      await crossposter(fullItem, fullItem.id)
+      await crossposter(crosspostItem, crosspostItem.id)
     } catch (e) {
       console.error(e)
       toaster.danger('Crosspost failed')

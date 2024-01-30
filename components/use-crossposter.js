@@ -58,7 +58,7 @@ async function pollToEvent (item) {
     kind: 1,
     content: item.text,
     tags: [
-      ['poll', 'single', expiresAt.toString(), item.title, ...item.options.map(op => op?.option.toString())]
+      ['poll', 'single', expiresAt.toString(), item.title, ...item.options.map(op => op?.toString())]
     ]
   }
 }

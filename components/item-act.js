@@ -274,7 +274,7 @@ export function useZap () {
         return
       }
       console.error(error)
-      toaster.danger(error?.message || error?.toString?.())
+      toaster.danger('zap: ' + error?.message || error?.toString?.())
     }
   })
 }

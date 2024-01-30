@@ -293,7 +293,7 @@ function InvoiceScanner ({ fieldName }) {
                 if (error instanceof DOMException) {
                   console.log(error)
                 } else {
-                  toaster.danger(error?.message || error?.toString?.())
+                  toaster.danger('qr scan: ' + error?.message || error?.toString?.())
                 }
                 onClose()
               }}
@@ -340,7 +340,7 @@ export function LnWithdrawal () {
 
   useEffect(() => {
     createWith().catch(e => {
-      toaster.danger(e?.message || e?.toString?.())
+      toaster.danger('withdrawal creation: ' + e?.message || e?.toString?.())
     })
   }, [createWith, toaster])
 

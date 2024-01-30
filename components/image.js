@@ -168,7 +168,7 @@ export const ImageUpload = forwardRef(({ children, className, onSelect, onUpload
         try {
           ({ data } = await getSignedPOST({ variables }))
         } catch (e) {
-          toaster.danger(e.message || e.toString?.())
+          toaster.danger('error initiating upload: ' + e.message || e.toString?.())
           onError?.({ ...variables, name: file.name, file })
           reject(e)
           return
@@ -189,7 +189,7 @@ export const ImageUpload = forwardRef(({ children, className, onSelect, onUpload
         if (!res.ok) {
           // TODO make sure this is actually a helpful error message and does not expose anything to the user we don't want
           const err = res.statusText
-          toaster.danger(err)
+          toaster.danger('error uploading: ' + err)
           onError?.({ ...variables, name: file.name, file })
           reject(err)
           return

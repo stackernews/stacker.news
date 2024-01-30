@@ -100,7 +100,7 @@ export default function AdvPostForm ({ children }) {
                       <li>crosspost this item to nostr</li>
                       <li>requires NIP-07 extension for signing</li>
                       <li>we use your NIP-05 relays if set</li>
-                      <li>otherwise we default to these relays:</li>
+                      <li>we use these relays by default:</li>
                       <ul>
                         {DEFAULT_CROSSPOSTING_RELAYS.map((relay, i) => (
                           <li key={i}>{relay}</li>

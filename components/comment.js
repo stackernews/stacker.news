@@ -146,7 +146,7 @@ export default function Comment ({
           ? <Skull className={styles.dontLike} width={24} height={24} />
           : item.meDontLikeSats > item.meSats
             ? <DownZap width={24} height={24} className={styles.dontLike} id={item.id} meDontLikeSats={item.meDontLikeSats} />
-            : pin ? <Pin width={24} height={24} className={itemStyles.pinComment} /> : <UpVote item={item} className={styles.upvote} />}
+            : pin ? <Pin width={22} height={22} className={styles.pin} /> : <UpVote item={item} className={styles.upvote} />}
         <div className={`${itemStyles.hunk} ${styles.hunk}`}>
           <div className='d-flex align-items-center'>
             {item.user?.meMute && !includeParent && collapse === 'yep'

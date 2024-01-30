@@ -153,7 +153,6 @@ export default function ItemInfo ({
         {(item.parentId || item.text) && onQuoteReply &&
           <Dropdown.Item onClick={onQuoteReply}>quote reply</Dropdown.Item>}
         {me && <BookmarkDropdownItem item={item} />}
-        {canPin && <PinSubDropdownItem item={item} />}
         {me && <SubscribeDropdownItem item={item} />}
         {item.otsHash &&
           <Link href={`/items/${item.id}/ots`} className='text-reset dropdown-item'>
@@ -164,15 +163,11 @@ export default function ItemInfo ({
             nostr note
           </Dropdown.Item>
         )}
-        {item?.mine && !item?.noteId &&
-          <CrosspostDropdownItem item={item} />}
         {me && !item.position &&
           !item.mine && !item.deletedAt &&
           (item.meDontLikeSats > meTotalSats
             ? <DropdownItemUpVote item={item} />
             : <DontLikeThisDropdownItem id={item.id} />)}
-        {item.mine && !item.position && !item.deletedAt && !item.bio &&
-          <DeleteDropdownItem itemId={item.id} type={item.title ? 'post' : 'comment'} />}
         {me && sub && !item.mine && !item.outlawed && Number(me.id) === Number(sub.userId) && sub.moderated &&
           <>
             <hr className='dropdown-divider' />
@@ -182,6 +177,18 @@ export default function ItemInfo ({
           <>
             <hr className='dropdown-divider' />
             <MuteSubDropdownItem item={item} sub={sub} />
+          </>}
+        {canPin &&
+          <>
+            <hr className='dropdown-divider' />
+            <PinSubDropdownItem item={item} />
+          </>}
+        {item?.mine && !item?.noteId &&
+          <CrosspostDropdownItem item={item} />}
+        {item.mine && !item.position && !item.deletedAt && !item.bio &&
+          <>
+            <hr className='dropdown-divider' />
+            <DeleteDropdownItem itemId={item.id} type={item.title ? 'post' : 'comment'} />
           </>}
         {me && !item.mine &&
           <>

@@ -487,17 +487,21 @@ export default {
                   query: `
                     SELECT rank_filter.*
                       FROM (
-                        ${SELECT},
+                        ${SELECT}, position,
                         rank() OVER (
                             PARTITION BY "pinId"
                             ORDER BY "Item".created_at DESC
                         )
                         FROM "Item"
+                        JOIN "Pin" ON "Item"."pinId" = "Pin".id
                         ${whereClause(
                           '"pinId" IS NOT NULL',
-                          sub ? '("subName" = $1 OR "subName" IS NULL)' : '"subName" IS NULL',
+                          '"parentId" IS NULL',
+                          sub ? '"subName" = $1' : '"subName" IS NULL',
                           muteClause(me))}
-                    ) rank_filter WHERE RANK = 1`
+                    ) rank_filter WHERE RANK = 1
+                    ORDER BY position ASC`,
+                  orderBy: 'ORDER BY position ASC'
                 }, ...subArr)
               }
               break
@@ -622,6 +626,97 @@ export default {
         await models.bookmark.delete({ where: { userId_itemId: data } })
       } else await models.bookmark.create({ data })
       return { id }
+    },
+    pinItem: async (parent, { id }, { me, models }) => {
+      if (!me) {
+        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+      }
+
+      const [item] = await models.$queryRawUnsafe(
+        `${SELECT}, p.position
+        FROM "Item" LEFT JOIN "Pin" p ON p.id = "Item"."pinId"
+        WHERE "Item".id = $1`, Number(id))
+
+      const args = []
+      if (item.parentId) {
+        args.push(item.parentId)
+
+        // OPs can only pin top level replies
+        if (item.path.split('.').length > 2) {
+          throw new GraphQLError('can only pin root replies', { extensions: { code: 'FORBIDDEN' } })
+        }
+
+        const root = await models.item.findUnique({
+          where: {
+            id: Number(item.parentId)
+          },
+          include: { pin: true }
+        })
+
+        if (root.userId !== Number(me.id)) {
+          throw new GraphQLError('not your post', { extensions: { code: 'FORBIDDEN' } })
+        }
+      } else if (item.subName) {
+        args.push(item.subName)
+
+        // only territory founder can pin posts
+        const sub = await models.sub.findUnique({ where: { name: item.subName } })
+        if (Number(me.id) !== sub.userId) {
+          throw new GraphQLError('not your sub', { extensions: { code: 'FORBIDDEN' } })
+        }
+      } else {
+        throw new GraphQLError('item must have subName or parentId', { extensions: { code: 'BAD_INPUT' } })
+      }
+
+      let pinId
+      if (item.pinId) {
+        // item is already pinned. remove pin
+        await models.$transaction([
+          models.item.update({ where: { id: item.id }, data: { pinId: null } }),
+          models.pin.delete({ where: { id: item.pinId } }),
+          // make sure that pins have no gaps
+          models.$queryRawUnsafe(`
+            UPDATE "Pin"
+            SET position = position - 1
+            WHERE position > $2 AND id IN (
+              SELECT "pinId" FROM "Item" i
+              ${whereClause('"pinId" IS NOT NULL', item.subName ? 'i."subName" = $1' : 'i."parentId" = $1')}
+            )`, ...args, item.position)
+        ])
+
+        pinId = null
+      } else {
+        // only max 3 pins allowed per territory and post
+        const [{ count: npins }] = await models.$queryRawUnsafe(`
+          SELECT COUNT(p.id) FROM "Pin" p
+          JOIN "Item" i ON i."pinId" = p.id
+          ${
+            whereClause(item.subName ? 'i."subName" = $1' : 'i."parentId" = $1')
+          }`, ...args)
+
+        if (npins >= 3) {
+          throw new GraphQLError('max 3 pins allowed', { extensions: { code: 'FORBIDDEN' } })
+        }
+
+        const [{ pinId: newPinId }] = await models.$queryRawUnsafe(`
+          WITH pin AS (
+            INSERT INTO "Pin" (position)
+            SELECT COALESCE(MAX(p.position), 0) + 1 AS position
+            FROM "Pin" p
+            JOIN "Item" i ON i."pinId" = p.id
+            ${whereClause(item.subName ? 'i."subName" = $1' : 'i."parentId" = $1')}
+            RETURNING id
+          )
+          UPDATE "Item"
+          SET "pinId" = pin.id
+          FROM pin
+          WHERE "Item".id = $2
+          RETURNING "pinId"`, ...args, item.id)
+
+        pinId = newPinId
+      }
+
+      return { id, pinId }
     },
     subscribeItem: async (parent, { id }, { me, models }) => {
       const data = { itemId: Number(id), userId: me.id }

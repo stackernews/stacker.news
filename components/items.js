@@ -24,8 +24,19 @@ export default function Items ({ ssrData, variables = {}, query, destructureData
     }
   }, [dat])
 
-  const pinMap = useMemo(() =>
-    pins?.reduce((a, p) => { a[p.position] = p; return a }, {}), [pins])
+  const itemsWithPins = useMemo(() => {
+    if (!pins) return items
+
+    const res = [...items]
+    pins?.forEach(p => {
+      if (p.position <= res.length) {
+        res.splice(p.position - 1, 0, p)
+      } else {
+        res.push(p)
+      }
+    })
+    return res
+  }, [pins, items])
 
   const Skeleton = useCallback(() =>
     <ItemsSkeleton rank={rank} startRank={items?.length} limit={variables.limit} Footer={Foooter} />, [rank, items])
@@ -37,11 +48,8 @@ export default function Items ({ ssrData, variables = {}, query, destructureData
   return (
     <>
       <div className={styles.grid}>
-        {items.filter(filter).map((item, i) => (
-          <Fragment key={item.id}>
-            {pinMap && pinMap[i + 1] && <Item item={pinMap[i + 1]} />}
-            <ListItem item={item} rank={rank && i + 1} siblingComments={variables.includeComments} />
-          </Fragment>
+        {itemsWithPins.filter(filter).map((item, i) => (
+          <ListItem key={item.id} item={item} rank={rank && i + 1} siblingComments={variables.includeComments} />
         ))}
       </div>
       <Foooter

@@ -24,6 +24,7 @@ import { useQuoteReply } from './use-quote-reply'
 import { DownZap } from './dont-link-this'
 import Skull from '../svgs/death-skull.svg'
 import { commentSubTreeRootId } from '../lib/item'
+import Pin from '../svgs/pushpin-fill.svg'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -92,7 +93,7 @@ export function CommentFlat ({ item, rank, siblingComments, ...props }) {
 
 export default function Comment ({
   item, children, replyOpen, includeParent, topLevel,
-  rootText, noComments, noReply, truncate, depth
+  rootText, noComments, noReply, truncate, depth, pin
 }) {
   const [edit, setEdit] = useState()
   const me = useMe()
@@ -145,7 +146,7 @@ export default function Comment ({
           ? <Skull className={styles.dontLike} width={24} height={24} />
           : item.meDontLikeSats > item.meSats
             ? <DownZap width={24} height={24} className={styles.dontLike} id={item.id} meDontLikeSats={item.meDontLikeSats} />
-            : <UpVote item={item} className={styles.upvote} />}
+            : pin ? <Pin width={22} height={22} className={styles.pin} /> : <UpVote item={item} className={styles.upvote} />}
         <div className={`${itemStyles.hunk} ${styles.hunk}`}>
           <div className='d-flex align-items-center'>
             {item.user?.meMute && !includeParent && collapse === 'yep'

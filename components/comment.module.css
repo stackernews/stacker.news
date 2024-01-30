@@ -10,6 +10,13 @@
     margin-right: 0rem;
 }
 
+.pin {
+    fill: #a5a5a5;
+    margin-left: .2rem;
+    margin-right: .3rem;
+    flex-shrink: 0;
+}
+
 .dontLike {
     fill: #a5a5a5;
     margin-right: .35rem;

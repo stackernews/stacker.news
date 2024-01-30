@@ -20,7 +20,7 @@ import ActionDropdown from './action-dropdown'
 import MuteDropdownItem from './mute'
 import { DropdownItemUpVote } from './upvote'
 import { useRoot } from './root'
-import { MuteSubDropdownItem } from './territory-header'
+import { MuteSubDropdownItem, PinSubDropdownItem } from './territory-header'
 
 export default function ItemInfo ({
   item, full, commentsText = 'comments',
@@ -46,6 +46,14 @@ export default function ItemInfo ({
   useEffect(() => {
     if (item) setMeTotalSats((item.meSats || 0) + (item.meAnonSats || 0))
   }, [item?.meSats, item?.meAnonSats])
+
+  // territory founders can pin any post in their territory
+  // and OPs can pin any root reply in their post
+  const isPost = !item.parentId
+  const mySub = (me && sub && Number(me.id) === sub.userId)
+  const myPost = (me && root && Number(me.id) === Number(root.user.id))
+  const rootReply = item.path.split('.').length === 2
+  const canPin = (isPost && mySub) || (myPost && rootReply)
 
   return (
     <div className={className || `${styles.other}`}>
@@ -155,15 +163,11 @@ export default function ItemInfo ({
             nostr note
           </Dropdown.Item>
         )}
-        {item?.mine && !item?.noteId &&
-          <CrosspostDropdownItem item={item} />}
         {me && !item.position &&
           !item.mine && !item.deletedAt &&
           (item.meDontLikeSats > meTotalSats
             ? <DropdownItemUpVote item={item} />
             : <DontLikeThisDropdownItem id={item.id} />)}
-        {item.mine && !item.position && !item.deletedAt && !item.bio &&
-          <DeleteDropdownItem itemId={item.id} type={item.title ? 'post' : 'comment'} />}
         {me && sub && !item.mine && !item.outlawed && Number(me.id) === Number(sub.userId) && sub.moderated &&
           <>
             <hr className='dropdown-divider' />
@@ -173,6 +177,18 @@ export default function ItemInfo ({
           <>
             <hr className='dropdown-divider' />
             <MuteSubDropdownItem item={item} sub={sub} />
+          </>}
+        {canPin &&
+          <>
+            <hr className='dropdown-divider' />
+            <PinSubDropdownItem item={item} />
+          </>}
+        {item?.mine && !item?.noteId &&
+          <CrosspostDropdownItem item={item} />}
+        {item.mine && !item.position && !item.deletedAt && !item.bio &&
+          <>
+            <hr className='dropdown-divider' />
+            <DeleteDropdownItem itemId={item.id} type={item.title ? 'post' : 'comment'} />
           </>}
         {me && !item.mine &&
           <>

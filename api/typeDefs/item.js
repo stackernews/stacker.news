@@ -26,6 +26,7 @@ export default gql`
 
   extend type Mutation {
     bookmarkItem(id: ID): Item
+    pinItem(id: ID): Item
     subscribeItem(id: ID): Item
     deleteItem(id: ID): Item
     upsertLink(id: ID, sub: String, title: String!, url: String!, text: String, boost: Int, forward: [ItemForwardInput], hash: String, hmac: String): Item!

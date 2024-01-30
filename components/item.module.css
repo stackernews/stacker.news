@@ -100,6 +100,11 @@ a.link:visited {
     margin-top: -1px;
 }
 
+.other :global(.dropdown-item) {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+}
+
 .item {
     display: flex;
     justify-content: flex-start;

@@ -141,3 +141,32 @@ export function MuteSubDropdownItem ({ item, sub }) {
     </Dropdown.Item>
   )
 }
+
+export function PinSubDropdownItem ({ item: { id, position } }) {
+  const toaster = useToast()
+  const [pinItem] = useMutation(
+    gql`
+      mutation pinItem($id: ID!) {
+        pinItem(id: $id) {
+            position
+        }
+      }`, {
+      // refetch since position of other items might also have changed to fill gaps
+      refetchQueries: ['SubItems', 'Item']
+    }
+  )
+  return (
+    <Dropdown.Item
+      onClick={async () => {
+        try {
+          await pinItem({ variables: { id } })
+          toaster.success(position ? 'pin removed' : 'pin added')
+        } catch (err) {
+          toaster.danger(err.message)
+        }
+      }}
+    >
+      {position ? 'unpin item' : 'pin item'}
+    </Dropdown.Item>
+  )
+}

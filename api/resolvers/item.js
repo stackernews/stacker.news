@@ -487,18 +487,21 @@ export default {
                   query: `
                     SELECT rank_filter.*
                       FROM (
-                        ${SELECT},
+                        ${SELECT}, position,
                         rank() OVER (
                             PARTITION BY "pinId"
                             ORDER BY "Item".created_at DESC
                         )
                         FROM "Item"
+                        JOIN "Pin" ON "Item"."pinId" = "Pin".id
                         ${whereClause(
                           '"pinId" IS NOT NULL',
                           '"parentId" IS NULL',
                           sub ? '"subName" = $1' : '"subName" IS NULL',
                           muteClause(me))}
-                    ) rank_filter WHERE RANK = 1`
+                    ) rank_filter WHERE RANK = 1
+                    ORDER BY position ASC`,
+                  orderBy: 'ORDER BY position ASC'
                 }, ...subArr)
               }
               break

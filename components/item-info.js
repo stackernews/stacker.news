@@ -57,7 +57,7 @@ export default function ItemInfo ({
 
   return (
     <div className={className || `${styles.other}`}>
-      {!item.position && !(!item.parentId && Number(item.user?.id) === AD_USER_ID) &&
+      {!(!item.parentId && Number(item.user?.id) === AD_USER_ID) &&
         <>
           <span title={`from ${numWithUnits(item.upvotes, {
               abbreviate: false,

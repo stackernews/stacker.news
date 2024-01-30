@@ -629,66 +629,87 @@ export default {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
       }
 
-      const [item] = await models.$queryRawUnsafe(`${SELECT}, p.position FROM "Item" LEFT JOIN "Pin" p ON p.id = "Item"."pinId" WHERE "Item".id = $1`, Number(id))
+      const [item] = await models.$queryRawUnsafe(
+        `${SELECT}, p.position
+        FROM "Item" LEFT JOIN "Pin" p ON p.id = "Item"."pinId"
+        WHERE "Item".id = $1`, Number(id))
 
-      if (!item.subName && !item.parentId) throw new GraphQLError('item must have subName or parentId', { extensions: { code: 'BAD_INPUT' } })
+      const args = []
+      if (item.parentId) {
+        args.push(item.parentId)
 
-      if (item.subName) {
-        // is post since replies don't have subName set
+        // OPs can only pin top level replies
+        if (item.path.split('.').length > 2) {
+          throw new GraphQLError('can only pin root replies', { extensions: { code: 'FORBIDDEN' } })
+        }
+
+        const root = await models.item.findUnique({
+          where: {
+            id: Number(item.parentId)
+          },
+          include: { pin: true }
+        })
+
+        if (root.userId !== Number(me.id)) {
+          throw new GraphQLError('not your post', { extensions: { code: 'FORBIDDEN' } })
+        }
+      } else if (item.subName) {
+        args.push(item.subName)
+
         // only territory founder can pin posts
         const sub = await models.sub.findUnique({ where: { name: item.subName } })
-        if (Number(me.id) !== sub.userId) throw new GraphQLError('not your sub', { extensions: { code: 'FORBIDDEN' } })
-      }
-      if (item.parentId) {
-        // OPs can only pin top level replies
-        if (item.path.split('.').length > 2) throw new GraphQLError('can only pin root replies', { extensions: { code: 'FORBIDDEN' } })
-        const root = await models.item.findUnique({ where: { id: Number(item.parentId) }, include: { pin: true } })
-        if (root.userId !== Number(me.id)) throw new GraphQLError('not your post', { extensions: { code: 'FORBIDDEN' } })
+        if (Number(me.id) !== sub.userId) {
+          throw new GraphQLError('not your sub', { extensions: { code: 'FORBIDDEN' } })
+        }
+      } else {
+        throw new GraphQLError('item must have subName or parentId', { extensions: { code: 'BAD_INPUT' } })
       }
 
       let pinId
       if (item.pinId) {
         // item is already pinned. remove pin
-        const args = [item.position]
-        if (item.subName) args.push(item.subName)
-        else args.push(item.parentId)
-        await serialize(
-          models,
+        await models.$transaction([
           models.item.update({ where: { id: item.id }, data: { pinId: null } }),
           models.pin.delete({ where: { id: item.pinId } }),
           // make sure that pins have no gaps
           models.$queryRawUnsafe(`
-          UPDATE "Pin"
-          SET position = position - 1
-          WHERE position > $1 AND id IN (
-            SELECT "pinId" FROM "Item" i
-            ${whereClause('"pinId" IS NOT NULL', item.subName ? 'i."subName" = $2' : 'i."parentId" = $2')}
-          )
-          `, ...args)
-        )
+            UPDATE "Pin"
+            SET position = position - 1
+            WHERE position > $2 AND id IN (
+              SELECT "pinId" FROM "Item" i
+              ${whereClause('"pinId" IS NOT NULL', item.subName ? 'i."subName" = $1' : 'i."parentId" = $1')}
+            )`, ...args, item.position)
+        ])
+
         pinId = null
       } else {
-        // pin item
-        const args = []
-        if (item.subName) args.push(item.subName)
-        else args.push(item.parentId)
-
         // only max 3 pins allowed per territory and post
         const [{ count: npins }] = await models.$queryRawUnsafe(`
-        SELECT COUNT(p.id) FROM "Pin" p
-        JOIN "Item" i ON i."pinId" = p.id
-        ${whereClause(item.subName ? 'i."subName" = $1' : 'i."parentId" = $1')}`, ...args)
-        if (npins >= 3) throw new GraphQLError('max 3 pins allowed', { extensions: { code: 'FORBIDDEN' } })
+          SELECT COUNT(p.id) FROM "Pin" p
+          JOIN "Item" i ON i."pinId" = p.id
+          ${
+            whereClause(item.subName ? 'i."subName" = $1' : 'i."parentId" = $1')
+          }`, ...args)
 
-        const [{ id: newPinId }] = await models.$queryRawUnsafe(`
-        INSERT INTO "Pin" (position)
-        SELECT COALESCE(MAX(p.position), 0) + 1
-        FROM "Pin" p
-        JOIN "Item" i ON i."pinId" = p.id
-        ${whereClause(item.subName ? 'i."subName" = $1' : 'i."parentId" = $1')}
-        RETURNING id
-        `, ...args)
-        await models.item.update({ where: { id: Number(item.id) }, data: { pinId: newPinId } })
+        if (npins >= 3) {
+          throw new GraphQLError('max 3 pins allowed', { extensions: { code: 'FORBIDDEN' } })
+        }
+
+        const [{ pinId: newPinId }] = await models.$queryRawUnsafe(`
+          WITH pin AS (
+            INSERT INTO "Pin" (position)
+            SELECT COALESCE(MAX(p.position), 0) + 1 AS position
+            FROM "Pin" p
+            JOIN "Item" i ON i."pinId" = p.id
+            ${whereClause(item.subName ? 'i."subName" = $1' : 'i."parentId" = $1')}
+            RETURNING id
+          )
+          UPDATE "Item"
+          SET "pinId" = pin.id
+          FROM pin
+          WHERE "Item".id = $2
+          RETURNING "pinId"`, ...args, item.id)
+
         pinId = newPinId
       }
 

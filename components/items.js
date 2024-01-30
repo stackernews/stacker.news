@@ -25,6 +25,8 @@ export default function Items ({ ssrData, variables = {}, query, destructureData
   }, [dat])
 
   const itemsWithPins = useMemo(() => {
+    if (!pins) return items
+
     const res = [...items]
     pins?.forEach(p => {
       if (p.position <= res.length) {

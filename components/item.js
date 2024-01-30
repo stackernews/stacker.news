@@ -41,7 +41,21 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
         : <div />}
       <div className={`${styles.item} ${siblingComments ? 'pt-3' : ''}`}>
         {item.position
-          ? <UpVote item={item} className={styles.upvote} icon={<Pin width={24} height={24} className={styles.pin} />} />
+          ? (
+            <UpVote item={item} className={styles.upvote}>
+              {({ meSats, color }) => (
+                <Pin
+                  width={24} height={24} className={styles.pin}
+                  style={meSats
+                    ? {
+                        fill: color,
+                        filter: `drop-shadow(0 0 6px ${color}90)`
+                      }
+                    : undefined}
+                />
+              )}
+            </UpVote>
+            )
           : item.meDontLikeSats > item.meSats
             ? <DownZap width={24} height={24} className={styles.dontLike} id={item.id} meDontLikeSats={item.meDontLikeSats} />
             : Number(item.user?.id) === AD_USER_ID

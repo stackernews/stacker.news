@@ -68,7 +68,7 @@ export function DropdownItemUpVote ({ item }) {
   )
 }
 
-export default function UpVote ({ item, className, icon }) {
+export default function UpVote ({ item, className, children }) {
   const showModal = useShowModal()
   const [voteShow, _setVoteShow] = useState(false)
   const [tipShow, _setTipShow] = useState(false)
@@ -179,23 +179,24 @@ export default function UpVote ({ item, className, icon }) {
           <div
             className={`${disabled ? styles.noSelfTips : ''} ${styles.upvoteWrapper}`}
           >
-            {icon ||
-              <UpBolt
-                width={26}
-                height={26}
-                className={
+            {children
+              ? children({ meSats, color })
+              : <UpBolt
+                  width={26}
+                  height={26}
+                  className={
                       `${styles.upvote}
                       ${className || ''}
                       ${disabled ? styles.noSelfTips : ''}
                       ${meSats ? styles.voted : ''}`
                     }
-                style={meSats
-                  ? {
-                      fill: color,
-                      filter: `drop-shadow(0 0 6px ${color}90)`
-                    }
-                  : undefined}
-              />}
+                  style={meSats
+                    ? {
+                        fill: color,
+                        filter: `drop-shadow(0 0 6px ${color}90)`
+                      }
+                    : undefined}
+                />}
           </div>
         </ActionTooltip>
       </LongPressable>

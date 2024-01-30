@@ -496,7 +496,7 @@ export default {
                         ${whereClause(
                           '"pinId" IS NOT NULL',
                           '"parentId" IS NULL',
-                          sub ? '("subName" = $1 OR "subName" IS NULL)' : '"subName" IS NULL',
+                          sub ? '"subName" = $1' : '"subName" IS NULL',
                           muteClause(me))}
                     ) rank_filter WHERE RANK = 1`
                 }, ...subArr)

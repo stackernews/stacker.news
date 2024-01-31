@@ -230,7 +230,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
     const retry = () => onSubmit(
       { hash: inv.hash, hmac: inv.hmac, ...formValues },
       // unset update function since we already ran an cache update
-      { variables, update: null })
+      { variables })
     // first retry
     try {
       const ret = await retry()

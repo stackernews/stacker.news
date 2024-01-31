@@ -50,7 +50,7 @@ export function NWCProvider ({ children }) {
             if (MOCK_NWC_RELAY) {
               const heads = Math.random() < 0.5
               if (heads) {
-                return resolve()
+                return resolve({ preimage: null })
               }
               return reject(new Error('mock error'))
             }
@@ -90,7 +90,7 @@ export function NWCProvider ({ children }) {
             try {
               const content = JSON.parse(await nip04.decrypt(secret, walletPubkey, response.content))
               if (content.error) return reject(new Error(content.error.message))
-              if (content.result) return resolve(content.result.preimage)
+              if (content.result) return resolve({ preimage: content.result.preimage })
             } catch (err) {
               return reject(err)
             } finally {

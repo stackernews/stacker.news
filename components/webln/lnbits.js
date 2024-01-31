@@ -76,9 +76,7 @@ export function LNbitsProvider ({ children }) {
     if (!checkResponse.preimage) {
       throw new Error('No preimage')
     }
-    return {
-      preimage: checkResponse.preimage
-    }
+    return { preimage: checkResponse.preimage }
   }, [request])
 
   const loadConfig = useCallback(() => {

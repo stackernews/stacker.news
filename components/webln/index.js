@@ -37,10 +37,10 @@ function RawWebLNProvider ({ children }) {
       }
     })
     return provider.sendPayment(bolt11)
-      .then(() => {
-        if (canceled) return
+      .then(({ preimage }) => {
         removeToast?.()
         toaster.success('zap successful')
+        return { preimage }
       }).catch((err) => {
         if (canceled) return
         removeToast?.()

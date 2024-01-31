@@ -1,5 +1,5 @@
 import { getGetServerSideProps } from '../../../api/ssrApollo'
-import { Form, Input } from '../../../components/form'
+import { Form, ClientInput } from '../../../components/form'
 import { CenterLayout } from '../../../components/layout'
 import { WalletButtonBar, WalletCard } from '../../../components/wallet-card'
 import { nwcSchema } from '../../../lib/validate'
@@ -34,7 +34,8 @@ export default function NWC () {
           }
         }}
       >
-        <Input
+        <ClientInput
+          initialValue={nwcUrl}
           label='connection'
           name='nwcUrl'
           required

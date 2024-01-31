@@ -1,5 +1,5 @@
 import { getGetServerSideProps } from '../../../api/ssrApollo'
-import { Form, Input } from '../../../components/form'
+import { Form, ClientInput } from '../../../components/form'
 import { CenterLayout } from '../../../components/layout'
 import { WalletButtonBar, WalletCard } from '../../../components/wallet-card'
 import { lnbitsSchema } from '../../../lib/validate'
@@ -35,13 +35,15 @@ export default function LNbits () {
           }
         }}
       >
-        <Input
+        <ClientInput
+          initialValue={url}
           label='lnbits url'
           name='url'
           required
           autoFocus
         />
-        <Input
+        <ClientInput
+          initialValue={adminKey}
           type='password'
           autoComplete='false'
           label='admin key'

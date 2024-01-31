@@ -5,7 +5,7 @@ import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import lnpr from 'bolt11'
 import { SELECT } from './item'
-import { lnAddrOptions, lnurlPayDescriptionHash } from '../../lib/lnurl'
+import { lnAddrOptions } from '../../lib/lnurl'
 import { msatsToSats, msatsToSatsDecimal } from '../../lib/format'
 import { amountSchema, lnAddrSchema, ssValidate, withdrawlSchema } from '../../lib/validate'
 import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, ANON_USER_ID, BALANCE_LIMIT_MSATS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT } from '../../lib/constants'
@@ -487,9 +487,6 @@ export async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...
         }
       })
       throw new Error('automated withdrawals to other stackers are not allowed')
-    }
-    if (decoded.description_hash !== lnurlPayDescriptionHash(`${options.metadata}${stringifiedPayerData}`)) {
-      throw new Error('description hash does not match')
     }
     if (!decoded.mtokens || BigInt(decoded.mtokens) !== BigInt(milliamount)) {
       throw new Error('invoice has incorrect amount')

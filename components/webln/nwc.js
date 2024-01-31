@@ -118,7 +118,6 @@ export function NWCProvider ({ children }) {
           }
         ], {
           onevent (event) {
-            console.log(event)
             const supported = event.content.split()
             resolve(supported)
           },

@@ -2,14 +2,15 @@ import { useCallback } from 'react'
 import { useToast } from './toast'
 import { Button } from 'react-bootstrap'
 import { DEFAULT_CROSSPOSTING_RELAYS, crosspost, callWithTimeout } from '../lib/nostr'
-import { gql, useMutation, useQuery } from '@apollo/client'
+import { gql, useMutation, useQuery, useLazyQuery } from '@apollo/client'
 import { SETTINGS } from '../fragments/users'
+import { ITEM_FULL_FIELDS, POLL_FIELDS } from '../fragments/items'
 
 function determineItemType (item) {
   const typeMap = {
     url: 'link',
     bounty: 'bounty',
-    options: 'poll'
+    poll: 'poll'
   }
 
   for (const [key, type] of Object.entries(typeMap)) {
@@ -58,7 +59,7 @@ async function pollToEvent (item) {
     kind: 1,
     content: item.text,
     tags: [
-      ['poll', 'single', expiresAt.toString(), item.title, ...item.options.map(op => op?.toString())]
+      ['poll', 'single', expiresAt.toString(), item.title, ...item.poll.options.map(op => op?.option.toString())]
     ]
   }
 }
@@ -86,6 +87,18 @@ export default function useCrossposter () {
   const { data } = useQuery(SETTINGS)
   const userRelays = data?.settings?.privates?.nostrRelays || []
   const relays = [...DEFAULT_CROSSPOSTING_RELAYS, ...userRelays]
+
+  const [fetchItem] = useLazyQuery(
+    gql`
+      ${ITEM_FULL_FIELDS}
+      ${POLL_FIELDS}
+      query Item($id: ID!) {
+        item(id: $id) {
+          ...ItemFullFields
+          ...PollFields
+        }
+      }`
+  );
 
   const [updateNoteId] = useMutation(
     gql`
@@ -148,6 +161,17 @@ export default function useCrossposter () {
     }
   }
 
+  const fetchItemData = async (itemId) => {
+    try {
+      const { data } = await fetchItem({ variables: { id: itemId } })
+
+      return data?.item
+    } catch (e) {
+      console.error(e)
+      return null
+    }
+  }
+
   const crosspostItem = async item => {
     let failedRelays
     let allSuccessful = false
@@ -187,7 +211,7 @@ export default function useCrossposter () {
     return { allSuccessful, noteId }
   }
 
-  const handleCrosspost = useCallback(async (values, itemId) => {
+  const handleCrosspost = useCallback(async (itemId) => {
     try {
       const pubkey = await callWithTimeout(() => window.nostr.getPublicKey(), 10000)
       if (!pubkey) throw new Error('failed to get pubkey')
@@ -199,7 +223,9 @@ export default function useCrossposter () {
 
     try {
       if (itemId) {
-        const crosspostResult = await crosspostItem({ ...values, id: itemId })
+        const item = await fetchItemData(itemId)
+
+        const crosspostResult = await crosspostItem(item)
         noteId = crosspostResult?.noteId
         if (noteId) {
           await updateNoteId({

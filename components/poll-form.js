@@ -55,9 +55,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
       const pollId = data?.upsertPoll?.id
 
       if (crosspost && pollId) {
-        values.title = title.trim()
-        values.options = optionsFiltered
-        await crossposter(values, pollId)
+        await crossposter(pollId)
       }
 
       if (item) {

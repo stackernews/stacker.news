@@ -80,8 +80,7 @@ export function BountyForm ({
       const bountyId = data?.upsertBounty?.id
 
       if (crosspost && bountyId) {
-        values.bounty = bounty ? Number(bounty) : undefined
-        await crossposter(values, bountyId)
+        await crossposter(bountyId)
       }
 
       if (item) {

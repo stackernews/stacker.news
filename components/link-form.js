@@ -99,8 +99,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
       const linkId = data?.upsertLink?.id
 
       if (crosspost && linkId) {
-        values.title = title.trim()
-        await crossposter(values, linkId)
+        await crossposter(linkId)
       }
 
       if (item) {

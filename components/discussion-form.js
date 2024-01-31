@@ -59,7 +59,7 @@ export function DiscussionForm ({
       const discussionId = data?.upsertDiscussion?.id
 
       if (crosspost && discussionId) {
-        await crossposter(values, discussionId)
+        await crossposter(discussionId)
       }
 
       if (item) {

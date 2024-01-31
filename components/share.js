@@ -109,34 +109,9 @@ export function CrosspostDropdownItem ({ item, full }) {
   const crossposter = useCrossposter()
   const toaster = useToast()
 
-  const [fetchItem, { data }] = useLazyQuery(
-    gql`
-      ${ITEM_FULL_FIELDS}
-      ${POLL_FIELDS}
-      query Item($id: ID!) {
-        item(id: $id) {
-          ...ItemFullFields
-          ...PollFields
-        }
-      }`,
-    { variables: { id: item.id } }
-  )
-
-  useEffect(() => {
-    // Fetch missing fields required for poll/discussion crossposts
-    if (!full && (item?.pollCost || !item?.text)) {
-      fetchItem()
-    }
-  }, [item, fetchItem, full])
-
   const handleCrosspostClick = async () => {
-    const crosspostItem = data?.item || item
-    if (!crosspostItem.id) {
-      toaster.danger('Item ID not available')
-      return
-    }
     try {
-      await crossposter(crosspostItem, crosspostItem.id)
+      await crossposter(item, item.id)
     } catch (e) {
       console.error(e)
       toaster.danger('Crosspost failed')

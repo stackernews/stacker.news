@@ -266,8 +266,26 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
   return onSubmitWrapper
 }
 
+const INVOICE_CANCELED_ERROR = 'invoice was canceled'
 const waitForPayment = async ({ invoice, showModal, provider, pollInvoice, updateCache, undoUpdate }) => {
-  const INVOICE_CANCELED_ERROR = 'invoice was canceled'
+  if (provider.enabled) {
+    return await waitForWebLNPayment({ provider, invoice, pollInvoice, updateCache })
+  }
+
+  // QR code as fallback
+  return await new Promise((resolve, reject) => {
+    showModal(onClose => {
+      return (
+        <JITInvoice
+          invoice={invoice}
+          onPayment={() => resolve(onClose)}
+        />
+      )
+    }, { keepOpen: true, onClose: reject })
+  })
+}
+
+const waitForWebLNPayment = async ({ provider, invoice, pollInvoice, updateCache, undoUpdate }) => {
   try {
     // try WebLN provider first
     return await new Promise((resolve, reject) => {
@@ -314,18 +332,6 @@ const waitForPayment = async ({ invoice, showModal, provider, pollInvoice, updat
       throw err
     }
   }
-
-  // QR code as fallback
-  return await new Promise((resolve, reject) => {
-    showModal(onClose => {
-      return (
-        <JITInvoice
-          invoice={invoice}
-          onPayment={() => resolve(onClose)}
-        />
-      )
-    }, { keepOpen: true, onClose: reject })
-  })
 }
 
 export const useInvoiceModal = (onPayment, deps) => {

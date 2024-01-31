@@ -269,7 +269,15 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
 const INVOICE_CANCELED_ERROR = 'invoice was canceled'
 const waitForPayment = async ({ invoice, showModal, provider, pollInvoice, updateCache, undoUpdate }) => {
   if (provider.enabled) {
-    return await waitForWebLNPayment({ provider, invoice, pollInvoice, updateCache })
+    try {
+      return await waitForWebLNPayment({ provider, invoice, pollInvoice, updateCache })
+    } catch (err) {
+      const INVOICE_CANCELED_ERROR = 'invoice was canceled'
+      // check for errors which mean that QR code will also fail
+      if (err.message === INVOICE_CANCELED_ERROR) {
+        throw err
+      }
+    }
   }
 
   // QR code as fallback
@@ -328,9 +336,7 @@ const waitForWebLNPayment = async ({ provider, invoice, pollInvoice, updateCache
     // undo attempt to make zapping UX consistent
     undoUpdate?.()
     console.error('WebLN payment failed:', err)
-    if (err.message === INVOICE_CANCELED_ERROR) {
-      throw err
-    }
+    throw err
   }
 }
 

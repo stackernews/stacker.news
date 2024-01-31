@@ -244,7 +244,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
     }
 
     // wait until invoice is paid or modal is closed
-    const modalClose = await waitForPayment({
+    const { modalClose, gqlCacheUpdateUndo } = await waitForPayment({
       invoice: inv,
       showModal,
       provider,
@@ -262,6 +262,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
       modalClose?.()
       return ret
     } catch (error) {
+      gqlCacheUpdateUndo?.()
       console.error('retry error:', error)
     }
 
@@ -311,7 +312,7 @@ const waitForPayment = async ({ invoice, showModal, provider, pollInvoice, gqlCa
       return (
         <JITInvoice
           invoice={invoice}
-          onPayment={() => resolve(onClose)}
+          onPayment={() => resolve({ modalOnClose: onClose })}
         />
       )
     }, { keepOpen: true, onClose: reject })
@@ -331,7 +332,7 @@ const waitForWebLNPayment = async ({ provider, invoice, pollInvoice, gqlCacheUpd
       provider.sendPayment(invoice)
         // WebLN payment will never resolve here for HODL invoices
         // since they only get resolved after settlement which can't happen here
-        .then(resolve)
+        .then(() => resolve({ gqlCacheUpdateUndo: undoUpdate }))
         .catch(err => {
           clearInterval(interval)
           reject(err)
@@ -346,7 +347,7 @@ const waitForWebLNPayment = async ({ provider, invoice, pollInvoice, gqlCacheUpd
           const { invoice: inv } = data
           if (inv.isHeld && inv.satsReceived) {
             clearInterval(interval)
-            resolve()
+            resolve({ gqlCacheUpdateUndo: undoUpdate })
           }
           if (inv.cancelled) {
             clearInterval(interval)

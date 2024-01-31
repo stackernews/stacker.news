@@ -107,14 +107,14 @@ export function useAct ({ onUpdate } = {}) {
   const me = useMe()
 
   const update = useCallback((cache, args) => {
-    const { data: { act: { id, sats, path, act, amount } }, undo } = args
+    const { data: { act: { id, sats, path, act } } } = args
 
     cache.modify({
       id: `Item:${id}`,
       fields: {
         sats (existingSats = 0) {
           if (act === 'TIP') {
-            return existingSats + (undo ? -amount : sats)
+            return existingSats + sats
           }
 
           return existingSats
@@ -122,7 +122,7 @@ export function useAct ({ onUpdate } = {}) {
         meSats: me
           ? (existingSats = 0) => {
               if (act === 'TIP') {
-                return existingSats + (undo ? -amount : sats)
+                return existingSats + sats
               }
 
               return existingSats
@@ -131,7 +131,7 @@ export function useAct ({ onUpdate } = {}) {
         meDontLikeSats: me
           ? (existingSats = 0) => {
               if (act === 'DONT_LIKE_THIS') {
-                return existingSats + (undo ? -amount : sats)
+                return existingSats + sats
               }
 
               return existingSats
@@ -148,7 +148,7 @@ export function useAct ({ onUpdate } = {}) {
           id: `Item:${aId}`,
           fields: {
             commentSats (existingCommentSats = 0) {
-              return existingCommentSats + (undo ? -amount : sats)
+              return existingCommentSats + sats
             }
           }
         })
@@ -173,7 +173,7 @@ export function useAct ({ onUpdate } = {}) {
 
 export function useZap () {
   const update = useCallback((cache, args) => {
-    const { data: { act: { id, sats, path, amount } }, undo } = args
+    const { data: { act: { id, sats, path } } } = args
 
     // determine how much we increased existing sats by by checking the
     // difference between result sats and meSats
@@ -191,15 +191,15 @@ export function useZap () {
 
     const satsDelta = sats - item.meSats
 
-    if (satsDelta >= 0) {
+    if (satsDelta > 0) {
       cache.modify({
         id: `Item:${id}`,
         fields: {
           sats (existingSats = 0) {
-            return existingSats + (undo ? -amount : satsDelta)
+            return existingSats + satsDelta
           },
           meSats: () => {
-            return undo ? sats - amount : sats
+            return sats
           }
         }
       })
@@ -211,7 +211,7 @@ export function useZap () {
           id: `Item:${aId}`,
           fields: {
             commentSats (existingCommentSats = 0) {
-              return existingCommentSats + (undo ? -amount : satsDelta)
+              return existingCommentSats + satsDelta
             }
           }
         })

@@ -217,14 +217,39 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
     }
     const inv = data.createInvoice
 
+    // If this is a zap, we need to manually be optimistic to have a consistent
+    // UX across custodial and WebLN zaps since WebLN zaps don't call GraphQL
+    // mutations which implement optimistic responses natively.
+    // Therefore, we check if this is a zap and then wrap the WebLN payment logic
+    // with manual cache update calls.
+    const itemId = optimisticResponse?.act?.id
+    const isZap = !!itemId
+    let _update
+    if (isZap && update) {
+      _update = () => {
+        const fragment = {
+          id: `Item:${itemId}`,
+          fragment: gql`
+          fragment ItemMeSats on Item {
+            sats
+            meSats
+          }
+        `
+        }
+        const item = client.cache.readFragment(fragment)
+        update(client.cache, { data: optimisticResponse })
+        // undo function
+        return () => client.cache.writeFragment({ ...fragment, data: item })
+      }
+    }
+
     // wait until invoice is paid or modal is closed
     const modalClose = await waitForPayment({
       invoice: inv,
       showModal,
       provider,
       pollInvoice,
-      updateCache: () => update?.(client.cache, { data: optimisticResponse }),
-      undoUpdate: () => update?.(client.cache, { data: { ...optimisticResponse }, undo: true })
+      gqlCacheUpdate: _update
     })
 
     const retry = () => onSubmit(
@@ -267,10 +292,10 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
 }
 
 const INVOICE_CANCELED_ERROR = 'invoice was canceled'
-const waitForPayment = async ({ invoice, showModal, provider, pollInvoice, updateCache, undoUpdate }) => {
+const waitForPayment = async ({ invoice, showModal, provider, pollInvoice, gqlCacheUpdate }) => {
   if (provider.enabled) {
     try {
-      return await waitForWebLNPayment({ provider, invoice, pollInvoice, updateCache, undoUpdate })
+      return await waitForWebLNPayment({ provider, invoice, pollInvoice, gqlCacheUpdate })
     } catch (err) {
       const INVOICE_CANCELED_ERROR = 'invoice was canceled'
       // check for errors which mean that QR code will also fail
@@ -293,12 +318,13 @@ const waitForPayment = async ({ invoice, showModal, provider, pollInvoice, updat
   })
 }
 
-const waitForWebLNPayment = async ({ provider, invoice, pollInvoice, updateCache, undoUpdate }) => {
+const waitForWebLNPayment = async ({ provider, invoice, pollInvoice, gqlCacheUpdate }) => {
+  let undoUpdate
   try {
     // try WebLN provider first
     return await new Promise((resolve, reject) => {
       // be optimistic and pretend zap was already successful for consistent zapping UX
-      updateCache?.()
+      undoUpdate = gqlCacheUpdate?.()
       // can't use await here since we might be paying HODL invoices
       // and sendPaymentAsync is not supported yet.
       // see https://www.webln.guide/building-lightning-apps/webln-reference/webln.sendpaymentasync
@@ -333,7 +359,6 @@ const waitForWebLNPayment = async ({ provider, invoice, pollInvoice, updateCache
       }, 1000)
     })
   } catch (err) {
-    // undo attempt to make zapping UX consistent
     undoUpdate?.()
     console.error('WebLN payment failed:', err)
     throw err

@@ -1,4 +1,4 @@
-FROM ghcr.io/puppeteer/puppeteer:18.2.1
+FROM ghcr.io/puppeteer/puppeteer:21.10.0
 
 EXPOSE 5678
 
@@ -11,5 +11,7 @@ RUN npm ci
 
 COPY . .
 
+RUN curl http://ftp.de.debian.org/debian/pool/main/f/fonts-noto-color-emoji/fonts-noto-color-emoji_0~20200916-1_all.deb \
+ -o fonts-noto-color-emoji.deb && dpkg -i fonts-noto-color-emoji.deb && rm fonts-noto-color-emoji.deb
 CMD [ "node", "index.js" ]
 USER pptruser

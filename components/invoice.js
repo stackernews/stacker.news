@@ -270,7 +270,7 @@ const INVOICE_CANCELED_ERROR = 'invoice was canceled'
 const waitForPayment = async ({ invoice, showModal, provider, pollInvoice, updateCache, undoUpdate }) => {
   if (provider.enabled) {
     try {
-      return await waitForWebLNPayment({ provider, invoice, pollInvoice, updateCache })
+      return await waitForWebLNPayment({ provider, invoice, pollInvoice, updateCache, undoUpdate })
     } catch (err) {
       const INVOICE_CANCELED_ERROR = 'invoice was canceled'
       // check for errors which mean that QR code will also fail

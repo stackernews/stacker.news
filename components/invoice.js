@@ -252,10 +252,12 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
       gqlCacheUpdate: _update
     })
 
+    const webLnPayment = !!gqlCacheUpdateUndo
+
     const retry = () => onSubmit(
       { hash: inv.hash, hmac: inv.hmac, ...formValues },
-      // unset update function since we already ran an cache update
-      { variables })
+      // unset update function since we already ran an cache update if we paid using WebLN
+      { variables, update: webLnPayment ? null : undefined })
     // first retry
     try {
       const ret = await retry()

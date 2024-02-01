@@ -98,7 +98,7 @@ export default function useCrossposter () {
           ...PollFields
         }
       }`
-  );
+  )
 
   const [updateNoteId] = useMutation(
     gql`

@@ -1,10 +1,8 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import Dropdown from 'react-bootstrap/Dropdown'
 import ShareIcon from '../svgs/share-fill.svg'
 import copy from 'clipboard-copy'
 import useCrossposter from './use-crossposter'
-import { useLazyQuery, gql } from '@apollo/client'
-import { ITEM_FULL_FIELDS, POLL_FIELDS } from '../fragments/items'
 import { useMe } from './me'
 import { useToast } from './toast'
 import { SSR } from '../lib/constants'
@@ -105,7 +103,7 @@ export function CopyLinkDropdownItem ({ item, full }) {
   )
 }
 
-export function CrosspostDropdownItem ({ item, full }) {
+export function CrosspostDropdownItem ({ item }) {
   const crossposter = useCrossposter()
   const toaster = useToast()
 

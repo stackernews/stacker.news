@@ -19,17 +19,17 @@ export function Invoice ({ invoice, modal, onPayment, info, successVerb }) {
   let variant = 'default'
   let status = 'waiting for you'
   let webLn = true
-  if (invoice.confirmedAt || (invoice.isHeld && invoice.satsReceived && !expired)) {
+  if (invoice.cancelled) {
+    variant = 'failed'
+    status = 'cancelled'
+    webLn = false
+  } else if (invoice.confirmedAt || (invoice.isHeld && invoice.satsReceived && !expired)) {
     variant = 'confirmed'
     status = `${numWithUnits(invoice.satsReceived, { abbreviate: false })} ${successVerb || 'deposited'}`
     webLn = false
   } else if (expired) {
     variant = 'failed'
     status = 'expired'
-    webLn = false
-  } else if (invoice.cancelled) {
-    variant = 'failed'
-    status = 'cancelled'
     webLn = false
   }
 

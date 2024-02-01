@@ -7,6 +7,9 @@ import { gql, useMutation } from '@apollo/client'
 const WebLNContext = createContext({})
 
 function RawWebLNProvider ({ children }) {
+  // LNbits should only be used during development
+  // since it gives full wallet access on XSS
+  // eslint-disable-next-line no-unused-vars
   const lnbits = useLNbits()
   const nwc = useNWC()
   const toaster = useToast()

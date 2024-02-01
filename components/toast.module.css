@@ -21,6 +21,13 @@
   border-color: var(--bs-warning-border-subtle);
 }
 
+.toastCancel {
+  font-style: italic;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
 .toastClose {
   color: #fff;
   font-family: "lightning";

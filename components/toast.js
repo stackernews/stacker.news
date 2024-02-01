@@ -12,53 +12,63 @@ export const ToastProvider = ({ children }) => {
   const router = useRouter()
   const [toasts, setToasts] = useState([])
   const toastId = useRef(0)
+
   const dispatchToast = useCallback((toastConfig) => {
     toastConfig = {
       ...toastConfig,
       id: toastId.current++
     }
     setToasts(toasts => [...toasts, toastConfig])
+    return () => removeToast(toastConfig)
   }, [])
 
-  const removeToast = useCallback(id => {
-    setToasts(toasts => toasts.filter(toast => toast.id !== id))
+  const removeToast = useCallback(({ id, onCancel, tag }) => {
+    setToasts(toasts => toasts.filter(toast => {
+      if (tag && !onCancel) {
+        // if tag onCancel is not set, toast did show X for closing.
+        // if additionally tag is set, we close all toasts with same tag.
+        return toast.tag !== tag
+      }
+      return toast.id !== id
+    }))
   }, [])
 
   const toaster = useMemo(() => ({
-    success: (body, delay = 5000) => {
-      dispatchToast({
+    success: (body, options) => {
+      const toast = {
         body,
         variant: 'success',
         autohide: true,
-        delay
-      })
+        delay: 5000,
+        ...options
+      }
+      return dispatchToast(toast)
     },
-    warning: (body, delay = 5000) => {
-      dispatchToast({
+    warning: (body, options) => {
+      const toast = {
         body,
         variant: 'warning',
         autohide: true,
-        delay
-      })
+        delay: 5000,
+        ...options
+      }
+      return dispatchToast(toast)
     },
-    danger: (body, onCloseCallback) => {
-      const id = toastId.current
-      dispatchToast({
-        id,
+    danger: (body, options) => {
+      const toast = {
         body,
         variant: 'danger',
         autohide: false,
-        onCloseCallback
-      })
-      return {
-        removeToast: () => removeToast(id)
+        ...options
       }
+      return dispatchToast(toast)
     }
   }), [dispatchToast, removeToast])
 
-  // Clear all toasts on page navigation
+  // Only clear toasts with no cancel function on page navigation
+  // since navigation should not interfere with being able to cancel an action.
   useEffect(() => {
-    const handleRouteChangeStart = () => setToasts([])
+    const handleRouteChangeStart = () => setToasts(toasts => toasts.filter(({ onCancel }) => onCancel), [])
     router.events.on('routeChangeStart', handleRouteChangeStart)
 
     return () => {
@@ -66,31 +76,63 @@ export const ToastProvider = ({ children }) => {
     }
   }, [router])
 
+  // this function merges toasts with the same tag into one toast.
+  // for example: 3x 'zap pending' -> '(3) zap pending'
+  const tagReducer = (toasts, toast) => {
+    const { tag } = toast
+
+    // has tag?
+    if (!tag) return [...toasts, toast]
+
+    // existing tag?
+    const idx = toasts.findIndex(toast => toast.tag === tag)
+    if (idx === -1) return [...toasts, toast]
+
+    // merge toasts with same tag
+    const prevToast = toasts[idx]
+    let { rawBody, body, amount } = prevToast
+    rawBody ??= body
+    amount = amount ? amount + 1 : 2
+    body = `(${amount}) ${rawBody}`
+    return [
+      ...toasts.slice(0, idx),
+      { ...toast, rawBody, amount, body },
+      ...toasts.slice(idx + 1)
+    ]
+  }
+
+  // only show toast with highest ID of each tag
+  const visibleToasts = toasts.reduce(tagReducer, [])
+
   return (
     <ToastContext.Provider value={toaster}>
       <ToastContainer className={`pb-3 pe-3 ${styles.toastContainer}`} position='bottom-end' containerPosition='fixed'>
-        {toasts.map(toast => (
-          <Toast
-            key={toast.id} bg={toast.variant} show autohide={toast.autohide}
-            delay={toast.delay} className={`${styles.toast} ${styles[toast.variant]} ${toast.variant === 'warning' ? 'text-dark' : ''}`} onClose={() => removeToast(toast.id)}
-          >
-            <ToastBody>
-              <div className='d-flex align-items-center'>
-                <div className='flex-grow-1'>{toast.body}</div>
-                <Button
-                  variant={null}
-                  className='p-0 ps-2'
-                  aria-label='close'
-                  onClick={() => {
-                    if (toast.onCloseCallback) toast.onCloseCallback()
-                    removeToast(toast.id)
-                  }}
-                ><div className={`${styles.toastClose} ${toast.variant === 'warning' ? 'text-dark' : ''}`}>X</div>
-                </Button>
-              </div>
-            </ToastBody>
-          </Toast>
-        ))}
+        {visibleToasts.map(toast => {
+          const textStyle = toast.variant === 'warning' ? 'text-dark' : ''
+          return (
+            <Toast
+              key={toast.id} bg={toast.variant} show autohide={toast.autohide}
+              delay={toast.delay} className={`${styles.toast} ${styles[toast.variant]} ${textStyle}`} onClose={() => removeToast(toast.id)}
+            >
+              <ToastBody>
+                <div className='d-flex align-items-center'>
+                  <div className='flex-grow-1'>{toast.body}</div>
+                  <Button
+                    variant={null}
+                    className='p-0 ps-2'
+                    aria-label='close'
+                    onClick={() => {
+                      toast.onCancel?.()
+                      toast.onClose?.()
+                      removeToast(toast)
+                    }}
+                  >{toast.onCancel ? <div className={`${styles.toastCancel} ${textStyle}`}>cancel</div> : <div className={`${styles.toastClose} ${textStyle}`}>X</div>}
+                  </Button>
+                </div>
+              </ToastBody>
+            </Toast>
+          )
+        })}
       </ToastContainer>
       {children}
     </ToastContext.Provider>

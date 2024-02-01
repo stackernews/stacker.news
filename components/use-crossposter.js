@@ -27,7 +27,7 @@ export default function useCrossposter () {
 
   const relayError = (failedRelays) => {
     return new Promise(resolve => {
-      const { removeToast } = toast.danger(
+      const removeToast = toast.danger(
         <>
           Crossposting failed for {failedRelays.join(', ')} <br />
           <Button

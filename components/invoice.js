@@ -244,7 +244,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
     }
 
     // wait until invoice is paid or modal is closed
-    const { modalClose, gqlCacheUpdateUndo } = await waitForPayment({
+    const { modalOnClose, gqlCacheUpdateUndo } = await waitForPayment({
       invoice: inv,
       showModal,
       provider,
@@ -261,7 +261,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
     // first retry
     try {
       const ret = await retry()
-      modalClose?.()
+      modalOnClose?.()
       return ret
     } catch (error) {
       gqlCacheUpdateUndo?.()
@@ -284,6 +284,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
             }}
             onRetry={async () => {
               resolve(await retry())
+              onClose()
             }}
           />
         )

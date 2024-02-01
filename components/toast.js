@@ -40,6 +40,7 @@ export const ToastProvider = ({ children }) => {
         variant: 'success',
         autohide: true,
         delay: 5000,
+        tag: options?.tag || body,
         ...options
       }
       return dispatchToast(toast)
@@ -50,6 +51,7 @@ export const ToastProvider = ({ children }) => {
         variant: 'warning',
         autohide: true,
         delay: 5000,
+        tag: options?.tag || body,
         ...options
       }
       return dispatchToast(toast)
@@ -59,6 +61,7 @@ export const ToastProvider = ({ children }) => {
         body,
         variant: 'danger',
         autohide: false,
+        tag: options?.tag || body,
         ...options
       }
       return dispatchToast(toast)

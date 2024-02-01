@@ -6,7 +6,7 @@ import {
 import { sendUserNotification } from '../api/webPush/index.js'
 import { msatsToSats, numWithUnits, satsToMsats } from '../lib/format'
 import { INVOICE_RETENTION_DAYS } from '../lib/constants'
-import { sleep } from '../lib/time.js'
+import { datePivot, sleep } from '../lib/time.js'
 import { sendToLnAddr } from '../api/resolvers/wallet.js'
 import retry from 'async-retry'
 import { isNumber } from '../lib/validate.js'
@@ -142,16 +142,25 @@ async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
   }
 
   if (inv.is_held) {
-    // this is basically confirm_invoice without setting confirmed_at
+    // First query makes sure that after payment, HODL invoices are settled
+    // within 60 seconds or they will be canceled to minimize risk of
+    // force closures or wallets banning us.
+    // Second query is basically confirm_invoice without setting confirmed_at
     // and without setting the user balance
     // those will be set when the invoice is settled by user action
-    return await serialize(models, models.invoice.update({
-      where: { hash },
-      data: {
-        msatsReceived: Number(inv.received_mtokens),
-        isHeld: true
-      }
-    }))
+    const expiresAt = new Date(Math.min(dbInv.expiresAt, datePivot(new Date(), { seconds: 60 })))
+    return await serialize(models,
+      models.$queryRaw`
+      INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
+      VALUES ('finalizeHodlInvoice', jsonb_build_object('hash', ${hash}), 21, true, ${expiresAt})`,
+      models.invoice.update({
+        where: { hash },
+        data: {
+          msatsReceived: Number(inv.received_mtokens),
+          expiresAt,
+          isHeld: true
+        }
+      }))
   }
 
   if (inv.is_canceled) {
@@ -258,13 +267,16 @@ export async function autoDropBolt11s ({ models }) {
 
 // The callback subscriptions above will NOT get called for HODL invoices that are already paid.
 // So we manually cancel the HODL invoice here if it wasn't settled by user action
-export async function finalizeHodlInvoice ({ data: { hash }, models, lnd }) {
+export async function finalizeHodlInvoice ({ data: { hash }, models, lnd, ...args }) {
   const inv = await getInvoice({ id: hash, lnd })
   if (inv.is_confirmed) {
     return
   }
 
   await cancelHodlInvoice({ id: hash, lnd })
+
+  // sync LND invoice status with invoice status in database
+  await checkInvoice({ data: { hash }, models, lnd, ...args })
 }
 
 export async function checkPendingDeposits (args) {

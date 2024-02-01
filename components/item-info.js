@@ -187,8 +187,6 @@ export default function ItemInfo ({
             <hr className='dropdown-divider' />
             <PinSubDropdownItem item={item} />
           </>}
-        {item?.mine && !item?.noteId &&
-          <CrosspostDropdownItem item={item} />}
         {item.mine && !item.position && !item.deletedAt && !item.bio &&
           <>
             <hr className='dropdown-divider' />

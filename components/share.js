@@ -109,7 +109,7 @@ export function CrosspostDropdownItem ({ item }) {
 
   const handleCrosspostClick = async () => {
     try {
-      await crossposter(item, item.id)
+      await crossposter(item.id)
     } catch (e) {
       console.error(e)
       toaster.danger('Crosspost failed')

@@ -53,7 +53,6 @@ export function LNbitsProvider ({ children }) {
         'getInfo',
         'getBalance',
         'sendPayment'
-        // TODO: support makeInvoice and sendPaymentAsync
       ],
       version: '1.0',
       supports: ['lightning']

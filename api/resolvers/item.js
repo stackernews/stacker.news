@@ -561,7 +561,9 @@ export default {
       let similar = `(http(s)?://)?${uri}/?`
       const whitelist = ['news.ycombinator.com/item', 'bitcointalk.org/index.php']
       const youtube = ['www.youtube.com', 'youtube.com', 'm.youtube.com', 'youtu.be']
-      if (whitelist.includes(uri)) {
+
+      const hostAndPath = stripTrailingSlash(urlObj.hostname + urlObj.pathname)
+      if (whitelist.includes(hostAndPath)) {
         similar += `\\${urlObj.search}`
       } else if (youtube.includes(urlObj.hostname)) {
         // extract id and create both links

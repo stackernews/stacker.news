@@ -11,6 +11,7 @@ export function NWCProvider ({ children }) {
   const [relayUrl, setRelayUrl] = useState()
   const [secret, setSecret] = useState()
   const [enabled, setEnabled] = useState()
+  const [relay, setRelay] = useState()
 
   const name = 'NWC'
   const storageKey = 'webln:provider:nwc'
@@ -33,6 +34,23 @@ export function NWCProvider ({ children }) {
     window.localStorage.removeItem(storageKey)
     setNwcUrl(null)
   }, [])
+
+  useEffect(() => {
+    let relay
+    (async function () {
+      if (relayUrl) {
+        relay = await Relay.connect(relayUrl)
+        setRelay(relay)
+      }
+    })().catch((err) => {
+      console.error(err)
+      setRelay(null)
+    })
+    return () => {
+      relay?.close()
+      setRelay(null)
+    }
+  }, [relayUrl])
 
   const sendPayment = useCallback((bolt11) => {
     return new Promise(function (resolve, reject) {
@@ -58,8 +76,6 @@ export function NWCProvider ({ children }) {
           }, timeout)
         }
         if (MOCK_NWC_RELAY) return resetTimer()
-
-        const relay = await Relay.connect(relayUrl)
 
         const payload = {
           method: 'pay_invoice',
@@ -102,7 +118,7 @@ export function NWCProvider ({ children }) {
         })
       })().catch(reject)
     })
-  }, [relayUrl, walletPubkey, secret])
+  }, [relay, walletPubkey, secret])
 
   const getInfo = useCallback(() => {
     return new Promise(function (resolve, reject) {
@@ -133,12 +149,12 @@ export function NWCProvider ({ children }) {
         })
       })().catch(reject)
     })
-  }, [relayUrl, walletPubkey])
+  }, [relay, walletPubkey])
 
   useEffect(() => {
     // update enabled
     (async function () {
-      if (!(relayUrl && walletPubkey && secret)) {
+      if (!(relay && walletPubkey && secret)) {
         setEnabled(undefined)
         return
       }

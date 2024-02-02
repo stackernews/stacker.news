@@ -55,16 +55,16 @@ export function NWCProvider ({ children }) {
   const sendPayment = useCallback((bolt11) => {
     return new Promise(function (resolve, reject) {
       (async function () {
-        // need big timeout since NWC is async (user needs to confirm payment in wallet)
-
         // XXX set this to mock NWC relays
         const MOCK_NWC_RELAY = false
 
+        // need big timeout since NWC is async (user needs to confirm payment in wallet)
         const timeout = MOCK_NWC_RELAY ? 3000 : 60000
         let timer
         const resetTimer = () => {
           clearTimeout(timer)
           timer = setTimeout(() => {
+            sub?.close()
             if (MOCK_NWC_RELAY) {
               const heads = Math.random() < 0.5
               if (heads) {
@@ -113,6 +113,7 @@ export function NWCProvider ({ children }) {
             }
           },
           onclose (reason) {
+            clearTimeout(timer)
             reject(new Error(reason))
           }
         })
@@ -124,8 +125,11 @@ export function NWCProvider ({ children }) {
     return new Promise(function (resolve, reject) {
       (async function () {
         const timeout = 5000
-        const timer = setTimeout(() => reject(new Error('timeout')), timeout)
-        const relay = await Relay.connect(relayUrl)
+        const timer = setTimeout(() => {
+          sub?.close()
+          reject(new Error('timeout'))
+        }, timeout)
+
         const sub = relay.subscribe([
           {
             kinds: [13194],
@@ -133,18 +137,24 @@ export function NWCProvider ({ children }) {
           }
         ], {
           onevent (event) {
+            clearTimeout(timer)
             const supported = event.content.split()
             resolve(supported)
+            sub.close()
           },
           // some relays like nostr.mutinywallet.com don't support NIP-47 info events
           // so we simply check that we received EOSE
           oneose () {
             clearTimeout(timer)
-            sub.close()
             // we assume that pay_invoice is supported
             // (which should be mandatory to support since it's described in NIP-47)
             const supported = ['pay_invoice']
             resolve(supported)
+            sub.close()
+          },
+          onclose (reason) {
+            clearTimeout(timer)
+            reject(new Error(reason))
           }
         })
       })().catch(reject)

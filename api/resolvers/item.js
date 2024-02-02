@@ -1,5 +1,5 @@
 import { GraphQLError } from 'graphql'
-import { ensureProtocol, removeTracking } from '../../lib/url'
+import { ensureProtocol, removeTracking, stripTrailingSlash } from '../../lib/url'
 import serialize, { serializeInvoicable } from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
@@ -556,8 +556,7 @@ export default {
       pathname = pathname.replace(/%/g, '\\%')
       pathname = pathname.replace(/_/g, '\\_')
 
-      let uri = hostname + pathname
-      uri = uri.endsWith('/') ? uri.slice(0, -1) : uri
+      let uri = stripTrailingSlash(hostname + pathname)
 
       let similar = `(http(s)?://)?${uri}/?`
       const whitelist = ['news.ycombinator.com/item', 'bitcointalk.org/index.php']

@@ -540,7 +540,7 @@ export default {
     },
     dupes: async (parent, { url }, { me, models }) => {
       const urlObj = new URL(ensureProtocol(url))
-      let { hostname, pathname } = urlObj
+      const { hostname, pathname } = urlObj
 
       let hostnameRegex = hostname + '(:[0-9]+)?'
       const parseResult = parse(urlObj.hostname)
@@ -556,7 +556,7 @@ export default {
       pathnameRegex = pathnameRegex.replace(/%/g, '\\%')
       pathnameRegex = pathnameRegex.replace(/_/g, '\\_')
 
-      let uriRegex = stripTrailingSlash(hostnameRegex + pathnameRegex)
+      const uriRegex = stripTrailingSlash(hostnameRegex + pathnameRegex)
 
       let similar = `(http(s)?://)?${uriRegex}/?`
       const whitelist = ['news.ycombinator.com/item', 'bitcointalk.org/index.php']

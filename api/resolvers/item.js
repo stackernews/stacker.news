@@ -568,6 +568,9 @@ export default {
         // extract id and create both links
         const matches = url.match(/(https?:\/\/)?((www\.)?(youtube(-nocookie)?|youtube.googleapis)\.com.*(v\/|v=|vi=|vi\/|e\/|embed\/|user\/.*\/u\/\d+\/)|youtu\.be\/)(?<id>[_0-9a-z-]+)/i)
         similar = `(http(s)?://)?((www.|m.)?youtube.com/(watch\\?v=|v/|live/)${matches?.groups?.id}|youtu.be/${matches?.groups?.id})((\\?|&|#)%)?`
+      } else if (urlObj.hostname === 'yewtu.be') {
+        const matches = url.match(/(https?:\/\/)?yewtu\.be.*(v=|embed\/)(?<id>[_0-9a-z-]+)/i)
+        similar = `(http(s)?://)?yewtu.be/(watch\\?v=|embed/)${matches?.groups?.id}((\\?|&|#)%)?`
       } else {
         similar += '((\\?|#)%)?'
       }

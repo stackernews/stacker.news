@@ -542,21 +542,21 @@ export default {
       const urlObj = new URL(ensureProtocol(url))
       let { hostname, pathname } = urlObj
 
-      hostname = hostname + '(:[0-9]+)?'
+      let hostnameRegex = hostname + '(:[0-9]+)?'
       const parseResult = parse(urlObj.hostname)
       if (parseResult?.subdomain?.length) {
         const { subdomain } = parseResult
-        hostname = hostname.replace(subdomain, '(%)?')
+        hostnameRegex = hostnameRegex.replace(subdomain, '(%)?')
       } else {
-        hostname = `(%.)?${hostname}`
+        hostnameRegex = `(%.)?${hostnameRegex}`
       }
 
       // escape postgres regex meta characters
-      pathname = pathname.replace(/\+/g, '\\+')
-      pathname = pathname.replace(/%/g, '\\%')
-      pathname = pathname.replace(/_/g, '\\_')
+      let pathnameRegex = pathname.replace(/\+/g, '\\+')
+      pathnameRegex = pathnameRegex.replace(/%/g, '\\%')
+      pathnameRegex = pathnameRegex.replace(/_/g, '\\_')
 
-      let uriRegex = stripTrailingSlash(hostname + pathname)
+      let uriRegex = stripTrailingSlash(hostnameRegex + pathnameRegex)
 
       let similar = `(http(s)?://)?${uriRegex}/?`
       const whitelist = ['news.ycombinator.com/item', 'bitcointalk.org/index.php']

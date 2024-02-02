@@ -6,7 +6,7 @@ import { Relay, finalizeEvent, nip04 } from 'nostr-tools'
 const NWCContext = createContext()
 
 export function NWCProvider ({ children }) {
-  const [nwcUrl, setNwcUrl] = useState()
+  const [nwcUrl, setNwcUrl] = useState('')
   const [walletPubkey, setWalletPubkey] = useState()
   const [relayUrl, setRelayUrl] = useState()
   const [secret, setSecret] = useState()
@@ -32,7 +32,7 @@ export function NWCProvider ({ children }) {
 
   const clearConfig = useCallback(() => {
     window.localStorage.removeItem(storageKey)
-    setNwcUrl(null)
+    setNwcUrl('')
   }, [])
 
   useEffect(() => {

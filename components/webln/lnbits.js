@@ -5,8 +5,8 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 const LNbitsContext = createContext()
 
 export function LNbitsProvider ({ children }) {
-  const [url, setUrl] = useState()
-  const [adminKey, setAdminKey] = useState()
+  const [url, setUrl] = useState('')
+  const [adminKey, setAdminKey] = useState('')
   const [enabled, setEnabled] = useState()
 
   const name = 'LNbits'
@@ -97,8 +97,8 @@ export function LNbitsProvider ({ children }) {
 
   const clearConfig = useCallback(() => {
     window.localStorage.removeItem(storageKey)
-    setUrl(null)
-    setAdminKey(null)
+    setUrl('')
+    setAdminKey('')
   }, [])
 
   useEffect(() => {

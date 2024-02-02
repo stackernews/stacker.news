@@ -7,6 +7,7 @@ import CancelButton from './cancel-button'
 import { SubmitButton } from './form'
 
 export function WalletCard ({ title, badges, provider, enabled }) {
+  const isConfigured = enabled === true || enabled === false
   return (
     <Card className={styles.card}>
       <div className={`${styles.indicator} ${enabled === true ? styles.success : enabled === false ? styles.error : styles.disabled}`} />
@@ -23,7 +24,7 @@ export function WalletCard ({ title, badges, provider, enabled }) {
       {provider &&
         <Link href={`/settings/wallets/${provider}`}>
           <Card.Footer className={styles.attach}>
-            {enabled
+            {isConfigured
               ? <>configure<Gear width={14} height={14} /></>
               : <>attach<Plug width={14} height={14} /></>}
           </Card.Footer>

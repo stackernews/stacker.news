@@ -1,5 +1,5 @@
 import { GraphQLError } from 'graphql'
-import { ensureProtocol, removeTracking } from '../../lib/url'
+import { ensureProtocol, removeTracking, stripTrailingSlash } from '../../lib/url'
 import serialize, { serializeInvoicable } from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
@@ -540,29 +540,30 @@ export default {
     },
     dupes: async (parent, { url }, { me, models }) => {
       const urlObj = new URL(ensureProtocol(url))
-      let { hostname, pathname } = urlObj
+      const { hostname, pathname } = urlObj
 
-      hostname = hostname + '(:[0-9]+)?'
+      let hostnameRegex = hostname + '(:[0-9]+)?'
       const parseResult = parse(urlObj.hostname)
       if (parseResult?.subdomain?.length) {
         const { subdomain } = parseResult
-        hostname = hostname.replace(subdomain, '(%)?')
+        hostnameRegex = hostnameRegex.replace(subdomain, '(%)?')
       } else {
-        hostname = `(%.)?${hostname}`
+        hostnameRegex = `(%.)?${hostnameRegex}`
       }
 
       // escape postgres regex meta characters
-      pathname = pathname.replace(/\+/g, '\\+')
-      pathname = pathname.replace(/%/g, '\\%')
-      pathname = pathname.replace(/_/g, '\\_')
+      let pathnameRegex = pathname.replace(/\+/g, '\\+')
+      pathnameRegex = pathnameRegex.replace(/%/g, '\\%')
+      pathnameRegex = pathnameRegex.replace(/_/g, '\\_')
 
-      let uri = hostname + pathname
-      uri = uri.endsWith('/') ? uri.slice(0, -1) : uri
+      const uriRegex = stripTrailingSlash(hostnameRegex + pathnameRegex)
 
-      let similar = `(http(s)?://)?${uri}/?`
+      let similar = `(http(s)?://)?${uriRegex}/?`
       const whitelist = ['news.ycombinator.com/item', 'bitcointalk.org/index.php']
       const youtube = ['www.youtube.com', 'youtube.com', 'm.youtube.com', 'youtu.be']
-      if (whitelist.includes(uri)) {
+
+      const hostAndPath = stripTrailingSlash(urlObj.hostname + urlObj.pathname)
+      if (whitelist.includes(hostAndPath)) {
         similar += `\\${urlObj.search}`
       } else if (youtube.includes(urlObj.hostname)) {
         // extract id and create both links

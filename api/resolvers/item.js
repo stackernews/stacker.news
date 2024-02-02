@@ -556,9 +556,9 @@ export default {
       pathname = pathname.replace(/%/g, '\\%')
       pathname = pathname.replace(/_/g, '\\_')
 
-      let uri = stripTrailingSlash(hostname + pathname)
+      let uriRegex = stripTrailingSlash(hostname + pathname)
 
-      let similar = `(http(s)?://)?${uri}/?`
+      let similar = `(http(s)?://)?${uriRegex}/?`
       const whitelist = ['news.ycombinator.com/item', 'bitcointalk.org/index.php']
       const youtube = ['www.youtube.com', 'youtube.com', 'm.youtube.com', 'youtu.be']
 

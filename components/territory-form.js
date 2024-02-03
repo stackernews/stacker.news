@@ -109,6 +109,7 @@ export default function TerritoryForm ({ sub }) {
                 label='links'
                 value='LINK'
                 name='postTypes'
+                id='links-checkbox'
                 groupClassName='ms-1 mb-0'
               />
             </Col>
@@ -118,6 +119,7 @@ export default function TerritoryForm ({ sub }) {
                 label='discussions'
                 value='DISCUSSION'
                 name='postTypes'
+                id='discussions-checkbox'
                 groupClassName='ms-1 mb-0'
               />
             </Col>
@@ -127,6 +129,7 @@ export default function TerritoryForm ({ sub }) {
                 label='bounties'
                 value='BOUNTY'
                 name='postTypes'
+                id='bounties-checkbox'
                 groupClassName='ms-1 mb-0'
               />
             </Col>
@@ -136,6 +139,7 @@ export default function TerritoryForm ({ sub }) {
                 label='polls'
                 value='POLL'
                 name='postTypes'
+                id='polls-checkbox'
                 groupClassName='ms-1 mb-0'
               />
             </Col>

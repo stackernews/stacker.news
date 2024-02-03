@@ -24,7 +24,7 @@ export function SearchTitle ({ title }) {
   })
 }
 
-export default function Item ({ item, rank, belowTitle, right, full, children, siblingComments, onQuoteReply }) {
+export default function Item ({ item, rank, belowTitle, right, full, children, siblingComments, onQuoteReply, pinnable }) {
   const titleRef = useRef()
   const router = useRouter()
 
@@ -40,7 +40,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
           </div>)
         : <div />}
       <div className={`${styles.item} ${siblingComments ? 'pt-3' : ''}`}>
-        {item.position
+        {item.position && (pinnable || !item.subName)
           ? <Pin width={24} height={24} className={styles.pin} />
           : item.meDontLikeSats > item.meSats
             ? <DownZap width={24} height={24} className={styles.dontLike} id={item.id} meDontLikeSats={item.meDontLikeSats} />
@@ -95,6 +95,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
             full={full} item={item}
             onQuoteReply={onQuoteReply}
             nofollow={nofollow}
+            pinnable={pinnable}
             extraBadges={Number(item?.user?.id) === AD_USER_ID && <Badge className={styles.newComment} bg={null}>AD</Badge>}
           />
           {belowTitle}

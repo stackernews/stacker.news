@@ -369,7 +369,6 @@ export default {
               ${relationClause(type)}
               ${joinZapRankPersonalView(me, models)}
               ${whereClause(
-                '"Item"."pinId" IS NULL',
                 '"Item"."deletedAt" IS NULL',
                 subClause(sub, 5, subClauseTable(type), me),
                 typeClause(type),
@@ -389,7 +388,6 @@ export default {
               ${selectClause(type)}
               ${relationClause(type)}
               ${whereClause(
-                '"Item"."pinId" IS NULL',
                 '"Item"."deletedAt" IS NULL',
                 subClause(sub, 5, subClauseTable(type), me),
                 typeClause(type),

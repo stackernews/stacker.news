@@ -1,56 +1,48 @@
-import { InputGroup } from 'react-bootstrap'
 import { getGetServerSideProps } from '../../../api/ssrApollo'
 import { Form, Input } from '../../../components/form'
 import { CenterLayout } from '../../../components/layout'
 import { useMe } from '../../../components/me'
 import { WalletButtonBar, WalletCard } from '../../../components/wallet-card'
 import { useMutation } from '@apollo/client'
-import { REMOVE_AUTOWITHDRAW, SET_AUTOWITHDRAW } from '../../../fragments/users'
 import { useToast } from '../../../components/toast'
-import { lnAddrAutowithdrawSchema, isNumber } from '../../../lib/validate'
+import { lnAddrAutowithdrawSchema } from '../../../lib/validate'
 import { useRouter } from 'next/router'
-import { useEffect, useState } from 'react'
-import { numWithUnits } from '../../../lib/format'
+import { AutowithdrawSettings, autowithdrawInitial } from '../../../components/autowithdraw-shared'
+import { REMOVE_WALLET, UPSERT_WALLET_LNADDR, WALLET_BY_TYPE } from '../../../fragments/wallet'
 
-export const getServerSideProps = getGetServerSideProps({ authRequired: true })
+const variables = { type: 'LIGHTNING_ADDRESS' }
+export const getServerSideProps = getGetServerSideProps({ query: WALLET_BY_TYPE, variables, authRequired: true })
 
-function useAutoWithdrawEnabled () {
-  const me = useMe()
-  return me?.privates?.lnAddr && isNumber(me?.privates?.autoWithdrawThreshold) && isNumber(me?.privates?.autoWithdrawMaxFeePercent)
-}
-
-export default function LightningAddress () {
+export default function LightningAddress ({ ssrData }) {
   const me = useMe()
   const toaster = useToast()
   const router = useRouter()
-  const [setAutoWithdraw] = useMutation(SET_AUTOWITHDRAW)
-  const enabled = useAutoWithdrawEnabled()
-  const [removeAutoWithdraw] = useMutation(REMOVE_AUTOWITHDRAW)
-  const autoWithdrawThreshold = isNumber(me?.privates?.autoWithdrawThreshold) ? me?.privates?.autoWithdrawThreshold : 10000
-  const [sendThreshold, setSendThreshold] = useState(Math.max(Math.floor(autoWithdrawThreshold / 10), 1))
+  const [upsertWalletLNAddr] = useMutation(UPSERT_WALLET_LNADDR)
+  const [removeWallet] = useMutation(REMOVE_WALLET)
 
-  useEffect(() => {
-    setSendThreshold(Math.max(Math.floor(me?.privates?.autoWithdrawThreshold / 10), 1))
-  }, [autoWithdrawThreshold])
+  const { walletByType: wallet } = ssrData || {}
 
   return (
     <CenterLayout>
       <h2 className='pb-2'>lightning address</h2>
-      <h6 className='text-muted text-center pb-3'>autowithdraw to a lightning address to maintain desired balance</h6>
+      <h6 className='text-muted text-center pb-3'>autowithdraw to a lightning address</h6>
       <Form
         initial={{
-          lnAddr: me?.privates?.lnAddr || '',
-          autoWithdrawThreshold,
-          autoWithdrawMaxFeePercent: isNumber(me?.privates?.autoWithdrawMaxFeePercent) ? me?.privates?.autoWithdrawMaxFeePercent : 1
+          address: wallet?.wallet?.address || '',
+          ...autowithdrawInitial({ me })
         }}
         schema={lnAddrAutowithdrawSchema({ me })}
-        onSubmit={async ({ autoWithdrawThreshold, autoWithdrawMaxFeePercent, ...values }) => {
+        onSubmit={async ({ address, ...settings }) => {
           try {
-            await setAutoWithdraw({
+            await upsertWalletLNAddr({
               variables: {
-                lnAddr: values.lnAddr,
-                autoWithdrawThreshold: Number(autoWithdrawThreshold),
-                autoWithdrawMaxFeePercent: Number(autoWithdrawMaxFeePercent)
+                id: wallet?.id,
+                address,
+                settings: {
+                  ...settings,
+                  autoWithdrawThreshold: Number(settings.autoWithdrawThreshold),
+                  autoWithdrawMaxFeePercent: Number(settings.autoWithdrawMaxFeePercent)
+                }
               }
             })
             toaster.success('saved settings')
@@ -63,30 +55,16 @@ export default function LightningAddress () {
       >
         <Input
           label='lightning address'
-          name='lnAddr'
+          name='address'
+          autoComplete='off'
           required
           autoFocus
         />
-        <Input
-          label='desired balance'
-          name='autoWithdrawThreshold'
-          onChange={(formik, e) => {
-            const value = e.target.value
-            setSendThreshold(Math.max(Math.floor(value / 10), 1))
-          }}
-          hint={isNumber(sendThreshold) ? `note: attempts to keep your balance within ${numWithUnits(sendThreshold)} of this amount` : undefined}
-          append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
-        />
-        <Input
-          label='max fee'
-          name='autoWithdrawMaxFeePercent'
-          hint='max fee as percent of withdrawal amount'
-          append={<InputGroup.Text>%</InputGroup.Text>}
-        />
+        <AutowithdrawSettings />
         <WalletButtonBar
-          enabled={enabled} onDelete={async () => {
+          enabled={!!wallet} onDelete={async () => {
             try {
-              await removeAutoWithdraw()
+              await removeWallet()
               toaster.success('saved settings')
               router.push('/settings/wallets')
             } catch (err) {
@@ -100,15 +78,13 @@ export default function LightningAddress () {
   )
 }
 
-export function LightningAddressWalletCard () {
-  const enabled = useAutoWithdrawEnabled()
-
+export function LightningAddressWalletCard ({ wallet }) {
   return (
     <WalletCard
       title='lightning address'
       badges={['receive only', 'non-custodialish']}
       provider='lightning-address'
-      enabled={enabled}
+      enabled={wallet !== undefined}
     />
   )
 }

@@ -1,4 +1,4 @@
-import { getIdentity, createHodlInvoice, createInvoice, decodePaymentRequest, payViaPaymentRequest, cancelHodlInvoice, getInvoice as getInvoiceFromLnd, getNode } from 'ln-service'
+import { getIdentity, createHodlInvoice, createInvoice, decodePaymentRequest, payViaPaymentRequest, cancelHodlInvoice, getInvoice as getInvoiceFromLnd, getNode, authenticatedLndGrpc } from 'ln-service'
 import { GraphQLError } from 'graphql'
 import crypto from 'crypto'
 import serialize from './serial'
@@ -7,10 +7,11 @@ import lnpr from 'bolt11'
 import { SELECT } from './item'
 import { lnAddrOptions } from '../../lib/lnurl'
 import { msatsToSats, msatsToSatsDecimal } from '../../lib/format'
-import { amountSchema, lnAddrSchema, ssValidate, withdrawlSchema } from '../../lib/validate'
+import { LNDAutowithdrawSchema, amountSchema, lnAddrAutowithdrawSchema, lnAddrSchema, ssValidate, withdrawlSchema } from '../../lib/validate'
 import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, ANON_USER_ID, BALANCE_LIMIT_MSATS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT } from '../../lib/constants'
 import { datePivot } from '../../lib/time'
 import assertGofacYourself from './ofac'
+import { HEX_REGEX } from '../../lib/macaroon'
 
 export async function getInvoice (parent, { id }, { me, models, lnd }) {
   const inv = await models.invoice.findUnique({
@@ -61,6 +62,43 @@ export function createHmac (hash) {
 export default {
   Query: {
     invoice: getInvoice,
+    wallet: async (parent, { id }, { me, models }) => {
+      if (!me) {
+        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+      }
+
+      return await models.wallet.findUnique({
+        where: {
+          userId: me.id,
+          id: Number(id)
+        }
+      })
+    },
+    walletByType: async (parent, { type }, { me, models }) => {
+      if (!me) {
+        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+      }
+
+      const wallet = await models.wallet.findFirst({
+        where: {
+          userId: me.id,
+          type
+        }
+      })
+      console.log('wallet', wallet)
+      return wallet
+    },
+    wallets: async (parent, args, { me, models }) => {
+      if (!me) {
+        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+      }
+
+      return await models.wallet.findMany({
+        where: {
+          userId: me.id
+        }
+      })
+    },
     withdrawl: async (parent, { id }, { me, models, lnd }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
@@ -266,7 +304,11 @@ export default {
       }
     }
   },
-
+  WalletDetails: {
+    __resolveType (wallet) {
+      return wallet.address ? 'WalletLNAddr' : 'WalletLND'
+    }
+  },
   Mutation: {
     createInvoice: async (parent, { amount, hodlInvoice = false, expireSecs = 3600 }, { me, models, lnd, headers }) => {
       await ssValidate(amountSchema, { amount })
@@ -348,6 +390,129 @@ export default {
         data: { bolt11: null, hash: null }
       })
       return { id }
+    },
+    upsertWalletLND: async (parent, { settings, ...data }, { me, models }) => {
+      if (!me) {
+        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+      }
+
+      await ssValidate(LNDAutowithdrawSchema, { ...data, ...settings }, { me, models })
+
+      // store hex inputs as base64
+      if (HEX_REGEX.test(data.macaroon)) {
+        data.macaroon = Buffer.from(data.macaroon, 'hex').toString('base64')
+      }
+      if (HEX_REGEX.test(data.cert)) {
+        data.cert = Buffer.from(data.cert, 'hex').toString('base64')
+      }
+
+      const { id, ...walletData } = data
+      const { autoWithdrawThreshold, autoWithdrawMaxFeePercent, priority } = settings
+
+      const txs = [
+        models.user.update({
+          where: { id: me.id },
+          data: {
+            autoWithdrawMaxFeePercent,
+            autoWithdrawThreshold
+          }
+        })
+      ]
+
+      if (id) {
+        txs.push(
+          models.wallet.update({
+            where: { id: Number(id) },
+            data: {
+              priority,
+              walletLND: {
+                update: {
+                  where: { walletId: Number(id) },
+                  data: walletData
+                }
+              }
+            }
+          }))
+      } else {
+        txs.push(
+          models.wallet.create({
+            data: {
+              priority,
+              type: 'LND',
+              walletLND: {
+                create: [
+                  walletData
+                ]
+              }
+            }
+          }))
+      }
+
+      await models.$transaction(txs)
+      return true
+    },
+    upsertWalletLNAddr: async (parent, { settings, ...data }, { me, models }) => {
+      if (!me) {
+        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+      }
+
+      await ssValidate(lnAddrAutowithdrawSchema, { ...data, ...settings }, { me, models })
+
+      const { id, address } = data
+      const { autoWithdrawThreshold, autoWithdrawMaxFeePercent, priority } = settings
+
+      const txs = [
+        models.user.update({
+          where: { id: me.id },
+          data: {
+            autoWithdrawMaxFeePercent,
+            autoWithdrawThreshold
+          }
+        })
+      ]
+
+      if (id) {
+        txs.push(
+          models.wallet.update({
+            where: { id: Number(id), userId: me.id },
+            data: {
+              priority: Number(priority),
+              walletLightningAddress: {
+                update: {
+                  where: { walletId: Number(id) },
+                  data: {
+                    address
+                  }
+                }
+              }
+            }
+          }))
+      } else {
+        console.log('creating wallet')
+        txs.push(
+          models.wallet.create({
+            data: {
+              priority: Number(priority),
+              userId: me.id,
+              type: 'LIGHTNING_ADDRESS',
+              walletLightningAddress: {
+                create: { address }
+              }
+            }
+          }))
+      }
+
+      await models.$transaction(txs)
+      return true
+    },
+    removeWallet: async (parent, { id }, { me, models }) => {
+      if (!me) {
+        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+      }
+
+      await models.wallet.delete({ where: { userId: me.id, id: Number(id) } })
+
+      return true
     }
   },
 
@@ -498,4 +663,45 @@ export async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...
 
   // take pr and createWithdrawl
   return await createWithdrawal(parent, { invoice: res.pr, maxFee }, { me, models, lnd, headers, autoWithdraw })
+}
+
+export async function sendToLND (parent, { userId, amount, maxFee }, { me, models, lnd }) {
+  if (!me) {
+    throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+  }
+
+  const user = await models.user.findUnique({ where: { id: userId } })
+  if (!user) {
+    throw new GraphQLError('user not found', { extensions: { code: 'BAD_INPUT' } })
+  }
+
+  const wallet = await models.wallet.findFirst({
+    where: {
+      userId: user.id,
+      type: 'LND'
+    },
+    include: {
+      walletLND: true
+    }
+  })
+
+  if (!wallet || !wallet.walletLND) {
+    throw new GraphQLError('no LND wallet found', { extensions: { code: 'BAD_INPUT' } })
+  }
+
+  const { walletLND: { cert, macaroon, socket } } = wallet
+  const { lnd: lndOut } = await authenticatedLndGrpc({
+    cert,
+    macaroon,
+    socket
+  })
+
+  const invoice = await createInvoice({
+    description: user.hideInvoiceDesc ? undefined : 'autowithdraw to LND from SN',
+    lnd: lndOut,
+    tokens: amount,
+    expires_at: datePivot(new Date(), { seconds: 360 })
+  })
+
+  return await createWithdrawal(parent, { invoice: invoice.request, maxFee }, { me, models, lnd, autoWithdraw: true })
 }

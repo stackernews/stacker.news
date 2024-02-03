@@ -117,25 +117,50 @@ model User {
 
 enum WalletType {
   LIGHTNING_ADDRESS
+  LND
 }
 
 model Wallet {
-  id        Int        @id @default(autoincrement())
-  createdAt DateTime   @default(now()) @map("created_at")
-  updatedAt DateTime   @default(now()) @updatedAt @map("updated_at")
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
   userId    Int
-  type      WalletType
-  typeId    Int
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label     String?
+  priority  Int      @default(0)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // NOTE: this denormalized json field exists to make polymorphic joins efficient
+  // when reading wallets ... it is populated by a trigger when wallet descendants update
+  // otherwise reading wallets would require a join on every descendant table
+  // which might not be numerous for wallets but would be for other tables
+  // so this is a pattern we use only to be consistent with future polymorphic tables
+  // because it gives us fast reads and type safe writes
+  type                   WalletType
+  wallet                 Json?                   @db.JsonB
+  walletLightningAddress WalletLightningAddress?
+  walletLND              WalletLND?
 
   @@index([userId])
 }
 
 model WalletLightningAddress {
   id        Int      @id @default(autoincrement())
+  walletId  Int      @unique
+  wallet    Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
   address   String
+}
+
+model WalletLND {
+  id        Int      @id @default(autoincrement())
+  walletId  Int      @unique
+  wallet    Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  socket    String
+  macaroon  String
+  cert      String?
 }
 
 model Mute {

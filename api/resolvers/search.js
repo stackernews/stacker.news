@@ -194,7 +194,7 @@ export default {
 
       const { query, quotes, nym, url } = queryParts(q)
 
-      if (url) {
+      if (url && !query.length) {
         const domain = url.startsWith('url:www.') ? url.slice(8) : url.slice(4)
         const value = `*${domain}*`
         const fields = ['title', 'text']
@@ -203,6 +203,8 @@ export default {
           .map((field) => ({ wildcard: { [field]: { value, case_insensitive: true } } }))
 
         whatArr.push({ bool: { should: queries } })
+      } else if (url) {
+        whatArr.push({ match_phrase_prefix: { url: `${url.slice(4).toLowerCase()}` } })
       }
 
       if (nym) {

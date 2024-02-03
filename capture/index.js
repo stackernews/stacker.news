@@ -18,40 +18,43 @@ app.get('/health', (req, res) => {
 })
 
 app.get('/*', async (req, res) => {
-  browser ||= await puppeteer.launch({
-    headless: 'new',
-    executablePath: 'google-chrome-stable',
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
-  })
   const url = new URL(req.originalUrl, captureUrl)
-  console.time(url.href)
-  console.timeLog(url.href, 'capturing', 'current pages', (await browser.pages()).length)
-
-  // limit number of active pages
-  if ((await browser.pages()).length > maxPages + 1) {
-    console.timeLog(url.href, 'too many pages')
-    console.timeEnd(url.href)
-    return res.writeHead(503, {
-      'Retry-After': 1
-    }).end()
-  }
+  const timeLabel = `${Date.now()}-${url.href}`
 
   let page
+
   try {
+    console.time(timeLabel)
+    browser ||= await puppeteer.launch({
+      headless: 'new',
+      executablePath: 'google-chrome-stable',
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    })
+
+    console.timeLog(timeLabel, 'capturing', 'current pages', (await browser.pages()).length)
+
+    // limit number of active pages
+    if ((await browser.pages()).length > maxPages + 1) {
+      console.timeLog(timeLabel, 'too many pages')
+      return res.writeHead(503, {
+        'Retry-After': 1
+      }).end()
+    }
+
     page = await browser.newPage()
     await page.setViewport({ width, height, deviceScaleFactor })
     await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'dark' }])
     await page.goto(url.href, { waitUntil: 'load', timeout })
     const file = await page.screenshot({ type: 'png', captureBeyondViewport: false })
     res.setHeader('Content-Type', 'image/png')
-    res.setHeader('Cache-Control', `public, max-age=${cache}, immutable`)
-    res.status(200).end(file)
+    res.setHeader('Cache-Control', `public, max-age=${cache}, immutable, stale-while-revalidate=${cache * 24}, stale-if-error=${cache * 24}`)
+    return res.status(200).end(file)
   } catch (err) {
-    console.log(err)
+    console.timeLog(timeLabel, 'error', err)
     return res.status(500).end()
   } finally {
-    console.timeEnd(url.href)
-    page?.close()
+    console.timeEnd(timeLabel)
+    page?.close().catch(console.error)
   }
 })
 

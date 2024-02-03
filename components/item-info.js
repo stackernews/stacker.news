@@ -25,7 +25,7 @@ import { MuteSubDropdownItem, PinSubDropdownItem } from './territory-header'
 export default function ItemInfo ({
   item, full, commentsText = 'comments',
   commentTextSingular = 'comment', className, embellishUser, extraInfo, onEdit, editText,
-  onQuoteReply, nofollow, extraBadges, nested
+  onQuoteReply, nofollow, extraBadges, nested, pinnable
 }) {
   const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
   const me = useMe()
@@ -57,7 +57,7 @@ export default function ItemInfo ({
 
   return (
     <div className={className || `${styles.other}`}>
-      {!item.position && !(!item.parentId && Number(item.user?.id) === AD_USER_ID) &&
+      {!(item.position && (pinnable || !item.subName)) && !(!item.parentId && Number(item.user?.id) === AD_USER_ID) &&
         <>
           <span title={`from ${numWithUnits(item.upvotes, {
               abbreviate: false,

@@ -63,7 +63,7 @@ export function NWCCard () {
   return (
     <WalletCard
       title='nwc'
-      badges={['send only', 'non-custodialish', 'async']}
+      badges={['send only', 'non-custodialish', 'budgetable']}
       provider='nwc'
       enabled={enabled}
     />

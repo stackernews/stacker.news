@@ -140,16 +140,6 @@ export function NWCProvider ({ children }) {
             resolve(supported)
             sub.close()
           },
-          // some relays like nostr.mutinywallet.com don't support NIP-47 info events
-          // so we simply check that we received EOSE
-          oneose () {
-            clearTimeout(timer)
-            // we assume that pay_invoice is supported
-            // (which should be mandatory to support since it's described in NIP-47)
-            const supported = ['pay_invoice']
-            resolve(supported)
-            sub.close()
-          },
           onclose (reason) {
             clearTimeout(timer)
             reject(new Error(reason))

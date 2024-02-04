@@ -109,6 +109,7 @@ export default function TerritoryForm ({ sub }) {
                 label='links'
                 value='LINK'
                 name='postTypes'
+                id='links-checkbox'
                 groupClassName='ms-1 mb-0'
               />
             </Col>
@@ -118,6 +119,7 @@ export default function TerritoryForm ({ sub }) {
                 label='discussions'
                 value='DISCUSSION'
                 name='postTypes'
+                id='discussions-checkbox'
                 groupClassName='ms-1 mb-0'
               />
             </Col>
@@ -127,6 +129,7 @@ export default function TerritoryForm ({ sub }) {
                 label='bounties'
                 value='BOUNTY'
                 name='postTypes'
+                id='bounties-checkbox'
                 groupClassName='ms-1 mb-0'
               />
             </Col>
@@ -136,6 +139,7 @@ export default function TerritoryForm ({ sub }) {
                 label='polls'
                 value='POLL'
                 name='postTypes'
+                id='polls-checkbox'
                 groupClassName='ms-1 mb-0'
               />
             </Col>
@@ -168,6 +172,7 @@ export default function TerritoryForm ({ sub }) {
               label='100k sats/month'
               value='MONTHLY'
               name='billingType'
+              id='monthly-checkbox'
               readOnly={!!sub}
               handleChange={checked => checked && setBilling('monthly')}
               groupClassName='ms-1 mb-0'
@@ -178,6 +183,7 @@ export default function TerritoryForm ({ sub }) {
               label='1m sats/year'
               value='YEARLY'
               name='billingType'
+              id='yearly-checkbox'
               readOnly={!!sub}
               handleChange={checked => checked && setBilling('yearly')}
               groupClassName='ms-1 mb-0'
@@ -188,6 +194,7 @@ export default function TerritoryForm ({ sub }) {
               label='3m sats once'
               value='ONCE'
               name='billingType'
+              id='once-checkbox'
               readOnly={!!sub}
               handleChange={checked => checked && setBilling('once')}
               groupClassName='ms-1 mb-0'

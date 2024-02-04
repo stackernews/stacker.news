@@ -465,7 +465,8 @@ export default {
                       ${whereClause(
                         subClause(sub, 3, 'Item', me),
                         muteClause(me),
-                        '"Item"."pinId" IS NULL',
+                        // in "home" (sub undefined), we want to show pinned items (but without the pin icon)
+                        sub ? '"Item"."pinId" IS NULL' : '',
                         '"Item"."deletedAt" IS NULL',
                         '"Item"."parentId" IS NULL',
                         '"Item".bio = false',

@@ -58,8 +58,9 @@ export function NWCProvider ({ children }) {
         // XXX set this to mock NWC relays
         const MOCK_NWC_RELAY = false
 
-        // need big timeout since NWC is async (user needs to confirm payment in wallet)
-        const timeout = MOCK_NWC_RELAY ? 3000 : 60000
+        // timeout since NWC is async (user needs to confirm payment in wallet)
+        // timeout is same as invoice expiry
+        const timeout = MOCK_NWC_RELAY ? 3000 : 180_000
         let timer
         const resetTimer = () => {
           clearTimeout(timer)

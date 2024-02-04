@@ -33,6 +33,7 @@ count:
     out: 60s # Number of seconds to wait before scaling down.
   cpu_percentage: 50 # Percentage of CPU to target for autoscaling.
   memory_percentage: 60 # Percentage of memory to target for autoscaling.
+  response_time: 3s
 exec: true     # Enable running commands in your container.
 network:
   connect: true # Enable Service Connect for intra-environment traffic between services.
@@ -44,7 +45,8 @@ network:
 #
 variables:                    # Pass environment variables as key value pairs.
   CAPTURE_URL: https://stacker.news/
-  MAX_PAGES: 100
+  MAX_PAGES: 10
+  TIMEOUT: 3000
 
 #secrets:                      # Pass secrets from AWS Systems Manager (SSM) Parameter Store.
 #  GITHUB_TOKEN: GITHUB_TOKEN  # The key is the name of the environment variable, the value is the name of the SSM parameter.

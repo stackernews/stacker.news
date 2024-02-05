@@ -17,10 +17,10 @@ export default function TerritoryForm ({ sub }) {
     gql`
       mutation upsertSub($oldName: String, $name: String!, $desc: String, $baseCost: Int!,
         $postTypes: [String!]!, $allowFreebies: Boolean!, $billingType: String!,
-        $billingAutoRenew: Boolean!, $moderated: Boolean!, $hash: String, $hmac: String) {
+        $billingAutoRenew: Boolean!, $moderated: Boolean!, $hash: String, $hmac: String, $nsfw: Boolean!) {
           upsertSub(oldName: $oldName, name: $name, desc: $desc, baseCost: $baseCost,
             postTypes: $postTypes, allowFreebies: $allowFreebies, billingType: $billingType,
-            billingAutoRenew: $billingAutoRenew, moderated: $moderated, hash: $hash, hmac: $hmac) {
+            billingAutoRenew: $billingAutoRenew, moderated: $moderated, hash: $hash, hmac: $hmac, nsfw: $nsfw) {
           name
         }
       }`
@@ -65,7 +65,8 @@ export default function TerritoryForm ({ sub }) {
           allowFreebies: typeof sub?.allowFreebies === 'undefined' ? true : sub?.allowFreebies,
           billingType: sub?.billingType || 'MONTHLY',
           billingAutoRenew: sub?.billingAutoRenew || false,
-          moderated: sub?.moderated || false
+          moderated: sub?.moderated || false,
+          nsfw: sub?.nsfw || false
         }}
         schema={territorySchema({ client, me })}
         invoiceable
@@ -159,6 +160,22 @@ export default function TerritoryForm ({ sub }) {
             </div>
           }
           name='moderated'
+          groupClassName='ms-1'
+        />
+        <BootstrapForm.Label>nsfw</BootstrapForm.Label>
+        <Checkbox
+          inline
+          label={
+            <div className='d-flex align-items-center'>mark as nsfw
+              <Info>
+                <ol>
+                  <li>Let stackers know that your territory may contain explicit content</li>
+                  <li>Your territory will get a <Badge bg='secondary'>nsfw</Badge> badge</li>
+                </ol>
+              </Info>
+            </div>
+          }
+          name='nsfw'
           groupClassName='ms-1'
         />
         <CheckboxGroup

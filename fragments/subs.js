@@ -19,6 +19,7 @@ export const SUB_FIELDS = gql`
     moderated
     moderatedCount
     meMuteSub
+    nsfw
   }`
 
 export const SUB_FULL_FIELDS = gql`

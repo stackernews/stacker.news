@@ -35,5 +35,6 @@ export default gql`
     moderated: Boolean!
     moderatedCount: Int!
     meMuteSub: Boolean!
+    nsfw: Boolean!
   }
 `

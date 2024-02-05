@@ -423,6 +423,7 @@ model Sub {
   billedLastAt     DateTime    @default(now())
   moderated        Boolean     @default(false)
   moderatedCount   Int         @default(0)
+  nsfw             Boolean     @default(false)
 
   parent   Sub?      @relation("ParentChildren", fields: [parentName], references: [name])
   children Sub[]     @relation("ParentChildren")

@@ -193,7 +193,7 @@ export default {
 }
 
 async function createSub (parent, data, { me, models, lnd, hash, hmac }) {
-  const { billingType } = data
+  const { billingType, nsfw } = data
   let billingCost = TERRITORY_COST_MONTHLY
   let billAt = datePivot(new Date(), { months: 1 })
 
@@ -226,7 +226,8 @@ async function createSub (parent, data, { me, models, lnd, hash, hmac }) {
           ...data,
           billingCost,
           rankingType: 'WOT',
-          userId: me.id
+          userId: me.id,
+          nsfw
         }
       }),
       // record 'em

@@ -11,7 +11,7 @@ export default gql`
     upsertSub(oldName: String, name: String!, desc: String, baseCost: Int!,
       postTypes: [String!]!, allowFreebies: Boolean!,
       billingType: String!, billingAutoRenew: Boolean!,
-      moderated: Boolean!, hash: String, hmac: String): Sub
+      moderated: Boolean!, hash: String, hmac: String, nsfw: Boolean!): Sub
     paySub(name: String!, hash: String, hmac: String): Sub
     toggleMuteSub(name: String!): Boolean!
   }

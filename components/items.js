@@ -45,11 +45,13 @@ export default function Items ({ ssrData, variables = {}, query, destructureData
     return <Skeleton />
   }
 
+  const isHome = !variables?.sub
+
   return (
     <>
       <div className={styles.grid}>
         {itemsWithPins.filter(filter).map((item, i) => (
-          <ListItem key={item.id} item={item} rank={rank && i + 1} siblingComments={variables.includeComments} />
+          <ListItem key={item.id} item={item} rank={rank && i + 1} siblingComments={variables.includeComments} pinnable={isHome ? false : pins?.length > 0} />
         ))}
       </div>
       <Foooter

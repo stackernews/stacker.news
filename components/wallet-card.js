@@ -41,7 +41,7 @@ export function WalletButtonBar ({
   return (
     <div className={`mt-3 ${className}`}>
       <div className='d-flex justify-content-between'>
-        {enabled &&
+        {enabled !== undefined &&
           <Button onClick={onDelete} variant='grey-medium'>{deleteText}</Button>}
         {children}
         <div className='d-flex align-items-center ms-auto'>

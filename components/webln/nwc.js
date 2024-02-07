@@ -16,23 +16,69 @@ export function NWCProvider ({ children }) {
   const name = 'NWC'
   const storageKey = 'webln:provider:nwc'
 
-  const loadConfig = useCallback(() => {
+  const loadConfig = useCallback(async () => {
     const config = window.localStorage.getItem(storageKey)
     if (!config) return
+
     const configJSON = JSON.parse(config)
-    setNwcUrl(configJSON.nwcUrl)
+
+    const { nwcUrl } = configJSON
+    setNwcUrl(nwcUrl)
+    if (!nwcUrl) {
+      setEnabled(undefined)
+      return
+    }
+
+    const params = parseWalletConnectUrl(nwcUrl)
+    setRelayUrl(params.relayUrl)
+    setWalletPubkey(params.walletPubkey)
+    setSecret(params.secret)
+
+    try {
+      const supported = await validateParams(params)
+      setEnabled(supported.includes('pay_invoice'))
+    } catch (err) {
+      console.error('invalid NWC config:', err)
+      setEnabled(false)
+      throw err
+    }
   }, [])
 
   const saveConfig = useCallback(async (config) => {
-    setNwcUrl(config.nwcUrl)
+    // immediately store config so it's not lost even if config is invalid
+    const { nwcUrl } = config
+    setNwcUrl(nwcUrl)
+    if (!nwcUrl) {
+      setEnabled(undefined)
+      return
+    }
+
+    const params = parseWalletConnectUrl(nwcUrl)
+    setRelayUrl(params.relayUrl)
+    setWalletPubkey(params.walletPubkey)
+    setSecret(params.secret)
+
     // XXX Even though NWC allows to configure budget,
     // this is definitely not ideal from a security perspective.
     window.localStorage.setItem(storageKey, JSON.stringify(config))
+
+    try {
+      const supported = await validateParams(params)
+      setEnabled(supported.includes('pay_invoice'))
+    } catch (err) {
+      console.error('invalid NWC config:', err)
+      setEnabled(false)
+      throw err
+    }
   }, [])
 
   const clearConfig = useCallback(() => {
     window.localStorage.removeItem(storageKey)
     setNwcUrl('')
+    setRelayUrl(undefined)
+    setWalletPubkey(undefined)
+    setSecret(undefined)
+    setEnabled(undefined)
   }, [])
 
   useEffect(() => {
@@ -120,71 +166,13 @@ export function NWCProvider ({ children }) {
     })
   }, [relay, walletPubkey, secret])
 
-  const getInfo = useCallback(() => {
-    return new Promise(function (resolve, reject) {
-      (async function () {
-        const timeout = 5000
-        const timer = setTimeout(() => {
-          sub?.close()
-          reject(new Error('timeout'))
-        }, timeout)
-
-        const sub = relay.subscribe([
-          {
-            kinds: [13194],
-            authors: [walletPubkey]
-          }
-        ], {
-          onevent (event) {
-            clearTimeout(timer)
-            const supported = event.content.split()
-            resolve(supported)
-            sub.close()
-          },
-          onclose (reason) {
-            clearTimeout(timer)
-            reject(new Error(reason))
-          }
-        })
-      })().catch(reject)
-    })
-  }, [relay, walletPubkey])
+  const getInfo = useCallback(() => getInfoWithRelay(relay, walletPubkey), [relay, walletPubkey])
 
   useEffect(() => {
-    // update enabled
-    (async function () {
-      if (!(relay && walletPubkey && secret)) {
-        setEnabled(undefined)
-        return
-      }
-      try {
-        const supported = await getInfo()
-        setEnabled(supported.includes('pay_invoice'))
-      } catch (err) {
-        console.error(err)
-        setEnabled(false)
-      }
-    })()
-  }, [relayUrl, walletPubkey, secret, getInfo])
+    loadConfig().catch(console.error)
+  }, [])
 
-  useEffect(() => {
-    // parse nwc URL on updates
-    // and sync with other state variables
-    if (!nwcUrl) {
-      setRelayUrl(null)
-      setWalletPubkey(null)
-      setSecret(null)
-      return
-    }
-    const params = parseWalletConnectUrl(nwcUrl)
-    setRelayUrl(params.relayUrl)
-    setWalletPubkey(params.walletPubkey)
-    setSecret(params.secret)
-  }, [nwcUrl])
-
-  useEffect(loadConfig, [])
-
-  const value = { name, nwcUrl, relayUrl, walletPubkey, secret, saveConfig, clearConfig, enabled, sendPayment }
+  const value = { name, nwcUrl, relayUrl, walletPubkey, secret, saveConfig, clearConfig, enabled, getInfo, sendPayment }
   return (
     <NWCContext.Provider value={value}>
       {children}
@@ -196,20 +184,64 @@ export function useNWC () {
   return useContext(NWCContext)
 }
 
+async function validateParams ({ relayUrl, walletPubkey, secret }) {
+  let infoRelay
+  try {
+    // validate connection by fetching info event
+    infoRelay = await Relay.connect(relayUrl)
+    return await getInfoWithRelay(infoRelay, walletPubkey)
+  } finally {
+    infoRelay?.close()
+  }
+}
+
+async function getInfoWithRelay (relay, walletPubkey) {
+  return await new Promise((resolve, reject) => {
+    const timeout = 5000
+    const timer = setTimeout(() => {
+      reject(new Error('timeout waiting for response'))
+      sub?.close()
+    }, timeout)
+
+    const sub = relay.subscribe([
+      {
+        kinds: [13194],
+        authors: [walletPubkey]
+      }
+    ], {
+      onevent (event) {
+        clearTimeout(timer)
+        const supported = event.content.split()
+        resolve(supported)
+        sub.close()
+      },
+      onclose (reason) {
+        clearTimeout(timer)
+        reject(new Error(reason))
+      },
+      oneose () {
+        clearTimeout(timer)
+        reject(new Error('info event not found'))
+      }
+    })
+  })
+}
+
 function parseWalletConnectUrl (walletConnectUrl) {
   walletConnectUrl = walletConnectUrl
     .replace('nostrwalletconnect://', 'http://')
     .replace('nostr+walletconnect://', 'http://') // makes it possible to parse with URL in the different environments (browser/node/...)
+
   const url = new URL(walletConnectUrl)
-  const options = {}
-  options.walletPubkey = url.host
+  const params = {}
+  params.walletPubkey = url.host
   const secret = url.searchParams.get('secret')
   const relayUrl = url.searchParams.get('relay')
   if (secret) {
-    options.secret = secret
+    params.secret = secret
   }
   if (relayUrl) {
-    options.relayUrl = relayUrl
+    params.relayUrl = relayUrl
   }
-  return options
+  return params
 }

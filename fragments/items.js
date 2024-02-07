@@ -22,6 +22,7 @@ export const ITEM_FIELDS = gql`
       userId
       moderated
       meMuteSub
+      nsfw
     }
     otsHash
     position

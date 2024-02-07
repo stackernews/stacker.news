@@ -4,6 +4,62 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 
 const LNbitsContext = createContext()
 
+const getWallet = async (baseUrl, adminKey) => {
+  const url = baseUrl.replace(/\/+$/, '')
+  const path = '/api/v1/wallet'
+
+  const headers = new Headers()
+  headers.append('Accept', 'application/json')
+  headers.append('Content-Type', 'application/json')
+  headers.append('X-Api-Key', adminKey)
+
+  const res = await fetch(url + path, { method: 'GET', headers })
+  if (!res.ok) {
+    const errBody = await res.json()
+    throw new Error(errBody.detail)
+  }
+  const wallet = await res.json()
+  return wallet
+}
+
+const postPayment = async (baseUrl, adminKey, bolt11) => {
+  const url = baseUrl.replace(/\/+$/, '')
+  const path = '/api/v1/payments'
+
+  const headers = new Headers()
+  headers.append('Accept', 'application/json')
+  headers.append('Content-Type', 'application/json')
+  headers.append('X-Api-Key', adminKey)
+
+  const body = JSON.stringify({ bolt11, out: true })
+
+  const res = await fetch(url + path, { method: 'POST', headers, body })
+  if (!res.ok) {
+    const errBody = await res.json()
+    throw new Error(errBody.detail)
+  }
+  const payment = await res.json()
+  return payment
+}
+
+const getPayment = async (baseUrl, adminKey, paymentHash) => {
+  const url = baseUrl.replace(/\/+$/, '')
+  const path = `/api/v1/payments/${paymentHash}`
+
+  const headers = new Headers()
+  headers.append('Accept', 'application/json')
+  headers.append('Content-Type', 'application/json')
+  headers.append('X-Api-Key', adminKey)
+
+  const res = await fetch(url + path, { method: 'GET', headers })
+  if (!res.ok) {
+    const errBody = await res.json()
+    throw new Error(errBody.detail)
+  }
+  const payment = await res.json()
+  return payment
+}
+
 export function LNbitsProvider ({ children }) {
   const [url, setUrl] = useState('')
   const [adminKey, setAdminKey] = useState('')
@@ -12,38 +68,8 @@ export function LNbitsProvider ({ children }) {
   const name = 'LNbits'
   const storageKey = 'webln:provider:lnbits'
 
-  const request = useCallback(async (method, path, args) => {
-    let body = null
-    const query = ''
-    const headers = new Headers()
-    headers.append('Accept', 'application/json')
-    headers.append('Content-Type', 'application/json')
-    headers.append('X-Api-Key', adminKey)
-
-    if (method === 'POST') {
-      body = JSON.stringify(args)
-    } else if (args !== undefined) {
-      throw new Error('TODO: support args in GET')
-      // query = ...
-    }
-    const url_ = url.replace(/\/+$/, '')
-    const res = await fetch(url_ + path + query, {
-      method,
-      headers,
-      body
-    })
-    if (!res.ok) {
-      const errBody = await res.json()
-      throw new Error(errBody.detail)
-    }
-    return (await res.json())
-  }, [url, adminKey])
-
   const getInfo = useCallback(async () => {
-    const response = await request(
-      'GET',
-      '/api/v1/wallet'
-    )
+    const response = await getWallet(url, adminKey)
     return {
       node: {
         alias: response.name,
@@ -57,70 +83,68 @@ export function LNbitsProvider ({ children }) {
       version: '1.0',
       supports: ['lightning']
     }
-  }, [request])
+  }, [url, adminKey])
 
   const sendPayment = useCallback(async (bolt11) => {
-    const response = await request(
-      'POST',
-      '/api/v1/payments',
-      {
-        bolt11,
-        out: true
-      }
-    )
-    const checkResponse = await request(
-      'GET',
-      `/api/v1/payments/${response.payment_hash}`
-    )
+    const response = await postPayment(url, adminKey, bolt11)
+    const checkResponse = await getPayment(url, adminKey, response.payment_hash)
     if (!checkResponse.preimage) {
       throw new Error('No preimage')
     }
     return { preimage: checkResponse.preimage }
-  }, [request])
+  }, [url, adminKey])
 
-  const loadConfig = useCallback(() => {
+  const loadConfig = useCallback(async () => {
     const config = window.localStorage.getItem(storageKey)
     if (!config) return
     const configJSON = JSON.parse(config)
     setUrl(configJSON.url)
     setAdminKey(configJSON.adminKey)
+
+    try {
+      // validate config by trying to fetch wallet
+      await getWallet(configJSON.url, configJSON.adminKey)
+    } catch (err) {
+      console.error('invalid LNbits config:', err)
+      setEnabled(false)
+      throw err
+    }
+    setEnabled(true)
   }, [])
 
   const saveConfig = useCallback(async (config) => {
+    // immediately store config so it's not lost even if config is invalid
     setUrl(config.url)
     setAdminKey(config.adminKey)
+
     // XXX This is insecure, XSS vulns could lead to loss of funds!
     //   -> check how mutiny encrypts their wallet and/or check if we can leverage web workers
     //   https://thenewstack.io/leveraging-web-workers-to-safely-store-access-tokens/
     window.localStorage.setItem(storageKey, JSON.stringify(config))
+
+    try {
+      // validate config by trying to fetch wallet
+      await getWallet(config.url, config.adminKey)
+    } catch (err) {
+      console.error('invalid LNbits config:', err)
+      setEnabled(false)
+      throw err
+    }
+    setEnabled(true)
   }, [])
 
   const clearConfig = useCallback(() => {
     window.localStorage.removeItem(storageKey)
     setUrl('')
     setAdminKey('')
+    setEnabled(undefined)
   }, [])
 
   useEffect(() => {
-    // update enabled
-    (async function () {
-      if (!(url && adminKey)) {
-        setEnabled(undefined)
-        return
-      }
-      try {
-        await getInfo()
-        setEnabled(true)
-      } catch (err) {
-        console.error(err)
-        setEnabled(false)
-      }
-    })()
-  }, [url, adminKey, getInfo])
+    loadConfig().catch(console.error)
+  }, [])
 
-  useEffect(loadConfig, [])
-
-  const value = { name, url, adminKey, saveConfig, clearConfig, enabled, sendPayment }
+  const value = { name, url, adminKey, saveConfig, clearConfig, enabled, getInfo, sendPayment }
   return (
     <LNbitsContext.Provider value={value}>
       {children}

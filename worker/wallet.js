@@ -268,7 +268,7 @@ export async function autoDropBolt11s ({ models, lnd }) {
   // Iterate over each invoice to remove them using ln-service
   for (const invoice of invoices) {
     try {
-      const result = await cancelHodlInvoice({ id: invoice.hash, lnd });
+      await cancelHodlInvoice({ id: invoice.hash, lnd });
     } catch (error) {
       console.error(`Error removing invoice with hash ${invoice.hash}:`, error);
     }

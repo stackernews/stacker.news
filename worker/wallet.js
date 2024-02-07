@@ -255,14 +255,24 @@ async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
   }
 }
 
-export async function autoDropBolt11s ({ models }) {
-  await serialize(models, models.$executeRaw`
-    UPDATE "Withdrawl"
+export async function autoDropBolt11s ({ models, lnd }) {
+  const invoices = await serialize(models, models.$executeRaw`
+    WITH updated_rows AS (UPDATE "Withdrawl"
     SET hash = NULL, bolt11 = NULL
     WHERE "userId" IN (SELECT id FROM users WHERE "autoDropBolt11s")
     AND now() > created_at + interval '${INVOICE_RETENTION_DAYS} days'
-    AND hash IS NOT NULL;`
+    AND hash IS NOT NULL
+    RETURNING hash, bolt11;)
+    SELECT * FROM updated_rows`
   )
+  // Iterate over each invoice to remove them using ln-service
+  for (const invoice of invoices) {
+    try {
+      const result = await cancelHodlInvoice({ id: invoice.hash, lnd });
+    } catch (error) {
+      console.error(`Error removing invoice with hash ${invoice.hash}:`, error);
+    }
+  }
 }
 
 // The callback subscriptions above will NOT get called for HODL invoices that are already paid.

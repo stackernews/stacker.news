@@ -186,7 +186,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
 
   const onSubmitWrapper = useCallback(async (
     { cost, ...formValues },
-    { variables, optimisticResponse, update, ...apolloArgs }) => {
+    { variables, optimisticResponse, update, ...submitArgs }) => {
     // some actions require a session
     if (!me && options.requireSession) {
       throw new Error('you must be logged in')
@@ -201,7 +201,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
       try {
         const insufficientFunds = me?.privates.sats < cost
         return await onSubmit(formValues,
-          { variables, optimisticsResponse: insufficientFunds ? null : optimisticResponse, ...apolloArgs })
+          { ...submitArgs, variables, optimisticsResponse: insufficientFunds ? null : optimisticResponse })
       } catch (error) {
         if (!payOrLoginError(error) || !cost) {
           // can't handle error here - bail
@@ -255,7 +255,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
     const retry = () => onSubmit(
       { hash: inv.hash, hmac: inv.hmac, ...formValues },
       // unset update function since we already ran an cache update if we paid using WebLN
-      { variables, update: webLn ? null : undefined })
+      { ...submitArgs, variables, update: webLn ? null : undefined })
     // first retry
     try {
       const ret = await retry()

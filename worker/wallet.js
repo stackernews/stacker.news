@@ -1,6 +1,6 @@
 import serialize from '../api/resolvers/serial.js'
 import {
-  getInvoice, getPayment, cancelHodlInvoice,
+  getInvoice, getPayment, cancelHodlInvoice, deletePayment,
   subscribeToInvoices, subscribeToPayments, subscribeToInvoice
 } from 'ln-service'
 import { sendUserNotification } from '../api/webPush/index.js'
@@ -268,7 +268,7 @@ export async function autoDropBolt11s ({ models, lnd }) {
   // Iterate over each invoice to remove them using ln-service
   for (const invoice of invoices) {
     try {
-      await cancelHodlInvoice({ id: invoice.hash, lnd })
+      await deletePayment({ id: invoice.hash, lnd })
     } catch (error) {
       console.error(`Error removing invoice with hash ${invoice.hash}:`, error)
     }

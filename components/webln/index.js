@@ -26,29 +26,29 @@ function RawWebLNProvider ({ children }) {
 
   const sendPaymentWithToast = function ({ bolt11, hash, hmac }) {
     let canceled = false
-    let removeToast = toaster.warning('zap pending', {
+    let removeToast = toaster.warning('payment pending', {
       autohide: false,
       onCancel: async () => {
         try {
           await cancelInvoice({ variables: { hash, hmac } })
           canceled = true
-          toaster.warning('zap canceled')
+          toaster.warning('payment canceled')
           removeToast = undefined
         } catch (err) {
-          toaster.danger('failed to cancel zap')
+          toaster.danger('failed to cancel payment')
         }
       }
     })
     return provider.sendPayment(bolt11)
       .then(({ preimage }) => {
         removeToast?.()
-        toaster.success('zap successful')
+        toaster.success('payment successful')
         return { preimage }
       }).catch((err) => {
         if (canceled) return
         removeToast?.()
         const reason = err?.message?.toString().toLowerCase() || 'unknown reason'
-        toaster.danger(`zap failed: ${reason}`)
+        toaster.danger(`payment failed: ${reason}`)
         throw err
       })
   }

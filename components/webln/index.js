@@ -22,7 +22,7 @@ function RawWebLNProvider ({ children }) {
   `)
 
   // TODO: switch between providers based on user preference
-  const provider = nwc
+  const provider = nwc.enabled ? nwc : lnbits
 
   const sendPaymentWithToast = function ({ bolt11, hash, hmac }) {
     let canceled = false

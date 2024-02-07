@@ -244,7 +244,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
     }
 
     // wait until invoice is paid or modal is closed
-    const { modalOnClose, gqlCacheUpdateUndo } = await waitForPayment({
+    const { modalOnClose, webLn, gqlCacheUpdateUndo } = await waitForPayment({
       invoice: inv,
       showModal,
       provider,
@@ -252,12 +252,10 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
       gqlCacheUpdate: _update
     })
 
-    const webLnPayment = !!gqlCacheUpdateUndo
-
     const retry = () => onSubmit(
       { hash: inv.hash, hmac: inv.hmac, ...formValues },
       // unset update function since we already ran an cache update if we paid using WebLN
-      { variables, update: webLnPayment ? null : undefined })
+      { variables, update: webLn ? null : undefined })
     // first retry
     try {
       const ret = await retry()
@@ -335,7 +333,7 @@ const waitForWebLNPayment = async ({ provider, invoice, pollInvoice, gqlCacheUpd
       provider.sendPayment(invoice)
         // WebLN payment will never resolve here for HODL invoices
         // since they only get resolved after settlement which can't happen here
-        .then(() => resolve({ gqlCacheUpdateUndo: undoUpdate }))
+        .then(() => resolve({ webLn: true, gqlCacheUpdateUndo: undoUpdate }))
         .catch(err => {
           clearInterval(interval)
           reject(err)
@@ -350,7 +348,7 @@ const waitForWebLNPayment = async ({ provider, invoice, pollInvoice, gqlCacheUpd
           const { invoice: inv } = data
           if (inv.isHeld && inv.satsReceived) {
             clearInterval(interval)
-            resolve({ gqlCacheUpdateUndo: undoUpdate })
+            resolve({ webLn: true, gqlCacheUpdateUndo: undoUpdate })
           }
           if (inv.cancelled) {
             clearInterval(interval)

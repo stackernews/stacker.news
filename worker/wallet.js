@@ -256,26 +256,32 @@ async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
 }
 
 export async function autoDropBolt11s ({ models, lnd }) {
-  const invoices = await models.$queryRaw`
-    SELECT id, hash, bolt11 FROM "Withdrawl"
-    WHERE "userId" IN (SELECT id FROM users WHERE "autoDropBolt11s")
-    AND now() > created_at + interval '${INVOICE_RETENTION_DAYS} days'
-    AND hash IS NOT NULL`
+  const invoices = await serialize(models, models.$executeRaw`
+    WITH updated_rows AS (
+      UPDATE "Withdrawl"
+      SET hash = NULL, bolt11 = NULL
+      WHERE "userId" IN (SELECT id FROM users WHERE "autoDropBolt11s")
+      AND now() > created_at + interval '${INVOICE_RETENTION_DAYS} days'
+      AND hash IS NOT NULL
+      RETURNING id, hash, bolt11
+    )
+    SELECT * FROM updated_rows;
+  `)
 
-  const successfulDeletes = []
+  const updatePromises = []
   for (const invoice of invoices) {
     try {
       await deletePayment({ id: invoice.hash, lnd })
-      successfulDeletes.push(invoice)
     } catch (error) {
       console.error(`Error removing invoice with hash ${invoice.hash}:`, error)
-      failedDeletes.push(invoice)
+      updatePromises.push(models.withdrawl.update({
+        where: { id: invoice.id },
+        data: { hash: invoice.hash, bolt11: invoice.bolt11 },
+      }))
     }
   }
-  if (successfulDeletes.length > 0) {
-    await models.withdrawl.updateMany({
-      where: { hash: { in: successfulDeletes } }, data: { hash: null, bolt11: null }
-    })
+  if (updatePromises.length > 0) {
+    await models.$transaction(updatePromises);
   }
 }
 

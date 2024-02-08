@@ -6,6 +6,7 @@ import { nwcSchema } from '../../../lib/validate'
 import { useToast } from '../../../components/toast'
 import { useRouter } from 'next/router'
 import { useNWC } from '../../../components/webln/nwc'
+import { WalletSecurityBanner } from '../../../components/banners'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -18,6 +19,7 @@ export default function NWC () {
     <CenterLayout>
       <h2 className='pb-2'>nwc</h2>
       <h6 className='text-muted text-center pb-3'>use Nostr Wallet Connect for zapping</h6>
+      <WalletSecurityBanner />
       <Form
         initial={{
           nwcUrl: nwcUrl || '',

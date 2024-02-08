@@ -88,3 +88,20 @@ export function WalletLimitBanner () {
     </Alert>
   )
 }
+
+export function WalletSecurityBanner () {
+  return (
+    <Alert className={styles.banner} key='info' variant='warning'>
+      <Alert.Heading>
+        Wallet Security Disclaimer
+      </Alert.Heading>
+      <p className='mb-1'>
+        Your wallet's credentials are stored in the browser and never go to the server.<br />
+        However, you should definitely <strong>set a budget in your wallet</strong>.
+      </p>
+      <p>
+        Also, for the time being, you will have to reenter your credentials on other devices.
+      </p>
+    </Alert>
+  )
+}

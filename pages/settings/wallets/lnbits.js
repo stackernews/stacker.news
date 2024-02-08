@@ -6,6 +6,7 @@ import { lnbitsSchema } from '../../../lib/validate'
 import { useToast } from '../../../components/toast'
 import { useRouter } from 'next/router'
 import { useLNbits } from '../../../components/webln/lnbits'
+import { WalletSecurityBanner } from '../../../components/banners'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -18,6 +19,7 @@ export default function LNbits () {
     <CenterLayout>
       <h2 className='pb-2'>lnbits</h2>
       <h6 className='text-muted text-center pb-3'>use lnbits for zapping</h6>
+      <WalletSecurityBanner />
       <Form
         initial={{
           url: url || '',

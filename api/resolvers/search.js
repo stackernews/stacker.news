@@ -224,7 +224,6 @@ export default {
         }
       })
 
-
       for (const quote of quotes) {
         whatArr.push({
           multi_match: {

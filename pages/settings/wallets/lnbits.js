@@ -1,5 +1,5 @@
 import { getGetServerSideProps } from '../../../api/ssrApollo'
-import { Form, ClientInput } from '../../../components/form'
+import { Form, ClientInput, ClientCheckbox } from '../../../components/form'
 import { CenterLayout } from '../../../components/layout'
 import { WalletButtonBar, WalletCard } from '../../../components/wallet-card'
 import { lnbitsSchema } from '../../../lib/validate'
@@ -10,7 +10,7 @@ import { useLNbits } from '../../../components/webln/lnbits'
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
 export default function LNbits () {
-  const { url, adminKey, saveConfig, clearConfig, enabled } = useLNbits()
+  const { url, adminKey, saveConfig, clearConfig, enabled, isDefault } = useLNbits()
   const toaster = useToast()
   const router = useRouter()
 
@@ -21,7 +21,8 @@ export default function LNbits () {
       <Form
         initial={{
           url: url || '',
-          adminKey: adminKey || ''
+          adminKey: adminKey || '',
+          isDefault: isDefault || false
         }}
         schema={lnbitsSchema}
         onSubmit={async (values) => {
@@ -48,6 +49,12 @@ export default function LNbits () {
           autoComplete='false'
           label='admin key'
           name='adminKey'
+        />
+        <ClientCheckbox
+          disabled={!enabled}
+          initialValue={isDefault}
+          label='default payment method'
+          name='isDefault'
         />
         <WalletButtonBar
           enabled={enabled} onDelete={async () => {

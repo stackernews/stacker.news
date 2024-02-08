@@ -1,5 +1,5 @@
 import { getGetServerSideProps } from '../../../api/ssrApollo'
-import { Form, ClientInput } from '../../../components/form'
+import { Form, ClientInput, ClientCheckbox } from '../../../components/form'
 import { CenterLayout } from '../../../components/layout'
 import { WalletButtonBar, WalletCard } from '../../../components/wallet-card'
 import { nwcSchema } from '../../../lib/validate'
@@ -10,7 +10,7 @@ import { useNWC } from '../../../components/webln/nwc'
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
 export default function NWC () {
-  const { nwcUrl, saveConfig, clearConfig, enabled } = useNWC()
+  const { nwcUrl, saveConfig, clearConfig, enabled, isDefault } = useNWC()
   const toaster = useToast()
   const router = useRouter()
 
@@ -20,7 +20,8 @@ export default function NWC () {
       <h6 className='text-muted text-center pb-3'>use Nostr Wallet Connect for zapping</h6>
       <Form
         initial={{
-          nwcUrl: nwcUrl || ''
+          nwcUrl: nwcUrl || '',
+          isDefault: isDefault || false
         }}
         schema={nwcSchema}
         onSubmit={async (values) => {
@@ -40,6 +41,12 @@ export default function NWC () {
           name='nwcUrl'
           required
           autoFocus
+        />
+        <ClientCheckbox
+          disabled={!enabled}
+          initialValue={isDefault}
+          label='default payment method'
+          name='isDefault'
         />
         <WalletButtonBar
           enabled={enabled} onDelete={async () => {

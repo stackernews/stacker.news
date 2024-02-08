@@ -176,3 +176,22 @@ $BODY$;
 ALTER FUNCTION public.update_item(text, integer, text, text, text, integer, integer, integer, text[])
     OWNER TO postgres;
 
+-- Update new database fields and tables with existing data
+-- Insert into ItemSub table
+INSERT INTO "ItemSub" ("itemId", "subName")
+SELECT "id", "subName"
+FROM "Item"
+WHERE "subName" IS NOT NULL
+AND NOT EXISTS (
+    SELECT 1 FROM "ItemSub" WHERE "itemId" = "Item"."id" AND "subName" = "Item"."subName"
+);
+
+-- Update subs array in Item table
+UPDATE "Item" AS A
+SET "subNames" = B."subNames"
+FROM (
+    SELECT "itemId", ARRAY_AGG("subName") AS "subNames"
+    FROM "ItemSub"
+    GROUP BY "itemId"
+) AS B
+WHERE A."id" = B."itemId";

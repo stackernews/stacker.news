@@ -260,28 +260,28 @@ export async function autoDropBolt11s ({ models, lnd }) {
     SELECT id, hash, bolt11 FROM "Withdrawl"
     WHERE "userId" IN (SELECT id FROM users WHERE "autoDropBolt11s")
     AND now() > created_at + interval '${INVOICE_RETENTION_DAYS} days'
-    AND hash IS NOT NULL`;
+    AND hash IS NOT NULL`
 
-  let successfulDeletes = [];
-  let failedDeletes = [];
+  const successfulDeletes = []
+  const failedDeletes = []
   for (const invoice of invoices) {
     try {
       await deletePayment({ id: invoice.hash, lnd })
-      successfulDeletes.push(invoice);
+      successfulDeletes.push(invoice)
     } catch (error) {
       console.error(`Error removing invoice with hash ${invoice.hash}:`, error)
-      failedDeletes.push(invoice);
+      failedDeletes.push(invoice)
     }
   }
   if (successfulDeletes.length > 0) {
     await models.withdrawl.deleteMany({
       where: { hash: { in: successfulDeletes } }
-    });
+    })
   }
   if (failedDeletes.length > 0) {
-    await models.withdrawl.updateMany({ 
-      where: { hash: { in: failedDeletes } }, data: { status: 'UNKNOWN_FAILURE' } 
-    });
+    await models.withdrawl.updateMany({
+      where: { hash: { in: failedDeletes } }, data: { status: 'UNKNOWN_FAILURE' }
+    })
   }
 }
 

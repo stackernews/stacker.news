@@ -7,9 +7,10 @@ import CancelButton from './cancel-button'
 import { SubmitButton } from './form'
 
 export function WalletCard ({ title, badges, provider, enabled }) {
+  const isConfigured = enabled === true || enabled === false
   return (
     <Card className={styles.card}>
-      <div className={`${styles.indicator} ${enabled ? styles.success : styles.disabled}`} />
+      <div className={`${styles.indicator} ${enabled === true ? styles.success : enabled === false ? styles.error : styles.disabled}`} />
       <Card.Body>
         <Card.Title>{title}</Card.Title>
         <Card.Subtitle className='mt-2'>
@@ -23,7 +24,7 @@ export function WalletCard ({ title, badges, provider, enabled }) {
       {provider &&
         <Link href={`/settings/wallets/${provider}`}>
           <Card.Footer className={styles.attach}>
-            {enabled
+            {isConfigured
               ? <>configure<Gear width={14} height={14} /></>
               : <>attach<Plug width={14} height={14} /></>}
           </Card.Footer>
@@ -40,7 +41,7 @@ export function WalletButtonBar ({
   return (
     <div className={`mt-3 ${className}`}>
       <div className='d-flex justify-content-between'>
-        {enabled &&
+        {enabled !== undefined &&
           <Button onClick={onDelete} variant='grey-medium'>{deleteText}</Button>}
         {children}
         <div className='d-flex align-items-center ms-auto'>

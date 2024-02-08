@@ -29,10 +29,11 @@ function RawWebLNProvider ({ children }) {
   const nwc = useNWC()
   const providers = [lnbits, nwc]
 
-  // order of payment methods depends on user preference:
-  // payment method at index 0 is default, if that one fails
-  // we try the remaining ones in order as fallbacks.
-  // -- TODO: implement fallback logic
+  // TODO: Order of payment methods depends on user preference.
+  // Payment method at index 0 should be default,
+  // if that one fails we try the remaining ones in order as fallbacks.
+  // We should be able to implement this via dragging of cards.
+  // This list should then match the order in which the (payment) cards are rendered.
   // eslint-disable-next-line no-unused-vars
   const [paymentMethods, setPaymentMethods] = useState([])
   const loadPaymentMethods = () => {
@@ -77,7 +78,7 @@ function RawWebLNProvider ({ children }) {
     if (lnbits.isDefault) setDefaultPaymentMethod(lnbits)
   }, [lnbits.isDefault])
 
-  // TODO: implement numeric provider priority
+  // TODO: implement numeric provider priority using paymentMethods list
   // when we have more than two providers for sending
   let provider = providers.filter(p => p.enabled && p.isDefault)[0]
   if (!provider && providers.length > 0) {

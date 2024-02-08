@@ -4,7 +4,7 @@ import YouTube from 'react-youtube'
 import gfm from 'remark-gfm'
 import { LightAsync as SyntaxHighlighter } from 'react-syntax-highlighter'
 import atomDark from 'react-syntax-highlighter/dist/cjs/styles/prism/atom-dark'
-import mention from '../lib/remark-mention'
+import { preprocessMentions, rehypeMentions } from '../lib/remark-mention'
 import sub from '../lib/remark-sub'
 import React, { useState, memo, useRef, useCallback, useMemo, useEffect } from 'react'
 import GithubSlugger from 'github-slugger'
@@ -33,11 +33,17 @@ export function SearchText ({ text }) {
 }
 
 // this is one of the slowest components to render
-export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, itemId, ...outerProps }) {
+export default memo(function Text ({ nofollow, imgproxyUrls, children: _children, tab, itemId, ...outerProps }) {
+  const [children, setChildren] = useState(_children)
   const [overflowing, setOverflowing] = useState(false)
   const router = useRouter()
   const [show, setShow] = useState(false)
   const containerRef = useRef(null)
+
+  useEffect(() => {
+    const processedChildren = preprocessMentions(_children)
+    setChildren(processedChildren)
+  }, [_children])
 
   useEffect(() => {
     setShow(router.asPath.includes('#'))
@@ -221,8 +227,8 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, item
           },
           img: Img
         }}
-        remarkPlugins={[gfm, mention, sub]}
-        rehypePlugins={[rehypeInlineCodeProperty]}
+        remarkPlugins={[gfm, sub]}
+        rehypePlugins={[rehypeInlineCodeProperty, rehypeMentions]}
       >
         {children}
       </ReactMarkdown>

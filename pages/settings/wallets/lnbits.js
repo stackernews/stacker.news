@@ -17,8 +17,8 @@ export default function LNbits () {
 
   return (
     <CenterLayout>
-      <h2 className='pb-2'>lnbits</h2>
-      <h6 className='text-muted text-center pb-3'>use lnbits for zapping</h6>
+      <h2 className='pb-2'>LNbits</h2>
+      <h6 className='text-muted text-center pb-3'>use LNbits for payments</h6>
       <WalletSecurityBanner />
       <Form
         initial={{
@@ -79,7 +79,7 @@ export function LNbitsCard () {
   const { enabled } = useLNbits()
   return (
     <WalletCard
-      title='lnbits'
+      title='LNbits'
       badges={['send only', 'non-custodialish']}
       provider='lnbits'
       enabled={enabled}

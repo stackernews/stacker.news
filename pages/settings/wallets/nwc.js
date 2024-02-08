@@ -17,8 +17,8 @@ export default function NWC () {
 
   return (
     <CenterLayout>
-      <h2 className='pb-2'>nwc</h2>
-      <h6 className='text-muted text-center pb-3'>use Nostr Wallet Connect for zapping</h6>
+      <h2 className='pb-2'>Nostr Wallet Connect</h2>
+      <h6 className='text-muted text-center pb-3'>use Nostr Wallet Connect for payments</h6>
       <WalletSecurityBanner />
       <Form
         initial={{
@@ -71,7 +71,7 @@ export function NWCCard () {
   const { enabled } = useNWC()
   return (
     <WalletCard
-      title='nwc'
+      title='NWC'
       badges={['send only', 'non-custodialish', 'budgetable']}
       provider='nwc'
       enabled={enabled}

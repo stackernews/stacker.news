@@ -340,6 +340,7 @@ export default {
                 `"${table}"."userId" = $3`,
                 activeOrMine(me),
                 await filterClause(me, models, type),
+                nsfwClause(showNsfw),
                 typeClause(type),
                 whenClause(when || 'forever', table))}
               ${orderByClause(by, me, models, type)}

@@ -268,20 +268,20 @@ export async function autoDropBolt11s ({ models, lnd }) {
     SELECT * FROM updated_rows;
   `)
 
-  const updatePromises = []
+  const failedDeletesUpdatePromises = []
   for (const invoice of invoices) {
     try {
       await deletePayment({ id: invoice.hash, lnd })
     } catch (error) {
       console.error(`Error removing invoice with hash ${invoice.hash}:`, error)
-      updatePromises.push(models.withdrawl.update({
+      failedDeletesUpdatePromises.push(models.withdrawl.update({
         where: { id: invoice.id },
-        data: { hash: invoice.hash, bolt11: invoice.bolt11 },
+        data: { hash: invoice.hash, bolt11: invoice.bolt11 }
       }))
     }
   }
-  if (updatePromises.length > 0) {
-    await models.$transaction(updatePromises);
+  if (failedDeletesUpdatePromises.length > 0) {
+    await models.$transaction(failedDeletesUpdatePromises)
   }
 }
 

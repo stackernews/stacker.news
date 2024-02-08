@@ -192,16 +192,20 @@ const activeOrMine = (me) => {
 export const muteClause = me =>
   me ? `NOT EXISTS (SELECT 1 FROM "Mute" WHERE "Mute"."muterId" = ${me.id} AND "Mute"."mutedId" = "Item"."userId")` : ''
 
+const HIDE_NSFW_CLAUSE = '"Sub"."nsfw" = FALSE'
+
+export const nsfwClause = showNsfw => showNsfw ? '' : HIDE_NSFW_CLAUSE
+
 const subClause = (sub, num, table, me, showNsfw) => {
+  // Intentionally show nsfw posts (i.e. no nsfw clause) when viewing a specific nsfw sub
   if (sub) { return `${table ? `"${table}".` : ''}"subName" = $${num}::CITEXT` }
 
-  const hideNsfwSub = '"Sub"."nsfw" = FALSE'
-  if (!me) { return showNsfw ? '' : hideNsfwSub }
+  if (!me) { return '' }
 
   const excludeMuted = `NOT EXISTS (SELECT 1 FROM "MuteSub" WHERE "MuteSub"."userId" = ${me.id} AND "MuteSub"."subName" = ${table ? `"${table}".` : ''}"subName")`
   if (showNsfw) return excludeMuted
 
-  return excludeMuted + ' AND ' + hideNsfwSub
+  return excludeMuted + ' AND ' + HIDE_NSFW_CLAUSE
 }
 
 export async function filterClause (me, models, type) {

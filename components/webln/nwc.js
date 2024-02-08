@@ -17,17 +17,16 @@ export function NWCProvider ({ children }) {
   const storageKey = 'webln:provider:nwc'
 
   const loadConfig = useCallback(async () => {
-    const config = window.localStorage.getItem(storageKey)
-    if (!config) return
-
-    const configJSON = JSON.parse(config)
-
-    const { nwcUrl } = configJSON
-    setNwcUrl(nwcUrl)
-    if (!nwcUrl) {
+    const configStr = window.localStorage.getItem(storageKey)
+    if (!configStr) {
       setEnabled(undefined)
       return
     }
+
+    const config = JSON.parse(configStr)
+
+    const { nwcUrl } = config
+    setNwcUrl(nwcUrl)
 
     const params = parseWalletConnectUrl(nwcUrl)
     setRelayUrl(params.relayUrl)

@@ -95,21 +95,27 @@ export function LNbitsProvider ({ children }) {
   }, [url, adminKey])
 
   const loadConfig = useCallback(async () => {
-    const config = window.localStorage.getItem(storageKey)
-    if (!config) return
-    const configJSON = JSON.parse(config)
-    setUrl(configJSON.url)
-    setAdminKey(configJSON.adminKey)
+    const configStr = window.localStorage.getItem(storageKey)
+    if (!configStr) {
+      setEnabled(undefined)
+      return
+    }
+
+    const config = JSON.parse(configStr)
+
+    const { url, adminKey } = config
+    setUrl(url)
+    setAdminKey(adminKey)
 
     try {
       // validate config by trying to fetch wallet
-      await getWallet(configJSON.url, configJSON.adminKey)
+      await getWallet(url, adminKey)
+      setEnabled(true)
     } catch (err) {
       console.error('invalid LNbits config:', err)
       setEnabled(false)
       throw err
     }
-    setEnabled(true)
   }, [])
 
   const saveConfig = useCallback(async (config) => {

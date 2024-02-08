@@ -200,7 +200,7 @@ const subClause = (sub, num, table, me, showNsfw) => {
   // Intentionally show nsfw posts (i.e. no nsfw clause) when viewing a specific nsfw sub
   if (sub) { return `${table ? `"${table}".` : ''}"subName" = $${num}::CITEXT` }
 
-  if (!me) { return '' }
+  if (!me) { return HIDE_NSFW_CLAUSE }
 
   const excludeMuted = `NOT EXISTS (SELECT 1 FROM "MuteSub" WHERE "MuteSub"."userId" = ${me.id} AND "MuteSub"."subName" = ${table ? `"${table}".` : ''}"subName")`
   if (showNsfw) return excludeMuted

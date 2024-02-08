@@ -311,8 +311,8 @@ export default {
       // but the query planner doesn't like unused parameters
       const subArr = sub ? [sub] : []
 
-      user = me ? await models.user.findUnique({ where: { id: me.id } }) : null
-      const showNsfw = user ? user.nsfwMode : false
+      const currentUser = me ? await models.user.findUnique({ where: { id: me.id } }) : null
+      const showNsfw = currentUser ? currentUser.nsfwMode : false
 
       switch (sort) {
         case 'user':

@@ -263,7 +263,6 @@ export async function autoDropBolt11s ({ models, lnd }) {
     AND hash IS NOT NULL`
 
   const successfulDeletes = []
-  const failedDeletes = []
   for (const invoice of invoices) {
     try {
       await deletePayment({ id: invoice.hash, lnd })
@@ -274,13 +273,8 @@ export async function autoDropBolt11s ({ models, lnd }) {
     }
   }
   if (successfulDeletes.length > 0) {
-    await models.withdrawl.deleteMany({
-      where: { hash: { in: successfulDeletes } }
-    })
-  }
-  if (failedDeletes.length > 0) {
     await models.withdrawl.updateMany({
-      where: { hash: { in: failedDeletes } }, data: { status: 'UNKNOWN_FAILURE' }
+      where: { hash: { in: successfulDeletes } }, data: { hash: null, bolt11: null }
     })
   }
 }

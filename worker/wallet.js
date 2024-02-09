@@ -269,7 +269,7 @@ export async function autoDropBolt11s ({ models, lnd }) {
     AND now() > created_at + interval '${INVOICE_RETENTION_DAYS} days'
     AND hash IS NOT NULL;`)
 
-  if(invoices.length > 0) {
+  if (invoices.length > 0) {
     const failedDeletesUpdatePromises = []
     for (const invoice of invoices) {
       try {

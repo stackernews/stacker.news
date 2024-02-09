@@ -256,6 +256,7 @@ async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
 }
 
 export async function autoDropBolt11s ({ models, lnd }) {
+  // This query will update the withdrawls and return what the hash and bol11 values were before the update
   const invoices = await serialize(models, models.$executeRaw`
   WITH to_be_updated AS (
     SELECT id, hash, bolt11

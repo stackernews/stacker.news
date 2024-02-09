@@ -7,11 +7,15 @@ import { useToast } from '../../../components/toast'
 import { useRouter } from 'next/router'
 import { useNWC } from '../../../components/webln/nwc'
 import { WalletSecurityBanner } from '../../../components/banners'
+import { useWebLNConfigurator } from '../../../components/webln'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
 export default function NWC () {
-  const { nwcUrl, saveConfig, clearConfig, enabled, isDefault } = useNWC()
+  const { provider, enabledProviders, setProvider } = useWebLNConfigurator()
+  const nwc = useNWC()
+  const { name, nwcUrl, saveConfig, clearConfig, enabled } = nwc
+  const isDefault = provider?.name === name
   const toaster = useToast()
   const router = useRouter()
 
@@ -26,9 +30,10 @@ export default function NWC () {
           isDefault: isDefault || false
         }}
         schema={nwcSchema}
-        onSubmit={async (values) => {
+        onSubmit={async ({ isDefault, ...values }) => {
           try {
             await saveConfig(values)
+            if (isDefault) setProvider(nwc)
             toaster.success('saved settings')
             router.push('/settings/wallets')
           } catch (err) {
@@ -45,7 +50,7 @@ export default function NWC () {
           autoFocus
         />
         <ClientCheckbox
-          disabled={!enabled}
+          disabled={!enabled || isDefault || enabledProviders.length === 1}
           initialValue={isDefault}
           label='default payment method'
           name='isDefault'

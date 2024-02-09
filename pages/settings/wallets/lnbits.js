@@ -7,11 +7,15 @@ import { useToast } from '../../../components/toast'
 import { useRouter } from 'next/router'
 import { useLNbits } from '../../../components/webln/lnbits'
 import { WalletSecurityBanner } from '../../../components/banners'
+import { useWebLNConfigurator } from '../../../components/webln'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
 export default function LNbits () {
-  const { url, adminKey, saveConfig, clearConfig, enabled, isDefault } = useLNbits()
+  const { provider, enabledProviders, setProvider } = useWebLNConfigurator()
+  const lnbits = useLNbits()
+  const { name, url, adminKey, saveConfig, clearConfig, enabled } = lnbits
+  const isDefault = provider?.name === name
   const toaster = useToast()
   const router = useRouter()
 
@@ -27,9 +31,10 @@ export default function LNbits () {
           isDefault: isDefault || false
         }}
         schema={lnbitsSchema}
-        onSubmit={async (values) => {
+        onSubmit={async ({ isDefault, ...values }) => {
           try {
             await saveConfig(values)
+            if (isDefault) setProvider(lnbits)
             toaster.success('saved settings')
             router.push('/settings/wallets')
           } catch (err) {
@@ -53,7 +58,7 @@ export default function LNbits () {
           name='adminKey'
         />
         <ClientCheckbox
-          disabled={!enabled}
+          disabled={!enabled || isDefault || enabledProviders.length === 1}
           initialValue={isDefault}
           label='default payment method'
           name='isDefault'

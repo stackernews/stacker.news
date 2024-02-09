@@ -11,7 +11,7 @@ export function NWCProvider ({ children }) {
   const [relayUrl, setRelayUrl] = useState()
   const [secret, setSecret] = useState()
   const [enabled, setEnabled] = useState()
-  const [isDefault, setIsDefault] = useState()
+  const [initialized, setInitialized] = useState(false)
   const [relay, setRelay] = useState()
 
   const name = 'NWC'
@@ -26,9 +26,8 @@ export function NWCProvider ({ children }) {
 
     const config = JSON.parse(configStr)
 
-    const { nwcUrl, isDefault } = config
+    const { nwcUrl } = config
     setNwcUrl(nwcUrl)
-    setIsDefault(isDefault)
 
     const params = parseWalletConnectUrl(nwcUrl)
     setRelayUrl(params.relayUrl)
@@ -42,14 +41,15 @@ export function NWCProvider ({ children }) {
       console.error('invalid NWC config:', err)
       setEnabled(false)
       throw err
+    } finally {
+      setInitialized(true)
     }
   }, [])
 
   const saveConfig = useCallback(async (config) => {
     // immediately store config so it's not lost even if config is invalid
-    const { nwcUrl, isDefault } = config
+    const { nwcUrl } = config
     setNwcUrl(nwcUrl)
-    setIsDefault(isDefault)
     if (!nwcUrl) {
       setEnabled(undefined)
       return
@@ -174,7 +174,7 @@ export function NWCProvider ({ children }) {
     loadConfig().catch(console.error)
   }, [])
 
-  const value = { name, nwcUrl, relayUrl, walletPubkey, secret, saveConfig, clearConfig, enabled, isDefault, setIsDefault, getInfo, sendPayment }
+  const value = { name, nwcUrl, relayUrl, walletPubkey, secret, initialized, enabled, saveConfig, clearConfig, getInfo, sendPayment }
   return (
     <NWCContext.Provider value={value}>
       {children}

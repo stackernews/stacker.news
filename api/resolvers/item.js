@@ -152,22 +152,22 @@ const relationClause = (type) => {
   let clause = ''
   switch (type) {
     case 'comments':
-      clause += ' FROM "Item" JOIN "Item" root ON "Item"."rootId" = root.id '
+      clause += ' FROM "Item" JOIN "Item" root ON "Item"."rootId" = root.id LEFT JOIN "Sub" ON "Sub"."name" = root."subName" '
       break
     case 'bookmarks':
-      clause += ' FROM "Item" JOIN "Bookmark" ON "Bookmark"."itemId" = "Item"."id" '
+      clause += ' FROM "Item" JOIN "Bookmark" ON "Bookmark"."itemId" = "Item"."id" LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName" '
       break
     case 'outlawed':
     case 'borderland':
     case 'freebies':
     case 'all':
-      clause += ' FROM "Item" LEFT JOIN "Item" root ON "Item"."rootId" = root.id '
+      clause += ' FROM "Item" LEFT JOIN "Item" root ON "Item"."rootId" = root.id LEFT JOIN "Sub" ON "Sub"."name" = root."subName" '
       break
     default:
-      clause += ' FROM "Item" '
+      clause += ' FROM "Item" LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName" '
   }
 
-  return clause + ' LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName" '
+  return clause
 }
 
 const selectClause = (type) => type === 'bookmarks'

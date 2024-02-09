@@ -122,7 +122,7 @@ export default function ItemInfo ({
         <Link href={`/~${item.subName}`}>
           {' '}<Badge className={styles.newComment} bg={null}>{item.subName}</Badge>
         </Link>}
-      {sub.nsfw &&
+      {sub?.nsfw &&
         <Badge className={styles.newComment} bg={null}>nsfw</Badge>}
       {(item.outlawed && !item.mine &&
         <Link href='/recent/outlawed'>

@@ -5,7 +5,10 @@ import { Form, Input, SubmitButton } from './form'
 import { useMe } from './me'
 import UpBolt from '../svgs/bolt.svg'
 import { amountSchema } from '../lib/validate'
-import { useInvoiceable } from './invoice'
+import { gql, useMutation } from '@apollo/client'
+import { payOrLoginError, useInvoiceModal } from './invoice'
+import { useToast } from './toast'
+import { useLightning } from './lightning'
 
 const defaultTips = [100, 1000, 10000, 100000]
 
@@ -37,47 +40,47 @@ const addCustomTip = (amount) => {
   window.localStorage.setItem('custom-tips', JSON.stringify(customTips))
 }
 
-export default function ItemAct ({ onClose, itemId, act, strike }) {
+export default function ItemAct ({ onClose, itemId, down, children }) {
   const inputRef = useRef(null)
   const me = useMe()
   const [oValue, setOValue] = useState()
+  const strike = useLightning()
 
   useEffect(() => {
     inputRef.current?.focus()
   }, [onClose, itemId])
 
-  const submitAct = useCallback(
-    async (amount, invoiceHash, invoiceHmac) => {
-      if (!me) {
-        const storageKey = `TIP-item:${itemId}`
-        const existingAmount = Number(window.localStorage.getItem(storageKey) || '0')
-        window.localStorage.setItem(storageKey, existingAmount + amount)
-      }
-      await act({
-        variables: {
-          id: itemId,
-          sats: Number(amount),
-          invoiceHash,
-          invoiceHmac
-        }
-      })
-      await strike()
-      addCustomTip(Number(amount))
-      onClose()
-    }, [act, onClose, strike, itemId])
+  const [act] = useAct()
 
-  const invoiceableAct = useInvoiceable(submitAct)
+  const onSubmit = useCallback(async ({ amount, hash, hmac }) => {
+    if (!me) {
+      const storageKey = `TIP-item:${itemId}`
+      const existingAmount = Number(window.localStorage.getItem(storageKey) || '0')
+      window.localStorage.setItem(storageKey, existingAmount + amount)
+    }
+    await act({
+      variables: {
+        id: itemId,
+        sats: Number(amount),
+        act: down ? 'DONT_LIKE_THIS' : 'TIP',
+        hash,
+        hmac
+      }
+    })
+    await strike()
+    addCustomTip(Number(amount))
+    onClose()
+  }, [act, down, itemId, strike])
 
   return (
     <Form
       initial={{
-        amount: me?.tipDefault,
+        amount: me?.privates?.tipDefault || defaultTips[0],
         default: false
       }}
       schema={amountSchema}
-      onSubmit={async ({ amount }) => {
-        return invoiceableAct(amount)
-      }}
+      invoiceable
+      onSubmit={onSubmit}
     >
       <Input
         label='amount'
@@ -92,9 +95,186 @@ export default function ItemAct ({ onClose, itemId, act, strike }) {
       <div>
         <Tips setOValue={setOValue} />
       </div>
+      {children}
       <div className='d-flex'>
-        <SubmitButton variant='success' className='ms-auto mt-1 px-4' value='TIP'>zap</SubmitButton>
+        <SubmitButton variant={down ? 'danger' : 'success'} className='ms-auto mt-1 px-4' value='TIP'>{down && 'down'}zap</SubmitButton>
       </div>
     </Form>
   )
+}
+
+export function useAct ({ onUpdate } = {}) {
+  const me = useMe()
+
+  const update = useCallback((cache, args) => {
+    const { data: { act: { id, sats, path, act } } } = args
+
+    cache.modify({
+      id: `Item:${id}`,
+      fields: {
+        sats (existingSats = 0) {
+          if (act === 'TIP') {
+            return existingSats + sats
+          }
+
+          return existingSats
+        },
+        meSats: me
+          ? (existingSats = 0) => {
+              if (act === 'TIP') {
+                return existingSats + sats
+              }
+
+              return existingSats
+            }
+          : undefined,
+        meDontLikeSats: me
+          ? (existingSats = 0) => {
+              if (act === 'DONT_LIKE_THIS') {
+                return existingSats + sats
+              }
+
+              return existingSats
+            }
+          : undefined
+      }
+    })
+
+    if (act === 'TIP') {
+      // update all ancestors
+      path.split('.').forEach(aId => {
+        if (Number(aId) === Number(id)) return
+        cache.modify({
+          id: `Item:${aId}`,
+          fields: {
+            commentSats (existingCommentSats = 0) {
+              return existingCommentSats + sats
+            }
+          }
+        })
+      })
+
+      onUpdate && onUpdate(cache, args)
+    }
+  }, [!!me, onUpdate])
+
+  return useMutation(
+    gql`
+      mutation act($id: ID!, $sats: Int!, $act: String, $hash: String, $hmac: String) {
+        act(id: $id, sats: $sats, act: $act, hash: $hash, hmac: $hmac) {
+          id
+          sats
+          path
+          act
+        }
+      }`, { update }
+  )
+}
+
+export function useZap () {
+  const update = useCallback((cache, args) => {
+    const { data: { act: { id, sats, path } } } = args
+
+    // determine how much we increased existing sats by by checking the
+    // difference between result sats and meSats
+    // if it's negative, skip the cache as it's an out of order update
+    // if it's positive, add it to sats and commentSats
+
+    const item = cache.readFragment({
+      id: `Item:${id}`,
+      fragment: gql`
+        fragment ItemMeSats on Item {
+          meSats
+        }
+      `
+    })
+
+    const satsDelta = sats - item.meSats
+
+    if (satsDelta > 0) {
+      cache.modify({
+        id: `Item:${id}`,
+        fields: {
+          sats (existingSats = 0) {
+            return existingSats + satsDelta
+          },
+          meSats: () => {
+            return sats
+          }
+        }
+      })
+
+      // update all ancestors
+      path.split('.').forEach(aId => {
+        if (Number(aId) === Number(id)) return
+        cache.modify({
+          id: `Item:${aId}`,
+          fields: {
+            commentSats (existingCommentSats = 0) {
+              return existingCommentSats + satsDelta
+            }
+          }
+        })
+      })
+    }
+  }, [])
+
+  const [zap] = useMutation(
+    gql`
+      mutation idempotentAct($id: ID!, $sats: Int!) {
+        act(id: $id, sats: $sats, idempotent: true) {
+          id
+          sats
+          path
+        }
+      }`, { update }
+  )
+
+  const toaster = useToast()
+  const strike = useLightning()
+  const [act] = useAct()
+
+  const invoiceableAct = useInvoiceModal(
+    async ({ hash, hmac }, { variables, ...apolloArgs }) => {
+      await act({ variables: { ...variables, hash, hmac }, ...apolloArgs })
+      strike()
+    }, [act, strike])
+
+  return useCallback(async ({ item, me }) => {
+    const meSats = (item?.meSats || 0)
+
+    // what should our next tip be?
+    let sats = me?.privates?.tipDefault || 1
+    if (me?.privates?.turboTipping) {
+      while (meSats >= sats) {
+        sats *= 10
+      }
+    } else {
+      sats = meSats + sats
+    }
+
+    const variables = { id: item.id, sats, act: 'TIP' }
+    const insufficientFunds = me?.privates.sats < sats
+    const optimisticResponse = { act: { path: item.path, ...variables } }
+    try {
+      if (!insufficientFunds) strike()
+      await zap({ variables, optimisticResponse: insufficientFunds ? null : optimisticResponse })
+    } catch (error) {
+      if (payOrLoginError(error)) {
+        // call non-idempotent version
+        const amount = sats - meSats
+        optimisticResponse.act.amount = amount
+        try {
+          await invoiceableAct({ amount }, {
+            variables: { ...variables, sats: amount },
+            optimisticResponse,
+            update
+          })
+        } catch (error) {}
+        return
+      }
+      console.error(error)
+      toaster.danger('zap: ' + error?.message || error?.toString?.())
+    }
+  })
 }

@@ -19,44 +19,44 @@ const WhenComposedChart = dynamic(() => import('../../components/charts').then(m
 })
 
 const GROWTH_QUERY = gql`
-  query Growth($when: String!)
+  query Growth($when: String!, $from: String, $to: String)
   {
-    registrationGrowth(when: $when) {
+    registrationGrowth(when: $when, from: $from, to: $to) {
       time
       data {
         name
         value
       }
     }
-    itemGrowth(when: $when) {
+    itemGrowth(when: $when, from: $from, to: $to) {
       time
       data {
         name
         value
       }
     }
-    spendingGrowth(when: $when) {
+    spendingGrowth(when: $when, from: $from, to: $to) {
       time
       data {
         name
         value
       }
     }
-    spenderGrowth(when: $when) {
+    spenderGrowth(when: $when, from: $from, to: $to) {
       time
       data {
         name
         value
       }
     }
-    stackingGrowth(when: $when) {
+    stackingGrowth(when: $when, from: $from, to: $to) {
       time
       data {
         name
         value
       }
     }
-    stackerGrowth(when: $when) {
+    stackerGrowth(when: $when, from: $from, to: $to) {
       time
       data {
         name
@@ -65,14 +65,13 @@ const GROWTH_QUERY = gql`
     }
   }`
 
-export const getServerSideProps = getGetServerSideProps(GROWTH_QUERY)
+export const getServerSideProps = getGetServerSideProps({ query: GROWTH_QUERY })
 
 export default function Growth ({ ssrData }) {
   const router = useRouter()
-  const { when } = router.query
-  const avg = ['year', 'forever'].includes(when) ? 'avg daily ' : ''
+  const { when, from, to } = router.query
 
-  const { data } = useQuery(GROWTH_QUERY, { variables: { when } })
+  const { data } = useQuery(GROWTH_QUERY, { variables: { when, from, to } })
   if (!data && !ssrData) return <PageLoading />
 
   const { registrationGrowth, itemGrowth, spendingGrowth, spenderGrowth, stackingGrowth, stackerGrowth } = data || ssrData
@@ -82,7 +81,7 @@ export default function Growth ({ ssrData }) {
       <UsageHeader />
       <Row>
         <Col className='mt-3'>
-          <div className='text-center text-muted fw-bold'>{avg}stackers</div>
+          <div className='text-center text-muted fw-bold'>stackers</div>
           <WhenLineChart data={stackerGrowth} />
         </Col>
         <Col className='mt-3'>
@@ -92,7 +91,7 @@ export default function Growth ({ ssrData }) {
       </Row>
       <Row>
         <Col className='mt-3'>
-          <div className='text-center text-muted fw-bold'>{avg}spenders</div>
+          <div className='text-center text-muted fw-bold'>spenders</div>
           <WhenLineChart data={spenderGrowth} />
         </Col>
         <Col className='mt-3'>
@@ -107,7 +106,7 @@ export default function Growth ({ ssrData }) {
         </Col>
         <Col className='mt-3'>
           <div className='text-center text-muted fw-bold'>items</div>
-          <WhenComposedChart data={itemGrowth} areaNames={['posts', 'comments', 'jobs']} areaAxis='left' lineNames={['comments/posts']} lineAxis='right' />
+          <WhenComposedChart data={itemGrowth} areaNames={['posts', 'comments', 'jobs']} areaAxis='left' lineNames={['comments/posts', 'territories']} lineAxis='right' barNames={['zaps']} />
         </Col>
       </Row>
     </Layout>

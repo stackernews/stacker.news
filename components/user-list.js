@@ -10,8 +10,8 @@ import { useData } from './use-data'
 import Hat from './hat'
 
 // all of this nonsense is to show the stat we are sorting by first
-const Stacked = ({ user }) => (<span>{abbrNum(user.stacked)} stacked</span>)
-const Spent = ({ user }) => (<span>{abbrNum(user.spent)} spent</span>)
+const Stacked = ({ user }) => (user.optional.stacked !== null && <span>{abbrNum(user.optional.stacked)} stacked</span>)
+const Spent = ({ user }) => (user.optional.spent !== null && <span>{abbrNum(user.optional.spent)} spent</span>)
 const Posts = ({ user }) => (
   <Link href={`/${user.name}/posts`} className='text-reset'>
     {numWithUnits(user.nposts, { unitSingular: 'post', unitPlural: 'posts' })}
@@ -20,7 +20,7 @@ const Comments = ({ user }) => (
   <Link href={`/${user.name}/comments`} className='text-reset'>
     {numWithUnits(user.ncomments, { unitSingular: 'comment', unitPlural: 'comments' })}
   </Link>)
-const Referrals = ({ user }) => (<span>{numWithUnits(user.referrals, { unitSingular: 'referral', unitPlural: 'referrals' })}</span>)
+const Referrals = ({ user }) => (user.optional.referrals !== null && <span>{numWithUnits(user.optional.referrals, { unitSingular: 'referral', unitPlural: 'referrals' })}</span>)
 const Seperator = () => (<span> \ </span>)
 
 const STAT_POS = {
@@ -66,7 +66,7 @@ export default function UserList ({ ssrData, query, variables, destructureData }
         <div className={`${styles.item} mb-2`} key={user.name}>
           <Link href={`/${user.name}`}>
             <Image
-              src={user.photoId ? `https://${process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET}.s3.amazonaws.com/${user.photoId}` : '/dorian400.jpg'} width='32' height='32'
+              src={user.photoId ? `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}/${user.photoId}` : '/dorian400.jpg'} width='32' height='32'
               className={`${userStyles.userimg} me-2`}
             />
           </Link>

@@ -4,7 +4,7 @@ import TopHeader from '../../../components/top-header'
 import { TOP_COWBOYS } from '../../../fragments/users'
 import UserList from '../../../components/user-list'
 
-export const getServerSideProps = getGetServerSideProps(TOP_COWBOYS)
+export const getServerSideProps = getGetServerSideProps({ query: TOP_COWBOYS })
 
 export default function Index ({ ssrData }) {
   return (

@@ -1,62 +1,42 @@
 import { GraphQLError } from 'graphql'
-import AWS from 'aws-sdk'
-import { IMAGE_PIXELS_MAX, UPLOAD_SIZE_MAX, UPLOAD_TYPES_ALLOW } from '../../lib/constants'
-
-const bucketRegion = 'us-east-1'
-
-AWS.config.update({
-  region: bucketRegion
-})
+import { ANON_USER_ID, IMAGE_PIXELS_MAX, UPLOAD_SIZE_MAX, UPLOAD_SIZE_MAX_AVATAR, UPLOAD_TYPES_ALLOW } from '../../lib/constants'
+import { createPresignedPost } from '../s3'
 
 export default {
   Mutation: {
-    getSignedPOST: async (parent, { type, size, width, height }, { models, me }) => {
-      if (!me) {
-        throw new GraphQLError('you must be logged in to get a signed url', { extensions: { code: 'FORBIDDEN' } })
-      }
-
+    getSignedPOST: async (parent, { type, size, width, height, avatar }, { models, me }) => {
       if (UPLOAD_TYPES_ALLOW.indexOf(type) === -1) {
         throw new GraphQLError(`image must be ${UPLOAD_TYPES_ALLOW.map(t => t.replace('image/', '')).join(', ')}`, { extensions: { code: 'BAD_INPUT' } })
       }
 
       if (size > UPLOAD_SIZE_MAX) {
-        throw new GraphQLError(`image must be less than ${UPLOAD_SIZE_MAX} bytes`, { extensions: { code: 'BAD_INPUT' } })
+        throw new GraphQLError(`image must be less than ${UPLOAD_SIZE_MAX / (1024 ** 2)} megabytes`, { extensions: { code: 'BAD_INPUT' } })
+      }
+
+      if (avatar && size > UPLOAD_SIZE_MAX_AVATAR) {
+        throw new GraphQLError(`image must be less than ${UPLOAD_SIZE_MAX_AVATAR / (1024 ** 2)} megabytes`, { extensions: { code: 'BAD_INPUT' } })
       }
 
       if (width * height > IMAGE_PIXELS_MAX) {
         throw new GraphQLError(`image must be less than ${IMAGE_PIXELS_MAX} pixels`, { extensions: { code: 'BAD_INPUT' } })
       }
 
-      // create upload record
-      const upload = await models.upload.create({
-        data: {
-          type,
-          size,
-          width,
-          height,
-          userId: me.id
-        }
-      })
+      const imgParams = {
+        type,
+        size,
+        width,
+        height,
+        userId: me?.id || ANON_USER_ID,
+        paid: false
+      }
 
-      // get presigned POST ur
-      const s3 = new AWS.S3({ apiVersion: '2006-03-01' })
-      const res = await new Promise((resolve, reject) => {
-        s3.createPresignedPost({
-          Bucket: process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET,
-          Fields: {
-            key: String(upload.id)
-          },
-          Expires: 300,
-          Conditions: [
-            { 'Content-Type': type },
-            { 'Cache-Control': 'max-age=31536000' },
-            { acl: 'public-read' },
-            ['content-length-range', size, size]
-          ]
-        }, (err, preSigned) => { if (err) { reject(err) } else { resolve(preSigned) } })
-      })
+      if (avatar) {
+        if (!me) throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+        imgParams.paid = undefined
+      }
 
-      return res
+      const upload = await models.upload.create({ data: { ...imgParams } })
+      return createPresignedPost({ key: String(upload.id), type, size })
     }
   }
 }

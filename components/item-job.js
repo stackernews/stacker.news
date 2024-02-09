@@ -25,7 +25,7 @@ export default function ItemJob ({ item, toc, rank, children }) {
       <div className={styles.item}>
         <Link href={`/items/${item.id}`}>
           <Image
-            src={item.uploadId ? `https://${process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET}.s3.amazonaws.com/${item.uploadId}` : '/jobs-default.png'} width='42' height='42' className={styles.companyImage}
+            src={item.uploadId ? `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}/${item.uploadId}` : '/jobs-default.png'} width='42' height='42' className={styles.companyImage}
           />
         </Link>
         <div className={`${styles.hunk} align-self-center mb-0`}>
@@ -73,7 +73,7 @@ export default function ItemJob ({ item, toc, rank, children }) {
         </div>
         {toc &&
           <>
-            <Share item={item} />
+            <Share title={item?.title} path={`/items/${item?.id}`} />
             <Toc text={item.text} />
           </>}
       </div>

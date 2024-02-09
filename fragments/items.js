@@ -10,12 +10,19 @@ export const ITEM_FIELDS = gql`
     title
     url
     user {
-      name
-      streak
-      hideCowboyHat
       id
+      name
+      optional {
+        streak
+      }
+      meMute
     }
-    fwdUserId
+    sub {
+      name
+      userId
+      moderated
+      meMuteSub
+    }
     otsHash
     position
     sats
@@ -23,14 +30,17 @@ export const ITEM_FIELDS = gql`
     boost
     bounty
     bountyPaidTo
+    noteId
     path
     upvotes
     meSats
-    meDontLike
+    meDontLikeSats
     meBookmark
     meSubscription
+    meForward
     outlawed
     freebie
+    bio
     ncomments
     commentSats
     lastCommentAt
@@ -44,6 +54,7 @@ export const ITEM_FIELDS = gql`
     status
     uploadId
     mine
+    imgproxyUrls
   }`
 
 export const ITEM_FULL_FIELDS = gql`
@@ -51,12 +62,6 @@ export const ITEM_FULL_FIELDS = gql`
   fragment ItemFullFields on Item {
     ...ItemFields
     text
-    fwdUser {
-      name
-      streak
-      hideCowboyHat
-      id
-    }
     root {
       id
       title
@@ -64,10 +69,24 @@ export const ITEM_FULL_FIELDS = gql`
       bountyPaidTo
       subName
       user {
-        name
-        streak
-        hideCowboyHat
         id
+        name
+        optional {
+          streak
+        }
+      }
+      sub {
+        name
+        userId
+        moderated
+        meMuteSub
+      }
+    }
+    forwards {
+      userId
+      pct
+      user {
+        name
       }
     }
   }`
@@ -134,7 +153,7 @@ export const ITEM_FULL = gql`
 
 export const RELATED_ITEMS = gql`
   ${ITEM_FIELDS}
-  query Related($title: String, $id: ID, $cursor: String, $limit: Int) {
+  query Related($title: String, $id: ID, $cursor: String, $limit: Limit) {
     related(title: $title, id: $id, cursor: $cursor, limit: $limit) {
       cursor
       items {
@@ -146,7 +165,7 @@ export const RELATED_ITEMS = gql`
 
 export const RELATED_ITEMS_WITH_ITEM = gql`
   ${ITEM_FIELDS}
-  query Related($title: String, $id: ID, $cursor: String, $limit: Int) {
+  query Related($title: String, $id: ID!, $cursor: String, $limit: Limit) {
     item(id: $id) {
       ...ItemFields
     }

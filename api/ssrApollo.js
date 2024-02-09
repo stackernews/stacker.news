@@ -9,6 +9,8 @@ import lnd from './lnd'
 import search from './search'
 import { ME } from '../fragments/users'
 import { PRICE } from '../fragments/price'
+import { BLOCK_HEIGHT } from '../fragments/blockHeight'
+import { CHAIN_FEE } from '../fragments/chainFee'
 import { getServerSession } from 'next-auth/next'
 import { getAuthOptions } from '../pages/api/auth/[...nextauth]'
 
@@ -52,32 +54,50 @@ export default async function getSSRApolloClient ({ req, res, me = null }) {
   return client
 }
 
-export function getGetServerSideProps (queryOrFunc, variablesOrFunc = null, notFoundFunc, requireVar) {
+/**
+ * Takes a query and variables and returns a getServerSideProps function
+ *
+ * @param opts Options
+ * @param opts.query graphql query or function that return graphql query
+ * @param opts.variables graphql variables or function that return graphql variables
+ * @param opts.notFound function that tests data to determine if 404
+ * @param opts.authRequired boolean that determines if auth is required
+ */
+export function getGetServerSideProps (
+  { query: queryOrFunc, variables: varsOrFunc, notFound, authRequired }) {
   return async function ({ req, res, query: params }) {
     const { nodata, ...realParams } = params
     // we want to use client-side cache
     if (nodata) return { props: { } }
 
-    const variables = typeof variablesOrFunc === 'function' ? variablesOrFunc(realParams) : variablesOrFunc
+    const variables = typeof varsOrFunc === 'function' ? varsOrFunc(realParams) : varsOrFunc
     const vars = { ...realParams, ...variables }
     const query = typeof queryOrFunc === 'function' ? queryOrFunc(vars) : queryOrFunc
 
     const client = await getSSRApolloClient({ req, res })
 
-    const { data: { me } } = await client.query({
-      query: ME,
-      variables: { skipUpdate: true }
-    })
+    const { data: { me } } = await client.query({ query: ME })
 
-    const { data: { price } } = await client.query({
-      query: PRICE, variables: { fiatCurrency: me?.fiatCurrency }
-    })
-
-    if (requireVar && !vars[requireVar]) {
+    if (authRequired && !me) {
+      const callback = process.env.PUBLIC_URL + req.url
       return {
-        notFound: true
+        redirect: {
+          destination: `/login?callbackUrl=${encodeURIComponent(callback)}`
+        }
       }
     }
+
+    const { data: { price } } = await client.query({
+      query: PRICE, variables: { fiatCurrency: me?.privates?.fiatCurrency }
+    })
+
+    const { data: { blockHeight } } = await client.query({
+      query: BLOCK_HEIGHT, variables: {}
+    })
+
+    const { data: { chainFee } } = await client.query({
+      query: CHAIN_FEE, variables: {}
+    })
 
     let error = null; let data = null; let props = {}
     if (query) {
@@ -86,19 +106,11 @@ export function getGetServerSideProps (queryOrFunc, variablesOrFunc = null, notF
           query,
           variables: vars
         }))
-      } catch (err) {
-        if (err.message === 'you must be logged in') {
-          const callback = process.env.PUBLIC_URL + req.url
-          return {
-            redirect: {
-              destination: `/login?callbackUrl=${encodeURIComponent(callback)}`
-            }
-          }
-        }
-        throw err
+      } catch (e) {
+        console.error(e)
       }
 
-      if (error || !data || (notFoundFunc && notFoundFunc(data, vars))) {
+      if (error || !data || (notFound && notFound(data, vars, me))) {
         return {
           notFound: true
         }
@@ -117,6 +129,8 @@ export function getGetServerSideProps (queryOrFunc, variablesOrFunc = null, notF
         ...props,
         me,
         price,
+        blockHeight,
+        chainFee,
         ssrData: data
       }
     }

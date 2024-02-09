@@ -27,10 +27,12 @@ export default function Layout ({
 
 export function SearchLayout ({ sub, children, ...props }) {
   return (
-    <Layout sub={sub} seo={false} footer={false} {...props}>
+    <Layout sub={sub} seo={false} contain={false} {...props}>
       <SeoSearch sub={sub} />
-      {children}
-      <Search />
+      <Search sub={sub} />
+      <Container as='main' className='pt-3 pb-4 px-sm-0'>
+        {children}
+      </Container>
     </Layout>
   )
 }

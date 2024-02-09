@@ -17,6 +17,19 @@ export default gql`
     sortTime: Date!
   }
 
+  type ForwardedVotification {
+    id: ID!
+    earnedSats: Int!
+    item: Item!
+    sortTime: Date!
+  }
+
+  type FollowActivity {
+    id: ID!
+    item: Item!
+    sortTime: Date!
+  }
+
   type Reply {
     id: ID!
     item: Item!
@@ -59,8 +72,16 @@ export default gql`
   type Earn {
     id: ID!
     earnedSats: Int!
+    minSortTime: Date!
     sortTime: Date!
     sources: EarnSources
+  }
+
+  type Revenue {
+    id: ID!
+    earnedSats: Int!
+    sortTime: Date!
+    subName: String!
   }
 
   type InvoicePaid {
@@ -75,9 +96,21 @@ export default gql`
     sortTime: Date!
   }
 
+  type SubStatus {
+    id: ID!
+    sub: Sub!
+    sortTime: Date!
+  }
+
+  type TerritoryPost {
+    id: ID!
+    item: Item!
+    sortTime: Date!
+  }
+
   union Notification = Reply | Votification | Mention
     | Invitification | Earn | JobChanged | InvoicePaid | Referral
-    | Streak
+    | Streak | FollowActivity | ForwardedVotification | Revenue | SubStatus | TerritoryPost
 
   type Notifications {
     lastChecked: Date

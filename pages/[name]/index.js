@@ -5,19 +5,21 @@ import Button from 'react-bootstrap/Button'
 import styles from '../../styles/user.module.css'
 import { useState } from 'react'
 import ItemFull from '../../components/item-full'
-import { Form, MarkdownInput, SubmitButton } from '../../components/form'
+import { Form, MarkdownInput } from '../../components/form'
 import { useMe } from '../../components/me'
 import { USER_FULL } from '../../fragments/users'
 import { ITEM_FIELDS } from '../../fragments/items'
 import { getGetServerSideProps } from '../../api/ssrApollo'
-import FeeButton, { EditFeeButton } from '../../components/fee-button'
+import { FeeButtonProvider } from '../../components/fee-button'
 import { bioSchema } from '../../lib/validate'
-import CancelButton from '../../components/cancel-button'
 import { useRouter } from 'next/router'
 import PageLoading from '../../components/page-loading'
+import { ItemButtonBar } from '../../components/post'
 
-export const getServerSideProps = getGetServerSideProps(USER_FULL, null,
-  data => !data.user)
+export const getServerSideProps = getGetServerSideProps({
+  query: USER_FULL,
+  notFound: data => !data.user
+})
 
 export function BioForm ({ handleDone, bio }) {
   const [upsertBio] = useMutation(
@@ -47,37 +49,28 @@ export function BioForm ({ handleDone, bio }) {
 
   return (
     <div className={styles.createFormContainer}>
-      <Form
-        initial={{
-          bio: bio?.text || ''
-        }}
-        schema={bioSchema}
-        onSubmit={async values => {
-          const { error } = await upsertBio({ variables: values })
-          if (error) {
-            throw new Error({ message: error.toString() })
-          }
-          handleDone?.()
-        }}
-      >
-        <MarkdownInput
-          topLevel
-          name='bio'
-          minRows={6}
-        />
-        <div className='d-flex mt-3 justify-content-end'>
-          <CancelButton onClick={handleDone} />
-          {bio?.text
-            ? <EditFeeButton
-                paidSats={bio?.meSats}
-                parentId={null} text='save' ChildButton={SubmitButton} variant='secondary'
-              />
-            : <FeeButton
-                baseFee={1} parentId={null} text='create'
-                ChildButton={SubmitButton} variant='secondary'
-              />}
-        </div>
-      </Form>
+      <FeeButtonProvider>
+        <Form
+          initial={{
+            bio: bio?.text || ''
+          }}
+          schema={bioSchema}
+          onSubmit={async values => {
+            const { error } = await upsertBio({ variables: values })
+            if (error) {
+              throw new Error({ message: error.toString() })
+            }
+            handleDone?.()
+          }}
+        >
+          <MarkdownInput
+            topLevel
+            name='bio'
+            minRows={6}
+          />
+          <ItemButtonBar createText='save' onCancel={handleDone} />
+        </Form>
+      </FeeButtonProvider>
     </div>
   )
 }

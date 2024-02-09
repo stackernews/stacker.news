@@ -7,16 +7,15 @@ import styles from './poll.module.css'
 import Check from '../svgs/checkbox-circle-fill.svg'
 import { signIn } from 'next-auth/react'
 import ActionTooltip from './action-tooltip'
-import { useShowModal } from './modal'
-import FundError from './fund-error'
+import { POLL_COST } from '../lib/constants'
+import { payOrLoginError, useInvoiceModal } from './invoice'
 
 export default function Poll ({ item }) {
   const me = useMe()
-  const showModal = useShowModal()
   const [pollVote] = useMutation(
     gql`
-      mutation pollVote($id: ID!) {
-        pollVote(id: $id)
+      mutation pollVote($id: ID!, $hash: String, $hmac: String) {
+        pollVote(id: $id, hash: $hash, hmac: $hmac)
       }`, {
       update (cache, { data: { pollVote } }) {
         cache.modify({
@@ -46,6 +45,12 @@ export default function Poll ({ item }) {
   )
 
   const PollButton = ({ v }) => {
+    const showInvoiceModal = useInvoiceModal(async ({ hash, hmac }, { variables }) => {
+      await pollVote({ variables: { ...variables, hash, hmac } })
+    }, [pollVote])
+
+    const variables = { id: v.id }
+
     return (
       <ActionTooltip placement='left' notForm>
         <Button
@@ -54,17 +59,17 @@ export default function Poll ({ item }) {
             ? async () => {
               try {
                 await pollVote({
-                  variables: { id: v.id },
+                  variables,
                   optimisticResponse: {
                     pollVote: v.id
                   }
                 })
               } catch (error) {
-                if (error.toString().includes('insufficient funds')) {
-                  showModal(onClose => {
-                    return <FundError onClose={onClose} />
-                  })
+                if (payOrLoginError(error)) {
+                  showInvoiceModal({ amount: item.pollCost || POLL_COST }, { variables })
+                  return
                 }
+                throw new Error({ message: error.toString() })
               }
             }
             : signIn}
@@ -94,7 +99,7 @@ export default function Poll ({ item }) {
 function PollResult ({ v, progress }) {
   return (
     <div className={styles.pollResult}>
-      <span className={styles.pollOption}>{v.option}{v.meVoted && <Check className='fill-grey ms-1 align-self-center' width={18} height={18} />}</span>
+      <span className={styles.pollOption}>{v.option}{v.meVoted && <Check className='fill-grey ms-1 align-self-center flex-shrink-0' width={16} height={16} />}</span>
       <span className='ms-auto me-2 align-self-center'>{progress}%</span>
       <div className={styles.pollProgress} style={{ width: `${progress}%` }} />
     </div>

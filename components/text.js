@@ -1,266 +1,235 @@
 import styles from './text.module.css'
 import ReactMarkdown from 'react-markdown'
+import YouTube from 'react-youtube'
 import gfm from 'remark-gfm'
 import { LightAsync as SyntaxHighlighter } from 'react-syntax-highlighter'
 import atomDark from 'react-syntax-highlighter/dist/cjs/styles/prism/atom-dark'
 import mention from '../lib/remark-mention'
 import sub from '../lib/remark-sub'
-import remarkDirective from 'remark-directive'
-import { visit } from 'unist-util-visit'
-import reactStringReplace from 'react-string-replace'
-import React, { useRef, useEffect, useState, memo } from 'react'
+import React, { useState, memo, useRef, useCallback, useMemo, useEffect } from 'react'
 import GithubSlugger from 'github-slugger'
 import LinkIcon from '../svgs/link.svg'
 import Thumb from '../svgs/thumb-up-fill.svg'
 import { toString } from 'mdast-util-to-string'
 import copy from 'clipboard-copy'
-import { IMGPROXY_URL_REGEXP, IMG_URL_REGEXP } from '../lib/url'
-import { extractUrls } from '../lib/md'
-import FileMissing from '../svgs/file-warning-line.svg'
-import { useMe } from './me'
+import ZoomableImage, { decodeOriginalUrl } from './image'
+import { IMGPROXY_URL_REGEXP } from '../lib/url'
+import reactStringReplace from 'react-string-replace'
+import { rehypeInlineCodeProperty } from '../lib/md'
+import { Button } from 'react-bootstrap'
+import { useRouter } from 'next/router'
+import Link from 'next/link'
 
-function searchHighlighter () {
-  return (tree) => {
-    visit(tree, (node) => {
-      if (
-        node.type === 'textDirective' ||
-        node.type === 'leafDirective'
-      ) {
-        if (node.name !== 'high') return
-
-        const data = node.data || (node.data = {})
-        data.hName = 'mark'
-        data.hProperties = {}
-      }
-    })
-  }
-}
-
-function decodeOriginalUrl (imgProxyUrl) {
-  const parts = imgProxyUrl.split('/')
-  // base64url is not a known encoding in browsers
-  // so we need to replace the invalid chars
-  const b64Url = parts[parts.length - 1].replace(/-/g, '+').replace(/_/, '/')
-  const originalUrl = Buffer.from(b64Url, 'base64').toString('utf-8')
-  return originalUrl
-}
-
-function Heading ({ h, slugger, noFragments, topLevel, children, node, ...props }) {
-  const [copied, setCopied] = useState(false)
-  const [id] = useState(noFragments ? undefined : slugger.slug(toString(node).replace(/[^\w\-\s]+/gi, '')))
-
-  const Icon = copied ? Thumb : LinkIcon
-
+export function SearchText ({ text }) {
   return (
-    <span className={styles.heading}>
-      {React.createElement(h, { id, ...props }, children)}
-      {!noFragments && topLevel &&
-        <a className={`${styles.headingLink} ${copied ? styles.copied : ''}`} href={`#${id}`}>
-          <Icon
-            onClick={() => {
-              const location = new URL(window.location)
-              location.hash = `${id}`
-              copy(location.href)
-              setTimeout(() => setCopied(false), 1500)
-              setCopied(true)
-            }}
-            width={18}
-            height={18}
-            className='fill-grey'
-          />
-        </a>}
-    </span>
+    <div className={styles.text}>
+      <p className={styles.p}>
+        {reactStringReplace(text, /\*\*\*([^*]+)\*\*\*/g, (match, i) => {
+          return <mark key={`strong-${match}-${i}`}>{match}</mark>
+        })}
+      </p>
+    </div>
   )
-}
-
-const CACHE_STATES = {
-  IS_LOADING: 'IS_LOADING',
-  IS_LOADED: 'IS_LOADED',
-  IS_ERROR: 'IS_ERROR'
 }
 
 // this is one of the slowest components to render
-export default memo(function Text ({ topLevel, noFragments, nofollow, onlyImgProxy, children }) {
-  // all the reactStringReplace calls are to facilitate search highlighting
-  const slugger = new GithubSlugger()
-  onlyImgProxy = onlyImgProxy ?? true
-
-  const HeadingWrapper = (props) => Heading({ topLevel, slugger, noFragments, ...props })
-
-  const imgCache = useRef({})
-  const [urlCache, setUrlCache] = useState({})
+export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, itemId, ...outerProps }) {
+  const [overflowing, setOverflowing] = useState(false)
+  const router = useRouter()
+  const [show, setShow] = useState(false)
+  const containerRef = useRef(null)
 
   useEffect(() => {
-    const imgRegexp = onlyImgProxy ? IMGPROXY_URL_REGEXP : IMG_URL_REGEXP
-    const urls = extractUrls(children)
+    setShow(router.asPath.includes('#'))
+    const handleRouteChange = (url, { shallow }) => {
+      setShow(url.includes('#'))
+    }
 
-    urls.forEach((url) => {
-      if (imgRegexp.test(url)) {
-        setUrlCache((prev) => ({ ...prev, [url]: CACHE_STATES.IS_LOADED }))
-      } else if (!onlyImgProxy) {
-        const img = new window.Image()
-        imgCache.current[url] = img
-
-        setUrlCache((prev) => ({ ...prev, [url]: CACHE_STATES.IS_LOADING }))
-
-        const callback = (state) => {
-          setUrlCache((prev) => ({ ...prev, [url]: state }))
-          delete imgCache.current[url]
-        }
-        img.onload = () => callback(CACHE_STATES.IS_LOADED)
-        img.onerror = () => callback(CACHE_STATES.IS_ERROR)
-        img.src = url
-      }
-    })
+    router.events.on('hashChangeStart', handleRouteChange)
 
     return () => {
-      Object.values(imgCache.current).forEach((img) => {
-        img.onload = null
-        img.onerror = null
-        img.src = ''
-      })
+      router.events.off('hashChangeStart', handleRouteChange)
     }
-  }, [children])
+  }, [router])
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container || overflowing) return
+
+    function checkOverflow () {
+      setOverflowing(container.scrollHeight > window.innerHeight * 2)
+    }
+
+    let resizeObserver
+    if (!overflowing && 'ResizeObserver' in window) {
+      resizeObserver = new window.ResizeObserver(checkOverflow).observe(container)
+    }
+
+    window.addEventListener('resize', checkOverflow)
+    checkOverflow()
+
+    return () => {
+      window.removeEventListener('resize', checkOverflow)
+      resizeObserver?.disconnect()
+    }
+  }, [containerRef.current, setOverflowing])
+
+  const slugger = new GithubSlugger()
+
+  const Heading = useCallback(({ children, node, ...props }) => {
+    const [copied, setCopied] = useState(false)
+    const { noFragments, topLevel } = outerProps
+    const id = useMemo(() =>
+      noFragments ? undefined : slugger?.slug(toString(node).replace(/[^\w\-\s]+/gi, '')), [node, noFragments, slugger])
+    const h = useMemo(() => {
+      if (topLevel) {
+        return node?.TagName
+      }
+
+      const h = parseInt(node?.tagName?.replace('h', '') || 0)
+      if (h < 4) return `h${h + 3}`
+
+      return 'h6'
+    }, [node, topLevel])
+    const Icon = copied ? Thumb : LinkIcon
+
+    return (
+      <span className={styles.heading}>
+        {React.createElement(h || node?.tagName, { id, ...props }, children)}
+        {!noFragments && topLevel &&
+          <a className={`${styles.headingLink} ${copied ? styles.copied : ''}`} href={`#${id}`}>
+            <Icon
+              onClick={() => {
+                const location = new URL(window.location)
+                location.hash = `${id}`
+                copy(location.href)
+                setTimeout(() => setCopied(false), 1500)
+                setCopied(true)
+              }}
+              width={18}
+              height={18}
+              className='fill-grey'
+            />
+          </a>}
+      </span>
+    )
+  }, [outerProps, slugger.current])
+
+  const Table = useCallback(({ node, ...props }) =>
+    <span className='table-responsive'>
+      <table className='table table-bordered table-sm' {...props} />
+    </span>, [])
+
+  const Code = useCallback(({ node, inline, className, children, style, ...props }) => {
+    return inline
+      ? (
+        <code className={className} {...props}>
+          {children}
+        </code>
+        )
+      : (
+        <SyntaxHighlighter style={atomDark} language='text' PreTag='div' {...props}>
+          {children}
+        </SyntaxHighlighter>
+        )
+  }, [])
+
+  const P = useCallback(({ children, node, ...props }) => <div className={styles.p} {...props}>{children}</div>, [])
+
+  const Img = useCallback(({ node, src, ...props }) => {
+    const url = IMGPROXY_URL_REGEXP.test(src) ? decodeOriginalUrl(src) : src
+    const srcSet = imgproxyUrls?.[url]
+    return <ZoomableImage srcSet={srcSet} tab={tab} src={src} {...props} {...outerProps} />
+  }, [imgproxyUrls, outerProps, tab])
 
   return (
-    <div className={styles.text}>
+    <div className={`${styles.text} ${show ? styles.textUncontained : overflowing ? styles.textContained : ''}`} ref={containerRef}>
       <ReactMarkdown
         components={{
-          h1: (props) => HeadingWrapper({ h: topLevel ? 'h1' : 'h3', ...props }),
-          h2: (props) => HeadingWrapper({ h: topLevel ? 'h2' : 'h4', ...props }),
-          h3: (props) => HeadingWrapper({ h: topLevel ? 'h3' : 'h5', ...props }),
-          h4: (props) => HeadingWrapper({ h: topLevel ? 'h4' : 'h6', ...props }),
-          h5: (props) => HeadingWrapper({ h: topLevel ? 'h5' : 'h6', ...props }),
-          h6: (props) => HeadingWrapper({ h: 'h6', ...props }),
-          table: ({ node, ...props }) =>
-            <span className='table-responsive'>
-              <table className='table table-bordered table-sm' {...props} />
-            </span>,
-          p: ({ children, ...props }) => <div className={styles.p} {...props}>{children}</div>,
-          code ({ node, inline, className, children, style, ...props }) {
-            return !inline
-              ? (
-                <SyntaxHighlighter showLineNumbers style={atomDark} PreTag='div' {...props}>
-                  {reactStringReplace(String(children).replace(/\n$/, ''), /:high\[([^\]]+)\]/g, (match, i) => {
-                    return match
-                  }).join('')}
-                </SyntaxHighlighter>
-                )
-              : (
-                <code className={className} style={atomDark} {...props}>
-                  {reactStringReplace(String(children), /:high\[([^\]]+)\]/g, (match, i) => {
-                    return <mark key={`mark-${match}`}>{match}</mark>
-                  })}
-                </code>
-                )
+          h1: Heading,
+          h2: Heading,
+          h3: Heading,
+          h4: Heading,
+          h5: Heading,
+          h6: Heading,
+          table: Table,
+          p: P,
+          li: props => {
+            return <li {...props} id={props.id && itemId ? `${props.id}-${itemId}` : props.id} />
           },
+          code: Code,
           a: ({ node, href, children, ...props }) => {
-            if (children?.some(e => e?.props?.node?.tagName === 'img')) {
+            children = children ? Array.isArray(children) ? children : [children] : []
+            // don't allow zoomable images to be wrapped in links
+            if (children.some(e => e?.props?.node?.tagName === 'img')) {
               return <>{children}</>
             }
 
-            if (urlCache[href] === CACHE_STATES.IS_LOADED) {
-              return <ZoomableImage topLevel={topLevel} {...props} src={href} />
+            // If [text](url) was parsed as <a> and text is not empty and not a link itself,
+            // we don't render it as an image since it was probably a conscious choice to include text.
+            const text = children[0]
+            if (!!text && !/^https?:\/\//.test(text)) {
+              if (props['data-footnote-ref'] || typeof props['data-footnote-backref'] !== 'undefined') {
+                return (
+                  <Link
+                    {...props}
+                    id={props.id && itemId ? `${props.id}-${itemId}` : props.id}
+                    rel={`noreferrer ${nofollow ? 'nofollow' : ''} noopener`}
+                    href={itemId ? `${href}-${itemId}` : href}
+                  >{text}
+                  </Link>
+                )
+              }
+              return (
+                <a id={props.id} target='_blank' rel={`noreferrer ${nofollow ? 'nofollow' : ''} noopener`} href={href}>{text}</a>
+              )
             }
 
-            // map: fix any highlighted links
-            children = children?.map(e =>
-              typeof e === 'string'
-                ? reactStringReplace(e, /:high\[([^\]]+)\]/g, (match, i) => {
-                  return <mark key={`mark-${match}-${i}`}>{match}</mark>
-                })
-                : e)
+            try {
+              const url = new URL(href)
+              const { pathname, searchParams } = url
+              const itemId = pathname.match(/items\/(\w+)/)[1]
+              // don't format invalid item links
+              const valid = !/[a-zA-Z_]/.test(itemId)
+              if (valid && itemId) {
+                const commentId = searchParams.get('commentId')
+                const linkText = `#${commentId || itemId}`
+                return <a target='_blank' href={href} rel='noreferrer'>{linkText}</a>
+              }
+            } catch {
+              // ignore invalid URLs
+            }
 
-            return (
-              /*  eslint-disable-next-line */
-              <a
-                target='_blank' rel={nofollow ? 'nofollow' : 'noreferrer'}
-                href={reactStringReplace(href, /:high%5B([^%5D]+)%5D/g, (match, i) => {
-                  return match
-                }).join('')} {...props}
-              >
-                {children}
-              </a>
-            )
+            // if the link is to a youtube video, render the video
+            const youtube = href.match(/(https?:\/\/)?((www\.)?(youtube(-nocookie)?|youtube.googleapis)\.com.*(v\/|v=|vi=|vi\/|e\/|embed\/|user\/.*\/u\/\d+\/)|youtu\.be\/)(?<id>[_0-9a-z-]+)((?:\?|&)(?:t|start)=(?<start>\d+))?/i)
+            if (youtube?.groups?.id) {
+              return (
+                <div style={{ maxWidth: outerProps.topLevel ? '640px' : '320px', paddingRight: '15px', margin: '0.5rem 0' }}>
+                  <YouTube
+                    videoId={youtube.groups.id} className={styles.youtubeContainer} opts={{
+                      playerVars: {
+                        start: youtube?.groups?.start
+                      }
+                    }}
+                  />
+                </div>
+              )
+            }
+
+            // assume the link is an image which will fallback to link if it's not
+            return <Img src={href} nofollow={nofollow} {...props}>{children}</Img>
           },
-          img: ({ node, ...props }) => <ZoomableImage topLevel={topLevel} {...props} />
+          img: Img
         }}
-        remarkPlugins={[gfm, mention, sub, remarkDirective, searchHighlighter]}
+        remarkPlugins={[gfm, mention, sub]}
+        rehypePlugins={[rehypeInlineCodeProperty]}
       >
         {children}
       </ReactMarkdown>
+      {overflowing && !show &&
+        <Button size='lg' variant='info' className={styles.textShowFull} onClick={() => setShow(true)}>
+          show full text
+        </Button>}
     </div>
   )
 })
-
-function ClickToLoad ({ children }) {
-  const [clicked, setClicked] = useState(false)
-  return clicked ? children : <div className='m-1 fst-italic pointer text-muted' onClick={() => setClicked(true)}>click to load image</div>
-}
-
-export function ZoomableImage ({ src, topLevel, ...props }) {
-  const me = useMe()
-  const [err, setErr] = useState()
-  const [imgSrc, setImgSrc] = useState(src)
-  const [isImgProxy, setIsImgProxy] = useState(IMGPROXY_URL_REGEXP.test(src))
-  const defaultMediaStyle = {
-    maxHeight: topLevel ? '75vh' : '25vh',
-    cursor: 'zoom-in'
-  }
-
-  // if image changes we need to update state
-  const [mediaStyle, setMediaStyle] = useState(defaultMediaStyle)
-  useEffect(() => {
-    setMediaStyle(defaultMediaStyle)
-    setErr(null)
-  }, [src])
-
-  if (!src) return null
-  if (err) {
-    if (!isImgProxy) {
-      return (
-        <span className='d-flex align-items-baseline text-warning-emphasis fw-bold pb-1'>
-          <FileMissing width={18} height={18} className='fill-warning me-1 align-self-center' />
-          image error
-        </span>
-      )
-    }
-    try {
-      const originalUrl = decodeOriginalUrl(src)
-      setImgSrc(originalUrl)
-      setErr(null)
-    } catch (err) {
-      console.error(err)
-      setErr(err)
-    }
-    // always set to false since imgproxy returned error
-    setIsImgProxy(false)
-  }
-
-  const img = (
-    <img
-      className={topLevel ? styles.topLevel : undefined}
-      style={mediaStyle}
-      src={imgSrc}
-      onClick={() => {
-        if (mediaStyle.cursor === 'zoom-in') {
-          setMediaStyle({
-            width: '100%',
-            cursor: 'zoom-out'
-          })
-        } else {
-          setMediaStyle(defaultMediaStyle)
-        }
-      }}
-      onError={() => setErr(true)}
-      {...props}
-    />
-  )
-
-  return (
-    (!me || !me.clickToLoadImg || isImgProxy)
-      ? img
-      : <ClickToLoad>{img}</ClickToLoad>
-
-  )
-}

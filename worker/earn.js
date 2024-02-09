@@ -1,34 +1,48 @@
-const serialize = require('../api/resolvers/serial')
-const { ANON_USER_ID } = require('../lib/constants')
+import serialize from '../api/resolvers/serial.js'
+import { sendUserNotification } from '../api/webPush/index.js'
+import { ANON_USER_ID, SN_USER_IDS } from '../lib/constants.js'
+import { msatsToSats, numWithUnits } from '../lib/format.js'
+import { PrismaClient } from '@prisma/client'
 
-// const ITEM_EACH_REWARD = 3.0
-// const UPVOTE_EACH_REWARD = 6.0
-const TOP_PERCENTILE = 21
+const ITEM_EACH_REWARD = 4.0
+const UPVOTE_EACH_REWARD = 4.0
+const TOP_PERCENTILE = 33
 const TOTAL_UPPER_BOUND_MSATS = 1000000000
-const REDUCE_REWARDS = [616, 6030, 946, 4502]
 
-function earn ({ models }) {
-  return async function ({ name }) {
-    console.log('running', name)
+export async function earn ({ name }) {
+  // rewards are calculated sitewide still
+  // however for user gen subs currently only 50% of their fees go to rewards
+  // the other 50% goes to the founder of the sub
 
-    // compute how much sn earned today
+  // grab a greedy connection
+  const models = new PrismaClient()
+
+  try {
+  // compute how much sn earned today
     const [{ sum: sumDecimal }] = await models.$queryRaw`
       SELECT coalesce(sum(msats), 0) as sum
       FROM (
-        (SELECT ("ItemAct".msats - COALESCE("ReferralAct".msats, 0)) as msats
+        (SELECT ("ItemAct".msats - COALESCE("ReferralAct".msats, 0)) * COALESCE("Sub"."rewardsPct", 100) * 0.01  as msats
           FROM "ItemAct"
+          JOIN "Item" ON "Item"."id" = "ItemAct"."itemId"
+          LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
           LEFT JOIN "ReferralAct" ON "ReferralAct"."itemActId" = "ItemAct".id
-          WHERE date_trunc('day', "ItemAct".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = date_trunc('day', (now() - interval '1 day') AT TIME ZONE 'America/Chicago') AND "ItemAct".act <> 'TIP')
+          WHERE date_trunc('day', "ItemAct".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = date_trunc('day', (now() - interval '1 day') AT TIME ZONE 'America/Chicago')
+            AND "ItemAct".act <> 'TIP')
           UNION ALL
         (SELECT sats * 1000 as msats
           FROM "Donation"
           WHERE date_trunc('day', created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = date_trunc('day', (now() - interval '1 day') AT TIME ZONE 'America/Chicago'))
           UNION ALL
+        -- any earnings from anon's stack that are not forwarded to other users
         (SELECT "ItemAct".msats
-            FROM "Item"
-            JOIN "ItemAct" ON "ItemAct"."itemId" = "Item".id
-            WHERE "Item"."userId" = ${ANON_USER_ID} AND "ItemAct".act = 'TIP' AND "Item"."fwdUserId" IS NULL
-            AND date_trunc('day', "ItemAct".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = date_trunc('day', (now() - interval '1 day') AT TIME ZONE 'America/Chicago'))
+          FROM "Item"
+          JOIN "ItemAct" ON "ItemAct"."itemId" = "Item".id
+          LEFT JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id
+          WHERE "Item"."userId" = ${ANON_USER_ID} AND "ItemAct".act = 'TIP'
+          AND date_trunc('day', "ItemAct".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = date_trunc('day', (now() - interval '1 day') AT TIME ZONE 'America/Chicago')
+          GROUP BY "ItemAct".id, "ItemAct".msats
+          HAVING COUNT("ItemForward".id) = 0)
       ) subquery`
 
     // XXX primsa will return a Decimal (https://mikemcl.github.io/decimal.js)
@@ -48,8 +62,13 @@ function earn ({ models }) {
     }
 
     const sum = Number(sumDecimal)
+    const heads = Math.random() < 0.5
+    // if this category is selected, double its proportion
+    // if it isn't select, zero its proportion
+    const itemRewardMult = heads ? 0 : 2.0
+    const upvoteRewardMult = heads ? 2.0 : 0
 
-    console.log(name, 'giving away', sum, 'msats')
+    console.log(name, 'giving away', sum, 'msats', 'rewarding', heads ? 'items' : 'upvotes')
 
     /*
       How earnings (used to) work:
@@ -61,7 +80,7 @@ function earn ({ models }) {
         - how early they upvoted it
         - how the post/comment scored
 
-      Now: 100% of earnings go to zappers of the top 21% of posts/comments
+      Now: 100% of earnings go to either top 33% of comments/posts or top 33% of upvoters
     */
 
     // get earners { userId, id, type, rank, proportion }
@@ -103,7 +122,7 @@ function earn ({ models }) {
       -- early multiplier: 10/ln(early_rank + e)
       -- we also weight by trust in a step wise fashion
       upvoter_ratios AS (
-          SELECT "userId", sum(early_multiplier*tipped_ratio*ratio*CASE WHEN users.id = ANY (${REDUCE_REWARDS}) THEN 0.2 ELSE CEIL(users.trust*2)+1 END) as upvoter_ratio,
+          SELECT "userId", sum(early_multiplier*tipped_ratio*ratio*CASE WHEN users.id = ANY (${SN_USER_IDS}) THEN 0.2 ELSE CEIL(users.trust*2)+1 END) as upvoter_ratio,
               "parentId" IS NULL as "isPost", CASE WHEN "parentId" IS NULL THEN 'TIP_POST' ELSE 'TIP_COMMENT' END as type
           FROM (
               SELECT *,
@@ -113,12 +132,18 @@ function earn ({ models }) {
           ) u
           JOIN users on "userId" = users.id
           GROUP BY "userId", "parentId" IS NULL
-      )
-      SELECT "userId", NULL as id, type, ROW_NUMBER() OVER (PARTITION BY "isPost" ORDER BY upvoter_ratio DESC) as rank,
-          upvoter_ratio/(sum(upvoter_ratio) OVER (PARTITION BY "isPost"))/2 as proportion
-      FROM upvoter_ratios
-      WHERE upvoter_ratio > 0
-      ORDER BY "isPost", rank ASC`
+      ),
+      proportions AS (
+        SELECT "userId", NULL as id, type, ROW_NUMBER() OVER (PARTITION BY "isPost" ORDER BY upvoter_ratio DESC) as rank,
+            ${itemRewardMult}*upvoter_ratio/(sum(upvoter_ratio) OVER (PARTITION BY "isPost"))/${UPVOTE_EACH_REWARD} as proportion
+        FROM upvoter_ratios
+        WHERE upvoter_ratio > 0
+        UNION ALL
+        SELECT "userId", id, type, rank, ${upvoteRewardMult}*ratio/${ITEM_EACH_REWARD} as proportion
+        FROM item_ratios)
+      SELECT "userId", id, type, rank, proportion
+      FROM proportions
+      WHERE proportion > 0.000001`
 
     // in order to group earnings for users we use the same createdAt time for
     // all earnings
@@ -127,10 +152,8 @@ function earn ({ models }) {
     // this is just a sanity check because it seems like a good idea
     let total = 0
 
-    // for each earner, serialize earnings
-    // we do this for each earner because we don't need to serialize
-    // all earner updates together
-    earners.forEach(async earner => {
+    const notifications = {}
+    for (const earner of earners) {
       const earnings = Math.floor(parseFloat(earner.proportion) * sum)
       total += earnings
       if (total > sum) {
@@ -144,11 +167,80 @@ function earn ({ models }) {
         await serialize(models,
           models.$executeRaw`SELECT earn(${earner.userId}::INTEGER, ${earnings},
           ${now}::timestamp without time zone, ${earner.type}::"EarnType", ${earner.id}::INTEGER, ${earner.rank}::INTEGER)`)
-      }
-    })
 
-    console.log('done', name)
+        const userN = notifications[earner.userId] || {}
+
+        // sum total
+        const prevMsats = userN.msats || 0
+        const msats = earnings + prevMsats
+
+        // sum total per earn type (POST, COMMENT, TIP_COMMENT, TIP_POST)
+        const prevEarnTypeMsats = userN[earner.type]?.msats || 0
+        const earnTypeMsats = earnings + prevEarnTypeMsats
+
+        // best (=lowest) rank per earn type
+        const prevEarnTypeBestRank = userN[earner.type]?.bestRank
+        const earnTypeBestRank = prevEarnTypeBestRank ? Math.min(prevEarnTypeBestRank, Number(earner.rank)) : Number(earner.rank)
+
+        notifications[earner.userId] = {
+          ...userN,
+          msats,
+          [earner.type]: { msats: earnTypeMsats, bestRank: earnTypeBestRank }
+        }
+      }
+    }
+
+    await territoryRevenue({ models })
+
+    Promise.allSettled(Object.entries(notifications).map(([userId, earnings]) =>
+      sendUserNotification(parseInt(userId, 10), buildUserNotification(earnings))
+    )).catch(console.error)
+  } finally {
+    models.$disconnect().catch(console.error)
   }
 }
 
-module.exports = { earn }
+async function territoryRevenue ({ models }) {
+  await serialize(models,
+    models.$executeRaw`
+      WITH revenue AS (
+        SELECT coalesce(sum(msats), 0) as revenue, "subName", "userId"
+        FROM (
+          SELECT ("ItemAct".msats - COALESCE("ReferralAct".msats, 0)) * (1 - (COALESCE("Sub"."rewardsPct", 100) * 0.01)) as msats,
+            "Sub"."name" as "subName", "Sub"."userId" as "userId"
+            FROM "ItemAct"
+            JOIN "Item" ON "Item"."id" = "ItemAct"."itemId"
+            JOIN "Sub" ON "Sub"."name" = "Item"."subName"
+            LEFT JOIN "ReferralAct" ON "ReferralAct"."itemActId" = "ItemAct".id
+            WHERE date_trunc('day', "ItemAct".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = date_trunc('day', (now() - interval '1 day') AT TIME ZONE 'America/Chicago')
+              AND "ItemAct".act <> 'TIP'
+              AND "Sub".status <> 'STOPPED'
+        ) subquery
+        GROUP BY "subName", "userId"
+      ),
+      "SubActResult" AS (
+        INSERT INTO "SubAct" (msats, "subName", "userId", type)
+        SELECT revenue, "subName", "userId", 'REVENUE'
+        FROM revenue
+        WHERE revenue > 1000
+        RETURNING *
+      )
+      UPDATE users SET msats = users.msats + "SubActResult".msats
+      FROM "SubActResult"
+      WHERE users.id = "SubActResult"."userId"`
+  )
+}
+
+function buildUserNotification (earnings) {
+  const fmt = msats => numWithUnits(msatsToSats(msats, { abbreviate: false }))
+
+  const title = `you stacked ${fmt(earnings.msats)} in rewards`
+  const tag = 'EARN'
+  let body = ''
+  if (earnings.POST) body += `#${earnings.POST.bestRank} among posts with ${fmt(earnings.POST.msats)} in total\n`
+  if (earnings.COMMENT) body += `#${earnings.COMMENT.bestRank} among comments with ${fmt(earnings.COMMENT.msats)} in total\n`
+  if (earnings.TIP_POST) body += `#${earnings.TIP_POST.bestRank} in post zapping with ${fmt(earnings.TIP_POST.msats)} in total\n`
+  if (earnings.TIP_COMMENT) body += `#${earnings.TIP_COMMENT.bestRank} in comment zapping with ${fmt(earnings.TIP_COMMENT.msats)} in total`
+
+  return { title, tag, body }
+}

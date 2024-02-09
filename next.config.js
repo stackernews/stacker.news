@@ -1,6 +1,6 @@
 const { withPlausibleProxy } = require('next-plausible')
 const { InjectManifest } = require('workbox-webpack-plugin')
-const { generatePrecacheManifest } = require('./sw/build')
+const { generatePrecacheManifest } = require('./sw/build.js')
 
 const isProd = process.env.NODE_ENV === 'production'
 const corsHeaders = [
@@ -13,18 +13,22 @@ const corsHeaders = [
     value: 'GET, HEAD, OPTIONS'
   }
 ]
+const noCacheHeader = {
+  key: 'Cache-Control',
+  value: 'no-cache, max-age=0, must-revalidate'
+}
 
 let commitHash
-if (isProd) {
-  // XXX this fragile ... eb could change the version label ... but it works for now
-  commitHash = Object.keys(require('/opt/elasticbeanstalk/deployment/app_version_manifest.json').RuntimeSources['stacker.news'])[0].match(/^app-(.+)-/)[1] // eslint-disable-line
-} else {
-  try {
-    commitHash = require('child_process').execSync('git rev-parse HEAD').toString().slice(0, 4)
-  } catch (e) {
-    console.log('could not get commit hash with `git rev-parse HEAD` ... using 0000')
-    commitHash = '0000'
+try {
+  if (isProd) {
+    // XXX this fragile ... eb could change the version label location ... it also require we set the label on deploy
+    commitHash = Object.keys(require('/opt/elasticbeanstalk/deployment/app_version_manifest.json').RuntimeSources['stacker.news'])[0].slice(0, 6) // eslint-disable-line
+  } else {
+    commitHash = require('child_process').execSync('git rev-parse HEAD').toString().slice(0, 6)
   }
+} catch (e) {
+  console.log('could not get commit hash with `git rev-parse HEAD` ... using 0000')
+  commitHash = '0000'
 }
 
 module.exports = withPlausibleProxy()({
@@ -38,6 +42,7 @@ module.exports = withPlausibleProxy()({
     scrollRestoration: true
   },
   reactStrictMode: true,
+  productionBrowserSourceMaps: true,
   generateBuildId: isProd ? async () => commitHash : undefined,
   // Use the CDN in production and localhost for development.
   assetPrefix: isProd ? 'https://a.stacker.news' : undefined,
@@ -62,17 +67,15 @@ module.exports = withPlausibleProxy()({
       {
         source: '/.well-known/:slug*',
         headers: [
-          ...corsHeaders
+          ...corsHeaders,
+          noCacheHeader
         ]
       },
       // never cache service worker
       // https://stackoverflow.com/questions/38843970/service-worker-javascript-update-frequency-every-24-hours/38854905#38854905
       {
         source: '/sw.js',
-        headers: [{
-          key: 'Cache-Control',
-          value: 'no-cache'
-        }]
+        headers: [noCacheHeader]
       },
       {
         source: '/api/lnauth',
@@ -83,7 +86,8 @@ module.exports = withPlausibleProxy()({
       {
         source: '/api/lnurlp/:slug*',
         headers: [
-          ...corsHeaders
+          ...corsHeaders,
+          noCacheHeader
         ]
       },
       {
@@ -92,7 +96,7 @@ module.exports = withPlausibleProxy()({
           ...corsHeaders
         ]
       },
-      ...['tff', 'woff', 'woff2'].map(ext => ({
+      ...['ttf', 'woff', 'woff2'].map(ext => ({
         source: `/Lightningvolt-xoqm.${ext}`,
         headers: [
           ...corsHeaders,
@@ -116,7 +120,15 @@ module.exports = withPlausibleProxy()({
       },
       {
         source: '/privacy',
-        destination: '/items/76894'
+        destination: '/items/338369'
+      },
+      {
+        source: '/copyright',
+        destination: '/items/338453'
+      },
+      {
+        source: '/tos',
+        destination: '/items/338393'
       },
       {
         source: '/changes',

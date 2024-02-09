@@ -1,9 +1,10 @@
 import { GraphQLError } from 'graphql'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
-import { getItem, filterClause } from './item'
+import { getItem, filterClause, whereClause, muteClause } from './item'
 import { getInvoice } from './wallet'
 import { pushSubscriptionSchema, ssValidate } from '../../lib/validate'
 import { replyToSubscription } from '../webPush'
+import { getSub } from './sub'
 
 export default {
   Query: {
@@ -71,45 +72,86 @@ export default {
 
       const queries = []
 
-      queries.push(
-        `(SELECT DISTINCT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL::BIGINT as "earnedSats",
-            'Reply' AS type
-            FROM "Item"
-            JOIN "Item" p ON ${meFull.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
-            WHERE p."userId" = $1 AND "Item"."userId" <> $1 AND "Item".created_at <= $2
-            ${await filterClause(me, models)}
-            ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT}+$3)
-          UNION DISTINCT
-          (SELECT DISTINCT "Item".id::TEXT, "Item".created_at AS "sortTime", NULL::BIGINT as "earnedSats",
-            'Reply' AS type
-            FROM "ThreadSubscription"
-            JOIN "Item" p ON "ThreadSubscription"."itemId" = p.id
-            JOIN "Item" ON ${meFull.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
-            WHERE
-              "ThreadSubscription"."userId" = $1
-              AND "Item"."userId" <> $1 AND "Item".created_at <= $2
-            ${await filterClause(me, models)}
-            ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT}+$3)`
+      const itemDrivenQueries = []
+
+      // Thread subscriptions
+      itemDrivenQueries.push(
+        `SELECT "Item".*, "Item".created_at AS "sortTime", 'Reply' AS type
+          FROM "ThreadSubscription"
+          JOIN "Item" p ON "ThreadSubscription"."itemId" = p.id
+          JOIN "Item" ON ${meFull.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
+          ${whereClause(
+            '"ThreadSubscription"."userId" = $1',
+            '"Item"."userId" <> $1',
+            '"Item".created_at >= "ThreadSubscription".created_at',
+            '"Item"."parentId" IS NOT NULL'
+          )}
+          ORDER BY "sortTime" DESC
+          LIMIT ${LIMIT}+$3`
       )
 
-      if (meFull.noteMentions) {
-        queries.push(
-          `(SELECT "Item".id::TEXT, "Mention".created_at AS "sortTime", NULL as "earnedSats",
-            'Mention' AS type
-            FROM "Mention"
-            JOIN "Item" ON "Mention"."itemId" = "Item".id
-            LEFT JOIN "Item" p ON "Item"."parentId" = p.id
-            WHERE "Mention"."userId" = $1
-            AND "Mention".created_at <= $2
-            AND "Item"."userId" <> $1
-            AND (p."userId" IS NULL OR p."userId" <> $1)
-            ${await filterClause(me, models)}
+      // User subscriptions
+      // Only include posts or comments created after the corresponding subscription was enabled, not _all_ from history
+      itemDrivenQueries.push(
+        `SELECT "Item".*, "Item".created_at AS "sortTime", 'FollowActivity' AS type
+          FROM "Item"
+          JOIN "UserSubscription" ON "Item"."userId" = "UserSubscription"."followeeId"
+          ${whereClause(
+            '"UserSubscription"."followerId" = $1',
+            `(
+              ("Item"."parentId" IS NULL AND "UserSubscription"."postsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."postsSubscribedAt")
+              OR ("Item"."parentId" IS NOT NULL AND "UserSubscription"."commentsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."commentsSubscribedAt")
+            )`
+          )}
+          ORDER BY "sortTime" DESC
+          LIMIT ${LIMIT}+$3`
+      )
+
+      if (meFull.noteTerritoryPosts) {
+        itemDrivenQueries.push(
+          `SELECT "Item".*, "Item".created_at AS "sortTime", 'TerritoryPost' AS type
+            FROM "Item"
+            JOIN "Sub" ON "Item"."subName" = "Sub".name
+            WHERE "Sub"."userId" = $1 AND "Item"."userId" <> $1
             ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT}+$3)`
+            LIMIT ${LIMIT}+$3`
         )
       }
+
+      // mentions
+      if (meFull.noteMentions) {
+        itemDrivenQueries.push(
+          `SELECT "Item".*, "Mention".created_at AS "sortTime", 'Mention' AS type
+            FROM "Mention"
+            JOIN "Item" ON "Mention"."itemId" = "Item".id
+            ${whereClause(
+              '"Mention"."userId" = $1',
+              '"Item"."userId" <> $1'
+            )}
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT}+$3`
+        )
+      }
+      // Inner union to de-dupe item-driven notifications
+      queries.push(
+        // Only record per item ID
+        `(
+          SELECT DISTINCT ON (id) "Item".id::TEXT, "Item"."sortTime", NULL::BIGINT AS "earnedSats", "Item".type
+          FROM (
+            ${itemDrivenQueries.map(q => `(${q})`).join(' UNION ALL ')}
+          ) as "Item"
+          ${whereClause(
+            '"Item".created_at <= $2',
+            await filterClause(me, models),
+            muteClause(me))}
+          ORDER BY id ASC, CASE
+            WHEN type = 'Mention' THEN 1
+            WHEN type = 'Reply' THEN 2
+            WHEN type = 'FollowActivity' THEN 3
+            WHEN type = 'TerritoryPost' THEN 4
+          END ASC
+        )`
+      )
 
       queries.push(
         `(SELECT "Item".id::text, "Item"."statusUpdatedAt" AS "sortTime", NULL as "earnedSats",
@@ -138,6 +180,23 @@ export default {
         )
       }
 
+      if (meFull.noteForwardedSats) {
+        queries.push(
+          `(SELECT "Item".id::TEXT, MAX("ItemAct".created_at) AS "sortTime",
+            MAX("Item".msats / 1000 * "ItemForward".pct / 100) as "earnedSats", 'ForwardedVotification' AS type
+            FROM "Item"
+            JOIN "ItemAct" ON "ItemAct"."itemId" = "Item".id
+            JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id AND "ItemForward"."userId" = $1
+            WHERE "ItemAct"."userId" <> $1
+            AND "Item"."userId" <> $1
+            AND "ItemAct".created_at <= $2
+            AND "ItemAct".act IN ('TIP')
+            GROUP BY "Item".id
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT}+$3)`
+        )
+      }
+
       if (meFull.noteDeposits) {
         queries.push(
           `(SELECT "Invoice".id::text, "Invoice"."confirmedAt" AS "sortTime", FLOOR("msatsReceived" / 1000) as "earnedSats",
@@ -145,6 +204,7 @@ export default {
             FROM "Invoice"
             WHERE "Invoice"."userId" = $1
             AND "confirmedAt" IS NOT NULL
+            AND "isHeld" IS NULL
             AND created_at <= $2
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT}+$3)`
@@ -182,6 +242,15 @@ export default {
           AND created_at <= $2
           GROUP BY "userId", created_at`
         )
+        queries.push(
+          `SELECT min(id)::text, created_at AS "sortTime", FLOOR(sum(msats) / 1000) as "earnedSats",
+          'Revenue' AS type
+          FROM "SubAct"
+          WHERE "userId" = $1
+          AND type = 'REVENUE'
+          AND created_at <= $2
+          GROUP BY "userId", "subName", created_at`
+        )
       }
 
       if (meFull.noteCowboyHat) {
@@ -192,6 +261,17 @@ export default {
           AND updated_at <= $2`
         )
       }
+
+      queries.push(
+        `(SELECT "Sub".name::text, "Sub"."statusUpdatedAt" AS "sortTime", NULL as "earnedSats",
+          'SubStatus' AS type
+          FROM "Sub"
+          WHERE "Sub"."userId" = $1
+          AND "status" <> 'ACTIVE'
+          AND "statusUpdatedAt" <= $2
+          ORDER BY "sortTime" DESC
+          LIMIT ${LIMIT}+$3)`
+      )
 
       // we do all this crazy subquery stuff to make 'reward' islands
       const notifications = await models.$queryRawUnsafe(
@@ -271,11 +351,34 @@ export default {
   Votification: {
     item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
   },
+  ForwardedVotification: {
+    item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
+  },
   Reply: {
+    item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
+  },
+  FollowActivity: {
+    item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
+  },
+  TerritoryPost: {
     item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
   },
   JobChanged: {
     item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
+  },
+  SubStatus: {
+    sub: async (n, args, { models, me }) => getSub(n, { name: n.id }, { models, me })
+  },
+  Revenue: {
+    subName: async (n, args, { models }) => {
+      const subAct = await models.subAct.findUnique({
+        where: {
+          id: Number(n.id)
+        }
+      })
+
+      return subAct.subName
+    }
   },
   Streak: {
     days: async (n, args, { models }) => {

@@ -35,8 +35,15 @@ const createUserFilter = (tag) => {
   // filter users by notification settings
   const tagMap = {
     REPLY: 'noteAllDescendants',
+    TERRITORY_POST: 'noteTerritoryPosts',
     MENTION: 'noteMentions',
-    TIP: 'noteItemSats'
+    TIP: 'noteItemSats',
+    FORWARDEDTIP: 'noteForwardedSats',
+    REFERRAL: 'noteInvites',
+    INVITE: 'noteInvites',
+    EARN: 'noteEarning',
+    DEPOSIT: 'noteDeposits',
+    STREAK: 'noteCowboyHat'
   }
   const key = tagMap[tag.split('-')[0]]
   return key ? { user: { [key]: true } } : undefined
@@ -81,6 +88,7 @@ export async function sendUserNotification (userId, notification) {
     notification.data ??= {}
     if (notification.item) {
       notification.data.url ??= await createItemUrl(notification.item)
+      notification.data.itemId ??= notification.item.id
       delete notification.item
     }
     const userFilter = createUserFilter(notification.tag)

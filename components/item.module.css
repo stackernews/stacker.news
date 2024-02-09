@@ -4,7 +4,7 @@
     max-width: 100%;
     display: inline-block;
     vertical-align: middle;
-    padding-bottom: .15rem;
+    margin-bottom: .15rem;
 }
 
 .notification {
@@ -35,7 +35,7 @@ a.title:visited {
     overflow: hidden;
     text-overflow: ellipsis;
     flex: 1 0 128px;
-    padding-bottom: .15rem;
+    margin-bottom: .15rem;
 }
 
 .newComment {
@@ -65,6 +65,7 @@ a.title:visited {
     margin-right: .35rem;
     margin-left: -.2rem;
     flex-shrink: 0;
+    cursor: pointer;
 }
 
 .case {
@@ -97,6 +98,11 @@ a.link:visited {
 
 .other .dropdown svg {
     margin-top: -1px;
+}
+
+.other :global(.dropdown-item) {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
 }
 
 .item {
@@ -168,8 +174,10 @@ a.link:visited {
     background-color: var(--theme-grey);
     width: 500px;
     border-radius: .4rem;
-    height: 17px;
-    margin: 0;
+}
+
+.skeleton .title::after {
+    content: "\00a0";
 }
 
 .skeleton .name {
@@ -180,12 +188,19 @@ a.link:visited {
     margin: 0;
 }
 
+.skeleton .hunk {
+    margin: 2px 0;
+}
+
 .skeleton .link {
-    height: 14px;
     background-color: var(--theme-grey);
     width: 800px;
     border-radius: .3rem;
-    margin: 2px 0px;
+    line-height: .8rem;
+}
+
+.skeleton .link::after {
+    content: "\00a0";
 }
 
 .skeleton .otherItem {

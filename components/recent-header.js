@@ -1,12 +1,17 @@
-import { ITEM_TYPES } from '../lib/constants'
+import { ITEM_TYPES, ITEM_TYPES_UNIVERSAL } from '../lib/constants'
 import { Select } from './form'
 import { useRouter } from 'next/router'
 
 export default function RecentHeader ({ type, sub }) {
   const router = useRouter()
-  const prefix = sub ? `/~${sub}` : ''
 
-  const items = ITEM_TYPES(sub)
+  const prefix = sub ? `/~${sub.name}` : ''
+
+  const items = sub
+    ? ITEM_TYPES_UNIVERSAL.concat(sub.postTypes.map(p =>
+      ['LINK', 'DISCUSSION', 'POLL', 'JOB'].includes(p) ? `${p.toLowerCase()}s` : 'bounties'
+    ))
+    : ITEM_TYPES
 
   type ||= router.query.type || type || 'posts'
   return (

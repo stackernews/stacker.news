@@ -1,6 +1,6 @@
 .receipt {
     background-color: var(--theme-inputBg);
-    max-width: 250px;
+    max-width: 300px;
     margin: auto;
     table-layout: auto;
     width: 100%;
@@ -22,5 +22,5 @@
 }
 
 .receipt tfoot {
-    border-top: 2px solid var(--theme-borderColor);
+    border-top: 2px solid var(--theme-borderColor) !important;
 }

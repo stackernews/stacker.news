@@ -7,62 +7,88 @@ export const ME = gql`
     me {
       id
       name
-      streak
-      sats
-      stacked
-      freePosts
-      freeComments
-      tipDefault
-      turboTipping
-      fiatCurrency
       bioId
-      upvotePopover
-      tipPopover
-      noteItemSats
-      noteEarning
-      noteAllDescendants
-      noteMentions
-      noteDeposits
-      noteInvites
-      noteJobIndicator
-      noteCowboyHat
-      hideInvoiceDesc
-      hideFromTopUsers
-      hideCowboyHat
-      clickToLoadImg
-      wildWestMode
-      greeterMode
-      lastCheckedJobs
+      privates {
+        autoDropBolt11s
+        diagnostics
+        fiatCurrency
+        greeterMode
+        hideCowboyHat
+        hideFromTopUsers
+        hideInvoiceDesc
+        hideIsContributor
+        hideWalletBalance
+        hideWelcomeBanner
+        imgproxyOnly
+        lastCheckedJobs
+        nostrCrossposting
+        noteAllDescendants
+        noteTerritoryPosts
+        noteCowboyHat
+        noteDeposits
+        noteEarning
+        noteForwardedSats
+        noteInvites
+        noteItemSats
+        noteJobIndicator
+        noteMentions
+        sats
+        tipDefault
+        tipPopover
+        turboTipping
+        upvotePopover
+        wildWestMode
+        withdrawMaxFeeDefault
+        lnAddr
+        autoWithdrawMaxFeePercent
+        autoWithdrawThreshold
+      }
+      optional {
+        isContributor
+        stacked
+        streak
+      }
     }
   }`
 
 export const SETTINGS_FIELDS = gql`
   fragment SettingsFields on User {
-    tipDefault
-    turboTipping
-    fiatCurrency
-    noteItemSats
-    noteEarning
-    noteAllDescendants
-    noteMentions
-    noteDeposits
-    noteInvites
-    noteJobIndicator
-    noteCowboyHat
-    hideInvoiceDesc
-    hideFromTopUsers
-    hideCowboyHat
-    clickToLoadImg
-    nostrPubkey
-    nostrRelays
-    wildWestMode
-    greeterMode
-    authMethods {
-      lightning
-      nostr
-      github
-      twitter
-      email
+    privates {
+      tipDefault
+      turboTipping
+      fiatCurrency
+      withdrawMaxFeeDefault
+      noteItemSats
+      noteEarning
+      noteAllDescendants
+      noteTerritoryPosts
+      noteMentions
+      noteDeposits
+      noteInvites
+      noteJobIndicator
+      noteCowboyHat
+      noteForwardedSats
+      hideInvoiceDesc
+      autoDropBolt11s
+      hideFromTopUsers
+      hideCowboyHat
+      hideBookmarks
+      hideIsContributor
+      imgproxyOnly
+      hideWalletBalance
+      diagnostics
+      nostrPubkey
+      nostrCrossposting
+      nostrRelays
+      wildWestMode
+      greeterMode
+      authMethods {
+        lightning
+        nostr
+        github
+        twitter
+        email
+      }
     }
   }`
 
@@ -77,20 +103,25 @@ ${SETTINGS_FIELDS}
 export const SET_SETTINGS =
 gql`
 ${SETTINGS_FIELDS}
-mutation setSettings($tipDefault: Int!, $turboTipping: Boolean!, $fiatCurrency: String!, $noteItemSats: Boolean!,
-  $noteEarning: Boolean!, $noteAllDescendants: Boolean!, $noteMentions: Boolean!, $noteDeposits: Boolean!,
-  $noteInvites: Boolean!, $noteJobIndicator: Boolean!, $noteCowboyHat: Boolean!, $hideInvoiceDesc: Boolean!,
-  $hideFromTopUsers: Boolean!, $hideCowboyHat: Boolean!, $clickToLoadImg: Boolean!,
-  $wildWestMode: Boolean!, $greeterMode: Boolean!, $nostrPubkey: String, $nostrRelays: [String!]) {
-  setSettings(tipDefault: $tipDefault, turboTipping: $turboTipping,  fiatCurrency: $fiatCurrency,
-    noteItemSats: $noteItemSats, noteEarning: $noteEarning, noteAllDescendants: $noteAllDescendants,
-    noteMentions: $noteMentions, noteDeposits: $noteDeposits, noteInvites: $noteInvites,
-    noteJobIndicator: $noteJobIndicator, noteCowboyHat: $noteCowboyHat, hideInvoiceDesc: $hideInvoiceDesc,
-    hideFromTopUsers: $hideFromTopUsers, hideCowboyHat: $hideCowboyHat, clickToLoadImg: $clickToLoadImg,
-    wildWestMode: $wildWestMode, greeterMode: $greeterMode, nostrPubkey: $nostrPubkey, nostrRelays: $nostrRelays) {
-      ...SettingsFields
-    }
+mutation setSettings($settings: SettingsInput!) {
+  setSettings(settings: $settings) {
+    ...SettingsFields
   }
+}
+`
+
+export const SET_AUTOWITHDRAW =
+gql`
+mutation setAutoWithdraw($lnAddr: String!, $autoWithdrawThreshold: Int!, $autoWithdrawMaxFeePercent: Float!) {
+  setAutoWithdraw(lnAddr: $lnAddr, autoWithdrawThreshold: $autoWithdrawThreshold, autoWithdrawMaxFeePercent: $autoWithdrawMaxFeePercent)
+}
+`
+
+export const REMOVE_AUTOWITHDRAW =
+gql`
+mutation removeAutoWithdraw {
+  removeAutoWithdraw
+}
 `
 
 export const NAME_QUERY =
@@ -107,20 +138,37 @@ gql`
   }
 `
 
+export const WELCOME_BANNER_MUTATION =
+gql`
+  mutation hideWelcomeBanner {
+    hideWelcomeBanner
+  }
+`
+
+export const USER_SUGGESTIONS =
+gql`
+  query userSuggestions($q: String!, $limit: Limit) {
+    userSuggestions(q: $q, limit: $limit) {
+      name
+    }
+  }`
+
 export const USER_SEARCH =
 gql`
-  query searchUsers($q: String!, $limit: Int, $similarity: Float) {
+  query searchUsers($q: String!, $limit: Limit, $similarity: Float) {
     searchUsers(q: $q, limit: $limit, similarity: $similarity) {
       id
       name
-      streak
-      hideCowboyHat
       photoId
-      stacked
-      spent
       ncomments
       nposts
-      referrals
+
+      optional {
+        streak
+        stacked
+        spent
+        referrals
+      }
     }
   }`
 
@@ -128,29 +176,37 @@ export const USER_FIELDS = gql`
   fragment UserFields on User {
     id
     name
-    streak
-    maxStreak
-    hideCowboyHat
-    nitems
-    stacked
     since
     photoId
+    nitems
+    meSubscriptionPosts
+    meSubscriptionComments
+    meMute
+
+    optional {
+      stacked
+      streak
+      maxStreak
+      isContributor
+    }
   }`
 
 export const TOP_USERS = gql`
-  query TopUsers($cursor: String, $when: String, $by: String) {
-    topUsers(cursor: $cursor, when: $when, by: $by) {
+  query TopUsers($cursor: String, $when: String, $from: String, $to: String, $by: String, ) {
+    topUsers(cursor: $cursor, when: $when, from: $from, to: $to, by: $by) {
       users {
         id
         name
-        streak
-        hideCowboyHat
         photoId
-        stacked(when: $when)
-        spent(when: $when)
-        ncomments(when: $when)
-        nposts(when: $when)
-        referrals(when: $when)
+        ncomments(when: $when, from: $from, to: $to)
+        nposts(when: $when, from: $from, to: $to)
+
+        optional {
+          streak
+          stacked(when: $when, from: $from, to: $to)
+          spent(when: $when, from: $from, to: $to)
+          referrals(when: $when, from: $from, to: $to)
+        }
       }
       cursor
     }
@@ -163,14 +219,16 @@ export const TOP_COWBOYS = gql`
       users {
         id
         name
-        streak
-        hideCowboyHat
         photoId
-        stacked(when: "forever")
-        spent(when: "forever")
         ncomments(when: "forever")
         nposts(when: "forever")
-        referrals(when: "forever")
+
+        optional {
+          streak
+          stacked(when: "forever")
+          spent(when: "forever")
+          referrals(when: "forever")
+        }
       }
       cursor
     }
@@ -193,15 +251,23 @@ export const USER_FULL = gql`
   }
 }`
 
+export const USER = gql`
+  ${USER_FIELDS}
+  query User($name: String!) {
+    user(name: $name) {
+      ...UserFields
+    }
+  }`
+
 export const USER_WITH_ITEMS = gql`
   ${USER_FIELDS}
   ${ITEM_FIELDS}
   ${COMMENTS_ITEM_EXT_FIELDS}
-  query UserWithItems($name: String!, $sub: String, $cursor: String, $type: String, $when: String, $by: String, $limit: Int, $includeComments: Boolean = false) {
+  query UserWithItems($name: String!, $sub: String, $cursor: String, $type: String, $when: String, $from: String, $to: String, $by: String, $limit: Limit, $includeComments: Boolean = false) {
     user(name: $name) {
       ...UserFields
     }
-    items(sub: $sub, sort: "user", cursor: $cursor, type: $type, name: $name, when: $when, by: $by, limit: $limit) {
+    items(sub: $sub, sort: "user", cursor: $cursor, type: $type, name: $name, when: $when, from: $from, to: $to, by: $by, limit: $limit) {
       cursor
       items {
         ...ItemFields

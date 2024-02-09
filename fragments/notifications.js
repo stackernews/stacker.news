@@ -1,12 +1,14 @@
 import { gql } from '@apollo/client'
 import { ITEM_FULL_FIELDS } from './items'
 import { INVITE_FIELDS } from './invites'
+import { SUB_FIELDS } from './subs'
 
 export const HAS_NOTIFICATIONS = gql`{ hasNewNotes }`
 
 export const NOTIFICATIONS = gql`
   ${ITEM_FULL_FIELDS}
   ${INVITE_FIELDS}
+  ${SUB_FIELDS}
 
   query Notifications($cursor: String, $inc: String) {
     notifications(cursor: $cursor, inc: $inc) {
@@ -32,6 +34,21 @@ export const NOTIFICATIONS = gql`
             text
           }
         }
+        ... on Revenue {
+          id
+          sortTime
+          earnedSats
+          subName
+        }
+        ... on ForwardedVotification {
+          id
+          sortTime
+          earnedSats
+          item {
+            ...ItemFullFields
+            text
+          }
+        }
         ... on Streak {
           id
           sortTime
@@ -40,6 +57,7 @@ export const NOTIFICATIONS = gql`
         ... on Earn {
           id
           sortTime
+          minSortTime
           earnedSats
           sources {
             posts
@@ -53,6 +71,22 @@ export const NOTIFICATIONS = gql`
           sortTime
         }
         ... on Reply {
+          id
+          sortTime
+          item {
+            ...ItemFullFields
+            text
+          }
+        }
+        ... on FollowActivity {
+          id
+          sortTime
+          item {
+            ...ItemFullFields
+            text
+          }
+        }
+        ... on TerritoryPost {
           id
           sortTime
           item {
@@ -74,6 +108,13 @@ export const NOTIFICATIONS = gql`
             ...ItemFields
           }
         }
+        ... on SubStatus {
+          id
+          sortTime
+          sub {
+            ...SubFields
+          }
+        }
         ... on InvoicePaid {
           id
           sortTime
@@ -81,6 +122,8 @@ export const NOTIFICATIONS = gql`
           invoice {
             id
             nostr
+            comment
+            lud18Data
           }
         }
       }

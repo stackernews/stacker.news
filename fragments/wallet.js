@@ -13,6 +13,10 @@ export const INVOICE = gql`
       confirmedAt
       expiresAt
       nostr
+      isHeld
+      comment
+      lud18Data
+      confirmedPreimage
     }
   }`
 
@@ -20,11 +24,13 @@ export const WITHDRAWL = gql`
   query Withdrawl($id: ID!) {
     withdrawl(id: $id) {
       id
+      createdAt
       bolt11
       satsPaid
       satsFeePaying
       satsFeePaid
       status
+      autoWithdraw
     }
   }`
 
@@ -35,14 +41,17 @@ export const WALLET_HISTORY = gql`
     walletHistory(cursor: $cursor, inc: $inc) {
       facts {
         id
-        factId
+        bolt11
+        autoWithdraw
         type
         createdAt
         sats
-        satsFee
         status
         type
         description
+        invoiceComment
+        invoicePayerData
+        subName
         item {
           ...ItemFullFields
         }
@@ -60,8 +69,8 @@ export const CREATE_WITHDRAWL = gql`
 }`
 
 export const SEND_TO_LNADDR = gql`
-  mutation sendToLnAddr($addr: String!, $amount: Int!, $maxFee: Int!) {
-    sendToLnAddr(addr: $addr, amount: $amount, maxFee: $maxFee) {
+  mutation sendToLnAddr($addr: String!, $amount: Int!, $maxFee: Int!, $comment: String, $identifier: Boolean, $name: String, $email: String) {
+    sendToLnAddr(addr: $addr, amount: $amount, maxFee: $maxFee, comment: $comment, identifier: $identifier, name: $name, email: $email) {
       id
     }
 }`

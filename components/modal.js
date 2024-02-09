@@ -1,6 +1,8 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import Modal from 'react-bootstrap/Modal'
 import BackArrow from '../svgs/arrow-left-line.svg'
+import { useRouter } from 'next/router'
+import ActionDropdown from './action-dropdown'
 
 export const ShowModalContext = createContext(() => null)
 
@@ -31,25 +33,45 @@ export default function useModal () {
     }
     const previousModalContent = modalStack[modalStack.length - 1]
     setModalStack(modalStack.slice(0, -1))
+    modalOptions?.onClose?.()
     return setModalContent(previousModalContent)
   }, [modalStack, setModalStack])
 
   const onClose = useCallback(() => {
     setModalContent(null)
     setModalStack([])
-  }, [])
+    modalOptions?.onClose?.()
+  }, [modalOptions?.onClose])
+
+  const router = useRouter()
+  useEffect(() => {
+    router.events.on('routeChangeStart', onClose)
+    return () => router.events.off('routeChangeStart', onClose)
+  }, [router, onClose])
 
   const modal = useMemo(() => {
     if (modalContent === null) {
       return null
     }
+    const className = modalOptions?.fullScreen ? 'fullscreen' : ''
     return (
-      <Modal onHide={modalOptions?.keepOpen ? null : onClose} show={!!modalContent}>
+      <Modal
+        onHide={modalOptions?.keepOpen ? null : onClose} show={!!modalContent}
+        className={className}
+        dialogClassName={className}
+        contentClassName={className}
+      >
         <div className='d-flex flex-row'>
+          {modalOptions?.overflow &&
+            <div className={'modal-btn modal-overflow ' + className}>
+              <ActionDropdown>
+                {modalOptions.overflow}
+              </ActionDropdown>
+            </div>}
           {modalStack.length > 0 ? <div className='modal-btn modal-back' onClick={onBack}><BackArrow width={18} height={18} className='fill-white' /></div> : null}
-          <div className='modal-btn modal-close' onClick={onClose}>X</div>
+          <div className={'modal-btn modal-close ' + className} onClick={onClose}>X</div>
         </div>
-        <Modal.Body>
+        <Modal.Body className={className}>
           {modalContent}
         </Modal.Body>
       </Modal>
@@ -59,7 +81,9 @@ export default function useModal () {
   const showModal = useCallback(
     (getContent, options) => {
       if (modalContent) {
-        setModalStack(stack => ([...stack, modalContent]))
+        if (options?.replaceModal) {
+          setModalStack(stack => ([]))
+        } else setModalStack(stack => ([...stack, modalContent]))
       }
       setModalOptions(options)
       setModalContent(getContent(onClose))

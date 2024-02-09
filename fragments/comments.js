@@ -3,23 +3,26 @@ import { gql } from '@apollo/client'
 export const COMMENT_FIELDS = gql`
   fragment CommentFields on Item {
     id
+    position
     parentId
     createdAt
     deletedAt
     text
     user {
-      name
-      streak
-      hideCowboyHat
       id
+      name
+      optional {
+        streak
+      }
+      meMute
     }
     sats
     meAnonSats @client
     upvotes
-    wvotes
+    freedFreebie
     boost
     meSats
-    meDontLike
+    meDontLikeSats
     meBookmark
     meSubscription
     outlawed
@@ -29,6 +32,7 @@ export const COMMENT_FIELDS = gql`
     mine
     otsHash
     ncomments
+    imgproxyUrls
   }
 `
 
@@ -41,10 +45,17 @@ export const COMMENTS_ITEM_EXT_FIELDS = gql`
       bounty
       bountyPaidTo
       subName
+      sub {
+        name
+        userId
+        moderated
+        meMuteSub
+      }
       user {
         name
-        streak
-        hideCowboyHat
+        optional {
+          streak
+        }
         id
       }
     }
@@ -70,12 +81,6 @@ export const COMMENTS = gql`
                 ...CommentFields
                 comments {
                   ...CommentFields
-                  comments {
-                    ...CommentFields
-                    comments {
-                      ...CommentFields
-                    }
-                  }
                 }
               }
             }

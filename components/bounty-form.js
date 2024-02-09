@@ -1,15 +1,17 @@
-import { Form, Input, MarkdownInput, SubmitButton } from '../components/form'
+import { Form, Input, MarkdownInput } from '../components/form'
 import { useRouter } from 'next/router'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
-import FeeButton, { EditFeeButton } from './fee-button'
 import InputGroup from 'react-bootstrap/InputGroup'
 import { bountySchema } from '../lib/validate'
-import { SubSelectInitial } from './sub-select-form'
-import CancelButton from './cancel-button'
+import { SubSelectInitial } from './sub-select'
 import { useCallback } from 'react'
-import { useInvoiceable } from './invoice'
+import { normalizeForwards, toastDeleteScheduled } from '../lib/form'
+import { MAX_TITLE_LENGTH } from '../lib/constants'
+import { useMe } from './me'
+import { useToast } from './toast'
+import { ItemButtonBar } from './post'
 
 export function BountyForm ({
   item,
@@ -18,13 +20,14 @@ export function BountyForm ({
   titleLabel = 'title',
   bountyLabel = 'bounty',
   textLabel = 'text',
-  buttonText = 'post',
   handleSubmit,
   children
 }) {
   const router = useRouter()
   const client = useApolloClient()
-  const schema = bountySchema(client)
+  const me = useMe()
+  const toaster = useToast()
+  const schema = bountySchema({ client, me, existingBoost: item?.boost })
   const [upsertBounty] = useMutation(
     gql`
       mutation upsertBounty(
@@ -34,7 +37,9 @@ export function BountyForm ({
         $bounty: Int!
         $text: String
         $boost: Int
-        $forward: String
+        $forward: [ItemForwardInput]
+        $hash: String
+        $hmac: String
       ) {
         upsertBounty(
           sub: $sub
@@ -44,23 +49,26 @@ export function BountyForm ({
           text: $text
           boost: $boost
           forward: $forward
+          hash: $hash
+          hmac: $hmac
         ) {
           id
+          deleteScheduledAt
         }
       }
     `
   )
 
-  const submitUpsertBounty = useCallback(
-    // we ignore the invoice since only stackers can post bounties
-    async (_, boost, bounty, values, ...__) => {
-      const { error } = await upsertBounty({
+  const onSubmit = useCallback(
+    async ({ boost, bounty, ...values }) => {
+      const { data, error } = await upsertBounty({
         variables: {
           sub: item?.subName || sub?.name,
           id: item?.id,
           boost: boost ? Number(boost) : undefined,
           bounty: bounty ? Number(bounty) : undefined,
-          ...values
+          ...values,
+          forward: normalizeForwards(values.forward)
         }
       })
       if (error) {
@@ -73,9 +81,9 @@ export function BountyForm ({
         const prefix = sub?.name ? `/~${sub.name}` : ''
         await router.push(prefix + '/recent')
       }
-    }, [upsertBounty, router])
-
-  const invoiceableUpsertBounty = useInvoiceable(submitUpsertBounty, { requireSession: true })
+      toastDeleteScheduled(toaster, data, 'upsertBounty', !!item, values.text)
+    }, [upsertBounty, router]
+  )
 
   return (
     <Form
@@ -83,20 +91,26 @@ export function BountyForm ({
         title: item?.title || '',
         text: item?.text || '',
         bounty: item?.bounty || 1000,
-        ...AdvPostInitial({ forward: item?.fwdUser?.name }),
+        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}
+      invoiceable={{ requireSession: true }}
       onSubmit={
         handleSubmit ||
-        (async ({ boost, bounty, cost, ...values }) => {
-          return invoiceableUpsertBounty(cost, boost, bounty, values)
-        })
+        onSubmit
       }
       storageKeyPrefix={item ? undefined : 'bounty'}
     >
       {children}
-      <Input label={titleLabel} name='title' required autoFocus clear />
+      <Input
+        label={titleLabel}
+        name='title'
+        required
+        autoFocus
+        clear
+        maxLength={MAX_TITLE_LENGTH}
+      />
       <Input
         label={bountyLabel} name='bounty' required
         append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
@@ -121,30 +135,7 @@ export function BountyForm ({
         }
       />
       <AdvPostForm edit={!!item} />
-      <div className='mt-3'>
-        {item
-          ? (
-            <div className='d-flex'>
-              <CancelButton />
-              <EditFeeButton
-                paidSats={item.meSats}
-                parentId={null}
-                text='save'
-                ChildButton={SubmitButton}
-                variant='secondary'
-              />
-            </div>
-            )
-          : (
-            <FeeButton
-              baseFee={1}
-              parentId={null}
-              text={buttonText}
-              ChildButton={SubmitButton}
-              variant='secondary'
-            />
-            )}
-      </div>
+      <ItemButtonBar itemId={item?.id} canDelete={false} />
     </Form>
   )
 }

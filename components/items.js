@@ -24,30 +24,34 @@ export default function Items ({ ssrData, variables = {}, query, destructureData
     }
   }, [dat])
 
-  const pinMap = useMemo(() =>
-    pins?.reduce((a, p) => { a[p.position] = p; return a }, {}), [pins])
+  const itemsWithPins = useMemo(() => {
+    if (!pins) return items
+
+    const res = [...items]
+    pins?.forEach(p => {
+      if (p.position <= res.length) {
+        res.splice(p.position - 1, 0, p)
+      } else {
+        res.push(p)
+      }
+    })
+    return res
+  }, [pins, items])
 
   const Skeleton = useCallback(() =>
-    <ItemsSkeleton rank={rank} startRank={items?.length} limit={variables.limit} />, [rank, items])
+    <ItemsSkeleton rank={rank} startRank={items?.length} limit={variables.limit} Footer={Foooter} />, [rank, items])
 
   if (!dat) {
     return <Skeleton />
   }
 
+  const isHome = !variables?.sub
+
   return (
     <>
       <div className={styles.grid}>
-        {items.filter(filter).map((item, i) => (
-          <Fragment key={item.id}>
-            {pinMap && pinMap[i + 1] && <Item item={pinMap[i + 1]} />}
-            {item.parentId
-              ? <CommentFlat item={item} rank={rank && i + 1} noReply includeParent clickToContext />
-              : (item.isJob
-                  ? <ItemJob item={item} rank={rank && i + 1} />
-                  : (item.searchText
-                      ? <ItemFull item={item} rank={rank && i + 1} noReply siblingComments={variables.includeComments} />
-                      : <Item item={item} rank={rank && i + 1} siblingComments={variables.includeComments} />))}
-          </Fragment>
+        {itemsWithPins.filter(filter).map((item, i) => (
+          <ListItem key={item.id} item={item} rank={rank && i + 1} siblingComments={variables.includeComments} pinnable={isHome ? false : pins?.length > 0} />
         ))}
       </div>
       <Foooter
@@ -59,14 +63,29 @@ export default function Items ({ ssrData, variables = {}, query, destructureData
   )
 }
 
-export function ItemsSkeleton ({ rank, startRank = 0, limit = LIMIT }) {
+export function ListItem ({ item, ...props }) {
+  return (
+    item.parentId
+      ? <CommentFlat item={item} noReply includeParent clickToContext {...props} />
+      : (item.isJob
+          ? <ItemJob item={item} />
+          : (item.searchText
+              ? <ItemFull item={item} noReply {...props} />
+              : <Item item={item} {...props} />))
+  )
+}
+
+export function ItemsSkeleton ({ rank, startRank = 0, limit = LIMIT, Footer }) {
   const items = new Array(limit).fill(null)
 
   return (
-    <div className={styles.grid}>
-      {items.map((_, i) => (
-        <ItemSkeleton rank={rank && i + startRank + 1} key={i + startRank} />
-      ))}
-    </div>
+    <>
+      <div className={styles.grid}>
+        {items.map((_, i) => (
+          <ItemSkeleton rank={rank && i + startRank + 1} key={i + startRank} />
+        ))}
+      </div>
+      <Footer invisible cursor />
+    </>
   )
 }

@@ -5,7 +5,7 @@ import TopHeader from '../../../../components/top-header'
 import { TOP_USERS } from '../../../../fragments/users'
 import UserList from '../../../../components/user-list'
 
-export const getServerSideProps = getGetServerSideProps(TOP_USERS)
+export const getServerSideProps = getGetServerSideProps({ query: TOP_USERS })
 
 export default function Index ({ ssrData }) {
   const router = useRouter()

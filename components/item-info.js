@@ -10,17 +10,22 @@ import { timeSince } from '../lib/time'
 import { DeleteDropdownItem } from './delete'
 import styles from './item.module.css'
 import { useMe } from './me'
-import MoreIcon from '../svgs/more-fill.svg'
-import DontLikeThisDropdownItem from './dont-link-this'
+import DontLikeThisDropdownItem, { OutlawDropdownItem } from './dont-link-this'
 import BookmarkDropdownItem from './bookmark'
 import SubscribeDropdownItem from './subscribe'
-import { CopyLinkDropdownItem } from './share'
+import { CopyLinkDropdownItem, CrosspostDropdownItem } from './share'
 import Hat from './hat'
 import { AD_USER_ID } from '../lib/constants'
+import ActionDropdown from './action-dropdown'
+import MuteDropdownItem from './mute'
+import { DropdownItemUpVote } from './upvote'
+import { useRoot } from './root'
+import { MuteSubDropdownItem, PinSubDropdownItem } from './territory-header'
 
 export default function ItemInfo ({
-  item, pendingSats, full, commentsText = 'comments',
-  commentTextSingular = 'comment', className, embellishUser, extraInfo, onEdit, editText
+  item, full, commentsText = 'comments',
+  commentTextSingular = 'comment', className, embellishUser, extraInfo, onEdit, editText,
+  onQuoteReply, nofollow, extraBadges, nested, pinnable
 }) {
   const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
   const me = useMe()
@@ -29,6 +34,8 @@ export default function ItemInfo ({
     useState(item.mine && (Date.now() < editThreshold))
   const [hasNewComments, setHasNewComments] = useState(false)
   const [meTotalSats, setMeTotalSats] = useState(0)
+  const root = useRoot()
+  const sub = item?.sub || root?.sub
 
   useEffect(() => {
     if (!full) {
@@ -37,12 +44,20 @@ export default function ItemInfo ({
   }, [item])
 
   useEffect(() => {
-    if (item) setMeTotalSats(item.meSats + item.meAnonSats + pendingSats)
-  }, [item?.meSats, item?.meAnonSats, pendingSats])
+    if (item) setMeTotalSats((item.meSats || 0) + (item.meAnonSats || 0))
+  }, [item?.meSats, item?.meAnonSats])
+
+  // territory founders can pin any post in their territory
+  // and OPs can pin any root reply in their post
+  const isPost = !item.parentId
+  const mySub = (me && sub && Number(me.id) === sub.userId)
+  const myPost = (me && root && Number(me.id) === Number(root.user.id))
+  const rootReply = item.path.split('.').length === 2
+  const canPin = (isPost && mySub) || (myPost && rootReply)
 
   return (
     <div className={className || `${styles.other}`}>
-      {!item.position && !(!item.parentId && Number(item.user?.id) === AD_USER_ID) &&
+      {!(item.position && (pinnable || !item.subName)) && !(!item.parentId && Number(item.user?.id) === AD_USER_ID) &&
         <>
           <span title={`from ${numWithUnits(item.upvotes, {
               abbreviate: false,
@@ -50,9 +65,11 @@ export default function ItemInfo ({
               unitPlural: 'stackers'
             })} ${item.mine
             ? `\\ ${numWithUnits(item.meSats, { abbreviate: false })} to post`
-            : `(${numWithUnits(meTotalSats, { abbreviate: false })} from me)`} `}
+            : `(${numWithUnits(meTotalSats, { abbreviate: false })}${item.meDontLikeSats
+              ? ` & ${numWithUnits(item.meDontLikeSats, { abbreviate: false, unitSingular: 'downsat', unitPlural: 'downsats' })}`
+              : ''} from me)`} `}
           >
-            {numWithUnits(item.sats + pendingSats)}
+            {numWithUnits(item.sats)}
           </span>
           <span> \ </span>
         </>}
@@ -62,6 +79,7 @@ export default function ItemInfo ({
           <span> \ </span>
         </>}
       <Link
+        rel={nofollow}
         href={`/items/${item.id}`} onClick={(e) => {
           const viewedAt = commentsViewedAt(item)
           if (viewedAt) {
@@ -89,7 +107,7 @@ export default function ItemInfo ({
           {embellishUser}
         </Link>
         <span> </span>
-        <Link href={`/items/${item.id}`} title={item.createdAt} className='text-reset' suppressHydrationWarning>
+        <Link rel={nofollow} href={`/items/${item.id}`} title={item.createdAt} className='text-reset' suppressHydrationWarning>
           {timeSince(new Date(item.createdAt))}
         </Link>
         {item.prior &&
@@ -108,11 +126,12 @@ export default function ItemInfo ({
         <Link href='/recent/outlawed'>
           {' '}<Badge className={styles.newComment} bg={null}>outlawed</Badge>
         </Link>) ||
-        (item.freebie &&
+        (item.freebie && !item.position &&
           <Link href='/recent/freebies'>
             {' '}<Badge className={styles.newComment} bg={null}>freebie</Badge>
           </Link>
         )}
+      {extraBadges}
       {canEdit && !item.deletedAt &&
         <>
           <span> \ </span>
@@ -129,33 +148,55 @@ export default function ItemInfo ({
             />
           </span>
         </>}
-      <ItemDropdown>
+      <ActionDropdown>
         <CopyLinkDropdownItem item={item} />
+        {(item.parentId || item.text) && onQuoteReply &&
+          <Dropdown.Item onClick={onQuoteReply}>quote reply</Dropdown.Item>}
         {me && <BookmarkDropdownItem item={item} />}
-        {me && item.user.id !== me.id && <SubscribeDropdownItem item={item} />}
+        {me && <SubscribeDropdownItem item={item} />}
         {item.otsHash &&
           <Link href={`/items/${item.id}/ots`} className='text-reset dropdown-item'>
-            ots timestamp
+            opentimestamp
           </Link>}
-        {me && !item.meSats && !item.position && !item.meDontLike &&
-          !item.mine && !item.deletedAt && <DontLikeThisDropdownItem id={item.id} />}
-        {item.mine && !item.position && !item.deletedAt &&
-          <DeleteDropdownItem itemId={item.id} />}
-      </ItemDropdown>
+        {item?.noteId && (
+          <Dropdown.Item onClick={() => window.open(`https://nostr.com/${item.noteId}`, '_blank', 'noopener')}>
+            nostr note
+          </Dropdown.Item>
+        )}
+        {me && !item.position &&
+          !item.mine && !item.deletedAt &&
+          (item.meDontLikeSats > meTotalSats
+            ? <DropdownItemUpVote item={item} />
+            : <DontLikeThisDropdownItem id={item.id} />)}
+        {me && sub && !item.mine && !item.outlawed && Number(me.id) === Number(sub.userId) && sub.moderated &&
+          <>
+            <hr className='dropdown-divider' />
+            <OutlawDropdownItem item={item} />
+          </>}
+        {me && !nested && !item.mine && sub && Number(me.id) !== Number(sub.userId) &&
+          <>
+            <hr className='dropdown-divider' />
+            <MuteSubDropdownItem item={item} sub={sub} />
+          </>}
+        {canPin &&
+          <>
+            <hr className='dropdown-divider' />
+            <PinSubDropdownItem item={item} />
+          </>}
+        {item?.mine && !item?.noteId &&
+          <CrosspostDropdownItem item={item} />}
+        {item.mine && !item.position && !item.deletedAt && !item.bio &&
+          <>
+            <hr className='dropdown-divider' />
+            <DeleteDropdownItem itemId={item.id} type={item.title ? 'post' : 'comment'} />
+          </>}
+        {me && !item.mine &&
+          <>
+            <hr className='dropdown-divider' />
+            <MuteDropdownItem user={item.user} />
+          </>}
+      </ActionDropdown>
       {extraInfo}
     </div>
-  )
-}
-
-export function ItemDropdown ({ children }) {
-  return (
-    <Dropdown className={`pointer ${styles.dropdown}`} as='span'>
-      <Dropdown.Toggle variant='success' as='a'>
-        <MoreIcon className='fill-grey ms-1' height={16} width={16} />
-      </Dropdown.Toggle>
-      <Dropdown.Menu>
-        {children}
-      </Dropdown.Menu>
-    </Dropdown>
   )
 }

@@ -31,3 +31,16 @@ export default function AccordianItem ({ header, body, headerColor = 'var(--them
     </Accordion>
   )
 }
+
+export function AccordianCard ({ header, children, show }) {
+  return (
+    <Accordion defaultActiveKey={show ? '0' : undefined}>
+      <Accordion.Item eventKey='0'>
+        <Accordion.Header>{header}</Accordion.Header>
+        <Accordion.Body>
+          {children}
+        </Accordion.Body>
+      </Accordion.Item>
+    </Accordion>
+  )
+}

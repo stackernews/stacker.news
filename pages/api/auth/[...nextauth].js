@@ -7,10 +7,10 @@ import EmailProvider from 'next-auth/providers/email'
 import prisma from '../../../api/models'
 import nodemailer from 'nodemailer'
 import { PrismaAdapter } from '@auth/prisma-adapter'
-import { decode, getToken } from 'next-auth/jwt'
+import { getToken } from 'next-auth/jwt'
 import { NodeNextRequest } from 'next/dist/server/base-http/node'
-import jose1 from 'jose1'
 import { schnorr } from '@noble/curves/secp256k1'
+import { sendUserNotification } from '../../../api/webPush'
 
 function getCallbacks (req) {
   return {
@@ -42,11 +42,12 @@ function getCallbacks (req) {
           const referrer = await prisma.user.findUnique({ where: { name: req.cookies.sn_referrer } })
           if (referrer) {
             await prisma.user.update({ where: { id: user.id }, data: { referrerId: referrer.id } })
+            sendUserNotification(referrer.id, { title: 'someone joined via one of your referral links', tag: 'REFERRAL' }).catch(console.error)
           }
         }
 
         // sign them up for the newsletter
-        if (profile.email) {
+        if (user?.email && process.env.LIST_MONK_URL && process.env.LIST_MONK_AUTH) {
           fetch(process.env.LIST_MONK_URL + '/api/subscribers', {
             method: 'POST',
             headers: {
@@ -54,7 +55,7 @@ function getCallbacks (req) {
               Authorization: 'Basic ' + Buffer.from(process.env.LIST_MONK_AUTH).toString('base64')
             },
             body: JSON.stringify({
-              email: profile.email,
+              email: user.email,
               name: 'blank',
               lists: [2],
               status: 'enabled',
@@ -153,18 +154,9 @@ const providers = [
     },
     authorize: async ({ event }, req) => {
       const credentials = await nostrEventAuth(event)
-      return pubkeyAuth(credentials, new NodeNextRequest(req), 'nostrAuthPubkey')
+      return await pubkeyAuth(credentials, new NodeNextRequest(req), 'nostrAuthPubkey')
     }
   }),
-  // CredentialsProvider({
-  //   id: 'slashtags',
-  //   name: 'Slashtags',
-  //   credentials: {
-  //     pubkey: { label: 'publickey', type: 'text' },
-  //     k1: { label: 'k1', type: 'text' }
-  //   },
-  //   authorize: async (credentials, req) => await pubkeyAuth(credentials, new NodeNextRequest(req), 'slashtagId')
-  // }),
   GitHubProvider({
     clientId: process.env.GITHUB_ID,
     clientSecret: process.env.GITHUB_SECRET,
@@ -202,38 +194,6 @@ export const getAuthOptions = req => ({
   adapter: PrismaAdapter(prisma),
   session: {
     strategy: 'jwt'
-  },
-  jwt: {
-    decode: async ({ token, secret }) => {
-      // attempt to decode using new jwt decode
-      try {
-        const _token = await decode({ token, secret })
-        if (_token) {
-          return _token
-        }
-      } catch (err) {
-        console.log('next-auth v4 jwt decode failed', err)
-      }
-
-      // attempt to decode using old jwt decode from next-auth v3
-      // https://github.com/nextauthjs/next-auth/blob/ab764e379377f9ffd68ff984b163c0edb5fc4bda/src/lib/jwt.js#L52
-      try {
-        const signingKey = jose1.JWK.asKey(JSON.parse(process.env.JWT_SIGNING_PRIVATE_KEY))
-        const verificationOptions = {
-          maxTokenAge: '2592000s',
-          algorithms: ['HS512']
-        }
-        const _token = jose1.JWT.verify(token, signingKey, verificationOptions)
-        if (_token) {
-          console.log('next-auth v3 jwt decode success')
-          return _token
-        }
-      } catch (err) {
-        console.log('next-auth v3 jwt decode failed', err)
-      }
-
-      return null
-    }
   },
   pages: {
     signIn: '/login',

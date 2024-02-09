@@ -4,7 +4,7 @@ import { Form, Input, SubmitButton } from '../components/form'
 import { useState } from 'react'
 import Alert from 'react-bootstrap/Alert'
 import { useRouter } from 'next/router'
-import { LightningAuthWithExplainer, SlashtagsAuth } from './lightning-auth'
+import { LightningAuthWithExplainer } from './lightning-auth'
 import NostrAuth from './nostr-auth'
 import LoginButton from './login-button'
 import { emailSchema } from '../lib/validate'
@@ -54,10 +54,6 @@ export default function Login ({ providers, callbackUrl, error, text, Header, Fo
 
   if (router.query.type === 'lightning') {
     return <LightningAuthWithExplainer callbackUrl={callbackUrl} text={text} />
-  }
-
-  if (router.query.type === 'slashtags') {
-    return <SlashtagsAuth callbackUrl={callbackUrl} text={text} />
   }
 
   if (router.query.type === 'nostr') {

@@ -1,20 +1,24 @@
 import QRCode from 'qrcode.react'
 import { CopyInput, InputSkeleton } from './form'
 import InvoiceStatus from './invoice-status'
-import { requestProvider } from 'webln'
 import { useEffect } from 'react'
+import { useWebLN } from './webln'
+import { useToast } from './toast'
 
 export default function Qr ({ asIs, value, webLn, statusVariant, description, status }) {
   const qrValue = asIs ? value : 'lightning:' + value.toUpperCase()
+
+  const provider = useWebLN()
+  const toaster = useToast()
 
   useEffect(() => {
     async function effect () {
       if (webLn) {
         try {
-          const provider = await requestProvider()
           await provider.sendPayment(value)
         } catch (e) {
-          console.log(e.message)
+          console.log(e?.message)
+          toaster.danger(`${provider.name}: ${e?.message}`)
         }
       }
     }

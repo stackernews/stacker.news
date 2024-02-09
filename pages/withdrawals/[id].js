@@ -1,4 +1,4 @@
-import { useQuery } from '@apollo/client'
+import { useQuery, useMutation } from '@apollo/client'
 import { CenterLayout } from '../../components/layout'
 import { CopyInput, Input, InputSkeleton } from '../../components/form'
 import InputGroup from 'react-bootstrap/InputGroup'
@@ -6,8 +6,15 @@ import InvoiceStatus from '../../components/invoice-status'
 import { useRouter } from 'next/router'
 import { WITHDRAWL } from '../../fragments/wallet'
 import Link from 'next/link'
-import { SSR } from '../../lib/constants'
+import { SSR, INVOICE_RETENTION_DAYS } from '../../lib/constants'
 import { numWithUnits } from '../../lib/format'
+import Bolt11Info from '../../components/bolt11-info'
+import { datePivot, timeLeft } from '../../lib/time'
+import { useMe } from '../../components/me'
+import { useToast } from '../../components/toast'
+import { gql } from 'graphql-tag'
+import { useShowModal } from '../../components/modal'
+import { DeleteConfirm } from '../../components/delete'
 
 export default function Withdrawl () {
   return (
@@ -86,7 +93,7 @@ function LoadWithdrawl () {
       <div className='w-100'>
         <CopyInput
           label='invoice' type='text'
-          placeholder={data.withdrawl.bolt11} readOnly noForm
+          placeholder={data.withdrawl.bolt11 || 'deleted'} readOnly noForm
         />
       </div>
       <div className='w-100'>
@@ -97,6 +104,70 @@ function LoadWithdrawl () {
         />
       </div>
       <InvoiceStatus variant={variant} status={status} />
+      <Bolt11Info bolt11={data.withdrawl.bolt11}>
+        <PrivacyOption wd={data.withdrawl} />
+      </Bolt11Info>
     </>
+  )
+}
+
+function PrivacyOption ({ wd }) {
+  if (!wd.bolt11) return
+
+  const me = useMe()
+  const keepUntil = datePivot(new Date(wd.createdAt), { days: INVOICE_RETENTION_DAYS })
+  const oldEnough = new Date() >= keepUntil
+  if (!oldEnough) {
+    return (
+      <span className='text-muted fst-italic'>
+        {`this invoice ${me.privates?.autoDropBolt11s ? 'will be auto-deleted' : 'can be deleted'} in ${timeLeft(keepUntil)}`}
+      </span>
+    )
+  }
+
+  const showModal = useShowModal()
+  const toaster = useToast()
+  const [dropBolt11] = useMutation(
+    gql`
+      mutation dropBolt11($id: ID!) {
+        dropBolt11(id: $id) {
+          id
+        }
+      }`, {
+      update (cache) {
+        cache.modify({
+          id: `Withdrawl:${wd.id}`,
+          fields: {
+            bolt11: () => null,
+            hash: () => null
+          }
+        })
+      }
+    })
+
+  return (
+    <span
+      className='btn btn-md btn-danger' onClick={() => {
+        showModal(onClose => {
+          return (
+            <DeleteConfirm
+              type='invoice'
+              onConfirm={async () => {
+                if (me) {
+                  try {
+                    await dropBolt11({ variables: { id: wd.id } })
+                  } catch (err) {
+                    console.error(err)
+                    toaster.danger('unable to delete invoice')
+                  }
+                }
+                onClose()
+              }}
+            />
+          )
+        })
+      }}
+    >delete invoice
+    </span>
   )
 }

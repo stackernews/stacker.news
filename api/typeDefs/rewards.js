@@ -2,12 +2,12 @@ import { gql } from 'graphql-tag'
 
 export default gql`
   extend type Query {
-    rewards(when: String): Rewards!
-    meRewards(when: String!): MeRewards
+    rewards(when: [String!]): [Rewards!]
+    meRewards(when: [String!]!): [MeRewards]
   }
 
   extend type Mutation {
-    donateToRewards(sats: Int!): Int!
+    donateToRewards(sats: Int!, hash: String, hmac: String): Int!
   }
 
   type Rewards {
@@ -20,6 +20,7 @@ export default gql`
     type: String
     rank: Int
     sats: Int!
+    item: Item
   }
 
   type MeRewards {

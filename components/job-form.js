@@ -1,4 +1,4 @@
-import { Checkbox, Form, Input, MarkdownInput, SubmitButton } from './form'
+import { Checkbox, Form, Input, MarkdownInput } from './form'
 import Row from 'react-bootstrap/Row'
 import Col from 'react-bootstrap/Col'
 import InputGroup from 'react-bootstrap/InputGroup'
@@ -14,10 +14,11 @@ import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { usePrice } from './price'
 import Avatar from './avatar'
-import ActionTooltip from './action-tooltip'
 import { jobSchema } from '../lib/validate'
-import CancelButton from './cancel-button'
-import { useInvoiceable } from './invoice'
+import { MAX_TITLE_LENGTH } from '../lib/constants'
+import { useToast } from './toast'
+import { toastDeleteScheduled } from '../lib/form'
+import { ItemButtonBar } from './post'
 
 function satsMin2Mo (minute) {
   return minute * 30 * 24 * 60
@@ -39,21 +40,22 @@ function PriceHint ({ monthly }) {
 export default function JobForm ({ item, sub }) {
   const storageKeyPrefix = item ? undefined : `${sub.name}-job`
   const router = useRouter()
+  const toaster = useToast()
   const [logoId, setLogoId] = useState(item?.uploadId)
   const [upsertJob] = useMutation(gql`
     mutation upsertJob($sub: String!, $id: ID, $title: String!, $company: String!, $location: String,
-      $remote: Boolean, $text: String!, $url: String!, $maxBid: Int!, $status: String, $logo: Int) {
+      $remote: Boolean, $text: String!, $url: String!, $maxBid: Int!, $status: String, $logo: Int, $hash: String, $hmac: String) {
       upsertJob(sub: $sub, id: $id, title: $title, company: $company,
         location: $location, remote: $remote, text: $text,
-        url: $url, maxBid: $maxBid, status: $status, logo: $logo) {
+        url: $url, maxBid: $maxBid, status: $status, logo: $logo, hash: $hash, hmac: $hmac) {
         id
+        deleteScheduledAt
       }
     }`
   )
 
-  const submitUpsertJob = useCallback(
-    // we ignore the invoice since only stackers can post jobs
-    async (_, maxBid, stop, start, values, ...__) => {
+  const onSubmit = useCallback(
+    async ({ maxBid, start, stop, ...values }) => {
       let status
       if (start) {
         status = 'ACTIVE'
@@ -61,7 +63,7 @@ export default function JobForm ({ item, sub }) {
         status = 'STOPPED'
       }
 
-      const { error } = await upsertJob({
+      const { data, error } = await upsertJob({
         variables: {
           id: item?.id,
           sub: item?.subName || sub?.name,
@@ -80,9 +82,9 @@ export default function JobForm ({ item, sub }) {
       } else {
         await router.push(`/~${sub.name}/recent`)
       }
-    }, [upsertJob, router, item?.id, sub?.name, logoId])
-
-  const invoiceableUpsertJob = useInvoiceable(submitUpsertJob, { requireSession: true })
+      toastDeleteScheduled(toaster, data, 'upsertJob', !!item, values.text)
+    }, [upsertJob, router, logoId]
+  )
 
   return (
     <>
@@ -101,15 +103,14 @@ export default function JobForm ({ item, sub }) {
         }}
         schema={jobSchema}
         storageKeyPrefix={storageKeyPrefix}
-        onSubmit={(async ({ maxBid, stop, start, ...values }) => {
-          return invoiceableUpsertJob(1000, maxBid, stop, start, values)
-        })}
+        invoiceable={{ requireSession: true }}
+        onSubmit={onSubmit}
       >
         <div className='form-group'>
           <label className='form-label'>logo</label>
           <div className='position-relative' style={{ width: 'fit-content' }}>
             <Image
-              src={logoId ? `https://${process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET}.s3.amazonaws.com/${logoId}` : '/jobs-default.png'} width='135' height='135' roundedCircle
+              src={logoId ? `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}/${logoId}` : '/jobs-default.png'} width='135' height='135' roundedCircle
             />
             <Avatar onSuccess={setLogoId} />
           </div>
@@ -120,6 +121,7 @@ export default function JobForm ({ item, sub }) {
           required
           autoFocus
           clear
+          maxLength={MAX_TITLE_LENGTH}
         />
         <Input
           label='company'
@@ -157,20 +159,7 @@ export default function JobForm ({ item, sub }) {
         />
         <PromoteJob item={item} sub={sub} />
         {item && <StatusControl item={item} />}
-        <div className='d-flex align-items-center justify-content-end mt-3'>
-          {item
-            ? (
-              <div className='d-flex'>
-                <CancelButton />
-                <SubmitButton variant='secondary'>save</SubmitButton>
-              </div>
-              )
-            : (
-              <ActionTooltip overlayText='1000 sats'>
-                <SubmitButton variant='secondary'>post <small> 1000 sats</small></SubmitButton>
-              </ActionTooltip>
-              )}
-        </div>
+        <ItemButtonBar itemId={item?.id} canDelete={false} />
       </Form>
     </>
   )

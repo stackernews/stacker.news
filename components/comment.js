@@ -1,6 +1,6 @@
 import itemStyles from './item.module.css'
 import styles from './comment.module.css'
-import Text from './text'
+import Text, { SearchText } from './text'
 import Link from 'next/link'
 import Reply, { ReplyOnAnotherPage } from './reply'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -9,18 +9,22 @@ import Eye from '../svgs/eye-fill.svg'
 import EyeClose from '../svgs/eye-close-line.svg'
 import { useRouter } from 'next/router'
 import CommentEdit from './comment-edit'
-import { COMMENT_DEPTH_LIMIT, NOFOLLOW_LIMIT } from '../lib/constants'
+import { ANON_USER_ID, COMMENT_DEPTH_LIMIT, NOFOLLOW_LIMIT } from '../lib/constants'
 import { ignoreClick } from '../lib/clicks'
 import PayBounty from './pay-bounty'
 import BountyIcon from '../svgs/bounty-bag.svg'
 import ActionTooltip from './action-tooltip'
-import Flag from '../svgs/flag-fill.svg'
 import { numWithUnits } from '../lib/format'
 import Share from './share'
 import ItemInfo from './item-info'
 import Badge from 'react-bootstrap/Badge'
 import { RootProvider, useRoot } from './root'
 import { useMe } from './me'
+import { useQuoteReply } from './use-quote-reply'
+import { DownZap } from './dont-link-this'
+import Skull from '../svgs/death-skull.svg'
+import { commentSubTreeRootId } from '../lib/item'
+import Pin from '../svgs/pushpin-fill.svg'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -54,20 +58,14 @@ const truncateString = (string = '', maxLength = 140) =>
     ? `${string.substring(0, maxLength)} […]`
     : string
 
-export function CommentFlat ({ item, rank, ...props }) {
+export function CommentFlat ({ item, rank, siblingComments, ...props }) {
   const router = useRouter()
   const [href, as] = useMemo(() => {
-    if (item.path.split('.').length > COMMENT_DEPTH_LIMIT + 1) {
-      return [{
-        pathname: '/items/[id]',
-        query: { id: item.parentId, commentId: item.id }
-      }, `/items/${item.parentId}`]
-    } else {
-      return [{
-        pathname: '/items/[id]',
-        query: { id: item.root.id, commentId: item.id }
-      }, `/items/${item.root.id}`]
-    }
+    const rootId = commentSubTreeRootId(item)
+    return [{
+      pathname: '/items/[id]',
+      query: { id: rootId, commentId: item.id }
+    }, `/items/${rootId}`]
   }, [item?.id])
 
   return (
@@ -79,7 +77,7 @@ export function CommentFlat ({ item, rank, ...props }) {
           </div>)
         : <div />}
       <div
-        className='clickToContext py-2'
+        className={`clickToContext ${siblingComments ? 'py-3' : 'py-2'}`}
         onClick={e => {
           if (ignoreClick(e)) return
           router.push(href, as)
@@ -95,19 +93,19 @@ export function CommentFlat ({ item, rank, ...props }) {
 
 export default function Comment ({
   item, children, replyOpen, includeParent, topLevel,
-  rootText, noComments, noReply, truncate, depth
+  rootText, noComments, noReply, truncate, depth, pin
 }) {
   const [edit, setEdit] = useState()
   const me = useMe()
+  const isHiddenFreebie = !me?.privates?.wildWestMode && !me?.privates?.greeterMode && !item.mine && item.freebie && !item.freedFreebie
   const [collapse, setCollapse] = useState(
-    !me?.wildWestMode && !me?.greeterMode &&
-    !item.mine && item.freebie && item.wvotes <= 0
+    (isHiddenFreebie || item?.user?.meMute || (item?.outlawed && !me?.privates?.wildWestMode)) && !includeParent
       ? 'yep'
       : 'nope')
   const ref = useRef(null)
   const router = useRouter()
   const root = useRoot()
-  const [pendingSats, setPendingSats] = useState(0)
+  const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text })
 
   useEffect(() => {
     setCollapse(window.localStorage.getItem(`commentCollapse:${item.id}`) || collapse)
@@ -116,7 +114,7 @@ export default function Comment ({
       setTimeout(() => {
         ref.current.scrollIntoView({ behavior: 'instant', block: 'start' })
         ref.current.classList.add('outline-it')
-      }, 20)
+      }, 100)
     }
   }, [item.id, router.query.commentId])
 
@@ -129,7 +127,12 @@ export default function Comment ({
   }, [item.id])
 
   const bottomedOut = depth === COMMENT_DEPTH_LIMIT
-  const op = root.user.name === item.user.name
+  // Don't show OP badge when anon user comments on anon user posts
+  const op = root.user.name === item.user.name && Number(item.user.id) !== ANON_USER_ID
+    ? 'OP'
+    : root.forwards?.some(f => f.user.name === item.user.name) && Number(item.user.id) !== ANON_USER_ID
+      ? 'fwd'
+      : null
   const bountyPaid = root.bountyPaidTo?.includes(Number(item.id))
 
   return (
@@ -139,30 +142,43 @@ export default function Comment ({
       onTouchStart={() => ref.current.classList.add('outline-new-comment-unset')}
     >
       <div className={`${itemStyles.item} ${styles.item}`}>
-        {item.meDontLike
-          ? <Flag width={24} height={24} className={styles.dontLike} />
-          : <UpVote item={item} className={styles.upvote} pendingSats={pendingSats} setPendingSats={setPendingSats} />}
+        {item.outlawed && !me?.privates?.wildWestMode
+          ? <Skull className={styles.dontLike} width={24} height={24} />
+          : item.meDontLikeSats > item.meSats
+            ? <DownZap width={24} height={24} className={styles.dontLike} id={item.id} meDontLikeSats={item.meDontLikeSats} />
+            : pin ? <Pin width={22} height={22} className={styles.pin} /> : <UpVote item={item} className={styles.upvote} />}
         <div className={`${itemStyles.hunk} ${styles.hunk}`}>
           <div className='d-flex align-items-center'>
-            <ItemInfo
-              item={item}
-              pendingSats={pendingSats}
-              commentsText='replies'
-              commentTextSingular='reply'
-              className={`${itemStyles.other} ${styles.other}`}
-              embellishUser={op && <><span> </span><Badge bg='boost' className={`${styles.op} bg-opacity-75`}>OP</Badge></>}
-              extraInfo={
-                <>
-                  {includeParent && <Parent item={item} rootText={rootText} />}
-                  {bountyPaid &&
-                    <ActionTooltip notForm overlayText={`${numWithUnits(root.bounty)} paid`}>
-                      <BountyIcon className={`${styles.bountyIcon} ${'fill-success vertical-align-middle'}`} height={16} width={16} />
-                    </ActionTooltip>}
-                </>
-              }
-              onEdit={e => { setEdit(!edit) }}
-              editText={edit ? 'cancel' : 'edit'}
-            />
+            {item.user?.meMute && !includeParent && collapse === 'yep'
+              ? (
+                <span
+                  className={`${itemStyles.other} ${styles.other} pointer`} onClick={() => {
+                    setCollapse('nope')
+                    window.localStorage.setItem(`commentCollapse:${item.id}`, 'nope')
+                  }}
+                >reply from someone you muted
+                </span>)
+              : <ItemInfo
+                  item={item}
+                  commentsText='replies'
+                  commentTextSingular='reply'
+                  className={`${itemStyles.other} ${styles.other}`}
+                  embellishUser={op && <><span> </span><Badge bg={op === 'fwd' ? 'secondary' : 'boost'} className={`${styles.op} bg-opacity-75`}>{op}</Badge></>}
+                  onQuoteReply={quoteReply}
+                  nested={!includeParent}
+                  extraInfo={
+                    <>
+                      {includeParent && <Parent item={item} rootText={rootText} />}
+                      {bountyPaid &&
+                        <ActionTooltip notForm overlayText={`${numWithUnits(root.bounty)} paid`}>
+                          <BountyIcon className={`${styles.bountyIcon} ${'fill-success vertical-align-middle'}`} height={16} width={16} />
+                        </ActionTooltip>}
+                    </>
+                  }
+                  onEdit={e => { setEdit(!edit) }}
+                  editText={edit ? 'cancel' : 'edit'}
+                />}
+
             {!includeParent && (collapse === 'yep'
               ? <Eye
                   className={styles.collapser} height={10} width={10} onClick={() => {
@@ -178,7 +194,7 @@ export default function Comment ({
                 />)}
             {topLevel && (
               <span className='d-flex ms-auto align-items-center'>
-                <Share item={item} />
+                <Share title={item?.title} path={`/items/${item?.id}`} />
               </span>
             )}
           </div>
@@ -192,23 +208,30 @@ export default function Comment ({
               />
               )
             : (
-              <div className={styles.text}>
-                <Text topLevel={topLevel} nofollow={item.sats + item.boost < NOFOLLOW_LIMIT}>
-                  {truncate ? truncateString(item.text) : item.searchText || item.text}
-                </Text>
+              <div className={styles.text} ref={textRef}>
+                {item.searchText
+                  ? <SearchText text={item.searchText} />
+                  : (
+                    <Text itemId={item.id} topLevel={topLevel} nofollow={item.sats + item.boost < NOFOLLOW_LIMIT} imgproxyUrls={item.imgproxyUrls}>
+                      {item.outlawed && !me?.privates?.wildWestMode
+                        ? '*stackers have outlawed this. turn on wild west mode in your [settings](/settings) to see outlawed content.*'
+                        : truncate ? truncateString(item.text) : item.text}
+                    </Text>)}
               </div>
               )}
         </div>
       </div>
       {collapse !== 'yep' && (
         bottomedOut
-          ? <DepthLimit item={item} />
+          ? <div className={styles.children}><ReplyOnAnotherPage item={item} /></div>
           : (
             <div className={styles.children}>
-              {!noReply &&
-                <Reply depth={depth + 1} item={item} replyOpen={replyOpen}>
-                  {root.bounty && !bountyPaid && <PayBounty item={item} />}
-                </Reply>}
+              {item.outlawed && !me?.privates?.wildWestMode
+                ? <div className='py-2' />
+                : !noReply &&
+                  <Reply depth={depth + 1} item={item} replyOpen={replyOpen} onCancelQuote={cancelQuote} onQuoteReply={quoteReply} quote={quote}>
+                    {root.bounty && !bountyPaid && <PayBounty item={item} />}
+                  </Reply>}
               {children}
               <div className={styles.comments}>
                 {item.comments && !noComments
@@ -220,22 +243,6 @@ export default function Comment ({
             </div>
             )
       )}
-    </div>
-  )
-}
-
-function DepthLimit ({ item }) {
-  if (item.ncomments > 0) {
-    return (
-      <Link href={`/items/${item.id}`} className='d-block p-3 fw-bold text-muted w-100 text-center'>
-        view replies
-      </Link>
-    )
-  }
-
-  return (
-    <div className={styles.children}>
-      <ReplyOnAnotherPage parentId={item.id} />
     </div>
   )
 }

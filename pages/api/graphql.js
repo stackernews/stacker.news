@@ -7,10 +7,15 @@ import typeDefs from '../../api/typeDefs'
 import { getServerSession } from 'next-auth/next'
 import { getAuthOptions } from './auth/[...nextauth]'
 import search from '../../api/search'
+import {
+  ApolloServerPluginLandingPageLocalDefault,
+  ApolloServerPluginLandingPageProductionDefault
+} from '@apollo/server/plugin/landingPage/default'
 
 const apolloServer = new ApolloServer({
   typeDefs,
   resolvers,
+  introspection: true,
   plugins: [{
     requestDidStart (initialRequestContext) {
       return {
@@ -38,7 +43,12 @@ const apolloServer = new ApolloServer({
         }
       }
     }
-  }]
+  },
+  process.env.NODE_ENV === 'production'
+    ? ApolloServerPluginLandingPageProductionDefault(
+      { embed: { endpointIsEditable: false, persistExplorerState: true, displayOptions: { theme: 'dark' } }, footer: false })
+    : ApolloServerPluginLandingPageLocalDefault(
+      { embed: { endpointIsEditable: false, persistExplorerState: true, displayOptions: { theme: 'dark' } }, footer: false })]
 })
 
 export default startServerAndCreateNextHandler(apolloServer, {
@@ -46,6 +56,7 @@ export default startServerAndCreateNextHandler(apolloServer, {
     const session = await getServerSession(req, res, getAuthOptions(req))
     return {
       models,
+      headers: req.headers,
       lnd,
       me: session
         ? session.user

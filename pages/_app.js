@@ -2,19 +2,26 @@ import '../styles/globals.scss'
 import { ApolloProvider, gql } from '@apollo/client'
 import { MeProvider } from '../components/me'
 import PlausibleProvider from 'next-plausible'
-import getApolloClient from '../lib/apollo'
+import getApolloClient from '../lib/apollo.js'
 import { PriceProvider } from '../components/price'
+import { BlockHeightProvider } from '../components/block-height'
 import Head from 'next/head'
 import { useRouter } from 'next/dist/client/router'
 import { useEffect } from 'react'
 import { ShowModalProvider } from '../components/modal'
 import ErrorBoundary from '../components/error-boundary'
 import { LightningProvider } from '../components/lightning'
+import { ToastProvider } from '../components/toast'
 import { ServiceWorkerProvider } from '../components/serviceworker'
 import { SSR } from '../lib/constants'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
-import { PaymentTokenProvider } from '../components/payment-tokens'
+import { LoggerProvider } from '../components/logger'
+import { ChainFeeProvider } from '../components/chain-fee.js'
+import { WebLNProvider } from '../components/webln'
+import dynamic from 'next/dynamic'
+
+const PWAPrompt = dynamic(() => import('react-ios-pwa-prompt'), { ssr: false })
 
 NProgress.configure({
   showSpinner: false
@@ -32,7 +39,7 @@ function writeQuery (client, apollo, data) {
   }
 }
 
-function MyApp ({ Component, pageProps: { ...props } }) {
+export default function MyApp ({ Component, pageProps: { ...props } }) {
   const client = getApolloClient()
   const router = useRouter()
 
@@ -73,7 +80,7 @@ function MyApp ({ Component, pageProps: { ...props } }) {
     If we are on the client, we populate the apollo cache with the
     ssr data
   */
-  const { apollo, ssrData, me, price, ...otherProps } = props
+  const { apollo, ssrData, me, price, blockHeight, chainFee, ...otherProps } = props
   useEffect(() => {
     writeQuery(client, apollo, ssrData)
   }, [client, apollo, ssrData])
@@ -87,18 +94,28 @@ function MyApp ({ Component, pageProps: { ...props } }) {
         <PlausibleProvider domain='stacker.news' trackOutboundLinks>
           <ApolloProvider client={client}>
             <MeProvider me={me}>
-              <ServiceWorkerProvider>
-                <PriceProvider price={price}>
-                  <LightningProvider>
-                    <PaymentTokenProvider>
-                      <ShowModalProvider>
-                        <Component ssrData={ssrData} {...otherProps} />
-                      </ShowModalProvider>
-                    </PaymentTokenProvider>
-                  </LightningProvider>
-                </PriceProvider>
-
-              </ServiceWorkerProvider>
+              <LoggerProvider>
+                <ServiceWorkerProvider>
+                  <PriceProvider price={price}>
+                    <LightningProvider>
+                      <ToastProvider>
+                        <WebLNProvider>
+                          <ShowModalProvider>
+                            <BlockHeightProvider blockHeight={blockHeight}>
+                              <ChainFeeProvider chainFee={chainFee}>
+                                <ErrorBoundary>
+                                  <Component ssrData={ssrData} {...otherProps} />
+                                  <PWAPrompt copyBody='This website has app functionality. Add it to your home screen to use it in fullscreen and receive notifications. In Safari:' promptOnVisit={2} />
+                                </ErrorBoundary>
+                              </ChainFeeProvider>
+                            </BlockHeightProvider>
+                          </ShowModalProvider>
+                        </WebLNProvider>
+                      </ToastProvider>
+                    </LightningProvider>
+                  </PriceProvider>
+                </ServiceWorkerProvider>
+              </LoggerProvider>
             </MeProvider>
           </ApolloProvider>
         </PlausibleProvider>
@@ -106,5 +123,3 @@ function MyApp ({ Component, pageProps: { ...props } }) {
     </>
   )
 }
-
-export default MyApp

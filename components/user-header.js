@@ -18,6 +18,12 @@ import { userSchema } from '../lib/validate'
 import { useShowModal } from './modal'
 import { numWithUnits } from '../lib/format'
 import Hat from './hat'
+import SubscribeUserDropdownItem from './subscribeUser'
+import ActionDropdown from './action-dropdown'
+import CodeIcon from '../svgs/terminal-box-fill.svg'
+import MuteDropdownItem from './mute'
+import copy from 'clipboard-copy'
+import { useToast } from './toast'
 
 export default function UserHeader ({ user }) {
   const router = useRouter()
@@ -68,11 +74,12 @@ function HeaderPhoto ({ user, isMe }) {
       }
     }
   )
+  const src = user.photoId ? `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}/${user.photoId}` : '/dorian400.jpg'
 
   return (
     <div className='position-relative align-self-start' style={{ width: 'fit-content' }}>
       <Image
-        src={user.photoId ? `https://${process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET}.s3.amazonaws.com/${user.photoId}` : '/dorian400.jpg'} width='135' height='135'
+        src={src} width='135' height='135'
         className={styles.userimg}
       />
       {isMe &&
@@ -102,7 +109,7 @@ function NymEdit ({ user, setEditting }) {
     }
   })
   const client = useApolloClient()
-  const schema = userSchema(client)
+  const schema = userSchema({ client })
 
   return (
     <Form
@@ -147,11 +154,20 @@ function NymEdit ({ user, setEditting }) {
 }
 
 function NymView ({ user, isMe, setEditting }) {
+  const me = useMe()
   return (
     <div className='d-flex align-items-center mb-2'>
       <div className={styles.username}>@{user.name}<Hat className='' user={user} badge /></div>
       {isMe &&
         <Button className='py-0' style={{ lineHeight: '1.25' }} variant='link' onClick={() => setEditting(true)}>edit nym</Button>}
+      {!isMe && me &&
+        <div className='ms-2'>
+          <ActionDropdown>
+            <SubscribeUserDropdownItem user={user} target='posts' />
+            <SubscribeUserDropdownItem user={user} target='comments' />
+            <MuteDropdownItem user={user} />
+          </ActionDropdown>
+        </div>}
     </div>
   )
 }
@@ -167,9 +183,15 @@ function HeaderNym ({ user, isMe }) {
 function HeaderHeader ({ user }) {
   const me = useMe()
   const showModal = useShowModal()
+  const toaster = useToast()
 
   const isMe = me?.name === user.name
-  const Satistics = () => <div className={`mb-2 ms-0 ms-sm-1 ${styles.username} text-success`}>{user.stacked} stacked</div>
+  const Satistics = () => (
+    user.optional.stacked !== null &&
+      <div className={`mb-2 ms-0 ms-sm-1 ${styles.username} text-success`}>
+        {numWithUnits(user.optional.stacked, { abbreviate: false, format: true })} stacked
+      </div>
+  )
 
   const lnurlp = encodeLNUrl(new URL(`https://stacker.news/.well-known/lnurlp/${user.name}`))
   return (
@@ -180,9 +202,15 @@ function HeaderHeader ({ user }) {
         <Satistics user={user} />
         <Button
           className='fw-bold ms-0' onClick={() => {
+            copy(`${user.name}@stacker.news`)
+              .then(() => {
+                toaster.success(`copied ${user.name}@stacker.news to clipboard`)
+              }).catch(() => {
+                toaster.error(`failed to copy ${user.name}@stacker.news to clipboard`)
+              })
             showModal(({ onClose }) => (
               <>
-                <a className='d-flex m-auto p-3' style={{ background: 'white', width: 'fit-content' }} href={`lightning:${lnurlp}`}>
+                <a className='d-flex m-auto p-3' style={{ background: 'white', maxWidth: 'fit-content' }} href={`lightning:${lnurlp}`}>
                   <QRCode className='d-flex m-auto' value={lnurlp} renderAs='svg' size={300} />
                 </a>
                 <div className='text-center fw-bold text-muted mt-3'>click or scan</div>
@@ -201,7 +229,8 @@ function HeaderHeader ({ user }) {
             ? <Link href={`/items/${user.since}`} className='ms-1'>#{user.since}</Link>
             : <span>never</span>}
           </small>
-          <small className='text-muted d-flex-inline'>longest cowboy streak: {user.maxStreak !== null ? user.maxStreak : 'none'}</small>
+          {user.optional.maxStreak !== null && <small className='text-muted d-flex-inline'>longest cowboy streak: {user.optional.maxStreak}</small>}
+          {user.optional.isContributor && <small className='text-muted d-flex align-items-center'><CodeIcon className='me-1' height={16} width={16} /> verified stacker.news contributor</small>}
         </div>
       </div>
     </div>

@@ -3,11 +3,69 @@
     font-family: inherit;
     word-break: break-word;
     line-height: 140%;
+    overflow-y: hidden;
+    position: relative;
+    max-height: 200vh;
+}
+
+
+.text :global(.footnotes) {
+    font-size: smaller;
+    color: #8b949e;
+    border-top: 1px solid #30363d;
+}
+
+  /* Hide the section label for visual users. */
+.text :global(.sr-only) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    word-wrap: normal;
+    border: 0;
+  }
+
+/* Place `[` and `]` around footnote references. */
+.text :global([data-footnote-ref])::before {
+    content: '[';
+}
+
+.text :global([data-footnote-ref])::after {
+    content: ']';
+}
+
+.textUncontained {
+    max-height: none;
+}
+
+.textContained::before {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 50vh;
+    pointer-events: none;
+    z-index: 1;
+    background: linear-gradient(rgba(255, 255, 255, 0), var(--bs-body-bg) 200%);
+}
+
+.textShowFull {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    border-radius: 0;
+    z-index: 2;
 }
 
 @media screen and (min-width: 767px) {
     .text {
         line-height: 130%;
+    }
+    .text img {
+        min-width: 30% !important;
     }
 }
 
@@ -44,6 +102,7 @@
 }
 
 .text .p {
+    display: block;
     margin-bottom: .5rem;
     white-space: pre-wrap;
     word-break: break-word;
@@ -73,14 +132,39 @@
     display: block;
     margin-top: .5rem;
     margin-bottom: .5rem;
-    border-radius: .4rem;
     width: auto;
     max-width: 100%;
+    cursor: zoom-in;
+    max-height: 25vh;
+    object-fit: contain;
+    object-position: left top;
+    min-width: 50%;
 }
 
 .text img.topLevel {
     margin-top: .75rem;
     margin-bottom: .75rem;
+    max-height: 35vh;
+}
+
+img.fullScreen {
+    cursor: zoom-out !important;
+    max-height: 100%;
+    max-width: 100vw;
+    min-width: 0;
+    min-height: 0;
+    align-self: center;
+    justify-self: center;
+}
+
+.fullScreenContainer {
+    --bs-columns: 1;
+    --bs-rows: 1;
+    display: grid;
+    width: 100%;
+    height: 100%;
+    align-content: center;
+    justify-content: center;
 }
 
 .text table {
@@ -88,19 +172,41 @@
 }
 
 .text blockquote {
-    border-left: 4px solid var(--theme-quoteBar);
-    padding-left: 1rem;
-    margin-left: 1.25rem;
+    border-left: 2px solid var(--theme-quoteBar);
+    padding-left: .75rem;
     margin-bottom: 0;
 }
 
-.text ul {
+.text li+li {
+    margin-top: .25rem;
+}
+
+.text ul,
+.text ol {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  padding-left: 2rem;
+}
+
+.text ul:last-child, .text ol:last-child {
     margin-bottom: 0;
 }
 
-.text li {
-    margin-top: .5rem;
-    margin-bottom: .5rem;
+.text li > .p {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.text ol ol,
+.text ul ol {
+  list-style-type: lower-roman;
+}
+
+.text ul ul ol,
+.text ul ol ol,
+.text ol ul ol,
+.text ol ol ol {
+  list-style-type: lower-alpha;
 }
 
 .text h1 {
@@ -125,4 +231,20 @@
 
 .text h6 {
     font-size: .85rem;
+}
+
+.youtubeContainer {
+    position: relative;
+    width: 100%;
+    height: 0;
+    padding-bottom: 56.25%;
+    overflow: hidden;
+}
+
+.youtubeContainer iframe {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
 }

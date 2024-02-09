@@ -14,6 +14,8 @@ import PageLoading from '../../components/page-loading'
 import { useShowModal } from '../../components/modal'
 import dynamic from 'next/dynamic'
 import { SSR } from '../../lib/constants'
+import { useToast } from '../../components/toast'
+import { useLightning } from '../../components/lightning'
 
 const GrowthPieChart = dynamic(() => import('../../components/charts').then(mod => mod.GrowthPieChart), {
   loading: () => <div>Loading...</div>
@@ -45,7 +47,7 @@ function midnight (tz) {
   return date.getTime() + tzOffset(tz) * 60 * 60 * 1000
 }
 
-export const getServerSideProps = getGetServerSideProps(REWARDS)
+export const getServerSideProps = getGetServerSideProps({ query: REWARDS })
 
 export function RewardLine ({ total }) {
   const threshold = useMemo(() => midnight('America/Chicago'))
@@ -66,7 +68,7 @@ export default function Rewards ({ ssrData }) {
   const { data } = useQuery(REWARDS, SSR ? {} : { pollInterval: 1000, nextFetchPolicy: 'cache-and-network' })
   if (!data && !ssrData) return <PageLoading />
 
-  const { rewards: { total, sources } } = data || ssrData
+  const { rewards: [{ total, sources }] } = data || ssrData
 
   return (
     <CenterLayout footerLinks>
@@ -88,10 +90,12 @@ export default function Rewards ({ ssrData }) {
 
 export function DonateButton () {
   const showModal = useShowModal()
+  const toaster = useToast()
+  const strike = useLightning()
   const [donateToRewards] = useMutation(
     gql`
-      mutation donateToRewards($sats: Int!) {
-        donateToRewards(sats: $sats)
+      mutation donateToRewards($sats: Int!, $hash: String, $hmac: String) {
+        donateToRewards(sats: $sats, hash: $hash, hmac: $hmac)
       }`)
 
   return (
@@ -99,21 +103,34 @@ export function DonateButton () {
       <Button onClick={() => showModal(onClose => (
         <Form
           initial={{
-            amount: 1000
+            amount: 10000
           }}
           schema={amountSchema}
-          onSubmit={async ({ amount }) => {
-            await donateToRewards({
+          invoiceable
+          onSubmit={async ({ amount, hash, hmac }) => {
+            const { error } = await donateToRewards({
               variables: {
-                sats: Number(amount)
+                sats: Number(amount),
+                hash,
+                hmac
               }
             })
+            if (error) {
+              console.error(error)
+              toaster.danger('failed to donate')
+            } else {
+              const didStrike = strike()
+              if (!didStrike) {
+                toaster.success('donated')
+              }
+            }
             onClose()
           }}
         >
           <Input
             label='amount'
             name='amount'
+            type='number'
             required
             autoFocus
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}

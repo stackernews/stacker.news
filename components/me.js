@@ -10,18 +10,13 @@ export const MeContext = React.createContext({
 export function MeProvider ({ me, children }) {
   const { data } = useQuery(ME, SSR ? {} : { pollInterval: 1000, nextFetchPolicy: 'cache-and-network' })
 
-  const contextValue = {
-    me: data?.me || me
-  }
-
   return (
-    <MeContext.Provider value={contextValue}>
+    <MeContext.Provider value={data?.me || me}>
       {children}
     </MeContext.Provider>
   )
 }
 
 export function useMe () {
-  const { me } = useContext(MeContext)
-  return me
+  return useContext(MeContext)
 }

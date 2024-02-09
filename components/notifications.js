@@ -7,11 +7,11 @@ import { NOTIFICATIONS } from '../fragments/notifications'
 import MoreFooter from './more-footer'
 import Invite from './invite'
 import { ignoreClick } from '../lib/clicks'
-import { timeSince } from '../lib/time'
+import { dayMonthYear, timeSince } from '../lib/time'
 import Link from 'next/link'
 import Check from '../svgs/check-double-line.svg'
 import HandCoin from '../svgs/hand-coin-fill.svg'
-import { COMMENT_DEPTH_LIMIT } from '../lib/constants'
+import { LOST_BLURBS, FOUND_BLURBS } from '../lib/constants'
 import CowboyHatIcon from '../svgs/cowboy.svg'
 import BaldIcon from '../svgs/bald.svg'
 import { RootProvider } from './root'
@@ -25,6 +25,10 @@ import { nostrZapDetails } from '../lib/nostr'
 import Text from './text'
 import NostrIcon from '../svgs/nostr.svg'
 import { numWithUnits } from '../lib/format'
+import BountyIcon from '../svgs/bounty-bag.svg'
+import { LongCountdown } from './countdown'
+import { nextBillingWithGrace } from '../lib/territory'
+import { commentSubTreeRootId } from '../lib/item'
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
@@ -33,14 +37,19 @@ function Notification ({ n, fresh }) {
     <NotificationLayout nid={nid(n)} {...defaultOnClick(n)} fresh={fresh}>
       {
         (type === 'Earn' && <EarnNotification n={n} />) ||
+        (type === 'Revenue' && <RevenueNotification n={n} />) ||
         (type === 'Invitification' && <Invitification n={n} />) ||
         (type === 'InvoicePaid' && (n.invoice.nostr ? <NostrZap n={n} /> : <InvoicePaid n={n} />)) ||
         (type === 'Referral' && <Referral n={n} />) ||
         (type === 'Streak' && <Streak n={n} />) ||
         (type === 'Votification' && <Votification n={n} />) ||
+        (type === 'ForwardedVotification' && <ForwardedVotification n={n} />) ||
         (type === 'Mention' && <Mention n={n} />) ||
         (type === 'JobChanged' && <JobChanged n={n} />) ||
-        (type === 'Reply' && <Reply n={n} />)
+        (type === 'Reply' && <Reply n={n} />) ||
+        (type === 'SubStatus' && <SubStatus n={n} />) ||
+        (type === 'FollowActivity' && <FollowActivity n={n} />) ||
+        (type === 'TerritoryPost' && <TerritoryPost n={n} />)
       }
     </NotificationLayout>
   )
@@ -73,7 +82,16 @@ function NotificationLayout ({ children, nid, href, as, fresh }) {
 
 const defaultOnClick = n => {
   const type = n.__typename
-  if (type === 'Earn') return { href: `/rewards/${new Date(n.sortTime).toISOString().slice(0, 10)}` }
+  if (type === 'Earn') {
+    let href = '/rewards/'
+    if (n.minSortTime !== n.sortTime) {
+      href += `${dayMonthYear(new Date(n.minSortTime))}/`
+    }
+    href += dayMonthYear(new Date(n.sortTime))
+    return { href }
+  }
+  if (type === 'Revenue') return { href: `/~${n.subName}` }
+  if (type === 'SubStatus') return { href: `/~${n.sub.name}` }
   if (type === 'Invitification') return { href: '/invites' }
   if (type === 'InvoicePaid') return { href: `/invoices/${n.invoice.id}` }
   if (type === 'Referral') return { href: '/referrals/month' }
@@ -81,24 +99,13 @@ const defaultOnClick = n => {
 
   // Votification, Mention, JobChanged, Reply all have item
   if (!n.item.title) {
-    const path = n.item.path.split('.')
-    if (path.length > COMMENT_DEPTH_LIMIT + 1) {
-      const rootId = path.slice(-(COMMENT_DEPTH_LIMIT + 1))[0]
-      return {
-        href: {
-          pathname: '/items/[id]',
-          query: { id: rootId, commentId: n.item.id }
-        },
-        as: `/items/${rootId}`
-      }
-    } else {
-      return {
-        href: {
-          pathname: '/items/[id]',
-          query: { id: n.item.root.id, commentId: n.item.id }
-        },
-        as: `/items/${n.item.root.id}`
-      }
+    const rootId = commentSubTreeRootId(n.item)
+    return {
+      href: {
+        pathname: '/items/[id]',
+        query: { id: rootId, commentId: n.item.id }
+      },
+      as: `/items/${rootId}`
     }
   } else {
     return {
@@ -113,25 +120,7 @@ const defaultOnClick = n => {
 
 function Streak ({ n }) {
   function blurb (n) {
-    const index = Number(n.id) % 6
-    const FOUND_BLURBS = [
-      'The harsh frontier is no place for the unprepared. This hat will protect you from the sun, dust, and other elements Mother Nature throws your way.',
-      'A cowboy is nothing without a cowboy hat. Take good care of it, and it will protect you from the sun, dust, and other elements on your journey.',
-      "This is not just a hat, it's a matter of survival. Take care of this essential tool, and it will shield you from the scorching sun and the elements.",
-      "A cowboy hat isn't just a fashion statement. It's your last defense against the unforgiving elements of the Wild West. Hang onto it tight.",
-      "A good cowboy hat is worth its weight in gold, shielding you from the sun, wind, and dust of the western frontier. Don't lose it.",
-      'Your cowboy hat is the key to your survival in the wild west. Treat it with respect and it will protect you from the elements.'
-    ]
-
-    const LOST_BLURBS = [
-      'your cowboy hat was taken by the wind storm that blew in from the west. No worries, a true cowboy always finds another hat.',
-      "you left your trusty cowboy hat in the saloon before leaving town. You'll need a replacement for the long journey west.",
-      'you lost your cowboy hat in a wild shoot-out on the outskirts of town. Tough luck, tIme to start searching for another one.',
-      'you ran out of food and had to trade your hat for supplies. Better start looking for another hat.',
-      "your hat was stolen by a mischievous prairie dog. You won't catch the dog, but you can always find another hat.",
-      'you lost your hat while crossing the river on your journey west. Maybe you can find a replacement hat in the next town.'
-    ]
-
+    const index = Number(n.id) % Math.min(FOUND_BLURBS.length, LOST_BLURBS.length)
     if (n.days) {
       return `After ${numWithUnits(n.days, {
         abbreviate: false,
@@ -144,10 +133,10 @@ function Streak ({ n }) {
   }
 
   return (
-    <div className='d-flex fw-bold ms-2 py-1'>
+    <div className='d-flex ms-2 py-1'>
       <div style={{ fontSize: '2rem' }}>{n.days ? <BaldIcon className='fill-grey' height={40} width={40} /> : <CowboyHatIcon className='fill-grey' height={40} width={40} />}</div>
       <div className='ms-1 p-1'>
-        you {n.days ? 'lost your' : 'found a'} cowboy hat
+        <span className='fw-bold'>you {n.days ? 'lost your' : 'found a'} cowboy hat</span>
         <div><small style={{ lineHeight: '140%', display: 'inline-block' }}>{blurb(n)}</small></div>
       </div>
     </div>
@@ -155,12 +144,14 @@ function Streak ({ n }) {
 }
 
 function EarnNotification ({ n }) {
+  const time = n.minSortTime === n.sortTime ? dayMonthYear(new Date(n.minSortTime)) : `${dayMonthYear(new Date(n.minSortTime))} to ${dayMonthYear(new Date(n.sortTime))}`
+
   return (
     <div className='d-flex ms-2 py-1'>
       <HandCoin className='align-self-center fill-boost mx-1' width={24} height={24} style={{ flex: '0 0 24px', transform: 'rotateY(180deg)' }} />
       <div className='ms-2'>
         <div className='fw-bold text-boost'>
-          you stacked {numWithUnits(n.earnedSats, { abbreviate: false })} in rewards<small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
+          you stacked {numWithUnits(n.earnedSats, { abbreviate: false })} in rewards<small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{time}</small>
         </div>
         {n.sources &&
           <div style={{ fontSize: '80%', color: 'var(--theme-grey)' }}>
@@ -169,10 +160,41 @@ function EarnNotification ({ n }) {
             {n.sources.tipPosts > 0 && <span>{(n.sources.comments > 0 || n.sources.posts > 0) && ' \\ '}{numWithUnits(n.sources.tipPosts, { abbreviate: false })} for zapping top posts early</span>}
             {n.sources.tipComments > 0 && <span>{(n.sources.comments > 0 || n.sources.posts > 0 || n.sources.tipPosts > 0) && ' \\ '}{numWithUnits(n.sources.tipComments, { abbreviate: false })} for zapping top comments early</span>}
           </div>}
-        <div className='pb-1' style={{ lineHeight: '140%' }}>
+        <div style={{ lineHeight: '140%' }}>
           SN distributes the sats it earns back to its best stackers daily. These sats come from <Link href='/~jobs'>jobs</Link>, boosts, posting fees, and donations. You can see the daily rewards pool and make a donation <Link href='/rewards'>here</Link>.
         </div>
+        <small className='text-muted ms-1 pb-1 fw-normal'>click for details</small>
       </div>
+    </div>
+  )
+}
+
+function RevenueNotification ({ n }) {
+  return (
+    <div className='d-flex ms-2 py-1'>
+      <BountyIcon className='align-self-center fill-success mx-1' width={24} height={24} style={{ flex: '0 0 24px' }} />
+      <div className='ms-2 pb-1'>
+        <div className='fw-bold text-success'>
+          you stacked {numWithUnits(n.earnedSats, { abbreviate: false })} in territory revenue<small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
+        </div>
+        <div style={{ lineHeight: '140%' }}>
+          As the founder of territory <Link href={`/~${n.subName}`}>~{n.subName}</Link>, you receive 50% of the revenue it generates and the other 50% go to <Link href='/rewards'>rewards</Link>.
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SubStatus ({ n }) {
+  const dueDate = nextBillingWithGrace(n.sub)
+  return (
+    <div className={`fw-bold text-${n.sub.status === 'ACTIVE' ? 'success' : 'danger'} ms-2`}>
+      {n.sub.status === 'ACTIVE'
+        ? 'your territory is active again'
+        : (n.sub.status === 'GRACE'
+            ? <>your territory payment for ~{n.sub.name} is due or your territory will be archived in <LongCountdown date={dueDate} /></>
+            : <>your territory ~{n.sub.name} has been archived</>)}
+      <small className='text-muted d-block pb-1 fw-normal'>click to visit territory and pay</small>
     </div>
   )
 }
@@ -225,10 +247,27 @@ function NostrZap ({ n }) {
 }
 
 function InvoicePaid ({ n }) {
+  let payerSig
+  if (n.invoice.lud18Data) {
+    const { name, identifier, email, pubkey } = n.invoice.lud18Data
+    const id = identifier || email || pubkey
+    payerSig = '- '
+    if (name) {
+      payerSig += name
+      if (id) payerSig += ' \\ '
+    }
+
+    if (id) payerSig += id
+  }
   return (
     <div className='fw-bold text-info ms-2 py-1'>
-      <Check className='fill-info me-1' />{numWithUnits(n.earnedSats, { abbreviate: false })} were deposited in your account
+      <Check className='fill-info me-1' />{numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'sat was', unitPlural: 'sats were' })} deposited in your account
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
+      {n.invoice.comment &&
+        <small className='d-block ms-4 ps-1 mt-1 mb-1 text-muted fw-normal'>
+          <Text>{n.invoice.comment}</Text>
+          {payerSig}
+        </small>}
     </div>
   )
 }
@@ -243,10 +282,48 @@ function Referral ({ n }) {
 }
 
 function Votification ({ n }) {
+  let forwardedSats = 0
+  let ForwardedUsers = null
+  if (n.item.forwards?.length) {
+    forwardedSats = Math.floor(n.earnedSats * n.item.forwards.map(fwd => fwd.pct).reduce((sum, cur) => sum + cur) / 100)
+    ForwardedUsers = () => n.item.forwards.map((fwd, i) =>
+      <span key={fwd.user.name}>
+        <Link className='text-success' href={`/${fwd.user.name}`}>
+          @{fwd.user.name}
+        </Link>
+        {i !== n.item.forwards.length - 1 && ' '}
+      </span>)
+  }
   return (
     <>
-      <small className='fw-bold text-success ms-2'>
-        your {n.item.title ? 'post' : 'reply'} {n.item.fwdUser ? 'forwarded' : 'stacked'} {numWithUnits(n.earnedSats, { abbreviate: false })}{n.item.fwdUser && ` to @${n.item.fwdUser.name}`}
+      <small className='fw-bold text-success d-inline-block ms-2 my-1' style={{ lineHeight: '1.25' }}>
+        your {n.item.title ? 'post' : 'reply'} stacked {numWithUnits(n.earnedSats, { abbreviate: false })}
+        {n.item.forwards?.length > 0 &&
+          <>
+            {' '}and forwarded {numWithUnits(forwardedSats, { abbreviate: false })} to{' '}
+            <ForwardedUsers />
+          </>}
+      </small>
+      <div>
+        {n.item.title
+          ? <Item item={n.item} />
+          : (
+            <div className='pb-2'>
+              <RootProvider root={n.item.root}>
+                <Comment item={n.item} noReply includeParent clickToContext />
+              </RootProvider>
+            </div>
+            )}
+      </div>
+    </>
+  )
+}
+
+function ForwardedVotification ({ n }) {
+  return (
+    <>
+      <small className='fw-bold text-success d-inline-block ms-2 my-1' style={{ lineHeight: '1.25' }}>
+        you were forwarded {numWithUnits(n.earnedSats, { abbreviate: false })} from
       </small>
       <div>
         {n.item.title
@@ -311,6 +388,38 @@ function Reply ({ n }) {
           </div>
           )}
     </div>
+  )
+}
+
+function FollowActivity ({ n }) {
+  return (
+    <>
+      <small className='fw-bold text-info ms-2'>
+        a stacker you subscribe to {n.item.parentId ? 'commented' : 'posted'}
+      </small>
+      {n.item.title
+        ? <div className='ms-2'><Item item={n.item} /></div>
+        : (
+          <div className='pb-2'>
+            <RootProvider root={n.item.root}>
+              <Comment item={n.item} noReply includeParent clickToContext rootText='replying on:' />
+            </RootProvider>
+          </div>
+          )}
+    </>
+  )
+}
+
+function TerritoryPost ({ n }) {
+  return (
+    <>
+      <small className='fw-bold text-info ms-2'>
+        new post in ~{n.item.sub.name}
+      </small>
+      <div>
+        <Item item={n.item} />
+      </div>
+    </>
   )
 }
 

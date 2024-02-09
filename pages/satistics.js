@@ -12,11 +12,12 @@ import { Checkbox, Form } from '../components/form'
 import { useRouter } from 'next/router'
 import Item from '../components/item'
 import { CommentFlat } from '../components/comment'
-import { Fragment } from 'react'
 import ItemJob from '../components/item-job'
 import PageLoading from '../components/page-loading'
+import PayerData from '../components/payer-data'
+import { Badge } from 'react-bootstrap'
 
-export const getServerSideProps = getGetServerSideProps(WALLET_HISTORY)
+export const getServerSideProps = getGetServerSideProps({ query: WALLET_HISTORY, authRequired: true })
 
 function satusClass (status) {
   if (!status) {
@@ -78,7 +79,7 @@ function Satus ({ status }) {
   }
 
   return (
-    <span className='d-block'>
+    <span className='d-inline-block'>
       <Icon /><small className={`text-${color} fw-bold ms-2`}>{desc}</small>
     </span>
   )
@@ -88,7 +89,7 @@ function Detail ({ fact }) {
   if (fact.type === 'earn') {
     return (
       <Link href={`/rewards/${new Date(fact.createdAt).toISOString().slice(0, 10)}`} className='px-3 text-reset' style={{ lineHeight: '140%' }}>
-        SN distributes the sats it earns back to its best stackers daily. These sats come from <Link href='/~jobs'>jobs</Link>, boosts, posting fees, and donations.
+        SN distributes the sats it earns back to its best stackers daily. These sats come from jobs, boosts, posting fees, and donations.
       </Link>
     )
   }
@@ -107,12 +108,32 @@ function Detail ({ fact }) {
     )
   }
 
+  if (fact.type === 'billing') {
+    return (
+      <div className='px-3'>billing for <Link href={`/~${fact.subName}`}>~{fact.subName}</Link></div>
+    )
+  }
+
+  if (fact.type === 'revenue') {
+    return (
+      <div className='px-3'>revenue for <Link href={`/~${fact.subName}`}>~{fact.subName}</Link></div>
+    )
+  }
+
   if (!fact.item) {
+    let zap
+    try {
+      zap = JSON.parse(fact.description)
+    } catch { }
     return (
       <div className='px-3'>
-        <Link className={satusClass(fact.status)} href={`/${fact.type}s/${fact.factId}`}>
-          {fact.description || 'no invoice description'}
-          <Satus status={fact.status} />
+        <Link className={satusClass(fact.status)} href={`/${fact.type}s/${fact.id}`}>
+          {(!fact.bolt11 && <span className='d-block text-muted fw-bold fst-italic'>invoice deleted</span>) ||
+           (zap && <span className='d-block'>nostr zap{zap.content && `: ${zap.content}`}</span>) ||
+           (fact.description && <span className='d-block'>{fact.description}</span>)}
+          <PayerData data={fact.invoicePayerData} className='text-muted' header />
+          {fact.invoiceComment && <small className='text-muted'><b>sender says:</b> {fact.invoiceComment}</small>}
+          <Satus status={fact.status} />{fact.autoWithdraw && <Badge className={styles.badge} bg={null}>autowithdraw</Badge>}
         </Link>
       </div>
     )
@@ -129,11 +150,13 @@ function Detail ({ fact }) {
 }
 
 function Fact ({ fact }) {
+  const factDate = new Date(fact.createdAt)
   return (
     <>
       <div className={`${styles.type} ${satusClass(fact.status)} ${fact.sats > 0 ? '' : 'text-muted'}`}>{fact.type}</div>
       <div className={styles.detail}>
         <Detail fact={fact} />
+        <div className='text-muted px-3'>{`${factDate.toLocaleDateString()} ${factDate.toLocaleTimeString()}`}</div>
       </div>
       <div className={`${styles.sats} ${satusClass(fact.status)} ${fact.sats > 0 ? '' : 'text-muted'}`}>{fact.sats}</div>
     </>
@@ -206,7 +229,7 @@ export default function Satistics ({ ssrData }) {
             <div className={[styles.type, styles.head].join(' ')}>type</div>
             <div className={[styles.detail, styles.head].join(' ')}>detail</div>
             <div className={[styles.sats, styles.head].join(' ')}>sats</div>
-            {facts.map(f => <Fact key={f.id} fact={f} />)}
+            {facts.map(f => <Fact key={f.type + f.id} fact={f} />)}
           </div>
         </div>
         <MoreFooter cursor={cursor} count={facts?.length} fetchMore={fetchMore} Skeleton={PageLoading} />

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Form, Input, SubmitButton } from '../components/form'
+import { Form, Input, MarkdownInput } from '../components/form'
 import { useRouter } from 'next/router'
 import { gql, useApolloClient, useLazyQuery, useMutation } from '@apollo/client'
 import Countdown from './countdown'
@@ -7,19 +7,21 @@ import AdvPostForm, { AdvPostInitial } from './adv-post-form'
 import { ITEM_FIELDS } from '../fragments/items'
 import Item from './item'
 import AccordianItem from './accordian-item'
-import FeeButton, { EditFeeButton } from './fee-button'
-import Delete from './delete'
-import Button from 'react-bootstrap/Button'
 import { linkSchema } from '../lib/validate'
 import Moon from '../svgs/moon-fill.svg'
-import { SubSelectInitial } from './sub-select-form'
-import CancelButton from './cancel-button'
-import { useInvoiceable } from './invoice'
+import { normalizeForwards, toastDeleteScheduled } from '../lib/form'
+import { useToast } from './toast'
+import { SubSelectInitial } from './sub-select'
+import { MAX_TITLE_LENGTH } from '../lib/constants'
+import { useMe } from './me'
+import { ItemButtonBar } from './post'
 
 export function LinkForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
   const client = useApolloClient()
-  const schema = linkSchema(client)
+  const me = useMe()
+  const toaster = useToast()
+  const schema = linkSchema({ client, me, existingBoost: item?.boost })
   // if Web Share Target API was used
   const shareUrl = router.query.url
   const shareTitle = router.query.title
@@ -67,17 +69,25 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
 
   const [upsertLink] = useMutation(
     gql`
-      mutation upsertLink($sub: String, $id: ID, $title: String!, $url: String!, $boost: Int, $forward: String, $invoiceHash: String, $invoiceHmac: String) {
-        upsertLink(sub: $sub, id: $id, title: $title, url: $url, boost: $boost, forward: $forward, invoiceHash: $invoiceHash, invoiceHmac: $invoiceHmac) {
+      mutation upsertLink($sub: String, $id: ID, $title: String!, $url: String!, $text: String, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String) {
+        upsertLink(sub: $sub, id: $id, title: $title, url: $url, text: $text, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac) {
           id
+          deleteScheduledAt
         }
       }`
   )
 
-  const submitUpsertLink = useCallback(
-    async (_, boost, title, values, invoiceHash, invoiceHmac) => {
-      const { error } = await upsertLink({
-        variables: { sub: item?.subName || sub?.name, id: item?.id, boost: boost ? Number(boost) : undefined, title: title.trim(), invoiceHash, invoiceHmac, ...values }
+  const onSubmit = useCallback(
+    async ({ boost, title, ...values }) => {
+      const { data, error } = await upsertLink({
+        variables: {
+          sub: item?.subName || sub?.name,
+          id: item?.id,
+          boost: boost ? Number(boost) : undefined,
+          title: title.trim(),
+          ...values,
+          forward: normalizeForwards(values.forward)
+        }
       })
       if (error) {
         throw new Error({ message: error.toString() })
@@ -88,9 +98,9 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
         const prefix = sub?.name ? `/~${sub.name}` : ''
         await router.push(prefix + '/recent')
       }
-    }, [upsertLink, router])
-
-  const invoiceableUpsertLink = useInvoiceable(submitUpsertLink)
+      toastDeleteScheduled(toaster, data, 'upsertLink', !!item, values.text)
+    }, [upsertLink, router]
+  )
 
   useEffect(() => {
     if (data?.pageTitleAndUnshorted?.title) {
@@ -114,13 +124,13 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
       initial={{
         title: item?.title || shareTitle || '',
         url: item?.url || shareUrl || '',
-        ...AdvPostInitial({ forward: item?.fwdUser?.name }),
+        text: item?.text || '',
+        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}
-      onSubmit={async ({ boost, title, cost, ...values }) => {
-        return invoiceableUpsertLink(cost, boost, title, values)
-      }}
+      invoiceable
+      onSubmit={onSubmit}
       storageKeyPrefix={item ? undefined : 'link'}
     >
       {children}
@@ -136,11 +146,8 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
               variables: { title: e.target.value }
             })
           }
-          if (e.target.value === e.target.value.toUpperCase()) {
-            setTitleOverride(e.target.value.replace(/\w\S*/g, txt =>
-              txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()))
-          }
         }}
+        maxLength={MAX_TITLE_LENGTH}
       />
       <Input
         label='url'
@@ -176,36 +183,22 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
           }
         }}
       />
-      <AdvPostForm edit={!!item} />
-      <div className='mt-3'>
-        {item
-          ? (
-            <div className='d-flex justify-content-between'>
-              <Delete itemId={item.id} onDelete={() => router.push(`/items/${item.id}`)}>
-                <Button variant='grey-medium'>delete</Button>
-              </Delete>
-              <div className='d-flex'>
-                <CancelButton />
-                <EditFeeButton
-                  paidSats={item.meSats}
-                  parentId={null} text='save' ChildButton={SubmitButton} variant='secondary'
-                />
-              </div>
-            </div>)
-          : (
-            <div className='d-flex align-items-center'>
-              <FeeButton
-                baseFee={1} parentId={null} text='post' disabled={postDisabled}
-                ChildButton={SubmitButton} variant='secondary'
-              />
-              {dupesLoading &&
-                <div className='d-flex ms-3 justify-content-center'>
-                  <Moon className='spin fill-grey' />
-                  <div className='ms-2 text-muted' style={{ fontWeight: '600' }}>searching for dupes</div>
-                </div>}
-            </div>
-            )}
-      </div>
+      <AdvPostForm edit={!!item}>
+        <MarkdownInput
+          label='context'
+          name='text'
+          minRows={2}
+          // https://github.com/Andarist/react-textarea-autosize/pull/371
+          style={{ width: 'auto' }}
+        />
+      </AdvPostForm>
+      <ItemButtonBar itemId={item?.id} disable={postDisabled}>
+        {!item && dupesLoading &&
+          <div className='d-flex justify-content-center'>
+            <Moon className='spin fill-grey' />
+            <div className='ms-2 text-muted' style={{ fontWeight: '600' }}>searching for dupes</div>
+          </div>}
+      </ItemButtonBar>
       {!item &&
         <>
           {dupesData?.dupes?.length > 0 &&

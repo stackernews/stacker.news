@@ -1,6 +1,7 @@
 import { randomBytes } from 'crypto'
 import { bech32 } from 'bech32'
 import { GraphQLError } from 'graphql'
+import assertGofacYourself from './ofac'
 
 function encodedUrl (iurl, tag, k1) {
   const url = new URL(iurl)
@@ -28,7 +29,9 @@ export default {
     createAuth: async (parent, args, { models }) => {
       return await models.lnAuth.create({ data: { k1: k1() } })
     },
-    createWith: async (parent, args, { me, models }) => {
+    createWith: async (parent, args, { me, models, headers }) => {
+      await assertGofacYourself({ models, headers })
+
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
       }
@@ -40,9 +43,6 @@ export default {
     encodedUrl: async (lnAuth, args, { models }) => {
       return encodedUrl(process.env.LNAUTH_URL, 'login', lnAuth.k1)
     }
-    // slashtagUrl: async (lnAuth, args, { models, slashtags }) => {
-    //   return slashtags.formatURL(lnAuth.k1)
-    // }
   },
   LnWith: {
     encodedUrl: async (lnWith, args, { models }) => {

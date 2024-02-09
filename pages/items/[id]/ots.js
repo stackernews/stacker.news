@@ -7,8 +7,10 @@ import { useQuery } from '@apollo/client'
 import { useRouter } from 'next/router'
 import PageLoading from '../../../components/page-loading'
 
-export const getServerSideProps = getGetServerSideProps(ITEM_OTS, null,
-  data => !data.item || !data.item.otsHash)
+export const getServerSideProps = getGetServerSideProps({
+  query: ITEM_OTS,
+  notFound: data => !data.item || !data.item.otsHash
+})
 
 export default function OtsItem ({ ssrData }) {
   const router = useRouter()

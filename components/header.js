@@ -12,22 +12,28 @@ import Head from 'next/head'
 import { signOut } from 'next-auth/react'
 import { useCallback, useEffect } from 'react'
 import { randInRange } from '../lib/rand'
-import { abbrNum } from '../lib/format'
+import { abbrNum, msatsToSats } from '../lib/format'
 import NoteIcon from '../svgs/notification-4-fill.svg'
 import { useQuery } from '@apollo/client'
 import LightningIcon from '../svgs/bolt.svg'
-import { Select } from './form'
 import SearchIcon from '../svgs/search-line.svg'
 import BackArrow from '../svgs/arrow-left-line.svg'
-import { SSR, SUBS } from '../lib/constants'
+import { BALANCE_LIMIT_MSATS, SSR } from '../lib/constants'
 import { useLightning } from './lightning'
 import { HAS_NOTIFICATIONS } from '../fragments/notifications'
 import AnonIcon from '../svgs/spy-fill.svg'
 import Hat from './hat'
+import HiddenWalletSummary from './hidden-wallet-summary'
+import { clearNotifications } from '../lib/badge'
+import { useServiceWorker } from './serviceworker'
+import SubSelect from './sub-select'
 
 function WalletSummary ({ me }) {
   if (!me) return null
-  return `${abbrNum(me.sats)}`
+  if (me.privates?.hideWalletBalance) {
+    return <HiddenWalletSummary abbreviate fixedWidth />
+  }
+  return `${abbrNum(me.privates?.sats)}`
 }
 
 function Back () {
@@ -52,7 +58,12 @@ function NotificationBell () {
     ? {}
     : {
         pollInterval: 30000,
-        nextFetchPolicy: 'cache-and-network'
+        nextFetchPolicy: 'cache-and-network',
+        onCompleted: ({ hasNewNotes }) => {
+          if (!hasNewNotes) {
+            clearNotifications()
+          }
+        }
       })
 
   return (
@@ -74,6 +85,7 @@ function NotificationBell () {
 }
 
 function NavProfileMenu ({ me, dropNavKey }) {
+  const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
   return (
     <div className='position-relative'>
       <Dropdown className={styles.dropdown} align='end'>
@@ -112,7 +124,22 @@ function NavProfileMenu ({ me, dropNavKey }) {
             </Link>
           </div>
           <Dropdown.Divider />
-          <Dropdown.Item onClick={() => signOut({ callbackUrl: '/' })}>logout</Dropdown.Item>
+          <Dropdown.Item
+            onClick={async () => {
+              try {
+                // order is important because we need to be logged in to delete push subscription on server
+                const pushSubscription = await swRegistration?.pushManager.getSubscription()
+                if (pushSubscription) {
+                  await togglePushSubscription()
+                }
+              } catch (err) {
+                // don't prevent signout because of an unsubscription error
+                console.error(err)
+              }
+              await signOut({ callbackUrl: '/' })
+            }}
+          >logout
+          </Dropdown.Item>
         </Dropdown.Menu>
       </Dropdown>
       {!me.bioId &&
@@ -126,13 +153,17 @@ function NavProfileMenu ({ me, dropNavKey }) {
 function StackerCorner ({ dropNavKey }) {
   const me = useMe()
 
+  const walletLimitReached = me.privates?.sats >= msatsToSats(BALANCE_LIMIT_MSATS)
+
   return (
     <div className='d-flex ms-auto'>
       <NotificationBell />
       <NavProfileMenu me={me} dropNavKey={dropNavKey} />
       <Nav.Item>
         <Link href='/wallet' passHref legacyBehavior>
-          <Nav.Link eventKey='wallet' className='text-success px-0 text-nowrap'><WalletSummary me={me} /></Nav.Link>
+          <Nav.Link eventKey='wallet' className={`${walletLimitReached ? 'text-warning' : 'text-success'} text-monospace px-0 text-nowrap`}>
+            <WalletSummary me={me} />
+          </Nav.Link>
         </Link>
       </Nav.Item>
     </div>
@@ -184,21 +215,17 @@ function LurkerCorner ({ path }) {
     </div>
 }
 
+const PREPEND_SUBS = ['home']
+const APPEND_SUBS = [{ label: '--------', items: ['create'] }]
 function NavItems ({ className, sub, prefix }) {
-  const router = useRouter()
   sub ||= 'home'
 
   return (
     <>
-      <Nav.Item className={className}>
-        <Select
+      <Nav.Item className={`me-1 ${className}`}>
+        <SubSelect
+          sub={sub} prependSubs={PREPEND_SUBS} appendSubs={APPEND_SUBS} noForm
           groupClassName='mb-0'
-          onChange={(_, e) => router.push(e.target.value === 'home' ? '/' : `/~${e.target.value}`)}
-          name='sub'
-          size='sm'
-          value={sub}
-          noForm
-          items={['home', ...SUBS]}
         />
       </Nav.Item>
       <Nav.Item className={className}>
@@ -283,9 +310,9 @@ export default function Header ({ sub }) {
           className={styles.navbarNav}
           activeKey={topNavKey}
         >
-          <NavItems className='me-1' prefix={prefix} sub={sub} />
+          <NavItems prefix={prefix} sub={sub} />
           <Link href={prefix + '/search'} passHref legacyBehavior>
-            <Nav.Link eventKey='search' className='position-relative ms-auto d-flex me-1'>
+            <Nav.Link eventKey='search' className='position-relative me-auto ms-auto me-sm-1 d-flex'>
               <SearchIcon className='theme' width={22} height={22} />
             </Nav.Link>
           </Link>

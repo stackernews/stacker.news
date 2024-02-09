@@ -1,17 +1,21 @@
 // verify k1 exists
 // send back
 import models from '../../api/models'
-import getSSRApolloClient from '../../api/ssrApollo'
-import { CREATE_WITHDRAWL } from '../../fragments/wallet'
 import { datePivot } from '../../lib/time'
+import lnd from '../../api/lnd'
+import { createWithdrawal } from '../../api/resolvers/wallet'
 
-export default async ({ query }, res) => {
+export default async ({ query, headers }, res) => {
   if (!query.k1) {
     return res.status(400).json({ status: 'ERROR', reason: 'k1 not provided' })
   }
 
   if (query.pr) {
-    return doWithdrawal(query, res)
+    try {
+      return await doWithdrawal(query, res, headers)
+    } catch (e) {
+      return res.status(400).json({ status: 'ERROR', reason: e.message })
+    }
   }
 
   let reason
@@ -32,8 +36,8 @@ export default async ({ query }, res) => {
           callback: process.env.LNWITH_URL, // The URL which LN SERVICE would accept a withdrawal Lightning invoice as query parameter
           k1: query.k1, // Random or non-random string to identify the user's LN WALLET when using the callback URL
           defaultDescription: `Withdrawal for @${user.name} on SN`, // A default withdrawal invoice description
-          minWithdrawable: 1000, // Min amount (in millisatoshis) the user can withdraw from LN SERVICE, or 0
-          maxWithdrawable: Number(user.msats - 10000n) // Max amount (in millisatoshis) the user can withdraw from LN SERVICE, or equal to minWithdrawable if the user has no choice over the amounts
+          minWithdrawable: user.msats >= 1000n ? 1000 : 0, // Min amount (in millisatoshis) the user can withdraw from LN SERVICE
+          maxWithdrawable: Math.max(Number(user.msats - 10000n), 0) // Max amount (in millisatoshis) the user can withdraw from LN SERVICE
         })
       } else {
         reason = 'user not found'
@@ -51,7 +55,7 @@ export default async ({ query }, res) => {
   return res.status(400).json({ status: 'ERROR', reason })
 }
 
-async function doWithdrawal (query, res) {
+async function doWithdrawal (query, res, headers) {
   const lnwith = await models.lnWith.findUnique({ where: { k1: query.k1 } })
   if (!lnwith) {
     return res.status(400).json({ status: 'ERROR', reason: 'invalid k1' })
@@ -61,19 +65,17 @@ async function doWithdrawal (query, res) {
     return res.status(400).json({ status: 'ERROR', reason: 'user not found' })
   }
 
-  // create withdrawal in gql
-  const client = await getSSRApolloClient({ me })
-  const { error, data } = await client.mutate({
-    mutation: CREATE_WITHDRAWL,
-    variables: { invoice: query.pr, maxFee: 10 }
-  })
+  try {
+    const withdrawal = await createWithdrawal(null,
+      { invoice: query.pr, maxFee: me.withdrawMaxFeeDefault },
+      { me, models, lnd, headers })
 
-  if (error || !data?.createWithdrawl) {
-    return res.status(400).json({ status: 'ERROR', reason: error?.toString() || 'could not generate withdrawl' })
+    // store withdrawal id lnWith so client can show it
+    await models.lnWith.update({ where: { k1: query.k1 }, data: { withdrawalId: Number(withdrawal.id) } })
+
+    return res.status(200).json({ status: 'OK' })
+  } catch (e) {
+    console.log(e)
+    return res.status(400).json({ status: 'ERROR', reason: e.message || e.toString?.() || 'error creating withdrawal' })
   }
-
-  // store withdrawal id lnWith so client can show it
-  await models.lnWith.update({ where: { k1: query.k1 }, data: { withdrawalId: Number(data.createWithdrawl.id) } })
-
-  return res.status(200).json({ status: 'OK' })
 }

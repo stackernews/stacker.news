@@ -265,8 +265,9 @@ export async function autoDropBolt11s ({ models, lnd }) {
       AND hash IS NOT NULL
       RETURNING id, hash, bolt11
     )
-    SELECT * FROM updated_rows;
-  `)
+    SELECT id, hash, bolt11 FROM "Withdrawl" WHERE "userId" IN (SELECT id FROM users WHERE "autoDropBolt11s")
+    AND now() > created_at + interval '${INVOICE_RETENTION_DAYS} days'
+    AND hash IS NOT NULL;`)
 
   const failedDeletesUpdatePromises = []
   for (const invoice of invoices) {

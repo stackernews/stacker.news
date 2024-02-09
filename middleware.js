@@ -22,11 +22,11 @@ export function middleware (request) {
   const cspHeader = [
     "default-src 'none'",
     "font-src 'self'",
-    'img-src https: data:',
+    "img-src 'self' https: data:",
     "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
     "style-src 'self' 'unsafe-inline'",
     "manifest-src 'self'",
-    'connect-src https: wss:',
+    "connect-src 'self' https: wss:",
     'upgrade-insecure-requests'
   ].join('; ')
 

@@ -64,6 +64,7 @@ export function LNbitsProvider ({ children }) {
   const [url, setUrl] = useState('')
   const [adminKey, setAdminKey] = useState('')
   const [enabled, setEnabled] = useState()
+  const [initialized, setInitialized] = useState(false)
 
   const name = 'LNbits'
   const storageKey = 'webln:provider:lnbits'
@@ -115,6 +116,8 @@ export function LNbitsProvider ({ children }) {
       console.error('invalid LNbits config:', err)
       setEnabled(false)
       throw err
+    } finally {
+      setInitialized(true)
     }
   }, [])
 
@@ -150,7 +153,7 @@ export function LNbitsProvider ({ children }) {
     loadConfig().catch(console.error)
   }, [])
 
-  const value = { name, url, adminKey, saveConfig, clearConfig, enabled, getInfo, sendPayment }
+  const value = { name, url, adminKey, initialized, enabled, saveConfig, clearConfig, getInfo, sendPayment }
   return (
     <LNbitsContext.Provider value={value}>
       {children}

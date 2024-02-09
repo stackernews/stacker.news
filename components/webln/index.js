@@ -20,12 +20,32 @@ const syncProvider = (array, provider) => {
   ]
 }
 
+const storageKey = 'webln:providers'
+
 function RawWebLNProvider ({ children }) {
   // LNbits should only be used during development
   // since it gives full wallet access on XSS
   const lnbits = useLNbits()
   const nwc = useNWC()
-  const [enabledProviders, setEnabledProviders] = useState([lnbits, nwc].filter(({ enabled }) => enabled))
+  const availableProviders = [lnbits, nwc]
+  const [enabledProviders, setEnabledProviders] = useState([])
+
+  // restore order on page reload
+  useEffect(() => {
+    const storedOrder = window.localStorage.getItem(storageKey)
+    if (!storedOrder) return
+    const providerNames = JSON.parse(storedOrder)
+    setEnabledProviders(providers => {
+      return providerNames.map(name => {
+        for (const p of availableProviders) {
+          if (p.name === name) return p
+        }
+        console.warn(`Stored provider with name ${name} not available`)
+        return null
+      })
+    })
+  }, [])
+
   // keep list in sync with underlying providers
   useEffect(() => {
     setEnabledProviders(providers => {
@@ -35,14 +55,17 @@ function RawWebLNProvider ({ children }) {
       // This can be the case if we're syncing from a page reload
       // where the providers are initially not enabled.
       // If provider is no longer enabled, it is removed from the list.
-      const newProviders = [lnbits, nwc].reduce(syncProvider, providers)
+      const isInitialized = p => p.initialized
+      const newProviders = availableProviders.filter(isInitialized).reduce(syncProvider, providers)
+      const newOrder = newProviders.map(({ name }) => name)
+      window.localStorage.setItem(storageKey, JSON.stringify(newOrder))
       return newProviders
     })
   }, [lnbits, nwc])
 
   // sanity check
   for (const p of enabledProviders) {
-    if (!p.enabled) {
+    if (!p.enabled && p.initialized) {
       console.warn('Expected provider to be enabled but is not:', p.name)
     }
   }

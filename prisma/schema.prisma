@@ -92,6 +92,11 @@ model User {
   Session                   Session[]
   itemForwards              ItemForward[]
   hideBookmarks             Boolean              @default(false)
+  hideGithub                Boolean              @default(true)
+  hideNostr                 Boolean              @default(true)
+  hideTwitter               Boolean              @default(true)
+  githubId                  String?
+  twitterId                 String?
   followers                 UserSubscription[]   @relation("follower")
   followees                 UserSubscription[]   @relation("followee")
   hideWelcomeBanner         Boolean              @default(false)

@@ -255,8 +255,6 @@ model Item {
   pin                Pin?                  @relation(fields: [pinId], references: [id])
   root               Item?                 @relation("RootDescendant", fields: [rootId], references: [id])
   descendants        Item[]                @relation("RootDescendant")
-  sub                Sub?                  @relation(fields: [subName], references: [name])
-  subs               Sub[]                 @relation("ItemSub")
   subNames           String[]
   user               User                  @relation("UserItems", fields: [userId], references: [id], onDelete: Cascade)
   actions            ItemAct[]
@@ -266,6 +264,8 @@ model Item {
   ThreadSubscription ThreadSubscription[]
   upload             Upload?
   User               User[]
+  sub                Sub?                  @relation(fields: [subName], references: [name])
+  subs               Sub[]                 @relation("ItemSub")
 
   @@index([bio], map: "Item.bio_index")
   @@index([createdAt], map: "Item.created_at_index")

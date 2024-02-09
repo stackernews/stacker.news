@@ -2,22 +2,24 @@
 ALTER TABLE "Item" ADD COLUMN     "subNames" TEXT[];
 
 -- CreateTable
-CREATE TABLE "_ItemSub" (
+CREATE TABLE "ItemSub" (
+    "subName" CITEXT NOT NULL,
     "itemId" INTEGER NOT NULL,
-    "subName" CITEXT NOT NULL
+
+    CONSTRAINT "ItemSub_pkey" PRIMARY KEY ("subName","itemId")
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "_ItemSub_AB_unique" ON "_ItemSub"("itemId", "subName");
+CREATE INDEX "ItemSub_itemId_idx" ON "ItemSub"("itemId");
 
 -- CreateIndex
-CREATE INDEX "_ItemSub_B_index" ON "_ItemSub"("subName");
+CREATE INDEX "ItemSub_subName_idx" ON "ItemSub"("subName");
 
 -- AddForeignKey
-ALTER TABLE "_ItemSub" ADD CONSTRAINT "_ItemSub_A_fkey" FOREIGN KEY ("itemId") REFERENCES "Item"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "ItemSub" ADD CONSTRAINT "ItemSub_subName_fkey" FOREIGN KEY ("subName") REFERENCES "Sub"("name") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "_ItemSub" ADD CONSTRAINT "_ItemSub_B_fkey" FOREIGN KEY ("subName") REFERENCES "Sub"("name") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "ItemSub" ADD CONSTRAINT "ItemSub_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "Item"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- create new update_subnames trigger
 CREATE OR REPLACE FUNCTION public.update_subnames()
@@ -27,7 +29,7 @@ BEGIN
     UPDATE "Item"
     SET "subNames" = (
         SELECT ARRAY_AGG("subName")
-        FROM "_ItemSub"
+        FROM "ItemSub"
         WHERE "itemId" = NEW."id"
     )
     WHERE "id" = NEW."id";
@@ -37,10 +39,9 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER update_subnames_trigger
-AFTER INSERT OR UPDATE ON "_ItemSub"
+AFTER INSERT OR UPDATE ON "ItemSub"
 FOR EACH ROW
 EXECUTE FUNCTION update_subnames();
-
 
 -- update create_item function
 CREATE OR REPLACE FUNCTION public.create_item(
@@ -111,10 +112,10 @@ BEGIN
         PERFORM item_act(item.id, user_id, 'BOOST', boost);
     END IF;
 
-    -- Loop over the 'subs' array and insert into "_ItemSub"
+    -- Loop over the 'subs' array and insert into "ItemSub"
     FOREACH sub_name IN ARRAY subs
     LOOP
-        INSERT INTO "_ItemSub" ("itemId", "subName")
+        INSERT INTO "ItemSub" ("itemId", "subName")
         VALUES (item.id, sub_name);
     END LOOP;
 
@@ -158,13 +159,13 @@ BEGIN
         PERFORM item_act(item.id, item."userId", 'BOOST', boost);
     END IF;
 
-    -- Loop over the 'subs' array and insert into "_ItemSub" if it does not already exist
+    -- Loop over the 'subs' array and insert into "ItemSub" if it does not already exist
     FOREACH sub_name IN ARRAY subs
     LOOP
-        INSERT INTO "_ItemSub" ("itemId", "subName")
+        INSERT INTO "ItemSub" ("itemId", "subName")
         SELECT item.id, sub_name
         WHERE NOT EXISTS (
-            SELECT 1 FROM "_ItemSub"
+            SELECT 1 FROM "ItemSub"
             WHERE "itemId" = item.id AND "subName" = sub_name
         );
     END LOOP;

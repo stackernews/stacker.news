@@ -255,7 +255,7 @@ model Item {
   pin                Pin?                  @relation(fields: [pinId], references: [id])
   root               Item?                 @relation("RootDescendant", fields: [rootId], references: [id])
   descendants        Item[]                @relation("RootDescendant")
-  sub                Sub?                  @relation(fields: [subName], references: [name])
+  sub                Sub?                  @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
   subs               Sub[]                 @relation("ItemSub")
   subNames           String[]
   user               User                  @relation("UserItems", fields: [userId], references: [id], onDelete: Cascade)

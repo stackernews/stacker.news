@@ -23,8 +23,6 @@ const savePaymentMethods = (methods) => {
 }
 
 function RawWebLNProvider ({ children }) {
-  // LNbits should only be used during development
-  // since it gives full wallet access on XSS
   const lnbits = useLNbits()
   const nwc = useNWC()
   const providers = [lnbits, nwc]

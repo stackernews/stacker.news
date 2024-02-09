@@ -64,7 +64,6 @@ export function LNbitsProvider ({ children }) {
   const [url, setUrl] = useState('')
   const [adminKey, setAdminKey] = useState('')
   const [enabled, setEnabled] = useState()
-  const [isDefault, setIsDefault] = useState()
 
   const name = 'LNbits'
   const storageKey = 'webln:provider:lnbits'
@@ -104,10 +103,9 @@ export function LNbitsProvider ({ children }) {
 
     const config = JSON.parse(configStr)
 
-    const { url, adminKey, isDefault } = config
+    const { url, adminKey } = config
     setUrl(url)
     setAdminKey(adminKey)
-    setIsDefault(isDefault)
 
     try {
       // validate config by trying to fetch wallet
@@ -124,7 +122,6 @@ export function LNbitsProvider ({ children }) {
     // immediately store config so it's not lost even if config is invalid
     setUrl(config.url)
     setAdminKey(config.adminKey)
-    setIsDefault(config.isDefault)
 
     // XXX This is insecure, XSS vulns could lead to loss of funds!
     //   -> check how mutiny encrypts their wallet and/or check if we can leverage web workers
@@ -153,7 +150,7 @@ export function LNbitsProvider ({ children }) {
     loadConfig().catch(console.error)
   }, [])
 
-  const value = { name, url, adminKey, saveConfig, clearConfig, enabled, isDefault, setIsDefault, getInfo, sendPayment }
+  const value = { name, url, adminKey, saveConfig, clearConfig, enabled, getInfo, sendPayment }
   return (
     <LNbitsContext.Provider value={value}>
       {children}

@@ -26,16 +26,20 @@ export function middleware (request) {
     "font-src 'self'",
     // we want to load images from everywhere but we can limit to HTTPS at least
     "img-src 'self' https: data:",
-    // old browsers will ignore nonce and strict-dynamic
+    // Using nonces and strict-dynamic deploys a strict CSP.
+    // see https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html#strict-policy.
+    // Old browsers will ignore nonce and strict-dynamic
     // and fallback to host matching, unsafe-inline and unsafe-eval (no protection against XSS)
     `script-src 'self' 'unsafe-inline' 'unsafe-eval' 'nonce-${nonce}' 'strict-dynamic' https:`,
     // unsafe-inline for styles is not ideal but okay if script-src is using nonces
     "style-src 'self' 'unsafe-inline'",
     "manifest-src 'self'",
     "connect-src 'self' https: wss:",
-    // object-src is for plugins
+    // disable dangerous plugins like Flash
     "object-src 'none'",
+    // blocks injection of <base> tags
     "base-uri 'none'",
+    // tell user agents to replace HTTP with HTTPS
     'upgrade-insecure-requests'
   ].join('; ')
 

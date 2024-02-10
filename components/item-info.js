@@ -165,7 +165,7 @@ export default function ItemInfo ({
             nostr note
           </Dropdown.Item>
         )}
-        {item?.mine && !item?.noteId && !item?.isJob && !item?.parentId &&
+        {item && item.mine && !item.noteId && !item.isJob && !item.parentId &&
           <CrosspostDropdownItem item={item} />}
         {me && !item.position &&
           !item.mine && !item.deletedAt &&

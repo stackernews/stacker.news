@@ -64,7 +64,7 @@ export default function Share ({ path, title, className = '' }) {
       </Dropdown>)
 }
 
-export function CopyLinkDropdownItem ({ item, full }) {
+export function CopyLinkDropdownItem ({ item }) {
   const me = useMe()
   const toaster = useToast()
   const router = useRouter()

@@ -10,7 +10,7 @@ function determineItemType (item) {
   const typeMap = {
     url: 'link',
     bounty: 'bounty',
-    poll: 'poll'
+    pollCost: 'poll'
   }
 
   for (const [key, type] of Object.entries(typeMap)) {

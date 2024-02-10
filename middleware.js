@@ -19,14 +19,23 @@ export function middleware (request) {
     resp = referrerMiddleware(request)
   }
 
+  const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
   const cspHeader = [
+    // if something is not explicitly allowed, we don't allow it.
     "default-src 'none'",
     "font-src 'self'",
+    // we want to load images from everywhere but we can limit to HTTPS at least
     "img-src 'self' https: data:",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+    // old browsers will ignore nonce and strict-dynamic
+    // and fallback to host matching, unsafe-inline and unsafe-eval (no protection against XSS)
+    `script-src 'self' 'unsafe-inline' 'unsafe-eval' 'nonce-${nonce}' 'strict-dynamic' https:`,
+    // unsafe-inline for styles is not ideal but okay if script-src is using nonces
     "style-src 'self' 'unsafe-inline'",
     "manifest-src 'self'",
     "connect-src 'self' https: wss:",
+    // object-src is for plugins
+    "object-src 'none'",
+    "base-uri 'none'",
     'upgrade-insecure-requests'
   ].join('; ')
 

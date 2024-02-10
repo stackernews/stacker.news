@@ -40,10 +40,15 @@ export function middleware (request) {
     // blocks injection of <base> tags
     "base-uri 'none'",
     // tell user agents to replace HTTP with HTTPS
-    'upgrade-insecure-requests'
+    'upgrade-insecure-requests',
+    // prevents any domain from framing the content (defense against clickjacking attacks)
+    "frame-ancestors 'none'"
   ].join('; ')
 
   resp.headers.set('Content-Security-Policy', cspHeader)
+  // for browsers that don't support CSP
+  resp.headers.set('X-Frame-Options', 'DENY')
+
   return resp
 }
 

@@ -82,6 +82,7 @@ export default function Settings ({ ssrData }) {
             imgproxyOnly: settings?.imgproxyOnly,
             wildWestMode: settings?.wildWestMode,
             greeterMode: settings?.greeterMode,
+            nsfwMode: settings?.nsfwMode,
             nostrPubkey: settings?.nostrPubkey ? bech32encode(settings.nostrPubkey) : '',
             nostrCrossposting: settings?.nostrCrossposting,
             nostrRelays: settings?.nostrRelays?.length ? settings?.nostrRelays : [''],
@@ -354,6 +355,19 @@ export default function Settings ({ ssrData }) {
               </div>
             }
             name='greeterMode'
+            groupClassName='mb-0'
+          />
+          <Checkbox
+            label={
+              <div className='d-flex align-items-center'>nsfw mode
+                <Info>
+                  <ul className='fw-bold'>
+                    <li>see posts from nsfw territories</li>
+                  </ul>
+                </Info>
+              </div>
+            }
+            name='nsfwMode'
           />
           <h4>nostr</h4>
           <Checkbox

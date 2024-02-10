@@ -80,6 +80,7 @@ export default gql`
     noteItemSats: Boolean!
     noteJobIndicator: Boolean!
     noteMentions: Boolean!
+    nsfwMode: Boolean!
     tipDefault: Int!
     turboTipping: Boolean!
     wildWestMode: Boolean!
@@ -138,6 +139,7 @@ export default gql`
     noteItemSats: Boolean!
     noteJobIndicator: Boolean!
     noteMentions: Boolean!
+    nsfwMode: Boolean!
     tipDefault: Int!
     turboTipping: Boolean!
     wildWestMode: Boolean!

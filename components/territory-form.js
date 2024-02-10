@@ -1,3 +1,4 @@
+import AccordianItem from './accordian-item'
 import { Col, InputGroup, Row, Form as BootstrapForm, Badge } from 'react-bootstrap'
 import { Checkbox, CheckboxGroup, Form, Input, MarkdownInput } from './form'
 import FeeButton, { FeeButtonProvider } from './fee-button'
@@ -17,10 +18,10 @@ export default function TerritoryForm ({ sub }) {
     gql`
       mutation upsertSub($oldName: String, $name: String!, $desc: String, $baseCost: Int!,
         $postTypes: [String!]!, $allowFreebies: Boolean!, $billingType: String!,
-        $billingAutoRenew: Boolean!, $moderated: Boolean!, $hash: String, $hmac: String) {
+        $billingAutoRenew: Boolean!, $moderated: Boolean!, $hash: String, $hmac: String, $nsfw: Boolean!) {
           upsertSub(oldName: $oldName, name: $name, desc: $desc, baseCost: $baseCost,
             postTypes: $postTypes, allowFreebies: $allowFreebies, billingType: $billingType,
-            billingAutoRenew: $billingAutoRenew, moderated: $moderated, hash: $hash, hmac: $hmac) {
+            billingAutoRenew: $billingAutoRenew, moderated: $moderated, hash: $hash, hmac: $hmac, nsfw: $nsfw) {
           name
         }
       }`
@@ -65,7 +66,8 @@ export default function TerritoryForm ({ sub }) {
           allowFreebies: typeof sub?.allowFreebies === 'undefined' ? true : sub?.allowFreebies,
           billingType: sub?.billingType || 'MONTHLY',
           billingAutoRenew: sub?.billingAutoRenew || false,
-          moderated: sub?.moderated || false
+          moderated: sub?.moderated || false,
+          nsfw: sub?.nsfw || false
         }}
         schema={territorySchema({ client, me })}
         invoiceable
@@ -145,22 +147,6 @@ export default function TerritoryForm ({ sub }) {
             </Col>
           </Row>
         </CheckboxGroup>
-        <BootstrapForm.Label>moderation</BootstrapForm.Label>
-        <Checkbox
-          inline
-          label={
-            <div className='d-flex align-items-center'>enable moderation
-              <Info>
-                <ol>
-                  <li>Outlaw posts and comments with a click</li>
-                  <li>Your territory will get a <Badge bg='secondary'>moderated</Badge> badge</li>
-                </ol>
-              </Info>
-            </div>
-          }
-          name='moderated'
-          groupClassName='ms-1'
-        />
         <CheckboxGroup
           label='billing'
           name='billing'
@@ -206,6 +192,46 @@ export default function TerritoryForm ({ sub }) {
             name='billingAutoRenew'
             groupClassName='ms-1 mt-2'
           />}
+        <AccordianItem
+          header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>options</div>}
+          body={
+            <>
+              <BootstrapForm.Label>moderation</BootstrapForm.Label>
+              <Checkbox
+                inline
+                label={
+                  <div className='d-flex align-items-center'>enable moderation
+                    <Info>
+                      <ol>
+                        <li>Outlaw posts and comments with a click</li>
+                        <li>Your territory will get a <Badge bg='secondary'>moderated</Badge> badge</li>
+                      </ol>
+                    </Info>
+                  </div>
+          }
+                name='moderated'
+                groupClassName='ms-1'
+              />
+              <BootstrapForm.Label>nsfw</BootstrapForm.Label>
+              <Checkbox
+                inline
+                label={
+                  <div className='d-flex align-items-center'>mark as nsfw
+                    <Info>
+                      <ol>
+                        <li>Let stackers know that your territory may contain explicit content</li>
+                        <li>Your territory will get a <Badge bg='secondary'>nsfw</Badge> badge</li>
+                      </ol>
+                    </Info>
+                  </div>
+          }
+                name='nsfw'
+                groupClassName='ms-1'
+              />
+            </>
+
+}
+        />
         <div className='mt-3 d-flex justify-content-end'>
           <FeeButton
             text={sub ? 'save' : 'found it'}

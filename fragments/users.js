@@ -82,6 +82,7 @@ export const SETTINGS_FIELDS = gql`
       nostrRelays
       wildWestMode
       greeterMode
+      nsfwMode
       authMethods {
         lightning
         nostr

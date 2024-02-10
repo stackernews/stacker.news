@@ -49,6 +49,7 @@ model User {
   hideInvoiceDesc           Boolean              @default(false)
   wildWestMode              Boolean              @default(false)
   greeterMode               Boolean              @default(false)
+  nsfwMode                  Boolean              @default(false)
   fiatCurrency              String               @default("USD")
   withdrawMaxFeeDefault     Int                  @default(10)
   autoDropBolt11s           Boolean              @default(false)
@@ -423,6 +424,7 @@ model Sub {
   billedLastAt     DateTime    @default(now())
   moderated        Boolean     @default(false)
   moderatedCount   Int         @default(0)
+  nsfw             Boolean     @default(false)
 
   parent   Sub?      @relation("ParentChildren", fields: [parentName], references: [name])
   children Sub[]     @relation("ParentChildren")

@@ -48,6 +48,9 @@ export function middleware (request) {
   resp.headers.set('Content-Security-Policy', cspHeader)
   // for browsers that don't support CSP
   resp.headers.set('X-Frame-Options', 'DENY')
+  // more useful headers
+  resp.headers.set('X-Content-Type-Options', 'nosniff')
+  resp.headers.set('Referrer-Policy', 'origin-when-cross-origin')
 
   return resp
 }

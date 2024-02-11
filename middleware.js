@@ -23,16 +23,16 @@ export function middleware (request) {
   const cspHeader = [
     // if something is not explicitly allowed, we don't allow it.
     "default-src 'none'",
-    "font-src 'self'",
+    "font-src 'self' a.stacker.news",
     // we want to load images from everywhere but we can limit to HTTPS at least
-    "img-src 'self' https: data:",
+    "img-src 'self' a.stacker.news m.stacker.news https: data:",
     // Using nonces and strict-dynamic deploys a strict CSP.
     // see https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html#strict-policy.
     // Old browsers will ignore nonce and strict-dynamic
     // and fallback to host matching, unsafe-inline and unsafe-eval (no protection against XSS)
     `script-src 'self' 'unsafe-inline' 'unsafe-eval' 'nonce-${nonce}' 'strict-dynamic' https:`,
     // unsafe-inline for styles is not ideal but okay if script-src is using nonces
-    "style-src 'self' 'unsafe-inline'",
+    "style-src 'self' a.stacker.news 'unsafe-inline'",
     "manifest-src 'self'",
     'frame-src www.youtube.com platform.twitter.com',
     "connect-src 'self' https: wss:",

@@ -192,7 +192,7 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, item
               // ignore empty parts which exist due to pathname starting with '/'
               const emptyPart = part => !!part
               const parts = pathname.split('/').filter(emptyPart)
-              if (parts[0] === 'items' && /[0-9]+/.test(parts[1])) {
+              if (parts[0] === 'items' && /^[0-9]+$/.test(parts[1])) {
                 const itemId = parts[1]
                 // check for valid item page due to referral links like /items/123456/r/ekzyis
                 const itemPages = ['edit', 'ots', 'related']

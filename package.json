@@ -8,6 +8,7 @@
     "migrate": "prisma migrate deploy",
     "start": "NODE_OPTIONS='--trace-warnings' next start -p $PORT --keepAliveTimeout 120000",
     "lint": "standard",
+    "test": "node **/*.spec.js",
     "worker": "tsx --trace-warnings worker/index.js"
   },
   "dependencies": {

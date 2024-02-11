@@ -30,7 +30,11 @@ export function middleware (request) {
     // see https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html#strict-policy.
     // Old browsers will ignore nonce and strict-dynamic
     // and fallback to host matching, unsafe-inline and unsafe-eval (no protection against XSS)
-    `script-src 'self' 'unsafe-inline' 'unsafe-eval' 'nonce-${nonce}' 'strict-dynamic' https:`,
+    process.env.NODE_ENV === 'production'
+      ? `script-src 'self' 'unsafe-inline' 'nonce-${nonce}' 'strict-dynamic' https:`
+      // unsafe-eval is required during development due to react-refresh.js
+      // see https://github.com/vercel/next.js/issues/14221
+      : `script-src 'self' 'unsafe-inline' 'unsafe-eval' 'nonce-${nonce}' 'strict-dynamic' https:`,
     // unsafe-inline for styles is not ideal but okay if script-src is using nonces
     "style-src 'self' a.stacker.news 'unsafe-inline'",
     "manifest-src 'self'",

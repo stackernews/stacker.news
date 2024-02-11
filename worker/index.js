@@ -3,7 +3,7 @@ import nextEnv from '@next/env'
 import { PrismaClient } from '@prisma/client'
 import {
   autoDropBolt11s, checkPendingDeposits, checkPendingWithdrawals,
-  finalizeHodlInvoice, subscribeToWallet, autoWithdraw
+  finalizeHodlInvoice, subscribeToWallet
 } from './wallet.js'
 import { repin } from './repin.js'
 import { trust } from './trust.js'
@@ -22,6 +22,7 @@ import { deleteItem } from './ephemeralItems.js'
 import { deleteUnusedImages } from './deleteUnusedImages.js'
 import { territoryBilling } from './territory.js'
 import { ofac } from './ofac.js'
+import { autoWithdraw } from './autowithdraw.js'
 
 const { loadEnvConfig } = nextEnv
 const { ApolloClient, HttpLink, InMemoryCache } = apolloClient

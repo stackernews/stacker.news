@@ -49,7 +49,7 @@ export default function LightningAddress ({ ssrData }) {
             router.push('/settings/wallets')
           } catch (err) {
             console.error(err)
-            toaster.danger('failed to attach:' + err.message || err.toString?.())
+            toaster.danger('failed to attach: ' + err.message || err.toString?.())
           }
         }}
       >
@@ -64,7 +64,7 @@ export default function LightningAddress ({ ssrData }) {
         <WalletButtonBar
           enabled={!!wallet} onDelete={async () => {
             try {
-              await removeWallet()
+              await removeWallet({ variables: { id: wallet?.id } })
               toaster.success('saved settings')
               router.push('/settings/wallets')
             } catch (err) {
@@ -84,7 +84,7 @@ export function LightningAddressWalletCard ({ wallet }) {
       title='lightning address'
       badges={['receive only', 'non-custodialish']}
       provider='lightning-address'
-      enabled={wallet !== undefined}
+      enabled={wallet !== undefined || undefined}
     />
   )
 }

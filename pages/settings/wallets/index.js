@@ -20,8 +20,6 @@ export default function Wallet ({ ssrData }) {
   const lnd = wallets.find(w => w.type === 'LND')
   const lnaddr = wallets.find(w => w.type === 'LIGHTNING_ADDRESS')
 
-  console.log('wallets', wallets, lnd, lnaddr)
-
   return (
     <Layout>
       <div className='py-5 w-100'>

@@ -5,26 +5,22 @@ import { useMe } from '../../../components/me'
 import { WalletButtonBar, WalletCard } from '../../../components/wallet-card'
 import { useMutation } from '@apollo/client'
 import { useToast } from '../../../components/toast'
-import { isNumber, LNDAutowithdrawSchema } from '../../../lib/validate'
+import { LNDAutowithdrawSchema } from '../../../lib/validate'
 import { useRouter } from 'next/router'
-import { isInvoiceMacaroon } from '../../../lib/macaroon'
 import { AutowithdrawSettings, autowithdrawInitial } from '../../../components/autowithdraw-shared'
-import { REMOVE_WALLET, UPSERT_WALLET_LND } from '../../../fragments/wallet'
+import { REMOVE_WALLET, UPSERT_WALLET_LND, WALLET_BY_TYPE } from '../../../fragments/wallet'
 
-export const getServerSideProps = getGetServerSideProps({ authRequired: true })
+const variables = { type: 'LND' }
+export const getServerSideProps = getGetServerSideProps({ query: WALLET_BY_TYPE, variables, authRequired: true })
 
-function useAutoWithdrawEnabled () {
-  const me = useMe()
-  return me?.privates?.lnAddr && isNumber(me?.privates?.autoWithdrawThreshold) && isNumber(me?.privates?.autoWithdrawMaxFeePercent)
-}
-
-export default function LND () {
+export default function LND ({ ssrData }) {
   const me = useMe()
   const toaster = useToast()
   const router = useRouter()
   const [upsertWalletLND] = useMutation(UPSERT_WALLET_LND)
-  const enabled = useAutoWithdrawEnabled()
   const [removeWallet] = useMutation(REMOVE_WALLET)
+
+  const { walletByType: wallet } = ssrData || {}
 
   return (
     <CenterLayout>
@@ -32,9 +28,9 @@ export default function LND () {
       <h6 className='text-muted text-center pb-3'>autowithdraw to your Lightning Labs node</h6>
       <Form
         initial={{
-          socket: me?.privates?.socket || '',
-          macaroon: me?.privates?.lnMacaroon || '',
-          cert: me?.privates?.lnCert || '',
+          socket: wallet?.wallet?.socket || '',
+          macaroon: wallet?.wallet?.macaroon || '',
+          cert: wallet?.wallet?.cert || '',
           ...autowithdrawInitial({ me })
         }}
         schema={LNDAutowithdrawSchema({ me })}
@@ -42,17 +38,22 @@ export default function LND () {
           try {
             await upsertWalletLND({
               variables: {
+                id: wallet?.id,
                 socket,
                 macaroon,
                 cert,
-                settings
+                settings: {
+                  ...settings,
+                  autoWithdrawThreshold: Number(settings.autoWithdrawThreshold),
+                  autoWithdrawMaxFeePercent: Number(settings.autoWithdrawMaxFeePercent)
+                }
               }
             })
             toaster.success('saved settings')
             router.push('/settings/wallets')
           } catch (err) {
             console.error(err)
-            toaster.danger('failed to attach:' + err.message || err.toString?.())
+            toaster.danger('failed to attach: ' + err.message || err.toString?.())
           }
         }}
       >
@@ -69,13 +70,6 @@ export default function LND () {
           name='macaroon'
           hint='hex or base64 encoded'
           placeholder='AgEDbG5kAlgDChCn7YgfWX7uTkQQgXZ2uahNEgEwGhYKB2FkZHJlc3MSBHJlYWQSBXdyaXRlGhcKCGludm9pY2VzEgRyZWFkEgV3cml0ZRoPCgdvbmNoYWluEgRyZWFkAAAGIJkMBrrDV0npU90JV0TGNJPrqUD8m2QYoTDjolaL6eBs'
-          onChange={(formik, e) => {
-            if (e.target.value) {
-              if (!isInvoiceMacaroon(e.target.value)) {
-                window.alert('invalid macaroon')
-              }
-            }
-          }}
           required
         />
         <Input
@@ -86,9 +80,9 @@ export default function LND () {
         />
         <AutowithdrawSettings />
         <WalletButtonBar
-          enabled={enabled} onDelete={async () => {
+          enabled={!!wallet} onDelete={async () => {
             try {
-              await removeWallet()
+              await removeWallet({ variables: { id: wallet?.id } })
               toaster.success('saved settings')
               router.push('/settings/wallets')
             } catch (err) {
@@ -102,15 +96,13 @@ export default function LND () {
   )
 }
 
-export function LNDCard () {
-  const enabled = useAutoWithdrawEnabled()
-
+export function LNDCard ({ wallet }) {
   return (
     <WalletCard
       title='LND'
       badges={['receive only', 'non-custodial']}
       provider='lnd'
-      enabled={enabled}
+      enabled={wallet !== undefined || undefined}
     />
   )
 }

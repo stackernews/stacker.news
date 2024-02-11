@@ -85,7 +85,6 @@ export default {
           type
         }
       })
-      console.log('wallet', wallet)
       return wallet
     },
     wallets: async (parent, args, { me, models }) => {
@@ -337,8 +336,6 @@ export default {
           expires_at: expiresAt
         })
 
-        console.log('invoice', balanceLimit)
-
         const [inv] = await serialize(models,
           models.$queryRaw`SELECT * FROM create_invoice(${invoice.id}, ${hodlInvoice ? invoice.secret : null}::TEXT, ${invoice.request},
             ${expiresAt}::timestamp, ${amount * 1000}, ${user.id}::INTEGER, ${description}, NULL, NULL,
@@ -392,12 +389,6 @@ export default {
       return { id }
     },
     upsertWalletLND: async (parent, { settings, ...data }, { me, models }) => {
-      if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
-      }
-
-      await ssValidate(LNDAutowithdrawSchema, { ...data, ...settings }, { me, models })
-
       // store hex inputs as base64
       if (HEX_REGEX.test(data.macaroon)) {
         data.macaroon = Buffer.from(data.macaroon, 'hex').toString('base64')
@@ -406,104 +397,33 @@ export default {
         data.cert = Buffer.from(data.cert, 'hex').toString('base64')
       }
 
-      const { id, ...walletData } = data
-      const { autoWithdrawThreshold, autoWithdrawMaxFeePercent, priority } = settings
-
-      const txs = [
-        models.user.update({
-          where: { id: me.id },
-          data: {
-            autoWithdrawMaxFeePercent,
-            autoWithdrawThreshold
+      return await upsertWallet(
+        {
+          schema: LNDAutowithdrawSchema,
+          walletName: 'walletLND',
+          walletType: 'LND',
+          testConnect: async ({ cert, macaroon, socket }) => {
+            const { lnd } = await authenticatedLndGrpc({
+              cert,
+              macaroon,
+              socket
+            })
+            return await getIdentity({ lnd })
           }
-        })
-      ]
-
-      if (id) {
-        txs.push(
-          models.wallet.update({
-            where: { id: Number(id) },
-            data: {
-              priority,
-              walletLND: {
-                update: {
-                  where: { walletId: Number(id) },
-                  data: walletData
-                }
-              }
-            }
-          }))
-      } else {
-        txs.push(
-          models.wallet.create({
-            data: {
-              priority,
-              type: 'LND',
-              walletLND: {
-                create: [
-                  walletData
-                ]
-              }
-            }
-          }))
-      }
-
-      await models.$transaction(txs)
-      return true
+        },
+        { settings, data }, { me, models })
     },
     upsertWalletLNAddr: async (parent, { settings, ...data }, { me, models }) => {
-      if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
-      }
-
-      await ssValidate(lnAddrAutowithdrawSchema, { ...data, ...settings }, { me, models })
-
-      const { id, address } = data
-      const { autoWithdrawThreshold, autoWithdrawMaxFeePercent, priority } = settings
-
-      const txs = [
-        models.user.update({
-          where: { id: me.id },
-          data: {
-            autoWithdrawMaxFeePercent,
-            autoWithdrawThreshold
+      return await upsertWallet(
+        {
+          schema: lnAddrAutowithdrawSchema,
+          walletName: 'walletLightningAddress',
+          walletType: 'LIGHTNING_ADDRESS',
+          testConnect: async ({ address }) => {
+            return await lnAddrOptions(address)
           }
-        })
-      ]
-
-      if (id) {
-        txs.push(
-          models.wallet.update({
-            where: { id: Number(id), userId: me.id },
-            data: {
-              priority: Number(priority),
-              walletLightningAddress: {
-                update: {
-                  where: { walletId: Number(id) },
-                  data: {
-                    address
-                  }
-                }
-              }
-            }
-          }))
-      } else {
-        console.log('creating wallet')
-        txs.push(
-          models.wallet.create({
-            data: {
-              priority: Number(priority),
-              userId: me.id,
-              type: 'LIGHTNING_ADDRESS',
-              walletLightningAddress: {
-                create: { address }
-              }
-            }
-          }))
-      }
-
-      await models.$transaction(txs)
-      return true
+        },
+        { settings, data }, { me, models })
     },
     removeWallet: async (parent, { id }, { me, models }) => {
       if (!me) {
@@ -542,6 +462,68 @@ export default {
     },
     sats: fact => msatsToSatsDecimal(fact.msats)
   }
+}
+
+async function upsertWallet (
+  { schema, walletName, walletType, testConnect }, { settings, data }, { me, models }) {
+  if (!me) {
+    throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+  }
+
+  await ssValidate(schema, { ...data, ...settings }, { me, models })
+
+  if (testConnect) {
+    try {
+      await testConnect(data)
+    } catch (error) {
+      console.error(error)
+      throw new GraphQLError('failed to connect to wallet', { extensions: { code: 'BAD_INPUT' } })
+    }
+  }
+
+  const { id, ...walletData } = data
+  const { autoWithdrawThreshold, autoWithdrawMaxFeePercent, priority } = settings
+
+  const txs = [
+    models.user.update({
+      where: { id: me.id },
+      data: {
+        autoWithdrawMaxFeePercent,
+        autoWithdrawThreshold
+      }
+    })
+  ]
+
+  if (id) {
+    txs.push(
+      models.wallet.update({
+        where: { id: Number(id), userId: me.id },
+        data: {
+          priority: Number(priority),
+          [walletName]: {
+            update: {
+              where: { walletId: Number(id) },
+              data: walletData
+            }
+          }
+        }
+      }))
+  } else {
+    txs.push(
+      models.wallet.create({
+        data: {
+          priority: Number(priority),
+          userId: me.id,
+          type: walletType,
+          [walletName]: {
+            create: walletData
+          }
+        }
+      }))
+  }
+
+  await models.$transaction(txs)
+  return true
 }
 
 export async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd, headers, autoWithdraw = false }) {

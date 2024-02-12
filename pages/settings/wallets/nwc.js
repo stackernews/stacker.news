@@ -8,8 +8,24 @@ import { useRouter } from 'next/router'
 import { useNWC } from '../../../components/webln/nwc'
 import { WalletSecurityBanner } from '../../../components/banners'
 import { useWebLNConfigurator } from '../../../components/webln'
+import { parseNwcUrl } from '../../../lib/url'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
+
+const validateNwcUrl = ({ nwcUrl }) => {
+  // we handle this case here since else parsing will find no pubkey
+  // and validation will return 'pubkey required' instead of wrong prefix
+  const prefix = 'nostr+walletconnect://'
+  if (!nwcUrl.startsWith(prefix)) {
+    return { nwcUrl: `must start with ${prefix}` }
+  }
+  try {
+    const params = parseNwcUrl(nwcUrl)
+    nwcSchema.validateSync({ nwcUrl, ...params }, { abortEarly: true })
+  } catch (error) {
+    return { nwcUrl: error.message }
+  }
+}
 
 export default function NWC () {
   const { provider, enabledProviders, setProvider } = useWebLNConfigurator()
@@ -29,7 +45,7 @@ export default function NWC () {
           nwcUrl: nwcUrl || '',
           isDefault: isDefault || false
         }}
-        schema={nwcSchema}
+        validate={validateNwcUrl}
         onSubmit={async ({ isDefault, ...values }) => {
           try {
             await saveConfig(values)

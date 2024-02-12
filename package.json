@@ -8,7 +8,9 @@
     "migrate": "prisma migrate deploy",
     "start": "NODE_OPTIONS='--trace-warnings' next start -p $PORT --keepAliveTimeout 120000",
     "lint": "standard",
-    "worker": "tsx --trace-warnings worker/index.js"
+    "worker": "tsx --trace-warnings worker/index.js",
+    "test": "jest",
+    "test:watch": "jest --watch"
   },
   "dependencies": {
     "@apollo/client": "^3.8.5",
@@ -108,11 +110,20 @@
     ],
     "extends": [
       "next"
+    ],
+    "envs": [
+      "jest"
     ]
   },
   "devDependencies": {
     "@next/eslint-plugin-next": "^13.5.4",
+    "@testing-library/jest-dom": "^6.4.2",
+    "@testing-library/react": "^14.2.1",
     "eslint": "^8.51.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "next-router-mock": "^0.9.12",
+    "react-error-boundary": "^4.0.12",
     "standard": "^17.1.0"
   }
 }

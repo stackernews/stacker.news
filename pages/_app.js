@@ -39,6 +39,7 @@ function writeQuery (client, apollo, data) {
   }
 }
 
+/** @param {import('next/app').AppProps} */
 export default function MyApp ({ Component, pageProps: { ...props } }) {
   const client = getApolloClient()
   const router = useRouter()

@@ -1,0 +1,26 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Sample Test should create snapshot: Hello World snapshot should render 1`] = `
+<div>
+  <div
+    class="toast-container bottom-0 end-0 position-fixed pb-3 pe-3 toastContainer"
+  />
+  <div>
+    Hello World
+  </div>
+</div>
+`;
+
+exports[`Sample Test should render the loading screen: Loading Screen should render 1`] = `
+<div>
+  <div
+    class="toast-container bottom-0 end-0 position-fixed pb-3 pe-3 toastContainer"
+  />
+  <div
+    class="d-flex justify-content-center mt-3 mb-1"
+    data-testid="page-loading"
+  >
+    mock file
+  </div>
+</div>
+`;

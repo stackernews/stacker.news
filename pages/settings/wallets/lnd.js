@@ -31,7 +31,7 @@ export default function LND ({ ssrData }) {
           socket: wallet?.wallet?.socket || '',
           macaroon: wallet?.wallet?.macaroon || '',
           cert: wallet?.wallet?.cert || '',
-          ...autowithdrawInitial({ me })
+          ...autowithdrawInitial({ me, priority: wallet?.priority })
         }}
         schema={LNDAutowithdrawSchema({ me })}
         onSubmit={async ({ socket, cert, macaroon, ...settings }) => {

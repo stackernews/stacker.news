@@ -29,7 +29,7 @@ export default function LightningAddress ({ ssrData }) {
       <Form
         initial={{
           address: wallet?.wallet?.address || '',
-          ...autowithdrawInitial({ me })
+          ...autowithdrawInitial({ me, priority: wallet?.priority })
         }}
         schema={lnAddrAutowithdrawSchema({ me })}
         onSubmit={async ({ address, ...settings }) => {

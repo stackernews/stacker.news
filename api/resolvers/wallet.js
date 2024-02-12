@@ -494,12 +494,24 @@ async function upsertWallet (
     })
   ]
 
+  if (priority) {
+    txs.push(
+      models.wallet.updateMany({
+        where: {
+          userId: me.id
+        },
+        data: {
+          priority: 0
+        }
+      }))
+  }
+
   if (id) {
     txs.push(
       models.wallet.update({
         where: { id: Number(id), userId: me.id },
         data: {
-          priority: Number(priority),
+          priority: priority ? 1 : 0,
           [walletName]: {
             update: {
               where: { walletId: Number(id) },

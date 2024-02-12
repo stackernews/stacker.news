@@ -31,6 +31,7 @@ export function AutowithdrawSettings ({ priority }) {
     <>
       <Checkbox
         label='make default autowithdraw method'
+        id='priority'
         name='priority'
       />
       <div className='my-4 border border-3 rounded'>

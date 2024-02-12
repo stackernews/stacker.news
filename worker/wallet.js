@@ -270,7 +270,7 @@ export async function autoDropBolt11s ({ models, lnd }) {
       FROM to_be_updated )
     SELECT * FROM to_be_updated;`)
 
-    if (invoices.length > 0) {
+  if (invoices.length > 0) {
     const failedDeletesUpdatePromises = []
     for (const invoice of invoices) {
       try {

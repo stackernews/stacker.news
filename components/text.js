@@ -186,12 +186,25 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, item
             }
 
             try {
+              // parse internal links and show as #<itemId>
               const url = new URL(href)
               const { pathname, searchParams } = url
-              const itemId = pathname.match(/items\/(\w+)/)[1]
-              // don't format invalid item links
-              const valid = !/[a-zA-Z_]/.test(itemId)
-              if (valid && itemId) {
+              // ignore empty parts which exist due to pathname starting with '/'
+              const emptyPart = part => !!part
+              const parts = pathname.split('/').filter(emptyPart)
+              if (parts[0] === 'items' && /^[0-9]+$/.test(parts[1])) {
+                const itemId = parts[1]
+                // check for valid item page due to referral links like /items/123456/r/ekzyis
+                const itemPages = ['edit', 'ots', 'related']
+                const itemPage = itemPages.includes(parts[2]) ? parts[2] : null
+                if (itemPage) {
+                  // parse   https://stacker.news/items/1/related?commentId=2
+                  // as      #1/related
+                  // and not #2
+                  // since commentId will be ignored anyway
+                  const linkText = `#${itemId}/${itemPage}`
+                  return <a target='_blank' href={href} rel='noreferrer'>{linkText}</a>
+                }
                 const commentId = searchParams.get('commentId')
                 const linkText = `#${commentId || itemId}`
                 return <a target='_blank' href={href} rel='noreferrer'>{linkText}</a>

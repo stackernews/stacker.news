@@ -97,7 +97,13 @@ export default function useCrossposter () {
 
   const relayError = (failedRelays) => {
     return new Promise(resolve => {
-      const removeToast = toast.danger(
+      const handleSkip = () => {
+        resolve('skip')
+
+        removeToast()
+      }
+
+      const removeToast = toaster.danger(
         <>
           Crossposting failed for {failedRelays.join(', ')} <br />
           <Button
@@ -111,12 +117,12 @@ export default function useCrossposter () {
           </Button>
           {' | '}
           <Button
-            variant='link' onClick={() => resolve('skip')}
+            variant='link' onClick={handleSkip}
           >Skip
           </Button>
         </>,
         {
-          onCancel: () => resolve('skip') // Ensure skip action if the toast is manually closed
+          onCancel: () => handleSkip()
         }
       )
     })

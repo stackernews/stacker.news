@@ -66,7 +66,7 @@ export const config = {
     // NextJS recommends to not add the CSP header to prefetches and static assets
     // See https://nextjs.org/docs/app/building-your-application/configuring/content-security-policy
     {
-      source: '/((?!api|_next/static|_next/image|favicon.ico).*)',
+      source: '/((?!api|_next/static|_next/image|_next/webpack-hmr|favicon.ico).*)',
       missing: [
         { type: 'header', key: 'next-router-prefetch' },
         { type: 'header', key: 'purpose', value: 'prefetch' }

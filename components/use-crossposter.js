@@ -6,23 +6,6 @@ import { gql, useMutation, useQuery, useLazyQuery } from '@apollo/client'
 import { SETTINGS } from '../fragments/users'
 import { ITEM_FULL_FIELDS, POLL_FIELDS } from '../fragments/items'
 
-function determineItemType (item) {
-  const typeMap = {
-    url: 'link',
-    bounty: 'bounty',
-    pollCost: 'poll'
-  }
-
-  for (const [key, type] of Object.entries(typeMap)) {
-    if (item[key]) {
-      return type
-    }
-  }
-
-  // Default
-  return 'discussion'
-}
-
 async function discussionToEvent (item) {
   const createdAt = Math.floor(Date.now() / 1000)
 
@@ -143,20 +126,39 @@ export default function useCrossposter () {
     return toaster.danger(`Error crossposting: ${errorMessage}`)
   }
 
-  const handleEventCreation = async (itemType, item) => {
+  async function handleEventCreation(item) {
+    const determineItemType = (item) => {
+      const typeMap = {
+        url: 'link',
+        bounty: 'bounty',
+        pollCost: 'poll'
+      };
+  
+      for (const [key, type] of Object.entries(typeMap)) {
+        if (item[key]) {
+          return type;
+        }
+      }
+  
+      // Default
+      return 'discussion';
+    };
+  
+    const itemType = determineItemType(item);
+  
     switch (itemType) {
       case 'discussion':
-        return await discussionToEvent(item)
+        return await discussionToEvent(item);
       case 'link':
-        return await linkToEvent(item)
+        return await linkToEvent(item);
       case 'bounty':
-        return await bountyToEvent(item)
+        return await bountyToEvent(item);
       case 'poll':
-        return await pollToEvent(item)
+        return await pollToEvent(item);
       default:
-        return crosspostError('Unknown item type')
+        return crosspostError('Unknown item type');
     }
-  }
+  }  
 
   const fetchItemData = async (itemId) => {
     try {
@@ -174,11 +176,11 @@ export default function useCrossposter () {
     let allSuccessful = false;
     let noteId;
   
+    const itemType = determineItemType(item);
+    const event = await handleEventCreation(itemType, item);
+    if (!event) return { allSuccessful, noteId };
+    
     do {
-      const itemType = determineItemType(item);
-      const event = await handleEventCreation(itemType, item);
-      if (!event) break;
-  
       try {
         const result = await crosspost(event, failedRelays || relays);
   

@@ -2,7 +2,7 @@ const { withPlausibleProxy } = require('next-plausible')
 const { InjectManifest } = require('workbox-webpack-plugin')
 const { generatePrecacheManifest } = require('./sw/build.js')
 
-const isProd = process.env.NODE_ENV === 'production'
+let isProd = process.env.NODE_ENV === 'production'
 const corsHeaders = [
   {
     key: 'Access-Control-Allow-Origin',
@@ -18,13 +18,27 @@ const noCacheHeader = {
   value: 'no-cache, max-age=0, must-revalidate'
 }
 
+const getGitCommit = (env) => {
+  return env === 'aws'
+    // XXX this fragile ... eb could change the version label location ... it also require we set the label on deploy
+    // eslint-disable-next-line
+    ? Object.keys(require('/opt/elasticbeanstalk/deployment/app_version_manifest.json').RuntimeSources['stacker.news'])[0].slice(0, 6)
+    : require('child_process').execSync('git rev-parse HEAD').toString().slice(0, 6)
+}
+
 let commitHash
 try {
   if (isProd) {
-    // XXX this fragile ... eb could change the version label location ... it also require we set the label on deploy
-    commitHash = Object.keys(require('/opt/elasticbeanstalk/deployment/app_version_manifest.json').RuntimeSources['stacker.news'])[0].slice(0, 6) // eslint-disable-line
+    try {
+      commitHash = getGitCommit('aws')
+    } catch (e) {
+      // maybe we're running prod build locally
+      commitHash = getGitCommit()
+      // if above line worked, we're running locally and should not use prod config which configurates CDN
+      isProd = false
+    }
   } else {
-    commitHash = require('child_process').execSync('git rev-parse HEAD').toString().slice(0, 6)
+    commitHash = getGitCommit()
   }
 } catch (e) {
   console.log('could not get commit hash with `git rev-parse HEAD` ... using 0000')
@@ -43,7 +57,7 @@ module.exports = withPlausibleProxy()({
   },
   reactStrictMode: true,
   productionBrowserSourceMaps: true,
-  generateBuildId: isProd ? async () => commitHash : undefined,
+  generateBuildId: commitHash ? async () => commitHash : undefined,
   // Use the CDN in production and localhost for development.
   assetPrefix: isProd ? 'https://a.stacker.news' : undefined,
   crossOrigin: isProd ? 'anonymous' : undefined,

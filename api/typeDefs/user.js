@@ -31,8 +31,6 @@ export default gql`
     subscribeUserPosts(id: ID): User
     subscribeUserComments(id: ID): User
     toggleMute(id: ID): User
-    setAutoWithdraw(lnAddr: String!, autoWithdrawThreshold: Int!, autoWithdrawMaxFeePercent: Float!): Boolean
-    removeAutoWithdraw: Boolean
   }
 
   type User {

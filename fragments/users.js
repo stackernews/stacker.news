@@ -111,17 +111,10 @@ mutation setSettings($settings: SettingsInput!) {
 }
 `
 
-export const SET_AUTOWITHDRAW =
+export const DELETE_WALLET =
 gql`
-mutation setAutoWithdraw($lnAddr: String!, $autoWithdrawThreshold: Int!, $autoWithdrawMaxFeePercent: Float!) {
-  setAutoWithdraw(lnAddr: $lnAddr, autoWithdrawThreshold: $autoWithdrawThreshold, autoWithdrawMaxFeePercent: $autoWithdrawMaxFeePercent)
-}
-`
-
-export const REMOVE_AUTOWITHDRAW =
-gql`
-mutation removeAutoWithdraw {
-  removeAutoWithdraw
+mutation removeWallet {
+  removeWallet
 }
 `
 

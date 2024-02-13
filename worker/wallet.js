@@ -4,12 +4,10 @@ import {
   subscribeToInvoices, subscribeToPayments, subscribeToInvoice
 } from 'ln-service'
 import { sendUserNotification } from '../api/webPush/index.js'
-import { msatsToSats, numWithUnits, satsToMsats } from '../lib/format'
+import { msatsToSats, numWithUnits } from '../lib/format'
 import { INVOICE_RETENTION_DAYS } from '../lib/constants'
 import { datePivot, sleep } from '../lib/time.js'
-import { sendToLnAddr } from '../api/resolvers/wallet.js'
 import retry from 'async-retry'
-import { isNumber } from '../lib/validate.js'
 
 export async function subscribeToWallet (args) {
   await subscribeToDeposits(args)
@@ -303,47 +301,4 @@ export async function checkPendingWithdrawals (args) {
       console.error('error checking withdrawal', w.hash)
     }
   }
-}
-
-export async function autoWithdraw ({ data: { id }, models, lnd }) {
-  const user = await models.user.findUnique({ where: { id } })
-  if (!user ||
-    !user.lnAddr ||
-    !isNumber(user.autoWithdrawThreshold) ||
-    !isNumber(user.autoWithdrawMaxFeePercent)) return
-
-  const threshold = satsToMsats(user.autoWithdrawThreshold)
-  const excess = Number(user.msats - threshold)
-
-  // excess must be greater than 10% of threshold
-  if (excess < Number(threshold) * 0.1) return
-
-  const maxFee = msatsToSats(Math.ceil(excess * (user.autoWithdrawMaxFeePercent / 100.0)))
-  const amount = msatsToSats(excess) - maxFee
-
-  // must be >= 1 sat
-  if (amount < 1) return
-
-  // check that
-  // 1. the user doesn't have an autowithdraw pending
-  // 2. we have not already attempted to autowithdraw this fee recently
-  const [pendingOrFailed] = await models.$queryRaw`
-    SELECT EXISTS(
-      SELECT *
-      FROM "Withdrawl"
-      WHERE "userId" = ${id} AND "autoWithdraw"
-      AND (status IS NULL
-      OR (
-        status <> 'CONFIRMED' AND
-        now() < created_at + interval '1 hour' AND
-        "msatsFeePaying" >= ${satsToMsats(maxFee)}
-      ))
-    )`
-
-  if (pendingOrFailed.exists) return
-
-  await sendToLnAddr(
-    null,
-    { addr: user.lnAddr, amount, maxFee },
-    { models, me: user, lnd, autoWithdraw: true })
 }

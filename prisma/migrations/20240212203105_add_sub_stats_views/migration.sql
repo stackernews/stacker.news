@@ -20,12 +20,21 @@ BEGIN
     ((SELECT "subName", "ItemAct"."msats" as quantity, act::TEXT as type, "ItemAct"."created_at"
         FROM "ItemAct"
         JOIN "Item" ON "Item"."id" = "ItemAct"."itemId"
-        WHERE "ItemAct"."created_at" >= min_utc)
+        WHERE "ItemAct"."created_at" >= min_utc
+            AND "subName" IS NOT NULL
+            AND act = 'TIP')
         UNION ALL
-    (SELECT "subName", 1 as quantity,
-        CASE WHEN "Item"."parentId" IS NULL THEN 'POST' ELSE 'COMMENT' END as type, created_at
+    (SELECT "subName", 1 as quantity, 'POST' as type, created_at
         FROM "Item"
-        WHERE created_at >= min_utc)
+        WHERE created_at >= min_utc
+            AND "Item"."parentId" IS NULL
+            AND "subName" IS NOT NULL)
+        UNION ALL
+    (SELECT root."subName", 1 as quantity, 'COMMENT' as type, "Item"."created_at"
+        FROM "Item"
+        JOIN "Item" root ON "Item"."rootId" = root."id"
+        WHERE "Item"."created_at" >= min_utc
+            AND root."subName" IS NOT NULL)
         UNION ALL
     (SELECT "subName", msats as quantity, type::TEXT as type, created_at
         FROM "SubAct"

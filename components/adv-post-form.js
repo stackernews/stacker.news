@@ -8,6 +8,7 @@ import { numWithUnits } from '../lib/format'
 import styles from './adv-post-form.module.css'
 import { useMe } from './me'
 import { useFeeButton } from './fee-button'
+import { useRouter } from 'next/router';
 
 const EMPTY_FORWARD = { nym: '', pct: '' }
 
@@ -21,6 +22,24 @@ export function AdvPostInitial ({ forward, boost }) {
 export default function AdvPostForm ({ children }) {
   const me = useMe()
   const { merge } = useFeeButton()
+  const router = useRouter();
+  
+  const itemType = router.query.type;
+
+  function renderCrosspostDetails(itemType) {
+    switch (itemType) {
+      case 'discussion':
+        return <li>crosspost this discussion as a NIP-23 event</li>;
+      case 'link':
+        return <li>crosspost this link as a NIP-01 event</li>;
+      case 'bounty':
+        return <li>crosspost this bounty as a NIP-99 event</li>;
+      case 'poll':
+        return <li>crosspost this poll as a NIP-41 event</li>;
+      default:
+        return null;
+    }
+  }
 
   return (
     <AccordianItem
@@ -91,13 +110,13 @@ export default function AdvPostForm ({ children }) {
               )
             }}
           </VariableInput>
-          {me &&
+          {me && itemType &&
             <Checkbox
               label={
                 <div className='d-flex align-items-center'>crosspost to nostr
                   <Info>
                     <ul className='fw-bold'>
-                      <li>crosspost this item to nostr</li>
+                      {renderCrosspostDetails(itemType)}
                       <li>requires NIP-07 extension for signing</li>
                       <li>we use your NIP-05 relays if set</li>
                       <li>we use these relays by default:</li>

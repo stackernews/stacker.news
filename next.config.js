@@ -22,7 +22,7 @@ const getGitCommit = (env) => {
   return env === 'aws'
     // XXX this fragile ... eb could change the version label location ... it also require we set the label on deploy
     // eslint-disable-next-line
-    ? Object.keys(require('../../../../opt/elasticbeanstalk/deployment/app_version_manifest.json').RuntimeSources['stacker.news'])[0].slice(0, 6)
+    ? Object.keys(require('/opt/elasticbeanstalk/deployment/app_version_manifest.json').RuntimeSources['stacker.news'])[0].slice(0, 6)
     : require('child_process').execSync('git rev-parse HEAD').toString().slice(0, 6)
 }
 

@@ -1,5 +1,9 @@
 import Image from 'react-bootstrap/Image'
 import { StaticLayout } from '../components/layout'
+import { getGetServerSideProps } from '../api/ssrApollo'
+
+// force SSR to include CSP nonces
+export const getServerSideProps = getGetServerSideProps({ query: null })
 
 export default function Email () {
   return (

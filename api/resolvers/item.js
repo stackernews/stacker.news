@@ -155,7 +155,7 @@ const relationClause = (type) => {
       clause += ' FROM "Item" JOIN "Item" root ON "Item"."rootId" = root.id LEFT JOIN "Sub" ON "Sub"."name" = root."subName" '
       break
     case 'bookmarks':
-      clause += ' FROM "Item" JOIN "Bookmark" ON "Bookmark"."itemId" = "Item"."id" LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName" '
+      clause += ' FROM "Item" JOIN "Item" root ON "Item"."rootId" = root.id JOIN "Bookmark" ON "Bookmark"."itemId" = "Item"."id" LEFT JOIN "Sub" ON "Sub"."name" = root."subName" '
       break
     case 'outlawed':
     case 'borderland':

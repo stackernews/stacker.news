@@ -99,6 +99,7 @@ export function LNbitsProvider ({ children }) {
     const configStr = window.localStorage.getItem(storageKey)
     if (!configStr) {
       setEnabled(undefined)
+      setInitialized(true)
       return
     }
 

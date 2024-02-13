@@ -48,5 +48,3 @@ sw/precache-manifest.json
 public/workbox-*.js*
 public/*-development.js
 
-lnbits/*
-docker-compose.yml

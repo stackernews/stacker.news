@@ -80,9 +80,9 @@ export default function useCrossposter () {
           ...ItemFullFields
           ...PollFields
         }
-      }` , {
-        fetchPolicy: 'no-cache'
-      }
+      }`, {
+      fetchPolicy: 'no-cache'
+    }
   )
 
   const [updateNoteId] = useMutation(
@@ -126,39 +126,39 @@ export default function useCrossposter () {
     return toaster.danger(`Error crossposting: ${errorMessage}`)
   }
 
-  async function handleEventCreation(item) {
+  async function handleEventCreation (item) {
     const determineItemType = (item) => {
       const typeMap = {
         url: 'link',
         bounty: 'bounty',
         pollCost: 'poll'
-      };
-  
+      }
+
       for (const [key, type] of Object.entries(typeMap)) {
         if (item[key]) {
-          return type;
+          return type
         }
       }
-  
+
       // Default
-      return 'discussion';
-    };
-  
-    const itemType = determineItemType(item);
-  
+      return 'discussion'
+    }
+
+    const itemType = determineItemType(item)
+
     switch (itemType) {
       case 'discussion':
-        return await discussionToEvent(item);
+        return await discussionToEvent(item)
       case 'link':
-        return await linkToEvent(item);
+        return await linkToEvent(item)
       case 'bounty':
-        return await bountyToEvent(item);
+        return await bountyToEvent(item)
       case 'poll':
-        return await pollToEvent(item);
+        return await pollToEvent(item)
       default:
-        return crosspostError('Unknown item type');
+        return crosspostError('Unknown item type')
     }
-  }  
+  }
 
   const fetchItemData = async (itemId) => {
     try {
@@ -172,44 +172,43 @@ export default function useCrossposter () {
   }
 
   const crosspostItem = async item => {
-    let failedRelays;
-    let allSuccessful = false;
-    let noteId;
-  
-    const itemType = determineItemType(item);
-    const event = await handleEventCreation(itemType, item);
-    if (!event) return { allSuccessful, noteId };
-    
+    let failedRelays
+    let allSuccessful = false
+    let noteId
+
+    const event = await handleEventCreation(item)
+    if (!event) return { allSuccessful, noteId }
+
     do {
       try {
-        const result = await crosspost(event, failedRelays || relays);
-  
-        noteId = result.noteId;
-        failedRelays = result?.failedRelays.map(relayObj => relayObj.relay);
-  
+        const result = await crosspost(event, failedRelays || relays)
+
+        noteId = result.noteId
+        failedRelays = result?.failedRelays.map(relayObj => relayObj.relay)
+
         if (failedRelays.length > 0) {
-          const userAction = await relayError(failedRelays);
+          const userAction = await relayError(failedRelays)
 
           if (userAction === 'skip') {
-            toaster.success('Skipped failed relays.');
+            toaster.success('Skipped failed relays.')
             // wait 2 seconds then break
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            break;
+            await new Promise(resolve => setTimeout(resolve, 2000))
+            break
           }
         } else {
-          allSuccessful = true;
+          allSuccessful = true
         }
       } catch (error) {
-        await crosspostError(error.message);
-  
+        await crosspostError(error.message)
+
         // wait 2 seconds to show error then break
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        return { allSuccessful, noteId };
+        await new Promise(resolve => setTimeout(resolve, 2000))
+        return { allSuccessful, noteId }
       }
-    } while (failedRelays.length > 0);
-  
-    return { allSuccessful, noteId };
-  };
+    } while (failedRelays.length > 0)
+
+    return { allSuccessful, noteId }
+  }
 
   const handleCrosspost = useCallback(async (itemId) => {
     try {

@@ -114,3 +114,22 @@ export const SUB_PAY = gql`
       ...SubFullFields
     }
   }`
+
+export const TOP_SUBS = gql`
+  query TopSubs($cursor: String, $when: String, $from: String, $to: String, $by: String, ) {
+    topSubs(cursor: $cursor, when: $when, from: $from, to: $to, by: $by) {
+      subs {
+        name
+        ncomments(when: $when, from: $from, to: $to)
+        nposts(when: $when, from: $from, to: $to)
+
+        optional {
+          stacked(when: $when, from: $from, to: $to)
+          spent(when: $when, from: $from, to: $to)
+          revenue(when: $when, from: $from, to: $to)
+        }
+      }
+      cursor
+    }
+  }
+`

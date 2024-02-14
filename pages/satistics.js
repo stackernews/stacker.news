@@ -188,11 +188,47 @@ export default function Satistics ({ ssrData }) {
   }
 
   const { walletHistory: { facts, cursor } } = data || ssrData
-
+  const totalInvoices = facts.filter(f => f.type === 'invoice')
+  const completedInvoices = facts.filter(f => f.type === 'invoice' && f.status === 'CONFIRMED')
+  const totalWithdrawals = facts.filter(f => f.type === 'withdrawal')
+  const completedWithdrawls = facts.filter(f => f.type === 'withdrawal' && f.status === 'CONFIRMED')
+  totalIn = facts.reduce((acc, f) => {if(f.sats > 0){acc + f.sats}}, 0)
+  totalOut = facts.reduce((acc, f) => {if(f.sats < 0){acc + f.sats}}, 0)
   return (
     <Layout>
+      <div className='d-flex row justify-content-between'>
+        <h1 className="text-center">statistics</h1>
+        <div className="col-4 col-md-4 card">
+          <div className="card-body">
+            <h4 className="card-title">Invoices </h4>
+            <p>Completed / Created</p>
+            <h1 className="text-center">
+              {completedInvoices.length}/{totalInvoices.length}
+            </h1>
+          </div>
+        </div>
+        <div className="col-4 col-md-4 card">
+          <div className="card-body">
+            <h4 className="card-title">Withdrawals</h4>
+            <p>Completed / Created</p>
+            <h1 className="text-center">
+              {completedWithdrawls.length}/{totalWithdrawals.length}
+            </h1>
+          </div>
+        </div>
+        <div className="col-4 col-md-4 card">
+          <div className="card-body">
+            <h4 className="card-title">Invoices </h4>
+            <p>Completed / Created</p>
+            <h1 className="text-center">
+              {totalIn}/{totalOut}
+            </h1>
+          </div>
+        </div>
+
+      </div>
       <div className='mt-3'>
-        <h2 className='text-center'>satistics</h2>
+        <h2 className='text-center'>History</h2>
         <Form
           initial={{
             invoice: included('invoice'),

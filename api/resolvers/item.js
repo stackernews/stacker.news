@@ -192,7 +192,7 @@ const activeOrMine = (me) => {
 export const muteClause = me =>
   me ? `NOT EXISTS (SELECT 1 FROM "Mute" WHERE "Mute"."muterId" = ${me.id} AND "Mute"."mutedId" = "Item"."userId")` : ''
 
-const HIDE_NSFW_CLAUSE = '"Sub"."nsfw" = FALSE'
+const HIDE_NSFW_CLAUSE = '("Sub"."nsfw" = FALSE OR "Sub"."nsfw" IS NULL)'
 
 export const nsfwClause = showNsfw => showNsfw ? '' : HIDE_NSFW_CLAUSE
 

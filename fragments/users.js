@@ -15,6 +15,9 @@ export const ME = gql`
         greeterMode
         hideCowboyHat
         hideFromTopUsers
+        hideGithub
+        hideNostr
+        hideTwitter
         hideInvoiceDesc
         hideIsContributor
         hideWalletBalance
@@ -47,6 +50,9 @@ export const ME = gql`
         isContributor
         stacked
         streak
+        githubId
+        nostrAuthPubkey
+        twitterId
       }
     }
   }`
@@ -73,6 +79,9 @@ export const SETTINGS_FIELDS = gql`
       hideFromTopUsers
       hideCowboyHat
       hideBookmarks
+      hideGithub
+      hideNostr
+      hideTwitter
       hideIsContributor
       imgproxyOnly
       hideWalletBalance
@@ -182,6 +191,9 @@ export const USER_FIELDS = gql`
       streak
       maxStreak
       isContributor
+      githubId
+      nostrAuthPubkey
+      twitterId
     }
   }`
 

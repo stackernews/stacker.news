@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { Relay, finalizeEvent, nip04 } from 'nostr-tools'
+import { parseNwcUrl } from '../../lib/url'
 
 const NWCContext = createContext()
 
@@ -30,7 +31,7 @@ export function NWCProvider ({ children }) {
     const { nwcUrl } = config
     setNwcUrl(nwcUrl)
 
-    const params = parseWalletConnectUrl(nwcUrl)
+    const params = parseNwcUrl(nwcUrl)
     setRelayUrl(params.relayUrl)
     setWalletPubkey(params.walletPubkey)
     setSecret(params.secret)
@@ -56,7 +57,7 @@ export function NWCProvider ({ children }) {
       return
     }
 
-    const params = parseWalletConnectUrl(nwcUrl)
+    const params = parseNwcUrl(nwcUrl)
     setRelayUrl(params.relayUrl)
     setWalletPubkey(params.walletPubkey)
     setSecret(params.secret)
@@ -228,23 +229,4 @@ async function getInfoWithRelay (relay, walletPubkey) {
       }
     })
   })
-}
-
-function parseWalletConnectUrl (walletConnectUrl) {
-  walletConnectUrl = walletConnectUrl
-    .replace('nostrwalletconnect://', 'http://')
-    .replace('nostr+walletconnect://', 'http://') // makes it possible to parse with URL in the different environments (browser/node/...)
-
-  const url = new URL(walletConnectUrl)
-  const params = {}
-  params.walletPubkey = url.host
-  const secret = url.searchParams.get('secret')
-  const relayUrl = url.searchParams.get('relay')
-  if (secret) {
-    params.secret = secret
-  }
-  if (relayUrl) {
-    params.relayUrl = relayUrl
-  }
-  return params
 }

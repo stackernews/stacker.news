@@ -1,4 +1,4 @@
-import { getIdentity, createHodlInvoice, createInvoice, decodePaymentRequest, payViaPaymentRequest, cancelHodlInvoice, getInvoice as getInvoiceFromLnd, getNode, authenticatedLndGrpc } from 'ln-service'
+import { getIdentity, createHodlInvoice, createInvoice, decodePaymentRequest, payViaPaymentRequest, cancelHodlInvoice, getInvoice as getInvoiceFromLnd, getNode, authenticatedLndGrpc, deletePayment } from 'ln-service'
 import { GraphQLError } from 'graphql'
 import crypto from 'crypto'
 import serialize from './serial'
@@ -8,7 +8,7 @@ import { SELECT } from './item'
 import { lnAddrOptions } from '../../lib/lnurl'
 import { msatsToSats, msatsToSatsDecimal } from '../../lib/format'
 import { LNDAutowithdrawSchema, amountSchema, lnAddrAutowithdrawSchema, lnAddrSchema, ssValidate, withdrawlSchema } from '../../lib/validate'
-import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, ANON_USER_ID, BALANCE_LIMIT_MSATS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT } from '../../lib/constants'
+import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, ANON_USER_ID, BALANCE_LIMIT_MSATS, INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT } from '../../lib/constants'
 import { datePivot } from '../../lib/time'
 import assertGofacYourself from './ofac'
 import { HEX_REGEX } from '../../lib/macaroon'
@@ -371,21 +371,40 @@ export default {
         }))
       return inv
     },
-    dropBolt11: async (parent, { id }, { me, models }) => {
+    dropBolt11: async (parent, { id }, { me, models, lnd }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
       }
 
-      await models.withdrawl.update({
-        where: {
-          userId: me.id,
-          id: Number(id),
-          createdAt: {
-            lte: datePivot(new Date(), { days: -7 })
-          }
-        },
-        data: { bolt11: null, hash: null }
-      })
+      const retention = `${INVOICE_RETENTION_DAYS} days`
+
+      const [invoice] = await models.$queryRaw`
+      WITH to_be_updated AS (
+        SELECT id, hash, bolt11
+        FROM "Withdrawl"
+        WHERE "userId" = ${me.id}
+        AND id = ${Number(id)}
+        AND now() > created_at + interval '${retention}'
+        AND hash IS NOT NULL
+      ), updated_rows AS (
+        UPDATE "Withdrawl"
+        SET hash = NULL, bolt11 = NULL
+        FROM to_be_updated
+        WHERE "Withdrawl".id = to_be_updated.id)
+      SELECT * FROM to_be_updated;`
+
+      if (invoice) {
+        try {
+          await deletePayment({ id: invoice.hash, lnd })
+        } catch (error) {
+          console.error(error)
+          await models.withdrawl.update({
+            where: { id: invoice.id },
+            data: { hash: invoice.hash, bolt11: invoice.bolt11 }
+          })
+          throw new GraphQLError('failed to drop bolt11 from lnd', { extensions: { code: 'BAD_INPUT' } })
+        }
+      }
       return { id }
     },
     upsertWalletLND: async (parent, { settings, ...data }, { me, models }) => {

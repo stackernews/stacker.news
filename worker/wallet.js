@@ -1,6 +1,6 @@
 import serialize from '../api/resolvers/serial.js'
 import {
-  getInvoice, getPayment, cancelHodlInvoice,
+  getInvoice, getPayment, cancelHodlInvoice, deletePayment,
   subscribeToInvoices, subscribeToPayments, subscribeToInvoice
 } from 'ln-service'
 import { sendUserNotification } from '../api/webPush/index.js'
@@ -253,14 +253,37 @@ async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
   }
 }
 
-export async function autoDropBolt11s ({ models }) {
-  await serialize(models, models.$executeRaw`
-    UPDATE "Withdrawl"
-    SET hash = NULL, bolt11 = NULL
-    WHERE "userId" IN (SELECT id FROM users WHERE "autoDropBolt11s")
-    AND now() > created_at + interval '${INVOICE_RETENTION_DAYS} days'
-    AND hash IS NOT NULL;`
-  )
+export async function autoDropBolt11s ({ models, lnd }) {
+  const retention = `${INVOICE_RETENTION_DAYS} days`
+
+  // This query will update the withdrawls and return what the hash and bol11 values were before the update
+  const invoices = await models.$queryRaw`
+    WITH to_be_updated AS (
+      SELECT id, hash, bolt11
+      FROM "Withdrawl"
+      WHERE "userId" IN (SELECT id FROM users WHERE "autoDropBolt11s")
+      AND now() > created_at + interval '${retention}'
+      AND hash IS NOT NULL
+    ), updated_rows AS (
+      UPDATE "Withdrawl"
+      SET hash = NULL, bolt11 = NULL
+      FROM to_be_updated
+      WHERE "Withdrawl".id = to_be_updated.id)
+    SELECT * FROM to_be_updated;`
+
+  if (invoices.length > 0) {
+    for (const invoice of invoices) {
+      try {
+        await deletePayment({ id: invoice.hash, lnd })
+      } catch (error) {
+        console.error(`Error removing invoice with hash ${invoice.hash}:`, error)
+        await models.withdrawl.update({
+          where: { id: invoice.id },
+          data: { hash: invoice.hash, bolt11: invoice.bolt11 }
+        })
+      }
+    }
+  }
 }
 
 // The callback subscriptions above will NOT get called for HODL invoices that are already paid.

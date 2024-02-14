@@ -185,24 +185,25 @@ function HeaderNym ({ user, isMe }) {
 }
 
 function SocialLink ({ name, id }) {
+  const className = `${styles.social} text-reset`
   if (name === 'Nostr') {
     const npub = hexToBech32(id)
     return (
-      <Link className={styles.social} target='_blank' href={`https://nostr.com/${npub}`} rel='noreferrer'>
+      <Link className={className} target='_blank' href={`https://nostr.com/${npub}`} rel='noreferrer'>
         <NostrIcon width={20} height={20} className='me-1' />
         {npub.slice(0, 10)}...{npub.slice(-10)}
       </Link>
     )
   } else if (name === 'Github') {
     return (
-      <Link className={styles.social} target='_blank' href={`https://github.com/${id}`} rel='noreferrer'>
+      <Link className={className} target='_blank' href={`https://github.com/${id}`} rel='noreferrer'>
         <GithubIcon width={20} height={20} className='me-1' />
         {id}
       </Link>
     )
   } else if (name === 'Twitter') {
     return (
-      <Link className={styles.social} target='_blank' href={`https://twitter.com/${id}`} rel='noreferrer'>
+      <Link className={className} target='_blank' href={`https://twitter.com/${id}`} rel='noreferrer'>
         <TwitterIcon width={20} height={20} className='me-1' />
         @{id}
       </Link>
@@ -262,6 +263,10 @@ function HeaderHeader ({ user }) {
           </small>
           {user.optional.maxStreak !== null &&
             <small className='text-muted d-flex-inline'>longest cowboy streak: {user.optional.maxStreak}</small>}
+          {user.optional.isContributor &&
+            <small className='text-muted d-flex align-items-center'>
+              <CodeIcon className='me-1' height={16} width={16} /> verified stacker.news contributor
+            </small>}
           {user.optional.nostrAuthPubkey !== null && !me.privates?.hideNostr &&
             <small className='text-muted d-flex-inline'>
               <SocialLink name='Nostr' id={user.optional.nostrAuthPubkey} />
@@ -273,10 +278,6 @@ function HeaderHeader ({ user }) {
           {user.optional.twitterId !== null && !me?.privates?.hideTwitter &&
             <small className='text-muted d-flex-inline'>
               <SocialLink name='Twitter' id={user.optional.twitterId} />
-            </small>}
-          {user.optional.isContributor &&
-            <small className='text-muted d-flex align-items-center'>
-              <CodeIcon className='me-1' height={16} width={16} /> verified stacker.news contributor
             </small>}
         </div>
       </div>

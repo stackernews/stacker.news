@@ -34,4 +34,6 @@
 
 .social {
     font-weight: bold;
+    display: flex;
+    align-items: center;
 }

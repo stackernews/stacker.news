@@ -13,6 +13,7 @@ export default function Index ({ ssrData }) {
       <UserList
         ssrData={ssrData} query={TOP_COWBOYS}
         destructureData={data => data.topCowboys}
+        rank
       />
     </Layout>
   )

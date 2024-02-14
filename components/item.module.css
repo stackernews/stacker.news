@@ -140,6 +140,11 @@ a.link:visited {
     margin-top: -2px;
 }
 
+.grid {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+}
+
 /* .itemJob .hunk {
     align-self: center;
 }
@@ -163,6 +168,7 @@ a.link:visited {
     display: flex;
     color: var(--theme-grey);
     font-size: 90%;
+    margin-right: .75rem;
 }
 
 .skeleton .other {

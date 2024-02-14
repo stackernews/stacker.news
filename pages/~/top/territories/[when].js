@@ -19,6 +19,7 @@ export default function Index ({ ssrData }) {
         query={TOP_SUBS}
         variables={variables}
         destructureData={data => data.topSubs}
+        rank
       />
     </Layout>
   )

@@ -116,10 +116,11 @@ export const SUB_PAY = gql`
   }`
 
 export const TOP_SUBS = gql`
+  ${SUB_FULL_FIELDS}
   query TopSubs($cursor: String, $when: String, $from: String, $to: String, $by: String, ) {
     topSubs(cursor: $cursor, when: $when, from: $from, to: $to, by: $by) {
       subs {
-        name
+        ...SubFullFields
         ncomments(when: $when, from: $from, to: $to)
         nposts(when: $when, from: $from, to: $to)
 

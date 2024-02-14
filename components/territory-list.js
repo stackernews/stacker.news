@@ -1,10 +1,12 @@
 import Link from 'next/link'
 import { abbrNum, numWithUnits } from '../lib/format'
 import styles from './item.module.css'
-import { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@apollo/client'
 import MoreFooter from './more-footer'
 import { useData } from './use-data'
+import Info from './info'
+import { TerritoryInfo } from './territory-header'
 
 // all of this nonsense is to show the stat we are sorting by first
 const Revenue = ({ sub }) => (sub.optional.revenue !== null && <span>{abbrNum(sub.optional.revenue)} revenue</span>)
@@ -33,7 +35,7 @@ function separate (arr, separator) {
   return arr.flatMap((x, i) => i < arr.length - 1 ? [x, separator] : [x])
 }
 
-export default function TerritoryList ({ ssrData, query, variables, destructureData }) {
+export default function TerritoryList ({ ssrData, query, variables, destructureData, rank }) {
   const { data, fetchMore } = useQuery(query, { variables })
   const dat = useData(data, ssrData)
   const [statComps, setStatComps] = useState(separate(STAT_COMPONENTS, Separator))
@@ -59,18 +61,31 @@ export default function TerritoryList ({ ssrData, query, variables, destructureD
 
   return (
     <>
-      {subs?.map(sub => (
-        <div className={`${styles.item} mb-2`} key={sub.name}>
-          <div className={styles.hunk}>
-            <Link href={`/~${sub.name}`} className={`${styles.title} d-inline-flex align-items-center text-reset`}>
-              {sub.name}
-            </Link>
-            <div className={styles.other}>
-              {statComps.map((Comp, i) => <Comp key={i} sub={sub} />)}
+      <div className={styles.grid}>
+        {subs?.map((sub, i) => (
+          <React.Fragment key={sub.name}>
+            {rank
+              ? (
+                <div className={styles.rank}>
+                  {i + 1}
+                </div>)
+              : <div />}
+            <div className={`${styles.item} mb-2`}>
+              <div className={styles.hunk}>
+                <div className='d-flex align-items-center'>
+                  <Link href={`/~${sub.name}`} className={`${styles.title} mb-0 d-inline-flex align-items-center text-reset`}>
+                    {sub.name}
+                  </Link>
+                  <Info className='d-flex'><TerritoryInfo sub={sub} /></Info>
+                </div>
+                <div className={styles.other}>
+                  {statComps.map((Comp, i) => <Comp key={i} sub={sub} />)}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      ))}
+          </React.Fragment>
+        ))}
+      </div>
       <MoreFooter cursor={cursor} count={subs?.length} fetchMore={fetchMore} Skeleton={SubsSkeleton} noMoreText='NO MORE' />
     </>
   )

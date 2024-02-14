@@ -408,7 +408,12 @@ export default {
               macaroon,
               socket
             })
-            return await getIdentity({ lnd })
+            return await createInvoice({
+              description: 'SN connection test',
+              lnd,
+              tokens: 0,
+              expires_at: new Date()
+            })
           }
         },
         { settings, data }, { me, models })

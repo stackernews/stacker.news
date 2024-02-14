@@ -1,4 +1,4 @@
-import { getIdentity, createHodlInvoice, createInvoice, decodePaymentRequest, payViaPaymentRequest, cancelHodlInvoice, getInvoice as getInvoiceFromLnd, getNode } from 'ln-service'
+import { getIdentity, createHodlInvoice, createInvoice, decodePaymentRequest, payViaPaymentRequest, cancelHodlInvoice, getInvoice as getInvoiceFromLnd, getNode, deletePayment } from 'ln-service'
 import { GraphQLError } from 'graphql'
 import crypto from 'crypto'
 import serialize from './serial'
@@ -343,7 +343,7 @@ export default {
         FROM "Withdrawl"
         WHERE "userId" = ${me.id}
         AND id = ${Number(id)}
-        AND now() > created_at + interval '${INVOICE_RETENTION_DAYS} days'
+        AND now() > created_at + interval '7 days'
       ), updated_rows AS (
         UPDATE "Withdrawl"
         SET hash = NULL, bolt11 = NULL

@@ -188,9 +188,9 @@ function SocialLink ({ name, id }) {
   if (name === 'Nostr') {
     const npub = hexToBech32(id)
     return (
-      <Link className={styles.social} target='_blank' href={`https://snort.social/${npub}`} rel='noreferrer'>
+      <Link className={styles.social} target='_blank' href={`https://nostr.com/${npub}`} rel='noreferrer'>
         <NostrIcon width={20} height={20} className='me-1' />
-        {npub.slice(0, 20)}...
+        {npub.slice(0, 10)}...{npub.slice(-10)}
       </Link>
     )
   } else if (name === 'Github') {

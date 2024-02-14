@@ -332,21 +332,35 @@ export default {
         }))
       return inv
     },
-    dropBolt11: async (parent, { id }, { me, models }) => {
+    dropBolt11: async (parent, { id }, { me, models, lnd }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
       }
 
-      await models.withdrawl.update({
-        where: {
-          userId: me.id,
-          id: Number(id),
-          createdAt: {
-            lte: datePivot(new Date(), { days: -7 })
-          }
-        },
-        data: { bolt11: null, hash: null }
-      })
+      const invoice = await serialize(models, models.$queryRaw`
+      WITH to_be_updated AS (
+        SELECT id, hash, bolt11
+        FROM "Withdrawl"
+        WHERE "userId" = ${me.id}
+        AND id = ${Number(id)}
+        AND now() > created_at + interval '${INVOICE_RETENTION_DAYS} days'
+      ), updated_rows AS (
+        UPDATE "Withdrawl"
+        SET hash = NULL, bolt11 = NULL
+        FROM to_be_updated )
+      SELECT * FROM to_be_updated;`)
+
+      if (invoice) {
+        try {
+          await deletePayment({ id: invoice.hash, lnd })
+        } catch (error) {
+          console.error(`Error removing invoice with hash ${invoice.hash}:`, error)
+          await models.withdrawl.update({
+            where: { id: invoice.id },
+            data: { hash: invoice.hash, bolt11: invoice.bolt11 }
+          })
+        }
+      }
       return { id }
     }
   },

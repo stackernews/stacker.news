@@ -5,6 +5,12 @@ export default gql`
     sub(name: String): Sub
     subLatestPost(name: String!): String
     subs: [Sub!]!
+    topSubs(cursor: String, when: String, from: String, to: String, by: String, limit: Limit): Subs
+  }
+
+  type Subs {
+    cursor: String
+    subs: [Sub!]!
   }
 
   extend type Mutation {
@@ -36,5 +42,18 @@ export default gql`
     moderatedCount: Int!
     meMuteSub: Boolean!
     nsfw: Boolean!
+    nposts(when: String, from: String, to: String): Int!
+    ncomments(when: String, from: String, to: String): Int!
+
+    optional: SubOptional!
+  }
+
+  type SubOptional {
+    """
+    conditionally private
+    """
+    stacked(when: String, from: String, to: String): Int
+    spent(when: String, from: String, to: String): Int
+    revenue(when: String, from: String, to: String): Int
   }
 `

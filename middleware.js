@@ -28,8 +28,7 @@ export function middleware (request) {
     "img-src 'self' a.stacker.news m.stacker.news https: data: blob:",
     // Using nonces and strict-dynamic deploys a strict CSP.
     // see https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html#strict-policy.
-    // Old browsers will ignore nonce and strict-dynamic
-    // and fallback to host matching, unsafe-inline and unsafe-eval (no protection against XSS)
+    // Old browsers will ignore nonce and strict-dynamic and fallback to host-based matching and unsafe-inline
     process.env.NODE_ENV === 'production'
       ? `script-src 'self' 'unsafe-inline' 'nonce-${nonce}' 'strict-dynamic' https:`
       // unsafe-eval is required during development due to react-refresh.js

@@ -12,6 +12,30 @@ import { NodeNextRequest } from 'next/dist/server/base-http/node'
 import { schnorr } from '@noble/curves/secp256k1'
 import { sendUserNotification } from '../../../api/webPush'
 
+/**
+ * Stores userIds in user table
+ * @returns {Partial<import('next-auth').EventCallbacks>}
+ * */
+function getEventCallbacks () {
+  return {
+    async linkAccount ({ user, profile, account }) {
+      if (account.provider === 'github') {
+        await prisma.user.update({ where: { id: user.id }, data: { githubId: profile.name } })
+      } else if (account.provider === 'twitter') {
+        await prisma.user.update({ where: { id: user.id }, data: { twitterId: profile.name } })
+      }
+    },
+    async signIn ({ user, profile, account, isNewUser }) {
+      if (account.provider === 'github') {
+        await prisma.user.update({ where: { id: user.id }, data: { githubId: profile.name } })
+      } else if (account.provider === 'twitter') {
+        await prisma.user.update({ where: { id: user.id }, data: { twitterId: profile.name } })
+      }
+    }
+  }
+}
+
+/** @returns {Partial<import('next-auth').CallbacksOptions>} */
 function getCallbacks (req) {
   return {
     /**
@@ -136,6 +160,7 @@ async function nostrEventAuth (event) {
   return { k1, pubkey }
 }
 
+/** @type {import('next-auth/providers').Provider[]} */
 const providers = [
   CredentialsProvider({
     id: 'lightning',
@@ -164,7 +189,7 @@ const providers = [
       url: 'https://github.com/login/oauth/authorize',
       params: { scope: '' }
     },
-    profile: profile => {
+    profile (profile) {
       return {
         id: profile.id,
         name: profile.login
@@ -174,7 +199,7 @@ const providers = [
   TwitterProvider({
     clientId: process.env.TWITTER_ID,
     clientSecret: process.env.TWITTER_SECRET,
-    profile: profile => {
+    profile (profile) {
       return {
         id: profile.id,
         name: profile.screen_name
@@ -188,6 +213,7 @@ const providers = [
   })
 ]
 
+/** @returns {import('next-auth').AuthOptions} */
 export const getAuthOptions = req => ({
   callbacks: getCallbacks(req),
   providers,
@@ -199,7 +225,8 @@ export const getAuthOptions = req => ({
     signIn: '/login',
     verifyRequest: '/email',
     error: '/auth/error'
-  }
+  },
+  events: getEventCallbacks()
 })
 
 export default async (req, res) => {

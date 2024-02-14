@@ -60,6 +60,9 @@ export default gql`
     greeterMode: Boolean!
     hideBookmarks: Boolean!
     hideCowboyHat: Boolean!
+    hideGithub: Boolean!
+    hideNostr: Boolean!
+    hideTwitter: Boolean!
     hideFromTopUsers: Boolean!
     hideInvoiceDesc: Boolean!
     hideIsContributor: Boolean!
@@ -119,6 +122,9 @@ export default gql`
     greeterMode: Boolean!
     hideBookmarks: Boolean!
     hideCowboyHat: Boolean!
+    hideGithub: Boolean!
+    hideNostr: Boolean!
+    hideTwitter: Boolean!
     hideFromTopUsers: Boolean!
     hideInvoiceDesc: Boolean!
     hideIsContributor: Boolean!
@@ -156,5 +162,8 @@ export default gql`
     streak: Int
     maxStreak: Int
     isContributor: Boolean
+    githubId: String
+    twitterId: String
+    nostrAuthPubkey: String
   }
 `

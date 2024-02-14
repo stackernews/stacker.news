@@ -503,10 +503,15 @@ export default {
           throw new GraphQLError('no such account', { extensions: { code: 'BAD_INPUT' } })
         }
         await models.account.delete({ where: { id: account.id } })
+        if (authType === 'twitter') {
+          await models.user.update({ where: { id: me.id }, data: { hideTwitter: true, twitterId: null } })
+        } else {
+          await models.user.update({ where: { id: me.id }, data: { hideGithub: true, githubId: null } })
+        }
       } else if (authType === 'lightning') {
         user = await models.user.update({ where: { id: me.id }, data: { pubkey: null } })
       } else if (authType === 'nostr') {
-        user = await models.user.update({ where: { id: me.id }, data: { nostrAuthPubkey: null } })
+        user = await models.user.update({ where: { id: me.id }, data: { hideNostr: true, nostrAuthPubkey: null } })
       } else if (authType === 'email') {
         user = await models.user.update({ where: { id: me.id }, data: { email: null, emailVerified: null } })
       } else {
@@ -811,6 +816,24 @@ export default {
           }
         }
       })
+    },
+    githubId: async (user, args, { me }) => {
+      if ((!me || me.id !== user.id) && user.hideGithub) {
+        return null
+      }
+      return user.githubId
+    },
+    twitterId: async (user, args, { models, me }) => {
+      if ((!me || me.id !== user.id) && user.hideTwitter) {
+        return null
+      }
+      return user.twitterId
+    },
+    nostrAuthPubkey: async (user, args, { models, me }) => {
+      if ((!me || me.id !== user.id) && user.hideNostr) {
+        return null
+      }
+      return user.nostrAuthPubkey
     }
   }
 }

@@ -31,8 +31,6 @@ export default gql`
     subscribeUserPosts(id: ID): User
     subscribeUserComments(id: ID): User
     toggleMute(id: ID): User
-    setAutoWithdraw(lnAddr: String!, autoWithdrawThreshold: Int!, autoWithdrawMaxFeePercent: Float!): Boolean
-    removeAutoWithdraw: Boolean
   }
 
   type User {
@@ -62,6 +60,9 @@ export default gql`
     greeterMode: Boolean!
     hideBookmarks: Boolean!
     hideCowboyHat: Boolean!
+    hideGithub: Boolean!
+    hideNostr: Boolean!
+    hideTwitter: Boolean!
     hideFromTopUsers: Boolean!
     hideInvoiceDesc: Boolean!
     hideIsContributor: Boolean!
@@ -80,6 +81,7 @@ export default gql`
     noteItemSats: Boolean!
     noteJobIndicator: Boolean!
     noteMentions: Boolean!
+    nsfwMode: Boolean!
     tipDefault: Int!
     turboTipping: Boolean!
     wildWestMode: Boolean!
@@ -120,6 +122,9 @@ export default gql`
     greeterMode: Boolean!
     hideBookmarks: Boolean!
     hideCowboyHat: Boolean!
+    hideGithub: Boolean!
+    hideNostr: Boolean!
+    hideTwitter: Boolean!
     hideFromTopUsers: Boolean!
     hideInvoiceDesc: Boolean!
     hideIsContributor: Boolean!
@@ -138,6 +143,7 @@ export default gql`
     noteItemSats: Boolean!
     noteJobIndicator: Boolean!
     noteMentions: Boolean!
+    nsfwMode: Boolean!
     tipDefault: Int!
     turboTipping: Boolean!
     wildWestMode: Boolean!
@@ -156,5 +162,8 @@ export default gql`
     streak: Int
     maxStreak: Int
     isContributor: Boolean
+    githubId: String
+    twitterId: String
+    nostrAuthPubkey: String
   }
 `

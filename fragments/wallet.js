@@ -74,3 +74,78 @@ export const SEND_TO_LNADDR = gql`
       id
     }
 }`
+
+export const UPSERT_WALLET_LNADDR =
+gql`
+mutation upsertWalletLNAddr($id: ID, $address: String!, $settings: AutowithdrawSettings!) {
+  upsertWalletLNAddr(id: $id, address: $address, settings: $settings)
+}
+`
+
+export const UPSERT_WALLET_LND =
+gql`
+mutation upsertWalletLND($id: ID, $socket: String!, $macaroon: String!, $cert: String, $settings: AutowithdrawSettings!) {
+  upsertWalletLND(id: $id, socket: $socket, macaroon: $macaroon, cert: $cert, settings: $settings)
+}
+`
+
+export const REMOVE_WALLET =
+gql`
+mutation removeWallet($id: ID!) {
+  removeWallet(id: $id)
+}
+`
+
+export const WALLET = gql`
+  query Wallet($id: ID!) {
+    wallet(id: $id) {
+      id
+      createdAt
+      priority
+      type
+      wallet {
+        __typename
+        ... on WalletLNAddr {
+          address
+        }
+        ... on WalletLND {
+          socket
+          macaroon
+          cert
+        }
+      }
+    }
+  }
+`
+
+export const WALLET_BY_TYPE = gql`
+  query WalletByType($type: String!) {
+    walletByType(type: $type) {
+      id
+      createdAt
+      priority
+      type
+      wallet {
+        __typename
+        ... on WalletLNAddr {
+          address
+        }
+        ... on WalletLND {
+          socket
+          macaroon
+          cert
+        }
+      }
+    }
+  }
+`
+
+export const WALLETS = gql`
+  query Wallets {
+    wallets {
+      id
+      priority
+      type
+    }
+  }
+`

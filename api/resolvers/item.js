@@ -152,19 +152,19 @@ const relationClause = (type) => {
   let clause = ''
   switch (type) {
     case 'comments':
-      clause += ' FROM "Item" JOIN "Item" root ON "Item"."rootId" = root.id '
+      clause += ' FROM "Item" JOIN "Item" root ON "Item"."rootId" = root.id LEFT JOIN "Sub" ON "Sub"."name" = root."subName" '
       break
     case 'bookmarks':
-      clause += ' FROM "Item" JOIN "Bookmark" ON "Bookmark"."itemId" = "Item"."id" '
+      clause += ' FROM "Item" JOIN "Bookmark" ON "Bookmark"."itemId" = "Item"."id" LEFT JOIN "Item" root ON "Item"."rootId" = root.id LEFT JOIN "Sub" ON "Sub"."name" = COALESCE(root."subName", "Item"."subName") '
       break
     case 'outlawed':
     case 'borderland':
     case 'freebies':
     case 'all':
-      clause += ' FROM "Item" LEFT JOIN "Item" root ON "Item"."rootId" = root.id '
+      clause += ' FROM "Item" LEFT JOIN "Item" root ON "Item"."rootId" = root.id LEFT JOIN "Sub" ON "Sub"."name" = COALESCE(root."subName", "Item"."subName") '
       break
     default:
-      clause += ' FROM "Item" '
+      clause += ' FROM "Item" LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName" '
   }
 
   return clause
@@ -192,12 +192,20 @@ const activeOrMine = (me) => {
 export const muteClause = me =>
   me ? `NOT EXISTS (SELECT 1 FROM "Mute" WHERE "Mute"."muterId" = ${me.id} AND "Mute"."mutedId" = "Item"."userId")` : ''
 
-const subClause = (sub, num, table, me) => {
-  return sub
-    ? `${table ? `"${table}".` : ''}"subName" = $${num}::CITEXT`
-    : me
-      ? `NOT EXISTS (SELECT 1 FROM "MuteSub" WHERE "MuteSub"."userId" = ${me.id} AND "MuteSub"."subName" = ${table ? `"${table}".` : ''}"subName")`
-      : ''
+const HIDE_NSFW_CLAUSE = '("Sub"."nsfw" = FALSE OR "Sub"."nsfw" IS NULL)'
+
+export const nsfwClause = showNsfw => showNsfw ? '' : HIDE_NSFW_CLAUSE
+
+const subClause = (sub, num, table, me, showNsfw) => {
+  // Intentionally show nsfw posts (i.e. no nsfw clause) when viewing a specific nsfw sub
+  if (sub) { return `${table ? `"${table}".` : ''}"subName" = $${num}::CITEXT` }
+
+  if (!me) { return HIDE_NSFW_CLAUSE }
+
+  const excludeMuted = `NOT EXISTS (SELECT 1 FROM "MuteSub" WHERE "MuteSub"."userId" = ${me.id} AND "MuteSub"."subName" = ${table ? `"${table}".` : ''}"subName")`
+  if (showNsfw) return excludeMuted
+
+  return excludeMuted + ' AND ' + HIDE_NSFW_CLAUSE
 }
 
 export async function filterClause (me, models, type) {
@@ -307,6 +315,9 @@ export default {
       // but the query planner doesn't like unused parameters
       const subArr = sub ? [sub] : []
 
+      const currentUser = me ? await models.user.findUnique({ where: { id: me.id } }) : null
+      const showNsfw = currentUser ? currentUser.nsfwMode : false
+
       switch (sort) {
         case 'user':
           if (!name) {
@@ -329,6 +340,7 @@ export default {
                 `"${table}"."userId" = $3`,
                 activeOrMine(me),
                 await filterClause(me, models, type),
+                nsfwClause(showNsfw),
                 typeClause(type),
                 whenClause(when || 'forever', table))}
               ${orderByClause(by, me, models, type)}
@@ -346,7 +358,7 @@ export default {
               ${relationClause(type)}
               ${whereClause(
                 '"Item".created_at <= $1',
-                subClause(sub, 4, subClauseTable(type), me),
+                subClause(sub, 4, subClauseTable(type), me, showNsfw),
                 activeOrMine(me),
                 await filterClause(me, models, type),
                 typeClause(type),
@@ -370,7 +382,7 @@ export default {
               ${joinZapRankPersonalView(me, models)}
               ${whereClause(
                 '"Item"."deletedAt" IS NULL',
-                subClause(sub, 5, subClauseTable(type), me),
+                subClause(sub, 5, subClauseTable(type), me, showNsfw),
                 typeClause(type),
                 whenClause(when, 'Item'),
                 await filterClause(me, models, type),
@@ -389,7 +401,7 @@ export default {
               ${relationClause(type)}
               ${whereClause(
                 '"Item"."deletedAt" IS NULL',
-                subClause(sub, 5, subClauseTable(type), me),
+                subClause(sub, 5, subClauseTable(type), me, showNsfw),
                 typeClause(type),
                 whenClause(when, 'Item'),
                 await filterClause(me, models, type),
@@ -440,13 +452,14 @@ export default {
                 query: `
                     ${SELECT}, ${me ? 'GREATEST(g.tf_hot_score, l.tf_hot_score)' : 'g.tf_hot_score'} AS rank
                     FROM "Item"
+                    LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
                     ${joinZapRankPersonalView(me, models)}
                     ${whereClause(
                       '"Item"."pinId" IS NULL',
                       '"Item"."deletedAt" IS NULL',
                       '"Item"."parentId" IS NULL',
                       '"Item".bio = false',
-                      subClause(sub, 3, 'Item', me),
+                      subClause(sub, 3, 'Item', me, showNsfw),
                       muteClause(me))}
                     ORDER BY rank DESC
                     OFFSET $1
@@ -462,8 +475,9 @@ export default {
                   query: `
                       ${SELECT}
                       FROM "Item"
+                      LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
                       ${whereClause(
-                        subClause(sub, 3, 'Item', me),
+                        subClause(sub, 3, 'Item', me, showNsfw),
                         muteClause(me),
                         // in "home" (sub undefined), we want to show pinned items (but without the pin icon)
                         sub ? '"Item"."pinId" IS NULL' : '',

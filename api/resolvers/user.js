@@ -3,7 +3,7 @@ import { join, resolve } from 'path'
 import { GraphQLError } from 'graphql'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { msatsToSats } from '../../lib/format'
-import { bioSchema, emailSchema, lnAddrAutowithdrawSchema, settingsSchema, ssValidate, userSchema } from '../../lib/validate'
+import { bioSchema, emailSchema, settingsSchema, ssValidate, userSchema } from '../../lib/validate'
 import { getItem, updateItem, filterClause, createItem, whereClause, muteClause } from './item'
 import { ANON_USER_ID, DELETE_USER_ID, RESERVED_MAX_USER_ID } from '../../lib/constants'
 import { viewGroup } from './growth'
@@ -426,36 +426,6 @@ export default {
         throw error
       }
     },
-    setAutoWithdraw: async (parent, data, { me, models }) => {
-      if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
-      }
-
-      await ssValidate(lnAddrAutowithdrawSchema, data, { me, models })
-
-      await models.user.update({
-        where: { id: me.id },
-        data
-      })
-
-      return true
-    },
-    removeAutoWithdraw: async (parent, data, { me, models }) => {
-      if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
-      }
-
-      await models.user.update({
-        where: { id: me.id },
-        data: {
-          lnAddr: null,
-          autoWithdrawThreshold: null,
-          autoWithdrawMaxFeePercent: null
-        }
-      })
-
-      return true
-    },
     setSettings: async (parent, { settings: { nostrRelays, ...data } }, { me, models }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
@@ -533,10 +503,15 @@ export default {
           throw new GraphQLError('no such account', { extensions: { code: 'BAD_INPUT' } })
         }
         await models.account.delete({ where: { id: account.id } })
+        if (authType === 'twitter') {
+          await models.user.update({ where: { id: me.id }, data: { hideTwitter: true, twitterId: null } })
+        } else {
+          await models.user.update({ where: { id: me.id }, data: { hideGithub: true, githubId: null } })
+        }
       } else if (authType === 'lightning') {
         user = await models.user.update({ where: { id: me.id }, data: { pubkey: null } })
       } else if (authType === 'nostr') {
-        user = await models.user.update({ where: { id: me.id }, data: { nostrAuthPubkey: null } })
+        user = await models.user.update({ where: { id: me.id }, data: { hideNostr: true, nostrAuthPubkey: null } })
       } else if (authType === 'email') {
         user = await models.user.update({ where: { id: me.id }, data: { email: null, emailVerified: null } })
       } else {
@@ -841,6 +816,24 @@ export default {
           }
         }
       })
+    },
+    githubId: async (user, args, { me }) => {
+      if ((!me || me.id !== user.id) && user.hideGithub) {
+        return null
+      }
+      return user.githubId
+    },
+    twitterId: async (user, args, { models, me }) => {
+      if ((!me || me.id !== user.id) && user.hideTwitter) {
+        return null
+      }
+      return user.twitterId
+    },
+    nostrAuthPubkey: async (user, args, { models, me }) => {
+      if ((!me || me.id !== user.id) && user.hideNostr) {
+        return null
+      }
+      return user.nostrAuthPubkey
     }
   }
 }

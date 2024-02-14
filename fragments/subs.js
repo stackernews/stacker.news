@@ -19,6 +19,7 @@ export const SUB_FIELDS = gql`
     moderated
     moderatedCount
     meMuteSub
+    nsfw
   }`
 
 export const SUB_FULL_FIELDS = gql`
@@ -113,3 +114,23 @@ export const SUB_PAY = gql`
       ...SubFullFields
     }
   }`
+
+export const TOP_SUBS = gql`
+  ${SUB_FULL_FIELDS}
+  query TopSubs($cursor: String, $when: String, $from: String, $to: String, $by: String, ) {
+    topSubs(cursor: $cursor, when: $when, from: $from, to: $to, by: $by) {
+      subs {
+        ...SubFullFields
+        ncomments(when: $when, from: $from, to: $to)
+        nposts(when: $when, from: $from, to: $to)
+
+        optional {
+          stacked(when: $when, from: $from, to: $to)
+          spent(when: $when, from: $from, to: $to)
+          revenue(when: $when, from: $from, to: $to)
+        }
+      }
+      cursor
+    }
+  }
+`

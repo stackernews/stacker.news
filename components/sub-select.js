@@ -53,6 +53,10 @@ export default function SubSelect ({ prependSubs, sub, onChange, large, appendSu
         overrideValue: sub
       }
 
+  // If logged out user directly visits a nsfw sub, subs will not contain `sub`, so manually add it
+  // to display the correct sub name in the sub selector
+  const subItems = !sub || subs.find((s) => s === sub) ? subs : [sub].concat(subs)
+
   return (
     <Select
       onChange={onChange || ((_, e) => {
@@ -102,7 +106,7 @@ export default function SubSelect ({ prependSubs, sub, onChange, large, appendSu
       {...valueProps}
       {...props}
       className={`${className} ${styles.subSelect} ${large ? 'me-2' : styles.subSelectSmall}`}
-      items={subs}
+      items={subItems}
     />
   )
 }

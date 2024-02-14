@@ -24,6 +24,10 @@ import CodeIcon from '../svgs/terminal-box-fill.svg'
 import MuteDropdownItem from './mute'
 import copy from 'clipboard-copy'
 import { useToast } from './toast'
+import { hexToBech32 } from '../lib/nostr'
+import NostrIcon from '../svgs/nostr.svg'
+import GithubIcon from '../svgs/github-fill.svg'
+import TwitterIcon from '../svgs/twitter-fill.svg'
 
 export default function UserHeader ({ user }) {
   const router = useRouter()
@@ -180,8 +184,36 @@ function HeaderNym ({ user, isMe }) {
     : <NymView user={user} isMe={isMe} setEditting={setEditting} />
 }
 
+function SocialLink ({ name, id }) {
+  const className = `${styles.social} text-reset`
+  if (name === 'Nostr') {
+    const npub = hexToBech32(id)
+    return (
+      <Link className={className} target='_blank' href={`https://nostr.com/${npub}`} rel='noreferrer'>
+        <NostrIcon width={20} height={20} className='me-1' />
+        {npub.slice(0, 10)}...{npub.slice(-10)}
+      </Link>
+    )
+  } else if (name === 'Github') {
+    return (
+      <Link className={className} target='_blank' href={`https://github.com/${id}`} rel='noreferrer'>
+        <GithubIcon width={20} height={20} className='me-1' />
+        {id}
+      </Link>
+    )
+  } else if (name === 'Twitter') {
+    return (
+      <Link className={className} target='_blank' href={`https://twitter.com/${id}`} rel='noreferrer'>
+        <TwitterIcon width={20} height={20} className='me-1' />
+        @{id}
+      </Link>
+    )
+  }
+}
+
 function HeaderHeader ({ user }) {
   const me = useMe()
+
   const showModal = useShowModal()
   const toaster = useToast()
 
@@ -229,8 +261,24 @@ function HeaderHeader ({ user }) {
             ? <Link href={`/items/${user.since}`} className='ms-1'>#{user.since}</Link>
             : <span>never</span>}
           </small>
-          {user.optional.maxStreak !== null && <small className='text-muted d-flex-inline'>longest cowboy streak: {user.optional.maxStreak}</small>}
-          {user.optional.isContributor && <small className='text-muted d-flex align-items-center'><CodeIcon className='me-1' height={16} width={16} /> verified stacker.news contributor</small>}
+          {user.optional.maxStreak !== null &&
+            <small className='text-muted d-flex-inline'>longest cowboy streak: {user.optional.maxStreak}</small>}
+          {user.optional.isContributor &&
+            <small className='text-muted d-flex align-items-center'>
+              <CodeIcon className='me-1' height={16} width={16} /> verified stacker.news contributor
+            </small>}
+          {user.optional.nostrAuthPubkey !== null && !me.privates?.hideNostr &&
+            <small className='text-muted d-flex-inline'>
+              <SocialLink name='Nostr' id={user.optional.nostrAuthPubkey} />
+            </small>}
+          {user.optional.githubId !== null && !me?.privates?.hideGithub &&
+            <small className='text-muted d-flex-inline'>
+              <SocialLink name='Github' id={user.optional.githubId} />
+            </small>}
+          {user.optional.twitterId !== null && !me?.privates?.hideTwitter &&
+            <small className='text-muted d-flex-inline'>
+              <SocialLink name='Twitter' id={user.optional.twitterId} />
+            </small>}
         </div>
       </div>
     </div>

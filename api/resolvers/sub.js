@@ -1,9 +1,11 @@
 import { GraphQLError } from 'graphql'
 import { serializeInvoicable } from './serial'
 import { TERRITORY_COST_MONTHLY, TERRITORY_COST_ONCE, TERRITORY_COST_YEARLY } from '../../lib/constants'
-import { datePivot } from '../../lib/time'
+import { datePivot, whenRange } from '../../lib/time'
 import { ssValidate, territorySchema } from '../../lib/validate'
 import { nextBilling, nextNextBilling } from '../../lib/territory'
+import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
+import { subViewGroup } from './growth'
 
 export function paySubQueries (sub, models) {
   if (sub.billingType === 'ONCE') {
@@ -84,21 +86,24 @@ export default {
     sub: getSub,
     subs: async (parent, args, { models, me }) => {
       if (me) {
-        return await models.$queryRaw`
+        const currentUser = await models.user.findUnique({ where: { id: me.id } })
+        const showNsfw = currentUser ? currentUser.nsfwMode : false
+        return await models.$queryRawUnsafe(`
           SELECT "Sub".*, COALESCE(json_agg("MuteSub".*) FILTER (WHERE "MuteSub"."userId" IS NOT NULL), '[]') AS "MuteSub"
           FROM "Sub"
           LEFT JOIN "MuteSub" ON "Sub".name = "MuteSub"."subName" AND "MuteSub"."userId" = ${me.id}::INTEGER
-          WHERE status <> 'STOPPED'
+          WHERE status <> 'STOPPED' ${showNsfw ? '' : 'AND "Sub"."nsfw" = FALSE'}
           GROUP BY "Sub".name, "MuteSub"."userId"
           ORDER BY "Sub".name ASC
-        `
+        `)
       }
 
       return await models.sub.findMany({
         where: {
           status: {
             not: 'STOPPED'
-          }
+          },
+          nsfw: false
         },
         orderBy: {
           name: 'asc'
@@ -116,6 +121,38 @@ export default {
       })
 
       return latest?.createdAt
+    },
+    topSubs: async (parent, { cursor, when, by, from, to, limit = LIMIT }, { models, me }) => {
+      const decodedCursor = decodeCursor(cursor)
+      const range = whenRange(when, from, to || decodeCursor.time)
+
+      let column
+      switch (by) {
+        case 'revenue': column = 'revenue'; break
+        case 'spent': column = 'spent'; break
+        case 'posts': column = 'nposts'; break
+        case 'comments': column = 'ncomments'; break
+        default: column = 'stacked'; break
+      }
+
+      const subs = await models.$queryRawUnsafe(`
+          SELECT "Sub".*,
+            COALESCE(floor(sum(msats_revenue)/1000), 0) as revenue,
+            COALESCE(floor(sum(msats_stacked)/1000), 0) as stacked,
+            COALESCE(floor(sum(msats_spent)/1000), 0) as spent,
+            COALESCE(sum(posts), 0) as nposts,
+            COALESCE(sum(comments), 0) as ncomments
+          FROM ${subViewGroup(range)} ss
+          JOIN "Sub" on "Sub".name = ss.sub_name
+          GROUP BY "Sub".name
+          ORDER BY ${column} DESC NULLS LAST, "Sub".created_at ASC
+          OFFSET $3
+          LIMIT $4`, ...range, decodedCursor.offset, limit)
+
+      return {
+        cursor: subs.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
+        subs
+      }
     }
   },
   Mutation: {
@@ -180,6 +217,7 @@ export default {
     }
   },
   Sub: {
+    optional: sub => sub,
     user: async (sub, args, { models }) => {
       if (sub.user) {
         return sub.user
@@ -188,12 +226,22 @@ export default {
     },
     meMuteSub: async (sub, args, { models }) => {
       return sub.meMuteSub || sub.MuteSub?.length > 0
+    },
+    nposts: async (sub, { when, from, to }, { models }) => {
+      if (typeof sub.nposts !== 'undefined') {
+        return sub.nposts
+      }
+    },
+    ncomments: async (sub, { when, from, to }, { models }) => {
+      if (typeof sub.ncomments !== 'undefined') {
+        return sub.ncomments
+      }
     }
   }
 }
 
 async function createSub (parent, data, { me, models, lnd, hash, hmac }) {
-  const { billingType } = data
+  const { billingType, nsfw } = data
   let billingCost = TERRITORY_COST_MONTHLY
   let billAt = datePivot(new Date(), { months: 1 })
 
@@ -226,7 +274,8 @@ async function createSub (parent, data, { me, models, lnd, hash, hmac }) {
           ...data,
           billingCost,
           rankingType: 'WOT',
-          userId: me.id
+          userId: me.id,
+          nsfw
         }
       }),
       // record 'em

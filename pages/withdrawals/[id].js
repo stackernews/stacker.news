@@ -15,6 +15,10 @@ import { useToast } from '../../components/toast'
 import { gql } from 'graphql-tag'
 import { useShowModal } from '../../components/modal'
 import { DeleteConfirm } from '../../components/delete'
+import { getGetServerSideProps } from '../../api/ssrApollo'
+
+// force SSR to include CSP nonces
+export const getServerSideProps = getGetServerSideProps({ query: null })
 
 export default function Withdrawl () {
   return (

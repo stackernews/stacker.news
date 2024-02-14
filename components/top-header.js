@@ -1,6 +1,6 @@
 import { useRouter } from 'next/router'
 import { Form, Select, DatePicker } from './form'
-import { ITEM_SORTS, USER_SORTS, WHENS } from '../lib/constants'
+import { ITEM_SORTS, SUB_SORTS, USER_SORTS, WHENS } from '../lib/constants'
 import { whenToFrom } from '../lib/time'
 
 export default function TopHeader ({ sub, cat }) {
@@ -21,7 +21,8 @@ export default function TopHeader ({ sub, cat }) {
     if (typeof query.by !== 'undefined') {
       if (query.by === '' ||
           (what === 'stackers' && (query.by === 'stacked' || !USER_SORTS.includes(query.by))) ||
-          (what !== 'stackers' && (query.by === 'zaprank' || !ITEM_SORTS.includes(query.by)))) {
+          (what === 'territories' && (query.by === 'stacked' || !SUB_SORTS.includes(query.by))) ||
+          (['posts', 'comments'].includes(what) && (query.by === 'zaprank' || !ITEM_SORTS.includes(query.by)))) {
         delete query.by
       }
     }
@@ -54,7 +55,7 @@ export default function TopHeader ({ sub, cat }) {
               name='what'
               size='sm'
               overrideValue={what}
-              items={router?.query?.sub ? ['posts', 'comments'] : ['posts', 'comments', 'stackers', 'cowboys']}
+              items={router?.query?.sub ? ['posts', 'comments'] : ['posts', 'comments', 'stackers', 'cowboys', 'territories']}
             />
             {cat !== 'cowboys' &&
               <>
@@ -65,7 +66,7 @@ export default function TopHeader ({ sub, cat }) {
                   name='by'
                   size='sm'
                   overrideValue={by}
-                  items={cat === 'stackers' ? USER_SORTS : ITEM_SORTS}
+                  items={sortItemsForCategory(cat)}
                 />
                 for
                 <Select
@@ -98,4 +99,15 @@ export default function TopHeader ({ sub, cat }) {
       </Form>
     </div>
   )
+}
+
+function sortItemsForCategory (cat) {
+  switch (cat) {
+    case 'stackers':
+      return USER_SORTS
+    case 'territories':
+      return SUB_SORTS
+    default:
+      return ITEM_SORTS
+  }
 }

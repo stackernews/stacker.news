@@ -31,8 +31,6 @@ count:
   cooldown:
     in: 60s  # Number of seconds to wait before scaling up.
     out: 60s # Number of seconds to wait before scaling down.
-  cpu_percentage: 50 # Percentage of CPU to target for autoscaling.
-  memory_percentage: 60 # Percentage of memory to target for autoscaling.
   response_time: 3s
 exec: true     # Enable running commands in your container.
 network:

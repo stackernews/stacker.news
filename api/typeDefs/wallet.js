@@ -7,6 +7,9 @@ export default gql`
     numBolt11s: Int!
     connectAddress: String!
     walletHistory(cursor: String, inc: String): History
+    wallets: [Wallet!]!
+    wallet(id: ID!): Wallet
+    walletByType(type: String!): Wallet
   }
 
   extend type Mutation {
@@ -15,6 +18,35 @@ export default gql`
     sendToLnAddr(addr: String!, amount: Int!, maxFee: Int!, comment: String, identifier: Boolean, name: String, email: String): Withdrawl!
     cancelInvoice(hash: String!, hmac: String!): Invoice!
     dropBolt11(id: ID): Withdrawl
+    upsertWalletLND(id: ID, socket: String!, macaroon: String!, cert: String, settings: AutowithdrawSettings!): Boolean
+    upsertWalletLNAddr(id: ID, address: String!, settings: AutowithdrawSettings!): Boolean
+    removeWallet(id: ID!): Boolean
+  }
+
+  type Wallet {
+    id: ID!
+    createdAt: Date!
+    type: String!
+    priority: Boolean!
+    wallet: WalletDetails!
+  }
+
+  type WalletLNAddr {
+    address: String!
+  }
+
+  type WalletLND {
+    socket: String!
+    macaroon: String!
+    cert: String
+  }
+
+  union WalletDetails = WalletLNAddr | WalletLND
+
+  input AutowithdrawSettings {
+    autoWithdrawThreshold: Int!
+    autoWithdrawMaxFeePercent: Float!
+    priority: Boolean!
   }
 
   type Invoice {

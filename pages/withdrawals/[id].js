@@ -161,11 +161,12 @@ function PrivacyOption ({ wd }) {
                   try {
                     await dropBolt11({ variables: { id: wd.id } })
                   } catch (err) {
-                    console.error(err)
-                    toaster.danger('unable to delete invoice')
+                    toaster.danger('unable to delete invoice: ' + err.message || err.toString?.())
+                    throw err
+                  } finally {
+                    onClose()
                   }
                 }
-                onClose()
               }}
             />
           )

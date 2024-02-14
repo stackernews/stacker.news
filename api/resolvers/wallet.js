@@ -8,7 +8,7 @@ import { SELECT } from './item'
 import { lnAddrOptions } from '../../lib/lnurl'
 import { msatsToSats, msatsToSatsDecimal } from '../../lib/format'
 import { LNDAutowithdrawSchema, amountSchema, lnAddrAutowithdrawSchema, lnAddrSchema, ssValidate, withdrawlSchema } from '../../lib/validate'
-import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, ANON_USER_ID, BALANCE_LIMIT_MSATS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT } from '../../lib/constants'
+import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, ANON_USER_ID, BALANCE_LIMIT_MSATS, INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT } from '../../lib/constants'
 import { datePivot } from '../../lib/time'
 import assertGofacYourself from './ofac'
 import { HEX_REGEX } from '../../lib/macaroon'
@@ -376,28 +376,33 @@ export default {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
       }
 
-      const invoice = await serialize(models, models.$queryRaw`
+      const retention = `${INVOICE_RETENTION_DAYS} days`
+
+      const [invoice] = await models.$queryRaw`
       WITH to_be_updated AS (
         SELECT id, hash, bolt11
         FROM "Withdrawl"
         WHERE "userId" = ${me.id}
         AND id = ${Number(id)}
-        AND now() > created_at + interval '7 days'
+        AND now() > created_at + interval '${retention}'
+        AND hash IS NOT NULL
       ), updated_rows AS (
         UPDATE "Withdrawl"
         SET hash = NULL, bolt11 = NULL
-        FROM to_be_updated )
-      SELECT * FROM to_be_updated;`)
+        FROM to_be_updated
+        WHERE "Withdrawl".id = to_be_updated.id)
+      SELECT * FROM to_be_updated;`
 
       if (invoice) {
         try {
           await deletePayment({ id: invoice.hash, lnd })
         } catch (error) {
-          console.error(`Error removing invoice with hash ${invoice.hash}:`, error)
+          console.error(error)
           await models.withdrawl.update({
             where: { id: invoice.id },
             data: { hash: invoice.hash, bolt11: invoice.bolt11 }
           })
+          throw new GraphQLError('failed to drop bolt11 from lnd', { extensions: { code: 'BAD_INPUT' } })
         }
       }
       return { id }

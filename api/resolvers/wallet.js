@@ -1,4 +1,4 @@
-import { getIdentity, createHodlInvoice, createInvoice, decodePaymentRequest, payViaPaymentRequest, cancelHodlInvoice, getInvoice as getInvoiceFromLnd, getNode, deletePayment } from 'ln-service'
+import { getIdentity, createHodlInvoice, createInvoice, decodePaymentRequest, payViaPaymentRequest, cancelHodlInvoice, getInvoice as getInvoiceFromLnd, getNode, authenticatedLndGrpc, deletePayment } from 'ln-service'
 import { GraphQLError } from 'graphql'
 import crypto from 'crypto'
 import serialize from './serial'

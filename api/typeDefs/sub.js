@@ -5,13 +5,19 @@ export default gql`
     sub(name: String): Sub
     subLatestPost(name: String!): String
     subs: [Sub!]!
+    topSubs(cursor: String, when: String, from: String, to: String, by: String, limit: Limit): Subs
+  }
+
+  type Subs {
+    cursor: String
+    subs: [Sub!]!
   }
 
   extend type Mutation {
     upsertSub(oldName: String, name: String!, desc: String, baseCost: Int!,
       postTypes: [String!]!, allowFreebies: Boolean!,
       billingType: String!, billingAutoRenew: Boolean!,
-      moderated: Boolean!, hash: String, hmac: String): Sub
+      moderated: Boolean!, hash: String, hmac: String, nsfw: Boolean!): Sub
     paySub(name: String!, hash: String, hmac: String): Sub
     toggleMuteSub(name: String!): Boolean!
   }
@@ -35,5 +41,19 @@ export default gql`
     moderated: Boolean!
     moderatedCount: Int!
     meMuteSub: Boolean!
+    nsfw: Boolean!
+    nposts(when: String, from: String, to: String): Int!
+    ncomments(when: String, from: String, to: String): Int!
+
+    optional: SubOptional!
+  }
+
+  type SubOptional {
+    """
+    conditionally private
+    """
+    stacked(when: String, from: String, to: String): Int
+    spent(when: String, from: String, to: String): Int
+    revenue(when: String, from: String, to: String): Int
   }
 `

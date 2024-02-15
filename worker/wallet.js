@@ -1,15 +1,13 @@
 import serialize from '../api/resolvers/serial.js'
 import {
-  getInvoice, getPayment, cancelHodlInvoice,
+  getInvoice, getPayment, cancelHodlInvoice, deletePayment,
   subscribeToInvoices, subscribeToPayments, subscribeToInvoice
 } from 'ln-service'
 import { sendUserNotification } from '../api/webPush/index.js'
-import { msatsToSats, numWithUnits, satsToMsats } from '../lib/format'
+import { msatsToSats, numWithUnits } from '../lib/format'
 import { INVOICE_RETENTION_DAYS } from '../lib/constants'
 import { datePivot, sleep } from '../lib/time.js'
-import { sendToLnAddr } from '../api/resolvers/wallet.js'
 import retry from 'async-retry'
-import { isNumber } from '../lib/validate.js'
 
 export async function subscribeToWallet (args) {
   await subscribeToDeposits(args)
@@ -255,14 +253,37 @@ async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
   }
 }
 
-export async function autoDropBolt11s ({ models }) {
-  await serialize(models, models.$executeRaw`
-    UPDATE "Withdrawl"
-    SET hash = NULL, bolt11 = NULL
-    WHERE "userId" IN (SELECT id FROM users WHERE "autoDropBolt11s")
-    AND now() > created_at + interval '${INVOICE_RETENTION_DAYS} days'
-    AND hash IS NOT NULL;`
-  )
+export async function autoDropBolt11s ({ models, lnd }) {
+  const retention = `${INVOICE_RETENTION_DAYS} days`
+
+  // This query will update the withdrawls and return what the hash and bol11 values were before the update
+  const invoices = await models.$queryRaw`
+    WITH to_be_updated AS (
+      SELECT id, hash, bolt11
+      FROM "Withdrawl"
+      WHERE "userId" IN (SELECT id FROM users WHERE "autoDropBolt11s")
+      AND now() > created_at + interval '${retention}'
+      AND hash IS NOT NULL
+    ), updated_rows AS (
+      UPDATE "Withdrawl"
+      SET hash = NULL, bolt11 = NULL
+      FROM to_be_updated
+      WHERE "Withdrawl".id = to_be_updated.id)
+    SELECT * FROM to_be_updated;`
+
+  if (invoices.length > 0) {
+    for (const invoice of invoices) {
+      try {
+        await deletePayment({ id: invoice.hash, lnd })
+      } catch (error) {
+        console.error(`Error removing invoice with hash ${invoice.hash}:`, error)
+        await models.withdrawl.update({
+          where: { id: invoice.id },
+          data: { hash: invoice.hash, bolt11: invoice.bolt11 }
+        })
+      }
+    }
+  }
 }
 
 // The callback subscriptions above will NOT get called for HODL invoices that are already paid.
@@ -303,47 +324,4 @@ export async function checkPendingWithdrawals (args) {
       console.error('error checking withdrawal', w.hash)
     }
   }
-}
-
-export async function autoWithdraw ({ data: { id }, models, lnd }) {
-  const user = await models.user.findUnique({ where: { id } })
-  if (!user ||
-    !user.lnAddr ||
-    !isNumber(user.autoWithdrawThreshold) ||
-    !isNumber(user.autoWithdrawMaxFeePercent)) return
-
-  const threshold = satsToMsats(user.autoWithdrawThreshold)
-  const excess = Number(user.msats - threshold)
-
-  // excess must be greater than 10% of threshold
-  if (excess < Number(threshold) * 0.1) return
-
-  const maxFee = msatsToSats(Math.ceil(excess * (user.autoWithdrawMaxFeePercent / 100.0)))
-  const amount = msatsToSats(excess) - maxFee
-
-  // must be >= 1 sat
-  if (amount < 1) return
-
-  // check that
-  // 1. the user doesn't have an autowithdraw pending
-  // 2. we have not already attempted to autowithdraw this fee recently
-  const [pendingOrFailed] = await models.$queryRaw`
-    SELECT EXISTS(
-      SELECT *
-      FROM "Withdrawl"
-      WHERE "userId" = ${id} AND "autoWithdraw"
-      AND (status IS NULL
-      OR (
-        status <> 'CONFIRMED' AND
-        now() < created_at + interval '1 hour' AND
-        "msatsFeePaying" >= ${satsToMsats(maxFee)}
-      ))
-    )`
-
-  if (pendingOrFailed.exists) return
-
-  await sendToLnAddr(
-    null,
-    { addr: user.lnAddr, amount, maxFee },
-    { models, me: user, lnd, autoWithdraw: true })
 }

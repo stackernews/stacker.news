@@ -961,3 +961,22 @@ export function DatePicker ({ fromName, toName, noForm, onChange, when, from, to
     />
   )
 }
+
+function Client (Component) {
+  return ({ initialValue, ...props }) => {
+    // This component can be used for Formik fields
+    // where the initial value is not available on first render.
+    // Example: value is stored in localStorage which is fetched
+    // after first render using an useEffect hook.
+    const [,, helpers] = useField(props)
+
+    useEffect(() => {
+      helpers.setValue(initialValue)
+    }, [initialValue])
+
+    return <Component {...props} />
+  }
+}
+
+export const ClientInput = Client(Input)
+export const ClientCheckbox = Client(Checkbox)

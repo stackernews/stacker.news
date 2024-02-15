@@ -3,7 +3,7 @@ import Alert from 'react-bootstrap/Alert'
 import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
 import { CenterLayout } from '../../components/layout'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { gql, useMutation, useQuery } from '@apollo/client'
 import { getGetServerSideProps } from '../../api/ssrApollo'
 import LoginButton from '../../components/login-button'
@@ -52,7 +52,7 @@ export default function Settings ({ ssrData }) {
   const logger = useLogger()
 
   const { data } = useQuery(SETTINGS)
-  const { settings: { privates: settings } } = data || ssrData
+  const { settings: { privates: settings } } = useMemo(() => data ?? ssrData, [data, ssrData])
   if (!data && !ssrData) return <PageLoading />
 
   return (
@@ -79,9 +79,13 @@ export default function Settings ({ ssrData }) {
             autoDropBolt11s: settings?.autoDropBolt11s,
             hideFromTopUsers: settings?.hideFromTopUsers,
             hideCowboyHat: settings?.hideCowboyHat,
+            hideGithub: settings?.hideGithub,
+            hideNostr: settings?.hideNostr,
+            hideTwitter: settings?.hideTwitter,
             imgproxyOnly: settings?.imgproxyOnly,
             wildWestMode: settings?.wildWestMode,
             greeterMode: settings?.greeterMode,
+            nsfwMode: settings?.nsfwMode,
             nostrPubkey: settings?.nostrPubkey ? bech32encode(settings.nostrPubkey) : '',
             nostrCrossposting: settings?.nostrCrossposting,
             nostrRelays: settings?.nostrRelays?.length ? settings?.nostrRelays : [''],
@@ -283,6 +287,66 @@ export default function Settings ({ ssrData }) {
             name='hideBookmarks'
             groupClassName='mb-0'
           />
+          <Checkbox
+            disabled={me.optional.githubId === null}
+            label={
+              <div className='d-flex align-items-center'>hide my linked github profile
+                <Info>
+                  <ul className='fw-bold'>
+                    <li>Linked accounts are hidden from your profile by default</li>
+                    <li>uncheck this to display your github on your profile</li>
+                    {me.optional.githubId === null &&
+                      <div className='my-2'>
+                        <li><i>You don't seem to have a linked github account</i></li>
+                        <ul><li>If this is wrong, try unlinking/relinking</li></ul>
+                      </div>}
+                  </ul>
+                </Info>
+              </div>
+            }
+            name='hideGithub'
+            groupClassName='mb-0'
+          />
+          <Checkbox
+            disabled={me.optional.nostrAuthPubkey === null}
+            label={
+              <div className='d-flex align-items-center'>hide my linked nostr profile
+                <Info>
+                  <ul className='fw-bold'>
+                    <li>Linked accounts are hidden from your profile by default</li>
+                    <li>Uncheck this to display your npub on your profile</li>
+                    {me.optional.nostrAuthPubkey === null &&
+                      <div className='my-2'>
+                        <li>You don't seem to have a linked nostr account</li>
+                        <ul><li>If this is wrong, try unlinking/relinking</li></ul>
+                      </div>}
+                  </ul>
+                </Info>
+              </div>
+            }
+            name='hideNostr'
+            groupClassName='mb-0'
+          />
+          <Checkbox
+            disabled={me.optional.twitterId === null}
+            label={
+              <div className='d-flex align-items-center'>hide my linked twitter profile
+                <Info>
+                  <ul className='fw-bold'>
+                    <li>Linked accounts are hidden from your profile by default</li>
+                    <li>Uncheck this to display your twitter on your profile</li>
+                    {me.optional.twitterId === null &&
+                      <div className='my-2'>
+                        <i>You don't seem to have a linked twitter account</i>
+                        <ul><li>If this is wrong, try unlinking/relinking</li></ul>
+                      </div>}
+                  </ul>
+                </Info>
+              </div>
+            }
+            name='hideTwitter'
+            groupClassName='mb-0'
+          />
           {me.optional?.isContributor &&
             <Checkbox
               label={<>hide that I'm a stacker.news contributor</>}
@@ -354,6 +418,19 @@ export default function Settings ({ ssrData }) {
               </div>
             }
             name='greeterMode'
+            groupClassName='mb-0'
+          />
+          <Checkbox
+            label={
+              <div className='d-flex align-items-center'>nsfw mode
+                <Info>
+                  <ul className='fw-bold'>
+                    <li>see posts from nsfw territories</li>
+                  </ul>
+                </Info>
+              </div>
+            }
+            name='nsfwMode'
           />
           <h4>nostr</h4>
           <Checkbox

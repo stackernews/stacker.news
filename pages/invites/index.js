@@ -8,6 +8,10 @@ import styles from '../../styles/invites.module.css'
 import Invite from '../../components/invite'
 import { inviteSchema } from '../../lib/validate'
 import { SSR } from '../../lib/constants'
+import { getGetServerSideProps } from '../../api/ssrApollo'
+
+// force SSR to include CSP nonces
+export const getServerSideProps = getGetServerSideProps({ query: null })
 
 function InviteForm () {
   const [createInvite] = useMutation(

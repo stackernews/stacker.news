@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 
 const viewPrefixes = ['reg_growth', 'spender_growth', 'item_growth', 'spending_growth',
-  'stackers_growth', 'stacking_growth', 'user_stats']
+  'stackers_growth', 'stacking_growth', 'user_stats', 'sub_stats']
 
 // this is intended to be run everyday after midnight CT
 export async function views ({ data: { period } = { period: 'days' } }) {

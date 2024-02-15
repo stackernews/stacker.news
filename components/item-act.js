@@ -234,9 +234,9 @@ export function useZap () {
   const strike = useLightning()
   const [act] = useAct()
 
-  const showInvoiceModal = useInvoiceModal(
-    async ({ hash, hmac }, { variables }) => {
-      await act({ variables: { ...variables, hash, hmac } })
+  const invoiceableAct = useInvoiceModal(
+    async ({ hash, hmac }, { variables, ...apolloArgs }) => {
+      await act({ variables: { ...variables, hash, hmac }, ...apolloArgs })
       strike()
     }, [act, strike])
 
@@ -254,22 +254,22 @@ export function useZap () {
     }
 
     const variables = { id: item.id, sats, act: 'TIP' }
+    const insufficientFunds = me?.privates.sats < sats
+    const optimisticResponse = { act: { path: item.path, ...variables } }
     try {
-      await zap({
-        variables,
-        optimisticResponse: {
-          act: {
-            path: item.path,
-            ...variables
-          }
-        }
-      })
+      if (!insufficientFunds) strike()
+      await zap({ variables, optimisticResponse: insufficientFunds ? null : optimisticResponse })
     } catch (error) {
       if (payOrLoginError(error)) {
         // call non-idempotent version
         const amount = sats - meSats
+        optimisticResponse.act.amount = amount
         try {
-          await showInvoiceModal({ amount }, { variables: { ...variables, sats: amount } })
+          await invoiceableAct({ amount }, {
+            variables: { ...variables, sats: amount },
+            optimisticResponse,
+            update
+          })
         } catch (error) {}
         return
       }

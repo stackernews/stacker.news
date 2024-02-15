@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 
-export function middleware (request) {
-  const regex = /(\/.*)?\/r\/([\w_]+)/
-  const m = regex.exec(request.nextUrl.pathname)
+const referrerRegex = /(\/.*)?\/r\/([\w_]+)/
+function referrerMiddleware (request) {
+  const m = referrerRegex.exec(request.nextUrl.pathname)
 
   const url = new URL(m[1] || '/', request.url)
   url.search = request.nextUrl.search
@@ -13,6 +13,63 @@ export function middleware (request) {
   return resp
 }
 
+export function middleware (request) {
+  let resp = NextResponse.next()
+  if (referrerRegex.test(request.nextUrl.pathname)) {
+    resp = referrerMiddleware(request)
+  }
+
+  const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
+  const cspHeader = [
+    // if something is not explicitly allowed, we don't allow it.
+    "default-src 'none'",
+    "font-src 'self' a.stacker.news",
+    // we want to load images from everywhere but we can limit to HTTPS at least
+    "img-src 'self' a.stacker.news m.stacker.news https: data: blob:",
+    // Using nonces and strict-dynamic deploys a strict CSP.
+    // see https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html#strict-policy.
+    // Old browsers will ignore nonce and strict-dynamic and fallback to host-based matching and unsafe-inline
+    process.env.NODE_ENV === 'production'
+      ? `script-src 'self' 'unsafe-inline' 'nonce-${nonce}' 'strict-dynamic' https:`
+      // unsafe-eval is required during development due to react-refresh.js
+      // see https://github.com/vercel/next.js/issues/14221
+      : `script-src 'self' 'unsafe-inline' 'unsafe-eval' 'nonce-${nonce}' 'strict-dynamic' https:`,
+    // unsafe-inline for styles is not ideal but okay if script-src is using nonces
+    "style-src 'self' a.stacker.news 'unsafe-inline'",
+    "manifest-src 'self'",
+    'frame-src www.youtube.com platform.twitter.com',
+    "connect-src 'self' https: wss:",
+    // disable dangerous plugins like Flash
+    "object-src 'none'",
+    // blocks injection of <base> tags
+    "base-uri 'none'",
+    // tell user agents to replace HTTP with HTTPS
+    'upgrade-insecure-requests',
+    // prevents any domain from framing the content (defense against clickjacking attacks)
+    "frame-ancestors 'none'"
+  ].join('; ')
+
+  resp.headers.set('Content-Security-Policy', cspHeader)
+  // for browsers that don't support CSP
+  resp.headers.set('X-Frame-Options', 'DENY')
+  // more useful headers
+  resp.headers.set('X-Content-Type-Options', 'nosniff')
+  resp.headers.set('Referrer-Policy', 'origin-when-cross-origin')
+  resp.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+
+  return resp
+}
+
 export const config = {
-  matcher: ['/(.*/|)r/([\\w_]+)([?#]?.*)']
+  matcher: [
+    // NextJS recommends to not add the CSP header to prefetches and static assets
+    // See https://nextjs.org/docs/app/building-your-application/configuring/content-security-policy
+    {
+      source: '/((?!api|_next/static|_next/image|_next/webpack-hmr|favicon.ico).*)',
+      missing: [
+        { type: 'header', key: 'next-router-prefetch' },
+        { type: 'header', key: 'purpose', value: 'prefetch' }
+      ]
+    }
+  ]
 }

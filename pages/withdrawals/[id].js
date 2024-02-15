@@ -15,6 +15,10 @@ import { useToast } from '../../components/toast'
 import { gql } from 'graphql-tag'
 import { useShowModal } from '../../components/modal'
 import { DeleteConfirm } from '../../components/delete'
+import { getGetServerSideProps } from '../../api/ssrApollo'
+
+// force SSR to include CSP nonces
+export const getServerSideProps = getGetServerSideProps({ query: null })
 
 export default function Withdrawl () {
   return (
@@ -157,11 +161,12 @@ function PrivacyOption ({ wd }) {
                   try {
                     await dropBolt11({ variables: { id: wd.id } })
                   } catch (err) {
-                    console.error(err)
-                    toaster.danger('unable to delete invoice')
+                    toaster.danger('unable to delete invoice: ' + err.message || err.toString?.())
+                    throw err
+                  } finally {
+                    onClose()
                   }
                 }
-                onClose()
               }}
             />
           )

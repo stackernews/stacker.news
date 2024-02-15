@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
-import { useMutation, useQuery } from '@apollo/client'
+import { useApolloClient, useMutation, useQuery } from '@apollo/client'
 import { Button } from 'react-bootstrap'
 import { gql } from 'graphql-tag'
 import { numWithUnits } from '../lib/format'
@@ -12,13 +12,17 @@ import { useShowModal } from './modal'
 import Countdown from './countdown'
 import PayerData from './payer-data'
 import Bolt11Info from './bolt11-info'
+import { useWebLN } from './webln'
 
-export function Invoice ({ invoice, modal, onPayment, info, successVerb }) {
+export function Invoice ({ invoice, modal, onPayment, info, successVerb, webLn }) {
   const [expired, setExpired] = useState(new Date(invoice.expiredAt) <= new Date())
+
+  // if webLn was not passed, use true by default
+  if (webLn === undefined) webLn = true
 
   let variant = 'default'
   let status = 'waiting for you'
-  let webLn = true
+
   if (invoice.cancelled) {
     variant = 'failed'
     status = 'cancelled'
@@ -118,7 +122,7 @@ const JITInvoice = ({ invoice: { id, hash, hmac, expiresAt }, onPayment, onCance
 
   return (
     <>
-      <Invoice invoice={data.invoice} modal onPayment={onPayment} successVerb='received' />
+      <Invoice invoice={data.invoice} modal onPayment={onPayment} successVerb='received' webLn={false} />
       {retry
         ? (
           <>
@@ -161,6 +165,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
     mutation createInvoice($amount: Int!) {
       createInvoice(amount: $amount, hodlInvoice: true, expireSecs: 180) {
         id
+        bolt11
         hash
         hmac
         expiresAt
@@ -175,8 +180,13 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
   `)
 
   const showModal = useShowModal()
+  const provider = useWebLN()
+  const client = useApolloClient()
+  const pollInvoice = (id) => client.query({ query: INVOICE, fetchPolicy: 'no-cache', variables: { id } })
 
-  const onSubmitWrapper = useCallback(async ({ cost, ...formValues }, ...submitArgs) => {
+  const onSubmitWrapper = useCallback(async (
+    { cost, ...formValues },
+    { variables, optimisticResponse, update, ...submitArgs }) => {
     // some actions require a session
     if (!me && options.requireSession) {
       throw new Error('you must be logged in')
@@ -189,7 +199,9 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
     // attempt action for the first time
     if (!cost || (me && !options.forceInvoice)) {
       try {
-        return await onSubmit(formValues, ...submitArgs)
+        const insufficientFunds = me?.privates.sats < cost
+        return await onSubmit(formValues,
+          { ...submitArgs, variables, optimisticsResponse: insufficientFunds ? null : optimisticResponse })
       } catch (error) {
         if (!payOrLoginError(error) || !cost) {
           // can't handle error here - bail
@@ -205,27 +217,52 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
     }
     const inv = data.createInvoice
 
+    // If this is a zap, we need to manually be optimistic to have a consistent
+    // UX across custodial and WebLN zaps since WebLN zaps don't call GraphQL
+    // mutations which implement optimistic responses natively.
+    // Therefore, we check if this is a zap and then wrap the WebLN payment logic
+    // with manual cache update calls.
+    const itemId = optimisticResponse?.act?.id
+    const isZap = !!itemId
+    let _update
+    if (isZap && update) {
+      _update = () => {
+        const fragment = {
+          id: `Item:${itemId}`,
+          fragment: gql`
+          fragment ItemMeSats on Item {
+            sats
+            meSats
+          }
+        `
+        }
+        const item = client.cache.readFragment(fragment)
+        update(client.cache, { data: optimisticResponse })
+        // undo function
+        return () => client.cache.writeFragment({ ...fragment, data: item })
+      }
+    }
+
     // wait until invoice is paid or modal is closed
-    let modalClose
-    await new Promise((resolve, reject) => {
-      showModal(onClose => {
-        modalClose = onClose
-        return (
-          <JITInvoice
-            invoice={inv}
-            onPayment={resolve}
-          />
-        )
-      }, { keepOpen: true, onClose: reject })
+    const { modalOnClose, webLn, gqlCacheUpdateUndo } = await waitForPayment({
+      invoice: inv,
+      showModal,
+      provider,
+      pollInvoice,
+      gqlCacheUpdate: _update
     })
 
-    const retry = () => onSubmit({ hash: inv.hash, hmac: inv.hmac, ...formValues }, ...submitArgs)
+    const retry = () => onSubmit(
+      { hash: inv.hash, hmac: inv.hmac, ...formValues },
+      // unset update function since we already ran an cache update if we paid using WebLN
+      { ...submitArgs, variables, update: webLn ? null : undefined })
     // first retry
     try {
       const ret = await retry()
-      modalClose()
+      modalOnClose?.()
       return ret
     } catch (error) {
+      gqlCacheUpdateUndo?.()
       console.error('retry error:', error)
     }
 
@@ -245,14 +282,89 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
             }}
             onRetry={async () => {
               resolve(await retry())
+              onClose()
             }}
           />
         )
       }, { keepOpen: true, onClose: cancelAndReject })
     })
-  }, [onSubmit, createInvoice, !!me])
+  }, [onSubmit, provider, createInvoice, !!me])
 
   return onSubmitWrapper
+}
+
+const INVOICE_CANCELED_ERROR = 'invoice was canceled'
+const waitForPayment = async ({ invoice, showModal, provider, pollInvoice, gqlCacheUpdate }) => {
+  if (provider.enabled) {
+    try {
+      return await waitForWebLNPayment({ provider, invoice, pollInvoice, gqlCacheUpdate })
+    } catch (err) {
+      const INVOICE_CANCELED_ERROR = 'invoice was canceled'
+      // check for errors which mean that QR code will also fail
+      if (err.message === INVOICE_CANCELED_ERROR) {
+        throw err
+      }
+    }
+  }
+
+  // QR code as fallback
+  return await new Promise((resolve, reject) => {
+    showModal(onClose => {
+      return (
+        <JITInvoice
+          invoice={invoice}
+          onPayment={() => resolve({ modalOnClose: onClose })}
+        />
+      )
+    }, { keepOpen: true, onClose: reject })
+  })
+}
+
+const waitForWebLNPayment = async ({ provider, invoice, pollInvoice, gqlCacheUpdate }) => {
+  let undoUpdate
+  try {
+    // try WebLN provider first
+    return await new Promise((resolve, reject) => {
+      // be optimistic and pretend zap was already successful for consistent zapping UX
+      undoUpdate = gqlCacheUpdate?.()
+      // can't use await here since we might be paying HODL invoices
+      // and sendPaymentAsync is not supported yet.
+      // see https://www.webln.guide/building-lightning-apps/webln-reference/webln.sendpaymentasync
+      provider.sendPayment(invoice)
+        // WebLN payment will never resolve here for HODL invoices
+        // since they only get resolved after settlement which can't happen here
+        .then(() => resolve({ webLn: true, gqlCacheUpdateUndo: undoUpdate }))
+        .catch(err => {
+          clearInterval(interval)
+          reject(err)
+        })
+      const interval = setInterval(async () => {
+        try {
+          const { data, error } = await pollInvoice(invoice.id)
+          if (error) {
+            clearInterval(interval)
+            return reject(error)
+          }
+          const { invoice: inv } = data
+          if (inv.isHeld && inv.satsReceived) {
+            clearInterval(interval)
+            resolve({ webLn: true, gqlCacheUpdateUndo: undoUpdate })
+          }
+          if (inv.cancelled) {
+            clearInterval(interval)
+            reject(new Error(INVOICE_CANCELED_ERROR))
+          }
+        } catch (err) {
+          clearInterval(interval)
+          reject(err)
+        }
+      }, 1000)
+    })
+  } catch (err) {
+    undoUpdate?.()
+    console.error('WebLN payment failed:', err)
+    throw err
+  }
 }
 
 export const useInvoiceModal = (onPayment, deps) => {

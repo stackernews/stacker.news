@@ -171,7 +171,8 @@ export default {
     },
     search: async (parent, { q, sub, cursor, sort, what, when, from: whenFrom, to: whenTo }, { me, models, search }) => {
       const decodedCursor = decodeCursor(cursor)
-      let sitems
+      let sitems = null
+      let termQueries = []
 
       if (!q) {
         return {
@@ -192,10 +193,16 @@ export default {
           break
       }
 
-      const { query, quotes, nym, url } = queryParts(q)
+      const { query: _query, quotes, nym, url } = queryParts(q)
+      let query = _query
+
+      const isUrlSearch = url && query.length === 0 // exclusively searching for an url
 
       if (url) {
-        whatArr.push({ match_phrase_prefix: { url: `${url.slice(4).toLowerCase()}` } })
+        const isFQDN = url.startsWith('url:www.')
+        const domain = isFQDN ? url.slice(8) : url.slice(4)
+        const fqdn = `www.${domain}`
+        query = (isUrlSearch) ? `${domain} ${fqdn}` : `${query.trim()} ${domain}`
       }
 
       if (nym) {
@@ -206,18 +213,16 @@ export default {
         whatArr.push({ match: { 'sub.name': sub } })
       }
 
-      let termQueries = [
-        {
-          // all terms are matched in fields
-          multi_match: {
-            query,
-            type: 'best_fields',
-            fields: ['title^100', 'text'],
-            minimum_should_match: '100%',
-            boost: 1000
-          }
+      termQueries.push({
+        // all terms are matched in fields
+        multi_match: {
+          query,
+          type: 'best_fields',
+          fields: ['title^100', 'text'],
+          minimum_should_match: (isUrlSearch) ? 1 : '100%',
+          boost: 1000
         }
-      ]
+      })
 
       for (const quote of quotes) {
         whatArr.push({
@@ -263,7 +268,7 @@ export default {
         }
       ]
 
-      if (sort === 'recent') {
+      if (sort === 'recent' && !isUrlSearch) {
         // prioritize exact matches
         termQueries.push({
           multi_match: {
@@ -282,7 +287,7 @@ export default {
             fields: ['title^100', 'text'],
             fuzziness: 'AUTO',
             prefix_length: 3,
-            minimum_should_match: '60%'
+            minimum_should_match: (isUrlSearch) ? 1 : '60%'
           }
         })
         functions.push({

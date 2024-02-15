@@ -217,8 +217,8 @@ function LurkerCorner ({ path }) {
 
 const PREPEND_SUBS = ['home']
 const APPEND_SUBS = [{ label: '--------', items: ['create'] }]
-function NavItems ({ className, sub, prefix }) {
-  sub ||= 'home'
+function NavItems ({ className, sub: subName, prefix }) {
+  const sub = subName || 'home'
 
   return (
     <>
@@ -240,7 +240,12 @@ function NavItems ({ className, sub, prefix }) {
       </Nav.Item>
       {sub !== 'jobs' &&
         <Nav.Item className={className}>
-          <Link href={prefix + '/top/posts/day'} passHref legacyBehavior>
+          <Link
+            href={{
+              pathname: '/~/top/[type]/[when]',
+              query: { type: 'posts', when: 'day', sub: subName }
+            }} as={prefix + '/top/posts/day'} passHref legacyBehavior
+          >
             <Nav.Link eventKey='top' className={styles.navLink}>top</Nav.Link>
           </Link>
         </Nav.Item>}

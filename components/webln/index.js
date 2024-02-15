@@ -87,7 +87,8 @@ function RawWebLNProvider ({ children }) {
       autohide: false,
       onCancel: async () => {
         try {
-          await cancelInvoice({ variables: { hash, hmac } })
+          // hash and hmac are only passed for HODL invoices
+          if (hash && hmac) await cancelInvoice({ variables: { hash, hmac } })
           canceled = true
           toaster.warning('payment canceled')
           removeToast = undefined

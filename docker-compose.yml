@@ -9,7 +9,7 @@ services:
     ports:
       - "5431:5432"
     env_file:
-      - ./.env.sample
+      - ./.env
     volumes:
       - db:/var/lib/postgresql/data
   app:
@@ -24,7 +24,7 @@ services:
     depends_on:
       - db
     env_file:
-      - ./.env.sample
+      - ./.env
     ports:
       - "3000:3000"
     volumes:
@@ -41,7 +41,7 @@ services:
       app:
         condition: service_healthy
     env_file:
-      - ./.env.sample
+      - ./.env
     ports:
       - "8080:8080"
     volumes:
@@ -63,7 +63,7 @@ services:
       retries: 3
     restart: always
     env_file:
-      - ./.env.sample
+      - ./.env
     expose:
       - "8080"
     ports:

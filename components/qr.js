@@ -15,7 +15,7 @@ export default function Qr ({ asIs, value, webLn, statusVariant, description, st
     async function effect () {
       if (webLn) {
         try {
-          await provider.sendPayment(value)
+          await provider.sendPayment({ bolt11: value })
         } catch (e) {
           console.log(e?.message)
           toaster.danger(`${provider.name}: ${e?.message}`)

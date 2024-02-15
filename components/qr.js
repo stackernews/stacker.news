@@ -3,13 +3,11 @@ import { CopyInput, InputSkeleton } from './form'
 import InvoiceStatus from './invoice-status'
 import { useEffect } from 'react'
 import { useWebLN } from './webln'
-import { useToast } from './toast'
 
 export default function Qr ({ asIs, value, webLn, statusVariant, description, status }) {
   const qrValue = asIs ? value : 'lightning:' + value.toUpperCase()
 
   const provider = useWebLN()
-  const toaster = useToast()
 
   useEffect(() => {
     async function effect () {
@@ -18,7 +16,6 @@ export default function Qr ({ asIs, value, webLn, statusVariant, description, st
           await provider.sendPayment({ bolt11: value })
         } catch (e) {
           console.log(e?.message)
-          toaster.danger(`${provider.name}: ${e?.message}`)
         }
       }
     }

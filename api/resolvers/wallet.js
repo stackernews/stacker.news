@@ -659,15 +659,10 @@ export async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...
   try {
     const decoded = await decodePaymentRequest({ lnd, request: res.pr })
     const ourPubkey = (await getIdentity({ lnd })).public_key
-    if (autoWithdraw && decoded.destination === ourPubkey) {
+    if (autoWithdraw && decoded.destination === ourPubkey && process.env.NODE_ENV === 'production') {
       // unset lnaddr so we don't trigger another withdrawal with same destination
-      await models.user.update({
-        where: { id: me.id },
-        data: {
-          lnAddr: null,
-          autoWithdrawThreshold: null,
-          autoWithdrawMaxFeePercent: null
-        }
+      await models.wallet.deleteMany({
+        where: { userId: me.id, type: 'LIGHTNING_ADDRESS' }
       })
       throw new Error('automated withdrawals to other stackers are not allowed')
     }

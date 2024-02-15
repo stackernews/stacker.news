@@ -85,7 +85,7 @@ async function autowithdrawLNAddr (
     throw new Error('no lightning address wallet found')
   }
 
-  const { walletLND: { address } } = wallet
+  const { walletLightningAddress: { address } } = wallet
   return await sendToLnAddr(null, { addr: address, amount, maxFee }, { me, models, lnd, autoWithdraw: true })
 }
 

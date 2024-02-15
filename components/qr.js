@@ -20,7 +20,7 @@ export default function Qr ({ asIs, value, webLn, statusVariant, description, st
       }
     }
     effect()
-  }, [])
+  }, [provider])
 
   return (
     <>

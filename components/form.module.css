@@ -56,3 +56,78 @@
     padding-top: .2rem;
     padding-bottom: .3rem;
 }
+
+.customDropdownToggle {
+    background-color: var(--theme-clickToContextColor);
+    color: var(--theme-dropdownItemColor);
+    font-weight: bold;
+    border: none;
+    display: inline-flex;
+    height: calc(1.5em + 0.5rem + 2px);
+    padding: 0.25rem 1.84rem 0.25rem 0.5rem;
+    font-size: .7875rem;
+    vertical-align: middle;
+    border-radius: 0.4rem;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    flex-wrap: wrap;
+    height: auto;
+    max-width: 100%;
+  }
+
+  .customDropdownToggle option {
+    color: rgba(0, 0, 0, 0.9);
+  }
+
+  .customDropdownToggle:hover,
+  .customDropdownToggle:focus,
+  .customDropdownToggle:active {
+    background-color: var(--theme-clickToContextColor);
+    color: var(--theme-dropdownItemColor);
+    border: none;
+  }
+
+
+  .checkmark {
+    cursor: pointer;
+    fill: var(--theme-grey);
+    margin-left: auto;
+    user-select: none;
+  }
+
+  .selectedItemsContainer {
+    display: flex;
+    flex-wrap: wrap;
+    max-width: 100%;
+    gap: 5px;
+  }
+
+  .selectedItem {
+    background-color: var(--bs-secondary);
+    border-radius: 0.4em;
+    display: flex;
+    align-items: center;
+  }
+
+  .subName {
+    padding-left: 0.10rem;
+    padding-right: 0.10rem;
+    font-size: 110%;
+  }
+
+  .subDelete {
+    padding-top: 0.10rem;
+    padding-left: 0.10rem;
+    padding-right: 0.10rem;
+    font-family: "lightning";
+    font-size: 160%;
+  }
+
+  .subDelete:active,
+  .subDelete:focus,
+  .subDelete:hover {
+    opacity: 0.7;
+    color: white !important;
+  }
+

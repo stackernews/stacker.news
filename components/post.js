@@ -104,6 +104,9 @@ export function PostForm ({ type, sub, children }) {
           <Alert className='position-absolute' style={{ top: '-6rem' }} variant='danger' onClose={() => setErrorMessage(undefined)} dismissible>
             {errorMessage}
           </Alert>}
+          {/** TODO: this is where the multiple subs will get
+           * selected and then we will need to accumulate the baseCost by sub.baseCost + i (number of subs)
+           */}
         <SubSelect
           prependSubs={['pick territory']}
           className='w-auto d-flex'

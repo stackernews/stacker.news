@@ -6,8 +6,10 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import copy from 'clipboard-copy'
 import Col from 'react-bootstrap/Col'
 import Dropdown from 'react-bootstrap/Dropdown'
+import Badge from 'react-bootstrap/Badge'
 import Nav from 'react-bootstrap/Nav'
 import Row from 'react-bootstrap/Row'
+import Check from '../svgs/check-line.svg'
 import Markdown from '../svgs/markdown-line.svg'
 import AddImageIcon from '../svgs/image-add-line.svg'
 import styles from './form.module.css'
@@ -30,6 +32,9 @@ import { whenRange } from '../lib/time'
 import { useFeeButton } from './fee-button'
 import Thumb from '../svgs/thumb-up-fill.svg'
 import Info from './info'
+import ReactSelect, { components } from 'react-select';
+import { filter } from 'mathjs'
+import { from } from 'responselike'
 
 export function SubmitButton ({
   children, variant, value, onClick, disabled, nonDisabledText, ...props
@@ -826,6 +831,115 @@ export function Form ({
     </Formik>
   )
 }
+
+// START HERE
+
+function RsMultiValueContainer(props) {
+  return (
+    // TODO - add a tooltip that show the subs description
+    <Badge bg={'secondary'} style={{ marginRight: '5px' }}>
+      <div className="d-flex align-items-center">
+        <components.MultiValueContainer {...props} />
+      </div>
+    </Badge>
+  );
+};
+
+function RsMultiValueLabel(props) {
+  return (
+    <div className={styles.subName}>
+      <components.MultiValueLabel {...props} />
+    </div>
+  );
+};
+
+function RsMultiValueRemove(props) {
+  return (
+      <components.MultiValueRemove {...props}>
+        <div className={styles.subDelete}>X</div>
+      </components.MultiValueRemove>
+  );
+};
+
+function RsOption({ cx, children, getStyles, innerRef, ...props }) {
+  return (
+    <div {...props.innerProps}>
+      <Badge ref={innerRef} bg={'secondary'}>
+        <div className="d-flex align-items-center">
+            <div className={styles.subName}>{props.label}</div><div className={styles.subDelete}>X</div>
+        </div>
+      </Badge>
+    </div>
+  )
+}
+
+const RsSelectStyles = {
+  control: (baseStyles, state) => ({
+    backgroundColor: 'var(--theme-clickToContextColor)',
+    color: 'var(--theme-dropdownItemColor)',
+    fontWeight: 'bold',
+    border: 'none',
+    display: 'flex',
+    height: 'auto',
+    padding: '0.25rem 1.84rem 0.25rem 0.5rem',
+    fontSize: '.7875rem',
+    borderRadius: '0.4rem',
+    flexWrap: 'wrap',
+    maxWidth: 'auto',
+  }),
+  menu: (provided) => ({
+    ...provided,
+    backgroundColor: 'var(--theme-clickToContextColor)',
+    color: 'var(--theme-dropdownItemColor)',
+    fontWeight: 'bold',
+    border: 'none',
+    borderRadius: '0.4rem',
+  }),
+  multiValue: (provided) => ({
+    ...provided,
+    backgroundColor: 'var(--bs-secondary)',
+  }),
+  multiValueLabel: (provided) => ({
+    ...provided,
+    backgroundColor: 'var(--bs-secondary)',
+    paddingLeft: '0.10rem',
+    paddingRight: '0.10rem',
+    fontSize: '110%',
+    color: 'white'
+  }),
+  multiValueRemove: (provided, state) => ({
+    ...provided,
+    color: state.isFocused ? 'white' : provided.color,
+    ':hover': {
+      color: 'white', // This will ensure the color remains white even on hover
+    },
+  }),
+}
+
+const RsSelectComponents = {
+  Option: RsOption,
+  MultiValueContainer: RsMultiValueContainer,
+  MultiValueLabel: RsMultiValueLabel,
+  MultiValueRemove:  RsMultiValueRemove,
+}
+
+export function MultiSelect({ label, items, info, groupClassName, onChange, noForm, overrideValue, hint, ...props }) {
+  const rsOptions = items.map(item => ({
+    value: item,
+    label: item,
+  }));
+
+  return (
+    <ReactSelect
+      isMulti
+      styles={RsSelectStyles}
+      components={RsSelectComponents}
+      options={rsOptions}
+      menuPlacement="top"
+    />
+  );
+}
+
 
 export function Select ({ label, items, info, groupClassName, onChange, noForm, overrideValue, hint, ...props }) {
   const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)

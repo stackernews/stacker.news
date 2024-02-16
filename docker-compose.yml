@@ -110,6 +110,11 @@ services:
       - "5601"
     links:
       - opensearch
+  maildev:
+    image: maildev/maildev
+    ports:
+      - "1080:1080"  # Web interface
+      - "1025:1025"  # SMTP
 volumes:
   db:
   os:

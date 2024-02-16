@@ -99,7 +99,7 @@ BEGIN
         freebie, "weightedDownVotes", created_at, updated_at)
     VALUES
     (sub, title, url, text, bounty, user_id, parent_id, fwd_user_id,
-        freebie, med_votes, now_utc(), now_utc()) RETURNING * INTO item; 
+        freebie, med_votes, now_utc(), now_utc()) RETURNING * INTO item;
 
     IF NOT freebie THEN
         UPDATE users SET msats = msats - cost_msats WHERE id = user_id;
@@ -113,18 +113,18 @@ BEGIN
     END IF;
 
     -- Loop over the 'subs' array and insert into "ItemSub"
-    FOREACH sub_name IN ARRAY subs
-    LOOP
-        INSERT INTO "ItemSub" ("itemId", "subName")
-        VALUES (item.id, sub_name);
-    END LOOP;
+    -- FOREACH sub_name IN ARRAY subs
+    -- LOOP
+    --     INSERT INTO "ItemSub" ("itemId", "subName")
+    --     VALUES (item.id, sub_name);
+    -- END LOOP;
 
     RETURN item;
 END;
 $BODY$;
 
 ALTER FUNCTION public.create_item(text, text, text, text, integer, integer, integer, integer, integer, interval, text[])
-    OWNER TO postgres;
+    OWNER TO sn;
 
 
 -- update update_item function
@@ -160,22 +160,22 @@ BEGIN
     END IF;
 
     -- Loop over the 'subs' array and insert into "ItemSub" if it does not already exist
-    FOREACH sub_name IN ARRAY subs
-    LOOP
-        INSERT INTO "ItemSub" ("itemId", "subName")
-        SELECT item.id, sub_name
-        WHERE NOT EXISTS (
-            SELECT 1 FROM "ItemSub"
-            WHERE "itemId" = item.id AND "subName" = sub_name
-        );
-    END LOOP;
+    -- FOREACH sub_name IN ARRAY subs
+    -- LOOP
+    --     INSERT INTO "ItemSub" ("itemId", "subName")
+    --     SELECT item.id, sub_name
+    --     WHERE NOT EXISTS (
+    --         SELECT 1 FROM "ItemSub"
+    --         WHERE "itemId" = item.id AND "subName" = sub_name
+    --     );
+    -- END LOOP;
 
     RETURN item;
 END;
 $BODY$;
 
 ALTER FUNCTION public.update_item(text, integer, text, text, text, integer, integer, integer, text[])
-    OWNER TO postgres;
+    OWNER TO sn;
 
 -- Update new database fields and tables with existing data
 -- Insert into ItemSub table

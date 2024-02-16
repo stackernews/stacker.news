@@ -3,7 +3,7 @@ import { serializeInvoicable } from './serial'
 import { TERRITORY_COST_MONTHLY, TERRITORY_COST_ONCE, TERRITORY_COST_YEARLY, TERRITORY_PERIOD_COST } from '../../lib/constants'
 import { datePivot, whenRange } from '../../lib/time'
 import { ssValidate, territorySchema } from '../../lib/validate'
-import { nextNextBilling, proratedBillingCost } from '../../lib/territory'
+import { nextBilling, proratedBillingCost } from '../../lib/territory'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { subViewGroup } from './growth'
 
@@ -12,8 +12,20 @@ export function paySubQueries (sub, models) {
     return []
   }
 
-  const billAt = nextNextBilling(sub)
-  const cost = BigInt(sub.billingCost) * BigInt(1000)
+  // if in active or grace, consider we are billing them from where they are paid up
+  // and use grandfathered cost
+  let billedLastAt = sub.billPaidUntil
+  let billingCost = sub.billingCost
+
+  // if the sub is archived, they are paying to reactivate it
+  if (sub.status === 'STOPPED') {
+    // get non-grandfathered cost and reset their billing to start now
+    billedLastAt = new Date()
+    billingCost = TERRITORY_PERIOD_COST(sub.billingType)
+  }
+
+  const billPaidUntil = nextBilling(billedLastAt, sub.billingType)
+  const cost = BigInt(billingCost) * BigInt(1000)
 
   return [
     models.user.update({
@@ -32,8 +44,9 @@ export function paySubQueries (sub, models) {
         name: sub.name
       },
       data: {
-        billedLastAt: sub.billPaidUntil,
-        billPaidUntil: billAt,
+        billedLastAt,
+        billPaidUntil,
+        billingCost,
         status: 'ACTIVE'
       }
     }),
@@ -230,7 +243,7 @@ export default {
 }
 
 async function createSub (parent, data, { me, models, lnd, hash, hmac }) {
-  const { billingType, nsfw } = data
+  const { billingType } = data
   let billingCost = TERRITORY_COST_MONTHLY
   let billPaidUntil = datePivot(new Date(), { months: 1 })
 
@@ -264,8 +277,7 @@ async function createSub (parent, data, { me, models, lnd, hash, hmac }) {
           billPaidUntil,
           billingCost,
           rankingType: 'WOT',
-          userId: me.id,
-          nsfw
+          userId: me.id
         }
       }),
       // record 'em
@@ -292,7 +304,12 @@ async function updateSub (parent, { oldName, ...data }, { me, models, lnd, hash,
   const oldSub = await models.sub.findUnique({
     where: {
       name: oldName,
-      userId: me.id
+      userId: me.id,
+      // this function's logic is only valid if the sub is not stopped
+      // so prevent updates to stopped subs
+      status: {
+        not: 'STOPPED'
+      }
     }
   })
 
@@ -309,12 +326,18 @@ async function updateSub (parent, { oldName, ...data }, { me, models, lnd, hash,
       // we never want to bill them again if they are changing to ONCE
       if (data.billingType === 'ONCE') {
         data.billPaidUntil = null
+        data.billingAutoRenew = false
       }
 
       // if they are changing to YEARLY, bill them in a year
       // if they are changing to MONTHLY from YEARLY, do nothing
       if (oldSub.billingType === 'MONTHLY' && data.billingType === 'YEARLY') {
         data.billPaidUntil = datePivot(new Date(oldSub.billedLastAt), { years: 1 })
+      }
+
+      // if this billing change makes their bill paid up, set them to active
+      if (data.billPaidUntil === null || data.billPaidUntil >= new Date()) {
+        data.status = 'ACTIVE'
       }
 
       // if the billing type is changing such that it's more expensive, bill 'em the difference

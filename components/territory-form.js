@@ -60,7 +60,7 @@ export default function TerritoryForm ({ sub }) {
     const lines = { territory: TERRITORY_BILLING_OPTIONS('first')[billing] }
     if (!sub) return lines
 
-    // we are changing billing type to something more expensive so prorate the change
+    // we are changing billing type so prorate the change
     if (sub?.billingType?.toLowerCase() !== billing) {
       const alreadyBilled = TERRITORY_PERIOD_COST(purchasedType(sub))
       lines.paid = {
@@ -172,10 +172,11 @@ export default function TerritoryForm ({ sub }) {
                 <span className='d-flex align-items-center'>billing
                   {sub && sub.billingType !== 'ONCE' &&
                     <Info>
-                      Changing your billing type will be prorated and go into effect immediately.
+                      You will be credited what you paid for your current billing period when you change your billing period to a longer duration.
+                      If you change from yearly to monthly, when your year ends, your monthly billing will begin.
                     </Info>}
                 </span>
-          }
+              }
               name='billing'
               groupClassName={billing !== 'once' ? 'mb-0' : ''}
             >

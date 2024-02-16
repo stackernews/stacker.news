@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router'
-import { Select } from './form'
+import { Select, MultiSelect } from './form'
 import { SSR } from '../lib/constants'
 import { SUBS } from '../fragments/subs'
 import { useQuery } from '@apollo/client'
@@ -47,10 +47,10 @@ export default function SubSelect ({ prependSubs, sub, onChange, large, appendSu
   const subs = useSubs({ prependSubs, sub, filterSubs, appendSubs })
   const valueProps = props.noForm
     ? {
-        value: sub
+        value: [sub]
       }
     : {
-        overrideValue: sub
+        overrideValue: [sub]
       }
 
   // If logged out user directly visits a nsfw sub, subs will not contain `sub`, so manually add it
@@ -58,7 +58,7 @@ export default function SubSelect ({ prependSubs, sub, onChange, large, appendSu
   const subItems = !sub || subs.find((s) => s === sub) ? subs : [sub].concat(subs)
 
   return (
-    <Select
+    <MultiSelect
       onChange={onChange || ((_, e) => {
         const sub = ['home', 'pick territory'].includes(e.target.value) ? undefined : e.target.value
         if (sub === 'create') {
@@ -66,6 +66,8 @@ export default function SubSelect ({ prependSubs, sub, onChange, large, appendSu
           return
         }
 
+        // TODO: the first sub in the selected options will be the ~sub in the url
+        // the rest will be added as params sub=subName
         let asPath
         // are we currently in a sub (ie not home)
         if (router.query.sub) {

@@ -380,6 +380,8 @@ model Item {
   ItemUpload         ItemUpload[]
   uploadId           Int?
   outlawed           Boolean               @default(false)
+  subs               ItemSub[]
+  subNames           String[]
 
   @@index([uploadId])
   @@index([bio], map: "Item.bio_index")
@@ -487,6 +489,7 @@ model Sub {
   Item     Item[]
   SubAct   SubAct[]
   MuteSub  MuteSub[]
+  items    ItemSub[]
 
   @@index([parentName])
   @@index([createdAt])
@@ -512,6 +515,17 @@ model SubAct {
   @@index([createdAt])
   @@index([createdAt, type])
   @@index([userId, createdAt, type])
+}
+
+model ItemSub {
+  subName String @db.Citext
+  itemId  Int
+  sub     Sub    @relation(fields: [subName], references: [name], onDelete: Cascade)
+  item    Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@id([subName, itemId])
+  @@index([itemId])
+  @@index([subName])
 }
 
 model MuteSub {

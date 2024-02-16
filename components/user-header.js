@@ -275,7 +275,7 @@ function HeaderHeader ({ user }) {
             <small className='text-muted d-flex-inline'>
               <SocialLink name='Github' id={user.optional.githubId} />
             </small>}
-          {user.optional.twitterId !== null &&
+          {user.optional.twitterId &&
             <small className='text-muted d-flex-inline'>
               <SocialLink name='Twitter' id={user.optional.twitterId} />
             </small>}

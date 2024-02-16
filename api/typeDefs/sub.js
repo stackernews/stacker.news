@@ -36,6 +36,7 @@ export default gql`
     billingAutoRenew: Boolean!
     rankingType: String!
     billedLastAt: Date!
+    billPaidUntil: Date
     baseCost: Int!
     status: String!
     moderated: Boolean!

@@ -804,7 +804,7 @@ export function Form ({
       const msg = err.message || err.toString?.()
       // handle errors from JIT invoices by ignoring them
       if (msg === 'modal closed' || msg === 'invoice canceled') return
-      toaster.danger('submit error:' + msg)
+      toaster.danger('submit error: ' + msg)
     }
   }, [onSubmit, feeButton?.total, toaster, clearLocalStorage, storageKeyPrefix])
 

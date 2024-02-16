@@ -802,7 +802,8 @@ export function Form ({
       }
     } catch (err) {
       const msg = err.message || err.toString?.()
-      // handle errors from JIT invoices by ignoring them
+      // ignore errors from JIT invoices or payments from attached wallets
+      // that mean that submit failed because user aborted the payment
       if (msg === 'modal closed' || msg === 'invoice canceled') return
       toaster.danger('submit error:' + msg)
     }

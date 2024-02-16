@@ -293,13 +293,12 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
   return onSubmitWrapper
 }
 
-const INVOICE_CANCELED_ERROR = 'invoice was canceled'
+const INVOICE_CANCELED_ERROR = 'invoice canceled'
 const waitForPayment = async ({ invoice, showModal, provider, pollInvoice, gqlCacheUpdate }) => {
   if (provider.enabled) {
     try {
       return await waitForWebLNPayment({ provider, invoice, pollInvoice, gqlCacheUpdate })
     } catch (err) {
-      const INVOICE_CANCELED_ERROR = 'invoice was canceled'
       // check for errors which mean that QR code will also fail
       if (err.message === INVOICE_CANCELED_ERROR) {
         throw err

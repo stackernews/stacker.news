@@ -8,7 +8,7 @@ import { LongCountdown } from './countdown'
 import { useCallback } from 'react'
 import { useApolloClient, useMutation } from '@apollo/client'
 import { SUB_PAY } from '../fragments/subs'
-import { nextBilling, nextBillingWithGrace } from '../lib/territory'
+import { nextBillingWithGrace } from '../lib/territory'
 
 export default function TerritoryPaymentDue ({ sub }) {
   const me = useMe()
@@ -78,7 +78,7 @@ export function TerritoryBillingLine ({ sub }) {
   const me = useMe()
   if (!sub || sub.userId !== Number(me?.id)) return null
 
-  const dueDate = nextBilling(sub)
+  const dueDate = sub.billPaidUntil && new Date(sub.billPaidUntil)
   const pastDue = dueDate && dueDate < new Date()
 
   return (

@@ -3,12 +3,14 @@ import { Col, InputGroup, Row, Form as BootstrapForm, Badge } from 'react-bootst
 import { Checkbox, CheckboxGroup, Form, Input, MarkdownInput } from './form'
 import FeeButton, { FeeButtonProvider } from './fee-button'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/router'
 import { MAX_TERRITORY_DESC_LENGTH, POST_TYPES, TERRITORY_BILLING_OPTIONS } from '../lib/constants'
 import { territorySchema } from '../lib/validate'
 import { useMe } from './me'
 import Info from './info'
+import { consumedBilling, proratedBillingCost } from '../lib/territory'
+import { abbrNum } from '../lib/format'
 
 export default function TerritoryForm ({ sub }) {
   const router = useRouter()
@@ -54,9 +56,23 @@ export default function TerritoryForm ({ sub }) {
   )
 
   const [billing, setBilling] = useState((sub?.billingType || 'MONTHLY').toLowerCase())
+  const lineItems = useMemo(() => {
+    const lines = { territory: TERRITORY_BILLING_OPTIONS('first')[billing] }
+    if (!sub) return lines
+
+    // we are changing billing type to something more expensive so prorate the change
+    if (sub?.billingType?.toLowerCase() !== billing) {
+      lines.consumed = {
+        term: `- ${abbrNum(consumedBilling(sub))}`,
+        label: 'prorated credit',
+        modifier: cost => cost - consumedBilling(sub)
+      }
+      return lines
+    }
+  }, [sub, billing])
 
   return (
-    <FeeButtonProvider baseLineItems={sub ? undefined : { territory: TERRITORY_BILLING_OPTIONS('first')[billing] }}>
+    <FeeButtonProvider baseLineItems={lineItems}>
       <Form
         initial={{
           name: sub?.name || '',
@@ -74,14 +90,15 @@ export default function TerritoryForm ({ sub }) {
         onSubmit={onSubmit}
         className='mb-5'
         storageKeyPrefix={sub ? undefined : 'territory'}
-      > <Input
-        label='name'
-        name='name'
-        required
-        autoFocus
-        clear
-        maxLength={32}
-        prepend={<InputGroup.Text className='text-monospace'>~</InputGroup.Text>}
+      >
+        <Input
+          label='name'
+          name='name'
+          required
+          autoFocus
+          clear
+          maxLength={32}
+          prepend={<InputGroup.Text className='text-monospace'>~</InputGroup.Text>}
         />
         <MarkdownInput
           label='description'
@@ -147,51 +164,55 @@ export default function TerritoryForm ({ sub }) {
             </Col>
           </Row>
         </CheckboxGroup>
-        <CheckboxGroup
-          label='billing'
-          name='billing'
-          groupClassName='mb-0'
-        >
-          {(!sub?.billingType || sub.billingType === 'MONTHLY') &&
-            <Checkbox
-              type='radio'
-              label='100k sats/month'
-              value='MONTHLY'
-              name='billingType'
-              id='monthly-checkbox'
-              readOnly={!!sub}
-              handleChange={checked => checked && setBilling('monthly')}
-              groupClassName='ms-1 mb-0'
-            />}
-          {(!sub?.billingType || sub.billingType === 'YEARLY') &&
-            <Checkbox
-              type='radio'
-              label='1m sats/year'
-              value='YEARLY'
-              name='billingType'
-              id='yearly-checkbox'
-              readOnly={!!sub}
-              handleChange={checked => checked && setBilling('yearly')}
-              groupClassName='ms-1 mb-0'
-            />}
-          {(!sub?.billingType || sub.billingType === 'ONCE') &&
-            <Checkbox
-              type='radio'
-              label='3m sats once'
-              value='ONCE'
-              name='billingType'
-              id='once-checkbox'
-              readOnly={!!sub}
-              handleChange={checked => checked && setBilling('once')}
-              groupClassName='ms-1 mb-0'
-            />}
-        </CheckboxGroup>
-        {billing !== 'once' &&
-          <Checkbox
-            label='auto renew'
-            name='billingAutoRenew'
-            groupClassName='ms-1 mt-2'
-          />}
+        {sub?.billingType !== 'ONCE' &&
+          <>
+            <CheckboxGroup
+              label={
+                <span className='d-flex align-items-center'>billing
+                  {sub && sub.billingType !== 'ONCE' &&
+                    <Info>
+                      Changing your billing type will be prorated and go into effect immediately.
+                    </Info>}
+                </span>
+          }
+              name='billing'
+              groupClassName={billing !== 'once' ? 'mb-0' : ''}
+            >
+              <Checkbox
+                type='radio'
+                label='100k sats/month'
+                value='MONTHLY'
+                name='billingType'
+                id='monthly-checkbox'
+                handleChange={checked => checked && setBilling('monthly')}
+                groupClassName='ms-1 mb-0'
+              />
+              <Checkbox
+                type='radio'
+                label='1m sats/year'
+                value='YEARLY'
+                name='billingType'
+                id='yearly-checkbox'
+                handleChange={checked => checked && setBilling('yearly')}
+                groupClassName='ms-1 mb-0'
+              />
+              <Checkbox
+                type='radio'
+                label='3m sats once'
+                value='ONCE'
+                name='billingType'
+                id='once-checkbox'
+                handleChange={checked => checked && setBilling('once')}
+                groupClassName='ms-1 mb-0'
+              />
+            </CheckboxGroup>
+            {billing !== 'once' &&
+              <Checkbox
+                label='auto-renew'
+                name='billingAutoRenew'
+                groupClassName='ms-1 mt-2'
+              />}
+          </>}
         <AccordianItem
           header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>options</div>}
           body={

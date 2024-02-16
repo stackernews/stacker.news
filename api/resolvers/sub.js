@@ -1,9 +1,9 @@
 import { GraphQLError } from 'graphql'
 import { serializeInvoicable } from './serial'
-import { TERRITORY_COST_MONTHLY, TERRITORY_COST_ONCE, TERRITORY_COST_YEARLY } from '../../lib/constants'
+import { TERRITORY_COST_MONTHLY, TERRITORY_COST_ONCE, TERRITORY_COST_YEARLY, TERRITORY_PERIOD_COST } from '../../lib/constants'
 import { datePivot, whenRange } from '../../lib/time'
 import { ssValidate, territorySchema } from '../../lib/validate'
-import { nextBilling, nextNextBilling } from '../../lib/territory'
+import { nextNextBilling, proratedBillingCost } from '../../lib/territory'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { subViewGroup } from './growth'
 
@@ -12,7 +12,6 @@ export function paySubQueries (sub, models) {
     return []
   }
 
-  const billingAt = nextBilling(sub)
   const billAt = nextNextBilling(sub)
   const cost = BigInt(sub.billingCost) * BigInt(1000)
 
@@ -33,7 +32,8 @@ export function paySubQueries (sub, models) {
         name: sub.name
       },
       data: {
-        billedLastAt: billingAt,
+        billedLastAt: sub.billPaidUntil,
+        billPaidUntil: billAt,
         status: 'ACTIVE'
       }
     }),
@@ -45,18 +45,7 @@ export function paySubQueries (sub, models) {
         msats: cost,
         type: 'BILLING'
       }
-    }),
-    models.$executeRaw`
-            DELETE FROM pgboss.job
-              WHERE name = 'territoryBilling'
-              AND data->>'subName' = ${sub.name}
-              AND completedon IS NULL`,
-    // schedule 'em
-    models.$queryRaw`
-          INSERT INTO pgboss.job (name, data, startafter, keepuntil) VALUES ('territoryBilling',
-            ${JSON.stringify({
-              subName: sub.name
-            })}::JSONB, ${billAt}, ${datePivot(billAt, { days: 1 })})`
+    })
   ]
 }
 
@@ -243,14 +232,14 @@ export default {
 async function createSub (parent, data, { me, models, lnd, hash, hmac }) {
   const { billingType, nsfw } = data
   let billingCost = TERRITORY_COST_MONTHLY
-  let billAt = datePivot(new Date(), { months: 1 })
+  let billPaidUntil = datePivot(new Date(), { months: 1 })
 
   if (billingType === 'ONCE') {
     billingCost = TERRITORY_COST_ONCE
-    billAt = null
+    billPaidUntil = null
   } else if (billingType === 'YEARLY') {
     billingCost = TERRITORY_COST_YEARLY
-    billAt = datePivot(new Date(), { years: 1 })
+    billPaidUntil = datePivot(new Date(), { years: 1 })
   }
 
   const cost = BigInt(1000) * BigInt(billingCost)
@@ -272,6 +261,7 @@ async function createSub (parent, data, { me, models, lnd, hash, hmac }) {
       models.sub.create({
         data: {
           ...data,
+          billPaidUntil,
           billingCost,
           rankingType: 'WOT',
           userId: me.id,
@@ -286,15 +276,7 @@ async function createSub (parent, data, { me, models, lnd, hash, hmac }) {
           msats: cost,
           type: 'BILLING'
         }
-      }),
-      // schedule 'em
-      ...(billAt
-        ? [models.$queryRaw`
-          INSERT INTO pgboss.job (name, data, startafter, keepuntil) VALUES ('territoryBilling',
-            ${JSON.stringify({
-              subName: data.name
-            })}::JSONB, ${billAt}, ${datePivot(billAt, { days: 1 })})`]
-        : [])
+      })
     ], { models, lnd, hash, hmac, me, enforceFee: billingCost })
 
     return results[1]
@@ -307,26 +289,77 @@ async function createSub (parent, data, { me, models, lnd, hash, hmac }) {
 }
 
 async function updateSub (parent, { oldName, ...data }, { me, models, lnd, hash, hmac }) {
-  // prevent modification of billingType
-  delete data.billingType
+  const oldSub = await models.sub.findUnique({
+    where: {
+      name: oldName,
+      userId: me.id
+    }
+  })
+
+  if (!oldSub) {
+    throw new GraphQLError('sub not found', { extensions: { code: 'BAD_INPUT' } })
+  }
 
   try {
-    const results = await models.$transaction([
-      models.sub.update({
-        data,
-        where: {
-          name: oldName,
-          userId: me.id
-        }
-      }),
-      models.$queryRaw`
-        UPDATE pgboss.job
-          SET data = ${JSON.stringify({ subName: data.name })}::JSONB
-          WHERE name = 'territoryBilling'
-          AND data->>'subName' = ${oldName}`
-    ])
+    // if the cost is changing, record the new cost and update billing job
+    if (oldSub.billingType !== data.billingType) {
+      // make sure the current cost is recorded so they are grandfathered in
+      data.billingCost = TERRITORY_PERIOD_COST(data.billingType)
 
-    return results[0]
+      // we never want to bill them again if they are changing to ONCE
+      if (data.billingType === 'ONCE') {
+        data.billPaidUntil = null
+      }
+
+      // if they are changing to YEARLY, bill them in a year
+      // if they are changing to MONTHLY from YEARLY, do nothing
+      if (oldSub.billingType === 'MONTHLY' && data.billingType === 'YEARLY') {
+        data.billPaidUntil = datePivot(new Date(oldSub.billedLastAt), { years: 1 })
+      }
+
+      // if the billing type is changing such that it's more expensive, bill 'em the difference
+      const proratedCost = proratedBillingCost(oldSub, data.billingType)
+      if (proratedCost > 0) {
+        const cost = BigInt(1000) * BigInt(proratedCost)
+        const results = await serializeInvoicable([
+          models.user.update({
+            where: {
+              id: me.id
+            },
+            data: {
+              msats: {
+                decrement: cost
+              }
+            }
+          }),
+          models.subAct.create({
+            data: {
+              userId: me.id,
+              subName: oldName,
+              msats: cost,
+              type: 'BILLING'
+            }
+          }),
+          models.sub.update({
+            data,
+            where: {
+              name: oldName,
+              userId: me.id
+            }
+          })
+        ], { models, lnd, hash, hmac, me, enforceFee: proratedCost })
+        return results[2]
+      }
+    }
+
+    // if we get here they are changin in a way that doesn't cost them anything
+    return await models.sub.update({
+      data,
+      where: {
+        name: oldName,
+        userId: me.id
+      }
+    })
   } catch (error) {
     if (error.code === 'P2002') {
       throw new GraphQLError('name taken', { extensions: { code: 'BAD_INPUT' } })

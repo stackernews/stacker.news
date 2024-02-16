@@ -327,11 +327,11 @@ const waitForWebLNPayment = async ({ provider, invoice, pollInvoice, gqlCacheUpd
     return await new Promise((resolve, reject) => {
       // be optimistic and pretend zap was already successful for consistent zapping UX
       undoUpdate = gqlCacheUpdate?.()
-      // can't use await here since we might be paying HODL invoices
+      // can't use await here since we might be paying JIT invoices
       // and sendPaymentAsync is not supported yet.
       // see https://www.webln.guide/building-lightning-apps/webln-reference/webln.sendpaymentasync
       provider.sendPayment(invoice)
-        // WebLN payment will never resolve here for HODL invoices
+        // WebLN payment will never resolve here for JIT invoices
         // since they only get resolved after settlement which can't happen here
         .then(() => resolve({ webLn: true, gqlCacheUpdateUndo: undoUpdate }))
         .catch(err => {

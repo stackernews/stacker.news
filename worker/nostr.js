@@ -19,7 +19,7 @@ export async function nip57 ({ data: { hash }, boss, lnd, models }) {
     return
   }
 
-  // check if invoice still exists since HODL invoices get deleted after usage
+  // check if invoice still exists since JIT invoices get deleted after usage
   if (!inv) return
 
   try {

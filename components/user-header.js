@@ -267,15 +267,15 @@ function HeaderHeader ({ user }) {
             <small className='text-muted d-flex align-items-center'>
               <CodeIcon className='me-1' height={16} width={16} /> verified stacker.news contributor
             </small>}
-          {user.optional.nostrAuthPubkey !== null && !me.privates?.hideNostr &&
+          {user.optional.nostrAuthPubkey &&
             <small className='text-muted d-flex-inline'>
               <SocialLink name='Nostr' id={user.optional.nostrAuthPubkey} />
             </small>}
-          {user.optional.githubId !== null && !me?.privates?.hideGithub &&
+          {user.optional.githubId &&
             <small className='text-muted d-flex-inline'>
               <SocialLink name='Github' id={user.optional.githubId} />
             </small>}
-          {user.optional.twitterId !== null && !me?.privates?.hideTwitter &&
+          {user.optional.twitterId !== null &&
             <small className='text-muted d-flex-inline'>
               <SocialLink name='Twitter' id={user.optional.twitterId} />
             </small>}

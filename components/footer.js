@@ -257,8 +257,8 @@ export default function Footer ({ links = true }) {
             <Link href='/kr' className='ms-1'>
               @kr
             </Link>
-            <Link href='/ekzyis' className='ms-1'>
-              @ekzyis
+            <Link href='/ek' className='ms-1'>
+              @ek
             </Link>
             <span className='ms-1'>&</span>
             <Link href='https://github.com/stackernews/stacker.news/graphs/contributors' className='ms-1' target='_blank' rel='noreferrer'>

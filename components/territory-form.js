@@ -5,12 +5,12 @@ import FeeButton, { FeeButtonProvider } from './fee-button'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
 import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/router'
-import { MAX_TERRITORY_DESC_LENGTH, POST_TYPES, TERRITORY_BILLING_OPTIONS } from '../lib/constants'
+import { MAX_TERRITORY_DESC_LENGTH, POST_TYPES, TERRITORY_BILLING_OPTIONS, TERRITORY_PERIOD_COST } from '../lib/constants'
 import { territorySchema } from '../lib/validate'
 import { useMe } from './me'
 import Info from './info'
-import { consumedBilling, proratedBillingCost } from '../lib/territory'
 import { abbrNum } from '../lib/format'
+import { purchasedType } from '../lib/territory'
 
 export default function TerritoryForm ({ sub }) {
   const router = useRouter()
@@ -62,10 +62,11 @@ export default function TerritoryForm ({ sub }) {
 
     // we are changing billing type to something more expensive so prorate the change
     if (sub?.billingType?.toLowerCase() !== billing) {
-      lines.consumed = {
-        term: `- ${abbrNum(consumedBilling(sub))}`,
-        label: 'prorated credit',
-        modifier: cost => cost - consumedBilling(sub)
+      const alreadyBilled = TERRITORY_PERIOD_COST(purchasedType(sub))
+      lines.paid = {
+        term: `- ${abbrNum(alreadyBilled)} sats`,
+        label: 'already paid',
+        modifier: cost => cost - alreadyBilled
       }
       return lines
     }

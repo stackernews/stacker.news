@@ -214,7 +214,7 @@ async function getInfoWithRelay (relay, walletPubkey) {
     ], {
       onevent (event) {
         clearTimeout(timer)
-        const supported = event.content.split()
+        const supported = event.content.split(',')
         resolve(supported)
         sub.close()
       },

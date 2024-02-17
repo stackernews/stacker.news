@@ -8,6 +8,7 @@
     "migrate": "prisma migrate deploy",
     "start": "NODE_OPTIONS='--trace-warnings' next start -p $PORT --keepAliveTimeout 120000",
     "lint": "standard",
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest",
     "worker": "tsx --trace-warnings worker/index.js"
   },
   "dependencies": {
@@ -115,6 +116,7 @@
   "devDependencies": {
     "@next/eslint-plugin-next": "^13.5.4",
     "eslint": "^8.51.0",
+    "jest": "^29.7.0",
     "standard": "^17.1.0"
   }
 }

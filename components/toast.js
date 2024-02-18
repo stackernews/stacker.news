@@ -13,13 +13,26 @@ export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([])
   const toastId = useRef(0)
 
-  const dispatchToast = useCallback((toastConfig) => {
-    toastConfig = {
-      ...toastConfig,
+  const dispatchToast = useCallback((toast) => {
+    toast = {
+      ...toast,
       id: toastId.current++
     }
-    setToasts(toasts => [...toasts, toastConfig])
-    return () => removeToast(toastConfig)
+    const { flowId } = toast
+    setToasts(toasts => {
+      if (flowId) {
+        // replace previous toast with same flow id
+        const idx = toasts.findIndex(toast => toast.flowId === flowId)
+        if (idx === -1) return [...toasts, toast]
+        return [
+          ...toasts.slice(0, idx),
+          toast,
+          ...toasts.slice(idx + 1)
+        ]
+      }
+      return [...toasts, toast]
+    })
+    return () => removeToast(toast)
   }, [])
 
   const removeToast = useCallback(({ id, onCancel, tag }) => {

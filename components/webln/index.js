@@ -83,30 +83,29 @@ function RawWebLNProvider ({ children }) {
 
   const sendPaymentWithToast = function ({ bolt11, hash, hmac }) {
     let canceled = false
-    let removeToast = toaster.warning('payment pending', {
+    const flowId = hash
+    toaster.warning('payment pending', {
       autohide: false,
       onCancel: async () => {
         try {
           // hash and hmac are only passed for JIT invoices
           if (hash && hmac) await cancelInvoice({ variables: { hash, hmac } })
           canceled = true
-          toaster.warning('payment canceled')
-          removeToast = undefined
+          toaster.warning('payment canceled', { flowId })
         } catch (err) {
-          toaster.danger('failed to cancel payment')
+          toaster.danger('failed to cancel payment', { flowId })
         }
-      }
+      },
+      flowId
     })
     return provider.sendPayment(bolt11)
       .then(({ preimage }) => {
-        removeToast?.()
-        toaster.success('payment successful')
+        toaster.success('payment successful', { flowId })
         return { preimage }
       }).catch((err) => {
         if (canceled) return
-        removeToast?.()
         const reason = err?.message?.toString().toLowerCase() || 'unknown reason'
-        toaster.danger(`payment failed: ${reason}`)
+        toaster.danger(`payment failed: ${reason}`, { flowId })
         throw err
       })
   }

@@ -166,3 +166,46 @@ export const ToastProvider = ({ children }) => {
 }
 
 export const useToast = () => useContext(ToastContext)
+
+export const withToastFlow = (toaster) => flowFn => {
+  const wrapper = async (...args) => {
+    const {
+      flowId,
+      type: t,
+      onPending,
+      onSuccess,
+      onCancel,
+      onError
+    } = flowFn(...args)
+    let canceled
+    toaster.warning(`${t} pending`, {
+      autohide: false,
+      onCancel: async () => {
+        try {
+          await onCancel?.()
+          canceled = true
+          toaster.warning(`${t} canceled`, { flowId })
+        } catch (err) {
+          toaster.danger(`failed to cancel ${t}`, { flowId })
+        }
+      },
+      flowId
+    })
+    try {
+      const ret = await onPending()
+      if (!canceled) {
+        toaster.success(`${t} successful`, { flowId })
+        await onSuccess?.()
+      }
+      return ret
+    } catch (err) {
+      // ignore errors if canceled since they might be caused by cancellation
+      if (canceled) return
+      const reason = err?.message?.toString().toLowerCase() || 'unknown reason'
+      toaster.danger(`${t} failed: ${reason}`, { flowId })
+      await onError?.()
+      throw err
+    }
+  }
+  return wrapper
+}

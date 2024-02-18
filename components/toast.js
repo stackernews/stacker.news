@@ -24,12 +24,22 @@ export const ToastProvider = ({ children }) => {
 
   const removeToast = useCallback(({ id, onCancel, tag }) => {
     setToasts(toasts => toasts.filter(toast => {
-      if (tag && !onCancel) {
-        // if tag onCancel is not set, toast did show X for closing.
-        // if additionally tag is set, we close all toasts with same tag.
-        return toast.tag !== tag
+      if (toast.id === id) {
+        // remove the toast with the passed id with no exceptions
+        return false
       }
-      return toast.id !== id
+      const sameTag = tag && tag === toast.tag
+      if (!sameTag) {
+        // don't touch toasts with different tags
+        return true
+      }
+      const toRemoveHasCancel = !!toast.onCancel
+      if (toRemoveHasCancel) {
+        // don't remove this toast so the user can decide to cancel this toast now
+        return true
+      }
+      // remove toasts with same tag if they are not cancelable
+      return false
     }))
   }, [])
 

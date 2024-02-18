@@ -206,8 +206,8 @@ export default function useCrossposter () {
         }
       } catch (error) {
         await crosspostError(error.message)
-        failedRelays = [] 
-        
+        failedRelays = []
+
         // wait 2 seconds to show error then break
         await new Promise(resolve => setTimeout(resolve, 2000))
         return { allSuccessful, noteId }

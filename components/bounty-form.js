@@ -143,7 +143,7 @@ export function BountyForm ({
             : null
         }
       />
-      <AdvPostForm edit={!!item} />
+      <AdvPostForm edit={!!item} item={item} />
       <ItemButtonBar itemId={item?.id} canDelete={false} />
     </Form>
   )

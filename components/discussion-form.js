@@ -123,7 +123,7 @@ export function DiscussionForm ({
           ? <div className='text-muted fw-bold'><Countdown date={editThreshold} /></div>
           : null}
       />
-      <AdvPostForm edit={!!item} />
+      <AdvPostForm edit={!!item} item={item} />
       <ItemButtonBar itemId={item?.id} />
       {!item &&
         <div className={`mt-3 ${related.length > 0 ? '' : 'invisible'}`}>

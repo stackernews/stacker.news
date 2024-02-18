@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import AccordianItem from './accordian-item'
 import { Input, InputUserSuggest, VariableInput, Checkbox } from './form'
 import InputGroup from 'react-bootstrap/InputGroup'
@@ -19,12 +20,36 @@ export function AdvPostInitial ({ forward, boost }) {
   }
 }
 
-export default function AdvPostForm ({ children }) {
+export default function AdvPostForm ({ children, item }) {
   const me = useMe()
   const { merge } = useFeeButton()
   const router = useRouter()
+  const [itemType, setItemType] = useState()
 
-  const itemType = router.query.type
+  useEffect(() => {
+    const determineItemType = () => {
+      if (router && router.query.type) {
+        return router.query.type
+      } else if (item) {
+        const typeMap = {
+          url: 'link',
+          bounty: 'bounty',
+          pollCost: 'poll'
+        }
+
+        for (const [key, type] of Object.entries(typeMap)) {
+          if (item[key]) {
+            return type
+          }
+        }
+
+        return 'discussion'
+      }
+    }
+
+    const type = determineItemType()
+    setItemType(type)
+  }, [item, router])
 
   function renderCrosspostDetails (itemType) {
     switch (itemType) {

@@ -194,7 +194,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
           }
         }}
       />
-      <AdvPostForm edit={!!item}>
+      <AdvPostForm edit={!!item} item={item}>
         <MarkdownInput
           label='context'
           name='text'

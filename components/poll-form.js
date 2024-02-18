@@ -109,7 +109,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
           : null}
         maxLength={MAX_POLL_CHOICE_LENGTH}
       />
-      <AdvPostForm edit={!!item} />
+      <AdvPostForm edit={!!item} item={item} />
       <ItemButtonBar itemId={item?.id} />
     </Form>
   )

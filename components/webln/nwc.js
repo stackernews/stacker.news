@@ -214,7 +214,7 @@ async function getInfoWithRelay (relay, walletPubkey) {
     ], {
       onevent (event) {
         clearTimeout(timer)
-        const supported = event.content.split(',')
+        const supported = event.content.split(/[\s,]+/) // handle both spaces and commas
         supported.includes('pay_invoice') ? resolve() : reject(new Error('wallet does not support pay_invoice'))
         sub.close()
       },

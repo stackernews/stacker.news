@@ -186,7 +186,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
 
   const onSubmitWrapper = useCallback(async (
     { cost, ...formValues },
-    { variables, optimisticResponse, update, ...submitArgs }) => {
+    { variables, optimisticResponse, update, flowId, ...submitArgs }) => {
     // some actions require a session
     if (!me && options.requireSession) {
       throw new Error('you must be logged in')
@@ -249,7 +249,8 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
       showModal,
       provider,
       pollInvoice,
-      gqlCacheUpdate: _update
+      gqlCacheUpdate: _update,
+      flowId
     })
 
     const retry = () => onSubmit(
@@ -294,10 +295,10 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
 }
 
 const INVOICE_CANCELED_ERROR = 'invoice canceled'
-const waitForPayment = async ({ invoice, showModal, provider, pollInvoice, gqlCacheUpdate }) => {
+const waitForPayment = async ({ invoice, showModal, provider, pollInvoice, gqlCacheUpdate, flowId }) => {
   if (provider.enabled) {
     try {
-      return await waitForWebLNPayment({ provider, invoice, pollInvoice, gqlCacheUpdate })
+      return await waitForWebLNPayment({ provider, invoice, pollInvoice, gqlCacheUpdate, flowId })
     } catch (err) {
       // check for errors which mean that QR code will also fail
       if (err.message === INVOICE_CANCELED_ERROR) {
@@ -319,7 +320,7 @@ const waitForPayment = async ({ invoice, showModal, provider, pollInvoice, gqlCa
   })
 }
 
-const waitForWebLNPayment = async ({ provider, invoice, pollInvoice, gqlCacheUpdate }) => {
+const waitForWebLNPayment = async ({ provider, invoice, pollInvoice, gqlCacheUpdate, flowId }) => {
   let undoUpdate
   try {
     // try WebLN provider first
@@ -329,7 +330,7 @@ const waitForWebLNPayment = async ({ provider, invoice, pollInvoice, gqlCacheUpd
       // can't use await here since we might be paying JIT invoices
       // and sendPaymentAsync is not supported yet.
       // see https://www.webln.guide/building-lightning-apps/webln-reference/webln.sendpaymentasync
-      provider.sendPayment(invoice)
+      provider.sendPayment({ ...invoice, flowId })
         // WebLN payment will never resolve here for JIT invoices
         // since they only get resolved after settlement which can't happen here
         .then(() => resolve({ webLn: true, gqlCacheUpdateUndo: undoUpdate }))

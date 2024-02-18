@@ -7,7 +7,7 @@ import UpBolt from '../svgs/bolt.svg'
 import { amountSchema } from '../lib/validate'
 import { gql, useMutation } from '@apollo/client'
 import { payOrLoginError, useInvoiceModal } from './invoice'
-import { useToast } from './toast'
+import { useToast, withToastFlow } from './toast'
 import { useLightning } from './lightning'
 
 const defaultTips = [100, 1000, 10000, 100000]
@@ -240,6 +240,32 @@ export function useZap () {
       strike()
     }, [act, strike])
 
+  const zapWithToast = withToastFlow(toaster)(
+    ({ flowId, ...zapArgs }) => {
+      const delay = 5000
+      let canceled
+      return {
+        flowId,
+        type: 'zap',
+        onPending: () =>
+          new Promise((resolve, reject) => {
+            setTimeout(
+              () => {
+                if (canceled) return resolve()
+                zap(zapArgs).then(resolve).catch(reject)
+              },
+              delay
+            )
+          }),
+        onCancel: () => {
+          // we can't simply clear the timeout on cancel since
+          // the onPending promise would never settle in that case
+          canceled = true
+        }
+      }
+    }
+  )
+
   return useCallback(async ({ item, me }) => {
     const meSats = (item?.meSats || 0)
 
@@ -256,9 +282,10 @@ export function useZap () {
     const variables = { id: item.id, sats, act: 'TIP' }
     const insufficientFunds = me?.privates.sats < sats
     const optimisticResponse = { act: { path: item.path, ...variables } }
+    const flowId = (+new Date()).toString(16)
     try {
       if (!insufficientFunds) strike()
-      await zap({ variables, optimisticResponse: insufficientFunds ? null : optimisticResponse })
+      await zapWithToast({ variables, optimisticResponse: insufficientFunds ? null : optimisticResponse, flowId })
     } catch (error) {
       if (payOrLoginError(error)) {
         // call non-idempotent version
@@ -268,7 +295,8 @@ export function useZap () {
           await invoiceableAct({ amount }, {
             variables: { ...variables, sats: amount },
             optimisticResponse,
-            update
+            update,
+            flowId
           })
         } catch (error) {}
         return

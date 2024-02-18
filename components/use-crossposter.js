@@ -178,7 +178,7 @@ export default function useCrossposter () {
   }
 
   const crosspostItem = async item => {
-    let failedRelays
+    let failedRelays = []
     let allSuccessful = false
     let noteId
 
@@ -190,7 +190,7 @@ export default function useCrossposter () {
         const result = await crosspost(event, failedRelays || relays)
 
         noteId = result.noteId
-        failedRelays = result?.failedRelays.map(relayObj => relayObj.relay)
+        failedRelays = result?.failedRelays?.map(relayObj => relayObj.relay) || []
 
         if (failedRelays.length > 0) {
           const userAction = await relayError(failedRelays)
@@ -206,7 +206,8 @@ export default function useCrossposter () {
         }
       } catch (error) {
         await crosspostError(error.message)
-
+        failedRelays = [] 
+        
         // wait 2 seconds to show error then break
         await new Promise(resolve => setTimeout(resolve, 2000))
         return { allSuccessful, noteId }

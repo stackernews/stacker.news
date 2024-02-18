@@ -7,11 +7,12 @@ import lnpr from 'bolt11'
 import { SELECT } from './item'
 import { lnAddrOptions } from '../../lib/lnurl'
 import { msatsToSats, msatsToSatsDecimal } from '../../lib/format'
-import { LNDAutowithdrawSchema, amountSchema, lnAddrAutowithdrawSchema, lnAddrSchema, ssValidate, withdrawlSchema } from '../../lib/validate'
+import { LNDAutowithdrawSchema, amountSchema, lnAddrAutowithdrawSchema, lnAddrSchema, ssValidate, withdrawlSchema, CoreLightningAutowithdrawSchema } from '../../lib/validate'
 import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, ANON_USER_ID, BALANCE_LIMIT_MSATS, INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT } from '../../lib/constants'
 import { datePivot } from '../../lib/time'
 import assertGofacYourself from './ofac'
 import { HEX_REGEX } from '../../lib/macaroon'
+// import LightningClient from 'lightning-client'
 
 export async function getInvoice (parent, { id }, { me, models, lnd }) {
   const inv = await models.invoice.findUnique({
@@ -437,6 +438,38 @@ export default {
         },
         { settings, data }, { me, models })
     },
+    
+    upsertWalletCoreLightning: async (parent, { settings, ...data }, { me, models }) => {
+      // store hex inputs as base64
+      if (HEX_REGEX.test(data.macaroon)) {
+        data.macaroon = Buffer.from(data.macaroon, 'hex').toString('base64')
+      }
+      if (HEX_REGEX.test(data.cert)) {
+        data.cert = Buffer.from(data.cert, 'hex').toString('base64')
+      }
+
+      return await upsertWallet(
+        {
+          schema: CoreLightningAutowithdrawSchema,
+          walletName: 'walletCoreLightning',
+          walletType: 'CORE_LIGHTNING',
+          testConnect: async ({ cert, macaroon, socket }) => {
+            const { lnd } = await authenticatedLndGrpc({
+              cert,
+              macaroon,
+              socket
+            })
+            return await createInvoice({
+              description: 'SN connection test',
+              lnd,
+              tokens: 0,
+              expires_at: new Date()
+            })
+          }
+        },
+        { settings, data }, { me, models })
+    },
+
     upsertWalletLNAddr: async (parent, { settings, ...data }, { me, models }) => {
       return await upsertWallet(
         {

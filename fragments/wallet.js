@@ -89,6 +89,13 @@ mutation upsertWalletLND($id: ID, $socket: String!, $macaroon: String!, $cert: S
 }
 `
 
+export const UPSERT_WALLET_CORE_LIGHTNING =
+gql`
+mutation upsertWalletLND($id: ID, $socket: String!, $macaroon: String!, $cert: String, $settings: AutowithdrawSettings!) {
+  upsertWalletLND(id: $id, socket: $socket, macaroon: $macaroon, cert: $cert, settings: $settings)
+}
+`
+
 export const REMOVE_WALLET =
 gql`
 mutation removeWallet($id: ID!) {

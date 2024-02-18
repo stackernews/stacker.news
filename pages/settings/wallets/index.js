@@ -9,6 +9,7 @@ import { LNDCard } from './lnd'
 import { WALLETS } from '../../../fragments/wallet'
 import { useQuery } from '@apollo/client'
 import PageLoading from '../../../components/page-loading'
+import { CoreLightningCard } from './core-lightning'
 
 export const getServerSideProps = getGetServerSideProps({ query: WALLETS, authRequired: true })
 
@@ -19,6 +20,7 @@ export default function Wallet ({ ssrData }) {
   const { wallets } = data || ssrData
   const lnd = wallets.find(w => w.type === 'LND')
   const lnaddr = wallets.find(w => w.type === 'LIGHTNING_ADDRESS')
+  const coreLightning = wallets.find(w => w.type === 'CORE_LIGHTNING')
 
   return (
     <Layout>
@@ -30,7 +32,7 @@ export default function Wallet ({ ssrData }) {
           <LNDCard wallet={lnd} />
           <LNbitsCard />
           <NWCCard />
-          <WalletCard title='coming soon' badges={['probably']} />
+          <CoreLightningCard wallet={coreLightning}/>
           <WalletCard title='coming soon' badges={['we hope']} />
           <WalletCard title='coming soon' badges={['tm']} />
         </div>

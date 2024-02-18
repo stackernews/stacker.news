@@ -123,6 +123,7 @@ model User {
 enum WalletType {
   LIGHTNING_ADDRESS
   LND
+  CORE_LIGHTNING
 }
 
 model Wallet {
@@ -144,6 +145,7 @@ model Wallet {
   wallet                 Json?                   @db.JsonB
   walletLightningAddress WalletLightningAddress?
   walletLND              WalletLND?
+  walletCoreLightning    WalletCoreLightning? 
 
   @@index([userId])
 }
@@ -158,6 +160,17 @@ model WalletLightningAddress {
 }
 
 model WalletLND {
+  id        Int      @id @default(autoincrement())
+  walletId  Int      @unique
+  wallet    Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  socket    String
+  macaroon  String
+  cert      String?
+}
+
+model WalletCoreLightning {
   id        Int      @id @default(autoincrement())
   walletId  Int      @unique
   wallet    Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)

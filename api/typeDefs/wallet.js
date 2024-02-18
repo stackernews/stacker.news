@@ -19,6 +19,7 @@ export default gql`
     cancelInvoice(hash: String!, hmac: String!): Invoice!
     dropBolt11(id: ID): Withdrawl
     upsertWalletLND(id: ID, socket: String!, macaroon: String!, cert: String, settings: AutowithdrawSettings!): Boolean
+    upsertWalletCoreLightning(id: ID, socket: String!, macaroon: String!, cert: String, settings: AutowithdrawSettings!): Boolean
     upsertWalletLNAddr(id: ID, address: String!, settings: AutowithdrawSettings!): Boolean
     removeWallet(id: ID!): Boolean
   }

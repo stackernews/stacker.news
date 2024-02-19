@@ -5,7 +5,7 @@ import { Form, Input, SubmitButton } from './form'
 import { useMe } from './me'
 import UpBolt from '../svgs/bolt.svg'
 import { amountSchema } from '../lib/validate'
-import { gql, useMutation } from '@apollo/client'
+import { gql, useApolloClient, useMutation } from '@apollo/client'
 import { payOrLoginError, useInvoiceModal } from './invoice'
 import { useToast, withToastFlow } from './toast'
 import { useLightning } from './lightning'
@@ -227,12 +227,13 @@ export function useZap () {
           sats
           path
         }
-      }`, { update }
+      }`
   )
 
   const toaster = useToast()
   const strike = useLightning()
   const [act] = useAct()
+  const client = useApolloClient()
 
   const invoiceableAct = useInvoiceModal(
     async ({ hash, hmac }, { variables, ...apolloArgs }) => {
@@ -241,18 +242,40 @@ export function useZap () {
     }, [act, strike])
 
   const zapWithToast = withToastFlow(toaster)(
-    ({ flowId, ...zapArgs }) => {
+    ({ variables, optimisticResponse, update, flowId }) => {
+      const itemId = variables.id
       const delay = 5000
       let canceled
+      // update function for optimistic UX
+      const _update = () => {
+        const fragment = {
+          id: `Item:${itemId}`,
+          fragment: gql`
+          fragment ItemMeSats on Item {
+            sats
+            meSats
+          }
+        `
+        }
+        const item = client.cache.readFragment(fragment)
+        update(client.cache, { data: optimisticResponse })
+        // undo function
+        return () => client.cache.writeFragment({ ...fragment, data: item })
+      }
+      let undoUpdate
       return {
         flowId,
         type: 'zap',
         onPending: () =>
           new Promise((resolve, reject) => {
+            undoUpdate = _update()
             setTimeout(
               () => {
                 if (canceled) return resolve()
-                zap(zapArgs).then(resolve).catch(reject)
+                zap({ variables, optimisticResponse, update: null }).then(resolve).catch((err) => {
+                  undoUpdate()
+                  reject(err)
+                })
               },
               delay
             )
@@ -261,6 +284,7 @@ export function useZap () {
           // we can't simply clear the timeout on cancel since
           // the onPending promise would never settle in that case
           canceled = true
+          undoUpdate?.()
         },
         // no error message for custodial zaps
         hideError: true
@@ -288,7 +312,7 @@ export function useZap () {
     try {
       if (insufficientFunds) throw new Error('insufficient funds')
       strike()
-      await zapWithToast({ variables, optimisticResponse: insufficientFunds ? null : optimisticResponse, flowId })
+      await zapWithToast({ variables, optimisticResponse: insufficientFunds ? null : optimisticResponse, update, flowId })
     } catch (error) {
       if (payOrLoginError(error)) {
         // call non-idempotent version

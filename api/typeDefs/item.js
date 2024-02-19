@@ -111,6 +111,7 @@ export default gql`
     isJob: Boolean!
     pollCost: Int
     poll: Poll
+    pollExpiresAt: Date
     company: String
     location: String
     remote: Boolean

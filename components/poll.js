@@ -80,7 +80,7 @@ export default function Poll ({ item }) {
     )
   }
 
-  const expiresIn = timeLeft(new Date(+new Date(item.createdAt) + 864e5))
+  const expiresIn = timeLeft(new Date(item.pollExpiresAt))
   const mine = item.user.id === me?.id
   return (
     <div className={styles.pollBox}>

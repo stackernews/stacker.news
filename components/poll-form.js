@@ -4,6 +4,7 @@ import { gql, useApolloClient, useMutation } from '@apollo/client'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
 import { MAX_POLL_CHOICE_LENGTH, MAX_POLL_NUM_CHOICES, MAX_TITLE_LENGTH } from '../lib/constants'
+import { datePivot } from '../lib/time'
 import { pollSchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select'
 import { useCallback } from 'react'
@@ -22,9 +23,9 @@ export function PollForm ({ item, sub, editThreshold, children }) {
   const [upsertPoll] = useMutation(
     gql`
       mutation upsertPoll($sub: String, $id: ID, $title: String!, $text: String,
-        $options: [String!]!, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String) {
+        $options: [String!]!, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String, $pollExpiresAt: Date) {
         upsertPoll(sub: $sub, id: $id, title: $title, text: $text,
-          options: $options, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac) {
+          options: $options, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac, pollExpiresAt: $pollExpiresAt) {
           id
           deleteScheduledAt
         }
@@ -66,6 +67,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         title: item?.title || '',
         text: item?.text || '',
         options: initialOptions || ['', ''],
+        pollExpiresAt: item?.pollExpiresAt || datePivot(new Date(), { days: 1 }),
         ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}

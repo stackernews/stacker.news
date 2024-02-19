@@ -286,7 +286,8 @@ export function useZap () {
     const optimisticResponse = { act: { path: item.path, ...variables } }
     const flowId = (+new Date()).toString(16)
     try {
-      if (!insufficientFunds) strike()
+      if (insufficientFunds) throw new Error('insufficient funds')
+      strike()
       await zapWithToast({ variables, optimisticResponse: insufficientFunds ? null : optimisticResponse, flowId })
     } catch (error) {
       if (payOrLoginError(error)) {

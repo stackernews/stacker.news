@@ -46,7 +46,7 @@ export const ToastProvider = ({ children }) => {
         // don't touch toasts with different tags
         return true
       }
-      const toRemoveHasCancel = !!toast.onCancel
+      const toRemoveHasCancel = !!toast.onCancel || !!toast.onUndo
       if (toRemoveHasCancel) {
         // don't remove this toast so the user can decide to cancel this toast now
         return true
@@ -135,6 +135,17 @@ export const ToastProvider = ({ children }) => {
       <ToastContainer className={`pb-3 pe-3 ${styles.toastContainer}`} position='bottom-end' containerPosition='fixed'>
         {visibleToasts.map(toast => {
           const textStyle = toast.variant === 'warning' ? 'text-dark' : ''
+          const onClose = () => {
+            toast.onUndo?.()
+            toast.onCancel?.()
+            toast.onClose?.()
+            removeToast(toast)
+          }
+          const buttonElement = toast.onUndo
+            ? <div className={`${styles.toastUndo} ${textStyle}`}>[undo]</div>
+            : toast.onCancel
+              ? <div className={`${styles.toastCancel} ${textStyle}`}>cancel</div>
+              : <div className={`${styles.toastClose} ${textStyle}`}>X</div>
           return (
             <Toast
               key={toast.id} bg={toast.variant} show autohide={toast.autohide}
@@ -147,12 +158,8 @@ export const ToastProvider = ({ children }) => {
                     variant={null}
                     className='p-0 ps-2'
                     aria-label='close'
-                    onClick={() => {
-                      toast.onCancel?.()
-                      toast.onClose?.()
-                      removeToast(toast)
-                    }}
-                  >{toast.onCancel ? <div className={`${styles.toastCancel} ${textStyle}`}>cancel</div> : <div className={`${styles.toastClose} ${textStyle}`}>X</div>}
+                    onClick={onClose}
+                  >{buttonElement}
                   </Button>
                 </div>
               </ToastBody>
@@ -176,6 +183,7 @@ export const withToastFlow = (toaster) => flowFn => {
       onSuccess,
       onCancel,
       onError,
+      onUndo,
       hideError,
       hideSuccess
     } = flowFn(...args)
@@ -186,15 +194,27 @@ export const withToastFlow = (toaster) => flowFn => {
 
     toaster.warning(`${t} pending`, {
       autohide: false,
-      onCancel: async () => {
-        try {
-          await onCancel?.()
-          canceled = true
-          toaster.warning(`${t} canceled`, { flowId })
-        } catch (err) {
-          toaster.danger(`failed to cancel ${t}`, { flowId })
+      onCancel: onCancel
+        ? async () => {
+          try {
+            await onCancel()
+            canceled = true
+            toaster.warning(`${t} canceled`, { flowId })
+          } catch (err) {
+            toaster.danger(`failed to cancel ${t}`, { flowId })
+          }
         }
-      },
+        : undefined,
+      onUndo: onUndo
+        ? async () => {
+          try {
+            await onUndo()
+            canceled = true
+          } catch (err) {
+            toaster.danger(`failed to undo ${t}`, { flowId })
+          }
+        }
+        : undefined,
       flowId
     })
     try {

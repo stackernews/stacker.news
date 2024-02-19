@@ -135,7 +135,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
         title: item?.title || shareTitle || '',
         url: item?.url || shareUrl || '',
         text: item?.text || '',
-        crosspost: me?.nostrCrossposting,
+        crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
         ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}

@@ -243,7 +243,7 @@ export function useZap () {
 
   const zapWithToast = withToastFlow(toaster)(
     ({ variables, optimisticResponse, update, flowId }) => {
-      const itemId = variables.id
+      const { id: itemId, amount } = variables
       const delay = 5000
       let canceled
       // update function for optimistic UX
@@ -266,6 +266,7 @@ export function useZap () {
       return {
         flowId,
         type: 'zap',
+        pendingMessage: `zapped ${amount} sats`,
         onPending: () =>
           new Promise((resolve, reject) => {
             undoUpdate = _update()
@@ -305,7 +306,7 @@ export function useZap () {
       sats = meSats + sats
     }
 
-    const variables = { id: item.id, sats, act: 'TIP' }
+    const variables = { id: item.id, sats, act: 'TIP', amount: sats - meSats }
     const insufficientFunds = me?.privates.sats < sats
     const optimisticResponse = { act: { path: item.path, ...variables } }
     const flowId = (+new Date()).toString(16)

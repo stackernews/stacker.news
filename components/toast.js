@@ -180,28 +180,30 @@ export const withToastFlow = (toaster) => flowFn => {
       flowId,
       type: t,
       onPending,
+      pendingMessage,
       onSuccess,
       onCancel,
       onError,
       onUndo,
       hideError,
-      hideSuccess
+      hideSuccess,
+      ...toastProps
     } = flowFn(...args)
     let canceled
 
     // XXX HACK this ends the flow by using flow toast which immediately closes itself
-    const endFlow = () => toaster.warning('', { delay: 0, autohide: true, flowId })
+    const endFlow = () => toaster.warning('', { ...toastProps, delay: 0, autohide: true, flowId })
 
-    toaster.warning(`${t} pending`, {
+    toaster.warning(pendingMessage || `${t} pending`, {
       autohide: false,
       onCancel: onCancel
         ? async () => {
           try {
             await onCancel()
             canceled = true
-            toaster.warning(`${t} canceled`, { flowId })
+            toaster.warning(`${t} canceled`, { ...toastProps, flowId })
           } catch (err) {
-            toaster.danger(`failed to cancel ${t}`, { flowId })
+            toaster.danger(`failed to cancel ${t}`, { ...toastProps, flowId })
           }
         }
         : undefined,
@@ -211,11 +213,12 @@ export const withToastFlow = (toaster) => flowFn => {
             await onUndo()
             canceled = true
           } catch (err) {
-            toaster.danger(`failed to undo ${t}`, { flowId })
+            toaster.danger(`failed to undo ${t}`, { ...toastProps, flowId })
           }
         }
         : undefined,
-      flowId
+      flowId,
+      ...toastProps
     })
     try {
       const ret = await onPending()
@@ -223,7 +226,7 @@ export const withToastFlow = (toaster) => flowFn => {
         if (hideSuccess) {
           endFlow()
         } else {
-          toaster.success(`${t} successful`, { flowId })
+          toaster.success(`${t} successful`, { ...toastProps, flowId })
         }
         await onSuccess?.()
       }
@@ -235,7 +238,7 @@ export const withToastFlow = (toaster) => flowFn => {
       if (hideError) {
         endFlow()
       } else {
-        toaster.danger(`${t} failed: ${reason}`, { flowId })
+        toaster.danger(`${t} failed: ${reason}`, { ...toastProps, flowId })
       }
       await onError?.()
       throw err

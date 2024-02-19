@@ -286,7 +286,7 @@ export function useZap () {
           canceled = true
           undoUpdate?.()
         },
-        // no error message for custodial zaps
+        hideSuccess: true,
         hideError: true
       }
     }

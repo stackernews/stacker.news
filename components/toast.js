@@ -175,7 +175,8 @@ export const withToastFlow = (toaster) => flowFn => {
       onPending,
       onSuccess,
       onCancel,
-      onError
+      onError,
+      hideError
     } = flowFn(...args)
     let canceled
     toaster.warning(`${t} pending`, {
@@ -202,7 +203,12 @@ export const withToastFlow = (toaster) => flowFn => {
       // ignore errors if canceled since they might be caused by cancellation
       if (canceled) return
       const reason = err?.message?.toString().toLowerCase() || 'unknown reason'
-      toaster.danger(`${t} failed: ${reason}`, { flowId })
+      if (hideError) {
+        // XXX HACK to end flow by using flow toast which immediately closes itself
+        toaster.warning('', { delay: 0, autohide: true, flowId })
+      } else {
+        toaster.danger(`${t} failed: ${reason}`, { flowId })
+      }
       await onError?.()
       throw err
     }

@@ -261,7 +261,9 @@ export function useZap () {
           // we can't simply clear the timeout on cancel since
           // the onPending promise would never settle in that case
           canceled = true
-        }
+        },
+        // no error message for custodial zaps
+        hideError: true
       }
     }
   )

@@ -5,7 +5,6 @@ import { DEFAULT_CROSSPOSTING_RELAYS, crosspost, callWithTimeout } from '../lib/
 import { gql, useMutation, useQuery, useLazyQuery } from '@apollo/client'
 import { SETTINGS } from '../fragments/users'
 import { ITEM_FULL_FIELDS, POLL_FIELDS } from '../fragments/items'
-import { re } from 'mathjs'
 
 async function discussionToEvent (item) {
   const createdAt = Math.floor(Date.now() / 1000)
@@ -179,7 +178,7 @@ export default function useCrossposter () {
   }
 
   const crosspostItem = async item => {
-    let failedRelays;
+    let failedRelays
     let allSuccessful = false
     let noteId
 
@@ -191,7 +190,7 @@ export default function useCrossposter () {
         const result = await crosspost(event, failedRelays || relays)
 
         if (result.error) {
-          failedRelays = [];
+          failedRelays = []
           throw new Error(result.error)
         }
 

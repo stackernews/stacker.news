@@ -310,10 +310,15 @@ export function useZap () {
     const insufficientFunds = me?.privates.sats < sats
     const optimisticResponse = { act: { path: item.path, ...variables } }
     const flowId = (+new Date()).toString(16)
+    const zapArgs = { variables, optimisticResponse: insufficientFunds ? null : optimisticResponse, update, flowId }
     try {
       if (insufficientFunds) throw new Error('insufficient funds')
       strike()
-      await zapWithToast({ variables, optimisticResponse: insufficientFunds ? null : optimisticResponse, update, flowId })
+      if (me?.privates?.zapUndos) {
+        await zapWithToast(zapArgs)
+      } else {
+        await zap(zapArgs)
+      }
     } catch (error) {
       if (payOrLoginError(error)) {
         // call non-idempotent version

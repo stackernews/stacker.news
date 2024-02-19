@@ -39,6 +39,7 @@ export const ME = gql`
         tipDefault
         tipPopover
         turboTipping
+        zapUndos
         upvotePopover
         wildWestMode
         withdrawMaxFeeDefault
@@ -62,6 +63,7 @@ export const SETTINGS_FIELDS = gql`
     privates {
       tipDefault
       turboTipping
+      zapUndos
       fiatCurrency
       withdrawMaxFeeDefault
       noteItemSats

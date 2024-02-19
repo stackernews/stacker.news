@@ -1,4 +1,4 @@
-import { Form, Input, MarkdownInput, VariableInput } from '../components/form'
+import { DateTimeInput, Form, Input, MarkdownInput, VariableInput } from '../components/form'
 import { useRouter } from 'next/router'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
 import Countdown from './countdown'
@@ -100,7 +100,14 @@ export function PollForm ({ item, sub, editThreshold, children }) {
           : null}
         maxLength={MAX_POLL_CHOICE_LENGTH}
       />
-      <AdvPostForm edit={!!item} />
+      <AdvPostForm edit={!!item}>
+        <DateTimeInput
+          isClearable
+          label='poll expiration'
+          name='pollExpiresAt'
+          className='pr-4'
+        />
+      </AdvPostForm>
       <ItemButtonBar itemId={item?.id} />
     </Form>
   )

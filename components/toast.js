@@ -94,7 +94,7 @@ export const ToastProvider = ({ children }) => {
   // Only clear toasts with no cancel function on page navigation
   // since navigation should not interfere with being able to cancel an action.
   useEffect(() => {
-    const handleRouteChangeStart = () => setToasts(toasts => toasts.filter(({ onCancel }) => onCancel), [])
+    const handleRouteChangeStart = () => setToasts(toasts => toasts.filter(({ onCancel, onUndo }) => onCancel || onUndo), [])
     router.events.on('routeChangeStart', handleRouteChangeStart)
 
     return () => {

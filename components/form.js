@@ -963,6 +963,38 @@ export function DatePicker ({ fromName, toName, noForm, onChange, when, from, to
   )
 }
 
+export function DateTimeInput ({ label, groupClassName, name, ...props }) {
+  const [, meta] = useField({ ...props, name })
+  return (
+    <FormGroup label={label} className={groupClassName}>
+      <div>
+        <DateTimePicker name={name} {...props} />
+        <BootstrapForm.Control.Feedback type='invalid' className='d-block'>
+          {meta.error}
+        </BootstrapForm.Control.Feedback>
+      </div>
+    </FormGroup>
+  )
+}
+
+function DateTimePicker ({ name, className, ...props }) {
+  const [field, , helpers] = useField({ ...props, name })
+  return (
+    <ReactDatePicker
+      {...field}
+      {...props}
+      showTimeSelect
+      dateFormat='Pp'
+      className={`form-control ${className}`}
+      selected={(field.value && new Date(field.value)) || null}
+      value={(field.value && new Date(field.value)) || null}
+      onChange={(val) => {
+        helpers.setValue(val)
+      }}
+    />
+  )
+}
+
 function Client (Component) {
   return ({ initialValue, ...props }) => {
     // This component can be used for Formik fields

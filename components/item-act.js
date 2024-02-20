@@ -373,7 +373,7 @@ export function useZap () {
     }
 
     const variables = { id: item.id, sats, act: 'TIP', amount: sats - meSats }
-    const insufficientFunds = me?.privates.sats < sats
+    const insufficientFunds = me?.privates.sats < (sats - meSats)
     const optimisticResponse = { act: { path: item.path, ...variables } }
     const flowId = (+new Date()).toString(16)
     const zapArgs = { variables, optimisticResponse: insufficientFunds ? null : optimisticResponse, update, flowId }

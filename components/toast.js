@@ -142,7 +142,7 @@ export const ToastProvider = ({ children }) => {
             removeToast(toast)
           }
           const buttonElement = toast.onUndo
-            ? <div className={`${styles.toastUndo} ${textStyle}`}>[undo]</div>
+            ? <div className={`${styles.toastUndo} ${textStyle}`}>undo</div>
             : toast.onCancel
               ? <div className={`${styles.toastCancel} ${textStyle}`}>cancel</div>
               : <div className={`${styles.toastClose} ${textStyle}`}>X</div>

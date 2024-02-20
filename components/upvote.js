@@ -73,6 +73,7 @@ export default function UpVote ({ item, className }) {
   const [tipShow, _setTipShow] = useState(false)
   const ref = useRef()
   const me = useMe()
+  const [hover, setHover] = useState(false)
   const [setWalkthrough] = useMutation(
     gql`
       mutation setWalkthrough($upvotePopover: Boolean, $tipPopover: Boolean) {
@@ -114,7 +115,7 @@ export default function UpVote ({ item, className }) {
   const disabled = useMemo(() => item?.mine || item?.meForward || item?.deletedAt,
     [item?.mine, item?.meForward, item?.deletedAt])
 
-  const [meSats, overlayText, color] = useMemo(() => {
+  const [meSats, overlayText, color, nextColor] = useMemo(() => {
     const meSats = (item?.meSats || item?.meAnonSats || 0)
 
     // what should our next tip be?
@@ -130,7 +131,9 @@ export default function UpVote ({ item, className }) {
       raiseSats = meSats + sats
     }
 
-    return [meSats, me ? numWithUnits(sats, { abbreviate: false }) : 'zap it', getColor(meSats)]
+    return [
+      meSats, me ? numWithUnits(sats, { abbreviate: false }) : 'zap it',
+      getColor(meSats), getColor(meSats + (me?.privates?.tipDefault || 0))]
   }, [item?.meSats, item?.meAnonSats, me?.privates?.tipDefault, me?.privates?.turboDefault])
 
   return (
@@ -176,6 +179,8 @@ export default function UpVote ({ item, className }) {
             className={`${disabled ? styles.noSelfTips : ''} ${styles.upvoteWrapper}`}
           >
             <UpBolt
+              onMouseEnter={() => setHover(true)}
+              onMouseLeave={() => setHover(false)}
               width={26}
               height={26}
               className={
@@ -184,9 +189,9 @@ export default function UpVote ({ item, className }) {
                       ${disabled ? styles.noSelfTips : ''}
                       ${meSats ? styles.voted : ''}`
                     }
-              style={meSats
+              style={meSats || hover
                 ? {
-                    fill: color,
+                    fill: hover ? nextColor : color,
                     filter: `drop-shadow(0 0 6px ${color}90)`
                   }
                 : undefined}

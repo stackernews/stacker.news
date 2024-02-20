@@ -83,6 +83,8 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
       const { flowId } = args
       let canceled
       const sats = values.amount
+      const insufficientFunds = me?.privates?.sats < sats
+      if (insufficientFunds) throw new Error('insufficient funds')
       // update function for optimistic UX
       const update = () => {
         const fragment = {

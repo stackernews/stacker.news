@@ -94,6 +94,7 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
             path
             sats
             meSats
+            meDontLikeSats
           }
         `
         }
@@ -110,7 +111,7 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
       return {
         flowId,
         type: 'zap',
-        pendingMessage: `zapped ${sats} sats`,
+        pendingMessage: `${down ? 'down' : ''}zapped ${sats} sats`,
         onPending: async () => {
           await strike()
           onClose()

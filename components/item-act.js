@@ -80,6 +80,7 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
   const onSubmitWithUndos = withToastFlow(toaster)(
     (values, args) => {
       const delay = 5000
+      const { flowId } = args
       let canceled
       const sats = values.amount
       // update function for optimistic UX
@@ -103,7 +104,6 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
         actUpdate(client.cache, { data: optimisticResponse })
         return () => client.cache.writeFragment({ ...fragment, data: item })
       }
-      const flowId = (+new Date()).toString(16)
       let undoUpdate
       return {
         flowId,

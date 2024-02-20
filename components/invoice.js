@@ -192,6 +192,9 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
       throw new Error('you must be logged in')
     }
 
+    // id for toast flows
+    if (!flowId) flowId = (+new Date()).toString(16)
+
     // educated guesses where action might pass in the invoice amount
     // (field 'cost' has highest precedence)
     cost ??= formValues.amount
@@ -201,7 +204,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
       try {
         const insufficientFunds = me?.privates.sats < cost
         return await onSubmit(formValues,
-          { ...submitArgs, variables, optimisticsResponse: insufficientFunds ? null : optimisticResponse, update })
+          { ...submitArgs, flowId, variables, optimisticsResponse: insufficientFunds ? null : optimisticResponse, update })
       } catch (error) {
         if (!payOrLoginError(error) || !cost) {
           // can't handle error here - bail

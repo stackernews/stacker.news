@@ -53,7 +53,11 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
         await autowithdrawLNAddr(
           { amount, maxFee },
           { models, me: user, lnd })
-      }
+      } else if (wallet.type === 'CORE_LIGHTNING') {
+        await autowithdrawCoreLightning(
+          { amount, maxFee },
+          { models, me: user })
+      }  
 
       return
     } catch (error) {
@@ -156,8 +160,7 @@ async function autowithdrawCoreLightning ({ amount, maxFee }, { me, models }) {
       label: 'Stacker.News AutoWithdrawal',
       description: 'Autowithdraw to Core Lightning from SN'
     })
-  };
-  
+  }
 
   const invoice = await fetch(`${socket}/v1/invoice`, options)
 

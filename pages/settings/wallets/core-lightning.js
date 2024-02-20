@@ -28,7 +28,7 @@ export default function CoreLightning ({ ssrData }) {
     <CenterLayout>
       <h2 className='pb-2'>Core Lightning</h2>
       <h6 className='text-muted text-center pb-3'>autowithdraw to your Core Lightning node</h6>
-      <h6 className='text-muted text-center pb-3'> You must have CLNRest working on your node. <a href="https://docs.corelightning.org/docs/rest\n\n">More info here.</a></h6>
+      <h6 className='text-muted text-center pb-3'> You must have CLNRest working on your node. <a href='https://docs.corelightning.org/docs/rest\n\n'>More info here.</a></h6>
 
       <Form
         initial={{

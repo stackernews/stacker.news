@@ -447,9 +447,9 @@ export default {
                 Rune: rune
               },
               body: JSON.stringify({rune: rune})
-            };
+            }
             // Returns true if rune is valid
-            return await fetch( socket, options)
+            return await fetch(socket, options)
           }
         },
         { settings, data }, { me, models })

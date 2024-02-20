@@ -32,7 +32,7 @@ export default function Wallet ({ ssrData }) {
           <LNDCard wallet={lnd} />
           <LNbitsCard />
           <NWCCard />
-          <CoreLightningCard wallet={coreLightning}/>
+          <CoreLightningCard wallet={coreLightning} />
           <WalletCard title='coming soon' badges={['we hope']} />
           <WalletCard title='coming soon' badges={['tm']} />
         </div>

@@ -143,7 +143,7 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
       }}
       schema={amountSchema}
       invoiceable
-      onSubmit={onSubmitWithUndos}
+      onSubmit={me?.privates?.zapUndos ? onSubmitWithUndos : onSubmit}
     >
       <Input
         label='amount'

@@ -77,7 +77,7 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
     onClose()
   }, [me, act, down, itemId, strike])
 
-  const onSubmitWithToast = withToastFlow(toaster)(
+  const onSubmitWithUndos = withToastFlow(toaster)(
     (values, args) => {
       const delay = 5000
       let canceled
@@ -143,7 +143,7 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
       }}
       schema={amountSchema}
       invoiceable
-      onSubmit={onSubmitWithToast}
+      onSubmit={onSubmitWithUndos}
     >
       <Input
         label='amount'
@@ -305,7 +305,7 @@ export function useZap () {
       strike()
     }, [act, strike])
 
-  const zapWithToast = withToastFlow(toaster)(
+  const zapWithUndos = withToastFlow(toaster)(
     ({ variables, optimisticResponse, update, flowId }) => {
       const { id: itemId, amount } = variables
       const delay = 5000
@@ -379,7 +379,7 @@ export function useZap () {
       if (insufficientFunds) throw new Error('insufficient funds')
       strike()
       if (me?.privates?.zapUndos) {
-        await zapWithToast(zapArgs)
+        await zapWithUndos(zapArgs)
       } else {
         await zap(zapArgs)
       }

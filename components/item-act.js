@@ -45,14 +45,16 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
   const me = useMe()
   const [oValue, setOValue] = useState()
   const strike = useLightning()
+  const toaster = useToast()
+  const client = useApolloClient()
 
   useEffect(() => {
     inputRef.current?.focus()
   }, [onClose, itemId])
 
-  const [act] = useAct()
+  const [act, actUpdate] = useAct()
 
-  const onSubmit = useCallback(async ({ amount, hash, hmac }) => {
+  const onSubmit = useCallback(async ({ amount, hash, hmac }, { update }) => {
     if (!me) {
       const storageKey = `TIP-item:${itemId}`
       const existingAmount = Number(window.localStorage.getItem(storageKey) || '0')
@@ -65,12 +67,73 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
         act: down ? 'DONT_LIKE_THIS' : 'TIP',
         hash,
         hmac
-      }
+      },
+      update
     })
-    await strike()
+    // only strike when zap undos not enabled
+    // due to optimistic UX on zap undos
+    if (!me || !me.privates.zapUndos) await strike()
     addCustomTip(Number(amount))
     onClose()
-  }, [act, down, itemId, strike])
+  }, [me, act, down, itemId, strike])
+
+  const onSubmitWithToast = withToastFlow(toaster)(
+    (values, args) => {
+      const delay = 5000
+      let canceled
+      const sats = values.amount
+      // update function for optimistic UX
+      const update = () => {
+        const fragment = {
+          id: `Item:${itemId}`,
+          fragment: gql`
+          fragment ItemMeSats on Item {
+            path
+            sats
+            meSats
+          }
+        `
+        }
+        const item = client.cache.readFragment(fragment)
+        const optimisticResponse = {
+          act: {
+            id: itemId, sats, path: item.path, act: down ? 'DONT_LIKE_THIS' : 'TIP'
+          }
+        }
+        actUpdate(client.cache, { data: optimisticResponse })
+        return () => client.cache.writeFragment({ ...fragment, data: item })
+      }
+      const flowId = (+new Date()).toString(16)
+      let undoUpdate
+      return {
+        flowId,
+        type: 'zap',
+        pendingMessage: `zapped ${sats} sats`,
+        onPending: async () => {
+          await strike()
+          onClose()
+          return new Promise((resolve, reject) => {
+            undoUpdate = update()
+            setTimeout(() => {
+              if (canceled) return resolve()
+              onSubmit(values, { flowId, ...args, update: null })
+                .then(resolve)
+                .catch((err) => {
+                  undoUpdate()
+                  reject(err)
+                })
+            }, delay)
+          })
+        },
+        onUndo: () => {
+          canceled = true
+          undoUpdate?.()
+        },
+        hideSuccess: true,
+        hideError: true
+      }
+    }
+  )
 
   return (
     <Form
@@ -80,7 +143,7 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
       }}
       schema={amountSchema}
       invoiceable
-      onSubmit={onSubmit}
+      onSubmit={onSubmitWithToast}
     >
       <Input
         label='amount'
@@ -158,7 +221,7 @@ export function useAct ({ onUpdate } = {}) {
     }
   }, [!!me, onUpdate])
 
-  return useMutation(
+  const [act] = useMutation(
     gql`
       mutation act($id: ID!, $sats: Int!, $act: String, $hash: String, $hmac: String) {
         act(id: $id, sats: $sats, act: $act, hash: $hash, hmac: $hmac) {
@@ -169,6 +232,7 @@ export function useAct ({ onUpdate } = {}) {
         }
       }`, { update }
   )
+  return [act, update]
 }
 
 export function useZap () {

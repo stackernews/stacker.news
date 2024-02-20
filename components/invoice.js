@@ -201,7 +201,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
       try {
         const insufficientFunds = me?.privates.sats < cost
         return await onSubmit(formValues,
-          { ...submitArgs, variables, optimisticsResponse: insufficientFunds ? null : optimisticResponse })
+          { ...submitArgs, variables, optimisticsResponse: insufficientFunds ? null : optimisticResponse, update })
       } catch (error) {
         if (!payOrLoginError(error) || !cost) {
           // can't handle error here - bail
@@ -256,6 +256,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
     const retry = () => onSubmit(
       { hash: inv.hash, hmac: inv.hmac, ...formValues },
       // unset update function since we already ran an cache update if we paid using WebLN
+      // also unset update function if null was explicitly passed in
       { ...submitArgs, variables, update: webLn ? null : undefined })
     // first retry
     try {

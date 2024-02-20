@@ -488,6 +488,7 @@ model Sub {
   billingCost      Int
   billingAutoRenew Boolean     @default(false)
   billedLastAt     DateTime    @default(now())
+  billPaidUntil    DateTime?
   moderated        Boolean     @default(false)
   moderatedCount   Int         @default(0)
   nsfw             Boolean     @default(false)

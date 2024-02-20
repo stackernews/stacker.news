@@ -293,13 +293,12 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
   return onSubmitWrapper
 }
 
-const INVOICE_CANCELED_ERROR = 'invoice was canceled'
+const INVOICE_CANCELED_ERROR = 'invoice canceled'
 const waitForPayment = async ({ invoice, showModal, provider, pollInvoice, gqlCacheUpdate }) => {
   if (provider.enabled) {
     try {
       return await waitForWebLNPayment({ provider, invoice, pollInvoice, gqlCacheUpdate })
     } catch (err) {
-      const INVOICE_CANCELED_ERROR = 'invoice was canceled'
       // check for errors which mean that QR code will also fail
       if (err.message === INVOICE_CANCELED_ERROR) {
         throw err
@@ -327,11 +326,11 @@ const waitForWebLNPayment = async ({ provider, invoice, pollInvoice, gqlCacheUpd
     return await new Promise((resolve, reject) => {
       // be optimistic and pretend zap was already successful for consistent zapping UX
       undoUpdate = gqlCacheUpdate?.()
-      // can't use await here since we might be paying HODL invoices
+      // can't use await here since we might be paying JIT invoices
       // and sendPaymentAsync is not supported yet.
       // see https://www.webln.guide/building-lightning-apps/webln-reference/webln.sendpaymentasync
       provider.sendPayment(invoice)
-        // WebLN payment will never resolve here for HODL invoices
+        // WebLN payment will never resolve here for JIT invoices
         // since they only get resolved after settlement which can't happen here
         .then(() => resolve({ webLn: true, gqlCacheUpdateUndo: undoUpdate }))
         .catch(err => {

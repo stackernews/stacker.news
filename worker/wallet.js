@@ -127,7 +127,7 @@ async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
       models.invoice.update({ where: { hash }, data: { confirmedIndex: inv.confirmed_index } })
     )
 
-    // don't send notifications for hodl invoices
+    // don't send notifications for JIT invoices
     if (dbInv.preimage) return
 
     sendUserNotification(dbInv.userId, {
@@ -140,7 +140,7 @@ async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
   }
 
   if (inv.is_held) {
-    // First query makes sure that after payment, HODL invoices are settled
+    // First query makes sure that after payment, JIT invoices are settled
     // within 60 seconds or they will be canceled to minimize risk of
     // force closures or wallets banning us.
     // Second query is basically confirm_invoice without setting confirmed_at
@@ -286,7 +286,7 @@ export async function autoDropBolt11s ({ models, lnd }) {
   }
 }
 
-// The callback subscriptions above will NOT get called for HODL invoices that are already paid.
+// The callback subscriptions above will NOT get called for JIT invoices that are already paid.
 // So we manually cancel the HODL invoice here if it wasn't settled by user action
 export async function finalizeHodlInvoice ({ data: { hash }, models, lnd, ...args }) {
   const inv = await getInvoice({ id: hash, lnd })

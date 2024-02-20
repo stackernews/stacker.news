@@ -47,8 +47,8 @@ export function NWCProvider ({ children }) {
     setSecret(params.secret)
 
     try {
-      const supported = await validateParams(params)
-      setEnabled(supported.includes('pay_invoice'))
+      await validateParams(params)
+      setEnabled(true)
       await updateRelay(params.relayUrl)
     } catch (err) {
       console.error('invalid NWC config:', err)
@@ -78,8 +78,8 @@ export function NWCProvider ({ children }) {
     window.localStorage.setItem(storageKey, JSON.stringify(config))
 
     try {
-      const supported = await validateParams(params)
-      setEnabled(supported.includes('pay_invoice'))
+      await validateParams(params)
+      setEnabled(true)
       await updateRelay(params.relayUrl)
     } catch (err) {
       console.error('invalid NWC config:', err)
@@ -214,8 +214,8 @@ async function getInfoWithRelay (relay, walletPubkey) {
     ], {
       onevent (event) {
         clearTimeout(timer)
-        const supported = event.content.split()
-        resolve(supported)
+        const supported = event.content.split(/[\s,]+/) // handle both spaces and commas
+        supported.includes('pay_invoice') ? resolve() : reject(new Error('wallet does not support pay_invoice'))
         sub.close()
       },
       onclose (reason) {

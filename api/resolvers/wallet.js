@@ -6,13 +6,11 @@ import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import lnpr from 'bolt11'
 import { SELECT } from './item'
 import { lnAddrOptions } from '../../lib/lnurl'
-import { msatsToSats, msatsToSatsDecimal } from '../../lib/format'
-import { LNDAutowithdrawSchema, amountSchema, lnAddrAutowithdrawSchema, lnAddrSchema, ssValidate, withdrawlSchema, CoreLightningAutowithdrawSchema } from '../../lib/validate'
+import { msatsToSats, msatsToSatsDecimal, ensureB64 } from '../../lib/format'
+import { LNDAutowithdrawSchema, amountSchema, lnAddrAutowithdrawSchema, lnAddrSchema, ssValidate, withdrawlSchema } from '../../lib/validate'
 import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, ANON_USER_ID, BALANCE_LIMIT_MSATS, INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT } from '../../lib/constants'
 import { datePivot } from '../../lib/time'
 import assertGofacYourself from './ofac'
-import { HEX_REGEX } from '../../lib/macaroon'
-// import LightningClient from 'lightning-client'
 
 export async function getInvoice (parent, { id }, { me, models, lnd }) {
   const inv = await models.invoice.findUnique({
@@ -188,7 +186,7 @@ export default {
               MAX("ItemAct".created_at) AS "createdAt",
               FLOOR(
                 SUM("ItemAct".msats)
-                * (CASE WHEN "Item"."userId" = $1 THEN
+                * (CASE WHEN "Item"."userId" = $1 THEN${socket}
                     COALESCE(1 - ((SELECT SUM(pct) FROM "ItemForward" WHERE "itemId" = "Item".id) / 100.0), 1)
                   ELSE
                     (SELECT pct FROM "ItemForward" WHERE "itemId" = "Item".id AND "userId" = $1) / 100.0
@@ -243,7 +241,7 @@ export default {
             AND created_at <= $2)`
         )
         queries.push(
-            `(SELECT id, created_at as "createdAt", msats, 'billing' as type,
+            `(SELECT id, created_at as "createdAt", msats, 'billing'${socket} as type,
                 jsonb_build_object('subName', "SubAct"."subName") as other
               FROM "SubAct"
               WHERE "userId" = $1 AND type = 'BILLING'
@@ -409,13 +407,9 @@ export default {
       return { id }
     },
     upsertWalletLND: async (parent, { settings, ...data }, { me, models }) => {
-      // store hex inputs as base64
-      if (HEX_REGEX.test(data.macaroon)) {
-        data.macaroon = Buffer.from(data.macaroon, 'hex').toString('base64')
-      }
-      if (HEX_REGEX.test(data.cert)) {
-        data.cert = Buffer.from(data.cert, 'hex').toString('base64')
-      }
+      // make sure inputs are base64
+      data.macaroon = ensureB64(data.macaroon)
+      data.cert = ensureB64(data.cert)
 
       return await upsertWallet(
         {

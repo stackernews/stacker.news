@@ -453,18 +453,17 @@ export default {
           schema: CoreLightningAutowithdrawSchema,
           walletName: 'walletCoreLightning',
           walletType: 'CORE_LIGHTNING',
-          testConnect: async ({ cert, macaroon, socket }) => {
-            const { lnd } = await authenticatedLndGrpc({
-              cert,
-              macaroon,
-              socket
-            })
-            return await createInvoice({
-              description: 'SN connection test',
-              lnd,
-              tokens: 0,
-              expires_at: new Date()
-            })
+          testConnect: async ({ rune, socket }) => {
+            const options = {
+              method: 'POST',
+              headers: {
+                'content-type': 'application/json',
+                Rune: rune
+              },
+              body: JSON.stringify({rune: rune})
+            };
+            // Returns true if rune is valid
+            return await fetch( socket, options)
           }
         },
         { settings, data }, { me, models })

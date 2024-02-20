@@ -6,8 +6,7 @@ CREATE TABLE "WalletCoreLightning" (
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "socket" TEXT NOT NULL,
-    "macaroon" TEXT NOT NULL,
-    "cert" TEXT,
+    "rune" TEXT NOT NULL,
 
     CONSTRAINT "WalletCoreLightning_pkey" PRIMARY KEY ("id")
 );

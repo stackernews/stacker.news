@@ -177,8 +177,7 @@ model WalletCoreLightning {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
   socket    String
-  macaroon  String
-  cert      String?
+  rune  String
 }
 
 model Mute {

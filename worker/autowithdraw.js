@@ -57,7 +57,7 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
         await autowithdrawCoreLightning(
           { amount, maxFee },
           { models, me: user })
-      }  
+      }
 
       return
     } catch (error) {

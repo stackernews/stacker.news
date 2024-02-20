@@ -432,7 +432,7 @@ export default {
         },
         { settings, data }, { me, models })
     },
-    
+
     upsertWalletCoreLightning: async (parent, { settings, ...data }, { me, models }) => {
       return await upsertWallet(
         {
@@ -446,7 +446,7 @@ export default {
                 'content-type': 'application/json',
                 Rune: rune
               },
-              body: JSON.stringify({rune: rune})
+              body: JSON.stringify({ rune })
             }
             // Returns true if rune is valid
             return await fetch(socket, options)

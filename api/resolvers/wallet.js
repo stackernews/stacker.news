@@ -7,7 +7,7 @@ import lnpr from 'bolt11'
 import { SELECT } from './item'
 import { lnAddrOptions } from '../../lib/lnurl'
 import { msatsToSats, msatsToSatsDecimal, ensureB64 } from '../../lib/format'
-import { LNDAutowithdrawSchema, amountSchema, lnAddrAutowithdrawSchema, lnAddrSchema, ssValidate, withdrawlSchema } from '../../lib/validate'
+import { LNDAutowithdrawSchema, amountSchema, lnAddrAutowithdrawSchema, lnAddrSchema, ssValidate, withdrawlSchema, CoreLightningAutowithdrawSchema } from '../../lib/validate'
 import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, ANON_USER_ID, BALANCE_LIMIT_MSATS, INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT } from '../../lib/constants'
 import { datePivot } from '../../lib/time'
 import assertGofacYourself from './ofac'
@@ -186,7 +186,7 @@ export default {
               MAX("ItemAct".created_at) AS "createdAt",
               FLOOR(
                 SUM("ItemAct".msats)
-                * (CASE WHEN "Item"."userId" = $1 THEN${socket}
+                * (CASE WHEN "Item"."userId" = $1 THEN
                     COALESCE(1 - ((SELECT SUM(pct) FROM "ItemForward" WHERE "itemId" = "Item".id) / 100.0), 1)
                   ELSE
                     (SELECT pct FROM "ItemForward" WHERE "itemId" = "Item".id AND "userId" = $1) / 100.0
@@ -241,7 +241,7 @@ export default {
             AND created_at <= $2)`
         )
         queries.push(
-            `(SELECT id, created_at as "createdAt", msats, 'billing'${socket} as type,
+            `(SELECT id, created_at as "createdAt", msats, 'billing' as type,
                 jsonb_build_object('subName', "SubAct"."subName") as other
               FROM "SubAct"
               WHERE "userId" = $1 AND type = 'BILLING'
@@ -434,14 +434,6 @@ export default {
     },
     
     upsertWalletCoreLightning: async (parent, { settings, ...data }, { me, models }) => {
-      // store hex inputs as base64
-      if (HEX_REGEX.test(data.macaroon)) {
-        data.macaroon = Buffer.from(data.macaroon, 'hex').toString('base64')
-      }
-      if (HEX_REGEX.test(data.cert)) {
-        data.cert = Buffer.from(data.cert, 'hex').toString('base64')
-      }
-
       return await upsertWallet(
         {
           schema: CoreLightningAutowithdrawSchema,

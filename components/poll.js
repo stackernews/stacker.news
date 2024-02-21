@@ -80,18 +80,23 @@ export default function Poll ({ item }) {
     )
   }
 
-  const expiresIn = timeLeft(new Date(+new Date(item.createdAt) + 864e5))
+  const hasExpiration = !!item.pollExpiresAt
+  const timeRemaining = timeLeft(new Date(item.pollExpiresAt))
   const mine = item.user.id === me?.id
+  const showPollButton = (!hasExpiration || timeRemaining) && !item.poll.meVoted && !mine
   return (
     <div className={styles.pollBox}>
       {item.poll.options.map(v =>
-        expiresIn && !item.poll.meVoted && !mine
+        showPollButton
           ? <PollButton key={v.id} v={v} />
           : <PollResult
               key={v.id} v={v}
               progress={item.poll.count ? fixedDecimal(v.count * 100 / item.poll.count, 1) : 0}
             />)}
-      <div className='text-muted mt-1'>{numWithUnits(item.poll.count, { unitSingular: 'vote', unitPlural: 'votes' })} \ {expiresIn ? `${expiresIn} left` : 'poll ended'}</div>
+      <div className='text-muted mt-1'>
+        {numWithUnits(item.poll.count, { unitSingular: 'vote', unitPlural: 'votes' })}
+        {hasExpiration && ` \\ ${timeRemaining ? `${timeRemaining} left` : 'poll ended'}`}
+      </div>
     </div>
   )
 }

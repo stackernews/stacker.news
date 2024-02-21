@@ -1,6 +1,7 @@
 import { gql } from '@apollo/client'
 import { COMMENTS, COMMENTS_ITEM_EXT_FIELDS } from './comments'
 import { ITEM_FIELDS, ITEM_FULL_FIELDS } from './items'
+import { SUB_FULL_FIELDS } from './subs'
 
 export const ME = gql`
   {
@@ -282,3 +283,26 @@ export const USER_WITH_ITEMS = gql`
       }
     }
   }`
+
+export const USER_WITH_SUBS = gql`
+    ${USER_FIELDS}
+    ${SUB_FULL_FIELDS}
+    query UserWithSubs($name: String!, $cursor: String, $type: String, $when: String, $from: String, $to: String, $by: String) {
+      user(name: $name) {
+        ...UserFields
+      }
+      userSubs(name: $name, cursor: $cursor) {
+        cursor
+        subs {
+          ...SubFullFields
+          ncomments(when: "forever")
+          nposts(when: "forever")
+
+          optional {
+            stacked(when: "forever")
+            spent(when: "forever")
+            revenue(when: "forever")
+          }
+        }
+      }
+    }`

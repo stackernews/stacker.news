@@ -381,6 +381,7 @@ model Item {
   ItemUpload         ItemUpload[]
   uploadId           Int?
   outlawed           Boolean               @default(false)
+  pollExpiresAt      DateTime?
 
   @@index([uploadId])
   @@index([bio], map: "Item.bio_index")

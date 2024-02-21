@@ -175,9 +175,8 @@ export default function Settings ({ ssrData }) {
                       <div className='d-flex align-items-center'>zap undos
                         <Info>
                           <ul className='fw-bold'>
-                            <li>A notification will be shown after every zap</li>
-                            <li>The notification includes a button to undo the zap</li>
-                            <li>The notification is only shown for 5 seconds</li>
+                            <li>An undo button is shown after every zap</li>
+                            <li>The button is shown for 5 seconds</li>
                           </ul>
                         </Info>
                       </div>

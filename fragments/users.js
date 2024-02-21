@@ -182,6 +182,7 @@ export const USER_FIELDS = gql`
     since
     photoId
     nitems
+    nterritories
     meSubscriptionPosts
     meSubscriptionComments
     meMute

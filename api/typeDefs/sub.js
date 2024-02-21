@@ -6,6 +6,7 @@ export default gql`
     subLatestPost(name: String!): String
     subs: [Sub!]!
     topSubs(cursor: String, when: String, from: String, to: String, by: String, limit: Limit): Subs
+    userSubs(name: String!, cursor: String, when: String, from: String, to: String, by: String, limit: Limit): Subs
   }
 
   type Subs {

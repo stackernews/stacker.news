@@ -18,6 +18,7 @@ export const ToastProvider = ({ children }) => {
   const dispatchToast = useCallback((toast) => {
     toast = {
       ...toast,
+      createdAt: +new Date(),
       id: toastId.current++
     }
     const { flowId } = toast
@@ -148,6 +149,7 @@ export const ToastProvider = ({ children }) => {
             : toast.onCancel
               ? <div className={`${styles.toastCancel} ${textStyle}`}>cancel</div>
               : <div className={`${styles.toastClose} ${textStyle}`}>X</div>
+          const elapsed = (+new Date() - toast.createdAt)
           return (
             <Toast
               key={toast.id} bg={toast.variant} show autohide={toast.autohide}
@@ -165,7 +167,7 @@ export const ToastProvider = ({ children }) => {
                   </Button>
                 </div>
               </ToastBody>
-              {toast.delay > 0 && <div className={`${styles.progressBar} ${styles[toast.variant]}`} />}
+              {toast.delay > 0 && <div className={`${styles.progressBar} ${styles[toast.variant]}`} style={{ animationDelay: `-${elapsed}ms` }} />}
             </Toast>
           )
         })}

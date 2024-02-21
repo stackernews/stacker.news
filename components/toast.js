@@ -8,6 +8,8 @@ import styles from './toast.module.css'
 
 const ToastContext = createContext(() => {})
 
+export const TOAST_DEFAULT_DELAY_MS = 5000
+
 export const ToastProvider = ({ children }) => {
   const router = useRouter()
   const [toasts, setToasts] = useState([])
@@ -62,7 +64,7 @@ export const ToastProvider = ({ children }) => {
         body,
         variant: 'success',
         autohide: true,
-        delay: 5000,
+        delay: TOAST_DEFAULT_DELAY_MS,
         tag: options?.tag || body,
         ...options
       }
@@ -73,7 +75,7 @@ export const ToastProvider = ({ children }) => {
         body,
         variant: 'warning',
         autohide: true,
-        delay: 5000,
+        delay: TOAST_DEFAULT_DELAY_MS,
         tag: options?.tag || body,
         ...options
       }
@@ -134,6 +136,7 @@ export const ToastProvider = ({ children }) => {
     <ToastContext.Provider value={toaster}>
       <ToastContainer className={`pb-3 pe-3 ${styles.toastContainer}`} position='bottom-end' containerPosition='fixed'>
         {visibleToasts.map(toast => {
+          console.log('variant', toast.variant)
           const textStyle = toast.variant === 'warning' ? 'text-dark' : ''
           const onClose = () => {
             toast.onUndo?.()
@@ -163,6 +166,7 @@ export const ToastProvider = ({ children }) => {
                   </Button>
                 </div>
               </ToastBody>
+              {toast.delay > 0 && <div className={`${styles.progressBar} ${styles[toast.variant]}`} />}
             </Toast>
           )
         })}

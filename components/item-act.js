@@ -7,7 +7,7 @@ import UpBolt from '../svgs/bolt.svg'
 import { amountSchema } from '../lib/validate'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
 import { payOrLoginError, useInvoiceModal } from './invoice'
-import { useToast, withToastFlow } from './toast'
+import { TOAST_DEFAULT_DELAY_MS, useToast, withToastFlow } from './toast'
 import { useLightning } from './lightning'
 
 const defaultTips = [100, 1000, 10000, 100000]
@@ -79,7 +79,6 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
 
   const onSubmitWithUndos = withToastFlow(toaster)(
     (values, args) => {
-      const delay = 5000
       const { flowId } = args
       let canceled
       const sats = values.amount
@@ -125,7 +124,7 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
                   undoUpdate()
                   reject(err)
                 })
-            }, delay)
+            }, TOAST_DEFAULT_DELAY_MS)
           })
         },
         onUndo: () => {
@@ -311,7 +310,6 @@ export function useZap () {
   const zapWithUndos = withToastFlow(toaster)(
     ({ variables, optimisticResponse, update, flowId }) => {
       const { id: itemId, amount } = variables
-      const delay = 5000
       let canceled
       // update function for optimistic UX
       const _update = () => {
@@ -345,7 +343,7 @@ export function useZap () {
                   reject(err)
                 })
               },
-              delay
+              TOAST_DEFAULT_DELAY_MS
             )
           }),
         onUndo: () => {

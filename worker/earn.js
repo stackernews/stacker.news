@@ -205,7 +205,8 @@ async function territoryRevenue ({ models }) {
             "Sub"."name" as "subName", "Sub"."userId" as "userId"
             FROM "ItemAct"
             JOIN "Item" ON "Item"."id" = "ItemAct"."itemId"
-            JOIN "Sub" ON "Sub"."name" = "Item"."subName"
+            LEFT JOIN "Item" root ON "Item"."rootId" = root.id
+            JOIN "Sub" ON "Sub"."name" = COALESCE(root."subName", "Item"."subName")
             LEFT JOIN "ReferralAct" ON "ReferralAct"."itemActId" = "ItemAct".id
             WHERE date_trunc('day', "ItemAct".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = date_trunc('day', (now() - interval '1 day') AT TIME ZONE 'America/Chicago')
               AND "ItemAct".act <> 'TIP'

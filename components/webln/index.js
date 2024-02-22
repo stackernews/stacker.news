@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { LNbitsProvider, useLNbits } from './lnbits'
 import { NWCProvider, useNWC } from './nwc'
-import { useToast } from '../toast'
+import { useToast, withToastFlow } from '../toast'
 import { gql, useMutation } from '@apollo/client'
 
 const WebLNContext = createContext({})
@@ -81,35 +81,17 @@ function RawWebLNProvider ({ children }) {
     }
   `)
 
-  const sendPaymentWithToast = function ({ bolt11, hash, hmac }) {
-    let canceled = false
-    let removeToast = toaster.warning('payment pending', {
-      autohide: false,
-      onCancel: async () => {
-        try {
-          // hash and hmac are only passed for JIT invoices
-          if (hash && hmac) await cancelInvoice({ variables: { hash, hmac } })
-          canceled = true
-          toaster.warning('payment canceled')
-          removeToast = undefined
-        } catch (err) {
-          toaster.danger('failed to cancel payment')
-        }
+  const sendPaymentWithToast = withToastFlow(toaster)(
+    ({ bolt11, hash, hmac, flowId }) => {
+      return {
+        flowId: flowId || hash,
+        type: 'payment',
+        onPending: () => provider.sendPayment(bolt11),
+        // hash and hmac are only passed for JIT invoices
+        onCancel: () => hash && hmac ? cancelInvoice({ variables: { hash, hmac } }) : undefined
       }
-    })
-    return provider.sendPayment(bolt11)
-      .then(({ preimage }) => {
-        removeToast?.()
-        toaster.success('payment successful')
-        return { preimage }
-      }).catch((err) => {
-        if (canceled) return
-        removeToast?.()
-        const reason = err?.message?.toString().toLowerCase() || 'unknown reason'
-        toaster.danger(`payment failed: ${reason}`)
-        throw err
-      })
-  }
+    }
+  )
 
   const setProvider = useCallback((defaultProvider) => {
     // move provider to the start to set it as default

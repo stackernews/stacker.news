@@ -55,6 +55,7 @@ model User {
   autoDropBolt11s           Boolean              @default(false)
   hideFromTopUsers          Boolean              @default(false)
   turboTipping              Boolean              @default(false)
+  zapUndos                  Boolean              @default(false)
   imgproxyOnly              Boolean              @default(false)
   hideWalletBalance         Boolean              @default(false)
   referrerId                Int?
@@ -380,6 +381,7 @@ model Item {
   ItemUpload         ItemUpload[]
   uploadId           Int?
   outlawed           Boolean               @default(false)
+  pollExpiresAt      DateTime?
 
   @@index([uploadId])
   @@index([bio], map: "Item.bio_index")

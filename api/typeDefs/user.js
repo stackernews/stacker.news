@@ -84,6 +84,7 @@ export default gql`
     nsfwMode: Boolean!
     tipDefault: Int!
     turboTipping: Boolean!
+    zapUndos: Boolean!
     wildWestMode: Boolean!
     withdrawMaxFeeDefault: Int!
   }
@@ -146,6 +147,7 @@ export default gql`
     nsfwMode: Boolean!
     tipDefault: Int!
     turboTipping: Boolean!
+    zapUndos: Boolean!
     wildWestMode: Boolean!
     withdrawMaxFeeDefault: Int!
     autoWithdrawThreshold: Int

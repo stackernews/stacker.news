@@ -4,6 +4,7 @@ import { gql, useApolloClient, useMutation } from '@apollo/client'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
 import InputGroup from 'react-bootstrap/InputGroup'
+import useCrossposter from './use-crossposter'
 import { bountySchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select'
 import { useCallback } from 'react'
@@ -27,6 +28,7 @@ export function BountyForm ({
   const client = useApolloClient()
   const me = useMe()
   const toaster = useToast()
+  const crossposter = useCrossposter()
   const schema = bountySchema({ client, me, existingBoost: item?.boost })
   const [upsertBounty] = useMutation(
     gql`
@@ -60,7 +62,7 @@ export function BountyForm ({
   )
 
   const onSubmit = useCallback(
-    async ({ boost, bounty, ...values }) => {
+    async ({ boost, bounty, crosspost, ...values }) => {
       const { data, error } = await upsertBounty({
         variables: {
           sub: item?.subName || sub?.name,
@@ -73,6 +75,12 @@ export function BountyForm ({
       })
       if (error) {
         throw new Error({ message: error.toString() })
+      }
+
+      const bountyId = data?.upsertBounty?.id
+
+      if (crosspost && bountyId) {
+        await crossposter(bountyId)
       }
 
       if (item) {
@@ -90,6 +98,7 @@ export function BountyForm ({
       initial={{
         title: item?.title || '',
         text: item?.text || '',
+        crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
         bounty: item?.bounty || 1000,
         ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
@@ -134,7 +143,7 @@ export function BountyForm ({
             : null
         }
       />
-      <AdvPostForm edit={!!item} />
+      <AdvPostForm edit={!!item} item={item} />
       <ItemButtonBar itemId={item?.id} canDelete={false} />
     </Form>
   )

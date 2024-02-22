@@ -9,6 +9,7 @@ import { pollSchema } from '../lib/validate'
 import { SubSelectInitial } from './sub-select'
 import { useCallback } from 'react'
 import { normalizeForwards, toastDeleteScheduled } from '../lib/form'
+import useCrossposter from './use-crossposter'
 import { useMe } from './me'
 import { useToast } from './toast'
 import { ItemButtonBar } from './post'
@@ -19,6 +20,8 @@ export function PollForm ({ item, sub, editThreshold, children }) {
   const me = useMe()
   const toaster = useToast()
   const schema = pollSchema({ client, me, existingBoost: item?.boost })
+
+  const crossposter = useCrossposter()
 
   const [upsertPoll] = useMutation(
     gql`
@@ -33,7 +36,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
   )
 
   const onSubmit = useCallback(
-    async ({ boost, title, options, ...values }) => {
+    async ({ boost, title, options, crosspost, ...values }) => {
       const optionsFiltered = options.slice(initialOptions?.length).filter(word => word.trim().length > 0)
       const { data, error } = await upsertPoll({
         variables: {
@@ -49,6 +52,13 @@ export function PollForm ({ item, sub, editThreshold, children }) {
       if (error) {
         throw new Error({ message: error.toString() })
       }
+
+      const pollId = data?.upsertPoll?.id
+
+      if (crosspost && pollId) {
+        await crossposter(pollId)
+      }
+
       if (item) {
         await router.push(`/items/${item.id}`)
       } else {
@@ -67,6 +77,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         title: item?.title || '',
         text: item?.text || '',
         options: initialOptions || ['', ''],
+        crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
         pollExpiresAt: item ? item.pollExpiresAt : datePivot(new Date(), { hours: 25 }),
         ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
@@ -100,7 +111,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
           : null}
         maxLength={MAX_POLL_CHOICE_LENGTH}
       />
-      <AdvPostForm edit={!!item}>
+      <AdvPostForm edit={!!item} item={item}>
         <DateTimeInput
           isClearable
           label='poll expiration'

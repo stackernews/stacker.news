@@ -2,11 +2,9 @@ import Dropdown from 'react-bootstrap/Dropdown'
 import ShareIcon from '../svgs/share-fill.svg'
 import copy from 'clipboard-copy'
 import useCrossposter from './use-crossposter'
-import { useMutation, gql } from '@apollo/client'
 import { useMe } from './me'
 import { useToast } from './toast'
 import { SSR } from '../lib/constants'
-import { callWithTimeout } from '../lib/nostr'
 import { commentSubTreeRootId } from '../lib/item'
 import { useRouter } from 'next/router'
 
@@ -108,50 +106,17 @@ export function CrosspostDropdownItem ({ item }) {
   const crossposter = useCrossposter()
   const toaster = useToast()
 
-  const [updateNoteId] = useMutation(
-    gql`
-      mutation updateNoteId($id: ID!, $noteId: String!) {
-        updateNoteId(id: $id, noteId: $noteId) {
-          id
-          noteId
-        }
-      }`
-  )
+  const handleCrosspostClick = async () => {
+    try {
+      await crossposter(item.id)
+    } catch (e) {
+      console.error(e)
+      toaster.danger('Crosspost failed')
+    }
+  }
 
   return (
-    <Dropdown.Item
-      onClick={async () => {
-        try {
-          const pubkey = await callWithTimeout(() => window.nostr.getPublicKey(), 5000)
-          if (!pubkey) {
-            throw new Error('not available')
-          }
-        } catch (e) {
-          toaster.danger(`Nostr extension error: ${e.message}`)
-          return
-        }
-        try {
-          if (item?.id) {
-            const crosspostResult = await crossposter({ ...item })
-            const noteId = crosspostResult?.noteId
-            if (noteId) {
-              await updateNoteId({
-                variables: {
-                  id: item.id,
-                  noteId
-                }
-              })
-            }
-            toaster.success('Crosspost successful')
-          } else {
-            toaster.warning('Item ID not available')
-          }
-        } catch (e) {
-          console.error(e)
-          toaster.danger('Crosspost failed')
-        }
-      }}
-    >
+    <Dropdown.Item onClick={handleCrosspostClick}>
       crosspost to nostr
     </Dropdown.Item>
   )

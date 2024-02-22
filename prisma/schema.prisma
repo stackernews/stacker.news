@@ -35,7 +35,6 @@ model User {
   lastSeenAt                DateTime?
   stackedMsats              BigInt               @default(0)
   noteAllDescendants        Boolean              @default(true)
-  noteTerritoryPosts        Boolean              @default(true)
   noteDeposits              Boolean              @default(true)
   noteEarning               Boolean              @default(true)
   noteInvites               Boolean              @default(true)

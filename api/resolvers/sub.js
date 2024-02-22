@@ -222,12 +222,16 @@ export default {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
       }
 
-      const data = { userId: me.id, subName: name }
-      const old = await models.subSubscription.findUnique({ where: { userId_subName: data } })
-      if (old) {
-        await models.subSubscription.delete({ where: { userId_subName: data } })
-      } else await models.subSubscription.create({ data })
-      return { name }
+      const lookupData = { userId: me.id, subName: name }
+      const where = { userId_subName: lookupData }
+      const existing = await models.subSubscription.findUnique({ where })
+      if (existing) {
+        await models.subSubscription.delete({ where })
+        return false
+      } else {
+        await models.subSubscription.create({ data: lookupData })
+        return true
+      }
     }
   },
   Sub: {

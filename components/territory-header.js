@@ -176,16 +176,13 @@ export function ToggleSubSubscriptionDropdownItem ({ sub: { name, meSubscription
   const [toggleSubSubscription] = useMutation(
     gql`
       mutation toggleSubSubscription($name: String!) {
-        toggleSubSubscription(name: $name) {
-          name
-          meSubscription
-        }
+        toggleSubSubscription(name: $name)
       }`, {
       update (cache, { data: { toggleSubSubscription } }) {
         cache.modify({
           id: `Sub:{"name":"${name}"}`,
           fields: {
-            meSubscription: () => toggleSubSubscription.meSubscription
+            meSubscription: () => toggleSubSubscription
           }
         })
       }

@@ -1384,7 +1384,8 @@ export const SELECT =
   "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost", "Item".boost, "Item".msats,
   "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",
   "Item"."weightedDownVotes", "Item".freebie, "Item".bio, "Item"."otsHash", "Item"."bountyPaidTo",
-  ltree2text("Item"."path") AS "path", "Item"."weightedComments", "Item"."imgproxyUrls", "Item".outlawed`
+  ltree2text("Item"."path") AS "path", "Item"."weightedComments", "Item"."imgproxyUrls", "Item".outlawed,
+  "Item"."pollExpiresAt"`
 
 function topOrderByWeightedSats (me, models) {
   return `ORDER BY ${orderByNumerator(models)} DESC NULLS LAST, "Item".id DESC`

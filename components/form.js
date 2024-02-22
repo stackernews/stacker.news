@@ -802,9 +802,10 @@ export function Form ({
       }
     } catch (err) {
       const msg = err.message || err.toString?.()
-      // handle errors from JIT invoices by ignoring them
+      // ignore errors from JIT invoices or payments from attached wallets
+      // that mean that submit failed because user aborted the payment
       if (msg === 'modal closed' || msg === 'invoice canceled') return
-      toaster.danger('submit error:' + msg)
+      toaster.danger('submit error: ' + msg)
     }
   }, [onSubmit, feeButton?.total, toaster, clearLocalStorage, storageKeyPrefix])
 
@@ -958,6 +959,38 @@ export function DatePicker ({ fromName, toName, noForm, onChange, when, from, to
       dateFormat={dateFormat}
       onChangeRaw={onChangeRawHandler}
       onChange={innerOnChange}
+    />
+  )
+}
+
+export function DateTimeInput ({ label, groupClassName, name, ...props }) {
+  const [, meta] = useField({ ...props, name })
+  return (
+    <FormGroup label={label} className={groupClassName}>
+      <div>
+        <DateTimePicker name={name} {...props} />
+        <BootstrapForm.Control.Feedback type='invalid' className='d-block'>
+          {meta.error}
+        </BootstrapForm.Control.Feedback>
+      </div>
+    </FormGroup>
+  )
+}
+
+function DateTimePicker ({ name, className, ...props }) {
+  const [field, , helpers] = useField({ ...props, name })
+  return (
+    <ReactDatePicker
+      {...field}
+      {...props}
+      showTimeSelect
+      dateFormat='Pp'
+      className={`form-control ${className}`}
+      selected={(field.value && new Date(field.value)) || null}
+      value={(field.value && new Date(field.value)) || null}
+      onChange={(val) => {
+        helpers.setValue(val)
+      }}
     />
   )
 }

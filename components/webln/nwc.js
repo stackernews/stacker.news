@@ -1,6 +1,6 @@
 // https://github.com/getAlby/js-sdk/blob/master/src/webln/NostrWeblnProvider.ts
 
-import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { Relay, finalizeEvent, nip04 } from 'nostr-tools'
 import { parseNwcUrl } from '../../lib/url'
 
@@ -13,10 +13,20 @@ export function NWCProvider ({ children }) {
   const [secret, setSecret] = useState()
   const [enabled, setEnabled] = useState()
   const [initialized, setInitialized] = useState(false)
-  const [relay, setRelay] = useState()
+
+  const relayRef = useRef()
 
   const name = 'NWC'
   const storageKey = 'webln:provider:nwc'
+
+  const updateRelay = async (relayUrl) => {
+    try {
+      relayRef.current?.close()
+      if (relayUrl) relayRef.current = await Relay.connect(relayUrl)
+    } catch (err) {
+      console.error(err)
+    }
+  }
 
   const loadConfig = useCallback(async () => {
     const configStr = window.localStorage.getItem(storageKey)
@@ -37,8 +47,9 @@ export function NWCProvider ({ children }) {
     setSecret(params.secret)
 
     try {
-      const supported = await validateParams(params)
-      setEnabled(supported.includes('pay_invoice'))
+      await validateParams(params)
+      setEnabled(true)
+      await updateRelay(params.relayUrl)
     } catch (err) {
       console.error('invalid NWC config:', err)
       setEnabled(false)
@@ -67,8 +78,9 @@ export function NWCProvider ({ children }) {
     window.localStorage.setItem(storageKey, JSON.stringify(config))
 
     try {
-      const supported = await validateParams(params)
-      setEnabled(supported.includes('pay_invoice'))
+      await validateParams(params)
+      setEnabled(true)
+      await updateRelay(params.relayUrl)
     } catch (err) {
       console.error('invalid NWC config:', err)
       setEnabled(false)
@@ -85,25 +97,12 @@ export function NWCProvider ({ children }) {
     setEnabled(undefined)
   }, [])
 
-  useEffect(() => {
-    let relay
-    (async function () {
-      if (relayUrl) {
-        relay = await Relay.connect(relayUrl)
-        setRelay(relay)
-      }
-    })().catch((err) => {
-      console.error(err)
-      setRelay(null)
-    })
-    return () => {
-      relay?.close()
-      setRelay(null)
-    }
-  }, [relayUrl])
-
   const sendPayment = useCallback((bolt11) => {
     return new Promise(function (resolve, reject) {
+      const relay = relayRef.current
+      if (!relay) {
+        return reject(new Error('not connected to relay'))
+      }
       (async function () {
         // XXX set this to mock NWC relays
         const MOCK_NWC_RELAY = false
@@ -168,9 +167,9 @@ export function NWCProvider ({ children }) {
         })
       })().catch(reject)
     })
-  }, [relay, walletPubkey, secret])
+  }, [walletPubkey, secret])
 
-  const getInfo = useCallback(() => getInfoWithRelay(relay, walletPubkey), [relay, walletPubkey])
+  const getInfo = useCallback(() => getInfoWithRelay(relayRef?.current, walletPubkey), [relayRef?.current, walletPubkey])
 
   useEffect(() => {
     loadConfig().catch(console.error)
@@ -215,8 +214,8 @@ async function getInfoWithRelay (relay, walletPubkey) {
     ], {
       onevent (event) {
         clearTimeout(timer)
-        const supported = event.content.split()
-        resolve(supported)
+        const supported = event.content.split(/[\s,]+/) // handle both spaces and commas
+        supported.includes('pay_invoice') ? resolve() : reject(new Error('wallet does not support pay_invoice'))
         sub.close()
       },
       onclose (reason) {

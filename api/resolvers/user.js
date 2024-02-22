@@ -119,7 +119,7 @@ export default {
           FROM user_stats_days
           JOIN users on users.id = user_stats_days.id
           WHERE NOT users."hideFromTopUsers"
-          AND user_stats_days.day = (SELECT max(day) FROM user_stats_days)
+          AND user_stats_days.t = (SELECT max(t) FROM user_stats_days)
           ORDER BY msats_stacked DESC, users.created_at ASC
           LIMIT ${limit}`
       }
@@ -691,6 +691,23 @@ export default {
         where: {
           userId: user.id,
           parentId: { not: null },
+          createdAt: {
+            gte,
+            lte
+          }
+        }
+      })
+    },
+    nterritories: async (user, { when, from, to }, { models }) => {
+      if (typeof user.nterritories !== 'undefined') {
+        return user.nterritories
+      }
+
+      const [gte, lte] = whenRange(when, from, to)
+      return await models.sub.count({
+        where: {
+          userId: user.id,
+          status: 'ACTIVE',
           createdAt: {
             gte,
             lte

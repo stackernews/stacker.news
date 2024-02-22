@@ -186,11 +186,14 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
 
   const onSubmitWrapper = useCallback(async (
     { cost, ...formValues },
-    { variables, optimisticResponse, update, ...submitArgs }) => {
+    { variables, optimisticResponse, update, flowId, ...submitArgs }) => {
     // some actions require a session
     if (!me && options.requireSession) {
       throw new Error('you must be logged in')
     }
+
+    // id for toast flows
+    if (!flowId) flowId = (+new Date()).toString(16)
 
     // educated guesses where action might pass in the invoice amount
     // (field 'cost' has highest precedence)
@@ -201,7 +204,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
       try {
         const insufficientFunds = me?.privates.sats < cost
         return await onSubmit(formValues,
-          { ...submitArgs, variables, optimisticsResponse: insufficientFunds ? null : optimisticResponse })
+          { ...submitArgs, flowId, variables, optimisticsResponse: insufficientFunds ? null : optimisticResponse, update })
       } catch (error) {
         if (!payOrLoginError(error) || !cost) {
           // can't handle error here - bail
@@ -249,12 +252,14 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
       showModal,
       provider,
       pollInvoice,
-      gqlCacheUpdate: _update
+      gqlCacheUpdate: _update,
+      flowId
     })
 
     const retry = () => onSubmit(
       { hash: inv.hash, hmac: inv.hmac, ...formValues },
       // unset update function since we already ran an cache update if we paid using WebLN
+      // also unset update function if null was explicitly passed in
       { ...submitArgs, variables, update: webLn ? null : undefined })
     // first retry
     try {
@@ -293,13 +298,12 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
   return onSubmitWrapper
 }
 
-const INVOICE_CANCELED_ERROR = 'invoice was canceled'
-const waitForPayment = async ({ invoice, showModal, provider, pollInvoice, gqlCacheUpdate }) => {
+const INVOICE_CANCELED_ERROR = 'invoice canceled'
+const waitForPayment = async ({ invoice, showModal, provider, pollInvoice, gqlCacheUpdate, flowId }) => {
   if (provider.enabled) {
     try {
-      return await waitForWebLNPayment({ provider, invoice, pollInvoice, gqlCacheUpdate })
+      return await waitForWebLNPayment({ provider, invoice, pollInvoice, gqlCacheUpdate, flowId })
     } catch (err) {
-      const INVOICE_CANCELED_ERROR = 'invoice was canceled'
       // check for errors which mean that QR code will also fail
       if (err.message === INVOICE_CANCELED_ERROR) {
         throw err
@@ -320,18 +324,18 @@ const waitForPayment = async ({ invoice, showModal, provider, pollInvoice, gqlCa
   })
 }
 
-const waitForWebLNPayment = async ({ provider, invoice, pollInvoice, gqlCacheUpdate }) => {
+const waitForWebLNPayment = async ({ provider, invoice, pollInvoice, gqlCacheUpdate, flowId }) => {
   let undoUpdate
   try {
     // try WebLN provider first
     return await new Promise((resolve, reject) => {
       // be optimistic and pretend zap was already successful for consistent zapping UX
       undoUpdate = gqlCacheUpdate?.()
-      // can't use await here since we might be paying HODL invoices
+      // can't use await here since we might be paying JIT invoices
       // and sendPaymentAsync is not supported yet.
       // see https://www.webln.guide/building-lightning-apps/webln-reference/webln.sendpaymentasync
-      provider.sendPayment(invoice)
-        // WebLN payment will never resolve here for HODL invoices
+      provider.sendPayment({ ...invoice, flowId })
+        // WebLN payment will never resolve here for JIT invoices
         // since they only get resolved after settlement which can't happen here
         .then(() => resolve({ webLn: true, gqlCacheUpdateUndo: undoUpdate }))
         .catch(err => {

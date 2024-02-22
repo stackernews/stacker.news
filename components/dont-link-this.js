@@ -7,6 +7,7 @@ import Flag from '../svgs/flag-fill.svg'
 import { useMemo } from 'react'
 import getColor from '../lib/rainbow'
 import { gql, useMutation } from '@apollo/client'
+import { useMe } from './me'
 
 export function DownZap ({ id, meDontLikeSats, ...props }) {
   const style = useMemo(() => (meDontLikeSats
@@ -23,6 +24,7 @@ export function DownZap ({ id, meDontLikeSats, ...props }) {
 function DownZapper ({ id, As, children }) {
   const toaster = useToast()
   const showModal = useShowModal()
+  const me = useMe()
 
   return (
     <As
@@ -32,7 +34,10 @@ function DownZapper ({ id, As, children }) {
             <ItemAct
               onClose={() => {
                 onClose()
-                toaster.success('item downzapped')
+                // undo prompt was toasted before closing modal if zap undos are enabled
+                // so an additional success toast would be confusing
+                const zapUndosEnabled = me && me?.privates?.zapUndos
+                if (!zapUndosEnabled) toaster.success('item downzapped')
               }} itemId={id} down
             >
               <AccordianItem

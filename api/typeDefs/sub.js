@@ -6,6 +6,7 @@ export default gql`
     subLatestPost(name: String!): String
     subs: [Sub!]!
     topSubs(cursor: String, when: String, from: String, to: String, by: String, limit: Limit): Subs
+    userSubs(name: String!, cursor: String, when: String, from: String, to: String, by: String, limit: Limit): Subs
   }
 
   type Subs {
@@ -36,6 +37,7 @@ export default gql`
     billingAutoRenew: Boolean!
     rankingType: String!
     billedLastAt: Date!
+    billPaidUntil: Date
     baseCost: Int!
     status: String!
     moderated: Boolean!

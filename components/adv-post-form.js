@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import AccordianItem from './accordian-item'
 import { Input, InputUserSuggest, VariableInput, Checkbox } from './form'
 import InputGroup from 'react-bootstrap/InputGroup'
@@ -7,8 +8,8 @@ import Info from './info'
 import { numWithUnits } from '../lib/format'
 import styles from './adv-post-form.module.css'
 import { useMe } from './me'
-import { useRouter } from 'next/router'
 import { useFeeButton } from './fee-button'
+import { useRouter } from 'next/router'
 
 const EMPTY_FORWARD = { nym: '', pct: '' }
 
@@ -19,10 +20,51 @@ export function AdvPostInitial ({ forward, boost }) {
   }
 }
 
-export default function AdvPostForm ({ children }) {
+export default function AdvPostForm ({ children, item }) {
   const me = useMe()
-  const router = useRouter()
   const { merge } = useFeeButton()
+  const router = useRouter()
+  const [itemType, setItemType] = useState()
+
+  useEffect(() => {
+    const determineItemType = () => {
+      if (router && router.query.type) {
+        return router.query.type
+      } else if (item) {
+        const typeMap = {
+          url: 'link',
+          bounty: 'bounty',
+          pollCost: 'poll'
+        }
+
+        for (const [key, type] of Object.entries(typeMap)) {
+          if (item[key]) {
+            return type
+          }
+        }
+
+        return 'discussion'
+      }
+    }
+
+    const type = determineItemType()
+    setItemType(type)
+  }, [item, router])
+
+  function renderCrosspostDetails (itemType) {
+    switch (itemType) {
+      case 'discussion':
+        return <li>crosspost this discussion as a NIP-23 event</li>
+      case 'link':
+        return <li>crosspost this link as a NIP-01 event</li>
+      case 'bounty':
+        return <li>crosspost this bounty as a NIP-99 event</li>
+      case 'poll':
+        return <li>crosspost this poll as a NIP-41 event</li>
+      default:
+        return null
+    }
+  }
 
   return (
     <AccordianItem
@@ -93,16 +135,16 @@ export default function AdvPostForm ({ children }) {
               )
             }}
           </VariableInput>
-          {me && router.query.type === 'discussion' &&
+          {me && itemType &&
             <Checkbox
               label={
                 <div className='d-flex align-items-center'>crosspost to nostr
                   <Info>
                     <ul className='fw-bold'>
-                      <li>crosspost this discussion item to nostr</li>
+                      {renderCrosspostDetails(itemType)}
                       <li>requires NIP-07 extension for signing</li>
                       <li>we use your NIP-05 relays if set</li>
-                      <li>otherwise we default to these relays:</li>
+                      <li>we use these relays by default:</li>
                       <ul>
                         {DEFAULT_CROSSPOSTING_RELAYS.map((relay, i) => (
                           <li key={i}>{relay}</li>

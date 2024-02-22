@@ -1,9 +1,9 @@
 import { GraphQLError } from 'graphql'
 import { serializeInvoicable } from './serial'
-import { TERRITORY_COST_MONTHLY, TERRITORY_COST_ONCE, TERRITORY_COST_YEARLY } from '../../lib/constants'
+import { TERRITORY_COST_MONTHLY, TERRITORY_COST_ONCE, TERRITORY_COST_YEARLY, TERRITORY_PERIOD_COST } from '../../lib/constants'
 import { datePivot, whenRange } from '../../lib/time'
 import { ssValidate, territorySchema } from '../../lib/validate'
-import { nextBilling, nextNextBilling } from '../../lib/territory'
+import { nextBilling, proratedBillingCost } from '../../lib/territory'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { subViewGroup } from './growth'
 
@@ -12,9 +12,20 @@ export function paySubQueries (sub, models) {
     return []
   }
 
-  const billingAt = nextBilling(sub)
-  const billAt = nextNextBilling(sub)
-  const cost = BigInt(sub.billingCost) * BigInt(1000)
+  // if in active or grace, consider we are billing them from where they are paid up
+  // and use grandfathered cost
+  let billedLastAt = sub.billPaidUntil
+  let billingCost = sub.billingCost
+
+  // if the sub is archived, they are paying to reactivate it
+  if (sub.status === 'STOPPED') {
+    // get non-grandfathered cost and reset their billing to start now
+    billedLastAt = new Date()
+    billingCost = TERRITORY_PERIOD_COST(sub.billingType)
+  }
+
+  const billPaidUntil = nextBilling(billedLastAt, sub.billingType)
+  const cost = BigInt(billingCost) * BigInt(1000)
 
   return [
     models.user.update({
@@ -33,7 +44,9 @@ export function paySubQueries (sub, models) {
         name: sub.name
       },
       data: {
-        billedLastAt: billingAt,
+        billedLastAt,
+        billPaidUntil,
+        billingCost,
         status: 'ACTIVE'
       }
     }),
@@ -45,18 +58,7 @@ export function paySubQueries (sub, models) {
         msats: cost,
         type: 'BILLING'
       }
-    }),
-    models.$executeRaw`
-            DELETE FROM pgboss.job
-              WHERE name = 'territoryBilling'
-              AND data->>'subName' = ${sub.name}
-              AND completedon IS NULL`,
-    // schedule 'em
-    models.$queryRaw`
-          INSERT INTO pgboss.job (name, data, startafter, keepuntil) VALUES ('territoryBilling',
-            ${JSON.stringify({
-              subName: sub.name
-            })}::JSONB, ${billAt}, ${datePivot(billAt, { days: 1 })})`
+    })
   ]
 }
 
@@ -153,6 +155,49 @@ export default {
         cursor: subs.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
         subs
       }
+    },
+    userSubs: async (_parent, { name, cursor, when, by, from, to, limit = LIMIT }, { models }) => {
+      if (!name) {
+        throw new GraphQLError('must supply user name', { extensions: { code: 'BAD_INPUT' } })
+      }
+
+      const user = await models.user.findUnique({ where: { name } })
+      if (!user) {
+        throw new GraphQLError('no user has that name', { extensions: { code: 'BAD_INPUT' } })
+      }
+
+      const decodedCursor = decodeCursor(cursor)
+      const range = whenRange(when, from, to || decodeCursor.time)
+
+      let column
+      switch (by) {
+        case 'revenue': column = 'revenue'; break
+        case 'spent': column = 'spent'; break
+        case 'posts': column = 'nposts'; break
+        case 'comments': column = 'ncomments'; break
+        default: column = 'stacked'; break
+      }
+
+      const subs = await models.$queryRawUnsafe(`
+          SELECT "Sub".*,
+            COALESCE(floor(sum(msats_revenue)/1000), 0) as revenue,
+            COALESCE(floor(sum(msats_stacked)/1000), 0) as stacked,
+            COALESCE(floor(sum(msats_spent)/1000), 0) as spent,
+            COALESCE(sum(posts), 0) as nposts,
+            COALESCE(sum(comments), 0) as ncomments
+          FROM ${subViewGroup(range)} ss
+          JOIN "Sub" on "Sub".name = ss.sub_name
+          WHERE "Sub"."userId" = $3
+            AND "Sub".status = 'ACTIVE'
+          GROUP BY "Sub".name
+          ORDER BY ${column} DESC NULLS LAST, "Sub".created_at ASC
+          OFFSET $4
+          LIMIT $5`, ...range, user.id, decodedCursor.offset, limit)
+
+      return {
+        cursor: subs.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
+        subs
+      }
     }
   },
   Mutation: {
@@ -241,16 +286,16 @@ export default {
 }
 
 async function createSub (parent, data, { me, models, lnd, hash, hmac }) {
-  const { billingType, nsfw } = data
+  const { billingType } = data
   let billingCost = TERRITORY_COST_MONTHLY
-  let billAt = datePivot(new Date(), { months: 1 })
+  let billPaidUntil = datePivot(new Date(), { months: 1 })
 
   if (billingType === 'ONCE') {
     billingCost = TERRITORY_COST_ONCE
-    billAt = null
+    billPaidUntil = null
   } else if (billingType === 'YEARLY') {
     billingCost = TERRITORY_COST_YEARLY
-    billAt = datePivot(new Date(), { years: 1 })
+    billPaidUntil = datePivot(new Date(), { years: 1 })
   }
 
   const cost = BigInt(1000) * BigInt(billingCost)
@@ -272,10 +317,10 @@ async function createSub (parent, data, { me, models, lnd, hash, hmac }) {
       models.sub.create({
         data: {
           ...data,
+          billPaidUntil,
           billingCost,
           rankingType: 'WOT',
-          userId: me.id,
-          nsfw
+          userId: me.id
         }
       }),
       // record 'em
@@ -286,15 +331,7 @@ async function createSub (parent, data, { me, models, lnd, hash, hmac }) {
           msats: cost,
           type: 'BILLING'
         }
-      }),
-      // schedule 'em
-      ...(billAt
-        ? [models.$queryRaw`
-          INSERT INTO pgboss.job (name, data, startafter, keepuntil) VALUES ('territoryBilling',
-            ${JSON.stringify({
-              subName: data.name
-            })}::JSONB, ${billAt}, ${datePivot(billAt, { days: 1 })})`]
-        : [])
+      })
     ], { models, lnd, hash, hmac, me, enforceFee: billingCost })
 
     return results[1]
@@ -307,26 +344,88 @@ async function createSub (parent, data, { me, models, lnd, hash, hmac }) {
 }
 
 async function updateSub (parent, { oldName, ...data }, { me, models, lnd, hash, hmac }) {
-  // prevent modification of billingType
-  delete data.billingType
+  const oldSub = await models.sub.findUnique({
+    where: {
+      name: oldName,
+      userId: me.id,
+      // this function's logic is only valid if the sub is not stopped
+      // so prevent updates to stopped subs
+      status: {
+        not: 'STOPPED'
+      }
+    }
+  })
+
+  if (!oldSub) {
+    throw new GraphQLError('sub not found', { extensions: { code: 'BAD_INPUT' } })
+  }
 
   try {
-    const results = await models.$transaction([
-      models.sub.update({
-        data,
-        where: {
-          name: oldName,
-          userId: me.id
-        }
-      }),
-      models.$queryRaw`
-        UPDATE pgboss.job
-          SET data = ${JSON.stringify({ subName: data.name })}::JSONB
-          WHERE name = 'territoryBilling'
-          AND data->>'subName' = ${oldName}`
-    ])
+    // if the cost is changing, record the new cost and update billing job
+    if (oldSub.billingType !== data.billingType) {
+      // make sure the current cost is recorded so they are grandfathered in
+      data.billingCost = TERRITORY_PERIOD_COST(data.billingType)
 
-    return results[0]
+      // we never want to bill them again if they are changing to ONCE
+      if (data.billingType === 'ONCE') {
+        data.billPaidUntil = null
+        data.billingAutoRenew = false
+      }
+
+      // if they are changing to YEARLY, bill them in a year
+      // if they are changing to MONTHLY from YEARLY, do nothing
+      if (oldSub.billingType === 'MONTHLY' && data.billingType === 'YEARLY') {
+        data.billPaidUntil = datePivot(new Date(oldSub.billedLastAt), { years: 1 })
+      }
+
+      // if this billing change makes their bill paid up, set them to active
+      if (data.billPaidUntil === null || data.billPaidUntil >= new Date()) {
+        data.status = 'ACTIVE'
+      }
+
+      // if the billing type is changing such that it's more expensive, bill 'em the difference
+      const proratedCost = proratedBillingCost(oldSub, data.billingType)
+      if (proratedCost > 0) {
+        const cost = BigInt(1000) * BigInt(proratedCost)
+        const results = await serializeInvoicable([
+          models.user.update({
+            where: {
+              id: me.id
+            },
+            data: {
+              msats: {
+                decrement: cost
+              }
+            }
+          }),
+          models.subAct.create({
+            data: {
+              userId: me.id,
+              subName: oldName,
+              msats: cost,
+              type: 'BILLING'
+            }
+          }),
+          models.sub.update({
+            data,
+            where: {
+              name: oldName,
+              userId: me.id
+            }
+          })
+        ], { models, lnd, hash, hmac, me, enforceFee: proratedCost })
+        return results[2]
+      }
+    }
+
+    // if we get here they are changin in a way that doesn't cost them anything
+    return await models.sub.update({
+      data,
+      where: {
+        name: oldName,
+        userId: me.id
+      }
+    })
   } catch (error) {
     if (error.code === 'P2002') {
       throw new GraphQLError('name taken', { extensions: { code: 'BAD_INPUT' } })

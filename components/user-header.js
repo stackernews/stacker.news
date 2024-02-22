@@ -32,21 +32,25 @@ import TwitterIcon from '../svgs/twitter-fill.svg'
 export default function UserHeader ({ user }) {
   const router = useRouter()
 
+  const pathParts = router.asPath.split('/')
+  const activeKey = pathParts[2] === 'territories' ? 'territories' : pathParts.length === 2 ? 'bio' : 'items'
+  const showTerritoriesTab = activeKey === 'territories' || user.nterritories > 0
+
   return (
     <>
       <HeaderHeader user={user} />
       <Nav
         className={styles.nav}
-        activeKey={!!router.asPath.split('/')[2]}
+        activeKey={activeKey}
       >
         <Nav.Item>
           <Link href={'/' + user.name} passHref legacyBehavior>
-            <Nav.Link eventKey={false}>bio</Nav.Link>
+            <Nav.Link eventKey='bio'>bio</Nav.Link>
           </Link>
         </Nav.Item>
         <Nav.Item>
           <Link href={'/' + user.name + '/all'} passHref legacyBehavior>
-            <Nav.Link eventKey>
+            <Nav.Link eventKey='items'>
               {numWithUnits(user.nitems, {
                 abbreviate: false,
                 unitSingular: 'item',
@@ -55,6 +59,19 @@ export default function UserHeader ({ user }) {
             </Nav.Link>
           </Link>
         </Nav.Item>
+        {showTerritoriesTab && (
+          <Nav.Item>
+            <Link href={'/' + user.name + '/territories'} passHref legacyBehavior>
+              <Nav.Link eventKey='territories'>
+                {numWithUnits(user.nterritories, {
+                  abbreviate: false,
+                  unitSingular: 'territory',
+                  unitPlural: 'territories'
+                })}
+              </Nav.Link>
+            </Link>
+          </Nav.Item>
+        )}
       </Nav>
     </>
   )
@@ -267,15 +284,15 @@ function HeaderHeader ({ user }) {
             <small className='text-muted d-flex align-items-center'>
               <CodeIcon className='me-1' height={16} width={16} /> verified stacker.news contributor
             </small>}
-          {user.optional.nostrAuthPubkey !== null && !me.privates?.hideNostr &&
+          {user.optional.nostrAuthPubkey &&
             <small className='text-muted d-flex-inline'>
               <SocialLink name='Nostr' id={user.optional.nostrAuthPubkey} />
             </small>}
-          {user.optional.githubId !== null && !me?.privates?.hideGithub &&
+          {user.optional.githubId &&
             <small className='text-muted d-flex-inline'>
               <SocialLink name='Github' id={user.optional.githubId} />
             </small>}
-          {user.optional.twitterId !== null && !me?.privates?.hideTwitter &&
+          {user.optional.twitterId &&
             <small className='text-muted d-flex-inline'>
               <SocialLink name='Twitter' id={user.optional.twitterId} />
             </small>}

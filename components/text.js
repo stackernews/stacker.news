@@ -13,7 +13,7 @@ import Thumb from '../svgs/thumb-up-fill.svg'
 import { toString } from 'mdast-util-to-string'
 import copy from 'clipboard-copy'
 import ZoomableImage, { decodeOriginalUrl } from './image'
-import { IMGPROXY_URL_REGEXP } from '../lib/url'
+import { IMGPROXY_URL_REGEXP, parseInternalLinks } from '../lib/url'
 import reactStringReplace from 'react-string-replace'
 import { rehypeInlineCodeProperty } from '../lib/md'
 import { Button } from 'react-bootstrap'
@@ -186,31 +186,12 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, item
             }
 
             try {
-              // parse internal links and show as #<itemId>
-              const url = new URL(href)
-              const { pathname, searchParams } = url
-              // ignore empty parts which exist due to pathname starting with '/'
-              const emptyPart = part => !!part
-              const parts = pathname.split('/').filter(emptyPart)
-              if (parts[0] === 'items' && /^[0-9]+$/.test(parts[1])) {
-                const itemId = parts[1]
-                // check for valid item page due to referral links like /items/123456/r/ekzyis
-                const itemPages = ['edit', 'ots', 'related']
-                const itemPage = itemPages.includes(parts[2]) ? parts[2] : null
-                if (itemPage) {
-                  // parse   https://stacker.news/items/1/related?commentId=2
-                  // as      #1/related
-                  // and not #2
-                  // since commentId will be ignored anyway
-                  const linkText = `#${itemId}/${itemPage}`
-                  return <a target='_blank' href={href} rel='noreferrer'>{linkText}</a>
-                }
-                const commentId = searchParams.get('commentId')
-                const linkText = `#${commentId || itemId}`
+              const linkText = parseInternalLinks(href)
+              if (linkText) {
                 return <a target='_blank' href={href} rel='noreferrer'>{linkText}</a>
               }
             } catch {
-              // ignore invalid URLs
+              // ignore errors like invalid URLs
             }
 
             // if the link is to a youtube video, render the video

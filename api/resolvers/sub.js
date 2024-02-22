@@ -315,6 +315,13 @@ async function createSub (parent, data, { me, models, lnd, hash, hmac }) {
           msats: cost,
           type: 'BILLING'
         }
+      }),
+      // notify 'em (in the future)
+      models.subSubscription.create({
+        data: {
+          userId: me.id,
+          subName: data.name
+        }
       })
     ], { models, lnd, hash, hmac, me, enforceFee: billingCost })
 

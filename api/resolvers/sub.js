@@ -217,7 +217,7 @@ export default {
         return true
       }
     },
-    subscribeTerritory: async (sub, { name }, { me, models }) => {
+    toggleSubSubscription: async (sub, { name }, { me, models }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
       }

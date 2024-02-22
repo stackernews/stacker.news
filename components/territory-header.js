@@ -170,3 +170,40 @@ export function PinSubDropdownItem ({ item: { id, position } }) {
     </Dropdown.Item>
   )
 }
+
+export function ToggleSubSubscriptionDropdownItem ({ sub: { name, meSubscription } }) {
+  const toaster = useToast()
+  const [toggleSubSubscription] = useMutation(
+    gql`
+      mutation toggleSubSubscription($name: String!) {
+        toggleSubSubscription(name: $name) {
+          name
+          meSubscription
+        }
+      }`, {
+      update (cache, { data: { toggleSubSubscription } }) {
+        cache.modify({
+          id: `Sub:{"name":"${name}"}`,
+          fields: {
+            meSubscription: () => toggleSubSubscription.meSubscription
+          }
+        })
+      }
+    }
+  )
+  return (
+    <Dropdown.Item
+      onClick={async () => {
+        try {
+          await toggleSubSubscription({ variables: { name } })
+          toaster.success(meSubscription ? 'unsubscribed' : 'subscribed')
+        } catch (err) {
+          console.error(err)
+          toaster.danger(meSubscription ? 'failed to unsubscribe' : 'failed to subscribe')
+        }
+      }}
+    >
+      {meSubscription ? `unsubscribe from ~${name}` : `subscribe to ~${name}`}
+    </Dropdown.Item>
+  )
+}

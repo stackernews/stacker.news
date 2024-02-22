@@ -20,7 +20,7 @@ export default gql`
       moderated: Boolean!, hash: String, hmac: String, nsfw: Boolean!): Sub
     paySub(name: String!, hash: String, hmac: String): Sub
     toggleMuteSub(name: String!): Boolean!
-    subscribeTerritory(name: String!): Sub
+    toggleSubSubscription(name: String!): Sub
   }
 
   type Sub {

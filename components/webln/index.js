@@ -82,9 +82,9 @@ function RawWebLNProvider ({ children }) {
   `)
 
   const sendPaymentWithToast = withToastFlow(toaster)(
-    ({ bolt11, hash, hmac }) => {
+    ({ bolt11, hash, hmac, flowId }) => {
       return {
-        flowId: hash,
+        flowId: flowId || hash,
         type: 'payment',
         onPending: () => provider.sendPayment(bolt11),
         // hash and hmac are only passed for JIT invoices

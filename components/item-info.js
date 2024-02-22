@@ -178,10 +178,10 @@ export default function ItemInfo ({
             <hr className='dropdown-divider' />
             <OutlawDropdownItem item={item} />
           </>}
-        {me && !nested && !item.mine && sub && Number(me.id) !== Number(sub.userId) &&
+        {me && !nested && sub &&
           <>
             <hr className='dropdown-divider' />
-            <MuteSubDropdownItem item={item} sub={sub} />
+            {!item.mine && Number(me.id) !== Number(sub.userId) && <MuteSubDropdownItem item={item} sub={sub} />}
             <SubscribeTerritoryDropdownItem sub={sub} />
           </>}
         {canPin &&

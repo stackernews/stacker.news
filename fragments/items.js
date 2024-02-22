@@ -52,6 +52,7 @@ export const ITEM_FIELDS = gql`
     remote
     subName
     pollCost
+    pollExpiresAt
     status
     uploadId
     mine

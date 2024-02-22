@@ -155,6 +155,49 @@ export default {
         cursor: subs.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
         subs
       }
+    },
+    userSubs: async (_parent, { name, cursor, when, by, from, to, limit = LIMIT }, { models }) => {
+      if (!name) {
+        throw new GraphQLError('must supply user name', { extensions: { code: 'BAD_INPUT' } })
+      }
+
+      const user = await models.user.findUnique({ where: { name } })
+      if (!user) {
+        throw new GraphQLError('no user has that name', { extensions: { code: 'BAD_INPUT' } })
+      }
+
+      const decodedCursor = decodeCursor(cursor)
+      const range = whenRange(when, from, to || decodeCursor.time)
+
+      let column
+      switch (by) {
+        case 'revenue': column = 'revenue'; break
+        case 'spent': column = 'spent'; break
+        case 'posts': column = 'nposts'; break
+        case 'comments': column = 'ncomments'; break
+        default: column = 'stacked'; break
+      }
+
+      const subs = await models.$queryRawUnsafe(`
+          SELECT "Sub".*,
+            COALESCE(floor(sum(msats_revenue)/1000), 0) as revenue,
+            COALESCE(floor(sum(msats_stacked)/1000), 0) as stacked,
+            COALESCE(floor(sum(msats_spent)/1000), 0) as spent,
+            COALESCE(sum(posts), 0) as nposts,
+            COALESCE(sum(comments), 0) as ncomments
+          FROM ${subViewGroup(range)} ss
+          JOIN "Sub" on "Sub".name = ss.sub_name
+          WHERE "Sub"."userId" = $3
+            AND "Sub".status = 'ACTIVE'
+          GROUP BY "Sub".name
+          ORDER BY ${column} DESC NULLS LAST, "Sub".created_at ASC
+          OFFSET $4
+          LIMIT $5`, ...range, user.id, decodedCursor.offset, limit)
+
+      return {
+        cursor: subs.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
+        subs
+      }
     }
   },
   Mutation: {

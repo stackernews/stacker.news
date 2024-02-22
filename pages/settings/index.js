@@ -63,6 +63,7 @@ export default function Settings ({ ssrData }) {
           initial={{
             tipDefault: settings?.tipDefault || 21,
             turboTipping: settings?.turboTipping,
+            zapUndos: settings?.zapUndos,
             fiatCurrency: settings?.fiatCurrency || 'USD',
             withdrawMaxFeeDefault: settings?.withdrawMaxFeeDefault,
             noteItemSats: settings?.noteItemSats,
@@ -139,32 +140,50 @@ export default function Settings ({ ssrData }) {
             <AccordianItem
               show={settings?.turboTipping}
               header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>advanced</div>}
-              body={<Checkbox
-                name='turboTipping'
-                label={
-                  <div className='d-flex align-items-center'>turbo zapping
-                    <Info>
-                      <ul className='fw-bold'>
-                        <li>Makes every additional bolt click raise your total zap to another 10x multiple of your default zap</li>
-                        <li>e.g. if your zap default is 10 sats
-                          <ul>
-                            <li>1st click: 10 sats total zapped</li>
-                            <li>2nd click: 100 sats total zapped</li>
-                            <li>3rd click: 1000 sats total zapped</li>
-                            <li>4th click: 10000 sats total zapped</li>
-                            <li>and so on ...</li>
+              body={
+                <>
+                  <Checkbox
+                    name='turboTipping'
+                    label={
+                      <div className='d-flex align-items-center'>turbo zapping
+                        <Info>
+                          <ul className='fw-bold'>
+                            <li>Makes every additional bolt click raise your total zap to another 10x multiple of your default zap</li>
+                            <li>e.g. if your zap default is 10 sats
+                              <ul>
+                                <li>1st click: 10 sats total zapped</li>
+                                <li>2nd click: 100 sats total zapped</li>
+                                <li>3rd click: 1000 sats total zapped</li>
+                                <li>4th click: 10000 sats total zapped</li>
+                                <li>and so on ...</li>
+                              </ul>
+                            </li>
+                            <li>You can still custom zap via long press
+                              <ul>
+                                <li>the next bolt click rounds up to the next greatest 10x multiple of your default</li>
+                              </ul>
+                            </li>
                           </ul>
-                        </li>
-                        <li>You can still custom zap via long press
-                          <ul>
-                            <li>the next bolt click rounds up to the next greatest 10x multiple of your default</li>
+                        </Info>
+                      </div>
+                    }
+                    groupClassName='mb-0'
+                  />
+                  <Checkbox
+                    name='zapUndos'
+                    label={
+                      <div className='d-flex align-items-center'>zap undos
+                        <Info>
+                          <ul className='fw-bold'>
+                            <li>An undo button is shown after every zap</li>
+                            <li>The button is shown for 5 seconds</li>
                           </ul>
-                        </li>
-                      </ul>
-                    </Info>
-                  </div>
-                  }
-                    />}
+                        </Info>
+                      </div>
+                    }
+                  />
+                </>
+              }
             />
           </div>
           <Select
@@ -438,10 +457,10 @@ export default function Settings ({ ssrData }) {
               <div className='d-flex align-items-center'>crosspost to nostr
                 <Info>
                   <ul className='fw-bold'>
-                    <li>crosspost discussions to nostr</li>
+                    <li>crosspost your items to nostr</li>
                     <li>requires NIP-07 extension for signing</li>
                     <li>we use your NIP-05 relays if set</li>
-                    <li>otherwise we default to these relays:</li>
+                    <li>we use these relays by default:</li>
                     <ul>
                       {DEFAULT_CROSSPOSTING_RELAYS.map((relay, i) => (
                         <li key={i}>{relay}</li>

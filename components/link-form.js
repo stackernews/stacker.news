@@ -13,6 +13,7 @@ import { normalizeForwards, toastDeleteScheduled } from '../lib/form'
 import { useToast } from './toast'
 import { SubSelectInitial } from './sub-select'
 import { MAX_TITLE_LENGTH } from '../lib/constants'
+import useCrossposter from './use-crossposter'
 import { useMe } from './me'
 import { ItemButtonBar } from './post'
 
@@ -25,6 +26,8 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
   // if Web Share Target API was used
   const shareUrl = router.query.url
   const shareTitle = router.query.title
+
+  const crossposter = useCrossposter()
 
   const [getPageTitleAndUnshorted, { data }] = useLazyQuery(gql`
     query PageTitleAndUnshorted($url: String!) {
@@ -78,7 +81,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
   )
 
   const onSubmit = useCallback(
-    async ({ boost, title, ...values }) => {
+    async ({ boost, crosspost, title, ...values }) => {
       const { data, error } = await upsertLink({
         variables: {
           sub: item?.subName || sub?.name,
@@ -92,6 +95,13 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
       if (error) {
         throw new Error({ message: error.toString() })
       }
+
+      const linkId = data?.upsertLink?.id
+
+      if (crosspost && linkId) {
+        await crossposter(linkId)
+      }
+
       if (item) {
         await router.push(`/items/${item.id}`)
       } else {
@@ -125,6 +135,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
         title: item?.title || shareTitle || '',
         url: item?.url || shareUrl || '',
         text: item?.text || '',
+        crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
         ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
@@ -183,7 +194,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
           }
         }}
       />
-      <AdvPostForm edit={!!item}>
+      <AdvPostForm edit={!!item} item={item}>
         <MarkdownInput
           label='context'
           name='text'

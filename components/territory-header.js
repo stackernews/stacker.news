@@ -116,7 +116,6 @@ export function MuteSubDropdownItem ({ item, sub }) {
         toggleMuteSub(name: $name)
       }`, {
       update (cache, { data: { toggleMuteSub } }) {
-        console.log(sub, toggleMuteSub)
         cache.modify({
           id: `Sub:{"name":"${sub.name}"}`,
           fields: {

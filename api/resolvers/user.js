@@ -698,6 +698,23 @@ export default {
         }
       })
     },
+    nterritories: async (user, { when, from, to }, { models }) => {
+      if (typeof user.nterritories !== 'undefined') {
+        return user.nterritories
+      }
+
+      const [gte, lte] = whenRange(when, from, to)
+      return await models.sub.count({
+        where: {
+          userId: user.id,
+          status: 'ACTIVE',
+          createdAt: {
+            gte,
+            lte
+          }
+        }
+      })
+    },
     bio: async (user, args, { models, me }) => {
       return getItem(user, { id: user.bioId }, { models, me })
     }

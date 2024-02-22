@@ -39,6 +39,7 @@ export default gql`
     name: String
     nitems(when: String, from: String, to: String): Int!
     nposts(when: String, from: String, to: String): Int!
+    nterritories(when: String, from: String, to: String): Int!
     ncomments(when: String, from: String, to: String): Int!
     bio: Item
     bioId: Int
@@ -84,6 +85,7 @@ export default gql`
     nsfwMode: Boolean!
     tipDefault: Int!
     turboTipping: Boolean!
+    zapUndos: Boolean!
     wildWestMode: Boolean!
     withdrawMaxFeeDefault: Int!
   }
@@ -146,6 +148,7 @@ export default gql`
     nsfwMode: Boolean!
     tipDefault: Int!
     turboTipping: Boolean!
+    zapUndos: Boolean!
     wildWestMode: Boolean!
     withdrawMaxFeeDefault: Int!
     autoWithdrawThreshold: Int

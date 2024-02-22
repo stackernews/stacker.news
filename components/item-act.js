@@ -5,9 +5,9 @@ import { Form, Input, SubmitButton } from './form'
 import { useMe } from './me'
 import UpBolt from '../svgs/bolt.svg'
 import { amountSchema } from '../lib/validate'
-import { gql, useMutation } from '@apollo/client'
+import { gql, useApolloClient, useMutation } from '@apollo/client'
 import { payOrLoginError, useInvoiceModal } from './invoice'
-import { useToast } from './toast'
+import { TOAST_DEFAULT_DELAY_MS, useToast, withToastFlow } from './toast'
 import { useLightning } from './lightning'
 
 const defaultTips = [100, 1000, 10000, 100000]
@@ -45,14 +45,16 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
   const me = useMe()
   const [oValue, setOValue] = useState()
   const strike = useLightning()
+  const toaster = useToast()
+  const client = useApolloClient()
 
   useEffect(() => {
     inputRef.current?.focus()
   }, [onClose, itemId])
 
-  const [act] = useAct()
+  const [act, actUpdate] = useAct()
 
-  const onSubmit = useCallback(async ({ amount, hash, hmac }) => {
+  const onSubmit = useCallback(async ({ amount, hash, hmac }, { update }) => {
     if (!me) {
       const storageKey = `TIP-item:${itemId}`
       const existingAmount = Number(window.localStorage.getItem(storageKey) || '0')
@@ -65,12 +67,75 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
         act: down ? 'DONT_LIKE_THIS' : 'TIP',
         hash,
         hmac
-      }
+      },
+      update
     })
-    await strike()
+    // only strike when zap undos not enabled
+    // due to optimistic UX on zap undos
+    if (!me || !me.privates.zapUndos) await strike()
     addCustomTip(Number(amount))
     onClose()
-  }, [act, down, itemId, strike])
+  }, [me, act, down, itemId, strike])
+
+  const onSubmitWithUndos = withToastFlow(toaster)(
+    (values, args) => {
+      const { flowId } = args
+      let canceled
+      const sats = values.amount
+      const insufficientFunds = me?.privates?.sats < sats
+      if (insufficientFunds) throw new Error('insufficient funds')
+      // update function for optimistic UX
+      const update = () => {
+        const fragment = {
+          id: `Item:${itemId}`,
+          fragment: gql`
+          fragment ItemMeSats on Item {
+            path
+            sats
+            meSats
+            meDontLikeSats
+          }
+        `
+        }
+        const item = client.cache.readFragment(fragment)
+        const optimisticResponse = {
+          act: {
+            id: itemId, sats, path: item.path, act: down ? 'DONT_LIKE_THIS' : 'TIP'
+          }
+        }
+        actUpdate(client.cache, { data: optimisticResponse })
+        return () => client.cache.writeFragment({ ...fragment, data: item })
+      }
+      let undoUpdate
+      return {
+        flowId,
+        type: 'zap',
+        pendingMessage: `${down ? 'down' : ''}zapped ${sats} sats`,
+        onPending: async () => {
+          await strike()
+          onClose()
+          return new Promise((resolve, reject) => {
+            undoUpdate = update()
+            setTimeout(() => {
+              if (canceled) return resolve()
+              onSubmit(values, { flowId, ...args, update: null })
+                .then(resolve)
+                .catch((err) => {
+                  undoUpdate()
+                  reject(err)
+                })
+            }, TOAST_DEFAULT_DELAY_MS)
+          })
+        },
+        onUndo: () => {
+          canceled = true
+          undoUpdate?.()
+        },
+        hideSuccess: true,
+        hideError: true
+      }
+    }
+  )
 
   return (
     <Form
@@ -80,7 +145,7 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
       }}
       schema={amountSchema}
       invoiceable
-      onSubmit={onSubmit}
+      onSubmit={me?.privates?.zapUndos ? onSubmitWithUndos : onSubmit}
     >
       <Input
         label='amount'
@@ -158,7 +223,7 @@ export function useAct ({ onUpdate } = {}) {
     }
   }, [!!me, onUpdate])
 
-  return useMutation(
+  const [act] = useMutation(
     gql`
       mutation act($id: ID!, $sats: Int!, $act: String, $hash: String, $hmac: String) {
         act(id: $id, sats: $sats, act: $act, hash: $hash, hmac: $hmac) {
@@ -169,6 +234,7 @@ export function useAct ({ onUpdate } = {}) {
         }
       }`, { update }
   )
+  return [act, update]
 }
 
 export function useZap () {
@@ -227,18 +293,70 @@ export function useZap () {
           sats
           path
         }
-      }`, { update }
+      }`
   )
 
   const toaster = useToast()
   const strike = useLightning()
   const [act] = useAct()
+  const client = useApolloClient()
 
   const invoiceableAct = useInvoiceModal(
     async ({ hash, hmac }, { variables, ...apolloArgs }) => {
       await act({ variables: { ...variables, hash, hmac }, ...apolloArgs })
       strike()
     }, [act, strike])
+
+  const zapWithUndos = withToastFlow(toaster)(
+    ({ variables, optimisticResponse, update, flowId }) => {
+      const { id: itemId, amount } = variables
+      let canceled
+      // update function for optimistic UX
+      const _update = () => {
+        const fragment = {
+          id: `Item:${itemId}`,
+          fragment: gql`
+          fragment ItemMeSats on Item {
+            sats
+            meSats
+          }
+        `
+        }
+        const item = client.cache.readFragment(fragment)
+        update(client.cache, { data: optimisticResponse })
+        // undo function
+        return () => client.cache.writeFragment({ ...fragment, data: item })
+      }
+      let undoUpdate
+      return {
+        flowId,
+        type: 'zap',
+        pendingMessage: `zapped ${amount} sats`,
+        onPending: () =>
+          new Promise((resolve, reject) => {
+            undoUpdate = _update()
+            setTimeout(
+              () => {
+                if (canceled) return resolve()
+                zap({ variables, optimisticResponse, update: null }).then(resolve).catch((err) => {
+                  undoUpdate()
+                  reject(err)
+                })
+              },
+              TOAST_DEFAULT_DELAY_MS
+            )
+          }),
+        onUndo: () => {
+          // we can't simply clear the timeout on cancel since
+          // the onPending promise would never settle in that case
+          canceled = true
+          undoUpdate?.()
+        },
+        hideSuccess: true,
+        hideError: true
+      }
+    }
+  )
 
   return useCallback(async ({ item, me }) => {
     const meSats = (item?.meSats || 0)
@@ -253,12 +371,19 @@ export function useZap () {
       sats = meSats + sats
     }
 
-    const variables = { id: item.id, sats, act: 'TIP' }
-    const insufficientFunds = me?.privates.sats < sats
+    const variables = { id: item.id, sats, act: 'TIP', amount: sats - meSats }
+    const insufficientFunds = me?.privates.sats < (sats - meSats)
     const optimisticResponse = { act: { path: item.path, ...variables } }
+    const flowId = (+new Date()).toString(16)
+    const zapArgs = { variables, optimisticResponse: insufficientFunds ? null : optimisticResponse, update, flowId }
     try {
-      if (!insufficientFunds) strike()
-      await zap({ variables, optimisticResponse: insufficientFunds ? null : optimisticResponse })
+      if (insufficientFunds) throw new Error('insufficient funds')
+      strike()
+      if (me?.privates?.zapUndos) {
+        await zapWithUndos(zapArgs)
+      } else {
+        await zap(zapArgs)
+      }
     } catch (error) {
       if (payOrLoginError(error)) {
         // call non-idempotent version
@@ -268,7 +393,8 @@ export function useZap () {
           await invoiceableAct({ amount }, {
             variables: { ...variables, sats: amount },
             optimisticResponse,
-            update
+            update,
+            flowId
           })
         } catch (error) {}
         return

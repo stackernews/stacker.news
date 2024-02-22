@@ -165,6 +165,8 @@ export default function ItemInfo ({
             nostr note
           </Dropdown.Item>
         )}
+        {item && item.mine && !item.noteId && !item.isJob && !item.parentId &&
+          <CrosspostDropdownItem item={item} />}
         {me && !item.position &&
           !item.mine && !item.deletedAt &&
           (item.meDontLikeSats > meTotalSats
@@ -185,8 +187,6 @@ export default function ItemInfo ({
             <hr className='dropdown-divider' />
             <PinSubDropdownItem item={item} />
           </>}
-        {item?.mine && !item?.noteId &&
-          <CrosspostDropdownItem item={item} />}
         {item.mine && !item.position && !item.deletedAt && !item.bio &&
           <>
             <hr className='dropdown-divider' />

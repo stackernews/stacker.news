@@ -1,5 +1,5 @@
 .toastContainer {
-  transform: translate3d(0,0,0);
+  transform: translate3d(0, 0, 0);
 }
 
 .toast {
@@ -21,6 +21,13 @@
   border-color: var(--bs-warning-border-subtle);
 }
 
+.toastUndo {
+  font-style: normal;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
 .toastCancel {
   font-style: italic;
   cursor: pointer;
@@ -37,6 +44,38 @@
   cursor: pointer;
   display: flex;
   align-items: center;
+}
+
+.progressBar {
+  width: 0;
+  height: 5px;
+  filter: brightness(66%);
+  /* same duration as toast delay */
+  animation: progressBar 5s linear;
+}
+
+.progressBar.success {
+  background-color: var(--bs-success);
+}
+
+.progressBar.danger {
+  background-color: var(--bs-danger);
+}
+
+.progressBar.warning {
+  background-color: var(--bs-warning);
+}
+
+
+
+@keyframes progressBar {
+  0% {
+    width: 0;
+  }
+
+  100% {
+    width: 100%;
+  }
 }
 
 .toastClose:hover {

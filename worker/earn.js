@@ -62,13 +62,8 @@ export async function earn ({ name }) {
     }
 
     const sum = Number(sumDecimal)
-    const heads = Math.random() < 0.5
-    // if this category is selected, double its proportion
-    // if it isn't select, zero its proportion
-    const itemRewardMult = heads ? 0 : 2.0
-    const upvoteRewardMult = heads ? 2.0 : 0
 
-    console.log(name, 'giving away', sum, 'msats', 'rewarding', heads ? 'items' : 'upvotes')
+    console.log(name, 'giving away', sum, 'msats', 'rewarding all')
 
     /*
       How earnings (used to) work:
@@ -80,12 +75,12 @@ export async function earn ({ name }) {
         - how early they upvoted it
         - how the post/comment scored
 
-      Now: 100% of earnings go to either top 33% of comments/posts or top 33% of upvoters
+      Now: 100% of earnings go to top 33% of comments/posts and their upvoters
     */
 
     // get earners { userId, id, type, rank, proportion }
     const earners = await models.$queryRaw`
-      -- get top 21% of posts and comments
+      -- get top 33% of posts and comments
       WITH item_ratios AS (
           SELECT *,
               CASE WHEN "parentId" IS NULL THEN 'POST' ELSE 'COMMENT' END as type,
@@ -135,11 +130,11 @@ export async function earn ({ name }) {
       ),
       proportions AS (
         SELECT "userId", NULL as id, type, ROW_NUMBER() OVER (PARTITION BY "isPost" ORDER BY upvoter_ratio DESC) as rank,
-            ${itemRewardMult}*upvoter_ratio/(sum(upvoter_ratio) OVER (PARTITION BY "isPost"))/${UPVOTE_EACH_REWARD} as proportion
+            upvoter_ratio/(sum(upvoter_ratio) OVER (PARTITION BY "isPost"))/${UPVOTE_EACH_REWARD} as proportion
         FROM upvoter_ratios
         WHERE upvoter_ratio > 0
         UNION ALL
-        SELECT "userId", id, type, rank, ${upvoteRewardMult}*ratio/${ITEM_EACH_REWARD} as proportion
+        SELECT "userId", id, type, rank, ratio/${ITEM_EACH_REWARD} as proportion
         FROM item_ratios)
       SELECT "userId", id, type, rank, proportion
       FROM proportions

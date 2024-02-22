@@ -107,16 +107,20 @@ export default {
           LIMIT ${LIMIT}+$3`
       )
 
-      if (meFull.noteTerritoryPosts) {
-        itemDrivenQueries.push(
-          `SELECT "Item".*, "Item".created_at AS "sortTime", 'TerritoryPost' AS type
-            FROM "Item"
-            JOIN "Sub" ON "Item"."subName" = "Sub".name
-            WHERE "Sub"."userId" = $1 AND "Item"."userId" <> $1
-            ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT}+$3`
-        )
-      }
+      // Territory subscriptions
+      itemDrivenQueries.push(
+        `SELECT "Item".*, "Item".created_at AS "sortTime", 'TerritoryPost' AS type
+          FROM "Item"
+          JOIN "SubSubscription" ON "Item"."subName" = "SubSubscription"."subName"
+          ${whereClause(
+            '"SubSubscription"."userId" = $1',
+            '"Item"."userId" <> $1',
+            '"Item"."parentId" IS NULL',
+            '"Item".created_at >= "SubSubscription".created_at'
+          )}
+          ORDER BY "sortTime" DESC
+          LIMIT ${LIMIT}+$3`
+      )
 
       // mentions
       if (meFull.noteMentions) {

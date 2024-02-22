@@ -21,6 +21,7 @@ import MuteDropdownItem from './mute'
 import { DropdownItemUpVote } from './upvote'
 import { useRoot } from './root'
 import { MuteSubDropdownItem, PinSubDropdownItem } from './territory-header'
+import SubscribeTerritoryDropdownItem from './subscribeTerritory'
 
 export default function ItemInfo ({
   item, full, commentsText = 'comments',
@@ -181,6 +182,7 @@ export default function ItemInfo ({
           <>
             <hr className='dropdown-divider' />
             <MuteSubDropdownItem item={item} sub={sub} />
+            <SubscribeTerritoryDropdownItem sub={sub} />
           </>}
         {canPin &&
           <>

@@ -216,6 +216,18 @@ export default {
         await models.muteSub.create({ data: { ...lookupData } })
         return true
       }
+    },
+    subscribeTerritory: async (sub, { name }, { me, models }) => {
+      if (!me) {
+        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+      }
+
+      const data = { userId: me.id, subName: name }
+      const old = await models.subSubscription.findUnique({ where: { userId_subName: data } })
+      if (old) {
+        await models.subSubscription.delete({ where: { userId_subName: data } })
+      } else await models.subSubscription.create({ data })
+      return { name }
     }
   },
   Sub: {
@@ -238,6 +250,21 @@ export default {
       if (typeof sub.ncomments !== 'undefined') {
         return sub.ncomments
       }
+    },
+    meSubscription: async (sub, args, { me, models }) => {
+      if (!me) return false
+      if (typeof sub.meSubscription !== 'undefined') return sub.meSubscription
+
+      const subscription = await models.subSubscription.findUnique({
+        where: {
+          userId_subName: {
+            subName: sub.name,
+            userId: me.id
+          }
+        }
+      })
+
+      return !!subscription
     }
   }
 }

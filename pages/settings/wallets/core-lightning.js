@@ -78,9 +78,9 @@ export default function CoreLightning ({ ssrData }) {
               </Info>
             </div>
           }
-          name='macaroon'
+          name='rune'
           clear
-          hint='hex or base64 encoded'
+          hint='base64 encoded'
           placeholder='AgEDbG5kAlgDChCn7YgfWX7uTkQQgXZ2uahNEgEwGhYKB2FkZHJlc3MSBHJlYWQSBXdyaXRlGhcKCGludm9pY2VzEgRyZWFkEgV3cml0ZRoPCgdvbmNoYWluEgRyZWFkAAAGIJkMBrrDV0npU90JV0TGNJPrqUD8m2QYoTDjolaL6eBs'
           required
         />

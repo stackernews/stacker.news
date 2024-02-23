@@ -160,7 +160,7 @@ export const ToastProvider = ({ children }) => {
           // a toast is unhidden if it was hidden before since it now gets rendered
           const unhidden = toast.hidden
           // we only need to start the animation at a different timing when it was hidden by another toast before.
-          // else the animation for rerendered toasts jumps and toast delay and animatino get out of sync.
+          // if we don't do this, the animation for rerendered toasts skips ahead and toast delay and animation get out of sync.
           const elapsed = (+new Date() - toast.createdAt)
           const animationDelay = unhidden ? `-${elapsed}ms` : undefined
           return (

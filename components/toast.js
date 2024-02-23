@@ -10,6 +10,27 @@ const ToastContext = createContext(() => {})
 
 export const TOAST_DEFAULT_DELAY_MS = 5000
 
+const ensureFlow = (toasts, newToast) => {
+  const { flowId } = newToast
+  if (flowId) {
+    // replace previous toast with same flow id
+    const idx = toasts.findIndex(toast => toast.flowId === flowId)
+    if (idx === -1) return [...toasts, newToast]
+    return [
+      ...toasts.slice(0, idx),
+      newToast,
+      ...toasts.slice(idx + 1)
+    ]
+  }
+  return [...toasts, newToast]
+}
+
+const mapHidden = ({ id, tag }) => toast => {
+  // mark every previous toast with same tag as hidden
+  if (toast.tag === tag && toast.id !== id) return { ...toast, hidden: true }
+  return toast
+}
+
 export const ToastProvider = ({ children }) => {
   const router = useRouter()
   const [toasts, setToasts] = useState([])
@@ -21,20 +42,7 @@ export const ToastProvider = ({ children }) => {
       createdAt: +new Date(),
       id: toastId.current++
     }
-    const { flowId } = toast
-    setToasts(toasts => {
-      if (flowId) {
-        // replace previous toast with same flow id
-        const idx = toasts.findIndex(toast => toast.flowId === flowId)
-        if (idx === -1) return [...toasts, toast]
-        return [
-          ...toasts.slice(0, idx),
-          toast,
-          ...toasts.slice(idx + 1)
-        ]
-      }
-      return [...toasts, toast]
-    })
+    setToasts(toasts => ensureFlow(toasts, toast).map(mapHidden(toast)))
     return () => removeToast(toast)
   }, [])
 
@@ -149,7 +157,12 @@ export const ToastProvider = ({ children }) => {
             : toast.onCancel
               ? <div className={`${styles.toastCancel} ${textStyle}`}>cancel</div>
               : <div className={`${styles.toastClose} ${textStyle}`}>X</div>
+          // a toast is unhidden if it was hidden before since it now gets rendered
+          const unhidden = toast.hidden
+          // we only need to start the animation at a different timing when it was hidden by another toast before.
+          // else the animation for rerendered toasts jumps and toast delay and animatino get out of sync.
           const elapsed = (+new Date() - toast.createdAt)
+          const animationDelay = unhidden ? `-${elapsed}ms` : undefined
           return (
             <Toast
               key={toast.id} bg={toast.variant} show autohide={toast.autohide}
@@ -167,7 +180,7 @@ export const ToastProvider = ({ children }) => {
                   </Button>
                 </div>
               </ToastBody>
-              {toast.delay > 0 && <div className={`${styles.progressBar} ${styles[toast.variant]}`} style={{ animationDelay: `-${elapsed}ms` }} />}
+              {toast.delay > 0 && <div className={`${styles.progressBar} ${styles[toast.variant]}`} style={{ animationDelay }} />}
             </Toast>
           )
         })}

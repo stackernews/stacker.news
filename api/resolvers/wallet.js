@@ -446,10 +446,19 @@ export default {
                 'content-type': 'application/json',
                 Rune: rune
               },
-              body: JSON.stringify({ rune })
+              body: JSON.stringify({ string: rune })
             }
-            // Returns true if rune is valid
-            return await fetch(socket, options)
+            console.log(socket)
+            await fetch(`${socket}/v1/decode`, options).then((response) => {
+              const requiredResponse = [{"alternatives": [
+                "method=invoice"
+              ],
+              "summary": "method (of command) equal to 'invoice'"
+              }]
+              if (response.restrictions !== requiredResponse) {
+                throw new Error('rune is not for invoice only')
+              }
+            })
           }
         },
         { settings, data }, { me, models })

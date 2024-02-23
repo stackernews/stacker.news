@@ -142,6 +142,10 @@ export const WALLET_BY_TYPE = gql`
           macaroon
           cert
         }
+        ... on WalletCoreLIghtning {
+          socket
+          rune
+        }
       }
     }
   }

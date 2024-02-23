@@ -450,10 +450,11 @@ export default {
             }
             console.log(socket)
             await fetch(`${socket}/v1/decode`, options).then((response) => {
-              const requiredResponse = [{"alternatives": [
-                "method=invoice"
-              ],
-              "summary": "method (of command) equal to 'invoice'"
+              const requiredResponse = [{
+                alternatives: [
+                  'method=invoice'
+                ],
+                summary: 'method (of command) equal to \'invoice\''
               }]
               if (response.restrictions !== requiredResponse) {
                 throw new Error('rune is not for invoice only')

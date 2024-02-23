@@ -73,7 +73,7 @@ export default function CoreLightning ({ ssrData }) {
             <div className='d-flex align-items-center'>Invoice Only Rune
               <Info label='privacy tip'>
                 <Text>
-                  {"***invoice only rune*** for your convenience. To gain better privacy, generate a new rune as follows:\n\n```lightning-cli createrune restrictions=invoice```\n\nfor older core lightning versions use ```lightning-cli commando-rune restrictions=method=invoice```"}
+                  {'***invoice only rune*** for your convenience. To gain better privacy, generate a new rune as follows:\n\n```lightning-cli createrune restrictions=invoice```\n\nfor older core lightning versions use ```lightning-cli commando-rune restrictions=method=invoice```'}
                 </Text>
               </Info>
             </div>

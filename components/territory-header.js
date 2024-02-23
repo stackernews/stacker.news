@@ -72,22 +72,6 @@ export default function TerritoryHeader ({ sub }) {
     }
   )
 
-  const [toggleSubSubscription] = useMutation(
-    gql`
-      mutation toggleSubSubscription($name: String!) {
-        toggleSubSubscription(name: $name)
-      }`, {
-      update (cache, { data: { toggleSubSubscription } }) {
-        cache.modify({
-          id: `Sub:{"name":"${sub.name}"}`,
-          fields: {
-            meSubscription: () => toggleSubSubscription
-          }
-        })
-      }
-    }
-  )
-
   return (
     <>
       <TerritoryPaymentDue sub={sub} />

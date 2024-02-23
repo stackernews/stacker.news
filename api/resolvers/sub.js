@@ -256,19 +256,7 @@ export default {
       }
     },
     meSubscription: async (sub, args, { me, models }) => {
-      if (!me) return false
-      if (typeof sub.meSubscription !== 'undefined') return sub.meSubscription
-
-      const subscription = await models.subSubscription.findUnique({
-        where: {
-          userId_subName: {
-            subName: sub.name,
-            userId: me.id
-          }
-        }
-      })
-
-      return !!subscription
+      return sub.meSubscription || sub.SubSubscription?.length > 0
     }
   }
 }

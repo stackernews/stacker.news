@@ -69,7 +69,6 @@ export default function Settings ({ ssrData }) {
             noteItemSats: settings?.noteItemSats,
             noteEarning: settings?.noteEarning,
             noteAllDescendants: settings?.noteAllDescendants,
-            noteTerritoryPosts: settings?.noteTerritoryPosts,
             noteMentions: settings?.noteMentions,
             noteDeposits: settings?.noteDeposits,
             noteInvites: settings?.noteInvites,
@@ -218,11 +217,6 @@ export default function Settings ({ ssrData }) {
           <Checkbox
             label='someone replies to someone who replied to me'
             name='noteAllDescendants'
-            groupClassName='mb-0'
-          />
-          <Checkbox
-            label='someone writes a post in a territory I founded'
-            name='noteTerritoryPosts'
             groupClassName='mb-0'
           />
           <Checkbox

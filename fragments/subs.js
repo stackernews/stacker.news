@@ -20,6 +20,7 @@ export const SUB_FIELDS = gql`
     moderated
     moderatedCount
     meMuteSub
+    meSubscription
     nsfw
   }`
 

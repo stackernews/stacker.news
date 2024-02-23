@@ -21,6 +21,7 @@ export default gql`
       moderated: Boolean!, hash: String, hmac: String, nsfw: Boolean!): Sub
     paySub(name: String!, hash: String, hmac: String): Sub
     toggleMuteSub(name: String!): Boolean!
+    toggleSubSubscription(name: String!): Boolean!
   }
 
   type Sub {
@@ -46,6 +47,7 @@ export default gql`
     nsfw: Boolean!
     nposts(when: String, from: String, to: String): Int!
     ncomments(when: String, from: String, to: String): Int!
+    meSubscription: Boolean!
 
     optional: SubOptional!
   }

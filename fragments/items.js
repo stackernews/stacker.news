@@ -22,6 +22,7 @@ export const ITEM_FIELDS = gql`
       userId
       moderated
       meMuteSub
+      meSubscription
       nsfw
     }
     otsHash
@@ -82,6 +83,7 @@ export const ITEM_FULL_FIELDS = gql`
         userId
         moderated
         meMuteSub
+        meSubscription
       }
     }
     forwards {

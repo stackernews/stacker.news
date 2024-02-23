@@ -448,15 +448,10 @@ export default {
               },
               body: JSON.stringify({ string: rune })
             }
-            console.log(socket)
+
             await fetch(`${socket}/v1/decode`, options).then((response) => {
-              const requiredResponse = [{
-                alternatives: [
-                  'method=invoice'
-                ],
-                summary: 'method (of command) equal to \'invoice\''
-              }]
-              if (response.restrictions !== requiredResponse) {
+              const requiredResponse = 'method (of command) equal to \'invoice\''
+              if (requiredResponse !== response.restrictions[0].alternatives[0].summary && response.restrictions.length > 1) {
                 throw new Error('rune is not for invoice only')
               }
             })

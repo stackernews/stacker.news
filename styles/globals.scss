@@ -189,6 +189,10 @@ $accordion-button-active-icon-dark:  $accordion-button-icon;
   }
 }
 
+.squircle {
+  clip-path: url(#squircleClip);
+}
+
 .btn-outline-grey {
   --bs-btn-color: var(--theme-grey);
   --bs-btn-border-color: var(--theme-grey);
@@ -615,14 +619,22 @@ div[contenteditable] {
   font-weight: normal;
 }
 
-.alert-dismissible .btn-close {
+.alert-dismissible .btn-close, .offcanvas-header .btn-close {
   font-weight: 300;
   font-family: "lightning";
   font-size: 150%;
   line-height: 1;
 }
 
-.popover-header.alert-dismissible .btn-close {
+header .navbar:not(:last-child) {
+  padding-bottom: 0;
+}
+
+header .navbar:not(:first-child) {
+  padding-top: 0;
+}
+
+.popover-header.alert-dismissible .btn-close, .offcanvas-header .btn-close {
   padding: .5rem !important;
 }
 
@@ -641,7 +653,7 @@ div[contenteditable] {
 }
 
 
-.alert-dismissible .btn-close::after {
+.alert-dismissible .btn-close::after, .offcanvas-header .btn-close::after {
   content: 'X';
 }
 

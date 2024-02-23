@@ -106,9 +106,9 @@ export function PostForm ({ type, sub, children }) {
           </Alert>}
         <SubSelect
           prependSubs={['pick territory']}
-          className='w-auto d-flex'
+          className='d-flex'
           noForm
-          large
+          size='medium'
           sub={sub?.name}
           info={sub && <TerritoryInfo sub={sub} />}
           hint={sub?.moderated && 'this territory is moderated'}
@@ -173,8 +173,8 @@ export default function Post ({ sub }) {
             sub={sub?.name}
             prependSubs={sub?.name ? undefined : ['pick territory']}
             filterSubs={s => s.postTypes?.includes(type.toUpperCase())}
-            className='w-auto d-flex'
-            large
+            className='d-flex'
+            size='medium'
             label='territory'
             info={sub && <TerritoryInfo sub={sub} />}
             hint={sub?.moderated && 'this territory is moderated'}

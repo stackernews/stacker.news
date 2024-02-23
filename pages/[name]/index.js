@@ -75,9 +75,9 @@ export function BioForm ({ handleDone, bio }) {
   )
 }
 
-export function UserLayout ({ user, children }) {
+export function UserLayout ({ user, children, containClassName }) {
   return (
-    <Layout user={user} containClassName={styles.contain}>
+    <Layout user={user} footer={false} containClassName={containClassName}>
       <UserHeader user={user} />
       {children}
     </Layout>
@@ -97,7 +97,7 @@ export default function User ({ ssrData }) {
   const mine = me?.name === user.name
 
   return (
-    <UserLayout user={user}>
+    <UserLayout user={user} containClassName={!user.bio && mine && styles.contain}>
       {user.bio
         ? (edit
             ? (

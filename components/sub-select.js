@@ -42,7 +42,7 @@ export function useSubs ({ prependSubs = [], sub, filterSubs = () => true, appen
   return subs
 }
 
-export default function SubSelect ({ prependSubs, sub, onChange, large, appendSubs, filterSubs, className, ...props }) {
+export default function SubSelect ({ prependSubs, sub, onChange, size, appendSubs, filterSubs, className, ...props }) {
   const router = useRouter()
   const subs = useSubs({ prependSubs, sub, filterSubs, appendSubs })
   const valueProps = props.noForm
@@ -105,7 +105,7 @@ export default function SubSelect ({ prependSubs, sub, onChange, large, appendSu
       size='sm'
       {...valueProps}
       {...props}
-      className={`${className} ${styles.subSelect} ${large ? 'me-2' : styles.subSelectSmall}`}
+      className={`${className} ${styles.subSelect} ${size === 'large' ? styles.subSelectLarge : size === 'medium' ? styles.subSelectMedium : ''}`}
       items={subItems}
     />
   )

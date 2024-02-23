@@ -54,12 +54,12 @@ export default function Search ({ sub }) {
   return (
     <>
       <div className={styles.searchSection}>
-        <Container className={`px-md-0 ${styles.searchContainer}`}>
+        <Container className={`px-0 ${styles.searchContainer}`}>
           <Form
             initial={{ q, what, sort, when, from: '', to: '' }}
             onSubmit={values => search({ ...values })}
           >
-            <div className={`${styles.active} my-3`}>
+            <div className={`${styles.active} mb-3`}>
               <Input
                 name='q'
                 required

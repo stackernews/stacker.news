@@ -20,7 +20,7 @@ import ActionDropdown from './action-dropdown'
 import MuteDropdownItem from './mute'
 import { DropdownItemUpVote } from './upvote'
 import { useRoot } from './root'
-import { MuteSubDropdownItem, PinSubDropdownItem, ToggleSubSubscriptionDropdownItem } from './territory-header'
+import { MuteSubDropdownItem, PinSubDropdownItem } from './territory-header'
 
 export default function ItemInfo ({
   item, full, commentsText = 'comments',
@@ -177,11 +177,10 @@ export default function ItemInfo ({
             <hr className='dropdown-divider' />
             <OutlawDropdownItem item={item} />
           </>}
-        {me && !nested && sub &&
+        {me && !nested && !item.mine && sub && Number(me.id) !== Number(sub.userId) &&
           <>
             <hr className='dropdown-divider' />
-            {!item.mine && Number(me.id) !== Number(sub.userId) && <MuteSubDropdownItem item={item} sub={sub} />}
-            <ToggleSubSubscriptionDropdownItem sub={sub} />
+            <MuteSubDropdownItem item={item} sub={sub} />
           </>}
         {canPin &&
           <>

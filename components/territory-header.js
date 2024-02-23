@@ -96,7 +96,7 @@ export default function TerritoryHeader ({ sub }) {
           <TerritoryDetails sub={sub} />
         </div>
         <div className='d-flex my-2 justify-content-end'>
-          <Share path={`/~${sub.name}`} title={`~${sub.name} stacker news territory`} className='mx-3' />
+          <Share path={`/~${sub.name}`} title={`~${sub.name} stacker news territory`} className='mx-1' />
           {me &&
             (Number(sub.userId) === Number(me?.id)
               ? (

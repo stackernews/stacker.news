@@ -180,7 +180,7 @@ export const ToastProvider = ({ children }) => {
                   </Button>
                 </div>
               </ToastBody>
-              {toast.delay > 0 && <div className={`${styles.progressBar} ${styles[toast.variant]}`} style={{ animationDelay }} />}
+              {toast.onUndo && toast.delay > 0 && <div className={`${styles.progressBar} ${styles[toast.variant]}`} style={{ animationDelay }} />}
             </Toast>
           )
         })}
@@ -205,9 +205,12 @@ export const withToastFlow = (toaster) => flowFn => {
       onUndo,
       hideError,
       hideSuccess,
+      skipToastFlow,
       ...toastProps
     } = flowFn(...args)
     let canceled
+
+    if (skipToastFlow) return onPending()
 
     // XXX HACK this ends the flow by using flow toast which immediately closes itself
     const endFlow = () => toaster.warning('', { ...toastProps, delay: 0, autohide: true, flowId })

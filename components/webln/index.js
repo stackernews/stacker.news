@@ -82,13 +82,15 @@ function RawWebLNProvider ({ children }) {
   `)
 
   const sendPaymentWithToast = withToastFlow(toaster)(
-    ({ bolt11, hash, hmac, flowId }) => {
+    ({ bolt11, hash, hmac, expiresAt, flowId }) => {
+      const expiresIn = (+new Date(expiresAt)) - (+new Date())
       return {
         flowId: flowId || hash,
         type: 'payment',
         onPending: () => provider.sendPayment(bolt11),
         // hash and hmac are only passed for JIT invoices
-        onCancel: () => hash && hmac ? cancelInvoice({ variables: { hash, hmac } }) : undefined
+        onCancel: () => hash && hmac ? cancelInvoice({ variables: { hash, hmac } }) : undefined,
+        timeout: expiresIn
       }
     }
   )

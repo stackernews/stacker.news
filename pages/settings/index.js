@@ -176,6 +176,12 @@ export default function Settings ({ ssrData }) {
                           <ul className='fw-bold'>
                             <li>An undo button is shown after every zap</li>
                             <li>The button is shown for 5 seconds</li>
+                            <li>
+                              The button is only shown for zaps from the custodial wallet
+                            </li>
+                            <li>
+                              Use a budget or manual approval with attached wallets
+                            </li>
                           </ul>
                         </Info>
                       </div>

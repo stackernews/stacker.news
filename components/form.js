@@ -288,10 +288,17 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
               ref={imageUploadRef}
               className='d-flex align-items-center me-1'
               onUpload={file => {
-                let text = innerRef.current.value
-                if (text) text += '\n\n'
-                text += `![Uploading ${file.name}…]()`
-                helpers.setValue(text)
+                const uploadMarker = `![Uploading ${file.name}…]()`
+                const text = innerRef.current.value
+                const cursorPosition = innerRef.current.selectionStart || text.length
+                let preMarker = text.slice(0, cursorPosition)
+                const postMarker = text.slice(cursorPosition)
+                // when uploading multiple files at once, we want to make sure the upload markers are separated by blank lines
+                if (preMarker && !/\n+\s*$/.test(preMarker)) {
+                  preMarker += '\n\n'
+                }
+                const newText = preMarker + uploadMarker + postMarker
+                helpers.setValue(newText)
                 setSubmitDisabled?.(true)
               }}
               onSuccess={({ url, name }) => {

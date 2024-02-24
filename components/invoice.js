@@ -257,7 +257,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
     })
 
     const retry = () => onSubmit(
-      { hash: inv.hash, hmac: inv.hmac, ...formValues },
+      { hash: inv.hash, hmac: inv.hmac, expiresAt: inv.expiresAt, ...formValues },
       // unset update function since we already ran an cache update if we paid using WebLN
       // also unset update function if null was explicitly passed in
       { ...submitArgs, variables, update: webLn ? null : undefined })

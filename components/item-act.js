@@ -361,7 +361,8 @@ export function useZap () {
           undoUpdate?.()
         },
         hideSuccess: true,
-        hideError: true
+        hideError: true,
+        timeout: TOAST_DEFAULT_DELAY_MS
       }
     }
   )

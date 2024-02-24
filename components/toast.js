@@ -163,6 +163,7 @@ export const ToastProvider = ({ children }) => {
           // if we don't do this, the animation for rerendered toasts skips ahead and toast delay and animation get out of sync.
           const elapsed = (+new Date() - toast.createdAt)
           const animationDelay = unhidden ? `-${elapsed}ms` : undefined
+          const animationDuration = `${toast.delay}ms`
           return (
             <Toast
               key={toast.id} bg={toast.variant} show autohide={toast.autohide}
@@ -180,7 +181,7 @@ export const ToastProvider = ({ children }) => {
                   </Button>
                 </div>
               </ToastBody>
-              {toast.onUndo && toast.delay > 0 && <div className={`${styles.progressBar} ${styles[toast.variant]}`} style={{ animationDelay }} />}
+              {toast.progressBar && <div className={`${styles.progressBar} ${styles[toast.variant]}`} style={{ animationDuration, animationDelay }} />}
             </Toast>
           )
         })}
@@ -206,6 +207,7 @@ export const withToastFlow = (toaster) => flowFn => {
       hideError,
       hideSuccess,
       skipToastFlow,
+      timeout,
       ...toastProps
     } = flowFn(...args)
     let canceled
@@ -216,7 +218,8 @@ export const withToastFlow = (toaster) => flowFn => {
     const endFlow = () => toaster.warning('', { ...toastProps, delay: 0, autohide: true, flowId })
 
     toaster.warning(pendingMessage || `${t} pending`, {
-      autohide: false,
+      progressBar: !!timeout,
+      delay: timeout || TOAST_DEFAULT_DELAY_MS,
       onCancel: onCancel
         ? async () => {
           try {

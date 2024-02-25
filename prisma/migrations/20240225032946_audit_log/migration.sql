@@ -17,8 +17,8 @@ BEGIN
     VALUES (
         'Sub',
         '~' || OLD.name || ' was transferred from user with id ' || OLD."userId" || ' to user with id ' || NEW."userId",
-        json_build_object('userId', OLD."userId"),
-        json_build_object('userId', NEW."userId")
+        json_build_object('name', OLD."name", 'userId', OLD."userId"),
+        json_build_object('name', NEW."name", 'userId', NEW."userId")
     );
     RETURN NEW;
 END;
@@ -31,3 +31,6 @@ AFTER UPDATE ON "Sub"
 FOR EACH ROW
 WHEN (NEW."userId" <> OLD."userId")
 EXECUTE PROCEDURE audit_territory_transfer();
+
+-- create index for notifications query
+CREATE INDEX "AuditLog.new.userId" ON "AuditLog" (created_at, ((new->'userId')::integer));

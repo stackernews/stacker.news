@@ -772,6 +772,15 @@ model Log {
   @@index([createdAt, name], map: "Log.name_index")
 }
 
+model AuditLog {
+  id        Int @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map("created_at")
+  table     String
+  message   String?
+  old       Json
+  new       Json
+}
+
 enum EarnType {
   POST
   COMMENT

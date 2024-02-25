@@ -42,7 +42,12 @@ export default gql`
     cert: String
   }
 
-  union WalletDetails = WalletLNAddr | WalletLND
+  type WalletCoreLightning {
+    socket: String!
+    rune: String!
+  }
+
+  union WalletDetails = WalletLNAddr | WalletLND | WalletCoreLightning
 
   input AutowithdrawSettings {
     autoWithdrawThreshold: Int!

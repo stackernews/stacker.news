@@ -120,6 +120,10 @@ export const WALLET = gql`
           macaroon
           cert
         }
+        ... on WalletCoreLightning {
+          socket
+          rune
+        }
       }
     }
   }

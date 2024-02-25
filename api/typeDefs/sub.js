@@ -22,6 +22,7 @@ export default gql`
     paySub(name: String!, hash: String, hmac: String): Sub
     toggleMuteSub(name: String!): Boolean!
     toggleSubSubscription(name: String!): Boolean!
+    transferTerritory(subName: String!, userName: String!): Sub
   }
 
   type Sub {

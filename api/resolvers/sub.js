@@ -280,6 +280,30 @@ export default {
         await models.subSubscription.create({ data: lookupData })
         return true
       }
+    },
+    transferTerritory: async (parent, { subName, userName }, { me, models }) => {
+      if (!me) {
+        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+      }
+
+      const sub = await models.sub.findUnique({
+        where: {
+          name: subName
+        }
+      })
+      if (!sub) {
+        throw new GraphQLError('sub not found', { extensions: { code: 'BAD_INPUT' } })
+      }
+      if (sub.userId !== me.id) {
+        throw new GraphQLError('you do not own this sub', { extensions: { code: 'BAD_INPUT' } })
+      }
+
+      const user = await models.user.findFirst({ where: { name: userName } })
+      if (!user) {
+        throw new GraphQLError('user not found', { extensions: { code: 'BAD_INPUT' } })
+      }
+
+      return await models.sub.update({ where: { name: subName }, data: { userId: user.id } })
     }
   },
   Sub: {

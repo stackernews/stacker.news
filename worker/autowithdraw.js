@@ -164,5 +164,5 @@ async function autowithdrawCoreLightning ({ amount, maxFee }, { me, models }) {
 
   const invoice = await fetch(`${socket}/v1/invoice`, options)
 
-  return await createWithdrawal(null, { invoice: invoice.payment_hash, maxFee }, { me, models, autoWithdraw: true })
+  return await createWithdrawal(null, { invoice: invoice.bolt11, maxFee }, { me, models, autoWithdraw: true })
 }

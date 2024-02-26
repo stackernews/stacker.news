@@ -77,7 +77,7 @@ export default {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
       }
-      
+
       const wallet = await models.wallet.findFirst({
         where: {
           userId: me.id,
@@ -306,7 +306,7 @@ export default {
     __resolveType (wallet) {
       if (wallet.address) {
         return 'WalletLNAddr'
-       }else if (wallet.type == 'LND') { 
+      } else if (wallet.type == 'LND') { 
         return 'WalletLND' 
       } else {
         return 'WalletCoreLightning'

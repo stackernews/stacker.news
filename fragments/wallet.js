@@ -146,7 +146,7 @@ export const WALLET_BY_TYPE = gql`
           macaroon
           cert
         }
-        ... on WalletCoreLIghtning {
+        ... on WalletCoreLightning {
           socket
           rune
         }

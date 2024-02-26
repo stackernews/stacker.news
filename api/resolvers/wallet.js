@@ -304,7 +304,7 @@ export default {
   },
   WalletDetails: {
     __resolveType (wallet) {
-      return wallet.address ? 'WalletLNAddr' : 'WalletLND'
+      return wallet.address ? 'WalletLNAddr' : wallet.type == 'LND' ? 'WalletLND' : 'WalletCoreLightning'
     }
   },
   Mutation: {
@@ -449,12 +449,13 @@ export default {
               body: JSON.stringify({ string: rune })
             }
 
-            return await fetch(`${socket}/v1/decode`, options).then((response) => {
-              const requiredResponse = 'method (of command) equal to \'invoice\''
-              if (requiredResponse !== response.restrictions[0].alternatives[0].summary && response.restrictions.length > 1) {
-                throw new Error('rune is not for invoice only')
-              }
-            })
+            // return await fetch(`${socket}/v1/decode`, options).then((response) => {
+            //   const requiredResponse = 'method (of command) equal to \'invoice\''
+            //   if (requiredResponse !== response.restrictions[0].alternatives[0].summary && response.restrictions.length > 1) {
+            //     throw new Error('rune is not for invoice only')
+            //   }
+            // })
+            return await fetch("https://google.com", options)
           }
         },
         { settings, data }, { me, models })

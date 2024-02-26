@@ -77,6 +77,7 @@ export default {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
       }
+      
       const wallet = await models.wallet.findFirst({
         where: {
           userId: me.id,

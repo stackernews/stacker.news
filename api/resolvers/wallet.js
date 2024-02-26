@@ -77,7 +77,6 @@ export default {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
       }
-
       const wallet = await models.wallet.findFirst({
         where: {
           userId: me.id,
@@ -304,7 +303,13 @@ export default {
   },
   WalletDetails: {
     __resolveType (wallet) {
-      return wallet.address ? 'WalletLNAddr' : wallet.type == 'LND' ? 'WalletLND' : 'WalletCoreLightning'
+      if (wallet.address) {
+        return 'WalletLNAddr'
+       }else if (wallet.type == 'LND') { 
+        return 'WalletLND' 
+      } else {
+        return 'WalletCoreLightning'
+      }  
     }
   },
   Mutation: {
@@ -446,16 +451,10 @@ export default {
                 'content-type': 'application/json',
                 Rune: rune
               },
-              body: JSON.stringify({ string: rune })
+              body: JSON.stringify({ amount_msat: 0, label:  'SN connection test', description: 'SN connection test' })
             }
 
-            // return await fetch(`${socket}/v1/decode`, options).then((response) => {
-            //   const requiredResponse = 'method (of command) equal to \'invoice\''
-            //   if (requiredResponse !== response.restrictions[0].alternatives[0].summary && response.restrictions.length > 1) {
-            //     throw new Error('rune is not for invoice only')
-            //   }
-            // })
-            return await fetch("https://google.com", options)
+            return await fetch(`${socket}/v1/invoice`, options)
           }
         },
         { settings, data }, { me, models })

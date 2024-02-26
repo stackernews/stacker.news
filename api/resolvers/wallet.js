@@ -306,11 +306,11 @@ export default {
     __resolveType (wallet) {
       if (wallet.address) {
         return 'WalletLNAddr'
-      } else if (wallet.type == 'LND') { 
-        return 'WalletLND' 
+      } else if (wallet.type === 'LND') {
+        return 'WalletLND'
       } else {
         return 'WalletCoreLightning'
-      }  
+      }
     }
   },
   Mutation: {
@@ -452,7 +452,7 @@ export default {
                 'content-type': 'application/json',
                 Rune: rune
               },
-              body: JSON.stringify({ amount_msat: 0, label:  'SN connection test', description: 'SN connection test' })
+              body: JSON.stringify({ amount_msat: 0, label: 'SN connection test', description: 'SN connection test' })
             }
 
             return await fetch(`${socket}/v1/invoice`, options)

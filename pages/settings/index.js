@@ -69,7 +69,6 @@ export default function Settings ({ ssrData }) {
             noteItemSats: settings?.noteItemSats,
             noteEarning: settings?.noteEarning,
             noteAllDescendants: settings?.noteAllDescendants,
-            noteTerritoryPosts: settings?.noteTerritoryPosts,
             noteMentions: settings?.noteMentions,
             noteDeposits: settings?.noteDeposits,
             noteInvites: settings?.noteInvites,
@@ -177,6 +176,12 @@ export default function Settings ({ ssrData }) {
                           <ul className='fw-bold'>
                             <li>An undo button is shown after every zap</li>
                             <li>The button is shown for 5 seconds</li>
+                            <li>
+                              The button is only shown for zaps from the custodial wallet
+                            </li>
+                            <li>
+                              Use a budget or manual approval with attached wallets
+                            </li>
                           </ul>
                         </Info>
                       </div>
@@ -218,11 +223,6 @@ export default function Settings ({ ssrData }) {
           <Checkbox
             label='someone replies to someone who replied to me'
             name='noteAllDescendants'
-            groupClassName='mb-0'
-          />
-          <Checkbox
-            label='someone writes a post in a territory I founded'
-            name='noteTerritoryPosts'
             groupClassName='mb-0'
           />
           <Checkbox

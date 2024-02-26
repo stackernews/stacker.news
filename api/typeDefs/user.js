@@ -73,7 +73,6 @@ export default gql`
     nostrPubkey: String
     nostrRelays: [String!]
     noteAllDescendants: Boolean!
-    noteTerritoryPosts: Boolean!
     noteCowboyHat: Boolean!
     noteDeposits: Boolean!
     noteEarning: Boolean!
@@ -136,7 +135,6 @@ export default gql`
     nostrPubkey: String
     nostrRelays: [String!]
     noteAllDescendants: Boolean!
-    noteTerritoryPosts: Boolean!
     noteCowboyHat: Boolean!
     noteDeposits: Boolean!
     noteEarning: Boolean!

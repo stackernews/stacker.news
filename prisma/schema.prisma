@@ -35,13 +35,13 @@ model User {
   lastSeenAt                DateTime?
   stackedMsats              BigInt               @default(0)
   noteAllDescendants        Boolean              @default(true)
-  noteTerritoryPosts        Boolean              @default(true)
   noteDeposits              Boolean              @default(true)
   noteEarning               Boolean              @default(true)
   noteInvites               Boolean              @default(true)
   noteItemSats              Boolean              @default(true)
   noteMentions              Boolean              @default(true)
   noteForwardedSats         Boolean              @default(true)
+  noteTerritoryPosts        Boolean              @default(true)
   lastCheckedJobs           DateTime?
   noteJobIndicator          Boolean              @default(true)
   photoId                   Int?
@@ -81,6 +81,7 @@ model User {
   ReferralAct               ReferralAct[]
   Streak                    Streak[]
   ThreadSubscriptions       ThreadSubscription[]
+  SubSubscriptions          SubSubscription[]
   Upload                    Upload[]             @relation("Uploads")
   nostrRelays               UserNostrRelay[]
   withdrawls                Withdrawl[]
@@ -495,12 +496,13 @@ model Sub {
   moderatedCount   Int         @default(0)
   nsfw             Boolean     @default(false)
 
-  parent   Sub?      @relation("ParentChildren", fields: [parentName], references: [name])
-  children Sub[]     @relation("ParentChildren")
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  Item     Item[]
-  SubAct   SubAct[]
-  MuteSub  MuteSub[]
+  parent          Sub?              @relation("ParentChildren", fields: [parentName], references: [name])
+  children        Sub[]             @relation("ParentChildren")
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Item            Item[]
+  SubAct          SubAct[]
+  MuteSub         MuteSub[]
+  SubSubscription SubSubscription[]
 
   @@index([parentName])
   @@index([createdAt])
@@ -746,6 +748,17 @@ model UserSubscription {
   @@index([createdAt], map: "UserSubscription.created_at_index")
   @@index([followerId], map: "UserSubscription.follower_index")
   @@index([followeeId], map: "UserSubscription.followee_index")
+}
+
+model SubSubscription {
+  userId    Int
+  subName   String   @db.Citext
+  createdAt DateTime @default(now()) @map("created_at")
+  sub       Sub      @relation(fields: [subName], references: [name], onDelete: Cascade, onUpdate: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([userId, subName])
+  @@index([createdAt], map: "SubSubscription.created_at_index")
 }
 
 model PushSubscription {

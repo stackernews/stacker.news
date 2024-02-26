@@ -83,7 +83,11 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
       let canceled
       const sats = values.amount
       const insufficientFunds = me?.privates?.sats < sats
-      if (insufficientFunds) throw new Error('insufficient funds')
+      const invoiceAttached = values.hash && values.hmac
+      if (insufficientFunds && !invoiceAttached) throw new Error('insufficient funds')
+      // payments from external wallets already have their own flow
+      // and we don't want to show undo toasts for them
+      const skipToastFlow = invoiceAttached
       // update function for optimistic UX
       const update = () => {
         const fragment = {
@@ -108,10 +112,14 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
       }
       let undoUpdate
       return {
+        skipToastFlow,
         flowId,
         type: 'zap',
         pendingMessage: `${down ? 'down' : ''}zapped ${sats} sats`,
         onPending: async () => {
+          if (skipToastFlow) {
+            return onSubmit(values, { flowId, ...args, update: null })
+          }
           await strike()
           onClose()
           return new Promise((resolve, reject) => {
@@ -353,7 +361,8 @@ export function useZap () {
           undoUpdate?.()
         },
         hideSuccess: true,
-        hideError: true
+        hideError: true,
+        timeout: TOAST_DEFAULT_DELAY_MS
       }
     }
   )

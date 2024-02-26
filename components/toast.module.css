@@ -50,8 +50,10 @@
   width: 0;
   height: 5px;
   filter: brightness(66%);
-  /* same duration as toast delay */
-  animation: progressBar 5s linear;
+  animation-name: progressBar;
+  animation-iteration-count: 1;
+  animation-timing-function: linear;
+  /* animation-duration set via JS */
 }
 
 .progressBar.success {

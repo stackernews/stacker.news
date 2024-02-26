@@ -10,6 +10,7 @@ import { useMe } from './me'
 import Share from './share'
 import { gql, useMutation } from '@apollo/client'
 import { useToast } from './toast'
+import ActionDropdown from './action-dropdown'
 
 export function TerritoryDetails ({ sub }) {
   return (
@@ -79,28 +80,34 @@ export default function TerritoryHeader ({ sub }) {
           <TerritoryDetails sub={sub} />
         </div>
         <div className='d-flex my-2 justify-content-end'>
-          <Share path={`/~${sub.name}`} title={`~${sub.name} stacker news territory`} className='mx-3' />
+          <Share path={`/~${sub.name}`} title={`~${sub.name} stacker news territory`} className='mx-1' />
           {me &&
-            (Number(sub.userId) === Number(me?.id)
-              ? (
-                <Link href={`/~${sub.name}/edit`} className='d-flex align-items-center'>
-                  <Button variant='outline-grey border-2 rounded py-0' size='sm'>edit territory</Button>
-                </Link>)
-              : (
-                <Button
-                  variant='outline-grey border-2 py-0 rounded'
-                  size='sm'
-                  onClick={async () => {
-                    try {
-                      await toggleMuteSub({ variables: { name: sub.name } })
-                    } catch {
-                      toaster.danger(`failed to ${sub.meMuteSub ? 'join' : 'mute'} territory`)
-                      return
-                    }
-                    toaster.success(`${sub.meMuteSub ? 'joined' : 'muted'} territory`)
-                  }}
-                >{sub.meMuteSub ? 'join' : 'mute'} territory
-                </Button>))}
+            <>
+              {(Number(sub.userId) === Number(me?.id)
+                ? (
+                  <Link href={`/~${sub.name}/edit`} className='d-flex align-items-center'>
+                    <Button variant='outline-grey border-2 rounded py-0' size='sm'>edit territory</Button>
+                  </Link>)
+                : (
+                  <Button
+                    variant='outline-grey border-2 py-0 rounded'
+                    size='sm'
+                    onClick={async () => {
+                      try {
+                        await toggleMuteSub({ variables: { name: sub.name } })
+                      } catch {
+                        toaster.danger(`failed to ${sub.meMuteSub ? 'join' : 'mute'} territory`)
+                        return
+                      }
+                      toaster.success(`${sub.meMuteSub ? 'joined' : 'muted'} territory`)
+                    }}
+                  >{sub.meMuteSub ? 'join' : 'mute'} territory
+                  </Button>)
+              )}
+              <ActionDropdown>
+                <ToggleSubSubscriptionDropdownItem sub={sub} />
+              </ActionDropdown>
+            </>}
         </div>
       </div>
     </>
@@ -167,6 +174,40 @@ export function PinSubDropdownItem ({ item: { id, position } }) {
       }}
     >
       {position ? 'unpin item' : 'pin item'}
+    </Dropdown.Item>
+  )
+}
+
+export function ToggleSubSubscriptionDropdownItem ({ sub: { name, meSubscription } }) {
+  const toaster = useToast()
+  const [toggleSubSubscription] = useMutation(
+    gql`
+      mutation toggleSubSubscription($name: String!) {
+        toggleSubSubscription(name: $name)
+      }`, {
+      update (cache, { data: { toggleSubSubscription } }) {
+        cache.modify({
+          id: `Sub:{"name":"${name}"}`,
+          fields: {
+            meSubscription: () => toggleSubSubscription
+          }
+        })
+      }
+    }
+  )
+  return (
+    <Dropdown.Item
+      onClick={async () => {
+        try {
+          await toggleSubSubscription({ variables: { name } })
+          toaster.success(meSubscription ? 'unsubscribed' : 'subscribed')
+        } catch (err) {
+          console.error(err)
+          toaster.danger(meSubscription ? 'failed to unsubscribe' : 'failed to subscribe')
+        }
+      }}
+    >
+      {meSubscription ? `unsubscribe from ~${name}` : `subscribe to ~${name}`}
     </Dropdown.Item>
   )
 }

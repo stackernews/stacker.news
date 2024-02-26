@@ -27,7 +27,6 @@ export const ME = gql`
         lastCheckedJobs
         nostrCrossposting
         noteAllDescendants
-        noteTerritoryPosts
         noteCowboyHat
         noteDeposits
         noteEarning
@@ -70,7 +69,6 @@ export const SETTINGS_FIELDS = gql`
       noteItemSats
       noteEarning
       noteAllDescendants
-      noteTerritoryPosts
       noteMentions
       noteDeposits
       noteInvites

@@ -35,7 +35,6 @@ const createUserFilter = (tag) => {
   // filter users by notification settings
   const tagMap = {
     REPLY: 'noteAllDescendants',
-    TERRITORY_POST: 'noteTerritoryPosts',
     MENTION: 'noteMentions',
     TIP: 'noteItemSats',
     FORWARDEDTIP: 'noteForwardedSats',

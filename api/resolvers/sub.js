@@ -259,6 +259,22 @@ export default {
         await models.muteSub.create({ data: { ...lookupData } })
         return true
       }
+    },
+    toggleSubSubscription: async (sub, { name }, { me, models }) => {
+      if (!me) {
+        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+      }
+
+      const lookupData = { userId: me.id, subName: name }
+      const where = { userId_subName: lookupData }
+      const existing = await models.subSubscription.findUnique({ where })
+      if (existing) {
+        await models.subSubscription.delete({ where })
+        return false
+      } else {
+        await models.subSubscription.create({ data: lookupData })
+        return true
+      }
     }
   },
   Sub: {
@@ -281,6 +297,9 @@ export default {
       if (typeof sub.ncomments !== 'undefined') {
         return sub.ncomments
       }
+    },
+    meSubscription: async (sub, args, { me, models }) => {
+      return sub.meSubscription || sub.SubSubscription?.length > 0
     }
   }
 }
@@ -330,6 +349,13 @@ async function createSub (parent, data, { me, models, lnd, hash, hmac }) {
           subName: data.name,
           msats: cost,
           type: 'BILLING'
+        }
+      }),
+      // notify 'em (in the future)
+      models.subSubscription.create({
+        data: {
+          userId: me.id,
+          subName: data.name
         }
       })
     ], { models, lnd, hash, hmac, me, enforceFee: billingCost })

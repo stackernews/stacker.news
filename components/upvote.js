@@ -133,7 +133,7 @@ export default function UpVote ({ item, className }) {
 
     return [
       meSats, me ? numWithUnits(sats, { abbreviate: false }) : 'zap it',
-      getColor(meSats), getColor(meSats + (me?.privates?.tipDefault || 0))]
+      getColor(meSats), getColor(meSats + sats)]
   }, [item?.meSats, item?.meAnonSats, me?.privates?.tipDefault, me?.privates?.turboDefault])
 
   return (

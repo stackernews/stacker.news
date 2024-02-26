@@ -23,7 +23,7 @@ export default function CoreLightning ({ ssrData }) {
   const [removeWallet] = useMutation(REMOVE_WALLET)
 
   const { walletByType: wallet } = ssrData || {}
-  
+
   return (
     <CenterLayout>
       <h2 className='pb-2'>Core Lightning</h2>

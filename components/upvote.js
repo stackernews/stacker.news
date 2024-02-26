@@ -67,6 +67,22 @@ export function DropdownItemUpVote ({ item }) {
   )
 }
 
+export const nextTip = (meSats, { tipDefault, turboTipping }) => {
+  // what should our next tip be?
+  if (!turboTipping) return (tipDefault || 1)
+
+  let sats = tipDefault || 1
+  if (turboTipping) {
+    while (meSats >= sats) {
+      sats *= 10
+    }
+    // deduct current sats since turbo tipping is about total zap not making the next zap 10x
+    sats -= meSats
+  }
+
+  return sats
+}
+
 export default function UpVote ({ item, className }) {
   const showModal = useShowModal()
   const [voteShow, _setVoteShow] = useState(false)
@@ -119,17 +135,7 @@ export default function UpVote ({ item, className }) {
     const meSats = (item?.meSats || item?.meAnonSats || 0)
 
     // what should our next tip be?
-    let sats = me?.privates?.tipDefault || 1
-    let raiseSats = sats
-    if (me?.privates?.turboTipping) {
-      while (meSats >= raiseSats) {
-        raiseSats *= 10
-      }
-
-      sats = raiseSats - meSats
-    } else {
-      raiseSats = meSats + sats
-    }
+    const sats = nextTip(meSats, { ...me?.privates })
 
     return [
       meSats, me ? numWithUnits(sats, { abbreviate: false }) : 'zap it',

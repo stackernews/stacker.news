@@ -338,6 +338,7 @@ export function useZap () {
       let undoUpdate
       return {
         flowId,
+        tag: itemId,
         type: 'zap',
         pendingMessage: `zapped ${amount} sats`,
         onPending: () =>

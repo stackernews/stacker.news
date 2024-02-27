@@ -141,7 +141,8 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
           undoUpdate?.()
         },
         hideSuccess: true,
-        hideError: true
+        hideError: true,
+        timeout: TOAST_DEFAULT_DELAY_MS
       }
     }
   )

@@ -169,17 +169,14 @@ export default {
       )
 
       // territory transfers
-      queries.push(`
-        (
-          SELECT "Sub"."name"::text, "AuditLog"."created_at" AS "sortTime", NULL as "earnedSats", 'TerritoryTransfer' AS type
-          FROM "AuditLog"
-          JOIN "Sub" ON "Sub"."name" = new->>'name'
-          WHERE "AuditLog"."table" = 'Sub'
-          AND (new->'userId')::integer = $1
-          AND "AuditLog"."created_at" <= $2
+      queries.push(
+        `(SELECT "TerritoryTransfer"."subName"::text, "TerritoryTransfer"."created_at" AS "sortTime", NULL as "earnedSats",
+          'TerritoryTransfer' AS type
+          FROM "TerritoryTransfer"
+          WHERE "TerritoryTransfer"."newUserId" = $1
+          AND "TerritoryTransfer"."created_at" <= $2
           ORDER BY "sortTime" DESC
-          LIMIT ${LIMIT}+$3
-        )`
+          LIMIT ${LIMIT}+$3)`
       )
 
       if (meFull.noteItemSats) {

@@ -9,6 +9,7 @@ import { gql, useApolloClient, useMutation } from '@apollo/client'
 import { payOrLoginError, useInvoiceModal } from './invoice'
 import { TOAST_DEFAULT_DELAY_MS, useToast, withToastFlow } from './toast'
 import { useLightning } from './lightning'
+import { nextTip } from './upvote'
 
 const defaultTips = [100, 1000, 10000, 100000]
 
@@ -370,15 +371,8 @@ export function useZap () {
   return useCallback(async ({ item, me }) => {
     const meSats = (item?.meSats || 0)
 
-    // what should our next tip be?
-    let sats = me?.privates?.tipDefault || 1
-    if (me?.privates?.turboTipping) {
-      while (meSats >= sats) {
-        sats *= 10
-      }
-    } else {
-      sats = meSats + sats
-    }
+    // add current sats to next tip since idempotent zaps use desired total zap not difference
+    const sats = meSats + nextTip(meSats, { ...me?.privates })
 
     const variables = { id: item.id, sats, act: 'TIP', amount: sats - meSats }
     const insufficientFunds = me?.privates.sats < (sats - meSats)

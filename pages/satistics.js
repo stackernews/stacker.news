@@ -20,6 +20,7 @@ import { useMe } from '../components/me'
 import dynamic from 'next/dynamic'
 
 export const getServerSideProps = getGetServerSideProps({ query: WALLET_HISTORY, authRequired: true })
+export const getServerSideProps = getGetServerSideProps({ query: USER_STATS, authRequired: true })
 
 const WhenAreaChart = dynamic(() => import('../components/charts').then(mod => mod.WhenAreaChart), {
   loading: () => <div>Loading...</div>
@@ -207,6 +208,7 @@ export default function Satistics ({ ssrData }) {
   const completedWithdrawls = facts.filter(f => f.type === 'withdrawal' && f.status === 'CONFIRMED')
   const totalIn = facts.reduce((acc, f) => {if(f.sats > 0){acc + f.sats}}, 0)
   const totalOut = facts.reduce((acc, f) => {if(f.sats < 0){acc + f.sats}}, 0)
+  console.log(me)
   return (
     <Layout contain={false} >
       <div className="mx-sm-5">

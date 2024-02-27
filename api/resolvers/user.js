@@ -244,7 +244,12 @@ export default {
         SELECT EXISTS(
           SELECT *
           FROM "Mention"
-          JOIN "Item" ON "Mention"."itemId" = "Item".id
+          |
+          |
+          |
+          |
+          |
+          |  JOIN "Item" ON "Mention"."itemId" = "Item".id
           ${whereClause(
             '"Mention"."userId" = $1',
             '"Mention".created_at > $2',
@@ -405,6 +410,13 @@ export default {
         FROM users
         WHERE (id > ${RESERVED_MAX_USER_ID} OR id IN (${ANON_USER_ID}, ${DELETE_USER_ID}))
         AND SIMILARITY(name, ${q}) > ${Number(similarity) || 0.1} ORDER BY SIMILARITY(name, ${q}) DESC LIMIT ${Number(limit) || 5}`
+    },
+    userStats: async (parent, { when, from, to }, { models }) => {
+      const range = whenRange(when, from, to)
+      return await models.$queryRaw`
+        SELECT *
+        FROM ${viewGroup(range, 'user_stats')}
+        WHERE id = ${me.id}`
     }
   },
 

@@ -306,3 +306,23 @@ export const USER_WITH_SUBS = gql`
         }
       }
     }`
+
+export const USER_STATS = gql`
+  query UserStats($timeframe: String!) {
+    userStats(timeframe: $timeframe) {
+      t
+      comments
+      posts
+      territories
+      referrals
+      msats_tipped
+      msats_rewards
+      msats_referrals
+      msats_revenue
+      msats_stacked
+      msats_fees
+      msats_donated
+      msats_billing
+      msats_spent 
+    }
+  }`

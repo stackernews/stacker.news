@@ -127,13 +127,12 @@ export const ToastProvider = ({ children }) => {
 
     // merge toasts with same tag
     const prevToast = toasts[idx]
-    let { rawBody, body, amount } = prevToast
-    rawBody ??= body
+    let { amount } = prevToast
     amount = amount ? amount + 1 : 2
-    body = `(${amount}) ${rawBody}`
+    const body = `(${amount}) ${toast.body}`
     return [
       ...toasts.slice(0, idx),
-      { ...toast, rawBody, amount, body },
+      { ...toast, amount, body },
       ...toasts.slice(idx + 1)
     ]
   }

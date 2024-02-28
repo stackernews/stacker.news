@@ -4,6 +4,7 @@ import { getGetServerSideProps } from '../api/ssrApollo'
 import Layout from '../components/layout'
 import MoreFooter from '../components/more-footer'
 import { WALLET_HISTORY } from '../fragments/wallet'
+import { USER_STATS } from '../fragments/users'
 import styles from '../styles/satistics.module.css'
 import Moon from '../svgs/moon-fill.svg'
 import Check from '../svgs/check-double-line.svg'
@@ -16,11 +17,9 @@ import ItemJob from '../components/item-job'
 import PageLoading from '../components/page-loading'
 import PayerData from '../components/payer-data'
 import { Badge } from 'react-bootstrap'
-import { useMe } from '../components/me'
 import dynamic from 'next/dynamic'
 
 export const getServerSideProps = getGetServerSideProps({ query: WALLET_HISTORY, authRequired: true })
-export const getServerSideProps = getGetServerSideProps({ query: USER_STATS, authRequired: true })
 
 const WhenAreaChart = dynamic(() => import('../components/charts').then(mod => mod.WhenAreaChart), {
   loading: () => <div>Loading...</div>
@@ -178,8 +177,10 @@ function Fact ({ fact }) {
 
 export default function Satistics ({ ssrData }) {
   const router = useRouter()
-  const { me } = useMe()
   const { data, fetchMore } = useQuery(WALLET_HISTORY, { variables: { inc: router.query.inc } })
+  // const { userStats } = useQuery(USER_STATS, { variables: { when: "days", from: null, to: null } })
+  // const { userStatsActions, userStatsIncomingSats, userStatsOutgoingSats } = userStats || {}
+  const { userStatsActions, userStatsIncomingSats, userStatsOutgoingSats } = {}
   if (!data && !ssrData) return <PageLoading />
 
   function filterRoutePush (filter, add) {
@@ -200,27 +201,26 @@ export default function Satistics ({ ssrData }) {
     const inc = new Set(router.query.inc?.split(','))
     return inc.has(filter)
   }
- 
   const { walletHistory: { facts, cursor } } = data || ssrData
-  const totalInvoices = facts.filter(f => f.type === 'invoice')
-  const completedInvoices = facts.filter(f => f.type === 'invoice' && f.status === 'CONFIRMED')
-  const totalWithdrawals = facts.filter(f => f.type === 'withdrawal')
-  const completedWithdrawls = facts.filter(f => f.type === 'withdrawal' && f.status === 'CONFIRMED')
-  const totalIn = facts.reduce((acc, f) => {if(f.sats > 0){acc + f.sats}}, 0)
-  const totalOut = facts.reduce((acc, f) => {if(f.sats < 0){acc + f.sats}}, 0)
-  console.log(me)
+  // const totalInvoices = facts.filter(f => f.type === 'invoice')
+  // const completedInvoices = facts.filter(f => f.type === 'invoice' && f.status === 'CONFIRMED')
+  // const totalWithdrawals = facts.filter(f => f.type === 'withdrawal')
+  // const completedWithdrawls = facts.filter(f => f.type === 'withdrawal' && f.status === 'CONFIRMED')
+  // const totalIn = facts.reduce((acc, f) => {if(f.sats > 0){acc + f.sats}}, 0)
+  // const totalOut = facts.reduce((acc, f) => {if(f.sats < 0){acc + f.sats}}, 0)
+  
   return (
     <Layout contain={false} >
       <div className="mx-sm-5">
         <div className='d-flex row justify-content-between'>
           <h1 className="text-center">statistics</h1>
+          
           <div className="col-4 col-md-4">
             <div className="card">
               <div className="card-body">
-                <h4 className="card-title">Invoices </h4>
+                <h4 className="card-title">Stacked </h4>
                 <p>Completed / Created</p>
                 <h1 className="text-center">
-                  {completedInvoices.length}/{totalInvoices.length}
                 </h1>
               </div>
             </div>
@@ -228,10 +228,9 @@ export default function Satistics ({ ssrData }) {
           <div className="col-4 col-md-4">
             <div className="card">
               <div className="card-body">
-                <h4 className="card-title">Withdrawals</h4>
+                <h4 className="card-title">Spent</h4>
                 <p>Completed / Created</p>
                 <h1 className="text-center">
-                  {completedWithdrawls.length}/{totalWithdrawals.length}
                 </h1>
               </div>
             </div>
@@ -239,10 +238,9 @@ export default function Satistics ({ ssrData }) {
           <div className="col-4 col-md-4">
             <div className="card">
               <div className="card-body">
-                <h4 className="card-title">Invoices </h4>
+                <h4 className="card-title">Engagement</h4>
                 <p>Completed / Created</p>
                 <h1 className="text-center">
-                  {totalIn}/{totalOut}
                 </h1>
               </div>
             </div>
@@ -251,6 +249,23 @@ export default function Satistics ({ ssrData }) {
         </div>
         <div className='mt-3'>
           <h2 className='text-center'>History</h2>
+          <div className="row">
+            <div className="col-md-8">
+              <div className="row">
+                <div className="col-md-6">
+                  <WhenComposedChart data={userStatsIncomingSats} />
+                </div>
+                <div className="col-md-6">
+                  <WhenComposedChart data={userStatsOutgoingSats} />
+                </div>
+              </div>
+              <div className="row">
+                <div className="col-md-12">
+                  <WhenAreaChart data={userStatsActions} />
+                </div>
+              </div>
+            </div>
+          <div className='col-md-4 py-2 px-0 mb-0 mw-100'>
           <Form
             initial={{
               invoice: included('invoice'),
@@ -282,23 +297,11 @@ export default function Satistics ({ ssrData }) {
               />
             </div>
           </Form>
-          <div className="row">
-            <div className="col-md-8">
-              <div className="row">
-                <div className="col-md-6">
-                  {data && ssrData ? <WhenAreaChart data={facts} /> : "Nothin Here"}
-                </div>
-                <div className="col-md-6">
-                  {data && ssrData ? <WhenLineChart data={facts} /> : "Nothin Here"}
-                </div>
-              </div>
-            </div>
-          <div className='col-md-4 py-2 px-0 mb-0 mw-100'>
             <div className={styles.rows}>
               <div className={[styles.type, styles.head].join(' ')}>type</div>
               <div className={[styles.detail, styles.head].join(' ')}>detail</div>
               <div className={[styles.sats, styles.head].join(' ')}>sats</div>
-              {facts.map(f => <Fact key={f.type + f.id} fact={f} />)}
+              {/* {facts.map(f => <Fact key={f.type + f.id} fact={f} />)} */}
             </div>
           </div>
           </div>
@@ -308,3 +311,4 @@ export default function Satistics ({ ssrData }) {
     </Layout>
   )
 }
+

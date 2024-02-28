@@ -7,7 +7,7 @@ import { bioSchema, emailSchema, settingsSchema, ssValidate, userSchema } from '
 import { getItem, updateItem, filterClause, createItem, whereClause, muteClause } from './item'
 import { ANON_USER_ID, DELETE_USER_ID, RESERVED_MAX_USER_ID } from '../../lib/constants'
 import { viewGroup } from './growth'
-import { whenRange } from '../../lib/time'
+import { timeUnitForRange, whenRange } from '../../lib/time'
 
 const contributors = new Set()
 
@@ -244,12 +244,7 @@ export default {
         SELECT EXISTS(
           SELECT *
           FROM "Mention"
-          |
-          |
-          |
-          |
-          |
-          |  JOIN "Item" ON "Mention"."itemId" = "Item".id
+          JOIN "Item" ON "Mention"."itemId" = "Item".id
           ${whereClause(
             '"Mention"."userId" = $1',
             '"Mention".created_at > $2',
@@ -411,12 +406,51 @@ export default {
         WHERE (id > ${RESERVED_MAX_USER_ID} OR id IN (${ANON_USER_ID}, ${DELETE_USER_ID}))
         AND SIMILARITY(name, ${q}) > ${Number(similarity) || 0.1} ORDER BY SIMILARITY(name, ${q}) DESC LIMIT ${Number(limit) || 5}`
     },
-    userStats: async (parent, { when, from, to }, { models }) => {
-      const range = whenRange(when, from, to)
-      return await models.$queryRaw`
-        SELECT *
+    userStatsActions: async (parent, { when, from, to }, { me, models }) => {
+      const range = whenRange('forever')
+      return await models.$queryRawUnsafe(`
+      SELECT date_trunc('${timeUnitForRange(range)}', t) at time zone 'America/Chicago' as time,
+      json_build_array(
+        json_build_object('name', 'comments', 'value', SUM(comments)),
+        json_build_object('name', 'posts', 'value', SUM(posts)),
+        json_build_object('name', 'territories', 'value', SUM(territories)),
+        json_build_object('name', 'referrals', 'value', SUM(referrals))
+      ) AS data
         FROM ${viewGroup(range, 'user_stats')}
-        WHERE id = ${me.id}`
+        WHERE id = ${me.id}
+        GROUP BY time
+        ORDER BY time ASC`, ...range)
+    },
+    userStatsIncomingSats: async (parent, { when, from, to }, { me, models }) => {
+      const range = whenRange('forever')
+      return await models.$queryRawUnsafe(`
+      SELECT date_trunc('${timeUnitForRange(range)}', t) at time zone 'America/Chicago' as time,
+      json_build_array(
+        json_build_object('name', 'msats_tipped', 'value', SUM(msats_tipped)),
+        json_build_object('name', 'msats_rewards', 'value', SUM(msats_rewards)),
+        json_build_object('name', 'msats_referrals', 'value', SUM(msats_referrals)),
+        json_build_object('name', 'msats_revenue', 'value', SUM(msats_revenue)),
+        json_build_object('name', 'msats_fees', 'value', SUM(msats_stacked))
+      ) AS data
+        FROM ${viewGroup(range, 'user_stats')}
+        WHERE id = ${me.id}
+        GROUP BY time
+        ORDER BY time ASC`, ...range)
+    },
+    userStatsOutgoingSats: async (parent, { when, from, to }, {me, models }) => {
+      const range = whenRange('forever')
+      return await models.$queryRawUnsafe(`
+      SELECT date_trunc('${timeUnitForRange(range)}', t) at time zone 'America/Chicago' as time,
+      json_build_array(
+        json_build_object('name', 'msats_fees', 'value', SUM(msats_fees)),
+        json_build_object('name', 'msats_donated', 'value', SUM(msats_donated)),
+        json_build_object('name', 'msats_billing', 'value', SUM(msats_billing)),
+        json_build_object('name', 'msats_spent', 'value', SUM(msats_spent))
+      ) AS data
+        FROM ${viewGroup(range, 'user_stats')}
+        WHERE id = ${me.id}
+        GROUP BY time
+        ORDER BY time ASC`, ...range)
     }
   },
 

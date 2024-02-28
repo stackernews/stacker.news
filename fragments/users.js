@@ -308,21 +308,26 @@ export const USER_WITH_SUBS = gql`
     }`
 
 export const USER_STATS = gql`
-  query UserStats($timeframe: String!) {
-    userStats(timeframe: $timeframe) {
-      t
-      comments
-      posts
-      territories
-      referrals
-      msats_tipped
-      msats_rewards
-      msats_referrals
-      msats_revenue
-      msats_stacked
-      msats_fees
-      msats_donated
-      msats_billing
-      msats_spent 
+  query UserStats($when: String, $from: String, $to: String) {
+    userStatsActions(when: $when, from: $from, to: $to) {
+      time
+      data {
+        name
+        value
+      }
+    }
+    userStatsIncomingSats(when: $when, from: $from, to: $to) {
+      time
+      data {
+        name
+        value
+      }
+    }
+    userStatsOutgoingSats(when: $when, from: $from, to: $to) {
+      time
+      data {
+        name
+        value
+      }
     }
   }`

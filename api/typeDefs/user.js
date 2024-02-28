@@ -12,6 +12,9 @@ export default gql`
     searchUsers(q: String!, limit: Limit, similarity: Float): [User!]!
     userSuggestions(q: String, limit: Limit): [User!]!
     hasNewNotes: Boolean!
+    userStatsActions(when: String, from: String, to: String): [TimeData!]!
+    userStatsIncomingSats(when: String, from: String, to: String): [TimeData!]!
+    userStatsOutgoingSats(when: String, from: String, to: String): [TimeData!]!
   }
 
   type Users {
@@ -166,5 +169,15 @@ export default gql`
     githubId: String
     twitterId: String
     nostrAuthPubkey: String
+  }
+
+  type NameValue {
+    name: String!
+    value: Float!
+  }
+
+  type TimeData {
+    time: Date!
+    data: [NameValue!]!
   }
 `

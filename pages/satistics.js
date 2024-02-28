@@ -257,7 +257,7 @@ export default function Satistics ({ ssrData }) {
               </div>
             </div>
             <div className='col-md-4 py-2 px-0 mb-0 mw-100 mt-xxs-3'>
-             <h1 className='text-center'>History</h1>
+            <h1 className='text-center'>History</h1>
               <Form
                 initial={{
                   invoice: included('invoice'),

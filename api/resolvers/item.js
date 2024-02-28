@@ -634,6 +634,17 @@ export default {
       }
 
       return await models.item.count({ where }) + 1
+    },
+    newComments: async (parent, { rootId, after }, { models }) => {
+      const comments = await models.$queryRawUnsafe(`
+        ${SELECT}, to_json(users.*) as user
+        FROM "Item"
+        JOIN users ON "Item"."userId" = users.id
+        WHERE "Item"."rootId" = $1
+          AND "Item"."created_at" > $2
+        ORDER BY "Item"."created_at" ASC
+        LIMIT 50`, Number(rootId), after)
+      return comments
     }
   },
 

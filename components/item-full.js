@@ -195,13 +195,13 @@ export default function ItemFull ({ item, bio, rank, ...props }) {
               ? <BioItem item={item} {...props} />
               : <TopLevelItem item={item} {...props} />}
             </div>)}
-        {item.comments &&
-          <div className={styles.comments}>
-            <Comments
-              parentId={item.id} parentCreatedAt={item.createdAt}
-              pinned={item.position} bio={bio} commentSats={item.commentSats} comments={item.comments}
-            />
-          </div>}
+        <div className={styles.comments}>
+          <Comments
+            parentId={item.id} parentCreatedAt={item.createdAt} lastCommentAt={item.lastCommentAt}
+            pinned={item.position} bio={bio} commentSats={item.commentSats} comments={item.comments}
+            newComments={item.newComments}
+          />
+        </div>
       </RootProvider>
     </>
   )

@@ -9,6 +9,7 @@ import { useRouter } from 'next/router'
 import { NEW_COMMENTS, ITEM_WITH_COMMENTS } from '../fragments/comments'
 import { useApolloClient, useQuery } from '@apollo/client'
 import { SSR } from '../lib/constants'
+import { ShowNewCommentsButton } from './show-new-comments-button'
 import { ITEM_FULL } from '../fragments/items'
 
 export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats }) {
@@ -96,6 +97,9 @@ export default function Comments ({ parentId, pinned, bio, parentCreatedAt, comm
       {comments.filter(({ position }) => !position).map(item => (
         <Comment depth={1} key={item.id} item={item} {...props} />
       ))}
+      {newComments && newComments.length > 0 && (
+        <ShowNewCommentsButton updateQuery={true} itemId={parentId} newComments={newComments} />
+      )}
     </>
   )
 }

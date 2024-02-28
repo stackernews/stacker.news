@@ -32,6 +32,7 @@ export const COMMENT_FIELDS = gql`
     mine
     otsHash
     ncomments
+    newComments @client
     imgproxyUrls
   }
 `

@@ -36,6 +36,61 @@ function seperate (arr, seperator) {
   return arr.flatMap((x, i) => i < arr.length - 1 ? [x, seperator] : [x])
 }
 
+function User ({ user, rank, statComps }) {
+  return (
+    <>
+      {rank
+        ? (
+          <div className={styles.rank}>
+            {rank}
+          </div>)
+        : <div />}
+      <div className={`${styles.item} mb-2`}>
+        <Link href={`/${user.name}`}>
+          <Image
+            src={user.photoId ? `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}/${user.photoId}` : '/dorian400.jpg'} width='32' height='32'
+            className={`${userStyles.userimg} me-2`}
+          />
+        </Link>
+        <div className={styles.hunk}>
+          <Link href={`/${user.name}`} className={`${styles.title} d-inline-flex align-items-center text-reset`}>
+            @{user.name}<Hat className='ms-1 fill-grey' height={14} width={14} user={user} />
+          </Link>
+          <div className={styles.other}>
+            {statComps.map((Comp, i) => <Comp key={i} user={user} />)}
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}
+
+function UserHidden ({ rank }) {
+  return (
+    <>
+      {rank
+        ? (
+          <div className={styles.rank}>
+            {rank}
+          </div>)
+        : <div />}
+      <div className={`${styles.item} mb-2`}>
+        <span>
+          <Image
+            src='/dorian400.jpg' width='32' height='32'
+            className={`${userStyles.userimg} me-2 opacity-50`}
+          />
+        </span>
+        <div className={`${styles.hunk} d-flex align-items-center`}>
+          <div className={`${styles.title} text-muted d-inline-flex align-items-center`}>
+            stacker is in hiding
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}
+
 export default function UserList ({ ssrData, query, variables, destructureData, rank }) {
   const { data, fetchMore } = useQuery(query, { variables })
   const dat = useData(data, ssrData)
@@ -64,30 +119,9 @@ export default function UserList ({ ssrData, query, variables, destructureData, 
     <>
       <div className={styles.grid}>
         {users?.map((user, i) => (
-          <React.Fragment key={user.name}>
-            {rank
-              ? (
-                <div className={styles.rank}>
-                  {i + 1}
-                </div>)
-              : <div />}
-            <div className={`${styles.item} mb-2`}>
-              <Link href={`/${user.name}`}>
-                <Image
-                  src={user.photoId ? `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}/${user.photoId}` : '/dorian400.jpg'} width='32' height='32'
-                  className={`${userStyles.userimg} me-2`}
-                />
-              </Link>
-              <div className={styles.hunk}>
-                <Link href={`/${user.name}`} className={`${styles.title} d-inline-flex align-items-center text-reset`}>
-                  @{user.name}<Hat className='ms-1 fill-grey' height={14} width={14} user={user} />
-                </Link>
-                <div className={styles.other}>
-                  {statComps.map((Comp, i) => <Comp key={i} user={user} />)}
-                </div>
-              </div>
-            </div>
-          </React.Fragment>
+          user
+            ? <User key={user.id} user={user} rank={rank && i + 1} statComps={statComps} />
+            : <UserHidden key={i} rank={rank && i + 1} />
         ))}
       </div>
       <MoreFooter cursor={cursor} count={users?.length} fetchMore={fetchMore} Skeleton={UsersSkeleton} noMoreText='NO MORE' />

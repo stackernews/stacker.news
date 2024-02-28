@@ -82,7 +82,7 @@ export default {
       const decodedCursor = decodeCursor(cursor)
       const range = whenRange('forever')
 
-      const users = await models.$queryRawUnsafe(`
+      const users = (await models.$queryRawUnsafe(`
         SELECT users.*,
           coalesce(floor(sum(msats_spent)/1000),0) as spent,
           coalesce(sum(posts),0) as nposts,
@@ -91,11 +91,15 @@ export default {
           coalesce(floor(sum(msats_stacked)/1000),0) as stacked
           FROM ${viewGroup(range, 'user_stats')}
           JOIN users on users.id = u.id
-          WHERE NOT "hideFromTopUsers" AND NOT "hideCowboyHat" AND streak IS NOT NULL
+          WHERE streak IS NOT NULL
           GROUP BY users.id
           ORDER BY streak DESC, created_at ASC
           OFFSET $3
           LIMIT ${LIMIT}`, ...range, decodedCursor.offset)
+      ).map(
+        u => u.hideFromTopUsers || u.hideCowboyHat ? null : u
+      )
+
       return {
         cursor: users.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
         users
@@ -139,7 +143,7 @@ export default {
         default: column = 'stacked'; break
       }
 
-      const users = await models.$queryRawUnsafe(`
+      const users = (await models.$queryRawUnsafe(`
           SELECT users.*,
             COALESCE(floor(sum(msats_spent)/1000), 0) as spent,
             COALESCE(sum(posts), 0) as nposts,
@@ -148,11 +152,13 @@ export default {
             COALESCE(floor(sum(msats_stacked)/1000), 0) as stacked
           FROM ${viewGroup(range, 'user_stats')}
           JOIN users on users.id = u.id
-          WHERE NOT users."hideFromTopUsers"
           GROUP BY users.id
           ORDER BY ${column} DESC NULLS LAST, users.created_at ASC
           OFFSET $3
           LIMIT $4`, ...range, decodedCursor.offset, limit)
+      ).map(
+        u => u.hideFromTopUsers ? null : u
+      )
 
       return {
         cursor: users.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,

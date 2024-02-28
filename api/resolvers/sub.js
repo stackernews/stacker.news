@@ -6,6 +6,7 @@ import { ssValidate, territorySchema } from '../../lib/validate'
 import { nextBilling, proratedBillingCost } from '../../lib/territory'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { subViewGroup } from './growth'
+import { notifyTerritoryTransfer } from '../../lib/push-notifications'
 
 export function paySubQueries (sub, models) {
   if (sub.billingType === 'ONCE') {
@@ -303,7 +304,11 @@ export default {
         throw new GraphQLError('user not found', { extensions: { code: 'BAD_INPUT' } })
       }
 
-      return await models.sub.update({ where: { name: subName }, data: { userId: user.id } })
+      const newSub = await models.sub.update({ where: { name: subName }, data: { userId: user.id } })
+
+      notifyTerritoryTransfer({ models, sub, to: user })
+
+      return newSub
     }
   },
   Sub: {

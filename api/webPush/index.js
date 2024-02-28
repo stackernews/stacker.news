@@ -42,7 +42,8 @@ const createUserFilter = (tag) => {
     INVITE: 'noteInvites',
     EARN: 'noteEarning',
     DEPOSIT: 'noteDeposits',
-    STREAK: 'noteCowboyHat'
+    STREAK: 'noteCowboyHat',
+    TERRITORY_TRANSFER: 'noteTerritoryTransfers'
   }
   const key = tagMap[tag.split('-')[0]]
   return key ? { user: { [key]: true } } : undefined

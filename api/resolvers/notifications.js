@@ -169,15 +169,17 @@ export default {
       )
 
       // territory transfers
-      queries.push(
-        `(SELECT "TerritoryTransfer"."subName"::text, "TerritoryTransfer"."created_at" AS "sortTime", NULL as "earnedSats",
-          'TerritoryTransfer' AS type
-          FROM "TerritoryTransfer"
-          WHERE "TerritoryTransfer"."newUserId" = $1
-          AND "TerritoryTransfer"."created_at" <= $2
-          ORDER BY "sortTime" DESC
-          LIMIT ${LIMIT}+$3)`
-      )
+      if (meFull.noteTerritoryTransfers) {
+        queries.push(
+          `(SELECT "TerritoryTransfer"."subName"::text, "TerritoryTransfer"."created_at" AS "sortTime", NULL as "earnedSats",
+            'TerritoryTransfer' AS type
+            FROM "TerritoryTransfer"
+            WHERE "TerritoryTransfer"."newUserId" = $1
+            AND "TerritoryTransfer"."created_at" <= $2
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT}+$3)`
+        )
+      }
 
       if (meFull.noteItemSats) {
         queries.push(

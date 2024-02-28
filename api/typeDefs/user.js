@@ -83,6 +83,7 @@ export default gql`
     noteEarning: Boolean!
     noteForwardedSats: Boolean!
     noteInvites: Boolean!
+    noteTerritoryTransfers: Boolean!
     noteItemSats: Boolean!
     noteJobIndicator: Boolean!
     noteMentions: Boolean!
@@ -145,6 +146,7 @@ export default gql`
     noteEarning: Boolean!
     noteForwardedSats: Boolean!
     noteInvites: Boolean!
+    noteTerritoryTransfers: Boolean!
     noteItemSats: Boolean!
     noteJobIndicator: Boolean!
     noteMentions: Boolean!

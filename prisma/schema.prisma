@@ -41,6 +41,7 @@ model User {
   noteItemSats              Boolean              @default(true)
   noteMentions              Boolean              @default(true)
   noteForwardedSats         Boolean              @default(true)
+  noteTerritoryTransfers    Boolean              @default(true)
   lastCheckedJobs           DateTime?
   noteJobIndicator          Boolean              @default(true)
   photoId                   Int?

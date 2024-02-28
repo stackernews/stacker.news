@@ -72,6 +72,7 @@ export default function Settings ({ ssrData }) {
             noteMentions: settings?.noteMentions,
             noteDeposits: settings?.noteDeposits,
             noteInvites: settings?.noteInvites,
+            noteTerritoryTransfers: settings?.noteTerritoryTransfers,
             noteJobIndicator: settings?.noteJobIndicator,
             noteCowboyHat: settings?.noteCowboyHat,
             noteForwardedSats: settings?.noteForwardedSats,
@@ -228,6 +229,11 @@ export default function Settings ({ ssrData }) {
           <Checkbox
             label='someone joins using my invite or referral links'
             name='noteInvites'
+            groupClassName='mb-0'
+          />
+          <Checkbox
+            label='someone transfers a territory to me'
+            name='noteTerritoryTransfers'
             groupClassName='mb-0'
           />
           <Checkbox

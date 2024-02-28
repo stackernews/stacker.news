@@ -437,7 +437,7 @@ export default {
         GROUP BY time
         ORDER BY time ASC`, ...range)
     },
-    userStatsOutgoingSats: async (parent, { when, from, to }, {me, models }) => {
+    userStatsOutgoingSats: async (parent, { when, from, to }, { me, models }) => {
       const range = whenRange('forever')
       return await models.$queryRawUnsafe(`
       SELECT date_trunc('${timeUnitForRange(range)}', t) at time zone 'America/Chicago' as time,

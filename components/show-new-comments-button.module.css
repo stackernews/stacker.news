@@ -1,0 +1,6 @@
+.showNewCommentsButton {
+    color: var(--theme-grey);
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0 .25rem;
+}

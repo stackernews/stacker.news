@@ -26,7 +26,7 @@ export function ShowNewCommentsButton ({ newComments = [], itemId, updateQuery =
             ...item,
             comments: updatedComments,
             newComments: []
-          },
+          }
         }
       })
     } else {

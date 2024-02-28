@@ -98,7 +98,7 @@ export default function Comments ({ parentId, pinned, bio, parentCreatedAt, comm
         <Comment depth={1} key={item.id} item={item} {...props} />
       ))}
       {newComments && newComments.length > 0 && (
-        <ShowNewCommentsButton updateQuery={true} itemId={parentId} newComments={newComments} />
+        <ShowNewCommentsButton updateQuery itemId={parentId} newComments={newComments} />
       )}
     </>
   )
@@ -151,7 +151,7 @@ function saveNewCommentsToCache (client, rootId, newComments) {
           item: {
             ...item,
             newComments: filteredNewComments
-          },
+          }
         }
       })
     } else {

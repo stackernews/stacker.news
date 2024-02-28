@@ -178,10 +178,10 @@ function Fact ({ fact }) {
 export default function Satistics ({ ssrData }) {
   const router = useRouter()
   const { data, fetchMore } = useQuery(WALLET_HISTORY, { variables: { inc: router.query.inc } })
-  // const { userStats } = useQuery(USER_STATS, { variables: { when: "days", from: null, to: null } })
-  // const { userStatsActions, userStatsIncomingSats, userStatsOutgoingSats } = userStats || {}
-  const { userStatsActions, userStatsIncomingSats, userStatsOutgoingSats } = {}
-  if (!data && !ssrData) return <PageLoading />
+  const userStats  = useQuery(USER_STATS, { variables: { when: 'forever', from: null, to: null } } )
+  const { userStatsActions, userStatsIncomingSats, userStatsOutgoingSats } = userStats.data || {}
+  if (!data && !ssrData ) return <PageLoading />
+  if (!userStatsActions && !userStatsIncomingSats && ! userStatsOutgoingSats) return <PageLoading />
 
   function filterRoutePush (filter, add) {
     const inc = new Set(router.query.inc?.split(','))
@@ -202,13 +202,10 @@ export default function Satistics ({ ssrData }) {
     return inc.has(filter)
   }
   const { walletHistory: { facts, cursor } } = data || ssrData
-  // const totalInvoices = facts.filter(f => f.type === 'invoice')
-  // const completedInvoices = facts.filter(f => f.type === 'invoice' && f.status === 'CONFIRMED')
-  // const totalWithdrawals = facts.filter(f => f.type === 'withdrawal')
-  // const completedWithdrawls = facts.filter(f => f.type === 'withdrawal' && f.status === 'CONFIRMED')
-  // const totalIn = facts.reduce((acc, f) => {if(f.sats > 0){acc + f.sats}}, 0)
-  // const totalOut = facts.reduce((acc, f) => {if(f.sats < 0){acc + f.sats}}, 0)
-  
+  const totalStacked = userStatsIncomingSats[0].data?.reduce((acc, d) => acc + d.value, 0)
+  const totalSpent = userStatsOutgoingSats[0].data?.reduce((acc, d) => acc + d.value, 0)
+  const totalEngagement = userStatsActions[0].data?.reduce((acc, d) => acc + d.value, 0)
+
   return (
     <Layout contain={false} >
       <div className="mx-sm-5">
@@ -219,8 +216,8 @@ export default function Satistics ({ ssrData }) {
             <div className="card">
               <div className="card-body">
                 <h4 className="card-title">Stacked </h4>
-                <p>Completed / Created</p>
                 <h1 className="text-center">
+                  {totalStacked}
                 </h1>
               </div>
             </div>
@@ -229,8 +226,8 @@ export default function Satistics ({ ssrData }) {
             <div className="card">
               <div className="card-body">
                 <h4 className="card-title">Spent</h4>
-                <p>Completed / Created</p>
                 <h1 className="text-center">
+                  {totalSpent}
                 </h1>
               </div>
             </div>
@@ -238,9 +235,9 @@ export default function Satistics ({ ssrData }) {
           <div className="col-4 col-md-4">
             <div className="card">
               <div className="card-body">
-                <h4 className="card-title">Engagement</h4>
-                <p>Completed / Created</p>
+                <h4 className="card-title">Actions Taken</h4>
                 <h1 className="text-center">
+                  {totalEngagement}
                 </h1>
               </div>
             </div>
@@ -253,10 +250,10 @@ export default function Satistics ({ ssrData }) {
             <div className="col-md-8">
               <div className="row">
                 <div className="col-md-6">
-                  <WhenComposedChart data={userStatsIncomingSats} />
+                  <WhenLineChart data={userStatsIncomingSats} />
                 </div>
                 <div className="col-md-6">
-                  <WhenComposedChart data={userStatsOutgoingSats} />
+                  <WhenLineChart data={userStatsOutgoingSats} />
                 </div>
               </div>
               <div className="row">

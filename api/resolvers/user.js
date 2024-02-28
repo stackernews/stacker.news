@@ -411,10 +411,10 @@ export default {
       return await models.$queryRawUnsafe(`
       SELECT date_trunc('${timeUnitForRange(range)}', t) at time zone 'America/Chicago' as time,
       json_build_array(
-        json_build_object('name', 'comments', 'value', SUM(comments)),
-        json_build_object('name', 'posts', 'value', SUM(posts)),
-        json_build_object('name', 'territories', 'value', SUM(territories)),
-        json_build_object('name', 'referrals', 'value', SUM(referrals))
+        json_build_object('name', 'comments', 'value', COALESCE(SUM(comments), 0)),
+        json_build_object('name', 'posts', 'value', COALESCE(SUM(posts), 0)),
+        json_build_object('name', 'territories', 'value', COALESCE(SUM(territories), 0)),
+        json_build_object('name', 'referrals', 'value', COALESCE(SUM(referrals), 0))
       ) AS data
         FROM ${viewGroup(range, 'user_stats')}
         WHERE id = ${me.id}
@@ -426,11 +426,11 @@ export default {
       return await models.$queryRawUnsafe(`
       SELECT date_trunc('${timeUnitForRange(range)}', t) at time zone 'America/Chicago' as time,
       json_build_array(
-        json_build_object('name', 'msats_tipped', 'value', SUM(msats_tipped)),
-        json_build_object('name', 'msats_rewards', 'value', SUM(msats_rewards)),
-        json_build_object('name', 'msats_referrals', 'value', SUM(msats_referrals)),
-        json_build_object('name', 'msats_revenue', 'value', SUM(msats_revenue)),
-        json_build_object('name', 'msats_fees', 'value', SUM(msats_stacked))
+        json_build_object('name', 'msats_tipped', 'value', COALESCE(SUM(msats_tipped), 0)),
+        json_build_object('name', 'msats_rewards', 'value', COALESCE(SUM(msats_rewards), 0)),
+        json_build_object('name', 'msats_referrals', 'value', COALESCE(SUM(msats_referrals), 0)),
+        json_build_object('name', 'msats_revenue', 'value', COALESCE(SUM(msats_revenue), 0)),
+        json_build_object('name', 'msats_fees', 'value', COALESCE(SUM(msats_stacked), 0))
       ) AS data
         FROM ${viewGroup(range, 'user_stats')}
         WHERE id = ${me.id}
@@ -442,10 +442,10 @@ export default {
       return await models.$queryRawUnsafe(`
       SELECT date_trunc('${timeUnitForRange(range)}', t) at time zone 'America/Chicago' as time,
       json_build_array(
-        json_build_object('name', 'msats_fees', 'value', SUM(msats_fees)),
-        json_build_object('name', 'msats_donated', 'value', SUM(msats_donated)),
-        json_build_object('name', 'msats_billing', 'value', SUM(msats_billing)),
-        json_build_object('name', 'msats_spent', 'value', SUM(msats_spent))
+        json_build_object('name', 'msats_fees', 'value', COALESCE(SUM(msats_fees), 0)),
+        json_build_object('name', 'msats_donated', 'value', COALESCE(SUM(msats_donated), 0)),
+        json_build_object('name', 'msats_billing', 'value', COALESCE(SUM(msats_billing), 0)),
+        json_build_object('name', 'msats_spent', 'value', COALESCE(SUM(msats_spent), 0))
       ) AS data
         FROM ${viewGroup(range, 'user_stats')}
         WHERE id = ${me.id}

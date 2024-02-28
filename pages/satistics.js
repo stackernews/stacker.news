@@ -63,7 +63,7 @@ function Satus ({ status }) {
       color = 'muted'
       break
     case 'INSUFFICIENT_BALANCE':
-      desc = 'you didn't have enough sats'
+      desc = "you didn't have enough sats"
       break
     case 'INVALID_PAYMENT':
       desc = 'invalid payment'

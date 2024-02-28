@@ -204,7 +204,7 @@ export default function Satistics ({ ssrData }) {
   const totalEngagement = userStatsActions[0].data?.reduce((acc, d) => acc + d.value, 0)
 
   return (
-    <Layout contain={false} >
+    <Layout contain={false}>
       <div className='mx-sm-5'>
         <div className='d-flex row justify-content-between'>
           <h1 className='text-center'>statistics</h1>

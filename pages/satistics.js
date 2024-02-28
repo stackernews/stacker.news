@@ -206,45 +206,43 @@ export default function Satistics ({ ssrData }) {
   return (
     <Layout contain={false}>
       <div className='mx-sm-5'>
-        <div className='d-flex row justify-content-between'>
-          <h1 className='text-center'>statistics</h1>
-          <div className='col-4 col-md-4'>
-            <div className='card'>
-              <div className='card-body'>
-                <h4 className='card-title'>Stacked </h4>
-                <h1 className='text-center'>
-                  {totalStacked}
-                </h1>
-              </div>
-            </div>
-          </div>
-          <div className='col-4 col-md-4'>
-            <div className='card'>
-              <div className='card-body'>
-                <h4 className='card-title'>Spent</h4>
-                <h1 className='text-center'>
-                  {totalSpent}
-                </h1>
-              </div>
-            </div>
-          </div>
-          <div className='col-4 col-md-4'>
-            <div className='card'>
-              <div className='card-body'>
-                <h4 className='card-title'>Actions Taken</h4>
-                <h1 className='text-center'>
-                  {totalEngagement}
-                </h1>
-              </div>
-            </div>
-          </div>
-
-        </div>
         <div className='mt-3'>
-          <h2 className='text-center'>History</h2>
           <div className='row'>
-            <div className='col-md-8'>
-              <div className='row'>
+            <div className='col-md-7 mx-md-5'>
+              <div className='d-flex row justify-content-between'>
+                <h1 className='text-center'>Statistics</h1>
+                <div className='col-4 col-md-4'>
+                  <div className='card'>
+                    <div className='card-body'>
+                      <h4 className='card-title'>Stacked </h4>
+                      <h1 className='text-center'>
+                        {totalStacked}
+                      </h1>
+                    </div>
+                  </div>
+                </div>
+                <div className='col-4 col-md-4'>
+                  <div className='card'>
+                    <div className='card-body'>
+                      <h4 className='card-title'>Spent</h4>
+                      <h1 className='text-center'>
+                        {totalSpent}
+                      </h1>
+                    </div>
+                  </div>
+                </div>
+                <div className='col-4 col-md-4'>
+                  <div className='card'>
+                    <div className='card-body'>
+                      <h4 className='card-title'>Actions Taken</h4>
+                      <h1 className='text-center'>
+                        {totalEngagement}
+                      </h1>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className='row mt-5'>
                 <div className='col-md-6'>
                   <WhenLineChart data={userStatsIncomingSats} />
                 </div>
@@ -258,7 +256,8 @@ export default function Satistics ({ ssrData }) {
                 </div>
               </div>
             </div>
-            <div className='col-md-4 py-2 px-0 mb-0 mw-100'>
+            <div className='col-md-4 py-2 px-0 mb-0 mw-100 mt-xxs-3'>
+             <h1 className='text-center'>History</h1>
               <Form
                 initial={{
                   invoice: included('invoice'),

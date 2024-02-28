@@ -31,9 +31,9 @@ function TransferObstacle ({ sub, onClose, userName }) {
         <Link href={`/${userName}`}>@{userName}</Link>?
       </div>
       <div className='d-flex justify-center align-items-center mt-3 mx-auto'>
-        <Button className='d-flex ms-auto mx-1' variant='danger' onClick={onClose}>cancel</Button>
+        <Button className='d-flex ms-auto mx-3' variant='danger' onClick={onClose}>cancel</Button>
         <Button
-          className='d-flex me-auto mx-1' variant='success'
+          className='d-flex me-auto mx-3' variant='success'
           onClick={
             async () => {
               try {

@@ -185,46 +185,12 @@ export async function earn ({ name }) {
       }
     }
 
-    await territoryRevenue({ models })
-
     Promise.allSettled(Object.entries(notifications).map(([userId, earnings]) =>
       sendUserNotification(parseInt(userId, 10), buildUserNotification(earnings))
     )).catch(console.error)
   } finally {
     models.$disconnect().catch(console.error)
   }
-}
-
-async function territoryRevenue ({ models }) {
-  await serialize(models,
-    models.$executeRaw`
-      WITH revenue AS (
-        SELECT coalesce(sum(msats), 0) as revenue, "subName", "userId"
-        FROM (
-          SELECT ("ItemAct".msats - COALESCE("ReferralAct".msats, 0)) * (1 - (COALESCE("Sub"."rewardsPct", 100) * 0.01)) as msats,
-            "Sub"."name" as "subName", "Sub"."userId" as "userId"
-            FROM "ItemAct"
-            JOIN "Item" ON "Item"."id" = "ItemAct"."itemId"
-            LEFT JOIN "Item" root ON "Item"."rootId" = root.id
-            JOIN "Sub" ON "Sub"."name" = COALESCE(root."subName", "Item"."subName")
-            LEFT JOIN "ReferralAct" ON "ReferralAct"."itemActId" = "ItemAct".id
-            WHERE date_trunc('day', "ItemAct".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = date_trunc('day', (now() - interval '1 day') AT TIME ZONE 'America/Chicago')
-              AND "ItemAct".act <> 'TIP'
-              AND "Sub".status <> 'STOPPED'
-        ) subquery
-        GROUP BY "subName", "userId"
-      ),
-      "SubActResult" AS (
-        INSERT INTO "SubAct" (msats, "subName", "userId", type)
-        SELECT revenue, "subName", "userId", 'REVENUE'
-        FROM revenue
-        WHERE revenue > 1000
-        RETURNING *
-      )
-      UPDATE users SET msats = users.msats + "SubActResult".msats
-      FROM "SubActResult"
-      WHERE users.id = "SubActResult"."userId"`
-  )
 }
 
 function buildUserNotification (earnings) {

@@ -12,6 +12,14 @@ export async function views ({ data: { period } = { period: 'days' } }) {
     for (const view of viewPrefixes) {
       await models.$queryRawUnsafe(`REFRESH MATERIALIZED VIEW CONCURRENTLY ${view}_${period}`)
     }
+
+    // these views are bespoke so we can't use the loop
+    if (period === 'days') {
+      await models.$queryRawUnsafe('REFRESH MATERIALIZED VIEW CONCURRENTLY user_values_days')
+    }
+    if (period === 'hours') {
+      await models.$queryRawUnsafe('REFRESH MATERIALIZED VIEW CONCURRENTLY user_values_today')
+    }
   } finally {
     await models.$disconnect()
   }

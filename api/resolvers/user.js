@@ -50,6 +50,24 @@ async function authMethods (user, args, { models, me }) {
   }
 }
 
+export function viewValueGroup () {
+  return `(
+    SELECT v.id, sum(proportion) as proportion
+    FROM (
+      (SELECT *
+        FROM user_values_days
+        WHERE user_values_days.t >= date_trunc('day', timezone('America/Chicago', $1))
+        AND date_trunc('day', user_values_days.t) <= date_trunc('day', timezone('America/Chicago', $2)))
+      UNION ALL
+      (SELECT * FROM
+        user_values_today
+        WHERE user_values_today.t >= date_trunc('day', timezone('America/Chicago', $1))
+        AND date_trunc('day', user_values_today.t) <= date_trunc('day', timezone('America/Chicago', $2)))
+      ) v
+    GROUP BY v.id
+  ) vv`
+}
+
 export default {
   Query: {
     me: async (parent, args, { models, me }) => {
@@ -140,11 +158,14 @@ export default {
         case 'posts': column = 'nposts'; break
         case 'comments': column = 'ncomments'; break
         case 'referrals': column = 'referrals'; break
-        default: column = 'stacked'; break
+        case 'stacking': column = 'stacked'; break
+        default: column = 'proportion'; break
       }
 
       const users = (await models.$queryRawUnsafe(`
-          SELECT users.*,
+        SELECT *
+        FROM
+          (SELECT users.*,
             COALESCE(floor(sum(msats_spent)/1000), 0) as spent,
             COALESCE(sum(posts), 0) as nposts,
             COALESCE(sum(comments), 0) as ncomments,
@@ -152,8 +173,9 @@ export default {
             COALESCE(floor(sum(msats_stacked)/1000), 0) as stacked
           FROM ${viewGroup(range, 'user_stats')}
           JOIN users on users.id = u.id
-          GROUP BY users.id
-          ORDER BY ${column} DESC NULLS LAST, users.created_at ASC
+          GROUP BY users.id) uu
+          ${column === 'proportion' ? `JOIN ${viewValueGroup()} ON uu.id = vv.id` : ''}
+          ORDER BY ${column} DESC NULLS LAST, uu.created_at ASC
           OFFSET $3
           LIMIT $4`, ...range, decodedCursor.offset, limit)
       ).map(

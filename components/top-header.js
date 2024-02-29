@@ -20,8 +20,8 @@ export default function TopHeader ({ sub, cat }) {
 
     if (typeof query.by !== 'undefined') {
       if (query.by === '' ||
-          (what === 'stackers' && (query.by === 'stacked' || !USER_SORTS.includes(query.by))) ||
-          (what === 'territories' && (query.by === 'stacked' || !SUB_SORTS.includes(query.by))) ||
+          (what === 'stackers' && (query.by === 'rewardability' || !USER_SORTS.includes(query.by))) ||
+          (what === 'territories' && (query.by === 'stacking' || !SUB_SORTS.includes(query.by))) ||
           (['posts', 'comments'].includes(what) && (query.by === 'zaprank' || !ITEM_SORTS.includes(query.by)))) {
         delete query.by
       }
@@ -36,7 +36,7 @@ export default function TopHeader ({ sub, cat }) {
   }
 
   const what = cat
-  const by = router.query.by || (what === 'stackers' ? 'stacked' : 'zaprank')
+  const by = router.query.by || (what === 'stackers' ? 'rewardability' : what === 'territories' ? 'stacking' : 'zaprank')
   const when = router.query.when || ''
 
   return (

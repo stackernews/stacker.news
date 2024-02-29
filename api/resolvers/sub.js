@@ -76,6 +76,11 @@ export async function getSub (parent, { name }, { models, me }) {
               where: {
                 userId: Number(me?.id)
               }
+            },
+            SubSubscription: {
+              where: {
+                userId: Number(me?.id)
+              }
             }
           }
         }

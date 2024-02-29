@@ -199,10 +199,10 @@ export default function Satistics ({ ssrData }) {
     return inc.has(filter)
   }
   const { walletHistory: { facts, cursor } } = data || ssrData
-  const totalStacked = userStatsIncomingSats.reduce((total, a) => total + a.data?.reduce((acc, d) => acc + d.value, 0))
-  const totalSpent = userStatsOutgoingSats.reduce((total, a) => total + a.data?.reduce((acc, d) => acc + d.value, 0))
-  const totalEngagement = userStatsActions.reduce((total, a) => total + a.data?.reduce((acc, d) => acc + d.value, 0))
-
+  const totalStacked = userStatsIncomingSats.reduce((total, a) => total + a.data?.reduce((acc, d) => acc + d.value, 0), 0)
+  const totalSpent = userStatsOutgoingSats.reduce((total, a) => total + a.data?.reduce((acc, d) => acc + d.value, 0), 0)
+  const totalEngagement = userStatsActions.reduce((total, a) => total + a.data?.reduce((acc, d) => acc + d.value, 0), 0)
+  console.log('stacked', userStatsIncomingSats)
   return (
     <Layout contain={false}>
       <div className='mx-sm-5'>

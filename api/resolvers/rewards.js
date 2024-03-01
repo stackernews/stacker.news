@@ -3,6 +3,7 @@ import { amountSchema, ssValidate } from '../../lib/validate'
 import { serializeInvoicable } from './serial'
 import { ANON_USER_ID } from '../../lib/constants'
 import { getItem } from './item'
+import { topUsers } from './user'
 
 let rewardCache
 
@@ -91,7 +92,7 @@ async function getRewards (when, models) {
 export default {
   Query: {
     rewards: async (parent, { when }, { models }) =>
-      when ? await getRewards(when, models) : await getCachedActiveRewards(60000, models),
+      when ? await getRewards(when, models) : await getCachedActiveRewards(5000, models),
     meRewards: async (parent, { when }, { me, models }) => {
       if (!me) {
         return null
@@ -127,6 +128,15 @@ export default {
         ORDER BY days_cte.day ASC`
 
       return results
+    }
+  },
+  Rewards: {
+    leaderboard: async (parent, args, { models, ...context }) => {
+      // get to and from using postgres because it's easier to do there
+      const [{ to, from }] = await models.$queryRaw`
+        SELECT date_trunc('month',  (now() AT TIME ZONE 'America/Chicago')) AT TIME ZONE 'America/Chicago' as from,
+               (date_trunc('month',  (now() AT TIME ZONE 'America/Chicago')) AT TIME ZONE 'America/Chicago') + interval '1 month - 1 second' as to`
+      return await topUsers(parent, { when: 'custom', to: new Date(to).getTime().toString(), from: new Date(from).getTime().toString(), limit: 64 }, { models, ...context })
     }
   },
   Mutation: {

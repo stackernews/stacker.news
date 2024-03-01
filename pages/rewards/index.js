@@ -23,6 +23,35 @@ const GrowthPieChart = dynamic(() => import('../../components/charts').then(mod 
   loading: () => <div>Loading...</div>
 })
 
+const REWARDS_FULL = gql`
+{
+  rewards {
+    total
+    time
+    sources {
+      name
+      value
+    }
+    leaderboard {
+      users {
+        id
+        name
+        photoId
+        ncomments(when: $when, from: $from, to: $to)
+        nposts(when: $when, from: $from, to: $to)
+
+        optional {
+          streak
+          stacked(when: $when, from: $from, to: $to)
+          spent(when: $when, from: $from, to: $to)
+          referrals(when: $when, from: $from, to: $to)
+        }
+      }
+    }
+  }
+}
+`
+
 const REWARDS = gql`
 {
   rewards {
@@ -33,41 +62,10 @@ const REWARDS = gql`
       value
     }
   }
-  topUsers(when: "custom", from: "1706767200000", to: "1709272799999", by: "value", limit: 64) {
-    users {
-      id
-      name
-      photoId
-      ncomments(when: "custom", from: "1706767200000", to: "1709272799999")
-      nposts(when: "custom", from: "1706767200000", to: "1709272799999")
-
-      optional {
-        streak
-        stacked(when: "custom", from: "1706767200000", to: "1709272799999")
-        spent(when: "custom", from: "1706767200000", to: "1709272799999")
-        referrals(when: "custom", from: "1706767200000", to: "1709272799999")
-      }
-    }
-    cursor
-  }
 }
 `
 
-function tzOffset (tz) {
-  const date = new Date()
-  date.setMilliseconds(0)
-  const targetDate = new Date(date.toLocaleString('en-US', { timeZone: tz }))
-  const targetOffsetHours = (date.getTime() - targetDate.getTime()) / 1000 / 60 / 60
-  return targetOffsetHours
-}
-
-export function midnight (tz) {
-  const date = new Date()
-  date.setHours(24, 0, 0, 0)
-  return date.getTime() + tzOffset(tz) * 60 * 60 * 1000
-}
-
-export const getServerSideProps = getGetServerSideProps({ query: REWARDS })
+export const getServerSideProps = getGetServerSideProps({ query: REWARDS_FULL })
 
 export function RewardLine ({ total, time }) {
   return (
@@ -90,10 +88,18 @@ export function RewardLine ({ total, time }) {
 }
 
 export default function Rewards ({ ssrData }) {
-  const { data } = useQuery(REWARDS, SSR ? {} : { pollInterval: 1000, nextFetchPolicy: 'cache-and-network' })
+  // only poll for updates to rewards and not leaderboard
+  const { data } = useQuery(
+    REWARDS,
+    SSR ? {} : { pollInterval: 1000, nextFetchPolicy: 'cache-and-network' })
   if (!data && !ssrData) return <PageLoading />
 
-  const { rewards: [{ total, sources, time }], topUsers } = data || ssrData
+  let { rewards: [{ total, sources, time, leaderboard }] } = ssrData
+  if (data?.rewards?.length > 0) {
+    total = data.rewards[0].total
+    sources = data.rewards[0].sources
+    time = data.rewards[0].time
+  }
 
   function EstimatedReward ({ rank }) {
     return (
@@ -126,11 +132,11 @@ export default function Rewards ({ ssrData }) {
             <DonateButton />
           </div>
         </Col>
-        {topUsers &&
+        {leaderboard?.users &&
           <Col lg={7}>
             <h2 className='pt-5 text-center'>leaderboard</h2>
             <div className='d-flex justify-content-center pt-4'>
-              <ListUsers users={topUsers.users} rank Embellish={EstimatedReward} />
+              <ListUsers users={leaderboard.users} rank Embellish={EstimatedReward} />
             </div>
           </Col>}
       </Row>

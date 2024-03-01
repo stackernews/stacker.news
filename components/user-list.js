@@ -82,7 +82,7 @@ function UserHidden ({ rank, Embellish }) {
             className={`${userStyles.userimg} me-2 opacity-50`}
           />
         </span>
-        <div className={`${styles.hunk} d-flex justify-items-center flex-column`}>
+        <div className={`${styles.hunk} d-flex justify-content-center flex-column`}>
           <div className={`${styles.title} text-muted d-inline-flex align-items-center`}>
             stacker is in hiding
           </div>

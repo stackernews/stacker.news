@@ -50,6 +50,46 @@ async function authMethods (user, args, { models, me }) {
   }
 }
 
+export async function topUsers (parent, { cursor, when, by, from, to, limit = LIMIT }, { models, me }) {
+  const decodedCursor = decodeCursor(cursor)
+  const range = whenRange(when, from, to || decodeCursor.time)
+
+  let column
+  switch (by) {
+    case 'spent': column = 'spent'; break
+    case 'posts': column = 'nposts'; break
+    case 'comments': column = 'ncomments'; break
+    case 'referrals': column = 'referrals'; break
+    case 'stacking': column = 'stacked'; break
+    default: column = 'proportion'; break
+  }
+
+  const users = (await models.$queryRawUnsafe(`
+    SELECT *
+    FROM
+      (SELECT users.*,
+        COALESCE(floor(sum(msats_spent)/1000), 0) as spent,
+        COALESCE(sum(posts), 0) as nposts,
+        COALESCE(sum(comments), 0) as ncomments,
+        COALESCE(sum(referrals), 0) as referrals,
+        COALESCE(floor(sum(msats_stacked)/1000), 0) as stacked
+      FROM ${viewGroup(range, 'user_stats')}
+      JOIN users on users.id = u.id
+      GROUP BY users.id) uu
+      ${column === 'proportion' ? `JOIN ${viewValueGroup()} ON uu.id = vv.id` : ''}
+      ORDER BY ${column} DESC NULLS LAST, uu.created_at ASC
+      OFFSET $3
+      LIMIT $4`, ...range, decodedCursor.offset, limit)
+  ).map(
+    u => u.hideFromTopUsers ? null : u
+  )
+
+  return {
+    cursor: users.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
+    users
+  }
+}
+
 export function viewValueGroup () {
   return `(
     SELECT v.id, sum(proportion) as proportion
@@ -148,45 +188,7 @@ export default {
 
       return users
     },
-    topUsers: async (parent, { cursor, when, by, from, to, limit = LIMIT }, { models, me }) => {
-      const decodedCursor = decodeCursor(cursor)
-      const range = whenRange(when, from, to || decodeCursor.time)
-
-      let column
-      switch (by) {
-        case 'spent': column = 'spent'; break
-        case 'posts': column = 'nposts'; break
-        case 'comments': column = 'ncomments'; break
-        case 'referrals': column = 'referrals'; break
-        case 'stacking': column = 'stacked'; break
-        default: column = 'proportion'; break
-      }
-
-      const users = (await models.$queryRawUnsafe(`
-        SELECT *
-        FROM
-          (SELECT users.*,
-            COALESCE(floor(sum(msats_spent)/1000), 0) as spent,
-            COALESCE(sum(posts), 0) as nposts,
-            COALESCE(sum(comments), 0) as ncomments,
-            COALESCE(sum(referrals), 0) as referrals,
-            COALESCE(floor(sum(msats_stacked)/1000), 0) as stacked
-          FROM ${viewGroup(range, 'user_stats')}
-          JOIN users on users.id = u.id
-          GROUP BY users.id) uu
-          ${column === 'proportion' ? `JOIN ${viewValueGroup()} ON uu.id = vv.id` : ''}
-          ORDER BY ${column} DESC NULLS LAST, uu.created_at ASC
-          OFFSET $3
-          LIMIT $4`, ...range, decodedCursor.offset, limit)
-      ).map(
-        u => u.hideFromTopUsers ? null : u
-      )
-
-      return {
-        cursor: users.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
-        users
-      }
-    },
+    topUsers,
     hasNewNotes: async (parent, args, { me, models }) => {
       if (!me) {
         return false

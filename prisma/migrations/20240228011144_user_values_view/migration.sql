@@ -1,9 +1,21 @@
+CREATE INDEX IF NOT EXISTS "ItemAct.created_at_hour_index"
+    ON "ItemAct"(date_trunc('hour', created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago'));
+CREATE INDEX IF NOT EXISTS "Donation.created_at_day_index"
+    ON "Donation"(date_trunc('day', created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago'));
+CREATE INDEX IF NOT EXISTS "Item.created_at_day_index"
+    ON "Item"(date_trunc('day', created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago'));
+CREATE INDEX IF NOT EXISTS "Donation.created_at_hour_index"
+    ON "Donation"(date_trunc('hour', created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago'));
+CREATE INDEX IF NOT EXISTS "Item.created_at_hour_index"
+    ON "Item"(date_trunc('hour', created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago'));
+
 CREATE OR REPLACE FUNCTION user_values(
     min TIMESTAMP(3), max TIMESTAMP(3), ival INTERVAL, date_part TEXT,
     percentile_cutoff INTEGER DEFAULT 33,
     each_upvote_portion FLOAT DEFAULT 4.0,
     each_item_portion FLOAT DEFAULT 4.0,
-    handicap_ids INTEGER[] DEFAULT '{616, 6030, 946, 4502}')
+    handicap_ids INTEGER[] DEFAULT '{616, 6030, 946, 4502}',
+    handicap_zap_mult FLOAT DEFAULT 0.2)
 RETURNS TABLE (
     t TIMESTAMP(3), id INTEGER, proportion FLOAT
 )
@@ -52,7 +64,7 @@ BEGIN
         -- early multiplier: 10/ln(early_rank + e)
         -- we also weight by trust in a step wise fashion
         upvoter_ratios AS (
-            SELECT "userId", sum(early_multiplier*tipped_ratio*ratio*CASE WHEN users.id = ANY (handicap_ids) THEN 0.2 ELSE CEIL(users.trust*2)+1 END) as upvoter_ratio,
+            SELECT "userId", sum(early_multiplier*tipped_ratio*ratio*CASE WHEN users.id = ANY (handicap_ids) THEN handicap_zap_mult ELSE FLOOR(users.trust*3)+handicap_zap_mult END) as upvoter_ratio,
                 "parentId" IS NULL as "isPost", CASE WHEN "parentId" IS NULL THEN 'TIP_POST' ELSE 'TIP_COMMENT' END as type
             FROM (
                 SELECT *,

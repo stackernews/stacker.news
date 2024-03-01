@@ -56,17 +56,6 @@ SELECT (rewards(min, max, '1 day'::INTERVAL, 'day')).* FROM all_days;
 CREATE UNIQUE INDEX IF NOT EXISTS rewards_today_idx ON rewards_today(t);
 CREATE UNIQUE INDEX IF NOT EXISTS rewards_days_idx ON rewards_days(t);
 
-CREATE INDEX IF NOT EXISTS "ItemAct.created_at_hour_index"
-    ON "ItemAct"(date_trunc('hour', created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago'));
-CREATE INDEX IF NOT EXISTS "Donation.created_at_day_index"
-    ON "Donation"(date_trunc('day', created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago'));
-CREATE INDEX IF NOT EXISTS "Item.created_at_day_index"
-    ON "Item"(date_trunc('day', created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago'));
-CREATE INDEX IF NOT EXISTS "Donation.created_at_hour_index"
-    ON "Donation"(date_trunc('hour', created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago'));
-CREATE INDEX IF NOT EXISTS "Item.created_at_hour_index"
-    ON "Item"(date_trunc('hour', created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago'));
-
 CREATE OR REPLACE FUNCTION reschedule_earn_job()
 RETURNS INTEGER
 LANGUAGE plpgsql

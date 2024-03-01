@@ -18,7 +18,7 @@ import PageLoading from '../components/page-loading'
 import PayerData from '../components/payer-data'
 import { Badge } from 'react-bootstrap'
 import dynamic from 'next/dynamic'
-import { msatsToSats, numWithUnits } from '../lib/format'
+import { numWithUnits } from '../lib/format'
 
 export const getServerSideProps = getGetServerSideProps({ query: WALLET_HISTORY, authRequired: true })
 

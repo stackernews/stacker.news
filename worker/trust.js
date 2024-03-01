@@ -150,7 +150,7 @@ async function getGraph (models) {
             confidence(before - disagree, b_total - after, ${Z_CONFIDENCE})
           ELSE 0 END AS trust
         FROM user_pair
-        WHERE b_id <> ANY (${SN_USER_IDS})
+        WHERE NOT (b_id = ANY (${SN_USER_IDS}))
         UNION ALL
         SELECT a_id AS id, seed_id AS oid, ${MAX_TRUST}::numeric as trust
         FROM user_pair, unnest(${SN_USER_IDS}::int[]) seed_id

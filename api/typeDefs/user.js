@@ -7,14 +7,19 @@ export default gql`
     user(name: String!): User
     users: [User!]
     nameAvailable(name: String!): Boolean!
-    topUsers(cursor: String, when: String, from: String, to: String, by: String, limit: Limit): Users
-    topCowboys(cursor: String): Users
+    topUsers(cursor: String, when: String, from: String, to: String, by: String, limit: Limit): UsersNullable!
+    topCowboys(cursor: String): UsersNullable!
     searchUsers(q: String!, limit: Limit, similarity: Float): [User!]!
     userSuggestions(q: String, limit: Limit): [User!]!
     hasNewNotes: Boolean!
     userStatsActions(when: String, from: String, to: String): [TimeData!]!
     userStatsIncomingSats(when: String, from: String, to: String): [TimeData!]!
     userStatsOutgoingSats(when: String, from: String, to: String): [TimeData!]!
+  }
+
+  type UsersNullable {
+    cursor: String
+    users: [User]!
   }
 
   type Users {

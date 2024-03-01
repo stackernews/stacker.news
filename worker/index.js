@@ -20,7 +20,7 @@ import { views, rankViews } from './views.js'
 import { imgproxy } from './imgproxy.js'
 import { deleteItem } from './ephemeralItems.js'
 import { deleteUnusedImages } from './deleteUnusedImages.js'
-import { territoryBilling } from './territory.js'
+import { territoryBilling, territoryRevenue } from './territory.js'
 import { ofac } from './ofac.js'
 import { autoWithdraw } from './autowithdraw.js'
 
@@ -98,6 +98,7 @@ async function work () {
   await boss.work('deleteItem', jobWrapper(deleteItem))
   await boss.work('deleteUnusedImages', jobWrapper(deleteUnusedImages))
   await boss.work('territoryBilling', jobWrapper(territoryBilling))
+  await boss.work('territoryRevenue', jobWrapper(territoryRevenue))
   await boss.work('ofac', jobWrapper(ofac))
 
   console.log('working jobs')

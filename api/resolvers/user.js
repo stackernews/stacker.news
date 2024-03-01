@@ -5,7 +5,7 @@ import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { msatsToSats } from '../../lib/format'
 import { bioSchema, emailSchema, settingsSchema, ssValidate, userSchema } from '../../lib/validate'
 import { getItem, updateItem, filterClause, createItem, whereClause, muteClause } from './item'
-import { ANON_USER_ID, DELETE_USER_ID, RESERVED_MAX_USER_ID } from '../../lib/constants'
+import { ANON_USER_ID, DELETE_USER_ID, RESERVED_MAX_USER_ID, SN_USER_IDS } from '../../lib/constants'
 import { viewGroup } from './growth'
 import { timeUnitForRange, whenRange } from '../../lib/time'
 
@@ -50,6 +50,65 @@ async function authMethods (user, args, { models, me }) {
   }
 }
 
+export async function topUsers (parent, { cursor, when, by, from, to, limit = LIMIT }, { models, me }) {
+  const decodedCursor = decodeCursor(cursor)
+  const range = whenRange(when, from, to || decodeCursor.time)
+
+  let column
+  switch (by) {
+    case 'spent': column = 'spent'; break
+    case 'posts': column = 'nposts'; break
+    case 'comments': column = 'ncomments'; break
+    case 'referrals': column = 'referrals'; break
+    case 'stacking': column = 'stacked'; break
+    default: column = 'proportion'; break
+  }
+
+  const users = (await models.$queryRawUnsafe(`
+    SELECT *
+    FROM
+      (SELECT users.*,
+        COALESCE(floor(sum(msats_spent)/1000), 0) as spent,
+        COALESCE(sum(posts), 0) as nposts,
+        COALESCE(sum(comments), 0) as ncomments,
+        COALESCE(sum(referrals), 0) as referrals,
+        COALESCE(floor(sum(msats_stacked)/1000), 0) as stacked
+      FROM ${viewGroup(range, 'user_stats')}
+      JOIN users on users.id = u.id
+      GROUP BY users.id) uu
+      ${column === 'proportion' ? `JOIN ${viewValueGroup()} ON uu.id = vv.id` : ''}
+      ORDER BY ${column} DESC NULLS LAST, uu.created_at ASC
+      OFFSET $3
+      LIMIT $4`, ...range, decodedCursor.offset, limit)
+  ).map(
+    u => u.hideFromTopUsers ? null : u
+  )
+
+  return {
+    cursor: users.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
+    users
+  }
+}
+
+export function viewValueGroup () {
+  return `(
+    SELECT v.id, sum(proportion) as proportion
+    FROM (
+      (SELECT *
+        FROM user_values_days
+        WHERE user_values_days.t >= date_trunc('day', timezone('America/Chicago', $1))
+        AND date_trunc('day', user_values_days.t) <= date_trunc('day', timezone('America/Chicago', $2)))
+      UNION ALL
+      (SELECT * FROM
+        user_values_today
+        WHERE user_values_today.t >= date_trunc('day', timezone('America/Chicago', $1))
+        AND date_trunc('day', user_values_today.t) <= date_trunc('day', timezone('America/Chicago', $2)))
+      ) v
+    WHERE v.id NOT IN (${SN_USER_IDS.join(',')})
+    GROUP BY v.id
+  ) vv`
+}
+
 export default {
   Query: {
     me: async (parent, args, { models, me }) => {
@@ -82,7 +141,7 @@ export default {
       const decodedCursor = decodeCursor(cursor)
       const range = whenRange('forever')
 
-      const users = await models.$queryRawUnsafe(`
+      const users = (await models.$queryRawUnsafe(`
         SELECT users.*,
           coalesce(floor(sum(msats_spent)/1000),0) as spent,
           coalesce(sum(posts),0) as nposts,
@@ -91,11 +150,15 @@ export default {
           coalesce(floor(sum(msats_stacked)/1000),0) as stacked
           FROM ${viewGroup(range, 'user_stats')}
           JOIN users on users.id = u.id
-          WHERE NOT "hideFromTopUsers" AND NOT "hideCowboyHat" AND streak IS NOT NULL
+          WHERE streak IS NOT NULL
           GROUP BY users.id
           ORDER BY streak DESC, created_at ASC
           OFFSET $3
           LIMIT ${LIMIT}`, ...range, decodedCursor.offset)
+      ).map(
+        u => u.hideFromTopUsers || u.hideCowboyHat ? null : u
+      )
+
       return {
         cursor: users.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
         users
@@ -126,39 +189,7 @@ export default {
 
       return users
     },
-    topUsers: async (parent, { cursor, when, by, from, to, limit = LIMIT }, { models, me }) => {
-      const decodedCursor = decodeCursor(cursor)
-      const range = whenRange(when, from, to || decodeCursor.time)
-
-      let column
-      switch (by) {
-        case 'spent': column = 'spent'; break
-        case 'posts': column = 'nposts'; break
-        case 'comments': column = 'ncomments'; break
-        case 'referrals': column = 'referrals'; break
-        default: column = 'stacked'; break
-      }
-
-      const users = await models.$queryRawUnsafe(`
-          SELECT users.*,
-            COALESCE(floor(sum(msats_spent)/1000), 0) as spent,
-            COALESCE(sum(posts), 0) as nposts,
-            COALESCE(sum(comments), 0) as ncomments,
-            COALESCE(sum(referrals), 0) as referrals,
-            COALESCE(floor(sum(msats_stacked)/1000), 0) as stacked
-          FROM ${viewGroup(range, 'user_stats')}
-          JOIN users on users.id = u.id
-          WHERE NOT users."hideFromTopUsers"
-          GROUP BY users.id
-          ORDER BY ${column} DESC NULLS LAST, users.created_at ASC
-          OFFSET $3
-          LIMIT $4`, ...range, decodedCursor.offset, limit)
-
-      return {
-        cursor: users.length === limit ? nextCursorEncoded(decodedCursor, limit) : null,
-        users
-      }
-    },
+    topUsers,
     hasNewNotes: async (parent, args, { me, models }) => {
       if (!me) {
         return false

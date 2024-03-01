@@ -36,7 +36,76 @@ function seperate (arr, seperator) {
   return arr.flatMap((x, i) => i < arr.length - 1 ? [x, seperator] : [x])
 }
 
-export default function UserList ({ ssrData, query, variables, destructureData, rank }) {
+function User ({ user, rank, statComps, Embellish }) {
+  return (
+    <>
+      {rank
+        ? (
+          <div className={styles.rank}>
+            {rank}
+          </div>)
+        : <div />}
+      <div className={`${styles.item} mb-2`}>
+        <Link href={`/${user.name}`}>
+          <Image
+            src={user.photoId ? `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}/${user.photoId}` : '/dorian400.jpg'} width='32' height='32'
+            className={`${userStyles.userimg} me-2`}
+          />
+        </Link>
+        <div className={styles.hunk}>
+          <Link href={`/${user.name}`} className={`${styles.title} d-inline-flex align-items-center text-reset`}>
+            @{user.name}<Hat className='ms-1 fill-grey' height={14} width={14} user={user} />
+          </Link>
+          <div className={styles.other}>
+            {statComps.map((Comp, i) => <Comp key={i} user={user} />)}
+          </div>
+          {Embellish && <Embellish rank={rank} />}
+        </div>
+      </div>
+    </>
+  )
+}
+
+function UserHidden ({ rank, Embellish }) {
+  return (
+    <>
+      {rank
+        ? (
+          <div className={styles.rank}>
+            {rank}
+          </div>)
+        : <div />}
+      <div className={`${styles.item} mb-2`}>
+        <span>
+          <Image
+            src='/dorian400.jpg' width='32' height='32'
+            className={`${userStyles.userimg} me-2 opacity-50`}
+          />
+        </span>
+        <div className={`${styles.hunk} d-flex justify-content-center flex-column`}>
+          <div className={`${styles.title} text-muted d-inline-flex align-items-center`}>
+            stacker is in hiding
+          </div>
+          {Embellish && <Embellish rank={rank} />}
+        </div>
+      </div>
+    </>
+  )
+}
+
+export function ListUsers ({ users, rank, statComps = seperate(STAT_COMPONENTS, Seperator), Embellish }) {
+  return (
+    <div className={styles.grid}>
+      {users.map((user, i) => (
+        user
+          ? <User key={user.id} user={user} rank={rank && i + 1} statComps={statComps} Embellish={Embellish} />
+          : <UserHidden key={i} rank={rank && i + 1} Embellish={Embellish} />
+      ))}
+    </div>
+  )
+}
+
+export default function UserList ({ ssrData, query, variables, destructureData, rank, footer = true }) {
   const { data, fetchMore } = useQuery(query, { variables })
   const dat = useData(data, ssrData)
   const [statComps, setStatComps] = useState(seperate(STAT_COMPONENTS, Seperator))
@@ -62,35 +131,9 @@ export default function UserList ({ ssrData, query, variables, destructureData, 
 
   return (
     <>
-      <div className={styles.grid}>
-        {users?.map((user, i) => (
-          <React.Fragment key={user.name}>
-            {rank
-              ? (
-                <div className={styles.rank}>
-                  {i + 1}
-                </div>)
-              : <div />}
-            <div className={`${styles.item} mb-2`}>
-              <Link href={`/${user.name}`}>
-                <Image
-                  src={user.photoId ? `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}/${user.photoId}` : '/dorian400.jpg'} width='32' height='32'
-                  className={`${userStyles.userimg} me-2`}
-                />
-              </Link>
-              <div className={styles.hunk}>
-                <Link href={`/${user.name}`} className={`${styles.title} d-inline-flex align-items-center text-reset`}>
-                  @{user.name}<Hat className='ms-1 fill-grey' height={14} width={14} user={user} />
-                </Link>
-                <div className={styles.other}>
-                  {statComps.map((Comp, i) => <Comp key={i} user={user} />)}
-                </div>
-              </div>
-            </div>
-          </React.Fragment>
-        ))}
-      </div>
-      <MoreFooter cursor={cursor} count={users?.length} fetchMore={fetchMore} Skeleton={UsersSkeleton} noMoreText='NO MORE' />
+      <ListUsers users={users} rank={rank} statComps={statComps} />
+      {footer &&
+        <MoreFooter cursor={cursor} count={users?.length} fetchMore={fetchMore} Skeleton={UsersSkeleton} noMoreText='NO MORE' />}
     </>
   )
 }

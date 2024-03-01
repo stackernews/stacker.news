@@ -3,23 +3,50 @@ import { amountSchema, ssValidate } from '../../lib/validate'
 import { serializeInvoicable } from './serial'
 import { ANON_USER_ID } from '../../lib/constants'
 import { getItem } from './item'
+import { topUsers } from './user'
 
-const rewardCache = new Map()
+let rewardCache
 
-async function updateCachedRewards (when, models) {
-  const rewards = await getRewards(when, models)
-  rewardCache.set(when, { rewards, createdAt: Date.now() })
+async function updateCachedRewards (models) {
+  const rewards = await getActiveRewards(models)
+  rewardCache = { rewards, createdAt: Date.now() }
   return rewards
 }
 
-async function getCachedRewards (staleIn, when, models) {
-  if (rewardCache.has(when)) {
-    const { rewards, createdAt } = rewardCache.get(when)
+async function getCachedActiveRewards (staleIn, models) {
+  if (rewardCache) {
+    const { rewards, createdAt } = rewardCache
     const expired = createdAt + staleIn < Date.now()
-    if (expired) updateCachedRewards(when, models).catch(console.error)
+    if (expired) updateCachedRewards(models).catch(console.error)
     return rewards // serve stale rewards
   }
-  return await updateCachedRewards(when, models)
+  return await updateCachedRewards(models)
+}
+
+async function getActiveRewards (models) {
+  return await models.$queryRaw`
+      SELECT
+        (sum(total) / 1000)::INT as total,
+        date_trunc('month',  (now() AT TIME ZONE 'America/Chicago') + interval '1 month') AT TIME ZONE 'America/Chicago' as time,
+        json_build_array(
+          json_build_object('name', 'donations', 'value', (sum(donations) / 1000)::INT),
+          json_build_object('name', 'fees', 'value', (sum(fees) / 1000)::INT),
+          json_build_object('name', 'boost', 'value', (sum(boost) / 1000)::INT),
+          json_build_object('name', 'jobs', 'value', (sum(jobs) / 1000)::INT),
+          json_build_object('name', 'anon''s stack', 'value', (sum(anons_stack) / 1000)::INT)
+        ) AS sources
+      FROM (
+        (SELECT *
+          FROM rewards_days
+          WHERE rewards_days.t >= date_trunc('month',  now() AT TIME ZONE 'America/Chicago'))
+        UNION ALL
+        (SELECT * FROM rewards_today)
+        UNION ALL
+        (SELECT * FROM
+          rewards(
+            date_trunc('hour', timezone('America/Chicago', now())),
+            date_trunc('hour', timezone('America/Chicago', now())), '1 hour'::INTERVAL, 'hour'))
+      ) u`
 }
 
 async function getRewards (when, models) {
@@ -45,37 +72,18 @@ async function getRewards (when, models) {
         COALESCE(${when?.[when.length - 1]}::text::timestamp - interval '1 day', now() AT TIME ZONE 'America/Chicago'),
         interval '1 day') AS t
     )
-    SELECT coalesce(FLOOR(sum(sats)), 0) as total,
+    SELECT (total / 1000)::INT as total,
       days_cte.day + interval '1 day' as time,
       json_build_array(
-        json_build_object('name', 'donations', 'value', coalesce(FLOOR(sum(sats) FILTER(WHERE type = 'DONATION')), 0)),
-        json_build_object('name', 'fees', 'value', coalesce(FLOOR(sum(sats) FILTER(WHERE type NOT IN ('BOOST', 'STREAM', 'DONATION', 'ANON'))), 0)),
-        json_build_object('name', 'boost', 'value', coalesce(FLOOR(sum(sats) FILTER(WHERE type = 'BOOST')), 0)),
-        json_build_object('name', 'jobs', 'value', coalesce(FLOOR(sum(sats) FILTER(WHERE type = 'STREAM')), 0)),
-        json_build_object('name', 'anon''s stack', 'value', coalesce(FLOOR(sum(sats) FILTER(WHERE type = 'ANON')), 0))
+        json_build_object('name', 'donations', 'value', donations / 1000),
+        json_build_object('name', 'fees', 'value', fees / 1000),
+        json_build_object('name', 'boost', 'value', boost / 1000),
+        json_build_object('name', 'jobs', 'value', jobs / 1000),
+        json_build_object('name', 'anon''s stack', 'value', anons_stack / 1000)
     ) AS sources
     FROM days_cte
-    CROSS JOIN LATERAL (
-      (SELECT ("ItemAct".msats - COALESCE("ReferralAct".msats, 0)) / 1000.0 as sats, act::text as type
-        FROM "ItemAct"
-        LEFT JOIN "ReferralAct" ON "ReferralAct"."itemActId" = "ItemAct".id
-        WHERE date_trunc('day', "ItemAct".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = days_cte.day AND "ItemAct".act <> 'TIP')
-        UNION ALL
-      (SELECT sats::FLOAT, 'DONATION' as type
-        FROM "Donation"
-        WHERE date_trunc('day', created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = days_cte.day)
-        UNION ALL
-      -- any earnings from anon's stack that are not forwarded to other users
-      (SELECT "ItemAct".msats / 1000.0 as sats, 'ANON' as type
-        FROM "Item"
-        JOIN "ItemAct" ON "ItemAct"."itemId" = "Item".id
-        LEFT JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id
-        WHERE "Item"."userId" = ${ANON_USER_ID} AND "ItemAct".act = 'TIP'
-        AND date_trunc('day', "ItemAct".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = days_cte.day
-        GROUP BY "ItemAct".id, "ItemAct".msats
-        HAVING COUNT("ItemForward".id) = 0)
-    ) subquery
-    GROUP BY days_cte.day
+    JOIN rewards_days ON rewards_days.t = days_cte.day
+    GROUP BY days_cte.day, total, donations, fees, boost, jobs, anons_stack
     ORDER BY days_cte.day ASC`
 
   return results.length ? results : [{ total: 0, time: '0', sources: [] }]
@@ -84,7 +92,7 @@ async function getRewards (when, models) {
 export default {
   Query: {
     rewards: async (parent, { when }, { models }) =>
-      when ? await getRewards(when, models) : await getCachedRewards(5000, when, models),
+      when ? await getRewards(when, models) : await getCachedActiveRewards(5000, models),
     meRewards: async (parent, { when }, { me, models }) => {
       if (!me) {
         return null
@@ -120,6 +128,15 @@ export default {
         ORDER BY days_cte.day ASC`
 
       return results
+    }
+  },
+  Rewards: {
+    leaderboard: async (parent, args, { models, ...context }) => {
+      // get to and from using postgres because it's easier to do there
+      const [{ to, from }] = await models.$queryRaw`
+        SELECT date_trunc('month',  (now() AT TIME ZONE 'America/Chicago')) AT TIME ZONE 'America/Chicago' as from,
+               (date_trunc('month',  (now() AT TIME ZONE 'America/Chicago')) AT TIME ZONE 'America/Chicago') + interval '1 month - 1 second' as to`
+      return await topUsers(parent, { when: 'custom', to: new Date(to).getTime().toString(), from: new Date(from).getTime().toString(), limit: 64 }, { models, ...context })
     }
   },
   Mutation: {

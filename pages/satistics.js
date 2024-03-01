@@ -18,6 +18,7 @@ import PageLoading from '../components/page-loading'
 import PayerData from '../components/payer-data'
 import { Badge } from 'react-bootstrap'
 import dynamic from 'next/dynamic'
+import { msatsToSats, numWithUnits } from '../lib/format'
 
 export const getServerSideProps = getGetServerSideProps({ query: WALLET_HISTORY, authRequired: true })
 
@@ -216,7 +217,7 @@ export default function Satistics ({ ssrData }) {
                     <div className='card-body'>
                       <h4 className='card-title'>Stacked </h4>
                       <h1 className='text-center'>
-                        {totalStacked}
+                        {numWithUnits(totalStacked, { abbreviate: false, format: true })}
                       </h1>
                     </div>
                   </div>
@@ -226,7 +227,7 @@ export default function Satistics ({ ssrData }) {
                     <div className='card-body'>
                       <h4 className='card-title'>Spent</h4>
                       <h1 className='text-center'>
-                        {totalSpent}
+                        {numWithUnits(totalSpent, { abbreviate: false, format: true })}
                       </h1>
                     </div>
                   </div>
@@ -236,7 +237,7 @@ export default function Satistics ({ ssrData }) {
                     <div className='card-body'>
                       <h4 className='card-title'>Actions Taken</h4>
                       <h1 className='text-center'>
-                        {totalEngagement}
+                        {new Intl.NumberFormat().format(totalEngagement)}
                       </h1>
                     </div>
                   </div>

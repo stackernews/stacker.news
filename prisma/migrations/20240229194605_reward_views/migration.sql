@@ -73,7 +73,7 @@ LANGUAGE plpgsql
 AS $$
 DECLARE
 BEGIN
-    UPDATE pgboss.schedule set cron = '0 0 1 * *' WHERE name = 'earn';
+    UPDATE pgboss.schedule set cron = '10 0 1 * *' WHERE name = 'earn';
     return 0;
 EXCEPTION WHEN OTHERS THEN
     return 0;

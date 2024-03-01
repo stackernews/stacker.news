@@ -1,49 +1,21 @@
 import serialize from '../api/resolvers/serial.js'
 import { sendUserNotification } from '../api/webPush/index.js'
-import { ANON_USER_ID, SN_USER_IDS } from '../lib/constants.js'
 import { msatsToSats, numWithUnits } from '../lib/format.js'
 import { PrismaClient } from '@prisma/client'
+import { proportions } from '../lib/madness.js'
 
-const ITEM_EACH_REWARD = 4.0
-const UPVOTE_EACH_REWARD = 4.0
-const TOP_PERCENTILE = 33
-const TOTAL_UPPER_BOUND_MSATS = 1000000000
+const TOTAL_UPPER_BOUND_MSATS = 10000000000
 
 export async function earn ({ name }) {
-  // rewards are calculated sitewide still
-  // however for user gen subs currently only 50% of their fees go to rewards
-  // the other 50% goes to the founder of the sub
-
   // grab a greedy connection
   const models = new PrismaClient()
 
   try {
-  // compute how much sn earned today
+  // compute how much sn earned got the month
     const [{ sum: sumDecimal }] = await models.$queryRaw`
-      SELECT coalesce(sum(msats), 0) as sum
-      FROM (
-        (SELECT ("ItemAct".msats - COALESCE("ReferralAct".msats, 0)) * COALESCE("Sub"."rewardsPct", 100) * 0.01  as msats
-          FROM "ItemAct"
-          JOIN "Item" ON "Item"."id" = "ItemAct"."itemId"
-          LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
-          LEFT JOIN "ReferralAct" ON "ReferralAct"."itemActId" = "ItemAct".id
-          WHERE date_trunc('day', "ItemAct".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = date_trunc('day', (now() - interval '1 day') AT TIME ZONE 'America/Chicago')
-            AND "ItemAct".act <> 'TIP')
-          UNION ALL
-        (SELECT sats * 1000 as msats
-          FROM "Donation"
-          WHERE date_trunc('day', created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = date_trunc('day', (now() - interval '1 day') AT TIME ZONE 'America/Chicago'))
-          UNION ALL
-        -- any earnings from anon's stack that are not forwarded to other users
-        (SELECT "ItemAct".msats
-          FROM "Item"
-          JOIN "ItemAct" ON "ItemAct"."itemId" = "Item".id
-          LEFT JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id
-          WHERE "Item"."userId" = ${ANON_USER_ID} AND "ItemAct".act = 'TIP'
-          AND date_trunc('day', "ItemAct".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = date_trunc('day', (now() - interval '1 day') AT TIME ZONE 'America/Chicago')
-          GROUP BY "ItemAct".id, "ItemAct".msats
-          HAVING COUNT("ItemForward".id) = 0)
-      ) subquery`
+      SELECT coalesce(sum(total), 0) as sum
+      FROM rewards_days
+      WHERE date_trunc('month', rewards_days.t) = date_trunc('month',  now() AT TIME ZONE 'America/Chicago')`
 
     // XXX primsa will return a Decimal (https://mikemcl.github.io/decimal.js)
     // because sum of a BIGINT returns a NUMERIC type (https://www.postgresql.org/docs/13/functions-aggregate.html)
@@ -75,70 +47,17 @@ export async function earn ({ name }) {
         - how early they upvoted it
         - how the post/comment scored
 
-      Now: 100% of earnings go to top 33% of comments/posts and their upvoters
+      Now: 100% of earnings go to top 33% of comments/posts and their upvoters for month
     */
 
     // get earners { userId, id, type, rank, proportion }
     const earners = await models.$queryRaw`
-      -- get top 33% of posts and comments
-      WITH item_ratios AS (
-          SELECT *,
-              CASE WHEN "parentId" IS NULL THEN 'POST' ELSE 'COMMENT' END as type,
-              CASE WHEN "weightedVotes" > 0 THEN "weightedVotes"/(sum("weightedVotes") OVER (PARTITION BY "parentId" IS NULL)) ELSE 0 END AS ratio
-          FROM (
-              SELECT *,
-                  NTILE(100)  OVER (PARTITION BY "parentId" IS NULL ORDER BY ("weightedVotes"-"weightedDownVotes") desc) AS percentile,
-                  ROW_NUMBER()  OVER (PARTITION BY "parentId" IS NULL ORDER BY ("weightedVotes"-"weightedDownVotes") desc) AS rank
-              FROM
-                  "Item"
-              WHERE created_at >= now_utc() - interval '36 hours'
-              AND "weightedVotes" > 0 AND "deletedAt" IS NULL AND NOT bio
-          ) x
-          WHERE x.percentile <= ${TOP_PERCENTILE}
-      ),
-      -- get top upvoters of top posts and comments
-      upvoter_islands AS (
-            SELECT "ItemAct"."userId", item_ratios.id, item_ratios.ratio, item_ratios."parentId",
-                "ItemAct".msats as tipped, "ItemAct".created_at as acted_at,
-                ROW_NUMBER() OVER (partition by item_ratios.id order by "ItemAct".created_at asc)
-                - ROW_NUMBER() OVER (partition by item_ratios.id, "ItemAct"."userId" order by "ItemAct".created_at asc) AS island
-            FROM item_ratios
-            JOIN "ItemAct" on "ItemAct"."itemId" = item_ratios.id
-            WHERE act = 'TIP'
-      ),
-      -- isolate contiguous upzaps from the same user on the same item so that when we take the log
-      -- of the upzaps it accounts for successive zaps and does not disproporionately reward them
-      upvoters AS (
-        SELECT "userId", id, ratio, "parentId", GREATEST(log(sum(tipped) / 1000), 0) as tipped, min(acted_at) as acted_at
-        FROM upvoter_islands
-        GROUP BY "userId", id, ratio, "parentId", island
-      ),
-      -- the relative contribution of each upvoter to the post/comment
-      -- early multiplier: 10/ln(early_rank + e)
-      -- we also weight by trust in a step wise fashion
-      upvoter_ratios AS (
-          SELECT "userId", sum(early_multiplier*tipped_ratio*ratio*CASE WHEN users.id = ANY (${SN_USER_IDS}) THEN 0.2 ELSE CEIL(users.trust*2)+1 END) as upvoter_ratio,
-              "parentId" IS NULL as "isPost", CASE WHEN "parentId" IS NULL THEN 'TIP_POST' ELSE 'TIP_COMMENT' END as type
-          FROM (
-              SELECT *,
-                  10.0/LN(ROW_NUMBER() OVER (partition by id order by acted_at asc) + EXP(1.0)) AS early_multiplier,
-                  tipped::float/(sum(tipped) OVER (partition by id)) tipped_ratio
-              FROM upvoters
-          ) u
-          JOIN users on "userId" = users.id
-          GROUP BY "userId", "parentId" IS NULL
-      ),
-      proportions AS (
-        SELECT "userId", NULL as id, type, ROW_NUMBER() OVER (PARTITION BY "isPost" ORDER BY upvoter_ratio DESC) as rank,
-            upvoter_ratio/(sum(upvoter_ratio) OVER (PARTITION BY "isPost"))/${UPVOTE_EACH_REWARD} as proportion
-        FROM upvoter_ratios
-        WHERE upvoter_ratio > 0
-        UNION ALL
-        SELECT "userId", id, type, rank, ratio/${ITEM_EACH_REWARD} as proportion
-        FROM item_ratios)
-      SELECT "userId", id, type, rank, proportion
-      FROM proportions
-      WHERE proportion > 0.000001`
+      SELECT id AS "userId", sum(proportion) as proportion
+      FROM user_values_days
+      WHERE date_trunc('month', user_values_days.t) = date_trunc('month',  now() AT TIME ZONE 'America/Chicago')
+      GROUP BY id
+      ORDER BY proportion DESC
+      LIMIT 64`
 
     // in order to group earnings for users we use the same createdAt time for
     // all earnings
@@ -148,8 +67,8 @@ export async function earn ({ name }) {
     let total = 0
 
     const notifications = {}
-    for (const earner of earners) {
-      const earnings = Math.floor(parseFloat(earner.proportion) * sum)
+    for (const [i, earner] of earners.entries()) {
+      const earnings = Math.floor(parseFloat(proportions[i] * sum))
       total += earnings
       if (total > sum) {
         console.log(name, 'total exceeds sum', total, '>', sum)

@@ -36,7 +36,7 @@ function seperate (arr, seperator) {
   return arr.flatMap((x, i) => i < arr.length - 1 ? [x, seperator] : [x])
 }
 
-function User ({ user, rank, statComps }) {
+function User ({ user, rank, statComps, Embellish }) {
   return (
     <>
       {rank
@@ -59,13 +59,14 @@ function User ({ user, rank, statComps }) {
           <div className={styles.other}>
             {statComps.map((Comp, i) => <Comp key={i} user={user} />)}
           </div>
+          {Embellish && <Embellish rank={rank} />}
         </div>
       </div>
     </>
   )
 }
 
-function UserHidden ({ rank }) {
+function UserHidden ({ rank, Embellish }) {
   return (
     <>
       {rank
@@ -81,17 +82,30 @@ function UserHidden ({ rank }) {
             className={`${userStyles.userimg} me-2 opacity-50`}
           />
         </span>
-        <div className={`${styles.hunk} d-flex align-items-center`}>
+        <div className={`${styles.hunk} d-flex justify-items-center flex-column`}>
           <div className={`${styles.title} text-muted d-inline-flex align-items-center`}>
             stacker is in hiding
           </div>
+          {Embellish && <Embellish rank={rank} />}
         </div>
       </div>
     </>
   )
 }
 
-export default function UserList ({ ssrData, query, variables, destructureData, rank }) {
+export function ListUsers ({ users, rank, statComps = seperate(STAT_COMPONENTS, Seperator), Embellish }) {
+  return (
+    <div className={styles.grid}>
+      {users.map((user, i) => (
+        user
+          ? <User key={user.id} user={user} rank={rank && i + 1} statComps={statComps} Embellish={Embellish} />
+          : <UserHidden key={i} rank={rank && i + 1} Embellish={Embellish} />
+      ))}
+    </div>
+  )
+}
+
+export default function UserList ({ ssrData, query, variables, destructureData, rank, footer = true }) {
   const { data, fetchMore } = useQuery(query, { variables })
   const dat = useData(data, ssrData)
   const [statComps, setStatComps] = useState(seperate(STAT_COMPONENTS, Seperator))
@@ -117,14 +131,9 @@ export default function UserList ({ ssrData, query, variables, destructureData, 
 
   return (
     <>
-      <div className={styles.grid}>
-        {users?.map((user, i) => (
-          user
-            ? <User key={user.id} user={user} rank={rank && i + 1} statComps={statComps} />
-            : <UserHidden key={i} rank={rank && i + 1} />
-        ))}
-      </div>
-      <MoreFooter cursor={cursor} count={users?.length} fetchMore={fetchMore} Skeleton={UsersSkeleton} noMoreText='NO MORE' />
+      <ListUsers users={users} rank={rank} statComps={statComps} />
+      {footer &&
+        <MoreFooter cursor={cursor} count={users?.length} fetchMore={fetchMore} Skeleton={UsersSkeleton} noMoreText='NO MORE' />}
     </>
   )
 }

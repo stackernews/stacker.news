@@ -7,15 +7,17 @@ const REWARDS = gql`
 {
   rewards {
     total
+    time
   }
 }`
 
 export default function Rewards () {
   const { data } = useQuery(REWARDS, SSR ? { ssr: false } : { pollInterval: 60000, nextFetchPolicy: 'cache-and-network' })
   const total = data?.rewards?.[0]?.total
+  const time = data?.rewards?.[0]?.time
   return (
     <Link href='/rewards' className='nav-link p-0 p-0 d-inline-flex'>
-      {total ? <span><RewardLine total={total} /></span> : 'rewards'}
+      {total ? <span><RewardLine total={total} time={time} /></span> : 'rewards'}
     </Link>
   )
 }

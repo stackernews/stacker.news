@@ -229,7 +229,11 @@ export const ImageUpload = forwardRef(({ children, className, onSelect, onUpload
           }
         }}
       />
-      <div className={className} onClick={() => ref.current?.click()} style={{ cursor: 'pointer' }}>
+      <div
+        className={className} onClick={() => ref.current?.click()} style={{ cursor: 'pointer' }} tabindex={0} onKeyDown={(e) => {
+          if (e.key === 'Enter') { ref.current?.click() }
+        }}
+      >
         {children}
       </div>
     </>

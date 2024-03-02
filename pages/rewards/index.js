@@ -18,6 +18,7 @@ import { useLightning } from '../../components/lightning'
 import { ListUsers } from '../../components/user-list'
 import { Col, Row } from 'react-bootstrap'
 import { proportions } from '../../lib/madness'
+import { useData } from '../../components/use-data'
 
 const GrowthPieChart = dynamic(() => import('../../components/charts').then(mod => mod.GrowthPieChart), {
   loading: () => <div>Loading...</div>
@@ -89,16 +90,17 @@ export function RewardLine ({ total, time }) {
 
 export default function Rewards ({ ssrData }) {
   // only poll for updates to rewards and not leaderboard
-  const { data } = useQuery(
+  const { data: rewardsData } = useQuery(
     REWARDS,
     SSR ? {} : { pollInterval: 1000, nextFetchPolicy: 'cache-and-network' })
+  const { data } = useQuery(REWARDS_FULL)
   if (!data && !ssrData) return <PageLoading />
 
-  let { rewards: [{ total, sources, time, leaderboard }] } = ssrData
-  if (data?.rewards?.length > 0) {
-    total = data.rewards[0].total
-    sources = data.rewards[0].sources
-    time = data.rewards[0].time
+  let { rewards: [{ total, sources, time, leaderboard }] } = useData(data, ssrData)
+  if (rewardsData?.rewards?.length > 0) {
+    total = rewardsData.rewards[0].total
+    sources = rewardsData.rewards[0].sources
+    time = rewardsData.rewards[0].time
   }
 
   function EstimatedReward ({ rank }) {

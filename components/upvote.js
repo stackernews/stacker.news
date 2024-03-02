@@ -185,8 +185,9 @@ export default function UpVote ({ item, className }) {
             className={`${disabled ? styles.noSelfTips : ''} ${styles.upvoteWrapper}`}
           >
             <UpBolt
-              onMouseEnter={() => setHover(true)}
+              onPointerEnter={() => setHover(true)}
               onMouseLeave={() => setHover(false)}
+              onTouchEnd={() => setHover(false)}
               width={26}
               height={26}
               className={

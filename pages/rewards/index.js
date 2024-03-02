@@ -38,14 +38,14 @@ const REWARDS_FULL = gql`
         id
         name
         photoId
-        ncomments(when: $when, from: $from, to: $to)
-        nposts(when: $when, from: $from, to: $to)
+        ncomments
+        nposts
 
         optional {
           streak
-          stacked(when: $when, from: $from, to: $to)
-          spent(when: $when, from: $from, to: $to)
-          referrals(when: $when, from: $from, to: $to)
+          stacked
+          spent
+          referrals
         }
       }
     }

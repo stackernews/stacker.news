@@ -4,7 +4,7 @@ import Items from '../../components/items'
 import Layout from '../../components/layout'
 import { SUB_FULL, SUB_ITEMS } from '../../fragments/subs'
 import Snl from '../../components/snl'
-import { WelcomeBanner } from '../../components/banners'
+import { MadnessBanner, WelcomeBanner } from '../../components/banners'
 import { useQuery } from '@apollo/client'
 import PageLoading from '../../components/page-loading'
 import TerritoryHeader from '../../components/territory-header'
@@ -29,7 +29,7 @@ export default function Sub ({ ssrData }) {
         : (
           <>
             <Snl />
-            <WelcomeBanner />
+            <WelcomeBanner Banner={MadnessBanner} />
           </>)}
       <Items ssrData={ssrData} variables={variables} />
     </Layout>

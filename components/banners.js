@@ -8,7 +8,7 @@ import { useToast } from '../components/toast'
 import { BALANCE_LIMIT_MSATS } from '../lib/constants'
 import { msatsToSats, numWithUnits } from '../lib/format'
 
-export function WelcomeBanner () {
+export function WelcomeBanner ({ Banner }) {
   const me = useMe()
   const toaster = useToast()
   const [hidden, setHidden] = useState(true)
@@ -42,16 +42,18 @@ export function WelcomeBanner () {
 
   if (hidden) return null
 
-  return (
-    <Alert className={styles.banner} key='info' variant='info' onClose={handleClose} dismissible>
-      <Alert.Heading>
-        👋 Welcome to Stacker News!
-      </Alert.Heading>
-      <p>
-        To get started, check out our{' '}
-        <Alert.Link href='/faq'>FAQs</Alert.Link> or{' '}
-        <Alert.Link href='/guide'>content guidelines</Alert.Link>, or go ahead and{' '}
-        {
+  return Banner
+    ? <Banner handleClose={handleClose} />
+    : (
+      <Alert className={styles.banner} key='info' variant='info' onClose={handleClose} dismissible>
+        <Alert.Heading>
+          👋 Welcome to Stacker News!
+        </Alert.Heading>
+        <p>
+          To get started, check out our{' '}
+          <Alert.Link href='/faq'>FAQs</Alert.Link> or{' '}
+          <Alert.Link href='/guide'>content guidelines</Alert.Link>, or go ahead and{' '}
+          {
           me
             ? (
               <Alert.Link href='/post'>make a post</Alert.Link>
@@ -63,7 +65,38 @@ export function WelcomeBanner () {
               </>
               )
         }.
-      </p>
+        </p>
+      </Alert>)
+}
+
+export function MadnessBanner ({ handleClose }) {
+  const me = useMe()
+  return (
+    <Alert className={styles.banner} key='info' variant='info' onClose={handleClose} dismissible>
+      <Alert.Heading>
+        ⚡️ Million Sat Madness Is Here!
+      </Alert.Heading>
+      {me
+        ? (
+          <div>
+            <div>
+              We're giving away 3 million sats to the top Stacker News contributors in March. <Alert.Link href='/rewards'>See the leaderboard!</Alert.Link>
+            </div>
+            <div>
+              How does Million Sat Madness work? <Alert.Link href='/items/444168'>Click here</Alert.Link>.
+            </div>
+          </div>
+          )
+        : (
+          <div>
+            <div>
+              We're giving away 3 million sats to the top Stacker News contributors in March. <Alert.Link href='/signup'>Sign up!</Alert.Link>
+            </div>
+            <div>
+              Need help? Check out our <Alert.Link href='/faq'>FAQs</Alert.Link>.
+            </div>
+          </div>
+          )}
     </Alert>
   )
 }

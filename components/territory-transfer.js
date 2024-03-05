@@ -6,6 +6,7 @@ import { Form, InputUserSuggest, SubmitButton } from './form'
 import { territoryTransferSchema } from '../lib/validate'
 import { useCallback } from 'react'
 import Link from 'next/link'
+import { useMe } from './me'
 
 function TransferObstacle ({ sub, onClose, userName }) {
   const toaster = useToast()
@@ -56,7 +57,8 @@ function TransferObstacle ({ sub, onClose, userName }) {
 function TerritoryTransferForm ({ sub, onClose }) {
   const showModal = useShowModal()
   const client = useApolloClient()
-  const schema = territoryTransferSchema({ client })
+  const me = useMe()
+  const schema = territoryTransferSchema({ me, client })
 
   const onSubmit = useCallback(async (values) => {
     showModal(onClose => <TransferObstacle sub={sub} onClose={onClose} {...values} />)

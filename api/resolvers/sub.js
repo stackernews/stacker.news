@@ -303,6 +303,9 @@ export default {
       if (!user) {
         throw new GraphQLError('user not found', { extensions: { code: 'BAD_INPUT' } })
       }
+      if (user.id === me.id) {
+        throw new GraphQLError('cannot transfer territory to yourself', { extensions: { code: 'BAD_INPUT' } })
+      }
 
       const [, updatedSub] = await models.$transaction([
         models.territoryTransfer.create({ data: { subName, oldUserId: me.id, newUserId: user.id } }),

@@ -403,7 +403,7 @@ function FormGroup ({ className, label, children }) {
 }
 
 function InputInner ({
-  prepend, append, hint, showValid, onChange, onBlur, overrideValue, appendValue,
+  prepend, append, hint, warn, showValid, onChange, onBlur, overrideValue, appendValue,
   innerRef, noForm, clear, onKeyDown, inputGroupClassName, debounce: debounceTime, maxLength,
   ...props
 }) {
@@ -518,7 +518,12 @@ function InputInner ({
           {hint}
         </BootstrapForm.Text>
       )}
-      {maxLength && !(meta.touched && meta.error && invalid) && (
+      {warn && (
+        <BootstrapForm.Text className='text-warning'>
+          {warn}
+        </BootstrapForm.Text>
+      )}
+      {!warn && maxLength && !(meta.touched && meta.error && invalid) && (
         <BootstrapForm.Text className={remaining < 0 ? 'text-danger' : 'text-muted'}>
           {`${numWithUnits(remaining, { abbreviate: false, unitSingular: 'character', unitPlural: 'characters' })} remaining`}
         </BootstrapForm.Text>
@@ -758,7 +763,7 @@ export function CheckboxGroup ({ label, groupClassName, children, ...props }) {
 const StorageKeyPrefixContext = createContext()
 
 export function Form ({
-  initial, schema, onSubmit, children, initialError, validateImmediately,
+  initial, schema, onSubmit, children, initialError, validate, validateImmediately,
   storageKeyPrefix, validateOnChange = true, invoiceable, innerRef, ...props
 }) {
   const toaster = useToast()
@@ -821,6 +826,7 @@ export function Form ({
   return (
     <Formik
       initialValues={initial}
+      validate={validate}
       validateOnChange={validateOnChange}
       validationSchema={schema}
       initialTouched={validateImmediately && initial}

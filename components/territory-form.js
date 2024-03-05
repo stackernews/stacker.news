@@ -11,6 +11,7 @@ import { useMe } from './me'
 import Info from './info'
 import { abbrNum } from '../lib/format'
 import { purchasedType } from '../lib/territory'
+import { ValidationError } from 'yup'
 
 export default function TerritoryForm ({ sub }) {
   const router = useRouter()
@@ -29,10 +30,37 @@ export default function TerritoryForm ({ sub }) {
       }`
   )
 
+  const [archived, setArchived] = useState(false)
+
+  const validate = async (values) => {
+    // validate schema manually so we can handle the error if sub is archived.
+    // in that case, we want to show a warning text but not prevent form submission.
+
+    const errors = {}
+    const schema = territorySchema({ client, me, sub })
+
+    try {
+      await schema.validate(values)
+    } catch (e) {
+      if (!(e instanceof ValidationError)) throw e
+      errors[e.path] = e.errors[0]
+    }
+
+    if (errors.name === 'archived') {
+      delete errors.name
+      setArchived(true)
+    } else {
+      setArchived(false)
+    }
+
+    return errors
+  }
+
   const onSubmit = useCallback(
     async ({ ...variables }) => {
+      const oldName = archived ? variables.name : sub?.name
       const { error } = await upsertSub({
-        variables: { oldName: sub?.name, ...variables }
+        variables: { oldName, ...variables }
       })
 
       if (error) {
@@ -52,7 +80,7 @@ export default function TerritoryForm ({ sub }) {
       })
 
       await router.push(`/~${variables.name}`)
-    }, [client, upsertSub, router]
+    }, [client, upsertSub, router, archived]
   )
 
   const [billing, setBilling] = useState((sub?.billingType || 'MONTHLY').toLowerCase())
@@ -86,7 +114,7 @@ export default function TerritoryForm ({ sub }) {
           moderated: sub?.moderated || false,
           nsfw: sub?.nsfw || false
         }}
-        schema={territorySchema({ client, me, sub })}
+        validate={validate}
         invoiceable
         onSubmit={onSubmit}
         className='mb-5'
@@ -100,6 +128,16 @@ export default function TerritoryForm ({ sub }) {
           clear
           maxLength={32}
           prepend={<InputGroup.Text className='text-monospace'>~</InputGroup.Text>}
+          warn={archived && (
+            <div className='d-flex align-items-center'>this territory is archived
+              <Info>
+                <ul className='fw-bold'>
+                  <li>This territory got archived because the previous founder did not pay for the upkeep</li>
+                  <li>You can proceed but will inherit the old content</li>
+                </ul>
+              </Info>
+            </div>
+          )}
         />
         <MarkdownInput
           label='description'

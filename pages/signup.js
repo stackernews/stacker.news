@@ -9,7 +9,7 @@ function SignUpHeader () {
       <h3 className='w-100 pb-2'>
         Sign up
       </h3>
-      <div className='fw-bold text-muted pb-4'>Join 15,000+ bitcoiners and start stacking sats today</div>
+      <div className='fw-bold text-muted pb-4'>Join 21,000+ bitcoiners and start stacking sats today</div>
     </>
   )
 }

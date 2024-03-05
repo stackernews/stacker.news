@@ -114,6 +114,8 @@ model User {
   SubAct                    SubAct[]
   MuteSub                   MuteSub[]
   Wallet                    Wallet[]
+  TerritoryTransfers        TerritoryTransfer[] @relation("TerritoryTransfer_oldUser")
+  TerritoryReceives         TerritoryTransfer[] @relation("TerritoryTransfer_newUser")
 
   @@index([photoId])
   @@index([createdAt], map: "users.created_at_index")
@@ -490,6 +492,7 @@ model Sub {
   SubAct          SubAct[]
   MuteSub         MuteSub[]
   SubSubscription SubSubscription[]
+  TerritoryTransfer TerritoryTransfer[]
 
   @@index([parentName])
   @@index([createdAt])
@@ -770,6 +773,20 @@ model Log {
   context   Json?
 
   @@index([createdAt, name], map: "Log.name_index")
+}
+
+model TerritoryTransfer {
+  id          Int @id @default(autoincrement())
+  createdAt   DateTime @default(now()) @map("created_at")
+  oldUserId   Int
+  newUserId   Int
+  subName     String @db.Citext
+  oldUser     User @relation("TerritoryTransfer_oldUser", fields: [oldUserId], references: [id], onDelete: Cascade)
+  newUser     User @relation("TerritoryTransfer_newUser", fields: [newUserId], references: [id], onDelete: Cascade)
+  sub         Sub  @relation(fields: [subName], references: [name], onDelete: Cascade)
+
+  @@index([createdAt, newUserId], map: "TerritoryTransfer.newUserId_index")
+  @@index([createdAt, oldUserId], map: "TerritoryTransfer.oldUserId_index")
 }
 
 enum EarnType {

@@ -168,6 +168,17 @@ export default {
           LIMIT ${LIMIT}+$3)`
       )
 
+      // territory transfers
+      queries.push(
+        `(SELECT "TerritoryTransfer".id::text, "TerritoryTransfer"."created_at" AS "sortTime", NULL as "earnedSats",
+          'TerritoryTransfer' AS type
+          FROM "TerritoryTransfer"
+          WHERE "TerritoryTransfer"."newUserId" = $1
+          AND "TerritoryTransfer"."created_at" <= $2
+          ORDER BY "sortTime" DESC
+          LIMIT ${LIMIT}+$3)`
+      )
+
       if (meFull.noteItemSats) {
         queries.push(
           `(SELECT "Item".id::TEXT, MAX("ItemAct".created_at) AS "sortTime",
@@ -366,6 +377,12 @@ export default {
   },
   TerritoryPost: {
     item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
+  },
+  TerritoryTransfer: {
+    sub: async (n, args, { models, me }) => {
+      const transfer = await models.territoryTransfer.findUnique({ where: { id: Number(n.id) }, include: { sub: true } })
+      return transfer.sub
+    }
   },
   JobChanged: {
     item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })

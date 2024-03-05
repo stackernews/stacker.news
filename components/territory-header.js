@@ -11,6 +11,7 @@ import Share from './share'
 import { gql, useMutation } from '@apollo/client'
 import { useToast } from './toast'
 import ActionDropdown from './action-dropdown'
+import { TerritoryTransferDropdownItem } from './territory-transfer'
 
 export function TerritoryDetails ({ sub }) {
   return (
@@ -72,6 +73,8 @@ export default function TerritoryHeader ({ sub }) {
     }
   )
 
+  const isMine = Number(sub.userId) === Number(me?.id)
+
   return (
     <>
       <TerritoryPaymentDue sub={sub} />
@@ -83,7 +86,7 @@ export default function TerritoryHeader ({ sub }) {
           <Share path={`/~${sub.name}`} title={`~${sub.name} stacker news territory`} className='mx-1' />
           {me &&
             <>
-              {(Number(sub.userId) === Number(me?.id)
+              {(isMine
                 ? (
                   <Link href={`/~${sub.name}/edit`} className='d-flex align-items-center'>
                     <Button variant='outline-grey border-2 rounded py-0' size='sm'>edit territory</Button>
@@ -106,6 +109,12 @@ export default function TerritoryHeader ({ sub }) {
               )}
               <ActionDropdown>
                 <ToggleSubSubscriptionDropdownItem sub={sub} />
+                {isMine && (
+                  <>
+                    <Dropdown.Divider />
+                    <TerritoryTransferDropdownItem sub={sub} />
+                  </>
+                )}
               </ActionDropdown>
             </>}
         </div>

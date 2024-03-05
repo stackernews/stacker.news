@@ -108,9 +108,16 @@ export default gql`
     sortTime: Date!
   }
 
+  type TerritoryTransfer {
+    id: ID!
+    sub: Sub!
+    sortTime: Date!
+  }
+
   union Notification = Reply | Votification | Mention
     | Invitification | Earn | JobChanged | InvoicePaid | Referral
-    | Streak | FollowActivity | ForwardedVotification | Revenue | SubStatus | TerritoryPost
+    | Streak | FollowActivity | ForwardedVotification | Revenue | SubStatus
+    | TerritoryPost | TerritoryTransfer
 
   type Notifications {
     lastChecked: Date

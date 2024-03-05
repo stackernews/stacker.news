@@ -94,6 +94,13 @@ export const NOTIFICATIONS = gql`
             text
           }
         }
+        ... on TerritoryTransfer {
+          id
+          sortTime
+          sub {
+            ...SubFields
+          }
+        }
         ... on Invitification {
           id
           sortTime

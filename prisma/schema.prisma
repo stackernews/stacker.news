@@ -776,30 +776,12 @@ model Log {
   @@index([createdAt, name], map: "Log.name_index")
 }
 
-enum AuditEventType {
-  TERRITORY_TRANSFER
-}
-
-model AuditEvent {
-  id        Int @id @default(autoincrement())
-  createdAt DateTime @default(now()) @map("created_at")
-  type      AuditEventType
-  userId    Int[]
-  event     Json? @db.JsonB
-
-  territoryTransfer TerritoryTransfer?
-
-  @@index([type, userId], map: "AuditEvent.type_userId_index")
-}
-
 model TerritoryTransfer {
   id          Int @id @default(autoincrement())
-  eventId     Int @unique
   createdAt   DateTime @default(now()) @map("created_at")
   oldUserId   Int
   newUserId   Int
   subName     String @db.Citext
-  auditEvent  AuditEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
   oldUser     User @relation("TerritoryTransfer_oldUser", fields: [oldUserId], references: [id], onDelete: Cascade)
   newUser     User @relation("TerritoryTransfer_newUser", fields: [newUserId], references: [id], onDelete: Cascade)
   sub         Sub  @relation(fields: [subName], references: [name], onDelete: Cascade)

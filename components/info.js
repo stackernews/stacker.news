@@ -11,7 +11,7 @@ export default function Info ({ children, label, iconClassName = 'fill-theme-col
         e.preventDefault()
         showModal(onClose => children)
       }}
-      className='pointer'
+      className='d-flex align-items-center pointer'
     >
       <InfoIcon
         width={18} height={18} className={`${iconClassName} mx-1`}

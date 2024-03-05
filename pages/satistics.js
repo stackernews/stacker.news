@@ -4,6 +4,7 @@ import { getGetServerSideProps } from '../api/ssrApollo'
 import Layout from '../components/layout'
 import MoreFooter from '../components/more-footer'
 import { WALLET_HISTORY } from '../fragments/wallet'
+import { USER_STATS } from '../fragments/users'
 import styles from '../styles/satistics.module.css'
 import Moon from '../svgs/moon-fill.svg'
 import Check from '../svgs/check-double-line.svg'
@@ -16,8 +17,17 @@ import ItemJob from '../components/item-job'
 import PageLoading from '../components/page-loading'
 import PayerData from '../components/payer-data'
 import { Badge } from 'react-bootstrap'
+import dynamic from 'next/dynamic'
+import { numWithUnits } from '../lib/format'
 
 export const getServerSideProps = getGetServerSideProps({ query: WALLET_HISTORY, authRequired: true })
+
+const WhenAreaChart = dynamic(() => import('../components/charts').then(mod => mod.WhenAreaChart), {
+  loading: () => <div>Loading...</div>
+})
+const WhenLineChart = dynamic(() => import('../components/charts').then(mod => mod.WhenLineChart), {
+  loading: () => <div>Loading...</div>
+})
 
 function satusClass (status) {
   if (!status) {
@@ -166,7 +176,10 @@ function Fact ({ fact }) {
 export default function Satistics ({ ssrData }) {
   const router = useRouter()
   const { data, fetchMore } = useQuery(WALLET_HISTORY, { variables: { inc: router.query.inc } })
+  const userStats = useQuery(USER_STATS, { variables: { when: 'forever', from: null, to: null } })
+  const { userStatsActions, userStatsIncomingSats, userStatsOutgoingSats } = userStats.data || {}
   if (!data && !ssrData) return <PageLoading />
+  if (!userStatsActions && !userStatsIncomingSats && !userStatsOutgoingSats) return <PageLoading />
 
   function filterRoutePush (filter, add) {
     const inc = new Set(router.query.inc?.split(','))
@@ -186,53 +199,107 @@ export default function Satistics ({ ssrData }) {
     const inc = new Set(router.query.inc?.split(','))
     return inc.has(filter)
   }
-
   const { walletHistory: { facts, cursor } } = data || ssrData
+  const totalStacked = userStatsIncomingSats.reduce((total, a) => total + a.data?.reduce((acc, d) => acc + d.value, 0), 0)
+  const totalSpent = userStatsOutgoingSats.reduce((total, a) => total + a.data?.reduce((acc, d) => acc + d.value, 0), 0)
+  const totalEngagement = userStatsActions.reduce((total, a) => total + a.data?.reduce((acc, d) => acc + d.value, 0), 0)
 
   return (
-    <Layout>
-      <div className='mt-3'>
-        <h2 className='text-center'>satistics</h2>
-        <Form
-          initial={{
-            invoice: included('invoice'),
-            withdrawal: included('withdrawal'),
-            stacked: included('stacked'),
-            spent: included('spent')
-          }}
-        >
-          <div className='d-flex justify-content-around flex-wrap'>
-            <Checkbox
-              label='invoice' name='invoice' inline
-              checked={included('invoice')}
-              handleChange={c => filterRoutePush('invoice', c)}
-            />
-            <Checkbox
-              label='withdrawal' name='withdrawal' inline
-              checked={included('withdrawal')}
-              handleChange={c => filterRoutePush('withdrawal', c)}
-            />
-            <Checkbox
-              label='stacked' name='stacked' inline
-              checked={included('stacked')}
-              handleChange={c => filterRoutePush('stacked', c)}
-            />
-            <Checkbox
-              label='spent' name='spent' inline
-              checked={included('spent')}
-              handleChange={c => filterRoutePush('spent', c)}
-            />
+    <Layout contain={false}>
+      <div className='mx-sm-5'>
+        <div className='mt-3'>
+          <div className='row'>
+            <div className='col-md-7 mx-md-5'>
+              <div className='d-flex row justify-content-between'>
+                <h1 className='text-center'>Statistics</h1>
+                <div className='col-4 col-md-4'>
+                  <div className='card'>
+                    <div className='card-body'>
+                      <h4 className='card-title'>Stacked </h4>
+                      <h1 className='text-center'>
+                        {numWithUnits(totalStacked, { abbreviate: false, format: true })}
+                      </h1>
+                    </div>
+                  </div>
+                </div>
+                <div className='col-4 col-md-4'>
+                  <div className='card'>
+                    <div className='card-body'>
+                      <h4 className='card-title'>Spent</h4>
+                      <h1 className='text-center'>
+                        {numWithUnits(totalSpent, { abbreviate: false, format: true })}
+                      </h1>
+                    </div>
+                  </div>
+                </div>
+                <div className='col-4 col-md-4'>
+                  <div className='card'>
+                    <div className='card-body'>
+                      <h4 className='card-title'>Actions Taken</h4>
+                      <h1 className='text-center'>
+                        {new Intl.NumberFormat().format(totalEngagement)}
+                      </h1>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className='row mt-5'>
+                <div className='col-md-6'>
+                  <WhenLineChart data={userStatsIncomingSats} />
+                </div>
+                <div className='col-md-6'>
+                  <WhenLineChart data={userStatsOutgoingSats} />
+                </div>
+              </div>
+              <div className='row'>
+                <div className='col-md-12'>
+                  <WhenAreaChart data={userStatsActions} />
+                </div>
+              </div>
+            </div>
+            <div className='col-md-4 py-2 px-0 mb-0 mw-100 mt-xxs-3'>
+              <h1 className='text-center'>History</h1>
+              <Form
+                initial={{
+                  invoice: included('invoice'),
+                  withdrawal: included('withdrawal'),
+                  stacked: included('stacked'),
+                  spent: included('spent')
+                }}
+              >
+                <div className='d-flex justify-content-around flex-wrap'>
+                  <Checkbox
+                    label='invoice' name='invoice' inline
+                    checked={included('invoice')}
+                    handleChange={c => filterRoutePush('invoice', c)}
+                  />
+                  <Checkbox
+                    label='withdrawal' name='withdrawal' inline
+                    checked={included('withdrawal')}
+                    handleChange={c => filterRoutePush('withdrawal', c)}
+                  />
+                  <Checkbox
+                    label='stacked' name='stacked' inline
+                    checked={included('stacked')}
+                    handleChange={c => filterRoutePush('stacked', c)}
+                  />
+                  <Checkbox
+                    label='spent' name='spent' inline
+                    checked={included('spent')}
+                    handleChange={c => filterRoutePush('spent', c)}
+                  />
+                </div>
+              </Form>
+              <div className={styles.rows}>
+                <div className={[styles.type, styles.head].join(' ')}>type</div>
+                <div className={[styles.detail, styles.head].join(' ')}>detail</div>
+                <div className={[styles.sats, styles.head].join(' ')}>sats</div>
+                {facts.map(f => <Fact key={f.type + f.id} fact={f} />)}
+              </div>
+            </div>
           </div>
-        </Form>
-        <div className='py-2 px-0 mb-0 mw-100'>
-          <div className={styles.rows}>
-            <div className={[styles.type, styles.head].join(' ')}>type</div>
-            <div className={[styles.detail, styles.head].join(' ')}>detail</div>
-            <div className={[styles.sats, styles.head].join(' ')}>sats</div>
-            {facts.map(f => <Fact key={f.type + f.id} fact={f} />)}
-          </div>
+          <MoreFooter cursor={cursor} count={facts?.length} fetchMore={fetchMore} Skeleton={PageLoading} />
         </div>
-        <MoreFooter cursor={cursor} count={facts?.length} fetchMore={fetchMore} Skeleton={PageLoading} />
       </div>
     </Layout>
   )

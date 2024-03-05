@@ -20,8 +20,8 @@ export default gql`
       billingType: String!, billingAutoRenew: Boolean!,
       moderated: Boolean!, hash: String, hmac: String, nsfw: Boolean!): Sub
     paySub(name: String!, hash: String, hmac: String): Sub
-    toggleMuteSub(name: String!): Boolean!
     toggleSubSubscription(name: String!): Boolean!
+    toggleMuteSub(name: String!): Boolean!
   }
 
   type Sub {

@@ -11,7 +11,7 @@ import { dayMonthYear, timeSince } from '../lib/time'
 import Link from 'next/link'
 import Check from '../svgs/check-double-line.svg'
 import HandCoin from '../svgs/hand-coin-fill.svg'
-import { LOST_BLURBS, FOUND_BLURBS } from '../lib/constants'
+import { LOST_BLURBS, FOUND_BLURBS, UNKNOWN_LINK_REL } from '../lib/constants'
 import CowboyHatIcon from '../svgs/cowboy.svg'
 import BaldIcon from '../svgs/bald.svg'
 import { RootProvider } from './root'
@@ -230,12 +230,15 @@ function NostrZap ({ n }) {
     <>
       <div className='fw-bold text-nostr ms-2 py-1'>
         <NostrIcon width={24} height={24} className='fill-nostr me-1' />{numWithUnits(n.earnedSats)} zap from
-        <Link className='mx-1 text-reset text-underline' target='_blank' href={`https://snort.social/p/${npub}`} rel='noreferrer'>
+        {// eslint-disable-next-line
+        <Link className='mx-1 text-reset text-underline' target='_blank' href={`https://snort.social/p/${npub}`} rel={UNKNOWN_LINK_REL}>
           {npub.slice(0, 10)}...
         </Link>
+        }
         on {note
           ? (
-            <Link className='mx-1 text-reset text-underline' target='_blank' href={`https://snort.social/e/${note}`} rel='noreferrer'>
+            // eslint-disable-next-line
+            <Link className='mx-1 text-reset text-underline' target='_blank' href={`https://snort.social/e/${note}`} rel={UNKNOWN_LINK_REL}>
               {note.slice(0, 12)}...
             </Link>)
           : 'nostr'}

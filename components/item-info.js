@@ -25,7 +25,7 @@ import { MuteSubDropdownItem, PinSubDropdownItem } from './territory-header'
 export default function ItemInfo ({
   item, full, commentsText = 'comments',
   commentTextSingular = 'comment', className, embellishUser, extraInfo, onEdit, editText,
-  onQuoteReply, nofollow, extraBadges, nested, pinnable
+  onQuoteReply, extraBadges, nested, pinnable
 }) {
   const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
   const me = useMe()
@@ -79,7 +79,6 @@ export default function ItemInfo ({
           <span> \ </span>
         </>}
       <Link
-        rel={nofollow}
         href={`/items/${item.id}`} onClick={(e) => {
           const viewedAt = commentsViewedAt(item)
           if (viewedAt) {
@@ -107,7 +106,7 @@ export default function ItemInfo ({
           {embellishUser}
         </Link>
         <span> </span>
-        <Link rel={nofollow} href={`/items/${item.id}`} title={item.createdAt} className='text-reset' suppressHydrationWarning>
+        <Link href={`/items/${item.id}`} title={item.createdAt} className='text-reset' suppressHydrationWarning>
           {timeSince(new Date(item.createdAt))}
         </Link>
         {item.prior &&
@@ -161,7 +160,7 @@ export default function ItemInfo ({
             opentimestamp
           </Link>}
         {item?.noteId && (
-          <Dropdown.Item onClick={() => window.open(`https://nostr.com/${item.noteId}`, '_blank', 'noopener')}>
+          <Dropdown.Item onClick={() => window.open(`https://nostr.com/${item.noteId}`, '_blank', 'noopener,noreferrer,nofollow')}>
             nostr note
           </Dropdown.Item>
         )}

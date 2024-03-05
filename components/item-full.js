@@ -7,7 +7,6 @@ import ZoomableImage from './image'
 import Comments from './comments'
 import styles from '../styles/item.module.css'
 import itemStyles from './item.module.css'
-import { NOFOLLOW_LIMIT } from '../lib/constants'
 import { useMe } from './me'
 import Button from 'react-bootstrap/Button'
 import { TwitterTweetEmbed } from 'react-twitter-embed'
@@ -26,6 +25,7 @@ import { RootProvider } from './root'
 import { IMGPROXY_URL_REGEXP } from '../lib/url'
 import { numWithUnits } from '../lib/format'
 import { useQuoteReply } from './use-quote-reply'
+import { UNKNOWN_LINK_REL } from '../lib/constants'
 
 function BioItem ({ item, handleClick }) {
   const me = useMe()
@@ -99,7 +99,7 @@ function ItemEmbed ({ item }) {
   }
 
   if (item.url?.match(IMGPROXY_URL_REGEXP)) {
-    return <ZoomableImage src={item.url} />
+    return <ZoomableImage src={item.url} rel={item.rel ?? UNKNOWN_LINK_REL} />
   }
 
   return null
@@ -171,7 +171,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
 function ItemText ({ item }) {
   return item.searchText
     ? <SearchText text={item.searchText} />
-    : <Text itemId={item.id} topLevel nofollow={item.sats + item.boost < NOFOLLOW_LIMIT} imgproxyUrls={item.imgproxyUrls}>{item.text}</Text>
+    : <Text itemId={item.id} topLevel rel={item.rel ?? UNKNOWN_LINK_REL} imgproxyUrls={item.imgproxyUrls}>{item.text}</Text>
 }
 
 export default function ItemFull ({ item, bio, rank, ...props }) {

@@ -2,7 +2,7 @@ import Link from 'next/link'
 import styles from './item.module.css'
 import UpVote from './upvote'
 import { useRef } from 'react'
-import { AD_USER_ID, NOFOLLOW_LIMIT } from '../lib/constants'
+import { AD_USER_ID, UNKNOWN_LINK_REL } from '../lib/constants'
 import Pin from '../svgs/pushpin-fill.svg'
 import reactStringReplace from 'react-string-replace'
 import PollIcon from '../svgs/bar-chart-horizontal-fill.svg'
@@ -29,7 +29,6 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
   const router = useRouter()
 
   const image = item.url && item.url.startsWith(process.env.NEXT_PUBLIC_IMGPROXY_URL)
-  const nofollow = item.sats + item.boost < NOFOLLOW_LIMIT && !item.position ? 'nofollow' : ''
 
   return (
     <>
@@ -50,7 +49,6 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
         <div className={styles.hunk}>
           <div className={`${styles.main} flex-wrap`}>
             <Link
-              rel={nofollow}
               href={`/items/${item.id}`}
               onClick={(e) => {
                 const viewedAt = commentsViewedAt(item)
@@ -82,19 +80,17 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
               {image && <span className={styles.icon}><ImageIcon className='fill-grey ms-2' height={16} width={16} /></span>}
             </Link>
             {item.url && !image &&
-              <>
-                <a
-                  className={styles.link} target='_blank' href={item.url}
-                  rel={`noreferrer ${nofollow} noopener`}
-                >
-                  {item.url.replace(/(^https?:|^)\/\//, '')}
-                </a>
-              </>}
+              // eslint-disable-next-line
+              <a
+                className={styles.link} target='_blank' href={item.url}
+                rel={item.rel ?? UNKNOWN_LINK_REL}
+              >
+                {item.url.replace(/(^https?:|^)\/\//, '')}
+              </a>}
           </div>
           <ItemInfo
             full={full} item={item}
             onQuoteReply={onQuoteReply}
-            nofollow={nofollow}
             pinnable={pinnable}
             extraBadges={Number(item?.user?.id) === AD_USER_ID && <Badge className={styles.newComment} bg={null}>AD</Badge>}
           />

@@ -28,6 +28,7 @@ import { hexToBech32 } from '../lib/nostr'
 import NostrIcon from '../svgs/nostr.svg'
 import GithubIcon from '../svgs/github-fill.svg'
 import TwitterIcon from '../svgs/twitter-fill.svg'
+import { UNKNOWN_LINK_REL } from '../lib/constants'
 
 export default function UserHeader ({ user }) {
   const router = useRouter()
@@ -206,21 +207,24 @@ function SocialLink ({ name, id }) {
   if (name === 'Nostr') {
     const npub = hexToBech32(id)
     return (
-      <Link className={className} target='_blank' href={`https://nostr.com/${npub}`} rel='noreferrer'>
+      // eslint-disable-next-line
+      <Link className={className} target='_blank' href={`https://nostr.com/${npub}`} rel={UNKNOWN_LINK_REL}>
         <NostrIcon width={20} height={20} className='me-1' />
         {npub.slice(0, 10)}...{npub.slice(-10)}
       </Link>
     )
   } else if (name === 'Github') {
     return (
-      <Link className={className} target='_blank' href={`https://github.com/${id}`} rel='noreferrer'>
+      // eslint-disable-next-line
+      <Link className={className} target='_blank' href={`https://github.com/${id}`} rel={UNKNOWN_LINK_REL}>
         <GithubIcon width={20} height={20} className='me-1' />
         {id}
       </Link>
     )
   } else if (name === 'Twitter') {
     return (
-      <Link className={className} target='_blank' href={`https://twitter.com/${id}`} rel='noreferrer'>
+      // eslint-disable-next-line
+      <Link className={className} target='_blank' href={`https://twitter.com/${id}`} rel={UNKNOWN_LINK_REL}>
         <TwitterIcon width={20} height={20} className='me-1' />
         @{id}
       </Link>

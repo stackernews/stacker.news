@@ -123,6 +123,7 @@ export default gql`
     parentOtsHash: String
     forwards: [ItemForward]
     imgproxyUrls: JSONObject
+    rel: String
   }
 
   input ItemForwardInput {

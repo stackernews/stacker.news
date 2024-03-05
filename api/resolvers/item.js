@@ -9,7 +9,7 @@ import {
   ITEM_SPAM_INTERVAL, ITEM_FILTER_THRESHOLD,
   COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY,
   ANON_USER_ID, ANON_ITEM_SPAM_INTERVAL, POLL_COST,
-  ITEM_ALLOW_EDITS, GLOBAL_SEED, ANON_FEE_MULTIPLIER
+  ITEM_ALLOW_EDITS, GLOBAL_SEED, ANON_FEE_MULTIPLIER, NOFOLLOW_LIMIT, UNKNOWN_LINK_REL
 } from '../../lib/constants'
 import { msatsToSats } from '../../lib/format'
 import { parse } from 'tldts'
@@ -1145,6 +1145,11 @@ export default {
         return false
       }
       return item.outlawed || item.weightedVotes - item.weightedDownVotes <= -ITEM_FILTER_THRESHOLD
+    },
+    rel: async (item, args, { me, models }) => {
+      const sats = item.msats ? msatsToSats(item.msats) : 0
+      const boost = item.boost ?? 0
+      return (sats + boost < NOFOLLOW_LIMIT) ? UNKNOWN_LINK_REL : 'noopener noreferrer'
     },
     mine: async (item, args, { me, models }) => {
       return me?.id === item.userId

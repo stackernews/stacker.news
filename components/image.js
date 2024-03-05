@@ -4,7 +4,7 @@ import { IMGPROXY_URL_REGEXP } from '../lib/url'
 import { useShowModal } from './modal'
 import { useMe } from './me'
 import { Dropdown } from 'react-bootstrap'
-import { UPLOAD_TYPES_ALLOW } from '../lib/constants'
+import { UNKNOWN_LINK_REL, UPLOAD_TYPES_ALLOW } from '../lib/constants'
 import { useToast } from './toast'
 import gql from 'graphql-tag'
 import { useMutation } from '@apollo/client'
@@ -19,7 +19,7 @@ export function decodeOriginalUrl (imgproxyUrl) {
   return originalUrl
 }
 
-function ImageOriginal ({ src, topLevel, nofollow, tab, children, onClick, ...props }) {
+function ImageOriginal ({ src, topLevel, rel, tab, children, onClick, ...props }) {
   const me = useMe()
   const [showImage, setShowImage] = useState(false)
 
@@ -52,9 +52,10 @@ function ImageOriginal ({ src, topLevel, nofollow, tab, children, onClick, ...pr
     // This will not be the case if [text](url) format is used. Then we will show what was chosen as text.
     const isRawURL = /^https?:\/\//.test(children?.[0])
     return (
+      // eslint-disable-next-line
       <a
         target='_blank'
-        rel={`noreferrer ${nofollow ? 'nofollow' : ''} noopener`}
+        rel={rel ?? UNKNOWN_LINK_REL}
         href={src}
       >{isRawURL ? src : children}
       </a>
@@ -118,7 +119,7 @@ export default function ZoomableImage ({ src, srcSet, ...props }) {
     overflow: (
       <Dropdown.Item
         href={originalUrl} target='_blank'
-        rel={`noreferrer ${props.nofollow ? 'nofollow' : ''} noopener`}
+        rel={props.rel ?? UNKNOWN_LINK_REL}
       >
         open original
       </Dropdown.Item>)

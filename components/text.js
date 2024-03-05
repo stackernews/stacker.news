@@ -19,6 +19,7 @@ import { rehypeInlineCodeProperty } from '../lib/md'
 import { Button } from 'react-bootstrap'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
+import { UNKNOWN_LINK_REL } from '../lib/constants'
 
 export function SearchText ({ text }) {
   return (
@@ -33,7 +34,7 @@ export function SearchText ({ text }) {
 }
 
 // this is one of the slowest components to render
-export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, itemId, ...outerProps }) {
+export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, ...outerProps }) {
   const [overflowing, setOverflowing] = useState(false)
   const router = useRouter()
   const [show, setShow] = useState(false)
@@ -139,7 +140,7 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, item
   const Img = useCallback(({ node, src, ...props }) => {
     const url = IMGPROXY_URL_REGEXP.test(src) ? decodeOriginalUrl(src) : src
     const srcSet = imgproxyUrls?.[url]
-    return <ZoomableImage srcSet={srcSet} tab={tab} src={src} {...props} {...outerProps} />
+    return <ZoomableImage srcSet={srcSet} tab={tab} src={src} rel={rel ?? UNKNOWN_LINK_REL} {...props} {...outerProps} />
   }, [imgproxyUrls, outerProps, tab])
 
   return (
@@ -174,14 +175,14 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, item
                   <Link
                     {...props}
                     id={props.id && itemId ? `${props.id}-${itemId}` : props.id}
-                    rel={`noreferrer ${nofollow ? 'nofollow' : ''} noopener`}
                     href={itemId ? `${href}-${itemId}` : href}
                   >{text}
                   </Link>
                 )
               }
               return (
-                <a id={props.id} target='_blank' rel={`noreferrer ${nofollow ? 'nofollow' : ''} noopener`} href={href}>{text}</a>
+                // eslint-disable-next-line
+                <a id={props.id} target='_blank' rel={rel ?? UNKNOWN_LINK_REL} href={href}>{text}</a>
               )
             }
 
@@ -211,7 +212,7 @@ export default memo(function Text ({ nofollow, imgproxyUrls, children, tab, item
             }
 
             // assume the link is an image which will fallback to link if it's not
-            return <Img src={href} nofollow={nofollow} {...props}>{children}</Img>
+            return <Img src={href} rel={rel ?? UNKNOWN_LINK_REL} {...props}>{children}</Img>
           },
           img: Img
         }}

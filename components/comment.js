@@ -9,7 +9,7 @@ import Eye from '../svgs/eye-fill.svg'
 import EyeClose from '../svgs/eye-close-line.svg'
 import { useRouter } from 'next/router'
 import CommentEdit from './comment-edit'
-import { ANON_USER_ID, COMMENT_DEPTH_LIMIT, NOFOLLOW_LIMIT } from '../lib/constants'
+import { ANON_USER_ID, COMMENT_DEPTH_LIMIT, UNKNOWN_LINK_REL } from '../lib/constants'
 import { ignoreClick } from '../lib/clicks'
 import PayBounty from './pay-bounty'
 import BountyIcon from '../svgs/bounty-bag.svg'
@@ -212,7 +212,7 @@ export default function Comment ({
                 {item.searchText
                   ? <SearchText text={item.searchText} />
                   : (
-                    <Text itemId={item.id} topLevel={topLevel} nofollow={item.sats + item.boost < NOFOLLOW_LIMIT} imgproxyUrls={item.imgproxyUrls}>
+                    <Text itemId={item.id} topLevel={topLevel} rel={item.rel ?? UNKNOWN_LINK_REL} imgproxyUrls={item.imgproxyUrls}>
                       {item.outlawed && !me?.privates?.wildWestMode
                         ? '*stackers have outlawed this. turn on wild west mode in your [settings](/settings) to see outlawed content.*'
                         : truncate ? truncateString(item.text) : item.text}

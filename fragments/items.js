@@ -58,6 +58,7 @@ export const ITEM_FIELDS = gql`
     uploadId
     mine
     imgproxyUrls
+    rel
   }`
 
 export const ITEM_FULL_FIELDS = gql`

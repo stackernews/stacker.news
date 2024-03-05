@@ -304,11 +304,14 @@ export default {
         throw new GraphQLError('user not found', { extensions: { code: 'BAD_INPUT' } })
       }
 
-      const newSub = await models.sub.update({ where: { name: subName }, data: { userId: user.id } })
+      const [, updatedSub] = await models.$transaction([
+        models.territoryTransfer.create({ data: { subName, oldUserId: me.id, newUserId: user.id } }),
+        models.sub.update({ where: { name: subName }, data: { userId: user.id } })
+      ])
 
       notifyTerritoryTransfer({ models, sub, to: user })
 
-      return newSub
+      return updatedSub
     }
   },
   Sub: {

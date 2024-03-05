@@ -171,7 +171,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
 function ItemText ({ item }) {
   return item.searchText
     ? <SearchText text={item.searchText} />
-    : <Text itemId={item.id} topLevel rel={item.rel ?? UNKNOWN_LINK_REL} imgproxyUrls={item.imgproxyUrls}>{item.text}</Text>
+    : <Text itemId={item.id} topLevel rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls}>{item.text}</Text>
 }
 
 export default function ItemFull ({ item, bio, rank, ...props }) {

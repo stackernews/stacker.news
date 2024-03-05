@@ -34,7 +34,7 @@ export function SearchText ({ text }) {
 }
 
 // this is one of the slowest components to render
-export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, ...outerProps }) {
+export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, outlawed, ...outerProps }) {
   const [overflowing, setOverflowing] = useState(false)
   const router = useRouter()
   const [show, setShow] = useState(false)
@@ -139,6 +139,10 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, .
 
   const Img = useCallback(({ node, src, ...props }) => {
     const url = IMGPROXY_URL_REGEXP.test(src) ? decodeOriginalUrl(src) : src
+    // if outlawed, render the image link as text
+    if (outlawed) {
+      return url
+    }
     const srcSet = imgproxyUrls?.[url]
     return <ZoomableImage srcSet={srcSet} tab={tab} src={src} rel={rel ?? UNKNOWN_LINK_REL} {...props} {...outerProps} />
   }, [imgproxyUrls, outerProps, tab])
@@ -164,6 +168,11 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, .
             // don't allow zoomable images to be wrapped in links
             if (children.some(e => e?.props?.node?.tagName === 'img')) {
               return <>{children}</>
+            }
+
+            // if outlawed, render the link as text
+            if (outlawed) {
+              return href
             }
 
             // If [text](url) was parsed as <a> and text is not empty and not a link itself,

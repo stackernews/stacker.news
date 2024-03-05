@@ -91,7 +91,8 @@ export function onPush (sw) {
 
 // if there is no tag or it's a TIP, FORWARDEDTIP or EARN notification
 // we don't need to merge notifications and thus the notification should be immediately shown using `showNotification`
-const immediatelyShowNotification = (tag) => !tag || ['TIP', 'FORWARDEDTIP', 'EARN', 'STREAK'].includes(tag.split('-')[0])
+const immediatelyShowNotification = (tag) =>
+  !tag || ['TIP', 'FORWARDEDTIP', 'EARN', 'STREAK', 'TERRITORY_TRANSFER'].includes(tag.split('-')[0])
 
 const mergeAndShowNotification = async (sw, payload, currentNotifications, tag, nid) => {
   // sanity check

@@ -49,7 +49,8 @@ function Notification ({ n, fresh }) {
         (type === 'Reply' && <Reply n={n} />) ||
         (type === 'SubStatus' && <SubStatus n={n} />) ||
         (type === 'FollowActivity' && <FollowActivity n={n} />) ||
-        (type === 'TerritoryPost' && <TerritoryPost n={n} />)
+        (type === 'TerritoryPost' && <TerritoryPost n={n} />) ||
+        (type === 'TerritoryTransfer' && <TerritoryTransfer n={n} />)
       }
     </NotificationLayout>
   )
@@ -96,6 +97,7 @@ const defaultOnClick = n => {
   if (type === 'InvoicePaid') return { href: `/invoices/${n.invoice.id}` }
   if (type === 'Referral') return { href: '/referrals/month' }
   if (type === 'Streak') return {}
+  if (type === 'TerritoryTransfer') return { href: `/~${n.sub.name}` }
 
   // Votification, Mention, JobChanged, Reply all have item
   if (!n.item.title) {
@@ -421,6 +423,17 @@ function TerritoryPost ({ n }) {
       </small>
       <div>
         <Item item={n.item} />
+      </div>
+    </>
+  )
+}
+
+function TerritoryTransfer ({ n }) {
+  return (
+    <>
+      <div className='fw-bold text-info ms-2'>
+        ~{n.sub.name} was transferred to you
+        <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
       </div>
     </>
   )

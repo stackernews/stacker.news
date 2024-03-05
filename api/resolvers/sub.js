@@ -6,6 +6,7 @@ import { ssValidate, territorySchema } from '../../lib/validate'
 import { nextBilling, proratedBillingCost } from '../../lib/territory'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { subViewGroup } from './growth'
+import { notifyTerritoryTransfer } from '../../lib/push-notifications'
 
 export function paySubQueries (sub, models) {
   if (sub.billingType === 'ONCE') {
@@ -280,6 +281,40 @@ export default {
         await models.subSubscription.create({ data: lookupData })
         return true
       }
+    },
+    transferTerritory: async (parent, { subName, userName }, { me, models }) => {
+      if (!me) {
+        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+      }
+
+      const sub = await models.sub.findUnique({
+        where: {
+          name: subName
+        }
+      })
+      if (!sub) {
+        throw new GraphQLError('sub not found', { extensions: { code: 'BAD_INPUT' } })
+      }
+      if (sub.userId !== me.id) {
+        throw new GraphQLError('you do not own this sub', { extensions: { code: 'BAD_INPUT' } })
+      }
+
+      const user = await models.user.findFirst({ where: { name: userName } })
+      if (!user) {
+        throw new GraphQLError('user not found', { extensions: { code: 'BAD_INPUT' } })
+      }
+      if (user.id === me.id) {
+        throw new GraphQLError('cannot transfer territory to yourself', { extensions: { code: 'BAD_INPUT' } })
+      }
+
+      const [, updatedSub] = await models.$transaction([
+        models.territoryTransfer.create({ data: { subName, oldUserId: me.id, newUserId: user.id } }),
+        models.sub.update({ where: { name: subName }, data: { userId: user.id } })
+      ])
+
+      notifyTerritoryTransfer({ models, sub, to: user })
+
+      return updatedSub
     }
   },
   Sub: {

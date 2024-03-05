@@ -20,6 +20,7 @@ import { Button } from 'react-bootstrap'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { UNKNOWN_LINK_REL } from '../lib/constants'
+import isEqual from 'lodash/isEqual'
 
 export function SearchText ({ text }) {
   return (
@@ -34,7 +35,7 @@ export function SearchText ({ text }) {
 }
 
 // this is one of the slowest components to render
-export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, outlawed, ...outerProps }) {
+export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, outlawed, topLevel, noFragments }) {
   const [overflowing, setOverflowing] = useState(false)
   const router = useRouter()
   const [show, setShow] = useState(false)
@@ -79,7 +80,6 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
 
   const Heading = useCallback(({ children, node, ...props }) => {
     const [copied, setCopied] = useState(false)
-    const { noFragments, topLevel } = outerProps
     const id = useMemo(() =>
       noFragments ? undefined : slugger?.slug(toString(node).replace(/[^\w\-\s]+/gi, '')), [node, noFragments, slugger])
     const h = useMemo(() => {
@@ -114,7 +114,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
           </a>}
       </span>
     )
-  }, [outerProps, slugger.current])
+  }, [topLevel, noFragments, slugger.current])
 
   const Table = useCallback(({ node, ...props }) =>
     <span className='table-responsive'>
@@ -144,8 +144,8 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
       return url
     }
     const srcSet = imgproxyUrls?.[url]
-    return <ZoomableImage srcSet={srcSet} tab={tab} src={src} rel={rel ?? UNKNOWN_LINK_REL} {...props} {...outerProps} />
-  }, [imgproxyUrls, outerProps, tab])
+    return <ZoomableImage srcSet={srcSet} tab={tab} src={src} rel={rel ?? UNKNOWN_LINK_REL} {...props} topLevel />
+  }, [imgproxyUrls, topLevel, tab])
 
   return (
     <div className={`${styles.text} ${show ? styles.textUncontained : overflowing ? styles.textContained : ''}`} ref={containerRef}>
@@ -208,7 +208,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
             const youtube = href.match(/(https?:\/\/)?((www\.)?(youtube(-nocookie)?|youtube.googleapis)\.com.*(v\/|v=|vi=|vi\/|e\/|embed\/|user\/.*\/u\/\d+\/)|youtu\.be\/)(?<id>[_0-9a-z-]+)((?:\?|&)(?:t|start)=(?<start>\d+))?/i)
             if (youtube?.groups?.id) {
               return (
-                <div style={{ maxWidth: outerProps.topLevel ? '640px' : '320px', paddingRight: '15px', margin: '0.5rem 0' }}>
+                <div style={{ maxWidth: topLevel ? '640px' : '320px', paddingRight: '15px', margin: '0.5rem 0' }}>
                   <YouTube
                     videoId={youtube.groups.id} className={styles.youtubeContainer} opts={{
                       playerVars: {
@@ -236,4 +236,4 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
         </Button>}
     </div>
   )
-})
+}, isEqual)

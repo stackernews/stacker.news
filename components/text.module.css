@@ -129,22 +129,26 @@
 }
 
 .text img {
+    --height: 35vh;
+    --width: 100%;
     display: block;
     margin-top: .5rem;
     margin-bottom: .5rem;
     width: auto;
-    max-width: 100%;
+    max-width: min(var(--width), 100%);
     cursor: zoom-in;
-    max-height: 25vh;
+    height: auto;
+    max-height: min(var(--height), 25vh);
     object-fit: contain;
     object-position: left top;
     min-width: 50%;
+    aspect-ratio: var(--aspect-ratio);
 }
 
 .text img.topLevel {
     margin-top: .75rem;
     margin-bottom: .75rem;
-    max-height: 35vh;
+    max-height: min(var(--height), 35vh);
 }
 
 img.fullScreen {

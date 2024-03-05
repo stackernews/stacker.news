@@ -1,5 +1,5 @@
 import styles from './text.module.css'
-import { Fragment, useState, useEffect, useMemo, useCallback, forwardRef, useRef } from 'react'
+import { Fragment, useState, useEffect, useMemo, useCallback, forwardRef, useRef, memo } from 'react'
 import { IMGPROXY_URL_REGEXP } from '../lib/url'
 import { useShowModal } from './modal'
 import { useMe } from './me'
@@ -63,7 +63,7 @@ function ImageOriginal ({ src, topLevel, rel, tab, children, onClick, ...props }
   }
 }
 
-function ImageProxy ({ src, srcSet: srcSetObj, onClick, topLevel, onError, ...props }) {
+function ImageProxy ({ src, srcSet: { dimensions, ...srcSetObj } = {}, onClick, topLevel, onError, ...props }) {
   const srcSet = useMemo(() => {
     if (!srcSetObj) return undefined
     // srcSetObj shape: { [widthDescriptor]: <imgproxyUrl>, ... }
@@ -82,18 +82,44 @@ function ImageProxy ({ src, srcSet: srcSetObj, onClick, topLevel, onError, ...pr
     }, { w: 0, url: undefined }).url
   }, [srcSetObj])
 
+  const handleError = useCallback(onError, [onError])
+  const handleClick = useCallback(() => onClick(bestResSrc), [onClick, bestResSrc])
+
   return (
-    <img
+    <Image
       className={topLevel ? styles.topLevel : undefined}
       // browsers that don't support srcSet and sizes will use src. use best resolution possible in that case
       src={bestResSrc}
       srcSet={srcSet}
       sizes={sizes}
-      onClick={() => onClick(bestResSrc)}
-      onError={onError}
+      width={dimensions?.width}
+      height={dimensions?.height}
+      onClick={handleClick}
+      onError={handleError}
     />
   )
 }
+
+const Image = memo(({ className, src, srcSet, sizes, width, height, bestResSrc, onClick, onError }) => {
+  const style = width && height
+    ? { '--height': `${height}px`, '--width': `${width}px`, '--aspect-ratio': `${width / height}` }
+    : undefined
+
+  return (
+    <img
+      className={className}
+      // browsers that don't support srcSet and sizes will use src. use best resolution possible in that case
+      src={bestResSrc}
+      srcSet={srcSet}
+      sizes={sizes}
+      width={width}
+      height={height}
+      onClick={onClick}
+      onError={onError}
+      style={style}
+    />
+  )
+})
 
 export default function ZoomableImage ({ src, srcSet, ...props }) {
   const showModal = useShowModal()
@@ -125,13 +151,15 @@ export default function ZoomableImage ({ src, srcSet, ...props }) {
       </Dropdown.Item>)
   }), [showModal, originalUrl, styles])
 
+  const handleError = useCallback(() => setImgproxy(false), [setImgproxy])
+
   if (!src) return null
 
   if (imgproxy) {
     return (
       <ImageProxy
         src={src} srcSet={srcSet}
-        onClick={handleClick} onError={() => setImgproxy(false)} {...props}
+        onClick={handleClick} onError={handleError} {...props}
       />
     )
   }

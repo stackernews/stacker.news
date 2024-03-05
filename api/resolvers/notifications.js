@@ -171,7 +171,7 @@ export default {
       // territory transfers
       if (meFull.noteTerritoryTransfers) {
         queries.push(
-          `(SELECT "TerritoryTransfer"."subName"::text, "TerritoryTransfer"."created_at" AS "sortTime", NULL as "earnedSats",
+          `(SELECT "TerritoryTransfer".id::text, "TerritoryTransfer"."created_at" AS "sortTime", NULL as "earnedSats",
             'TerritoryTransfer' AS type
             FROM "TerritoryTransfer"
             WHERE "TerritoryTransfer"."newUserId" = $1
@@ -381,7 +381,11 @@ export default {
     item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
   },
   TerritoryTransfer: {
-    sub: async (n, args, { models, me }) => getSub(n, { name: n.id }, { models, me })
+    sub: async (n, args, { models, me }) => {
+      const transfer = await models.territoryTransfer.findUnique({ where: { id: Number(n.id) } })
+      const sub = await getSub(n, { name: transfer.subName }, { models, me })
+      return sub
+    }
   },
   JobChanged: {
     item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })

@@ -382,9 +382,8 @@ export default {
   },
   TerritoryTransfer: {
     sub: async (n, args, { models, me }) => {
-      const transfer = await models.territoryTransfer.findUnique({ where: { id: Number(n.id) } })
-      const sub = await getSub(n, { name: transfer.subName }, { models, me })
-      return sub
+      const transfer = await models.territoryTransfer.findUnique({ where: { id: Number(n.id) }, include: { sub: true } })
+      return transfer.sub
     }
   },
   JobChanged: {

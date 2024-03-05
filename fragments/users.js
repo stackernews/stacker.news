@@ -32,7 +32,6 @@ export const ME = gql`
         noteEarning
         noteForwardedSats
         noteInvites
-        noteTerritoryTransfers
         noteItemSats
         noteJobIndicator
         noteMentions
@@ -72,7 +71,6 @@ export const SETTINGS_FIELDS = gql`
       noteAllDescendants
       noteMentions
       noteDeposits
-      noteTerritoryTransfers
       noteInvites
       noteJobIndicator
       noteCowboyHat

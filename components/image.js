@@ -102,7 +102,7 @@ function ImageProxy ({ src, srcSet: { dimensions, ...srcSetObj } = {}, onClick, 
 
 const Image = memo(({ className, src, srcSet, sizes, width, height, bestResSrc, onClick, onError }) => {
   const style = width && height
-    ? { '--height': `${height}px`, '--width': `${width}px`, '--aspect-ratio': `${width / height}` }
+    ? { '--height': `${height}px`, '--width': `${width}px`, '--aspect-ratio': `${width} / ${height}` }
     : undefined
 
   return (

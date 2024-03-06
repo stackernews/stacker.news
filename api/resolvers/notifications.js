@@ -180,7 +180,7 @@ export default {
           WHERE "TerritoryTransfer"."newUserId" = $1
           AND "TerritoryTransfer"."created_at" <= $2
           ORDER BY "sortTime" DESC
-          LIMIT ${LIMIT}+$3)`
+          LIMIT ${LIMIT})`
       )
 
       if (meFull.noteItemSats) {

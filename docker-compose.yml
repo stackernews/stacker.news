@@ -9,12 +9,19 @@ services:
     ports:
       - "5431:5432"
     env_file:
-      - ./.env.sample
+      - ./.env.sndev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+        interval: 5s
+        timeout: 5s
+        retries: 5
     volumes:
+      - ./anon.sql:/docker-entrypoint-initdb.d/anon.sql
       - db:/var/lib/postgresql/data
   app:
     container_name: app
     build: ./
+    restart: always
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000"]
       interval: 10s
@@ -22,9 +29,12 @@ services:
       retries: 10
       start_period: 1m30s
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     env_file:
-      - ./.env.sample
+      - ./.env.sndev
+    expose:
+      - "3000"
     ports:
       - "3000:3000"
     volumes:
@@ -35,13 +45,16 @@ services:
   worker:
     container_name: worker
     build: ./worker
+    restart: always
     depends_on:
       db:
-        condition: service_started
+        condition: service_healthy
       app:
         condition: service_healthy
+      opensearch:
+        condition: service_healthy
     env_file:
-      - ./.env.sample
+      - ./.env.sndev
     ports:
       - "8080:8080"
     volumes:
@@ -52,7 +65,7 @@ services:
       - opensearch
     entrypoint: ["/bin/sh", "-c"]
     command:
-      - npm run worker
+      - npm run worker:dev
   imgproxy:
     container_name: imgproxy
     image: darthsim/imgproxy:v3.18.1
@@ -63,7 +76,7 @@ services:
       retries: 3
     restart: always
     env_file:
-      - ./.env.sample
+      - ./.env.sndev
     expose:
       - "8080"
     ports:
@@ -73,6 +86,12 @@ services:
   opensearch:
     image: opensearchproject/opensearch:latest
     container_name: opensearch
+    healthcheck:
+      test: ["CMD-SHELL", "curl -ku admin:admin --silent --fail localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    restart: always
     environment:
       - discovery.type=single-node
       - plugins.security.disabled=true
@@ -81,7 +100,6 @@ services:
       - 9600:9600 # Performance Analyzer
     volumes:
       - os:/usr/share/opensearch/data
-      - ./:/app
     command: >
       bash -c '
         set -m

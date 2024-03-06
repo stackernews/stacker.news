@@ -1,6 +1,7 @@
 import { createHmac } from 'node:crypto'
 import { extractUrls } from '../lib/md.js'
 import { isJob } from '../lib/item.js'
+import path from 'node:path'
 
 const imgProxyEnabled = process.env.NODE_ENV === 'production' ||
   (process.env.NEXT_PUBLIC_IMGPROXY_URL && process.env.IMGPROXY_SALT && process.env.IMGPROXY_KEY)
@@ -100,21 +101,31 @@ export const createImgproxyUrls = async (id, text, { models, forceFetch }) => {
       console.log('[imgproxy] id:', id, '-- not image url:', url)
       continue
     }
-    imgproxyUrls[url] = {}
+    imgproxyUrls[url] = {
+      dimensions: await getDimensions(url)
+    }
     for (const res of resolutions) {
       const [w, h] = res.split('x')
       const processingOptions = `/rs:fit:${w}:${h}`
-      imgproxyUrls[url][`${w}w`] = createImgproxyUrl(url, processingOptions)
+      imgproxyUrls[url][`${w}w`] = createImgproxyUrl({ url, options: processingOptions })
     }
   }
   return imgproxyUrls
 }
 
-const createImgproxyUrl = (url, processingOptions) => {
+const getDimensions = async (url) => {
+  const options = '/d:1'
+  const imgproxyUrl = createImgproxyUrl({ url, options, pathname: 'info' })
+  const res = await fetch(imgproxyUrl)
+  const { width, height } = await res.json()
+  return { width, height }
+}
+
+const createImgproxyUrl = ({ url, pathname = '', options }) => {
   const b64Url = Buffer.from(url, 'utf-8').toString('base64url')
-  const target = `${processingOptions}/${b64Url}`
+  const target = path.join(options, b64Url)
   const signature = sign(target)
-  return `${IMGPROXY_URL}${signature}${target}`
+  return new URL(path.join(pathname, signature, target), IMGPROXY_URL).toString()
 }
 
 async function fetchWithTimeout (resource, { timeout = 1000, ...options } = {}) {

@@ -20,7 +20,7 @@ export const BlockHeightProvider = ({ blockHeight, children }) => {
   })
   const value = useMemo(() => ({
     height: data?.blockHeight ?? blockHeight ?? 0
-  }), [data, blockHeight])
+  }), [data?.blockHeight, blockHeight])
   return (
     <BlockHeightContext.Provider value={value}>
       {children}

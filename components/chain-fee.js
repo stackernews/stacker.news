@@ -20,7 +20,7 @@ export const ChainFeeProvider = ({ chainFee, children }) => {
   })
   const value = useMemo(() => ({
     fee: Math.floor(data?.chainFee ?? chainFee ?? 0)
-  }), [data, chainFee])
+  }), [data?.chainFee, chainFee])
   return (
     <ChainFeeContext.Provider value={value}>
       {children}

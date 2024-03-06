@@ -1,5 +1,5 @@
 import { GraphQLError } from 'graphql'
-import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
+import { decodeCursor, LIMIT, nextNoteCursorEncoded } from '../../lib/cursor'
 import { getItem, filterClause, whereClause, muteClause } from './item'
 import { getInvoice } from './wallet'
 import { pushSubscriptionSchema, ssValidate } from '../../lib/validate'
@@ -84,10 +84,11 @@ export default {
             '"ThreadSubscription"."userId" = $1',
             '"Item"."userId" <> $1',
             '"Item".created_at >= "ThreadSubscription".created_at',
+            '"Item".created_at < $2',
             '"Item"."parentId" IS NOT NULL'
           )}
           ORDER BY "sortTime" DESC
-          LIMIT ${LIMIT}+$3`
+          LIMIT ${LIMIT}`
       )
 
       // User subscriptions
@@ -97,6 +98,7 @@ export default {
           FROM "Item"
           JOIN "UserSubscription" ON "Item"."userId" = "UserSubscription"."followeeId"
           ${whereClause(
+            '"Item".created_at < $2',
             '"UserSubscription"."followerId" = $1',
             `(
               ("Item"."parentId" IS NULL AND "UserSubscription"."postsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."postsSubscribedAt")
@@ -104,7 +106,7 @@ export default {
             )`
           )}
           ORDER BY "sortTime" DESC
-          LIMIT ${LIMIT}+$3`
+          LIMIT ${LIMIT}`
       )
 
       // Territory subscriptions
@@ -113,13 +115,14 @@ export default {
           FROM "Item"
           JOIN "SubSubscription" ON "Item"."subName" = "SubSubscription"."subName"
           ${whereClause(
+            '"Item".created_at < $2',
             '"SubSubscription"."userId" = $1',
             '"Item"."userId" <> $1',
             '"Item"."parentId" IS NULL',
             '"Item".created_at >= "SubSubscription".created_at'
           )}
           ORDER BY "sortTime" DESC
-          LIMIT ${LIMIT}+$3`
+          LIMIT ${LIMIT}`
       )
 
       // mentions
@@ -129,11 +132,12 @@ export default {
             FROM "Mention"
             JOIN "Item" ON "Mention"."itemId" = "Item".id
             ${whereClause(
+              '"Item".created_at < $2',
               '"Mention"."userId" = $1',
               '"Item"."userId" <> $1'
             )}
             ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT}+$3`
+            LIMIT ${LIMIT}`
         )
       }
       // Inner union to de-dupe item-driven notifications
@@ -145,7 +149,7 @@ export default {
             ${itemDrivenQueries.map(q => `(${q})`).join(' UNION ALL ')}
           ) as "Item"
           ${whereClause(
-            '"Item".created_at <= $2',
+            '"Item".created_at < $2',
             await filterClause(me, models),
             muteClause(me))}
           ORDER BY id ASC, CASE
@@ -163,9 +167,9 @@ export default {
           FROM "Item"
           WHERE "Item"."userId" = $1
           AND "maxBid" IS NOT NULL
-          AND "statusUpdatedAt" <= $2 AND "statusUpdatedAt" <> created_at
+          AND "statusUpdatedAt" < $2 AND "statusUpdatedAt" <> created_at
           ORDER BY "sortTime" DESC
-          LIMIT ${LIMIT}+$3)`
+          LIMIT ${LIMIT})`
       )
 
       if (meFull.noteItemSats) {
@@ -175,12 +179,12 @@ export default {
             FROM "Item"
             JOIN "ItemAct" ON "ItemAct"."itemId" = "Item".id
             WHERE "ItemAct"."userId" <> $1
-            AND "ItemAct".created_at <= $2
+            AND "ItemAct".created_at < $2
             AND "ItemAct".act IN ('TIP', 'FEE')
             AND "Item"."userId" = $1
             GROUP BY "Item".id
             ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT}+$3)`
+            LIMIT ${LIMIT})`
         )
       }
 
@@ -193,11 +197,11 @@ export default {
             JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id AND "ItemForward"."userId" = $1
             WHERE "ItemAct"."userId" <> $1
             AND "Item"."userId" <> $1
-            AND "ItemAct".created_at <= $2
+            AND "ItemAct".created_at < $2
             AND "ItemAct".act IN ('TIP')
             GROUP BY "Item".id
             ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT}+$3)`
+            LIMIT ${LIMIT})`
         )
       }
 
@@ -209,9 +213,9 @@ export default {
             WHERE "Invoice"."userId" = $1
             AND "confirmedAt" IS NOT NULL
             AND "isHeld" IS NULL
-            AND created_at <= $2
+            AND created_at < $2
             ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT}+$3)`
+            LIMIT ${LIMIT})`
         )
       }
 
@@ -221,10 +225,10 @@ export default {
             'Invitification' AS type
             FROM users JOIN "Invite" on users."inviteId" = "Invite".id
             WHERE "Invite"."userId" = $1
-            AND users.created_at <= $2
+            AND users.created_at < $2
             GROUP BY "Invite".id
             ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT}+$3)`
+            LIMIT ${LIMIT})`
         )
         queries.push(
           `(SELECT users.id::text, users.created_at AS "sortTime", NULL as "earnedSats",
@@ -232,37 +236,44 @@ export default {
             FROM users
             WHERE "users"."referrerId" = $1
             AND "inviteId" IS NULL
-            AND users.created_at <= $2
-            LIMIT ${LIMIT}+$3)`
+            AND users.created_at < $2
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT})`
         )
       }
 
       if (meFull.noteEarning) {
         queries.push(
-          `SELECT min(id)::text, created_at AS "sortTime", FLOOR(sum(msats) / 1000) as "earnedSats",
+          `(SELECT min(id)::text, created_at AS "sortTime", FLOOR(sum(msats) / 1000) as "earnedSats",
           'Earn' AS type
           FROM "Earn"
           WHERE "userId" = $1
-          AND created_at <= $2
-          GROUP BY "userId", created_at`
+          AND created_at < $2
+          GROUP BY "userId", created_at
+          ORDER BY "sortTime" DESC
+          LIMIT ${LIMIT})`
         )
         queries.push(
-          `SELECT min(id)::text, created_at AS "sortTime", FLOOR(sum(msats) / 1000) as "earnedSats",
+          `(SELECT min(id)::text, created_at AS "sortTime", FLOOR(sum(msats) / 1000) as "earnedSats",
           'Revenue' AS type
           FROM "SubAct"
           WHERE "userId" = $1
           AND type = 'REVENUE'
-          AND created_at <= $2
-          GROUP BY "userId", "subName", created_at`
+          AND created_at < $2
+          GROUP BY "userId", "subName", created_at
+          ORDER BY "sortTime" DESC
+          LIMIT ${LIMIT})`
         )
       }
 
       if (meFull.noteCowboyHat) {
         queries.push(
-          `SELECT id::text, updated_at AS "sortTime", 0 as "earnedSats", 'Streak' AS type
+          `(SELECT id::text, updated_at AS "sortTime", 0 as "earnedSats", 'Streak' AS type
           FROM "Streak"
           WHERE "userId" = $1
-          AND updated_at <= $2`
+          AND updated_at < $2
+          ORDER BY "sortTime" DESC
+          LIMIT ${LIMIT})`
         )
       }
 
@@ -272,9 +283,9 @@ export default {
           FROM "Sub"
           WHERE "Sub"."userId" = $1
           AND "status" <> 'ACTIVE'
-          AND "statusUpdatedAt" <= $2
+          AND "statusUpdatedAt" < $2
           ORDER BY "sortTime" DESC
-          LIMIT ${LIMIT}+$3)`
+          LIMIT ${LIMIT})`
       )
 
       // we do all this crazy subquery stuff to make 'reward' islands
@@ -295,8 +306,7 @@ export default {
         ) sub
         GROUP BY type, island
         ORDER BY "sortTime" DESC
-        OFFSET $3
-        LIMIT ${LIMIT}`, me.id, decodedCursor.time, decodedCursor.offset)
+        LIMIT ${LIMIT}`, me.id, decodedCursor.time)
 
       if (decodedCursor.offset === 0) {
         await models.user.update({ where: { id: me.id }, data: { checkedNotesAt: new Date() } })
@@ -304,7 +314,7 @@ export default {
 
       return {
         lastChecked: meFull.checkedNotesAt,
-        cursor: notifications.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
+        cursor: notifications.length === LIMIT ? nextNoteCursorEncoded(decodedCursor, notifications) : null,
         notifications
       }
     }

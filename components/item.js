@@ -17,6 +17,7 @@ import { useRouter } from 'next/router'
 import { Badge } from 'react-bootstrap'
 import AdIcon from '../svgs/advertisement-fill.svg'
 import { DownZap } from './dont-link-this'
+import { timeLeft } from '../lib/time'
 
 export function SearchTitle ({ title }) {
   return reactStringReplace(title, /\*\*\*([^*]+)\*\*\*/g, (match, i) => {
@@ -69,7 +70,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
               }} ref={titleRef} className={`${styles.title} text-reset me-2`}
             >
               {item.searchTitle ? <SearchTitle title={item.searchTitle} /> : item.title}
-              {item.pollCost && <span className={styles.icon}> <PollIcon className='fill-grey ms-1' height={14} width={14} /></span>}
+              {item.pollCost && <PollIndicator item={item} />}
               {item.bounty > 0 &&
                 <span className={styles.icon}>
                   <ActionTooltip notForm overlayText={`${numWithUnits(item.bounty)} ${item.bountyPaidTo?.length ? ' paid' : ' bounty'}`}>
@@ -137,5 +138,23 @@ export function ItemSkeleton ({ rank, children }) {
         </div>
       )}
     </>
+  )
+}
+
+function PollIndicator ({ item }) {
+  const hasExpiration = !!item.pollExpiresAt
+  const timeRemaining = timeLeft(new Date(item.pollExpiresAt))
+  const isActive = !hasExpiration || !!timeRemaining
+
+  return (
+    <span className={styles.icon} title={isActive ? 'active' : 'results in'}>
+      <PollIcon
+        className={`${
+    isActive
+? 'fill-success'
+          : 'fill-grey'
+      } ms-1`} height={14} width={14}
+      />
+    </span>
   )
 }

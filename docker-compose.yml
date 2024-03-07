@@ -5,7 +5,7 @@ services:
     build: ./db
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "PGPASSWORD=$$POSTGRES_PASSWORD psql -U $$POSTGRES_USER $$POSTGRES_DB -c 'SELECT 1'"]
+      test: ["CMD-SHELL", "PGPASSWORD=$$POSTGRES_PASSWORD psql -U $$POSTGRES_USER $$POSTGRES_DB -c 'SELECT 1 FROM users LIMIT 1'"]
       interval: 10s
       timeout: 10s
       retries: 10
@@ -96,7 +96,7 @@ services:
     image: opensearchproject/opensearch:latest
     container_name: opensearch
     healthcheck:
-      test: ["CMD-SHELL", "curl -ku admin:admin --silent --fail localhost:9200/_cluster/health || exit 1"]
+      test: ["CMD-SHELL", "curl -ku admin:mVchg1T5oA9wudUh --silent --fail localhost:9200/_cluster/health || exit 1"]
       interval: 10s
       timeout: 10s
       retries: 10
@@ -105,6 +105,7 @@ services:
     environment:
       - discovery.type=single-node
       - plugins.security.disabled=true
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=mVchg1T5oA9wudUh
     ports:
       - 9200:9200 # REST API
       - 9600:9600 # Performance Analyzer
@@ -114,12 +115,12 @@ services:
       bash -c '
         set -m
         /usr/share/opensearch/opensearch-docker-entrypoint.sh &
-        until curl -sS "http://localhost:9200/_cat/health?h=status" -ku admin:admin | grep -q "green\|yellow"; do
+        until curl -sS "http://localhost:9200/_cat/health?h=status" -ku admin:mVchg1T5oA9wudUh | grep -q "green\|yellow"; do
           echo "Waiting for OpenSearch to start..."
           sleep 1
         done
         echo "OpenSearch started."
-        curl -X PUT "http://localhost:9200/item" -ku admin:admin
+        curl -X PUT "http://localhost:9200/item" -ku admin:mVchg1T5oA9wudUh
         echo "OpenSearch index created."
         fg
       '

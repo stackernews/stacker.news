@@ -14,7 +14,7 @@ sndev__start() {
   fi
 
   echo "Starting application"
-  docker compose up
+  docker compose up --build
 }
 
 sndev__stop() {

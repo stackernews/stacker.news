@@ -8,5 +8,4 @@ WORKDIR /app
 
 EXPOSE 3000
 
-RUN npm ci --loglevel verbose --legacy-peer-deps
-CMD npx prisma migrate dev && npm run dev
+CMD ["sh","-c","npm ci --loglevel verbose --legacy-peer-deps && npx prisma migrate dev && npm run dev"]

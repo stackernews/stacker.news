@@ -451,7 +451,8 @@ function InputInner ({
         // for some reason we have to turn off validation to get formik to
         // not assume this is invalid
         const isNumeric = /^[0-9]+$/.test(draft)
-        helpers.setValue(isNumeric ? parseInt(draft) : draft, false)
+        const numericExpected = typeof field.value === 'number'
+        helpers.setValue(isNumeric && numericExpected ? parseInt(draft) : draft, false)
         onChange && onChange(formik, { target: { value: draft } })
       }
     }

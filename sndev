@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 sndev__start() {
   if [ ! -x "$(command -v docker-compose)" ]; then

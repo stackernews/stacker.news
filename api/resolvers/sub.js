@@ -323,6 +323,28 @@ export default {
       notifyTerritoryTransfer({ models, sub, to: user })
 
       return updatedSub
+    },
+    unarchiveTerritory: async (parent, { name, hash, hmac }, { me, models }) => {
+      if (!me) {
+        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+      }
+
+      const oldSub = await models.sub.findUnique({ where: { name } })
+      if (!oldSub) {
+        throw new GraphQLError('sub not found', { extensions: { code: 'BAD_INPUT' } })
+      }
+      if (oldSub.status !== 'STOPPED') {
+        throw new GraphQLError('sub is not archived', { extensions: { code: 'BAD_INPUT' } })
+      }
+      if (oldSub.userId === me.id) {
+        throw new GraphQLError('you already own this sub', { extensions: { code: 'BAD_INPUT' } })
+      }
+
+      const newSub = { ...oldSub, userId: me.id, status: 'ACTIVE' }
+      return await serializeInvoicable(
+        models.sub.update({ where: { name }, data: newSub }),
+        { models, hash, hmac, me }
+      )
     }
   },
   Sub: {

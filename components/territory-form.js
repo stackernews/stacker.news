@@ -29,6 +29,14 @@ export default function TerritoryForm ({ sub }) {
         }
       }`
   )
+  const [unarchiveTerritory] = useMutation(
+    gql`
+      mutation unarchiveTerritory($name: String!, $hash: String, $hmac: String) {
+        unarchiveTerritory(name: $name, hash: $hash, hmac: $hmac) {
+          name
+        }
+      }`
+  )
 
   const [archived, setArchived] = useState(false)
 
@@ -58,10 +66,9 @@ export default function TerritoryForm ({ sub }) {
 
   const onSubmit = useCallback(
     async ({ ...variables }) => {
-      const oldName = archived ? variables.name : sub?.name
-      const { error } = await upsertSub({
-        variables: { oldName, ...variables }
-      })
+      const { error } = archived
+        ? await unarchiveTerritory({ variables })
+        : await upsertSub({ variables: { oldName: sub?.name, ...variables } })
 
       if (error) {
         throw new Error({ message: error.toString() })
@@ -80,7 +87,7 @@ export default function TerritoryForm ({ sub }) {
       })
 
       await router.push(`/~${variables.name}`)
-    }, [client, upsertSub, router, archived]
+    }, [client, upsertSub, unarchiveTerritory, router, archived]
   )
 
   const [billing, setBilling] = useState((sub?.billingType || 'MONTHLY').toLowerCase())

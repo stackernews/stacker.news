@@ -23,6 +23,7 @@ export default gql`
     toggleMuteSub(name: String!): Boolean!
     toggleSubSubscription(name: String!): Boolean!
     transferTerritory(subName: String!, userName: String!): Sub
+    unarchiveTerritory(name: String!, hash: String, hmac: String): Sub
   }
 
   type Sub {

@@ -3,7 +3,7 @@ services:
   db:
     container_name: db
     build: ./db
-    restart: always
+    restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U sn -d stackernews"]
       interval: 5s
@@ -21,7 +21,7 @@ services:
   app:
     container_name: app
     build: ./
-    restart: always
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000"]
       interval: 10s
@@ -49,7 +49,7 @@ services:
   worker:
     container_name: worker
     build: ./worker
-    restart: always
+    restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
@@ -81,7 +81,7 @@ services:
       timeout: 10s
       interval: 10s
       retries: 3
-    restart: always
+    restart: unless-stopped
     env_file:
       - ./.env.sndev
     expose:
@@ -98,7 +98,7 @@ services:
       interval: 10s
       timeout: 10s
       retries: 10
-    restart: always
+    restart: unless-stopped
     environment:
       - discovery.type=single-node
       - plugins.security.disabled=true
@@ -123,7 +123,7 @@ services:
   os-dashboard:
     image: opensearchproject/opensearch-dashboards:latest
     container_name: os-dashboard
-    restart: always
+    restart: unless-stopped
     depends_on:
       opensearch:
         condition: service_healthy

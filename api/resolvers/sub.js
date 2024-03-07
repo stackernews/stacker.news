@@ -336,6 +336,12 @@ export default {
       if (oldSub.status !== 'STOPPED') {
         throw new GraphQLError('sub is not archived', { extensions: { code: 'BAD_INPUT' } })
       }
+      if (oldSub.billingType === 'ONCE') {
+        // sanity check. this should never happen but leaving this comment here
+        // to stop error propagation just in case and document that this should never happen.
+        // #defensivecode
+        throw new GraphQLError('sub should not be archived', { extensions: { code: 'BAD_INPUT' } })
+      }
       if (oldSub.userId === me.id) {
         throw new GraphQLError('you already own this sub', { extensions: { code: 'BAD_INPUT' } })
       }

@@ -1,0 +1,62 @@
+#!/bin/bash
+
+sndev__start() {
+  if [ ! -x "$(command -v docker-compose)" ]; then
+    echo "docker compose is not installed"
+    echo "installation instructions are here: https://docs.docker.com/desktop/"
+    exit 0
+  fi
+
+  if ! [ -f .env.sndev ]; then
+    echo ".env.sndev does not exist."
+    echo "creating from .env.sample"
+    cp .env.sample .env.sndev
+  fi
+
+  echo "Starting application"
+  docker compose up
+}
+
+sndev__stop() {
+  echo "Stopping application"
+  docker compose down
+}
+
+sndev__delete() {
+  echo "Deleting application"
+  docker compose down --volumes --remove-orphans
+}
+
+sndev__help() {
+    if [ $# -eq 3 ]; then
+        call "sndev__$1__$2__$3" "$@"
+    elif [ $# -eq 2 ]; then
+        call "sndev__$1__$2" "$@"
+    else
+        help="sndev manages a docker based stacker news development environment
+
+USAGE
+  $ sndev [COMMAND]
+
+COMMANDS
+  start   start env
+  stop    stop env
+  delete  delete env
+  help    display help for sndev
+"
+        echo "$help"
+    fi
+}
+
+call() {
+    func=$1
+    if type "$func" 1>/dev/null 2>&1; then
+        shift
+        "$func" "$@"  # invoke our named function w/ all remaining arguments
+    else
+        sndev__help
+        exit 1
+    fi
+}
+
+call "sndev__$1" "$@"

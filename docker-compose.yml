@@ -4,17 +4,17 @@ services:
     container_name: db
     build: ./db
     restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sn -d stackernews"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     expose:
       - "5432"
     ports:
       - "5431:5432"
     env_file:
       - ./.env.sndev
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-        interval: 5s
-        timeout: 5s
-        retries: 5
     volumes:
       - ./anon.sql:/docker-entrypoint-initdb.d/anon.sql
       - db:/var/lib/postgresql/data
@@ -31,6 +31,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
+        restart: true
+      opensearch:
+        condition: service_healthy
+        restart: true
     env_file:
       - ./.env.sndev
     expose:
@@ -49,10 +53,13 @@ services:
     depends_on:
       db:
         condition: service_healthy
+        restart: true
       app:
         condition: service_healthy
+        restart: true
       opensearch:
         condition: service_healthy
+        restart: true
     env_file:
       - ./.env.sndev
     ports:
@@ -116,6 +123,11 @@ services:
   os-dashboard:
     image: opensearchproject/opensearch-dashboards:latest
     container_name: os-dashboard
+    restart: always
+    depends_on:
+      opensearch:
+        condition: service_healthy
+        restart: true
     environment:
       - opensearch.ssl.verificationMode=none
       - server.ssl.enabled=false

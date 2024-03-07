@@ -8,6 +8,5 @@ WORKDIR /app
 
 EXPOSE 3000
 
-RUN npm install --loglevel verbose --legacy-peer-deps
-RUN npx prisma migrate dev
-CMD npm run dev
+RUN npm ci --loglevel verbose --legacy-peer-deps
+CMD npx prisma migrate dev && npm run dev

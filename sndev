@@ -1,5 +1,9 @@
 #!/bin/sh
 
+docker__compose() {
+  command docker compose --env-file .env.sndev "$@"
+}
+
 sndev__start() {
   if [ ! -x "$(command -v docker-compose)" ]; then
     echo "docker compose is not installed"
@@ -14,17 +18,17 @@ sndev__start() {
   fi
 
   echo "Starting application"
-  docker compose --env-file .env.sndev up --build
+  docker__compose up --build
 }
 
 sndev__stop() {
   echo "Stopping application"
-  docker compose --env-file .env.sndev down
+  docker__compose down
 }
 
 sndev__delete() {
   echo "Deleting application"
-  docker compose --env-file .env.sndev down --volumes --remove-orphans
+  docker__compose down --volumes --remove-orphans
 }
 
 sndev__help() {

@@ -2,7 +2,7 @@ version: "3"
 services:
   db:
     container_name: db
-    build: ./db
+    build: ./docker/db
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "PGPASSWORD=${POSTGRES_PASSWORD} psql -U ${POSTGRES_USER} ${POSTGRES_DB} -c 'SELECT 1 FROM users LIMIT 1'"]
@@ -15,9 +15,9 @@ services:
     ports:
       - "5431:5432"
     env_file:
-      - ./.env.sndev
+      - .env.sndev
     volumes:
-      - ./anon.sql:/docker-entrypoint-initdb.d/anon.sql
+      - ./docker/db/seed.sql:/docker-entrypoint-initdb.d/seed.sql
       - db:/var/lib/postgresql/data
   app:
     container_name: app
@@ -37,7 +37,7 @@ services:
         condition: service_healthy
         restart: true
     env_file:
-      - ./.env.sndev
+      - .env.sndev
     expose:
       - "3000"
     ports:
@@ -63,7 +63,7 @@ services:
         condition: service_healthy
         restart: true
     env_file:
-      - ./.env.sndev
+      - .env.sndev
     volumes:
       - ./:/app
     links:
@@ -85,7 +85,7 @@ services:
       start_period: 1m
     restart: unless-stopped
     env_file:
-      - ./.env.sndev
+      - .env.sndev
     ports:
       - "3001:8080"
     links:
@@ -101,7 +101,7 @@ services:
       start_period: 1m
     restart: unless-stopped
     env_file:
-      - ./.env.sndev
+      - .env.sndev
     environment:
       - OPENSEARCH_INITIAL_ADMIN_PASSWORD=mVchg1T5oA9wudUh
     ports:
@@ -131,7 +131,7 @@ services:
         condition: service_healthy
         restart: true
     env_file:
-      - ./.env.sndev
+      - .env.sndev
     environment:
       - opensearch.ssl.verificationMode=none
       - OPENSEARCH_HOSTS=http://opensearch:9200
@@ -195,7 +195,7 @@ services:
         condition: service_healthy
         restart: true
     env_file:
-      - ./.env.sndev
+      - .env.sndev
     command:
       - 'lnd'
       - '--noseedbackup'
@@ -222,6 +222,9 @@ services:
       - "${LND_GRPC_PORT}:${LND_GRPC_PORT}"
     volumes:
       - sn_lnd:/home/lnd/.lnd
+      - ./docker/lnd/sn/macaroons/macaroons.db:/home/lnd/.lnd/data/chain/bitcoin/regtest/macaroons.db
+      - ./docker/lnd/sn/tls.cert:/home/lnd/.lnd/tls.cert
+      - ./docker/lnd/sn/tls.key:/home/lnd/.lnd/tls.key
   stacker_lnd:
     image: polarlightning/lnd:0.17.4-beta
     container_name: stacker_lnd
@@ -237,14 +240,14 @@ services:
         condition: service_healthy
         restart: true
     env_file:
-      - ./.env.sndev
+      - .env.sndev
     command:
       - 'lnd'
       - '--noseedbackup'
       - '--trickledelay=5000'
-      - '--alias=sn_lnd'
-      - '--externalip=sn_lnd'
-      - '--tlsextradomain=sn_lnd'
+      - '--alias=stacker_lnd'
+      - '--externalip=stacker_lnd'
+      - '--tlsextradomain=stacker_lnd'
       - '--tlsextradomain=host.docker.internal'
       - '--listen=0.0.0.0:${STACKER_LND_P2P_PORT}'
       - '--rpclisten=0.0.0.0:${STACKER_LND_GRPC_PORT}'
@@ -262,8 +265,13 @@ services:
     ports:
       - "${STACKER_LND_REST_PORT}:${STACKER_LND_REST_PORT}"
       - "${STACKER_LND_GRPC_PORT}:${STACKER_LND_GRPC_PORT}"
+    volumes:
+      - stacker_lnd:/home/lnd/.lnd
+      - ./docker/lnd/stacker/tls.cert:/home/lnd/.lnd/tls.cert
+      - ./docker/lnd/stacker/tls.key:/home/lnd/.lnd/tls.key
 volumes:
   db:
   os:
   bitcoin:
   sn_lnd:
+  stacker_lnd:

@@ -8,4 +8,6 @@ WORKDIR /app
 
 EXPOSE 3000
 
-CMD ["sh","-c","npm ci --loglevel verbose --legacy-peer-deps && npx prisma migrate dev && npm run dev"]
+COPY package.json package-lock.json ./
+RUN npm ci --legacy-peer-deps --loglevel verbose
+CMD ["sh","-c","npm install --loglevel verbose --legacy-peer-deps && npx prisma migrate dev && npm run dev"]

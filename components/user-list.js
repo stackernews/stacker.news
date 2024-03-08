@@ -7,7 +7,9 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@apollo/client'
 import MoreFooter from './more-footer'
 import { useData } from './use-data'
-import Hat from './hat'
+import Hat, { HatTooltip } from './hat'
+import AnonIcon from '../svgs/spy-fill.svg'
+import { useMe } from './me'
 
 // all of this nonsense is to show the stat we are sorting by first
 const Stacked = ({ user }) => (user.optional.stacked !== null && <span>{abbrNum(user.optional.stacked)} stacked</span>)
@@ -37,6 +39,7 @@ function seperate (arr, seperator) {
 }
 
 function User ({ user, rank, statComps, Embellish }) {
+  const me = useMe()
   return (
     <>
       {rank
@@ -56,6 +59,10 @@ function User ({ user, rank, statComps, Embellish }) {
           <Link href={`/${user.name}`} className={`${styles.title} d-inline-flex align-items-center text-reset`}>
             @{user.name}<Hat className='ms-1 fill-grey' height={14} width={14} user={user} />
           </Link>
+          {me?.id === user.id && me.privates?.hideFromTopUsers &&
+            <HatTooltip overlayText='hidden'>
+              <span><AnonIcon className='fill-grey ms-1 align-middle' height={16} width={16} /></span>
+            </HatTooltip>}
           <div className={styles.other}>
             {statComps.map((Comp, i) => <Comp key={i} user={user} />)}
           </div>

@@ -14,17 +14,17 @@ sndev__start() {
   fi
 
   echo "Starting application"
-  docker compose up --build
+  docker compose --env-file .env.sndev up --build
 }
 
 sndev__stop() {
   echo "Stopping application"
-  docker compose down
+  docker compose --env-file .env.sndev down
 }
 
 sndev__delete() {
   echo "Deleting application"
-  docker compose down --volumes --remove-orphans
+  docker compose --env-file .env.sndev down --volumes --remove-orphans
 }
 
 sndev__help() {

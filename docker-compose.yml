@@ -5,7 +5,7 @@ services:
     build: ./db
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "PGPASSWORD=$$POSTGRES_PASSWORD psql -U $$POSTGRES_USER $$POSTGRES_DB -c 'SELECT 1 FROM users LIMIT 1'"]
+      test: ["CMD-SHELL", "PGPASSWORD=${POSTGRES_PASSWORD} psql -U ${POSTGRES_USER} ${POSTGRES_DB} -c 'SELECT 1 FROM users LIMIT 1'"]
       interval: 10s
       timeout: 10s
       retries: 10
@@ -47,6 +47,7 @@ services:
     links:
       - db
       - opensearch
+      - sn_lnd
   worker:
     container_name: worker
     build: ./worker
@@ -63,14 +64,13 @@ services:
         restart: true
     env_file:
       - ./.env.sndev
-    ports:
-      - "8080:8080"
     volumes:
       - ./:/app
     links:
       - db
       - app
       - opensearch
+      - sn_lnd
     entrypoint: ["/bin/sh", "-c"]
     command:
       - npm run worker:dev
@@ -86,8 +86,6 @@ services:
     restart: unless-stopped
     env_file:
       - ./.env.sndev
-    expose:
-      - "8080"
     ports:
       - "3001:8080"
     links:
@@ -96,15 +94,15 @@ services:
     image: opensearchproject/opensearch:latest
     container_name: opensearch
     healthcheck:
-      test: ["CMD-SHELL", "curl -ku admin:mVchg1T5oA9wudUh --silent --fail localhost:9200/_cluster/health || exit 1"]
+      test: ["CMD-SHELL", "curl -ku admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD} --silent --fail localhost:9200/_cluster/health || exit 1"]
       interval: 10s
       timeout: 10s
       retries: 10
       start_period: 1m
     restart: unless-stopped
+    env_file:
+      - ./.env.sndev
     environment:
-      - discovery.type=single-node
-      - plugins.security.disabled=true
       - OPENSEARCH_INITIAL_ADMIN_PASSWORD=mVchg1T5oA9wudUh
     ports:
       - 9200:9200 # REST API
@@ -115,12 +113,12 @@ services:
       bash -c '
         set -m
         /usr/share/opensearch/opensearch-docker-entrypoint.sh &
-        until curl -sS "http://localhost:9200/_cat/health?h=status" -ku admin:mVchg1T5oA9wudUh | grep -q "green\|yellow"; do
+        until curl -sS "http://localhost:9200/_cat/health?h=status" -ku admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD} | grep -q "green\|yellow"; do
           echo "Waiting for OpenSearch to start..."
           sleep 1
         done
         echo "OpenSearch started."
-        curl -X PUT "http://localhost:9200/item" -ku admin:mVchg1T5oA9wudUh
+        curl -X PUT "http://localhost:9200/item" -ku admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
         echo "OpenSearch index created."
         fg
       '
@@ -132,18 +130,140 @@ services:
       opensearch:
         condition: service_healthy
         restart: true
+    env_file:
+      - ./.env.sndev
     environment:
       - opensearch.ssl.verificationMode=none
-      - server.ssl.enabled=false
-      - plugins.security.disabled=true
-      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
       - OPENSEARCH_HOSTS=http://opensearch:9200
+      - server.ssl.enabled=false
     ports:
       - 5601:5601
     expose:
       - "5601"
     links:
       - opensearch
+  bitcoin:
+    image: polarlightning/bitcoind:26.0
+    container_name: bitcoin
+    restart: unless-stopped
+    stop_grace_period: '5m'
+    healthcheck:
+      test: ["CMD", "bitcoin-cli", "-rpcport=${RPC_PORT}", "-rpcuser=${RPC_USER}", "-rpcpassword=${RPC_PASS}", "getblockchaininfo"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 1m
+    command:
+      - 'bitcoind'
+      - '-server=1'
+      - '-regtest=1'
+      - '-rpcauth=${RPC_USER}:${RPC_AUTH}'
+      - '-debug=1'
+      - '-zmqpubrawblock=tcp://0.0.0.0:${ZMQ_BLOCK_PORT}'
+      - '-zmqpubrawtx=tcp://0.0.0.0:${ZMQ_TX_PORT}'
+      - '-txindex=1'
+      - '-dnsseed=0'
+      - '-upnp=0'
+      - '-rpcbind=0.0.0.0'
+      - '-rpcallowip=0.0.0.0/0'
+      - '-rpcport=${RPC_PORT}'
+      - '-rest'
+      - '-listen=1'
+      - '-listenonion=0'
+      - '-fallbackfee=0.0002'
+      - '-blockfilterindex=1'
+      - '-peerblockfilters=1'
+    expose:
+      - "${RPC_PORT}"
+      - "${P2P_PORT}"
+      - "${ZMQ_BLOCK_PORT}"
+      - "${ZMQ_TX_PORT}"
+    volumes:
+      - bitcoin:/home/bitcoin/.bitcoin
+  sn_lnd:
+    image: polarlightning/lnd:0.17.4-beta
+    container_name: sn_lnd
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "lncli", "getinfo"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 1m
+    depends_on:
+      bitcoin:
+        condition: service_healthy
+        restart: true
+    env_file:
+      - ./.env.sndev
+    command:
+      - 'lnd'
+      - '--noseedbackup'
+      - '--trickledelay=5000'
+      - '--alias=sn_lnd'
+      - '--externalip=sn_lnd'
+      - '--tlsextradomain=sn_lnd'
+      - '--tlsextradomain=host.docker.internal'
+      - '--listen=0.0.0.0:${LND_P2P_PORT}'
+      - '--rpclisten=0.0.0.0:${LND_GRPC_PORT}'
+      - '--restlisten=0.0.0.0:${LND_REST_PORT}'
+      - '--bitcoin.active'
+      - '--bitcoin.regtest'
+      - '--bitcoin.node=bitcoind'
+      - '--bitcoind.rpchost=bitcoin'
+      - '--bitcoind.rpcuser=${RPC_USER}'
+      - '--bitcoind.rpcpass=${RPC_PASS}'
+      - '--bitcoind.zmqpubrawblock=tcp://bitcoin:${ZMQ_BLOCK_PORT}'
+      - '--bitcoind.zmqpubrawtx=tcp://bitcoin:${ZMQ_TX_PORT}'
+    expose:
+      - "${LND_P2P_PORT}"
+    ports:
+      - "${LND_REST_PORT}:${LND_REST_PORT}"
+      - "${LND_GRPC_PORT}:${LND_GRPC_PORT}"
+    volumes:
+      - sn_lnd:/home/lnd/.lnd
+  stacker_lnd:
+    image: polarlightning/lnd:0.17.4-beta
+    container_name: stacker_lnd
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "lncli", "getinfo"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 1m
+    depends_on:
+      bitcoin:
+        condition: service_healthy
+        restart: true
+    env_file:
+      - ./.env.sndev
+    command:
+      - 'lnd'
+      - '--noseedbackup'
+      - '--trickledelay=5000'
+      - '--alias=sn_lnd'
+      - '--externalip=sn_lnd'
+      - '--tlsextradomain=sn_lnd'
+      - '--tlsextradomain=host.docker.internal'
+      - '--listen=0.0.0.0:${STACKER_LND_P2P_PORT}'
+      - '--rpclisten=0.0.0.0:${STACKER_LND_GRPC_PORT}'
+      - '--restlisten=0.0.0.0:${STACKER_LND_REST_PORT}'
+      - '--bitcoin.active'
+      - '--bitcoin.regtest'
+      - '--bitcoin.node=bitcoind'
+      - '--bitcoind.rpchost=bitcoin'
+      - '--bitcoind.rpcuser=${RPC_USER}'
+      - '--bitcoind.rpcpass=${RPC_PASS}'
+      - '--bitcoind.zmqpubrawblock=tcp://bitcoin:${ZMQ_BLOCK_PORT}'
+      - '--bitcoind.zmqpubrawtx=tcp://bitcoin:${ZMQ_TX_PORT}'
+    expose:
+      - "${STACKER_LND_P2P_PORT}"
+    ports:
+      - "${STACKER_LND_REST_PORT}:${STACKER_LND_REST_PORT}"
+      - "${STACKER_LND_GRPC_PORT}:${STACKER_LND_GRPC_PORT}"
 volumes:
   db:
   os:
+  bitcoin:
+  sn_lnd:

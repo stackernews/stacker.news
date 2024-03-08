@@ -156,7 +156,7 @@ export default {
           OFFSET $3
           LIMIT ${LIMIT}`, ...range, decodedCursor.offset)
       ).map(
-        u => u.hideFromTopUsers || u.hideCowboyHat ? null : u
+        u => (u.hideFromTopUsers || u.hideCowboyHat) && (!me || me.id !== u.id) ? null : u
       )
 
       return {

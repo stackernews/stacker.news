@@ -181,7 +181,10 @@ services:
     volumes:
       - bitcoin:/home/bitcoin/.bitcoin
   sn_lnd:
-    image: polarlightning/lnd:0.17.4-beta
+    build:
+      context: ./docker/lnd
+      args:
+        - LN_NODE_FOR=sn
     container_name: sn_lnd
     restart: unless-stopped
     healthcheck:
@@ -215,6 +218,9 @@ services:
       - '--bitcoind.rpcpass=${RPC_PASS}'
       - '--bitcoind.zmqpubrawblock=tcp://bitcoin:${ZMQ_BLOCK_PORT}'
       - '--bitcoind.zmqpubrawtx=tcp://bitcoin:${ZMQ_TX_PORT}'
+      - '--protocol.wumbo-channels'
+      - '--maxchansize=1000000000'
+      - '--allow-circular-route'
     expose:
       - "${LND_P2P_PORT}"
     ports:
@@ -222,11 +228,11 @@ services:
       - "${LND_GRPC_PORT}:${LND_GRPC_PORT}"
     volumes:
       - sn_lnd:/home/lnd/.lnd
-      - ./docker/lnd/sn/macaroons/macaroons.db:/home/lnd/.lnd/data/chain/bitcoin/regtest/macaroons.db
-      - ./docker/lnd/sn/tls.cert:/home/lnd/.lnd/tls.cert
-      - ./docker/lnd/sn/tls.key:/home/lnd/.lnd/tls.key
   stacker_lnd:
-    image: polarlightning/lnd:0.17.4-beta
+    build:
+      context: ./docker/lnd
+      args:
+        - LN_NODE_FOR=stacker
     container_name: stacker_lnd
     restart: unless-stopped
     healthcheck:
@@ -241,6 +247,8 @@ services:
         restart: true
     env_file:
       - .env.sndev
+    environment:
+      - LN_NODE_FOR=stacker
     command:
       - 'lnd'
       - '--noseedbackup'
@@ -249,9 +257,9 @@ services:
       - '--externalip=stacker_lnd'
       - '--tlsextradomain=stacker_lnd'
       - '--tlsextradomain=host.docker.internal'
-      - '--listen=0.0.0.0:${STACKER_LND_P2P_PORT}'
-      - '--rpclisten=0.0.0.0:${STACKER_LND_GRPC_PORT}'
-      - '--restlisten=0.0.0.0:${STACKER_LND_REST_PORT}'
+      - '--listen=0.0.0.0:${LND_P2P_PORT}'
+      - '--rpclisten=0.0.0.0:${LND_GRPC_PORT}'
+      - '--restlisten=0.0.0.0:${LND_REST_PORT}'
       - '--bitcoin.active'
       - '--bitcoin.regtest'
       - '--bitcoin.node=bitcoind'
@@ -260,15 +268,16 @@ services:
       - '--bitcoind.rpcpass=${RPC_PASS}'
       - '--bitcoind.zmqpubrawblock=tcp://bitcoin:${ZMQ_BLOCK_PORT}'
       - '--bitcoind.zmqpubrawtx=tcp://bitcoin:${ZMQ_TX_PORT}'
+      - '--protocol.wumbo-channels'
+      - '--maxchansize=1000000000'
+      - '--allow-circular-route'
     expose:
-      - "${STACKER_LND_P2P_PORT}"
+      - "${LND_P2P_PORT}"
     ports:
-      - "${STACKER_LND_REST_PORT}:${STACKER_LND_REST_PORT}"
-      - "${STACKER_LND_GRPC_PORT}:${STACKER_LND_GRPC_PORT}"
+      - "${STACKER_LND_REST_PORT}:${LND_REST_PORT}"
+      - "${STACKER_LND_GRPC_PORT}:${LND_GRPC_PORT}"
     volumes:
       - stacker_lnd:/home/lnd/.lnd
-      - ./docker/lnd/stacker/tls.cert:/home/lnd/.lnd/tls.cert
-      - ./docker/lnd/stacker/tls.key:/home/lnd/.lnd/tls.key
 volumes:
   db:
   os:

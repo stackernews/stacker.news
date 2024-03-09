@@ -4,6 +4,10 @@ FROM node:18.17.0-bullseye
 
 ENV NODE_ENV=development
 
-WORKDIR /app
+ARG UID
+ARG GID
+RUN groupadd -fg "$GID" apprunner
+RUN useradd -m -u "$UID" -g "$GID" apprunner
+USER apprunner
 
-EXPOSE 8080
+WORKDIR /app

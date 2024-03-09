@@ -21,7 +21,11 @@ services:
       - db:/var/lib/postgresql/data
   app:
     container_name: app
-    build: ./
+    build:
+      context: ./
+      args:
+        - UID=${CURRENT_UID}
+        - GID=${CURRENT_GID}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000"]
@@ -50,7 +54,11 @@ services:
       - sn_lnd
   worker:
     container_name: worker
-    build: ./worker
+    build:
+      context: ./worker
+      args:
+        - UID=${CURRENT_UID}
+        - GID=${CURRENT_GID}
     restart: unless-stopped
     depends_on:
       db:

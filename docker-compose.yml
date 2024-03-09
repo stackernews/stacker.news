@@ -154,9 +154,18 @@ services:
     image: polarlightning/bitcoind:26.0
     container_name: bitcoin
     restart: unless-stopped
-    stop_grace_period: '5m'
     healthcheck:
-      test: ["CMD", "bitcoin-cli", "-chain=regtest", "-rpcport=${RPC_PORT}", "-rpcuser=${RPC_USER}", "-rpcpassword=${RPC_PASS}", "getblockchaininfo"]
+      test: >
+        bash -c '
+          set -e
+          blockcount=$$(bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} getblockcount 2>/dev/null)
+          if (( blockcount <= 0 )); then
+            bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} generatetoaddress 10 ${LND_ADDR}
+            bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} generatetoaddress 10 ${STACKER_LND_ADDR}
+            exit 1
+          fi
+          exit 0
+        '
       interval: 10s
       timeout: 10s
       retries: 10

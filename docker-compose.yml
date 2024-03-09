@@ -156,7 +156,7 @@ services:
     restart: unless-stopped
     stop_grace_period: '5m'
     healthcheck:
-      test: ["CMD", "bitcoin-cli", "-rpcport=${RPC_PORT}", "-rpcuser=${RPC_USER}", "-rpcpassword=${RPC_PASS}", "getblockchaininfo"]
+      test: ["CMD", "bitcoin-cli", "-chain=regtest", "-rpcport=${RPC_PORT}", "-rpcuser=${RPC_USER}", "-rpcpassword=${RPC_PASS}", "getblockchaininfo"]
       interval: 10s
       timeout: 10s
       retries: 10
@@ -188,6 +188,16 @@ services:
       - "${ZMQ_TX_PORT}"
     volumes:
       - bitcoin:/home/bitcoin/.bitcoin
+    labels:
+      ofelia.enabled: "true"
+      ofelia.job-exec.minecron.schedule: "@every 2m"
+      ofelia.job-exec.minecron.command: >
+        bash -c '
+          echo "Mining a block to sn_lnd..."
+          bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} generatetoaddress 1 ${LND_ADDR}
+          sleep 60
+          echo "Mining a block to stacker_lnd..."
+          bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} generatetoaddress 1 ${STACKER_LND_ADDR}'
   sn_lnd:
     build:
       context: ./docker/lnd
@@ -229,6 +239,7 @@ services:
       - '--protocol.wumbo-channels'
       - '--maxchansize=1000000000'
       - '--allow-circular-route'
+      - '--bitcoin.defaultchanconfs=0'
     expose:
       - "${LND_P2P_PORT}"
     ports:
@@ -279,6 +290,7 @@ services:
       - '--protocol.wumbo-channels'
       - '--maxchansize=1000000000'
       - '--allow-circular-route'
+      - '--bitcoin.defaultchanconfs=0'
     expose:
       - "${LND_P2P_PORT}"
     ports:
@@ -286,6 +298,15 @@ services:
       - "${STACKER_LND_GRPC_PORT}:${LND_GRPC_PORT}"
     volumes:
       - stacker_lnd:/home/lnd/.lnd
+  channdler:
+    image: mcuadros/ofelia:latest
+    container_name: channdler
+    depends_on:
+      - bitcoin
+    restart: unless-stopped
+    command: daemon --docker -f label=com.docker.compose.project=${COMPOSE_PROJECT_NAME}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
 volumes:
   db:
   os:

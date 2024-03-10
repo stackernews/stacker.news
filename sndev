@@ -4,6 +4,10 @@ docker__compose() {
   CURRENT_UID=$(id -u) CURRENT_GID=$(id -g) command docker compose --env-file .env.sndev "$@"
 }
 
+docker__exec() {
+  exec command docker exec "$@"
+}
+
 sndev__start() {
   if [ ! -x "$(command -v docker-compose)" ]; then
     echo "docker compose is not installed"
@@ -31,6 +35,11 @@ sndev__delete() {
   docker__compose down --volumes --remove-orphans
 }
 
+sndev__payinvoice() {
+  shift
+  docker__exec -u lnd stacker_lnd lncli payinvoice --force "$@"
+}
+
 sndev__help() {
     if [ $# -eq 3 ]; then
         call "sndev__$1__$2__$3" "$@"
@@ -43,10 +52,11 @@ USAGE
   $ sndev [COMMAND]
 
 COMMANDS
-  start   start env
-  stop    stop env
-  delete  delete env
-  help    display help for sndev
+  start       start env
+  stop        stop env
+  delete      delete env
+  payinvoice  pay invoice to sn
+  help        display help for sndev
 "
         echo "$help"
     fi

@@ -324,7 +324,7 @@ export default {
 
       return updatedSub
     },
-    unarchiveTerritory: async (parent, { name, hash, hmac }, { me, models }) => {
+    unarchiveTerritory: async (parent, { name, hash, hmac, ...data }, { me, models, lnd }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
       }
@@ -346,11 +346,43 @@ export default {
         throw new GraphQLError('you already own this sub', { extensions: { code: 'BAD_INPUT' } })
       }
 
-      const newSub = { ...oldSub, userId: me.id, status: 'ACTIVE' }
-      return await serializeInvoicable(
+      let billingCost = TERRITORY_COST_MONTHLY
+      let billPaidUntil = datePivot(new Date(), { months: 1 })
+      if (data.billingType === 'ONCE') {
+        billingCost = TERRITORY_COST_ONCE
+        billPaidUntil = null
+      } else if (data.billingType === 'YEARLY') {
+        billingCost = TERRITORY_COST_YEARLY
+        billPaidUntil = datePivot(new Date(), { years: 1 })
+      }
+      const cost = BigInt(1000) * BigInt(billingCost)
+      const newSub = { ...data, billPaidUntil, billingCost, userId: me.id, status: 'ACTIVE' }
+
+      await serializeInvoicable([
+        models.user.update({
+          where: {
+            id: me.id
+          },
+          data: {
+            msats: {
+              decrement: cost
+            }
+          }
+        }),
+        models.subAct.create({
+          data: {
+            subName: name,
+            userId: me.id,
+            msats: cost,
+            type: 'BILLING'
+          }
+        }),
         models.sub.update({ where: { name }, data: newSub }),
-        { models, hash, hmac, me }
-      )
+        models.territoryTransfer.create({ data: { subName: name, oldUserId: oldSub.userId, newUserId: me.id } })
+      ],
+      { models, lnd, hash, hmac, me, enforceFee: billingCost })
+
+      notifyTerritoryTransfer({ models, sub: newSub, to: me.id })
     }
   },
   Sub: {

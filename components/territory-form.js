@@ -31,8 +31,12 @@ export default function TerritoryForm ({ sub }) {
   )
   const [unarchiveTerritory] = useMutation(
     gql`
-      mutation unarchiveTerritory($name: String!, $hash: String, $hmac: String) {
-        unarchiveTerritory(name: $name, hash: $hash, hmac: $hmac) {
+      mutation unarchiveTerritory($name: String!, $desc: String, $baseCost: Int!,
+        $postTypes: [String!]!, $allowFreebies: Boolean!, $billingType: String!,
+        $billingAutoRenew: Boolean!, $moderated: Boolean!, $hash: String, $hmac: String, $nsfw: Boolean!) {
+          unarchiveTerritory(name: $name, desc: $desc, baseCost: $baseCost,
+            postTypes: $postTypes, allowFreebies: $allowFreebies, billingType: $billingType,
+            billingAutoRenew: $billingAutoRenew, moderated: $moderated, hash: $hash, hmac: $hmac, nsfw: $nsfw) {
           name
         }
       }`

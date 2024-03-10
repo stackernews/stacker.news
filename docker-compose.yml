@@ -40,6 +40,9 @@ services:
       opensearch:
         condition: service_healthy
         restart: true
+      sn_lnd:
+        condition: service_healthy
+        restart: true
     env_file:
       - .env.sndev
     expose:
@@ -68,6 +71,9 @@ services:
         condition: service_healthy
         restart: true
       opensearch:
+        condition: service_healthy
+        restart: true
+      sn_lnd:
         condition: service_healthy
         restart: true
     env_file:
@@ -155,17 +161,7 @@ services:
     container_name: bitcoin
     restart: unless-stopped
     healthcheck:
-      test: >
-        bash -c '
-          set -e
-          blockcount=$$(bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} getblockcount 2>/dev/null)
-          if (( blockcount <= 0 )); then
-            bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} generatetoaddress 10 ${LND_ADDR}
-            bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} generatetoaddress 10 ${STACKER_LND_ADDR}
-            exit 1
-          fi
-          exit 0
-        '
+      test: ["CMD-SHELL", "bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} getblockchaininfo"]
       interval: 10s
       timeout: 10s
       retries: 10
@@ -199,14 +195,21 @@ services:
       - bitcoin:/home/bitcoin/.bitcoin
     labels:
       ofelia.enabled: "true"
-      ofelia.job-exec.minecron.schedule: "@every 2m"
+      ofelia.job-exec.minecron.schedule: "@every 1m"
       ofelia.job-exec.minecron.command: >
         bash -c '
-          echo "Mining a block to sn_lnd..."
-          bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} generatetoaddress 1 ${LND_ADDR}
-          sleep 60
-          echo "Mining a block to stacker_lnd..."
-          bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} generatetoaddress 1 ${STACKER_LND_ADDR}'
+          blockcount=$$(bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} getblockcount 2>/dev/null)
+          if (( blockcount <= 0 )); then
+            echo "Mining 10 blocks to sn_lnd and stacker_lnd..."
+            bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} generatetoaddress 100 ${LND_ADDR}
+            bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} generatetoaddress 100 ${STACKER_LND_ADDR}
+          else
+            echo "Mining a block to sn_lnd... ${LND_ADDR}"
+            bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} generatetoaddress 1 ${LND_ADDR}
+            echo "Mining a block to stacker_lnd... ${STACKER_LND_ADDR}"
+            bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} generatetoaddress 1 ${STACKER_LND_ADDR}
+          fi
+        '
   sn_lnd:
     build:
       context: ./docker/lnd
@@ -215,7 +218,7 @@ services:
     container_name: sn_lnd
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "lncli", "getinfo"]
+      test: ["CMD-SHELL", "lncli", "getinfo"]
       interval: 10s
       timeout: 10s
       retries: 10
@@ -249,6 +252,7 @@ services:
       - '--maxchansize=1000000000'
       - '--allow-circular-route'
       - '--bitcoin.defaultchanconfs=0'
+      - '--maxpendingchannels=10'
     expose:
       - "${LND_P2P_PORT}"
     ports:
@@ -256,6 +260,17 @@ services:
       - "${LND_GRPC_PORT}:${LND_GRPC_PORT}"
     volumes:
       - sn_lnd:/home/lnd/.lnd
+    labels:
+      ofelia.enabled: "true"
+      ofelia.job-exec.sn_channel_cron.schedule: "@every 1m"
+      ofelia.job-exec.sn_channel_cron.command: >
+        su lnd -c bash -c "
+          if [ $$(lncli listchannels | jq '.member | length') -ge 1 ]; then
+            exit 0
+          else
+            lncli openchannel --node_key=$STACKER_LND_PUBKEY --connect stacker_lnd:9735 --sat_per_vbyte 1 --min_confs 0 --local_amt=1000000000 --push_amt=500000000
+          fi
+        "
   stacker_lnd:
     build:
       context: ./docker/lnd
@@ -264,7 +279,7 @@ services:
     container_name: stacker_lnd
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "lncli", "getinfo"]
+      test: ["CMD-SHELL", "lncli", "getinfo"]
       interval: 10s
       timeout: 10s
       retries: 10
@@ -275,8 +290,6 @@ services:
         restart: true
     env_file:
       - .env.sndev
-    environment:
-      - LN_NODE_FOR=stacker
     command:
       - 'lnd'
       - '--noseedbackup'
@@ -300,6 +313,7 @@ services:
       - '--maxchansize=1000000000'
       - '--allow-circular-route'
       - '--bitcoin.defaultchanconfs=0'
+      - '--maxpendingchannels=10'
     expose:
       - "${LND_P2P_PORT}"
     ports:
@@ -307,11 +321,24 @@ services:
       - "${STACKER_LND_GRPC_PORT}:${LND_GRPC_PORT}"
     volumes:
       - stacker_lnd:/home/lnd/.lnd
+    labels:
+      ofelia.enabled: "true"
+      ofelia.job-exec.stacker_channel_cron.schedule: "@every 1m"
+      ofelia.job-exec.stacker_channel_cron.command: >
+        su lnd -c bash -c "
+          if [ $$(lncli listchannels | jq '.member | length') -ge 1 ]; then
+            exit 0
+          else
+            lncli openchannel --node_key=$LND_PUBKEY --connect sn_lnd:9735 --sat_per_vbyte 1 --min_confs 0 --local_amt=1000000000 --push_amt=500000000
+          fi
+        "
   channdler:
     image: mcuadros/ofelia:latest
     container_name: channdler
     depends_on:
       - bitcoin
+      - sn_lnd
+      - stacker_lnd
     restart: unless-stopped
     command: daemon --docker -f label=com.docker.compose.project=${COMPOSE_PROJECT_NAME}
     volumes:

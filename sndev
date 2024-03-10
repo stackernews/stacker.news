@@ -101,7 +101,7 @@ USAGE
   $ sndev [COMMAND]
 
 COMMANDS
-  help          show help
+  help            show help
 
   env:
     start         start env
@@ -112,15 +112,15 @@ COMMANDS
 
   lnd:
     fund          pay a bolt11 for funding
-    withdraw      make a bolt11 for withdrawal
+    withdraw      create a bolt11 for withdrawal
 
   db:
     psql          open psql on db
 
   raw:
-    compose       call docker compose
-    sn_lncli      call lncli on sn_lnd
-    stacker_lncli call lncli on stacker_lnd
+    compose       docker compose passthrough
+    sn_lncli      lncli passthrough on sn_lnd
+    stacker_lncli lncli passthrough on stacker_lnd
 "
         echo "$help"
     fi

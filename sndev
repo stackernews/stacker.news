@@ -5,7 +5,7 @@ docker__compose() {
 }
 
 docker__exec() {
-  command docker exec "$@"
+  command docker exec -i "$@"
 }
 
 docker__sn_lnd() {
@@ -54,12 +54,16 @@ sndev__delete() {
 
 sndev__fund() {
   shift
-  docker__stacker_lnd payinvoice --force "$@"
+  docker__stacker_ln -t payinvoice "$@"
 }
 
 sndev__withdraw() {
   shift
   docker__stacker_lnd addinvoice --amt "$@" | jq -r '.payment_request'
+}
+
+sndev__psql() {
+  docker__exec -t db psql -U sn stackernews
 }
 
 sndev__compose() {
@@ -69,12 +73,12 @@ sndev__compose() {
 
 sndev__sn_lncli() {
   shift
-  docker__sn_lnd "$@"
+  docker__sn_lnd -t "$@"
 }
 
 sndev__stacker_lncli() {
   shift
-  docker__stacker_lnd "$@"
+  docker__stacker_lnd -t "$@"
 }
 
 sndev__help() {
@@ -112,10 +116,13 @@ COMMANDS
     fund          pay a bolt11 for funding
     withdraw      make a bolt11 for withdrawal
 
+  db:
+    psql          open psql on db
+
   raw:
-    compose       call docker compose directly
-    sn_lncli      call lncli on sn_lnd directly
-    stacker_lncli call lncli on stacker_lnd directly
+    compose       call docker compose
+    sn_lncli      call lncli on sn_lnd
+    stacker_lncli call lncli on stacker_lnd
 "
         echo "$help"
     fi

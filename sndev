@@ -38,6 +38,11 @@ sndev__stop() {
   docker__compose down
 }
 
+sndev__status() {
+  shift
+  docker__compose ps --format 'table {{.Service}}\t{{.State}}\t{{.Status}}\t{{.Ports}}'
+}
+
 sndev__delete() {
   echo "Deleting application"
   docker__compose down --volumes --remove-orphans
@@ -77,6 +82,7 @@ USAGE
 COMMANDS
   start       start env
   stop        stop env
+  status      status of env
   delete      delete env
   fund        pay a bolt11 for funding
   withdraw    make a bolt11 for withdrawal

@@ -59,7 +59,17 @@ sndev__help() {
     elif [ $# -eq 2 ]; then
         call "sndev__$1__$2" "$@"
     else
-        help="sndev manages a docker based stacker news development environment
+        help="
+                            888
+                            888
+                            888
+      .d8888b  88888b.  .d88888  .d88b.  888  888
+     88K      888 '88b d88' 888 d8P  Y8b 888  888
+     'Y8888b. 888  888 888  888 88888888 Y88  88P
+          X88 888  888 Y88b 888 Y8b.      Y8bd8P
+      88888P' 888  888  'Y88888  'Y8888    Y88P
+
+manages a docker based stacker news development environment
 
 USAGE
   $ sndev [COMMAND]
@@ -68,7 +78,7 @@ COMMANDS
   start       start env
   stop        stop env
   delete      delete env
-  fund        pay bolt11
+  fund        pay a bolt11 for funding
   withdraw    make a bolt11 for withdrawal
   help        display help for sndev
 "

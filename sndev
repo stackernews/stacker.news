@@ -29,12 +29,10 @@ sndev__start() {
     cp .env.sample .env.sndev
   fi
 
-  echo "Starting application"
   docker__compose up --build
 }
 
 sndev__stop() {
-  echo "Stopping application"
   docker__compose down
 }
 

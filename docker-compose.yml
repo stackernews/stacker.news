@@ -251,7 +251,7 @@ services:
       - '--protocol.wumbo-channels'
       - '--maxchansize=1000000000'
       - '--allow-circular-route'
-      - '--bitcoin.defaultchanconfs=0'
+      - '--bitcoin.defaultchanconfs=1'
       - '--maxpendingchannels=10'
     expose:
       - "${LND_P2P_PORT}"
@@ -265,10 +265,11 @@ services:
       ofelia.job-exec.sn_channel_cron.schedule: "@every 1m"
       ofelia.job-exec.sn_channel_cron.command: >
         su lnd -c bash -c "
-          if [ $$(lncli listchannels | jq '.member | length') -ge 1 ]; then
+          if [ $$(lncli getinfo | jq '.num_active_channels + .num_pending_channels') -ge 3 ]; then
             exit 0
           else
-            lncli openchannel --node_key=$STACKER_LND_PUBKEY --connect stacker_lnd:9735 --sat_per_vbyte 1 --min_confs 0 --local_amt=1000000000 --push_amt=500000000
+            lncli openchannel --node_key=$STACKER_LND_PUBKEY --connect stacker_lnd:9735 --sat_per_vbyte 1 \\
+              --min_confs 0 --local_amt=1000000000 --push_amt=500000000
           fi
         "
   stacker_lnd:
@@ -312,7 +313,7 @@ services:
       - '--protocol.wumbo-channels'
       - '--maxchansize=1000000000'
       - '--allow-circular-route'
-      - '--bitcoin.defaultchanconfs=0'
+      - '--bitcoin.defaultchanconfs=1'
       - '--maxpendingchannels=10'
     expose:
       - "${LND_P2P_PORT}"
@@ -326,10 +327,11 @@ services:
       ofelia.job-exec.stacker_channel_cron.schedule: "@every 1m"
       ofelia.job-exec.stacker_channel_cron.command: >
         su lnd -c bash -c "
-          if [ $$(lncli listchannels | jq '.member | length') -ge 1 ]; then
+          if [ $$(lncli getinfo | jq '.num_active_channels + .num_pending_channels') -ge 3 ]; then
             exit 0
           else
-            lncli openchannel --node_key=$LND_PUBKEY --connect sn_lnd:9735 --sat_per_vbyte 1 --min_confs 0 --local_amt=1000000000 --push_amt=500000000
+            lncli openchannel --node_key=$LND_PUBKEY --connect sn_lnd:9735 --sat_per_vbyte 1 \\
+              --min_confs 0 --local_amt=1000000000 --push_amt=500000000
           fi
         "
   channdler:

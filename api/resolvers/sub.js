@@ -2,12 +2,11 @@ import { GraphQLError } from 'graphql'
 import { serializeInvoicable } from './serial'
 import { TERRITORY_COST_MONTHLY, TERRITORY_COST_ONCE, TERRITORY_COST_YEARLY, TERRITORY_PERIOD_COST } from '../../lib/constants'
 import { datePivot, whenRange } from '../../lib/time'
-import { territorySchema } from '../../lib/validate'
+import { ssValidate, territorySchema } from '../../lib/validate'
 import { nextBilling, proratedBillingCost } from '../../lib/territory'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { subViewGroup } from './growth'
 import { notifyTerritoryTransfer } from '../../lib/push-notifications'
-import { ValidationError } from 'yup'
 
 export function paySubQueries (sub, models) {
   if (sub.billingType === 'ONCE') {
@@ -213,14 +212,7 @@ export default {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
       }
 
-      try {
-        await territorySchema({ models, me, sub: { name: data.oldName } }).validate(data)
-      } catch (e) {
-        if (!(e instanceof ValidationError)) throw e
-        // ignore archived errors
-        const isArchivedErr = e.path === 'name' && e.errors[0] === 'archived'
-        if (!isArchivedErr) throw new Error(`${e.path}: ${e.message}`)
-      }
+      await ssValidate(territorySchema, data, { models, me, sub: { name: data.oldName } })
 
       if (data.oldName) {
         return await updateSub(parent, data, { me, models, lnd, hash, hmac })

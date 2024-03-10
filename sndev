@@ -8,6 +8,14 @@ docker__exec() {
   exec command docker exec "$@"
 }
 
+sndev__docker_stacker_lnd() {
+  docker__exec -u lnd stacker_lnd lncli "$@"
+}
+
+sndev__docker_sn_lnd() {
+  docker__exec -u lnd sn_lnd lncli "$@"
+}
+
 sndev__start() {
   if [ ! -x "$(command -v docker-compose)" ]; then
     echo "docker compose is not installed"
@@ -35,9 +43,14 @@ sndev__delete() {
   docker__compose down --volumes --remove-orphans
 }
 
-sndev__payinvoice() {
+sndev__fund() {
   shift
-  docker__exec -u lnd stacker_lnd lncli payinvoice --force "$@"
+  sndev__docker_stacker_lnd payinvoice --force "$@"
+}
+
+sndev__withdraw() {
+  shift
+  sndev__docker_stacker_lnd addinvoice --amt "$@" | jq -r '.payment_request'
 }
 
 sndev__help() {
@@ -55,7 +68,8 @@ COMMANDS
   start       start env
   stop        stop env
   delete      delete env
-  payinvoice  pay invoice to sn
+  fund        pay bolt11
+  withdraw    make a bolt11 for withdrawal
   help        display help for sndev
 "
         echo "$help"

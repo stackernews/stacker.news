@@ -334,9 +334,6 @@ export default {
         // #defensivecode
         throw new GraphQLError('sub should not be archived', { extensions: { code: 'BAD_INPUT' } })
       }
-      if (oldSub.userId === me.id) {
-        throw new GraphQLError('you already own this sub', { extensions: { code: 'BAD_INPUT' } })
-      }
 
       let billingCost = TERRITORY_COST_MONTHLY
       let billPaidUntil = datePivot(new Date(), { months: 1 })

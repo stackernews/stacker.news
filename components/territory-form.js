@@ -52,10 +52,13 @@ export default function TerritoryForm ({ sub }) {
     const schema = territorySchema({ client, me, sub })
 
     try {
-      await schema.validate(values)
+      await schema.validate(values, { abortEarly: false })
     } catch (e) {
       if (!(e instanceof ValidationError)) throw e
-      errors[e.path] = e.errors[0]
+      for (const { path, errors: [message] } of e.inner) {
+        // use the first error for each field so 'archived' has higher precedence over 'taken' for sub name
+        errors[path] ??= message
+      }
     }
 
     if (errors.name === 'archived') {

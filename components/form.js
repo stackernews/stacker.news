@@ -452,7 +452,7 @@ function InputInner ({
         // not assume this is invalid
         const isNumeric = /^[0-9]+$/.test(draft)
         const numericExpected = typeof field.value === 'number'
-        helpers.setValue(isNumeric && numericExpected ? parseInt(draft) : draft, false)
+        helpers.setValue(isNumeric && numericExpected ? parseInt(draft) : draft)
         onChange && onChange(formik, { target: { value: draft } })
       }
     }

@@ -137,7 +137,7 @@ services:
         fg
       '
   os-dashboard:
-    image: opensearchproject/opensearch-dashboards:latest
+    image: opensearchproject/opensearch-dashboards:2.12.0
     container_name: os-dashboard
     restart: unless-stopped
     depends_on:

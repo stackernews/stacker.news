@@ -16,6 +16,28 @@ docker__stacker_lnd() {
   docker__exec -u lnd stacker_lnd lncli "$@"
 }
 
+docker__sn_lnd() {
+  t=$1
+  if [ "$t" = "-t" ]; then
+    shift
+  else
+    t=""
+  fi
+
+  docker__exec $t -u lnd sn_lnd lncli "$@"
+}
+
+docker__stacker_lnd() {
+  t=$1
+  if [ "$t" = "-t" ]; then
+    shift
+  else
+    t=""
+  fi
+
+  docker__exec $t -u lnd stacker_lnd lncli "$@"
+}
+
 sndev__start() {
   if [ ! -x "$(command -v docker-compose)" ]; then
     echo "docker compose is not installed"
@@ -52,7 +74,7 @@ sndev__delete() {
 
 sndev__fund() {
   shift
-  docker__stacker_ln -t payinvoice "$@"
+  docker__stacker_lnd -t payinvoice "$@"
 }
 
 sndev__withdraw() {

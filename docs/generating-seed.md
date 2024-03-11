@@ -5,13 +5,21 @@ make extension
 make install
 ```
 
-# take a small sample from prod database
+# take a 45 day sample from prod database
 ```bash
-pg_sample --limit=""Item"=created_at >= now() - interval '10 days',"Donation"=created_at >= now() - interval '10 days',"Earn"=created_at >= now() - interval '10 days',"ItemAct"=created_at >= now() - interval '10 days',"Sub"=*,"SubAct"=*,_prisma_migrations=*" stackernews > sample.sql
+pg_sample --limit=""Item"=created_at >= now() - interval '45 days',"Donation"=created_at >= now() - interval '45 days',"Earn"=created_at >= now() - interval '45 days',"ItemAct"=created_at >= now() - interval '45 days',"Sub"=*,"SubAct"=*,_prisma_migrations=*" stackernews > sample.sql
+```
+
+# load the sample and take 5% of it
+```bash
+createdb sample
+psql sample < sample.sql
+pg_sample --limit=""Item"=5%,"Donation"=5%,"Earn"=5%,"ItemAct"=5%,"Sub"=*,"SubAct"=*,_prisma_migrations=*" sample > sample.sql
 ```
 
 # create a new database from data
 ```bash
+dropdb sample
 createdb sample
 psql sample < sample.sql
 ```

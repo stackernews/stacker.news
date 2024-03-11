@@ -1,10 +1,22 @@
 #!/bin/sh
 
 docker__compose() {
+  if [ ! -x "$(command -v docker-compose)" ]; then
+    echo "docker compose is not installed"
+    echo "installation instructions are here: https://docs.docker.com/desktop/"
+    exit 0
+  fi
+
   CURRENT_UID=$(id -u) CURRENT_GID=$(id -g) command docker compose --env-file .env.sndev "$@"
 }
 
 docker__exec() {
+  if [ ! -x "$(command -v docker)" ]; then
+    echo "docker is not installed"
+    echo "installation instructions are here: https://docs.docker.com/desktop/"
+    exit 0
+  fi
+
   command docker exec -i "$@"
 }
 
@@ -24,7 +36,7 @@ docker__sn_lnd() {
     t=""
   fi
 
-  docker__exec $t -u lnd sn_lnd lncli "$@"
+  docker__exec "$t" -u lnd sn_lnd lncli "$@"
 }
 
 docker__stacker_lnd() {
@@ -35,40 +47,111 @@ docker__stacker_lnd() {
     t=""
   fi
 
-  docker__exec $t -u lnd stacker_lnd lncli "$@"
+  docker__exec "$t" -u lnd stacker_lnd lncli "$@"
 }
 
 sndev__start() {
-  if [ ! -x "$(command -v docker-compose)" ]; then
-    echo "docker compose is not installed"
-    echo "installation instructions are here: https://docs.docker.com/desktop/"
-    exit 0
-  fi
+  shift
 
   if ! [ -f .env.sndev ]; then
     echo ".env.sndev does not exist ... creating from .env.sample"
     cp .env.sample .env.sndev
   fi
 
-  docker__compose up --build
+  if [ $# -eq 0 ]; then
+    docker__compose up --build
+    exit 0
+  fi
+
+  docker__compose up "$@"
+}
+
+sndev__help_start() {
+help="
+start the sndev env
+
+USAGE
+  $ sndev start [OPTIONS]
+
+OPTIONS"
+
+  echo "$help"
+  docker compose up --help | awk '/Options:/{y=1;next}y'
 }
 
 sndev__stop() {
-  docker__compose down
+  shift
+  docker__compose down "$@"
+}
+
+sndev__help_stop() {
+help="
+stop the sndev env
+
+USAGE
+  $ sndev stop [OPTIONS]
+
+OPTIONS"
+
+  echo "$help"
+  docker compose down --help | awk '/Options:/{y=1;next}y'
 }
 
 sndev__restart() {
-  docker__compose restart
+  shift
+  docker__compose restart "$@"
+}
+
+sndev__help_restart() {
+help="
+restart the sndev env
+
+USAGE
+  $ sndev restart [OPTIONS]
+
+OPTIONS"
+
+  echo "$help"
+  docker compose restart --help | awk '/Options:/{y=1;next}y'
 }
 
 sndev__status() {
   shift
-  docker__compose ps --format 'table {{.Service}}\t{{.State}}\t{{.Status}}\t{{.Ports}}'
+  if [ $# -eq 0 ]; then
+    docker__compose ps --format 'table {{.Service}}\t{{.State}}\t{{.Status}}\t{{.Label "CONNECT"}}'
+    exit 0
+  fi
+  docker__compose ps "$@"
+}
+
+sndev__help_status() {
+help="
+show container status of sndev env
+
+USAGE
+  $ sndev status [OPTIONS]
+
+OPTIONS"
+
+  echo "$help"
+  docker compose ps --help | awk '/Options:/{y=1;next}y'
 }
 
 sndev__delete() {
-  echo "Deleting application"
+  # todo: add a confirmation prompt
   docker__compose down --volumes --remove-orphans
+}
+
+sndev__help_delete() {
+help="
+remove orphans and volumes from sndev env
+equivalent to sndev stop --volumes --remove-orphans
+
+USAGE
+  $ sndev delete
+"
+
+  echo "$help"
 }
 
 sndev__fund() {
@@ -76,17 +159,72 @@ sndev__fund() {
   docker__stacker_lnd -t payinvoice "$@"
 }
 
+sndev__help_fund() {
+help="
+pay a bolt11 for funding
+
+USAGE
+  $ sndev fund <bolt11> [OPTIONS]
+
+OPTIONS"
+
+  echo "$help"
+  docker__stacker_lnd payinvoice -h | awk '/OPTIONS:/{y=1;next}y' | awk '!/^[\t ]+--pay_req value/'
+}
+
 sndev__withdraw() {
   shift
   docker__stacker_lnd addinvoice --amt "$@" | jq -r '.payment_request'
 }
 
+sndev__help_withdraw() {
+  help="
+create a bolt11 for withdrawal
+
+USAGE
+  $ sndev withdraw <amount sats> [OPTIONS]
+
+OPTIONS"
+
+  echo "$help"
+  docker__stacker_lnd addinvoice -h | awk '/OPTIONS:/{y=1;next}y' | awk '!/^[\t ]+(--amt|--amt_msat) value/'
+}
+
 sndev__psql() {
-  docker__exec -t db psql -U sn stackernews
+  shift
+  docker__exec -t db psql "$@" -U sn -d stackernews
+}
+
+sndev__help_psql() {
+  help="
+open psql on db
+
+USAGE
+  $ sndev psql [OPTIONS]
+
+OPTIONS"
+
+  echo "$help"
+  docker__exec db psql --help | awk '/General options:/{y=1;next}y' | sed -n '/Connection options:/q;p' |
+    awk '!/^([\t ]+-l, --list)|([\t ]+-d, --dbname)|([\t ]+-\?, --help)|([\t ]--help=)/'
 }
 
 sndev__prisma() {
-  docker__exec -t -u apprunner app npx "$@"
+  shift
+  docker__exec -t -u apprunner app npx prisma "$@"
+}
+
+sndev__help_prisma() {
+  help="
+run prisma commands
+
+USAGE
+  $ sndev prisma [COMMAND]
+
+COMMANDS"
+
+  echo "$help"
+  sndev__prisma --help | awk '/Commands/{y=1;next}y' | awk '!/^([\t ]+init)|([\t ]+studio)/' | sed -n '/Flags/q;p'
 }
 
 sndev__compose() {
@@ -94,9 +232,17 @@ sndev__compose() {
   docker__compose "$@"
 }
 
+sndev__help_compose() {
+  docker__compose --help
+}
+
 sndev__sn_lncli() {
   shift
   docker__sn_lnd -t "$@"
+}
+
+sndev__help_sn_lncli() {
+  docker__sn_lnd --help
 }
 
 sndev__stacker_lncli() {
@@ -104,13 +250,17 @@ sndev__stacker_lncli() {
   docker__stacker_lnd -t "$@"
 }
 
+sndev__help_stacker_lncli() {
+  docker__stacker_lnd --help
+}
+
 sndev__help() {
-    if [ $# -eq 3 ]; then
-        call "sndev__$1__$2__$3" "$@"
-    elif [ $# -eq 2 ]; then
-        call "sndev__$1__$2" "$@"
-    else
-        help="
+    if [ $# -eq 2 ]; then
+      call "sndev__$1_$2" "$@"
+      exit 0
+    fi
+
+help="
                             888
                             888
                             888
@@ -124,6 +274,7 @@ manages a docker based stacker news development environment
 
 USAGE
   $ sndev [COMMAND]
+  $ sndev help [COMMAND]
 
 COMMANDS
   help            show help
@@ -148,16 +299,29 @@ COMMANDS
     sn_lncli      lncli passthrough on sn_lnd
     stacker_lncli lncli passthrough on stacker_lnd
 "
-        echo "$help"
-    fi
+  echo "$help"
 }
 
 call() {
     func=$1
     if type "$func" 1>/dev/null 2>&1; then
-        shift
+        # if it's sndev COMMAND help, then call help for that command
+        case $3 in
+          -h|--help|help)
+          call "sndev__help_$2"
+          exit 0
+          ;;
+        esac
+        shift # remove func from args
         "$func" "$@"  # invoke our named function w/ all remaining arguments
     else
+        # if it's sndev -h COMMAND, then call help for that command
+        case $2 in
+          -h|--help)
+          call "sndev__help_$3"
+          exit 0
+          ;;
+        esac
         sndev__help
         exit 1
     fi

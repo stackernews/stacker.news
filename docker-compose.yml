@@ -19,6 +19,8 @@ services:
     volumes:
       - ./docker/db/seed.sql:/docker-entrypoint-initdb.d/seed.sql
       - db:/var/lib/postgresql/data
+    labels:
+      CONNECT: "localhost:5431"
   app:
     container_name: app
     build:
@@ -55,6 +57,8 @@ services:
       - db
       - opensearch
       - sn_lnd
+    labels:
+      CONNECT: "localhost:3000"
   worker:
     container_name: worker
     build:
@@ -104,6 +108,8 @@ services:
       - "3001:8080"
     links:
       - app
+    labels:
+      CONNECT: "localhost:3001"
   opensearch:
     image: opensearchproject/opensearch:2.12.0
     container_name: opensearch
@@ -123,6 +129,8 @@ services:
       - 9600:9600 # Performance Analyzer
     volumes:
       - os:/usr/share/opensearch/data
+    labels:
+      CONNECT: "localhost:9200"
     command: >
       bash -c '
         set -m
@@ -156,6 +164,8 @@ services:
       - "5601"
     links:
       - opensearch
+    labels:
+      CONNECT: "localhost:5601"
   bitcoin:
     image: polarlightning/bitcoind:26.0
     container_name: bitcoin

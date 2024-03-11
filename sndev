@@ -46,8 +46,7 @@ sndev__start() {
   fi
 
   if ! [ -f .env.sndev ]; then
-    echo ".env.sndev does not exist."
-    echo "creating from .env.sample"
+    echo ".env.sndev does not exist ... creating from .env.sample"
     cp .env.sample .env.sndev
   fi
 
@@ -84,6 +83,10 @@ sndev__withdraw() {
 
 sndev__psql() {
   docker__exec -t db psql -U sn stackernews
+}
+
+sndev__prisma() {
+  docker__exec -t -u apprunner app npx "$@"
 }
 
 sndev__compose() {
@@ -138,8 +141,9 @@ COMMANDS
 
   db:
     psql          open psql on db
+    prisma        run prisma commands
 
-  raw:
+  other:
     compose       docker compose passthrough
     sn_lncli      lncli passthrough on sn_lnd
     stacker_lncli lncli passthrough on stacker_lnd

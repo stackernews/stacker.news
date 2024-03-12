@@ -27,6 +27,7 @@ export function DiscussionForm ({
   const schema = discussionSchema({ client, me, existingBoost: item?.boost })
   // if Web Share Target API was used
   const shareTitle = router.query.title
+  const shareText = router.query.text ? decodeURI(router.query.text) : undefined
   const crossposter = useCrossposter()
   const toaster = useToast()
 
@@ -88,7 +89,7 @@ export function DiscussionForm ({
     <Form
       initial={{
         title: item?.title || shareTitle || '',
-        text: item?.text || '',
+        text: item?.text || shareText || '',
         crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
         ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })

@@ -1,4 +1,4 @@
-import { Checkbox, Form, Input, SubmitButton, Select, VariableInput } from '../../components/form'
+import { Checkbox, Form, Input, SubmitButton, Select, VariableInput, CopyInput } from '../../components/form'
 import Alert from 'react-bootstrap/Alert'
 import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
@@ -26,6 +26,8 @@ import { useToast } from '../../components/toast'
 import { useLogger } from '../../components/logger'
 import { useMe } from '../../components/me'
 import { INVOICE_RETENTION_DAYS } from '../../lib/constants'
+import { OverlayTrigger, Tooltip } from 'react-bootstrap'
+import DeleteIcon from '../../svgs/delete-bin-line.svg'
 
 export const getServerSideProps = getGetServerSideProps({ query: SETTINGS, authRequired: true })
 
@@ -493,7 +495,7 @@ export default function Settings ({ ssrData }) {
         <div className='text-start w-100'>
           <div className='form-label'>saturday newsletter</div>
           <Button href='https://mail.stacker.news/subscription/form' target='_blank'>(re)subscribe</Button>
-          {settings?.authMethods && <AuthMethods methods={settings.authMethods} />}
+          {settings?.authMethods && <AuthMethods methods={settings.authMethods} apiKeyEnabled={settings.apiKeyEnabled} />}
         </div>
       </div>
     </CenterLayout>
@@ -606,7 +608,7 @@ function UnlinkObstacle ({ onClose, type, unlinkAuth }) {
   )
 }
 
-function AuthMethods ({ methods }) {
+function AuthMethods ({ methods, apiKeyEnabled }) {
   const showModal = useShowModal()
   const router = useRouter()
   const toaster = useToast()
@@ -642,7 +644,7 @@ function AuthMethods ({ methods }) {
   )
 
   // sort to prevent hydration mismatch
-  const providers = Object.keys(methods).filter(k => k !== '__typename').sort()
+  const providers = Object.keys(methods).filter(k => k !== '__typename' && k !== 'apiKey').sort()
 
   const unlink = async type => {
     // if there's only one auth method left
@@ -727,6 +729,7 @@ function AuthMethods ({ methods }) {
           )
         }
       })}
+      <ApiKey apiKey={methods.apiKey} enabled={apiKeyEnabled} />
     </>
   )
 }
@@ -764,5 +767,148 @@ export function EmailLinkForm ({ callbackUrl }) {
         <SubmitButton className='ms-2' variant='secondary'>Link Email</SubmitButton>
       </div>
     </Form>
+  )
+}
+
+export function ApiKey ({ enabled, apiKey }) {
+  const me = useMe()
+  const [generateApiKey] = useMutation(
+    gql`
+      mutation generateApiKey($id: ID!) {
+        generateApiKey(id: $id)
+      }`,
+    {
+      update (cache, { data: { generateApiKey } }) {
+        cache.modify({
+          id: 'ROOT_QUERY',
+          fields: {
+            settings (existing) {
+              return {
+                ...existing,
+                privates: {
+                  ...existing.privates,
+                  apiKey: generateApiKey,
+                  authMethods: { ...existing.privates.authMethods, apiKey: generateApiKey }
+                }
+              }
+            }
+          }
+        })
+      }
+    }
+  )
+  const [deleteApiKey] = useMutation(
+    gql`
+      mutation deleteApiKey($id: ID!) {
+        deleteApiKey(id: $id) {
+          id
+        }
+      }`,
+    {
+      update (cache, { data: { deleteApiKey } }) {
+        cache.modify({
+          id: 'ROOT_QUERY',
+          fields: {
+            settings (existing) {
+              return {
+                ...existing,
+                privates: {
+                  ...existing.privates,
+                  authMethods: { ...existing.privates.authMethods, apiKey: null }
+                }
+              }
+            }
+          }
+        })
+      }
+    }
+  )
+
+  const subject = '[API Key Request] <your title here>'
+  const body =
+  encodeURI(`**[API Key Request]**
+
+Hi, I would like to use API keys with the [Stacker News GraphQL API](/api/graphql) for the following reasons:
+
+...
+
+I expect to call the following GraphQL queries or mutations:
+
+... (you can leave empty if unknown)
+
+I estimate that I will call the GraphQL API this many times (rough estimate is fine):
+
+... (you can leave empty if unknown)
+`)
+  const metaLink = encodeURI(`/~meta/post?type=discussion&title=${subject}&text=${body}`)
+  const mailto = `mailto:hello@stacker.news?subject=${subject}&body=${body}`
+  // link to DM with k00b on Telegram
+  const telegramLink = 'https://t.me/k00bideh'
+  // link to DM with ek on SimpleX
+  const simplexLink = 'https://simplex.chat/contact#/?v=1-2&smp=smp%3A%2F%2F6iIcWT_dF2zN_w5xzZEY7HI2Prbh3ldP07YTyDexPjE%3D%40smp10.simplex.im%2FxNnPk9DkTbQJ6NckWom9mi5vheo_VPLm%23%2F%3Fv%3D1-2%26dh%3DMCowBQYDK2VuAyEAnFUiU0M8jS1JY34LxUoPr7mdJlFZwf3pFkjRrhprdQs%253D%26srv%3Drb2pbttocvnbrngnwziclp2f4ckjq65kebafws6g4hy22cdaiv5dwjqd.onion'
+
+  const disabled = !enabled
+
+  return (
+    <div className='mt-2 d-flex align-items-center'>
+      {apiKey &&
+        <>
+          <div className='fw-bold me-1'>api key</div>
+          <CopyInput
+            groupClassName='mb-0'
+            readOnly
+            noForm
+            placeholder={apiKey}
+          />
+        </>}
+      <OverlayTrigger
+        placement='bottom'
+        overlay={disabled ? <Tooltip>request access to API keys in ~meta</Tooltip> : <></>}
+        trigger={['hover', 'focus']}
+      >
+        <div>
+          {apiKey
+            ? <DeleteIcon
+                style={{ cursor: 'pointer' }} className='fill-grey mx-1' width={24} height={24}
+                onClick={async () => {
+                  await deleteApiKey({ variables: { id: me.id } })
+                }}
+              />
+            : (
+              <Button
+                disabled={disabled} className={apiKey ? 'ms-2' : ''} variant='secondary' onClick={async () => {
+                  await generateApiKey({ variables: { id: me.id } })
+                }}
+              >Generate API key
+              </Button>
+              )}
+        </div>
+      </OverlayTrigger>
+      <Info>
+        <ul className='fw-bold'>
+          <li>use API keys with our <Link target='_blank' href='/api/graphql'>GraphQL API</Link> for authentication</li>
+          <li>you need to add the API key to the <span className='text-monospace'>X-API-Key</span> header of your requests</li>
+          <li>you can currently only generate API keys if we enabled it for your account</li>
+          <li>
+            you can{' '}
+            <Link target='_blank' href={metaLink} rel='noreferrer'>create a post in ~meta</Link> to request access
+            or reach out to us via
+            <ul>
+              <li><Link target='_blank' href={mailto} rel='noreferrer'>email</Link></li>
+              <li><Link target='_blank' href={telegramLink} rel='noreferrer'>Telegram</Link></li>
+              <li><Link target='_blank' href={simplexLink} rel='noreferrer'>SimpleX</Link></li>
+            </ul>
+          </li>
+          <li>please include following information in your request:
+            <ul>
+              <li>your nym on SN</li>
+              <li>what you want to achieve with authenticated API access</li>
+              <li>which GraphQL queries or mutations you expect to call</li>
+              <li>your (rough) estimate how often you will call the GraphQL API</li>
+            </ul>
+          </li>
+        </ul>
+      </Info>
+    </div>
   )
 }

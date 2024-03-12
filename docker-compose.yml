@@ -100,6 +100,8 @@ services:
       - .env.development
     ports:
       - "3001:8080"
+    expose:
+      - "8080"
     labels:
       - "CONNECT=localhost:3001"
   s3:
@@ -118,6 +120,8 @@ services:
       - DEBUG=1
     ports:
       - "4566:4566"
+    expose:
+      - "4566"
     volumes:
       - 's3:/var/lib/localstack'
       - './docker/s3/init-s3.sh:/etc/localstack/init/ready.d/init-s3.sh'

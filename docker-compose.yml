@@ -15,7 +15,7 @@ services:
     ports:
       - "5431:5432"
     env_file:
-      - .env.sndev
+      - .env.development
     volumes:
       - ./docker/db/seed.sql:/docker-entrypoint-initdb.d/seed.sql
       - db:/var/lib/postgresql/data
@@ -45,18 +45,17 @@ services:
       sn_lnd:
         condition: service_healthy
         restart: true
+      # s3:
+      #   condition: service_healthy
+      #   restart: true
     env_file:
-      - .env.sndev
+      - .env.development
     expose:
       - "3000"
     ports:
       - "3000:3000"
     volumes:
       - ./:/app
-    links:
-      - db
-      - opensearch
-      - sn_lnd
     labels:
       CONNECT: "localhost:3000"
   worker:
@@ -81,20 +80,15 @@ services:
         condition: service_healthy
         restart: true
     env_file:
-      - .env.sndev
+      - .env.development
     volumes:
       - ./:/app
-    links:
-      - db
-      - app
-      - opensearch
-      - sn_lnd
     entrypoint: ["/bin/sh", "-c"]
     command:
       - npm run worker:dev
   imgproxy:
     container_name: imgproxy
-    image: darthsim/imgproxy:v3.18.1
+    image: docker.imgproxy.pro/imgproxy:v3.23.0
     healthcheck:
       test: [ "CMD", "imgproxy", "health" ]
       interval: 10s
@@ -103,13 +97,33 @@ services:
       start_period: 1m
     restart: unless-stopped
     env_file:
-      - .env.sndev
+      - .env.development
     ports:
       - "3001:8080"
-    links:
-      - app
     labels:
-      CONNECT: "localhost:3001"
+      - "CONNECT=localhost:3001"
+  s3:
+    container_name: s3
+    image: localstack/localstack:s3-latest
+    # healthcheck:
+    #   test: ["CMD-SHELL", "awslocal", "s3", "ls", "s3://uploads"]
+    #   interval: 10s
+    #   timeout: 10s
+    #   retries: 10
+    #   start_period: 1m
+    restart: unless-stopped
+    env_file:
+      - .env.development
+    environment:
+      - DEBUG=1
+    ports:
+      - "4566:4566"
+    volumes:
+      - 's3:/var/lib/localstack'
+      - './docker/s3/init-s3.sh:/etc/localstack/init/ready.d/init-s3.sh'
+      - './docker/s3/cors.json:/etc/localstack/init/ready.d/cors.json'
+    labels:
+      - "CONNECT=localhost:4566"
   opensearch:
     image: opensearchproject/opensearch:2.12.0
     container_name: opensearch
@@ -121,7 +135,7 @@ services:
       start_period: 1m
     restart: unless-stopped
     env_file:
-      - .env.sndev
+      - .env.development
     environment:
       - OPENSEARCH_INITIAL_ADMIN_PASSWORD=mVchg1T5oA9wudUh
     ports:
@@ -153,15 +167,13 @@ services:
         condition: service_healthy
         restart: true
     env_file:
-      - .env.sndev
+      - .env.development
     environment:
       - opensearch.ssl.verificationMode=none
       - OPENSEARCH_HOSTS=http://opensearch:9200
       - server.ssl.enabled=false
     ports:
       - 5601:5601
-    expose:
-      - "5601"
     links:
       - opensearch
     labels:
@@ -238,7 +250,7 @@ services:
         condition: service_healthy
         restart: true
     env_file:
-      - .env.sndev
+      - .env.development
     command:
       - 'lnd'
       - '--noseedbackup'
@@ -300,7 +312,7 @@ services:
         condition: service_healthy
         restart: true
     env_file:
-      - .env.sndev
+      - .env.development
     command:
       - 'lnd'
       - '--noseedbackup'
@@ -361,3 +373,4 @@ volumes:
   bitcoin:
   sn_lnd:
   stacker_lnd:
+  s3:

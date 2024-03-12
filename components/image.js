@@ -4,7 +4,7 @@ import { IMGPROXY_URL_REGEXP } from '../lib/url'
 import { useShowModal } from './modal'
 import { useMe } from './me'
 import { Dropdown } from 'react-bootstrap'
-import { UNKNOWN_LINK_REL, UPLOAD_TYPES_ALLOW } from '../lib/constants'
+import { UNKNOWN_LINK_REL, UPLOAD_TYPES_ALLOW, MEDIA_URL } from '../lib/constants'
 import { useToast } from './toast'
 import gql from 'graphql-tag'
 import { useMutation } from '@apollo/client'
@@ -224,7 +224,7 @@ export const ImageUpload = forwardRef(({ children, className, onSelect, onUpload
           return
         }
 
-        const url = `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}/${data.getSignedPOST.fields.key}`
+        const url = `${MEDIA_URL}/${data.getSignedPOST.fields.key}`
         // key is upload id in database
         const id = data.getSignedPOST.fields.key
         onSuccess?.({ ...variables, id, name: file.name, url, file })

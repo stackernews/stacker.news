@@ -9,7 +9,7 @@ docker__compose() {
     exit 0
   fi
 
-  CURRENT_UID=$(id -u) CURRENT_GID=$(id -g) command docker compose --env-file .env.sndev "$@"
+  CURRENT_UID=$(id -u) CURRENT_GID=$(id -g) command docker compose --env-file .env.development "$@"
 }
 
 docker__exec() {
@@ -55,9 +55,23 @@ docker__stacker_lnd() {
 sndev__start() {
   shift
 
-  if ! [ -f .env.sndev ]; then
-    echo ".env.sndev does not exist ... creating from .env.sample"
-    cp .env.sample .env.sndev
+  if ! [ -f .env.development ]; then
+    echo ".env.development does not exist ... creating from .env.sample"
+    cp .env.sample .env.development
+  elif ! git diff --exit-code .env.sample .env.development; then
+    echo ".env.development is different from .env.sample ..."
+    echo "do you want to merge .env.sample into .env.development? [y/N]"
+    read -r answer
+    if [ "$answer" = "y" ]; then
+      # merge .env.sample into .env.development in a posix compliant way
+      git merge-file --theirs .env.development /dev/fd/3 3<<-EOF /dev/fd/4 4<<-EOF
+$(git show HEAD:.env.sample)
+EOF
+$(cat .env.sample)
+EOF
+    else
+      echo "merge cancelled"
+    fi
   fi
 
   if [ $# -eq 0 ]; then
@@ -140,8 +154,13 @@ OPTIONS"
 }
 
 sndev__delete() {
-  # todo: add a confirmation prompt
-  docker__compose down --volumes --remove-orphans
+  echo "this will delete the containers, volumes, and orphans - are you sure? [y/N]"
+  read -r answer
+  if [ "$answer" = "y" ]; then
+    docker__compose down --volumes --remove-orphans
+  else
+    echo "delete cancelled"
+  fi
 }
 
 sndev__help_delete() {

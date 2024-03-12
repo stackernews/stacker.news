@@ -1,4 +1,5 @@
 import AWS from 'aws-sdk'
+import { MEDIA_URL } from '../../lib/constants'
 
 const bucketRegion = 'us-east-1'
 const Bucket = process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET
@@ -8,7 +9,11 @@ AWS.config.update({
 })
 
 export function createPresignedPost ({ key, type, size }) {
-  const s3 = new AWS.S3({ apiVersion: '2006-03-01' })
+  const s3 = new AWS.S3({
+    apiVersion: '2006-03-01',
+    endpoint: process.env.NODE_ENV === 'development' ? `${MEDIA_URL}/${Bucket}` : undefined,
+    s3ForcePathStyle: process.env.NODE_ENV === 'development'
+  })
   return new Promise((resolve, reject) => {
     s3.createPresignedPost({
       Bucket,

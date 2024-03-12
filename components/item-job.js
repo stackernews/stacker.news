@@ -10,6 +10,7 @@ import { timeSince } from '../lib/time'
 import EmailIcon from '../svgs/mail-open-line.svg'
 import Share from './share'
 import Hat from './hat'
+import { MEDIA_URL } from '../lib/constants'
 
 export default function ItemJob ({ item, toc, rank, children }) {
   const isEmail = string().email().isValidSync(item.url)
@@ -25,7 +26,7 @@ export default function ItemJob ({ item, toc, rank, children }) {
       <div className={styles.item}>
         <Link href={`/items/${item.id}`}>
           <Image
-            src={item.uploadId ? `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}/${item.uploadId}` : '/jobs-default.png'} width='42' height='42' className={styles.companyImage}
+            src={item.uploadId ? `${MEDIA_URL}/${item.uploadId}` : '/jobs-default.png'} width='42' height='42' className={styles.companyImage}
           />
         </Link>
         <div className={`${styles.hunk} align-self-center mb-0`}>

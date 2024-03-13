@@ -28,7 +28,7 @@ import { hexToBech32 } from '../lib/nostr'
 import NostrIcon from '../svgs/nostr.svg'
 import GithubIcon from '../svgs/github-fill.svg'
 import TwitterIcon from '../svgs/twitter-fill.svg'
-import { UNKNOWN_LINK_REL } from '../lib/constants'
+import { UNKNOWN_LINK_REL, MEDIA_URL } from '../lib/constants'
 
 export default function UserHeader ({ user }) {
   const router = useRouter()
@@ -96,7 +96,7 @@ function HeaderPhoto ({ user, isMe }) {
       }
     }
   )
-  const src = user.photoId ? `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}/${user.photoId}` : '/dorian400.jpg'
+  const src = user.photoId ? `${MEDIA_URL}/${user.photoId}` : '/dorian400.jpg'
 
   return (
     <div className='position-relative align-self-start' style={{ width: 'fit-content' }}>

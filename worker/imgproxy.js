@@ -10,7 +10,7 @@ if (!imgProxyEnabled) {
   console.warn('IMGPROXY_* env vars not set, imgproxy calls are no-ops now')
 }
 
-const IMGPROXY_URL = process.env.NEXT_PUBLIC_IMGPROXY_URL
+const IMGPROXY_URL = process.env.IMGPROXY_URL_DOCKER || process.env.NEXT_PUBLIC_IMGPROXY_URL
 const IMGPROXY_SALT = process.env.IMGPROXY_SALT
 const IMGPROXY_KEY = process.env.IMGPROXY_KEY
 
@@ -89,6 +89,12 @@ export const createImgproxyUrls = async (id, text, { models, forceFetch }) => {
   const imgproxyUrls = {}
   for (let url of urls) {
     if (!url) continue
+    let fetchUrl = url
+    if (process.env.MEDIA_URL_DOCKER) {
+      console.log('[imgproxy] id:', id, '-- replacing media url:', url)
+      fetchUrl = url.replace(process.env.NEXT_PUBLIC_MEDIA_URL, process.env.MEDIA_URL_DOCKER)
+      console.log('[imgproxy] id:', id, '-- with:', fetchUrl)
+    }
 
     console.log('[imgproxy] id:', id, '-- processing url:', url)
     if (url.startsWith(IMGPROXY_URL)) {
@@ -97,17 +103,17 @@ export const createImgproxyUrls = async (id, text, { models, forceFetch }) => {
       url = decodeOriginalUrl(url)
       console.log('[imgproxy] id:', id, '-- original url:', url)
     }
-    if (!(await isImageURL(url, { forceFetch }))) {
+    if (!(await isImageURL(fetchUrl, { forceFetch }))) {
       console.log('[imgproxy] id:', id, '-- not image url:', url)
       continue
     }
     imgproxyUrls[url] = {
-      dimensions: await getDimensions(url)
+      dimensions: await getDimensions(fetchUrl)
     }
     for (const res of resolutions) {
       const [w, h] = res.split('x')
       const processingOptions = `/rs:fit:${w}:${h}`
-      imgproxyUrls[url][`${w}w`] = createImgproxyUrl({ url, options: processingOptions })
+      imgproxyUrls[url][`${w}w`] = createImgproxyPath({ url: fetchUrl, options: processingOptions })
     }
   }
   return imgproxyUrls
@@ -115,17 +121,17 @@ export const createImgproxyUrls = async (id, text, { models, forceFetch }) => {
 
 const getDimensions = async (url) => {
   const options = '/d:1'
-  const imgproxyUrl = createImgproxyUrl({ url, options, pathname: 'info' })
+  const imgproxyUrl = new URL(createImgproxyPath({ url, options, pathname: '/info' }), IMGPROXY_URL).toString()
   const res = await fetch(imgproxyUrl)
   const { width, height } = await res.json()
   return { width, height }
 }
 
-const createImgproxyUrl = ({ url, pathname = '', options }) => {
+const createImgproxyPath = ({ url, pathname = '/', options }) => {
   const b64Url = Buffer.from(url, 'utf-8').toString('base64url')
   const target = path.join(options, b64Url)
   const signature = sign(target)
-  return new URL(path.join(pathname, signature, target), IMGPROXY_URL).toString()
+  return path.join(pathname, signature, target)
 }
 
 async function fetchWithTimeout (resource, { timeout = 1000, ...options } = {}) {

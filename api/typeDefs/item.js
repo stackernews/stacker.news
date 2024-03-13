@@ -10,6 +10,7 @@ export default gql`
     search(q: String, sub: String, cursor: String, what: String, sort: String, when: String, from: String, to: String): Items
     auctionPosition(sub: String, id: ID, bid: Int!): Int!
     itemRepetition(parentId: ID): Int!
+    newComments(rootId: ID!, after: Date!): [Item!]
   }
 
   type TitleUnshorted {

@@ -44,6 +44,7 @@ export const ITEM_FIELDS = gql`
     freebie
     bio
     ncomments
+    newComments @client
     commentSats
     lastCommentAt
     maxBid

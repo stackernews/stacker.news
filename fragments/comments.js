@@ -32,6 +32,7 @@ export const COMMENT_FIELDS = gql`
     mine
     otsHash
     ncomments
+    newComments @client
     imgproxyUrls
     rel
   }
@@ -90,3 +91,23 @@ export const COMMENTS = gql`
       }
     }
   }`
+
+export const ITEM_WITH_COMMENTS = gql`
+  ${COMMENT_FIELDS}
+
+  fragment ItemWithComments on Item {
+      ...CommentFields
+      comments {
+          ...CommentFields
+      }
+  }`
+
+export const NEW_COMMENTS = gql`
+  ${ITEM_WITH_COMMENTS}
+
+  query NewComments($rootId: ID!, $after: Date!) {
+    newComments(rootId: $rootId, after: $after) {
+      ...ItemWithComments
+    }
+  }
+`

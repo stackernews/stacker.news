@@ -22,6 +22,7 @@ import { RootProvider, useRoot } from './root'
 import { useMe } from './me'
 import { useQuoteReply } from './use-quote-reply'
 import { DownZap } from './dont-link-this'
+import { ShowNewCommentsButton } from './show-new-comments-button'
 import Skull from '../svgs/death-skull.svg'
 import { commentSubTreeRootId } from '../lib/item'
 import Pin from '../svgs/pushpin-fill.svg'
@@ -173,6 +174,9 @@ export default function Comment ({
                         <ActionTooltip notForm overlayText={`${numWithUnits(root.bounty)} paid`}>
                           <BountyIcon className={`${styles.bountyIcon} ${'fill-success vertical-align-middle'}`} height={16} width={16} />
                         </ActionTooltip>}
+                      {item.newComments && item.newComments.length > 0 && (
+                        <ShowNewCommentsButton itemId={item.id} newComments={item.newComments} />
+                      )}
                     </>
                   }
                   onEdit={e => { setEdit(!edit) }}

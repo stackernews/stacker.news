@@ -92,7 +92,7 @@ USAGE
 OPTIONS"
 
   echo "$help"
-  docker compose up --help | awk '/Options:/{y=1;next}y'
+  docker__compose up --help | awk '/Options:/{y=1;next}y'
 }
 
 sndev__stop() {
@@ -110,7 +110,7 @@ USAGE
 OPTIONS"
 
   echo "$help"
-  docker compose down --help | awk '/Options:/{y=1;next}y'
+  docker__compose down --help | awk '/Options:/{y=1;next}y'
 }
 
 sndev__restart() {
@@ -128,13 +128,13 @@ USAGE
 OPTIONS"
 
   echo "$help"
-  docker compose restart --help | awk '/Options:/{y=1;next}y'
+  docker__compose restart --help | awk '/Options:/{y=1;next}y'
 }
 
 sndev__status() {
   shift
   if [ $# -eq 0 ]; then
-    docker__compose ps --format 'table {{.Service}}\t{{.State}}\t{{.Status}}\t{{.Label "CONNECT"}}'
+    docker__compose ps -a --format 'table {{.Service}}\t{{.State}}\t{{.Status}}\t{{.Label "CONNECT"}}'
     exit 0
   fi
   docker__compose ps "$@"
@@ -150,7 +150,7 @@ USAGE
 OPTIONS"
 
   echo "$help"
-  docker compose ps --help | awk '/Options:/{y=1;next}y'
+  docker__compose ps --help | awk '/Options:/{y=1;next}y'
 }
 
 sndev__delete() {

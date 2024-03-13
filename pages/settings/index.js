@@ -850,65 +850,67 @@ I estimate that I will call the GraphQL API this many times (rough estimate is f
   const disabled = !enabled
 
   return (
-    <div className='mt-2 d-flex align-items-center'>
-      {apiKey &&
-        <>
-          <div className='fw-bold me-1'>api key</div>
-          <CopyInput
-            groupClassName='mb-0'
-            readOnly
-            noForm
-            placeholder={apiKey}
-          />
-        </>}
-      <OverlayTrigger
-        placement='bottom'
-        overlay={disabled ? <Tooltip>request access to API keys in ~meta</Tooltip> : <></>}
-        trigger={['hover', 'focus']}
-      >
-        <div>
-          {apiKey
-            ? <DeleteIcon
-                style={{ cursor: 'pointer' }} className='fill-grey mx-1' width={24} height={24}
-                onClick={async () => {
-                  await deleteApiKey({ variables: { id: me.id } })
-                }}
-              />
-            : (
-              <Button
-                disabled={disabled} className={apiKey ? 'ms-2' : ''} variant='secondary' onClick={async () => {
-                  await generateApiKey({ variables: { id: me.id } })
-                }}
-              >Generate API key
-              </Button>
-              )}
-        </div>
-      </OverlayTrigger>
-      <Info>
-        <ul className='fw-bold'>
-          <li>use API keys with our <Link target='_blank' href='/api/graphql'>GraphQL API</Link> for authentication</li>
-          <li>you need to add the API key to the <span className='text-monospace'>X-API-Key</span> header of your requests</li>
-          <li>you can currently only generate API keys if we enabled it for your account</li>
-          <li>
-            you can{' '}
-            <Link target='_blank' href={metaLink} rel='noreferrer'>create a post in ~meta</Link> to request access
-            or reach out to us via
-            <ul>
-              <li><Link target='_blank' href={mailto} rel='noreferrer'>email</Link></li>
-              <li><Link target='_blank' href={telegramLink} rel='noreferrer'>Telegram</Link></li>
-              <li><Link target='_blank' href={simplexLink} rel='noreferrer'>SimpleX</Link></li>
-            </ul>
-          </li>
-          <li>please include following information in your request:
-            <ul>
-              <li>your nym on SN</li>
-              <li>what you want to achieve with authenticated API access</li>
-              <li>which GraphQL queries or mutations you expect to call</li>
-              <li>your (rough) estimate how often you will call the GraphQL API</li>
-            </ul>
-          </li>
-        </ul>
-      </Info>
-    </div>
+    <>
+      <div className='form-label mt-3'>api key</div>
+      <div className='mt-2 d-flex align-items-center'>
+        {apiKey &&
+          <>
+            <CopyInput
+              groupClassName='mb-0'
+              readOnly
+              noForm
+              placeholder={apiKey}
+            />
+          </>}
+        <OverlayTrigger
+          placement='bottom'
+          overlay={disabled ? <Tooltip>request access to API keys in ~meta</Tooltip> : <></>}
+          trigger={['hover', 'focus']}
+        >
+          <div>
+            {apiKey
+              ? <DeleteIcon
+                  style={{ cursor: 'pointer' }} className='fill-grey mx-1' width={24} height={24}
+                  onClick={async () => {
+                    await deleteApiKey({ variables: { id: me.id } })
+                  }}
+                />
+              : (
+                <Button
+                  disabled={disabled} className={apiKey ? 'ms-2' : ''} variant='secondary' onClick={async () => {
+                    await generateApiKey({ variables: { id: me.id } })
+                  }}
+                >Generate API key
+                </Button>
+                )}
+          </div>
+        </OverlayTrigger>
+        <Info>
+          <ul className='fw-bold'>
+            <li>use API keys with our <Link target='_blank' href='/api/graphql'>GraphQL API</Link> for authentication</li>
+            <li>you need to add the API key to the <span className='text-monospace'>X-API-Key</span> header of your requests</li>
+            <li>you can currently only generate API keys if we enabled it for your account</li>
+            <li>
+              you can{' '}
+              <Link target='_blank' href={metaLink} rel='noreferrer'>create a post in ~meta</Link> to request access
+              or reach out to us via
+              <ul>
+                <li><Link target='_blank' href={mailto} rel='noreferrer'>email</Link></li>
+                <li><Link target='_blank' href={telegramLink} rel='noreferrer'>Telegram</Link></li>
+                <li><Link target='_blank' href={simplexLink} rel='noreferrer'>SimpleX</Link></li>
+              </ul>
+            </li>
+            <li>please include following information in your request:
+              <ul>
+                <li>your nym on SN</li>
+                <li>what you want to achieve with authenticated API access</li>
+                <li>which GraphQL queries or mutations you expect to call</li>
+                <li>your (rough) estimate how often you will call the GraphQL API</li>
+              </ul>
+            </li>
+          </ul>
+        </Info>
+      </div>
+    </>
   )
 }

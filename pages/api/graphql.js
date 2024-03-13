@@ -60,8 +60,7 @@ export default startServerAndCreateNextHandler(apolloServer, {
       if (user.apiKeyEnabled) {
         session = { user }
       }
-    }
-    if (!session) {
+    } else {
       session = await getServerSession(req, res, getAuthOptions(req))
     }
     return {

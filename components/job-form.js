@@ -15,7 +15,7 @@ import Link from 'next/link'
 import { usePrice } from './price'
 import Avatar from './avatar'
 import { jobSchema } from '../lib/validate'
-import { MAX_TITLE_LENGTH } from '../lib/constants'
+import { MAX_TITLE_LENGTH, MEDIA_URL } from '../lib/constants'
 import { useToast } from './toast'
 import { toastDeleteScheduled } from '../lib/form'
 import { ItemButtonBar } from './post'
@@ -110,7 +110,7 @@ export default function JobForm ({ item, sub }) {
           <label className='form-label'>logo</label>
           <div className='position-relative' style={{ width: 'fit-content' }}>
             <Image
-              src={logoId ? `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}/${logoId}` : '/jobs-default.png'} width='135' height='135' roundedCircle
+              src={logoId ? `${MEDIA_URL}/${logoId}` : '/jobs-default.png'} width='135' height='135' roundedCircle
             />
             <Avatar onSuccess={setLogoId} />
           </div>

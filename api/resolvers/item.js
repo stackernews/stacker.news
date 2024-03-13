@@ -1285,7 +1285,7 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
   const fwdUsers = await getForwardUsers(models, forward)
 
   const uploadIds = uploadIdsFromText(item.text, { models })
-  const { fees: imgFees } = await imageFeesInfo(uploadIds, { models, me })
+  const { totalFees: imgFees } = await imageFeesInfo(uploadIds, { models, me })
 
   item = await serializeInvoicable(
     models.$queryRawUnsafe(`${SELECT} FROM update_item($1::JSONB, $2::JSONB, $3::JSONB, $4::INTEGER[]) AS "Item"`,
@@ -1321,9 +1321,9 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
   }
 
   const uploadIds = uploadIdsFromText(item.text, { models })
-  const { fees: imgFees } = await imageFeesInfo(uploadIds, { models, me })
+  const { totalFees: imgFees } = await imageFeesInfo(uploadIds, { models, me })
 
-  let enforceFee
+  let enforceFee = 0
   if (!me) {
     if (item.parentId) {
       enforceFee = ANON_FEE_MULTIPLIER
@@ -1331,8 +1331,8 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
       const sub = await models.sub.findUnique({ where: { name: item.subName } })
       enforceFee = sub.baseCost * ANON_FEE_MULTIPLIER + (item.boost || 0)
     }
-    enforceFee += imgFees
   }
+  enforceFee += imgFees
 
   item = await serializeInvoicable(
     models.$queryRawUnsafe(

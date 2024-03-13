@@ -4,7 +4,7 @@ import { IMGPROXY_URL_REGEXP } from '../lib/url'
 import { useShowModal } from './modal'
 import { useMe } from './me'
 import { Dropdown } from 'react-bootstrap'
-import { UNKNOWN_LINK_REL, UPLOAD_TYPES_ALLOW } from '../lib/constants'
+import { UNKNOWN_LINK_REL, UPLOAD_TYPES_ALLOW, MEDIA_URL } from '../lib/constants'
 import { useToast } from './toast'
 import gql from 'graphql-tag'
 import { useMutation } from '@apollo/client'
@@ -68,6 +68,10 @@ function ImageProxy ({ src, srcSet: { dimensions, ...srcSetObj } = {}, onClick, 
     if (!srcSetObj) return undefined
     // srcSetObj shape: { [widthDescriptor]: <imgproxyUrl>, ... }
     return Object.entries(srcSetObj).reduce((acc, [wDescriptor, url], i, arr) => {
+      // backwards compatibility: we used to replace image urls with imgproxy urls rather just storing paths
+      if (!url.startsWith('http')) {
+        url = `${process.env.NEXT_PUBLIC_IMGPROXY_URL}${url}`
+      }
       return acc + `${url} ${wDescriptor}` + (i < arr.length - 1 ? ', ' : '')
     }, '')
   }, [srcSetObj])
@@ -77,6 +81,9 @@ function ImageProxy ({ src, srcSet: { dimensions, ...srcSetObj } = {}, onClick, 
   const bestResSrc = useMemo(() => {
     if (!srcSetObj) return src
     return Object.entries(srcSetObj).reduce((acc, [wDescriptor, url]) => {
+      if (!url.startsWith('http')) {
+        url = `${process.env.NEXT_PUBLIC_IMGPROXY_URL}${url}`
+      }
       const w = Number(wDescriptor.replace(/w$/, ''))
       return w > acc.w ? { w, url } : acc
     }, { w: 0, url: undefined }).url
@@ -224,7 +231,7 @@ export const ImageUpload = forwardRef(({ children, className, onSelect, onUpload
           return
         }
 
-        const url = `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}/${data.getSignedPOST.fields.key}`
+        const url = `${MEDIA_URL}/${data.getSignedPOST.fields.key}`
         // key is upload id in database
         const id = data.getSignedPOST.fields.key
         onSuccess?.({ ...variables, id, name: file.name, url, file })

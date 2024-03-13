@@ -60,7 +60,7 @@ sndev__start() {
     cp .env.sample .env.development
   elif ! git diff --exit-code --diff-algorithm=histogram .env.sample .env.development; then
     echo ".env.development is different from .env.sample ..."
-    echo "do you want to merge .env.sample into .env.development? [y/N]"
+    printf "do you want to merge .env.sample into .env.development? [y/N] "
     read -r answer
     if [ "$answer" = "y" ]; then
       # merge .env.sample into .env.development in a posix compliant way
@@ -154,7 +154,7 @@ OPTIONS"
 }
 
 sndev__delete() {
-  echo "this will delete the containers, volumes, and orphans - are you sure? [y/N]"
+  printf "this deletes containers, volumes, and orphans - are you sure? [y/N] "
   read -r answer
   if [ "$answer" = "y" ]; then
     docker__compose down --volumes --remove-orphans
@@ -275,6 +275,27 @@ sndev__help_stacker_lncli() {
   docker__stacker_lnd --help
 }
 
+sndev__pr() {
+  shift
+  refspec="+refs/pull/$1/head:refs/remotes/pr/$1"
+  case $(git config --get remote.origin.url) in
+    "http"*) git fetch https://github.com/stackernews/stacker.news.git "$refspec" ;;
+    *)       git fetch git@github.com:stackernews/stacker.news.git "$refspec" ;;
+  esac
+  git checkout "pr/$1"
+}
+
+sndev__help_pr() {
+  help="
+fetch and checkout a pr
+
+USAGE
+  $ sndev pr <pr number>
+"
+
+  echo "$help"
+}
+
 sndev__help() {
     if [ $# -eq 2 ]; then
       call "sndev__$1_$2" "$@"
@@ -314,6 +335,9 @@ COMMANDS
   db:
     psql          open psql on db
     prisma        run prisma commands
+
+  github:
+    pr            fetch and checkout a pr
 
   other:
     compose       docker compose passthrough

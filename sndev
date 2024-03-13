@@ -58,7 +58,7 @@ sndev__start() {
   if ! [ -f .env.development ]; then
     echo ".env.development does not exist ... creating from .env.sample"
     cp .env.sample .env.development
-  elif ! git diff --exit-code .env.sample .env.development; then
+  elif ! git diff --exit-code --diff-algorithm=histogram .env.sample .env.development; then
     echo ".env.development is different from .env.sample ..."
     echo "do you want to merge .env.sample into .env.development? [y/N]"
     read -r answer

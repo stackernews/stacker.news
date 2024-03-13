@@ -58,7 +58,7 @@ export default startServerAndCreateNextHandler(apolloServer, {
     if (apiKey) {
       const sessionFieldSelect = { name: true, id: true, email: true }
       const user = await models.user.findUnique({ where: { apiKey }, select: { ...sessionFieldSelect, apiKeyEnabled: true } })
-      if (user.apiKeyEnabled) {
+      if (user?.apiKeyEnabled) {
         const { apiKeyEnabled, ...sessionFields } = user
         session = { user: { ...sessionFields, apiKey: true } }
       }

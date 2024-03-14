@@ -7,8 +7,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@apollo/client'
 import MoreFooter from './more-footer'
 import { useData } from './use-data'
-import Hat, { HatTooltip } from './hat'
-import AnonIcon from '../svgs/spy-fill.svg'
+import Hat from './hat'
 import { useMe } from './me'
 import { MEDIA_URL } from '../lib/constants'
 
@@ -49,7 +48,7 @@ function User ({ user, rank, statComps, Embellish }) {
             {rank}
           </div>)
         : <div />}
-      <div className={`${styles.item} mb-2`}>
+      <div className={`${styles.item} ${me?.id === user.id && me.privates?.hideFromTopUsers ? userStyles.hidden : 'mb-2'}`}>
         <Link href={`/${user.name}`}>
           <Image
             src={user.photoId ? `${MEDIA_URL}/${user.photoId}` : '/dorian400.jpg'} width='32' height='32'
@@ -60,10 +59,6 @@ function User ({ user, rank, statComps, Embellish }) {
           <Link href={`/${user.name}`} className={`${styles.title} d-inline-flex align-items-center text-reset`}>
             @{user.name}<Hat className='ms-1 fill-grey' height={14} width={14} user={user} />
           </Link>
-          {me?.id === user.id && me.privates?.hideFromTopUsers &&
-            <HatTooltip overlayText='hidden'>
-              <span><AnonIcon className='fill-grey ms-1 align-middle' height={16} width={16} /></span>
-            </HatTooltip>}
           <div className={styles.other}>
             {statComps.map((Comp, i) => <Comp key={i} user={user} />)}
           </div>

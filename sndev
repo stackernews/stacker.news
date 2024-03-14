@@ -296,6 +296,39 @@ USAGE
   echo "$help"
 }
 
+sndev__login() {
+  shift
+  # hardcode token for which is the hex digest of the sha256 of
+  # "SNDEV-TOKEN3_0W_PhDRZVanbeJsZZGIEljexkKoGbL6qGIqSwTjjI"
+  # next-auth concats the token with the secret from env and then sha256's it
+  token="d5fce54babffcb070c39f78d947761fd9ec37647fafcecb9734a3085a78e5c5e"
+  # upsert user with nym and nym@sndev.team
+  docker__exec db psql -U sn -d stackernews -q <<EOF
+    INSERT INTO users (name) VALUES ('$1') ON CONFLICT DO NOTHING;
+    UPDATE users SET email = '$1@sndev.team' WHERE name = '$1';
+    INSERT INTO verification_requests (identifier, token, expires)
+      VALUES ('$1@sndev.team', '$token', NOW() + INTERVAL '1 day')
+      ON CONFLICT (token) DO UPDATE
+      SET identifier = '$1@sndev.team', expires = NOW() + INTERVAL '1 day';
+EOF
+
+  echo
+  echo "open url in browser"
+  echo "http://localhost:3000/api/auth/callback/email?token=SNDEV-TOKEN&email=$1%40sndev.team"
+  echo
+}
+
+sndev__help_login() {
+  help="
+login as a nym
+
+USAGE
+  $ sndev login <nym>
+"
+
+  echo "$help"
+}
+
 sndev__help() {
     if [ $# -eq 2 ]; then
       call "sndev__$1_$2" "$@"
@@ -327,6 +360,9 @@ COMMANDS
     restart       restart env
     status        status of env
     delete        delete env
+
+  sn:
+    login         login as a nym
 
   lnd:
     fund          pay a bolt11 for funding

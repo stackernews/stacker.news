@@ -309,7 +309,7 @@ sndev__login() {
     INSERT INTO verification_requests (identifier, token, expires)
       VALUES ('$1@sndev.team', '$token', NOW() + INTERVAL '1 day')
       ON CONFLICT (token) DO UPDATE
-      SET identifier = '$1', expires = NOW() + INTERVAL '1 day';
+      SET identifier = '$1@sndev.team', expires = NOW() + INTERVAL '1 day';
 EOF
 
   echo

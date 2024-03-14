@@ -15,6 +15,8 @@ export function uploadIdsFromText (text, { models }) {
 }
 
 export async function imageFeesInfo (s3Keys, { models, me }) {
+  // returns info object in this format:
+  // { bytes24h: int, bytesUnpaid: int, nUnpaid: int, imageFeeMsats: BigInt }
   const [info] = await models.$queryRawUnsafe('SELECT * FROM image_fees_info($1::INTEGER, $2::INTEGER[])', me ? me.id : ANON_USER_ID, s3Keys)
   const imageFee = msatsToSats(info.imageFeeMsats)
   const totalFeesMsats = info.nUnpaid * Number(info.imageFeeMsats)

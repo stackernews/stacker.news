@@ -199,7 +199,7 @@ export default function UpVote ({ item, className }) {
               style={meSats || hover
                 ? {
                     fill: hover ? nextColor : color,
-                    filter: `drop-shadow(0 0 6px ${color}90)`
+                    filter: `drop-shadow(0 0 6px ${hover ? nextColor : color}90)`
                   }
                 : undefined}
             />

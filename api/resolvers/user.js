@@ -82,7 +82,7 @@ export async function topUsers (parent, { cursor, when, by, from, to, limit = LI
       OFFSET $3
       LIMIT $4`, ...range, decodedCursor.offset, limit)
   ).map(
-    u => u.hideFromTopUsers ? null : u
+    u => u.hideFromTopUsers && (!me || me.id !== u.id) ? null : u
   )
 
   return {
@@ -157,7 +157,7 @@ export default {
           OFFSET $3
           LIMIT ${LIMIT}`, ...range, decodedCursor.offset)
       ).map(
-        u => u.hideFromTopUsers || u.hideCowboyHat ? null : u
+        u => (u.hideFromTopUsers || u.hideCowboyHat) && (!me || me.id !== u.id) ? null : u
       )
 
       return {

@@ -86,7 +86,7 @@ export default function TerritoryForm ({ sub }) {
           moderated: sub?.moderated || false,
           nsfw: sub?.nsfw || false
         }}
-        schema={territorySchema({ client, me })}
+        schema={territorySchema({ client, me, sub })}
         invoiceable
         onSubmit={onSubmit}
         className='mb-5'

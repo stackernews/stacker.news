@@ -1,0 +1,411 @@
+#!/bin/sh
+
+set -e
+
+docker__compose() {
+  if [ ! -x "$(command -v docker-compose)" ]; then
+    echo "docker compose is not installed"
+    echo "installation instructions are here: https://docs.docker.com/desktop/"
+    exit 0
+  fi
+
+  CURRENT_UID=$(id -u) CURRENT_GID=$(id -g) command docker compose --env-file .env.development "$@"
+}
+
+docker__exec() {
+  if [ ! -x "$(command -v docker)" ]; then
+    echo "docker is not installed"
+    echo "installation instructions are here: https://docs.docker.com/desktop/"
+    exit 0
+  fi
+
+  command docker exec -i "$@"
+}
+
+docker__sn_lnd() {
+  docker__exec -u lnd sn_lnd lncli "$@"
+}
+
+docker__stacker_lnd() {
+  docker__exec -u lnd stacker_lnd lncli "$@"
+}
+
+docker__sn_lnd() {
+  t=$1
+  if [ "$t" = "-t" ]; then
+    shift
+  else
+    t=""
+  fi
+
+  docker__exec "$t" -u lnd sn_lnd lncli "$@"
+}
+
+docker__stacker_lnd() {
+  t=$1
+  if [ "$t" = "-t" ]; then
+    shift
+  else
+    t=""
+  fi
+
+  docker__exec "$t" -u lnd stacker_lnd lncli "$@"
+}
+
+sndev__start() {
+  shift
+
+  if ! [ -f .env.development ]; then
+    echo ".env.development does not exist ... creating from .env.sample"
+    cp .env.sample .env.development
+  elif ! git diff --exit-code --diff-algorithm=histogram .env.sample .env.development; then
+    echo ".env.development is different from .env.sample ..."
+    printf "do you want to merge .env.sample into .env.development? [y/N] "
+    read -r answer
+    if [ "$answer" = "y" ]; then
+      # merge .env.sample into .env.development in a posix compliant way
+      git merge-file --theirs .env.development /dev/fd/3 3<<-EOF /dev/fd/4 4<<-EOF
+$(git show HEAD:.env.sample)
+EOF
+$(cat .env.sample)
+EOF
+    else
+      echo "merge cancelled"
+    fi
+  fi
+
+  if [ $# -eq 0 ]; then
+    docker__compose up --build
+    exit 0
+  fi
+
+  docker__compose up "$@"
+}
+
+sndev__help_start() {
+help="
+start the sndev env
+
+USAGE
+  $ sndev start [OPTIONS]
+
+OPTIONS"
+
+  echo "$help"
+  docker__compose up --help | awk '/Options:/{y=1;next}y'
+}
+
+sndev__stop() {
+  shift
+  docker__compose down "$@"
+}
+
+sndev__help_stop() {
+help="
+stop the sndev env
+
+USAGE
+  $ sndev stop [OPTIONS]
+
+OPTIONS"
+
+  echo "$help"
+  docker__compose down --help | awk '/Options:/{y=1;next}y'
+}
+
+sndev__restart() {
+  shift
+  docker__compose restart "$@"
+}
+
+sndev__help_restart() {
+help="
+restart the sndev env
+
+USAGE
+  $ sndev restart [OPTIONS]
+
+OPTIONS"
+
+  echo "$help"
+  docker__compose restart --help | awk '/Options:/{y=1;next}y'
+}
+
+sndev__status() {
+  shift
+  if [ $# -eq 0 ]; then
+    docker__compose ps -a --format 'table {{.Service}}\t{{.State}}\t{{.Status}}\t{{.Label "CONNECT"}}'
+    exit 0
+  fi
+  docker__compose ps "$@"
+}
+
+sndev__help_status() {
+help="
+show container status of sndev env
+
+USAGE
+  $ sndev status [OPTIONS]
+
+OPTIONS"
+
+  echo "$help"
+  docker__compose ps --help | awk '/Options:/{y=1;next}y'
+}
+
+sndev__delete() {
+  printf "this deletes containers, volumes, and orphans - are you sure? [y/N] "
+  read -r answer
+  if [ "$answer" = "y" ]; then
+    docker__compose down --volumes --remove-orphans
+  else
+    echo "delete cancelled"
+  fi
+}
+
+sndev__help_delete() {
+help="
+remove orphans and volumes from sndev env
+equivalent to sndev stop --volumes --remove-orphans
+
+USAGE
+  $ sndev delete
+"
+
+  echo "$help"
+}
+
+sndev__fund() {
+  shift
+  docker__stacker_lnd -t payinvoice "$@"
+}
+
+sndev__help_fund() {
+help="
+pay a bolt11 for funding
+
+USAGE
+  $ sndev fund <bolt11> [OPTIONS]
+
+OPTIONS"
+
+  echo "$help"
+  docker__stacker_lnd payinvoice -h | awk '/OPTIONS:/{y=1;next}y' | awk '!/^[\t ]+--pay_req value/'
+}
+
+sndev__withdraw() {
+  shift
+  docker__stacker_lnd addinvoice --amt "$@" | jq -r '.payment_request'
+}
+
+sndev__help_withdraw() {
+  help="
+create a bolt11 for withdrawal
+
+USAGE
+  $ sndev withdraw <amount sats> [OPTIONS]
+
+OPTIONS"
+
+  echo "$help"
+  docker__stacker_lnd addinvoice -h | awk '/OPTIONS:/{y=1;next}y' | awk '!/^[\t ]+(--amt|--amt_msat) value/'
+}
+
+sndev__psql() {
+  shift
+  docker__exec -t db psql "$@" -U sn -d stackernews
+}
+
+sndev__help_psql() {
+  help="
+open psql on db
+
+USAGE
+  $ sndev psql [OPTIONS]
+
+OPTIONS"
+
+  echo "$help"
+  docker__exec db psql --help | awk '/General options:/{y=1;next}y' | sed -n '/Connection options:/q;p' |
+    awk '!/^([\t ]+-l, --list)|([\t ]+-d, --dbname)|([\t ]+-\?, --help)|([\t ]--help=)/'
+}
+
+sndev__prisma() {
+  shift
+  docker__exec -t -u apprunner app npx prisma "$@"
+}
+
+sndev__help_prisma() {
+  help="
+run prisma commands
+
+USAGE
+  $ sndev prisma [COMMAND]
+
+COMMANDS"
+
+  echo "$help"
+  sndev__prisma --help | awk '/Commands/{y=1;next}y' | awk '!/^([\t ]+init)|([\t ]+studio)/' | sed -n '/Flags/q;p'
+}
+
+sndev__compose() {
+  shift
+  docker__compose "$@"
+}
+
+sndev__help_compose() {
+  docker__compose --help
+}
+
+sndev__sn_lncli() {
+  shift
+  docker__sn_lnd -t "$@"
+}
+
+sndev__help_sn_lncli() {
+  docker__sn_lnd --help
+}
+
+sndev__stacker_lncli() {
+  shift
+  docker__stacker_lnd -t "$@"
+}
+
+sndev__help_stacker_lncli() {
+  docker__stacker_lnd --help
+}
+
+sndev__pr() {
+  shift
+  refspec="+refs/pull/$1/head:refs/remotes/pr/$1"
+  case $(git config --get remote.origin.url) in
+    "http"*) git fetch https://github.com/stackernews/stacker.news.git "$refspec" ;;
+    *)       git fetch git@github.com:stackernews/stacker.news.git "$refspec" ;;
+  esac
+  git checkout "pr/$1"
+}
+
+sndev__help_pr() {
+  help="
+fetch and checkout a pr
+
+USAGE
+  $ sndev pr <pr number>
+"
+
+  echo "$help"
+}
+
+sndev__login() {
+  shift
+  # hardcode token for which is the hex digest of the sha256 of
+  # "SNDEV-TOKEN3_0W_PhDRZVanbeJsZZGIEljexkKoGbL6qGIqSwTjjI"
+  # next-auth concats the token with the secret from env and then sha256's it
+  token="d5fce54babffcb070c39f78d947761fd9ec37647fafcecb9734a3085a78e5c5e"
+  # upsert user with nym and nym@sndev.team
+  docker__exec db psql -U sn -d stackernews -q <<EOF
+    INSERT INTO users (name) VALUES ('$1') ON CONFLICT DO NOTHING;
+    UPDATE users SET email = '$1@sndev.team' WHERE name = '$1';
+    INSERT INTO verification_requests (identifier, token, expires)
+      VALUES ('$1@sndev.team', '$token', NOW() + INTERVAL '1 day')
+      ON CONFLICT (token) DO UPDATE
+      SET identifier = '$1@sndev.team', expires = NOW() + INTERVAL '1 day';
+EOF
+
+  echo
+  echo "open url in browser"
+  echo "http://localhost:3000/api/auth/callback/email?token=SNDEV-TOKEN&email=$1%40sndev.team"
+  echo
+}
+
+sndev__help_login() {
+  help="
+login as a nym
+
+USAGE
+  $ sndev login <nym>
+"
+
+  echo "$help"
+}
+
+sndev__help() {
+    if [ $# -eq 2 ]; then
+      call "sndev__$1_$2" "$@"
+      exit 0
+    fi
+
+help="
+                            888
+                            888
+                            888
+      .d8888b  88888b.  .d88888  .d88b.  888  888
+     88K      888 '88b d88' 888 d8P  Y8b 888  888
+     'Y8888b. 888  888 888  888 88888888 Y88  88P
+          X88 888  888 Y88b 888 Y8b.      Y8bd8P
+      88888P' 888  888  'Y88888  'Y8888    Y88P
+
+manages a docker based stacker news development environment
+
+USAGE
+  $ sndev [COMMAND]
+  $ sndev help [COMMAND]
+
+COMMANDS
+  help            show help
+
+  env:
+    start         start env
+    stop          stop env
+    restart       restart env
+    status        status of env
+    delete        delete env
+
+  sn:
+    login         login as a nym
+
+  lnd:
+    fund          pay a bolt11 for funding
+    withdraw      create a bolt11 for withdrawal
+
+  db:
+    psql          open psql on db
+    prisma        run prisma commands
+
+  github:
+    pr            fetch and checkout a pr
+
+  other:
+    compose       docker compose passthrough
+    sn_lncli      lncli passthrough on sn_lnd
+    stacker_lncli lncli passthrough on stacker_lnd
+"
+  echo "$help"
+}
+
+call() {
+    func=$1
+    if type "$func" 1>/dev/null 2>&1; then
+        # if it's sndev COMMAND help, then call help for that command
+        case $3 in
+          -h|--help|help)
+          call "sndev__help_$2"
+          exit 0
+          ;;
+        esac
+        shift # remove func from args
+        "$func" "$@"  # invoke our named function w/ all remaining arguments
+    else
+        # if it's sndev -h COMMAND, then call help for that command
+        case $2 in
+          -h|--help)
+          call "sndev__help_$3"
+          exit 0
+          ;;
+        esac
+        sndev__help
+        exit 1
+    fi
+}
+
+call "sndev__$1" "$@"

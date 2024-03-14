@@ -8,6 +8,8 @@ import { useQuery } from '@apollo/client'
 import MoreFooter from './more-footer'
 import { useData } from './use-data'
 import Hat from './hat'
+import { useMe } from './me'
+import { MEDIA_URL } from '../lib/constants'
 
 // all of this nonsense is to show the stat we are sorting by first
 const Stacked = ({ user }) => (user.optional.stacked !== null && <span>{abbrNum(user.optional.stacked)} stacked</span>)
@@ -37,6 +39,7 @@ function seperate (arr, seperator) {
 }
 
 function User ({ user, rank, statComps, Embellish }) {
+  const me = useMe()
   return (
     <>
       {rank
@@ -45,10 +48,10 @@ function User ({ user, rank, statComps, Embellish }) {
             {rank}
           </div>)
         : <div />}
-      <div className={`${styles.item} mb-2`}>
+      <div className={`${styles.item} ${me?.id === user.id && me.privates?.hideFromTopUsers ? userStyles.hidden : 'mb-2'}`}>
         <Link href={`/${user.name}`}>
           <Image
-            src={user.photoId ? `https://${process.env.NEXT_PUBLIC_MEDIA_DOMAIN}/${user.photoId}` : '/dorian400.jpg'} width='32' height='32'
+            src={user.photoId ? `${MEDIA_URL}/${user.photoId}` : '/dorian400.jpg'} width='32' height='32'
             className={`${userStyles.userimg} me-2`}
           />
         </Link>

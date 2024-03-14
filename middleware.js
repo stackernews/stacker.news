@@ -20,13 +20,16 @@ export function middleware (request) {
   }
 
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
+  // we want to load media from other localhost ports during development
+  const devSrc = process.env.NODE_ENV === 'development' ? 'localhost:* ' : ''
+
   const cspHeader = [
     // if something is not explicitly allowed, we don't allow it.
     "default-src 'none'",
     "font-src 'self' a.stacker.news",
     // we want to load images from everywhere but we can limit to HTTPS at least
-    "img-src 'self' a.stacker.news m.stacker.news https: data: blob:",
-    "media-src 'self' a.stacker.news m.stacker.news",
+    `img-src 'self' ${devSrc}a.stacker.news m.stacker.news https: data: blob:`,
+    `media-src 'self' ${devSrc}a.stacker.news m.stacker.news`,
     // Using nonces and strict-dynamic deploys a strict CSP.
     // see https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html#strict-policy.
     // Old browsers will ignore nonce and strict-dynamic and fallback to host-based matching and unsafe-inline
@@ -39,7 +42,7 @@ export function middleware (request) {
     "style-src 'self' a.stacker.news 'unsafe-inline'",
     "manifest-src 'self'",
     'frame-src www.youtube.com platform.twitter.com',
-    "connect-src 'self' https: wss:",
+    `connect-src 'self' ${devSrc}https: wss:`,
     // disable dangerous plugins like Flash
     "object-src 'none'",
     // blocks injection of <base> tags

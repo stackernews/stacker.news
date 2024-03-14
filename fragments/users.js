@@ -99,7 +99,9 @@ export const SETTINGS_FIELDS = gql`
         github
         twitter
         email
+        apiKey
       }
+      apiKeyEnabled
     }
   }`
 

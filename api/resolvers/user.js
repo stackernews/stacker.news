@@ -46,7 +46,8 @@ async function authMethods (user, args, { models, me }) {
     email: user.emailVerified && user.email,
     twitter: oauth.indexOf('twitter') >= 0,
     github: oauth.indexOf('github') >= 0,
-    nostr: !!user.nostrAuthPubkey
+    nostr: !!user.nostrAuthPubkey,
+    apiKey: user.apiKeyEnabled ? user.apiKey : null
   }
 }
 
@@ -520,6 +521,26 @@ export default {
       }
 
       return await models.user.findUnique({ where: { id: me.id } })
+    },
+    generateApiKey: async (parent, { id }, { models, me }) => {
+      if (!me) {
+        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+      }
+
+      const user = await models.user.findUnique({ where: { id: me.id } })
+      if (!user.apiKeyEnabled) {
+        throw new GraphQLError('you are not allowed to generate api keys', { extensions: { code: 'FORBIDDEN' } })
+      }
+
+      const [{ apiKey }] = await models.$queryRaw`UPDATE users SET "apiKey" = encode(gen_random_bytes(32), 'base64')::CHAR(32) WHERE id = ${me.id} RETURNING "apiKey"`
+      return apiKey
+    },
+    deleteApiKey: async (parent, { id }, { models, me }) => {
+      if (!me) {
+        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+      }
+
+      return await models.user.update({ where: { id: me.id }, data: { apiKey: null } })
     },
     unlinkAuth: async (parent, { authType }, { models, me }) => {
       if (!me) {

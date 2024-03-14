@@ -26,6 +26,8 @@ model User {
   checkedNotesAt            DateTime?
   foundNotesAt              DateTime?
   pubkey                    String?              @unique(map: "users.pubkey_unique")
+  apiKey                    String?              @db.Char(32) @unique(map: "users.apikey_unique")
+  apiKeyEnabled             Boolean              @default(false)
   tipDefault                Int                  @default(100)
   bioId                     Int?
   inviteId                  String?

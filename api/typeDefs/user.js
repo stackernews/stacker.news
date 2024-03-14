@@ -36,6 +36,8 @@ export default gql`
     subscribeUserPosts(id: ID): User
     subscribeUserComments(id: ID): User
     toggleMute(id: ID): User
+    generateApiKey(id: ID!): String
+    deleteApiKey(id: ID!): User
   }
 
   type User {
@@ -100,6 +102,7 @@ export default gql`
     github: Boolean!
     twitter: Boolean!
     email: String
+    apiKey: String
   }
 
   type UserPrivates {
@@ -118,6 +121,7 @@ export default gql`
     tipPopover: Boolean!
     upvotePopover: Boolean!
     hasInvites: Boolean!
+    apiKeyEnabled: Boolean!
 
     """
     mirrors SettingsInput

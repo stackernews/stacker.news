@@ -212,7 +212,7 @@ export default {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
       }
 
-      await ssValidate(territorySchema, data, { models, me })
+      await ssValidate(territorySchema, data, { models, me, sub: { name: data.oldName } })
 
       if (data.oldName) {
         return await updateSub(parent, data, { me, models, lnd, hash, hmac })

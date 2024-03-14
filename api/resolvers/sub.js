@@ -335,15 +335,8 @@ export default {
         throw new GraphQLError('sub should not be archived', { extensions: { code: 'BAD_INPUT' } })
       }
 
-      let billingCost = TERRITORY_COST_MONTHLY
-      let billPaidUntil = datePivot(new Date(), { months: 1 })
-      if (data.billingType === 'ONCE') {
-        billingCost = TERRITORY_COST_ONCE
-        billPaidUntil = null
-      } else if (data.billingType === 'YEARLY') {
-        billingCost = TERRITORY_COST_YEARLY
-        billPaidUntil = datePivot(new Date(), { years: 1 })
-      }
+      const billingCost = TERRITORY_PERIOD_COST(data.billingType)
+      const billPaidUntil = nextBilling(new Date(), data.billingType)
       const cost = BigInt(1000) * BigInt(billingCost)
       const newSub = { ...data, billPaidUntil, billingCost, userId: me.id, status: 'ACTIVE' }
 

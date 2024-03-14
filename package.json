@@ -13,7 +13,7 @@
     "worker:dev": "tsx --trace-warnings --watch worker/index.js"
   },
   "dependencies": {
-    "@apollo/client": "^3.8.5",
+    "@apollo/client": "^3.9.7",
     "@apollo/server": "^4.9.4",
     "@as-integrations/next": "^2.0.2",
     "@auth/prisma-adapter": "^1.0.3",

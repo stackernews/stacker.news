@@ -82,8 +82,9 @@ COMMANDS
     psql          open psql on db
     prisma        run prisma commands
 
-  github:
+  dev:
     pr            fetch and checkout a pr
+    lint          run linters
 
   other:
     compose       docker compose passthrough

@@ -158,12 +158,12 @@ services:
           sleep 1
         done
         echo "OpenSearch started."
-        curl
-          \ -H "Content-Type: application/json"
-          \ -X PUT
-          \ -d '{"mappings":{"properties":{"text":{"type":"text","analyzer":"english","fields":{"keyword":{"type":"keyword","ignore_above":256}}},"title":{"type":"text","analyzer":"english","fields":{"keyword":{"type":"keyword","ignore_above":256}}}}}}'
-          \ "http://localhost:9200/item"
-          \ -ku admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
+        curl \
+          -H "Content-Type: application/json" \
+          -X PUT \
+          -d '{"mappings":{"properties":{"text":{"type":"text","analyzer":"english","fields":{"keyword":{"type":"keyword","ignore_above":256}}},"title":{"type":"text","analyzer":"english","fields":{"keyword":{"type":"keyword","ignore_above":256}}}}}}' \
+          "http://localhost:9200/item" \
+          -ku admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
         echo "OpenSearch index created."
         fg
       '

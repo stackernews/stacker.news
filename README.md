@@ -98,7 +98,7 @@ COMMANDS
 - [Getting started](#getting-started)
     - [Installation](#installation)
     - [Usage](#usage)
-- [Contributing](#Contributing)
+- [Contributing](#contributing)
     - [We pay bitcoin for contributions](#we-pay-bitcoin-for-contributions)
     - [Pull request awards](#pull-request-awards)
     - [Code review awards](#code-review-awards)
@@ -106,6 +106,20 @@ COMMANDS
     - [Responsible disclosure of security or privacy vulnerability awards](#responsible-disclosure-of-security-or-privacy-vulnerability-awards)
     - [Development documentation awards](#development-documentation-awards)
     - [Helpfulness awards](#helpfulness-awards)
+- [Development Tips](#development-tips)
+    - [Linting](#linting)
+    - [Database migrations](#database-migrations)
+    - [Connecting to the local database](#connecting-to-the-local-database)
+    - [Running lncli on the local lnd nodes](#running-lncli-on-the-local-lnd-nodes)
+    - [Testing local auth](#testing-local-auth)
+        - [Login with Email](#login-with-email)
+        - [Login with Github](#login-with-github)
+        - [Login with Lightning](#login-with-lightning)
+    - [Enabling web push notifications](#enabling-web-push-notifications)
+- [Internals](#internals)
+    - [Stack](#stack)
+    - [Services](#services)
+    - [Wallet transaction safety](#wallet-transaction-safety)
 - [Need help?](#need-help)
 - [Responsible Disclosure](#responsible-disclosure)
 - [License](#license)
@@ -238,6 +252,120 @@ Like issue specification awards, helping fellow contributors substantially in a 
 
 <br>
 
+# Development Tips
+
+<br>
+
+## Linting
+
+We use [JavaScript Standard Style](https://standardjs.com/) to enforce code style and correctness. You should run `sndev lint` before submitting a PR.
+
+If you're using VSCode, you can install the [StandardJS VSCode Extension](https://marketplace.visualstudio.com/items?itemName=standard.vscode-standard) extension to get linting in your editor. We also recommend installing [StandardJS code snippets](https://marketplace.visualstudio.com/items?itemName=capaj.vscode-standardjs-snippets) and [StandardJS react code snippets](https://marketplace.visualstudio.com/items?itemName=TimonVS.ReactSnippetsStandard) for code snippets.
+
+<br>
+
+## Database migrations
+
+We use [prisma](https://www.prisma.io/) for our database migrations. To create a new migration, modify `prisma/schema.prisma` according to [prisma schema referecne](https://www.prisma.io/docs/orm/reference/prisma-schema-reference) and apply it with:
+
+`./sndev prisma migrate dev`
+
+If you want to create a migration without applying it, eg to create a trigger or modify the generated sql before applying, use the `--create-only` option:
+
+`./sndev prisma migrate dev --create-only`
+
+Generate the local copy of the prisma ORM client in `node_modules` after changes. This should only be needed to get Intellisense in your editor locally.
+
+`./sndev prisma generate`
+
+<br>
+
+## Connecting to the local database
+
+You can connect to the local database via `./sndev psql`. [psql](https://www.postgresql.org/docs/13/app-psql.html) is an interactive terminal for working with PostgreSQL.
+
+<br>
+
+## Running lncli on the local lnd nodes
+
+You can run `lndcli` on the local lnd nodes via `./sndev sn_lncli` and `./sndev stacker_lncli`. The node for your local SN instance is `sn_lnd` and the node serving as any external node, like a stacker's node or external wallet, is `stacker_lnd`.
+
+<br>
+
+## Testing local auth
+
+You can login to test features like posting, replying, tipping, etc with `./sndev login <nym>` which will provide a link to login as an existing nym or a new account for a nonexistent nym. But, it you want to test auth specifically you'll need to configure them in your `.env` file.
+
+### Login with Email
+
+- Create a Sendgrid account (or other smtp service)
+
+```
+LOGIN_EMAIL_SERVER=smtp://apikey:<sendgrid_api_key>@smtp.sendgrid.net:587
+LOGIN_EMAIL_FROM=<sendgrid_email_from>
+```
+
+- Click "sign up" and enter your email address
+- Check your email
+- Click the link (looks like this):
+
+```
+http://localhost:3000/api/auth/callback/email?email=satoshi%40gmail.com&token=110e30a954ce7ca643379d90eb511640733de405f34a31b38eeda8e254d48cd7
+```
+
+### Login with Github
+
+- [Create a new OAuth app](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app) in your Github account
+  - Set the callback URL to: `http://localhost:3000/api/auth/callback/github`
+- Update your `.env` file
+
+```
+GITHUB_ID=<Client ID>
+GITHUB_SECRET=<Client secret>
+```
+- Signup and login as above
+
+### Login with Lightning
+
+- Use [ngrok](https://ngrok.com/) to create a HTTPS tunnel to localhost:3000
+- Update `LNAUTH_URL` in `.env` with the URL provided by `ngrok` and add /api/lnauth to it
+
+<br>
+
+## Enabling web push notifications
+
+To enable Web Push locally, you will need to set the `VAPID_*` env vars. `VAPID_MAILTO` needs to be an email address using the `mailto:` scheme. For `NEXT_PUBLIC_VAPID_KEY` and `VAPID_PRIVKEY`, you can run `npx web-push generate-vapid-keys`.
+
+<br>
+
+# Internals
+
+<br>
+
+## Stack
+
+The site is written in javascript (not typescript 😱) using [Next.js](https://nextjs.org/), a [React](https://react.dev/) framework. The backend API is provided via [GraphQL](https://graphql.org/). The database is [PostgreSQL](https://www.postgresql.org/) modeled with [Prisma](https://www.prisma.io/). The [job queue](https://github.com/timgit/pg-boss) is also maintained in PostgreSQL. We use [lnd](https://github.com/lightningnetwork/lnd) for our lightning node. A customized [Bootstrap](https://react-bootstrap.netlify.app/) theme is used for styling.
+
+<br>
+
+## Services
+
+Currently, SN runs and maintains two significant services and one microservice:
+
+1. the nextjs web app, found in `./`
+2. the worker service, found in `./worker`, which runs period jobs and jobs sent to it by the web app
+3. a screenshot microservice, found in `./capture`, which takes screenshots of SN for social previews
+
+In addition, we run other critical services the above services interact with like `lnd`, `postgres`, `opensearch`, `tor`, and `s3`.
+
+<br>
+
+## Wallet transaction safety
+
+To ensure stackers balances are kept sane, all wallet updates are run in [serializable transactions](https://www.postgresql.org/docs/current/transaction-iso.html#XACT-SERIALIZABLE) at the database level. Because early versions of prisma had relatively poor support for transactions most wallet touching code is written in [plpgsql](https://www.postgresql.org/docs/current/plpgsql.html) stored procedures and can be found in the `prisma/migrations` folder.
+
+<br>
+
 # Need help?
 Open a [discussion](http://github.com/stackernews/stacker.news/discussions) or [issue](http://github.com/stackernews/stacker.news/issues/new) or [email us](mailto:kk@stacker.news) or [chat with us on telegram](https://t.me/stackernews).
 
@@ -245,7 +373,7 @@ Open a [discussion](http://github.com/stackernews/stacker.news/discussions) or [
 
 # Responsible disclosure
 
-If you found a vulnerability, we would greatly appreciate it if you contact us via [kk@stacker.news](mailto:kk@stacker.news) or t.me/k00bideh.
+If you found a vulnerability, we would greatly appreciate it if you contact us via [security@stacker.news](mailto:security@stacker.news) or open a [security advisory](https://github.com/stackernews/stacker.news/security/advisories/new).
 
 <br>
 

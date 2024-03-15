@@ -248,6 +248,22 @@ COMMANDS"
   sndev__prisma --help | awk '/Commands/{y=1;next}y' | awk '!/^([\t ]+init)|([\t ]+studio)/' | sed -n '/Flags/q;p'
 }
 
+sndev__lint() {
+  shift
+  docker__exec -t -u apprunner app npm run lint
+}
+
+sndev__help_lint() {
+  help="
+run linters
+
+USAGE
+  $ sndev lint
+"
+
+  echo "$help"
+}
+
 sndev__compose() {
   shift
   docker__compose "$@"
@@ -372,8 +388,9 @@ COMMANDS
     psql          open psql on db
     prisma        run prisma commands
 
-  github:
+  dev:
     pr            fetch and checkout a pr
+    lint          run linters
 
   other:
     compose       docker compose passthrough

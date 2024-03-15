@@ -289,7 +289,7 @@ You can connect to the local database via `./sndev psql`. [psql](https://www.pos
 
 ## Running lncli on the local lnd nodes
 
-You can run `lndcli` on the local lnd nodes via `./sndev sn_lncli` and `./sndev stacker_lncli`. The node for your local SN instance is `sn_lnd` and the node serving as any external node, like a stacker's node or external wallet, is `stacker_lnd`.
+You can run `lncli` on the local lnd nodes via `./sndev sn_lncli` and `./sndev stacker_lncli`. The node for your local SN instance is `sn_lnd` and the node serving as any external node, like a stacker's node or external wallet, is `stacker_lnd`.
 
 <br>
 

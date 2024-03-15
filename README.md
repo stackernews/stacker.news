@@ -354,7 +354,7 @@ The site is written in javascript (not typescript 😱) using [Next.js](https://
 Currently, SN runs and maintains two significant services and one microservice:
 
 1. the nextjs web app, found in `./`
-2. the worker service, found in `./worker`, which runs period jobs and jobs sent to it by the web app
+2. the worker service, found in `./worker`, which runs periodic jobs and jobs sent to it by the web app
 3. a screenshot microservice, found in `./capture`, which takes screenshots of SN for social previews
 
 In addition, we run other critical services the above services interact with like `lnd`, `postgres`, `opensearch`, `tor`, and `s3`.

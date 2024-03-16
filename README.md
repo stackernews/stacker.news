@@ -378,7 +378,7 @@ Open a [discussion](http://github.com/stackernews/stacker.news/discussions) or [
 
 # Responsible disclosure
 
-If you found a vulnerability, we would greatly appreciate it if you contact us via [security@stacker.news](mailto:security@stacker.news) or open a [security advisory](https://github.com/stackernews/stacker.news/security/advisories/new).
+If you found a vulnerability, we would greatly appreciate it if you contact us via [security@stacker.news](mailto:security@stacker.news) or open a [security advisory](https://github.com/stackernews/stacker.news/security/advisories/new). Our PGP key can be found [here](https://stacker.news/pgp.txt) (EBAF 75DA 7279 CB48).
 
 <br>
 

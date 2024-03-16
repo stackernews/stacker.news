@@ -88,7 +88,7 @@ services:
       - npm run worker:dev
   imgproxy:
     container_name: imgproxy
-    image: docker.imgproxy.pro/imgproxy:v3.23.0
+    image: darthsim/imgproxy:v3.23.0
     healthcheck:
       test: [ "CMD", "imgproxy", "health" ]
       interval: 10s

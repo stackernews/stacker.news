@@ -155,10 +155,12 @@ We want your help.
 2. Issues are occasionally marked with a `priority` tag which multiplies the award of a PR closing an issue, e.g. an issue marked with `priority:high` and `difficulty:hard` awards 2m sats.
 3. An award is reduced by 10% of the award amount for each substantial change requested to the PR on code review, e.g. if two changes are requested on a PR closing an issue tagged with `difficulty:hard`, 800k sats will be awarded.
 	- Reductions are applied before `priority` multipliers, e.g. a PR closing a `priority:high` and `difficulty:hard` issue that's approved after two changes are requested awards 1.6m sats.
-	- You are responsible for understanding the issue and requirements before requesting review on a PR.
-	- There is no award reduction for asking specific questions on the issue itself or on the PR before requesting review
+	- You are responsible for understanding the issue and requirements **before requesting review on a PR**.
+	- There is no award reduction for asking specific questions on the issue itself or on the PR **before requesting review**
 	- There is no award reduction for asking more general questions in a discussion
 4. A PR must be merged by an SN engineer before a PR receives an award
+
+_Due to Rule 3, make sure that you mark your PR as a draft when you create it and it's not ready for review yet._
 
 ### Difficulty award amounts
 

@@ -230,8 +230,10 @@ Awards for responsible disclosures are assessed on the basis of:
 Award amounts will be easiest to assess on a case by case basis. Upon confirmation of a vulnerability, we agree to award responsible disclosures at minimum 100k sats and as high as the total potential loss that would result from exploiting the vulnerability.
 
 ### Rules
-1. Disclosure is responsible and does not increase the likelihood of an exploit
-2. Disclosure details how to exploit the vulnerability with certainty
+1. Disclosure is responsible and does not increase the likelihood of an exploit.
+2. Disclosure includes steps to reproduce.
+3. Disclosure includes a realistic attack scenario with prerequisites for an attack and expected gains after the exploitation. Disclosures without such scenario, with unrealistic assumptions or without meaningful outcomes will not be eligible for awards.
+4. You must be the first person to responsibly disclose the issue to be eligible for awards.
 
 <br>
 

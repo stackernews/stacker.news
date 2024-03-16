@@ -156,10 +156,12 @@ We want your help.
 2. Issues are occasionally marked with a `priority` tag which multiplies the award of a PR closing an issue, e.g. an issue marked with `priority:high` and `difficulty:hard` awards 2m sats.
 3. An award is reduced by 10% of the award amount for each substantial change requested to the PR on code review, e.g. if two changes are requested on a PR closing an issue tagged with `difficulty:hard`, 800k sats will be awarded.
 	- Reductions are applied before `priority` multipliers, e.g. a PR closing a `priority:high` and `difficulty:hard` issue that's approved after two changes are requested awards 1.6m sats.
-	- You are responsible for understanding the issue and requirements before requesting review on a PR.
-	- There is no award reduction for asking specific questions on the issue itself or on the PR before requesting review
+	- You are responsible for understanding the issue and requirements **before requesting review on a PR**.
+	- There is no award reduction for asking specific questions on the issue itself or on the PR **before requesting review**
 	- There is no award reduction for asking more general questions in a discussion
 4. A PR must be merged by an SN engineer before a PR receives an award
+
+_Due to Rule 3, make sure that you mark your PR as a draft when you create it and it's not ready for review yet._
 
 ### Difficulty award amounts
 
@@ -229,8 +231,10 @@ Awards for responsible disclosures are assessed on the basis of:
 Award amounts will be easiest to assess on a case by case basis. Upon confirmation of a vulnerability, we agree to award responsible disclosures at minimum 100k sats and as high as the total potential loss that would result from exploiting the vulnerability.
 
 ### Rules
-1. Disclosure is responsible and does not increase the likelihood of an exploit
-2. Disclosure details how to exploit the vulnerability with certainty
+1. Disclosure is responsible and does not increase the likelihood of an exploit.
+2. Disclosure includes steps to reproduce.
+3. Disclosure includes a realistic attack scenario with prerequisites for an attack and expected gains after the exploitation. Disclosures without such scenario, with unrealistic assumptions or without meaningful outcomes will not be eligible for awards.
+4. You must be the first person to responsibly disclose the issue to be eligible for awards.
 
 <br>
 
@@ -375,7 +379,7 @@ Open a [discussion](http://github.com/stackernews/stacker.news/discussions) or [
 
 # Responsible disclosure
 
-If you found a vulnerability, we would greatly appreciate it if you contact us via [security@stacker.news](mailto:security@stacker.news) or open a [security advisory](https://github.com/stackernews/stacker.news/security/advisories/new).
+If you found a vulnerability, we would greatly appreciate it if you contact us via [security@stacker.news](mailto:security@stacker.news) or open a [security advisory](https://github.com/stackernews/stacker.news/security/advisories/new). Our PGP key can be found [here](https://stacker.news/pgp.txt) (EBAF 75DA 7279 CB48).
 
 <br>
 

@@ -1,6 +1,7 @@
 const { withPlausibleProxy } = require('next-plausible')
 const { InjectManifest } = require('workbox-webpack-plugin')
 const { generatePrecacheManifest } = require('./sw/build.js')
+const webpack = require('webpack')
 
 let isProd = process.env.NODE_ENV === 'production'
 const corsHeaders = [
@@ -197,7 +198,18 @@ module.exports = withPlausibleProxy()({
         exclude: [/.*/],
         // by default, webpack saves service worker at .next/server/
         swDest: '../../public/sw.js',
-        swSrc: './sw/index.js'
+        swSrc: './sw/index.js',
+        webpackCompilationPlugins: [
+          // this is need to allow the service worker to access these environment variables
+          // from lib/constants.js
+          new webpack.DefinePlugin({
+            'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
+            'process.env.MEDIA_URL_DOCKER': JSON.stringify(process.env.MEDIA_URL_DOCKER),
+            'process.env.NEXT_PUBLIC_MEDIA_URL': JSON.stringify(process.env.NEXT_PUBLIC_MEDIA_URL),
+            'process.env.NEXT_PUBLIC_MEDIA_DOMAIN': JSON.stringify(process.env.NEXT_PUBLIC_MEDIA_DOMAIN),
+            'process.env.NEXT_IS_EXPORT_WORKER': 'true'
+          })
+        ]
       })
       if (dev) {
         // Suppress the "InjectManifest has been called multiple times" warning by reaching into

@@ -142,6 +142,8 @@ We want your help.
 - improvements to development documentation
 - helpfulness
 
+[View a current list of granted awards](awards.csv)
+
 <br>
 
 ## Just in case

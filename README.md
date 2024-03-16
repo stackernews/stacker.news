@@ -1,8 +1,9 @@
 <p align="center">
 <a href="https://stacker.news">
-<img height="50" alt="Internet Communities with Bitcoin Economies" src="https://private-user-images.githubusercontent.com/34140557/313019203-bea58059-f850-4d4e-b52d-7e24bc307c8c.png?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3MTA0NTgwNjMsIm5iZiI6MTcxMDQ1Nzc2MywicGF0aCI6Ii8zNDE0MDU1Ny8zMTMwMTkyMDMtYmVhNTgwNTktZjg1MC00ZDRlLWI1MmQtN2UyNGJjMzA3YzhjLnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNDAzMTQlMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjQwMzE0VDIzMDkyM1omWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTE1NWI5YzM4YjA2YjI3Yzc3YzkzNmMwMDMwOWY1MDUwZjk5NTdiYTZjNzEzMDcxZGRmY2FlYzM3ZjFjOGM2M2YmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JmFjdG9yX2lkPTAma2V5X2lkPTAmcmVwb19pZD0wIn0.iW6d6aX_GErW7EY81p7PA2iVg9OhvGSoTwJC4VTvrCk">
+<img height="50" alt="Internet Communities with Bitcoin Economies" src="https://github.com/stackernews/stacker.news/assets/34140557/a8ccc5dc-c453-46dc-be74-60dd0a42ce09">
 </a>
 </p>
+
 
 - Stacker News makes Bitcoin economies
 - What You See is What We Ship (look ma, I invented an initialism)

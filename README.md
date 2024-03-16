@@ -268,7 +268,7 @@ If you're using VSCode, you can install the [StandardJS VSCode Extension](https:
 
 ## Database migrations
 
-We use [prisma](https://www.prisma.io/) for our database migrations. To create a new migration, modify `prisma/schema.prisma` according to [prisma schema referecne](https://www.prisma.io/docs/orm/reference/prisma-schema-reference) and apply it with:
+We use [prisma](https://www.prisma.io/) for our database migrations. To create a new migration, modify `prisma/schema.prisma` according to [prisma schema reference](https://www.prisma.io/docs/orm/reference/prisma-schema-reference) and apply it with:
 
 `./sndev prisma migrate dev`
 

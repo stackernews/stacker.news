@@ -47,9 +47,11 @@ export default function TerritoryForm ({ sub }) {
   const [fetchSub] = useLazyQuery(SUB)
   const [archived, setArchived] = useState(false)
   const onNameChange = useCallback(async (formik, e) => {
+    // never show "territory archived" warning during edits
+    if (sub) return
     const name = e.target.value
-    const { data: { sub } } = await fetchSub({ variables: { sub: name } })
-    setArchived(sub?.status === 'STOPPED')
+    const { data } = await fetchSub({ variables: { sub: name } })
+    setArchived(data?.sub?.status === 'STOPPED')
   }, [fetchSub, setArchived])
 
   const onSubmit = useCallback(

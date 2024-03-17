@@ -316,10 +316,14 @@ export default {
 
       return updatedSub
     },
-    unarchiveTerritory: async (parent, { name, hash, hmac, ...data }, { me, models, lnd }) => {
+    unarchiveTerritory: async (parent, { hash, hmac, ...data }, { me, models, lnd }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
       }
+
+      const { name } = data
+
+      await ssValidate(territorySchema, data, { models, me, sub: { name } })
 
       const oldSub = await models.sub.findUnique({ where: { name } })
       if (!oldSub) {

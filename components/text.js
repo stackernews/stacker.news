@@ -80,8 +80,8 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
 
   const Heading = useCallback(({ children, node, ...props }) => {
     const [copied, setCopied] = useState(false)
-    const id = useMemo(() =>
-      noFragments ? undefined : slugger?.slug(toString(node).replace(/[^\w\-\s]+/gi, '')), [node, noFragments, slugger])
+    const nodeText = toString(node)
+    const id = useMemo(() => noFragments ? undefined : slugger?.slug(nodeText.replace(/[^\w\-\s]+/gi, '')), [nodeText, noFragments, slugger])
     const h = useMemo(() => {
       if (topLevel) {
         return node?.TagName

@@ -763,7 +763,7 @@ export function CheckboxGroup ({ label, groupClassName, children, ...props }) {
 const StorageKeyPrefixContext = createContext()
 
 export function Form ({
-  initial, schema, onSubmit, children, initialError, validate, validateImmediately,
+  initial, schema, onSubmit, children, initialError, validateImmediately,
   storageKeyPrefix, validateOnChange = true, invoiceable, innerRef, ...props
 }) {
   const toaster = useToast()
@@ -826,7 +826,6 @@ export function Form ({
   return (
     <Formik
       initialValues={initial}
-      validate={validate}
       validateOnChange={validateOnChange}
       validationSchema={schema}
       initialTouched={validateImmediately && initial}

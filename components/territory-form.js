@@ -2,7 +2,7 @@ import AccordianItem from './accordian-item'
 import { Col, InputGroup, Row, Form as BootstrapForm, Badge } from 'react-bootstrap'
 import { Checkbox, CheckboxGroup, Form, Input, MarkdownInput } from './form'
 import FeeButton, { FeeButtonProvider } from './fee-button'
-import { gql, useApolloClient, useMutation } from '@apollo/client'
+import { gql, useApolloClient, useLazyQuery, useMutation } from '@apollo/client'
 import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/router'
 import { MAX_TERRITORY_DESC_LENGTH, POST_TYPES, TERRITORY_BILLING_OPTIONS, TERRITORY_PERIOD_COST } from '../lib/constants'
@@ -11,7 +11,7 @@ import { useMe } from './me'
 import Info from './info'
 import { abbrNum } from '../lib/format'
 import { purchasedType } from '../lib/territory'
-import { ValidationError } from 'yup'
+import { SUB } from '../fragments/subs'
 
 export default function TerritoryForm ({ sub }) {
   const router = useRouter()
@@ -42,34 +42,15 @@ export default function TerritoryForm ({ sub }) {
       }`
   )
 
+  const schema = territorySchema({ client, me, sub })
+
+  const [fetchSub] = useLazyQuery(SUB)
   const [archived, setArchived] = useState(false)
-
-  const validate = async (values) => {
-    // validate schema manually so we can handle the error if sub is archived.
-    // in that case, we want to show a warning text but not prevent form submission.
-
-    const errors = {}
-    const schema = territorySchema({ client, me, sub })
-
-    try {
-      await schema.validate(values, { abortEarly: false })
-    } catch (e) {
-      if (!(e instanceof ValidationError)) throw e
-      for (const { path, errors: [message] } of e.inner) {
-        // use the first error for each field so 'archived' has higher precedence over 'taken' for sub name
-        errors[path] ??= message
-      }
-    }
-
-    if (errors.name === 'archived') {
-      delete errors.name
-      setArchived(true)
-    } else {
-      setArchived(false)
-    }
-
-    return errors
-  }
+  const onNameChange = useCallback(async (formik, e) => {
+    const name = e.target.value
+    const { data: { sub } } = await fetchSub({ variables: { sub: name } })
+    setArchived(sub?.status === 'STOPPED')
+  }, [fetchSub, setArchived])
 
   const onSubmit = useCallback(
     async ({ ...variables }) => {
@@ -128,7 +109,7 @@ export default function TerritoryForm ({ sub }) {
           moderated: sub?.moderated || false,
           nsfw: sub?.nsfw || false
         }}
-        validate={validate}
+        schema={schema}
         invoiceable
         onSubmit={onSubmit}
         className='mb-5'
@@ -142,6 +123,7 @@ export default function TerritoryForm ({ sub }) {
           clear
           maxLength={32}
           prepend={<InputGroup.Text className='text-monospace'>~</InputGroup.Text>}
+          onChange={onNameChange}
           warn={archived && (
             <div className='d-flex align-items-center'>this territory is archived
               <Info>

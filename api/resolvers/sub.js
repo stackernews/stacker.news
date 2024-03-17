@@ -364,7 +364,7 @@ export default {
           }
         }),
         models.sub.update({ where: { name }, data: newSub }),
-        oldSub.userId !== me.id ? models.territoryTransfer.create({ data: { subName: name, oldUserId: oldSub.userId, newUserId: me.id } }) : null
+        oldSub.userId !== me.id && models.territoryTransfer.create({ data: { subName: name, oldUserId: oldSub.userId, newUserId: me.id } })
       ].filter(q => !!q),
       { models, lnd, hash, hmac, me, enforceFee: billingCost })
 

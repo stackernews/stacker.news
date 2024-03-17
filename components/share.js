@@ -9,7 +9,8 @@ import { commentSubTreeRootId } from '../lib/item'
 import { useRouter } from 'next/router'
 
 const referrurl = (ipath, me) => {
-  const path = `${ipath}${me ? `/r/${me.name}` : ''}`
+  const referral = me && !me.privates?.noReferralLinks
+  const path = `${ipath}${referral ? `/r/${me.name}` : ''}`
   if (!SSR) {
     return `${window.location.protocol}//${window.location.host}${path}`
   }

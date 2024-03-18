@@ -53,6 +53,10 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
         await autowithdrawLNAddr(
           { amount, maxFee },
           { models, me: user, lnd })
+      } else if (wallet.type === 'CORE_LIGHTNING') {
+        await autowithdrawCoreLightning(
+          { amount, maxFee },
+          { models, me: user })
       }
 
       return
@@ -123,4 +127,42 @@ async function autowithdrawLND ({ amount, maxFee }, { me, models, lnd }) {
   })
 
   return await createWithdrawal(null, { invoice: invoice.request, maxFee }, { me, models, lnd, autoWithdraw: true })
+}
+
+async function autowithdrawCoreLightning ({ amount, maxFee }, { me, models }) {
+  if (!me) {
+    throw new Error('me not specified')
+  }
+
+  const wallet = await models.wallet.findFirst({
+    where: {
+      userId: me.id,
+      type: 'CORE_LIGHTNING'
+    },
+    include: {
+      walletCoreLightning: true
+    }
+  })
+
+  if (!wallet || !wallet.walletCoreLightning) {
+    throw new Error('no lightning address wallet found')
+  }
+
+  const { walletCoreLightning: { rune, socket } } = wallet
+  const options = {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      Rune: rune
+    },
+    body: JSON.stringify({
+      amount_msat: '20',
+      label: 'Stacker.News AutoWithdrawal',
+      description: 'Autowithdraw to Core Lightning from SN'
+    })
+  }
+
+  const invoice = await fetch(`${socket}/v1/invoice`, options)
+
+  return await createWithdrawal(null, { invoice: invoice.bolt11, maxFee }, { me, models, autoWithdraw: true })
 }

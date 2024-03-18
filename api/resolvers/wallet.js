@@ -7,7 +7,7 @@ import lnpr from 'bolt11'
 import { SELECT } from './item'
 import { lnAddrOptions } from '../../lib/lnurl'
 import { msatsToSats, msatsToSatsDecimal, ensureB64 } from '../../lib/format'
-import { LNDAutowithdrawSchema, amountSchema, lnAddrAutowithdrawSchema, lnAddrSchema, ssValidate, withdrawlSchema } from '../../lib/validate'
+import { LNDAutowithdrawSchema, amountSchema, lnAddrAutowithdrawSchema, lnAddrSchema, ssValidate, withdrawlSchema, CoreLightningAutowithdrawSchema } from '../../lib/validate'
 import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, ANON_USER_ID, BALANCE_LIMIT_MSATS, INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT } from '../../lib/constants'
 import { datePivot } from '../../lib/time'
 import assertGofacYourself from './ofac'
@@ -304,7 +304,13 @@ export default {
   },
   WalletDetails: {
     __resolveType (wallet) {
-      return wallet.address ? 'WalletLNAddr' : 'WalletLND'
+      if (wallet.address) {
+        return 'WalletLNAddr'
+      } else if (wallet.type === 'LND') {
+        return 'WalletLND'
+      } else {
+        return 'WalletCoreLightning'
+      }
     }
   },
   Mutation: {
@@ -432,6 +438,29 @@ export default {
         },
         { settings, data }, { me, models })
     },
+
+    upsertWalletCoreLightning: async (parent, { settings, ...data }, { me, models }) => {
+      return await upsertWallet(
+        {
+          schema: CoreLightningAutowithdrawSchema,
+          walletName: 'walletCoreLightning',
+          walletType: 'CORE_LIGHTNING',
+          testConnect: async ({ rune, socket }) => {
+            const options = {
+              method: 'POST',
+              headers: {
+                'content-type': 'application/json',
+                Rune: rune
+              },
+              body: JSON.stringify({ amount_msat: 0, label: 'SN connection test', description: 'SN connection test' })
+            }
+
+            return await fetch(`${socket}/v1/invoice`, options)
+          }
+        },
+        { settings, data }, { me, models })
+    },
+
     upsertWalletLNAddr: async (parent, { settings, ...data }, { me, models }) => {
       return await upsertWallet(
         {

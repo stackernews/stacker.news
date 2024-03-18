@@ -9,7 +9,11 @@ docker__compose() {
     exit 0
   fi
 
-  CURRENT_UID=$(id -u) CURRENT_GID=$(id -g) command docker compose --env-file .env.development "$@"
+  if [ -z "$COMPOSE_PROFILES" ]; then
+    COMPOSE_PROFILES="images,search,payments"
+  fi
+
+  CURRENT_UID=$(id -u) CURRENT_GID=$(id -g) COMPOSE_PROFILES=$COMPOSE_PROFILES command docker compose --env-file .env.development "$@"
 }
 
 docker__exec() {

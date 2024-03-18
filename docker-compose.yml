@@ -39,15 +39,6 @@ services:
       db:
         condition: service_healthy
         restart: true
-      opensearch:
-        condition: service_healthy
-        restart: true
-      sn_lnd:
-        condition: service_healthy
-        restart: true
-      # s3:
-      #   condition: service_healthy
-      #   restart: true
     env_file:
       - .env.development
     expose:
@@ -73,12 +64,6 @@ services:
       app:
         condition: service_healthy
         restart: true
-      opensearch:
-        condition: service_healthy
-        restart: true
-      sn_lnd:
-        condition: service_healthy
-        restart: true
     env_file:
       - .env.development
     volumes:
@@ -89,6 +74,8 @@ services:
   imgproxy:
     container_name: imgproxy
     image: darthsim/imgproxy:v3.23.0
+    profiles:
+      - images
     healthcheck:
       test: [ "CMD", "imgproxy", "health" ]
       interval: 10s
@@ -114,6 +101,8 @@ services:
     #   retries: 10
     #   start_period: 1m
     restart: unless-stopped
+    profiles:
+      - images
     env_file:
       - .env.development
     environment:
@@ -131,6 +120,8 @@ services:
   opensearch:
     image: opensearchproject/opensearch:2.12.0
     container_name: opensearch
+    profiles:
+      - search
     healthcheck:
       test: ["CMD-SHELL", "curl -ku admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD} --silent --fail localhost:9200/_cluster/health || exit 1"]
       interval: 10s
@@ -171,6 +162,8 @@ services:
     image: opensearchproject/opensearch-dashboards:2.12.0
     container_name: os-dashboard
     restart: unless-stopped
+    profiles:
+      - search
     depends_on:
       opensearch:
         condition: service_healthy
@@ -191,6 +184,8 @@ services:
     image: polarlightning/bitcoind:26.0
     container_name: bitcoin
     restart: unless-stopped
+    profiles:
+      - payments
     healthcheck:
       test: ["CMD-SHELL", "bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} getblockchaininfo"]
       interval: 10s
@@ -248,6 +243,8 @@ services:
         - LN_NODE_FOR=sn
     container_name: sn_lnd
     restart: unless-stopped
+    profiles:
+      - payments
     healthcheck:
       test: ["CMD-SHELL", "lncli", "getinfo"]
       interval: 10s
@@ -310,6 +307,8 @@ services:
         - LN_NODE_FOR=stacker
     container_name: stacker_lnd
     restart: unless-stopped
+    profiles:
+      - payments
     healthcheck:
       test: ["CMD-SHELL", "lncli", "getinfo"]
       interval: 10s
@@ -368,6 +367,8 @@ services:
   channdler:
     image: mcuadros/ofelia:latest
     container_name: channdler
+    profiles:
+      - payments
     depends_on:
       - bitcoin
       - sn_lnd

@@ -17,7 +17,7 @@
 
 Launch a fully featured SN development environment in a single command.
 
-```txt
+```sh
 $ ./sndev start
 ```
 
@@ -38,25 +38,32 @@ Go to [localhost:3000](http://localhost:3000).
 
 Start the development environment
 
-```txt
+```sh
 $ ./sndev start
 ```
 
-By default all will be run. If you only want to run specific services for specific features, set `COMPOSE_PROFILES` to use one or more of `minimal|images|search|payments`. To only run mininal services without images, search, or payments:
+By default all services will be run. If you want to exclude specific services from running, set `COMPOSE_PROFILES` to use one or more of `minimal|images|search|payments`. To only run mininal services without images, search, or payments:
 
-```txt
+```sh
 $ COMPOSE_PROFILES=minimal ./sndev start
+```
+
+Or, as I would recommend:
+
+```sh
+$ export COMPOSE_PROFILES=minimal
+$ ./sndev start
 ```
 
 To run with images and payments services:
 
-```txt
+```sh
 $ COMPOSE_PROFILES=images,payments ./sndev start
 ```
 
 View all available commands
 
-```txt
+```sh
 $ ./sndev help
 
                             888

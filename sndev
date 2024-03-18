@@ -74,12 +74,30 @@ EOF
     fi
   fi
 
-  if [ $# -eq 0 ]; then
-    docker__compose up --build
-    exit 0
+  profile=''
+  args='--build'
+  while test $# -gt 0; do
+    case "$1" in
+      --profile)
+        profile="$profile --profile $2"
+        shift
+        shift
+        ;;
+      *)
+        args="$args $1"
+        shift
+        ;;
+    esac
+  done
+
+
+  if [ -z "$profile" ]; then
+    if [ -z "$COMPOSE_PROFILES" ]; then
+      profile="--profile images --profile search --profile payments"
+    fi
   fi
 
-  docker__compose up "$@"
+  docker__compose $profile up $args
 }
 
 sndev__help_start() {
@@ -89,7 +107,8 @@ start the sndev env
 USAGE
   $ sndev start [OPTIONS]
 
-OPTIONS"
+OPTIONS
+      --profile stringArray       Set the profile of services to start (\"base\"|$(docker__compose config --profiles | awk '{ printf "%s\"%s\"", (NR==1? "" : "|"), $0} END{ print "" }')) (default all)"
 
   echo "$help"
   docker__compose up --help | awk '/Options:/{y=1;next}y'
@@ -107,7 +126,8 @@ stop the sndev env
 USAGE
   $ sndev stop [OPTIONS]
 
-OPTIONS"
+OPTIONS
+      --profile stringArray Set the profile of services to start ($(docker__compose config --profiles | awk '{ printf "%s\"%s\"", (NR==1? "" : "|"), $0} END{ print "" }')) (default \"*\")"
 
   echo "$help"
   docker__compose down --help | awk '/Options:/{y=1;next}y'

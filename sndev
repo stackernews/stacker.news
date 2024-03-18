@@ -9,7 +9,11 @@ docker__compose() {
     exit 0
   fi
 
-  CURRENT_UID=$(id -u) CURRENT_GID=$(id -g) command docker compose --env-file .env.development "$@"
+  if [ -z "$COMPOSE_PROFILES" ]; then
+    COMPOSE_PROFILES="images,search,payments"
+  fi
+
+  CURRENT_UID=$(id -u) CURRENT_GID=$(id -g) COMPOSE_PROFILES=$COMPOSE_PROFILES command docker compose --env-file .env.development "$@"
 }
 
 docker__exec() {
@@ -74,30 +78,12 @@ EOF
     fi
   fi
 
-  profile=''
-  args='--build'
-  while test $# -gt 0; do
-    case "$1" in
-      --profile)
-        profile="$profile --profile $2"
-        shift
-        shift
-        ;;
-      *)
-        args="$args $1"
-        shift
-        ;;
-    esac
-  done
-
-
-  if [ -z "$profile" ]; then
-    if [ -z "$COMPOSE_PROFILES" ]; then
-      profile="--profile images --profile search --profile payments"
-    fi
+  if [ $# -eq 0 ]; then
+    docker__compose up --build
+    exit 0
   fi
 
-  docker__compose $profile up $args
+  docker__compose up "$@"
 }
 
 sndev__help_start() {
@@ -107,8 +93,7 @@ start the sndev env
 USAGE
   $ sndev start [OPTIONS]
 
-OPTIONS
-      --profile stringArray       Set the profile of services to start (\"base\"|$(docker__compose config --profiles | awk '{ printf "%s\"%s\"", (NR==1? "" : "|"), $0} END{ print "" }')) (default all)"
+OPTIONS"
 
   echo "$help"
   docker__compose up --help | awk '/Options:/{y=1;next}y'
@@ -126,8 +111,7 @@ stop the sndev env
 USAGE
   $ sndev stop [OPTIONS]
 
-OPTIONS
-      --profile stringArray Set the profile of services to start ($(docker__compose config --profiles | awk '{ printf "%s\"%s\"", (NR==1? "" : "|"), $0} END{ print "" }')) (default \"*\")"
+OPTIONS"
 
   echo "$help"
   docker__compose down --help | awk '/Options:/{y=1;next}y'

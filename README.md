@@ -42,6 +42,18 @@ Start the development environment
 $ ./sndev start
 ```
 
+By default all will be run. If you only want to run specific services for specific features, set `COMPOSE_PROFILES` to use one or more of `minimal|images|search|payments`. To only run mininal services without images, search, or payments:
+
+```txt
+$ COMPOSE_PROFILES=minimal ./sndev start
+```
+
+To run with images and payments services:
+
+```txt
+$ COMPOSE_PROFILES=images,payments ./sndev start
+```
+
 View all available commands
 
 ```txt

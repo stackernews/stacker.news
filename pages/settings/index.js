@@ -94,7 +94,8 @@ export default function Settings ({ ssrData }) {
             hideBookmarks: settings?.hideBookmarks,
             hideWalletBalance: settings?.hideWalletBalance,
             diagnostics: settings?.diagnostics,
-            hideIsContributor: settings?.hideIsContributor
+            hideIsContributor: settings?.hideIsContributor,
+            noReferralLinks: settings?.noReferralLinks
           }}
           schema={settingsSchema}
           onSubmit={async ({ tipDefault, withdrawMaxFeeDefault, nostrPubkey, nostrRelays, ...values }) => {
@@ -410,6 +411,11 @@ export default function Settings ({ ssrData }) {
               </div>
             }
             name='diagnostics'
+            groupClassName='mb-0'
+          />
+          <Checkbox
+            label={<>don't create referral links on copy</>}
+            name='noReferralLinks'
           />
           <div className='form-label'>content</div>
           <Checkbox

@@ -12,6 +12,7 @@ export const ME = gql`
       privates {
         autoDropBolt11s
         diagnostics
+        noReferralLinks
         fiatCurrency
         greeterMode
         hideCowboyHat
@@ -87,6 +88,7 @@ export const SETTINGS_FIELDS = gql`
       imgproxyOnly
       hideWalletBalance
       diagnostics
+      noReferralLinks
       nostrPubkey
       nostrCrossposting
       nostrRelays

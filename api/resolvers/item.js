@@ -15,7 +15,7 @@ import { msatsToSats } from '../../lib/format'
 import { parse } from 'tldts'
 import uu from 'url-unshort'
 import { actSchema, advSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, ssValidate } from '../../lib/validate'
-import { sendUserNotification, notifyItemParents, notifyUserSubscribers, notifyZapped, notifyTerritorySubscribers } from '../../lib/webPush'
+import { notifyItemParents, notifyUserSubscribers, notifyZapped, notifyTerritorySubscribers, notifyMention } from '../../lib/webPush'
 import { defaultCommentSort, isJob, deleteItemByAuthor, getDeleteCommand, hasDeleteCommand } from '../../lib/item'
 import { datePivot, whenRange } from '../../lib/time'
 import { imageFeesInfo, uploadIdsFromText } from './image'
@@ -1225,12 +1225,7 @@ export const createMentions = async (item, models) => {
 
         // only send if mention is new to avoid duplicates
         if (mention.createdAt.getTime() === mention.updatedAt.getTime()) {
-          sendUserNotification(user.id, {
-            title: 'you were mentioned',
-            body: item.text,
-            item,
-            tag: 'MENTION'
-          }).catch(console.error)
+          notifyMention(user.id, item)
         }
       })
     }

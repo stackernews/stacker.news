@@ -1,5 +1,4 @@
-import { sendUserNotification } from '../lib/webPush'
-import { FOUND_BLURBS, LOST_BLURBS } from '../lib/constants'
+import { notifyNewStreak, notifyStreakLost } from '../lib/webPush'
 
 const STREAK_THRESHOLD = 100
 
@@ -61,17 +60,7 @@ export async function computeStreaks ({ models }) {
     WHERE ending_streaks.id = "Streak"."userId" AND "endedAt" IS NULL
     RETURNING "Streak".id, ending_streaks."id" AS "userId"`
 
-  Promise.allSettled(
-    endingStreaks.map(({ id, userId }) => {
-      const index = id % LOST_BLURBS.length
-      const blurb = LOST_BLURBS[index]
-      return sendUserNotification(userId, {
-        title: 'you lost your cowboy hat',
-        body: blurb,
-        tag: 'STREAK-LOST'
-      }).catch(console.error)
-    })
-  )
+  Promise.allSettled(endingStreaks.map(streak => notifyStreakLost(streak.userId, streak)))
 }
 
 export async function checkStreak ({ data: { id }, models }) {
@@ -115,11 +104,5 @@ export async function checkStreak ({ data: { id }, models }) {
   if (!streak) return
 
   // new streak started for user
-  const index = streak.id % FOUND_BLURBS.length
-  const blurb = FOUND_BLURBS[index]
-  sendUserNotification(id, {
-    title: 'you found a cowboy hat',
-    body: blurb,
-    tag: 'STREAK-FOUND'
-  }).catch(console.error)
+  notifyNewStreak(id, streak)
 }

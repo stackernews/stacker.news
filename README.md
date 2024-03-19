@@ -1,8 +1,9 @@
 <p align="center">
 <a href="https://stacker.news">
-<img height="50" alt="Internet Communities with Bitcoin Economies" src="https://private-user-images.githubusercontent.com/34140557/313019203-bea58059-f850-4d4e-b52d-7e24bc307c8c.png?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3MTA0NTgwNjMsIm5iZiI6MTcxMDQ1Nzc2MywicGF0aCI6Ii8zNDE0MDU1Ny8zMTMwMTkyMDMtYmVhNTgwNTktZjg1MC00ZDRlLWI1MmQtN2UyNGJjMzA3YzhjLnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNDAzMTQlMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjQwMzE0VDIzMDkyM1omWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTE1NWI5YzM4YjA2YjI3Yzc3YzkzNmMwMDMwOWY1MDUwZjk5NTdiYTZjNzEzMDcxZGRmY2FlYzM3ZjFjOGM2M2YmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JmFjdG9yX2lkPTAma2V5X2lkPTAmcmVwb19pZD0wIn0.iW6d6aX_GErW7EY81p7PA2iVg9OhvGSoTwJC4VTvrCk">
+<img height="50" alt="Internet Communities with Bitcoin Economies" src="https://github.com/stackernews/stacker.news/assets/34140557/a8ccc5dc-c453-46dc-be74-60dd0a42ce09">
 </a>
 </p>
+
 
 - Stacker News makes Bitcoin economies
 - What You See is What We Ship (look ma, I invented an initialism)
@@ -16,7 +17,7 @@
 
 Launch a fully featured SN development environment in a single command.
 
-```txt
+```sh
 $ ./sndev start
 ```
 
@@ -37,13 +38,32 @@ Go to [localhost:3000](http://localhost:3000).
 
 Start the development environment
 
-```txt
+```sh
 $ ./sndev start
+```
+
+By default all services will be run. If you want to exclude specific services from running, set `COMPOSE_PROFILES` to use one or more of `minimal|images|search|payments`. To only run mininal services without images, search, or payments:
+
+```sh
+$ COMPOSE_PROFILES=minimal ./sndev start
+```
+
+Or, as I would recommend:
+
+```sh
+$ export COMPOSE_PROFILES=minimal
+$ ./sndev start
+```
+
+To run with images and payments services:
+
+```sh
+$ COMPOSE_PROFILES=images,payments ./sndev start
 ```
 
 View all available commands
 
-```txt
+```sh
 $ ./sndev help
 
                             888
@@ -141,6 +161,8 @@ We want your help.
 - improvements to development documentation
 - helpfulness
 
+[View a current list of granted awards](awards.csv)
+
 <br>
 
 ## Just in case
@@ -155,10 +177,12 @@ We want your help.
 2. Issues are occasionally marked with a `priority` tag which multiplies the award of a PR closing an issue, e.g. an issue marked with `priority:high` and `difficulty:hard` awards 2m sats.
 3. An award is reduced by 10% of the award amount for each substantial change requested to the PR on code review, e.g. if two changes are requested on a PR closing an issue tagged with `difficulty:hard`, 800k sats will be awarded.
 	- Reductions are applied before `priority` multipliers, e.g. a PR closing a `priority:high` and `difficulty:hard` issue that's approved after two changes are requested awards 1.6m sats.
-	- You are responsible for understanding the issue and requirements before requesting review on a PR.
-	- There is no award reduction for asking specific questions on the issue itself or on the PR before requesting review
+	- You are responsible for understanding the issue and requirements **before requesting review on a PR**.
+	- There is no award reduction for asking specific questions on the issue itself or on the PR **before requesting review**
 	- There is no award reduction for asking more general questions in a discussion
 4. A PR must be merged by an SN engineer before a PR receives an award
+
+_Due to Rule 3, make sure that you mark your PR as a draft when you create it and it's not ready for review yet._
 
 ### Difficulty award amounts
 
@@ -228,8 +252,10 @@ Awards for responsible disclosures are assessed on the basis of:
 Award amounts will be easiest to assess on a case by case basis. Upon confirmation of a vulnerability, we agree to award responsible disclosures at minimum 100k sats and as high as the total potential loss that would result from exploiting the vulnerability.
 
 ### Rules
-1. Disclosure is responsible and does not increase the likelihood of an exploit
-2. Disclosure details how to exploit the vulnerability with certainty
+1. Disclosure is responsible and does not increase the likelihood of an exploit.
+2. Disclosure includes steps to reproduce.
+3. Disclosure includes a realistic attack scenario with prerequisites for an attack and expected gains after the exploitation. Disclosures without such scenario, with unrealistic assumptions or without meaningful outcomes will not be eligible for awards.
+4. You must be the first person to responsibly disclose the issue to be eligible for awards.
 
 <br>
 
@@ -267,7 +293,7 @@ If you're using VSCode, you can install the [StandardJS VSCode Extension](https:
 
 ## Database migrations
 
-We use [prisma](https://www.prisma.io/) for our database migrations. To create a new migration, modify `prisma/schema.prisma` according to [prisma schema referecne](https://www.prisma.io/docs/orm/reference/prisma-schema-reference) and apply it with:
+We use [prisma](https://www.prisma.io/) for our database migrations. To create a new migration, modify `prisma/schema.prisma` according to [prisma schema reference](https://www.prisma.io/docs/orm/reference/prisma-schema-reference) and apply it with:
 
 `./sndev prisma migrate dev`
 
@@ -374,7 +400,7 @@ Open a [discussion](http://github.com/stackernews/stacker.news/discussions) or [
 
 # Responsible disclosure
 
-If you found a vulnerability, we would greatly appreciate it if you contact us via [security@stacker.news](mailto:security@stacker.news) or open a [security advisory](https://github.com/stackernews/stacker.news/security/advisories/new).
+If you found a vulnerability, we would greatly appreciate it if you contact us via [security@stacker.news](mailto:security@stacker.news) or open a [security advisory](https://github.com/stackernews/stacker.news/security/advisories/new). Our PGP key can be found [here](https://stacker.news/pgp.txt) (EBAF 75DA 7279 CB48).
 
 <br>
 

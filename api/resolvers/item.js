@@ -15,9 +15,8 @@ import { msatsToSats } from '../../lib/format'
 import { parse } from 'tldts'
 import uu from 'url-unshort'
 import { actSchema, advSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, ssValidate } from '../../lib/validate'
-import { sendUserNotification } from '../webPush'
+import { sendUserNotification, notifyItemParents, notifyUserSubscribers, notifyZapped, notifyTerritorySubscribers } from '../../lib/webPush'
 import { defaultCommentSort, isJob, deleteItemByAuthor, getDeleteCommand, hasDeleteCommand } from '../../lib/item'
-import { notifyItemParents, notifyUserSubscribers, notifyZapped, notifyTerritorySubscribers } from '../../lib/push-notifications'
 import { datePivot, whenRange } from '../../lib/time'
 import { imageFeesInfo, uploadIdsFromText } from './image'
 import assertGofacYourself from './ofac'
@@ -457,7 +456,8 @@ export default {
                     LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
                     ${joinZapRankPersonalView(me, models)}
                     ${whereClause(
-                      '"Item"."pinId" IS NULL',
+                      // in "home" (sub undefined), we want to show pinned items (but without the pin icon)
+                      sub ? '"Item"."pinId" IS NULL' : '',
                       '"Item"."deletedAt" IS NULL',
                       '"Item"."parentId" IS NULL',
                       '"Item".bio = false',

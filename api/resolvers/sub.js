@@ -6,7 +6,7 @@ import { ssValidate, territorySchema } from '../../lib/validate'
 import { nextBilling, proratedBillingCost } from '../../lib/territory'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
 import { subViewGroup } from './growth'
-import { notifyTerritoryTransfer } from '../../lib/push-notifications'
+import { notifyTerritoryTransfer } from '../../lib/webPush'
 
 export function paySubQueries (sub, models) {
   if (sub.billingType === 'ONCE') {

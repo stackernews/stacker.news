@@ -10,7 +10,7 @@ import { PrismaAdapter } from '@auth/prisma-adapter'
 import { getToken } from 'next-auth/jwt'
 import { NodeNextRequest } from 'next/dist/server/base-http/node'
 import { schnorr } from '@noble/curves/secp256k1'
-import { sendUserNotification } from '../../../api/webPush'
+import { sendUserNotification } from '../../../lib/webPush'
 
 /**
  * Stores userIds in user table

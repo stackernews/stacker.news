@@ -64,6 +64,7 @@ export default gql`
   input SettingsInput {
     autoDropBolt11s: Boolean!
     diagnostics: Boolean!
+    noReferralLinks: Boolean!
     fiatCurrency: String!
     greeterMode: Boolean!
     hideBookmarks: Boolean!
@@ -128,6 +129,7 @@ export default gql`
     """
     autoDropBolt11s: Boolean!
     diagnostics: Boolean!
+    noReferralLinks: Boolean!
     fiatCurrency: String!
     greeterMode: Boolean!
     hideBookmarks: Boolean!

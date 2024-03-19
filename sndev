@@ -9,7 +9,11 @@ docker__compose() {
     exit 0
   fi
 
-  CURRENT_UID=$(id -u) CURRENT_GID=$(id -g) command docker compose --env-file .env.development "$@"
+  if [ -z "$COMPOSE_PROFILES" ]; then
+    COMPOSE_PROFILES="images,search,payments"
+  fi
+
+  CURRENT_UID=$(id -u) CURRENT_GID=$(id -g) COMPOSE_PROFILES=$COMPOSE_PROFILES command docker compose --env-file .env.development "$@"
 }
 
 docker__exec() {
@@ -38,7 +42,7 @@ docker__sn_lnd() {
     t=""
   fi
 
-  docker__exec "$t" -u lnd sn_lnd lncli "$@"
+  docker__exec $t -u lnd sn_lnd lncli "$@"
 }
 
 docker__stacker_lnd() {
@@ -49,7 +53,7 @@ docker__stacker_lnd() {
     t=""
   fi
 
-  docker__exec "$t" -u lnd stacker_lnd lncli "$@"
+  docker__exec $t -u lnd stacker_lnd lncli "$@"
 }
 
 sndev__start() {

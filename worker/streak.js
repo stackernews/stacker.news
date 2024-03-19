@@ -1,4 +1,4 @@
-import { sendUserNotification } from '../api/webPush'
+import { sendUserNotification } from '../lib/webPush'
 import { FOUND_BLURBS, LOST_BLURBS } from '../lib/constants'
 
 const STREAK_THRESHOLD = 100

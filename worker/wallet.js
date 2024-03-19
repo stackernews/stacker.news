@@ -129,7 +129,7 @@ async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
     // don't send notifications for JIT invoices
     if (dbInv.preimage) return
 
-    notifyDeposit(dbInv.userId, dbInv)
+    notifyDeposit(dbInv.userId, { comment: dbInv.comment, ...inv })
 
     return await boss.send('nip57', { hash })
   }

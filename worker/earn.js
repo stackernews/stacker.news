@@ -1,5 +1,5 @@
 import serialize from '../api/resolvers/serial.js'
-import { sendUserNotification } from '../api/webPush/index.js'
+import { sendUserNotification } from '../lib/webPush.js'
 import { msatsToSats, numWithUnits } from '../lib/format.js'
 import { PrismaClient } from '@prisma/client'
 import { proportions } from '../lib/madness.js'

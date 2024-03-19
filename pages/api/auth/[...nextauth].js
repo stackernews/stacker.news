@@ -10,7 +10,7 @@ import { PrismaAdapter } from '@auth/prisma-adapter'
 import { getToken } from 'next-auth/jwt'
 import { NodeNextRequest } from 'next/dist/server/base-http/node'
 import { schnorr } from '@noble/curves/secp256k1'
-import { sendUserNotification } from '@/api/webPush'
+import { notifyReferral } from '@/lib/webPush'
 
 /**
  * Stores userIds in user table
@@ -66,7 +66,7 @@ function getCallbacks (req) {
           const referrer = await prisma.user.findUnique({ where: { name: req.cookies.sn_referrer } })
           if (referrer) {
             await prisma.user.update({ where: { id: user.id }, data: { referrerId: referrer.id } })
-            sendUserNotification(referrer.id, { title: 'someone joined via one of your referral links', tag: 'REFERRAL' }).catch(console.error)
+            notifyReferral(referrer.id)
           }
         }
 

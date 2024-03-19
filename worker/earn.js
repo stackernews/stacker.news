@@ -1,6 +1,5 @@
 import serialize from '@/api/resolvers/serial.js'
-import { sendUserNotification } from '@/api/webPush/index.js'
-import { msatsToSats, numWithUnits } from '@/lib/format.js'
+import { notifyEarner } from '@/lib/webPush.js'
 import { PrismaClient } from '@prisma/client'
 import { proportions } from '@/lib/madness.js'
 import { SN_USER_IDS } from '@/lib/constants.js'
@@ -106,24 +105,10 @@ export async function earn ({ name }) {
       }
     }
 
-    Promise.allSettled(Object.entries(notifications).map(([userId, earnings]) =>
-      sendUserNotification(parseInt(userId, 10), buildUserNotification(earnings))
-    )).catch(console.error)
+    Promise.allSettled(
+      Object.entries(notifications).map(([userId, earnings]) => notifyEarner(parseInt(userId, 10), earnings))
+    ).catch(console.error)
   } finally {
     models.$disconnect().catch(console.error)
   }
-}
-
-function buildUserNotification (earnings) {
-  const fmt = msats => numWithUnits(msatsToSats(msats, { abbreviate: false }))
-
-  const title = `you stacked ${fmt(earnings.msats)} in rewards`
-  const tag = 'EARN'
-  let body = ''
-  if (earnings.POST) body += `#${earnings.POST.bestRank} among posts with ${fmt(earnings.POST.msats)} in total\n`
-  if (earnings.COMMENT) body += `#${earnings.COMMENT.bestRank} among comments with ${fmt(earnings.COMMENT.msats)} in total\n`
-  if (earnings.TIP_POST) body += `#${earnings.TIP_POST.bestRank} in post zapping with ${fmt(earnings.TIP_POST.msats)} in total\n`
-  if (earnings.TIP_COMMENT) body += `#${earnings.TIP_COMMENT.bestRank} in comment zapping with ${fmt(earnings.TIP_COMMENT.msats)} in total`
-
-  return { title, tag, body }
 }

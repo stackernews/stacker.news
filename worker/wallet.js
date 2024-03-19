@@ -3,8 +3,7 @@ import {
   getInvoice, getPayment, cancelHodlInvoice, deletePayment,
   subscribeToInvoices, subscribeToPayments, subscribeToInvoice
 } from 'ln-service'
-import { sendUserNotification } from '@/api/webPush/index.js'
-import { msatsToSats, numWithUnits } from '@/lib/format'
+import { notifyDeposit } from '@/lib/webPush'
 import { INVOICE_RETENTION_DAYS } from '@/lib/constants'
 import { datePivot, sleep } from '@/lib/time.js'
 import retry from 'async-retry'
@@ -122,20 +121,17 @@ async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
     // ALSO: is_confirmed and is_held are mutually exclusive
     // that is, a hold invoice will first be is_held but not is_confirmed
     // and once it's settled it will be is_confirmed but not is_held
-    await serialize(models,
-      models.$executeRaw`SELECT confirm_invoice(${inv.id}, ${Number(inv.received_mtokens)})`,
+    const [[{ confirm_invoice: code }]] = await serialize(models,
+      models.$queryRaw`SELECT confirm_invoice(${inv.id}, ${Number(inv.received_mtokens)})`,
       models.invoice.update({ where: { hash }, data: { confirmedIndex: inv.confirmed_index } })
     )
 
     // don't send notifications for JIT invoices
     if (dbInv.preimage) return
+    if (code === 0) {
+      notifyDeposit(dbInv.userId, { comment: dbInv.comment, ...inv })
+    }
 
-    sendUserNotification(dbInv.userId, {
-      title: `${numWithUnits(msatsToSats(inv.received_mtokens), { abbreviate: false })} were deposited in your account`,
-      body: dbInv.comment || undefined,
-      tag: 'DEPOSIT',
-      data: { sats: msatsToSats(inv.received_mtokens) }
-    }).catch(console.error)
     return await boss.send('nip57', { hash })
   }
 

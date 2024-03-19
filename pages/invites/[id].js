@@ -9,7 +9,7 @@ import getSSRApolloClient from '@/api/ssrApollo'
 import Link from 'next/link'
 import { CenterLayout } from '@/components/layout'
 import { getAuthOptions } from '@/api/auth/[...nextauth]'
-import { sendUserNotification } from '@/api/webPush'
+import { sendUserNotification } from '@/lib/webPush'
 
 export async function getServerSideProps ({ req, res, query: { id, error = null } }) {
   const session = await getServerSession(req, res, getAuthOptions(req))

@@ -23,6 +23,10 @@ export default gql`
     toggleMuteSub(name: String!): Boolean!
     toggleSubSubscription(name: String!): Boolean!
     transferTerritory(subName: String!, userName: String!): Sub
+    unarchiveTerritory(name: String!, desc: String, baseCost: Int!,
+      postTypes: [String!]!, allowFreebies: Boolean!,
+      billingType: String!, billingAutoRenew: Boolean!,
+      moderated: Boolean!, hash: String, hmac: String, nsfw: Boolean!): Sub
   }
 
   type Sub {

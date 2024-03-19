@@ -6,8 +6,7 @@ import { ssValidate, territorySchema } from '@/lib/validate'
 import { nextBilling, proratedBillingCost } from '@/lib/territory'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { subViewGroup } from './growth'
-import { notifyTerritoryTransfer } from '@/lib/push-notifications'
-
+import { notifyTerritoryTransfer } from '@/lib/webPush'
 export function paySubQueries (sub, models) {
   if (sub.billingType === 'ONCE') {
     return []
@@ -315,6 +314,60 @@ export default {
       notifyTerritoryTransfer({ models, sub, to: user })
 
       return updatedSub
+    },
+    unarchiveTerritory: async (parent, { hash, hmac, ...data }, { me, models, lnd }) => {
+      if (!me) {
+        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+      }
+
+      const { name } = data
+
+      await ssValidate(territorySchema, data, { models, me, sub: { name } })
+
+      const oldSub = await models.sub.findUnique({ where: { name } })
+      if (!oldSub) {
+        throw new GraphQLError('sub not found', { extensions: { code: 'BAD_INPUT' } })
+      }
+      if (oldSub.status !== 'STOPPED') {
+        throw new GraphQLError('sub is not archived', { extensions: { code: 'BAD_INPUT' } })
+      }
+      if (oldSub.billingType === 'ONCE') {
+        // sanity check. this should never happen but leaving this comment here
+        // to stop error propagation just in case and document that this should never happen.
+        // #defensivecode
+        throw new GraphQLError('sub should not be archived', { extensions: { code: 'BAD_INPUT' } })
+      }
+
+      const billingCost = TERRITORY_PERIOD_COST(data.billingType)
+      const billPaidUntil = nextBilling(new Date(), data.billingType)
+      const cost = BigInt(1000) * BigInt(billingCost)
+      const newSub = { ...data, billPaidUntil, billingCost, userId: me.id, status: 'ACTIVE' }
+
+      await serializeInvoicable([
+        models.user.update({
+          where: {
+            id: me.id
+          },
+          data: {
+            msats: {
+              decrement: cost
+            }
+          }
+        }),
+        models.subAct.create({
+          data: {
+            subName: name,
+            userId: me.id,
+            msats: cost,
+            type: 'BILLING'
+          }
+        }),
+        models.sub.update({ where: { name }, data: newSub }),
+        oldSub.userId !== me.id && models.territoryTransfer.create({ data: { subName: name, oldUserId: oldSub.userId, newUserId: me.id } })
+      ].filter(q => !!q),
+      { models, lnd, hash, hmac, me, enforceFee: billingCost })
+
+      if (oldSub.userId !== me.id) notifyTerritoryTransfer({ models, sub: newSub, to: me.id })
     }
   },
   Sub: {

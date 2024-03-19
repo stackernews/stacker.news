@@ -2,7 +2,7 @@ import AccordianItem from './accordian-item'
 import { Col, InputGroup, Row, Form as BootstrapForm, Badge } from 'react-bootstrap'
 import { Checkbox, CheckboxGroup, Form, Input, MarkdownInput } from './form'
 import FeeButton, { FeeButtonProvider } from './fee-button'
-import { gql, useApolloClient, useMutation } from '@apollo/client'
+import { gql, useApolloClient, useLazyQuery, useMutation } from '@apollo/client'
 import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/router'
 import { MAX_TERRITORY_DESC_LENGTH, POST_TYPES, TERRITORY_BILLING_OPTIONS, TERRITORY_PERIOD_COST } from '../lib/constants'
@@ -11,6 +11,7 @@ import { useMe } from './me'
 import Info from './info'
 import { abbrNum } from '../lib/format'
 import { purchasedType } from '../lib/territory'
+import { SUB } from '../fragments/subs'
 
 export default function TerritoryForm ({ sub }) {
   const router = useRouter()
@@ -28,12 +29,36 @@ export default function TerritoryForm ({ sub }) {
         }
       }`
   )
+  const [unarchiveTerritory] = useMutation(
+    gql`
+      mutation unarchiveTerritory($name: String!, $desc: String, $baseCost: Int!,
+        $postTypes: [String!]!, $allowFreebies: Boolean!, $billingType: String!,
+        $billingAutoRenew: Boolean!, $moderated: Boolean!, $hash: String, $hmac: String, $nsfw: Boolean!) {
+          unarchiveTerritory(name: $name, desc: $desc, baseCost: $baseCost,
+            postTypes: $postTypes, allowFreebies: $allowFreebies, billingType: $billingType,
+            billingAutoRenew: $billingAutoRenew, moderated: $moderated, hash: $hash, hmac: $hmac, nsfw: $nsfw) {
+          name
+        }
+      }`
+  )
+
+  const schema = territorySchema({ client, me, sub })
+
+  const [fetchSub] = useLazyQuery(SUB)
+  const [archived, setArchived] = useState(false)
+  const onNameChange = useCallback(async (formik, e) => {
+    // never show "territory archived" warning during edits
+    if (sub) return
+    const name = e.target.value
+    const { data } = await fetchSub({ variables: { sub: name } })
+    setArchived(data?.sub?.status === 'STOPPED')
+  }, [fetchSub, setArchived])
 
   const onSubmit = useCallback(
     async ({ ...variables }) => {
-      const { error } = await upsertSub({
-        variables: { oldName: sub?.name, ...variables }
-      })
+      const { error } = archived
+        ? await unarchiveTerritory({ variables })
+        : await upsertSub({ variables: { oldName: sub?.name, ...variables } })
 
       if (error) {
         throw new Error({ message: error.toString() })
@@ -52,7 +77,7 @@ export default function TerritoryForm ({ sub }) {
       })
 
       await router.push(`/~${variables.name}`)
-    }, [client, upsertSub, router]
+    }, [client, upsertSub, unarchiveTerritory, router, archived]
   )
 
   const [billing, setBilling] = useState((sub?.billingType || 'MONTHLY').toLowerCase())
@@ -86,7 +111,7 @@ export default function TerritoryForm ({ sub }) {
           moderated: sub?.moderated || false,
           nsfw: sub?.nsfw || false
         }}
-        schema={territorySchema({ client, me, sub })}
+        schema={schema}
         invoiceable
         onSubmit={onSubmit}
         className='mb-5'
@@ -100,6 +125,17 @@ export default function TerritoryForm ({ sub }) {
           clear
           maxLength={32}
           prepend={<InputGroup.Text className='text-monospace'>~</InputGroup.Text>}
+          onChange={onNameChange}
+          warn={archived && (
+            <div className='d-flex align-items-center'>this territory is archived
+              <Info>
+                <ul className='fw-bold'>
+                  <li>This territory got archived because the previous founder did not pay for the upkeep</li>
+                  <li>You can proceed but will inherit the old content</li>
+                </ul>
+              </Info>
+            </div>
+          )}
         />
         <MarkdownInput
           label='description'

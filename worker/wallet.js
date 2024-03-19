@@ -3,7 +3,7 @@ import {
   getInvoice, getPayment, cancelHodlInvoice, deletePayment,
   subscribeToInvoices, subscribeToPayments, subscribeToInvoice
 } from 'ln-service'
-import { sendUserNotification } from '../api/webPush/index.js'
+import { sendUserNotification } from '../lib/webPush'
 import { msatsToSats, numWithUnits } from '../lib/format'
 import { INVOICE_RETENTION_DAYS } from '../lib/constants'
 import { datePivot, sleep } from '../lib/time.js'

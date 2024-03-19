@@ -42,7 +42,7 @@ docker__sn_lnd() {
     t=""
   fi
 
-  docker__exec "$t" -u lnd sn_lnd lncli "$@"
+  docker__exec $t -u lnd sn_lnd lncli "$@"
 }
 
 docker__stacker_lnd() {
@@ -53,7 +53,7 @@ docker__stacker_lnd() {
     t=""
   fi
 
-  docker__exec "$t" -u lnd stacker_lnd lncli "$@"
+  docker__exec $t -u lnd stacker_lnd lncli "$@"
 }
 
 sndev__start() {

@@ -3,8 +3,7 @@ import {
   getInvoice, getPayment, cancelHodlInvoice, deletePayment,
   subscribeToInvoices, subscribeToPayments, subscribeToInvoice
 } from 'ln-service'
-import { sendUserNotification } from '../lib/webPush'
-import { msatsToSats, numWithUnits } from '../lib/format'
+import { notifyDeposit } from '../lib/webPush'
 import { INVOICE_RETENTION_DAYS } from '../lib/constants'
 import { datePivot, sleep } from '../lib/time.js'
 import retry from 'async-retry'
@@ -130,12 +129,8 @@ async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
     // don't send notifications for JIT invoices
     if (dbInv.preimage) return
 
-    sendUserNotification(dbInv.userId, {
-      title: `${numWithUnits(msatsToSats(inv.received_mtokens), { abbreviate: false })} were deposited in your account`,
-      body: dbInv.comment || undefined,
-      tag: 'DEPOSIT',
-      data: { sats: msatsToSats(inv.received_mtokens) }
-    }).catch(console.error)
+    notifyDeposit(dbInv.userId, dbInv)
+
     return await boss.send('nip57', { hash })
   }
 

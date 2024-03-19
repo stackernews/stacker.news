@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useContext } from 'react'
-import { randInRange } from '../lib/rand'
+import { randInRange } from '@/lib/rand'
 
 export const LightningContext = React.createContext(() => {})
 

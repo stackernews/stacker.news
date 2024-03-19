@@ -1,9 +1,9 @@
-import serialize from '../api/resolvers/serial.js'
-import { sendUserNotification } from '../api/webPush/index.js'
-import { msatsToSats, numWithUnits } from '../lib/format.js'
+import serialize from '@/api/resolvers/serial.js'
+import { sendUserNotification } from '@/api/webPush/index.js'
+import { msatsToSats, numWithUnits } from '@/lib/format.js'
 import { PrismaClient } from '@prisma/client'
-import { proportions } from '../lib/madness.js'
-import { SN_USER_IDS } from '../lib/constants.js'
+import { proportions } from '@/lib/madness.js'
+import { SN_USER_IDS } from '@/lib/constants.js'
 
 const TOTAL_UPPER_BOUND_MSATS = 10000000000
 

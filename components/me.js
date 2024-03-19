@@ -1,7 +1,7 @@
 import React, { useContext } from 'react'
 import { useQuery } from '@apollo/client'
-import { ME } from '../fragments/users'
-import { SSR } from '../lib/constants'
+import { ME } from '@/fragments/users'
+import { SSR } from '@/lib/constants'
 
 export const MeContext = React.createContext({
   me: null

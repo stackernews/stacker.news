@@ -1,13 +1,13 @@
 import { useRouter } from 'next/router'
-import { getGetServerSideProps } from '../../api/ssrApollo'
-import Items from '../../components/items'
-import Layout from '../../components/layout'
-import { SUB_FULL, SUB_ITEMS } from '../../fragments/subs'
-import Snl from '../../components/snl'
-import { MadnessBanner, WelcomeBanner } from '../../components/banners'
+import { getGetServerSideProps } from '@/api/ssrApollo'
+import Items from '@/components/items'
+import Layout from '@/components/layout'
+import { SUB_FULL, SUB_ITEMS } from '@/fragments/subs'
+import Snl from '@/components/snl'
+import { MadnessBanner, WelcomeBanner } from '@/components/banners'
 import { useQuery } from '@apollo/client'
-import PageLoading from '../../components/page-loading'
-import TerritoryHeader from '../../components/territory-header'
+import PageLoading from '@/components/page-loading'
+import TerritoryHeader from '@/components/territory-header'
 
 export const getServerSideProps = getGetServerSideProps({
   query: SUB_ITEMS,

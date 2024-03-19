@@ -1,5 +1,5 @@
 import Image from 'react-bootstrap/Image'
-import { StaticLayout } from '../components/layout'
+import { StaticLayout } from '@/components/layout'
 import styles from '../styles/error.module.css'
 
 const statusDescribe = {

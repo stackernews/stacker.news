@@ -1,4 +1,4 @@
-import serialize from '../api/resolvers/serial.js'
+import serialize from '@/api/resolvers/serial.js'
 
 export async function auction ({ models }) {
   // get all items we need to check

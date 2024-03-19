@@ -1,14 +1,14 @@
-import { getGetServerSideProps } from '../../../api/ssrApollo'
-import { Form, Input } from '../../../components/form'
-import { CenterLayout } from '../../../components/layout'
-import { useMe } from '../../../components/me'
-import { WalletButtonBar, WalletCard } from '../../../components/wallet-card'
+import { getGetServerSideProps } from '@/api/ssrApollo'
+import { Form, Input } from '@/components/form'
+import { CenterLayout } from '@/components/layout'
+import { useMe } from '@/components/me'
+import { WalletButtonBar, WalletCard } from '@/components/wallet-card'
 import { useMutation } from '@apollo/client'
-import { useToast } from '../../../components/toast'
-import { lnAddrAutowithdrawSchema } from '../../../lib/validate'
+import { useToast } from '@/components/toast'
+import { lnAddrAutowithdrawSchema } from '@/lib/validate'
 import { useRouter } from 'next/router'
-import { AutowithdrawSettings, autowithdrawInitial } from '../../../components/autowithdraw-shared'
-import { REMOVE_WALLET, UPSERT_WALLET_LNADDR, WALLET_BY_TYPE } from '../../../fragments/wallet'
+import { AutowithdrawSettings, autowithdrawInitial } from '@/components/autowithdraw-shared'
+import { REMOVE_WALLET, UPSERT_WALLET_LNADDR, WALLET_BY_TYPE } from '@/fragments/wallet'
 
 const variables = { type: 'LIGHTNING_ADDRESS' }
 export const getServerSideProps = getGetServerSideProps({ query: WALLET_BY_TYPE, variables, authRequired: true })

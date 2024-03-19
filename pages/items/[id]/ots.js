@@ -1,11 +1,11 @@
-import Layout from '../../../components/layout'
-import { ITEM_OTS } from '../../../fragments/items'
-import { getGetServerSideProps } from '../../../api/ssrApollo'
+import Layout from '@/components/layout'
+import { ITEM_OTS } from '@/fragments/items'
+import { getGetServerSideProps } from '@/api/ssrApollo'
 import stringifyCanon from 'canonical-json'
 import Button from 'react-bootstrap/Button'
 import { useQuery } from '@apollo/client'
 import { useRouter } from 'next/router'
-import PageLoading from '../../../components/page-loading'
+import PageLoading from '@/components/page-loading'
 
 export const getServerSideProps = getGetServerSideProps({
   query: ITEM_OTS,

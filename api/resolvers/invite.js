@@ -1,6 +1,6 @@
 import { GraphQLError } from 'graphql'
-import { inviteSchema, ssValidate } from '../../lib/validate'
-import { msatsToSats } from '../../lib/format'
+import { inviteSchema, ssValidate } from '@/lib/validate'
+import { msatsToSats } from '@/lib/format'
 
 export default {
   Query: {

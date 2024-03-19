@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { abbrNum, numWithUnits } from '../lib/format'
+import { abbrNum, numWithUnits } from '@/lib/format'
 import { useMe } from './me'
 
 export default function HiddenWalletSummary ({ abbreviate, fixedWidth }) {

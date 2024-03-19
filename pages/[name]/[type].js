@@ -1,13 +1,13 @@
-import { getGetServerSideProps } from '../../api/ssrApollo'
-import Items from '../../components/items'
+import { getGetServerSideProps } from '@/api/ssrApollo'
+import Items from '@/components/items'
 import { useRouter } from 'next/router'
-import { USER, USER_WITH_ITEMS } from '../../fragments/users'
+import { USER, USER_WITH_ITEMS } from '@/fragments/users'
 import { useQuery } from '@apollo/client'
-import { COMMENT_TYPE_QUERY, ITEM_SORTS, ITEM_TYPES_USER, WHENS } from '../../lib/constants'
-import PageLoading from '../../components/page-loading'
+import { COMMENT_TYPE_QUERY, ITEM_SORTS, ITEM_TYPES_USER, WHENS } from '@/lib/constants'
+import PageLoading from '@/components/page-loading'
 import { UserLayout } from '.'
-import { Form, Select, DatePicker } from '../../components/form'
-import { whenToFrom } from '../../lib/time'
+import { Form, Select, DatePicker } from '@/components/form'
+import { whenToFrom } from '@/lib/time'
 
 const staticVariables = { sort: 'user' }
 const variablesFunc = vars => ({

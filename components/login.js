@@ -1,13 +1,13 @@
 import { signIn } from 'next-auth/react'
 import styles from './login.module.css'
-import { Form, Input, SubmitButton } from '../components/form'
+import { Form, Input, SubmitButton } from '@/components/form'
 import { useState } from 'react'
 import Alert from 'react-bootstrap/Alert'
 import { useRouter } from 'next/router'
 import { LightningAuthWithExplainer } from './lightning-auth'
 import NostrAuth from './nostr-auth'
 import LoginButton from './login-button'
-import { emailSchema } from '../lib/validate'
+import { emailSchema } from '@/lib/validate'
 
 export function EmailLoginForm ({ text, callbackUrl }) {
   return (

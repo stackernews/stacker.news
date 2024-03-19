@@ -1,7 +1,7 @@
 import { getPublicKey } from 'nostr'
-import models from '../../../../api/models'
-import { lnurlPayMetadataString } from '../../../../lib/lnurl'
-import { LNURLP_COMMENT_MAX_LENGTH } from '../../../../lib/constants'
+import models from '@/api/models'
+import { lnurlPayMetadataString } from '@/lib/lnurl'
+import { LNURLP_COMMENT_MAX_LENGTH } from '@/lib/constants'
 
 export default async ({ query: { username } }, res) => {
   const user = await models.user.findUnique({ where: { name: username } })

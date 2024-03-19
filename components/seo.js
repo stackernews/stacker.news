@@ -1,7 +1,7 @@
 import { NextSeo } from 'next-seo'
 import { useRouter } from 'next/router'
 import removeMd from 'remove-markdown'
-import { numWithUnits } from '../lib/format'
+import { numWithUnits } from '@/lib/format'
 
 export function SeoSearch ({ sub }) {
   const router = useRouter()

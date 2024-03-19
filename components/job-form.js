@@ -14,10 +14,10 @@ import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { usePrice } from './price'
 import Avatar from './avatar'
-import { jobSchema } from '../lib/validate'
-import { MAX_TITLE_LENGTH, MEDIA_URL } from '../lib/constants'
+import { jobSchema } from '@/lib/validate'
+import { MAX_TITLE_LENGTH, MEDIA_URL } from '@/lib/constants'
 import { useToast } from './toast'
-import { toastDeleteScheduled } from '../lib/form'
+import { toastDeleteScheduled } from '@/lib/form'
 import { ItemButtonBar } from './post'
 
 function satsMin2Mo (minute) {

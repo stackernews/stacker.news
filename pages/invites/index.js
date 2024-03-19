@@ -1,14 +1,14 @@
-import Layout from '../../components/layout'
-import { Form, Input, SubmitButton } from '../../components/form'
+import Layout from '@/components/layout'
+import { Form, Input, SubmitButton } from '@/components/form'
 import InputGroup from 'react-bootstrap/InputGroup'
 import { gql, useMutation, useQuery } from '@apollo/client'
-import { INVITE_FIELDS } from '../../fragments/invites'
-import AccordianItem from '../../components/accordian-item'
+import { INVITE_FIELDS } from '@/fragments/invites'
+import AccordianItem from '@/components/accordian-item'
 import styles from '../../styles/invites.module.css'
-import Invite from '../../components/invite'
-import { inviteSchema } from '../../lib/validate'
-import { SSR } from '../../lib/constants'
-import { getGetServerSideProps } from '../../api/ssrApollo'
+import Invite from '@/components/invite'
+import { inviteSchema } from '@/lib/validate'
+import { SSR } from '@/lib/constants'
+import { getGetServerSideProps } from '@/api/ssrApollo'
 
 // force SSR to include CSP nonces
 export const getServerSideProps = getGetServerSideProps({ query: null })

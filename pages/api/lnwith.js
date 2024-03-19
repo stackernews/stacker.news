@@ -1,9 +1,9 @@
 // verify k1 exists
 // send back
-import models from '../../api/models'
-import { datePivot } from '../../lib/time'
-import lnd from '../../api/lnd'
-import { createWithdrawal } from '../../api/resolvers/wallet'
+import models from '@/api/models'
+import { datePivot } from '@/lib/time'
+import lnd from '@/api/lnd'
+import { createWithdrawal } from '@/api/resolvers/wallet'
 
 export default async ({ query, headers }, res) => {
   if (!query.k1) {

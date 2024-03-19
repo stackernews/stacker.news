@@ -1,4 +1,4 @@
-import { ITEM_TYPES, ITEM_TYPES_UNIVERSAL } from '../lib/constants'
+import { ITEM_TYPES, ITEM_TYPES_UNIVERSAL } from '@/lib/constants'
 import { Select } from './form'
 import { useRouter } from 'next/router'
 

@@ -1,5 +1,5 @@
-import getSSRApolloClient from '../../../../api/ssrApollo'
-import { ITEM_OTS } from '../../../../fragments/items'
+import getSSRApolloClient from '@/api/ssrApollo'
+import { ITEM_OTS } from '@/fragments/items'
 import stringifyCanon from 'canonical-json'
 
 export default async function handler (req, res) {

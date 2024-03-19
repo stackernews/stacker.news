@@ -1,18 +1,18 @@
 import { gql } from 'graphql-tag'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { getGetServerSideProps } from '../../api/ssrApollo'
-import { CopyInput, Select, DatePicker } from '../../components/form'
-import { CenterLayout } from '../../components/layout'
-import { useMe } from '../../components/me'
+import { getGetServerSideProps } from '@/api/ssrApollo'
+import { CopyInput, Select, DatePicker } from '@/components/form'
+import { CenterLayout } from '@/components/layout'
+import { useMe } from '@/components/me'
 import { useQuery } from '@apollo/client'
-import PageLoading from '../../components/page-loading'
-import { WHENS } from '../../lib/constants'
+import PageLoading from '@/components/page-loading'
+import { WHENS } from '@/lib/constants'
 import dynamic from 'next/dynamic'
-import { numWithUnits } from '../../lib/format'
-import { whenToFrom } from '../../lib/time'
+import { numWithUnits } from '@/lib/format'
+import { whenToFrom } from '@/lib/time'
 
-const WhenComposedChart = dynamic(() => import('../../components/charts').then(mod => mod.WhenComposedChart), {
+const WhenComposedChart = dynamic(() => import('@/components/charts').then(mod => mod.WhenComposedChart), {
   loading: () => <div>Loading...</div>
 })
 

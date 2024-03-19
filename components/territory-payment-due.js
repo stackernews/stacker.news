@@ -1,14 +1,14 @@
 import { Alert } from 'react-bootstrap'
 import { useMe } from './me'
 import FeeButton, { FeeButtonProvider } from './fee-button'
-import { TERRITORY_BILLING_OPTIONS } from '../lib/constants'
+import { TERRITORY_BILLING_OPTIONS } from '@/lib/constants'
 import { Form } from './form'
-import { timeSince } from '../lib/time'
+import { timeSince } from '@/lib/time'
 import { LongCountdown } from './countdown'
 import { useCallback } from 'react'
 import { useApolloClient, useMutation } from '@apollo/client'
-import { SUB_PAY } from '../fragments/subs'
-import { nextBillingWithGrace } from '../lib/territory'
+import { SUB_PAY } from '@/fragments/subs'
+import { nextBillingWithGrace } from '@/lib/territory'
 
 export default function TerritoryPaymentDue ({ sub }) {
   const me = useMe()

@@ -1,12 +1,12 @@
-import serialize from '../api/resolvers/serial.js'
+import serialize from '@/api/resolvers/serial.js'
 import {
   getInvoice, getPayment, cancelHodlInvoice, deletePayment,
   subscribeToInvoices, subscribeToPayments, subscribeToInvoice
 } from 'ln-service'
-import { sendUserNotification } from '../api/webPush/index.js'
-import { msatsToSats, numWithUnits } from '../lib/format'
-import { INVOICE_RETENTION_DAYS } from '../lib/constants'
-import { datePivot, sleep } from '../lib/time.js'
+import { sendUserNotification } from '@/api/webPush/index.js'
+import { msatsToSats, numWithUnits } from '@/lib/format'
+import { INVOICE_RETENTION_DAYS } from '@/lib/constants'
+import { datePivot, sleep } from '@/lib/time.js'
 import retry from 'async-retry'
 
 export async function subscribeToWallet (args) {

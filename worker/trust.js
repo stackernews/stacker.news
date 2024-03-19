@@ -1,5 +1,5 @@
 import * as math from 'mathjs'
-import { ANON_USER_ID, SN_USER_IDS } from '../lib/constants.js'
+import { ANON_USER_ID, SN_USER_IDS } from '@/lib/constants.js'
 
 export async function trust ({ boss, models }) {
   try {

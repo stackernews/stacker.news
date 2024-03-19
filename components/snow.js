@@ -1,5 +1,5 @@
 import React, { useCallback, useContext, useState } from 'react'
-import { randInRange } from '../lib/rand'
+import { randInRange } from '@/lib/rand'
 
 export const SnowContext = React.createContext(() => {})
 

@@ -1,6 +1,6 @@
 import webPush from 'web-push'
 import models from '../models'
-import { COMMENT_DEPTH_LIMIT } from '../../lib/constants'
+import { COMMENT_DEPTH_LIMIT } from '@/lib/constants'
 import removeMd from 'remove-markdown'
 
 const webPushEnabled = process.env.NODE_ENV === 'production' ||

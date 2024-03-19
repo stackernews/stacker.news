@@ -1,20 +1,20 @@
 import { gql, useQuery } from '@apollo/client'
-import { getGetServerSideProps } from '../../api/ssrApollo'
-import Layout from '../../components/layout'
+import { getGetServerSideProps } from '@/api/ssrApollo'
+import Layout from '@/components/layout'
 import Col from 'react-bootstrap/Col'
 import Row from 'react-bootstrap/Row'
-import { UsageHeader } from '../../components/usage-header'
+import { UsageHeader } from '@/components/usage-header'
 import { useRouter } from 'next/router'
 import dynamic from 'next/dynamic'
-import PageLoading from '../../components/page-loading'
+import PageLoading from '@/components/page-loading'
 
-const WhenAreaChart = dynamic(() => import('../../components/charts').then(mod => mod.WhenAreaChart), {
+const WhenAreaChart = dynamic(() => import('@/components/charts').then(mod => mod.WhenAreaChart), {
   loading: () => <div>Loading...</div>
 })
-const WhenLineChart = dynamic(() => import('../../components/charts').then(mod => mod.WhenLineChart), {
+const WhenLineChart = dynamic(() => import('@/components/charts').then(mod => mod.WhenLineChart), {
   loading: () => <div>Loading...</div>
 })
-const WhenComposedChart = dynamic(() => import('../../components/charts').then(mod => mod.WhenComposedChart), {
+const WhenComposedChart = dynamic(() => import('@/components/charts').then(mod => mod.WhenComposedChart), {
   loading: () => <div>Loading...</div>
 })
 

@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useMe } from './me'
-import fancyNames from '../lib/fancy-names.json'
+import fancyNames from '@/lib/fancy-names.json'
 
 const generateFancyName = () => {
   // 100 adjectives * 100 nouns * 10000 = 100M possible names

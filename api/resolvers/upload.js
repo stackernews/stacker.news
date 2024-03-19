@@ -1,5 +1,5 @@
 import { GraphQLError } from 'graphql'
-import { ANON_USER_ID, IMAGE_PIXELS_MAX, UPLOAD_SIZE_MAX, UPLOAD_SIZE_MAX_AVATAR, UPLOAD_TYPES_ALLOW } from '../../lib/constants'
+import { ANON_USER_ID, IMAGE_PIXELS_MAX, UPLOAD_SIZE_MAX, UPLOAD_SIZE_MAX_AVATAR, UPLOAD_TYPES_ALLOW } from '@/lib/constants'
 import { createPresignedPost } from '../s3'
 
 export default {

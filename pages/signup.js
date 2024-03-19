@@ -1,6 +1,6 @@
 import Link from 'next/link'
-import { StaticLayout } from '../components/layout'
-import Login from '../components/login'
+import { StaticLayout } from '@/components/layout'
+import Login from '@/components/login'
 export { getServerSideProps } from './login'
 
 function SignUpHeader () {

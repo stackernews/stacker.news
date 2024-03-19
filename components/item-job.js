@@ -6,11 +6,11 @@ import Image from 'react-bootstrap/Image'
 import { SearchTitle } from './item'
 import styles from './item.module.css'
 import Link from 'next/link'
-import { timeSince } from '../lib/time'
+import { timeSince } from '@/lib/time'
 import EmailIcon from '../svgs/mail-open-line.svg'
 import Share from './share'
 import Hat from './hat'
-import { MEDIA_URL } from '../lib/constants'
+import { MEDIA_URL } from '@/lib/constants'
 
 export default function ItemJob ({ item, toc, rank, children }) {
   const isEmail = string().email().isValidSync(item.url)

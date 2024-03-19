@@ -5,7 +5,7 @@ import ItemAct from './item-act'
 import AccordianItem from './accordian-item'
 import Flag from '../svgs/flag-fill.svg'
 import { useMemo } from 'react'
-import getColor from '../lib/rainbow'
+import getColor from '@/lib/rainbow'
 import { gql, useMutation } from '@apollo/client'
 import { useMe } from './me'
 

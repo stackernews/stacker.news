@@ -12,9 +12,9 @@ import { ResponsiveContainer } from 'recharts/lib/component/ResponsiveContainer'
 import { PieChart } from 'recharts/lib/chart/PieChart'
 import { Cell } from 'recharts/lib/component/Cell'
 import { Pie } from 'recharts/lib/polar/Pie'
-import { abbrNum } from '../lib/format'
+import { abbrNum } from '@/lib/format'
 import { useRouter } from 'next/router'
-import { timeUnitForRange } from '../lib/time'
+import { timeUnitForRange } from '@/lib/time'
 
 const dateFormatter = (when, from, to) => {
   const unit = xAxisName(when, from, to)

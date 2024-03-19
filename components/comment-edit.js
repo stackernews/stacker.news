@@ -1,9 +1,9 @@
-import { Form, MarkdownInput } from '../components/form'
+import { Form, MarkdownInput } from '@/components/form'
 import { gql, useMutation } from '@apollo/client'
 import styles from './reply.module.css'
-import { commentSchema } from '../lib/validate'
+import { commentSchema } from '@/lib/validate'
 import { useToast } from './toast'
-import { toastDeleteScheduled } from '../lib/form'
+import { toastDeleteScheduled } from '@/lib/form'
 import { FeeButtonProvider } from './fee-button'
 import { ItemButtonBar } from './post'
 

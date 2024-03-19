@@ -7,12 +7,12 @@ import models from './models'
 import { print } from 'graphql'
 import lnd from './lnd'
 import search from './search'
-import { ME } from '../fragments/users'
-import { PRICE } from '../fragments/price'
-import { BLOCK_HEIGHT } from '../fragments/blockHeight'
-import { CHAIN_FEE } from '../fragments/chainFee'
+import { ME } from '@/fragments/users'
+import { PRICE } from '@/fragments/price'
+import { BLOCK_HEIGHT } from '@/fragments/blockHeight'
+import { CHAIN_FEE } from '@/fragments/chainFee'
 import { getServerSession } from 'next-auth/next'
-import { getAuthOptions } from '../pages/api/auth/[...nextauth]'
+import { getAuthOptions } from '@/pages/api/auth/[...nextauth]'
 
 export default async function getSSRApolloClient ({ req, res, me = null }) {
   const session = req && await getServerSession(req, res, getAuthOptions(req))

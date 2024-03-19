@@ -1,7 +1,7 @@
 import { authenticatedLndGrpc, createInvoice } from 'ln-service'
-import { msatsToSats, satsToMsats } from '../lib/format'
-import { datePivot } from '../lib/time'
-import { createWithdrawal, sendToLnAddr } from '../api/resolvers/wallet'
+import { msatsToSats, satsToMsats } from '@/lib/format'
+import { datePivot } from '@/lib/time'
+import { createWithdrawal, sendToLnAddr } from '@/api/resolvers/wallet'
 
 export async function autoWithdraw ({ data: { id }, models, lnd }) {
   const user = await models.user.findUnique({ where: { id } })

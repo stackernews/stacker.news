@@ -1,14 +1,14 @@
-import models from '../../../../api/models'
-import lnd from '../../../../api/lnd'
+import models from '@/api/models'
+import lnd from '@/api/lnd'
 import { createInvoice } from 'ln-service'
-import { lnurlPayDescriptionHashForUser, lnurlPayMetadataString, lnurlPayDescriptionHash } from '../../../../lib/lnurl'
-import serialize from '../../../../api/resolvers/serial'
+import { lnurlPayDescriptionHashForUser, lnurlPayMetadataString, lnurlPayDescriptionHash } from '@/lib/lnurl'
+import serialize from '@/api/resolvers/serial'
 import { schnorr } from '@noble/curves/secp256k1'
 import { createHash } from 'crypto'
-import { datePivot } from '../../../../lib/time'
-import { BALANCE_LIMIT_MSATS, INV_PENDING_LIMIT, LNURLP_COMMENT_MAX_LENGTH, USER_IDS_BALANCE_NO_LIMIT } from '../../../../lib/constants'
-import { ssValidate, lud18PayerDataSchema } from '../../../../lib/validate'
-import assertGofacYourself from '../../../../api/resolvers/ofac'
+import { datePivot } from '@/lib/time'
+import { BALANCE_LIMIT_MSATS, INV_PENDING_LIMIT, LNURLP_COMMENT_MAX_LENGTH, USER_IDS_BALANCE_NO_LIMIT } from '@/lib/constants'
+import { ssValidate, lud18PayerDataSchema } from '@/lib/validate'
+import assertGofacYourself from '@/api/resolvers/ofac'
 
 export default async ({ query: { username, amount, nostr, comment, payerdata: payerData }, headers }, res) => {
   const user = await models.user.findUnique({ where: { name: username } })

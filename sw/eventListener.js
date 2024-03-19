@@ -1,7 +1,7 @@
 import ServiceWorkerStorage from 'serviceworker-storage'
-import { numWithUnits } from '../lib/format'
-import { CLEAR_NOTIFICATIONS, clearAppBadge, setAppBadge } from '../lib/badge'
-import { ACTION_PORT, DELETE_SUBSCRIPTION, MESSAGE_PORT, STORE_OS, STORE_SUBSCRIPTION, SYNC_SUBSCRIPTION } from '../components/serviceworker'
+import { numWithUnits } from '@/lib/format'
+import { CLEAR_NOTIFICATIONS, clearAppBadge, setAppBadge } from '@/lib/badge'
+import { ACTION_PORT, DELETE_SUBSCRIPTION, MESSAGE_PORT, STORE_OS, STORE_SUBSCRIPTION, SYNC_SUBSCRIPTION } from '@/components/serviceworker'
 
 // we store existing push subscriptions to keep them in sync with server
 const storage = new ServiceWorkerStorage('sw:storage', 1)

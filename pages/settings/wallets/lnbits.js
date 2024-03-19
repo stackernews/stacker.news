@@ -1,13 +1,13 @@
-import { getGetServerSideProps } from '../../../api/ssrApollo'
-import { Form, ClientInput, ClientCheckbox } from '../../../components/form'
-import { CenterLayout } from '../../../components/layout'
-import { WalletButtonBar, WalletCard } from '../../../components/wallet-card'
-import { lnbitsSchema } from '../../../lib/validate'
-import { useToast } from '../../../components/toast'
+import { getGetServerSideProps } from '@/api/ssrApollo'
+import { Form, ClientInput, ClientCheckbox } from '@/components/form'
+import { CenterLayout } from '@/components/layout'
+import { WalletButtonBar, WalletCard } from '@/components/wallet-card'
+import { lnbitsSchema } from '@/lib/validate'
+import { useToast } from '@/components/toast'
 import { useRouter } from 'next/router'
-import { useLNbits } from '../../../components/webln/lnbits'
-import { WalletSecurityBanner } from '../../../components/banners'
-import { useWebLNConfigurator } from '../../../components/webln'
+import { useLNbits } from '@/components/webln/lnbits'
+import { WalletSecurityBanner } from '@/components/banners'
+import { useWebLNConfigurator } from '@/components/webln'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 

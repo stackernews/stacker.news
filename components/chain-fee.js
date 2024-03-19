@@ -1,7 +1,7 @@
 import { createContext, useContext, useMemo } from 'react'
 import { useQuery } from '@apollo/client'
-import { SSR } from '../lib/constants'
-import { CHAIN_FEE } from '../fragments/chainFee'
+import { SSR } from '@/lib/constants'
+import { CHAIN_FEE } from '@/fragments/chainFee'
 
 export const ChainFeeContext = createContext({
   fee: 0

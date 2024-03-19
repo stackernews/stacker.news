@@ -3,8 +3,8 @@ import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import Tooltip from 'react-bootstrap/Tooltip'
 import CowboyHatIcon from '../svgs/cowboy.svg'
 import AnonIcon from '../svgs/spy-fill.svg'
-import { numWithUnits } from '../lib/format'
-import { AD_USER_ID, ANON_USER_ID } from '../lib/constants'
+import { numWithUnits } from '@/lib/format'
+import { AD_USER_ID, ANON_USER_ID } from '@/lib/constants'
 
 export default function Hat ({ user, badge, className = 'ms-1', height = 16, width = 16 }) {
   if (!user || Number(user.id) === AD_USER_ID) return null

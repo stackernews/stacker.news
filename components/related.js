@@ -1,4 +1,4 @@
-import { RELATED_ITEMS } from '../fragments/items'
+import { RELATED_ITEMS } from '@/fragments/items'
 import AccordianItem from './accordian-item'
 import Items from './items'
 import { NavigateFooter } from './more-footer'

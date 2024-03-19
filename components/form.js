@@ -403,7 +403,7 @@ function FormGroup ({ className, label, children }) {
 }
 
 function InputInner ({
-  prepend, append, hint, showValid, onChange, onBlur, overrideValue, appendValue,
+  prepend, append, hint, warn, showValid, onChange, onBlur, overrideValue, appendValue,
   innerRef, noForm, clear, onKeyDown, inputGroupClassName, debounce: debounceTime, maxLength,
   ...props
 }) {
@@ -452,7 +452,7 @@ function InputInner ({
         // not assume this is invalid
         const isNumeric = /^[0-9]+$/.test(draft)
         const numericExpected = typeof field.value === 'number'
-        helpers.setValue(isNumeric && numericExpected ? parseInt(draft) : draft, false)
+        helpers.setValue(isNumeric && numericExpected ? parseInt(draft) : draft)
         onChange && onChange(formik, { target: { value: draft } })
       }
     }
@@ -518,7 +518,12 @@ function InputInner ({
           {hint}
         </BootstrapForm.Text>
       )}
-      {maxLength && !(meta.touched && meta.error && invalid) && (
+      {warn && (
+        <BootstrapForm.Text className='text-warning'>
+          {warn}
+        </BootstrapForm.Text>
+      )}
+      {!warn && maxLength && !(meta.touched && meta.error && invalid) && (
         <BootstrapForm.Text className={remaining < 0 ? 'text-danger' : 'text-muted'}>
           {`${numWithUnits(remaining, { abbreviate: false, unitSingular: 'character', unitPlural: 'characters' })} remaining`}
         </BootstrapForm.Text>

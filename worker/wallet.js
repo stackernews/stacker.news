@@ -121,8 +121,8 @@ async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
     // ALSO: is_confirmed and is_held are mutually exclusive
     // that is, a hold invoice will first be is_held but not is_confirmed
     // and once it's settled it will be is_confirmed but not is_held
-    await serialize(models,
-      models.$executeRaw`SELECT confirm_invoice(${inv.id}, ${Number(inv.received_mtokens)})`,
+    const [[{ confirm_invoice: code }]] = await serialize(models,
+      models.$queryRaw`SELECT confirm_invoice(${inv.id}, ${Number(inv.received_mtokens)})`,
       models.invoice.update({ where: { hash }, data: { confirmedIndex: inv.confirmed_index } })
     )
 

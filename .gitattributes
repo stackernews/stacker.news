@@ -1,1 +1,1 @@
-docker/db/seed.sql -linguist-vendored
+docker/db/seed.sql linguist-vendored

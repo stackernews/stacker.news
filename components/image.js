@@ -70,7 +70,7 @@ function ImageProxy ({ src, srcSet: { dimensions, ...srcSetObj } = {}, onClick, 
     return Object.entries(srcSetObj).reduce((acc, [wDescriptor, url], i, arr) => {
       // backwards compatibility: we used to replace image urls with imgproxy urls rather just storing paths
       if (!url.startsWith('http')) {
-        url = `${process.env.NEXT_PUBLIC_IMGPROXY_URL}${url}`
+        url = new URL(url, process.env.NEXT_PUBLIC_IMGPROXY_URL).toString()
       }
       return acc + `${url} ${wDescriptor}` + (i < arr.length - 1 ? ', ' : '')
     }, '')
@@ -82,7 +82,7 @@ function ImageProxy ({ src, srcSet: { dimensions, ...srcSetObj } = {}, onClick, 
     if (!srcSetObj) return src
     return Object.entries(srcSetObj).reduce((acc, [wDescriptor, url]) => {
       if (!url.startsWith('http')) {
-        url = `${process.env.NEXT_PUBLIC_IMGPROXY_URL}${url}`
+        url = new URL(url, process.env.NEXT_PUBLIC_IMGPROXY_URL).toString()
       }
       const w = Number(wDescriptor.replace(/w$/, ''))
       return w > acc.w ? { w, url } : acc

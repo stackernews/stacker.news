@@ -10,16 +10,17 @@ AWS.config.update({
 
 const config = {
   apiVersion: '2006-03-01',
-  endpoint: process.env.NODE_ENV === 'development' ? `${MEDIA_URL}` : undefined,
   s3ForcePathStyle: process.env.NODE_ENV === 'development'
 }
 
 export function createPresignedPost ({ key, type, size }) {
-  const s3 = new AWS.S3({
-    ...config,
-    // in development, we need to be able to call this from localhost
-    endpoint: process.env.NODE_ENV === 'development' ? `${process.env.NEXT_PUBLIC_MEDIA_URL}` : undefined
-  })
+  // for local development, we use the NEXT_PUBLIC_MEDIA_URL which
+  // is reachable from the host machine
+  if (process.env.NODE_ENV === 'development') {
+    config.endpoint = process.env.NEXT_PUBLIC_MEDIA_URL
+  }
+
+  const s3 = new AWS.S3(config)
   return new Promise((resolve, reject) => {
     s3.createPresignedPost({
       Bucket,
@@ -36,6 +37,12 @@ export function createPresignedPost ({ key, type, size }) {
 }
 
 export async function deleteObjects (keys) {
+  // for local development, we use the MEDIA_URL which
+  // is reachable from the container network
+  if (process.env.NODE_ENV === 'development') {
+    config.endpoint = MEDIA_URL
+  }
+
   const s3 = new AWS.S3(config)
   // max 1000 keys per request
   // see https://docs.aws.amazon.com/cli/latest/reference/s3api/delete-objects.html

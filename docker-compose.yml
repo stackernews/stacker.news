@@ -377,6 +377,21 @@ services:
     command: daemon --docker -f label=com.docker.compose.project=${COMPOSE_PROJECT_NAME}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: mailhog
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8025"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 1m
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    links:
+      - app
 volumes:
   db:
   os:

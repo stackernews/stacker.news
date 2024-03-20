@@ -325,6 +325,19 @@ You can login to test features like posting, replying, tipping, etc with `./snde
 
 ### Login with Email
 
+#### MailHog
+
+- The app is already prepared to send emails through (MailHog)[https://github.com/mailhog/MailHog] so no extra configuration is needed
+- Click "sign up" and enter any email address (remember, it's not going anywhere beyond your workstation)
+- Access MailHog's web UI on http://localhost:1025
+- Click the link (looks like this):
+
+```
+http://localhost:3000/api/auth/callback/email?email=satoshi%40gmail.com&token=110e30a954ce7ca643379d90eb511640733de405f34a31b38eeda8e254d48cd7
+```
+
+#### Sendgrid
+
 - Create a Sendgrid account (or other smtp service)
 
 ```

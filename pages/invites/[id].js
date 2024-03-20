@@ -8,7 +8,7 @@ import { INVITE_FIELDS } from '@/fragments/invites'
 import getSSRApolloClient from '@/api/ssrApollo'
 import Link from 'next/link'
 import { CenterLayout } from '@/components/layout'
-import { getAuthOptions } from '@/api/auth/[...nextauth]'
+import { getAuthOptions } from '@/pages/api/auth/[...nextauth]'
 import { notifyInvite } from '@/lib/webPush'
 
 export async function getServerSideProps ({ req, res, query: { id, error = null } }) {

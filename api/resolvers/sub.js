@@ -367,7 +367,7 @@ export default {
       ].filter(q => !!q),
       { models, lnd, hash, hmac, me, enforceFee: billingCost })
 
-      if (oldSub.userId !== me.id) notifyTerritoryTransfer({ models, sub: newSub, to: me.id })
+      if (oldSub.userId !== me.id) notifyTerritoryTransfer({ models, sub: newSub, to: me })
     }
   },
   Sub: {

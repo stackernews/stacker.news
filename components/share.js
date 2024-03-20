@@ -1,11 +1,11 @@
 import Dropdown from 'react-bootstrap/Dropdown'
-import ShareIcon from '../svgs/share-fill.svg'
+import ShareIcon from '@/svgs/share-fill.svg'
 import copy from 'clipboard-copy'
 import useCrossposter from './use-crossposter'
 import { useMe } from './me'
 import { useToast } from './toast'
-import { SSR } from '../lib/constants'
-import { commentSubTreeRootId } from '../lib/item'
+import { SSR } from '@/lib/constants'
+import { commentSubTreeRootId } from '@/lib/item'
 import { useRouter } from 'next/router'
 
 const referrurl = (ipath, me) => {

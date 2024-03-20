@@ -1,8 +1,8 @@
-import { SearchLayout } from '../../components/layout'
-import { getGetServerSideProps } from '../../api/ssrApollo'
+import { SearchLayout } from '@/components/layout'
+import { getGetServerSideProps } from '@/api/ssrApollo'
 import { useRouter } from 'next/router'
-import { SUB_SEARCH } from '../../fragments/subs'
-import Items from '../../components/items'
+import { SUB_SEARCH } from '@/fragments/subs'
+import Items from '@/components/items'
 import styles from './search.module.css'
 
 export const getServerSideProps = getGetServerSideProps({

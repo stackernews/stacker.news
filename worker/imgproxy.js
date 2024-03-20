@@ -1,6 +1,6 @@
 import { createHmac } from 'node:crypto'
-import { extractUrls } from '../lib/md.js'
-import { isJob } from '../lib/item.js'
+import { extractUrls } from '@/lib/md.js'
+import { isJob } from '@/lib/item.js'
 import path from 'node:path'
 
 const imgProxyEnabled = process.env.NODE_ENV === 'production' ||

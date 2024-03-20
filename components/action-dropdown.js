@@ -1,6 +1,6 @@
 import Dropdown from 'react-bootstrap/Dropdown'
 import styles from './item.module.css'
-import MoreIcon from '../svgs/more-fill.svg'
+import MoreIcon from '@/svgs/more-fill.svg'
 
 export default function ActionDropdown ({ children }) {
   if (!children) {

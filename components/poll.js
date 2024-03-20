@@ -1,13 +1,13 @@
 import { gql, useMutation } from '@apollo/client'
 import Button from 'react-bootstrap/Button'
-import { fixedDecimal, numWithUnits } from '../lib/format'
-import { timeLeft } from '../lib/time'
+import { fixedDecimal, numWithUnits } from '@/lib/format'
+import { timeLeft } from '@/lib/time'
 import { useMe } from './me'
 import styles from './poll.module.css'
-import Check from '../svgs/checkbox-circle-fill.svg'
+import Check from '@/svgs/checkbox-circle-fill.svg'
 import { signIn } from 'next-auth/react'
 import ActionTooltip from './action-tooltip'
-import { POLL_COST } from '../lib/constants'
+import { POLL_COST } from '@/lib/constants'
 import { payOrLoginError, useInvoiceModal } from './invoice'
 
 export default function Poll ({ item }) {

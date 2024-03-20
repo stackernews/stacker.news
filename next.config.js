@@ -189,7 +189,7 @@ module.exports = withPlausibleProxy()({
       }
     ]
   },
-  webpack: (config, { isServer, dev }) => {
+  webpack: (config, { isServer, dev, defaultLoaders }) => {
     if (isServer) {
       generatePrecacheManifest()
       const workboxPlugin = new InjectManifest({
@@ -229,6 +229,32 @@ module.exports = withPlausibleProxy()({
 
       config.plugins.push(workboxPlugin)
     }
+
+    config.module.rules.push(
+      {
+        test: /\.svg$/,
+        use: [
+          defaultLoaders.babel,
+          {
+            loader: '@svgr/webpack',
+            options: {
+              babel: false,
+              svgoConfig: {
+                plugins: [{
+                  name: 'preset-default',
+                  params: {
+                    overrides: {
+                      removeViewBox: false
+                    }
+                  }
+                }]
+              }
+            }
+          }
+        ]
+      }
+    )
+
     return config
   }
 })

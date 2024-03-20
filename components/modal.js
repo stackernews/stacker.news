@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import Modal from 'react-bootstrap/Modal'
-import BackArrow from '../svgs/arrow-left-line.svg'
+import BackArrow from '@/svgs/arrow-left-line.svg'
 import { useRouter } from 'next/router'
 import ActionDropdown from './action-dropdown'
 

@@ -6,9 +6,9 @@ import Col from 'react-bootstrap/Col'
 import Row from 'react-bootstrap/Row'
 import { useRouter } from 'next/router'
 import AccordianItem from './accordian-item'
-import BackIcon from '../svgs/arrow-left-line.svg'
+import BackIcon from '@/svgs/arrow-left-line.svg'
 import styles from './lightning-auth.module.css'
-import { callWithTimeout } from '../lib/nostr'
+import { callWithTimeout } from '@/lib/nostr'
 
 function ExtensionError ({ message, details }) {
   return (

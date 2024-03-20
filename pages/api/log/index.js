@@ -1,5 +1,5 @@
-import models from '../../../api/models'
-import slackClient from '../../../api/slack'
+import models from '@/api/models'
+import slackClient from '@/api/slack'
 
 const channelId = process.env.SLACK_CHANNEL_ID
 

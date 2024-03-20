@@ -1,14 +1,14 @@
-import { getGetServerSideProps } from '../../../api/ssrApollo'
-import Layout from '../../../components/layout'
-import styles from '../../../styles/wallet.module.css'
-import { WalletCard } from '../../../components/wallet-card'
+import { getGetServerSideProps } from '@/api/ssrApollo'
+import Layout from '@/components/layout'
+import styles from '@/styles/wallet.module.css'
+import { WalletCard } from '@/components/wallet-card'
 import { LightningAddressWalletCard } from './lightning-address'
 import { LNbitsCard } from './lnbits'
 import { NWCCard } from './nwc'
 import { LNDCard } from './lnd'
-import { WALLETS } from '../../../fragments/wallet'
+import { WALLETS } from '@/fragments/wallet'
 import { useQuery } from '@apollo/client'
-import PageLoading from '../../../components/page-loading'
+import PageLoading from '@/components/page-loading'
 
 export const getServerSideProps = getGetServerSideProps({ query: WALLETS, authRequired: true })
 

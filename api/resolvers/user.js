@@ -1,13 +1,13 @@
 import { readFile } from 'fs/promises'
 import { join, resolve } from 'path'
 import { GraphQLError } from 'graphql'
-import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
-import { msatsToSats } from '../../lib/format'
-import { bioSchema, emailSchema, settingsSchema, ssValidate, userSchema } from '../../lib/validate'
+import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
+import { msatsToSats } from '@/lib/format'
+import { bioSchema, emailSchema, settingsSchema, ssValidate, userSchema } from '@/lib/validate'
 import { getItem, updateItem, filterClause, createItem, whereClause, muteClause } from './item'
-import { ANON_USER_ID, DELETE_USER_ID, RESERVED_MAX_USER_ID, SN_USER_IDS } from '../../lib/constants'
+import { ANON_USER_ID, DELETE_USER_ID, RESERVED_MAX_USER_ID, SN_USER_IDS } from '@/lib/constants'
 import { viewGroup } from './growth'
-import { whenRange } from '../../lib/time'
+import { whenRange } from '@/lib/time'
 
 const contributors = new Set()
 

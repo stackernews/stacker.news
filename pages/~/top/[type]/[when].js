@@ -1,10 +1,10 @@
-import Layout from '../../../../components/layout'
-import Items from '../../../../components/items'
+import Layout from '@/components/layout'
+import Items from '@/components/items'
 import { useRouter } from 'next/router'
-import { getGetServerSideProps } from '../../../../api/ssrApollo'
-import TopHeader from '../../../../components/top-header'
-import { SUB_ITEMS } from '../../../../fragments/subs'
-import { COMMENT_TYPE_QUERY } from '../../../../lib/constants'
+import { getGetServerSideProps } from '@/api/ssrApollo'
+import TopHeader from '@/components/top-header'
+import { SUB_ITEMS } from '@/fragments/subs'
+import { COMMENT_TYPE_QUERY } from '@/lib/constants'
 
 const staticVariables = { sort: 'top' }
 const variablesFunc = vars => {

@@ -1,9 +1,9 @@
 import { GraphQLError } from 'graphql'
-import { decodeCursor, LIMIT, nextNoteCursorEncoded } from '../../lib/cursor'
+import { decodeCursor, LIMIT, nextNoteCursorEncoded } from '@/lib/cursor'
 import { getItem, filterClause, whereClause, muteClause } from './item'
 import { getInvoice } from './wallet'
-import { pushSubscriptionSchema, ssValidate } from '../../lib/validate'
-import { replyToSubscription } from '../../lib/webPush'
+import { pushSubscriptionSchema, ssValidate } from '@/lib/validate'
+import { replyToSubscription } from '@/lib/webPush'
 import { getSub } from './sub'
 
 export default {

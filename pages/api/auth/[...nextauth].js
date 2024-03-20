@@ -4,13 +4,13 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 import GitHubProvider from 'next-auth/providers/github'
 import TwitterProvider from 'next-auth/providers/twitter'
 import EmailProvider from 'next-auth/providers/email'
-import prisma from '../../../api/models'
+import prisma from '@/api/models'
 import nodemailer from 'nodemailer'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { getToken } from 'next-auth/jwt'
 import { NodeNextRequest } from 'next/dist/server/base-http/node'
 import { schnorr } from '@noble/curves/secp256k1'
-import { notifyReferral } from '../../../lib/webPush'
+import { notifyReferral } from '@/lib/webPush'
 
 /**
  * Stores userIds in user table

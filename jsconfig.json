@@ -1,0 +1,28 @@
+{
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "@/api/*": [
+                "api/*"
+            ],
+            "@/lib/*": [
+                "lib/*"
+            ],
+            "@/fragments/*": [
+                "fragments/*"
+            ],
+            "@/pages/*": [
+                "pages/*"
+            ],
+            "@/components/*": [
+                "components/*"
+            ],
+            "@/styles/*": [
+                "styles/*"
+            ],
+            "@/svgs/*": [
+                "svgs/*"
+            ],
+        }
+    }
+}

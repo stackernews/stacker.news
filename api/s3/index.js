@@ -1,5 +1,5 @@
 import AWS from 'aws-sdk'
-import { MEDIA_URL } from '../../lib/constants'
+import { MEDIA_URL } from '@/lib/constants'
 
 const bucketRegion = 'us-east-1'
 const Bucket = process.env.NEXT_PUBLIC_AWS_UPLOAD_BUCKET

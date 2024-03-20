@@ -1,10 +1,10 @@
-import { getGetServerSideProps } from '../../api/ssrApollo'
+import { getGetServerSideProps } from '@/api/ssrApollo'
 import { useRouter } from 'next/router'
-import { USER, USER_WITH_SUBS } from '../../fragments/users'
+import { USER, USER_WITH_SUBS } from '@/fragments/users'
 import { useQuery } from '@apollo/client'
-import PageLoading from '../../components/page-loading'
+import PageLoading from '@/components/page-loading'
 import { UserLayout } from '.'
-import TerritoryList from '../../components/territory-list'
+import TerritoryList from '@/components/territory-list'
 
 export const getServerSideProps = getGetServerSideProps({ query: USER_WITH_SUBS })
 

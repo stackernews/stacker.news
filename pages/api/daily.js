@@ -1,4 +1,4 @@
-import models from '../../api/models'
+import models from '@/api/models'
 
 export default async (_, res) => {
   // get the latest daily discussion thread

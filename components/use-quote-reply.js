@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { quote as quoteMd } from '../lib/md'
+import { quote as quoteMd } from '@/lib/md'
 
 export function useQuoteReply ({ text }) {
   const ref = useRef(null)

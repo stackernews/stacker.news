@@ -1,4 +1,4 @@
-import { timeUnitForRange, whenRange } from '../../lib/time'
+import { timeUnitForRange, whenRange } from '@/lib/time'
 
 export function withClause (range) {
   const unit = timeUnitForRange(range)

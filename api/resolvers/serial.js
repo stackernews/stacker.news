@@ -3,8 +3,8 @@ import retry from 'async-retry'
 import Prisma from '@prisma/client'
 import { settleHodlInvoice } from 'ln-service'
 import { createHmac } from './wallet'
-import { msatsToSats, numWithUnits } from '../../lib/format'
-import { BALANCE_LIMIT_MSATS } from '../../lib/constants'
+import { msatsToSats, numWithUnits } from '@/lib/format'
+import { BALANCE_LIMIT_MSATS } from '@/lib/constants'
 
 export default async function serialize (models, ...calls) {
   return await retry(async bail => {

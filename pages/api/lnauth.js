@@ -2,7 +2,7 @@
 // store pubkey in db
 // create user with pubkey and name truncated pubkey
 import { secp256k1 } from '@noble/curves/secp256k1'
-import models from '../../api/models'
+import models from '@/api/models'
 
 const HOUR = 1000 * 60 * 60
 

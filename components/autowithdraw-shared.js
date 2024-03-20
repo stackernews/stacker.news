@@ -3,7 +3,7 @@ import { Checkbox, Input } from './form'
 import { useMe } from './me'
 import { useEffect, useState } from 'react'
 import { isNumber } from 'mathjs'
-import { numWithUnits } from '../lib/format'
+import { numWithUnits } from '@/lib/format'
 
 function autoWithdrawThreshold ({ me }) {
   return isNumber(me?.privates?.autoWithdrawThreshold) ? me?.privates?.autoWithdrawThreshold : 10000

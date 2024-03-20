@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import Image from 'react-bootstrap/Image'
-import { abbrNum, numWithUnits } from '../lib/format'
+import { abbrNum, numWithUnits } from '@/lib/format'
 import styles from './item.module.css'
 import userStyles from './user-header.module.css'
 import React, { useEffect, useMemo, useState } from 'react'
@@ -9,7 +9,7 @@ import MoreFooter from './more-footer'
 import { useData } from './use-data'
 import Hat from './hat'
 import { useMe } from './me'
-import { MEDIA_URL } from '../lib/constants'
+import { MEDIA_URL } from '@/lib/constants'
 
 // all of this nonsense is to show the stat we are sorting by first
 const Stacked = ({ user }) => (user.optional.stacked !== null && <span>{abbrNum(user.optional.stacked)} stacked</span>)

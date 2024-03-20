@@ -1,7 +1,7 @@
 import Image from 'react-bootstrap/Image'
-import { StaticLayout } from '../../components/layout'
-import styles from '../../styles/error.module.css'
-import LightningIcon from '../../svgs/bolt.svg'
+import { StaticLayout } from '@/components/layout'
+import styles from '@/styles/error.module.css'
+import LightningIcon from '@/svgs/bolt.svg'
 import { useRouter } from 'next/router'
 import Button from 'react-bootstrap/Button'
 

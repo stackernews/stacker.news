@@ -1,11 +1,11 @@
-import { SUB } from '../../fragments/subs'
-import { getGetServerSideProps } from '../../api/ssrApollo'
-import { CenterLayout } from '../../components/layout'
-import TerritoryForm from '../../components/territory-form'
-import PageLoading from '../../components/page-loading'
+import { SUB } from '@/fragments/subs'
+import { getGetServerSideProps } from '@/api/ssrApollo'
+import { CenterLayout } from '@/components/layout'
+import TerritoryForm from '@/components/territory-form'
+import PageLoading from '@/components/page-loading'
 import { useQuery } from '@apollo/client'
 import { useRouter } from 'next/router'
-import TerritoryPaymentDue from '../../components/territory-payment-due'
+import TerritoryPaymentDue from '@/components/territory-payment-due'
 
 export const getServerSideProps = getGetServerSideProps({
   query: SUB,

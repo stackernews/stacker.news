@@ -1,7 +1,7 @@
 import { gql, useQuery } from '@apollo/client'
 import Link from 'next/link'
-import { RewardLine } from '../pages/rewards'
-import { SSR } from '../lib/constants'
+import { RewardLine } from '@/pages/rewards'
+import { SSR } from '@/lib/constants'
 
 const REWARDS = gql`
 {

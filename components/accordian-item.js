@@ -1,8 +1,8 @@
 import Accordion from 'react-bootstrap/Accordion'
 import AccordionContext from 'react-bootstrap/AccordionContext'
 import { useAccordionButton } from 'react-bootstrap/AccordionButton'
-import ArrowRight from '../svgs/arrow-right-s-fill.svg'
-import ArrowDown from '../svgs/arrow-down-s-fill.svg'
+import ArrowRight from '@/svgs/arrow-right-s-fill.svg'
+import ArrowDown from '@/svgs/arrow-down-s-fill.svg'
 import { useContext } from 'react'
 
 function ContextAwareToggle ({ children, headerColor = 'var(--theme-grey)', eventKey }) {

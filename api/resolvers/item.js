@@ -1,23 +1,23 @@
 import { GraphQLError } from 'graphql'
-import { ensureProtocol, removeTracking, stripTrailingSlash } from '../../lib/url'
+import { ensureProtocol, removeTracking, stripTrailingSlash } from '@/lib/url'
 import serialize, { serializeInvoicable } from './serial'
-import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
+import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
-import { ruleSet as publicationDateRuleSet } from '../../lib/timedate-scraper'
+import { ruleSet as publicationDateRuleSet } from '@/lib/timedate-scraper'
 import domino from 'domino'
 import {
   ITEM_SPAM_INTERVAL, ITEM_FILTER_THRESHOLD,
   COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY,
   ANON_USER_ID, ANON_ITEM_SPAM_INTERVAL, POLL_COST,
   ITEM_ALLOW_EDITS, GLOBAL_SEED, ANON_FEE_MULTIPLIER, NOFOLLOW_LIMIT, UNKNOWN_LINK_REL
-} from '../../lib/constants'
-import { msatsToSats } from '../../lib/format'
+} from '@/lib/constants'
+import { msatsToSats } from '@/lib/format'
 import { parse } from 'tldts'
 import uu from 'url-unshort'
-import { actSchema, advSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, ssValidate } from '../../lib/validate'
-import { notifyItemParents, notifyUserSubscribers, notifyZapped, notifyTerritorySubscribers, notifyMention } from '../../lib/webPush'
-import { defaultCommentSort, isJob, deleteItemByAuthor, getDeleteCommand, hasDeleteCommand } from '../../lib/item'
-import { datePivot, whenRange } from '../../lib/time'
+import { actSchema, advSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, ssValidate } from '@/lib/validate'
+import { notifyItemParents, notifyUserSubscribers, notifyZapped, notifyTerritorySubscribers, notifyMention } from '@/lib/webPush'
+import { defaultCommentSort, isJob, deleteItemByAuthor, getDeleteCommand, hasDeleteCommand } from '@/lib/item'
+import { datePivot, whenRange } from '@/lib/time'
 import { imageFeesInfo, uploadIdsFromText } from './image'
 import assertGofacYourself from './ofac'
 

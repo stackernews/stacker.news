@@ -1,9 +1,9 @@
-import Layout from '../../../../components/layout'
+import Layout from '@/components/layout'
 import { useRouter } from 'next/router'
-import { getGetServerSideProps } from '../../../../api/ssrApollo'
-import TopHeader from '../../../../components/top-header'
-import { TOP_SUBS } from '../../../../fragments/subs'
-import TerritoryList from '../../../../components/territory-list'
+import { getGetServerSideProps } from '@/api/ssrApollo'
+import TopHeader from '@/components/top-header'
+import { TOP_SUBS } from '@/fragments/subs'
+import TerritoryList from '@/components/territory-list'
 
 export const getServerSideProps = getGetServerSideProps({ query: TOP_SUBS })
 

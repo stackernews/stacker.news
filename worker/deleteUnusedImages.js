@@ -1,5 +1,5 @@
-import { deleteObjects } from '../api/s3'
-import { ANON_USER_ID } from '../lib/constants'
+import { deleteObjects } from '@/api/s3'
+import { ANON_USER_ID } from '@/lib/constants'
 
 export async function deleteUnusedImages ({ models }) {
   // delete all images in database and S3 which weren't paid in the last 24 hours

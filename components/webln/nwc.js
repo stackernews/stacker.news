@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { Relay, finalizeEvent, nip04 } from 'nostr-tools'
-import { parseNwcUrl } from '../../lib/url'
+import { parseNwcUrl } from '@/lib/url'
 
 const NWCContext = createContext()
 

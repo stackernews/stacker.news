@@ -1,5 +1,5 @@
 import React from 'react'
-import InfoIcon from '../svgs/information-fill.svg'
+import InfoIcon from '@/svgs/information-fill.svg'
 import { useShowModal } from './modal'
 
 export default function Info ({ children, label, iconClassName = 'fill-theme-color' }) {

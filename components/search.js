@@ -1,10 +1,10 @@
 import Container from 'react-bootstrap/Container'
 import styles from './search.module.css'
-import SearchIcon from '../svgs/search-line.svg'
+import SearchIcon from '@/svgs/search-line.svg'
 import { useEffect, useRef, useState } from 'react'
 import { Form, Input, Select, DatePicker, SubmitButton } from './form'
 import { useRouter } from 'next/router'
-import { whenToFrom } from '../lib/time'
+import { whenToFrom } from '@/lib/time'
 
 export default function Search ({ sub }) {
   const router = useRouter()

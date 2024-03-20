@@ -1,7 +1,7 @@
 import { GraphQLError } from 'graphql'
-import { amountSchema, ssValidate } from '../../lib/validate'
+import { amountSchema, ssValidate } from '@/lib/validate'
 import { serializeInvoicable } from './serial'
-import { ANON_USER_ID } from '../../lib/constants'
+import { ANON_USER_ID } from '@/lib/constants'
 import { getItem } from './item'
 import { topUsers } from './user'
 

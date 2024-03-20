@@ -1,7 +1,7 @@
 import { createContext, useContext, useMemo } from 'react'
 import { useQuery } from '@apollo/client'
-import { SSR } from '../lib/constants'
-import { BLOCK_HEIGHT } from '../fragments/blockHeight'
+import { SSR } from '@/lib/constants'
+import { BLOCK_HEIGHT } from '@/fragments/blockHeight'
 
 export const BlockHeightContext = createContext({
   height: 0

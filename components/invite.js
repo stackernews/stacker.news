@@ -1,7 +1,7 @@
 import { CopyInput } from './form'
 import { gql, useMutation } from '@apollo/client'
-import { INVITE_FIELDS } from '../fragments/invites'
-import styles from '../styles/invites.module.css'
+import { INVITE_FIELDS } from '@/fragments/invites'
+import styles from '@/styles/invites.module.css'
 
 export default function Invite ({ invite, active }) {
   const [revokeInvite] = useMutation(

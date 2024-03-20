@@ -1,11 +1,11 @@
 import { useQuery } from '@apollo/client'
-import { Invoice } from '../../components/invoice'
-import { QrSkeleton } from '../../components/qr'
-import { CenterLayout } from '../../components/layout'
+import { Invoice } from '@/components/invoice'
+import { QrSkeleton } from '@/components/qr'
+import { CenterLayout } from '@/components/layout'
 import { useRouter } from 'next/router'
-import { INVOICE } from '../../fragments/wallet'
-import { SSR } from '../../lib/constants'
-import { getGetServerSideProps } from '../../api/ssrApollo'
+import { INVOICE } from '@/fragments/wallet'
+import { SSR } from '@/lib/constants'
+import { getGetServerSideProps } from '@/api/ssrApollo'
 
 // force SSR to include CSP nonces
 export const getServerSideProps = getGetServerSideProps({ query: null })

@@ -1,5 +1,5 @@
-import { ANON_USER_ID, AWS_S3_URL_REGEXP } from '../../lib/constants'
-import { msatsToSats } from '../../lib/format'
+import { ANON_USER_ID, AWS_S3_URL_REGEXP } from '@/lib/constants'
+import { msatsToSats } from '@/lib/format'
 
 export default {
   Query: {

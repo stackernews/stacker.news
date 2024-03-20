@@ -5,13 +5,13 @@ import FeeButton, { FeeButtonProvider } from './fee-button'
 import { gql, useApolloClient, useLazyQuery, useMutation } from '@apollo/client'
 import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/router'
-import { MAX_TERRITORY_DESC_LENGTH, POST_TYPES, TERRITORY_BILLING_OPTIONS, TERRITORY_PERIOD_COST } from '../lib/constants'
-import { territorySchema } from '../lib/validate'
+import { MAX_TERRITORY_DESC_LENGTH, POST_TYPES, TERRITORY_BILLING_OPTIONS, TERRITORY_PERIOD_COST } from '@/lib/constants'
+import { territorySchema } from '@/lib/validate'
 import { useMe } from './me'
 import Info from './info'
-import { abbrNum } from '../lib/format'
-import { purchasedType } from '../lib/territory'
-import { SUB } from '../fragments/subs'
+import { abbrNum } from '@/lib/format'
+import { purchasedType } from '@/lib/territory'
+import { SUB } from '@/fragments/subs'
 
 export default function TerritoryForm ({ sub }) {
   const router = useRouter()

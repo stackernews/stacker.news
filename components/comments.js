@@ -3,8 +3,8 @@ import Comment, { CommentSkeleton } from './comment'
 import styles from './header.module.css'
 import Nav from 'react-bootstrap/Nav'
 import Navbar from 'react-bootstrap/Navbar'
-import { numWithUnits } from '../lib/format'
-import { defaultCommentSort } from '../lib/item'
+import { numWithUnits } from '@/lib/format'
+import { defaultCommentSort } from '@/lib/item'
 import { useRouter } from 'next/router'
 
 export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats }) {

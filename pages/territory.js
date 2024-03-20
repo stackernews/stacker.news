@@ -1,7 +1,7 @@
 import Link from 'next/link'
-import { getGetServerSideProps } from '../api/ssrApollo'
-import { CenterLayout } from '../components/layout'
-import TerritoryForm from '../components/territory-form'
+import { getGetServerSideProps } from '@/api/ssrApollo'
+import { CenterLayout } from '@/components/layout'
+import TerritoryForm from '@/components/territory-form'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 

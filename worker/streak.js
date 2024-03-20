@@ -1,4 +1,4 @@
-import { notifyNewStreak, notifyStreakLost } from '../lib/webPush'
+import { notifyNewStreak, notifyStreakLost } from '@/lib/webPush'
 
 const STREAK_THRESHOLD = 100
 

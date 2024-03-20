@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { abbrNum, numWithUnits } from '../lib/format'
+import { abbrNum, numWithUnits } from '@/lib/format'
 import styles from './item.module.css'
 import React, { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@apollo/client'

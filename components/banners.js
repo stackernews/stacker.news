@@ -1,12 +1,12 @@
 import Alert from 'react-bootstrap/Alert'
 import styles from './banners.module.css'
 import { useEffect, useState } from 'react'
-import { useMe } from '../components/me'
+import { useMe } from '@/components/me'
 import { useMutation } from '@apollo/client'
-import { WELCOME_BANNER_MUTATION } from '../fragments/users'
-import { useToast } from '../components/toast'
-import { BALANCE_LIMIT_MSATS } from '../lib/constants'
-import { msatsToSats, numWithUnits } from '../lib/format'
+import { WELCOME_BANNER_MUTATION } from '@/fragments/users'
+import { useToast } from '@/components/toast'
+import { BALANCE_LIMIT_MSATS } from '@/lib/constants'
+import { msatsToSats, numWithUnits } from '@/lib/format'
 
 export function WelcomeBanner ({ Banner }) {
   const me = useMe()

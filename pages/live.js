@@ -1,9 +1,9 @@
 import Button from 'react-bootstrap/Button'
-import { CenterLayout } from '../components/layout'
-import Snl from '../components/snl'
+import { CenterLayout } from '@/components/layout'
+import Snl from '@/components/snl'
 import { gql } from 'graphql-tag'
 import { useMutation, useQuery } from '@apollo/client'
-import { getGetServerSideProps } from '../api/ssrApollo'
+import { getGetServerSideProps } from '@/api/ssrApollo'
 
 // force SSR to include CSP nonces
 export const getServerSideProps = getGetServerSideProps({ query: null })

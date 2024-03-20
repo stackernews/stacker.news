@@ -2,9 +2,9 @@ import { getProviders } from 'next-auth/react'
 import { getServerSession } from 'next-auth/next'
 import { getAuthOptions } from './api/auth/[...nextauth]'
 import Link from 'next/link'
-import { StaticLayout } from '../components/layout'
-import Login from '../components/login'
-import { isExternal } from '../lib/url'
+import { StaticLayout } from '@/components/layout'
+import Login from '@/components/login'
+import { isExternal } from '@/lib/url'
 
 export async function getServerSideProps ({ req, res, query: { callbackUrl, error = null } }) {
   const session = await getServerSession(req, res, getAuthOptions(req))

@@ -1,5 +1,5 @@
-import { decodeCursor, LIMIT, nextCursorEncoded } from '../../lib/cursor'
-import { whenToFrom } from '../../lib/time'
+import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
+import { whenToFrom } from '@/lib/time'
 import { getItem, itemQueryWithMeta, SELECT } from './item'
 
 function queryParts (q) {

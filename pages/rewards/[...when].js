@@ -1,16 +1,16 @@
 import { useQuery } from '@apollo/client'
-import PageLoading from '../../components/page-loading'
-import { ME_REWARDS } from '../../fragments/rewards'
-import { CenterLayout } from '../../components/layout'
+import PageLoading from '@/components/page-loading'
+import { ME_REWARDS } from '@/fragments/rewards'
+import { CenterLayout } from '@/components/layout'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/router'
-import { getGetServerSideProps } from '../../api/ssrApollo'
-import { fixedDecimal } from '../../lib/format'
-import Trophy from '../../svgs/trophy-fill.svg'
-import { ListItem } from '../../components/items'
-import { dayMonthYear } from '../../lib/time'
+import { getGetServerSideProps } from '@/api/ssrApollo'
+import { fixedDecimal } from '@/lib/format'
+import Trophy from '@/svgs/trophy-fill.svg'
+import { ListItem } from '@/components/items'
+import { dayMonthYear } from '@/lib/time'
 
-const GrowthPieChart = dynamic(() => import('../../components/charts').then(mod => mod.GrowthPieChart), {
+const GrowthPieChart = dynamic(() => import('@/components/charts').then(mod => mod.GrowthPieChart), {
   loading: () => <div>Loading...</div>
 })
 

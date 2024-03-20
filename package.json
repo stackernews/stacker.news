@@ -9,8 +9,8 @@
     "start": "NODE_OPTIONS='--trace-warnings' next start -p $PORT --keepAliveTimeout 120000",
     "lint": "standard",
     "test": "NODE_OPTIONS='--experimental-vm-modules' jest",
-    "worker": "tsx --trace-warnings worker/index.js",
-    "worker:dev": "tsx --trace-warnings --watch worker/index.js"
+    "worker": "tsx --tsconfig jsconfig.json --trace-warnings worker/index.js",
+    "worker:dev": "tsx --tsconfig jsconfig.json --trace-warnings --watch worker/index.js"
   },
   "dependencies": {
     "@apollo/client": "^3.9.7",

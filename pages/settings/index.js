@@ -27,7 +27,7 @@ import { useLogger } from '@/components/logger'
 import { useMe } from '@/components/me'
 import { INVOICE_RETENTION_DAYS } from '@/lib/constants'
 import { OverlayTrigger, Tooltip } from 'react-bootstrap'
-import DeleteIcon from '../../svgs/delete-bin-line.svg'
+import DeleteIcon from '@/svgs/delete-bin-line.svg'
 
 export const getServerSideProps = getGetServerSideProps({ query: SETTINGS, authRequired: true })
 

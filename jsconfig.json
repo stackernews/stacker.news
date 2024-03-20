@@ -16,7 +16,13 @@
             ],
             "@/components/*": [
                 "components/*"
-            ]
+            ],
+            "@/styles/*": [
+                "styles/*"
+            ],
+            "@/svgs/*": [
+                "svgs/*"
+            ],
         }
     }
 }

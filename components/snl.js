@@ -1,5 +1,5 @@
 import Alert from 'react-bootstrap/Alert'
-import YouTube from '../svgs/youtube-line.svg'
+import YouTube from '@/svgs/youtube-line.svg'
 import { useEffect, useState } from 'react'
 import { gql, useQuery } from '@apollo/client'
 import { datePivot } from '@/lib/time'

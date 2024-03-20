@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { LNbitsProvider, useLNbits } from './lnbits'
 import { NWCProvider, useNWC } from './nwc'
-import { useToast, withToastFlow } from '../toast'
+import { useToast, withToastFlow } from '@/components/toast'
 import { gql, useMutation } from '@apollo/client'
 
 const WebLNContext = createContext({})

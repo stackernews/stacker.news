@@ -1,5 +1,5 @@
 import webPush from 'web-push'
-import models from '../models'
+import models from '@/api/models'
 import { COMMENT_DEPTH_LIMIT } from '@/lib/constants'
 import removeMd from 'remove-markdown'
 

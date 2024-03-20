@@ -1,5 +1,5 @@
 import Dropdown from 'react-bootstrap/Dropdown'
-import ShareIcon from '../svgs/share-fill.svg'
+import ShareIcon from '@/svgs/share-fill.svg'
 import copy from 'clipboard-copy'
 import useCrossposter from './use-crossposter'
 import { useMe } from './me'

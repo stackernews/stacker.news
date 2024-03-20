@@ -1,4 +1,4 @@
-import UpBolt from '../svgs/bolt.svg'
+import UpBolt from '@/svgs/bolt.svg'
 import styles from './upvote.module.css'
 import { gql, useMutation } from '@apollo/client'
 import ActionTooltip from './action-tooltip'

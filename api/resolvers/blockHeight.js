@@ -1,5 +1,5 @@
 import lndService from 'ln-service'
-import lnd from '../lnd'
+import lnd from '@/api/lnd'
 
 const cache = new Map()
 const expiresIn = 1000 * 30 // 30 seconds in milliseconds

@@ -1,6 +1,6 @@
 import { Component } from 'react'
 import { StaticLayout } from './layout'
-import styles from '../styles/error.module.css'
+import styles from '@/styles/error.module.css'
 import Image from 'react-bootstrap/Image'
 import copy from 'clipboard-copy'
 import { LoggerContext } from './logger'

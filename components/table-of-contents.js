@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import Dropdown from 'react-bootstrap/Dropdown'
 import FormControl from 'react-bootstrap/FormControl'
-import TocIcon from '../svgs/list-unordered.svg'
+import TocIcon from '@/svgs/list-unordered.svg'
 import { fromMarkdown } from 'mdast-util-from-markdown'
 import { visit } from 'unist-util-visit'
 import { toString } from 'mdast-util-to-string'

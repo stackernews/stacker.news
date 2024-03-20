@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic'
 import { useRouter } from 'next/router'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { fixedDecimal } from '@/lib/format'
-import Trophy from '../../svgs/trophy-fill.svg'
+import Trophy from '@/svgs/trophy-fill.svg'
 import { ListItem } from '@/components/items'
 import { dayMonthYear } from '@/lib/time'
 

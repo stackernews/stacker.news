@@ -1,6 +1,6 @@
-import Moon from '../svgs/moon-fill.svg'
-import Check from '../svgs/check-double-line.svg'
-import ThumbDown from '../svgs/thumb-down-fill.svg'
+import Moon from '@/svgs/moon-fill.svg'
+import Check from '@/svgs/check-double-line.svg'
+import ThumbDown from '@/svgs/thumb-down-fill.svg'
 
 function InvoiceDefaultStatus ({ status }) {
   return (

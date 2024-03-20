@@ -1,4 +1,4 @@
-import '../styles/globals.scss'
+import '@/styles/globals.scss'
 import { ApolloProvider, gql } from '@apollo/client'
 import { MeProvider } from '@/components/me'
 import PlausibleProvider from 'next-plausible'

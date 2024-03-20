@@ -1,6 +1,6 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import Layout from '@/components/layout'
-import styles from '../../../styles/wallet.module.css'
+import styles from '@/styles/wallet.module.css'
 import { WalletCard } from '@/components/wallet-card'
 import { LightningAddressWalletCard } from './lightning-address'
 import { LNbitsCard } from './lnbits'

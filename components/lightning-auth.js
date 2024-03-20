@@ -7,7 +7,7 @@ import Row from 'react-bootstrap/Row'
 import AccordianItem from './accordian-item'
 import Qr, { QrSkeleton } from './qr'
 import styles from './lightning-auth.module.css'
-import BackIcon from '../svgs/arrow-left-line.svg'
+import BackIcon from '@/svgs/arrow-left-line.svg'
 import { useRouter } from 'next/router'
 import { SSR } from '@/lib/constants'
 

@@ -1,8 +1,8 @@
 import Badge from 'react-bootstrap/Badge'
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import Tooltip from 'react-bootstrap/Tooltip'
-import CowboyHatIcon from '../svgs/cowboy.svg'
-import AnonIcon from '../svgs/spy-fill.svg'
+import CowboyHatIcon from '@/svgs/cowboy.svg'
+import AnonIcon from '@/svgs/spy-fill.svg'
 import { numWithUnits } from '@/lib/format'
 import { AD_USER_ID, ANON_USER_ID } from '@/lib/constants'
 

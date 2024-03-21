@@ -308,7 +308,7 @@ export default {
 
       const [, updatedSub] = await models.$transaction([
         models.territoryTransfer.create({ data: { subName, oldUserId: me.id, newUserId: user.id } }),
-        models.sub.update({ where: { name: subName }, data: { userId: user.id } })
+        models.sub.update({ where: { name: subName }, data: { userId: user.id, billingAutoRenew: false } })
       ])
 
       notifyTerritoryTransfer({ models, sub, to: user })

@@ -61,12 +61,6 @@ To run with images and payments services:
 $ COMPOSE_PROFILES=images,payments ./sndev start
 ```
 
-To run with the option to sign up/login using [MailHog](#MailHog):
-
-```sh
-$ COMPOSE_PROFILES=email ./sndev start
-```
-
 View all available commands
 
 ```sh

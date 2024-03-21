@@ -42,7 +42,7 @@ Start the development environment
 $ ./sndev start
 ```
 
-By default all services will be run. If you want to exclude specific services from running, set `COMPOSE_PROFILES` to use one or more of `minimal|images|search|payments`. To only run mininal services without images, search, or payments:
+By default all services will be run. If you want to exclude specific services from running, set `COMPOSE_PROFILES` to use one or more of `minimal|images|search|payments|email`. To only run mininal services without images, search, or payments:
 
 ```sh
 $ COMPOSE_PROFILES=minimal ./sndev start
@@ -59,6 +59,12 @@ To run with images and payments services:
 
 ```sh
 $ COMPOSE_PROFILES=images,payments ./sndev start
+```
+
+To run with the option to sign up/login using [MailHog](#MailHog):
+
+```sh
+$ COMPOSE_PROFILES=email ./sndev start
 ```
 
 View all available commands

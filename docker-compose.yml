@@ -380,6 +380,8 @@ services:
   mailhog:
     image: mailhog/mailhog:latest
     container_name: mailhog
+    profiles:
+      - email
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8025"]

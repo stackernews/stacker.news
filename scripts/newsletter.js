@@ -199,13 +199,6 @@ ${topFact && quote(topFact?.winner.text)}
 
 ------
 
-##### Top Cowboys
-${topCowboys.map((user, i) =>
-  `${i + 1}. [@${user.name}](https://stacker.news/${user.name}): ${user.optional.streak} days`
-).join('\n')}
-
-------
-
 ##### Top Stackers
 ${topStackers.map((user, i) =>
     `${i + 1}. [@${user.name}](https://stacker.news/${user.name}): ${abbrNum(user.optional.stacked)} sats stacked`
@@ -216,6 +209,13 @@ ${topStackers.map((user, i) =>
 ##### Top Spenders
 ${topSpenders.map((user, i) =>
     `${i + 1}. [@${user.name}](https://stacker.news/${user.name}): ${abbrNum(user.optional.spent)} sats spent`
+).join('\n')}
+
+------
+
+##### Top Cowboys
+${topCowboys.map((user, i) =>
+  `${i + 1}. [@${user.name}](https://stacker.news/${user.name}): ${user.optional.streak} days`
 ).join('\n')}
 
 ------

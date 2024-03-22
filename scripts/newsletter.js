@@ -114,23 +114,27 @@ async function bountyWinner (q) {
 async function getTopUsers ({ by, cowboys = false, includeHidden = false, count = 5, when = 'week' } = {}) {
   const accum = []
   let cursor = ''
-  while (accum.length < count) {
-    let variables = {
-      cursor
-    }
-    if (!cowboys) {
-      variables = {
-        ...variables,
-        by,
-        when
+  try {
+    while (accum.length < count) {
+      let variables = {
+        cursor
       }
+      if (!cowboys) {
+        variables = {
+          ...variables,
+          by,
+          when
+        }
+      }
+      const result = await client.query({
+        query: cowboys ? TOP_COWBOYS : TOP_USERS,
+        variables
+      })
+      cursor = result.data[cowboys ? 'topCowboys' : 'topUsers'].cursor
+      accum.push(...result.data[cowboys ? 'topCowboys' : 'topUsers'].users.filter(user => includeHidden ? true : !!user))
     }
-    const result = await client.query({
-      query: cowboys ? TOP_COWBOYS : TOP_USERS,
-      variables
-    })
-    cursor = result.data[cowboys ? 'topCowboys' : 'topUsers'].cursor
-    accum.push(...result.data[cowboys ? 'topCowboys' : 'topUsers'].users.filter(user => includeHidden ? true : !!user))
+  } catch (e) {
+
   }
   return accum.slice(0, count)
 }

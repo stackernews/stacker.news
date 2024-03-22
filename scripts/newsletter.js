@@ -158,7 +158,7 @@ async function main () {
 
   const topCowboys = await getTopUsers({ cowboys: true })
   const topStackers = await getTopUsers({ by: 'stacking' })
-  const topSpenders = await getTopUsers({ by: 'spending' })
+  const topSpenders = await getTopUsers({ by: 'spent' })
 
   process.stdout.write(
 `Happy Sat-urday Stackers,

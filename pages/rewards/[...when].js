@@ -9,9 +9,10 @@ import { fixedDecimal } from '@/lib/format'
 import Trophy from '@/svgs/trophy-fill.svg'
 import { ListItem } from '@/components/items'
 import { dayMonthYear } from '@/lib/time'
+import { GrowthPieChartSkeleton } from '@/components/charts-skeletons'
 
 const GrowthPieChart = dynamic(() => import('@/components/charts').then(mod => mod.GrowthPieChart), {
-  loading: () => <div>Loading...</div>
+  loading: () => <GrowthPieChartSkeleton />
 })
 
 export const getServerSideProps = getGetServerSideProps({

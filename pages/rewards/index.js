@@ -19,9 +19,10 @@ import { ListUsers } from '@/components/user-list'
 import { Col, Row } from 'react-bootstrap'
 import { proportions } from '@/lib/madness'
 import { useData } from '@/components/use-data'
+import { GrowthPieChartSkeleton } from '@/components/charts-skeletons'
 
 const GrowthPieChart = dynamic(() => import('@/components/charts').then(mod => mod.GrowthPieChart), {
-  loading: () => <div>Loading...</div>
+  loading: () => <GrowthPieChartSkeleton />
 })
 
 const REWARDS_FULL = gql`

@@ -47,3 +47,7 @@ public/workbox-*.js*
 public/*-development.js
 
 .cache_ggshield
+docker-compose.*.yml
+*.sql
+!/prisma/migrations/*/*.sql
+!/docker/db/seed.sql

@@ -25,6 +25,34 @@ const ITEMS = gql`
   }
 `
 
+const TOP_COWBOYS = gql`
+query TopCowboys($cursor: String) {
+  topCowboys(cursor: $cursor) {
+    users {
+      name
+      optional {
+        streak
+      }
+    }
+    cursor
+  }
+}`
+
+const TOP_USERS = gql`
+  query TopUsers($cursor: String, $when: String, $from: String, $to: String, $by: String, ) {
+    topUsers(cursor: $cursor, when: $when, from: $from, to: $to, by: $by) {
+      users {
+        name
+        optional {
+          stacked(when: $when, from: $from, to: $to)
+          spent(when: $when, from: $from, to: $to)
+        }
+      }
+      cursor
+    }
+  }
+`
+
 const client = new ApolloClient({
   link: new HttpLink({ uri: 'https://stacker.news/api/graphql' }),
   cache: new InMemoryCache()
@@ -83,6 +111,34 @@ async function bountyWinner (q) {
   }
 }
 
+async function getTopUsers ({ by, cowboys = false, includeHidden = false, count = 5, when = 'week' } = {}) {
+  const accum = []
+  let cursor = ''
+  try {
+    while (accum.length < count) {
+      let variables = {
+        cursor
+      }
+      if (!cowboys) {
+        variables = {
+          ...variables,
+          by,
+          when
+        }
+      }
+      const result = await client.query({
+        query: cowboys ? TOP_COWBOYS : TOP_USERS,
+        variables
+      })
+      cursor = result.data[cowboys ? 'topCowboys' : 'topUsers'].cursor
+      accum.push(...result.data[cowboys ? 'topCowboys' : 'topUsers'].users.filter(user => includeHidden ? true : !!user))
+    }
+  } catch (e) {
+
+  }
+  return accum.slice(0, count)
+}
+
 async function main () {
   const { quote } = await import('../lib/md.js')
 
@@ -103,6 +159,10 @@ async function main () {
 
   const topMeme = await bountyWinner('meme monday')
   const topFact = await bountyWinner('fun fact')
+
+  const topCowboys = await getTopUsers({ cowboys: true })
+  const topStackers = await getTopUsers({ by: 'stacking' })
+  const topSpenders = await getTopUsers({ by: 'spent' })
 
   process.stdout.write(
 `Happy Sat-urday Stackers,
@@ -140,6 +200,27 @@ ${meta.data.items.items.slice(0, 10).map((item, i) =>
 ${topFact && quote(topFact?.winner.text)}
 
 [**all friday fun facts**](https://stacker.news/items/${topFact?.bounty})
+
+------
+
+##### Top Stackers
+${topStackers.map((user, i) =>
+    `${i + 1}. [@${user.name}](https://stacker.news/${user.name}): ${abbrNum(user.optional.stacked)} sats stacked`
+).join('\n')}
+
+------
+
+##### Top Spenders
+${topSpenders.map((user, i) =>
+    `${i + 1}. [@${user.name}](https://stacker.news/${user.name}): ${abbrNum(user.optional.spent)} sats spent`
+).join('\n')}
+
+------
+
+##### Top Cowboys
+${topCowboys.map((user, i) =>
+  `${i + 1}. [@${user.name}](https://stacker.news/${user.name}): ${user.optional.streak} days`
+).join('\n')}
 
 ------
 

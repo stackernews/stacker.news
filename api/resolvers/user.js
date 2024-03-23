@@ -57,6 +57,7 @@ export async function topUsers (parent, { cursor, when, by, from, to, limit = LI
 
   let column
   switch (by) {
+    case 'spending':
     case 'spent': column = 'spent'; break
     case 'posts': column = 'nposts'; break
     case 'comments': column = 'ncomments'; break

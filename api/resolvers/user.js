@@ -237,15 +237,15 @@ export default {
         SELECT EXISTS(
           SELECT *
           FROM "ThreadSubscription"
-          JOIN "Item" p ON "ThreadSubscription"."itemId" = p.id
-          JOIN "Item" ON ${user.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
+          JOIN "Reply" r ON "ThreadSubscription"."itemId" = r."ancestorId"
+          JOIN "Item" ON r."itemId" = "Item".id
           ${whereClause(
             '"ThreadSubscription"."userId" = $1',
-            '"Item".created_at > $2',
-            '"Item".created_at >= "ThreadSubscription".created_at',
-            '"Item"."userId" <> $1',
+            'r.created_at > $2',
+            'r.created_at >= "ThreadSubscription".created_at',
             await filterClause(me, models),
-            muteClause(me)
+            muteClause(me),
+            ...(user.noteAllDescendants ? [] : ['r.level = 1'])
           )})`, me.id, lastChecked)
       if (newThreadSubReply.exists) {
         foundNotes()

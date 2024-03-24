@@ -78,14 +78,13 @@ export default {
       itemDrivenQueries.push(
         `SELECT "Item".*, "Item".created_at AS "sortTime", 'Reply' AS type
           FROM "ThreadSubscription"
-          JOIN "Item" p ON "ThreadSubscription"."itemId" = p.id
-          JOIN "Item" ON ${meFull.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
+          JOIN "Reply" r ON "ThreadSubscription"."itemId" = r."ancestorId"
+          JOIN "Item" ON r."itemId" = "Item".id
           ${whereClause(
             '"ThreadSubscription"."userId" = $1',
-            '"Item"."userId" <> $1',
-            '"Item".created_at >= "ThreadSubscription".created_at',
-            '"Item".created_at < $2',
-            '"Item"."parentId" IS NOT NULL'
+            'r.created_at >= "ThreadSubscription".created_at',
+            'r.created_at < $2',
+            ...(meFull.noteAllDescendants ? [] : ['r.level = 1'])
           )}
           ORDER BY "sortTime" DESC
           LIMIT ${LIMIT}`

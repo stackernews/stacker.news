@@ -220,12 +220,8 @@ export default {
           SELECT EXISTS(
             SELECT *
             FROM "Item"
-            JOIN "ItemAct" ON
-              "ItemAct"."itemId" = "Item".id
-              AND "ItemAct"."userId" <> "Item"."userId"
-            WHERE "ItemAct".created_at > $2
-            AND "Item"."userId" = $1
-            AND "ItemAct".act = 'TIP')`, me.id, lastChecked)
+            WHERE "Item"."lastZapAt" > $2
+            AND "Item"."userId" = $1)`, me.id, lastChecked)
         if (newSats.exists) {
           foundNotes()
           return true
@@ -296,15 +292,11 @@ export default {
         SELECT EXISTS(
           SELECT *
           FROM "Item"
-          JOIN "ItemAct" ON
-            "ItemAct"."itemId" = "Item".id
-            AND "ItemAct"."userId" <> "Item"."userId"
           JOIN "ItemForward" ON
             "ItemForward"."itemId" = "Item".id
             AND "ItemForward"."userId" = $1
-          WHERE "ItemAct".created_at > $2
-          AND "Item"."userId" <> $1
-          AND "ItemAct".act = 'TIP')`, me.id, lastChecked)
+          WHERE "Item"."lastZapAt" > $2
+          AND "Item"."userId" <> $1)`, me.id, lastChecked)
         if (newFwdSats.exists) {
           foundNotes()
           return true

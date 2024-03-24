@@ -318,6 +318,11 @@ USAGE
 
 sndev__login() {
   shift
+  if [ -z "$1" ]; then
+    echo "<nym> argument required"
+    sndev__help_login
+    exit 1
+  fi
   # hardcode token for which is the hex digest of the sha256 of
   # "SNDEV-TOKEN3_0W_PhDRZVanbeJsZZGIEljexkKoGbL6qGIqSwTjjI"
   # next-auth concats the token with the secret from env and then sha256's it

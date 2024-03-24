@@ -115,6 +115,7 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
       return {
         skipToastFlow,
         flowId,
+        tag: itemId,
         type: 'zap',
         pendingMessage: `${down ? 'down' : ''}zapped ${sats} sats`,
         onPending: async () => {

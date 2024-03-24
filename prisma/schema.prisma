@@ -355,6 +355,7 @@ model Item {
   paidImgLink        Boolean               @default(false)
   commentMsats       BigInt                @default(0)
   lastCommentAt      DateTime?
+  lastZapAt          DateTime?
   ncomments          Int                   @default(0)
   msats              BigInt                @default(0)
   weightedDownVotes  Float                 @default(0)
@@ -393,6 +394,7 @@ model Item {
   Replies            Reply[]
 
   @@index([uploadId])
+  @@index([lastZapAt])
   @@index([bio], map: "Item.bio_index")
   @@index([createdAt], map: "Item.created_at_index")
   @@index([freebie], map: "Item.freebie_index")
@@ -428,6 +430,8 @@ model Reply {
 
   @@index([ancestorId])
   @@index([ancestorUserId])
+  @@index([itemId])
+  @@index([userId])
   @@index([level])
   @@index([createdAt])
 }

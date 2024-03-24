@@ -9,8 +9,8 @@
     "start": "NODE_OPTIONS='--trace-warnings' next start -p $PORT --keepAliveTimeout 120000",
     "lint": "standard",
     "test": "NODE_OPTIONS='--experimental-vm-modules' jest",
-    "worker": "npx tsx --tsconfig jsconfig.json --trace-warnings worker/index.js",
-    "worker:dev": "npx tsx --tsconfig jsconfig.json --trace-warnings --watch worker/index.js"
+    "worker": "tsx --tsconfig jsconfig.json --trace-warnings worker/index.js",
+    "worker:dev": "tsx --tsconfig jsconfig.json --trace-warnings --watch worker/index.js"
   },
   "dependencies": {
     "@apollo/client": "^3.9.7",
@@ -87,6 +87,7 @@
     "serviceworker-storage": "^0.1.0",
     "textarea-caret": "^3.1.0",
     "tldts": "^6.0.16",
+    "tsx": "^3.13.0",
     "unist-util-visit": "^5.0.0",
     "unzipper": "^0.10.14",
     "url-unshort": "^6.1.0",

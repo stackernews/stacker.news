@@ -5,7 +5,7 @@ services:
     build: ./docker/db
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "PGPASSWORD=${POSTGRES_PASSWORD} psql -U ${POSTGRES_USER} ${POSTGRES_DB} -c 'SELECT 1 FROM users LIMIT 1'"]
+      test: ["CMD-SHELL", "PGPASSWORD=${POSTGRES_PASSWORD} pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -h 127.0.0.1 && psql -U ${POSTGRES_USER} ${POSTGRES_DB} -c 'SELECT 1 FROM users LIMIT 1'"]
       interval: 10s
       timeout: 10s
       retries: 10

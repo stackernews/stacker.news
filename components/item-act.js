@@ -55,7 +55,7 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
 
   const [act, actUpdate] = useAct()
 
-  const onSubmit = useCallback(async ({ amount, hash, hmac }, { update }) => {
+  const onSubmit = useCallback(async ({ amount, hash, hmac }, { update, keepOpen }) => {
     if (!me) {
       const storageKey = `TIP-item:${itemId}`
       const existingAmount = Number(window.localStorage.getItem(storageKey) || '0')
@@ -75,7 +75,7 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
     // due to optimistic UX on zap undos
     if (!me || !me.privates.zapUndos) await strike()
     addCustomTip(Number(amount))
-    onClose()
+    if (!keepOpen) onClose()
   }, [me, act, down, itemId, strike])
 
   const onSubmitWithUndos = withToastFlow(toaster)(
@@ -128,7 +128,7 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
             undoUpdate = update()
             setTimeout(() => {
               if (canceled) return resolve()
-              onSubmit(values, { flowId, ...args, update: null })
+              onSubmit(values, { flowId, ...args, update: null, keepOpen: true })
                 .then(resolve)
                 .catch((err) => {
                   undoUpdate()

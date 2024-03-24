@@ -47,6 +47,7 @@ services:
       - "3000:3000"
     volumes:
       - ./:/app
+      - node_modules:/app/node_modules
     labels:
       CONNECT: "localhost:3000"
   worker:
@@ -68,6 +69,7 @@ services:
       - .env.development
     volumes:
       - ./:/app
+      - node_modules:/app/node_modules
     entrypoint: ["/bin/sh", "-c"]
     command:
       - npm run worker:dev
@@ -384,3 +386,4 @@ volumes:
   sn_lnd:
   stacker_lnd:
   s3:
+  node_modules:

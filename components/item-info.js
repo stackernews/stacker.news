@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
+import { useQuery } from '@apollo/client'
+import { ITEM_FULL } from '@/fragments/items'
 import Badge from 'react-bootstrap/Badge'
 import Dropdown from 'react-bootstrap/Dropdown'
 import Countdown from './countdown'
@@ -33,9 +35,18 @@ export default function ItemInfo ({
   const [canEdit, setCanEdit] =
     useState(item.mine && (Date.now() < editThreshold))
   const [hasNewComments, setHasNewComments] = useState(false)
+  const [isParentCrossposted, setIsParentCrossposted] = useState(false)
   const [meTotalSats, setMeTotalSats] = useState(0)
   const root = useRoot()
   const sub = item?.sub || root?.sub
+
+  const { data } = useQuery(ITEM_FULL, { variables: { id: item?.parentId } })
+
+  useEffect(() => {
+    if (data && data.item && data.item.noteId) {
+      setIsParentCrossposted(true)
+    }
+  }, [data])
 
   useEffect(() => {
     if (!full) {
@@ -165,6 +176,9 @@ export default function ItemInfo ({
           </Dropdown.Item>
         )}
         {item && item.mine && !item.noteId && !item.isJob && !item.parentId &&
+          <CrosspostDropdownItem item={item} />}
+        {/* For crosspost replies */}
+        {item && item.mine && !item.noteId && root.noteId && isParentCrossposted &&
           <CrosspostDropdownItem item={item} />}
         {me && !item.position &&
           !item.mine && !item.deletedAt &&

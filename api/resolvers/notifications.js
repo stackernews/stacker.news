@@ -1,7 +1,7 @@
 import { GraphQLError } from 'graphql'
 import { decodeCursor, LIMIT, nextNoteCursorEncoded } from '@/lib/cursor'
 import { getItem, filterClause, whereClause, muteClause } from './item'
-import { getInvoice } from './wallet'
+import { getInvoice, getWithdrawal } from './wallet'
 import { pushSubscriptionSchema, ssValidate } from '@/lib/validate'
 import { replyToSubscription } from '@/lib/webPush'
 import { getSub } from './sub'
@@ -221,6 +221,19 @@ export default {
         )
       }
 
+      if (meFull.noteWithdrawals) {
+        queries.push(
+          `(SELECT "Withdrawl".id::text, "Withdrawl".created_at AS "sortTime", FLOOR("msatsPaid" / 1000) as "earnedSats",
+            'WithdrawlPaid' AS type
+            FROM "Withdrawl"
+            WHERE "Withdrawl"."userId" = $1
+            AND status = 'CONFIRMED'
+            AND created_at < $2
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT})`
+        )
+      }
+
       if (meFull.noteInvites) {
         queries.push(
           `(SELECT "Invite".id, MAX(users.created_at) AS "sortTime", NULL as "earnedSats",
@@ -429,6 +442,9 @@ export default {
   },
   InvoicePaid: {
     invoice: async (n, args, { me, models }) => getInvoice(n, { id: n.id }, { me, models })
+  },
+  WithdrawlPaid: {
+    withdrawl: async (n, args, { me, models }) => getWithdrawal(n, { id: n.id }, { me, models })
   },
   Invitification: {
     invite: async (n, args, { models }) => {

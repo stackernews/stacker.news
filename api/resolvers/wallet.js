@@ -53,6 +53,31 @@ export async function getInvoice (parent, { id }, { me, models, lnd }) {
   return inv
 }
 
+export async function getWithdrawal (parent, { id }, { me, models }) {
+  if (!me) {
+    throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+  }
+
+  const wdrwl = await models.withdrawl.findUnique({
+    where: {
+      id: Number(id)
+    },
+    include: {
+      user: true
+    }
+  })
+
+  if (!wdrwl) {
+    throw new GraphQLError('withdrawal not found', { extensions: { code: 'BAD_INPUT' } })
+  }
+
+  if (wdrwl.user.id !== me.id) {
+    throw new GraphQLError('not ur withdrawal', { extensions: { code: 'FORBIDDEN' } })
+  }
+
+  return wdrwl
+}
+
 export function createHmac (hash) {
   const key = Buffer.from(process.env.INVOICE_HMAC_KEY, 'hex')
   return crypto.createHmac('sha256', key).update(Buffer.from(hash, 'hex')).digest('hex')
@@ -97,26 +122,7 @@ export default {
         }
       })
     },
-    withdrawl: async (parent, { id }, { me, models, lnd }) => {
-      if (!me) {
-        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
-      }
-
-      const wdrwl = await models.withdrawl.findUnique({
-        where: {
-          id: Number(id)
-        },
-        include: {
-          user: true
-        }
-      })
-
-      if (wdrwl.user.id !== me.id) {
-        throw new GraphQLError('not ur withdrawal', { extensions: { code: 'FORBIDDEN' } })
-      }
-
-      return wdrwl
-    },
+    withdrawl: getWithdrawal,
     numBolt11s: async (parent, args, { me, models, lnd }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })

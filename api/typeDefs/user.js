@@ -82,7 +82,8 @@ export default gql`
     nostrRelays: [String!]
     noteAllDescendants: Boolean!
     noteCowboyHat: Boolean!
-    noteDeposits: Boolean!
+    noteDeposits: Boolean!,
+    noteWithdrawals: Boolean!,
     noteEarning: Boolean!
     noteForwardedSats: Boolean!
     noteInvites: Boolean!
@@ -148,6 +149,7 @@ export default gql`
     noteAllDescendants: Boolean!
     noteCowboyHat: Boolean!
     noteDeposits: Boolean!
+    noteWithdrawals: Boolean!
     noteEarning: Boolean!
     noteForwardedSats: Boolean!
     noteInvites: Boolean!

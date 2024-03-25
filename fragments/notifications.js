@@ -133,6 +133,15 @@ export const NOTIFICATIONS = gql`
             lud18Data
           }
         }
+        ... on WithdrawlPaid {
+          id
+          sortTime
+          earnedSats
+          withdrawl {
+            id
+            satsPaid
+          }
+        }
       }
     }
   } `

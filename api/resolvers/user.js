@@ -353,6 +353,22 @@ export default {
         }
       }
 
+      if (user.noteWithdrawals) {
+        const wdrwl = await models.withdrawl.findFirst({
+          where: {
+            userId: me.id,
+            status: 'CONFIRMED',
+            updatedAt: {
+              gt: lastChecked
+            }
+          }
+        })
+        if (wdrwl) {
+          foundNotes()
+          return true
+        }
+      }
+
       // check if new invites have been redeemed
       if (user.noteInvites) {
         const [newInvites] = await models.$queryRawUnsafe(`

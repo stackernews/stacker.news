@@ -3,7 +3,7 @@ import {
   getInvoice, getPayment, cancelHodlInvoice, deletePayment,
   subscribeToInvoices, subscribeToPayments, subscribeToInvoice
 } from 'ln-service'
-import { notifyDeposit } from '@/lib/webPush'
+import { notifyDeposit, notifyWithdrawal } from '@/lib/webPush'
 import { INVOICE_RETENTION_DAYS } from '@/lib/constants'
 import { datePivot, sleep } from '@/lib/time.js'
 import retry from 'async-retry'
@@ -228,8 +228,11 @@ async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
   if (wdrwl?.is_confirmed) {
     const fee = Number(wdrwl.payment.fee_mtokens)
     const paid = Number(wdrwl.payment.mtokens) - fee
-    await serialize(models, models.$executeRaw`
+    const [{ confirm_withdrawl: code }] = await serialize(models, models.$queryRaw`
       SELECT confirm_withdrawl(${dbWdrwl.id}::INTEGER, ${paid}, ${fee})`)
+    if (code === 0) {
+      notifyWithdrawal(dbWdrwl.userId, wdrwl)
+    }
   } else if (wdrwl?.is_failed || notFound) {
     let status = 'UNKNOWN_FAILURE'
     if (wdrwl?.failed.is_insufficient_balance) {

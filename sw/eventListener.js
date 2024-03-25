@@ -154,9 +154,9 @@ const mergeAndShowNotification = async (sw, payload, currentNotifications, tag, 
     }
   } else if (SUM_SATS_TAGS.includes(compareTag)) {
     if (compareTag === 'DEPOSIT') {
-      title = `${numWithUnits(sats, { abbreviate: false })} were deposited in your account`
+      title = `${numWithUnits(sats, { abbreviate: false, unitSingular: 'sat was', unitPlural: 'sats were' })} deposited in your account`
     } else if (compareTag === 'WITHDRAWAL') {
-      title = `${numWithUnits(sats, { abbreviate: false })} were withdrawn from your account`
+      title = `${numWithUnits(sats, { abbreviate: false, unitSingular: 'sat was', unitPlural: 'sats were' })} withdrawn from your account`
     }
   }
   log(`[sw:push] ${nid} - calculated title: ${title}`)

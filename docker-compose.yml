@@ -384,7 +384,7 @@ services:
       - email
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8025"]
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8025"]
       interval: 10s
       timeout: 10s
       retries: 10

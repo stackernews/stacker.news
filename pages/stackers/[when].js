@@ -7,15 +7,16 @@ import { UsageHeader } from '@/components/usage-header'
 import { useRouter } from 'next/router'
 import dynamic from 'next/dynamic'
 import PageLoading from '@/components/page-loading'
+import { WhenAreaChartSkeleton, WhenComposedChartSkeleton, WhenLineChartSkeleton } from '@/components/charts-skeletons'
 
 const WhenAreaChart = dynamic(() => import('@/components/charts').then(mod => mod.WhenAreaChart), {
-  loading: () => <div>Loading...</div>
+  loading: () => <WhenAreaChartSkeleton />
 })
 const WhenLineChart = dynamic(() => import('@/components/charts').then(mod => mod.WhenLineChart), {
-  loading: () => <div>Loading...</div>
+  loading: () => <WhenLineChartSkeleton />
 })
 const WhenComposedChart = dynamic(() => import('@/components/charts').then(mod => mod.WhenComposedChart), {
-  loading: () => <div>Loading...</div>
+  loading: () => <WhenComposedChartSkeleton />
 })
 
 const GROWTH_QUERY = gql`

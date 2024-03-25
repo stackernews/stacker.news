@@ -28,6 +28,7 @@ import { useMe } from '@/components/me'
 import { INVOICE_RETENTION_DAYS } from '@/lib/constants'
 import { OverlayTrigger, Tooltip } from 'react-bootstrap'
 import DeleteIcon from '@/svgs/delete-bin-line.svg'
+import { useField } from 'formik'
 
 export const getServerSideProps = getGetServerSideProps({ query: SETTINGS, authRequired: true })
 
@@ -65,7 +66,8 @@ export default function Settings ({ ssrData }) {
           initial={{
             tipDefault: settings?.tipDefault || 21,
             turboTipping: settings?.turboTipping,
-            zapUndos: settings?.zapUndos,
+            zapUndos: settings?.zapUndos || settings?.tipDefault ? 100 * settings.tipDefault : 2100,
+            zapUndosEnabled: settings?.zapUndos !== null,
             fiatCurrency: settings?.fiatCurrency || 'USD',
             withdrawMaxFeeDefault: settings?.withdrawMaxFeeDefault,
             noteItemSats: settings?.noteItemSats,
@@ -98,7 +100,7 @@ export default function Settings ({ ssrData }) {
             noReferralLinks: settings?.noReferralLinks
           }}
           schema={settingsSchema}
-          onSubmit={async ({ tipDefault, withdrawMaxFeeDefault, nostrPubkey, nostrRelays, ...values }) => {
+          onSubmit={async ({ tipDefault, withdrawMaxFeeDefault, zapUndos, zapUndosEnabled, nostrPubkey, nostrRelays, ...values }) => {
             if (nostrPubkey.length === 0) {
               nostrPubkey = null
             } else {
@@ -116,6 +118,7 @@ export default function Settings ({ ssrData }) {
                   settings: {
                     tipDefault: Number(tipDefault),
                     withdrawMaxFeeDefault: Number(withdrawMaxFeeDefault),
+                    zapUndos: zapUndosEnabled ? Number(zapUndos) : null,
                     nostrPubkey,
                     nostrRelays: nostrRelaysFiltered,
                     ...values
@@ -171,25 +174,7 @@ export default function Settings ({ ssrData }) {
                     }
                     groupClassName='mb-0'
                   />
-                  <Checkbox
-                    name='zapUndos'
-                    label={
-                      <div className='d-flex align-items-center'>zap undos
-                        <Info>
-                          <ul className='fw-bold'>
-                            <li>An undo button is shown after every zap</li>
-                            <li>The button is shown for 5 seconds</li>
-                            <li>
-                              The button is only shown for zaps from the custodial wallet
-                            </li>
-                            <li>
-                              Use a budget or manual approval with attached wallets
-                            </li>
-                          </ul>
-                        </Info>
-                      </div>
-                    }
-                  />
+                  <ZapUndosField />
                 </>
               }
             />
@@ -918,5 +903,38 @@ I estimate that I will call the GraphQL API this many times (rough estimate is f
         </Info>
       </div>
     </>
+  )
+}
+
+const ZapUndosField = () => {
+  const [checkboxField] = useField({ name: 'zapUndosEnabled' })
+  return (
+    <div className='d-flex flex-row align-items-center'>
+      <Input
+        name='zapUndos'
+        disabled={!checkboxField.value}
+        label={
+          <Checkbox
+            name='zapUndosEnabled'
+            groupClassName='mb-0'
+            label={
+              <div className='d-flex align-items-center'>
+                zap undos
+                <Info>
+                  <ul className='fw-bold'>
+                    <li>An undo button is shown after every zap that exceeds or is equal to the threshold</li>
+                    <li>The button is shown for 5 seconds</li>
+                    <li>The button is only shown for zaps from the custodial wallet</li>
+                    <li>Use a budget or manual approval with attached wallets</li>
+                  </ul>
+                </Info>
+              </div>
+              }
+          />
+        }
+        append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+        hint={<small className='text-muted'>threshold at which undo button is shown</small>}
+      />
+    </div>
   )
 }

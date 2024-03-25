@@ -27,14 +27,6 @@ docker__exec() {
 }
 
 docker__sn_lnd() {
-  docker__exec -u lnd sn_lnd lncli "$@"
-}
-
-docker__stacker_lnd() {
-  docker__exec -u lnd stacker_lnd lncli "$@"
-}
-
-docker__sn_lnd() {
   t=$1
   if [ "$t" = "-t" ]; then
     shift

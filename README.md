@@ -329,7 +329,7 @@ You can login to test features like posting, replying, tipping, etc with `./snde
 
 - The app is already prepared to send emails through [MailHog](https://github.com/mailhog/MailHog) so no extra configuration is needed
 - Click "sign up" and enter any email address (remember, it's not going anywhere beyond your workstation)
-- Access MailHog's web UI on http://localhost:1025
+- Access MailHog's web UI on http://localhost:8025
 - Click the link (looks like this):
 
 ```

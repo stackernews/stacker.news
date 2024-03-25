@@ -265,9 +265,9 @@ services:
       - '--externalip=sn_lnd'
       - '--tlsextradomain=sn_lnd'
       - '--tlsextradomain=host.docker.internal'
-      - '--listen=0.0.0.0:${LND_P2P_PORT}'
-      - '--rpclisten=0.0.0.0:${LND_GRPC_PORT}'
-      - '--restlisten=0.0.0.0:${LND_REST_PORT}'
+      - '--listen=0.0.0.0:9735'
+      - '--rpclisten=0.0.0.0:10009'
+      - '--restlisten=0.0.0.0:8080'
       - '--bitcoin.active'
       - '--bitcoin.regtest'
       - '--bitcoin.node=bitcoind'
@@ -282,10 +282,10 @@ services:
       - '--bitcoin.defaultchanconfs=1'
       - '--maxpendingchannels=10'
     expose:
-      - "${LND_P2P_PORT}"
+      - "9735"
     ports:
-      - "${LND_REST_PORT}:${LND_REST_PORT}"
-      - "${LND_GRPC_PORT}:${LND_GRPC_PORT}"
+      - "${LND_REST_PORT}:8080"
+      - "${LND_GRPC_PORT}:10009"
     volumes:
       - sn_lnd:/home/lnd/.lnd
     labels:
@@ -329,9 +329,9 @@ services:
       - '--externalip=stacker_lnd'
       - '--tlsextradomain=stacker_lnd'
       - '--tlsextradomain=host.docker.internal'
-      - '--listen=0.0.0.0:${LND_P2P_PORT}'
-      - '--rpclisten=0.0.0.0:${LND_GRPC_PORT}'
-      - '--restlisten=0.0.0.0:${LND_REST_PORT}'
+      - '--listen=0.0.0.0:9735'
+      - '--rpclisten=0.0.0.0:10009'
+      - '--restlisten=0.0.0.0:8080'
       - '--bitcoin.active'
       - '--bitcoin.regtest'
       - '--bitcoin.node=bitcoind'
@@ -346,10 +346,10 @@ services:
       - '--bitcoin.defaultchanconfs=1'
       - '--maxpendingchannels=10'
     expose:
-      - "${LND_P2P_PORT}"
+      - "9735"
     ports:
-      - "${STACKER_LND_REST_PORT}:${LND_REST_PORT}"
-      - "${STACKER_LND_GRPC_PORT}:${LND_GRPC_PORT}"
+      - "${STACKER_LND_REST_PORT}:8080"
+      - "${STACKER_LND_GRPC_PORT}:10009"
     volumes:
       - stacker_lnd:/home/lnd/.lnd
     labels:

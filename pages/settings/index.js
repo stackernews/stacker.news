@@ -174,7 +174,7 @@ export default function Settings ({ ssrData }) {
                     }
                     groupClassName='mb-0'
                   />
-                  <ZapUndoField />
+                  <ZapUndosField />
                 </>
               }
             />
@@ -906,7 +906,7 @@ I estimate that I will call the GraphQL API this many times (rough estimate is f
   )
 }
 
-const ZapUndoField = () => {
+const ZapUndosField = () => {
   const [checkboxField] = useField({ name: 'zapUndosEnabled' })
   return (
     <div className='d-flex flex-row align-items-center'>

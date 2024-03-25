@@ -24,10 +24,17 @@ async function discussionToEvent (item) {
 async function linkToEvent (item) {
   const createdAt = Math.floor(Date.now() / 1000)
 
+  let contentField
+  if (item.text) {
+    contentField = `${item.title}\n${item.url}\n\n${item.text}`
+  } else {
+    contentField = `${item.title}\n${item.url}`
+  }
+
   return {
     created_at: createdAt,
     kind: 1,
-    content: `${item.title} \n ${item.url}`,
+    content: contentField,
     tags: []
   }
 }

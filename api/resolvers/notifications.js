@@ -78,14 +78,13 @@ export default {
       itemDrivenQueries.push(
         `SELECT "Item".*, "Item".created_at AS "sortTime", 'Reply' AS type
           FROM "ThreadSubscription"
-          JOIN "Item" p ON "ThreadSubscription"."itemId" = p.id
-          JOIN "Item" ON ${meFull.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
+          JOIN "Reply" r ON "ThreadSubscription"."itemId" = r."ancestorId"
+          JOIN "Item" ON r."itemId" = "Item".id
           ${whereClause(
             '"ThreadSubscription"."userId" = $1',
-            '"Item"."userId" <> $1',
-            '"Item".created_at >= "ThreadSubscription".created_at',
-            '"Item".created_at < $2',
-            '"Item"."parentId" IS NOT NULL'
+            'r.created_at >= "ThreadSubscription".created_at',
+            'r.created_at < $2',
+            ...(meFull.noteAllDescendants ? [] : ['r.level = 1'])
           )}
           ORDER BY "sortTime" DESC
           LIMIT ${LIMIT}`
@@ -185,15 +184,11 @@ export default {
 
       if (meFull.noteItemSats) {
         queries.push(
-          `(SELECT "Item".id::TEXT, MAX("ItemAct".created_at) AS "sortTime",
-            MAX("Item".msats/1000) as "earnedSats", 'Votification' AS type
+          `(SELECT "Item".id::TEXT, "Item"."lastZapAt" AS "sortTime",
+            "Item".msats/1000 as "earnedSats", 'Votification' AS type
             FROM "Item"
-            JOIN "ItemAct" ON "ItemAct"."itemId" = "Item".id
-            WHERE "ItemAct"."userId" <> $1
-            AND "ItemAct".created_at < $2
-            AND "ItemAct".act IN ('TIP', 'FEE')
-            AND "Item"."userId" = $1
-            GROUP BY "Item".id
+            WHERE "Item"."userId" = $1
+            AND "Item"."lastZapAt" < $2
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT})`
         )
@@ -201,16 +196,12 @@ export default {
 
       if (meFull.noteForwardedSats) {
         queries.push(
-          `(SELECT "Item".id::TEXT, MAX("ItemAct".created_at) AS "sortTime",
-            MAX("Item".msats / 1000 * "ItemForward".pct / 100) as "earnedSats", 'ForwardedVotification' AS type
+          `(SELECT "Item".id::TEXT, "Item"."lastZapAt" AS "sortTime",
+            ("Item".msats / 1000 * "ItemForward".pct / 100) as "earnedSats", 'ForwardedVotification' AS type
             FROM "Item"
-            JOIN "ItemAct" ON "ItemAct"."itemId" = "Item".id
             JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id AND "ItemForward"."userId" = $1
-            WHERE "ItemAct"."userId" <> $1
-            AND "Item"."userId" <> $1
-            AND "ItemAct".created_at < $2
-            AND "ItemAct".act IN ('TIP')
-            GROUP BY "Item".id
+            WHERE "Item"."userId" <> $1
+            AND "Item"."lastZapAt" < $2
             ORDER BY "sortTime" DESC
             LIMIT ${LIMIT})`
         )
@@ -299,23 +290,11 @@ export default {
           LIMIT ${LIMIT})`
       )
 
-      // we do all this crazy subquery stuff to make 'reward' islands
       const notifications = await models.$queryRawUnsafe(
-        `SELECT MAX(id) AS id, MAX("sortTime") AS "sortTime", sum("earnedSats") AS "earnedSats", type,
-            MIN("sortTime") AS "minSortTime"
+        `SELECT id, "sortTime", "earnedSats", type,
+            "sortTime" AS "minSortTime"
         FROM
-          (SELECT *,
-          CASE
-            WHEN type = 'Earn' THEN
-              ROW_NUMBER() OVER(ORDER BY "sortTime" DESC) -
-              ROW_NUMBER() OVER(PARTITION BY type = 'Earn' ORDER BY "sortTime" DESC)
-            ELSE
-              ROW_NUMBER() OVER(ORDER BY "sortTime" DESC)
-          END as island
-          FROM
-          (${queries.join(' UNION ALL ')}) u
-        ) sub
-        GROUP BY type, island
+        (${queries.join(' UNION ALL ')}) u
         ORDER BY "sortTime" DESC
         LIMIT ${LIMIT}`, me.id, decodedCursor.time)
 

@@ -308,7 +308,7 @@ export default {
 
       const [, updatedSub] = await models.$transaction([
         models.territoryTransfer.create({ data: { subName, oldUserId: me.id, newUserId: user.id } }),
-        models.sub.update({ where: { name: subName }, data: { userId: user.id } })
+        models.sub.update({ where: { name: subName }, data: { userId: user.id, billingAutoRenew: false } })
       ])
 
       notifyTerritoryTransfer({ models, sub, to: user })
@@ -367,7 +367,7 @@ export default {
       ].filter(q => !!q),
       { models, lnd, hash, hmac, me, enforceFee: billingCost })
 
-      if (oldSub.userId !== me.id) notifyTerritoryTransfer({ models, sub: newSub, to: me.id })
+      if (oldSub.userId !== me.id) notifyTerritoryTransfer({ models, sub: newSub, to: me })
     }
   },
   Sub: {
@@ -400,14 +400,15 @@ export default {
 async function createSub (parent, data, { me, models, lnd, hash, hmac }) {
   const { billingType } = data
   let billingCost = TERRITORY_COST_MONTHLY
-  let billPaidUntil = datePivot(new Date(), { months: 1 })
+  const billedLastAt = new Date()
+  let billPaidUntil = datePivot(billedLastAt, { months: 1 })
 
   if (billingType === 'ONCE') {
     billingCost = TERRITORY_COST_ONCE
     billPaidUntil = null
   } else if (billingType === 'YEARLY') {
     billingCost = TERRITORY_COST_YEARLY
-    billPaidUntil = datePivot(new Date(), { years: 1 })
+    billPaidUntil = datePivot(billedLastAt, { years: 1 })
   }
 
   const cost = BigInt(1000) * BigInt(billingCost)
@@ -429,6 +430,7 @@ async function createSub (parent, data, { me, models, lnd, hash, hmac }) {
       models.sub.create({
         data: {
           ...data,
+          billedLastAt,
           billPaidUntil,
           billingCost,
           rankingType: 'WOT',

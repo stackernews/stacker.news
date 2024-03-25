@@ -11,9 +11,10 @@ import { WHENS } from '@/lib/constants'
 import dynamic from 'next/dynamic'
 import { numWithUnits } from '@/lib/format'
 import { whenToFrom } from '@/lib/time'
+import { WhenComposedChartSkeleton } from '@/components/charts-skeletons'
 
 const WhenComposedChart = dynamic(() => import('@/components/charts').then(mod => mod.WhenComposedChart), {
-  loading: () => <div>Loading...</div>
+  loading: () => <WhenComposedChartSkeleton />
 })
 
 const REFERRALS = gql`

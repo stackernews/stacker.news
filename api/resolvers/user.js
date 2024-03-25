@@ -57,6 +57,7 @@ export async function topUsers (parent, { cursor, when, by, from, to, limit = LI
 
   let column
   switch (by) {
+    case 'spending':
     case 'spent': column = 'spent'; break
     case 'posts': column = 'nposts'; break
     case 'comments': column = 'ncomments'; break
@@ -219,12 +220,8 @@ export default {
           SELECT EXISTS(
             SELECT *
             FROM "Item"
-            JOIN "ItemAct" ON
-              "ItemAct"."itemId" = "Item".id
-              AND "ItemAct"."userId" <> "Item"."userId"
-            WHERE "ItemAct".created_at > $2
-            AND "Item"."userId" = $1
-            AND "ItemAct".act = 'TIP')`, me.id, lastChecked)
+            WHERE "Item"."lastZapAt" > $2
+            AND "Item"."userId" = $1)`, me.id, lastChecked)
         if (newSats.exists) {
           foundNotes()
           return true
@@ -236,15 +233,15 @@ export default {
         SELECT EXISTS(
           SELECT *
           FROM "ThreadSubscription"
-          JOIN "Item" p ON "ThreadSubscription"."itemId" = p.id
-          JOIN "Item" ON ${user.noteAllDescendants ? '"Item".path <@ p.path' : '"Item"."parentId" = p.id'}
+          JOIN "Reply" r ON "ThreadSubscription"."itemId" = r."ancestorId"
+          JOIN "Item" ON r."itemId" = "Item".id
           ${whereClause(
             '"ThreadSubscription"."userId" = $1',
-            '"Item".created_at > $2',
-            '"Item".created_at >= "ThreadSubscription".created_at',
-            '"Item"."userId" <> $1',
+            'r.created_at > $2',
+            'r.created_at >= "ThreadSubscription".created_at',
             await filterClause(me, models),
-            muteClause(me)
+            muteClause(me),
+            ...(user.noteAllDescendants ? [] : ['r.level = 1'])
           )})`, me.id, lastChecked)
       if (newThreadSubReply.exists) {
         foundNotes()
@@ -295,15 +292,11 @@ export default {
         SELECT EXISTS(
           SELECT *
           FROM "Item"
-          JOIN "ItemAct" ON
-            "ItemAct"."itemId" = "Item".id
-            AND "ItemAct"."userId" <> "Item"."userId"
           JOIN "ItemForward" ON
             "ItemForward"."itemId" = "Item".id
             AND "ItemForward"."userId" = $1
-          WHERE "ItemAct".created_at > $2
-          AND "Item"."userId" <> $1
-          AND "ItemAct".act = 'TIP')`, me.id, lastChecked)
+          WHERE "Item"."lastZapAt" > $2
+          AND "Item"."userId" <> $1)`, me.id, lastChecked)
         if (newFwdSats.exists) {
           foundNotes()
           return true

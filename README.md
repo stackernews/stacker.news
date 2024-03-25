@@ -42,25 +42,6 @@ Start the development environment
 $ ./sndev start
 ```
 
-By default all services will be run. If you want to exclude specific services from running, set `COMPOSE_PROFILES` to use one or more of `minimal|images|search|payments|email`. To only run mininal services without images, search, or payments:
-
-```sh
-$ COMPOSE_PROFILES=minimal ./sndev start
-```
-
-Or, as I would recommend:
-
-```sh
-$ export COMPOSE_PROFILES=minimal
-$ ./sndev start
-```
-
-To run with images and payments services:
-
-```sh
-$ COMPOSE_PROFILES=images,payments ./sndev start
-```
-
 View all available commands
 
 ```sh
@@ -113,12 +94,56 @@ COMMANDS
 
 ```
 
+### Modifying services
+
+#### Running specific services
+
+By default all services will be run. If you want to exclude specific services from running, set `COMPOSE_PROFILES` to use one or more of `minimal|images|search|payments|email`. To only run mininal services without images, search, or payments:
+
+```sh
+$ COMPOSE_PROFILES=minimal ./sndev start
+```
+
+Or, as I would recommend:
+
+```sh
+$ export COMPOSE_PROFILES=minimal
+$ ./sndev start
+```
+
+To run with images and payments services:
+
+```sh
+$ COMPOSE_PROFILES=images,payments ./sndev start
+```
+
+#### Merging compose files
+
+By default `sndev start` will merge `docker-compose.yml` with `docker-compose.override.yml`. Specify any overrides you want to merge with `docker-compose.override.yml`.
+
+For example, if you want to replace the db seed with a custom seed file located in `docker/db/another.sql`, you'd create a `docker-compose.override.yml` file with the following:
+
+```yml
+version: "3"
+services:
+  db:
+    volumes:
+      - ./docker/db/another.sql:/docker-entrypoint-initdb.d/seed.sql
+```
+
+You can read more about [docker compose override files](https://docs.docker.com/compose/multiple-compose-files/merge/).
+
+
+
 <br>
 
 # Table of Contents
 - [Getting started](#getting-started)
     - [Installation](#installation)
     - [Usage](#usage)
+        - [Modifying services](#modifying-services)
+            - [Running specific services](#running-specific-services)
+            - [Merging compose files](#merging-compose-files)
 - [Contributing](#contributing)
     - [We pay bitcoin for contributions](#we-pay-bitcoin-for-contributions)
     - [Pull request awards](#pull-request-awards)

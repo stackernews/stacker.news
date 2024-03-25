@@ -26,7 +26,7 @@ model User {
   checkedNotesAt            DateTime?
   foundNotesAt              DateTime?
   pubkey                    String?              @unique(map: "users.pubkey_unique")
-  apiKey                    String?              @db.Char(32) @unique(map: "users.apikey_unique")
+  apiKey                    String?              @unique(map: "users.apikey_unique") @db.Char(32)
   apiKeyEnabled             Boolean              @default(false)
   tipDefault                Int                  @default(100)
   bioId                     Int?
@@ -56,7 +56,7 @@ model User {
   autoDropBolt11s           Boolean              @default(false)
   hideFromTopUsers          Boolean              @default(false)
   turboTipping              Boolean              @default(false)
-  zapUndos                  Boolean              @default(false)
+  zapUndos                  Int?
   imgproxyOnly              Boolean              @default(false)
   hideWalletBalance         Boolean              @default(false)
   referrerId                Int?
@@ -117,8 +117,10 @@ model User {
   SubAct                    SubAct[]
   MuteSub                   MuteSub[]
   Wallet                    Wallet[]
-  TerritoryTransfers        TerritoryTransfer[] @relation("TerritoryTransfer_oldUser")
-  TerritoryReceives         TerritoryTransfer[] @relation("TerritoryTransfer_newUser")
+  TerritoryTransfers        TerritoryTransfer[]  @relation("TerritoryTransfer_oldUser")
+  TerritoryReceives         TerritoryTransfer[]  @relation("TerritoryTransfer_newUser")
+  AncestorReplies           Reply[]              @relation("AncestorReplyUser")
+  Replies                   Reply[]
 
   @@index([photoId])
   @@index([createdAt], map: "users.created_at_index")
@@ -353,6 +355,7 @@ model Item {
   paidImgLink        Boolean               @default(false)
   commentMsats       BigInt                @default(0)
   lastCommentAt      DateTime?
+  lastZapAt          DateTime?
   ncomments          Int                   @default(0)
   msats              BigInt                @default(0)
   weightedDownVotes  Float                 @default(0)
@@ -387,8 +390,11 @@ model Item {
   uploadId           Int?
   outlawed           Boolean               @default(false)
   pollExpiresAt      DateTime?
+  Ancestors          Reply[]               @relation("AncestorReplyItem")
+  Replies            Reply[]
 
   @@index([uploadId])
+  @@index([lastZapAt])
   @@index([bio], map: "Item.bio_index")
   @@index([createdAt], map: "Item.created_at_index")
   @@index([freebie], map: "Item.freebie_index")
@@ -404,6 +410,30 @@ model Item {
   @@index([userId], map: "Item.userId_index")
   @@index([weightedDownVotes], map: "Item.weightedDownVotes_index")
   @@index([weightedVotes], map: "Item.weightedVotes_index")
+}
+
+// this is a denomalized table that is used to make reply notifications
+// more efficient ... it is populated by a trigger when replies are created
+model Reply {
+  id             Int      @id @default(autoincrement())
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+  ancestorId     Int
+  ancestorUserId Int
+  itemId         Int
+  userId         Int
+  level          Int
+  User           User     @relation(fields: [userId], references: [id])
+  Item           Item     @relation(fields: [itemId], references: [id])
+  AncestorUser   User     @relation("AncestorReplyUser", fields: [ancestorUserId], references: [id])
+  AncestorItem   Item     @relation("AncestorReplyItem", fields: [ancestorId], references: [id])
+
+  @@index([ancestorId])
+  @@index([ancestorUserId])
+  @@index([itemId])
+  @@index([userId])
+  @@index([level])
+  @@index([createdAt])
 }
 
 // TODO: make all Item's forward 100% of sats to the OP by default
@@ -488,13 +518,13 @@ model Sub {
   moderatedCount   Int         @default(0)
   nsfw             Boolean     @default(false)
 
-  parent          Sub?              @relation("ParentChildren", fields: [parentName], references: [name])
-  children        Sub[]             @relation("ParentChildren")
-  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  Item            Item[]
-  SubAct          SubAct[]
-  MuteSub         MuteSub[]
-  SubSubscription SubSubscription[]
+  parent            Sub?                @relation("ParentChildren", fields: [parentName], references: [name])
+  children          Sub[]               @relation("ParentChildren")
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Item              Item[]
+  SubAct            SubAct[]
+  MuteSub           MuteSub[]
+  SubSubscription   SubSubscription[]
   TerritoryTransfer TerritoryTransfer[]
 
   @@index([parentName])
@@ -779,14 +809,14 @@ model Log {
 }
 
 model TerritoryTransfer {
-  id          Int @id @default(autoincrement())
-  createdAt   DateTime @default(now()) @map("created_at")
-  oldUserId   Int
-  newUserId   Int
-  subName     String @db.Citext
-  oldUser     User @relation("TerritoryTransfer_oldUser", fields: [oldUserId], references: [id], onDelete: Cascade)
-  newUser     User @relation("TerritoryTransfer_newUser", fields: [newUserId], references: [id], onDelete: Cascade)
-  sub         Sub  @relation(fields: [subName], references: [name], onDelete: Cascade)
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map("created_at")
+  oldUserId Int
+  newUserId Int
+  subName   String   @db.Citext
+  oldUser   User     @relation("TerritoryTransfer_oldUser", fields: [oldUserId], references: [id], onDelete: Cascade)
+  newUser   User     @relation("TerritoryTransfer_newUser", fields: [newUserId], references: [id], onDelete: Cascade)
+  sub       Sub      @relation(fields: [subName], references: [name], onDelete: Cascade)
 
   @@index([createdAt, newUserId], map: "TerritoryTransfer.newUserId_index")
   @@index([createdAt, oldUserId], map: "TerritoryTransfer.oldUserId_index")

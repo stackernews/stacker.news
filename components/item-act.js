@@ -41,6 +41,12 @@ const addCustomTip = (amount) => {
   window.localStorage.setItem('custom-tips', JSON.stringify(customTips))
 }
 
+export const zapUndosThresholdReached = (me, amount) => {
+  if (!me) return false
+  const enabled = me.privates.zapUndos !== null
+  return enabled ? amount >= me.privates.zapUndos : false
+}
+
 export default function ItemAct ({ onClose, itemId, down, children }) {
   const inputRef = useRef(null)
   const me = useMe()
@@ -73,9 +79,9 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
     })
     // only strike when zap undos not enabled
     // due to optimistic UX on zap undos
-    if (!me || !me.privates.zapUndos) await strike()
+    if (!zapUndosThresholdReached(me, Number(amount))) await strike()
     addCustomTip(Number(amount))
-    if (!keepOpen) onClose()
+    if (!keepOpen) onClose(Number(amount))
   }, [me, act, down, itemId, strike])
 
   const onSubmitWithUndos = withToastFlow(toaster)(
@@ -123,7 +129,7 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
             return onSubmit(values, { flowId, ...args, update: null })
           }
           await strike()
-          onClose()
+          onClose(sats)
           return new Promise((resolve, reject) => {
             undoUpdate = update()
             setTimeout(() => {
@@ -156,7 +162,12 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
       }}
       schema={amountSchema}
       invoiceable
-      onSubmit={me?.privates?.zapUndos ? onSubmitWithUndos : onSubmit}
+      onSubmit={(values, ...args) => {
+        if (zapUndosThresholdReached(me, values.amount)) {
+          return onSubmitWithUndos(values, ...args)
+        }
+        return onSubmit(values, ...args)
+      }}
     >
       <Input
         label='amount'
@@ -376,16 +387,17 @@ export function useZap () {
 
     // add current sats to next tip since idempotent zaps use desired total zap not difference
     const sats = meSats + nextTip(meSats, { ...me?.privates })
+    const amount = sats - meSats
 
-    const variables = { id: item.id, sats, act: 'TIP', amount: sats - meSats }
-    const insufficientFunds = me?.privates.sats < (sats - meSats)
+    const variables = { id: item.id, sats, act: 'TIP', amount }
+    const insufficientFunds = me?.privates.sats < amount
     const optimisticResponse = { act: { path: item.path, ...variables } }
     const flowId = (+new Date()).toString(16)
     const zapArgs = { variables, optimisticResponse: insufficientFunds ? null : optimisticResponse, update, flowId }
     try {
       if (insufficientFunds) throw new Error('insufficient funds')
       strike()
-      if (me?.privates?.zapUndos) {
+      if (zapUndosThresholdReached(me, amount)) {
         await zapWithUndos(zapArgs)
       } else {
         await zap(zapArgs)

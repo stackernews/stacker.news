@@ -56,7 +56,7 @@ model User {
   autoDropBolt11s           Boolean              @default(false)
   hideFromTopUsers          Boolean              @default(false)
   turboTipping              Boolean              @default(false)
-  zapUndos                  Boolean              @default(false)
+  zapUndos                  Int?
   imgproxyOnly              Boolean              @default(false)
   hideWalletBalance         Boolean              @default(false)
   referrerId                Int?

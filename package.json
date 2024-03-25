@@ -3,14 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "NODE_OPTIONS='--trace-warnings' next dev",
     "build": "next build",
     "migrate": "prisma migrate deploy",
     "start": "NODE_OPTIONS='--trace-warnings' next start -p $PORT --keepAliveTimeout 120000",
     "lint": "standard",
     "test": "NODE_OPTIONS='--experimental-vm-modules' jest",
     "worker": "tsx --tsconfig jsconfig.json --trace-warnings worker/index.js",
-    "worker:dev": "tsx --tsconfig jsconfig.json --watch worker/index.js"
+    "worker:dev": "tsx --tsconfig jsconfig.json --trace-warnings --watch worker/index.js"
   },
   "dependencies": {
     "@apollo/client": "^3.9.7",

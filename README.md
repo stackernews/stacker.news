@@ -98,7 +98,7 @@ COMMANDS
 
 #### Running specific services
 
-By default all services will be run. If you want to exclude specific services from running, set `COMPOSE_PROFILES` to use one or more of `minimal|images|search|payments`. To only run mininal services without images, search, or payments:
+By default all services will be run. If you want to exclude specific services from running, set `COMPOSE_PROFILES` to use one or more of `minimal|images|search|payments|email`. To only run mininal services without images, search, or payments:
 
 ```sh
 $ COMPOSE_PROFILES=minimal ./sndev start
@@ -349,6 +349,19 @@ You can run `lncli` on the local lnd nodes via `./sndev sn_lncli` and `./sndev s
 You can login to test features like posting, replying, tipping, etc with `./sndev login <nym>` which will provide a link to login as an existing nym or a new account for a nonexistent nym. But, it you want to test auth specifically you'll need to configure them in your `.env` file.
 
 ### Login with Email
+
+#### MailHog
+
+- The app is already prepared to send emails through [MailHog](https://github.com/mailhog/MailHog) so no extra configuration is needed
+- Click "sign up" and enter any email address (remember, it's not going anywhere beyond your workstation)
+- Access MailHog's web UI on http://localhost:8025
+- Click the link (looks like this):
+
+```
+http://localhost:3000/api/auth/callback/email?email=satoshi%40gmail.com&token=110e30a954ce7ca643379d90eb511640733de405f34a31b38eeda8e254d48cd7
+```
+
+#### Sendgrid
 
 - Create a Sendgrid account (or other smtp service)
 

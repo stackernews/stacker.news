@@ -10,7 +10,7 @@ docker__compose() {
   fi
 
   if [ -z "$COMPOSE_PROFILES" ]; then
-    COMPOSE_PROFILES="images,search,payments"
+    COMPOSE_PROFILES="images,search,payments,email"
   fi
 
   CURRENT_UID=$(id -u) CURRENT_GID=$(id -g) COMPOSE_PROFILES=$COMPOSE_PROFILES command docker compose --env-file .env.development "$@"

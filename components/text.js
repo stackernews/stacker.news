@@ -2,10 +2,13 @@ import styles from './text.module.css'
 import ReactMarkdown from 'react-markdown'
 import YouTube from 'react-youtube'
 import gfm from 'remark-gfm'
+import remarkFootnotes from 'remark-footnotes'
 import { LightAsync as SyntaxHighlighter } from 'react-syntax-highlighter'
 import atomDark from 'react-syntax-highlighter/dist/cjs/styles/prism/atom-dark'
 import mention from '@/lib/remark-mention'
 import sub from '@/lib/remark-sub'
+import email from '@/lib/remark-email'
+import url from '@/lib/remark-url'
 import React, { useState, memo, useRef, useCallback, useMemo, useEffect } from 'react'
 import GithubSlugger from 'github-slugger'
 import LinkIcon from '@/svgs/link.svg'
@@ -137,6 +140,82 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
 
   const P = useCallback(({ children, node, ...props }) => <div className={styles.p} {...props}>{children}</div>, [])
 
+  const A = useCallback(({ node, href, children, ...props }) => {
+            children = children ? Array.isArray(children) ? children : [children] : []
+            //console.log(children, href, props)
+            // don't allow zoomable images to be wrapped in links
+            if (children.some(e => e?.props?.node?.tagName === 'img')) {
+              return <>{children}</>
+            }
+
+            // if outlawed, render the link as text
+            if (outlawed) {
+              return href
+            }
+
+            // If [text](url) was parsed as <a> and text is not empty and not a link itself,
+            // we don't render it as an image since it was probably a conscious choice to include text.
+            const text = children[0]
+            if (!!text && !/^https?:\/\//.test(text)) {
+              if (props['data-footnote-ref'] || typeof props['data-footnote-backref'] !== 'undefined') {
+                return (
+                  <Link
+                    {...props}
+                    id={props.id && itemId ? `${props.id}-${itemId}` : props.id}
+                    href={itemId ? `${href}-${itemId}` : href}
+                  >{text}
+                  </Link>
+                )
+              }
+              if (!!text && /^(https?:\/\/stacker\.news|http:\/\/localhost:)/.test(text)) {
+              return (
+                // eslint-disable-next-line
+                <a id={props.id} target='_blank' rel={rel ?? UNKNOWN_LINK_REL} href={href}>{text}</a>
+              )
+             }
+            }
+
+            try {
+              const linkText = parseInternalLinks(href)
+              if (linkText && children[0].startsWith(' ')) {
+                return (
+                  <>
+                    <span>&nbsp;</span>
+                    <a target='_blank' href={href} rel='noreferrer'>{linkText}</a>
+                  </>
+                )
+              } else if (linkText && children[0].startsWith('\n')) {
+                return (
+                  <>
+                    <br/>
+                    <a target='_blank' href={href} rel='noreferrer'>{linkText}</a>
+                  </>
+                )
+              }
+            } catch {
+              // ignore errors like invalid URLs
+            }
+
+            // if the link is to a youtube video, render the video
+            const youtube = href.match(/(https?:\/\/)?((www\.)?(youtube(-nocookie)?|youtube.googleapis)\.com.*(v\/|v=|vi=|vi\/|e\/|embed\/|user\/.*\/u\/\d+\/)|youtu\.be\/)(?<id>[_0-9a-z-]+)((?:\?|&)(?:t|start)=(?<start>\d+))?/i)
+            if (youtube?.groups?.id) {
+              return (
+                <div style={{ maxWidth: topLevel ? '640px' : '320px', paddingRight: '15px', margin: '0.5rem 0' }}>
+                  <YouTube
+                    videoId={youtube.groups.id} className={styles.youtubeContainer} opts={{
+                      playerVars: {
+                        start: youtube?.groups?.start
+                      }
+                    }}
+                  />
+                </div>
+              )
+            }
+
+            // assume the link is an image which will fallback to link if it's not
+            return <Img src={href} rel={rel ?? UNKNOWN_LINK_REL} {...props}>{children}</Img>
+          })
+
   const Img = useCallback(({ node, src, ...props }) => {
     const url = IMGPROXY_URL_REGEXP.test(src) ? decodeOriginalUrl(src) : src
     // if outlawed, render the image link as text
@@ -163,69 +242,10 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
             return <li {...props} id={props.id && itemId ? `${props.id}-${itemId}` : props.id} />
           },
           code: Code,
-          a: ({ node, href, children, ...props }) => {
-            children = children ? Array.isArray(children) ? children : [children] : []
-            // don't allow zoomable images to be wrapped in links
-            if (children.some(e => e?.props?.node?.tagName === 'img')) {
-              return <>{children}</>
-            }
-
-            // if outlawed, render the link as text
-            if (outlawed) {
-              return href
-            }
-
-            // If [text](url) was parsed as <a> and text is not empty and not a link itself,
-            // we don't render it as an image since it was probably a conscious choice to include text.
-            const text = children[0]
-            if (!!text && !/^https?:\/\//.test(text)) {
-              if (props['data-footnote-ref'] || typeof props['data-footnote-backref'] !== 'undefined') {
-                return (
-                  <Link
-                    {...props}
-                    id={props.id && itemId ? `${props.id}-${itemId}` : props.id}
-                    href={itemId ? `${href}-${itemId}` : href}
-                  >{text}
-                  </Link>
-                )
-              }
-              return (
-                // eslint-disable-next-line
-                <a id={props.id} target='_blank' rel={rel ?? UNKNOWN_LINK_REL} href={href}>{text}</a>
-              )
-            }
-
-            try {
-              const linkText = parseInternalLinks(href)
-              if (linkText) {
-                return <a target='_blank' href={href} rel='noreferrer'>{linkText}</a>
-              }
-            } catch {
-              // ignore errors like invalid URLs
-            }
-
-            // if the link is to a youtube video, render the video
-            const youtube = href.match(/(https?:\/\/)?((www\.)?(youtube(-nocookie)?|youtube.googleapis)\.com.*(v\/|v=|vi=|vi\/|e\/|embed\/|user\/.*\/u\/\d+\/)|youtu\.be\/)(?<id>[_0-9a-z-]+)((?:\?|&)(?:t|start)=(?<start>\d+))?/i)
-            if (youtube?.groups?.id) {
-              return (
-                <div style={{ maxWidth: topLevel ? '640px' : '320px', paddingRight: '15px', margin: '0.5rem 0' }}>
-                  <YouTube
-                    videoId={youtube.groups.id} className={styles.youtubeContainer} opts={{
-                      playerVars: {
-                        start: youtube?.groups?.start
-                      }
-                    }}
-                  />
-                </div>
-              )
-            }
-
-            // assume the link is an image which will fallback to link if it's not
-            return <Img src={href} rel={rel ?? UNKNOWN_LINK_REL} {...props}>{children}</Img>
-          },
+          a: A,
           img: Img
         }}
-        remarkPlugins={[gfm, mention, sub]}
+        remarkPlugins={[email, url, mention, sub, remarkFootnotes]}
         rehypePlugins={[rehypeInlineCodeProperty]}
       >
         {children}

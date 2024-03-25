@@ -66,7 +66,7 @@ export default function Settings ({ ssrData }) {
           initial={{
             tipDefault: settings?.tipDefault || 21,
             turboTipping: settings?.turboTipping,
-            zapUndos: settings?.zapUndos || settings?.tipDefault || 0,
+            zapUndos: settings?.zapUndos || settings?.tipDefault ? 100 * settings.tipDefault : 2100,
             zapUndosEnabled: settings?.zapUndos !== null,
             fiatCurrency: settings?.fiatCurrency || 'USD',
             withdrawMaxFeeDefault: settings?.withdrawMaxFeeDefault,

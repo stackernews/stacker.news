@@ -67,6 +67,10 @@ export const ToastProvider = ({ children }) => {
     }))
   }, [])
 
+  const endFlow = useCallback((flowId) => {
+    setToasts(toasts => toasts.filter(toast => toast.flowId !== flowId))
+  }, [])
+
   const toaster = useMemo(() => ({
     success: (body, options) => {
       const toast = {
@@ -99,8 +103,9 @@ export const ToastProvider = ({ children }) => {
         ...options
       }
       return dispatchToast(toast)
-    }
-  }), [dispatchToast, removeToast])
+    },
+    endFlow
+  }), [dispatchToast, removeToast, endFlow])
 
   // Only clear toasts with no cancel function on page navigation
   // since navigation should not interfere with being able to cancel an action.
@@ -213,9 +218,6 @@ export const withToastFlow = (toaster) => flowFn => {
 
     if (skipToastFlow) return onPending()
 
-    // XXX HACK this ends the flow by using flow toast which immediately closes itself
-    const endFlow = () => toaster.warning('', { ...toastProps, delay: 0, autohide: true, flowId })
-
     toaster.warning(pendingMessage || `${t} pending`, {
       progressBar: !!timeout,
       delay: timeout || TOAST_DEFAULT_DELAY_MS,
@@ -247,7 +249,7 @@ export const withToastFlow = (toaster) => flowFn => {
       const ret = await onPending()
       if (!canceled) {
         if (hideSuccess) {
-          endFlow()
+          toaster.endFlow(flowId)
         } else {
           toaster.success(`${t} successful`, { ...toastProps, flowId })
         }
@@ -259,7 +261,7 @@ export const withToastFlow = (toaster) => flowFn => {
       if (canceled) return
       const reason = err?.message?.toString().toLowerCase() || 'unknown reason'
       if (hideError) {
-        endFlow()
+        toaster.endFlow(flowId)
       } else {
         toaster.danger(`${t} failed: ${reason}`, { ...toastProps, flowId })
       }

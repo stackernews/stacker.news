@@ -767,7 +767,7 @@ export function EmailLinkForm ({ callbackUrl }) {
   )
 }
 
-export function ApiKey ({ enabled, apiKey }) {
+function ApiKey ({ enabled, apiKey }) {
   const showModal = useShowModal()
   const me = useMe()
   const [generateApiKey] = useMutation(

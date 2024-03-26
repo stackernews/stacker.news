@@ -47,7 +47,7 @@ async function authMethods (user, args, { models, me }) {
     twitter: oauth.indexOf('twitter') >= 0,
     github: oauth.indexOf('github') >= 0,
     nostr: !!user.nostrAuthPubkey,
-    apiKey: user.apiKeyEnabled ? user.apiKey : null
+    apiKey: user.apiKeyEnabled ? !!user.apiKeyHash : null
   }
 }
 
@@ -541,7 +541,14 @@ export default {
         throw new GraphQLError('you are not allowed to generate api keys', { extensions: { code: 'FORBIDDEN' } })
       }
 
-      const [{ apiKey }] = await models.$queryRaw`UPDATE users SET "apiKey" = encode(gen_random_bytes(32), 'base64')::CHAR(32) WHERE id = ${me.id} RETURNING "apiKey"`
+      // I trust postgres CSPRNG more than the one from JS
+      const [{ apiKey, apiKeyHash }] = await models.$queryRaw`
+      SELECT "apiKey", encode(digest("apiKey", 'sha256'), 'hex') AS "apiKeyHash"
+      FROM (
+        SELECT encode(gen_random_bytes(32), 'base64')::CHAR(32) as "apiKey"
+      ) rng`
+      await models.user.update({ where: { id: me.id }, data: { apiKeyHash } })
+
       return apiKey
     },
     deleteApiKey: async (parent, { id }, { models, me }) => {
@@ -549,7 +556,7 @@ export default {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
       }
 
-      return await models.user.update({ where: { id: me.id }, data: { apiKey: null } })
+      return await models.user.update({ where: { id: me.id }, data: { apiKeyHash: null } })
     },
     unlinkAuth: async (parent, { authType }, { models, me }) => {
       if (!me) {

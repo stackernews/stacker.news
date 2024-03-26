@@ -56,8 +56,11 @@ export default startServerAndCreateNextHandler(apolloServer, {
     const apiKey = req.headers['x-api-key']
     let session
     if (apiKey) {
-      const sessionFieldSelect = { name: true, id: true, email: true }
-      const user = await models.user.findUnique({ where: { apiKey }, select: { ...sessionFieldSelect, apiKeyEnabled: true } })
+      const [user] = await models.$queryRaw`
+      SELECT id, name, email, "apiKeyEnabled"
+      FROM users
+      WHERE "apiKeyHash" = encode(digest(${apiKey}, 'sha256'), 'hex')
+      LIMIT 1`
       if (user?.apiKeyEnabled) {
         const { apiKeyEnabled, ...sessionFields } = user
         session = { user: { ...sessionFields, apiKey: true } }

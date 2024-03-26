@@ -768,6 +768,7 @@ export function EmailLinkForm ({ callbackUrl }) {
 }
 
 export function ApiKey ({ enabled, apiKey }) {
+  const showModal = useShowModal()
   const me = useMe()
   const [generateApiKey] = useMutation(
     gql`
@@ -785,7 +786,7 @@ export function ApiKey ({ enabled, apiKey }) {
                 privates: {
                   ...existing.privates,
                   apiKey: generateApiKey,
-                  authMethods: { ...existing.privates.authMethods, apiKey: generateApiKey }
+                  authMethods: { ...existing.privates.authMethods, apiKey: true }
                 }
               }
             }
@@ -811,7 +812,7 @@ export function ApiKey ({ enabled, apiKey }) {
                 ...existing,
                 privates: {
                   ...existing.privates,
-                  authMethods: { ...existing.privates.authMethods, apiKey: null }
+                  authMethods: { ...existing.privates.authMethods, apiKey: false }
                 }
               }
             }
@@ -820,6 +821,7 @@ export function ApiKey ({ enabled, apiKey }) {
       }
     }
   )
+  const toaster = useToast()
 
   const subject = '[API Key Request] <your title here>'
   const body =
@@ -850,36 +852,34 @@ I estimate that I will call the GraphQL API this many times (rough estimate is f
     <>
       <div className='form-label mt-3'>api key</div>
       <div className='mt-2 d-flex align-items-center'>
-        {apiKey &&
-          <>
-            <CopyInput
-              groupClassName='mb-0'
-              readOnly
-              noForm
-              placeholder={apiKey}
-            />
-          </>}
         <OverlayTrigger
           placement='bottom'
           overlay={disabled ? <Tooltip>request access to API keys in ~meta</Tooltip> : <></>}
           trigger={['hover', 'focus']}
         >
           <div>
-            {apiKey
-              ? <DeleteIcon
-                  style={{ cursor: 'pointer' }} className='fill-grey mx-1' width={24} height={24}
-                  onClick={async () => {
-                    await deleteApiKey({ variables: { id: me.id } })
-                  }}
-                />
-              : (
-                <Button
-                  disabled={disabled} className={apiKey ? 'ms-2' : ''} variant='secondary' onClick={async () => {
-                    await generateApiKey({ variables: { id: me.id } })
-                  }}
-                >Generate API key
-                </Button>
-                )}
+            <Button
+              disabled={disabled}
+              variant='secondary'
+              onClick={async () => {
+                try {
+                  const { data } = await generateApiKey({ variables: { id: me.id } })
+                  const { generateApiKey: apiKey } = data
+                  showModal(() => <ApiKeyModal apiKey={apiKey} />, { keepOpen: true })
+                } catch (err) {
+                  console.error(err)
+                  toaster.danger('error generating api key')
+                }
+              }}
+            >Generate API key
+            </Button>
+            {apiKey &&
+              <DeleteIcon
+                style={{ cursor: 'pointer' }} className='fill-grey mx-1' width={24} height={24}
+                onClick={async () => {
+                  await deleteApiKey({ variables: { id: me.id } })
+                }}
+              />}
           </div>
         </OverlayTrigger>
         <Info>
@@ -908,6 +908,18 @@ I estimate that I will call the GraphQL API this many times (rough estimate is f
           </ul>
         </Info>
       </div>
+    </>
+  )
+}
+
+function ApiKeyModal ({ apiKey }) {
+  return (
+    <>
+      <p className='fw-bold'>
+        Make sure to copy your API key now.<br />
+        This is the only time we will show it to you.
+      </p>
+      <CopyInput readOnly noForm placeholder={apiKey} hint={<>use the <span className='text-monospace'>X-API-Key</span> header to include this key in your requests</>} />
     </>
   )
 }

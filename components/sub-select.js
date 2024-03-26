@@ -25,7 +25,7 @@ export function useSubs ({ prependSubs = [], sub, filterSubs = () => true, appen
 
   const [subs, setSubs] = useState([
     ...prependSubs.filter(s => s !== sub),
-    sub,
+    ...(sub ? [sub] : []),
     ...appendSubs.filter(s => s !== sub)])
   useEffect(() => {
     if (!data) return

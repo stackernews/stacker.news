@@ -38,6 +38,7 @@ model User {
   stackedMsats              BigInt               @default(0)
   noteAllDescendants        Boolean              @default(true)
   noteDeposits              Boolean              @default(true)
+  noteWithdrawals           Boolean              @default(true)
   noteEarning               Boolean              @default(true)
   noteInvites               Boolean              @default(true)
   noteItemSats              Boolean              @default(true)

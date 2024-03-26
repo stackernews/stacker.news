@@ -91,6 +91,12 @@ export default gql`
     sortTime: Date!
   }
 
+  type WithdrawlPaid {
+    id: ID!
+    earnedSats: Int!
+    sortTime: Date!
+  }
+
   type Referral {
     id: ID!
     sortTime: Date!
@@ -115,7 +121,7 @@ export default gql`
   }
 
   union Notification = Reply | Votification | Mention
-    | Invitification | Earn | JobChanged | InvoicePaid | Referral
+    | Invitification | Earn | JobChanged | InvoicePaid | WithdrawlPaid | Referral
     | Streak | FollowActivity | ForwardedVotification | Revenue | SubStatus
     | TerritoryPost | TerritoryTransfer
 

@@ -221,6 +221,19 @@ export default {
         )
       }
 
+      if (meFull.noteWithdrawals) {
+        queries.push(
+          `(SELECT "Withdrawl".id::text, "Withdrawl".created_at AS "sortTime", FLOOR("msatsPaid" / 1000) as "earnedSats",
+            'WithdrawlPaid' AS type
+            FROM "Withdrawl"
+            WHERE "Withdrawl"."userId" = $1
+            AND status = 'CONFIRMED'
+            AND created_at < $2
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT})`
+        )
+      }
+
       if (meFull.noteInvites) {
         queries.push(
           `(SELECT "Invite".id, MAX(users.created_at) AS "sortTime", NULL as "earnedSats",

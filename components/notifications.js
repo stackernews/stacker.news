@@ -40,6 +40,7 @@ function Notification ({ n, fresh }) {
         (type === 'Revenue' && <RevenueNotification n={n} />) ||
         (type === 'Invitification' && <Invitification n={n} />) ||
         (type === 'InvoicePaid' && (n.invoice.nostr ? <NostrZap n={n} /> : <InvoicePaid n={n} />)) ||
+        (type === 'WithdrawlPaid' && <WithdrawlPaid n={n} />) ||
         (type === 'Referral' && <Referral n={n} />) ||
         (type === 'Streak' && <Streak n={n} />) ||
         (type === 'Votification' && <Votification n={n} />) ||
@@ -95,6 +96,7 @@ const defaultOnClick = n => {
   if (type === 'SubStatus') return { href: `/~${n.sub.name}` }
   if (type === 'Invitification') return { href: '/invites' }
   if (type === 'InvoicePaid') return { href: `/invoices/${n.invoice.id}` }
+  if (type === 'WithdrawlPaid') return { href: `/withdrawals/${n.id}` }
   if (type === 'Referral') return { href: '/referrals/month' }
   if (type === 'Streak') return {}
   if (type === 'TerritoryTransfer') return { href: `/~${n.sub.name}` }
@@ -273,6 +275,15 @@ function InvoicePaid ({ n }) {
           <Text>{n.invoice.comment}</Text>
           {payerSig}
         </small>}
+    </div>
+  )
+}
+
+function WithdrawlPaid ({ n }) {
+  return (
+    <div className='fw-bold text-info ms-2 py-1'>
+      <Check className='fill-info me-1' />{numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'sat was', unitPlural: 'sats were' })} withdrawn from your account
+      <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
     </div>
   )
 }

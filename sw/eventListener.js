@@ -116,7 +116,7 @@ const mergeAndShowNotification = async (sw, payload, currentNotifications, tag, 
   // tags that need to know the amount of notifications with same tag for merging
   const AMOUNT_TAGS = ['REPLY', 'MENTION', 'REFERRAL', 'INVITE', 'FOLLOW', 'TERRITORY_POST']
   // tags that need to know the sum of sats of notifications with same tag for merging
-  const SUM_SATS_TAGS = ['DEPOSIT']
+  const SUM_SATS_TAGS = ['DEPOSIT', 'WITHDRAWAL']
   // this should reflect the amount of notifications that were already merged before
   let initialAmount = currentNotifications[0]?.data?.amount || 1
   if (iOS()) initialAmount = 1
@@ -153,8 +153,11 @@ const mergeAndShowNotification = async (sw, payload, currentNotifications, tag, 
       title = `you have ${amount} new posts in ~${subName}`
     }
   } else if (SUM_SATS_TAGS.includes(compareTag)) {
-    // there is only DEPOSIT in this array
-    title = `${numWithUnits(sats, { abbreviate: false })} were deposited in your account`
+    if (compareTag === 'DEPOSIT') {
+      title = `${numWithUnits(sats, { abbreviate: false, unitSingular: 'sat was', unitPlural: 'sats were' })} deposited in your account`
+    } else if (compareTag === 'WITHDRAWAL') {
+      title = `${numWithUnits(sats, { abbreviate: false, unitSingular: 'sat was', unitPlural: 'sats were' })} withdrawn from your account`
+    }
   }
   log(`[sw:push] ${nid} - calculated title: ${title}`)
 

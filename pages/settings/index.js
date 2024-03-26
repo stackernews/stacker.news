@@ -75,6 +75,7 @@ export default function Settings ({ ssrData }) {
             noteAllDescendants: settings?.noteAllDescendants,
             noteMentions: settings?.noteMentions,
             noteDeposits: settings?.noteDeposits,
+            noteWithdrawals: settings?.noteWithdrawals,
             noteInvites: settings?.noteInvites,
             noteJobIndicator: settings?.noteJobIndicator,
             noteCowboyHat: settings?.noteCowboyHat,
@@ -221,6 +222,11 @@ export default function Settings ({ ssrData }) {
           <Checkbox
             label='sats are deposited in my account'
             name='noteDeposits'
+            groupClassName='mb-0'
+          />
+          <Checkbox
+            label='sats are withdrawn from my account'
+            name='noteWithdrawals'
             groupClassName='mb-0'
           />
           <Checkbox

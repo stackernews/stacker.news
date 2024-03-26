@@ -97,7 +97,7 @@ export default {
         }
       })
     },
-    withdrawl: async (parent, { id }, { me, models, lnd }) => {
+    withdrawl: async (parent, { id }, { me, models }) => {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
       }
@@ -110,6 +110,10 @@ export default {
           user: true
         }
       })
+
+      if (!wdrwl) {
+        throw new GraphQLError('withdrawal not found', { extensions: { code: 'BAD_INPUT' } })
+      }
 
       if (wdrwl.user.id !== me.id) {
         throw new GraphQLError('not ur withdrawal', { extensions: { code: 'FORBIDDEN' } })

@@ -70,7 +70,7 @@ export function Back () {
 
   return (
     <a
-      role='button' tabIndex='0' className='nav-link p-0 me-3' onClick={() => {
+      role='button' tabIndex='0' className='nav-link p-0 me-2' onClick={() => {
         if (back) {
           router.back()
         } else {

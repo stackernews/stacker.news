@@ -21,8 +21,6 @@ export default function StickyBar ({ prefix, sub, path, topNavKey, dropNavKey })
     }
   }, [ref?.current, sticky?.current])
 
-  if (path.endsWith('/search')) return null
-
   return (
     <>
       <div ref={ref} style={{ position: 'relative', top: '50px' }} />

@@ -7,14 +7,16 @@ function queryParts (q) {
 
   const queryArr = q.replace(regex, '').trim().split(/\s+/)
   const url = queryArr.find(word => word.startsWith('url:'))
-  const nym = queryArr.find(word => word.startsWith('nym:'))
-  const exclude = [url, nym]
+  const nym = queryArr.find(word => word.startsWith('@'))
+  const territory = queryArr.find(word => word.startsWith('~'))
+  const exclude = [url, nym, territory]
   const query = queryArr.filter(word => !exclude.includes(word)).join(' ')
 
   return {
     quotes: [...q.matchAll(regex)].map(m => m[1]),
     nym,
     url,
+    territory,
     query
   }
 }
@@ -169,7 +171,7 @@ export default {
         items
       }
     },
-    search: async (parent, { q, sub, cursor, sort, what, when, from: whenFrom, to: whenTo }, { me, models, search }) => {
+    search: async (parent, { q, cursor, sort, what, when, from: whenFrom, to: whenTo }, { me, models, search }) => {
       const decodedCursor = decodeCursor(cursor)
       let sitems = null
       let termQueries = []
@@ -193,7 +195,7 @@ export default {
           break
       }
 
-      const { query: _query, quotes, nym, url } = queryParts(q)
+      const { query: _query, quotes, nym, url, territory } = queryParts(q)
       let query = _query
 
       const isUrlSearch = url && query.length === 0 // exclusively searching for an url
@@ -206,11 +208,11 @@ export default {
       }
 
       if (nym) {
-        whatArr.push({ wildcard: { 'user.name': `*${nym.slice(4).toLowerCase()}*` } })
+        whatArr.push({ wildcard: { 'user.name': `*${nym.slice(1).toLowerCase()}*` } })
       }
 
-      if (sub) {
-        whatArr.push({ match: { 'sub.name': sub } })
+      if (territory) {
+        whatArr.push({ match: { 'sub.name': territory.slice(1) } })
       }
 
       termQueries.push({

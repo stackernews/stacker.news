@@ -795,32 +795,6 @@ function ApiKey ({ enabled, apiKey }) {
       }
     }
   )
-  const [deleteApiKey] = useMutation(
-    gql`
-      mutation deleteApiKey($id: ID!) {
-        deleteApiKey(id: $id) {
-          id
-        }
-      }`,
-    {
-      update (cache, { data: { deleteApiKey } }) {
-        cache.modify({
-          id: 'ROOT_QUERY',
-          fields: {
-            settings (existing) {
-              return {
-                ...existing,
-                privates: {
-                  ...existing.privates,
-                  authMethods: { ...existing.privates.authMethods, apiKey: false }
-                }
-              }
-            }
-          }
-        })
-      }
-    }
-  )
   const toaster = useToast()
 
   const subject = '[API Key Request] <your title here>'
@@ -846,7 +820,7 @@ I estimate that I will call the GraphQL API this many times (rough estimate is f
   // link to DM with ek on SimpleX
   const simplexLink = 'https://simplex.chat/contact#/?v=1-2&smp=smp%3A%2F%2F6iIcWT_dF2zN_w5xzZEY7HI2Prbh3ldP07YTyDexPjE%3D%40smp10.simplex.im%2FxNnPk9DkTbQJ6NckWom9mi5vheo_VPLm%23%2F%3Fv%3D1-2%26dh%3DMCowBQYDK2VuAyEAnFUiU0M8jS1JY34LxUoPr7mdJlFZwf3pFkjRrhprdQs%253D%26srv%3Drb2pbttocvnbrngnwziclp2f4ckjq65kebafws6g4hy22cdaiv5dwjqd.onion'
 
-  const disabled = !enabled
+  const disabled = !enabled || apiKey
 
   return (
     <>
@@ -854,7 +828,7 @@ I estimate that I will call the GraphQL API this many times (rough estimate is f
       <div className='mt-2 d-flex align-items-center'>
         <OverlayTrigger
           placement='bottom'
-          overlay={disabled ? <Tooltip>request access to API keys in ~meta</Tooltip> : <></>}
+          overlay={disabled ? <Tooltip>{apiKey ? 'you can have only one API key at a time' : 'request access to API keys in ~meta'}</Tooltip> : <></>}
           trigger={['hover', 'focus']}
         >
           <div>
@@ -875,9 +849,9 @@ I estimate that I will call the GraphQL API this many times (rough estimate is f
             </Button>
             {apiKey &&
               <DeleteIcon
-                style={{ cursor: 'pointer' }} className='fill-grey mx-1' width={24} height={24}
+                style={{ cursor: 'pointer' }} className='fill-danger mx-1' width={24} height={24}
                 onClick={async () => {
-                  await deleteApiKey({ variables: { id: me.id } })
+                  showModal((onClose) => <ApiKeyDeleteObstacle onClose={onClose} />)
                 }}
               />}
           </div>
@@ -921,6 +895,59 @@ function ApiKeyModal ({ apiKey }) {
       </p>
       <CopyInput readOnly noForm placeholder={apiKey} hint={<>use the <span className='text-monospace'>X-API-Key</span> header to include this key in your requests</>} />
     </>
+  )
+}
+
+function ApiKeyDeleteObstacle ({ onClose }) {
+  const me = useMe()
+  const [deleteApiKey] = useMutation(
+    gql`
+      mutation deleteApiKey($id: ID!) {
+        deleteApiKey(id: $id) {
+          id
+        }
+      }`,
+    {
+      update (cache, { data: { deleteApiKey } }) {
+        cache.modify({
+          id: 'ROOT_QUERY',
+          fields: {
+            settings (existing) {
+              return {
+                ...existing,
+                privates: {
+                  ...existing.privates,
+                  authMethods: { ...existing.privates.authMethods, apiKey: false }
+                }
+              }
+            }
+          }
+        })
+      }
+    }
+  )
+  const toaster = useToast()
+
+  return (
+    <div className='text-center'>
+      <p className='fw-bold'>
+        Do you really want to delete your API key?
+      </p>
+      <div className='d-flex flex-row justify-content-end'>
+        <Button
+          variant='danger' onClick={async () => {
+            try {
+              await deleteApiKey({ variables: { id: me.id } })
+              onClose()
+            } catch (err) {
+              console.error(err)
+              toaster.danger('error deleting api key')
+            }
+          }}
+        >do it
+        </Button>
+      </div>
+    </div>
   )
 }
 

@@ -137,10 +137,6 @@ export const NOTIFICATIONS = gql`
           id
           sortTime
           earnedSats
-          withdrawl {
-            id
-            satsPaid
-          }
         }
       }
     }

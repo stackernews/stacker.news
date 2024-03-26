@@ -94,7 +94,6 @@ export default gql`
   type WithdrawlPaid {
     id: ID!
     earnedSats: Int!
-    withdrawl: Withdrawl!
     sortTime: Date!
   }
 

@@ -1,7 +1,7 @@
 import { GraphQLError } from 'graphql'
 import { decodeCursor, LIMIT, nextNoteCursorEncoded } from '@/lib/cursor'
 import { getItem, filterClause, whereClause, muteClause } from './item'
-import { getInvoice, getWithdrawal } from './wallet'
+import { getInvoice } from './wallet'
 import { pushSubscriptionSchema, ssValidate } from '@/lib/validate'
 import { replyToSubscription } from '@/lib/webPush'
 import { getSub } from './sub'
@@ -442,9 +442,6 @@ export default {
   },
   InvoicePaid: {
     invoice: async (n, args, { me, models }) => getInvoice(n, { id: n.id }, { me, models })
-  },
-  WithdrawlPaid: {
-    withdrawl: async (n, args, { me, models }) => getWithdrawal(n, { id: n.id }, { me, models })
   },
   Invitification: {
     invite: async (n, args, { models }) => {

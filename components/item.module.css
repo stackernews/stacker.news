@@ -35,6 +35,7 @@ a.title:visited {
     overflow: hidden;
     text-overflow: ellipsis;
     flex: 1 0 128px;
+    max-width: fit-content;
     margin-bottom: .15rem;
 }
 

@@ -91,7 +91,7 @@ export async function serializeInvoicable (query, { models, lnd, hash, hmac, me,
   }
 
   // if there is only one result, return it directly, else the array
-  results = results.flat(2)
+  results = Array.isArray(results) ? results.flat(2) : [results]
   return results.length > 1 ? results : results[0]
 }
 

@@ -105,7 +105,7 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
                               <ChainFeeProvider chainFee={chainFee}>
                                 <ErrorBoundary>
                                   <Component ssrData={ssrData} {...otherProps} />
-                                  <PWAPrompt copyBody='This website has app functionality. Add it to your home screen to use it in fullscreen and receive notifications. In Safari:' promptOnVisit={2} />
+                                  {!router?.query?.disablePrompt && <PWAPrompt copyBody='This website has app functionality. Add it to your home screen to use it in fullscreen and receive notifications. In Safari:' promptOnVisit={2} debug />}
                                 </ErrorBoundary>
                               </ChainFeeProvider>
                             </BlockHeightProvider>

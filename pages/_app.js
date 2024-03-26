@@ -80,7 +80,7 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
     // hack to disable ios pwa prompt for https://github.com/stackernews/stacker.news/issues/953
     // see https://github.com/chrisdancee/react-ios-pwa-prompt/blob/66e91c4f033b740cff42c3220cf13ebdf39e3078/src/index.js#L30
     if (router?.query?.disablePrompt) {
-      localStorage.setItem("iosPwaPrompt", JSON.stringify({ isiOS: false, visits: 0 }))
+      window.localStorage.setItem('iosPwaPrompt', JSON.stringify({ isiOS: false, visits: 0 }))
     }
   }, [router?.query?.disablePrompt])
 

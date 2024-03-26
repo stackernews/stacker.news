@@ -847,15 +847,15 @@ I estimate that I will call the GraphQL API this many times (rough estimate is f
               }}
             >Generate API key
             </Button>
-            {apiKey &&
-              <DeleteIcon
-                style={{ cursor: 'pointer' }} className='fill-danger mx-1' width={24} height={24}
-                onClick={async () => {
-                  showModal((onClose) => <ApiKeyDeleteObstacle onClose={onClose} />)
-                }}
-              />}
           </div>
         </OverlayTrigger>
+        {apiKey &&
+          <DeleteIcon
+            style={{ cursor: 'pointer' }} className='fill-danger mx-1' width={24} height={24}
+            onClick={async () => {
+              showModal((onClose) => <ApiKeyDeleteObstacle onClose={onClose} />)
+            }}
+          />}
         <Info>
           <ul className='fw-bold'>
             <li>use API keys with our <Link target='_blank' href='/api/graphql'>GraphQL API</Link> for authentication</li>

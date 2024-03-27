@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Dropdown, Image, Offcanvas } from 'react-bootstrap'
+import { Dropdown, Image, Nav, Navbar, Offcanvas } from 'react-bootstrap'
 import { MEDIA_URL } from '@/lib/constants'
 import Link from 'next/link'
 import { useServiceWorker } from '@/components/serviceworker'
@@ -32,7 +32,7 @@ export default function OffCanvas ({ me, dropNavKey }) {
         <Offcanvas.Header closeButton>
           <Offcanvas.Title><NavWalletSummary /></Offcanvas.Title>
         </Offcanvas.Header>
-        <Offcanvas.Body>
+        <Offcanvas.Body className='pb-0'>
           <div style={{
             '--bs-dropdown-item-padding-y': '.5rem',
             '--bs-dropdown-item-padding-x': 0,
@@ -94,12 +94,16 @@ export default function OffCanvas ({ me, dropNavKey }) {
                 </>
                 )
               : <LoginButtons />}
-            <Link href={`/${me?.name || 'anon'}`} className='d-flex flex-row p-2 mt-auto text-muted'>
-              <MeImage />
-              <div className='ms-2'>
-                @{me?.name || 'anon'}
-              </div>
-            </Link>
+            <Navbar className='container d-flex flex-row px-0 p-2 mt-auto text-muted'>
+              <Nav>
+                <Link href={`/${me?.name || 'anon'}`} className='d-flex flex-row p-2 mt-auto text-muted'>
+                  <MeImage />
+                  <div className='ms-2'>
+                    @{me?.name || 'anon'}
+                  </div>
+                </Link>
+              </Nav>
+            </Navbar>
           </div>
         </Offcanvas.Body>
       </Offcanvas>

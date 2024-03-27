@@ -45,7 +45,6 @@ export function noNavSelect ({ path, pathname }) {
     path.startsWith('/referrals') ||
     path.startsWith('/live') ||
     path.startsWith('/settings') ||
-    path.startsWith('/referrals') ||
     path.startsWith('/invites') ||
     path.startsWith('/stackers') ||
     path.startsWith('/satistics') ||
@@ -241,7 +240,13 @@ export function MeDropdown ({ me, dropNavKey }) {
   )
 }
 
-export function SignUpButton ({ handleLogin, className = 'py-0' }) {
+export function SignUpButton ({ className = 'py-0' }) {
+  const router = useRouter()
+  const handleLogin = useCallback(async pathname => await router.push({
+    pathname,
+    query: { callbackUrl: window.location.origin + router.asPath }
+  }), [router])
+
   return (
     <Button
       className={classNames('align-items-center ps-2 pe-3', className)}
@@ -258,7 +263,7 @@ export function SignUpButton ({ handleLogin, className = 'py-0' }) {
   )
 }
 
-export function LoginButtons () {
+export default function LoginButton ({ className }) {
   const router = useRouter()
   const handleLogin = useCallback(async pathname => await router.push({
     pathname,
@@ -266,17 +271,23 @@ export function LoginButtons () {
   }), [router])
 
   return (
+    <Button
+      className='align-items-center px-3 py-1 mb-2'
+      id='signup'
+      style={{ borderWidth: '2px' }}
+      variant='outline-grey-darkmode'
+      onClick={() => handleLogin('/login')}
+    >
+      login
+    </Button>
+  )
+}
+
+export function LoginButtons () {
+  return (
     <>
-      <Button
-        className='align-items-center px-3 py-1 mb-2'
-        id='signup'
-        style={{ borderWidth: '2px' }}
-        variant='outline-grey-darkmode'
-        onClick={() => handleLogin('/login')}
-      >
-        login
-      </Button>
-      <SignUpButton handleLogin={handleLogin} className='py-1' />
+      <LoginButton />
+      <SignUpButton className='py-1' />
     </>
   )
 }

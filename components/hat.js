@@ -10,7 +10,7 @@ export default function Hat ({ user, badge, className = 'ms-1', height = 16, wid
   if (!user || Number(user.id) === AD_USER_ID) return null
   if (Number(user.id) === ANON_USER_ID) {
     return (
-      <HatTooltip overlayText={badge ? 'anonymous' : 'posted anonymously'}>
+      <HatTooltip overlayText='anonymous'>
         {badge
           ? (
             <Badge bg='grey-medium' className='ms-2 d-inline-flex align-items-center'>

@@ -82,7 +82,7 @@ export function getGetServerSideProps (
       const callback = process.env.PUBLIC_URL + req.url
       return {
         redirect: {
-          destination: `/login?callbackUrl=${encodeURIComponent(callback)}`
+          destination: `/signup?callbackUrl=${encodeURIComponent(callback)}`
         }
       }
     }
@@ -111,9 +111,9 @@ export function getGetServerSideProps (
       }
 
       if (error || !data || (notFound && notFound(data, vars, me))) {
-        return {
-          notFound: true
-        }
+        res.writeHead(301, {
+          Location: '/404'
+        }).end()
       }
 
       props = {

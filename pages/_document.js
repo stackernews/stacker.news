@@ -30,9 +30,9 @@ class MyDocument extends Document {
       <Html lang='en'>
         <Head nonce={nonce}>
           <link rel='manifest' href='/api/site.webmanifest' />
-          <link rel='preload' href={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.woff2`} as='font' type='font/woff2' crossOrigin='' />
-          <link rel='preload' href={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.woff`} as='font' type='font/woff' crossOrigin='' />
-          <link rel='preload' href={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.ttf`} as='font' type='font/ttf' crossOrigin='' />
+          <link href={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.woff2`} as='font' type='font/woff2' crossOrigin='' />
+          <link href={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.woff`} as='font' type='font/woff' crossOrigin='' />
+          <link href={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/Lightningvolt-xoqm.ttf`} as='font' type='font/ttf' crossOrigin='' />
           <style
             nonce={nonce}
             dangerouslySetInnerHTML={{

@@ -26,9 +26,9 @@ export async function getServerSideProps ({ req, res, query: { id, error = null 
   })
 
   if (!data?.invite) {
-    return {
-      notFound: true
-    }
+    res.writeHead(301, {
+      Location: '/404'
+    }).end()
   }
 
   if (session && res) {

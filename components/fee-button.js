@@ -159,7 +159,7 @@ function AnonInfo () {
 
   return (
     <AnonIcon
-      className='fill-muted ms-2 theme' height={22} width={22}
+      className='ms-2 fill-theme-color' height={22} width={22}
       onClick={
         (e) =>
           showModal(onClose =>

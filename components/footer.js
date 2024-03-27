@@ -158,7 +158,7 @@ export default function Footer ({ links = true }) {
 
   return (
     <footer>
-      <Container className='mb-3 mt-4'>
+      <Container className='mb-3'>
         {links &&
           <>
             <div className='mb-1'>

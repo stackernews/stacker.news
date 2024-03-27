@@ -9,6 +9,7 @@ export const ME = gql`
       id
       name
       bioId
+      photoId
       privates {
         autoDropBolt11s
         diagnostics

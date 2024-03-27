@@ -61,7 +61,8 @@ export default function PostEdit ({ ssrData }) {
         <FormType item={item} editThreshold={editThreshold}>
           {!item.isJob &&
             <SubSelect
-              className='w-auto d-flex'
+              className='d-flex'
+              size='medium'
               label='territory'
               filterSubs={s => s.name !== 'jobs' && s.postTypes?.includes(itemType)}
               onChange={(_, e) => setSub(e.target.value)}

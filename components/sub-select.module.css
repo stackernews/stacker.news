@@ -5,5 +5,13 @@
 }
 
 .subSelectSmall {
-  max-width: 90px !important;
+  width: 90px !important;
+}
+
+.subSelectLarge {
+  width: 300px !important;
+}
+
+.subSelectMedium {
+  width: 200px !important;
 }

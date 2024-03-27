@@ -1,12 +1,11 @@
 .brand {
-    font-family: lightning;
-    font-size: 2rem;
     padding: 0;
-    line-height: 100%;
-    margin-bottom: -.3rem;
     margin-right: 0;
-    text-shadow: 0 0 10px var(--bs-primary);
-    color: var(--theme-brandColor) !important;
+}
+
+.brand svg {
+    fill: var(--theme-brandColor);
+    filter: drop-shadow(0 0 6px var(--bs-primary));
 }
 
 .postAnon {
@@ -44,6 +43,10 @@
     fill: var(--theme-navLinkActive);
 }
 
+.hide {
+    display: none;
+}
+
 .dropdown svg {
     vertical-align: text-top;
 }
@@ -79,6 +82,7 @@
     display: flex;
     flex-grow: 1;
     justify-content: center;
+    align-items: center;
 }
 
 .price > div {

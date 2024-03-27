@@ -54,12 +54,12 @@ export default function Search ({ sub }) {
   return (
     <>
       <div className={styles.searchSection}>
-        <Container className={`px-md-0 ${styles.searchContainer}`}>
+        <Container className={`px-0 ${styles.searchContainer}`}>
           <Form
             initial={{ q, what, sort, when, from: '', to: '' }}
             onSubmit={values => search({ ...values })}
           >
-            <div className={`${styles.active} my-3`}>
+            <div className={`${styles.active} mb-3`}>
               <Input
                 name='q'
                 required
@@ -79,7 +79,7 @@ export default function Search ({ sub }) {
             </div>
             {filter && router.query.q &&
               <div className='text-muted fw-bold d-flex align-items-center flex-wrap pb-2'>
-                <div className='text-muted fw-bold d-flex align-items-center pb-2'>
+                <div className='text-muted fw-bold d-flex align-items-center'>
                   <Select
                     groupClassName='me-2 mb-0'
                     onChange={(formik, e) => search({ ...formik?.values, what: e.target.value })}

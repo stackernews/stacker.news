@@ -50,7 +50,18 @@ export async function getServerSideProps ({ req, res, query: { callbackUrl, erro
 
 function LoginFooter ({ callbackUrl }) {
   return (
-    <small className='fw-bold text-muted pt-4'>Don't have an account? <Link href={{ pathname: '/signup', query: { callbackUrl } }}>sign up</Link></small>
+    <small className='fw-bold text-muted pt-4'>New to town? <Link href={{ pathname: '/signup', query: { callbackUrl } }}>sign up</Link></small>
+  )
+}
+
+function LoginHeader () {
+  return (
+    <>
+      <h3 className='w-100 pb-2'>
+        Login
+      </h3>
+      <div className='fw-bold text-muted w-100 text-start pb-4'>Ain't you a sight for sore eyes.</div>
+    </>
   )
 }
 
@@ -59,6 +70,7 @@ export default function LoginPage (props) {
     <StaticLayout footerLinks={false}>
       <Login
         Footer={() => <LoginFooter callbackUrl={props.callbackUrl} />}
+        Header={() => <LoginHeader />}
         {...props}
       />
     </StaticLayout>

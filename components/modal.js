@@ -61,7 +61,7 @@ export default function useModal () {
         dialogClassName={className}
         contentClassName={className}
       >
-        <div className='d-flex flex-row'>
+        <div className='d-flex flex-row align-self-end'>
           {modalOptions?.overflow &&
             <div className={'modal-btn modal-overflow ' + className}>
               <ActionDropdown>

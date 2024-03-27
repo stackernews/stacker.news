@@ -103,7 +103,7 @@ function FreebieDialog () {
       <div className='fw-bold'>you don't have enough sats, so this one is on us</div>
       <ul className='mt-2'>
         <li>Free items have limited visibility until other stackers zap them.</li>
-        <li>To get fully visibile right away, fund your account with a few sats or earn some on Stacker News.</li>
+        <li>To get fully visible right away, fund your account with a few sats or earn some on Stacker News.</li>
       </ul>
     </>
   )
@@ -159,7 +159,7 @@ function AnonInfo () {
 
   return (
     <AnonIcon
-      className='fill-muted ms-2 theme' height={22} width={22}
+      className='ms-2 fill-theme-color' height={22} width={22}
       onClick={
         (e) =>
           showModal(onClose =>

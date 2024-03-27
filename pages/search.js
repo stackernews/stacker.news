@@ -3,7 +3,7 @@ import { getGetServerSideProps } from '@/api/ssrApollo'
 import { useRouter } from 'next/router'
 import { SUB_SEARCH } from '@/fragments/subs'
 import Items from '@/components/items'
-import styles from './search.module.css'
+import styles from '@/styles/search.module.css'
 
 export const getServerSideProps = getGetServerSideProps({
   query: SUB_SEARCH,
@@ -31,16 +31,16 @@ export default function Index ({ ssrData }) {
             <div className={styles.box}>
               <div className={styles.header}>
                 <div className='text-muted text-center' style={{ fontFamily: 'lightning', fontSize: '2rem', opacity: '0.75' }}>
-                  more filters
+                  filters
                 </div>
               </div>
               <div className={styles.body}>
-                <div className={styles.inner}>
-                  <div><b>nym:</b>&#8203;<em>sn</em> - limit results by stacker nym</div>
-                  <div><b>url:</b>&#8203;<em>stacker&#8203;.news</em> - limit to specific site</div>
-                  <div><b>"</b>exact phrase<b>"</b> - demand results contain exact phrase</div>
-                  <div>you are searching <em>{variables.sub || 'home'}</em><br /><em>home</em> searches show results from all</div>
-                </div>
+                <ul className={styles.inner}>
+                  <li><b>@</b>&#8203;<em>nym</em> - limit to results authored by nym</li>
+                  <li><b>~</b>&#8203;<em>territory</em> - limit to results from territory</li>
+                  <li><b>url:</b>&#8203;<em>stacker&#8203;.news</em> - limit to link posts from a specific url</li>
+                  <li><b>"</b><em>exact phrase</em><b>"</b> - limit to results that contain an exact phrase</li>
+                </ul>
               </div>
             </div>
           </div>

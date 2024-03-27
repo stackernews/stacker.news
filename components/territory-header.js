@@ -13,18 +13,19 @@ import { useToast } from './toast'
 import ActionDropdown from './action-dropdown'
 import { TerritoryTransferDropdownItem } from './territory-transfer'
 
-export function TerritoryDetails ({ sub }) {
+export function TerritoryDetails ({ sub, children }) {
   return (
     <AccordianCard
       header={
         <small className='text-muted fw-bold align-items-center d-flex'>
-          territory details
+          {sub.name}
           {sub.status === 'STOPPED' && <Badge className='ms-2' bg='danger'>archived</Badge>}
           {(sub.moderated || sub.moderatedCount > 0) && <Badge className='ms-2' bg='secondary'>moderated{sub.moderatedCount > 0 && ` ${sub.moderatedCount}`}</Badge>}
           {(sub.nsfw) && <Badge className='ms-2' bg='secondary'>nsfw</Badge>}
         </small>
       }
     >
+      {children}
       <TerritoryInfo sub={sub} />
     </AccordianCard>
   )
@@ -80,43 +81,45 @@ export default function TerritoryHeader ({ sub }) {
       <TerritoryPaymentDue sub={sub} />
       <div className='mb-3'>
         <div>
-          <TerritoryDetails sub={sub} />
-        </div>
-        <div className='d-flex my-2 justify-content-end'>
-          <Share path={`/~${sub.name}`} title={`~${sub.name} stacker news territory`} className='mx-1' />
-          {me &&
-            <>
-              {(isMine
-                ? (
-                  <Link href={`/~${sub.name}/edit`} className='d-flex align-items-center'>
-                    <Button variant='outline-grey border-2 rounded py-0' size='sm'>edit territory</Button>
-                  </Link>)
-                : (
-                  <Button
-                    variant='outline-grey border-2 py-0 rounded'
-                    size='sm'
-                    onClick={async () => {
-                      try {
-                        await toggleMuteSub({ variables: { name: sub.name } })
-                      } catch {
-                        toaster.danger(`failed to ${sub.meMuteSub ? 'join' : 'mute'} territory`)
-                        return
-                      }
-                      toaster.success(`${sub.meMuteSub ? 'joined' : 'muted'} territory`)
-                    }}
-                  >{sub.meMuteSub ? 'join' : 'mute'} territory
-                  </Button>)
+          <TerritoryDetails sub={sub}>
+            <div className='d-flex my-2 justify-content-end'>
+              {sub.name}
+              <Share path={`/~${sub.name}`} title={`~${sub.name} stacker news territory`} className='mx-1' />
+              {me &&
+                <>
+                  {(isMine
+                    ? (
+                      <Link href={`/~${sub.name}/edit`} className='d-flex align-items-center'>
+                        <Button variant='outline-grey border-2 rounded py-0' size='sm'>edit territory</Button>
+                      </Link>)
+                    : (
+                      <Button
+                        variant='outline-grey border-2 py-0 rounded'
+                        size='sm'
+                        onClick={async () => {
+                          try {
+                            await toggleMuteSub({ variables: { name: sub.name } })
+                          } catch {
+                            toaster.danger(`failed to ${sub.meMuteSub ? 'join' : 'mute'} territory`)
+                            return
+                          }
+                          toaster.success(`${sub.meMuteSub ? 'joined' : 'muted'} territory`)
+                        }}
+                      >{sub.meMuteSub ? 'join' : 'mute'} territory
+                      </Button>)
               )}
-              <ActionDropdown>
-                <ToggleSubSubscriptionDropdownItem sub={sub} />
-                {isMine && (
-                  <>
-                    <Dropdown.Divider />
-                    <TerritoryTransferDropdownItem sub={sub} />
-                  </>
-                )}
-              </ActionDropdown>
-            </>}
+                  <ActionDropdown>
+                    <ToggleSubSubscriptionDropdownItem sub={sub} />
+                    {isMine && (
+                      <>
+                        <Dropdown.Divider />
+                        <TerritoryTransferDropdownItem sub={sub} />
+                      </>
+                    )}
+                  </ActionDropdown>
+                </>}
+            </div>
+          </TerritoryDetails>
         </div>
       </div>
     </>

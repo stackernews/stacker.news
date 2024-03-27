@@ -1,13 +1,11 @@
 .searchSection {
-    position: sticky;
-    top: 0;
-    box-shadow: 0 4px 12px -4px hsl(0deg 0% 59% / 10%);
     background-color: var(--bs-body-bg);
     z-index: 1;
 }
 
 .searchContainer {
     position: relative;
+    padding-bottom: 0.5rem;
 }
 
 .search {

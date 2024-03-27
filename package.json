@@ -32,6 +32,7 @@
     "bolt11": "^1.4.1",
     "bootstrap": "^5.3.2",
     "canonical-json": "0.0.4",
+    "classnames": "^2.5.1",
     "clipboard-copy": "^4.0.1",
     "cross-fetch": "^4.0.0",
     "csv-parser": "^3.0.0",

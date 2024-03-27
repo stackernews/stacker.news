@@ -767,7 +767,8 @@ export function EmailLinkForm ({ callbackUrl }) {
   )
 }
 
-export function ApiKey ({ enabled, apiKey }) {
+function ApiKey ({ enabled, apiKey }) {
+  const showModal = useShowModal()
   const me = useMe()
   const [generateApiKey] = useMutation(
     gql`
@@ -785,7 +786,7 @@ export function ApiKey ({ enabled, apiKey }) {
                 privates: {
                   ...existing.privates,
                   apiKey: generateApiKey,
-                  authMethods: { ...existing.privates.authMethods, apiKey: generateApiKey }
+                  authMethods: { ...existing.privates.authMethods, apiKey: true }
                 }
               }
             }
@@ -794,32 +795,7 @@ export function ApiKey ({ enabled, apiKey }) {
       }
     }
   )
-  const [deleteApiKey] = useMutation(
-    gql`
-      mutation deleteApiKey($id: ID!) {
-        deleteApiKey(id: $id) {
-          id
-        }
-      }`,
-    {
-      update (cache, { data: { deleteApiKey } }) {
-        cache.modify({
-          id: 'ROOT_QUERY',
-          fields: {
-            settings (existing) {
-              return {
-                ...existing,
-                privates: {
-                  ...existing.privates,
-                  authMethods: { ...existing.privates.authMethods, apiKey: null }
-                }
-              }
-            }
-          }
-        })
-      }
-    }
-  )
+  const toaster = useToast()
 
   const subject = '[API Key Request] <your title here>'
   const body =
@@ -844,44 +820,42 @@ I estimate that I will call the GraphQL API this many times (rough estimate is f
   // link to DM with ek on SimpleX
   const simplexLink = 'https://simplex.chat/contact#/?v=1-2&smp=smp%3A%2F%2F6iIcWT_dF2zN_w5xzZEY7HI2Prbh3ldP07YTyDexPjE%3D%40smp10.simplex.im%2FxNnPk9DkTbQJ6NckWom9mi5vheo_VPLm%23%2F%3Fv%3D1-2%26dh%3DMCowBQYDK2VuAyEAnFUiU0M8jS1JY34LxUoPr7mdJlFZwf3pFkjRrhprdQs%253D%26srv%3Drb2pbttocvnbrngnwziclp2f4ckjq65kebafws6g4hy22cdaiv5dwjqd.onion'
 
-  const disabled = !enabled
+  const disabled = !enabled || apiKey
 
   return (
     <>
       <div className='form-label mt-3'>api key</div>
       <div className='mt-2 d-flex align-items-center'>
-        {apiKey &&
-          <>
-            <CopyInput
-              groupClassName='mb-0'
-              readOnly
-              noForm
-              placeholder={apiKey}
-            />
-          </>}
         <OverlayTrigger
           placement='bottom'
-          overlay={disabled ? <Tooltip>request access to API keys in ~meta</Tooltip> : <></>}
+          overlay={disabled ? <Tooltip>{apiKey ? 'you can have only one API key at a time' : 'request access to API keys in ~meta'}</Tooltip> : <></>}
           trigger={['hover', 'focus']}
         >
           <div>
-            {apiKey
-              ? <DeleteIcon
-                  style={{ cursor: 'pointer' }} className='fill-grey mx-1' width={24} height={24}
-                  onClick={async () => {
-                    await deleteApiKey({ variables: { id: me.id } })
-                  }}
-                />
-              : (
-                <Button
-                  disabled={disabled} className={apiKey ? 'ms-2' : ''} variant='secondary' onClick={async () => {
-                    await generateApiKey({ variables: { id: me.id } })
-                  }}
-                >Generate API key
-                </Button>
-                )}
+            <Button
+              disabled={disabled}
+              variant='secondary'
+              onClick={async () => {
+                try {
+                  const { data } = await generateApiKey({ variables: { id: me.id } })
+                  const { generateApiKey: apiKey } = data
+                  showModal(() => <ApiKeyModal apiKey={apiKey} />, { keepOpen: true })
+                } catch (err) {
+                  console.error(err)
+                  toaster.danger('error generating api key')
+                }
+              }}
+            >Generate API key
+            </Button>
           </div>
         </OverlayTrigger>
+        {apiKey &&
+          <DeleteIcon
+            style={{ cursor: 'pointer' }} className='fill-danger mx-1' width={24} height={24}
+            onClick={async () => {
+              showModal((onClose) => <ApiKeyDeleteObstacle onClose={onClose} />)
+            }}
+          />}
         <Info>
           <ul className='fw-bold'>
             <li>use API keys with our <Link target='_blank' href='/api/graphql'>GraphQL API</Link> for authentication</li>
@@ -909,6 +883,71 @@ I estimate that I will call the GraphQL API this many times (rough estimate is f
         </Info>
       </div>
     </>
+  )
+}
+
+function ApiKeyModal ({ apiKey }) {
+  return (
+    <>
+      <p className='fw-bold'>
+        Make sure to copy your API key now.<br />
+        This is the only time we will show it to you.
+      </p>
+      <CopyInput readOnly noForm placeholder={apiKey} hint={<>use the <span className='text-monospace'>X-API-Key</span> header to include this key in your requests</>} />
+    </>
+  )
+}
+
+function ApiKeyDeleteObstacle ({ onClose }) {
+  const me = useMe()
+  const [deleteApiKey] = useMutation(
+    gql`
+      mutation deleteApiKey($id: ID!) {
+        deleteApiKey(id: $id) {
+          id
+        }
+      }`,
+    {
+      update (cache, { data: { deleteApiKey } }) {
+        cache.modify({
+          id: 'ROOT_QUERY',
+          fields: {
+            settings (existing) {
+              return {
+                ...existing,
+                privates: {
+                  ...existing.privates,
+                  authMethods: { ...existing.privates.authMethods, apiKey: false }
+                }
+              }
+            }
+          }
+        })
+      }
+    }
+  )
+  const toaster = useToast()
+
+  return (
+    <div className='text-center'>
+      <p className='fw-bold'>
+        Do you really want to delete your API key?
+      </p>
+      <div className='d-flex flex-row justify-content-end'>
+        <Button
+          variant='danger' onClick={async () => {
+            try {
+              await deleteApiKey({ variables: { id: me.id } })
+              onClose()
+            } catch (err) {
+              console.error(err)
+              toaster.danger('error deleting api key')
+            }
+          }}
+        >do it
+        </Button>
+      </div>
+    </div>
   )
 }
 

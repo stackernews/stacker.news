@@ -481,6 +481,10 @@ div[contenteditable]:disabled,
 .modal-content {
   background-color: var(--theme-inputBg);
   border-color: var(--theme-borderColor);
+  align-items: center;
+}
+.modal-body {
+  width: fit-content;
 }
 
 .nav-link:not(.text-success, .text-warning) {

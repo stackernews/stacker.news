@@ -79,7 +79,7 @@ export default function Search ({ sub }) {
             </div>
             {filter && router.query.q &&
               <div className='text-muted fw-bold d-flex align-items-center flex-wrap pb-2'>
-                <div className='text-muted fw-bold d-flex align-items-center pb-2'>
+                <div className='text-muted fw-bold d-flex align-items-center'>
                   <Select
                     groupClassName='me-2 mb-0'
                     onChange={(formik, e) => search({ ...formik?.values, what: e.target.value })}

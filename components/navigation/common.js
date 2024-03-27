@@ -6,10 +6,7 @@ import BackArrow from '../../svgs/arrow-left-line.svg'
 import { useCallback, useEffect, useState } from 'react'
 import Price from '../price'
 import SubSelect from '../sub-select'
-import { useQuery } from '@apollo/client'
-import { HAS_NOTIFICATIONS } from '../../fragments/notifications'
-import { ANON_USER_ID, BALANCE_LIMIT_MSATS, SSR } from '../../lib/constants'
-import { clearNotifications } from '../../lib/badge'
+import { ANON_USER_ID, BALANCE_LIMIT_MSATS } from '../../lib/constants'
 import Head from 'next/head'
 import NoteIcon from '../../svgs/notification-4-fill.svg'
 import { useMe } from '../me'
@@ -24,6 +21,7 @@ import LightningIcon from '../../svgs/bolt.svg'
 import SearchIcon from '../../svgs/search-line.svg'
 import classNames from 'classnames'
 import SnIcon from '@/svgs/sn.svg'
+import { useHasNewNotes } from '../use-has-new-notes'
 
 export function Brand ({ className }) {
   return (
@@ -100,7 +98,7 @@ export function BackOrBrand ({ className }) {
 
 export function SearchItem ({ prefix, className }) {
   return (
-    <Link href={prefix + '/search'} passHref legacyBehavior>
+    <Link href='/search' passHref legacyBehavior>
       <Nav.Link eventKey='search' className={className}>
         <SearchIcon className='theme' width={22} height={28} />
       </Nav.Link>
@@ -132,27 +130,17 @@ export function NavSelect ({ sub: subName, className, size }) {
 }
 
 export function NavNotifications ({ className }) {
-  const { data } = useQuery(HAS_NOTIFICATIONS, SSR
-    ? {}
-    : {
-        pollInterval: 30000,
-        nextFetchPolicy: 'cache-and-network',
-        onCompleted: ({ hasNewNotes }) => {
-          if (!hasNewNotes) {
-            clearNotifications()
-          }
-        }
-      })
+  const hasNewNotes = useHasNewNotes()
 
   return (
     <>
       <Head>
-        <link rel='shortcut icon' href={data?.hasNewNotes ? '/favicon-notify.png' : '/favicon.png'} />
+        <link rel='shortcut icon' href={hasNewNotes ? '/favicon-notify.png' : '/favicon.png'} />
       </Head>
       <Link href='/notifications' passHref legacyBehavior>
         <Nav.Link eventKey='notifications' className={classNames('position-relative', className)}>
           <NoteIcon height={28} width={20} className='theme' />
-          {data?.hasNewNotes &&
+          {hasNewNotes &&
             <span className={styles.notification}>
               <span className='invisible'>{' '}</span>
             </span>}

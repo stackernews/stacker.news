@@ -33,25 +33,11 @@ export function Brand ({ className }) {
   )
 }
 
-export function noNavSelect ({ path, pathname }) {
+export function hasNavSelect ({ path, pathname }) {
   return (
-    path.startsWith('/items') ||
-    path.endsWith('/post') ||
-    path.endsWith('/edit') ||
-    path.endsWith('/notifications') ||
-    path.endsWith('/search') ||
-    path.startsWith('/wallet') ||
-    path.startsWith('/rewards') ||
-    path.startsWith('/referrals') ||
-    path.startsWith('/live') ||
-    path.startsWith('/settings') ||
-    path.startsWith('/invites') ||
-    path.startsWith('/stackers') ||
-    path.startsWith('/satistics') ||
-    path.startsWith('/withdrawals') ||
-    path.startsWith('/invoices') ||
-    pathname.startsWith('/[name]') ||
-    path.startsWith('/territory')
+    pathname.startsWith('/~') &&
+    !path.endsWith('/post') &&
+    !path.endsWith('/edit')
   )
 }
 

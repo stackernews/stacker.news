@@ -1,10 +1,10 @@
 import { Nav, Navbar } from 'react-bootstrap'
-import { NavSelect, PostItem, Sorts, noNavSelect } from '../common'
+import { NavSelect, PostItem, Sorts, hasNavSelect } from '../common'
 import styles from '../../header.module.css'
 
 export default function SecondBar (props) {
   const { prefix, topNavKey, sub } = props
-  if (noNavSelect(props)) return null
+  if (!hasNavSelect(props)) return null
   return (
     <Navbar className='pt-0 pb-3'>
       <Nav

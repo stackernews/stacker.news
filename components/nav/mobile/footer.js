@@ -53,8 +53,8 @@ export default function BottomBar ({ sub }) {
           <Offcanvas me={me} {...props} />
           <SearchItem {...props} />
           <Brand />
-          <PostItem {...props} className='btn-sm' />
           <NavNotifications />
+          <PostItem {...props} className='btn-sm' />
         </Nav>
       </Navbar>
     </div>

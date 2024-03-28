@@ -64,7 +64,7 @@
     position: absolute;
     padding: .25rem;
     background-color: var(--bs-danger);
-    top: 1px;
+    top: 3px;
     right: 8px;
     border: 1px solid var(--bs-body-bg);
 }

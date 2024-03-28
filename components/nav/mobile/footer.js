@@ -12,7 +12,7 @@ function useDetectKeyboardOpen (minKeyboardHeight = 300, defaultValue) {
 
   useEffect(() => {
     const listener = () => {
-      const newState = window.screen.height - minKeyboardHeight > window.visualViewport.height
+      const newState = window.innerHeight - minKeyboardHeight > window.visualViewport.height
       setIsKeyboardOpen(newState)
     }
     if (typeof visualViewport !== 'undefined') {
@@ -31,7 +31,7 @@ function useDetectKeyboardOpen (minKeyboardHeight = 300, defaultValue) {
 export default function BottomBar ({ sub }) {
   const router = useRouter()
   const me = useMe()
-  const isKeyboardOpen = useDetectKeyboardOpen(300, false)
+  const isKeyboardOpen = useDetectKeyboardOpen(200, false)
 
   if (isKeyboardOpen) {
     return null

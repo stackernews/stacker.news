@@ -19,47 +19,47 @@ export function middleware (request) {
     resp = referrerMiddleware(request)
   }
 
-  const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
-  // we want to load media from other localhost ports during development
-  const devSrc = process.env.NODE_ENV === 'development' ? 'localhost:* ' : ''
+  // const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
+  // // we want to load media from other localhost ports during development
+  // const devSrc = process.env.NODE_ENV === 'development' ? 'localhost:* ' : ''
 
-  const cspHeader = [
-    // if something is not explicitly allowed, we don't allow it.
-    "default-src 'none'",
-    "font-src 'self' a.stacker.news",
-    // we want to load images from everywhere but we can limit to HTTPS at least
-    `img-src 'self' ${devSrc}a.stacker.news m.stacker.news https: data: blob:`,
-    `media-src 'self' ${devSrc}a.stacker.news m.stacker.news`,
-    // Using nonces and strict-dynamic deploys a strict CSP.
-    // see https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html#strict-policy.
-    // Old browsers will ignore nonce and strict-dynamic and fallback to host-based matching and unsafe-inline
-    process.env.NODE_ENV === 'production'
-      ? `script-src 'self' 'unsafe-inline' 'nonce-${nonce}' 'strict-dynamic' https:`
-      // unsafe-eval is required during development due to react-refresh.js
-      // see https://github.com/vercel/next.js/issues/14221
-      : `script-src 'self' 'unsafe-inline' 'unsafe-eval' 'nonce-${nonce}' 'strict-dynamic' https:`,
-    // unsafe-inline for styles is not ideal but okay if script-src is using nonces
-    "style-src 'self' a.stacker.news 'unsafe-inline'",
-    "manifest-src 'self'",
-    'frame-src www.youtube.com platform.twitter.com',
-    `connect-src 'self' ${devSrc}https: wss:`,
-    // disable dangerous plugins like Flash
-    "object-src 'none'",
-    // blocks injection of <base> tags
-    "base-uri 'none'",
-    // tell user agents to replace HTTP with HTTPS
-    'upgrade-insecure-requests',
-    // prevents any domain from framing the content (defense against clickjacking attacks)
-    "frame-ancestors 'none'"
-  ].join('; ')
+  // const cspHeader = [
+  //   // if something is not explicitly allowed, we don't allow it.
+  //   "default-src 'none'",
+  //   "font-src 'self' a.stacker.news",
+  //   // we want to load images from everywhere but we can limit to HTTPS at least
+  //   `img-src 'self' ${devSrc}a.stacker.news m.stacker.news https: data: blob:`,
+  //   `media-src 'self' ${devSrc}a.stacker.news m.stacker.news`,
+  //   // Using nonces and strict-dynamic deploys a strict CSP.
+  //   // see https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html#strict-policy.
+  //   // Old browsers will ignore nonce and strict-dynamic and fallback to host-based matching and unsafe-inline
+  //   process.env.NODE_ENV === 'production'
+  //     ? `script-src 'self' 'unsafe-inline' 'nonce-${nonce}' 'strict-dynamic' https:`
+  //     // unsafe-eval is required during development due to react-refresh.js
+  //     // see https://github.com/vercel/next.js/issues/14221
+  //     : `script-src 'self' 'unsafe-inline' 'unsafe-eval' 'nonce-${nonce}' 'strict-dynamic' https:`,
+  //   // unsafe-inline for styles is not ideal but okay if script-src is using nonces
+  //   "style-src 'self' a.stacker.news 'unsafe-inline'",
+  //   "manifest-src 'self'",
+  //   'frame-src www.youtube.com platform.twitter.com',
+  //   `connect-src 'self' ${devSrc}https: wss:`,
+  //   // disable dangerous plugins like Flash
+  //   "object-src 'none'",
+  //   // blocks injection of <base> tags
+  //   "base-uri 'none'",
+  //   // tell user agents to replace HTTP with HTTPS
+  //   'upgrade-insecure-requests',
+  //   // prevents any domain from framing the content (defense against clickjacking attacks)
+  //   "frame-ancestors 'none'"
+  // ].join('; ')
 
-  resp.headers.set('Content-Security-Policy', cspHeader)
-  // for browsers that don't support CSP
-  resp.headers.set('X-Frame-Options', 'DENY')
-  // more useful headers
-  resp.headers.set('X-Content-Type-Options', 'nosniff')
-  resp.headers.set('Referrer-Policy', 'origin-when-cross-origin')
-  resp.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+  // resp.headers.set('Content-Security-Policy', cspHeader)
+  // // for browsers that don't support CSP
+  // resp.headers.set('X-Frame-Options', 'DENY')
+  // // more useful headers
+  // resp.headers.set('X-Content-Type-Options', 'nosniff')
+  // resp.headers.set('Referrer-Policy', 'origin-when-cross-origin')
+  // resp.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
 
   return resp
 }

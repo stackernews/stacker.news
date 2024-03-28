@@ -50,7 +50,7 @@ export default function Satistics ({ ssrData }) {
         </ul>
         <div className='tab-content' id='myTabContent'>
           <div className='tab-pane fade show active' id='statistics' role='tabpanel' aria-labelledby='statistics-tab'>
-            <UsageHeader pathname='satistics/graphs'/>
+            <UsageHeader pathname='satistics/graphs' />
             <div>
               <div className='d-flex row justify-content-between'>
                 <h1 className='text-center'>Statistics</h1>

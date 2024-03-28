@@ -2,6 +2,7 @@ import { randomBytes } from 'crypto'
 import { bech32 } from 'bech32'
 import { GraphQLError } from 'graphql'
 import assertGofacYourself from './ofac'
+import assertApiKeyNotPermitted from './apiKey'
 
 function encodedUrl (iurl, tag, k1) {
   const url = new URL(iurl)
@@ -35,6 +36,8 @@ export default {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
       }
+
+      assertApiKeyNotPermitted({ me })
 
       return await models.lnWith.create({ data: { k1: k1(), userId: me.id } })
     }

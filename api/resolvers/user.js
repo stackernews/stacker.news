@@ -448,7 +448,7 @@ export default {
         AND SIMILARITY(name, ${q}) > ${Number(similarity) || 0.1} ORDER BY SIMILARITY(name, ${q}) DESC LIMIT ${Number(limit) || 5}`
       },
       userStatsActions: async (parent, { when, from, to }, { me, models }) => {
-        const range = whenRange('forever')
+        const range = whenRange(when, from, to)
         return await models.$queryRawUnsafe(`
         SELECT date_trunc('${timeUnitForRange(range)}', t) at time zone 'America/Chicago' as time,
         json_build_array(
@@ -463,7 +463,7 @@ export default {
           ORDER BY time ASC`, ...range)
       },
       userStatsIncomingSats: async (parent, { when, from, to }, { me, models }) => {
-        const range = whenRange('forever')
+        const range = whenRange(when, from, to)
         return await models.$queryRawUnsafe(`
         SELECT date_trunc('${timeUnitForRange(range)}', t) at time zone 'America/Chicago' as time,
         json_build_array(
@@ -479,7 +479,7 @@ export default {
           ORDER BY time ASC`, ...range)
       },
       userStatsOutgoingSats: async (parent, { when, from, to }, { me, models }) => {
-        const range = whenRange('forever')
+        const range = whenRange(when, from, to)
         return await models.$queryRawUnsafe(`
         SELECT date_trunc('${timeUnitForRange(range)}', t) at time zone 'America/Chicago' as time,
         json_build_array(

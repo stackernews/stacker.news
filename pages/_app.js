@@ -97,7 +97,7 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
   return (
     <>
       <Head>
-        <meta name='viewport' content='initial-scale=1.0, width=device-width' />
+        <meta name='viewport' content='initial-scale=1.0, width=device-width, viewport-fit=cover' />
       </Head>
       <ErrorBoundary>
         <PlausibleProvider domain='stacker.news' trackOutboundLinks>

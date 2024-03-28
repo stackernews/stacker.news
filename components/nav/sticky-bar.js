@@ -33,7 +33,7 @@ export default function StickyBar ({ prefix, sub, path, topNavKey, dropNavKey })
             >
               <Back />
               <Brand className='me-1' />
-              <SearchItem prefix={prefix} />
+              <SearchItem className='me-0 ms-2' />
               <NavPrice />
               {me ? <MeCorner dropNavKey={dropNavKey} me={me} className='d-flex' /> : <AnonCorner path={path} className='d-flex' />}
             </Nav>

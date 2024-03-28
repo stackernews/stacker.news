@@ -191,7 +191,7 @@ export default function Satistics ({ ssrData }) {
 
   return (
     <Layout>
-      <div className='mt-3'>
+      <div className='mt-2'>
         <h2 className='text-center'>satistics</h2>
         <Form
           initial={{

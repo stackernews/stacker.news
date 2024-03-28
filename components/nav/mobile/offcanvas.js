@@ -6,6 +6,8 @@ import { useServiceWorker } from '@/components/serviceworker'
 import { signOut } from 'next-auth/react'
 import { LoginButtons, NavWalletSummary } from '../common'
 import AnonIcon from '@/svgs/spy-fill.svg'
+import styles from './footer.module.css'
+import classNames from 'classnames'
 
 export default function OffCanvas ({ me, dropNavKey }) {
   const [show, setShow] = useState(false)
@@ -94,16 +96,18 @@ export default function OffCanvas ({ me, dropNavKey }) {
                 </>
                 )
               : <LoginButtons />}
-            <Navbar className='container d-flex flex-row px-0 p-2 mt-auto text-muted'>
-              <Nav>
-                <Link href={`/${me?.name || 'anon'}`} className='d-flex flex-row p-2 mt-auto text-muted'>
-                  <MeImage />
-                  <div className='ms-2'>
-                    @{me?.name || 'anon'}
-                  </div>
-                </Link>
-              </Nav>
-            </Navbar>
+            <div className={classNames(styles.footerPadding, 'mt-auto')}>
+              <Navbar className={classNames('container d-flex flex-row px-0 text-muted')}>
+                <Nav>
+                  <Link href={`/${me?.name || 'anon'}`} className='d-flex flex-row p-2 mt-auto text-muted'>
+                    <MeImage />
+                    <div className='ms-2'>
+                      @{me?.name || 'anon'}
+                    </div>
+                  </Link>
+                </Nav>
+              </Navbar>
+            </div>
           </div>
         </Offcanvas.Body>
       </Offcanvas>

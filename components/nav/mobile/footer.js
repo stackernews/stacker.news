@@ -47,7 +47,7 @@ export default function BottomBar ({ sub }) {
   }
 
   return (
-    <div className={classNames('d-block d-md-none', styles.footer)}>
+    <div className={classNames('d-block d-md-none', styles.footer, styles.footerPadding)}>
       <Navbar className='container px-0'>
         <Nav className={styles.footerNav}>
           <Offcanvas me={me} {...props} />

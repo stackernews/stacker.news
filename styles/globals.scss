@@ -210,6 +210,10 @@ $accordion-button-active-icon-dark:  $accordion-button-icon;
   --bs-gradient: none;
 }
 
+* {
+  scroll-margin-top: 60px;
+}
+
 .text-monospace {
   font-family: monospace;
 }

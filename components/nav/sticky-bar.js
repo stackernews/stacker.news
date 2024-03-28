@@ -24,7 +24,7 @@ export default function StickyBar ({ prefix, sub, path, topNavKey, dropNavKey })
   return (
     <>
       <div ref={ref} style={{ position: 'relative', top: '50px' }} />
-      <div className={styles.hide} style={{ position: 'sticky', borderBottom: '1px solid var(--theme-toolbarActive)', top: '0', backgroundColor: 'var(--bs-body-bg)', zIndex: 1000 }} ref={sticky}>
+      <div className={classNames(styles.hide, styles.sticky)} ref={sticky}>
         <Container className='px-0 d-none d-md-block'>
           <Navbar className='py-0'>
             <Nav

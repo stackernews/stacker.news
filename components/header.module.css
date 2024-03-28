@@ -100,3 +100,12 @@
 .dropdown>button {
     padding-left: 0 !important;
 }
+
+.sticky {
+    position: sticky;
+    border-bottom: 1px solid var(--theme-toolbarActive);
+    top: -1px;
+    padding-top: 1px;
+    background-color: var(--bs-body-bg);
+    z-index: 1000;
+}

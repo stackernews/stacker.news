@@ -34,7 +34,8 @@ export default function Satistics ({ ssrData }) {
 
   const  handleHistoryTabClick = async () => {
     await router.push({
-      pathname: '/satistics/history'
+      pathname: '/satistics/history',
+      query:'inc=invoice,withdrawal,stacked,spent'
     })
   }
   return (

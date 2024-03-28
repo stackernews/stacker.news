@@ -12,7 +12,7 @@ export default function SecondBar (props) {
         activeKey={topNavKey}
       >
         <NavSelect sub={sub} size='medium' className='me-1' />
-        <Sorts {...props} />
+        <div className='ms-2 d-flex'><Sorts {...props} className='ms-1' /></div>
         <PostItem className='ms-auto me-0 d-none d-md-flex' prefix={prefix} />
       </Nav>
     </Navbar>

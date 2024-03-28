@@ -4,7 +4,6 @@ import { serializeInvoicable } from './serial'
 import { ANON_USER_ID } from '@/lib/constants'
 import { getItem } from './item'
 import { topUsers } from './user'
-import assertApiKeyNotPermitted from './apiKey'
 
 let rewardCache
 
@@ -142,7 +141,6 @@ export default {
   },
   Mutation: {
     donateToRewards: async (parent, { sats, hash, hmac }, { me, models, lnd }) => {
-      assertApiKeyNotPermitted({ me })
       await ssValidate(amountSchema, { amount: sats })
 
       await serializeInvoicable(

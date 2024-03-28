@@ -144,12 +144,12 @@ export function WalletSummary () {
   return `${abbrNum(me.privates?.sats)}`
 }
 
-export function NavWalletSummary () {
+export function NavWalletSummary ({ className }) {
   const me = useMe()
   const walletLimitReached = me?.privates?.sats >= msatsToSats(BALANCE_LIMIT_MSATS)
 
   return (
-    <Nav.Item>
+    <Nav.Item className={className}>
       <Link href='/wallet' passHref legacyBehavior>
         <Nav.Link eventKey='wallet' className={`${walletLimitReached ? 'text-warning' : 'text-success'} text-monospace px-0 text-nowrap`}>
           <WalletSummary me={me} />

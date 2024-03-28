@@ -102,8 +102,9 @@
 }
 
 .sticky {
-    position: sticky;
+    position: fixed;
     border-bottom: 1px solid var(--theme-toolbarActive);
+    width: 100vw;
     top: -1px;
     padding-top: 1px;
     background-color: var(--bs-body-bg);

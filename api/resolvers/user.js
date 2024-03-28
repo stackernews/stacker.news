@@ -467,11 +467,11 @@ export default {
       return await models.$queryRawUnsafe(`
       SELECT date_trunc('${timeUnitForRange(range)}', t) at time zone 'America/Chicago' as time,
       json_build_array(
-        json_build_object('name', 'sats_tipped', 'value', COALESCE(SUM(msats_tipped), 0) / 1000),
-        json_build_object('name', 'sats_rewards', 'value', COALESCE(SUM(msats_rewards), 0) / 1000),
-        json_build_object('name', 'sats_referrals', 'value', COALESCE(SUM(msats_referrals), 0) / 1000),
-        json_build_object('name', 'sats_revenue', 'value', COALESCE(SUM(msats_revenue), 0) / 1000),
-        json_build_object('name', 'sats_fees', 'value', COALESCE(SUM(msats_stacked), 0) / 1000)
+        json_build_object('name', 'tipped', 'value', COALESCE(SUM(msats_tipped), 0) / 1000),
+        json_build_object('name', 'rewards', 'value', COALESCE(SUM(msats_rewards), 0) / 1000),
+        json_build_object('name', 'referrals', 'value', COALESCE(SUM(msats_referrals), 0) / 1000),
+        json_build_object('name', 'revenue', 'value', COALESCE(SUM(msats_revenue), 0) / 1000),
+        json_build_object('name', 'fees', 'value', COALESCE(SUM(msats_stacked), 0) / 1000)
       ) AS data
         FROM ${viewGroup(range, 'user_stats')}
         WHERE id = ${me.id}
@@ -483,10 +483,10 @@ export default {
       return await models.$queryRawUnsafe(`
       SELECT date_trunc('${timeUnitForRange(range)}', t) at time zone 'America/Chicago' as time,
       json_build_array(
-        json_build_object('name', 'sats_fees', 'value', COALESCE(SUM(msats_fees), 0) / 1000),
-        json_build_object('name', 'sats_donated', 'value', COALESCE(SUM(msats_donated), 0) / 1000),
-        json_build_object('name', 'sats_billing', 'value', COALESCE(SUM(msats_billing), 0) / 1000),
-        json_build_object('name', 'sats_spent', 'value', COALESCE(SUM(msats_spent), 0) / 1000)
+        json_build_object('name', 'fees', 'value', COALESCE(SUM(msats_fees), 0) / 1000),
+        json_build_object('name', 'donated', 'value', COALESCE(SUM(msats_donated), 0) / 1000),
+        json_build_object('name', 'billed', 'value', COALESCE(SUM(msats_billing), 0) / 1000),
+        json_build_object('name', 'spent', 'value', COALESCE(SUM(msats_spent), 0) / 1000)
       ) AS data
       FROM ${viewGroup(range, 'user_stats')}
       WHERE id = ${me.id}

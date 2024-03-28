@@ -313,3 +313,28 @@ export const USER_WITH_SUBS = gql`
         }
       }
     }`
+
+export const USER_STATS = gql`
+    query UserStats($when: String, $from: String, $to: String) {
+      userStatsActions(when: $when, from: $from, to: $to) {
+        time
+        data {
+          name
+          value
+        }
+      }
+      userStatsIncomingSats(when: $when, from: $from, to: $to) {
+        time
+        data {
+          name
+          value
+        }
+      }
+      userStatsOutgoingSats(when: $when, from: $from, to: $to) {
+        time
+        data {
+          name
+          value
+        }
+      }
+    }`

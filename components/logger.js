@@ -38,7 +38,19 @@ export function detectOS () {
 
 export const LoggerContext = createContext()
 
-export function LoggerProvider ({ children }) {
+export const LoggerProvider = ({ children }) => {
+  return (
+    <ServiceWorkerLoggerProvider>
+      <WalletLoggerProvider>
+        {children}
+      </WalletLoggerProvider>
+    </ServiceWorkerLoggerProvider>
+  )
+}
+
+const ServiceWorkerLoggerContext = createContext()
+
+function ServiceWorkerLoggerProvider ({ children }) {
   const me = useMe()
   const [name, setName] = useState()
   const [os, setOS] = useState()
@@ -98,12 +110,53 @@ export function LoggerProvider ({ children }) {
   }, [logger])
 
   return (
-    <LoggerContext.Provider value={logger}>
+    <ServiceWorkerLoggerContext.Provider value={logger}>
       {children}
-    </LoggerContext.Provider>
+    </ServiceWorkerLoggerContext.Provider>
   )
 }
 
-export function useLogger () {
-  return useContext(LoggerContext)
+export function useServiceWorkerLogger () {
+  return useContext(ServiceWorkerLoggerContext)
+}
+
+const WalletLoggerContext = createContext()
+
+const WalletLoggerProvider = ({ children }) => {
+  // TODO: persist logs in local storage
+  // limit to last 24h?
+  const [logs, setLogs] = useState([])
+
+  const appendLog = useCallback((wallet, level, message) => {
+    setLogs((prevLogs) => [...prevLogs, { wallet, level, message, ts: +new Date() }])
+  }, [setLogs])
+
+  return (
+    <WalletLoggerContext.Provider value={{ logs, appendLog }}>
+      {children}
+    </WalletLoggerContext.Provider>
+  )
+}
+
+export function useWalletLogger (wallet) {
+  const { logs, appendLog: _appendLog } = useContext(WalletLoggerContext)
+
+  const log = useCallback(level => message => {
+    // TODO:
+    //   also send this to us if diagnostics was enabled,
+    //   very similar to how the service worker logger works.
+    _appendLog(wallet, level, message)
+    console[level !== 'error' ? 'info' : 'error'](`[${wallet}]`, message)
+  }, [_appendLog, wallet])
+
+  const logger = useMemo(() => ({
+    ok: (...message) => log('ok')(message.join(' ')),
+    info: (...message) => log('info')(message.join(' ')),
+    error: (...message) => log('error')(message.join(' '))
+  }), [log, wallet])
+
+  return {
+    logs: logs.filter(log => !wallet || log.wallet === wallet),
+    ...logger
+  }
 }

@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
 import { Workbox } from 'workbox-window'
 import { gql, useMutation } from '@apollo/client'
-import { detectOS, useLogger } from './logger'
+import { detectOS, useServiceWorkerLogger } from './logger'
 
 const applicationServerKey = process.env.NEXT_PUBLIC_VAPID_PUBKEY
 
@@ -44,7 +44,7 @@ export const ServiceWorkerProvider = ({ children }) => {
           }
         }
       `)
-  const logger = useLogger()
+  const logger = useServiceWorkerLogger()
 
   // I am not entirely sure if this is needed since at least in Brave,
   // using `registration.pushManager.subscribe` also prompts the user.

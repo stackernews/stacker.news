@@ -71,7 +71,6 @@ export const getServerSideProps = getGetServerSideProps({ query: GROWTH_QUERY })
 export default function Growth ({ ssrData }) {
   const router = useRouter()
   const { when, from, to } = router.query
-
   
   const { data } = useQuery(GROWTH_QUERY, { variables: { when, from, to } })
   if (!data && !ssrData) return <PageLoading />

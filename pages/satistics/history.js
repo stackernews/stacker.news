@@ -189,7 +189,7 @@ export default function Satistics ({ ssrData }) {
 
   const { walletHistory: { facts, cursor } } = data || ssrData
 
-  const  handleGraphsTabClick = async () => {
+  const handleGraphsTabClick = async () => {
     await router.push({
       pathname: '/satistics/graphs/day'
     })
@@ -198,14 +198,14 @@ export default function Satistics ({ ssrData }) {
   return (
     <Layout>
       <div className='mt-3'>
-      <ul className="nav nav-tabs" id="myTab" role="tablist">
-        <li className="nav-item" role="presentation">
-          <button className={`nav-link`} onClick={() => handleGraphsTabClick()} >Statistics</button>
-        </li>
-        <li className="nav-item" role="presentation">
-          <button className={`nav-link active`} >History</button>
-        </li>
-      </ul>
+        <ul className='nav nav-tabs' id='myTab' role='tablist'>
+            <li className='nav-item' role='presentation'>
+            <button className='nav-link' onClick={() => handleGraphsTabClick()}>Statistics</button>
+            </li>
+            <li className='nav-item' role='presentation'>
+            <button className='nav-link active'>History</button>
+            </li>
+        </ul>
         <h2 className='text-center'>satistics</h2>
         <Form
           initial={{

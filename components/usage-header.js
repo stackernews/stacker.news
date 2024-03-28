@@ -3,7 +3,7 @@ import { Select, DatePicker } from './form'
 import { WHENS } from '@/lib/constants'
 import { whenToFrom } from '@/lib/time'
 
-export function UsageHeader ({pathname = null}) {
+export function UsageHeader ({ pathname = null }) {
   const router = useRouter()
 
   const path = pathname || 'stackers'

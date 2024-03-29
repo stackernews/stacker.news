@@ -224,22 +224,22 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
       }
     }
 
-  // if the link is to a odysee embed, render the embeded media
-  if (url.host === 'odysee.com') {
-    const embedURL = parts[1] && parts[1] === 'embed' ? href : url.origin + '/$/embed' + url.pathname
-    return (
-      <div style={{ maxWidth: topLevel ? '640px' : '320px', paddingRight: '15px', margin: '0.5rem 0' }}>
-        <div className={styles.youtubeContainer}>
-          <iframe
-            style={{ width: '100%', height: '100%' }}
-            title='Odysee Embed'
-            allowFullScreen=""
-            src={embedURL}
-          />
+    // if the link is to a odysee embed, render the embeded media
+    if (url.host === 'odysee.com') {
+      const embedURL = parts[1] && parts[1] === 'embed' ? href : url.origin + '/$/embed' + url.pathname
+      return (
+        <div style={{ maxWidth: topLevel ? '640px' : '320px', paddingRight: '15px', margin: '0.5rem 0' }}>
+          <div className={styles.youtubeContainer}>
+            <iframe
+              style={{ width: '100%', height: '100%' }}
+              title='Odysee Embed'
+              allowFullScreen=''
+              src={embedURL}
+            />
+          </div>
         </div>
-      </div>
-    )
-  }
+      )
+    }
 
     // assume the link is an image which will fallback to link if it's not
     return <Img src={href} rel={rel ?? UNKNOWN_LINK_REL} {...props}>{children}</Img>

@@ -121,7 +121,7 @@ function ItemEmbed ({ item }) {
             <iframe
               style={{ width: '100%', height: '100%' }}
               title='Rumble Video'
-              allowFullScreen=""
+              allowFullScreen=''
               src={item.url}
             />
           </div>
@@ -131,7 +131,6 @@ function ItemEmbed ({ item }) {
       return null
     }
   }
-
 
   // if the link is to a odysee embed, render the embeded media
   if (url.host === 'odysee.com') {
@@ -143,7 +142,7 @@ function ItemEmbed ({ item }) {
             <iframe
               style={{ width: '100%', height: '100%' }}
               title='Odysee Embed'
-              allowFullScreen=""
+              allowFullScreen=''
               src={embedURL}
             />
           </div>

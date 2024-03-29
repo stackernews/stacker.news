@@ -175,6 +175,22 @@ const WalletLoggerProvider = ({ children }) => {
     initIndexedDB(idbStoreName)
       .then(db => {
         idb.current = db
+
+        // load logs from IDB in order of timestamp
+        const tx = idb.current.transaction(idbStoreName, 'readonly')
+        const store = tx.objectStore(idbStoreName)
+        const index = store.index('ts')
+        // only fetch last 5m
+        const ts5mAgo = +new Date() - 5 * 60 * 1000
+        const request = index.getAll(window.IDBKeyRange.lowerBound(ts5mAgo))
+        request.onsuccess = () => {
+          const logs = request.result
+          setLogs((prevLogs) => {
+            // sort oldest first to keep same order as logs are appended
+            return [...prevLogs, ...logs].sort((a, b) => a.ts - b.ts)
+          })
+        }
+
         // flush queue to IDB
         logQueue.current.forEach(saveLog)
       })

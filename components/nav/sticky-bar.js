@@ -24,7 +24,7 @@ export default function StickyBar ({ prefix, sub, path, topNavKey, dropNavKey })
   return (
     <>
       <div ref={ref} style={{ position: 'relative', top: '50px' }} />
-      <div className={styles.hide} style={{ position: 'sticky', borderBottom: '1px solid var(--theme-toolbarActive)', top: '0', backgroundColor: 'var(--bs-body-bg)', zIndex: 1000 }} ref={sticky}>
+      <div className={classNames(styles.hide, styles.sticky)} ref={sticky}>
         <Container className='px-0 d-none d-md-block'>
           <Navbar className='py-0'>
             <Nav
@@ -33,7 +33,7 @@ export default function StickyBar ({ prefix, sub, path, topNavKey, dropNavKey })
             >
               <Back />
               <Brand className='me-1' />
-              <SearchItem prefix={prefix} />
+              <SearchItem className='me-0 ms-2' />
               <NavPrice />
               {me ? <MeCorner dropNavKey={dropNavKey} me={me} className='d-flex' /> : <AnonCorner path={path} className='d-flex' />}
             </Nav>
@@ -47,7 +47,7 @@ export default function StickyBar ({ prefix, sub, path, topNavKey, dropNavKey })
             >
               <Back />
               <NavPrice className='flex-shrink-1 flex-grow-0' />
-              {me ? <NavWalletSummary /> : <SignUpButton />}
+              {me ? <NavWalletSummary className='px-2' /> : <SignUpButton />}
             </Nav>
           </Navbar>
         </Container>

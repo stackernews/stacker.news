@@ -64,7 +64,7 @@
     position: absolute;
     padding: .25rem;
     background-color: var(--bs-danger);
-    top: 1px;
+    top: 3px;
     right: 8px;
     border: 1px solid var(--bs-body-bg);
 }
@@ -99,4 +99,14 @@
 
 .dropdown>button {
     padding-left: 0 !important;
+}
+
+.sticky {
+    position: fixed;
+    border-bottom: 1px solid var(--theme-toolbarActive);
+    width: 100vw;
+    top: -1px;
+    padding-top: 1px;
+    background-color: var(--bs-body-bg);
+    z-index: 1000;
 }

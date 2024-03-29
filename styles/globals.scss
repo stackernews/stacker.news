@@ -210,6 +210,10 @@ $accordion-button-active-icon-dark:  $accordion-button-icon;
   --bs-gradient: none;
 }
 
+* {
+  scroll-margin-top: 60px;
+}
+
 .text-monospace {
   font-family: monospace;
 }
@@ -485,9 +489,9 @@ div[contenteditable]:disabled,
 .modal-content {
   background-color: var(--theme-inputBg);
   border-color: var(--theme-borderColor);
-  align-items: center;
 }
 .modal-body {
+  align-self: center;
   width: fit-content;
 }
 

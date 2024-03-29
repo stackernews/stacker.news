@@ -13,7 +13,7 @@ export default function TopBar ({ prefix, sub, path, topNavKey, dropNavKey }) {
       >
         <Back />
         <Brand className='me-1' />
-        <SearchItem prefix={prefix} className='me-0 ms-0 ms-md-auto d-none d-md-flex' />
+        <SearchItem prefix={prefix} className='me-0 ms-2 d-none d-md-flex' />
         <NavPrice className='ms-auto me-0 mx-md-auto d-none d-md-flex' />
         {me
           ? <MeCorner dropNavKey={dropNavKey} me={me} className='d-none d-md-flex' />

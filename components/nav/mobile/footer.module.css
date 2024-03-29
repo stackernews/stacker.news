@@ -8,6 +8,10 @@
     z-index: 1000;
 }
 
+.footerPadding {
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
 .footerNav {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr 1fr 1fr;

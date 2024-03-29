@@ -11,16 +11,16 @@ export const getServerSideProps = getGetServerSideProps({ query: null })
 
 export const WalletLogsContext = createContext()
 
-const SKIP_BACK = { minutes: -5 }
-
 export default function WalletLogs () {
   const { logs, loadLogs } = useWalletLogger()
 
   const router = useRouter()
   // TODO add filter by wallet, add sort by timestamp
-  const since = router.query.since ? parseInt(router.query.since, 10) : +datePivot(new Date(), SKIP_BACK)
+  const since = router.query.since ? parseInt(router.query.since, 10) : +datePivot(new Date(), { minutes: -5 })
   const sinceRounded = Math.floor(since / 60e3) * 60e3
-  const earlierTs = +datePivot(new Date(since), SKIP_BACK)
+  const earlierTs5m = +datePivot(new Date(since), { minutes: -5 })
+  const earlierTs1h = +datePivot(new Date(since), { hours: -1 })
+  const earlierTs6h = +datePivot(new Date(since), { hours: -6 })
 
   useEffect(() => {
     loadLogs(sinceRounded)
@@ -31,8 +31,11 @@ export default function WalletLogs () {
       <CenterLayout>
         <h2 className='text-center'>wallet logs</h2>
         <div>
-          <div>
-            <Link href={`/wallet/logs?since=${earlierTs}`} className='mx-3 text-muted text-underline'>show earlier logs</Link>
+          <div className='ms-3 text-muted'>
+            <span>show earlier logs:</span>
+            <Link href={`/wallet/logs?since=${earlierTs5m}`} className='mx-1 text-muted text-underline'>5m</Link>
+            <Link href={`/wallet/logs?since=${earlierTs1h}`} className='mx-1 text-muted text-underline'>1h</Link>
+            <Link href={`/wallet/logs?since=${earlierTs6h}`} className='mx-1 text-muted text-underline'>6h</Link>
           </div>
           <div>
             <div className='mx-3 text-muted' suppressHydrationWarning>{new Date(sinceRounded).toLocaleTimeString()}</div>

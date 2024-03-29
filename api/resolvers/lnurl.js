@@ -27,8 +27,7 @@ export default {
     }
   },
   Mutation: {
-    createAuth: async (parent, args, { models, me }) => {
-      assertApiKeyNotPermitted({ me })
+    createAuth: async (parent, args, { models }) => {
       return await models.lnAuth.create({ data: { k1: k1() } })
     },
     createWith: async (parent, args, { me, models, headers }) => {

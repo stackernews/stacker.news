@@ -138,6 +138,19 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
   const P = useCallback(({ children, node, ...props }) => <div className={styles.p} {...props}>{children}</div>, [])
 
   const A = useCallback(({ node, href, children, ...props }) => {
+    const url = new URL(href)
+    const { pathname, searchParams } = url
+    const emptyPart = part => !!part
+    const parts = pathname.split('/').filter(emptyPart)
+    const queryParams = {}
+    searchParams.forEach((value, key) => {
+      if (!queryParams[key]) {
+        queryParams[key] = [value]
+      } else {
+        queryParams[key].push(value)
+      }
+    })
+
     children = children ? Array.isArray(children) ? children : [children] : []
     // don't allow zoomable images to be wrapped in links
     if (children.some(e => e?.props?.node?.tagName === 'img')) {
@@ -195,17 +208,38 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
     }
 
     // if the link is to a rumble video, render the video
-    const rumble = href.match(/(?:https?:\/\/)?(?:www\.)?rumble\.com\/embed\/(?<id>[a-z0-9]+)\/\?pub=\d+&start=(?<start>\d+)/i)
-    if (rumble?.groups?.id) {
-      return (
-        <div style={{ maxWidth: topLevel ? '640px' : '320px', paddingRight: '15px', margin: '0.5rem 0' }}>
+    if (url.host === 'rumble.com') {
+      if (parts[0] === 'embed') {
+        return (
+          <div style={{ maxWidth: topLevel ? '640px' : '320px', paddingRight: '15px', margin: '0.5rem 0' }}>
+            <div className={styles.youtubeContainer}>
+              <iframe
+                title='Rumble Video'
+                style={{ width: '100%', height: '100%' }}
+                src={href}
+              />
+            </div>
+          </div>
+        )
+      }
+    }
+
+  // if the link is to a odysee embed, render the embeded media
+  if (url.host === 'odysee.com') {
+    const embedURL = parts[1] && parts[1] === 'embed' ? href : url.origin + '/$/embed' + url.pathname
+    return (
+      <div style={{ maxWidth: topLevel ? '640px' : '320px', paddingRight: '15px', margin: '0.5rem 0' }}>
+        <div className={styles.youtubeContainer}>
           <iframe
-            title='Rumble Video'
-            src={href}
+            style={{ width: '100%', height: '100%' }}
+            title='Odysee Embed'
+            allowFullScreen=""
+            src={embedURL}
           />
         </div>
-      )
-    }
+      </div>
+    )
+  }
 
     // assume the link is an image which will fallback to link if it's not
     return <Img src={href} rel={rel ?? UNKNOWN_LINK_REL} {...props}>{children}</Img>

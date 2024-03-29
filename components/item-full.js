@@ -70,6 +70,19 @@ function ItemEmbed ({ item }) {
   const [overflowing, setOverflowing] = useState(false)
   const [show, setShow] = useState(false)
 
+  const url = item.url && new URL(item.url)
+  const { pathname, searchParams } = url
+  const emptyPart = part => !!part
+  const parts = pathname.split('/').filter(emptyPart)
+  const queryParams = {}
+  searchParams.forEach((value, key) => {
+    if (!queryParams[key]) {
+      queryParams[key] = [value]
+    } else {
+      queryParams[key].push(value)
+    }
+  })
+
   const twitter = item.url?.match(/^https?:\/\/(?:twitter|x)\.com\/(?:#!\/)?\w+\/status(?:es)?\/(?<id>\d+)/)
   if (twitter?.groups?.id) {
     return (
@@ -83,6 +96,7 @@ function ItemEmbed ({ item }) {
     )
   }
 
+  // if the link is to a youtube video, render the video
   const youtube = item.url?.match(/(https?:\/\/)?((www\.)?(youtube(-nocookie)?|youtube.googleapis)\.com.*(v\/|v=|vi=|vi\/|e\/|embed\/|user\/.*\/u\/\d+\/)|youtu\.be\/)(?<id>[_0-9a-z-]+)((?:\?|&)(?:t|start)=(?<start>\d+))?/i)
   if (youtube?.groups?.id) {
     return (
@@ -96,6 +110,48 @@ function ItemEmbed ({ item }) {
         />
       </div>
     )
+  }
+
+  // if the link is to a rumble video, render the video
+  if (url.host === 'rumble.com') {
+    if (parts[0] === 'embed' && /^\w+$/.test(queryParams.pub)) {
+      return (
+        <div className={styles.youtubeContainerContainer}>
+          <div className={styles.youtubeContainer}>
+            <iframe
+              style={{ width: '100%', height: '100%' }}
+              title='Rumble Video'
+              allowFullScreen=""
+              src={item.url}
+            />
+          </div>
+        </div>
+      )
+    } else {
+      return null
+    }
+  }
+
+
+  // if the link is to a odysee embed, render the embeded media
+  if (url.host === 'odysee.com') {
+    const embedURL = parts[1] && parts[1] === 'embed' ? item.url : url.origin + '/$/embed' + url.pathname
+    if (parts[1] === 'embed') {
+      return (
+        <div className={styles.youtubeContainerContainer}>
+          <div className={styles.youtubeContainer}>
+            <iframe
+              style={{ width: '100%', height: '100%' }}
+              title='Odysee Embed'
+              allowFullScreen=""
+              src={embedURL}
+            />
+          </div>
+        </div>
+      )
+    } else {
+      return null
+    }
   }
 
   if (item.url?.match(IMGPROXY_URL_REGEXP)) {

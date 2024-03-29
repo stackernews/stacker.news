@@ -21,28 +21,27 @@ export function middleware (request) {
 
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
   // we want to load media from other localhost ports during development
-  const devSrc = process.env.NODE_ENV === 'development' ? 'localhost:* ' : ''
+  const devSrc = process.env.NODE_ENV === 'development' ? ' localhost:*' : ''
+  // unsafe-eval is required during development due to react-refresh.js
+  // see https://github.com/vercel/next.js/issues/14221
+  const devScriptSrc = process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''
 
   const cspHeader = [
     // if something is not explicitly allowed, we don't allow it.
     "default-src 'none'",
     "font-src 'self' a.stacker.news",
     // we want to load images from everywhere but we can limit to HTTPS at least
-    `img-src 'self' ${devSrc}a.stacker.news m.stacker.news https: data: blob:`,
-    `media-src 'self' ${devSrc}a.stacker.news m.stacker.news`,
+    "img-src 'self' a.stacker.news m.stacker.news https: data: blob:" + devSrc,
+    "media-src 'self' a.stacker.news m.stacker.news" + devSrc,
     // Using nonces and strict-dynamic deploys a strict CSP.
     // see https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html#strict-policy.
     // Old browsers will ignore nonce and strict-dynamic and fallback to host-based matching and unsafe-inline
-    process.env.NODE_ENV === 'production'
-      ? `script-src 'self' 'unsafe-inline' 'nonce-${nonce}' 'strict-dynamic' https:`
-      // unsafe-eval is required during development due to react-refresh.js
-      // see https://github.com/vercel/next.js/issues/14221
-      : `script-src 'self' 'unsafe-inline' 'unsafe-eval' 'nonce-${nonce}' 'strict-dynamic' https:`,
+    `script-src 'self' 'unsafe-inline' 'nonce-${nonce}' 'strict-dynamic' https:` + devScriptSrc,
     // unsafe-inline for styles is not ideal but okay if script-src is using nonces
     "style-src 'self' a.stacker.news 'unsafe-inline'",
     "manifest-src 'self'",
     'frame-src www.youtube.com platform.twitter.com rumble.com',
-    `connect-src 'self' ${devSrc}https: wss:`,
+    "connect-src 'self' https: wss:" + devSrc,
     // disable dangerous plugins like Flash
     "object-src 'none'",
     // blocks injection of <base> tags

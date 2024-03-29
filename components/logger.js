@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useMe } from './me'
 import fancyNames from '@/lib/fancy-names.json'
+import { datePivot } from '@/lib/time'
 
 const generateFancyName = () => {
   // 100 adjectives * 100 nouns * 10000 = 100M possible names
@@ -176,13 +177,17 @@ const WalletLoggerProvider = ({ children }) => {
       .then(db => {
         idb.current = db
 
-        // load logs from IDB in order of timestamp
+        // load logs from IDB
+        // -- open index sorted by timestamps
         const tx = idb.current.transaction(idbStoreName, 'readonly')
         const store = tx.objectStore(idbStoreName)
         const index = store.index('ts')
-        // only fetch last 5m
-        const ts5mAgo = +new Date() - 5 * 60 * 1000
-        const request = index.getAll(window.IDBKeyRange.lowerBound(ts5mAgo))
+        // -- check if there is an open request for past logs else default to last 5m
+        const sinces = logQueue.current?.filter(q => !!q.since).map(({ since }) => since).sort((a, b) => a - b)
+        const sinceRounded = sinces?.[0] || +datePivot(new Date(), { minutes: -5 })
+        const rounded = Math.floor(sinceRounded / 1e3) * 1e3
+        // -- fetch rows from index
+        const request = index.getAll(window.IDBKeyRange.lowerBound(rounded))
         request.onsuccess = () => {
           const logs = request.result
           setLogs((prevLogs) => {
@@ -191,8 +196,13 @@ const WalletLoggerProvider = ({ children }) => {
           })
         }
 
-        // flush queue to IDB
-        logQueue.current.forEach(saveLog)
+        // flush queued logs to IDB
+        logQueue.current.forEach(q => {
+          const isLog = !!q.wallet
+          if (isLog) saveLog(q)
+        })
+
+        logQueue.current = []
       })
       .catch(console.error)
     return () => idb.current?.close()
@@ -204,15 +214,35 @@ const WalletLoggerProvider = ({ children }) => {
     setLogs((prevLogs) => [...prevLogs, log])
   }, [setLogs, saveLog])
 
+  const loadLogs = useCallback((lower) => {
+    const upper = logs[0]?.ts || +new Date()
+
+    if (!lower || !upper || lower >= upper) return
+
+    if (!idb.current) {
+      // queue loading logs until IDB is ready
+      return logQueue.current.push({ since: lower })
+    }
+
+    const tx = idb.current.transaction(idbStoreName, 'readonly')
+    const store = tx.objectStore(idbStoreName)
+    const index = store.index('ts')
+    const request = index.getAll(window.IDBKeyRange.bound(lower, upper, false, true))
+    request.onsuccess = () => {
+      const logs = request.result
+      setLogs((prevLogs) => [...logs, ...prevLogs])
+    }
+  }, [logs, setLogs])
+
   return (
-    <WalletLoggerContext.Provider value={{ logs, appendLog }}>
+    <WalletLoggerContext.Provider value={{ logs, appendLog, loadLogs }}>
       {children}
     </WalletLoggerContext.Provider>
   )
 }
 
 export function useWalletLogger (wallet) {
-  const { logs, appendLog: _appendLog } = useContext(WalletLoggerContext)
+  const { logs, appendLog: _appendLog, loadLogs } = useContext(WalletLoggerContext)
 
   const log = useCallback(level => message => {
     // TODO:
@@ -229,6 +259,7 @@ export function useWalletLogger (wallet) {
   }), [log, wallet])
 
   return {
+    loadLogs,
     logs: logs.filter(log => !wallet || log.wallet === wallet),
     ...logger
   }

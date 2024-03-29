@@ -267,7 +267,7 @@ async function getInfoWithRelay (relay, walletPubkey) {
       },
       onclose (reason) {
         clearTimeout(timer)
-        reject(new Error(reason))
+        reject(new Error(reason || 'connection closed: reason unknown'))
       },
       oneose () {
         clearTimeout(timer)

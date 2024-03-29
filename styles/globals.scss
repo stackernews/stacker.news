@@ -494,6 +494,9 @@ div[contenteditable]:disabled,
   align-self: center;
   width: fit-content;
 }
+.modal-body:has(video) {
+  width: 100%;
+}
 
 .nav-link:not(.text-success, .text-warning) {
   color: var(--theme-navLink) !important;

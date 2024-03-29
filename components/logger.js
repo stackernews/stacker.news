@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useMe } from './me'
 import fancyNames from '@/lib/fancy-names.json'
 
@@ -122,14 +122,71 @@ export function useServiceWorkerLogger () {
 
 const WalletLoggerContext = createContext()
 
+const initIndexedDB = async (storeName) => {
+  return new Promise((resolve, reject) => {
+    if (!window.indexedDB) {
+      return reject(new Error('IndexedDB not supported'))
+    }
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API/Using_IndexedDB
+    const request = window.indexedDB.open('app:storage', 1)
+
+    let db
+    request.onupgradeneeded = () => {
+      db = request.result
+      if (!db.objectStoreNames.contains(storeName)) {
+        const objectStore = db.createObjectStore(storeName, { autoIncrement: true })
+        objectStore.createIndex('ts', 'ts')
+        objectStore.createIndex('wallet_ts', ['wallet', 'ts'])
+      }
+    }
+
+    request.onsuccess = () => {
+      // this gets called after onupgradeneeded finished
+      db = request.result
+      resolve(db)
+    }
+
+    request.onerror = () => {
+      reject(new Error('failed to open IndexedDB'))
+    }
+  })
+}
+
 const WalletLoggerProvider = ({ children }) => {
   // TODO: persist logs in local storage
   // limit to last 24h?
   const [logs, setLogs] = useState([])
+  const idbStoreName = 'wallet_logs'
+  const idb = useRef()
+  const logQueue = useRef([])
+
+  const saveLog = useCallback((log) => {
+    if (!idb.current) {
+      // IDB may not be ready yet
+      return logQueue.current.push(log)
+    }
+    const tx = idb.current.transaction(idbStoreName, 'readwrite')
+    const request = tx.objectStore(idbStoreName).add(log)
+    request.onerror = () => console.error('failed to save log:', log)
+  }, [])
+
+  useEffect(() => {
+    initIndexedDB(idbStoreName)
+      .then(db => {
+        idb.current = db
+        // flush queue to IDB
+        logQueue.current.forEach(saveLog)
+      })
+      .catch(console.error)
+    return () => idb.current?.close()
+  }, [])
 
   const appendLog = useCallback((wallet, level, message) => {
-    setLogs((prevLogs) => [...prevLogs, { wallet, level, message, ts: +new Date() }])
-  }, [setLogs])
+    const log = { wallet, level, message, ts: +new Date() }
+    saveLog(log)
+    setLogs((prevLogs) => [...prevLogs, log])
+  }, [setLogs, saveLog])
 
   return (
     <WalletLoggerContext.Provider value={{ logs, appendLog }}>

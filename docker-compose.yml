@@ -57,6 +57,12 @@ services:
         - UID=${CURRENT_UID}
         - GID=${CURRENT_GID}
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5678/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 1m
     env_file: .env.development
     expose:
       - "5678"

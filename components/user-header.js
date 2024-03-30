@@ -182,14 +182,19 @@ function NymView ({ user, isMe, setEditting }) {
       <div className={styles.username}>@{user.name}<Hat className='' user={user} badge /></div>
       {isMe &&
         <Button className='py-0' style={{ lineHeight: '1.25' }} variant='link' onClick={() => setEditting(true)}>edit nym</Button>}
-      {!isMe && me &&
-        <div className='ms-2'>
-          <ActionDropdown>
-            <SubscribeUserDropdownItem user={user} target='posts' />
-            <SubscribeUserDropdownItem user={user} target='comments' />
-            <MuteDropdownItem user={user} />
-          </ActionDropdown>
-        </div>}
+      {!isMe && me && <NymActionDropdown user={user} />}
+    </div>
+  )
+}
+
+export function NymActionDropdown ({ user }) {
+  return (
+    <div className='ms-2'>
+      <ActionDropdown>
+        <SubscribeUserDropdownItem user={user} target='posts' />
+        <SubscribeUserDropdownItem user={user} target='comments' />
+        <MuteDropdownItem user={user} />
+      </ActionDropdown>
     </div>
   )
 }

@@ -155,8 +155,6 @@ const initIndexedDB = async (storeName) => {
 }
 
 const WalletLoggerProvider = ({ children }) => {
-  // TODO: persist logs in local storage
-  // limit to last 24h?
   const [logs, setLogs] = useState([])
   const idbStoreName = 'wallet_logs'
   const idb = useRef()

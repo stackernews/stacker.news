@@ -139,6 +139,30 @@ export default {
       }
       return user?.name?.toUpperCase() === name?.toUpperCase() || !(await models.user.findUnique({ where: { name } }))
     },
+    mySubscribedUsers: async (parent, { cursor }, { models, me }) => {
+      if (!me) {
+        return {
+          cursor: null,
+          users: []
+        }
+      }
+
+      const decodedCursor = decodeCursor(cursor)
+      const users = await models.$queryRaw`
+        SELECT users.*
+        FROM "UserSubscription" LEFT JOIN users
+        ON "UserSubscription"."followeeId" = users.id
+        WHERE "UserSubscription"."followerId" = ${me.id}
+        AND ("UserSubscription"."postsSubscribedAt" IS NOT NULL OR "UserSubscription"."commentsSubscribedAt" IS NOT NULL)
+        OFFSET ${decodedCursor.offset}
+        LIMIT ${LIMIT}
+      `
+
+      return {
+        cursor: users.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
+        users
+      }
+    },
     topCowboys: async (parent, { cursor }, { models, me }) => {
       const decodedCursor = decodeCursor(cursor)
       const range = whenRange('forever')

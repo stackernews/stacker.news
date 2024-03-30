@@ -62,7 +62,7 @@ function User ({ user, rank, statComps, Embellish }) {
           <div className={styles.other}>
             {statComps.map((Comp, i) => <Comp key={i} user={user} />)}
           </div>
-          {Embellish && <Embellish rank={rank} />}
+          {Embellish && <Embellish rank={rank} user={user} />}
         </div>
       </div>
     </>
@@ -108,7 +108,7 @@ export function ListUsers ({ users, rank, statComps = seperate(STAT_COMPONENTS, 
   )
 }
 
-export default function UserList ({ ssrData, query, variables, destructureData, rank, footer = true }) {
+export default function UserList ({ ssrData, query, variables, destructureData, rank, footer = true, Embellish, statCompsProp }) {
   const { data, fetchMore } = useQuery(query, { variables })
   const dat = useData(data, ssrData)
   const [statComps, setStatComps] = useState(seperate(STAT_COMPONENTS, Seperator))
@@ -134,7 +134,7 @@ export default function UserList ({ ssrData, query, variables, destructureData, 
 
   return (
     <>
-      <ListUsers users={users} rank={rank} statComps={statComps} />
+      <ListUsers users={users} rank={rank} statComps={statCompsProp ?? statComps} Embellish={Embellish} />
       {footer &&
         <MoreFooter cursor={cursor} count={users?.length} fetchMore={fetchMore} Skeleton={UsersSkeleton} noMoreText='NO MORE' />}
     </>

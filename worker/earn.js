@@ -52,7 +52,7 @@ export async function earn ({ name }) {
 
     // get earners { userId, id, type, rank, proportion }
     const earners = await models.$queryRaw`
-      SELECT id AS "userId", sum(proportion) as proportion
+      SELECT id AS "userId", sum(proportion) as proportion, ROW_NUMBER() OVER (ORDER BY sum(proportion) DESC) as rank
       FROM user_values_days
       WHERE date_trunc('month', user_values_days.t) = date_trunc('month',  (now() - interval '1 month') AT TIME ZONE 'America/Chicago')
       AND NOT (id = ANY (${SN_USER_IDS}))

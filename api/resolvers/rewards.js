@@ -49,9 +49,25 @@ async function getActiveRewards (models) {
       ) u`
 }
 
+async function getMonthlyRewards (when, models) {
+  return await models.$queryRaw`
+      SELECT
+        (sum(total) / 1000)::INT as total,
+        date_trunc('month',  ${when?.[0]}::text::timestamp) AT TIME ZONE 'America/Chicago' as time,
+        json_build_array(
+          json_build_object('name', 'donations', 'value', (sum(donations) / 1000)::INT),
+          json_build_object('name', 'fees', 'value', (sum(fees) / 1000)::INT),
+          json_build_object('name', 'boost', 'value', (sum(boost) / 1000)::INT),
+          json_build_object('name', 'jobs', 'value', (sum(jobs) / 1000)::INT),
+          json_build_object('name', 'anon''s stack', 'value', (sum(anons_stack) / 1000)::INT)
+        ) AS sources
+      FROM rewards_days
+      WHERE date_trunc('month', rewards_days.t) = date_trunc('month', ${when?.[0]}::text::timestamp - interval '1 month')`
+}
+
 async function getRewards (when, models) {
   if (when) {
-    if (when.length > 2) {
+    if (when.length > 1) {
       throw new GraphQLError('too many dates', { extensions: { code: 'BAD_USER_INPUT' } })
     }
     when.forEach(w => {
@@ -61,6 +77,10 @@ async function getRewards (when, models) {
     })
     if (new Date(when[0]) > new Date(when[when.length - 1])) {
       throw new GraphQLError('bad date range', { extensions: { code: 'BAD_USER_INPUT' } })
+    }
+
+    if (new Date(when[0]).getTime() >= new Date('2024-03-01').getTime()) {
+      return await getMonthlyRewards(when, models)
     }
   }
 

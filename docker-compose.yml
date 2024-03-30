@@ -49,6 +49,23 @@ services:
       - ./:/app
     labels:
       CONNECT: "localhost:3000"
+  capture:
+    container_name: capture
+    build:
+      context: ./capture
+      args:
+        - UID=${CURRENT_UID}
+        - GID=${CURRENT_GID}
+    restart: unless-stopped
+    env_file: .env.development
+    expose:
+      - "5678"
+    ports:
+      - "5678:5678"
+    volumes:
+      - ./:/app
+    labels:
+      CONNECT: "localhost:5678"
   worker:
     container_name: worker
     build:

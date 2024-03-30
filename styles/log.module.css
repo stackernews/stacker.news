@@ -1,0 +1,25 @@
+.header {
+    text-align: center;
+    color: var(--theme-grey) !important; /* .text-muted */
+}
+
+.eol {
+    font-family: monospace;
+    font-size: x-small;
+    text-align: center;
+    color: var(--theme-grey) !important; /* .text-muted */
+}
+
+.logBox {
+    width: 100%;
+    padding: 0 1em;
+    overflow-y: auto;
+    margin: 0.5em 0;
+    max-height: 60svh;
+}
+
+@media screen and (min-width: 768px) {
+    .logBox {
+        max-height: 70svh;
+    }
+}

@@ -2,6 +2,7 @@ import { Checkbox, Form, Input, SubmitButton, Select, VariableInput, CopyInput }
 import Alert from 'react-bootstrap/Alert'
 import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
+import Nav from 'react-bootstrap/Nav'
 import Layout from '@/components/layout'
 import { useState, useMemo } from 'react'
 import { gql, useMutation, useQuery } from '@apollo/client'
@@ -29,11 +30,38 @@ import { INVOICE_RETENTION_DAYS } from '@/lib/constants'
 import { OverlayTrigger, Tooltip } from 'react-bootstrap'
 import DeleteIcon from '@/svgs/delete-bin-line.svg'
 import { useField } from 'formik'
+import styles from './settings.module.css'
 
 export const getServerSideProps = getGetServerSideProps({ query: SETTINGS, authRequired: true })
 
 function bech32encode (hexString) {
   return bech32.encode('npub', bech32.toWords(Buffer.from(hexString, 'hex')))
+}
+
+export function SettingsHeader () {
+  const router = useRouter()
+  const pathParts = router.asPath.split('/').filter(segment => !!segment)
+  const activeKey = pathParts.length === 1 ? 'general' : 'subscriptions'
+  return (
+    <>
+      <h2 className='mb-2 text-start'>settings</h2>
+      <Nav
+        className={styles.nav}
+        activeKey={activeKey}
+      >
+        <Nav.Item>
+          <Link href='/settings' passHref legacyBehavior>
+            <Nav.Link eventKey='general'>general</Nav.Link>
+          </Link>
+        </Nav.Item>
+        <Nav.Item>
+          <Link href='/settings/subscriptions' passHref legacyBehavior>
+            <Nav.Link eventKey='subscriptions'>subscriptions</Nav.Link>
+          </Link>
+        </Nav.Item>
+      </Nav>
+    </>
+  )
 }
 
 export default function Settings ({ ssrData }) {
@@ -61,7 +89,7 @@ export default function Settings ({ ssrData }) {
   return (
     <Layout>
       <div className='pb-3 w-100 mt-2' style={{ maxWidth: '600px' }}>
-        <h2 className='mb-2 text-start'>settings</h2>
+        <SettingsHeader />
         <Form
           initial={{
             tipDefault: settings?.tipDefault || 21,

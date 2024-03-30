@@ -5,6 +5,7 @@ import { MY_SUBSCRIBED_USERS } from '@/fragments/users'
 import ActionDropdown from '@/components/action-dropdown'
 import MuteDropdownItem from '@/components/mute'
 import SubscribeUserDropdownItem from '@/components/subscribeUser'
+import { SettingsHeader } from '../index'
 
 export const getServerSideProps = getGetServerSideProps({ query: MY_SUBSCRIBED_USERS, authRequired: true })
 
@@ -12,8 +13,7 @@ export default function MySubscribedUsers ({ ssrData }) {
   return (
     <Layout>
       <div className='pb-3 w-100 mt-2' style={{ maxWidth: '600px' }}>
-        <h2 className='mb-2 text-start'>settings</h2>
-        <h3 className='mb-2 text-start'>subscriptions</h3>
+        <SettingsHeader />
         <UserList
           ssrData={ssrData} query={MY_SUBSCRIBED_USERS}
           destructureData={data => data.mySubscribedUsers}

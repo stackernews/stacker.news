@@ -12,7 +12,9 @@ export const getServerSideProps = getGetServerSideProps({ query: null })
 export const WalletLogsContext = createContext()
 
 export default function WalletLogs () {
-  const { logs, loadLogs } = useWalletLogger()
+  const { logs, loadLogs, logStart } = useWalletLogger()
+
+  const more = logs.length > 0 ? logStart < logs[0].ts : false
 
   const router = useRouter()
   // TODO add filter by wallet, add sort by timestamp
@@ -38,7 +40,8 @@ export default function WalletLogs () {
             <Link href={`/wallet/logs?since=${earlierTs6h}`} className='mx-1 text-muted text-underline'>6h</Link>
           </div>
           <div>
-            <div className='mx-3 text-muted' suppressHydrationWarning>{new Date(sinceRounded).toLocaleTimeString()}</div>
+            {!more && <div className='mx-3 text-muted'>------ end of logs ------</div>}
+            <div className='mx-3 text-muted' suppressHydrationWarning>{new Date(more ? sinceRounded : logStart).toLocaleTimeString()}</div>
             {logs.map((log, i) => <LogMessage key={i} {...log} />)}
           </div>
         </div>

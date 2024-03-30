@@ -161,6 +161,7 @@ const WalletLoggerProvider = ({ children }) => {
   const idbStoreName = 'wallet_logs'
   const idb = useRef()
   const logQueue = useRef([])
+  const [logStart, setLogStart] = useState(0)
 
   const saveLog = useCallback((log) => {
     if (!idb.current) {
@@ -203,6 +204,18 @@ const WalletLoggerProvider = ({ children }) => {
         })
 
         logQueue.current = []
+
+        // get timestamp of first log for pagination
+        const request2 = index.openCursor()
+        request2.onsuccess = () => {
+          const cursor = request2.result
+          if (cursor) {
+            const log = cursor.value
+            if (log) {
+              setLogStart(log.ts)
+            }
+          }
+        }
       })
       .catch(console.error)
     return () => idb.current?.close()
@@ -235,14 +248,14 @@ const WalletLoggerProvider = ({ children }) => {
   }, [logs, setLogs])
 
   return (
-    <WalletLoggerContext.Provider value={{ logs, appendLog, loadLogs }}>
+    <WalletLoggerContext.Provider value={{ logs, appendLog, loadLogs, logStart }}>
       {children}
     </WalletLoggerContext.Provider>
   )
 }
 
 export function useWalletLogger (wallet) {
-  const { logs, appendLog: _appendLog, loadLogs } = useContext(WalletLoggerContext)
+  const { logs, appendLog: _appendLog, loadLogs, logStart } = useContext(WalletLoggerContext)
 
   const log = useCallback(level => message => {
     // TODO:
@@ -259,6 +272,7 @@ export function useWalletLogger (wallet) {
   }), [log, wallet])
 
   return {
+    logStart,
     loadLogs,
     logs: logs.filter(log => !wallet || log.wallet === wallet),
     ...logger

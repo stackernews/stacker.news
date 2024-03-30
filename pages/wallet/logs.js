@@ -20,9 +20,9 @@ export default function WalletLogs () {
   // TODO add filter by wallet, add sort by timestamp
   const since = router.query.since ? parseInt(router.query.since, 10) : +datePivot(new Date(), { minutes: -5 })
   const sinceRounded = Math.floor(since / 60e3) * 60e3
-  const earlierTs5m = +datePivot(new Date(since), { minutes: -5 })
-  const earlierTs1h = +datePivot(new Date(since), { hours: -1 })
-  const earlierTs6h = +datePivot(new Date(since), { hours: -6 })
+  const earlierTs5m = more ? +datePivot(new Date(since), { minutes: -5 }) : logStart
+  const earlierTs1h = more ? +datePivot(new Date(since), { hours: -1 }) : logStart
+  const earlierTs6h = more ? +datePivot(new Date(since), { hours: -6 }) : logStart
 
   useEffect(() => {
     loadLogs(sinceRounded)

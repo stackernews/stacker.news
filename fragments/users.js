@@ -215,6 +215,9 @@ export const MY_SUBSCRIBED_USERS = gql`
         photoId
         ncomments(when: "forever")
         nposts(when: "forever")
+        meSubscriptionPosts
+        meSubscriptionComments
+        meMute
 
         optional {
           streak

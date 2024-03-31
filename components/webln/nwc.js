@@ -63,8 +63,6 @@ export function NWCProvider ({ children }) {
       `relay=${params.relayUrl}`
     )
 
-    logger.error('test error')
-
     try {
       logger.info(`requesting info event from ${params.relayUrl}`)
       await validateParams({ ...params, logger })

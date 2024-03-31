@@ -34,7 +34,7 @@ export default function WalletLogs () {
       <CenterLayout>
         <h2 className='text-center'>wallet logs</h2>
         <div>
-          <div className={styles.header}>
+          <div className={styles.logNav}>
             <span>show earlier logs:</span>
             <Link href={`/wallet/logs?since=${earlierTs5m}`} className='mx-1 text-muted text-underline'>5m</Link>
             <Link href={`/wallet/logs?since=${earlierTs1h}`} className='mx-1 text-muted text-underline'>1h</Link>

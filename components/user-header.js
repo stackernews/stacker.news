@@ -187,9 +187,9 @@ function NymView ({ user, isMe, setEditting }) {
   )
 }
 
-export function NymActionDropdown ({ user }) {
+export function NymActionDropdown ({ user, className = 'ms-2' }) {
   return (
-    <div className='ms-2'>
+    <div className={className}>
       <ActionDropdown>
         <SubscribeUserDropdownItem user={user} target='posts' />
         <SubscribeUserDropdownItem user={user} target='comments' />

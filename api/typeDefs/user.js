@@ -12,7 +12,7 @@ export default gql`
     searchUsers(q: String!, limit: Limit, similarity: Float): [User!]!
     userSuggestions(q: String, limit: Limit): [User!]!
     hasNewNotes: Boolean!
-    mySubscribedUsers(cursor: String): UsersNullable!
+    mySubscribedUsers(cursor: String): Users!
   }
 
   type UsersNullable {

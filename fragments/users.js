@@ -207,11 +207,21 @@ export const USER_FIELDS = gql`
   }`
 
 export const MY_SUBSCRIBED_USERS = gql`
-  ${USER_FIELDS}
   query MySubscribedUsers($cursor: String) {
     mySubscribedUsers(cursor: $cursor) {
       users {
-        ...UserFields
+        id
+        name
+        photoId
+        ncomments(when: "forever")
+        nposts(when: "forever")
+
+        optional {
+          streak
+          stacked(when: "forever")
+          spent(when: "forever")
+          referrals(when: "forever")
+        }
       }
       cursor
     }

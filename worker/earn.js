@@ -2,7 +2,7 @@ import serialize from '@/api/resolvers/serial.js'
 import { notifyEarner } from '@/lib/webPush.js'
 import { PrismaClient } from '@prisma/client'
 import { proportions } from '@/lib/madness.js'
-import { SN_USER_IDS } from '@/lib/constants.js'
+import { SN_NO_REWARDS_IDS } from '@/lib/constants.js'
 
 const TOTAL_UPPER_BOUND_MSATS = 10000000000
 
@@ -55,10 +55,10 @@ export async function earn ({ name }) {
       SELECT id AS "userId", sum(proportion) as proportion, ROW_NUMBER() OVER (ORDER BY sum(proportion) DESC) as rank
       FROM user_values_days
       WHERE date_trunc('month', user_values_days.t) = date_trunc('month',  (now() - interval '1 month') AT TIME ZONE 'America/Chicago')
-      AND NOT (id = ANY (${SN_USER_IDS}))
+      AND NOT (id = ANY (${SN_NO_REWARDS_IDS}))
       GROUP BY id
       ORDER BY proportion DESC
-      LIMIT 64`
+      LIMIT 100`
 
     // in order to group earnings for users we use the same createdAt time for
     // all earnings

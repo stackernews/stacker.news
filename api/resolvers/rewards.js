@@ -161,7 +161,7 @@ export default {
       const [{ to, from }] = await models.$queryRaw`
         SELECT date_trunc('month',  (now() AT TIME ZONE 'America/Chicago')) AT TIME ZONE 'America/Chicago' as from,
                (date_trunc('month',  (now() AT TIME ZONE 'America/Chicago')) AT TIME ZONE 'America/Chicago') + interval '1 month - 1 second' as to`
-      return await topUsers(parent, { when: 'custom', to: new Date(to).getTime().toString(), from: new Date(from).getTime().toString(), limit: 64 }, { models, ...context })
+      return await topUsers(parent, { when: 'custom', to: new Date(to).getTime().toString(), from: new Date(from).getTime().toString(), limit: 100 }, { models, ...context })
     }
   },
   Mutation: {

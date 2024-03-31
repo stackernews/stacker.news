@@ -99,7 +99,7 @@ export default function Rewards ({ ssrData }) {
 
   let { rewards: [{ total, sources, time, leaderboard }] } = useData(data, ssrData)
   if (rewardsData?.rewards?.length > 0) {
-    total = rewardsData.rewards[0].total
+    total = rewardsData.rewards[0].total - 1000000 > 0 ? rewardsData.rewards[0].total - 1000000 : 0
     sources = rewardsData.rewards[0].sources
     time = rewardsData.rewards[0].time
   }
@@ -108,7 +108,7 @@ export default function Rewards ({ ssrData }) {
     return (
       <div className='text-muted fst-italic'>
         <small>
-          <span>estimated reward: {numWithUnits(Math.floor(total * proportions[rank - 1]))}</span>
+          <span>estimated reward: {numWithUnits(rank === 1 ? 1000000 : Math.floor(total * proportions[rank - 2]))}</span>
         </small>
       </div>
     )
@@ -116,12 +116,18 @@ export default function Rewards ({ ssrData }) {
 
   return (
     <Layout footerLinks>
-      <Row className='py-3'>
+      <h3 className='pt-3 text-center' style={{ lineHeight: 1.5 }}>
+        Rewards are sponsored by{' '}
+        <Link href='https://btcplusplus.dev/conf/atx24' target='_blank' rel='noreferrer'>
+          the Austin Bitcoin++ Conference May 1-4
+        </Link>
+      </h3>
+      <Row className='pb-3'>
         <Col>
           <div
             className='d-flex flex-column sticky-lg-top py-5'
           >
-            <h3 className='text-center'>
+            <h3 className='text-center text-muted'>
               <div>
                 <RewardLine total={total} time={time} />
               </div>
@@ -137,7 +143,7 @@ export default function Rewards ({ ssrData }) {
         </Col>
         {leaderboard?.users &&
           <Col lg={7}>
-            <h2 className='pt-5 text-center'>leaderboard</h2>
+            <h2 className='pt-5 text-center text-muted'>leaderboard</h2>
             <div className='d-flex justify-content-center pt-4'>
               <ListUsers users={leaderboard.users} rank Embellish={EstimatedReward} />
             </div>

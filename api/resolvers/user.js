@@ -5,7 +5,7 @@ import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { msatsToSats } from '@/lib/format'
 import { bioSchema, emailSchema, settingsSchema, ssValidate, userSchema } from '@/lib/validate'
 import { getItem, updateItem, filterClause, createItem, whereClause, muteClause } from './item'
-import { ANON_USER_ID, DELETE_USER_ID, RESERVED_MAX_USER_ID, SN_USER_IDS } from '@/lib/constants'
+import { ANON_USER_ID, DELETE_USER_ID, RESERVED_MAX_USER_ID, SN_NO_REWARDS_IDS } from '@/lib/constants'
 import { viewGroup } from './growth'
 import { whenRange } from '@/lib/time'
 
@@ -106,7 +106,7 @@ export function viewValueGroup () {
         WHERE user_values_today.t >= date_trunc('day', timezone('America/Chicago', $1))
         AND date_trunc('day', user_values_today.t) <= date_trunc('day', timezone('America/Chicago', $2)))
       ) v
-    WHERE v.id NOT IN (${SN_USER_IDS.join(',')})
+    WHERE v.id NOT IN (${SN_NO_REWARDS_IDS.join(',')})
     GROUP BY v.id
   ) vv`
 }

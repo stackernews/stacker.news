@@ -39,11 +39,14 @@ export default function WalletLogs () {
             <Link href={`/wallet/logs?since=${earlierTs5m}`} className='mx-1 text-muted text-underline'>5m</Link>
             <Link href={`/wallet/logs?since=${earlierTs1h}`} className='mx-1 text-muted text-underline'>1h</Link>
             <Link href={`/wallet/logs?since=${earlierTs6h}`} className='mx-1 text-muted text-underline'>6h</Link>
-            <span className='mx-1 text-muted' suppressHydrationWarning>{new Date(more ? sinceRounded : logStart).toLocaleTimeString()}</span>
           </div>
-          <div className={styles.logBox}>
-            {!more && <div className={styles.eol}>------ end of logs ------</div>}
-            {logs.map((log, i) => <LogMessage key={i} {...log} />)}
+          <div className={styles.logTable}>
+            <table>
+              <tbody>
+                {!more && <tr><td colSpan='4' className='text-center'>------ start of logs ------</td></tr>}
+                {logs.map((log, i) => <LogMessage key={i} {...log} />)}
+              </tbody>
+            </table>
           </div>
         </div>
       </CenterLayout>

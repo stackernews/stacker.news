@@ -8,6 +8,7 @@ import { useRouter } from 'next/router'
 import { useNWC } from '@/components/webln/nwc'
 import { WalletSecurityBanner } from '@/components/banners'
 import { useWebLNConfigurator } from '@/components/webln'
+import WalletLogs from '@/components/wallet-logs'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -68,6 +69,9 @@ export default function NWC () {
           }}
         />
       </Form>
+      <div className='mt-3'>
+        <WalletLogs embedded />
+      </div>
     </CenterLayout>
   )
 }

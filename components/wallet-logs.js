@@ -18,7 +18,7 @@ const FollowCheckbox = ({ value, ...props }) => {
   )
 }
 
-export default function WalletLogs () {
+export default function WalletLogs ({ embedded }) {
   const { logs } = useWalletLogger()
 
   const router = useRouter()
@@ -61,11 +61,11 @@ export default function WalletLogs () {
     <>
       <Form initial={{ follow: true }}>
         <FollowCheckbox
-          label='follow' name='follow' value={follow}
+          label='follow logs' name='follow' value={follow}
           handleChange={setFollow}
         />
       </Form>
-      <div ref={tableRef} className={styles.logTable}>
+      <div ref={tableRef} className={`${styles.logTable} ${embedded ? styles.embedded : ''}`}>
         <table>
           <tbody>
             <tr><td colSpan='4' className='text-center'>------ start of logs ------</td></tr>

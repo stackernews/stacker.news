@@ -493,6 +493,7 @@ async function upsertWallet (
   if (!me) {
     throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
   }
+  assertApiKeyNotPermitted({ me })
 
   await ssValidate(schema, { ...data, ...settings }, { me, models })
 

@@ -1,31 +1,86 @@
-import { createContext } from 'react'
+import { createContext, useEffect, useRef, useState } from 'react'
 import { CenterLayout } from '@/components/layout'
 import LogMessage from '@/components/log-message'
 import { useWalletLogger } from '@/components/logger'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import styles from '@/styles/log.module.css'
+import { Checkbox, Form } from '@/components/form'
+import { useRouter } from 'next/router'
+import { useField } from 'formik'
 
 export const getServerSideProps = getGetServerSideProps({ query: null })
 
 export const WalletLogsContext = createContext()
 
+const FollowCheckbox = ({ value, ...props }) => {
+  const [,, helpers] = useField(props.name)
+
+  useEffect(() => {
+    helpers.setValue(value)
+  }, [value])
+
+  return (
+    <Checkbox {...props} />
+  )
+}
+
 export default function WalletLogs () {
   const { logs } = useWalletLogger()
+
+  const router = useRouter()
+  const { follow: defaultFollow } = router.query
+  const [follow, setFollow] = useState(defaultFollow ?? true)
+  const tableRef = useRef()
+  const scrollY = useRef()
+  const tableEndRef = useRef()
+
+  useEffect(() => {
+    if (follow) {
+      tableEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [logs, follow])
+
+  useEffect(() => {
+    function onScroll (e) {
+      const y = e.target.scrollTop
+
+      const down = y - scrollY.current >= -1
+      if (!!scrollY.current && !down) {
+        setFollow(false)
+      }
+
+      const maxY = e.target.scrollHeight - e.target.clientHeight
+      const dY = maxY - y
+      const isBottom = dY >= -1 && dY <= 1
+      if (isBottom) {
+        setFollow(true)
+      }
+
+      scrollY.current = y
+    }
+    tableRef.current?.addEventListener('scroll', onScroll)
+    return () => tableRef.current?.removeEventListener('scroll', onScroll)
+  }, [])
 
   // TODO add filter by wallet
   return (
     <>
       <CenterLayout>
         <h2 className='text-center'>wallet logs</h2>
-        <div>
-          <div className={styles.logTable}>
-            <table>
-              <tbody>
-                <tr><td colSpan='4' className='text-center'>------ start of logs ------</td></tr>
-                {logs.map((log, i) => <LogMessage key={i} {...log} />)}
-              </tbody>
-            </table>
-          </div>
+        <Form initial={{ follow: true }}>
+          <FollowCheckbox
+            label='follow' name='follow' value={follow}
+            handleChange={setFollow}
+          />
+        </Form>
+        <div ref={tableRef} className={styles.logTable}>
+          <table>
+            <tbody>
+              <tr><td colSpan='4' className='text-center'>------ start of logs ------</td></tr>
+              {logs.map((log, i) => <LogMessage key={i} {...log} />)}
+              <tr><td colSpan='4' ref={tableEndRef} /></tr>
+            </tbody>
+          </table>
         </div>
       </CenterLayout>
     </>

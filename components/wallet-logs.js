@@ -18,7 +18,7 @@ const FollowCheckbox = ({ value, ...props }) => {
   )
 }
 
-export default function WalletLogs ({ embedded }) {
+export default function WalletLogs ({ wallet, embedded }) {
   const { logs } = useWalletLogger()
 
   const router = useRouter()
@@ -69,7 +69,9 @@ export default function WalletLogs ({ embedded }) {
         <table>
           <tbody>
             <tr><td colSpan='4' className='text-center'>------ start of logs ------</td></tr>
-            {logs.map((log, i) => <LogMessage key={i} {...log} />)}
+            {logs
+              .filter(l => !wallet || l.wallet === wallet)
+              .map((log, i) => <LogMessage key={i} {...log} />)}
             <tr><td colSpan='4' ref={tableEndRef} /></tr>
           </tbody>
         </table>

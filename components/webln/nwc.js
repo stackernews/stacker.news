@@ -60,8 +60,7 @@ export function NWCProvider ({ children }) {
       'loaded wallet config: ' +
       'secret=****** ' +
       `pubkey=${params.walletPubkey.slice(0, 6)}..${params.walletPubkey.slice(-6)} ` +
-      `relay=${params.relayUrl}`
-    )
+      `relay=${params.relayUrl}`)
 
     try {
       logger.info(`requesting info event from ${params.relayUrl}`)

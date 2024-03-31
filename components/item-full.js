@@ -126,6 +126,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
   const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text })
 
   return (
+   <article className={styles.fullItemContainer} ref={textRef}>
     <ItemComponent
       item={item}
       full
@@ -140,7 +141,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
       belowTitle={item.forwards && item.forwards.length > 0 && <FwdUsers forwards={item.forwards} />}
       {...props}
     >
-      <article className={styles.fullItemContainer} ref={textRef}>
+      <p>
         {item.text && <ItemText item={item} />}
         {item.url && <ItemEmbed item={item} />}
         {item.poll && <Poll item={item} />}
@@ -157,6 +158,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
                   {numWithUnits(item.bounty, { abbreviate: false, format: true })} bounty
                 </div>)}
           </div>}
+        </p>
       </article>
       {!noReply &&
         <>

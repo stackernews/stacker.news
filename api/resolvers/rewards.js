@@ -79,7 +79,12 @@ async function getRewards (when, models) {
       throw new GraphQLError('bad date range', { extensions: { code: 'BAD_USER_INPUT' } })
     }
 
-    if (new Date(when[0]).getTime() >= new Date('2024-03-01').getTime()) {
+    if (new Date(when[0]).getTime() > new Date('2024-03-01').getTime()) {
+      // after 3/1/2024, we reward monthly on the 1st
+      if (new Date(when[0]).getUTCDate() !== 1) {
+        throw new GraphQLError('invalid reward date', { extensions: { code: 'BAD_USER_INPUT' } })
+      }
+
       return await getMonthlyRewards(when, models)
     }
   }

@@ -16,7 +16,8 @@ const GrowthPieChart = dynamic(() => import('@/components/charts').then(mod => m
 })
 
 export const getServerSideProps = getGetServerSideProps({
-  query: ME_REWARDS
+  query: ME_REWARDS,
+  notFound: (data, params) => data.rewards.reduce((a, r) => a || new Date(r.time) > new Date(), false)
 })
 
 export default function Rewards ({ ssrData }) {

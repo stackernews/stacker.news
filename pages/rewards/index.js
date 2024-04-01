@@ -99,16 +99,17 @@ export default function Rewards ({ ssrData }) {
 
   let { rewards: [{ total, sources, time, leaderboard }] } = useData(data, ssrData)
   if (rewardsData?.rewards?.length > 0) {
-    total = rewardsData.rewards[0].total - 1000000 > 0 ? rewardsData.rewards[0].total - 1000000 : 0
+    total = rewardsData.rewards[0].total
     sources = rewardsData.rewards[0].sources
     time = rewardsData.rewards[0].time
   }
 
   function EstimatedReward ({ rank }) {
+    const totalRest = total - 1000000
     return (
       <div className='text-muted fst-italic'>
         <small>
-          <span>estimated reward: {numWithUnits(rank === 1 ? 1000000 : Math.floor(total * proportions[rank - 2]))}</span>
+          <span>estimated reward: {numWithUnits(rank === 1 ? 1000000 : Math.floor(totalRest * proportions[rank - 2]))}</span>
         </small>
       </div>
     )

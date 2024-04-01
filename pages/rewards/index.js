@@ -116,12 +116,12 @@ export default function Rewards ({ ssrData }) {
 
   return (
     <Layout footerLinks>
-      <h3 className='pt-3 text-center' style={{ lineHeight: 1.5 }}>
-        Rewards are sponsored by{' '}
-        <Link href='https://btcplusplus.dev/conf/atx24' target='_blank' rel='noreferrer'>
-          the Austin Bitcoin++ Conference May 1-4
-        </Link>
-      </h3>
+      <Link className='text-reset align-self-center' href='https://btcplusplus.dev/conf/atx24?ref=stackernews' target='_blank' rel='noreferrer'>
+        <h4 className='pt-3 text-start text-reset' style={{ lineHeight: 1.5, textDecoration: 'underline' }}>
+          bitcoin++ is a developer-focused conference series.
+          <div>Join us in Austin May 1-4 for a deep dive into bitcoin script.</div>
+        </h4>
+      </Link>
       <Row className='pb-3'>
         <Col>
           <div

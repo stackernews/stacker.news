@@ -34,8 +34,8 @@ export default function Sub ({ ssrData }) {
         <Link className='text-reset' href='/rewards' style={{ textDecoration: 'underline' }}>
           Million Sat Madness
         </Link> is sponsored by{' '}
-        <Link className='text-reset' href='https://btcplusplus.dev/conf/atx24' target='_blank' rel='noreferrer' style={{ textDecoration: 'underline' }}>
-          the Austin Bitcoin++ Conference May 1-4
+        <Link className='text-reset' href='https://btcplusplus.dev/conf/atx24?ref=stackernews' target='_blank' rel='noreferrer' style={{ textDecoration: 'underline' }}>
+          the Bitcoin++ Conference in Austin May 1-4
         </Link>
       </small>
       <Items ssrData={ssrData} variables={variables} />

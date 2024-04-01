@@ -553,6 +553,17 @@ export default {
 
       return res
     },
+    fetchDocument: async (parent, { url }, { models }) => {
+      try {
+        const response = await fetch(ensureProtocol(url))
+        const html = await response.text()
+        if (url.includes('peertube.tv')) {
+          return html.match(/"([^"]*\/embed\/[^"]*)"/)[0].substring(1, html.match(/"([^"]*\/embed\/[^"]*)"/)[0].length - 1)
+        } else {
+          return html
+        }
+      } catch { }
+    },
     dupes: async (parent, { url }, { me, models }) => {
       const urlObj = new URL(ensureProtocol(url))
       const { hostname, pathname } = urlObj

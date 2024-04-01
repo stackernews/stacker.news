@@ -26,6 +26,7 @@ import { IMGPROXY_URL_REGEXP } from '@/lib/url'
 import { numWithUnits } from '@/lib/format'
 import { useQuoteReply } from './use-quote-reply'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
+import { gql, useLazyQuery } from '@apollo/client'
 
 function BioItem ({ item, handleClick }) {
   const me = useMe()
@@ -69,6 +70,13 @@ function ItemEmbed ({ item }) {
   const [darkMode] = useDarkMode()
   const [overflowing, setOverflowing] = useState(false)
   const [show, setShow] = useState(false)
+  const [embedString, setEmbedString] = useState('')
+
+  const [fetchDocument] = useLazyQuery(gql`
+    query FetchDocument($url: String!) {
+      fetchDocument(url: $url)
+    }
+  `)
 
   const url = item.url && new URL(item.url)
   const { pathname, searchParams } = url
@@ -82,6 +90,21 @@ function ItemEmbed ({ item }) {
       queryParams[key].push(value)
     }
   })
+
+  useEffect(() => {
+    if ((url.host === 'rumble.com' && parts[0] !== 'embed') || (url.host === 'peertube.tv' && parts[1] !== 'embed')) {
+      try {
+        fetchDocument({
+          variables: { url: item.url },
+          onCompleted: (data) => {
+            setEmbedString(data?.fetchDocument)
+          }
+        })
+      } catch (err) {
+        console.error(err)
+      }
+    }
+  }, [item.url])
 
   const twitter = item.url?.match(/^https?:\/\/(?:twitter|x)\.com\/(?:#!\/)?\w+\/status(?:es)?\/(?<id>\d+)/)
   if (twitter?.groups?.id) {
@@ -132,25 +155,40 @@ function ItemEmbed ({ item }) {
     }
   }
 
-  // if the link is to a odysee embed, render the embeded media
-  if (url.host === 'odysee.com') {
-    const embedURL = parts[1] && parts[1] === 'embed' ? item.url : url.origin + '/$/embed' + url.pathname
-    if (parts[1] === 'embed') {
-      return (
+  // if the link is to a peertube video, render the video
+  if (url.host === 'peertube.tv') {
+    return (
+      (embedString || parts[1] === 'embed') && (
         <div className={styles.youtubeContainerContainer}>
           <div className={styles.youtubeContainer}>
             <iframe
               style={{ width: '100%', height: '100%' }}
-              title='Odysee Embed'
+              title='PeerTube Video'
               allowFullScreen=''
-              src={embedURL}
+              src={embedString || item.url}
+              sandbox='allow-same-origin allow-scripts allow-popups'
             />
           </div>
         </div>
       )
-    } else {
-      return null
-    }
+    )
+  }
+
+  // if the link is to a odysee embed, render the embeded media
+  if (url.host === 'odysee.com') {
+    const embedURL = parts[1] && parts[1] === 'embed' ? item.url : url.origin + '/$/embed' + url.pathname
+    return (
+      <div className={styles.youtubeContainerContainer}>
+        <div className={styles.youtubeContainer}>
+          <iframe
+            style={{ width: '100%', height: '100%' }}
+            title='Odysee Embed'
+            allowFullScreen=''
+            src={embedURL}
+          />
+        </div>
+      </div>
+    )
   }
 
   if (item.url?.match(IMGPROXY_URL_REGEXP)) {

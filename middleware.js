@@ -40,7 +40,7 @@ export function middleware (request) {
     // unsafe-inline for styles is not ideal but okay if script-src is using nonces
     "style-src 'self' a.stacker.news 'unsafe-inline'",
     "manifest-src 'self'",
-    'frame-src www.youtube.com platform.twitter.com rumble.com odysee.com',
+    'frame-src www.youtube.com platform.twitter.com rumble.com odysee.com peertube.tv',
     "connect-src 'self' https: wss:" + devSrc,
     // disable dangerous plugins like Flash
     "object-src 'none'",

@@ -5,6 +5,7 @@ export default gql`
     items(sub: String, sort: String, type: String, cursor: String, name: String, when: String, from: String, to: String, by: String, limit: Limit): Items
     item(id: ID!): Item
     pageTitleAndUnshorted(url: String!): TitleUnshorted
+    fetchDocument(url: String!): String
     dupes(url: String!): [Item!]
     related(cursor: String, title: String, id: ID, minMatch: String, limit: Limit): Items
     search(q: String, sub: String, cursor: String, what: String, sort: String, when: String, from: String, to: String): Items

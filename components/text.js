@@ -21,6 +21,7 @@ import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import isEqual from 'lodash/isEqual'
+import { gql, useLazyQuery } from '@apollo/client'
 
 export function SearchText ({ text }) {
   return (
@@ -138,6 +139,8 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
   const P = useCallback(({ children, node, ...props }) => <div className={styles.p} {...props}>{children}</div>, [])
 
   const A = useCallback(({ node, href, children, ...props }) => {
+    const [embedString, setEmbedString] = useState('')
+
     const url = new URL(href)
     const { pathname, searchParams } = url
     const emptyPart = part => !!part
@@ -150,6 +153,27 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
         queryParams[key].push(value)
       }
     })
+
+    const [fetchDocument] = useLazyQuery(gql`
+    query FetchDocument($url: String!) {
+      fetchDocument(url: $url)
+    }
+  `)
+
+    useEffect(() => {
+      if ((url.host === 'rumble.com' && parts[0] !== 'embed') || (url.host === 'peertube.tv' && parts[1] !== 'embed')) {
+        try {
+          fetchDocument({
+            variables: { url: href },
+            onCompleted: (data) => {
+              setEmbedString(data?.fetchDocument)
+            }
+          })
+        } catch (err) {
+          console.error(err)
+        }
+      }
+    }, [href])
 
     children = children ? Array.isArray(children) ? children : [children] : []
     // don't allow zoomable images to be wrapped in links
@@ -214,14 +238,35 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
           <div style={{ maxWidth: topLevel ? '640px' : '320px', paddingRight: '15px', margin: '0.5rem 0' }}>
             <div className={styles.youtubeContainer}>
               <iframe
-                title='Rumble Video'
                 style={{ width: '100%', height: '100%' }}
+                title='Rumble Video'
+                allowFullScreen=''
                 src={href}
+                sandbox='allow-same-origin allow-scripts allow-popups'
               />
             </div>
           </div>
         )
       }
+    }
+
+    // if the link is to a peertube video, render the video
+    if (url.host === 'peertube.tv') {
+      return (
+        (embedString || parts[1] === 'embed') && (
+          <div style={{ maxWidth: topLevel ? '640px' : '320px', paddingRight: '15px', margin: '0.5rem 0' }}>
+            <div className={styles.youtubeContainer}>
+              <iframe
+                style={{ width: '100%', height: '100%' }}
+                title='PeerTube Video'
+                allowFullScreen=''
+                src={embedString || href}
+                sandbox='allow-same-origin allow-scripts allow-popups'
+              />
+            </div>
+          </div>
+        )
+      )
     }
 
     // if the link is to a odysee embed, render the embeded media
@@ -235,6 +280,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
               title='Odysee Embed'
               allowFullScreen=''
               src={embedURL}
+              sandbox='allow-same-origin allow-scripts allow-popups'
             />
           </div>
         </div>

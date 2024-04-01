@@ -15,7 +15,7 @@ export async function earn ({ name }) {
     const [{ sum: sumDecimal }] = await models.$queryRaw`
       SELECT coalesce(sum(total), 0) as sum
       FROM rewards_days
-      WHERE date_trunc('month', rewards_days.t) = date_trunc('month',  (now() - interval '1 month') AT TIME ZONE 'America/Chicago')`
+      WHERE date_trunc('month', rewards_days.t) = date_trunc('month',  (now() AT TIME ZONE 'America/Chicago' - interval '1 month'))`
 
     // XXX primsa will return a Decimal (https://mikemcl.github.io/decimal.js)
     // because sum of a BIGINT returns a NUMERIC type (https://www.postgresql.org/docs/13/functions-aggregate.html)
@@ -54,7 +54,7 @@ export async function earn ({ name }) {
     const earners = await models.$queryRaw`
       SELECT id AS "userId", sum(proportion) as proportion, ROW_NUMBER() OVER (ORDER BY sum(proportion) DESC) as rank
       FROM user_values_days
-      WHERE date_trunc('month', user_values_days.t) = date_trunc('month',  (now() - interval '1 month') AT TIME ZONE 'America/Chicago')
+      WHERE date_trunc('month', user_values_days.t) = date_trunc('month',  (now() AT TIME ZONE 'America/Chicago' - interval '1 month'))
       AND NOT (id = ANY (${SN_NO_REWARDS_IDS}))
       GROUP BY id
       ORDER BY proportion DESC

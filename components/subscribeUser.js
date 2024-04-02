@@ -1,7 +1,22 @@
+import { createContext, useContext } from 'react'
 import { useMutation } from '@apollo/client'
 import { gql } from 'graphql-tag'
 import Dropdown from 'react-bootstrap/Dropdown'
 import { useToast } from './toast'
+
+const SubscribeUserContext = createContext(() => ({
+  refetchQueries: []
+}))
+
+export const SubscribeUserContextProvider = ({ children, value }) => {
+  return (
+    <SubscribeUserContext.Provider value={value}>
+      {children}
+    </SubscribeUserContext.Provider>
+  )
+}
+
+export const useSubscribeUserContext = () => useContext(SubscribeUserContext)
 
 export default function SubscribeUserDropdownItem ({ user, target = 'posts' }) {
   const isPosts = target === 'posts'
@@ -9,6 +24,7 @@ export default function SubscribeUserDropdownItem ({ user, target = 'posts' }) {
   const userField = isPosts ? 'meSubscriptionPosts' : 'meSubscriptionComments'
   const toaster = useToast()
   const { id, [userField]: meSubscription } = user
+  const { refetchQueries } = useSubscribeUserContext()
   const [subscribeUser] = useMutation(
     gql`
       mutation ${mutation}($id: ID!) {
@@ -16,6 +32,7 @@ export default function SubscribeUserDropdownItem ({ user, target = 'posts' }) {
           ${userField}
         }
       }`, {
+      refetchQueries,
       update (cache, { data: { [mutation]: subscribeUser } }) {
         cache.modify({
           id: `User:${id}`,

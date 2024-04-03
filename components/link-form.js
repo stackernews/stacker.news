@@ -172,7 +172,9 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
           ? <div className='text-muted fw-bold'><Countdown date={editThreshold} /></div>
           : null}
         onChange={async (formik, e) => {
-          if ((/^ *$/).test(formik?.values.title)) {
+          const hasTitle = !!(formik?.values.title.trim().length > 0)
+          const hasDraftTitle = !!(window.localStorage.getItem('link-title')?.trim()?.length > 0)
+          if (!hasTitle && !hasDraftTitle) {
             getPageTitleAndUnshorted({
               variables: { url: e.target.value }
             })

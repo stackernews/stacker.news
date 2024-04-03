@@ -26,11 +26,10 @@ export default function WalletLogs ({ wallet, embedded }) {
   const [follow, setFollow] = useState(defaultFollow ?? true)
   const tableRef = useRef()
   const scrollY = useRef()
-  const tableEndRef = useRef()
 
   useEffect(() => {
     if (follow) {
-      tableEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      tableRef.current?.scroll({ top: tableRef.current.scrollHeight, behavior: 'smooth' })
     }
   }, [logs, follow])
 
@@ -72,7 +71,6 @@ export default function WalletLogs ({ wallet, embedded }) {
             {logs
               .filter(l => !wallet || l.wallet === wallet)
               .map((log, i) => <LogMessage key={i} {...log} />)}
-            <tr><td colSpan='4' ref={tableEndRef} /></tr>
           </tbody>
         </table>
       </div>

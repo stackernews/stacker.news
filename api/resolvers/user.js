@@ -8,6 +8,7 @@ import { getItem, updateItem, filterClause, createItem, whereClause, muteClause 
 import { ANON_USER_ID, DELETE_USER_ID, RESERVED_MAX_USER_ID, SN_NO_REWARDS_IDS } from '@/lib/constants'
 import { viewGroup } from './growth'
 import { whenRange } from '@/lib/time'
+import assertApiKeyNotPermitted from './apiKey'
 
 const contributors = new Set()
 
@@ -562,6 +563,7 @@ export default {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
       }
+      assertApiKeyNotPermitted({ me })
 
       let user
       if (authType === 'twitter' || authType === 'github') {
@@ -592,6 +594,7 @@ export default {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
       }
+      assertApiKeyNotPermitted({ me })
 
       await ssValidate(emailSchema, { email })
 

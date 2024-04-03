@@ -11,6 +11,7 @@ import { LNDAutowithdrawSchema, amountSchema, lnAddrAutowithdrawSchema, lnAddrSc
 import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, ANON_USER_ID, BALANCE_LIMIT_MSATS, INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT } from '@/lib/constants'
 import { datePivot } from '@/lib/time'
 import assertGofacYourself from './ofac'
+import assertApiKeyNotPermitted from './apiKey'
 
 export async function getInvoice (parent, { id }, { me, models, lnd }) {
   const inv = await models.invoice.findUnique({
@@ -492,6 +493,7 @@ async function upsertWallet (
   if (!me) {
     throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
   }
+  assertApiKeyNotPermitted({ me })
 
   await ssValidate(schema, { ...data, ...settings }, { me, models })
 
@@ -562,6 +564,7 @@ async function upsertWallet (
 }
 
 export async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd, headers, autoWithdraw = false }) {
+  assertApiKeyNotPermitted({ me })
   await ssValidate(withdrawlSchema, { invoice, maxFee })
   await assertGofacYourself({ models, headers })
 
@@ -620,6 +623,7 @@ export async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...
   if (!me) {
     throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
   }
+  assertApiKeyNotPermitted({ me })
 
   const options = await lnAddrOptions(addr)
   await ssValidate(lnAddrSchema, { addr, amount, maxFee, comment, ...payer }, options)

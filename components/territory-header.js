@@ -43,6 +43,8 @@ export function TerritoryInfo ({ sub }) {
           <Link href={`/${sub.user.name}`}>
             @{sub.user.name}<span> </span><Hat className='fill-grey' user={sub.user} height={12} width={12} />
           </Link>
+          <span>on </span>
+          <span className='fw-bold'>{new Date(sub.createdAt).toDateString()}</span>
         </div>
         <div className='text-muted'>
           <span>post cost </span>

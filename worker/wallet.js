@@ -19,7 +19,7 @@ function subscribeForever (subscribe) {
     let sub
     try {
       return await new Promise((resolve, reject) => {
-        const sub = subscribe(resolve, bail)
+        sub = subscribe(resolve, bail)
         if (!sub) {
           return bail(new Error('function passed to subscribeForever must return a subscription object or promise'))
         }

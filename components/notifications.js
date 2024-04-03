@@ -165,7 +165,7 @@ function EarnNotification ({ n }) {
             {n.sources.tipComments > 0 && <span>{(n.sources.comments > 0 || n.sources.posts > 0 || n.sources.tipPosts > 0) && ' \\ '}{numWithUnits(n.sources.tipComments, { abbreviate: false })} for zapping top comments early</span>}
           </div>}
         <div style={{ lineHeight: '140%' }}>
-          SN distributes the sats it earns back to its best stackers daily. These sats come from <Link href='/~jobs'>jobs</Link>, boosts, posting fees, and donations. You can see the daily rewards pool and make a donation <Link href='/rewards'>here</Link>.
+          SN distributes the sats it earns back to its best stackers. These sats come from <Link href='/~jobs'>jobs</Link>, boosts, posting fees, and donations. You can see the rewards pool and make a donation <Link href='/rewards'>here</Link>.
         </div>
         <small className='text-muted ms-1 pb-1 fw-normal'>click for details</small>
       </div>

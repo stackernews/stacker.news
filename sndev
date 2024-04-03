@@ -83,7 +83,7 @@ help="
 start the sndev env
 
 USAGE
-  $ sndev start [OPTIONS]
+  $ sndev start [OPTIONS] [SERVICE...]
 
 OPTIONS"
 
@@ -101,7 +101,7 @@ help="
 stop the sndev env
 
 USAGE
-  $ sndev stop [OPTIONS]
+  $ sndev stop [OPTIONS] [SERVICE...]
 
 OPTIONS"
 
@@ -119,12 +119,30 @@ help="
 restart the sndev env
 
 USAGE
-  $ sndev restart [OPTIONS]
+  $ sndev restart [OPTIONS] [SERVICE...]
 
 OPTIONS"
 
   echo "$help"
   docker__compose restart --help | awk '/Options:/{y=1;next}y'
+}
+
+sndev__logs() {
+  shift
+  docker__compose logs "$@"
+}
+
+sndev__help_logs() {
+help="
+get logs from sndev env
+
+USAGE
+  $ sndev logs [OPTIONS] [SERVICE...]
+
+OPTIONS"
+
+  echo "$help"
+  docker__compose logs --help | awk '/Options:/{y=1;next}y'
 }
 
 sndev__status() {
@@ -141,7 +159,7 @@ help="
 show container status of sndev env
 
 USAGE
-  $ sndev status [OPTIONS]
+  $ sndev status [OPTIONS] [SERVICE...]
 
 OPTIONS"
 
@@ -376,6 +394,7 @@ COMMANDS
     stop          stop env
     restart       restart env
     status        status of env
+    logs          logs from env
     delete        delete env
 
   sn:

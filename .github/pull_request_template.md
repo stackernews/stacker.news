@@ -1,4 +1,4 @@
-**Description**
+## Description
 
 <!--
 
@@ -17,7 +17,7 @@ Use following syntax to close them automatically on merge: closes #<NUMBER>
 
 -->
 
-**Screenshots**
+## Screenshots
 
 <!--
 
@@ -27,7 +27,7 @@ You can also create a video to showcase your changes (useful to show UX).
 
 -->
 
-**Additional Context**
+## Additional Context
 
 <!--
 
@@ -39,7 +39,7 @@ You can mention here anything that you think is relevant for this PR. Some examp
 
 -->
 
-**Checklist**
+## Checklist
 
 <!-- Examples for backwards incompatible changes:
 - dropping database columns

@@ -55,6 +55,8 @@ export default function WalletLogs ({ wallet, embedded }) {
     return () => tableRef.current?.removeEventListener('scroll', onScroll)
   }, [])
 
+  const filtered = logs.filter(l => !wallet || l.wallet === wallet)
+
   return (
     <>
       <Form initial={{ follow: true }}>
@@ -64,12 +66,11 @@ export default function WalletLogs ({ wallet, embedded }) {
         />
       </Form>
       <div ref={tableRef} className={`${styles.logTable} ${embedded ? styles.embedded : ''}`}>
+        <div className='w-100 text-center'>------ start of logs ------</div>
+        {filtered.length === 0 && <div className='w-100 text-center'>empty</div>}
         <table>
           <tbody>
-            <tr><td colSpan='4' className='text-center'>------ start of logs ------</td></tr>
-            {logs
-              .filter(l => !wallet || l.wallet === wallet)
-              .map((log, i) => <LogMessage key={i} {...log} />)}
+            {filtered.map((log, i) => <LogMessage key={i} {...log} />)}
           </tbody>
         </table>
       </div>

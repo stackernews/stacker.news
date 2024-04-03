@@ -6,7 +6,7 @@ import { gql, useMutation, useQuery } from '@apollo/client'
 import Qr, { QrSkeleton } from '@/components/qr'
 import { CenterLayout } from '@/components/layout'
 import InputGroup from 'react-bootstrap/InputGroup'
-import { WithdrawlSkeleton } from './withdrawals/[id]'
+import { WithdrawlSkeleton } from '@/pages/withdrawals/[id]'
 import { useMe } from '@/components/me'
 import { useEffect, useState } from 'react'
 import { requestProvider } from 'webln'
@@ -78,9 +78,18 @@ function YouHaveSats () {
 
 function WalletHistory () {
   return (
-    <Link href='/satistics?inc=invoice,withdrawal' className='text-muted fw-bold text-underline'>
-      wallet history
-    </Link>
+    <div className='d-flex flex-column text-center'>
+      <div>
+        <Link href='/satistics?inc=invoice,withdrawal' className='text-muted fw-bold text-underline'>
+          wallet history
+        </Link>
+      </div>
+      <div>
+        <Link href='/wallet/logs' className='text-muted fw-bold text-underline'>
+          wallet logs
+        </Link>
+      </div>
+    </div>
   )
 }
 

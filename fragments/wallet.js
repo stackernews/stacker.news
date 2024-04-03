@@ -149,3 +149,15 @@ export const WALLETS = gql`
     }
   }
 `
+
+export const WALLET_LOGS = gql`
+  query WalletLogs {
+    walletLogs {
+      id
+      createdAt
+      wallet
+      level
+      message
+    }
+  }
+`

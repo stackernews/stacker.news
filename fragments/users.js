@@ -213,17 +213,12 @@ export const MY_SUBSCRIBED_USERS = gql`
         id
         name
         photoId
-        ncomments(when: "forever")
-        nposts(when: "forever")
         meSubscriptionPosts
         meSubscriptionComments
         meMute
 
         optional {
           streak
-          stacked(when: "forever")
-          spent(when: "forever")
-          referrals(when: "forever")
         }
       }
       cursor

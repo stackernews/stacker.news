@@ -3,7 +3,7 @@ import { Form, Input } from '@/components/form'
 import { CenterLayout } from '@/components/layout'
 import { useMe } from '@/components/me'
 import { WalletButtonBar, WalletCard } from '@/components/wallet-card'
-import { useMutation } from '@apollo/client'
+import { useApolloClient, useMutation } from '@apollo/client'
 import { useToast } from '@/components/toast'
 import { LNDAutowithdrawSchema } from '@/lib/validate'
 import { useRouter } from 'next/router'
@@ -20,8 +20,21 @@ export default function LND ({ ssrData }) {
   const me = useMe()
   const toaster = useToast()
   const router = useRouter()
-  const [upsertWalletLND] = useMutation(UPSERT_WALLET_LND, { refetchQueries: ['WalletLogs'] })
-  const [removeWallet] = useMutation(REMOVE_WALLET, { refetchQueries: ['WalletLogs'] })
+  const client = useApolloClient()
+  const [upsertWalletLND] = useMutation(UPSERT_WALLET_LND, {
+    refetchQueries: ['WalletLogs'],
+    onError: (err) => {
+      client.refetchQueries({ include: ['WalletLogs'] })
+      throw err
+    }
+  })
+  const [removeWallet] = useMutation(REMOVE_WALLET, {
+    refetchQueries: ['WalletLogs'],
+    onError: (err) => {
+      client.refetchQueries({ include: ['WalletLogs'] })
+      throw err
+    }
+  })
 
   const { walletByType: wallet } = ssrData || {}
 

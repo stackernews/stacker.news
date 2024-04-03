@@ -51,6 +51,17 @@ function getCallbacks (req) {
         // token won't have an id on it for new logins, we add it
         // note: token is what's kept in the jwt
         token.id = Number(user.id)
+
+        // if referrer exists, set on user
+        // isNewUser doesn't work for nostr/lightning auth because we create the user before nextauth can
+        // this means users can update their referrer if they don't have one, which is fine
+        if (req.cookies.sn_referrer && user?.id) {
+          const referrer = await prisma.user.findUnique({ where: { name: req.cookies.sn_referrer } })
+          if (referrer) {
+            await prisma.user.updateMany({ where: { id: user.id, referrerId: null }, data: { referrerId: referrer.id } })
+            notifyReferral(referrer.id)
+          }
+        }
       }
 
       if (token?.id) {
@@ -60,33 +71,22 @@ function getCallbacks (req) {
         token.sub = Number(token.id)
       }
 
-      if (isNewUser) {
-        // if referrer exists, set on user
-        if (req.cookies.sn_referrer && user?.id) {
-          const referrer = await prisma.user.findUnique({ where: { name: req.cookies.sn_referrer } })
-          if (referrer) {
-            await prisma.user.update({ where: { id: user.id }, data: { referrerId: referrer.id } })
-            notifyReferral(referrer.id)
-          }
-        }
-
-        // sign them up for the newsletter
-        if (user?.email && process.env.LIST_MONK_URL && process.env.LIST_MONK_AUTH) {
-          fetch(process.env.LIST_MONK_URL + '/api/subscribers', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: 'Basic ' + Buffer.from(process.env.LIST_MONK_AUTH).toString('base64')
-            },
-            body: JSON.stringify({
-              email: user.email,
-              name: 'blank',
-              lists: [2],
-              status: 'enabled',
-              preconfirm_subscriptions: true
-            })
-          }).then(async r => console.log(await r.json())).catch(console.log)
-        }
+      // sign them up for the newsletter
+      if (isNewUser && user?.email && process.env.LIST_MONK_URL && process.env.LIST_MONK_AUTH) {
+        fetch(process.env.LIST_MONK_URL + '/api/subscribers', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Basic ' + Buffer.from(process.env.LIST_MONK_AUTH).toString('base64')
+          },
+          body: JSON.stringify({
+            email: user.email,
+            name: 'blank',
+            lists: [2],
+            status: 'enabled',
+            preconfirm_subscriptions: true
+          })
+        }).then(async r => console.log(await r.json())).catch(console.log)
       }
 
       return token

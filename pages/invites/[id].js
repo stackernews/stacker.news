@@ -26,9 +26,10 @@ export async function getServerSideProps ({ req, res, query: { id, error = null 
   })
 
   if (!data?.invite) {
-    res.writeHead(301, {
+    res.writeHead(302, {
       Location: '/404'
     }).end()
+    return { props: {} }
   }
 
   if (session && res) {
@@ -36,19 +37,17 @@ export async function getServerSideProps ({ req, res, query: { id, error = null 
       // attempt to send gift
       // catch any errors and just ignore them for now
       await serialize(models,
-        models.$queryRawUnsafe('SELECT invite_drain($1::INTEGER, $2::INTEGER)', session.user.id, id))
+        models.$queryRawUnsafe('SELECT invite_drain($1::INTEGER, $2::TEXT)', session.user.id, id))
       const invite = await models.invite.findUnique({ where: { id } })
       notifyInvite(invite.userId)
     } catch (e) {
       console.log(e)
     }
 
-    return {
-      redirect: {
-        destination: '/',
-        permanent: false
-      }
-    }
+    res.writeHead(302, {
+      Location: '/'
+    }).end()
+    return { props: {} }
   }
 
   return {

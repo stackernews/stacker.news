@@ -41,6 +41,7 @@ function seperate (arr, seperator) {
 
 function User ({ user, rank, statComps, Embellish, nymActionDropdown = false }) {
   const me = useMe()
+  const showStatComps = statComps && statComps.length > 0
   return (
     <>
       {rank
@@ -56,16 +57,17 @@ function User ({ user, rank, statComps, Embellish, nymActionDropdown = false }) 
             className={`${userStyles.userimg} me-2`}
           />
         </Link>
-        <div className={styles.hunk}>
+        <div className={`${styles.hunk} ${!showStatComps && 'd-flex flex-column justify-content-around'}`}>
           <div className='d-flex'>
             <Link href={`/${user.name}`} className={`${styles.title} d-inline-flex align-items-center text-reset`}>
               @{user.name}<Hat className='ms-1 fill-grey' height={14} width={14} user={user} />
             </Link>
             {nymActionDropdown && <NymActionDropdown user={user} className='' />}
           </div>
-          <div className={styles.other}>
-            {statComps.map((Comp, i) => <Comp key={i} user={user} />)}
-          </div>
+          {showStatComps &&
+            <div className={styles.other}>
+              {statComps.map((Comp, i) => <Comp key={i} user={user} />)}
+            </div>}
           {Embellish && <Embellish rank={rank} />}
         </div>
       </div>
@@ -112,7 +114,7 @@ export function ListUsers ({ users, rank, statComps = seperate(STAT_COMPONENTS, 
   )
 }
 
-export default function UserList ({ ssrData, query, variables, destructureData, rank, footer = true, nymActionDropdown }) {
+export default function UserList ({ ssrData, query, variables, destructureData, rank, footer = true, nymActionDropdown, statCompsProp }) {
   const { data, fetchMore } = useQuery(query, { variables })
   const dat = useData(data, ssrData)
   const [statComps, setStatComps] = useState(seperate(STAT_COMPONENTS, Seperator))
@@ -138,7 +140,7 @@ export default function UserList ({ ssrData, query, variables, destructureData, 
 
   return (
     <>
-      <ListUsers users={users} rank={rank} statComps={statComps} nymActionDropdown={nymActionDropdown} />
+      <ListUsers users={users} rank={rank} statComps={statCompsProp ?? statComps} nymActionDropdown={nymActionDropdown} />
       {footer &&
         <MoreFooter cursor={cursor} count={users?.length} fetchMore={fetchMore} Skeleton={UsersSkeleton} noMoreText='NO MORE' />}
     </>

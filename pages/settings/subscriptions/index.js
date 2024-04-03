@@ -20,6 +20,7 @@ export default function MySubscribedUsers ({ ssrData }) {
             variables={{}}
             rank
             nymActionDropdown
+            statCompsProp={[]}
           />
         </SubscribeUserContextProvider>
       </div>

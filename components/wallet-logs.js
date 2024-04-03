@@ -55,7 +55,6 @@ export default function WalletLogs ({ wallet, embedded }) {
     return () => tableRef.current?.removeEventListener('scroll', onScroll)
   }, [])
 
-  // TODO add filter by wallet
   return (
     <>
       <Form initial={{ follow: true }}>

@@ -69,10 +69,12 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
       return
     } catch (error) {
       console.error(error)
+      // LND errors are in this shape: [code, type, { err: { code, details, metadata } }]
+      const details = error[2]?.err?.details || error.message || error.toString?.()
       await addWalletLog({
         wallet: wallet.type === 'LND' ? 'walletLND' : 'walletLightningAddress',
         level: 'ERROR',
-        message: 'autowithdrawal failed: ' + (error.message || error.toString?.())
+        message: 'autowithdrawal failed: ' + details
       })
     }
   }

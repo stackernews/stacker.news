@@ -20,6 +20,7 @@ import { defaultCommentSort, isJob, deleteItemByAuthor, getDeleteCommand, hasDel
 import { datePivot, whenRange } from '@/lib/time'
 import { imageFeesInfo, uploadIdsFromText } from './image'
 import assertGofacYourself from './ofac'
+import assertApiKeyNotPermitted from './apiKey'
 
 function commentsOrderByClause (me, models, sort) {
   if (sort === 'recent') {
@@ -856,6 +857,7 @@ export default {
       return id
     },
     act: async (parent, { id, sats, act = 'TIP', idempotent, hash, hmac }, { me, models, lnd, headers }) => {
+      assertApiKeyNotPermitted({ me })
       await ssValidate(actSchema, { sats, act })
       await assertGofacYourself({ models, headers })
 

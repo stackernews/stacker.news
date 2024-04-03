@@ -5,7 +5,7 @@
 </p>
 
 
-- Stacker News makes Bitcoin economies
+- Stacker News makes internet communities that pay you Bitcoin
 - What You See is What We Ship (look ma, I invented an initialism)
 - 100% FOSS
 - We pay bitcoin for PRs, issues, documentation, code reviews and more

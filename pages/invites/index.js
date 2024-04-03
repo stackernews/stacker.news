@@ -42,7 +42,7 @@ function InviteForm () {
     <Form
       initial={{
         gift: 100,
-        limit: undefined
+        limit: 1
       }}
       schema={inviteSchema}
       onSubmit={async ({ limit, gift }) => {

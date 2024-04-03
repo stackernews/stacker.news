@@ -24,7 +24,7 @@ import { useShowModal } from '@/components/modal'
 import { authErrorMessage } from '@/components/login'
 import { NostrAuth } from '@/components/nostr-auth'
 import { useToast } from '@/components/toast'
-import { useLogger } from '@/components/logger'
+import { useServiceWorkerLogger } from '@/components/logger'
 import { useMe } from '@/components/me'
 import { INVOICE_RETENTION_DAYS } from '@/lib/constants'
 import { OverlayTrigger, Tooltip } from 'react-bootstrap'
@@ -80,7 +80,7 @@ export default function Settings ({ ssrData }) {
     }
   }
   )
-  const logger = useLogger()
+  const logger = useServiceWorkerLogger()
 
   const { data } = useQuery(SETTINGS)
   const { settings: { privates: settings } } = useMemo(() => data ?? ssrData, [data, ssrData])

@@ -1,6 +1,7 @@
 import { GraphQLError } from 'graphql'
 import { inviteSchema, ssValidate } from '@/lib/validate'
 import { msatsToSats } from '@/lib/format'
+import assertApiKeyNotPermitted from './apiKey'
 
 export default {
   Query: {
@@ -32,6 +33,7 @@ export default {
       if (!me) {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
       }
+      assertApiKeyNotPermitted({ me })
 
       await ssValidate(inviteSchema, { gift, limit })
 

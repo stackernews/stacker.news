@@ -206,7 +206,7 @@ export function NWCProvider ({ children }) {
       logger.ok('payment successful:', shortHash)
       return ret
     } catch (err) {
-      logger.error('payment failed:', shortHash, err.message)
+      logger.error('payment failed:', shortHash, err.message || err.toString?.())
       throw err
     }
   }, [walletPubkey, secret, logger])
@@ -214,7 +214,7 @@ export function NWCProvider ({ children }) {
   const getInfo = useCallback(() => getInfoWithRelay(relayRef?.current, walletPubkey), [relayRef?.current, walletPubkey])
 
   useEffect(() => {
-    loadConfig().catch(err => logger.error(err.message))
+    loadConfig().catch(err => logger.error(err.message || err.toString?.()))
   }, [])
 
   const value = { name, nwcUrl, relayUrl, walletPubkey, secret, initialized, enabled, saveConfig, clearConfig, getInfo, sendPayment }

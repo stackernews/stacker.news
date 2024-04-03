@@ -104,7 +104,7 @@ export function LNbitsProvider ({ children }) {
       logger.ok('payment successful:', shortHash)
       return { preimage: checkResponse.preimage }
     } catch (err) {
-      logger.error('payment failed:', shortHash, err.message)
+      logger.error('payment failed:', shortHash, err.message || err.toString?.())
       throw err
     }
   }, [logger, url, adminKey])

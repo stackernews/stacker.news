@@ -130,9 +130,7 @@ export function NWCProvider ({ children }) {
   const sendPayment = useCallback(async (bolt11) => {
     const inv = lnpr.decode(bolt11)
     const hash = inv.tagsObject.payment_hash
-    // use short hash for logging to prevent x-overflow
-    const shortHash = `${hash.slice(0, 8)}..${hash.slice(-8)}`
-    logger.info('sending payment:', shortHash)
+    logger.info('sending payment:', `payment_hash=${hash}`)
     try {
       const ret = await new Promise(function (resolve, reject) {
         const relay = relayRef.current
@@ -203,10 +201,11 @@ export function NWCProvider ({ children }) {
           })
         })().catch(reject)
       })
-      logger.ok('payment successful:', shortHash)
+      const preimage = ret.preimage
+      logger.ok('payment successful:', `payment_hash=${hash}`, `preimage=${preimage}`)
       return ret
     } catch (err) {
-      logger.error('payment failed:', shortHash, err.message || err.toString?.())
+      logger.error('payment failed:', `payment_hash=${hash}`, err.message || err.toString?.())
       throw err
     }
   }, [walletPubkey, secret, logger])

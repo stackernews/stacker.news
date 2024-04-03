@@ -92,19 +92,18 @@ export function LNbitsProvider ({ children }) {
   const sendPayment = useCallback(async (bolt11) => {
     const inv = lnpr.decode(bolt11)
     const hash = inv.tagsObject.payment_hash
-    // use short hash for logging to prevent x-overflow
-    const shortHash = `${hash.slice(0, 8)}..${hash.slice(-8)}`
-    logger.info('sending payment:', shortHash)
+    logger.info('sending payment:', `payment_hash=${hash}`)
     try {
       const response = await postPayment(url, adminKey, bolt11)
       const checkResponse = await getPayment(url, adminKey, response.payment_hash)
       if (!checkResponse.preimage) {
         throw new Error('No preimage')
       }
-      logger.ok('payment successful:', shortHash)
-      return { preimage: checkResponse.preimage }
+      const preimage = checkResponse.preimage
+      logger.ok('payment successful:', `payment_hash=${hash}`, `preimage=${preimage}`)
+      return { preimage }
     } catch (err) {
-      logger.error('payment failed:', shortHash, err.message || err.toString?.())
+      logger.error('payment failed:', `payment_hash=${hash}`, err.message || err.toString?.())
       throw err
     }
   }, [logger, url, adminKey])

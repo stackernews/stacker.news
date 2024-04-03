@@ -26,9 +26,10 @@ export async function getServerSideProps ({ req, res, query: { id, error = null 
   })
 
   if (!data?.invite) {
-    res.writeHead(301, {
+    res.writeHead(302, {
       Location: '/404'
     }).end()
+    return { props: {} }
   }
 
   if (session && res) {
@@ -43,12 +44,10 @@ export async function getServerSideProps ({ req, res, query: { id, error = null 
       console.log(e)
     }
 
-    return {
-      redirect: {
-        destination: '/',
-        permanent: false
-      }
-    }
+    res.writeHead(302, {
+      Location: '/'
+    }).end()
+    return { props: {} }
   }
 
   return {

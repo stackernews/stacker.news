@@ -453,8 +453,7 @@ function InputInner ({
         const isNumeric = /^[0-9]+$/.test(draft)
         const numericExpected = typeof field.value === 'number'
         helpers.setValue(isNumeric && numericExpected ? parseInt(draft) : draft)
-        // draft means change event is from local storage
-        onChange && onChange(formik, { target: { value: draft, draft: true } })
+        onChange && onChange(formik, { target: { value: draft } })
       }
     }
   }, [overrideValue])

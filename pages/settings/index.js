@@ -2,7 +2,7 @@ import { Checkbox, Form, Input, SubmitButton, Select, VariableInput, CopyInput }
 import Alert from 'react-bootstrap/Alert'
 import Button from 'react-bootstrap/Button'
 import InputGroup from 'react-bootstrap/InputGroup'
-import { CenterLayout } from '@/components/layout'
+import Layout from '@/components/layout'
 import { useState, useMemo } from 'react'
 import { gql, useMutation, useQuery } from '@apollo/client'
 import { getGetServerSideProps } from '@/api/ssrApollo'
@@ -23,7 +23,7 @@ import { useShowModal } from '@/components/modal'
 import { authErrorMessage } from '@/components/login'
 import { NostrAuth } from '@/components/nostr-auth'
 import { useToast } from '@/components/toast'
-import { useLogger } from '@/components/logger'
+import { useServiceWorkerLogger } from '@/components/logger'
 import { useMe } from '@/components/me'
 import { INVOICE_RETENTION_DAYS } from '@/lib/constants'
 import { OverlayTrigger, Tooltip } from 'react-bootstrap'
@@ -52,15 +52,15 @@ export default function Settings ({ ssrData }) {
     }
   }
   )
-  const logger = useLogger()
+  const logger = useServiceWorkerLogger()
 
   const { data } = useQuery(SETTINGS)
   const { settings: { privates: settings } } = useMemo(() => data ?? ssrData, [data, ssrData])
   if (!data && !ssrData) return <PageLoading />
 
   return (
-    <CenterLayout>
-      <div className='py-3 w-100'>
+    <Layout>
+      <div className='pb-3 w-100 mt-2' style={{ maxWidth: '600px' }}>
         <h2 className='mb-2 text-start'>settings</h2>
         <Form
           initial={{
@@ -495,7 +495,7 @@ export default function Settings ({ ssrData }) {
           {settings?.authMethods && <AuthMethods methods={settings.authMethods} apiKeyEnabled={settings.apiKeyEnabled} />}
         </div>
       </div>
-    </CenterLayout>
+    </Layout>
   )
 }
 

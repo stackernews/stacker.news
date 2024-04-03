@@ -1,4 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { useWalletLogger } from '../logger'
+import lnpr from 'bolt11'
 
 // Reference: https://github.com/getAlby/bitcoin-connect/blob/v3.2.0-alpha/src/connectors/LnbitsConnector.ts
 
@@ -65,6 +67,7 @@ export function LNbitsProvider ({ children }) {
   const [adminKey, setAdminKey] = useState('')
   const [enabled, setEnabled] = useState()
   const [initialized, setInitialized] = useState(false)
+  const logger = useWalletLogger('lnbits')
 
   const name = 'LNbits'
   const storageKey = 'webln:provider:lnbits'
@@ -87,19 +90,30 @@ export function LNbitsProvider ({ children }) {
   }, [url, adminKey])
 
   const sendPayment = useCallback(async (bolt11) => {
-    const response = await postPayment(url, adminKey, bolt11)
-    const checkResponse = await getPayment(url, adminKey, response.payment_hash)
-    if (!checkResponse.preimage) {
-      throw new Error('No preimage')
+    const inv = lnpr.decode(bolt11)
+    const hash = inv.tagsObject.payment_hash
+    logger.info('sending payment:', `payment_hash=${hash}`)
+    try {
+      const response = await postPayment(url, adminKey, bolt11)
+      const checkResponse = await getPayment(url, adminKey, response.payment_hash)
+      if (!checkResponse.preimage) {
+        throw new Error('No preimage')
+      }
+      const preimage = checkResponse.preimage
+      logger.ok('payment successful:', `payment_hash=${hash}`, `preimage=${preimage}`)
+      return { preimage }
+    } catch (err) {
+      logger.error('payment failed:', `payment_hash=${hash}`, err.message || err.toString?.())
+      throw err
     }
-    return { preimage: checkResponse.preimage }
-  }, [url, adminKey])
+  }, [logger, url, adminKey])
 
   const loadConfig = useCallback(async () => {
     const configStr = window.localStorage.getItem(storageKey)
     if (!configStr) {
       setEnabled(undefined)
       setInitialized(true)
+      logger.info('no existing config found')
       return
     }
 
@@ -109,18 +123,27 @@ export function LNbitsProvider ({ children }) {
     setUrl(url)
     setAdminKey(adminKey)
 
+    logger.info(
+      'loaded wallet config: ' +
+      'adminKey=****** ' +
+      `url=${url}`)
+
     try {
       // validate config by trying to fetch wallet
+      logger.info('trying to fetch wallet')
       await getWallet(url, adminKey)
+      logger.ok('wallet found')
       setEnabled(true)
+      logger.ok('wallet enabled')
     } catch (err) {
-      console.error('invalid LNbits config:', err)
+      logger.error('invalid config:', err)
       setEnabled(false)
+      logger.info('wallet disabled')
       throw err
     } finally {
       setInitialized(true)
     }
-  }, [])
+  }, [logger])
 
   const saveConfig = useCallback(async (config) => {
     // immediately store config so it's not lost even if config is invalid
@@ -132,15 +155,24 @@ export function LNbitsProvider ({ children }) {
     //   https://thenewstack.io/leveraging-web-workers-to-safely-store-access-tokens/
     window.localStorage.setItem(storageKey, JSON.stringify(config))
 
+    logger.info(
+      'saved wallet config: ' +
+      'adminKey=****** ' +
+      `url=${config.url}`)
+
     try {
       // validate config by trying to fetch wallet
+      logger.info('trying to fetch wallet')
       await getWallet(config.url, config.adminKey)
+      logger.ok('wallet found')
     } catch (err) {
-      console.error('invalid LNbits config:', err)
+      logger.error('invalid config:', err)
       setEnabled(false)
+      logger.info('wallet disabled')
       throw err
     }
     setEnabled(true)
+    logger.ok('wallet enabled')
   }, [])
 
   const clearConfig = useCallback(() => {

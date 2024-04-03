@@ -21,7 +21,7 @@ export default function Invite ({ invite, active }) {
       <CopyInput
         groupClassName='mb-1'
         size='sm' type='text'
-        placeholder={`https://stacker.news/invites/${invite.id}`} readOnly noForm
+        placeholder={`${process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://stacker.news'}/invites/${invite.id}`} readOnly noForm
       />
       <div className={styles.other}>
         <span>{invite.gift} sat gift</span>

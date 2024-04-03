@@ -210,6 +210,10 @@ $accordion-button-active-icon-dark:  $accordion-button-icon;
   --bs-gradient: none;
 }
 
+* {
+  scroll-margin-top: 60px;
+}
+
 .text-monospace {
   font-family: monospace;
 }
@@ -489,6 +493,9 @@ div[contenteditable]:disabled,
 .modal-body {
   align-self: center;
   width: fit-content;
+}
+.modal-body:has(video) {
+  width: 100%;
 }
 
 .nav-link:not(.text-success, .text-warning) {

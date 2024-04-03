@@ -197,7 +197,7 @@ export default function Satistics ({ ssrData }) {
 
   return (
     <Layout>
-      <div className='mt-3'>
+      <div className='mt-2'>
         <ul className='nav nav-tabs' id='myTab' role='tablist'>
           <li className='nav-item' role='presentation'>
             <button className='nav-link' onClick={() => handleGraphsTabClick()}>Statistics</button>

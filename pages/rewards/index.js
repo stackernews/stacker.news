@@ -105,10 +105,11 @@ export default function Rewards ({ ssrData }) {
   }
 
   function EstimatedReward ({ rank }) {
+    const totalRest = total - 1000000
     return (
       <div className='text-muted fst-italic'>
         <small>
-          <span>estimated reward: {numWithUnits(Math.floor(total * proportions[rank - 1]))}</span>
+          <span>estimated reward: {numWithUnits(rank === 1 ? 1000000 : Math.floor(totalRest * proportions[rank - 2]))}</span>
         </small>
       </div>
     )
@@ -116,12 +117,18 @@ export default function Rewards ({ ssrData }) {
 
   return (
     <Layout footerLinks>
-      <Row className='py-3'>
+      <Link className='text-reset align-self-center' href='https://btcplusplus.dev/conf/atx24?ref=stackernews' target='_blank' rel='noreferrer'>
+        <h4 className='pt-3 text-start text-reset' style={{ lineHeight: 1.5, textDecoration: 'underline' }}>
+          bitcoin++ is a developer-focused conference series.
+          <div>Join us in Austin May 1-4 for a deep dive into bitcoin script.</div>
+        </h4>
+      </Link>
+      <Row className='pb-3'>
         <Col>
           <div
             className='d-flex flex-column sticky-lg-top py-5'
           >
-            <h3 className='text-center'>
+            <h3 className='text-center text-muted'>
               <div>
                 <RewardLine total={total} time={time} />
               </div>
@@ -137,7 +144,7 @@ export default function Rewards ({ ssrData }) {
         </Col>
         {leaderboard?.users &&
           <Col lg={7}>
-            <h2 className='pt-5 text-center'>leaderboard</h2>
+            <h2 className='pt-5 text-center text-muted'>leaderboard</h2>
             <div className='d-flex justify-content-center pt-4'>
               <ListUsers users={leaderboard.users} rank Embellish={EstimatedReward} />
             </div>

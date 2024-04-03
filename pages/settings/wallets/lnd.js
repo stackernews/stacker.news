@@ -3,7 +3,7 @@ import { Form, Input } from '@/components/form'
 import { CenterLayout } from '@/components/layout'
 import { useMe } from '@/components/me'
 import { WalletButtonBar, WalletCard } from '@/components/wallet-card'
-import { useMutation } from '@apollo/client'
+import { useApolloClient, useMutation } from '@apollo/client'
 import { useToast } from '@/components/toast'
 import { LNDAutowithdrawSchema } from '@/lib/validate'
 import { useRouter } from 'next/router'
@@ -11,6 +11,7 @@ import { AutowithdrawSettings, autowithdrawInitial } from '@/components/autowith
 import { REMOVE_WALLET, UPSERT_WALLET_LND, WALLET_BY_TYPE } from '@/fragments/wallet'
 import Info from '@/components/info'
 import Text from '@/components/text'
+import WalletLogs from '@/components/wallet-logs'
 
 const variables = { type: 'LND' }
 export const getServerSideProps = getGetServerSideProps({ query: WALLET_BY_TYPE, variables, authRequired: true })
@@ -19,8 +20,21 @@ export default function LND ({ ssrData }) {
   const me = useMe()
   const toaster = useToast()
   const router = useRouter()
-  const [upsertWalletLND] = useMutation(UPSERT_WALLET_LND)
-  const [removeWallet] = useMutation(REMOVE_WALLET)
+  const client = useApolloClient()
+  const [upsertWalletLND] = useMutation(UPSERT_WALLET_LND, {
+    refetchQueries: ['WalletLogs'],
+    onError: (err) => {
+      client.refetchQueries({ include: ['WalletLogs'] })
+      throw err
+    }
+  })
+  const [removeWallet] = useMutation(REMOVE_WALLET, {
+    refetchQueries: ['WalletLogs'],
+    onError: (err) => {
+      client.refetchQueries({ include: ['WalletLogs'] })
+      throw err
+    }
+  })
 
   const { walletByType: wallet } = ssrData || {}
 
@@ -55,7 +69,6 @@ export default function LND ({ ssrData }) {
             router.push('/settings/wallets')
           } catch (err) {
             console.error(err)
-            toaster.danger('failed to attach: ' + err.message || err.toString?.())
           }
         }}
       >
@@ -100,11 +113,13 @@ export default function LND ({ ssrData }) {
               router.push('/settings/wallets')
             } catch (err) {
               console.error(err)
-              toaster.danger('failed to unattach:' + err.message || err.toString?.())
             }
           }}
         />
       </Form>
+      <div className='mt-3 w-100'>
+        <WalletLogs wallet='lnd' embedded />
+      </div>
     </CenterLayout>
   )
 }

@@ -2,7 +2,7 @@ import serialize from '@/api/resolvers/serial.js'
 import { notifyEarner } from '@/lib/webPush.js'
 import { PrismaClient } from '@prisma/client'
 import { proportions } from '@/lib/madness.js'
-import { SN_USER_IDS } from '@/lib/constants.js'
+import { SN_NO_REWARDS_IDS } from '@/lib/constants.js'
 
 const TOTAL_UPPER_BOUND_MSATS = 10000000000
 
@@ -15,7 +15,7 @@ export async function earn ({ name }) {
     const [{ sum: sumDecimal }] = await models.$queryRaw`
       SELECT coalesce(sum(total), 0) as sum
       FROM rewards_days
-      WHERE date_trunc('month', rewards_days.t) = date_trunc('month',  (now() - interval '1 month') AT TIME ZONE 'America/Chicago')`
+      WHERE date_trunc('month', rewards_days.t) = date_trunc('month',  (now() AT TIME ZONE 'America/Chicago' - interval '1 month'))`
 
     // XXX primsa will return a Decimal (https://mikemcl.github.io/decimal.js)
     // because sum of a BIGINT returns a NUMERIC type (https://www.postgresql.org/docs/13/functions-aggregate.html)
@@ -52,13 +52,13 @@ export async function earn ({ name }) {
 
     // get earners { userId, id, type, rank, proportion }
     const earners = await models.$queryRaw`
-      SELECT id AS "userId", sum(proportion) as proportion
+      SELECT id AS "userId", sum(proportion) as proportion, ROW_NUMBER() OVER (ORDER BY sum(proportion) DESC) as rank
       FROM user_values_days
-      WHERE date_trunc('month', user_values_days.t) = date_trunc('month',  (now() - interval '1 month') AT TIME ZONE 'America/Chicago')
-      AND NOT (id = ANY (${SN_USER_IDS}))
+      WHERE date_trunc('month', user_values_days.t) = date_trunc('month',  (now() AT TIME ZONE 'America/Chicago' - interval '1 month'))
+      AND NOT (id = ANY (${SN_NO_REWARDS_IDS}))
       GROUP BY id
       ORDER BY proportion DESC
-      LIMIT 64`
+      LIMIT 100`
 
     // in order to group earnings for users we use the same createdAt time for
     // all earnings

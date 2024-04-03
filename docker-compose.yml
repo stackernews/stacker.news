@@ -49,6 +49,33 @@ services:
       - ./:/app
     labels:
       CONNECT: "localhost:3000"
+  capture:
+    container_name: capture
+    build:
+      context: ./capture
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+        restart: true
+    profiles:
+      - capture
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5678/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 1m
+    env_file: .env.development
+    environment:
+      # configure to screenshot production, because local dev is too slow
+      - CAPTURE_URL=http://stacker.news
+    expose:
+      - "5678"
+    ports:
+      - "5678:5678"
+    labels:
+      CONNECT: "localhost:5678"
   worker:
     container_name: worker
     build:

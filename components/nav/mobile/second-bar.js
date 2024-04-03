@@ -1,8 +1,10 @@
 import { Nav, Navbar } from 'react-bootstrap'
-import { NavPrice, Sorts, hasNavSelect } from '../common'
+import { NavPrice, NavWalletSummary, Sorts, hasNavSelect } from '../common'
 import styles from '../../header.module.css'
+import { useMe } from '@/components/me'
 
 export default function SecondBar (props) {
+  const me = useMe()
   const { topNavKey } = props
   if (!hasNavSelect(props)) return null
   return (
@@ -12,7 +14,7 @@ export default function SecondBar (props) {
         activeKey={topNavKey}
       >
         <Sorts {...props} />
-        <NavPrice className='justify-content-end' />
+        {me ? <NavWalletSummary className='ms-auto px-2' /> : <NavPrice className='justify-content-end' />}
       </Nav>
     </Navbar>
   )

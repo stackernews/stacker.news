@@ -69,7 +69,7 @@ export default function NWC () {
           }}
         />
       </Form>
-      <div className='mt-3'>
+      <div className='mt-3 w-100'>
         <WalletLogs wallet='nwc' embedded />
       </div>
     </CenterLayout>

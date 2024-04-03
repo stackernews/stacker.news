@@ -117,7 +117,7 @@ export default function LND ({ ssrData }) {
           }}
         />
       </Form>
-      <div className='mt-3'>
+      <div className='mt-3 w-100'>
         <WalletLogs wallet='lnd' embedded />
       </div>
     </CenterLayout>

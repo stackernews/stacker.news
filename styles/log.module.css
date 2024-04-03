@@ -13,16 +13,12 @@
     color: var(--theme-grey) !important; /* .text-muted */
 }
 
-.embedded {
-    max-height: 30svh;
-}
-
 @media screen and (min-width: 768px) {
     .logTable {
         max-height: 70svh;
     }
 
     .embedded {
-        max-height: 15svh;
+        max-height: 30svh;
     }
 }

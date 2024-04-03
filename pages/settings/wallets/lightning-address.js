@@ -9,6 +9,7 @@ import { lnAddrAutowithdrawSchema } from '@/lib/validate'
 import { useRouter } from 'next/router'
 import { AutowithdrawSettings, autowithdrawInitial } from '@/components/autowithdraw-shared'
 import { REMOVE_WALLET, UPSERT_WALLET_LNADDR, WALLET_BY_TYPE } from '@/fragments/wallet'
+import WalletLogs from '@/components/wallet-logs'
 
 const variables = { type: 'LIGHTNING_ADDRESS' }
 export const getServerSideProps = getGetServerSideProps({ query: WALLET_BY_TYPE, variables, authRequired: true })
@@ -17,8 +18,8 @@ export default function LightningAddress ({ ssrData }) {
   const me = useMe()
   const toaster = useToast()
   const router = useRouter()
-  const [upsertWalletLNAddr] = useMutation(UPSERT_WALLET_LNADDR)
-  const [removeWallet] = useMutation(REMOVE_WALLET)
+  const [upsertWalletLNAddr] = useMutation(UPSERT_WALLET_LNADDR, { refetchQueries: ['WalletLogs'] })
+  const [removeWallet] = useMutation(REMOVE_WALLET, { refetchQueries: ['WalletLogs'] })
 
   const { walletByType: wallet } = ssrData || {}
 
@@ -74,6 +75,9 @@ export default function LightningAddress ({ ssrData }) {
           }}
         />
       </Form>
+      <div className='mt-3'>
+        <WalletLogs wallet='lnAddr' embedded />
+      </div>
     </CenterLayout>
   )
 }

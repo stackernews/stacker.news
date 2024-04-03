@@ -304,6 +304,20 @@ export default {
         cursor: history.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
         facts: history
       }
+    },
+    walletLogs: async (parent, args, { me, models }) => {
+      if (!me) {
+        throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
+      }
+
+      return await models.walletLog.findMany({
+        where: {
+          userId: me.id
+        },
+        orderBy: {
+          createdAt: 'asc'
+        }
+      })
     }
   },
   WalletDetails: {
@@ -415,10 +429,11 @@ export default {
       data.macaroon = ensureB64(data.macaroon)
       data.cert = ensureB64(data.cert)
 
+      const wallet = 'walletLND'
       return await upsertWallet(
         {
           schema: LNDAutowithdrawSchema,
-          walletName: 'walletLND',
+          walletName: wallet,
           walletType: 'LND',
           testConnect: async ({ cert, macaroon, socket }) => {
             const { lnd } = await authenticatedLndGrpc({
@@ -426,24 +441,35 @@ export default {
               macaroon,
               socket
             })
-            return await createInvoice({
-              description: 'SN connection test',
-              lnd,
-              tokens: 0,
-              expires_at: new Date()
-            })
+            await addWalletLog({ wallet, level: 'SUCCESS', message: 'connected to LND node' }, { me, models })
+            try {
+              const inv = await createInvoice({
+                description: 'SN connection test',
+                lnd,
+                tokens: 0,
+                expires_at: new Date()
+              })
+              await addWalletLog({ wallet, level: 'SUCCESS', message: 'created test invoice' }, { me, models })
+              return inv
+            } catch (err) {
+              await addWalletLog({ wallet, level: 'ERROR', message: `could not create test invoice: ${err.message || err.toString?.()}` }, { me, models })
+              throw err
+            }
           }
         },
         { settings, data }, { me, models })
     },
     upsertWalletLNAddr: async (parent, { settings, ...data }, { me, models }) => {
+      const wallet = 'walletLightningAddress'
       return await upsertWallet(
         {
           schema: lnAddrAutowithdrawSchema,
-          walletName: 'walletLightningAddress',
+          walletName: wallet,
           walletType: 'LIGHTNING_ADDRESS',
           testConnect: async ({ address }) => {
-            return await lnAddrOptions(address)
+            const options = await lnAddrOptions(address)
+            await addWalletLog({ wallet, level: 'SUCCESS', message: 'fetched payment details' }, { me, models })
+            return options
           }
         },
         { settings, data }, { me, models })
@@ -453,7 +479,23 @@ export default {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
       }
 
-      await models.wallet.delete({ where: { userId: me.id, id: Number(id) } })
+      const wallet = await models.wallet.findUnique({ where: { userId: me.id, id: Number(id) } })
+      if (!wallet) {
+        throw new GraphQLError('wallet not found', { extensions: { code: 'BAD_INPUT' } })
+      }
+
+      // determine wallet name for logging
+      let walletName = ''
+      if (wallet.type === 'LND') {
+        walletName = 'walletLND'
+      } else if (wallet.type === 'LIGHTNING_ADDRESS') {
+        walletName = 'walletLightningAddress'
+      }
+
+      await models.$transaction([
+        models.wallet.delete({ where: { userId: me.id, id: Number(id) } }),
+        models.walletLog.create({ data: { userId: me.id, wallet: walletName, level: 'SUCCESS', message: 'wallet deleted' } })
+      ])
 
       return true
     }
@@ -487,6 +529,14 @@ export default {
   }
 }
 
+const addWalletLog = async ({ wallet, level, message }, { me, models }) => {
+  try {
+    await models.walletLog.create({ data: { userId: me.id, wallet, level, message } })
+  } catch (err) {
+    console.error('error creating wallet log:', err)
+  }
+}
+
 async function upsertWallet (
   { schema, walletName, walletType, testConnect }, { settings, data }, { me, models }) {
   if (!me) {
@@ -498,8 +548,9 @@ async function upsertWallet (
   if (testConnect) {
     try {
       await testConnect(data)
-    } catch (error) {
-      console.error(error)
+    } catch (err) {
+      console.error(err)
+      await addWalletLog({ wallet: walletName, level: 'ERROR', message: 'failed to attach wallet' }, { me, models })
       throw new GraphQLError('failed to connect to wallet', { extensions: { code: 'BAD_INPUT' } })
     }
   }
@@ -542,7 +593,9 @@ async function upsertWallet (
             }
           }
         }
-      }))
+      }),
+      models.walletLog.create({ data: { userId: me.id, wallet: walletName, level: 'SUCCESS', message: 'wallet updated' } })
+    )
   } else {
     txs.push(
       models.wallet.create({
@@ -554,7 +607,9 @@ async function upsertWallet (
             create: walletData
           }
         }
-      }))
+      }),
+      models.walletLog.create({ data: { userId: me.id, wallet: walletName, level: 'SUCCESS', message: 'wallet created' } })
+    )
   }
 
   await models.$transaction(txs)

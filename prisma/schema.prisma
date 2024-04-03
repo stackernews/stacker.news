@@ -122,6 +122,7 @@ model User {
   TerritoryReceives         TerritoryTransfer[]  @relation("TerritoryTransfer_newUser")
   AncestorReplies           Reply[]              @relation("AncestorReplyUser")
   Replies                   Reply[]
+  walletLogs                WalletLog[]
 
   @@index([photoId])
   @@index([createdAt], map: "users.created_at_index")
@@ -155,6 +156,18 @@ model Wallet {
   walletLND              WalletLND?
 
   @@index([userId])
+}
+
+model WalletLog {
+  id        Int @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map("created_at")
+  userId    Int
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallet    String
+  level     LogLevel
+  message   String
+
+  @@index([userId, createdAt])
 }
 
 model WalletLightningAddress {
@@ -874,4 +887,5 @@ enum LogLevel {
   INFO
   WARN
   ERROR
+  SUCCESS
 }

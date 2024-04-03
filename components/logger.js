@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useMe } from './me'
 import fancyNames from '@/lib/fancy-names.json'
+import { useQuery } from '@apollo/client'
+import { WALLET_LOGS } from '@/fragments/wallet'
 
 const generateFancyName = () => {
   // 100 adjectives * 100 nouns * 10000 = 100M possible names
@@ -154,11 +156,32 @@ const initIndexedDB = async (storeName) => {
   })
 }
 
+const renameWallet = (wallet) => {
+  if (wallet === 'walletLightningAddress') return 'lnAddr'
+  if (wallet === 'walletLND') return 'lnd'
+  return wallet
+}
+
 const WalletLoggerProvider = ({ children }) => {
   const [logs, setLogs] = useState([])
   const idbStoreName = 'wallet_logs'
   const idb = useRef()
   const logQueue = useRef([])
+
+  useQuery(WALLET_LOGS, {
+    fetchPolicy: 'network-only',
+    // required to trigger onCompleted on refetches
+    notifyOnNetworkStatusChange: true,
+    onCompleted: ({ walletLogs }) => {
+      setLogs((prevLogs) => {
+        const existingIds = prevLogs.map(({ id }) => id)
+        const logs = walletLogs
+          .filter(({ id }) => !existingIds.includes(id))
+          .map(({ createdAt, wallet, ...log }) => ({ ts: +new Date(createdAt), wallet: renameWallet(wallet), ...log }))
+        return [...prevLogs, ...logs].sort((a, b) => a.ts - b.ts)
+      })
+    }
+  })
 
   const saveLog = useCallback((log) => {
     if (!idb.current) {

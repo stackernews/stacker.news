@@ -10,6 +10,7 @@ export default gql`
     wallets: [Wallet!]!
     wallet(id: ID!): Wallet
     walletByType(type: String!): Wallet
+    walletLogs: [WalletLog]!
   }
 
   extend type Mutation {
@@ -98,5 +99,13 @@ export default gql`
   type History {
     facts: [Fact!]!
     cursor: String
+  }
+
+  type WalletLog {
+    id: ID!
+    createdAt: Date!
+    wallet: ID!
+    level: String!
+    message: String!
   }
 `

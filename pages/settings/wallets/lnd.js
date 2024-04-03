@@ -11,6 +11,7 @@ import { AutowithdrawSettings, autowithdrawInitial } from '@/components/autowith
 import { REMOVE_WALLET, UPSERT_WALLET_LND, WALLET_BY_TYPE } from '@/fragments/wallet'
 import Info from '@/components/info'
 import Text from '@/components/text'
+import WalletLogs from '@/components/wallet-logs'
 
 const variables = { type: 'LND' }
 export const getServerSideProps = getGetServerSideProps({ query: WALLET_BY_TYPE, variables, authRequired: true })
@@ -19,8 +20,8 @@ export default function LND ({ ssrData }) {
   const me = useMe()
   const toaster = useToast()
   const router = useRouter()
-  const [upsertWalletLND] = useMutation(UPSERT_WALLET_LND)
-  const [removeWallet] = useMutation(REMOVE_WALLET)
+  const [upsertWalletLND] = useMutation(UPSERT_WALLET_LND, { refetchQueries: ['WalletLogs'] })
+  const [removeWallet] = useMutation(REMOVE_WALLET, { refetchQueries: ['WalletLogs'] })
 
   const { walletByType: wallet } = ssrData || {}
 
@@ -105,6 +106,9 @@ export default function LND ({ ssrData }) {
           }}
         />
       </Form>
+      <div className='mt-3'>
+        <WalletLogs wallet='lnd' embedded />
+      </div>
     </CenterLayout>
   )
 }

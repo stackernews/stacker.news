@@ -2,7 +2,8 @@ import { timeSince } from '@/lib/time'
 import styles from './log-message.module.css'
 
 export default function LogMessage ({ wallet, level, message, ts }) {
-  const levelClassName = level === 'ok' ? 'text-success' : level === 'error' ? 'text-danger' : level === 'info' ? 'text-info' : ''
+  level = level.toLowerCase()
+  const levelClassName = ['ok', 'success'].includes(level) ? 'text-success' : level === 'error' ? 'text-danger' : level === 'info' ? 'text-info' : ''
   return (
     <tr className={styles.line}>
       <td className={styles.timestamp}>{timeSince(new Date(ts))}</td>

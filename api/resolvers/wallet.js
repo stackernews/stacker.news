@@ -452,7 +452,9 @@ export default {
               await addWalletLog({ wallet, level: 'SUCCESS', message: 'created test invoice' }, { me, models })
               return inv
             } catch (err) {
-              await addWalletLog({ wallet, level: 'ERROR', message: `could not create test invoice: ${err.message || err.toString?.()}` }, { me, models })
+              // LND errors are in this shape: [code, type, { err: { code, details, metadata } }]
+              const details = err[2]?.err?.details || err.message || err.toString?.()
+              await addWalletLog({ wallet, level: 'ERROR', message: `could not create test invoice: ${details}` }, { me, models })
               throw err
             }
           }

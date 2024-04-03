@@ -5,6 +5,7 @@ import { COMMENTS_ITEM_EXT_FIELDS } from './comments'
 export const SUB_FIELDS = gql`
   fragment SubFields on Sub {
     name
+    createdAt
     postTypes
     allowFreebies
     rankingType

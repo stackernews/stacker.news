@@ -529,7 +529,7 @@ export default {
   }
 }
 
-const addWalletLog = async ({ wallet, level, message }, { me, models }) => {
+export const addWalletLog = async ({ wallet, level, message }, { me, models }) => {
   try {
     await models.walletLog.create({ data: { userId: me.id, wallet, level, message } })
   } catch (err) {

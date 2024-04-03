@@ -1,7 +1,7 @@
 import { authenticatedLndGrpc, createInvoice } from 'ln-service'
-import { msatsToSats, satsToMsats } from '@/lib/format'
+import { msatsToSats, numWithUnits, satsToMsats } from '@/lib/format'
 import { datePivot } from '@/lib/time'
-import { createWithdrawal, sendToLnAddr } from '@/api/resolvers/wallet'
+import { createWithdrawal, sendToLnAddr, addWalletLog } from '@/api/resolvers/wallet'
 
 export async function autoWithdraw ({ data: { id }, models, lnd }) {
   const user = await models.user.findUnique({ where: { id } })
@@ -45,19 +45,35 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
 
   for (const wallet of wallets) {
     try {
+      const message = `autowithdrawal of ${numWithUnits(amount, { abbreviate: false, unitSingular: 'sat', unitPlural: 'sats' })}`
       if (wallet.type === 'LND') {
         await autowithdrawLND(
           { amount, maxFee },
           { models, me: user, lnd })
+        await addWalletLog({
+          wallet: 'walletLND',
+          level: 'SUCCESS',
+          message
+        }, { me: user, models })
       } else if (wallet.type === 'LIGHTNING_ADDRESS') {
         await autowithdrawLNAddr(
           { amount, maxFee },
           { models, me: user, lnd })
+        await addWalletLog({
+          wallet: 'walletLightningAddress',
+          level: 'SUCCESS',
+          message
+        }, { me: user, models })
       }
 
       return
     } catch (error) {
       console.error(error)
+      await addWalletLog({
+        wallet: wallet.type === 'LND' ? 'walletLND' : 'walletLightningAddress',
+        level: 'ERROR',
+        message: 'autowithdrawal failed: ' + (error.message || error.toString?.())
+      })
     }
   }
 

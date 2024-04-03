@@ -1,6 +1,6 @@
 import { useRouter } from 'next/router'
 import LogMessage from './log-message'
-import { useWalletLogger } from './logger'
+import { useWalletLogs } from './logger'
 import { useEffect, useRef, useState } from 'react'
 import { Checkbox, Form } from './form'
 import { useField } from 'formik'
@@ -19,7 +19,7 @@ const FollowCheckbox = ({ value, ...props }) => {
 }
 
 export default function WalletLogs ({ wallet, embedded }) {
-  const { logs } = useWalletLogger()
+  const logs = useWalletLogs(wallet)
 
   const router = useRouter()
   const { follow: defaultFollow } = router.query
@@ -55,8 +55,6 @@ export default function WalletLogs ({ wallet, embedded }) {
     return () => tableRef.current?.removeEventListener('scroll', onScroll)
   }, [])
 
-  const filtered = logs.filter(l => !wallet || l.wallet === wallet)
-
   return (
     <>
       <Form initial={{ follow: true }}>
@@ -67,10 +65,10 @@ export default function WalletLogs ({ wallet, embedded }) {
       </Form>
       <div ref={tableRef} className={`${styles.logTable} ${embedded ? styles.embedded : ''}`}>
         <div className='w-100 text-center'>------ start of logs ------</div>
-        {filtered.length === 0 && <div className='w-100 text-center'>empty</div>}
+        {logs.length === 0 && <div className='w-100 text-center'>empty</div>}
         <table>
           <tbody>
-            {filtered.map((log, i) => <LogMessage key={i} {...log} />)}
+            {logs.map((log, i) => <LogMessage key={i} {...log} />)}
           </tbody>
         </table>
       </div>

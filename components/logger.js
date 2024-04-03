@@ -123,6 +123,7 @@ export function useServiceWorkerLogger () {
 }
 
 const WalletLoggerContext = createContext()
+const WalletLogsContext = createContext()
 
 const initIndexedDB = async (storeName) => {
   return new Promise((resolve, reject) => {
@@ -230,22 +231,24 @@ const WalletLoggerProvider = ({ children }) => {
   }, [setLogs, saveLog])
 
   return (
-    <WalletLoggerContext.Provider value={{ logs, appendLog }}>
-      {children}
-    </WalletLoggerContext.Provider>
+    <WalletLogsContext.Provider value={logs}>
+      <WalletLoggerContext.Provider value={appendLog}>
+        {children}
+      </WalletLoggerContext.Provider>
+    </WalletLogsContext.Provider>
   )
 }
 
 export function useWalletLogger (wallet) {
-  const { logs, appendLog: _appendLog } = useContext(WalletLoggerContext)
+  const appendLog = useContext(WalletLoggerContext)
 
   const log = useCallback(level => message => {
     // TODO:
     //   also send this to us if diagnostics was enabled,
     //   very similar to how the service worker logger works.
-    _appendLog(wallet, level, message)
+    appendLog(wallet, level, message)
     console[level !== 'error' ? 'info' : 'error'](`[${wallet}]`, message)
-  }, [_appendLog, wallet])
+  }, [appendLog, wallet])
 
   const logger = useMemo(() => ({
     ok: (...message) => log('ok')(message.join(' ')),
@@ -253,8 +256,10 @@ export function useWalletLogger (wallet) {
     error: (...message) => log('error')(message.join(' '))
   }), [log, wallet])
 
-  return {
-    logs: logs.filter(log => !wallet || log.wallet === wallet),
-    ...logger
-  }
+  return logger
+}
+
+export function useWalletLogs (wallet) {
+  const logs = useContext(WalletLogsContext)
+  return logs.filter(l => !wallet || l.wallet === wallet)
 }

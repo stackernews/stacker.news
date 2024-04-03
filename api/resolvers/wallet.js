@@ -436,25 +436,25 @@ export default {
           walletName: wallet,
           walletType: 'LND',
           testConnect: async ({ cert, macaroon, socket }) => {
-            const { lnd } = await authenticatedLndGrpc({
-              cert,
-              macaroon,
-              socket
-            })
-            await addWalletLog({ wallet, level: 'SUCCESS', message: 'connected to LND node' }, { me, models })
             try {
+              const { lnd } = await authenticatedLndGrpc({
+                cert,
+                macaroon,
+                socket
+              })
               const inv = await createInvoice({
                 description: 'SN connection test',
                 lnd,
                 tokens: 0,
                 expires_at: new Date()
               })
-              await addWalletLog({ wallet, level: 'SUCCESS', message: 'created test invoice' }, { me, models })
+              // we wrap both calls in one try/catch since connection attempts happen on RPC calls
+              await addWalletLog({ wallet, level: 'SUCCESS', message: 'connected to LND' }, { me, models })
               return inv
             } catch (err) {
               // LND errors are in this shape: [code, type, { err: { code, details, metadata } }]
               const details = err[2]?.err?.details || err.message || err.toString?.()
-              await addWalletLog({ wallet, level: 'ERROR', message: `could not create test invoice: ${details}` }, { me, models })
+              await addWalletLog({ wallet, level: 'ERROR', message: `could not connect to LND: ${details}` }, { me, models })
               throw err
             }
           }

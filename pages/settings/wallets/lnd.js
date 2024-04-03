@@ -69,7 +69,6 @@ export default function LND ({ ssrData }) {
             router.push('/settings/wallets')
           } catch (err) {
             console.error(err)
-            toaster.danger('failed to attach: ' + err.message || err.toString?.())
           }
         }}
       >
@@ -114,7 +113,6 @@ export default function LND ({ ssrData }) {
               router.push('/settings/wallets')
             } catch (err) {
               console.error(err)
-              toaster.danger('failed to unattach:' + err.message || err.toString?.())
             }
           }}
         />

@@ -35,19 +35,20 @@ export default function useModal () {
     setModalStack(modalStack.slice(0, -1))
     modalOptions?.onClose?.()
     return setModalContent(previousModalContent)
-  }, [modalStack, setModalStack])
+  }, [modalStack, setModalStack, modalOptions?.onClose])
 
+  // this is called on every navigation due to below useEffect
   const onClose = useCallback(() => {
     setModalContent(null)
-    setModalStack([])
+    setModalStack(ms => ms.length > 0 ? [] : ms)
     modalOptions?.onClose?.()
-  }, [modalOptions?.onClose])
+  }, [setModalStack, setModalContent, modalOptions?.onClose])
 
   const router = useRouter()
   useEffect(() => {
     router.events.on('routeChangeStart', onClose)
     return () => router.events.off('routeChangeStart', onClose)
-  }, [router, onClose])
+  }, [router.events, onClose])
 
   const modal = useMemo(() => {
     if (modalContent === null) {
@@ -76,7 +77,7 @@ export default function useModal () {
         </Modal.Body>
       </Modal>
     )
-  }, [modalContent, onClose])
+  }, [modalContent, onClose, modalOptions, onBack, modalStack])
 
   const showModal = useCallback(
     (getContent, options) => {

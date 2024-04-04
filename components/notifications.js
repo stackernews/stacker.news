@@ -531,7 +531,7 @@ export default function Notifications ({ ssrData }) {
         }
       }, router.asPath, { ...router.options, shallow: true })
     }
-  }, [router, lastChecked])
+  }, [router?.query?.checkedAt, lastChecked])
 
   if (!dat) return <CommentsFlatSkeleton />
 
@@ -540,7 +540,7 @@ export default function Notifications ({ ssrData }) {
       {notifications.map(n =>
         <Notification
           n={n} key={nid(n)}
-          fresh={new Date(n.sortTime) > new Date(router?.query?.checkedAt)}
+          fresh={new Date(n.sortTime) > new Date(router?.query?.checkedAt ?? lastChecked)}
         />)}
       <MoreFooter cursor={cursor} count={notifications?.length} fetchMore={fetchMore} Skeleton={CommentsFlatSkeleton} noMoreText='NO MORE' />
     </>

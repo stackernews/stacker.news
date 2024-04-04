@@ -43,9 +43,9 @@ export function AutowithdrawSettings ({ priority }) {
             name='autoWithdrawThreshold'
             onChange={(formik, e) => {
               const value = e.target.value
-              setSendThreshold(Math.max(Math.floor(value / 10 * 11), 1))
+              setSendThreshold(Math.max(Math.floor(value / 10), 1))
             }}
-            hint={isNumber(sendThreshold) ? `will attempt auto-withdraw when your balance exceeds ${sendThreshold} sats` : undefined}
+            hint={isNumber(sendThreshold) ? `will attempt auto-withdraw when your balance exceeds ${sendThreshold*11} sats` : undefined}
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
           />
           <Input

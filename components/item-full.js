@@ -126,6 +126,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
   const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text })
 
   return (
+    <article className={styles.fullItemContainer} ref={textRef}>
     <ItemComponent
       item={item}
       full
@@ -140,7 +141,6 @@ function TopLevelItem ({ item, noReply, ...props }) {
       belowTitle={item.forwards && item.forwards.length > 0 && <FwdUsers forwards={item.forwards} />}
       {...props}
     >
-      <article className={styles.fullItemContainer} ref={textRef}>
         {item.text && <ItemText item={item} />}
         {item.url && <ItemEmbed item={item} />}
         {item.poll && <Poll item={item} />}
@@ -157,7 +157,6 @@ function TopLevelItem ({ item, noReply, ...props }) {
                   {numWithUnits(item.bounty, { abbreviate: false, format: true })} bounty
                 </div>)}
           </div>}
-      </article>
       {!noReply &&
         <>
           <Reply item={item} replyOpen placeholder={item.ncomments > 3 ? 'fractions of a penny for your thoughts?' : 'early comments get more zaps'} onCancelQuote={cancelQuote} onQuoteReply={quoteReply} quote={quote} />
@@ -165,6 +164,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
           {item.bounty > 0 && <PastBounties item={item} />}
         </>}
     </ItemComponent>
+ </article>
   )
 }
 

@@ -25,10 +25,11 @@ export function NWCProvider ({ children }) {
 
     let relay, sub
     try {
-      relay = await Relay.connect(relayUrl).catch((err) => {
-        logger.error(`failed to connect to ${relayUrl}`)
-        // NOTE: err is undefined for some reason
-        throw err
+      relay = await Relay.connect(relayUrl).catch(() => {
+        // NOTE: passed error is undefined for some reason
+        const msg = `failed to connect to ${relayUrl}`
+        logger.error(msg)
+        throw new Error(msg)
       })
       logger.ok(`connected to ${relayUrl}`)
       return await new Promise((resolve, reject) => {
@@ -82,20 +83,16 @@ export function NWCProvider ({ children }) {
 
   const validateParams = useCallback(async ({ relayUrl, walletPubkey }) => {
     // validate connection by fetching info event
-    try {
-      const event = await getInfo(relayUrl, walletPubkey)
-      const supported = event.content.split(/[\s,]+/) // handle both spaces and commas
-      logger.info('supported methods:', supported)
-      if (!supported.includes('pay_invoice')) {
-        logger.error('wallet does not support pay_invoice')
-        return false
-      } else {
-        logger.ok('wallet supports pay_invoice')
-        return true
-      }
-    } catch (err) {
-      return false
+    // function needs to throw an error for formik validation to fail
+    const event = await getInfo(relayUrl, walletPubkey)
+    const supported = event.content.split(/[\s,]+/) // handle both spaces and commas
+    logger.info('supported methods:', supported)
+    if (!supported.includes('pay_invoice')) {
+      const msg = 'wallet does not support pay_invoice'
+      logger.error(msg)
+      throw new Error(msg)
     }
+    logger.ok('wallet supports pay_invoice')
   }, [logger])
 
   const loadConfig = useCallback(async () => {
@@ -123,15 +120,17 @@ export function NWCProvider ({ children }) {
       `pubkey=${params.walletPubkey.slice(0, 6)}..${params.walletPubkey.slice(-6)} ` +
       `relay=${params.relayUrl}`)
 
-    const valid = await validateParams(params)
-    if (valid) {
+    try {
+      await validateParams(params)
       setEnabled(true)
       logger.ok('wallet enabled')
-    } else {
+    } catch (err) {
       setEnabled(false)
       logger.info('wallet disabled')
+      throw err
+    } finally {
+      setInitialized(true)
     }
-    setInitialized(true)
   }, [logger])
 
   const saveConfig = useCallback(async (config) => {
@@ -158,13 +157,14 @@ export function NWCProvider ({ children }) {
       `pubkey=${params.walletPubkey.slice(0, 6)}..${params.walletPubkey.slice(-6)} ` +
       `relay=${params.relayUrl}`)
 
-    const valid = await validateParams(params)
-    if (valid) {
+    try {
+      await validateParams(params)
       setEnabled(true)
       logger.ok('wallet enabled')
-    } else {
+    } catch (err) {
       setEnabled(false)
       logger.info('wallet disabled')
+      throw err
     }
   }, [validateParams, logger])
 
@@ -184,10 +184,11 @@ export function NWCProvider ({ children }) {
 
     let relay, sub
     try {
-      relay = await Relay.connect(relayUrl).catch((err) => {
-        logger.error(`failed to connect to ${relayUrl}`)
-        // NOTE: err is undefined for some reason
-        throw err
+      relay = await Relay.connect(relayUrl).catch(() => {
+        // NOTE: passed error is undefined for some reason
+        const msg = `failed to connect to ${relayUrl}`
+        logger.error(msg)
+        throw new Error(msg)
       })
       logger.ok(`connected to ${relayUrl}`)
       const ret = await new Promise(function (resolve, reject) {

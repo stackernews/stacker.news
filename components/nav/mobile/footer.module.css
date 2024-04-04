@@ -6,6 +6,7 @@
     background-color: var(--bs-body-bg);
     border-top: 1px solid var(--theme-toolbarActive);
     z-index: 1000;
+    justify-content: end;
 }
 
 .footerPadding {

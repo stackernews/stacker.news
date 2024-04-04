@@ -305,14 +305,47 @@ sndev__help_stacker_lncli() {
   docker__stacker_lnd --help
 }
 
-sndev__pr() {
-  shift
-  refspec="+refs/pull/$1/head:refs/remotes/pr/$1"
+__sndev__pr_track() {
+  json=$(curl -fsSH "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/stackernews/stacker.news/pulls/$1")
   case $(git config --get remote.origin.url) in
-    "http"*) git fetch https://github.com/stackernews/stacker.news.git "$refspec" ;;
+    "http"*) url=$(echo "$json" | grep -e '"clone_url"' | head -n1 | sed -e 's/^.*"clone_url":[[:space:]]*"//; s/",[[:space:]]*$//') ;;
+    *)       url=$(echo "$json" | grep -e '"ssh_url"' | head -n1 | sed -e 's/^.*"ssh_url":[[:space:]]*"//; s/",[[:space:]]*$//') ;;
+  esac
+
+  push=$(git remote -v | grep -e "$url .*push" | head -n1) || true
+  if [ -n "$push" ]; then
+    remote=$(printf "%s" $(cut -f 1 <<<"$push"))
+  else
+    remote=$(echo "$json" | grep -e '"login"' | head -n1 | sed -e 's/^.*"login":[[:space:]]*"//; s/",[[:space:]]*$//')
+    git remote remove "$remote" 1>/dev/null 2>&1 || true
+    git remote add "$remote" "$url"
+  fi
+
+  ref=$(echo "$json" | grep -e '"ref"' | head -n1 | sed -e 's/^.*"ref":[[:space:]]*"//; s/",[[:space:]]*$//')
+  git fetch "$remote" "$ref"
+  git checkout -b "pr/$1" "$remote/$ref"
+  exit 0
+}
+
+__sndev__pr_detach() {
+  case $(git config --get remote.origin.url) in
+      "http"*) git fetch https://github.com/stackernews/stacker.news.git "$refspec" ;;
     *)       git fetch git@github.com:stackernews/stacker.news.git "$refspec" ;;
   esac
+  refspec="+refs/pull/$1/head:refs/remotes/pr/$1"
   git checkout "pr/$1"
+  exit 0
+}
+
+sndev__pr() {
+  shift
+
+  case $1 in
+    -t|--track)
+      call "__sndev__pr_track" "$2" ;;
+    *)
+      call "__sndev__pr_detach" "$1" ;;
+  esac
 }
 
 sndev__help_pr() {
@@ -320,7 +353,11 @@ sndev__help_pr() {
 fetch and checkout a pr
 
 USAGE
-  $ sndev pr <pr number>
+  $ sndev pr [OPTIONS] <pr number>
+
+OPTIONS
+  -t, --track   track the pr in a new branch, creating a remote if necessary
+                defaults to checking out the pr in a detached state
 "
 
   echo "$help"

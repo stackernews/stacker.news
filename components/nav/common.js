@@ -236,8 +236,8 @@ export function SignUpButton ({ className = 'py-0' }) {
   return (
     <Button
       className={classNames('align-items-center ps-2 pe-3', className)}
-      style={{ borderWidth: '2px' }}
-      id='login'
+      style={{ borderWidth: '2px', width: '112px' }}
+      id='signup'
       onClick={() => handleLogin('/signup')}
     >
       <LightningIcon
@@ -259,8 +259,8 @@ export default function LoginButton ({ className }) {
   return (
     <Button
       className='align-items-center px-3 py-1 mb-2'
-      id='signup'
-      style={{ borderWidth: '2px' }}
+      id='login'
+      style={{ borderWidth: '2px', width: '112px' }}
       variant='outline-grey-darkmode'
       onClick={() => handleLogin('/login')}
     >

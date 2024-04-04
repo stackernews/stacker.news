@@ -228,7 +228,7 @@ const WalletLoggerProvider = ({ children }) => {
     const log = { wallet, level, message, ts: +new Date() }
     saveLog(log)
     setLogs((prevLogs) => [...prevLogs, log])
-  }, [setLogs, saveLog])
+  }, [saveLog])
 
   return (
     <WalletLogsContext.Provider value={logs}>

@@ -48,7 +48,7 @@ export default function BottomBar ({ sub }) {
 
   return (
     <nav className='d-block d-md-none'>
-      <div style={{ height: '53px' }} />
+      <div style={{ marginBottom: '53px' }} className={styles.footerPadding} />
       <div className={classNames(styles.footer, styles.footerPadding)}>
         <Navbar className='container px-0'>
           <Nav className={styles.footerNav}>

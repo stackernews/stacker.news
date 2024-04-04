@@ -142,10 +142,7 @@ export default {
     },
     mySubscribedUsers: async (parent, { cursor }, { models, me }) => {
       if (!me) {
-        return {
-          cursor: null,
-          users: []
-        }
+        throw new GraphQLError('You must be logged in to view subscribed users', { extensions: { code: 'UNAUTHENTICATED' } });
       }
 
       const decodedCursor = decodeCursor(cursor)

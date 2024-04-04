@@ -3,7 +3,6 @@ import { Checkbox, Input } from './form'
 import { useMe } from './me'
 import { useEffect, useState } from 'react'
 import { isNumber } from 'mathjs'
-import { numWithUnits } from '@/lib/format'
 
 function autoWithdrawThreshold ({ me }) {
   return isNumber(me?.privates?.autoWithdrawThreshold) ? me?.privates?.autoWithdrawThreshold : 10000
@@ -45,7 +44,7 @@ export function AutowithdrawSettings ({ priority }) {
               const value = e.target.value
               setSendThreshold(Math.max(Math.floor(value / 10), 1))
             }}
-            hint={isNumber(sendThreshold) ? `attempts to keep your balance no greater than ${numWithUnits(sendThreshold)} of this amount` : undefined}
+            hint={isNumber(sendThreshold) ? `will attempt auto-withdraw when your balance exceeds ${sendThreshold * 11} sats` : undefined}
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
           />
           <Input

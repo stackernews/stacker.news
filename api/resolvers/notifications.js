@@ -84,6 +84,7 @@ export default {
             '"ThreadSubscription"."userId" = $1',
             'r.created_at >= "ThreadSubscription".created_at',
             'r.created_at < $2',
+            'r."userId" <> $1',
             ...(meFull.noteAllDescendants ? [] : ['r.level = 1'])
           )}
           ORDER BY "sortTime" DESC

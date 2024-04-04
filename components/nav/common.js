@@ -353,7 +353,7 @@ export function MeCorner ({ dropNavKey, me, className }) {
     <div className={className}>
       <NavNotifications />
       <MeDropdown me={me} dropNavKey={dropNavKey} />
-      <NavWalletSummary />
+      <NavWalletSummary className='d-inline-block' />
     </div>
   )
 }

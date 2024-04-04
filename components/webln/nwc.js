@@ -235,8 +235,12 @@ export function NWCProvider ({ children }) {
             },
             onclose (reason) {
               clearTimeout(timer)
-              reject(new Error(reason))
-              sub?.close()
+              if (!['closed by caller', 'relay connection closed by us'].includes(reason)) {
+                // only log if not closed by us (caller)
+                const msg = 'connection closed: ' + (reason || 'unknown reason')
+                logger.error(msg)
+                reject(new Error(msg))
+              }
             }
           })
         })().catch(reject)

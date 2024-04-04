@@ -101,16 +101,9 @@ export default function Rewards ({ ssrData }) {
   const cachedData = useData(data, ssrData)
 
   const leaderboard = cachedData?.rewards[0].leaderboard
-  if (rewardsData?.rewards?.length > 0) {
-    total = rewardsData.rewards[0].total
-    sources = rewardsData.rewards[0].sources
-    time = rewardsData.rewards[0].time
-  } else if (cachedData?.rewards?.length > 0) {
-    total = cachedData?.rewards[0].total
-    sources = cachedData?.rewards[0].sources
-    time = cachedData?.rewards[0].time
-  } else {
-    return <PageLoading />
+  const activeData = rewardsData?.rewards?.length > 0 ? rewardsData.rewards[0] : cachedData?.rewards?.length > 0 ? cachedData.rewards[0] : null;
+  if (!activeData) return <PageLoading />;
+  const { total, sources, time } = activeData;
   }
 
   function EstimatedReward ({ rank }) {

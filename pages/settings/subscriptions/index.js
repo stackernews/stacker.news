@@ -14,7 +14,7 @@ export default function MySubscribedUsers ({ ssrData }) {
     <Layout>
       <div className='pb-3 w-100 mt-2'>
         <SettingsHeader />
-        <div className='mb-2'>These here are stackers you've hitched your wagon to, partner.</div>
+        <div className='mb-4 text-muted'>These here are stackers you've hitched your wagon to, pardner.</div>
         <SubscribeUserContextProvider value={subscribeUserContextValue}>
           <UserList
             ssrData={ssrData} query={MY_SUBSCRIBED_USERS}

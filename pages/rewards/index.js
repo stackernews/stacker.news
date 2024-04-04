@@ -95,13 +95,22 @@ export default function Rewards ({ ssrData }) {
     REWARDS,
     SSR ? {} : { pollInterval: 1000, nextFetchPolicy: 'cache-and-network' })
   const { data } = useQuery(REWARDS_FULL)
-  if (!data && !ssrData) return <PageLoading />
 
-  let { rewards: [{ total, sources, time, leaderboard }] } = useData(data, ssrData)
+  let total, sources, time
+
+  const cachedData = useData(data, ssrData)
+
+  const leaderboard = cachedData?.rewards[0].leaderboard
   if (rewardsData?.rewards?.length > 0) {
     total = rewardsData.rewards[0].total
     sources = rewardsData.rewards[0].sources
     time = rewardsData.rewards[0].time
+  } else if (cachedData?.rewards?.length > 0) {
+    total = cachedData?.rewards[0].total
+    sources = cachedData?.rewards[0].sources
+    time = cachedData?.rewards[0].time
+  } else {
+    return <PageLoading />
   }
 
   function EstimatedReward ({ rank }) {

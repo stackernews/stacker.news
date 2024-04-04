@@ -131,7 +131,7 @@ export function NWCProvider ({ children }) {
     } finally {
       setInitialized(true)
     }
-  }, [logger])
+  }, [validateParams, logger])
 
   const saveConfig = useCallback(async (config) => {
     // immediately store config so it's not lost even if config is invalid
@@ -252,7 +252,7 @@ export function NWCProvider ({ children }) {
       // relay?.close()
       if (relay) logger.info(`closed connection to ${relayUrl}`)
     }
-  }, [walletPubkey, secret, logger])
+  }, [walletPubkey, relayUrl, secret, logger])
 
   useEffect(() => {
     loadConfig().catch(err => logger.error(err.message || err.toString?.()))

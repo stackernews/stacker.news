@@ -10,6 +10,7 @@ import { useData } from './use-data'
 import Hat from './hat'
 import { useMe } from './me'
 import { MEDIA_URL } from '@/lib/constants'
+import { NymActionDropdown } from '@/components/user-header'
 
 // all of this nonsense is to show the stat we are sorting by first
 const Stacked = ({ user }) => (user.optional.stacked !== null && <span>{abbrNum(user.optional.stacked)} stacked</span>)
@@ -38,8 +39,9 @@ function seperate (arr, seperator) {
   return arr.flatMap((x, i) => i < arr.length - 1 ? [x, seperator] : [x])
 }
 
-function User ({ user, rank, statComps, Embellish }) {
+function User ({ user, rank, statComps, Embellish, nymActionDropdown = false }) {
   const me = useMe()
+  const showStatComps = statComps && statComps.length > 0
   return (
     <>
       {rank
@@ -55,13 +57,17 @@ function User ({ user, rank, statComps, Embellish }) {
             className={`${userStyles.userimg} me-2`}
           />
         </Link>
-        <div className={styles.hunk}>
-          <Link href={`/${user.name}`} className={`${styles.title} d-inline-flex align-items-center text-reset`}>
-            @{user.name}<Hat className='ms-1 fill-grey' height={14} width={14} user={user} />
-          </Link>
-          <div className={styles.other}>
-            {statComps.map((Comp, i) => <Comp key={i} user={user} />)}
+        <div className={`${styles.hunk} ${!showStatComps && 'd-flex flex-column justify-content-around'}`}>
+          <div className='d-flex'>
+            <Link href={`/${user.name}`} className={`${styles.title} d-inline-flex align-items-center text-reset`}>
+              @{user.name}<Hat className='ms-1 fill-grey' height={14} width={14} user={user} />
+            </Link>
+            {nymActionDropdown && <NymActionDropdown user={user} className='' />}
           </div>
+          {showStatComps &&
+            <div className={styles.other}>
+              {statComps.map((Comp, i) => <Comp key={i} user={user} />)}
+            </div>}
           {Embellish && <Embellish rank={rank} />}
         </div>
       </div>
@@ -96,19 +102,19 @@ function UserHidden ({ rank, Embellish }) {
   )
 }
 
-export function ListUsers ({ users, rank, statComps = seperate(STAT_COMPONENTS, Seperator), Embellish }) {
+export function ListUsers ({ users, rank, statComps = seperate(STAT_COMPONENTS, Seperator), Embellish, nymActionDropdown }) {
   return (
     <div className={styles.grid}>
       {users.map((user, i) => (
         user
-          ? <User key={user.id} user={user} rank={rank && i + 1} statComps={statComps} Embellish={Embellish} />
+          ? <User key={user.id} user={user} rank={rank && i + 1} statComps={statComps} Embellish={Embellish} nymActionDropdown={nymActionDropdown} />
           : <UserHidden key={i} rank={rank && i + 1} Embellish={Embellish} />
       ))}
     </div>
   )
 }
 
-export default function UserList ({ ssrData, query, variables, destructureData, rank, footer = true }) {
+export default function UserList ({ ssrData, query, variables, destructureData, rank, footer = true, nymActionDropdown, statCompsProp }) {
   const { data, fetchMore } = useQuery(query, { variables })
   const dat = useData(data, ssrData)
   const [statComps, setStatComps] = useState(seperate(STAT_COMPONENTS, Seperator))
@@ -134,7 +140,7 @@ export default function UserList ({ ssrData, query, variables, destructureData, 
 
   return (
     <>
-      <ListUsers users={users} rank={rank} statComps={statComps} />
+      <ListUsers users={users} rank={rank} statComps={statCompsProp ?? statComps} nymActionDropdown={nymActionDropdown} />
       {footer &&
         <MoreFooter cursor={cursor} count={users?.length} fetchMore={fetchMore} Skeleton={UsersSkeleton} noMoreText='NO MORE' />}
     </>

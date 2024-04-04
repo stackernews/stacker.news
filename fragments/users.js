@@ -206,6 +206,26 @@ export const USER_FIELDS = gql`
     }
   }`
 
+export const MY_SUBSCRIBED_USERS = gql`
+  query MySubscribedUsers($cursor: String) {
+    mySubscribedUsers(cursor: $cursor) {
+      users {
+        id
+        name
+        photoId
+        meSubscriptionPosts
+        meSubscriptionComments
+        meMute
+
+        optional {
+          streak
+        }
+      }
+      cursor
+    }
+  }
+`
+
 export const TOP_USERS = gql`
   query TopUsers($cursor: String, $when: String, $from: String, $to: String, $by: String, ) {
     topUsers(cursor: $cursor, when: $when, from: $from, to: $to, by: $by) {

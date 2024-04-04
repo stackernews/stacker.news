@@ -151,7 +151,7 @@ export default {
       const decodedCursor = decodeCursor(cursor)
       const users = await models.$queryRaw`
         SELECT users.*
-        FROM "UserSubscription" LEFT JOIN users
+        FROM "UserSubscription" INNER JOIN users
         ON "UserSubscription"."followeeId" = users.id
         WHERE "UserSubscription"."followerId" = ${me.id}
         AND ("UserSubscription"."postsSubscribedAt" IS NOT NULL OR "UserSubscription"."commentsSubscribedAt" IS NOT NULL)

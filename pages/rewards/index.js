@@ -20,6 +20,7 @@ import { Col, Row } from 'react-bootstrap'
 import { proportions } from '@/lib/madness'
 import { useData } from '@/components/use-data'
 import { GrowthPieChartSkeleton } from '@/components/charts-skeletons'
+import { useMemo } from 'react'
 
 const GrowthPieChart = dynamic(() => import('@/components/charts').then(mod => mod.GrowthPieChart), {
   loading: () => <GrowthPieChartSkeleton />
@@ -95,15 +96,19 @@ export default function Rewards ({ ssrData }) {
     REWARDS,
     SSR ? {} : { pollInterval: 1000, nextFetchPolicy: 'cache-and-network' })
   const { data } = useQuery(REWARDS_FULL)
+  const dat = useData(data, ssrData)
 
-  const cachedData = useData(data, ssrData)
+  let { rewards: [{ total, sources, time, leaderboard }] } = useMemo(() => {
+    return dat || { rewards: [{}] }
+  }, [dat])
 
-  const leaderboard = cachedData?.rewards[0].leaderboard
-  const activeData = rewardsData?.rewards?.length > 0 ? rewardsData.rewards[0] : cachedData?.rewards?.length > 0 ? cachedData.rewards[0] : null
+  if (rewardsData?.rewards?.length > 0) {
+    total = rewardsData.rewards[0].total
+    sources = rewardsData.rewards[0].sources
+    time = rewardsData.rewards[0].time
+  }
 
-  if (!activeData) return <PageLoading />
-
-  const { total, sources, time } = activeData
+  if (!dat) return <PageLoading />
 
   function EstimatedReward ({ rank }) {
     const totalRest = total - 1000000

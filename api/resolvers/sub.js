@@ -186,6 +186,7 @@ export default {
 
       const subs = await models.$queryRawUnsafe(`
           SELECT "Sub".*,
+            "Sub".created_at as "createdAt",
             COALESCE(floor(sum(msats_revenue)/1000), 0) as revenue,
             COALESCE(floor(sum(msats_stacked)/1000), 0) as stacked,
             COALESCE(floor(sum(msats_spent)/1000), 0) as spent,

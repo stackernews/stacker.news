@@ -23,7 +23,7 @@ benalleng,pr,#975,,,,,,20k,BenAllenG@stacker.news,2024-03-26
 SatsAllDay,security,#980,GHSA-qg4g-m4xq-695p,,,,,100k,weareallsatoshi@getalby.com,2024-03-28
 SatsAllDay,code review,#980,GHSA-qg4g-m4xq-695p,medium,,,,25k,weareallsatoshi@getalby.com,2024-03-28
 Darth-Coin,issue,#1009,#1002,easy,,,,10k,darthcoin@stacker.news,2024-04-04
-atomantic,issue,#1009,#679,medium,high,,,50k,???,2024-04-04
+atomantic,issue,#1009,#679,medium,high,,,50k,antic@stacker.news,2024-04-04
 aniskhalfallah,pr,#1001,#976,good-first-issue,,,,20k,aniskhalfallah@stacker.news,2024-04-04
 SatsAllDay,pr,#944,#1000,medium,,,,250k,weareallsatoshi@getalby.com,2024-04-04
 SatsAllDay,issue,#944,#1000,medium,,,,25k,weareallsatoshi@getalby.com,2024-04-04
@@ -34,4 +34,7 @@ SatsAllDay,issue,#1015,#1010,good-first-issue,,,,20k,weareallsatoshi@getalby.com
 jp30566347,pr,#991,#718,good-first-issue,,,,20k,jpmelanson@getalby.com,2024-04-04
 benalleng,helpfulness,#1015,#1010,good-first-issue,,,,2k,BenAllenG@stacker.news,2024-04-04
 felipebueno,pr,#1012,,,,,,20k,felipe@stacker.news,2024-04-24
-
+abhiShandy,helpfulness,#1018,#1006,good-first-issue,,,identified problem,2k,???,2024-04-24
+benalleng,issue,#1018,#1006,good-first-issue,,,,2k,BenAllenG@stacker.news,2024-04-04
+benalleng,issue,#1011,#993,easy,high,,,20k,BenAllenG@stacker.news,2024-04-04
+benalleng,pr,#1011,#993,easy,high,,tortured them,200k,BenAllenG@stacker.news,2024-04-04

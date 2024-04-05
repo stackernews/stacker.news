@@ -126,7 +126,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
   const { ref: textRef, quote, quoteReply, cancelQuote } = useQuoteReply({ text: item.text })
 
   return (
-    <article className={styles.fullItemContainer} ref={textRef}>
+   <article className={styles.fullItemContainer} ref={textRef}>
     <ItemComponent
       item={item}
       full
@@ -141,11 +141,11 @@ function TopLevelItem ({ item, noReply, ...props }) {
       belowTitle={item.forwards && item.forwards.length > 0 && <FwdUsers forwards={item.forwards} />}
       {...props}
     >
-        {item.text && <ItemText item={item} />}
-        {item.url && <ItemEmbed item={item} />}
-        {item.poll && <Poll item={item} />}
-        {item.bounty &&
-          <div className='fw-bold mt-2'>
+      {item.text && <ItemText item={item} />}
+      {item.url && <ItemEmbed item={item} />}
+      {item.poll && <Poll item={item} />}
+      {item.bounty &&
+      <div className='fw-bold mt-2'>
             {item.bountyPaidTo?.length
               ? (
                 <div className='px-3 py-1 d-inline-block bg-grey-medium rounded text-success'>
@@ -164,7 +164,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
           {item.bounty > 0 && <PastBounties item={item} />}
         </>}
     </ItemComponent>
- </article>
+   </article>
   )
 }
 

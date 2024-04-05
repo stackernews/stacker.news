@@ -131,7 +131,7 @@ export function NWCProvider ({ children }) {
     } finally {
       setInitialized(true)
     }
-  }, [logger])
+  }, [validateParams, logger])
 
   const saveConfig = useCallback(async (config) => {
     // immediately store config so it's not lost even if config is invalid
@@ -235,8 +235,12 @@ export function NWCProvider ({ children }) {
             },
             onclose (reason) {
               clearTimeout(timer)
-              reject(new Error(reason))
-              sub?.close()
+              if (!['closed by caller', 'relay connection closed by us'].includes(reason)) {
+                // only log if not closed by us (caller)
+                const msg = 'connection closed: ' + (reason || 'unknown reason')
+                logger.error(msg)
+                reject(new Error(msg))
+              }
             }
           })
         })().catch(reject)
@@ -252,7 +256,7 @@ export function NWCProvider ({ children }) {
       // relay?.close()
       if (relay) logger.info(`closed connection to ${relayUrl}`)
     }
-  }, [walletPubkey, secret, logger])
+  }, [walletPubkey, relayUrl, secret, logger])
 
   useEffect(() => {
     loadConfig().catch(err => logger.error(err.message || err.toString?.()))

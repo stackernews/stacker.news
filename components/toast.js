@@ -36,16 +36,6 @@ export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([])
   const toastId = useRef(0)
 
-  const dispatchToast = useCallback((toast) => {
-    toast = {
-      ...toast,
-      createdAt: +new Date(),
-      id: toastId.current++
-    }
-    setToasts(toasts => ensureFlow(toasts, toast).map(mapHidden(toast)))
-    return () => removeToast(toast)
-  }, [])
-
   const removeToast = useCallback(({ id, onCancel, tag }) => {
     setToasts(toasts => toasts.filter(toast => {
       if (toast.id === id) {
@@ -65,11 +55,21 @@ export const ToastProvider = ({ children }) => {
       // remove toasts with same tag if they are not cancelable
       return false
     }))
-  }, [])
+  }, [setToasts])
+
+  const dispatchToast = useCallback((toast) => {
+    toast = {
+      ...toast,
+      createdAt: +new Date(),
+      id: toastId.current++
+    }
+    setToasts(toasts => ensureFlow(toasts, toast).map(mapHidden(toast)))
+    return () => removeToast(toast)
+  }, [setToasts, removeToast])
 
   const endFlow = useCallback((flowId) => {
     setToasts(toasts => toasts.filter(toast => toast.flowId !== flowId))
-  }, [])
+  }, [setToasts])
 
   const toaster = useMemo(() => ({
     success: (body, options) => {
@@ -110,13 +110,13 @@ export const ToastProvider = ({ children }) => {
   // Only clear toasts with no cancel function on page navigation
   // since navigation should not interfere with being able to cancel an action.
   useEffect(() => {
-    const handleRouteChangeStart = () => setToasts(toasts => toasts.filter(({ onCancel, onUndo }) => onCancel || onUndo), [])
+    const handleRouteChangeStart = () => setToasts(toasts => toasts.length > 0 ? toasts.filter(({ onCancel, onUndo }) => onCancel || onUndo) : toasts)
     router.events.on('routeChangeStart', handleRouteChangeStart)
 
     return () => {
       router.events.off('routeChangeStart', handleRouteChangeStart)
     }
-  }, [router])
+  }, [router.events, setToasts])
 
   // this function merges toasts with the same tag into one toast.
   // for example: 3x 'zap pending' -> '(3) zap pending'

@@ -314,7 +314,7 @@ __sndev__pr_track() {
 
   push=$(git remote -v | grep -e "$url .*push" | head -n1) || true
   if [ -n "$push" ]; then
-    remote=$(echo "$push" | cut -d' ' -f1)
+    remote=$(echo "$push" | cut -f 1)
   else
     remote=$(echo "$json" | grep -e '"login"' | head -n1 | sed -e 's/^.*"login":[[:space:]]*"//; s/",[[:space:]]*$//')
     git remote remove "$remote" 1>/dev/null 2>&1 || true

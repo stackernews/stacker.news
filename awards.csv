@@ -1,5 +1,5 @@
 name,type,pr id,issue ids,difficulty,priority,changes requested,notes,amount,receive method,date paid
-jp-melanson,pr,#898,#680,good-first-issue,,,,20k,jpmelanson@getalby.com,2024-03-16
+jp30566347,pr,#898,#680,good-first-issue,,,,20k,jpmelanson@getalby.com,2024-03-16
 NEEDcreations,issue,#898,#680,good-first-issue,,,,2k,NEEDcreations@stacker.news,2024-03-16
 SatsAllDay,docs,#925,,,,,typo,100,weareallsatoshi@getalby.com,2024-03-16
 SatsAllDay,issue,#933,#928,medium,,,,25k,weareallsatoshi@getalby.com,2024-03-18
@@ -18,7 +18,23 @@ felipebueno,pr,#948,,,,,,100k,felipe@stacker.news,2024-03-26
 benalleng,pr,#972,#923,good-first-issue,,,,20k,BenAllenG@stacker.news,2024-03-26
 SatsAllDay,issue,#972,#923,good-first-issue,,,,2k,weareallsatoshi@getalby.com,2024-03-26
 felipebueno,pr,#974,#884,good-first-issue,,,,20k,felipe@stacker.news,2024-03-26
-h0dlr,issue,#974,#884,good-first-issue,,,,2k,???,???
+h0dlr,issue,#974,#884,good-first-issue,,,,2k,0xe14b9b5981c729a3@ln.tips,2024-04-04
 benalleng,pr,#975,,,,,,20k,BenAllenG@stacker.news,2024-03-26
 SatsAllDay,security,#980,GHSA-qg4g-m4xq-695p,,,,,100k,weareallsatoshi@getalby.com,2024-03-28
 SatsAllDay,code review,#980,GHSA-qg4g-m4xq-695p,medium,,,,25k,weareallsatoshi@getalby.com,2024-03-28
+Darth-Coin,issue,#1009,#1002,easy,,,,10k,darthcoin@stacker.news,2024-04-04
+atomantic,issue,#1009,#679,medium,high,,,50k,antic@stacker.news,2024-04-04
+aniskhalfallah,pr,#1001,#976,good-first-issue,,,,20k,aniskhalfallah@stacker.news,2024-04-04
+SatsAllDay,pr,#944,#1000,medium,,,,250k,weareallsatoshi@getalby.com,2024-04-04
+SatsAllDay,issue,#944,#1000,medium,,,,25k,weareallsatoshi@getalby.com,2024-04-04
+SatsAllDay,pr,#989,#984,medium,,,,250k,weareallsatoshi@getalby.com,2024-04-04
+SatsAllDay,issue,#989,#984,medium,,,,25k,weareallsatoshi@getalby.com,2024-04-04
+SouthKoreaLN,pr,#1015,#1010,good-first-issue,,,,20k,south_korea_ln@stacker.news,2024-04-04
+SatsAllDay,issue,#1015,#1010,good-first-issue,,,,20k,weareallsatoshi@getalby.com,2024-04-04
+jp30566347,pr,#991,#718,good-first-issue,,,,20k,jpmelanson@getalby.com,2024-04-04
+benalleng,helpfulness,#1015,#1010,good-first-issue,,,,2k,BenAllenG@stacker.news,2024-04-04
+felipebueno,pr,#1012,,,,,,20k,felipe@stacker.news,2024-04-24
+abhiShandy,helpfulness,#1018,#1006,good-first-issue,,,identified problem,2k,bolt11,2024-04-24
+benalleng,issue,#1018,#1006,good-first-issue,,,,2k,BenAllenG@stacker.news,2024-04-04
+benalleng,issue,#1011,#993,easy,high,,,20k,BenAllenG@stacker.news,2024-04-04
+benalleng,pr,#1011,#993,easy,high,,tortured them,200k,BenAllenG@stacker.news,2024-04-04

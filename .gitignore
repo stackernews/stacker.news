@@ -32,6 +32,9 @@ envbak
 .env*
 !.env.sample
 
+# local settings
+.vscode/settings.json
+
 # vercel
 .vercel
 

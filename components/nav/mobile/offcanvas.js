@@ -22,9 +22,10 @@ export default function OffCanvas ({ me, dropNavKey }) {
         src={me?.photoId ? `${MEDIA_URL}/${me.photoId}` : '/dorian400.jpg'} width='28' height='28'
         style={{ clipPath: 'polygon(0 0, 83% 0, 100% 100%, 17% 100%)' }}
         onClick={onClick}
+        className='pointer'
       />
       )
-    : <span className='text-muted'><AnonIcon onClick={onClick} width='22' height='22' /></span>
+    : <span className='text-muted pointer'><AnonIcon onClick={onClick} width='22' height='22' /></span>
 
   return (
     <>

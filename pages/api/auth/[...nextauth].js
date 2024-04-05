@@ -11,6 +11,8 @@ import { getToken } from 'next-auth/jwt'
 import { NodeNextRequest } from 'next/dist/server/base-http/node'
 import { schnorr } from '@noble/curves/secp256k1'
 import { notifyReferral } from '@/lib/webPush'
+import { renderToString } from 'react-dom/server'
+import QRCode from 'qrcode.react'
 
 /**
  * Stores userIds in user table
@@ -343,6 +345,8 @@ const newUserHtml = ({ url, site, email }) => {
   const mainBackgroundColor = '#ffffff'
   const buttonBackgroundColor = '#FADA5E'
 
+  const urlQrCode = renderToString(<QRCode value={url} renderAs='svg' size={256} />)
+
   return `
 <!doctype html>
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
@@ -502,6 +506,12 @@ const newUserHtml = ({ url, site, email }) => {
                             </td>
                           </tr>
                         </table>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td align="center" style="font-size:0px;padding:10px 25px;word-break:break-word;">
+                        <div style="font-family:Helvetica, Arial, sans-serif;font-size:14px;line-height:24px;text-align:center;color:#000000;">Or read this QRCode with your device:</div>
+                        ${urlQrCode}
                       </td>
                     </tr>
                     <tr>

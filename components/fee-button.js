@@ -118,7 +118,7 @@ export default function FeeButton ({ ChildButton = SubmitButton, variant, text, 
     ? 'free'
     : total > 1
       ? numWithUnits(total, { abbreviate: false, format: true })
-      : undefined
+      : 'free'
   disabled ||= ctxDisabled
 
   return (

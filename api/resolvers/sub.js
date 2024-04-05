@@ -95,8 +95,9 @@ export default {
       if (me) {
         const currentUser = await models.user.findUnique({ where: { id: me.id } })
         const showNsfw = currentUser ? currentUser.nsfwMode : false
+
         return await models.$queryRawUnsafe(`
-          SELECT "Sub".*, COALESCE(json_agg("MuteSub".*) FILTER (WHERE "MuteSub"."userId" IS NOT NULL), '[]') AS "MuteSub"
+          SELECT "Sub".*, "Sub".created_at as "createdAt", COALESCE(json_agg("MuteSub".*) FILTER (WHERE "MuteSub"."userId" IS NOT NULL), '[]') AS "MuteSub"
           FROM "Sub"
           LEFT JOIN "MuteSub" ON "Sub".name = "MuteSub"."subName" AND "MuteSub"."userId" = ${me.id}::INTEGER
           WHERE status <> 'STOPPED' ${showNsfw ? '' : 'AND "Sub"."nsfw" = FALSE'}

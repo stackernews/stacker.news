@@ -395,7 +395,8 @@ export default {
     },
     meSubscription: async (sub, args, { me, models }) => {
       return sub.meSubscription || sub.SubSubscription?.length > 0
-    }
+    },
+    createdAt: sub => sub.createdAt || sub.created_at
   }
 }
 

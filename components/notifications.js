@@ -79,10 +79,7 @@ function NotificationLayout ({ children, n, href, as, fresh }) {
         }, router.asPath, { ...router.options, shallow: true })
         if (e.ctrlKey) {
           e.preventDefault()
-          const anchor = document.createElement('a')
-          anchor.href = n.item.parentId ? as + '?commentId=' + n.id : as
-          anchor.target = '_blank'
-          anchor.click()
+          window.open(n.item.parentId ? as + '?commentId=' + n.id : as, '_blank')
         } else {
           router.push(href, as)
         }

@@ -30,11 +30,13 @@ import { LongCountdown } from './countdown'
 import { nextBillingWithGrace } from '@/lib/territory'
 import { commentSubTreeRootId } from '@/lib/item'
 
+const nid = n => n.__typename + n.id + n.sortTime
+
 function Notification ({ n, fresh }) {
   const type = n.__typename
 
   return (
-    <NotificationLayout nid={nid(n)} {...defaultOnClick(n)} fresh={fresh}>
+    <NotificationLayout n={n} {...defaultOnClick(n)} fresh={fresh}>
       {
         (type === 'Earn' && <EarnNotification n={n} />) ||
         (type === 'Revenue' && <RevenueNotification n={n} />) ||
@@ -57,13 +59,14 @@ function Notification ({ n, fresh }) {
   )
 }
 
-function NotificationLayout ({ children, nid, href, as, fresh }) {
+function NotificationLayout ({ children, n, href, as, fresh }) {
   const router = useRouter()
+  const nidQuery = nid(n)
   if (!href) return <div className={fresh ? styles.fresh : ''}>{children}</div>
   return (
     <div
       className={
-        `clickToContext ${fresh ? styles.fresh : ''} ${router?.query?.nid === nid ? 'outline-it' : ''}`
+        `clickToContext ${fresh ? styles.fresh : ''} ${router?.query?.nid === nidQuery ? 'outline-it' : ''}`
       }
       onClick={async (e) => {
         if (ignoreClick(e)) return
@@ -71,10 +74,18 @@ function NotificationLayout ({ children, nid, href, as, fresh }) {
           pathname: router.pathname,
           query: {
             ...router.query,
-            nid
+            nidQuery
           }
         }, router.asPath, { ...router.options, shallow: true })
-        router.push(href, as)
+        if (e.ctrlKey) {
+          e.preventDefault()
+          const anchor = document.createElement('a')
+          anchor.href = n.item.parentId ? as + '?commentId=' + n.id : as
+          anchor.target = '_blank'
+          anchor.click()
+        } else {
+          router.push(href, as)
+        }
       }}
     >
       {children}
@@ -508,8 +519,6 @@ export function NotificationAlert () {
           )
   )
 }
-
-const nid = n => n.__typename + n.id + n.sortTime
 
 export default function Notifications ({ ssrData }) {
   const { data, fetchMore } = useQuery(NOTIFICATIONS)

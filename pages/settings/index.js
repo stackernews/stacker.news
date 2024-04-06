@@ -61,7 +61,7 @@ export function SettingsHeader () {
         </Nav.Item>
         <Nav.Item>
           <Link href='/settings/mutes' passHref legacyBehavior>
-            <Nav.Link eventKey='mutes'>muted users</Nav.Link>
+            <Nav.Link eventKey='mutes'>muted stackers</Nav.Link>
           </Link>
         </Nav.Item>
       </Nav>

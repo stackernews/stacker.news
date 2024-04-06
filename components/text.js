@@ -19,7 +19,7 @@ import { rehypeInlineCodeProperty } from '@/lib/md'
 import { Button } from 'react-bootstrap'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
-import { UNKNOWN_LINK_REL } from '@/lib/constants'
+import { SSR, UNKNOWN_LINK_REL } from '@/lib/constants'
 import isEqual from 'lodash/isEqual'
 
 export function SearchText ({ text }) {
@@ -178,7 +178,8 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
             // If [text](url) was parsed as <a> and text is not empty and not a link itself,
             // we don't render it as an image since it was probably a conscious choice to include text.
             const text = children[0]
-            const internalURL = process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://stacker.news'
+            const url = !href.startsWith('/') && new URL(href)
+            const internalURL = SSR ? 'https://stacker.news' : window.location.origin
             if (!!text && !/^https?:\/\//.test(text)) {
               if (props['data-footnote-ref'] || typeof props['data-footnote-backref'] !== 'undefined') {
                 return (
@@ -190,16 +191,26 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
                   </Link>
                 )
               }
+              if (href.startsWith('/') || url.origin === internalURL) {
+                return (
+                  <Link
+                    id={props.id}
+                    href={href}
+                  >
+                    {text}
+                  </Link>
+                )
+              }
               return (
                 // eslint-disable-next-line
-                <a id={props.id} target={href.startsWith(internalURL) || href.startsWith('/') ? '_self' : '_blank'} rel={rel ?? UNKNOWN_LINK_REL} href={href}>{text}</a>
+                <a id={props.id} target='_blank' rel={rel ?? UNKNOWN_LINK_REL} href={href}>{text}</a>
               )
             }
 
             try {
               const linkText = parseInternalLinks(href)
               if (linkText) {
-                return <a target={href.startsWith(internalURL) || href.startsWith('/') ? '_self' : '_blank'} rel='noreferrer' href={href}>{linkText}</a>
+                return <Link href={href}>{linkText}</Link>
               }
             } catch {
               // ignore errors like invalid URLs

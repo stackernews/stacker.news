@@ -178,6 +178,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
             // If [text](url) was parsed as <a> and text is not empty and not a link itself,
             // we don't render it as an image since it was probably a conscious choice to include text.
             const text = children[0]
+            const internalURL = process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://stacker.news'
             if (!!text && !/^https?:\/\//.test(text)) {
               if (props['data-footnote-ref'] || typeof props['data-footnote-backref'] !== 'undefined') {
                 return (
@@ -191,14 +192,14 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
               }
               return (
                 // eslint-disable-next-line
-                <a id={props.id} target='_blank' rel={rel ?? UNKNOWN_LINK_REL} href={href}>{text}</a>
+                <a id={props.id} target={href.startsWith(internalURL) || href.startsWith('/') ? '_self' : '_blank'} rel={rel ?? UNKNOWN_LINK_REL} href={href}>{text}</a>
               )
             }
 
             try {
               const linkText = parseInternalLinks(href)
               if (linkText) {
-                return <a target='_blank' href={href} rel='noreferrer'>{linkText}</a>
+                return <a target={href.startsWith(internalURL) || href.startsWith('/') ? '_self' : '_blank'} rel='noreferrer' href={href}>{linkText}</a>
               }
             } catch {
               // ignore errors like invalid URLs

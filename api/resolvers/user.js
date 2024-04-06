@@ -163,7 +163,7 @@ export default {
     },
     myMutedUsers: async (parent, { cursor }, { models, me }) => {
       if (!me) {
-        throw new GraphQLError('You must be logged in to view subscribed users', { extensions: { code: 'UNAUTHENTICATED' } })
+        throw new GraphQLError('You must be logged in to view muted users', { extensions: { code: 'UNAUTHENTICATED' } })
       }
 
       const decodedCursor = decodeCursor(cursor)

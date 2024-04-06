@@ -41,7 +41,7 @@ function bech32encode (hexString) {
 export function SettingsHeader () {
   const router = useRouter()
   const pathParts = router.asPath.split('/').filter(segment => !!segment)
-  const activeKey = pathParts.length === 1 ? 'general' : 'subscriptions'
+  const activeKey = pathParts[1] ?? 'general'
   return (
     <>
       <h2 className='mb-2 text-start'>settings</h2>
@@ -57,6 +57,11 @@ export function SettingsHeader () {
         <Nav.Item>
           <Link href='/settings/subscriptions' passHref legacyBehavior>
             <Nav.Link eventKey='subscriptions'>subscriptions</Nav.Link>
+          </Link>
+        </Nav.Item>
+        <Nav.Item>
+          <Link href='/settings/mutes' passHref legacyBehavior>
+            <Nav.Link eventKey='mutes'>muted users</Nav.Link>
           </Link>
         </Nav.Item>
       </Nav>

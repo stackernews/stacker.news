@@ -8,7 +8,7 @@ import { MuteUserContextProvider } from '@/components/mute'
 
 export const getServerSideProps = getGetServerSideProps({ query: MY_MUTED_USERS, authRequired: true })
 
-export default function MuMutedUsers ({ ssrData }) {
+export default function MyMutedUsers ({ ssrData }) {
   const muteUserContextValue = useMemo(() => ({ refetchQueries: ['MyMutedUsers'] }), [])
   return (
     <Layout>

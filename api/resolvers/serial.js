@@ -17,7 +17,7 @@ export default async function serialize (trx, { models, lnd, me, hash, hmac, fee
 
   let invoice
   if (hash) {
-    invoice = await checkInvoice(models, hash, hmac, fee)
+    invoice = await verifyPayment(models, hash, hmac, fee)
     trx = [
       models.$executeRaw`SELECT confirm_invoice(${hash}, ${invoice.msatsReceived})`,
       ...trx
@@ -94,7 +94,7 @@ export default async function serialize (trx, { models, lnd, me, hash, hmac, fee
   return isArray ? results : results[0]
 }
 
-export async function checkInvoice (models, hash, hmac, fee) {
+async function verifyPayment (models, hash, hmac, fee) {
   if (!hash) {
     throw new GraphQLError('hash required', { extensions: { code: 'BAD_INPUT' } })
   }

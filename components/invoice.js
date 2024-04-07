@@ -363,7 +363,7 @@ const waitForWebLNPayment = async ({ provider, invoice, pollInvoice, gqlCacheUpd
           clearInterval(interval)
           reject(err)
         }
-      }, 1000)
+      }, FAST_POLL_INTERVAL)
     })
   } catch (err) {
     undoUpdate?.()

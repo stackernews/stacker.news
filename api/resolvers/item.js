@@ -1,6 +1,6 @@
 import { GraphQLError } from 'graphql'
 import { ensureProtocol, removeTracking, stripTrailingSlash } from '@/lib/url'
-import serialize, { serializeInvoicable } from './serial'
+import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
 import { ruleSet as publicationDateRuleSet } from '@/lib/timedate-scraper'
@@ -849,9 +849,9 @@ export default {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
       }
 
-      await serializeInvoicable(
+      await serialize(
         models.$queryRawUnsafe(`${SELECT} FROM poll_vote($1::INTEGER, $2::INTEGER) AS "Item"`, Number(id), Number(me.id)),
-        { me, models, lnd, hash, hmac }
+        { models, lnd, me, hash, hmac }
       )
 
       return id
@@ -883,7 +883,6 @@ export default {
 
       if (idempotent) {
         await serialize(
-          models,
           models.$queryRaw`
           SELECT
             item_act(${Number(id)}::INTEGER, ${me.id}::INTEGER, ${act}::"ItemActType",
@@ -891,15 +890,16 @@ export default {
              FROM "ItemAct"
              WHERE act IN ('TIP', 'FEE')
              AND "itemId" = ${Number(id)}::INTEGER
-             AND "userId" = ${me.id}::INTEGER)::INTEGER)`
+             AND "userId" = ${me.id}::INTEGER)::INTEGER)`,
+          { models }
         )
       } else {
-        await serializeInvoicable(
+        await serialize(
           models.$queryRaw`
             SELECT
               item_act(${Number(id)}::INTEGER,
               ${me?.id || ANON_USER_ID}::INTEGER, ${act}::"ItemActType", ${Number(sats)}::INTEGER)`,
-          { me, models, lnd, hash, hmac, enforceFee: sats }
+          { models, lnd, me, hash, hmac, fee: sats }
         )
       }
 
@@ -1284,10 +1284,10 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
   const uploadIds = uploadIdsFromText(item.text, { models })
   const { totalFees: imgFees } = await imageFeesInfo(uploadIds, { models, me })
 
-  item = await serializeInvoicable(
+  item = await serialize(
     models.$queryRawUnsafe(`${SELECT} FROM update_item($1::JSONB, $2::JSONB, $3::JSONB, $4::INTEGER[]) AS "Item"`,
       JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options), uploadIds),
-    { models, lnd, hash, hmac, me, enforceFee: imgFees }
+    { models, lnd, me, hash, hmac, fee: imgFees }
   )
 
   await createMentions(item, models)
@@ -1320,22 +1320,22 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
   const uploadIds = uploadIdsFromText(item.text, { models })
   const { totalFees: imgFees } = await imageFeesInfo(uploadIds, { models, me })
 
-  let enforceFee = 0
+  let fee = 0
   if (!me) {
     if (item.parentId) {
-      enforceFee = ANON_FEE_MULTIPLIER
+      fee = ANON_FEE_MULTIPLIER
     } else {
       const sub = await models.sub.findUnique({ where: { name: item.subName } })
-      enforceFee = sub.baseCost * ANON_FEE_MULTIPLIER + (item.boost || 0)
+      fee = sub.baseCost * ANON_FEE_MULTIPLIER + (item.boost || 0)
     }
   }
-  enforceFee += imgFees
+  fee += imgFees
 
-  item = await serializeInvoicable(
+  item = await serialize(
     models.$queryRawUnsafe(
       `${SELECT} FROM create_item($1::JSONB, $2::JSONB, $3::JSONB, '${spamInterval}'::INTERVAL, $4::INTEGER[]) AS "Item"`,
       JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options), uploadIds),
-    { models, lnd, hash, hmac, me, enforceFee }
+    { models, lnd, me, hash, hmac, fee }
   )
 
   await createMentions(item, models)

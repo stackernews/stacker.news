@@ -1,6 +1,6 @@
 import { createContext, useContext, useMemo } from 'react'
 import { useQuery } from '@apollo/client'
-import { SSR } from '@/lib/constants'
+import { NORMAL_POLL_INTERVAL, SSR } from '@/lib/constants'
 import { BLOCK_HEIGHT } from '@/fragments/blockHeight'
 
 export const BlockHeightContext = createContext({
@@ -14,7 +14,7 @@ export const BlockHeightProvider = ({ blockHeight, children }) => {
     ...(SSR
       ? {}
       : {
-          pollInterval: 30000,
+          pollInterval: NORMAL_POLL_INTERVAL,
           nextFetchPolicy: 'cache-and-network'
         })
   })

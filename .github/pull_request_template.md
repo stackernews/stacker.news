@@ -52,3 +52,7 @@ If changes were requested, request a new review when you incorporated the feedba
 
 <!-- You should be able to use the mobile browser emulator in your browser to test this. -->
 - [ ] For frontend changes: Tested on mobile?
+
+<!-- New env vars need to be called out
+so they can be properly configured for prod. -->
+- [ ] Did you introduce any new environment variables? If so, call them out explicitly in the PR description.

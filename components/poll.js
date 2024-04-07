@@ -8,7 +8,7 @@ import Check from '@/svgs/checkbox-circle-fill.svg'
 import { signIn } from 'next-auth/react'
 import ActionTooltip from './action-tooltip'
 import { POLL_COST } from '@/lib/constants'
-import { payOrLoginError, useInvoiceModal } from './invoice'
+import { payOrLoginError, useInvoiceModal } from '@/lib/invoice'
 
 export default function Poll ({ item }) {
   const me = useMe()

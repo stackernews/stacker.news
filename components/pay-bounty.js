@@ -6,7 +6,7 @@ import { useMe } from './me'
 import { numWithUnits } from '@/lib/format'
 import { useShowModal } from './modal'
 import { useRoot } from './root'
-import { payOrLoginError, useInvoiceModal } from './invoice'
+import { payOrLoginError, useInvoiceModal } from '@/lib/invoice'
 import { useAct } from './item-act'
 
 export default function PayBounty ({ children, item }) {

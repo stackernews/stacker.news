@@ -207,6 +207,11 @@ module.exports = withPlausibleProxy()({
             'process.env.MEDIA_URL_DOCKER': JSON.stringify(process.env.MEDIA_URL_DOCKER),
             'process.env.NEXT_PUBLIC_MEDIA_URL': JSON.stringify(process.env.NEXT_PUBLIC_MEDIA_URL),
             'process.env.NEXT_PUBLIC_MEDIA_DOMAIN': JSON.stringify(process.env.NEXT_PUBLIC_MEDIA_DOMAIN),
+            'process.env.NEXT_PUBLIC_URL': JSON.stringify(process.env.NEXT_PUBLIC_URL),
+            'process.env.NEXT_PUBLIC_FAST_POLL_INTERVAL': JSON.stringify(process.env.NEXT_PUBLIC_FAST_POLL_INTERVAL),
+            'process.env.NEXT_PUBLIC_NORMAL_POLL_INTERVAL': JSON.stringify(process.env.NEXT_PUBLIC_NORMAL_POLL_INTERVAL),
+            'process.env.NEXT_PUBLIC_LONG_POLL_INTERVAL': JSON.stringify(process.env.NEXT_PUBLIC_LONG_POLL_INTERVAL),
+            'process.env.NEXT_PUBLIC_EXTRA_LONG_POLL_INTERVAL': JSON.stringify(process.env.NEXT_PUBLIC_EXTRA_LONG_POLL_INTERVAL),
             'process.env.NEXT_IS_EXPORT_WORKER': 'true'
           })
         ]

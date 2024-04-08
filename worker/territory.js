@@ -34,7 +34,7 @@ export async function territoryBilling ({ data: { subName }, boss, models }) {
 
   try {
     const queries = paySubQueries(sub, models)
-    await serialize(models, ...queries)
+    await serialize(queries, { models })
   } catch (e) {
     console.error(e)
     await territoryStatusUpdate()
@@ -42,7 +42,7 @@ export async function territoryBilling ({ data: { subName }, boss, models }) {
 }
 
 export async function territoryRevenue ({ models }) {
-  await serialize(models,
+  await serialize(
     models.$executeRaw`
       WITH revenue AS (
         SELECT coalesce(sum(msats), 0) as revenue, "subName", "userId"
@@ -69,6 +69,7 @@ export async function territoryRevenue ({ models }) {
       )
       UPDATE users SET msats = users.msats + "SubActResult".msats
       FROM "SubActResult"
-      WHERE users.id = "SubActResult"."userId"`
+      WHERE users.id = "SubActResult"."userId"`,
+    { models }
   )
 }

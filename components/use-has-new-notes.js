@@ -1,6 +1,6 @@
 import { HAS_NOTIFICATIONS } from '@/fragments/notifications'
 import { clearNotifications } from '@/lib/badge'
-import { SSR } from '@/lib/constants'
+import { NORMAL_POLL_INTERVAL, SSR } from '@/lib/constants'
 import { useQuery } from '@apollo/client'
 import React, { useContext } from 'react'
 
@@ -11,7 +11,7 @@ export function HasNewNotesProvider ({ me, children }) {
     SSR
       ? {}
       : {
-          pollInterval: 30000,
+          pollInterval: NORMAL_POLL_INTERVAL,
           nextFetchPolicy: 'cache-and-network',
           onCompleted: ({ hasNewNotes }) => {
             if (!hasNewNotes) {

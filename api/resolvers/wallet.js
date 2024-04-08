@@ -354,10 +354,12 @@ export default {
           expires_at: expiresAt
         })
 
-        const [inv] = await serialize(models,
+        const [inv] = await serialize(
           models.$queryRaw`SELECT * FROM create_invoice(${invoice.id}, ${hodlInvoice ? invoice.secret : null}::TEXT, ${invoice.request},
             ${expiresAt}::timestamp, ${amount * 1000}, ${user.id}::INTEGER, ${description}, NULL, NULL,
-            ${invLimit}::INTEGER, ${balanceLimit})`)
+            ${invLimit}::INTEGER, ${balanceLimit})`,
+          { models }
+        )
 
         // the HMAC is only returned during invoice creation
         // this makes sure that only the person who created this invoice
@@ -378,7 +380,7 @@ export default {
         throw new GraphQLError('bad hmac', { extensions: { code: 'FORBIDDEN' } })
       }
       await cancelHodlInvoice({ id: hash, lnd })
-      const inv = await serialize(models,
+      const inv = await serialize(
         models.invoice.update({
           where: {
             hash
@@ -386,7 +388,9 @@ export default {
           data: {
             cancelled: true
           }
-        }))
+        }),
+        { models }
+      )
       return inv
     },
     dropBolt11: async (parent, { id }, { me, models, lnd }) => {
@@ -660,9 +664,11 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
   const user = await models.user.findUnique({ where: { id: me.id } })
 
   // create withdrawl transactionally (id, bolt11, amount, fee)
-  const [withdrawl] = await serialize(models,
+  const [withdrawl] = await serialize(
     models.$queryRaw`SELECT * FROM create_withdrawl(${decoded.id}, ${invoice},
-      ${Number(decoded.mtokens)}, ${msatsFee}, ${user.name}, ${autoWithdraw})`)
+      ${Number(decoded.mtokens)}, ${msatsFee}, ${user.name}, ${autoWithdraw})`,
+    { models }
+  )
 
   payViaPaymentRequest({
     lnd,

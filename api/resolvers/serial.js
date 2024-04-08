@@ -1,4 +1,5 @@
 import { GraphQLError } from 'graphql'
+import { timingSafeEqual } from 'crypto'
 import retry from 'async-retry'
 import Prisma from '@prisma/client'
 import { settleHodlInvoice } from 'ln-service'
@@ -6,13 +7,30 @@ import { createHmac } from './wallet'
 import { msatsToSats, numWithUnits } from '@/lib/format'
 import { BALANCE_LIMIT_MSATS } from '@/lib/constants'
 
-export default async function serialize (models, ...calls) {
-  return await retry(async bail => {
+export default async function serialize (trx, { models, lnd, me, hash, hmac, fee }) {
+  // wrap first argument in array if not array already
+  const isArray = Array.isArray(trx)
+  if (!isArray) trx = [trx]
+
+  // conditional queries can be added inline using && syntax
+  // we filter any falsy value out here
+  trx = trx.filter(q => !!q)
+
+  let invoice
+  if (hash) {
+    invoice = await verifyPayment(models, hash, hmac, fee)
+    trx = [
+      models.$executeRaw`SELECT confirm_invoice(${hash}, ${invoice.msatsReceived})`,
+      ...trx
+    ]
+  }
+
+  let results = await retry(async bail => {
     try {
-      const [, ...result] = await models.$transaction(
-        [models.$executeRaw`SELECT ASSERT_SERIALIZED()`, ...calls],
+      const [, ...results] = await models.$transaction(
+        [models.$executeRaw`SELECT ASSERT_SERIALIZED()`, ...trx],
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
-      return calls.length > 1 ? result : result[0]
+      return results
     } catch (error) {
       console.log(error)
       // two cases where we get insufficient funds:
@@ -64,38 +82,20 @@ export default async function serialize (models, ...calls) {
     maxTimeout: 100,
     retries: 10
   })
-}
-
-export async function serializeInvoicable (query, { models, lnd, hash, hmac, me, enforceFee }) {
-  if (!me && !hash) {
-    throw new Error('you must be logged in or pay')
-  }
-
-  let trx = Array.isArray(query) ? query : [query]
-
-  let invoice
-  if (hash) {
-    invoice = await checkInvoice(models, hash, hmac, enforceFee)
-    trx = [
-      models.$executeRaw`SELECT confirm_invoice(${hash}, ${invoice.msatsReceived})`,
-      ...trx
-    ]
-  }
-
-  let results = await serialize(models, ...trx)
 
   if (hash) {
-    if (invoice?.isHeld) { await settleHodlInvoice({ secret: invoice.preimage, lnd }) }
+    if (invoice?.isHeld) {
+      await settleHodlInvoice({ secret: invoice.preimage, lnd })
+    }
     // remove first element since that is the confirmed invoice
-    [, ...results] = results
+    results = results.slice(1)
   }
 
-  // if there is only one result, return it directly, else the array
-  results = results.flat(2)
-  return results.length > 1 ? results : results[0]
+  // if first argument was not an array, unwrap the result
+  return isArray ? results : results[0]
 }
 
-export async function checkInvoice (models, hash, hmac, fee) {
+async function verifyPayment (models, hash, hmac, fee) {
   if (!hash) {
     throw new GraphQLError('hash required', { extensions: { code: 'BAD_INPUT' } })
   }
@@ -103,7 +103,7 @@ export async function checkInvoice (models, hash, hmac, fee) {
     throw new GraphQLError('hmac required', { extensions: { code: 'BAD_INPUT' } })
   }
   const hmac2 = createHmac(hash)
-  if (hmac !== hmac2) {
+  if (!timingSafeEqual(Buffer.from(hmac), Buffer.from(hmac2))) {
     throw new GraphQLError('bad hmac', { extensions: { code: 'FORBIDDEN' } })
   }
 

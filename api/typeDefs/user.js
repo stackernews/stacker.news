@@ -13,6 +13,7 @@ export default gql`
     userSuggestions(q: String, limit: Limit): [User!]!
     hasNewNotes: Boolean!
     mySubscribedUsers(cursor: String): Users!
+    myMutedUsers(cursor: String): Users!
   }
 
   type UsersNullable {

@@ -57,7 +57,7 @@ function getCallbacks (req) {
         // this means users can update their referrer if they don't have one, which is fine
         if (req.cookies.sn_referrer && user?.id) {
           const referrer = await prisma.user.findUnique({ where: { name: req.cookies.sn_referrer } })
-          if (referrer) {
+          if (referrer && referrer.id !== Number(user.id)) {
             await prisma.user.updateMany({ where: { id: user.id, referrerId: null }, data: { referrerId: referrer.id } })
             notifyReferral(referrer.id)
           }

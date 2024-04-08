@@ -516,8 +516,15 @@ export default function Notifications ({ ssrData }) {
   const router = useRouter()
   const dat = useData(data, ssrData)
 
-  const { notifications: { notifications, lastChecked, cursor } } = useMemo(() => {
-    return dat || { notifications: {} }
+  const { notifications, lastChecked, cursor } = useMemo(() => {
+    if (!dat?.notifications) return {}
+
+    // make sure we're using the oldest lastChecked we've seen
+    const retDat = { ...dat.notifications }
+    if (ssrData?.notifications?.lastChecked < retDat.lastChecked) {
+      retDat.lastChecked = ssrData.notifications.lastChecked
+    }
+    return retDat
   }, [dat])
 
   useEffect(() => {

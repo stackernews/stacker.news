@@ -259,7 +259,12 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
   const onPaste = useCallback((event) => {
     event.preventDefault()
 
-    const item = event.clipboardData.items[0];
+    const items = event.clipboardData.items
+    if (items.length == 0) {
+      return
+    }
+
+    const item = items[0];
     if (item.type.indexOf("image") !== 0) {
       return
     }

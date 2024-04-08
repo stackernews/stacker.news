@@ -79,9 +79,11 @@ export async function earn ({ name }) {
       console.log('stacker', earner.userId, 'earned', earnings, 'proportion', earner.proportion, 'rank', earner.rank, 'type', earner.type)
 
       if (earnings > 0) {
-        await serialize(models,
+        await serialize(
           models.$executeRaw`SELECT earn(${earner.userId}::INTEGER, ${earnings},
-          ${now}::timestamp without time zone, ${earner.type}::"EarnType", ${earner.id}::INTEGER, ${earner.rank}::INTEGER)`)
+          ${now}::timestamp without time zone, ${earner.type}::"EarnType", ${earner.id}::INTEGER, ${earner.rank}::INTEGER)`,
+          { models }
+        )
 
         const userN = notifications[earner.userId] || {}
 

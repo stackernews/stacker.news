@@ -1,5 +1,5 @@
 import { GraphQLError } from 'graphql'
-import { serializeInvoicable } from './serial'
+import serialize from './serial'
 import { TERRITORY_COST_MONTHLY, TERRITORY_COST_ONCE, TERRITORY_COST_YEARLY, TERRITORY_PERIOD_COST } from '@/lib/constants'
 import { datePivot, whenRange } from '@/lib/time'
 import { ssValidate, territorySchema } from '@/lib/validate'
@@ -246,9 +246,9 @@ export default {
         return sub
       }
 
-      const results = await serializeInvoicable(
+      const results = await serialize(
         queries,
-        { models, lnd, hash, hmac, me, enforceFee: sub.billingCost })
+        { models, lnd, me, hash, hmac, fee: sub.billingCost })
       return results[1]
     },
     toggleMuteSub: async (parent, { name }, { me, models }) => {
@@ -344,8 +344,9 @@ export default {
       const billPaidUntil = nextBilling(new Date(), data.billingType)
       const cost = BigInt(1000) * BigInt(billingCost)
       const newSub = { ...data, billPaidUntil, billingCost, userId: me.id, status: 'ACTIVE' }
+      const isTransfer = oldSub.userId !== me.id
 
-      await serializeInvoicable([
+      await serialize([
         models.user.update({
           where: {
             id: me.id
@@ -365,11 +366,11 @@ export default {
           }
         }),
         models.sub.update({ where: { name }, data: newSub }),
-        oldSub.userId !== me.id && models.territoryTransfer.create({ data: { subName: name, oldUserId: oldSub.userId, newUserId: me.id } })
-      ].filter(q => !!q),
-      { models, lnd, hash, hmac, me, enforceFee: billingCost })
+        isTransfer && models.territoryTransfer.create({ data: { subName: name, oldUserId: oldSub.userId, newUserId: me.id } })
+      ],
+      { models, lnd, hash, me, hmac, fee: billingCost })
 
-      if (oldSub.userId !== me.id) notifyTerritoryTransfer({ models, sub: newSub, to: me })
+      if (isTransfer) notifyTerritoryTransfer({ models, sub: newSub, to: me })
     }
   },
   Sub: {
@@ -417,7 +418,7 @@ async function createSub (parent, data, { me, models, lnd, hash, hmac }) {
   const cost = BigInt(1000) * BigInt(billingCost)
 
   try {
-    const results = await serializeInvoicable([
+    const results = await serialize([
       // bill 'em
       models.user.update({
         where: {
@@ -456,7 +457,7 @@ async function createSub (parent, data, { me, models, lnd, hash, hmac }) {
           subName: data.name
         }
       })
-    ], { models, lnd, hash, hmac, me, enforceFee: billingCost })
+    ], { models, lnd, me, hash, hmac, fee: billingCost })
 
     return results[1]
   } catch (error) {
@@ -511,7 +512,7 @@ async function updateSub (parent, { oldName, ...data }, { me, models, lnd, hash,
       const proratedCost = proratedBillingCost(oldSub, data.billingType)
       if (proratedCost > 0) {
         const cost = BigInt(1000) * BigInt(proratedCost)
-        const results = await serializeInvoicable([
+        const results = await serialize([
           models.user.update({
             where: {
               id: me.id
@@ -537,7 +538,7 @@ async function updateSub (parent, { oldName, ...data }, { me, models, lnd, hash,
               userId: me.id
             }
           })
-        ], { models, lnd, hash, hmac, me, enforceFee: proratedCost })
+        ], { models, lnd, me, hash, hmac, fee: proratedCost })
         return results[2]
       }
     }

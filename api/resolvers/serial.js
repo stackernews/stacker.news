@@ -1,4 +1,5 @@
 import { GraphQLError } from 'graphql'
+import { timingSafeEqual } from 'crypto'
 import retry from 'async-retry'
 import Prisma from '@prisma/client'
 import { settleHodlInvoice } from 'ln-service'
@@ -102,7 +103,7 @@ async function verifyPayment (models, hash, hmac, fee) {
     throw new GraphQLError('hmac required', { extensions: { code: 'BAD_INPUT' } })
   }
   const hmac2 = createHmac(hash)
-  if (hmac !== hmac2) {
+  if (!timingSafeEqual(Buffer.from(hmac), Buffer.from(hmac2))) {
     throw new GraphQLError('bad hmac', { extensions: { code: 'FORBIDDEN' } })
   }
 

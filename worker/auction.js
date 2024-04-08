@@ -17,6 +17,7 @@ export async function auction ({ models }) {
 
   // for each item, run serialized auction function
   items.forEach(async item => {
-    await serialize(models.$executeRaw`SELECT run_auction(${item.id}::INTEGER)`, { models })
+    await serialize(models,
+      models.$executeRaw`SELECT run_auction(${item.id}::INTEGER)`)
   })
 }

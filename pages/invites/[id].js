@@ -36,10 +36,8 @@ export async function getServerSideProps ({ req, res, query: { id, error = null 
     try {
       // attempt to send gift
       // catch any errors and just ignore them for now
-      await serialize(
-        models.$queryRawUnsafe('SELECT invite_drain($1::INTEGER, $2::TEXT)', session.user.id, id),
-        { models }
-      )
+      await serialize(models,
+        models.$queryRawUnsafe('SELECT invite_drain($1::INTEGER, $2::TEXT)', session.user.id, id))
       const invite = await models.invite.findUnique({ where: { id } })
       notifyInvite(invite.userId)
     } catch (e) {

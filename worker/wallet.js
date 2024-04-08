@@ -121,10 +121,10 @@ async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
     // ALSO: is_confirmed and is_held are mutually exclusive
     // that is, a hold invoice will first be is_held but not is_confirmed
     // and once it's settled it will be is_confirmed but not is_held
-    const [[{ confirm_invoice: code }]] = await serialize([
+    const [[{ confirm_invoice: code }]] = await serialize(models,
       models.$queryRaw`SELECT confirm_invoice(${inv.id}, ${Number(inv.received_mtokens)})`,
       models.invoice.update({ where: { hash }, data: { confirmedIndex: inv.confirmed_index } })
-    ], { models })
+    )
 
     // don't send notifications for JIT invoices
     if (dbInv.preimage) return
@@ -143,7 +143,7 @@ async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
     // and without setting the user balance
     // those will be set when the invoice is settled by user action
     const expiresAt = new Date(Math.min(dbInv.expiresAt, datePivot(new Date(), { seconds: 60 })))
-    return await serialize([
+    return await serialize(models,
       models.$queryRaw`
       INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
       VALUES ('finalizeHodlInvoice', jsonb_build_object('hash', ${hash}), 21, true, ${expiresAt})`,
@@ -154,12 +154,11 @@ async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
           expiresAt,
           isHeld: true
         }
-      })
-    ], { models })
+      }))
   }
 
   if (inv.is_canceled) {
-    return await serialize(
+    return await serialize(models,
       models.invoice.update({
         where: {
           hash: inv.id
@@ -167,8 +166,7 @@ async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
         data: {
           cancelled: true
         }
-      }), { models }
-    )
+      }))
   }
 }
 
@@ -230,10 +228,8 @@ async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
   if (wdrwl?.is_confirmed) {
     const fee = Number(wdrwl.payment.fee_mtokens)
     const paid = Number(wdrwl.payment.mtokens) - fee
-    const [{ confirm_withdrawl: code }] = await serialize(
-      models.$queryRaw`SELECT confirm_withdrawl(${dbWdrwl.id}::INTEGER, ${paid}, ${fee})`,
-      { models }
-    )
+    const [{ confirm_withdrawl: code }] = await serialize(models, models.$queryRaw`
+      SELECT confirm_withdrawl(${dbWdrwl.id}::INTEGER, ${paid}, ${fee})`)
     if (code === 0) {
       notifyWithdrawal(dbWdrwl.userId, wdrwl)
     }
@@ -249,10 +245,9 @@ async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
       status = 'ROUTE_NOT_FOUND'
     }
 
-    await serialize(
+    await serialize(models,
       models.$executeRaw`
-        SELECT reverse_withdrawl(${dbWdrwl.id}::INTEGER, ${status}::"WithdrawlStatus")`,
-      { models }
+        SELECT reverse_withdrawl(${dbWdrwl.id}::INTEGER, ${status}::"WithdrawlStatus")`
     )
   }
 }

@@ -80,13 +80,11 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
       expires_at: expiresAt
     })
 
-    await serialize(
+    await serialize(models,
       models.$queryRaw`SELECT * FROM create_invoice(${invoice.id}, NULL, ${invoice.request},
         ${expiresAt}::timestamp, ${Number(amount)}, ${user.id}::INTEGER, ${noteStr || description},
         ${comment || null}, ${parsedPayerData || null}::JSONB, ${INV_PENDING_LIMIT}::INTEGER,
-        ${USER_IDS_BALANCE_NO_LIMIT.includes(Number(user.id)) ? 0 : BALANCE_LIMIT_MSATS})`,
-      { models }
-    )
+        ${USER_IDS_BALANCE_NO_LIMIT.includes(Number(user.id)) ? 0 : BALANCE_LIMIT_MSATS})`)
 
     return res.status(200).json({
       pr: invoice.request,

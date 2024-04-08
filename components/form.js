@@ -260,7 +260,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
     event.preventDefault()
 
     const items = event.clipboardData.items
-    if (items.length == 0) {
+    if (items.length === 0) {
       return
     }
 

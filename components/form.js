@@ -265,7 +265,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
     }
 
     const item = items[0]
-    if (item.type.indexOf("image") !== 0) {
+    if (item.type.indexOf('image') !== 0) {
       return
     }
 

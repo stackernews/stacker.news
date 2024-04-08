@@ -251,7 +251,7 @@ function HeaderHeader ({ user }) {
       </div>
   )
 
-  const lnurlp = encodeLNUrl(new URL(`https://stacker.news/.well-known/lnurlp/${user.name}`))
+  const lnurlp = encodeLNUrl(new URL(`${process.env.NEXT_PUBLIC_URL}/.well-known/lnurlp/${user.name}`))
   return (
     <div className='d-flex mt-2 flex-wrap flex-column flex-sm-row'>
       <HeaderPhoto user={user} isMe={isMe} />

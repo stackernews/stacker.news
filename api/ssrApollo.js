@@ -79,7 +79,7 @@ export function getGetServerSideProps (
     const { data: { me } } = await client.query({ query: ME })
 
     if (authRequired && !me) {
-      const callback = process.env.PUBLIC_URL + req.url
+      const callback = process.env.NEXT_PUBLIC_URL + req.url
       return {
         redirect: {
           destination: `/signup?callbackUrl=${encodeURIComponent(callback)}`

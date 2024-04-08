@@ -19,7 +19,7 @@ import { rehypeInlineCodeProperty } from '@/lib/md'
 import { Button } from 'react-bootstrap'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
-import { SSR, UNKNOWN_LINK_REL } from '@/lib/constants'
+import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import isEqual from 'lodash/isEqual'
 
 export function SearchText ({ text }) {
@@ -179,7 +179,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
             // we don't render it as an image since it was probably a conscious choice to include text.
             const text = children[0]
             const url = !href.startsWith('/') && new URL(href)
-            const internalURL = SSR ? 'https://stacker.news' : window.location.origin
+            const internalURL = process.env.NEXT_PUBLIC_URL
             if (!!text && !/^https?:\/\//.test(text)) {
               if (props['data-footnote-ref'] || typeof props['data-footnote-backref'] !== 'undefined') {
                 return (

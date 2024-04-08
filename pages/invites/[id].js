@@ -53,7 +53,7 @@ export async function getServerSideProps ({ req, res, query: { id, error = null 
   return {
     props: {
       providers: await getProviders(),
-      callbackUrl: process.env.PUBLIC_URL + req.url,
+      callbackUrl: process.env.NEXT_PUBLIC_URL + req.url,
       invite: data.invite,
       error
     }

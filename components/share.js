@@ -14,7 +14,7 @@ const referrurl = (ipath, me) => {
   if (!SSR) {
     return `${window.location.protocol}//${window.location.host}${path}`
   }
-  return `https://stacker.news${path}`
+  return `${process.env.NEXT_PUBLIC_URL}${path}`
 }
 
 export default function Share ({ path, title, className = '' }) {

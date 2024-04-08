@@ -264,10 +264,10 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
       return
     }
 
-    const blob = item.getAsFile();
-    const file = new File([blob], 'image', { type: blob.type });
-    const fileList = new DataTransfer();
-    fileList.items.add(file);
+    const blob = item.getAsFile()
+    const file = new File([blob], 'image', { type: blob.type })
+    const fileList = new DataTransfer()
+    fileList.items.add(file)
 
     const changeEvent = new Event('change', { bubbles: true })
     imageUploadRef.current.files = fileList.files

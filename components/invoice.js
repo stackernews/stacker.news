@@ -13,6 +13,7 @@ import Countdown from './countdown'
 import PayerData from './payer-data'
 import Bolt11Info from './bolt11-info'
 import { useWebLN } from './webln'
+import { FAST_POLL_INTERVAL } from '@/lib/constants'
 
 export function Invoice ({ invoice, modal, onPayment, info, successVerb, webLn }) {
   const [expired, setExpired] = useState(new Date(invoice.expiredAt) <= new Date())
@@ -100,7 +101,7 @@ export function Invoice ({ invoice, modal, onPayment, info, successVerb, webLn }
 
 const JITInvoice = ({ invoice: { id, hash, hmac, expiresAt }, onPayment, onCancel, onRetry }) => {
   const { data, loading, error } = useQuery(INVOICE, {
-    pollInterval: 1000,
+    pollInterval: FAST_POLL_INTERVAL,
     variables: { id }
   })
   const [retryError, setRetryError] = useState(0)
@@ -362,7 +363,7 @@ const waitForWebLNPayment = async ({ provider, invoice, pollInvoice, gqlCacheUpd
           clearInterval(interval)
           reject(err)
         }
-      }, 1000)
+      }, FAST_POLL_INTERVAL)
     })
   } catch (err) {
     undoUpdate?.()

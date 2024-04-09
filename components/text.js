@@ -10,6 +10,7 @@ import React, { useState, memo, useRef, useCallback, useMemo, useEffect } from '
 import GithubSlugger from 'github-slugger'
 import LinkIcon from '@/svgs/link.svg'
 import Thumb from '@/svgs/thumb-up-fill.svg'
+import classNames from 'classnames'
 import { toString } from 'mdast-util-to-string'
 import copy from 'clipboard-copy'
 import ZoomableImage, { decodeOriginalUrl } from './image'
@@ -35,7 +36,7 @@ export function SearchText ({ text }) {
 }
 
 // this is one of the slowest components to render
-export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, outlawed, topLevel, noFragments }) {
+export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, outlawed, topLevel, noFragments, href, as }) {
   const [overflowing, setOverflowing] = useState(false)
   const router = useRouter()
   const [show, setShow] = useState(false)
@@ -149,6 +150,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
 
   return (
     <div className={`${styles.text} ${show ? styles.textUncontained : overflowing ? styles.textContained : ''}`} ref={containerRef}>
+      {href && (<Link className={styles.linkBox} href={href} as={as} />)}
       <ReactMarkdown
         components={{
           h1: Heading,
@@ -220,7 +222,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
             const youtube = href.match(/(https?:\/\/)?((www\.)?(youtube(-nocookie)?|youtube.googleapis)\.com.*(v\/|v=|vi=|vi\/|e\/|embed\/|user\/.*\/u\/\d+\/)|youtu\.be\/)(?<id>[_0-9a-z-]+)((?:\?|&)(?:t|start)=(?<start>\d+))?/i)
             if (youtube?.groups?.id) {
               return (
-                <div style={{ maxWidth: topLevel ? '640px' : '320px', paddingRight: '15px', margin: '0.5rem 0' }}>
+                <div className={classNames(styles.youtubePadding, topLevel ? styles.largeVideo : styles.smallVideo)}>
                   <YouTube
                     videoId={youtube.groups.id} className={styles.youtubeContainer} opts={{
                       playerVars: {

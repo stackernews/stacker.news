@@ -6,6 +6,8 @@
     overflow-y: hidden;
     position: relative;
     max-height: 200vh;
+    padding-right: 15px;
+    margin-top: .1rem;
 }
 
 
@@ -103,9 +105,16 @@
 
 .text .p {
     display: block;
-    margin-bottom: .5rem;
     white-space: pre-wrap;
     word-break: break-word;
+    position: relative;
+    z-index: 100;
+    width: fit-content;
+}
+
+.text .p a {
+    position: relative;
+    z-index: 100;
 }
 
 .text pre {
@@ -250,5 +259,27 @@ img.fullScreen {
     height: 100%;
     position: absolute;
     top: 0;
+    left: 0;
+}
+
+.youtubePadding {
+    padding-right: 15px;
+    margin: 0.5rem 0px;
+    width: calc(100vw - 80px);
+}
+
+.smallVideo {
+    max-width: 320px;
+}
+
+.largeVideo {
+    max-width: 640px;
+}
+
+.linkBox {
+    position: absolute; 
+    top: 0;
+    right: 0;
+    bottom: 0;
     left: 0;
 }

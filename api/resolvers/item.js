@@ -1282,13 +1282,13 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
   const fwdUsers = await getForwardUsers(models, forward)
 
   const uploadIds = uploadIdsFromText(item.text, { models })
-  const { totalFees: imgFees } = await imageFeesInfo(uploadIds, { models, me })
+  const { totalFees: imgFees } = await imageFeesInfo(uploadIds, { models, me });
 
-  item = await serialize(
+  ([item] = await serialize(
     models.$queryRawUnsafe(`${SELECT} FROM update_item($1::JSONB, $2::JSONB, $3::JSONB, $4::INTEGER[]) AS "Item"`,
       JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options), uploadIds),
     { models, lnd, me, hash, hmac, fee: imgFees }
-  )
+  ))
 
   await createMentions(item, models)
 
@@ -1329,14 +1329,14 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
       fee = sub.baseCost * ANON_FEE_MULTIPLIER + (item.boost || 0)
     }
   }
-  fee += imgFees
+  fee += imgFees;
 
-  item = await serialize(
+  ([item] = await serialize(
     models.$queryRawUnsafe(
       `${SELECT} FROM create_item($1::JSONB, $2::JSONB, $3::JSONB, '${spamInterval}'::INTERVAL, $4::INTEGER[]) AS "Item"`,
       JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options), uploadIds),
     { models, lnd, me, hash, hmac, fee }
-  )
+  ))
 
   await createMentions(item, models)
 

@@ -123,7 +123,7 @@ async function autowithdrawLND ({ amount, maxFee }, { me, models, lnd }) {
   })
 
   if (!wallet || !wallet.walletLND) {
-    throw new Error('no lightning address wallet found')
+    throw new Error('no lnd wallet found')
   }
 
   const { walletLND: { cert, macaroon, socket } } = wallet

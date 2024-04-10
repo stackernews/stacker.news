@@ -6,6 +6,7 @@ import { LightningAddressWalletCard } from './lightning-address'
 import { LNbitsCard } from './lnbits'
 import { NWCCard } from './nwc'
 import { LNDCard } from './lnd'
+import { CLNCard } from './cln'
 import { WALLETS } from '@/fragments/wallet'
 import { useQuery } from '@apollo/client'
 import PageLoading from '@/components/page-loading'
@@ -19,6 +20,7 @@ export default function Wallet ({ ssrData }) {
   const { wallets } = data || ssrData
   const lnd = wallets.find(w => w.type === 'LND')
   const lnaddr = wallets.find(w => w.type === 'LIGHTNING_ADDRESS')
+  const cln = wallets.find(w => w.type === 'CLN')
 
   return (
     <Layout>
@@ -28,6 +30,7 @@ export default function Wallet ({ ssrData }) {
         <div className={styles.walletGrid}>
           <LightningAddressWalletCard wallet={lnaddr} />
           <LNDCard wallet={lnd} />
+          <CLNCard wallet={cln} />
           <LNbitsCard />
           <NWCCard />
           <WalletCard title='coming soon' badges={['probably']} />

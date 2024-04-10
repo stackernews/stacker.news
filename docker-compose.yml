@@ -421,8 +421,13 @@ services:
       - '--bitcoin-rpcuser=${RPC_USER}'
       - '--bitcoin-rpcpassword=${RPC_PASS}'
       - '--large-channels'
+      - '--rest-port=3010'
+      - '--rest-host=0.0.0.0'
+      - '--log-file=/home/clightning/.lightning/debug.log'
     expose:
       - "9735"
+    ports:
+      - "${STACKER_CLN_REST_PORT}:3010"
     volumes:
       - stacker_cln:/home/clightning/.lightning
     labels:

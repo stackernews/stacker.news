@@ -107,9 +107,6 @@
     display: block;
     white-space: pre-wrap;
     word-break: break-word;
-    position: relative;
-    z-index: 100;
-    width: fit-content;
 }
 
 .text .p a {

@@ -154,7 +154,6 @@ a.link:visited {
 } */
 
 .main {
-    width: fit-content;
     display: flex;
     align-items: baseline;
 }

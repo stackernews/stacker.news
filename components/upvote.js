@@ -89,6 +89,7 @@ export default function UpVote ({ item, className }) {
   const [tipShow, _setTipShow] = useState(false)
   const ref = useRef()
   const me = useMe()
+  const [longPressKey, setLongPressKey] = useState(Math.random())
   const [hover, setHover] = useState(false)
   const [setWalkthrough] = useMutation(
     gql`
@@ -142,43 +143,51 @@ export default function UpVote ({ item, className }) {
       getColor(meSats), getColor(meSats + sats)]
   }, [item?.meSats, item?.meAnonSats, me?.privates?.tipDefault, me?.privates?.turboDefault])
 
+  const handleModalClosed = () => {
+    setHover(false)
+  }
+
+  const handleLongPress = (e) => {
+    if (!item) return
+
+    // we can't tip ourselves
+    if (disabled) {
+      return
+    }
+
+    // force remount to fix onClick handler being ignored
+    setLongPressKey(Math.random())
+    setTipShow(false)
+    showModal(onClose =>
+      <ItemAct onClose={onClose} itemId={item.id} />, { onClose: handleModalClosed })
+  }
+
+  const handleShortPress = () => {
+    if (me) {
+      if (!item) return
+
+      // we can't tip ourselves
+      if (disabled) {
+        return
+      }
+
+      if (meSats) {
+        setVoteShow(false)
+      } else {
+        setTipShow(true)
+      }
+
+      zap({ item, me })
+    } else {
+      showModal(onClose => <ItemAct onClose={onClose} itemId={item.id} act={act} />, { onClose: handleModalClosed })
+    }
+  }
   return (
     <div ref={ref} className='upvoteParent'>
       <LongPressable
-        onLongPress={
-              async (e) => {
-                if (!item) return
-
-                // we can't tip ourselves
-                if (disabled) {
-                  return
-                }
-
-                setTipShow(false)
-                showModal(onClose =>
-                  <ItemAct onClose={onClose} itemId={item.id} />)
-              }
-            }
-        onShortPress={
-            me
-              ? async (e) => {
-                if (!item) return
-
-                // we can't tip ourselves
-                if (disabled) {
-                  return
-                }
-
-                if (meSats) {
-                  setVoteShow(false)
-                } else {
-                  setTipShow(true)
-                }
-
-                zap({ item, me })
-              }
-              : () => showModal(onClose => <ItemAct onClose={onClose} itemId={item.id} act={act} />)
-          }
+        key={longPressKey}
+        onLongPress={handleLongPress}
+        onShortPress={handleShortPress}
       >
         <ActionTooltip notForm disable={disabled} overlayText={overlayText}>
           <div

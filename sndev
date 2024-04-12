@@ -48,6 +48,17 @@ docker__stacker_lnd() {
   docker__exec $t -u lnd stacker_lnd lncli "$@"
 }
 
+docker__stacker_cln() {
+  t=$1
+  if [ "$t" = "-t" ]; then
+    shift
+  else
+    t=""
+  fi
+
+  docker__exec $t -u clightning stacker_cln lightning-cli --regtest "$@"
+}
+
 sndev__start() {
   shift
 
@@ -207,6 +218,23 @@ OPTIONS"
   docker__stacker_lnd payinvoice -h | awk '/OPTIONS:/{y=1;next}y' | awk '!/^[\t ]+--pay_req value/'
 }
 
+sndev__cln_fund() {
+  shift
+  docker__stacker_cln -t pay "$@"
+}
+
+sndev__help_cln_fund() {
+help="
+pay a bolt11 for funding with CLN
+
+USAGE
+  $ sndev cln_fund <bolt11> [OPTIONS]
+
+OPTIONS"
+  echo "$help"
+  docker__stacker_cln pay -h | sed -e '1d' | sed -e 's/^/   /g'
+}
+
 sndev__withdraw() {
   shift
   docker__stacker_lnd addinvoice --amt "$@" | jq -r '.payment_request'
@@ -303,6 +331,15 @@ sndev__stacker_lncli() {
 
 sndev__help_stacker_lncli() {
   docker__stacker_lnd --help
+}
+
+sndev__stacker_lightning-cli() {
+  shift
+  docker__stacker_cln -t "$@"
+}
+
+sndev__help_stacker_lightning-cli() {
+  docker__stacker_cln --help
 }
 
 __sndev__pr_track() {
@@ -441,6 +478,9 @@ COMMANDS
     fund          pay a bolt11 for funding
     withdraw      create a bolt11 for withdrawal
 
+  cln:
+    cln_fund      pay a bolt11 for funding with CLN
+
   db:
     psql          open psql on db
     prisma        run prisma commands
@@ -450,9 +490,10 @@ COMMANDS
     lint          run linters
 
   other:
-    compose       docker compose passthrough
-    sn_lncli      lncli passthrough on sn_lnd
-    stacker_lncli lncli passthrough on stacker_lnd
+    compose                docker compose passthrough
+    sn_lncli               lncli passthrough on sn_lnd
+    stacker_lncli          lncli passthrough on stacker_lnd
+    stacker_lightning-cli  lightning-cli passthrough on stacker_cln
 "
   echo "$help"
 }

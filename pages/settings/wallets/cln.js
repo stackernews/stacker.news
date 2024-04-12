@@ -41,8 +41,7 @@ export default function CLN ({ ssrData }) {
   return (
     <CenterLayout>
       <h2 className='pb-2'>CLN</h2>
-      <h6 className='text-muted text-center'>autowithdraw to your Core Lightning node</h6>
-      <h6 className='text-muted text-center pb-3'>You must have CLNRest working on your node. See <a href='https://docs.corelightning.org/docs/rest' target='_blank' noreferrer rel='noreferrer'>here</a> for more info.</h6>
+      <h6 className='text-muted text-center'>autowithdraw to your Core Lightning node via <a href='https://docs.corelightning.org/docs/rest' target='_blank' noreferrer rel='noreferrer'>CLNRest</a></h6>
       <Form
         initial={{
           socket: wallet?.wallet?.socket || '',

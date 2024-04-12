@@ -94,6 +94,7 @@ export default function CLN ({ ssrData }) {
           name='rune'
           clear
           hint='must be restricted to method=invoice'
+          placeholder='S34KtUW-6gqS_hD_9cc_PNhfF-NinZyBOCgr1aIrark9NCZtZXRob2Q9aW52b2ljZQ=='
           required
         />
         <Input

@@ -143,7 +143,7 @@ export default function UpVote ({ item, className }) {
   }, [item?.meSats, item?.meAnonSats, me?.privates?.tipDefault, me?.privates?.turboDefault])
 
   return (
-    <div ref={ref} className='upvoteParent'>
+    <div ref={ref} className={styles.upvoteParent}>
       <LongPressable
         onLongPress={
               async (e) => {

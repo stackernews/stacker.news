@@ -12,8 +12,6 @@ import Check from '@/svgs/check-double-line.svg'
 import HandCoin from '@/svgs/hand-coin-fill.svg'
 import { LOST_BLURBS, FOUND_BLURBS, UNKNOWN_LINK_REL } from '@/lib/constants'
 import CowboyHatIcon from '@/svgs/cowboy.svg'
-import { ignoreClick } from '@/lib/clicks'
-import classNames from 'classnames'
 import BaldIcon from '@/svgs/bald.svg'
 import { RootProvider } from './root'
 import Alert from 'react-bootstrap/Alert'
@@ -46,13 +44,13 @@ function Notification ({ n, fresh }) {
         (type === 'WithdrawlPaid' && <WithdrawlPaid n={n} />) ||
         (type === 'Referral' && <Referral n={n} />) ||
         (type === 'Streak' && <Streak n={n} />) ||
-        (type === 'Votification' && <Votification n={n} {...defaultOnClick(n)} />) ||
-        (type === 'ForwardedVotification' && <ForwardedVotification n={n} {...defaultOnClick(n)} />) ||
-        (type === 'Mention' && <Mention n={n} {...defaultOnClick(n)} />) ||
+        (type === 'Votification' && <Votification n={n} />) ||
+        (type === 'ForwardedVotification' && <ForwardedVotification n={n} />) ||
+        (type === 'Mention' && <Mention n={n} />) ||
         (type === 'JobChanged' && <JobChanged n={n} />) ||
-        (type === 'Reply' && <Reply n={n} {...defaultOnClick(n)} />) ||
+        (type === 'Reply' && <Reply n={n} />) ||
         (type === 'SubStatus' && <SubStatus n={n} />) ||
-        (type === 'FollowActivity' && <FollowActivity n={n} {...defaultOnClick(n)} />) ||
+        (type === 'FollowActivity' && <FollowActivity n={n} />) ||
         (type === 'TerritoryPost' && <TerritoryPost n={n} />) ||
         (type === 'TerritoryTransfer' && <TerritoryTransfer n={n} />)
       }
@@ -71,10 +69,6 @@ function NotificationLayout ({ children, nid, href, as, fresh }) {
         <Link
           onClick={async (e) => {
             e.preventDefault()
-            if (ignoreClick(e)) {
-              router.push(href, as)
-              return
-            }
             nid && await router.replace({
               pathname: router.pathname,
               query: {
@@ -84,7 +78,7 @@ function NotificationLayout ({ children, nid, href, as, fresh }) {
             }, router.asPath, { ...router.options, shallow: true })
             router.push(href, as)
           }}
-          className={classNames(styles.linkBox, `clickToContext ${fresh ? styles.fresh : ''} ${router?.query?.nid === nid ? 'outline-it' : ''}`)}
+          className={`clickToContext ${styles.linkBox} ${fresh ? styles.fresh : ''} ${router?.query?.nid === nid ? 'outline-it' : ''}`}
           href={typeof href === 'string' ? href : href.query.commentId ? as + '?commentId=' + href.query.commentId : as}
         />
       )}
@@ -308,7 +302,7 @@ function Referral ({ n }) {
   )
 }
 
-function Votification ({ n, href, as }) {
+function Votification ({ n }) {
   let forwardedSats = 0
   let ForwardedUsers = null
   if (n.item.forwards?.length) {
@@ -337,7 +331,7 @@ function Votification ({ n, href, as }) {
           : (
             <div className='pb-2'>
               <RootProvider root={n.item.root}>
-                <Comment href={href} as={as} item={n.item} noReply includeParent clickToContext />
+                <Comment item={n.item} noReply includeParent clickToContext />
               </RootProvider>
             </div>
             )}
@@ -346,7 +340,7 @@ function Votification ({ n, href, as }) {
   )
 }
 
-function ForwardedVotification ({ n, href, as }) {
+function ForwardedVotification ({ n }) {
   return (
     <>
       <small className='fw-bold text-success d-inline-block ms-2 my-1' style={{ lineHeight: '1.25' }}>
@@ -358,7 +352,7 @@ function ForwardedVotification ({ n, href, as }) {
           : (
             <div className='pb-2'>
               <RootProvider root={n.item.root}>
-                <Comment href={href} as={as} item={n.item} noReply includeParent clickToContext />
+                <Comment item={n.item} noReply includeParent clickToContext />
               </RootProvider>
             </div>
             )}
@@ -367,7 +361,7 @@ function ForwardedVotification ({ n, href, as }) {
   )
 }
 
-function Mention ({ n, href, as }) {
+function Mention ({ n }) {
   return (
     <>
       <small className='fw-bold text-info ms-2'>
@@ -379,7 +373,7 @@ function Mention ({ n, href, as }) {
           : (
             <div className='pb-2'>
               <RootProvider root={n.item.root}>
-                <Comment href={href} as={as} item={n.item} noReply includeParent rootText={n.__typename === 'Reply' ? 'replying on:' : undefined} clickToContext />
+                <Comment item={n.item} noReply includeParent rootText={n.__typename === 'Reply' ? 'replying on:' : undefined} clickToContext />
               </RootProvider>
             </div>)}
       </div>
@@ -404,7 +398,7 @@ function JobChanged ({ n }) {
   )
 }
 
-function Reply ({ n, href, as }) {
+function Reply ({ n }) {
   return (
     <div className={`py-2 ${styles.detailsOverlay}`}>
       {n.item.title
@@ -412,7 +406,7 @@ function Reply ({ n, href, as }) {
         : (
           <div className='pb-2'>
             <RootProvider root={n.item.root}>
-              <Comment href={href} as={as} item={n.item} noReply includeParent clickToContext rootText='replying on:' />
+              <Comment item={n.item} noReply includeParent clickToContext rootText='replying on:' />
             </RootProvider>
           </div>
           )}
@@ -420,7 +414,7 @@ function Reply ({ n, href, as }) {
   )
 }
 
-function FollowActivity ({ n, href, as }) {
+function FollowActivity ({ n }) {
   return (
     <>
       <small className='fw-bold text-info ms-2'>
@@ -432,7 +426,7 @@ function FollowActivity ({ n, href, as }) {
           : (
             <div className='pb-2'>
               <RootProvider root={n.item.root}>
-                <Comment href={href} as={as} item={n.item} noReply includeParent clickToContext rootText='replying on:' />
+                <Comment item={n.item} noReply includeParent clickToContext rootText='replying on:' />
               </RootProvider>
             </div>
             )}

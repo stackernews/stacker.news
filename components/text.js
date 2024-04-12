@@ -36,7 +36,7 @@ export function SearchText ({ text }) {
 }
 
 // this is one of the slowest components to render
-export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, outlawed, topLevel, noFragments, href, as }) {
+export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, outlawed, topLevel, noFragments }) {
   const [overflowing, setOverflowing] = useState(false)
   const router = useRouter()
   const [show, setShow] = useState(false)
@@ -150,15 +150,6 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
 
   return (
     <div className={`${styles.text} ${show ? styles.textUncontained : overflowing ? styles.textContained : ''}`} ref={containerRef}>
-      {href && (
-        <Link
-          className={styles.linkBox}
-          onClick={(e) => {
-            e.preventDefault()
-            router.push(href, as)
-          }}
-          href={typeof href === 'string' ? href : href.query.commentId ? as + '?commentId=' + href.query.commentId : as}
-        />)}
       <ReactMarkdown
         components={{
           h1: Heading,

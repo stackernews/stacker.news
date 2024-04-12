@@ -90,6 +90,8 @@ a.link:visited {
     color: var(--theme-grey);
     vertical-align: text-top;
     margin-bottom: .125rem;
+    width: fit-content;
+    pointer-events: auto;
 }
 
 .other svg {

@@ -31,6 +31,7 @@
 .detailsOverlay {
     position: relative;
     max-width: fit-content;
+    pointer-events: none;
 }
 
 .linkBox {

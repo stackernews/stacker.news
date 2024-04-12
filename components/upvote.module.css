@@ -12,6 +12,10 @@
     margin-left: -.4rem;
 }
 
+.upvoteParent {
+    pointer-events: auto;
+}
+
 .noSelfTips {
     fill: transparent !important;
     filter: none !important;

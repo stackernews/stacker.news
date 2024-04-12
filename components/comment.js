@@ -93,7 +93,7 @@ export function CommentFlat ({ item, rank, siblingComments, ...props }) {
 
 export default function Comment ({
   item, children, replyOpen, includeParent, topLevel,
-  rootText, noComments, noReply, truncate, depth, pin, href, as
+  rootText, noComments, noReply, truncate, depth, pin
 }) {
   const [edit, setEdit] = useState()
   const me = useMe()
@@ -212,7 +212,7 @@ export default function Comment ({
                 {item.searchText
                   ? <SearchText text={item.searchText} />
                   : (
-                    <Text href={href} as={as} itemId={item.id} topLevel={topLevel} rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls}>
+                    <Text itemId={item.id} topLevel={topLevel} rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls}>
                       {item.outlawed && !me?.privates?.wildWestMode
                         ? '*stackers have outlawed this. turn on wild west mode in your [settings](/settings) to see outlawed content.*'
                         : truncate ? truncateString(item.text) : item.text}

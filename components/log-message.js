@@ -8,7 +8,7 @@ export default function LogMessage ({ wallet, level, message, ts }) {
     <tr className={styles.line}>
       <td className={styles.timestamp}>{timeSince(new Date(ts))}</td>
       <td className={styles.wallet}>[{wallet}]</td>
-      <td className={`${styles.level} ${levelClassName}`}>{level}</td>
+      <td className={`${styles.level} ${levelClassName}`}>{level === 'success' ? 'ok' : level}</td>
       <td>{message}</td>
     </tr>
   )

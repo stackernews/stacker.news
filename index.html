@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Showcase</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        #navbar {
+            overflow: hidden;
+            background-color: #333;
+        }
+        #navbar a {
+            float: left;
+            display: block;
+            color: #f2f2f2;
+            text-align: center;
+            padding: 14px 16px;
+            text-decoration: none;
+        }
+        #navbar a:hover {
+            background-color: #ddd;
+            color: black;
+        }
+        .content {
+            display: none;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #dddddd;
+            text-align: left;
+            padding: 8px;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+    <div id="navbar">
+        <a href="#" onclick="showSection('awards')">Awards</a>
+        <a href="#" onclick="showSection('readme')">README</a>
+        <a href="#" onclick="showSection('docs')">Docs</a>
+    </div>
+
+    <div id="awards" class="content">
+       <h1>Awards Showcase</h1>
+
+       <h2>Total Earnings Per Contributor</h2>
+       <table id="totalsTable">
+           <thead>
+               <tr>
+                   <th>Name</th>
+                   <th>Total Amount</th>
+               </tr>
+           </thead>
+           <tbody>
+           </tbody>
+       </table>
+
+       <h2>All Contributions</h2>
+       <table id="awardsTable">
+           <thead>
+               <tr>
+                   <th>Name</th>
+                   <th>Type</th>
+                   <th>PR/Issue ID</th>
+                   <th>Difficulty</th>
+                   <th>Amount</th>
+                   <th>Receive Method</th>
+                   <th>Date Paid</th>
+               </tr>
+           </thead>
+           <tbody>
+           </tbody>
+       </table>
+    </div>
+
+    <div id="readme" class="content">
+        <h1>README</h1>
+        <div id="readmeContent"></div> <!-- Container for the README content -->
+    </div>
+
+    <div id="docs" class="content">
+        <h1>Docs</h1>
+        <!-- Docs content will go here -->
+    </div>
+
+    <script>
+        function showSection(sectionId) {
+            var sections = document.getElementsByClassName('content');
+            for (var i = 0; i < sections.length; i++) {
+                sections[i].style.display = 'none';
+            }
+            document.getElementById(sectionId).style.display = 'block';
+        }
+
+        // Default to showing the awards section
+        showSection('awards');
+    </script>
+
+    <script>
+        Papa.parse('awards.csv', {
+            download: true,
+            header: true,
+            complete: function(results) {
+                var data = results.data;
+                var awardsTable = document.getElementById('awardsTable').getElementsByTagName('tbody')[0];
+                var totals = {};
+    
+                data.forEach(function(row) {
+                    var newRow = awardsTable.insertRow();
+                    newRow.insertCell().appendChild(document.createTextNode(row.name || ''));
+                    newRow.insertCell().appendChild(document.createTextNode(row.type || ''));
+                    newRow.insertCell().appendChild(document.createTextNode(row['pr id'] || row['issue ids'] || ''));
+                    newRow.insertCell().appendChild(document.createTextNode(row.difficulty || ''));
+                    newRow.insertCell().appendChild(document.createTextNode(row.amount || ''));
+                    newRow.insertCell().appendChild(document.createTextNode(row['receive method'] || ''));
+                    newRow.insertCell().appendChild(document.createTextNode(row['date paid'] || ''));
+    
+                    // Sum up the totals, ensure amount is defined and is a string
+                    if (row.amount && typeof row.amount === 'string') {
+                        if (!totals[row.name]) {
+                            totals[row.name] = 0;
+                        }
+                        let amount = row.amount.replace(/k$/, '000').replace(',', '');
+                        totals[row.name] += parseInt(amount) || 0;
+                    }
+                });
+    
+                // Convert the totals object into an array and sort it
+                var sortedTotals = Object.entries(totals).sort((a, b) => b[1] - a[1]);
+    
+                // Populate the totals table with sorted totals
+                var totalsTable = document.getElementById('totalsTable').getElementsByTagName('tbody')[0];
+                sortedTotals.forEach(function([contributor, total]) {
+                    var newRow = totalsTable.insertRow();
+                    newRow.insertCell().appendChild(document.createTextNode(contributor));
+                    newRow.insertCell().appendChild(document.createTextNode(total.toString()));
+                });
+            }
+        });
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/showdown/dist/showdown.min.js"></script>
+
+    <script>
+        function convertMarkdown() {
+            var converter = new showdown.Converter();
+            fetch('README.md')
+                .then(response => response.text())
+                .then(text => {
+                    document.getElementById('readmeContent').innerHTML = converter.makeHtml(text);
+                })
+                .catch(error => {
+                    console.error('Error processing the README:', error);
+                });
+        }
+    </script>
+    
+    <script>
+        window.onload = convertMarkdown;
+    </script>
+</body>
+</html>
+

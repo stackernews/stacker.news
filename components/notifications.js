@@ -66,7 +66,6 @@ function NotificationLayout ({ children, nid, href, as, fresh }) {
   return (
     <div
       style={{ position: 'relative' }}
-      className='clickToContext'
     >
       {!!href && (
         <Link
@@ -85,7 +84,7 @@ function NotificationLayout ({ children, nid, href, as, fresh }) {
             }, router.asPath, { ...router.options, shallow: true })
             router.push(href, as)
           }}
-          className={classNames(styles.linkBox, `${fresh ? styles.fresh : ''} ${router?.query?.nid === nid ? 'outline-it' : ''}`)}
+          className={classNames(styles.linkBox, `clickToContext ${fresh ? styles.fresh : ''} ${router?.query?.nid === nid ? 'outline-it' : ''}`)}
           href={typeof href === 'string' ? href : href.query.commentId ? as + '?commentId=' + href.query.commentId : as}
         />
       )}

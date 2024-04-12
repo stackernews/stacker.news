@@ -483,7 +483,8 @@ export default {
                 rune,
                 cert,
                 description: 'SN connection test',
-                msats: 'any'
+                msats: 'any',
+                expiry: 0
               })
               // we wrap both calls in one try/catch since connection attempts happen on RPC calls
               await addWalletLog({ wallet, level: 'SUCCESS', message: 'connected to CLN' }, { me, models })

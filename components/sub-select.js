@@ -1,6 +1,6 @@
 import { useRouter } from 'next/router'
 import { Select } from './form'
-import { SSR } from '@/lib/constants'
+import { EXTRA_LONG_POLL_INTERVAL, SSR } from '@/lib/constants'
 import { SUBS } from '@/fragments/subs'
 import { useQuery } from '@apollo/client'
 import { useEffect, useState } from 'react'
@@ -19,7 +19,7 @@ export function useSubs ({ prependSubs = [], sub, filterSubs = () => true, appen
   const { data } = useQuery(SUBS, SSR
     ? {}
     : {
-        pollInterval: 300000,
+        pollInterval: EXTRA_LONG_POLL_INTERVAL,
         nextFetchPolicy: 'cache-and-network'
       })
 

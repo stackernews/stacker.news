@@ -4,7 +4,7 @@ import { QrSkeleton } from '@/components/qr'
 import { CenterLayout } from '@/components/layout'
 import { useRouter } from 'next/router'
 import { INVOICE } from '@/fragments/wallet'
-import { SSR } from '@/lib/constants'
+import { FAST_POLL_INTERVAL, SSR } from '@/lib/constants'
 import { getGetServerSideProps } from '@/api/ssrApollo'
 
 // force SSR to include CSP nonces
@@ -15,7 +15,7 @@ export default function FullInvoice () {
   const { data, error } = useQuery(INVOICE, SSR
     ? {}
     : {
-        pollInterval: 1000,
+        pollInterval: FAST_POLL_INTERVAL,
         variables: { id: router.query.id },
         nextFetchPolicy: 'cache-and-network'
       })

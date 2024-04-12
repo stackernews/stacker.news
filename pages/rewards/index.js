@@ -12,7 +12,7 @@ import { numWithUnits } from '@/lib/format'
 import PageLoading from '@/components/page-loading'
 import { useShowModal } from '@/components/modal'
 import dynamic from 'next/dynamic'
-import { SSR } from '@/lib/constants'
+import { FAST_POLL_INTERVAL, SSR } from '@/lib/constants'
 import { useToast } from '@/components/toast'
 import { useLightning } from '@/components/lightning'
 import { ListUsers } from '@/components/user-list'
@@ -20,6 +20,7 @@ import { Col, Row } from 'react-bootstrap'
 import { proportions } from '@/lib/madness'
 import { useData } from '@/components/use-data'
 import { GrowthPieChartSkeleton } from '@/components/charts-skeletons'
+import { useMemo } from 'react'
 
 const GrowthPieChart = dynamic(() => import('@/components/charts').then(mod => mod.GrowthPieChart), {
   loading: () => <GrowthPieChartSkeleton />
@@ -93,16 +94,21 @@ export default function Rewards ({ ssrData }) {
   // only poll for updates to rewards and not leaderboard
   const { data: rewardsData } = useQuery(
     REWARDS,
-    SSR ? {} : { pollInterval: 1000, nextFetchPolicy: 'cache-and-network' })
+    SSR ? {} : { pollInterval: FAST_POLL_INTERVAL, nextFetchPolicy: 'cache-and-network' })
   const { data } = useQuery(REWARDS_FULL)
-  if (!data && !ssrData) return <PageLoading />
+  const dat = useData(data, ssrData)
 
-  let { rewards: [{ total, sources, time, leaderboard }] } = useData(data, ssrData)
+  let { rewards: [{ total, sources, time, leaderboard }] } = useMemo(() => {
+    return dat || { rewards: [{}] }
+  }, [dat])
+
   if (rewardsData?.rewards?.length > 0) {
     total = rewardsData.rewards[0].total
     sources = rewardsData.rewards[0].sources
     time = rewardsData.rewards[0].time
   }
+
+  if (!dat) return <PageLoading />
 
   function EstimatedReward ({ rank }) {
     const totalRest = total - 1000000

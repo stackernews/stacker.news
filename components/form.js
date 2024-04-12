@@ -256,6 +256,32 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
     }
   }, [innerRef, helpers?.setValue, setSelectionRange, onKeyDown])
 
+  const onPaste = useCallback((event) => {
+    const items = event.clipboardData.items
+    if (items.length === 0) {
+      return
+    }
+
+    let isImagePasted = false
+    const fileList = new window.DataTransfer()
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i]
+      if (item.type.indexOf('image') === 0) {
+        const blob = item.getAsFile()
+        const file = new File([blob], 'image', { type: blob.type })
+        fileList.items.add(file)
+        isImagePasted = true
+      }
+    }
+
+    if (isImagePasted) {
+      event.preventDefault()
+      const changeEvent = new Event('change', { bubbles: true })
+      imageUploadRef.current.files = fileList.files
+      imageUploadRef.current.dispatchEvent(changeEvent)
+    }
+  }, [imageUploadRef])
+
   const onDrop = useCallback((event) => {
     event.preventDefault()
     setDragStyle(null)
@@ -341,6 +367,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
               onDragEnter={onDragEnter}
               onDragLeave={onDragLeave}
               onDrop={onDrop}
+              onPaste={onPaste}
               className={dragStyle === 'over' ? styles.dragOver : ''}
             />)}
           </UserSuggest>

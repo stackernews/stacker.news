@@ -516,8 +516,15 @@ export default function Notifications ({ ssrData }) {
   const router = useRouter()
   const dat = useData(data, ssrData)
 
-  const { notifications: { notifications, lastChecked, cursor } } = useMemo(() => {
-    return dat || { notifications: {} }
+  const { notifications, lastChecked, cursor } = useMemo(() => {
+    if (!dat?.notifications) return {}
+
+    // make sure we're using the oldest lastChecked we've seen
+    const retDat = { ...dat.notifications }
+    if (ssrData?.notifications?.lastChecked < retDat.lastChecked) {
+      retDat.lastChecked = ssrData.notifications.lastChecked
+    }
+    return retDat
   }, [dat])
 
   useEffect(() => {
@@ -531,7 +538,7 @@ export default function Notifications ({ ssrData }) {
         }
       }, router.asPath, { ...router.options, shallow: true })
     }
-  }, [router, lastChecked])
+  }, [router?.query?.checkedAt, lastChecked])
 
   if (!dat) return <CommentsFlatSkeleton />
 
@@ -540,7 +547,7 @@ export default function Notifications ({ ssrData }) {
       {notifications.map(n =>
         <Notification
           n={n} key={nid(n)}
-          fresh={new Date(n.sortTime) > new Date(router?.query?.checkedAt)}
+          fresh={new Date(n.sortTime) > new Date(router?.query?.checkedAt ?? lastChecked)}
         />)}
       <MoreFooter cursor={cursor} count={notifications?.length} fetchMore={fetchMore} Skeleton={CommentsFlatSkeleton} noMoreText='NO MORE' />
     </>

@@ -102,7 +102,7 @@ export default function Referrals ({ ssrData }) {
           groupClassName='mb-0 w-100'
           readOnly
           noForm
-          placeholder={`https://stacker.news/r/${me.name}`}
+          placeholder={`${process.env.NEXT_PUBLIC_URL}/r/${me.name}`}
         />
       </div>
       <ul className='py-3 text-muted'>

@@ -47,16 +47,19 @@ export default function BottomBar ({ sub }) {
   }
 
   return (
-    <div className={classNames('d-block d-md-none', styles.footer, styles.footerPadding)}>
-      <Navbar className='container px-0'>
-        <Nav className={styles.footerNav}>
-          <Offcanvas me={me} {...props} />
-          <SearchItem {...props} />
-          <Brand />
-          <NavNotifications />
-          <PostItem {...props} className='btn-sm' />
-        </Nav>
-      </Navbar>
-    </div>
+    <nav className='d-block d-md-none'>
+      <div style={{ marginBottom: '53px' }} className={styles.footerPadding} />
+      <div className={classNames(styles.footer, styles.footerPadding)}>
+        <Navbar className='container px-0'>
+          <Nav className={styles.footerNav}>
+            <Offcanvas me={me} {...props} />
+            <SearchItem {...props} />
+            <Brand />
+            <NavNotifications />
+            <PostItem {...props} className='btn-sm' />
+          </Nav>
+        </Navbar>
+      </div>
+    </nav>
   )
 }

@@ -161,6 +161,26 @@ export default {
         users
       }
     },
+    myMutedUsers: async (parent, { cursor }, { models, me }) => {
+      if (!me) {
+        throw new GraphQLError('You must be logged in to view muted users', { extensions: { code: 'UNAUTHENTICATED' } })
+      }
+
+      const decodedCursor = decodeCursor(cursor)
+      const users = await models.$queryRaw`
+        SELECT users.*
+        FROM "Mute"
+        JOIN users ON "Mute"."mutedId" = users.id
+        WHERE "Mute"."muterId" = ${me.id}
+        OFFSET ${decodedCursor.offset}
+        LIMIT ${LIMIT}
+      `
+
+      return {
+        cursor: users.length === LIMIT ? nextCursorEncoded(decodedCursor) : null,
+        users
+      }
+    },
     topCowboys: async (parent, { cursor }, { models, me }) => {
       const decodedCursor = decodeCursor(cursor)
       const range = whenRange('forever')

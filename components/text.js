@@ -10,7 +10,6 @@ import React, { useState, memo, useRef, useCallback, useMemo, useEffect } from '
 import GithubSlugger from 'github-slugger'
 import LinkIcon from '@/svgs/link.svg'
 import Thumb from '@/svgs/thumb-up-fill.svg'
-import classNames from 'classnames'
 import { toString } from 'mdast-util-to-string'
 import copy from 'clipboard-copy'
 import ZoomableImage, { decodeOriginalUrl } from './image'
@@ -221,7 +220,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
             const youtube = href.match(/(https?:\/\/)?((www\.)?(youtube(-nocookie)?|youtube.googleapis)\.com.*(v\/|v=|vi=|vi\/|e\/|embed\/|user\/.*\/u\/\d+\/)|youtu\.be\/)(?<id>[_0-9a-z-]+)((?:\?|&)(?:t|start)=(?<start>\d+))?/i)
             if (youtube?.groups?.id) {
               return (
-                <div className={classNames(styles.youtubePadding, topLevel ? styles.largeVideo : styles.smallVideo)}>
+                <div className={`${styles.youtubePadding} ${topLevel ? styles.largeVideo : styles.smallVideo}`}>
                   <YouTube
                     videoId={youtube.groups.id} className={styles.youtubeContainer} opts={{
                       playerVars: {

@@ -105,6 +105,7 @@
 
 .text .p {
     display: block;
+    margin-bottom: .5rem;
     white-space: pre-wrap;
     word-break: break-word;
 }

@@ -6,7 +6,7 @@ import ItemAct, { useAct, useZap } from './item-act'
 import { useMe } from './me'
 import getColor from '@/lib/rainbow'
 import { useCallback, useMemo, useRef, useState } from 'react'
-import LongPressable from 'react-longpressable'
+import LongPressable from './long-pressable'
 import Overlay from 'react-bootstrap/Overlay'
 import Popover from 'react-bootstrap/Popover'
 import { useShowModal } from './modal'
@@ -89,7 +89,6 @@ export default function UpVote ({ item, className }) {
   const [tipShow, _setTipShow] = useState(false)
   const ref = useRef()
   const me = useMe()
-  const [longPressKey, setLongPressKey] = useState(Math.random())
   const [hover, setHover] = useState(false)
   const [setWalkthrough] = useMutation(
     gql`
@@ -155,8 +154,6 @@ export default function UpVote ({ item, className }) {
       return
     }
 
-    // force remount to fix onClick handler being ignored
-    setLongPressKey(Math.random())
     setTipShow(false)
     showModal(onClose =>
       <ItemAct onClose={onClose} itemId={item.id} />, { onClose: handleModalClosed })
@@ -185,7 +182,6 @@ export default function UpVote ({ item, className }) {
   return (
     <div ref={ref} className='upvoteParent'>
       <LongPressable
-        key={longPressKey}
         onLongPress={handleLongPress}
         onShortPress={handleShortPress}
       >

@@ -150,7 +150,15 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
 
   return (
     <div className={`${styles.text} ${show ? styles.textUncontained : overflowing ? styles.textContained : ''}`} ref={containerRef}>
-      {href && (<Link className={styles.linkBox} href={href} as={as} />)}
+      {href && (
+        <Link
+          className={styles.linkBox}
+          onClick={(e) => {
+            e.preventDefault()
+            router.push(href, as)
+          }}
+          href={typeof href === 'string' ? href : href.query.commentId ? as + '?commentId=' + href.query.commentId : as}
+        />)}
       <ReactMarkdown
         components={{
           h1: Heading,

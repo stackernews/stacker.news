@@ -12,8 +12,7 @@ import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, ANON_USER_ID, BALANCE
 import { datePivot } from '@/lib/time'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
-import https from 'https'
-import fetch from 'node-fetch'
+import { createInvoice as createInvoiceCLN } from '@/lib/cln'
 
 export async function getInvoice (parent, { id }, { me, models, lnd }) {
   const inv = await models.invoice.findUnique({
@@ -477,37 +476,20 @@ export default {
           schema: CLNAutowithdrawSchema,
           walletName: wallet,
           walletType: 'CLN',
-          testConnect: async ({ socket, rune }) => {
+          testConnect: async ({ socket, rune, cert }) => {
             try {
-              const agent = data.cert ? new https.Agent({ ca: Buffer.from(data.cert, 'base64') }) : undefined
-              const url = 'https://' + socket + '/v1/invoice'
-              const res = await fetch(url, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  Rune: data.rune,
-                  // can be any node id, only required for CLN v23.08 and below
-                  // see https://docs.corelightning.org/docs/rest#server
-                  nodeId: '02cb2e2d5a6c5b17fa67b1a883e2973c82e328fb9bd08b2b156a9e23820c87a490'
-                },
-                agent,
-                body: JSON.stringify({
-                  // why does CLN require a unique label?
-                  label: 'SN connection test ' + (Math.floor(Math.random() * 1000)),
-                  description: 'SN connection test',
-                  amount_msat: 'any'
-                })
+              const inv = await createInvoiceCLN({
+                socket,
+                rune,
+                cert,
+                description: 'SN connection test',
+                msats: 'any'
               })
-              const inv = await res.json()
-              if (inv.error) {
-                throw new Error(inv.error.message)
-              }
               // we wrap both calls in one try/catch since connection attempts happen on RPC calls
               await addWalletLog({ wallet, level: 'SUCCESS', message: 'connected to CLN' }, { me, models })
+              return inv
             } catch (err) {
               const details = err.details || err.message || err.toString?.()
-              // LND errors are in this shape: [code, type, { err: { code, details, metadata } }]
-              // const details = err[2]?.err?.details || err.message || err.toString?.()
               await addWalletLog({ wallet, level: 'ERROR', message: `could not connect to CLN: ${details}` }, { me, models })
               throw err
             }

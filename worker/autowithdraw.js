@@ -2,8 +2,7 @@ import { authenticatedLndGrpc, createInvoice } from 'ln-service'
 import { msatsToSats, numWithUnits, satsToMsats } from '@/lib/format'
 import { datePivot } from '@/lib/time'
 import { createWithdrawal, sendToLnAddr, addWalletLog } from '@/api/resolvers/wallet'
-import https from 'https'
-import fetch from 'node-fetch'
+import { createInvoice as createInvoiceCLN } from '@/lib/cln'
 
 export async function autoWithdraw ({ data: { id }, models, lnd }) {
   const user = await models.user.findUnique({ where: { id } })
@@ -177,27 +176,14 @@ async function autowithdrawCLN ({ amount, maxFee }, { me, models, lnd }) {
 
   const { walletCLN: { cert, rune, socket } } = wallet
 
-  const agent = cert ? new https.Agent({ ca: Buffer.from(cert, 'base64') }) : undefined
-  const url = 'https://' + socket + '/v1/invoice'
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Rune: rune,
-      // can be any node id, only required for CLN v23.08 and below
-      // see https://docs.corelightning.org/docs/rest#server
-      nodeId: '02cb2e2d5a6c5b17fa67b1a883e2973c82e328fb9bd08b2b156a9e23820c87a490'
-    },
-    agent,
-    body: JSON.stringify({
-      // why does CLN require a unique label?
-      label: me.hideInvoiceDesc ? (Math.floor(Math.random() * 1000)) : ('autowithdraw to CLN from SN ' + (Math.floor(Math.random() * 1000))),
-      description: me.hideInvoiceDesc ? undefined : 'autowithdraw to CLN from SN',
-      amount_msat: amount + 'sat',
-      expiry: 360
-    })
+  const inv = await createInvoiceCLN({
+    socket,
+    rune,
+    cert,
+    description: me.hideInvoiceDesc ? undefined : 'autowithdraw to CLN from SN',
+    msats: amount + 'sat',
+    expiry: 360
   })
-  const invoice = await res.json()
 
-  return await createWithdrawal(null, { invoice: invoice.bolt11, maxFee }, { me, models, lnd, autoWithdraw: true })
+  return await createWithdrawal(null, { invoice: inv.bolt11, maxFee }, { me, models, lnd, autoWithdraw: true })
 }

@@ -12,6 +12,8 @@ import Check from '@/svgs/check-double-line.svg'
 import HandCoin from '@/svgs/hand-coin-fill.svg'
 import { LOST_BLURBS, FOUND_BLURBS, UNKNOWN_LINK_REL } from '@/lib/constants'
 import CowboyHatIcon from '@/svgs/cowboy.svg'
+import { ignoreClick } from '@/lib/clicks'
+import classNames from 'classnames'
 import BaldIcon from '@/svgs/bald.svg'
 import { RootProvider } from './root'
 import Alert from 'react-bootstrap/Alert'
@@ -35,7 +37,7 @@ function Notification ({ n, fresh }) {
   const type = n.__typename
 
   return (
-    <NotificationLayout n={n} {...defaultOnClick(n)} fresh={fresh}>
+    <NotificationLayout nid={nid(n)} {...defaultOnClick(n)} fresh={fresh}>
       {
         (type === 'Earn' && <EarnNotification n={n} />) ||
         (type === 'Revenue' && <RevenueNotification n={n} />) ||
@@ -58,22 +60,23 @@ function Notification ({ n, fresh }) {
   )
 }
 
-function NotificationLayout ({ children, n, href, as, fresh }) {
+function NotificationLayout ({ children, nid, href, as, fresh }) {
   const router = useRouter()
-  const nidQuery = nid(n)
   if (!href) return <div className={fresh ? styles.fresh : ''}>{children}</div>
   return (
     <div
       style={{ position: 'relative' }}
-      className={
-        `clickToContext ${fresh ? styles.fresh : ''} ${router?.query?.nid === nidQuery ? 'outline-it' : ''}`
-      }
+      className='clickToContext'
     >
       {!!href && (
         <Link
           onClick={async (e) => {
             e.preventDefault()
-            nidQuery && await router.replace({
+            if (ignoreClick(e)) {
+              router.push(href, as)
+              return
+            }
+            nid && await router.replace({
               pathname: router.pathname,
               query: {
                 ...router.query,
@@ -82,7 +85,7 @@ function NotificationLayout ({ children, n, href, as, fresh }) {
             }, router.asPath, { ...router.options, shallow: true })
             router.push(href, as)
           }}
-          className={styles.linkBox}
+          className={classNames(styles.linkBox, `${fresh ? styles.fresh : ''} ${router?.query?.nid === nid ? 'outline-it' : ''}`)}
           href={typeof href === 'string' ? href : href.query.commentId ? as + '?commentId=' + href.query.commentId : as}
         />
       )}

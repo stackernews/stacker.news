@@ -390,9 +390,7 @@ function JobChanged ({ n }) {
               ? 'your job promotion ran out of sats'
               : 'your job has been stopped')}
       </small>
-      <div>
-        <ItemJob item={n.item} />
-      </div>
+      <ItemJob item={n.item} />
     </>
   )
 }
@@ -438,7 +436,9 @@ function TerritoryPost ({ n }) {
       <small className='fw-bold text-info ms-2'>
         new post in ~{n.item.sub.name}
       </small>
-      <Item item={n.item} />
+      <div>
+        <Item item={n.item} />
+      </div>
     </>
   )
 }

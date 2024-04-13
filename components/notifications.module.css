@@ -40,22 +40,17 @@
     position: relative;
 }
 
-.notificationLayout * {
+.notificationLayout > * {
     pointer-events: none;
 }
 
 .notificationLayout :global(.upvoteParent),
-.notificationLayout :global(.upvoteParent) *,
 .notificationLayout :global(.pointer),
-.notificationLayout :global(.pointer) *,
 .notificationLayout a,
 .notificationLayout form,
-.notificationLayout form *,
 .notificationLayout textarea,
-.notificationLayout textarea *,
 .notificationLayout button,
-.notificationLayout button *,
 .notificationLayout input,
-.notificationLayout input * {
+.notificationLayout iframe {
     pointer-events: auto !important;
 }

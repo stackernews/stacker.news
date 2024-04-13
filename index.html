@@ -7,57 +7,93 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/showdown/dist/showdown.min.js"></script>
     <style>
+        :root {
+            --primary: #FADA5E;
+            --secondary: #F6911D;
+            --info: #007cbe;
+            --success: #5c8001;
+            --danger: #c03221;
+            --light: #f8f9fa;
+            --dark: #212529;
+        }
+
         body {
             font-family: Arial, sans-serif;
+            background-color: var(--light);
+            color: var(--dark);
         }
+
         #navbar {
             overflow: hidden;
-            background-color: #333;
+            background-color: var(--secondary);
         }
+
         #navbar a {
             float: left;
             display: block;
-            color: #f2f2f2;
+            color: var(--light);
             text-align: center;
             padding: 14px 16px;
             text-decoration: none;
+            transition: background-color 0.3s;
         }
+
         #navbar a:hover {
-            background-color: #ddd;
-            color: black;
+            background-color: var(--primary);
+            color: var(--dark);
         }
+
         .content {
             display: none;
+            padding: 20px;
+            border-radius: 0.4rem;
+            margin: 10px;
+            background: var(--light);
+            border: 1px solid var(--dark);
         }
+
         table {
             width: 100%;
             border-collapse: collapse;
+            margin-top: 20px;
         }
+
         th, td {
-            border: 1px solid #dddddd;
+            border: 1px solid var(--dark);
             text-align: left;
             padding: 8px;
         }
+
         th {
-            background-color: #f2f2f2;
+            background-color: var(--primary);
+            color: var(--dark);
         }
+
         tr:nth-child(even) {
-            background-color: #f9f9f9;
+            background-color: var(--info);
         }
-        #docLinks {
-            padding-left: 20px;
-        }
+
         #docLinks a {
             display: block;
             margin-top: 5px;
+            color: var(--dark);
+            background-color: var(--success);
+            padding: 10px;
+            border-radius: 0.4rem;
+            text-decoration: none;
+        }
+
+        #docLinks a:hover {
+            background-color: var(--primary);
+            color: var(--dark);
         }
     </style>
 </head>
 <body>
     <div id="navbar">
-        <a href="#" onclick="showSection('awards')">Awards</a>
         <a href="#" onclick="showSection('readme')">README</a>
         <a href="#" onclick="showSection('docs')">Docs</a>
+        <a href="#" onclick="showSection('awards')">Awards</a>
     </div>
 
     <div id="awards" class="content">
@@ -95,7 +131,7 @@
 
     <div id="readme" class="content">
         <h1>README</h1>
-        <div id="readmeContent"></div> <!-- Container for the README content -->
+        <div id="readmeContent"></div> 
     </div>
 
     <div id="docs" class="content">
@@ -107,7 +143,7 @@
             <a href="#" onclick="loadMarkdown('docs/time-is-a-bitch.md', 'docsContent')">Time is a Bitch</a>
             <a href="#" onclick="loadMarkdown('docs/useful-dev-commands.md', 'docsContent')">Useful Dev Commands</a>
         </div>
-        <div id="docsContent"></div> <!-- Container for the Docs content -->
+        <div id="docsContent"></div> 
     </div>
 
     <script>
@@ -120,7 +156,14 @@
         }
 
         function convertMarkdown() {
-            var converter = new showdown.Converter();
+            var converter = new showdown.Converter({
+                tables: true, // Enable table support
+                simplifiedAutoLink: true, // Enable automatic linking of URLs
+                strikethrough: true, // Enable strikethrough support
+                tasklists: true, // Enable task lists
+                simpleLineBreaks: true, // Enable single line breaks
+                openLinksInNewWindow: true, // Open all links in new windows
+            });
             fetch('README.md')
                 .then(response => response.text())
                 .then(text => {
@@ -134,7 +177,14 @@
         window.onload = convertMarkdown;
 
         function loadMarkdown(mdFile, targetId) {
-            var converter = new showdown.Converter();
+            var converter = new showdown.Converter({
+                tables: true, // Enable table support
+                simplifiedAutoLink: true, // Enable automatic linking of URLs
+                strikethrough: true, // Enable strikethrough support
+                tasklists: true, // Enable task lists
+                simpleLineBreaks: true, // Enable single line breaks
+                openLinksInNewWindow: true, // Open all links in new windows
+            });
             fetch(mdFile)
                 .then(response => response.text())
                 .then(text => {

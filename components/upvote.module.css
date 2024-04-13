@@ -13,7 +13,8 @@
 }
 
 .upvoteParent {
-    pointer-events: auto;
+    position: relative;
+    z-index: 100;
 }
 
 .noSelfTips {

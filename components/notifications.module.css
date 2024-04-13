@@ -28,16 +28,11 @@
     margin-right: 0 !important;
 }
 
-.detailsOverlay {
-    position: relative;
-    max-width: fit-content;
-    pointer-events: none;
-}
-
 .linkBox {
     position: absolute; 
     top: 0;
     right: 0;
     bottom: 0;
     left: 0;
+    z-index: 0;
 }

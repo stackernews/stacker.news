@@ -86,16 +86,21 @@ a.link:visited {
 }
 
 .other {
+    position: relative;
     font-size: 80%;
     color: var(--theme-grey);
     vertical-align: text-top;
     margin-bottom: .125rem;
     width: fit-content;
-    pointer-events: auto;
 }
 
 .other svg {
     vertical-align: text-top;
+}
+
+.other a {
+    position: relative;
+    z-index: 100;
 }
 
 .other .dropdown svg {
@@ -105,6 +110,11 @@ a.link:visited {
 .other :global(.dropdown-item) {
     padding-top: 0.5rem;
     padding-bottom: 0.5rem;
+}
+
+.other .dropdown a {
+    position: relative;
+    z-index: 100;
 }
 
 .item {
@@ -156,8 +166,11 @@ a.link:visited {
 } */
 
 .main {
+    position: relative;
+    width: fit-content;
     display: flex;
     align-items: baseline;
+    z-index: 100;
 }
 
 .children {

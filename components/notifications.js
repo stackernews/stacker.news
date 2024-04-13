@@ -64,7 +64,9 @@ function NotificationLayout ({ children, nid, href, as, fresh }) {
   return (
     <div
       style={{ position: 'relative' }}
+      className='clickToContext'
     >
+      {children}
       {!!href && (
         <Link
           onClick={async (e) => {
@@ -78,11 +80,10 @@ function NotificationLayout ({ children, nid, href, as, fresh }) {
             }, router.asPath, { ...router.options, shallow: true })
             router.push(href, as)
           }}
-          className={`clickToContext ${styles.linkBox} ${fresh ? styles.fresh : ''} ${router?.query?.nid === nid ? 'outline-it' : ''}`}
+          className={`${styles.linkBox} ${fresh ? styles.fresh : ''} ${router?.query?.nid === nid ? 'outline-it' : ''}`}
           href={typeof href === 'string' ? href : href.query.commentId ? as + '?commentId=' + href.query.commentId : as}
         />
       )}
-      {children}
     </div>
   )
 }
@@ -325,7 +326,7 @@ function Votification ({ n }) {
             <ForwardedUsers />
           </>}
       </small>
-      <div className={styles.detailsOverlay}>
+      <div>
         {n.item.title
           ? <Item item={n.item} />
           : (
@@ -346,7 +347,7 @@ function ForwardedVotification ({ n }) {
       <small className='fw-bold text-success d-inline-block ms-2 my-1' style={{ lineHeight: '1.25' }}>
         you were forwarded {numWithUnits(n.earnedSats, { abbreviate: false })} from
       </small>
-      <div className={styles.detailsOverlay}>
+      <div>
         {n.item.title
           ? <Item item={n.item} />
           : (
@@ -367,7 +368,7 @@ function Mention ({ n }) {
       <small className='fw-bold text-info ms-2'>
         you were mentioned in
       </small>
-      <div className={styles.detailsOverlay}>
+      <div>
         {n.item.title
           ? <Item item={n.item} />
           : (
@@ -391,7 +392,7 @@ function JobChanged ({ n }) {
               ? 'your job promotion ran out of sats'
               : 'your job has been stopped')}
       </small>
-      <div className={styles.detailsOverlay}>
+      <div>
         <ItemJob item={n.item} />
       </div>
     </>
@@ -420,7 +421,7 @@ function FollowActivity ({ n }) {
       <small className='fw-bold text-info ms-2'>
         a stacker you subscribe to {n.item.parentId ? 'commented' : 'posted'}
       </small>
-      <div className={styles.detailsOverlay}>
+      <div>
         {n.item.title
           ? <div className='ms-2'><Item item={n.item} /></div>
           : (
@@ -441,7 +442,7 @@ function TerritoryPost ({ n }) {
       <small className='fw-bold text-info ms-2'>
         new post in ~{n.item.sub.name}
       </small>
-      <div className={styles.detailsOverlay}>
+      <div>
         <Item item={n.item} />
       </div>
     </>

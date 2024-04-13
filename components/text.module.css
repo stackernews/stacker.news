@@ -111,7 +111,8 @@
 }
 
 .text .p a {
-    pointer-events: auto;
+    position: relative;
+    z-index: 100;
 }
 
 .text pre {
@@ -249,7 +250,7 @@ img.fullScreen {
     height: 0;
     padding-bottom: 56.25%;
     overflow: hidden;
-    pointer-events: auto;
+    z-index: 100;
 }
 
 .youtubeContainer iframe {

@@ -29,8 +29,6 @@ import { LongCountdown } from './countdown'
 import { nextBillingWithGrace } from '@/lib/territory'
 import { commentSubTreeRootId } from '@/lib/item'
 
-const nid = n => n.__typename + n.id + n.sortTime
-
 function Notification ({ n, fresh }) {
   const type = n.__typename
 
@@ -401,7 +399,7 @@ function JobChanged ({ n }) {
 
 function Reply ({ n }) {
   return (
-    <div className={`py-2 ${styles.detailsOverlay}`}>
+    <div className='py-2'>
       {n.item.title
         ? <Item item={n.item} />
         : (
@@ -421,17 +419,15 @@ function FollowActivity ({ n }) {
       <small className='fw-bold text-info ms-2'>
         a stacker you subscribe to {n.item.parentId ? 'commented' : 'posted'}
       </small>
-      <div>
-        {n.item.title
-          ? <div className='ms-2'><Item item={n.item} /></div>
-          : (
-            <div className='pb-2'>
-              <RootProvider root={n.item.root}>
-                <Comment item={n.item} noReply includeParent clickToContext rootText='replying on:' />
-              </RootProvider>
-            </div>
-            )}
-      </div>
+      {n.item.title
+        ? <div className='ms-2'><Item item={n.item} /></div>
+        : (
+          <div className='pb-2'>
+            <RootProvider root={n.item.root}>
+              <Comment item={n.item} noReply includeParent clickToContext rootText='replying on:' />
+            </RootProvider>
+          </div>
+          )}
     </>
   )
 }
@@ -442,9 +438,7 @@ function TerritoryPost ({ n }) {
       <small className='fw-bold text-info ms-2'>
         new post in ~{n.item.sub.name}
       </small>
-      <div>
-        <Item item={n.item} />
-      </div>
+      <Item item={n.item} />
     </>
   )
 }
@@ -518,6 +512,8 @@ export function NotificationAlert () {
           )
   )
 }
+
+const nid = n => n.__typename + n.id + n.sortTime
 
 export default function Notifications ({ ssrData }) {
   const { data, fetchMore } = useQuery(NOTIFICATIONS)

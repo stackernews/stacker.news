@@ -208,7 +208,7 @@ export default function Comment ({
               />
               )
             : (
-              <div ref={textRef}>
+              <div className={styles.text} ref={textRef}>
                 {item.searchText
                   ? <SearchText text={item.searchText} />
                   : (

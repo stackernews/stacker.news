@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Project Showcase</title>
+    <title>FOSS Webpage</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/showdown/dist/showdown.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -43,6 +44,13 @@
         tr:nth-child(even) {
             background-color: #f9f9f9;
         }
+        #docLinks {
+            padding-left: 20px;
+        }
+        #docLinks a {
+            display: block;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -53,7 +61,7 @@
     </div>
 
     <div id="awards" class="content">
-       <h1>Awards Showcase</h1>
+       <h1>Awards</h1>
 
        <h2>Total Earnings Per Contributor</h2>
        <table id="totalsTable">
@@ -92,7 +100,14 @@
 
     <div id="docs" class="content">
         <h1>Docs</h1>
-        <!-- Docs content will go here -->
+        <div id="docLinks">
+            <a href="#" onclick="loadMarkdown('docs/attach-lnbits.md', 'docsContent')">Attach LNbits</a>
+            <a href="#" onclick="loadMarkdown('docs/generating-seed.md', 'docsContent')">Generating Seed</a>
+            <a href="#" onclick="loadMarkdown('docs/semantic-search.md', 'docsContent')">Semantic Search</a>
+            <a href="#" onclick="loadMarkdown('docs/time-is-a-bitch.md', 'docsContent')">Time is a Bitch</a>
+            <a href="#" onclick="loadMarkdown('docs/useful-dev-commands.md', 'docsContent')">Useful Dev Commands</a>
+        </div>
+        <div id="docsContent"></div> <!-- Container for the Docs content -->
     </div>
 
     <script>
@@ -104,56 +119,6 @@
             document.getElementById(sectionId).style.display = 'block';
         }
 
-        // Default to showing the awards section
-        showSection('awards');
-    </script>
-
-    <script>
-        Papa.parse('awards.csv', {
-            download: true,
-            header: true,
-            complete: function(results) {
-                var data = results.data;
-                var awardsTable = document.getElementById('awardsTable').getElementsByTagName('tbody')[0];
-                var totals = {};
-    
-                data.forEach(function(row) {
-                    var newRow = awardsTable.insertRow();
-                    newRow.insertCell().appendChild(document.createTextNode(row.name || ''));
-                    newRow.insertCell().appendChild(document.createTextNode(row.type || ''));
-                    newRow.insertCell().appendChild(document.createTextNode(row['pr id'] || row['issue ids'] || ''));
-                    newRow.insertCell().appendChild(document.createTextNode(row.difficulty || ''));
-                    newRow.insertCell().appendChild(document.createTextNode(row.amount || ''));
-                    newRow.insertCell().appendChild(document.createTextNode(row['receive method'] || ''));
-                    newRow.insertCell().appendChild(document.createTextNode(row['date paid'] || ''));
-    
-                    // Sum up the totals, ensure amount is defined and is a string
-                    if (row.amount && typeof row.amount === 'string') {
-                        if (!totals[row.name]) {
-                            totals[row.name] = 0;
-                        }
-                        let amount = row.amount.replace(/k$/, '000').replace(',', '');
-                        totals[row.name] += parseInt(amount) || 0;
-                    }
-                });
-    
-                // Convert the totals object into an array and sort it
-                var sortedTotals = Object.entries(totals).sort((a, b) => b[1] - a[1]);
-    
-                // Populate the totals table with sorted totals
-                var totalsTable = document.getElementById('totalsTable').getElementsByTagName('tbody')[0];
-                sortedTotals.forEach(function([contributor, total]) {
-                    var newRow = totalsTable.insertRow();
-                    newRow.insertCell().appendChild(document.createTextNode(contributor));
-                    newRow.insertCell().appendChild(document.createTextNode(total.toString()));
-                });
-            }
-        });
-    </script>
-
-    <script src="https://cdn.jsdelivr.net/npm/showdown/dist/showdown.min.js"></script>
-
-    <script>
         function convertMarkdown() {
             var converter = new showdown.Converter();
             fetch('README.md')
@@ -165,10 +130,60 @@
                     console.error('Error processing the README:', error);
                 });
         }
-    </script>
-    
-    <script>
+
         window.onload = convertMarkdown;
+
+        function loadMarkdown(mdFile, targetId) {
+            var converter = new showdown.Converter();
+            fetch(mdFile)
+                .then(response => response.text())
+                .then(text => {
+                    document.getElementById(targetId).innerHTML = converter.makeHtml(text);
+                })
+                .catch(error => {
+                    console.error('Error loading the Markdown file:', error);
+                });
+        }
+    </script>
+
+    <script>
+        Papa.parse('awards.csv', {
+            download: true,
+            header: true,
+            complete: function(results) {
+                var data = results.data;
+                var awardsTable = document.getElementById('awardsTable').getElementsByTagName('tbody')[0];
+                var totals = {};
+
+                data.forEach(function(row) {
+                    var newRow = awardsTable.insertRow();
+                    newRow.insertCell().appendChild(document.createTextNode(row.name || ''));
+                    newRow.insertCell().appendChild(document.createTextNode(row.type || ''));
+                    newRow.insertCell().appendChild(document.createTextNode(row['pr id'] || row['issue ids'] || ''));
+                    newRow.insertCell().appendChild(document.createTextNode(row.difficulty || ''));
+                    newRow.insertCell().appendChild(document.createTextNode(row.amount || ''));
+                    newRow.insertCell().appendChild(document.createTextNode(row['receive method'] || ''));
+                    newRow.insertCell().appendChild(document.createTextNode(row['date paid'] || ''));
+
+                    if (row.amount && typeof row.amount === 'string') {
+                        if (!totals[row.name]) {
+                            totals[row.name] = 0;
+                        }
+                        let amount = row.amount.replace(/k$/, '000').replace(',', '');
+                        totals[row.name] += parseInt(amount) || 0;
+                    }
+                });
+
+                var sortedTotals = Object.entries(totals).sort((a, b) => b[1] - a[1]);
+
+                var totalsTable = document.getElementById('totalsTable').getElementsByTagName('tbody')[0];
+                sortedTotals.forEach(function([contributor, total]) {
+                    var newRow = totalsTable.insertRow();
+                    newRow.insertCell().appendChild(document.createTextNode(contributor));
+                    newRow.insertCell().appendChild(document.createTextNode(total.toString()));
+                });
+            }
+        });
     </script>
 </body>
 </html>

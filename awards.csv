@@ -33,17 +33,20 @@ SouthKoreaLN,pr,#1015,#1010,good-first-issue,,,,20k,south_korea_ln@stacker.news,
 SatsAllDay,issue,#1015,#1010,good-first-issue,,,,20k,weareallsatoshi@getalby.com,2024-04-04
 jp30566347,pr,#991,#718,good-first-issue,,,,20k,jpmelanson@getalby.com,2024-04-04
 benalleng,helpfulness,#1015,#1010,good-first-issue,,,,2k,BenAllenG@stacker.news,2024-04-04
-felipebueno,pr,#1012,,,,,,20k,felipe@stacker.news,2024-04-24
-abhiShandy,helpfulness,#1018,#1006,good-first-issue,,,identified problem,2k,bolt11,2024-04-24
-benalleng,issue,#1018,#1006,good-first-issue,,,,2k,BenAllenG@stacker.news,???
-benalleng,issue,#1011,#993,easy,high,,,20k,BenAllenG@stacker.news,???
-benalleng,pr,#1011,#993,easy,high,,tortured them,200k,BenAllenG@stacker.news,???
-abhiShandy,pr,#1031,#908,good-first-issue,,1,,18k,???,???
-SatsAllDay,issue,#1031,#908,good-first-issue,,1,,1.8k,???,???
-SatsAllDay,pr,#1034,#934,medium,,,,250k,???,???
-SatsAllDay,issue,#1034,#934,medium,,,,25k,???,???
+felipebueno,pr,#1012,,,,,,20k,felipe@stacker.news,2024-04-04
+abhiShandy,helpfulness,#1018,#1006,good-first-issue,,,identified problem,2k,bolt11,2024-04-04
+benalleng,issue,#1018,#1006,good-first-issue,,,,2k,???,???
+benalleng,issue,#1011,#993,easy,high,,,20k,???,???
+benalleng,pr,#1011,#993,easy,high,,tortured them,200k,???,???
+abhiShandy,pr,#1031,#908,good-first-issue,,1,,18k,abhishandy@stacker.news,2024-04-12
+SatsAllDay,issue,#1031,#908,good-first-issue,,1,,1.8k,weareallsatoshi@getalby.com,2024-04-12
+SatsAllDay,pr,#1034,#934,medium,,,,250k,weareallsatoshi@getalby.com,2024-04-12
+SatsAllDay,issue,#1034,#934,medium,,,,25k,weareallsatoshi@getalby.com,2024-04-12
 benalleng,pr,#1037,#1036,easy,,1,,90k,???,???
-SatsAllDay,pr,#1038,#1033,easy,,,,100k,???,???
-SatsAllDay,issue,#1038,#1033,easy,,,,10k,???,???
-felipebueno,pr,#1043,,easy,,,,100k,???,???
+SatsAllDay,pr,#1038,#1033,easy,,,,100k,weareallsatoshi@getalby.com,2024-04-12
+SatsAllDay,issue,#1038,#1033,easy,,,,10k,weareallsatoshi@getalby.com,2024-04-12
+felipebueno,pr,#1043,,easy,,,,100k,felipe@stacker.news,2024-04-12
 benalleng,pr,#1050,,good-first-issue,,,,20k,???,???
+jp30566347,pr,#1055,#771,medium,,,extra mile,300k,jpmelanson@getalby.com,2024-04-12
+benalleng,helpfulness,#1063,202,medium,,,did much of the legwork in another pr,100k,???,???
+benalleng,code review,#1063,202,medium,,,,25k,???,???

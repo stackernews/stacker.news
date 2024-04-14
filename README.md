@@ -70,6 +70,7 @@ COMMANDS
     stop          stop env
     restart       restart env
     status        status of env
+    logs          logs from env
     delete        delete env
 
   sn:
@@ -78,6 +79,10 @@ COMMANDS
   lnd:
     fund          pay a bolt11 for funding
     withdraw      create a bolt11 for withdrawal
+
+  cln:
+    cln_fund      pay a bolt11 for funding with CLN
+    cln_withdraw  create a bolt11 for withdrawal with CLN
 
   db:
     psql          open psql on db
@@ -88,9 +93,10 @@ COMMANDS
     lint          run linters
 
   other:
-    compose       docker compose passthrough
-    sn_lncli      lncli passthrough on sn_lnd
-    stacker_lncli lncli passthrough on stacker_lnd
+    compose         docker compose passthrough
+    sn_lndcli       lncli passthrough on sn_lnd
+    stacker_lndcli  lncli passthrough on stacker_lnd
+    stacker_clncli  lightning-cli passthrough on stacker_cln
 
 ```
 

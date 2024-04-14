@@ -23,7 +23,7 @@ docker__exec() {
     exit 0
   fi
 
-  command docker exec -i "$@"
+  DOCKER_CLI_HINTS=false command docker exec -i "$@"
 }
 
 docker__sn_lnd() {

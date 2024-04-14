@@ -87,6 +87,24 @@
             background-color: var(--primary);
             color: var(--dark);
         }
+
+        /* Code block styling */
+        pre {
+            background-color: #f4f4f4;
+            border: 1px solid #ccc;
+            padding: 10px;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        
+        /* Inline code styling */
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 4px;
+            color: #d63384;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+        }
     </style>
 </head>
 <body>
@@ -154,7 +172,6 @@
             }
             document.getElementById(sectionId).style.display = 'block';
         }
-
         function convertMarkdown() {
             var converter = new showdown.Converter({
                 tables: true, // Enable table support
@@ -163,9 +180,16 @@
                 tasklists: true, // Enable task lists
                 simpleLineBreaks: true, // Enable single line breaks
                 openLinksInNewWindow: true, // Open all links in new windows
+                ghCodeBlocks: true, // Enable GitHub flavored code blocks
+                smoothLivePreview: true,
+                smartIndentationFix: true
             });
-            fetch('README.md')
-                .then(response => response.text())
+            fetch('README.md').then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.text();
+            })
                 .then(text => {
                     document.getElementById('readmeContent').innerHTML = converter.makeHtml(text);
                 })
@@ -173,9 +197,7 @@
                     console.error('Error processing the README:', error);
                 });
         }
-
         window.onload = convertMarkdown;
-
         function loadMarkdown(mdFile, targetId) {
             var converter = new showdown.Converter({
                 tables: true, // Enable table support
@@ -184,6 +206,9 @@
                 tasklists: true, // Enable task lists
                 simpleLineBreaks: true, // Enable single line breaks
                 openLinksInNewWindow: true, // Open all links in new windows
+                ghCodeBlocks: true, // Enable GitHub flavored code blocks
+                smoothLivePreview: true,
+                smartIndentationFix: true
             });
             fetch(mdFile)
                 .then(response => response.text())
@@ -195,7 +220,6 @@
                 });
         }
     </script>
-
     <script>
         Papa.parse('awards.csv', {
             download: true,
@@ -204,7 +228,6 @@
                 var data = results.data;
                 var awardsTable = document.getElementById('awardsTable').getElementsByTagName('tbody')[0];
                 var totals = {};
-
                 data.forEach(function(row) {
                     var newRow = awardsTable.insertRow();
                     newRow.insertCell().appendChild(document.createTextNode(row.name || ''));
@@ -214,7 +237,6 @@
                     newRow.insertCell().appendChild(document.createTextNode(row.amount || ''));
                     newRow.insertCell().appendChild(document.createTextNode(row['receive method'] || ''));
                     newRow.insertCell().appendChild(document.createTextNode(row['date paid'] || ''));
-
                     if (row.amount && typeof row.amount === 'string') {
                         if (!totals[row.name]) {
                             totals[row.name] = 0;
@@ -223,9 +245,7 @@
                         totals[row.name] += parseInt(amount) || 0;
                     }
                 });
-
                 var sortedTotals = Object.entries(totals).sort((a, b) => b[1] - a[1]);
-
                 var totalsTable = document.getElementById('totalsTable').getElementsByTagName('tbody')[0];
                 sortedTotals.forEach(function([contributor, total]) {
                     var newRow = totalsTable.insertRow();

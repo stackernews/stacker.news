@@ -104,7 +104,7 @@ COMMANDS
 
 #### Running specific services
 
-By default all services will be run. If you want to exclude specific services from running, set `COMPOSE_PROFILES` to use one or more of `minimal|images|search|payments|email`. To only run mininal services without images, search, or payments:
+By default all services will be run. If you want to exclude specific services from running, set `COMPOSE_PROFILES` to use one or more of `minimal|images|search|payments|email|capture`. To only run mininal services without images, search, or payments:
 
 ```sh
 $ COMPOSE_PROFILES=minimal ./sndev start

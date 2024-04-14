@@ -130,7 +130,7 @@ export default function Rewards ({ ssrData }) {
         </h4>
       </Link>
       <Row className='pb-3'>
-        <Col>
+        <Col lg={leaderboard?.users && 5}>
           <div
             className='d-flex flex-column sticky-lg-top py-5'
           >

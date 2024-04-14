@@ -164,8 +164,12 @@
                 simpleLineBreaks: true, // Enable single line breaks
                 openLinksInNewWindow: true, // Open all links in new windows
             });
-            fetch('README.md')
-                .then(response => response.text())
+            fetch('README.md').then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.text();
+            })
                 .then(text => {
                     document.getElementById('readmeContent').innerHTML = converter.makeHtml(text);
                 })

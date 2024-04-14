@@ -228,11 +228,23 @@ help="
 pay a bolt11 for funding with CLN
 
 USAGE
-  $ sndev cln_fund <bolt11> [OPTIONS]
-
-OPTIONS"
+  $ sndev cln_fund <bolt11>"
   echo "$help"
-  docker__stacker_cln pay -h | sed -e '1d' | sed -e 's/^/   /g'
+}
+
+sndev__cln_withdraw() {
+  shift
+  label=$(date +%s)
+  docker__stacker_cln -t invoice "$1" "$label" sndev | jq -r '.bolt11'
+}
+
+sndev__help_cln_withdraw() {
+help="
+create a bolt11 for withdrawal with CLN
+
+USAGE
+  $ sndev cln_withdraw <amount msats>"
+  echo "$help"
 }
 
 sndev__withdraw() {
@@ -315,31 +327,31 @@ sndev__help_compose() {
   docker__compose --help
 }
 
-sndev__sn_lncli() {
+sndev__sn_lndcli() {
   shift
   docker__sn_lnd -t "$@"
 }
 
-sndev__help_sn_lncli() {
+sndev__help_sn_lndcli() {
   docker__sn_lnd --help
 }
 
-sndev__stacker_lncli() {
+sndev__stacker_lndcli() {
   shift
   docker__stacker_lnd -t "$@"
 }
 
-sndev__help_stacker_lncli() {
+sndev__help_stacker_lndcli() {
   docker__stacker_lnd --help
 }
 
-sndev__stacker_lightning-cli() {
+sndev__stacker_clncli() {
   shift
   docker__stacker_cln -t "$@"
 }
 
-sndev__help_stacker_lightning-cli() {
-  docker__stacker_cln --help
+sndev__help_stacker_clncli() {
+  docker__stacker_cln help
 }
 
 __sndev__pr_track() {
@@ -480,6 +492,7 @@ COMMANDS
 
   cln:
     cln_fund      pay a bolt11 for funding with CLN
+    cln_withdraw  create a bolt11 for withdrawal with CLN
 
   db:
     psql          open psql on db
@@ -490,10 +503,10 @@ COMMANDS
     lint          run linters
 
   other:
-    compose                docker compose passthrough
-    sn_lncli               lncli passthrough on sn_lnd
-    stacker_lncli          lncli passthrough on stacker_lnd
-    stacker_lightning-cli  lightning-cli passthrough on stacker_cln
+    compose         docker compose passthrough
+    sn_lndcli       lncli passthrough on sn_lnd
+    stacker_lndcli  lncli passthrough on stacker_lnd
+    stacker_clncli  lightning-cli passthrough on stacker_cln
 "
   echo "$help"
 }

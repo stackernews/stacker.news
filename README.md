@@ -130,7 +130,6 @@ By default `sndev start` will merge `docker-compose.yml` with `docker-compose.ov
 For example, if you want to replace the db seed with a custom seed file located in `docker/db/another.sql`, you'd create a `docker-compose.override.yml` file with the following:
 
 ```yml
-version: "3"
 services:
   db:
     volumes:

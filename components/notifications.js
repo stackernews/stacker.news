@@ -6,7 +6,6 @@ import ItemJob from './item-job'
 import { NOTIFICATIONS } from '@/fragments/notifications'
 import MoreFooter from './more-footer'
 import Invite from './invite'
-import { ignoreClick } from '@/lib/clicks'
 import { dayMonthYear, timeSince } from '@/lib/time'
 import Link from 'next/link'
 import Check from '@/svgs/check-double-line.svg'
@@ -62,21 +61,23 @@ function NotificationLayout ({ children, nid, href, as, fresh }) {
   if (!href) return <div className={fresh ? styles.fresh : ''}>{children}</div>
   return (
     <div
-      className={
-        `clickToContext ${fresh ? styles.fresh : ''} ${router?.query?.nid === nid ? 'outline-it' : ''}`
-      }
-      onClick={async (e) => {
-        if (ignoreClick(e)) return
-        nid && await router.replace({
-          pathname: router.pathname,
-          query: {
-            ...router.query,
-            nid
-          }
-        }, router.asPath, { ...router.options, shallow: true })
-        router.push(href, as)
-      }}
+      className={`position-relative clickToContext ${styles.notificationLayout} ${fresh ? styles.fresh : ''} ${router?.query?.nid === nid ? 'outline-it' : ''}`}
     >
+      <Link
+        className={styles.linkBox}
+        onClick={async (e) => {
+          e.preventDefault()
+          nid && await router.replace({
+            pathname: router.pathname,
+            query: {
+              ...router.query,
+              nid
+            }
+          }, router.asPath, { ...router.options, shallow: true })
+          router.push(href, as)
+        }}
+        href={typeof href === 'string' ? href : href.query.commentId ? as + '?commentId=' + href.query.commentId : as}
+      />
       {children}
     </div>
   )

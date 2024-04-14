@@ -27,3 +27,30 @@
 .subFormGroup > div {
     margin-right: 0 !important;
 }
+
+.linkBox {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+}
+
+.linkBox ~ * {
+    position: relative;
+}
+
+.notificationLayout > * {
+    pointer-events: none;
+}
+
+.notificationLayout :global(.upvoteParent),
+.notificationLayout :global(.pointer),
+.notificationLayout a,
+.notificationLayout form,
+.notificationLayout textarea,
+.notificationLayout button,
+.notificationLayout input,
+.notificationLayout iframe {
+    pointer-events: auto !important;
+}

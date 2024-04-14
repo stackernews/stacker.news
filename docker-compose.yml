@@ -440,7 +440,7 @@ services:
           else
             lightning-cli --regtest connect $LND_PUBKEY@sn_lnd:9735
             lightning-cli --regtest fundchannel id=$LND_PUBKEY feerate=1000perkb \\
-              amount=1000000000msat push_msat=500000000 minconf=0
+              amount=1000000000 push_msat=500000000000 minconf=0
           fi
         "
   channdler:

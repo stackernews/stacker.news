@@ -130,6 +130,8 @@ $accordion-button-icon-dark:         $accordion-button-icon;
 $accordion-button-active-icon-dark:  $accordion-button-icon;
 
 
+$zindex-sticky: 900;
+
 :root, [data-bs-theme=light] {
   --theme-navLink: rgba(0, 0, 0, 0.55);
   --theme-navLinkFocus: rgba(0, 0, 0, 0.7);

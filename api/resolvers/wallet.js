@@ -7,11 +7,12 @@ import lnpr from 'bolt11'
 import { SELECT } from './item'
 import { lnAddrOptions } from '@/lib/lnurl'
 import { msatsToSats, msatsToSatsDecimal, ensureB64 } from '@/lib/format'
-import { LNDAutowithdrawSchema, amountSchema, lnAddrAutowithdrawSchema, lnAddrSchema, ssValidate, withdrawlSchema } from '@/lib/validate'
+import { CLNAutowithdrawSchema, LNDAutowithdrawSchema, amountSchema, lnAddrAutowithdrawSchema, lnAddrSchema, ssValidate, withdrawlSchema } from '@/lib/validate'
 import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, ANON_USER_ID, BALANCE_LIMIT_MSATS, INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT } from '@/lib/constants'
 import { datePivot } from '@/lib/time'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
+import { createInvoice as createInvoiceCLN } from '@/lib/cln'
 
 export async function getInvoice (parent, { id }, { me, models, lnd }) {
   const inv = await models.invoice.findUnique({
@@ -323,7 +324,7 @@ export default {
   },
   WalletDetails: {
     __resolveType (wallet) {
-      return wallet.address ? 'WalletLNAddr' : 'WalletLND'
+      return wallet.address ? 'WalletLNAddr' : wallet.macaroon ? 'WalletLND' : 'WalletCLN'
     }
   },
   Mutation: {
@@ -466,6 +467,36 @@ export default {
         },
         { settings, data }, { me, models })
     },
+    upsertWalletCLN: async (parent, { settings, ...data }, { me, models }) => {
+      data.cert = ensureB64(data.cert)
+
+      const wallet = 'walletCLN'
+      return await upsertWallet(
+        {
+          schema: CLNAutowithdrawSchema,
+          walletName: wallet,
+          walletType: 'CLN',
+          testConnect: async ({ socket, rune, cert }) => {
+            try {
+              const inv = await createInvoiceCLN({
+                socket,
+                rune,
+                cert,
+                description: 'SN connection test',
+                msats: 'any',
+                expiry: 0
+              })
+              await addWalletLog({ wallet, level: 'SUCCESS', message: 'connected to CLN' }, { me, models })
+              return inv
+            } catch (err) {
+              const details = err.details || err.message || err.toString?.()
+              await addWalletLog({ wallet, level: 'ERROR', message: `could not connect to CLN: ${details}` }, { me, models })
+              throw err
+            }
+          }
+        },
+        { settings, data }, { me, models })
+    },
     upsertWalletLNAddr: async (parent, { settings, ...data }, { me, models }) => {
       const wallet = 'walletLightningAddress'
       return await upsertWallet(
@@ -495,6 +526,8 @@ export default {
       let walletName = ''
       if (wallet.type === 'LND') {
         walletName = 'walletLND'
+      } else if (wallet.type === 'CLN') {
+        walletName = 'walletCLN'
       } else if (wallet.type === 'LIGHTNING_ADDRESS') {
         walletName = 'walletLightningAddress'
       }

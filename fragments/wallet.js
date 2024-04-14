@@ -89,6 +89,13 @@ mutation upsertWalletLND($id: ID, $socket: String!, $macaroon: String!, $cert: S
 }
 `
 
+export const UPSERT_WALLET_CLN =
+gql`
+mutation upsertWalletCLN($id: ID, $socket: String!, $rune: String!, $cert: String, $settings: AutowithdrawSettings!) {
+  upsertWalletCLN(id: $id, socket: $socket, rune: $rune, cert: $cert, settings: $settings)
+}
+`
+
 export const REMOVE_WALLET =
 gql`
 mutation removeWallet($id: ID!) {
@@ -113,6 +120,11 @@ export const WALLET = gql`
           macaroon
           cert
         }
+        ... on WalletCLN {
+          socket
+          rune
+          cert
+        }
       }
     }
   }
@@ -133,6 +145,11 @@ export const WALLET_BY_TYPE = gql`
         ... on WalletLND {
           socket
           macaroon
+          cert
+        }
+        ... on WalletCLN {
+          socket
+          rune
           cert
         }
       }

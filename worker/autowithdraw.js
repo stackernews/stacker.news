@@ -2,6 +2,7 @@ import { authenticatedLndGrpc, createInvoice } from 'ln-service'
 import { msatsToSats, numWithUnits, satsToMsats } from '@/lib/format'
 import { datePivot } from '@/lib/time'
 import { createWithdrawal, sendToLnAddr, addWalletLog } from '@/api/resolvers/wallet'
+import { createInvoice as createInvoiceCLN } from '@/lib/cln'
 
 export async function autoWithdraw ({ data: { id }, models, lnd }) {
   const user = await models.user.findUnique({ where: { id } })
@@ -55,6 +56,15 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
           level: 'SUCCESS',
           message
         }, { me: user, models })
+      } else if (wallet.type === 'CLN') {
+        await autowithdrawCLN(
+          { amount, maxFee },
+          { models, me: user, lnd })
+        await addWalletLog({
+          wallet: 'walletCLN',
+          level: 'SUCCESS',
+          message
+        }, { me: user, models })
       } else if (wallet.type === 'LIGHTNING_ADDRESS') {
         await autowithdrawLNAddr(
           { amount, maxFee },
@@ -72,7 +82,9 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
       // LND errors are in this shape: [code, type, { err: { code, details, metadata } }]
       const details = error[2]?.err?.details || error.message || error.toString?.()
       await addWalletLog({
-        wallet: wallet.type === 'LND' ? 'walletLND' : 'walletLightningAddress',
+        wallet: wallet.type === 'LND'
+          ? 'walletLND'
+          : wallet.type === 'CLN' ? 'walletCLN' : 'walletLightningAddress',
         level: 'ERROR',
         message: 'autowithdrawal failed: ' + details
       })
@@ -141,4 +153,37 @@ async function autowithdrawLND ({ amount, maxFee }, { me, models, lnd }) {
   })
 
   return await createWithdrawal(null, { invoice: invoice.request, maxFee }, { me, models, lnd, autoWithdraw: true })
+}
+
+async function autowithdrawCLN ({ amount, maxFee }, { me, models, lnd }) {
+  if (!me) {
+    throw new Error('me not specified')
+  }
+
+  const wallet = await models.wallet.findFirst({
+    where: {
+      userId: me.id,
+      type: 'CLN'
+    },
+    include: {
+      walletCLN: true
+    }
+  })
+
+  if (!wallet || !wallet.walletCLN) {
+    throw new Error('no cln wallet found')
+  }
+
+  const { walletCLN: { cert, rune, socket } } = wallet
+
+  const inv = await createInvoiceCLN({
+    socket,
+    rune,
+    cert,
+    description: me.hideInvoiceDesc ? undefined : 'autowithdraw to CLN from SN',
+    msats: amount + 'sat',
+    expiry: 360
+  })
+
+  return await createWithdrawal(null, { invoice: inv.bolt11, maxFee }, { me, models, lnd, autoWithdraw: true })
 }

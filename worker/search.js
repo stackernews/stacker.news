@@ -60,11 +60,26 @@ async function _indexItem (item, { models }) {
 
   itemcp.wvotes = itemdb.weightedVotes - itemdb.weightedDownVotes
 
+  const bookmarkedBy = await models.bookmark.findMany({
+    where: { itemId: Number(item.id) },
+    select: { userId: true, createdAt: true },
+    orderBy: [
+      {
+        createdAt: 'desc'
+      }
+    ]
+  })
+  console.log('bookmarkedBy', bookmarkedBy)
+  itemcp.bookmarkedBy = bookmarkedBy.map(bookmark => bookmark.userId)
+
+  // Use either when the item was updated, or when it was last bookmarked, to determine the latest version of the indexed version
+  const latestUpdatedAt = Math.max(new Date(item.updatedAt).getTime(), new Date(bookmarkedBy[0]?.createdAt).getTime())
+
   try {
     await search.index({
       id: item.id,
       index: process.env.OPENSEARCH_INDEX,
-      version: new Date(item.updatedAt).getTime(),
+      version: new Date(latestUpdatedAt).getTime(),
       versionType: 'external_gte',
       body: itemcp
     })

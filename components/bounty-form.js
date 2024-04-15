@@ -106,7 +106,8 @@ export function BountyForm ({
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}
-      invoiceable={{ requireSession: true }}
+      requireSession
+      invoiceable
       onSubmit={
         handleSubmit ||
         onSubmit

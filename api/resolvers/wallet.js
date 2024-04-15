@@ -435,12 +435,10 @@ export default {
       data.macaroon = ensureB64(data.macaroon)
       data.cert = ensureB64(data.cert)
 
-      const walletName = 'walletLND'
       const walletType = 'LND'
       return await upsertWallet(
         {
           schema: LNDAutowithdrawSchema,
-          walletName,
           walletType,
           testConnect: async ({ cert, macaroon, socket }) => {
             try {
@@ -471,12 +469,10 @@ export default {
     upsertWalletCLN: async (parent, { settings, ...data }, { me, models }) => {
       data.cert = ensureB64(data.cert)
 
-      const walletName = 'walletCLN'
       const walletType = 'CLN'
       return await upsertWallet(
         {
           schema: CLNAutowithdrawSchema,
-          walletName,
           walletType,
           testConnect: async ({ socket, rune, cert }) => {
             try {
@@ -500,12 +496,10 @@ export default {
         { settings, data }, { me, models })
     },
     upsertWalletLNAddr: async (parent, { settings, ...data }, { me, models }) => {
-      const walletName = 'walletLightningAddress'
       const walletType = 'LIGHTNING_ADDRESS'
       return await upsertWallet(
         {
           schema: lnAddrAutowithdrawSchema,
-          walletName,
           walletType,
           testConnect: async ({ address }) => {
             const options = await lnAddrOptions(address)
@@ -571,7 +565,7 @@ export const addWalletLog = async ({ wallet, level, message }, { me, models }) =
 }
 
 async function upsertWallet (
-  { schema, walletName, walletType, testConnect }, { settings, data }, { me, models }) {
+  { schema, walletType, testConnect }, { settings, data }, { me, models }) {
   if (!me) {
     throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
   }
@@ -614,6 +608,9 @@ async function upsertWallet (
       }))
   }
 
+  const walletName = walletType === 'LND'
+    ? 'walletLND'
+    : walletType === 'CLN' ? 'walletCLN' : 'walletLightningAddress'
   if (id) {
     txs.push(
       models.wallet.update({

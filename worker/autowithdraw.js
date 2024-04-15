@@ -1,5 +1,5 @@
 import { authenticatedLndGrpc, createInvoice } from 'ln-service'
-import { msatsToSats, numWithUnits, satsToMsats } from '@/lib/format'
+import { msatsToSats, satsToMsats } from '@/lib/format'
 import { datePivot } from '@/lib/time'
 import { createWithdrawal, sendToLnAddr, addWalletLog } from '@/api/resolvers/wallet'
 import { createInvoice as createInvoiceCLN } from '@/lib/cln'
@@ -46,34 +46,18 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
 
   for (const wallet of wallets) {
     try {
-      const message = `autowithdrawal of ${numWithUnits(amount, { abbreviate: false, unitSingular: 'sat', unitPlural: 'sats' })}`
       if (wallet.type === 'LND') {
         await autowithdrawLND(
           { amount, maxFee },
           { models, me: user, lnd })
-        await addWalletLog({
-          wallet: 'walletLND',
-          level: 'SUCCESS',
-          message
-        }, { me: user, models })
       } else if (wallet.type === 'CLN') {
         await autowithdrawCLN(
           { amount, maxFee },
           { models, me: user, lnd })
-        await addWalletLog({
-          wallet: 'walletCLN',
-          level: 'SUCCESS',
-          message
-        }, { me: user, models })
       } else if (wallet.type === 'LIGHTNING_ADDRESS') {
         await autowithdrawLNAddr(
           { amount, maxFee },
           { models, me: user, lnd })
-        await addWalletLog({
-          wallet: 'walletLightningAddress',
-          level: 'SUCCESS',
-          message
-        }, { me: user, models })
       }
 
       return

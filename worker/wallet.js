@@ -8,6 +8,7 @@ import { INVOICE_RETENTION_DAYS } from '@/lib/constants'
 import { datePivot, sleep } from '@/lib/time.js'
 import retry from 'async-retry'
 import { addWalletLog } from '@/api/resolvers/wallet'
+import { numWithUnits } from '@/lib/format'
 
 export async function subscribeToWallet (args) {
   await subscribeToDeposits(args)
@@ -228,6 +229,12 @@ async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
     }
   }
 
+  let walletName
+  if (dbWdrwl.wallet) {
+    const { wallet } = dbWdrwl.wallet
+    walletName = wallet.address ? 'walletLNAddr' : wallet.macaroon ? 'walletLND' : 'walletCLN'
+  }
+
   if (wdrwl?.is_confirmed) {
     const fee = Number(wdrwl.payment.fee_mtokens)
     const paid = Number(wdrwl.payment.mtokens) - fee
@@ -237,6 +244,11 @@ async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
     )
     if (code === 0) {
       notifyWithdrawal(dbWdrwl.userId, wdrwl)
+    }
+    if (walletName) {
+      // this was an autowithdrawal
+      const message = `autowithdrawal of ${numWithUnits(fee, { abbreviate: false })} with ${numWithUnits(fee, { abbreviate: false })} as fee`
+      await addWalletLog({ wallet: walletName, level: 'SUCCESS', message }, { models, me: { id: dbWdrwl.userId } })
     }
   } else if (wdrwl?.is_failed || notFound) {
     let status = 'UNKNOWN_FAILURE'; let message = 'unknown failure'
@@ -260,11 +272,9 @@ async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
       { models }
     )
 
-    if (dbWdrwl.wallet) {
+    if (walletName) {
       // add error into log for autowithdrawal
-      const { wallet } = dbWdrwl.wallet
-      const walletName = wallet.address ? 'WalletLNAddr' : wallet.macaroon ? 'WalletLND' : 'WalletCLN'
-      await addWalletLog({
+      addWalletLog({
         wallet: walletName,
         level: 'ERROR',
         message: 'autowithdrawal failed: ' + message

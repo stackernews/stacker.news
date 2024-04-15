@@ -14,7 +14,7 @@ export default function Qr ({ asIs, value, webLn, statusVariant, description, st
     async function effect () {
       if (webLn && provider) {
         try {
-          await provider.sendPayment({ bolt11: value })
+          await provider.sendPayment(value)
         } catch (e) {
           console.log(e?.message)
         }

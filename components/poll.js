@@ -8,7 +8,7 @@ import Check from '@/svgs/checkbox-circle-fill.svg'
 import { signIn } from 'next-auth/react'
 import ActionTooltip from './action-tooltip'
 import { POLL_COST } from '@/lib/constants'
-import { payOrLoginError, useInvoiceModal } from './invoice'
+import { InvoiceCanceledError, usePayment } from './payment'
 
 export default function Poll ({ item }) {
   const me = useMe()
@@ -45,30 +45,27 @@ export default function Poll ({ item }) {
   )
 
   const PollButton = ({ v }) => {
-    const showInvoiceModal = useInvoiceModal(async ({ hash, hmac }, { variables }) => {
-      await pollVote({ variables: { ...variables, hash, hmac } })
-    }, [pollVote])
-
-    const variables = { id: v.id }
-
+    const payment = usePayment()
     return (
       <ActionTooltip placement='left' notForm overlayText='1 sat'>
         <Button
           variant='outline-info' className={styles.pollButton}
           onClick={me
             ? async () => {
+              let hash, hmac, cancel
               try {
+                [{ hash, hmac }, cancel] = await payment.request(item.pollCost || POLL_COST)
                 await pollVote({
-                  variables,
+                  variables: { id: v.id, hash, hmac },
                   optimisticResponse: {
                     pollVote: v.id
                   }
                 })
               } catch (error) {
-                if (payOrLoginError(error)) {
-                  showInvoiceModal({ amount: item.pollCost || POLL_COST }, { variables })
+                if (error instanceof InvoiceCanceledError) {
                   return
                 }
+                cancel?.()
                 throw new Error({ message: error.toString() })
               }
             }

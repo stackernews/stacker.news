@@ -6,13 +6,14 @@ import { useMe } from './me'
 import { numWithUnits } from '@/lib/format'
 import { useShowModal } from './modal'
 import { useRoot } from './root'
-import { payOrLoginError, useInvoiceModal } from './invoice'
 import { useAct } from './item-act'
+import { InvoiceCanceledError, usePayment } from './payment'
 
 export default function PayBounty ({ children, item }) {
   const me = useMe()
   const showModal = useShowModal()
   const root = useRoot()
+  const payment = usePayment()
 
   const onUpdate = useCallback((cache, { data: { act: { id, path } } }) => {
     // update root bounty status
@@ -27,15 +28,14 @@ export default function PayBounty ({ children, item }) {
     })
   }, [])
 
-  const [act] = useAct({ onUpdate })
-
-  const showInvoiceModal = useInvoiceModal(async ({ hash, hmac }, { variables }) => {
-    await act({ variables: { ...variables, hash, hmac } })
-  }, [act])
+  const act = useAct({ onUpdate })
 
   const handlePayBounty = async onComplete => {
-    const variables = { id: item.id, sats: root.bounty, act: 'TIP', path: item.path }
+    let hash, hmac, cancel
     try {
+      const sats = root.bounty;
+      [{ hash, hmac }, cancel] = await payment.request(sats)
+      const variables = { id: item.id, sats, act: 'TIP', path: item.path, hash, hmac }
       await act({
         variables,
         optimisticResponse: {
@@ -44,10 +44,10 @@ export default function PayBounty ({ children, item }) {
       })
       onComplete()
     } catch (error) {
-      if (payOrLoginError(error)) {
-        showInvoiceModal({ amount: root.bounty }, { variables })
+      if (error instanceof InvoiceCanceledError) {
         return
       }
+      cancel?.()
       throw new Error({ message: error.toString() })
     }
   }

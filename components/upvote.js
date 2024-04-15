@@ -125,7 +125,7 @@ export default function UpVote ({ item, className }) {
     }
   }, [me, tipShow, setWalkthrough])
 
-  const [act] = useAct()
+  const act = useAct()
   const zap = useZap()
 
   const disabled = useMemo(() => item?.mine || item?.meForward || item?.deletedAt,
@@ -159,7 +159,7 @@ export default function UpVote ({ item, className }) {
       <ItemAct onClose={onClose} itemId={item.id} />, { onClose: handleModalClosed })
   }
 
-  const handleShortPress = () => {
+  const handleShortPress = async () => {
     if (me) {
       if (!item) return
 
@@ -173,7 +173,6 @@ export default function UpVote ({ item, className }) {
       } else {
         setTipShow(true)
       }
-
       zap({ item, me })
     } else {
       showModal(onClose => <ItemAct onClose={onClose} itemId={item.id} act={act} />, { onClose: handleModalClosed })

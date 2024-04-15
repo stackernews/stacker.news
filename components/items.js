@@ -66,7 +66,7 @@ export default function Items ({ ssrData, variables = {}, query, destructureData
 export function ListItem ({ item, ...props }) {
   return (
     item.parentId
-      ? <CommentFlat item={item} noReply includeParent clickToContext {...props} />
+      ? <CommentFlat item={item} noReply includeParent {...props} />
       : (item.isJob
           ? <ItemJob item={item} />
           : (item.searchText

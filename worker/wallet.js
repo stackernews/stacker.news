@@ -8,7 +8,7 @@ import { INVOICE_RETENTION_DAYS } from '@/lib/constants'
 import { datePivot, sleep } from '@/lib/time.js'
 import retry from 'async-retry'
 import { addWalletLog } from '@/api/resolvers/wallet'
-import { numWithUnits } from '@/lib/format'
+import { msatsToSats, numWithUnits } from '@/lib/format'
 
 export async function subscribeToWallet (args) {
   await subscribeToDeposits(args)
@@ -241,7 +241,7 @@ async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
     }
     if (dbWdrwl.wallet) {
       // this was an autowithdrawal
-      const message = `autowithdrawal of ${numWithUnits(fee, { abbreviate: false })} with ${numWithUnits(fee, { abbreviate: false })} as fee`
+      const message = `autowithdrawal of ${numWithUnits(msatsToSats(paid), { abbreviate: false })} with ${numWithUnits(msatsToSats(fee), { abbreviate: false })} as fee`
       await addWalletLog({ wallet: dbWdrwl.wallet.type, level: 'SUCCESS', message }, { models, me: { id: dbWdrwl.userId } })
     }
   } else if (wdrwl?.is_failed || notFound) {

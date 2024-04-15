@@ -229,12 +229,6 @@ async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
     }
   }
 
-  let walletName
-  if (dbWdrwl.wallet) {
-    const { wallet } = dbWdrwl.wallet
-    walletName = wallet.address ? 'walletLNAddr' : wallet.macaroon ? 'walletLND' : 'walletCLN'
-  }
-
   if (wdrwl?.is_confirmed) {
     const fee = Number(wdrwl.payment.fee_mtokens)
     const paid = Number(wdrwl.payment.mtokens) - fee
@@ -245,10 +239,10 @@ async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
     if (code === 0) {
       notifyWithdrawal(dbWdrwl.userId, wdrwl)
     }
-    if (walletName) {
+    if (dbWdrwl.wallet) {
       // this was an autowithdrawal
       const message = `autowithdrawal of ${numWithUnits(fee, { abbreviate: false })} with ${numWithUnits(fee, { abbreviate: false })} as fee`
-      await addWalletLog({ wallet: walletName, level: 'SUCCESS', message }, { models, me: { id: dbWdrwl.userId } })
+      await addWalletLog({ wallet: dbWdrwl.wallet.type, level: 'SUCCESS', message }, { models, me: { id: dbWdrwl.userId } })
     }
   } else if (wdrwl?.is_failed || notFound) {
     let status = 'UNKNOWN_FAILURE'; let message = 'unknown failure'
@@ -272,10 +266,10 @@ async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
       { models }
     )
 
-    if (walletName) {
+    if (dbWdrwl.wallet) {
       // add error into log for autowithdrawal
       addWalletLog({
-        wallet: walletName,
+        wallet: dbWdrwl.wallet.type,
         level: 'ERROR',
         message: 'autowithdrawal failed: ' + message
       }, { models, me: { id: dbWdrwl.userId } })

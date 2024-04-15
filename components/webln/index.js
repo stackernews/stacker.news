@@ -1,8 +1,6 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { LNbitsProvider, useLNbits } from './lnbits'
 import { NWCProvider, useNWC } from './nwc'
-import { useToast, withToastFlow } from '@/components/toast'
-import { gql, useMutation } from '@apollo/client'
 import { LNCProvider, useLNC } from './lnc'
 
 const WebLNContext = createContext({})
@@ -77,31 +75,6 @@ function RawWebLNProvider ({ children }) {
   // TODO: implement fallbacks via provider priority
   const provider = enabledProviders[0]
 
-  const toaster = useToast()
-  const [cancelInvoice] = useMutation(gql`
-    mutation cancelInvoice($hash: String!, $hmac: String!) {
-      cancelInvoice(hash: $hash, hmac: $hmac) {
-        id
-      }
-    }
-  `)
-
-  const sendPaymentWithToast = withToastFlow(toaster)(
-    ({ bolt11, hash, hmac, expiresAt, flowId }) => {
-      const expiresIn = (+new Date(expiresAt)) - (+new Date())
-      return {
-        flowId: flowId || hash,
-        type: 'payment',
-        onPending: async () => {
-          await provider.sendPayment(bolt11)
-        },
-        // hash and hmac are only passed for JIT invoices
-        onCancel: () => hash && hmac ? cancelInvoice({ variables: { hash, hmac } }) : undefined,
-        timeout: expiresIn
-      }
-    }
-  )
-
   const setProvider = useCallback((defaultProvider) => {
     // move provider to the start to set it as default
     setEnabledProviders(providers => {
@@ -114,8 +87,15 @@ function RawWebLNProvider ({ children }) {
     })
   }, [setEnabledProviders])
 
+  const value = useMemo(() => ({
+    provider: isEnabled(provider)
+      ? { sendPayment: provider.sendPayment }
+      : null,
+    enabledProviders,
+    setProvider
+  }), [provider, enabledProviders, setProvider])
   return (
-    <WebLNContext.Provider value={{ provider: isEnabled(provider) ? { sendPayment: sendPaymentWithToast } : null, enabledProviders, setProvider }}>
+    <WebLNContext.Provider value={value}>
       {children}
     </WebLNContext.Provider>
   )

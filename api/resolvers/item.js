@@ -891,7 +891,7 @@ export default {
              WHERE act IN ('TIP', 'FEE')
              AND "itemId" = ${Number(id)}::INTEGER
              AND "userId" = ${me.id}::INTEGER)::INTEGER)`,
-          { models }
+          { models, lnd, hash, hmac }
         )
       } else {
         await serialize(

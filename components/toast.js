@@ -10,21 +10,6 @@ const ToastContext = createContext(() => {})
 
 export const TOAST_DEFAULT_DELAY_MS = 5000
 
-const ensureFlow = (toasts, newToast) => {
-  const { flowId } = newToast
-  if (flowId) {
-    // replace previous toast with same flow id
-    const idx = toasts.findIndex(toast => toast.flowId === flowId)
-    if (idx === -1) return [...toasts, newToast]
-    return [
-      ...toasts.slice(0, idx),
-      newToast,
-      ...toasts.slice(idx + 1)
-    ]
-  }
-  return [...toasts, newToast]
-}
-
 const mapHidden = ({ id, tag }) => toast => {
   // mark every previous toast with same tag as hidden
   if (toast.tag === tag && toast.id !== id) return { ...toast, hidden: true }
@@ -36,24 +21,15 @@ export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([])
   const toastId = useRef(0)
 
-  const removeToast = useCallback(({ id, onCancel, tag }) => {
+  const removeToast = useCallback(({ id, tag }) => {
     setToasts(toasts => toasts.filter(toast => {
       if (toast.id === id) {
         // remove the toast with the passed id with no exceptions
         return false
       }
       const sameTag = tag && tag === toast.tag
-      if (!sameTag) {
-        // don't touch toasts with different tags
-        return true
-      }
-      const toRemoveHasCancel = !!toast.onCancel || !!toast.onUndo
-      if (toRemoveHasCancel) {
-        // don't remove this toast so the user can decide to cancel this toast now
-        return true
-      }
-      // remove toasts with same tag if they are not cancelable
-      return false
+      // remove toasts with same tag
+      return !sameTag
     }))
   }, [setToasts])
 
@@ -63,13 +39,9 @@ export const ToastProvider = ({ children }) => {
       createdAt: +new Date(),
       id: toastId.current++
     }
-    setToasts(toasts => ensureFlow(toasts, toast).map(mapHidden(toast)))
+    setToasts(toasts => [...toasts, toast].map(mapHidden(toast)))
     return () => removeToast(toast)
   }, [setToasts, removeToast])
-
-  const endFlow = useCallback((flowId) => {
-    setToasts(toasts => toasts.filter(toast => toast.flowId !== flowId))
-  }, [setToasts])
 
   const toaster = useMemo(() => ({
     success: (body, options) => {
@@ -103,14 +75,13 @@ export const ToastProvider = ({ children }) => {
         ...options
       }
       return dispatchToast(toast)
-    },
-    endFlow
-  }), [dispatchToast, removeToast, endFlow])
+    }
+  }), [dispatchToast, removeToast])
 
   // Only clear toasts with no cancel function on page navigation
   // since navigation should not interfere with being able to cancel an action.
   useEffect(() => {
-    const handleRouteChangeStart = () => setToasts(toasts => toasts.length > 0 ? toasts.filter(({ onCancel, onUndo, persistOnNavigate }) => onCancel || onUndo || persistOnNavigate) : toasts)
+    const handleRouteChangeStart = () => setToasts(toasts => toasts.length > 0 ? toasts.filter(({ persistOnNavigate }) => persistOnNavigate) : toasts)
     router.events.on('routeChangeStart', handleRouteChangeStart)
 
     return () => {
@@ -151,16 +122,9 @@ export const ToastProvider = ({ children }) => {
         {visibleToasts.map(toast => {
           const textStyle = toast.variant === 'warning' ? 'text-dark' : ''
           const onClose = () => {
-            toast.onUndo?.()
-            toast.onCancel?.()
             toast.onClose?.()
             removeToast(toast)
           }
-          const buttonElement = toast.onUndo
-            ? <div className={`${styles.toastUndo} ${textStyle}`}>undo</div>
-            : toast.onCancel
-              ? <div className={`${styles.toastCancel} ${textStyle}`}>cancel</div>
-              : <div className={`${styles.toastClose} ${textStyle}`}>X</div>
           // a toast is unhidden if it was hidden before since it now gets rendered
           const unhidden = toast.hidden
           // we only need to start the animation at a different timing when it was hidden by another toast before.
@@ -181,7 +145,7 @@ export const ToastProvider = ({ children }) => {
                     className='p-0 ps-2'
                     aria-label='close'
                     onClick={onClose}
-                  >{buttonElement}
+                  ><div className={`${styles.toastClose} ${textStyle}`}>X</div>
                   </Button>
                 </div>
               </ToastBody>
@@ -196,78 +160,3 @@ export const ToastProvider = ({ children }) => {
 }
 
 export const useToast = () => useContext(ToastContext)
-
-export const withToastFlow = (toaster) => flowFn => {
-  const wrapper = async (...args) => {
-    const {
-      flowId,
-      type: t,
-      onPending,
-      pendingMessage,
-      onSuccess,
-      onCancel,
-      onError,
-      onUndo,
-      hideError,
-      hideSuccess,
-      skipToastFlow,
-      timeout,
-      ...toastProps
-    } = flowFn(...args)
-    let canceled
-
-    if (skipToastFlow) return onPending()
-
-    toaster.warning(pendingMessage || `${t} pending`, {
-      progressBar: !!timeout,
-      delay: timeout || TOAST_DEFAULT_DELAY_MS,
-      onCancel: onCancel
-        ? async () => {
-          try {
-            await onCancel()
-            canceled = true
-            toaster.warning(`${t} canceled`, { ...toastProps, flowId })
-          } catch (err) {
-            toaster.danger(`failed to cancel ${t}`, { ...toastProps, flowId })
-          }
-        }
-        : undefined,
-      onUndo: onUndo
-        ? async () => {
-          try {
-            await onUndo()
-            canceled = true
-          } catch (err) {
-            toaster.danger(`failed to undo ${t}`, { ...toastProps, flowId })
-          }
-        }
-        : undefined,
-      flowId,
-      ...toastProps
-    })
-    try {
-      const ret = await onPending()
-      if (!canceled) {
-        if (hideSuccess) {
-          toaster.endFlow(flowId)
-        } else {
-          toaster.success(`${t} successful`, { ...toastProps, flowId })
-        }
-        await onSuccess?.()
-      }
-      return ret
-    } catch (err) {
-      // ignore errors if canceled since they might be caused by cancellation
-      if (canceled) return
-      const reason = err?.message?.toString().toLowerCase() || 'unknown reason'
-      if (hideError) {
-        toaster.endFlow(flowId)
-      } else {
-        toaster.danger(`${t} failed: ${reason}`, { ...toastProps, flowId })
-      }
-      await onError?.()
-      throw err
-    }
-  }
-  return wrapper
-}

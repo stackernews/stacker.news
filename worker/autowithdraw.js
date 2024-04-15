@@ -87,7 +87,7 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
           : wallet.type === 'CLN' ? 'walletCLN' : 'walletLightningAddress',
         level: 'ERROR',
         message: 'autowithdrawal failed: ' + details
-      })
+      }, { me: user, models })
     }
   }
 

@@ -116,7 +116,7 @@ async function autowithdrawLNAddr (
   }
 
   const { walletLightningAddress: { address } } = wallet
-  return await sendToLnAddr(null, { addr: address, amount, maxFee }, { me, models, lnd, autoWithdraw: true })
+  return await sendToLnAddr(null, { addr: address, amount, maxFee }, { me, models, lnd, walletId: wallet.id })
 }
 
 async function autowithdrawLND ({ amount, maxFee }, { me, models, lnd }) {
@@ -152,7 +152,7 @@ async function autowithdrawLND ({ amount, maxFee }, { me, models, lnd }) {
     expires_at: datePivot(new Date(), { seconds: 360 })
   })
 
-  return await createWithdrawal(null, { invoice: invoice.request, maxFee }, { me, models, lnd, autoWithdraw: true })
+  return await createWithdrawal(null, { invoice: invoice.request, maxFee }, { me, models, lnd, walletId: wallet.id })
 }
 
 async function autowithdrawCLN ({ amount, maxFee }, { me, models, lnd }) {
@@ -185,5 +185,5 @@ async function autowithdrawCLN ({ amount, maxFee }, { me, models, lnd }) {
     expiry: 360
   })
 
-  return await createWithdrawal(null, { invoice: inv.bolt11, maxFee }, { me, models, lnd, autoWithdraw: true })
+  return await createWithdrawal(null, { invoice: inv.bolt11, maxFee }, { me, models, lnd, walletId: wallet.id })
 }

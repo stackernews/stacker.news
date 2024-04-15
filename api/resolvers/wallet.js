@@ -657,7 +657,7 @@ async function upsertWallet (
   return true
 }
 
-export async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd, headers, autoWithdraw = false }) {
+export async function createWithdrawal (parent, { invoice, maxFee }, { me, models, lnd, headers, walletId = null }) {
   assertApiKeyNotPermitted({ me })
   await ssValidate(withdrawlSchema, { invoice, maxFee })
   await assertGofacYourself({ models, headers })
@@ -696,10 +696,11 @@ export async function createWithdrawal (parent, { invoice, maxFee }, { me, model
 
   const user = await models.user.findUnique({ where: { id: me.id } })
 
+  const autoWithdraw = !!walletId
   // create withdrawl transactionally (id, bolt11, amount, fee)
   const [withdrawl] = await serialize(
     models.$queryRaw`SELECT * FROM create_withdrawl(${decoded.id}, ${invoice},
-      ${Number(decoded.mtokens)}, ${msatsFee}, ${user.name}, ${autoWithdraw})`,
+      ${Number(decoded.mtokens)}, ${msatsFee}, ${user.name}, ${autoWithdraw}, ${walletId}::INTEGER)`,
     { models }
   )
 

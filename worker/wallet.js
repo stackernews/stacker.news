@@ -7,6 +7,7 @@ import { notifyDeposit, notifyWithdrawal } from '@/lib/webPush'
 import { INVOICE_RETENTION_DAYS } from '@/lib/constants'
 import { datePivot, sleep } from '@/lib/time.js'
 import retry from 'async-retry'
+import { addWalletLog } from '@/api/resolvers/wallet'
 
 export async function subscribeToWallet (args) {
   await subscribeToDeposits(args)
@@ -205,7 +206,7 @@ async function subscribeToWithdrawals (args) {
 }
 
 async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
-  const dbWdrwl = await models.withdrawl.findFirst({ where: { hash, status: null } })
+  const dbWdrwl = await models.withdrawl.findFirst({ where: { hash, status: null }, include: { wallet: true } })
   if (!dbWdrwl) {
     // [WARNING] LND paid an invoice that wasn't created via the SN GraphQL API.
     // >>> an adversary might be draining our funds right now <<<
@@ -238,15 +239,19 @@ async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
       notifyWithdrawal(dbWdrwl.userId, wdrwl)
     }
   } else if (wdrwl?.is_failed || notFound) {
-    let status = 'UNKNOWN_FAILURE'
+    let status = 'UNKNOWN_FAILURE'; let message = 'unknown failure'
     if (wdrwl?.failed.is_insufficient_balance) {
       status = 'INSUFFICIENT_BALANCE'
+      message = "you didn't have enough sats"
     } else if (wdrwl?.failed.is_invalid_payment) {
       status = 'INVALID_PAYMENT'
+      message = 'invalid payment'
     } else if (wdrwl?.failed.is_pathfinding_timeout) {
       status = 'PATHFINDING_TIMEOUT'
+      message = 'no route found'
     } else if (wdrwl?.failed.is_route_not_found) {
       status = 'ROUTE_NOT_FOUND'
+      message = 'no route found'
     }
 
     await serialize(
@@ -254,6 +259,17 @@ async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
         SELECT reverse_withdrawl(${dbWdrwl.id}::INTEGER, ${status}::"WithdrawlStatus")`,
       { models }
     )
+
+    if (dbWdrwl.wallet) {
+      // add error into log for autowithdrawal
+      const { wallet } = dbWdrwl.wallet
+      const walletName = wallet.address ? 'WalletLNAddr' : wallet.macaroon ? 'WalletLND' : 'WalletCLN'
+      await addWalletLog({
+        wallet: walletName,
+        level: 'ERROR',
+        message: 'autowithdrawal failed: ' + message
+      }, { models, me: { id: dbWdrwl.userId } })
+    }
   }
 }
 

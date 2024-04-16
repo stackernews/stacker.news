@@ -9,8 +9,7 @@ function queryParts (q) {
   const url = queryArr.find(word => word.startsWith('url:'))
   const nym = queryArr.find(word => word.startsWith('@'))
   const territory = queryArr.find(word => word.startsWith('~'))
-  const bookmarked = queryArr.find(word => word === 'is:bookmarked')
-  const exclude = [url, nym, territory, bookmarked]
+  const exclude = [url, nym, territory]
   const query = queryArr.filter(word => !exclude.includes(word)).join(' ')
 
   return {
@@ -18,7 +17,6 @@ function queryParts (q) {
     nym,
     url,
     territory,
-    bookmarked,
     query
   }
 }
@@ -193,11 +191,16 @@ export default {
         case 'comments':
           whatArr.push({ bool: { must: { exists: { field: 'parentId' } } } })
           break
+        case 'bookmarks':
+          if (me?.id) {
+            whatArr.push({ match: { bookmarkedBy: me?.id } })
+          }
+          break
         default:
           break
       }
 
-      const { query: _query, quotes, nym, url, territory, bookmarked } = queryParts(q)
+      const { query: _query, quotes, nym, url, territory } = queryParts(q)
       let query = _query
 
       const isUrlSearch = url && query.length === 0 // exclusively searching for an url
@@ -215,10 +218,6 @@ export default {
 
       if (territory) {
         whatArr.push({ match: { 'sub.name': territory.slice(1) } })
-      }
-
-      if (bookmarked) {
-        whatArr.push({ match: { bookmarkedBy: me?.id } })
       }
 
       termQueries.push({

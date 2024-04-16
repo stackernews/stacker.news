@@ -40,7 +40,6 @@ export default function Index ({ ssrData }) {
                   <li><b>~</b>&#8203;<em>territory</em> - limit to results from territory</li>
                   <li><b>url:</b>&#8203;<em>stacker&#8203;.news</em> - limit to link posts from a specific url</li>
                   <li><b>"</b><em>exact phrase</em><b>"</b> - limit to results that contain an exact phrase</li>
-                  <li><b>is:</b><em>bookmarked</em> - limit to results that you've bookmarked</li>
                 </ul>
               </div>
             </div>

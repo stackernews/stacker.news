@@ -69,7 +69,6 @@ async function _indexItem (item, { models }) {
       }
     ]
   })
-  console.log('bookmarkedBy', bookmarkedBy)
   itemcp.bookmarkedBy = bookmarkedBy.map(bookmark => bookmark.userId)
 
   // Use either when the item was updated, or when it was last bookmarked, to determine the latest version of the indexed version

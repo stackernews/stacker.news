@@ -176,7 +176,10 @@ export default {
       let sitems = null
       let termQueries = []
 
-      if (!q) {
+      // short circuit: return empty result if either:
+      // 1. no query provided, or
+      // 2. searching bookmarks without being authed
+      if (!q || (what === 'bookmarks' && !me)) {
         return {
           items: [],
           cursor: null

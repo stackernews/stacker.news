@@ -59,7 +59,7 @@ app.get('/*', async (req, res) => {
   const url = new URL(req.originalUrl, captureUrl)
   const timeLabel = `${Date.now()}-${url.href}`
 
-  const urlParams = new URLSearchParams(url.search);
+  const urlParams = new URLSearchParams(url.search)
   const commentId = urlParams.get('commentId')
 
   let page, pages
@@ -92,15 +92,15 @@ app.get('/*', async (req, res) => {
     console.timeLog(timeLabel, 'page loaded')
 
     if (commentId) {
-    console.timeLog(timeLabel, 'scrolling to comment')
+      console.timeLog(timeLabel, 'scrolling to comment')
       await page.evaluate((commentId) => {
-        const element = document.getElementById(commentId);
+        const element = document.getElementById(commentId)
         if (element) {
-          element.scrollIntoView();
+          element.scrollIntoView()
         } else {
           console.log('no comment found')
         }
-      }, commentId);
+      }, commentId)
     }
 
     const file = await page.screenshot({ type: 'png', captureBeyondViewport: false })

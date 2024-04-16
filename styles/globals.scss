@@ -492,10 +492,7 @@ div[contenteditable]:disabled,
   background-color: var(--theme-inputBg);
   border-color: var(--theme-borderColor);
 }
-.modal-body {
-  align-self: center;
-  width: fit-content;
-}
+
 .modal-body:has(video) {
   width: 100%;
 }

@@ -3,6 +3,7 @@ import { CopyInput, InputSkeleton } from './form'
 import InvoiceStatus from './invoice-status'
 import { useEffect } from 'react'
 import { useWebLN } from './webln'
+import SimpleCountdown from './countdown'
 
 export default function Qr ({ asIs, value, webLn, statusVariant, description, status }) {
   const qrValue = asIs ? value : 'lightning:' + value.toUpperCase()
@@ -42,11 +43,14 @@ export function QrSkeleton ({ status, description }) {
   return (
     <>
       <div className='h-auto mx-auto w-100 clouds' style={{ paddingTop: 'min(300px, 100%)', maxWidth: 'calc(300px)' }} />
-      {description && <div className='mt-1 fst-italic text-center text-muted invisible'>.</div>}
+      {description && <div className='mt-1 fst-italic text-center text-muted invisible'>i'm invisible</div>}
       <div className='my-3 w-100'>
         <InputSkeleton />
       </div>
       <InvoiceStatus variant='default' status={status} />
+      <div className='text-muted text-center invisible'>
+        <SimpleCountdown date={Date.now()} />
+      </div>
     </>
   )
 }

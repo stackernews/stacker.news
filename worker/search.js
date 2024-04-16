@@ -71,8 +71,8 @@ async function _indexItem (item, { models }) {
   })
   itemcp.bookmarkedBy = bookmarkedBy.map(bookmark => bookmark.userId)
 
-  // Use either when the item was updated, or when it was last bookmarked, to determine the latest version of the indexed version
-  const latestUpdatedAt = Math.max(new Date(item.updatedAt).getTime(), new Date(bookmarkedBy[0]?.createdAt).getTime())
+  // Use the later of when the item was updated, or when it was last bookmarked, to determine the latest version of the indexed version
+  const latestUpdatedAt = Math.max(new Date(item.updatedAt).getTime(), bookmarkedBy[0] ? new Date(bookmarkedBy[0].createdAt).getTime() : 0)
 
   try {
     await search.index({

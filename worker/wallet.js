@@ -119,13 +119,19 @@ async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
   }
 
   if (inv.is_confirmed) {
+    const user = await models.user.findUnique({ where: { id: dbInv.userId } })
     // NOTE: confirm invoice prevents double confirmations (idempotent)
     // ALSO: is_confirmed and is_held are mutually exclusive
     // that is, a hold invoice will first be is_held but not is_confirmed
     // and once it's settled it will be is_confirmed but not is_held
     const [[{ confirm_invoice: code }]] = await serialize([
       models.$queryRaw`SELECT confirm_invoice(${inv.id}, ${Number(inv.received_mtokens)})`,
-      models.invoice.update({ where: { hash }, data: { confirmedIndex: inv.confirmed_index } })
+      models.invoice.update({ where: { hash }, data: { confirmedIndex: inv.confirmed_index } }),
+      // prevent autowithdrawals reversing deposits
+      user.autoWithdrawThreshold !== null && models.user.update({
+        where: { id: dbInv.userId },
+        data: { autoWithdrawThreshold: Math.max(user.autoWithdrawThreshold, msatsToSats(Number(user.msats) + Number(inv.received_mtokens))) }
+      })
     ], { models })
 
     // don't send notifications for JIT invoices

@@ -59,6 +59,9 @@ app.get('/*', async (req, res) => {
   const url = new URL(req.originalUrl, captureUrl)
   const timeLabel = `${Date.now()}-${url.href}`
 
+  const urlParams = new URLSearchParams(url.search);
+  const commentId = urlParams.get('commentId')
+
   let page, pages
 
   try {
@@ -87,6 +90,19 @@ app.get('/*', async (req, res) => {
     await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'dark' }])
     await page.goto(url.href, { waitUntil: 'load', timeout })
     console.timeLog(timeLabel, 'page loaded')
+
+    if (commentId) {
+    console.timeLog(timeLabel, 'scrolling to comment')
+      await page.evaluate((commentId) => {
+        const element = document.getElementById(commentId);
+        if (element) {
+          element.scrollIntoView();
+        } else {
+          console.log('no comment found')
+        }
+      }, commentId);
+    }
+
     const file = await page.screenshot({ type: 'png', captureBeyondViewport: false })
     console.timeLog(timeLabel, 'screenshot complete')
     res.setHeader('Content-Type', 'image/png')

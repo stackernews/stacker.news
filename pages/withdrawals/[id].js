@@ -31,13 +31,16 @@ export default function Withdrawl () {
 export function WithdrawlSkeleton ({ status }) {
   return (
     <>
-      <div className='w-100'>
+      <div className='w-100 form-group'>
         <InputSkeleton label='invoice' />
       </div>
-      <div className='w-100'>
+      <div className='w-100 form-group'>
         <InputSkeleton label='max fee' />
       </div>
       <InvoiceStatus status={status} />
+      <div className='w-100 mt-3'>
+        <Bolt11Info />
+      </div>
     </>
   )
 }
@@ -108,9 +111,11 @@ function LoadWithdrawl () {
         />
       </div>
       <InvoiceStatus variant={variant} status={status} />
-      <Bolt11Info bolt11={data.withdrawl.bolt11}>
-        <PrivacyOption wd={data.withdrawl} />
-      </Bolt11Info>
+      <div className='w-100 mt-3'>
+        <Bolt11Info bolt11={data.withdrawl.bolt11}>
+          <PrivacyOption wd={data.withdrawl} />
+        </Bolt11Info>
+      </div>
     </>
   )
 }

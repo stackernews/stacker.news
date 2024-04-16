@@ -29,6 +29,7 @@ import { LongCountdown } from './countdown'
 import { nextBillingWithGrace } from '@/lib/territory'
 import { commentSubTreeRootId } from '@/lib/item'
 import LinkToContext from './link-to-context'
+import { Badge } from 'react-bootstrap'
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
@@ -283,6 +284,7 @@ function WithdrawlPaid ({ n }) {
     <div className='fw-bold text-info ms-2 py-1'>
       <Check className='fill-info me-1' />{numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'sat was', unitPlural: 'sats were' })} withdrawn from your account
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
+      {n.withdrawl.autoWithdraw && <Badge className={styles.badge} bg={null}>autowithdraw</Badge>}
     </div>
   )
 }

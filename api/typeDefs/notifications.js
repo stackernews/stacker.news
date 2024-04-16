@@ -95,6 +95,7 @@ export default gql`
     id: ID!
     earnedSats: Int!
     sortTime: Date!
+    withdrawl: Withdrawl!
   }
 
   type Referral {

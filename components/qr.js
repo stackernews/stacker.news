@@ -4,6 +4,7 @@ import InvoiceStatus from './invoice-status'
 import { useEffect } from 'react'
 import { useWebLN } from './webln'
 import SimpleCountdown from './countdown'
+import Bolt11Info from './bolt11-info'
 
 export default function Qr ({ asIs, value, webLn, statusVariant, description, status }) {
   const qrValue = asIs ? value : 'lightning:' + value.toUpperCase()
@@ -39,7 +40,7 @@ export default function Qr ({ asIs, value, webLn, statusVariant, description, st
   )
 }
 
-export function QrSkeleton ({ status, description }) {
+export function QrSkeleton ({ status, description, bolt11Info }) {
   return (
     <>
       <div className='h-auto mx-auto w-100 clouds' style={{ paddingTop: 'min(300px, 100%)', maxWidth: 'calc(300px)' }} />
@@ -51,6 +52,7 @@ export function QrSkeleton ({ status, description }) {
       <div className='text-muted text-center invisible'>
         <SimpleCountdown date={Date.now()} />
       </div>
+      {bolt11Info && <Bolt11Info />}
     </>
   )
 }

@@ -1,5 +1,5 @@
 import { authenticatedLndGrpc, createInvoice } from 'ln-service'
-import { msatsToSats, numWithUnits, satsToMsats } from '@/lib/format'
+import { msatsToSats, satsToMsats } from '@/lib/format'
 import { datePivot } from '@/lib/time'
 import { createWithdrawal, sendToLnAddr, addWalletLog } from '@/api/resolvers/wallet'
 import { createInvoice as createInvoiceCLN } from '@/lib/cln'
@@ -46,34 +46,18 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
 
   for (const wallet of wallets) {
     try {
-      const message = `autowithdrawal of ${numWithUnits(amount, { abbreviate: false, unitSingular: 'sat', unitPlural: 'sats' })}`
       if (wallet.type === 'LND') {
         await autowithdrawLND(
           { amount, maxFee },
           { models, me: user, lnd })
-        await addWalletLog({
-          wallet: 'walletLND',
-          level: 'SUCCESS',
-          message
-        }, { me: user, models })
       } else if (wallet.type === 'CLN') {
         await autowithdrawCLN(
           { amount, maxFee },
           { models, me: user, lnd })
-        await addWalletLog({
-          wallet: 'walletCLN',
-          level: 'SUCCESS',
-          message
-        }, { me: user, models })
       } else if (wallet.type === 'LIGHTNING_ADDRESS') {
         await autowithdrawLNAddr(
           { amount, maxFee },
           { models, me: user, lnd })
-        await addWalletLog({
-          wallet: 'walletLightningAddress',
-          level: 'SUCCESS',
-          message
-        }, { me: user, models })
       }
 
       return
@@ -82,9 +66,7 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
       // LND errors are in this shape: [code, type, { err: { code, details, metadata } }]
       const details = error[2]?.err?.details || error.message || error.toString?.()
       await addWalletLog({
-        wallet: wallet.type === 'LND'
-          ? 'walletLND'
-          : wallet.type === 'CLN' ? 'walletCLN' : 'walletLightningAddress',
+        wallet: wallet.type,
         level: 'ERROR',
         message: 'autowithdrawal failed: ' + details
       }, { me: user, models })
@@ -116,7 +98,7 @@ async function autowithdrawLNAddr (
   }
 
   const { walletLightningAddress: { address } } = wallet
-  return await sendToLnAddr(null, { addr: address, amount, maxFee }, { me, models, lnd, autoWithdraw: true })
+  return await sendToLnAddr(null, { addr: address, amount, maxFee }, { me, models, lnd, walletId: wallet.id })
 }
 
 async function autowithdrawLND ({ amount, maxFee }, { me, models, lnd }) {
@@ -152,7 +134,7 @@ async function autowithdrawLND ({ amount, maxFee }, { me, models, lnd }) {
     expires_at: datePivot(new Date(), { seconds: 360 })
   })
 
-  return await createWithdrawal(null, { invoice: invoice.request, maxFee }, { me, models, lnd, autoWithdraw: true })
+  return await createWithdrawal(null, { invoice: invoice.request, maxFee }, { me, models, lnd, walletId: wallet.id })
 }
 
 async function autowithdrawCLN ({ amount, maxFee }, { me, models, lnd }) {
@@ -185,5 +167,5 @@ async function autowithdrawCLN ({ amount, maxFee }, { me, models, lnd }) {
     expiry: 360
   })
 
-  return await createWithdrawal(null, { invoice: inv.bolt11, maxFee }, { me, models, lnd, autoWithdraw: true })
+  return await createWithdrawal(null, { invoice: inv.bolt11, maxFee }, { me, models, lnd, walletId: wallet.id })
 }

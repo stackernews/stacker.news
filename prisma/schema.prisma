@@ -156,6 +156,7 @@ model Wallet {
   walletLightningAddress WalletLightningAddress?
   walletLND              WalletLND?
   walletCLN              WalletCLN?
+  withdrawals            Withdrawl[]
 
   @@index([userId])
 }
@@ -694,7 +695,9 @@ model Withdrawl {
   msatsFeePaid   BigInt?
   status         WithdrawlStatus?
   autoWithdraw   Boolean          @default(false)
+  walletId       Int?
   user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallet         Wallet?          @relation(fields: [walletId], references: [id], onDelete: SetNull)
 
   @@index([createdAt], map: "Withdrawl.created_at_index")
   @@index([userId], map: "Withdrawl.userId_index")

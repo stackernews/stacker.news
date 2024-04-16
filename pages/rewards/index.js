@@ -7,7 +7,6 @@ import Layout from '@/components/layout'
 import { useMutation, useQuery } from '@apollo/client'
 import Link from 'next/link'
 import { amountSchema } from '@/lib/validate'
-import Countdown from 'react-countdown'
 import { numWithUnits } from '@/lib/format'
 import PageLoading from '@/components/page-loading'
 import { useShowModal } from '@/components/modal'
@@ -21,6 +20,7 @@ import { proportions } from '@/lib/madness'
 import { useData } from '@/components/use-data'
 import { GrowthPieChartSkeleton } from '@/components/charts-skeletons'
 import { useMemo } from 'react'
+import { CompactLongCountdown } from '@/components/countdown'
 
 const GrowthPieChart = dynamic(() => import('@/components/charts').then(mod => mod.GrowthPieChart), {
   loading: () => <GrowthPieChartSkeleton />
@@ -77,15 +77,12 @@ export function RewardLine ({ total, time }) {
         {numWithUnits(total)} in rewards
       </span>
       {time &&
-        <Countdown
-          date={time}
-          renderer={props =>
-            <small className='text-monospace' suppressHydrationWarning style={{ whiteSpace: 'nowrap' }}>
-              {props.formatted.days
-                ? ` ${props.formatted.days}d ${props.formatted.hours}h ${props.formatted.minutes}m ${props.formatted.seconds}s`
-                : ` ${props.formatted.hours}:${props.formatted.minutes}:${props.formatted.seconds}`}
-            </small>}
-        />}
+        <small style={{ whiteSpace: 'nowrap' }}>
+          <CompactLongCountdown
+            className='text-monospace'
+            date={time}
+          />
+        </small>}
     </>
   )
 }

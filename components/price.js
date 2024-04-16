@@ -7,6 +7,7 @@ import { CURRENCY_SYMBOLS } from '@/lib/currency'
 import { NORMAL_POLL_INTERVAL, SSR } from '@/lib/constants'
 import { useBlockHeight } from './block-height'
 import { useChainFee } from './chain-fee'
+import { CompactLongCountdown } from './countdown'
 
 export const PriceContext = React.createContext({
   price: null,
@@ -50,10 +51,8 @@ export default function Price ({ className }) {
   }, [])
 
   const { price, fiatSymbol } = usePrice()
-  const { height: blockHeight } = useBlockHeight()
+  const { height: blockHeight, halving } = useBlockHeight()
   const { fee: chainFee } = useChainFee()
-
-  if (!price || price < 0 || blockHeight <= 0 || chainFee <= 0) return null
 
   // Options: yep, 1btc, blockHeight, undefined
   // yep -> 1btc -> blockHeight -> chainFee -> undefined -> yep
@@ -68,6 +67,9 @@ export default function Price ({ className }) {
       window.localStorage.setItem('asSats', 'chainFee')
       setAsSats('chainFee')
     } else if (asSats === 'chainFee') {
+      window.localStorage.setItem('asSats', 'halving')
+      setAsSats('halving')
+    } else if (asSats === 'halving') {
       window.localStorage.removeItem('asSats')
       setAsSats('fiat')
     } else {
@@ -79,6 +81,7 @@ export default function Price ({ className }) {
   const compClassName = (className || '') + ' text-reset pointer'
 
   if (asSats === 'yep') {
+    if (!price || price < 0) return null
     return (
       <div className={compClassName} onClick={handleClick} variant='link'>
         {fixedDecimal(100000000 / price, 0) + ` sats/${fiatSymbol}`}
@@ -95,6 +98,7 @@ export default function Price ({ className }) {
   }
 
   if (asSats === 'blockHeight') {
+    if (blockHeight <= 0) return null
     return (
       <div className={compClassName} onClick={handleClick} variant='link'>
         {blockHeight}
@@ -102,7 +106,17 @@ export default function Price ({ className }) {
     )
   }
 
+  if (asSats === 'halving') {
+    if (!halving) return null
+    return (
+      <div className={compClassName} onClick={handleClick} variant='link'>
+        <CompactLongCountdown date={halving} />
+      </div>
+    )
+  }
+
   if (asSats === 'chainFee') {
+    if (chainFee <= 0) return null
     return (
       <div className={compClassName} onClick={handleClick} variant='link'>
         {chainFee} sat/vB
@@ -111,6 +125,7 @@ export default function Price ({ className }) {
   }
 
   if (asSats === 'fiat') {
+    if (!price || price < 0) return null
     return (
       <div className={compClassName} onClick={handleClick} variant='link'>
         {fiatSymbol + fixedDecimal(price, 0)}

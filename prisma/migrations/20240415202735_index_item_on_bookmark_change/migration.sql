@@ -15,9 +15,29 @@ CREATE OR REPLACE FUNCTION index_bookmarked_item() RETURNS TRIGGER AS $$
     END;
 $$ LANGUAGE plpgsql;
 
--- Re-index the bookmarked item when a bookmark changes, so bookmarks are searchable
+-- Re-index the bookmarked item when a bookmark changes, so new bookmarks are searchable
 DROP TRIGGER IF EXISTS index_bookmarked_item ON "Bookmark";
 CREATE TRIGGER index_bookmarked_item
     AFTER INSERT OR UPDATE OR DELETE ON "Bookmark"
     FOR EACH ROW
     EXECUTE PROCEDURE index_bookmarked_item();
+
+-- hack ... prisma doesn't know about our other schemas (e.g. pgboss)
+-- and this is only really a problem on their "shadow database"
+-- so we catch the exception it throws and ignore it
+CREATE OR REPLACE FUNCTION reindex_all_current_bookmarked_items() RETURNS void AS $$
+    BEGIN
+        -- Re-index all existing bookmarked items so these bookmarks are searchable
+        INSERT INTO pgboss.job (name, data, priority, startafter)
+        SELECT 'indexItem', jsonb_build_object('id', "itemId"), -100, now() + interval '10 minutes'
+        FROM "Bookmark"
+        GROUP BY "itemId";
+    EXCEPTION WHEN OTHERS THEN
+        -- catch the exception for prisma dev execution, but do nothing with it
+    END;
+$$ LANGUAGE plpgsql;
+
+-- execute the function once
+SELECT reindex_all_current_bookmarked_items();
+-- then drop it since we don't need it anymore
+DROP FUNCTION reindex_all_current_bookmarked_items();

@@ -4,7 +4,7 @@ import puppeteer from 'puppeteer'
 const captureUrl = process.env.CAPTURE_URL || 'http://host.docker.internal:3000/'
 const port = process.env.PORT || 5678
 const maxPages = Number(process.env.MAX_PAGES) || 5
-const timeout = Number(process.env.TIMEOUT) || 20000
+const timeout = Number(process.env.TIMEOUT) || 10000
 const cache = process.env.CACHE || 60000
 const width = process.env.WIDTH || 600
 const height = process.env.HEIGHT || 315

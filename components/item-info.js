@@ -140,7 +140,7 @@ export default function ItemInfo ({
             className='text-reset pointer'
             onClick={() => onEdit ? onEdit() : router.push(`/items/${item.id}/edit`)}
           >
-            {editText || 'edit'}
+            <span>{editText || 'edit'} </span>
             <Countdown
               date={editThreshold}
               onComplete={() => {

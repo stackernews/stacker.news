@@ -28,9 +28,9 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files
-envbak
 .env*
-!.env.sample
+!.env.development
+!.env.production
 
 # local settings
 .vscode/settings.json

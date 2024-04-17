@@ -15,7 +15,8 @@ services:
       - "5431:5432"
     env_file:
       - .env.development
-      - .env.local
+      - path: .env.local
+        required: false
     volumes:
       - ./docker/db/seed.sql:/docker-entrypoint-initdb.d/seed.sql
       - db:/var/lib/postgresql/data
@@ -41,7 +42,8 @@ services:
         restart: true
     env_file:
       - .env.development
-      - .env.local
+      - path: .env.local
+        required: false
     expose:
       - "3000"
     ports:
@@ -69,7 +71,8 @@ services:
       start_period: 1m
     env_file:
       - .env.development
-      - .env.local
+      - path: .env.local
+        required: false
     environment:
       # configure to screenshot production, because local dev is too slow
       - CAPTURE_URL=http://stacker.news
@@ -96,7 +99,8 @@ services:
         restart: true
     env_file:
       - .env.development
-      - .env.local
+      - path: .env.local
+        required: false
     volumes:
       - ./:/app
     entrypoint: ["/bin/sh", "-c"]
@@ -116,7 +120,8 @@ services:
     restart: unless-stopped
     env_file:
       - .env.development
-      - .env.local
+      - path: .env.local
+        required: false
     ports:
       - "3001:8080"
     expose:
@@ -137,7 +142,8 @@ services:
       - images
     env_file:
       - .env.development
-      - .env.local
+      - path: .env.local
+        required: false
     environment:
       - DEBUG=1
     ports:
@@ -164,7 +170,8 @@ services:
     restart: unless-stopped
     env_file:
       - .env.development
-      - .env.local
+      - path: .env.local
+        required: false
     environment:
       - OPENSEARCH_INITIAL_ADMIN_PASSWORD=mVchg1T5oA9wudUh
     ports:
@@ -204,7 +211,8 @@ services:
         restart: true
     env_file:
       - .env.development
-      - .env.local
+      - path: .env.local
+        required: false
     environment:
       - opensearch.ssl.verificationMode=none
       - OPENSEARCH_HOSTS=http://opensearch:9200
@@ -295,7 +303,8 @@ services:
         restart: true
     env_file:
       - .env.development
-      - .env.local
+      - path: .env.local
+        required: false
     command:
       - 'lnd'
       - '--noseedbackup'
@@ -360,7 +369,8 @@ services:
         restart: true
     env_file:
       - .env.development
-      - .env.local
+      - path: .env.local
+        required: false
     command:
       - 'lnd'
       - '--noseedbackup'
@@ -423,7 +433,8 @@ services:
         restart: true
     env_file:
       - .env.development
-      - .env.local
+      - path: .env.local
+        required: false
     command:
       - 'lightningd'
       - '--network=regtest'

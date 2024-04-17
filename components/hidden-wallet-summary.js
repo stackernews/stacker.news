@@ -13,7 +13,7 @@ export default function HiddenWalletSummary ({ abbreviate, fixedWidth }) {
 
   return (
     <span
-      ref={ref} style={{ display: 'block', minWidth: fixedWidth ? width : undefined, textAlign: 'right' }}
+      ref={ref} style={{ display: 'block', width: fixedWidth ? width : undefined, textAlign: 'right' }}
       className='text-monospace' onPointerEnter={() => setHover(true)} onPointerLeave={() => setHover(false)}
     >
       {hover ? (abbreviate ? abbrNum(me.privates?.sats) : numWithUnits(me.privates?.sats, { abbreviate: false, format: true })) : '******'}

@@ -178,7 +178,12 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
             // If [text](url) was parsed as <a> and text is not empty and not a link itself,
             // we don't render it as an image since it was probably a conscious choice to include text.
             const text = children[0]
-            const url = !href.startsWith('/') && new URL(href)
+            let url
+            try {
+              url = !href.startsWith('/') && new URL(href)
+            } catch {
+              // ignore invalid URLs
+            }
             const internalURL = process.env.NEXT_PUBLIC_URL
             if (!!text && !/^https?:\/\//.test(text)) {
               if (props['data-footnote-ref'] || typeof props['data-footnote-backref'] !== 'undefined') {
@@ -191,7 +196,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
                   </Link>
                 )
               }
-              if (href.startsWith('/') || url.origin === internalURL) {
+              if (href.startsWith('/') || url?.origin === internalURL) {
                 return (
                   <Link
                     id={props.id}

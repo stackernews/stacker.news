@@ -8,7 +8,7 @@ export default function ActionTooltip ({ children, notForm, disable, overlayText
   if (!notForm) {
     formik = useFormikContext()
   }
-  if (disable) {
+  if (disable || !overlayText) {
     return children
   }
   return (
@@ -16,7 +16,7 @@ export default function ActionTooltip ({ children, notForm, disable, overlayText
       placement={placement || 'bottom'}
       overlay={
         <Tooltip>
-          {overlayText || '1 sat'}
+          {overlayText}
         </Tooltip>
       }
       trigger={['hover', 'focus']}

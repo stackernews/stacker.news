@@ -52,7 +52,7 @@ export default function Poll ({ item }) {
     const variables = { id: v.id }
 
     return (
-      <ActionTooltip placement='left' notForm>
+      <ActionTooltip placement='left' notForm overlayText='1 sat'>
         <Button
           variant='outline-info' className={styles.pollButton}
           onClick={me

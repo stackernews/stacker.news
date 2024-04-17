@@ -13,7 +13,7 @@ docker__compose() {
     COMPOSE_PROFILES="images,search,payments,email,capture"
   fi
 
-  CURRENT_UID=$(id -u) CURRENT_GID=$(id -g) COMPOSE_PROFILES=$COMPOSE_PROFILES command docker compose --env-file .env.development "$@"
+  CURRENT_UID=$(id -u) CURRENT_GID=$(id -g) COMPOSE_PROFILES=$COMPOSE_PROFILES command docker compose --env-file .env.development --env-file .env.local "$@"
 }
 
 docker__exec() {

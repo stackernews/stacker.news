@@ -14,7 +14,7 @@ services:
     ports:
       - "5431:5432"
     env_file:
-      - .env.development
+      - .env.docker
       - path: .env.local
         required: false
     volumes:
@@ -41,7 +41,7 @@ services:
         condition: service_healthy
         restart: true
     env_file:
-      - .env.development
+      - .env.docker
       - path: .env.local
         required: false
     expose:
@@ -70,7 +70,7 @@ services:
       retries: 10
       start_period: 1m
     env_file:
-      - .env.development
+      - .env.docker
       - path: .env.local
         required: false
     environment:
@@ -98,7 +98,7 @@ services:
         condition: service_healthy
         restart: true
     env_file:
-      - .env.development
+      - .env.docker
       - path: .env.local
         required: false
     volumes:
@@ -119,7 +119,7 @@ services:
       start_period: 1m
     restart: unless-stopped
     env_file:
-      - .env.development
+      - .env.docker
       - path: .env.local
         required: false
     ports:
@@ -141,7 +141,7 @@ services:
     profiles:
       - images
     env_file:
-      - .env.development
+      - .env.docker
       - path: .env.local
         required: false
     environment:
@@ -169,7 +169,7 @@ services:
       start_period: 1m
     restart: unless-stopped
     env_file:
-      - .env.development
+      - .env.docker
       - path: .env.local
         required: false
     environment:
@@ -210,7 +210,7 @@ services:
         condition: service_healthy
         restart: true
     env_file:
-      - .env.development
+      - .env.docker
       - path: .env.local
         required: false
     environment:
@@ -302,7 +302,7 @@ services:
         condition: service_healthy
         restart: true
     env_file:
-      - .env.development
+      - .env.docker
       - path: .env.local
         required: false
     command:
@@ -368,7 +368,7 @@ services:
         condition: service_healthy
         restart: true
     env_file:
-      - .env.development
+      - .env.docker
       - path: .env.local
         required: false
     command:
@@ -432,7 +432,7 @@ services:
         condition: service_healthy
         restart: true
     env_file:
-      - .env.development
+      - .env.docker
       - path: .env.local
         required: false
     command:

@@ -29,7 +29,7 @@ yarn-error.log*
 
 # local env files
 .env*
-!.env.development
+!.env.docker
 !.env.production
 
 # local settings

@@ -1,5 +1,5 @@
 x-env_file: &env_file
-  - .env.docker
+  - .env.development
   - path: .env.local
     required: false
 x-healthcheck: &healthcheck

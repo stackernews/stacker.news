@@ -92,10 +92,9 @@ app.get('/*', async (req, res) => {
     console.timeLog(timeLabel, 'page loaded')
 
     if (commentId) {
+      console.timeLog(timeLabel, 'scrolling to comment')
       await page.waitForSelector('.outline-it')
-      setTimeout(() => {
-        console.timeLog(timeLabel, 'scrolling to comment')
-      }, 200)
+      await new Promise((resolve, _reject) => setTimeout(resolve, 100))
     }
 
     const file = await page.screenshot({ type: 'png', captureBeyondViewport: false })

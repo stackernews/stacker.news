@@ -962,7 +962,7 @@ function ApiKeyDeleteObstacle ({ onClose }) {
   const toaster = useToast()
 
   return (
-    <div className='text-center'>
+    <div className='m-auto' style={{ maxWidth: 'fit-content' }}>
       <p className='fw-bold'>
         Do you really want to delete your API key?
       </p>

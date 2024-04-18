@@ -1,21 +1,38 @@
-version: "3"
+x-env_file: &env_file
+  - .env.development
+  - path: .env.local
+    required: false
+x-healthcheck: &healthcheck
+  interval: 10s
+  timeout: 10s
+  retries: 10
+  start_period: 1m
+x-depends-on-db: &depends_on_db
+  db:
+    condition: service_healthy
+    restart: true
+x-depends-on-app: &depends_on_app
+  app:
+    condition: service_healthy
+    restart: true
+x-depends-on-bitcoin: &depends_on_bitcoin
+  bitcoin:
+    condition: service_healthy
+    restart: true
+
 services:
   db:
     container_name: db
     build: ./docker/db
     restart: unless-stopped
     healthcheck:
+      <<: *healthcheck
       test: ["CMD-SHELL", "PGPASSWORD=${POSTGRES_PASSWORD} pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -h 127.0.0.1 && psql -U ${POSTGRES_USER} ${POSTGRES_DB} -c 'SELECT 1 FROM users LIMIT 1'"]
-      interval: 10s
-      timeout: 10s
-      retries: 10
-      start_period: 1m
     expose:
       - "5432"
     ports:
       - "5431:5432"
-    env_file:
-      - .env.development
+    env_file: *env_file
     volumes:
       - ./docker/db/seed.sql:/docker-entrypoint-initdb.d/seed.sql
       - db:/var/lib/postgresql/data
@@ -30,17 +47,10 @@ services:
         - GID=${CURRENT_GID}
     restart: unless-stopped
     healthcheck:
+      <<: *healthcheck
       test: ["CMD", "curl", "-f", "http://localhost:3000"]
-      interval: 10s
-      timeout: 10s
-      retries: 10
-      start_period: 1m
-    depends_on:
-      db:
-        condition: service_healthy
-        restart: true
-    env_file:
-      - .env.development
+    depends_on: *depends_on_db
+    env_file: *env_file
     expose:
       - "3000"
     ports:
@@ -54,19 +64,13 @@ services:
     build:
       context: ./capture
     restart: unless-stopped
-    depends_on:
-      app:
-        condition: service_healthy
-        restart: true
+    depends_on: *depends_on_app
     profiles:
       - capture
     healthcheck:
+      <<: *healthcheck
       test: ["CMD", "curl", "-f", "http://localhost:5678/health"]
-      interval: 10s
-      timeout: 10s
-      retries: 10
-      start_period: 1m
-    env_file: .env.development
+    env_file: *env_file
     environment:
       # configure to screenshot production, because local dev is too slow
       - CAPTURE_URL=http://stacker.news
@@ -85,14 +89,10 @@ services:
         - GID=${CURRENT_GID}
     restart: unless-stopped
     depends_on:
-      db:
-        condition: service_healthy
-        restart: true
-      app:
-        condition: service_healthy
-        restart: true
-    env_file:
-      - .env.development
+      <<:
+         - *depends_on_db
+         - *depends_on_app
+    env_file: *env_file
     volumes:
       - ./:/app
     entrypoint: ["/bin/sh", "-c"]
@@ -104,14 +104,10 @@ services:
     profiles:
       - images
     healthcheck:
+      <<: *healthcheck
       test: [ "CMD", "imgproxy", "health" ]
-      interval: 10s
-      timeout: 10s
-      retries: 10
-      start_period: 1m
     restart: unless-stopped
-    env_file:
-      - .env.development
+    env_file: *env_file
     ports:
       - "3001:8080"
     expose:
@@ -130,8 +126,7 @@ services:
     restart: unless-stopped
     profiles:
       - images
-    env_file:
-      - .env.development
+    env_file: *env_file
     environment:
       - DEBUG=1
     ports:
@@ -150,14 +145,10 @@ services:
     profiles:
       - search
     healthcheck:
+      <<: *healthcheck
       test: ["CMD-SHELL", "curl -ku admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD} --silent --fail localhost:9200/_cluster/health || exit 1"]
-      interval: 10s
-      timeout: 10s
-      retries: 10
-      start_period: 1m
     restart: unless-stopped
-    env_file:
-      - .env.development
+    env_file: *env_file
     environment:
       - OPENSEARCH_INITIAL_ADMIN_PASSWORD=mVchg1T5oA9wudUh
     ports:
@@ -195,8 +186,7 @@ services:
       opensearch:
         condition: service_healthy
         restart: true
-    env_file:
-      - .env.development
+    env_file: *env_file
     environment:
       - opensearch.ssl.verificationMode=none
       - OPENSEARCH_HOSTS=http://opensearch:9200
@@ -214,11 +204,8 @@ services:
     profiles:
       - payments
     healthcheck:
+      <<: *healthcheck
       test: ["CMD-SHELL", "bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} getblockchaininfo"]
-      interval: 10s
-      timeout: 10s
-      retries: 10
-      start_period: 1m
     command:
       - 'bitcoind'
       - '-server=1'
@@ -253,14 +240,17 @@ services:
         bash -c '
           blockcount=$$(bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} getblockcount 2>/dev/null)
           if (( blockcount <= 0 )); then
-            echo "Mining 10 blocks to sn_lnd and stacker_lnd..."
+            echo "Mining 10 blocks to sn_lnd, stacker_lnd, stacker_cln..."
             bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} generatetoaddress 100 ${LND_ADDR}
             bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} generatetoaddress 100 ${STACKER_LND_ADDR}
+            bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} generatetoaddress 100 ${STACKER_CLN_ADDR}
           else
             echo "Mining a block to sn_lnd... ${LND_ADDR}"
             bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} generatetoaddress 1 ${LND_ADDR}
             echo "Mining a block to stacker_lnd... ${STACKER_LND_ADDR}"
             bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} generatetoaddress 1 ${STACKER_LND_ADDR}
+            echo "Mining a block to stacker_cln... ${STACKER_CLN_ADDR}"
+            bitcoin-cli -chain=regtest -rpcport=${RPC_PORT} -rpcuser=${RPC_USER} -rpcpassword=${RPC_PASS} generatetoaddress 1 ${STACKER_CLN_ADDR}
           fi
         '
   sn_lnd:
@@ -273,17 +263,10 @@ services:
     profiles:
       - payments
     healthcheck:
+      <<: *healthcheck
       test: ["CMD-SHELL", "lncli", "getinfo"]
-      interval: 10s
-      timeout: 10s
-      retries: 10
-      start_period: 1m
-    depends_on:
-      bitcoin:
-        condition: service_healthy
-        restart: true
-    env_file:
-      - .env.development
+    depends_on: *depends_on_bitcoin
+    env_file: *env_file
     command:
       - 'lnd'
       - '--noseedbackup'
@@ -337,17 +320,10 @@ services:
     profiles:
       - payments
     healthcheck:
+      <<: *healthcheck
       test: ["CMD-SHELL", "lncli", "getinfo"]
-      interval: 10s
-      timeout: 10s
-      retries: 10
-      start_period: 1m
-    depends_on:
-      bitcoin:
-        condition: service_healthy
-        restart: true
-    env_file:
-      - .env.development
+    depends_on: *depends_on_bitcoin
+    env_file: *env_file
     command:
       - 'lnd'
       - '--noseedbackup'
@@ -381,14 +357,56 @@ services:
       - stacker_lnd:/home/lnd/.lnd
     labels:
       ofelia.enabled: "true"
-      ofelia.job-exec.stacker_channel_cron.schedule: "@every 1m"
-      ofelia.job-exec.stacker_channel_cron.command: >
+      ofelia.job-exec.stacker_lnd_channel_cron.schedule: "@every 1m"
+      ofelia.job-exec.stacker_lnd_channel_cron.command: >
         su lnd -c bash -c "
           if [ $$(lncli getinfo | jq '.num_active_channels + .num_pending_channels') -ge 3 ]; then
             exit 0
           else
             lncli openchannel --node_key=$LND_PUBKEY --connect sn_lnd:9735 --sat_per_vbyte 1 \\
               --min_confs 0 --local_amt=1000000000 --push_amt=500000000
+          fi
+        "
+  stacker_cln:
+    build:
+      context: ./docker/cln
+    container_name: stacker_cln
+    restart: unless-stopped
+    profiles:
+      - payments
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD-SHELL", "su clightning -c 'lightning-cli --network=regtest getinfo'"]
+    depends_on: *depends_on_bitcoin
+    env_file: *env_file
+    command:
+      - 'lightningd'
+      - '--network=regtest'
+      - '--alias=stacker_cln'
+      - '--bitcoin-rpcconnect=bitcoin'
+      - '--bitcoin-rpcuser=${RPC_USER}'
+      - '--bitcoin-rpcpassword=${RPC_PASS}'
+      - '--large-channels'
+      - '--rest-port=3010'
+      - '--rest-host=0.0.0.0'
+      - '--log-file=/home/clightning/.lightning/debug.log'
+    expose:
+      - "9735"
+    ports:
+      - "${STACKER_CLN_REST_PORT}:3010"
+    volumes:
+      - stacker_cln:/home/clightning/.lightning
+    labels:
+      ofelia.enabled: "true"
+      ofelia.job-exec.stacker_cln_channel_cron.schedule: "@every 1m"
+      ofelia.job-exec.stacker_cln_channel_cron.command: >
+        su clightning -c bash -c "
+          if [ $$(lightning-cli --regtest getinfo | jq '.num_active_channels + .num_pending_channels') -ge 3 ]; then
+            exit 0
+          else
+            lightning-cli --regtest connect $LND_PUBKEY@sn_lnd:9735
+            lightning-cli --regtest fundchannel id=$LND_PUBKEY feerate=1000perkb \\
+              amount=1000000000 push_msat=500000000000 minconf=0
           fi
         "
   channdler:
@@ -411,11 +429,8 @@ services:
       - email
     restart: unless-stopped
     healthcheck:
+      <<: *healthcheck
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:8025"]
-      interval: 10s
-      timeout: 10s
-      retries: 10
-      start_period: 1m
     ports:
       - "8025:8025"
       - "1025:1025"
@@ -427,4 +442,5 @@ volumes:
   bitcoin:
   sn_lnd:
   stacker_lnd:
+  stacker_cln:
   s3:

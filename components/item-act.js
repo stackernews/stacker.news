@@ -15,10 +15,10 @@ const defaultTips = [100, 1000, 10000, 100000]
 
 const Tips = ({ setOValue }) => {
   const tips = [...getCustomTips(), ...defaultTips].sort((a, b) => a - b)
-  return tips.map(num =>
+  return tips.map((num, i) =>
     <Button
       size='sm'
-      className={`${num > 1 ? 'ms-2' : ''} mb-2`}
+      className={`${i > 0 ? 'ms-2' : ''} mb-2`}
       key={num}
       onClick={() => { setOValue(num) }}
     >
@@ -183,7 +183,7 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
         <Tips setOValue={setOValue} />
       </div>
       {children}
-      <div className='d-flex'>
+      <div className='d-flex mt-3'>
         <SubmitButton variant={down ? 'danger' : 'success'} className='ms-auto mt-1 px-4' value='TIP'>{down && 'down'}zap</SubmitButton>
       </div>
     </Form>

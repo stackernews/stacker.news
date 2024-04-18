@@ -128,7 +128,7 @@ export function FundForm () {
   }, [])
 
   if (called && !error) {
-    return <QrSkeleton description status='generating' />
+    return <QrSkeleton description status='generating' bolt11Info />
   }
 
   return (

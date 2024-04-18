@@ -70,6 +70,7 @@ COMMANDS
     stop          stop env
     restart       restart env
     status        status of env
+    logs          logs from env
     delete        delete env
 
   sn:
@@ -78,6 +79,10 @@ COMMANDS
   lnd:
     fund          pay a bolt11 for funding
     withdraw      create a bolt11 for withdrawal
+
+  cln:
+    cln_fund      pay a bolt11 for funding with CLN
+    cln_withdraw  create a bolt11 for withdrawal with CLN
 
   db:
     psql          open psql on db
@@ -88,9 +93,10 @@ COMMANDS
     lint          run linters
 
   other:
-    compose       docker compose passthrough
-    sn_lncli      lncli passthrough on sn_lnd
-    stacker_lncli lncli passthrough on stacker_lnd
+    compose         docker compose passthrough
+    sn_lndcli       lncli passthrough on sn_lnd
+    stacker_lndcli  lncli passthrough on stacker_lnd
+    stacker_clncli  lightning-cli passthrough on stacker_cln
 
 ```
 
@@ -98,7 +104,7 @@ COMMANDS
 
 #### Running specific services
 
-By default all services will be run. If you want to exclude specific services from running, set `COMPOSE_PROFILES` to use one or more of `minimal|images|search|payments|email`. To only run mininal services without images, search, or payments:
+By default all services will be run. If you want to exclude specific services from running, set `COMPOSE_PROFILES` to use one or more of `minimal|images|search|payments|email|capture`. To only run mininal services without images, search, or payments:
 
 ```sh
 $ COMPOSE_PROFILES=minimal ./sndev start
@@ -124,7 +130,6 @@ By default `sndev start` will merge `docker-compose.yml` with `docker-compose.ov
 For example, if you want to replace the db seed with a custom seed file located in `docker/db/another.sql`, you'd create a `docker-compose.override.yml` file with the following:
 
 ```yml
-version: "3"
 services:
   db:
     volumes:
@@ -152,6 +157,11 @@ You can read more about [docker compose override files](https://docs.docker.com/
     - [Responsible disclosure of security or privacy vulnerability awards](#responsible-disclosure-of-security-or-privacy-vulnerability-awards)
     - [Development documentation awards](#development-documentation-awards)
     - [Helpfulness awards](#helpfulness-awards)
+- [Contribution extras](#contribution-extras)
+    - [Dev chat](#dev-chat)
+    - [Triage permissions](#triage-permissions)
+    - [Contributor badges on SN profiles](#contributor-badges-on-sn-profiles)
+    - [What else you got](#what-else-you-got)
 - [Development Tips](#development-tips)
     - [Linting](#linting)
     - [Database migrations](#database-migrations)
@@ -227,6 +237,9 @@ _Due to Rule 3, make sure that you mark your PR as a draft when you create it an
 | `priority:high`   | 2          |
 | `priority:urgent` | 3          |
 
+### Requesting modifications to reward amounts
+We try to assign difficulty and priority tags to issues accurately, but we're not perfect. If you believe an issue is mis-tagged, you can request a change to the issue's tags.
+
 <br>
 
 ## Code review awards
@@ -301,6 +314,25 @@ Like issue specification awards, helping fellow contributors substantially in a 
 | substantial and singular source of help                                                | 10%   |
 | substantial but nonsingular source of help                                             | 1-5%  |
 | source of relatively trivial help                                                      | 1%    |
+
+<br>
+
+# Contribution extras
+We want to make contributing to SN as rewarding as possible, so we offer a few extras to contributors.
+
+## Dev chat
+We self-host a private chat server for contributors to SN. If you'd like to join, please respond in this [discussion](https://github.com/stackernews/stacker.news/discussions/1059).
+
+## Triage permissions
+We offer triage permissions to contributors after they've made a few contributions. I'll usually add them as I notice people contributing, but if I missed you and you'd like to be added, let me know!
+
+## Contributor badges on SN profiles
+Contributors can get badges on their SN profiles by opening a pull request adding their SN nym to the [contributors.txt](/contributors.txt) file.
+
+## What else you got
+In the future we plan to offer more, like gratis github copilot subscriptions, reverse tunnels, codespaces, and merch.
+
+If you'd like to see something added, please make a suggestion.
 
 <br>
 
@@ -432,7 +464,7 @@ To ensure stackers balances are kept sane, all wallet updates are run in [serial
 <br>
 
 # Need help?
-Open a [discussion](http://github.com/stackernews/stacker.news/discussions) or [issue](http://github.com/stackernews/stacker.news/issues/new) or [email us](mailto:kk@stacker.news) or [chat with us on telegram](https://t.me/stackernews).
+Open a [discussion](http://github.com/stackernews/stacker.news/discussions) or [issue](http://github.com/stackernews/stacker.news/issues/new) or [email us](mailto:kk@stacker.news) or request joining the [dev chat](#dev-chat).
 
 <br>
 

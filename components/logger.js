@@ -158,8 +158,17 @@ const initIndexedDB = async (storeName) => {
 }
 
 const renameWallet = (wallet) => {
-  if (wallet === 'walletLightningAddress') return 'lnAddr'
-  if (wallet === 'walletLND') return 'lnd'
+  switch (wallet) {
+    case 'walletLightningAddress':
+    case 'LIGHTNING_ADDRESS':
+      return 'lnAddr'
+    case 'walletLND':
+    case 'LND':
+      return 'lnd'
+    case 'walletCLN':
+    case 'CLN':
+      return 'cln'
+  }
   return wallet
 }
 

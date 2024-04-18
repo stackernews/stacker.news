@@ -20,7 +20,7 @@ export function AdvPostInitial ({ forward, boost }) {
   }
 }
 
-export default function AdvPostForm ({ children, item }) {
+export default function AdvPostForm ({ children, item, show }) {
   const me = useMe()
   const { merge } = useFeeButton()
   const router = useRouter()
@@ -69,6 +69,7 @@ export default function AdvPostForm ({ children, item }) {
   return (
     <AccordianItem
       header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>options</div>}
+      show={show}
       body={
         <>
           {children}

@@ -71,11 +71,16 @@ async function _indexItem (item, { models, updatedAt }) {
   })
   itemcp.bookmarkedBy = bookmarkedBy.map(bookmark => bookmark.userId)
 
-  // if `updatedAt` is set, use that as the `latestUpdatedAt` value
-  const latestUpdatedAt = updatedAt
-    ? new Date(updatedAt).getTime()
-    // else, use the later of when the item was updated, or when it was last bookmarked, to determine the latest version of the indexed version
-    : Math.max(new Date(item.updatedAt).getTime(), bookmarkedBy[0] ? new Date(bookmarkedBy[0].createdAt).getTime() : 0)
+  // use the latest of:
+  // 1. an explicitly-supplied updatedAt value, used when a bookmark to this item was removed
+  // 2. when the item itself was updated
+  // 3. or when it was last bookmarked
+  // to determine the latest version of the indexed version
+  const latestUpdatedAt = Math.max(
+    updatedAt ? new Date(updatedAt).getTime() : 0,
+    new Date(item.updatedAt).getTime(),
+    bookmarkedBy[0] ? new Date(bookmarkedBy[0].createdAt).getTime() : 0
+  )
 
   try {
     await search.index({
@@ -96,8 +101,8 @@ async function _indexItem (item, { models, updatedAt }) {
   }
 }
 
-// `data.updatedAt` is an explicit override for when the item is indexed at,
-// which in turn generates the index version
+// `data.updatedAt` is an explicit updatedAt value for the use case of a bookmark being removed
+// this is consulted to generate the index version
 export async function indexItem ({ data: { id, updatedAt }, apollo, models }) {
   // 1. grab item from database
   // could use apollo to avoid duping logic

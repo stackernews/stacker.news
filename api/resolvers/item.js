@@ -1,7 +1,7 @@
 import { GraphQLError } from 'graphql'
 import { ensureProtocol, removeTracking, stripTrailingSlash } from '@/lib/url'
 import serialize from './serial'
-import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
+import { decodeCursor, LIMIT, nextCursorEncoded, PaginateResult } from '@/lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
 import { ruleSet as publicationDateRuleSet } from '@/lib/timedate-scraper'
 import domino from 'domino'
@@ -524,11 +524,7 @@ export default {
           }
           break
       }
-      return {
-        cursor: items.length === limit ? nextCursorEncoded(decodedCursor) : null,
-        items,
-        pins
-      }
+      return PaginateResult(decodeCursor, 'items', {items, pins}, limit)
     },
     item: getItem,
     pageTitleAndUnshorted: async (parent, { url }, { models }) => {

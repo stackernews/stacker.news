@@ -1,5 +1,5 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
-import { Form, ClientInput, ClientCheckbox } from '@/components/form'
+import { Form, ClientInput, ClientCheckbox, PasswordHider } from '@/components/form'
 import { CenterLayout } from '@/components/layout'
 import { WalletButtonBar, WalletCard } from '@/components/wallet-card'
 import { nwcSchema } from '@/lib/validate'
@@ -9,6 +9,7 @@ import { useNWC } from '@/components/webln/nwc'
 import { WalletSecurityBanner } from '@/components/banners'
 import { useWebLNConfigurator } from '@/components/webln'
 import WalletLogs from '@/components/wallet-logs'
+import { useState } from 'react'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -19,6 +20,7 @@ export default function NWC () {
   const isDefault = provider?.name === name
   const toaster = useToast()
   const router = useRouter()
+  const [showPass, setShowPass] = useState(false)
 
   return (
     <CenterLayout>
@@ -47,10 +49,11 @@ export default function NWC () {
           initialValue={nwcUrl}
           label='connection'
           name='nwcUrl'
-          type='password'
+          type={showPass ? 'text' : 'password'}
           autoComplete='new-password'
           required
           autoFocus
+          append={<PasswordHider onClick={() => setShowPass(!showPass)} />}
         />
         <ClientCheckbox
           disabled={!enabled || isDefault || enabledProviders.length === 1}

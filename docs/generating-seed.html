@@ -48,6 +48,66 @@
             padding: 20px;
             border-radius: 0.4rem;
             margin: 10px;
+            background: var(--light);
+            border: 1px solid var(--dark);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid var(--dark);
+            text-align: left;
+            padding: 8px;
+        }
+
+        th {
+            background-color: var(--primary);
+            color: var(--dark);
+        }
+
+        tr:nth-child(even) {
+            background-color: var(--info);
+        }
+
+        #docLinks a {
+            display: block;
+            margin-top: 5px;
+            color: var(--dark);
+            background-color: var(--success);
+            padding: 10px;
+            border-radius: 0.4rem;
+            text-decoration: none;
+        }
+
+        #docLinks a:hover {
+            background-color: var(--primary);
+            color: var(--dark);
+        }
+
+        /* Code block styling */
+        pre {
+            background-color: #f4f4f4;
+            border: 1px solid #ccc;
+            padding: 10px;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        
+        /* Inline code styling */
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 4px;
+            color: #d63384;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+    </style>
+</head>
+<body>
 <h1 id="installpostgresqlanonymizerextension">install postgresql anonymizer extension</h1>
 <pre><code class="bash language-bash">git clone https://gitlab.com/dalibo/postgresql_anonymizer.git
 make extension

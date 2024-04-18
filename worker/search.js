@@ -35,7 +35,7 @@ const ITEM_SEARCH_FIELDS = gql`
     ncomments
   }`
 
-async function _indexItem (item, { models }) {
+async function _indexItem (item, { models, updatedAt }) {
   console.log('indexing item', item.id)
   // HACK: modify the title for jobs so that company/location are searchable
   // and highlighted without further modification
@@ -71,8 +71,11 @@ async function _indexItem (item, { models }) {
   })
   itemcp.bookmarkedBy = bookmarkedBy.map(bookmark => bookmark.userId)
 
-  // Use the later of when the item was updated, or when it was last bookmarked, to determine the latest version of the indexed version
-  const latestUpdatedAt = Math.max(new Date(item.updatedAt).getTime(), bookmarkedBy[0] ? new Date(bookmarkedBy[0].createdAt).getTime() : 0)
+  // if `updatedAt` is set, use that as the `latestUpdatedAt` value
+  const latestUpdatedAt = updatedAt
+    ? new Date(updatedAt).getTime()
+    // else, use the later of when the item was updated, or when it was last bookmarked, to determine the latest version of the indexed version
+    : Math.max(new Date(item.updatedAt).getTime(), bookmarkedBy[0] ? new Date(bookmarkedBy[0].createdAt).getTime() : 0)
 
   try {
     await search.index({
@@ -93,7 +96,9 @@ async function _indexItem (item, { models }) {
   }
 }
 
-export async function indexItem ({ data: { id }, apollo, models }) {
+// `data.updatedAt` is an explicit override for when the item is indexed at,
+// which in turn generates the index version
+export async function indexItem ({ data: { id, updatedAt }, apollo, models }) {
   // 1. grab item from database
   // could use apollo to avoid duping logic
   // when grabbing sats and user name, etc
@@ -108,7 +113,7 @@ export async function indexItem ({ data: { id }, apollo, models }) {
   })
 
   // 2. index it with external version based on updatedAt
-  await _indexItem(item, { models })
+  await _indexItem(item, { models, updatedAt })
 }
 
 export async function indexAllItems ({ apollo, models }) {

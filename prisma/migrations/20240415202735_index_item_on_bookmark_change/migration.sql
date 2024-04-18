@@ -7,7 +7,10 @@ CREATE OR REPLACE FUNCTION index_bookmarked_item() RETURNS TRIGGER AS $$
         END IF;
         -- if a bookmark was deleted, `OLD` will be used
         IF OLD IS NOT NULL THEN
-            INSERT INTO pgboss.job (name, data) VALUES ('indexItem', jsonb_build_object('id', OLD."itemId"));
+            -- include `updatedAt` in the `indexItem` job as `now()` to indicate when the indexed item should think it was updated
+            -- this is to facilitate the fact that deleted bookmarks do not show up when re-indexing the item, and therefore
+            -- we don't have a reliable way to calculate a more recent index version, to displace the prior version
+            INSERT INTO pgboss.job (name, data) VALUES ('indexItem', jsonb_build_object('id', OLD."itemId", 'updatedAt', now()));
             RETURN OLD;
         END IF;
         -- This should never be reached

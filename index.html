@@ -147,11 +147,20 @@
        </table>
     </div>
 
+<!-- Use this if we want to FETCH the md files dynamically
     <div id="readme" class="content">
         <h1>README</h1>
         <div id="readmeContent"></div> 
     </div>
+-->
+    <div id="readme" class="content">
+    <h1>README</h1>
+    <div id="readmeContent" style="height: 600px;"> 
+       <iframe src="README.html" style="width: 100%; height: 100%; border: none;"></iframe>
+    </div> 
+    </div>
 
+<!-- Use this if we want to FETCH the md files dynamically
     <div id="docs" class="content">
         <h1>Docs</h1>
         <div id="docLinks">
@@ -162,6 +171,20 @@
             <a href="#" onclick="loadMarkdown('docs/useful-dev-commands.md', 'docsContent')">Useful Dev Commands</a>
         </div>
         <div id="docsContent"></div> 
+    </div>
+-->
+    <div id="docs" class="content">
+        <h1>Docs</h1>
+        <div id="docLinks">
+            <a href="#" onclick="loadDocument('docs/attach-lnbits.html')">Attach LNbits</a>
+            <a href="#" onclick="loadDocument('docs/generating-seed.html')">Generating Seed</a>
+            <a href="#" onclick="loadDocument('docs/semantic-search.html')">Semantic Search</a>
+            <a href="#" onclick="loadDocument('docs/time-is-a-bitch.html')">Time is a Bitch</a>
+            <a href="#" onclick="loadDocument('docs/useful-dev-commands.html')">Useful Dev Commands</a>
+        </div>
+        <div id="docsContent" style="height: 600px;"> 
+            <iframe id="docFrame" style="width: 100%; height: 100%; border: none;"></iframe>
+        </div> 
     </div>
 
     <script>
@@ -255,6 +278,25 @@
             }
         });
     </script>
+
+    <script>
+    function resizeIframe(iframe) {
+        try {
+            // Set the iframe's height to that of the internal document's body height
+            iframe.style.height = iframe.contentWindow.document.body.scrollHeight + "px";
+        } catch (e) {
+            console.error("Error resizing iframe:", e);
+        }
+    }
+    </script>
+
+    <script>
+        function loadDocument(htmlFile) {
+            const iframe = document.getElementById('docFrame');
+            iframe.src = htmlFile;
+        }
+    </script>
+
 </body>
 </html>
 

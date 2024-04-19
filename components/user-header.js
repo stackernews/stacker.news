@@ -207,7 +207,7 @@ function HeaderNym ({ user, isMe }) {
     : <NymView user={user} isMe={isMe} setEditting={setEditting} />
 }
 
-function SocialLink ({ name, id }) {
+export function SocialLink ({ name, id }) {
   const className = `${styles.social} text-reset`
   if (name === 'Nostr') {
     const npub = hexToBech32(id)

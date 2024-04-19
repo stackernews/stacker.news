@@ -39,7 +39,7 @@ function seperate (arr, seperator) {
   return arr.flatMap((x, i) => i < arr.length - 1 ? [x, seperator] : [x])
 }
 
-function User ({ user, rank, statComps, Embellish, nymActionDropdown = false }) {
+export function User ({ user, rank, statComps, Embellish, nymActionDropdown = false }) {
   const me = useMe()
   const showStatComps = statComps && statComps.length > 0
   return (

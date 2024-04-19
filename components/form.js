@@ -1078,7 +1078,7 @@ function PasswordHider ({ onClick }) {
   )
 }
 
-export function PassworInput ({ initialValue, label, name, newPass, autoFocus, required = true }) {
+export function PasswordInput ({ initialValue, label, name, newPass, autoFocus, required }) {
   const [showPass, setShowPass] = useState(false)
 
   return (

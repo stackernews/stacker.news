@@ -1,5 +1,5 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
-import { Form, ClientInput, ClientCheckbox, PassworInput } from '@/components/form'
+import { Form, ClientInput, ClientCheckbox, PasswordInput } from '@/components/form'
 import { CenterLayout } from '@/components/layout'
 import { WalletButtonBar, WalletCard } from '@/components/wallet-card'
 import { lnbitsSchema } from '@/lib/validate'
@@ -51,7 +51,7 @@ export default function LNbits () {
           required
           autoFocus
         />
-        <PassworInput
+        <PasswordInput
           initialValue={adminKey}
           label='admin key'
           name='adminKey'

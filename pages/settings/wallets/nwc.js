@@ -1,5 +1,5 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
-import { Form, ClientCheckbox, PassworInput } from '@/components/form'
+import { Form, ClientCheckbox, PasswordInput } from '@/components/form'
 import { CenterLayout } from '@/components/layout'
 import { WalletButtonBar, WalletCard } from '@/components/wallet-card'
 import { nwcSchema } from '@/lib/validate'
@@ -43,11 +43,12 @@ export default function NWC () {
           }
         }}
       >
-        <PassworInput
+        <PasswordInput
           initialValue={nwcUrl}
           label='connection'
           name='nwcUrl'
           newPass
+          required
           autoFocus
         />
         <ClientCheckbox

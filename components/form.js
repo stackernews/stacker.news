@@ -1054,7 +1054,7 @@ function Client (Component) {
   }
 }
 
-export function PasswordHider ({ onClick }) {
+function PasswordHider ({ onClick }) {
   const [showPass, setShowPass] = useState(false)
 
   const handleClick = () => {
@@ -1075,6 +1075,23 @@ export function PasswordHider ({ onClick }) {
             fill='var(--bs-body-color)' height={20} width={20}
           />}
     </InputGroup.Text>
+  )
+}
+
+export function PassworInput ({ initialValue, label, name, newPass, autoFocus, required = true }) {
+  const [showPass, setShowPass] = useState(false)
+
+  return (
+    <ClientInput
+      initialValue={initialValue}
+      label={label}
+      name={name}
+      type={showPass ? 'text' : 'password'}
+      autoComplete={newPass ? 'new-password' : 'current-password'}
+      autoFocus={autoFocus}
+      required={required}
+      append={<PasswordHider onClick={() => setShowPass(!showPass)} />}
+    />
   )
 }
 

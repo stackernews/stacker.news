@@ -88,6 +88,10 @@ async function replyToEvent (item, fetchItemData) {
 
   const replyTo = replyToItem.noteId
 
+  if (!replyTo) {
+    throw new Error('Failed to get parent item')
+  }
+
   if (replyTo.includes('naddr')) {
     const { kind, pubkey, identifier } = nip19.decode(replyTo)?.data || {}
 

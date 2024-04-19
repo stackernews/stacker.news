@@ -31,8 +31,8 @@ CREATE TRIGGER index_bookmarked_item
 CREATE OR REPLACE FUNCTION reindex_all_current_bookmarked_items() RETURNS void AS $$
     BEGIN
         -- Re-index all existing bookmarked items so these bookmarks are searchable
-        INSERT INTO pgboss.job (name, data, priority, startafter)
-        SELECT 'indexItem', jsonb_build_object('id', "itemId"), -100, now() + interval '10 minutes'
+        INSERT INTO pgboss.job (name, data, priority, startafter, expirein)
+        SELECT 'indexItem', jsonb_build_object('id', "itemId"), -100, now() + interval '10 minutes', interval '1 day'
         FROM "Bookmark"
         GROUP BY "itemId";
     EXCEPTION WHEN OTHERS THEN

@@ -118,12 +118,12 @@ export default function FeeButton ({ ChildButton = SubmitButton, variant, text, 
     ? 'free'
     : total > 1
       ? numWithUnits(total, { abbreviate: false, format: true })
-      : total === 1 ? undefined : 'free'
+      : undefined
   disabled ||= ctxDisabled
 
   return (
     <div className={styles.feeButton}>
-      <ActionTooltip overlayText={feeText}>
+      <ActionTooltip overlayText={!free && total === 1 ? '1 sat' : feeText}>
         <ChildButton variant={variant} disabled={disabled} nonDisabledText={feeText}>{text}</ChildButton>
       </ActionTooltip>
       {!me && <AnonInfo />}

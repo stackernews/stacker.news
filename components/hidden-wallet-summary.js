@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { abbrNum, numWithUnits } from '@/lib/format'
 import { useMe } from './me'
 
@@ -6,19 +6,19 @@ export default function HiddenWalletSummary ({ abbreviate, fixedWidth }) {
   const me = useMe()
   const [hover, setHover] = useState(false)
 
-  // prevent layout shifts when hovering by fixing width to initial rendered width
-  const ref = useRef()
-  const [width, setWidth] = useState(undefined)
-  useEffect(() => {
-    setWidth(ref.current?.offsetWidth)
-  }, [])
+  const fixedWidthAbbrSats = useMemo(() => {
+    const abbr = abbrNum(me.privates?.sats).toString()
+    if (abbr.length >= 6) return abbr
+
+    // add leading spaces if abbr is shorter than 6 characters
+    return ' '.repeat(6 - abbr.length) + abbr
+  }, [me.privates?.sats])
 
   return (
     <span
-      ref={ref} style={{ width: fixedWidth ? width : undefined }}
-      className='text-monospace' align='right' onPointerEnter={() => setHover(true)} onPointerLeave={() => setHover(false)}
+      className='text-monospace' style={{ whiteSpace: 'pre-wrap' }} align='right' onPointerEnter={() => setHover(true)} onPointerLeave={() => setHover(false)}
     >
-      {hover ? (abbreviate ? abbrNum(me.privates?.sats) : numWithUnits(me.privates?.sats, { abbreviate: false, format: true })) : '******'}
+      {hover ? (abbreviate ? fixedWidthAbbrSats : numWithUnits(me.privates?.sats, { abbreviate: false, format: true })) : '******'}
     </span>
   )
 }

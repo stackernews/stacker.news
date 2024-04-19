@@ -47,6 +47,8 @@ export default function NWC () {
           initialValue={nwcUrl}
           label='connection'
           name='nwcUrl'
+          type='password'
+          autoComplete='new-password'
           required
           autoFocus
         />

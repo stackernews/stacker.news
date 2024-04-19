@@ -6,7 +6,6 @@ import ItemJob from './item-job'
 import { NOTIFICATIONS } from '@/fragments/notifications'
 import MoreFooter from './more-footer'
 import Invite from './invite'
-import { ignoreClick } from '@/lib/clicks'
 import { dayMonthYear, timeSince } from '@/lib/time'
 import Link from 'next/link'
 import Check from '@/svgs/check-double-line.svg'
@@ -29,6 +28,8 @@ import BountyIcon from '@/svgs/bounty-bag.svg'
 import { LongCountdown } from './countdown'
 import { nextBillingWithGrace } from '@/lib/territory'
 import { commentSubTreeRootId } from '@/lib/item'
+import LinkToContext from './link-to-context'
+import { Badge } from 'react-bootstrap'
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
@@ -61,12 +62,10 @@ function NotificationLayout ({ children, nid, href, as, fresh }) {
   const router = useRouter()
   if (!href) return <div className={fresh ? styles.fresh : ''}>{children}</div>
   return (
-    <div
-      className={
-        `clickToContext ${fresh ? styles.fresh : ''} ${router?.query?.nid === nid ? 'outline-it' : ''}`
-      }
+    <LinkToContext
+      className={`${fresh ? styles.fresh : ''} ${router?.query?.nid === nid ? 'outline-it' : ''}`}
       onClick={async (e) => {
-        if (ignoreClick(e)) return
+        e.preventDefault()
         nid && await router.replace({
           pathname: router.pathname,
           query: {
@@ -76,9 +75,10 @@ function NotificationLayout ({ children, nid, href, as, fresh }) {
         }, router.asPath, { ...router.options, shallow: true })
         router.push(href, as)
       }}
+      href={href}
     >
       {children}
-    </div>
+    </LinkToContext>
   )
 }
 
@@ -284,6 +284,7 @@ function WithdrawlPaid ({ n }) {
     <div className='fw-bold text-info ms-2 py-1'>
       <Check className='fill-info me-1' />{numWithUnits(n.earnedSats, { abbreviate: false, unitSingular: 'sat was', unitPlural: 'sats were' })} withdrawn from your account
       <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
+      {n.withdrawl.autoWithdraw && <Badge className={styles.badge} bg={null}>autowithdraw</Badge>}
     </div>
   )
 }

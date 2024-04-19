@@ -10,7 +10,6 @@ import EyeClose from '@/svgs/eye-close-line.svg'
 import { useRouter } from 'next/router'
 import CommentEdit from './comment-edit'
 import { ANON_USER_ID, COMMENT_DEPTH_LIMIT, UNKNOWN_LINK_REL } from '@/lib/constants'
-import { ignoreClick } from '@/lib/clicks'
 import PayBounty from './pay-bounty'
 import BountyIcon from '@/svgs/bounty-bag.svg'
 import ActionTooltip from './action-tooltip'
@@ -25,6 +24,7 @@ import { DownZap } from './dont-link-this'
 import Skull from '@/svgs/death-skull.svg'
 import { commentSubTreeRootId } from '@/lib/item'
 import Pin from '@/svgs/pushpin-fill.svg'
+import LinkToContext from './link-to-context'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -76,17 +76,17 @@ export function CommentFlat ({ item, rank, siblingComments, ...props }) {
             {rank}
           </div>)
         : <div />}
-      <div
-        className={`clickToContext ${siblingComments ? 'py-3' : 'py-2'}`}
+      <LinkToContext
+        className={siblingComments ? 'py-3' : 'py-2'}
         onClick={e => {
-          if (ignoreClick(e)) return
           router.push(href, as)
         }}
+        href={href}
       >
         <RootProvider root={item.root}>
           <Comment item={item} {...props} />
         </RootProvider>
-      </div>
+      </LinkToContext>
     </>
   )
 }

@@ -10,10 +10,10 @@ docker__compose() {
   fi
 
   if [ -z "$COMPOSE_PROFILES" ]; then
-    COMPOSE_PROFILES="images,search,payments,email"
+    COMPOSE_PROFILES="images,search,payments,email,capture"
   fi
 
-  CURRENT_UID=$(id -u) CURRENT_GID=$(id -g) COMPOSE_PROFILES=$COMPOSE_PROFILES command docker compose --env-file .env.development "$@"
+  CURRENT_UID=$(id -u) CURRENT_GID=$(id -g) COMPOSE_PROFILES=$COMPOSE_PROFILES command docker compose --env-file .env.development --env-file .env.local "$@"
 }
 
 docker__exec() {
@@ -23,7 +23,7 @@ docker__exec() {
     exit 0
   fi
 
-  command docker exec -i "$@"
+  DOCKER_CLI_HINTS=false command docker exec -i "$@"
 }
 
 docker__sn_lnd() {
@@ -48,27 +48,19 @@ docker__stacker_lnd() {
   docker__exec $t -u lnd stacker_lnd lncli "$@"
 }
 
+docker__stacker_cln() {
+  t=$1
+  if [ "$t" = "-t" ]; then
+    shift
+  else
+    t=""
+  fi
+
+  docker__exec $t -u clightning stacker_cln lightning-cli --regtest "$@"
+}
+
 sndev__start() {
   shift
-
-  if ! [ -f .env.development ]; then
-    echo ".env.development does not exist ... creating from .env.sample"
-    cp .env.sample .env.development
-  elif ! git diff --exit-code --diff-algorithm=histogram .env.sample .env.development; then
-    echo ".env.development is different from .env.sample ..."
-    printf "do you want to merge .env.sample into .env.development? [y/N] "
-    read -r answer
-    if [ "$answer" = "y" ]; then
-      # merge .env.sample into .env.development in a posix compliant way
-      git merge-file --theirs .env.development /dev/fd/3 3<<-EOF /dev/fd/4 4<<-EOF
-$(git show HEAD:.env.sample)
-EOF
-$(cat .env.sample)
-EOF
-    else
-      echo "merge cancelled"
-    fi
-  fi
 
   if [ $# -eq 0 ]; then
     docker__compose up --build
@@ -207,6 +199,35 @@ OPTIONS"
   docker__stacker_lnd payinvoice -h | awk '/OPTIONS:/{y=1;next}y' | awk '!/^[\t ]+--pay_req value/'
 }
 
+sndev__cln_fund() {
+  shift
+  docker__stacker_cln -t pay "$@"
+}
+
+sndev__help_cln_fund() {
+help="
+pay a bolt11 for funding with CLN
+
+USAGE
+  $ sndev cln_fund <bolt11>"
+  echo "$help"
+}
+
+sndev__cln_withdraw() {
+  shift
+  label=$(date +%s)
+  docker__stacker_cln -t invoice "$1" "$label" sndev | jq -r '.bolt11'
+}
+
+sndev__help_cln_withdraw() {
+help="
+create a bolt11 for withdrawal with CLN
+
+USAGE
+  $ sndev cln_withdraw <amount msats>"
+  echo "$help"
+}
+
 sndev__withdraw() {
   shift
   docker__stacker_lnd addinvoice --amt "$@" | jq -r '.payment_request'
@@ -287,22 +308,31 @@ sndev__help_compose() {
   docker__compose --help
 }
 
-sndev__sn_lncli() {
+sndev__sn_lndcli() {
   shift
   docker__sn_lnd -t "$@"
 }
 
-sndev__help_sn_lncli() {
+sndev__help_sn_lndcli() {
   docker__sn_lnd --help
 }
 
-sndev__stacker_lncli() {
+sndev__stacker_lndcli() {
   shift
   docker__stacker_lnd -t "$@"
 }
 
-sndev__help_stacker_lncli() {
+sndev__help_stacker_lndcli() {
   docker__stacker_lnd --help
+}
+
+sndev__stacker_clncli() {
+  shift
+  docker__stacker_cln -t "$@"
+}
+
+sndev__help_stacker_clncli() {
+  docker__stacker_cln help
 }
 
 __sndev__pr_track() {
@@ -441,6 +471,10 @@ COMMANDS
     fund          pay a bolt11 for funding
     withdraw      create a bolt11 for withdrawal
 
+  cln:
+    cln_fund      pay a bolt11 for funding with CLN
+    cln_withdraw  create a bolt11 for withdrawal with CLN
+
   db:
     psql          open psql on db
     prisma        run prisma commands
@@ -450,9 +484,10 @@ COMMANDS
     lint          run linters
 
   other:
-    compose       docker compose passthrough
-    sn_lncli      lncli passthrough on sn_lnd
-    stacker_lncli lncli passthrough on stacker_lnd
+    compose         docker compose passthrough
+    sn_lndcli       lncli passthrough on sn_lnd
+    stacker_lndcli  lncli passthrough on stacker_lnd
+    stacker_clncli  lightning-cli passthrough on stacker_cln
 "
   echo "$help"
 }

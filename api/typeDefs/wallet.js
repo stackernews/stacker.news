@@ -20,6 +20,7 @@ export default gql`
     cancelInvoice(hash: String!, hmac: String!): Invoice!
     dropBolt11(id: ID): Withdrawl
     upsertWalletLND(id: ID, socket: String!, macaroon: String!, cert: String, settings: AutowithdrawSettings!): Boolean
+    upsertWalletCLN(id: ID, socket: String!, rune: String!, cert: String, settings: AutowithdrawSettings!): Boolean
     upsertWalletLNAddr(id: ID, address: String!, settings: AutowithdrawSettings!): Boolean
     removeWallet(id: ID!): Boolean
   }
@@ -42,7 +43,13 @@ export default gql`
     cert: String
   }
 
-  union WalletDetails = WalletLNAddr | WalletLND
+  type WalletCLN {
+    socket: String!
+    rune: String!
+    cert: String
+  }
+
+  union WalletDetails = WalletLNAddr | WalletLND | WalletCLN
 
   input AutowithdrawSettings {
     autoWithdrawThreshold: Int!

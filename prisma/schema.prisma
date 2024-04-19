@@ -133,6 +133,7 @@ model User {
 enum WalletType {
   LIGHTNING_ADDRESS
   LND
+  CLN
 }
 
 model Wallet {
@@ -154,6 +155,8 @@ model Wallet {
   wallet                 Json?                   @db.JsonB
   walletLightningAddress WalletLightningAddress?
   walletLND              WalletLND?
+  walletCLN              WalletCLN?
+  withdrawals            Withdrawl[]
 
   @@index([userId])
 }
@@ -187,6 +190,17 @@ model WalletLND {
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
   socket    String
   macaroon  String
+  cert      String?
+}
+
+model WalletCLN {
+  id        Int      @id @default(autoincrement())
+  walletId  Int      @unique
+  wallet    Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  socket    String
+  rune      String
   cert      String?
 }
 
@@ -681,7 +695,9 @@ model Withdrawl {
   msatsFeePaid   BigInt?
   status         WithdrawlStatus?
   autoWithdraw   Boolean          @default(false)
+  walletId       Int?
   user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallet         Wallet?          @relation(fields: [walletId], references: [id], onDelete: SetNull)
 
   @@index([createdAt], map: "Withdrawl.created_at_index")
   @@index([userId], map: "Withdrawl.userId_index")

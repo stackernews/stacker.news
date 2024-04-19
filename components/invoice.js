@@ -53,14 +53,21 @@ export function Invoice ({ invoice, modal, onPayment, info, successVerb, webLn }
         description={numWithUnits(invoice.satsRequested, { abbreviate: false })}
         statusVariant={variant} status={status}
       />
-      {!invoice.confirmedAt &&
-        <div className='text-muted text-center'>
-          <Countdown
-            date={invoice.expiresAt} onComplete={() => {
-              setExpired(true)
-            }}
-          />
-        </div>}
+      {invoice.confirmedAt
+        ? (
+          <div className='text-muted text-center invisible'>
+            <Countdown date={Date.now()} />
+          </div>
+          )
+        : (
+          <div className='text-muted text-center'>
+            <Countdown
+              date={invoice.expiresAt} onComplete={() => {
+                setExpired(true)
+              }}
+            />
+          </div>
+          )}
       {!modal &&
         <>
           {info && <div className='text-muted fst-italic text-center'>{info}</div>}

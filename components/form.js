@@ -1054,11 +1054,8 @@ function Client (Component) {
   }
 }
 
-function PasswordHider ({ onClick }) {
-  const [showPass, setShowPass] = useState(false)
-
+function PasswordHider ({ onClick, showPass }) {
   const handleClick = () => {
-    setShowPass(!showPass)
     onClick()
   }
 
@@ -1090,7 +1087,7 @@ export function PasswordInput ({ initialValue, label, name, newPass, autoFocus, 
       autoComplete={newPass ? 'new-password' : 'current-password'}
       autoFocus={autoFocus}
       required={required}
-      append={<PasswordHider onClick={() => setShowPass(!showPass)} />}
+      append={<PasswordHider showPass={showPass} onClick={() => setShowPass(!showPass)} />}
     />
   )
 }

@@ -30,10 +30,14 @@ export function DiscussionForm ({
   const shareText = router.query.text ? decodeURI(router.query.text) : undefined
   const crossposter = useCrossposter()
   const toaster = useToast()
-  const [show, setShow] = useState(false)
+  const [show, setShow] = useState(undefined)
 
   const handleClick = () => {
-    setShow(!show)
+    if (show !== '0') {
+      setShow('0')
+    } else {
+      setShow('1')
+    }
   }
 
   const [upsertDiscussion] = useMutation(
@@ -130,8 +134,7 @@ export function DiscussionForm ({
           : null}
       />
       <AdvPostForm show={show} edit={!!item} item={item} />
-      <button type="button" onClick={handleClick}>Button</button>
-      <ItemButtonBar itemId={item?.id} />
+      <ItemButtonBar itemId={item?.id} onClick={handleClick} />
       {!item &&
         <div className={`mt-3 ${related.length > 0 ? '' : 'invisible'}`}>
           <AccordianItem

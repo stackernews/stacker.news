@@ -430,7 +430,7 @@ function FormGroup ({ className, label, children }) {
 }
 
 function InputInner ({
-  prepend, append, hint, warn, showValid, onChange, onBlur, overrideValue, appendValue,
+  prepend, append, hint, warn, showValid, onChange, onBlur, overrideValue, appendValue, hasError,
   innerRef, noForm, clear, onKeyDown, inputGroupClassName, debounce: debounceTime, maxLength,
   ...props
 }) {
@@ -498,6 +498,8 @@ function InputInner ({
 
   const invalid = (!formik || formik.submitCount > 0) && meta.touched && meta.error
 
+  hasError && hasError(invalid)
+  
   useEffect(debounce(() => {
     if (!noForm && !isNaN(debounceTime) && debounceTime > 0) {
       formik.validateForm()
@@ -701,12 +703,13 @@ export function Input ({ label, groupClassName, ...props }) {
   )
 }
 
-export function VariableInput ({ label, groupClassName, name, hint, max, min, readOnlyLen, children, emptyItem = '', ...props }) {
+export function VariableInput ({ label, groupClassName, name, hint, max, min, readOnlyLen, children, emptyItem = '', hasError, ...props }) {
   return (
     <FormGroup label={label} className={groupClassName}>
       <FieldArray name={name} hasValidation>
         {({ form, ...fieldArrayHelpers }) => {
           const options = form.values[name]
+          hasError(form.errors[name])
           return (
             <>
               {options?.map((_, i) => (

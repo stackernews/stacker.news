@@ -109,7 +109,7 @@ function FreebieDialog () {
   )
 }
 
-export default function FeeButton ({ ChildButton = SubmitButton, variant, text, disabled }) {
+export default function FeeButton ({ ChildButton = SubmitButton, variant, text, disabled, onClick }) {
   const me = useMe()
   const { lines, total, disabled: ctxDisabled } = useFeeButton()
   // freebies: there's only a base cost and we don't have enough sats
@@ -124,7 +124,7 @@ export default function FeeButton ({ ChildButton = SubmitButton, variant, text, 
   return (
     <div className={styles.feeButton}>
       <ActionTooltip overlayText={!free && total === 1 ? '1 sat' : feeText}>
-        <ChildButton variant={variant} disabled={disabled} nonDisabledText={feeText}>{text}</ChildButton>
+        <ChildButton variant={variant} disabled={disabled} onClick={onClick} nonDisabledText={feeText}>{text}</ChildButton>
       </ActionTooltip>
       {!me && <AnonInfo />}
       {(free && <Info><FreebieDialog /></Info>) ||

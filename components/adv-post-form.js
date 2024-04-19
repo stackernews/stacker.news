@@ -25,6 +25,26 @@ export default function AdvPostForm ({ children, item, show }) {
   const { merge } = useFeeButton()
   const router = useRouter()
   const [itemType, setItemType] = useState()
+  const [hasForwardError, setHasForwardError] = useState(false)
+  const [hasBoostError, setHasBoostError] = useState(false)
+
+  const handleForwardError = (error) => {
+      if (!hasForwardError && !!error) {
+        setHasForwardError(true)
+        console.error('forward error', error)
+      } else if (!error) {
+        setHasForwardError(false)
+      }
+  }
+
+  const handleInputError = (error) => {
+      if (!hasBoostError && !!error) {
+        setHasBoostError(true)
+        console.error('boost error', error)
+      } else if (!error) {
+        setHasBoostError(false)
+      }
+  }
 
   useEffect(() => {
     const determineItemType = () => {
@@ -69,7 +89,7 @@ export default function AdvPostForm ({ children, item, show }) {
   return (
     <AccordianItem
       header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>options</div>}
-      show={show}
+      show={(hasForwardError || hasBoostError) && show}
       body={
         <>
           {children}
@@ -105,6 +125,7 @@ export default function AdvPostForm ({ children, item, show }) {
             })}
             hint={<span className='text-muted'>ranks posts higher temporarily based on the amount</span>}
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+            hasError={handleInputError}
           />
           <VariableInput
             label='forward sats to'
@@ -113,6 +134,7 @@ export default function AdvPostForm ({ children, item, show }) {
             max={MAX_FORWARDS}
             emptyItem={EMPTY_FORWARD}
             hint={<span className='text-muted'>Forward sats to up to 5 other stackers. Any remaining sats go to you.</span>}
+            hasError={handleForwardError}
           >
             {({ index, placeholder }) => {
               return (

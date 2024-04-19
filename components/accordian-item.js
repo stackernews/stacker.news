@@ -10,7 +10,7 @@ function ContextAwareToggle ({ children, headerColor = 'var(--theme-grey)', even
   const decoratedOnClick = useAccordionButton(eventKey)
 
   useEffect(() => {
-    if (activeEventKey !== eventKey) {
+    if (!!isActive && activeEventKey !== eventKey) {
       decoratedOnClick()
     }
   }, [isActive])

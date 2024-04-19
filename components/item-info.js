@@ -179,7 +179,7 @@ export default function ItemInfo ({
         {item && item.mine && !item.noteId && !item.isJob && !item.parentId &&
           <CrosspostDropdownItem item={item} />}
         {/* for crosspost replies */}
-        {item && item.mine && !item.noteId && root.noteId && isParentCrossposted &&
+        {root && item && item.mine && !item.noteId && root.noteId && isParentCrossposted &&
           <CrosspostDropdownItem item={item} />}
         {me && !item.position &&
           !item.mine && !item.deletedAt &&

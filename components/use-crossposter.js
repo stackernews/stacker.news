@@ -5,7 +5,7 @@ import { DEFAULT_CROSSPOSTING_RELAYS, crosspost, callWithTimeout } from '@/lib/n
 import { gql, useMutation, useQuery, useLazyQuery } from '@apollo/client'
 import { SETTINGS } from '@/fragments/users'
 import { ITEM_FULL_FIELDS, POLL_FIELDS } from '@/fragments/items'
-import { bech32 } from 'bech32'
+import { nip19 } from 'nostr-tools'
 
 async function discussionToEvent (item) {
   const createdAt = Math.floor(Date.now() / 1000)
@@ -75,78 +75,40 @@ async function bountyToEvent (item) {
 
 async function replyToEvent (item, fetchItemData) {
   const createdAt = Math.floor(Date.now() / 1000)
-  let replyTo;
+  const rootId = item.root?.id
 
-  if (item.root?.id) {
-    const replyToItem = await fetchItemData(item.root.id)
-
-    if (replyToItem) {
-      replyTo = replyToItem.noteId
-    }
-  }
-
-  if (!replyTo) {
+  if (!rootId) {
     throw new Error('Failed to get parent item')
   }
 
+  const replyToItem = await fetchItemData(rootId)
+  if (!replyToItem) {
+    throw new Error('Failed to get parent item')
+  }
+
+  const replyTo = replyToItem.noteId
+
   if (replyTo.includes('naddr')) {
-    const { kind, pubkey, dTag } = decodeNaddr(replyTo)
+    const { kind, pubkey, identifier } = nip19.decode(replyTo)?.data || {}
+
+    if (!kind || !pubkey || !identifier) {
+      throw new Error('Invalid naddr')
+    }
+
     return {
       created_at: createdAt,
       kind: 1,
       content: item.text,
-      tags: [
-        ['a', `${kind}:${pubkey}:${dTag}`],
-      ]
+      tags: [['a', `${kind}:${pubkey}:${identifier}`]]
     }
   } else {
     return {
       created_at: createdAt,
       kind: 1,
       content: item.text,
-      tags: [
-        ['e', replyTo],
-      ]
+      tags: [['e', replyTo]]
     }
   }
-}
-
-function decodeNaddr(address) {
-  // Decode the bech32 address
-  const { prefix, words } = bech32.decode(address);
-
-  // Convert from words to bytes
-  const data = Buffer.from(bech32.fromWords(words));
-
-  // Initialize pointers and result storage
-  let pointer = 0;
-  const result = {
-    pubkey: null,
-    dTag: null,
-    kind: null, // Adding kind field here
-  };
-
-  // Loop through data to parse TLV structures
-  while (pointer < data.length) {
-    const type = data[pointer++];
-    const length = data[pointer++];
-
-    if (type === 2 && length === 32) {
-      // Type 2 is the pubkey for naddr
-      result.pubkey = data.slice(pointer, pointer + length).toString("hex");
-    } else if (type === 0 && length > 0) {
-      // Type 0 is the 'd' tag for naddr, ensuring there's content to decode
-      result.dTag = data.slice(pointer, pointer + length).toString("utf8");
-    } else if (type === 3 && length === 4) {
-      // Type 3 is the kind for naddr, which is a 32-bit unsigned integer
-      result.kind = data.readUInt32BE(pointer);
-    }
-
-    // Move the pointer by the length of the current value
-    pointer += length;
-  }
-
-  return result;
 }
 
 export default function useCrossposter () {
@@ -178,6 +140,17 @@ export default function useCrossposter () {
         }
       }`
   )
+
+  const fetchItemData = async (itemId) => {
+    try {
+      const { data } = await fetchItem({ variables: { id: itemId } })
+
+      return data?.item
+    } catch (e) {
+      console.error(e)
+      return null
+    }
+  }
 
   const relayError = (failedRelays) => {
     return new Promise(resolve => {
@@ -253,18 +226,7 @@ export default function useCrossposter () {
     }
   }
 
-  const fetchItemData = async (itemId) => {
-    try {
-      const { data } = await fetchItem({ variables: { id: itemId } })
-
-      return data?.item
-    } catch (e) {
-      console.error(e)
-      return null
-    }
-  }
-
-  const crosspostItem = async (item, fetchItemData) => {
+  const crosspostItem = async (item) => {
     let failedRelays
     let allSuccessful = false
     let noteId
@@ -322,7 +284,7 @@ export default function useCrossposter () {
       if (itemId) {
         const item = await fetchItemData(itemId)
 
-        const crosspostResult = await crosspostItem(item, fetchItemData)
+        const crosspostResult = await crosspostItem(item)
         noteId = crosspostResult?.noteId
         if (noteId) {
           await updateNoteId({

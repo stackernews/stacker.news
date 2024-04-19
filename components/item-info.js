@@ -175,9 +175,10 @@ export default function ItemInfo ({
             nostr note
           </Dropdown.Item>
         )}
+        {/* for crosspost top level items */}
         {item && item.mine && !item.noteId && !item.isJob && !item.parentId &&
           <CrosspostDropdownItem item={item} />}
-        {/* For crosspost replies */}
+        {/* for crosspost replies */}
         {item && item.mine && !item.noteId && root.noteId && isParentCrossposted &&
           <CrosspostDropdownItem item={item} />}
         {me && !item.position &&

@@ -56,6 +56,7 @@ export default function LNbits () {
           label='admin key'
           name='adminKey'
           newPass
+          required
         />
         <ClientCheckbox
           disabled={!enabled || isDefault || enabledProviders.length === 1}

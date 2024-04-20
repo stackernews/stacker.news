@@ -1055,14 +1055,10 @@ function Client (Component) {
 }
 
 function PasswordHider ({ onClick, showPass }) {
-  const handleClick = () => {
-    onClick()
-  }
-
   return (
     <InputGroup.Text
       style={{ cursor: 'pointer' }}
-      onClick={handleClick}
+      onClick={onClick}
     >
       {!showPass
         ? <EyeClose
@@ -1075,18 +1071,14 @@ function PasswordHider ({ onClick, showPass }) {
   )
 }
 
-export function PasswordInput ({ initialValue, label, name, newPass, autoFocus, required }) {
+export function PasswordInput ({ newPass, ...props }) {
   const [showPass, setShowPass] = useState(false)
 
   return (
     <ClientInput
-      initialValue={initialValue}
-      label={label}
-      name={name}
+      {...props}
       type={showPass ? 'text' : 'password'}
       autoComplete={newPass ? 'new-password' : 'current-password'}
-      autoFocus={autoFocus}
-      required={required}
       append={<PasswordHider showPass={showPass} onClick={() => setShowPass(!showPass)} />}
     />
   )

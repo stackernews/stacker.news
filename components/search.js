@@ -1,15 +1,17 @@
 import Container from 'react-bootstrap/Container'
 import styles from './search.module.css'
 import SearchIcon from '@/svgs/search-line.svg'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Form, Input, Select, DatePicker, SubmitButton } from './form'
 import { useRouter } from 'next/router'
 import { whenToFrom } from '@/lib/time'
+import { useMe } from './me'
 
 export default function Search ({ sub }) {
   const router = useRouter()
   const [q, setQ] = useState(router.query.q || '')
   const inputRef = useRef(null)
+  const me = useMe()
 
   useEffect(() => {
     inputRef.current?.focus()
@@ -50,6 +52,7 @@ export default function Search ({ sub }) {
   const what = router.pathname.startsWith('/stackers') ? 'stackers' : router.query.what || 'all'
   const sort = router.query.sort || 'zaprank'
   const when = router.query.when || 'forever'
+  const whatItemOptions = useMemo(() => (['all', 'posts', 'comments', me ? 'bookmarks' : undefined, 'stackers'].filter(item => !!item)), [me])
 
   return (
     <>
@@ -86,7 +89,7 @@ export default function Search ({ sub }) {
                     name='what'
                     size='sm'
                     overrideValue={what}
-                    items={['all', 'posts', 'comments', 'stackers']}
+                    items={whatItemOptions}
                   />
                   {what !== 'stackers' &&
                     <>

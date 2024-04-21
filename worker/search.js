@@ -35,7 +35,7 @@ const ITEM_SEARCH_FIELDS = gql`
     ncomments
   }`
 
-async function _indexItem (item, { models }) {
+async function _indexItem (item, { models, updatedAt }) {
   console.log('indexing item', item.id)
   // HACK: modify the title for jobs so that company/location are searchable
   // and highlighted without further modification
@@ -60,11 +60,33 @@ async function _indexItem (item, { models }) {
 
   itemcp.wvotes = itemdb.weightedVotes - itemdb.weightedDownVotes
 
+  const bookmarkedBy = await models.bookmark.findMany({
+    where: { itemId: Number(item.id) },
+    select: { userId: true, createdAt: true },
+    orderBy: [
+      {
+        createdAt: 'desc'
+      }
+    ]
+  })
+  itemcp.bookmarkedBy = bookmarkedBy.map(bookmark => bookmark.userId)
+
+  // use the latest of:
+  // 1. an explicitly-supplied updatedAt value, used when a bookmark to this item was removed
+  // 2. when the item itself was updated
+  // 3. or when it was last bookmarked
+  // to determine the latest version of the indexed version
+  const latestUpdatedAt = Math.max(
+    updatedAt ? new Date(updatedAt).getTime() : 0,
+    new Date(item.updatedAt).getTime(),
+    bookmarkedBy[0] ? new Date(bookmarkedBy[0].createdAt).getTime() : 0
+  )
+
   try {
     await search.index({
       id: item.id,
       index: process.env.OPENSEARCH_INDEX,
-      version: new Date(item.updatedAt).getTime(),
+      version: new Date(latestUpdatedAt).getTime(),
       versionType: 'external_gte',
       body: itemcp
     })
@@ -79,7 +101,9 @@ async function _indexItem (item, { models }) {
   }
 }
 
-export async function indexItem ({ data: { id }, apollo, models }) {
+// `data.updatedAt` is an explicit updatedAt value for the use case of a bookmark being removed
+// this is consulted to generate the index version
+export async function indexItem ({ data: { id, updatedAt }, apollo, models }) {
   // 1. grab item from database
   // could use apollo to avoid duping logic
   // when grabbing sats and user name, etc
@@ -94,7 +118,7 @@ export async function indexItem ({ data: { id }, apollo, models }) {
   })
 
   // 2. index it with external version based on updatedAt
-  await _indexItem(item, { models })
+  await _indexItem(item, { models, updatedAt })
 }
 
 export async function indexAllItems ({ apollo, models }) {

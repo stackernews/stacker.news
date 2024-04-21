@@ -29,6 +29,8 @@ import { AWS_S3_URL_REGEXP } from '@/lib/constants'
 import { whenRange } from '@/lib/time'
 import { useFeeButton } from './fee-button'
 import Thumb from '@/svgs/thumb-up-fill.svg'
+import Eye from '@/svgs/eye-fill.svg'
+import EyeClose from '@/svgs/eye-close-line.svg'
 import Info from './info'
 
 export function SubmitButton ({
@@ -1050,6 +1052,36 @@ function Client (Component) {
 
     return <Component {...props} />
   }
+}
+
+function PasswordHider ({ onClick, showPass }) {
+  return (
+    <InputGroup.Text
+      style={{ cursor: 'pointer' }}
+      onClick={onClick}
+    >
+      {!showPass
+        ? <EyeClose
+            fill='var(--bs-body-color)' height={20} width={20}
+          />
+        : <Eye
+            fill='var(--bs-body-color)' height={20} width={20}
+          />}
+    </InputGroup.Text>
+  )
+}
+
+export function PasswordInput ({ newPass, ...props }) {
+  const [showPass, setShowPass] = useState(false)
+
+  return (
+    <ClientInput
+      {...props}
+      type={showPass ? 'text' : 'password'}
+      autoComplete={newPass ? 'new-password' : 'current-password'}
+      append={<PasswordHider showPass={showPass} onClick={() => setShowPass(!showPass)} />}
+    />
+  )
 }
 
 export const ClientInput = Client(Input)

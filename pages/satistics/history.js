@@ -220,7 +220,7 @@ export default function Satistics ({ ssrData }) {
   return (
     <Layout>
       <div className='mt-2'>
-        <SatisticsHeader/>
+        <SatisticsHeader />
         <Form
           initial={{
             invoice: included('invoice'),

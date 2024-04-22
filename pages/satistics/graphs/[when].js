@@ -34,7 +34,7 @@ export default function Satistics ({ ssrData }) {
   return (
     <Layout>
       <div className='mt-2'>
-        <SatisticsHeader/>
+        <SatisticsHeader />
         <div className='tab-content' id='myTabContent'>
           <div className='tab-pane fade show active' id='statistics' role='tabpanel' aria-labelledby='statistics-tab'>
             <UsageHeader pathname='satistics/graphs' />

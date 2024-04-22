@@ -8,14 +8,15 @@ import dynamic from 'next/dynamic'
 import { numWithUnits } from '@/lib/format'
 import { UsageHeader } from '@/components/usage-header'
 import { SatisticsHeader } from '../history'
+import { WhenComposedChartSkeleton } from '@/components/charts-skeletons'
 
 export const getServerSideProps = getGetServerSideProps({ query: USER_STATS, authRequired: true })
 
 const WhenAreaChart = dynamic(() => import('@/components/charts').then(mod => mod.WhenAreaChart), {
   loading: () => <div>Loading...</div>
 })
-const WhenLineChart = dynamic(() => import('@/components/charts').then(mod => mod.WhenLineChart), {
-  loading: () => <div>Loading...</div>
+const WhenComposedChart = dynamic(() => import('@/components/charts').then(mod => mod.WhenComposedChart), {
+  loading: () => <WhenComposedChartSkeleton />
 })
 
 export default function Satistics ({ ssrData }) {
@@ -74,17 +75,17 @@ export default function Satistics ({ ssrData }) {
               <div className='row mt-5'>
                 <div className='col-md-6'>
                   <div className='text-center text-muted fw-bold'>stacking</div>
-                  <WhenLineChart data={userStatsIncomingSats} />
+                  <WhenAreaChart data={userStatsIncomingSats} />
                 </div>
                 <div className='col-md-6'>
                   <div className='text-center text-muted fw-bold'>spending</div>
-                  <WhenLineChart data={userStatsOutgoingSats} />
+                  <WhenAreaChart data={userStatsOutgoingSats} />
                 </div>
               </div>
               <div className='row'>
                 <div className='col-md-12'>
                   <div className='text-center text-muted fw-bold'>items</div>
-                  <WhenAreaChart data={userStatsActions} />
+                  <WhenComposedChart data={userStatsActions} areaNames={['posts', 'comments']} areaAxis='left' lineNames={['territories', 'referrals']} lineAxis='right' />
                 </div>
               </div>
             </div>

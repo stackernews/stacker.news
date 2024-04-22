@@ -40,7 +40,7 @@ export default function Satistics ({ ssrData }) {
             <UsageHeader pathname='satistics/graphs' />
             <div>
               <div className='d-flex row justify-content-between'>
-                <div className='col-md-4'>
+                <div className='col-md-4 mb-2'>
                   <h4>Stacked</h4>
                   <div className='card'>
                     <div className='card-body'>
@@ -50,7 +50,7 @@ export default function Satistics ({ ssrData }) {
                     </div>
                   </div>
                 </div>
-                <div className='col-md-4'>
+                <div className='col-md-4 mb-2'>
                   <h4>Spent</h4>
                   <div className='card'>
                     <div className='card-body'>
@@ -73,14 +73,17 @@ export default function Satistics ({ ssrData }) {
               </div>
               <div className='row mt-5'>
                 <div className='col-md-6'>
+                  <div className='text-center text-muted fw-bold'>stacking</div>
                   <WhenLineChart data={userStatsIncomingSats} />
                 </div>
                 <div className='col-md-6'>
+                  <div className='text-center text-muted fw-bold'>spending</div>
                   <WhenLineChart data={userStatsOutgoingSats} />
                 </div>
               </div>
               <div className='row'>
                 <div className='col-md-12'>
+                  <div className='text-center text-muted fw-bold'>items</div>
                   <WhenAreaChart data={userStatsActions} />
                 </div>
               </div>

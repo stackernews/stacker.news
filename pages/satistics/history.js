@@ -183,7 +183,7 @@ export function SatisticsHeader () {
         </Nav.Item>
         <Nav.Item>
           <Link href='/satistics/graphs/day' passHref legacyBehavior>
-            <Nav.Link eventKey='graphs'>charts</Nav.Link>
+            <Nav.Link eventKey='graphs'>graphs</Nav.Link>
           </Link>
         </Nav.Item>
       </Nav>

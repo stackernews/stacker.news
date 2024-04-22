@@ -7,6 +7,7 @@ import PageLoading from '@/components/page-loading'
 import dynamic from 'next/dynamic'
 import { numWithUnits } from '@/lib/format'
 import { UsageHeader } from '@/components/usage-header'
+import { SatisticsHeader } from '../history'
 
 export const getServerSideProps = getGetServerSideProps({ query: USER_STATS, authRequired: true })
 
@@ -30,30 +31,15 @@ export default function Satistics ({ ssrData }) {
   const totalSpent = userStatsOutgoingSats.reduce((total, a) => total + a.data?.reduce((acc, d) => acc + d.value, 0), 0)
   const totalEngagement = userStatsActions.reduce((total, a) => total + a.data?.reduce((acc, d) => acc + d.value, 0), 0)
 
-  const handleHistoryTabClick = async () => {
-    await router.push({
-      pathname: '/satistics/history',
-      query: 'inc=invoice,withdrawal,stacked,spent'
-    })
-  }
-
   return (
     <Layout>
-      <div className='mt-3'>
-        <ul className='nav nav-tabs' id='myTab' role='tablist'>
-          <li className='nav-item' role='presentation'>
-            <button className='nav-link  active'>Statistics</button>
-          </li>
-          <li className='nav-item' role='presentation'>
-            <button className='nav-link' onClick={() => handleHistoryTabClick()}>History</button>
-          </li>
-        </ul>
+      <div className='mt-2'>
+        <SatisticsHeader/>
         <div className='tab-content' id='myTabContent'>
           <div className='tab-pane fade show active' id='statistics' role='tabpanel' aria-labelledby='statistics-tab'>
             <UsageHeader pathname='satistics/graphs' />
             <div>
               <div className='d-flex row justify-content-between'>
-                <h1 className='text-center'>Statistics</h1>
                 <div className='col-md-4'>
                   <h4>Stacked</h4>
                   <div className='card'>

@@ -60,6 +60,7 @@ export default function UserPopover ({ text, children }) {
     <OverlayTrigger
       trigger={['hover', 'focus']}
       onEntered={handleOverlayTrigger}
+      delay={{ show: 777 }}
       overlay={
         <Popover placement='auto' style={{ border: '1px solid var(--theme-toolbarActive)' }}>
           <Popover.Body style={{ fontWeight: 500, fontSize: '.9rem' }}>

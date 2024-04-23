@@ -3,6 +3,7 @@ import { LNbitsProvider, useLNbits } from './lnbits'
 import { NWCProvider, useNWC } from './nwc'
 import { useToast, withToastFlow } from '@/components/toast'
 import { gql, useMutation } from '@apollo/client'
+import { LNCProvider, useLNC } from './lnc'
 
 const WebLNContext = createContext({})
 
@@ -25,7 +26,8 @@ const storageKey = 'webln:providers'
 function RawWebLNProvider ({ children }) {
   const lnbits = useLNbits()
   const nwc = useNWC()
-  const availableProviders = [lnbits, nwc]
+  const lnc = useLNC()
+  const availableProviders = [lnbits, nwc, lnc]
   const [enabledProviders, setEnabledProviders] = useState([])
 
   // restore order on page reload
@@ -119,9 +121,11 @@ export function WebLNProvider ({ children }) {
   return (
     <LNbitsProvider>
       <NWCProvider>
-        <RawWebLNProvider>
-          {children}
-        </RawWebLNProvider>
+        <LNCProvider>
+          <RawWebLNProvider>
+            {children}
+          </RawWebLNProvider>
+        </LNCProvider>
       </NWCProvider>
     </LNbitsProvider>
   )

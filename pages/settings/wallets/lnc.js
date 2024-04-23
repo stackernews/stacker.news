@@ -1,0 +1,96 @@
+import { getGetServerSideProps } from '@/api/ssrApollo'
+import { WalletSecurityBanner } from '@/components/banners'
+import { ClientCheckbox, Form, PasswordInput } from '@/components/form'
+import { CenterLayout } from '@/components/layout'
+import { useToast } from '@/components/toast'
+import { WalletButtonBar, WalletCard } from '@/components/wallet-card'
+import WalletLogs from '@/components/wallet-logs'
+import { useWebLNConfigurator } from '@/components/webln'
+import { useLNC } from '@/components/webln/lnc'
+import { lncSchema } from '@/lib/validate'
+import { useRouter } from 'next/router'
+
+export const getServerSideProps = getGetServerSideProps({ authRequired: true })
+
+export default function LNC () {
+  const { provider, enabledProviders, setProvider } = useWebLNConfigurator()
+  const toaster = useToast()
+  const router = useRouter()
+  const lnc = useLNC()
+  const { enabled, clearConfig, saveConfig, config, name } = lnc
+  const isDefault = provider?.name === name
+
+  return (
+    <CenterLayout>
+      <h2>Lightning Node Connect for LND</h2>
+      <h6 className='text-muted text-center pb-3'>use Lightning Node Connect for LND payments</h6>
+      <WalletSecurityBanner />
+      <Form
+        initial={{
+          pairingPhrase: config?.pairingPhrase || '',
+          password: config?.password || ''
+        }}
+        schema={lncSchema}
+        onSubmit={async ({ isDefault, ...values }) => {
+          try {
+            await saveConfig(values)
+            if (isDefault) setProvider(lnc)
+            toaster.success('saved settings')
+            router.push('/settings/wallets')
+          } catch (err) {
+            console.error(err)
+            toaster.danger('failed to attach: ' + err.message || err.toString?.())
+          }
+        }}
+      >
+        <PasswordInput
+          initialValue=''
+          label='pairing phrase'
+          name='pairingPhrase'
+          newPass
+          required
+          autoFocus
+        />
+        <PasswordInput
+          initialValue=''
+          label={<>password <small className='text-muted ms-2'>optional</small></>}
+          name='password'
+          newPass
+        />
+        <ClientCheckbox
+          disabled={!enabled || isDefault || enabledProviders.length === 1}
+          initialValue={isDefault}
+          label='default payment method'
+          name='isDefault'
+        />
+        <WalletButtonBar
+          enabled={enabled} onDelete={async () => {
+            try {
+              await clearConfig()
+              toaster.success('saved settings')
+              router.push('/settings/wallets')
+            } catch (err) {
+              console.error(err)
+              toaster.danger('failed to unattach: ' + err.message || err.toString?.())
+            }
+          }}
+        />
+      </Form>
+      <div className='mt-3 w-100'>
+        <WalletLogs wallet='lnc' embedded />
+      </div>
+    </CenterLayout>
+  )
+}
+
+export function LNCCard () {
+  const { enabled } = useLNC()
+  return (
+    <WalletCard
+      title='LNC'
+      badges={['send only', 'non-custodial', 'budgetable']}
+      provider='lnc'
+      enabled={enabled}
+    />
+  )
+}

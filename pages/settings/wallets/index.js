@@ -10,6 +10,7 @@ import { CLNCard } from './cln'
 import { WALLETS } from '@/fragments/wallet'
 import { useQuery } from '@apollo/client'
 import PageLoading from '@/components/page-loading'
+import { LNCCard } from './lnc'
 
 export const getServerSideProps = getGetServerSideProps({ query: WALLETS, authRequired: true })
 
@@ -33,6 +34,7 @@ export default function Wallet ({ ssrData }) {
           <CLNCard wallet={cln} />
           <LNbitsCard />
           <NWCCard />
+          <LNCCard />
           <WalletCard title='coming soon' badges={['probably']} />
           <WalletCard title='coming soon' badges={['we hope']} />
           <WalletCard title='coming soon' badges={['tm']} />

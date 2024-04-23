@@ -8,12 +8,12 @@ import dynamic from 'next/dynamic'
 import { numWithUnits } from '@/lib/format'
 import { UsageHeader } from '@/components/usage-header'
 import { SatisticsHeader } from '../history'
-import { WhenComposedChartSkeleton } from '@/components/charts-skeletons'
+import { WhenComposedChartSkeleton, WhenAreaChartSkeleton } from '@/components/charts-skeletons'
 
 export const getServerSideProps = getGetServerSideProps({ query: USER_STATS, authRequired: true })
 
 const WhenAreaChart = dynamic(() => import('@/components/charts').then(mod => mod.WhenAreaChart), {
-  loading: () => <div>Loading...</div>
+  loading: () => <WhenAreaChartSkeleton />
 })
 const WhenComposedChart = dynamic(() => import('@/components/charts').then(mod => mod.WhenComposedChart), {
   loading: () => <WhenComposedChartSkeleton />

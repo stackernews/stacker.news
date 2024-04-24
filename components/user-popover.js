@@ -2,7 +2,7 @@ import { USER_FULL } from '@/fragments/users'
 import Moon from '@/svgs/moon-fill.svg'
 import { useQuery } from '@apollo/client'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Popover } from 'react-bootstrap'
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import { User } from './user-list'
@@ -30,17 +30,28 @@ export default function UserPopover ({ text, children }) {
     }
   }, [data, isTriggered])
 
-  const handleOverlayTrigger = () => {
-    setIsTriggered(true)
+  const timeoutId = useRef(null)
+
+  const handleMouseEnter = () => {
+    clearTimeout(timeoutId.current)
+    timeoutId.current = setTimeout(() => setIsTriggered(true), 777)
+  }
+
+  const handleMouseLeave = () => {
+    clearTimeout(timeoutId.current)
+    timeoutId.current = setTimeout(() => setIsTriggered(false), 333)
   }
 
   return (
     <OverlayTrigger
-      trigger={['hover', 'focus']}
-      onEntered={handleOverlayTrigger}
-      delay={{ show: 777 }}
+      show={isTriggered}
+      onHide={handleMouseLeave}
       overlay={
-        <Popover placement='auto' style={{ border: '1px solid var(--theme-toolbarActive)' }}>
+        <Popover
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          style={{ border: '1px solid var(--theme-toolbarActive)' }}
+        >
           <Popover.Body style={{ fontWeight: 500, fontSize: '.9rem' }}>
             {user
               ? (
@@ -51,9 +62,14 @@ export default function UserPopover ({ text, children }) {
                 )}
           </Popover.Body>
         </Popover>
-            }
+      }
     >
-      {children}
+      <span
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
+        {children}
+      </span>
     </OverlayTrigger>
   )
 }

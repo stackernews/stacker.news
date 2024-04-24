@@ -68,13 +68,13 @@ export default function WalletLogs ({ wallet, embedded }) {
             handleChange={setFollow} groupClassName='mb-0'
           />
         </Form>
-        <Button
+        <span
+          style={{ cursor: 'pointer' }}
           className='text-muted fw-bold nav-link' onClick={() => {
             showModal(onClose => <DeleteWalletLogsObstacle wallet={wallet} onClose={onClose} />)
           }}
-          variant='link'
         >clear
-        </Button>
+        </span>
       </div>
       <div ref={tableRef} className={`${styles.logTable} ${embedded ? styles.embedded : ''}`}>
         <div className='w-100 text-center'>------ start of logs ------</div>
@@ -98,7 +98,7 @@ function DeleteWalletLogsObstacle ({ wallet, onClose }) {
     <div className='text-center'>
       {prompt}
       <div className='d-flex justify-center align-items-center mt-3 mx-auto'>
-        <Button className='d-flex ms-auto text-muted fw-bold nav-link mx-3' variant='link' onClick={onClose}>cancel</Button>
+        <span style={{ cursor: 'pointer' }} className='d-flex ms-auto text-muted fw-bold nav-link mx-3' onClick={onClose}>cancel</span>
         <Button
           className='d-flex me-auto mx-3' variant='danger'
           onClick={

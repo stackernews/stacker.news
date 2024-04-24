@@ -93,10 +93,10 @@ function DeleteWalletLogsObstacle ({ wallet, onClose }) {
   const toaster = useToast()
   const { deleteLogs } = useWalletLogger(wallet)
 
+  const prompt = `Do you really want to delete all ${wallet ? '' : 'wallet'} logs ${wallet ? 'of this wallet' : ''}?`
   return (
     <div className='text-center'>
-      {/* TODO: this shows ugly wallet name to user */}
-      Do you really want to delete all {wallet} wallet logs?
+      {prompt}
       <div className='d-flex justify-center align-items-center mt-3 mx-auto'>
         <Button className='d-flex ms-auto text-muted fw-bold nav-link mx-3' variant='link' onClick={onClose}>cancel</Button>
         <Button

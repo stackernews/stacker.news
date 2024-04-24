@@ -15,7 +15,7 @@ export function NWCProvider ({ children }) {
   const [relayUrl, setRelayUrl] = useState()
   const [secret, setSecret] = useState()
   const [status, setStatus] = useState()
-  const logger = useWalletLogger('nwc')
+  const { logger } = useWalletLogger('nwc')
 
   const name = 'NWC'
   const storageKey = 'webln:provider:nwc'

@@ -524,6 +524,15 @@ export default {
       ])
 
       return true
+    },
+    deleteWalletLogs: async (parent, { wallet }, { me, models }) => {
+      if (!me) {
+        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+      }
+
+      await models.walletLog.deleteMany({ where: { userId: me.id, wallet } })
+
+      return true
     }
   },
 

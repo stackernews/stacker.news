@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useMe } from './me'
 import fancyNames from '@/lib/fancy-names.json'
-import { useQuery } from '@apollo/client'
+import { gql, useMutation, useQuery } from '@apollo/client'
 import { WALLET_LOGS } from '@/fragments/wallet'
 
 const generateFancyName = () => {
@@ -157,7 +157,7 @@ const initIndexedDB = async (storeName) => {
   })
 }
 
-const renameWallet = (wallet) => {
+const mapWalletServer2Client = (wallet) => {
   switch (wallet) {
     case 'walletLightningAddress':
     case 'LIGHTNING_ADDRESS':
@@ -168,6 +168,18 @@ const renameWallet = (wallet) => {
     case 'walletCLN':
     case 'CLN':
       return 'cln'
+  }
+  return wallet
+}
+
+const mapWalletClient2Server = (wallet) => {
+  switch (wallet) {
+    case 'lnAddr':
+      return 'LIGHTNING_ADDRESS'
+    case 'lnd':
+      return 'LND'
+    case 'cln':
+      return 'CLN'
   }
   return wallet
 }
@@ -187,11 +199,23 @@ const WalletLoggerProvider = ({ children }) => {
         const existingIds = prevLogs.map(({ id }) => id)
         const logs = walletLogs
           .filter(({ id }) => !existingIds.includes(id))
-          .map(({ createdAt, wallet, ...log }) => ({ ts: +new Date(createdAt), wallet: renameWallet(wallet), ...log }))
+          .map(({ createdAt, wallet, ...log }) => ({ ts: +new Date(createdAt), wallet: mapWalletServer2Client(wallet), ...log }))
         return [...prevLogs, ...logs].sort((a, b) => a.ts - b.ts)
       })
     }
   })
+
+  const [deleteServerWalletLogs] = useMutation(
+    gql`
+      mutation deleteWalletLogs($wallet: String) {
+        deleteWalletLogs(wallet: $wallet)
+      }
+    `,
+    {
+      onComplete: (_, { variables: { wallet } }) =>
+        setLogs((logs) => logs.filter(l => wallet ? l.wallet !== wallet : false))
+    }
+  )
 
   const saveLog = useCallback((log) => {
     if (!idb.current) {
@@ -239,9 +263,36 @@ const WalletLoggerProvider = ({ children }) => {
     setLogs((prevLogs) => [...prevLogs, log])
   }, [saveLog])
 
+  const deleteLogs = useCallback(async (wallet) => {
+    const serverWallet = mapWalletClient2Server(wallet)
+    // XXX this is dumb but it works
+    // TODO: make wallet naming client<>server code less dumb
+    const isServerWallet = serverWallet !== wallet
+
+    if (!wallet || isServerWallet) {
+      await deleteServerWalletLogs({ variables: { wallet: serverWallet } })
+    }
+    if (!wallet || !isServerWallet) {
+      const tx = idb.current.transaction(idbStoreName, 'readwrite')
+      const objectStore = tx.objectStore(idbStoreName)
+      const idx = objectStore.index('wallet_ts')
+      const request = wallet ? idx.openCursor(window.IDBKeyRange.bound([wallet, -Infinity], [wallet, Infinity])) : idx.openCursor()
+      request.onsuccess = function (event) {
+        const cursor = event.target.result
+        if (cursor) {
+          cursor.delete()
+          cursor.continue()
+        } else {
+          // finished
+          setLogs((logs) => logs.filter(l => wallet ? l.wallet !== wallet : false))
+        }
+      }
+    }
+  }, [setLogs])
+
   return (
     <WalletLogsContext.Provider value={logs}>
-      <WalletLoggerContext.Provider value={appendLog}>
+      <WalletLoggerContext.Provider value={{ appendLog, deleteLogs }}>
         {children}
       </WalletLoggerContext.Provider>
     </WalletLogsContext.Provider>
@@ -249,7 +300,7 @@ const WalletLoggerProvider = ({ children }) => {
 }
 
 export function useWalletLogger (wallet) {
-  const appendLog = useContext(WalletLoggerContext)
+  const { appendLog, deleteLogs: innerDeleteLogs } = useContext(WalletLoggerContext)
 
   const log = useCallback(level => message => {
     // TODO:
@@ -265,7 +316,9 @@ export function useWalletLogger (wallet) {
     error: (...message) => log('error')(message.join(' '))
   }), [log, wallet])
 
-  return logger
+  const deleteLogs = useCallback(() => innerDeleteLogs(wallet), [innerDeleteLogs, wallet])
+
+  return { logger, deleteLogs }
 }
 
 export function useWalletLogs (wallet) {

@@ -67,7 +67,7 @@ export function LNbitsProvider ({ children }) {
   const [url, setUrl] = useState('')
   const [adminKey, setAdminKey] = useState('')
   const [status, setStatus] = useState()
-  const logger = useWalletLogger('lnbits')
+  const { logger } = useWalletLogger('lnbits')
 
   const name = 'LNbits'
   const storageKey = 'webln:provider:lnbits'

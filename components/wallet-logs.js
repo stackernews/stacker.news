@@ -106,10 +106,10 @@ function DeleteWalletLogsObstacle ({ wallet, onClose }) {
               try {
                 await deleteLogs()
                 onClose()
-                toaster.success('deleted wallet logs')
+                toaster.success(`deleted ${wallet || ''} wallet logs`)
               } catch (err) {
                 console.error(err)
-                toaster.danger('failed to delete logs')
+                toaster.danger(`failed to delete ${wallet || ''} wallet logs`)
               }
             }
           }

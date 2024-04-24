@@ -10,8 +10,9 @@ import { useRouter } from 'next/router'
 import { AutowithdrawSettings, autowithdrawInitial } from '@/components/autowithdraw-shared'
 import { REMOVE_WALLET, UPSERT_WALLET_LNADDR, WALLET_BY_TYPE } from '@/fragments/wallet'
 import WalletLogs from '@/components/wallet-logs'
+import { WALLET_TYPE_LNADDR } from '@/lib/constants'
 
-const variables = { type: 'LIGHTNING_ADDRESS' }
+const variables = { type: WALLET_TYPE_LNADDR }
 export const getServerSideProps = getGetServerSideProps({ query: WALLET_BY_TYPE, variables, authRequired: true })
 
 export default function LightningAddress ({ ssrData }) {

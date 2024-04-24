@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 import { useWalletLogger } from '../logger'
 import { Status } from '.'
 import { bolt11Tags } from '@/lib/bolt11'
+import { WALLET_LOG_TAG_LNBITS } from '@/lib/constants'
 
 // Reference: https://github.com/getAlby/bitcoin-connect/blob/v3.2.0-alpha/src/connectors/LnbitsConnector.ts
 
@@ -67,7 +68,7 @@ export function LNbitsProvider ({ children }) {
   const [url, setUrl] = useState('')
   const [adminKey, setAdminKey] = useState('')
   const [status, setStatus] = useState()
-  const { logger } = useWalletLogger('lnbits')
+  const { logger } = useWalletLogger(WALLET_LOG_TAG_LNBITS)
 
   const name = 'LNbits'
   const storageKey = 'webln:provider:lnbits'

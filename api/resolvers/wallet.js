@@ -7,7 +7,7 @@ import { SELECT } from './item'
 import { lnAddrOptions } from '@/lib/lnurl'
 import { msatsToSats, msatsToSatsDecimal, ensureB64 } from '@/lib/format'
 import { CLNAutowithdrawSchema, LNDAutowithdrawSchema, amountSchema, lnAddrAutowithdrawSchema, lnAddrSchema, ssValidate, withdrawlSchema } from '@/lib/validate'
-import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, ANON_USER_ID, BALANCE_LIMIT_MSATS, INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT } from '@/lib/constants'
+import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, ANON_USER_ID, BALANCE_LIMIT_MSATS, INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT, WALLET_TYPE_CLN, WALLET_TYPE_LNADDR, WALLET_TYPE_LND, walletTypeToField } from '@/lib/constants'
 import { datePivot } from '@/lib/time'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
@@ -434,7 +434,7 @@ export default {
       data.macaroon = ensureB64(data.macaroon)
       data.cert = ensureB64(data.cert)
 
-      const walletType = 'LND'
+      const walletType = WALLET_TYPE_LND
       return await upsertWallet(
         {
           schema: LNDAutowithdrawSchema,
@@ -468,7 +468,7 @@ export default {
     upsertWalletCLN: async (parent, { settings, ...data }, { me, models }) => {
       data.cert = ensureB64(data.cert)
 
-      const walletType = 'CLN'
+      const walletType = WALLET_TYPE_CLN
       return await upsertWallet(
         {
           schema: CLNAutowithdrawSchema,
@@ -495,7 +495,7 @@ export default {
         { settings, data }, { me, models })
     },
     upsertWalletLNAddr: async (parent, { settings, ...data }, { me, models }) => {
-      const walletType = 'LIGHTNING_ADDRESS'
+      const walletType = WALLET_TYPE_LNADDR
       return await upsertWallet(
         {
           schema: lnAddrAutowithdrawSchema,
@@ -616,16 +616,14 @@ async function upsertWallet (
       }))
   }
 
-  const walletName = walletType === 'LND'
-    ? 'walletLND'
-    : walletType === 'CLN' ? 'walletCLN' : 'walletLightningAddress'
+  const walletField = walletTypeToField(walletType)
   if (id) {
     txs.push(
       models.wallet.update({
         where: { id: Number(id), userId: me.id },
         data: {
           priority: priority ? 1 : 0,
-          [walletName]: {
+          [walletField]: {
             update: {
               where: { walletId: Number(id) },
               data: walletData
@@ -642,7 +640,7 @@ async function upsertWallet (
           priority: Number(priority),
           userId: me.id,
           type: walletType,
-          [walletName]: {
+          [walletField]: {
             create: walletData
           }
         }
@@ -760,7 +758,7 @@ export async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...
     if (autoWithdraw && decoded.destination === ourPubkey && process.env.NODE_ENV === 'production') {
       // unset lnaddr so we don't trigger another withdrawal with same destination
       await models.wallet.deleteMany({
-        where: { userId: me.id, type: 'LIGHTNING_ADDRESS' }
+        where: { userId: me.id, type: WALLET_TYPE_LNADDR }
       })
       throw new Error('automated withdrawals to other stackers are not allowed')
     }

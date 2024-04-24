@@ -12,8 +12,9 @@ import { REMOVE_WALLET, UPSERT_WALLET_CLN, WALLET_BY_TYPE } from '@/fragments/wa
 import WalletLogs from '@/components/wallet-logs'
 import Info from '@/components/info'
 import Text from '@/components/text'
+import { WALLET_TYPE_CLN } from '@/lib/constants'
 
-const variables = { type: 'CLN' }
+const variables = { type: WALLET_TYPE_CLN }
 export const getServerSideProps = getGetServerSideProps({ query: WALLET_BY_TYPE, variables, authRequired: true })
 
 export default function CLN ({ ssrData }) {

@@ -12,6 +12,7 @@ import { useQuery } from '@apollo/client'
 import PageLoading from '@/components/page-loading'
 import { LNCCard } from './lnc'
 import Link from 'next/link'
+import { WALLET_TYPE_CLN, WALLET_TYPE_LNADDR, WALLET_TYPE_LND } from '@/lib/constants'
 
 export const getServerSideProps = getGetServerSideProps({ query: WALLETS, authRequired: true })
 
@@ -20,9 +21,9 @@ export default function Wallet ({ ssrData }) {
 
   if (!data && !ssrData) return <PageLoading />
   const { wallets } = data || ssrData
-  const lnd = wallets.find(w => w.type === 'LND')
-  const lnaddr = wallets.find(w => w.type === 'LIGHTNING_ADDRESS')
-  const cln = wallets.find(w => w.type === 'CLN')
+  const lnd = wallets.find(w => w.type === WALLET_TYPE_LND)
+  const lnaddr = wallets.find(w => w.type === WALLET_TYPE_LNADDR)
+  const cln = wallets.find(w => w.type === WALLET_TYPE_CLN)
 
   return (
     <Layout>

@@ -3,6 +3,7 @@ import { useMe } from './me'
 import fancyNames from '@/lib/fancy-names.json'
 import { gql, useMutation, useQuery } from '@apollo/client'
 import { WALLET_LOGS } from '@/fragments/wallet'
+import { walletTypeToLogTag, walletLogTagToType, isServerWallet } from '@/lib/constants'
 
 const generateFancyName = () => {
   // 100 adjectives * 100 nouns * 10000 = 100M possible names
@@ -157,33 +158,6 @@ const initIndexedDB = async (storeName) => {
   })
 }
 
-const mapWalletServer2Client = (wallet) => {
-  switch (wallet) {
-    case 'walletLightningAddress':
-    case 'LIGHTNING_ADDRESS':
-      return 'lnAddr'
-    case 'walletLND':
-    case 'LND':
-      return 'lnd'
-    case 'walletCLN':
-    case 'CLN':
-      return 'cln'
-  }
-  return wallet
-}
-
-const mapWalletClient2Server = (wallet) => {
-  switch (wallet) {
-    case 'lnAddr':
-      return 'LIGHTNING_ADDRESS'
-    case 'lnd':
-      return 'LND'
-    case 'cln':
-      return 'CLN'
-  }
-  return wallet
-}
-
 const WalletLoggerProvider = ({ children }) => {
   const [logs, setLogs] = useState([])
   const idbStoreName = 'wallet_logs'
@@ -199,7 +173,11 @@ const WalletLoggerProvider = ({ children }) => {
         const existingIds = prevLogs.map(({ id }) => id)
         const logs = walletLogs
           .filter(({ id }) => !existingIds.includes(id))
-          .map(({ createdAt, wallet, ...log }) => ({ ts: +new Date(createdAt), wallet: mapWalletServer2Client(wallet), ...log }))
+          .map(({ createdAt, wallet, ...log }) => ({
+            ts: +new Date(createdAt),
+            wallet: walletTypeToLogTag(wallet),
+            ...log
+          }))
         return [...prevLogs, ...logs].sort((a, b) => a.ts - b.ts)
       })
     }
@@ -212,8 +190,11 @@ const WalletLoggerProvider = ({ children }) => {
       }
     `,
     {
-      onComplete: (_, { variables: { wallet } }) =>
-        setLogs((logs) => logs.filter(l => wallet ? l.wallet !== wallet : false))
+      onCompleted: (_, { variables: { wallet } }) => {
+        setLogs((logs) => {
+          return logs.filter(l => wallet ? l.wallet !== walletTypeToLogTag(wallet) : false)
+        })
+      }
     }
   )
 
@@ -264,15 +245,12 @@ const WalletLoggerProvider = ({ children }) => {
   }, [saveLog])
 
   const deleteLogs = useCallback(async (wallet) => {
-    const serverWallet = mapWalletClient2Server(wallet)
-    // XXX this is dumb but it works
-    // TODO: make wallet naming client<>server code less dumb
-    const isServerWallet = serverWallet !== wallet
+    const deleteOnServer = isServerWallet(wallet)
 
-    if (!wallet || isServerWallet) {
-      await deleteServerWalletLogs({ variables: { wallet: serverWallet } })
+    if (!wallet || deleteOnServer) {
+      await deleteServerWalletLogs({ variables: { wallet: wallet ? walletLogTagToType(wallet) : undefined } })
     }
-    if (!wallet || !isServerWallet) {
+    if (!wallet || !deleteOnServer) {
       const tx = idb.current.transaction(idbStoreName, 'readwrite')
       const objectStore = tx.objectStore(idbStoreName)
       const idx = objectStore.index('wallet_ts')

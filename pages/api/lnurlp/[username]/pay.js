@@ -90,7 +90,8 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
 
     return res.status(200).json({
       pr: invoice.request,
-      routes: []
+      routes: [],
+      verify: `${process.env.NEXT_PUBLIC_URL}/api/lnurlp/${username}/verify/${invoice.id}`
     })
   } catch (error) {
     console.log(error)

@@ -1,4 +1,4 @@
-import { getIdentity, createHodlInvoice, createInvoice, decodePaymentRequest, payViaPaymentRequest, cancelHodlInvoice, getInvoice as getInvoiceFromLnd, getNode, authenticatedLndGrpc, deletePayment } from 'ln-service'
+import { getIdentity, createHodlInvoice, createInvoice, decodePaymentRequest, payViaPaymentRequest, cancelHodlInvoice, getInvoice as getInvoiceFromLnd, getNode, authenticatedLndGrpc, deletePayment, getPayment } from 'ln-service'
 import { GraphQLError } from 'graphql'
 import crypto from 'crypto'
 import serialize from './serial'
@@ -55,7 +55,7 @@ export async function getInvoice (parent, { id }, { me, models, lnd }) {
   return inv
 }
 
-export async function getWithdrawl (parent, { id }, { me, models }) {
+export async function getWithdrawl (parent, { id }, { me, models, lnd }) {
   if (!me) {
     throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
   }
@@ -75,6 +75,15 @@ export async function getWithdrawl (parent, { id }, { me, models }) {
 
   if (wdrwl.user.id !== me.id) {
     throw new GraphQLError('not ur withdrawal', { extensions: { code: 'FORBIDDEN' } })
+  }
+
+  try {
+    if (wdrwl.status === 'CONFIRMED') {
+      const payment = await getPayment({ id: wdrwl.hash, lnd })
+      wdrwl.preimage = payment.payment.secret
+    }
+  } catch (err) {
+    console.error('error fetching payment from LND', err)
   }
 
   return wdrwl

@@ -6,7 +6,7 @@ import BackArrow from '../../svgs/arrow-left-line.svg'
 import { useCallback, useEffect, useState } from 'react'
 import Price from '../price'
 import SubSelect from '../sub-select'
-import { ANON_USER_ID, BALANCE_LIMIT_MSATS } from '../../lib/constants'
+import { ANON_USER_ID, BALANCE_LIMIT_MSATS, WALLET_LOG_TAG_LNBITS, WALLET_LOG_TAG_NWC } from '../../lib/constants'
 import Head from 'next/head'
 import NoteIcon from '../../svgs/notification-4-fill.svg'
 import { useMe } from '../me'
@@ -204,21 +204,15 @@ export function MeDropdown ({ me, dropNavKey }) {
           <Dropdown.Divider />
           <Dropdown.Item
             onClick={async () => {
-              try {
-                // order is important because we need to be logged in to delete push subscription on server
-                const pushSubscription = await swRegistration?.pushManager.getSubscription()
-                if (pushSubscription) {
-                  await togglePushSubscription()
-                }
-              } catch (err) {
+              // order is important because we need to be logged in to delete push subscription on server
+              const pushSubscription = await swRegistration?.pushManager.getSubscription()
+              if (pushSubscription) {
                 // don't prevent signout because of an unsubscription error
-                console.error(err)
+                await togglePushSubscription().catch(console.error)
               }
-              try {
-                await deleteLogs()
-              } catch (err) {
-                console.error(err)
-              }
+              // delete client wallet logs to prevent leak of private data if a shared device was used
+              await deleteLogs(WALLET_LOG_TAG_NWC).catch(console.error)
+              await deleteLogs(WALLET_LOG_TAG_LNBITS).catch(console.error)
               await signOut({ callbackUrl: '/' })
             }}
           >logout

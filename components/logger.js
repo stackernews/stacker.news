@@ -294,7 +294,7 @@ export function useWalletLogger (wallet) {
     error: (...message) => log('error')(message.join(' '))
   }), [log, wallet])
 
-  const deleteLogs = useCallback(() => innerDeleteLogs(wallet), [innerDeleteLogs, wallet])
+  const deleteLogs = useCallback((w) => innerDeleteLogs(w || wallet), [innerDeleteLogs, wallet])
 
   return { logger, deleteLogs }
 }

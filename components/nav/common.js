@@ -22,6 +22,7 @@ import SearchIcon from '../../svgs/search-line.svg'
 import classNames from 'classnames'
 import SnIcon from '@/svgs/sn.svg'
 import { useHasNewNotes } from '../use-has-new-notes'
+import { useWalletLogger } from '../logger'
 
 export function Brand ({ className }) {
   return (
@@ -162,6 +163,7 @@ export function NavWalletSummary ({ className }) {
 export function MeDropdown ({ me, dropNavKey }) {
   if (!me) return null
   const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
+  const { deleteLogs } = useWalletLogger()
   return (
     <div className='position-relative'>
       <Dropdown className={styles.dropdown} align='end'>
@@ -210,6 +212,11 @@ export function MeDropdown ({ me, dropNavKey }) {
                 }
               } catch (err) {
                 // don't prevent signout because of an unsubscription error
+                console.error(err)
+              }
+              try {
+                await deleteLogs()
+              } catch (err) {
                 console.error(err)
               }
               await signOut({ callbackUrl: '/' })

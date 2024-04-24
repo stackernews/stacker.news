@@ -3,7 +3,7 @@ import { msatsToSats, satsToMsats } from '@/lib/format'
 import { datePivot } from '@/lib/time'
 import { createWithdrawal, sendToLnAddr, addWalletLog } from '@/api/resolvers/wallet'
 import { createInvoice as createInvoiceCLN } from '@/lib/cln'
-import { WALLET_TYPE_CLN, WALLET_TYPE_LND } from '@/lib/constants'
+import { WALLET_TYPE_CLN, WALLET_TYPE_LNADDR, WALLET_TYPE_LND } from '@/lib/constants'
 
 export async function autoWithdraw ({ data: { id }, models, lnd }) {
   const user = await models.user.findUnique({ where: { id } })
@@ -55,7 +55,7 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
         await autowithdrawCLN(
           { amount, maxFee },
           { models, me: user, lnd })
-      } else if (wallet.type === 'WALLET_TYPE_LNADDR') {
+      } else if (wallet.type === WALLET_TYPE_LNADDR) {
         await autowithdrawLNAddr(
           { amount, maxFee },
           { models, me: user, lnd })
@@ -87,7 +87,7 @@ async function autowithdrawLNAddr (
   const wallet = await models.wallet.findFirst({
     where: {
       userId: me.id,
-      type: 'WALLET_TYPE_LNADDR'
+      type: WALLET_TYPE_LNADDR
     },
     include: {
       walletLightningAddress: true

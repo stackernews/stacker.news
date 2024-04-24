@@ -68,13 +68,13 @@ export default function WalletLogs ({ wallet, embedded }) {
             handleChange={setFollow} groupClassName='mb-0'
           />
         </Form>
-        <div
-          style={{ cursor: 'pointer' }}
-          className='ms-auto text-muted w-auto' onClick={() => {
+        <Button
+          className='text-muted fw-bold nav-link' onClick={() => {
             showModal(onClose => <DeleteWalletLogsObstacle wallet={wallet} onClose={onClose} />)
           }}
+          variant='link'
         >clear
-        </div>
+        </Button>
       </div>
       <div ref={tableRef} className={`${styles.logTable} ${embedded ? styles.embedded : ''}`}>
         <div className='w-100 text-center'>------ start of logs ------</div>
@@ -98,7 +98,7 @@ function DeleteWalletLogsObstacle ({ wallet, onClose }) {
       {/* TODO: this shows ugly wallet name to user */}
       Do you really want to delete all {wallet} wallet logs?
       <div className='d-flex justify-center align-items-center mt-3 mx-auto'>
-        <Button className='d-flex ms-auto mx-3' variant='muted' onClick={onClose}><span className='text-muted'>cancel</span></Button>
+        <Button className='d-flex ms-auto text-muted fw-bold nav-link mx-3' variant='link' onClick={onClose}>cancel</Button>
         <Button
           className='d-flex me-auto mx-3' variant='danger'
           onClick={

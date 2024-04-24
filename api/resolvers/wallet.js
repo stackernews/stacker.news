@@ -45,8 +45,7 @@ export async function getInvoice (parent, { id }, { me, models, lnd }) {
 
   try {
     if (inv.confirmedAt) {
-      const lnInv = await getInvoiceFromLnd({ id: inv.hash, lnd })
-      inv.confirmedPreimage = lnInv.secret
+      inv.confirmedPreimage = (await getInvoiceFromLnd({ id: inv.hash, lnd })).secret
     }
   } catch (err) {
     console.error('error fetching invoice from LND', err)
@@ -79,8 +78,7 @@ export async function getWithdrawl (parent, { id }, { me, models, lnd }) {
 
   try {
     if (wdrwl.status === 'CONFIRMED') {
-      const payment = await getPayment({ id: wdrwl.hash, lnd })
-      wdrwl.preimage = payment.payment.secret
+      wdrwl.preimage = (await getPayment({ id: wdrwl.hash, lnd })).payment.secret
     }
   } catch (err) {
     console.error('error fetching payment from LND', err)

@@ -13,7 +13,7 @@ function ContextAwareToggle ({ children, headerColor = 'var(--theme-grey)', even
     if (show !== undefined && activeEventKey !== eventKey) {
       decoratedOnClick()
     }
-  }, [])
+  }, [show])
 
   const isCurrentEventKey = activeEventKey === eventKey
 
@@ -30,7 +30,7 @@ function ContextAwareToggle ({ children, headerColor = 'var(--theme-grey)', even
 export default function AccordianItem ({ header, body, headerColor = 'var(--theme-grey)', show }) {
   return (
     <Accordion defaultActiveKey={show ? '0' : undefined}>
-      <ContextAwareToggle isActive={show} eventKey='0'><div style={{ color: headerColor }}>{header}</div></ContextAwareToggle>
+      <ContextAwareToggle show={show} eventKey='0'><div style={{ color: headerColor }}>{header}</div></ContextAwareToggle>
       <Accordion.Collapse eventKey='0' className='mt-2'>
         <div>{body}</div>
       </Accordion.Collapse>

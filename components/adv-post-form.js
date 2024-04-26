@@ -20,29 +20,34 @@ export function AdvPostInitial ({ forward, boost }) {
   }
 }
 
-export default function AdvPostForm ({ children, item, show }) {
+export default function AdvPostForm ({ children, item, show, dirty }) {
   const me = useMe()
   const { merge } = useFeeButton()
   const router = useRouter()
   const [itemType, setItemType] = useState()
   const [hasForwardError, setHasForwardError] = useState(false)
   const [hasBoostError, setHasBoostError] = useState(false)
+  const [isdirty, setisDirty] = useState(undefined)
 
   const handleForwardError = (error) => {
     if (!hasForwardError && !!error) {
       setHasForwardError(true)
-      console.error('forward error', error)
     } else if (!error) {
       setHasForwardError(false)
     }
   }
 
-  const handleInputError = (error) => {
+  const handleBoostError = (error) => {
     if (!hasBoostError && !!error) {
       setHasBoostError(true)
-      console.error('boost error', error)
     } else if (!error) {
       setHasBoostError(false)
+    }
+  }
+
+  const handleDirty = (input) => {
+    if ((typeof input === 'string' && input !== '') || (typeof input === 'object' && (input['nym'] !== '' || input['pct'] !== ''))) {
+      setisDirty(true)
     }
   }
 
@@ -89,7 +94,7 @@ export default function AdvPostForm ({ children, item, show }) {
   return (
     <AccordianItem
       header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>options</div>}
-      show={(hasForwardError || hasBoostError) && show}
+      show={(!!isdirty || !!dirty) ? (hasForwardError || hasBoostError) ? show : !show : undefined}
       body={
         <>
           {children}
@@ -125,7 +130,8 @@ export default function AdvPostForm ({ children, item, show }) {
             })}
             hint={<span className='text-muted'>ranks posts higher temporarily based on the amount</span>}
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
-            hasError={handleInputError}
+            hasError={handleBoostError}
+            isdirty={handleDirty}
           />
           <VariableInput
             label='forward sats to'
@@ -135,6 +141,7 @@ export default function AdvPostForm ({ children, item, show }) {
             emptyItem={EMPTY_FORWARD}
             hint={<span className='text-muted'>Forward sats to up to 5 other stackers. Any remaining sats go to you.</span>}
             hasError={handleForwardError}
+            isdirty={handleDirty}
           >
             {({ index, placeholder }) => {
               return (

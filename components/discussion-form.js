@@ -36,7 +36,7 @@ export function DiscussionForm ({
     if (show !== true) {
       setShow(true)
     } else {
-      setShow(!show)
+      setShow(false)
     }
   }
 

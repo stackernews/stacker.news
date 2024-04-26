@@ -102,7 +102,7 @@ export function InputSkeleton ({ label, hint }) {
   )
 }
 
-export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKeyDown, innerRef, ...props }) {
+export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKeyDown, innerRef, isdirty, ...props }) {
   const [tab, setTab] = useState('write')
   const [, meta, helpers] = useField(props)
   const [selectionRange, setSelectionRange] = useState({ start: 0, end: 0 })
@@ -300,6 +300,8 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
     setDragStyle(null)
   }, [setDragStyle])
 
+  isdirty && isdirty(innerRef['current']?.innerHTML)
+
   return (
     <FormGroup label={label} className={groupClassName}>
       <div className={`${styles.markdownInput} ${tab === 'write' ? styles.noTopLeftRadius : ''}`}>
@@ -433,7 +435,7 @@ function FormGroup ({ className, label, children }) {
 
 function InputInner ({
   prepend, append, hint, warn, showValid, onChange, onBlur, overrideValue, appendValue, hasError,
-  innerRef, noForm, clear, onKeyDown, inputGroupClassName, debounce: debounceTime, maxLength,
+  isdirty, innerRef, noForm, clear, onKeyDown, inputGroupClassName, debounce: debounceTime, maxLength,
   ...props
 }) {
   const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)
@@ -501,6 +503,7 @@ function InputInner ({
   const invalid = (!formik || formik.submitCount > 0) && meta.touched && meta.error
 
   hasError && hasError(invalid)
+  isdirty && isdirty(field.value)
 
   useEffect(debounce(() => {
     if (!noForm && !isNaN(debounceTime) && debounceTime > 0) {
@@ -705,13 +708,14 @@ export function Input ({ label, groupClassName, ...props }) {
   )
 }
 
-export function VariableInput ({ label, groupClassName, name, hint, max, min, readOnlyLen, children, emptyItem = '', hasError, ...props }) {
+export function VariableInput ({ label, groupClassName, name, hint, max, min, readOnlyLen, children, emptyItem = '', hasError, isdirty, ...props }) {
   return (
     <FormGroup label={label} className={groupClassName}>
       <FieldArray name={name} hasValidation>
         {({ form, ...fieldArrayHelpers }) => {
           const options = form.values[name]
-          hasError(form.errors[name])
+          hasError && hasError(form.errors[name])
+          isdirty && isdirty(form.values[name][0])
           return (
             <>
               {options?.map((_, i) => (

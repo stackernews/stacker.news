@@ -26,6 +26,22 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
   // if Web Share Target API was used
   const shareUrl = router.query.url
   const shareTitle = router.query.title
+  const [show, setShow] = useState(undefined)
+  const [dirty, setDirty] = useState(undefined)
+
+  const handleClick = () => {
+    if (show !== true) {
+      setShow(true)
+    } else {
+      setShow(false)
+    }
+  }
+
+  const handleDirty = (input) => {
+    if (typeof input === 'string' && input !== '') {
+      setDirty(true)
+    }
+  }
 
   const crossposter = useCrossposter()
 
@@ -196,16 +212,17 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
           }
         }}
       />
-      <AdvPostForm edit={!!item} item={item}>
+      <AdvPostForm show={show} dirty={dirty} edit={!!item} item={item}>
         <MarkdownInput
           label='context'
           name='text'
           minRows={2}
           // https://github.com/Andarist/react-textarea-autosize/pull/371
           style={{ width: 'auto' }}
+          isdirty={handleDirty}
         />
       </AdvPostForm>
-      <ItemButtonBar itemId={item?.id} disable={postDisabled}>
+      <ItemButtonBar itemId={item?.id} disable={postDisabled} onClick={handleClick} >
         {!item && dupesLoading &&
           <div className='d-flex justify-content-center'>
             <Moon className='spin fill-grey' />

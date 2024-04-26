@@ -7,7 +7,7 @@ import { MAX_POLL_CHOICE_LENGTH, MAX_POLL_NUM_CHOICES, MAX_TITLE_LENGTH } from '
 import { datePivot } from '@/lib/time'
 import { pollSchema } from '@/lib/validate'
 import { SubSelectInitial } from './sub-select'
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { normalizeForwards, toastDeleteScheduled } from '@/lib/form'
 import useCrossposter from './use-crossposter'
 import { useMe } from './me'
@@ -20,6 +20,40 @@ export function PollForm ({ item, sub, editThreshold, children }) {
   const me = useMe()
   const toaster = useToast()
   const schema = pollSchema({ client, me, existingBoost: item?.boost })
+  const [hasForwardError, setHasForwardError] = useState(false)
+  const [hasBoostError, setHasBoostError] = useState(false)
+  const [dirty, setDirty] = useState(undefined)
+  const [show, setShow] = useState(undefined)
+
+  const handleClick = () => {
+    if (show !== true) {
+      setShow(true)
+    } else {
+      setShow(false)
+    }
+  }
+  
+  const handleForwardError = (error) => {
+    if (!hasForwardError && !!error) {
+      setHasForwardError(true)
+    } else if (!error) {
+      setHasForwardError(false)
+    }
+  }
+
+  const handleBoostError = (error) => {
+    if (!hasBoostError && !!error) {
+      setHasBoostError(true)
+    } else if (!error) {
+      setHasBoostError(false)
+    }
+  }
+
+  const handleDirty = (input) => {
+    if (typeof input === 'string' && input !== '') {
+      setDirty(true)
+    }
+  }
 
   const crossposter = useCrossposter()
 
@@ -111,7 +145,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
           : null}
         maxLength={MAX_POLL_CHOICE_LENGTH}
       />
-      <AdvPostForm edit={!!item} item={item}>
+      <AdvPostForm show={show} dirty={dirty} edit={!!item} item={item}>
         <DateTimeInput
           isClearable
           label='poll expiration'
@@ -119,7 +153,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
           className='pr-4'
         />
       </AdvPostForm>
-      <ItemButtonBar itemId={item?.id} />
+      <ItemButtonBar itemId={item?.id} onClick={handleClick} />
     </Form>
   )
 }

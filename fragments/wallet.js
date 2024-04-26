@@ -31,6 +31,7 @@ export const WITHDRAWL = gql`
       satsFeePaid
       status
       autoWithdraw
+      preimage
     }
   }`
 

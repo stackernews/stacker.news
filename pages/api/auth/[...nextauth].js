@@ -72,26 +72,6 @@ function getCallbacks (req) {
         token.sub = Number(token.id)
       }
 
-      // sign them up for the newsletter
-      // TODO can we move this up to the prisma.createuser method, and special-case it if the incoming data has email?
-      // that is basically the same flow as this, right? new user being created with an email address?
-      if (isNewUser && user?.email && process.env.LIST_MONK_URL && process.env.LIST_MONK_AUTH) {
-        fetch(process.env.LIST_MONK_URL + '/api/subscribers', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: 'Basic ' + Buffer.from(process.env.LIST_MONK_AUTH).toString('base64')
-          },
-          body: JSON.stringify({
-            email: user.email,
-            name: 'blank',
-            lists: [2],
-            status: 'enabled',
-            preconfirm_subscriptions: true
-          })
-        }).then(async r => console.log(await r.json())).catch(console.log)
-      }
-
       return token
     },
     async session ({ session, token }) {
@@ -223,12 +203,16 @@ export const getAuthOptions = req => ({
   adapter: {
     ...PrismaAdapter(prisma),
     createUser: data => {
-      // replace email with email hash
+      // replace email with email hash in new user payload
       if (data.email) {
-        data.emailHash = hashEmail({ email: data.email })
+        const { email } = data
+        data.emailHash = hashEmail({ email })
         delete data.email
         // data.email used to be used for name of new accounts. since it's missing, let's generate a new name
         data.name = data.emailHash.substring(0, 10)
+        // sign them up for the newsletter
+        // don't await it, let it run async
+        enrollInNewsletter({ email })
       }
       return prisma.user.create({ data })
     },
@@ -248,6 +232,34 @@ export const getAuthOptions = req => ({
   },
   events: getEventCallbacks()
 })
+
+async function enrollInNewsletter ({ email }) {
+  if (process.env.LIST_MONK_URL && process.env.LIST_MONK_AUTH) {
+    try {
+      const response = await fetch(process.env.LIST_MONK_URL + '/api/subscribers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Basic ' + Buffer.from(process.env.LIST_MONK_AUTH).toString('base64')
+        },
+        body: JSON.stringify({
+          email,
+          name: 'blank',
+          lists: [2],
+          status: 'enabled',
+          preconfirm_subscriptions: true
+        })
+      })
+      const jsonResponse = await response.json()
+      console.log(jsonResponse)
+    } catch (err) {
+      console.log('error signing user up for newsletter')
+      console.log(err)
+    }
+  } else {
+    console.log('LIST MONK env vars not set, skipping newsletter enrollment')
+  }
+}
 
 export default async (req, res) => {
   await NextAuth(req, res, getAuthOptions(req))

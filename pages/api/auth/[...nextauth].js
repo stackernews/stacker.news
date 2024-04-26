@@ -11,6 +11,7 @@ import { getToken } from 'next-auth/jwt'
 import { NodeNextRequest } from 'next/dist/server/base-http/node'
 import { schnorr } from '@noble/curves/secp256k1'
 import { notifyReferral } from '@/lib/webPush'
+import { hashEmail } from '@/lib/crypto'
 
 /**
  * Stores userIds in user table
@@ -250,12 +251,6 @@ export const getAuthOptions = req => ({
 
 export default async (req, res) => {
   await NextAuth(req, res, getAuthOptions(req))
-}
-
-export function hashEmail ({
-  email
-}) {
-  return createHash('sha256').update(email.toLowerCase()).digest('hex')
 }
 
 async function sendVerificationRequest ({

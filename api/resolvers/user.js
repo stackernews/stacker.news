@@ -9,7 +9,7 @@ import { ANON_USER_ID, DELETE_USER_ID, RESERVED_MAX_USER_ID, SN_NO_REWARDS_IDS }
 import { viewGroup } from './growth'
 import { timeUnitForRange, whenRange } from '@/lib/time'
 import assertApiKeyNotPermitted from './apiKey'
-import { hashEmail } from '../../pages/api/auth/[...nextauth]'
+import { hashEmail } from '@/lib/crypto'
 
 const contributors = new Set()
 

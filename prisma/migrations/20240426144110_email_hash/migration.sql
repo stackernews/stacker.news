@@ -11,6 +11,7 @@ ALTER TABLE "users" ADD COLUMN     "emailHash" TEXT;
 CREATE UNIQUE INDEX "users.email_hash_unique" ON "users"("emailHash");
 
 -- migrate existing emails to add email hashes
+-- TODO how do we apply this migration with the salt from ENV VAR?
 UPDATE "users"
 SET "emailHash" = encode(digest("email", 'sha256'), 'hex')
 WHERE "email" IS NOT NULL;

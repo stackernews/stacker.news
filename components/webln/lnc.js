@@ -6,42 +6,19 @@ import { bolt11Tags } from '@/lib/bolt11'
 import useModal from '../modal'
 import { Form, PasswordInput, SubmitButton } from '../form'
 import CancelButton from '../cancel-button'
+import { Mutex } from 'async-mutex'
 
 const LNCContext = createContext()
+const mutex = new Mutex()
 
 async function getLNC () {
   if (window.lnc) return window.lnc
   window.lnc = new LNC({ })
-  await connectLNC(window.lnc)
   return window.lnc
 }
 
-const INVALID_PASSWORD = 'Invalid password'
-
-async function connectLNC (lnc, config) {
-  // if there's a pairing phrase, this is a new connection
-  if (config?.pairingPhrase) {
-    lnc.credentials.pairingPhrase = config.pairingPhrase
-  } else if (lnc.credentials.isPaired) {
-    // if we are paired without a pairing phrase, we need to decrypt the credentials
-    try {
-      lnc.credentials.password = config?.password || XXX_HARD_CODED_PASSWORD
-    } catch (err) {
-      throw new Error(INVALID_PASSWORD)
-    }
-  } else {
-    // we can't connect without a pairing phrase or decrypted credentials
-    return
-  }
-
-  await lnc.connect()
-  await lnc.lnd.lightning.getInfo()
-
-  lnc.credentials.password = config?.password || XXX_HARD_CODED_PASSWORD
-}
-
-// TODO: dont hardcode password
-const XXX_HARD_CODED_PASSWORD = 'password'
+// default password if the user hasn't set one
+const XXX_DEFAULT_PASSWORD = 'password'
 
 export function LNCProvider ({ children }) {
   const name = 'lnc'
@@ -60,39 +37,71 @@ export function LNCProvider ({ children }) {
     const hash = bolt11Tags(bolt11).payment_hash
     logger.info('sending payment:', `payment_hash=${hash}`)
 
-    try {
-      const { paymentError, paymentPreimage: preimage } =
-        await lnc.lnd.lightning.sendPaymentSync({ payment_request: bolt11 })
+    return await mutex.runExclusive(async () => {
+      try {
+        await lnc.connect()
+        const { paymentError, paymentPreimage: preimage } =
+          await lnc.lnd.lightning.sendPaymentSync({ payment_request: bolt11 })
 
-      if (paymentError) throw new Error(paymentError)
-      if (!preimage) throw new Error('No preimage in response')
+        if (paymentError) throw new Error(paymentError)
+        if (!preimage) throw new Error('No preimage in response')
 
-      logger.ok('payment successful:', `payment_hash=${hash}`, `preimage=${preimage}`)
-      return { preimage }
-    } catch (err) {
-      logger.error('payment failed:', `payment_hash=${hash}`, err.message || err.toString?.())
-    }
-  }, [logger, lnc])
+        logger.ok('payment successful:', `payment_hash=${hash}`, `preimage=${preimage}`)
+        return { preimage }
+      } catch (err) {
+        logger.error('payment failed:', `payment_hash=${hash}`, err.message || err.toString?.())
+        throw err
+      } finally {
+        try {
+        // wait for a bit before disconnect
+          lnc.disconnect()
+          logger.info('disconnecting after:', `payment_hash=${hash}`)
+          // wait for lnc to disconnect before releasing the mutex
+          await new Promise((resolve, reject) => {
+            let counter = 0
+            const interval = setInterval(() => {
+              if (lnc.isConnected) {
+                console.log('waiting for lnc to disconnect', counter)
+                if (counter++ > 100) {
+                  logger.error('failed to disconnect from lnc')
+                  clearInterval(interval)
+                  reject(new Error('failed to disconnect from lnc'))
+                }
+                return
+              }
+              clearInterval(interval)
+              resolve()
+            })
+          }, 50)
+        } catch (err) {
+          logger.error('failed to disconnect from lnc', err)
+        }
+      }
+    })
+  }, [logger, lnc, config])
 
   const saveConfig = useCallback(async config => {
     setConfig(config)
 
     try {
-      await connectLNC(lnc, config)
+      lnc.credentials.pairingPhrase = config.pairingPhrase
+      await lnc.connect()
+      lnc.credentials.password = config?.password || XXX_DEFAULT_PASSWORD
       setStatus(Status.Enabled)
       logger.ok('wallet enabled')
     } catch (err) {
       setStatus(Status.Error)
-      await lnc.disconnect()
       logger.error('invalid config:', err)
       logger.info('wallet disabled')
       throw err
+    } finally {
+      lnc.disconnect()
     }
   }, [logger, lnc])
 
   const clearConfig = useCallback(async () => {
-    await lnc.disconnect()
     await lnc.credentials.clear(false)
+    if (lnc.isConnected) lnc.disconnect()
     setStatus(undefined)
     logger.info('cleared config')
   }, [logger, lnc])
@@ -110,7 +119,7 @@ export function LNCProvider ({ children }) {
             }}
             onSubmit={async (values) => {
               try {
-                await connectLNC(lnc, values)
+                lnc.credentials.password = values?.password
                 setStatus(Status.Enabled)
                 setConfig({ pairingPhrase: lnc.credentials.pairingPhrase, password: values.password })
                 logger.ok('wallet enabled')
@@ -135,7 +144,7 @@ export function LNCProvider ({ children }) {
         )
       }, { onClose: cancelAndReject })
     })
-  }, [logger, showModal, lnc])
+  }, [logger, showModal, setConfig, lnc])
 
   useEffect(() => {
     (async () => {
@@ -143,19 +152,21 @@ export function LNCProvider ({ children }) {
         const lnc = await getLNC()
         setLNC(lnc)
         setStatus(Status.Initialized)
-        if (lnc?.isConnected) {
-          await lnc.lnd.lightning.getInfo() // check connection
+        if (lnc.credentials.isPaired) {
+          try {
+            // try the default password
+            lnc.credentials.password = XXX_DEFAULT_PASSWORD
+          } catch (err) {
+            setStatus(Status.Locked)
+            logger.info('wallet needs password before enabling')
+            return
+          }
           setStatus(Status.Enabled)
           setConfig({ pairingPhrase: lnc.credentials.pairingPhrase, password: lnc.credentials.password })
         }
       } catch (err) {
-        if (err.message === INVALID_PASSWORD) {
-          setStatus(Status.Locked)
-          logger.info('wallet needs password before enabling')
-        } else {
-          setStatus(Status.Error)
-          logger.error('wallet could not be loaded', err)
-        }
+        setStatus(Status.Error)
+        logger.error('wallet could not be loaded', err)
       }
     })()
   }, [setStatus, setConfig, logger])

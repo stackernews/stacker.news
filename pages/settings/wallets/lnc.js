@@ -42,7 +42,6 @@ export default function LNC () {
         schema={lncSchema}
         onSubmit={async ({ isDefault, ...values }) => {
           try {
-            console.log('values:', values)
             await clearConfig()
             await saveConfig(values)
             if (isDefault) setProvider(lnc)

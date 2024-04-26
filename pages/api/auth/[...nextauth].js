@@ -72,6 +72,8 @@ function getCallbacks (req) {
       }
 
       // sign them up for the newsletter
+      // TODO can we move this up to the prisma.createuser method, and special-case it if the incoming data has email?
+      // that is basically the same flow as this, right? new user being created with an email address?
       if (isNewUser && user?.email && process.env.LIST_MONK_URL && process.env.LIST_MONK_AUTH) {
         fetch(process.env.LIST_MONK_URL + '/api/subscribers', {
           method: 'POST',
@@ -217,7 +219,24 @@ const providers = [
 export const getAuthOptions = req => ({
   callbacks: getCallbacks(req),
   providers,
-  adapter: PrismaAdapter(prisma),
+  adapter: {
+    ...PrismaAdapter(prisma),
+    createUser: data => {
+      // replace email with email hash
+      if (data.email) {
+        data.emailHash = hashEmail({ email: data.email })
+        delete data.email
+        // data.email used to be used for name of new accounts. since it's missing, let's generate a new name
+        data.name = data.emailHash.substring(0, 10)
+      }
+      return prisma.user.create({ data })
+    },
+    getUserByEmail: email => {
+      // lookup by email hash since we don't store plaintext emails any more
+      const hashedEmail = hashEmail({ email })
+      return prisma.user.findUnique({ where: { emailHash: hashedEmail } })
+    }
+  },
   session: {
     strategy: 'jwt'
   },
@@ -233,12 +252,18 @@ export default async (req, res) => {
   await NextAuth(req, res, getAuthOptions(req))
 }
 
+export function hashEmail ({
+  email
+}) {
+  return createHash('sha256').update(email.toLowerCase()).digest('hex')
+}
+
 async function sendVerificationRequest ({
   identifier: email,
   url,
   provider
 }) {
-  const user = await prisma.user.findUnique({ where: { email } })
+  const user = await prisma.user.findUnique({ where: { email: hashEmail({ email }) } })
 
   return new Promise((resolve, reject) => {
     const { server, from } = provider

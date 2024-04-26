@@ -29,7 +29,6 @@ export function BountyForm ({
   const me = useMe()
   const toaster = useToast()
   const crossposter = useCrossposter()
-  const [show, setShow] = useState(undefined)
   const schema = bountySchema({ client, me, existingBoost: item?.boost })
   const [upsertBounty] = useMutation(
     gql`
@@ -61,6 +60,7 @@ export function BountyForm ({
       }
     `
   )
+  const [show, setShow] = useState(undefined)
 
   const handleClick = () => {
     if (show !== true) {

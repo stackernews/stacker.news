@@ -86,6 +86,7 @@ export default gql`
     satsFeePaid: Int
     status: String
     autoWithdraw: Boolean!
+    preimage: String
   }
 
   type Fact {

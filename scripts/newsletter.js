@@ -171,9 +171,8 @@ Have a great weekend!
 
 ##### Top Posts
 ${top.data.items.items.slice(0, 10).map((item, i) =>
-  `${i + 1}. [@${item.user.name}](https://stacker.news/${item.user.name}) [${item.title}](https://stacker.news/items/${item.id})
-    - [${item.title}](https://stacker.news/items/${item.id})
-      - ${abbrNum(item.sats)} sats${item.boost ? ` \\ ${abbrNum(item.boost)} boost` : ''} \\ ${item.ncomments} comments \\ [@${item.user.name}](https://stacker.news/${item.user.name})\n`).join('')}
+  `${i + 1}. [${item.title}](https://stacker.news/items/${item.id})
+    - ${abbrNum(item.sats)} sats${item.boost ? ` \\ ${abbrNum(item.boost)} boost` : ''} \\ ${item.ncomments} comments \\ [@${item.user.name}](https://stacker.news/${item.user.name})\n`).join('')}
 
 ##### Don't miss
 ${top.data.items.items.map((item, i) =>

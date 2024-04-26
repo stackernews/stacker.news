@@ -222,7 +222,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
           isdirty={handleDirty}
         />
       </AdvPostForm>
-      <ItemButtonBar itemId={item?.id} disable={postDisabled} onClick={handleClick} >
+      <ItemButtonBar itemId={item?.id} disable={postDisabled} onClick={handleClick}>
         {!item && dupesLoading &&
           <div className='d-flex justify-content-center'>
             <Moon className='spin fill-grey' />

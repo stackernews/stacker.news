@@ -300,7 +300,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
     setDragStyle(null)
   }, [setDragStyle])
 
-  isdirty && isdirty(innerRef['current']?.innerHTML)
+  isdirty && isdirty(innerRef.current?.innerHTML)
 
   return (
     <FormGroup label={label} className={groupClassName}>

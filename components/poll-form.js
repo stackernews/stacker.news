@@ -20,9 +20,6 @@ export function PollForm ({ item, sub, editThreshold, children }) {
   const me = useMe()
   const toaster = useToast()
   const schema = pollSchema({ client, me, existingBoost: item?.boost })
-  const [hasForwardError, setHasForwardError] = useState(false)
-  const [hasBoostError, setHasBoostError] = useState(false)
-  const [dirty, setDirty] = useState(undefined)
   const [show, setShow] = useState(undefined)
 
   const handleClick = () => {
@@ -30,28 +27,6 @@ export function PollForm ({ item, sub, editThreshold, children }) {
       setShow(true)
     } else {
       setShow(false)
-    }
-  }
-  
-  const handleForwardError = (error) => {
-    if (!hasForwardError && !!error) {
-      setHasForwardError(true)
-    } else if (!error) {
-      setHasForwardError(false)
-    }
-  }
-
-  const handleBoostError = (error) => {
-    if (!hasBoostError && !!error) {
-      setHasBoostError(true)
-    } else if (!error) {
-      setHasBoostError(false)
-    }
-  }
-
-  const handleDirty = (input) => {
-    if (typeof input === 'string' && input !== '') {
-      setDirty(true)
     }
   }
 
@@ -145,7 +120,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
           : null}
         maxLength={MAX_POLL_CHOICE_LENGTH}
       />
-      <AdvPostForm show={show} dirty={dirty} edit={!!item} item={item}>
+      <AdvPostForm show={show} edit={!!item} item={item}>
         <DateTimeInput
           isClearable
           label='poll expiration'

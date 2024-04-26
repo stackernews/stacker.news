@@ -254,9 +254,6 @@ export default function Footer ({ links = true }) {
             <Link href='/k00b' className='ms-1'>
               @k00b
             </Link>
-            <Link href='/kr' className='ms-1'>
-              @kr
-            </Link>
             <Link href='/ek' className='ms-1'>
               @ek
             </Link>

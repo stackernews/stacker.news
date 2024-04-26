@@ -84,11 +84,6 @@ function WalletHistory () {
           wallet history
         </Link>
       </div>
-      <div>
-        <Link href='/wallet/logs' className='text-muted fw-bold text-underline'>
-          wallet logs
-        </Link>
-      </div>
     </div>
   )
 }

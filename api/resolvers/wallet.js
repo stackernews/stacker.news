@@ -3,7 +3,6 @@ import { GraphQLError } from 'graphql'
 import crypto from 'crypto'
 import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
-import lnpr from 'bolt11'
 import { SELECT } from './item'
 import { lnAddrOptions } from '@/lib/lnurl'
 import { msatsToSats, msatsToSatsDecimal, ensureB64 } from '@/lib/format'
@@ -13,6 +12,7 @@ import { datePivot } from '@/lib/time'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
 import { createInvoice as createInvoiceCLN } from '@/lib/cln'
+import { bolt11Tags } from '@/lib/bolt11'
 
 export async function getInvoice (parent, { id }, { me, models, lnd }) {
   const inv = await models.invoice.findUnique({
@@ -275,17 +275,7 @@ export default {
         f = { ...f, ...f.other }
 
         if (f.bolt11) {
-          const inv = lnpr.decode(f.bolt11)
-          if (inv) {
-            const { tags } = inv
-            for (const tag of tags) {
-              if (tag.tagName === 'description') {
-                // prioritize description from bolt11 over description from our DB
-                f.description = tag.data
-                break
-              }
-            }
-          }
+          f.description = bolt11Tags(f.bolt11).description
         }
 
         switch (f.type) {

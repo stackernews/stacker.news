@@ -5,10 +5,11 @@ import { CenterLayout } from '@/components/layout'
 import { useToast } from '@/components/toast'
 import { WalletButtonBar, WalletCard } from '@/components/wallet-card'
 import WalletLogs from '@/components/wallet-logs'
-import { useWebLNConfigurator } from '@/components/webln'
+import { Status, useWebLNConfigurator } from '@/components/webln'
 import { useLNC } from '@/components/webln/lnc'
 import { lncSchema } from '@/lib/validate'
 import { useRouter } from 'next/router'
+import { useEffect, useRef } from 'react'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -17,8 +18,16 @@ export default function LNC () {
   const toaster = useToast()
   const router = useRouter()
   const lnc = useLNC()
-  const { enabled, clearConfig, saveConfig, config, name } = lnc
+  const { status, clearConfig, saveConfig, config, name, unlock } = lnc
   const isDefault = provider?.name === name
+  const unlocking = useRef(false)
+
+  useEffect(() => {
+    if (!unlocking.current && status === Status.Locked) {
+      unlocking.current = true
+      unlock()
+    }
+  }, [status, unlock])
 
   return (
     <CenterLayout>
@@ -33,6 +42,8 @@ export default function LNC () {
         schema={lncSchema}
         onSubmit={async ({ isDefault, ...values }) => {
           try {
+            console.log('values:', values)
+            await clearConfig()
             await saveConfig(values)
             if (isDefault) setProvider(lnc)
             toaster.success('saved settings')
@@ -44,27 +55,27 @@ export default function LNC () {
         }}
       >
         <PasswordInput
-          initialValue=''
           label='pairing phrase'
           name='pairingPhrase'
-          newPass
+          initialValue={config?.pairingPhrase}
+          newPass={config?.pairingPhrase === undefined}
           required
           autoFocus
         />
         <PasswordInput
-          initialValue=''
           label={<>password <small className='text-muted ms-2'>optional</small></>}
           name='password'
-          newPass
+          initialValue={config?.password}
+          newPass={config?.password === undefined}
         />
         <ClientCheckbox
-          disabled={!enabled || isDefault || enabledProviders.length === 1}
+          disabled={status !== Status.Enabled || isDefault || enabledProviders?.length === 1}
           initialValue={isDefault}
           label='default payment method'
           name='isDefault'
         />
         <WalletButtonBar
-          enabled={enabled} onDelete={async () => {
+          status={status} onDelete={async () => {
             try {
               await clearConfig()
               toaster.success('saved settings')
@@ -84,13 +95,13 @@ export default function LNC () {
 }
 
 export function LNCCard () {
-  const { enabled } = useLNC()
+  const { status } = useLNC()
   return (
     <WalletCard
       title='LNC'
       badges={['send only', 'non-custodial', 'budgetable']}
       provider='lnc'
-      enabled={enabled}
+      status={status}
     />
   )
 }

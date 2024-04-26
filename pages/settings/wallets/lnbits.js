@@ -1,7 +1,7 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { Form, ClientInput, ClientCheckbox, PasswordInput } from '@/components/form'
 import { CenterLayout } from '@/components/layout'
-import { WalletButtonBar, WalletCard } from '@/components/wallet-card'
+import { WalletButtonBar, WalletCard, isConfigured } from '@/components/wallet-card'
 import { lnbitsSchema } from '@/lib/validate'
 import { useToast } from '@/components/toast'
 import { useRouter } from 'next/router'
@@ -15,8 +15,9 @@ export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 export default function LNbits () {
   const { provider, enabledProviders, setProvider } = useWebLNConfigurator()
   const lnbits = useLNbits()
-  const { name, url, adminKey, saveConfig, clearConfig, enabled } = lnbits
+  const { name, url, adminKey, saveConfig, clearConfig, status } = lnbits
   const isDefault = provider?.name === name
+  const configured = isConfigured(status)
   const toaster = useToast()
   const router = useRouter()
 
@@ -59,13 +60,13 @@ export default function LNbits () {
           required
         />
         <ClientCheckbox
-          disabled={!enabled || isDefault || enabledProviders.length === 1}
+          disabled={!configured || isDefault || enabledProviders.length === 1}
           initialValue={isDefault}
           label='default payment method'
           name='isDefault'
         />
         <WalletButtonBar
-          enabled={enabled} onDelete={async () => {
+          status={status} onDelete={async () => {
             try {
               await clearConfig()
               toaster.success('saved settings')
@@ -85,13 +86,13 @@ export default function LNbits () {
 }
 
 export function LNbitsCard () {
-  const { enabled } = useLNbits()
+  const { status } = useLNbits()
   return (
     <WalletCard
       title='LNbits'
       badges={['send only', 'non-custodialish']}
       provider='lnbits'
-      enabled={enabled}
+      status={status}
     />
   )
 }

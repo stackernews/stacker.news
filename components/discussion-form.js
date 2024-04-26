@@ -33,10 +33,10 @@ export function DiscussionForm ({
   const [show, setShow] = useState(undefined)
 
   const handleClick = () => {
-    if (show !== '0') {
-      setShow('0')
+    if (show !== true) {
+      setShow(true)
     } else {
-      setShow('1')
+      setShow(!show)
     }
   }
 

@@ -29,21 +29,21 @@ export default function AdvPostForm ({ children, item, show }) {
   const [hasBoostError, setHasBoostError] = useState(false)
 
   const handleForwardError = (error) => {
-      if (!hasForwardError && !!error) {
-        setHasForwardError(true)
-        console.error('forward error', error)
-      } else if (!error) {
-        setHasForwardError(false)
-      }
+    if (!hasForwardError && !!error) {
+      setHasForwardError(true)
+      console.error('forward error', error)
+    } else if (!error) {
+      setHasForwardError(false)
+    }
   }
 
   const handleInputError = (error) => {
-      if (!hasBoostError && !!error) {
-        setHasBoostError(true)
-        console.error('boost error', error)
-      } else if (!error) {
-        setHasBoostError(false)
-      }
+    if (!hasBoostError && !!error) {
+      setHasBoostError(true)
+      console.error('boost error', error)
+    } else if (!error) {
+      setHasBoostError(false)
+    }
   }
 
   useEffect(() => {

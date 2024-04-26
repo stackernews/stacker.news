@@ -5,15 +5,15 @@ import ArrowRight from '@/svgs/arrow-right-s-fill.svg'
 import ArrowDown from '@/svgs/arrow-down-s-fill.svg'
 import { useContext, useEffect } from 'react'
 
-function ContextAwareToggle ({ children, headerColor = 'var(--theme-grey)', eventKey, isActive }) {
+function ContextAwareToggle ({ children, headerColor = 'var(--theme-grey)', eventKey, show }) {
   const { activeEventKey } = useContext(AccordionContext)
   const decoratedOnClick = useAccordionButton(eventKey)
 
   useEffect(() => {
-    if (!!isActive && activeEventKey !== eventKey) {
+    if (show !== undefined && activeEventKey !== eventKey) {
       decoratedOnClick()
     }
-  }, [isActive])
+  }, [])
 
   const isCurrentEventKey = activeEventKey === eventKey
 

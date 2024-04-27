@@ -17,6 +17,7 @@ model User {
   createdAt                 DateTime             @default(now()) @map("created_at")
   updatedAt                 DateTime             @default(now()) @updatedAt @map("updated_at")
   name                      String?              @unique(map: "users.name_unique") @db.Citext
+  email                     String?              @unique(map: "users.email_unique")
   emailVerified             DateTime?            @map("email_verified")
   emailHash                 String?              @unique(map: "users.email_hash_unique")
   image                     String?

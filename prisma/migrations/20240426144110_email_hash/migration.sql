@@ -35,11 +35,9 @@ CREATE OR REPLACE FUNCTION migrate_existing_user_emails(salt TEXT) RETURNS void 
         SET "emailHash" = encode(digest("email" || salt, 'sha256'), 'hex')
         WHERE "email" IS NOT NULL;
 
-        -- and drop the corresponding index
-        DROP INDEX "users.email_unique";
-        
         -- then wipe the email values
-        ALTER TABLE "users" DROP COLUMN "email";
+        UPDATE "users"
+        SET email = NULL;
 
     END;
 $$ LANGUAGE plpgsql;

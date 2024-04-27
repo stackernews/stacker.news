@@ -94,7 +94,6 @@ export function LNCProvider ({ children }) {
   const saveConfig = useCallback(async config => {
     setConfig(config)
 
-    console.log(config)
     try {
       lnc.credentials.pairingPhrase = config.pairingPhrase
       lnc.credentials.password = config?.password || XXX_DEFAULT_PASSWORD
@@ -117,6 +116,7 @@ export function LNCProvider ({ children }) {
     await lnc.credentials.clear(false)
     if (lnc.isConnected) lnc.disconnect()
     setStatus(undefined)
+    setConfig({})
     logger.info('cleared config')
   }, [logger, lnc])
 

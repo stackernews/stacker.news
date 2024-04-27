@@ -20,6 +20,17 @@ async function getLNC () {
 // default password if the user hasn't set one
 export const XXX_DEFAULT_PASSWORD = 'password'
 
+function validateNarrowPerms (lnc) {
+  if (!lnc.hasPerms('lnrpc.Lightning.SendPaymentSync')) {
+    throw new Error('missing permission: lnrpc.Lightning.SendPaymentSync')
+  }
+  if (lnc.hasPerms('lnrpc.Lightning.SendCoins')) {
+    throw new Error('too broad permission: lnrpc.Wallet.SendCoins')
+  }
+  // TODO: need to check for more narrow permissions
+  // blocked by https://github.com/lightninglabs/lnc-web/issues/112
+}
+
 export function LNCProvider ({ children }) {
   const name = 'lnc'
   const logger = useWalletLogger(name)
@@ -83,9 +94,12 @@ export function LNCProvider ({ children }) {
   const saveConfig = useCallback(async config => {
     setConfig(config)
 
+    console.log(config)
     try {
       lnc.credentials.pairingPhrase = config.pairingPhrase
+      lnc.credentials.password = config?.password || XXX_DEFAULT_PASSWORD
       await lnc.connect()
+      await validateNarrowPerms(lnc)
       lnc.credentials.password = config?.password || XXX_DEFAULT_PASSWORD
       setStatus(Status.Enabled)
       logger.ok('wallet enabled')

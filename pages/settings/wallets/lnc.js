@@ -1,7 +1,9 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { WalletSecurityBanner } from '@/components/banners'
 import { ClientCheckbox, Form, PasswordInput } from '@/components/form'
+import Info from '@/components/info'
 import { CenterLayout } from '@/components/layout'
+import Text from '@/components/text'
 import { useToast } from '@/components/toast'
 import { WalletButtonBar, WalletCard } from '@/components/wallet-card'
 import WalletLogs from '@/components/wallet-logs'
@@ -56,7 +58,15 @@ export default function LNC () {
         }}
       >
         <PasswordInput
-          label='pairing phrase'
+          label={
+            <div className='d-flex align-items-center'>pairing phrase
+              <Info label='help'>
+                <Text>
+                  {'We only need permissions for the uri `/lnrpc.Lightning/SendPaymentSync`\n\nCreate a budgeted account with narrow permissions:\n\n```$ litcli accounts create --balance <budget>```\n\n```$ litcli sessions add --type custom --account_id <account_id> --uri /lnrpc.Lightning/SendPaymentSync```'}
+                </Text>
+              </Info>
+            </div>
+          }
           name='pairingPhrase'
           initialValue={config?.pairingPhrase}
           newPass={config?.pairingPhrase === undefined}

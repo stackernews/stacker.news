@@ -56,7 +56,6 @@ export default startServerAndCreateNextHandler(apolloServer, {
     const apiKey = req.headers['x-api-key']
     let session
     if (apiKey) {
-      // TODO replace email below? remove it?
       const [user] = await models.$queryRaw`
       SELECT id, name, "apiKeyEnabled"
       FROM users

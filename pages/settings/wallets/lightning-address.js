@@ -99,7 +99,7 @@ export function LightningAddressWalletCard ({ wallet }) {
       title='lightning address'
       badges={['receive only', 'non-custodialish']}
       provider='lightning-address'
-      enabled={wallet !== undefined || undefined}
+      status={wallet !== undefined || undefined}
     />
   )
 }

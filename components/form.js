@@ -1047,7 +1047,7 @@ function Client (Component) {
     const [,, helpers] = useField(props)
 
     useEffect(() => {
-      helpers.setValue(initialValue)
+      initialValue && helpers.setValue(initialValue)
     }, [initialValue])
 
     return <Component {...props} />

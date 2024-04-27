@@ -130,7 +130,7 @@ export function CLNCard ({ wallet }) {
       title='CLN'
       badges={['receive only', 'non-custodial']}
       provider='cln'
-      enabled={wallet !== undefined || undefined}
+      status={wallet !== undefined || undefined}
     />
   )
 }

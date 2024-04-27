@@ -13,7 +13,7 @@ export default function Qr ({ asIs, value, webLn, statusVariant, description, st
 
   useEffect(() => {
     async function effect () {
-      if (webLn && provider?.enabled) {
+      if (webLn && provider) {
         try {
           await provider.sendPayment({ bolt11: value })
         } catch (e) {

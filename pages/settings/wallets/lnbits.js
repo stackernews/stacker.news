@@ -73,7 +73,7 @@ export default function LNbits () {
               router.push('/settings/wallets')
             } catch (err) {
               console.error(err)
-              toaster.danger('failed to unattach: ' + err.message || err.toString?.())
+              toaster.danger('failed to detach: ' + err.message || err.toString?.())
             }
           }}
         />

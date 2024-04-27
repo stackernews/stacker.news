@@ -57,7 +57,7 @@ export function WalletCard ({ title, badges, provider, status }) {
 export function WalletButtonBar ({
   status, disable,
   className, children, onDelete, onCancel, hasCancel = true,
-  createText = 'attach', deleteText = 'unattach', editText = 'save'
+  createText = 'attach', deleteText = 'detach', editText = 'save'
 }) {
   const configured = isConfigured(status)
   return (

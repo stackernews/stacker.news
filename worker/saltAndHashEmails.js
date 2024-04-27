@@ -1,4 +1,4 @@
-export async function hashAndSaltEmails ({ models }) {
+export async function saltAndHashEmails ({ models }) {
   try {
     console.log('Migrating existing emails to salt and hash them...')
     await models.$queryRaw`select migrate_existing_user_emails(${process.env.EMAIL_SALT}::TEXT)`

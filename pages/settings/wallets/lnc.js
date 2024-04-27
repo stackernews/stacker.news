@@ -6,7 +6,7 @@ import { useToast } from '@/components/toast'
 import { WalletButtonBar, WalletCard } from '@/components/wallet-card'
 import WalletLogs from '@/components/wallet-logs'
 import { Status, useWebLNConfigurator } from '@/components/webln'
-import { useLNC } from '@/components/webln/lnc'
+import { XXX_DEFAULT_PASSWORD, useLNC } from '@/components/webln/lnc'
 import { lncSchema } from '@/lib/validate'
 import { useRouter } from 'next/router'
 import { useEffect, useRef } from 'react'
@@ -29,6 +29,8 @@ export default function LNC () {
     }
   }, [status, unlock])
 
+  const defaultPassword = config?.password === XXX_DEFAULT_PASSWORD
+
   return (
     <CenterLayout>
       <h2>Lightning Node Connect for LND</h2>
@@ -37,7 +39,7 @@ export default function LNC () {
       <Form
         initial={{
           pairingPhrase: config?.pairingPhrase || '',
-          password: config?.password || ''
+          password: (!config?.password || defaultPassword) ? '' : config.password
         }}
         schema={lncSchema}
         onSubmit={async ({ isDefault, ...values }) => {
@@ -64,8 +66,9 @@ export default function LNC () {
         <PasswordInput
           label={<>password <small className='text-muted ms-2'>optional</small></>}
           name='password'
-          initialValue={config?.password}
-          newPass={config?.password === undefined}
+          initialValue={defaultPassword ? '' : config?.password}
+          newPass={config?.password === undefined || defaultPassword}
+          hint='encrypts your pairing phrase when stored locally'
         />
         <ClientCheckbox
           disabled={status !== Status.Enabled || isDefault || enabledProviders?.length === 1}

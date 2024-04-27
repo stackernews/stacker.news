@@ -18,7 +18,7 @@ async function getLNC () {
 }
 
 // default password if the user hasn't set one
-const XXX_DEFAULT_PASSWORD = 'password'
+export const XXX_DEFAULT_PASSWORD = 'password'
 
 export function LNCProvider ({ children }) {
   const name = 'lnc'
@@ -39,6 +39,8 @@ export function LNCProvider ({ children }) {
 
     return await mutex.runExclusive(async () => {
       try {
+        // credentials need to be decrypted before connecting after a disconnect
+        lnc.credentials.password = config?.password || XXX_DEFAULT_PASSWORD
         await lnc.connect()
         const { paymentError, paymentPreimage: preimage } =
           await lnc.lnd.lightning.sendPaymentSync({ payment_request: bolt11 })
@@ -53,7 +55,6 @@ export function LNCProvider ({ children }) {
         throw err
       } finally {
         try {
-        // wait for a bit before disconnect
           lnc.disconnect()
           logger.info('disconnecting after:', `payment_hash=${hash}`)
           // wait for lnc to disconnect before releasing the mutex
@@ -61,7 +62,6 @@ export function LNCProvider ({ children }) {
             let counter = 0
             const interval = setInterval(() => {
               if (lnc.isConnected) {
-                console.log('waiting for lnc to disconnect', counter)
                 if (counter++ > 100) {
                   logger.error('failed to disconnect from lnc')
                   clearInterval(interval)

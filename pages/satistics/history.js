@@ -1,6 +1,7 @@
 import { useQuery } from '@apollo/client'
 import Link from 'next/link'
 import { getGetServerSideProps } from '@/api/ssrApollo'
+import Nav from 'react-bootstrap/Nav'
 import Layout from '@/components/layout'
 import MoreFooter from '@/components/more-footer'
 import { WALLET_HISTORY } from '@/fragments/wallet'
@@ -16,6 +17,7 @@ import ItemJob from '@/components/item-job'
 import PageLoading from '@/components/page-loading'
 import PayerData from '@/components/payer-data'
 import { Badge } from 'react-bootstrap'
+import navStyles from '../settings/settings.module.css'
 
 export const getServerSideProps = getGetServerSideProps({ query: WALLET_HISTORY, authRequired: true })
 
@@ -163,6 +165,32 @@ function Fact ({ fact }) {
   )
 }
 
+export function SatisticsHeader () {
+  const router = useRouter()
+  const pathParts = router.asPath.split('?')[0].split('/').filter(segment => !!segment)
+  const activeKey = pathParts[1] ?? 'history'
+  return (
+    <>
+      <h2 className='mb-2 text-start'>satistics</h2>
+      <Nav
+        className={navStyles.nav}
+        activeKey={activeKey}
+      >
+        <Nav.Item>
+          <Link href='/satistics/history?inc=invoice,withdrawal,stacked,spent' passHref legacyBehavior>
+            <Nav.Link eventKey='history'>history</Nav.Link>
+          </Link>
+        </Nav.Item>
+        <Nav.Item>
+          <Link href='/satistics/graphs/day' passHref legacyBehavior>
+            <Nav.Link eventKey='graphs'>graphs</Nav.Link>
+          </Link>
+        </Nav.Item>
+      </Nav>
+    </>
+  )
+}
+
 export default function Satistics ({ ssrData }) {
   const router = useRouter()
   const { data, fetchMore } = useQuery(WALLET_HISTORY, { variables: { inc: router.query.inc } })
@@ -179,7 +207,7 @@ export default function Satistics ({ ssrData }) {
     }
 
     const incstr = [...inc].join(',')
-    router.push(`/satistics?inc=${incstr}`)
+    router.push(`/satistics/history?inc=${incstr}`)
   }
 
   function included (filter) {
@@ -192,7 +220,7 @@ export default function Satistics ({ ssrData }) {
   return (
     <Layout>
       <div className='mt-2'>
-        <h2 className='text-center'>satistics</h2>
+        <SatisticsHeader />
         <Form
           initial={{
             invoice: included('invoice'),

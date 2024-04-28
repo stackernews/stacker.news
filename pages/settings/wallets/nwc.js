@@ -1,7 +1,7 @@
 import { getGetServerSideProps } from '@/api/ssrApollo'
 import { Form, ClientCheckbox, PasswordInput } from '@/components/form'
 import { CenterLayout } from '@/components/layout'
-import { WalletButtonBar, WalletCard } from '@/components/wallet-card'
+import { WalletButtonBar, WalletCard, isConfigured } from '@/components/wallet-card'
 import { nwcSchema } from '@/lib/validate'
 import { useToast } from '@/components/toast'
 import { useRouter } from 'next/router'
@@ -15,8 +15,9 @@ export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 export default function NWC () {
   const { provider, enabledProviders, setProvider } = useWebLNConfigurator()
   const nwc = useNWC()
-  const { name, nwcUrl, saveConfig, clearConfig, enabled } = nwc
+  const { name, nwcUrl, saveConfig, clearConfig, status } = nwc
   const isDefault = provider?.name === name
+  const configured = isConfigured(status)
   const toaster = useToast()
   const router = useRouter()
 
@@ -52,20 +53,20 @@ export default function NWC () {
           autoFocus
         />
         <ClientCheckbox
-          disabled={!enabled || isDefault || enabledProviders.length === 1}
+          disabled={!configured || isDefault || enabledProviders.length === 1}
           initialValue={isDefault}
           label='default payment method'
           name='isDefault'
         />
         <WalletButtonBar
-          enabled={enabled} onDelete={async () => {
+          status={status} onDelete={async () => {
             try {
               await clearConfig()
               toaster.success('saved settings')
               router.push('/settings/wallets')
             } catch (err) {
               console.error(err)
-              toaster.danger('failed to unattach: ' + err.message || err.toString?.())
+              toaster.danger('failed to detach: ' + err.message || err.toString?.())
             }
           }}
         />
@@ -78,13 +79,13 @@ export default function NWC () {
 }
 
 export function NWCCard () {
-  const { enabled } = useNWC()
+  const { status } = useNWC()
   return (
     <WalletCard
       title='NWC'
       badges={['send only', 'non-custodialish', 'budgetable']}
       provider='nwc'
-      enabled={enabled}
+      status={status}
     />
   )
 }

@@ -1047,7 +1047,7 @@ function Client (Component) {
     const [,, helpers] = useField(props)
 
     useEffect(() => {
-      helpers.setValue(initialValue)
+      initialValue && helpers.setValue(initialValue)
     }, [initialValue])
 
     return <Component {...props} />
@@ -1061,10 +1061,10 @@ function PasswordHider ({ onClick, showPass }) {
       onClick={onClick}
     >
       {!showPass
-        ? <EyeClose
+        ? <Eye
             fill='var(--bs-body-color)' height={20} width={20}
           />
-        : <Eye
+        : <EyeClose
             fill='var(--bs-body-color)' height={20} width={20}
           />}
     </InputGroup.Text>

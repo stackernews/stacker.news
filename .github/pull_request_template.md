@@ -24,14 +24,22 @@ You can mention here anything that you think is relevant for this PR. Some examp
 
 ## Checklist
 
-- [ ] Are your changes backwards compatible?
+**Are your changes backwards compatible? Please answer below:**
+
+<!-- put your answer about backwards compatibility here -->
 
 <!--
 If your PR is not ready for review yet, please mark your PR as a draft.
 If changes were requested, request a new review when you incorporated the feedback.
 -->
-- [ ] Did you QA this? Could we deploy this straight to production?
+**Did you QA this? Could we deploy this straight to production? Please answer below:**
 
-- [ ] For frontend changes: Tested on mobile?
+<!-- put your answer about QA here -->
 
-- [ ] Did you introduce any new environment variables? If so, call them out explicitly in the PR description.
+**For frontend changes: Tested on mobile? Please answer below:**
+
+<!-- put your answer about mobile QA here -->
+
+**Did you introduce any new environment variables? If so, call them out explicitly here:**
+
+<!-- put your answer about env vars here -->

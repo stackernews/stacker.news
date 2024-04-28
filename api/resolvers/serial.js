@@ -67,7 +67,7 @@ export default async function serialize (trx, { models, lnd, me, hash, hmac, fee
         bail(new Error('too many pending invoices'))
       }
       if (error.message.includes('SN_INV_EXCEED_BALANCE')) {
-        bail(new Error(`pending invoices must not cause balance to exceed ${numWithUnits(msatsToSats(BALANCE_LIMIT_MSATS))}`))
+        bail(new Error(`pending invoices and withdrawals must not cause balance to exceed ${numWithUnits(msatsToSats(BALANCE_LIMIT_MSATS))}`))
       }
       if (error.message.includes('40001') || error.code === 'P2034') {
         throw new Error('wallet balance serialization failure - try again')

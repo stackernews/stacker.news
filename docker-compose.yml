@@ -1,7 +1,4 @@
-x-env_file: &env_file
-  - .env.development
-  - path: .env.local
-    required: false
+x-env_file: &env_file .env.development
 x-healthcheck: &healthcheck
   interval: 10s
   timeout: 10s
@@ -334,6 +331,7 @@ services:
       - '--tlsextradomain=host.docker.internal'
       - '--listen=0.0.0.0:9735'
       - '--rpclisten=0.0.0.0:10009'
+      - '--rpcmiddleware.enable'
       - '--restlisten=0.0.0.0:8080'
       - '--bitcoin.active'
       - '--bitcoin.regtest'
@@ -350,6 +348,7 @@ services:
       - '--maxpendingchannels=10'
     expose:
       - "9735"
+      - "10009"
     ports:
       - "${STACKER_LND_REST_PORT}:8080"
       - "${STACKER_LND_GRPC_PORT}:10009"
@@ -367,6 +366,37 @@ services:
               --min_confs 0 --local_amt=1000000000 --push_amt=500000000
           fi
         "
+  litd:
+    container_name: litd
+    image: lightninglabs/lightning-terminal:v0.12.4-alpha
+    profiles:
+      - payments
+    restart: unless-stopped
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "curl", "-f", "http://localhost:8443"]
+    depends_on:
+      stacker_lnd:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - stacker_lnd:/lnd
+    ports:
+      - "8443:8443"
+    command:
+      - 'litd'
+      - '--httpslisten=0.0.0.0:8444'
+      - '--insecure-httplisten=0.0.0.0:8443'
+      - '--uipassword=password'
+      - '--lnd-mode=remote'
+      - '--network=regtest'
+      - '--remote.lit-debuglevel=debug'
+      - '--remote.lnd.rpcserver=stacker_lnd:10009'
+      - '--remote.lnd.macaroonpath=/lnd/data/chain/bitcoin/regtest/admin.macaroon'
+      - '--remote.lnd.tlscertpath=/lnd/tls.cert'
+      - '--autopilot.disable'
+      - '--pool.auctionserver=test.pool.lightning.finance:12010'
+      - '--loop.server.host=test.swap.lightning.today:11010'
   stacker_cln:
     build:
       context: ./docker/cln

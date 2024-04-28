@@ -112,7 +112,7 @@ function LoadWithdrawl () {
       </div>
       <InvoiceStatus variant={variant} status={status} />
       <div className='w-100 mt-3'>
-        <Bolt11Info bolt11={data.withdrawl.bolt11}>
+        <Bolt11Info bolt11={data.withdrawl.bolt11} preimage={data.withdrawl.preimage}>
           <PrivacyOption wd={data.withdrawl} />
         </Bolt11Info>
       </div>

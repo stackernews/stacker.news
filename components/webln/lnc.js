@@ -44,14 +44,57 @@ export function LNCProvider ({ children }) {
     return await lnc.lightning.getInfo()
   }, [logger, lnc])
 
+  const unlock = useCallback(async (connect) => {
+    if (status === Status.Enabled) return config.password
+
+    return await new Promise((resolve, reject) => {
+      const cancelAndReject = async () => {
+        reject(new Error('password canceled'))
+      }
+      showModal(onClose => {
+        return (
+          <Form
+            initial={{
+              password: ''
+            }}
+            onSubmit={async (values) => {
+              try {
+                lnc.credentials.password = values?.password
+                setStatus(Status.Enabled)
+                setConfig({ pairingPhrase: lnc.credentials.pairingPhrase, password: values.password })
+                logger.ok('wallet enabled')
+                onClose()
+                resolve(values.password)
+              } catch (err) {
+                logger.error('failed attempt to unlock wallet', err)
+                throw err
+              }
+            }}
+          >
+            <h4 className='text-center mb-3'>Unlock LNC</h4>
+            <PasswordInput
+              label='password'
+              name='password'
+            />
+            <div className='mt-5 d-flex justify-content-between'>
+              <CancelButton onClick={() => { onClose(); cancelAndReject() }} />
+              <SubmitButton variant='primary'>unlock</SubmitButton>
+            </div>
+          </Form>
+        )
+      }, { onClose: cancelAndReject })
+    })
+  }, [logger, showModal, setConfig, lnc, status])
+
   const sendPayment = useCallback(async (bolt11) => {
     const hash = bolt11Tags(bolt11).payment_hash
     logger.info('sending payment:', `payment_hash=${hash}`)
 
     return await mutex.runExclusive(async () => {
       try {
+        const password = await unlock()
         // credentials need to be decrypted before connecting after a disconnect
-        lnc.credentials.password = config?.password || XXX_DEFAULT_PASSWORD
+        lnc.credentials.password = password || XXX_DEFAULT_PASSWORD
         await lnc.connect()
         const { paymentError, paymentPreimage: preimage } =
           await lnc.lnd.lightning.sendPaymentSync({ payment_request: bolt11 })
@@ -89,7 +132,7 @@ export function LNCProvider ({ children }) {
         }
       }
     })
-  }, [logger, lnc, config])
+  }, [logger, lnc, unlock])
 
   const saveConfig = useCallback(async config => {
     setConfig(config)
@@ -118,46 +161,6 @@ export function LNCProvider ({ children }) {
     setConfig({})
     logger.info('cleared config')
   }, [logger, lnc])
-
-  const unlock = useCallback(async (connect) => {
-    return await new Promise((resolve, reject) => {
-      const cancelAndReject = async () => {
-        reject(new Error('password canceled'))
-      }
-      showModal(onClose => {
-        return (
-          <Form
-            initial={{
-              password: ''
-            }}
-            onSubmit={async (values) => {
-              try {
-                lnc.credentials.password = values?.password
-                setStatus(Status.Enabled)
-                setConfig({ pairingPhrase: lnc.credentials.pairingPhrase, password: values.password })
-                logger.ok('wallet enabled')
-                onClose()
-                resolve()
-              } catch (err) {
-                logger.error('failed attempt to unlock wallet', err)
-                throw err
-              }
-            }}
-          >
-            <h4 className='text-center mb-3'>Unlock LNC</h4>
-            <PasswordInput
-              label='password'
-              name='password'
-            />
-            <div className='mt-5 d-flex justify-content-between'>
-              <CancelButton onClick={() => { onClose(); cancelAndReject() }} />
-              <SubmitButton variant='primary'>unlock</SubmitButton>
-            </div>
-          </Form>
-        )
-      }, { onClose: cancelAndReject })
-    })
-  }, [logger, showModal, setConfig, lnc])
 
   useEffect(() => {
     (async () => {

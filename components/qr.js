@@ -1,19 +1,21 @@
 import QRCode from 'qrcode.react'
 import { CopyInput, InputSkeleton } from './form'
 import InvoiceStatus from './invoice-status'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useWebLN } from './webln'
 import SimpleCountdown from './countdown'
 import Bolt11Info from './bolt11-info'
 
 export default function Qr ({ asIs, value, webLn, statusVariant, description, status }) {
   const qrValue = asIs ? value : 'lightning:' + value.toUpperCase()
-
   const provider = useWebLN()
+  // XXX antipattern ... we shouldn't be getting multiple renders
+  const sendPayment = useRef(false)
 
   useEffect(() => {
     async function effect () {
-      if (webLn && provider) {
+      if (webLn && provider && !sendPayment.current) {
+        sendPayment.current = true
         try {
           await provider.sendPayment({ bolt11: value })
         } catch (e) {

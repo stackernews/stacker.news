@@ -91,9 +91,6 @@ function RawWebLNProvider ({ children }) {
         flowId: flowId || hash,
         type: 'payment',
         onPending: async () => {
-          if (provider.status === Status.Locked) {
-            await provider.unlock()
-          }
           await provider.sendPayment(bolt11)
         },
         // hash and hmac are only passed for JIT invoices

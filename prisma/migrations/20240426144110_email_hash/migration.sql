@@ -32,7 +32,7 @@ DROP FUNCTION submit_migrate_existing_user_emails_job();
 CREATE OR REPLACE FUNCTION migrate_existing_user_emails(salt TEXT) RETURNS void AS $$
     BEGIN
         UPDATE "users"
-        SET "emailHash" = encode(digest("email" || salt, 'sha256'), 'hex')
+        SET "emailHash" = encode(digest(LOWER("email") || salt, 'sha256'), 'hex')
         WHERE "email" IS NOT NULL;
 
         -- then wipe the email values

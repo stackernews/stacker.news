@@ -54,7 +54,7 @@ const SocialsPopover = (
   <Popover>
     <Popover.Body style={{ fontWeight: 500, fontSize: '.9rem' }}>
       <a
-        href='https://snort.social/p/npub1jfujw6llhq7wuvu5detycdsq5v5yqf56sgrdq8wlgrryx2a2p09svwm0gx' className='nav-link p-0 d-inline-flex'
+        href='https://njump.me/npub1jfujw6llhq7wuvu5detycdsq5v5yqf56sgrdq8wlgrryx2a2p09svwm0gx' className='nav-link p-0 d-inline-flex'
         target='_blank' rel='noreferrer'
       >
         nostr

@@ -83,7 +83,7 @@ export default function LNC () {
           hint='encrypts your pairing phrase when stored locally'
         />
         <ClientCheckbox
-          disabled={status !== Status.Enabled || isDefault || enabledProviders?.length === 1}
+          disabled={!configured || isDefault || enabledProviders?.length === 1}
           initialValue={isDefault}
           label='default payment method'
           name='isDefault'

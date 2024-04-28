@@ -7,9 +7,11 @@ import { LNCProvider, useLNC } from './lnc'
 
 const WebLNContext = createContext({})
 
+const isEnabled = p => [Status.Enabled, Status.Locked].includes(p?.status)
+
 const syncProvider = (array, provider) => {
   const idx = array.findIndex(({ name }) => provider.name === name)
-  const enabled = [Status.Enabled, Status.Locked].includes(provider.status)
+  const enabled = isEnabled(provider)
   if (idx === -1) {
     // add provider to end if enabled
     return enabled ? [...array, provider] : array
@@ -113,7 +115,7 @@ function RawWebLNProvider ({ children }) {
   }, [setEnabledProviders])
 
   return (
-    <WebLNContext.Provider value={{ provider: provider ? { sendPayment: sendPaymentWithToast } : null, enabledProviders, setProvider }}>
+    <WebLNContext.Provider value={{ provider: isEnabled(provider) ? { sendPayment: sendPaymentWithToast } : null, enabledProviders, setProvider }}>
       {children}
     </WebLNContext.Provider>
   )

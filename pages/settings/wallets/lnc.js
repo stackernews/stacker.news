@@ -5,7 +5,7 @@ import Info from '@/components/info'
 import { CenterLayout } from '@/components/layout'
 import Text from '@/components/text'
 import { useToast } from '@/components/toast'
-import { WalletButtonBar, WalletCard } from '@/components/wallet-card'
+import { WalletButtonBar, WalletCard, isConfigured } from '@/components/wallet-card'
 import WalletLogs from '@/components/wallet-logs'
 import { Status, useWebLNConfigurator } from '@/components/webln'
 import { XXX_DEFAULT_PASSWORD, useLNC } from '@/components/webln/lnc'
@@ -23,6 +23,7 @@ export default function LNC () {
   const { status, clearConfig, saveConfig, config, name, unlock } = lnc
   const isDefault = provider?.name === name
   const unlocking = useRef(false)
+  const configured = isConfigured(status)
 
   useEffect(() => {
     if (!unlocking.current && status === Status.Locked) {
@@ -46,7 +47,6 @@ export default function LNC () {
         schema={lncSchema}
         onSubmit={async ({ isDefault, ...values }) => {
           try {
-            await clearConfig()
             await saveConfig(values)
             if (isDefault) setProvider(lnc)
             toaster.success('saved settings')
@@ -70,6 +70,7 @@ export default function LNC () {
           name='pairingPhrase'
           initialValue={config?.pairingPhrase}
           newPass={config?.pairingPhrase === undefined}
+          readOnly={configured}
           required
           autoFocus
         />
@@ -78,6 +79,7 @@ export default function LNC () {
           name='password'
           initialValue={defaultPassword ? '' : config?.password}
           newPass={config?.password === undefined || defaultPassword}
+          readOnly={configured}
           hint='encrypts your pairing phrase when stored locally'
         />
         <ClientCheckbox

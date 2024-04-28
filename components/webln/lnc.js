@@ -96,7 +96,6 @@ export function LNCProvider ({ children }) {
 
     try {
       lnc.credentials.pairingPhrase = config.pairingPhrase
-      lnc.credentials.password = config?.password || XXX_DEFAULT_PASSWORD
       await lnc.connect()
       await validateNarrowPerms(lnc)
       lnc.credentials.password = config?.password || XXX_DEFAULT_PASSWORD

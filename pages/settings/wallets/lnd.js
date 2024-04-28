@@ -12,9 +12,9 @@ import { REMOVE_WALLET, UPSERT_WALLET_LND, WALLET_BY_TYPE } from '@/fragments/wa
 import Info from '@/components/info'
 import Text from '@/components/text'
 import WalletLogs from '@/components/wallet-logs'
-import { WALLET_TYPE_LND } from '@/lib/constants'
+import { Wallet } from '@/lib/constants'
 
-const variables = { type: WALLET_TYPE_LND }
+const variables = { type: Wallet.LND.type }
 export const getServerSideProps = getGetServerSideProps({ query: WALLET_BY_TYPE, variables, authRequired: true })
 
 export default function LND ({ ssrData }) {
@@ -119,7 +119,7 @@ export default function LND ({ ssrData }) {
         />
       </Form>
       <div className='mt-3 w-100'>
-        <WalletLogs wallet='lnd' embedded />
+        <WalletLogs wallet={Wallet.LND} embedded />
       </div>
     </CenterLayout>
   )

@@ -9,7 +9,7 @@ import { useLNbits } from '@/components/webln/lnbits'
 import { WalletSecurityBanner } from '@/components/banners'
 import { useWebLNConfigurator } from '@/components/webln'
 import WalletLogs from '@/components/wallet-logs'
-import { WALLET_LOG_TAG_LNBITS } from '@/lib/constants'
+import { Wallet } from '@/lib/constants'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -80,7 +80,7 @@ export default function LNbits () {
         />
       </Form>
       <div className='mt-3 w-100'>
-        <WalletLogs wallet={WALLET_LOG_TAG_LNBITS} embedded />
+        <WalletLogs wallet={Wallet.LNbits} embedded />
       </div>
     </CenterLayout>
   )

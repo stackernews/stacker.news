@@ -6,7 +6,7 @@ import { parseNwcUrl } from '@/lib/url'
 import { useWalletLogger } from '../logger'
 import { Status } from '.'
 import { bolt11Tags } from '@/lib/bolt11'
-import { WALLET_LOG_TAG_NWC } from '@/lib/constants'
+import { Wallet } from '@/lib/constants'
 
 const NWCContext = createContext()
 
@@ -16,7 +16,7 @@ export function NWCProvider ({ children }) {
   const [relayUrl, setRelayUrl] = useState()
   const [secret, setSecret] = useState()
   const [status, setStatus] = useState()
-  const { logger } = useWalletLogger(WALLET_LOG_TAG_NWC)
+  const { logger } = useWalletLogger(Wallet.NWC)
 
   const name = 'NWC'
   const storageKey = 'webln:provider:nwc'

@@ -6,7 +6,7 @@ import BackArrow from '../../svgs/arrow-left-line.svg'
 import { useCallback, useEffect, useState } from 'react'
 import Price from '../price'
 import SubSelect from '../sub-select'
-import { ANON_USER_ID, BALANCE_LIMIT_MSATS, WALLET_LOG_TAG_LNBITS, WALLET_LOG_TAG_NWC } from '../../lib/constants'
+import { ANON_USER_ID, BALANCE_LIMIT_MSATS, Wallet } from '../../lib/constants'
 import Head from 'next/head'
 import NoteIcon from '../../svgs/notification-4-fill.svg'
 import { useMe } from '../me'
@@ -211,8 +211,8 @@ export function MeDropdown ({ me, dropNavKey }) {
                 await togglePushSubscription().catch(console.error)
               }
               // delete client wallet logs to prevent leak of private data if a shared device was used
-              await deleteLogs(WALLET_LOG_TAG_NWC).catch(console.error)
-              await deleteLogs(WALLET_LOG_TAG_LNBITS).catch(console.error)
+              await deleteLogs(Wallet.NWC).catch(console.error)
+              await deleteLogs(Wallet.LNbits).catch(console.error)
               await signOut({ callbackUrl: '/' })
             }}
           >logout

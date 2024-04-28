@@ -3,7 +3,7 @@ import { useMe } from './me'
 import fancyNames from '@/lib/fancy-names.json'
 import { gql, useMutation, useQuery } from '@apollo/client'
 import { WALLET_LOGS } from '@/fragments/wallet'
-import { walletTypeToLogTag, walletLogTagToType, isServerWallet } from '@/lib/constants'
+import { getWalletBy } from '@/lib/constants'
 
 const generateFancyName = () => {
   // 100 adjectives * 100 nouns * 10000 = 100M possible names
@@ -173,11 +173,13 @@ const WalletLoggerProvider = ({ children }) => {
         const existingIds = prevLogs.map(({ id }) => id)
         const logs = walletLogs
           .filter(({ id }) => !existingIds.includes(id))
-          .map(({ createdAt, wallet, ...log }) => ({
-            ts: +new Date(createdAt),
-            wallet: walletTypeToLogTag(wallet),
-            ...log
-          }))
+          .map(({ createdAt, wallet: walletType, ...log }) => {
+            return {
+              ts: +new Date(createdAt),
+              wallet: getWalletBy('type', walletType).logTag,
+              ...log
+            }
+          })
         return [...prevLogs, ...logs].sort((a, b) => a.ts - b.ts)
       })
     }
@@ -190,9 +192,9 @@ const WalletLoggerProvider = ({ children }) => {
       }
     `,
     {
-      onCompleted: (_, { variables: { wallet } }) => {
+      onCompleted: (_, { variables: { wallet: walletType } }) => {
         setLogs((logs) => {
-          return logs.filter(l => wallet ? l.wallet !== walletTypeToLogTag(wallet) : false)
+          return logs.filter(l => walletType ? l.wallet !== getWalletBy('type', walletType).logTag : false)
         })
       }
     }
@@ -239,22 +241,20 @@ const WalletLoggerProvider = ({ children }) => {
   }, [])
 
   const appendLog = useCallback((wallet, level, message) => {
-    const log = { wallet, level, message, ts: +new Date() }
+    const log = { wallet: wallet.logTag, level, message, ts: +new Date() }
     saveLog(log)
     setLogs((prevLogs) => [...prevLogs, log])
   }, [saveLog])
 
   const deleteLogs = useCallback(async (wallet) => {
-    const deleteOnServer = isServerWallet(wallet)
-
-    if (!wallet || deleteOnServer) {
-      await deleteServerWalletLogs({ variables: { wallet: wallet ? walletLogTagToType(wallet) : undefined } })
+    if (!wallet || wallet.server) {
+      await deleteServerWalletLogs({ variables: { wallet: wallet?.type } })
     }
-    if (!wallet || !deleteOnServer) {
+    if (!wallet || !wallet.server) {
       const tx = idb.current.transaction(idbStoreName, 'readwrite')
       const objectStore = tx.objectStore(idbStoreName)
       const idx = objectStore.index('wallet_ts')
-      const request = wallet ? idx.openCursor(window.IDBKeyRange.bound([wallet, -Infinity], [wallet, Infinity])) : idx.openCursor()
+      const request = wallet ? idx.openCursor(window.IDBKeyRange.bound([wallet.logTag, -Infinity], [wallet.logTag, Infinity])) : idx.openCursor()
       request.onsuccess = function (event) {
         const cursor = event.target.result
         if (cursor) {
@@ -262,7 +262,7 @@ const WalletLoggerProvider = ({ children }) => {
           cursor.continue()
         } else {
           // finished
-          setLogs((logs) => logs.filter(l => wallet ? l.wallet !== wallet : false))
+          setLogs((logs) => logs.filter(l => wallet ? l.wallet !== wallet.logTag : false))
         }
       }
     }
@@ -285,7 +285,7 @@ export function useWalletLogger (wallet) {
     //   also send this to us if diagnostics was enabled,
     //   very similar to how the service worker logger works.
     appendLog(wallet, level, message)
-    console[level !== 'error' ? 'info' : 'error'](`[${wallet}]`, message)
+    console[level !== 'error' ? 'info' : 'error'](`[${wallet.logTag}]`, message)
   }, [appendLog, wallet])
 
   const logger = useMemo(() => ({
@@ -301,5 +301,5 @@ export function useWalletLogger (wallet) {
 
 export function useWalletLogs (wallet) {
   const logs = useContext(WalletLogsContext)
-  return logs.filter(l => !wallet || l.wallet === wallet)
+  return logs.filter(l => !wallet || l.wallet === wallet.logTag)
 }

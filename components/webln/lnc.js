@@ -7,6 +7,7 @@ import useModal from '../modal'
 import { Form, PasswordInput, SubmitButton } from '../form'
 import CancelButton from '../cancel-button'
 import { Mutex } from 'async-mutex'
+import { Wallet } from '@/lib/constants'
 
 const LNCContext = createContext()
 const mutex = new Mutex()
@@ -32,8 +33,7 @@ function validateNarrowPerms (lnc) {
 }
 
 export function LNCProvider ({ children }) {
-  const name = 'lnc'
-  const logger = useWalletLogger(name)
+  const logger = useWalletLogger(Wallet.LNC)
   const [config, setConfig] = useState({})
   const [lnc, setLNC] = useState()
   const [status, setStatus] = useState()
@@ -188,7 +188,7 @@ export function LNCProvider ({ children }) {
   }, [setStatus, setConfig, logger])
 
   return (
-    <LNCContext.Provider value={{ name, status, unlock, getInfo, sendPayment, config, saveConfig, clearConfig }}>
+    <LNCContext.Provider value={{ name: 'lnc', status, unlock, getInfo, sendPayment, config, saveConfig, clearConfig }}>
       {children}
       {modal}
     </LNCContext.Provider>

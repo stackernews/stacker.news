@@ -104,10 +104,12 @@ export function NWCProvider ({ children }) {
   const loadConfig = useCallback(async () => {
     let configStr = window.localStorage.getItem(storageKey)
     setStatus(Status.Initialized)
-    if (me && !configStr) {
-      // backwards compatibility: try old storageKey
-      const oldStorageKey = storageKey.split(':').slice(0, -1).join(':')
-      configStr = window.localStorage.getItem(oldStorageKey)
+    if (!configStr) {
+      if (me) {
+        // backwards compatibility: try old storageKey
+        const oldStorageKey = storageKey.split(':').slice(0, -1).join(':')
+        configStr = window.localStorage.getItem(oldStorageKey)
+      }
       if (!configStr) {
         logger.info('no existing config found')
         return

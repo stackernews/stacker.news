@@ -213,6 +213,7 @@ export function MeDropdown ({ me, dropNavKey }) {
               // delete client wallet logs to prevent leak of private data if a shared device was used
               await deleteLogs(Wallet.NWC).catch(console.error)
               await deleteLogs(Wallet.LNbits).catch(console.error)
+              await deleteLogs(Wallet.LNC).catch(console.error)
               await signOut({ callbackUrl: '/' })
             }}
           >logout

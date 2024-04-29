@@ -7,6 +7,7 @@ import { useRef, useState } from 'react'
 import { Popover } from 'react-bootstrap'
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import { User } from './user-list'
+import styles from './user-popover.module.css'
 import errorStyles from '@/styles/error.module.css'
 
 function StackingSince ({ since }) {
@@ -55,9 +56,9 @@ export default function UserPopover ({ name, children }) {
         <Popover
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
-          style={{ border: '1px solid var(--theme-toolbarActive)' }}
+          className={styles.userPopover}
         >
-          <Popover.Body style={{ fontWeight: 500, fontSize: '.9rem' }}>
+          <Popover.Body className={styles.userPopBody}>
             {!query.data || query.loading
               ? <Moon className='spin fill-grey' />
               : !query.data.user

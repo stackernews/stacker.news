@@ -114,8 +114,14 @@ function RawWebLNProvider ({ children }) {
     })
   }, [setEnabledProviders])
 
+  const clearConfig = useCallback(async () => {
+    lnbits.clearConfig()
+    nwc.clearConfig()
+    await lnc.clearConfig()
+  }, [])
+
   return (
-    <WebLNContext.Provider value={{ provider: isEnabled(provider) ? { sendPayment: sendPaymentWithToast } : null, enabledProviders, setProvider }}>
+    <WebLNContext.Provider value={{ provider: isEnabled(provider) ? { sendPayment: sendPaymentWithToast } : null, enabledProviders, setProvider, clearConfig }}>
       {children}
     </WebLNContext.Provider>
   )

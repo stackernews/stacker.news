@@ -260,15 +260,15 @@ async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
       message = 'no route found'
     }
 
-    await serialize(
-      models.$executeRaw`
+    const [{ reverse_withdrawl: code }] = await serialize(
+      models.$queryRaw`
         SELECT reverse_withdrawl(${dbWdrwl.id}::INTEGER, ${status}::"WithdrawlStatus")`,
       { models }
     )
 
-    if (dbWdrwl.wallet) {
+    if (code === 0 && dbWdrwl.wallet) {
       // add error into log for autowithdrawal
-      addWalletLog({
+      await addWalletLog({
         wallet: dbWdrwl.wallet.type,
         level: 'ERROR',
         message: 'autowithdrawal failed: ' + message

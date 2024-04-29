@@ -32,6 +32,7 @@ import Thumb from '@/svgs/thumb-up-fill.svg'
 import Eye from '@/svgs/eye-fill.svg'
 import EyeClose from '@/svgs/eye-close-line.svg'
 import Info from './info'
+import crypto from 'crypto'
 
 export function SubmitButton ({
   children, variant, value, onClick, disabled, nonDisabledText, ...props
@@ -316,7 +317,8 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
               ref={imageUploadRef}
               className='d-flex align-items-center me-1'
               onUpload={file => {
-                const uploadMarker = `![Uploading ${file.name}…]()`
+                const altText = crypto.randomUUID()
+                const uploadMarker = `![Uploading ${altText}…]()`
                 const text = innerRef.current.value
                 const cursorPosition = innerRef.current.selectionStart || text.length
                 let preMarker = text.slice(0, cursorPosition)

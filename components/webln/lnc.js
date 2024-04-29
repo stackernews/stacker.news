@@ -8,13 +8,14 @@ import { Form, PasswordInput, SubmitButton } from '../form'
 import CancelButton from '../cancel-button'
 import { Mutex } from 'async-mutex'
 import { Wallet } from '@/lib/constants'
+import { useMe } from '../me'
 
 const LNCContext = createContext()
 const mutex = new Mutex()
 
-async function getLNC () {
+async function getLNC ({ me }) {
   if (window.lnc) return window.lnc
-  window.lnc = new LNC({ })
+  window.lnc = new LNC({ namespace: me?.id })
   return window.lnc
 }
 
@@ -33,6 +34,7 @@ function validateNarrowPerms (lnc) {
 }
 
 export function LNCProvider ({ children }) {
+  const me = useMe()
   const { logger } = useWalletLogger(Wallet.LNC)
   const [config, setConfig] = useState({})
   const [lnc, setLNC] = useState()
@@ -165,7 +167,7 @@ export function LNCProvider ({ children }) {
   useEffect(() => {
     (async () => {
       try {
-        const lnc = await getLNC()
+        const lnc = await getLNC({ me })
         setLNC(lnc)
         setStatus(Status.Initialized)
         if (lnc.credentials.isPaired) {
@@ -185,7 +187,7 @@ export function LNCProvider ({ children }) {
         setStatus(Status.Error)
       }
     })()
-  }, [setStatus, setConfig, logger])
+  }, [me, setStatus, setConfig, logger])
 
   return (
     <LNCContext.Provider value={{ name: 'lnc', status, unlock, getInfo, sendPayment, config, saveConfig, clearConfig }}>

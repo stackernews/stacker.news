@@ -7,10 +7,12 @@ import { useWalletLogger } from '../logger'
 import { Status } from '.'
 import { bolt11Tags } from '@/lib/bolt11'
 import { Wallet } from '@/lib/constants'
+import { useMe } from '../me'
 
 const NWCContext = createContext()
 
 export function NWCProvider ({ children }) {
+  const me = useMe()
   const [nwcUrl, setNwcUrl] = useState('')
   const [walletPubkey, setWalletPubkey] = useState()
   const [relayUrl, setRelayUrl] = useState()
@@ -19,7 +21,10 @@ export function NWCProvider ({ children }) {
   const { logger } = useWalletLogger(Wallet.NWC)
 
   const name = 'NWC'
-  const storageKey = 'webln:provider:nwc'
+  let storageKey = 'webln:provider:nwc'
+  if (me) {
+    storageKey = `${storageKey}:${me.id}`
+  }
 
   const getInfo = useCallback(async (relayUrl, walletPubkey) => {
     logger.info(`requesting info event from ${relayUrl}`)
@@ -97,11 +102,16 @@ export function NWCProvider ({ children }) {
   }, [logger])
 
   const loadConfig = useCallback(async () => {
-    const configStr = window.localStorage.getItem(storageKey)
+    let configStr = window.localStorage.getItem(storageKey)
     setStatus(Status.Initialized)
-    if (!configStr) {
-      logger.info('no existing config found')
-      return
+    if (me && !configStr) {
+      // backwards compatibility: try old storageKey
+      const oldStorageKey = storageKey.split(':').slice(0, -1).join(':')
+      configStr = window.localStorage.getItem(oldStorageKey)
+      if (!configStr) {
+        logger.info('no existing config found')
+        return
+      }
     }
 
     const config = JSON.parse(configStr)
@@ -130,7 +140,7 @@ export function NWCProvider ({ children }) {
       logger.info('wallet disabled')
       throw err
     }
-  }, [validateParams, logger])
+  }, [me, validateParams, logger])
 
   const saveConfig = useCallback(async (config) => {
     // immediately store config so it's not lost even if config is invalid

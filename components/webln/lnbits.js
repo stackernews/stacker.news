@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { useWalletLogger } from '../logger'
-import { Status } from '.'
+import { Status, migrateLocalStorage } from '.'
 import { bolt11Tags } from '@/lib/bolt11'
 import { Wallet } from '@/lib/constants'
 import { useMe } from '../me'
@@ -121,7 +121,7 @@ export function LNbitsProvider ({ children }) {
       if (me) {
         // backwards compatibility: try old storageKey
         const oldStorageKey = storageKey.split(':').slice(0, -1).join(':')
-        configStr = window.localStorage.getItem(oldStorageKey)
+        configStr = migrateLocalStorage(oldStorageKey, storageKey)
       }
       if (!configStr) {
         logger.info('no existing config found')

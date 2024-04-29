@@ -33,6 +33,15 @@ export const Status = {
   Error: 'Error'
 }
 
+export function migrateLocalStorage (oldStorageKey, newStorageKey) {
+  const item = window.localStorage.getItem(oldStorageKey)
+  if (item) {
+    window.localStorage.setItem(newStorageKey, item)
+    window.localStorage.removeItem(oldStorageKey)
+  }
+  return item
+}
+
 function RawWebLNProvider ({ children }) {
   const lnbits = useLNbits()
   const nwc = useNWC()

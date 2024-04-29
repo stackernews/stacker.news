@@ -16,11 +16,11 @@ function StackingSince ({ since }) {
   )
 }
 
-export default function UserPopover ({ text, children }) {
+export default function UserPopover ({ name, children }) {
   const [user, setUser] = useState(null)
   const [isTriggered, setIsTriggered] = useState(false)
   const { data } = useQuery(USER_FULL, {
-    variables: { name: text.replace('@', '') },
+    variables: { name: name },
     skip: !isTriggered
   })
 

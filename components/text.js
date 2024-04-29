@@ -199,7 +199,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
               }
               if (text.startsWith('@')) {
                 return (
-                  <UserPopover text={text}>
+                  <UserPopover name={text.replace('@', '')}>
                     <Link
                       id={props.id}
                       href={href}

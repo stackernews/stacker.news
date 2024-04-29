@@ -102,7 +102,7 @@ export default function ItemInfo ({
       </Link>
       <span> \ </span>
       <span>
-        <UserPopover text={'@' + item.user.name}>
+        <UserPopover name={item.user.name}>
           <Link href={`/${item.user.name}`}>
             @{item.user.name}<span> </span><Hat className='fill-grey' user={item.user} height={12} width={12} />
             {embellishUser}

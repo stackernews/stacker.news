@@ -126,14 +126,14 @@ export function useServiceWorkerLogger () {
 const WalletLoggerContext = createContext()
 const WalletLogsContext = createContext()
 
-const initIndexedDB = async (storeName) => {
+const initIndexedDB = async (dbName, storeName) => {
   return new Promise((resolve, reject) => {
     if (!window.indexedDB) {
       return reject(new Error('IndexedDB not supported'))
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API/Using_IndexedDB
-    const request = window.indexedDB.open('app:storage', 1)
+    const request = window.indexedDB.open(dbName, 1)
 
     let db
     request.onupgradeneeded = () => {
@@ -159,7 +159,12 @@ const initIndexedDB = async (storeName) => {
 }
 
 const WalletLoggerProvider = ({ children }) => {
+  const me = useMe()
   const [logs, setLogs] = useState([])
+  let dbName = 'app:storage'
+  if (me) {
+    dbName = `${dbName}:${me.id}`
+  }
   const idbStoreName = 'wallet_logs'
   const idb = useRef()
   const logQueue = useRef([])
@@ -211,7 +216,7 @@ const WalletLoggerProvider = ({ children }) => {
   }, [])
 
   useEffect(() => {
-    initIndexedDB(idbStoreName)
+    initIndexedDB(dbName, idbStoreName)
       .then(db => {
         idb.current = db
 

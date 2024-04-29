@@ -1,11 +1,13 @@
 import { USER_FULL } from '@/fragments/users'
+import { NORMAL_POLL_INTERVAL, SSR } from '@/lib/constants'
 import Moon from '@/svgs/moon-fill.svg'
-import { useQuery } from '@apollo/client'
+import { useLazyQuery } from '@apollo/client'
 import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { Popover } from 'react-bootstrap'
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import { User } from './user-list'
+import errorStyles from '@/styles/error.module.css'
 
 function StackingSince ({ since }) {
   return (
@@ -17,34 +19,37 @@ function StackingSince ({ since }) {
 }
 
 export default function UserPopover ({ name, children }) {
-  const [user, setUser] = useState(null)
-  const [isTriggered, setIsTriggered] = useState(false)
-  const { data } = useQuery(USER_FULL, {
-    variables: { name: name },
-    skip: !isTriggered
-  })
+  const [showOverlay, setShowOverlay] = useState(false)
 
-  useEffect(() => {
-    if (isTriggered && data) {
-      setUser(data.user)
-    }
-  }, [data, isTriggered])
+  const [getUser, query] = useLazyQuery(
+    USER_FULL,
+    SSR
+      ? {}
+      : {
+          variables: { name },
+          pollInterval: NORMAL_POLL_INTERVAL,
+          nextFetchPolicy: 'cache-and-network'
+        }
+  )
 
   const timeoutId = useRef(null)
 
   const handleMouseEnter = () => {
     clearTimeout(timeoutId.current)
-    timeoutId.current = setTimeout(() => setIsTriggered(true), 777)
+    timeoutId.current = setTimeout(() => {
+      setShowOverlay(true)
+      getUser()
+    }, 777)
   }
 
   const handleMouseLeave = () => {
     clearTimeout(timeoutId.current)
-    timeoutId.current = setTimeout(() => setIsTriggered(false), 333)
+    timeoutId.current = setTimeout(() => setShowOverlay(false), 333)
   }
 
   return (
     <OverlayTrigger
-      show={isTriggered}
+      show={showOverlay}
       onHide={handleMouseLeave}
       overlay={
         <Popover
@@ -53,13 +58,11 @@ export default function UserPopover ({ name, children }) {
           style={{ border: '1px solid var(--theme-toolbarActive)' }}
         >
           <Popover.Body style={{ fontWeight: 500, fontSize: '.9rem' }}>
-            {user
-              ? (
-                <User user={user} Embellish={() => <StackingSince since={user.since} />} />
-                )
-              : (
-                <Moon className='spin fill-grey' />
-                )}
+            {!query.data || query.loading
+              ? <Moon className='spin fill-grey' />
+              : !query.data.user
+                  ? <h1 className={[errorStyles.status, errorStyles.describe].join(' ')}>USER NOT FOUND</h1>
+                  : <User user={query.data.user} Embellish={() => <StackingSince since={query.data.user.since} />} />}
           </Popover.Body>
         </Popover>
       }

@@ -942,3 +942,25 @@ div[contenteditable]:focus,
 .react-datepicker__navigation-icon::before, .react-datepicker__navigation-icon::after {
   box-sizing: content-box;
 }
+
+.react-datepicker {
+  background-color: var(--theme-inputBg) !important;
+}
+
+.react-datepicker__header {
+  background-color: var(--theme-inputDisabledBg) !important;
+}
+
+.react-datepicker__day,
+.react-datepicker__current-month,
+.react-datepicker__day-name {
+  color: var(--bs-body-color) !important;
+}
+
+.react-datepicker__day:hover {
+  color: var(--bs-body-color-dark) !important;
+}
+
+.react-datepicker__day--outside-month {
+  color: var(--theme-inputDisabledBg) !important;
+}

@@ -23,7 +23,7 @@ export function middleware (request) {
 
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
   // we want to load media from other localhost ports during development
-  const devSrc = isDev ? ' localhost:* http:' : ''
+  const devSrc = isDev ? ' localhost:* http: ws:' : ''
   // unsafe-eval is required during development due to react-refresh.js
   // see https://github.com/vercel/next.js/issues/14221
   const devScriptSrc = isDev ? " 'unsafe-eval'" : ''

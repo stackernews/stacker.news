@@ -123,7 +123,7 @@ export default function User ({ ssrData }) {
                     </div>
                 )}
           </div>)}
-      <Footer />
+      {user.bio && <Footer />}
     </UserLayout>
   )
 }

@@ -73,7 +73,15 @@ export default function CLN ({ ssrData }) {
         }}
       >
         <Input
-          label='rest host and port'
+          label={
+            <div className='d-flex align-items-center'>rest host and port
+              <Info>
+                <Text>
+                  {'If you use tor, you need to run CLNRest over HTTP:\n\n```lightningd --clnrest-port 3010 --clnrest-protocol http```'}
+                </Text>
+              </Info>
+            </div>
+          }
           name='socket'
           hint='tor or clearnet'
           placeholder='55.5.555.55:3010'

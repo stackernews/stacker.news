@@ -189,6 +189,7 @@ export const ImageUpload = forwardRef(({ children, className, onSelect, onUpload
 
   const s3Upload = useCallback(async file => {
     const img = new window.Image()
+    const originalFileName = file.name // store original file name before removing exif data & renaming file
     file = await removeExifData(file)
     return new Promise((resolve, reject) => {
       img.onload = async () => {
@@ -205,7 +206,7 @@ export const ImageUpload = forwardRef(({ children, className, onSelect, onUpload
           ({ data } = await getSignedPOST({ variables }))
         } catch (e) {
           toaster.danger('error initiating upload: ' + e.message || e.toString?.())
-          onError?.({ ...variables, name: file.name, file })
+          onError?.({ ...variables, name: originalFileName, file })
           reject(e)
           return
         }
@@ -226,7 +227,7 @@ export const ImageUpload = forwardRef(({ children, className, onSelect, onUpload
           // TODO make sure this is actually a helpful error message and does not expose anything to the user we don't want
           const err = res.statusText
           toaster.danger('error uploading: ' + err)
-          onError?.({ ...variables, name: file.name, file })
+          onError?.({ ...variables, name: originalFileName, file })
           reject(err)
           return
         }
@@ -234,7 +235,7 @@ export const ImageUpload = forwardRef(({ children, className, onSelect, onUpload
         const url = `${MEDIA_URL}/${data.getSignedPOST.fields.key}`
         // key is upload id in database
         const id = data.getSignedPOST.fields.key
-        onSuccess?.({ ...variables, id, name: file.name, url, file })
+        onSuccess?.({ ...variables, id, name: originalFileName, url, file })
         resolve(id)
       }
       img.onerror = reject
@@ -381,7 +382,8 @@ const removeExifData = async (file) => {
       }
       const buf = dataUriToBuffer(inserted)
       const blob = new Blob([buf], { type: file.type })
-      const newFile = new File([blob], file.name, { type: file.type })
+      const newFileName = self.crypto.randomUUID() // random file name
+      const newFile = new File([blob], newFilename, { type: file.type })
       resolve(newFile)
     }
     fr.onerror = reject

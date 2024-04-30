@@ -262,15 +262,10 @@ export function LogoutDropdownItem () {
   return (
     <Dropdown.Item
       onClick={async () => {
-        try {
-          // order is important because we need to be logged in to delete push subscription on server
-          const pushSubscription = await swRegistration?.pushManager.getSubscription()
-          if (pushSubscription) {
-            await togglePushSubscription()
-          }
-        } catch (err) {
-          // don't prevent signout because of an unsubscription error
-          console.error(err)
+        // order is important because we need to be logged in to delete push subscription on server
+        const pushSubscription = await swRegistration?.pushManager.getSubscription()
+        if (pushSubscription) {
+          await togglePushSubscription().catch(console.error)
         }
         // detach wallets
         await webLN.clearConfig().catch(console.error)

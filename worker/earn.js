@@ -69,7 +69,14 @@ export async function earn ({ name }) {
 
     const notifications = {}
     for (const [i, earner] of earners.entries()) {
-      const earnings = Math.floor(parseFloat(proportions[i] * sum))
+      let earnings = 0
+      if (i === 0) {
+        // top earner gets 1m sats
+        earnings = 1_000_000_000
+      } else {
+        // everyone else gets a proportion of the total
+        earnings = Math.floor(parseFloat(proportions[i - 1] * (sum - 1_000_000_000)))
+      }
       total += earnings
       if (total > sum) {
         console.log(name, 'total exceeds sum', total, '>', sum)

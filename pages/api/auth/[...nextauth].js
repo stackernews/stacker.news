@@ -235,9 +235,10 @@ export const getAuthOptions = req => ({
       }
       // HACK! This is required to satisfy next-auth's check here:
       // https://github.com/nextauthjs/next-auth/blob/5b647e1ac040250ad055e331ba97f8fa461b63cc/packages/next-auth/src/core/routes/callback.ts#L227
-      // since we are nulling `email`, but it expects it to be truthy there. But the value isn't used to actually do the auth, so any value is acceptable.
+      // since we are nulling `email`, but it expects it to be truthy there.
+      // Since we have the email from the input request, we can copy it here and pretend like we store user emails, even though we don't.
       if (user) {
-        user.email = 'stub'
+        user.email = email
       }
       return user
     }

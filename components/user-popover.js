@@ -1,5 +1,5 @@
 import { USER_FULL } from '@/fragments/users'
-import { NORMAL_POLL_INTERVAL, SSR } from '@/lib/constants'
+import errorStyles from '@/styles/error.module.css'
 import Moon from '@/svgs/moon-fill.svg'
 import { useLazyQuery } from '@apollo/client'
 import Link from 'next/link'
@@ -8,7 +8,6 @@ import { Popover } from 'react-bootstrap'
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import { User } from './user-list'
 import styles from './user-popover.module.css'
-import errorStyles from '@/styles/error.module.css'
 
 function StackingSince ({ since }) {
   return (
@@ -24,13 +23,10 @@ export default function UserPopover ({ name, children }) {
 
   const [getUser, query] = useLazyQuery(
     USER_FULL,
-    SSR
-      ? {}
-      : {
-          variables: { name },
-          pollInterval: NORMAL_POLL_INTERVAL,
-          nextFetchPolicy: 'cache-and-network'
-        }
+    {
+      variables: { name },
+      nextFetchPolicy: 'cache-and-network'
+    }
   )
 
   const timeoutId = useRef(null)

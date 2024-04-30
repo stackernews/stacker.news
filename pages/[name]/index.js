@@ -15,6 +15,7 @@ import { bioSchema } from '@/lib/validate'
 import { useRouter } from 'next/router'
 import PageLoading from '@/components/page-loading'
 import { ItemButtonBar } from '@/components/post'
+import Footer from '@/components/footer'
 
 export const getServerSideProps = getGetServerSideProps({
   query: USER_FULL,
@@ -122,6 +123,7 @@ export default function User ({ ssrData }) {
                     </div>
                 )}
           </div>)}
+      <Footer />
     </UserLayout>
   )
 }

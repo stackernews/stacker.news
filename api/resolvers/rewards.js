@@ -79,8 +79,8 @@ async function getRewards (when, models) {
       throw new GraphQLError('bad date range', { extensions: { code: 'BAD_USER_INPUT' } })
     }
 
-    if (new Date(when[0]).getTime() > new Date('2024-03-01').getTime()) {
-      // after 3/1/2024, we reward monthly on the 1st
+    if (new Date(when[0]).getTime() > new Date('2024-03-01').getTime() && new Date(when[0]).getTime() < new Date('2024-05-02').getTime()) {
+      // after 3/1/2024 and until 5/1/2024, we reward monthly on the 1st
       if (new Date(when[0]).getUTCDate() !== 1) {
         throw new GraphQLError('invalid reward date', { extensions: { code: 'BAD_USER_INPUT' } })
       }
@@ -159,8 +159,8 @@ export default {
     leaderboard: async (parent, args, { models, ...context }) => {
       // get to and from using postgres because it's easier to do there
       const [{ to, from }] = await models.$queryRaw`
-        SELECT date_trunc('month',  (now() AT TIME ZONE 'America/Chicago')) AT TIME ZONE 'America/Chicago' as from,
-               (date_trunc('month',  (now() AT TIME ZONE 'America/Chicago')) AT TIME ZONE 'America/Chicago') + interval '1 month - 1 second' as to`
+        SELECT date_trunc('day',  (now() AT TIME ZONE 'America/Chicago')) AT TIME ZONE 'America/Chicago' as from,
+               (date_trunc('day',  (now() AT TIME ZONE 'America/Chicago')) AT TIME ZONE 'America/Chicago') + interval '1 day - 1 second' as to`
       return await topUsers(parent, { when: 'custom', to: new Date(to).getTime().toString(), from: new Date(from).getTime().toString(), limit: 100 }, { models, ...context })
     }
   },

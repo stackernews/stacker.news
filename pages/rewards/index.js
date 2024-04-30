@@ -108,11 +108,10 @@ export default function Rewards ({ ssrData }) {
   if (!dat) return <PageLoading />
 
   function EstimatedReward ({ rank }) {
-    const totalRest = total - 1000000
     return (
       <div className='text-muted fst-italic'>
         <small>
-          <span>estimated reward: {numWithUnits(rank === 1 ? 1000000 : Math.floor(totalRest * proportions[rank - 2]))}</span>
+          <span>estimated reward: {numWithUnits(Math.floor(total * proportions[rank - 1]))}</span>
         </small>
       </div>
     )

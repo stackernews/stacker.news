@@ -106,6 +106,25 @@ OPTIONS"
   docker__compose down --help | awk '/Options:/{y=1;next}y'
 }
 
+sndev__email() {
+  echo "opening mailhog inbox..."
+  open http://localhost:8025
+}
+
+sndev__help_email() {
+help="
+open the mailhog email inbox for localhost
+
+USAGE
+  $ sndev email
+
+OPTIONS
+  no options currently exist
+"
+
+  echo "$help"
+}
+
 sndev__restart() {
   shift
   docker__compose restart "$@"
@@ -409,14 +428,16 @@ sndev__login() {
   # "SNDEV-TOKEN3_0W_PhDRZVanbeJsZZGIEljexkKoGbL6qGIqSwTjjI"
   # next-auth concats the token with the secret from env and then sha256's it
   token="d5fce54babffcb070c39f78d947761fd9ec37647fafcecb9734a3085a78e5c5e"
+  salt="202c90943c313b829e65e3f29164fb5dd7ea3370d7262c4159691c2f6493bb8b"
   # upsert user with nym and nym@sndev.team
+  email="$1@sndev.team"
   docker__exec db psql -U sn -d stackernews -q <<EOF
     INSERT INTO users (name) VALUES ('$1') ON CONFLICT DO NOTHING;
-    UPDATE users SET email = '$1@sndev.team' WHERE name = '$1';
+    UPDATE users SET email = '$email', "emailHash" = encode(digest(LOWER('$email')||'$salt', 'sha256'), 'hex') WHERE name = '$1';
     INSERT INTO verification_requests (identifier, token, expires)
-      VALUES ('$1@sndev.team', '$token', NOW() + INTERVAL '1 day')
+      VALUES ('$email', '$token', NOW() + INTERVAL '1 day')
       ON CONFLICT (token) DO UPDATE
-      SET identifier = '$1@sndev.team', expires = NOW() + INTERVAL '1 day';
+      SET identifier = '$email', expires = NOW() + INTERVAL '1 day';
 EOF
 
   echo

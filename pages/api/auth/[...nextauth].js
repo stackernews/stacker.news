@@ -216,10 +216,30 @@ export const getAuthOptions = req => ({
       }
       return prisma.user.create({ data })
     },
-    getUserByEmail: email => {
-      // lookup by email hash since we don't store plaintext emails any more
+    getUserByEmail: async email => {
       const hashedEmail = hashEmail({ email })
-      return prisma.user.findUnique({ where: { emailHash: hashedEmail } })
+      let user = await prisma.user.findUnique({
+        where: {
+          // lookup by email hash since we don't store plaintext emails any more
+          emailHash: hashedEmail
+        }
+      })
+      if (!user) {
+        user = await prisma.user.findUnique({
+          where: {
+            // lookup by email as a fallback in case a user attempts to login by email during the migration
+            // and their email hasn't been migrated yet
+            email
+          }
+        })
+      }
+      // HACK! This is required to satisfy next-auth's check here:
+      // https://github.com/nextauthjs/next-auth/blob/5b647e1ac040250ad055e331ba97f8fa461b63cc/packages/next-auth/src/core/routes/callback.ts#L227
+      // since we are nulling `email`, but it expects it to be truthy there. But the value isn't used to actually do the auth, so any value is acceptable.
+      if (user) {
+        user.email = 'stub'
+      }
+      return user
     }
   },
   session: {
@@ -270,7 +290,21 @@ async function sendVerificationRequest ({
   url,
   provider
 }) {
-  const user = await prisma.user.findUnique({ where: { email: hashEmail({ email }) } })
+  let user = await prisma.user.findUnique({
+    where: {
+      // Look for the user by hashed email
+      emailHash: hashEmail({ email })
+    }
+  })
+  if (!user) {
+    user = await prisma.user.findUnique({
+      where: {
+        // or plaintext email, in case a user tries to login via email during the migration
+        // before their particular record has been migrated
+        email
+      }
+    })
+  }
 
   return new Promise((resolve, reject) => {
     const { server, from } = provider

@@ -514,6 +514,7 @@ COMMANDS
     sn_lndcli       lncli passthrough on sn_lnd
     stacker_lndcli  lncli passthrough on stacker_lnd
     stacker_clncli  lightning-cli passthrough on stacker_cln
+    email           launch mailhog's inbox in your browser
 "
   echo "$help"
 }

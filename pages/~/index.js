@@ -7,7 +7,6 @@ import Snl from '@/components/snl'
 import { useQuery } from '@apollo/client'
 import PageLoading from '@/components/page-loading'
 import TerritoryHeader from '@/components/territory-header'
-import Link from 'next/link'
 
 export const getServerSideProps = getGetServerSideProps({
   query: SUB_ITEMS,
@@ -30,14 +29,6 @@ export default function Sub ({ ssrData }) {
           <>
             <Snl />
           </>)}
-      <small className='pb-3 px-1 text-muted' style={{ marginTop: '-0.25rem', lineHeight: 1.5 }}>
-        <Link className='text-reset' href='/rewards' style={{ textDecoration: 'underline' }}>
-          Million Sat Madness
-        </Link> is sponsored by{' '}
-        <Link className='text-reset' href='https://btcplusplus.dev/conf/atx24?ref=stackernews' target='_blank' rel='noreferrer' style={{ textDecoration: 'underline' }}>
-          the Bitcoin++ Conference in Austin May 1-4
-        </Link>
-      </small>
       <Items ssrData={ssrData} variables={variables} />
     </Layout>
   )

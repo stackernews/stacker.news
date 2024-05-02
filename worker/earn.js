@@ -13,8 +13,10 @@ export async function earn ({ name }) {
   try {
     // compute how much sn earned yesterday
     const [{ sum: sumDecimal }] = await models.$queryRaw`
-      SELECT total as sum
-      FROM rewards(now() AT TIME ZONE 'America/Chicago' - interval '1 day', now() AT TIME ZONE 'America/Chicago' - interval '1 day', '1 day'::INTERVAL, 'day')`
+      SELECT sum(total) as sum
+      FROM rewards(
+        date_trunc('day', now() AT TIME ZONE 'America/Chicago' - interval '1 day'),
+        date_trunc('day', now() AT TIME ZONE 'America/Chicago' - interval '1 day'), '1 day'::INTERVAL, 'day')`
 
     // XXX primsa will return a Decimal (https://mikemcl.github.io/decimal.js)
     // because sum of a BIGINT returns a NUMERIC type (https://www.postgresql.org/docs/13/functions-aggregate.html)
@@ -52,7 +54,7 @@ export async function earn ({ name }) {
     // get earners { userId, id, type, rank, proportion }
     const earners = await models.$queryRaw`
       SELECT id AS "userId", proportion, ROW_NUMBER() OVER (ORDER BY proportion DESC) as rank
-      FROM user_values_days(now() AT TIME ZONE 'America/Chicago' - interval '1 day', now() AT TIME ZONE 'America/Chicago' - interval '1 day', '1 day'::INTERVAL, 'day')
+      FROM user_values(date_trunc('day', now() AT TIME ZONE 'America/Chicago' - interval '1 day'), date_trunc('day', now() AT TIME ZONE 'America/Chicago' - interval '1 day'), '1 day'::INTERVAL, 'day')
       WHERE NOT (id = ANY (${SN_NO_REWARDS_IDS}))
       ORDER BY proportion DESC
       LIMIT 100`

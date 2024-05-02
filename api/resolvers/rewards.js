@@ -27,7 +27,7 @@ async function getActiveRewards (models) {
   return await models.$queryRaw`
       SELECT
         (sum(total) / 1000)::INT as total,
-        date_trunc('month',  (now() AT TIME ZONE 'America/Chicago') + interval '1 month') AT TIME ZONE 'America/Chicago' as time,
+        date_trunc('day',  (now() AT TIME ZONE 'America/Chicago') + interval '1 day') AT TIME ZONE 'America/Chicago' as time,
         json_build_array(
           json_build_object('name', 'donations', 'value', (sum(donations) / 1000)::INT),
           json_build_object('name', 'fees', 'value', (sum(fees) / 1000)::INT),
@@ -36,10 +36,6 @@ async function getActiveRewards (models) {
           json_build_object('name', 'anon''s stack', 'value', (sum(anons_stack) / 1000)::INT)
         ) AS sources
       FROM (
-        (SELECT *
-          FROM rewards_days
-          WHERE rewards_days.t >= date_trunc('month',  now() AT TIME ZONE 'America/Chicago'))
-        UNION ALL
         (SELECT * FROM rewards_today)
         UNION ALL
         (SELECT * FROM
@@ -79,8 +75,8 @@ async function getRewards (when, models) {
       throw new GraphQLError('bad date range', { extensions: { code: 'BAD_USER_INPUT' } })
     }
 
-    if (new Date(when[0]).getTime() > new Date('2024-03-01').getTime()) {
-      // after 3/1/2024, we reward monthly on the 1st
+    if (new Date(when[0]).getTime() > new Date('2024-03-01').getTime() && new Date(when[0]).getTime() < new Date('2024-05-02').getTime()) {
+      // after 3/1/2024 and until 5/1/2024, we reward monthly on the 1st
       if (new Date(when[0]).getUTCDate() !== 1) {
         throw new GraphQLError('invalid reward date', { extensions: { code: 'BAD_USER_INPUT' } })
       }
@@ -159,8 +155,8 @@ export default {
     leaderboard: async (parent, args, { models, ...context }) => {
       // get to and from using postgres because it's easier to do there
       const [{ to, from }] = await models.$queryRaw`
-        SELECT date_trunc('month',  (now() AT TIME ZONE 'America/Chicago')) AT TIME ZONE 'America/Chicago' as from,
-               (date_trunc('month',  (now() AT TIME ZONE 'America/Chicago')) AT TIME ZONE 'America/Chicago') + interval '1 month - 1 second' as to`
+        SELECT date_trunc('day',  (now() AT TIME ZONE 'America/Chicago')) AT TIME ZONE 'America/Chicago' as from,
+               (date_trunc('day',  (now() AT TIME ZONE 'America/Chicago')) AT TIME ZONE 'America/Chicago') + interval '1 day - 1 second' as to`
       return await topUsers(parent, { when: 'custom', to: new Date(to).getTime().toString(), from: new Date(from).getTime().toString(), limit: 100 }, { models, ...context })
     }
   },

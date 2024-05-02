@@ -69,7 +69,7 @@ export function PostForm ({ type, sub, children }) {
         )
       }
 
-      if (sub?.postTypes?.includes('BOUNTY')) {
+      if (sub?.postTypes?.includes('EVENT')) {
         const array = postButtons.length < 2 ? postButtons : morePostButtons
         array.push(
           <Link key='EVENT' href={prefix + '/post?type=event'}>

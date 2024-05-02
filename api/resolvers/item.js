@@ -786,7 +786,7 @@ export default {
     },
     upsertEvent: async (parent, { id, hash, hmac, ...item }, { me, models }) => {
       await ssValidate(eventSchema, item, { models, me })
-    
+
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models, hash, hmac })
       } else {

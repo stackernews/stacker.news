@@ -9,6 +9,7 @@ import { DiscussionForm } from './discussion-form'
 import { LinkForm } from './link-form'
 import { PollForm } from './poll-form'
 import { BountyForm } from './bounty-form'
+import { EventForm } from './event-form'
 import SubSelect from './sub-select'
 import { useCallback, useState } from 'react'
 import FeeButton, { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
@@ -136,7 +137,7 @@ export function PostForm ({ type, sub, children }) {
     )
   }
 
-  let FormType = JobForm
+  let FormType = JobFormp
   if (type === 'discussion') {
     FormType = DiscussionForm
   } else if (type === 'link') {
@@ -144,6 +145,8 @@ export function PostForm ({ type, sub, children }) {
   } else if (type === 'poll') {
     FormType = PollForm
   } else if (type === 'bounty') {
+    FormType = BountyForm
+  } else if (type === 'event') {
     FormType = BountyForm
   }
 

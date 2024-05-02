@@ -877,6 +877,7 @@ enum PostType {
   JOB
   POLL
   BOUNTY
+  EVENT
 }
 
 enum ItemActType {

@@ -784,6 +784,15 @@ export default {
         return await createItem(parent, item, { me, models, lnd, hash, hmac })
       }
     },
+    upsertEvent: async (parent, { id, hash, hmac, ...item }, { me, models }) => {
+      await ssValidate(eventSchema, item, { models, me })
+    
+      if (id) {
+        return await updateItem(parent, { id, ...item }, { me, models, hash, hmac })
+      } else {
+        return await createItem(parent, item, { me, models, hash, hmac })
+      }
+    },
     upsertPoll: async (parent, { id, hash, hmac, ...item }, { me, models, lnd }) => {
       const numExistingChoices = id
         ? await models.pollOption.count({

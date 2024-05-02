@@ -121,6 +121,7 @@ export function EventForm ({
       <DateTimeInput
         label={dateLabel}
         name='date'
+        className='pr-4'
         required
       />
       <Input

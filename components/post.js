@@ -68,6 +68,15 @@ export function PostForm ({ type, sub, children }) {
           </Link>
         )
       }
+
+      if (sub?.postTypes?.includes('BOUNTY')) {
+        const array = postButtons.length < 2 ? postButtons : morePostButtons
+        array.push(
+          <Link key='EVENT' href={prefix + '/post?type=event'}>
+            <Button onClick={checkSession} variant={postButtons.length < 2 ? 'secondary' : 'info'}>event</Button>
+          </Link>
+        )
+      }
     } else {
       postButtons = [
         <Link key='LINK' href={prefix + '/post?type=link'}>
@@ -83,6 +92,9 @@ export function PostForm ({ type, sub, children }) {
         </Link>,
         <Link key='BOUNTY' href={prefix + '/post?type=bounty'}>
           <Button onClick={checkSession} variant='info'>bounty</Button>
+        </Link>,
+        <Link key='EVENT' href={prefix + '/post?type=event'}>
+          <Button variant='info'>event</Button>
         </Link>
       ]
     }
@@ -137,7 +149,7 @@ export function PostForm ({ type, sub, children }) {
     )
   }
 
-  let FormType = JobFormp
+  let FormType = JobForm
   if (type === 'discussion') {
     FormType = DiscussionForm
   } else if (type === 'link') {
@@ -147,7 +159,7 @@ export function PostForm ({ type, sub, children }) {
   } else if (type === 'bounty') {
     FormType = BountyForm
   } else if (type === 'event') {
-    FormType = BountyForm
+    FormType = EventForm
   }
 
   return (

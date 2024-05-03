@@ -20,14 +20,14 @@ export function AdvPostInitial ({ forward, boost }) {
   }
 }
 
-export default function AdvPostForm ({ children, item, show, dirty }) {
+export default function AdvPostForm ({ children, item, show, isdirty }) {
   const me = useMe()
   const { merge } = useFeeButton()
   const router = useRouter()
   const [itemType, setItemType] = useState()
   const [hasForwardError, setHasForwardError] = useState(false)
   const [hasBoostError, setHasBoostError] = useState(false)
-  const [isdirty, setisDirty] = useState(undefined)
+  const [dirty, setDirty] = useState(undefined)
 
   const handleForwardError = (error) => {
     if (!hasForwardError && !!error) {
@@ -46,8 +46,8 @@ export default function AdvPostForm ({ children, item, show, dirty }) {
   }
 
   const handleDirty = (input) => {
-    if ((typeof input === 'string' && input !== '') || (typeof input === 'object' && (input.nym !== '' || input.pct !== ''))) {
-      setisDirty(true)
+    if (!dirty && ((typeof input === 'string' && input !== '') || (typeof input === 'object' && (input.nym !== '' || input.pct !== '')))) {
+      setDirty(true)
     }
   }
 
@@ -94,7 +94,7 @@ export default function AdvPostForm ({ children, item, show, dirty }) {
   return (
     <AccordianItem
       header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>options</div>}
-      show={(!!isdirty || !!dirty) ? (hasForwardError || hasBoostError) ? show : !show : undefined}
+      show={(!!dirty || !!isdirty) ? (hasForwardError || hasBoostError) ? show : !show : undefined}
       body={
         <>
           {children}

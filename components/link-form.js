@@ -38,7 +38,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
   }
 
   const handleDirty = (input) => {
-    if (typeof input === 'string' && input !== '') {
+    if (!dirty && (typeof input === 'string' && input !== '')) {
       setDirty(true)
     }
   }
@@ -212,7 +212,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
           }
         }}
       />
-      <AdvPostForm show={show} dirty={dirty} edit={!!item} item={item}>
+      <AdvPostForm show={show} isdirty={dirty} edit={!!item} item={item}>
         <MarkdownInput
           label='context'
           name='text'

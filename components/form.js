@@ -161,6 +161,10 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
     }
   }, [innerRef, selectionRange.start, selectionRange.end])
 
+  useEffect(() => {
+    isdirty && isdirty(innerRef.current?.innerHTML)
+  }, [isdirty])
+
   const [mention, setMention] = useState()
   const insertMention = useCallback((name) => {
     if (mention?.start === undefined || mention?.end === undefined) return
@@ -299,8 +303,6 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
   const onDragLeave = useCallback((e) => {
     setDragStyle(null)
   }, [setDragStyle])
-
-  isdirty && isdirty(innerRef.current?.innerHTML)
 
   return (
     <FormGroup label={label} className={groupClassName}>
@@ -502,8 +504,10 @@ function InputInner ({
 
   const invalid = (!formik || formik.submitCount > 0) && meta.touched && meta.error
 
-  hasError && hasError(invalid)
-  isdirty && isdirty(field.value)
+  useEffect(() => {
+    hasError && hasError(invalid)
+    isdirty && isdirty(field.value)
+  }, [hasError, isdirty])
 
   useEffect(debounce(() => {
     if (!noForm && !isNaN(debounceTime) && debounceTime > 0) {

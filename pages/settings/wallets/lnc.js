@@ -12,6 +12,7 @@ import { XXX_DEFAULT_PASSWORD, useLNC } from '@/components/webln/lnc'
 import { lncSchema } from '@/lib/validate'
 import { useRouter } from 'next/router'
 import { useEffect, useRef } from 'react'
+import { Wallet } from '@/lib/constants'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -102,7 +103,7 @@ export default function LNC () {
         />
       </Form>
       <div className='mt-3 w-100'>
-        <WalletLogs wallet='lnc' embedded />
+        <WalletLogs wallet={Wallet.LNC} embedded />
       </div>
     </CenterLayout>
   )

@@ -1,10 +1,13 @@
 import { useRouter } from 'next/router'
 import LogMessage from './log-message'
-import { useWalletLogs } from './logger'
+import { useWalletLogger, useWalletLogs } from './logger'
 import { useEffect, useRef, useState } from 'react'
 import { Checkbox, Form } from './form'
 import { useField } from 'formik'
 import styles from '@/styles/log.module.css'
+import { Button } from 'react-bootstrap'
+import { useToast } from './toast'
+import { useShowModal } from './modal'
 
 const FollowCheckbox = ({ value, ...props }) => {
   const [,, helpers] = useField(props.name)
@@ -26,6 +29,7 @@ export default function WalletLogs ({ wallet, embedded }) {
   const [follow, setFollow] = useState(defaultFollow ?? true)
   const tableRef = useRef()
   const scrollY = useRef()
+  const showModal = useShowModal()
 
   useEffect(() => {
     if (follow) {
@@ -57,12 +61,21 @@ export default function WalletLogs ({ wallet, embedded }) {
 
   return (
     <>
-      <Form initial={{ follow: true }}>
-        <FollowCheckbox
-          label='follow logs' name='follow' value={follow}
-          handleChange={setFollow}
-        />
-      </Form>
+      <div className='d-flex w-100 align-items-center mb-3'>
+        <Form initial={{ follow: true }}>
+          <FollowCheckbox
+            label='follow logs' name='follow' value={follow}
+            handleChange={setFollow} groupClassName='mb-0'
+          />
+        </Form>
+        <span
+          style={{ cursor: 'pointer' }}
+          className='text-muted fw-bold nav-link' onClick={() => {
+            showModal(onClose => <DeleteWalletLogsObstacle wallet={wallet} onClose={onClose} />)
+          }}
+        >clear
+        </span>
+      </div>
       <div ref={tableRef} className={`${styles.logTable} ${embedded ? styles.embedded : ''}`}>
         <div className='w-100 text-center'>------ start of logs ------</div>
         {logs.length === 0 && <div className='w-100 text-center'>empty</div>}
@@ -73,5 +86,36 @@ export default function WalletLogs ({ wallet, embedded }) {
         </table>
       </div>
     </>
+  )
+}
+
+function DeleteWalletLogsObstacle ({ wallet, onClose }) {
+  const toaster = useToast()
+  const { deleteLogs } = useWalletLogger(wallet)
+
+  const prompt = `Do you really want to delete all ${wallet ? '' : 'wallet'} logs ${wallet ? 'of this wallet' : ''}?`
+  return (
+    <div className='text-center'>
+      {prompt}
+      <div className='d-flex justify-center align-items-center mt-3 mx-auto'>
+        <span style={{ cursor: 'pointer' }} className='d-flex ms-auto text-muted fw-bold nav-link mx-3' onClick={onClose}>cancel</span>
+        <Button
+          className='d-flex me-auto mx-3' variant='danger'
+          onClick={
+            async () => {
+              try {
+                await deleteLogs()
+                onClose()
+                toaster.success('deleted wallet logs')
+              } catch (err) {
+                console.error(err)
+                toaster.danger('failed to delete wallet logs')
+              }
+            }
+          }
+        >delete
+        </Button>
+      </div>
+    </div>
   )
 }

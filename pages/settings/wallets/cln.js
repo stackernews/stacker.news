@@ -12,8 +12,9 @@ import { REMOVE_WALLET, UPSERT_WALLET_CLN, WALLET_BY_TYPE } from '@/fragments/wa
 import WalletLogs from '@/components/wallet-logs'
 import Info from '@/components/info'
 import Text from '@/components/text'
+import { Wallet } from '@/lib/constants'
 
-const variables = { type: 'CLN' }
+const variables = { type: Wallet.CLN.type }
 export const getServerSideProps = getGetServerSideProps({ query: WALLET_BY_TYPE, variables, authRequired: true })
 
 export default function CLN ({ ssrData }) {
@@ -118,7 +119,7 @@ export default function CLN ({ ssrData }) {
         />
       </Form>
       <div className='mt-3 w-100'>
-        <WalletLogs wallet='cln' embedded />
+        <WalletLogs wallet={Wallet.CLN} embedded />
       </div>
     </CenterLayout>
   )

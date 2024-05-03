@@ -2,9 +2,7 @@ import { useState } from 'react'
 import { Dropdown, Image, Nav, Navbar, Offcanvas } from 'react-bootstrap'
 import { MEDIA_URL } from '@/lib/constants'
 import Link from 'next/link'
-import { useServiceWorker } from '@/components/serviceworker'
-import { signOut } from 'next-auth/react'
-import { LoginButtons, NavWalletSummary } from '../common'
+import { LoginButtons, LogoutDropdownItem, NavWalletSummary } from '../common'
 import AnonIcon from '@/svgs/spy-fill.svg'
 import styles from './footer.module.css'
 import classNames from 'classnames'
@@ -14,7 +12,6 @@ export default function OffCanvas ({ me, dropNavKey }) {
 
   const handleClose = () => setShow(false)
   const handleShow = () => setShow(true)
-  const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
 
   const MeImage = ({ onClick }) => me
     ? (
@@ -78,22 +75,7 @@ export default function OffCanvas ({ me, dropNavKey }) {
                     </Link>
                   </div>
                   <Dropdown.Divider />
-                  <Dropdown.Item
-                    onClick={async () => {
-                      try {
-                        // order is important because we need to be logged in to delete push subscription on server
-                        const pushSubscription = await swRegistration?.pushManager.getSubscription()
-                        if (pushSubscription) {
-                          await togglePushSubscription()
-                        }
-                      } catch (err) {
-                        // don't prevent signout because of an unsubscription error
-                        console.error(err)
-                      }
-                      await signOut({ callbackUrl: '/' })
-                    }}
-                  >logout
-                  </Dropdown.Item>
+                  <LogoutDropdownItem />
                 </>
                 )
               : <LoginButtons />}

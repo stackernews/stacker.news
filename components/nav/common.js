@@ -23,6 +23,7 @@ import classNames from 'classnames'
 import SnIcon from '@/svgs/sn.svg'
 import { useHasNewNotes } from '../use-has-new-notes'
 import { useWalletLogger } from '../logger'
+import { useWebLNConfigurator } from '../webln'
 
 export function Brand ({ className }) {
   return (
@@ -162,8 +163,6 @@ export function NavWalletSummary ({ className }) {
 
 export function MeDropdown ({ me, dropNavKey }) {
   if (!me) return null
-  const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
-  const { deleteLogs } = useWalletLogger()
   return (
     <div className='position-relative'>
       <Dropdown className={styles.dropdown} align='end'>
@@ -202,22 +201,7 @@ export function MeDropdown ({ me, dropNavKey }) {
             </Link>
           </div>
           <Dropdown.Divider />
-          <Dropdown.Item
-            onClick={async () => {
-              // order is important because we need to be logged in to delete push subscription on server
-              const pushSubscription = await swRegistration?.pushManager.getSubscription()
-              if (pushSubscription) {
-                // don't prevent signout because of an unsubscription error
-                await togglePushSubscription().catch(console.error)
-              }
-              // delete client wallet logs to prevent leak of private data if a shared device was used
-              await deleteLogs(Wallet.NWC).catch(console.error)
-              await deleteLogs(Wallet.LNbits).catch(console.error)
-              await deleteLogs(Wallet.LNC).catch(console.error)
-              await signOut({ callbackUrl: '/' })
-            }}
-          >logout
-          </Dropdown.Item>
+          <LogoutDropdownItem />
         </Dropdown.Menu>
       </Dropdown>
       {!me.bioId &&
@@ -268,6 +252,31 @@ export default function LoginButton ({ className }) {
     >
       login
     </Button>
+  )
+}
+
+export function LogoutDropdownItem () {
+  const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
+  const webLN = useWebLNConfigurator()
+  const { deleteLogs } = useWalletLogger()
+  return (
+    <Dropdown.Item
+      onClick={async () => {
+        // order is important because we need to be logged in to delete push subscription on server
+        const pushSubscription = await swRegistration?.pushManager.getSubscription()
+        if (pushSubscription) {
+          await togglePushSubscription().catch(console.error)
+        }
+        // detach wallets
+        await webLN.clearConfig().catch(console.error)
+        // delete client wallet logs to prevent leak of private data if a shared device was used
+        await deleteLogs(Wallet.NWC).catch(console.error)
+        await deleteLogs(Wallet.LNbits).catch(console.error)
+        await deleteLogs(Wallet.LNC).catch(console.error)
+        await signOut({ callbackUrl: '/' })
+      }}
+    >logout
+    </Dropdown.Item>
   )
 }
 

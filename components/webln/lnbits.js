@@ -1,8 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { useWalletLogger } from '../logger'
-import { Status } from '.'
+import { Status, migrateLocalStorage } from '.'
 import { bolt11Tags } from '@/lib/bolt11'
 import { Wallet } from '@/lib/constants'
+import { useMe } from '../me'
 
 // Reference: https://github.com/getAlby/bitcoin-connect/blob/v3.2.0-alpha/src/connectors/LnbitsConnector.ts
 
@@ -65,13 +66,17 @@ const getPayment = async (baseUrl, adminKey, paymentHash) => {
 }
 
 export function LNbitsProvider ({ children }) {
+  const me = useMe()
   const [url, setUrl] = useState('')
   const [adminKey, setAdminKey] = useState('')
   const [status, setStatus] = useState()
   const { logger } = useWalletLogger(Wallet.LNbits)
 
   const name = 'LNbits'
-  const storageKey = 'webln:provider:lnbits'
+  let storageKey = 'webln:provider:lnbits'
+  if (me) {
+    storageKey = `${storageKey}:${me.id}`
+  }
 
   const getInfo = useCallback(async () => {
     const response = await getWallet(url, adminKey)
@@ -110,11 +115,18 @@ export function LNbitsProvider ({ children }) {
   }, [logger, url, adminKey])
 
   const loadConfig = useCallback(async () => {
-    const configStr = window.localStorage.getItem(storageKey)
+    let configStr = window.localStorage.getItem(storageKey)
     setStatus(Status.Initialized)
     if (!configStr) {
-      logger.info('no existing config found')
-      return
+      if (me) {
+        // backwards compatibility: try old storageKey
+        const oldStorageKey = storageKey.split(':').slice(0, -1).join(':')
+        configStr = migrateLocalStorage(oldStorageKey, storageKey)
+      }
+      if (!configStr) {
+        logger.info('no existing config found')
+        return
+      }
     }
 
     const config = JSON.parse(configStr)
@@ -141,7 +153,7 @@ export function LNbitsProvider ({ children }) {
       logger.info('wallet disabled')
       throw err
     }
-  }, [logger])
+  }, [me, logger])
 
   const saveConfig = useCallback(async (config) => {
     // immediately store config so it's not lost even if config is invalid

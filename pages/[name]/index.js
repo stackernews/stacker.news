@@ -15,7 +15,6 @@ import { bioSchema } from '@/lib/validate'
 import { useRouter } from 'next/router'
 import PageLoading from '@/components/page-loading'
 import { ItemButtonBar } from '@/components/post'
-import Footer from '@/components/footer'
 
 export const getServerSideProps = getGetServerSideProps({
   query: USER_FULL,
@@ -78,7 +77,7 @@ export function BioForm ({ handleDone, bio }) {
 
 export function UserLayout ({ user, children, containClassName }) {
   return (
-    <Layout user={user} footer={false} containClassName={containClassName}>
+    <Layout user={user} footer footerLinks={false} containClassName={containClassName}>
       <UserHeader user={user} />
       {children}
     </Layout>
@@ -123,7 +122,6 @@ export default function User ({ ssrData }) {
                     </div>
                 )}
           </div>)}
-      {user?.bio && <Footer />}
     </UserLayout>
   )
 }

@@ -241,7 +241,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
         const fragment = {
           id: `Item:${itemId}`,
           fragment: gql`
-          fragment ItemMeSats on Item {
+          fragment ItemMeSatsInvoice on Item {
             sats
             meSats
           }
@@ -308,7 +308,7 @@ export const useInvoiceable = (onSubmit, options = defaultOptions) => {
 
 const INVOICE_CANCELED_ERROR = 'invoice canceled'
 const waitForPayment = async ({ invoice, showModal, provider, pollInvoice, gqlCacheUpdate, flowId }) => {
-  if (provider.enabled) {
+  if (provider) {
     try {
       return await waitForWebLNPayment({ provider, invoice, pollInvoice, gqlCacheUpdate, flowId })
     } catch (err) {

@@ -13,7 +13,12 @@ docker__compose() {
     COMPOSE_PROFILES="images,search,payments,email,capture"
   fi
 
-  CURRENT_UID=$(id -u) CURRENT_GID=$(id -g) COMPOSE_PROFILES=$COMPOSE_PROFILES command docker compose --env-file .env.development --env-file .env.local "$@"
+  ENV_LOCAL=
+  if [ -f .env.local ]; then
+    ENV_LOCAL='--env-file .env.local'
+  fi
+
+  CURRENT_UID=$(id -u) CURRENT_GID=$(id -g) COMPOSE_PROFILES=$COMPOSE_PROFILES command docker compose --env-file .env.development $ENV_LOCAL "$@"
 }
 
 docker__exec() {
@@ -335,6 +340,15 @@ sndev__help_stacker_clncli() {
   docker__stacker_cln help
 }
 
+sndev__stacker_litcli() {
+  shift
+  docker__exec -t litd litcli -n regtest --rpcserver localhost:8444 "$@"
+}
+
+sndev__help_stacker_litcli() {
+  docker__exec -t litd litcli -h
+}
+
 __sndev__pr_track() {
   json=$(curl -fsSH "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/stackernews/stacker.news/pulls/$1")
   case $(git config --get remote.origin.url) in
@@ -488,6 +502,7 @@ COMMANDS
     sn_lndcli       lncli passthrough on sn_lnd
     stacker_lndcli  lncli passthrough on stacker_lnd
     stacker_clncli  lightning-cli passthrough on stacker_cln
+    stacker_litcli  litcli passthrough on litd
 "
   echo "$help"
 }

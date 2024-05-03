@@ -29,6 +29,8 @@ import { AWS_S3_URL_REGEXP } from '@/lib/constants'
 import { whenRange } from '@/lib/time'
 import { useFeeButton } from './fee-button'
 import Thumb from '@/svgs/thumb-up-fill.svg'
+import Eye from '@/svgs/eye-fill.svg'
+import EyeClose from '@/svgs/eye-close-line.svg'
 import Info from './info'
 
 export function SubmitButton ({
@@ -329,7 +331,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
               }}
               onSuccess={({ url, name }) => {
                 let text = innerRef.current.value
-                text = text.replace(`![Uploading ${name}…]()`, `![${name}](${url})`)
+                text = text.replace(`![Uploading ${name}…]()`, `![](${url})`)
                 helpers.setValue(text)
                 const s3Keys = [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1]))
                 updateImageFeesInfo({ variables: { s3Keys } })
@@ -1045,11 +1047,41 @@ function Client (Component) {
     const [,, helpers] = useField(props)
 
     useEffect(() => {
-      helpers.setValue(initialValue)
+      initialValue && helpers.setValue(initialValue)
     }, [initialValue])
 
     return <Component {...props} />
   }
+}
+
+function PasswordHider ({ onClick, showPass }) {
+  return (
+    <InputGroup.Text
+      style={{ cursor: 'pointer' }}
+      onClick={onClick}
+    >
+      {!showPass
+        ? <Eye
+            fill='var(--bs-body-color)' height={20} width={20}
+          />
+        : <EyeClose
+            fill='var(--bs-body-color)' height={20} width={20}
+          />}
+    </InputGroup.Text>
+  )
+}
+
+export function PasswordInput ({ newPass, ...props }) {
+  const [showPass, setShowPass] = useState(false)
+
+  return (
+    <ClientInput
+      {...props}
+      type={showPass ? 'text' : 'password'}
+      autoComplete={newPass ? 'new-password' : 'current-password'}
+      append={<PasswordHider showPass={showPass} onClick={() => setShowPass(!showPass)} />}
+    />
+  )
 }
 
 export const ClientInput = Client(Input)

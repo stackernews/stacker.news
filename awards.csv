@@ -35,23 +35,34 @@ jp30566347,pr,#991,#718,good-first-issue,,,,20k,jpmelanson@getalby.com,2024-04-0
 benalleng,helpfulness,#1015,#1010,good-first-issue,,,,2k,BenAllenG@stacker.news,2024-04-04
 felipebueno,pr,#1012,,,,,,20k,felipe@stacker.news,2024-04-04
 abhiShandy,helpfulness,#1018,#1006,good-first-issue,,,identified problem,2k,bolt11,2024-04-04
-benalleng,issue,#1018,#1006,good-first-issue,,,,2k,???,???
-benalleng,issue,#1011,#993,easy,high,,,20k,???,???
-benalleng,pr,#1011,#993,easy,high,,tortured them,200k,???,???
+benalleng,issue,#1018,#1006,good-first-issue,,,,2k,benalleng@mutiny.plus,2024-04-28
+benalleng,issue,#1011,#993,easy,high,,,20k,benalleng@mutiny.plus,2024-04-28
+benalleng,pr,#1011,#993,easy,high,,tortured them,200k,benalleng@mutiny.plus,2024-04-28
 abhiShandy,pr,#1031,#908,good-first-issue,,1,,18k,abhishandy@stacker.news,2024-04-12
 SatsAllDay,issue,#1031,#908,good-first-issue,,1,,1.8k,weareallsatoshi@getalby.com,2024-04-12
 SatsAllDay,pr,#1034,#934,medium,,,,250k,weareallsatoshi@getalby.com,2024-04-12
 SatsAllDay,issue,#1034,#934,medium,,,,25k,weareallsatoshi@getalby.com,2024-04-12
-benalleng,pr,#1037,#1036,easy,,1,,90k,???,???
+benalleng,pr,#1037,#1036,easy,,1,,90k,benalleng@mutiny.plus,2024-04-28
 SatsAllDay,pr,#1038,#1033,easy,,,,100k,weareallsatoshi@getalby.com,2024-04-12
 SatsAllDay,issue,#1038,#1033,easy,,,,10k,weareallsatoshi@getalby.com,2024-04-12
 felipebueno,pr,#1043,,easy,,,,100k,felipe@stacker.news,2024-04-12
-benalleng,pr,#1050,,good-first-issue,,,,20k,???,???
+benalleng,pr,#1050,,good-first-issue,,,,20k,benalleng@mutiny.plus,2024-04-28
 jp30566347,pr,#1055,#771,medium,,,extra mile,300k,jpmelanson@getalby.com,2024-04-12
-benalleng,helpfulness,#1063,202,medium,,,did much of the legwork in another pr,100k,???,???
-benalleng,code review,#1063,202,medium,,,,25k,???,???
-benalleng,pr,#1066,#1060,good-first-issue,,,,20k,???,???
-benalleng,pr,#1068,#1067,good-first-issue,,,,20k,???,???
+benalleng,helpfulness,#1063,202,medium,,,did much of the legwork in another pr,100k,benalleng@mutiny.plus,2024-04-28
+benalleng,code review,#1063,202,medium,,,,25k,benalleng@mutiny.plus,2024-04-28
+benalleng,pr,#1066,#1060,good-first-issue,,,,20k,benalleng@mutiny.plus,2024-04-28
+benalleng,pr,#1068,#1067,good-first-issue,,,,20k,benalleng@mutiny.plus,2024-04-28
 abhiShandy,helpfulness,#1068,#1067,good-first-issue,,,,2k,abhishandy@stacker.news,2024-04-14
 bumi,pr,#1076,,,,,,20k,bumi@getalby.com,2024-04-16
-benalleng,pr,#1079,#977,easy,,,,100k,???,???
+benalleng,pr,#1079,#977,easy,,,,100k,benalleng@mutiny.plus,2024-04-28
+felipebueno,pr,#1024,,,,,,20k,felipe@stacker.news,2024-04-21
+SatsAllDay,pr,#1075,#1064,medium-hard,,1,,450k,weareallsatoshi@getalby.com,2024-04-21
+aChrisYouKnow,issue,#1075,#1064,medium-hard,,1,,45k,ACYK@stacker.news,2024-04-22
+SatsAllDay,pr,#1098,,,,,,20k,weareallsatoshi@getalby.com,2024-04-21
+SatsAllDay,pr,#1095,#728,medium,,,,250k,weareallsatoshi@getalby.com,2024-04-21
+benalleng,pr,#1090,#1077,good-first-issue,,,,20k,benalleng@mutiny.plus,2024-04-28
+benalleng,helpfulness,#1087,,,,,informed fix,20k,benalleng@mutiny.plus,2024-04-28
+benalleng,pr,#1099,#794,medium-hard,,,refined in a commit,450k,benalleng@mutiny.plus,2024-04-28
+dillon-co,helpfulness,#1099,#794,medium-hard,,,#988 did much of the legwork,225k,bolt11,2024-04-29
+abhiShandy,pr,#1119,#1110,good-first-issue,,,,20k,abhishandy@stacker.news,2024-04-28
+felipebueno,issue,#1119,#1110,good-first-issue,,,,2k,felipe@stacker.news,2024-04-28

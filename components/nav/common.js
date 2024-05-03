@@ -6,7 +6,7 @@ import BackArrow from '../../svgs/arrow-left-line.svg'
 import { useCallback, useEffect, useState } from 'react'
 import Price from '../price'
 import SubSelect from '../sub-select'
-import { ANON_USER_ID, BALANCE_LIMIT_MSATS } from '../../lib/constants'
+import { ANON_USER_ID, BALANCE_LIMIT_MSATS, Wallet } from '../../lib/constants'
 import Head from 'next/head'
 import NoteIcon from '../../svgs/notification-4-fill.svg'
 import { useMe } from '../me'
@@ -22,6 +22,7 @@ import SearchIcon from '../../svgs/search-line.svg'
 import classNames from 'classnames'
 import SnIcon from '@/svgs/sn.svg'
 import { useHasNewNotes } from '../use-has-new-notes'
+import { useWalletLogger } from '../logger'
 
 export function Brand ({ className }) {
   return (
@@ -162,6 +163,7 @@ export function NavWalletSummary ({ className }) {
 export function MeDropdown ({ me, dropNavKey }) {
   if (!me) return null
   const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
+  const { deleteLogs } = useWalletLogger()
   return (
     <div className='position-relative'>
       <Dropdown className={styles.dropdown} align='end'>
@@ -202,16 +204,16 @@ export function MeDropdown ({ me, dropNavKey }) {
           <Dropdown.Divider />
           <Dropdown.Item
             onClick={async () => {
-              try {
-                // order is important because we need to be logged in to delete push subscription on server
-                const pushSubscription = await swRegistration?.pushManager.getSubscription()
-                if (pushSubscription) {
-                  await togglePushSubscription()
-                }
-              } catch (err) {
+              // order is important because we need to be logged in to delete push subscription on server
+              const pushSubscription = await swRegistration?.pushManager.getSubscription()
+              if (pushSubscription) {
                 // don't prevent signout because of an unsubscription error
-                console.error(err)
+                await togglePushSubscription().catch(console.error)
               }
+              // delete client wallet logs to prevent leak of private data if a shared device was used
+              await deleteLogs(Wallet.NWC).catch(console.error)
+              await deleteLogs(Wallet.LNbits).catch(console.error)
+              await deleteLogs(Wallet.LNC).catch(console.error)
               await signOut({ callbackUrl: '/' })
             }}
           >logout

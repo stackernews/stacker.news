@@ -4,18 +4,19 @@ import { PrismaClient } from '@prisma/client'
 import { proportions } from '@/lib/madness.js'
 import { SN_NO_REWARDS_IDS } from '@/lib/constants.js'
 
-const TOTAL_UPPER_BOUND_MSATS = 10000000000
+const TOTAL_UPPER_BOUND_MSATS = 1_000_000_000
 
 export async function earn ({ name }) {
   // grab a greedy connection
   const models = new PrismaClient()
 
   try {
-  // compute how much sn earned got the month
+    // compute how much sn earned yesterday
     const [{ sum: sumDecimal }] = await models.$queryRaw`
-      SELECT coalesce(sum(total), 0) as sum
-      FROM rewards_days
-      WHERE date_trunc('month', rewards_days.t) = date_trunc('month',  (now() AT TIME ZONE 'America/Chicago' - interval '1 month'))`
+      SELECT sum(total) as sum
+      FROM rewards(
+        date_trunc('day', now() AT TIME ZONE 'America/Chicago' - interval '1 day'),
+        date_trunc('day', now() AT TIME ZONE 'America/Chicago' - interval '1 day'), '1 day'::INTERVAL, 'day')`
 
     // XXX primsa will return a Decimal (https://mikemcl.github.io/decimal.js)
     // because sum of a BIGINT returns a NUMERIC type (https://www.postgresql.org/docs/13/functions-aggregate.html)
@@ -52,11 +53,9 @@ export async function earn ({ name }) {
 
     // get earners { userId, id, type, rank, proportion }
     const earners = await models.$queryRaw`
-      SELECT id AS "userId", sum(proportion) as proportion, ROW_NUMBER() OVER (ORDER BY sum(proportion) DESC) as rank
-      FROM user_values_days
-      WHERE date_trunc('month', user_values_days.t) = date_trunc('month',  (now() AT TIME ZONE 'America/Chicago' - interval '1 month'))
-      AND NOT (id = ANY (${SN_NO_REWARDS_IDS}))
-      GROUP BY id
+      SELECT id AS "userId", proportion, ROW_NUMBER() OVER (ORDER BY proportion DESC) as rank
+      FROM user_values(date_trunc('day', now() AT TIME ZONE 'America/Chicago' - interval '1 day'), date_trunc('day', now() AT TIME ZONE 'America/Chicago' - interval '1 day'), '1 day'::INTERVAL, 'day')
+      WHERE NOT (id = ANY (${SN_NO_REWARDS_IDS}))
       ORDER BY proportion DESC
       LIMIT 100`
 

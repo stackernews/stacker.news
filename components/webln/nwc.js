@@ -4,7 +4,9 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 import { Relay, finalizeEvent, nip04 } from 'nostr-tools'
 import { parseNwcUrl } from '@/lib/url'
 import { useWalletLogger } from '../logger'
-import lnpr from 'bolt11'
+import { Status } from '.'
+import { bolt11Tags } from '@/lib/bolt11'
+import { Wallet } from '@/lib/constants'
 
 const NWCContext = createContext()
 
@@ -13,9 +15,8 @@ export function NWCProvider ({ children }) {
   const [walletPubkey, setWalletPubkey] = useState()
   const [relayUrl, setRelayUrl] = useState()
   const [secret, setSecret] = useState()
-  const [enabled, setEnabled] = useState()
-  const [initialized, setInitialized] = useState(false)
-  const logger = useWalletLogger('nwc')
+  const [status, setStatus] = useState()
+  const { logger } = useWalletLogger(Wallet.NWC)
 
   const name = 'NWC'
   const storageKey = 'webln:provider:nwc'
@@ -97,9 +98,8 @@ export function NWCProvider ({ children }) {
 
   const loadConfig = useCallback(async () => {
     const configStr = window.localStorage.getItem(storageKey)
+    setStatus(Status.Initialized)
     if (!configStr) {
-      setEnabled(undefined)
-      setInitialized(true)
       logger.info('no existing config found')
       return
     }
@@ -122,14 +122,13 @@ export function NWCProvider ({ children }) {
 
     try {
       await validateParams(params)
-      setEnabled(true)
+      setStatus(Status.Enabled)
       logger.ok('wallet enabled')
     } catch (err) {
-      setEnabled(false)
+      logger.error('invalid config:', err)
+      setStatus(Status.Error)
       logger.info('wallet disabled')
       throw err
-    } finally {
-      setInitialized(true)
     }
   }, [validateParams, logger])
 
@@ -138,7 +137,7 @@ export function NWCProvider ({ children }) {
     const { nwcUrl } = config
     setNwcUrl(nwcUrl)
     if (!nwcUrl) {
-      setEnabled(undefined)
+      setStatus(undefined)
       return
     }
 
@@ -159,10 +158,11 @@ export function NWCProvider ({ children }) {
 
     try {
       await validateParams(params)
-      setEnabled(true)
+      setStatus(Status.Enabled)
       logger.ok('wallet enabled')
     } catch (err) {
-      setEnabled(false)
+      logger.error('invalid config:', err)
+      setStatus(Status.Error)
       logger.info('wallet disabled')
       throw err
     }
@@ -174,12 +174,11 @@ export function NWCProvider ({ children }) {
     setRelayUrl(undefined)
     setWalletPubkey(undefined)
     setSecret(undefined)
-    setEnabled(undefined)
+    setStatus(undefined)
   }, [])
 
   const sendPayment = useCallback(async (bolt11) => {
-    const inv = lnpr.decode(bolt11)
-    const hash = inv.tagsObject.payment_hash
+    const hash = bolt11Tags(bolt11).payment_hash
     logger.info('sending payment:', `payment_hash=${hash}`)
 
     let relay, sub
@@ -262,7 +261,7 @@ export function NWCProvider ({ children }) {
     loadConfig().catch(err => logger.error(err.message || err.toString?.()))
   }, [])
 
-  const value = { name, nwcUrl, relayUrl, walletPubkey, secret, initialized, enabled, saveConfig, clearConfig, getInfo, sendPayment }
+  const value = { name, nwcUrl, relayUrl, walletPubkey, secret, status, saveConfig, clearConfig, getInfo, sendPayment }
   return (
     <NWCContext.Provider value={value}>
       {children}

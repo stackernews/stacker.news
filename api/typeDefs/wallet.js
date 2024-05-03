@@ -23,6 +23,7 @@ export default gql`
     upsertWalletCLN(id: ID, socket: String!, rune: String!, cert: String, settings: AutowithdrawSettings!): Boolean
     upsertWalletLNAddr(id: ID, address: String!, settings: AutowithdrawSettings!): Boolean
     removeWallet(id: ID!): Boolean
+    deleteWalletLogs(wallet: String): Boolean
   }
 
   type Wallet {
@@ -86,6 +87,7 @@ export default gql`
     satsFeePaid: Int
     status: String
     autoWithdraw: Boolean!
+    preimage: String
   }
 
   type Fact {

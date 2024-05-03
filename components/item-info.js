@@ -163,7 +163,7 @@ export default function ItemInfo ({
             opentimestamp
           </Link>}
         {item?.noteId && (
-          <Dropdown.Item onClick={() => window.open(`https://nostr.com/${item.noteId}`, '_blank', 'noopener,noreferrer,nofollow')}>
+          <Dropdown.Item onClick={() => window.open(`https://njump.me/${item.noteId}`, '_blank', 'noopener,noreferrer,nofollow')}>
             nostr note
           </Dropdown.Item>
         )}

@@ -166,7 +166,7 @@ model WalletLog {
   createdAt DateTime @default(now()) @map("created_at")
   userId    Int
   user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  wallet    String
+  wallet    WalletType
   level     LogLevel
   message   String
 

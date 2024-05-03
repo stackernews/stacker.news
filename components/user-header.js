@@ -213,7 +213,7 @@ function SocialLink ({ name, id }) {
     const npub = hexToBech32(id)
     return (
       // eslint-disable-next-line
-      <Link className={className} target='_blank' href={`https://nostr.com/${npub}`} rel={UNKNOWN_LINK_REL}>
+      <Link className={className} target='_blank' href={`https://njump.me/${npub}`} rel={UNKNOWN_LINK_REL}>
         <NostrIcon width={20} height={20} className='me-1' />
         {npub.slice(0, 10)}...{npub.slice(-10)}
       </Link>

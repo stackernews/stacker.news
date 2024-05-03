@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { useWalletLogger } from '../logger'
-import lnpr from 'bolt11'
+import { Status } from '.'
+import { bolt11Tags } from '@/lib/bolt11'
+import { Wallet } from '@/lib/constants'
 
 // Reference: https://github.com/getAlby/bitcoin-connect/blob/v3.2.0-alpha/src/connectors/LnbitsConnector.ts
 
@@ -65,9 +67,8 @@ const getPayment = async (baseUrl, adminKey, paymentHash) => {
 export function LNbitsProvider ({ children }) {
   const [url, setUrl] = useState('')
   const [adminKey, setAdminKey] = useState('')
-  const [enabled, setEnabled] = useState()
-  const [initialized, setInitialized] = useState(false)
-  const logger = useWalletLogger('lnbits')
+  const [status, setStatus] = useState()
+  const { logger } = useWalletLogger(Wallet.LNbits)
 
   const name = 'LNbits'
   const storageKey = 'webln:provider:lnbits'
@@ -90,9 +91,9 @@ export function LNbitsProvider ({ children }) {
   }, [url, adminKey])
 
   const sendPayment = useCallback(async (bolt11) => {
-    const inv = lnpr.decode(bolt11)
-    const hash = inv.tagsObject.payment_hash
+    const hash = bolt11Tags(bolt11).payment_hash
     logger.info('sending payment:', `payment_hash=${hash}`)
+
     try {
       const response = await postPayment(url, adminKey, bolt11)
       const checkResponse = await getPayment(url, adminKey, response.payment_hash)
@@ -110,9 +111,8 @@ export function LNbitsProvider ({ children }) {
 
   const loadConfig = useCallback(async () => {
     const configStr = window.localStorage.getItem(storageKey)
+    setStatus(Status.Initialized)
     if (!configStr) {
-      setEnabled(undefined)
-      setInitialized(true)
       logger.info('no existing config found')
       return
     }
@@ -133,15 +133,13 @@ export function LNbitsProvider ({ children }) {
       logger.info('trying to fetch wallet')
       await getWallet(url, adminKey)
       logger.ok('wallet found')
-      setEnabled(true)
+      setStatus(Status.Enabled)
       logger.ok('wallet enabled')
     } catch (err) {
       logger.error('invalid config:', err)
-      setEnabled(false)
+      setStatus(Status.Error)
       logger.info('wallet disabled')
       throw err
-    } finally {
-      setInitialized(true)
     }
   }, [logger])
 
@@ -165,28 +163,28 @@ export function LNbitsProvider ({ children }) {
       logger.info('trying to fetch wallet')
       await getWallet(config.url, config.adminKey)
       logger.ok('wallet found')
+      setStatus(Status.Enabled)
+      logger.ok('wallet enabled')
     } catch (err) {
       logger.error('invalid config:', err)
-      setEnabled(false)
+      setStatus(Status.Error)
       logger.info('wallet disabled')
       throw err
     }
-    setEnabled(true)
-    logger.ok('wallet enabled')
   }, [])
 
   const clearConfig = useCallback(() => {
     window.localStorage.removeItem(storageKey)
     setUrl('')
     setAdminKey('')
-    setEnabled(undefined)
+    setStatus(undefined)
   }, [])
 
   useEffect(() => {
     loadConfig().catch(console.error)
   }, [])
 
-  const value = { name, url, adminKey, initialized, enabled, saveConfig, clearConfig, getInfo, sendPayment }
+  const value = { name, url, adminKey, status, saveConfig, clearConfig, getInfo, sendPayment }
   return (
     <LNbitsContext.Provider value={value}>
       {children}

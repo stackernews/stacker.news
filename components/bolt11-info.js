@@ -1,11 +1,11 @@
-import { decode } from 'bolt11'
 import AccordianItem from './accordian-item'
 import { CopyInput } from './form'
+import { bolt11Tags } from '@/lib/bolt11'
 
 export default ({ bolt11, preimage, children }) => {
   let description, paymentHash
   if (bolt11) {
-    ({ tagsObject: { description, payment_hash: paymentHash } } = decode(bolt11))
+    ({ description, payment_hash: paymentHash } = bolt11Tags(bolt11))
   }
 
   return (

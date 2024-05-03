@@ -33,7 +33,7 @@ function validateNarrowPerms (lnc) {
 }
 
 export function LNCProvider ({ children }) {
-  const logger = useWalletLogger(Wallet.LNC)
+  const { logger } = useWalletLogger(Wallet.LNC)
   const [config, setConfig] = useState({})
   const [lnc, setLNC] = useState()
   const [status, setStatus] = useState()

@@ -90,6 +90,7 @@ a.link:visited {
     color: var(--theme-grey);
     vertical-align: text-top;
     margin-bottom: .125rem;
+    word-break: break-word;
 }
 
 .other svg {
@@ -156,6 +157,7 @@ a.link:visited {
 .main {
     display: flex;
     align-items: baseline;
+    word-break: break-word;
 }
 
 .children {

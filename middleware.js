@@ -19,12 +19,14 @@ export function middleware (request) {
     resp = referrerMiddleware(request)
   }
 
+  const isDev = process.env.NODE_ENV === 'development'
+
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
   // we want to load media from other localhost ports during development
-  const devSrc = process.env.NODE_ENV === 'development' ? ' localhost:*' : ''
+  const devSrc = isDev ? ' localhost:* http: ws:' : ''
   // unsafe-eval is required during development due to react-refresh.js
   // see https://github.com/vercel/next.js/issues/14221
-  const devScriptSrc = process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''
+  const devScriptSrc = isDev ? " 'unsafe-eval'" : ''
 
   const cspHeader = [
     // if something is not explicitly allowed, we don't allow it.
@@ -47,7 +49,7 @@ export function middleware (request) {
     // blocks injection of <base> tags
     "base-uri 'none'",
     // tell user agents to replace HTTP with HTTPS
-    'upgrade-insecure-requests',
+    isDev ? '' : 'upgrade-insecure-requests',
     // prevents any domain from framing the content (defense against clickjacking attacks)
     "frame-ancestors 'none'"
   ].join('; ')

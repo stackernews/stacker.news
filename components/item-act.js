@@ -100,7 +100,7 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
         const fragment = {
           id: `Item:${itemId}`,
           fragment: gql`
-          fragment ItemMeSats on Item {
+          fragment ItemMeSatsSubmit on Item {
             path
             sats
             meSats
@@ -271,7 +271,7 @@ export function useZap () {
     const item = cache.readFragment({
       id: `Item:${id}`,
       fragment: gql`
-        fragment ItemMeSats on Item {
+        fragment ItemMeSatsZap on Item {
           meSats
         }
       `
@@ -338,7 +338,7 @@ export function useZap () {
         const fragment = {
           id: `Item:${itemId}`,
           fragment: gql`
-          fragment ItemMeSats on Item {
+          fragment ItemMeSatsUndos on Item {
             sats
             meSats
           }

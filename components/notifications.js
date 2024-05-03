@@ -235,14 +235,14 @@ function NostrZap ({ n }) {
       <div className='fw-bold text-nostr ms-2 py-1'>
         <NostrIcon width={24} height={24} className='fill-nostr me-1' />{numWithUnits(n.earnedSats)} zap from
         {// eslint-disable-next-line
-        <Link className='mx-1 text-reset text-underline' target='_blank' href={`https://snort.social/p/${npub}`} rel={UNKNOWN_LINK_REL}>
+        <Link className='mx-1 text-reset text-underline' target='_blank' href={`https://njump.me/${npub}`} rel={UNKNOWN_LINK_REL}>
           {npub.slice(0, 10)}...
         </Link>
         }
         on {note
           ? (
             // eslint-disable-next-line
-            <Link className='mx-1 text-reset text-underline' target='_blank' href={`https://snort.social/e/${note}`} rel={UNKNOWN_LINK_REL}>
+            <Link className='mx-1 text-reset text-underline' target='_blank' href={`https://njump.me/${note}`} rel={UNKNOWN_LINK_REL}>
               {note.slice(0, 12)}...
             </Link>)
           : 'nostr'}

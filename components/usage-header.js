@@ -3,8 +3,10 @@ import { Select, DatePicker } from './form'
 import { WHENS } from '@/lib/constants'
 import { whenToFrom } from '@/lib/time'
 
-export function UsageHeader () {
+export function UsageHeader ({ pathname = null }) {
   const router = useRouter()
+
+  const path = pathname || 'stackers'
 
   const select = async values => {
     const { when, ...query } = values
@@ -13,7 +15,8 @@ export function UsageHeader () {
     if (query.from && !query.to) return
 
     await router.push({
-      pathname: `/stackers/${when}`,
+
+      pathname: `/${path}/${when}`,
       query
     })
   }

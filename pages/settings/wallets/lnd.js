@@ -106,7 +106,7 @@ export default function LND ({ ssrData }) {
         />
         <AutowithdrawSettings />
         <WalletButtonBar
-          enabled={!!wallet} onDelete={async () => {
+          status={!!wallet} onDelete={async () => {
             try {
               await removeWallet({ variables: { id: wallet?.id } })
               toaster.success('saved settings')
@@ -130,7 +130,7 @@ export function LNDCard ({ wallet }) {
       title='LND'
       badges={['receive only', 'non-custodial']}
       provider='lnd'
-      enabled={wallet !== undefined || undefined}
+      status={wallet !== undefined || undefined}
     />
   )
 }

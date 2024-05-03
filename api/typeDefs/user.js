@@ -14,6 +14,9 @@ export default gql`
     hasNewNotes: Boolean!
     mySubscribedUsers(cursor: String): Users!
     myMutedUsers(cursor: String): Users!
+    userStatsActions(when: String, from: String, to: String): [TimeData!]!
+    userStatsIncomingSats(when: String, from: String, to: String): [TimeData!]!
+    userStatsOutgoingSats(when: String, from: String, to: String): [TimeData!]!
   }
 
   type UsersNullable {
@@ -181,5 +184,15 @@ export default gql`
     githubId: String
     twitterId: String
     nostrAuthPubkey: String
+  }
+  
+  type NameValue {
+    name: String!
+    value: Float!
+  }
+
+  type TimeData {
+    time: Date!
+    data: [NameValue!]!
   }
 `

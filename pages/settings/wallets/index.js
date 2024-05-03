@@ -10,6 +10,8 @@ import { CLNCard } from './cln'
 import { WALLETS } from '@/fragments/wallet'
 import { useQuery } from '@apollo/client'
 import PageLoading from '@/components/page-loading'
+import { LNCCard } from './lnc'
+import Link from 'next/link'
 
 export const getServerSideProps = getGetServerSideProps({ query: WALLETS, authRequired: true })
 
@@ -27,12 +29,18 @@ export default function Wallet ({ ssrData }) {
       <div className='py-5 w-100'>
         <h2 className='mb-2 text-center'>attach wallets</h2>
         <h6 className='text-muted text-center'>attach wallets to supplement your SN wallet</h6>
+        <div className='text-center'>
+          <Link href='/wallet/logs' className='text-muted fw-bold text-underline'>
+            wallet logs
+          </Link>
+        </div>
         <div className={styles.walletGrid}>
           <LightningAddressWalletCard wallet={lnaddr} />
           <LNDCard wallet={lnd} />
           <CLNCard wallet={cln} />
           <LNbitsCard />
           <NWCCard />
+          <LNCCard />
           <WalletCard title='coming soon' badges={['probably']} />
           <WalletCard title='coming soon' badges={['we hope']} />
           <WalletCard title='coming soon' badges={['tm']} />

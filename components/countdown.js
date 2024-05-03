@@ -37,7 +37,7 @@ export function CompactLongCountdown (props) {
       {...props} formatter={props => {
         return (
           <>
-            {props.formatted.days
+            {Number(props.formatted.days) > 0
               ? ` ${props.formatted.days}d ${props.formatted.hours}h ${props.formatted.minutes}m ${props.formatted.seconds}s`
               : ` ${props.formatted.hours}:${props.formatted.minutes}:${props.formatted.seconds}`}
           </>

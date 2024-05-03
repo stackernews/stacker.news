@@ -3,29 +3,41 @@ import { LNbitsProvider, useLNbits } from './lnbits'
 import { NWCProvider, useNWC } from './nwc'
 import { useToast, withToastFlow } from '@/components/toast'
 import { gql, useMutation } from '@apollo/client'
+import { LNCProvider, useLNC } from './lnc'
 
 const WebLNContext = createContext({})
 
+const isEnabled = p => [Status.Enabled, Status.Locked].includes(p?.status)
+
 const syncProvider = (array, provider) => {
   const idx = array.findIndex(({ name }) => provider.name === name)
+  const enabled = isEnabled(provider)
   if (idx === -1) {
     // add provider to end if enabled
-    return provider.enabled ? [...array, provider] : array
+    return enabled ? [...array, provider] : array
   }
   return [
     ...array.slice(0, idx),
     // remove provider if not enabled
-    ...provider.enabled ? [provider] : [],
+    ...enabled ? [provider] : [],
     ...array.slice(idx + 1)
   ]
 }
 
 const storageKey = 'webln:providers'
 
+export const Status = {
+  Initialized: 'Initialized',
+  Enabled: 'Enabled',
+  Locked: 'Locked',
+  Error: 'Error'
+}
+
 function RawWebLNProvider ({ children }) {
   const lnbits = useLNbits()
   const nwc = useNWC()
-  const availableProviders = [lnbits, nwc]
+  const lnc = useLNC()
+  const availableProviders = [lnbits, nwc, lnc]
   const [enabledProviders, setEnabledProviders] = useState([])
 
   // restore order on page reload
@@ -42,7 +54,7 @@ function RawWebLNProvider ({ children }) {
         return null
       })
     })
-  }, [])
+  }, [...availableProviders])
 
   // keep list in sync with underlying providers
   useEffect(() => {
@@ -53,20 +65,13 @@ function RawWebLNProvider ({ children }) {
       // This can be the case if we're syncing from a page reload
       // where the providers are initially not enabled.
       // If provider is no longer enabled, it is removed from the list.
-      const isInitialized = p => p.initialized
+      const isInitialized = p => [Status.Enabled, Status.Locked, Status.Initialized].includes(p.status)
       const newProviders = availableProviders.filter(isInitialized).reduce(syncProvider, providers)
       const newOrder = newProviders.map(({ name }) => name)
       window.localStorage.setItem(storageKey, JSON.stringify(newOrder))
       return newProviders
     })
-  }, [lnbits, nwc])
-
-  // sanity check
-  for (const p of enabledProviders) {
-    if (!p.enabled && p.initialized) {
-      console.warn('Expected provider to be enabled but is not:', p.name)
-    }
-  }
+  }, [...availableProviders])
 
   // first provider in list is the default provider
   // TODO: implement fallbacks via provider priority
@@ -87,7 +92,9 @@ function RawWebLNProvider ({ children }) {
       return {
         flowId: flowId || hash,
         type: 'payment',
-        onPending: () => provider.sendPayment(bolt11),
+        onPending: async () => {
+          await provider.sendPayment(bolt11)
+        },
         // hash and hmac are only passed for JIT invoices
         onCancel: () => hash && hmac ? cancelInvoice({ variables: { hash, hmac } }) : undefined,
         timeout: expiresIn
@@ -107,9 +114,8 @@ function RawWebLNProvider ({ children }) {
     })
   }, [setEnabledProviders])
 
-  const value = { provider: { ...provider, sendPayment: sendPaymentWithToast }, enabledProviders, setProvider }
   return (
-    <WebLNContext.Provider value={value}>
+    <WebLNContext.Provider value={{ provider: isEnabled(provider) ? { sendPayment: sendPaymentWithToast } : null, enabledProviders, setProvider }}>
       {children}
     </WebLNContext.Provider>
   )
@@ -119,9 +125,11 @@ export function WebLNProvider ({ children }) {
   return (
     <LNbitsProvider>
       <NWCProvider>
-        <RawWebLNProvider>
-          {children}
-        </RawWebLNProvider>
+        <LNCProvider>
+          <RawWebLNProvider>
+            {children}
+          </RawWebLNProvider>
+        </LNCProvider>
       </NWCProvider>
     </LNbitsProvider>
   )

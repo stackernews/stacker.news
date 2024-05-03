@@ -1,4 +1,4 @@
-import { USER_FULL } from '@/fragments/users'
+import { USER } from '@/fragments/users'
 import errorStyles from '@/styles/error.module.css'
 import Moon from '@/svgs/moon-fill.svg'
 import { useLazyQuery } from '@apollo/client'
@@ -22,7 +22,7 @@ export default function UserPopover ({ name, children }) {
   const [showOverlay, setShowOverlay] = useState(false)
 
   const [getUser, query] = useLazyQuery(
-    USER_FULL,
+    USER,
     {
       variables: { name },
       nextFetchPolicy: 'cache-and-network'

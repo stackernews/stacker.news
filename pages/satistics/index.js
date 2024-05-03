@@ -177,7 +177,7 @@ export function SatisticsHeader () {
         activeKey={activeKey}
       >
         <Nav.Item>
-          <Link href='/satistics/history?inc=invoice,withdrawal,stacked,spent' passHref legacyBehavior>
+          <Link href='/satistics?inc=invoice,withdrawal,stacked,spent' passHref legacyBehavior>
             <Nav.Link eventKey='history'>history</Nav.Link>
           </Link>
         </Nav.Item>
@@ -207,7 +207,7 @@ export default function Satistics ({ ssrData }) {
     }
 
     const incstr = [...inc].join(',')
-    router.push(`/satistics/history?inc=${incstr}`)
+    router.push(`/satistics?inc=${incstr}`)
   }
 
   function included (filter) {

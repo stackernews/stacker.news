@@ -125,6 +125,8 @@ export function NWCProvider ({ children }) {
       setStatus(Status.Enabled)
       logger.ok('wallet enabled')
     } catch (err) {
+      logger.error('invalid config:', err)
+      setStatus(Status.Error)
       logger.info('wallet disabled')
       throw err
     }
@@ -159,6 +161,7 @@ export function NWCProvider ({ children }) {
       setStatus(Status.Enabled)
       logger.ok('wallet enabled')
     } catch (err) {
+      logger.error('invalid config:', err)
       setStatus(Status.Error)
       logger.info('wallet disabled')
       throw err

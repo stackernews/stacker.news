@@ -145,8 +145,8 @@ export function LNCProvider ({ children }) {
       setStatus(Status.Enabled)
       logger.ok('wallet enabled')
     } catch (err) {
-      setStatus(Status.Error)
       logger.error('invalid config:', err)
+      setStatus(Status.Error)
       logger.info('wallet disabled')
       throw err
     } finally {
@@ -181,8 +181,8 @@ export function LNCProvider ({ children }) {
           setConfig({ pairingPhrase: lnc.credentials.pairingPhrase, password: lnc.credentials.password })
         }
       } catch (err) {
+        logger.error('wallet could not be loaded:', err)
         setStatus(Status.Error)
-        logger.error('wallet could not be loaded', err)
       }
     })()
   }, [setStatus, setConfig, logger])

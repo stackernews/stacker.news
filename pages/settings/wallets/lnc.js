@@ -63,7 +63,7 @@ export default function LNC () {
             <div className='d-flex align-items-center'>pairing phrase
               <Info label='help'>
                 <Text>
-                  {'We only need permissions for the uri `/lnrpc.Lightning/SendPaymentSync`\n\nCreate a budgeted account with narrow permissions:\n\n```$ litcli accounts create --balance <budget>```\n\n```$ litcli sessions add --type custom --account_id <account_id> --uri /lnrpc.Lightning/SendPaymentSync```'}
+                  {'We only need permissions for the uri `/lnrpc.Lightning/SendPaymentSync`\n\nCreate a budgeted account with narrow permissions:\n\n```$ litcli accounts create --balance <budget>```\n\n```$ litcli sessions add --type custom --label <your label> --account_id <account_id> --uri /lnrpc.Lightning/SendPaymentSync```\n\nGrab the `pairing_secret_mnemonic` from the output and paste it here.'}
                 </Text>
               </Info>
             </div>

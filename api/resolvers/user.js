@@ -701,9 +701,23 @@ export default {
     subscribeUserPosts: async (parent, { id }, { me, models }) => {
       const lookupData = { followerId: Number(me.id), followeeId: Number(id) }
       const existing = await models.userSubscription.findUnique({ where: { followerId_followeeId: lookupData } })
+      const mute = await models.mute.findUnique({
+        where: {
+          muterId_mutedId: {
+            muterId: Number(me.id),
+            mutedId: Number(id)
+          }
+        }
+      })
       if (existing) {
+        if (mute && !existing.postsSubscribedAt) {
+          throw new GraphQLError("you cannot subscribe to a user that you've muted", { extensions: { code: 'BAD_INPUT' } })
+        }
         await models.userSubscription.update({ where: { followerId_followeeId: lookupData }, data: { postsSubscribedAt: existing.postsSubscribedAt ? null : new Date() } })
       } else {
+        if (mute) {
+          throw new GraphQLError("you cannot subscribe to a user that you've muted", { extensions: { code: 'BAD_INPUT' } })
+        }
         await models.userSubscription.create({ data: { ...lookupData, postsSubscribedAt: new Date() } })
       }
       return { id }
@@ -711,9 +725,23 @@ export default {
     subscribeUserComments: async (parent, { id }, { me, models }) => {
       const lookupData = { followerId: Number(me.id), followeeId: Number(id) }
       const existing = await models.userSubscription.findUnique({ where: { followerId_followeeId: lookupData } })
+      const mute = await models.mute.findUnique({
+        where: {
+          muterId_mutedId: {
+            muterId: Number(me.id),
+            mutedId: Number(id)
+          }
+        }
+      })
       if (existing) {
+        if (mute && !existing.commentsSubscribedAt) {
+          throw new GraphQLError("you cannot subscribe to a user that you've muted", { extensions: { code: 'BAD_INPUT' } })
+        }
         await models.userSubscription.update({ where: { followerId_followeeId: lookupData }, data: { commentsSubscribedAt: existing.commentsSubscribedAt ? null : new Date() } })
       } else {
+        if (mute) {
+          throw new GraphQLError("you cannot subscribe to a user that you've muted", { extensions: { code: 'BAD_INPUT' } })
+        }
         await models.userSubscription.create({ data: { ...lookupData, commentsSubscribedAt: new Date() } })
       }
       return { id }
@@ -725,6 +753,18 @@ export default {
       if (existing) {
         await models.mute.delete({ where })
       } else {
+        // check to see if current user is subscribed to the target user, and disallow mute if so
+        const subscription = await models.userSubscription.findUnique({
+          where: {
+            followerId_followeeId: {
+              followerId: Number(me.id),
+              followeeId: Number(id)
+            }
+          }
+        })
+        if (subscription.postsSubscribedAt || subscription.commentsSubscribedAt) {
+          throw new GraphQLError("you cannot mute a user to which you've subscribed", { extensions: { code: 'BAD_INPUT' } })
+        }
         await models.mute.create({ data: { ...lookupData } })
       }
       return { id }

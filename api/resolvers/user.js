@@ -9,6 +9,7 @@ import { ANON_USER_ID, DELETE_USER_ID, RESERVED_MAX_USER_ID, SN_NO_REWARDS_IDS }
 import { viewGroup } from './growth'
 import { timeUnitForRange, whenRange } from '@/lib/time'
 import assertApiKeyNotPermitted from './apiKey'
+import { hashEmail } from '@/lib/crypto'
 
 const contributors = new Set()
 
@@ -44,7 +45,7 @@ async function authMethods (user, args, { models, me }) {
 
   return {
     lightning: !!user.pubkey,
-    email: user.emailVerified && user.email,
+    email: !!(user.emailVerified && user.emailHash),
     twitter: oauth.indexOf('twitter') >= 0,
     github: oauth.indexOf('github') >= 0,
     nostr: !!user.nostrAuthPubkey,
@@ -686,7 +687,7 @@ export default {
       try {
         await models.user.update({
           where: { id: me.id },
-          data: { email: email.toLowerCase() }
+          data: { emailHash: hashEmail({ email }) }
         })
       } catch (error) {
         if (error.code === 'P2002') {

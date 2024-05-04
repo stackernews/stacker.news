@@ -57,7 +57,7 @@ export default startServerAndCreateNextHandler(apolloServer, {
     let session
     if (apiKey) {
       const [user] = await models.$queryRaw`
-      SELECT id, name, email, "apiKeyEnabled"
+      SELECT id, name, "apiKeyEnabled"
       FROM users
       WHERE "apiKeyHash" = encode(digest(${apiKey}, 'sha256'), 'hex')
       LIMIT 1`

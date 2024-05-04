@@ -507,7 +507,7 @@ function InputInner ({
   useEffect(() => {
     hasError && hasError(formik.errors)
     isdirty && isdirty(formik.dirty)
-  }, [hasError, formik.errors, isdirty, formik.dirty])
+  }, [hasError, formik.errors, isdirty, formik.values, formik.dirty])
 
   useEffect(debounce(() => {
     if (!noForm && !isNaN(debounceTime) && debounceTime > 0) {
@@ -717,7 +717,7 @@ export function VariableInput ({ label, groupClassName, name, hint, max, min, re
 
   useEffect(() => {
     hasError && hasError(errors[name])
-    isdirty && isdirty(values[name][0])
+    isdirty && isdirty(dirty)
   }, [values, errors, dirty])
 
   return (

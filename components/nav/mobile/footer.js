@@ -52,11 +52,11 @@ export default function BottomBar ({ sub }) {
       <div className={classNames(styles.footer, styles.footerPadding)}>
         <Navbar className='container px-0'>
           <Nav className={styles.footerNav}>
-            <Offcanvas me={me} {...props} />
-            <SearchItem {...props} />
             <Brand />
-            <NavNotifications />
+            <SearchItem {...props} />
             <PostItem {...props} className='btn-sm' />
+            <NavNotifications />
+            <Offcanvas me={me} {...props} />
           </Nav>
         </Navbar>
       </div>

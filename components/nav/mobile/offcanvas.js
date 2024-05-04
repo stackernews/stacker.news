@@ -28,7 +28,7 @@ export default function OffCanvas ({ me, dropNavKey }) {
     <>
       <MeImage onClick={handleShow} />
 
-      <Offcanvas style={{ maxWidth: '250px', zIndex: '10000' }} show={show} onHide={handleClose} placement='start'>
+      <Offcanvas style={{ maxWidth: '250px', zIndex: '10000' }} show={show} onHide={handleClose} placement='end'>
         <Offcanvas.Header closeButton>
           <Offcanvas.Title><NavWalletSummary /></Offcanvas.Title>
         </Offcanvas.Header>

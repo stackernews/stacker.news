@@ -506,8 +506,8 @@ function InputInner ({
 
   useEffect(() => {
     hasError && hasError(formik.errors)
-    isdirty && isdirty(formik.dirty)
-  }, [hasError, formik.errors, isdirty, formik.values, formik.dirty])
+    isdirty && isdirty(formik.values)
+  }, [hasError, formik?.errors, isdirty, formik?.values])
 
   useEffect(debounce(() => {
     if (!noForm && !isNaN(debounceTime) && debounceTime > 0) {
@@ -713,12 +713,12 @@ export function Input ({ label, groupClassName, ...props }) {
 }
 
 export function VariableInput ({ label, groupClassName, name, hint, max, min, readOnlyLen, children, emptyItem = '', hasError, isdirty, ...props }) {
-  const { values, errors, dirty } = useFormikContext()
+  const { values, errors } = useFormikContext()
 
   useEffect(() => {
     hasError && hasError(errors[name])
-    isdirty && isdirty(dirty)
-  }, [values, errors, dirty])
+    isdirty && isdirty(values[name][0])
+  }, [values, errors])
 
   return (
     <FormGroup label={label} className={groupClassName}>

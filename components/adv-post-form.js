@@ -46,7 +46,7 @@ export default function AdvPostForm ({ children, item, show, isdirty }) {
   }
 
   const handleDirty = (input) => {
-    if (!dirty && input === true) {
+    if (!dirty && ((!!input.nym && input.nym !== '') || (!!input.pct && input.pct !== '') || (!!input.boost && input.boost !== ''))) {
       setDirty(true)
     }
   }

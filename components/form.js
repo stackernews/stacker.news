@@ -505,9 +505,9 @@ function InputInner ({
   const invalid = (!formik || formik.submitCount > 0) && meta.touched && meta.error
 
   useEffect(() => {
-    hasError && hasError(invalid)
-    isdirty && isdirty(field.value)
-  }, [hasError, isdirty])
+    hasError && hasError(formik.errors)
+    isdirty && isdirty(formik.dirty)
+  }, [hasError, formik.errors, isdirty, formik.dirty])
 
   useEffect(debounce(() => {
     if (!noForm && !isNaN(debounceTime) && debounceTime > 0) {
@@ -713,13 +713,18 @@ export function Input ({ label, groupClassName, ...props }) {
 }
 
 export function VariableInput ({ label, groupClassName, name, hint, max, min, readOnlyLen, children, emptyItem = '', hasError, isdirty, ...props }) {
+  const { values, errors, dirty } = useFormikContext()
+
+  useEffect(() => {
+    hasError && hasError(errors[name])
+    isdirty && isdirty(values[name][0])
+  }, [values, errors, dirty])
+
   return (
     <FormGroup label={label} className={groupClassName}>
       <FieldArray name={name} hasValidation>
         {({ form, ...fieldArrayHelpers }) => {
           const options = form.values[name]
-          hasError && hasError(form.errors[name])
-          isdirty && isdirty(form.values[name][0])
           return (
             <>
               {options?.map((_, i) => (

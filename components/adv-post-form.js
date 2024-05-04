@@ -38,9 +38,9 @@ export default function AdvPostForm ({ children, item, show, isdirty }) {
   }
 
   const handleBoostError = (error) => {
-    if (!hasBoostError && !!error) {
+    if (!hasBoostError && error.boost) {
       setHasBoostError(true)
-    } else if (!error) {
+    } else if (!error.boost) {
       setHasBoostError(false)
     }
   }
@@ -91,10 +91,12 @@ export default function AdvPostForm ({ children, item, show, isdirty }) {
     }
   }
 
+  const showOptions = (dirty || isdirty) && show === undefined ? 'dirty' : (hasForwardError || hasBoostError) ? show : undefined
+
   return (
     <AccordianItem
       header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>options</div>}
-      show={(!!dirty || !!isdirty) ? (hasForwardError || hasBoostError) ? show : !show : undefined}
+      show={showOptions}
       body={
         <>
           {children}

@@ -40,6 +40,7 @@ docker__sn_lnd() {
   fi
 
   docker__exec "$t" -u lnd sn_lnd lncli "$@"
+  docker__exec "$t" -u lnd sn_lnd lncli "$@"
 }
 
 docker__stacker_lnd() {
@@ -51,6 +52,7 @@ docker__stacker_lnd() {
   fi
 
   docker__exec "$t" -u lnd stacker_lnd lncli "$@"
+  docker__exec "$t" -u lnd stacker_lnd lncli "$@"
 }
 
 docker__stacker_cln() {
@@ -61,6 +63,7 @@ docker__stacker_cln() {
     t=""
   fi
 
+  docker__exec "$t" -u clightning stacker_cln lightning-cli --regtest "$@"
   docker__exec "$t" -u clightning stacker_cln lightning-cli --regtest "$@"
 }
 
@@ -104,6 +107,39 @@ OPTIONS"
 
   echo "$help"
   docker__compose down --help | awk '/Options:/{y=1;next}y'
+}
+
+sndev__open() {
+  shift
+  service=$(docker__compose ps "$1" --format '{{.Label "CONNECT"}}')
+  if [ -z "$service" ]; then
+    echo "no url found for $1"
+    exit 1
+  fi
+  service="http://$service"
+
+  echo "opening $1 ... $service"
+  if [ "$(uname)" = "Darwin" ]; then
+    open "$service"
+  elif [ "$(uname)" = "Linux" ]; then
+    xdg-open "$service"
+  elif [ "$(uname)" = "Windows_NT" ]; then
+    start "$service"
+  fi
+}
+
+sndev__help_open() {
+help="
+open a container's url if it has one
+
+USAGE
+  $ sndev open SERVICE
+
+OPTIONS
+  no options currently exist
+"
+
+  echo "$help"
 }
 
 sndev__open() {
@@ -452,14 +488,19 @@ sndev__login() {
   # next-auth concats the token with the secret from env and then sha256's it
   token="d5fce54babffcb070c39f78d947761fd9ec37647fafcecb9734a3085a78e5c5e"
   salt="202c90943c313b829e65e3f29164fb5dd7ea3370d7262c4159691c2f6493bb8b"
+  salt="202c90943c313b829e65e3f29164fb5dd7ea3370d7262c4159691c2f6493bb8b"
   # upsert user with nym and nym@sndev.team
+  email="$1@sndev.team"
   email="$1@sndev.team"
   docker__exec db psql -U sn -d stackernews -q <<EOF
     INSERT INTO users (name) VALUES ('$1') ON CONFLICT DO NOTHING;
     UPDATE users SET email = '$email', "emailHash" = encode(digest(LOWER('$email')||'$salt', 'sha256'), 'hex') WHERE name = '$1';
+    UPDATE users SET email = '$email', "emailHash" = encode(digest(LOWER('$email')||'$salt', 'sha256'), 'hex') WHERE name = '$1';
     INSERT INTO verification_requests (identifier, token, expires)
       VALUES ('$email', '$token', NOW() + INTERVAL '1 day')
+      VALUES ('$email', '$token', NOW() + INTERVAL '1 day')
       ON CONFLICT (token) DO UPDATE
+      SET identifier = '$email', expires = NOW() + INTERVAL '1 day';
       SET identifier = '$email', expires = NOW() + INTERVAL '1 day';
 EOF
 
@@ -532,6 +573,7 @@ COMMANDS
     pr            fetch and checkout a pr
     lint          run linters
     open          open container url in browser
+    open          open container url in browser
 
   other:
     compose         docker compose passthrough
@@ -563,6 +605,7 @@ call() {
           exit 0
           ;;
         esac
+        sndev__help "$@"
         sndev__help "$@"
         exit 1
     fi

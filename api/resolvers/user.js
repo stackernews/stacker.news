@@ -113,6 +113,19 @@ export function viewValueGroup () {
   ) vv`
 }
 
+const isMuted = async ({ models, me, mutedId }) => {
+  const mute = await models.mute.findUnique({
+    where: {
+      muterId_mutedId: {
+        muterId: Number(me.id),
+        mutedId: Number(mutedId)
+      }
+    }
+  })
+
+  return !!mute
+}
+
 export default {
   Query: {
     me: async (parent, args, { models, me }) => {
@@ -701,22 +714,15 @@ export default {
     subscribeUserPosts: async (parent, { id }, { me, models }) => {
       const lookupData = { followerId: Number(me.id), followeeId: Number(id) }
       const existing = await models.userSubscription.findUnique({ where: { followerId_followeeId: lookupData } })
-      const mute = await models.mute.findUnique({
-        where: {
-          muterId_mutedId: {
-            muterId: Number(me.id),
-            mutedId: Number(id)
-          }
-        }
-      })
+      const mute = await isMuted({ models, me, mutedId: id })
       if (existing) {
         if (mute && !existing.postsSubscribedAt) {
-          throw new GraphQLError("you cannot subscribe to a user that you've muted", { extensions: { code: 'BAD_INPUT' } })
+          throw new GraphQLError("you can't subscribe to a stacker that you've muted", { extensions: { code: 'BAD_INPUT' } })
         }
         await models.userSubscription.update({ where: { followerId_followeeId: lookupData }, data: { postsSubscribedAt: existing.postsSubscribedAt ? null : new Date() } })
       } else {
         if (mute) {
-          throw new GraphQLError("you cannot subscribe to a user that you've muted", { extensions: { code: 'BAD_INPUT' } })
+          throw new GraphQLError("you can't subscribe to a stacker that you've muted", { extensions: { code: 'BAD_INPUT' } })
         }
         await models.userSubscription.create({ data: { ...lookupData, postsSubscribedAt: new Date() } })
       }
@@ -725,22 +731,15 @@ export default {
     subscribeUserComments: async (parent, { id }, { me, models }) => {
       const lookupData = { followerId: Number(me.id), followeeId: Number(id) }
       const existing = await models.userSubscription.findUnique({ where: { followerId_followeeId: lookupData } })
-      const mute = await models.mute.findUnique({
-        where: {
-          muterId_mutedId: {
-            muterId: Number(me.id),
-            mutedId: Number(id)
-          }
-        }
-      })
+      const mute = await isMuted({ models, me, mutedId: id })
       if (existing) {
         if (mute && !existing.commentsSubscribedAt) {
-          throw new GraphQLError("you cannot subscribe to a user that you've muted", { extensions: { code: 'BAD_INPUT' } })
+          throw new GraphQLError("you can't subscribe to a stacker that you've muted", { extensions: { code: 'BAD_INPUT' } })
         }
         await models.userSubscription.update({ where: { followerId_followeeId: lookupData }, data: { commentsSubscribedAt: existing.commentsSubscribedAt ? null : new Date() } })
       } else {
         if (mute) {
-          throw new GraphQLError("you cannot subscribe to a user that you've muted", { extensions: { code: 'BAD_INPUT' } })
+          throw new GraphQLError("you can't subscribe to a stacker that you've muted", { extensions: { code: 'BAD_INPUT' } })
         }
         await models.userSubscription.create({ data: { ...lookupData, commentsSubscribedAt: new Date() } })
       }
@@ -763,7 +762,7 @@ export default {
           }
         })
         if (subscription.postsSubscribedAt || subscription.commentsSubscribedAt) {
-          throw new GraphQLError("you cannot mute a user to which you've subscribed", { extensions: { code: 'BAD_INPUT' } })
+          throw new GraphQLError("you can't mute a stacker to whom you've subscribed", { extensions: { code: 'BAD_INPUT' } })
         }
         await models.mute.create({ data: { ...lookupData } })
       }
@@ -822,16 +821,7 @@ export default {
       if (!me) return false
       if (typeof user.meMute !== 'undefined') return user.meMute
 
-      const mute = await models.mute.findUnique({
-        where: {
-          muterId_mutedId: {
-            muterId: Number(me.id),
-            mutedId: Number(user.id)
-          }
-        }
-      })
-
-      return !!mute
+      return await isMuted({ models, me, mutedId: user.id })
     },
     since: async (user, args, { models }) => {
       // get the user's first item

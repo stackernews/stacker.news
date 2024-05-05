@@ -10,6 +10,7 @@ import { viewGroup } from './growth'
 import { timeUnitForRange, whenRange } from '@/lib/time'
 import assertApiKeyNotPermitted from './apiKey'
 import { hashEmail } from '@/lib/crypto'
+import { isMuted } from '@/lib/user'
 
 const contributors = new Set()
 
@@ -111,19 +112,6 @@ export function viewValueGroup () {
     WHERE v.id NOT IN (${SN_NO_REWARDS_IDS.join(',')})
     GROUP BY v.id
   ) vv`
-}
-
-const isMuted = async ({ models, me, mutedId }) => {
-  const mute = await models.mute.findUnique({
-    where: {
-      muterId_mutedId: {
-        muterId: Number(me.id),
-        mutedId: Number(mutedId)
-      }
-    }
-  })
-
-  return !!mute
 }
 
 export default {
@@ -714,7 +702,7 @@ export default {
     subscribeUserPosts: async (parent, { id }, { me, models }) => {
       const lookupData = { followerId: Number(me.id), followeeId: Number(id) }
       const existing = await models.userSubscription.findUnique({ where: { followerId_followeeId: lookupData } })
-      const muted = await isMuted({ models, me, mutedId: id })
+      const muted = await isMuted({ models, muterId: me?.id, mutedId: id })
       if (existing) {
         if (muted && !existing.postsSubscribedAt) {
           throw new GraphQLError("you can't subscribe to a stacker that you've muted", { extensions: { code: 'BAD_INPUT' } })
@@ -731,7 +719,7 @@ export default {
     subscribeUserComments: async (parent, { id }, { me, models }) => {
       const lookupData = { followerId: Number(me.id), followeeId: Number(id) }
       const existing = await models.userSubscription.findUnique({ where: { followerId_followeeId: lookupData } })
-      const muted = await isMuted({ models, me, mutedId: id })
+      const muted = await isMuted({ models, muterId: me?.id, mutedId: id })
       if (existing) {
         if (muted && !existing.commentsSubscribedAt) {
           throw new GraphQLError("you can't subscribe to a stacker that you've muted", { extensions: { code: 'BAD_INPUT' } })
@@ -821,7 +809,7 @@ export default {
       if (!me) return false
       if (typeof user.meMute !== 'undefined') return user.meMute
 
-      return await isMuted({ models, me, mutedId: user.id })
+      return await isMuted({ models, muterId: me.id, mutedId: user.id })
     },
     since: async (user, args, { models }) => {
       // get the user's first item

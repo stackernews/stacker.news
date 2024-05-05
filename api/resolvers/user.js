@@ -714,14 +714,14 @@ export default {
     subscribeUserPosts: async (parent, { id }, { me, models }) => {
       const lookupData = { followerId: Number(me.id), followeeId: Number(id) }
       const existing = await models.userSubscription.findUnique({ where: { followerId_followeeId: lookupData } })
-      const mute = await isMuted({ models, me, mutedId: id })
+      const muted = await isMuted({ models, me, mutedId: id })
       if (existing) {
-        if (mute && !existing.postsSubscribedAt) {
+        if (muted && !existing.postsSubscribedAt) {
           throw new GraphQLError("you can't subscribe to a stacker that you've muted", { extensions: { code: 'BAD_INPUT' } })
         }
         await models.userSubscription.update({ where: { followerId_followeeId: lookupData }, data: { postsSubscribedAt: existing.postsSubscribedAt ? null : new Date() } })
       } else {
-        if (mute) {
+        if (muted) {
           throw new GraphQLError("you can't subscribe to a stacker that you've muted", { extensions: { code: 'BAD_INPUT' } })
         }
         await models.userSubscription.create({ data: { ...lookupData, postsSubscribedAt: new Date() } })
@@ -731,14 +731,14 @@ export default {
     subscribeUserComments: async (parent, { id }, { me, models }) => {
       const lookupData = { followerId: Number(me.id), followeeId: Number(id) }
       const existing = await models.userSubscription.findUnique({ where: { followerId_followeeId: lookupData } })
-      const mute = await isMuted({ models, me, mutedId: id })
+      const muted = await isMuted({ models, me, mutedId: id })
       if (existing) {
-        if (mute && !existing.commentsSubscribedAt) {
+        if (muted && !existing.commentsSubscribedAt) {
           throw new GraphQLError("you can't subscribe to a stacker that you've muted", { extensions: { code: 'BAD_INPUT' } })
         }
         await models.userSubscription.update({ where: { followerId_followeeId: lookupData }, data: { commentsSubscribedAt: existing.commentsSubscribedAt ? null : new Date() } })
       } else {
-        if (mute) {
+        if (muted) {
           throw new GraphQLError("you can't subscribe to a stacker that you've muted", { extensions: { code: 'BAD_INPUT' } })
         }
         await models.userSubscription.create({ data: { ...lookupData, commentsSubscribedAt: new Date() } })

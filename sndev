@@ -18,7 +18,7 @@ docker__compose() {
     ENV_LOCAL='--env-file .env.local'
   fi
 
-  "CURRENT_UID=$(id -u)" "CURRENT_GID=$(id -g)" COMPOSE_PROFILES=$COMPOSE_PROFILES command docker compose --env-file .env.development $ENV_LOCAL "$@"
+  CURRENT_UID=$(id -u) CURRENT_GID=$(id -g) COMPOSE_PROFILES="$COMPOSE_PROFILES" command docker compose --env-file .env.development $ENV_LOCAL "$@"
 }
 
 docker__exec() {

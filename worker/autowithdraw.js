@@ -3,6 +3,7 @@ import { msatsToSats, satsToMsats } from '@/lib/format'
 import { datePivot } from '@/lib/time'
 import { createWithdrawal, sendToLnAddr, addWalletLog } from '@/api/resolvers/wallet'
 import { createInvoice as createInvoiceCLN } from '@/lib/cln'
+import { Wallet } from '@/lib/constants'
 
 export async function autoWithdraw ({ data: { id }, models, lnd }) {
   const user = await models.user.findUnique({ where: { id } })
@@ -46,15 +47,15 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
 
   for (const wallet of wallets) {
     try {
-      if (wallet.type === 'LND') {
+      if (wallet.type === Wallet.LND.type) {
         await autowithdrawLND(
           { amount, maxFee },
           { models, me: user, lnd })
-      } else if (wallet.type === 'CLN') {
+      } else if (wallet.type === Wallet.CLN.type) {
         await autowithdrawCLN(
           { amount, maxFee },
           { models, me: user, lnd })
-      } else if (wallet.type === 'LIGHTNING_ADDRESS') {
+      } else if (wallet.type === Wallet.LnAddr.type) {
         await autowithdrawLNAddr(
           { amount, maxFee },
           { models, me: user, lnd })
@@ -66,7 +67,7 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
       // LND errors are in this shape: [code, type, { err: { code, details, metadata } }]
       const details = error[2]?.err?.details || error.message || error.toString?.()
       await addWalletLog({
-        wallet: wallet.type,
+        wallet,
         level: 'ERROR',
         message: 'autowithdrawal failed: ' + details
       }, { me: user, models })
@@ -86,7 +87,7 @@ async function autowithdrawLNAddr (
   const wallet = await models.wallet.findFirst({
     where: {
       userId: me.id,
-      type: 'LIGHTNING_ADDRESS'
+      type: Wallet.LnAddr.type
     },
     include: {
       walletLightningAddress: true
@@ -109,7 +110,7 @@ async function autowithdrawLND ({ amount, maxFee }, { me, models, lnd }) {
   const wallet = await models.wallet.findFirst({
     where: {
       userId: me.id,
-      type: 'LND'
+      type: Wallet.LND.type
     },
     include: {
       walletLND: true
@@ -145,7 +146,7 @@ async function autowithdrawCLN ({ amount, maxFee }, { me, models, lnd }) {
   const wallet = await models.wallet.findFirst({
     where: {
       userId: me.id,
-      type: 'CLN'
+      type: Wallet.CLN.type
     },
     include: {
       walletCLN: true

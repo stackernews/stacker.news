@@ -11,6 +11,7 @@ import { getToken } from 'next-auth/jwt'
 import { NodeNextRequest } from 'next/dist/server/base-http/node'
 import { schnorr } from '@noble/curves/secp256k1'
 import { notifyReferral } from '@/lib/webPush'
+import { hashEmail } from '@/lib/crypto'
 
 /**
  * Stores userIds in user table
@@ -69,24 +70,6 @@ function getCallbacks (req) {
         // setting it here allows us to link multiple auth method to an account
         // ... in v3 this linking field was token.user.id
         token.sub = Number(token.id)
-      }
-
-      // sign them up for the newsletter
-      if (isNewUser && user?.email && process.env.LIST_MONK_URL && process.env.LIST_MONK_AUTH) {
-        fetch(process.env.LIST_MONK_URL + '/api/subscribers', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: 'Basic ' + Buffer.from(process.env.LIST_MONK_AUTH).toString('base64')
-          },
-          body: JSON.stringify({
-            email: user.email,
-            name: 'blank',
-            lists: [2],
-            status: 'enabled',
-            preconfirm_subscriptions: true
-          })
-        }).then(async r => console.log(await r.json())).catch(console.log)
       }
 
       return token
@@ -217,7 +200,49 @@ const providers = [
 export const getAuthOptions = req => ({
   callbacks: getCallbacks(req),
   providers,
-  adapter: PrismaAdapter(prisma),
+  adapter: {
+    ...PrismaAdapter(prisma),
+    createUser: data => {
+      // replace email with email hash in new user payload
+      if (data.email) {
+        const { email } = data
+        data.emailHash = hashEmail({ email })
+        delete data.email
+        // data.email used to be used for name of new accounts. since it's missing, let's generate a new name
+        data.name = data.emailHash.substring(0, 10)
+        // sign them up for the newsletter
+        // don't await it, let it run async
+        enrollInNewsletter({ email })
+      }
+      return prisma.user.create({ data })
+    },
+    getUserByEmail: async email => {
+      const hashedEmail = hashEmail({ email })
+      let user = await prisma.user.findUnique({
+        where: {
+          // lookup by email hash since we don't store plaintext emails any more
+          emailHash: hashedEmail
+        }
+      })
+      if (!user) {
+        user = await prisma.user.findUnique({
+          where: {
+            // lookup by email as a fallback in case a user attempts to login by email during the migration
+            // and their email hasn't been migrated yet
+            email
+          }
+        })
+      }
+      // HACK! This is required to satisfy next-auth's check here:
+      // https://github.com/nextauthjs/next-auth/blob/5b647e1ac040250ad055e331ba97f8fa461b63cc/packages/next-auth/src/core/routes/callback.ts#L227
+      // since we are nulling `email`, but it expects it to be truthy there.
+      // Since we have the email from the input request, we can copy it here and pretend like we store user emails, even though we don't.
+      if (user) {
+        user.email = email
+      }
+      return user
+    }
+  },
   session: {
     strategy: 'jwt'
   },
@@ -229,6 +254,34 @@ export const getAuthOptions = req => ({
   events: getEventCallbacks()
 })
 
+async function enrollInNewsletter ({ email }) {
+  if (process.env.LIST_MONK_URL && process.env.LIST_MONK_AUTH) {
+    try {
+      const response = await fetch(process.env.LIST_MONK_URL + '/api/subscribers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Basic ' + Buffer.from(process.env.LIST_MONK_AUTH).toString('base64')
+        },
+        body: JSON.stringify({
+          email,
+          name: 'blank',
+          lists: [2],
+          status: 'enabled',
+          preconfirm_subscriptions: true
+        })
+      })
+      const jsonResponse = await response.json()
+      console.log(jsonResponse)
+    } catch (err) {
+      console.log('error signing user up for newsletter')
+      console.log(err)
+    }
+  } else {
+    console.log('LIST MONK env vars not set, skipping newsletter enrollment')
+  }
+}
+
 export default async (req, res) => {
   await NextAuth(req, res, getAuthOptions(req))
 }
@@ -238,7 +291,21 @@ async function sendVerificationRequest ({
   url,
   provider
 }) {
-  const user = await prisma.user.findUnique({ where: { email } })
+  let user = await prisma.user.findUnique({
+    where: {
+      // Look for the user by hashed email
+      emailHash: hashEmail({ email })
+    }
+  })
+  if (!user) {
+    user = await prisma.user.findUnique({
+      where: {
+        // or plaintext email, in case a user tries to login via email during the migration
+        // before their particular record has been migrated
+        email
+      }
+    })
+  }
 
   return new Promise((resolve, reject) => {
     const { server, from } = provider

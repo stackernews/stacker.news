@@ -335,7 +335,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
               }}
               onSuccess={({ url, name }) => {
                 let text = innerRef.current.value
-                text = text.replace(`![Uploading ${name}…]()`, `![${name}](${url})`)
+                text = text.replace(`![Uploading ${name}…]()`, `![](${url})`)
                 helpers.setValue(text)
                 const s3Keys = [...text.matchAll(AWS_S3_URL_REGEXP)].map(m => Number(m[1]))
                 updateImageFeesInfo({ variables: { s3Keys } })

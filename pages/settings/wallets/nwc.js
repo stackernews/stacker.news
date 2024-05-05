@@ -9,6 +9,7 @@ import { useNWC } from '@/components/webln/nwc'
 import { WalletSecurityBanner } from '@/components/banners'
 import { useWebLNConfigurator } from '@/components/webln'
 import WalletLogs from '@/components/wallet-logs'
+import { Wallet } from '@/lib/constants'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -72,7 +73,7 @@ export default function NWC () {
         />
       </Form>
       <div className='mt-3 w-100'>
-        <WalletLogs wallet='nwc' embedded />
+        <WalletLogs wallet={Wallet.NWC} embedded />
       </div>
     </CenterLayout>
   )

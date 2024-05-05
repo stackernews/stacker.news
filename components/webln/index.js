@@ -33,6 +33,15 @@ export const Status = {
   Error: 'Error'
 }
 
+export function migrateLocalStorage (oldStorageKey, newStorageKey) {
+  const item = window.localStorage.getItem(oldStorageKey)
+  if (item) {
+    window.localStorage.setItem(newStorageKey, item)
+    window.localStorage.removeItem(oldStorageKey)
+  }
+  return item
+}
+
 function RawWebLNProvider ({ children }) {
   const lnbits = useLNbits()
   const nwc = useNWC()
@@ -114,8 +123,14 @@ function RawWebLNProvider ({ children }) {
     })
   }, [setEnabledProviders])
 
+  const clearConfig = useCallback(async () => {
+    lnbits.clearConfig()
+    nwc.clearConfig()
+    await lnc.clearConfig()
+  }, [])
+
   return (
-    <WebLNContext.Provider value={{ provider: isEnabled(provider) ? { sendPayment: sendPaymentWithToast } : null, enabledProviders, setProvider }}>
+    <WebLNContext.Provider value={{ provider: isEnabled(provider) ? { sendPayment: sendPaymentWithToast } : null, enabledProviders, setProvider, clearConfig }}>
       {children}
     </WebLNContext.Provider>
   )

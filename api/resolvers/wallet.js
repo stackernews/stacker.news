@@ -7,7 +7,7 @@ import { SELECT } from './item'
 import { lnAddrOptions } from '@/lib/lnurl'
 import { msatsToSats, msatsToSatsDecimal, ensureB64 } from '@/lib/format'
 import { CLNAutowithdrawSchema, LNDAutowithdrawSchema, amountSchema, lnAddrAutowithdrawSchema, lnAddrSchema, ssValidate, withdrawlSchema } from '@/lib/validate'
-import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, ANON_USER_ID, BALANCE_LIMIT_MSATS, INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT } from '@/lib/constants'
+import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, ANON_USER_ID, BALANCE_LIMIT_MSATS, INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT, Wallet } from '@/lib/constants'
 import { datePivot } from '@/lib/time'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
@@ -434,11 +434,11 @@ export default {
       data.macaroon = ensureB64(data.macaroon)
       data.cert = ensureB64(data.cert)
 
-      const walletType = 'LND'
+      const wallet = Wallet.LND
       return await upsertWallet(
         {
           schema: LNDAutowithdrawSchema,
-          walletType,
+          wallet,
           testConnect: async ({ cert, macaroon, socket }) => {
             try {
               const { lnd } = await authenticatedLndGrpc({
@@ -453,12 +453,12 @@ export default {
                 expires_at: new Date()
               })
               // we wrap both calls in one try/catch since connection attempts happen on RPC calls
-              await addWalletLog({ wallet: walletType, level: 'SUCCESS', message: 'connected to LND' }, { me, models })
+              await addWalletLog({ wallet, level: 'SUCCESS', message: 'connected to LND' }, { me, models })
               return inv
             } catch (err) {
               // LND errors are in this shape: [code, type, { err: { code, details, metadata } }]
               const details = err[2]?.err?.details || err.message || err.toString?.()
-              await addWalletLog({ wallet: walletType, level: 'ERROR', message: `could not connect to LND: ${details}` }, { me, models })
+              await addWalletLog({ wallet, level: 'ERROR', message: `could not connect to LND: ${details}` }, { me, models })
               throw err
             }
           }
@@ -468,11 +468,11 @@ export default {
     upsertWalletCLN: async (parent, { settings, ...data }, { me, models }) => {
       data.cert = ensureB64(data.cert)
 
-      const walletType = 'CLN'
+      const wallet = Wallet.CLN
       return await upsertWallet(
         {
           schema: CLNAutowithdrawSchema,
-          walletType,
+          wallet,
           testConnect: async ({ socket, rune, cert }) => {
             try {
               const inv = await createInvoiceCLN({
@@ -483,11 +483,11 @@ export default {
                 msats: 'any',
                 expiry: 0
               })
-              await addWalletLog({ wallet: walletType, level: 'SUCCESS', message: 'connected to CLN' }, { me, models })
+              await addWalletLog({ wallet, level: 'SUCCESS', message: 'connected to CLN' }, { me, models })
               return inv
             } catch (err) {
               const details = err.details || err.message || err.toString?.()
-              await addWalletLog({ wallet: walletType, level: 'ERROR', message: `could not connect to CLN: ${details}` }, { me, models })
+              await addWalletLog({ wallet, level: 'ERROR', message: `could not connect to CLN: ${details}` }, { me, models })
               throw err
             }
           }
@@ -495,14 +495,14 @@ export default {
         { settings, data }, { me, models })
     },
     upsertWalletLNAddr: async (parent, { settings, ...data }, { me, models }) => {
-      const walletType = 'LIGHTNING_ADDRESS'
+      const wallet = Wallet.LnAddr
       return await upsertWallet(
         {
           schema: lnAddrAutowithdrawSchema,
-          walletType,
+          wallet,
           testConnect: async ({ address }) => {
             const options = await lnAddrOptions(address)
-            await addWalletLog({ wallet: walletType, level: 'SUCCESS', message: 'fetched payment details' }, { me, models })
+            await addWalletLog({ wallet, level: 'SUCCESS', message: 'fetched payment details' }, { me, models })
             return options
           }
         },
@@ -522,6 +522,15 @@ export default {
         models.wallet.delete({ where: { userId: me.id, id: Number(id) } }),
         models.walletLog.create({ data: { userId: me.id, wallet: wallet.type, level: 'SUCCESS', message: 'wallet deleted' } })
       ])
+
+      return true
+    },
+    deleteWalletLogs: async (parent, { wallet }, { me, models }) => {
+      if (!me) {
+        throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
+      }
+
+      await models.walletLog.deleteMany({ where: { userId: me.id, wallet } })
 
       return true
     }
@@ -557,14 +566,14 @@ export default {
 
 export const addWalletLog = async ({ wallet, level, message }, { me, models }) => {
   try {
-    await models.walletLog.create({ data: { userId: me.id, wallet, level, message } })
+    await models.walletLog.create({ data: { userId: me.id, wallet: wallet.type, level, message } })
   } catch (err) {
     console.error('error creating wallet log:', err)
   }
 }
 
 async function upsertWallet (
-  { schema, walletType, testConnect }, { settings, data }, { me, models }) {
+  { schema, wallet, testConnect }, { settings, data }, { me, models }) {
   if (!me) {
     throw new GraphQLError('you must be logged in', { extensions: { code: 'UNAUTHENTICATED' } })
   }
@@ -577,7 +586,7 @@ async function upsertWallet (
       await testConnect(data)
     } catch (err) {
       console.error(err)
-      await addWalletLog({ wallet: walletType, level: 'ERROR', message: 'failed to attach wallet' }, { me, models })
+      await addWalletLog({ wallet, level: 'ERROR', message: 'failed to attach wallet' }, { me, models })
       throw new GraphQLError('failed to connect to wallet', { extensions: { code: 'BAD_INPUT' } })
     }
   }
@@ -607,16 +616,13 @@ async function upsertWallet (
       }))
   }
 
-  const walletName = walletType === 'LND'
-    ? 'walletLND'
-    : walletType === 'CLN' ? 'walletCLN' : 'walletLightningAddress'
   if (id) {
     txs.push(
       models.wallet.update({
         where: { id: Number(id), userId: me.id },
         data: {
           priority: priority ? 1 : 0,
-          [walletName]: {
+          [wallet.field]: {
             update: {
               where: { walletId: Number(id) },
               data: walletData
@@ -624,7 +630,7 @@ async function upsertWallet (
           }
         }
       }),
-      models.walletLog.create({ data: { userId: me.id, wallet: walletType, level: 'SUCCESS', message: 'wallet updated' } })
+      models.walletLog.create({ data: { userId: me.id, wallet: wallet.type, level: 'SUCCESS', message: 'wallet updated' } })
     )
   } else {
     txs.push(
@@ -632,13 +638,13 @@ async function upsertWallet (
         data: {
           priority: Number(priority),
           userId: me.id,
-          type: walletType,
-          [walletName]: {
+          type: wallet.type,
+          [wallet.field]: {
             create: walletData
           }
         }
       }),
-      models.walletLog.create({ data: { userId: me.id, wallet: walletType, level: 'SUCCESS', message: 'wallet created' } })
+      models.walletLog.create({ data: { userId: me.id, wallet: wallet.type, level: 'SUCCESS', message: 'wallet created' } })
     )
   }
 
@@ -751,7 +757,7 @@ export async function sendToLnAddr (parent, { addr, amount, maxFee, comment, ...
     if (autoWithdraw && decoded.destination === ourPubkey && process.env.NODE_ENV === 'production') {
       // unset lnaddr so we don't trigger another withdrawal with same destination
       await models.wallet.deleteMany({
-        where: { userId: me.id, type: 'LIGHTNING_ADDRESS' }
+        where: { userId: me.id, type: Wallet.LnAddr.type }
       })
       throw new Error('automated withdrawals to other stackers are not allowed')
     }

@@ -23,6 +23,7 @@ import { deleteUnusedImages } from './deleteUnusedImages.js'
 import { territoryBilling, territoryRevenue } from './territory.js'
 import { ofac } from './ofac.js'
 import { autoWithdraw } from './autowithdraw.js'
+import { saltAndHashEmails } from './saltAndHashEmails.js'
 
 const { loadEnvConfig } = nextEnv
 const { ApolloClient, HttpLink, InMemoryCache } = apolloClient
@@ -100,6 +101,7 @@ async function work () {
   await boss.work('territoryBilling', jobWrapper(territoryBilling))
   await boss.work('territoryRevenue', jobWrapper(territoryRevenue))
   await boss.work('ofac', jobWrapper(ofac))
+  await boss.work('saltAndHashEmails', jobWrapper(saltAndHashEmails))
 
   console.log('working jobs')
 }

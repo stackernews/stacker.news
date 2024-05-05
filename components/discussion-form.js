@@ -32,12 +32,8 @@ export function DiscussionForm ({
   const toaster = useToast()
   const [show, setShow] = useState(undefined)
 
-  const handleClick = () => {
-    if (show !== true) {
-      setShow(true)
-    } else {
-      setShow(false)
-    }
+  const handleClick = (show) => {
+    setShow(show)
   }
 
   const [upsertDiscussion] = useMutation(

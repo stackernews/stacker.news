@@ -27,28 +27,18 @@ export default function AdvPostForm ({ children, item, show, isdirty }) {
   const [itemType, setItemType] = useState()
   const [hasForwardError, setHasForwardError] = useState(false)
   const [hasBoostError, setHasBoostError] = useState(false)
-  const [dirty, setDirty] = useState(undefined)
+  const [dirty, setDirty] = useState(false)
 
   const handleForwardError = (error) => {
-    if (!hasForwardError && !!error) {
-      setHasForwardError(true)
-    } else if (!error) {
-      setHasForwardError(false)
-    }
+    setHasForwardError(error?.[0] !== undefined && (error[0].nym !== '' || error[0].pct !== ''))
   }
 
   const handleBoostError = (error) => {
-    if (!hasBoostError && error.boost) {
-      setHasBoostError(true)
-    } else if (!error.boost) {
-      setHasBoostError(false)
-    }
+    setHasBoostError(error?.boost !== undefined && error.boost !== '')
   }
 
   const handleDirty = (input) => {
-    if (!dirty && ((!!input.nym && input.nym !== '') || (!!input.pct && input.pct !== '') || (!!input.boost && input.boost !== ''))) {
-      setDirty(true)
-    }
+    setDirty((!!input.nym && input.nym !== '') || (!!input.pct && input.pct !== '') || (!!input.boost && input.boost !== ''))
   }
 
   useEffect(() => {

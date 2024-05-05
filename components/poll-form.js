@@ -22,12 +22,8 @@ export function PollForm ({ item, sub, editThreshold, children }) {
   const schema = pollSchema({ client, me, existingBoost: item?.boost })
   const [show, setShow] = useState(undefined)
 
-  const handleClick = () => {
-    if (show !== true) {
-      setShow(true)
-    } else {
-      setShow(false)
-    }
+  const handleClick = (show) => {
+    setShow(show)
   }
 
   const crossposter = useCrossposter()

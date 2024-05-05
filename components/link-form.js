@@ -27,14 +27,10 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
   const shareUrl = router.query.url
   const shareTitle = router.query.title
   const [show, setShow] = useState(undefined)
-  const [dirty, setDirty] = useState(undefined)
+  const [dirty, setDirty] = useState(false)
 
-  const handleClick = () => {
-    if (show !== true) {
-      setShow(true)
-    } else {
-      setShow(false)
-    }
+  const handleClick = (show) => {
+    setShow(show)
   }
 
   const handleDirty = (input) => {

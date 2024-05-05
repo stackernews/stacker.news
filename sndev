@@ -18,7 +18,7 @@ docker__compose() {
     ENV_LOCAL='--env-file .env.local'
   fi
 
-  CURRENT_UID=$(id -u) CURRENT_GID=$(id -g) COMPOSE_PROFILES=$COMPOSE_PROFILES command docker compose --env-file .env.development $ENV_LOCAL "$@"
+  "CURRENT_UID=$(id -u)" "CURRENT_GID=$(id -g)" COMPOSE_PROFILES=$COMPOSE_PROFILES command docker compose --env-file .env.development $ENV_LOCAL "$@"
 }
 
 docker__exec() {
@@ -39,7 +39,7 @@ docker__sn_lnd() {
     t=""
   fi
 
-  docker__exec $t -u lnd sn_lnd lncli "$@"
+  docker__exec "$t" -u lnd sn_lnd lncli "$@"
 }
 
 docker__stacker_lnd() {
@@ -50,7 +50,7 @@ docker__stacker_lnd() {
     t=""
   fi
 
-  docker__exec $t -u lnd stacker_lnd lncli "$@"
+  docker__exec "$t" -u lnd stacker_lnd lncli "$@"
 }
 
 docker__stacker_cln() {
@@ -61,7 +61,7 @@ docker__stacker_cln() {
     t=""
   fi
 
-  docker__exec $t -u clightning stacker_cln lightning-cli --regtest "$@"
+  docker__exec "$t" -u clightning stacker_cln lightning-cli --regtest "$@"
 }
 
 sndev__start() {
@@ -108,7 +108,7 @@ OPTIONS"
 
 sndev__open() {
   shift
-  service=$(docker__compose ps $1 --format '{{.Label "CONNECT"}}')
+  service=$(docker__compose ps "$1" --format '{{.Label "CONNECT"}}')
   if [ -z "$service" ]; then
     echo "no url found for $1"
     exit 1
@@ -117,11 +117,11 @@ sndev__open() {
 
   echo "opening $1 ... $service"
   if [ "$(uname)" = "Darwin" ]; then
-    open $service
+    open "$service"
   elif [ "$(uname)" = "Linux" ]; then
-    xdg-open $service
+    xdg-open "$service"
   elif [ "$(uname)" = "Windows_NT" ]; then
-    start $service
+    start "$service"
   fi
 }
 
@@ -563,7 +563,7 @@ call() {
           exit 0
           ;;
         esac
-        sndev__help
+        sndev__help "$@"
         exit 1
     fi
 }

@@ -30,15 +30,15 @@ export default function AdvPostForm ({ children, item, show, isdirty }) {
   const [dirty, setDirty] = useState(false)
 
   const handleForwardError = (error) => {
-    setHasForwardError(error?.[0] !== undefined && (error[0].nym !== '' || error[0].pct !== ''))
+    setHasForwardError(error?.[0].nym !== '' || error?.[0].pct !== '')
   }
 
   const handleBoostError = (error) => {
-    setHasBoostError(error?.boost !== undefined && error.boost !== '')
+    setHasBoostError(error?.boost !== '')
   }
 
   const handleDirty = (input) => {
-    setDirty((!!input.nym && input.nym !== '') || (!!input.pct && input.pct !== '') || (!!input.boost && input.boost !== ''))
+    setDirty(input?.nym !== '' || input?.pct !== '' || input?.boost !== '')
   }
 
   useEffect(() => {

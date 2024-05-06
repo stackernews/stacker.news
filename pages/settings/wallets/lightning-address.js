@@ -76,7 +76,7 @@ export default function LightningAddress ({ ssrData }) {
         />
         <AutowithdrawSettings />
         <WalletButtonBar
-          enabled={!!wallet} onDelete={async () => {
+          status={!!wallet} onDelete={async () => {
             try {
               await removeWallet({ variables: { id: wallet?.id } })
               toaster.success('saved settings')

@@ -5,7 +5,7 @@ import { Form, Input, SubmitButton } from './form'
 import { useMe } from './me'
 import UpBolt from '@/svgs/bolt.svg'
 import { amountSchema } from '@/lib/validate'
-import { gql, useMutation } from '@apollo/client'
+import { gql, useApolloClient, useMutation } from '@apollo/client'
 import { useToast } from './toast'
 import { useLightning } from './lightning'
 import { nextTip } from './upvote'
@@ -175,53 +175,71 @@ export function useAct ({ onUpdate } = {}) {
   return act
 }
 
-export function useZap () {
-  const update = useCallback((cache, args) => {
-    const { data: { act: { id, sats, path } } } = args
+const zapUpdate = (cache, args) => {
+  const { data: { act: { id, sats, path } } } = args
 
-    // determine how much we increased existing sats by by checking the
-    // difference between result sats and meSats
-    // if it's negative, skip the cache as it's an out of order update
-    // if it's positive, add it to sats and commentSats
-
-    const item = cache.readFragment({
-      id: `Item:${id}`,
-      fragment: gql`
+  const readItemFragment = id => cache.readFragment({
+    id: `Item:${id}`,
+    fragment: gql`
         fragment ItemMeSatsZap on Item {
           meSats
         }
       `
+  })
+
+  const updateItemSats = (id, satsDelta, meSats) => cache.modify({
+    id: `Item:${id}`,
+    fields: {
+      sats (existingSats = 0) {
+        return existingSats + satsDelta
+      },
+      meSats: () => {
+        return meSats
+      }
+    }
+  })
+
+  const updateItemCommentSats = (id, satsDelta) => cache.modify({
+    id: `Item:${id}`,
+    fields: {
+      commentSats (existingCommentSats = 0) {
+        return existingCommentSats + satsDelta
+      }
+    }
+  })
+
+  // determine how much we increased existing sats by by checking the
+  // difference between result sats and meSats
+  // if it's negative, skip the cache as it's an out of order update
+  // if it's positive, add it to sats and commentSats
+
+  const item = readItemFragment(id)
+
+  const satsDelta = sats - item.meSats
+
+  if (satsDelta > 0) {
+    updateItemSats(id, satsDelta, sats)
+    // update all ancestors
+    path.split('.').forEach(aId => {
+      if (Number(aId) === Number(id)) return
+      updateItemCommentSats(aId, satsDelta)
     })
+  }
 
-    const satsDelta = sats - item.meSats
-
+  return () => {
     if (satsDelta > 0) {
-      cache.modify({
-        id: `Item:${id}`,
-        fields: {
-          sats (existingSats = 0) {
-            return existingSats + satsDelta
-          },
-          meSats: () => {
-            return sats
-          }
-        }
-      })
-
-      // update all ancestors
+      // updateCache(`Item:${id}`, { sats: `-${satsDelta}`, meSats: `=${item.meSats}` })
+      updateItemSats(id, -satsDelta, item.meSats)
       path.split('.').forEach(aId => {
         if (Number(aId) === Number(id)) return
-        cache.modify({
-          id: `Item:${aId}`,
-          fields: {
-            commentSats (existingCommentSats = 0) {
-              return existingCommentSats + satsDelta
-            }
-          }
-        })
+        updateItemCommentSats(aId, -satsDelta)
       })
     }
-  }, [])
+  }
+}
+
+export function useZap () {
+  const client = useApolloClient()
 
   const [zap] = useMutation(
     gql`
@@ -231,7 +249,7 @@ export function useZap () {
           sats
           path
         }
-      }`, { update }
+      }`
   )
 
   const toaster = useToast()
@@ -244,14 +262,16 @@ export function useZap () {
     // add current sats to next tip since idempotent zaps use desired total zap not difference
     const sats = meSats + nextTip(meSats, { ...me?.privates })
 
-    let hash, hmac, cancel
+    let hash, hmac, cancel, revert
     try {
+      const optimisticResponse = { act: { path: item.path, id: item.id, sats, act: 'TIP' } }
+      revert = zapUpdate(client.cache, { data: optimisticResponse })
+      strike();
       [{ hash, hmac }, cancel] = await payment.request(sats - meSats)
-      const variables = { id: item.id, sats, act: 'TIP', hash, hmac }
-      const optimisticResponse = { act: { path: item.path, ...variables } }
-      await zap({ variables, optimisticResponse })
-      strike()
+      const variables = { ...optimisticResponse.act, hash, hmac }
+      await zap({ variables })
     } catch (error) {
+      revert?.()
       if (error instanceof InvoiceCanceledError) {
         return
       }

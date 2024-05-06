@@ -71,7 +71,7 @@ export default async ({ query: { username, amount, nostr, comment, payerdata: pa
     }
 
     // generate invoice
-    const expiresAt = datePivot(new Date(), { minutes: 1 })
+    const expiresAt = datePivot(new Date(), { minutes: 5 })
     const invoice = await createInvoice({
       description,
       description_hash: descriptionHash,

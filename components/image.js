@@ -65,7 +65,7 @@ function ImageOriginal ({ src, topLevel, rel, tab, children, onClick, ...props }
 
 function ImageProxy ({ src, srcSet: { dimensions, ...srcSetObj } = {}, onClick, topLevel, onError, ...props }) {
   const srcSet = useMemo(() => {
-    if (!srcSetObj) return undefined
+    if (Object.keys(srcSetObj).length === 0) return undefined
     // srcSetObj shape: { [widthDescriptor]: <imgproxyUrl>, ... }
     return Object.entries(srcSetObj).reduce((acc, [wDescriptor, url], i, arr) => {
       // backwards compatibility: we used to replace image urls with imgproxy urls rather just storing paths
@@ -79,7 +79,7 @@ function ImageProxy ({ src, srcSet: { dimensions, ...srcSetObj } = {}, onClick, 
 
   // get source url in best resolution
   const bestResSrc = useMemo(() => {
-    if (!srcSetObj) return src
+    if (Object.keys(srcSetObj).length === 0) return src
     return Object.entries(srcSetObj).reduce((acc, [wDescriptor, url]) => {
       if (!url.startsWith('http')) {
         url = new URL(url, process.env.NEXT_PUBLIC_IMGPROXY_URL).toString()
@@ -107,7 +107,7 @@ function ImageProxy ({ src, srcSet: { dimensions, ...srcSetObj } = {}, onClick, 
   )
 }
 
-const Image = memo(({ className, src, srcSet, sizes, width, height, bestResSrc, onClick, onError }) => {
+const Image = memo(({ className, src, srcSet, sizes, width, height, onClick, onError }) => {
   const style = width && height
     ? { '--height': `${height}px`, '--width': `${width}px`, '--aspect-ratio': `${width} / ${height}` }
     : undefined
@@ -116,7 +116,7 @@ const Image = memo(({ className, src, srcSet, sizes, width, height, bestResSrc, 
     <img
       className={className}
       // browsers that don't support srcSet and sizes will use src. use best resolution possible in that case
-      src={bestResSrc}
+      src={src}
       srcSet={srcSet}
       sizes={sizes}
       width={width}

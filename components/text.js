@@ -197,7 +197,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
                   </Link>
                 )
               }
-              if (text.startsWith('@')) {
+              if (text.startsWith?.('@')) {
                 return (
                   <UserPopover name={text.replace('@', '')}>
                     <Link

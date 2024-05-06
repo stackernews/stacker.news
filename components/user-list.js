@@ -78,6 +78,7 @@ export function User ({ user, rank, statComps, className = 'mb-2', Embellish, ny
           <div className={styles.other}>
             {statComps.map((Comp, i) => <Comp key={i} user={user} />)}
           </div>}
+        {Embellish && <Embellish rank={rank} />}
       </UserBase>
     </>
   )

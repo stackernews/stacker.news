@@ -19,7 +19,6 @@ import { MAX_TITLE_LENGTH, MEDIA_URL } from '@/lib/constants'
 import { useToast } from './toast'
 import { toastDeleteScheduled } from '@/lib/form'
 import { ItemButtonBar } from './post'
-import { useFormikContext } from 'formik'
 
 function satsMin2Mo (minute) {
   return minute * 30 * 24 * 60
@@ -167,7 +166,6 @@ export default function JobForm ({ item, sub }) {
 }
 
 function PromoteJob ({ item, sub }) {
-  const { errors, isSubmitting } = useFormikContext()
   const [monthly, setMonthly] = useState(satsMin2Mo(item?.maxBid || 0))
   const [getAuctionPosition, { data }] = useLazyQuery(gql`
     query AuctionPosition($id: ID, $bid: Int!) {
@@ -184,7 +182,8 @@ function PromoteJob ({ item, sub }) {
 
   return (
     <AccordianItem
-      show={item?.maxBid > 0 || (errors?.maxBid && isSubmitting)}
+      hasForm
+      show={item?.maxBid > 0}
       header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>promote</div>}
       body={
         <>

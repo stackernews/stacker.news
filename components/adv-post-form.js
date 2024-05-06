@@ -10,7 +10,6 @@ import styles from './adv-post-form.module.css'
 import { useMe } from './me'
 import { useFeeButton } from './fee-button'
 import { useRouter } from 'next/router'
-import { useFormikContext } from 'formik'
 
 const EMPTY_FORWARD = { nym: '', pct: '' }
 
@@ -21,30 +20,11 @@ export function AdvPostInitial ({ forward, boost }) {
   }
 }
 
-export default function AdvPostForm ({ children, item, isdirty }) {
+export default function AdvPostForm ({ children, item }) {
   const me = useMe()
   const { merge } = useFeeButton()
   const router = useRouter()
   const [itemType, setItemType] = useState()
-  const [hasForwardError, setHasForwardError] = useState(false)
-  const [hasBoostError, setHasBoostError] = useState(false)
-  const [isDirty, setIsDirty] = useState(false)
-  const [show, setShow] = useState(undefined)
-  const { errors, values, isSubmitting } = useFormikContext()
-
-  useEffect(() => {
-    setIsDirty(values.forward[0].nym !== '' || values.forward[0].pct !== '' || values.boost !== '')
-    setHasBoostError(!!errors?.boost && errors?.boost !== '')
-    setHasForwardError((!!errors?.forward?.[0].nym && errors?.forward?.[0].nym !== '') || (!!errors?.forward?.[0].pct && errors?.forward?.[0].pct !== ''))
-
-    if (isDirty || isdirty) {
-      setShow(false)
-    }
-
-    if (isSubmitting) {
-      setShow((hasForwardError || hasBoostError) ? isSubmitting : false)
-    }
-  }, [values, errors, isSubmitting])
 
   useEffect(() => {
     const determineItemType = () => {
@@ -89,7 +69,7 @@ export default function AdvPostForm ({ children, item, isdirty }) {
   return (
     <AccordianItem
       header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>options</div>}
-      show={show}
+      hasForm
       body={
         <>
           {children}

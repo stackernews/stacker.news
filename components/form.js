@@ -102,7 +102,7 @@ export function InputSkeleton ({ label, hint }) {
   )
 }
 
-export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKeyDown, innerRef, isdirty, ...props }) {
+export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKeyDown, innerRef, ...props }) {
   const [tab, setTab] = useState('write')
   const [, meta, helpers] = useField(props)
   const [selectionRange, setSelectionRange] = useState({ start: 0, end: 0 })
@@ -160,10 +160,6 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
       input.setSelectionRange(start, end)
     }
   }, [innerRef, selectionRange.start, selectionRange.end])
-
-  useEffect(() => {
-    isdirty && isdirty(innerRef.current?.innerHTML)
-  }, [isdirty])
 
   const [mention, setMention] = useState()
   const insertMention = useCallback((name) => {

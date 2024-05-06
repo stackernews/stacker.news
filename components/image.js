@@ -1,6 +1,6 @@
 import styles from './text.module.css'
 import { Fragment, useState, useEffect, useMemo, useCallback, forwardRef, useRef, memo } from 'react'
-import { IMGPROXY_URL_REGEXP } from '@/lib/url'
+import { IMGPROXY_URL_REGEXP, MEDIA_DOMAIN_REGEXP } from '@/lib/url'
 import { useShowModal } from './modal'
 import { useMe } from './me'
 import { Dropdown } from 'react-bootstrap'
@@ -63,7 +63,7 @@ function ImageOriginal ({ src, topLevel, rel, tab, children, onClick, ...props }
   }
 }
 
-function ImageProxy ({ src, srcSet: { dimensions, ...srcSetObj } = {}, onClick, topLevel, onError, ...props }) {
+function TrustedImage ({ src, srcSet: { dimensions, ...srcSetObj } = {}, onClick, topLevel, onError, ...props }) {
   const srcSet = useMemo(() => {
     if (Object.keys(srcSetObj).length === 0) return undefined
     // srcSetObj shape: { [widthDescriptor]: <imgproxyUrl>, ... }
@@ -132,7 +132,7 @@ export default function ZoomableImage ({ src, srcSet, ...props }) {
   const showModal = useShowModal()
 
   // if `srcSet` is falsy, it means the image was not processed by worker yet
-  const [imgproxy, setImgproxy] = useState(!!srcSet || IMGPROXY_URL_REGEXP.test(src))
+  const [trustedDomain, setTrustedDomain] = useState(!!srcSet || IMGPROXY_URL_REGEXP.test(src) || MEDIA_DOMAIN_REGEXP.test(src))
 
   // backwards compatibility:
   // src may already be imgproxy url since we used to replace image urls with imgproxy urls
@@ -158,13 +158,13 @@ export default function ZoomableImage ({ src, srcSet, ...props }) {
       </Dropdown.Item>)
   }), [showModal, originalUrl, styles])
 
-  const handleError = useCallback(() => setImgproxy(false), [setImgproxy])
+  const handleError = useCallback(() => setTrustedDomain(false), [setTrustedDomain])
 
   if (!src) return null
 
-  if (imgproxy) {
+  if (trustedDomain) {
     return (
-      <ImageProxy
+      <TrustedImage
         src={src} srcSet={srcSet}
         onClick={handleClick} onError={handleError} {...props}
       />

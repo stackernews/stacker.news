@@ -7,7 +7,7 @@ import InputGroup from 'react-bootstrap/InputGroup'
 import useCrossposter from './use-crossposter'
 import { bountySchema } from '@/lib/validate'
 import { SubSelectInitial } from './sub-select'
-import { useCallback, useState } from 'react'
+import { useCallback } from 'react'
 import { normalizeForwards, toastDeleteScheduled } from '@/lib/form'
 import { MAX_TITLE_LENGTH } from '@/lib/constants'
 import { useMe } from './me'
@@ -60,11 +60,6 @@ export function BountyForm ({
       }
     `
   )
-  const [show, setShow] = useState(undefined)
-
-  const handleClick = (show) => {
-    setShow(show)
-  }
 
   const onSubmit = useCallback(
     async ({ boost, bounty, crosspost, ...values }) => {
@@ -148,8 +143,8 @@ export function BountyForm ({
             : null
         }
       />
-      <AdvPostForm show={show} edit={!!item} item={item} />
-      <ItemButtonBar itemId={item?.id} canDelete={false} onClick={handleClick} />
+      <AdvPostForm edit={!!item} item={item} />
+      <ItemButtonBar itemId={item?.id} canDelete={false} />
     </Form>
   )
 }

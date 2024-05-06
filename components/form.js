@@ -436,8 +436,8 @@ function FormGroup ({ className, label, children }) {
 }
 
 function InputInner ({
-  prepend, append, hint, warn, showValid, onChange, onBlur, overrideValue, appendValue, hasError,
-  isdirty, innerRef, noForm, clear, onKeyDown, inputGroupClassName, debounce: debounceTime, maxLength,
+  prepend, append, hint, warn, showValid, onChange, onBlur, overrideValue, appendValue,
+  innerRef, noForm, clear, onKeyDown, inputGroupClassName, debounce: debounceTime, maxLength,
   ...props
 }) {
   const [field, meta, helpers] = noForm ? [{}, {}, {}] : useField(props)
@@ -503,11 +503,6 @@ function InputInner ({
   }, [appendValue])
 
   const invalid = (!formik || formik.submitCount > 0) && meta.touched && meta.error
-
-  useEffect(() => {
-    hasError && hasError(formik.errors)
-    isdirty && isdirty(formik.values)
-  }, [hasError, formik?.errors, isdirty, formik?.values])
 
   useEffect(debounce(() => {
     if (!noForm && !isNaN(debounceTime) && debounceTime > 0) {
@@ -712,14 +707,7 @@ export function Input ({ label, groupClassName, ...props }) {
   )
 }
 
-export function VariableInput ({ label, groupClassName, name, hint, max, min, readOnlyLen, children, emptyItem = '', hasError, isdirty, ...props }) {
-  const { values, errors } = useFormikContext()
-
-  useEffect(() => {
-    hasError && hasError(errors[name])
-    isdirty && isdirty(values[name][0])
-  }, [values, errors])
-
+export function VariableInput ({ label, groupClassName, name, hint, max, min, readOnlyLen, children, emptyItem = '', ...props }) {
   return (
     <FormGroup label={label} className={groupClassName}>
       <FieldArray name={name} hasValidation>

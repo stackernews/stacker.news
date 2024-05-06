@@ -8,7 +8,7 @@ import AccordianItem from './accordian-item'
 import Item from './item'
 import { discussionSchema } from '@/lib/validate'
 import { SubSelectInitial } from './sub-select'
-import { useCallback, useState } from 'react'
+import { useCallback } from 'react'
 import { normalizeForwards, toastDeleteScheduled } from '@/lib/form'
 import { MAX_TITLE_LENGTH } from '@/lib/constants'
 import { useMe } from './me'
@@ -30,11 +30,6 @@ export function DiscussionForm ({
   const shareText = router.query.text ? decodeURI(router.query.text) : undefined
   const crossposter = useCrossposter()
   const toaster = useToast()
-  const [show, setShow] = useState(undefined)
-
-  const handleClick = (show) => {
-    setShow(show)
-  }
 
   const [upsertDiscussion] = useMutation(
     gql`
@@ -129,8 +124,8 @@ export function DiscussionForm ({
           ? <div className='text-muted fw-bold'><Countdown date={editThreshold} /></div>
           : null}
       />
-      <AdvPostForm show={show} edit={!!item} item={item} />
-      <ItemButtonBar itemId={item?.id} onClick={handleClick} />
+      <AdvPostForm edit={!!item} item={item} />
+      <ItemButtonBar itemId={item?.id} />
       {!item &&
         <div className={`mt-3 ${related.length > 0 ? '' : 'invisible'}`}>
           <AccordianItem

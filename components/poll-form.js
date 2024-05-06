@@ -7,7 +7,7 @@ import { MAX_POLL_CHOICE_LENGTH, MAX_POLL_NUM_CHOICES, MAX_TITLE_LENGTH } from '
 import { datePivot } from '@/lib/time'
 import { pollSchema } from '@/lib/validate'
 import { SubSelectInitial } from './sub-select'
-import { useCallback, useState } from 'react'
+import { useCallback } from 'react'
 import { normalizeForwards, toastDeleteScheduled } from '@/lib/form'
 import useCrossposter from './use-crossposter'
 import { useMe } from './me'
@@ -20,11 +20,6 @@ export function PollForm ({ item, sub, editThreshold, children }) {
   const me = useMe()
   const toaster = useToast()
   const schema = pollSchema({ client, me, existingBoost: item?.boost })
-  const [show, setShow] = useState(undefined)
-
-  const handleClick = (show) => {
-    setShow(show)
-  }
 
   const crossposter = useCrossposter()
 
@@ -116,7 +111,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
           : null}
         maxLength={MAX_POLL_CHOICE_LENGTH}
       />
-      <AdvPostForm show={show} edit={!!item} item={item}>
+      <AdvPostForm edit={!!item} item={item}>
         <DateTimeInput
           isClearable
           label='poll expiration'
@@ -124,7 +119,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
           className='pr-4'
         />
       </AdvPostForm>
-      <ItemButtonBar itemId={item?.id} onClick={handleClick} />
+      <ItemButtonBar itemId={item?.id} />
     </Form>
   )
 }

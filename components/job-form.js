@@ -19,6 +19,7 @@ import { MAX_TITLE_LENGTH, MEDIA_URL } from '@/lib/constants'
 import { useToast } from './toast'
 import { toastDeleteScheduled } from '@/lib/form'
 import { ItemButtonBar } from './post'
+import { useFormikContext } from 'formik'
 
 function satsMin2Mo (minute) {
   return minute * 30 * 24 * 60
@@ -41,7 +42,6 @@ export default function JobForm ({ item, sub }) {
   const storageKeyPrefix = item ? undefined : `${sub.name}-job`
   const router = useRouter()
   const toaster = useToast()
-  const [show, setShow] = useState(undefined)
   const [logoId, setLogoId] = useState(item?.uploadId)
   const [upsertJob] = useMutation(gql`
     mutation upsertJob($sub: String!, $id: ID, $title: String!, $company: String!, $location: String,
@@ -86,10 +86,6 @@ export default function JobForm ({ item, sub }) {
       toastDeleteScheduled(toaster, data, 'upsertJob', !!item, values.text)
     }, [upsertJob, router, logoId]
   )
-
-  const handleClick = (show) => {
-    setShow(show)
-  }
 
   return (
     <>
@@ -162,16 +158,16 @@ export default function JobForm ({ item, sub }) {
           required
           clear
         />
-        <PromoteJob show={show} item={item} sub={sub} />
+        <PromoteJob item={item} sub={sub} />
         {item && <StatusControl item={item} />}
-        <ItemButtonBar onClick={handleClick} itemId={item?.id} canDelete={false} />
+        <ItemButtonBar itemId={item?.id} canDelete={false} />
       </Form>
     </>
   )
 }
 
-function PromoteJob ({ item, sub, show }) {
-  const [error, setError] = useState(false)
+function PromoteJob ({ item, sub }) {
+  const { errors, isSubmitting } = useFormikContext()
   const [monthly, setMonthly] = useState(satsMin2Mo(item?.maxBid || 0))
   const [getAuctionPosition, { data }] = useLazyQuery(gql`
     query AuctionPosition($id: ID, $bid: Int!) {
@@ -186,13 +182,9 @@ function PromoteJob ({ item, sub, show }) {
     setMonthly(satsMin2Mo(initialMaxBid))
   }, [])
 
-  const handlePromotionError = (error) => {
-    setError(!!error.maxBid && error.maxBid !== '')
-  }
-
   return (
     <AccordianItem
-      show={item?.maxBid > 0 || (error && show)}
+      show={item?.maxBid > 0 || (errors?.maxBid && isSubmitting)}
       header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>promote</div>}
       body={
         <>
@@ -221,7 +213,6 @@ function PromoteJob ({ item, sub, show }) {
             }}
             append={<InputGroup.Text className='text-monospace'>sats/min</InputGroup.Text>}
             hint={<PriceHint monthly={monthly} />}
-            hasError={handlePromotionError}
           />
           <><div className='fw-bold text-muted'>This bid puts your job in position: {position}</div></>
         </>

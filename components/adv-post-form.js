@@ -10,6 +10,7 @@ import styles from './adv-post-form.module.css'
 import { useMe } from './me'
 import { useFeeButton } from './fee-button'
 import { useRouter } from 'next/router'
+import { useFormikContext } from 'formik'
 
 const EMPTY_FORWARD = { nym: '', pct: '' }
 
@@ -20,26 +21,30 @@ export function AdvPostInitial ({ forward, boost }) {
   }
 }
 
-export default function AdvPostForm ({ children, item, show, isdirty }) {
+export default function AdvPostForm ({ children, item, isdirty }) {
   const me = useMe()
   const { merge } = useFeeButton()
   const router = useRouter()
   const [itemType, setItemType] = useState()
   const [hasForwardError, setHasForwardError] = useState(false)
   const [hasBoostError, setHasBoostError] = useState(false)
-  const [dirty, setDirty] = useState(false)
+  const [isDirty, setIsDirty] = useState(false)
+  const [show, setShow] = useState(undefined)
+  const { errors, values, isSubmitting } = useFormikContext()
 
-  const handleForwardError = (error) => {
-    setHasForwardError(error?.[0].nym !== '' || error?.[0].pct !== '')
-  }
+  useEffect(() => {
+    setIsDirty(values.forward[0].nym !== '' || values.forward[0].pct !== '' || values.boost !== '')
+    setHasBoostError(!!errors?.boost && errors?.boost !== '')
+    setHasForwardError((!!errors?.forward?.[0].nym && errors?.forward?.[0].nym !== '') || (!!errors?.forward?.[0].pct && errors?.forward?.[0].pct !== ''))
 
-  const handleBoostError = (error) => {
-    setHasBoostError(error?.boost !== '')
-  }
+    if (isDirty || isdirty) {
+      setShow(false)
+    }
 
-  const handleDirty = (input) => {
-    setDirty(input?.nym !== '' || input?.pct !== '' || input?.boost !== '')
-  }
+    if (isSubmitting) {
+      setShow((hasForwardError || hasBoostError) ? isSubmitting : false)
+    }
+  }, [values, errors, isSubmitting])
 
   useEffect(() => {
     const determineItemType = () => {
@@ -81,12 +86,10 @@ export default function AdvPostForm ({ children, item, show, isdirty }) {
     }
   }
 
-  const showOptions = (dirty || isdirty) && show === undefined ? 'dirty' : (hasForwardError || hasBoostError) ? show : undefined
-
   return (
     <AccordianItem
       header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>options</div>}
-      show={showOptions}
+      show={show}
       body={
         <>
           {children}
@@ -122,8 +125,6 @@ export default function AdvPostForm ({ children, item, show, isdirty }) {
             })}
             hint={<span className='text-muted'>ranks posts higher temporarily based on the amount</span>}
             append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
-            hasError={handleBoostError}
-            isdirty={handleDirty}
           />
           <VariableInput
             label='forward sats to'
@@ -132,8 +133,6 @@ export default function AdvPostForm ({ children, item, show, isdirty }) {
             max={MAX_FORWARDS}
             emptyItem={EMPTY_FORWARD}
             hint={<span className='text-muted'>Forward sats to up to 5 other stackers. Any remaining sats go to you.</span>}
-            hasError={handleForwardError}
-            isdirty={handleDirty}
           >
             {({ index, placeholder }) => {
               return (

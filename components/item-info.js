@@ -26,7 +26,7 @@ import UserPopover from './user-popover'
 export default function ItemInfo ({
   item, full, commentsText = 'comments',
   commentTextSingular = 'comment', className, embellishUser, extraInfo, onEdit, editText,
-  onQuoteReply, extraBadges, nested, pinnable, showActionDropdown = true
+  onQuoteReply, extraBadges, nested, pinnable, showActionDropdown = true, showUser = true
 }) {
   const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
   const me = useMe()
@@ -102,12 +102,13 @@ export default function ItemInfo ({
       </Link>
       <span> \ </span>
       <span>
-        <UserPopover name={item.user.name}>
-          <Link href={`/${item.user.name}`}>
-            @{item.user.name}<span> </span><Hat className='fill-grey' user={item.user} height={12} width={12} />
-            {embellishUser}
-          </Link>
-        </UserPopover>
+        {showUser &&
+          <UserPopover name={item.user.name}>
+            <Link href={`/${item.user.name}`}>
+              @{item.user.name}<span> </span><Hat className='fill-grey' user={item.user} height={12} width={12} />
+              {embellishUser}
+            </Link>
+          </UserPopover>}
         <span> </span>
         <Link href={`/items/${item.id}`} title={item.createdAt} className='text-reset' suppressHydrationWarning>
           {timeSince(new Date(item.createdAt))}

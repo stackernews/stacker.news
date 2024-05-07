@@ -131,7 +131,8 @@ export function ItemSummary ({ item }) {
         </div>
         <ItemInfo
           item={item}
-          hideActionDropdown
+          showUser={false}
+          showActionDropdown={false}
           extraBadges={Number(item?.user?.id) === AD_USER_ID && <Badge className={styles.newComment} bg={null}>AD</Badge>}
         />
       </div>

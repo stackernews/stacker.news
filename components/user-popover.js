@@ -8,13 +8,18 @@ import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import { UserBase, UserSkeleton } from './user-list'
 import styles from './user-popover.module.css'
 import classNames from 'classnames'
+import ItemPopover from './item-popover'
 
 function StackingSince ({ since }) {
   return (
     <small className='text-muted d-flex-inline'>
       stacking since:{' '}
       {since
-        ? <Link href={`/items/${since}`}>#{since}</Link>
+        ? (
+          <ItemPopover id={since}>
+            <Link href={`/items/${since}`}>#{since}</Link>
+          </ItemPopover>
+          )
         : <span>never</span>}
     </small>
   )

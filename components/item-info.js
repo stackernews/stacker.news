@@ -26,7 +26,7 @@ import UserPopover from './user-popover'
 export default function ItemInfo ({
   item, full, commentsText = 'comments',
   commentTextSingular = 'comment', className, embellishUser, extraInfo, onEdit, editText,
-  onQuoteReply, extraBadges, nested, pinnable
+  onQuoteReply, extraBadges, nested, pinnable, showActionDropdown = true
 }) {
   const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
   const me = useMe()
@@ -61,10 +61,10 @@ export default function ItemInfo ({
       {!(item.position && (pinnable || !item.subName)) && !(!item.parentId && Number(item.user?.id) === AD_USER_ID) &&
         <>
           <span title={`from ${numWithUnits(item.upvotes, {
-              abbreviate: false,
-              unitSingular: 'stacker',
-              unitPlural: 'stackers'
-            })} ${item.mine
+            abbreviate: false,
+            unitSingular: 'stacker',
+            unitPlural: 'stackers'
+          })} ${item.mine
             ? `\\ ${numWithUnits(item.meSats, { abbreviate: false })} to post`
             : `(${numWithUnits(meTotalSats, { abbreviate: false })}${item.meDontLikeSats
               ? ` & ${numWithUnits(item.meDontLikeSats, { abbreviate: false, unitSingular: 'downsat', unitPlural: 'downsats' })}`
@@ -152,54 +152,57 @@ export default function ItemInfo ({
             />
           </span>
         </>}
-      <ActionDropdown>
-        <CopyLinkDropdownItem item={item} />
-        {(item.parentId || item.text) && onQuoteReply &&
-          <Dropdown.Item onClick={onQuoteReply}>quote reply</Dropdown.Item>}
-        {me && <BookmarkDropdownItem item={item} />}
-        {me && <SubscribeDropdownItem item={item} />}
-        {item.otsHash &&
-          <Link href={`/items/${item.id}/ots`} className='text-reset dropdown-item'>
-            opentimestamp
-          </Link>}
-        {item?.noteId && (
-          <Dropdown.Item onClick={() => window.open(`https://njump.me/${item.noteId}`, '_blank', 'noopener,noreferrer,nofollow')}>
-            nostr note
-          </Dropdown.Item>
-        )}
-        {item && item.mine && !item.noteId && !item.isJob && !item.parentId &&
-          <CrosspostDropdownItem item={item} />}
-        {me && !item.position &&
-          !item.mine && !item.deletedAt &&
-          (item.meDontLikeSats > meTotalSats
-            ? <DropdownItemUpVote item={item} />
-            : <DontLikeThisDropdownItem id={item.id} />)}
-        {me && sub && !item.mine && !item.outlawed && Number(me.id) === Number(sub.userId) && sub.moderated &&
-          <>
-            <hr className='dropdown-divider' />
-            <OutlawDropdownItem item={item} />
-          </>}
-        {me && !nested && !item.mine && sub && Number(me.id) !== Number(sub.userId) &&
-          <>
-            <hr className='dropdown-divider' />
-            <MuteSubDropdownItem item={item} sub={sub} />
-          </>}
-        {canPin &&
-          <>
-            <hr className='dropdown-divider' />
-            <PinSubDropdownItem item={item} />
-          </>}
-        {item.mine && !item.position && !item.deletedAt && !item.bio &&
-          <>
-            <hr className='dropdown-divider' />
-            <DeleteDropdownItem itemId={item.id} type={item.title ? 'post' : 'comment'} />
-          </>}
-        {me && !item.mine &&
-          <>
-            <hr className='dropdown-divider' />
-            <MuteDropdownItem user={item.user} />
-          </>}
-      </ActionDropdown>
+      {
+        showActionDropdown &&
+          <ActionDropdown>
+            <CopyLinkDropdownItem item={item} />
+            {(item.parentId || item.text) && onQuoteReply &&
+              <Dropdown.Item onClick={onQuoteReply}>quote reply</Dropdown.Item>}
+            {me && <BookmarkDropdownItem item={item} />}
+            {me && <SubscribeDropdownItem item={item} />}
+            {item.otsHash &&
+              <Link href={`/items/${item.id}/ots`} className='text-reset dropdown-item'>
+                opentimestamp
+              </Link>}
+            {item?.noteId && (
+              <Dropdown.Item onClick={() => window.open(`https://njump.me/${item.noteId}`, '_blank', 'noopener,noreferrer,nofollow')}>
+                nostr note
+              </Dropdown.Item>
+            )}
+            {item && item.mine && !item.noteId && !item.isJob && !item.parentId &&
+              <CrosspostDropdownItem item={item} />}
+            {me && !item.position &&
+            !item.mine && !item.deletedAt &&
+            (item.meDontLikeSats > meTotalSats
+              ? <DropdownItemUpVote item={item} />
+              : <DontLikeThisDropdownItem id={item.id} />)}
+            {me && sub && !item.mine && !item.outlawed && Number(me.id) === Number(sub.userId) && sub.moderated &&
+              <>
+                <hr className='dropdown-divider' />
+                <OutlawDropdownItem item={item} />
+              </>}
+            {me && !nested && !item.mine && sub && Number(me.id) !== Number(sub.userId) &&
+              <>
+                <hr className='dropdown-divider' />
+                <MuteSubDropdownItem item={item} sub={sub} />
+              </>}
+            {canPin &&
+              <>
+                <hr className='dropdown-divider' />
+                <PinSubDropdownItem item={item} />
+              </>}
+            {item.mine && !item.position && !item.deletedAt && !item.bio &&
+              <>
+                <hr className='dropdown-divider' />
+                <DeleteDropdownItem itemId={item.id} type={item.title ? 'post' : 'comment'} />
+              </>}
+            {me && !item.mine &&
+              <>
+                <hr className='dropdown-divider' />
+                <MuteDropdownItem user={item.user} />
+              </>}
+          </ActionDropdown>
+      }
       {extraInfo}
     </div>
   )

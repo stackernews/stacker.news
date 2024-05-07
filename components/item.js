@@ -19,6 +19,24 @@ import AdIcon from '@/svgs/advertisement-fill.svg'
 import { DownZap } from './dont-link-this'
 import { timeLeft } from '@/lib/time'
 
+function onItemClick (e, router, item) {
+  const viewedAt = commentsViewedAt(item)
+  if (viewedAt) {
+    e.preventDefault()
+    if (e.ctrlKey || e.metaKey) {
+      window.open(
+        `/items/${item.id}`,
+        '_blank',
+        'noopener,noreferrer'
+      )
+    } else {
+      router.push(
+        `/items/${item.id}?commentsViewedAt=${viewedAt}`,
+        `/items/${item.id}`)
+    }
+  }
+}
+
 export function SearchTitle ({ title }) {
   return reactStringReplace(title, /\*\*\*([^*]+)\*\*\*/g, (match, i) => {
     return <mark key={`strong-${match}-${i}`}>{match}</mark>
@@ -51,23 +69,9 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
           <div className={`${styles.main} flex-wrap`}>
             <Link
               href={`/items/${item.id}`}
-              onClick={(e) => {
-                const viewedAt = commentsViewedAt(item)
-                if (viewedAt) {
-                  e.preventDefault()
-                  if (e.ctrlKey || e.metaKey) {
-                    window.open(
-                      `/items/${item.id}`,
-                      '_blank',
-                      'noopener,noreferrer'
-                    )
-                  } else {
-                    router.push(
-                    `/items/${item.id}?commentsViewedAt=${viewedAt}`,
-                    `/items/${item.id}`)
-                  }
-                }
-              }} ref={titleRef} className={`${styles.title} text-reset me-2`}
+              onClick={(e) => onItemClick(e, router, item)}
+              ref={titleRef}
+              className={`${styles.title} text-reset me-2`}
             >
               {item.searchTitle ? <SearchTitle title={item.searchTitle} /> : item.title}
               {item.pollCost && <PollIndicator item={item} />}
@@ -108,7 +112,34 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
   )
 }
 
-export function ItemSkeleton ({ rank, children }) {
+export function ItemSummary ({ item }) {
+  const titleRef = useRef()
+  const router = useRouter()
+
+  return (
+    <div className={styles.item}>
+      <div className={styles.hunk}>
+        <div className={`${styles.main} flex-wrap`}>
+          <Link
+            href={`/items/${item.id}`}
+            onClick={(e) => onItemClick(e, router, item)}
+            ref={titleRef}
+            className={`${styles.title} text-reset me-2`}
+          >
+            {item.title}
+          </Link>
+        </div>
+        <ItemInfo
+          item={item}
+          hideActionDropdown
+          extraBadges={Number(item?.user?.id) === AD_USER_ID && <Badge className={styles.newComment} bg={null}>AD</Badge>}
+        />
+      </div>
+    </div>
+  )
+}
+
+export function ItemSkeleton ({ rank, children, showUpvote = true }) {
   return (
     <>
       {rank
@@ -118,7 +149,7 @@ export function ItemSkeleton ({ rank, children }) {
           </div>)
         : <div />}
       <div className={`${styles.item} ${styles.skeleton}`}>
-        <UpVote className={styles.upvote} />
+        {showUpvote && <UpVote className={styles.upvote} />}
         <div className={styles.hunk}>
           <div className={`${styles.main} flex-wrap flex-md-nowrap`}>
             <span className={`${styles.title} clouds text-reset flex-md-fill flex-md-shrink-0 me-2`} />

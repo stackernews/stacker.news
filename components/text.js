@@ -21,6 +21,7 @@ import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import isEqual from 'lodash/isEqual'
+import UserPopover from './user-popover'
 
 export function SearchText ({ text }) {
   return (
@@ -196,7 +197,18 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
                   </Link>
                 )
               }
-              if (href.startsWith('/') || url?.origin === internalURL) {
+              if (text.startsWith?.('@')) {
+                return (
+                  <UserPopover name={text.replace('@', '')}>
+                    <Link
+                      id={props.id}
+                      href={href}
+                    >
+                      {text}
+                    </Link>
+                  </UserPopover>
+                )
+              } else if (href.startsWith('/') || url?.origin === internalURL) {
                 return (
                   <Link
                     id={props.id}

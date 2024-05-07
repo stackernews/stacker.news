@@ -397,6 +397,8 @@ services:
       - '--autopilot.disable'
       - '--pool.auctionserver=test.pool.lightning.finance:12010'
       - '--loop.server.host=test.swap.lightning.today:11010'
+    labels:
+      CONNECT: "localhost:8443"
   stacker_cln:
     build:
       context: ./docker/cln
@@ -466,6 +468,8 @@ services:
       - "1025:1025"
     links:
       - app
+    labels:
+      CONNECT: "localhost:8025"
 volumes:
   db:
   os:

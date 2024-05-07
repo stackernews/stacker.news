@@ -11,6 +11,7 @@ import Hat from './hat'
 import { useMe } from './me'
 import { MEDIA_URL } from '@/lib/constants'
 import { NymActionDropdown } from '@/components/user-header'
+import classNames from 'classnames'
 
 // all of this nonsense is to show the stat we are sorting by first
 const Stacked = ({ user }) => (user.optional.stacked !== null && <span>{abbrNum(user.optional.stacked)} stacked</span>)
@@ -39,7 +40,29 @@ function seperate (arr, seperator) {
   return arr.flatMap((x, i) => i < arr.length - 1 ? [x, seperator] : [x])
 }
 
-function User ({ user, rank, statComps, Embellish, nymActionDropdown = false }) {
+export function UserBase ({ user, className, children, nymActionDropdown }) {
+  return (
+    <div className={classNames(styles.item, className)}>
+      <Link href={`/${user.name}`}>
+        <Image
+          src={user.photoId ? `${MEDIA_URL}/${user.photoId}` : '/dorian400.jpg'} width='32' height='32'
+          className={`${userStyles.userimg} me-2`}
+        />
+      </Link>
+      <div className={styles.hunk}>
+        <div className='d-flex'>
+          <Link href={`/${user.name}`} className={`${styles.title} d-inline-flex align-items-center text-reset`}>
+            @{user.name}<Hat className='ms-1 fill-grey' height={14} width={14} user={user} />
+          </Link>
+          {nymActionDropdown && <NymActionDropdown user={user} className='' />}
+        </div>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+export function User ({ user, rank, statComps, className = 'mb-2', Embellish, nymActionDropdown = false }) {
   const me = useMe()
   const showStatComps = statComps && statComps.length > 0
   return (
@@ -50,27 +73,13 @@ function User ({ user, rank, statComps, Embellish, nymActionDropdown = false }) 
             {rank}
           </div>)
         : <div />}
-      <div className={`${styles.item} ${me?.id === user.id && me.privates?.hideFromTopUsers ? userStyles.hidden : 'mb-2'}`}>
-        <Link href={`/${user.name}`}>
-          <Image
-            src={user.photoId ? `${MEDIA_URL}/${user.photoId}` : '/dorian400.jpg'} width='32' height='32'
-            className={`${userStyles.userimg} me-2`}
-          />
-        </Link>
-        <div className={`${styles.hunk} ${!showStatComps && 'd-flex flex-column justify-content-around'}`}>
-          <div className='d-flex'>
-            <Link href={`/${user.name}`} className={`${styles.title} d-inline-flex align-items-center text-reset`}>
-              @{user.name}<Hat className='ms-1 fill-grey' height={14} width={14} user={user} />
-            </Link>
-            {nymActionDropdown && <NymActionDropdown user={user} className='' />}
-          </div>
-          {showStatComps &&
-            <div className={styles.other}>
-              {statComps.map((Comp, i) => <Comp key={i} user={user} />)}
-            </div>}
-          {Embellish && <Embellish rank={rank} />}
-        </div>
-      </div>
+      <UserBase user={user} nymActionDropdown={nymActionDropdown} className={(me?.id === user.id && me.privates?.hideFromTopUsers) ? userStyles.hidden : 'mb-2'}>
+        {showStatComps &&
+          <div className={styles.other}>
+            {statComps.map((Comp, i) => <Comp key={i} user={user} />)}
+          </div>}
+        {Embellish && <Embellish rank={rank} />}
+      </UserBase>
     </>
   )
 }
@@ -152,23 +161,31 @@ export function UsersSkeleton () {
 
   return (
     <div>{users.map((_, i) => (
-      <div className={`${styles.item} ${styles.skeleton} mb-2`} key={i}>
-        <Image
-          src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/clouds.jpeg`}
-          width='32' height='32'
-          className={`${userStyles.userimg} clouds me-2`}
-        />
-        <div className={styles.hunk}>
-          <div className={`${styles.name} clouds text-reset`} />
-          <div className={styles.other}>
-            <span className={`${styles.otherItem} clouds`} />
-            <span className={`${styles.otherItem} clouds`} />
-            <span className={`${styles.otherItem} ${styles.otherItemLonger} clouds`} />
-            <span className={`${styles.otherItem} ${styles.otherItemLonger} clouds`} />
-          </div>
+      <UserSkeleton key={i} className='mb-2'>
+        <div className={styles.other}>
+          <span className={`${styles.otherItem} clouds`} />
+          <span className={`${styles.otherItem} clouds`} />
+          <span className={`${styles.otherItem} ${styles.otherItemLonger} clouds`} />
+          <span className={`${styles.otherItem} ${styles.otherItemLonger} clouds`} />
         </div>
-      </div>
+      </UserSkeleton>
     ))}
+    </div>
+  )
+}
+
+export function UserSkeleton ({ children, className }) {
+  return (
+    <div className={`${styles.item} ${styles.skeleton} ${className}`}>
+      <Image
+        src={`${process.env.NEXT_PUBLIC_ASSET_PREFIX}/clouds.jpeg`}
+        width='32' height='32'
+        className={`${userStyles.userimg} clouds me-2`}
+      />
+      <div className={styles.hunk}>
+        <div className={`${styles.name} clouds text-reset`} />
+        {children}
+      </div>
     </div>
   )
 }

@@ -30,7 +30,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
   const router = useRouter()
 
   const image = item.url && item.url.startsWith(process.env.NEXT_PUBLIC_IMGPROXY_URL)
-  const dateOptions = { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true, timeZone: 'America/Chicago'}
+  const dateOptions = { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true, timeZone: 'America/Chicago' }
   return (
     <>
       {rank

@@ -163,8 +163,15 @@ function TopLevelItem ({ item, noReply, ...props }) {
           <Reply item={item} replyOpen placeholder={item.ncomments > 3 ? 'fractions of a penny for your thoughts?' : 'early comments get more zaps'} onCancelQuote={cancelQuote} onQuoteReply={quoteReply} quote={quote} />
           {
           // Don't show related items for Saloon items (position is set but no subName)
-          const shouldShowRelated = item.subName && !item.isJob && !item.parentId && !item.deletedAt && item.bounty <= 0;
-          shouldShowRelated &&
+          (!item.position && item.subName) &&
+          // Don't show related items for jobs
+          !item.isJob &&
+          // Don't show related items for child items
+          !item.parentId &&
+          // Don't show related items for deleted items
+          !item.deletedAt &&
+          // Don't show related items for items with bounties, show past bounties instead
+          !(item.bounty > 0) &&
             <Related title={item.title} itemId={item.id} show={item.ncomments === 0} />
           }
           {item.bounty > 0 && <PastBounties item={item} />}

@@ -276,7 +276,7 @@ export function useZap () {
         return
       }
       console.error(error)
-      toaster.danger('zap: ' + error?.message || error?.toString?.())
+      toaster.danger('zap failed: ' + error?.message || error?.toString?.())
       cancel?.()
     }
   }, [strike, payment])

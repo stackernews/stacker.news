@@ -75,7 +75,6 @@ export function EventForm ({
         }
       })
       if (error) {
-        console.log("Poop")
         throw new Error({ message: error.toString() })
       }
 
@@ -103,7 +102,7 @@ export function EventForm ({
         eventLocation: item?.eventLocation || '',
         text: item?.text || '',
         crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
-        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost  }),
+        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}

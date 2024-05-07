@@ -786,7 +786,6 @@ export default {
     },
     upsertEvent: async (parent, { id, hash, hmac, ...item }, { me, models }) => {
       await ssValidate(eventSchema, item, { models, me })
-
       if (id) {
         return await updateItem(parent, { id, ...item }, { me, models, hash, hmac })
       } else {
@@ -1396,7 +1395,7 @@ export const SELECT =
   "Item"."rootId", "Item".upvotes, "Item".company, "Item".location, "Item".remote, "Item"."deletedAt",
   "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost", "Item".boost, "Item".msats,
   "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",
-  "Item"."weightedDownVotes", "Item".freebie, "Item".bio, "Item"."otsHash", "Item"."bountyPaidTo",
+  "Item"."weightedDownVotes", "Item".freebie, "Item".bio, "Item"."otsHash", "Item"."bountyPaidTo", "Item"."eventDate", "Item"."eventLocation",
   ltree2text("Item"."path") AS "path", "Item"."weightedComments", "Item"."imgproxyUrls", "Item".outlawed,
   "Item"."pollExpiresAt"`
 

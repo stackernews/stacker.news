@@ -420,6 +420,8 @@ model Item {
   pollExpiresAt      DateTime?
   Ancestors          Reply[]               @relation("AncestorReplyItem")
   Replies            Reply[]
+  eventDate          DateTime?
+  eventLocation      String?
 
   @@index([uploadId])
   @@index([lastZapAt])

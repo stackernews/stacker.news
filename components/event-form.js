@@ -36,9 +36,10 @@ export function EventForm ({
         $sub: String
         $id: ID
         $title: String!
-        $date: DateTime!
-        $location: String!
+        $eventDate: Date!
+        $eventLocation: String!
         $text: String
+        $boost: Int
         $forward: [ItemForwardInput]
         $hash: String
         $hmac: String
@@ -47,9 +48,10 @@ export function EventForm ({
           sub: $sub
           id: $id
           title: $title
-          date: $date
-          location: $location
+          eventDate: $eventDate
+          eventLocation: $eventLocation
           text: $text
+          boost: $boost
           forward: $forward
           hash: $hash
           hmac: $hmac
@@ -62,16 +64,18 @@ export function EventForm ({
   )
 
   const onSubmit = useCallback(
-    async ({ crosspost, ...values }) => {
+    async ({ crosspost, boost, ...values }) => {
       const { data, error } = await upsertEvent({
         variables: {
           sub: item?.subName || sub?.name,
           id: item?.id,
+          boost: boost ? Number(boost) : undefined,
           ...values,
           forward: normalizeForwards(values.forward)
         }
       })
       if (error) {
+        console.log("Poop")
         throw new Error({ message: error.toString() })
       }
 
@@ -95,11 +99,11 @@ export function EventForm ({
     <Form
       initial={{
         title: item?.title || '',
-        date: item?.date || '',
-        location: item?.location || '',
+        eventDate: item?.eventDate || '',
+        eventLocation: item?.eventLocation || '',
         text: item?.text || '',
         crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
-        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards) }),
+        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost  }),
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}
@@ -111,6 +115,12 @@ export function EventForm ({
       storageKeyPrefix={item ? undefined : 'event'}
     >
       {children}
+      <DateTimeInput
+        label={dateLabel}
+        name='eventDate'
+        className='pr-4'
+        required
+      />
       <Input
         label={titleLabel}
         name='title'
@@ -119,15 +129,10 @@ export function EventForm ({
         clear
         maxLength={MAX_TITLE_LENGTH}
       />
-      <DateTimeInput
-        label={dateLabel}
-        name='date'
-        className='pr-4'
-        required
-      />
+
       <Input
         label={locationLabel}
-        name='location'
+        name='eventLocation'
         required
       />
       <MarkdownInput

@@ -199,6 +199,16 @@ export default function TerritoryForm ({ sub }) {
                 groupClassName='ms-1 mb-0'
               />
             </Col>
+            <Col xs={4} sm='auto'>
+              <Checkbox
+                inline
+                label='events'
+                value='EVENT'
+                name='postTypes'
+                id='polls-checkbox'
+                groupClassName='ms-1 mb-0'
+              />
+            </Col>
           </Row>
         </CheckboxGroup>
         {sub?.billingType !== 'ONCE' &&

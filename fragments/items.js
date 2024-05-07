@@ -59,6 +59,8 @@ export const ITEM_FIELDS = gql`
     mine
     imgproxyUrls
     rel
+    eventDate
+    eventLocation
   }`
 
 export const ITEM_FULL_FIELDS = gql`

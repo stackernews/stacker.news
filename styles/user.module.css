@@ -9,6 +9,7 @@
     align-items: center;
     justify-content: center;
     display: flex;
+    padding: 2.5rem 0 1rem 0;
 }
 
 .createFormContainer {

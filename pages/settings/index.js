@@ -714,15 +714,8 @@ function AuthMethods ({ methods, apiKeyEnabled }) {
           return methods.email
             ? (
               <div key={provider} className='mt-2 d-flex align-items-center'>
-                <Input
-                  name='email'
-                  placeholder={methods.email}
-                  groupClassName='mb-0'
-                  readOnly
-                  noForm
-                />
                 <Button
-                  className='ms-2' variant='secondary' onClick={
+                  variant='secondary' onClick={
                     async () => {
                       await unlink('email')
                     }

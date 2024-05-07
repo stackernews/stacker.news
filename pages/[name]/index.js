@@ -77,7 +77,7 @@ export function BioForm ({ handleDone, bio }) {
 
 export function UserLayout ({ user, children, containClassName }) {
   return (
-    <Layout user={user} footer={false} containClassName={containClassName}>
+    <Layout user={user} footer footerLinks={false} containClassName={containClassName}>
       <UserHeader user={user} />
       {children}
     </Layout>

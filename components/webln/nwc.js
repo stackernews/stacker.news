@@ -4,21 +4,27 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 import { Relay, finalizeEvent, nip04 } from 'nostr-tools'
 import { parseNwcUrl } from '@/lib/url'
 import { useWalletLogger } from '../logger'
-import { Status } from '.'
+import { Status, migrateLocalStorage } from '.'
 import { bolt11Tags } from '@/lib/bolt11'
+import { Wallet } from '@/lib/constants'
+import { useMe } from '../me'
 
 const NWCContext = createContext()
 
 export function NWCProvider ({ children }) {
+  const me = useMe()
   const [nwcUrl, setNwcUrl] = useState('')
   const [walletPubkey, setWalletPubkey] = useState()
   const [relayUrl, setRelayUrl] = useState()
   const [secret, setSecret] = useState()
   const [status, setStatus] = useState()
-  const logger = useWalletLogger('nwc')
+  const { logger } = useWalletLogger(Wallet.NWC)
 
   const name = 'NWC'
-  const storageKey = 'webln:provider:nwc'
+  let storageKey = 'webln:provider:nwc'
+  if (me) {
+    storageKey = `${storageKey}:${me.id}`
+  }
 
   const getInfo = useCallback(async (relayUrl, walletPubkey) => {
     logger.info(`requesting info event from ${relayUrl}`)
@@ -96,11 +102,18 @@ export function NWCProvider ({ children }) {
   }, [logger])
 
   const loadConfig = useCallback(async () => {
-    const configStr = window.localStorage.getItem(storageKey)
+    let configStr = window.localStorage.getItem(storageKey)
     setStatus(Status.Initialized)
     if (!configStr) {
-      logger.info('no existing config found')
-      return
+      if (me) {
+        // backwards compatibility: try old storageKey
+        const oldStorageKey = storageKey.split(':').slice(0, -1).join(':')
+        configStr = migrateLocalStorage(oldStorageKey, storageKey)
+      }
+      if (!configStr) {
+        logger.info('no existing config found')
+        return
+      }
     }
 
     const config = JSON.parse(configStr)
@@ -124,10 +137,12 @@ export function NWCProvider ({ children }) {
       setStatus(Status.Enabled)
       logger.ok('wallet enabled')
     } catch (err) {
+      logger.error('invalid config:', err)
+      setStatus(Status.Error)
       logger.info('wallet disabled')
       throw err
     }
-  }, [validateParams, logger])
+  }, [me, validateParams, logger])
 
   const saveConfig = useCallback(async (config) => {
     // immediately store config so it's not lost even if config is invalid
@@ -158,6 +173,7 @@ export function NWCProvider ({ children }) {
       setStatus(Status.Enabled)
       logger.ok('wallet enabled')
     } catch (err) {
+      logger.error('invalid config:', err)
       setStatus(Status.Error)
       logger.info('wallet disabled')
       throw err

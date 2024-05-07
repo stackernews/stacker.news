@@ -124,6 +124,7 @@ model User {
   AncestorReplies           Reply[]              @relation("AncestorReplyUser")
   Replies                   Reply[]
   walletLogs                WalletLog[]
+  Reminder                  Reminder[]
 
   @@index([photoId])
   @@index([createdAt], map: "users.created_at_index")
@@ -163,10 +164,10 @@ model Wallet {
 }
 
 model WalletLog {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now()) @map("created_at")
+  id        Int        @id @default(autoincrement())
+  createdAt DateTime   @default(now()) @map("created_at")
   userId    Int
-  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   wallet    WalletType
   level     LogLevel
   message   String
@@ -421,6 +422,7 @@ model Item {
   pollExpiresAt      DateTime?
   Ancestors          Reply[]               @relation("AncestorReplyItem")
   Replies            Reply[]
+  Reminder           Reminder[]
 
   @@index([uploadId])
   @@index([lastZapAt])
@@ -851,6 +853,18 @@ model TerritoryTransfer {
 
   @@index([createdAt, newUserId], map: "TerritoryTransfer.newUserId_index")
   @@index([createdAt, oldUserId], map: "TerritoryTransfer.oldUserId_index")
+}
+
+model Reminder {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map("created_at")
+  userId    Int
+  itemId    Int
+  remindAt  DateTime
+  user      User     @relation(fields: [userId], references: [id])
+  item      Item     @relation(fields: [itemId], references: [id])
+
+  @@index([userId, remindAt], map: "Reminder.userId_index")
 }
 
 enum EarnType {

@@ -304,6 +304,16 @@ export default {
           LIMIT ${LIMIT})`
       )
 
+      queries.push(
+        `(SELECT "Item".*, "Reminder"."remindAt" as "sortTime", NULL as"earnedSats", 'Reminder' AS type
+        FROM "Reminder"
+        INNER JOIN "Item" ON "Reminder"."itemId" = "Item".id
+        WHERE "Reminder"."userId" = $1
+        AND "Reminder"."remindAt" < $2
+        ORDER BY "sortTime" DESC
+        LIMIT ${LIMIT})`
+      )
+
       const notifications = await models.$queryRawUnsafe(
         `SELECT id, "sortTime", "earnedSats", type,
             "sortTime" AS "minSortTime"

@@ -16,7 +16,7 @@ import { parse } from 'tldts'
 import uu from 'url-unshort'
 import { actSchema, advSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, ssValidate } from '@/lib/validate'
 import { notifyItemParents, notifyUserSubscribers, notifyZapped, notifyTerritorySubscribers, notifyMention } from '@/lib/webPush'
-import { defaultCommentSort, isJob, deleteItemByAuthor, getDeleteCommand, hasDeleteCommand } from '@/lib/item'
+import { defaultCommentSort, isJob, deleteItemByAuthor, getDeleteCommand, hasDeleteCommand, getReminderCommand, hasReminderCommand } from '@/lib/item'
 import { datePivot, whenRange } from '@/lib/time'
 import { imageFeesInfo, uploadIdsFromText } from './image'
 import assertGofacYourself from './ofac'
@@ -1186,6 +1186,16 @@ export default {
       }
       const deleteJobs = await models.$queryRawUnsafe(`SELECT startafter FROM pgboss.job WHERE name = 'deleteItem' AND data->>'id' = '${item.id}'`)
       return deleteJobs[0]?.startafter ?? null
+    },
+    reminderScheduledAt: async (item, args, { me, models }) => {
+      const meId = me?.id ?? ANON_USER_ID
+      if (meId !== item.userId || meId === ANON_USER_ID) {
+        // don't show reminders on an item if it isn't yours
+        // don't support reminders for ANON
+        return null
+      }
+      const reminderJobs = await models.$queryRawUnsafe(`SELECT startafter FROM pgboss.job WHERE name = 'remindItem' AND data->>'id' = '${item.id}'`)
+      return reminderJobs[0]?.startafter ?? null
     }
   }
 }
@@ -1298,6 +1308,12 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
   }
   await enqueueDeletionJob(item, models)
 
+  if (hasReminderCommand(old.text)) {
+    // delete any deletion jobs that were created from a prior version of the item
+    await clearReminderJobs({ me, item, models })
+  }
+  await enqueueReminderJob({ me, item, models })
+
   item.comments = []
   return item
 }
@@ -1342,6 +1358,8 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
 
   await enqueueDeletionJob(item, models)
 
+  await enqueueReminderJob({ me, item, models })
+
   notifyUserSubscribers({ models, item })
 
   notifyTerritorySubscribers({ models, item })
@@ -1360,6 +1378,23 @@ const enqueueDeletionJob = async (item, models) => {
     await models.$queryRawUnsafe(`
       INSERT INTO pgboss.job (name, data, startafter)
       VALUES ('deleteItem', jsonb_build_object('id', ${item.id}), now() + interval '${deleteCommand.number} ${deleteCommand.unit}s');`)
+  }
+}
+
+const clearReminderJobs = async ({ me, item, models }) => {
+  await models.$queryRawUnsafe(`DELETE FROM pgboss.job WHERE name = 'remindItem' AND data->>'itemId' = '${item.id}' AND data->>'userId' = '${me?.id};`)
+}
+
+const enqueueReminderJob = async ({ me, item, models }) => {
+  // disallow anon to use reminder?
+  if (!me || me.id === ANON_USER_ID) {
+    return
+  }
+  const reminderCommand = getReminderCommand(item.text)
+  if (reminderCommand) {
+    await models.$queryRawUnsafe(`
+      INSERT INTO pgboss.job (name, data, startafter)
+      VALUES ('remindItem', jsonb_build_object('itemId', ${item.id}, 'userId', ${me?.id}), now() + interval '${reminderCommand.number} ${reminderCommand.unit}s');`)
   }
 }
 

@@ -161,7 +161,19 @@ function TopLevelItem ({ item, noReply, ...props }) {
       {!noReply &&
         <>
           <Reply item={item} replyOpen placeholder={item.ncomments > 3 ? 'fractions of a penny for your thoughts?' : 'early comments get more zaps'} onCancelQuote={cancelQuote} onQuoteReply={quoteReply} quote={quote} />
-          {!item.position && !item.isJob && !item.parentId && !item.deletedAt && !(item.bounty > 0) && <Related title={item.title} itemId={item.id} show={item.ncomments === 0} />}
+          {
+          // Don't show related items for Saloon items
+          (!item.position && !item.sub.name) &&
+          // Don't show related items for jobs
+          !item.isJob &&
+          // Don't show related items for child items
+          !item.parentId &&
+          // Don't show related items for deleted items
+          !item.deletedAt &&
+          // Don't show related items for items with bounties, show past bounties instead
+          !(item.bounty > 0) &&
+            <Related title={item.title} itemId={item.id} show={item.ncomments === 0} />
+          }
           {item.bounty > 0 && <PastBounties item={item} />}
         </>}
     </ItemComponent>

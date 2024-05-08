@@ -233,7 +233,6 @@ const zapUpdate = (cache, args) => {
 
   return () => {
     if (satsDelta > 0) {
-      // updateCache(`Item:${id}`, { sats: `-${satsDelta}`, meSats: `=${item.meSats}` })
       updateItemSats(id, -satsDelta, item.meSats)
       path.split('.').forEach(aId => {
         if (Number(aId) === Number(id)) return

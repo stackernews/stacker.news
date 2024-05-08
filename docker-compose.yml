@@ -80,7 +80,8 @@ services:
   worker:
     container_name: worker
     build:
-      context: ./worker
+      context: ./
+      dockerfile: ./worker/Dockerfile
       args:
         - UID=${CURRENT_UID}
         - GID=${CURRENT_GID}

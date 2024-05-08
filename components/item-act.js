@@ -41,7 +41,7 @@ const addCustomTip = (amount) => {
   window.localStorage.setItem('custom-tips', JSON.stringify(customTips))
 }
 
-export default function ItemAct ({ onClose, itemId, down, children }) {
+export default function ItemAct ({ onClose, setPending, itemId, down, children }) {
   const inputRef = useRef(null)
   const me = useMe()
   const [oValue, setOValue] = useState()
@@ -59,18 +59,27 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
       const existingAmount = Number(window.localStorage.getItem(storageKey) || '0')
       window.localStorage.setItem(storageKey, existingAmount + amount)
     }
-    await act({
-      variables: {
-        id: itemId,
-        sats: Number(amount),
-        act: down ? 'DONT_LIKE_THIS' : 'TIP',
-        hash,
-        hmac
-      }
-    })
-    strike()
+    try {
+      await act({
+        variables: {
+          id: itemId,
+          sats: Number(amount),
+          act: down ? 'DONT_LIKE_THIS' : 'TIP',
+          hash,
+          hmac
+        }
+      })
+    } finally {
+      setPending(false)
+    }
     addCustomTip(Number(amount))
-  }, [me, act, down, itemId, strike])
+  }, [me, act, down, itemId, strike, onClose, setPending])
+
+  const beforePayment = useCallback(() => {
+    setPending(true)
+    onClose()
+    strike()
+  }, [setPending, strike, onClose])
 
   // we need to wrap with PaymentProvider here since modals don't have access to PaymentContext by default
   return (
@@ -83,6 +92,7 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
         schema={amountSchema}
         invoiceable
         onSubmit={onSubmit}
+        beforePayment={beforePayment}
       >
         <Input
           label='amount'

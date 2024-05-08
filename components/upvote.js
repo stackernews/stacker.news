@@ -157,7 +157,7 @@ export default function UpVote ({ item, className }) {
 
     setTipShow(false)
     showModal(onClose =>
-      <ItemAct onClose={onClose} itemId={item.id} />, { onClose: handleModalClosed })
+      <ItemAct onClose={onClose} itemId={item.id} setPending={setPending} />, { onClose: handleModalClosed })
   }
 
   const handleShortPress = async () => {

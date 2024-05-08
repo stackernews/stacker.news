@@ -194,6 +194,34 @@ services:
       - opensearch
     labels:
       CONNECT: "localhost:5601"
+  lnproxy:
+    container_name: lnproxy
+    build: ./docker/lnproxy
+    profiles:
+      - payments
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "curl", "-f", "http://localhost:4747/health"]
+    restart: unless-stopped
+    depends_on:
+      sn_lnd:
+        condition: service_healthy
+        restart: true
+    env_file: *env_file
+    expose:
+      - "4747"
+    ports:
+      - "4747:4747"
+    command:
+      - 'lnproxy'
+      - '--listen=:4747'
+      - '--lnd=https://sn_lnd:8080'
+      - '--lnd-cert=/lnd/tls.cert'
+      - '--lnd-macaroon=/lnd/data/chain/bitcoin/regtest/admin.macaroon'
+    volumes:
+      - sn_lnd:/lnd
+    labels:
+      CONNECT: "localhost:4747"
   bitcoin:
     image: polarlightning/bitcoind:26.0
     container_name: bitcoin
@@ -290,6 +318,7 @@ services:
       - '--maxpendingchannels=10'
     expose:
       - "9735"
+      - "8080"
     ports:
       - "${LND_REST_PORT}:8080"
       - "${LND_GRPC_PORT}:10009"

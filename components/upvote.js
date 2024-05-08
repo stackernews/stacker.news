@@ -96,7 +96,6 @@ export default function UpVote ({ item, className }) {
         setWalkthrough(upvotePopover: $upvotePopover, tipPopover: $tipPopover)
       }`
   )
-  const [pending, setPending] = useState(null)
 
   const setVoteShow = useCallback((yes) => {
     if (!me) return
@@ -157,7 +156,7 @@ export default function UpVote ({ item, className }) {
 
     setTipShow(false)
     showModal(onClose =>
-      <ItemAct onClose={onClose} itemId={item.id} setPending={setPending} />, { onClose: handleModalClosed })
+      <ItemAct onClose={onClose} itemId={item.id} />, { onClose: handleModalClosed })
   }
 
   const handleShortPress = async () => {
@@ -174,12 +173,8 @@ export default function UpVote ({ item, className }) {
       } else {
         setTipShow(true)
       }
-      try {
-        setPending(true)
-        await zap({ item, me })
-      } finally {
-        setPending(false)
-      }
+
+      await zap({ item, me })
     } else {
       showModal(onClose => <ItemAct onClose={onClose} itemId={item.id} act={act} />, { onClose: handleModalClosed })
     }
@@ -207,8 +202,7 @@ export default function UpVote ({ item, className }) {
                       `${styles.upvote}
                       ${className || ''}
                       ${disabled ? styles.noSelfTips : ''}
-                      ${meSats ? styles.voted : ''}
-                      ${pending ? styles.pending : ''}`
+                      ${meSats ? styles.voted : ''}`
                     }
               style={meSats || hover
                 ? {

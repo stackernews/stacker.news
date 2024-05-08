@@ -861,10 +861,10 @@ model Reminder {
   userId    Int
   itemId    Int
   remindAt  DateTime
-  user      User     @relation(fields: [userId], references: [id])
-  item      Item     @relation(fields: [itemId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
-  @@index([userId, remindAt], map: "Reminder.userId_index")
+  @@index([userId, remindAt], map: "Reminder.userId_reminderAt_index")
 }
 
 enum EarnType {

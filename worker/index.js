@@ -103,7 +103,7 @@ async function work () {
   await boss.work('territoryRevenue', jobWrapper(territoryRevenue))
   await boss.work('ofac', jobWrapper(ofac))
   await boss.work('saltAndHashEmails', jobWrapper(saltAndHashEmails))
-  await boss.work('remindItem', jobWrapper(remindUser))
+  await boss.work('reminder', jobWrapper(remindUser))
 
   console.log('working jobs')
 }

@@ -305,7 +305,7 @@ export default {
       )
 
       queries.push(
-        `(SELECT "Item".*, "Reminder"."remindAt" as "sortTime", NULL as"earnedSats", 'Reminder' AS type
+        `(SELECT "Item".*, "Reminder".id as id, "Reminder"."remindAt" as "sortTime", NULL as "earnedSats", 'Reminder' AS type
         FROM "Reminder"
         INNER JOIN "Item" ON "Reminder"."itemId" = "Item".id
         WHERE "Reminder"."userId" = $1

@@ -41,27 +41,28 @@ const addCustomTip = (amount) => {
   window.localStorage.setItem('custom-tips', JSON.stringify(customTips))
 }
 
-export default function ItemAct ({ onClose, itemId, down, children }) {
+export default function ItemAct ({ onClose, item, down, children }) {
   const inputRef = useRef(null)
   const me = useMe()
   const [oValue, setOValue] = useState()
   const strike = useLightning()
+  const cache = useApolloClient().cache
 
   useEffect(() => {
     inputRef.current?.focus()
-  }, [onClose, itemId])
+  }, [onClose, item.id])
 
   const act = useAct()
 
   const onSubmit = useCallback(async ({ amount, hash, hmac }) => {
     if (!me) {
-      const storageKey = `TIP-item:${itemId}`
+      const storageKey = `TIP-item:${item.id}`
       const existingAmount = Number(window.localStorage.getItem(storageKey) || '0')
       window.localStorage.setItem(storageKey, existingAmount + amount)
     }
     await act({
       variables: {
-        id: itemId,
+        id: item.id,
         sats: Number(amount),
         act: down ? 'DONT_LIKE_THIS' : 'TIP',
         hash,
@@ -69,12 +70,13 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
       }
     })
     addCustomTip(Number(amount))
-  }, [me, act, down, itemId, strike, onClose])
+  }, [me, act, down, item.id, strike, onClose])
 
-  const beforePayment = useCallback(() => {
+  const beforePayment = useCallback(({ amount }) => {
     onClose()
     strike()
-  }, [strike, onClose])
+    return actUpdate(cache, { ...item, sats: Number(amount), act: down ? 'DONT_LIKE_THIS' : 'TIP' }, { me })
+  }, [cache, strike, onClose])
 
   // we need to wrap with PaymentProvider here since modals don't have access to PaymentContext by default
   return (
@@ -111,12 +113,8 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
   )
 }
 
-export function useAct ({ onUpdate } = {}) {
-  const me = useMe()
-
-  const update = useCallback((cache, args) => {
-    const { data: { act: { id, sats, path, act } } } = args
-
+export const actUpdate = (cache, { id, sats, path, act }, { me }) => {
+  const updateItemSats = (id, sats) => {
     cache.modify({
       id: `Item:${id}`,
       fields: {
@@ -161,11 +159,16 @@ export function useAct ({ onUpdate } = {}) {
           }
         })
       })
-
-      onUpdate && onUpdate(cache, args)
     }
-  }, [!!me, onUpdate])
+  }
 
+  updateItemSats(id, sats)
+  return () => {
+    updateItemSats(id, -sats)
+  }
+}
+
+export function useAct ({ onUpdate } = {}) {
   const [act] = useMutation(
     gql`
       mutation act($id: ID!, $sats: Int!, $act: String, $hash: String, $hmac: String) {
@@ -175,7 +178,7 @@ export function useAct ({ onUpdate } = {}) {
           path
           act
         }
-      }`, { update }
+      }`
   )
   return act
 }

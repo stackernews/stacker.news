@@ -6,44 +6,60 @@ import { useMe } from './me'
 import { numWithUnits } from '@/lib/format'
 import { useShowModal } from './modal'
 import { useRoot } from './root'
-import { useAct } from './item-act'
+import { actUpdate, useAct } from './item-act'
 import { InvoiceCanceledError, usePayment } from './payment'
+import { useApolloClient } from '@apollo/client'
 
 export default function PayBounty ({ children, item }) {
   const me = useMe()
   const showModal = useShowModal()
   const root = useRoot()
   const payment = usePayment()
+  const cache = useApolloClient().cache
 
-  const onUpdate = useCallback((cache, { data: { act: { id, path } } }) => {
+  const updateBountyPaidTo = useCallback(() => {
     // update root bounty status
-    const root = path.split('.')[0]
+    const root = item.path.split('.')[0]
     cache.modify({
       id: `Item:${root}`,
       fields: {
         bountyPaidTo (existingPaidTo = []) {
-          return [...(existingPaidTo || []), Number(id)]
+          return [...(existingPaidTo || []), Number(item.id)]
         }
       }
     })
-  }, [])
+    return () => {
+      cache.modify({
+        id: `Item:${root}`,
+        fields: {
+          bountyPaidTo (existingPaidTo = []) {
+            return existingPaidTo.filter(id => id !== Number(item.id))
+          }
+        }
+      })
+    }
+  }, [cache, item])
 
-  const act = useAct({ onUpdate })
+  const act = useAct()
 
   const handlePayBounty = async onComplete => {
-    let hash, hmac, cancel
+    let cancel; const revert = []
     try {
-      const sats = root.bounty;
+      let hash, hmac
+      const sats = root.bounty
+      const variables = { id: item.id, sats, path: item.path, act: 'TIP' }
+      revert.push(actUpdate(cache, variables))
+      revert.push(updateBountyPaidTo());
       [{ hash, hmac }, cancel] = await payment.request(sats)
-      const variables = { id: item.id, sats, act: 'TIP', path: item.path, hash, hmac }
       await act({
-        variables,
+        variables: { ...variables, hash, hmac },
         optimisticResponse: {
           act: variables
         }
       })
       onComplete()
     } catch (error) {
+      revert.forEach(r => r())
       if (error instanceof InvoiceCanceledError) {
         return
       }

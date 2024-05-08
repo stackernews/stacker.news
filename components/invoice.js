@@ -8,8 +8,9 @@ import Bolt11Info from './bolt11-info'
 import { useQuery } from '@apollo/client'
 import { INVOICE } from '@/fragments/wallet'
 import { FAST_POLL_INTERVAL, SSR } from '@/lib/constants'
+import { WebLnNotEnabledError } from './payment'
 
-export default function Invoice ({ invoice, modal, onPayment, info, successVerb, webLn, poll }) {
+export default function Invoice ({ invoice, modal, onPayment, info, successVerb, webLn, webLnError, poll }) {
   const [expired, setExpired] = useState(new Date(invoice.expiredAt) <= new Date())
 
   const { data, error } = useQuery(INVOICE, SSR
@@ -59,6 +60,11 @@ export default function Invoice ({ invoice, modal, onPayment, info, successVerb,
 
   return (
     <>
+      {webLnError && !(webLnError instanceof WebLnNotEnabledError) &&
+        <div className='text-center text-danger mb-3'>
+          Payment from attached wallet failed:
+          <div>{webLnError.toString()}</div>
+        </div>}
       <Qr
         webLn={webLn} value={invoice.bolt11}
         description={numWithUnits(invoice.satsRequested, { abbreviate: false })}

@@ -1,5 +1,5 @@
 import { Form, MarkdownInput } from '@/components/form'
-import { gql, useMutation } from '@apollo/client'
+import { gql, useApolloClient, useMutation } from '@apollo/client'
 import styles from './reply.module.css'
 import { COMMENTS } from '@/fragments/comments'
 import { useMe } from './me'
@@ -16,6 +16,110 @@ import { Button } from 'react-bootstrap'
 import { useRoot } from './root'
 import { commentSubTreeRootId } from '@/lib/item'
 import { InvoiceCanceledError, usePayment } from './payment'
+import { UNKNOWN_LINK_REL } from '@/lib/constants'
+
+const cacheAddComment = (cache, parentId, data) => {
+  cache.modify({
+    id: `Item:${parentId}`,
+    fields: {
+      comments (existingCommentRefs = []) {
+        const newCommentRef = cache.writeFragment({
+          data,
+          fragment: COMMENTS,
+          fragmentName: 'CommentsRecursive'
+        })
+        return [newCommentRef, ...existingCommentRefs]
+      }
+    }
+  })
+}
+
+const cacheUpdateAncestors = (cache, ancestors) => {
+  ancestors.forEach(id => {
+    cache.modify({
+      id: `Item:${id}`,
+      fields: {
+        ncomments (existingNComments = 0) {
+          return existingNComments + 1
+        }
+      }
+    })
+  })
+}
+
+const cacheRemovePendingComment = (cache, parentId) => {
+  const id = PENDING_COMMENT_ID
+  cache.modify({
+    id: `Item:${parentId}`,
+    fields: {
+      comments (existingCommentRefs = []) {
+        return existingCommentRefs.filter(({ __ref }) => __ref !== `Item:${id}`)
+      }
+    }
+  })
+}
+
+const cacheRevertAncestorUpdate = (cache, ancestors) => {
+  ancestors.forEach(id => {
+    cache.modify({
+      id: `Item:${id}`,
+      fields: {
+        ncomments (existingNComments = 0) {
+          return existingNComments - 1
+        }
+      }
+    })
+  })
+}
+
+const PENDING_COMMENT_ID = 'PENDING'
+const upsertCommentUpdate = (cache, item, { text, me }) => {
+  const id = PENDING_COMMENT_ID
+  const parentId = item.id
+
+  const fragment = {
+    __typename: 'Item',
+    id,
+    parentId,
+    createdAt: new Date(),
+    deletedAt: null,
+    text,
+    user: { ...me, meMute: false },
+    comments: [],
+    position: null,
+    sats: 0,
+    upvotes: 0,
+    freedFreebie: false,
+    boost: 0,
+    meSats: 0,
+    meDontLikeSats: 0,
+    meBookmark: false,
+    meSubscription: true,
+    outlawed: false,
+    // TODO: predict freebie
+    freebie: false,
+    path: `${parentId}.${id}`,
+    commentSats: 0,
+    mine: true,
+    otsHash: null,
+    ncomments: 0,
+    imgproxyUrls: null,
+    rel: UNKNOWN_LINK_REL
+  }
+  cacheAddComment(cache, parentId, fragment)
+
+  const ancestors = item.path.split('.')
+  cacheUpdateAncestors(cache, ancestors)
+
+  const root = ancestors[0]
+  const revertCommentsViewedAfterComment = commentsViewedAfterComment(root, fragment.createdAt)
+
+  return () => {
+    cacheRemovePendingComment(cache, parentId)
+    cacheRevertAncestorUpdate(cache, ancestors)
+    revertCommentsViewedAfterComment()
+  }
+}
 
 export function ReplyOnAnotherPage ({ item }) {
   const rootId = commentSubTreeRootId(item)
@@ -42,6 +146,7 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
   const root = useRoot()
   const sub = item?.sub || root?.sub
   const payment = usePayment()
+  const cache = useApolloClient().cache
 
   useEffect(() => {
     if (replyOpen || quote || !!window.localStorage.getItem('reply-' + parentId + '-' + 'text')) {
@@ -62,33 +167,12 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
         }
       }`, {
       update (cache, { data: { upsertComment } }) {
-        cache.modify({
-          id: `Item:${parentId}`,
-          fields: {
-            comments (existingCommentRefs = []) {
-              const newCommentRef = cache.writeFragment({
-                data: upsertComment,
-                fragment: COMMENTS,
-                fragmentName: 'CommentsRecursive'
-              })
-              return [newCommentRef, ...existingCommentRefs]
-            }
-          }
-        })
+        cacheRemovePendingComment(cache, parentId)
+        cacheAddComment(cache, parentId, upsertComment)
 
         const ancestors = item.path.split('.')
-
-        // update all ancestors
-        ancestors.forEach(id => {
-          cache.modify({
-            id: `Item:${id}`,
-            fields: {
-              ncomments (existingNComments = 0) {
-                return existingNComments + 1
-              }
-            }
-          })
-        })
+        // XXX cache update already applied
+        // cacheUpdateAncestors(cache, ancestors)
 
         // so that we don't see indicator for our own comments, we record this comments as the latest time
         // but we also have record num comments, in case someone else commented when we did
@@ -123,6 +207,12 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
     setReply(false)
     onCancelQuote?.()
   }, [setReply, parentId, onCancelQuote])
+
+  const beforePayment = useCallback(({ text }, { resetForm }) => {
+    setReply(replyOpen || false)
+    resetForm({ text: '' })
+    return upsertCommentUpdate(cache, item, { text, me })
+  }, [setReply, cache, item, me])
 
   return (
     <div>
@@ -178,6 +268,7 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
               schema={commentSchema}
               invoiceable
               onSubmit={onSubmit}
+              beforePayment={beforePayment}
               storageKeyPrefix={`reply-${parentId}`}
             >
               <MarkdownInput

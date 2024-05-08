@@ -129,7 +129,7 @@ const useQrPayment = () => {
   const invoice = useInvoice()
   const showModal = useShowModal()
 
-  const waitForQrPayment = useCallback(async (inv) => {
+  const waitForQrPayment = useCallback(async (inv, webLnError) => {
     return await new Promise((resolve, reject) => {
       let paid
       const cancelAndReject = async (onClose) => {
@@ -143,6 +143,7 @@ const useQrPayment = () => {
           modal
           successVerb='received'
           webLn={false}
+          webLnError={webLnError}
           onPayment={() => { paid = true; onClose(); resolve() }}
           poll
         />,
@@ -161,6 +162,7 @@ export const PaymentProvider = ({ children }) => {
   const waitForQrPayment = useQrPayment()
 
   const waitForPayment = useCallback(async (invoice) => {
+    let webLnError
     try {
       return await waitForWebLnPayment(invoice)
     } catch (err) {
@@ -168,9 +170,9 @@ export const PaymentProvider = ({ children }) => {
         // bail since qr code payment will also fail if invoice was canceled
         throw err
       }
-      // ignore any other error and fallback to QR code
+      webLnError = err
     }
-    return await waitForQrPayment(invoice)
+    return await waitForQrPayment(invoice, webLnError)
   }, [waitForWebLnPayment, waitForQrPayment])
 
   const request = useCallback(async (amount) => {

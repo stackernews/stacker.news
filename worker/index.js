@@ -28,7 +28,7 @@ import { saltAndHashEmails } from './saltAndHashEmails.js'
 const { loadEnvConfig } = nextEnv
 const { ApolloClient, HttpLink, InMemoryCache } = apolloClient
 
-loadEnvConfig('..')
+loadEnvConfig('.')
 
 async function work () {
   const boss = new PgBoss(process.env.DATABASE_URL)

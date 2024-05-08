@@ -49,6 +49,11 @@ const cacheUpdateAncestors = (cache, ancestors) => {
 
 const cacheRemovePendingComment = (cache, parentId) => {
   const id = PENDING_COMMENT_ID
+  const pendingComment = cache.readFragment({
+    id: `Item:${id}`,
+    fragment: COMMENTS,
+    fragmentName: 'CommentsRecursive'
+  })
   cache.modify({
     id: `Item:${parentId}`,
     fields: {
@@ -57,6 +62,7 @@ const cacheRemovePendingComment = (cache, parentId) => {
       }
     }
   })
+  return pendingComment
 }
 
 const cacheRevertAncestorUpdate = (cache, ancestors) => {
@@ -167,8 +173,10 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
         }
       }`, {
       update (cache, { data: { upsertComment } }) {
-        cacheRemovePendingComment(cache, parentId)
-        cacheAddComment(cache, parentId, upsertComment)
+        // prevent edit timer jump
+        const pendingComment = cacheRemovePendingComment(cache, parentId)
+        const comment = { ...upsertComment, createdAt: pendingComment.createdAt }
+        cacheAddComment(cache, parentId, comment)
 
         const ancestors = item.path.split('.')
         // XXX cache update already applied

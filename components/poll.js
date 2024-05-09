@@ -1,4 +1,4 @@
-import { gql, useMutation } from '@apollo/client'
+import { gql, useApolloClient, useMutation } from '@apollo/client'
 import Button from 'react-bootstrap/Button'
 import { fixedDecimal, numWithUnits } from '@/lib/format'
 import { timeLeft } from '@/lib/time'
@@ -9,6 +9,38 @@ import { signIn } from 'next-auth/react'
 import ActionTooltip from './action-tooltip'
 import { POLL_COST } from '@/lib/constants'
 import { InvoiceCanceledError, usePayment } from './payment'
+import { useToast } from './toast'
+
+const pollVoteOptimisticUpdate = (cache, { id: itemId, pollOptionId }) => {
+  const updateVote = (vote) => {
+    cache.modify({
+      id: `Item:${itemId}`,
+      fields: {
+        poll (existingPoll) {
+          const poll = { ...existingPoll }
+          poll.meVoted = vote
+          poll.count += (vote ? 1 : -1)
+          return poll
+        }
+      }
+    })
+    cache.modify({
+      id: `PollOption:${pollOptionId}`,
+      fields: {
+        count (existingCount) {
+          return existingCount + (vote ? 1 : -1)
+        },
+        meVoted () {
+          return vote
+        }
+      }
+    })
+  }
+
+  updateVote(true)
+
+  return () => updateVote(false)
+}
 
 export default function Poll ({ item }) {
   const me = useMe()
@@ -16,57 +48,33 @@ export default function Poll ({ item }) {
     gql`
       mutation pollVote($id: ID!, $hash: String, $hmac: String) {
         pollVote(id: $id, hash: $hash, hmac: $hmac)
-      }`, {
-      update (cache, { data: { pollVote } }) {
-        cache.modify({
-          id: `Item:${item.id}`,
-          fields: {
-            poll (existingPoll) {
-              const poll = { ...existingPoll }
-              poll.meVoted = true
-              poll.count += 1
-              return poll
-            }
-          }
-        })
-        cache.modify({
-          id: `PollOption:${pollVote}`,
-          fields: {
-            count (existingCount) {
-              return existingCount + 1
-            },
-            meVoted () {
-              return true
-            }
-          }
-        })
-      }
-    }
+      }`
   )
 
   const PollButton = ({ v }) => {
     const payment = usePayment()
+    const toaster = useToast()
+    const cache = useApolloClient().cache
     return (
       <ActionTooltip placement='left' notForm overlayText='1 sat'>
         <Button
           variant='outline-info' className={styles.pollButton}
           onClick={me
             ? async () => {
-              let hash, hmac, cancel
+              let cancel, revert
               try {
+                let hash, hmac
+                revert = pollVoteOptimisticUpdate(cache, { id: item.id, pollOptionId: v.id });
                 [{ hash, hmac }, cancel] = await payment.request(item.pollCost || POLL_COST)
-                await pollVote({
-                  variables: { id: v.id, hash, hmac },
-                  optimisticResponse: {
-                    pollVote: v.id
-                  }
-                })
-              } catch (error) {
-                if (error instanceof InvoiceCanceledError) {
+                await pollVote({ variables: { id: v.id, hash, hmac } })
+              } catch (err) {
+                revert?.()
+                if (err instanceof InvoiceCanceledError) {
                   return
                 }
+                const msg = err.message || err.toString?.()
+                toaster.danger('poll vote error: ' + msg)
                 cancel?.()
-                throw new Error({ message: error.toString() })
               }
             }
             : signIn}

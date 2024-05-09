@@ -1,5 +1,6 @@
 .toastContainer {
   transform: translate3d(0, 0, 0);
+  margin-bottom: 53px; /* padding for bottom nav bar on mobile */
 }
 
 .toast {
@@ -32,6 +33,12 @@
   align-items: center;
 }
 
+.undo {
+  background-color:  var(--bs-warning);
+  border-width: 0px;
+  color: black;
+}
+
 .progressBar {
   width: 0;
   height: 5px;
@@ -54,8 +61,6 @@
   background-color: var(--bs-warning);
 }
 
-
-
 @keyframes progressBar {
   0% {
     width: 0;
@@ -71,7 +76,7 @@
 }
 
 @media screen and (min-width: 400px) {
-  .toast {
-    width: var(--bs-toast-max-width);
+  .toastContainer {
+    margin-bottom: 0px;
   }
 }

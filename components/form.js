@@ -33,6 +33,7 @@ import EyeClose from '@/svgs/eye-close-line.svg'
 import Info from './info'
 import { InvoiceCanceledError, usePayment } from './payment'
 import { useMe } from './me'
+import { ActCanceledError } from './item-act'
 
 export class SessionRequiredError extends Error {
   constructor () {
@@ -841,7 +842,7 @@ export function Form ({
         }
         let hash, hmac
         if (invoiceable) {
-          revert = optimisticUpdate?.({ amount, ...values }, ...args);
+          revert = await optimisticUpdate?.({ amount, ...values }, ...args);
           [{ hash, hmac }, cancel] = await payment.request(amount)
         }
         await onSubmit({ hash, hmac, amount, ...values }, ...args)
@@ -850,7 +851,7 @@ export function Form ({
       }
     } catch (err) {
       revert?.()
-      if (err instanceof InvoiceCanceledError) {
+      if (err instanceof InvoiceCanceledError || err instanceof ActCanceledError) {
         return
       }
       const msg = err.message || err.toString?.()

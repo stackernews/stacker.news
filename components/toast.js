@@ -75,6 +75,16 @@ export const ToastProvider = ({ children }) => {
         ...options
       }
       return dispatchToast(toast)
+    },
+    undo: (options) => {
+      const toast = {
+        body: (onClose) => <ToastUndo handleClick={options.onClick} onClose={onClose} />,
+        variant: 'undo',
+        autohide: true,
+        delay: TOAST_DEFAULT_DELAY_MS,
+        ...options
+      }
+      return dispatchToast(toast)
     }
   }), [dispatchToast, removeToast])
 
@@ -137,18 +147,22 @@ export const ToastProvider = ({ children }) => {
               key={toast.id} bg={toast.variant} show autohide={toast.autohide}
               delay={toast.delay} className={`${styles.toast} ${styles[toast.variant]} ${textStyle}`} onClose={() => removeToast(toast)}
             >
-              <ToastBody>
-                <div className='d-flex align-items-center'>
-                  <div className='flex-grow-1'>{toast.body}</div>
-                  <Button
-                    variant={null}
-                    className='p-0 ps-2'
-                    aria-label='close'
-                    onClick={onClose}
-                  ><div className={`${styles.toastClose} ${textStyle}`}>X</div>
-                  </Button>
-                </div>
-              </ToastBody>
+              {typeof toast.body === 'function'
+                ? toast.body(onClose)
+                : (
+                  <ToastBody>
+                    <div className='d-flex align-items-center'>
+                      <div className='flex-grow-1'>{toast.body}</div>
+                      <Button
+                        variant={null}
+                        className='p-0 ps-2'
+                        aria-label='close'
+                        onClick={onClose}
+                      ><div className={`${styles.toastClose} ${textStyle}`}>X</div>
+                      </Button>
+                    </div>
+                  </ToastBody>
+                  )}
               {toast.progressBar && <div className={`${styles.progressBar} ${styles[toast.variant]}`} style={{ animationDuration, animationDelay }} />}
             </Toast>
           )
@@ -160,3 +174,19 @@ export const ToastProvider = ({ children }) => {
 }
 
 export const useToast = () => useContext(ToastContext)
+
+const ToastUndo = ({ handleClick, onClose }) => {
+  // TODO: make more pretty
+  return (
+    <ToastBody
+      onClick={() => {
+        handleClick()
+        onClose()
+      }}
+    >
+      <div className='d-flex fw-bold align-items-center flex-right'>
+        undo
+      </div>
+    </ToastBody>
+  )
+}

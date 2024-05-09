@@ -6,7 +6,7 @@ import { useMe } from './me'
 import UpBolt from '@/svgs/bolt.svg'
 import { amountSchema } from '@/lib/validate'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
-import { useToast } from './toast'
+import { TOAST_DEFAULT_DELAY_MS, useToast } from './toast'
 import { useLightning } from './lightning'
 import { nextTip } from './upvote'
 import { InvoiceCanceledError, PaymentProvider, usePayment } from './payment'
@@ -47,6 +47,7 @@ export default function ItemAct ({ onClose, item, down, children }) {
   const [oValue, setOValue] = useState()
   const strike = useLightning()
   const cache = useApolloClient().cache
+  const toaster = useToast()
 
   useEffect(() => {
     inputRef.current?.focus()
@@ -67,10 +68,19 @@ export default function ItemAct ({ onClose, item, down, children }) {
     addCustomTip(Number(amount))
   }, [me, act, down, item.id, strike, onClose])
 
-  const optimisticUpdate = useCallback(({ amount }) => {
+  const optimisticUpdate = useCallback(async ({ amount }) => {
     onClose()
     strike()
-    return actOptimisticUpdate(cache, { ...item, sats: Number(amount), act: down ? 'DONT_LIKE_THIS' : 'TIP' }, { me })
+    const revert = actOptimisticUpdate(cache, { ...item, sats: Number(amount), act: down ? 'DONT_LIKE_THIS' : 'TIP' }, { me })
+    if (zapUndoTrigger(me, amount)) {
+      try {
+        await zapUndo(toaster)
+      } catch (err) {
+        revert()
+        throw err
+      }
+    };
+    return revert
   }, [cache, strike, onClose])
 
   // we need to wrap with PaymentProvider here since modals don't have access to PaymentContext by default
@@ -276,12 +286,15 @@ export function useZap () {
     try {
       const variables = { path: item.path, id: item.id, sats, act: 'TIP' }
       revert = zapOptimisticUpdate(cache, variables)
-      strike();
+      strike()
+      if (zapUndoTrigger(me, sats)) {
+        await zapUndo(toaster)
+      };
       [{ hash, hmac }, cancel] = await payment.request(sats - meSats)
       await zap({ variables: { ...variables, hash, hmac } })
     } catch (error) {
       revert?.()
-      if (error instanceof InvoiceCanceledError) {
+      if (error instanceof InvoiceCanceledError || error instanceof ActCanceledError) {
         return
       }
       console.error(error)
@@ -289,4 +302,25 @@ export function useZap () {
       cancel?.()
     }
   }, [strike, payment])
+}
+
+export class ActCanceledError extends Error {
+  constructor () {
+    super('act canceled')
+    this.name = 'ActCanceledError'
+  }
+}
+
+const zapUndoTrigger = (me, amount) => {
+  if (!me) return false
+  const enabled = me.privates.zapUndos !== null
+  return enabled ? amount >= me.privates.zapUndos : false
+}
+
+const zapUndo = async (toaster) => {
+  return await new Promise((resolve, reject) => {
+    const delay = TOAST_DEFAULT_DELAY_MS
+    toaster.undo({ onClick: () => reject(new ActCanceledError()) })
+    setTimeout(resolve, delay)
+  })
 }

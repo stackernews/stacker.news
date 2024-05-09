@@ -16,7 +16,7 @@ import { Button } from 'react-bootstrap'
 import { useRoot } from './root'
 import { commentSubTreeRootId } from '@/lib/item'
 import { InvoiceCanceledError, usePayment } from './payment'
-import { UNKNOWN_LINK_REL } from '@/lib/constants'
+import { ANON_USER_ID, UNKNOWN_LINK_REL } from '@/lib/constants'
 
 const cacheAddComment = (cache, parentId, data) => {
   cache.modify({
@@ -90,7 +90,7 @@ const upsertCommentUpdate = (cache, item, { text, me }) => {
     createdAt: new Date(),
     deletedAt: null,
     text,
-    user: { ...me, meMute: false },
+    user: me ? { ...me, meMute: false } : { id: ANON_USER_ID, name: 'anon', optional: { streak: 0 }, meMute: false },
     comments: [],
     position: null,
     sats: 0,

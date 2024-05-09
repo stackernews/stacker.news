@@ -55,11 +55,6 @@ export default function ItemAct ({ onClose, item, down, children }) {
   const act = useAct()
 
   const onSubmit = useCallback(async ({ amount, hash, hmac }) => {
-    if (!me) {
-      const storageKey = `TIP-item:${item.id}`
-      const existingAmount = Number(window.localStorage.getItem(storageKey) || '0')
-      window.localStorage.setItem(storageKey, existingAmount + amount)
-    }
     await act({
       variables: {
         id: item.id,
@@ -114,7 +109,17 @@ export default function ItemAct ({ onClose, item, down, children }) {
 }
 
 export const actUpdate = (cache, { id, sats, path, act }, { me }) => {
+  const updateItemMeAnonSats = (id, sats) => {
+    if (!me) {
+      const storageKey = `TIP-item:${id}`
+      const existingAmount = Number(window.localStorage.getItem(storageKey) || '0')
+      window.localStorage.setItem(storageKey, existingAmount + sats)
+    }
+  }
+
   const updateItemSats = (id, sats) => {
+    if (!me) updateItemMeAnonSats(id, sats)
+
     cache.modify({
       id: `Item:${id}`,
       fields: {

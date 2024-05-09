@@ -67,10 +67,10 @@ export default function ItemAct ({ onClose, item, down, children }) {
     addCustomTip(Number(amount))
   }, [me, act, down, item.id, strike, onClose])
 
-  const beforePayment = useCallback(({ amount }) => {
+  const optimisticUpdate = useCallback(({ amount }) => {
     onClose()
     strike()
-    return actUpdate(cache, { ...item, sats: Number(amount), act: down ? 'DONT_LIKE_THIS' : 'TIP' }, { me })
+    return actOptimisticUpdate(cache, { ...item, sats: Number(amount), act: down ? 'DONT_LIKE_THIS' : 'TIP', me })
   }, [cache, strike, onClose])
 
   // we need to wrap with PaymentProvider here since modals don't have access to PaymentContext by default
@@ -84,7 +84,7 @@ export default function ItemAct ({ onClose, item, down, children }) {
         schema={amountSchema}
         invoiceable
         onSubmit={onSubmit}
-        beforePayment={beforePayment}
+        optimisticUpdate={optimisticUpdate}
       >
         <Input
           label='amount'
@@ -108,7 +108,7 @@ export default function ItemAct ({ onClose, item, down, children }) {
   )
 }
 
-export const actUpdate = (cache, { id, sats, path, act }, { me }) => {
+export const actOptimisticUpdate = (cache, { id, sats, path, act }, { me }) => {
   const updateItemMeAnonSats = (id, sats) => {
     if (!me) {
       const storageKey = `TIP-item:${id}`
@@ -188,9 +188,7 @@ export function useAct ({ onUpdate } = {}) {
   return act
 }
 
-const zapUpdate = (cache, args) => {
-  const { data: { act: { id, sats, path } } } = args
-
+const zapOptimisticUpdate = (cache, { id, sats, path }) => {
   const readItemFragment = id => cache.readFragment({
     id: `Item:${id}`,
     fragment: gql`
@@ -251,7 +249,7 @@ const zapUpdate = (cache, args) => {
 }
 
 export function useZap () {
-  const client = useApolloClient()
+  const cache = useApolloClient().cache
 
   const [zap] = useMutation(
     gql`
@@ -276,12 +274,11 @@ export function useZap () {
 
     let hash, hmac, cancel, revert
     try {
-      const optimisticResponse = { act: { path: item.path, id: item.id, sats, act: 'TIP' } }
-      revert = zapUpdate(client.cache, { data: optimisticResponse })
+      const variables = { path: item.path, id: item.id, sats, act: 'TIP' }
+      revert = zapOptimisticUpdate(cache, variables)
       strike();
       [{ hash, hmac }, cancel] = await payment.request(sats - meSats)
-      const variables = { ...optimisticResponse.act, hash, hmac }
-      await zap({ variables })
+      await zap({ variables: { ...variables, hash, hmac } })
     } catch (error) {
       revert?.()
       if (error instanceof InvoiceCanceledError) {

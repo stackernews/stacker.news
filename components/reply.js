@@ -79,9 +79,9 @@ const cacheRevertAncestorUpdate = (cache, ancestors) => {
 }
 
 const PENDING_COMMENT_ID = 'PENDING'
-const upsertCommentUpdate = (cache, item, { text, me }) => {
+const upsertCommentOptimisticUpdate = (cache, { id: itemId, path, text }, { me }) => {
   const id = PENDING_COMMENT_ID
-  const parentId = item.id
+  const parentId = itemId
 
   const fragment = {
     __typename: 'Item',
@@ -114,7 +114,7 @@ const upsertCommentUpdate = (cache, item, { text, me }) => {
   }
   cacheAddComment(cache, parentId, fragment)
 
-  const ancestors = item.path.split('.')
+  const ancestors = path.split('.')
   cacheUpdateAncestors(cache, ancestors)
 
   const root = ancestors[0]
@@ -216,10 +216,10 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
     onCancelQuote?.()
   }, [setReply, parentId, onCancelQuote])
 
-  const beforePayment = useCallback(({ text }, { resetForm }) => {
+  const optimisticUpdate = useCallback(({ text }, { resetForm }) => {
     setReply(replyOpen || false)
     resetForm({ text: '' })
-    return upsertCommentUpdate(cache, item, { text, me })
+    return upsertCommentOptimisticUpdate(cache, { ...item, text }, { me })
   }, [setReply, cache, item, me])
 
   return (
@@ -276,7 +276,7 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
               schema={commentSchema}
               invoiceable
               onSubmit={onSubmit}
-              beforePayment={beforePayment}
+              optimisticUpdate={optimisticUpdate}
               storageKeyPrefix={`reply-${parentId}`}
             >
               <MarkdownInput

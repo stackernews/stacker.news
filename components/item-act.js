@@ -70,7 +70,7 @@ export default function ItemAct ({ onClose, item, down, children }) {
   const optimisticUpdate = useCallback(({ amount }) => {
     onClose()
     strike()
-    return actOptimisticUpdate(cache, { ...item, sats: Number(amount), act: down ? 'DONT_LIKE_THIS' : 'TIP', me })
+    return actOptimisticUpdate(cache, { ...item, sats: Number(amount), act: down ? 'DONT_LIKE_THIS' : 'TIP' }, { me })
   }, [cache, strike, onClose])
 
   // we need to wrap with PaymentProvider here since modals don't have access to PaymentContext by default

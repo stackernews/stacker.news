@@ -21,20 +21,6 @@
   border-color: var(--bs-warning-border-subtle);
 }
 
-.toastUndo {
-  font-style: normal;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-}
-
-.toastCancel {
-  font-style: italic;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-}
-
 .toastClose {
   color: #fff;
   font-family: "lightning";

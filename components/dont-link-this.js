@@ -1,13 +1,12 @@
 import Dropdown from 'react-bootstrap/Dropdown'
 import { useShowModal } from './modal'
 import { useToast } from './toast'
-import ItemAct, { zapUndosThresholdReached } from './item-act'
+import ItemAct from './item-act'
 import AccordianItem from './accordian-item'
 import Flag from '@/svgs/flag-fill.svg'
 import { useMemo } from 'react'
 import getColor from '@/lib/rainbow'
 import { gql, useMutation } from '@apollo/client'
-import { useMe } from './me'
 
 export function DownZap ({ id, meDontLikeSats, ...props }) {
   const style = useMemo(() => (meDontLikeSats
@@ -24,8 +23,6 @@ export function DownZap ({ id, meDontLikeSats, ...props }) {
 function DownZapper ({ id, As, children }) {
   const toaster = useToast()
   const showModal = useShowModal()
-  const me = useMe()
-
   return (
     <As
       onClick={async () => {
@@ -34,9 +31,6 @@ function DownZapper ({ id, As, children }) {
             <ItemAct
               onClose={(amount) => {
                 onClose()
-                // undo prompt was toasted before closing modal if zap undos are enabled
-                // so an additional success toast would be confusing
-                if (!zapUndosThresholdReached(me, amount)) toaster.success('item downzapped')
               }} itemId={id} down
             >
               <AccordianItem

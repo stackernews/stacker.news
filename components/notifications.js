@@ -6,7 +6,7 @@ import ItemJob from './item-job'
 import { HAS_NOTIFICATIONS, NOTIFICATIONS } from '@/fragments/notifications'
 import MoreFooter from './more-footer'
 import Invite from './invite'
-import { dayMonthYear, timeSince } from '@/lib/time'
+import { datePivot, dayMonthYear, timeSince } from '@/lib/time'
 import Link from 'next/link'
 import Check from '@/svgs/check-double-line.svg'
 import HandCoin from '@/svgs/hand-coin-fill.svg'
@@ -689,6 +689,10 @@ function ZapError ({ n }) {
 
 function ZapPending ({ n }) {
   const title = `zap of ${n.amount} sats pending`
+  const expired = n.createdAt < datePivot(new Date(), { seconds: -180_000 })
+  if (expired) {
+    return <ZapError n={{ ...n, reason: 'invoice expired' }} />
+  }
   return <ClientNotification n={n} title={title} variant='info' />
 }
 
@@ -699,5 +703,9 @@ function ReplyError ({ n }) {
 
 function ReplyPending ({ n }) {
   const title = 'reply pending'
+  const expired = n.createdAt < datePivot(new Date(), { seconds: -180_000 })
+  if (expired) {
+    return <ReplyError n={{ ...n, reason: 'invoice expired' }} />
+  }
   return <ClientNotification n={n} title={title} variant='info' />
 }

@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useMemo } from 'react'
 import { useMe } from './me'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
 import { useWebLN } from './webln'
-import { FAST_POLL_INTERVAL } from '@/lib/constants'
+import { FAST_POLL_INTERVAL, JIT_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 import { INVOICE } from '@/fragments/wallet'
 import Invoice from '@/components/invoice'
 import { useFeeButton } from './fee-button'
@@ -35,8 +35,8 @@ const useInvoice = () => {
   const client = useApolloClient()
 
   const [createInvoice] = useMutation(gql`
-    mutation createInvoice($amount: Int!) {
-      createInvoice(amount: $amount, hodlInvoice: true, expireSecs: 180) {
+    mutation createInvoice($amount: Int!, $expireSecs: Int!) {
+      createInvoice(amount: $amount, hodlInvoice: true, expireSecs: $expireSecs) {
         id
         bolt11
         hash
@@ -54,7 +54,7 @@ const useInvoice = () => {
   `)
 
   const create = useCallback(async amount => {
-    const { data, error } = await createInvoice({ variables: { amount } })
+    const { data, error } = await createInvoice({ variables: { amount, expireSecs: JIT_INVOICE_TIMEOUT_MS / 1000 } })
     if (error) {
       throw error
     }

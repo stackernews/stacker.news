@@ -6,7 +6,7 @@ import { parseNwcUrl } from '@/lib/url'
 import { useWalletLogger } from '../logger'
 import { Status, migrateLocalStorage } from '.'
 import { bolt11Tags } from '@/lib/bolt11'
-import { Wallet } from '@/lib/constants'
+import { JIT_INVOICE_TIMEOUT_MS, Wallet } from '@/lib/constants'
 import { useMe } from '../me'
 import { InvoiceExpiredError } from '../payment'
 
@@ -206,7 +206,7 @@ export function NWCProvider ({ children }) {
         (async function () {
           // timeout since NWC is async (user needs to confirm payment in wallet)
           // timeout is same as invoice expiry
-          const timeout = 180_000
+          const timeout = JIT_INVOICE_TIMEOUT_MS
           const timer = setTimeout(() => {
             const msg = 'timeout waiting for payment'
             logger.error(msg)

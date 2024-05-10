@@ -12,7 +12,7 @@ const PaymentContext = createContext()
 
 export class InvoiceCanceledError extends Error {
   constructor (hash) {
-    super(`invoice canceled: ${hash}`, hash)
+    super(`invoice canceled: ${hash}`)
     this.name = 'InvoiceCanceledError'
   }
 }

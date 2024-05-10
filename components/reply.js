@@ -15,7 +15,6 @@ import { useShowModal } from './modal'
 import { Button } from 'react-bootstrap'
 import { useRoot } from './root'
 import { commentSubTreeRootId } from '@/lib/item'
-import { InvoiceCanceledError, usePayment } from './payment'
 
 export function ReplyOnAnotherPage ({ item }) {
   const rootId = commentSubTreeRootId(item)
@@ -41,7 +40,6 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
   const showModal = useShowModal()
   const root = useRoot()
   const sub = item?.sub || root?.sub
-  const payment = usePayment()
 
   useEffect(() => {
     if (replyOpen || quote || !!window.localStorage.getItem('reply-' + parentId + '-' + 'text')) {
@@ -100,19 +98,10 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
   )
 
   const onSubmit = useCallback(async ({ amount, hash, hmac, ...values }, { resetForm }) => {
-    try {
-      const { data } = await upsertComment({ variables: { parentId, hash, hmac, ...values } })
-      toastUpsertSuccessMessages(toaster, data, 'upsertComment', false, values.text)
-      resetForm({ text: '' })
-      setReply(replyOpen || false)
-    } catch (err) {
-      if (err instanceof InvoiceCanceledError) {
-        return
-      }
-      const msg = err.message || err.toString?.()
-      toaster.danger('reply error: ' + msg)
-      payment.cancel?.({ hash, hmac })
-    }
+    const { data } = await upsertComment({ variables: { parentId, hash, hmac, ...values } })
+    toastUpsertSuccessMessages(toaster, data, 'upsertComment', false, values.text)
+    resetForm({ text: '' })
+    setReply(replyOpen || false)
   }, [upsertComment, setReply, parentId])
 
   useEffect(() => {

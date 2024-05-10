@@ -656,13 +656,13 @@ export function useNotifications () {
   return useContext(NotificationContext)
 }
 
-function ZapError ({ n }) {
+function ClientNotification ({ n, title, variant }) {
   const { unnotify } = useNotifications()
   return (
     <div className='d-flex ms-2'>
       <div className='w-100 me-1'>
-        <div className='fw-bold text-danger'>
-          failed to zap {n.amount} sats: {n.reason}
+        <div className={`fw-bold text-${variant}`}>
+          {title}
           <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.createdAt))}</small>
         </div>
         {n.item.title
@@ -680,82 +680,24 @@ function ZapError ({ n }) {
       </div>
     </div>
   )
+}
+
+function ZapError ({ n }) {
+  const title = `failed to zap ${n.amount} sats: ${n.reason}`
+  return <ClientNotification n={n} title={title} variant='danger' />
 }
 
 function ZapPending ({ n }) {
-  const { unnotify } = useNotifications()
-  return (
-    <div className='d-flex ms-2'>
-      <div className='w-100 me-1'>
-        <div className='fw-bold text-info'>
-          zap of {n.amount} sats pending
-          <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.createdAt))}</small>
-        </div>
-        {n.item.title
-          ? <Item item={n.item} />
-          : (
-            <div className='pb-2'>
-              <RootProvider root={n.item.root}>
-                <Comment item={n.item} noReply includeParent noComments clickToContext />
-              </RootProvider>
-            </div>
-            )}
-      </div>
-      <div className={styles.close} onClick={() => unnotify(n.id)}>
-        X
-      </div>
-    </div>
-  )
+  const title = `zap of ${n.amount} sats pending`
+  return <ClientNotification n={n} title={title} variant='info' />
 }
 
 function ReplyError ({ n }) {
-  const { unnotify } = useNotifications()
-  return (
-    <div className='d-flex ms-2'>
-      <div className='w-100 me-1'>
-        <div className='fw-bold text-danger'>
-          failed to submit reply: {n.reason}
-          <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.createdAt))}</small>
-        </div>
-        {n.item.title
-          ? <Item item={n.item} />
-          : (
-            <div className='pb-2'>
-              <RootProvider root={n.item.root}>
-                <Comment item={n.item} noReply includeParent noComments clickToContext />
-              </RootProvider>
-            </div>
-            )}
-      </div>
-      <div className={styles.close} onClick={() => unnotify(n.id)}>
-        X
-      </div>
-    </div>
-  )
+  const title = `failed to submit reply: ${n.reason}`
+  return <ClientNotification n={n} title={title} variant='danger' />
 }
 
 function ReplyPending ({ n }) {
-  const { unnotify } = useNotifications()
-  return (
-    <div className='d-flex ms-2'>
-      <div className='w-100 me-1'>
-        <div className='fw-bold text-info'>
-          reply pending
-          <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.createdAt))}</small>
-        </div>
-        {n.item.title
-          ? <Item item={n.item} />
-          : (
-            <div className='pb-2'>
-              <RootProvider root={n.item.root}>
-                <Comment item={n.item} noReply includeParent noComments clickToContext />
-              </RootProvider>
-            </div>
-            )}
-      </div>
-      <div className={styles.close} onClick={() => unnotify(n.id)}>
-        X
-      </div>
-    </div>
-  )
+  const title = 'reply pending'
+  return <ClientNotification n={n} title={title} variant='info' />
 }

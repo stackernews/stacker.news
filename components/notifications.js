@@ -10,7 +10,7 @@ import { datePivot, dayMonthYear, timeSince } from '@/lib/time'
 import Link from 'next/link'
 import Check from '@/svgs/check-double-line.svg'
 import HandCoin from '@/svgs/hand-coin-fill.svg'
-import { LOST_BLURBS, FOUND_BLURBS, UNKNOWN_LINK_REL } from '@/lib/constants'
+import { LOST_BLURBS, FOUND_BLURBS, UNKNOWN_LINK_REL, JIT_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 import CowboyHatIcon from '@/svgs/cowboy.svg'
 import BaldIcon from '@/svgs/bald.svg'
 import { RootProvider } from './root'
@@ -689,7 +689,7 @@ function ZapError ({ n }) {
 
 function ZapPending ({ n }) {
   const title = `zap of ${n.amount} sats pending`
-  const expired = n.createdAt < datePivot(new Date(), { seconds: -180_000 })
+  const expired = n.createdAt < datePivot(new Date(), { seconds: -JIT_INVOICE_TIMEOUT_MS })
   if (expired) {
     return <ZapError n={{ ...n, reason: 'invoice expired' }} />
   }
@@ -703,7 +703,7 @@ function ReplyError ({ n }) {
 
 function ReplyPending ({ n }) {
   const title = 'reply pending'
-  const expired = n.createdAt < datePivot(new Date(), { seconds: -180_000 })
+  const expired = n.createdAt < datePivot(new Date(), { seconds: -JIT_INVOICE_TIMEOUT_MS })
   if (expired) {
     return <ReplyError n={{ ...n, reason: 'invoice expired' }} />
   }

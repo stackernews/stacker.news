@@ -36,7 +36,9 @@ export const NotificationType = {
   ZapError: 'ZAP_ERROR',
   ZapPending: 'ZAP_PENDING',
   ReplyError: 'REPLY_ERROR',
-  ReplyPending: 'REPLY_PENDING'
+  ReplyPending: 'REPLY_PENDING',
+  BountyError: 'BOUNTY_ERROR',
+  BountyPending: 'BOUNTY_PENDING'
 }
 
 function Notification ({ n, fresh }) {
@@ -64,7 +66,9 @@ function Notification ({ n, fresh }) {
         (type === NotificationType.ZapError && <ZapError n={n} />) ||
         (type === NotificationType.ZapPending && <ZapPending n={n} />) ||
         (type === NotificationType.ReplyError && <ReplyError n={n} />) ||
-        (type === NotificationType.ReplyPending && <ReplyPending n={n} />)
+        (type === NotificationType.ReplyPending && <ReplyPending n={n} />) ||
+        (type === NotificationType.BountyError && <BountyError n={n} />) ||
+        (type === NotificationType.BountyPending && <BountyPending n={n} />)
       }
     </NotificationLayout>
   )
@@ -116,6 +120,8 @@ const defaultOnClick = n => {
   if (type === NotificationType.ZapPending) return {}
   if (type === NotificationType.ReplyError) return {}
   if (type === NotificationType.ReplyPending) return {}
+  if (type === NotificationType.BountyError) return {}
+  if (type === NotificationType.BountyPending) return {}
 
   // Votification, Mention, JobChanged, Reply all have item
   if (!n.item.title) {
@@ -706,6 +712,20 @@ function ReplyPending ({ n }) {
   const expired = n.createdAt < datePivot(new Date(), { seconds: -JIT_INVOICE_TIMEOUT_MS })
   if (expired) {
     return <ReplyError n={{ ...n, reason: 'invoice expired' }} />
+  }
+  return <ClientNotification n={n} title={title} variant='info' />
+}
+
+function BountyError ({ n }) {
+  const title = `failed to pay bounty: ${n.reason}`
+  return <ClientNotification n={n} title={title} variant='danger' />
+}
+
+function BountyPending ({ n }) {
+  const title = 'bounty payment pending'
+  const expired = n.createdAt < datePivot(new Date(), { seconds: -JIT_INVOICE_TIMEOUT_MS })
+  if (expired) {
+    return <BountyError n={{ ...n, reason: 'invoice expired' }} />
   }
   return <ClientNotification n={n} title={title} variant='info' />
 }

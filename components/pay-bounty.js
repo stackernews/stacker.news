@@ -9,7 +9,7 @@ import { useRoot } from './root'
 import { actOptimisticUpdate, useAct } from './item-act'
 import { InvoiceCanceledError, usePayment } from './payment'
 import { useApolloClient } from '@apollo/client'
-import { useToast } from './toast'
+import { NotificationType, useNotifications } from './notifications'
 
 const bountyPaidOptimisticUpdate = (cache, variables, { me, onComplete }) => {
   onComplete()
@@ -50,17 +50,18 @@ export default function PayBounty ({ children, item }) {
   const root = useRoot()
   const payment = usePayment()
   const cache = useApolloClient().cache
-  const toaster = useToast()
+  const { notify, unnotify } = useNotifications()
 
   const act = useAct()
 
   const handlePayBounty = async onComplete => {
-    let cancel, revert
+    let cancel, revert, nid
     try {
       let hash, hmac
       const sats = root.bounty
       const variables = { id: item.id, sats, path: item.path, act: 'TIP' }
-      revert = bountyPaidOptimisticUpdate(cache, variables, { me, onComplete });
+      revert = bountyPaidOptimisticUpdate(cache, variables, { me, onComplete })
+      nid = notify(NotificationType.BountyPending, { sats, item: { ...item, root } }, false);
       [{ hash, hmac }, cancel] = await payment.request(sats)
       await act({ variables: { ...variables, hash, hmac } })
     } catch (err) {
@@ -68,9 +69,11 @@ export default function PayBounty ({ children, item }) {
       if (err instanceof InvoiceCanceledError) {
         return
       }
-      const msg = err.message || err.toString?.()
-      toaster.danger('pay bounty error: ' + msg)
+      const reason = err?.message || err?.toString?.()
+      notify(NotificationType.BountyError, { reason, sats: root.bounty, item: { ...item, root } })
       cancel?.()
+    } finally {
+      unnotify(nid)
     }
   }
 

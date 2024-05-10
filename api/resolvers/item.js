@@ -754,6 +754,10 @@ export default {
       if (old.bio) {
         throw new GraphQLError('cannot delete bio', { extensions: { code: 'BAD_INPUT' } })
       }
+      // clean up any pending reminders, if triggered on this item and haven't been executed
+      if (hasReminderCommand(old.text)) {
+        await deleteReminderAndJob({ me, item: old, models })
+      }
 
       return await deleteItemByAuthor({ models, id, item: old })
     },
@@ -1194,7 +1198,7 @@ export default {
         // don't support reminders for ANON
         return null
       }
-      const reminderJobs = await models.$queryRawUnsafe(`SELECT startafter FROM pgboss.job WHERE name = 'reminder' AND data->>'itemId' = '${item.id}' AND data->>'userId' = '${meId}`)
+      const reminderJobs = await models.$queryRawUnsafe(`SELECT startafter FROM pgboss.job WHERE name = 'reminder' AND data->>'itemId' = '${item.id}' AND data->>'userId' = '${meId}'`)
       return reminderJobs[0]?.startafter ?? null
     }
   }
@@ -1310,9 +1314,9 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
 
   if (hasReminderCommand(old.text)) {
     // delete any reminder jobs that were created from a prior version of the item
-    await clearReminderJobs({ me, item, models })
+    await deleteReminderAndJob({ me, item, models })
   }
-  await enqueueReminderJob({ me, item, models })
+  await createReminderAndJob({ me, item, models })
 
   item.comments = []
   return item
@@ -1358,7 +1362,7 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
 
   await enqueueDeletionJob(item, models)
 
-  await enqueueReminderJob({ me, item, models })
+  await createReminderAndJob({ me, item, models })
 
   notifyUserSubscribers({ models, item })
 
@@ -1381,13 +1385,14 @@ const enqueueDeletionJob = async (item, models) => {
   }
 }
 
-const clearReminderJobs = async ({ me, item, models }) => {
+const deleteReminderAndJob = async ({ me, item, models }) => {
   if (me?.id && me.id !== ANON_USER_ID) {
     await models.$queryRawUnsafe(`DELETE FROM pgboss.job WHERE name = 'reminder' AND data->>'itemId' = '${item.id}' AND data->>'userId' = '${me.id}';`)
+    await models.$queryRawUnsafe(`DELETE FROM "Reminder" WHERE "itemId" = ${item.id} AND "userId" = ${me.id} AND "remindAt" > now();`)
   }
 }
 
-const enqueueReminderJob = async ({ me, item, models }) => {
+const createReminderAndJob = async ({ me, item, models }) => {
   // disallow anon to use reminder
   if (!me || me.id === ANON_USER_ID) {
     return
@@ -1396,7 +1401,10 @@ const enqueueReminderJob = async ({ me, item, models }) => {
   if (reminderCommand) {
     await models.$queryRawUnsafe(`
       INSERT INTO pgboss.job (name, data, startafter)
-      VALUES ('reminder', jsonb_build_object('itemId', ${item.id}, 'userId', ${me?.id}), now() + interval '${reminderCommand.number} ${reminderCommand.unit}s');`)
+      VALUES ('reminder', jsonb_build_object('itemId', ${item.id}, 'userId', ${me.id}), now() + interval '${reminderCommand.number} ${reminderCommand.unit}s');`)
+    await models.$queryRawUnsafe(`
+      INSERT INTO "Reminder" ("userId", "itemId", "remindAt")
+      VALUES (${me.id}, ${item.id}, now() + interval '${reminderCommand.number} ${reminderCommand.unit}s');`)
   }
 }
 

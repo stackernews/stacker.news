@@ -453,18 +453,20 @@ function TerritoryTransfer ({ n }) {
 }
 
 function Reminder ({ n }) {
-  <>
-    <small className='fw-bold text-info ms-2'>you asked to be reminded of this</small>
-    {n.item.title
-      ? <div className='ms-2'><Item item={n.item} /></div>
-      : (
-        <div className='pb-2'>
-          <RootProvider root={n.item.root}>
-            <Comment item={n.item} noReply includeParent clickToContext rootText='replying on:' />
-          </RootProvider>
-        </div>
-        )}
-  </>
+  return (
+    <>
+      <small className='fw-bold text-info ms-2'>you asked to be reminded of this {n.item.title ? 'post' : 'comment'}</small>
+      {n.item.title
+        ? <div className='ms-2'><Item item={n.item} /></div>
+        : (
+          <div className='pb-2'>
+            <RootProvider root={n.item.root}>
+              <Comment item={n.item} noReply includeParent clickToContext rootText='replying on:' />
+            </RootProvider>
+          </div>
+          )}
+    </>
+  )
 }
 
 export function NotificationAlert () {

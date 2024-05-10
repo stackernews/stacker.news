@@ -305,9 +305,8 @@ export default {
       )
 
       queries.push(
-        `(SELECT "Item".*, "Reminder".id as id, "Reminder"."remindAt" as "sortTime", NULL as "earnedSats", 'Reminder' AS type
+        `(SELECT "Reminder".id::text, "Reminder"."remindAt" AS "sortTime", NULL as "earnedSats", 'Reminder' AS type
         FROM "Reminder"
-        INNER JOIN "Item" ON "Reminder"."itemId" = "Item".id
         WHERE "Reminder"."userId" = $1
         AND "Reminder"."remindAt" < $2
         ORDER BY "sortTime" DESC
@@ -390,6 +389,12 @@ export default {
   },
   TerritoryPost: {
     item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
+  },
+  Reminder: {
+    item: async (n, args, { models, me }) => {
+      const { itemId } = await models.reminder.findUnique({ where: { id: Number(n.id) } })
+      return await getItem(n, { id: itemId }, { models, me })
+    }
   },
   TerritoryTransfer: {
     sub: async (n, args, { models, me }) => {

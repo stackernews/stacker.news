@@ -472,6 +472,20 @@ export default {
         return true
       }
 
+      const newReminder = await models.reminder.findFirst({
+        where: {
+          userId: me.id,
+          remindAt: {
+            gt: lastChecked,
+            lt: new Date()
+          }
+        }
+      })
+      if (newReminder) {
+        foundNotes()
+        return true
+      }
+
       // update checkedNotesAt to prevent rechecking same time period
       models.user.update({
         where: { id: me.id },

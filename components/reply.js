@@ -15,7 +15,6 @@ import { useShowModal } from './modal'
 import { Button } from 'react-bootstrap'
 import { useRoot } from './root'
 import { commentSubTreeRootId } from '@/lib/item'
-import { InvoiceCanceledError, usePayment } from './payment'
 import { ANON_USER_ID, UNKNOWN_LINK_REL } from '@/lib/constants'
 
 const cacheAddComment = (cache, parentId, data) => {
@@ -151,7 +150,6 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
   const showModal = useShowModal()
   const root = useRoot()
   const sub = item?.sub || root?.sub
-  const payment = usePayment()
   const cache = useApolloClient().cache
 
   useEffect(() => {
@@ -191,19 +189,10 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
   )
 
   const onSubmit = useCallback(async ({ amount, hash, hmac, ...values }, { resetForm }) => {
-    try {
-      const { data } = await upsertComment({ variables: { parentId, hash, hmac, ...values } })
-      toastDeleteScheduled(toaster, data, 'upsertComment', false, values.text)
-      resetForm({ text: '' })
-      setReply(replyOpen || false)
-    } catch (err) {
-      if (err instanceof InvoiceCanceledError) {
-        return
-      }
-      const msg = err.message || err.toString?.()
-      toaster.danger('reply error: ' + msg)
-      payment.cancel?.({ hash, hmac })
-    }
+    const { data } = await upsertComment({ variables: { parentId, hash, hmac, ...values } })
+    toastDeleteScheduled(toaster, data, 'upsertComment', false, values.text)
+    resetForm({ text: '' })
+    setReply(replyOpen || false)
   }, [upsertComment, setReply, parentId])
 
   useEffect(() => {

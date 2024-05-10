@@ -12,6 +12,7 @@ import Popover from 'react-bootstrap/Popover'
 import { useShowModal } from './modal'
 import { numWithUnits } from '@/lib/format'
 import { Dropdown } from 'react-bootstrap'
+import { useRoot } from './root'
 
 const UpvotePopover = ({ target, show, handleClose }) => {
   const me = useMe()
@@ -110,6 +111,7 @@ export default function UpVote ({ item, className }) {
         setWalkthrough(upvotePopover: $upvotePopover, tipPopover: $tipPopover)
       }`
   )
+  const root = useRoot()
   const [abortController, setAbortController] = useState(null)
   const pending = !!abortController?.started
 
@@ -179,7 +181,9 @@ export default function UpVote ({ item, className }) {
     const controller = new ZapUndoController(setAbortController)
 
     showModal(onClose =>
-      <ItemAct onClose={onClose} item={item} abortSignal={controller.signal} />, { onClose: handleModalClosed })
+      // error notifications require item.root to be set for comment zaps
+      // and modals don't have access to useRoot so we need to pass root here manually
+      <ItemAct onClose={onClose} item={{ ...item, root }} abortSignal={controller.signal} />, { onClose: handleModalClosed })
   }
 
   const handleShortPress = async () => {
@@ -206,7 +210,7 @@ export default function UpVote ({ item, className }) {
 
       await zap({ item, me }, { abortSignal: controller.signal })
     } else {
-      showModal(onClose => <ItemAct onClose={onClose} item={item} />, { onClose: handleModalClosed })
+      showModal(onClose => <ItemAct onClose={onClose} item={{ ...item, root }} />, { onClose: handleModalClosed })
     }
   }
 

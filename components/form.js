@@ -803,7 +803,7 @@ const StorageKeyPrefixContext = createContext()
 export function Form ({
   initial, schema, onSubmit, children, initialError, validateImmediately,
   storageKeyPrefix, validateOnChange = true, invoiceable, requireSession, innerRef,
-  optimisticUpdate, ...props
+  optimisticUpdate, onError, ...props
 }) {
   const toaster = useToast()
   const initialErrorToasted = useRef(false)
@@ -855,7 +855,11 @@ export function Form ({
         return
       }
       const msg = err.message || err.toString?.()
-      toaster.danger('submit error: ' + msg)
+      if (onError) {
+        onError({ amount, ...values, reason: msg })
+      } else {
+        toaster.danger('submit error: ' + msg)
+      }
       cancel?.()
     }
   }, [me, onSubmit, feeButton?.total, toaster, clearLocalStorage, storageKeyPrefix, payment])

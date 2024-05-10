@@ -34,3 +34,14 @@
     vertical-align: middle;
     margin-left: 0.5rem;
 }
+
+.close {
+    font-family: "lightning";
+    cursor: pointer;
+    font-size: 150%;
+    color: #fff;
+}
+
+.close:hover {
+    opacity: 0.7;
+}

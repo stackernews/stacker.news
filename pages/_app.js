@@ -22,6 +22,7 @@ import { WebLNProvider } from '@/components/webln'
 import dynamic from 'next/dynamic'
 import { HasNewNotesProvider } from '@/components/use-has-new-notes'
 import { PaymentProvider } from '@/components/payment'
+import { NotificationProvider } from '@/components/notifications'
 
 const PWAPrompt = dynamic(() => import('react-ios-pwa-prompt'), { ssr: false })
 
@@ -105,30 +106,32 @@ export default function MyApp ({ Component, pageProps: { ...props } }) {
           <ApolloProvider client={client}>
             <MeProvider me={me}>
               <HasNewNotesProvider>
-                <LoggerProvider>
-                  <ServiceWorkerProvider>
-                    <PriceProvider price={price}>
-                      <LightningProvider>
-                        <ToastProvider>
-                          <WebLNProvider>
-                            <ShowModalProvider>
-                              <PaymentProvider>
-                                <BlockHeightProvider blockHeight={blockHeight}>
-                                  <ChainFeeProvider chainFee={chainFee}>
-                                    <ErrorBoundary>
-                                      <Component ssrData={ssrData} {...otherProps} />
-                                      {!router?.query?.disablePrompt && <PWAPrompt copyBody='This website has app functionality. Add it to your home screen to use it in fullscreen and receive notifications. In Safari:' promptOnVisit={2} />}
-                                    </ErrorBoundary>
-                                  </ChainFeeProvider>
-                                </BlockHeightProvider>
-                              </PaymentProvider>
-                            </ShowModalProvider>
-                          </WebLNProvider>
-                        </ToastProvider>
-                      </LightningProvider>
-                    </PriceProvider>
-                  </ServiceWorkerProvider>
-                </LoggerProvider>
+                <NotificationProvider>
+                  <LoggerProvider>
+                    <ServiceWorkerProvider>
+                      <PriceProvider price={price}>
+                        <LightningProvider>
+                          <ToastProvider>
+                            <WebLNProvider>
+                              <ShowModalProvider>
+                                <PaymentProvider>
+                                  <BlockHeightProvider blockHeight={blockHeight}>
+                                    <ChainFeeProvider chainFee={chainFee}>
+                                      <ErrorBoundary>
+                                        <Component ssrData={ssrData} {...otherProps} />
+                                        {!router?.query?.disablePrompt && <PWAPrompt copyBody='This website has app functionality. Add it to your home screen to use it in fullscreen and receive notifications. In Safari:' promptOnVisit={2} />}
+                                      </ErrorBoundary>
+                                    </ChainFeeProvider>
+                                  </BlockHeightProvider>
+                                </PaymentProvider>
+                              </ShowModalProvider>
+                            </WebLNProvider>
+                          </ToastProvider>
+                        </LightningProvider>
+                      </PriceProvider>
+                    </ServiceWorkerProvider>
+                  </LoggerProvider>
+                </NotificationProvider>
               </HasNewNotesProvider>
             </MeProvider>
           </ApolloProvider>

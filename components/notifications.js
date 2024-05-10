@@ -1,9 +1,9 @@
-import { useState, useEffect, useMemo } from 'react'
-import { useQuery } from '@apollo/client'
+import { useState, useEffect, useMemo, createContext, useContext, useCallback } from 'react'
+import { useApolloClient, useQuery } from '@apollo/client'
 import Comment, { CommentSkeleton } from './comment'
 import Item from './item'
 import ItemJob from './item-job'
-import { NOTIFICATIONS } from '@/fragments/notifications'
+import { HAS_NOTIFICATIONS, NOTIFICATIONS } from '@/fragments/notifications'
 import MoreFooter from './more-footer'
 import Invite from './invite'
 import { dayMonthYear, timeSince } from '@/lib/time'
@@ -31,6 +31,10 @@ import { commentSubTreeRootId } from '@/lib/item'
 import LinkToContext from './link-to-context'
 import { Badge } from 'react-bootstrap'
 
+export const NotificationType = {
+  ZapError: 'ZAP_ERROR'
+}
+
 function Notification ({ n, fresh }) {
   const type = n.__typename
 
@@ -52,7 +56,8 @@ function Notification ({ n, fresh }) {
         (type === 'SubStatus' && <SubStatus n={n} />) ||
         (type === 'FollowActivity' && <FollowActivity n={n} />) ||
         (type === 'TerritoryPost' && <TerritoryPost n={n} />) ||
-        (type === 'TerritoryTransfer' && <TerritoryTransfer n={n} />)
+        (type === 'TerritoryTransfer' && <TerritoryTransfer n={n} />) ||
+        (type === NotificationType.ZapError && <ZapError n={n} />)
       }
     </NotificationLayout>
   )
@@ -100,6 +105,7 @@ const defaultOnClick = n => {
   if (type === 'Referral') return { href: '/referrals/month' }
   if (type === 'Streak') return {}
   if (type === 'TerritoryTransfer') return { href: `/~${n.sub.name}` }
+  if (type === NotificationType.ZapError) return {}
 
   // Votification, Mention, JobChanged, Reply all have item
   if (!n.item.title) {
@@ -516,6 +522,7 @@ export default function Notifications ({ ssrData }) {
   const { data, fetchMore } = useQuery(NOTIFICATIONS)
   const router = useRouter()
   const dat = useData(data, ssrData)
+  const { notifications: clientSideNotifications } = useNotifications()
 
   const { notifications, lastChecked, cursor } = useMemo(() => {
     if (!dat?.notifications) return {}
@@ -545,7 +552,7 @@ export default function Notifications ({ ssrData }) {
 
   return (
     <>
-      {notifications.map(n =>
+      {[...clientSideNotifications, ...notifications].map(n =>
         <Notification
           n={n} key={nid(n)}
           fresh={new Date(n.sortTime) > new Date(router?.query?.checkedAt ?? lastChecked)}
@@ -563,6 +570,92 @@ function CommentsFlatSkeleton () {
       {comments.map((_, i) => (
         <CommentSkeleton key={i} skeletonChildren={0} />
       ))}
+    </div>
+  )
+}
+
+const NotificationContext = createContext()
+
+const storageKey = 'notifications'
+function loadNotifications () {
+  const stored = window.localStorage.getItem(storageKey)
+  return stored ? JSON.parse(stored) : []
+}
+function saveNotification (n) {
+  const stored = window.localStorage.getItem(storageKey)
+  if (stored) {
+    window.localStorage.setItem(storageKey, JSON.stringify([...JSON.parse(stored), n]))
+  } else {
+    window.localStorage.setItem(storageKey, JSON.stringify([n]))
+  }
+}
+
+function removeNotification ({ id }) {
+  const stored = window.localStorage.getItem(storageKey)
+  if (stored) {
+    window.localStorage.setItem(storageKey, JSON.stringify(JSON.parse(stored).filter(n => n.id !== id)))
+  }
+}
+
+export function NotificationProvider ({ children }) {
+  // client-side notifications
+  const [notifications, setNotifications] = useState([])
+  const client = useApolloClient()
+
+  useEffect(() => {
+    setNotifications(loadNotifications())
+  }, [])
+
+  const notify = useCallback((type, props) => {
+    const n = { __typename: type, id: crypto.randomUUID(), ...props }
+    setNotifications(notifications => [n, ...notifications])
+    saveNotification(n)
+    client?.writeQuery({
+      query: HAS_NOTIFICATIONS,
+      data: {
+        hasNewNotes: true
+      }
+    })
+  }, [client])
+
+  const unnotify = useCallback((id) => {
+    setNotifications(notifications => notifications.filter(n => n.id !== id))
+    removeNotification({ id })
+  })
+
+  const value = useMemo(() => ({ notifications, notify, unnotify }), [notifications, notify, unnotify])
+  return (
+    <NotificationContext.Provider value={value}>
+      {children}
+    </NotificationContext.Provider>
+  )
+}
+
+export function useNotifications () {
+  return useContext(NotificationContext)
+}
+
+export function ZapError ({ n }) {
+  const { unnotify } = useNotifications()
+  return (
+    <div className='d-flex ms-2'>
+      <div className='w-100 me-1'>
+        <div className='fw-bold text-danger'>
+          failed to zap {n.amount} sats: {n.reason}
+        </div>
+        {n.item.title
+          ? <Item item={n.item} />
+          : (
+            <div className='pb-2'>
+              <RootProvider root={n.item.root}>
+                <Comment item={n.item} noReply includeParent noComments clickToContext />
+              </RootProvider>
+            </div>
+            )}
+      </div>
+      <div className={styles.close} onClick={() => unnotify(n.id)}>
+        X
+      </div>
     </div>
   )
 }

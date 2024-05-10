@@ -6,11 +6,12 @@ import { useMe } from './me'
 import UpBolt from '@/svgs/bolt.svg'
 import { amountSchema } from '@/lib/validate'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
-import { useToast } from './toast'
 import { useLightning } from './lightning'
 import { nextTip } from './upvote'
 import { InvoiceCanceledError, PaymentProvider, usePayment } from './payment'
 import { ZAP_UNDO_DELAY } from '@/lib/constants'
+import { NotificationType, useNotifications } from './notifications'
+import { useRoot } from './root'
 
 const defaultTips = [100, 1000, 10_000, 100_000]
 
@@ -48,6 +49,7 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
   const [oValue, setOValue] = useState()
   const strike = useLightning()
   const cache = useApolloClient().cache
+  const { notify } = useNotifications()
 
   useEffect(() => {
     inputRef.current?.focus()
@@ -102,6 +104,9 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
         invoiceable
         onSubmit={onSubmit}
         optimisticUpdate={optimisticUpdate}
+        onError={({ reason, amount }) => {
+          notify(NotificationType.ZapError, { reason, amount, item })
+        }}
       >
         <Input
           label='amount'
@@ -279,9 +284,10 @@ export function useZap () {
       }`
   )
 
-  const toaster = useToast()
   const strike = useLightning()
   const payment = usePayment()
+  const { notify } = useNotifications()
+  const root = useRoot()
 
   return useCallback(async ({ item, me }, { abortSignal }) => {
     const meSats = (item?.meSats || 0)
@@ -307,8 +313,8 @@ export function useZap () {
       if (error instanceof InvoiceCanceledError || error instanceof ActCanceledError) {
         return
       }
-      console.error(error)
-      toaster.danger('zap failed: ' + error?.message || error?.toString?.())
+      const reason = error?.message || error?.toString?.()
+      notify(NotificationType.ZapError, { reason, amount: sats - meSats, item: { ...item, root } })
       cancel?.()
     } finally {
       abortSignal.done()

@@ -30,6 +30,7 @@ import { nextBillingWithGrace } from '@/lib/territory'
 import { commentSubTreeRootId } from '@/lib/item'
 import LinkToContext from './link-to-context'
 import { Badge } from 'react-bootstrap'
+import { ITEM_FULL } from '@/fragments/items'
 
 export const NotificationType = {
   ZapError: 'ZAP_ERROR',
@@ -606,7 +607,14 @@ export function NotificationProvider ({ children }) {
   const client = useApolloClient()
 
   useEffect(() => {
-    setNotifications(loadNotifications())
+    const loaded = loadNotifications()
+    // populate cache with items
+    loaded.forEach(({ item }) => {
+      if (item?.id) {
+        client.query({ query: ITEM_FULL, variables: { id: item.id }, fetchPolicy: 'cache-first' })
+      }
+    })
+    setNotifications(loaded)
   }, [])
 
   const notify = useCallback((type, props, hasNewNotes = true) => {

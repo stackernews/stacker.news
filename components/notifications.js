@@ -650,7 +650,7 @@ export function useNotifications () {
   return useContext(NotificationContext)
 }
 
-export function ZapError ({ n }) {
+function ZapError ({ n }) {
   const { unnotify } = useNotifications()
   return (
     <div className='d-flex ms-2'>
@@ -676,7 +676,7 @@ export function ZapError ({ n }) {
   )
 }
 
-export function ZapPending ({ n }) {
+function ZapPending ({ n }) {
   const { unnotify } = useNotifications()
   return (
     <div className='d-flex ms-2'>

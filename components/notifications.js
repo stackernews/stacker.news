@@ -34,7 +34,9 @@ import { ITEM_FULL } from '@/fragments/items'
 
 export const NotificationType = {
   ZapError: 'ZAP_ERROR',
-  ZapPending: 'ZAP_PENDING'
+  ZapPending: 'ZAP_PENDING',
+  ReplyError: 'REPLY_ERROR',
+  ReplyPending: 'REPLY_PENDING'
 }
 
 function Notification ({ n, fresh }) {
@@ -60,7 +62,9 @@ function Notification ({ n, fresh }) {
         (type === 'TerritoryPost' && <TerritoryPost n={n} />) ||
         (type === 'TerritoryTransfer' && <TerritoryTransfer n={n} />) ||
         (type === NotificationType.ZapError && <ZapError n={n} />) ||
-        (type === NotificationType.ZapPending && <ZapPending n={n} />)
+        (type === NotificationType.ZapPending && <ZapPending n={n} />) ||
+        (type === NotificationType.ReplyError && <ReplyError n={n} />) ||
+        (type === NotificationType.ReplyPending && <ReplyPending n={n} />)
       }
     </NotificationLayout>
   )
@@ -110,6 +114,8 @@ const defaultOnClick = n => {
   if (type === 'TerritoryTransfer') return { href: `/~${n.sub.name}` }
   if (type === NotificationType.ZapError) return {}
   if (type === NotificationType.ZapPending) return {}
+  if (type === NotificationType.ReplyError) return {}
+  if (type === NotificationType.ReplyPending) return {}
 
   // Votification, Mention, JobChanged, Reply all have item
   if (!n.item.title) {
@@ -683,6 +689,58 @@ function ZapPending ({ n }) {
       <div className='w-100 me-1'>
         <div className='fw-bold text-info'>
           zap of {n.amount} sats pending
+          <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.createdAt))}</small>
+        </div>
+        {n.item.title
+          ? <Item item={n.item} />
+          : (
+            <div className='pb-2'>
+              <RootProvider root={n.item.root}>
+                <Comment item={n.item} noReply includeParent noComments clickToContext />
+              </RootProvider>
+            </div>
+            )}
+      </div>
+      <div className={styles.close} onClick={() => unnotify(n.id)}>
+        X
+      </div>
+    </div>
+  )
+}
+
+function ReplyError ({ n }) {
+  const { unnotify } = useNotifications()
+  return (
+    <div className='d-flex ms-2'>
+      <div className='w-100 me-1'>
+        <div className='fw-bold text-danger'>
+          failed to submit reply: {n.reason}
+          <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.createdAt))}</small>
+        </div>
+        {n.item.title
+          ? <Item item={n.item} />
+          : (
+            <div className='pb-2'>
+              <RootProvider root={n.item.root}>
+                <Comment item={n.item} noReply includeParent noComments clickToContext />
+              </RootProvider>
+            </div>
+            )}
+      </div>
+      <div className={styles.close} onClick={() => unnotify(n.id)}>
+        X
+      </div>
+    </div>
+  )
+}
+
+function ReplyPending ({ n }) {
+  const { unnotify } = useNotifications()
+  return (
+    <div className='d-flex ms-2'>
+      <div className='w-100 me-1'>
+        <div className='fw-bold text-info'>
+          reply pending
           <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.createdAt))}</small>
         </div>
         {n.item.title

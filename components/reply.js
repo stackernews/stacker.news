@@ -16,6 +16,7 @@ import { Button } from 'react-bootstrap'
 import { useRoot } from './root'
 import { commentSubTreeRootId } from '@/lib/item'
 import { ANON_USER_ID, UNKNOWN_LINK_REL } from '@/lib/constants'
+import { NotificationType, useNotifications } from './notifications'
 
 const cacheAddComment = (cache, parentId, data) => {
   cache.modify({
@@ -151,6 +152,7 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
   const root = useRoot()
   const sub = item?.sub || root?.sub
   const cache = useApolloClient().cache
+  const { notify, unnotify } = useNotifications()
 
   useEffect(() => {
     if (replyOpen || quote || !!window.localStorage.getItem('reply-' + parentId + '-' + 'text')) {
@@ -266,6 +268,16 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
               invoiceable
               onSubmit={onSubmit}
               optimisticUpdate={optimisticUpdate}
+              onError={({ reason }) => {
+                notify(NotificationType.ReplyError, { reason, item: { ...item, root } })
+              }}
+              beforeSubmit={() => {
+                const nid = notify(NotificationType.ReplyPending, { item: { ...item, root } }, false)
+                return { nid }
+              }}
+              afterSubmit={({ nid }) => {
+                unnotify(nid)
+              }}
               storageKeyPrefix={`reply-${parentId}`}
             >
               <MarkdownInput

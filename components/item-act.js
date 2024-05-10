@@ -183,7 +183,7 @@ export const actOptimisticUpdate = (cache, { id, sats, path, act }, { me }) => {
   }
 }
 
-export function useAct ({ onUpdate } = {}) {
+export function useAct () {
   const [act] = useMutation(
     gql`
       mutation act($id: ID!, $sats: Int!, $act: String, $hash: String, $hmac: String) {

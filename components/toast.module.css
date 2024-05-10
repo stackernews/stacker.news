@@ -33,12 +33,6 @@
   align-items: center;
 }
 
-.undo {
-  background-color:  var(--bs-warning);
-  border-width: 0px;
-  color: black;
-}
-
 .progressBar {
   width: 0;
   height: 5px;

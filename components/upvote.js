@@ -83,6 +83,20 @@ export const nextTip = (meSats, { tipDefault, turboTipping }) => {
   return sats
 }
 
+class ZapUndoController extends AbortController {
+  constructor (setAbortController) {
+    super()
+    const handleDone = () => {
+      setAbortController(null)
+      this.signal.removeEventListener('done', handleDone)
+    }
+    this.signal.addEventListener('done', handleDone)
+    this.signal.start = () => { this.started = true }
+    this.signal.done = () => this.signal.dispatchEvent(new Event('done'))
+    setAbortController(this)
+  }
+}
+
 export default function UpVote ({ item, className }) {
   const showModal = useShowModal()
   const [voteShow, _setVoteShow] = useState(false)
@@ -96,6 +110,8 @@ export default function UpVote ({ item, className }) {
         setWalkthrough(upvotePopover: $upvotePopover, tipPopover: $tipPopover)
       }`
   )
+  const [abortController, setAbortController] = useState(null)
+  const pending = !!abortController?.started
 
   const setVoteShow = useCallback((yes) => {
     if (!me) return
@@ -154,8 +170,16 @@ export default function UpVote ({ item, className }) {
     }
 
     setTipShow(false)
+
+    if (pending) {
+      abortController.abort()
+      return setAbortController(null)
+    }
+
+    const controller = new ZapUndoController(setAbortController)
+
     showModal(onClose =>
-      <ItemAct onClose={onClose} item={item} />, { onClose: handleModalClosed })
+      <ItemAct onClose={onClose} item={item} abortSignal={controller.signal} />, { onClose: handleModalClosed })
   }
 
   const handleShortPress = async () => {
@@ -173,7 +197,14 @@ export default function UpVote ({ item, className }) {
         setTipShow(true)
       }
 
-      await zap({ item, me })
+      if (pending) {
+        abortController.abort()
+        return setAbortController(null)
+      }
+
+      const controller = new ZapUndoController(setAbortController)
+
+      await zap({ item, me }, { abortSignal: controller.signal })
     } else {
       showModal(onClose => <ItemAct onClose={onClose} item={item} />, { onClose: handleModalClosed })
     }
@@ -201,7 +232,8 @@ export default function UpVote ({ item, className }) {
                       `${styles.upvote}
                       ${className || ''}
                       ${disabled ? styles.noSelfTips : ''}
-                      ${meSats ? styles.voted : ''}`
+                      ${meSats ? styles.voted : ''}
+                      ${pending ? styles.pending : ''}`
                     }
               style={meSats || hover
                 ? {

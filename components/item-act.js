@@ -6,10 +6,11 @@ import { useMe } from './me'
 import UpBolt from '@/svgs/bolt.svg'
 import { amountSchema } from '@/lib/validate'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
-import { TOAST_DEFAULT_DELAY_MS, useToast } from './toast'
+import { useToast } from './toast'
 import { useLightning } from './lightning'
 import { nextTip } from './upvote'
 import { InvoiceCanceledError, PaymentProvider, usePayment } from './payment'
+import { ZAP_UNDO_DELAY } from '@/lib/constants'
 
 const defaultTips = [100, 1000, 10_000, 100_000]
 
@@ -41,13 +42,12 @@ const addCustomTip = (amount) => {
   window.localStorage.setItem('custom-tips', JSON.stringify(customTips))
 }
 
-export default function ItemAct ({ onClose, item, down, children }) {
+export default function ItemAct ({ onClose, item, down, children, abortSignal }) {
   const inputRef = useRef(null)
   const me = useMe()
   const [oValue, setOValue] = useState()
   const strike = useLightning()
   const cache = useApolloClient().cache
-  const toaster = useToast()
 
   useEffect(() => {
     inputRef.current?.focus()
@@ -56,32 +56,39 @@ export default function ItemAct ({ onClose, item, down, children }) {
   const act = useAct()
 
   const onSubmit = useCallback(async ({ amount, hash, hmac }) => {
-    await act({
-      variables: {
-        id: item.id,
-        sats: Number(amount),
-        act: down ? 'DONT_LIKE_THIS' : 'TIP',
-        hash,
-        hmac
-      }
-    })
-    addCustomTip(Number(amount))
-  }, [me, act, down, item.id, strike, onClose])
+    try {
+      await act({
+        variables: {
+          id: item.id,
+          sats: Number(amount),
+          act: down ? 'DONT_LIKE_THIS' : 'TIP',
+          hash,
+          hmac
+        }
+      })
+      addCustomTip(Number(amount))
+    } finally {
+      abortSignal.done()
+    }
+  }, [me, act, down, item.id, strike, onClose, abortSignal])
 
   const optimisticUpdate = useCallback(async ({ amount }) => {
     onClose()
     strike()
     const revert = actOptimisticUpdate(cache, { ...item, sats: Number(amount), act: down ? 'DONT_LIKE_THIS' : 'TIP' }, { me })
+    abortSignal.start()
     if (zapUndoTrigger(me, amount)) {
       try {
-        await zapUndo(toaster)
+        await zapUndo(abortSignal)
       } catch (err) {
         revert()
         throw err
       }
-    };
+    } else {
+      abortSignal.done()
+    }
     return revert
-  }, [cache, strike, onClose])
+  }, [cache, strike, onClose, abortSignal])
 
   // we need to wrap with PaymentProvider here since modals don't have access to PaymentContext by default
   return (
@@ -276,7 +283,7 @@ export function useZap () {
   const strike = useLightning()
   const payment = usePayment()
 
-  return useCallback(async ({ item, me }) => {
+  return useCallback(async ({ item, me }, { abortSignal }) => {
     const meSats = (item?.meSats || 0)
 
     // add current sats to next tip since idempotent zaps use desired total zap not difference
@@ -287,9 +294,12 @@ export function useZap () {
       const variables = { path: item.path, id: item.id, sats, act: 'TIP' }
       revert = zapOptimisticUpdate(cache, variables)
       strike()
+      abortSignal.start()
       if (zapUndoTrigger(me, sats)) {
-        await zapUndo(toaster)
-      };
+        await zapUndo(abortSignal)
+      } else {
+        abortSignal.done()
+      }
       [{ hash, hmac }, cancel] = await payment.request(sats - meSats)
       await zap({ variables: { ...variables, hash, hmac } })
     } catch (error) {
@@ -300,6 +310,8 @@ export function useZap () {
       console.error(error)
       toaster.danger('zap failed: ' + error?.message || error?.toString?.())
       cancel?.()
+    } finally {
+      abortSignal.done()
     }
   }, [strike, payment])
 }
@@ -317,10 +329,16 @@ const zapUndoTrigger = (me, amount) => {
   return enabled ? amount >= me.privates.zapUndos : false
 }
 
-const zapUndo = async (toaster) => {
+const zapUndo = async (signal) => {
   return await new Promise((resolve, reject) => {
-    const delay = TOAST_DEFAULT_DELAY_MS
-    toaster.undo({ onClick: () => reject(new ActCanceledError()) })
-    setTimeout(resolve, delay)
+    const abortHandler = () => {
+      reject(new ActCanceledError())
+      signal.removeEventListener('abort', abortHandler)
+    }
+    signal.addEventListener('abort', abortHandler)
+    setTimeout(() => {
+      resolve()
+      signal.removeEventListener('abort', abortHandler)
+    }, ZAP_UNDO_DELAY)
   })
 }

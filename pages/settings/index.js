@@ -26,7 +26,7 @@ import { NostrAuth } from '@/components/nostr-auth'
 import { useToast } from '@/components/toast'
 import { useServiceWorkerLogger } from '@/components/logger'
 import { useMe } from '@/components/me'
-import { INVOICE_RETENTION_DAYS } from '@/lib/constants'
+import { INVOICE_RETENTION_DAYS, ZAP_UNDO_DELAY } from '@/lib/constants'
 import { OverlayTrigger, Tooltip } from 'react-bootstrap'
 import DeleteIcon from '@/svgs/delete-bin-line.svg'
 import { useField } from 'formik'
@@ -993,10 +993,8 @@ const ZapUndosField = () => {
                 zap undos
                 <Info>
                   <ul className='fw-bold'>
-                    <li>An undo button is shown after every zap that exceeds or is equal to the threshold</li>
-                    <li>The button is shown for 5 seconds</li>
-                    <li>The button is only shown for zaps from the custodial wallet</li>
-                    <li>Use a budget or manual approval with attached wallets</li>
+                    <li>After every zap that exceeds or is equal to the threshold, the bolt will pulse for {ZAP_UNDO_DELAY / 1000} seconds</li>
+                    <li>Click the bolt while it's pulsing to undo the zap</li>
                   </ul>
                 </Info>
               </div>

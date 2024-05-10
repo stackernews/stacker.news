@@ -611,7 +611,7 @@ export function NotificationProvider ({ children }) {
 
   const notify = useCallback((type, props, hasNewNotes = true) => {
     const id = crypto.randomUUID()
-    const n = { __typename: type, id, ...props }
+    const n = { __typename: type, id, createdAt: +new Date(), ...props }
     setNotifications(notifications => [n, ...notifications])
     saveNotification(n)
     if (hasNewNotes) {
@@ -649,6 +649,7 @@ export function ZapError ({ n }) {
       <div className='w-100 me-1'>
         <div className='fw-bold text-danger'>
           failed to zap {n.amount} sats: {n.reason}
+          <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.createdAt))}</small>
         </div>
         {n.item.title
           ? <Item item={n.item} />
@@ -674,6 +675,7 @@ export function ZapPending ({ n }) {
       <div className='w-100 me-1'>
         <div className='fw-bold text-info'>
           zap of {n.amount} sats pending
+          <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.createdAt))}</small>
         </div>
         {n.item.title
           ? <Item item={n.item} />

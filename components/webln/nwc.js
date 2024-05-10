@@ -207,7 +207,7 @@ export function NWCProvider ({ children }) {
           // timeout is same as invoice expiry
           const timeout = 180_000
           const timer = setTimeout(() => {
-            const msg = 'timeout waiting for info event'
+            const msg = 'timeout waiting for payment'
             logger.error(msg)
             reject(new Error(msg))
             sub?.close()

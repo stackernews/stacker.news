@@ -32,7 +32,8 @@ import LinkToContext from './link-to-context'
 import { Badge } from 'react-bootstrap'
 
 export const NotificationType = {
-  ZapError: 'ZAP_ERROR'
+  ZapError: 'ZAP_ERROR',
+  ZapPending: 'ZAP_PENDING'
 }
 
 function Notification ({ n, fresh }) {
@@ -57,7 +58,8 @@ function Notification ({ n, fresh }) {
         (type === 'FollowActivity' && <FollowActivity n={n} />) ||
         (type === 'TerritoryPost' && <TerritoryPost n={n} />) ||
         (type === 'TerritoryTransfer' && <TerritoryTransfer n={n} />) ||
-        (type === NotificationType.ZapError && <ZapError n={n} />)
+        (type === NotificationType.ZapError && <ZapError n={n} />) ||
+        (type === NotificationType.ZapPending && <ZapPending n={n} />)
       }
     </NotificationLayout>
   )
@@ -106,6 +108,7 @@ const defaultOnClick = n => {
   if (type === 'Streak') return {}
   if (type === 'TerritoryTransfer') return { href: `/~${n.sub.name}` }
   if (type === NotificationType.ZapError) return {}
+  if (type === NotificationType.ZapPending) return {}
 
   // Votification, Mention, JobChanged, Reply all have item
   if (!n.item.title) {
@@ -606,16 +609,20 @@ export function NotificationProvider ({ children }) {
     setNotifications(loadNotifications())
   }, [])
 
-  const notify = useCallback((type, props) => {
-    const n = { __typename: type, id: crypto.randomUUID(), ...props }
+  const notify = useCallback((type, props, hasNewNotes = true) => {
+    const id = crypto.randomUUID()
+    const n = { __typename: type, id, ...props }
     setNotifications(notifications => [n, ...notifications])
     saveNotification(n)
-    client?.writeQuery({
-      query: HAS_NOTIFICATIONS,
-      data: {
-        hasNewNotes: true
-      }
-    })
+    if (hasNewNotes) {
+      client?.writeQuery({
+        query: HAS_NOTIFICATIONS,
+        data: {
+          hasNewNotes: true
+        }
+      })
+    }
+    return id
   }, [client])
 
   const unnotify = useCallback((id) => {
@@ -642,6 +649,31 @@ export function ZapError ({ n }) {
       <div className='w-100 me-1'>
         <div className='fw-bold text-danger'>
           failed to zap {n.amount} sats: {n.reason}
+        </div>
+        {n.item.title
+          ? <Item item={n.item} />
+          : (
+            <div className='pb-2'>
+              <RootProvider root={n.item.root}>
+                <Comment item={n.item} noReply includeParent noComments clickToContext />
+              </RootProvider>
+            </div>
+            )}
+      </div>
+      <div className={styles.close} onClick={() => unnotify(n.id)}>
+        X
+      </div>
+    </div>
+  )
+}
+
+export function ZapPending ({ n }) {
+  const { unnotify } = useNotifications()
+  return (
+    <div className='d-flex ms-2'>
+      <div className='w-100 me-1'>
+        <div className='fw-bold text-info'>
+          zap of {n.amount} sats pending
         </div>
         {n.item.title
           ? <Item item={n.item} />

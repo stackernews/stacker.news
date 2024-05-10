@@ -49,7 +49,7 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
   const [oValue, setOValue] = useState()
   const strike = useLightning()
   const cache = useApolloClient().cache
-  const { notify } = useNotifications()
+  const { notify, unnotify } = useNotifications()
 
   useEffect(() => {
     inputRef.current?.focus()
@@ -106,6 +106,13 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
         optimisticUpdate={optimisticUpdate}
         onError={({ reason, amount }) => {
           notify(NotificationType.ZapError, { reason, amount, item })
+        }}
+        beforeSubmit={({ amount }) => {
+          const nid = notify(NotificationType.ZapPending, { amount, item }, false)
+          return { nid }
+        }}
+        afterSubmit={({ nid }) => {
+          unnotify(nid)
         }}
       >
         <Input
@@ -286,7 +293,7 @@ export function useZap () {
 
   const strike = useLightning()
   const payment = usePayment()
-  const { notify } = useNotifications()
+  const { notify, unnotify } = useNotifications()
   const root = useRoot()
 
   return useCallback(async ({ item, me }, { abortSignal }) => {
@@ -295,17 +302,19 @@ export function useZap () {
     // add current sats to next tip since idempotent zaps use desired total zap not difference
     const sats = meSats + nextTip(meSats, { ...me?.privates })
 
-    let hash, hmac, cancel, revert
+    let cancel, revert, nid
     try {
       const variables = { path: item.path, id: item.id, sats, act: 'TIP' }
       revert = zapOptimisticUpdate(cache, variables)
       strike()
       abortSignal.start()
+      nid = notify(NotificationType.ZapPending, { amount: sats - meSats, item: { ...item, root } }, false)
       if (zapUndoTrigger(me, sats)) {
         await zapUndo(abortSignal)
       } else {
         abortSignal.done()
       }
+      let hash, hmac;
       [{ hash, hmac }, cancel] = await payment.request(sats - meSats)
       await zap({ variables: { ...variables, hash, hmac } })
     } catch (error) {
@@ -318,6 +327,7 @@ export function useZap () {
       cancel?.()
     } finally {
       abortSignal.done()
+      unnotify(nid)
     }
   }, [strike, payment])
 }

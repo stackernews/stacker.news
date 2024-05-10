@@ -803,7 +803,7 @@ const StorageKeyPrefixContext = createContext()
 export function Form ({
   initial, schema, onSubmit, children, initialError, validateImmediately,
   storageKeyPrefix, validateOnChange = true, invoiceable, requireSession, innerRef,
-  optimisticUpdate, onError, ...props
+  optimisticUpdate, onError, beforeSubmit, afterSubmit, ...props
 }) {
   const toaster = useToast()
   const initialErrorToasted = useRef(false)
@@ -834,12 +834,13 @@ export function Form ({
   }, [storageKeyPrefix])
 
   const onSubmitInner = useCallback(async ({ amount, ...values }, ...args) => {
-    let cancel, revert
+    let cancel, revert, beforeSubmitReturn
     try {
       if (onSubmit) {
         if (requireSession && !me) {
           throw new SessionRequiredError()
         }
+        beforeSubmitReturn = beforeSubmit?.({ amount, ...values })
         let hash, hmac
         if (invoiceable) {
           revert = await optimisticUpdate?.({ amount, ...values }, ...args);
@@ -861,6 +862,8 @@ export function Form ({
         toaster.danger('submit error: ' + msg)
       }
       cancel?.()
+    } finally {
+      afterSubmit?.({ amount, ...values, ...beforeSubmitReturn })
     }
   }, [me, onSubmit, feeButton?.total, toaster, clearLocalStorage, storageKeyPrefix, payment])
 

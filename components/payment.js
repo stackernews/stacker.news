@@ -24,6 +24,13 @@ export class WebLnNotEnabledError extends Error {
   }
 }
 
+export class InvoiceExpiredError extends Error {
+  constructor () {
+    super('invoice expired')
+    this.name = 'InvoiceExpiredError'
+  }
+}
+
 const useInvoice = () => {
   const client = useApolloClient()
 
@@ -166,8 +173,8 @@ export const PaymentProvider = ({ children }) => {
     try {
       return await waitForWebLnPayment(invoice)
     } catch (err) {
-      if (err instanceof InvoiceCanceledError) {
-        // bail since qr code payment will also fail if invoice was canceled
+      if (err instanceof InvoiceCanceledError || err instanceof InvoiceExpiredError) {
+        // bail since qr code payment will also fail
         throw err
       }
       webLnError = err

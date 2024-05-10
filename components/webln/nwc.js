@@ -8,6 +8,7 @@ import { Status, migrateLocalStorage } from '.'
 import { bolt11Tags } from '@/lib/bolt11'
 import { Wallet } from '@/lib/constants'
 import { useMe } from '../me'
+import { InvoiceExpiredError } from '../payment'
 
 const NWCContext = createContext()
 
@@ -210,7 +211,7 @@ export function NWCProvider ({ children }) {
           const timer = setTimeout(() => {
             const msg = 'timeout waiting for payment'
             logger.error(msg)
-            reject(new Error(msg))
+            reject(new InvoiceExpiredError())
             sub?.close()
           }, timeout)
 

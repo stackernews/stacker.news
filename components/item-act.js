@@ -58,16 +58,18 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
 
   const onSubmit = useCallback(async ({ amount, hash, hmac }) => {
     try {
+      const act = down ? 'DONT_LIKE_THIS' : 'TIP'
       await act({
         variables: {
           id: item.id,
           sats: Number(amount),
-          act: down ? 'DONT_LIKE_THIS' : 'TIP',
+          act,
           hash,
           hmac
         }
       })
       addCustomTip(Number(amount))
+      persistItemPendingSats({ ...item, act, sats: -amount })
     } finally {
       abortSignal.done()
     }
@@ -112,8 +114,6 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
         }}
         afterSubmit={({ amount, nid }) => {
           unnotify(nid)
-          const act = down ? 'DONT_LIKE_THIS' : 'TIP'
-          persistItemPendingSats(item.id, item.path, act, -amount)
         }}
       >
         <Input
@@ -138,13 +138,63 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
   )
 }
 
-const persistItemMeAnonSats = (id, sats) => {
+const updateItemSats = (cache, { id, path, act, sats }, { me }) => {
+  if (sats < 0) {
+    // if sats < 0, we are reverting.
+    // in that case, it is important that we first revert the persisted sats
+    // before calling cache.modify since cache.modify will trigger field reads
+    // and thus persisted sats will be counted
+    if (!me) persistItemMeAnonSats({ id, sats })
+    else persistItemPendingSats({ id, path, act, sats })
+  }
+
+  cache.modify({
+    id: `Item:${id}`,
+    fields: {
+      sats (existingSats = 0) {
+        return act === 'TIP' ? existingSats + sats : existingSats
+      },
+      meSats: me
+        ? (existingSats = 0) => {
+            return act === 'TIP' ? existingSats + sats : existingSats
+          }
+        : undefined,
+      meDontLikeSats: me
+        ? (existingSats = 0) => {
+            return act === 'DONT_LIKE_THIS' ? existingSats + sats : existingSats
+          }
+        : undefined
+    }
+  })
+
+  if (act === 'TIP') {
+    // update all ancestors
+    path.split('.').forEach(aId => {
+      if (Number(aId) === Number(id)) return
+      cache.modify({
+        id: `Item:${aId}`,
+        fields: {
+          commentSats (existingCommentSats = 0) {
+            return existingCommentSats + sats
+          }
+        }
+      })
+    })
+  }
+
+  if (sats > 0) {
+    if (!me) persistItemMeAnonSats({ id, sats })
+    else persistItemPendingSats({ id, path, act, sats })
+  }
+}
+
+const persistItemMeAnonSats = ({ id, sats }) => {
   const storageKey = `TIP-item:ANON:${id}`
   const existingAmount = Number(window.localStorage.getItem(storageKey) || '0')
   window.localStorage.setItem(storageKey, existingAmount + sats)
 }
 
-const persistItemPendingSats = (id, path, act, sats) => {
+const persistItemPendingSats = ({ id, path, act, sats }) => {
   const storageKey = `TIP-item:PENDING:${act}:${id}`
   const existingAmount = Number(window.localStorage.getItem(storageKey) || '0')
   window.localStorage.setItem(storageKey, existingAmount + sats)
@@ -159,64 +209,8 @@ const persistItemPendingSats = (id, path, act, sats) => {
 }
 
 export const actOptimisticUpdate = (cache, { id, sats, path, act }, { me }) => {
-  const updateItemSats = (id, sats) => {
-    cache.modify({
-      id: `Item:${id}`,
-      fields: {
-        sats (existingSats = 0) {
-          if (act === 'TIP') {
-            return existingSats + sats
-          }
-
-          return existingSats
-        },
-        meSats: me
-          ? (existingSats = 0) => {
-              if (act === 'TIP') {
-                return existingSats + sats
-              }
-
-              return existingSats
-            }
-          : undefined,
-        meDontLikeSats: me
-          ? (existingSats = 0) => {
-              if (act === 'DONT_LIKE_THIS') {
-                return existingSats + sats
-              }
-
-              return existingSats
-            }
-          : undefined
-      }
-    })
-
-    if (act === 'TIP') {
-      // update all ancestors
-      path.split('.').forEach(aId => {
-        if (Number(aId) === Number(id)) return
-        cache.modify({
-          id: `Item:${aId}`,
-          fields: {
-            commentSats (existingCommentSats = 0) {
-              return existingCommentSats + sats
-            }
-          }
-        })
-      })
-    }
-
-    // it is important that we first modify cache and then persist
-    // else we will add persisted sats on top of cached sats
-    // since cache.modify will trigger field reads
-    if (!me) persistItemMeAnonSats(id, sats)
-    else persistItemPendingSats(id, path, act, sats)
-  }
-
-  updateItemSats(id, sats)
-  return () => {
-    updateItemSats(id, -sats)
-  }
+  updateItemSats(cache, { id, path, act, sats }, { me })
+  return () => updateItemSats(cache, { id, path, act, sats: -sats }, { me })
 }
 
 export function useAct () {
@@ -234,7 +228,7 @@ export function useAct () {
   return act
 }
 
-const zapOptimisticUpdate = (cache, { id, sats, path }) => {
+const zapOptimisticUpdate = (cache, { id, path, act, sats }, { me }) => {
   const readItemFragment = id => cache.readFragment({
     id: `Item:${id}`,
     fragment: gql`
@@ -244,54 +238,20 @@ const zapOptimisticUpdate = (cache, { id, sats, path }) => {
       `
   })
 
-  const updateItemSats = (id, satsDelta, meSats) => cache.modify({
-    id: `Item:${id}`,
-    fields: {
-      sats (existingSats = 0) {
-        return existingSats + satsDelta
-      },
-      meSats: () => {
-        return meSats
-      }
-    }
-  })
-
-  const updateItemCommentSats = (id, satsDelta) => cache.modify({
-    id: `Item:${id}`,
-    fields: {
-      commentSats (existingCommentSats = 0) {
-        return existingCommentSats + satsDelta
-      }
-    }
-  })
-
-  // determine how much we increased existing sats by by checking the
-  // difference between result sats and meSats
+  // determine how much we increased existing sats
+  // by checking the difference between result sats and meSats
   // if it's negative, skip the cache as it's an out of order update
   // if it's positive, add it to sats and commentSats
-
   const item = readItemFragment(id)
-
   const satsDelta = sats - item.meSats
 
   if (satsDelta > 0) {
-    updateItemSats(id, satsDelta, sats)
-    // update all ancestors
-    path.split('.').forEach(aId => {
-      if (Number(aId) === Number(id)) return
-      updateItemCommentSats(aId, satsDelta)
-    })
-    persistItemPendingSats(id, path, 'TIP', satsDelta)
+    updateItemSats(cache, { id, path, act, sats: satsDelta }, { me })
   }
 
   return () => {
     if (satsDelta > 0) {
-      persistItemPendingSats(id, path, 'TIP', -satsDelta)
-      updateItemSats(id, -satsDelta, item.meSats)
-      path.split('.').forEach(aId => {
-        if (Number(aId) === Number(id)) return
-        updateItemCommentSats(aId, -satsDelta)
-      })
+      updateItemSats(cache, { id, path, act, sats: -satsDelta }, { me })
     }
   }
 }
@@ -324,7 +284,7 @@ export function useZap () {
     let cancel, revert, nid
     try {
       const variables = { path: item.path, id: item.id, sats, act }
-      revert = zapOptimisticUpdate(cache, variables)
+      revert = zapOptimisticUpdate(cache, variables, { me })
       strike()
       abortSignal.start()
       nid = notify(NotificationType.ZapPending, { amount: sats - meSats, itemId: item.id }, false)
@@ -336,6 +296,7 @@ export function useZap () {
       let hash, hmac;
       [{ hash, hmac }, cancel] = await payment.request(sats - meSats)
       await zap({ variables: { ...variables, hash, hmac } })
+      persistItemPendingSats({ ...item, act, sats: -(sats - meSats) })
     } catch (error) {
       revert?.()
       if (error instanceof InvoiceCanceledError || error instanceof ActCanceledError) {
@@ -347,7 +308,6 @@ export function useZap () {
     } finally {
       abortSignal.done()
       unnotify(nid)
-      persistItemPendingSats(item.id, item.path, act, -(sats - meSats))
     }
   }, [strike, payment])
 }

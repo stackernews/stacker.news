@@ -120,14 +120,6 @@ const defaultOnClick = n => {
   if (type === 'Referral') return { href: '/referrals/month' }
   if (type === 'Streak') return {}
   if (type === 'TerritoryTransfer') return { href: `/~${n.sub.name}` }
-  if (type === NotificationType.ZapError) return {}
-  if (type === NotificationType.ZapPending) return {}
-  if (type === NotificationType.ReplyError) return {}
-  if (type === NotificationType.ReplyPending) return {}
-  if (type === NotificationType.BountyError) return {}
-  if (type === NotificationType.BountyPending) return {}
-  if (type === NotificationType.PollVoteError) return {}
-  if (type === NotificationType.PollVotePending) return {}
 
   // Votification, Mention, JobChanged, Reply all have item
   if (!n.item.title) {
@@ -669,27 +661,21 @@ export function useNotifications () {
 }
 
 function ClientNotification ({ n, title, variant }) {
-  const { unnotify } = useNotifications()
   return (
-    <div className='d-flex ms-2'>
-      <div className='w-100 me-1'>
-        <div className={`fw-bold text-${variant}`}>
-          {title}
-          <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.createdAt))}</small>
-        </div>
-        {n.item.title
-          ? <Item item={n.item} />
-          : (
-            <div className='pb-2'>
-              <RootProvider root={n.item.root}>
-                <Comment item={n.item} noReply includeParent noComments clickToContext />
-              </RootProvider>
-            </div>
-            )}
+    <div className='ms-2'>
+      <div className={`fw-bold text-${variant}`}>
+        {title}
+        <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.createdAt))}</small>
       </div>
-      <div className={styles.close} onClick={() => unnotify(n.id)}>
-        X
-      </div>
+      {n.item.title
+        ? <Item item={n.item} />
+        : (
+          <div className='pb-2'>
+            <RootProvider root={n.item.root}>
+              <Comment item={n.item} noReply includeParent noComments clickToContext />
+            </RootProvider>
+          </div>
+          )}
     </div>
   )
 }

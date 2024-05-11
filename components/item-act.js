@@ -188,26 +188,28 @@ const updateItemSats = (cache, { id, path, act, sats }, { me }) => {
   }
 }
 
-const persistItemSats = (prefix, { id, path, act, sats }) => {
-  const storageKey = `TIP-item:${prefix}:${act}:${id}`
+const persistItemAnonSats = ({ id, path, act, sats }) => {
+  const storageKey = `TIP-item:ANON:${act}:${id}`
+  const existingAmount = Number(window.localStorage.getItem(storageKey) || '0')
+  window.localStorage.setItem(storageKey, existingAmount + sats)
+  // we don't save TIP-comment for anons because we only need TIP-comment for
+  // persistence of pending item.commentSats but anon sats are never pending
+  // since anons have to pay immediately or optimistic update is reverted.
+  // XXX this changes when anons can have attached wallets
+}
+
+const persistItemPendingSats = ({ id, path, act, sats }) => {
+  const storageKey = `TIP-item:PENDING:${act}:${id}`
   const existingAmount = Number(window.localStorage.getItem(storageKey) || '0')
   window.localStorage.setItem(storageKey, existingAmount + sats)
   if (act === 'TIP') {
     path.split('.').forEach(aId => {
       if (Number(aId) === Number(id)) return
-      const storageKey = `TIP-comment:${prefix}:${act}:${aId}`
+      const storageKey = `TIP-comment:PENDING:${act}:${aId}`
       const existingAmount = Number(window.localStorage.getItem(storageKey) || '0')
       window.localStorage.setItem(storageKey, existingAmount + sats)
     })
   }
-}
-
-const persistItemAnonSats = ({ id, path, act, sats }) => {
-  persistItemSats('ANON', { id, path, act, sats })
-}
-
-const persistItemPendingSats = ({ id, path, act, sats }) => {
-  persistItemSats('PENDING', { id, path, act, sats })
 }
 
 export const actOptimisticUpdate = (cache, { id, sats, path, act }, { me }) => {

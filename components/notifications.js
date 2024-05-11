@@ -677,10 +677,10 @@ export function useNotifications () {
 function ClientNotification ({ n, title, variant }) {
   return (
     <div className='ms-2'>
-      <div className={`fw-bold text-${variant}`}>
+      <small className={`fw-bold text-${variant}`}>
         {title}
         <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
-      </div>
+      </small>
       {!n.item
         ? null
         : n.item.title

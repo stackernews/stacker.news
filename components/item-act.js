@@ -11,7 +11,6 @@ import { nextTip } from './upvote'
 import { InvoiceCanceledError, PaymentProvider, usePayment } from './payment'
 import { ZAP_UNDO_DELAY } from '@/lib/constants'
 import { NotificationType, useNotifications } from './notifications'
-import { useRoot } from './root'
 
 const defaultTips = [100, 1000, 10_000, 100_000]
 
@@ -105,10 +104,10 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
         onSubmit={onSubmit}
         optimisticUpdate={optimisticUpdate}
         onError={({ reason, amount }) => {
-          notify(NotificationType.ZapError, { reason, amount, item })
+          notify(NotificationType.ZapError, { reason, amount, itemId: item.id })
         }}
         beforeSubmit={({ amount }) => {
-          const nid = notify(NotificationType.ZapPending, { amount, item }, false)
+          const nid = notify(NotificationType.ZapPending, { amount, itemId: item.id }, false)
           return { nid }
         }}
         afterSubmit={({ nid }) => {
@@ -294,7 +293,6 @@ export function useZap () {
   const strike = useLightning()
   const payment = usePayment()
   const { notify, unnotify } = useNotifications()
-  const root = useRoot()
 
   return useCallback(async ({ item, me }, { abortSignal }) => {
     const meSats = (item?.meSats || 0)
@@ -308,7 +306,7 @@ export function useZap () {
       revert = zapOptimisticUpdate(cache, variables)
       strike()
       abortSignal.start()
-      nid = notify(NotificationType.ZapPending, { amount: sats - meSats, item: { ...item, root } }, false)
+      nid = notify(NotificationType.ZapPending, { amount: sats - meSats, itemId: item.id }, false)
       if (zapUndoTrigger(me, sats)) {
         await zapUndo(abortSignal)
       } else {
@@ -323,7 +321,7 @@ export function useZap () {
         return
       }
       const reason = error?.message || error?.toString?.()
-      notify(NotificationType.ZapError, { reason, amount: sats - meSats, item: { ...item, root } })
+      notify(NotificationType.ZapError, { reason, amount: sats - meSats, itemId: item.id })
       cancel?.()
     } finally {
       abortSignal.done()

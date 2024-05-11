@@ -61,7 +61,7 @@ export default function PayBounty ({ children, item }) {
       const sats = root.bounty
       const variables = { id: item.id, sats, path: item.path, act: 'TIP' }
       revert = bountyPaidOptimisticUpdate(cache, variables, { me, onComplete })
-      nid = notify(NotificationType.BountyPending, { sats, item: { ...item, root } }, false);
+      nid = notify(NotificationType.BountyPending, { sats, itemId: item.id }, false);
       [{ hash, hmac }, cancel] = await payment.request(sats)
       await act({ variables: { ...variables, hash, hmac } })
     } catch (err) {
@@ -70,7 +70,7 @@ export default function PayBounty ({ children, item }) {
         return
       }
       const reason = err?.message || err?.toString?.()
-      notify(NotificationType.BountyError, { reason, sats: root.bounty, item: { ...item, root } })
+      notify(NotificationType.BountyError, { reason, sats: root.bounty, itemId: item.id })
       cancel?.()
     } finally {
       unnotify(nid)

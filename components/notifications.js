@@ -47,8 +47,12 @@ export const NotificationType = {
 function Notification ({ n, fresh }) {
   const type = n.__typename
 
+  const { data } = useQuery(ITEM_FULL, { variables: { id: n.itemId }, skip: !n.itemId })
+  const item = data?.item
+  const itemN = { item, ...n }
+
   return (
-    <NotificationLayout nid={nid(n)} {...defaultOnClick(n)} fresh={fresh}>
+    <NotificationLayout nid={nid(n)} {...defaultOnClick(itemN)} fresh={fresh}>
       {
         (type === 'Earn' && <EarnNotification n={n} />) ||
         (type === 'Revenue' && <RevenueNotification n={n} />) ||
@@ -66,14 +70,14 @@ function Notification ({ n, fresh }) {
         (type === 'FollowActivity' && <FollowActivity n={n} />) ||
         (type === 'TerritoryPost' && <TerritoryPost n={n} />) ||
         (type === 'TerritoryTransfer' && <TerritoryTransfer n={n} />) ||
-        (type === NotificationType.ZapError && <ZapError n={n} />) ||
-        (type === NotificationType.ZapPending && <ZapPending n={n} />) ||
-        (type === NotificationType.ReplyError && <ReplyError n={n} />) ||
-        (type === NotificationType.ReplyPending && <ReplyPending n={n} />) ||
-        (type === NotificationType.BountyError && <BountyError n={n} />) ||
-        (type === NotificationType.BountyPending && <BountyPending n={n} />) ||
-        (type === NotificationType.PollVotePending && <PollVotePending n={n} />) ||
-        (type === NotificationType.PollVoteError && <PollVoteError n={n} />)
+        (type === NotificationType.ZapError && <ZapError n={itemN} />) ||
+        (type === NotificationType.ZapPending && <ZapPending n={itemN} />) ||
+        (type === NotificationType.ReplyError && <ReplyError n={itemN} />) ||
+        (type === NotificationType.ReplyPending && <ReplyPending n={itemN} />) ||
+        (type === NotificationType.BountyError && <BountyError n={itemN} />) ||
+        (type === NotificationType.BountyPending && <BountyPending n={itemN} />) ||
+        (type === NotificationType.PollVotePending && <PollVotePending n={itemN} />) ||
+        (type === NotificationType.PollVoteError && <PollVoteError n={itemN} />)
       }
     </NotificationLayout>
   )
@@ -121,6 +125,8 @@ const defaultOnClick = n => {
   if (type === 'Referral') return { href: '/referrals/month' }
   if (type === 'Streak') return {}
   if (type === 'TerritoryTransfer') return { href: `/~${n.sub.name}` }
+
+  if (!n.item) return {}
 
   // Votification, Mention, JobChanged, Reply all have item
   if (!n.item.title) {
@@ -632,12 +638,6 @@ export function NotificationProvider ({ children }) {
 
   useEffect(() => {
     const loaded = loadNotifications(storageKey)
-    // populate cache with items
-    loaded.forEach(({ item }) => {
-      if (item?.id) {
-        client.query({ query: ITEM_FULL, variables: { id: item.id }, fetchPolicy: 'cache-first' })
-      }
-    })
     setNotifications(loaded)
   }, [storageKey])
 
@@ -681,15 +681,17 @@ function ClientNotification ({ n, title, variant }) {
         {title}
         <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
       </div>
-      {n.item.title
-        ? <Item item={n.item} />
-        : (
-          <div className='pb-2'>
-            <RootProvider root={n.item.root}>
-              <Comment item={n.item} noReply includeParent noComments clickToContext />
-            </RootProvider>
-          </div>
-          )}
+      {!n.item
+        ? null
+        : n.item.title
+          ? <Item item={n.item} />
+          : (
+            <div className='pb-2'>
+              <RootProvider root={n.item.root}>
+                <Comment item={n.item} noReply includeParent noComments clickToContext />
+              </RootProvider>
+            </div>
+            )}
     </div>
   )
 }

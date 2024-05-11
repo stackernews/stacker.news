@@ -269,10 +269,10 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
               onSubmit={onSubmit}
               optimisticUpdate={optimisticUpdate}
               onError={({ reason }) => {
-                notify(NotificationType.ReplyError, { reason, item: { ...item, root } })
+                notify(NotificationType.ReplyError, { reason, itemId: item.id })
               }}
               beforeSubmit={() => {
-                const nid = notify(NotificationType.ReplyPending, { item: { ...item, root } }, false)
+                const nid = notify(NotificationType.ReplyPending, { itemId: item.id }, false)
                 return { nid }
               }}
               afterSubmit={({ nid }) => {

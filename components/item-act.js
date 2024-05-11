@@ -110,8 +110,10 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
           const nid = notify(NotificationType.ZapPending, { amount, itemId: item.id }, false)
           return { nid }
         }}
-        afterSubmit={({ nid }) => {
+        afterSubmit={({ amount, nid }) => {
           unnotify(nid)
+          const act = down ? 'DONT_LIKE_THIS' : 'TIP'
+          persistItemPendingSats(item.id, item.path, act, -amount)
         }}
       >
         <Input
@@ -136,18 +138,28 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
   )
 }
 
-export const actOptimisticUpdate = (cache, { id, sats, path, act }, { me }) => {
-  const updateItemMeAnonSats = (id, sats) => {
-    if (!me) {
-      const storageKey = `TIP-item:${id}`
+const persistItemMeAnonSats = (id, sats) => {
+  const storageKey = `TIP-item:ANON:${id}`
+  const existingAmount = Number(window.localStorage.getItem(storageKey) || '0')
+  window.localStorage.setItem(storageKey, existingAmount + sats)
+}
+
+const persistItemPendingSats = (id, path, act, sats) => {
+  const storageKey = `TIP-item:PENDING:${act}:${id}`
+  const existingAmount = Number(window.localStorage.getItem(storageKey) || '0')
+  window.localStorage.setItem(storageKey, existingAmount + sats)
+  if (act === 'TIP') {
+    path.split('.').forEach(aId => {
+      if (Number(aId) === Number(id)) return
+      const storageKey = `TIP-comment:PENDING:${aId}`
       const existingAmount = Number(window.localStorage.getItem(storageKey) || '0')
       window.localStorage.setItem(storageKey, existingAmount + sats)
-    }
+    })
   }
+}
 
+export const actOptimisticUpdate = (cache, { id, sats, path, act }, { me }) => {
   const updateItemSats = (id, sats) => {
-    if (!me) updateItemMeAnonSats(id, sats)
-
     cache.modify({
       id: `Item:${id}`,
       fields: {
@@ -193,6 +205,12 @@ export const actOptimisticUpdate = (cache, { id, sats, path, act }, { me }) => {
         })
       })
     }
+
+    // it is important that we first modify cache and then persist
+    // else we will add persisted sats on top of cached sats
+    // since cache.modify will trigger field reads
+    if (!me) persistItemMeAnonSats(id, sats)
+    else persistItemPendingSats(id, path, act, sats)
   }
 
   updateItemSats(id, sats)
@@ -263,10 +281,12 @@ const zapOptimisticUpdate = (cache, { id, sats, path }) => {
       if (Number(aId) === Number(id)) return
       updateItemCommentSats(aId, satsDelta)
     })
+    persistItemPendingSats(id, path, 'TIP', satsDelta)
   }
 
   return () => {
     if (satsDelta > 0) {
+      persistItemPendingSats(id, path, 'TIP', -satsDelta)
       updateItemSats(id, -satsDelta, item.meSats)
       path.split('.').forEach(aId => {
         if (Number(aId) === Number(id)) return
@@ -300,9 +320,10 @@ export function useZap () {
     // add current sats to next tip since idempotent zaps use desired total zap not difference
     const sats = meSats + nextTip(meSats, { ...me?.privates })
 
+    const act = 'TIP'
     let cancel, revert, nid
     try {
-      const variables = { path: item.path, id: item.id, sats, act: 'TIP' }
+      const variables = { path: item.path, id: item.id, sats, act }
       revert = zapOptimisticUpdate(cache, variables)
       strike()
       abortSignal.start()
@@ -326,6 +347,7 @@ export function useZap () {
     } finally {
       abortSignal.done()
       unnotify(nid)
+      persistItemPendingSats(item.id, item.path, act, -(sats - meSats))
     }
   }, [strike, payment])
 }

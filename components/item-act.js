@@ -9,7 +9,7 @@ import { gql, useMutation } from '@apollo/client'
 import { useToast } from './toast'
 import { useLightning } from './lightning'
 import { nextTip } from './upvote'
-import { InvoiceCanceledError, PaymentProvider, usePayment } from './payment'
+import { InvoiceCanceledError, usePayment } from './payment'
 
 const defaultTips = [100, 1000, 10_000, 100_000]
 
@@ -72,37 +72,34 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
     addCustomTip(Number(amount))
   }, [me, act, down, itemId, strike])
 
-  // we need to wrap with PaymentProvider here since modals don't have access to PaymentContext by default
   return (
-    <PaymentProvider>
-      <Form
-        initial={{
-          amount: me?.privates?.tipDefault || defaultTips[0],
-          default: false
-        }}
-        schema={amountSchema}
-        invoiceable
-        onSubmit={onSubmit}
-      >
-        <Input
-          label='amount'
-          name='amount'
-          type='number'
-          innerRef={inputRef}
-          overrideValue={oValue}
-          required
-          autoFocus
-          append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
-        />
-        <div>
-          <Tips setOValue={setOValue} />
-        </div>
-        {children}
-        <div className='d-flex mt-3'>
-          <SubmitButton variant={down ? 'danger' : 'success'} className='ms-auto mt-1 px-4' value='TIP'>{down && 'down'}zap</SubmitButton>
-        </div>
-      </Form>
-    </PaymentProvider>
+    <Form
+      initial={{
+        amount: me?.privates?.tipDefault || defaultTips[0],
+        default: false
+      }}
+      schema={amountSchema}
+      invoiceable
+      onSubmit={onSubmit}
+    >
+      <Input
+        label='amount'
+        name='amount'
+        type='number'
+        innerRef={inputRef}
+        overrideValue={oValue}
+        required
+        autoFocus
+        append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+      />
+      <div>
+        <Tips setOValue={setOValue} />
+      </div>
+      {children}
+      <div className='d-flex mt-3'>
+        <SubmitButton variant={down ? 'danger' : 'success'} className='ms-auto mt-1 px-4' value='TIP'>{down && 'down'}zap</SubmitButton>
+      </div>
+    </Form>
   )
 }
 

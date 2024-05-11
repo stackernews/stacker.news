@@ -11,7 +11,6 @@ import AnonIcon from '@/svgs/spy-fill.svg'
 import { useShowModal } from './modal'
 import Link from 'next/link'
 import { SubmitButton } from './form'
-import { PaymentProvider } from './payment'
 
 const FeeButtonContext = createContext()
 
@@ -93,9 +92,7 @@ export function FeeButtonProvider ({ baseLineItems = {}, useRemoteLineItems = ()
 
   return (
     <FeeButtonContext.Provider value={value}>
-      <PaymentProvider>
-        {children}
-      </PaymentProvider>
+      {children}
     </FeeButtonContext.Provider>
   )
 }

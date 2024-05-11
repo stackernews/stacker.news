@@ -58,18 +58,17 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
 
   const onSubmit = useCallback(async ({ amount, hash, hmac }) => {
     try {
-      const act = down ? 'DONT_LIKE_THIS' : 'TIP'
       await act({
         variables: {
           id: item.id,
           sats: Number(amount),
-          act,
+          act: down ? 'DONT_LIKE_THIS' : 'TIP',
           hash,
           hmac
         }
       })
       addCustomTip(Number(amount))
-      persistItemPendingSats({ ...item, act, sats: -amount })
+      persistItemPendingSats({ ...item, act: down ? 'DONT_LIKE_THIS' : 'TIP', sats: -amount })
     } finally {
       abortSignal.done()
     }

@@ -69,7 +69,7 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
         }
       })
       addCustomTip(Number(amount))
-      persistItemPendingSats({ ...item, act: down ? 'DONT_LIKE_THIS' : 'TIP', sats: -amount })
+      if (me) persistItemPendingSats({ ...item, act: down ? 'DONT_LIKE_THIS' : 'TIP', sats: -amount })
     } finally {
       abortSignal?.done()
     }
@@ -300,7 +300,7 @@ export function useZap () {
       let hash, hmac;
       [{ hash, hmac }, cancel] = await payment.request(sats - meSats)
       await zap({ variables: { ...variables, hash, hmac } })
-      persistItemPendingSats({ ...item, act, sats: -(sats - meSats) })
+      if (me) persistItemPendingSats({ ...item, act, sats: -(sats - meSats) })
     } catch (error) {
       revert?.()
       if (error instanceof InvoiceCanceledError || error instanceof ActCanceledError) {

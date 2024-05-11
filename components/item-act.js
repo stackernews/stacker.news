@@ -70,7 +70,7 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
       addCustomTip(Number(amount))
       persistItemPendingSats({ ...item, act: down ? 'DONT_LIKE_THIS' : 'TIP', sats: -amount })
     } finally {
-      abortSignal.done()
+      abortSignal?.done()
     }
   }, [me, act, down, item.id, strike, onClose, abortSignal])
 
@@ -78,7 +78,7 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
     onClose()
     strike()
     const revert = actOptimisticUpdate(cache, { ...item, sats: Number(amount), act: down ? 'DONT_LIKE_THIS' : 'TIP' }, { me })
-    abortSignal.start()
+    abortSignal?.start()
     if (zapUndoTrigger(me, amount)) {
       try {
         await zapUndo(abortSignal)
@@ -87,7 +87,7 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
         throw err
       }
     } else {
-      abortSignal.done()
+      abortSignal?.done()
     }
     return revert
   }, [cache, strike, onClose, abortSignal])
@@ -285,12 +285,12 @@ export function useZap () {
       const variables = { path: item.path, id: item.id, sats, act }
       revert = zapOptimisticUpdate(cache, variables, { me })
       strike()
-      abortSignal.start()
+      abortSignal?.start()
       nid = notify(NotificationType.ZapPending, { amount: sats - meSats, itemId: item.id }, false)
       if (zapUndoTrigger(me, sats)) {
         await zapUndo(abortSignal)
       } else {
-        abortSignal.done()
+        abortSignal?.done()
       }
       let hash, hmac;
       [{ hash, hmac }, cancel] = await payment.request(sats - meSats)
@@ -305,7 +305,7 @@ export function useZap () {
       notify(NotificationType.ZapError, { reason, amount: sats - meSats, itemId: item.id })
       cancel?.()
     } finally {
-      abortSignal.done()
+      abortSignal?.done()
       unnotify(nid)
     }
   }, [strike, payment])

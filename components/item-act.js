@@ -11,6 +11,7 @@ import { nextTip } from './upvote'
 import { InvoiceCanceledError, PaymentProvider, usePayment } from './payment'
 import { ZAP_UNDO_DELAY } from '@/lib/constants'
 import { NotificationType, useNotifications } from './notifications'
+import { useToast } from './toast'
 
 const defaultTips = [100, 1000, 10_000, 100_000]
 
@@ -104,9 +105,11 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
         invoiceable
         onSubmit={onSubmit}
         optimisticUpdate={optimisticUpdate}
-        onError={({ reason, amount }) => {
-          notify(NotificationType.ZapError, { reason, amount, itemId: item.id })
-        }}
+        onError={me
+          ? ({ reason, amount }) => {
+              notify(NotificationType.ZapError, { reason, amount, itemId: item.id })
+            }
+          : undefined}
         beforeSubmit={({ amount }) => {
           const nid = notify(NotificationType.ZapPending, { amount, itemId: item.id }, false)
           return { nid }
@@ -269,9 +272,11 @@ export function useZap () {
       }`
   )
 
+  const me = useMe()
   const strike = useLightning()
   const payment = usePayment()
   const { notify, unnotify } = useNotifications()
+  const toaster = useToast()
 
   return useCallback(async ({ item, me }, { abortSignal }) => {
     const meSats = (item?.meSats || 0)
@@ -302,13 +307,14 @@ export function useZap () {
         return
       }
       const reason = error?.message || error?.toString?.()
-      notify(NotificationType.ZapError, { reason, amount: sats - meSats, itemId: item.id })
+      if (me) notify(NotificationType.ZapError, { reason, amount: sats - meSats, itemId: item.id })
+      else toaster.danger('zap error: ' + reason)
       cancel?.()
     } finally {
       abortSignal?.done()
       unnotify(nid)
     }
-  }, [strike, payment])
+  }, [me, strike, payment])
 }
 
 export class ActCanceledError extends Error {

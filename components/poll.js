@@ -9,7 +9,8 @@ import { signIn } from 'next-auth/react'
 import ActionTooltip from './action-tooltip'
 import { POLL_COST } from '@/lib/constants'
 import { InvoiceCanceledError, usePayment } from './payment'
-import { useToast } from './toast'
+import { NotificationType, useNotifications } from './notifications'
+import { useRoot } from './root'
 
 const pollVoteOptimisticUpdate = (cache, { id: itemId, pollOptionId }) => {
   const updateVote = (vote) => {
@@ -50,10 +51,11 @@ export default function Poll ({ item }) {
         pollVote(id: $id, hash: $hash, hmac: $hmac)
       }`
   )
+  const root = useRoot()
+  const { notify, unnotify } = useNotifications()
 
   const PollButton = ({ v }) => {
     const payment = usePayment()
-    const toaster = useToast()
     const cache = useApolloClient().cache
     return (
       <ActionTooltip placement='left' notForm overlayText='1 sat'>
@@ -61,10 +63,11 @@ export default function Poll ({ item }) {
           variant='outline-info' className={styles.pollButton}
           onClick={me
             ? async () => {
-              let cancel, revert
+              let cancel, revert, nid
               try {
                 let hash, hmac
-                revert = pollVoteOptimisticUpdate(cache, { id: item.id, pollOptionId: v.id });
+                revert = pollVoteOptimisticUpdate(cache, { id: item.id, pollOptionId: v.id })
+                nid = notify(NotificationType.PollVotePending, { item: { ...item, root } }, false);
                 [{ hash, hmac }, cancel] = await payment.request(item.pollCost || POLL_COST)
                 await pollVote({ variables: { id: v.id, hash, hmac } })
               } catch (err) {
@@ -72,9 +75,11 @@ export default function Poll ({ item }) {
                 if (err instanceof InvoiceCanceledError) {
                   return
                 }
-                const msg = err.message || err.toString?.()
-                toaster.danger('poll vote error: ' + msg)
+                const reason = err.message || err.toString?.()
+                notify(NotificationType.PollVoteError, { reason, item: { ...item, root } })
                 cancel?.()
+              } finally {
+                unnotify(nid)
               }
             }
             : signIn}

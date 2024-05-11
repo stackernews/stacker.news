@@ -38,7 +38,9 @@ export const NotificationType = {
   ReplyError: 'REPLY_ERROR',
   ReplyPending: 'REPLY_PENDING',
   BountyError: 'BOUNTY_ERROR',
-  BountyPending: 'BOUNTY_PENDING'
+  BountyPending: 'BOUNTY_PENDING',
+  PollVoteError: 'POLL_VOTE_ERROR',
+  PollVotePending: 'POLL_VOTE_PENDING'
 }
 
 function Notification ({ n, fresh }) {
@@ -68,7 +70,9 @@ function Notification ({ n, fresh }) {
         (type === NotificationType.ReplyError && <ReplyError n={n} />) ||
         (type === NotificationType.ReplyPending && <ReplyPending n={n} />) ||
         (type === NotificationType.BountyError && <BountyError n={n} />) ||
-        (type === NotificationType.BountyPending && <BountyPending n={n} />)
+        (type === NotificationType.BountyPending && <BountyPending n={n} />) ||
+        (type === NotificationType.PollVotePending && <PollVotePending n={n} />) ||
+        (type === NotificationType.PollVoteError && <PollVoteError n={n} />)
       }
     </NotificationLayout>
   )
@@ -122,6 +126,8 @@ const defaultOnClick = n => {
   if (type === NotificationType.ReplyPending) return {}
   if (type === NotificationType.BountyError) return {}
   if (type === NotificationType.BountyPending) return {}
+  if (type === NotificationType.PollVoteError) return {}
+  if (type === NotificationType.PollVotePending) return {}
 
   // Votification, Mention, JobChanged, Reply all have item
   if (!n.item.title) {
@@ -726,6 +732,20 @@ function BountyPending ({ n }) {
   const expired = n.createdAt < datePivot(new Date(), { seconds: -JIT_INVOICE_TIMEOUT_MS })
   if (expired) {
     return <BountyError n={{ ...n, reason: 'invoice expired' }} />
+  }
+  return <ClientNotification n={n} title={title} variant='info' />
+}
+
+function PollVoteError ({ n }) {
+  const title = `failed to submit poll vote: ${n.reason}`
+  return <ClientNotification n={n} title={title} variant='danger' />
+}
+
+function PollVotePending ({ n }) {
+  const title = 'poll vote pending'
+  const expired = n.createdAt < datePivot(new Date(), { seconds: -JIT_INVOICE_TIMEOUT_MS })
+  if (expired) {
+    return <PollVoteError n={{ ...n, reason: 'invoice expired' }} />
   }
   return <ClientNotification n={n} title={title} variant='info' />
 }

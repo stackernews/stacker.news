@@ -179,6 +179,9 @@ export default function UpVote ({ item, className }) {
       showModal(onClose => <ItemAct onClose={onClose} itemId={item.id} act={act} />, { onClose: handleModalClosed })
     }
   }
+
+  const fillColor = hover ? nextColor : color
+
   return (
     <div ref={ref} className='upvoteParent'>
       <LongPressable
@@ -203,8 +206,8 @@ export default function UpVote ({ item, className }) {
                     }
               style={meSats || hover
                 ? {
-                    fill: hover ? nextColor : color,
-                    filter: `drop-shadow(0 0 6px ${hover ? nextColor : color}90)`
+                    fill: fillColor,
+                    filter: `drop-shadow(0 0 6px ${fillColor}90)`
                   }
                 : undefined}
             />

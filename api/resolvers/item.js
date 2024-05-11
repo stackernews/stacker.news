@@ -1388,7 +1388,15 @@ const enqueueDeletionJob = async (item, models) => {
 const deleteReminderAndJob = async ({ me, item, models }) => {
   if (me?.id && me.id !== ANON_USER_ID) {
     await models.$queryRawUnsafe(`DELETE FROM pgboss.job WHERE name = 'reminder' AND data->>'itemId' = '${item.id}' AND data->>'userId' = '${me.id}';`)
-    await models.$queryRawUnsafe(`DELETE FROM "Reminder" WHERE "itemId" = ${item.id} AND "userId" = ${me.id} AND "remindAt" > now();`)
+    await models.reminder.delete({
+      where: {
+        itemId: Number(item.id),
+        userId: Number(me.id),
+        remindAt: {
+          gt: new Date()
+        }
+      }
+    })
   }
 }
 
@@ -1402,6 +1410,7 @@ const createReminderAndJob = async ({ me, item, models }) => {
     await models.$queryRawUnsafe(`
       INSERT INTO pgboss.job (name, data, startafter)
       VALUES ('reminder', jsonb_build_object('itemId', ${item.id}, 'userId', ${me.id}), now() + interval '${reminderCommand.number} ${reminderCommand.unit}s');`)
+    // use a raw query instead of the model to reuse the built-in `now + interval` support instead of doing it via JS
     await models.$queryRawUnsafe(`
       INSERT INTO "Reminder" ("userId", "itemId", "remindAt")
       VALUES (${me.id}, ${item.id}, now() + interval '${reminderCommand.number} ${reminderCommand.unit}s');`)

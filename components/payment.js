@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo } from 'react'
+import { useCallback } from 'react'
 import { useMe } from './me'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
 import { useWebLN } from './webln'
@@ -7,8 +7,6 @@ import { INVOICE } from '@/fragments/wallet'
 import Invoice from '@/components/invoice'
 import { useFeeButton } from './fee-button'
 import { useShowModal } from './modal'
-
-const PaymentContext = createContext()
 
 export class InvoiceCanceledError extends Error {
   constructor (hash) {
@@ -161,7 +159,7 @@ const useQrPayment = () => {
   return waitForQrPayment
 }
 
-export const PaymentProvider = ({ children }) => {
+export const usePayment = () => {
   const me = useMe()
   const feeButton = useFeeButton()
   const invoice = useInvoice()
@@ -207,14 +205,5 @@ export const PaymentProvider = ({ children }) => {
     }
   }, [invoice])
 
-  const value = useMemo(() => ({ request, cancel }), [request, cancel])
-  return (
-    <PaymentContext.Provider value={value}>
-      {children}
-    </PaymentContext.Provider>
-  )
-}
-
-export const usePayment = () => {
-  return useContext(PaymentContext)
+  return { request, cancel }
 }

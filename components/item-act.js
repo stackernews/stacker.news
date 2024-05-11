@@ -8,7 +8,7 @@ import { amountSchema } from '@/lib/validate'
 import { gql, useApolloClient, useMutation } from '@apollo/client'
 import { useLightning } from './lightning'
 import { nextTip } from './upvote'
-import { InvoiceCanceledError, PaymentProvider, usePayment } from './payment'
+import { InvoiceCanceledError, usePayment } from './payment'
 import { ZAP_UNDO_DELAY } from '@/lib/constants'
 import { NotificationType, useNotifications } from './notifications'
 import { useToast } from './toast'
@@ -93,50 +93,47 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
     return revert
   }, [cache, strike, onClose, abortSignal])
 
-  // we need to wrap with PaymentProvider here since modals don't have access to PaymentContext by default
   return (
-    <PaymentProvider>
-      <Form
-        initial={{
-          amount: me?.privates?.tipDefault || defaultTips[0],
-          default: false
-        }}
-        schema={amountSchema}
-        invoiceable
-        onSubmit={onSubmit}
-        optimisticUpdate={optimisticUpdate}
-        onError={me
-          ? ({ reason, amount }) => {
-              notify(NotificationType.ZapError, { reason, amount, itemId: item.id })
-            }
-          : undefined}
-        beforeSubmit={({ amount }) => {
-          const nid = notify(NotificationType.ZapPending, { amount, itemId: item.id }, false)
-          return { nid }
-        }}
-        afterSubmit={({ amount, nid }) => {
-          unnotify(nid)
-        }}
-      >
-        <Input
-          label='amount'
-          name='amount'
-          type='number'
-          innerRef={inputRef}
-          overrideValue={oValue}
-          required
-          autoFocus
-          append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
-        />
-        <div>
-          <Tips setOValue={setOValue} />
-        </div>
-        {children}
-        <div className='d-flex mt-3'>
-          <SubmitButton variant={down ? 'danger' : 'success'} className='ms-auto mt-1 px-4' value='TIP'>{down && 'down'}zap</SubmitButton>
-        </div>
-      </Form>
-    </PaymentProvider>
+    <Form
+      initial={{
+        amount: me?.privates?.tipDefault || defaultTips[0],
+        default: false
+      }}
+      schema={amountSchema}
+      invoiceable
+      onSubmit={onSubmit}
+      optimisticUpdate={optimisticUpdate}
+      onError={me
+        ? ({ reason, amount }) => {
+            notify(NotificationType.ZapError, { reason, amount, itemId: item.id })
+          }
+        : undefined}
+      beforeSubmit={({ amount }) => {
+        const nid = notify(NotificationType.ZapPending, { amount, itemId: item.id }, false)
+        return { nid }
+      }}
+      afterSubmit={({ amount, nid }) => {
+        unnotify(nid)
+      }}
+    >
+      <Input
+        label='amount'
+        name='amount'
+        type='number'
+        innerRef={inputRef}
+        overrideValue={oValue}
+        required
+        autoFocus
+        append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+      />
+      <div>
+        <Tips setOValue={setOValue} />
+      </div>
+      {children}
+      <div className='d-flex mt-3'>
+        <SubmitButton variant={down ? 'danger' : 'success'} className='ms-auto mt-1 px-4' value='TIP'>{down && 'down'}zap</SubmitButton>
+      </div>
+    </Form>
   )
 }
 

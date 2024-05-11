@@ -146,7 +146,7 @@ const updateItemSats = (cache, { id, path, act, sats }, { me }) => {
     // in that case, it is important that we first revert the persisted sats
     // before calling cache.modify since cache.modify will trigger field reads
     // and thus persisted sats will be counted
-    if (!me) persistItemAnonSats({ id, sats })
+    if (!me) persistItemAnonSats({ id, path, act, sats })
     else persistItemPendingSats({ id, path, act, sats })
   }
 

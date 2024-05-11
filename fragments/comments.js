@@ -17,7 +17,6 @@ export const COMMENT_FIELDS = gql`
       meMute
     }
     sats
-    meAnonSats @client
     upvotes
     freedFreebie
     boost

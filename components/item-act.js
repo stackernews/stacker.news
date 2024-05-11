@@ -144,7 +144,7 @@ const updateItemSats = (cache, { id, path, act, sats }, { me }) => {
     // in that case, it is important that we first revert the persisted sats
     // before calling cache.modify since cache.modify will trigger field reads
     // and thus persisted sats will be counted
-    if (!me) persistItemMeAnonSats({ id, sats })
+    if (!me) persistItemAnonSats({ id, sats })
     else persistItemPendingSats({ id, path, act, sats })
   }
 
@@ -154,11 +154,9 @@ const updateItemSats = (cache, { id, path, act, sats }, { me }) => {
       sats (existingSats = 0) {
         return act === 'TIP' ? existingSats + sats : existingSats
       },
-      meSats: me
-        ? (existingSats = 0) => {
-            return act === 'TIP' ? existingSats + sats : existingSats
-          }
-        : undefined,
+      meSats (existingSats = 0) {
+        return act === 'TIP' ? existingSats + sats : existingSats
+      },
       meDontLikeSats: me
         ? (existingSats = 0) => {
             return act === 'DONT_LIKE_THIS' ? existingSats + sats : existingSats
@@ -183,29 +181,31 @@ const updateItemSats = (cache, { id, path, act, sats }, { me }) => {
   }
 
   if (sats > 0) {
-    if (!me) persistItemMeAnonSats({ id, sats })
+    if (!me) persistItemAnonSats({ id, path, act, sats })
     else persistItemPendingSats({ id, path, act, sats })
   }
 }
 
-const persistItemMeAnonSats = ({ id, sats }) => {
-  const storageKey = `TIP-item:ANON:${id}`
-  const existingAmount = Number(window.localStorage.getItem(storageKey) || '0')
-  window.localStorage.setItem(storageKey, existingAmount + sats)
-}
-
-const persistItemPendingSats = ({ id, path, act, sats }) => {
-  const storageKey = `TIP-item:PENDING:${act}:${id}`
+const persistItemSats = (prefix, { id, path, act, sats }) => {
+  const storageKey = `TIP-item:${prefix}:${act}:${id}`
   const existingAmount = Number(window.localStorage.getItem(storageKey) || '0')
   window.localStorage.setItem(storageKey, existingAmount + sats)
   if (act === 'TIP') {
     path.split('.').forEach(aId => {
       if (Number(aId) === Number(id)) return
-      const storageKey = `TIP-comment:PENDING:${aId}`
+      const storageKey = `TIP-comment:${prefix}:${act}:${aId}`
       const existingAmount = Number(window.localStorage.getItem(storageKey) || '0')
       window.localStorage.setItem(storageKey, existingAmount + sats)
     })
   }
+}
+
+const persistItemAnonSats = ({ id, path, act, sats }) => {
+  persistItemSats('ANON', { id, path, act, sats })
+}
+
+const persistItemPendingSats = ({ id, path, act, sats }) => {
+  persistItemSats('PENDING', { id, path, act, sats })
 }
 
 export const actOptimisticUpdate = (cache, { id, sats, path, act }, { me }) => {

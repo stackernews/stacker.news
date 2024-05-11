@@ -149,7 +149,7 @@ export default function UpVote ({ item, className }) {
     [item?.mine, item?.meForward, item?.deletedAt])
 
   const [meSats, overlayText, color, nextColor] = useMemo(() => {
-    const meSats = (item?.meSats || item?.meAnonSats || 0)
+    const meSats = item?.meSats || 0
 
     // what should our next tip be?
     const sats = nextTip(meSats, { ...me?.privates })
@@ -157,7 +157,7 @@ export default function UpVote ({ item, className }) {
     return [
       meSats, me ? numWithUnits(sats, { abbreviate: false }) : 'zap it',
       getColor(meSats), getColor(meSats + sats)]
-  }, [item?.meSats, item?.meAnonSats, me?.privates?.tipDefault, me?.privates?.turboDefault])
+  }, [item?.meSats, me?.privates?.tipDefault, me?.privates?.turboDefault])
 
   const handleModalClosed = () => {
     setHover(false)

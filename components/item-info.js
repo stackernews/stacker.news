@@ -34,7 +34,6 @@ export default function ItemInfo ({
   const [canEdit, setCanEdit] =
     useState(item.mine && (Date.now() < editThreshold))
   const [hasNewComments, setHasNewComments] = useState(false)
-  const [meTotalSats, setMeTotalSats] = useState(0)
   const root = useRoot()
   const sub = item?.sub || root?.sub
 
@@ -43,10 +42,6 @@ export default function ItemInfo ({
       setHasNewComments(newComments(item))
     }
   }, [item])
-
-  useEffect(() => {
-    if (item) setMeTotalSats((item.meSats || 0) + (item.meAnonSats || 0))
-  }, [item?.meSats, item?.meAnonSats])
 
   // territory founders can pin any post in their territory
   // and OPs can pin any root reply in their post
@@ -66,7 +61,7 @@ export default function ItemInfo ({
             unitPlural: 'stackers'
           })} ${item.mine
             ? `\\ ${numWithUnits(item.meSats, { abbreviate: false })} to post`
-            : `(${numWithUnits(meTotalSats, { abbreviate: false })}${item.meDontLikeSats
+            : `(${numWithUnits(item.meSats, { abbreviate: false })}${item.meDontLikeSats
               ? ` & ${numWithUnits(item.meDontLikeSats, { abbreviate: false, unitSingular: 'downsat', unitPlural: 'downsats' })}`
               : ''} from me)`} `}
           >
@@ -174,7 +169,7 @@ export default function ItemInfo ({
               <CrosspostDropdownItem item={item} />}
             {me && !item.position &&
             !item.mine && !item.deletedAt &&
-            (item.meDontLikeSats > meTotalSats
+            (item.meDontLikeSats > item.meSats
               ? <DropdownItemUpVote item={item} />
               : <DontLikeThisDropdownItem id={item.id} />)}
             {me && sub && !item.mine && !item.outlawed && Number(me.id) === Number(sub.userId) && sub.moderated &&

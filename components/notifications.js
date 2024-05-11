@@ -596,7 +596,13 @@ const NotificationContext = createContext()
 const storageKey = 'notifications'
 function loadNotifications () {
   const stored = window.localStorage.getItem(storageKey)
-  return stored ? JSON.parse(stored) : []
+  if (!stored) return []
+  const filtered = JSON.parse(stored).filter(({ sortTime }) => {
+    // only keep notifications younger than 24 hours
+    return new Date(sortTime) >= datePivot(new Date(), { hours: -24 })
+  })
+  window.localStorage.setItem(storageKey, JSON.stringify(filtered))
+  return filtered
 }
 function saveNotification (n) {
   const stored = window.localStorage.getItem(storageKey)

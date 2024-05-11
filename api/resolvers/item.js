@@ -1387,8 +1387,8 @@ const enqueueDeletionJob = async (item, models) => {
 
 const deleteReminderAndJob = async ({ me, item, models }) => {
   if (me?.id && me.id !== ANON_USER_ID) {
-    await models.$queryRawUnsafe(`DELETE FROM pgboss.job WHERE name = 'reminder' AND data->>'itemId' = '${item.id}' AND data->>'userId' = '${me.id}';`)
-    await models.reminder.delete({
+    await models.$queryRawUnsafe(`DELETE FROM pgboss.job WHERE name = 'reminder' AND data->>'itemId' = '${item.id}' AND data->>'userId' = '${me.id}' AND state <> 'completed';`)
+    await models.reminder.deleteMany({
       where: {
         itemId: Number(item.id),
         userId: Number(me.id),

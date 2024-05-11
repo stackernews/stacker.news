@@ -564,9 +564,12 @@ export default function Notifications ({ ssrData }) {
 
   if (!dat) return <CommentsFlatSkeleton />
 
+  const sorted = [...clientSideNotifications, ...notifications]
+    .sort((a, b) => new Date(b.sortTime).getTime() - new Date(a.sortTime).getTime())
+
   return (
     <>
-      {[...clientSideNotifications, ...notifications].map(n =>
+      {sorted.map(n =>
         <Notification
           n={n} key={nid(n)}
           fresh={new Date(n.sortTime) > new Date(router?.query?.checkedAt ?? lastChecked)}
@@ -629,7 +632,7 @@ export function NotificationProvider ({ children }) {
 
   const notify = useCallback((type, props, hasNewNotes = true) => {
     const id = crypto.randomUUID()
-    const n = { __typename: type, id, createdAt: +new Date(), ...props }
+    const n = { __typename: type, id, sortTime: +new Date(), ...props }
     setNotifications(notifications => [n, ...notifications])
     saveNotification(n)
     if (hasNewNotes) {
@@ -665,7 +668,7 @@ function ClientNotification ({ n, title, variant }) {
     <div className='ms-2'>
       <div className={`fw-bold text-${variant}`}>
         {title}
-        <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.createdAt))}</small>
+        <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
       </div>
       {n.item.title
         ? <Item item={n.item} />
@@ -686,7 +689,7 @@ function ZapError ({ n }) {
 }
 
 function ZapPending ({ n }) {
-  const expired = n.createdAt < datePivot(new Date(), { seconds: -JIT_INVOICE_TIMEOUT_MS })
+  const expired = n.sortTime < datePivot(new Date(), { seconds: -JIT_INVOICE_TIMEOUT_MS })
   if (expired) {
     return <ZapError n={{ ...n, reason: 'invoice expired' }} />
   }
@@ -699,7 +702,7 @@ function ReplyError ({ n }) {
 }
 
 function ReplyPending ({ n }) {
-  const expired = n.createdAt < datePivot(new Date(), { seconds: -JIT_INVOICE_TIMEOUT_MS })
+  const expired = n.sortTime < datePivot(new Date(), { seconds: -JIT_INVOICE_TIMEOUT_MS })
   if (expired) {
     return <ReplyError n={{ ...n, reason: 'invoice expired' }} />
   }
@@ -712,7 +715,7 @@ function BountyError ({ n }) {
 }
 
 function BountyPending ({ n }) {
-  const expired = n.createdAt < datePivot(new Date(), { seconds: -JIT_INVOICE_TIMEOUT_MS })
+  const expired = n.sortTime < datePivot(new Date(), { seconds: -JIT_INVOICE_TIMEOUT_MS })
   if (expired) {
     return <BountyError n={{ ...n, reason: 'invoice expired' }} />
   }
@@ -725,7 +728,7 @@ function PollVoteError ({ n }) {
 }
 
 function PollVotePending ({ n }) {
-  const expired = n.createdAt < datePivot(new Date(), { seconds: -JIT_INVOICE_TIMEOUT_MS })
+  const expired = n.sortTime < datePivot(new Date(), { seconds: -JIT_INVOICE_TIMEOUT_MS })
   if (expired) {
     return <PollVoteError n={{ ...n, reason: 'invoice expired' }} />
   }

@@ -10,7 +10,7 @@ import { datePivot, dayMonthYear, timeSince } from '@/lib/time'
 import Link from 'next/link'
 import Check from '@/svgs/check-double-line.svg'
 import HandCoin from '@/svgs/hand-coin-fill.svg'
-import { LOST_BLURBS, FOUND_BLURBS, UNKNOWN_LINK_REL, JIT_INVOICE_TIMEOUT_MS } from '@/lib/constants'
+import { LOST_BLURBS, FOUND_BLURBS, UNKNOWN_LINK_REL, JIT_INVOICE_TIMEOUT_MS, ANON_USER_ID } from '@/lib/constants'
 import CowboyHatIcon from '@/svgs/cowboy.svg'
 import BaldIcon from '@/svgs/bald.svg'
 import { RootProvider } from './root'
@@ -31,6 +31,7 @@ import { commentSubTreeRootId } from '@/lib/item'
 import LinkToContext from './link-to-context'
 import { Badge } from 'react-bootstrap'
 import { ITEM_FULL } from '@/fragments/items'
+import { useMe } from './me'
 
 export const NotificationType = {
   ZapError: 'ZAP_ERROR',
@@ -593,8 +594,7 @@ function CommentsFlatSkeleton () {
 
 const NotificationContext = createContext()
 
-const storageKey = 'notifications'
-function loadNotifications () {
+function loadNotifications (storageKey) {
   const stored = window.localStorage.getItem(storageKey)
   if (!stored) return []
   const filtered = JSON.parse(stored).filter(({ sortTime }) => {
@@ -604,7 +604,8 @@ function loadNotifications () {
   window.localStorage.setItem(storageKey, JSON.stringify(filtered))
   return filtered
 }
-function saveNotification (n) {
+
+function saveNotification (storageKey, n) {
   const stored = window.localStorage.getItem(storageKey)
   if (stored) {
     window.localStorage.setItem(storageKey, JSON.stringify([...JSON.parse(stored), n]))
@@ -613,7 +614,7 @@ function saveNotification (n) {
   }
 }
 
-function removeNotification ({ id }) {
+function removeNotification (storageKey, id) {
   const stored = window.localStorage.getItem(storageKey)
   if (stored) {
     window.localStorage.setItem(storageKey, JSON.stringify(JSON.parse(stored).filter(n => n.id !== id)))
@@ -624,9 +625,13 @@ export function NotificationProvider ({ children }) {
   // client-side notifications
   const [notifications, setNotifications] = useState([])
   const client = useApolloClient()
+  const me = useMe()
+  // anons don't have access to notifications
+  // but code might attempt to store notifications anyway when anons use the site
+  const storageKey = `notifications:${me?.id || ANON_USER_ID}`
 
   useEffect(() => {
-    const loaded = loadNotifications()
+    const loaded = loadNotifications(storageKey)
     // populate cache with items
     loaded.forEach(({ item }) => {
       if (item?.id) {
@@ -634,13 +639,13 @@ export function NotificationProvider ({ children }) {
       }
     })
     setNotifications(loaded)
-  }, [])
+  }, [storageKey])
 
   const notify = useCallback((type, props, hasNewNotes = true) => {
     const id = crypto.randomUUID()
     const n = { __typename: type, id, sortTime: +new Date(), ...props }
     setNotifications(notifications => [n, ...notifications])
-    saveNotification(n)
+    saveNotification(storageKey, n)
     if (hasNewNotes) {
       client?.writeQuery({
         query: HAS_NOTIFICATIONS,
@@ -650,11 +655,11 @@ export function NotificationProvider ({ children }) {
       })
     }
     return id
-  }, [client])
+  }, [storageKey, client])
 
   const unnotify = useCallback((id) => {
     setNotifications(notifications => notifications.filter(n => n.id !== id))
-    removeNotification({ id })
+    removeNotification(storageKey, id)
   })
 
   const value = useMemo(() => ({ notifications, notify, unnotify }), [notifications, notify, unnotify])

@@ -700,12 +700,11 @@ function ZapError ({ n }) {
 }
 
 function ZapPending ({ n }) {
-  const title = `zap of ${n.amount} sats pending`
   const expired = n.createdAt < datePivot(new Date(), { seconds: -JIT_INVOICE_TIMEOUT_MS })
   if (expired) {
     return <ZapError n={{ ...n, reason: 'invoice expired' }} />
   }
-  return <ClientNotification n={n} title={title} variant='info' />
+  return null
 }
 
 function ReplyError ({ n }) {
@@ -714,12 +713,11 @@ function ReplyError ({ n }) {
 }
 
 function ReplyPending ({ n }) {
-  const title = 'reply pending'
   const expired = n.createdAt < datePivot(new Date(), { seconds: -JIT_INVOICE_TIMEOUT_MS })
   if (expired) {
     return <ReplyError n={{ ...n, reason: 'invoice expired' }} />
   }
-  return <ClientNotification n={n} title={title} variant='info' />
+  return null
 }
 
 function BountyError ({ n }) {
@@ -728,12 +726,11 @@ function BountyError ({ n }) {
 }
 
 function BountyPending ({ n }) {
-  const title = 'bounty payment pending'
   const expired = n.createdAt < datePivot(new Date(), { seconds: -JIT_INVOICE_TIMEOUT_MS })
   if (expired) {
     return <BountyError n={{ ...n, reason: 'invoice expired' }} />
   }
-  return <ClientNotification n={n} title={title} variant='info' />
+  return null
 }
 
 function PollVoteError ({ n }) {
@@ -742,10 +739,9 @@ function PollVoteError ({ n }) {
 }
 
 function PollVotePending ({ n }) {
-  const title = 'poll vote pending'
   const expired = n.createdAt < datePivot(new Date(), { seconds: -JIT_INVOICE_TIMEOUT_MS })
   if (expired) {
     return <PollVoteError n={{ ...n, reason: 'invoice expired' }} />
   }
-  return <ClientNotification n={n} title={title} variant='info' />
+  return null
 }

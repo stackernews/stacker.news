@@ -1231,7 +1231,7 @@ export const createMentions = async (item, models) => {
 
         // only send if mention is new to avoid duplicates
         if (mention.createdAt.getTime() === mention.updatedAt.getTime()) {
-          notifyMention(user.id, item)
+          notifyMention({ models, userId: user.id, item })
         }
       })
     }

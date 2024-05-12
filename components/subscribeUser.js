@@ -51,7 +51,7 @@ export default function SubscribeUserDropdownItem ({ user, target = 'posts' }) {
           toaster.success(meSubscription ? 'unsubscribed' : 'subscribed')
         } catch (err) {
           console.error(err)
-          toaster.danger(meSubscription ? 'failed to unsubscribe' : 'failed to subscribe')
+          toaster.danger(err.message ?? (meSubscription ? 'failed to unsubscribe' : 'failed to subscribe'))
         }
       }}
     >

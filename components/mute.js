@@ -47,7 +47,7 @@ export default function MuteDropdownItem ({ user: { name, id, meMute } }) {
           toaster.success(`${meMute ? 'un' : ''}muted ${name}`)
         } catch (err) {
           console.error(err)
-          toaster.danger(`failed to ${meMute ? 'un' : ''}mute ${name}`)
+          toaster.danger(err.message ?? `failed to ${meMute ? 'un' : ''}mute ${name}`)
         }
       }}
     >

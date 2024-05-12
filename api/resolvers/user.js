@@ -10,6 +10,7 @@ import { viewGroup } from './growth'
 import { timeUnitForRange, whenRange } from '@/lib/time'
 import assertApiKeyNotPermitted from './apiKey'
 import { hashEmail } from '@/lib/crypto'
+import { isMuted } from '@/lib/user'
 
 const contributors = new Set()
 
@@ -701,9 +702,16 @@ export default {
     subscribeUserPosts: async (parent, { id }, { me, models }) => {
       const lookupData = { followerId: Number(me.id), followeeId: Number(id) }
       const existing = await models.userSubscription.findUnique({ where: { followerId_followeeId: lookupData } })
+      const muted = await isMuted({ models, muterId: me?.id, mutedId: id })
       if (existing) {
+        if (muted && !existing.postsSubscribedAt) {
+          throw new GraphQLError("you can't subscribe to a stacker that you've muted", { extensions: { code: 'BAD_INPUT' } })
+        }
         await models.userSubscription.update({ where: { followerId_followeeId: lookupData }, data: { postsSubscribedAt: existing.postsSubscribedAt ? null : new Date() } })
       } else {
+        if (muted) {
+          throw new GraphQLError("you can't subscribe to a stacker that you've muted", { extensions: { code: 'BAD_INPUT' } })
+        }
         await models.userSubscription.create({ data: { ...lookupData, postsSubscribedAt: new Date() } })
       }
       return { id }
@@ -711,9 +719,16 @@ export default {
     subscribeUserComments: async (parent, { id }, { me, models }) => {
       const lookupData = { followerId: Number(me.id), followeeId: Number(id) }
       const existing = await models.userSubscription.findUnique({ where: { followerId_followeeId: lookupData } })
+      const muted = await isMuted({ models, muterId: me?.id, mutedId: id })
       if (existing) {
+        if (muted && !existing.commentsSubscribedAt) {
+          throw new GraphQLError("you can't subscribe to a stacker that you've muted", { extensions: { code: 'BAD_INPUT' } })
+        }
         await models.userSubscription.update({ where: { followerId_followeeId: lookupData }, data: { commentsSubscribedAt: existing.commentsSubscribedAt ? null : new Date() } })
       } else {
+        if (muted) {
+          throw new GraphQLError("you can't subscribe to a stacker that you've muted", { extensions: { code: 'BAD_INPUT' } })
+        }
         await models.userSubscription.create({ data: { ...lookupData, commentsSubscribedAt: new Date() } })
       }
       return { id }
@@ -725,6 +740,18 @@ export default {
       if (existing) {
         await models.mute.delete({ where })
       } else {
+        // check to see if current user is subscribed to the target user, and disallow mute if so
+        const subscription = await models.userSubscription.findUnique({
+          where: {
+            followerId_followeeId: {
+              followerId: Number(me.id),
+              followeeId: Number(id)
+            }
+          }
+        })
+        if (subscription.postsSubscribedAt || subscription.commentsSubscribedAt) {
+          throw new GraphQLError("you can't mute a stacker to whom you've subscribed", { extensions: { code: 'BAD_INPUT' } })
+        }
         await models.mute.create({ data: { ...lookupData } })
       }
       return { id }
@@ -782,16 +809,7 @@ export default {
       if (!me) return false
       if (typeof user.meMute !== 'undefined') return user.meMute
 
-      const mute = await models.mute.findUnique({
-        where: {
-          muterId_mutedId: {
-            muterId: Number(me.id),
-            mutedId: Number(user.id)
-          }
-        }
-      })
-
-      return !!mute
+      return await isMuted({ models, muterId: me.id, mutedId: user.id })
     },
     since: async (user, args, { models }) => {
       // get the user's first item

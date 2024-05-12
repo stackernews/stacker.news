@@ -41,9 +41,7 @@ export default function AdvPostForm ({ children, item }) {
     const hasBoostError = !!formik?.errors?.boost && formik?.errors?.boost !== ''
     const hasForwardError = (!!formik?.errors?.forward?.[0].nym && formik?.errors?.forward?.[0].nym !== '') || (!!formik?.errors?.forward?.[0].pct && formik?.errors?.forward?.[0].pct !== '')
 
-    if (formik?.isSubmitting) {
-      setShow(hasForwardError || hasBoostError ? formik?.isSubmitting : undefined)
-    }
+    setShow(hasForwardError || hasBoostError ? formik?.isSubmitting : undefined)
   }, [formik?.isSubmitting])
 
   useEffect(() => {

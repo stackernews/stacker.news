@@ -81,8 +81,8 @@ export default function Search ({ sub }) {
               </SubmitButton>
             </div>
             {filter && router.query.q &&
-              <div className='text-muted fw-bold d-flex align-items-center flex-wrap pb-2'>
-                <div className='text-muted fw-bold d-flex align-items-center'>
+              <div className='text-muted fw-bold d-flex align-items-center flex-wrap'>
+                <div className='text-muted fw-bold d-flex align-items-center mb-2'>
                   <Select
                     groupClassName='me-2 mb-0'
                     onChange={(formik, e) => search({ ...formik?.values, what: e.target.value })}
@@ -120,7 +120,7 @@ export default function Search ({ sub }) {
                   <DatePicker
                     fromName='from'
                     toName='to'
-                    className='p-0 px-2 mb-2'
+                    className='p-0 px-2'
                     onChange={(formik, [from, to], e) => {
                       search({ ...formik?.values, from: from.getTime(), to: to.getTime() })
                     }}

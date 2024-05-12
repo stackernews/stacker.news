@@ -1,6 +1,6 @@
 import styles from './text.module.css'
 import { Fragment, useState, useEffect, useMemo, useCallback, forwardRef, useRef, memo } from 'react'
-import { IMGPROXY_URL_REGEXP } from '@/lib/url'
+import { IMGPROXY_URL_REGEXP, MEDIA_DOMAIN_REGEXP } from '@/lib/url'
 import { useShowModal } from './modal'
 import { useMe } from './me'
 import { Dropdown } from 'react-bootstrap'
@@ -63,9 +63,9 @@ function ImageOriginal ({ src, topLevel, rel, tab, children, onClick, ...props }
   }
 }
 
-function ImageProxy ({ src, srcSet: { dimensions, ...srcSetObj } = {}, onClick, topLevel, onError, ...props }) {
+function TrustedImage ({ src, srcSet: { dimensions, ...srcSetObj } = {}, onClick, topLevel, onError, ...props }) {
   const srcSet = useMemo(() => {
-    if (!srcSetObj) return undefined
+    if (Object.keys(srcSetObj).length === 0) return undefined
     // srcSetObj shape: { [widthDescriptor]: <imgproxyUrl>, ... }
     return Object.entries(srcSetObj).reduce((acc, [wDescriptor, url], i, arr) => {
       // backwards compatibility: we used to replace image urls with imgproxy urls rather just storing paths
@@ -79,7 +79,7 @@ function ImageProxy ({ src, srcSet: { dimensions, ...srcSetObj } = {}, onClick, 
 
   // get source url in best resolution
   const bestResSrc = useMemo(() => {
-    if (!srcSetObj) return src
+    if (Object.keys(srcSetObj).length === 0) return src
     return Object.entries(srcSetObj).reduce((acc, [wDescriptor, url]) => {
       if (!url.startsWith('http')) {
         url = new URL(url, process.env.NEXT_PUBLIC_IMGPROXY_URL).toString()
@@ -107,7 +107,7 @@ function ImageProxy ({ src, srcSet: { dimensions, ...srcSetObj } = {}, onClick, 
   )
 }
 
-const Image = memo(({ className, src, srcSet, sizes, width, height, bestResSrc, onClick, onError }) => {
+const Image = memo(({ className, src, srcSet, sizes, width, height, onClick, onError }) => {
   const style = width && height
     ? { '--height': `${height}px`, '--width': `${width}px`, '--aspect-ratio': `${width} / ${height}` }
     : undefined
@@ -116,7 +116,7 @@ const Image = memo(({ className, src, srcSet, sizes, width, height, bestResSrc, 
     <img
       className={className}
       // browsers that don't support srcSet and sizes will use src. use best resolution possible in that case
-      src={bestResSrc}
+      src={src}
       srcSet={srcSet}
       sizes={sizes}
       width={width}
@@ -132,7 +132,7 @@ export default function ZoomableImage ({ src, srcSet, ...props }) {
   const showModal = useShowModal()
 
   // if `srcSet` is falsy, it means the image was not processed by worker yet
-  const [imgproxy, setImgproxy] = useState(!!srcSet || IMGPROXY_URL_REGEXP.test(src))
+  const [trustedDomain, setTrustedDomain] = useState(!!srcSet || IMGPROXY_URL_REGEXP.test(src) || MEDIA_DOMAIN_REGEXP.test(src))
 
   // backwards compatibility:
   // src may already be imgproxy url since we used to replace image urls with imgproxy urls
@@ -158,13 +158,13 @@ export default function ZoomableImage ({ src, srcSet, ...props }) {
       </Dropdown.Item>)
   }), [showModal, originalUrl, styles])
 
-  const handleError = useCallback(() => setImgproxy(false), [setImgproxy])
+  const handleError = useCallback(() => setTrustedDomain(false), [setTrustedDomain])
 
   if (!src) return null
 
-  if (imgproxy) {
+  if (trustedDomain) {
     return (
-      <ImageProxy
+      <TrustedImage
         src={src} srcSet={srcSet}
         onClick={handleClick} onError={handleError} {...props}
       />

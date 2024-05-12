@@ -86,7 +86,7 @@ export default function TopHeader ({ sub, cat }) {
             <DatePicker
               fromName='from'
               toName='to'
-              className='p-0 px-2 my-2'
+              className='p-0 px-2'
               onChange={(formik, [from, to], e) => {
                 top({ ...formik?.values, from: from.getTime(), to: to.getTime() })
               }}

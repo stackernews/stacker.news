@@ -968,6 +968,11 @@ div[contenteditable]:focus,
   color: var(--theme-inputDisabledBg) !important;
 }
 
+.react-datepicker-popper[data-placement^=bottom] .react-datepicker__triangle::before, .react-datepicker-popper[data-placement^=bottom] .react-datepicker__triangle::after {
+  border-top: none;
+  border-bottom-color: var(--theme-inputDisabledBg) !important;
+}
+
 .react-datepicker__day--selected, .react-datepicker__day--in-selecting-range, .react-datepicker__day--in-range,
 .react-datepicker__month-text--selected,
 .react-datepicker__month-text--in-selecting-range,

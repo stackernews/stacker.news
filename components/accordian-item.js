@@ -10,7 +10,8 @@ function ContextAwareToggle ({ children, headerColor = 'var(--theme-grey)', even
   const decoratedOnClick = useAccordionButton(eventKey)
 
   useEffect(() => {
-    if (show !== undefined && activeEventKey !== eventKey) {
+    // if we want to show the accordian and it's not open, open it
+    if (show && activeEventKey !== eventKey) {
       decoratedOnClick()
     }
   }, [show])

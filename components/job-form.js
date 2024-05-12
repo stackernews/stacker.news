@@ -184,24 +184,20 @@ function PromoteJob ({ item, sub }) {
   }, [])
 
   useEffect(() => {
-    const isDirty = !!formik?.values.maxBid && (formik?.maxBid !== 0 || formik?.maxBid !== '')
-
-    if (isDirty) {
-      setShow(false)
+    if (formik?.values?.maxBid !== 0) {
+      setShow(true)
     }
   }, [formik?.values])
 
   useEffect(() => {
-    const hasMaxBidError = !!formik?.errors?.maxBid && formik?.errors?.maxBid !== ''
-
-    if (formik?.isSubmitting) {
-      setShow(hasMaxBidError ? !show : undefined)
-    }
+    const hasMaxBidError = !!formik?.errors?.maxBid
+    // if it's open we don't want to collapse on submit
+    setShow(show => show || (hasMaxBidError && formik?.isSubmitting))
   }, [formik?.isSubmitting])
 
   return (
     <AccordianItem
-      show={item?.maxBid > 0 || show}
+      show={show}
       header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>promote</div>}
       body={
         <>

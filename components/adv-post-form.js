@@ -21,7 +21,7 @@ export function AdvPostInitial ({ forward, boost }) {
   }
 }
 
-export default function AdvPostForm ({ children, item }) {
+export default function AdvPostForm ({ children, item, storageKeyPrefix }) {
   const me = useMe()
   const { merge } = useFeeButton()
   const router = useRouter()
@@ -30,18 +30,33 @@ export default function AdvPostForm ({ children, item }) {
   const [show, setShow] = useState(undefined)
 
   useEffect(() => {
-    const isDirty = formik?.values.forward?.[0].nym !== '' || formik?.values.forward?.[0].pct !== '' || formik?.values.boost !== '' || (router.query?.type === 'link' && formik?.values.text !== '')
+    const isDirty = formik?.values.forward?.[0].nym !== '' || formik?.values.forward?.[0].pct !== '' ||
+      formik?.values.boost !== '' || (router.query?.type === 'link' && formik?.values.text !== '')
 
+    // if the adv post form is dirty on first render, show the accordian
     if (isDirty) {
-      setShow(false)
+      setShow(true)
     }
-  }, [formik?.values])
+
+    // HACK ... TODO: we should generically handle this kind of local storage stuff
+    // in the form component, overriding the initial values
+    if (storageKeyPrefix) {
+      for (let i = 0; i < MAX_FORWARDS; i++) {
+        ['nym', 'pct'].forEach(key => {
+          const value = window.localStorage.getItem(`${storageKeyPrefix}-forward[${i}].${key}`)
+          if (value) {
+            formik?.setFieldValue(`forward[${i}].${key}`, value)
+          }
+        })
+      }
+    }
+  }, [formik?.values, storageKeyPrefix])
 
   useEffect(() => {
-    const hasBoostError = !!formik?.errors?.boost && formik?.errors?.boost !== ''
-    const hasForwardError = (!!formik?.errors?.forward?.[0].nym && formik?.errors?.forward?.[0].nym !== '') || (!!formik?.errors?.forward?.[0].pct && formik?.errors?.forward?.[0].pct !== '')
-
-    setShow(hasForwardError || hasBoostError ? formik?.isSubmitting : undefined)
+    // force show the accordian if there is an error and the form is submitting
+    const hasError = !!formik?.errors?.boost || formik?.errors?.forward?.length > 0
+    // if it's open we don't want to collapse on submit
+    setShow(show => show || (hasError && formik?.isSubmitting))
   }, [formik?.isSubmitting])
 
   useEffect(() => {

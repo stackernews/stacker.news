@@ -129,6 +129,8 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
   const [postDisabled, setPostDisabled] = useState(false)
   const [titleOverride, setTitleOverride] = useState()
 
+  const storageKeyPrefix = item ? undefined : 'link'
+
   return (
     <Form
       initial={{
@@ -142,7 +144,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
       schema={schema}
       invoiceable
       onSubmit={onSubmit}
-      storageKeyPrefix={item ? undefined : 'link'}
+      storageKeyPrefix={storageKeyPrefix}
     >
       {children}
       <Input
@@ -196,7 +198,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
           }
         }}
       />
-      <AdvPostForm edit={!!item} item={item}>
+      <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item}>
         <MarkdownInput
           label='context'
           name='text'

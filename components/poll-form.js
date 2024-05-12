@@ -71,6 +71,8 @@ export function PollForm ({ item, sub, editThreshold, children }) {
 
   const initialOptions = item?.poll?.options.map(i => i.option)
 
+  const storageKeyPrefix = item ? undefined : 'poll'
+
   return (
     <Form
       initial={{
@@ -85,7 +87,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
       schema={schema}
       invoiceable
       onSubmit={onSubmit}
-      storageKeyPrefix={item ? undefined : 'poll'}
+      storageKeyPrefix={storageKeyPrefix}
     >
       {children}
       <Input
@@ -111,7 +113,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
           : null}
         maxLength={MAX_POLL_CHOICE_LENGTH}
       />
-      <AdvPostForm edit={!!item} item={item}>
+      <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item}>
         <DateTimeInput
           isClearable
           label='poll expiration'

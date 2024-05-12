@@ -93,6 +93,8 @@ export function BountyForm ({
     }, [upsertBounty, router]
   )
 
+  const storageKeyPrefix = item ? undefined : 'bounty'
+
   return (
     <Form
       initial={{
@@ -109,7 +111,7 @@ export function BountyForm ({
         handleSubmit ||
         onSubmit
       }
-      storageKeyPrefix={item ? undefined : 'bounty'}
+      storageKeyPrefix={storageKeyPrefix}
     >
       {children}
       <Input
@@ -143,7 +145,7 @@ export function BountyForm ({
             : null
         }
       />
-      <AdvPostForm edit={!!item} item={item} />
+      <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} />
       <ItemButtonBar itemId={item?.id} canDelete={false} />
     </Form>
   )

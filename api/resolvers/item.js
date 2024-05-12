@@ -866,6 +866,10 @@ export default {
         FROM "Item"
         WHERE id = $1`, Number(id))
 
+      if (item.deletedAt) {
+        throw new GraphQLError('item is deleted', { extensions: { code: 'BAD_INPUT' } })
+      }
+
       // disallow self tips except anons
       if (me) {
         if (Number(item.userId) === Number(me.id)) {

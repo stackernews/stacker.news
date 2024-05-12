@@ -197,7 +197,6 @@ function PromoteJob ({ item, sub }) {
     if (formik?.isSubmitting) {
       setShow(hasMaxBidError ? !show : undefined)
     }
-
   }, [formik?.isSubmitting])
 
   return (

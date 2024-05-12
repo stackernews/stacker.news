@@ -3,34 +3,11 @@ import AccordionContext from 'react-bootstrap/AccordionContext'
 import { useAccordionButton } from 'react-bootstrap/AccordionButton'
 import ArrowRight from '@/svgs/arrow-right-s-fill.svg'
 import ArrowDown from '@/svgs/arrow-down-s-fill.svg'
-import { useRouter } from 'next/router'
-import { useContext, useEffect, useState } from 'react'
-import { useFormikContext } from 'formik'
+import { useContext, useEffect } from 'react'
 
-function ContextAwareToggle ({ children, headerColor = 'var(--theme-grey)', eventKey, hasForm }) {
-  const router = useRouter()
+function ContextAwareToggle ({ children, headerColor = 'var(--theme-grey)', eventKey, show }) {
   const { activeEventKey } = useContext(AccordionContext)
-  const formik = hasForm ? useFormikContext() : null
-  const [show, setShow] = useState(undefined)
   const decoratedOnClick = useAccordionButton(eventKey)
-
-  useEffect(() => {
-    const isDirty = formik?.values.forward?.[0].nym !== '' || formik?.values.forward?.[0].pct !== '' || formik?.values.boost !== '' || (router.query?.type === 'link' && formik?.values.text !== '')
-
-    if (isDirty && hasForm) {
-      setShow(false)
-    }
-  }, [formik?.values])
-
-  useEffect(() => {
-    const hasBoostError = !!formik?.errors?.boost && formik?.errors?.boost !== ''
-    const hasForwardError = (!!formik?.errors?.forward?.[0].nym && formik?.errors?.forward?.[0].nym !== '') || (!!formik?.errors?.forward?.[0].pct && formik?.errors?.forward?.[0].pct !== '')
-    const hasMaxBidError = !!formik?.errors?.maxBid && formik?.errors?.maxBid !== ''
-
-    if (formik?.isSubmitting) {
-      setShow(hasForwardError || hasBoostError || hasMaxBidError ? formik?.isSubmitting : undefined)
-    }
-  }, [formik?.isSubmitting])
 
   useEffect(() => {
     if (show !== undefined && activeEventKey !== eventKey) {
@@ -50,10 +27,10 @@ function ContextAwareToggle ({ children, headerColor = 'var(--theme-grey)', even
   )
 }
 
-export default function AccordianItem ({ header, body, headerColor = 'var(--theme-grey)', show, hasForm }) {
+export default function AccordianItem ({ header, body, headerColor = 'var(--theme-grey)', show }) {
   return (
     <Accordion defaultActiveKey={show ? '0' : undefined}>
-      <ContextAwareToggle hasForm={hasForm} eventKey='0'><div style={{ color: headerColor }}>{header}</div></ContextAwareToggle>
+      <ContextAwareToggle show={show} eventKey='0'><div style={{ color: headerColor }}>{header}</div></ContextAwareToggle>
       <Accordion.Collapse eventKey='0' className='mt-2'>
         <div>{body}</div>
       </Accordion.Collapse>

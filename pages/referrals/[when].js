@@ -82,7 +82,7 @@ export default function Referrals ({ ssrData }) {
             noForm
             fromName='from'
             toName='to'
-            className='p-0 px-2 mb-2'
+            className='p-0 px-2'
             onChange={(formik, [from, to], e) => {
               select({ when, from: from.getTime(), to: to.getTime() })
             }}

@@ -18,6 +18,7 @@ import { Badge } from 'react-bootstrap'
 import AdIcon from '@/svgs/advertisement-fill.svg'
 import { DownZap } from './dont-link-this'
 import { timeLeft } from '@/lib/time'
+import classNames from 'classnames'
 
 function onItemClick (e, router, item) {
   const viewedAt = commentsViewedAt(item)
@@ -112,12 +113,12 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
   )
 }
 
-export function ItemSummary ({ item }) {
+export function ItemSummary ({ item, className }) {
   const titleRef = useRef()
   const router = useRouter()
 
   return (
-    <div className={styles.item}>
+    <div className={classNames(styles.item, className)}>
       <div className={styles.hunk}>
         <div className={`${styles.main} flex-wrap`}>
           <Link

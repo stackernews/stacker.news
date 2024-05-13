@@ -21,13 +21,18 @@ export function AdvPostInitial ({ forward, boost }) {
   }
 }
 
+const FormStatus = {
+  DIRTY: 'dirty',
+  ERROR: 'error'
+}
+
 export default function AdvPostForm ({ children, item, storageKeyPrefix }) {
   const me = useMe()
   const { merge } = useFeeButton()
   const router = useRouter()
   const [itemType, setItemType] = useState()
   const formik = useFormikContext()
-  const [show, setShow] = useState(undefined)
+  const [show, setShow] = useState(false)
 
   useEffect(() => {
     const isDirty = formik?.values.forward?.[0].nym !== '' || formik?.values.forward?.[0].pct !== '' ||
@@ -35,7 +40,7 @@ export default function AdvPostForm ({ children, item, storageKeyPrefix }) {
 
     // if the adv post form is dirty on first render, show the accordian
     if (isDirty) {
-      setShow(true)
+      setShow(FormStatus.DIRTY)
     }
 
     // HACK ... TODO: we should generically handle this kind of local storage stuff
@@ -56,7 +61,7 @@ export default function AdvPostForm ({ children, item, storageKeyPrefix }) {
     // force show the accordian if there is an error and the form is submitting
     const hasError = !!formik?.errors?.boost || formik?.errors?.forward?.length > 0
     // if it's open we don't want to collapse on submit
-    setShow(show => show || (hasError && formik?.isSubmitting))
+    setShow(show => hasError && formik?.isSubmitting ? FormStatus.ERROR : show)
   }, [formik?.isSubmitting])
 
   useEffect(() => {

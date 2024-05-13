@@ -166,9 +166,14 @@ export default function JobForm ({ item, sub }) {
   )
 }
 
+const FormStatus = {
+  DIRTY: 'dirty',
+  ERROR: 'error'
+}
+
 function PromoteJob ({ item, sub }) {
   const formik = useFormikContext()
-  const [show, setShow] = useState(undefined)
+  const [show, setShow] = useState(false)
   const [monthly, setMonthly] = useState(satsMin2Mo(item?.maxBid || 0))
   const [getAuctionPosition, { data }] = useLazyQuery(gql`
     query AuctionPosition($id: ID, $bid: Int!) {
@@ -185,14 +190,14 @@ function PromoteJob ({ item, sub }) {
 
   useEffect(() => {
     if (formik?.values?.maxBid !== 0) {
-      setShow(true)
+      setShow(FormStatus.DIRTY)
     }
   }, [formik?.values])
 
   useEffect(() => {
     const hasMaxBidError = !!formik?.errors?.maxBid
     // if it's open we don't want to collapse on submit
-    setShow(show => show || (hasMaxBidError && formik?.isSubmitting))
+    setShow(show => show || (hasMaxBidError && formik?.isSubmitting && FormStatus.ERROR))
   }, [formik?.isSubmitting])
 
   return (

@@ -44,14 +44,15 @@ export function PriceProvider ({ price, children }) {
 }
 
 const STORAGE_KEY = 'asSats'
+const DEFAULT_SELECTION = 'fiat'
 
 const carousel = [
   'fiat',
-  'yep',
+  // 'yep',
   '1btc',
-  'blockHeight',
+  // 'blockHeight',
   'chainFee',
-  'halving'
+  // 'halving'
 ]
 
 export default function Price ({ className }) {
@@ -59,9 +60,9 @@ export default function Price ({ className }) {
   const [pos, setPos] = useState(0)
 
   useEffect(() => {
-    const satSelection = window.localStorage.getItem(STORAGE_KEY)
-    setAsSats(satSelection ?? 'fiat')
-    setPos(carousel.findIndex((item) => item === satSelection))
+    const selection = window.localStorage.getItem(STORAGE_KEY) ?? DEFAULT_SELECTION
+    setAsSats(selection)
+    setPos(carousel.findIndex((item) => item === selection))
   }, [])
 
   const { price, fiatSymbol } = usePrice()

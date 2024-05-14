@@ -229,7 +229,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
               const linkText = parseInternalLinks(href)
               if (linkText) {
                 return (
-                  <ItemPopover id={linkText.replace('#', '')}>
+                  <ItemPopover id={linkText.replace('#', '').split('/')[0]}>
                     <Link href={href}>{linkText}</Link>
                   </ItemPopover>
                 )

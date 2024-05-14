@@ -114,28 +114,41 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
 }
 
 export function ItemSummary ({ item }) {
-  const titleRef = useRef()
   const router = useRouter()
+  const link = (
+    <Link
+      href={`/items/${item.id}`}
+      onClick={(e) => onItemClick(e, router, item)}
+      className={`${item.title && styles.title} ${styles.summaryText} text-reset me-2`}
+    >
+      {item.title ?? item.text}
+    </Link>
+  )
+  const info = (
+    <ItemInfo
+      item={item}
+      showUser={false}
+      showActionDropdown={false}
+      extraBadges={item.title && Number(item?.user?.id) === AD_USER_ID && <Badge className={styles.newComment} bg={null}>AD</Badge>}
+    />
+  )
 
   return (
     <div className={classNames(styles.item, 'mb-0 pb-0')}>
       <div className={styles.hunk}>
-        <div className={`${styles.main} flex-wrap`}>
-          <Link
-            href={`/items/${item.id}`}
-            onClick={(e) => onItemClick(e, router, item)}
-            ref={titleRef}
-            className={`${styles.title} ${styles.summaryText} text-reset me-2`}
-          >
-            {item.title ?? item.text}
-          </Link>
-        </div>
-        <ItemInfo
-          item={item}
-          showUser={false}
-          showActionDropdown={false}
-          extraBadges={Number(item?.user?.id) === AD_USER_ID && <Badge className={styles.newComment} bg={null}>AD</Badge>}
-        />
+        {item.title
+          ? (
+            <>
+              {link}
+              {info}
+            </>
+            )
+          : (
+            <>
+              {info}
+              {link}
+            </>
+            )}
       </div>
     </div>
   )
@@ -182,11 +195,10 @@ function PollIndicator ({ item }) {
   return (
     <span className={styles.icon} title={isActive ? 'active' : 'results in'}>
       <PollIcon
-        className={`${
-    isActive
-? 'fill-success'
+        className={`${isActive
+          ? 'fill-success'
           : 'fill-grey'
-      } ms-1`} height={14} width={14}
+          } ms-1`} height={14} width={14}
       />
     </span>
   )

@@ -1,17 +1,16 @@
-import lndService from 'ln-service'
-import lnd from '@/api/lnd'
-
 const cache = new Map()
 const expiresIn = 1000 * 30 // 30 seconds in milliseconds
 
 async function fetchChainFeeRate () {
-  let chainFee = 0
-  try {
-    const fee = await lndService.getChainFeeRate({ lnd })
-    chainFee = fee.tokens_per_vbyte
-  } catch (err) {
-    console.error('fetchChainFee', err)
-  }
+  const url = 'https://mempool.space/api/v1/fees/recommended'
+  const chainFee = await fetch(url)
+    .then((res) => res.json())
+    .then((body) => body.hourFee)
+    .catch((err) => {
+      console.error('fetchChainFee', err)
+      return 0
+    })
+
   cache.set('fee', { fee: chainFee, createdAt: Date.now() })
   return chainFee
 }

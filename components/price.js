@@ -43,39 +43,37 @@ export function PriceProvider ({ price, children }) {
   )
 }
 
+const STORAGE_KEY = 'asSats'
+
+const carousel = [
+  'fiat',
+  'yep',
+  '1btc',
+  'blockHeight',
+  'chainFee',
+  'halving'
+]
+
 export default function Price ({ className }) {
   const [asSats, setAsSats] = useState(undefined)
+  const [pos, setPos] = useState(0)
+
   useEffect(() => {
-    const satSelection = window.localStorage.getItem('asSats')
+    const satSelection = window.localStorage.getItem(STORAGE_KEY)
     setAsSats(satSelection ?? 'fiat')
+    setPos(carousel.findIndex((item) => item === satSelection))
   }, [])
 
   const { price, fiatSymbol } = usePrice()
   const { height: blockHeight, halving } = useBlockHeight()
   const { fee: chainFee } = useChainFee()
 
-  // Options: yep, 1btc, blockHeight, undefined
-  // yep -> 1btc -> blockHeight -> chainFee -> undefined -> yep
   const handleClick = () => {
-    if (asSats === 'yep') {
-      window.localStorage.setItem('asSats', '1btc')
-      setAsSats('1btc')
-    } else if (asSats === '1btc') {
-      window.localStorage.setItem('asSats', 'blockHeight')
-      setAsSats('blockHeight')
-    } else if (asSats === 'blockHeight') {
-      window.localStorage.setItem('asSats', 'chainFee')
-      setAsSats('chainFee')
-    } else if (asSats === 'chainFee') {
-      window.localStorage.setItem('asSats', 'halving')
-      setAsSats('halving')
-    } else if (asSats === 'halving') {
-      window.localStorage.removeItem('asSats')
-      setAsSats('fiat')
-    } else {
-      window.localStorage.setItem('asSats', 'yep')
-      setAsSats('yep')
-    }
+    const nextPos = (pos + 1) % carousel.length
+
+    window.localStorage.setItem(STORAGE_KEY, carousel[nextPos])
+    setAsSats(carousel[nextPos])
+    setPos(nextPos)
   }
 
   const compClassName = (className || '') + ' text-reset pointer'

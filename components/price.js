@@ -48,11 +48,11 @@ const DEFAULT_SELECTION = 'fiat'
 
 const carousel = [
   'fiat',
-  // 'yep',
+  'yep',
   '1btc',
-  // 'blockHeight',
+  'blockHeight',
   'chainFee',
-  // 'halving'
+  'halving'
 ]
 
 export default function Price ({ className }) {

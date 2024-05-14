@@ -113,21 +113,21 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
   )
 }
 
-export function ItemSummary ({ item, className }) {
+export function ItemSummary ({ item }) {
   const titleRef = useRef()
   const router = useRouter()
 
   return (
-    <div className={classNames(styles.item, className)}>
+    <div className={classNames(styles.item, 'mb-0 pb-0')}>
       <div className={styles.hunk}>
         <div className={`${styles.main} flex-wrap`}>
           <Link
             href={`/items/${item.id}`}
             onClick={(e) => onItemClick(e, router, item)}
             ref={titleRef}
-            className={`${styles.title} text-reset me-2`}
+            className={`${styles.title} ${styles.summaryText} text-reset me-2`}
           >
-            {item.title}
+            {item.title ?? item.text}
           </Link>
         </div>
         <ItemInfo

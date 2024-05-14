@@ -23,7 +23,7 @@ export default function ItemPopover ({ id, children }) {
         : !data.item
             ? <h1 className={classNames(errorStyles.status, errorStyles.describe)}>ITEM NOT FOUND</h1>
             : (
-              <ItemSummary item={data.item} className='mb-0 pb-0' />
+              <ItemSummary item={data.item} />
               )}
     />
   )

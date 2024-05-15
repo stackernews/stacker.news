@@ -229,23 +229,7 @@ export function useAct () {
   return act
 }
 
-const zapOptimisticUpdate = (cache, { id, path, act, sats }, { me }) => {
-  const readItemFragment = id => cache.readFragment({
-    id: `Item:${id}`,
-    fragment: gql`
-        fragment ItemMeSatsZap on Item {
-          meSats
-        }
-      `
-  })
-
-  // determine how much we increased existing sats
-  // by checking the difference between result sats and meSats
-  // if it's negative, skip the cache as it's an out of order update
-  // if it's positive, add it to sats and commentSats
-  const item = readItemFragment(id)
-  const satsDelta = sats - item.meSats
-
+const zapOptimisticUpdate = (cache, { id, path, act, satsDelta }, { me }) => {
   if (satsDelta > 0) {
     updateItemSats(cache, { id, path, act, sats: satsDelta }, { me })
   }
@@ -282,24 +266,27 @@ export function useZap () {
 
     // add current sats to next tip since idempotent zaps use desired total zap not difference
     const sats = meSats + nextTip(meSats, { ...me?.privates })
+    const satsDelta = sats - meSats
 
     const act = 'TIP'
     let cancel, revert, nid
     try {
-      const variables = { path: item.path, id: item.id, sats, act }
-      revert = zapOptimisticUpdate(cache, variables, { me })
+      const variables = { id: item.id, path: item.path, act, sats }
+      revert = zapOptimisticUpdate(cache, { ...variables, satsDelta }, { me })
       strike()
       abortSignal?.start()
-      nid = notify(NotificationType.ZapPending, { amount: sats - meSats, itemId: item.id }, false)
-      if (zapUndoTrigger(me, sats)) {
+      nid = notify(NotificationType.ZapPending, { amount: satsDelta, itemId: item.id }, false)
+      if (zapUndoTrigger(me, satsDelta)) {
         await zapUndo(abortSignal)
       } else {
         abortSignal?.done()
       }
       let hash, hmac;
-      [{ hash, hmac }, cancel] = await payment.request(sats - meSats)
+      [{ hash, hmac }, cancel] = await payment.request(satsDelta)
       await zap({ variables: { ...variables, hash, hmac } })
-      if (me) persistItemPendingSats({ ...item, act, sats: -(sats - meSats) })
+      // in the success case, we need to remove pending sats
+      // since they will now be included in item.meSats of server responses
+      if (me && satsDelta > 0) persistItemPendingSats({ ...item, act, sats: -satsDelta })
     } catch (error) {
       revert?.()
       if (error instanceof InvoiceCanceledError || error instanceof ActCanceledError) {

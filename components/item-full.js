@@ -65,10 +65,56 @@ function TweetSkeleton () {
   )
 }
 
+function NostrNoteEmbed ({ nevent, show, onLoad }) {
+  const [darkMode] = useDarkMode()
+  const [iframeRef, setIframeRef] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  const handleLoad = () => {
+    onLoad()
+    if (iframeRef) {
+      iframeRef.contentWindow.postMessage({ setDarkMode: darkMode }, '*')
+    }
+    setLoading(false)
+  }
+
+  return (
+    <>
+      {loading && (
+        <TweetSkeleton />
+      )}
+      <div className={styles.tweetsSkeleton}>
+        <iframe
+          ref={(ref) => setIframeRef(ref)}
+          key={darkMode ? '1' : '2'}
+          src={`https://njump.me/${nevent}?embed=yes`}
+          className={`${styles.nostrContainer} ${show ? '' : styles.nostrContained}`}
+          scrolling={show ? 'auto' : 'no'}
+          style={{ display: loading ? 'none' : 'block' }}
+          onLoad={handleLoad}
+        />
+      </div>
+    </>
+  )
+}
+
 function ItemEmbed ({ item }) {
   const [darkMode] = useDarkMode()
   const [overflowing, setOverflowing] = useState(false)
   const [show, setShow] = useState(false)
+
+  const nostr = item.url?.match(/\/(?<nevent>nevent1\w+)/) || item.url?.match(/\/(?<note>note1\w+)/)
+  if (nostr?.groups?.nevent || nostr?.groups?.note) {
+    return (
+      <div className={styles.twitterContainer}>
+        <NostrNoteEmbed nevent={nostr?.groups?.nevent || nostr?.groups?.note} show={show} onLoad={() => setOverflowing(true)} />
+        {overflowing && !show &&
+          <Button size='lg' variant='info' className={styles.twitterShowFull} onClick={() => setShow(true)}>
+            expand note
+          </Button>}
+      </div>
+    )
+  }
 
   const twitter = item.url?.match(/^https?:\/\/(?:twitter|x)\.com\/(?:#!\/)?\w+\/status(?:es)?\/(?<id>\d+)/)
   if (twitter?.groups?.id) {

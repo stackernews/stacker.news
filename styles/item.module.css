@@ -114,3 +114,14 @@
 .fullItemContainer:empty {
     margin: 0;
 }
+
+.nostrContainer {
+    border: 1px solid var(--theme-borderColor);
+    border-radius: 12px;
+    width: 550px;
+    height: 485px;
+}
+
+.nostrContained {
+    height: 200px
+}

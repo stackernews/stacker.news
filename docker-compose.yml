@@ -471,6 +471,33 @@ services:
       - app
     labels:
       CONNECT: "localhost:8025"
+  nwc:
+    build:
+      context: ./docker/nwc
+    container_name: nwc
+    profiles:
+      - payments
+    restart: unless-stopped
+    depends_on:
+      stacker_lnd:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - ./docker/lnd/stacker:/root/.lnd
+    environment:
+      - RUST_LOG=info
+    entrypoint:
+      - 'nostr-wallet-connect-lnd'
+      - '--relay'
+      - 'wss://relay.damus.io'
+      - '--macaroon-file'
+      - '/root/.lnd/regtest/admin.macaroon'
+      - '--cert-file'
+      - '/root/.lnd/tls.cert'
+      - '--lnd-host'
+      - 'stacker_lnd'
+      - '--lnd-port'
+      - '10009'
 volumes:
   db:
   os:

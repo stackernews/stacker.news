@@ -498,6 +498,24 @@ services:
       - 'stacker_lnd'
       - '--lnd-port'
       - '10009'
+  lnbits:
+    image: lnbits/lnbits:0.12.5
+    container_name: lnbits
+    profiles:
+      - payments
+    restart: unless-stopped
+    ports:
+      - "${LNBITS_WEB_PORT}:5000"
+    depends_on:
+      - stacker_lnd
+    environment:
+      - LNBITS_BACKEND_WALLET_CLASS=LndWallet
+      - LND_GRPC_ENDPOINT=stacker_lnd
+      - LND_GRPC_PORT=10009
+      - LND_GRPC_CERT=/app/.lnd/tls.cert
+      - LND_GRPC_MACAROON=/app/.lnd/regtest/admin.macaroon
+    volumes:
+      - ./docker/lnd/stacker:/app/.lnd
 volumes:
   db:
   os:

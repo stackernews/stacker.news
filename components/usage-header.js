@@ -25,7 +25,7 @@ export function UsageHeader ({ pathname = null }) {
 
   return (
     <div className='text-muted fw-bold my-0 d-flex align-items-center flex-wrap'>
-      <div className='text-muted fw-bold my-2 d-flex align-items-center'>
+      <div className='text-muted fw-bold mb-2 d-flex align-items-center'>
         stacker analytics for
         <Select
           groupClassName='mb-0 mx-2'

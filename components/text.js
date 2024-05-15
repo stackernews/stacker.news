@@ -22,6 +22,7 @@ import Link from 'next/link'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import isEqual from 'lodash/isEqual'
 import UserPopover from './user-popover'
+import ItemPopover from './item-popover'
 
 export function SearchText ({ text }) {
   return (
@@ -227,7 +228,11 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
             try {
               const linkText = parseInternalLinks(href)
               if (linkText) {
-                return <Link href={href}>{linkText}</Link>
+                return (
+                  <ItemPopover id={linkText.replace('#', '').split('/')[0]}>
+                    <Link href={href}>{linkText}</Link>
+                  </ItemPopover>
+                )
               }
             } catch {
               // ignore errors like invalid URLs

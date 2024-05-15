@@ -16,8 +16,8 @@ const mutex = new Mutex()
 async function getLNC ({ me }) {
   if (window.lnc) return window.lnc
   // backwards compatibility: migrate to new storage key
-  if (me) migrateLocalStorage('lnc-web:default', `lnc-web:${me.id}`)
-  window.lnc = new LNC({ namespace: me?.id })
+  if (me) migrateLocalStorage('lnc-web:default', `lnc-web:stacker:${me.id}`)
+  window.lnc = new LNC({ namespace: me?.id ? `stacker:${me.id}` : undefined })
   return window.lnc
 }
 

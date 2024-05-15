@@ -450,6 +450,7 @@ services:
       - bitcoin
       - sn_lnd
       - stacker_lnd
+      - stacker_cln
     restart: unless-stopped
     command: daemon --docker -f label=com.docker.compose.project=${COMPOSE_PROJECT_NAME}
     volumes:
@@ -470,6 +471,51 @@ services:
       - app
     labels:
       CONNECT: "localhost:8025"
+  nwc:
+    build:
+      context: ./docker/nwc
+    container_name: nwc
+    profiles:
+      - payments
+    restart: unless-stopped
+    depends_on:
+      stacker_lnd:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - ./docker/lnd/stacker:/root/.lnd
+    environment:
+      - RUST_LOG=info
+    entrypoint:
+      - 'nostr-wallet-connect-lnd'
+      - '--relay'
+      - 'wss://relay.damus.io'
+      - '--macaroon-file'
+      - '/root/.lnd/regtest/admin.macaroon'
+      - '--cert-file'
+      - '/root/.lnd/tls.cert'
+      - '--lnd-host'
+      - 'stacker_lnd'
+      - '--lnd-port'
+      - '10009'
+  lnbits:
+    image: lnbits/lnbits:0.12.5
+    container_name: lnbits
+    profiles:
+      - payments
+    restart: unless-stopped
+    ports:
+      - "${LNBITS_WEB_PORT}:5000"
+    depends_on:
+      - stacker_lnd
+    environment:
+      - LNBITS_BACKEND_WALLET_CLASS=LndWallet
+      - LND_GRPC_ENDPOINT=stacker_lnd
+      - LND_GRPC_PORT=10009
+      - LND_GRPC_CERT=/app/.lnd/tls.cert
+      - LND_GRPC_MACAROON=/app/.lnd/regtest/admin.macaroon
+    volumes:
+      - ./docker/lnd/stacker:/app/.lnd
 volumes:
   db:
   os:

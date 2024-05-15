@@ -88,7 +88,7 @@ export function FeeButtonProvider ({ baseLineItems = {}, useRemoteLineItems = ()
       setDisabled,
       free
     }
-  }, [me, baseLineItems, lineItems, remoteLineItems, mergeLineItems, disabled, setDisabled])
+  }, [me?.privates?.sats, baseLineItems, lineItems, remoteLineItems, mergeLineItems, disabled, setDisabled])
 
   return (
     <FeeButtonContext.Provider value={value}>

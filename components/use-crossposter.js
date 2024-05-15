@@ -5,6 +5,7 @@ import { DEFAULT_CROSSPOSTING_RELAYS, crosspost, callWithTimeout } from '@/lib/n
 import { gql, useMutation, useQuery, useLazyQuery } from '@apollo/client'
 import { SETTINGS } from '@/fragments/users'
 import { ITEM_FULL_FIELDS, POLL_FIELDS } from '@/fragments/items'
+import { nip19 } from 'nostr-tools'
 
 async function discussionToEvent (item) {
   const createdAt = Math.floor(Date.now() / 1000)
@@ -72,6 +73,48 @@ async function bountyToEvent (item) {
   }
 }
 
+async function replyToEvent (item, fetchItemData) {
+  const createdAt = Math.floor(Date.now() / 1000)
+  const rootId = item.root?.id
+
+  if (!rootId) {
+    throw new Error('Failed to get parent item')
+  }
+
+  const replyToItem = await fetchItemData(rootId)
+  if (!replyToItem) {
+    throw new Error('Failed to get parent item')
+  }
+
+  const replyTo = replyToItem.noteId
+
+  if (!replyTo) {
+    throw new Error('Failed to get parent item')
+  }
+
+  if (replyTo.includes('naddr')) {
+    const { kind, pubkey, identifier } = nip19.decode(replyTo)?.data || {}
+
+    if (!kind || !pubkey || !identifier) {
+      throw new Error('Invalid naddr')
+    }
+
+    return {
+      created_at: createdAt,
+      kind: 1,
+      content: item.text,
+      tags: [['a', `${kind}:${pubkey}:${identifier}`]]
+    }
+  } else {
+    return {
+      created_at: createdAt,
+      kind: 1,
+      content: item.text,
+      tags: [['e', replyTo]]
+    }
+  }
+}
+
 export default function useCrossposter () {
   const toaster = useToast()
   const { data } = useQuery(SETTINGS)
@@ -101,6 +144,17 @@ export default function useCrossposter () {
         }
       }`
   )
+
+  const fetchItemData = async (itemId) => {
+    try {
+      const { data } = await fetchItem({ variables: { id: itemId } })
+
+      return data?.item
+    } catch (e) {
+      console.error(e)
+      return null
+    }
+  }
 
   const relayError = (failedRelays) => {
     return new Promise(resolve => {
@@ -139,12 +193,13 @@ export default function useCrossposter () {
     return toaster.danger(`Error crossposting: ${errorMessage}`)
   }
 
-  async function handleEventCreation (item) {
+  async function handleEventCreation (item, fetchItemData) {
     const determineItemType = (item) => {
       const typeMap = {
         url: 'link',
         bounty: 'bounty',
-        pollCost: 'poll'
+        pollCost: 'poll',
+        parentId: 'reply'
       }
 
       for (const [key, type] of Object.entries(typeMap)) {
@@ -168,28 +223,19 @@ export default function useCrossposter () {
         return await bountyToEvent(item)
       case 'poll':
         return await pollToEvent(item)
+      case 'reply':
+        return await replyToEvent(item, fetchItemData)
       default:
         return crosspostError('Unknown item type')
     }
   }
 
-  const fetchItemData = async (itemId) => {
-    try {
-      const { data } = await fetchItem({ variables: { id: itemId } })
-
-      return data?.item
-    } catch (e) {
-      console.error(e)
-      return null
-    }
-  }
-
-  const crosspostItem = async item => {
+  const crosspostItem = async (item) => {
     let failedRelays
     let allSuccessful = false
     let noteId
 
-    const event = await handleEventCreation(item)
+    const event = await handleEventCreation(item, fetchItemData)
     if (!event) return { allSuccessful, noteId }
 
     do {

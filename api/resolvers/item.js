@@ -21,6 +21,7 @@ import { datePivot, whenRange } from '@/lib/time'
 import { imageFeesInfo, uploadIdsFromText } from './image'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
+import { wrapZapInvoice } from '../createInvoice/wrap'
 
 function commentsOrderByClause (me, models, sort) {
   if (sort === 'recent') {
@@ -889,35 +890,47 @@ export default {
         }
       }
 
+      let bolt11
       if (idempotent) {
         await serialize(
           models.$queryRaw`
-          SELECT
-            item_act(${Number(id)}::INTEGER, ${me.id}::INTEGER, ${act}::"ItemActType",
-            (SELECT ${Number(sats)}::INTEGER - COALESCE(sum(msats) / 1000, 0)
-             FROM "ItemAct"
-             WHERE act IN ('TIP', 'FEE')
-             AND "itemId" = ${Number(id)}::INTEGER
-             AND "userId" = ${me.id}::INTEGER)::INTEGER)`,
+            SELECT
+              item_act(${Number(id)}::INTEGER, ${me.id}::INTEGER, ${act}::"ItemActType",
+              (SELECT ${Number(sats)}::INTEGER - COALESCE(sum(msats) / 1000, 0)
+               FROM "ItemAct"
+               WHERE act IN ('TIP', 'FEE')
+               AND "itemId" = ${Number(id)}::INTEGER
+               AND "userId" = ${me.id}::INTEGER)::INTEGER)`,
           { models }
         )
+        notifyZapped({ models, id })
       } else {
-        await serialize(
-          models.$queryRaw`
-            SELECT
-              item_act(${Number(id)}::INTEGER,
-              ${me?.id || ANON_USER_ID}::INTEGER, ${act}::"ItemActType", ${Number(sats)}::INTEGER)`,
-          { models, lnd, me, hash, hmac, fee: sats }
-        )
+        try {
+          await serialize(
+            models.$queryRaw`
+                SELECT
+                  item_act(${Number(id)}::INTEGER,
+                  ${me?.id || ANON_USER_ID}::INTEGER, ${act}::"ItemActType", ${Number(sats)}::INTEGER)`,
+            { models, lnd, me, hash, hmac, fee: sats }
+          )
+          notifyZapped({ models, id })
+        } catch (e) {
+          if (e.message.includes('insufficient funds')) {
+            try {
+              bolt11 = await wrapZapInvoice({ item, sats }, { me, models, lnd })
+            } catch {
+              throw e
+            }
+          }
+        }
       }
-
-      notifyZapped({ models, id })
 
       return {
         id,
         sats,
         act,
-        path: item.path
+        path: item.path,
+        bolt11
       }
     },
     toggleOutlaw: async (parent, { id }, { me, models }) => {

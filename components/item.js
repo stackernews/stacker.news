@@ -19,6 +19,7 @@ import AdIcon from '@/svgs/advertisement-fill.svg'
 import { DownZap } from './dont-link-this'
 import { timeLeft } from '@/lib/time'
 import classNames from 'classnames'
+import removeMd from 'remove-markdown'
 
 function onItemClick (e, router, item) {
   const viewedAt = commentsViewedAt(item)
@@ -121,7 +122,7 @@ export function ItemSummary ({ item }) {
       onClick={(e) => onItemClick(e, router, item)}
       className={`${item.title && styles.title} ${styles.summaryText} text-reset me-2`}
     >
-      {item.title ?? item.text}
+      {item.title ?? removeMd(item.text)}
     </Link>
   )
   const info = (

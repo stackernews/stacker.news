@@ -28,8 +28,8 @@ export default function HoverablePopover ({ id, trigger, body, onShow }) {
       onHide={handleMouseLeave}
       overlay={
         <Popover
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
+          onPointerEnter={handleMouseEnter}
+          onPointerLeave={handleMouseLeave}
           className={styles.HoverablePopover}
         >
           <Popover.Body className={styles.HoverablePopover}>
@@ -39,8 +39,8 @@ export default function HoverablePopover ({ id, trigger, body, onShow }) {
       }
     >
       <span
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
+        onPointerEnter={handleMouseEnter}
+        onPointerLeave={handleMouseLeave}
       >
         {trigger}
       </span>

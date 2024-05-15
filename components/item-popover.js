@@ -22,9 +22,7 @@ export default function ItemPopover ({ id, children }) {
         ? <ItemSkeleton showUpvote={false} />
         : !data.item
             ? <h1 className={classNames(errorStyles.status, errorStyles.describe)}>ITEM NOT FOUND</h1>
-            : (
-              <ItemSummary item={data.item} />
-              )}
+            : <ItemSummary item={data.item} />}
     />
   )
 }

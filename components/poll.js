@@ -9,40 +9,42 @@ import { signIn } from 'next-auth/react'
 import ActionTooltip from './action-tooltip'
 import { POLL_COST } from '@/lib/constants'
 import { InvoiceCanceledError, usePayment } from './payment'
+import { optimisticUpdate } from '@/lib/apollo'
+import { useToast } from './toast'
 
 export default function Poll ({ item }) {
   const me = useMe()
-  const [pollVote] = useMutation(
-    gql`
-      mutation pollVote($id: ID!, $hash: String, $hmac: String) {
-        pollVote(id: $id, hash: $hash, hmac: $hmac)
-      }`, {
-      update (cache, { data: { pollVote } }) {
-        cache.modify({
-          id: `Item:${item.id}`,
-          fields: {
-            poll (existingPoll) {
-              const poll = { ...existingPoll }
-              poll.meVoted = true
-              poll.count += 1
-              return poll
-            }
-          }
-        })
-        cache.modify({
-          id: `PollOption:${pollVote}`,
-          fields: {
-            count (existingCount) {
-              return existingCount + 1
-            },
-            meVoted () {
-              return true
-            }
-          }
-        })
+  const POLL_VOTE_MUTATION = gql`
+    mutation pollVote($id: ID!, $hash: String, $hmac: String) {
+      pollVote(id: $id, hash: $hash, hmac: $hmac)
+    }`
+  const [pollVote] = useMutation(POLL_VOTE_MUTATION)
+  const toaster = useToast()
+
+  const update = (cache, { data: { pollVote } }) => {
+    cache.modify({
+      id: `Item:${item.id}`,
+      fields: {
+        poll (existingPoll) {
+          const poll = { ...existingPoll }
+          poll.meVoted = true
+          poll.count += 1
+          return poll
+        }
       }
-    }
-  )
+    })
+    cache.modify({
+      id: `PollOption:${pollVote}`,
+      fields: {
+        count (existingCount) {
+          return existingCount + 1
+        },
+        meVoted () {
+          return true
+        }
+      }
+    })
+  }
 
   const PollButton = ({ v }) => {
     const payment = usePayment()
@@ -52,21 +54,22 @@ export default function Poll ({ item }) {
           variant='outline-info' className={styles.pollButton}
           onClick={me
             ? async () => {
-              let hash, hmac, cancel
+              const variables = { id: v.id }
+              const optimisticResponse = { pollVote: v.id }
+              let revert, cancel
               try {
+                revert = optimisticUpdate({ mutation: POLL_VOTE_MUTATION, variables, optimisticResponse, update })
+                let hash, hmac;
                 [{ hash, hmac }, cancel] = await payment.request(item.pollCost || POLL_COST)
-                await pollVote({
-                  variables: { id: v.id, hash, hmac },
-                  optimisticResponse: {
-                    pollVote: v.id
-                  }
-                })
+                await pollVote({ variables: { hash, hmac, ...variables } })
               } catch (error) {
+                revert?.()
                 if (error instanceof InvoiceCanceledError) {
                   return
                 }
+                const reason = error?.message || error?.toString?.()
+                toaster.danger('poll vote failed: ' + reason)
                 cancel?.()
-                throw new Error({ message: error.toString() })
               }
             }
             : signIn}

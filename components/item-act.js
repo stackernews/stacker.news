@@ -10,6 +10,7 @@ import { useToast } from './toast'
 import { useLightning } from './lightning'
 import { nextTip } from './upvote'
 import { InvoiceCanceledError, usePayment } from './payment'
+import { optimisticUpdate } from '@/lib/apollo'
 
 const defaultTips = [100, 1000, 10_000, 100_000]
 
@@ -222,16 +223,15 @@ export function useZap () {
     }
   }, [])
 
-  const [zap] = useMutation(
-    gql`
-      mutation idempotentAct($id: ID!, $sats: Int!, $hash: String, $hmac: String) {
-        act(id: $id, sats: $sats, hash: $hash, hmac: $hmac, idempotent: true) {
-          id
-          sats
-          path
-        }
-      }`, { update }
-  )
+  const ZAP_MUTATION = gql`
+    mutation idempotentAct($id: ID!, $sats: Int!, $hash: String, $hmac: String) {
+      act(id: $id, sats: $sats, hash: $hash, hmac: $hmac, idempotent: true) {
+        id
+        sats
+        path
+      }
+    }`
+  const [zap] = useMutation(ZAP_MUTATION)
 
   const toaster = useToast()
   const strike = useLightning()
@@ -243,14 +243,18 @@ export function useZap () {
     // add current sats to next tip since idempotent zaps use desired total zap not difference
     const sats = meSats + nextTip(meSats, { ...me?.privates })
 
-    let hash, hmac, cancel
+    const variables = { id: item.id, sats, act: 'TIP' }
+    const optimisticResponse = { act: { path: item.path, ...variables } }
+
+    let revert, cancel
     try {
-      [{ hash, hmac }, cancel] = await payment.request(sats - meSats)
-      const variables = { id: item.id, sats, act: 'TIP', hash, hmac }
-      const optimisticResponse = { act: { path: item.path, ...variables } }
-      await zap({ variables, optimisticResponse })
+      revert = optimisticUpdate({ mutation: ZAP_MUTATION, variables, optimisticResponse, update })
       strike()
+      let hash, hmac;
+      [{ hash, hmac }, cancel] = await payment.request(sats - meSats)
+      await zap({ variables: { ...variables, hash, hmac } })
     } catch (error) {
+      revert?.()
       if (error instanceof InvoiceCanceledError) {
         return
       }

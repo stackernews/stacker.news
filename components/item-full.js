@@ -86,14 +86,29 @@ function ItemEmbed ({ item }) {
   const youtube = item.url?.match(/(https?:\/\/)?((www\.)?(youtube(-nocookie)?|youtube.googleapis)\.com.*(v\/|v=|vi=|vi\/|e\/|embed\/|user\/.*\/u\/\d+\/)|youtu\.be\/)(?<id>[_0-9a-z-]+)((?:\?|&)(?:t|start)=(?<start>\d+))?/i)
   if (youtube?.groups?.id) {
     return (
-      <div className={styles.youtubeContainerContainer}>
+      <div className={styles.videoWrapper}>
         <YouTube
-          videoId={youtube.groups.id} className={styles.youtubeContainer} opts={{
+          videoId={youtube.groups.id} className={styles.videoContainer} opts={{
             playerVars: {
               start: youtube?.groups?.start
             }
           }}
         />
+      </div>
+    )
+  }
+
+  const rumble = item.url?.match(/https:\/\/rumble\.com\/embed\/[0-9A-z]+\/.+/i)
+  if (rumble) {
+    return (
+      <div className={styles.videoWrapper}>
+        <div className={styles.videoContainer}>
+          <iframe
+            title='Rumble Video'
+            allowFullScreen=''
+            src={item.url}
+          />
+        </div>
       </div>
     )
   }

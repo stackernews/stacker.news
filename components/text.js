@@ -238,18 +238,40 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
               // ignore errors like invalid URLs
             }
 
-            // if the link is to a youtube video, render the video
+            const videoWrapperStyles = {
+              maxWidth: topLevel ? '640px' : '320px',
+              margin: '0.5rem 0',
+              paddingRight: '15px'
+            }
+
+            // if the link is to a YouTube video, render it
             const youtube = href.match(/(https?:\/\/)?((www\.)?(youtube(-nocookie)?|youtube.googleapis)\.com.*(v\/|v=|vi=|vi\/|e\/|embed\/|user\/.*\/u\/\d+\/)|youtu\.be\/)(?<id>[_0-9a-z-]+)((?:\?|&)(?:t|start)=(?<start>\d+))?/i)
             if (youtube?.groups?.id) {
               return (
-                <div style={{ maxWidth: topLevel ? '640px' : '320px', paddingRight: '15px', margin: '0.5rem 0' }}>
+                <div style={videoWrapperStyles}>
                   <YouTube
-                    videoId={youtube.groups.id} className={styles.youtubeContainer} opts={{
+                    videoId={youtube.groups.id} className={styles.videoContainer} opts={{
                       playerVars: {
                         start: youtube?.groups?.start
                       }
                     }}
                   />
+                </div>
+              )
+            }
+
+            // if the link is a Rumble video, render it
+            const rumble = href.match(/https:\/\/rumble\.com\/embed\/[0-9A-z]+\/.+/i)
+            if (rumble) {
+              return (
+                <div style={videoWrapperStyles}>
+                  <div className={styles.videoContainer}>
+                    <iframe
+                      title='Rumble Video'
+                      allowFullScreen=''
+                      src={href}
+                    />
+                  </div>
                 </div>
               )
             }

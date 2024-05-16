@@ -237,7 +237,7 @@ img.fullScreen {
     font-size: .85rem;
 }
 
-.youtubeContainer {
+.videoContainer {
     position: relative;
     width: 100%;
     height: 0;
@@ -245,7 +245,7 @@ img.fullScreen {
     overflow: hidden;
 }
 
-.youtubeContainer iframe {
+.videoContainer iframe {
     width: 100%;
     height: 100%;
     position: absolute;

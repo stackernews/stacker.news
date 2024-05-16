@@ -33,6 +33,7 @@ import EyeClose from '@/svgs/eye-close-line.svg'
 import Info from './info'
 import { InvoiceCanceledError, usePayment } from './payment'
 import { useMe } from './me'
+import { optimisticUpdate } from '@/lib/apollo'
 
 export class SessionRequiredError extends Error {
   constructor () {
@@ -801,7 +802,8 @@ const StorageKeyPrefixContext = createContext()
 
 export function Form ({
   initial, schema, onSubmit, children, initialError, validateImmediately,
-  storageKeyPrefix, validateOnChange = true, invoiceable, requireSession, innerRef, ...props
+  storageKeyPrefix, validateOnChange = true, invoiceable, requireSession, innerRef,
+  optimisticUpdate: optimisticUpdateArgs, ...props
 }) {
   const toaster = useToast()
   const initialErrorToasted = useRef(false)
@@ -832,21 +834,26 @@ export function Form ({
   }, [storageKeyPrefix])
 
   const onSubmitInner = useCallback(async ({ amount, ...values }, ...args) => {
-    let cancel
+    const variables = { amount, ...values }
+    let revert, cancel
     try {
       if (onSubmit) {
         if (requireSession && !me) {
           throw new SessionRequiredError()
         }
         let hash, hmac
+        if (optimisticUpdateArgs) {
+          revert = optimisticUpdate(optimisticUpdateArgs(variables))
+        }
         if (invoiceable) {
           [{ hash, hmac }, cancel] = await payment.request(amount)
         }
-        await onSubmit({ hash, hmac, amount, ...values }, ...args)
+        await onSubmit({ hash, hmac, ...variables }, ...args)
         if (!storageKeyPrefix) return
         clearLocalStorage(values)
       }
     } catch (err) {
+      revert?.()
       if (err instanceof InvoiceCanceledError) {
         return
       }

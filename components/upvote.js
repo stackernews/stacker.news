@@ -59,7 +59,7 @@ export function DropdownItemUpVote ({ item }) {
     <Dropdown.Item
       onClick={async () => {
         showModal(onClose =>
-          <ItemAct onClose={onClose} itemId={item.id} />)
+          <ItemAct onClose={onClose} item={item} />)
       }}
     >
       <span className='text-success'>zap</span>
@@ -156,7 +156,7 @@ export default function UpVote ({ item, className }) {
 
     setTipShow(false)
     showModal(onClose =>
-      <ItemAct onClose={onClose} itemId={item.id} />, { onClose: handleModalClosed })
+      <ItemAct onClose={onClose} item={item} />, { onClose: handleModalClosed })
   }
 
   const handleShortPress = async () => {
@@ -175,7 +175,7 @@ export default function UpVote ({ item, className }) {
       }
       zap({ item, me })
     } else {
-      showModal(onClose => <ItemAct onClose={onClose} itemId={item.id} act={act} />, { onClose: handleModalClosed })
+      showModal(onClose => <ItemAct onClose={onClose} item={item} act={act} />, { onClose: handleModalClosed })
     }
   }
 

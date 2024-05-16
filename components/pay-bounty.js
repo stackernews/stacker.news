@@ -6,16 +6,21 @@ import { useMe } from './me'
 import { numWithUnits } from '@/lib/format'
 import { useShowModal } from './modal'
 import { useRoot } from './root'
-import { useAct } from './item-act'
+import { useAct, actUpdate, ACT_MUTATION } from './item-act'
 import { InvoiceCanceledError, usePayment } from './payment'
+import { optimisticUpdate } from '@/lib/apollo'
+import { useLightning } from './lightning'
+import { useToast } from './toast'
 
 export default function PayBounty ({ children, item }) {
   const me = useMe()
   const showModal = useShowModal()
   const root = useRoot()
   const payment = usePayment()
+  const strike = useLightning()
+  const toaster = useToast()
 
-  const onUpdate = useCallback((cache, { data: { act: { id, path } } }) => {
+  const onUpdate = useCallback(onComplete => (cache, { data: { act: { id, path } } }) => {
     // update root bounty status
     const root = path.split('.')[0]
     cache.modify({
@@ -26,30 +31,40 @@ export default function PayBounty ({ children, item }) {
         }
       }
     })
-  }, [])
+    strike()
+    onComplete()
+  }, [strike])
 
-  // FIXME: call onUpdate during optimistic update of act
-  const act = useAct({ onUpdate })
+  const act = useAct()
 
   const handlePayBounty = async onComplete => {
-    let hash, hmac, cancel
+    const sats = root.bounty
+    const variables = { id: item.id, sats, act: 'TIP', path: item.path }
+    const optimisticResponse = { act: { ...variables, path: item.path } }
+    let revert, cancel
     try {
-      const sats = root.bounty;
-      [{ hash, hmac }, cancel] = await payment.request(sats)
-      const variables = { id: item.id, sats, act: 'TIP', path: item.path, hash, hmac }
-      await act({
+      revert = optimisticUpdate({
+        mutation: ACT_MUTATION,
         variables,
+        optimisticResponse,
+        update: actUpdate({ me, onUpdate: onUpdate(onComplete) })
+      })
+      let hash, hmac;
+      [{ hash, hmac }, cancel] = await payment.request(sats)
+      await act({
+        variables: { hash, hmac, ...variables },
         optimisticResponse: {
           act: variables
         }
       })
       onComplete()
     } catch (error) {
+      revert?.()
       if (error instanceof InvoiceCanceledError) {
         return
       }
       cancel?.()
-      throw new Error({ message: error.toString() })
+      toaster.danger('pay bounty failed: ' + error?.message || error?.toString?.())
     }
   }
 

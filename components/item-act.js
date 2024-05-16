@@ -48,6 +48,58 @@ const setItemMeAnonSats = ({ id, amount }) => {
   window.localStorage.setItem(storageKey, existingAmount + amount)
 }
 
+export const actUpdate = ({ me, onUpdate }) => (cache, args) => {
+  const { data: { act: { id, sats, path, act } } } = args
+
+  cache.modify({
+    id: `Item:${id}`,
+    fields: {
+      sats (existingSats = 0) {
+        if (act === 'TIP') {
+          return existingSats + sats
+        }
+
+        return existingSats
+      },
+      meSats: me
+        ? (existingSats = 0) => {
+            if (act === 'TIP') {
+              return existingSats + sats
+            }
+
+            return existingSats
+          }
+        : undefined,
+      meDontLikeSats: me
+        ? (existingSats = 0) => {
+            if (act === 'DONT_LIKE_THIS') {
+              return existingSats + sats
+            }
+
+            return existingSats
+          }
+        : undefined
+    }
+  })
+
+  if (act === 'TIP') {
+    // update all ancestors
+    path.split('.').forEach(aId => {
+      if (Number(aId) === Number(id)) return
+      cache.modify({
+        id: `Item:${aId}`,
+        fields: {
+          commentSats (existingCommentSats = 0) {
+            return existingCommentSats + sats
+          }
+        }
+      })
+    })
+  }
+
+  onUpdate?.(cache, args)
+}
+
 export default function ItemAct ({ onClose, item, down, children }) {
   const inputRef = useRef(null)
   const me = useMe()
@@ -74,56 +126,6 @@ export default function ItemAct ({ onClose, item, down, children }) {
     addCustomTip(Number(amount))
   }, [me, act, down, item.id, strike])
 
-  const update = useCallback((cache, args) => {
-    const { data: { act: { id, sats, path, act } } } = args
-
-    cache.modify({
-      id: `Item:${id}`,
-      fields: {
-        sats (existingSats = 0) {
-          if (act === 'TIP') {
-            return existingSats + sats
-          }
-
-          return existingSats
-        },
-        meSats: me
-          ? (existingSats = 0) => {
-              if (act === 'TIP') {
-                return existingSats + sats
-              }
-
-              return existingSats
-            }
-          : undefined,
-        meDontLikeSats: me
-          ? (existingSats = 0) => {
-              if (act === 'DONT_LIKE_THIS') {
-                return existingSats + sats
-              }
-
-              return existingSats
-            }
-          : undefined
-      }
-    })
-
-    if (act === 'TIP') {
-      // update all ancestors
-      path.split('.').forEach(aId => {
-        if (Number(aId) === Number(id)) return
-        cache.modify({
-          id: `Item:${aId}`,
-          fields: {
-            commentSats (existingCommentSats = 0) {
-              return existingCommentSats + sats
-            }
-          }
-        })
-      })
-    }
-  }, [!!me])
-
   const optimisticUpdate = useCallback(({ amount }) => {
     const variables = {
       id: item.id,
@@ -133,8 +135,8 @@ export default function ItemAct ({ onClose, item, down, children }) {
     const optimisticResponse = { act: { ...variables, path: item.path } }
     strike()
     onClose()
-    return { mutation: ACT_MUTATION, variables, optimisticResponse, update }
-  }, [item.id, down, update, strike])
+    return { mutation: ACT_MUTATION, variables, optimisticResponse, update: actUpdate({ me }) }
+  }, [item.id, down, !!me, strike])
 
   return (
     <Form
@@ -168,7 +170,7 @@ export default function ItemAct ({ onClose, item, down, children }) {
   )
 }
 
-const ACT_MUTATION = gql`
+export const ACT_MUTATION = gql`
   mutation act($id: ID!, $sats: Int!, $act: String, $hash: String, $hmac: String) {
     act(id: $id, sats: $sats, act: $act, hash: $hash, hmac: $hmac) {
       id

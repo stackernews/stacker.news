@@ -48,7 +48,7 @@ const setItemMeAnonSats = ({ id, amount }) => {
   window.localStorage.setItem(storageKey, existingAmount + amount)
 }
 
-export default function ItemAct ({ onClose, itemId, down, children }) {
+export default function ItemAct ({ onClose, item, down, children }) {
   const inputRef = useRef(null)
   const me = useMe()
   const [oValue, setOValue] = useState()
@@ -56,59 +56,23 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
 
   useEffect(() => {
     inputRef.current?.focus()
-  }, [onClose, itemId])
+  }, [onClose, item.id])
 
   const act = useAct()
 
   const onSubmit = useCallback(async ({ amount, hash, hmac }) => {
     await act({
       variables: {
-        id: itemId,
+        id: item.id,
         sats: Number(amount),
         act: down ? 'DONT_LIKE_THIS' : 'TIP',
         hash,
         hmac
       }
     })
-    setItemMeAnonSats({ id: itemId, amount })
-    strike()
+    setItemMeAnonSats({ id: item.id, amount })
     addCustomTip(Number(amount))
-    onClose()
-  }, [me, act, down, itemId, strike])
-
-  return (
-    <Form
-      initial={{
-        amount: me?.privates?.tipDefault || defaultTips[0],
-        default: false
-      }}
-      schema={amountSchema}
-      invoiceable
-      onSubmit={onSubmit}
-    >
-      <Input
-        label='amount'
-        name='amount'
-        type='number'
-        innerRef={inputRef}
-        overrideValue={oValue}
-        required
-        autoFocus
-        append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
-      />
-      <div>
-        <Tips setOValue={setOValue} />
-      </div>
-      {children}
-      <div className='d-flex mt-3'>
-        <SubmitButton variant={down ? 'danger' : 'success'} className='ms-auto mt-1 px-4' value='TIP'>{down && 'down'}zap</SubmitButton>
-      </div>
-    </Form>
-  )
-}
-
-export function useAct ({ onUpdate } = {}) {
-  const me = useMe()
+  }, [me, act, down, item.id, strike])
 
   const update = useCallback((cache, args) => {
     const { data: { act: { id, sats, path, act } } } = args
@@ -157,22 +121,65 @@ export function useAct ({ onUpdate } = {}) {
           }
         })
       })
-
-      onUpdate && onUpdate(cache, args)
     }
-  }, [!!me, onUpdate])
+  }, [!!me])
 
-  const [act] = useMutation(
-    gql`
-      mutation act($id: ID!, $sats: Int!, $act: String, $hash: String, $hmac: String) {
-        act(id: $id, sats: $sats, act: $act, hash: $hash, hmac: $hmac) {
-          id
-          sats
-          path
-          act
-        }
-      }`, { update }
+  const optimisticUpdate = useCallback(({ amount }) => {
+    const variables = {
+      id: item.id,
+      sats: Number(amount),
+      act: down ? 'DONT_LIKE_THIS' : 'TIP'
+    }
+    const optimisticResponse = { act: { ...variables, path: item.path } }
+    strike()
+    onClose()
+    return { mutation: ACT_MUTATION, variables, optimisticResponse, update }
+  }, [item.id, down, update, strike])
+
+  return (
+    <Form
+      initial={{
+        amount: me?.privates?.tipDefault || defaultTips[0],
+        default: false
+      }}
+      schema={amountSchema}
+      invoiceable
+      optimisticUpdate={optimisticUpdate}
+      onSubmit={onSubmit}
+    >
+      <Input
+        label='amount'
+        name='amount'
+        type='number'
+        innerRef={inputRef}
+        overrideValue={oValue}
+        required
+        autoFocus
+        append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+      />
+      <div>
+        <Tips setOValue={setOValue} />
+      </div>
+      {children}
+      <div className='d-flex mt-3'>
+        <SubmitButton variant={down ? 'danger' : 'success'} className='ms-auto mt-1 px-4' value='TIP'>{down && 'down'}zap</SubmitButton>
+      </div>
+    </Form>
   )
+}
+
+const ACT_MUTATION = gql`
+  mutation act($id: ID!, $sats: Int!, $act: String, $hash: String, $hmac: String) {
+    act(id: $id, sats: $sats, act: $act, hash: $hash, hmac: $hmac) {
+      id
+      sats
+      path
+      act
+    }
+  }`
+
+export function useAct ({ onUpdate } = {}) {
+  const [act] = useMutation(ACT_MUTATION)
   return act
 }
 

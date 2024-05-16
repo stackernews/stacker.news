@@ -28,6 +28,7 @@ export default function PayBounty ({ children, item }) {
     })
   }, [])
 
+  // FIXME: call onUpdate during optimistic update of act
   const act = useAct({ onUpdate })
 
   const handlePayBounty = async onComplete => {

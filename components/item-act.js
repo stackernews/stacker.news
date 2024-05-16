@@ -41,6 +41,12 @@ const addCustomTip = (amount) => {
   window.localStorage.setItem('custom-tips', JSON.stringify(customTips))
 }
 
+const setItemMeAnonSats = ({ id, amount }) => {
+  const storageKey = `TIP-item:${id}`
+  const existingAmount = Number(window.localStorage.getItem(storageKey) || '0')
+  window.localStorage.setItem(storageKey, existingAmount + amount)
+}
+
 export default function ItemAct ({ onClose, itemId, down, children }) {
   const inputRef = useRef(null)
   const me = useMe()
@@ -54,11 +60,6 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
   const act = useAct()
 
   const onSubmit = useCallback(async ({ amount, hash, hmac }) => {
-    if (!me) {
-      const storageKey = `TIP-item:${itemId}`
-      const existingAmount = Number(window.localStorage.getItem(storageKey) || '0')
-      window.localStorage.setItem(storageKey, existingAmount + amount)
-    }
     await act({
       variables: {
         id: itemId,
@@ -68,6 +69,7 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
         hmac
       }
     })
+    setItemMeAnonSats({ id: itemId, amount })
     strike()
     addCustomTip(Number(amount))
   }, [me, act, down, itemId, strike])

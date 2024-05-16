@@ -73,6 +73,7 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
     setItemMeAnonSats({ id: itemId, amount })
     strike()
     addCustomTip(Number(amount))
+    onClose()
   }, [me, act, down, itemId, strike])
 
   return (

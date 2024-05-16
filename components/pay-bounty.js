@@ -63,8 +63,9 @@ export default function PayBounty ({ children, item }) {
       if (error instanceof InvoiceCanceledError) {
         return
       }
+      const reason = error?.message || error?.toString?.()
+      toaster.danger('pay bounty failed: ' + reason)
       cancel?.()
-      toaster.danger('pay bounty failed: ' + error?.message || error?.toString?.())
     }
   }
 

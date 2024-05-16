@@ -268,8 +268,8 @@ export function useZap () {
       if (error instanceof InvoiceCanceledError) {
         return
       }
-      console.error(error)
-      toaster.danger('zap: ' + error?.message || error?.toString?.())
+      const reason = error?.message || error?.toString?.()
+      toaster.danger('zap failed: ' + reason)
       cancel?.()
     }
   }, [strike, payment])

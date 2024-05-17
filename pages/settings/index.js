@@ -682,7 +682,7 @@ function AuthMethods ({ methods, apiKeyEnabled }) {
     const activatedAuths = providers
       .filter(key => !!methods[key])
 
-    return activatedAuths.length === 1 && activatedAuths[0] === 'lightning'
+    return activatedAuths.length === 1 && activatedAuths[0] === 'email'
   }
 
   const unlink = async type => {

@@ -38,6 +38,19 @@ function bech32encode (hexString) {
   return bech32.encode('npub', bech32.toWords(Buffer.from(hexString, 'hex')))
 }
 
+// sort to prevent hydration mismatch
+const getProviders = (authMethods) =>
+  Object.keys(authMethods).filter(k => k !== '__typename' && k !== 'apiKey').sort()
+
+// Show alert message if user only has one auth method activated
+// as users are losing access to their accounts
+const hasOnlyOneAuthMethod = (authMethods) => {
+  const activatedAuths = getProviders(authMethods)
+    .filter(provider => !!authMethods[provider])
+
+  return activatedAuths.length === 1
+}
+
 export function SettingsHeader () {
   const router = useRouter()
   const pathParts = router.asPath.split('/').filter(segment => !!segment)
@@ -94,6 +107,7 @@ export default function Settings ({ ssrData }) {
   return (
     <Layout>
       <div className='pb-3 w-100 mt-2' style={{ maxWidth: '600px' }}>
+        {hasOnlyOneAuthMethod(settings?.authMethods) && <div className={styles.alert}>Please add a second auth method to avoid losing access to your account.</div>}
         <SettingsHeader />
         <Form
           initial={{
@@ -673,8 +687,7 @@ function AuthMethods ({ methods, apiKeyEnabled }) {
     }
   )
 
-  // sort to prevent hydration mismatch
-  const providers = Object.keys(methods).filter(k => k !== '__typename' && k !== 'apiKey').sort()
+  const providers = getProviders(methods)
 
   const unlink = async type => {
     // if there's only one auth method left

@@ -260,9 +260,9 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
               )
             }
 
-            // if the link is a Rumble video, render it
-            const rumble = href.match(/https:\/\/rumble\.com\/embed\/[0-9A-z]+\/.+/i)
-            if (rumble) {
+            // if the link is a Rumble embed url render it
+            const rumbleEmbed = href.match(/https:\/\/rumble\.com\/embed\/[0-9A-z]+\/.+/i)
+            if (rumbleEmbed) {
               return (
                 <div style={videoWrapperStyles}>
                   <div className={styles.videoContainer}>
@@ -275,6 +275,9 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
                 </div>
               )
             }
+
+            // if the link is a Rumble url then render it
+            // const rumbleUrl = href.match(/https:\/\/rumble\.com\/.+\.html/i)
 
             // assume the link is an image which will fallback to link if it's not
             return <Img src={href} rel={rel ?? UNKNOWN_LINK_REL} {...props}>{children}</Img>

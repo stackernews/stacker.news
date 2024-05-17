@@ -18,4 +18,5 @@
 
 .alert {
     color: var(--bs-danger);
+    margin-bottom: 10px;
 }

@@ -676,6 +676,15 @@ function AuthMethods ({ methods, apiKeyEnabled }) {
   // sort to prevent hydration mismatch
   const providers = Object.keys(methods).filter(k => k !== '__typename' && k !== 'apiKey').sort()
 
+  // Show alert message if user only has lightning auth method activated
+  // as this is causing users to lose access to their account
+  const showAuthWarning = () => {
+    const activatedAuths = providers
+      .filter(key => !!methods[key])
+
+    return activatedAuths.length === 1 && activatedAuths[0] === 'lightning'
+  }
+
   const unlink = async type => {
     // if there's only one auth method left
     const links = providers.reduce((t, p) => t + (methods[p] ? 1 : 0), 0)
@@ -695,6 +704,7 @@ function AuthMethods ({ methods, apiKeyEnabled }) {
   return (
     <>
       <div className='form-label mt-3'>auth methods</div>
+      {showAuthWarning() && <div className={styles.alert}>Please add a second auth method to avoid losing access to your account.</div>}
       {err && (
         <Alert
           variant='danger' onClose={() => {

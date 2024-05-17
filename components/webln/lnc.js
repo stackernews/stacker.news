@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useWalletLogger } from '../logger'
 import LNC from '@lightninglabs/lnc-web'
 import { Status, migrateLocalStorage } from '.'
@@ -191,8 +191,11 @@ export function LNCProvider ({ children }) {
     })()
   }, [me, setStatus, setConfig, logger])
 
+  const value = useMemo(
+    () => ({ name: 'lnc', status, unlock, getInfo, sendPayment, config, saveConfig, clearConfig }),
+    [status, unlock, getInfo, sendPayment, config, saveConfig, clearConfig])
   return (
-    <LNCContext.Provider value={{ name: 'lnc', status, unlock, getInfo, sendPayment, config, saveConfig, clearConfig }}>
+    <LNCContext.Provider value={value}>
       {children}
       {modal}
     </LNCContext.Provider>

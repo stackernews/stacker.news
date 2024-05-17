@@ -1,6 +1,6 @@
 // https://github.com/getAlby/js-sdk/blob/master/src/webln/NostrWeblnProvider.ts
 
-import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { Relay, finalizeEvent, nip04 } from 'nostr-tools'
 import { parseNwcUrl } from '@/lib/url'
 import { useWalletLogger } from '../logger'
@@ -20,7 +20,6 @@ export function NWCProvider ({ children }) {
   const [status, setStatus] = useState()
   const { logger } = useWalletLogger(Wallet.NWC)
 
-  const name = 'NWC'
   let storageKey = 'webln:provider:nwc'
   if (me) {
     storageKey = `${storageKey}:${me.id}`
@@ -273,7 +272,9 @@ export function NWCProvider ({ children }) {
     loadConfig().catch(err => logger.error(err.message || err.toString?.()))
   }, [])
 
-  const value = { name, nwcUrl, relayUrl, walletPubkey, secret, status, saveConfig, clearConfig, getInfo, sendPayment }
+  const value = useMemo(
+    () => ({ name: 'NWC', nwcUrl, relayUrl, walletPubkey, secret, status, saveConfig, clearConfig, getInfo, sendPayment }),
+    [nwcUrl, relayUrl, walletPubkey, secret, status, saveConfig, clearConfig, getInfo, sendPayment])
   return (
     <NWCContext.Provider value={value}>
       {children}

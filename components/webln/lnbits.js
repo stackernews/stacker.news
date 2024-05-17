@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useWalletLogger } from '../logger'
 import { Status, migrateLocalStorage } from '.'
 import { bolt11Tags } from '@/lib/bolt11'
@@ -72,7 +72,6 @@ export function LNbitsProvider ({ children }) {
   const [status, setStatus] = useState()
   const { logger } = useWalletLogger(Wallet.LNbits)
 
-  const name = 'LNbits'
   let storageKey = 'webln:provider:lnbits'
   if (me) {
     storageKey = `${storageKey}:${me.id}`
@@ -196,7 +195,9 @@ export function LNbitsProvider ({ children }) {
     loadConfig().catch(console.error)
   }, [])
 
-  const value = { name, url, adminKey, status, saveConfig, clearConfig, getInfo, sendPayment }
+  const value = useMemo(
+    () => ({ name: 'LNbits', url, adminKey, status, saveConfig, clearConfig, getInfo, sendPayment }),
+    [url, adminKey, status, saveConfig, clearConfig, getInfo, sendPayment])
   return (
     <LNbitsContext.Provider value={value}>
       {children}

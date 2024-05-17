@@ -749,7 +749,7 @@ export default {
             }
           }
         })
-        if (subscription.postsSubscribedAt || subscription.commentsSubscribedAt) {
+        if (subscription?.postsSubscribedAt || subscription?.commentsSubscribedAt) {
           throw new GraphQLError("you can't mute a stacker to whom you've subscribed", { extensions: { code: 'BAD_INPUT' } })
         }
         await models.mute.create({ data: { ...lookupData } })

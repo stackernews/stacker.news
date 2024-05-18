@@ -183,12 +183,13 @@ export const usePayment = () => {
   const request = useCallback(async (amount) => {
     amount ??= feeButton?.total
     const free = feeButton?.free
+    const balance = me ? me.privates.sats : 0
 
     // if user has enough funds in their custodial wallet or action is free, never prompt for payment
     // XXX this will probably not work as intended for deposits < balance
     //   which means you can't always fund your custodial wallet with attached wallets ...
     //   but should this even be the case?
-    const insufficientFunds = !me || me.privates.sats < amount
+    const insufficientFunds = balance < amount
     if (free || !insufficientFunds) return [{ hash: null, hmac: null }, null]
 
     const inv = await invoice.create(amount)

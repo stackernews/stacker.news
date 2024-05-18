@@ -58,6 +58,14 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
           comments {
             ...CommentsRecursive
           }
+          invoice {
+            id
+            bolt11
+            hash
+            hmac
+            expiresAt
+            satsRequested
+          }
         }
       }`, {
       update (cache, { data: { upsertComment } }) {
@@ -97,11 +105,12 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
     }
   )
 
-  const onSubmit = useCallback(async ({ amount, hash, hmac, ...values }, { resetForm }) => {
-    const { data } = await upsertComment({ variables: { parentId, hash, hmac, ...values } })
+  const onSubmit = useCallback(async ({ amount, ...values }, { resetForm }) => {
+    const { data } = await upsertComment({ variables: { parentId, ...values } })
     toastUpsertSuccessMessages(toaster, data, 'upsertComment', false, values.text)
     resetForm({ text: '' })
     setReply(replyOpen || false)
+    return data.upsertComment
   }, [upsertComment, setReply, parentId])
 
   useEffect(() => {
@@ -166,7 +175,8 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
                 text: ''
               }}
               schema={commentSchema}
-              invoiceable
+              prepaid
+              postpaid
               onSubmit={onSubmit}
               storageKeyPrefix={`reply-${parentId}`}
             >

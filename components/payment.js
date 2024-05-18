@@ -206,5 +206,5 @@ export const usePayment = () => {
     }
   }, [invoice])
 
-  return { request, cancel }
+  return { request, cancel, send: waitForPayment }
 }

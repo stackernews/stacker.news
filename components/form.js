@@ -802,7 +802,7 @@ const StorageKeyPrefixContext = createContext()
 
 export function Form ({
   initial, schema, onSubmit, children, initialError, validateImmediately,
-  storageKeyPrefix, validateOnChange = true, invoiceable, requireSession, innerRef,
+  storageKeyPrefix, validateOnChange = true, prepaid, postpaid, requireSession, innerRef,
   optimisticUpdate: optimisticUpdateArgs, ...props
 }) {
   const toaster = useToast()
@@ -845,10 +845,17 @@ export function Form ({
         if (optimisticUpdateArgs) {
           revert = optimisticUpdate(optimisticUpdateArgs(variables))
         }
-        if (invoiceable) {
+        // stackers only use prepaid if postpaid is not set
+        // anons always use prepaid even if postpaid is set
+        if (prepaid && (!me || !postpaid)) {
           [{ hash, hmac }, cancel] = await payment.request(amount)
         }
-        await onSubmit({ hash, hmac, ...variables }, ...args)
+        const data = await onSubmit({ hash, hmac, ...variables }, ...args)
+        // prevent prompting anons to pay twice
+        if (me && postpaid && data.invoice) {
+          // TODO: persist payment to continously attempt payment in background and handle errors
+          await payment.send(data.invoice)
+        }
         if (!storageKeyPrefix) return
         clearLocalStorage(values)
       }

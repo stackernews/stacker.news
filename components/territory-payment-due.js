@@ -56,7 +56,7 @@ export default function TerritoryPaymentDue ({ sub }) {
 
       <FeeButtonProvider baseLineItems={{ territory: TERRITORY_BILLING_OPTIONS('one')[sub.billingType.toLowerCase()] }}>
         <Form
-          invoiceable
+          prepaid
           initial={{
             name: sub.name
           }}

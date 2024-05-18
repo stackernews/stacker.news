@@ -7,6 +7,14 @@ import { createHmac } from './wallet'
 import { msatsToSats, numWithUnits } from '@/lib/format'
 import { BALANCE_LIMIT_MSATS } from '@/lib/constants'
 
+export class InsufficientFundsError extends GraphQLError {
+  constructor (balance, cost) {
+    super('insufficient funds', { extensions: { code: 'BAD_INPUT' } })
+    this.balance = Number(balance)
+    this.cost = Number(cost)
+  }
+}
+
 export default async function serialize (trx, { models, lnd, me, hash, hmac, fee }) {
   // wrap first argument in array if not array already
   const isArray = Array.isArray(trx)
@@ -39,8 +47,11 @@ export default async function serialize (trx, { models, lnd, me, hash, hmac, fee
       // XXX prisma does not provide a way to distinguish these cases so we
       // have to check the error message
       if (error.message.includes('SN_INSUFFICIENT_FUNDS') ||
+        // TODO: does '\\"' match '"' in error message or is this a bug?
         error.message.includes('\\"users\\" violates check constraint \\"msats_positive\\"')) {
-        bail(new GraphQLError('insufficient funds', { extensions: { code: 'BAD_INPUT' } }))
+        const balance = /user_msats=(\d+)/.exec(error.message)?.[1]
+        const cost = /cost_msats=(\d+)/.exec(error.message)?.[1]
+        bail(new InsufficientFundsError(balance, cost))
       }
       if (error.message.includes('SN_NOT_SERIALIZABLE')) {
         bail(new Error('wallet balance transaction is not serializable'))

@@ -1,6 +1,6 @@
 import { GraphQLError } from 'graphql'
 import { ensureProtocol, removeTracking, stripTrailingSlash } from '@/lib/url'
-import serialize from './serial'
+import serialize, { InsufficientFundsError } from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
 import { ruleSet as publicationDateRuleSet } from '@/lib/timedate-scraper'
@@ -9,7 +9,7 @@ import {
   ITEM_SPAM_INTERVAL, ITEM_FILTER_THRESHOLD,
   COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY,
   ANON_USER_ID, ANON_ITEM_SPAM_INTERVAL, POLL_COST,
-  ITEM_ALLOW_EDITS, GLOBAL_SEED, ANON_FEE_MULTIPLIER, NOFOLLOW_LIMIT, UNKNOWN_LINK_REL
+  ITEM_ALLOW_EDITS, GLOBAL_SEED, ANON_FEE_MULTIPLIER, NOFOLLOW_LIMIT, UNKNOWN_LINK_REL, JIT_INVOICE_TIMEOUT_MS, ANON_INV_PENDING_LIMIT, ANON_BALANCE_LIMIT_MSATS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT, BALANCE_LIMIT_MSATS
 } from '@/lib/constants'
 import { msatsToSats } from '@/lib/format'
 import { parse } from 'tldts'
@@ -21,6 +21,9 @@ import { datePivot, whenRange } from '@/lib/time'
 import { imageFeesInfo, uploadIdsFromText } from './image'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
+import { createInvoice } from 'ln-service'
+import { Prisma } from '@prisma/client'
+import { createHmac } from './wallet'
 
 function commentsOrderByClause (me, models, sort) {
   if (sort === 'recent') {
@@ -1353,23 +1356,60 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
       fee = sub.baseCost * ANON_FEE_MULTIPLIER + (item.boost || 0)
     }
   }
-  fee += imgFees;
+  fee += imgFees
 
-  ([item] = await serialize(
-    models.$queryRawUnsafe(
+  try {
+    ([item] = await serialize(
+      models.$queryRawUnsafe(
       `${SELECT} FROM create_item($1::JSONB, $2::JSONB, $3::JSONB, '${spamInterval}'::INTERVAL, $4::INTEGER[]) AS "Item"`,
       JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options), uploadIds),
-    { models, lnd, me, hash, hmac, fee }
-  ))
+      { models, lnd, me, hash, hmac, fee }
+    ))
+  } catch (err) {
+    if (err instanceof InsufficientFundsError) {
+      // create invoice and insert as pending item
+      const invLimit = me ? INV_PENDING_LIMIT : ANON_INV_PENDING_LIMIT
+      const balanceLimit = USER_IDS_BALANCE_NO_LIMIT.includes(Number(me?.id)) ? 0 : me ? BALANCE_LIMIT_MSATS : ANON_BALANCE_LIMIT_MSATS
+      const description = 'Creating item on stacker.news'
+      const expiresAt = datePivot(new Date(), { seconds: me ? JIT_INVOICE_TIMEOUT_MS : 180 })
+      const mtokens = err.cost - err.balance
 
-  await createMentions(item, models)
+      const lndInv = await createInvoice({
+        description: me.hideInvoiceDesc ? undefined : description,
+        lnd,
+        mtokens,
+        expires_at: expiresAt
+      })
+
+      let invoice
+      const actionData = { cost: err.cost, credits: err.balance }
+      await models.$transaction(
+        async (tx) => {
+          // insert pending item
+          ([item] = await tx.$queryRawUnsafe(
+          `${SELECT} FROM create_item($1::JSONB, $2::JSONB, $3::JSONB, '${spamInterval}'::INTERVAL, $4::INTEGER[]) AS "Item"`,
+          JSON.stringify({ ...item, status: 'PENDING' }), JSON.stringify(fwdUsers), JSON.stringify(options), uploadIds));
+
+          // set required invoice data to update item on payment
+          ([invoice] = await tx.$queryRaw`SELECT * FROM create_invoice(${lndInv.id}, NULL, ${lndInv.request},
+          ${expiresAt}::timestamp, ${mtokens}, ${item.userId}::INTEGER, ${description}, NULL, NULL,
+          ${invLimit}::INTEGER, ${balanceLimit}, 'ITEM'::"ActionType", ${item.id}::INTEGER, ${JSON.stringify(actionData)}::JSONB)`)
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
+
+      invoice.hmac = createHmac(invoice.hash)
+
+      item.invoice = invoice
+    } else {
+      throw err
+    }
+  }
 
   await enqueueDeletionJob(item, models)
 
+  // TODO: don't notify users on pending items
   await createReminderAndJob({ me, item, models })
-
+  await createMentions(item, models)
   notifyUserSubscribers({ models, item })
-
   notifyTerritorySubscribers({ models, item })
 
   item.comments = []

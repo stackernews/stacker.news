@@ -660,6 +660,10 @@ model Mention {
   @@index([userId], map: "Mention.userId_index")
 }
 
+enum ActionType {
+  ITEM
+}
+
 model Invoice {
   id             Int       @id @default(autoincrement())
   createdAt      DateTime  @default(now()) @map("created_at")
@@ -678,6 +682,9 @@ model Invoice {
   desc           String?
   comment        String?
   lud18Data      Json?
+  actionType     ActionType?
+  actionId       Int?
+  actionData     Json?     @db.JsonB
   user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([createdAt], map: "Invoice.created_at_index")
@@ -884,6 +891,8 @@ enum Status {
   STOPPED
   NOSATS
   GRACE
+  PENDING
+  FAILED
 }
 
 enum PostType {

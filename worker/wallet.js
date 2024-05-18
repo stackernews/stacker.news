@@ -9,6 +9,7 @@ import { datePivot, sleep } from '@/lib/time.js'
 import retry from 'async-retry'
 import { addWalletLog } from '@/api/resolvers/wallet'
 import { msatsToSats, numWithUnits } from '@/lib/format'
+import { Prisma } from '@prisma/client'
 
 export async function subscribeToWallet (args) {
   await subscribeToDeposits(args)
@@ -130,8 +131,11 @@ async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
 
     // don't send notifications for JIT invoices
     if (dbInv.preimage) return
-    if (code === 0) {
+
+    const firstConfirmation = code === 0
+    if (firstConfirmation) {
       notifyDeposit(dbInv.userId, { comment: dbInv.comment, ...inv })
+      await handleAction({ data: dbInv, models })
     }
 
     return await boss.send('nip57', { hash })
@@ -236,7 +240,9 @@ async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
       models.$queryRaw`SELECT confirm_withdrawl(${dbWdrwl.id}::INTEGER, ${paid}, ${fee})`,
       { models }
     )
-    if (code === 0) {
+
+    const firstConfirmation = code === 0
+    if (firstConfirmation) {
       notifyWithdrawal(dbWdrwl.userId, wdrwl)
       if (dbWdrwl.wallet) {
         // this was an autowithdrawal
@@ -347,5 +353,46 @@ export async function checkPendingWithdrawals (args) {
     } catch {
       console.error('error checking withdrawal', w.hash)
     }
+  }
+}
+
+async function handleAction ({ data: { msatsReceived, actionType, actionId, actionData }, models }) {
+  if (!actionType || !actionId) return
+
+  if (actionType === 'ITEM') {
+    // update item status from PENDING to ACTIVE
+    // and run queries which were skipped during creation
+
+    const itemId = actionId
+    const { credits: locked, cost } = actionData
+
+    await models.$transaction(async (tx) => {
+      const item = await tx.item.update({
+        where: { id: itemId },
+        data: { status: 'ACTIVE' }
+      })
+
+      await tx.user.update({
+        where: {
+          id: item.userId
+        },
+        data: {
+          msats: {
+            decrement: cost - msatsReceived - locked
+          }
+        }
+      })
+
+      // run skipped item queries
+      await tx.itemAct.create({
+        data: { msats: cost, itemId: item.id, userId: item.userId, act: 'FEE' }
+      })
+      if (item.boost > 0) {
+        await tx.$executeRaw(`SELECT item_act(${item.id}::INTEGER, ${item.userId}::INTEGER, 'BOOST'::"ItemActType", ${item.boost}::INTEGER)`)
+      }
+      if (item.maxBid) {
+        await tx.$executeRaw(`SELECT run_auction(${item.id}::INTEGER);`)
+      }
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
   }
 }

@@ -1,10 +1,7 @@
 import serialize from '@/api/resolvers/serial.js'
 import {
   getInvoice, getPayment, cancelHodlInvoice, deletePayment,
-  subscribeToInvoices, subscribeToPayments, subscribeToInvoice,
-  payViaPaymentRequest,
-  parsePaymentRequest,
-  settleHodlInvoice
+  subscribeToInvoices, subscribeToPayments, subscribeToInvoice
 } from 'ln-service'
 import { notifyDeposit, notifyWithdrawal } from '@/lib/webPush'
 import { INVOICE_RETENTION_DAYS } from '@/lib/constants'
@@ -12,7 +9,7 @@ import { datePivot, sleep } from '@/lib/time.js'
 import retry from 'async-retry'
 import { addWalletLog } from '@/api/resolvers/wallet'
 import { msatsToSats, numWithUnits } from '@/lib/format'
-import { hodlInvoiceCltvDetails } from '@/api/lnd'
+import { checkInvoiceForwardIncoming, checkInvoiceForwardOutgoing } from './invoiceForward'
 
 export async function subscribeToWallet (args) {
   await subscribeToDeposits(args)
@@ -111,7 +108,7 @@ function subscribeToHodlInvoice (args) {
   })
 }
 
-async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
+export async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
   const inv = await getInvoice({ id: hash, lnd })
 
   // invoice could be created by LND but wasn't inserted into the database yet
@@ -131,19 +128,6 @@ async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
   if (!dbInv) {
     console.log('invoice not found in database', hash)
     return
-  }
-
-  if (inv.is_canceled) {
-    return await serialize(
-      models.invoice.update({
-        where: {
-          hash: inv.id
-        },
-        data: {
-          cancelled: true
-        }
-      }), { models }
-    )
   }
 
   // if this is an incoming invoice forward, it requires special handling
@@ -192,155 +176,18 @@ async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
       })
     ], { models })
   }
-}
 
-async function checkInvoiceForwardIncoming ({ inv, invoiceForward, boss, models, lnd }) {
-  // what are all the things we need to do here?
-  // 1. if inv.is_held
-  //     a. invoiceForward.invoice.isHeld = true
-  //     b. we need to mark the invoiceForward.status = HELD
-  //     c. update the expiryHeight and acceptHeight
-  //     d. then we to attempt to forward the payment, invoiceForward.bolt11, creating a Withdrawl
-  //     e. if the forward fails immediately, we need to cancel the invoice and set invoiceForward.status = FORWARD_FAILED
-  //     f. if the forward succeeds, we need to set invoiceForward.status = FORWARDED
-  // 2. if inv.is_confirmed
-  //     a. we need to mark the invoiceForward.status = CONFIRMED
-  //     b. update the invoiceForward.invoice.confirmedIndex and invoiceForward.invoice.confirmedAt
-  //     c. TODO: update any dependent actions
-
-  if (inv.is_held) {
-    try {
-      const bolt11Details = await parsePaymentRequest({ request: invoiceForward.bolt11 })
-      const { expiryHeight, acceptHeight } = hodlInvoiceCltvDetails(inv)
-      // XXX this isn't idempotent ... what if this runs multiple times?
-      // XXX we should probably queue a job to cancel the invoice if it isn't forwarded
-      // by its expiresAt
-      await serialize([
-        models.invoiceForward.update({
-          where: {
-            id: invoiceForward.id,
-            status: 'CREATED'
-          },
-          data: {
-            status: 'FORWARDED',
-            expiryHeight,
-            acceptHeight,
-            withdrawl: {
-              create: {
-                hash: inv.id,
-                bolt11: invoiceForward.bolt11,
-                msats: BigInt(bolt11Details.mtokens),
-                msatsFeePaying: invoiceForward.maxFeeMsats,
-                autoWithdraw: true,
-                walletId: invoiceForward.walletId,
-                userId: invoiceForward.wallet.userId
-              }
-            },
-            invoice: {
-              update: {
-                isHeld: true
-              }
-            }
-          }
-        })], { models })
-
-      payViaPaymentRequest({
-        lnd,
-        request: invoiceForward.bolt11,
-        max_fee_mtokens: String(invoiceForward.maxFeeMsats),
-        pathfinding_timeout: 30000
-      }).catch(console.error)
-    } catch (error) {
-      await cancelHodlInvoice({ id: inv.id, lnd })
-      await serialize([
-        models.invoiceForward.update({
-          where: {
-            id: invoiceForward.id,
-            status: 'CANCELLED'
-          }
-        })], { models })
-    }
-  } else if (inv.is_confirmed) {
-    await serialize([
-      models.invoiceForward.update({
+  if (inv.is_canceled) {
+    return await serialize(
+      models.invoice.update({
         where: {
-          id: invoiceForward.id,
-          status: 'SETTLED'
+          hash: inv.id
         },
         data: {
-          status: 'CONFIRMED',
-          invoice: {
-            update: {
-              confirmedIndex: inv.confirmed_index,
-              confirmedAt: inv.confirmed_at
-            }
-          }
+          cancelled: true
         }
-      })], { models })
-    // TODO: update any dependent actions, side effects of a successful zap
-  }
-}
-
-async function checkInvoiceForwardOutgoing ({ payment, invoiceForward, boss, models, lnd }) {
-  // what are all the things we need to do here?
-  // 1. if payment.is_failed
-  //    a. update the invoiceForward.withdrawl.status
-  //    b. we need to cancel the invoice and mark the invoiceForward.status = FORWARD_FAILED
-  //    c. update the failure message
-  // 2. if payment.is_confirmed
-  //    a. update the invoiceForward.withdrawl.status, fee info, preimage, and paid info
-  //    b. mark the invoiceForward.status = FORWARD_CONFIRMED
-  //    c. settle invoiceForward.invoice with payment.secret
-  //    d. update the invoiceForward.status = SETTLED
-
-  if (payment.is_failed) {
-    let status = 'UNKNOWN_FAILURE'
-    if (payment?.failed.is_insufficient_balance) {
-      status = 'INSUFFICIENT_BALANCE'
-    } else if (payment?.failed.is_invalid_payment) {
-      status = 'INVALID_PAYMENT'
-    } else if (payment?.failed.is_pathfinding_timeout) {
-      status = 'PATHFINDING_TIMEOUT'
-    } else if (payment?.failed.is_route_not_found) {
-      status = 'ROUTE_NOT_FOUND'
-    }
-
-    await serialize([
-      models.invoiceForward.update({
-        where: {
-          id: invoiceForward.id,
-          status: 'FORWARDED'
-        },
-        data: {
-          status: 'FORWARD_FAILED',
-          withdrawl: {
-            update: {
-              status
-            }
-          }
-        }
-      })
-    ], { models })
-  } else if (payment.is_confirmed) {
-    await settleHodlInvoice({ secret: payment.secret, lnd })
-    await serialize([
-      models.invoiceForward.update({
-        where: {
-          id: invoiceForward.id,
-          status: 'SETTLED'
-        },
-        data: {
-          withdrawl: {
-            update: {
-              status: 'CONFIRMED',
-              msatsPaid: BigInt(payment.mtokens),
-              msatsFeePaid: BigInt(payment.fee_mtokens),
-              preimage: payment.secret
-            }
-          }
-        }
-      })
-    ], { models })
+      }), { models }
+    )
   }
 }
 
@@ -376,7 +223,7 @@ async function subscribeToWithdrawals (args) {
   await checkPendingWithdrawals(args)
 }
 
-async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
+export async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
   const dbWdrwl = await models.withdrawl.findFirst({
     where: {
       hash,

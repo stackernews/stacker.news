@@ -59,10 +59,6 @@ export async function hodlInvoiceCltvDetails (inv) {
     return htlc.timeout < min ? htlc.timeout : min
   }, Number.MAX_SAFE_INTEGER)
 
-  if (expiryHeight < acceptedHeight) {
-    throw new Error('Inconsistent payment HTLCs')
-  }
-
   return {
     expiryHeight,
     acceptedHeight

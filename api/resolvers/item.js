@@ -1385,22 +1385,31 @@ const enqueueDeletionJob = async (item, models) => {
   if (deleteCommand) {
     await models.$queryRawUnsafe(`
       INSERT INTO pgboss.job (name, data, startafter)
-      VALUES ('deleteItem', jsonb_build_object('id', ${item.id}), now() + interval '${deleteCommand.number} ${deleteCommand.unit}s');`)
+      VALUES (
+        'deleteItem',
+        jsonb_build_object('id', ${item.id}),
+        now() + interval '${deleteCommand.number} ${deleteCommand.unit}s')`)
   }
 }
 
 const deleteReminderAndJob = async ({ me, item, models }) => {
   if (me?.id && me.id !== ANON_USER_ID) {
-    await models.$queryRawUnsafe(`DELETE FROM pgboss.job WHERE name = 'reminder' AND data->>'itemId' = '${item.id}' AND data->>'userId' = '${me.id}' AND state <> 'completed';`)
-    await models.reminder.deleteMany({
-      where: {
-        itemId: Number(item.id),
-        userId: Number(me.id),
-        remindAt: {
-          gt: new Date()
+    await models.$transaction([
+      models.$queryRawUnsafe(`
+        DELETE FROM pgboss.job
+        WHERE name = 'reminder'
+        AND data->>'itemId' = '${item.id}'
+        AND data->>'userId' = '${me.id}'
+        AND state <> 'completed'`),
+      models.reminder.deleteMany({
+        where: {
+          itemId: Number(item.id),
+          userId: Number(me.id),
+          remindAt: {
+            gt: new Date()
+          }
         }
-      }
-    })
+      })])
   }
 }
 
@@ -1411,13 +1420,19 @@ const createReminderAndJob = async ({ me, item, models }) => {
   }
   const reminderCommand = getReminderCommand(item.text)
   if (reminderCommand) {
-    await models.$queryRawUnsafe(`
-      INSERT INTO pgboss.job (name, data, startafter)
-      VALUES ('reminder', jsonb_build_object('itemId', ${item.id}, 'userId', ${me.id}), now() + interval '${reminderCommand.number} ${reminderCommand.unit}s');`)
-    // use a raw query instead of the model to reuse the built-in `now + interval` support instead of doing it via JS
-    await models.$queryRawUnsafe(`
+    await models.$transaction([
+      models.$queryRawUnsafe(`
+      INSERT INTO pgboss.job (name, data, startafter, expirein)
+      VALUES (
+        'reminder',
+        jsonb_build_object('itemId', ${item.id}, 'userId', ${me.id}),
+        now() + interval '${reminderCommand.number} ${reminderCommand.unit}s',
+        interval '${reminderCommand.number} ${reminderCommand.unit}s' + interval '1 minute')`),
+      // use a raw query instead of the model to reuse the built-in `now + interval` support instead of doing it via JS
+      models.$queryRawUnsafe(`
       INSERT INTO "Reminder" ("userId", "itemId", "remindAt")
-      VALUES (${me.id}, ${item.id}, now() + interval '${reminderCommand.number} ${reminderCommand.unit}s');`)
+      VALUES (${me.id}, ${item.id}, now() + interval '${reminderCommand.number} ${reminderCommand.unit}s')`)
+    ])
   }
 }
 

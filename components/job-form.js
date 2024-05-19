@@ -19,6 +19,7 @@ import { MAX_TITLE_LENGTH, MEDIA_URL } from '@/lib/constants'
 import { useToast } from './toast'
 import { toastUpsertSuccessMessages } from '@/lib/form'
 import { ItemButtonBar } from './post'
+import { useFormikContext } from 'formik'
 
 function satsMin2Mo (minute) {
   return minute * 30 * 24 * 60
@@ -166,7 +167,14 @@ export default function JobForm ({ item, sub }) {
   )
 }
 
+const FormStatus = {
+  DIRTY: 'dirty',
+  ERROR: 'error'
+}
+
 function PromoteJob ({ item, sub }) {
+  const formik = useFormikContext()
+  const [show, setShow] = useState(false)
   const [monthly, setMonthly] = useState(satsMin2Mo(item?.maxBid || 0))
   const [getAuctionPosition, { data }] = useLazyQuery(gql`
     query AuctionPosition($id: ID, $bid: Int!) {
@@ -181,9 +189,21 @@ function PromoteJob ({ item, sub }) {
     setMonthly(satsMin2Mo(initialMaxBid))
   }, [])
 
+  useEffect(() => {
+    if (formik?.values?.maxBid !== 0) {
+      setShow(FormStatus.DIRTY)
+    }
+  }, [formik?.values])
+
+  useEffect(() => {
+    const hasMaxBidError = !!formik?.errors?.maxBid
+    // if it's open we don't want to collapse on submit
+    setShow(show => show || (hasMaxBidError && formik?.isSubmitting && FormStatus.ERROR))
+  }, [formik?.isSubmitting])
+
   return (
     <AccordianItem
-      show={item?.maxBid > 0}
+      show={show}
       header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>promote</div>}
       body={
         <>

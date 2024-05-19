@@ -63,7 +63,7 @@ function RawWebLNProvider ({ children }) {
         return null
       })
     })
-  }, [...availableProviders])
+  }, [])
 
   // keep list in sync with underlying providers
   useEffect(() => {
@@ -130,7 +130,7 @@ function RawWebLNProvider ({ children }) {
   }, [])
 
   return (
-    <WebLNContext.Provider value={{ provider: isEnabled(provider) ? { sendPayment: sendPaymentWithToast } : null, enabledProviders, setProvider, clearConfig }}>
+    <WebLNContext.Provider value={{ provider: isEnabled(provider) ? { name: provider.name, sendPayment: sendPaymentWithToast } : null, enabledProviders, setProvider, clearConfig }}>
       {children}
     </WebLNContext.Provider>
   )

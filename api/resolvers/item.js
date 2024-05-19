@@ -870,6 +870,10 @@ export default {
         FROM "Item"
         WHERE id = $1`, Number(id))
 
+      if (item.deletedAt) {
+        throw new GraphQLError('item is deleted', { extensions: { code: 'BAD_INPUT' } })
+      }
+
       // disallow self tips except anons
       if (me) {
         if (Number(item.userId) === Number(me.id)) {
@@ -1241,7 +1245,7 @@ export const createMentions = async (item, models) => {
 
         // only send if mention is new to avoid duplicates
         if (mention.createdAt.getTime() === mention.updatedAt.getTime()) {
-          notifyMention(user.id, item)
+          notifyMention({ models, userId: user.id, item })
         }
       })
     }

@@ -10,6 +10,7 @@ import styles from './adv-post-form.module.css'
 import { useMe } from './me'
 import { useFeeButton } from './fee-button'
 import { useRouter } from 'next/router'
+import { useFormikContext } from 'formik'
 
 const EMPTY_FORWARD = { nym: '', pct: '' }
 
@@ -20,11 +21,48 @@ export function AdvPostInitial ({ forward, boost }) {
   }
 }
 
-export default function AdvPostForm ({ children, item }) {
+const FormStatus = {
+  DIRTY: 'dirty',
+  ERROR: 'error'
+}
+
+export default function AdvPostForm ({ children, item, storageKeyPrefix }) {
   const me = useMe()
   const { merge } = useFeeButton()
   const router = useRouter()
   const [itemType, setItemType] = useState()
+  const formik = useFormikContext()
+  const [show, setShow] = useState(false)
+
+  useEffect(() => {
+    const isDirty = formik?.values.forward?.[0].nym !== '' || formik?.values.forward?.[0].pct !== '' ||
+      formik?.values.boost !== '' || (router.query?.type === 'link' && formik?.values.text !== '')
+
+    // if the adv post form is dirty on first render, show the accordian
+    if (isDirty) {
+      setShow(FormStatus.DIRTY)
+    }
+
+    // HACK ... TODO: we should generically handle this kind of local storage stuff
+    // in the form component, overriding the initial values
+    if (storageKeyPrefix) {
+      for (let i = 0; i < MAX_FORWARDS; i++) {
+        ['nym', 'pct'].forEach(key => {
+          const value = window.localStorage.getItem(`${storageKeyPrefix}-forward[${i}].${key}`)
+          if (value) {
+            formik?.setFieldValue(`forward[${i}].${key}`, value)
+          }
+        })
+      }
+    }
+  }, [formik?.values, storageKeyPrefix])
+
+  useEffect(() => {
+    // force show the accordian if there is an error and the form is submitting
+    const hasError = !!formik?.errors?.boost || formik?.errors?.forward?.length > 0
+    // if it's open we don't want to collapse on submit
+    setShow(show => hasError && formik?.isSubmitting ? FormStatus.ERROR : show)
+  }, [formik?.isSubmitting])
 
   useEffect(() => {
     const determineItemType = () => {
@@ -69,6 +107,7 @@ export default function AdvPostForm ({ children, item }) {
   return (
     <AccordianItem
       header={<div style={{ fontWeight: 'bold', fontSize: '92%' }}>options</div>}
+      show={show}
       body={
         <>
           {children}

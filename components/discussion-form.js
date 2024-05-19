@@ -85,7 +85,7 @@ export function DiscussionForm ({
     }`)
 
   const related = relatedData?.related?.items || []
-
+  const storageKeyPrefix = item ? undefined : 'discussion'
   return (
     <Form
       initial={{
@@ -98,7 +98,7 @@ export function DiscussionForm ({
       schema={schema}
       invoiceable
       onSubmit={handleSubmit || onSubmit}
-      storageKeyPrefix={item ? undefined : 'discussion'}
+      storageKeyPrefix={storageKeyPrefix}
     >
       {children}
       <Input
@@ -125,7 +125,7 @@ export function DiscussionForm ({
           ? <div className='text-muted fw-bold'><Countdown date={editThreshold} /></div>
           : null}
       />
-      <AdvPostForm edit={!!item} item={item} />
+      <AdvPostForm storageKeyPrefix={storageKeyPrefix} item={item} />
       <ItemButtonBar itemId={item?.id} />
       {!item &&
         <div className={`mt-3 ${related.length > 0 ? '' : 'invisible'}`}>

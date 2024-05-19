@@ -52,7 +52,8 @@ function Notification ({ n, fresh }) {
         (type === 'SubStatus' && <SubStatus n={n} />) ||
         (type === 'FollowActivity' && <FollowActivity n={n} />) ||
         (type === 'TerritoryPost' && <TerritoryPost n={n} />) ||
-        (type === 'TerritoryTransfer' && <TerritoryTransfer n={n} />)
+        (type === 'TerritoryTransfer' && <TerritoryTransfer n={n} />) ||
+        (type === 'Reminder' && <Reminder n={n} />)
       }
     </NotificationLayout>
   )
@@ -447,6 +448,23 @@ function TerritoryTransfer ({ n }) {
         ~{n.sub.name} was transferred to you
         <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
       </div>
+    </>
+  )
+}
+
+function Reminder ({ n }) {
+  return (
+    <>
+      <small className='fw-bold text-info ms-2'>you asked to be reminded of this {n.item.title ? 'post' : 'comment'}</small>
+      {n.item.title
+        ? <div className='ms-2'><Item item={n.item} /></div>
+        : (
+          <div className='pb-2'>
+            <RootProvider root={n.item.root}>
+              <Comment item={n.item} noReply includeParent clickToContext rootText='replying on:' />
+            </RootProvider>
+          </div>
+          )}
     </>
   )
 }

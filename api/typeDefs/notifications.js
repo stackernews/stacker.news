@@ -121,10 +121,16 @@ export default gql`
     sortTime: Date!
   }
 
+  type Reminder {
+    id: ID!
+    item: Item!
+    sortTime: Date!
+  }
+
   union Notification = Reply | Votification | Mention
     | Invitification | Earn | JobChanged | InvoicePaid | WithdrawlPaid | Referral
     | Streak | FollowActivity | ForwardedVotification | Revenue | SubStatus
-    | TerritoryPost | TerritoryTransfer
+    | TerritoryPost | TerritoryTransfer | Reminder
 
   type Notifications {
     lastChecked: Date

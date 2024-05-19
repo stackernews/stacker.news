@@ -1384,11 +1384,12 @@ const enqueueDeletionJob = async (item, models) => {
   const deleteCommand = getDeleteCommand(item.text)
   if (deleteCommand) {
     await models.$queryRawUnsafe(`
-      INSERT INTO pgboss.job (name, data, startafter)
+      INSERT INTO pgboss.job (name, data, startafter, expirein)
       VALUES (
         'deleteItem',
         jsonb_build_object('id', ${item.id}),
-        now() + interval '${deleteCommand.number} ${deleteCommand.unit}s')`)
+        now() + interval '${deleteCommand.number} ${deleteCommand.unit}s',
+        interval '${deleteCommand.number} ${deleteCommand.unit}s' + interval '1 minute')`)
   }
 }
 

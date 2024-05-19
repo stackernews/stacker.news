@@ -15,10 +15,10 @@ import { datePivot } from '@/lib/time'
 Possible state transitions for an invoiceForward:
 CREATED -> HELD
 CREATED -> CANCELLED
-HELD -> FORWARDED
+HELD -> FORWARD_PENDING
 HELD -> CANCELLED
-FORWARDED -> FORWARD_FAILED
-FORWARDED -> FORWARD_CONFIRMED
+FORWARD_PENDING -> FORWARD_FAILED
+FORWARD_PENDING -> FORWARD_CONFIRMED
 FORWARD_FAILED -> CANCELLED
 FORWARD_CONFIRMED -> SETTLED
 SETTLED -> SUCCESSFUL
@@ -26,7 +26,7 @@ SETTLED -> SUCCESSFUL
 One problem we face is that multiple workers are running at the same time and for some state
 transitions, we need to make sure that only one worker is able to perform the action.
 We solve this by letting a state transition happen only once and whoever gets there first
-gets to perform the effects of the transition.
+gets to perform the transition and the effects of the transition.
 
 Things we definitely don't want to do:
 1. cancel an incoming payment that has a forward in progress
@@ -34,6 +34,9 @@ Things we definitely don't want to do:
 3. forward an incoming payment more than once (lnd will reject the payment, but we should prevent this too)
 4. miss settling an incoming payment that has been successfully forwarded
 5. miss applying effects of a successful forward
+
+Test cases:
+1. outgoing payment is held indefinitely
 
 Things we should avoid:
 1. holding an incoming payment that has failed to forward
@@ -43,12 +46,88 @@ Things we should consider doing in the future:
 
 */
 
+export async function checkInvoiceForwardIncoming ({ inv, invoiceForward, boss, models, lnd }) {
+  if (inv.is_held) {
+    try {
+      await createdToHeld({ invoiceForward }, { models })
+      const { expiryHeight, acceptHeight } = hodlInvoiceCltvDetails(inv)
+      if (expiryHeight - acceptHeight < MIN_SETTLEMENT_CLTV_DELTA) {
+        await heldToCancelled({ inv, invoiceForward, expiryHeight, acceptHeight }, { models, lnd })
+      } else {
+        const bolt11 = await parsePaymentRequest({ request: invoiceForward.bolt11 })
+        await heldToForwardPending({ inv, invoiceForward, expiryHeight, acceptHeight, msats: BigInt(bolt11.mtokens) }, { models, lnd })
+      }
+    } catch (error) {
+      // attempt to cancel if we failed to transition to FORWARD_PENDING
+      await createdToCancelled({ inv, invoiceForward }, { models, lnd })
+      await heldToCancelled({ inv, invoiceForward }, { models, lnd })
+    }
+  }
+
+  if (inv.is_confirmed) {
+    try {
+      await settledToSuccessful({ invoiceForward, inv }, { models })
+    } catch (error) {
+      // if we failed to transition to SUCCESSFUL, we need to retry until we succeed
+      await boss.send('checkInvoice', { hash: inv.id }, { startAfter: datePivot(new Date(), { minutes: 1 }) })
+    }
+  }
+
+  if (inv.is_canceled) {
+    // if the invoice is cancelled, we should try to transition to CANCELLED any way we can
+    await createdToCancelled({ inv, invoiceForward }, { models, lnd })
+    await heldToCancelled({ inv, invoiceForward }, { models, lnd })
+    await forwardFailedToCancelled({ invoiceForward }, { models, lnd })
+    await serialize(
+      models.invoice.update({
+        where: {
+          hash: inv.id
+        },
+        data: {
+          cancelled: true
+        }
+      }), { models }
+    )
+  }
+}
+
+export async function checkInvoiceForwardOutgoing ({ payment, invoiceForward, boss, models, lnd }) {
+  if (payment.is_failed) {
+    let status = 'UNKNOWN_FAILURE'
+    if (payment?.failed.is_insufficient_balance) {
+      status = 'INSUFFICIENT_BALANCE'
+    } else if (payment?.failed.is_invalid_payment) {
+      status = 'INVALID_PAYMENT'
+    } else if (payment?.failed.is_pathfinding_timeout) {
+      status = 'PATHFINDING_TIMEOUT'
+    } else if (payment?.failed.is_route_not_found) {
+      status = 'ROUTE_NOT_FOUND'
+    }
+
+    await forwardPendingToForwardFailed({ invoiceForward, status }, { models, lnd })
+    await forwardFailedToCancelled({ invoiceForward }, { models, lnd })
+  }
+
+  if (payment.is_confirmed) {
+    try {
+      await forwardPendingToForwardConfirmed({ invoiceForward, payment }, { models })
+      await forwardConfirmedToSettled({ invoiceForward, payment }, { models, lnd })
+    } catch (error) {
+      console.log('error settling forward', error)
+      // if we failed to transition to SETTLED, we need to retry until we succeed
+      await boss.send('checkWithdrawal', { hash: invoiceForward.withdrawl.hash }, { startAfter: datePivot(new Date(), { minutes: 1 }), priority: 1000 })
+    }
+  }
+}
+
 async function transition (func) {
   try {
     await func()
     return true
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError) {
+      // this error is thrown when we try to update a record that has been updated by another worker
+      // so we just ignore it and let the other worker take the transition "lock" and perform the transition
       if (e.code === 'P2025') {
         return false
       }
@@ -114,7 +193,7 @@ async function heldToCancelled ({ invoiceForward, inv, acceptHeight, expiryHeigh
   })
 }
 
-async function heldToFowarded ({ invoiceForward, inv, acceptHeight, expiryHeight, msats }, { models, lnd }) {
+async function heldToForwardPending ({ invoiceForward, inv, acceptHeight, expiryHeight, msats }, { models, lnd }) {
   return await transition(async () => {
     await serialize([
       models.invoiceForward.update({
@@ -123,7 +202,7 @@ async function heldToFowarded ({ invoiceForward, inv, acceptHeight, expiryHeight
           status: 'HELD'
         },
         data: {
-          status: 'FORWARDED',
+          status: 'FORWARD_PENDING',
           withdrawl: {
             create: {
               hash: inv.id,
@@ -148,13 +227,13 @@ async function heldToFowarded ({ invoiceForward, inv, acceptHeight, expiryHeight
   })
 }
 
-async function forwardedToForwardFailed ({ invoiceForward, status }, { models, lnd }) {
+async function forwardPendingToForwardFailed ({ invoiceForward, status }, { models, lnd }) {
   return await transition(async () => {
     await serialize([
       models.invoiceForward.update({
         where: {
           id: invoiceForward.id,
-          status: 'FORWARDED'
+          status: 'FORWARD_PENDING'
         },
         data: {
           status: 'FORWARD_FAILED',
@@ -186,7 +265,7 @@ async function forwardFailedToCancelled ({ invoiceForward }, { models, lnd }) {
   })
 }
 
-async function forwardToForwardConfirmed ({ invoiceForward, payment }, { models, lnd }) {
+async function forwardPendingToForwardConfirmed ({ invoiceForward, payment }, { models, lnd }) {
   return await transition(async () => {
     // make confirmation dependent on the payment being settled
     await settleHodlInvoice({ secret: payment.secret, lnd })
@@ -194,7 +273,7 @@ async function forwardToForwardConfirmed ({ invoiceForward, payment }, { models,
       models.invoiceForward.update({
         where: {
           id: invoiceForward.id,
-          status: 'FORWARDED'
+          status: 'FORWARD_PENDING'
         },
         data: {
           status: 'FORWARD_CONFIRMED',
@@ -256,63 +335,4 @@ async function settledToSuccessful ({ invoiceForward, inv }, { models }) {
       3 should be done if the transaction is successful
     */
   })
-}
-
-export async function checkInvoiceForwardIncoming ({ inv, invoiceForward, boss, models, lnd }) {
-  if (inv.is_held) {
-    try {
-      await createdToHeld({ invoiceForward }, { models })
-      const { expiryHeight, acceptHeight } = hodlInvoiceCltvDetails(inv)
-      if (expiryHeight - acceptHeight < MIN_SETTLEMENT_CLTV_DELTA) {
-        await heldToCancelled({ inv, invoiceForward, expiryHeight, acceptHeight }, { models, lnd })
-      } else {
-        const bolt11 = await parsePaymentRequest({ request: invoiceForward.bolt11 })
-        await heldToFowarded({ inv, invoiceForward, expiryHeight, acceptHeight, msats: BigInt(bolt11.mtokens) }, { models, lnd })
-      }
-    } catch (error) {
-      // attempt to cancel if we failed to transition to FORWARDED
-      await createdToCancelled({ inv, invoiceForward }, { models, lnd })
-      await heldToCancelled({ inv, invoiceForward }, { models, lnd })
-    }
-  }
-
-  if (inv.is_confirmed) {
-    try {
-      await settledToSuccessful({ invoiceForward, inv }, { models })
-    } catch (error) {
-      // if we failed to transition to SUCCESSFUL, we need to retry until we succeed
-      await boss.send('checkInvoice', { hash: inv.id }, { startAfter: datePivot(new Date(), { minutes: 1 }) })
-    }
-  }
-
-  // TODO: handle cancelled invoices
-}
-
-export async function checkInvoiceForwardOutgoing ({ payment, invoiceForward, boss, models, lnd }) {
-  if (payment.is_failed) {
-    let status = 'UNKNOWN_FAILURE'
-    if (payment?.failed.is_insufficient_balance) {
-      status = 'INSUFFICIENT_BALANCE'
-    } else if (payment?.failed.is_invalid_payment) {
-      status = 'INVALID_PAYMENT'
-    } else if (payment?.failed.is_pathfinding_timeout) {
-      status = 'PATHFINDING_TIMEOUT'
-    } else if (payment?.failed.is_route_not_found) {
-      status = 'ROUTE_NOT_FOUND'
-    }
-
-    await forwardedToForwardFailed({ invoiceForward, status }, { models, lnd })
-    await forwardFailedToCancelled({ invoiceForward }, { models, lnd })
-  }
-
-  if (payment.is_confirmed) {
-    try {
-      await forwardToForwardConfirmed({ invoiceForward, payment }, { models })
-      await forwardConfirmedToSettled({ invoiceForward, payment }, { models, lnd })
-    } catch (error) {
-      console.log('error settling forward', error)
-      // if we failed to transition to SETTLED, we need to retry until we succeed
-      await boss.send('checkWithdrawal', { hash: invoiceForward.withdrawl.hash }, { startAfter: datePivot(new Date(), { minutes: 1 }), priority: 1000 })
-    }
-  }
 }

@@ -15,7 +15,7 @@ export class InsufficientFundsError extends GraphQLError {
   }
 }
 
-export default async function serialize (trx, { models, lnd, me, hash, hmac, fee }) {
+export default async function serialize (trx, { models, lnd, hash, hmac, fee }) {
   // wrap first argument in array if not array already
   const isArray = Array.isArray(trx)
   if (!isArray) trx = [trx]

@@ -7,7 +7,7 @@ const MAX_OUTGOING_MSATS = BigInt(9_000_000_000) // the maximum msats we'll allo
 const MAX_EXPIRATION_INCOMING_MSECS = 600000 // the maximum expiration time we'll allow for the incoming invoice
 const INCOMING_EXPIRATION_BUFFER_MSECS = 300000 // the buffer enforce for the incoming invoice expiration
 const MIN_INCOMING_CLTV_DELTA = 200 // the minimum cltv delta we'll allow for the incoming invoice
-const MAX_OUTGOING_CLTV_DELTA = 600 // the maximum cltv delta we'll allow for the outgoing invoice
+const MAX_OUTGOING_CLTV_DELTA = 1200 // the maximum cltv delta we'll allow for the outgoing invoice
 export const MIN_SETTLEMENT_CLTV_DELTA = 42 // the minimum blocks we'll leave for settling the incoming invoice
 const FEE_ESTIMATE_TIMEOUT_SECS = 5 // the timeout for the fee estimate request
 const MAX_FEE_ESTIMATE_PERCENT = 0.02 // the maximum fee relative to outgoing we'll allow for the fee estimate
@@ -120,7 +120,13 @@ export async function wrapInvoice (invoice, { description, descriptionHash }, { 
 
   // get routing estimates
   const { routingFeeMsat, timeLockDelay } =
-    await estimateRouteFee({ lnd, request: invoice, timeout: FEE_ESTIMATE_TIMEOUT_SECS })
+    await estimateRouteFee({
+      lnd,
+      destination: inv.destination,
+      mtokens: inv.mtokens,
+      request: invoice,
+      timeout: FEE_ESTIMATE_TIMEOUT_SECS
+    })
 
   // validate the cltv delta
   wrapped.cltv_delta = Number(timeLockDelay) + MIN_SETTLEMENT_CLTV_DELTA * 2
@@ -158,20 +164,25 @@ export async function wrapZapInvoice ({ item, sats }, { models, me, lnd }) {
     description: `zap for #${item.id}`
   }, { models })
   const { invoice: wrappedInvoice, invoiceParams, maxFee } = await wrapInvoice(
-    invoice, { description: `zap for #${item.id}` })
+    invoice, { description: `zap for #${item.id}` }, { lnd })
   await models.invoiceForward.create({
     data: {
       bolt11: invoice,
       maxFeeMsats: maxFee,
-      walletId: wallet.id,
       status: 'CREATED',
       invoice: {
         create: {
           userId: me.id,
+          hash: wrappedInvoice.id,
           bolt11: wrappedInvoice.request,
           msatsRequested: BigInt(invoiceParams.mtokens),
           expiresAt: invoiceParams.expires_at,
           desc: invoiceParams.description
+        }
+      },
+      wallet: {
+        connect: {
+          id: wallet.id
         }
       }
     }

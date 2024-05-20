@@ -15,9 +15,14 @@ lndService.getWalletInfo({ lnd }, (err, result) => {
   console.log('LND GRPC connection successful')
 })
 
-export async function estimateRouteFee ({ lnd, request, timeout }) {
+export async function estimateRouteFee ({ lnd, destination, tokens, mtokens, request, timeout }) {
   return await new Promise((resolve, reject) => {
-    lnd.router.estimateRouteFee({ request: Buffer.from(request, 'hex'), timeout }, (err, res) => {
+    lnd.router.estimateRouteFee({
+      dest: Buffer.from(destination, 'hex'),
+      amt_sat: Number(tokens) || Number(BigInt(mtokens) / BigInt(1e3)),
+      payment_request: request,
+      timeout
+    }, (err, res) => {
       if (err) {
         reject(err)
       } else {
@@ -25,8 +30,7 @@ export async function estimateRouteFee ({ lnd, request, timeout }) {
           reject(new Error(`Unable to estimate route: ${res.failure_reason}`))
         }
 
-        if (!res.routing_fee_msat || res.routing_fee_msat <= 0 ||
-          res.routing_fee_msat >= Number.MAX_SAFE_INTEGER || !res.time_lock_delay ||
+        if (res.routing_fee_msat < 0 || res.routing_fee_msat >= Number.MAX_SAFE_INTEGER ||
           res.time_lock_delay <= 0 || res.time_lock_delay >= Number.MAX_SAFE_INTEGER) {
           reject(new Error('Unable to estimate route, excessive values: ' + JSON.stringify(res)))
         }

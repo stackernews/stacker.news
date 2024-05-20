@@ -310,7 +310,7 @@ export function useZap () {
   const [zap] = useMutation(
     gql`
       mutation idempotentAct($id: ID!, $sats: Int!) {
-        act(id: $id, sats: $sats, idempotent: true) {
+        act(id: $id, sats: $sats, idempotent: false) {
           id
           sats
           path

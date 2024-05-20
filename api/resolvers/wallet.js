@@ -11,7 +11,7 @@ import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, ANON_USER_ID, BALANCE
 import { datePivot } from '@/lib/time'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
-import { createInvoice as createInvoiceCLN } from '@/api/createInvoice/cln'
+import createInvoiceCLN from '@/api/createInvoice/cln'
 import { bolt11Tags } from '@/lib/bolt11'
 
 export async function getInvoice (parent, { id }, { me, models, lnd }) {

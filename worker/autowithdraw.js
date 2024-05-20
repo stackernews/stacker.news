@@ -36,12 +36,12 @@ export async function autoWithdraw ({ data: { id }, models, lnd }) {
 
   if (pendingOrFailed.exists) return
 
-  const { request, wallet } = await createUserInvoice({
+  const { invoice, wallet } = await createUserInvoice({
     userId: id,
     msats: satsToMsats(amount),
     description: user.hideInvoiceDesc ? undefined : `autowithdraw from SN for ${user.name}`,
     expiry: 360
   }, { models })
 
-  await createWithdrawal(null, { invoice: request, maxFee }, { me: user, models, lnd, walletId: wallet.id })
+  await createWithdrawal(null, { invoice, maxFee }, { me: user, models, lnd, walletId: wallet.id })
 }

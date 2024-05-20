@@ -195,7 +195,7 @@ services:
     labels:
       CONNECT: "localhost:5601"
   bitcoin:
-    image: polarlightning/bitcoind:26.0
+    image: polarlightning/bitcoind:27.0
     container_name: bitcoin
     restart: unless-stopped
     profiles:

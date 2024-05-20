@@ -93,7 +93,7 @@ function subscribeToHodlInvoice (args) {
       logEvent('hodl_invoice_updated', inv)
       try {
         // record the is_held transition
-        if (inv.is_held) {
+        if (inv.is_held || inv.is_canceled) {
           await checkInvoice({ data: { hash: inv.id }, ...args })
           // after that we can stop listening for updates
           resolve()
@@ -116,7 +116,7 @@ export async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
   const dbInv = await models.invoice.findUnique({
     where: { hash },
     include: {
-      invoiceFoward: {
+      invoiceForward: {
         include: {
           invoice: true,
           withdrawl: true,
@@ -131,7 +131,7 @@ export async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
   }
 
   // if this is an incoming invoice forward, it requires special handling
-  if (dbInv.invoiceFoward) {
+  if (dbInv.invoiceForward) {
     return await checkInvoiceForwardIncoming({ inv, invoiceForward: dbInv.invoiceForward, boss, models, lnd })
   }
 
@@ -231,7 +231,7 @@ export async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
     },
     include: {
       wallet: true,
-      invoiceFoward: {
+      invoiceForward: {
         include: {
           invoice: true,
           withdrawl: true
@@ -261,7 +261,7 @@ export async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
   }
 
   // if this is an outgoing invoice forward, it requires special handling
-  if (dbWdrwl.invoiceFoward) {
+  if (dbWdrwl.invoiceForward) {
     return await checkInvoiceForwardOutgoing({ payment: wdrwl, invoiceForward: dbWdrwl.InvoiceForward, boss, models, lnd })
   }
 

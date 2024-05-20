@@ -13,6 +13,7 @@ import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
 import { createInvoice as createInvoiceCLN } from '@/lib/cln'
 import { bolt11Tags } from '@/lib/bolt11'
+import { handleActionError } from 'worker/wallet'
 
 export async function getInvoice (parent, { id }, { me, models, lnd }) {
   const inv = await models.invoice.findUnique({
@@ -380,7 +381,8 @@ export default {
         throw new GraphQLError('bad hmac', { extensions: { code: 'FORBIDDEN' } })
       }
       await cancelHodlInvoice({ id: hash, lnd })
-      const inv = await serialize(
+      const inv = await models.invoice.findUnique({ where: { hash } })
+      await serialize([
         models.invoice.update({
           where: {
             hash
@@ -389,9 +391,10 @@ export default {
             cancelled: true
           }
         }),
-        { models }
+        ...handleActionError({ data: inv, models })
+      ], { models }
       )
-      return inv
+      return { ...inv, cancelled: true }
     },
     dropBolt11: async (parent, { id }, { me, models, lnd }) => {
       if (!me) {

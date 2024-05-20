@@ -65,7 +65,8 @@ async function subscribeToDeposits (args) {
         } else {
           // this is a HODL invoice. We need to use SubscribeToInvoice which has is_held transitions
           // https://api.lightning.community/api/lnd/invoices/subscribe-single-invoice
-          // SubscribeToInvoices is only for invoice creation and settlement transitions
+          // SubscribeToInvoices is only for invoice creation and settlement transitions.
+          // This means if invoices expire or are cancelled, we will not get notified here.
           // https://api.lightning.community/api/lnd/lightning/subscribe-invoices
           subscribeToHodlInvoice({ hash: inv.id, ...args })
         }
@@ -165,7 +166,7 @@ async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
   }
 
   if (inv.is_canceled) {
-    return await serialize(
+    return await serialize([
       models.invoice.update({
         where: {
           hash: inv.id
@@ -173,8 +174,9 @@ async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
         data: {
           cancelled: true
         }
-      }), { models }
-    )
+      }),
+      ...handleActionError({ data: dbInv, models })
+    ], { models })
   }
 }
 
@@ -363,8 +365,7 @@ async function handleAction ({ data: { msatsReceived, actionType, actionId, acti
     // update item status from PENDING to ACTIVE
     // and run queries which were skipped during creation
 
-    const { credits: locked, cost } = actionData
-
+    const { cost } = actionData
     const item = await models.item.findUnique({ where: { id: actionId } })
 
     await serialize([
@@ -382,7 +383,7 @@ async function handleAction ({ data: { msatsReceived, actionType, actionId, acti
         },
         data: {
           msats: {
-            decrement: cost - msatsReceived - locked
+            decrement: cost
           }
         }
       }),
@@ -394,4 +395,19 @@ async function handleAction ({ data: { msatsReceived, actionType, actionId, acti
       item.maxBid && models.$executeRaw(`SELECT run_auction(${item.id}::INTEGER)`)
     ], { models })
   }
+}
+
+export function handleActionError ({ data: { actionType, actionId }, models }) {
+  if (!actionType || !actionId) return []
+
+  if (actionType === 'ITEM') {
+    return [
+      models.$queryRaw`
+        UPDATE "Item"
+        SET status = 'FAILED'
+        WHERE id = ${actionId} AND status = 'PENDING'`
+    ]
+  }
+
+  return []
 }

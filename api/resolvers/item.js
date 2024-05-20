@@ -1377,7 +1377,8 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
     const description = 'Creating item on stacker.news'
     // TODO: allow users to configure expiration
     const expiresAt = datePivot(new Date(), { milliseconds: DEFAULT_INVOICE_TIMEOUT_MS })
-    const mtokens = err.cost - err.balance
+    // we don't do partial payments yet, users need to pay full amount via invoice
+    const mtokens = err.cost
 
     const lndInv = await createInvoice({
       description: me.hideInvoiceDesc ? undefined : description,
@@ -1401,6 +1402,11 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
           SELECT * FROM create_invoice(${lndInv.id}, NULL, ${lndInv.request},
           ${expiresAt}::timestamp, ${mtokens}, ${item.userId}::INTEGER, ${description}, NULL, NULL,
           ${invLimit}::INTEGER, ${balanceLimit}, 'ITEM'::"ActionType", ${item.id}::INTEGER, ${JSON.stringify(actionData)}::JSONB)`)
+
+        // since SubscribeToInvoices does not trigger if an invoice expired, we need a job that handles expired invoices
+        await tx.$queryRaw`
+          INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
+          VALUES ('finalizeAction', jsonb_build_object('type', 'ITEM', 'id', ${item.id}::INTEGER), 21, true, ${expiresAt})`
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
 
     // hmac is not required to submit action again but to allow user to cancel payment

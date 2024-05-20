@@ -25,6 +25,7 @@ import { ofac } from './ofac.js'
 import { autoWithdraw } from './autowithdraw.js'
 import { saltAndHashEmails } from './saltAndHashEmails.js'
 import { remindUser } from './reminder.js'
+import { finalizeAction } from './action.js'
 
 const { loadEnvConfig } = nextEnv
 const { ApolloClient, HttpLink, InMemoryCache } = apolloClient
@@ -80,6 +81,7 @@ async function work () {
 
   await subscribeToWallet(args)
   await boss.work('finalizeHodlInvoice', jobWrapper(finalizeHodlInvoice))
+  await boss.work('finalizeAction', jobWrapper(finalizeAction))
   await boss.work('checkPendingDeposits', jobWrapper(checkPendingDeposits))
   await boss.work('checkPendingWithdrawals', jobWrapper(checkPendingWithdrawals))
   await boss.work('autoDropBolt11s', jobWrapper(autoDropBolt11s))

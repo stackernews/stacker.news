@@ -1366,43 +1366,44 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
       { models, lnd, me, hash, hmac, fee }
     ))
   } catch (err) {
-    if (err instanceof InsufficientFundsError) {
-      // create invoice and insert as pending item
-      const invLimit = me ? INV_PENDING_LIMIT : ANON_INV_PENDING_LIMIT
-      const balanceLimit = USER_IDS_BALANCE_NO_LIMIT.includes(Number(me?.id)) ? 0 : me ? BALANCE_LIMIT_MSATS : ANON_BALANCE_LIMIT_MSATS
-      const description = 'Creating item on stacker.news'
-      const expiresAt = datePivot(new Date(), { seconds: me ? JIT_INVOICE_TIMEOUT_MS : 180 })
-      const mtokens = err.cost - err.balance
+    // post payment flow is only allowed for stackers, not anons since we can't show pending items to anons
+    if (!me || !(err instanceof InsufficientFundsError)) {
+      throw err
+    }
 
-      const lndInv = await createInvoice({
-        description: me.hideInvoiceDesc ? undefined : description,
-        lnd,
-        mtokens,
-        expires_at: expiresAt
-      })
+    // create invoice and insert as pending item
+    const invLimit = me ? INV_PENDING_LIMIT : ANON_INV_PENDING_LIMIT
+    const balanceLimit = USER_IDS_BALANCE_NO_LIMIT.includes(Number(me?.id)) ? 0 : me ? BALANCE_LIMIT_MSATS : ANON_BALANCE_LIMIT_MSATS
+    const description = 'Creating item on stacker.news'
+    const expiresAt = datePivot(new Date(), { seconds: me ? JIT_INVOICE_TIMEOUT_MS : 180 })
+    const mtokens = err.cost - err.balance
 
-      let invoice
-      const actionData = { cost: err.cost, credits: err.balance }
-      await models.$transaction(
-        async (tx) => {
-          // insert pending item
-          ([item] = await tx.$queryRawUnsafe(
+    const lndInv = await createInvoice({
+      description: me.hideInvoiceDesc ? undefined : description,
+      lnd,
+      mtokens,
+      expires_at: expiresAt
+    })
+
+    let invoice
+    const actionData = { cost: err.cost, credits: err.balance }
+    await models.$transaction(
+      async (tx) => {
+        // insert pending item
+        ([item] = await tx.$queryRawUnsafe(
           `${SELECT} FROM create_item($1::JSONB, $2::JSONB, $3::JSONB, '${spamInterval}'::INTERVAL, $4::INTEGER[]) AS "Item"`,
           JSON.stringify({ ...item, status: 'PENDING' }), JSON.stringify(fwdUsers), JSON.stringify(options), uploadIds));
 
-          // set required invoice data to update item on payment
-          ([invoice] = await tx.$queryRaw`SELECT * FROM create_invoice(${lndInv.id}, NULL, ${lndInv.request},
+        // set required invoice data to update item on payment
+        ([invoice] = await tx.$queryRaw`SELECT * FROM create_invoice(${lndInv.id}, NULL, ${lndInv.request},
           ${expiresAt}::timestamp, ${mtokens}, ${item.userId}::INTEGER, ${description}, NULL, NULL,
           ${invLimit}::INTEGER, ${balanceLimit}, 'ITEM'::"ActionType", ${item.id}::INTEGER, ${JSON.stringify(actionData)}::JSONB)`)
-        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
 
-      // hmac is not required to submit action again but to allow user to cancel payment
-      invoice.hmac = createHmac(invoice.hash)
+    // hmac is not required to submit action again but to allow user to cancel payment
+    invoice.hmac = createHmac(invoice.hash)
 
-      item.invoice = invoice
-    } else {
-      throw err
-    }
+    item.invoice = invoice
   }
 
   await enqueueDeletionJob(item, models)

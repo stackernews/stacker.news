@@ -9,7 +9,7 @@ import {
   ITEM_SPAM_INTERVAL, ITEM_FILTER_THRESHOLD,
   COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY,
   ANON_USER_ID, ANON_ITEM_SPAM_INTERVAL, POLL_COST,
-  ITEM_ALLOW_EDITS, GLOBAL_SEED, ANON_FEE_MULTIPLIER, NOFOLLOW_LIMIT, UNKNOWN_LINK_REL, JIT_INVOICE_TIMEOUT_MS, ANON_INV_PENDING_LIMIT, ANON_BALANCE_LIMIT_MSATS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT, BALANCE_LIMIT_MSATS
+  ITEM_ALLOW_EDITS, GLOBAL_SEED, ANON_FEE_MULTIPLIER, NOFOLLOW_LIMIT, UNKNOWN_LINK_REL, ANON_INV_PENDING_LIMIT, ANON_BALANCE_LIMIT_MSATS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT, BALANCE_LIMIT_MSATS, DEFAULT_INVOICE_TIMEOUT_MS
 } from '@/lib/constants'
 import { msatsToSats } from '@/lib/format'
 import { parse } from 'tldts'
@@ -1375,7 +1375,8 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
     const invLimit = me ? INV_PENDING_LIMIT : ANON_INV_PENDING_LIMIT
     const balanceLimit = USER_IDS_BALANCE_NO_LIMIT.includes(Number(me?.id)) ? 0 : me ? BALANCE_LIMIT_MSATS : ANON_BALANCE_LIMIT_MSATS
     const description = 'Creating item on stacker.news'
-    const expiresAt = datePivot(new Date(), { seconds: me ? JIT_INVOICE_TIMEOUT_MS : 180 })
+    // TODO: allow users to configure expiration
+    const expiresAt = datePivot(new Date(), { milliseconds: DEFAULT_INVOICE_TIMEOUT_MS })
     const mtokens = err.cost - err.balance
 
     const lndInv = await createInvoice({

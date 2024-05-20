@@ -7,7 +7,7 @@ import { SELECT } from './item'
 import { lnAddrOptions } from '@/lib/lnurl'
 import { msatsToSats, msatsToSatsDecimal, ensureB64 } from '@/lib/format'
 import { CLNAutowithdrawSchema, LNDAutowithdrawSchema, amountSchema, lnAddrAutowithdrawSchema, lnAddrSchema, ssValidate, withdrawlSchema } from '@/lib/validate'
-import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, ANON_USER_ID, BALANCE_LIMIT_MSATS, INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT, Wallet } from '@/lib/constants'
+import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, ANON_USER_ID, BALANCE_LIMIT_MSATS, DEFAULT_INVOICE_TIMEOUT_MS, INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT, Wallet } from '@/lib/constants'
 import { datePivot } from '@/lib/time'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
@@ -327,7 +327,7 @@ export default {
     }
   },
   Mutation: {
-    createInvoice: async (parent, { amount, hodlInvoice = false, expireSecs = 3600 }, { me, models, lnd, headers }) => {
+    createInvoice: async (parent, { amount, hodlInvoice = false, expireSecs = (DEFAULT_INVOICE_TIMEOUT_MS / 1000) }, { me, models, lnd, headers }) => {
       await ssValidate(amountSchema, { amount })
       await assertGofacYourself({ models, headers })
 

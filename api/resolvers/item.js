@@ -1396,6 +1396,7 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
           ${invLimit}::INTEGER, ${balanceLimit}, 'ITEM'::"ActionType", ${item.id}::INTEGER, ${JSON.stringify(actionData)}::JSONB)`)
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
 
+      // hmac is not required to submit action again but to allow user to cancel payment
       invoice.hmac = createHmac(invoice.hash)
 
       item.invoice = invoice

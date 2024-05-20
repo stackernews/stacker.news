@@ -191,7 +191,7 @@ BEGIN
     -- all remaining queries will run when invoice was paid and we update the item status.
     IF item."status" = 'PENDING'::"Status" THEN
         -- here, we immediately deduct as many of the sats that are required for the payment
-        -- to effectively "lock" them for it. the remainder will be paid via invoice.
+        -- as possible to effectively "lock" them for it. the remainder will be paid via invoice.
         -- if the payment fails, we release the locked sats by adding them to the balance again.
         UPDATE users SET msats = GREATEST(msats - cost_msats - item.boost, 0) WHERE id = item."userId";
         RETURN item;

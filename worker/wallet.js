@@ -135,6 +135,7 @@ async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
     const firstConfirmation = code === 0
     if (firstConfirmation) {
       notifyDeposit(dbInv.userId, { comment: dbInv.comment, ...inv })
+      // ideally, we would run this in the same tx as confirm_invoice but handleAction is not idempotent
       await handleAction({ data: dbInv, models })
     }
 

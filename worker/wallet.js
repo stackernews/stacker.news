@@ -9,7 +9,6 @@ import { datePivot, sleep } from '@/lib/time.js'
 import retry from 'async-retry'
 import { addWalletLog } from '@/api/resolvers/wallet'
 import { msatsToSats, numWithUnits } from '@/lib/format'
-import { Prisma } from '@prisma/client'
 
 export async function subscribeToWallet (args) {
   await subscribeToDeposits(args)
@@ -364,16 +363,20 @@ async function handleAction ({ data: { msatsReceived, actionType, actionId, acti
     // update item status from PENDING to ACTIVE
     // and run queries which were skipped during creation
 
-    const itemId = actionId
     const { credits: locked, cost } = actionData
 
-    await models.$transaction(async (tx) => {
-      const item = await tx.item.update({
-        where: { id: itemId },
-        data: { status: 'ACTIVE' }
-      })
+    const item = await models.item.findUnique({ where: { id: actionId } })
 
-      await tx.user.update({
+    await serialize([
+      models.item.update({
+        where: {
+          id: item.id
+        },
+        data: {
+          status: 'ACTIVE'
+        }
+      }),
+      models.user.update({
         where: {
           id: item.userId
         },
@@ -382,18 +385,13 @@ async function handleAction ({ data: { msatsReceived, actionType, actionId, acti
             decrement: cost - msatsReceived - locked
           }
         }
-      })
-
-      // run skipped item queries
-      await tx.itemAct.create({
+      }),
+      // run skipped queries
+      models.itemAct.create({
         data: { msats: cost, itemId: item.id, userId: item.userId, act: 'FEE' }
-      })
-      if (item.boost > 0) {
-        await tx.$executeRaw(`SELECT item_act(${item.id}::INTEGER, ${item.userId}::INTEGER, 'BOOST'::"ItemActType", ${item.boost}::INTEGER)`)
-      }
-      if (item.maxBid) {
-        await tx.$executeRaw(`SELECT run_auction(${item.id}::INTEGER);`)
-      }
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
+      }),
+      item.boost > 0 && models.$executeRaw(`SELECT item_act(${item.id}::INTEGER, ${item.userId}::INTEGER, 'BOOST'::"ItemActType", ${item.boost}::INTEGER)`),
+      item.maxBid && models.$executeRaw(`SELECT run_auction(${item.id}::INTEGER)`)
+    ], { models })
   }
 }

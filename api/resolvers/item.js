@@ -1386,6 +1386,7 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
     })
 
     let invoice
+    // need to use interactive tx here to set invoice.actionId = item.id
     await models.$transaction(
       async (tx) => {
         // insert pending item
@@ -1395,7 +1396,8 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
 
         // set required invoice data to update item on payment
         const actionData = { cost: err.cost, credits: err.balance };
-        ([invoice] = await tx.$queryRaw`SELECT * FROM create_invoice(${lndInv.id}, NULL, ${lndInv.request},
+        ([invoice] = await tx.$queryRaw`
+          SELECT * FROM create_invoice(${lndInv.id}, NULL, ${lndInv.request},
           ${expiresAt}::timestamp, ${mtokens}, ${item.userId}::INTEGER, ${description}, NULL, NULL,
           ${invLimit}::INTEGER, ${balanceLimit}, 'ITEM'::"ActionType", ${item.id}::INTEGER, ${JSON.stringify(actionData)}::JSONB)`)
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })

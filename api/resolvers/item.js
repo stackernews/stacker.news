@@ -1386,15 +1386,15 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
     })
 
     let invoice
-    const actionData = { cost: err.cost, credits: err.balance }
     await models.$transaction(
       async (tx) => {
         // insert pending item
         ([item] = await tx.$queryRawUnsafe(
           `${SELECT} FROM create_item($1::JSONB, $2::JSONB, $3::JSONB, '${spamInterval}'::INTERVAL, $4::INTEGER[]) AS "Item"`,
-          JSON.stringify({ ...item, status: 'PENDING' }), JSON.stringify(fwdUsers), JSON.stringify(options), uploadIds));
+          JSON.stringify({ ...item, status: 'PENDING' }), JSON.stringify(fwdUsers), JSON.stringify(options), uploadIds))
 
         // set required invoice data to update item on payment
+        const actionData = { cost: err.cost, credits: err.balance };
         ([invoice] = await tx.$queryRaw`SELECT * FROM create_invoice(${lndInv.id}, NULL, ${lndInv.request},
           ${expiresAt}::timestamp, ${mtokens}, ${item.userId}::INTEGER, ${description}, NULL, NULL,
           ${invLimit}::INTEGER, ${balanceLimit}, 'ITEM'::"ActionType", ${item.id}::INTEGER, ${JSON.stringify(actionData)}::JSONB)`)

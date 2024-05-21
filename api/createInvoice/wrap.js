@@ -4,8 +4,8 @@ import createUserInvoice from '.'
 
 const MIN_OUTGOING_MSATS = BigInt(900) // the minimum msats we'll allow for the outgoing invoice
 const MAX_OUTGOING_MSATS = BigInt(9_000_000_000) // the maximum msats we'll allow for the outgoing  invoice
-const MAX_EXPIRATION_INCOMING_MSECS = 600000 // the maximum expiration time we'll allow for the incoming invoice
-const INCOMING_EXPIRATION_BUFFER_MSECS = 300000 // the buffer enforce for the incoming invoice expiration
+const MAX_EXPIRATION_INCOMING_MSECS = 900_000 // the maximum expiration time we'll allow for the incoming invoice
+const INCOMING_EXPIRATION_BUFFER_MSECS = 300_000 // the buffer enforce for the incoming invoice expiration
 const MIN_INCOMING_CLTV_DELTA = 200 // the minimum cltv delta we'll allow for the incoming invoice
 const MAX_OUTGOING_CLTV_DELTA = 1200 // the maximum cltv delta we'll allow for the outgoing invoice
 export const MIN_SETTLEMENT_CLTV_DELTA = 42 // the minimum blocks we'll leave for settling the incoming invoice
@@ -131,7 +131,7 @@ export async function wrapInvoice (invoice, { description, descriptionHash }, { 
   // validate the cltv delta
   wrapped.cltv_delta = Number(timeLockDelay) + MIN_SETTLEMENT_CLTV_DELTA * 2
   if (wrapped.cltv_delta > MAX_OUTGOING_CLTV_DELTA) {
-    throw new Error('Estimated outgoing cltv delta is too high')
+    throw new Error('Estimated outgoing cltv delta is too high: ' + wrapped.cltv_delta)
   } else if (wrapped.cltv_delta < MIN_INCOMING_CLTV_DELTA) {
     // enforce a minimum cltv delta for the incoming invoice
     wrapped.cltv_delta = MIN_INCOMING_CLTV_DELTA
@@ -187,5 +187,5 @@ export async function wrapZapInvoice ({ item, sats }, { models, me, lnd }) {
       }
     }
   })
-  return wrappedInvoice
+  return wrappedInvoice.request
 }

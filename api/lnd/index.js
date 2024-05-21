@@ -48,7 +48,7 @@ export async function estimateRouteFee ({ lnd, destination, tokens, mtokens, req
 // ln-service has remaps the `htlcs` field of lookupInvoice to `payments` and
 // see: https://github.com/alexbosworth/lightning/blob/master/lnd_responses/htlc_as_payment.js
 // and: https://lightning.engineering/api-docs/api/lnd/lightning/lookup-invoice/index.html#lnrpcinvoicehtlc
-export async function hodlInvoiceCltvDetails (inv) {
+export function hodlInvoiceCltvDetails (inv) {
   if (!inv.payments) {
     throw new Error('No payments found')
   }
@@ -56,7 +56,7 @@ export async function hodlInvoiceCltvDetails (inv) {
     throw new Error('Invoice is not held')
   }
 
-  const acceptedHeight = inv.payments.reduce((max, htlc) => {
+  const acceptHeight = inv.payments.reduce((max, htlc) => {
     return htlc.created_height > max ? htlc.created_height : max
   }, 0)
   const expiryHeight = inv.payments.reduce((min, htlc) => {
@@ -65,7 +65,7 @@ export async function hodlInvoiceCltvDetails (inv) {
 
   return {
     expiryHeight,
-    acceptedHeight
+    acceptHeight
   }
 }
 

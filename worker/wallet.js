@@ -60,8 +60,8 @@ async function subscribeToDeposits (args) {
 
     sub.on('invoice_updated', async (inv) => {
       try {
+        logEvent('invoice_updated', inv)
         if (inv.secret) {
-          logEvent('invoice_updated', inv)
           await checkInvoice({ data: { hash: inv.id }, ...args })
         } else {
           // this is a HODL invoice. We need to use SubscribeToInvoice which has is_held transitions
@@ -92,10 +92,9 @@ function subscribeToHodlInvoice (args) {
     sub.on('invoice_updated', async (inv) => {
       logEvent('hodl_invoice_updated', inv)
       try {
-        // record the is_held transition
-        if (inv.is_held || inv.is_canceled) {
-          await checkInvoice({ data: { hash: inv.id }, ...args })
-          // after that we can stop listening for updates
+        await checkInvoice({ data: { hash: inv.id }, ...args })
+        // after settle or confirm we can stop listening for updates
+        if (inv.is_confirmed || inv.is_canceled) {
           resolve()
         }
       } catch (error) {
@@ -132,7 +131,7 @@ export async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
 
   // if this is an incoming invoice forward, it requires special handling
   if (dbInv.invoiceForward) {
-    return await checkInvoiceForwardIncoming({ inv, invoiceForward: dbInv.invoiceForward, boss, models, lnd })
+    return await checkInvoiceForwardIncoming(dbInv.invoiceForward, { invoice: inv, boss, models, lnd })
   }
 
   if (inv.is_confirmed) {
@@ -232,6 +231,7 @@ export async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
     include: {
       wallet: true,
       invoiceForward: {
+        orderBy: { createdAt: 'desc' },
         include: {
           invoice: true,
           withdrawl: true
@@ -261,8 +261,8 @@ export async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
   }
 
   // if this is an outgoing invoice forward, it requires special handling
-  if (dbWdrwl.invoiceForward) {
-    return await checkInvoiceForwardOutgoing({ payment: wdrwl, invoiceForward: dbWdrwl.InvoiceForward, boss, models, lnd })
+  if (dbWdrwl.invoiceForward.length > 0) {
+    return await checkInvoiceForwardOutgoing(dbWdrwl.invoiceForward[0], { withdrawal: wdrwl, boss, models, lnd })
   }
 
   if (wdrwl?.is_confirmed) {

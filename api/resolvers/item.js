@@ -918,7 +918,8 @@ export default {
           if (e.message.includes('insufficient funds')) {
             try {
               bolt11 = await wrapZapInvoice({ item, sats }, { me, models, lnd })
-            } catch {
+            } catch (e2) {
+              console.error(e2)
               throw e
             }
           }

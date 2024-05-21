@@ -67,7 +67,7 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
       const existingAmount = Number(window.localStorage.getItem(storageKey) || '0')
       window.localStorage.setItem(storageKey, existingAmount + amount)
     }
-    await act({
+    console.log(await act({
       variables: {
         id: itemId,
         sats: Number(amount),
@@ -76,7 +76,7 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
         hmac
       },
       update
-    })
+    }))
     // only strike when zap undos not enabled
     // due to optimistic UX on zap undos
     if (!zapUndosThresholdReached(me, Number(amount))) await strike()
@@ -103,6 +103,7 @@ export default function ItemAct ({ onClose, itemId, down, children }) {
           fragment ItemMeSatsSubmit on Item {
             path
             sats
+            bolt11
             meSats
             meDontLikeSats
           }
@@ -253,6 +254,7 @@ export function useAct ({ onUpdate } = {}) {
           sats
           path
           act
+          bolt11
         }
       }`, { update }
   )
@@ -262,6 +264,7 @@ export function useAct ({ onUpdate } = {}) {
 export function useZap () {
   const update = useCallback((cache, args) => {
     const { data: { act: { id, sats, path } } } = args
+    console.log('update', args)
 
     // determine how much we increased existing sats by by checking the
     // difference between result sats and meSats
@@ -314,6 +317,7 @@ export function useZap () {
           id
           sats
           path
+          bolt11
         }
       }`
   )

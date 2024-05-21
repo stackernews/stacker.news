@@ -473,6 +473,20 @@ export default {
         return true
       }
 
+      const newReminder = await models.reminder.findFirst({
+        where: {
+          userId: me.id,
+          remindAt: {
+            gt: lastChecked,
+            lt: new Date()
+          }
+        }
+      })
+      if (newReminder) {
+        foundNotes()
+        return true
+      }
+
       // update checkedNotesAt to prevent rechecking same time period
       models.user.update({
         where: { id: me.id },
@@ -749,7 +763,7 @@ export default {
             }
           }
         })
-        if (subscription.postsSubscribedAt || subscription.commentsSubscribedAt) {
+        if (subscription?.postsSubscribedAt || subscription?.commentsSubscribedAt) {
           throw new GraphQLError("you can't mute a stacker to whom you've subscribed", { extensions: { code: 'BAD_INPUT' } })
         }
         await models.mute.create({ data: { ...lookupData } })

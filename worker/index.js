@@ -24,6 +24,7 @@ import { territoryBilling, territoryRevenue } from './territory.js'
 import { ofac } from './ofac.js'
 import { autoWithdraw } from './autowithdraw.js'
 import { saltAndHashEmails } from './saltAndHashEmails.js'
+import { remindUser } from './reminder.js'
 
 const { loadEnvConfig } = nextEnv
 const { ApolloClient, HttpLink, InMemoryCache } = apolloClient
@@ -102,6 +103,7 @@ async function work () {
   await boss.work('territoryRevenue', jobWrapper(territoryRevenue))
   await boss.work('ofac', jobWrapper(ofac))
   await boss.work('saltAndHashEmails', jobWrapper(saltAndHashEmails))
+  await boss.work('reminder', jobWrapper(remindUser))
 
   console.log('working jobs')
 }

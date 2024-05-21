@@ -6,6 +6,14 @@
     margin-bottom: .15rem;
 }
 
+.summaryText {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
 .notification {
     position: absolute;
     padding: 3px;

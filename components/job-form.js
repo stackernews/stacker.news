@@ -17,7 +17,7 @@ import Avatar from './avatar'
 import { jobSchema } from '@/lib/validate'
 import { MAX_TITLE_LENGTH, MEDIA_URL } from '@/lib/constants'
 import { useToast } from './toast'
-import { toastDeleteScheduled } from '@/lib/form'
+import { toastUpsertSuccessMessages } from '@/lib/form'
 import { ItemButtonBar } from './post'
 import { useFormikContext } from 'formik'
 
@@ -51,6 +51,7 @@ export default function JobForm ({ item, sub }) {
         url: $url, maxBid: $maxBid, status: $status, logo: $logo, hash: $hash, hmac: $hmac) {
         id
         deleteScheduledAt
+        reminderScheduledAt
       }
     }`
   )
@@ -83,7 +84,7 @@ export default function JobForm ({ item, sub }) {
       } else {
         await router.push(`/~${sub.name}/recent`)
       }
-      toastDeleteScheduled(toaster, data, 'upsertJob', !!item, values.text)
+      toastUpsertSuccessMessages(toaster, data, 'upsertJob', !!item, values.text)
     }, [upsertJob, router, logoId]
   )
 

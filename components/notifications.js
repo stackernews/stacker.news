@@ -30,12 +30,19 @@ import { nextBillingWithGrace } from '@/lib/territory'
 import { commentSubTreeRootId } from '@/lib/item'
 import LinkToContext from './link-to-context'
 import { Badge } from 'react-bootstrap'
+import { Types as ClientTypes, ClientZap, ClientReply, ClientPollVote, ClientBounty, useClientNotifications } from './client-notifications'
+import { ITEM_FULL } from '@/fragments/items'
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
 
+  // we need to resolve item id to item to show item for client notifications
+  const { data } = useQuery(ITEM_FULL, { variables: { id: n.itemId }, skip: !n.itemId })
+  const item = data?.item
+  const itemN = { item, ...n }
+
   return (
-    <NotificationLayout nid={nid(n)} {...defaultOnClick(n)} fresh={fresh}>
+    <NotificationLayout nid={nid(n)} {...defaultOnClick(itemN)} fresh={fresh}>
       {
         (type === 'Earn' && <EarnNotification n={n} />) ||
         (type === 'Revenue' && <RevenueNotification n={n} />) ||
@@ -53,7 +60,11 @@ function Notification ({ n, fresh }) {
         (type === 'FollowActivity' && <FollowActivity n={n} />) ||
         (type === 'TerritoryPost' && <TerritoryPost n={n} />) ||
         (type === 'TerritoryTransfer' && <TerritoryTransfer n={n} />) ||
-        (type === 'Reminder' && <Reminder n={n} />)
+        (type === 'Reminder' && <Reminder n={n} />) ||
+        ([ClientTypes.Zap.ERROR, ClientTypes.Zap.PENDING].includes(type) && <ClientZap n={itemN} />) ||
+        ([ClientTypes.Reply.ERROR, ClientTypes.Reply.PENDING].includes(type) && <ClientReply n={itemN} />) ||
+        ([ClientTypes.Bounty.ERROR, ClientTypes.Bounty.PENDING].includes(type) && <ClientBounty n={itemN} />) ||
+        ([ClientTypes.PollVote.ERROR, ClientTypes.PollVote.PENDING].includes(type) && <ClientPollVote n={itemN} />)
       }
     </NotificationLayout>
   )
@@ -101,6 +112,8 @@ const defaultOnClick = n => {
   if (type === 'Referral') return { href: '/referrals/month' }
   if (type === 'Streak') return {}
   if (type === 'TerritoryTransfer') return { href: `/~${n.sub.name}` }
+
+  if (!n.item) return {}
 
   // Votification, Mention, JobChanged, Reply all have item
   if (!n.item.title) {
@@ -534,6 +547,7 @@ export default function Notifications ({ ssrData }) {
   const { data, fetchMore } = useQuery(NOTIFICATIONS)
   const router = useRouter()
   const dat = useData(data, ssrData)
+  const { notifications: clientNotifications } = useClientNotifications()
 
   const { notifications, lastChecked, cursor } = useMemo(() => {
     if (!dat?.notifications) return {}
@@ -561,9 +575,12 @@ export default function Notifications ({ ssrData }) {
 
   if (!dat) return <CommentsFlatSkeleton />
 
+  const sorted = [...clientNotifications, ...notifications]
+    .sort((a, b) => new Date(b.sortTime).getTime() - new Date(a.sortTime).getTime())
+
   return (
     <>
-      {notifications.map(n =>
+      {sorted.map(n =>
         <Notification
           n={n} key={nid(n)}
           fresh={new Date(n.sortTime) > new Date(router?.query?.checkedAt ?? lastChecked)}

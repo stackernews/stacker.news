@@ -11,6 +11,7 @@ import { POLL_COST } from '@/lib/constants'
 import { InvoiceCanceledError, usePayment } from './payment'
 import { optimisticUpdate } from '@/lib/apollo'
 import { useToast } from './toast'
+import { Types as ClientNotification, useClientNotifications } from './client-notifications'
 
 export default function Poll ({ item }) {
   const me = useMe()
@@ -20,6 +21,7 @@ export default function Poll ({ item }) {
     }`
   const [pollVote] = useMutation(POLL_VOTE_MUTATION)
   const toaster = useToast()
+  const { notify, unnotify } = useClientNotifications()
 
   const update = (cache, { data: { pollVote } }) => {
     cache.modify({
@@ -55,21 +57,36 @@ export default function Poll ({ item }) {
           onClick={me
             ? async () => {
               const variables = { id: v.id }
+              const notifyProps = { itemId: item.id }
               const optimisticResponse = { pollVote: v.id }
-              let revert, cancel
+              let revert, cancel, nid
               try {
                 revert = optimisticUpdate({ mutation: POLL_VOTE_MUTATION, variables, optimisticResponse, update })
+
+                if (me) {
+                  nid = notify(ClientNotification.PollVote.PENDING, notifyProps)
+                }
+
                 let hash, hmac;
                 [{ hash, hmac }, cancel] = await payment.request(item.pollCost || POLL_COST)
                 await pollVote({ variables: { hash, hmac, ...variables } })
               } catch (error) {
                 revert?.()
+
                 if (error instanceof InvoiceCanceledError) {
                   return
                 }
+
                 const reason = error?.message || error?.toString?.()
-                toaster.danger('poll vote failed: ' + reason)
+                if (me) {
+                  notify(ClientNotification.PollVote.ERROR, { ...notifyProps, reason })
+                } else {
+                  toaster.danger('poll vote failed: ' + reason)
+                }
+
                 cancel?.()
+              } finally {
+                if (nid) unnotify(nid)
               }
             }
             : signIn}

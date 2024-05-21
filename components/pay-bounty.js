@@ -11,6 +11,7 @@ import { InvoiceCanceledError, usePayment } from './payment'
 import { optimisticUpdate } from '@/lib/apollo'
 import { useLightning } from './lightning'
 import { useToast } from './toast'
+import { Types as ClientNotification, useClientNotifications } from './client-notifications'
 
 export default function PayBounty ({ children, item }) {
   const me = useMe()
@@ -19,6 +20,7 @@ export default function PayBounty ({ children, item }) {
   const payment = usePayment()
   const strike = useLightning()
   const toaster = useToast()
+  const { notify, unnotify } = useClientNotifications()
 
   const onUpdate = useCallback(onComplete => (cache, { data: { act: { id, path } } }) => {
     // update root bounty status
@@ -40,8 +42,10 @@ export default function PayBounty ({ children, item }) {
   const handlePayBounty = async onComplete => {
     const sats = root.bounty
     const variables = { id: item.id, sats, act: 'TIP', path: item.path }
+    const notifyProps = { itemId: item.id, sats }
     const optimisticResponse = { act: { ...variables, path: item.path } }
-    let revert, cancel
+
+    let revert, cancel, nid
     try {
       revert = optimisticUpdate({
         mutation: ACT_MUTATION,
@@ -49,6 +53,11 @@ export default function PayBounty ({ children, item }) {
         optimisticResponse,
         update: actUpdate({ me, onUpdate: onUpdate(onComplete) })
       })
+
+      if (me) {
+        nid = notify(ClientNotification.Bounty.PENDING, notifyProps)
+      }
+
       let hash, hmac;
       [{ hash, hmac }, cancel] = await payment.request(sats)
       await act({
@@ -60,12 +69,20 @@ export default function PayBounty ({ children, item }) {
       onComplete()
     } catch (error) {
       revert?.()
+
       if (error instanceof InvoiceCanceledError) {
         return
       }
+
       const reason = error?.message || error?.toString?.()
-      toaster.danger('pay bounty failed: ' + reason)
+      if (me) {
+        notify(ClientNotification.Bounty.ERROR, { ...notifyProps, reason })
+      } else {
+        toaster.danger('pay bounty failed: ' + reason)
+      }
       cancel?.()
+    } finally {
+      if (nid) unnotify(nid)
     }
   }
 

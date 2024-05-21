@@ -11,6 +11,7 @@ import { useLightning } from './lightning'
 import { nextTip } from './upvote'
 import { InvoiceCanceledError, usePayment } from './payment'
 import { optimisticUpdate } from '@/lib/apollo'
+import { Types as ClientNotification, ClientNotifyProvider, useClientNotifications } from './client-notifications'
 
 const defaultTips = [100, 1000, 10_000, 100_000]
 
@@ -139,34 +140,37 @@ export default function ItemAct ({ onClose, item, down, children }) {
   }, [item.id, down, !!me, strike])
 
   return (
-    <Form
-      initial={{
-        amount: me?.privates?.tipDefault || defaultTips[0],
-        default: false
-      }}
-      schema={amountSchema}
-      prepaid
-      optimisticUpdate={optimisticUpdate}
-      onSubmit={onSubmit}
-    >
-      <Input
-        label='amount'
-        name='amount'
-        type='number'
-        innerRef={inputRef}
-        overrideValue={oValue}
-        required
-        autoFocus
-        append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
-      />
-      <div>
-        <Tips setOValue={setOValue} />
-      </div>
-      {children}
-      <div className='d-flex mt-3'>
-        <SubmitButton variant={down ? 'danger' : 'success'} className='ms-auto mt-1 px-4' value='TIP'>{down && 'down'}zap</SubmitButton>
-      </div>
-    </Form>
+    <ClientNotifyProvider additionalProps={{ itemId: item.id }}>
+      <Form
+        initial={{
+          amount: me?.privates?.tipDefault || defaultTips[0],
+          default: false
+        }}
+        schema={amountSchema}
+        prepaid
+        optimisticUpdate={optimisticUpdate}
+        onSubmit={onSubmit}
+        clientNotification={ClientNotification.Zap}
+      >
+        <Input
+          label='amount'
+          name='amount'
+          type='number'
+          innerRef={inputRef}
+          overrideValue={oValue}
+          required
+          autoFocus
+          append={<InputGroup.Text className='text-monospace'>sats</InputGroup.Text>}
+        />
+        <div>
+          <Tips setOValue={setOValue} />
+        </div>
+        {children}
+        <div className='d-flex mt-3'>
+          <SubmitButton variant={down ? 'danger' : 'success'} className='ms-auto mt-1 px-4' value='TIP'>{down && 'down'}zap</SubmitButton>
+        </div>
+      </Form>
+    </ClientNotifyProvider>
   )
 }
 
@@ -242,6 +246,8 @@ export function useZap () {
       }
     }`
   const [zap] = useMutation(ZAP_MUTATION)
+  const me = useMe()
+  const { notify, unnotify } = useClientNotifications()
 
   const toaster = useToast()
   const strike = useLightning()
@@ -252,25 +258,41 @@ export function useZap () {
 
     // add current sats to next tip since idempotent zaps use desired total zap not difference
     const sats = meSats + nextTip(meSats, { ...me?.privates })
+    const satsDelta = sats - meSats
 
     const variables = { id: item.id, sats, act: 'TIP' }
+    const notifyProps = { itemId: item.id, sats: satsDelta }
     const optimisticResponse = { act: { path: item.path, ...variables } }
 
-    let revert, cancel
+    let revert, cancel, nid
     try {
       revert = optimisticUpdate({ mutation: ZAP_MUTATION, variables, optimisticResponse, update })
       strike()
+
+      if (me) {
+        nid = notify(ClientNotification.Zap.PENDING, notifyProps)
+      }
+
       let hash, hmac;
-      [{ hash, hmac }, cancel] = await payment.request(sats - meSats)
+      [{ hash, hmac }, cancel] = await payment.request(satsDelta)
       await zap({ variables: { ...variables, hash, hmac } })
     } catch (error) {
       revert?.()
+
       if (error instanceof InvoiceCanceledError) {
         return
       }
+
       const reason = error?.message || error?.toString?.()
-      toaster.danger('zap failed: ' + reason)
+      if (me) {
+        notify(ClientNotification.Zap.ERROR, { ...notifyProps, reason })
+      } else {
+        toaster.danger('zap failed: ' + reason)
+      }
+
       cancel?.()
+    } finally {
+      if (nid) unnotify(nid)
     }
-  }, [strike, payment])
+  }, [me?.id, strike, payment, notify, unnotify])
 }

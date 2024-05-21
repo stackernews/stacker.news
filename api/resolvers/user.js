@@ -4,7 +4,7 @@ import { GraphQLError } from 'graphql'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { msatsToSats } from '@/lib/format'
 import { bioSchema, emailSchema, settingsSchema, ssValidate, userSchema } from '@/lib/validate'
-import { getItem, updateItem, filterClause, createItem, whereClause, muteClause } from './item'
+import { getItem, updateItem, filterClause, createItem, whereClause, muteClause, statusClause } from './item'
 import { ANON_USER_ID, DELETE_USER_ID, RESERVED_MAX_USER_ID, SN_NO_REWARDS_IDS } from '@/lib/constants'
 import { viewGroup } from './growth'
 import { timeUnitForRange, whenRange } from '@/lib/time'
@@ -285,6 +285,7 @@ export default {
             'r.created_at >= "ThreadSubscription".created_at',
             await filterClause(me, models),
             muteClause(me),
+            statusClause(me),
             ...(user.noteAllDescendants ? [] : ['r.level = 1'])
           )})`, me.id, lastChecked)
       if (newThreadSubReply.exists) {
@@ -305,7 +306,8 @@ export default {
               OR ("Item"."parentId" IS NOT NULL AND "UserSubscription"."commentsSubscribedAt" IS NOT NULL AND "Item".created_at >= "UserSubscription"."commentsSubscribedAt")
             )`,
             await filterClause(me, models),
-            muteClause(me))})`, me.id, lastChecked)
+            muteClause(me),
+            statusClause(me))})`, me.id, lastChecked)
       if (newUserSubs.exists) {
         foundNotes()
         return true
@@ -323,7 +325,8 @@ export default {
             '"Mention".created_at > $2',
             '"Item"."userId" <> $1',
             await filterClause(me, models),
-            muteClause(me)
+            muteClause(me),
+            statusClause(me)
           )})`, me.id, lastChecked)
         if (newMentions.exists) {
           foundNotes()

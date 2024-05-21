@@ -1,6 +1,6 @@
 import { GraphQLError } from 'graphql'
 import { decodeCursor, LIMIT, nextNoteCursorEncoded } from '@/lib/cursor'
-import { getItem, filterClause, whereClause, muteClause } from './item'
+import { getItem, filterClause, whereClause, muteClause, statusClause } from './item'
 import { getInvoice, getWithdrawl } from './wallet'
 import { pushSubscriptionSchema, ssValidate } from '@/lib/validate'
 import { replyToSubscription } from '@/lib/webPush'
@@ -151,7 +151,8 @@ export default {
           ${whereClause(
             '"Item".created_at < $2',
             await filterClause(me, models),
-            muteClause(me))}
+            muteClause(me),
+            statusClause(me))}
           ORDER BY id ASC, CASE
             WHEN type = 'Mention' THEN 1
             WHEN type = 'Reply' THEN 2

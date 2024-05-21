@@ -54,13 +54,15 @@ function commentsOrderByClause (me, models, sort) {
 async function comments (me, models, id, sort) {
   const orderBy = commentsOrderByClause(me, models, sort)
 
-  const filter = '' // empty filter as we filter clientside now
+  let filter = 'AND "Item"."status" <> \'FAILED\''
   if (me) {
+    filter += `AND ("Item"."userId" = ${me.id} OR "Item"."status" <> 'PENDING')`
     const [{ item_comments_zaprank_with_me: comments }] = await models.$queryRawUnsafe(
       'SELECT item_comments_zaprank_with_me($1::INTEGER, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5, $6)', Number(id), GLOBAL_SEED, Number(me.id), COMMENT_DEPTH_LIMIT, filter, orderBy)
     return comments
   }
 
+  filter += 'AND "Item"."status" <> \'PENDING\''
   const [{ item_comments: comments }] = await models.$queryRawUnsafe(
     'SELECT item_comments($1::INTEGER, $2::INTEGER, $3, $4)', Number(id), COMMENT_DEPTH_LIMIT, filter, orderBy)
   return comments
@@ -73,7 +75,8 @@ export async function getItem (parent, { id }, { me, models }) {
     query: `
       ${SELECT}
       FROM "Item"
-      WHERE id = $1`
+      WHERE id = $1
+      AND ${statusClause(me)}`
   }, Number(id))
   return item
 }
@@ -254,6 +257,18 @@ export async function filterClause (me, models, type) {
   return [freebieClause, outlawClause]
 }
 
+export function statusClause (me) {
+  let filter = '"Item"."status" <> \'FAILED\' AND '
+
+  if (me) {
+    filter += `("Item"."userId" = ${me.id} OR "Item"."status" <> 'PENDING')`
+  } else {
+    filter += '"Item"."status" <> \'PENDING\''
+  }
+
+  return filter
+}
+
 function typeClause (type) {
   switch (type) {
     case 'links':
@@ -347,7 +362,8 @@ export default {
                 await filterClause(me, models, type),
                 nsfwClause(showNsfw),
                 typeClause(type),
-                whenClause(when || 'forever', table))}
+                whenClause(when || 'forever', table),
+                statusClause(me))}
               ${orderByClause(by, me, models, type)}
               OFFSET $4
               LIMIT $5`,
@@ -367,7 +383,8 @@ export default {
                 activeOrMine(me),
                 await filterClause(me, models, type),
                 typeClause(type),
-                muteClause(me)
+                muteClause(me),
+                statusClause(me)
               )}
               ORDER BY "Item".created_at DESC
               OFFSET $2
@@ -391,7 +408,8 @@ export default {
                 typeClause(type),
                 whenClause(when, 'Item'),
                 await filterClause(me, models, type),
-                muteClause(me))}
+                muteClause(me),
+                statusClause(me))}
               ORDER BY rank DESC
               OFFSET $3
               LIMIT $4`,
@@ -410,7 +428,8 @@ export default {
                 typeClause(type),
                 whenClause(when, 'Item'),
                 await filterClause(me, models, type),
-                muteClause(me))}
+                muteClause(me),
+                statusClause(me))}
               ${orderByClause(by || 'zaprank', me, models, type)}
               OFFSET $3
               LIMIT $4`,
@@ -466,7 +485,8 @@ export default {
                       '"Item"."parentId" IS NULL',
                       '"Item".bio = false',
                       subClause(sub, 3, 'Item', me, showNsfw),
-                      muteClause(me))}
+                      muteClause(me),
+                      statusClause(me))}
                     ORDER BY rank DESC
                     OFFSET $1
                     LIMIT $2`,
@@ -485,6 +505,7 @@ export default {
                       ${whereClause(
                         subClause(sub, 3, 'Item', me, showNsfw),
                         muteClause(me),
+                        statusClause(me),
                         // in "home" (sub undefined), we want to show pinned items (but without the pin icon)
                         sub ? '"Item"."pinId" IS NULL' : '',
                         '"Item"."deletedAt" IS NULL',
@@ -517,7 +538,8 @@ export default {
                           '"pinId" IS NOT NULL',
                           '"parentId" IS NULL',
                           sub ? '"subName" = $1' : '"subName" IS NULL',
-                          muteClause(me))}
+                          muteClause(me),
+                          statusClause(me))}
                     ) rank_filter WHERE RANK = 1
                     ORDER BY position ASC`,
                   orderBy: 'ORDER BY position ASC'

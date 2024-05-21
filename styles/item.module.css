@@ -119,7 +119,7 @@
     border: 1px solid var(--theme-borderColor);
     border-radius: 12px;
     width: 550px;
-    height: 500px;
+    height: 50dvh;
 }
 
 .nostrContained {

@@ -70,28 +70,28 @@ function NostrNoteEmbed ({ nevent, show, onLoad }) {
   const iframeRef = useRef(null)
   const [loading, setLoading] = useState(true)
   const [height, setHeight] = useState('')
-  const scriptRef = useRef(null);
+  const scriptRef = useRef(null)
 
   const handleMessage = (event) => {
     if (event.origin !== 'https://njump.me') {
-      return;
+      return
     }
     setHeight(`${event.data.height + 13}px`)
     setLoading(false)
     onLoad()
   }
- 
+
   useEffect(() => {
     if (iframeContainerRef.current) {
       if (loading) {
         const script = document.createElement('script')
         script.src = `https://njump.me/embed/${nevent}`
-        scriptRef.current = script;
+        scriptRef.current = script
 
         if (iframeContainerRef.current) {
-          iframeContainerRef.current.appendChild(script);
+          iframeContainerRef.current.appendChild(script)
         }
-      
+
         window.addEventListener('message', handleMessage)
       }
       if (document?.querySelector('.nostr-embedded')?.nodeName === 'IFRAME' && height !== '') {
@@ -117,28 +117,27 @@ function NostrNoteEmbed ({ nevent, show, onLoad }) {
         scriptRef.current.parentNode.removeChild(scriptRef.current)
         iframeRef.current.parentNode.removeChild(iframeRef.current)
       }
-    };
+    }
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('beforeunload', handleBeforeUnload)
 
     return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, []);
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [])
 
   return (
-    <div style={{position: 'relative'}}>
+    <div style={{ position: 'relative' }}>
       {loading && (
-       <div style={{position: 'absolute', top: '0', right: '0', bottom: '0', left: '0'}}>
-        <TweetSkeleton />
-       </div>
+        <div style={{ position: 'absolute', top: '0', right: '0', bottom: '0', left: '0' }}>
+          <TweetSkeleton />
+        </div>
       )}
-      <div 
-        ref={iframeContainerRef} 
+      <div
+        ref={iframeContainerRef}
         className={styles.tweetsSkeleton}
         style={{ height: show ? height : '200px', visibility: loading ? 'hidden' : 'visible', overflow: 'hidden' }}
-      >
-      </div>
+      />
     </div>
   )
 }

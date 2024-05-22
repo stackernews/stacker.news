@@ -77,6 +77,14 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
           id
           deleteScheduledAt
           reminderScheduledAt
+          invoice {
+            id
+            bolt11
+            hash
+            hmac
+            expiresAt
+            satsRequested
+          }
         }
       }`
   )
@@ -110,6 +118,8 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
         await router.push(prefix + '/recent')
       }
       toastUpsertSuccessMessages(toaster, data, 'upsertLink', !!item, values.text)
+
+      return data.upsertLink
     }, [upsertLink, router]
   )
 
@@ -144,6 +154,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
       }}
       schema={schema}
       prepaid
+      postpaid
       onSubmit={onSubmit}
       storageKeyPrefix={storageKeyPrefix}
     >

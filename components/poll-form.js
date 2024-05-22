@@ -32,6 +32,14 @@ export function PollForm ({ item, sub, editThreshold, children }) {
           id
           deleteScheduledAt
           reminderScheduledAt
+          invoice {
+            id
+            bolt11
+            hash
+            hmac
+            expiresAt
+            satsRequested
+          }
         }
       }`
   )
@@ -67,6 +75,8 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         await router.push(prefix + '/recent')
       }
       toastUpsertSuccessMessages(toaster, data, 'upsertPoll', !!item, values.text)
+
+      return data.upsertPoll
     }, [upsertPoll, router]
   )
 
@@ -87,6 +97,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
       }}
       schema={schema}
       prepaid
+      postpaid
       onSubmit={onSubmit}
       storageKeyPrefix={storageKeyPrefix}
     >

@@ -57,6 +57,14 @@ export function BountyForm ({
           id
           deleteScheduledAt
           reminderScheduledAt
+          invoice {
+            id
+            bolt11
+            hash
+            hmac
+            expiresAt
+            satsRequested
+          }
         }
       }
     `
@@ -91,6 +99,8 @@ export function BountyForm ({
         await router.push(prefix + '/recent')
       }
       toastUpsertSuccessMessages(toaster, data, 'upsertBounty', !!item, values.text)
+
+      return data.upsertBounty
     }, [upsertBounty, router]
   )
 
@@ -109,6 +119,7 @@ export function BountyForm ({
       schema={schema}
       requireSession
       prepaid
+      postpaid
       onSubmit={
         handleSubmit ||
         onSubmit

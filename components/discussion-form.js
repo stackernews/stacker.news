@@ -38,6 +38,14 @@ export function DiscussionForm ({
           id
           deleteScheduledAt
           reminderScheduledAt
+          invoice {
+            id
+            bolt11
+            hash
+            hmac
+            expiresAt
+            satsRequested
+          }
         }
       }`
   )
@@ -71,6 +79,8 @@ export function DiscussionForm ({
         await router.push(prefix + '/recent')
       }
       toastUpsertSuccessMessages(toaster, data, 'upsertDiscussion', !!item, values.text)
+
+      return data.upsertDiscussion
     }, [upsertDiscussion, router, item, sub, crossposter]
   )
 
@@ -97,6 +107,7 @@ export function DiscussionForm ({
       }}
       schema={schema}
       prepaid
+      postpaid
       onSubmit={handleSubmit || onSubmit}
       storageKeyPrefix={storageKeyPrefix}
     >

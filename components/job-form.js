@@ -52,6 +52,14 @@ export default function JobForm ({ item, sub }) {
         id
         deleteScheduledAt
         reminderScheduledAt
+        invoice {
+          id
+          bolt11
+          hash
+          hmac
+          expiresAt
+          satsRequested
+        }
       }
     }`
   )
@@ -85,6 +93,8 @@ export default function JobForm ({ item, sub }) {
         await router.push(`/~${sub.name}/recent`)
       }
       toastUpsertSuccessMessages(toaster, data, 'upsertJob', !!item, values.text)
+
+      return data.upsertJob
     }, [upsertJob, router, logoId]
   )
 
@@ -107,6 +117,7 @@ export default function JobForm ({ item, sub }) {
         storageKeyPrefix={storageKeyPrefix}
         requireSession
         prepaid
+        postpaid
         onSubmit={onSubmit}
       >
         <div className='form-group'>

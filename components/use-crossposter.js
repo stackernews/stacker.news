@@ -5,6 +5,7 @@ import { DEFAULT_CROSSPOSTING_RELAYS, crosspost, callWithTimeout } from '@/lib/n
 import { gql, useMutation, useQuery, useLazyQuery } from '@apollo/client'
 import { SETTINGS } from '@/fragments/users'
 import { ITEM_FULL_FIELDS, POLL_FIELDS } from '@/fragments/items'
+import { determineItemType } from '@/lib/item'
 
 async function discussionToEvent (item) {
   const createdAt = Math.floor(Date.now() / 1000)
@@ -140,23 +141,6 @@ export default function useCrossposter () {
   }
 
   async function handleEventCreation (item) {
-    const determineItemType = (item) => {
-      const typeMap = {
-        url: 'link',
-        bounty: 'bounty',
-        pollCost: 'poll'
-      }
-
-      for (const [key, type] of Object.entries(typeMap)) {
-        if (item[key]) {
-          return type
-        }
-      }
-
-      // Default
-      return 'discussion'
-    }
-
     const itemType = determineItemType(item)
 
     switch (itemType) {

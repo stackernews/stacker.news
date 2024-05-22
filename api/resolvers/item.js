@@ -68,7 +68,7 @@ async function comments (me, models, id, sort) {
   return comments
 }
 
-export async function getItem (parent, { id }, { me, models }) {
+export async function getItem (parent, { id, status = true }, { me, models }) {
   const [item] = await itemQueryWithMeta({
     me,
     models,
@@ -76,7 +76,7 @@ export async function getItem (parent, { id }, { me, models }) {
       ${SELECT}
       FROM "Item"
       WHERE id = $1
-      AND ${statusClause(me)}`
+      ${status ? `AND ${statusClause(me)}` : ''}`
   }, Number(id))
   return item
 }

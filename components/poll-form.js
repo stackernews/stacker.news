@@ -20,8 +20,12 @@ export function PollForm ({ item, sub, editThreshold, children }) {
   const me = useMe()
   const toaster = useToast()
   const schema = pollSchema({ client, me, existingBoost: item?.boost })
-
   const crossposter = useCrossposter()
+
+  const queryTitle = router.query.title
+  const queryText = router.query.text ? decodeURI(router.query.text) : undefined
+  const querySub = router.query.sub
+  const queryBoost = router.query.boost
 
   const [upsertPoll] = useMutation(
     gql`
@@ -87,13 +91,13 @@ export function PollForm ({ item, sub, editThreshold, children }) {
   return (
     <Form
       initial={{
-        title: item?.title || '',
-        text: item?.text || '',
+        title: item?.title || '' || queryTitle,
+        text: item?.text || '' || queryText,
         options: initialOptions || ['', ''],
         crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
         pollExpiresAt: item ? item.pollExpiresAt : datePivot(new Date(), { hours: 25 }),
-        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
-        ...SubSelectInitial({ sub: item?.subName || sub?.name })
+        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost || queryBoost }),
+        ...SubSelectInitial({ sub: item?.subName || sub?.name || querySub })
       }}
       schema={schema}
       prepaid

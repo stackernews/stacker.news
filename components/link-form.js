@@ -23,9 +23,12 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
   const me = useMe()
   const toaster = useToast()
   const schema = linkSchema({ client, me, existingBoost: item?.boost })
-  // if Web Share Target API was used
-  const shareUrl = router.query.url
-  const shareTitle = router.query.title
+
+  const queryUrl = router.query.url
+  const queryTitle = router.query.title
+  const queryText = router.query.text ? decodeURI(router.query.text) : undefined
+  const querySub = router.query.sub
+  const queryBoost = router.query.boost
 
   const crossposter = useCrossposter()
 
@@ -145,12 +148,12 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
   return (
     <Form
       initial={{
-        title: item?.title || shareTitle || '',
-        url: item?.url || shareUrl || '',
-        text: item?.text || '',
+        title: item?.title || queryTitle || '',
+        url: item?.url || queryUrl || '',
+        text: item?.text || queryText || '',
         crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
-        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
-        ...SubSelectInitial({ sub: item?.subName || sub?.name })
+        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost || queryBoost }),
+        ...SubSelectInitial({ sub: item?.subName || sub?.name || querySub })
       }}
       schema={schema}
       prepaid

@@ -30,6 +30,13 @@ export function BountyForm ({
   const toaster = useToast()
   const crossposter = useCrossposter()
   const schema = bountySchema({ client, me, existingBoost: item?.boost })
+
+  const queryTitle = router.query.title
+  const queryText = router.query.text ? decodeURI(router.query.text) : undefined
+  const querySub = router.query.sub
+  const queryBoost = router.query.boost
+  const queryBounty = router.query.bounty
+
   const [upsertBounty] = useMutation(
     gql`
       mutation upsertBounty(
@@ -109,12 +116,12 @@ export function BountyForm ({
   return (
     <Form
       initial={{
-        title: item?.title || '',
-        text: item?.text || '',
+        title: item?.title || queryTitle || '',
+        text: item?.text || queryText || '',
         crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
-        bounty: item?.bounty || 1000,
-        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
-        ...SubSelectInitial({ sub: item?.subName || sub?.name })
+        bounty: item?.bounty || queryBounty || 1000,
+        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost || queryBoost }),
+        ...SubSelectInitial({ sub: item?.subName || sub?.name || querySub })
       }}
       schema={schema}
       requireSession

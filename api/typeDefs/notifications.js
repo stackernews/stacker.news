@@ -127,10 +127,16 @@ export default gql`
     sortTime: Date!
   }
 
+  type FailedItem {
+    id: ID!
+    item: Item!
+    sortTime: Date!
+  }
+
   union Notification = Reply | Votification | Mention
     | Invitification | Earn | JobChanged | InvoicePaid | WithdrawlPaid | Referral
     | Streak | FollowActivity | ForwardedVotification | Revenue | SubStatus
-    | TerritoryPost | TerritoryTransfer | Reminder
+    | TerritoryPost | TerritoryTransfer | Reminder | FailedItem
 
   type Notifications {
     lastChecked: Date

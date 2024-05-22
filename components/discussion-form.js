@@ -25,11 +25,13 @@ export function DiscussionForm ({
   const client = useApolloClient()
   const me = useMe()
   const schema = discussionSchema({ client, me, existingBoost: item?.boost })
-  // if Web Share Target API was used
-  const shareTitle = router.query.title
-  const shareText = router.query.text ? decodeURI(router.query.text) : undefined
   const crossposter = useCrossposter()
   const toaster = useToast()
+
+  const queryTitle = router.query.title
+  const queryText = router.query.text ? decodeURI(router.query.text) : undefined
+  const querySub = router.query.sub
+  const queryBoost = router.query.boost
 
   const [upsertDiscussion] = useMutation(
     gql`
@@ -99,11 +101,11 @@ export function DiscussionForm ({
   return (
     <Form
       initial={{
-        title: item?.title || shareTitle || '',
-        text: item?.text || shareText || '',
+        title: item?.title || queryTitle || '',
+        text: item?.text || queryText || '',
         crosspost: item ? !!item.noteId : me?.privates?.nostrCrossposting,
-        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost }),
-        ...SubSelectInitial({ sub: item?.subName || sub?.name })
+        ...AdvPostInitial({ forward: normalizeForwards(item?.forwards), boost: item?.boost || queryBoost }),
+        ...SubSelectInitial({ sub: item?.subName || sub?.name || querySub })
       }}
       schema={schema}
       prepaid

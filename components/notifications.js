@@ -27,7 +27,7 @@ import { numWithUnits } from '@/lib/format'
 import BountyIcon from '@/svgs/bounty-bag.svg'
 import { LongCountdown } from './countdown'
 import { nextBillingWithGrace } from '@/lib/territory'
-import { commentSubTreeRootId } from '@/lib/item'
+import { commentSubTreeRootId, determineItemType } from '@/lib/item'
 import LinkToContext from './link-to-context'
 import { Badge } from 'react-bootstrap'
 import { Types as ClientTypes, ClientZap, ClientReply, ClientPollVote, ClientBounty, useClientNotifications } from './client-notifications'
@@ -61,6 +61,7 @@ function Notification ({ n, fresh }) {
         (type === 'TerritoryPost' && <TerritoryPost n={n} />) ||
         (type === 'TerritoryTransfer' && <TerritoryTransfer n={n} />) ||
         (type === 'Reminder' && <Reminder n={n} />) ||
+        (type === 'FailedItem' && <FailedItem n={n} />) ||
         ([ClientTypes.Zap.ERROR, ClientTypes.Zap.PENDING].includes(type) && <ClientZap n={itemN} />) ||
         ([ClientTypes.Reply.ERROR, ClientTypes.Reply.PENDING].includes(type) && <ClientReply n={itemN} />) ||
         ([ClientTypes.Bounty.ERROR, ClientTypes.Bounty.PENDING].includes(type) && <ClientBounty n={itemN} />) ||
@@ -112,6 +113,7 @@ const defaultOnClick = n => {
   if (type === 'Referral') return { href: '/referrals/month' }
   if (type === 'Streak') return {}
   if (type === 'TerritoryTransfer') return { href: `/~${n.sub.name}` }
+  if (type === 'FailedItem') return onClickFailedItem({ n })
 
   if (!n.item) return {}
 
@@ -133,6 +135,36 @@ const defaultOnClick = n => {
       },
       as: `/items/${n.item.id}`
     }
+  }
+}
+
+const onClickFailedItem = ({ n }) => {
+  const { parentId, title, url, text, subName: sub, boost, bounty } = n.item
+  const isPost = !!n.item.title
+
+  if (isPost) {
+    const type = determineItemType(n.item)
+    const query = { type, title, text, url, bounty, boost, sub }
+    // TODO: prune query params by type
+    return {
+      href: {
+        pathname: '/post',
+        query
+      }
+    }
+  }
+
+  const rootId = commentSubTreeRootId(n.item)
+  const query = { id: rootId, text }
+  if (Number(rootId) !== Number(parentId)) {
+    query.commentId = parentId
+  }
+  return {
+    href: {
+      pathname: '/items/[id]',
+      query
+    },
+    as: `/items/${rootId}`
   }
 }
 
@@ -479,6 +511,29 @@ function Reminder ({ n }) {
           </div>
           )}
     </>
+  )
+}
+
+function FailedItem ({ n }) {
+  const isPost = !!n.item.title
+  const type = isPost ? determineItemType(n.item) : undefined
+  const message = `failed to ${type ? `create ${type}` : 'reply'}: invoice was not paid`
+  return (
+    <div className='ms-2'>
+      <small className='fw-bold text-danger'>
+        {n.reason ? `${message}: ${n.reason}` : message}
+        <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
+      </small>
+      {isPost
+        ? <Item item={n.item} />
+        : (
+          <div className='pb-2'>
+            <RootProvider root={n.item.root}>
+              <Comment item={n.item} noReply includeParent noComments clickToContext />
+            </RootProvider>
+          </div>
+          )}
+    </div>
   )
 }
 

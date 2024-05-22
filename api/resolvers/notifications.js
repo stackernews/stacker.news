@@ -315,6 +315,16 @@ export default {
         LIMIT ${LIMIT})`
       )
 
+      queries.push(
+        `(SELECT "Item".id::text, "Item"."created_at" AS "sortTime", NULL as "earnedSats", 'FailedItem' AS type
+        FROM "Item"
+        WHERE "Item"."userId" = $1
+        AND "Item"."created_at" < $2
+        AND "Item"."status" = 'FAILED'
+        ORDER BY "sortTime" DESC
+        LIMIT ${LIMIT})`
+      )
+
       const notifications = await models.$queryRawUnsafe(
         `SELECT id, "sortTime", "earnedSats", type,
             "sortTime" AS "minSortTime"
@@ -397,6 +407,9 @@ export default {
       const { itemId } = await models.reminder.findUnique({ where: { id: Number(n.id) } })
       return await getItem(n, { id: itemId }, { models, me })
     }
+  },
+  FailedItem: {
+    item: async (n, args, { models, me }) => getItem(n, { id: n.id, status: false }, { models, me })
   },
   TerritoryTransfer: {
     sub: async (n, args, { models, me }) => {

@@ -490,6 +490,20 @@ export default {
         return true
       }
 
+      const newFailedItems = await models.item.findFirst({
+        where: {
+          userId: me.id,
+          status: 'FAILED',
+          updatedAt: {
+            gt: lastChecked
+          }
+        }
+      })
+      if (newFailedItems) {
+        foundNotes()
+        return true
+      }
+
       // update checkedNotesAt to prevent rechecking same time period
       models.user.update({
         where: { id: me.id },

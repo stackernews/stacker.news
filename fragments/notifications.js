@@ -148,6 +148,13 @@ export const NOTIFICATIONS = gql`
             ...ItemFullFields
           }
         }
+        ... on FailedItem {
+          id
+          sortTime
+          item {
+            ...ItemFullFields
+          }
+        }
       }
     }
   } `

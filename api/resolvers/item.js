@@ -1437,15 +1437,22 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
     item.invoice = invoice
   }
 
-  await enqueueDeletionJob(item, models)
+  item.comments = []
 
-  // TODO: don't notify users on pending items
+  // we need to insert these even for pending items to show toasts
+  // we will delete the jobs if payment failed
+  await enqueueDeletionJob(item, models)
   await createReminderAndJob({ me, item, models })
+
+  const isPending = !!item.invoice
+  if (isPending) {
+    return item
+  }
+
   await createMentions(item, models)
   notifyUserSubscribers({ models, item })
   notifyTerritorySubscribers({ models, item })
 
-  item.comments = []
   return item
 }
 

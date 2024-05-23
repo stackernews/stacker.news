@@ -1,4 +1,6 @@
+import { createMentions } from '@/api/resolvers/item'
 import serialize from '@/api/resolvers/serial'
+import { notifyTerritorySubscribers, notifyUserSubscribers } from '@/lib/webPush'
 
 export async function finalizeAction ({ data: { hash }, models }) {
   const invoice = await models.invoice.findUnique({ where: { hash } })
@@ -53,6 +55,10 @@ export async function handleAction ({ data: { actionType, actionId, actionData }
       item.boost > 0 && models.$executeRaw(`SELECT item_act(${item.id}::INTEGER, ${item.userId}::INTEGER, 'BOOST'::"ItemActType", ${item.boost}::INTEGER)`),
       item.maxBid && models.$executeRaw(`SELECT run_auction(${item.id}::INTEGER)`)
     ], { models })
+
+    await createMentions(item, models)
+    notifyUserSubscribers({ models, item })
+    notifyTerritorySubscribers({ models, item })
   }
 }
 
@@ -64,7 +70,10 @@ export function actionErrorQueries ({ data: { actionType, actionId }, models }) 
       models.$queryRaw`
         UPDATE "Item"
         SET status = 'FAILED'
-        WHERE id = ${actionId} AND status = 'PENDING'`
+        WHERE id = ${actionId} AND status = 'PENDING'`,
+      models.$queryRaw`DELETE FROM "Reminder" WHERE "itemId" = ${actionId}`,
+      models.$queryRaw`DELETE FROM pgboss.job WHERE name = 'reminder' AND data->>'itemId' = ${actionId}::text`,
+      models.$queryRaw`DELETE FROM pgboss.job WHERE name = 'deleteItem' AND data->>'id' = ${actionId}::text`
     ]
   }
 

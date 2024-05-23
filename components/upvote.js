@@ -2,7 +2,7 @@ import UpBolt from '@/svgs/bolt.svg'
 import styles from './upvote.module.css'
 import { gql, useMutation } from '@apollo/client'
 import ActionTooltip from './action-tooltip'
-import ItemAct, { useAct, useZap } from './item-act'
+import ItemAct, { useZap } from './item-act'
 import { useMe } from './me'
 import getColor from '@/lib/rainbow'
 import { useCallback, useMemo, useRef, useState } from 'react'
@@ -125,7 +125,6 @@ export default function UpVote ({ item, className }) {
     }
   }, [me, tipShow, setWalkthrough])
 
-  const act = useAct()
   const zap = useZap()
 
   const disabled = useMemo(() => item?.mine || item?.meForward || item?.deletedAt,
@@ -175,7 +174,7 @@ export default function UpVote ({ item, className }) {
       }
       zap({ item, me })
     } else {
-      showModal(onClose => <ItemAct onClose={onClose} item={item} act={act} />, { onClose: handleModalClosed })
+      showModal(onClose => <ItemAct onClose={onClose} item={item} />, { onClose: handleModalClosed })
     }
   }
 

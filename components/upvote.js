@@ -2,7 +2,7 @@ import UpBolt from '@/svgs/bolt.svg'
 import styles from './upvote.module.css'
 import { gql, useMutation } from '@apollo/client'
 import ActionTooltip from './action-tooltip'
-import ItemAct, { useZap } from './item-act'
+import ItemAct, { ZapUndoController, useZap } from './item-act'
 import { useMe } from './me'
 import getColor from '@/lib/rainbow'
 import { useCallback, useMemo, useRef, useState } from 'react'
@@ -97,6 +97,9 @@ export default function UpVote ({ item, className }) {
       }`
   )
 
+  const [controller, setController] = useState(null)
+  const pending = controller?.started && !controller.done
+
   const setVoteShow = useCallback((yes) => {
     if (!me) return
 
@@ -154,8 +157,16 @@ export default function UpVote ({ item, className }) {
     }
 
     setTipShow(false)
+
+    if (pending) {
+      controller.abort()
+      return
+    }
+    const c = new ZapUndoController()
+    setController(c)
+
     showModal(onClose =>
-      <ItemAct onClose={onClose} item={item} />, { onClose: handleModalClosed })
+      <ItemAct onClose={onClose} item={item} abortSignal={c.signal} />, { onClose: handleModalClosed })
   }
 
   const handleShortPress = async () => {
@@ -172,7 +183,15 @@ export default function UpVote ({ item, className }) {
       } else {
         setTipShow(true)
       }
-      zap({ item, me })
+
+      if (pending) {
+        controller.abort()
+        return
+      }
+      const c = new ZapUndoController()
+      setController(c)
+
+      await zap({ item, me, abortSignal: c.signal })
     } else {
       showModal(onClose => <ItemAct onClose={onClose} item={item} />, { onClose: handleModalClosed })
     }
@@ -200,7 +219,8 @@ export default function UpVote ({ item, className }) {
                       `${styles.upvote}
                       ${className || ''}
                       ${disabled ? styles.noSelfTips : ''}
-                      ${meSats ? styles.voted : ''}`
+                      ${meSats ? styles.voted : ''}
+                      ${pending ? styles.pending : ''}`
                     }
               style={meSats || hover
                 ? {

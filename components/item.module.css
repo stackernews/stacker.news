@@ -213,6 +213,7 @@ a.link:visited {
     width: 800px;
     border-radius: .3rem;
     line-height: .8rem;
+    max-width: 256px;
 }
 
 .skeleton .link::after {

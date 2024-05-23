@@ -311,6 +311,22 @@ export default {
         return true
       }
 
+      const [newSubPost] = await models.$queryRawUnsafe(`
+        SELECT EXISTS(
+          SELECT *
+          FROM "SubSubscription"
+          JOIN "Item" ON "SubSubscription"."subName" = "Item"."subName"
+          ${whereClause(
+            '"SubSubscription"."userId" = $1',
+            '"Item".created_at > $2',
+            '"Item"."parentId" IS NULL',
+            await filterClause(me, models),
+            muteClause(me))})`, me.id, lastChecked)
+      if (newSubPost.exists) {
+        foundNotes()
+        return true
+      }
+
       // check if they have any mentions since checkedNotesAt
       if (user.noteMentions) {
         const [newMentions] = await models.$queryRawUnsafe(`

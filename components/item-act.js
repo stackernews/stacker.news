@@ -12,6 +12,7 @@ import { nextTip } from './upvote'
 import { InvoiceCanceledError, usePayment } from './payment'
 import { optimisticUpdate } from '@/lib/apollo'
 import { Types as ClientNotification, ClientNotifyProvider, useClientNotifications } from './client-notifications'
+import { ZAP_UNDO_DELAY_MS } from '@/lib/constants'
 
 const defaultTips = [100, 1000, 10_000, 100_000]
 
@@ -101,7 +102,7 @@ export const actUpdate = ({ me, onUpdate }) => (cache, args) => {
   onUpdate?.(cache, args)
 }
 
-export default function ItemAct ({ onClose, item, down, children }) {
+export default function ItemAct ({ onClose, item, down, children, abortSignal }) {
   const inputRef = useRef(null)
   const me = useMe()
   const [oValue, setOValue] = useState()
@@ -151,6 +152,7 @@ export default function ItemAct ({ onClose, item, down, children }) {
         optimisticUpdate={optimisticUpdate}
         onSubmit={onSubmit}
         clientNotification={ClientNotification.Zap}
+        signal={abortSignal}
       >
         <Input
           label='amount'
@@ -253,7 +255,7 @@ export function useZap () {
   const strike = useLightning()
   const payment = usePayment()
 
-  return useCallback(async ({ item, me }) => {
+  return useCallback(async ({ item, mem, abortSignal }) => {
     const meSats = (item?.meSats || 0)
 
     // add current sats to next tip since idempotent zaps use desired total zap not difference
@@ -269,6 +271,8 @@ export function useZap () {
       revert = optimisticUpdate({ mutation: ZAP_MUTATION, variables, optimisticResponse, update })
       strike()
 
+      await abortSignal.pause({ me, amount: satsDelta })
+
       if (me) {
         nid = notify(ClientNotification.Zap.PENDING, notifyProps)
       }
@@ -279,7 +283,7 @@ export function useZap () {
     } catch (error) {
       revert?.()
 
-      if (error instanceof InvoiceCanceledError) {
+      if (error instanceof InvoiceCanceledError || error instanceof ActCanceledError) {
         return
       }
 
@@ -295,4 +299,47 @@ export function useZap () {
       if (nid) unnotify(nid)
     }
   }, [me?.id, strike, payment, notify, unnotify])
+}
+
+export class ActCanceledError extends Error {
+  constructor () {
+    super('act canceled')
+    this.name = 'ActCanceledError'
+  }
+}
+
+export class ZapUndoController extends AbortController {
+  constructor () {
+    super()
+    this.signal.start = () => { this.started = true }
+    this.signal.done = () => { this.done = true }
+    this.signal.pause = async ({ me, amount }) => {
+      if (zapUndoTrigger({ me, amount })) {
+        await zapUndo(this.signal)
+      }
+    }
+  }
+}
+
+const zapUndoTrigger = ({ me, amount }) => {
+  if (!me) return false
+  const enabled = me.privates.zapUndos !== null
+  return enabled ? amount >= me.privates.zapUndos : false
+}
+
+const zapUndo = async (signal) => {
+  return await new Promise((resolve, reject) => {
+    signal.start()
+    const abortHandler = () => {
+      reject(new ActCanceledError())
+      signal.done()
+      signal.removeEventListener('abort', abortHandler)
+    }
+    signal.addEventListener('abort', abortHandler)
+    setTimeout(() => {
+      resolve()
+      signal.done()
+      signal.removeEventListener('abort', abortHandler)
+    }, ZAP_UNDO_DELAY_MS)
+  })
 }

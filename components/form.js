@@ -35,6 +35,7 @@ import { InvoiceCanceledError, usePayment } from './payment'
 import { useMe } from './me'
 import { optimisticUpdate } from '@/lib/apollo'
 import { useClientNotifications } from './client-notifications'
+import { ActCanceledError } from './item-act'
 
 export class SessionRequiredError extends Error {
   constructor () {
@@ -804,7 +805,7 @@ const StorageKeyPrefixContext = createContext()
 export function Form ({
   initial, schema, onSubmit, children, initialError, validateImmediately,
   storageKeyPrefix, validateOnChange = true, prepaid, requireSession, innerRef,
-  optimisticUpdate: optimisticUpdateArgs, clientNotification, ...props
+  optimisticUpdate: optimisticUpdateArgs, clientNotification, signal, ...props
 }) {
   const toaster = useToast()
   const initialErrorToasted = useRef(false)
@@ -848,6 +849,8 @@ export function Form ({
           revert = optimisticUpdate(optimisticUpdateArgs(variables))
         }
 
+        await signal?.pause({ me, amount })
+
         if (me && clientNotification) {
           nid = notify(clientNotification.PENDING, variables)
         }
@@ -865,7 +868,7 @@ export function Form ({
     } catch (err) {
       revert?.()
 
-      if (err instanceof InvoiceCanceledError) {
+      if (err instanceof InvoiceCanceledError || err instanceof ActCanceledError) {
         return
       }
 
@@ -883,7 +886,7 @@ export function Form ({
       // stored in localStorage to handle this case.
       if (nid) unnotify(nid)
     }
-  }, [me, onSubmit, feeButton?.total, toaster, clearLocalStorage, storageKeyPrefix, payment])
+  }, [me, onSubmit, feeButton?.total, toaster, clearLocalStorage, storageKeyPrefix, payment, signal])
 
   return (
     <Formik

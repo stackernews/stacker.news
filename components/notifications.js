@@ -144,8 +144,16 @@ const onClickFailedItem = ({ n }) => {
 
   if (isPost) {
     const type = determineItemType(n.item)
-    const query = { type, title, text, url, bounty, boost, sub }
-    // TODO: prune query params by type
+    const query = { type, title, text, sub }
+    if (boost > 0) {
+      query.boost = boost
+    }
+    if (type === 'link') {
+      query.url = url
+    }
+    if (type === 'bounty' && bounty > 0) {
+      query.bounty = bounty
+    }
     return {
       href: {
         pathname: '/post',

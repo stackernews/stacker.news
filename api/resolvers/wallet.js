@@ -13,7 +13,7 @@ import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
 import { createInvoice as createInvoiceCLN } from '@/lib/cln'
 import { bolt11Tags } from '@/lib/bolt11'
-import { handleActionError } from 'worker/wallet'
+import { actionErrorQueries } from 'worker/action'
 
 export async function getInvoice (parent, { id }, { me, models, lnd }) {
   const inv = await models.invoice.findUnique({
@@ -391,7 +391,7 @@ export default {
             cancelled: true
           }
         }),
-        ...handleActionError({ data: inv, models })
+        ...actionErrorQueries({ data: inv, models })
       ], { models }
       )
       return { ...inv, cancelled: true }

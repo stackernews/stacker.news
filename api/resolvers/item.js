@@ -1428,7 +1428,7 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
         // since SubscribeToInvoices does not trigger if an invoice expired, we need a job that handles expired invoices
         await tx.$queryRaw`
           INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
-          VALUES ('finalizeAction', jsonb_build_object('type', 'ITEM', 'id', ${item.id}::INTEGER), 21, true, ${expiresAt})`
+          VALUES ('finalizeAction', jsonb_build_object('hash', ${invoice.hash}::TEXT), 21, true, ${expiresAt})`
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
 
     // hmac is not required to submit action again but to allow user to cancel payment

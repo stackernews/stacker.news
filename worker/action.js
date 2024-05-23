@@ -1,13 +1,19 @@
-import { handleActionError } from './wallet'
+import serialize from '@/api/resolvers/serial'
 
-export async function finalizeAction ({ data: { type, id }, models }) {
-  const queries = handleActionError({ data: { actionType: type, actionId: id }, models })
+export async function finalizeAction ({ data: { hash }, models }) {
+  const invoice = await models.invoice.findUnique({ where: { hash } })
+
+  if (invoice.confirmedAt) {
+    await handleAction({ data: invoice, models })
+    return
+  }
+
+  const queries = await actionErrorQueries({ data: invoice, models })
   if (queries.length === 0) return
-
   await models.$transaction(queries)
 }
 
-export async function handleAction ({ data: { msatsReceived, actionType, actionId, actionData }, models }) {
+export async function handleAction ({ data: { actionType, actionId, actionData }, models }) {
   if (!actionType || !actionId) return
 
   if (actionType === 'ITEM') {
@@ -16,6 +22,10 @@ export async function handleAction ({ data: { msatsReceived, actionType, actionI
 
     const { cost } = actionData
     const item = await models.item.findUnique({ where: { id: actionId } })
+
+    if (item.status !== 'PENDING') {
+      return
+    }
 
     await serialize([
       models.item.update({
@@ -46,7 +56,7 @@ export async function handleAction ({ data: { msatsReceived, actionType, actionI
   }
 }
 
-export function handleActionError ({ data: { actionType, actionId }, models }) {
+export function actionErrorQueries ({ data: { actionType, actionId }, models }) {
   if (!actionType || !actionId) return []
 
   if (actionType === 'ITEM') {

@@ -9,7 +9,7 @@ import { datePivot, sleep } from '@/lib/time.js'
 import retry from 'async-retry'
 import { addWalletLog } from '@/api/resolvers/wallet'
 import { msatsToSats, numWithUnits } from '@/lib/format'
-import { handleAction, handleActionError } from './action'
+import { handleAction, actionErrorQueries } from './action'
 
 export async function subscribeToWallet (args) {
   await subscribeToDeposits(args)
@@ -176,7 +176,7 @@ async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
           cancelled: true
         }
       }),
-      ...handleActionError({ data: dbInv, models })
+      ...actionErrorQueries({ data: dbInv, models })
     ], { models })
   }
 }

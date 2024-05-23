@@ -12,7 +12,7 @@ import Button from 'react-bootstrap/Button'
 import { TwitterTweetEmbed } from 'react-twitter-embed'
 import YouTube from 'react-youtube'
 import useDarkMode from './dark-mode'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import Poll from './poll'
 import { commentsViewed } from '@/lib/new-comments'
 import Related from './related'
@@ -65,10 +65,100 @@ function TweetSkeleton () {
   )
 }
 
+function NostrNoteEmbed ({ nevent, show, onLoad }) {
+  const iframeContainerRef = useRef(null)
+  const iframeRef = useRef(null)
+  const [loading, setLoading] = useState(true)
+  const [height, setHeight] = useState('')
+  const scriptRef = useRef(null)
+
+  const handleMessage = (event) => {
+    if (event.origin !== 'https://njump.me') {
+      return
+    }
+    setHeight(`${event.data.height + 13}px`)
+    setLoading(false)
+    onLoad()
+  }
+
+  useEffect(() => {
+    if (iframeContainerRef.current) {
+      if (loading) {
+        const script = document.createElement('script')
+        script.src = `https://njump.me/embed/${nevent}`
+        scriptRef.current = script
+
+        if (iframeContainerRef.current) {
+          iframeContainerRef.current.appendChild(script)
+        }
+
+        window.addEventListener('message', handleMessage)
+      }
+      if (document?.querySelector('.nostr-embedded')?.nodeName === 'IFRAME' && height !== '') {
+        iframeRef.current = document.querySelector('.nostr-embedded')
+        if (iframeRef.current) {
+          iframeRef.current.scrolling = 'no'
+          if (show) {
+            iframeRef.current.style.height = height
+          }
+        }
+      }
+    }
+    return () => {
+      if (height !== '') {
+        window.removeEventListener('message', handleMessage)
+      }
+    }
+  }, [nevent, iframeContainerRef, show, loading, onLoad])
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (scriptRef.current && scriptRef.current.parentNode && iframeRef.current && iframeRef.current.parentNode) {
+        scriptRef.current.parentNode.removeChild(scriptRef.current)
+        iframeRef.current.parentNode.removeChild(iframeRef.current)
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [])
+
+  return (
+    <div style={{ position: 'relative' }}>
+      {loading && (
+        <div style={{ position: 'absolute', top: '0', right: '0', bottom: '0', left: '0' }}>
+          <TweetSkeleton />
+        </div>
+      )}
+      <div
+        ref={iframeContainerRef}
+        className={styles.tweetsSkeleton}
+        style={{ height: show ? height : '200px', visibility: loading ? 'hidden' : 'visible', overflow: 'hidden' }}
+      />
+    </div>
+  )
+}
+
 function ItemEmbed ({ item }) {
   const [darkMode] = useDarkMode()
   const [overflowing, setOverflowing] = useState(false)
   const [show, setShow] = useState(false)
+
+  const nostr = item.url?.match(/\/(?<nevent>nevent1\w+)/) || item.url?.match(/\/(?<note>note1\w+)/)
+  if (nostr?.groups?.nevent || nostr?.groups?.note) {
+    return (
+      <div className={styles.twitterContainer}>
+        <NostrNoteEmbed nevent={nostr?.groups?.nevent || nostr?.groups?.note} show={show} onLoad={() => setOverflowing(true)} />
+        {overflowing && !show &&
+          <Button size='lg' variant='info' className={styles.twitterShowFull} onClick={() => setShow(true)}>
+            expand note
+          </Button>}
+      </div>
+    )
+  }
 
   const twitter = item.url?.match(/^https?:\/\/(?:twitter|x)\.com\/(?:#!\/)?\w+\/status(?:es)?\/(?<id>\d+)/)
   if (twitter?.groups?.id) {

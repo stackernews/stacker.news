@@ -41,8 +41,11 @@ function Notification ({ n, fresh }) {
   const item = data?.item
   const itemN = { item, ...n }
 
+  // we need to prevent links to failed items to be clickable since they lead to 404 pages
+  const overrideLinks = type === 'FailedItem'
+
   return (
-    <NotificationLayout nid={nid(n)} {...defaultOnClick(itemN)} fresh={fresh}>
+    <NotificationLayout nid={nid(n)} {...defaultOnClick(itemN)} fresh={fresh} overrideLinks={overrideLinks}>
       {
         (type === 'Earn' && <EarnNotification n={n} />) ||
         (type === 'Revenue' && <RevenueNotification n={n} />) ||
@@ -71,7 +74,7 @@ function Notification ({ n, fresh }) {
   )
 }
 
-function NotificationLayout ({ children, nid, href, as, fresh }) {
+function NotificationLayout ({ children, nid, href, as, fresh, overrideLinks }) {
   const router = useRouter()
   if (!href) return <div className={fresh ? styles.fresh : ''}>{children}</div>
   return (
@@ -89,6 +92,7 @@ function NotificationLayout ({ children, nid, href, as, fresh }) {
         router.push(href, as)
       }}
       href={href}
+      style={overrideLinks ? { zIndex: 1 } : undefined}
     >
       {children}
     </LinkToContext>

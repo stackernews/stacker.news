@@ -167,7 +167,8 @@ const onClickFailedItem = ({ n }) => {
   }
 
   const rootId = commentSubTreeRootId(n.item)
-  const query = { id: rootId, text }
+  window.localStorage.setItem('reply-' + parentId + '-' + 'text', text)
+  const query = { id: rootId }
   if (Number(rootId) !== Number(parentId)) {
     query.commentId = parentId
   }

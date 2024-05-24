@@ -15,7 +15,6 @@ import { useShowModal } from './modal'
 import { Button } from 'react-bootstrap'
 import { useRoot } from './root'
 import { commentSubTreeRootId } from '@/lib/item'
-import { useRouter } from 'next/router'
 
 export function ReplyOnAnotherPage ({ item }) {
   const rootId = commentSubTreeRootId(item)
@@ -41,18 +40,12 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
   const showModal = useShowModal()
   const root = useRoot()
   const sub = item?.sub || root?.sub
-  const router = useRouter()
-
-  const prefill = router.query.text &&
-    (router.query.commentId
-      ? router.query.commentId === parentId
-      : router.query.id === parentId)
 
   useEffect(() => {
-    if (replyOpen || quote || !!window.localStorage.getItem('reply-' + parentId + '-' + 'text') || prefill) {
+    if (replyOpen || quote || !!window.localStorage.getItem('reply-' + parentId + '-' + 'text')) {
       setReply(true)
     }
-  }, [replyOpen, quote, parentId, prefill])
+  }, [replyOpen, quote, parentId])
 
   const [upsertComment] = useMutation(
     gql`
@@ -179,7 +172,7 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
           >
             <Form
               initial={{
-                text: prefill ? router.query.text : ''
+                text: ''
               }}
               schema={commentSchema}
               prepaid

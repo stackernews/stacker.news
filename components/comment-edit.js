@@ -3,7 +3,7 @@ import { gql, useMutation } from '@apollo/client'
 import styles from './reply.module.css'
 import { commentSchema } from '@/lib/validate'
 import { useToast } from './toast'
-import { toastDeleteScheduled } from '@/lib/form'
+import { toastUpsertSuccessMessages } from '@/lib/form'
 import { FeeButtonProvider } from './fee-button'
 import { ItemButtonBar } from './post'
 
@@ -15,6 +15,7 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
         upsertComment(id: $id, text: $text) {
           text
           deleteScheduledAt
+          reminderScheduledAt
         }
       }`, {
       update (cache, { data: { upsertComment } }) {
@@ -43,7 +44,7 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
             if (error) {
               throw new Error({ message: error.toString() })
             }
-            toastDeleteScheduled(toaster, data, 'upsertComment', true, values.text)
+            toastUpsertSuccessMessages(toaster, data, 'upsertComment', true, values.text)
             if (onSuccess) {
               onSuccess()
             }

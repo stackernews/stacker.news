@@ -311,6 +311,22 @@ export default {
         return true
       }
 
+      const [newSubPost] = await models.$queryRawUnsafe(`
+        SELECT EXISTS(
+          SELECT *
+          FROM "SubSubscription"
+          JOIN "Item" ON "SubSubscription"."subName" = "Item"."subName"
+          ${whereClause(
+            '"SubSubscription"."userId" = $1',
+            '"Item".created_at > $2',
+            '"Item"."parentId" IS NULL',
+            await filterClause(me, models),
+            muteClause(me))})`, me.id, lastChecked)
+      if (newSubPost.exists) {
+        foundNotes()
+        return true
+      }
+
       // check if they have any mentions since checkedNotesAt
       if (user.noteMentions) {
         const [newMentions] = await models.$queryRawUnsafe(`
@@ -469,6 +485,20 @@ export default {
       })
 
       if (subStatus) {
+        foundNotes()
+        return true
+      }
+
+      const newReminder = await models.reminder.findFirst({
+        where: {
+          userId: me.id,
+          remindAt: {
+            gt: lastChecked,
+            lt: new Date()
+          }
+        }
+      })
+      if (newReminder) {
         foundNotes()
         return true
       }
@@ -749,7 +779,7 @@ export default {
             }
           }
         })
-        if (subscription.postsSubscribedAt || subscription.commentsSubscribedAt) {
+        if (subscription?.postsSubscribedAt || subscription?.commentsSubscribedAt) {
           throw new GraphQLError("you can't mute a stacker to whom you've subscribed", { extensions: { code: 'BAD_INPUT' } })
         }
         await models.mute.create({ data: { ...lookupData } })

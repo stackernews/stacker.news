@@ -66,11 +66,10 @@ function UserItemsHeader ({ type, name }) {
       initial={{ type, by, when, from: '', to: '' }}
       onSubmit={select}
     >
-      <div className='text-muted fw-bold mt-0 mb-3 d-flex justify-content-start align-items-center flex-wrap'>
-        <div className='text-muted fw-bold mt-0 mb-2 d-flex justify-content-start align-items-center'>
+      <div className='text-muted fw-bold d-flex align-items-center flex-wrap'>
+        <div className='text-muted fw-bold mb-2 d-flex align-items-center'>
           <Select
             groupClassName='mb-0 me-2'
-            className='w-auto'
             name='type'
             size='sm'
             overrideValue={type}
@@ -80,7 +79,6 @@ function UserItemsHeader ({ type, name }) {
           by
           <Select
             groupClassName='mb-0 mx-2'
-            className='w-auto'
             name='by'
             size='sm'
             overrideValue={by}
@@ -90,7 +88,6 @@ function UserItemsHeader ({ type, name }) {
           for
           <Select
             groupClassName='mb-0 mx-2'
-            className='w-auto'
             name='when'
             size='sm'
             items={WHENS}

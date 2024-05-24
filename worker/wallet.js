@@ -3,13 +3,14 @@ import {
   getInvoice, getPayment, cancelHodlInvoice, deletePayment,
   subscribeToInvoices, subscribeToPayments, subscribeToInvoice
 } from 'ln-service'
-import { notifyDeposit, notifyWithdrawal } from '@/lib/webPush'
+import { notifyDeposit, notifyTerritorySubscribers, notifyUserSubscribers, notifyWithdrawal } from '@/lib/webPush'
 import { INVOICE_RETENTION_DAYS } from '@/lib/constants'
 import { datePivot, sleep } from '@/lib/time.js'
 import retry from 'async-retry'
 import { addWalletLog } from '@/api/resolvers/wallet'
 import { msatsToSats, numWithUnits } from '@/lib/format'
-import { handleAction, actionErrorQueries } from './action'
+import { actionErrorQueries } from './action'
+import { createMentions } from '@/api/resolvers/item'
 
 export async function subscribeToWallet (args) {
   await subscribeToDeposits(args)
@@ -136,8 +137,13 @@ async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
     const firstConfirmation = code === 0
     if (firstConfirmation) {
       notifyDeposit(dbInv.userId, { comment: dbInv.comment, ...inv })
-      // ideally, we would run this in the same tx as confirm_invoice but handleAction is not idempotent
-      await handleAction({ data: dbInv, models })
+
+      if (dbInv.actionType === 'ITEM' && dbInv.actionId) {
+        const item = await models.item.findUnique({ where: { id: dbInv.actionId } })
+        await createMentions(item, models)
+        notifyUserSubscribers({ models, item })
+        notifyTerritorySubscribers({ models, item })
+      }
     }
 
     return await boss.send('nip57', { hash })

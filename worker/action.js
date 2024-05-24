@@ -1,5 +1,4 @@
 import { createMentions } from '@/api/resolvers/item'
-import serialize from '@/api/resolvers/serial'
 import { notifyTerritorySubscribers, notifyUserSubscribers } from '@/lib/webPush'
 
 export async function finalizeAction ({ data: { hash }, models }) {
@@ -22,40 +21,13 @@ export async function handleAction ({ data: { actionType, actionId, actionData }
     // update item status from PENDING to ACTIVE
     // and run queries which were skipped during creation
 
-    const { cost } = actionData
     const item = await models.item.findUnique({ where: { id: actionId } })
 
     if (item.status !== 'PENDING') {
       return
     }
 
-    await serialize([
-      models.item.update({
-        where: {
-          id: item.id
-        },
-        data: {
-          status: 'ACTIVE'
-        }
-      }),
-      models.user.update({
-        where: {
-          id: item.userId
-        },
-        data: {
-          msats: {
-            decrement: cost
-          }
-        }
-      }),
-      // run skipped queries
-      models.itemAct.create({
-        data: { msats: cost, itemId: item.id, userId: item.userId, act: 'FEE' }
-      }),
-      item.boost > 0 && models.$executeRaw(`SELECT item_act(${item.id}::INTEGER, ${item.userId}::INTEGER, 'BOOST'::"ItemActType", ${item.boost}::INTEGER)`),
-      item.maxBid && models.$executeRaw(`SELECT run_auction(${item.id}::INTEGER)`)
-    ], { models })
-
+    await models.$executeRaw`SELECT invoice_action(${actionType}, ${actionId}, ${actionData})`
     await createMentions(item, models)
     notifyUserSubscribers({ models, item })
     notifyTerritorySubscribers({ models, item })

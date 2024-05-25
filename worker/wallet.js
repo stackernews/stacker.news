@@ -182,7 +182,7 @@ async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
           cancelled: true
         }
       }),
-      ...actionErrorQueries({ data: dbInv, models })
+      ...(await actionErrorQueries({ data: dbInv, models }))
     ], { models })
   }
 }

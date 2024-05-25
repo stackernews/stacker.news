@@ -391,7 +391,7 @@ export default {
             cancelled: true
           }
         }),
-        ...actionErrorQueries({ data: inv, models })
+        ...(await actionErrorQueries({ data: inv, models }))
       ], { models }
       )
       return { ...inv, cancelled: true }

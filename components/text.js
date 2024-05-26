@@ -13,7 +13,7 @@ import Thumb from '@/svgs/thumb-up-fill.svg'
 import { toString } from 'mdast-util-to-string'
 import copy from 'clipboard-copy'
 import ZoomableImage, { decodeOriginalUrl } from './image'
-import { IMGPROXY_URL_REGEXP, parseInternalLinks } from '@/lib/url'
+import { IMGPROXY_URL_REGEXP, parseInternalLinks, parseEmbedUrl } from '@/lib/url'
 import reactStringReplace from 'react-string-replace'
 import { rehypeInlineCodeProperty } from '@/lib/md'
 import { Button } from 'react-bootstrap'
@@ -244,15 +244,16 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
               paddingRight: '15px'
             }
 
-            // if the link is to a YouTube video, render it
-            const youtube = href.match(/(https?:\/\/)?((www\.)?(youtube(-nocookie)?|youtube.googleapis)\.com.*(v\/|v=|vi=|vi\/|e\/|embed\/|user\/.*\/u\/\d+\/)|youtu\.be\/)(?<id>[_0-9a-z-]+)((?:\?|&)(?:t|start)=(?<start>\d+))?/i)
-            if (youtube?.groups?.id) {
+            const { provider, id, meta } = parseEmbedUrl(href)
+
+            // Youtube video embed
+            if (provider === 'youtube') {
               return (
                 <div style={videoWrapperStyles}>
                   <YouTube
-                    videoId={youtube.groups.id} className={styles.videoContainer} opts={{
+                    videoId={id} className={styles.videoContainer} opts={{
                       playerVars: {
-                        start: youtube?.groups?.start
+                        start: meta?.start || 0
                       }
                     }}
                   />
@@ -260,24 +261,20 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
               )
             }
 
-            // if the link is a Rumble embed url render it
-            const rumbleEmbed = href.match(/https:\/\/rumble\.com\/embed\/[0-9A-z]+\/.+/i)
-            if (rumbleEmbed) {
+            // Rumble video embed
+            if (provider === 'rumble') {
               return (
                 <div style={videoWrapperStyles}>
                   <div className={styles.videoContainer}>
                     <iframe
                       title='Rumble Video'
                       allowFullScreen=''
-                      src={href}
+                      src={meta?.href}
                     />
                   </div>
                 </div>
               )
             }
-
-            // if the link is a Rumble url then render it
-            // const rumbleUrl = href.match(/https:\/\/rumble\.com\/.+\.html/i)
 
             // assume the link is an image which will fallback to link if it's not
             return <Img src={href} rel={rel ?? UNKNOWN_LINK_REL} {...props}>{children}</Img>

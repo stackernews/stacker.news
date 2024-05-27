@@ -63,15 +63,13 @@ export const actUpdate = ({ me, onUpdate }) => (cache, args) => {
 
         return existingSats
       },
-      meSats: me
-        ? (existingSats = 0) => {
-            if (act === 'TIP') {
-              return existingSats + sats
-            }
+      meSats: (existingSats = 0) => {
+        if (act === 'TIP') {
+          return existingSats + sats
+        }
 
-            return existingSats
-          }
-        : undefined,
+        return existingSats
+      },
       meDontLikeSats: me
         ? (existingSats = 0) => {
             if (act === 'DONT_LIKE_THIS') {

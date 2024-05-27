@@ -106,7 +106,7 @@ export default function JobForm ({ item, sub }) {
         schema={jobSchema}
         storageKeyPrefix={storageKeyPrefix}
         requireSession
-        invoiceable
+        prepaid
         onSubmit={onSubmit}
       >
         <div className='form-group'>

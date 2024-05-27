@@ -174,7 +174,7 @@ export function DonateButton () {
               amount: 10000
             }}
             schema={amountSchema}
-            invoiceable
+            prepaid
             onSubmit={async ({ amount, hash, hmac }) => {
               const { error } = await donateToRewards({
                 variables: {

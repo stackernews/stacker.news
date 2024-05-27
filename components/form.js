@@ -802,7 +802,7 @@ const StorageKeyPrefixContext = createContext()
 
 export function Form ({
   initial, schema, onSubmit, children, initialError, validateImmediately,
-  storageKeyPrefix, validateOnChange = true, invoiceable, requireSession, innerRef,
+  storageKeyPrefix, validateOnChange = true, prepaid, requireSession, innerRef,
   optimisticUpdate: optimisticUpdateArgs, ...props
 }) {
   const toaster = useToast()
@@ -845,7 +845,7 @@ export function Form ({
         if (optimisticUpdateArgs) {
           revert = optimisticUpdate(optimisticUpdateArgs(variables))
         }
-        if (invoiceable) {
+        if (prepaid) {
           [{ hash, hmac }, cancel] = await payment.request(amount)
         }
         await onSubmit({ hash, hmac, ...variables }, ...args)

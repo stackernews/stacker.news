@@ -145,7 +145,7 @@ export default function ItemAct ({ onClose, item, down, children }) {
         default: false
       }}
       schema={amountSchema}
-      invoiceable
+      prepaid
       optimisticUpdate={optimisticUpdate}
       onSubmit={onSubmit}
     >

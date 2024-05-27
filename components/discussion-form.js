@@ -96,7 +96,7 @@ export function DiscussionForm ({
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}
-      invoiceable
+      prepaid
       onSubmit={handleSubmit || onSubmit}
       storageKeyPrefix={storageKeyPrefix}
     >

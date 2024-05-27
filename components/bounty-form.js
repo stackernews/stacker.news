@@ -108,7 +108,7 @@ export function BountyForm ({
       }}
       schema={schema}
       requireSession
-      invoiceable
+      prepaid
       onSubmit={
         handleSubmit ||
         onSubmit

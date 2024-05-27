@@ -1004,8 +1004,7 @@ export default {
       }
 
       const options = await models.$queryRaw`
-        SELECT "PollOption".id, option, count("PollVote"."userId")::INTEGER as count,
-          coalesce(bool_or("PollVote"."userId" = ${me?.id}), 'f') as "meVoted"
+        SELECT "PollOption".id, option, count("PollVote".id)::INTEGER as count
         FROM "PollOption"
         LEFT JOIN "PollVote" on "PollVote"."pollOptionId" = "PollOption".id
         WHERE "PollOption"."itemId" = ${item.id}
@@ -1013,9 +1012,16 @@ export default {
         ORDER BY "PollOption".id ASC
       `
 
+      const meVoted = await models.pollBlindVote.findFirst({
+        where: {
+          userId: me?.id,
+          itemId: item.id
+        }
+      })
+
       const poll = {}
       poll.options = options
-      poll.meVoted = options.some(o => o.meVoted)
+      poll.meVoted = !!meVoted
       poll.count = options.reduce((t, o) => t + o.count, 0)
 
       return poll

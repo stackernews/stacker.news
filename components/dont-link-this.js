@@ -30,7 +30,7 @@ function DownZapper ({ id, As, children }) {
         try {
           showModal(onClose =>
             <ItemAct
-              onClose={onClose} itemId={id} down
+              onClose={onClose} item={{ id }} down
             >
               <AccordianItem
                 header='what is a downzap?' body={

@@ -66,7 +66,6 @@ export default function PayBounty ({ children, item }) {
           act: variables
         }
       })
-      onComplete()
     } catch (error) {
       revert?.()
 

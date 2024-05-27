@@ -122,7 +122,7 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
         hmac
       }
     })
-    setItemMeAnonSats({ id: item.id, amount })
+    if (!me) setItemMeAnonSats({ id: item.id, amount })
     addCustomTip(Number(amount))
   }, [me, act, down, item.id, strike])
 

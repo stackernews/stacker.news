@@ -622,13 +622,17 @@ model ReferralAct {
 }
 
 model ItemAct {
-  id          Int           @id(map: "Vote_pkey") @default(autoincrement())
-  createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @default(now()) @updatedAt @map("updated_at")
-  msats       BigInt
-  act         ItemActType
-  itemId      Int
-  userId      Int
+  id                 Int                 @id(map: "Vote_pkey") @default(autoincrement())
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @default(now()) @updatedAt @map("updated_at")
+  msats              BigInt
+  act                ItemActType
+  itemId             Int
+  userId             Int
+  invoiceId          Int?
+  invoiceActionState InvoiceActionState?
+
+  invoice     Invoice?      @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
   item        Item          @relation(fields: [itemId], references: [id], onDelete: Cascade)
   user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   ReferralAct ReferralAct[]
@@ -660,6 +664,21 @@ model Mention {
   @@index([userId], map: "Mention.userId_index")
 }
 
+enum InvoiceActionType {
+  ITEM
+  ITEM_UPDATE
+  ITEM_ACT
+  DONATION
+  SUB_ACT
+}
+
+enum InvoiceActionState {
+  PENDING
+  PAID
+  FAILED
+  COMPLETED
+}
+
 model Invoice {
   id             Int       @id @default(autoincrement())
   createdAt      DateTime  @default(now()) @map("created_at")
@@ -679,6 +698,10 @@ model Invoice {
   comment        String?
   lud18Data      Json?
   user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  actionState InvoiceActionState?
+  actionType  InvoiceActionType?
+  ItemAct     ItemAct[]
 
   @@index([createdAt], map: "Invoice.created_at_index")
   @@index([userId], map: "Invoice.userId_index")

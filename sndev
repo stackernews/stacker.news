@@ -400,7 +400,8 @@ __sndev__pr_track() {
 
   ref=$(echo "$json" | grep -e '"ref"' | head -n1 | sed -e 's/^.*"ref":[[:space:]]*"//; s/",[[:space:]]*$//')
   git fetch "$remote" "$ref"
-  git checkout -b "pr/$1" "$remote/$ref"
+  git checkout -t -b "pr/$1" "$remote/$ref"
+  git config --local "remote.$remote.push" pr/$1:$ref
   exit 0
 }
 

@@ -17,7 +17,7 @@ export const Types = {
   PollVote: toType('POLL_VOTE')
 }
 
-const ClientNotificationContext = createContext()
+const ClientNotificationContext = createContext({ notifications: [], notify: () => {}, unnotify: () => {} })
 
 export function ClientNotificationProvider ({ children }) {
   const [notifications, setNotifications] = useState([])

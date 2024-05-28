@@ -166,7 +166,7 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
                 text: ''
               }}
               schema={commentSchema}
-              invoiceable
+              prepaid
               onSubmit={onSubmit}
               storageKeyPrefix={`reply-${parentId}`}
             >

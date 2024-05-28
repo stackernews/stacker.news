@@ -18,7 +18,6 @@ import { gql, useLazyQuery } from '@apollo/client'
 import { USER_SUGGESTIONS } from '@/fragments/users'
 import TextareaAutosize from 'react-textarea-autosize'
 import { useToast } from './toast'
-import { useInvoiceable } from './invoice'
 import { numWithUnits } from '@/lib/format'
 import textAreaCaret from 'textarea-caret'
 import ReactDatePicker from 'react-datepicker'
@@ -32,6 +31,18 @@ import Thumb from '@/svgs/thumb-up-fill.svg'
 import Eye from '@/svgs/eye-fill.svg'
 import EyeClose from '@/svgs/eye-close-line.svg'
 import Info from './info'
+import { InvoiceCanceledError, usePayment } from './payment'
+import { useMe } from './me'
+import { optimisticUpdate } from '@/lib/apollo'
+import { useClientNotifications } from './client-notifications'
+import { ActCanceledError } from './item-act'
+
+export class SessionRequiredError extends Error {
+  constructor () {
+    super('session required')
+    this.name = 'SessionRequiredError'
+  }
+}
 
 export function SubmitButton ({
   children, variant, value, onClick, disabled, nonDisabledText, ...props
@@ -793,11 +804,16 @@ const StorageKeyPrefixContext = createContext()
 
 export function Form ({
   initial, schema, onSubmit, children, initialError, validateImmediately,
-  storageKeyPrefix, validateOnChange = true, invoiceable, innerRef, ...props
+  storageKeyPrefix, validateOnChange = true, prepaid, requireSession, innerRef,
+  optimisticUpdate: optimisticUpdateArgs, clientNotification, signal, ...props
 }) {
   const toaster = useToast()
   const initialErrorToasted = useRef(false)
   const feeButton = useFeeButton()
+  const payment = usePayment()
+  const me = useMe()
+  const { notify, unnotify } = useClientNotifications()
+
   useEffect(() => {
     if (initialError && !initialErrorToasted.current) {
       toaster.danger('form error: ' + initialError.message || initialError.toString?.())
@@ -820,37 +836,57 @@ export function Form ({
     })
   }, [storageKeyPrefix])
 
-  // if `invoiceable` is set,
-  // support for payment per invoice if they are lurking or don't have enough balance
-  // is added to submit handlers.
-  // submit handlers need to accept { satsReceived, hash, hmac } in their first argument
-  // and use them as variables in their GraphQL mutation
-  if (invoiceable && onSubmit) {
-    const options = typeof invoiceable === 'object' ? invoiceable : undefined
-    onSubmit = useInvoiceable(onSubmit, options)
-  }
-
-  const onSubmitInner = useCallback(async (values, ...args) => {
+  const onSubmitInner = useCallback(async ({ amount, ...values }, ...args) => {
+    const variables = { amount, ...values }
+    let revert, cancel, nid
     try {
       if (onSubmit) {
-        // extract cost from formik fields
-        // (cost may also be set in a formik field named 'amount')
-        const cost = feeButton?.total || values?.amount
-        if (cost) {
-          values.cost = cost
+        if (requireSession && !me) {
+          throw new SessionRequiredError()
         }
-        await onSubmit(values, ...args)
+
+        if (optimisticUpdateArgs) {
+          revert = optimisticUpdate(optimisticUpdateArgs(variables))
+        }
+
+        await signal?.pause({ me, amount })
+
+        if (me && clientNotification) {
+          nid = notify(clientNotification.PENDING, variables)
+        }
+
+        let hash, hmac
+        if (prepaid) {
+          [{ hash, hmac }, cancel] = await payment.request(amount)
+        }
+
+        await onSubmit({ hash, hmac, ...variables }, ...args)
+
         if (!storageKeyPrefix) return
         clearLocalStorage(values)
       }
     } catch (err) {
-      const msg = err.message || err.toString?.()
-      // ignore errors from JIT invoices or payments from attached wallets
-      // that mean that submit failed because user aborted the payment
-      if (msg === 'modal closed' || msg === 'invoice canceled') return
-      toaster.danger('submit error: ' + msg)
+      revert?.()
+
+      if (err instanceof InvoiceCanceledError || err instanceof ActCanceledError) {
+        return
+      }
+
+      const reason = err.message || err.toString?.()
+      if (me && clientNotification) {
+        notify(clientNotification.ERROR, { ...variables, reason })
+      } else {
+        toaster.danger('submit error: ' + reason)
+      }
+
+      cancel?.()
+    } finally {
+      // if we reach this line, the submit either failed or was successful so we can remove the pending notification.
+      // if we don't reach this line, the page was probably reloaded and we can use the pending notification
+      // stored in localStorage to handle this case.
+      if (nid) unnotify(nid)
     }
-  }, [onSubmit, feeButton?.total, toaster, clearLocalStorage, storageKeyPrefix])
+  }, [me, onSubmit, feeButton?.total, toaster, clearLocalStorage, storageKeyPrefix, payment, signal])
 
   return (
     <Formik

@@ -63,7 +63,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
         {item.position && (pinnable || !item.subName)
           ? <Pin width={24} height={24} className={styles.pin} />
           : item.meDontLikeSats > item.meSats
-            ? <DownZap width={24} height={24} className={styles.dontLike} id={item.id} meDontLikeSats={item.meDontLikeSats} />
+            ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
             : Number(item.user?.id) === AD_USER_ID
               ? <AdIcon width={24} height={24} className={styles.ad} />
               : <UpVote item={item} className={styles.upvote} />}

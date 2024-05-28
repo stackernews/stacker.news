@@ -35,3 +35,17 @@
     left: 4px;
     width: 17px;
 }
+
+.pending {
+    animation-name: pulse;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+    animation-duration: 0.25s;
+    animation-direction: alternate;
+}
+
+@keyframes pulse {
+	0% {
+		fill: #a5a5a5;
+	}
+}

@@ -64,6 +64,7 @@ export function postCommentUseRemoteLineItems ({ parentId } = {}) {
 export function FeeButtonProvider ({ baseLineItems = {}, useRemoteLineItems = () => null, children }) {
   const [lineItems, setLineItems] = useState({})
   const [disabled, setDisabled] = useState(false)
+  const me = useMe()
 
   const remoteLineItems = useRemoteLineItems()
 
@@ -76,14 +77,18 @@ export function FeeButtonProvider ({ baseLineItems = {}, useRemoteLineItems = ()
 
   const value = useMemo(() => {
     const lines = { ...baseLineItems, ...lineItems, ...remoteLineItems }
+    const total = Object.values(lines).reduce((acc, { modifier }) => modifier(acc), 0)
+    // freebies: there's only a base cost and we don't have enough sats
+    const free = total === lines.baseCost?.modifier(0) && lines.baseCost?.allowFreebies && me?.privates?.sats < total
     return {
       lines,
       merge: mergeLineItems,
-      total: Object.values(lines).reduce((acc, { modifier }) => modifier(acc), 0),
+      total,
       disabled,
-      setDisabled
+      setDisabled,
+      free
     }
-  }, [baseLineItems, lineItems, remoteLineItems, mergeLineItems, disabled, setDisabled])
+  }, [me?.privates?.sats, baseLineItems, lineItems, remoteLineItems, mergeLineItems, disabled, setDisabled])
 
   return (
     <FeeButtonContext.Provider value={value}>
@@ -111,9 +116,7 @@ function FreebieDialog () {
 
 export default function FeeButton ({ ChildButton = SubmitButton, variant, text, disabled }) {
   const me = useMe()
-  const { lines, total, disabled: ctxDisabled } = useFeeButton()
-  // freebies: there's only a base cost and we don't have enough sats
-  const free = total === lines.baseCost?.modifier(0) && lines.baseCost?.allowFreebies && me?.privates?.sats < total
+  const { lines, total, disabled: ctxDisabled, free } = useFeeButton()
   const feeText = free
     ? 'free'
     : total > 1

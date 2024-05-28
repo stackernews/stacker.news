@@ -143,7 +143,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}
-      invoiceable
+      prepaid
       onSubmit={onSubmit}
       storageKeyPrefix={storageKeyPrefix}
     >

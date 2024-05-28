@@ -6,15 +6,23 @@ import { useMe } from './me'
 import { numWithUnits } from '@/lib/format'
 import { useShowModal } from './modal'
 import { useRoot } from './root'
-import { payOrLoginError, useInvoiceModal } from './invoice'
-import { useAct } from './item-act'
+import { useAct, actUpdate, ACT_MUTATION } from './item-act'
+import { InvoiceCanceledError, usePayment } from './payment'
+import { optimisticUpdate } from '@/lib/apollo'
+import { useLightning } from './lightning'
+import { useToast } from './toast'
+import { Types as ClientNotification, useClientNotifications } from './client-notifications'
 
 export default function PayBounty ({ children, item }) {
   const me = useMe()
   const showModal = useShowModal()
   const root = useRoot()
+  const payment = usePayment()
+  const strike = useLightning()
+  const toaster = useToast()
+  const { notify, unnotify } = useClientNotifications()
 
-  const onUpdate = useCallback((cache, { data: { act: { id, path } } }) => {
+  const onUpdate = useCallback(onComplete => (cache, { data: { act: { id, path } } }) => {
     // update root bounty status
     const root = path.split('.')[0]
     cache.modify({
@@ -25,30 +33,55 @@ export default function PayBounty ({ children, item }) {
         }
       }
     })
-  }, [])
+    strike()
+    onComplete()
+  }, [strike])
 
-  const [act] = useAct({ onUpdate })
-
-  const showInvoiceModal = useInvoiceModal(async ({ hash, hmac }, { variables }) => {
-    await act({ variables: { ...variables, hash, hmac } })
-  }, [act])
+  const act = useAct()
 
   const handlePayBounty = async onComplete => {
-    const variables = { id: item.id, sats: root.bounty, act: 'TIP', path: item.path }
+    const sats = root.bounty
+    const variables = { id: item.id, sats, act: 'TIP', path: item.path }
+    const notifyProps = { itemId: item.id, sats }
+    const optimisticResponse = { act: { ...variables, path: item.path } }
+
+    let revert, cancel, nid
     try {
-      await act({
+      revert = optimisticUpdate({
+        mutation: ACT_MUTATION,
         variables,
+        optimisticResponse,
+        update: actUpdate({ me, onUpdate: onUpdate(onComplete) })
+      })
+
+      if (me) {
+        nid = notify(ClientNotification.Bounty.PENDING, notifyProps)
+      }
+
+      let hash, hmac;
+      [{ hash, hmac }, cancel] = await payment.request(sats)
+      await act({
+        variables: { hash, hmac, ...variables },
         optimisticResponse: {
           act: variables
         }
       })
-      onComplete()
     } catch (error) {
-      if (payOrLoginError(error)) {
-        showInvoiceModal({ amount: root.bounty }, { variables })
+      revert?.()
+
+      if (error instanceof InvoiceCanceledError) {
         return
       }
-      throw new Error({ message: error.toString() })
+
+      const reason = error?.message || error?.toString?.()
+      if (me) {
+        notify(ClientNotification.Bounty.ERROR, { ...notifyProps, reason })
+      } else {
+        toaster.danger('pay bounty failed: ' + reason)
+      }
+      cancel?.()
+    } finally {
+      if (nid) unnotify(nid)
     }
   }
 

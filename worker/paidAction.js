@@ -5,10 +5,10 @@ export async function settleAction ({ data: { invoiceId }, models }) {
     where: { id: invoiceId }
   })
 
-  // TODO: ensure that this is done only once
   await models.$transaction([
+    // optimistic concurrency control (aborts if invoice is not in PENDING state)
     models.invoice.update({
-      where: { id: invoice.id },
+      where: { id: invoice.id, actionState: 'PENDING' },
       data: { actionState: 'PAID' }
     }),
     ...await paidActions[invoice.actionType].onPaidStatements({ invoice }, { models })
@@ -20,10 +20,10 @@ export async function settleActionError ({ data: { invoiceId }, models }) {
     where: { id: invoiceId }
   })
 
-  // TODO: ensure that this is done only once
   await models.$transaction([
+    // optimistic concurrency control (aborts if invoice is not in PENDING state)
     models.invoice.update({
-      where: { id: invoice.id },
+      where: { id: invoice.id, actionState: 'PENDING' },
       data: { actionState: 'FAILED' }
     }),
     ...await paidActions[invoice.actionType].onFailedStatements({ invoice }, { models })

@@ -126,7 +126,6 @@ export const POLL_FIELDS = gql`
         id
         option
         count
-        meVoted
       }
     }
   }`

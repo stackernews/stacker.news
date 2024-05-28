@@ -289,7 +289,7 @@ function HeaderHeader ({ user }) {
               <ItemPopover id={user.since}>
                 <Link href={`/items/${user.since}`} className='ms-1'>#{user.since}</Link>
               </ItemPopover>
-            )
+              )
             : <span>never</span>}
           </small>
           {user.optional.maxStreak !== null &&

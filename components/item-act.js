@@ -179,6 +179,7 @@ export const ACT_MUTATION = gql`
     act(id: $id, sats: $sats, act: $act, hash: $hash, hmac: $hmac) {
       id
       sats
+      path
       act
     }
   }`

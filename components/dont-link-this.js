@@ -8,7 +8,8 @@ import { useMemo } from 'react'
 import getColor from '@/lib/rainbow'
 import { gql, useMutation } from '@apollo/client'
 
-export function DownZap ({ id, meDontLikeSats, ...props }) {
+export function DownZap ({ item, ...props }) {
+  const { meDontLikeSats } = item
   const style = useMemo(() => (meDontLikeSats
     ? {
         fill: getColor(meDontLikeSats),
@@ -16,11 +17,11 @@ export function DownZap ({ id, meDontLikeSats, ...props }) {
       }
     : undefined), [meDontLikeSats])
   return (
-    <DownZapper id={id} As={({ ...oprops }) => <Flag {...props} {...oprops} style={style} />} />
+    <DownZapper item={item} As={({ ...oprops }) => <Flag {...props} {...oprops} style={style} />} />
   )
 }
 
-function DownZapper ({ id, As, children }) {
+function DownZapper ({ item, As, children }) {
   const toaster = useToast()
   const showModal = useShowModal()
 
@@ -30,7 +31,7 @@ function DownZapper ({ id, As, children }) {
         try {
           showModal(onClose =>
             <ItemAct
-              onClose={onClose} item={{ id }} down
+              onClose={onClose} item={item} down
             >
               <AccordianItem
                 header='what is a downzap?' body={
@@ -52,11 +53,11 @@ function DownZapper ({ id, As, children }) {
   )
 }
 
-export default function DontLikeThisDropdownItem ({ id }) {
+export default function DontLikeThisDropdownItem ({ item }) {
   return (
     <DownZapper
       As={Dropdown.Item}
-      id={id}
+      item={item}
     >
       <span className='text-danger'>downzap</span>
     </DownZapper>

@@ -29,6 +29,7 @@ import NostrIcon from '@/svgs/nostr.svg'
 import GithubIcon from '@/svgs/github-fill.svg'
 import TwitterIcon from '@/svgs/twitter-fill.svg'
 import { UNKNOWN_LINK_REL, MEDIA_URL } from '@/lib/constants'
+import ItemPopover from './item-popover'
 
 export default function UserHeader ({ user }) {
   const router = useRouter()

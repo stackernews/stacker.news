@@ -22,7 +22,7 @@ import Share from './share'
 import Toc from './table-of-contents'
 import Link from 'next/link'
 import { RootProvider } from './root'
-import { IMGPROXY_URL_REGEXP } from '@/lib/url'
+import { IMGPROXY_URL_REGEXP, parseEmbedUrl } from '@/lib/url'
 import { numWithUnits } from '@/lib/format'
 import { useQuoteReply } from './use-quote-reply'
 import { UNKNOWN_LINK_REL } from '@/lib/constants'
@@ -70,6 +70,7 @@ function ItemEmbed ({ item }) {
   const [overflowing, setOverflowing] = useState(false)
   const [show, setShow] = useState(false)
 
+  // This Twitter embed could use similar logic to the video embeds below
   const twitter = item.url?.match(/^https?:\/\/(?:twitter|x)\.com\/(?:#!\/)?\w+\/status(?:es)?\/(?<id>\d+)/)
   if (twitter?.groups?.id) {
     return (
@@ -83,17 +84,32 @@ function ItemEmbed ({ item }) {
     )
   }
 
-  const youtube = item.url?.match(/(https?:\/\/)?((www\.)?(youtube(-nocookie)?|youtube.googleapis)\.com.*(v\/|v=|vi=|vi\/|e\/|embed\/|user\/.*\/u\/\d+\/)|youtu\.be\/)(?<id>[_0-9a-z-]+)((?:\?|&)(?:t|start)=(?<start>\d+))?/i)
-  if (youtube?.groups?.id) {
+  const { provider, id, meta } = parseEmbedUrl(item.url)
+
+  if (provider === 'youtube') {
     return (
-      <div className={styles.youtubeContainerContainer}>
+      <div className={styles.videoWrapper}>
         <YouTube
-          videoId={youtube.groups.id} className={styles.youtubeContainer} opts={{
+          videoId={id} className={styles.videoContainer} opts={{
             playerVars: {
-              start: youtube?.groups?.start
+              start: meta?.start || 0
             }
           }}
         />
+      </div>
+    )
+  }
+
+  if (provider === 'rumble') {
+    return (
+      <div className={styles.videoWrapper}>
+        <div className={styles.videoContainer}>
+          <iframe
+            title='Rumble Video'
+            allowFullScreen=''
+            src={meta?.href}
+          />
+        </div>
       </div>
     )
   }

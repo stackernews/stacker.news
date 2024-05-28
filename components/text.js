@@ -13,7 +13,7 @@ import Thumb from '@/svgs/thumb-up-fill.svg'
 import { toString } from 'mdast-util-to-string'
 import copy from 'clipboard-copy'
 import ZoomableImage, { decodeOriginalUrl } from './image'
-import { IMGPROXY_URL_REGEXP, parseInternalLinks } from '@/lib/url'
+import { IMGPROXY_URL_REGEXP, parseInternalLinks, parseEmbedUrl } from '@/lib/url'
 import reactStringReplace from 'react-string-replace'
 import { rehypeInlineCodeProperty } from '@/lib/md'
 import { Button } from 'react-bootstrap'
@@ -238,18 +238,40 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
               // ignore errors like invalid URLs
             }
 
-            // if the link is to a youtube video, render the video
-            const youtube = href.match(/(https?:\/\/)?((www\.)?(youtube(-nocookie)?|youtube.googleapis)\.com.*(v\/|v=|vi=|vi\/|e\/|embed\/|user\/.*\/u\/\d+\/)|youtu\.be\/)(?<id>[_0-9a-z-]+)((?:\?|&)(?:t|start)=(?<start>\d+))?/i)
-            if (youtube?.groups?.id) {
+            const videoWrapperStyles = {
+              maxWidth: topLevel ? '640px' : '320px',
+              margin: '0.5rem 0',
+              paddingRight: '15px'
+            }
+
+            const { provider, id, meta } = parseEmbedUrl(href)
+
+            // Youtube video embed
+            if (provider === 'youtube') {
               return (
-                <div style={{ maxWidth: topLevel ? '640px' : '320px', paddingRight: '15px', margin: '0.5rem 0' }}>
+                <div style={videoWrapperStyles}>
                   <YouTube
-                    videoId={youtube.groups.id} className={styles.youtubeContainer} opts={{
+                    videoId={id} className={styles.videoContainer} opts={{
                       playerVars: {
-                        start: youtube?.groups?.start
+                        start: meta?.start || 0
                       }
                     }}
                   />
+                </div>
+              )
+            }
+
+            // Rumble video embed
+            if (provider === 'rumble') {
+              return (
+                <div style={videoWrapperStyles}>
+                  <div className={styles.videoContainer}>
+                    <iframe
+                      title='Rumble Video'
+                      allowFullScreen=''
+                      src={meta?.href}
+                    />
+                  </div>
                 </div>
               )
             }

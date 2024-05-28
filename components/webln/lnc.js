@@ -113,7 +113,7 @@ export function LNCProvider ({ children }) {
         const msg = err.message || err.toString?.()
         logger.error('payment failed:', `payment_hash=${hash}`, msg)
         if (msg.includes('invoice expired')) {
-          throw new InvoiceExpiredError()
+          throw new InvoiceExpiredError(hash)
         }
         if (msg.includes('canceled')) {
           throw new InvoiceCanceledError(hash)

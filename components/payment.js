@@ -23,8 +23,8 @@ export class WebLnNotEnabledError extends Error {
 }
 
 export class InvoiceExpiredError extends Error {
-  constructor () {
-    super('invoice expired')
+  constructor (hash) {
+    super(`invoice expired: ${hash}`)
     this.name = 'InvoiceExpiredError'
   }
 }

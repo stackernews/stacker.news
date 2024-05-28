@@ -93,6 +93,9 @@ function ClientNotification ({ n, message }) {
     n.reason = 'invoice expired'
   }
 
+  // remove payment hashes due to x-overflow
+  n.reason = n.reason.replace(/(: )?[a-f0-9]{64}/, '')
+
   return (
     <div className='ms-2'>
       <small className='fw-bold text-danger'>

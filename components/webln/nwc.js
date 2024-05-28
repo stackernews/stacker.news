@@ -210,7 +210,7 @@ export function NWCProvider ({ children }) {
           const timer = setTimeout(() => {
             const msg = 'timeout waiting for payment'
             logger.error(msg)
-            reject(new InvoiceExpiredError())
+            reject(new InvoiceExpiredError(hash))
             sub?.close()
           }, timeout)
 

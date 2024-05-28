@@ -29,6 +29,7 @@ import NostrIcon from '@/svgs/nostr.svg'
 import GithubIcon from '@/svgs/github-fill.svg'
 import TwitterIcon from '@/svgs/twitter-fill.svg'
 import { UNKNOWN_LINK_REL, MEDIA_URL } from '@/lib/constants'
+import ItemPopover from './item-popover'
 
 export default function UserHeader ({ user }) {
   const router = useRouter()
@@ -284,7 +285,11 @@ function HeaderHeader ({ user }) {
         </Button>
         <div className='d-flex flex-column mt-1 ms-0'>
           <small className='text-muted d-flex-inline'>stacking since: {user.since
-            ? <Link href={`/items/${user.since}`} className='ms-1'>#{user.since}</Link>
+            ? (
+              <ItemPopover id={user.since}>
+                <Link href={`/items/${user.since}`} className='ms-1'>#{user.since}</Link>
+              </ItemPopover>
+              )
             : <span>never</span>}
           </small>
           {user.optional.maxStreak !== null &&

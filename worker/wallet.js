@@ -9,6 +9,7 @@ import { datePivot, sleep } from '@/lib/time.js'
 import retry from 'async-retry'
 import { addWalletLog } from '@/api/resolvers/wallet'
 import { msatsToSats, numWithUnits } from '@/lib/format'
+import { checkInvoiceForwardIncoming, checkInvoiceForwardOutgoing } from './invoiceForward'
 
 export async function subscribeToWallet (args) {
   await subscribeToDeposits(args)
@@ -59,8 +60,8 @@ async function subscribeToDeposits (args) {
 
     sub.on('invoice_updated', async (inv) => {
       try {
+        logEvent('invoice_updated', inv)
         if (inv.secret) {
-          logEvent('invoice_updated', inv)
           await checkInvoice({ data: { hash: inv.id }, ...args })
         } else {
           // this is a HODL invoice. We need to use SubscribeToInvoice which has is_held transitions
@@ -91,10 +92,9 @@ function subscribeToHodlInvoice (args) {
     sub.on('invoice_updated', async (inv) => {
       logEvent('hodl_invoice_updated', inv)
       try {
-        // record the is_held transition
-        if (inv.is_held) {
-          await checkInvoice({ data: { hash: inv.id }, ...args })
-          // after that we can stop listening for updates
+        await checkInvoice({ data: { hash: inv.id }, ...args })
+        // after settle or confirm we can stop listening for updates
+        if (inv.is_confirmed || inv.is_canceled) {
           resolve()
         }
       } catch (error) {
@@ -107,15 +107,31 @@ function subscribeToHodlInvoice (args) {
   })
 }
 
-async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
+export async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
   const inv = await getInvoice({ id: hash, lnd })
 
   // invoice could be created by LND but wasn't inserted into the database yet
   // this is expected and the function will be called again with the updates
-  const dbInv = await models.invoice.findUnique({ where: { hash } })
+  const dbInv = await models.invoice.findUnique({
+    where: { hash },
+    include: {
+      invoiceForward: {
+        include: {
+          invoice: true,
+          withdrawl: true,
+          wallet: true
+        }
+      }
+    }
+  })
   if (!dbInv) {
     console.log('invoice not found in database', hash)
     return
+  }
+
+  // if this is an incoming invoice forward, it requires special handling
+  if (dbInv.invoiceForward) {
+    return await checkInvoiceForwardIncoming(dbInv.invoiceForward, { invoice: inv, boss, models, lnd })
   }
 
   if (inv.is_confirmed) {
@@ -206,8 +222,23 @@ async function subscribeToWithdrawals (args) {
   await checkPendingWithdrawals(args)
 }
 
-async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
-  const dbWdrwl = await models.withdrawl.findFirst({ where: { hash, status: null }, include: { wallet: true } })
+export async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
+  const dbWdrwl = await models.withdrawl.findFirst({
+    where: {
+      hash,
+      status: null
+    },
+    include: {
+      wallet: true,
+      invoiceForward: {
+        orderBy: { createdAt: 'desc' },
+        include: {
+          invoice: true,
+          withdrawl: true
+        }
+      }
+    }
+  })
   if (!dbWdrwl) {
     // [WARNING] LND paid an invoice that wasn't created via the SN GraphQL API.
     // >>> an adversary might be draining our funds right now <<<
@@ -227,6 +258,11 @@ async function checkWithdrawal ({ data: { hash }, boss, models, lnd }) {
       console.error('error getting payment', err)
       return
     }
+  }
+
+  // if this is an outgoing invoice forward, it requires special handling
+  if (dbWdrwl.invoiceForward.length > 0) {
+    return await checkInvoiceForwardOutgoing(dbWdrwl.invoiceForward[0], { withdrawal: wdrwl, boss, models, lnd })
   }
 
   if (wdrwl?.is_confirmed) {

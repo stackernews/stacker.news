@@ -22,6 +22,7 @@ export default gql`
     sats: Int!
     path: String!
     act: String!
+    bolt11: String
   }
 
   extend type Mutation {

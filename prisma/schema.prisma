@@ -418,11 +418,14 @@ model Item {
   itemForwards       ItemForward[]
   ItemUpload         ItemUpload[]
   uploadId           Int?
+  invoiceId          Int?
+  invoiceActionState InvoiceActionState?
   outlawed           Boolean               @default(false)
   pollExpiresAt      DateTime?
   Ancestors          Reply[]               @relation("AncestorReplyItem")
   Replies            Reply[]
   Reminder           Reminder[]
+  invoice            Invoice?              @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
 
   @@index([uploadId])
   @@index([lastZapAt])
@@ -665,18 +668,21 @@ model Mention {
 }
 
 enum InvoiceActionType {
-  ITEM
+  ITEM_CREATE
   ITEM_UPDATE
-  ITEM_ACT
-  DONATION
-  SUB_ACT
+  ZAP
+  DOWN_ZAP
+  DONATE
+  POLL_VOTE
+  TERRITORY_CREATE
+  TERRITORY_UPDATE
+  TERRITORY_BILLING
 }
 
 enum InvoiceActionState {
   PENDING
   PAID
   FAILED
-  COMPLETED
 }
 
 model Invoice {
@@ -702,6 +708,7 @@ model Invoice {
   actionState InvoiceActionState?
   actionType  InvoiceActionType?
   ItemAct     ItemAct[]
+  Item        Item[]
 
   @@index([createdAt], map: "Invoice.created_at_index")
   @@index([userId], map: "Invoice.userId_index")

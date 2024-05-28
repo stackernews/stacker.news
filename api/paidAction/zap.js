@@ -1,22 +1,14 @@
 export const anonable = true
-export const peer2peerable = true
-export const supportsPessimism = false
+export const supportsPessimism = true
 export const supportsOptimism = true
 
 export async function getCost ({ sats }) {
   return BigInt(sats) * BigInt(1000)
 }
 
-export async function shouldDoPeer2Peer ({ sats, ...args }, { me }) {
-  // do peer2peer if the payer does not have enough credits
-  // and the zap would send the payee beyond their max balance
-  return true
-}
-
-export async function performStatements ({ invoiceId, sats, itemId, ...args }, { me, models }) {
-  const msats = BigInt(sats) * BigInt(1000)
-  const feeMsats = msats / BigInt(100)
-  const zapMsats = msats - feeMsats
+export async function doStatements ({ invoiceId, sats, itemId, ...args }, { me, cost, models }) {
+  const feeMsats = cost / BigInt(100)
+  const zapMsats = cost - feeMsats
 
   return [models.itemAct.createMany({
     data: [
@@ -28,11 +20,12 @@ export async function performStatements ({ invoiceId, sats, itemId, ...args }, {
 
 export async function onPaidStatements ({ invoice }, { models }) {
   // mark all itemActs as PAID
+  // send money to recipients
   // perform weighted votes
   // perform sats after tip
   // perform bounty paid
-  // forwards?
-  // referrals?
+  // job stuff
+  // notifications
   const [itemAct] = await models.itemAct.findFirst({
     where: {
       invoiceId: invoice.id,
@@ -43,8 +36,19 @@ export async function onPaidStatements ({ invoice }, { models }) {
 
   return [
     models.itemAct.update({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } }),
+    // TODO: assumes sats are in msats (should probably get this from the itemAct query instead of the invoice record)
     models.$executeRaw(`SELECT weighted_votes_after_tip(${itemAct.itemId}::INTEGER, ${itemAct.userId}::INTEGER, ${invoice.receivedMsats}::BIGINT)`),
     models.$executeRaw(`SELECT sats_after_tip(${itemAct.itemId}::INTEGER, ${itemAct.userId}::INTEGER, ${invoice.receivedMsats}::BIGINT)`),
+    // TODO: not sure if we can call bounty paid if not a bounty
     models.$executeRaw(`SELECT bounty_paid(${itemAct.itemId}::INTEGER, ${itemAct.userId}::INTEGER)`)
   ]
+}
+
+export async function resultsToResponse (results, args, context) {
+  // TODO
+  return null
+}
+
+export async function describe ({ itemId, sats }, context) {
+  return `SN: zap ${sats} sats to #${itemId}`
 }

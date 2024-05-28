@@ -1,9 +1,21 @@
-import { createHodlInvoice, createInvoice } from 'ln-service'
-import { lnd } from '../lnd'
+import { createHodlInvoice, createInvoice, settleHodlInvoice } from 'ln-service'
 import { datePivot } from '@/lib/time'
-import { wrapZapInvoice } from '@/api/createInvoice/wrap'
+import { verifyPayment } from '../resolvers/serial'
+import { ANON_USER_ID } from '@/lib/constants'
 
-export default async function performPaidAction (actionType, args, context) {
+export const paidActions = {
+  CREATE_ITEM: require('./createItem'),
+  UPDATE_ITEM: require('./updateItem'),
+  ZAP: require('./zap'),
+  DOWN_ZAP: require('./downZap'),
+  POLL_VOTE: require('./pollVote'),
+  TERRITORY_CREATE: require('./territoryCreate'),
+  TERRITORY_UPDATE: require('./territoryUpdate'),
+  TERRITORY_BILLING: require('./territoryBilling'),
+  DONATE: require('./donate')
+}
+
+export default async function doPaidAction (actionType, args, context) {
   const { me, models, hash, hmac } = context
   const paidAction = paidActions[actionType]
 
@@ -15,106 +27,138 @@ export default async function performPaidAction (actionType, args, context) {
     throw new Error('You must be logged in to perform this action')
   }
 
-  if (hash && hmac) {
-    // this is a pessimistic action that's already paid for
-    if (!paidAction.supportsPessimism) {
-      throw new Error(`This action ${actionType} does not support pessimistic invoicing`)
-    }
+  if (hash || hmac || !me) {
+    return await doPessimiticAction(actionType, args, context)
+  }
 
-    // TODO: check hash and hmac pay getCost amount
-    const data = await paidAction.perform(args, context)
-    await paidAction.onPaid(args, context)
-    // TODO: settle the invoice
+  context.cost = await paidAction.getCost(args, context)
+  context.user = await models.user.findUnique({ where: { id: me.id } })
+  const isRich = context.cost <= context.user.privates.msats
 
-    return {
-      data
-    }
-  } else if (paidAction.peer2peerable && paidAction.shouldDoPeer2Peer(args, context)) {
-    // this is a peer-to-peer action
-    const costMsats = await paidAction.getCost(args, context)
-    const invoice = await wrapZapInvoice({ msats: costMsats, ...args }, context)
-    const stmts = await paidAction.performStatements({ invoiceId: invoice?.id, ...args }, context)
-    const data = await models.$transaction(stmts)
+  if (!isRich && !paidAction.supportsOptimism) {
+    return await doPessimiticAction(actionType, args, context)
+  }
 
-    return {
-      invoice,
-      data
-    }
-  } else {
-    // this is a action we can use fee credits for
-
-    // get cost
-    const costMsats = await paidAction.getCost(args, context)
-
-    // check if user has enough credits
-    const user = await models.user.findUnique({ where: { id: me.id } })
-
-    if (paidAction.supportsOptimism && me) {
-      if (costMsats > user.privates.msats) {
-        // create invoice XXX these calls are probably wrong
-        const lndInv = await createInvoice({
-          description: user.privates.hideInvoiceDesc ? undefined : actionType,
-          lnd,
-          mtokens: String(costMsats),
-          expires_at: datePivot(new Date(), { days: 1 })
-        })
-        const invoice = await models.invoice.create({
-          data: {
-            id: lndInv.id,
-            msats: costMsats,
-            bolt11: lndInv.request,
-            userId: me.id,
-            actionType,
-            actionState: 'PENDING'
-          }
-        })
-        const data = await paidAction.perform({ invoiceId: invoice?.id, ...args }, context)
-
-        return {
-          invoice,
-          data
-        }
-      } else {
-        // TODO: subtract cost from user's credits
-        const data = await paidAction.perform({ invoiceId: null, ...args }, context)
-        await paidAction.onPaid(args, context)
-
-        return {
-          data
-        }
+  if (isRich) {
+    try {
+      return await doFeeCreditAction(actionType, args, context)
+    } catch (e) {
+      // if we fail to do the action with fee credits, we should fall back to optimistic
+      if (!paidAction.supportsOptimism) {
+        return await doPessimiticAction(actionType, args, context)
       }
-    } else if (paidAction.supportsPessimism) {
-      // could also be anonymous user
-      // create invoice XXX these calls are probably wrong
-      const lndInv = await createHodlInvoice({
-        description: user.privates.hideInvoiceDesc ? undefined : actionType,
-        lnd,
-        mtokens: String(costMsats),
-        expires_at: datePivot(new Date(), { days: 1 })
-      })
-      const invoice = await models.invoice.create({
-        data: {
-          id: lndInv.id,
-          msats: costMsats,
-          preimage: lndInv.secret,
-          bolt11: lndInv.request,
-          userId: me.id,
-          actionType,
-          actionState: 'PENDING'
-        }
-      })
-
-      return {
-        invoice
-      }
-    } else {
-      throw new Error(`This action ${actionType} could not be done`)
     }
+  }
+
+  if (paidAction.supportsOptimism) {
+    return await doOptimisticAction(actionType, args, context)
+  }
+
+  throw new Error(`This action ${actionType} could not be done`)
+}
+
+async function doOptimisticAction (actionType, args, context) {
+  const { me, models, lnd, cost, user } = context
+  const action = paidActions[actionType]
+
+  // create invoice XXX these calls are probably wrong
+  const lndInv = await createInvoice({
+    description: user.privates.hideInvoiceDesc ? undefined : action.describe(args, context),
+    lnd,
+    mtokens: String(cost),
+    expires_at: datePivot(new Date(), { days: 1 })
+  })
+  const invoice = await models.invoice.create({
+    data: {
+      id: lndInv.id,
+      msats: cost,
+      bolt11: lndInv.request,
+      userId: me.id,
+      actionType,
+      actionState: 'PENDING'
+    }
+  })
+
+  const stmts = await action.doStatements({ invoiceId: invoice.id, ...args }, context)
+  const results = await models.$transaction(stmts)
+  const response = await action.resultsToResponse(results, args, context)
+
+  return {
+    invoice,
+    ...response
   }
 }
 
-export const paidActions = {
-  CREATE_ITEM: require('./createItem'),
-  UPDATE_ITEM: require('./updateItem'),
-  ZAP: require('./zap')
+async function doFeeCreditAction (actionType, args, context) {
+  const { me, models, cost } = context
+  const action = paidActions[actionType]
+
+  const stmts = [
+    models.user.update({
+      where: {
+        id: me.id
+      },
+      data: {
+        msats: {
+          decrement: cost
+        }
+      }
+    }),
+    ...await action.doStatements(args, context),
+    ...await action.onPaidStatements(args, context)
+  ]
+  const results = await models.$transaction(stmts)
+  const response = await action.resultsToResponse(results.slice(1), args, context)
+
+  return response
+}
+
+async function doPessimiticAction (actionType, args, context) {
+  const { me, models, hash, hmac, user, cost, lnd } = context
+  const action = paidActions[actionType]
+
+  if (!action.supportsPessimism) {
+    throw new Error(`This action ${actionType} does not support pessimistic invoicing`)
+  }
+
+  if (hmac) {
+    // we have paid and want to do the action now
+    const invoice = await verifyPayment(models, hash, hmac, cost)
+    const fullArgs = { invoiceId: invoice?.id, ...args }
+    const stmts = [
+      ...await action.doStatements(fullArgs, context),
+      ...await action.onPaidStatements(fullArgs, context),
+      settleHodlInvoice({ secret: invoice.preimage, lnd })
+    ]
+
+    const results = await models.$transaction(stmts)
+    const response = await action.resultsToResponse(results, args, context)
+
+    return response
+  } else {
+    // just create the invoice and complete action when it's paid
+    // create invoice XXX these calls are probably wrong
+    const lndInv = await createHodlInvoice({
+      description: user.privates.hideInvoiceDesc ? undefined : await action.describe(args, context),
+      lnd,
+      mtokens: String(cost),
+      expires_at: datePivot(new Date(), { days: 1 })
+    })
+
+    const invoice = await models.invoice.create({
+      data: {
+        id: lndInv.id,
+        msats: cost,
+        preimage: lndInv.secret,
+        bolt11: lndInv.request,
+        userId: me?.id || ANON_USER_ID,
+        actionType,
+        actionState: 'PENDING'
+      }
+    })
+
+    return {
+      invoice
+    }
+  }
 }

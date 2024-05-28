@@ -95,7 +95,7 @@ export default async function serialize (trx, { models, lnd, me, hash, hmac, fee
   return isArray ? results : results[0]
 }
 
-async function verifyPayment (models, hash, hmac, fee) {
+export async function verifyPayment (models, hash, hmac, fee) {
   if (!hash) {
     throw new GraphQLError('hash required', { extensions: { code: 'BAD_INPUT' } })
   }

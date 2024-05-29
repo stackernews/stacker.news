@@ -176,7 +176,14 @@ function TopLevelItem ({ item, noReply, ...props }) {
       </article>
       {!noReply &&
         <>
-          <Reply item={item} replyOpen placeholder={item.ncomments > 3 ? 'fractions of a penny for your thoughts?' : 'early comments get more zaps'} onCancelQuote={cancelQuote} onQuoteReply={quoteReply} quote={quote} />
+          <Reply
+            item={item}
+            replyOpen
+            placeholder={item.ncomments > 3 ? 'fractions of a penny for your thoughts?' : 'early comments get more zaps'}
+            onCancelQuote={cancelQuote}
+            onQuoteReply={quoteReply}
+            quote={quote}
+          />
           {
           // Don't show related items for Saloon items (position is set but no subName)
           (!item.position && item.subName) &&

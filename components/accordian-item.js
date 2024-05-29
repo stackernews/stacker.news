@@ -3,7 +3,7 @@ import AccordionContext from 'react-bootstrap/AccordionContext'
 import { useAccordionButton } from 'react-bootstrap/AccordionButton'
 import ArrowRight from '@/svgs/arrow-right-s-fill.svg'
 import ArrowDown from '@/svgs/arrow-down-s-fill.svg'
-import { useContext, useEffect } from 'react'
+import { useContext, useEffect, useState } from 'react'
 
 function ContextAwareToggle ({ children, headerColor = 'var(--theme-grey)', eventKey, show }) {
   const { activeEventKey } = useContext(AccordionContext)
@@ -29,10 +29,16 @@ function ContextAwareToggle ({ children, headerColor = 'var(--theme-grey)', even
 }
 
 export default function AccordianItem ({ header, body, headerColor = 'var(--theme-grey)', show }) {
+  const [activeKey, setActiveKey] = useState()
+
+  useEffect(() => {
+    setActiveKey(show ? '0' : null)
+  }, [show])
+
   return (
-    <Accordion defaultActiveKey={show ? '0' : undefined}>
+    <Accordion defaultActiveKey={activeKey} activeKey={activeKey}>
       <ContextAwareToggle show={show} eventKey='0'><div style={{ color: headerColor }}>{header}</div></ContextAwareToggle>
-      <Accordion.Collapse eventKey='0' className='mt-2'>
+      <Accordion.Collapse eventKey='0' classNme='mt-2'>
         <div>{body}</div>
       </Accordion.Collapse>
     </Accordion>
@@ -41,7 +47,7 @@ export default function AccordianItem ({ header, body, headerColor = 'var(--them
 
 export function AccordianCard ({ header, children, show }) {
   return (
-    <Accordion defaultActiveKey={show ? '0' : undefined}>
+    <Accordion defaultActiveKey={show ? '0' : undefined} activeKey={show}>
       <Accordion.Item eventKey='0'>
         <Accordion.Header>{header}</Accordion.Header>
         <Accordion.Body>

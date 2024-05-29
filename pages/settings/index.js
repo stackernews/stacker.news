@@ -836,29 +836,6 @@ function ApiKey ({ enabled, apiKey }) {
   )
   const toaster = useToast()
 
-  const subject = '[API Key Request] <your title here>'
-  const body =
-  encodeURI(`**[API Key Request]**
-
-Hi, I would like to use API keys with the [Stacker News GraphQL API](/api/graphql) for the following reasons:
-
-...
-
-I expect to call the following GraphQL queries or mutations:
-
-... (you can leave empty if unknown)
-
-I estimate that I will call the GraphQL API this many times (rough estimate is fine):
-
-... (you can leave empty if unknown)
-`)
-  const metaLink = encodeURI(`/~meta/post?type=discussion&title=${subject}&text=${body}`)
-  const mailto = `mailto:hello@stacker.news?subject=${subject}&body=${body}`
-  // link to DM with k00b on Telegram
-  const telegramLink = 'https://t.me/k00bideh'
-  // link to DM with ek on SimpleX
-  const simplexLink = 'https://simplex.chat/contact#/?v=1-2&smp=smp%3A%2F%2F6iIcWT_dF2zN_w5xzZEY7HI2Prbh3ldP07YTyDexPjE%3D%40smp10.simplex.im%2FxNnPk9DkTbQJ6NckWom9mi5vheo_VPLm%23%2F%3Fv%3D1-2%26dh%3DMCowBQYDK2VuAyEAnFUiU0M8jS1JY34LxUoPr7mdJlFZwf3pFkjRrhprdQs%253D%26srv%3Drb2pbttocvnbrngnwziclp2f4ckjq65kebafws6g4hy22cdaiv5dwjqd.onion'
-
   const disabled = !enabled || apiKey
 
   return (
@@ -899,25 +876,7 @@ I estimate that I will call the GraphQL API this many times (rough estimate is f
           <ul className='fw-bold'>
             <li>use API keys with our <Link target='_blank' href='/api/graphql'>GraphQL API</Link> for authentication</li>
             <li>you need to add the API key to the <span className='text-monospace'>X-API-Key</span> header of your requests</li>
-            <li>you can currently only generate API keys if we enabled it for your account</li>
-            <li>
-              you can{' '}
-              <Link target='_blank' href={metaLink} rel='noreferrer'>create a post in ~meta</Link> to request access
-              or reach out to us via
-              <ul>
-                <li><Link target='_blank' href={mailto} rel='noreferrer'>email</Link></li>
-                <li><Link target='_blank' href={telegramLink} rel='noreferrer'>Telegram</Link></li>
-                <li><Link target='_blank' href={simplexLink} rel='noreferrer'>SimpleX</Link></li>
-              </ul>
-            </li>
-            <li>please include following information in your request:
-              <ul>
-                <li>your nym on SN</li>
-                <li>what you want to achieve with authenticated API access</li>
-                <li>which GraphQL queries or mutations you expect to call</li>
-                <li>your (rough) estimate how often you will call the GraphQL API</li>
-              </ul>
-            </li>
+            <li>we reserve the right to disable your API key access at any time</li>
           </ul>
         </Info>
       </div>

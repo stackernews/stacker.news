@@ -9,6 +9,7 @@ import { datePivot, sleep } from '@/lib/time.js'
 import retry from 'async-retry'
 import { addWalletLog } from '@/api/resolvers/wallet'
 import { msatsToSats, numWithUnits } from '@/lib/format'
+import { settleAction, settleActionError } from './paidAction'
 
 export async function subscribeToWallet (args) {
   await subscribeToDeposits(args)
@@ -119,6 +120,10 @@ async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
   }
 
   if (inv.is_confirmed) {
+    if (dbInv.actionType) {
+      return await settleAction({ data: { invoiceId: dbInv.id }, ...arguments })
+    }
+
     // NOTE: confirm invoice prevents double confirmations (idempotent)
     // ALSO: is_confirmed and is_held are mutually exclusive
     // that is, a hold invoice will first be is_held but not is_confirmed
@@ -161,6 +166,10 @@ async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
   }
 
   if (inv.is_canceled) {
+    if (dbInv.actionType) {
+      return await settleActionError({ data: { invoiceId: dbInv.id }, ...arguments })
+    }
+
     return await serialize(
       models.invoice.update({
         where: {

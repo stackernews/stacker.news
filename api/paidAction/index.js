@@ -4,6 +4,7 @@ import { verifyPayment } from '../resolvers/serial'
 import { ANON_USER_ID } from '@/lib/constants'
 
 export const paidActions = {
+  BUY_CREDITS: require('./buyCredits'),
   CREATE_ITEM: require('./createItem'),
   UPDATE_ITEM: require('./updateItem'),
   ZAP: require('./zap'),
@@ -31,8 +32,8 @@ export default async function doPaidAction (actionType, args, context) {
     return await doPessimiticAction(actionType, args, context)
   }
 
-  context.cost = await paidAction.getCost(args, context)
   context.user = await models.user.findUnique({ where: { id: me.id } })
+  context.cost = await paidAction.getCost(args, context)
   const isRich = context.cost <= context.user.privates.msats
 
   if (!isRich && !paidAction.supportsOptimism) {

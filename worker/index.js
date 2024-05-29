@@ -25,6 +25,7 @@ import { ofac } from './ofac.js'
 import { autoWithdraw } from './autowithdraw.js'
 import { saltAndHashEmails } from './saltAndHashEmails.js'
 import { remindUser } from './reminder.js'
+import { settleAction, settleActionError } from './paidAction.js'
 
 const { loadEnvConfig } = nextEnv
 const { ApolloClient, HttpLink, InMemoryCache } = apolloClient
@@ -104,6 +105,8 @@ async function work () {
   await boss.work('ofac', jobWrapper(ofac))
   await boss.work('saltAndHashEmails', jobWrapper(saltAndHashEmails))
   await boss.work('reminder', jobWrapper(remindUser))
+  await boss.work('settleActionError', jobWrapper(settleActionError))
+  await boss.work('settleAction', jobWrapper(settleAction))
 
   console.log('working jobs')
 }

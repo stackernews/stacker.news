@@ -284,18 +284,20 @@ model ItemUpload {
 }
 
 model Upload {
-  id         Int          @id @default(autoincrement())
-  createdAt  DateTime     @default(now()) @map("created_at")
-  updatedAt  DateTime     @default(now()) @updatedAt @map("updated_at")
-  type       String
-  size       Int
-  width      Int?
-  height     Int?
-  userId     Int
-  paid       Boolean?
-  user       User         @relation("Uploads", fields: [userId], references: [id], onDelete: Cascade)
-  User       User[]
-  ItemUpload ItemUpload[]
+  id                 Int                 @id @default(autoincrement())
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @default(now()) @updatedAt @map("updated_at")
+  type               String
+  size               Int
+  width              Int?
+  height             Int?
+  userId             Int
+  invoiceId          Int?
+  invoiceActionState InvoiceActionState?
+  invoice            Invoice?            @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  user               User                @relation("Uploads", fields: [userId], references: [id], onDelete: Cascade)
+  User               User[]
+  ItemUpload         ItemUpload[]
 
   @@index([createdAt], map: "Upload.created_at_index")
   @@index([userId], map: "Upload.userId_index")
@@ -398,6 +400,8 @@ model Item {
   bounty             Int?
   noteId             String?               @unique(map: "Item.noteId_unique")
   rootId             Int?
+  deleteAt           DateTime?
+  remindAt           DateTime?
   bountyPaidTo       Int[]
   upvotes            Int                   @default(0)
   weightedComments   Float                 @default(0)
@@ -668,6 +672,7 @@ model Mention {
 }
 
 enum InvoiceActionType {
+  BUY_CREDITS
   ITEM_CREATE
   ITEM_UPDATE
   ZAP
@@ -709,6 +714,7 @@ model Invoice {
   actionType  InvoiceActionType?
   ItemAct     ItemAct[]
   Item        Item[]
+  Upload      Upload[]
 
   @@index([createdAt], map: "Invoice.created_at_index")
   @@index([userId], map: "Invoice.userId_index")

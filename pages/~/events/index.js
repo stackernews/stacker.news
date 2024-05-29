@@ -1,8 +1,6 @@
 import Layout from '@/components/layout'
-import Items from '@/components/items'
 import EventCalendar from '@/components/event-calendar'
 import { getGetServerSideProps } from '@/api/ssrApollo'
-import RecentHeader from '@/components/recent-header'
 import { useRouter } from 'next/router'
 import { SUB_FULL, SUB_ITEMS } from '@/fragments/subs'
 import { COMMENT_TYPE_QUERY } from '@/lib/constants'

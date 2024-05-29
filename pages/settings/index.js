@@ -27,8 +27,6 @@ import { useToast } from '@/components/toast'
 import { useServiceWorkerLogger } from '@/components/logger'
 import { useMe } from '@/components/me'
 import { INVOICE_RETENTION_DAYS, ZAP_UNDO_DELAY_MS } from '@/lib/constants'
-import { OverlayTrigger, Tooltip } from 'react-bootstrap'
-import DeleteIcon from '@/svgs/delete-bin-line.svg'
 import { useField } from 'formik'
 import styles from './settings.module.css'
 
@@ -836,42 +834,29 @@ function ApiKey ({ enabled, apiKey }) {
   )
   const toaster = useToast()
 
-  const disabled = !enabled || apiKey
-
   return (
     <>
       <div className='form-label mt-3'>api key</div>
       <div className='mt-2 d-flex align-items-center'>
-        <OverlayTrigger
-          placement='bottom'
-          overlay={disabled ? <Tooltip>{apiKey ? 'you can have only one API key at a time' : 'request access to API keys in ~meta'}</Tooltip> : <></>}
-          trigger={['hover', 'focus']}
-        >
-          <div>
-            <Button
-              disabled={disabled}
-              variant='secondary'
-              onClick={async () => {
-                try {
-                  const { data } = await generateApiKey({ variables: { id: me.id } })
-                  const { generateApiKey: apiKey } = data
-                  showModal(() => <ApiKeyModal apiKey={apiKey} />, { keepOpen: true })
-                } catch (err) {
-                  console.error(err)
-                  toaster.danger('error generating api key')
-                }
-              }}
-            >Generate API key
-            </Button>
-          </div>
-        </OverlayTrigger>
-        {apiKey &&
-          <DeleteIcon
-            style={{ cursor: 'pointer' }} className='fill-danger mx-1' width={24} height={24}
-            onClick={async () => {
+        <Button
+          variant={apiKey ? 'danger' : 'secondary'}
+          onClick={async () => {
+            if (apiKey) {
               showModal((onClose) => <ApiKeyDeleteObstacle onClose={onClose} />)
-            }}
-          />}
+              return
+            }
+
+            try {
+              const { data } = await generateApiKey({ variables: { id: me.id } })
+              const { generateApiKey: apiKey } = data
+              showModal(() => <ApiKeyModal apiKey={apiKey} />, { keepOpen: true })
+            } catch (err) {
+              console.error(err)
+              toaster.danger('error generating api key')
+            }
+          }}
+        >{apiKey ? 'Delete' : 'Generate'} API key
+        </Button>
         <Info>
           <ul className='fw-bold'>
             <li>use API keys with our <Link target='_blank' href='/api/graphql'>GraphQL API</Link> for authentication</li>

@@ -1240,7 +1240,8 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
     throw new GraphQLError('item does not belong to you', { extensions: { code: 'FORBIDDEN' } })
   }
 
-  if (subName && old.subName !== subName) {
+  const differentSub = subName && old.subName !== subName
+  if (differentSub) {
     const sub = await models.sub.findUnique({ where: { name: subName } })
     if (old.freebie) {
       if (!sub.allowFreebies) {
@@ -1254,10 +1255,13 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
   // in case they lied about their existing boost
   await ssValidate(advSchema, { boost: item.boost }, { models, me, existingBoost: old.boost })
 
-  // prevent update if it's not explicitly allowed, not their bio, not their job and older than 10 minutes
   const user = await models.user.findUnique({ where: { id: me.id } })
-  if (!allowEdit && user.bioId !== old.id &&
-    !isJob(item) && Date.now() > new Date(old.createdAt).getTime() + 10 * 60000) {
+
+  // prevent update if it's not explicitly allowed, not their bio, not their job and older than 10 minutes
+  const myBio = user.bioId === old.i
+  const timer = Date.now() < new Date(old.createdAt).getTime() + 10 * 60_000
+
+  if (!allowEdit && !myBio && !timer) {
     throw new GraphQLError('item can no longer be editted', { extensions: { code: 'BAD_INPUT' } })
   }
 

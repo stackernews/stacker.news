@@ -44,7 +44,7 @@ export default function AccordianItem ({ header, body, headerColor = 'var(--them
   return (
     <Accordion defaultActiveKey={activeKey} activeKey={activeKey} onSelect={handleOnSelect}>
       <ContextAwareToggle show={show} eventKey={KEY_ID}><div style={{ color: headerColor }}>{header}</div></ContextAwareToggle>
-      <Accordion.Collapse eventKey={KEY_ID} classNme='mt-2'>
+      <Accordion.Collapse eventKey={KEY_ID} className='mt-2'>
         <div>{body}</div>
       </Accordion.Collapse>
     </Accordion>

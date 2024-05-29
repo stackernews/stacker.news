@@ -366,32 +366,10 @@ export default {
           }, decodedCursor.time, decodedCursor.offset, limit, ...subArr)
           break
         case 'top':
-          if (me && (!by || by === 'zaprank') && (when === 'day' || when === 'week')) {
-            // personalized zaprank only goes back 7 days
-            items = await itemQueryWithMeta({
-              me,
-              models,
-              query: `
-              ${SELECT}, GREATEST(g.tf_top_score, l.tf_top_score) AS rank
-              ${relationClause(type)}
-              ${joinZapRankPersonalView(me, models)}
-              ${whereClause(
-                '"Item"."deletedAt" IS NULL',
-                subClause(sub, 5, subClauseTable(type), me, showNsfw),
-                typeClause(type),
-                whenClause(when, 'Item'),
-                await filterClause(me, models, type),
-                muteClause(me))}
-              ORDER BY rank DESC
-              OFFSET $3
-              LIMIT $4`,
-              orderBy: 'ORDER BY rank DESC'
-            }, ...whenRange(when, from, to || decodedCursor.time), decodedCursor.offset, limit, ...subArr)
-          } else {
-            items = await itemQueryWithMeta({
-              me,
-              models,
-              query: `
+          items = await itemQueryWithMeta({
+            me,
+            models,
+            query: `
               ${selectClause(type)}
               ${relationClause(type)}
               ${whereClause(
@@ -404,9 +382,8 @@ export default {
               ${orderByClause(by || 'zaprank', me, models, type)}
               OFFSET $3
               LIMIT $4`,
-              orderBy: orderByClause(by || 'zaprank', me, models, type)
-            }, ...whenRange(when, from, to || decodedCursor.time), decodedCursor.offset, limit, ...subArr)
-          }
+            orderBy: orderByClause(by || 'zaprank', me, models, type)
+          }, ...whenRange(when, from, to || decodedCursor.time), decodedCursor.offset, limit, ...subArr)
           break
         default:
           // sub so we know the default ranking

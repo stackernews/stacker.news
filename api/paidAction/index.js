@@ -129,6 +129,7 @@ async function doPessimiticAction (actionType, args, context) {
     const stmts = [
       ...await action.doStatements(fullArgs, context),
       ...await action.onPaidStatements(fullArgs, context),
+      // TODO: prisma only supports other queries
       settleHodlInvoice({ secret: invoice.preimage, lnd })
     ]
 

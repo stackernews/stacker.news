@@ -1,39 +1,57 @@
+import { TERRITORY_PERIOD_COST } from '@/lib/constants'
+import { nextBilling } from '@/lib/territory'
 export const anonable = false
 export const supportsPessimism = true
 export const supportsOptimism = false
 
-export async function getCost () {
-  // TODO
-  return null
+export async function getCost ({ billingType }) {
+  return TERRITORY_PERIOD_COST(billingType) * BigInt(1000)
 }
 
-export async function doStatements ({ invoiceId, sats, itemId, ...args }, { me, cost, models }) {
-  return [models.itemAct.createMany({
-    data: [
-      { msats: cost, itemId, userId: me.id, act: 'DONT_LIKE_THIS', invoiceId, invoiceActionState: 'PENDING' }
-    ]
-  })]
-}
-
-export async function onPaidStatements ({ invoice }, { models }) {
-  const [itemAct] = await models.itemAct.findFirst({
-    where: {
-      invoiceId: invoice.id,
-      act: 'DONT_LIKE_THIS',
-      invoiceActionState: 'PENDING'
-    }
-  })
+export async function doStatements (data, { me, cost, models }) {
+  const { billingType } = data
+  const billingCost = TERRITORY_PERIOD_COST(billingType)
+  const billedLastAt = new Date()
+  const billPaidUntil = nextBilling(billedLastAt, billingType)
 
   return [
-    models.itemAct.update({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } }),
-    // TODO: assumes sats are in msats
-    models.$executeRaw(`SELECT weighted_downvotes_after_act(${itemAct.itemId}::INTEGER, ${itemAct.userId}::INTEGER, ${itemAct.msats}::BIGINT)`)
+    // create 'em
+    models.sub.create({
+      data: {
+        ...data,
+        billedLastAt,
+        billPaidUntil,
+        billingCost,
+        rankingType: 'WOT',
+        userId: me.id
+      }
+    }),
+    // record 'em
+    models.subAct.create({
+      data: {
+        userId: me.id,
+        subName: data.name,
+        msats: cost,
+        type: 'BILLING'
+      }
+    }),
+    // notify 'em (in the future)
+    models.subSubscription.create({
+      data: {
+        userId: me.id,
+        subName: data.name
+      }
+    })
   ]
 }
 
+// because we are only pessimistic, we don't need to do anything after the invoice is paid
+export async function onPaidStatements ({ invoice }, { models }) {
+  return []
+}
+
 export async function resultsToResponse (results, args, context) {
-  // TODO
-  return null
+  return results[0]
 }
 
 export async function describe ({ name }, context) {

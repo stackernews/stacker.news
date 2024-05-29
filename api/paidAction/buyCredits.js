@@ -4,8 +4,8 @@
 
 import { ANON_USER_ID } from '@/lib/constants'
 
-export const anonable = true
-export const supportsPessimism = true
+export const anonable = false
+export const supportsPessimism = false
 export const supportsOptimism = true
 
 export async function getCost ({ amount }) {

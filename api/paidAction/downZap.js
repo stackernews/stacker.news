@@ -25,14 +25,18 @@ export async function onPaidStatements ({ invoice }, { models }) {
 
   return [
     models.itemAct.update({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } }),
-    // TODO: assumes sats are in msats
-    models.$executeRaw(`SELECT weighted_downvotes_after_act(${itemAct.itemId}::INTEGER, ${itemAct.userId}::INTEGER, ${itemAct.msats}::BIGINT)`)
+    models.$executeRaw(`SELECT weighted_downvotes_after_act(${itemAct.itemId}::INTEGER, ${itemAct.userId}::INTEGER, ${itemAct.msats / BigInt(1000)}::BIGINT)`)
   ]
 }
 
-export async function resultsToResponse (results, args, context) {
-  // TODO
-  return null
+export async function resultsToResponse (results, { id, sats, act, path }, { models }) {
+  const item = await models.item.findUnique({ where: { id } })
+  return {
+    id,
+    sats,
+    act,
+    path: item.path
+  }
 }
 
 export async function describe ({ itemId, sats }, context) {

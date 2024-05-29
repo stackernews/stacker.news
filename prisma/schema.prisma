@@ -504,15 +504,18 @@ model PollOption {
 }
 
 model PollVote {
-  id           Int        @id @default(autoincrement())
-  createdAt    DateTime   @default(now()) @map("created_at")
-  updatedAt    DateTime   @default(now()) @updatedAt @map("updated_at")
-  userId       Int
-  itemId       Int
-  pollOptionId Int
-  item         Item       @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  pollOption   PollOption @relation(fields: [pollOptionId], references: [id], onDelete: Cascade)
-  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                 Int                 @id @default(autoincrement())
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @default(now()) @updatedAt @map("updated_at")
+  userId             Int
+  itemId             Int
+  pollOptionId       Int
+  invoiceId          Int?
+  invoiceActionState InvoiceActionState?
+  invoice            Invoice?            @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  item               Item                @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  pollOption         PollOption          @relation(fields: [pollOptionId], references: [id], onDelete: Cascade)
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([itemId, userId], map: "PollVote.itemId_userId_unique")
   @@index([pollOptionId], map: "PollVote.pollOptionId_index")
@@ -715,6 +718,7 @@ model Invoice {
   ItemAct     ItemAct[]
   Item        Item[]
   Upload      Upload[]
+  PollVote    PollVote[]
 
   @@index([createdAt], map: "Invoice.created_at_index")
   @@index([userId], map: "Invoice.userId_index")

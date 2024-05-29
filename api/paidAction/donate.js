@@ -6,29 +6,22 @@ export async function getCost ({ sats }) {
   return BigInt(sats) * BigInt(1000)
 }
 
-export async function doStatements ({ invoiceId, sats }, { me, cost, models }) {
+export async function doStatements ({ sats }, { me, cost, models }) {
   return [models.donate.create({
     data: {
       sats,
-      userId: me.id,
-      invoiceId,
-      invoiceActionState: 'PENDING'
+      userId: me.id
     }
   })]
 }
 
-export async function onPaidStatements ({ invoice }, { models }) {
-  return [
-    models.donate.update({
-      where: { invoiceId: invoice.id },
-      data: { invoiceActionState: 'PAID' }
-    })
-  ]
+// because we are only pessimistic, we don't need to do anything after the invoice is paid
+export async function onPaidStatements () {
+  return []
 }
 
-export async function resultsToResponse (results, args, context) {
-  // TODO
-  return null
+export async function resultsToResponse (results, { sats }, context) {
+  return sats
 }
 
 export async function describe (args, context) {

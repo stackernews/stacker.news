@@ -53,18 +53,8 @@ export async function doStatements (
     data.remindAt = getRemindAt(text)
   }
 
-  if (me) {
-    const [medianVote] = await models.$executeRaw`
-      SELECT LEAST(
-        percentile_cont(0.5) WITHIN GROUP(ORDER BY "weightedVotes" - "weightedDownVotes"), 0)
-        FROM "Item" WHERE "userId" = ${me.id}`
-
-    data.weightedDownVotes = Math.abs(medianVote)
-  }
-
   const itemData = {
     ...data,
-    text,
     boost,
     invoiceId,
     userId: me.id || ANON_USER_ID,
@@ -156,7 +146,7 @@ export async function onPaidStatements ({ invoice }, { models }) {
     // jobs ... TODO: remove the triggers for these
     models.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
       VALUES ('timestampItem', jsonb_build_object('id', ${item.id}), now() + interval '10 minutes', -2)`,
-    models.$executeRaw`INSERT INTO pgboss.job (name, data, priority) VALUES ('indexItem', jsonb_build_object('id', NEW.id), -100)`,
+    models.$executeRaw`INSERT INTO pgboss.job (name, data, priority) VALUES ('indexItem', jsonb_build_object('id', ${item.id}), -100)`,
     models.$executeRaw`
       INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
       VALUES ('imgproxy', jsonb_build_object('id', item.id), 21, true, now() + interval '5 seconds')`,

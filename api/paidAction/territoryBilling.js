@@ -1,39 +1,70 @@
+import { TERRITORY_PERIOD_COST } from '@/lib/constants'
+import { nextBilling } from '@/lib/territory'
+
 export const anonable = false
 export const supportsPessimism = true
 export const supportsOptimism = false
 
-export async function getCost () {
-  // TODO
-  return null
-}
-
-export async function doStatements ({ invoiceId, sats, itemId, ...args }, { me, cost, models }) {
-  return [models.itemAct.createMany({
-    data: [
-      { msats: cost, itemId, userId: me.id, act: 'DONT_LIKE_THIS', invoiceId, invoiceActionState: 'PENDING' }
-    ]
-  })]
-}
-
-export async function onPaidStatements ({ invoice }, { models }) {
-  const [itemAct] = await models.itemAct.findFirst({
+export async function getCost ({ name }, { me, models }) {
+  const sub = await models.sub.findUnique({
     where: {
-      invoiceId: invoice.id,
-      act: 'DONT_LIKE_THIS',
-      invoiceActionState: 'PENDING'
+      name
     }
   })
 
+  return TERRITORY_PERIOD_COST(sub.billingType) * BigInt(1000)
+}
+
+export async function doStatements ({ name }, { me, cost, models }) {
+  const sub = await models.sub.findUnique({
+    where: {
+      name
+    }
+  })
+
+  let billedLastAt = sub.billPaidUntil
+  let billingCost = sub.billingCost
+
+  // if the sub is archived, they are paying to reactivate it
+  if (sub.status === 'STOPPED') {
+    // get non-grandfathered cost and reset their billing to start now
+    billedLastAt = new Date()
+    billingCost = TERRITORY_PERIOD_COST(sub.billingType)
+  }
+
+  const billPaidUntil = nextBilling(billedLastAt, sub.billingType)
+
   return [
-    models.itemAct.update({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } }),
-    // TODO: assumes sats are in msats
-    models.$executeRaw(`SELECT weighted_downvotes_after_act(${itemAct.itemId}::INTEGER, ${itemAct.userId}::INTEGER, ${itemAct.msats}::BIGINT)`)
+    // update 'em
+    models.sub.update({
+      where: {
+        name: sub.name
+      },
+      data: {
+        billedLastAt,
+        billPaidUntil,
+        billingCost,
+        status: 'ACTIVE'
+      }
+    }),
+    // record 'em
+    models.subAct.create({
+      data: {
+        userId: sub.userId,
+        subName: sub.name,
+        msats: cost,
+        type: 'BILLING'
+      }
+    })
   ]
 }
 
+export async function onPaidStatements ({ invoice }, { models }) {
+  return []
+}
+
 export async function resultsToResponse (results, args, context) {
-  // TODO
-  return null
+  return results[0]
 }
 
 export async function describe ({ name }, context) {

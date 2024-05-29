@@ -1,3 +1,5 @@
+import { notifyZapped } from '@/lib/webPush'
+
 export const anonable = true
 export const supportsPessimism = true
 export const supportsOptimism = true
@@ -19,34 +21,46 @@ export async function doStatements ({ invoiceId, sats, itemId, ...args }, { me, 
 }
 
 export async function onPaidStatements ({ invoice }, { models }) {
-  // mark all itemActs as PAID
-  // send money to recipients
-  // perform weighted votes
-  // perform sats after tip
-  // perform bounty paid
-  // job stuff
-  // notifications
-  const [itemAct] = await models.itemAct.findFirst({
+  const itemAct = await models.itemAct.findFirst({
     where: {
       invoiceId: invoice.id,
       act: 'TIP',
       invoiceActionState: 'PENDING'
-    }
+    },
+    include: { item: true }
   })
+  const itemActFee = await models.itemAct.findFirst({
+    where: {
+      invoiceId: invoice.id,
+      act: 'FEE',
+      invoiceActionState: 'PENDING'
+    },
+    include: { item: true }
+  })
+
+  const sats = (itemAct.msats + itemActFee.msats) / BigInt(1000)
 
   return [
     models.itemAct.update({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } }),
-    // TODO: assumes sats are in msats (should probably get this from the itemAct query instead of the invoice record)
-    models.$executeRaw(`SELECT weighted_votes_after_tip(${itemAct.itemId}::INTEGER, ${itemAct.userId}::INTEGER, ${invoice.receivedMsats}::BIGINT)`),
-    models.$executeRaw(`SELECT sats_after_tip(${itemAct.itemId}::INTEGER, ${itemAct.userId}::INTEGER, ${invoice.receivedMsats}::BIGINT)`),
-    // TODO: not sure if we can call bounty paid if not a bounty
-    models.$executeRaw(`SELECT bounty_paid(${itemAct.itemId}::INTEGER, ${itemAct.userId}::INTEGER)`)
+    // TODO: do forwards
+    models.user.update({ where: { id: itemAct.item.userId }, data: { msats: { increment: itemAct.msats } } }),
+    models.$executeRaw(`SELECT weighted_votes_after_tip(${itemAct.itemId}::INTEGER, ${itemAct.userId}::INTEGER, ${sats}::BIGINT)`),
+    models.$executeRaw(`SELECT sats_after_tip(${itemAct.itemId}::INTEGER, ${itemAct.userId}::INTEGER, ${sats}::BIGINT)`),
+    models.$executeRaw(`SELECT bounty_paid(${itemAct.itemId}::INTEGER, ${itemAct.userId}::INTEGER)`),
+    models.$executeRaw(`SELECT referral_act(${itemActFee.id}::INTEGER)`),
+    // TODO: not a prisma query
+    notifyZapped({ models, id: itemAct.itemId })
   ]
 }
 
-export async function resultsToResponse (results, args, context) {
-  // TODO
-  return null
+export async function resultsToResponse (results, { id, sats, act }, { models }) {
+  const item = await models.item.findUnique({ where: { id } })
+  return {
+    id,
+    sats,
+    act,
+    path: item.path
+  }
 }
 
 export async function describe ({ itemId, sats }, context) {

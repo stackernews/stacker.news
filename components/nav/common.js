@@ -347,6 +347,17 @@ export function Sorts ({ sub, prefix, className }) {
             <Nav.Link eventKey='top' className={styles.navLink}>top</Nav.Link>
           </Link>
         </Nav.Item>}
+      {sub !== 'jobs' &&
+        <Nav.Item className={className}>
+          <Link
+            href={{
+              pathname: '/~/events',
+              query: { type: 'events', when: 'forever', sub }
+            }} as={prefix + '/events'} passHref legacyBehavior
+          >
+            <Nav.Link eventKey='top' className={styles.navLink}>events</Nav.Link>
+          </Link>
+        </Nav.Item>}
     </>
   )
 }

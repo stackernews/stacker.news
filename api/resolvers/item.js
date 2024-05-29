@@ -27,18 +27,11 @@ function commentsOrderByClause (me, models, sort) {
     return 'ORDER BY "Item".created_at DESC, "Item".id DESC'
   }
 
-  if (me) {
-    if (sort === 'top') {
-      return `ORDER BY COALESCE(
-        personal_top_score,
-        ${orderByNumerator(models, 0)}) DESC NULLS LAST,
-        "Item".msats DESC, ("Item".freebie IS FALSE) DESC, "Item".id DESC`
-    } else {
-      return `ORDER BY COALESCE(
+  if (me && sort === 'hot') {
+    return `ORDER BY COALESCE(
         personal_hot_score,
         ${orderByNumerator(models, 0)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3)) DESC NULLS LAST,
         "Item".msats DESC, ("Item".freebie IS FALSE) DESC, "Item".id DESC`
-    }
   } else {
     if (sort === 'top') {
       return `ORDER BY ${orderByNumerator(models, 0)} DESC NULLS LAST, "Item".msats DESC, ("Item".freebie IS FALSE) DESC,  "Item".id DESC`

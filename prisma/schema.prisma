@@ -419,6 +419,7 @@ model Item {
   ItemUpload         ItemUpload[]
   uploadId           Int?
   outlawed           Boolean               @default(false)
+  apiKey             Boolean               @default(false)
   pollExpiresAt      DateTime?
   Ancestors          Reply[]               @relation("AncestorReplyItem")
   Replies            Reply[]

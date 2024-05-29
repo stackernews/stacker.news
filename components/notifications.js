@@ -54,6 +54,7 @@ function Notification ({ n, fresh }) {
         (type === 'Votification' && <Votification n={n} />) ||
         (type === 'ForwardedVotification' && <ForwardedVotification n={n} />) ||
         (type === 'Mention' && <Mention n={n} />) ||
+        (type === 'ItemMention' && <ItemMention n={n} />) ||
         (type === 'JobChanged' && <JobChanged n={n} />) ||
         (type === 'Reply' && <Reply n={n} />) ||
         (type === 'SubStatus' && <SubStatus n={n} />) ||
@@ -379,6 +380,26 @@ function Mention ({ n }) {
       </small>
       <div>
         {n.item.title
+          ? <Item item={n.item} />
+          : (
+            <div className='pb-2'>
+              <RootProvider root={n.item.root}>
+                <Comment item={n.item} noReply includeParent rootText={n.__typename === 'Reply' ? 'replying on:' : undefined} clickToContext />
+              </RootProvider>
+            </div>)}
+      </div>
+    </>
+  )
+}
+
+function ItemMention ({ n }) {
+  return (
+    <>
+      <small className='fw-bold text-info ms-2'>
+        one of your {n.title ? 'posts' : 'comments'} was mentioned
+      </small>
+      <div>
+        {n.item?.title
           ? <Item item={n.item} />
           : (
             <div className='pb-2'>

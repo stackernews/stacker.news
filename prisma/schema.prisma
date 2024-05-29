@@ -44,6 +44,7 @@ model User {
   noteInvites               Boolean              @default(true)
   noteItemSats              Boolean              @default(true)
   noteMentions              Boolean              @default(true)
+  noteItemMentions          Boolean              @default(true)
   noteForwardedSats         Boolean              @default(true)
   lastCheckedJobs           DateTime?
   noteJobIndicator          Boolean              @default(true)
@@ -411,6 +412,8 @@ model Item {
   user               User                  @relation("UserItems", fields: [userId], references: [id], onDelete: Cascade)
   actions            ItemAct[]
   mentions           Mention[]
+  referrer           ItemMention[]         @relation("referrer")
+  referee            ItemMention[]         @relation("referee")
   PollOption         PollOption[]
   PollVote           PollVote[]
   ThreadSubscription ThreadSubscription[]
@@ -659,6 +662,21 @@ model Mention {
   @@index([createdAt], map: "Mention.created_at_index")
   @@index([itemId], map: "Mention.itemId_index")
   @@index([userId], map: "Mention.userId_index")
+}
+
+model ItemMention {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  referrerId Int
+  refereeId  Int
+  referrerItem      Item     @relation("referrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  refereeItem       Item     @relation("referee", fields: [refereeId], references: [id], onDelete: Cascade)
+
+  @@unique([referrerId, refereeId], map: "ItemMention.referrerId_refereeId_unique")
+  @@index([createdAt], map: "ItemMention.created_at_index")
+  @@index([referrerId], map: "ItemMention.referrerId_index")
+  @@index([refereeId], map: "ItemMention.refereeId_index")
 }
 
 model Invoice {

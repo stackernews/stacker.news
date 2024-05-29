@@ -347,6 +347,26 @@ export default {
         }
       }
 
+      if (user.noteItemMentions) {
+        const [newMentions] = await models.$queryRawUnsafe(`
+        SELECT EXISTS(
+          SELECT *
+          FROM "ItemMention"
+          JOIN "Item" "Referee" ON "ItemMention"."refereeId" = "Referee".id
+          JOIN "Item" ON "ItemMention"."referrerId" = "Item".id
+          ${whereClause(
+            '"ItemMention".created_at < $2',
+            '"Item"."userId" <> $1',
+            '"Referee"."userId" = $1',
+            await filterClause(me, models),
+            muteClause(me)
+          )})`, me.id, lastChecked)
+        if (newMentions.exists) {
+          foundNotes()
+          return true
+        }
+      }
+
       if (user.noteForwardedSats) {
         const [newFwdSats] = await models.$queryRawUnsafe(`
         SELECT EXISTS(

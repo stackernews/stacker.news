@@ -141,6 +141,13 @@ export const NOTIFICATIONS = gql`
             autoWithdraw
           }
         }
+        ... on Reminder {
+          id
+          sortTime
+          item {
+            ...ItemFullFields
+          }
+        }
       }
     }
   } `

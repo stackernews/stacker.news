@@ -9,7 +9,7 @@ import Item from './item'
 import { discussionSchema } from '@/lib/validate'
 import { SubSelectInitial } from './sub-select'
 import { useCallback } from 'react'
-import { normalizeForwards, toastDeleteScheduled } from '@/lib/form'
+import { normalizeForwards, toastUpsertSuccessMessages } from '@/lib/form'
 import { MAX_TITLE_LENGTH } from '@/lib/constants'
 import { useMe } from './me'
 import useCrossposter from './use-crossposter'
@@ -37,6 +37,7 @@ export function DiscussionForm ({
         upsertDiscussion(sub: $sub, id: $id, title: $title, text: $text, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac) {
           id
           deleteScheduledAt
+          reminderScheduledAt
         }
       }`
   )
@@ -69,7 +70,7 @@ export function DiscussionForm ({
         const prefix = sub?.name ? `/~${sub.name}` : ''
         await router.push(prefix + '/recent')
       }
-      toastDeleteScheduled(toaster, data, 'upsertDiscussion', !!item, values.text)
+      toastUpsertSuccessMessages(toaster, data, 'upsertDiscussion', !!item, values.text)
     }, [upsertDiscussion, router, item, sub, crossposter]
   )
 
@@ -95,7 +96,7 @@ export function DiscussionForm ({
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}
-      invoiceable
+      prepaid
       onSubmit={handleSubmit || onSubmit}
       storageKeyPrefix={storageKeyPrefix}
     >

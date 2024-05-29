@@ -145,7 +145,7 @@ export default function Comment ({
         {item.outlawed && !me?.privates?.wildWestMode
           ? <Skull className={styles.dontLike} width={24} height={24} />
           : item.meDontLikeSats > item.meSats
-            ? <DownZap width={24} height={24} className={styles.dontLike} id={item.id} meDontLikeSats={item.meDontLikeSats} />
+            ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
             : pin ? <Pin width={22} height={22} className={styles.pin} /> : <UpVote item={item} className={styles.upvote} />}
         <div className={`${itemStyles.hunk} ${styles.hunk}`}>
           <div className='d-flex align-items-center'>

@@ -112,7 +112,7 @@ export default function TerritoryForm ({ sub }) {
           nsfw: sub?.nsfw || false
         }}
         schema={schema}
-        invoiceable
+        prepaid
         onSubmit={onSubmit}
         className='mb-5'
         storageKeyPrefix={sub ? undefined : 'territory'}

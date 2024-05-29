@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useWalletLogger } from '../logger'
 import LNC from '@lightninglabs/lnc-web'
 import { Status, migrateLocalStorage } from '.'
@@ -9,6 +9,7 @@ import CancelButton from '../cancel-button'
 import { Mutex } from 'async-mutex'
 import { Wallet } from '@/lib/constants'
 import { useMe } from '../me'
+import { InvoiceCanceledError, InvoiceExpiredError } from '@/components/payment'
 
 const LNCContext = createContext()
 const mutex = new Mutex()
@@ -109,7 +110,14 @@ export function LNCProvider ({ children }) {
         logger.ok('payment successful:', `payment_hash=${hash}`, `preimage=${preimage}`)
         return { preimage }
       } catch (err) {
-        logger.error('payment failed:', `payment_hash=${hash}`, err.message || err.toString?.())
+        const msg = err.message || err.toString?.()
+        logger.error('payment failed:', `payment_hash=${hash}`, msg)
+        if (msg.includes('invoice expired')) {
+          throw new InvoiceExpiredError(hash)
+        }
+        if (msg.includes('canceled')) {
+          throw new InvoiceCanceledError(hash)
+        }
         throw err
       } finally {
         try {
@@ -191,8 +199,11 @@ export function LNCProvider ({ children }) {
     })()
   }, [me, setStatus, setConfig, logger])
 
+  const value = useMemo(
+    () => ({ name: 'lnc', status, unlock, getInfo, sendPayment, config, saveConfig, clearConfig }),
+    [status, unlock, getInfo, sendPayment, config, saveConfig, clearConfig])
   return (
-    <LNCContext.Provider value={{ name: 'lnc', status, unlock, getInfo, sendPayment, config, saveConfig, clearConfig }}>
+    <LNCContext.Provider value={value}>
       {children}
       {modal}
     </LNCContext.Provider>

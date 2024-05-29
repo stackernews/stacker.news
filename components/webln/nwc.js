@@ -1,13 +1,14 @@
 // https://github.com/getAlby/js-sdk/blob/master/src/webln/NostrWeblnProvider.ts
 
-import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { Relay, finalizeEvent, nip04 } from 'nostr-tools'
 import { parseNwcUrl } from '@/lib/url'
 import { useWalletLogger } from '../logger'
 import { Status, migrateLocalStorage } from '.'
 import { bolt11Tags } from '@/lib/bolt11'
-import { Wallet } from '@/lib/constants'
+import { JIT_INVOICE_TIMEOUT_MS, Wallet } from '@/lib/constants'
 import { useMe } from '../me'
+import { InvoiceExpiredError } from '../payment'
 
 const NWCContext = createContext()
 
@@ -20,7 +21,6 @@ export function NWCProvider ({ children }) {
   const [status, setStatus] = useState()
   const { logger } = useWalletLogger(Wallet.NWC)
 
-  const name = 'NWC'
   let storageKey = 'webln:provider:nwc'
   if (me) {
     storageKey = `${storageKey}:${me.id}`
@@ -206,11 +206,11 @@ export function NWCProvider ({ children }) {
         (async function () {
           // timeout since NWC is async (user needs to confirm payment in wallet)
           // timeout is same as invoice expiry
-          const timeout = 180_000
+          const timeout = JIT_INVOICE_TIMEOUT_MS
           const timer = setTimeout(() => {
-            const msg = 'timeout waiting for info event'
+            const msg = 'timeout waiting for payment'
             logger.error(msg)
-            reject(new Error(msg))
+            reject(new InvoiceExpiredError(hash))
             sub?.close()
           }, timeout)
 
@@ -273,7 +273,9 @@ export function NWCProvider ({ children }) {
     loadConfig().catch(err => logger.error(err.message || err.toString?.()))
   }, [])
 
-  const value = { name, nwcUrl, relayUrl, walletPubkey, secret, status, saveConfig, clearConfig, getInfo, sendPayment }
+  const value = useMemo(
+    () => ({ name: 'NWC', nwcUrl, relayUrl, walletPubkey, secret, status, saveConfig, clearConfig, getInfo, sendPayment }),
+    [nwcUrl, relayUrl, walletPubkey, secret, status, saveConfig, clearConfig, getInfo, sendPayment])
   return (
     <NWCContext.Provider value={value}>
       {children}

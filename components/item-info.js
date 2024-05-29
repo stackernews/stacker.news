@@ -176,7 +176,7 @@ export default function ItemInfo ({
             !item.mine && !item.deletedAt &&
             (item.meDontLikeSats > meTotalSats
               ? <DropdownItemUpVote item={item} />
-              : <DontLikeThisDropdownItem id={item.id} />)}
+              : <DontLikeThisDropdownItem item={item} />)}
             {me && sub && !item.mine && !item.outlawed && Number(me.id) === Number(sub.userId) && sub.moderated &&
               <>
                 <hr className='dropdown-divider' />

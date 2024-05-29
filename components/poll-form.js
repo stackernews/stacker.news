@@ -8,7 +8,7 @@ import { datePivot } from '@/lib/time'
 import { pollSchema } from '@/lib/validate'
 import { SubSelectInitial } from './sub-select'
 import { useCallback } from 'react'
-import { normalizeForwards, toastDeleteScheduled } from '@/lib/form'
+import { normalizeForwards, toastUpsertSuccessMessages } from '@/lib/form'
 import useCrossposter from './use-crossposter'
 import { useMe } from './me'
 import { useToast } from './toast'
@@ -31,6 +31,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
           options: $options, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac, pollExpiresAt: $pollExpiresAt) {
           id
           deleteScheduledAt
+          reminderScheduledAt
         }
       }`
   )
@@ -65,7 +66,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         const prefix = sub?.name ? `/~${sub.name}` : ''
         await router.push(prefix + '/recent')
       }
-      toastDeleteScheduled(toaster, data, 'upsertPoll', !!item, values.text)
+      toastUpsertSuccessMessages(toaster, data, 'upsertPoll', !!item, values.text)
     }, [upsertPoll, router]
   )
 
@@ -85,7 +86,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}
-      invoiceable
+      prepaid
       onSubmit={onSubmit}
       storageKeyPrefix={storageKeyPrefix}
     >

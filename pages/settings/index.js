@@ -26,7 +26,7 @@ import { NostrAuth } from '@/components/nostr-auth'
 import { useToast } from '@/components/toast'
 import { useServiceWorkerLogger } from '@/components/logger'
 import { useMe } from '@/components/me'
-import { INVOICE_RETENTION_DAYS } from '@/lib/constants'
+import { INVOICE_RETENTION_DAYS, ZAP_UNDO_DELAY_MS } from '@/lib/constants'
 import { OverlayTrigger, Tooltip } from 'react-bootstrap'
 import DeleteIcon from '@/svgs/delete-bin-line.svg'
 import { useField } from 'formik'
@@ -36,6 +36,19 @@ export const getServerSideProps = getGetServerSideProps({ query: SETTINGS, authR
 
 function bech32encode (hexString) {
   return bech32.encode('npub', bech32.toWords(Buffer.from(hexString, 'hex')))
+}
+
+// sort to prevent hydration mismatch
+const getProviders = (authMethods) =>
+  Object.keys(authMethods).filter(k => k !== '__typename' && k !== 'apiKey').sort()
+
+// Show alert message if user only has one auth method activated
+// as users are losing access to their accounts
+const hasOnlyOneAuthMethod = (authMethods) => {
+  const activatedAuths = getProviders(authMethods)
+    .filter(provider => !!authMethods[provider])
+
+  return activatedAuths.length === 1
 }
 
 export function SettingsHeader () {
@@ -94,6 +107,7 @@ export default function Settings ({ ssrData }) {
   return (
     <Layout>
       <div className='pb-3 w-100 mt-2' style={{ maxWidth: '600px' }}>
+        {hasOnlyOneAuthMethod(settings?.authMethods) && <div className={styles.alert}>Please add a second auth method to avoid losing access to your account.</div>}
         <SettingsHeader />
         <Form
           initial={{
@@ -673,8 +687,7 @@ function AuthMethods ({ methods, apiKeyEnabled }) {
     }
   )
 
-  // sort to prevent hydration mismatch
-  const providers = Object.keys(methods).filter(k => k !== '__typename' && k !== 'apiKey').sort()
+  const providers = getProviders(methods)
 
   const unlink = async type => {
     // if there's only one auth method left
@@ -994,7 +1007,7 @@ const ZapUndosField = () => {
                 <Info>
                   <ul className='fw-bold'>
                     <li>An undo button is shown after every zap that exceeds or is equal to the threshold</li>
-                    <li>The button is shown for 5 seconds</li>
+                    <li>The button is shown for {ZAP_UNDO_DELAY_MS / 1000} seconds</li>
                     <li>The button is only shown for zaps from the custodial wallet</li>
                     <li>Use a budget or manual approval with attached wallets</li>
                   </ul>

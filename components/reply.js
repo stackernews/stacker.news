@@ -9,7 +9,7 @@ import { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineIt
 import { commentsViewedAfterComment } from '@/lib/new-comments'
 import { commentSchema } from '@/lib/validate'
 import { useToast } from './toast'
-import { toastDeleteScheduled } from '@/lib/form'
+import { toastUpsertSuccessMessages } from '@/lib/form'
 import { ItemButtonBar } from './post'
 import { useShowModal } from './modal'
 import { Button } from 'react-bootstrap'
@@ -54,6 +54,7 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
         upsertComment(text: $text, parentId: $parentId, hash: $hash, hmac: $hmac) {
           ...CommentFields
           deleteScheduledAt
+          reminderScheduledAt
           comments {
             ...CommentsRecursive
           }
@@ -98,7 +99,7 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
 
   const onSubmit = useCallback(async ({ amount, hash, hmac, ...values }, { resetForm }) => {
     const { data } = await upsertComment({ variables: { parentId, hash, hmac, ...values } })
-    toastDeleteScheduled(toaster, data, 'upsertComment', false, values.text)
+    toastUpsertSuccessMessages(toaster, data, 'upsertComment', false, values.text)
     resetForm({ text: '' })
     setReply(replyOpen || false)
   }, [upsertComment, setReply, parentId])
@@ -165,7 +166,7 @@ export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children
                 text: ''
               }}
               schema={commentSchema}
-              invoiceable
+              prepaid
               onSubmit={onSubmit}
               storageKeyPrefix={`reply-${parentId}`}
             >

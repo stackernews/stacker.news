@@ -8,7 +8,7 @@ import useCrossposter from './use-crossposter'
 import { bountySchema } from '@/lib/validate'
 import { SubSelectInitial } from './sub-select'
 import { useCallback } from 'react'
-import { normalizeForwards, toastDeleteScheduled } from '@/lib/form'
+import { normalizeForwards, toastUpsertSuccessMessages } from '@/lib/form'
 import { MAX_TITLE_LENGTH } from '@/lib/constants'
 import { useMe } from './me'
 import { useToast } from './toast'
@@ -56,6 +56,7 @@ export function BountyForm ({
         ) {
           id
           deleteScheduledAt
+          reminderScheduledAt
         }
       }
     `
@@ -89,7 +90,7 @@ export function BountyForm ({
         const prefix = sub?.name ? `/~${sub.name}` : ''
         await router.push(prefix + '/recent')
       }
-      toastDeleteScheduled(toaster, data, 'upsertBounty', !!item, values.text)
+      toastUpsertSuccessMessages(toaster, data, 'upsertBounty', !!item, values.text)
     }, [upsertBounty, router]
   )
 
@@ -106,7 +107,8 @@ export function BountyForm ({
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}
-      invoiceable={{ requireSession: true }}
+      requireSession
+      prepaid
       onSubmit={
         handleSubmit ||
         onSubmit

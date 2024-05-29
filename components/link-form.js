@@ -9,7 +9,7 @@ import Item from './item'
 import AccordianItem from './accordian-item'
 import { linkSchema } from '@/lib/validate'
 import Moon from '@/svgs/moon-fill.svg'
-import { normalizeForwards, toastDeleteScheduled } from '@/lib/form'
+import { normalizeForwards, toastUpsertSuccessMessages } from '@/lib/form'
 import { useToast } from './toast'
 import { SubSelectInitial } from './sub-select'
 import { MAX_TITLE_LENGTH } from '@/lib/constants'
@@ -76,6 +76,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
         upsertLink(sub: $sub, id: $id, title: $title, url: $url, text: $text, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac) {
           id
           deleteScheduledAt
+          reminderScheduledAt
         }
       }`
   )
@@ -108,7 +109,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
         const prefix = sub?.name ? `/~${sub.name}` : ''
         await router.push(prefix + '/recent')
       }
-      toastDeleteScheduled(toaster, data, 'upsertLink', !!item, values.text)
+      toastUpsertSuccessMessages(toaster, data, 'upsertLink', !!item, values.text)
     }, [upsertLink, router]
   )
 
@@ -142,7 +143,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}
-      invoiceable
+      prepaid
       onSubmit={onSubmit}
       storageKeyPrefix={storageKeyPrefix}
     >

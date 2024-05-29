@@ -9,7 +9,7 @@ import {
   ITEM_SPAM_INTERVAL, ITEM_FILTER_THRESHOLD,
   COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY,
   ANON_USER_ID, ANON_ITEM_SPAM_INTERVAL, POLL_COST,
-  ITEM_ALLOW_EDITS, GLOBAL_SEED, ANON_FEE_MULTIPLIER, NOFOLLOW_LIMIT, UNKNOWN_LINK_REL
+  ITEM_ALLOW_EDITS, GLOBAL_SEED, ANON_FEE_MULTIPLIER, NOFOLLOW_LIMIT, UNKNOWN_LINK_REL, SN_USER_IDS
 } from '@/lib/constants'
 import { msatsToSats } from '@/lib/format'
 import { parse } from 'tldts'
@@ -1227,9 +1227,19 @@ export const createMentions = async (item, models) => {
 export const updateItem = async (parent, { sub: subName, forward, options, ...item }, { me, models, lnd, hash, hmac }) => {
   // update iff this item belongs to me
   const old = await models.item.findUnique({ where: { id: Number(item.id) }, include: { sub: true } })
-  if (Number(old.userId) !== Number(me?.id)) {
+
+  // author can always edit their own item
+  const mid = Number(me?.id)
+  const isMine = Number(old.userId) !== mid
+
+  // allow admins to edit special items
+  const allowEdit = ITEM_ALLOW_EDITS.includes(old.id)
+  const adminEdit = SN_USER_IDS.includes(mid) && allowEdit
+
+  if (!isMine && !adminEdit) {
     throw new GraphQLError('item does not belong to you', { extensions: { code: 'FORBIDDEN' } })
   }
+
   if (subName && old.subName !== subName) {
     const sub = await models.sub.findUnique({ where: { name: subName } })
     if (old.freebie) {
@@ -1246,7 +1256,7 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
 
   // prevent update if it's not explicitly allowed, not their bio, not their job and older than 10 minutes
   const user = await models.user.findUnique({ where: { id: me.id } })
-  if (!ITEM_ALLOW_EDITS.includes(old.id) && user.bioId !== old.id &&
+  if (!allowEdit && user.bioId !== old.id &&
     !isJob(item) && Date.now() > new Date(old.createdAt).getTime() + 10 * 60000) {
     throw new GraphQLError('item can no longer be editted', { extensions: { code: 'BAD_INPUT' } })
   }

@@ -53,7 +53,7 @@ export default function AccordianItem ({ header, body, headerColor = 'var(--them
 
 export function AccordianCard ({ header, children, show }) {
   return (
-    <Accordion defaultActiveKey={show ? '0' : undefined} activeKey={show}>
+    <Accordion defaultActiveKey={show ? '0' : undefined}>
       <Accordion.Item eventKey='0'>
         <Accordion.Header>{header}</Accordion.Header>
         <Accordion.Body>

@@ -29,6 +29,7 @@ export async function settleAction ({ data: { invoiceId }, models, lnd, boss }) 
       })
 
       await paidActions[dbInv.actionType].onPaid?.({ invoice: dbInv }, { models, tx })
+      await tx.$executeRaw`INSERT INTO pgboss.job (name, data) VALUES ('checkStreak', jsonb_build_object('id', ${dbInv.userId}))`
     })
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError) {
@@ -68,7 +69,7 @@ export async function settleActionError ({ data: { invoiceId }, models, lnd, bos
           cancelled: true
         }
       })
-      await paidActions[invoice.actionType].onFailedStatements({ invoice: dbInv }, { models, tx })
+      await paidActions[invoice.actionType].onFail?.({ invoice: dbInv }, { models, tx })
     })
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError) {

@@ -1,6 +1,6 @@
 import { ANON_USER_ID } from '@/lib/constants'
-import { getDeleteAt, getRemindAt } from '@/lib/item'
 import { notifyItemParents, notifyTerritorySubscribers, notifyUserSubscribers } from '@/lib/webPush'
+import { getMentions, performBotBehavior } from './lib/item'
 
 export const anonable = true
 export const supportsPessimism = true
@@ -20,45 +20,41 @@ export async function getCost ({ subName, parentId, uploadIds, boost }, { models
   return freebie ? 0 : cost
 }
 
-export async function perform (
-  { invoiceId, uploadIds = [], itemForwards = [], pollOptions = [], boost = 0, ...data },
-  { me, models, cost, tx }) {
+export async function perform (args, context) {
+  const { invoiceId, uploadIds = [], itemForwards = [], pollOptions = [], boost = 0, ...data } = args
+  const { tx, me, cost } = context
   const boostMsats = BigInt(boost) * BigInt(1000)
+
+  let invoiceData = {}
+  if (invoiceId) {
+    invoiceData = { invoiceId, invoiceActionState: 'PENDING' }
+    await tx.upload.updateMany({
+      where: { id: { in: uploadIds } },
+      data: invoiceData
+    })
+  }
 
   const itemActs = []
   if (boostMsats > 0) {
     itemActs.push({
-      msats: boostMsats, act: 'BOOST', invoiceId, invoiceActionState: 'PENDING', userId: me.id
+      msats: boostMsats, act: 'BOOST', userId: me.id, ...invoiceData
     })
   }
   if (cost > 0) {
     itemActs.push({
-      msats: cost - boostMsats, act: 'FEE', invoiceId, invoiceActionState: 'PENDING', userId: me.id
+      msats: cost - boostMsats, act: 'FEE', userId: me.id, ...invoiceData
     })
   } else {
     data.freebie = true
   }
 
-  const mentions = []
-  const text = data.text
-  if (text) {
-    const mentionPattern = /\B@[\w_]+/gi
-    const names = text.match(mentionPattern)?.map(m => m.slice(1))
-    if (names?.length > 0) {
-      const users = await models.user.findMany({ where: { name: { in: names } } })
-      mentions.push(...users.map(({ id }) => ({ userId: id }))
-        .filter(({ userId }) => userId !== me.id))
-    }
-    data.deleteAt = getDeleteAt(text)
-    data.remindAt = getRemindAt(text)
-  }
+  const mentions = await getMentions(args, context)
 
   const itemData = {
     ...data,
+    ...invoiceData,
     boost,
-    invoiceId,
     userId: me.id || ANON_USER_ID,
-    actionInvoiceState: 'PENDING',
     threadSubscription: {
       createMany: [
         { userId: me.id },
@@ -82,11 +78,6 @@ export async function perform (
     }
   }
 
-  await tx.upload.updateMany({
-    where: { id: { in: uploadIds } },
-    data: { invoiceId, actionInvoiceState: 'PENDING' }
-  })
-
   if (data.bio && me) {
     return (await tx.user.update({
       where: { id: me.id },
@@ -101,48 +92,37 @@ export async function perform (
   return await tx.item.create({ data: itemData })
 }
 
-export async function onPaid ({ invoice }, { models, tx }) {
-  const item = await tx.item.findFirst({ where: { invoiceId: invoice.id } })
+export async function onPaid ({ invoice, data: { id } }, context) {
+  const { models, tx } = context
+  let item
 
-  await tx.itemAct.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } })
-  await tx.item.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } })
-  await tx.upload.updateMany({ where: { invoiceId: invoice.id }, data: { actionInvoiceState: 'PAID' } })
-
-  if (item.deleteAt) {
-    await tx.$queryRaw`
-      INSERT INTO pgboss.job (name, data, startafter, expirein)
-      VALUES (
-        'deleteItem',
-        jsonb_build_object('id', ${item.id}),
-        ${item.deleteAt},
-        ${item.deleteAt} - now() + interval '1 minute')`
+  if (invoice) {
+    item = await tx.item.findFirst({ where: { invoiceId: invoice.id } })
+    await tx.itemAct.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } })
+    await tx.item.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } })
+    await tx.upload.updateMany({ where: { invoiceId: invoice.id }, data: { actionInvoiceState: 'PAID', paid: true } })
+  } else if (id) {
+    item = await tx.item.findUnique({ where: { id } })
+  } else {
+    throw new Error('No item found')
   }
 
-  if (item.remindAt) {
-    await tx.$queryRaw`
-      INSERT INTO pgboss.job (name, data, startafter, expirein)
-      VALUES (
-        'remindItem',
-        jsonb_build_object('id', ${item.id}),
-        ${item.remindAt},
-        ${item.remindAt} - now() + interval '1 minute')`
-  }
+  await performBotBehavior(item, context)
 
   if (item.maxBid) {
     await tx.$executeRaw`SELECT run_auction(${item.id}::INTEGER)`
   }
 
-  // TODO: this don't work because it's a trigger
-  await tx.$executeRaw`SELECT ncomments_after_comment(${item.id}::INTEGER)`
-  // jobs ... TODO: remove the triggers for these
   await tx.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
     VALUES ('timestampItem', jsonb_build_object('id', ${item.id}), now() + interval '10 minutes', -2)`
-  await tx.$executeRaw`INSERT INTO pgboss.job (name, data, priority) VALUES ('indexItem', jsonb_build_object('id', ${item.id}), -100)`
   await tx.$executeRaw`
     INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
     VALUES ('imgproxy', jsonb_build_object('id', item.id), 21, true, now() + interval '5 seconds')`
 
-  notifyItemParents({ item, me: item.userId, models }).catch(console.error)
+  if (item.parentId) {
+    await tx.$executeRaw`SELECT ncomments_after_comment(${item.id}::INTEGER)`
+    notifyItemParents({ item, me: item.userId, models }).catch(console.error)
+  }
   notifyUserSubscribers({ models, item }).catch(console.error)
   notifyTerritorySubscribers({ models, item }).catch(console.error)
 }

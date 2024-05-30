@@ -110,7 +110,7 @@ async function performFeeCreditAction (actionType, args, context) {
     })
 
     const response = await action.perform(args, context)
-    await action.onPaid(args, context)
+    await action.onPaid?.(response, context)
 
     return response
   })
@@ -133,7 +133,7 @@ async function performPessimiticAction (actionType, args, context) {
       context.tx = tx
 
       const response = await action.perform(args, context)
-      await action.onPaid(args, context)
+      await action.onPaid?.(response, context)
       await settleHodlInvoice({ secret: invoice.preimage, lnd })
 
       return response

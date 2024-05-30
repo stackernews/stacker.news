@@ -12,19 +12,32 @@ export async function perform ({ invoiceId, sats, itemId, ...args }, { me, cost,
   const feeMsats = cost / BigInt(100)
   const zapMsats = cost - feeMsats
 
-  await tx.itemAct.createMany({
+  let invoiceData = {}
+  if (invoiceId) {
+    invoiceData = { invoiceId, invoiceActionState: 'PENDING' }
+  }
+
+  const acts = await tx.itemAct.createMany({
     data: [
-      { msats: feeMsats, itemId, userId: me.id, act: 'FEE', invoiceId, invoiceActionState: 'PENDING' },
-      { msats: zapMsats, itemId, userId: me.id, act: 'TIP', invoiceId, invoiceActionState: 'PENDING' }
+      { msats: feeMsats, itemId, userId: me.id, act: 'FEE', ...invoiceData },
+      { msats: zapMsats, itemId, userId: me.id, act: 'TIP', ...invoiceData }
     ]
   })
 
   const item = await tx.item.findUnique({ where: { id: itemId } })
-  return { id: itemId, sats, act: 'TIP', path: item.path }
+  return { id: itemId, sats, act: 'TIP', path: item.path, actIds: acts.map(act => act.id) }
 }
 
-export async function onPaid ({ invoice }, { models, tx }) {
-  const acts = await tx.itemAct.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } })
+export async function onPaid ({ invoice, actIds }, { models, tx }) {
+  let acts
+  if (invoice) {
+    acts = await tx.itemAct.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } })
+  } else if (actIds) {
+    acts = await tx.itemAct.findMany({ where: { id: { in: actIds } } })
+  } else {
+    throw new Error('No invoice or actIds')
+  }
+
   const sats = acts.reduce((a, b) => a + b, 0) / BigInt(1000)
   const itemAct = acts.find(act => act.act === 'TIP')
   const itemActFee = acts.find(act => act.act === 'FEE')

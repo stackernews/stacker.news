@@ -292,6 +292,7 @@ model Upload {
   width              Int?
   height             Int?
   userId             Int
+  paid               Boolean?
   invoiceId          Int?
   invoiceActionState InvoiceActionState?
   invoice            Invoice?            @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
@@ -301,6 +302,7 @@ model Upload {
 
   @@index([createdAt], map: "Upload.created_at_index")
   @@index([userId], map: "Upload.userId_index")
+  @@index([invoiceId])
 }
 
 model Earn {
@@ -400,8 +402,6 @@ model Item {
   bounty             Int?
   noteId             String?               @unique(map: "Item.noteId_unique")
   rootId             Int?
-  deleteAt           DateTime?
-  remindAt           DateTime?
   bountyPaidTo       Int[]
   upvotes            Int                   @default(0)
   weightedComments   Float                 @default(0)
@@ -448,6 +448,7 @@ model Item {
   @@index([userId], map: "Item.userId_index")
   @@index([weightedDownVotes], map: "Item.weightedDownVotes_index")
   @@index([weightedVotes], map: "Item.weightedVotes_index")
+  @@index([invoiceId])
 }
 
 // this is a denomalized table that is used to make reply notifications
@@ -520,6 +521,7 @@ model PollVote {
   @@unique([itemId, userId], map: "PollVote.itemId_userId_unique")
   @@index([pollOptionId], map: "PollVote.pollOptionId_index")
   @@index([userId], map: "PollVote.userId_index")
+  @@index([invoiceId])
 }
 
 enum BillingType {
@@ -657,6 +659,7 @@ model ItemAct {
   @@index([userId], map: "ItemAct.userId_index")
   @@index([itemId], map: "Vote.itemId_index")
   @@index([userId], map: "Vote.userId_index")
+  @@index([invoiceId])
 }
 
 model Mention {

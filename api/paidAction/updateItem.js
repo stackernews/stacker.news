@@ -1,5 +1,5 @@
-import { getDeleteAt, getRemindAt } from '@/lib/item'
 import { imageFeesInfo } from '../resolvers/image'
+import { getMentions, performBotBehavior } from './lib/item'
 
 export const anonable = false
 export const supportsPessimism = true
@@ -13,9 +13,9 @@ export async function getCost ({ id, boost, uploadIds }, { me, models }) {
   return BigInt(totalFeesMsats) + (BigInt(boost - old.boost) * BigInt(1000))
 }
 
-export async function perform (
-  { invoiceId, id, uploadIds = [], itemForwards = [], pollOptions = [], boost = 0, ...data },
-  { me, models, tx, cost }) {
+export async function perform (args, context) {
+  const { id, boost = 0, uploadIds = [], pollOptions = [], itemForwards = [], ...data } = args
+  const { tx, me } = context
   const boostMsats = BigInt(boost) * BigInt(1000)
 
   const itemActs = []
@@ -25,49 +25,11 @@ export async function perform (
     })
   }
 
-  await tx.$executeRaw`INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
-    VALUES ('imgproxy', jsonb_build_object('id', ${id}::INTEGER), 21, true, now() + interval '5 seconds')`
-
-  const mentions = []
-  const text = data.text
-  if (text) {
-    const mentionPattern = /\B@[\w_]+/gi
-    const names = text.match(mentionPattern)?.map(m => m.slice(1))
-    if (names?.length > 0) {
-      const users = await models.user.findMany({ where: { name: { in: names } } })
-      mentions.push(...users.map(({ id }) => ({ userId: id }))
-        .filter(({ userId }) => userId !== me.id))
-    }
-    data.deleteAt = getDeleteAt(text)
-    data.remindAt = getRemindAt(text)
-  }
-
-  if (data.deleteAt) {
-    await tx.$queryRaw`
-      INSERT INTO pgboss.job (name, data, startafter, expirein)
-      VALUES (
-        'deleteItem',
-        jsonb_build_object('id', ${id}),
-        ${data.deleteAt},
-        ${data.deleteAt} - now() + interval '1 minute')`
-  }
-  if (data.remindAt) {
-    await tx.$queryRaw`
-      INSERT INTO pgboss.job (name, data, startafter, expirein)
-      VALUES (
-        'remindItem',
-        jsonb_build_object('id', ${id}),
-        ${data.remindAt},
-        ${data.remindAt} - now() + interval '1 minute')`
-  }
-  if (data.maxBid) {
-    await tx.$executeRaw`SELECT run_auction(${id}::INTEGER)`
-  }
-
   const threadSubscriptions = [{ userId: me.id },
     ...itemForwards.map(({ userId }) => ({ userId }))]
+  const mentions = await getMentions(args, context)
 
-  return await tx.item.update({
+  const result = await tx.item.update({
     where: { id },
     data: {
       ...data,
@@ -81,6 +43,16 @@ export async function perform (
           }
         },
         createMany: threadSubscriptions
+      },
+      mention: {
+        deleteMany: {
+          userId: {
+            not: {
+              in: mentions.map(({ userId }) => userId)
+            }
+          }
+        },
+        createMany: mentions
       },
       itemForwards: {
         deleteMany: {
@@ -110,6 +82,17 @@ export async function perform (
       }
     }
   })
+
+  if (data.maxBid) {
+    await tx.$executeRaw`SELECT run_auction(${id}::INTEGER)`
+  }
+
+  await tx.$executeRaw`INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
+    VALUES ('imgproxy', jsonb_build_object('id', ${id}::INTEGER), 21, true, now() + interval '5 seconds')`
+
+  await performBotBehavior(args, context)
+
+  return result
 }
 
 export async function describe ({ id, parentId }, context) {

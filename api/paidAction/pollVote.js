@@ -8,13 +8,20 @@ export async function getCost ({ id }, { me, models }) {
 }
 
 export async function perform ({ invoiceId, optionId, id: itemId, ...args }, { me, cost, tx }) {
-  await tx.itemAct.create({ data: { msats: cost, itemId, userId: me.id, act: 'POLL', invoiceId, invoiceActionState: 'PENDING' } })
-  await tx.pollVote.create({ data: { optionId, userId: me.id, itemId, invoiceId, invoiceActionState: 'PENDING' } })
+  let invoiceData = {}
+  if (invoiceId) {
+    invoiceData = { invoiceId, invoiceActionState: 'PENDING' }
+  }
+
+  await tx.itemAct.create({ data: { msats: cost, itemId, userId: me.id, act: 'POLL', ...invoiceData } })
+  await tx.pollVote.create({ data: { optionId, userId: me.id, itemId, ...invoiceData } })
 
   return itemId
 }
 
 export async function onPaid ({ invoice }, { tx }) {
+  if (!invoice) return
+
   await tx.itemAct.update({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } })
   await tx.pollVote.update({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } })
 }

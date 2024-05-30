@@ -18,7 +18,14 @@ export async function computeStreaks ({ models }) {
       (SELECT "userId", sats as sats_spent
           FROM "Donation"
           WHERE (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')::date >= (now() AT TIME ZONE 'America/Chicago' - interval '1 day')::date
-      )) spending
+      )
+      UNION ALL
+      (SELECT "userId", sats as sats_spent
+        FROM "SubAct"
+        WHERE (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')::date >= (now() AT TIME ZONE 'America/Chicago' - interval '1 day')::date
+        AND "act" = 'BILLING'
+        GROUP BY "userId")
+      ) spending
       GROUP BY "userId"
       HAVING sum(sats_spent) >= 100
     ), existing_streaks (id, started_at) AS (
@@ -90,7 +97,15 @@ export async function checkStreak ({ data: { id }, models }) {
             FROM "Donation"
             WHERE (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')::date >= (now() AT TIME ZONE 'America/Chicago')::date
             AND "userId" = ${Number(id)}
-        )) spending
+        )
+        UNION ALL
+        (SELECT "userId", sats as sats_spent
+          FROM "SubAct"
+          WHERE (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')::date >= (now() AT TIME ZONE 'America/Chicago')::date
+          AND "userId" = ${Number(id)}
+          AND "act" = 'BILLING'
+          GROUP BY "userId")
+        ) spending
           GROUP BY "userId"
           HAVING sum(sats_spent) >= ${STREAK_THRESHOLD}
     ), user_start_streak AS (

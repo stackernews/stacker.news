@@ -195,7 +195,7 @@ function TopLevelItem ({ item, noReply, ...props }) {
           !item.deletedAt &&
           // Don't show related items for items with bounties, show past bounties instead
           !(item.bounty > 0) &&
-            <Related title={item.title} itemId={item.id} show={item.ncomments % 2 === 0} />
+            <Related title={item.title} itemId={item.id} show={item.ncomments === 0} />
           }
           {item.bounty > 0 && <PastBounties item={item} />}
         </>}

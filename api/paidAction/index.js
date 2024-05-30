@@ -16,7 +16,7 @@ export const paidActions = {
   DONATE: require('./donate')
 }
 
-export default async function doPaidAction (actionType, args, context) {
+export default async function performPaidAction (actionType, args, context) {
   const { me, models, hash, hmac } = context
   const paidAction = paidActions[actionType]
 
@@ -29,7 +29,7 @@ export default async function doPaidAction (actionType, args, context) {
   }
 
   if (hash || hmac || !me) {
-    return await doPessimiticAction(actionType, args, context)
+    return await performPessimiticAction(actionType, args, context)
   }
 
   context.user = await models.user.findUnique({ where: { id: me.id } })
@@ -37,65 +37,68 @@ export default async function doPaidAction (actionType, args, context) {
   const isRich = context.cost <= context.user.privates.msats
 
   if (!isRich && !paidAction.supportsOptimism) {
-    return await doPessimiticAction(actionType, args, context)
+    return await performPessimiticAction(actionType, args, context)
   }
 
   if (isRich) {
     try {
-      return await doFeeCreditAction(actionType, args, context)
+      return await performFeeCreditAction(actionType, args, context)
     } catch (e) {
       // if we fail to do the action with fee credits, we should fall back to optimistic
       if (!paidAction.supportsOptimism) {
-        return await doPessimiticAction(actionType, args, context)
+        return await performPessimiticAction(actionType, args, context)
       }
     }
   }
 
   if (paidAction.supportsOptimism) {
-    return await doOptimisticAction(actionType, args, context)
+    return await performOptimisticAction(actionType, args, context)
   }
 
   throw new Error(`This action ${actionType} could not be done`)
 }
 
-async function doOptimisticAction (actionType, args, context) {
+async function performOptimisticAction (actionType, args, context) {
   const { me, models, lnd, cost, user } = context
   const action = paidActions[actionType]
 
-  // create invoice XXX these calls are probably wrong
   const lndInv = await createInvoice({
     description: user.privates.hideInvoiceDesc ? undefined : action.describe(args, context),
     lnd,
     mtokens: String(cost),
     expires_at: datePivot(new Date(), { days: 1 })
   })
-  const invoice = await models.invoice.create({
-    data: {
-      id: lndInv.id,
-      msats: cost,
-      bolt11: lndInv.request,
-      userId: me.id,
-      actionType,
-      actionState: 'PENDING'
+
+  return await models.$transaction(async tx => {
+    context.tx = tx
+
+    // create invoice XXX these calls are probably wrong
+    const invoice = await tx.invoice.create({
+      data: {
+        id: lndInv.id,
+        msats: cost,
+        bolt11: lndInv.request,
+        userId: me.id,
+        actionType,
+        actionState: 'PENDING'
+      }
+    })
+
+    return {
+      invoice,
+      ...await action.perform({ invoiceId: invoice.id, ...args }, context)
     }
   })
-
-  const stmts = await action.doStatements({ invoiceId: invoice.id, ...args }, context)
-  const results = await models.$transaction(stmts)
-  const response = await action.resultsToResponse(results, args, context)
-
-  return {
-    invoice,
-    ...response
-  }
 }
 
-async function doFeeCreditAction (actionType, args, context) {
+async function performFeeCreditAction (actionType, args, context) {
   const { me, models, cost } = context
   const action = paidActions[actionType]
 
-  const stmts = [
-    models.user.update({
+  return await models.$transaction(async tx => {
+    context.tx = tx
+
+    await tx.user.update({
       where: {
         id: me.id
       },
@@ -104,17 +107,16 @@ async function doFeeCreditAction (actionType, args, context) {
           decrement: cost
         }
       }
-    }),
-    ...await action.doStatements(args, context),
-    ...await action.onPaidStatements(args, context)
-  ]
-  const results = await models.$transaction(stmts)
-  const response = await action.resultsToResponse(results.slice(1), args, context)
+    })
 
-  return response
+    const response = await action.perform(args, context)
+    await action.onPaid(args, context)
+
+    return response
+  })
 }
 
-async function doPessimiticAction (actionType, args, context) {
+async function performPessimiticAction (actionType, args, context) {
   const { me, models, hash, hmac, user, cost, lnd } = context
   const action = paidActions[actionType]
 
@@ -125,18 +127,17 @@ async function doPessimiticAction (actionType, args, context) {
   if (hmac) {
     // we have paid and want to do the action now
     const invoice = await verifyPayment(models, hash, hmac, cost)
-    const fullArgs = { invoiceId: invoice?.id, ...args }
-    const stmts = [
-      ...await action.doStatements(fullArgs, context),
-      ...await action.onPaidStatements(fullArgs, context),
-      // TODO: prisma only supports other queries
-      settleHodlInvoice({ secret: invoice.preimage, lnd })
-    ]
+    args.invoiceId = invoice?.id
 
-    const results = await models.$transaction(stmts)
-    const response = await action.resultsToResponse(results, args, context)
+    return await models.$transaction(async tx => {
+      context.tx = tx
 
-    return response
+      const response = await action.perform(args, context)
+      await action.onPaid(args, context)
+      await settleHodlInvoice({ secret: invoice.preimage, lnd })
+
+      return response
+    })
   } else {
     // just create the invoice and complete action when it's paid
     // create invoice XXX these calls are probably wrong

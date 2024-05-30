@@ -5,7 +5,7 @@ export const anonable = false
 export const supportsPessimism = true
 export const supportsOptimism = false
 
-export async function getCost ({ name }, { me, models }) {
+export async function getCost ({ name }, { models }) {
   const sub = await models.sub.findUnique({
     where: {
       name
@@ -15,8 +15,8 @@ export async function getCost ({ name }, { me, models }) {
   return TERRITORY_PERIOD_COST(sub.billingType) * BigInt(1000)
 }
 
-export async function doStatements ({ name }, { me, cost, models }) {
-  const sub = await models.sub.findUnique({
+export async function perform ({ name }, { cost, tx }) {
+  const sub = await tx.sub.findUnique({
     where: {
       name
     }
@@ -34,39 +34,28 @@ export async function doStatements ({ name }, { me, cost, models }) {
 
   const billPaidUntil = nextBilling(billedLastAt, sub.billingType)
 
-  return [
-    // update 'em
-    models.sub.update({
-      where: {
-        name: sub.name
-      },
-      data: {
-        billedLastAt,
-        billPaidUntil,
-        billingCost,
-        status: 'ACTIVE'
-      }
-    }),
-    // record 'em
-    models.subAct.create({
-      data: {
-        userId: sub.userId,
-        subName: sub.name,
-        msats: cost,
-        type: 'BILLING'
-      }
-    })
-  ]
+  await tx.subAct.create({
+    data: {
+      userId: sub.userId,
+      subName: sub.name,
+      msats: cost,
+      type: 'BILLING'
+    }
+  })
+
+  return await tx.sub.update({
+    where: {
+      name: sub.name
+    },
+    data: {
+      billedLastAt,
+      billPaidUntil,
+      billingCost,
+      status: 'ACTIVE'
+    }
+  })
 }
 
-export async function onPaidStatements ({ invoice }, { models }) {
-  return []
-}
-
-export async function resultsToResponse (results, args, context) {
-  return results[0]
-}
-
-export async function describe ({ name }, context) {
+export async function describe ({ name }) {
   return `SN: billing for territory ${name}`
 }

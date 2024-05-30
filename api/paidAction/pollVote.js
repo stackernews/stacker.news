@@ -7,22 +7,21 @@ export async function getCost ({ id }, { me, models }) {
   return BigInt(item.pollCost) * BigInt(1000)
 }
 
-export async function doStatements ({ invoiceId, optionId, id: itemId, ...args }, { me, cost, models }) {
-  return [
-    models.itemAct.create({ data: { msats: cost, itemId, userId: me.id, act: 'POLL', invoiceId, invoiceActionState: 'PENDING' } }),
-    models.pollVote.create({ data: { optionId, userId: me.id, itemId, invoiceId, invoiceActionState: 'PENDING' } })
-  ]
+export async function perform ({ invoiceId, optionId, id: itemId, ...args }, { me, cost, tx }) {
+  await tx.itemAct.create({ data: { msats: cost, itemId, userId: me.id, act: 'POLL', invoiceId, invoiceActionState: 'PENDING' } })
+  await tx.pollVote.create({ data: { optionId, userId: me.id, itemId, invoiceId, invoiceActionState: 'PENDING' } })
+
+  return itemId
 }
 
-export async function onPaidStatements ({ invoice }, { models }) {
-  return [
-    models.itemAct.update({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } }),
-    models.pollVote.update({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } })
-  ]
+export async function onPaid ({ invoice }, { tx }) {
+  await tx.itemAct.update({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } })
+  await tx.pollVote.update({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } })
 }
 
-export async function resultsToResponse (results, { id }, context) {
-  return id
+export async function onFail ({ invoice }, { tx }) {
+  await tx.itemAct.update({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'FAILED' } })
+  await tx.pollVote.update({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'FAILED' } })
 }
 
 export async function describe ({ id }, context) {

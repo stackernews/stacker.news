@@ -6,21 +6,14 @@ export async function getCost ({ sats }) {
   return BigInt(sats) * BigInt(1000)
 }
 
-export async function doStatements ({ sats }, { me, cost, models }) {
-  return [models.donate.create({
+export async function perform ({ sats }, { me, models, tx }) {
+  await tx.donate.create({
     data: {
       sats,
       userId: me.id
     }
-  })]
-}
+  })
 
-// because we are only pessimistic, we don't need to do anything after the invoice is paid
-export async function onPaidStatements () {
-  return []
-}
-
-export async function resultsToResponse (results, { sats }, context) {
   return sats
 }
 

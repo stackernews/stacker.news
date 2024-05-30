@@ -6,7 +6,7 @@ export const anonable = false
 export const supportsPessimism = true
 export const supportsOptimism = false
 
-export async function getCost ({ oldName, billingType }, { me, models }) {
+export async function getCost ({ oldName, billingType }, { models }) {
   const oldSub = await models.sub.findUnique({
     where: {
       name: oldName
@@ -21,7 +21,7 @@ export async function getCost ({ oldName, billingType }, { me, models }) {
   return BigInt(cost) * BigInt(1000)
 }
 
-export async function doStatements ({ invoiceId, oldName, ...data }, { me, cost, models }) {
+export async function perform ({ invoiceId, oldName, ...data }, { me, cost, models, tx }) {
   const oldSub = await models.sub.findUnique({
     where: {
       name: oldName
@@ -47,39 +47,24 @@ export async function doStatements ({ invoiceId, oldName, ...data }, { me, cost,
     data.status = 'ACTIVE'
   }
 
-  const stmts = []
   if (cost > 0n) {
-    stmts.push(
-      models.subAct.create({
-        data: {
-          userId: me.id,
-          subName: oldName,
-          msats: cost,
-          type: 'BILLING'
-        }
-      })
-    )
+    await tx.subAct.create({
+      data: {
+        userId: me.id,
+        subName: oldName,
+        msats: cost,
+        type: 'BILLING'
+      }
+    })
   }
 
-  return [
-    models.sub.update({
-      data,
-      where: {
-        name: oldName,
-        userId: me.id
-      }
-    }),
-    ...stmts
-  ]
-}
-
-// because we are only pessimistic, we don't need to do anything after the invoice is paid
-export async function onPaidStatements ({ invoice }, { models }) {
-  return []
-}
-
-export async function resultsToResponse (results, args, context) {
-  return results[0]
+  return await tx.sub.update({
+    data,
+    where: {
+      name: oldName,
+      userId: me.id
+    }
+  })
 }
 
 export async function describe ({ name }, context) {

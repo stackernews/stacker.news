@@ -20,9 +20,9 @@ export async function getCost ({ subName, parentId, uploadIds, boost }, { models
   return freebie ? 0 : cost
 }
 
-export async function doStatements (
+export async function perform (
   { invoiceId, uploadIds = [], itemForwards = [], pollOptions = [], boost = 0, ...data },
-  { me, models, cost }) {
+  { me, models, cost, tx }) {
   const boostMsats = BigInt(boost) * BigInt(1000)
 
   const itemActs = []
@@ -82,88 +82,75 @@ export async function doStatements (
     }
   }
 
-  const stmts = []
+  await tx.upload.updateMany({
+    where: { id: { in: uploadIds } },
+    data: { invoiceId, actionInvoiceState: 'PENDING' }
+  })
+
   if (data.bio && me) {
-    stmts.push(models.user.update({
+    return (await tx.user.update({
       where: { id: me.id },
       data: {
         bio: {
           create: itemData
         }
       }
-    }))
-  } else {
-    stmts.push(models.item.create({
-      data: itemData
-    }))
+    })).bio
   }
 
-  return [
-    ...stmts,
-    models.upload.updateMany({
-      where: { id: { in: uploadIds } },
-      data: { invoiceId, actionInvoiceState: 'PENDING' }
-    })
-  ]
+  return await tx.item.create({ data: itemData })
 }
 
-export async function resultsToResponse (results, args, context) {
-  return args.bio ? results[0].bio : results[0]
-}
+export async function onPaid ({ invoice }, { models, tx }) {
+  const item = await tx.item.findFirst({ where: { invoiceId: invoice.id } })
 
-export async function onPaidStatements ({ invoice }, { models }) {
-  const item = await models.item.findFirst({ where: { invoiceId: invoice.id } })
+  await tx.itemAct.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } })
+  await tx.item.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } })
+  await tx.upload.updateMany({ where: { invoiceId: invoice.id }, data: { actionInvoiceState: 'PAID' } })
 
-  const stmts = []
   if (item.deleteAt) {
-    stmts.push(models.$queryRaw`
+    await tx.$queryRaw`
       INSERT INTO pgboss.job (name, data, startafter, expirein)
       VALUES (
         'deleteItem',
         jsonb_build_object('id', ${item.id}),
         ${item.deleteAt},
-        ${item.deleteAt} - now() + interval '1 minute')`)
+        ${item.deleteAt} - now() + interval '1 minute')`
   }
+
   if (item.remindAt) {
-    stmts.push(models.$queryRaw`
+    await tx.$queryRaw`
       INSERT INTO pgboss.job (name, data, startafter, expirein)
       VALUES (
         'remindItem',
         jsonb_build_object('id', ${item.id}),
         ${item.remindAt},
-        ${item.remindAt} - now() + interval '1 minute')`)
-  }
-  if (item.maxBid) {
-    stmts.push(models.$executeRaw`SELECT run_auction(${item.id}::INTEGER)`)
+        ${item.remindAt} - now() + interval '1 minute')`
   }
 
-  return [
-    models.itemAct.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } }),
-    models.item.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } }),
-    models.upload.updateMany({ where: { invoiceId: invoice.id }, data: { actionInvoiceState: 'PAID' } }),
-    // TODO: this don't work because it's a trigger
-    models.$executeRaw`SELECT ncomments_after_comment(${item.id}::INTEGER)`,
-    // jobs ... TODO: remove the triggers for these
-    models.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
-      VALUES ('timestampItem', jsonb_build_object('id', ${item.id}), now() + interval '10 minutes', -2)`,
-    models.$executeRaw`INSERT INTO pgboss.job (name, data, priority) VALUES ('indexItem', jsonb_build_object('id', ${item.id}), -100)`,
-    models.$executeRaw`
-      INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
-      VALUES ('imgproxy', jsonb_build_object('id', item.id), 21, true, now() + interval '5 seconds')`,
-    ...stmts,
-    // TODO: this doesn't work because we expect prisma queries
-    notifyItemParents({ item, me: item.userId, models }),
-    notifyUserSubscribers({ models, item }),
-    notifyTerritorySubscribers({ models, item })
-  ]
+  if (item.maxBid) {
+    await tx.$executeRaw`SELECT run_auction(${item.id}::INTEGER)`
+  }
+
+  // TODO: this don't work because it's a trigger
+  await tx.$executeRaw`SELECT ncomments_after_comment(${item.id}::INTEGER)`
+  // jobs ... TODO: remove the triggers for these
+  await tx.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
+    VALUES ('timestampItem', jsonb_build_object('id', ${item.id}), now() + interval '10 minutes', -2)`
+  await tx.$executeRaw`INSERT INTO pgboss.job (name, data, priority) VALUES ('indexItem', jsonb_build_object('id', ${item.id}), -100)`
+  await tx.$executeRaw`
+    INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
+    VALUES ('imgproxy', jsonb_build_object('id', item.id), 21, true, now() + interval '5 seconds')`
+
+  notifyItemParents({ item, me: item.userId, models }).catch(console.error)
+  notifyUserSubscribers({ models, item }).catch(console.error)
+  notifyTerritorySubscribers({ models, item }).catch(console.error)
 }
 
-export async function onFailedStatements ({ invoice }, { models }) {
-  return [
-    models.itemAct.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'FAILED' } }),
-    models.item.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'FAILED' } }),
-    models.upload.updateMany({ where: { invoiceId: invoice.id }, data: { actionInvoiceState: 'FAILED' } })
-  ]
+export async function onFail ({ invoice }, { tx }) {
+  await tx.itemAct.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'FAILED' } })
+  await tx.item.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'FAILED' } })
+  await tx.upload.updateMany({ where: { invoiceId: invoice.id }, data: { actionInvoiceState: 'FAILED' } })
 }
 
 export async function describe ({ parentId }, context) {

@@ -12,21 +12,11 @@ export async function getCost ({ amount }) {
   return BigInt(amount) * BigInt(1000)
 }
 
-export async function doStatements () {
-  return []
-}
-
-export async function onPaidStatements ({ invoice }, { models }) {
-  return [
-    models.users.update({
-      where: { id: invoice.userId },
-      data: { balance: { increment: invoice.msatsReceived } }
-    })
-  ]
-}
-
-export async function resultsToResponse (results, args, context) {
-  return null
+export async function onPaid ({ invoice }, { tx }) {
+  return await tx.users.update({
+    where: { id: invoice.userId },
+    data: { balance: { increment: invoice.msatsReceived } }
+  })
 }
 
 export async function describe ({ amount }, { models, me }) {

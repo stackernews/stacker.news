@@ -13,9 +13,9 @@ export async function getCost ({ id, boost, uploadIds }, { me, models }) {
   return BigInt(totalFeesMsats) + (BigInt(boost - old.boost) * BigInt(1000))
 }
 
-export async function performStatements (
+export async function perform (
   { invoiceId, id, uploadIds = [], itemForwards = [], pollOptions = [], boost = 0, ...data },
-  { me, models, cost }) {
+  { me, models, tx, cost }) {
   const boostMsats = BigInt(boost) * BigInt(1000)
 
   const itemActs = []
@@ -25,13 +25,8 @@ export async function performStatements (
     })
   }
 
-  const stmts = [
-    models.$executeRaw`INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
+  await tx.$executeRaw`INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
     VALUES ('imgproxy', jsonb_build_object('id', ${id}::INTEGER), 21, true, now() + interval '5 seconds')`
-  ]
-  if (data.maxBid) {
-    stmts.push(models.$executeRaw`SELECT * FROM run_auction(${id}::INTEGER)`)
-  }
 
   const mentions = []
   const text = data.text
@@ -48,84 +43,73 @@ export async function performStatements (
   }
 
   if (data.deleteAt) {
-    stmts.push(models.$queryRaw`
+    await tx.$queryRaw`
       INSERT INTO pgboss.job (name, data, startafter, expirein)
       VALUES (
         'deleteItem',
         jsonb_build_object('id', ${id}),
         ${data.deleteAt},
-        ${data.deleteAt} - now() + interval '1 minute')`)
+        ${data.deleteAt} - now() + interval '1 minute')`
   }
   if (data.remindAt) {
-    stmts.push(models.$queryRaw`
+    await tx.$queryRaw`
       INSERT INTO pgboss.job (name, data, startafter, expirein)
       VALUES (
         'remindItem',
         jsonb_build_object('id', ${id}),
         ${data.remindAt},
-        ${data.remindAt} - now() + interval '1 minute')`)
+        ${data.remindAt} - now() + interval '1 minute')`
   }
   if (data.maxBid) {
-    stmts.push(models.$executeRaw`SELECT run_auction(${id}::INTEGER)`)
+    await tx.$executeRaw`SELECT run_auction(${id}::INTEGER)`
   }
 
   const threadSubscriptions = [{ userId: me.id },
     ...itemForwards.map(({ userId }) => ({ userId }))]
 
-  return [
-    models.item.update({
-      where: { id },
-      data: {
-        ...data,
-        boost,
-        threadSubscription: {
-          deleteMany: {
-            userId: {
-              not: {
-                in: threadSubscriptions.map(({ userId }) => userId)
-              }
+  return await tx.item.update({
+    where: { id },
+    data: {
+      ...data,
+      boost,
+      threadSubscription: {
+        deleteMany: {
+          userId: {
+            not: {
+              in: threadSubscriptions.map(({ userId }) => userId)
             }
-          },
-          createMany: threadSubscriptions
+          }
         },
-        itemForwards: {
-          deleteMany: {
-            userId: {
-              not: {
-                in: itemForwards.map(({ userId }) => userId)
-              }
+        createMany: threadSubscriptions
+      },
+      itemForwards: {
+        deleteMany: {
+          userId: {
+            not: {
+              in: itemForwards.map(({ userId }) => userId)
             }
-          },
-          createMany: itemForwards
+          }
         },
-        pollOptions: {
-          createMany: pollOptions
-        },
-        itemUploads: {
-          disconnect: {
-            uploadId: {
-              not: {
-                in: uploadIds
-              }
+        createMany: itemForwards
+      },
+      pollOptions: {
+        createMany: pollOptions
+      },
+      itemUploads: {
+        disconnect: {
+          uploadId: {
+            not: {
+              in: uploadIds
             }
-          },
-          connect: uploadIds.map(id => ({ uploadId: id }))
+          }
         },
-        itemAct: {
-          createMany: itemActs
-        }
+        connect: uploadIds.map(id => ({ uploadId: id }))
+      },
+      itemAct: {
+        createMany: itemActs
       }
-    }),
-    ...stmts
-  ]
-}
-
-export async function resultsToResponse (results, args, context) {
-  return results[0]
-}
-
-export async function onPaidStatements ({ invoice }, { models }) {
-  return []
+    }
+  })
 }
 
 export async function describe ({ id, parentId }, context) {

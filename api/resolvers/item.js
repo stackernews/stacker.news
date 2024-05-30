@@ -1311,6 +1311,9 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
     item.url = removeTracking(item.url)
   }
 
+  // mark item as created with API key
+  item.apiKey = me?.apiKey
+
   const uploadIds = uploadIdsFromText(item.text, { models })
   const { totalFees: imgFees } = await imageFeesInfo(uploadIds, { models, me })
 
@@ -1433,7 +1436,7 @@ export const SELECT =
   "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",
   "Item"."weightedDownVotes", "Item".freebie, "Item".bio, "Item"."otsHash", "Item"."bountyPaidTo",
   ltree2text("Item"."path") AS "path", "Item"."weightedComments", "Item"."imgproxyUrls", "Item".outlawed,
-  "Item"."pollExpiresAt"`
+  "Item"."pollExpiresAt", "Item"."apiKey"`
 
 function topOrderByWeightedSats (me, models) {
   return `ORDER BY ${orderByNumerator(models)} DESC NULLS LAST, "Item".id DESC`

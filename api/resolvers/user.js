@@ -5,7 +5,7 @@ import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { msatsToSats } from '@/lib/format'
 import { bioSchema, emailSchema, settingsSchema, ssValidate, userSchema } from '@/lib/validate'
 import { getItem, updateItem, filterClause, createItem, whereClause, muteClause } from './item'
-import { ANON_USER_ID, DELETE_USER_ID, RESERVED_MAX_USER_ID, SN_NO_REWARDS_IDS } from '@/lib/constants'
+import { USER_ID, RESERVED_MAX_USER_ID, SN_NO_REWARDS_IDS } from '@/lib/constants'
 import { viewGroup } from './growth'
 import { timeUnitForRange, whenRange } from '@/lib/time'
 import assertApiKeyNotPermitted from './apiKey'
@@ -217,7 +217,7 @@ export default {
           SELECT name
           FROM users
           WHERE (
-            id > ${RESERVED_MAX_USER_ID} OR id IN (${ANON_USER_ID}, ${DELETE_USER_ID})
+            id > ${RESERVED_MAX_USER_ID} OR id IN (${USER_ID.anon}, ${USER_ID.delete})
           )
           AND SIMILARITY(name, ${q}) > 0.1
           ORDER BY SIMILARITY(name, ${q}) DESC
@@ -518,7 +518,7 @@ export default {
       return await models.$queryRaw`
         SELECT *
         FROM users
-        WHERE (id > ${RESERVED_MAX_USER_ID} OR id IN (${ANON_USER_ID}, ${DELETE_USER_ID}))
+        WHERE (id > ${RESERVED_MAX_USER_ID} OR id IN (${USER_ID.anon}, ${USER_ID.delete}))
         AND SIMILARITY(name, ${q}) > ${Number(similarity) || 0.1} ORDER BY SIMILARITY(name, ${q}) DESC LIMIT ${Number(limit) || 5}`
     },
     userStatsActions: async (parent, { when, from, to }, { me, models }) => {

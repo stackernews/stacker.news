@@ -1,7 +1,7 @@
 import { GraphQLError } from 'graphql'
 import { amountSchema, ssValidate } from '@/lib/validate'
 import serialize from './serial'
-import { ANON_USER_ID } from '@/lib/constants'
+import { USER_ID } from '@/lib/constants'
 import { getItem } from './item'
 import { topUsers } from './user'
 
@@ -165,7 +165,7 @@ export default {
       await ssValidate(amountSchema, { amount: sats })
 
       await serialize(
-        models.$queryRaw`SELECT donate(${sats}::INTEGER, ${me?.id || ANON_USER_ID}::INTEGER)`,
+        models.$queryRaw`SELECT donate(${sats}::INTEGER, ${me?.id || USER_ID.anon}::INTEGER)`,
         { models, lnd, me, hash, hmac, fee: sats }
       )
 

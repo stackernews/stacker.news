@@ -8,7 +8,7 @@ import domino from 'domino'
 import {
   ITEM_SPAM_INTERVAL, ITEM_FILTER_THRESHOLD,
   COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY,
-  ANON_USER_ID, ANON_ITEM_SPAM_INTERVAL, POLL_COST,
+  USER_ID, ANON_ITEM_SPAM_INTERVAL, POLL_COST,
   ITEM_ALLOW_EDITS, GLOBAL_SEED, ANON_FEE_MULTIPLIER, NOFOLLOW_LIMIT, UNKNOWN_LINK_REL, SN_USER_IDS
 } from '@/lib/constants'
 import { msatsToSats } from '@/lib/format'
@@ -876,7 +876,7 @@ export default {
           models.$queryRaw`
             SELECT
               item_act(${Number(id)}::INTEGER,
-              ${me?.id || ANON_USER_ID}::INTEGER, ${act}::"ItemActType", ${Number(sats)}::INTEGER)`,
+              ${me?.id || USER_ID.anon}::INTEGER, ${act}::"ItemActType", ${Number(sats)}::INTEGER)`,
           { models, lnd, me, hash, hmac, fee: sats }
         )
       }
@@ -1157,7 +1157,7 @@ export default {
       return parent.otsHash
     },
     deleteScheduledAt: async (item, args, { me, models }) => {
-      const meId = me?.id ?? ANON_USER_ID
+      const meId = me?.id ?? USER_ID.anon
       if (meId !== item.userId) {
         // Only query for deleteScheduledAt for your own items to keep DB queries minimized
         return null
@@ -1166,8 +1166,8 @@ export default {
       return deleteJobs[0]?.startafter ?? null
     },
     reminderScheduledAt: async (item, args, { me, models }) => {
-      const meId = me?.id ?? ANON_USER_ID
-      if (meId !== item.userId || meId === ANON_USER_ID) {
+      const meId = me?.id ?? USER_ID.anon
+      if (meId !== item.userId || meId === USER_ID.anon) {
         // don't show reminders on an item if it isn't yours
         // don't support reminders for ANON
         return null
@@ -1317,7 +1317,7 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
   item.subName = item.sub
   delete item.sub
 
-  item.userId = me ? Number(me.id) : ANON_USER_ID
+  item.userId = me ? Number(me.id) : USER_ID.anon
 
   const fwdUsers = await getForwardUsers(models, forward)
   if (item.url && !isJob(item)) {
@@ -1381,7 +1381,7 @@ const enqueueDeletionJob = async (item, models) => {
 }
 
 const deleteReminderAndJob = async ({ me, item, models }) => {
-  if (me?.id && me.id !== ANON_USER_ID) {
+  if (me?.id && me.id !== USER_ID.anon) {
     await models.$transaction([
       models.$queryRawUnsafe(`
         DELETE FROM pgboss.job
@@ -1403,7 +1403,7 @@ const deleteReminderAndJob = async ({ me, item, models }) => {
 
 const createReminderAndJob = async ({ me, item, models }) => {
   // disallow anon to use reminder
-  if (!me || me.id === ANON_USER_ID) {
+  if (!me || me.id === USER_ID.anon) {
     return
   }
   const reminderCommand = getReminderCommand(item.text)

@@ -15,7 +15,7 @@ import BookmarkDropdownItem from './bookmark'
 import SubscribeDropdownItem from './subscribe'
 import { CopyLinkDropdownItem, CrosspostDropdownItem } from './share'
 import Hat from './hat'
-import { AD_USER_ID } from '@/lib/constants'
+import { USER_ID } from '@/lib/constants'
 import ActionDropdown from './action-dropdown'
 import MuteDropdownItem from './mute'
 import { DropdownItemUpVote } from './upvote'
@@ -58,7 +58,7 @@ export default function ItemInfo ({
 
   return (
     <div className={className || `${styles.other}`}>
-      {!(item.position && (pinnable || !item.subName)) && !(!item.parentId && Number(item.user?.id) === AD_USER_ID) &&
+      {!(item.position && (pinnable || !item.subName)) && !(!item.parentId && Number(item.user?.id) === USER_ID.ad) &&
         <>
           <span title={`from ${numWithUnits(item.upvotes, {
             abbreviate: false,

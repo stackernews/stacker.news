@@ -1280,7 +1280,7 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
     }
   }
 
-  item = { subName, userId: me.id, ...item }
+  item = { subName, userId: old.userId, ...item }
   const fwdUsers = await getForwardUsers(models, forward)
 
   const uploadIds = uploadIdsFromText(item.text, { models })

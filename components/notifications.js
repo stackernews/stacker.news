@@ -404,7 +404,7 @@ function ItemMention ({ n }) {
           : (
             <div className='pb-2'>
               <RootProvider root={n.item.root}>
-                <Comment item={n.item} noReply includeParent rootText={n.__typename === 'Reply' ? 'replying on:' : undefined} clickToContext />
+                <Comment item={n.item} noReply includeParent rootText='replying on:' clickToContext />
               </RootProvider>
             </div>)}
       </div>

@@ -1200,7 +1200,7 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
     item.url = ensureProtocol(item.url)
     item.url = removeTracking(item.url)
   }
-  
+
   // mark item as created with API key
   item.apiKey = me?.apiKey
 

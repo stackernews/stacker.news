@@ -429,33 +429,6 @@ export default {
         }
       }
 
-      // check if new invites have been redeemed
-      if (user.noteInvites) {
-        const [newInvites] = await models.$queryRawUnsafe(`
-          SELECT EXISTS(
-            SELECT *
-            FROM users JOIN "Invite" on users."inviteId" = "Invite".id
-            WHERE "Invite"."userId" = $1
-            AND users.created_at > $2)`, me.id, lastChecked)
-        if (newInvites.exists) {
-          foundNotes()
-          return true
-        }
-
-        const referral = await models.user.findFirst({
-          where: {
-            referrerId: me.id,
-            createdAt: {
-              gt: lastChecked
-            }
-          }
-        })
-        if (referral) {
-          foundNotes()
-          return true
-        }
-      }
-
       if (user.noteCowboyHat) {
         const streak = await models.streak.findFirst({
           where: {

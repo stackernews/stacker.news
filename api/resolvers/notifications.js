@@ -235,29 +235,6 @@ export default {
         )
       }
 
-      if (meFull.noteInvites) {
-        queries.push(
-          `(SELECT "Invite".id, MAX(users.created_at) AS "sortTime", NULL as "earnedSats",
-            'Invitification' AS type
-            FROM users JOIN "Invite" on users."inviteId" = "Invite".id
-            WHERE "Invite"."userId" = $1
-            AND users.created_at < $2
-            GROUP BY "Invite".id
-            ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT})`
-        )
-        queries.push(
-          `(SELECT users.id::text, users.created_at AS "sortTime", NULL as "earnedSats",
-            'Referral' AS type
-            FROM users
-            WHERE "users"."referrerId" = $1
-            AND "inviteId" IS NULL
-            AND users.created_at < $2
-            ORDER BY "sortTime" DESC
-            LIMIT ${LIMIT})`
-        )
-      }
-
       if (meFull.noteEarning) {
         queries.push(
           `(SELECT min(id)::text, created_at AS "sortTime", FLOOR(sum(msats) / 1000) as "earnedSats",

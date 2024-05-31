@@ -1230,7 +1230,7 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
 
   // author can always edit their own item
   const mid = Number(me?.id)
-  const isMine = Number(old.userId) !== mid
+  const isMine = Number(old.userId) === mid
 
   // allow admins to edit special items
   const allowEdit = ITEM_ALLOW_EDITS.includes(old.id)
@@ -1258,7 +1258,7 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
   const user = await models.user.findUnique({ where: { id: me.id } })
 
   // prevent update if it's not explicitly allowed, not their bio, not their job and older than 10 minutes
-  const myBio = user.bioId === old.i
+  const myBio = user.bioId === old.id
   const timer = Date.now() < new Date(old.createdAt).getTime() + 10 * 60_000
 
   if (!allowEdit && !myBio && !timer) {

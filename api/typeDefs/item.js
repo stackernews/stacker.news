@@ -22,6 +22,7 @@ export default gql`
     sats: Int!
     path: String!
     act: String!
+    invoice: Invoice
   }
 
   extend type Mutation {

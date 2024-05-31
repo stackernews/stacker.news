@@ -121,7 +121,7 @@ async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
 
   if (inv.is_confirmed) {
     if (dbInv.actionType) {
-      return await settleAction({ data: { invoiceId: dbInv.id }, ...arguments })
+      return await settleAction({ data: { invoiceId: dbInv.id }, models, lnd, boss })
     }
 
     // NOTE: confirm invoice prevents double confirmations (idempotent)
@@ -167,7 +167,7 @@ async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
 
   if (inv.is_canceled) {
     if (dbInv.actionType) {
-      return await settleActionError({ data: { invoiceId: dbInv.id }, ...arguments })
+      return await settleActionError({ data: { invoiceId: dbInv.id }, models, lnd, boss })
     }
 
     return await serialize(

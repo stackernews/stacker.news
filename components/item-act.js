@@ -113,7 +113,7 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
   const act = useAct()
 
   const onSubmit = useCallback(async ({ amount, hash, hmac }) => {
-    await act({
+    console.log(await act({
       variables: {
         id: item.id,
         sats: Number(amount),
@@ -121,7 +121,7 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
         hash,
         hmac
       }
-    })
+    }))
     if (!me) setItemMeAnonSats({ id: item.id, amount })
     addCustomTip(Number(amount))
   }, [me, act, down, item.id, strike])
@@ -132,7 +132,7 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
       sats: Number(amount),
       act: down ? 'DONT_LIKE_THIS' : 'TIP'
     }
-    const optimisticResponse = { act: { ...variables, path: item.path } }
+    const optimisticResponse = { act: { ...variables, path: item.path, invoice: null } }
     strike()
     onClose()
     return { mutation: ACT_MUTATION, variables, optimisticResponse, update: actUpdate({ me }) }
@@ -181,6 +181,7 @@ export const ACT_MUTATION = gql`
       sats
       path
       act
+      invoice { bolt11 }
     }
   }`
 
@@ -193,56 +194,39 @@ export function useZap () {
   const update = useCallback((cache, args) => {
     const { data: { act: { id, sats, path } } } = args
 
-    // determine how much we increased existing sats by by checking the
-    // difference between result sats and meSats
-    // if it's negative, skip the cache as it's an out of order update
-    // if it's positive, add it to sats and commentSats
-
-    const item = cache.readFragment({
+    cache.modify({
       id: `Item:${id}`,
-      fragment: gql`
-        fragment ItemMeSatsZap on Item {
-          meSats
+      fields: {
+        sats (existingSats = 0) {
+          return existingSats + sats
+        },
+        meSats: () => {
+          return sats
         }
-      `
+      }
     })
 
-    const satsDelta = sats - item.meSats
-
-    if (satsDelta > 0) {
+    // update all ancestors
+    path.split('.').forEach(aId => {
+      if (Number(aId) === Number(id)) return
       cache.modify({
-        id: `Item:${id}`,
+        id: `Item:${aId}`,
         fields: {
-          sats (existingSats = 0) {
-            return existingSats + satsDelta
-          },
-          meSats: () => {
-            return sats
+          commentSats (existingCommentSats = 0) {
+            return existingCommentSats + sats
           }
         }
       })
-
-      // update all ancestors
-      path.split('.').forEach(aId => {
-        if (Number(aId) === Number(id)) return
-        cache.modify({
-          id: `Item:${aId}`,
-          fields: {
-            commentSats (existingCommentSats = 0) {
-              return existingCommentSats + satsDelta
-            }
-          }
-        })
-      })
-    }
+    })
   }, [])
 
   const ZAP_MUTATION = gql`
     mutation idempotentAct($id: ID!, $sats: Int!, $hash: String, $hmac: String) {
-      act(id: $id, sats: $sats, hash: $hash, hmac: $hmac, idempotent: true) {
+      act(id: $id, sats: $sats, hash: $hash, hmac: $hmac) {
         id
         sats
         path
+        invoice { bolt11 }
       }
     }`
   const [zap] = useMutation(ZAP_MUTATION)
@@ -257,11 +241,10 @@ export function useZap () {
     const meSats = (item?.meSats || 0)
 
     // add current sats to next tip since idempotent zaps use desired total zap not difference
-    const sats = meSats + nextTip(meSats, { ...me?.privates })
-    const satsDelta = sats - meSats
+    const sats = nextTip(meSats, { ...me?.privates })
 
     const variables = { id: item.id, sats, act: 'TIP' }
-    const notifyProps = { itemId: item.id, sats: satsDelta }
+    const notifyProps = { itemId: item.id, sats }
     const optimisticResponse = { act: { path: item.path, ...variables } }
 
     let revert, cancel, nid
@@ -269,14 +252,14 @@ export function useZap () {
       revert = optimisticUpdate({ mutation: ZAP_MUTATION, variables, optimisticResponse, update })
       strike()
 
-      await abortSignal.pause({ me, amount: satsDelta })
+      await abortSignal.pause({ me, amount: sats })
 
       if (me) {
         nid = notify(ClientNotification.Zap.PENDING, notifyProps)
       }
 
       let hash, hmac;
-      [{ hash, hmac }, cancel] = await payment.request(satsDelta)
+      [{ hash, hmac }, cancel] = await payment.request(sats)
       await zap({ variables: { ...variables, hash, hmac } })
     } catch (error) {
       revert?.()

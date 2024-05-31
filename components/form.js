@@ -855,12 +855,7 @@ export function Form ({
           nid = notify(clientNotification.PENDING, variables)
         }
 
-        let hash, hmac
-        if (prepaid) {
-          [{ hash, hmac }, cancel] = await payment.request(amount)
-        }
-
-        await onSubmit({ hash, hmac, ...variables }, ...args)
+        await onSubmit({ ...variables }, ...args)
 
         if (!storageKeyPrefix) return
         clearLocalStorage(values)

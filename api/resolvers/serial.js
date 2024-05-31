@@ -133,7 +133,8 @@ export async function verifyPayment (models, hash, hmac, fee) {
   if (!invoice.msatsReceived) {
     throw new GraphQLError('invoice was not paid', { extensions: { code: 'BAD_INPUT' } })
   }
-  if (fee && msatsToSats(invoice.msatsReceived) < fee) {
+  if (fee && invoice.msatsReceived < fee) {
+    console.log('invoice amount too low', { fee, msatsReceived: invoice.msatsReceived })
     throw new GraphQLError('invoice amount too low', { extensions: { code: 'BAD_INPUT' } })
   }
 

@@ -4,16 +4,16 @@ import { verifyPayment } from '../resolvers/serial'
 import { ANON_USER_ID } from '@/lib/constants'
 
 export const paidActions = {
-  BUY_CREDITS: require('./buyCredits'),
-  CREATE_ITEM: require('./createItem'),
-  UPDATE_ITEM: require('./updateItem'),
-  ZAP: require('./zap'),
-  DOWN_ZAP: require('./downZap'),
-  POLL_VOTE: require('./pollVote'),
-  TERRITORY_CREATE: require('./territoryCreate'),
-  TERRITORY_UPDATE: require('./territoryUpdate'),
-  TERRITORY_BILLING: require('./territoryBilling'),
-  DONATE: require('./donate')
+  BUY_CREDITS: await import('./buyCredits'),
+  CREATE_ITEM: await import('./createItem'),
+  UPDATE_ITEM: await import('./updateItem'),
+  ZAP: await import('./zap'),
+  DOWN_ZAP: await import('./downZap'),
+  POLL_VOTE: await import('./pollVote'),
+  TERRITORY_CREATE: await import('./territoryCreate'),
+  TERRITORY_UPDATE: await import('./territoryUpdate'),
+  TERRITORY_BILLING: await import('./territoryBilling'),
+  DONATE: await import('./donate')
 }
 
 export default async function performPaidAction (actionType, args, context) {
@@ -28,13 +28,13 @@ export default async function performPaidAction (actionType, args, context) {
     throw new Error('You must be logged in to perform this action')
   }
 
+  context.cost = await paidAction.getCost(args, context)
   if (hash || hmac || !me) {
     return await performPessimiticAction(actionType, args, context)
   }
 
   context.user = await models.user.findUnique({ where: { id: me.id } })
-  context.cost = await paidAction.getCost(args, context)
-  const isRich = context.cost <= context.user.privates.msats
+  const isRich = context.cost <= context.user.msats
 
   if (!isRich && !paidAction.supportsOptimism) {
     return await performPessimiticAction(actionType, args, context)
@@ -44,6 +44,7 @@ export default async function performPaidAction (actionType, args, context) {
     try {
       return await performFeeCreditAction(actionType, args, context)
     } catch (e) {
+      console.error(e)
       // if we fail to do the action with fee credits, we should fall back to optimistic
       if (!paidAction.supportsOptimism) {
         return await performPessimiticAction(actionType, args, context)
@@ -62,11 +63,12 @@ async function performOptimisticAction (actionType, args, context) {
   const { me, models, lnd, cost, user } = context
   const action = paidActions[actionType]
 
+  const expiresAt = datePivot(new Date(), { days: 1 })
   const lndInv = await createInvoice({
-    description: user.privates.hideInvoiceDesc ? undefined : action.describe(args, context),
+    description: user.hideInvoiceDesc ? undefined : action.describe(args, context),
     lnd,
     mtokens: String(cost),
-    expires_at: datePivot(new Date(), { days: 1 })
+    expires_at: expiresAt
   })
 
   return await models.$transaction(async tx => {
@@ -75,12 +77,13 @@ async function performOptimisticAction (actionType, args, context) {
     // create invoice XXX these calls are probably wrong
     const invoice = await tx.invoice.create({
       data: {
-        id: lndInv.id,
-        msats: cost,
+        hash: lndInv.id,
+        msatsRequested: cost,
         bolt11: lndInv.request,
         userId: me.id,
         actionType,
-        actionState: 'PENDING'
+        actionState: 'PENDING',
+        expiresAt
       }
     })
 

@@ -1,6 +1,5 @@
 import { GraphQLError } from 'graphql'
 import { ensureProtocol, removeTracking, stripTrailingSlash } from '@/lib/url'
-import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
 import { ruleSet as publicationDateRuleSet } from '@/lib/timedate-scraper'
@@ -8,19 +7,19 @@ import domino from 'domino'
 import {
   ITEM_SPAM_INTERVAL, ITEM_FILTER_THRESHOLD,
   COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY,
-  ANON_USER_ID, ANON_ITEM_SPAM_INTERVAL, POLL_COST,
-  ITEM_ALLOW_EDITS, GLOBAL_SEED, ANON_FEE_MULTIPLIER, NOFOLLOW_LIMIT, UNKNOWN_LINK_REL
+  ANON_USER_ID, POLL_COST,
+  ITEM_ALLOW_EDITS, GLOBAL_SEED, NOFOLLOW_LIMIT, UNKNOWN_LINK_REL
 } from '@/lib/constants'
 import { msatsToSats } from '@/lib/format'
 import { parse } from 'tldts'
 import uu from 'url-unshort'
 import { actSchema, advSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, ssValidate } from '@/lib/validate'
-import { notifyItemParents, notifyUserSubscribers, notifyZapped, notifyTerritorySubscribers, notifyMention } from '@/lib/webPush'
-import { defaultCommentSort, isJob, deleteItemByAuthor, getDeleteCommand, hasDeleteCommand, getReminderCommand, hasReminderCommand } from '@/lib/item'
+import { defaultCommentSort, isJob, deleteItemByAuthor } from '@/lib/item'
 import { datePivot, whenRange } from '@/lib/time'
-import { imageFeesInfo, uploadIdsFromText } from './image'
+import { uploadIdsFromText } from './image'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
+import performPaidAction from '../paidAction'
 
 function commentsOrderByClause (me, models, sort) {
   if (sort === 'recent') {
@@ -754,10 +753,6 @@ export default {
       if (old.bio) {
         throw new GraphQLError('cannot delete bio', { extensions: { code: 'BAD_INPUT' } })
       }
-      // clean up any pending reminders, if triggered on this item and haven't been executed
-      if (hasReminderCommand(old.text)) {
-        await deleteReminderAndJob({ me, item: old, models })
-      }
 
       return await deleteItemByAuthor({ models, id, item: old })
     },
@@ -832,7 +827,6 @@ export default {
         return await updateItem(parent, { id, ...item }, { me, models })
       } else {
         item = await createItem(parent, item, { me, models, lnd, hash, hmac })
-        notifyItemParents({ item, me, models })
         return item
       }
     },
@@ -853,12 +847,7 @@ export default {
         throw new GraphQLError('you must be logged in', { extensions: { code: 'FORBIDDEN' } })
       }
 
-      await serialize(
-        models.$queryRawUnsafe(`${SELECT} FROM poll_vote($1::INTEGER, $2::INTEGER) AS "Item"`, Number(id), Number(me.id)),
-        { models, lnd, me, hash, hmac }
-      )
-
-      return id
+      return await performPaidAction('POLL_VOTE', { id }, { me, models, lnd, hash, hmac })
     },
     act: async (parent, { id, sats, act = 'TIP', idempotent, hash, hmac }, { me, models, lnd, headers }) => {
       assertApiKeyNotPermitted({ me })
@@ -889,35 +878,12 @@ export default {
         }
       }
 
-      if (idempotent) {
-        await serialize(
-          models.$queryRaw`
-          SELECT
-            item_act(${Number(id)}::INTEGER, ${me.id}::INTEGER, ${act}::"ItemActType",
-            (SELECT ${Number(sats)}::INTEGER - COALESCE(sum(msats) / 1000, 0)
-             FROM "ItemAct"
-             WHERE act IN ('TIP', 'FEE')
-             AND "itemId" = ${Number(id)}::INTEGER
-             AND "userId" = ${me.id}::INTEGER)::INTEGER)`,
-          { models, lnd, hash, hmac }
-        )
+      if (act === 'TIP') {
+        return await performPaidAction('ZAP', { id, sats }, { me, models, lnd, hash, hmac })
+      } else if (act === 'DONT_LIKE_THIS') {
+        return await performPaidAction('DOWN_ZAP', { id, sats }, { me, models, lnd, hash, hmac })
       } else {
-        await serialize(
-          models.$queryRaw`
-            SELECT
-              item_act(${Number(id)}::INTEGER,
-              ${me?.id || ANON_USER_ID}::INTEGER, ${act}::"ItemActType", ${Number(sats)}::INTEGER)`,
-          { models, lnd, me, hash, hmac, fee: sats }
-        )
-      }
-
-      notifyZapped({ models, id })
-
-      return {
-        id,
-        sats,
-        act,
-        path: item.path
+        throw new GraphQLError('unknown act', { extensions: { code: 'BAD_INPUT' } })
       }
     },
     toggleOutlaw: async (parent, { id }, { me, models }) => {
@@ -1208,52 +1174,6 @@ export default {
   }
 }
 
-const namePattern = /\B@[\w_]+/gi
-
-export const createMentions = async (item, models) => {
-  // if we miss a mention, in the rare circumstance there's some kind of
-  // failure, it's not a big deal so we don't do it transactionally
-  // ideally, we probably would
-  if (!item.text) {
-    return
-  }
-
-  try {
-    const mentions = item.text.match(namePattern)?.map(m => m.slice(1))
-    if (mentions?.length > 0) {
-      const users = await models.user.findMany({
-        where: {
-          name: { in: mentions },
-          // Don't create mentions when mentioning yourself
-          id: { not: item.userId }
-        }
-      })
-
-      users.forEach(async user => {
-        const data = {
-          itemId: item.id,
-          userId: user.id
-        }
-
-        const mention = await models.mention.upsert({
-          where: {
-            itemId_userId: data
-          },
-          update: data,
-          create: data
-        })
-
-        // only send if mention is new to avoid duplicates
-        if (mention.createdAt.getTime() === mention.updatedAt.getTime()) {
-          notifyMention({ models, userId: user.id, item })
-        }
-      })
-    }
-  } catch (e) {
-    console.error('mention failure', e)
-  }
-}
-
 export const updateItem = async (parent, { sub: subName, forward, options, ...item }, { me, models, lnd, hash, hmac }) => {
   // update iff this item belongs to me
   const old = await models.item.findUnique({ where: { id: Number(item.id) }, include: { sub: true } })
@@ -1285,156 +1205,36 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
     item.url = ensureProtocol(item.url)
     item.url = removeTracking(item.url)
   }
-  // only update item with the boost delta ... this is a bit of hack given the way
-  // boost used to work
-  if (item.boost > 0 && old.boost > 0) {
-    // only update the boost if it is higher than the old boost
-    if (item.boost > old.boost) {
-      item.boost = item.boost - old.boost
-    } else {
-      delete item.boost
-    }
-  }
 
   item = { subName, userId: me.id, ...item }
-  const fwdUsers = await getForwardUsers(models, forward)
+  item.forwardUsers = await getForwardUsers(models, forward)
+  item.uploadIds = uploadIdsFromText(item.text, { models })
 
-  const uploadIds = uploadIdsFromText(item.text, { models })
-  const { totalFees: imgFees } = await imageFeesInfo(uploadIds, { models, me });
+  const resultItem = await performPaidAction('UPDATE_ITEM', item, { models, me, lnd, hash, hmac })
 
-  ([item] = await serialize(
-    models.$queryRawUnsafe(`${SELECT} FROM update_item($1::JSONB, $2::JSONB, $3::JSONB, $4::INTEGER[]) AS "Item"`,
-      JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options), uploadIds),
-    { models, lnd, me, hash, hmac, fee: imgFees }
-  ))
-
-  await createMentions(item, models)
-
-  if (hasDeleteCommand(old.text)) {
-    // delete any deletion jobs that were created from a prior version of the item
-    await clearDeletionJobs(item, models)
-  }
-  await enqueueDeletionJob(item, models)
-
-  if (hasReminderCommand(old.text)) {
-    // delete any reminder jobs that were created from a prior version of the item
-    await deleteReminderAndJob({ me, item, models })
-  }
-  await createReminderAndJob({ me, item, models })
-
-  item.comments = []
-  return item
+  resultItem.comments = []
+  return resultItem
 }
 
 export const createItem = async (parent, { forward, options, ...item }, { me, models, lnd, hash, hmac }) => {
-  const spamInterval = me ? ITEM_SPAM_INTERVAL : ANON_ITEM_SPAM_INTERVAL
-
   // rename to match column name
   item.subName = item.sub
   delete item.sub
 
   item.userId = me ? Number(me.id) : ANON_USER_ID
 
-  const fwdUsers = await getForwardUsers(models, forward)
+  item.forwardUsers = await getForwardUsers(models, forward)
+  item.uploadIds = uploadIdsFromText(item.text, { models })
+
   if (item.url && !isJob(item)) {
     item.url = ensureProtocol(item.url)
     item.url = removeTracking(item.url)
   }
 
-  const uploadIds = uploadIdsFromText(item.text, { models })
-  const { totalFees: imgFees } = await imageFeesInfo(uploadIds, { models, me })
+  const resultItem = await performPaidAction('CREATE_ITEM', item, { models, me, lnd, hash, hmac })
 
-  let fee = 0
-  if (!me) {
-    if (item.parentId) {
-      fee = ANON_FEE_MULTIPLIER
-    } else {
-      const sub = await models.sub.findUnique({ where: { name: item.subName } })
-      fee = sub.baseCost * ANON_FEE_MULTIPLIER + (item.boost || 0)
-    }
-  }
-  fee += imgFees;
-
-  ([item] = await serialize(
-    models.$queryRawUnsafe(
-      `${SELECT} FROM create_item($1::JSONB, $2::JSONB, $3::JSONB, '${spamInterval}'::INTERVAL, $4::INTEGER[]) AS "Item"`,
-      JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options), uploadIds),
-    { models, lnd, me, hash, hmac, fee }
-  ))
-
-  await createMentions(item, models)
-
-  await enqueueDeletionJob(item, models)
-
-  await createReminderAndJob({ me, item, models })
-
-  notifyUserSubscribers({ models, item })
-
-  notifyTerritorySubscribers({ models, item })
-
-  item.comments = []
-  return item
-}
-
-const clearDeletionJobs = async (item, models) => {
-  await models.$queryRawUnsafe(`DELETE FROM pgboss.job WHERE name = 'deleteItem' AND data->>'id' = '${item.id}';`)
-}
-
-const enqueueDeletionJob = async (item, models) => {
-  const deleteCommand = getDeleteCommand(item.text)
-  if (deleteCommand) {
-    await models.$queryRawUnsafe(`
-      INSERT INTO pgboss.job (name, data, startafter, expirein)
-      VALUES (
-        'deleteItem',
-        jsonb_build_object('id', ${item.id}),
-        now() + interval '${deleteCommand.number} ${deleteCommand.unit}s',
-        interval '${deleteCommand.number} ${deleteCommand.unit}s' + interval '1 minute')`)
-  }
-}
-
-const deleteReminderAndJob = async ({ me, item, models }) => {
-  if (me?.id && me.id !== ANON_USER_ID) {
-    await models.$transaction([
-      models.$queryRawUnsafe(`
-        DELETE FROM pgboss.job
-        WHERE name = 'reminder'
-        AND data->>'itemId' = '${item.id}'
-        AND data->>'userId' = '${me.id}'
-        AND state <> 'completed'`),
-      models.reminder.deleteMany({
-        where: {
-          itemId: Number(item.id),
-          userId: Number(me.id),
-          remindAt: {
-            gt: new Date()
-          }
-        }
-      })])
-  }
-}
-
-const createReminderAndJob = async ({ me, item, models }) => {
-  // disallow anon to use reminder
-  if (!me || me.id === ANON_USER_ID) {
-    return
-  }
-  const reminderCommand = getReminderCommand(item.text)
-  if (reminderCommand) {
-    await models.$transaction([
-      models.$queryRawUnsafe(`
-      INSERT INTO pgboss.job (name, data, startafter, expirein)
-      VALUES (
-        'reminder',
-        jsonb_build_object('itemId', ${item.id}, 'userId', ${me.id}),
-        now() + interval '${reminderCommand.number} ${reminderCommand.unit}s',
-        interval '${reminderCommand.number} ${reminderCommand.unit}s' + interval '1 minute')`),
-      // use a raw query instead of the model to reuse the built-in `now + interval` support instead of doing it via JS
-      models.$queryRawUnsafe(`
-      INSERT INTO "Reminder" ("userId", "itemId", "remindAt")
-      VALUES (${me.id}, ${item.id}, now() + interval '${reminderCommand.number} ${reminderCommand.unit}s')`)
-    ])
-  }
+  resultItem.comments = []
+  return resultItem
 }
 
 const getForwardUsers = async (models, forward) => {

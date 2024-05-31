@@ -19,7 +19,7 @@ export async function settleAction ({ data: { invoiceId }, models, lnd, boss }) 
     await models.$transaction(async tx => {
       // optimistic concurrency control (aborts if invoice is not in PENDING state)
       await tx.invoice.update({
-        where: { id: invoice.id, actionState: 'PENDING' },
+        where: { id: dbInv.id, actionState: 'PENDING' },
         data: {
           actionState: 'PAID',
           confirmedAt: new Date(invoice.confirmed_at),
@@ -39,7 +39,7 @@ export async function settleAction ({ data: { invoiceId }, models, lnd, boss }) 
         return
       }
     }
-    console.error(`unexpected error transitioning action ${dbInv.actionType} to PAID`, e)
+    console.error(`unexpected error transitioning action ${dbInv?.actionType} to PAID`, e)
     boss.send(
       'settleAction',
       { invoiceId },
@@ -69,7 +69,7 @@ export async function settleActionError ({ data: { invoiceId }, models, lnd, bos
           cancelled: true
         }
       })
-      await paidActions[invoice.actionType].onFail?.({ invoice: dbInv }, { models, tx })
+      await paidActions[dbInv.actionType].onFail?.({ invoice: dbInv }, { models, tx })
     })
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError) {

@@ -26,18 +26,11 @@ function commentsOrderByClause (me, models, sort) {
     return 'ORDER BY "Item".created_at DESC, "Item".id DESC'
   }
 
-  if (me) {
-    if (sort === 'top') {
-      return `ORDER BY COALESCE(
-        personal_top_score,
-        ${orderByNumerator(models, 0)}) DESC NULLS LAST,
-        "Item".msats DESC, ("Item".freebie IS FALSE) DESC, "Item".id DESC`
-    } else {
-      return `ORDER BY COALESCE(
+  if (me && sort === 'hot') {
+    return `ORDER BY COALESCE(
         personal_hot_score,
         ${orderByNumerator(models, 0)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3)) DESC NULLS LAST,
         "Item".msats DESC, ("Item".freebie IS FALSE) DESC, "Item".id DESC`
-    }
   } else {
     if (sort === 'top') {
       return `ORDER BY ${orderByNumerator(models, 0)} DESC NULLS LAST, "Item".msats DESC, ("Item".freebie IS FALSE) DESC,  "Item".id DESC`
@@ -372,32 +365,10 @@ export default {
           }, decodedCursor.time, decodedCursor.offset, limit, ...subArr)
           break
         case 'top':
-          if (me && (!by || by === 'zaprank') && (when === 'day' || when === 'week')) {
-            // personalized zaprank only goes back 7 days
-            items = await itemQueryWithMeta({
-              me,
-              models,
-              query: `
-              ${SELECT}, GREATEST(g.tf_top_score, l.tf_top_score) AS rank
-              ${relationClause(type)}
-              ${joinZapRankPersonalView(me, models)}
-              ${whereClause(
-                '"Item"."deletedAt" IS NULL',
-                subClause(sub, 5, subClauseTable(type), me, showNsfw),
-                typeClause(type),
-                whenClause(when, 'Item'),
-                await filterClause(me, models, type),
-                muteClause(me))}
-              ORDER BY rank DESC
-              OFFSET $3
-              LIMIT $4`,
-              orderBy: 'ORDER BY rank DESC'
-            }, ...whenRange(when, from, to || decodedCursor.time), decodedCursor.offset, limit, ...subArr)
-          } else {
-            items = await itemQueryWithMeta({
-              me,
-              models,
-              query: `
+          items = await itemQueryWithMeta({
+            me,
+            models,
+            query: `
               ${selectClause(type)}
               ${relationClause(type)}
               ${whereClause(
@@ -410,9 +381,8 @@ export default {
               ${orderByClause(by || 'zaprank', me, models, type)}
               OFFSET $3
               LIMIT $4`,
-              orderBy: orderByClause(by || 'zaprank', me, models, type)
-            }, ...whenRange(when, from, to || decodedCursor.time), decodedCursor.offset, limit, ...subArr)
-          }
+            orderBy: orderByClause(by || 'zaprank', me, models, type)
+          }, ...whenRange(when, from, to || decodedCursor.time), decodedCursor.offset, limit, ...subArr)
           break
         default:
           // sub so we know the default ranking
@@ -1230,6 +1200,9 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
     item.url = ensureProtocol(item.url)
     item.url = removeTracking(item.url)
   }
+  
+  // mark item as created with API key
+  item.apiKey = me?.apiKey
 
   const resultItem = await performPaidAction('CREATE_ITEM', item, { models, me, lnd, hash, hmac })
 
@@ -1263,7 +1236,7 @@ export const SELECT =
   "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",
   "Item"."weightedDownVotes", "Item".freebie, "Item".bio, "Item"."otsHash", "Item"."bountyPaidTo",
   ltree2text("Item"."path") AS "path", "Item"."weightedComments", "Item"."imgproxyUrls", "Item".outlawed,
-  "Item"."pollExpiresAt"`
+  "Item"."pollExpiresAt", "Item"."apiKey"`
 
 function topOrderByWeightedSats (me, models) {
   return `ORDER BY ${orderByNumerator(models)} DESC NULLS LAST, "Item".id DESC`

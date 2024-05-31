@@ -136,6 +136,9 @@ export default function ItemInfo ({
             {' '}<Badge className={styles.newComment} bg={null}>freebie</Badge>
           </Link>
         )}
+      {(item.apiKey &&
+        <>{' '}<Badge className={styles.newComment} bg={null}>bot</Badge></>
+        )}
       {extraBadges}
       {canEdit && !item.deletedAt &&
         <>

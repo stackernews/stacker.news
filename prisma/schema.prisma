@@ -425,6 +425,7 @@ model Item {
   invoiceId          Int?
   invoiceActionState InvoiceActionState?
   outlawed           Boolean               @default(false)
+  apiKey             Boolean               @default(false)
   pollExpiresAt      DateTime?
   Ancestors          Reply[]               @relation("AncestorReplyItem")
   Replies            Reply[]

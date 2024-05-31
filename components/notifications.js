@@ -396,7 +396,7 @@ function ItemMention ({ n }) {
   return (
     <>
       <small className='fw-bold text-info ms-2'>
-        one of your {n.title ? 'posts' : 'comments'} was mentioned
+        your item was mentioned in
       </small>
       <div>
         {n.item?.title

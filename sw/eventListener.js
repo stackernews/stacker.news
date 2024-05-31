@@ -144,7 +144,7 @@ const mergeAndShowNotification = async (sw, payload, currentNotifications, tag, 
     } else if (compareTag === 'MENTION') {
       title = `you were mentioned ${amount} times`
     } else if (compareTag === 'ITEM_MENTION') {
-      title = `your ${subType === 'POST' ? 'posts' : 'comments'} were mentioned ${amount} times`
+      title = `your items were mentioned ${amount} times`
     } else if (compareTag === 'REFERRAL') {
       title = `${amount} stackers joined via your referral links`
     } else if (compareTag === 'INVITE') {

@@ -282,7 +282,7 @@ export default function Settings ({ ssrData }) {
             groupClassName='mb-0'
           />
           <Checkbox
-            label='someone mentions one of my posts or comments'
+            label='someone mentions one of my items'
             name='noteItemMentions'
             groupClassName='mb-0'
           />

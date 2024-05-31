@@ -1179,7 +1179,7 @@ export default {
 }
 
 const namePattern = /\B@[\w_]+/gi
-const refPattern = /\B#\d+/gi
+const refPattern = new RegExp(`(?:#|${process.env.NEXT_PUBLIC_URL}/items/)(?<id>\\d+)`, 'gi')
 
 export const createMentions = async (item, models) => {
   // if we miss a mention, in the rare circumstance there's some kind of
@@ -1227,7 +1227,12 @@ export const createMentions = async (item, models) => {
 
   // item mentions
   try {
-    const refs = item.text.match(refPattern)?.map(m => Number(m.slice(1)))
+    const refs = item.text.match(refPattern)?.map(m => {
+      if (m.startsWith('#')) return Number(m.slice(1))
+      // is not #<id> syntax but full URL
+      return Number(m.split('/').slice(-1)[0])
+    })
+
     if (refs?.length > 0) {
       const referee = await models.item.findMany({
         where: {

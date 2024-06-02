@@ -1180,7 +1180,7 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
   item.forwardUsers = await getForwardUsers(models, forward)
   item.uploadIds = uploadIdsFromText(item.text, { models })
 
-  const resultItem = await performPaidAction('UPDATE_ITEM', item, { models, me, lnd, hash, hmac })
+  const resultItem = await performPaidAction('ITEM_UPDATE', item, { models, me, lnd, hash, hmac })
 
   resultItem.comments = []
   return resultItem
@@ -1204,7 +1204,7 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
   // mark item as created with API key
   item.apiKey = me?.apiKey
 
-  const resultItem = await performPaidAction('CREATE_ITEM', item, { models, me, lnd, hash, hmac })
+  const resultItem = await performPaidAction('ITEM_CREATE', item, { models, me, lnd, hash, hmac })
 
   resultItem.comments = []
   return resultItem
@@ -1228,15 +1228,8 @@ const getForwardUsers = async (models, forward) => {
 
 // we have to do our own query because ltree is unsupported
 export const SELECT =
-  `SELECT "Item".id, "Item".created_at, "Item".created_at as "createdAt", "Item".updated_at,
-  "Item".updated_at as "updatedAt", "Item".title, "Item".text, "Item".url, "Item"."bounty",
-  "Item"."noteId", "Item"."userId", "Item"."parentId", "Item"."pinId", "Item"."maxBid",
-  "Item"."rootId", "Item".upvotes, "Item".company, "Item".location, "Item".remote, "Item"."deletedAt",
-  "Item"."subName", "Item".status, "Item"."uploadId", "Item"."pollCost", "Item".boost, "Item".msats,
-  "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",
-  "Item"."weightedDownVotes", "Item".freebie, "Item".bio, "Item"."otsHash", "Item"."bountyPaidTo",
-  ltree2text("Item"."path") AS "path", "Item"."weightedComments", "Item"."imgproxyUrls", "Item".outlawed,
-  "Item"."pollExpiresAt", "Item"."apiKey"`
+  `SELECT "Item".*, "Item".created_at as "createdAt", "Item".updated_at as "updatedAt",
+    ltree2text("Item"."path") AS "path"`
 
 function topOrderByWeightedSats (me, models) {
   return `ORDER BY ${orderByNumerator(models)} DESC NULLS LAST, "Item".id DESC`

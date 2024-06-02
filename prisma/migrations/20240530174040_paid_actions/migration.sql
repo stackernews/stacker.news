@@ -55,12 +55,12 @@ DROP FUNCTION IF EXISTS timestamp_item_on_insert;
 DROP TRIGGER IF EXISTS ncomments_after_comment_trigger ON "Item";
 DROP FUNCTION IF EXISTS ncomments_after_comment;
 
-CREATE OR REPLACE FUNCTION ncomments_after_comment(id INTEGER) RETURNS INTEGER AS $$
+CREATE OR REPLACE FUNCTION ncomments_after_comment(_id INTEGER) RETURNS INTEGER AS $$
 DECLARE
     item "Item";
     user_trust DOUBLE PRECISION;
 BEGIN
-    SELECT * INTO item FROM "Item" WHERE id = id;
+    SELECT * INTO item FROM "Item" WHERE id = _id;
     -- grab user's trust who is commenting
     SELECT trust INTO user_trust FROM users WHERE id = item."userId";
 
@@ -89,11 +89,11 @@ BEGIN
 
     -- insert the comment into the reply table for every ancestor
     INSERT INTO "Reply" (created_at, updated_at, "ancestorId", "ancestorUserId", "itemId", "userId", level)
-    SELECT item.created_at, item.updated_at, p.id, p."userId", item.id, NEW."userId", nlevel(item.path) - nlevel(p.path)
+    SELECT item.created_at, item.updated_at, p.id, p."userId", item.id, item."userId", nlevel(item.path) - nlevel(p.path)
     FROM "Item" p
     WHERE p.path @> item.path AND p.id <> item.id AND p."userId" <> item."userId";
 
-    RETURN NEW;
+    RETURN 0;
 END;
 $$ LANGUAGE plpgsql;
 

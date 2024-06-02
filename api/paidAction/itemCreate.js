@@ -7,21 +7,21 @@ export const supportsPessimism = true
 export const supportsOptimism = true
 
 export async function getCost ({ subName, parentId, uploadIds, boost }, { models, user }) {
-  const sub = await models.sub.findUnique({ where: { name: subName } })
-  const baseCost = sub.baseCost * BigInt(1000)
+  const sub = parentId ? null : await models.sub.findUnique({ where: { name: subName } })
+  const baseCost = parentId ? BigInt(1000) : BigInt(sub.baseCost) * BigInt(1000)
   // baseCost * 10^num_items_in_10m * 100 (anon) or 1 (user) + image fees
-  const [cost] = await models.$queryRaw`
+  const [{ cost }] = await models.$queryRaw`
     SELECT ${baseCost}::INTEGER
       * POWER(10, item_spam(${parentId}::INTEGER, ${user?.id || ANON_USER_ID}::INTEGER, '10m'::INTERVAL))
       * ${user ? 1 : 100}::INTEGER
-      + (SELECT "nUnpaid" * "imageFeeMsats" FROM image_fees_info(${user?.id || ANON_USER_ID}::INTEGER, ${uploadIds}))`
+      + (SELECT "nUnpaid" * "imageFeeMsats" FROM image_fees_info(${user?.id || ANON_USER_ID}::INTEGER, ${uploadIds})) as cost`
   // freebies must be allowed, cost must be less than baseCost, no boost, user must exist, and cost must be less or equal to user's balance
-  const freebie = sub.allowFreebies && cost <= baseCost && !boost && !!user && cost <= user?.privates?.msats
-  return freebie ? 0 : cost
+  const freebie = (parentId || sub?.allowFreebies) && cost <= baseCost && !boost && !!user && cost > user?.msats
+  return freebie ? BigInt(0) : BigInt(cost)
 }
 
 export async function perform (args, context) {
-  const { invoiceId, uploadIds = [], itemForwards = [], pollOptions = [], boost = 0, ...data } = args
+  const { invoiceId, parentId, uploadIds = [], forwardUsers = [], pollOptions = [], boost = 0, ...data } = args
   const { tx, me, cost } = context
   const boostMsats = BigInt(boost) * BigInt(1000)
 
@@ -37,12 +37,12 @@ export async function perform (args, context) {
   const itemActs = []
   if (boostMsats > 0) {
     itemActs.push({
-      msats: boostMsats, act: 'BOOST', userId: me.id, ...invoiceData
+      msats: boostMsats, act: 'BOOST', userId: data.userId, ...invoiceData
     })
   }
   if (cost > 0) {
     itemActs.push({
-      msats: cost - boostMsats, act: 'FEE', userId: me.id, ...invoiceData
+      msats: cost - boostMsats, act: 'FEE', userId: data.userId, ...invoiceData
     })
   } else {
     data.freebie = true
@@ -51,36 +51,49 @@ export async function perform (args, context) {
   const mentions = await getMentions(args, context)
 
   const itemData = {
+    parentId: parentId ? parseInt(parentId) : null,
     ...data,
     ...invoiceData,
     boost,
-    userId: me.id || ANON_USER_ID,
-    threadSubscription: {
-      createMany: [
-        { userId: me.id },
-        ...itemForwards.map(({ userId }) => ({ userId }))
-      ]
+    // TODO: test all these nested inserts
+    // TODO: give nested relations a consistent naming scheme
+    ThreadSubscription: {
+      createMany: {
+        data: [
+          { userId: data.userId },
+          ...forwardUsers.map(({ userId }) => ({ userId }))
+        ]
+      }
     },
     itemForwards: {
-      createMany: itemForwards
+      createMany: {
+        data: forwardUsers
+      }
     },
-    pollOptions: {
-      createMany: pollOptions
+    PollOption: {
+      createMany: {
+        data: pollOptions
+      }
     },
-    itemUploads: {
+    ItemUpload: {
       connect: uploadIds.map(id => ({ uploadId: id }))
     },
-    itemAct: {
-      createMany: itemActs
+    actions: {
+      createMany: {
+        data: itemActs
+      }
     },
-    mention: {
-      createMany: mentions
+    mentions: {
+      createMany: {
+        data: mentions
+      }
     }
   }
 
+  // TODO: test bio
   if (data.bio && me) {
     return (await tx.user.update({
-      where: { id: me.id },
+      where: { id: data.userId },
       data: {
         bio: {
           create: itemData
@@ -89,10 +102,16 @@ export async function perform (args, context) {
     })).bio
   }
 
-  return await tx.item.create({ data: itemData })
+  const { id } = await tx.item.create({ data: itemData })
+
+  // ltree is unsupported in Prisma, so we have to query it manually (FUCK!)
+  return (await tx.$queryRaw`
+    SELECT *, ltree2text(path) AS path, created_at AS "createdAt", updated_at AS "updatedAt"
+    FROM "Item" WHERE id = ${id}`
+  )[0]
 }
 
-export async function onPaid ({ invoice, data: { id } }, context) {
+export async function onPaid ({ invoice, id }, context) {
   const { models, tx } = context
   let item
 
@@ -117,7 +136,7 @@ export async function onPaid ({ invoice, data: { id } }, context) {
     VALUES ('timestampItem', jsonb_build_object('id', ${item.id}), now() + interval '10 minutes', -2)`
   await tx.$executeRaw`
     INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
-    VALUES ('imgproxy', jsonb_build_object('id', item.id), 21, true, now() + interval '5 seconds')`
+    VALUES ('imgproxy', jsonb_build_object('id', ${item.id}), 21, true, now() + interval '5 seconds')`
 
   if (item.parentId) {
     await tx.$executeRaw`SELECT ncomments_after_comment(${item.id}::INTEGER)`

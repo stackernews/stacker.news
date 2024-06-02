@@ -5,8 +5,8 @@ import { ANON_USER_ID } from '@/lib/constants'
 
 export const paidActions = {
   BUY_CREDITS: await import('./buyCredits'),
-  CREATE_ITEM: await import('./createItem'),
-  UPDATE_ITEM: await import('./updateItem'),
+  ITEM_CREATE: await import('./itemCreate'),
+  ITEM_UPDATE: await import('./itemUpdate'),
   ZAP: await import('./zap'),
   DOWN_ZAP: await import('./downZap'),
   POLL_VOTE: await import('./pollVote'),
@@ -28,14 +28,13 @@ export default async function performPaidAction (actionType, args, context) {
     throw new Error('You must be logged in to perform this action')
   }
 
+  context.user = await models.user.findUnique({ where: { id: me.id } })
   context.cost = await paidAction.getCost(args, context)
   if (hash || hmac || !me) {
     return await performPessimiticAction(actionType, args, context)
   }
 
-  context.user = await models.user.findUnique({ where: { id: me.id } })
   const isRich = context.cost <= context.user.msats
-
   if (!isRich && !paidAction.supportsOptimism) {
     return await performPessimiticAction(actionType, args, context)
   }
@@ -44,7 +43,7 @@ export default async function performPaidAction (actionType, args, context) {
     try {
       return await performFeeCreditAction(actionType, args, context)
     } catch (e) {
-      console.error(e)
+      console.error('fee credit action failed ', e)
       // if we fail to do the action with fee credits, we should fall back to optimistic
       if (!paidAction.supportsOptimism) {
         return await performPessimiticAction(actionType, args, context)

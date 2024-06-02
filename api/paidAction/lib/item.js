@@ -16,12 +16,12 @@ export async function performBotBehavior ({ text, id }, { me, models, tx }) {
   if (text) {
     const deleteAt = getDeleteAt(text)
     if (deleteAt) {
-      models.$queryRawUnsafe(`
+      models.$queryRaw`
         DELETE FROM pgboss.job
         WHERE name = 'reminder'
-        AND data->>'itemId' = '${id}'
-        AND data->>'userId' = '${me.id}'
-        AND state <> 'completed'`)
+        AND data->>'itemId' = ${id}::TEXT
+        AND data->>'userId' = ${me.id}::TEXT
+        AND state <> 'completed'`
       await tx.$queryRaw`
         INSERT INTO pgboss.job (name, data, startafter, expirein)
         VALUES (
@@ -33,12 +33,12 @@ export async function performBotBehavior ({ text, id }, { me, models, tx }) {
 
     const remindAt = getRemindAt(text)
     if (remindAt) {
-      await tx.$queryRawUnsafe(`
+      await tx.$queryRaw`
       DELETE FROM pgboss.job
       WHERE name = 'reminder'
-      AND data->>'itemId' = '${id}'
-      AND data->>'userId' = '${me.id}'
-      AND state <> 'completed'`)
+      AND data->>'itemId' = ${id}::TEXT
+      AND data->>'userId' = ${me.id}::TEXT
+      AND state <> 'completed'`
       await tx.reminder.deleteMany({
         where: {
           itemId: Number(id),

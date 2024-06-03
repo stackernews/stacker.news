@@ -238,7 +238,7 @@ sndev__fund_user() {
    exit 3
   fi
   docker__exec db psql -U sn -d stackernews -q <<EOF
-    UPDATE users set msats = msats + $2 where name = '$1';
+    UPDATE users set msats = $2 where name = '$1';
 EOF
 }
 
@@ -250,7 +250,7 @@ USAGE
   $ sndev fund_user <nym> <msats>
 
   <nym> - the name of the user you want to fund
-  <msats> - the amount of millisatoshis to add to the account. Must be a positive integer
+  <msats> - the amount of millisatoshis to set the account to. Must be >= 0
 "
 
   echo "$help"
@@ -553,6 +553,7 @@ COMMANDS
 
   sn:
     login         login as a nym
+    fund_user     fund a nym without using an LN invoice
 
   lnd:
     fund          pay a bolt11 for funding

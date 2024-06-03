@@ -8,8 +8,8 @@ import domino from 'domino'
 import {
   ITEM_SPAM_INTERVAL, ITEM_FILTER_THRESHOLD,
   COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY,
-  ANON_USER_ID, ANON_ITEM_SPAM_INTERVAL, POLL_COST,
-  ITEM_ALLOW_EDITS, GLOBAL_SEED, ANON_FEE_MULTIPLIER, NOFOLLOW_LIMIT, UNKNOWN_LINK_REL
+  USER_ID, ANON_ITEM_SPAM_INTERVAL, POLL_COST,
+  ITEM_ALLOW_EDITS, GLOBAL_SEED, ANON_FEE_MULTIPLIER, NOFOLLOW_LIMIT, UNKNOWN_LINK_REL, SN_USER_IDS
 } from '@/lib/constants'
 import { msatsToSats } from '@/lib/format'
 import { parse } from 'tldts'
@@ -876,7 +876,7 @@ export default {
           models.$queryRaw`
             SELECT
               item_act(${Number(id)}::INTEGER,
-              ${me?.id || ANON_USER_ID}::INTEGER, ${act}::"ItemActType", ${Number(sats)}::INTEGER)`,
+              ${me?.id || USER_ID.anon}::INTEGER, ${act}::"ItemActType", ${Number(sats)}::INTEGER)`,
           { models, lnd, me, hash, hmac, fee: sats }
         )
       }
@@ -1157,7 +1157,7 @@ export default {
       return parent.otsHash
     },
     deleteScheduledAt: async (item, args, { me, models }) => {
-      const meId = me?.id ?? ANON_USER_ID
+      const meId = me?.id ?? USER_ID.anon
       if (meId !== item.userId) {
         // Only query for deleteScheduledAt for your own items to keep DB queries minimized
         return null
@@ -1166,8 +1166,8 @@ export default {
       return deleteJobs[0]?.startafter ?? null
     },
     reminderScheduledAt: async (item, args, { me, models }) => {
-      const meId = me?.id ?? ANON_USER_ID
-      if (meId !== item.userId || meId === ANON_USER_ID) {
+      const meId = me?.id ?? USER_ID.anon
+      if (meId !== item.userId || meId === USER_ID.anon) {
         // don't show reminders on an item if it isn't yours
         // don't support reminders for ANON
         return null
@@ -1227,10 +1227,21 @@ export const createMentions = async (item, models) => {
 export const updateItem = async (parent, { sub: subName, forward, options, ...item }, { me, models, lnd, hash, hmac }) => {
   // update iff this item belongs to me
   const old = await models.item.findUnique({ where: { id: Number(item.id) }, include: { sub: true } })
-  if (Number(old.userId) !== Number(me?.id)) {
+
+  // author can always edit their own item
+  const mid = Number(me?.id)
+  const isMine = Number(old.userId) === mid
+
+  // allow admins to edit special items
+  const allowEdit = ITEM_ALLOW_EDITS.includes(old.id)
+  const adminEdit = SN_USER_IDS.includes(mid) && allowEdit
+
+  if (!isMine && !adminEdit) {
     throw new GraphQLError('item does not belong to you', { extensions: { code: 'FORBIDDEN' } })
   }
-  if (subName && old.subName !== subName) {
+
+  const differentSub = subName && old.subName !== subName
+  if (differentSub) {
     const sub = await models.sub.findUnique({ where: { name: subName } })
     if (old.freebie) {
       if (!sub.allowFreebies) {
@@ -1244,10 +1255,13 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
   // in case they lied about their existing boost
   await ssValidate(advSchema, { boost: item.boost }, { models, me, existingBoost: old.boost })
 
-  // prevent update if it's not explicitly allowed, not their bio, not their job and older than 10 minutes
   const user = await models.user.findUnique({ where: { id: me.id } })
-  if (!ITEM_ALLOW_EDITS.includes(old.id) && user.bioId !== old.id &&
-    !isJob(item) && Date.now() > new Date(old.createdAt).getTime() + 10 * 60000) {
+
+  // prevent update if it's not explicitly allowed, not their bio, not their job and older than 10 minutes
+  const myBio = user.bioId === old.id
+  const timer = Date.now() < new Date(old.createdAt).getTime() + 10 * 60_000
+
+  if (!allowEdit && !myBio && !timer) {
     throw new GraphQLError('item can no longer be editted', { extensions: { code: 'BAD_INPUT' } })
   }
 
@@ -1266,7 +1280,7 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
     }
   }
 
-  item = { subName, userId: me.id, ...item }
+  item = { subName, userId: old.userId, ...item }
   const fwdUsers = await getForwardUsers(models, forward)
 
   const uploadIds = uploadIdsFromText(item.text, { models })
@@ -1303,7 +1317,7 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
   item.subName = item.sub
   delete item.sub
 
-  item.userId = me ? Number(me.id) : ANON_USER_ID
+  item.userId = me ? Number(me.id) : USER_ID.anon
 
   const fwdUsers = await getForwardUsers(models, forward)
   if (item.url && !isJob(item)) {
@@ -1367,7 +1381,7 @@ const enqueueDeletionJob = async (item, models) => {
 }
 
 const deleteReminderAndJob = async ({ me, item, models }) => {
-  if (me?.id && me.id !== ANON_USER_ID) {
+  if (me?.id && me.id !== USER_ID.anon) {
     await models.$transaction([
       models.$queryRawUnsafe(`
         DELETE FROM pgboss.job
@@ -1389,7 +1403,7 @@ const deleteReminderAndJob = async ({ me, item, models }) => {
 
 const createReminderAndJob = async ({ me, item, models }) => {
   // disallow anon to use reminder
-  if (!me || me.id === ANON_USER_ID) {
+  if (!me || me.id === USER_ID.anon) {
     return
   }
   const reminderCommand = getReminderCommand(item.text)

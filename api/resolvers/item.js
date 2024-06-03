@@ -15,7 +15,7 @@ import { msatsToSats } from '@/lib/format'
 import { parse } from 'tldts'
 import uu from 'url-unshort'
 import { actSchema, advSchema, bountySchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, ssValidate } from '@/lib/validate'
-import { notifyItemParents, notifyUserSubscribers, notifyZapped, notifyTerritorySubscribers, notifyMention } from '@/lib/webPush'
+import { notifyItemParents, notifyUserSubscribers, notifyZapped, notifyTerritorySubscribers, notifyMention, notifyItemMention } from '@/lib/webPush'
 import { defaultCommentSort, isJob, deleteItemByAuthor, getDeleteCommand, hasDeleteCommand, getReminderCommand, hasReminderCommand } from '@/lib/item'
 import { datePivot, whenRange } from '@/lib/time'
 import { imageFeesInfo, uploadIdsFromText } from './image'
@@ -1179,6 +1179,7 @@ export default {
 }
 
 const namePattern = /\B@[\w_]+/gi
+const refPattern = new RegExp(`(?:#|${process.env.NEXT_PUBLIC_URL}/items/)(?<id>\\d+)`, 'gi')
 
 export const createMentions = async (item, models) => {
   // if we miss a mention, in the rare circumstance there's some kind of
@@ -1188,40 +1189,90 @@ export const createMentions = async (item, models) => {
     return
   }
 
+  // user mentions
   try {
-    const mentions = item.text.match(namePattern)?.map(m => m.slice(1))
-    if (mentions?.length > 0) {
-      const users = await models.user.findMany({
-        where: {
-          name: { in: mentions },
-          // Don't create mentions when mentioning yourself
-          id: { not: item.userId }
-        }
-      })
-
-      users.forEach(async user => {
-        const data = {
-          itemId: item.id,
-          userId: user.id
-        }
-
-        const mention = await models.mention.upsert({
-          where: {
-            itemId_userId: data
-          },
-          update: data,
-          create: data
-        })
-
-        // only send if mention is new to avoid duplicates
-        if (mention.createdAt.getTime() === mention.updatedAt.getTime()) {
-          notifyMention({ models, userId: user.id, item })
-        }
-      })
-    }
+    await createUserMentions(item, models)
   } catch (e) {
-    console.error('mention failure', e)
+    console.error('user mention failure', e)
   }
+
+  // item mentions
+  try {
+    await createItemMentions(item, models)
+  } catch (e) {
+    console.error('item mention failure', e)
+  }
+}
+
+const createUserMentions = async (item, models) => {
+  const mentions = item.text.match(namePattern)?.map(m => m.slice(1))
+  if (!mentions || mentions.length === 0) return
+
+  const users = await models.user.findMany({
+    where: {
+      name: { in: mentions },
+      // Don't create mentions when mentioning yourself
+      id: { not: item.userId }
+    }
+  })
+
+  users.forEach(async user => {
+    const data = {
+      itemId: item.id,
+      userId: user.id
+    }
+
+    const mention = await models.mention.upsert({
+      where: {
+        itemId_userId: data
+      },
+      update: data,
+      create: data
+    })
+
+    // only send if mention is new to avoid duplicates
+    if (mention.createdAt.getTime() === mention.updatedAt.getTime()) {
+      notifyMention({ models, userId: user.id, item })
+    }
+  })
+}
+
+const createItemMentions = async (item, models) => {
+  const refs = item.text.match(refPattern)?.map(m => {
+    if (m.startsWith('#')) return Number(m.slice(1))
+    // is not #<id> syntax but full URL
+    return Number(m.split('/').slice(-1)[0])
+  })
+  if (!refs || refs.length === 0) return
+
+  const referee = await models.item.findMany({
+    where: {
+      id: { in: refs },
+      // Don't create mentions for your own items
+      userId: { not: item.userId }
+
+    }
+  })
+
+  referee.forEach(async r => {
+    const data = {
+      referrerId: item.id,
+      refereeId: r.id
+    }
+
+    const mention = await models.itemMention.upsert({
+      where: {
+        referrerId_refereeId: data
+      },
+      update: data,
+      create: data
+    })
+
+    // only send if mention is new to avoid duplicates
+    if (mention.createdAt.getTime() === mention.updatedAt.getTime()) {
+      notifyItemMention({ models, referrerItem: item, refereeItem: r })
+    }
+  })
 }
 
 export const updateItem = async (parent, { sub: subName, forward, options, ...item }, { me, models, lnd, hash, hmac }) => {

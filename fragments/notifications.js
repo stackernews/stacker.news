@@ -25,6 +25,14 @@ export const NOTIFICATIONS = gql`
             text
           }
         }
+        ... on ItemMention {
+          id
+          sortTime
+          item { 
+            ...ItemFullFields
+            text
+          }
+        }
         ... on Votification {
           id
           sortTime

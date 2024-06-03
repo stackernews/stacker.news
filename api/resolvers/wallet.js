@@ -7,7 +7,7 @@ import { SELECT } from './item'
 import { lnAddrOptions } from '@/lib/lnurl'
 import { msatsToSats, msatsToSatsDecimal, ensureB64 } from '@/lib/format'
 import { CLNAutowithdrawSchema, LNDAutowithdrawSchema, amountSchema, lnAddrAutowithdrawSchema, lnAddrSchema, ssValidate, withdrawlSchema } from '@/lib/validate'
-import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, ANON_USER_ID, BALANCE_LIMIT_MSATS, INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT, Wallet } from '@/lib/constants'
+import { ANON_BALANCE_LIMIT_MSATS, ANON_INV_PENDING_LIMIT, USER_ID, BALANCE_LIMIT_MSATS, INVOICE_RETENTION_DAYS, INV_PENDING_LIMIT, USER_IDS_BALANCE_NO_LIMIT, Wallet } from '@/lib/constants'
 import { datePivot } from '@/lib/time'
 import assertGofacYourself from './ofac'
 import assertApiKeyNotPermitted from './apiKey'
@@ -28,7 +28,7 @@ export async function getInvoice (parent, { id }, { me, models, lnd }) {
     throw new GraphQLError('invoice not found', { extensions: { code: 'BAD_INPUT' } })
   }
 
-  if (inv.user.id === ANON_USER_ID) {
+  if (inv.user.id === USER_ID.anon) {
     return inv
   }
   if (!me) {
@@ -339,7 +339,7 @@ export default {
         expirePivot = { seconds: Math.min(expireSecs, 180) }
         invLimit = ANON_INV_PENDING_LIMIT
         balanceLimit = ANON_BALANCE_LIMIT_MSATS
-        id = ANON_USER_ID
+        id = USER_ID.anon
       }
 
       const user = await models.user.findUnique({ where: { id } })

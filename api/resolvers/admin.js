@@ -1,8 +1,8 @@
 export default {
   Query: {
     snl: async (parent, _, { models }) => {
-      const { live } = await models.snl.findFirst()
-      return live
+      const snl = await models.snl.findFirst()
+      return !!snl?.live
     }
   },
   Mutation: {

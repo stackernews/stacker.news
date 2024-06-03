@@ -186,6 +186,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
             } catch {
               // ignore invalid URLs
             }
+
             const internalURL = process.env.NEXT_PUBLIC_URL
             if (!!text && !/^https?:\/\//.test(text)) {
               if (props['data-footnote-ref'] || typeof props['data-footnote-backref'] !== 'undefined') {
@@ -210,6 +211,19 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
                   </UserPopover>
                 )
               } else if (href.startsWith('/') || url?.origin === internalURL) {
+                try {
+                  const linkText = parseInternalLinks(href)
+                  if (linkText) {
+                    return (
+                      <ItemPopover id={linkText.replace('#', '').split('/')[0]}>
+                        <Link href={href}>{text}</Link>
+                      </ItemPopover>
+                    )
+                  }
+                } catch {
+                  // ignore errors like invalid URLs
+                }
+
                 return (
                   <Link
                     id={props.id}

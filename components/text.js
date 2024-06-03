@@ -13,7 +13,7 @@ import Thumb from '@/svgs/thumb-up-fill.svg'
 import { toString } from 'mdast-util-to-string'
 import copy from 'clipboard-copy'
 import ZoomableImage, { decodeOriginalUrl } from './image'
-import { IMGPROXY_URL_REGEXP, parseInternalLinks, parseEmbedUrl, isItemPath } from '@/lib/url'
+import { IMGPROXY_URL_REGEXP, parseInternalLinks, parseEmbedUrl } from '@/lib/url'
 import reactStringReplace from 'react-string-replace'
 import { rehypeInlineCodeProperty } from '@/lib/md'
 import { Button } from 'react-bootstrap'
@@ -188,7 +188,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
             }
 
             const internalURL = process.env.NEXT_PUBLIC_URL
-            if (!!text && !/^https?:\/\//.test(text) && !isItemPath(url.pathname)) {
+            if (!!text && !/^https?:\/\//.test(text)) {
               if (props['data-footnote-ref'] || typeof props['data-footnote-backref'] !== 'undefined') {
                 return (
                   <Link
@@ -211,6 +211,19 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
                   </UserPopover>
                 )
               } else if (href.startsWith('/') || url?.origin === internalURL) {
+                try {
+                  const linkText = parseInternalLinks(href)
+                  if (linkText) {
+                    return (
+                      <ItemPopover id={linkText.replace('#', '').split('/')[0]}>
+                        <Link href={href}>{text}</Link>
+                      </ItemPopover>
+                    )
+                  }
+                } catch {
+                  // ignore errors like invalid URLs
+                }
+
                 return (
                   <Link
                     id={props.id}

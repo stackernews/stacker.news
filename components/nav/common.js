@@ -22,8 +22,8 @@ import SearchIcon from '../../svgs/search-line.svg'
 import classNames from 'classnames'
 import SnIcon from '@/svgs/sn.svg'
 import { useHasNewNotes } from '../use-has-new-notes'
-import { useWalletLogger } from '../logger'
-import { useWebLNConfigurator } from '../webln'
+import { useWalletLogger } from '@/components/logger'
+// import { useWallet } from '@/components/wallet'
 
 export function Brand ({ className }) {
   return (
@@ -257,7 +257,7 @@ export default function LoginButton ({ className }) {
 
 export function LogoutDropdownItem () {
   const { registration: swRegistration, togglePushSubscription } = useServiceWorker()
-  const webLN = useWebLNConfigurator()
+  // const wallet = useWallet()
   const { deleteLogs } = useWalletLogger()
   return (
     <Dropdown.Item
@@ -267,8 +267,8 @@ export function LogoutDropdownItem () {
         if (pushSubscription) {
           await togglePushSubscription().catch(console.error)
         }
-        // detach wallets
-        await webLN.clearConfig().catch(console.error)
+        // TODO: detach wallets
+        // await wallet.detachAll().catch(console.error)
         // delete client wallet logs to prevent leak of private data if a shared device was used
         await deleteLogs(Wallet.NWC).catch(console.error)
         await deleteLogs(Wallet.LNbits).catch(console.error)

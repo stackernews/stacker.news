@@ -5,14 +5,13 @@ import Gear from '@/svgs/settings-5-fill.svg'
 import Link from 'next/link'
 import CancelButton from './cancel-button'
 import { SubmitButton } from './form'
-import { Status } from './webln'
+import { useWallet, Status } from './wallet'
 
-export const isConfigured = status => [Status.Enabled, Status.Locked, Status.Error, true].includes(status)
+export function WalletCard ({ name, title, badges, status }) {
+  const wallet = useWallet(name)
 
-export function WalletCard ({ title, badges, provider, status }) {
-  const configured = isConfigured(status)
   let indicator = styles.disabled
-  switch (status) {
+  switch (wallet.status) {
     case Status.Enabled:
     case true:
       indicator = styles.success
@@ -42,33 +41,31 @@ export function WalletCard ({ title, badges, provider, status }) {
               </Badge>)}
         </Card.Subtitle>
       </Card.Body>
-      {provider &&
-        <Link href={`/settings/wallets/${provider}`}>
-          <Card.Footer className={styles.attach}>
-            {configured
-              ? <>configure<Gear width={14} height={14} /></>
-              : <>attach<Plug width={14} height={14} /></>}
-          </Card.Footer>
-        </Link>}
+      <Link href={`/settings/wallets/${name}`}>
+        <Card.Footer className={styles.attach}>
+          {wallet.isConfigured
+            ? <>configure<Gear width={14} height={14} /></>
+            : <>attach<Plug width={14} height={14} /></>}
+        </Card.Footer>
+      </Link>
     </Card>
   )
 }
 
 export function WalletButtonBar ({
-  status, disable,
+  wallet, disable,
   className, children, onDelete, onCancel, hasCancel = true,
   createText = 'attach', deleteText = 'detach', editText = 'save'
 }) {
-  const configured = isConfigured(status)
   return (
     <div className={`mt-3 ${className}`}>
       <div className='d-flex justify-content-between'>
-        {configured &&
+        {wallet.isConfigured &&
           <Button onClick={onDelete} variant='grey-medium'>{deleteText}</Button>}
         {children}
         <div className='d-flex align-items-center ms-auto'>
           {hasCancel && <CancelButton onClick={onCancel} />}
-          <SubmitButton variant='primary' disabled={disable}>{configured ? editText : createText}</SubmitButton>
+          <SubmitButton variant='primary' disabled={disable}>{wallet.isConfigured ? editText : createText}</SubmitButton>
         </div>
       </div>
     </div>

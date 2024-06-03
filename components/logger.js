@@ -4,6 +4,8 @@ import fancyNames from '@/lib/fancy-names.json'
 import { gql, useMutation, useQuery } from '@apollo/client'
 import { WALLET_LOGS } from '@/fragments/wallet'
 import { getWalletBy } from '@/lib/constants'
+// TODO: why can't I import this without errors?
+// import { getWalletByName } from './wallet'
 
 const generateFancyName = () => {
   // 100 adjectives * 100 nouns * 10000 = 100M possible names
@@ -245,21 +247,23 @@ const WalletLoggerProvider = ({ children }) => {
     return () => idb.current?.close()
   }, [])
 
-  const appendLog = useCallback((wallet, level, message) => {
-    const log = { wallet: wallet.logTag, level, message, ts: +new Date() }
+  const appendLog = useCallback((walletName, level, message) => {
+    const log = { wallet: walletName, level, message, ts: +new Date() }
     saveLog(log)
     setLogs((prevLogs) => [...prevLogs, log])
   }, [saveLog])
 
-  const deleteLogs = useCallback(async (wallet) => {
-    if (!wallet || wallet.server) {
+  const deleteLogs = useCallback(async (walletName) => {
+    const wallet = getWalletByName(walletName, me)
+
+    if (!walletName || wallet.server) {
       await deleteServerWalletLogs({ variables: { wallet: wallet?.type } })
     }
-    if (!wallet || !wallet.server) {
+    if (!walletName || !wallet.server) {
       const tx = idb.current.transaction(idbStoreName, 'readwrite')
       const objectStore = tx.objectStore(idbStoreName)
       const idx = objectStore.index('wallet_ts')
-      const request = wallet ? idx.openCursor(window.IDBKeyRange.bound([wallet.logTag, -Infinity], [wallet.logTag, Infinity])) : idx.openCursor()
+      const request = walletName ? idx.openCursor(window.IDBKeyRange.bound([walletName, -Infinity], [walletName, Infinity])) : idx.openCursor()
       request.onsuccess = function (event) {
         const cursor = event.target.result
         if (cursor) {
@@ -267,11 +271,11 @@ const WalletLoggerProvider = ({ children }) => {
           cursor.continue()
         } else {
           // finished
-          setLogs((logs) => logs.filter(l => wallet ? l.wallet !== wallet.logTag : false))
+          setLogs((logs) => logs.filter(l => walletName ? l.wallet !== walletName : false))
         }
       }
     }
-  }, [setLogs])
+  }, [me, setLogs])
 
   return (
     <WalletLogsContext.Provider value={logs}>
@@ -282,29 +286,29 @@ const WalletLoggerProvider = ({ children }) => {
   )
 }
 
-export function useWalletLogger (wallet) {
+export function useWalletLogger (walletName) {
   const { appendLog, deleteLogs: innerDeleteLogs } = useContext(WalletLoggerContext)
 
   const log = useCallback(level => message => {
     // TODO:
     //   also send this to us if diagnostics was enabled,
     //   very similar to how the service worker logger works.
-    appendLog(wallet, level, message)
-    console[level !== 'error' ? 'info' : 'error'](`[${wallet.logTag}]`, message)
-  }, [appendLog, wallet])
+    appendLog(walletName, level, message)
+    console[level !== 'error' ? 'info' : 'error'](`[${walletName}]`, message)
+  }, [appendLog, walletName])
 
   const logger = useMemo(() => ({
     ok: (...message) => log('ok')(message.join(' ')),
     info: (...message) => log('info')(message.join(' ')),
     error: (...message) => log('error')(message.join(' '))
-  }), [log, wallet])
+  }), [log, walletName])
 
-  const deleteLogs = useCallback((w) => innerDeleteLogs(w || wallet), [innerDeleteLogs, wallet])
+  const deleteLogs = useCallback((w) => innerDeleteLogs(w || walletName), [innerDeleteLogs, walletName])
 
   return { logger, deleteLogs }
 }
 
-export function useWalletLogs (wallet) {
+export function useWalletLogs (walletName) {
   const logs = useContext(WalletLogsContext)
-  return logs.filter(l => !wallet || l.wallet === wallet.logTag)
+  return logs.filter(l => !walletName || l.wallet === walletName)
 }

@@ -213,7 +213,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
                 )
               } else if (href.startsWith('/') || url?.origin === internalURL) {
                 try {
-                  const linkText = parseInternalLinks(href)
+                  const { linkText } = parseInternalLinks(href)
                   if (linkText) {
                     return (
                       <ItemPopover id={linkText.replace('#', '').split('/')[0]}>
@@ -241,7 +241,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
             }
 
             try {
-              const linkText = parseInternalLinks(href)
+              const { linkText } = parseInternalLinks(href)
               if (linkText) {
                 return (
                   <ItemPopover id={linkText.replace('#', '').split('/')[0]}>

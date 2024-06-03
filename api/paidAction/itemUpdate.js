@@ -5,16 +5,17 @@ export const anonable = false
 export const supportsPessimism = true
 export const supportsOptimism = false
 
-export async function getCost ({ id, boost, uploadIds }, { me, models }) {
+export async function getCost ({ id, boost = 0, uploadIds }, { me, models }) {
   // the only reason updating items costs anything is when it has new uploads
   // or more boost
-  const old = await models.item.findUnique({ where: { id } })
+  const old = await models.item.findUnique({ where: { id: parseInt(id) } })
   const { totalFeesMsats } = await imageFeesInfo(uploadIds, { models, me })
-  return BigInt(totalFeesMsats) + (BigInt(boost - old.boost) * BigInt(1000))
+  const oldBoost = old.boost || 0
+  return BigInt(totalFeesMsats) + (BigInt(boost) - BigInt(oldBoost)) * BigInt(1000)
 }
 
 export async function perform (args, context) {
-  const { id, boost = 0, uploadIds = [], pollOptions = [], itemForwards = [], ...data } = args
+  const { id, boost = 0, uploadIds = [], pollOptions = [], forwardUsers = [], ...data } = args
   const { tx, me } = context
   const boostMsats = BigInt(boost) * BigInt(1000)
 
@@ -26,15 +27,15 @@ export async function perform (args, context) {
   }
 
   const threadSubscriptions = [{ userId: me.id },
-    ...itemForwards.map(({ userId }) => ({ userId }))]
+    ...forwardUsers.map(({ userId }) => ({ userId }))]
   const mentions = await getMentions(args, context)
 
   const result = await tx.item.update({
-    where: { id },
+    where: { id: parseInt(id) },
     data: {
       ...data,
       boost,
-      threadSubscription: {
+      ThreadSubscription: {
         deleteMany: {
           userId: {
             not: {
@@ -42,43 +43,47 @@ export async function perform (args, context) {
             }
           }
         },
-        createMany: threadSubscriptions
+        upsert: threadSubscriptions.map(({ userId }) => ({
+          create: { userId },
+          update: { userId }
+        }))
       },
-      mention: {
-        deleteMany: {
-          userId: {
-            not: {
-              in: mentions.map(({ userId }) => userId)
-            }
-          }
-        },
-        createMany: mentions
+      // mentions: {
+      //   deleteMany: {
+      //     userId: {
+      //       not: {
+      //         in: mentions.map(({ userId }) => userId)
+      //       }
+      //     }
+      //   },
+      //   createMany: {
+      //     data: mentions
+      //   }
+      // },
+      // itemForwards: {
+      //   deleteMany: {
+      //     userId: {
+      //       not: {
+      //         in: forwardUsers.map(({ userId }) => userId)
+      //       }
+      //     }
+      //   },
+      //   createMany: {
+      //     data: forwardUsers
+      //   }
+      // },
+      PollOption: {
+        createMany: {
+          data: pollOptions
+        }
       },
-      itemForwards: {
-        deleteMany: {
-          userId: {
-            not: {
-              in: itemForwards.map(({ userId }) => userId)
-            }
-          }
-        },
-        createMany: itemForwards
-      },
-      pollOptions: {
-        createMany: pollOptions
-      },
-      itemUploads: {
-        disconnect: {
-          uploadId: {
-            not: {
-              in: uploadIds
-            }
-          }
-        },
+      ItemUpload: {
         connect: uploadIds.map(id => ({ uploadId: id }))
       },
-      itemAct: {
-        createMany: itemActs
+      actions: {
+        createMany: {
+          data: itemActs
+        }
       }
     }
   })

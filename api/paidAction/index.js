@@ -143,11 +143,12 @@ async function performPessimiticAction (actionType, args, context) {
   } else {
     // just create the invoice and complete action when it's paid
     // create invoice XXX these calls are probably wrong
+    const expiresAt = datePivot(new Date(), { days: 1 })
     const lndInv = await createHodlInvoice({
-      description: user.privates.hideInvoiceDesc ? undefined : await action.describe(args, context),
+      description: user.hideInvoiceDesc ? undefined : await action.describe(args, context),
       lnd,
       mtokens: String(cost),
-      expires_at: datePivot(new Date(), { days: 1 })
+      expires_at: expiresAt
     })
 
     const invoice = await models.invoice.create({
@@ -158,7 +159,8 @@ async function performPessimiticAction (actionType, args, context) {
         bolt11: lndInv.request,
         userId: me?.id || ANON_USER_ID,
         actionType,
-        actionState: 'PENDING'
+        actionState: 'PENDING',
+        expiresAt
       }
     })
 

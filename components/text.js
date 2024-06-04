@@ -259,39 +259,35 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
               paddingRight: '15px'
             }
 
-            try {
-              const { provider, id, meta } = parseEmbedUrl(href)
-              // Youtube video embed
-              if (provider === 'youtube') {
-                return (
-                  <div style={videoWrapperStyles}>
-                    <YouTube
-                      videoId={id} className={styles.videoContainer} opts={{
-                        playerVars: {
-                          start: meta?.start || 0
-                        }
-                      }}
+            const { provider, id, meta } = parseEmbedUrl(href)
+            // Youtube video embed
+            if (provider === 'youtube') {
+              return (
+                <div style={videoWrapperStyles}>
+                  <YouTube
+                    videoId={id} className={styles.videoContainer} opts={{
+                      playerVars: {
+                        start: meta?.start || 0
+                      }
+                    }}
+                  />
+                </div>
+              )
+            }
+
+            // Rumble video embed
+            if (provider === 'rumble') {
+              return (
+                <div style={videoWrapperStyles}>
+                  <div className={styles.videoContainer}>
+                    <iframe
+                      title='Rumble Video'
+                      allowFullScreen=''
+                      src={meta?.href}
                     />
                   </div>
-                )
-              }
-
-              // Rumble video embed
-              if (provider === 'rumble') {
-                return (
-                  <div style={videoWrapperStyles}>
-                    <div className={styles.videoContainer}>
-                      <iframe
-                        title='Rumble Video'
-                        allowFullScreen=''
-                        src={meta?.href}
-                      />
-                    </div>
-                  </div>
-                )
-              }
-            } catch {
-            // ignore invalid URLs
+                </div>
+              )
             }
 
             // assume the link is an image which will fallback to link if it's not

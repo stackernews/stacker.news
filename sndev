@@ -159,6 +159,11 @@ OPTIONS"
 
 sndev__logs() {
   shift
+  if [ $# -eq 1 ]; then
+    docker__compose logs -t --tail=1000 -f "$@"
+    exit 0
+  fi
+
   docker__compose logs "$@"
 }
 

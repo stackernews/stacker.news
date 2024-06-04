@@ -73,7 +73,6 @@ async function performOptimisticAction (actionType, args, context) {
   return await models.$transaction(async tx => {
     context.tx = tx
 
-    // create invoice XXX these calls are probably wrong
     const invoice = await tx.invoice.create({
       data: {
         hash: lndInv.id,
@@ -142,7 +141,6 @@ async function performPessimiticAction (actionType, args, context) {
     })
   } else {
     // just create the invoice and complete action when it's paid
-    // create invoice XXX these calls are probably wrong
     const expiresAt = datePivot(new Date(), { days: 1 })
     const lndInv = await createHodlInvoice({
       description: user.hideInvoiceDesc ? undefined : await action.describe(args, context),
@@ -153,8 +151,8 @@ async function performPessimiticAction (actionType, args, context) {
 
     const invoice = await models.invoice.create({
       data: {
-        id: lndInv.id,
-        msats: cost,
+        hash: lndInv.id,
+        msatsRequested: cost,
         preimage: lndInv.secret,
         bolt11: lndInv.request,
         userId: me?.id || ANON_USER_ID,

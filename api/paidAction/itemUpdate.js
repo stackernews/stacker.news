@@ -15,7 +15,7 @@ export async function getCost ({ id, boost = 0, uploadIds }, { me, models }) {
 }
 
 export async function perform (args, context) {
-  const { id, boost = 0, uploadIds = [], pollOptions = [], forwardUsers = [], ...data } = args
+  const { id, boost = 0, uploadIds = [], pollOptions = [], forwardUsers: itemForwards = [], ...data } = args
   const { tx, me } = context
   const boostMsats = BigInt(boost) * BigInt(1000)
 
@@ -26,8 +26,26 @@ export async function perform (args, context) {
     })
   }
 
-  const threadSubscriptions = [{ userId: me.id },
-    ...forwardUsers.map(({ userId }) => ({ userId }))]
+  // const threadSubscriptions = [{ userId: me.id },
+  //   ...forwardUsers.map(({ userId }) => ({ userId }))]
+  // const mentions = await getMentions(args, context)
+
+  const old = await tx.item.findUnique({
+    where: { id: parseInt(id) },
+    include: {
+      ThreadSubscription: true,
+      mentions: true,
+      itemForwards: true
+    }
+  })
+
+  // createMany is the set difference of the new - old
+  // deleteMany is the set difference of the old - new
+  // updateMany is the intersection of the old and new
+  const difference = (a, b) => a.filter(x => !b.find(y => y.userId === x.userId))
+  const intersectionMerge = (a, b, key) => a.filter(x => b.find(y => y.userId === x.userId))
+    .map(x => ({ [key]: x[key], ...b.find(y => y.userId === x.userId) }))
+
   const mentions = await getMentions(args, context)
 
   const result = await tx.item.update({
@@ -35,43 +53,6 @@ export async function perform (args, context) {
     data: {
       ...data,
       boost,
-      ThreadSubscription: {
-        deleteMany: {
-          userId: {
-            not: {
-              in: threadSubscriptions.map(({ userId }) => userId)
-            }
-          }
-        },
-        upsert: threadSubscriptions.map(({ userId }) => ({
-          create: { userId },
-          update: { userId }
-        }))
-      },
-      // mentions: {
-      //   deleteMany: {
-      //     userId: {
-      //       not: {
-      //         in: mentions.map(({ userId }) => userId)
-      //       }
-      //     }
-      //   },
-      //   createMany: {
-      //     data: mentions
-      //   }
-      // },
-      // itemForwards: {
-      //   deleteMany: {
-      //     userId: {
-      //       not: {
-      //         in: forwardUsers.map(({ userId }) => userId)
-      //       }
-      //     }
-      //   },
-      //   createMany: {
-      //     data: forwardUsers
-      //   }
-      // },
       PollOption: {
         createMany: {
           data: pollOptions
@@ -83,6 +64,40 @@ export async function perform (args, context) {
       actions: {
         createMany: {
           data: itemActs
+        }
+      },
+      itemForwards: {
+        deleteMany: {
+          userId: {
+            in: difference(old.itemForwards, itemForwards).map(({ userId }) => userId)
+          }
+        },
+        createMany: {
+          data: difference(itemForwards, old.itemForwards)
+        },
+        update: intersectionMerge(old.itemForwards, itemForwards, 'id').map(({ id, ...data }) => ({
+          where: { id },
+          data
+        }))
+      },
+      ThreadSubscription: {
+        deleteMany: {
+          userId: {
+            in: difference(old.itemForwards, itemForwards).map(({ userId }) => userId)
+          }
+        },
+        createMany: {
+          data: difference(itemForwards, old.itemForwards).map(({ userId }) => ({ userId }))
+        }
+      },
+      mentions: {
+        deleteMany: {
+          userId: {
+            in: difference(old.mentions, mentions).map(({ userId }) => userId)
+          }
+        },
+        createMany: {
+          data: difference(mentions, old.mentions)
         }
       }
     }

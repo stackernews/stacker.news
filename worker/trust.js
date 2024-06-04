@@ -1,5 +1,5 @@
 import * as math from 'mathjs'
-import { ANON_USER_ID, SN_USER_IDS } from '@/lib/constants.js'
+import { USER_ID, SN_USER_IDS } from '@/lib/constants.js'
 
 export async function trust ({ boss, models }) {
   try {
@@ -127,7 +127,7 @@ async function getGraph (models) {
         FROM "ItemAct"
         JOIN "Item" ON "Item".id = "ItemAct"."itemId" AND "ItemAct".act IN ('FEE', 'TIP', 'DONT_LIKE_THIS')
           AND "Item"."parentId" IS NULL AND NOT "Item".bio AND "Item"."userId" <> "ItemAct"."userId"
-        JOIN users ON "ItemAct"."userId" = users.id AND users.id <> ${ANON_USER_ID}
+        JOIN users ON "ItemAct"."userId" = users.id AND users.id <> ${USER_ID.anon}
         GROUP BY user_id, name, item_id, user_at, against
         HAVING CASE WHEN
           "ItemAct".act = 'DONT_LIKE_THIS' THEN sum("ItemAct".msats) > ${AGAINST_MSAT_MIN}

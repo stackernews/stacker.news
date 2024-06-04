@@ -4,12 +4,10 @@ import { fixedDecimal, numWithUnits } from '@/lib/format'
 import { timeLeft } from '@/lib/time'
 import { useMe } from './me'
 import styles from './poll.module.css'
-import Check from '@/svgs/checkbox-circle-fill.svg'
 import { signIn } from 'next-auth/react'
 import ActionTooltip from './action-tooltip'
 import { POLL_COST } from '@/lib/constants'
 import { InvoiceCanceledError, usePayment } from './payment'
-import { optimisticUpdate } from '@/lib/apollo'
 import { useToast } from './toast'
 import { Types as ClientNotification, useClientNotifications } from './client-notifications'
 
@@ -40,9 +38,6 @@ export default function Poll ({ item }) {
       fields: {
         count (existingCount) {
           return existingCount + 1
-        },
-        meVoted () {
-          return true
         }
       }
     })
@@ -59,20 +54,17 @@ export default function Poll ({ item }) {
               const variables = { id: v.id }
               const notifyProps = { itemId: item.id }
               const optimisticResponse = { pollVote: v.id }
-              let revert, cancel, nid
+              let cancel, nid
               try {
-                revert = optimisticUpdate({ mutation: POLL_VOTE_MUTATION, variables, optimisticResponse, update })
-
                 if (me) {
                   nid = notify(ClientNotification.PollVote.PENDING, notifyProps)
                 }
 
                 let hash, hmac;
                 [{ hash, hmac }, cancel] = await payment.request(item.pollCost || POLL_COST)
-                await pollVote({ variables: { hash, hmac, ...variables } })
-              } catch (error) {
-                revert?.()
 
+                await pollVote({ variables: { hash, hmac, ...variables }, optimisticResponse, update })
+              } catch (error) {
                 if (error instanceof InvoiceCanceledError) {
                   return
                 }
@@ -121,7 +113,7 @@ export default function Poll ({ item }) {
 function PollResult ({ v, progress }) {
   return (
     <div className={styles.pollResult}>
-      <span className={styles.pollOption}>{v.option}{v.meVoted && <Check className='fill-grey ms-1 align-self-center flex-shrink-0' width={16} height={16} />}</span>
+      <span className={styles.pollOption}>{v.option}</span>
       <span className='ms-auto me-2 align-self-center'>{progress}%</span>
       <div className={styles.pollProgress} style={{ width: `${progress}%` }} />
     </div>

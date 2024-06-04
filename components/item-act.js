@@ -10,7 +10,7 @@ import { useToast } from './toast'
 import { useLightning } from './lightning'
 import { nextTip } from './upvote'
 import { InvoiceCanceledError, usePayment } from './payment'
-import { optimisticUpdate } from '@/lib/apollo'
+// import { optimisticUpdate } from '@/lib/apollo'
 import { Types as ClientNotification, ClientNotifyProvider, useClientNotifications } from './client-notifications'
 import { ZAP_UNDO_DELAY_MS } from '@/lib/constants'
 
@@ -120,23 +120,31 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
         act: down ? 'DONT_LIKE_THIS' : 'TIP',
         hash,
         hmac
-      }
+      },
+      optimisticResponse: {
+        act: { id: item.id, sats: Number(amount), act: down ? 'DONT_LIKE_THIS' : 'TIP', path: item.path }
+      },
+      update: actUpdate({ me })
     }))
     if (!me) setItemMeAnonSats({ id: item.id, amount })
     addCustomTip(Number(amount))
-  }, [me, act, down, item.id, strike])
-
-  const optimisticUpdate = useCallback(({ amount }) => {
-    const variables = {
-      id: item.id,
-      sats: Number(amount),
-      act: down ? 'DONT_LIKE_THIS' : 'TIP'
-    }
-    const optimisticResponse = { act: { ...variables, path: item.path, invoice: null } }
     strike()
     onClose()
-    return { mutation: ACT_MUTATION, variables, optimisticResponse, update: actUpdate({ me }) }
-  }, [item.id, down, !!me, strike])
+  }, [me, act, down, item.id, strike])
+
+  // XXX avoid manual optimistic updates until
+  //   https://github.com/stackernews/stacker.news/issues/1218 is fixed
+  // const optimisticUpdate = useCallback(({ amount }) => {
+  //   const variables = {
+  //     id: item.id,
+  //     sats: Number(amount),
+  //     act: down ? 'DONT_LIKE_THIS' : 'TIP'
+  //   }
+  //   const optimisticResponse = { act: { ...variables, path: item.path } }
+  //   strike()
+  //   onClose()
+  //   return { mutation: ACT_MUTATION, variables, optimisticResponse, update: actUpdate({ me }) }
+  // }, [item.id, down, !!me, strike])
 
   return (
     <ClientNotifyProvider additionalProps={{ itemId: item.id }}>
@@ -147,7 +155,7 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
         }}
         schema={amountSchema}
         prepaid
-        optimisticUpdate={optimisticUpdate}
+        // optimisticUpdate={optimisticUpdate}
         onSubmit={onSubmit}
         clientNotification={ClientNotification.Zap}
         signal={abortSignal}
@@ -249,8 +257,10 @@ export function useZap () {
 
     let revert, cancel, nid
     try {
-      revert = optimisticUpdate({ mutation: ZAP_MUTATION, variables, optimisticResponse, update })
-      strike()
+      // XXX avoid manual optimistic updates until
+      //   https://github.com/stackernews/stacker.news/issues/1218 is fixed
+      // revert = optimisticUpdate({ mutation: ZAP_MUTATION, variables, optimisticResponse, update })
+      // strike()
 
       await abortSignal.pause({ me, amount: sats })
 
@@ -260,7 +270,10 @@ export function useZap () {
 
       let hash, hmac;
       [{ hash, hmac }, cancel] = await payment.request(sats)
-      await zap({ variables: { ...variables, hash, hmac } })
+      // XXX related to comment above
+      // await zap({ variables: { ...variables, hash, hmac } })
+      await zap({ variables: { ...variables, hash, hmac }, optimisticResponse, update })
+      strike()
     } catch (error) {
       revert?.()
 

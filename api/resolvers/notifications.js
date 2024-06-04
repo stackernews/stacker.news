@@ -140,6 +140,22 @@ export default {
             LIMIT ${LIMIT}`
         )
       }
+      // item mentions
+      if (meFull.noteItemMentions) {
+        itemDrivenQueries.push(
+          `SELECT "Referrer".*, "ItemMention".created_at AS "sortTime", 'ItemMention' AS type
+            FROM "ItemMention"
+            JOIN "Item" "Referee" ON "ItemMention"."refereeId" = "Referee".id
+            JOIN "Item" "Referrer" ON "ItemMention"."referrerId" = "Referrer".id
+            ${whereClause(
+              '"ItemMention".created_at < $2',
+              '"Referrer"."userId" <> $1',
+              '"Referee"."userId" = $1'
+            )}
+            ORDER BY "sortTime" DESC
+            LIMIT ${LIMIT}`
+        )
+      }
       // Inner union to de-dupe item-driven notifications
       queries.push(
         // Only record per item ID
@@ -157,6 +173,7 @@ export default {
             WHEN type = 'Reply' THEN 2
             WHEN type = 'FollowActivity' THEN 3
             WHEN type = 'TerritoryPost' THEN 4
+            WHEN type = 'ItemMention' THEN 5
           END ASC
         )`
       )
@@ -454,6 +471,9 @@ export default {
   },
   Mention: {
     mention: async (n, args, { models }) => true,
+    item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
+  },
+  ItemMention: {
     item: async (n, args, { models, me }) => getItem(n, { id: n.id }, { models, me })
   },
   InvoicePaid: {

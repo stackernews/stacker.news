@@ -126,6 +126,7 @@ export default gql`
     imgproxyUrls: JSONObject
     rel: String
     apiKey: Boolean
+    invoice: Invoice
   }
 
   input ItemForwardInput {

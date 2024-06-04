@@ -162,7 +162,9 @@ export function DonateButton () {
   const [donateToRewards] = useMutation(
     gql`
       mutation donateToRewards($sats: Int!, $hash: String, $hmac: String) {
-        donateToRewards(sats: $sats, hash: $hash, hmac: $hmac)
+        donateToRewards(sats: $sats, hash: $hash, hmac: $hmac) {
+          sats
+        }
       }`)
 
   return (

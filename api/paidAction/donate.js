@@ -14,7 +14,7 @@ export async function perform ({ sats }, { me, models, tx }) {
     }
   })
 
-  return sats
+  return { sats }
 }
 
 export async function describe (args, context) {

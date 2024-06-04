@@ -6,7 +6,9 @@ export async function getCost ({ sats }) {
   return BigInt(sats) * BigInt(1000)
 }
 
-export async function perform ({ invoiceId, sats, itemId }, { me, cost, models, tx }) {
+export async function perform ({ invoiceId, sats, id: itemId }, { me, cost, models, tx }) {
+  itemId = parseInt(itemId)
+
   let invoiceData = {}
   if (invoiceId) {
     invoiceData = { invoiceId, invoiceActionState: 'PENDING' }
@@ -16,12 +18,11 @@ export async function perform ({ invoiceId, sats, itemId }, { me, cost, models, 
     data: { msats: cost, itemId, userId: me.id, act: 'DONT_LIKE_THIS', ...invoiceData }
   })
 
-  const item = await models.item.findUnique({ where: { id: itemId } })
-
-  return { id: itemId, sats, act: 'DONT_LIKE_THIS', path: item.path, actId: itemAct.id }
+  const [{ path }] = await tx.$queryRaw`SELECT ltree2text(path) as path FROM "Item" WHERE id = ${itemId}`
+  return { id: itemId, sats, act: 'DONT_LIKE_THIS', path, actId: itemAct.id }
 }
 
-export async function onPaid ({ invoice, data: { actId } }, { models, tx }) {
+export async function onPaid ({ invoice, actId }, { models, tx }) {
   let itemAct
   if (invoice) {
     itemAct = await tx.itemAct.update({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } })
@@ -31,7 +32,7 @@ export async function onPaid ({ invoice, data: { actId } }, { models, tx }) {
     throw new Error('No invoice or actId')
   }
 
-  await tx.$executeRaw(`SELECT weighted_downvotes_after_act(${itemAct.itemId}::INTEGER, ${itemAct.userId}::INTEGER, ${itemAct.msats / BigInt(1000)}::BIGINT)`)
+  await tx.$executeRaw`SELECT weighted_downvotes_after_act(${itemAct.itemId}::INTEGER, ${itemAct.userId}::INTEGER, ${itemAct.msats / BigInt(1000)}::INTEGER)`
 }
 
 export async function onFail ({ invoice }, { tx }) {

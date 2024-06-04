@@ -234,6 +234,7 @@ export function useZap () {
         id
         sats
         path
+        act
         invoice { bolt11 }
       }
     }`

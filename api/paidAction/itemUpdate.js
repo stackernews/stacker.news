@@ -15,8 +15,9 @@ export async function getCost ({ id, boost = 0, uploadIds }, { me, models }) {
 }
 
 export async function perform (args, context) {
-  const { id, boost = 0, uploadIds = [], pollOptions = [], forwardUsers: itemForwards = [], ...data } = args
+  const { id, boost = 0, uploadIds = [], options: pollOptions = [], forwardUsers: itemForwards = [], ...data } = args
   const { tx, me } = context
+  // TODO: old boost?
   const boostMsats = BigInt(boost) * BigInt(1000)
 
   const itemActs = []
@@ -25,10 +26,6 @@ export async function perform (args, context) {
       msats: boostMsats, act: 'BOOST', userId: me.id
     })
   }
-
-  // const threadSubscriptions = [{ userId: me.id },
-  //   ...forwardUsers.map(({ userId }) => ({ userId }))]
-  // const mentions = await getMentions(args, context)
 
   const old = await tx.item.findUnique({
     where: { id: parseInt(id) },
@@ -53,9 +50,12 @@ export async function perform (args, context) {
     data: {
       ...data,
       boost,
+      // TODO: ItemMentions
+      // TODO: test all these nested inserts
+      // TODO: give nested relations a consistent naming scheme
       PollOption: {
         createMany: {
-          data: pollOptions
+          data: pollOptions.map(option => ({ option }))
         }
       },
       ItemUpload: {

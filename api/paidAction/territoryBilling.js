@@ -34,15 +34,6 @@ export async function perform ({ name }, { cost, tx }) {
 
   const billPaidUntil = nextBilling(billedLastAt, sub.billingType)
 
-  await tx.subAct.create({
-    data: {
-      userId: sub.userId,
-      subName: sub.name,
-      msats: cost,
-      type: 'BILLING'
-    }
-  })
-
   return await tx.sub.update({
     where: {
       name: sub.name
@@ -51,7 +42,14 @@ export async function perform ({ name }, { cost, tx }) {
       billedLastAt,
       billPaidUntil,
       billingCost,
-      status: 'ACTIVE'
+      status: 'ACTIVE',
+      SubAct: {
+        create: {
+          msats: cost,
+          type: 'BILLING',
+          userId: sub.userId
+        }
+      }
     }
   })
 }

@@ -21,7 +21,7 @@ export async function getCost ({ subName, parentId, uploadIds, boost }, { models
 }
 
 export async function perform (args, context) {
-  const { invoiceId, parentId, uploadIds = [], forwardUsers = [], pollOptions = [], boost = 0, ...data } = args
+  const { invoiceId, parentId, uploadIds = [], forwardUsers = [], options: pollOptions = [], boost = 0, ...data } = args
   const { tx, me, cost } = context
   const boostMsats = BigInt(boost) * BigInt(1000)
 
@@ -55,6 +55,7 @@ export async function perform (args, context) {
     ...data,
     ...invoiceData,
     boost,
+    // TODO: ItemMentions
     // TODO: test all these nested inserts
     // TODO: give nested relations a consistent naming scheme
     ThreadSubscription: {
@@ -72,7 +73,7 @@ export async function perform (args, context) {
     },
     PollOption: {
       createMany: {
-        data: pollOptions
+        data: pollOptions.map(option => ({ option }))
       }
     },
     ItemUpload: {

@@ -25,7 +25,7 @@ export async function perform ({ invoiceId, sats, id: itemId }, { me, cost, mode
 export async function onPaid ({ invoice, actId }, { models, tx }) {
   let itemAct
   if (invoice) {
-    itemAct = await tx.itemAct.update({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } })
+    itemAct = await tx.itemAct.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } })
   } else if (actId) {
     itemAct = await tx.itemAct.findUnique({ where: { id: actId } })
   } else {
@@ -36,7 +36,7 @@ export async function onPaid ({ invoice, actId }, { models, tx }) {
 }
 
 export async function onFail ({ invoice }, { tx }) {
-  await tx.itemAct.update({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'FAILED' } })
+  await tx.itemAct.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'FAILED' } })
 }
 
 export async function describe ({ itemId, sats }, context) {

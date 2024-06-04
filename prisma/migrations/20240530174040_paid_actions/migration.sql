@@ -24,6 +24,13 @@ ADD COLUMN     "invoiceId" INTEGER;
 ALTER TABLE "Upload" ADD COLUMN     "invoiceActionState" "InvoiceActionState",
 ADD COLUMN     "invoiceId" INTEGER;
 
+-- AlterTable
+ALTER TABLE "PollBlindVote" ADD COLUMN     "invoiceActionState" "InvoiceActionState",
+ADD COLUMN     "invoiceId" INTEGER;
+
+-- AddForeignKey
+ALTER TABLE "PollBlindVote" ADD CONSTRAINT "PollBlindVote_invoiceId_fkey" FOREIGN KEY ("invoiceId") REFERENCES "Invoice"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
 -- AddForeignKey
 ALTER TABLE "Upload" ADD CONSTRAINT "Upload_invoiceId_fkey" FOREIGN KEY ("invoiceId") REFERENCES "Invoice"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 

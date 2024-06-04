@@ -15,13 +15,15 @@ export default function Poll ({ item }) {
   const me = useMe()
   const POLL_VOTE_MUTATION = gql`
     mutation pollVote($id: ID!, $hash: String, $hmac: String) {
-      pollVote(id: $id, hash: $hash, hmac: $hmac)
+      pollVote(id: $id, hash: $hash, hmac: $hmac) {
+        id
+      }
     }`
   const [pollVote] = useMutation(POLL_VOTE_MUTATION)
   const toaster = useToast()
   const { notify, unnotify } = useClientNotifications()
 
-  const update = (cache, { data: { pollVote } }) => {
+  const update = (cache, { data: { pollVote: { id } } }) => {
     cache.modify({
       id: `Item:${item.id}`,
       fields: {
@@ -34,7 +36,7 @@ export default function Poll ({ item }) {
       }
     })
     cache.modify({
-      id: `PollOption:${pollVote}`,
+      id: `PollOption:${id}`,
       fields: {
         count (existingCount) {
           return existingCount + 1
@@ -53,7 +55,7 @@ export default function Poll ({ item }) {
             ? async () => {
               const variables = { id: v.id }
               const notifyProps = { itemId: item.id }
-              const optimisticResponse = { pollVote: v.id }
+              const optimisticResponse = { pollVote: { id: v.id } }
               let cancel, nid
               try {
                 if (me) {

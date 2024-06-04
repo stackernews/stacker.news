@@ -1150,7 +1150,7 @@ export default {
   }
 }
 
-export const updateItem = async (parent, { sub: subName, forward, options, ...item }, { me, models, lnd, hash, hmac }) => {
+export const updateItem = async (parent, { sub: subName, forward, ...item }, { me, models, lnd, hash, hmac }) => {
   // update iff this item belongs to me
   const old = await models.item.findUnique({ where: { id: Number(item.id) }, include: { sub: true } })
 
@@ -1206,7 +1206,7 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
   return resultItem
 }
 
-export const createItem = async (parent, { forward, options, ...item }, { me, models, lnd, hash, hmac }) => {
+export const createItem = async (parent, { forward, ...item }, { me, models, lnd, hash, hmac }) => {
   // rename to match column name
   item.subName = item.sub
   delete item.sub

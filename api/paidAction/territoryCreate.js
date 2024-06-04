@@ -14,34 +14,28 @@ export async function perform (data, { me, cost, tx }) {
   const billedLastAt = new Date()
   const billPaidUntil = nextBilling(billedLastAt, billingType)
 
-  const result = await tx.sub.create({
+  return await tx.sub.create({
     data: {
       ...data,
       billedLastAt,
       billPaidUntil,
       billingCost,
       rankingType: 'WOT',
-      userId: me.id
-    }
-  })
-
-  await tx.subAct.create({
-    data: {
       userId: me.id,
-      subName: data.name,
-      msats: cost,
-      type: 'BILLING'
+      SubAct: {
+        create: {
+          msats: cost,
+          type: 'BILLING',
+          userId: me.id
+        }
+      },
+      SubSubscription: {
+        create: {
+          userId: me.id
+        }
+      }
     }
   })
-
-  await tx.subSubscription.create({
-    data: {
-      userId: me.id,
-      subName: data.name
-    }
-  })
-
-  return result
 }
 
 export async function describe ({ name }) {

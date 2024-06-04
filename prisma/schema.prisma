@@ -526,13 +526,16 @@ model PollVote {
 }
 
 model PollBlindVote {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
-  itemId    Int
-  userId    Int
-  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                 Int                 @id @default(autoincrement())
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @default(now()) @updatedAt @map("updated_at")
+  itemId             Int
+  userId             Int
+  invoiceId          Int?
+  invoiceActionState InvoiceActionState?
+  invoice            Invoice?            @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  item               Item                @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([itemId, userId], map: "PollBlindVote.itemId_userId_unique")
   @@index([userId], map: "PollBlindVote.userId_index")
@@ -745,12 +748,13 @@ model Invoice {
   lud18Data      Json?
   user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  actionState InvoiceActionState?
-  actionType  InvoiceActionType?
-  ItemAct     ItemAct[]
-  Item        Item[]
-  Upload      Upload[]
-  PollVote    PollVote[]
+  actionState   InvoiceActionState?
+  actionType    InvoiceActionType?
+  ItemAct       ItemAct[]
+  Item          Item[]
+  Upload        Upload[]
+  PollVote      PollVote[]
+  PollBlindVote PollBlindVote[]
 
   @@index([createdAt], map: "Invoice.created_at_index")
   @@index([userId], map: "Invoice.userId_index")

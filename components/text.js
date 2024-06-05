@@ -153,7 +153,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
     return <ZoomableImage srcSet={srcSet} tab={tab} src={src} rel={rel ?? UNKNOWN_LINK_REL} {...props} topLevel />
   }, [imgproxyUrls, topLevel, tab])
 
-  const schema = {
+  const rehypeSanitizeSchema = {
     ...defaultSchema,
     tagNames: [...defaultSchema.tagNames, 'sub', 'sup'],
     attributes: {
@@ -309,7 +309,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
           img: Img
         }}
         remarkPlugins={[gfm, mention, sub, ref, rehype]}
-        rehypePlugins={[rehypeInlineCodeProperty, rehypeRaw, [rehypeSanitize, schema]]}
+        rehypePlugins={[rehypeInlineCodeProperty, rehypeRaw, [rehypeSanitize, rehypeSanitizeSchema]]}
 
       >
         {children}

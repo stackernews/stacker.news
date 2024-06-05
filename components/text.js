@@ -282,7 +282,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
                   <div className={styles.videoContainer}>
                     <iframe
                       title='Rumble Video'
-                      allowFullScreen=''
+                      allowFullScreen
                       src={meta?.href}
                     />
                   </div>
@@ -296,7 +296,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
                   <div className={styles.videoContainer}>
                     <iframe
                       title='PeerTube Video'
-                      allowFullScreen=''
+                      allowFullScreen
                       src={meta?.href}
                     />
                   </div>

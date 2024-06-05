@@ -106,7 +106,7 @@ function ItemEmbed ({ item }) {
         <div className={styles.videoContainer}>
           <iframe
             title='Rumble Video'
-            allowFullScreen=''
+            allowFullScreen
             src={meta?.href}
           />
         </div>
@@ -120,7 +120,7 @@ function ItemEmbed ({ item }) {
         <div className={styles.videoContainer}>
           <iframe
             title='PeerTube Video'
-            allowFullScreen=''
+            allowFullScreen
             src={meta?.href}
           />
         </div>

@@ -2,7 +2,7 @@ import Link from 'next/link'
 import styles from './item.module.css'
 import UpVote from './upvote'
 import { useRef } from 'react'
-import { AD_USER_ID, UNKNOWN_LINK_REL } from '@/lib/constants'
+import { USER_ID, UNKNOWN_LINK_REL } from '@/lib/constants'
 import Pin from '@/svgs/pushpin-fill.svg'
 import reactStringReplace from 'react-string-replace'
 import PollIcon from '@/svgs/bar-chart-horizontal-fill.svg'
@@ -64,7 +64,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
           ? <Pin width={24} height={24} className={styles.pin} />
           : item.meDontLikeSats > item.meSats
             ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
-            : Number(item.user?.id) === AD_USER_ID
+            : Number(item.user?.id) === USER_ID.ad
               ? <AdIcon width={24} height={24} className={styles.ad} />
               : <UpVote item={item} className={styles.upvote} />}
         <div className={styles.hunk}>
@@ -99,7 +99,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
             full={full} item={item}
             onQuoteReply={onQuoteReply}
             pinnable={pinnable}
-            extraBadges={Number(item?.user?.id) === AD_USER_ID && <Badge className={styles.newComment} bg={null}>AD</Badge>}
+            extraBadges={Number(item?.user?.id) === USER_ID.ad && <Badge className={styles.newComment} bg={null}>AD</Badge>}
           />
           {belowTitle}
         </div>
@@ -130,7 +130,7 @@ export function ItemSummary ({ item }) {
       item={item}
       showUser={false}
       showActionDropdown={false}
-      extraBadges={item.title && Number(item?.user?.id) === AD_USER_ID && <Badge className={styles.newComment} bg={null}>AD</Badge>}
+      extraBadges={item.title && Number(item?.user?.id) === USER_ID.ad && <Badge className={styles.newComment} bg={null}>AD</Badge>}
     />
   )
 

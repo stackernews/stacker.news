@@ -44,6 +44,7 @@ model User {
   noteInvites               Boolean              @default(true)
   noteItemSats              Boolean              @default(true)
   noteMentions              Boolean              @default(true)
+  noteItemMentions          Boolean              @default(true)
   noteForwardedSats         Boolean              @default(true)
   lastCheckedJobs           DateTime?
   noteJobIndicator          Boolean              @default(true)
@@ -79,7 +80,6 @@ model User {
   actions                   ItemAct[]
   mentions                  Mention[]
   messages                  Message[]
-  PollVote                  PollVote[]
   PushSubscriptions         PushSubscription[]
   ReferralAct               ReferralAct[]
   Streak                    Streak[]
@@ -125,6 +125,7 @@ model User {
   Replies                   Reply[]
   walletLogs                WalletLog[]
   Reminder                  Reminder[]
+  PollBlindVote             PollBlindVote[]
 
   @@index([photoId])
   @@index([createdAt], map: "users.created_at_index")
@@ -411,6 +412,8 @@ model Item {
   user               User                  @relation("UserItems", fields: [userId], references: [id], onDelete: Cascade)
   actions            ItemAct[]
   mentions           Mention[]
+  referrer           ItemMention[]         @relation("referrer")
+  referee            ItemMention[]         @relation("referee")
   PollOption         PollOption[]
   PollVote           PollVote[]
   ThreadSubscription ThreadSubscription[]
@@ -424,6 +427,7 @@ model Item {
   Ancestors          Reply[]               @relation("AncestorReplyItem")
   Replies            Reply[]
   Reminder           Reminder[]
+  PollBlindVote      PollBlindVote[]
 
   @@index([uploadId])
   @@index([lastZapAt])
@@ -501,16 +505,25 @@ model PollVote {
   id           Int        @id @default(autoincrement())
   createdAt    DateTime   @default(now()) @map("created_at")
   updatedAt    DateTime   @default(now()) @updatedAt @map("updated_at")
-  userId       Int
   itemId       Int
   pollOptionId Int
   item         Item       @relation(fields: [itemId], references: [id], onDelete: Cascade)
   pollOption   PollOption @relation(fields: [pollOptionId], references: [id], onDelete: Cascade)
-  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([itemId, userId], map: "PollVote.itemId_userId_unique")
   @@index([pollOptionId], map: "PollVote.pollOptionId_index")
-  @@index([userId], map: "PollVote.userId_index")
+}
+
+model PollBlindVote {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  itemId    Int
+  userId    Int
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, userId], map: "PollBlindVote.itemId_userId_unique")
+  @@index([userId], map: "PollBlindVote.userId_index")
 }
 
 enum BillingType {
@@ -659,6 +672,21 @@ model Mention {
   @@index([createdAt], map: "Mention.created_at_index")
   @@index([itemId], map: "Mention.itemId_index")
   @@index([userId], map: "Mention.userId_index")
+}
+
+model ItemMention {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  referrerId Int
+  refereeId  Int
+  referrerItem      Item     @relation("referrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  refereeItem       Item     @relation("referee", fields: [refereeId], references: [id], onDelete: Cascade)
+
+  @@unique([referrerId, refereeId], map: "ItemMention.referrerId_refereeId_unique")
+  @@index([createdAt], map: "ItemMention.created_at_index")
+  @@index([referrerId], map: "ItemMention.referrerId_index")
+  @@index([refereeId], map: "ItemMention.refereeId_index")
 }
 
 model Invoice {

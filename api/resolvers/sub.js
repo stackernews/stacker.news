@@ -382,7 +382,10 @@ export default {
       return await models.user.findUnique({ where: { id: sub.userId } })
     },
     meMuteSub: async (sub, args, { models }) => {
-      return sub.meMuteSub || sub.MuteSub?.length > 0
+      if (sub.meMuteSub !== undefined) {
+        return sub.meMuteSub
+      }
+      return sub.MuteSub?.length > 0
     },
     nposts: async (sub, { when, from, to }, { models }) => {
       if (typeof sub.nposts !== 'undefined') {
@@ -395,7 +398,11 @@ export default {
       }
     },
     meSubscription: async (sub, args, { me, models }) => {
-      return sub.meSubscription || sub.SubSubscription?.length > 0
+      if (sub.meSubscription !== undefined) {
+        return sub.meSubscription
+      }
+
+      return sub.SubSubscription?.length > 0
     },
     createdAt: sub => sub.createdAt || sub.created_at
   }

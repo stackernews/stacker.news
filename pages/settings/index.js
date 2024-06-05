@@ -120,6 +120,7 @@ export default function Settings ({ ssrData }) {
             noteEarning: settings?.noteEarning,
             noteAllDescendants: settings?.noteAllDescendants,
             noteMentions: settings?.noteMentions,
+            noteItemMentions: settings?.noteItemMentions,
             noteDeposits: settings?.noteDeposits,
             noteWithdrawals: settings?.noteWithdrawals,
             noteInvites: settings?.noteInvites,
@@ -278,6 +279,11 @@ export default function Settings ({ ssrData }) {
           <Checkbox
             label='someone mentions me'
             name='noteMentions'
+            groupClassName='mb-0'
+          />
+          <Checkbox
+            label='someone mentions one of my items'
+            name='noteItemMentions'
             groupClassName='mb-0'
           />
           <Checkbox

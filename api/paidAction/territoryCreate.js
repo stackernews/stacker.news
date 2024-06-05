@@ -5,7 +5,7 @@ export const supportsPessimism = true
 export const supportsOptimism = false
 
 export async function getCost ({ billingType }) {
-  return TERRITORY_PERIOD_COST(billingType) * BigInt(1000)
+  return BigInt(TERRITORY_PERIOD_COST(billingType)) * BigInt(1000)
 }
 
 export async function perform (data, { me, cost, tx }) {

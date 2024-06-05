@@ -12,7 +12,7 @@ export async function getCost ({ name }, { models }) {
     }
   })
 
-  return TERRITORY_PERIOD_COST(sub.billingType) * BigInt(1000)
+  return BigInt(TERRITORY_PERIOD_COST(sub.billingType)) * BigInt(1000)
 }
 
 export async function perform ({ name }, { cost, tx }) {

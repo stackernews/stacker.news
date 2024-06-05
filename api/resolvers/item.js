@@ -1185,7 +1185,7 @@ export default {
 }
 
 const namePattern = /\B@[\w_]+/gi
-const refPattern = new RegExp(`(#\\d+|${process.env.NEXT_PUBLIC_URL}/items/\\d+.*)`, 'gi')
+const refPattern = new RegExp(`${process.env.NEXT_PUBLIC_URL}/items/\\d+.*`, 'gi')
 
 export const createMentions = async (item, models) => {
   // if we miss a mention, in the rare circumstance there's some kind of
@@ -1245,8 +1245,6 @@ const createUserMentions = async (item, models) => {
 
 const createItemMentions = async (item, models) => {
   const refs = item.text.match(refPattern)?.map(m => {
-    if (m.startsWith('#')) return Number(m.slice(1))
-    // is not #<id> syntax but full URL
     try {
       const { itemId, commentId } = parseInternalLinks(m)
       return Number(commentId || itemId)

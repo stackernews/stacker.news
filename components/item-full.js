@@ -114,6 +114,20 @@ function ItemEmbed ({ item }) {
     )
   }
 
+  if (provider === 'peertube') {
+    return (
+      <div className={styles.videoWrapper}>
+        <div className={styles.videoContainer}>
+          <iframe
+            title='PeerTube Video'
+            allowFullScreen=''
+            src={meta?.href}
+          />
+        </div>
+      </div>
+    )
+  }
+
   if (item.url?.match(IMGPROXY_URL_REGEXP)) {
     return <ZoomableImage src={item.url} rel={item.rel ?? UNKNOWN_LINK_REL} />
   }

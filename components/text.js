@@ -290,6 +290,20 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
               )
             }
 
+            if (provider === 'peertube') {
+              return (
+                <div style={videoWrapperStyles}>
+                  <div className={styles.videoContainer}>
+                    <iframe
+                      title='PeerTube Video'
+                      allowFullScreen=''
+                      src={meta?.href}
+                    />
+                  </div>
+                </div>
+              )
+            }
+
             // assume the link is an image which will fallback to link if it's not
             return <Img src={href} rel={rel ?? UNKNOWN_LINK_REL} {...props}>{children}</Img>
           },

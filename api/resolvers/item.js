@@ -1259,7 +1259,6 @@ const createItemMentions = async (item, models) => {
       id: { in: refs },
       // Don't create mentions for your own items
       userId: { not: item.userId }
-
     }
   })
 

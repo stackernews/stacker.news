@@ -1,5 +1,5 @@
 import { Form, MarkdownInput } from '@/components/form'
-import { gql, useMutation } from '@apollo/client'
+import { gql } from '@apollo/client'
 import styles from './reply.module.css'
 import { COMMENTS } from '@/fragments/comments'
 import { useMe } from './me'
@@ -15,6 +15,7 @@ import { useShowModal } from './modal'
 import { Button } from 'react-bootstrap'
 import { useRoot } from './root'
 import { commentSubTreeRootId } from '@/lib/item'
+import { usePaidMutation } from './use-paid-mutation'
 
 export function ReplyOnAnotherPage ({ item }) {
   const rootId = commentSubTreeRootId(item)
@@ -55,7 +56,7 @@ export default forwardRef(function Reply ({
     }
   }, [replyOpen, quote, parentId])
 
-  const [upsertComment] = useMutation(
+  const [upsertComment] = usePaidMutation(
     gql`
       ${COMMENTS}
       mutation upsertComment($text: String!, $parentId: ID!, $hash: String, $hmac: String) {
@@ -63,6 +64,12 @@ export default forwardRef(function Reply ({
           ...CommentFields
           deleteScheduledAt
           reminderScheduledAt
+          invoice {
+            bolt11
+            hash
+            hmac
+            id
+          }
           comments {
             ...CommentsRecursive
           }
@@ -105,9 +112,12 @@ export default forwardRef(function Reply ({
     }
   )
 
-  const onSubmit = useCallback(async ({ amount, hash, hmac, ...values }, { resetForm }) => {
-    const { data } = await upsertComment({ variables: { parentId, hash, hmac, ...values } })
-    toastUpsertSuccessMessages(toaster, data, 'upsertComment', false, values.text)
+  const onSubmit = useCallback(async (variables, { resetForm }) => {
+    const { data } = await upsertComment({
+      variables: { parentId, ...variables }
+    })
+    console.log('upsertComment', data)
+    toastUpsertSuccessMessages(toaster, data, 'upsertComment', false, variables.text)
     resetForm({ text: '' })
     setReply(replyOpen || false)
   }, [upsertComment, setReply, parentId])

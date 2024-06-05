@@ -2,6 +2,7 @@ import { createHodlInvoice, createInvoice, settleHodlInvoice } from 'ln-service'
 import { datePivot } from '@/lib/time'
 import { verifyPayment } from '../resolvers/serial'
 import { ANON_USER_ID } from '@/lib/constants'
+import { createHmac } from '../resolvers/wallet'
 
 export const paidActions = {
   BUY_CREDITS: await import('./buyCredits'),
@@ -64,7 +65,7 @@ async function performOptimisticAction (actionType, args, context) {
 
   const expiresAt = datePivot(new Date(), { days: 1 })
   const lndInv = await createInvoice({
-    description: user.hideInvoiceDesc ? undefined : action.describe(args, context),
+    description: user.hideInvoiceDesc ? undefined : await action.describe(args, context),
     lnd,
     mtokens: String(cost),
     expires_at: expiresAt
@@ -161,6 +162,11 @@ async function performPessimiticAction (actionType, args, context) {
         expiresAt
       }
     })
+
+    // the HMAC is only returned during invoice creation
+    // this makes sure that only the person who created this invoice
+    // has access to the HMAC
+    invoice.hmac = createHmac(invoice.hash)
 
     return {
       invoice

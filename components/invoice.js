@@ -22,6 +22,16 @@ export default function Invoice ({ invoice, modal, onPayment, info, successVerb,
         skip: !poll
       })
 
+  useEffect(() => {
+    if (!data?.invoice) {
+      return
+    }
+    const invoice = data.invoice
+    if (invoice.confirmedAt || (invoice.isHeld && invoice.satsReceived)) {
+      onPayment?.(invoice)
+    }
+  }, [data?.invoice, onPayment])
+
   if (data) {
     invoice = data.invoice
   }
@@ -49,12 +59,6 @@ export default function Invoice ({ invoice, modal, onPayment, info, successVerb,
     status = 'expired'
     webLn = false
   }
-
-  useEffect(() => {
-    if (invoice.confirmedAt || (invoice.isHeld && invoice.satsReceived)) {
-      onPayment?.(invoice)
-    }
-  }, [invoice.confirmedAt, invoice.isHeld, invoice.satsReceived])
 
   const { nostr, comment, lud18Data, bolt11, confirmedPreimage } = invoice
 

@@ -65,9 +65,9 @@ const useInvoice = () => {
     if (error) {
       throw error
     }
-    const { hash, isHeld, satsReceived, cancelled } = data.invoice
+    const { hash, satsReceived, cancelled } = data.invoice
     // if we're polling for invoices, we're using JIT invoices so isHeld must be set
-    if (isHeld && satsReceived) {
+    if (satsReceived) {
       return true
     }
     if (cancelled) {
@@ -85,6 +85,7 @@ const useInvoice = () => {
             resolve()
             clearInterval(interval)
           }
+          console.log('waiting for payment ...')
         } catch (err) {
           reject(err)
           clearInterval(interval)
@@ -102,7 +103,7 @@ const useInvoice = () => {
   return { create, isPaid, waitUntilPaid, cancel }
 }
 
-const useWebLnPayment = () => {
+export const useWebLnPayment = () => {
   const invoice = useInvoice()
   const provider = useWebLN()
 
@@ -132,7 +133,7 @@ const useWebLnPayment = () => {
   return waitForWebLnPayment
 }
 
-const useQrPayment = () => {
+export const useQrPayment = () => {
   const invoice = useInvoice()
   const showModal = useShowModal()
 

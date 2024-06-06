@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import styles from './item.module.css'
 import UpVote from './upvote'
-import { useRef } from 'react'
+import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react'
 import { USER_ID, UNKNOWN_LINK_REL } from '@/lib/constants'
 import Pin from '@/svgs/pushpin-fill.svg'
 import reactStringReplace from 'react-string-replace'
@@ -45,6 +45,34 @@ export function SearchTitle ({ title }) {
   })
 }
 
+const ItemContext = createContext({ pendingSats: 0, setPendingSats: undefined })
+
+export const ItemContextProvider = ({ children }) => {
+  const ctx = useItemContext()
+  const [pendingSats, innerSetPendingSats] = useState(0)
+  const [pendingCommentSats, innerSetPendingCommentSats] = useState(0)
+
+  // cascade comment sats up to root context
+  const setPendingSats = useCallback((sats) => {
+    innerSetPendingSats(sats)
+    ctx?.setPendingCommentSats?.(sats)
+  }, [ctx?.setPendingCommentSats])
+
+  const setPendingCommentSats = useCallback((sats) => {
+    innerSetPendingCommentSats(sats)
+    ctx?.setPendingCommentSats?.(sats)
+  }, [ctx?.setPendingCommentSats])
+
+  const value = useMemo(() =>
+    ({ pendingSats, setPendingSats, pendingCommentSats, setPendingCommentSats }),
+  [pendingSats, setPendingSats, pendingCommentSats, setPendingCommentSats])
+  return <ItemContext.Provider value={value}>{children}</ItemContext.Provider>
+}
+
+export const useItemContext = () => {
+  return useContext(ItemContext)
+}
+
 export default function Item ({ item, rank, belowTitle, right, full, children, siblingComments, onQuoteReply, pinnable }) {
   const titleRef = useRef()
   const router = useRouter()
@@ -59,34 +87,35 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
             {rank}
           </div>)
         : <div />}
-      <div className={`${styles.item} ${siblingComments ? 'pt-3' : ''}`}>
-        {item.position && (pinnable || !item.subName)
-          ? <Pin width={24} height={24} className={styles.pin} />
-          : item.meDontLikeSats > item.meSats
-            ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
-            : Number(item.user?.id) === USER_ID.ad
-              ? <AdIcon width={24} height={24} className={styles.ad} />
-              : <UpVote item={item} className={styles.upvote} />}
-        <div className={styles.hunk}>
-          <div className={`${styles.main} flex-wrap`}>
-            <Link
-              href={`/items/${item.id}`}
-              onClick={(e) => onItemClick(e, router, item)}
-              ref={titleRef}
-              className={`${styles.title} text-reset me-2`}
-            >
-              {item.searchTitle ? <SearchTitle title={item.searchTitle} /> : item.title}
-              {item.pollCost && <PollIndicator item={item} />}
-              {item.bounty > 0 &&
-                <span className={styles.icon}>
-                  <ActionTooltip notForm overlayText={`${numWithUnits(item.bounty)} ${item.bountyPaidTo?.length ? ' paid' : ' bounty'}`}>
-                    <BountyIcon className={`${styles.bountyIcon} ${item.bountyPaidTo?.length ? 'fill-success' : 'fill-grey'}`} height={16} width={16} />
-                  </ActionTooltip>
-                </span>}
-              {item.forwards?.length > 0 && <span className={styles.icon}><Prism className='fill-grey ms-1' height={14} width={14} /></span>}
-              {image && <span className={styles.icon}><ImageIcon className='fill-grey ms-2' height={16} width={16} /></span>}
-            </Link>
-            {item.url && !image &&
+      <ItemContextProvider>
+        <div className={`${styles.item} ${siblingComments ? 'pt-3' : ''}`}>
+          {item.position && (pinnable || !item.subName)
+            ? <Pin width={24} height={24} className={styles.pin} />
+            : item.meDontLikeSats > item.meSats
+              ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
+              : Number(item.user?.id) === USER_ID.ad
+                ? <AdIcon width={24} height={24} className={styles.ad} />
+                : <UpVote item={item} className={styles.upvote} />}
+          <div className={styles.hunk}>
+            <div className={`${styles.main} flex-wrap`}>
+              <Link
+                href={`/items/${item.id}`}
+                onClick={(e) => onItemClick(e, router, item)}
+                ref={titleRef}
+                className={`${styles.title} text-reset me-2`}
+              >
+                {item.searchTitle ? <SearchTitle title={item.searchTitle} /> : item.title}
+                {item.pollCost && <PollIndicator item={item} />}
+                {item.bounty > 0 &&
+                  <span className={styles.icon}>
+                    <ActionTooltip notForm overlayText={`${numWithUnits(item.bounty)} ${item.bountyPaidTo?.length ? ' paid' : ' bounty'}`}>
+                      <BountyIcon className={`${styles.bountyIcon} ${item.bountyPaidTo?.length ? 'fill-success' : 'fill-grey'}`} height={16} width={16} />
+                    </ActionTooltip>
+                  </span>}
+                {item.forwards?.length > 0 && <span className={styles.icon}><Prism className='fill-grey ms-1' height={14} width={14} /></span>}
+                {image && <span className={styles.icon}><ImageIcon className='fill-grey ms-2' height={16} width={16} /></span>}
+              </Link>
+              {item.url && !image &&
               // eslint-disable-next-line
               <a
                 className={styles.link} target='_blank' href={item.url}
@@ -94,17 +123,18 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
               >
                 {item.url.replace(/(^https?:|^)\/\//, '')}
               </a>}
+            </div>
+            <ItemInfo
+              full={full} item={item}
+              onQuoteReply={onQuoteReply}
+              pinnable={pinnable}
+              extraBadges={Number(item?.user?.id) === USER_ID.ad && <Badge className={styles.newComment} bg={null}>AD</Badge>}
+            />
+            {belowTitle}
           </div>
-          <ItemInfo
-            full={full} item={item}
-            onQuoteReply={onQuoteReply}
-            pinnable={pinnable}
-            extraBadges={Number(item?.user?.id) === USER_ID.ad && <Badge className={styles.newComment} bg={null}>AD</Badge>}
-          />
-          {belowTitle}
+          {right}
         </div>
-        {right}
-      </div>
+      </ItemContextProvider>
       {children && (
         <div className={styles.children}>
           {children}

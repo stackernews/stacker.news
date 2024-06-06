@@ -4,7 +4,7 @@ import { InvoiceCanceledError, InvoiceExpiredError, useQrPayment, useWebLnPaymen
 import { useMe } from './me'
 
 // this is just like useMutation but it pays an invoice returned by the mutation
-export function usePaidMutation (mutation, { onPaid, ...options }) {
+export function usePaidMutation (mutation, { onPaid, onPayError, ...options }) {
   const [mutate, result] = useMutation(mutation, options)
   const waitForWebLnPayment = useWebLnPayment()
   const waitForQrPayment = useQrPayment()
@@ -12,11 +12,13 @@ export function usePaidMutation (mutation, { onPaid, ...options }) {
 
   const waitForPayment = useCallback(async invoice => {
     let webLnError
+    const start = Date.now()
     try {
       return await waitForWebLnPayment(invoice)
     } catch (err) {
-      if (err instanceof InvoiceCanceledError || err instanceof InvoiceExpiredError) {
+      if (Date.now() - start > 1000 || err instanceof InvoiceCanceledError || err instanceof InvoiceExpiredError) {
         // bail since qr code payment will also fail
+        // also bail if the payment took more than 1 second
         throw err
       }
       webLnError = err
@@ -68,10 +70,21 @@ export function usePaidMutation (mutation, { onPaid, ...options }) {
 
       // if this is an optimistic update, don't wait to pay the invoice
       if (me && (innerOptions.optimisticResponse || options.optimisticResponse || ssOptimistic)) {
-        pay().catch(console.error)
+        pay().catch(e => {
+          console.error('usePaidMutation: failed to pay invoice', e)
+          // onPayError is called after the invoice fails to pay
+          // useful for updating invoiceActionState to FAILED
+          onPayError?.(e, rest.client.cache, data)
+        })
       } else {
         // otherwise, wait for to pay before completing the mutation
-        return await pay()
+        try {
+          return await pay()
+        } catch (e) {
+          console.error('usePaidMutation: failed to pay invoice', e)
+          onPayError?.(e, rest.client.cache, data)
+          return { data, ...rest, error: e }
+        }
       }
     }
     return { data, ...rest }

@@ -108,6 +108,7 @@ function ItemEmbed ({ item }) {
             title='Rumble Video'
             allowFullScreen
             src={meta?.href}
+            sandbox='allow-scripts'
           />
         </div>
       </div>
@@ -122,6 +123,7 @@ function ItemEmbed ({ item }) {
             title='PeerTube Video'
             allowFullScreen
             src={meta?.href}
+            sandbox='allow-scripts'
           />
         </div>
       </div>

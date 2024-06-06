@@ -284,6 +284,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
                       title='Rumble Video'
                       allowFullScreen
                       src={meta?.href}
+                      sandbox='allow-scripts'
                     />
                   </div>
                 </div>
@@ -298,6 +299,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
                       title='PeerTube Video'
                       allowFullScreen
                       src={meta?.href}
+                      sandbox='allow-scripts'
                     />
                   </div>
                 </div>

@@ -199,7 +199,7 @@ export default function UpVote ({ item, className }) {
     }
   }
 
-  const fillColor = hover ? nextColor : color
+  const fillColor = hover || pending ? nextColor : color
 
   return (
     <div ref={ref} className='upvoteParent'>
@@ -224,7 +224,7 @@ export default function UpVote ({ item, className }) {
                       ${meSats ? styles.voted : ''}
                       ${pending ? styles.pending : ''}`
                     }
-              style={meSats || hover
+              style={meSats || hover || pending
                 ? {
                     fill: fillColor,
                     filter: `drop-shadow(0 0 6px ${fillColor}90)`

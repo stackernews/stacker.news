@@ -160,6 +160,7 @@ export default function UpVote ({ item, className }) {
 
     if (pending) {
       controller.abort()
+      setController(null)
       return
     }
     const c = new ZapUndoController()
@@ -186,6 +187,7 @@ export default function UpVote ({ item, className }) {
 
       if (pending) {
         controller.abort()
+        setController(null)
         return
       }
       const c = new ZapUndoController()

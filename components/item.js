@@ -48,20 +48,20 @@ export function SearchTitle ({ title }) {
 const ItemContext = createContext({ pendingSats: 0, setPendingSats: undefined })
 
 export const ItemContextProvider = ({ children }) => {
-  const ctx = useItemContext()
+  const parentCtx = useItemContext()
   const [pendingSats, innerSetPendingSats] = useState(0)
   const [pendingCommentSats, innerSetPendingCommentSats] = useState(0)
 
   // cascade comment sats up to root context
   const setPendingSats = useCallback((sats) => {
     innerSetPendingSats(sats)
-    ctx?.setPendingCommentSats?.(sats)
-  }, [ctx?.setPendingCommentSats])
+    parentCtx?.setPendingCommentSats?.(sats)
+  }, [parentCtx?.setPendingCommentSats])
 
   const setPendingCommentSats = useCallback((sats) => {
     innerSetPendingCommentSats(sats)
-    ctx?.setPendingCommentSats?.(sats)
-  }, [ctx?.setPendingCommentSats])
+    parentCtx?.setPendingCommentSats?.(sats)
+  }, [parentCtx?.setPendingCommentSats])
 
   const value = useMemo(() =>
     ({ pendingSats, setPendingSats, pendingCommentSats, setPendingCommentSats }),

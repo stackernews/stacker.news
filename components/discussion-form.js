@@ -51,7 +51,7 @@ export function DiscussionForm ({
         throw new Error({ message: error.toString() })
       }
 
-      const discussionId = data?.upsertDiscussion?.id
+      const discussionId = data?.upsertDiscussion?.result?.id
 
       if (crosspost && discussionId) {
         await crossposter(discussionId)

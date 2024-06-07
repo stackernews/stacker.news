@@ -10,6 +10,7 @@ export async function getCost ({ subName, parentId, uploadIds, boost }, { models
   const sub = parentId ? null : await models.sub.findUnique({ where: { name: subName } })
   const baseCost = parentId ? BigInt(1000) : BigInt(sub.baseCost) * BigInt(1000)
   // baseCost * 10^num_items_in_10m * 100 (anon) or 1 (user) + image fees
+  // TODO: anon is getting charged spam fees
   const [{ cost }] = await models.$queryRaw`
     SELECT ${baseCost}::INTEGER
       * POWER(10, item_spam(${parentId}::INTEGER, ${user?.id || USER_ID.anon}::INTEGER, '10m'::INTERVAL))

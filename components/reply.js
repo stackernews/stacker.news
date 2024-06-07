@@ -57,13 +57,15 @@ export default forwardRef(function Reply ({
   }, [replyOpen, quote, parentId])
 
   const [upsertComment] = usePaidMutation(UPSERT_COMMENT, {
-    update (cache, { data: { upsertComment } }) {
+    update (cache, { data: { upsertComment: { result } } }) {
+      if (!result) return
+
       cache.modify({
         id: `Item:${parentId}`,
         fields: {
           comments (existingCommentRefs = []) {
             const newCommentRef = cache.writeFragment({
-              data: upsertComment,
+              data: result,
               fragment: COMMENTS,
               fragmentName: 'CommentsRecursive'
             })
@@ -89,7 +91,7 @@ export default forwardRef(function Reply ({
       // so that we don't see indicator for our own comments, we record this comments as the latest time
       // but we also have record num comments, in case someone else commented when we did
       const root = ancestors[0]
-      commentsViewedAfterComment(root, upsertComment.createdAt)
+      commentsViewedAfterComment(root, result.createdAt)
     }
   })
 

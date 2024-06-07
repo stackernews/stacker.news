@@ -90,7 +90,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
         throw new Error({ message: error.toString() })
       }
 
-      const linkId = data?.upsertLink?.id
+      const linkId = data?.upsertLink?.result?.id
 
       if (crosspost && linkId) {
         await crossposter(linkId)

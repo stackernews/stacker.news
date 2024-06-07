@@ -45,8 +45,8 @@ export function usePaidMutation (mutation, { onPaid, onPayError, ...options } = 
     if (Object.values(data).length !== 1) {
       throw new Error('usePaidMutation: exactly one mutation at a time is supported')
     }
-    const result = Object.values(data)[0]
-    const invoice = result?.invoice
+    const response = Object.values(data)[0]
+    const invoice = response?.invoice
 
     // if the mutation returns an invoice, pay it
     if (invoice) {
@@ -71,7 +71,7 @@ export function usePaidMutation (mutation, { onPaid, onPayError, ...options } = 
       }
 
       // if the mutation returns more than just the invoice, it's serverside optimistic
-      const ssOptimistic = result && Object.keys(result).length > 1
+      const ssOptimistic = !!response?.result
 
       // if this is an optimistic update, don't wait to pay the invoice
       if (me && (innerOptions.optimisticResponse || options.optimisticResponse || ssOptimistic)) {

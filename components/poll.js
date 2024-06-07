@@ -21,7 +21,9 @@ export default function Poll ({ item }) {
   const [pollVote] = usePaidMutation(POLL_VOTE_MUTATION)
   const toaster = useToast()
 
-  const update = (cache, { data: { pollVote: { id } } }) => {
+  const update = (cache, { data: { pollVote: { result } } }) => {
+    if (!result) return
+    const { id } = result
     cache.modify({
       id: `Item:${item.id}`,
       fields: {
@@ -51,7 +53,7 @@ export default function Poll ({ item }) {
           onClick={me
             ? async () => {
               const variables = { id: v.id }
-              const optimisticResponse = { pollVote: { id: v.id } }
+              const optimisticResponse = { pollVote: { result: { id: v.id } } }
               try {
                 await pollVote({ variables, optimisticResponse, update })
               } catch (error) {

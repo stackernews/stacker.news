@@ -45,7 +45,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         throw new Error({ message: error.toString() })
       }
 
-      const pollId = data?.upsertPoll?.id
+      const pollId = data?.upsertPoll?.result?.id
 
       if (crosspost && pollId) {
         await crossposter(pollId)

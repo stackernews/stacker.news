@@ -110,10 +110,12 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
   )
 }
 
-export function useAct ({ onUpdate } = {}) {
+export function useAct () {
   const [act] = usePaidMutation(ACT_MUTATION, {
-    update: (cache, args) => {
-      const { data: { act: { id, sats, path, act } } } = args
+    update: (cache, { data: { act: { result } } }) => {
+      if (!result) return
+
+      const { id, sats, path, act } = result
 
       cache.modify({
         id: `Item:${id}`,
@@ -163,7 +165,7 @@ export function useAct ({ onUpdate } = {}) {
 }
 
 export function useZap () {
-  const act = useAct(ACT_MUTATION)
+  const act = useAct()
   const me = useMe()
 
   const toaster = useToast()

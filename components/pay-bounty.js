@@ -6,7 +6,7 @@ import { useMe } from './me'
 import { numWithUnits } from '@/lib/format'
 import { useShowModal } from './modal'
 import { useRoot } from './root'
-import { useAct, actUpdate } from './item-act'
+import { useAct } from './item-act'
 import { InvoiceCanceledError } from './payment'
 import { useLightning } from './lightning'
 import { useToast } from './toast'
@@ -18,7 +18,10 @@ export default function PayBounty ({ children, item }) {
   const strike = useLightning()
   const toaster = useToast()
 
-  const onUpdate = useCallback(onComplete => (cache, { data: { act: { id, path } } }) => {
+  const onUpdate = useCallback(onComplete => (cache, { data: { act: { result } } }) => {
+    if (!result) return
+    const { id, path } = result
+
     // update root bounty status
     const root = path.split('.')[0]
     cache.modify({
@@ -29,22 +32,19 @@ export default function PayBounty ({ children, item }) {
         }
       }
     })
-    strike()
     onComplete()
-  }, [strike])
-
-  const act = useAct()
+  }, [])
 
   const handlePayBounty = async onComplete => {
     const sats = root.bounty
     const variables = { id: item.id, sats, act: 'TIP', path: item.path }
-    const optimisticResponse = { act: { ...variables, path: item.path } }
-
+    const optimisticResponse = { act: { result: { ...variables, path: item.path }, invoice: null } }
+    const act = useAct({ update: onUpdate(onComplete) })
     try {
+      strike()
       await act({
         variables,
-        optimisticResponse,
-        update: actUpdate({ me, onUpdate: onUpdate(onComplete) })
+        optimisticResponse
       })
     } catch (error) {
       if (error instanceof InvoiceCanceledError) {

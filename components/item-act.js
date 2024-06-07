@@ -62,6 +62,7 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
   const act = useAct()
 
   const onSubmit = useCallback(async ({ amount, hash, hmac }) => {
+    strike()
     await act({
       variables: {
         id: item.id,
@@ -71,12 +72,16 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
         hmac
       },
       optimisticResponse: {
-        act: { id: item.id, sats: Number(amount), act: down ? 'DONT_LIKE_THIS' : 'TIP', path: item.path }
+        act: {
+          result: {
+            id: item.id, sats: Number(amount), act: down ? 'DONT_LIKE_THIS' : 'TIP', path: item.path
+          },
+          invoice: null
+        }
       }
     })
     if (!me) setItemMeAnonSats({ id: item.id, amount })
     addCustomTip(Number(amount))
-    strike()
     onClose()
   }, [me, act, down, item.id, strike])
 
@@ -110,7 +115,7 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
   )
 }
 
-export function useAct () {
+export function useAct ({ update } = {}) {
   const [act] = usePaidMutation(ACT_MUTATION, {
     update: (cache, { data: { act: { result } } }) => {
       if (!result) return
@@ -158,6 +163,8 @@ export function useAct () {
           })
         })
       }
+
+      update?.(cache, { data: { act: { result } } })
     }
   })
 
@@ -178,7 +185,7 @@ export function useZap () {
     const sats = nextTip(meSats, { ...me?.privates })
 
     const variables = { id: item.id, sats, act: 'TIP' }
-    const optimisticResponse = { act: { result: { path: item.path, ...variables } } }
+    const optimisticResponse = { act: { result: { path: item.path, ...variables }, invoice: null } }
 
     try {
       strike()

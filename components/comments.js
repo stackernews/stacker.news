@@ -6,7 +6,7 @@ import Navbar from 'react-bootstrap/Navbar'
 import { numWithUnits } from '@/lib/format'
 import { defaultCommentSort } from '@/lib/item'
 import { useRouter } from 'next/router'
-import { useItemContext } from './item'
+import { ItemContextProvider, useItemContext } from './item'
 
 export function CommentsHeader ({ handleSort, pinned, bio, parentCreatedAt, commentSats }) {
   const router = useRouter()
@@ -68,7 +68,7 @@ export default function Comments ({ parentId, pinned, bio, parentCreatedAt, comm
   const pins = comments?.filter(({ position }) => !!position).sort((a, b) => a.position - b.position)
 
   return (
-    <>
+    <ItemContextProvider>
       {comments?.length > 0
         ? <CommentsHeader
             commentSats={commentSats} parentCreatedAt={parentCreatedAt}
@@ -93,7 +93,7 @@ export default function Comments ({ parentId, pinned, bio, parentCreatedAt, comm
       {comments.filter(({ position }) => !position).map(item => (
         <Comment depth={1} key={item.id} item={item} {...props} />
       ))}
-    </>
+    </ItemContextProvider>
   )
 }
 

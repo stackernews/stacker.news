@@ -1,4 +1,4 @@
-import Item, { ItemContextProvider } from './item'
+import Item from './item'
 import ItemJob from './item-job'
 import Reply from './reply'
 import Comment from './comment'
@@ -223,22 +223,20 @@ export default function ItemFull ({ item, bio, rank, ...props }) {
           </div>)
         : <div />}
       <RootProvider root={item.root || item}>
-        <ItemContextProvider>
-          {item.parentId
-            ? <Comment topLevel item={item} replyOpen includeParent noComments {...props} />
-            : (
-              <div>{bio
-                ? <BioItem item={item} {...props} />
-                : <TopLevelItem item={item} {...props} />}
-              </div>)}
-          {item.comments &&
-            <div className={styles.comments}>
-              <Comments
-                parentId={item.id} parentCreatedAt={item.createdAt}
-                pinned={item.position} bio={bio} commentSats={item.commentSats} comments={item.comments}
-              />
-            </div>}
-        </ItemContextProvider>
+        {item.parentId
+          ? <Comment topLevel item={item} replyOpen includeParent noComments {...props} />
+          : (
+            <div>{bio
+              ? <BioItem item={item} {...props} />
+              : <TopLevelItem item={item} {...props} />}
+            </div>)}
+        {item.comments &&
+          <div className={styles.comments}>
+            <Comments
+              parentId={item.id} parentCreatedAt={item.createdAt}
+              pinned={item.position} bio={bio} commentSats={item.commentSats} comments={item.comments}
+            />
+          </div>}
       </RootProvider>
     </>
   )

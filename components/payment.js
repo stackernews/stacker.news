@@ -95,8 +95,8 @@ const useInvoice = () => {
   }, [isPaid])
 
   const cancel = useCallback(async ({ hash, hmac }) => {
+    console.log('canceling invoice:', hash)
     const inv = await cancelInvoice({ variables: { hash, hmac } })
-    console.log('invoice canceled:', hash)
     return inv
   }, [cancelInvoice])
 

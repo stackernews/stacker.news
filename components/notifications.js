@@ -30,7 +30,6 @@ import { nextBillingWithGrace } from '@/lib/territory'
 import { commentSubTreeRootId } from '@/lib/item'
 import LinkToContext from './link-to-context'
 import { Badge } from 'react-bootstrap'
-import { Types as ClientTypes, ClientZap, ClientReply, ClientPollVote, ClientBounty, useClientNotifications } from './client-notifications'
 import { ITEM_FULL } from '@/fragments/items'
 
 function Notification ({ n, fresh }) {
@@ -61,11 +60,7 @@ function Notification ({ n, fresh }) {
         (type === 'FollowActivity' && <FollowActivity n={n} />) ||
         (type === 'TerritoryPost' && <TerritoryPost n={n} />) ||
         (type === 'TerritoryTransfer' && <TerritoryTransfer n={n} />) ||
-        (type === 'Reminder' && <Reminder n={n} />) ||
-        ([ClientTypes.Zap.ERROR, ClientTypes.Zap.PENDING].includes(type) && <ClientZap n={itemN} />) ||
-        ([ClientTypes.Reply.ERROR, ClientTypes.Reply.PENDING].includes(type) && <ClientReply n={itemN} />) ||
-        ([ClientTypes.Bounty.ERROR, ClientTypes.Bounty.PENDING].includes(type) && <ClientBounty n={itemN} />) ||
-        ([ClientTypes.PollVote.ERROR, ClientTypes.PollVote.PENDING].includes(type) && <ClientPollVote n={itemN} />)
+        (type === 'Reminder' && <Reminder n={n} />)
       }
     </NotificationLayout>
   )
@@ -568,7 +563,6 @@ export default function Notifications ({ ssrData }) {
   const { data, fetchMore } = useQuery(NOTIFICATIONS)
   const router = useRouter()
   const dat = useData(data, ssrData)
-  const { notifications: clientNotifications } = useClientNotifications()
 
   const { notifications, lastChecked, cursor } = useMemo(() => {
     if (!dat?.notifications) return {}
@@ -596,12 +590,9 @@ export default function Notifications ({ ssrData }) {
 
   if (!dat) return <CommentsFlatSkeleton />
 
-  const sorted = [...clientNotifications, ...notifications]
-    .sort((a, b) => new Date(b.sortTime).getTime() - new Date(a.sortTime).getTime())
-
   return (
     <>
-      {sorted.map(n =>
+      {notifications.map(n =>
         <Notification
           n={n} key={nid(n)}
           fresh={new Date(n.sortTime) > new Date(router?.query?.checkedAt ?? lastChecked)}

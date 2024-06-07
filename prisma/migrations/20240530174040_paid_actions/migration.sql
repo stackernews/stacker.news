@@ -2,7 +2,7 @@
 CREATE TYPE "InvoiceActionType" AS ENUM ('BUY_CREDITS', 'ITEM_CREATE', 'ITEM_UPDATE', 'ZAP', 'DOWN_ZAP', 'DONATE', 'POLL_VOTE', 'TERRITORY_CREATE', 'TERRITORY_UPDATE', 'TERRITORY_BILLING');
 
 -- CreateEnum
-CREATE TYPE "InvoiceActionState" AS ENUM ('PENDING', 'PAID', 'FAILED');
+CREATE TYPE "InvoiceActionState" AS ENUM ('PENDING', 'PENDING_HELD', 'HELD', 'PAID', 'FAILED');
 
 -- AlterTable
 ALTER TABLE "Invoice" ADD COLUMN     "actionState" "InvoiceActionState",
@@ -236,3 +236,23 @@ BEGIN
     RETURN 0;
 END;
 $$;
+
+-- remove special case for anon
+CREATE OR REPLACE FUNCTION sats_after_tip(item_id INTEGER, user_id INTEGER, tip_msats BIGINT) RETURNS INTEGER AS $$
+DECLARE
+    item "Item";
+BEGIN
+    SELECT * FROM "Item" WHERE id = item_id INTO item;
+
+    UPDATE "Item"
+    SET "msats" = "msats" + tip_msats,
+        "lastZapAt" = now()
+    WHERE id = item.id;
+
+    UPDATE "Item"
+    SET "commentMsats" = "commentMsats" + tip_msats
+    WHERE id <> item.id and path @> item.path;
+
+    RETURN 1;
+END;
+$$ LANGUAGE plpgsql;

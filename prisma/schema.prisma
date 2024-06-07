@@ -709,6 +709,8 @@ enum InvoiceActionType {
 
 enum InvoiceActionState {
   PENDING
+  PENDING_HELD
+  HELD
   PAID
   FAILED
 }

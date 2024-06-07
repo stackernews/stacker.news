@@ -1,4 +1,4 @@
-import { gql, useMutation } from '@apollo/client'
+import { gql } from '@apollo/client'
 import Button from 'react-bootstrap/Button'
 import { fixedDecimal, numWithUnits } from '@/lib/format'
 import { timeLeft } from '@/lib/time'
@@ -6,10 +6,9 @@ import { useMe } from './me'
 import styles from './poll.module.css'
 import { signIn } from 'next-auth/react'
 import ActionTooltip from './action-tooltip'
-import { POLL_COST } from '@/lib/constants'
-import { InvoiceCanceledError, usePayment } from './payment'
+import { InvoiceCanceledError } from './payment'
 import { useToast } from './toast'
-import { Types as ClientNotification, useClientNotifications } from './client-notifications'
+import { usePaidMutation } from './use-paid-mutation'
 
 export default function Poll ({ item }) {
   const me = useMe()
@@ -19,9 +18,8 @@ export default function Poll ({ item }) {
         id
       }
     }`
-  const [pollVote] = useMutation(POLL_VOTE_MUTATION)
+  const [pollVote] = usePaidMutation(POLL_VOTE_MUTATION)
   const toaster = useToast()
-  const { notify, unnotify } = useClientNotifications()
 
   const update = (cache, { data: { pollVote: { id } } }) => {
     cache.modify({
@@ -46,7 +44,6 @@ export default function Poll ({ item }) {
   }
 
   const PollButton = ({ v }) => {
-    const payment = usePayment()
     return (
       <ActionTooltip placement='left' notForm overlayText='1 sat'>
         <Button
@@ -54,33 +51,17 @@ export default function Poll ({ item }) {
           onClick={me
             ? async () => {
               const variables = { id: v.id }
-              const notifyProps = { itemId: item.id }
               const optimisticResponse = { pollVote: { id: v.id } }
-              let cancel, nid
               try {
-                if (me) {
-                  nid = notify(ClientNotification.PollVote.PENDING, notifyProps)
-                }
-
-                let hash, hmac;
-                [{ hash, hmac }, cancel] = await payment.request(item.pollCost || POLL_COST)
-
-                await pollVote({ variables: { hash, hmac, ...variables }, optimisticResponse, update })
+                await pollVote({ variables, optimisticResponse, update })
               } catch (error) {
                 if (error instanceof InvoiceCanceledError) {
                   return
                 }
 
                 const reason = error?.message || error?.toString?.()
-                if (me) {
-                  notify(ClientNotification.PollVote.ERROR, { ...notifyProps, reason })
-                } else {
-                  toaster.danger('poll vote failed: ' + reason)
-                }
 
-                cancel?.()
-              } finally {
-                if (nid) unnotify(nid)
+                toaster.danger('poll vote failed: ' + reason)
               }
             }
             : signIn}

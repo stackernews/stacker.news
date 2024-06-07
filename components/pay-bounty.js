@@ -7,19 +7,16 @@ import { numWithUnits } from '@/lib/format'
 import { useShowModal } from './modal'
 import { useRoot } from './root'
 import { useAct, actUpdate } from './item-act'
-import { InvoiceCanceledError, usePayment } from './payment'
+import { InvoiceCanceledError } from './payment'
 import { useLightning } from './lightning'
 import { useToast } from './toast'
-import { Types as ClientNotification, useClientNotifications } from './client-notifications'
 
 export default function PayBounty ({ children, item }) {
   const me = useMe()
   const showModal = useShowModal()
   const root = useRoot()
-  const payment = usePayment()
   const strike = useLightning()
   const toaster = useToast()
-  const { notify, unnotify } = useClientNotifications()
 
   const onUpdate = useCallback(onComplete => (cache, { data: { act: { id, path } } }) => {
     // update root bounty status
@@ -41,20 +38,11 @@ export default function PayBounty ({ children, item }) {
   const handlePayBounty = async onComplete => {
     const sats = root.bounty
     const variables = { id: item.id, sats, act: 'TIP', path: item.path }
-    const notifyProps = { itemId: item.id, sats }
     const optimisticResponse = { act: { ...variables, path: item.path } }
 
-    let cancel, nid
     try {
-      if (me) {
-        nid = notify(ClientNotification.Bounty.PENDING, notifyProps)
-      }
-
-      let hash, hmac;
-      [{ hash, hmac }, cancel] = await payment.request(sats)
-
       await act({
-        variables: { hash, hmac, ...variables },
+        variables,
         optimisticResponse,
         update: actUpdate({ me, onUpdate: onUpdate(onComplete) })
       })
@@ -64,14 +52,8 @@ export default function PayBounty ({ children, item }) {
       }
 
       const reason = error?.message || error?.toString?.()
-      if (me) {
-        notify(ClientNotification.Bounty.ERROR, { ...notifyProps, reason })
-      } else {
-        toaster.danger('pay bounty failed: ' + reason)
-      }
-      cancel?.()
-    } finally {
-      if (nid) unnotify(nid)
+
+      toaster.danger('pay bounty failed: ' + reason)
     }
   }
 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Form, Input, MarkdownInput } from '@/components/form'
 import { useRouter } from 'next/router'
-import { gql, useApolloClient, useLazyQuery, useMutation } from '@apollo/client'
+import { gql, useApolloClient, useLazyQuery } from '@apollo/client'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
 import { ITEM_FIELDS } from '@/fragments/items'
@@ -16,6 +16,8 @@ import { MAX_TITLE_LENGTH } from '@/lib/constants'
 import useCrossposter from './use-crossposter'
 import { useMe } from './me'
 import { ItemButtonBar } from './post'
+import { usePaidMutation } from './use-paid-mutation'
+import { UPSERT_LINK } from '@/fragments/paidAction'
 
 export function LinkForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
@@ -70,16 +72,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
     }
   }
 
-  const [upsertLink] = useMutation(
-    gql`
-      mutation upsertLink($sub: String, $id: ID, $title: String!, $url: String!, $text: String, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String) {
-        upsertLink(sub: $sub, id: $id, title: $title, url: $url, text: $text, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac) {
-          id
-          deleteScheduledAt
-          reminderScheduledAt
-        }
-      }`
-  )
+  const [upsertLink] = usePaidMutation(UPSERT_LINK)
 
   const onSubmit = useCallback(
     async ({ boost, crosspost, title, ...values }) => {
@@ -143,7 +136,6 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}
-      prepaid
       onSubmit={onSubmit}
       storageKeyPrefix={storageKeyPrefix}
     >

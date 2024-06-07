@@ -2,7 +2,7 @@
 // it's just showing that even buying credits
 // can eventually be a paid action
 
-import { ANON_USER_ID } from '@/lib/constants'
+import { USER_ID } from '@/lib/constants'
 
 export const anonable = false
 export const supportsPessimism = false
@@ -20,6 +20,6 @@ export async function onPaid ({ invoice }, { tx }) {
 }
 
 export async function describe ({ amount }, { models, me }) {
-  const user = await models.user.findUnique({ where: { id: me?.id ?? ANON_USER_ID } })
+  const user = await models.user.findUnique({ where: { id: me?.id ?? USER_ID.anon } })
   return `SN: buying credits for @${user.name}`
 }

@@ -18,15 +18,15 @@ export default gql`
     upsertSub(oldName: String, name: String!, desc: String, baseCost: Int!,
       postTypes: [String!]!, allowFreebies: Boolean!,
       billingType: String!, billingAutoRenew: Boolean!,
-      moderated: Boolean!, hash: String, hmac: String, nsfw: Boolean!): Sub
-    paySub(name: String!, hash: String, hmac: String): Sub
+      moderated: Boolean!, hash: String, hmac: String, nsfw: Boolean!): SubPaidAction!
+    paySub(name: String!, hash: String, hmac: String): SubPaidAction!
     toggleMuteSub(name: String!): Boolean!
     toggleSubSubscription(name: String!): Boolean!
     transferTerritory(subName: String!, userName: String!): Sub
     unarchiveTerritory(name: String!, desc: String, baseCost: Int!,
       postTypes: [String!]!, allowFreebies: Boolean!,
       billingType: String!, billingAutoRenew: Boolean!,
-      moderated: Boolean!, hash: String, hmac: String, nsfw: Boolean!): Sub
+      moderated: Boolean!, hash: String, hmac: String, nsfw: Boolean!): SubPaidAction!
   }
 
   type Sub {

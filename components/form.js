@@ -31,11 +31,7 @@ import Thumb from '@/svgs/thumb-up-fill.svg'
 import Eye from '@/svgs/eye-fill.svg'
 import EyeClose from '@/svgs/eye-close-line.svg'
 import Info from './info'
-import { InvoiceCanceledError, usePayment } from './payment'
 import { useMe } from './me'
-import { optimisticUpdate } from '@/lib/apollo'
-import { useClientNotifications } from './client-notifications'
-import { ActCanceledError } from './item-act'
 
 export class SessionRequiredError extends Error {
   constructor () {
@@ -804,15 +800,13 @@ const StorageKeyPrefixContext = createContext()
 
 export function Form ({
   initial, schema, onSubmit, children, initialError, validateImmediately,
-  storageKeyPrefix, validateOnChange = true, prepaid, requireSession, innerRef,
-  optimisticUpdate: optimisticUpdateArgs, clientNotification, signal, ...props
+  storageKeyPrefix, validateOnChange = true, requireSession, innerRef,
+  signal, ...props
 }) {
   const toaster = useToast()
   const initialErrorToasted = useRef(false)
   const feeButton = useFeeButton()
-  const payment = usePayment()
   const me = useMe()
-  const { notify, unnotify } = useClientNotifications()
 
   useEffect(() => {
     if (initialError && !initialErrorToasted.current) {
@@ -838,50 +832,17 @@ export function Form ({
 
   const onSubmitInner = useCallback(async ({ amount, ...values }, ...args) => {
     const variables = { amount, ...values }
-    let revert, cancel, nid
-    try {
-      if (onSubmit) {
-        if (requireSession && !me) {
-          throw new SessionRequiredError()
-        }
-
-        if (optimisticUpdateArgs) {
-          revert = optimisticUpdate(optimisticUpdateArgs(variables))
-        }
-
-        await signal?.pause({ me, amount })
-
-        if (me && clientNotification) {
-          nid = notify(clientNotification.PENDING, variables)
-        }
-
-        await onSubmit({ ...variables }, ...args)
-
-        if (!storageKeyPrefix) return
-        clearLocalStorage(values)
-      }
-    } catch (err) {
-      revert?.()
-
-      if (err instanceof InvoiceCanceledError || err instanceof ActCanceledError) {
-        return
+    if (onSubmit) {
+      if (requireSession && !me) {
+        throw new SessionRequiredError()
       }
 
-      const reason = err.message || err.toString?.()
-      if (me && clientNotification) {
-        notify(clientNotification.ERROR, { ...variables, reason })
-      } else {
-        toaster.danger('submit error: ' + reason)
-      }
+      await onSubmit({ ...variables }, ...args).catch(console.error)
 
-      cancel?.()
-    } finally {
-      // if we reach this line, the submit either failed or was successful so we can remove the pending notification.
-      // if we don't reach this line, the page was probably reloaded and we can use the pending notification
-      // stored in localStorage to handle this case.
-      if (nid) unnotify(nid)
+      if (!storageKeyPrefix) return
+      clearLocalStorage(values)
     }
-  }, [me, onSubmit, feeButton?.total, toaster, clearLocalStorage, storageKeyPrefix, payment, signal])
+  }, [me, onSubmit, feeButton?.total, toaster, clearLocalStorage, storageKeyPrefix, signal])
 
   return (
     <Formik

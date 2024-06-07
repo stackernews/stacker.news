@@ -9,7 +9,7 @@ import { datePivot, sleep } from '@/lib/time.js'
 import retry from 'async-retry'
 import { addWalletLog } from '@/api/resolvers/wallet'
 import { msatsToSats, numWithUnits } from '@/lib/format'
-import { settleAction, settleActionError } from './paidAction'
+import { holdAction, settleAction, settleActionError } from './paidAction'
 
 export async function subscribeToWallet (args) {
   await subscribeToDeposits(args)
@@ -143,6 +143,9 @@ async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
   }
 
   if (inv.is_held) {
+    if (dbInv.actionType) {
+      return await holdAction({ data: { invoiceId: dbInv.id }, models, lnd, boss })
+    }
     // First query makes sure that after payment, JIT invoices are settled
     // within 60 seconds or they will be canceled to minimize risk of
     // force closures or wallets banning us.

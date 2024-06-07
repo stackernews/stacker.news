@@ -108,7 +108,6 @@ export function BountyForm ({
       }}
       schema={schema}
       requireSession
-      prepaid
       onSubmit={
         handleSubmit ||
         onSubmit

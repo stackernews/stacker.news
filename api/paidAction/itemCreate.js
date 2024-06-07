@@ -1,4 +1,4 @@
-import { ANON_USER_ID } from '@/lib/constants'
+import { USER_ID } from '@/lib/constants'
 import { notifyItemParents, notifyTerritorySubscribers, notifyUserSubscribers } from '@/lib/webPush'
 import { getMentions, performBotBehavior } from './lib/item'
 
@@ -12,9 +12,9 @@ export async function getCost ({ subName, parentId, uploadIds, boost }, { models
   // baseCost * 10^num_items_in_10m * 100 (anon) or 1 (user) + image fees
   const [{ cost }] = await models.$queryRaw`
     SELECT ${baseCost}::INTEGER
-      * POWER(10, item_spam(${parentId}::INTEGER, ${user?.id || ANON_USER_ID}::INTEGER, '10m'::INTERVAL))
+      * POWER(10, item_spam(${parentId}::INTEGER, ${user?.id || USER_ID.anon}::INTEGER, '10m'::INTERVAL))
       * ${user ? 1 : 100}::INTEGER
-      + (SELECT "nUnpaid" * "imageFeeMsats" FROM image_fees_info(${user?.id || ANON_USER_ID}::INTEGER, ${uploadIds})) as cost`
+      + (SELECT "nUnpaid" * "imageFeeMsats" FROM image_fees_info(${user?.id || USER_ID.anon}::INTEGER, ${uploadIds})) as cost`
   // freebies must be allowed, cost must be less than baseCost, no boost, user must exist, and cost must be less or equal to user's balance
   const freebie = (parentId || sub?.allowFreebies) && cost <= baseCost && !boost && !!user && cost > user?.msats
   return freebie ? BigInt(0) : BigInt(cost)
@@ -120,7 +120,7 @@ export async function onPaid ({ invoice, id }, context) {
     item = await tx.item.findFirst({ where: { invoiceId: invoice.id } })
     await tx.itemAct.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } })
     await tx.item.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } })
-    await tx.upload.updateMany({ where: { invoiceId: invoice.id }, data: { actionInvoiceState: 'PAID', paid: true } })
+    await tx.upload.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID', paid: true } })
   } else if (id) {
     item = await tx.item.findUnique({ where: { id } })
   } else {
@@ -150,7 +150,7 @@ export async function onPaid ({ invoice, id }, context) {
 export async function onFail ({ invoice }, { tx }) {
   await tx.itemAct.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'FAILED' } })
   await tx.item.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'FAILED' } })
-  await tx.upload.updateMany({ where: { invoiceId: invoice.id }, data: { actionInvoiceState: 'FAILED' } })
+  await tx.upload.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'FAILED' } })
 }
 
 export async function describe ({ parentId }, context) {

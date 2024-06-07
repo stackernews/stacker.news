@@ -1,3 +1,4 @@
+import { USER_ID } from '@/lib/constants'
 import { notifyZapped } from '@/lib/webPush'
 
 export const anonable = true
@@ -20,8 +21,8 @@ export async function perform ({ invoiceId, sats, id: itemId, ...args }, { me, c
 
   const acts = await tx.itemAct.createManyAndReturn({
     data: [
-      { msats: feeMsats, itemId, userId: me.id, act: 'FEE', ...invoiceData },
-      { msats: zapMsats, itemId, userId: me.id, act: 'TIP', ...invoiceData }
+      { msats: feeMsats, itemId, userId: me?.id || USER_ID.anon, act: 'FEE', ...invoiceData },
+      { msats: zapMsats, itemId, userId: me?.id || USER_ID.anon, act: 'TIP', ...invoiceData }
     ]
   })
 
@@ -31,6 +32,7 @@ export async function perform ({ invoiceId, sats, id: itemId, ...args }, { me, c
 
 export async function onPaid ({ invoice, actIds }, { models, tx }) {
   let acts
+  console.log('invoice', invoice, actIds)
   if (invoice) {
     await tx.itemAct.updateMany({
       where: { invoiceId: invoice.id },
@@ -45,21 +47,24 @@ export async function onPaid ({ invoice, actIds }, { models, tx }) {
     throw new Error('No invoice or actIds')
   }
 
-  const sats = acts.reduce((a, b) => a + BigInt(b.msats), BigInt(0)) / BigInt(1000)
+  const msats = acts.reduce((a, b) => a + BigInt(b.msats), BigInt(0))
+  const sats = msats / BigInt(1000)
   const itemAct = acts.find(act => act.act === 'TIP')
   const itemActFee = acts.find(act => act.act === 'FEE')
 
+  console.log('itemAct', sats, itemAct, itemActFee)
   // TODO: do forwards
   await tx.user.update({ where: { id: itemAct.item.userId }, data: { msats: { increment: itemAct.msats } } })
   await tx.$executeRaw`SELECT weighted_votes_after_tip(${itemAct.itemId}::INTEGER, ${itemAct.userId}::INTEGER, ${sats}::INTEGER)`
-  await tx.$executeRaw`SELECT sats_after_tip(${itemAct.itemId}::INTEGER, ${itemAct.userId}::INTEGER, ${sats}::BIGINT)`
+  // TODO: this doesn't work for anons
+  await tx.$executeRaw`SELECT sats_after_tip(${itemAct.itemId}::INTEGER, ${itemAct.userId}::INTEGER, ${msats}::BIGINT)`
   await tx.$executeRaw`SELECT bounty_paid_after_act(${itemAct.itemId}::INTEGER, ${itemAct.userId}::INTEGER)`
   await tx.$executeRaw`SELECT referral_act(${itemActFee.id}::INTEGER)`
   notifyZapped({ models, id: itemAct.itemId }).catch(console.error)
 }
 
 export async function onFail ({ invoice }, { tx }) {
-  await tx.itemAct.update({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'FAILED' } })
+  await tx.itemAct.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'FAILED' } })
 }
 
 export async function describe ({ itemId, sats }) {

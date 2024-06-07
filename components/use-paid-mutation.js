@@ -1,14 +1,18 @@
 import { useMutation } from '@apollo/client'
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { InvoiceCanceledError, InvoiceExpiredError, useQrPayment, useWebLnPayment } from './payment'
 import { useMe } from './me'
 
 // this is just like useMutation but it pays an invoice returned by the mutation
-export function usePaidMutation (mutation, { onPaid, onPayError, ...options }) {
+// also takes an onPaid and onPayError callback
+// and returns a payError in the result
+export function usePaidMutation (mutation, { onPaid, onPayError, ...options } = {}) {
   const [mutate, result] = useMutation(mutation, options)
   const waitForWebLnPayment = useWebLnPayment()
   const waitForQrPayment = useQrPayment()
   const me = useMe()
+  // innerResult is used to store/control the result of the mutation when innerMutate runs
+  const [innerResult, setInnerResult] = useState(result)
 
   const waitForPayment = useCallback(async invoice => {
     let webLnError
@@ -16,12 +20,13 @@ export function usePaidMutation (mutation, { onPaid, onPayError, ...options }) {
     try {
       return await waitForWebLnPayment(invoice)
     } catch (err) {
-      if (Date.now() - start > 1000 || err instanceof InvoiceCanceledError || err instanceof InvoiceExpiredError) {
+      if (Date.now() - start > 250 || err instanceof InvoiceCanceledError || err instanceof InvoiceExpiredError) {
         // bail since qr code payment will also fail
-        // also bail if the payment took more than 1 second
+        // also bail if the payment took more than .25 second
         throw err
       }
       webLnError = err
+      console.error('usePaidMutation: webLn payment failed', err)
     }
     return await waitForQrPayment(invoice, webLnError)
   }, [waitForWebLnPayment, waitForQrPayment])
@@ -62,7 +67,7 @@ export function usePaidMutation (mutation, { onPaid, onPayError, ...options }) {
         }
         // onPaid resembles update in useMutation, but is called after the invoice is paid
         // useful for updating invoiceActionState to PAID
-        onPaid?.(rest.client.cache, data)
+        onPaid?.(rest.client.cache, rest)
       }
 
       // if the mutation returns more than just the invoice, it's serverside optimistic
@@ -83,12 +88,14 @@ export function usePaidMutation (mutation, { onPaid, onPayError, ...options }) {
         } catch (e) {
           console.error('usePaidMutation: failed to pay invoice', e)
           onPayError?.(e, rest.client.cache, data)
-          return { data, ...rest, error: e }
+          rest.payError = e
         }
       }
     }
-    return { data, ...rest }
-  }, [!!me, mutate, waitForPayment, onPaid, options.variables, options.optimisticResponse])
 
-  return [innerMutate, result]
+    setInnerResult({ data, ...rest })
+    return { data, ...rest }
+  }, [!!me, mutate, waitForPayment, onPaid, options.variables, options.optimisticResponse, setInnerResult])
+
+  return [innerMutate, innerResult]
 }

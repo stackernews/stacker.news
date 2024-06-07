@@ -1,6 +1,6 @@
 import { DateTimeInput, Form, Input, MarkdownInput, VariableInput } from '@/components/form'
 import { useRouter } from 'next/router'
-import { gql, useApolloClient, useMutation } from '@apollo/client'
+import { useApolloClient } from '@apollo/client'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
 import { MAX_POLL_CHOICE_LENGTH, MAX_POLL_NUM_CHOICES, MAX_TITLE_LENGTH } from '@/lib/constants'
@@ -13,6 +13,8 @@ import useCrossposter from './use-crossposter'
 import { useMe } from './me'
 import { useToast } from './toast'
 import { ItemButtonBar } from './post'
+import { usePaidMutation } from './use-paid-mutation'
+import { UPSERT_POLL } from '@/fragments/paidAction'
 
 export function PollForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
@@ -23,18 +25,7 @@ export function PollForm ({ item, sub, editThreshold, children }) {
 
   const crossposter = useCrossposter()
 
-  const [upsertPoll] = useMutation(
-    gql`
-      mutation upsertPoll($sub: String, $id: ID, $title: String!, $text: String,
-        $options: [String!]!, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String, $pollExpiresAt: Date) {
-        upsertPoll(sub: $sub, id: $id, title: $title, text: $text,
-          options: $options, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac, pollExpiresAt: $pollExpiresAt) {
-          id
-          deleteScheduledAt
-          reminderScheduledAt
-        }
-      }`
-  )
+  const [upsertPoll] = usePaidMutation(UPSERT_POLL)
 
   const onSubmit = useCallback(
     async ({ boost, title, options, crosspost, ...values }) => {
@@ -86,7 +77,6 @@ export function PollForm ({ item, sub, editThreshold, children }) {
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}
-      prepaid
       onSubmit={onSubmit}
       storageKeyPrefix={storageKeyPrefix}
     >

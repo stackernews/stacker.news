@@ -9,7 +9,7 @@ import { useCallback, useEffect, useState } from 'react'
 import Info from './info'
 import AccordianItem from './accordian-item'
 import styles from '@/styles/post.module.css'
-import { useLazyQuery, gql, useMutation } from '@apollo/client'
+import { useLazyQuery, gql } from '@apollo/client'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { usePrice } from './price'
@@ -20,6 +20,8 @@ import { useToast } from './toast'
 import { toastUpsertSuccessMessages } from '@/lib/form'
 import { ItemButtonBar } from './post'
 import { useFormikContext } from 'formik'
+import { usePaidMutation } from './use-paid-mutation'
+import { UPSERT_JOB } from '@/fragments/paidAction'
 
 function satsMin2Mo (minute) {
   return minute * 30 * 24 * 60
@@ -43,18 +45,7 @@ export default function JobForm ({ item, sub }) {
   const router = useRouter()
   const toaster = useToast()
   const [logoId, setLogoId] = useState(item?.uploadId)
-  const [upsertJob] = useMutation(gql`
-    mutation upsertJob($sub: String!, $id: ID, $title: String!, $company: String!, $location: String,
-      $remote: Boolean, $text: String!, $url: String!, $maxBid: Int!, $status: String, $logo: Int, $hash: String, $hmac: String) {
-      upsertJob(sub: $sub, id: $id, title: $title, company: $company,
-        location: $location, remote: $remote, text: $text,
-        url: $url, maxBid: $maxBid, status: $status, logo: $logo, hash: $hash, hmac: $hmac) {
-        id
-        deleteScheduledAt
-        reminderScheduledAt
-      }
-    }`
-  )
+  const [upsertJob] = usePaidMutation(UPSERT_JOB)
 
   const onSubmit = useCallback(
     async ({ maxBid, start, stop, ...values }) => {
@@ -106,7 +97,6 @@ export default function JobForm ({ item, sub }) {
         schema={jobSchema}
         storageKeyPrefix={storageKeyPrefix}
         requireSession
-        prepaid
         onSubmit={onSubmit}
       >
         <div className='form-group'>

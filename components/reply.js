@@ -1,5 +1,4 @@
 import { Form, MarkdownInput } from '@/components/form'
-import { gql } from '@apollo/client'
 import styles from './reply.module.css'
 import { COMMENTS } from '@/fragments/comments'
 import { useMe } from './me'
@@ -16,6 +15,7 @@ import { Button } from 'react-bootstrap'
 import { useRoot } from './root'
 import { commentSubTreeRootId } from '@/lib/item'
 import { usePaidMutation } from './use-paid-mutation'
+import { UPSERT_COMMENT } from '@/fragments/paidAction'
 
 export function ReplyOnAnotherPage ({ item }) {
   const rootId = commentSubTreeRootId(item)
@@ -56,61 +56,42 @@ export default forwardRef(function Reply ({
     }
   }, [replyOpen, quote, parentId])
 
-  const [upsertComment] = usePaidMutation(
-    gql`
-      ${COMMENTS}
-      mutation upsertComment($text: String!, $parentId: ID!, $hash: String, $hmac: String) {
-        upsertComment(text: $text, parentId: $parentId, hash: $hash, hmac: $hmac) {
-          ...CommentFields
-          deleteScheduledAt
-          reminderScheduledAt
-          invoice {
-            bolt11
-            hash
-            hmac
-            id
-          }
-          comments {
-            ...CommentsRecursive
+  const [upsertComment] = usePaidMutation(UPSERT_COMMENT, {
+    update (cache, { data: { upsertComment } }) {
+      cache.modify({
+        id: `Item:${parentId}`,
+        fields: {
+          comments (existingCommentRefs = []) {
+            const newCommentRef = cache.writeFragment({
+              data: upsertComment,
+              fragment: COMMENTS,
+              fragmentName: 'CommentsRecursive'
+            })
+            return [newCommentRef, ...existingCommentRefs]
           }
         }
-      }`, {
-      update (cache, { data: { upsertComment } }) {
+      })
+
+      const ancestors = item.path.split('.')
+
+      // update all ancestors
+      ancestors.forEach(id => {
         cache.modify({
-          id: `Item:${parentId}`,
+          id: `Item:${id}`,
           fields: {
-            comments (existingCommentRefs = []) {
-              const newCommentRef = cache.writeFragment({
-                data: upsertComment,
-                fragment: COMMENTS,
-                fragmentName: 'CommentsRecursive'
-              })
-              return [newCommentRef, ...existingCommentRefs]
+            ncomments (existingNComments = 0) {
+              return existingNComments + 1
             }
           }
         })
+      })
 
-        const ancestors = item.path.split('.')
-
-        // update all ancestors
-        ancestors.forEach(id => {
-          cache.modify({
-            id: `Item:${id}`,
-            fields: {
-              ncomments (existingNComments = 0) {
-                return existingNComments + 1
-              }
-            }
-          })
-        })
-
-        // so that we don't see indicator for our own comments, we record this comments as the latest time
-        // but we also have record num comments, in case someone else commented when we did
-        const root = ancestors[0]
-        commentsViewedAfterComment(root, upsertComment.createdAt)
-      }
+      // so that we don't see indicator for our own comments, we record this comments as the latest time
+      // but we also have record num comments, in case someone else commented when we did
+      const root = ancestors[0]
+      commentsViewedAfterComment(root, upsertComment.createdAt)
     }
-  )
+  })
 
   const onSubmit = useCallback(async (variables, { resetForm }) => {
     const { data } = await upsertComment({
@@ -184,7 +165,6 @@ export default forwardRef(function Reply ({
                 text: ''
               }}
               schema={commentSchema}
-              prepaid
               onSubmit={onSubmit}
               storageKeyPrefix={`reply-${parentId}`}
             >

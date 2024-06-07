@@ -110,14 +110,6 @@ export const SUB_SEARCH = gql`
   }
 `
 
-export const SUB_PAY = gql`
-  ${SUB_FULL_FIELDS}
-  mutation paySub($name: String!, $hash: String, $hmac: String) {
-    paySub(name: $name, hash: $hash, hmac: $hmac) {
-      ...SubFullFields
-    }
-  }`
-
 export const TOP_SUBS = gql`
   ${SUB_FULL_FIELDS}
   query TopSubs($cursor: String, $when: String, $from: String, $to: String, $by: String, ) {

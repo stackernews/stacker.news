@@ -1,6 +1,6 @@
 import { Form, Input, MarkdownInput } from '@/components/form'
 import { useRouter } from 'next/router'
-import { gql, useApolloClient, useLazyQuery, useMutation } from '@apollo/client'
+import { gql, useApolloClient, useLazyQuery } from '@apollo/client'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
 import { ITEM_FIELDS } from '@/fragments/items'
@@ -15,6 +15,8 @@ import { useMe } from './me'
 import useCrossposter from './use-crossposter'
 import { useToast } from './toast'
 import { ItemButtonBar } from './post'
+import { usePaidMutation } from './use-paid-mutation'
+import { UPSERT_DISCUSSION } from '@/fragments/paidAction'
 
 export function DiscussionForm ({
   item, sub, editThreshold, titleLabel = 'title',
@@ -31,16 +33,7 @@ export function DiscussionForm ({
   const crossposter = useCrossposter()
   const toaster = useToast()
 
-  const [upsertDiscussion] = useMutation(
-    gql`
-      mutation upsertDiscussion($sub: String, $id: ID, $title: String!, $text: String, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String) {
-        upsertDiscussion(sub: $sub, id: $id, title: $title, text: $text, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac) {
-          id
-          deleteScheduledAt
-          reminderScheduledAt
-        }
-      }`
-  )
+  const [upsertDiscussion] = usePaidMutation(UPSERT_DISCUSSION)
 
   const onSubmit = useCallback(
     async ({ boost, crosspost, ...values }) => {
@@ -96,7 +89,6 @@ export function DiscussionForm ({
         ...SubSelectInitial({ sub: item?.subName || sub?.name })
       }}
       schema={schema}
-      prepaid
       onSubmit={handleSubmit || onSubmit}
       storageKeyPrefix={storageKeyPrefix}
     >

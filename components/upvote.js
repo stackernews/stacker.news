@@ -171,7 +171,6 @@ export default function UpVote ({ item, className }) {
     setTipShow(false)
 
     if (pending) {
-      setPendingSats(0)
       controller.abort()
       setController(null)
       return
@@ -201,7 +200,6 @@ export default function UpVote ({ item, className }) {
       }
 
       if (pending) {
-        setPendingSats(0)
         controller.abort()
         setController(null)
         return

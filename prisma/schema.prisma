@@ -705,6 +705,7 @@ enum InvoiceActionType {
   TERRITORY_CREATE
   TERRITORY_UPDATE
   TERRITORY_BILLING
+  TERRITORY_UNARCHIVE
 }
 
 enum InvoiceActionState {

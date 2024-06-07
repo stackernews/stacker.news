@@ -1,5 +1,4 @@
 import { GraphQLError } from 'graphql'
-import serialize from './serial'
 import { TERRITORY_PERIOD_COST } from '@/lib/constants'
 import { whenRange } from '@/lib/time'
 import { ssValidate, territorySchema } from '@/lib/validate'
@@ -334,37 +333,7 @@ export default {
         throw new GraphQLError('sub should not be archived', { extensions: { code: 'BAD_INPUT' } })
       }
 
-      const billingCost = TERRITORY_PERIOD_COST(data.billingType)
-      const billPaidUntil = nextBilling(new Date(), data.billingType)
-      const cost = BigInt(1000) * BigInt(billingCost)
-      const newSub = { ...data, billPaidUntil, billingCost, userId: me.id, status: 'ACTIVE' }
-      const isTransfer = oldSub.userId !== me.id
-
-      await serialize([
-        models.user.update({
-          where: {
-            id: me.id
-          },
-          data: {
-            msats: {
-              decrement: cost
-            }
-          }
-        }),
-        models.subAct.create({
-          data: {
-            subName: name,
-            userId: me.id,
-            msats: cost,
-            type: 'BILLING'
-          }
-        }),
-        models.sub.update({ where: { name }, data: newSub }),
-        isTransfer && models.territoryTransfer.create({ data: { subName: name, oldUserId: oldSub.userId, newUserId: me.id } })
-      ],
-      { models, lnd, hash, me, hmac, fee: billingCost })
-
-      if (isTransfer) notifyTerritoryTransfer({ models, sub: newSub, to: me })
+      return await performPaidAction('TERRITORY_UNARCHIVE', data, { me, models, lnd, hash, hmac })
     }
   },
   Sub: {

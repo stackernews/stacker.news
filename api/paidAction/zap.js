@@ -52,6 +52,7 @@ export async function onPaid ({ invoice, actIds }, { models, tx }) {
   const itemActFee = acts.find(act => act.act === 'FEE')
 
   // TODO: do forwards
+  // TODO: make sure these aren't read-modify-write
   await tx.user.update({ where: { id: itemAct.item.userId }, data: { msats: { increment: itemAct.msats } } })
   await tx.$executeRaw`SELECT weighted_votes_after_tip(${itemAct.itemId}::INTEGER, ${itemAct.userId}::INTEGER, ${sats}::INTEGER)`
   await tx.$executeRaw`SELECT sats_after_tip(${itemAct.itemId}::INTEGER, ${itemAct.userId}::INTEGER, ${msats}::BIGINT)`

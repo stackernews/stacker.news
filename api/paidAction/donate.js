@@ -1,3 +1,5 @@
+import { USER_ID } from '@/lib/constants'
+
 export const anonable = true
 export const supportsPessimism = true
 export const supportsOptimism = false
@@ -7,10 +9,10 @@ export async function getCost ({ sats }) {
 }
 
 export async function perform ({ sats }, { me, models, tx }) {
-  await tx.donate.create({
+  await tx.donation.create({
     data: {
       sats,
-      userId: me.id
+      userId: me?.id || USER_ID.anon
     }
   })
 

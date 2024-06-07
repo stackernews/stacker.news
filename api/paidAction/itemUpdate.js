@@ -1,3 +1,4 @@
+import { USER_ID } from '@/lib/constants'
 import { imageFeesInfo } from '../resolvers/image'
 import { getMentions, performBotBehavior } from './lib/item'
 
@@ -23,7 +24,7 @@ export async function perform (args, context) {
   const itemActs = []
   if (boostMsats > 0) {
     itemActs.push({
-      msats: boostMsats, act: 'BOOST', userId: me.id
+      msats: boostMsats, act: 'BOOST', userId: me?.id || USER_ID.anon
     })
   }
 

@@ -14,6 +14,7 @@ export const paidActions = {
   TERRITORY_CREATE: await import('./territoryCreate'),
   TERRITORY_UPDATE: await import('./territoryUpdate'),
   TERRITORY_BILLING: await import('./territoryBilling'),
+  TERRITORY_UNARCHIVE: await import('./territoryUnarchive'),
   DONATE: await import('./donate')
 }
 
@@ -99,7 +100,8 @@ async function performOptimisticAction (actionType, args, context) {
 
     return {
       invoice,
-      result: await action.perform({ invoiceId: invoice.id, ...args }, context)
+      result: await action.perform({ invoiceId: invoice.id, ...args }, context),
+      paymentMethod: 'OPTIMISTIC'
     }
   })
 }
@@ -126,7 +128,8 @@ async function performFeeCreditAction (actionType, args, context) {
     await action.onPaid?.(result, context)
 
     return {
-      result
+      result,
+      paymentMethod: 'FEE_CREDIT'
     }
   })
 }
@@ -159,7 +162,8 @@ async function performPessimiticAction (actionType, args, context) {
       await settleHodlInvoice({ secret: invoice.preimage, lnd })
 
       return {
-        result: await action.perform(args, context)
+        result: await action.perform(args, context),
+        paymentMethod: 'PESSIMISTIC'
       }
     })
   } else {
@@ -191,7 +195,8 @@ async function performPessimiticAction (actionType, args, context) {
     invoice.hmac = createHmac(invoice.hash)
 
     return {
-      invoice
+      invoice,
+      paymentMethod: 'PESSIMISTIC'
     }
   }
 }

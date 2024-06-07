@@ -53,7 +53,7 @@ export default function Poll ({ item }) {
           onClick={me
             ? async () => {
               const variables = { id: v.id }
-              const optimisticResponse = { pollVote: { result: { id: v.id }, invoice: null } }
+              const optimisticResponse = { pollVote: { result: { id: v.id } } }
               try {
                 await pollVote({ variables, optimisticResponse, update })
               } catch (error) {

@@ -65,9 +65,9 @@ export default function Invoice ({ invoice, modal, onPayment, info, successVerb,
   return (
     <>
       {webLnError && !(webLnError instanceof WebLnNotEnabledError) &&
-        <div className='text-center text-danger mb-3'>
-          Payment from attached wallet failed:
-          <div>{webLnError.toString()}</div>
+        <div className='text-center fw-bold text-info mb-3' style={{ lineHeight: 1.25 }}>
+          Paying from attached wallet failed:
+          <code> {webLnError.message}</code>
         </div>}
       <Qr
         webLn={webLn} value={invoice.bolt11}

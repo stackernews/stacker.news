@@ -75,8 +75,7 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
         act: {
           result: {
             id: item.id, sats: Number(amount), act: down ? 'DONT_LIKE_THIS' : 'TIP', path: item.path
-          },
-          invoice: null
+          }
         }
       }
     })
@@ -117,6 +116,7 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
 
 export function useAct ({ update } = {}) {
   const [act] = usePaidMutation(ACT_MUTATION, {
+    // todo: this should be moved out of here for bounties
     update: (cache, { data: { act: { result } } }) => {
       if (!result) return
 
@@ -185,7 +185,7 @@ export function useZap () {
     const sats = nextTip(meSats, { ...me?.privates })
 
     const variables = { id: item.id, sats, act: 'TIP' }
-    const optimisticResponse = { act: { result: { path: item.path, ...variables }, invoice: null } }
+    const optimisticResponse = { act: { result: { path: item.path, ...variables } } }
 
     try {
       strike()

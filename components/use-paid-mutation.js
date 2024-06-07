@@ -7,6 +7,7 @@ import { useMe } from './me'
 // also takes an onPaid and onPayError callback
 // and returns a payError in the result
 export function usePaidMutation (mutation, { onPaid, onPayError, ...options } = {}) {
+  options.optimisticResponse = addOptimisticResponseExtras(options.optimisticResponse)
   const [mutate, result] = useMutation(mutation, options)
   const waitForWebLnPayment = useWebLnPayment()
   const waitForQrPayment = useQrPayment()
@@ -20,25 +21,18 @@ export function usePaidMutation (mutation, { onPaid, onPayError, ...options } = 
     try {
       return await waitForWebLnPayment(invoice)
     } catch (err) {
-      if (Date.now() - start > 250 || err instanceof InvoiceCanceledError || err instanceof InvoiceExpiredError) {
+      if (Date.now() - start > 1000 || err instanceof InvoiceCanceledError || err instanceof InvoiceExpiredError) {
         // bail since qr code payment will also fail
         // also bail if the payment took more than .25 second
         throw err
       }
       webLnError = err
-      console.error('usePaidMutation: webLn payment failed', err)
     }
     return await waitForQrPayment(invoice, webLnError)
   }, [waitForWebLnPayment, waitForQrPayment])
 
   const innerMutate = useCallback(async innerOptions => {
-    if (!me) {
-      // if the user is not logged in, don't use optimistic updates
-      // this allows us to be optimisitic for logged in users and
-      // pessimistic for logged out users ... overrides outer options
-      innerOptions.optimisticResponse = null
-    }
-
+    innerOptions.optimisticResponse = addOptimisticResponseExtras(innerOptions.optimisticResponse)
     const { data, ...rest } = await mutate(innerOptions)
 
     // get invoice without knowing the mutation name
@@ -50,10 +44,13 @@ export function usePaidMutation (mutation, { onPaid, onPayError, ...options } = 
 
     // if the mutation returns an invoice, pay it
     if (invoice) {
+      // should we wait for the invoice to be paid?
+      const optimistic = me && (response?.paymentMethod === 'OPTIMISTIC' || innerOptions.optimisticResponse || options.optimisticResponse)
+
       // pay the invoice in a promise
       const pay = async () => {
         await waitForPayment(invoice)
-        if (invoice.hmac) {
+        if (!optimistic) {
           // this is a pessimistic update
           return await mutate({
             ...innerOptions,
@@ -70,21 +67,19 @@ export function usePaidMutation (mutation, { onPaid, onPayError, ...options } = 
         onPaid?.(rest.client.cache, rest)
       }
 
-      // if the mutation returns more than just the invoice, it's serverside optimistic
-      const ssOptimistic = !!response?.result
-
       // if this is an optimistic update, don't wait to pay the invoice
-      if (me && (innerOptions.optimisticResponse || options.optimisticResponse || ssOptimistic)) {
+      if (optimistic) {
         pay().catch(e => {
           console.error('usePaidMutation: failed to pay invoice', e)
           // onPayError is called after the invoice fails to pay
           // useful for updating invoiceActionState to FAILED
           onPayError?.(e, rest.client.cache, data)
+          setInnerResult({ data, ...rest, payError: e })
         })
       } else {
         // otherwise, wait for to pay before completing the mutation
         try {
-          return await pay()
+          await pay()
         } catch (e) {
           console.error('usePaidMutation: failed to pay invoice', e)
           onPayError?.(e, rest.client.cache, data)
@@ -98,4 +93,12 @@ export function usePaidMutation (mutation, { onPaid, onPayError, ...options } = 
   }, [!!me, mutate, waitForPayment, onPaid, options.variables, options.optimisticResponse, setInnerResult])
 
   return [innerMutate, innerResult]
+}
+
+// all paid actions need these fields and they're easy to forget
+function addOptimisticResponseExtras (optimisticResponse, me) {
+  if (!optimisticResponse) return optimisticResponse
+  const key = Object.keys(optimisticResponse)[0]
+  optimisticResponse[key] = { invoice: null, paymentMethod: 'OPTIMISTIC', ...optimisticResponse[key] }
+  return optimisticResponse
 }

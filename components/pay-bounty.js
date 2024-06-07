@@ -38,7 +38,7 @@ export default function PayBounty ({ children, item }) {
   const handlePayBounty = async onComplete => {
     const sats = root.bounty
     const variables = { id: item.id, sats, act: 'TIP', path: item.path }
-    const optimisticResponse = { act: { result: { ...variables, path: item.path }, invoice: null } }
+    const optimisticResponse = { act: { result: { ...variables, path: item.path } } }
     const act = useAct({ update: onUpdate(onComplete) })
     try {
       strike()

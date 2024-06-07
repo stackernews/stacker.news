@@ -15,12 +15,13 @@ export const DONATE = gql`
   ${PAID_ACTION_INVOICE_FIELDS}
   mutation donateToRewards($sats: Int!, $hash: String, $hmac: String) {
     donateToRewards(sats: $sats, hash: $hash, hmac: $hmac) {
-      retult {
+      result {
         sats
       }
       invoice {
         ...PaidActionInvoiceFields
       }
+      paymentMethod
     }
   }`
 
@@ -37,6 +38,7 @@ export const ACT_MUTATION = gql`
       invoice {
         ...PaidActionInvoiceFields
       }
+      paymentMethod
     }
   }`
 
@@ -52,6 +54,7 @@ export const UPSERT_DISCUSSION = gql`
       invoice {
         ...PaidActionInvoiceFields
       }
+      paymentMethod
     }
   }`
 
@@ -70,6 +73,7 @@ export const UPSERT_JOB = gql`
       invoice {
         ...PaidActionInvoiceFields
       }
+      paymentMethod
     }
   }`
 
@@ -85,6 +89,7 @@ export const UPSERT_LINK = gql`
       invoice {
         ...PaidActionInvoiceFields
       }
+      paymentMethod
     }
   }`
 
@@ -102,6 +107,7 @@ export const UPSERT_POLL = gql`
       invoice {
         ...PaidActionInvoiceFields
       }
+      paymentMethod
     }
   }`
 
@@ -121,6 +127,7 @@ export const UPSERT_COMMENT = gql`
       invoice {
         ...PaidActionInvoiceFields
       }
+      paymentMethod
     }
   }`
 
@@ -138,6 +145,7 @@ export const UPSERT_SUB = gql`
       invoice {
         ...PaidActionInvoiceFields
       }
+      paymentMethod
     }
   }`
 
@@ -155,6 +163,7 @@ export const UNARCHIVE_TERRITORY = gql`
       invoice {
         ...PaidActionInvoiceFields
       }
+      paymentMethod
     }
   }`
 
@@ -169,5 +178,6 @@ export const SUB_PAY = gql`
       invoice {
         ...PaidActionInvoiceFields
       }
+      paymentMethod
     }
   }`

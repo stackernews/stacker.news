@@ -308,7 +308,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
           img: Img
         }}
         remarkPlugins={[gfm, mention, sub, rehype]}
-        rehypePlugins={[rehypeInlineCodeProperty, rehypeRaw, [rehypeSanitize, rehypeSanitizeSchema]]}
+        rehypePlugins={[rehypeRaw, [rehypeSanitize, rehypeSanitizeSchema], rehypeInlineCodeProperty]}
       >
         {children}
       </ReactMarkdown>

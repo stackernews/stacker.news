@@ -113,6 +113,8 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
   const act = useAct()
 
   const onSubmit = useCallback(async ({ amount, hash, hmac }) => {
+    strike()
+    onClose()
     await act({
       variables: {
         id: item.id,
@@ -128,8 +130,6 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
     })
     if (!me) setItemMeAnonSats({ id: item.id, amount })
     addCustomTip(Number(amount))
-    strike()
-    onClose()
   }, [me, act, down, item.id, strike])
 
   // XXX avoid manual optimistic updates until
@@ -290,8 +290,8 @@ export function useZap () {
 
       // XXX related to comment above
       // await zap({ variables: { ...variables, hash, hmac } })
-      await zap({ variables: { ...variables, hash, hmac }, optimisticResponse, update })
       strike()
+      await zap({ variables: { ...variables, hash, hmac }, optimisticResponse, update })
     } catch (error) {
       revert?.()
 

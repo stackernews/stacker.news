@@ -111,11 +111,31 @@ export const UPSERT_POLL = gql`
     }
   }`
 
-export const UPSERT_COMMENT = gql`
+export const CREATE_COMMENT = gql`
   ${COMMENTS}
   ${PAID_ACTION_INVOICE_FIELDS}
   mutation upsertComment($text: String!, $parentId: ID!, $hash: String, $hmac: String) {
     upsertComment(text: $text, parentId: $parentId, hash: $hash, hmac: $hmac) {
+      result {
+        ...CommentFields
+        deleteScheduledAt
+        reminderScheduledAt
+        comments {
+          ...CommentsRecursive
+        }
+      }
+      invoice {
+        ...PaidActionInvoiceFields
+      }
+      paymentMethod
+    }
+  }`
+
+export const UPSERT_COMMENT = gql`
+  ${COMMENTS}
+  ${PAID_ACTION_INVOICE_FIELDS}
+  mutation upsertComment($id: ID!, $text: String!, $hash: String, $hmac: String) {
+    upsertComment(id: $id, text: $text, hash: $hash, hmac: $hmac) {
       result {
         ...CommentFields
         deleteScheduledAt

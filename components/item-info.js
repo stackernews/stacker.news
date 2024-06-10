@@ -56,6 +56,45 @@ export default function ItemInfo ({
   const rootReply = item.path.split('.').length === 2
   const canPin = (isPost && mySub) || (myPost && rootReply)
 
+  const EditInfo = () => {
+    let Component
+    let onClick
+    if (item.invoiceActionState && item.invoiceActionState !== 'PAID') {
+      if (item.invoiceActionState === 'FAILED') {
+        Component = () => <span className='text-warning'>failed</span>
+      } else {
+        Component = () => <span className='text-reset'>pending</span>
+      }
+      onClick = () => { router.push(`/invoices/${item.invoiceId}`) }
+    } else if (canEdit && !item.deletedAt) {
+      Component = () => (
+        <>
+          <span>{editText || 'edit'} </span>
+          <Countdown
+            date={editThreshold}
+            onComplete={() => {
+              setCanEdit(false)
+            }}
+          />
+        </>)
+      onClick = () => onEdit ? onEdit() : router.push(`/items/${item.id}/edit`)
+    } else {
+      return null
+    }
+
+    return (
+      <>
+        <span> \ </span>
+        <span
+          className='text-reset pointer'
+          onClick={onClick}
+        >
+          <Component />
+        </span>
+      </>
+    )
+  }
+
   return (
     <div className={className || `${styles.other}`}>
       {!(item.position && (pinnable || !item.subName)) && !(!item.parentId && Number(item.user?.id) === USER_ID.ad) &&
@@ -140,22 +179,7 @@ export default function ItemInfo ({
         <>{' '}<Badge className={styles.newComment} bg={null}>bot</Badge></>
         )}
       {extraBadges}
-      {canEdit && !item.deletedAt &&
-        <>
-          <span> \ </span>
-          <span
-            className='text-reset pointer'
-            onClick={() => onEdit ? onEdit() : router.push(`/items/${item.id}/edit`)}
-          >
-            <span>{editText || 'edit'} </span>
-            <Countdown
-              date={editThreshold}
-              onComplete={() => {
-                setCanEdit(false)
-              }}
-            />
-          </span>
-        </>}
+      <EditInfo />
       {
         showActionDropdown &&
           <ActionDropdown>

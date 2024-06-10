@@ -23,7 +23,7 @@ export function usePaidMutation (mutation, { onPaid, onPayError, ...options } = 
     } catch (err) {
       if (Date.now() - start > 1000 || err instanceof InvoiceCanceledError || err instanceof InvoiceExpiredError) {
         // bail since qr code payment will also fail
-        // also bail if the payment took more than .25 second
+        // also bail if the payment took more than 1 second
         throw err
       }
       webLnError = err

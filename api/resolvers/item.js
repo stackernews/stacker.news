@@ -43,13 +43,15 @@ function commentsOrderByClause (me, models, sort) {
 async function comments (me, models, id, sort) {
   const orderBy = commentsOrderByClause(me, models, sort)
 
-  const filter = '' // empty filter as we filter clientside now
   if (me) {
+    const filter = ` AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID' OR "Item"."userId" = ${me.id}) `
     const [{ item_comments_zaprank_with_me: comments }] = await models.$queryRawUnsafe(
-      'SELECT item_comments_zaprank_with_me($1::INTEGER, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5, $6)', Number(id), GLOBAL_SEED, Number(me.id), COMMENT_DEPTH_LIMIT, filter, orderBy)
+      'SELECT item_comments_zaprank_with_me($1::INTEGER, $2::INTEGER, $3::INTEGER, $4::INTEGER, $5, $6)',
+      Number(id), GLOBAL_SEED, Number(me.id), COMMENT_DEPTH_LIMIT, filter, orderBy)
     return comments
   }
 
+  const filter = ' AND ("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = \'PAID\') '
   const [{ item_comments: comments }] = await models.$queryRawUnsafe(
     'SELECT item_comments($1::INTEGER, $2::INTEGER, $3, $4)', Number(id), COMMENT_DEPTH_LIMIT, filter, orderBy)
   return comments
@@ -114,7 +116,7 @@ export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ..
   } else {
     return await models.$queryRawUnsafe(`
       SELECT "Item".*, to_jsonb(users.*) || jsonb_build_object('meMute', "Mute"."mutedId" IS NOT NULL) as user,
-        COALESCE("ItemAct"."meMsats", 0) as "meMsats",
+        COALESCE("ItemAct"."meMsats", 0) as "meMsats", COALESCE("ItemAct"."mePendingMsats", 0) as "mePendingMsats",
         COALESCE("ItemAct"."meDontLikeMsats", 0) as "meDontLikeMsats", b."itemId" IS NOT NULL AS "meBookmark",
         "ThreadSubscription"."itemId" IS NOT NULL AS "meSubscription", "ItemForward"."itemId" IS NOT NULL AS "meForward",
         to_jsonb("Sub".*) || jsonb_build_object('meMuteSub', "MuteSub"."userId" IS NOT NULL)
@@ -131,11 +133,14 @@ export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ..
       LEFT JOIN "MuteSub" ON "Sub"."name" = "MuteSub"."subName" AND "MuteSub"."userId" = ${me.id}
       LEFT JOIN "SubSubscription" ON "Sub"."name" = "SubSubscription"."subName" AND "SubSubscription"."userId" = ${me.id}
       LEFT JOIN LATERAL (
-        SELECT "itemId", sum("ItemAct".msats) FILTER (WHERE act = 'FEE' OR act = 'TIP') AS "meMsats",
+        SELECT "itemId",
+          sum("ItemAct".msats) FILTER (WHERE "invoiceActionState" <> 'FAILED' AND (act = 'FEE' OR act = 'TIP')) AS "meMsats",
+          sum("ItemAct".msats) FILTER (WHERE "invoiceActionState" = 'PENDING' AND (act = 'FEE' OR act = 'TIP')) AS "mePendingMsats",
           sum("ItemAct".msats) FILTER (WHERE act = 'DONT_LIKE_THIS') AS "meDontLikeMsats"
         FROM "ItemAct"
         WHERE "ItemAct"."userId" = ${me.id}
         AND "ItemAct"."itemId" = "Item".id
+        AND "Item"."userId" <> ${me.id}
         GROUP BY "ItemAct"."itemId"
       ) "ItemAct" ON true
       ${orderBy}`, ...args)
@@ -180,7 +185,10 @@ function whenClause (when, table) {
 }
 
 const activeOrMine = (me) => {
-  return me ? `("Item".status <> 'STOPPED' OR "Item"."userId" = ${me.id})` : '"Item".status <> \'STOPPED\''
+  return me
+    ? [`("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID' OR "Item"."userId" = ${me.id})`,
+    `("Item".status <> 'STOPPED' OR "Item"."userId" = ${me.id})`]
+    : ['("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = \'PAID\')', '"Item".status <> \'STOPPED\'']
 }
 
 export const muteClause = me =>
@@ -910,7 +918,7 @@ export default {
   },
   Item: {
     sats: async (item, args, { models }) => {
-      return msatsToSats(item.msats)
+      return msatsToSats(BigInt(item.msats) + BigInt(item.mePendingMsats || 0))
     },
     commentSats: async (item, args, { models }) => {
       return msatsToSats(item.commentMsats)
@@ -1030,6 +1038,33 @@ export default {
         where: {
           itemId: Number(item.id),
           userId: me.id,
+          OR: [
+            {
+              act: 'TIP'
+            },
+            {
+              act: 'FEE'
+            }
+          ]
+        }
+      })
+
+      return (msats && msatsToSats(msats)) || 0
+    },
+    mePendingSats: async (item, args, { me, models }) => {
+      if (!me) return 0
+      if (typeof item.mePendingMsats !== 'undefined') {
+        return msatsToSats(item.mePendingMsats)
+      }
+
+      const { _sum: { msats } } = await models.itemAct.aggregate({
+        _sum: {
+          msats: true
+        },
+        where: {
+          itemId: Number(item.id),
+          userId: me.id,
+          invoiceActionState: 'PENDING',
           OR: [
             {
               act: 'TIP'

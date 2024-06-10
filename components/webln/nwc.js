@@ -44,7 +44,7 @@ export function NWCProvider ({ children }) {
           const msg = 'timeout waiting for info event'
           logger.error(msg)
           reject(new Error(msg))
-          sub?.close().catch(reject)
+          sub?.close()?.catch(reject)
         }, timeout)
 
         let found = false
@@ -76,7 +76,7 @@ export function NWCProvider ({ children }) {
               logger.error(msg)
               reject(new Error(msg))
             }
-            sub?.close().catch(reject)
+            sub?.close()?.catch(reject)
           }
         })
       })
@@ -211,7 +211,7 @@ export function NWCProvider ({ children }) {
             const msg = 'timeout waiting for payment'
             logger.error(msg)
             reject(new InvoiceExpiredError(hash))
-            sub?.close().catch(reject)
+            sub?.close()?.catch(reject)
           }, timeout)
 
           const payload = {

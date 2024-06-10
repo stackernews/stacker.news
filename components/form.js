@@ -801,11 +801,10 @@ const StorageKeyPrefixContext = createContext()
 export function Form ({
   initial, schema, onSubmit, children, initialError, validateImmediately,
   storageKeyPrefix, validateOnChange = true, requireSession, innerRef,
-  signal, ...props
+  ...props
 }) {
   const toaster = useToast()
   const initialErrorToasted = useRef(false)
-  const feeButton = useFeeButton()
   const me = useMe()
 
   useEffect(() => {
@@ -832,17 +831,15 @@ export function Form ({
 
   const onSubmitInner = useCallback(async ({ amount, ...values }, ...args) => {
     const variables = { amount, ...values }
-    if (onSubmit) {
-      if (requireSession && !me) {
-        throw new SessionRequiredError()
-      }
-
-      await onSubmit({ ...variables }, ...args).catch(console.error)
-
-      if (!storageKeyPrefix) return
-      clearLocalStorage(values)
+    if (requireSession && !me) {
+      throw new SessionRequiredError()
     }
-  }, [me, onSubmit, feeButton?.total, toaster, clearLocalStorage, storageKeyPrefix, signal])
+    if (onSubmit) {
+      await onSubmit({ ...variables }, ...args).catch(console.error)
+    }
+    if (!storageKeyPrefix) return
+    clearLocalStorage(values)
+  }, [me, onSubmit, clearLocalStorage, storageKeyPrefix])
 
   return (
     <Formik

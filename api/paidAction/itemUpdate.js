@@ -46,7 +46,7 @@ export async function perform (args, context) {
 
   const mentions = await getMentions(args, context)
 
-  const result = await tx.item.update({
+  await tx.item.update({
     where: { id: parseInt(id) },
     data: {
       ...data,
@@ -113,7 +113,11 @@ export async function perform (args, context) {
 
   await performBotBehavior(args, context)
 
-  return result
+  // ltree is unsupported in Prisma, so we have to query it manually (FUCK!)
+  return (await tx.$queryRaw`
+    SELECT *, ltree2text(path) AS path, created_at AS "createdAt", updated_at AS "updatedAt"
+    FROM "Item" WHERE id = ${parseInt(id)}`
+  )[0]
 }
 
 export async function describe ({ id, parentId }, context) {

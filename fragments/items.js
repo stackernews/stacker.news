@@ -36,6 +36,7 @@ export const ITEM_FIELDS = gql`
     path
     upvotes
     meSats
+    mePendingSats
     meDontLikeSats
     meBookmark
     meSubscription
@@ -60,6 +61,8 @@ export const ITEM_FIELDS = gql`
     imgproxyUrls
     rel
     apiKey
+    invoiceActionState
+    invoiceId
   }`
 
 export const ITEM_FULL_FIELDS = gql`

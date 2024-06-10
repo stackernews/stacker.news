@@ -71,6 +71,14 @@ export default gql`
     comments: [Item!]!
   }
 
+  enum InvoiceActionState {
+    PENDING
+    PENDING_HELD
+    HELD
+    PAID
+    FAILED
+  }
+
   type Item {
     id: ID!
     createdAt: Date!
@@ -99,6 +107,7 @@ export default gql`
     lastCommentAt: Date
     upvotes: Int!
     meSats: Int!
+    mePendingSats: Int!
     meDontLikeSats: Int!
     meBookmark: Boolean!
     meSubscription: Boolean!
@@ -131,6 +140,8 @@ export default gql`
     imgproxyUrls: JSONObject
     rel: String
     apiKey: Boolean
+    invoiceActionState: InvoiceActionState
+    invoiceId: ID
     invoice: Invoice
   }
 

@@ -15,7 +15,7 @@ import { Button } from 'react-bootstrap'
 import { useRoot } from './root'
 import { commentSubTreeRootId } from '@/lib/item'
 import { usePaidMutation } from './use-paid-mutation'
-import { UPSERT_COMMENT } from '@/fragments/paidAction'
+import { CREATE_COMMENT } from '@/fragments/paidAction'
 
 export function ReplyOnAnotherPage ({ item }) {
   const rootId = commentSubTreeRootId(item)
@@ -56,7 +56,7 @@ export default forwardRef(function Reply ({
     }
   }, [replyOpen, quote, parentId])
 
-  const [upsertComment] = usePaidMutation(UPSERT_COMMENT, {
+  const [upsertComment] = usePaidMutation(CREATE_COMMENT, {
     update (cache, { data: { upsertComment: { result } } }) {
       if (!result) return
 

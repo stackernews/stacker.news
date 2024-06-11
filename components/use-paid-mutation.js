@@ -64,6 +64,7 @@ export function usePaidMutation (mutation, { onPaid, onPayError, ...options } = 
         }
         // onPaid resembles update in useMutation, but is called after the invoice is paid
         // useful for updating invoiceActionState to PAID
+        // TODO implement in relevant components
         onPaid?.(rest.client.cache, rest)
       }
 
@@ -73,6 +74,7 @@ export function usePaidMutation (mutation, { onPaid, onPayError, ...options } = 
           console.error('usePaidMutation: failed to pay invoice', e)
           // onPayError is called after the invoice fails to pay
           // useful for updating invoiceActionState to FAILED
+          // TODO implement in relevant components
           onPayError?.(e, rest.client.cache, data)
           setInnerResult({ data, ...rest, payError: e })
         })

@@ -55,6 +55,9 @@ CREATE INDEX "PollVote_invoiceId_idx" ON "PollVote"("invoiceId");
 -- CreateIndex
 CREATE INDEX "Upload_invoiceId_idx" ON "Upload"("invoiceId");
 
+-- CreateIndex
+CREATE INDEX "Withdrawl_hash_idx" ON "Withdrawl"("hash");
+
 DROP TRIGGER IF EXISTS timestamp_item_on_insert ON "Item";
 DROP FUNCTION IF EXISTS timestamp_item_on_insert;
 

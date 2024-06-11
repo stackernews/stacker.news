@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useQuery } from '@apollo/client'
-import Comment, { CommentFlat, CommentSkeleton } from './comment'
+import Comment, { CommentSkeleton } from './comment'
 import Item from './item'
 import ItemJob from './item-job'
 import { NOTIFICATIONS } from '@/fragments/notifications'

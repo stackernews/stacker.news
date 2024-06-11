@@ -120,7 +120,7 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
   const imageUploadRef = useRef(null)
   const previousTab = useRef(tab)
   const { merge, setDisabled: setSubmitDisabled } = useFeeButton()
-  const toaster = useToast()
+
   const [updateImageFeesInfo] = useLazyQuery(gql`
     query imageFeesInfo($s3Keys: [Int]!) {
       imageFeesInfo(s3Keys: $s3Keys) {
@@ -134,7 +134,6 @@ export function MarkdownInput ({ label, topLevel, groupClassName, onChange, onKe
     nextFetchPolicy: 'no-cache',
     onError: (err) => {
       console.error(err)
-      toaster.danger(`unabled to get image fees: ${err.message || err.toString?.()}`)
     },
     onCompleted: ({ imageFeesInfo }) => {
       merge({

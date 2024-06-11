@@ -498,6 +498,8 @@ services:
       - 'stacker_lnd'
       - '--lnd-port'
       - '10009'
+      - '--max-amount'
+      - '1000000000'
   lnbits:
     image: lnbits/lnbits:0.12.5
     container_name: lnbits

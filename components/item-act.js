@@ -120,9 +120,6 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal, o
         hash,
         hmac
       },
-      optimisticResponse: {
-        act: { id: item.id, sats: Number(amount), act: down ? 'DONT_LIKE_THIS' : 'TIP', path: item.path }
-      },
       update: actUpdate({ me })
     })
     if (!me) setItemMeAnonSats({ id: item.id, amount })
@@ -254,7 +251,7 @@ export function useZap () {
 
     const variables = { id: item.id, sats, act: 'TIP' }
     const notifyProps = { itemId: item.id, sats: satsDelta }
-    const optimisticResponse = { act: { path: item.path, ...variables } }
+    // const optimisticResponse = { act: { path: item.path, ...variables } }
 
     let revert, cancel, nid
     try {
@@ -269,8 +266,15 @@ export function useZap () {
       let hash, hmac;
       [{ hash, hmac }, cancel] = await payment.request(satsDelta)
 
-      await zap({ variables: { ...variables, hash, hmac }, optimisticResponse, update })
+      await zap({
+        variables: { ...variables, hash, hmac },
+        update: (...args) => {
+          revert?.()
+          update(...args)
+        }
+      })
     } catch (error) {
+      revert?.()
       if (error instanceof InvoiceCanceledError || error instanceof ActCanceledError) {
         return
       }
@@ -284,7 +288,6 @@ export function useZap () {
 
       cancel?.()
     } finally {
-      revert?.()
       if (nid) unnotify(nid)
     }
   }, [me?.id, strike, payment, notify, unnotify, pendingSats])

@@ -5,7 +5,7 @@ import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { msatsToSats } from '@/lib/format'
 import { bioSchema, emailSchema, settingsSchema, ssValidate, userSchema } from '@/lib/validate'
 import { getItem, updateItem, filterClause, createItem, whereClause, muteClause } from './item'
-import { USER_ID, RESERVED_MAX_USER_ID, SN_NO_REWARDS_IDS } from '@/lib/constants'
+import { USER_ID, RESERVED_MAX_USER_ID, SN_NO_REWARDS_IDS, INVOICE_ACTION_NOTIFICATION_TYPES } from '@/lib/constants'
 import { viewGroup } from './growth'
 import { timeUnitForRange, whenRange } from '@/lib/time'
 import assertApiKeyNotPermitted from './apiKey'
@@ -519,6 +519,24 @@ export default {
         }
       })
       if (newReminder) {
+        foundNotes()
+        return true
+      }
+
+      const invoiceActionFailed = await models.invoice.findFirst({
+        where: {
+          userId: me.id,
+          updatedAt: {
+            gt: lastChecked
+          },
+          actionType: {
+            in: INVOICE_ACTION_NOTIFICATION_TYPES
+          },
+          actionState: 'FAILED'
+        }
+      })
+
+      if (invoiceActionFailed) {
         foundNotes()
         return true
       }

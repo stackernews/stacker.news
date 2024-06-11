@@ -74,6 +74,9 @@ export default gql`
     hmac: String
     isHeld: Boolean
     confirmedPreimage: String
+    actionState: String
+    actionType: String
+    item: Item
   }
 
   type Withdrawl {

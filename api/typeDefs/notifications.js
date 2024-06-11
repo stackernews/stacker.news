@@ -55,6 +55,12 @@ export default gql`
     sortTime: Date!
   }
 
+  type Invoicification {
+    id: ID!
+    invoice: Invoice!
+    sortTime: Date!
+  }
+
   type JobChanged {
     id: ID!
     item: Item!
@@ -136,7 +142,7 @@ export default gql`
   union Notification = Reply | Votification | Mention
     | Invitification | Earn | JobChanged | InvoicePaid | WithdrawlPaid | Referral
     | Streak | FollowActivity | ForwardedVotification | Revenue | SubStatus
-    | TerritoryPost | TerritoryTransfer | Reminder | ItemMention
+    | TerritoryPost | TerritoryTransfer | Reminder | ItemMention | Invoicification
 
   type Notifications {
     lastChecked: Date

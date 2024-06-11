@@ -3,7 +3,7 @@ import { GraphQLError } from 'graphql'
 import crypto from 'crypto'
 import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
-import { SELECT } from './item'
+import { SELECT, itemQueryWithMeta } from './item'
 import { lnAddrOptions } from '@/lib/lnurl'
 import { msatsToSats, msatsToSatsDecimal, ensureB64 } from '@/lib/format'
 import { CLNAutowithdrawSchema, LNDAutowithdrawSchema, amountSchema, lnAddrAutowithdrawSchema, lnAddrSchema, ssValidate, withdrawlSchema } from '@/lib/validate'
@@ -545,7 +545,36 @@ export default {
 
   Invoice: {
     satsReceived: i => msatsToSats(i.msatsReceived),
-    satsRequested: i => msatsToSats(i.msatsRequested)
+    satsRequested: i => msatsToSats(i.msatsRequested),
+    item: async (invoice, args, { models, me }) => {
+      switch (invoice.actionType) {
+        case 'ITEM_CREATE':
+        case 'ITEM_UPDATE':
+          return (await itemQueryWithMeta({
+            me,
+            models,
+            query: `
+              ${SELECT}
+              FROM "Item"
+              WHERE "invoiceId" = $1
+              AND "userId" = $2`
+          }, Number(invoice.id), Number(me?.id)))?.[0]
+        case 'ZAP':
+        case 'DOWN_ZAP':
+          return (await itemQueryWithMeta({
+            me,
+            models,
+            query: `
+              ${SELECT}
+              FROM "Item"
+              JOIN "ItemAct" ON "ItemAct"."itemId" = "Item".id
+              WHERE "ItemAct"."invoiceId" = $1
+              AND "ItemAct"."userId" = $2`
+          }, Number(invoice.id), me?.id))?.[0]
+        default:
+          return null
+      }
+    }
   },
 
   Fact: {

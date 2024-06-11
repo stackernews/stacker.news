@@ -783,6 +783,7 @@ model Withdrawl {
 
   @@index([createdAt], map: "Withdrawl.created_at_index")
   @@index([userId], map: "Withdrawl.userId_index")
+  @@index([hash])
 }
 
 model Account {

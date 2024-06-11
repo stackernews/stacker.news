@@ -61,7 +61,7 @@ export default function ItemInfo ({
     let onClick
     if (item.invoiceActionState && item.invoiceActionState !== 'PAID') {
       if (item.invoiceActionState === 'FAILED') {
-        Component = () => <span className='text-warning'>failed</span>
+        Component = () => <span className='text-warning'>payment failed</span>
       } else {
         Component = () => <span className='text-reset'>pending</span>
       }

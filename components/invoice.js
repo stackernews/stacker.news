@@ -2,13 +2,17 @@ import { useState, useEffect } from 'react'
 import { numWithUnits } from '@/lib/format'
 import AccordianItem from './accordian-item'
 import Qr from './qr'
-import Countdown from './countdown'
+import { CompactLongCountdown } from './countdown'
 import PayerData from './payer-data'
 import Bolt11Info from './bolt11-info'
 import { useQuery } from '@apollo/client'
 import { INVOICE } from '@/fragments/wallet'
 import { FAST_POLL_INTERVAL, SSR } from '@/lib/constants'
 import { WebLnNotEnabledError } from './payment'
+import ItemJob from './item-job'
+import Item from './item'
+import { CommentFlat } from './comment'
+import classNames from 'classnames'
 
 export default function Invoice ({ invoice, modal, onPayment, info, successVerb, webLn, webLnError, poll }) {
   const [expired, setExpired] = useState(new Date(invoice.expiredAt) <= new Date())
@@ -77,12 +81,12 @@ export default function Invoice ({ invoice, modal, onPayment, info, successVerb,
       {invoice.confirmedAt
         ? (
           <div className='text-muted text-center invisible'>
-            <Countdown date={Date.now()} />
+            <CompactLongCountdown date={Date.now()} />
           </div>
           )
         : (
           <div className='text-muted text-center'>
-            <Countdown
+            <CompactLongCountdown
               date={invoice.expiresAt} onComplete={() => {
                 setExpired(true)
               }}
@@ -120,9 +124,52 @@ export default function Invoice ({ invoice, modal, onPayment, info, successVerb,
                 body={<span className='text-muted ms-3'>{comment}</span>}
               />
             </div>}
+          <ActionInfo invoice={invoice} />
           <Bolt11Info bolt11={bolt11} preimage={confirmedPreimage} />
         </>}
 
     </>
+  )
+}
+
+function ActionInfo ({ invoice }) {
+  if (!invoice.actionType) return null
+
+  let className = 'text-info'
+  let actionString = ''
+  switch (invoice.actionType) {
+    case 'ITEM_CREATE':
+      actionString = 'item creation '
+      break
+    case 'ITEM_UPDATE':
+      actionString = 'item update '
+      break
+    case 'ZAP':
+      actionString = 'zap on item '
+      break
+    case 'DOWN_ZAP':
+      actionString = 'downzap on item '
+      break
+  }
+
+  switch (invoice.actionState) {
+    case 'FAILED':
+      actionString += 'failed'
+      className = 'text-warning'
+      break
+    case 'PAID':
+      actionString += 'paid'
+      break
+    default:
+      actionString += 'pending'
+  }
+
+  return (
+    <div className='text-start w-100 my-3'>
+      <div className={classNames('fw-bold', 'pb-1', className)}>{actionString}</div>
+      {(invoice.item?.isJob && <ItemJob item={invoice?.item} />) ||
+       (invoice.item?.title && <Item item={invoice?.item} />) ||
+         <CommentFlat item={invoice.item} includeParent noReply truncate />}
+    </div>
   )
 }

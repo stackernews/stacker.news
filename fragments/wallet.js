@@ -2,6 +2,8 @@ import { gql } from '@apollo/client'
 import { ITEM_FULL_FIELDS } from './items'
 
 export const INVOICE = gql`
+  ${ITEM_FULL_FIELDS}
+
   query Invoice($id: ID!) {
     invoice(id: $id) {
       id
@@ -17,6 +19,11 @@ export const INVOICE = gql`
       comment
       lud18Data
       confirmedPreimage
+      actionState
+      actionType
+      item {
+        ...ItemFullFields
+      }
     }
   }`
 

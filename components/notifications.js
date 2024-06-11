@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useQuery } from '@apollo/client'
-import Comment, { CommentSkeleton } from './comment'
+import Comment, { CommentFlat, CommentSkeleton } from './comment'
 import Item from './item'
 import ItemJob from './item-job'
 import { NOTIFICATIONS } from '@/fragments/notifications'
@@ -30,18 +30,12 @@ import { nextBillingWithGrace } from '@/lib/territory'
 import { commentSubTreeRootId } from '@/lib/item'
 import LinkToContext from './link-to-context'
 import { Badge } from 'react-bootstrap'
-import { ITEM_FULL } from '@/fragments/items'
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
 
-  // we need to resolve item id to item to show item for client notifications
-  const { data } = useQuery(ITEM_FULL, { variables: { id: n.itemId }, skip: !n.itemId })
-  const item = data?.item
-  const itemN = { item, ...n }
-
   return (
-    <NotificationLayout nid={nid(n)} {...defaultOnClick(itemN)} fresh={fresh}>
+    <NotificationLayout nid={nid(n)} {...defaultOnClick(n)} fresh={fresh}>
       {
         (type === 'Earn' && <EarnNotification n={n} />) ||
         (type === 'Revenue' && <RevenueNotification n={n} />) ||
@@ -60,7 +54,8 @@ function Notification ({ n, fresh }) {
         (type === 'FollowActivity' && <FollowActivity n={n} />) ||
         (type === 'TerritoryPost' && <TerritoryPost n={n} />) ||
         (type === 'TerritoryTransfer' && <TerritoryTransfer n={n} />) ||
-        (type === 'Reminder' && <Reminder n={n} />)
+        (type === 'Reminder' && <Reminder n={n} />) ||
+        (type === 'Invoicification' && <Invoicification n={n} />)
       }
     </NotificationLayout>
   )
@@ -104,6 +99,7 @@ const defaultOnClick = n => {
   if (type === 'SubStatus') return { href: `/~${n.sub.name}` }
   if (type === 'Invitification') return { href: '/invites' }
   if (type === 'InvoicePaid') return { href: `/invoices/${n.invoice.id}` }
+  if (type === 'Invoicification') return { href: `/invoices/${n.invoice.id}` }
   if (type === 'WithdrawlPaid') return { href: `/withdrawals/${n.id}` }
   if (type === 'Referral') return { href: '/referrals/month' }
   if (type === 'Streak') return {}
@@ -285,6 +281,52 @@ function InvoicePaid ({ n }) {
           <Text>{n.invoice.comment}</Text>
           {payerSig}
         </small>}
+    </div>
+  )
+}
+
+function Invoicification ({ n: { invoice } }) {
+  let actionString = ''
+  switch (invoice.actionType) {
+    case 'ITEM_CREATE':
+      actionString = 'item creation '
+      break
+    case 'ITEM_UPDATE':
+      actionString = 'item update '
+      break
+    case 'ZAP':
+      actionString = 'zap on item '
+      break
+    case 'DOWN_ZAP':
+      actionString = 'downzap on item '
+      break
+  }
+
+  switch (invoice.actionState) {
+    case 'FAILED':
+      actionString += 'failed'
+      break
+    case 'PAID':
+      actionString += 'paid'
+      break
+    default:
+      actionString += 'pending'
+  }
+
+  return (
+    <div className='px-2'>
+      <small className='fw-bold text-warning my-1'>{actionString}</small>
+      <div>
+        {invoice.item.title
+          ? <Item item={invoice.item} />
+          : (
+            <div className='pb-2'>
+              <RootProvider root={invoice.item.root}>
+                <Comment item={invoice.item} noReply includeParent clickToContext />
+              </RootProvider>
+            </div>
+            )}
+      </div>
     </div>
   )
 }

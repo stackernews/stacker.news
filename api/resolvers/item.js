@@ -64,7 +64,10 @@ export async function getItem (parent, { id }, { me, models }) {
     query: `
       ${SELECT}
       FROM "Item"
-      WHERE id = $1`
+      ${whereClause(
+        '"Item".id = $1',
+        activeOrMine(me)
+      )}`
   }, Number(id))
   return item
 }
@@ -184,7 +187,7 @@ function whenClause (when, table) {
   return `"${table}".created_at <= $2 and "${table}".created_at >= $1`
 }
 
-const activeOrMine = (me) => {
+export const activeOrMine = (me) => {
   return me
     ? [`("Item"."invoiceActionState" IS NULL OR "Item"."invoiceActionState" = 'PAID' OR "Item"."userId" = ${me.id})`,
     `("Item".status <> 'STOPPED' OR "Item"."userId" = ${me.id})`]

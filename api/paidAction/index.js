@@ -70,7 +70,7 @@ async function performOptimisticAction (actionType, args, context) {
   const { me, models, lnd, cost, user } = context
   const action = paidActions[actionType]
 
-  const expiresAt = datePivot(new Date(), { days: 1 })
+  const expiresAt = datePivot(new Date(), { minutes: 1 })
   const lndInv = await createInvoice({
     description: user?.hideInvoiceDesc ? undefined : await action.describe(args, context),
     lnd,
@@ -92,6 +92,12 @@ async function performOptimisticAction (actionType, args, context) {
         expiresAt
       }
     })
+
+    tx.$executeRaw`
+      INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, expiresin)
+      VALUES ('checkInvoice',
+        jsonb_build_object('hash', ${lndInv.id}), 21, true, ${expiresAt},
+          now() - ${expiresAt} + inverval '10m');`
 
     // the HMAC is only returned during invoice creation
     // this makes sure that only the person who created this invoice

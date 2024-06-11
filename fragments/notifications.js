@@ -28,7 +28,7 @@ export const NOTIFICATIONS = gql`
         ... on ItemMention {
           id
           sortTime
-          item { 
+          item {
             ...ItemFullFields
             text
           }
@@ -139,6 +139,18 @@ export const NOTIFICATIONS = gql`
             nostr
             comment
             lud18Data
+          }
+        }
+        ... on Invoicification {
+          id
+          sortTime
+          invoice {
+            id
+            actionState
+            actionType
+            item {
+              ...ItemFullFields
+            }
           }
         }
         ... on WithdrawlPaid {

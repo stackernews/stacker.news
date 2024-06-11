@@ -42,9 +42,7 @@ export function middleware (request) {
     // unsafe-inline for styles is not ideal but okay if script-src is using nonces
     "style-src 'self' a.stacker.news 'unsafe-inline'",
     "manifest-src 'self'",
-    // Using wildcard (*) is the only way to get peertube videos working
-    // as the domain for each is different
-    'frame-src *',
+    'frame-src www.youtube.com platform.twitter.com rumble.com bitcointv.com peertube.tv',
     "connect-src 'self' https: wss:" + devSrc,
     // disable dangerous plugins like Flash
     "object-src 'none'",

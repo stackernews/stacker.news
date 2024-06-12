@@ -22,6 +22,7 @@ import { DropdownItemUpVote } from './upvote'
 import { useRoot } from './root'
 import { MuteSubDropdownItem, PinSubDropdownItem } from './territory-header'
 import UserPopover from './user-popover'
+import { useItemContext } from './item'
 
 export default function ItemInfo ({
   item, full, commentsText = 'comments',
@@ -36,6 +37,7 @@ export default function ItemInfo ({
   const [hasNewComments, setHasNewComments] = useState(false)
   const [meTotalSats, setMeTotalSats] = useState(0)
   const root = useRoot()
+  const { pendingSats, pendingCommentSats } = useItemContext()
   const sub = item?.sub || root?.sub
 
   useEffect(() => {
@@ -45,8 +47,8 @@ export default function ItemInfo ({
   }, [item])
 
   useEffect(() => {
-    if (item) setMeTotalSats((item.meSats || 0) + (item.meAnonSats || 0))
-  }, [item?.meSats, item?.meAnonSats])
+    if (item) setMeTotalSats((item.meSats || 0) + (item.meAnonSats || 0) + (pendingSats))
+  }, [item?.meSats, item?.meAnonSats, pendingSats])
 
   // territory founders can pin any post in their territory
   // and OPs can pin any root reply in their post
@@ -70,7 +72,7 @@ export default function ItemInfo ({
               ? ` & ${numWithUnits(item.meDontLikeSats, { abbreviate: false, unitSingular: 'downsat', unitPlural: 'downsats' })}`
               : ''} from me)`} `}
           >
-            {numWithUnits(item.sats)}
+            {numWithUnits(item.sats + pendingSats)}
           </span>
           <span> \ </span>
         </>}
@@ -88,7 +90,7 @@ export default function ItemInfo ({
               `/items/${item.id}?commentsViewedAt=${viewedAt}`,
               `/items/${item.id}`)
           }
-        }} title={numWithUnits(item.commentSats)} className='text-reset position-relative'
+        }} title={numWithUnits(item.commentSats + pendingCommentSats)} className='text-reset position-relative'
       >
         {numWithUnits(item.ncomments, {
           abbreviate: false,

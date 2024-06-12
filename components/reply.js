@@ -102,6 +102,28 @@ export default forwardRef(function Reply ({
         resetForm({ text: '' })
         setReply(replyOpen || false)
         toastUpsertSuccessMessages(toaster, data, 'upsertComment', false, variables.text)
+      },
+      onPaid: (cache, { data: { upsertComment: { result: { id } } } }) => {
+        // set the invoiceActionState to PAID
+        cache.modify({
+          id: `Item:${id}`,
+          fields: {
+            invoiceActionState () {
+              return 'PAID'
+            }
+          }
+        })
+      },
+      onPayError: (e, cache, { data: { upsertComment: { result: { id } } } }) => {
+        // set the invoiceActionState to FAILED
+        cache.modify({
+          id: `Item:${id}`,
+          fields: {
+            invoiceActionState () {
+              return 'FAILED'
+            }
+          }
+        })
       }
     })
   }, [upsertComment, setReply, parentId])

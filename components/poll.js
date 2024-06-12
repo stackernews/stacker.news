@@ -91,7 +91,7 @@ export default function Poll ({ item }) {
                 : 0}
             />)}
       <div className='text-muted mt-1'>
-        {numWithUnits(pollCount, { unitSingular: 'vote', unitPlural: 'votes' })}
+        {numWithUnits(item.poll.count, { unitSingular: 'vote', unitPlural: 'votes' })}
         {hasExpiration && ` \\ ${timeRemaining ? `${timeRemaining} left` : 'poll ended'}`}
       </div>
     </div>

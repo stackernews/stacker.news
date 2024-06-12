@@ -12,8 +12,6 @@ import Popover from 'react-bootstrap/Popover'
 import { useShowModal } from './modal'
 import { numWithUnits } from '@/lib/format'
 import { Dropdown } from 'react-bootstrap'
-import { useLightning } from './lightning'
-import { useItemContext } from './item'
 
 const UpvotePopover = ({ target, show, handleClose }) => {
   const me = useMe()
@@ -98,9 +96,8 @@ export default function UpVote ({ item, className }) {
         setWalkthrough(upvotePopover: $upvotePopover, tipPopover: $tipPopover)
       }`
   )
-  const strike = useLightning()
-  const [controller, setController] = useState()
-  const { pendingSats, setPendingSats } = useItemContext()
+
+  const [controller, setController] = useState(null)
   const pending = controller?.started && !controller.done
 
   const setVoteShow = useCallback((yes) => {
@@ -137,7 +134,7 @@ export default function UpVote ({ item, className }) {
     [item?.mine, item?.meForward, item?.deletedAt])
 
   const [meSats, overlayText, color, nextColor] = useMemo(() => {
-    const meSats = (item?.meSats || item?.meAnonSats || 0) + pendingSats
+    const meSats = (item?.meSats || item?.meAnonSats || 0)
 
     // what should our next tip be?
     const sats = nextTip(meSats, { ...me?.privates })
@@ -145,16 +142,7 @@ export default function UpVote ({ item, className }) {
     return [
       meSats, me ? numWithUnits(sats, { abbreviate: false }) : 'zap it',
       getColor(meSats), getColor(meSats + sats)]
-  }, [item?.meSats, item?.meAnonSats, pendingSats, me?.privates?.tipDefault, me?.privates?.turboDefault])
-
-  const optimisticUpdate = useCallback((sats, { onClose } = {}) => {
-    setPendingSats(pendingSats => pendingSats + sats)
-    strike()
-    onClose?.()
-    return () => {
-      setPendingSats(pendingSats => pendingSats - sats)
-    }
-  }, [])
+  }, [item?.meSats, item?.meAnonSats, me?.privates?.tipDefault, me?.privates?.turboDefault])
 
   const handleModalClosed = () => {
     setHover(false)
@@ -179,9 +167,7 @@ export default function UpVote ({ item, className }) {
     setController(c)
 
     showModal(onClose =>
-      <ItemAct
-        onClose={onClose} item={item} abortSignal={c.signal} optimisticUpdate={optimisticUpdate}
-      />, { onClose: handleModalClosed })
+      <ItemAct onClose={onClose} item={item} abortSignal={c.signal} />, { onClose: handleModalClosed })
   }
 
   const handleShortPress = async () => {
@@ -207,9 +193,9 @@ export default function UpVote ({ item, className }) {
       const c = new ZapUndoController()
       setController(c)
 
-      await zap({ item, me, abortSignal: c.signal, optimisticUpdate })
+      await zap({ item, me, abortSignal: c.signal })
     } else {
-      showModal(onClose => <ItemAct onClose={onClose} item={item} optimisticUpdate={optimisticUpdate} />, { onClose: handleModalClosed })
+      showModal(onClose => <ItemAct onClose={onClose} item={item} />, { onClose: handleModalClosed })
     }
   }
 

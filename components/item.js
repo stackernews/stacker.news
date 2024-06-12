@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import styles from './item.module.css'
 import UpVote from './upvote'
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react'
+import { useRef } from 'react'
 import { USER_ID, UNKNOWN_LINK_REL } from '@/lib/constants'
 import Pin from '@/svgs/pushpin-fill.svg'
 import reactStringReplace from 'react-string-replace'
@@ -45,47 +45,6 @@ export function SearchTitle ({ title }) {
   })
 }
 
-const ItemContext = createContext({
-  pendingSats: 0,
-  setPendingSats: undefined,
-  pendingVote: undefined,
-  setPendingVote: undefined
-})
-
-export const ItemContextProvider = ({ children }) => {
-  const parentCtx = useItemContext()
-  const [pendingSats, innerSetPendingSats] = useState(0)
-  const [pendingCommentSats, innerSetPendingCommentSats] = useState(0)
-  const [pendingVote, setPendingVote] = useState()
-
-  // cascade comment sats up to root context
-  const setPendingSats = useCallback((sats) => {
-    innerSetPendingSats(sats)
-    parentCtx?.setPendingCommentSats?.(sats)
-  }, [parentCtx?.setPendingCommentSats])
-
-  const setPendingCommentSats = useCallback((sats) => {
-    innerSetPendingCommentSats(sats)
-    parentCtx?.setPendingCommentSats?.(sats)
-  }, [parentCtx?.setPendingCommentSats])
-
-  const value = useMemo(() =>
-    ({
-      pendingSats,
-      setPendingSats,
-      pendingCommentSats,
-      setPendingCommentSats,
-      pendingVote,
-      setPendingVote
-    }),
-  [pendingSats, setPendingSats, pendingCommentSats, setPendingCommentSats, pendingVote, setPendingVote])
-  return <ItemContext.Provider value={value}>{children}</ItemContext.Provider>
-}
-
-export const useItemContext = () => {
-  return useContext(ItemContext)
-}
-
 export default function Item ({ item, rank, belowTitle, right, full, children, siblingComments, onQuoteReply, pinnable }) {
   const titleRef = useRef()
   const router = useRouter()
@@ -93,7 +52,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
   const image = item.url && item.url.startsWith(process.env.NEXT_PUBLIC_IMGPROXY_URL)
 
   return (
-    <ItemContextProvider>
+    <>
       {rank
         ? (
           <div className={styles.rank}>
@@ -151,7 +110,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
           {children}
         </div>
       )}
-    </ItemContextProvider>
+    </>
   )
 }
 

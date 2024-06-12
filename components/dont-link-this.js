@@ -4,18 +4,23 @@ import { useToast } from './toast'
 import ItemAct from './item-act'
 import AccordianItem from './accordian-item'
 import Flag from '@/svgs/flag-fill.svg'
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import getColor from '@/lib/rainbow'
 import { gql, useMutation } from '@apollo/client'
+import { useItemContext } from './item'
 
 export function DownZap ({ item, ...props }) {
+  const { pendingDownSats } = useItemContext()
   const { meDontLikeSats } = item
-  const style = useMemo(() => (meDontLikeSats
+
+  const downSats = meDontLikeSats + pendingDownSats
+
+  const style = useMemo(() => (downSats
     ? {
-        fill: getColor(meDontLikeSats),
-        filter: `drop-shadow(0 0 6px ${getColor(meDontLikeSats)}90)`
+        fill: getColor(downSats),
+        filter: `drop-shadow(0 0 6px ${getColor(downSats)}90)`
       }
-    : undefined), [meDontLikeSats])
+    : undefined), [downSats])
   return (
     <DownZapper item={item} As={({ ...oprops }) => <Flag {...props} {...oprops} style={style} />} />
   )
@@ -24,6 +29,15 @@ export function DownZap ({ item, ...props }) {
 function DownZapper ({ item, As, children }) {
   const toaster = useToast()
   const showModal = useShowModal()
+  const { setPendingDownSats } = useItemContext()
+
+  const optimisticUpdate = useCallback((sats, { onClose } = {}) => {
+    setPendingDownSats(pendingSats => pendingSats + sats)
+    onClose?.()
+    return () => {
+      setPendingDownSats(pendingSats => pendingSats - sats)
+    }
+  }, [])
 
   return (
     <As
@@ -31,7 +45,7 @@ function DownZapper ({ item, As, children }) {
         try {
           showModal(onClose =>
             <ItemAct
-              onClose={onClose} item={item} down
+              onClose={onClose} item={item} down optimisticUpdate={optimisticUpdate}
             >
               <AccordianItem
                 header='what is a downzap?' body={

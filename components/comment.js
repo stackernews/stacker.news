@@ -25,7 +25,7 @@ import Skull from '@/svgs/death-skull.svg'
 import { commentSubTreeRootId } from '@/lib/item'
 import Pin from '@/svgs/pushpin-fill.svg'
 import LinkToContext from './link-to-context'
-import { ItemContextProvider } from './item'
+import { ItemContextProvider, useItemContext } from './item'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -144,11 +144,7 @@ export default function Comment ({
         onTouchStart={() => ref.current.classList.add('outline-new-comment-unset')}
       >
         <div className={`${itemStyles.item} ${styles.item}`}>
-          {item.outlawed && !me?.privates?.wildWestMode
-            ? <Skull className={styles.dontLike} width={24} height={24} />
-            : item.meDontLikeSats > item.meSats
-              ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
-              : pin ? <Pin width={22} height={22} className={styles.pin} /> : <UpVote item={item} className={styles.upvote} />}
+          <ZapIcon item={item} pin={pin} me={me} />
           <div className={`${itemStyles.hunk} ${styles.hunk}`}>
             <div className='d-flex align-items-center'>
               {item.user?.meMute && !includeParent && collapse === 'yep'
@@ -248,6 +244,19 @@ export default function Comment ({
       </div>
     </ItemContextProvider>
   )
+}
+
+function ZapIcon ({ item, pin }) {
+  const me = useMe()
+  const { pendingDownSats } = useItemContext()
+
+  const downSats = item.meDontLikeSats + pendingDownSats
+
+  return item.outlawed && !me?.privates?.wildWestMode
+    ? <Skull className={styles.dontLike} width={24} height={24} />
+    : downSats > item.meSats
+      ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
+      : pin ? <Pin width={22} height={22} className={styles.pin} /> : <UpVote item={item} className={styles.upvote} />
 }
 
 export function CommentSkeleton ({ skeletonChildren }) {

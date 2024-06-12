@@ -1,29 +1,44 @@
 import { gql } from '@apollo/client'
 import { ITEM_FULL_FIELDS } from './items'
 
-export const INVOICE = gql`
+export const INVOICE_FIELDS = gql`
+  fragment InvoiceFields on Invoice {
+    id
+    hash
+    bolt11
+    satsRequested
+    satsReceived
+    cancelled
+    confirmedAt
+    expiresAt
+    nostr
+    isHeld
+    comment
+    lud18Data
+    confirmedPreimage
+    actionState
+    actionType
+  }`
+
+export const INVOICE_FULL = gql`
   ${ITEM_FULL_FIELDS}
+  ${INVOICE_FIELDS}
 
   query Invoice($id: ID!) {
     invoice(id: $id) {
-      id
-      hash
-      bolt11
-      satsRequested
-      satsReceived
-      cancelled
-      confirmedAt
-      expiresAt
-      nostr
-      isHeld
-      comment
-      lud18Data
-      confirmedPreimage
-      actionState
-      actionType
+      ...InvoiceFields
       item {
         ...ItemFullFields
       }
+    }
+  }`
+
+export const INVOICE = gql`
+  ${INVOICE_FIELDS}
+
+  query Invoice($id: ID!) {
+    invoice(id: $id) {
+      ...InvoiceFields
     }
   }`
 

@@ -1,4 +1,4 @@
-import { useMutation } from '@apollo/client'
+import { useApolloClient, useMutation } from '@apollo/client'
 import { useCallback, useState } from 'react'
 import { InvoiceCanceledError, InvoiceExpiredError, useQrPayment, useWebLnPayment } from './payment'
 import { useMe } from './me'
@@ -11,6 +11,7 @@ export function usePaidMutation (mutation, { onPaid, onPayError, ...options } = 
   const [mutate, result] = useMutation(mutation, options)
   const waitForWebLnPayment = useWebLnPayment()
   const waitForQrPayment = useQrPayment()
+  const client = useApolloClient()
   const me = useMe()
   // innerResult is used to store/control the result of the mutation when innerMutate runs
   const [innerResult, setInnerResult] = useState(result)
@@ -33,7 +34,7 @@ export function usePaidMutation (mutation, { onPaid, onPayError, ...options } = 
 
   const innerMutate = useCallback(async innerOptions => {
     innerOptions.optimisticResponse = addOptimisticResponseExtras(innerOptions.optimisticResponse)
-    const { data, ...rest } = await mutate(innerOptions)
+    const { data } = await mutate(innerOptions)
 
     // get invoice without knowing the mutation name
     if (Object.values(data).length !== 1) {
@@ -65,34 +66,32 @@ export function usePaidMutation (mutation, { onPaid, onPayError, ...options } = 
         // onPaid resembles update in useMutation, but is called after the invoice is paid
         // useful for updating invoiceActionState to PAID
         // TODO implement in relevant components
-        onPaid?.(rest.client.cache, rest)
+        onPaid?.(client.cache, { data })
       }
 
       // if this is an optimistic update, don't wait to pay the invoice
       if (optimistic) {
-        pay().catch(e => {
+        pay().then(() => setInnerResult({ data })).catch(e => {
           console.error('usePaidMutation: failed to pay invoice', e)
           // onPayError is called after the invoice fails to pay
           // useful for updating invoiceActionState to FAILED
           // TODO implement in relevant components
-          onPayError?.(e, rest.client.cache, data)
-          setInnerResult({ data, ...rest, payError: e })
+          onPayError?.(e, client.cache, { data })
         })
       } else {
         // otherwise, wait for to pay before completing the mutation
         try {
           await pay()
+          setInnerResult({ data })
         } catch (e) {
           console.error('usePaidMutation: failed to pay invoice', e)
-          onPayError?.(e, rest.client.cache, data)
-          rest.payError = e
+          onPayError?.(e, client.cache, { data })
         }
       }
     }
 
-    setInnerResult({ data, ...rest })
-    return { data, ...rest }
-  }, [!!me, mutate, waitForPayment, onPaid, options.variables, options.optimisticResponse, setInnerResult])
+    return { data }
+  }, [mutate, options, onPaid, onPayError, waitForPayment, !!me])
 
   return [innerMutate, innerResult]
 }

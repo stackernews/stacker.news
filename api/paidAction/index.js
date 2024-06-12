@@ -21,8 +21,9 @@ export const paidActions = {
 export default async function performPaidAction (actionType, args, context) {
   try {
     const { me, models, hash, hmac } = context
-    console.log('performPaidAction', actionType, args, hash, hmac, me?.id)
     const paidAction = paidActions[actionType]
+
+    console.log('performPaidAction', actionType, args)
 
     if (!paidAction) {
       throw new Error(`Invalid action type ${actionType}`)
@@ -35,27 +36,32 @@ export default async function performPaidAction (actionType, args, context) {
     context.user = me ? await models.user.findUnique({ where: { id: me.id } }) : null
     context.cost = await paidAction.getCost(args, context)
     if (hash || hmac || !me) {
+      console.log('performPaidAction - hash or hmac provided, or anon', actionType, args)
       return await performPessimiticAction(actionType, args, context)
     }
 
     const isRich = context.cost <= context.user.msats
     if (!isRich && !paidAction.supportsOptimism) {
+      console.log('performPaidAction - action does not support optimism', actionType, args)
       return await performPessimiticAction(actionType, args, context)
     }
 
     if (isRich) {
       try {
+        console.log('performPaidAction - enough fee credits available', actionType, args)
         return await performFeeCreditAction(actionType, args, context)
       } catch (e) {
-        console.error('fee credit action failed ', e)
+        console.error('performPaidAction - fee credit action failed ', e, actionType, args)
         // if we fail to do the action with fee credits, we should fall back to optimistic
         if (!paidAction.supportsOptimism) {
+          console.error('performPaidAction - action does not support optimism and fee credits failed ', actionType, args)
           return await performPessimiticAction(actionType, args, context)
         }
       }
     }
 
     if (paidAction.supportsOptimism) {
+      console.error('performPaidAction - trying optimism ', actionType, args)
       return await performOptimisticAction(actionType, args, context)
     }
 
@@ -67,42 +73,14 @@ export default async function performPaidAction (actionType, args, context) {
 }
 
 async function performOptimisticAction (actionType, args, context) {
-  const { me, models, lnd, cost, user } = context
+  const { models } = context
   const action = paidActions[actionType]
-
-  const expiresAt = datePivot(new Date(), { minutes: 1 })
-  const lndInv = await createInvoice({
-    description: user?.hideInvoiceDesc ? undefined : await action.describe(args, context),
-    lnd,
-    mtokens: String(cost),
-    expires_at: expiresAt
-  })
 
   return await models.$transaction(async tx => {
     context.tx = tx
+    context.optimistic = true
 
-    const invoice = await tx.invoice.create({
-      data: {
-        hash: lndInv.id,
-        msatsRequested: cost,
-        bolt11: lndInv.request,
-        userId: me?.id || USER_ID.anon,
-        actionType,
-        actionState: 'PENDING',
-        expiresAt
-      }
-    })
-
-    tx.$executeRaw`
-      INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, expiresin)
-      VALUES ('checkInvoice',
-        jsonb_build_object('hash', ${lndInv.id}), 21, true, ${expiresAt},
-          now() - ${expiresAt} + inverval '10m');`
-
-    // the HMAC is only returned during invoice creation
-    // this makes sure that only the person who created this invoice
-    // has access to the HMAC
-    invoice.hmac = createHmac(invoice.hash)
+    const invoice = await createDbInvoice(actionType, args, context)
 
     return {
       invoice,
@@ -141,7 +119,7 @@ async function performFeeCreditAction (actionType, args, context) {
 }
 
 async function performPessimiticAction (actionType, args, context) {
-  const { me, models, hash, hmac, user, cost, lnd } = context
+  const { models, hash, hmac, cost, lnd } = context
   const action = paidActions[actionType]
 
   if (!action.supportsPessimism) {
@@ -174,35 +152,54 @@ async function performPessimiticAction (actionType, args, context) {
     })
   } else {
     // just create the invoice and complete action when it's paid
-    const expiresAt = datePivot(new Date(), { days: 1 })
-    const lndInv = await createHodlInvoice({
-      description: user?.hideInvoiceDesc ? undefined : await action.describe(args, context),
-      lnd,
-      mtokens: String(cost),
-      expires_at: expiresAt
-    })
-
-    const invoice = await models.invoice.create({
-      data: {
-        hash: lndInv.id,
-        msatsRequested: cost,
-        preimage: lndInv.secret,
-        bolt11: lndInv.request,
-        userId: me?.id || USER_ID.anon,
-        actionType,
-        actionState: 'PENDING_HELD',
-        expiresAt
-      }
-    })
-
-    // the HMAC is only returned during invoice creation
-    // this makes sure that only the person who created this invoice
-    // has access to the HMAC
-    invoice.hmac = createHmac(invoice.hash)
-
     return {
-      invoice,
+      invoice: await createDbInvoice(actionType, args, context),
       paymentMethod: 'PESSIMISTIC'
     }
   }
+}
+
+const OPTIMISTIC_INVOICE_EXPIRE = { seconds: 10 } // { hours: 1 }
+const PESSIMISTIC_INVOICE_EXPIRE = { seconds: 10 } // { minutes: 10 }
+
+async function createDbInvoice (actionType, args, context) {
+  const { user, models, tx, lnd, cost, optimistic } = context
+  const action = paidActions[actionType]
+  const createLNDInvoice = optimistic ? createInvoice : createHodlInvoice
+  const db = tx ?? models
+
+  const expiresAt = datePivot(new Date(), optimistic ? OPTIMISTIC_INVOICE_EXPIRE : PESSIMISTIC_INVOICE_EXPIRE)
+  const lndInv = await createLNDInvoice({
+    description: user?.hideInvoiceDesc ? undefined : await action.describe(args, context),
+    lnd,
+    mtokens: String(cost),
+    expires_at: expiresAt
+  })
+
+  const invoice = await db.invoice.create({
+    data: {
+      hash: lndInv.id,
+      msatsRequested: cost,
+      preimage: optimistic ? undefined : lndInv.secret,
+      bolt11: lndInv.request,
+      userId: user?.id || USER_ID.anon,
+      actionType,
+      actionState: optimistic ? 'PENDING' : 'PENDING_HELD',
+      expiresAt
+    }
+  })
+
+  // insert a job to check the invoice after it's set to expire
+  await db.$executeRaw`
+      INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter, expirein, priority)
+      VALUES ('checkInvoice',
+        jsonb_build_object('hash', ${lndInv.id}), 21, true, ${expiresAt},
+          ${expiresAt} - now() + interval '10m', 100)`
+
+  // the HMAC is only returned during invoice creation
+  // this makes sure that only the person who created this invoice
+  // has access to the HMAC
+  invoice.hmac = createHmac(invoice.hash)
+
+  return invoice
 }

@@ -115,56 +115,60 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
 }
 
 export function useAct ({ update } = {}) {
+  const modifyCache = (cache, { data: { act: { result } } }) => {
+    if (!result) return
+    const { id, sats, path, act } = result
+    cache.modify({
+      id: `Item:${id}`,
+      fields: {
+        sats (existingSats = 0) {
+          if (act === 'TIP') {
+            return existingSats + sats
+          }
+          return existingSats
+        },
+        meSats: (existingSats = 0) => {
+          if (act === 'TIP') {
+            return existingSats + sats
+          }
+          return existingSats
+        },
+        meDontLikeSats: (existingSats = 0) => {
+          if (act === 'DONT_LIKE_THIS') {
+            return existingSats + sats
+          }
+          return existingSats
+        }
+      }
+    })
+
+    if (act === 'TIP') {
+      // update all ancestors
+      path.split('.').forEach(aId => {
+        if (Number(aId) === Number(id)) return
+        cache.modify({
+          id: `Item:${aId}`,
+          fields: {
+            commentSats (existingCommentSats = 0) {
+              return existingCommentSats + sats
+            }
+          }
+        })
+      })
+    }
+  }
+
   const [act] = usePaidMutation(ACT_MUTATION, {
     // todo: this should be moved out of here for bounties
-    update: (cache, { data: { act: { result } } }) => {
+    update: (cache, response) => {
+      modifyCache(cache, response)
+      update?.(cache, response)
+    },
+    onPayError: (e, cache, response) => {
+      const { data: { act: { result } } } = response
       if (!result) return
-
-      const { id, sats, path, act } = result
-
-      cache.modify({
-        id: `Item:${id}`,
-        fields: {
-          sats (existingSats = 0) {
-            if (act === 'TIP') {
-              return existingSats + sats
-            }
-
-            return existingSats
-          },
-          meSats: (existingSats = 0) => {
-            if (act === 'TIP') {
-              return existingSats + sats
-            }
-
-            return existingSats
-          },
-          meDontLikeSats: (existingSats = 0) => {
-            if (act === 'DONT_LIKE_THIS') {
-              return existingSats + sats
-            }
-
-            return existingSats
-          }
-        }
-      })
-
-      if (act === 'TIP') {
-        // update all ancestors
-        path.split('.').forEach(aId => {
-          if (Number(aId) === Number(id)) return
-          cache.modify({
-            id: `Item:${aId}`,
-            fields: {
-              commentSats (existingCommentSats = 0) {
-                return existingCommentSats + sats
-              }
-            }
-          })
-        })
-      }
-
-      update?.(cache, { data: { act: { result } } })
+      const { sats } = result
+      modifyCache(cache, { data: { act: { result: { ...result, sats: -1 * sats } } } })
     }
   })
 

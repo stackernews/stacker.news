@@ -78,7 +78,7 @@ async function subscribeToDeposits (args) {
     return sub
   })
 
-  // check pending deposits as a redundancy in case we failed to record
+  // check pending deposits as a redundancy in case we failed to rehcord
   // an invoice_updated event
   await checkPendingDeposits(args)
 }
@@ -108,7 +108,7 @@ function subscribeToHodlInvoice (args) {
   })
 }
 
-async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
+export async function checkInvoice ({ data: { hash }, boss, models, lnd }) {
   const inv = await getInvoice({ id: hash, lnd })
 
   // invoice could be created by LND but wasn't inserted into the database yet

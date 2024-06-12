@@ -2,7 +2,7 @@ import PgBoss from 'pg-boss'
 import nextEnv from '@next/env'
 import { PrismaClient } from '@prisma/client'
 import {
-  autoDropBolt11s, checkPendingDeposits, checkPendingWithdrawals,
+  autoDropBolt11s, checkInvoice, checkPendingDeposits, checkPendingWithdrawals,
   finalizeHodlInvoice, subscribeToWallet
 } from './wallet.js'
 import { repin } from './repin.js'
@@ -108,6 +108,7 @@ async function work () {
   await boss.work('settleActionError', jobWrapper(settleActionError))
   await boss.work('settleAction', jobWrapper(settleAction))
   await boss.work('holdAction', jobWrapper(holdAction))
+  await boss.work('checkInvoice', jobWrapper(checkInvoice))
 
   console.log('working jobs')
 }

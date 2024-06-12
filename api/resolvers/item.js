@@ -859,7 +859,7 @@ export default {
         }
       }
 
-      if (idempotent) {
+      if (me && idempotent) {
         await serialize(
           models.$queryRaw`
           SELECT

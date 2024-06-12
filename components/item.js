@@ -49,7 +49,9 @@ const ItemContext = createContext({
   pendingSats: 0,
   setPendingSats: undefined,
   pendingVote: undefined,
-  setPendingVote: undefined
+  setPendingVote: undefined,
+  pendingDownSats: 0,
+  setPendingDownSats: undefined
 })
 
 export const ItemContextProvider = ({ children }) => {
@@ -57,6 +59,7 @@ export const ItemContextProvider = ({ children }) => {
   const [pendingSats, innerSetPendingSats] = useState(0)
   const [pendingCommentSats, innerSetPendingCommentSats] = useState(0)
   const [pendingVote, setPendingVote] = useState()
+  const [pendingDownSats, setPendingDownSats] = useState(0)
 
   // cascade comment sats up to root context
   const setPendingSats = useCallback((sats) => {
@@ -76,9 +79,11 @@ export const ItemContextProvider = ({ children }) => {
       pendingCommentSats,
       setPendingCommentSats,
       pendingVote,
-      setPendingVote
+      setPendingVote,
+      pendingDownSats,
+      setPendingDownSats
     }),
-  [pendingSats, setPendingSats, pendingCommentSats, setPendingCommentSats, pendingVote, setPendingVote])
+  [pendingSats, setPendingSats, pendingCommentSats, setPendingCommentSats, pendingVote, setPendingVote, pendingDownSats, setPendingDownSats])
   return <ItemContext.Provider value={value}>{children}</ItemContext.Provider>
 }
 
@@ -101,13 +106,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
           </div>)
         : <div />}
       <div className={`${styles.item} ${siblingComments ? 'pt-3' : ''}`}>
-        {item.position && (pinnable || !item.subName)
-          ? <Pin width={24} height={24} className={styles.pin} />
-          : item.meDontLikeSats > item.meSats
-            ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
-            : Number(item.user?.id) === USER_ID.ad
-              ? <AdIcon width={24} height={24} className={styles.ad} />
-              : <UpVote item={item} className={styles.upvote} />}
+        <ZapIcon item={item} pinnable={pinnable} />
         <div className={styles.hunk}>
           <div className={`${styles.main} flex-wrap`}>
             <Link
@@ -227,6 +226,21 @@ export function ItemSkeleton ({ rank, children, showUpvote = true }) {
       )}
     </>
   )
+}
+
+function ZapIcon ({ item, pinnable }) {
+  const { pendingSats, pendingDownSats } = useItemContext()
+
+  const meSats = item.meSats + pendingSats
+  const downSats = item.meDontLikeSats + pendingDownSats
+
+  return item.position && (pinnable || !item.subName)
+    ? <Pin width={24} height={24} className={styles.pin} />
+    : downSats > meSats
+      ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
+      : Number(item.user?.id) === USER_ID.ad
+        ? <AdIcon width={24} height={24} className={styles.ad} />
+        : <UpVote item={item} className={styles.upvote} />
 }
 
 function PollIndicator ({ item }) {

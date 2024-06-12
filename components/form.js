@@ -833,9 +833,11 @@ export function Form ({
     if (requireSession && !me) {
       throw new SessionRequiredError()
     }
+
     if (onSubmit) {
-      await onSubmit({ ...variables }, ...args).catch(console.error)
+      await onSubmit({ ...variables }, ...args)
     }
+
     if (!storageKeyPrefix) return
     clearLocalStorage(values)
   }, [me, onSubmit, clearLocalStorage, storageKeyPrefix])

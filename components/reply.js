@@ -96,13 +96,14 @@ export default forwardRef(function Reply ({
   })
 
   const onSubmit = useCallback(async (variables, { resetForm }) => {
-    const { data } = await upsertComment({
-      variables: { parentId, ...variables }
+    await upsertComment({
+      variables: { parentId, ...variables },
+      onCompleted: (data) => {
+        resetForm({ text: '' })
+        setReply(replyOpen || false)
+        toastUpsertSuccessMessages(toaster, data, 'upsertComment', false, variables.text)
+      }
     })
-    console.log('upsertComment', data)
-    toastUpsertSuccessMessages(toaster, data, 'upsertComment', false, variables.text)
-    resetForm({ text: '' })
-    setReply(replyOpen || false)
   }, [upsertComment, setReply, parentId])
 
   useEffect(() => {

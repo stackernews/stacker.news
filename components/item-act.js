@@ -71,17 +71,22 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
         hash,
         hmac
       },
-      optimisticResponse: {
-        act: {
-          result: {
-            id: item.id, sats: Number(amount), act: down ? 'DONT_LIKE_THIS' : 'TIP', path: item.path
+      optimisticResponse: me
+        ? {
+            act: {
+              result: {
+                id: item.id, sats: Number(amount), act: down ? 'DONT_LIKE_THIS' : 'TIP', path: item.path
+              }
+            }
           }
-        }
+        : undefined,
+      // don't close modal immediately because we want the QR modal to stack
+      onCompleted: () => {
+        onClose?.()
+        if (!me) setItemMeAnonSats({ id: item.id, amount })
       }
     })
-    if (!me) setItemMeAnonSats({ id: item.id, amount })
     addCustomTip(Number(amount))
-    onClose()
   }, [me, act, down, item.id, strike])
 
   return (

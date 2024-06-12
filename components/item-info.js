@@ -45,7 +45,7 @@ export default function ItemInfo ({
   }, [item])
 
   useEffect(() => {
-    if (item) setMeTotalSats((item.meSats || 0) + (item.meAnonSats || 0))
+    if (item) setMeTotalSats(item.meSats || item.meAnonSats || 0)
   }, [item?.meSats, item?.meAnonSats])
 
   // territory founders can pin any post in their territory
@@ -59,7 +59,7 @@ export default function ItemInfo ({
   const EditInfo = () => {
     let Component
     let onClick
-    if (item.invoiceActionState && item.invoiceActionState !== 'PAID') {
+    if (me && item.invoiceActionState && item.invoiceActionState !== 'PAID') {
       if (item.invoiceActionState === 'FAILED') {
         Component = () => <span className='text-warning'>payment failed</span>
       } else {

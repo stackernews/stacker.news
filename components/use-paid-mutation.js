@@ -1,18 +1,18 @@
 import { useApolloClient, useMutation } from '@apollo/client'
 import { useCallback, useState } from 'react'
 import { InvoiceCanceledError, InvoiceExpiredError, useQrPayment, useWebLnPayment } from './payment'
-import { useMe } from './me'
 
-// this is just like useMutation but it pays an invoice returned by the mutation
-// also takes an onPaid and onPayError callback
-// and returns a payError in the result
-export function usePaidMutation (mutation, { onPaid, onPayError, ...options } = {}) {
+// this is just like useMutation with a few changes:
+// 1. pays an invoice returned by the mutation
+// 2. takes an onPaid and onPayError callback
+// 3. for a pessimistic update, does not call onCompleted until the invoice is paid
+// So, if you want to know when to
+export function usePaidMutation (mutation, { onCompleted, ...options }) {
   options.optimisticResponse = addOptimisticResponseExtras(options.optimisticResponse)
   const [mutate, result] = useMutation(mutation, options)
   const waitForWebLnPayment = useWebLnPayment()
   const waitForQrPayment = useQrPayment()
   const client = useApolloClient()
-  const me = useMe()
   // innerResult is used to store/control the result of the mutation when innerMutate runs
   const [innerResult, setInnerResult] = useState(result)
 
@@ -32,8 +32,10 @@ export function usePaidMutation (mutation, { onPaid, onPayError, ...options } = 
     return await waitForQrPayment(invoice, webLnError)
   }, [waitForWebLnPayment, waitForQrPayment])
 
-  const innerMutate = useCallback(async innerOptions => {
+  const innerMutate = useCallback(async ({ onCompleted: innerOnCompleted, ...innerOptions }) => {
     innerOptions.optimisticResponse = addOptimisticResponseExtras(innerOptions.optimisticResponse)
+    const { onPaid, onPayError } = { ...options, ...innerOptions }
+    const ourOnCompleted = innerOnCompleted || onCompleted
     const { data } = await mutate(innerOptions)
 
     // get invoice without knowing the mutation name
@@ -46,14 +48,15 @@ export function usePaidMutation (mutation, { onPaid, onPayError, ...options } = 
     // if the mutation returns an invoice, pay it
     if (invoice) {
       // should we wait for the invoice to be paid?
-      const optimistic = me && (response?.paymentMethod === 'OPTIMISTIC' || innerOptions.optimisticResponse || options.optimisticResponse)
+      const optimistic = response?.paymentMethod === 'OPTIMISTIC'
 
       // pay the invoice in a promise
       const pay = async () => {
         await waitForPayment(invoice)
+        let otherData = { data }
         if (!optimistic) {
           // this is a pessimistic update
-          return await mutate({
+          otherData = await mutate({
             ...innerOptions,
             variables: {
               ...options.variables,
@@ -65,39 +68,47 @@ export function usePaidMutation (mutation, { onPaid, onPayError, ...options } = 
         }
         // onPaid resembles update in useMutation, but is called after the invoice is paid
         // useful for updating invoiceActionState to PAID
-        // TODO implement in relevant components
-        onPaid?.(client.cache, { data })
+        setInnerResult(otherData)
+        onPaid?.(client.cache, otherData)
+        return otherData
       }
 
       // if this is an optimistic update, don't wait to pay the invoice
       if (optimistic) {
-        pay().then(() => setInnerResult({ data })).catch(e => {
+        // onCompleted is called before the invoice is paid for optimistic updates
+        ourOnCompleted?.(data)
+        pay().catch(e => {
           console.error('usePaidMutation: failed to pay invoice', e)
           // onPayError is called after the invoice fails to pay
           // useful for updating invoiceActionState to FAILED
-          // TODO implement in relevant components
           onPayError?.(e, client.cache, { data })
         })
       } else {
         // otherwise, wait for to pay before completing the mutation
         try {
-          await pay()
-          setInnerResult({ data })
+          const { data } = await pay()
+          // onCompleted is called after the invoice is paid for pessimistic updates
+          ourOnCompleted?.(data)
         } catch (e) {
           console.error('usePaidMutation: failed to pay invoice', e)
           onPayError?.(e, client.cache, { data })
         }
       }
+    } else {
+      // fee credits paid for it
+      ourOnCompleted?.(data)
+      setInnerResult({ data })
+      onPaid?.(client.cache, { data })
     }
 
     return { data }
-  }, [mutate, options, onPaid, onPayError, waitForPayment, !!me])
+  }, [mutate, options, waitForPayment])
 
   return [innerMutate, innerResult]
 }
 
 // all paid actions need these fields and they're easy to forget
-function addOptimisticResponseExtras (optimisticResponse, me) {
+function addOptimisticResponseExtras (optimisticResponse) {
   if (!optimisticResponse) return optimisticResponse
   const key = Object.keys(optimisticResponse)[0]
   optimisticResponse[key] = { invoice: null, paymentMethod: 'OPTIMISTIC', ...optimisticResponse[key] }

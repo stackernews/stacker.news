@@ -166,7 +166,7 @@ export default {
 
       await serialize(
         models.$queryRaw`SELECT donate(${sats}::INTEGER, ${me?.id || USER_ID.anon}::INTEGER)`,
-        { models, lnd, me, hash, hmac, fee: sats }
+        { models, lnd, me, hash, hmac, fee: sats, verifyPayment: !!hash || !me }
       )
 
       return sats

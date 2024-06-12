@@ -8,6 +8,7 @@ import { useCallback, useMemo } from 'react'
 import getColor from '@/lib/rainbow'
 import { gql, useMutation } from '@apollo/client'
 import { useItemContext } from './item'
+import { useLightning } from './lightning'
 
 export function DownZap ({ item, ...props }) {
   const { pendingDownSats } = useItemContext()
@@ -29,10 +30,12 @@ export function DownZap ({ item, ...props }) {
 function DownZapper ({ item, As, children }) {
   const toaster = useToast()
   const showModal = useShowModal()
+  const strike = useLightning()
   const { setPendingDownSats } = useItemContext()
 
   const optimisticUpdate = useCallback((sats, { onClose } = {}) => {
     setPendingDownSats(pendingSats => pendingSats + sats)
+    strike()
     onClose?.()
     return () => {
       setPendingDownSats(pendingSats => pendingSats - sats)

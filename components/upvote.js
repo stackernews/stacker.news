@@ -12,6 +12,8 @@ import Popover from 'react-bootstrap/Popover'
 import { useShowModal } from './modal'
 import { numWithUnits } from '@/lib/format'
 import { Dropdown } from 'react-bootstrap'
+import { useLightning } from './lightning'
+import { useItemContext } from './item'
 
 const UpvotePopover = ({ target, show, handleClose }) => {
   const me = useMe()
@@ -96,8 +98,9 @@ export default function UpVote ({ item, className }) {
         setWalkthrough(upvotePopover: $upvotePopover, tipPopover: $tipPopover)
       }`
   )
-
-  const [controller, setController] = useState(null)
+  const strike = useLightning()
+  const [controller, setController] = useState()
+  const { pendingSats, setPendingSats } = useItemContext()
   const pending = controller?.started && !controller.done
 
   const setVoteShow = useCallback((yes) => {
@@ -134,7 +137,7 @@ export default function UpVote ({ item, className }) {
     [item?.mine, item?.meForward, item?.deletedAt])
 
   const [meSats, overlayText, color, nextColor] = useMemo(() => {
-    const meSats = (item?.meSats || item?.meAnonSats || 0)
+    const meSats = (item?.meSats || item?.meAnonSats || 0) + pendingSats
 
     // what should our next tip be?
     const sats = nextTip(meSats, { ...me?.privates })
@@ -142,7 +145,16 @@ export default function UpVote ({ item, className }) {
     return [
       meSats, me ? numWithUnits(sats, { abbreviate: false }) : 'zap it',
       getColor(meSats), getColor(meSats + sats)]
-  }, [item?.meSats, item?.meAnonSats, me?.privates?.tipDefault, me?.privates?.turboDefault])
+  }, [item?.meSats, item?.meAnonSats, pendingSats, me?.privates?.tipDefault, me?.privates?.turboDefault])
+
+  const optimisticUpdate = useCallback((sats, { onClose } = {}) => {
+    setPendingSats(pendingSats => pendingSats + sats)
+    strike()
+    onClose?.()
+    return () => {
+      setPendingSats(pendingSats => pendingSats - sats)
+    }
+  }, [])
 
   const handleModalClosed = () => {
     setHover(false)
@@ -160,13 +172,16 @@ export default function UpVote ({ item, className }) {
 
     if (pending) {
       controller.abort()
+      setController(null)
       return
     }
     const c = new ZapUndoController()
     setController(c)
 
     showModal(onClose =>
-      <ItemAct onClose={onClose} item={item} abortSignal={c.signal} />, { onClose: handleModalClosed })
+      <ItemAct
+        onClose={onClose} item={item} abortSignal={c.signal} optimisticUpdate={optimisticUpdate}
+      />, { onClose: handleModalClosed })
   }
 
   const handleShortPress = async () => {
@@ -186,18 +201,19 @@ export default function UpVote ({ item, className }) {
 
       if (pending) {
         controller.abort()
+        setController(null)
         return
       }
       const c = new ZapUndoController()
       setController(c)
 
-      await zap({ item, me, abortSignal: c.signal })
+      await zap({ item, me, abortSignal: c.signal, optimisticUpdate })
     } else {
-      showModal(onClose => <ItemAct onClose={onClose} item={item} />, { onClose: handleModalClosed })
+      showModal(onClose => <ItemAct onClose={onClose} item={item} optimisticUpdate={optimisticUpdate} />, { onClose: handleModalClosed })
     }
   }
 
-  const fillColor = hover ? nextColor : color
+  const fillColor = hover || pending ? nextColor : color
 
   return (
     <div ref={ref} className='upvoteParent'>
@@ -222,7 +238,7 @@ export default function UpVote ({ item, className }) {
                       ${meSats ? styles.voted : ''}
                       ${pending ? styles.pending : ''}`
                     }
-              style={meSats || hover
+              style={meSats || hover || pending
                 ? {
                     fill: fillColor,
                     filter: `drop-shadow(0 0 6px ${fillColor}90)`

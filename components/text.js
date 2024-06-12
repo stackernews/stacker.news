@@ -23,7 +23,6 @@ import { UNKNOWN_LINK_REL } from '@/lib/constants'
 import isEqual from 'lodash/isEqual'
 import UserPopover from './user-popover'
 import ItemPopover from './item-popover'
-import ref from '@/lib/remark-ref2link'
 
 export function SearchText ({ text }) {
   return (
@@ -295,7 +294,7 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
           },
           img: Img
         }}
-        remarkPlugins={[gfm, mention, sub, ref]}
+        remarkPlugins={[gfm, mention, sub]}
         rehypePlugins={[rehypeInlineCodeProperty]}
       >
         {children}

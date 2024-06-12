@@ -182,8 +182,8 @@ export function useZap () {
   const toaster = useToast()
   const strike = useLightning()
 
-  return useCallback(async ({ item, mem, abortSignal }) => {
-    const meSats = (item?.meSats || 0)
+  return useCallback(async ({ item, abortSignal, optimisticUpdate }) => {
+    const meSats = (item?.meSats || 0) + pendingSats
 
     // add current sats to next tip since idempotent zaps use desired total zap not difference
     const sats = nextTip(meSats, { ...me?.privates })

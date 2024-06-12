@@ -1007,10 +1007,9 @@ const ZapUndosField = () => {
                 zap undos
                 <Info>
                   <ul className='fw-bold'>
-                    <li>An undo button is shown after every zap that exceeds or is equal to the threshold</li>
-                    <li>The button is shown for {ZAP_UNDO_DELAY_MS / 1000} seconds</li>
-                    <li>The button is only shown for zaps from the custodial wallet</li>
-                    <li>Use a budget or manual approval with attached wallets</li>
+                    <li>After every zap that exceeds or is equal to the threshold, the bolt will pulse</li>
+                    <li>You can undo the zap if you click the bolt while it's pulsing</li>
+                    <li>The bolt will pulse for {ZAP_UNDO_DELAY_MS / 1000} seconds</li>
                   </ul>
                 </Info>
               </div>

@@ -248,13 +248,14 @@ export default function Comment ({
 
 function ZapIcon ({ item, pin }) {
   const me = useMe()
-  const { pendingDownSats } = useItemContext()
+  const { pendingSats, pendingDownSats } = useItemContext()
 
+  const meSats = item.meSats + pendingSats
   const downSats = item.meDontLikeSats + pendingDownSats
 
   return item.outlawed && !me?.privates?.wildWestMode
     ? <Skull className={styles.dontLike} width={24} height={24} />
-    : downSats > item.meSats
+    : downSats > meSats
       ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
       : pin ? <Pin width={22} height={22} className={styles.pin} /> : <UpVote item={item} className={styles.upvote} />
 }

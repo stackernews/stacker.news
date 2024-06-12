@@ -56,12 +56,23 @@ const TipPopover = ({ target, show, handleClose }) => (
 
 export function DropdownItemUpVote ({ item }) {
   const showModal = useShowModal()
+  const { setPendingSats } = useItemContext()
+  const strike = useLightning()
+
+  const optimisticUpdate = useCallback((sats, { onClose } = {}) => {
+    setPendingSats(pendingSats => pendingSats + sats)
+    strike()
+    onClose?.()
+    return () => {
+      setPendingSats(pendingSats => pendingSats - sats)
+    }
+  }, [])
 
   return (
     <Dropdown.Item
       onClick={async () => {
         showModal(onClose =>
-          <ItemAct onClose={onClose} item={item} />)
+          <ItemAct onClose={onClose} item={item} optimisticUpdate={optimisticUpdate} />)
       }}
     >
       <span className='text-success'>zap</span>

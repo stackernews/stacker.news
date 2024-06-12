@@ -229,13 +229,14 @@ export function ItemSkeleton ({ rank, children, showUpvote = true }) {
 }
 
 function ZapIcon ({ item, pinnable }) {
-  const { pendingDownSats } = useItemContext()
+  const { pendingSats, pendingDownSats } = useItemContext()
 
+  const meSats = item.meSats + pendingSats
   const downSats = item.meDontLikeSats + pendingDownSats
 
   return item.position && (pinnable || !item.subName)
     ? <Pin width={24} height={24} className={styles.pin} />
-    : downSats > item.meSats
+    : downSats > meSats
       ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
       : Number(item.user?.id) === USER_ID.ad
         ? <AdIcon width={24} height={24} className={styles.ad} />

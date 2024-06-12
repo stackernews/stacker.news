@@ -30,6 +30,7 @@ import { INVOICE_RETENTION_DAYS, ZAP_UNDO_DELAY_MS } from '@/lib/constants'
 import { OverlayTrigger, Tooltip } from 'react-bootstrap'
 import { useField } from 'formik'
 import styles from './settings.module.css'
+import { AuthBanner } from '@/components/banners'
 
 export const getServerSideProps = getGetServerSideProps({ query: SETTINGS, authRequired: true })
 
@@ -106,7 +107,7 @@ export default function Settings ({ ssrData }) {
   return (
     <Layout>
       <div className='pb-3 w-100 mt-2' style={{ maxWidth: '600px' }}>
-        {hasOnlyOneAuthMethod(settings?.authMethods) && <div className={styles.alert}>Please add a second auth method to avoid losing access to your account.</div>}
+        {hasOnlyOneAuthMethod(settings?.authMethods) && <AuthBanner />}
         <SettingsHeader />
         <Form
           initial={{

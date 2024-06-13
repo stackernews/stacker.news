@@ -287,6 +287,8 @@ function InvoicePaid ({ n }) {
 
 function Invoicification ({ n: { invoice } }) {
   let actionString = ''
+  let colorClass = 'text-info'
+  let zapInvoiceId = null
   switch (invoice.actionType) {
     case 'ITEM_CREATE':
       actionString = 'item creation '
@@ -296,15 +298,18 @@ function Invoicification ({ n: { invoice } }) {
       break
     case 'ZAP':
       actionString = 'zap on item '
+      zapInvoiceId = invoice.id
       break
     case 'DOWN_ZAP':
       actionString = 'downzap on item '
+      zapInvoiceId = invoice.id
       break
   }
 
   switch (invoice.actionState) {
     case 'FAILED':
       actionString += 'failed'
+      colorClass = 'text-warning'
       break
     case 'PAID':
       actionString += 'paid'
@@ -315,14 +320,14 @@ function Invoicification ({ n: { invoice } }) {
 
   return (
     <div className='px-2'>
-      <small className='fw-bold text-warning my-1'>{actionString}</small>
+      <small className={`fw-bold ${colorClass} my-1`}>{actionString}</small>
       <div>
         {invoice.item.title
-          ? <Item item={invoice.item} />
+          ? <Item item={invoice.item} zapInvoiceId={zapInvoiceId} />
           : (
             <div className='pb-2'>
               <RootProvider root={invoice.item.root}>
-                <Comment item={invoice.item} noReply includeParent clickToContext />
+                <Comment item={invoice.item} noReply includeParent clickToContext zapInvoiceId={zapInvoiceId} />
               </RootProvider>
             </div>
             )}

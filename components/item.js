@@ -45,7 +45,10 @@ export function SearchTitle ({ title }) {
   })
 }
 
-export default function Item ({ item, rank, belowTitle, right, full, children, siblingComments, onQuoteReply, pinnable }) {
+export default function Item ({
+  item, rank, belowTitle, right, full, children, siblingComments,
+  onQuoteReply, pinnable, zapInvoiceId
+}) {
   const titleRef = useRef()
   const router = useRouter()
 
@@ -99,6 +102,7 @@ export default function Item ({ item, rank, belowTitle, right, full, children, s
             full={full} item={item}
             onQuoteReply={onQuoteReply}
             pinnable={pinnable}
+            zapInvoiceId={zapInvoiceId}
             extraBadges={Number(item?.user?.id) === USER_ID.ad && <Badge className={styles.newComment} bg={null}>AD</Badge>}
           />
           {belowTitle}

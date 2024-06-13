@@ -38,7 +38,7 @@ export default function Invoice ({ id, query = INVOICE, modal, onPayment, info, 
   }, [invoice, onPayment, setExpired])
 
   if (error) {
-    return <div>{error.toString()}</div>
+    return <div>{error.message}</div>
   }
 
   if (!invoice) {
@@ -117,9 +117,8 @@ export default function Invoice ({ id, query = INVOICE, modal, onPayment, info, 
               />
             </div>}
           <Bolt11Info bolt11={bolt11} preimage={confirmedPreimage} />
-          <ActionInfo invoice={invoice} />
+          {invoice?.item && <ActionInfo invoice={invoice} />}
         </>}
-
     </>
   )
 }

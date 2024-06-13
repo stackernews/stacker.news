@@ -27,7 +27,8 @@ import { useQrPayment } from './payment'
 export default function ItemInfo ({
   item, full, commentsText = 'comments',
   commentTextSingular = 'comment', className, embellishUser, extraInfo, onEdit, editText,
-  onQuoteReply, extraBadges, nested, pinnable, showActionDropdown = true, showUser = true
+  onQuoteReply, extraBadges, nested, pinnable, showActionDropdown = true, showUser = true,
+  zapInvoiceId
 }) {
   const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
   const me = useMe()
@@ -212,6 +213,20 @@ export default function ItemInfo ({
               <>
                 <hr className='dropdown-divider' />
                 <OutlawDropdownItem item={item} />
+              </>}
+            {zapInvoiceId &&
+              <>
+                <hr className='dropdown-divider' />
+                <Link href={`/invoices/${zapInvoiceId}`} className='text-reset dropdown-item'>
+                  view zap invoice
+                </Link>
+              </>}
+            {item.mine && item.invoiceId &&
+              <>
+                <hr className='dropdown-divider' />
+                <Link href={`/invoices/${item.invoiceId}`} className='text-reset dropdown-item'>
+                  view invoice
+                </Link>
               </>}
             {me && !nested && !item.mine && sub && Number(me.id) !== Number(sub.userId) &&
               <>

@@ -107,7 +107,6 @@ export default gql`
     lastCommentAt: Date
     upvotes: Int!
     meSats: Int!
-    mePendingSats: Int!
     meDontLikeSats: Int!
     meBookmark: Boolean!
     meSubscription: Boolean!

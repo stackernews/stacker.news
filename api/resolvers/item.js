@@ -137,9 +137,9 @@ export async function itemQueryWithMeta ({ me, models, query, orderBy = '' }, ..
       LEFT JOIN "SubSubscription" ON "Sub"."name" = "SubSubscription"."subName" AND "SubSubscription"."userId" = ${me.id}
       LEFT JOIN LATERAL (
         SELECT "itemId",
-          sum("ItemAct".msats) FILTER (WHERE "invoiceActionState" <> 'FAILED' AND (act = 'FEE' OR act = 'TIP')) AS "meMsats",
-          sum("ItemAct".msats) FILTER (WHERE "invoiceActionState" = 'PENDING' AND (act = 'FEE' OR act = 'TIP')) AS "mePendingMsats",
-          sum("ItemAct".msats) FILTER (WHERE act = 'DONT_LIKE_THIS') AS "meDontLikeMsats"
+          sum("ItemAct".msats) FILTER (WHERE "invoiceActionState" IS DISTINCT FROM 'FAILED' AND (act = 'FEE' OR act = 'TIP')) AS "meMsats",
+          sum("ItemAct".msats) FILTER (WHERE "invoiceActionState" IS NOT DISTINCT FROM 'PENDING' AND (act = 'FEE' OR act = 'TIP')) AS "mePendingMsats",
+          sum("ItemAct".msats) FILTER (WHERE "invoiceActionState" IS DISTINCT FROM 'FAILED' AND act = 'DONT_LIKE_THIS') AS "meDontLikeMsats"
         FROM "ItemAct"
         WHERE "ItemAct"."userId" = ${me.id}
         AND "ItemAct"."itemId" = "Item".id
@@ -1041,33 +1041,9 @@ export default {
         where: {
           itemId: Number(item.id),
           userId: me.id,
-          OR: [
-            {
-              act: 'TIP'
-            },
-            {
-              act: 'FEE'
-            }
-          ]
-        }
-      })
-
-      return (msats && msatsToSats(msats)) || 0
-    },
-    mePendingSats: async (item, args, { me, models }) => {
-      if (!me) return 0
-      if (typeof item.mePendingMsats !== 'undefined') {
-        return msatsToSats(item.mePendingMsats)
-      }
-
-      const { _sum: { msats } } = await models.itemAct.aggregate({
-        _sum: {
-          msats: true
-        },
-        where: {
-          itemId: Number(item.id),
-          userId: me.id,
-          invoiceActionState: 'PENDING',
+          invoiceActionState: {
+            not: 'FAILED'
+          },
           OR: [
             {
               act: 'TIP'
@@ -1082,8 +1058,8 @@ export default {
       return (msats && msatsToSats(msats)) || 0
     },
     meDontLikeSats: async (item, args, { me, models }) => {
-      if (!me) return false
-      if (typeof item.meMsats !== 'undefined') {
+      if (!me) return 0
+      if (typeof item.meDontLikeMsats !== 'undefined') {
         return msatsToSats(item.meDontLikeMsats)
       }
 
@@ -1094,7 +1070,10 @@ export default {
         where: {
           itemId: Number(item.id),
           userId: me.id,
-          act: 'DONT_LIKE_THIS'
+          act: 'DONT_LIKE_THIS',
+          invoiceActionState: {
+            not: 'FAILED'
+          }
         }
       })
 

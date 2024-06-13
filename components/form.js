@@ -834,8 +834,13 @@ export function Form ({
       throw new SessionRequiredError()
     }
 
-    if (onSubmit) {
-      await onSubmit({ ...variables }, ...args)
+    try {
+      if (onSubmit) {
+        await onSubmit({ ...variables }, ...args)
+      }
+    } catch (err) {
+      toaster.danger(err.message || err.toString?.())
+      return
     }
 
     if (!storageKeyPrefix) return

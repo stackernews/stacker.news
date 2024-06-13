@@ -14,7 +14,7 @@ import Item from './item'
 import { CommentFlat } from './comment'
 import classNames from 'classnames'
 
-export default function Invoice ({ id, query = INVOICE, modal, onPayment, info, successVerb, webLn, webLnError, poll, ...props }) {
+export default function Invoice ({ id, query = INVOICE, modal, onPayment, info, successVerb, webLn = true, webLnError, poll, ...props }) {
   const [expired, setExpired] = useState(false)
   const { data, error } = useQuery(query, SSR
     ? {}
@@ -44,9 +44,6 @@ export default function Invoice ({ id, query = INVOICE, modal, onPayment, info, 
   if (!invoice) {
     return <QrSkeleton {...props} />
   }
-
-  // if webLn was not passed, use true by default
-  if (webLn === undefined) webLn = true
 
   let variant = 'default'
   let status = 'waiting for you'

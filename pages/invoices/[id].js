@@ -12,7 +12,7 @@ export default function FullInvoice () {
 
   return (
     <CenterLayout>
-      <Invoice id={router.query.id} query={INVOICE_FULL} poll description status='loading' bolt11Info />
+      <Invoice id={router.query.id} query={INVOICE_FULL} poll description status='loading' bolt11Info webLn={false} />
     </CenterLayout>
   )
 }

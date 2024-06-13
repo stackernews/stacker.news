@@ -844,6 +844,10 @@ export default {
         throw new GraphQLError('item is deleted', { extensions: { code: 'BAD_INPUT' } })
       }
 
+      if (item.invoiceActionState && item.invoiceActionState !== 'PAID') {
+        throw new GraphQLError('cannot act on unpaid item', { extensions: { code: 'BAD_INPUT' } })
+      }
+
       // disallow self tips except anons
       if (me) {
         if (Number(item.userId) === Number(me.id)) {
@@ -1236,6 +1240,13 @@ export const createItem = async (parent, { forward, ...item }, { me, models, lnd
   if (item.url && !isJob(item)) {
     item.url = ensureProtocol(item.url)
     item.url = removeTracking(item.url)
+  }
+
+  if (item.parentId) {
+    const parent = await models.item.findUnique({ where: { id: parseInt(item.parentId) } })
+    if (parent.invoiceActionState && parent.invoiceActionState !== 'PAID') {
+      throw new GraphQLError('cannot comment on unpaid item', { extensions: { code: 'BAD_INPUT' } })
+    }
   }
 
   // mark item as created with API key

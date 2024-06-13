@@ -95,6 +95,10 @@ const useInvoice = () => {
   }, [isPaid])
 
   const cancel = useCallback(async ({ hash, hmac }) => {
+    if (!hash || !hmac) {
+      throw new Error('missing hash or hmac')
+    }
+
     console.log('canceling invoice:', hash)
     const inv = await cancelInvoice({ variables: { hash, hmac } })
     return inv
@@ -137,17 +141,17 @@ export const useQrPayment = () => {
   const invoice = useInvoice()
   const showModal = useShowModal()
 
-  const waitForQrPayment = useCallback(async (inv, webLnError) => {
+  const waitForQrPayment = useCallback(async (inv, webLnError, cancelOnClose = true) => {
     return await new Promise((resolve, reject) => {
       let paid
       const cancelAndReject = async (onClose) => {
-        if (paid) return
+        if (paid || !cancelOnClose) return
         await invoice.cancel(inv)
         reject(new InvoiceCanceledError(inv.hash))
       }
       showModal(onClose =>
         <Invoice
-          invoice={inv}
+          id={inv.id}
           modal
           successVerb='received'
           webLn={false}

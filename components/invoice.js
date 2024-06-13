@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { numWithUnits } from '@/lib/format'
 import AccordianItem from './accordian-item'
-import Qr from './qr'
+import Qr, { QrSkeleton } from './qr'
 import { CompactLongCountdown } from './countdown'
 import PayerData from './payer-data'
 import Bolt11Info from './bolt11-info'
@@ -14,34 +14,35 @@ import Item from './item'
 import { CommentFlat } from './comment'
 import classNames from 'classnames'
 
-export default function Invoice ({ invoice, modal, onPayment, info, successVerb, webLn, webLnError, poll }) {
-  const [expired, setExpired] = useState(new Date(invoice.expiredAt) <= new Date())
-
-  const { data, error } = useQuery(INVOICE, SSR
+export default function Invoice ({ id, query = INVOICE, modal, onPayment, info, successVerb, webLn, webLnError, poll, ...props }) {
+  const [expired, setExpired] = useState(false)
+  const { data, error } = useQuery(query, SSR
     ? {}
     : {
         pollInterval: FAST_POLL_INTERVAL,
-        variables: { id: invoice.id },
+        variables: { id },
         nextFetchPolicy: 'cache-and-network',
         skip: !poll
       })
 
+  const invoice = data?.invoice
+
   useEffect(() => {
-    if (!data?.invoice) {
+    if (!invoice) {
       return
     }
-    const invoice = data.invoice
     if (invoice.confirmedAt || (invoice.isHeld && invoice.satsReceived)) {
       onPayment?.(invoice)
     }
-  }, [data?.invoice, onPayment])
-
-  if (data) {
-    invoice = data.invoice
-  }
+    setExpired(new Date(invoice.expiredAt) <= new Date())
+  }, [invoice, onPayment, setExpired])
 
   if (error) {
     return <div>{error.toString()}</div>
+  }
+
+  if (!invoice) {
+    return <QrSkeleton {...props} />
   }
 
   // if webLn was not passed, use true by default
@@ -62,6 +63,15 @@ export default function Invoice ({ invoice, modal, onPayment, info, successVerb,
     variant = 'failed'
     status = 'expired'
     webLn = false
+  } else if (invoice.expiresAt) {
+    variant = 'pending'
+    status = (
+      <CompactLongCountdown
+        date={invoice.expiresAt} onComplete={() => {
+          setExpired(true)
+        }}
+      />
+    )
   }
 
   const { nostr, comment, lud18Data, bolt11, confirmedPreimage } = invoice
@@ -78,21 +88,6 @@ export default function Invoice ({ invoice, modal, onPayment, info, successVerb,
         description={numWithUnits(invoice.satsRequested, { abbreviate: false })}
         statusVariant={variant} status={status}
       />
-      {invoice.confirmedAt
-        ? (
-          <div className='text-muted text-center invisible'>
-            <CompactLongCountdown date={Date.now()} />
-          </div>
-          )
-        : (
-          <div className='text-muted text-center'>
-            <CompactLongCountdown
-              date={invoice.expiresAt} onComplete={() => {
-                setExpired(true)
-              }}
-            />
-          </div>
-          )}
       {!modal &&
         <>
           {info && <div className='text-muted fst-italic text-center'>{info}</div>}
@@ -124,8 +119,8 @@ export default function Invoice ({ invoice, modal, onPayment, info, successVerb,
                 body={<span className='text-muted ms-3'>{comment}</span>}
               />
             </div>}
-          <ActionInfo invoice={invoice} />
           <Bolt11Info bolt11={bolt11} preimage={confirmedPreimage} />
+          <ActionInfo invoice={invoice} />
         </>}
 
     </>

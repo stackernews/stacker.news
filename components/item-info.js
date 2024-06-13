@@ -22,6 +22,7 @@ import { DropdownItemUpVote } from './upvote'
 import { useRoot } from './root'
 import { MuteSubDropdownItem, PinSubDropdownItem } from './territory-header'
 import UserPopover from './user-popover'
+import { useQrPayment } from './payment'
 
 export default function ItemInfo ({
   item, full, commentsText = 'comments',
@@ -57,6 +58,7 @@ export default function ItemInfo ({
   const canPin = (isPost && mySub) || (myPost && rootReply)
 
   const EditInfo = () => {
+    const waitForQrPayment = useQrPayment()
     let Component
     let onClick
     if (me && item.invoiceActionState && item.invoiceActionState !== 'PAID') {
@@ -65,7 +67,9 @@ export default function ItemInfo ({
       } else {
         Component = () => <span className='text-reset'>pending</span>
       }
-      onClick = () => { router.push(`/invoices/${item.invoiceId}`) }
+      onClick = () => {
+        waitForQrPayment({ id: item.invoiceId }, null, false).catch(console.error)
+      }
     } else if (canEdit && !item.deletedAt) {
       Component = () => (
         <>

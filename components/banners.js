@@ -138,3 +138,11 @@ export function WalletSecurityBanner () {
     </Alert>
   )
 }
+
+export function AuthBanner () {
+  return (
+    <Alert className={`${styles.banner} mt-0`} key='info' variant='danger'>
+      Please add a second auth method to avoid losing access to your account.
+    </Alert>
+  )
+}

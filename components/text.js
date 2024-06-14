@@ -2,9 +2,6 @@ import styles from './text.module.css'
 import ReactMarkdown from 'react-markdown'
 import YouTube from 'react-youtube'
 import gfm from 'remark-gfm'
-import rehype from 'remark-rehype'
-import rehypeRaw from 'rehype-raw'
-import rehypeSanitize, { defaultSchema } from 'rehype-sanitize'
 import { LightAsync as SyntaxHighlighter } from 'react-syntax-highlighter'
 import atomDark from 'react-syntax-highlighter/dist/cjs/styles/prism/atom-dark'
 import mention from '@/lib/remark-mention'
@@ -152,16 +149,6 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
     return <ZoomableImage srcSet={srcSet} tab={tab} src={src} rel={rel ?? UNKNOWN_LINK_REL} {...props} topLevel />
   }, [imgproxyUrls, topLevel, tab])
 
-  const rehypeSanitizeSchema = {
-    ...defaultSchema,
-    tagNames: [...defaultSchema.tagNames, 'sub', 'sup'],
-    attributes: {
-      ...defaultSchema.attributes,
-      sub: [],
-      sup: []
-    }
-  }
-
   return (
     <div className={`${styles.text} ${show ? styles.textUncontained : overflowing ? styles.textContained : ''}`} ref={containerRef}>
       <ReactMarkdown
@@ -307,8 +294,8 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
           },
           img: Img
         }}
-        remarkPlugins={[gfm, mention, sub, rehype]}
-        rehypePlugins={[rehypeRaw, [rehypeSanitize, rehypeSanitizeSchema], rehypeInlineCodeProperty]}
+        remarkPlugins={[gfm, mention, sub]}
+        rehypePlugins={[rehypeInlineCodeProperty]}
       >
         {children}
       </ReactMarkdown>

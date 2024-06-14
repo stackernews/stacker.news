@@ -83,8 +83,6 @@
     "react-twitter-embed": "^4.0.4",
     "react-youtube": "^10.1.0",
     "recharts": "^2.9.0",
-    "rehype-raw": "^7.0.0",
-    "rehype-sanitize": "^6.0.0",
     "remark-gfm": "^4.0.0",
     "remove-markdown": "^0.5.0",
     "sass": "^1.69.3",

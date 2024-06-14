@@ -720,7 +720,7 @@ export default {
       } else if (authType === 'nostr') {
         user = await models.user.update({ where: { id: me.id }, data: { hideNostr: true, nostrAuthPubkey: null } })
       } else if (authType === 'email') {
-        user = await models.user.update({ where: { id: me.id }, data: { email: null, emailVerified: null } })
+        user = await models.user.update({ where: { id: me.id }, data: { email: null, emailVerified: null, emailHash: null } })
       } else {
         throw new GraphQLError('no such account', { extensions: { code: 'BAD_INPUT' } })
       }

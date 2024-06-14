@@ -10,6 +10,7 @@ import { POLL_COST } from '@/lib/constants'
 import { InvoiceCanceledError, usePayment } from './payment'
 import { useToast } from './toast'
 import { Types as ClientNotification, useClientNotifications } from './client-notifications'
+import { useItemContext } from './item'
 
 export default function Poll ({ item }) {
   const me = useMe()
@@ -20,6 +21,7 @@ export default function Poll ({ item }) {
   const [pollVote] = useMutation(POLL_VOTE_MUTATION)
   const toaster = useToast()
   const { notify, unnotify } = useClientNotifications()
+  const { pendingVote, setPendingVote } = useItemContext()
 
   const update = (cache, { data: { pollVote } }) => {
     cache.modify({
@@ -56,6 +58,8 @@ export default function Poll ({ item }) {
               const optimisticResponse = { pollVote: v.id }
               let cancel, nid
               try {
+                setPendingVote(v.id)
+
                 if (me) {
                   nid = notify(ClientNotification.PollVote.PENDING, notifyProps)
                 }
@@ -78,6 +82,7 @@ export default function Poll ({ item }) {
 
                 cancel?.()
               } finally {
+                setPendingVote(undefined)
                 if (nid) unnotify(nid)
               }
             }
@@ -92,7 +97,8 @@ export default function Poll ({ item }) {
   const hasExpiration = !!item.pollExpiresAt
   const timeRemaining = timeLeft(new Date(item.pollExpiresAt))
   const mine = item.user.id === me?.id
-  const showPollButton = (!hasExpiration || timeRemaining) && !item.poll.meVoted && !mine
+  const showPollButton = (!hasExpiration || timeRemaining) && !item.poll.meVoted && !mine && !pendingVote
+  const pollCount = item.poll.count + (pendingVote ? 1 : 0)
   return (
     <div className={styles.pollBox}>
       {item.poll.options.map(v =>
@@ -100,10 +106,12 @@ export default function Poll ({ item }) {
           ? <PollButton key={v.id} v={v} />
           : <PollResult
               key={v.id} v={v}
-              progress={item.poll.count ? fixedDecimal(v.count * 100 / item.poll.count, 1) : 0}
+              progress={pollCount
+                ? fixedDecimal((v.count + (pendingVote === v.id ? 1 : 0)) * 100 / pollCount, 1)
+                : 0}
             />)}
       <div className='text-muted mt-1'>
-        {numWithUnits(item.poll.count, { unitSingular: 'vote', unitPlural: 'votes' })}
+        {numWithUnits(pollCount, { unitSingular: 'vote', unitPlural: 'votes' })}
         {hasExpiration && ` \\ ${timeRemaining ? `${timeRemaining} left` : 'poll ended'}`}
       </div>
     </div>

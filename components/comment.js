@@ -25,6 +25,7 @@ import Skull from '@/svgs/death-skull.svg'
 import { commentSubTreeRootId } from '@/lib/item'
 import Pin from '@/svgs/pushpin-fill.svg'
 import LinkToContext from './link-to-context'
+import { ItemContextProvider, useItemContext } from './item'
 
 function Parent ({ item, rootText }) {
   const root = useRoot()
@@ -136,115 +137,127 @@ export default function Comment ({
   const bountyPaid = root.bountyPaidTo?.includes(Number(item.id))
 
   return (
-    <div
-      ref={ref} className={includeParent ? '' : `${styles.comment} ${collapse === 'yep' ? styles.collapsed : ''}`}
-      onMouseEnter={() => ref.current.classList.add('outline-new-comment-unset')}
-      onTouchStart={() => ref.current.classList.add('outline-new-comment-unset')}
-    >
-      <div className={`${itemStyles.item} ${styles.item}`}>
-        {item.outlawed && !me?.privates?.wildWestMode
-          ? <Skull className={styles.dontLike} width={24} height={24} />
-          : item.meDontLikeSats > item.meSats
-            ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
-            : pin ? <Pin width={22} height={22} className={styles.pin} /> : <UpVote item={item} className={styles.upvote} />}
-        <div className={`${itemStyles.hunk} ${styles.hunk}`}>
-          <div className='d-flex align-items-center'>
-            {item.user?.meMute && !includeParent && collapse === 'yep'
-              ? (
-                <span
-                  className={`${itemStyles.other} ${styles.other} pointer`} onClick={() => {
-                    setCollapse('nope')
-                    window.localStorage.setItem(`commentCollapse:${item.id}`, 'nope')
-                  }}
-                >reply from someone you muted
-                </span>)
-              : <ItemInfo
-                  item={item}
-                  commentsText='replies'
-                  commentTextSingular='reply'
-                  className={`${itemStyles.other} ${styles.other}`}
-                  embellishUser={op && <><span> </span><Badge bg={op === 'fwd' ? 'secondary' : 'boost'} className={`${styles.op} bg-opacity-75`}>{op}</Badge></>}
-                  onQuoteReply={quoteReply}
-                  nested={!includeParent}
-                  extraInfo={
-                    <>
-                      {includeParent && <Parent item={item} rootText={rootText} />}
-                      {bountyPaid &&
-                        <ActionTooltip notForm overlayText={`${numWithUnits(root.bounty)} paid`}>
-                          <BountyIcon className={`${styles.bountyIcon} ${'fill-success vertical-align-middle'}`} height={16} width={16} />
-                        </ActionTooltip>}
-                    </>
+    <ItemContextProvider>
+      <div
+        ref={ref} className={includeParent ? '' : `${styles.comment} ${collapse === 'yep' ? styles.collapsed : ''}`}
+        onMouseEnter={() => ref.current.classList.add('outline-new-comment-unset')}
+        onTouchStart={() => ref.current.classList.add('outline-new-comment-unset')}
+      >
+        <div className={`${itemStyles.item} ${styles.item}`}>
+          <ZapIcon item={item} pin={pin} me={me} />
+          <div className={`${itemStyles.hunk} ${styles.hunk}`}>
+            <div className='d-flex align-items-center'>
+              {item.user?.meMute && !includeParent && collapse === 'yep'
+                ? (
+                  <span
+                    className={`${itemStyles.other} ${styles.other} pointer`} onClick={() => {
+                      setCollapse('nope')
+                      window.localStorage.setItem(`commentCollapse:${item.id}`, 'nope')
+                    }}
+                  >reply from someone you muted
+                  </span>)
+                : <ItemInfo
+                    item={item}
+                    commentsText='replies'
+                    commentTextSingular='reply'
+                    className={`${itemStyles.other} ${styles.other}`}
+                    embellishUser={op && <><span> </span><Badge bg={op === 'fwd' ? 'secondary' : 'boost'} className={`${styles.op} bg-opacity-75`}>{op}</Badge></>}
+                    onQuoteReply={quoteReply}
+                    nested={!includeParent}
+                    extraInfo={
+                      <>
+                        {includeParent && <Parent item={item} rootText={rootText} />}
+                        {bountyPaid &&
+                          <ActionTooltip notForm overlayText={`${numWithUnits(root.bounty)} paid`}>
+                            <BountyIcon className={`${styles.bountyIcon} ${'fill-success vertical-align-middle'}`} height={16} width={16} />
+                          </ActionTooltip>}
+                      </>
                   }
-                  onEdit={e => { setEdit(!edit) }}
-                  editText={edit ? 'cancel' : 'edit'}
-                />}
+                    onEdit={e => { setEdit(!edit) }}
+                    editText={edit ? 'cancel' : 'edit'}
+                  />}
 
-            {!includeParent && (collapse === 'yep'
-              ? <Eye
-                  className={styles.collapser} height={10} width={10} onClick={() => {
-                    setCollapse('nope')
-                    window.localStorage.setItem(`commentCollapse:${item.id}`, 'nope')
+              {!includeParent && (collapse === 'yep'
+                ? <Eye
+                    className={styles.collapser} height={10} width={10} onClick={() => {
+                      setCollapse('nope')
+                      window.localStorage.setItem(`commentCollapse:${item.id}`, 'nope')
+                    }}
+                  />
+                : <EyeClose
+                    className={styles.collapser} height={10} width={10} onClick={() => {
+                      setCollapse('yep')
+                      window.localStorage.setItem(`commentCollapse:${item.id}`, 'yep')
+                    }}
+                  />)}
+              {topLevel && (
+                <span className='d-flex ms-auto align-items-center'>
+                  <Share title={item?.title} path={`/items/${item?.id}`} />
+                </span>
+              )}
+            </div>
+            {edit
+              ? (
+                <CommentEdit
+                  comment={item}
+                  onSuccess={() => {
+                    setEdit(!edit)
                   }}
                 />
-              : <EyeClose
-                  className={styles.collapser} height={10} width={10} onClick={() => {
-                    setCollapse('yep')
-                    window.localStorage.setItem(`commentCollapse:${item.id}`, 'yep')
-                  }}
-                />)}
-            {topLevel && (
-              <span className='d-flex ms-auto align-items-center'>
-                <Share title={item?.title} path={`/items/${item?.id}`} />
-              </span>
-            )}
+                )
+              : (
+                <div className={styles.text} ref={textRef}>
+                  {item.searchText
+                    ? <SearchText text={item.searchText} />
+                    : (
+                      <Text itemId={item.id} topLevel={topLevel} rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls}>
+                        {item.outlawed && !me?.privates?.wildWestMode
+                          ? '*stackers have outlawed this. turn on wild west mode in your [settings](/settings) to see outlawed content.*'
+                          : truncate ? truncateString(item.text) : item.text}
+                      </Text>)}
+                </div>
+                )}
           </div>
-          {edit
-            ? (
-              <CommentEdit
-                comment={item}
-                onSuccess={() => {
-                  setEdit(!edit)
-                }}
-              />
-              )
-            : (
-              <div className={styles.text} ref={textRef}>
-                {item.searchText
-                  ? <SearchText text={item.searchText} />
-                  : (
-                    <Text itemId={item.id} topLevel={topLevel} rel={item.rel ?? UNKNOWN_LINK_REL} outlawed={item.outlawed} imgproxyUrls={item.imgproxyUrls}>
-                      {item.outlawed && !me?.privates?.wildWestMode
-                        ? '*stackers have outlawed this. turn on wild west mode in your [settings](/settings) to see outlawed content.*'
-                        : truncate ? truncateString(item.text) : item.text}
-                    </Text>)}
-              </div>
-              )}
         </div>
-      </div>
-      {collapse !== 'yep' && (
-        bottomedOut
-          ? <div className={styles.children}><ReplyOnAnotherPage item={item} /></div>
-          : (
-            <div className={styles.children}>
-              {item.outlawed && !me?.privates?.wildWestMode
-                ? <div className='py-2' />
-                : !noReply &&
-                  <Reply depth={depth + 1} item={item} replyOpen={replyOpen} onCancelQuote={cancelQuote} onQuoteReply={quoteReply} quote={quote}>
-                    {root.bounty && !bountyPaid && <PayBounty item={item} />}
-                  </Reply>}
-              {children}
-              <div className={styles.comments}>
-                {item.comments && !noComments
-                  ? item.comments.map((item) => (
-                    <Comment depth={depth + 1} key={item.id} item={item} />
-                  ))
-                  : null}
+        {collapse !== 'yep' && (
+          bottomedOut
+            ? <div className={styles.children}><ReplyOnAnotherPage item={item} /></div>
+            : (
+              <div className={styles.children}>
+                {item.outlawed && !me?.privates?.wildWestMode
+                  ? <div className='py-2' />
+                  : !noReply &&
+                    <Reply depth={depth + 1} item={item} replyOpen={replyOpen} onCancelQuote={cancelQuote} onQuoteReply={quoteReply} quote={quote}>
+                      {root.bounty && !bountyPaid && <PayBounty item={item} />}
+                    </Reply>}
+                {children}
+                <div className={styles.comments}>
+                  {item.comments && !noComments
+                    ? item.comments.map((item) => (
+                      <Comment depth={depth + 1} key={item.id} item={item} />
+                    ))
+                    : null}
+                </div>
               </div>
-            </div>
-            )
-      )}
-    </div>
+              )
+        )}
+      </div>
+    </ItemContextProvider>
   )
+}
+
+function ZapIcon ({ item, pin }) {
+  const me = useMe()
+  const { pendingSats, pendingDownSats } = useItemContext()
+
+  const meSats = item.meSats + pendingSats
+  const downSats = item.meDontLikeSats + pendingDownSats
+
+  return item.outlawed && !me?.privates?.wildWestMode
+    ? <Skull className={styles.dontLike} width={24} height={24} />
+    : downSats > meSats
+      ? <DownZap width={24} height={24} className={styles.dontLike} item={item} />
+      : pin ? <Pin width={22} height={22} className={styles.pin} /> : <UpVote item={item} className={styles.upvote} />
 }
 
 export function CommentSkeleton ({ skeletonChildren }) {

@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { datePivot, timeSince } from '@/lib/time'
 import { USER_ID, JIT_INVOICE_TIMEOUT_MS } from '@/lib/constants'
 import { HAS_NOTIFICATIONS } from '@/fragments/notifications'
-import Item from './item'
+import Item, { ItemSkeleton } from './item'
 import { RootProvider } from './root'
 import Comment from './comment'
 
@@ -103,7 +103,7 @@ function ClientNotification ({ n, message }) {
         <small className='text-muted ms-1 fw-normal' suppressHydrationWarning>{timeSince(new Date(n.sortTime))}</small>
       </small>
       {!n.item
-        ? null
+        ? <ItemSkeleton />
         : n.item.title
           ? <Item item={n.item} />
           : (

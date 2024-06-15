@@ -17,52 +17,42 @@ const referrurl = (ipath, me) => {
   return `${process.env.NEXT_PUBLIC_URL}${path}`
 }
 
-export default function Share ({ path, title, className = '' }) {
+async function share (title, url, toaster) {
+  // only use navigator.share on touch devices
+  try {
+    if (navigator?.share &&
+      (navigator?.maxTouchPoints > 0 || navigator?.msMaxTouchPoints > 0)) {
+      await navigator.share({ title, text: '', url })
+      toaster.success('link shared')
+    } else {
+      await copy(url)
+      toaster.success('link copied')
+    }
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') {
+      return
+    }
+
+    toaster.danger('failed to copy link')
+  }
+}
+
+export default function Share ({ path, title = '', className = '' }) {
   const me = useMe()
   const toaster = useToast()
   const url = referrurl(path, me)
 
-  return !SSR && navigator?.share
-    ? (
-      <div className='ms-auto pointer d-flex align-items-center'>
-        <ShareIcon
-          width={20} height={20}
-          className={`mx-2 fill-grey theme ${className}`}
-          onClick={async () => {
-            try {
-              await navigator.share({
-                title: title || '',
-                text: '',
-                url
-              })
-              toaster.success('link shared')
-            } catch (err) {
-              console.error(err)
-            }
-          }}
-        />
-      </div>)
-    : (
-      <Dropdown align='end' className='ms-auto pointer  d-flex align-items-center' as='span'>
-        <Dropdown.Toggle variant='success' id='dropdown-basic' as='a'>
-          <ShareIcon width={20} height={20} className={`mx-2 fill-grey theme ${className}`} />
-        </Dropdown.Toggle>
-        <Dropdown.Menu>
-          <Dropdown.Item
-            onClick={async () => {
-              try {
-                await copy(url)
-                toaster.success('link copied')
-              } catch (err) {
-                console.error(err)
-                toaster.danger('failed to copy link')
-              }
-            }}
-          >
-            copy link
-          </Dropdown.Item>
-        </Dropdown.Menu>
-      </Dropdown>)
+  return (
+    <div className='ms-auto pointer d-flex align-items-center'>
+      <ShareIcon
+        width={20} height={20}
+        className={`mx-2 fill-grey theme ${className}`}
+        onClick={async () => {
+          await share(title, url, toaster)
+        }}
+      />
+    </div>
+  )
 }
 
 export function CopyLinkDropdownItem ({ item }) {
@@ -81,21 +71,7 @@ export function CopyLinkDropdownItem ({ item }) {
   return (
     <Dropdown.Item
       onClick={async () => {
-        try {
-          if (navigator.share) {
-            await navigator.share({
-              title: item.title || '',
-              text: '',
-              url
-            })
-          } else {
-            await copy(url)
-          }
-          toaster.success('link copied')
-        } catch (err) {
-          console.error(err)
-          toaster.danger('failed to copy link')
-        }
+        await share(item.title || '', url, toaster)
       }}
     >
       copy link

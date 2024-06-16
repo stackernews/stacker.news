@@ -37,6 +37,7 @@ export const COMMENT_FIELDS = gql`
     apiKey
     invoiceActionState
     invoiceId
+    invoicePaidAt
   }
 `
 

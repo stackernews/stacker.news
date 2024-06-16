@@ -1175,6 +1175,14 @@ export const updateItem = async (parent, { sub: subName, forward, ...item }, { m
   // update iff this item belongs to me
   const old = await models.item.findUnique({ where: { id: Number(item.id) }, include: { sub: true } })
 
+  if (old.deletedAt) {
+    throw new GraphQLError('item is deleted', { extensions: { code: 'BAD_INPUT' } })
+  }
+
+  if (old.invoiceActionState && old.invoiceActionState !== 'PAID') {
+    throw new GraphQLError('cannot edit unpaid item', { extensions: { code: 'BAD_INPUT' } })
+  }
+
   // author can always edit their own item
   const mid = Number(me?.id)
   const isMine = Number(old.userId) === mid
@@ -1206,7 +1214,7 @@ export const updateItem = async (parent, { sub: subName, forward, ...item }, { m
 
   // prevent update if it's not explicitly allowed, not their bio, not their job and older than 10 minutes
   const myBio = user.bioId === old.id
-  const timer = Date.now() < new Date(old.createdAt).getTime() + 10 * 60_000
+  const timer = Date.now() < new Date(old.invoicePaidAt ?? old.createdAt).getTime() + 10 * 60_000
 
   if (!allowEdit && !myBio && !timer) {
     throw new GraphQLError('item can no longer be editted', { extensions: { code: 'BAD_INPUT' } })

@@ -145,9 +145,11 @@ export const useQrPayment = () => {
     return await new Promise((resolve, reject) => {
       let paid
       const cancelAndReject = async (onClose) => {
-        if (paid || !cancelOnClose) return
-        await invoice.cancel(inv)
-        reject(new InvoiceCanceledError(inv.hash))
+        if (!paid && cancelOnClose) {
+          await invoice.cancel(inv).catch(console.error)
+          reject(new InvoiceCanceledError(inv?.hash))
+        }
+        resolve()
       }
       showModal(onClose =>
         <Invoice

@@ -29,6 +29,12 @@ export async function perform ({ invoiceId, id }, { me, cost, tx }) {
   return { id }
 }
 
+export async function retry ({ invoiceId, newInvoiceId }, { tx }) {
+  await tx.itemAct.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
+  await tx.pollBlindVote.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
+  await tx.pollVote.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
+}
+
 export async function onPaid ({ invoice }, { tx }) {
   if (!invoice) return
 

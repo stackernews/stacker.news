@@ -142,6 +142,7 @@ export default gql`
     invoiceActionState: InvoiceActionState
     invoiceId: ID
     invoice: Invoice
+    invoicePaidAt: Date
   }
 
   input ItemForwardInput {

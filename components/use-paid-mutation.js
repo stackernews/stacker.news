@@ -37,7 +37,7 @@ export function usePaidMutation (mutation, { onCompleted, ...options }) {
     return await waitForQrPayment(invoice, webLnError)
   }, [waitForWebLnPayment, waitForQrPayment])
 
-  const innerMutate = useCallback(async ({ onCompleted: innerOnCompleted, ...innerOptions }) => {
+  const innerMutate = useCallback(async ({ onCompleted: innerOnCompleted, ...innerOptions } = {}) => {
     innerOptions.optimisticResponse = addOptimisticResponseExtras(innerOptions.optimisticResponse)
     let { data, ...rest } = await mutate(innerOptions)
 
@@ -98,7 +98,7 @@ export function usePaidMutation (mutation, { onCompleted, ...options }) {
 
     setInnerResult({ data, ...rest })
     return { data, ...rest }
-  }, [mutate, options, waitForPayment])
+  }, [mutate, options, waitForPayment, onCompleted, client.cache])
 
   return [innerMutate, innerResult]
 }

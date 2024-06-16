@@ -62,6 +62,7 @@ export const ITEM_FIELDS = gql`
     apiKey
     invoiceActionState
     invoiceId
+    invoicePaidAt
   }`
 
 export const ITEM_FULL_FIELDS = gql`

@@ -2,31 +2,40 @@ import gql from 'graphql-tag'
 import { COMMENTS } from './comments'
 import { SUB_FULL_FIELDS } from './subs'
 
-export const PAID_ACTION_INVOICE_FIELDS = gql`
-  fragment PaidActionInvoiceFields on Invoice {
-    bolt11
-    hash
-    hmac
-    id
-    expiresAt
+export const PAID_ACTION = gql`
+  fragment PaidActionFields on PaidAction {
+    invoice {
+      bolt11
+      hash
+      hmac
+      id
+      expiresAt
+    }
+    paymentMethod
+  }`
+
+export const RETRY_PAID_ACTION = gql`
+  ${PAID_ACTION}
+  mutation retryPaidAction($invoiceId: Int!) {
+    retryPaidAction(invoiceId: $invoiceId) {
+      __typename
+      ...PaidActionFields
+    }
   }`
 
 export const DONATE = gql`
-  ${PAID_ACTION_INVOICE_FIELDS}
+  ${PAID_ACTION}
   mutation donateToRewards($sats: Int!, $hash: String, $hmac: String) {
     donateToRewards(sats: $sats, hash: $hash, hmac: $hmac) {
       result {
         sats
       }
-      invoice {
-        ...PaidActionInvoiceFields
-      }
-      paymentMethod
+      ...PaidActionFields
     }
   }`
 
 export const ACT_MUTATION = gql`
-  ${PAID_ACTION_INVOICE_FIELDS}
+  ${PAID_ACTION}
   mutation act($id: ID!, $sats: Int!, $act: String, $hash: String, $hmac: String) {
     act(id: $id, sats: $sats, act: $act, hash: $hash, hmac: $hmac) {
       result {
@@ -35,15 +44,12 @@ export const ACT_MUTATION = gql`
         path
         act
       }
-      invoice {
-        ...PaidActionInvoiceFields
-      }
-      paymentMethod
+      ...PaidActionFields
     }
   }`
 
 export const UPSERT_DISCUSSION = gql`
-  ${PAID_ACTION_INVOICE_FIELDS}
+  ${PAID_ACTION}
   mutation upsertDiscussion($sub: String, $id: ID, $title: String!, $text: String, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String) {
     upsertDiscussion(sub: $sub, id: $id, title: $title, text: $text, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac) {
       result {
@@ -51,15 +57,12 @@ export const UPSERT_DISCUSSION = gql`
         deleteScheduledAt
         reminderScheduledAt
       }
-      invoice {
-        ...PaidActionInvoiceFields
-      }
-      paymentMethod
+      ...PaidActionFields
     }
   }`
 
 export const UPSERT_JOB = gql`
-  ${PAID_ACTION_INVOICE_FIELDS}
+  ${PAID_ACTION}
   mutation upsertJob($sub: String!, $id: ID, $title: String!, $company: String!, $location: String,
     $remote: Boolean, $text: String!, $url: String!, $maxBid: Int!, $status: String, $logo: Int, $hash: String, $hmac: String) {
     upsertJob(sub: $sub, id: $id, title: $title, company: $company,
@@ -70,15 +73,12 @@ export const UPSERT_JOB = gql`
         deleteScheduledAt
         reminderScheduledAt
       }
-      invoice {
-        ...PaidActionInvoiceFields
-      }
-      paymentMethod
+      ...PaidActionFields
     }
   }`
 
 export const UPSERT_LINK = gql`
-  ${PAID_ACTION_INVOICE_FIELDS}
+  ${PAID_ACTION}
   mutation upsertLink($sub: String, $id: ID, $title: String!, $url: String!, $text: String, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String) {
     upsertLink(sub: $sub, id: $id, title: $title, url: $url, text: $text, boost: $boost, forward: $forward, hash: $hash, hmac: $hmac) {
       result {
@@ -86,15 +86,12 @@ export const UPSERT_LINK = gql`
         deleteScheduledAt
         reminderScheduledAt
       }
-      invoice {
-        ...PaidActionInvoiceFields
-      }
-      paymentMethod
+      ...PaidActionFields
     }
   }`
 
 export const UPSERT_POLL = gql`
-  ${PAID_ACTION_INVOICE_FIELDS}
+  ${PAID_ACTION}
   mutation upsertPoll($sub: String, $id: ID, $title: String!, $text: String,
     $options: [String!]!, $boost: Int, $forward: [ItemForwardInput], $hash: String, $hmac: String, $pollExpiresAt: Date) {
     upsertPoll(sub: $sub, id: $id, title: $title, text: $text,
@@ -104,16 +101,13 @@ export const UPSERT_POLL = gql`
         deleteScheduledAt
         reminderScheduledAt
       }
-      invoice {
-        ...PaidActionInvoiceFields
-      }
-      paymentMethod
+      ...PaidActionFields
     }
   }`
 
 export const CREATE_COMMENT = gql`
   ${COMMENTS}
-  ${PAID_ACTION_INVOICE_FIELDS}
+  ${PAID_ACTION}
   mutation upsertComment($text: String!, $parentId: ID!, $hash: String, $hmac: String) {
     upsertComment(text: $text, parentId: $parentId, hash: $hash, hmac: $hmac) {
       result {
@@ -124,16 +118,13 @@ export const CREATE_COMMENT = gql`
           ...CommentsRecursive
         }
       }
-      invoice {
-        ...PaidActionInvoiceFields
-      }
-      paymentMethod
+      ...PaidActionFields
     }
   }`
 
 export const UPSERT_COMMENT = gql`
   ${COMMENTS}
-  ${PAID_ACTION_INVOICE_FIELDS}
+  ${PAID_ACTION}
   mutation upsertComment($id: ID!, $text: String!, $hash: String, $hmac: String) {
     upsertComment(id: $id, text: $text, hash: $hash, hmac: $hmac) {
       result {
@@ -144,15 +135,12 @@ export const UPSERT_COMMENT = gql`
           ...CommentsRecursive
         }
       }
-      invoice {
-        ...PaidActionInvoiceFields
-      }
-      paymentMethod
+      ...PaidActionFields
     }
   }`
 
 export const UPSERT_SUB = gql`
-  ${PAID_ACTION_INVOICE_FIELDS}
+  ${PAID_ACTION}
   mutation upsertSub($oldName: String, $name: String!, $desc: String, $baseCost: Int!,
     $postTypes: [String!]!, $allowFreebies: Boolean!, $billingType: String!,
     $billingAutoRenew: Boolean!, $moderated: Boolean!, $hash: String, $hmac: String, $nsfw: Boolean!) {
@@ -162,15 +150,12 @@ export const UPSERT_SUB = gql`
       result {
         name
       }
-      invoice {
-        ...PaidActionInvoiceFields
-      }
-      paymentMethod
+      ...PaidActionFields
     }
   }`
 
 export const UNARCHIVE_TERRITORY = gql`
-  ${PAID_ACTION_INVOICE_FIELDS}
+  ${PAID_ACTION}
   mutation unarchiveTerritory($name: String!, $desc: String, $baseCost: Int!,
     $postTypes: [String!]!, $allowFreebies: Boolean!, $billingType: String!,
     $billingAutoRenew: Boolean!, $moderated: Boolean!, $hash: String, $hmac: String, $nsfw: Boolean!) {
@@ -180,24 +165,18 @@ export const UNARCHIVE_TERRITORY = gql`
       result {
         name
       }
-      invoice {
-        ...PaidActionInvoiceFields
-      }
-      paymentMethod
+      ...PaidActionFields
     }
   }`
 
 export const SUB_PAY = gql`
   ${SUB_FULL_FIELDS}
-  ${PAID_ACTION_INVOICE_FIELDS}
+  ${PAID_ACTION}
   mutation paySub($name: String!, $hash: String, $hmac: String) {
     paySub(name: $name, hash: $hash, hmac: $hmac) {
       result {
         ...SubFullFields
       }
-      invoice {
-        ...PaidActionInvoiceFields
-      }
-      paymentMethod
+      ...PaidActionFields
     }
   }`

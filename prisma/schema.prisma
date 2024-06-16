@@ -427,6 +427,7 @@ model Item {
   uploadId           Int?
   invoiceId          Int?
   invoiceActionState InvoiceActionState?
+  invoicePaidAt      DateTime?
   outlawed           Boolean               @default(false)
   apiKey             Boolean               @default(false)
   pollExpiresAt      DateTime?
@@ -714,6 +715,7 @@ enum InvoiceActionState {
   HELD
   PAID
   FAILED
+  RETRYING
 }
 
 model ItemMention {

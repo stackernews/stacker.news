@@ -72,6 +72,58 @@ export default async function performPaidAction (actionType, args, context) {
   }
 }
 
+export async function retryPaidAction (actionType, args, context) {
+  const { models, me } = context
+  const { invoiceId } = args
+
+  const action = paidActions[actionType]
+  if (!action) {
+    throw new Error(`retryPaidAction - invalid action type ${actionType}`)
+  }
+
+  if (!me) {
+    throw new Error(`retryPaidAction - must be logged in ${actionType}`)
+  }
+
+  if (!action.supportsOptimism) {
+    throw new Error(`retryPaidAction - action does not support optimism ${actionType}`)
+  }
+
+  if (!action.retry) {
+    throw new Error(`retryPaidAction - action does not support retrying ${actionType}`)
+  }
+
+  context.user = await models.user.findUnique({ where: { id: me.id } })
+  return await models.$transaction(async tx => {
+    context.tx = tx
+    context.optimistic = true
+
+    // update the old invoice to RETRYING, so that it's not confused with FAILED
+    const { msatsRequested } = await tx.invoice.update({
+      where: {
+        id: invoiceId,
+        actionState: 'FAILED'
+      },
+      data: {
+        actionState: 'RETRYING'
+      }
+    })
+
+    context.cost = BigInt(msatsRequested)
+
+    // create a new invoice
+    const invoice = await createDbInvoice(actionType, args, context)
+
+    // retry the action, by replacing the old invoiceId with the new one
+    await action.retry({ invoiceId, newInvoiceId: invoice.id }, context)
+
+    return {
+      invoice,
+      paymentMethod: 'OPTIMISTIC'
+    }
+  })
+}
+
 async function performOptimisticAction (actionType, args, context) {
   const { models } = context
   const action = paidActions[actionType]

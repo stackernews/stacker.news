@@ -23,6 +23,61 @@ import { useRoot } from './root'
 import { MuteSubDropdownItem, PinSubDropdownItem } from './territory-header'
 import UserPopover from './user-popover'
 import { useQrPayment } from './payment'
+import { usePaidMutation } from './use-paid-mutation'
+import { RETRY_PAID_ACTION } from '@/fragments/paidAction'
+
+function useRetryCreateItem ({ id }) {
+  const [retryPaidAction] = usePaidMutation(RETRY_PAID_ACTION, {
+    update (cache, { data: { retryPaidAction: { __typename, invoice } } }) {
+      if (__typename === 'ItemPaidAction' && invoice) {
+        cache.modify({
+          id: `Item:${id}`,
+          fields: {
+            invoiceId (existingInvoiceId) {
+              return invoice.id
+            },
+            invoiceActionState () {
+              return 'PENDING'
+            }
+          }
+        })
+      }
+    },
+    onPaid: (cache, { data: { retryPaidAction: { __typename, invoice } } }) => {
+      // set the invoiceActionState to PAID
+      cache.modify({
+        id: `Item:${id}`,
+        fields: {
+          invoiceActionState () {
+            return 'PAID'
+          },
+          invoiceId (existingInvoiceId) {
+            return invoice.id
+          },
+          invoicePaidAt () {
+            return new Date().toISOString()
+          }
+        }
+      })
+    },
+    onPayError: (e, cache, { data: { retryPaidAction: { __typename, invoice } } }) => {
+      // set the invoiceActionState to FAILED
+      cache.modify({
+        id: `Item:${id}`,
+        fields: {
+          invoiceActionState () {
+            return 'FAILED'
+          },
+          invoiceId (existingInvoiceId) {
+            return invoice.id
+          }
+        }
+      })
+    }
+  })
+
+  return retryPaidAction
+}
 
 export default function ItemInfo ({
   item, full, commentsText = 'comments',
@@ -30,7 +85,7 @@ export default function ItemInfo ({
   onQuoteReply, extraBadges, nested, pinnable, showActionDropdown = true, showUser = true,
   zapInvoiceId
 }) {
-  const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
+  const editThreshold = new Date(item.invoicePaidAt ?? item.createdAt).getTime() + 10 * 60000
   const me = useMe()
   const router = useRouter()
   const [canEdit, setCanEdit] =
@@ -38,6 +93,7 @@ export default function ItemInfo ({
   const [hasNewComments, setHasNewComments] = useState(false)
   const [meTotalSats, setMeTotalSats] = useState(0)
   const root = useRoot()
+  const retryCreateItem = useRetryCreateItem({ id: item.id })
   const sub = item?.sub || root?.sub
 
   useEffect(() => {
@@ -64,12 +120,16 @@ export default function ItemInfo ({
     let onClick
     if (me && item.invoiceActionState && item.invoiceActionState !== 'PAID') {
       if (item.invoiceActionState === 'FAILED') {
-        Component = () => <span className='text-warning'>payment failed</span>
+        Component = () => <span className='text-warning'>retry payment</span>
+        onClick = async () => await retryCreateItem({ variables: { invoiceId: parseInt(item.invoiceId) } }).catch(console.error)
       } else {
-        Component = () => <span className='text-reset'>pending</span>
-      }
-      onClick = () => {
-        waitForQrPayment({ id: item.invoiceId }, null, false).catch(console.error)
+        Component = () => (
+          <span
+            className='text-reset'
+          >pending
+          </span>
+        )
+        onClick = () => waitForQrPayment({ id: item.invoiceId }, null, false).catch(console.error)
       }
     } else if (canEdit && !item.deletedAt) {
       Component = () => (

@@ -113,6 +113,12 @@ export async function perform (args, context) {
   )[0]
 }
 
+export async function retry ({ invoiceId, newInvoiceId }, { tx }) {
+  await tx.itemAct.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
+  await tx.item.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
+  await tx.upload.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
+}
+
 export async function onPaid ({ invoice, id }, context) {
   const { models, tx } = context
   let item
@@ -120,7 +126,7 @@ export async function onPaid ({ invoice, id }, context) {
   if (invoice) {
     item = await tx.item.findFirst({ where: { invoiceId: invoice.id } })
     await tx.itemAct.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } })
-    await tx.item.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } })
+    await tx.item.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID', invoicePaidAt: new Date() } })
     await tx.upload.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID', paid: true } })
   } else if (id) {
     item = await tx.item.findUnique({ where: { id } })

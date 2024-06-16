@@ -95,11 +95,34 @@ const defaultOnClick = n => {
     href += dayMonthYear(new Date(n.sortTime))
     return { href }
   }
+
+  const itemLink = item => {
+    if (!item) return {}
+    if (item.title) {
+      return {
+        href: {
+          pathname: '/items/[id]',
+          query: { id: item.id }
+        },
+        as: `/items/${item.id}`
+      }
+    } else {
+      const rootId = commentSubTreeRootId(item)
+      return {
+        href: {
+          pathname: '/items/[id]',
+          query: { id: rootId, commentId: item.id }
+        },
+        as: `/items/${rootId}`
+      }
+    }
+  }
+
   if (type === 'Revenue') return { href: `/~${n.subName}` }
   if (type === 'SubStatus') return { href: `/~${n.sub.name}` }
   if (type === 'Invitification') return { href: '/invites' }
   if (type === 'InvoicePaid') return { href: `/invoices/${n.invoice.id}` }
-  if (type === 'Invoicification') return { href: `/invoices/${n.invoice.id}` }
+  if (type === 'Invoicification') return itemLink(n.invoice.item)
   if (type === 'WithdrawlPaid') return { href: `/withdrawals/${n.id}` }
   if (type === 'Referral') return { href: '/referrals/month' }
   if (type === 'Streak') return {}
@@ -108,24 +131,7 @@ const defaultOnClick = n => {
   if (!n.item) return {}
 
   // Votification, Mention, JobChanged, Reply all have item
-  if (!n.item.title) {
-    const rootId = commentSubTreeRootId(n.item)
-    return {
-      href: {
-        pathname: '/items/[id]',
-        query: { id: rootId, commentId: n.item.id }
-      },
-      as: `/items/${rootId}`
-    }
-  } else {
-    return {
-      href: {
-        pathname: '/items/[id]',
-        query: { id: n.item.id }
-      },
-      as: `/items/${n.item.id}`
-    }
-  }
+  return itemLink(n.item)
 }
 
 function Streak ({ n }) {
@@ -286,6 +292,13 @@ function InvoicePaid ({ n }) {
 }
 
 function Invoicification ({ n: { invoice } }) {
+  // XXX if we navigate to an invoice after it is retried in notifications
+  // the cache will clear invoice.item and will error on window.back
+  // alternatively, we could/should
+  // 1. update the notification cache to include the new invoice
+  // 2. make item has-many invoices
+  if (!invoice.item) return null
+
   let actionString = ''
   let colorClass = 'text-info'
   let zapInvoiceId = null
@@ -305,14 +318,21 @@ function Invoicification ({ n: { invoice } }) {
       zapInvoiceId = invoice.id
       break
   }
+  let actionState
+  if (['ITEM_CREATE', 'ITEM_UPDATE'].includes(invoice.actionType)) {
+    actionState = invoice.item.invoiceActionState
+  } else {
+    actionState = invoice.actionState
+  }
 
-  switch (invoice.actionState) {
+  switch (actionState) {
     case 'FAILED':
       actionString += 'failed'
       colorClass = 'text-warning'
       break
     case 'PAID':
       actionString += 'paid'
+      colorClass = 'text-success'
       break
     default:
       actionString += 'pending'

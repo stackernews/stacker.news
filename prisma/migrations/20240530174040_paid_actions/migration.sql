@@ -2,7 +2,7 @@
 CREATE TYPE "InvoiceActionType" AS ENUM ('BUY_CREDITS', 'ITEM_CREATE', 'ITEM_UPDATE', 'ZAP', 'DOWN_ZAP', 'DONATE', 'POLL_VOTE', 'TERRITORY_CREATE', 'TERRITORY_UPDATE', 'TERRITORY_BILLING', 'TERRITORY_UNARCHIVE');
 
 -- CreateEnum
-CREATE TYPE "InvoiceActionState" AS ENUM ('PENDING', 'PENDING_HELD', 'HELD', 'PAID', 'FAILED');
+CREATE TYPE "InvoiceActionState" AS ENUM ('PENDING', 'PENDING_HELD', 'HELD', 'PAID', 'FAILED', 'RETRYING');
 
 -- AlterTable
 ALTER TABLE "Invoice" ADD COLUMN     "actionState" "InvoiceActionState",
@@ -10,7 +10,8 @@ ADD COLUMN     "actionType" "InvoiceActionType";
 
 -- AlterTable
 ALTER TABLE "Item" ADD COLUMN     "invoiceActionState" "InvoiceActionState",
-ADD COLUMN     "invoiceId" INTEGER;
+ADD COLUMN     "invoiceId" INTEGER,
+ADD COLUMN     "invoicePaidAt" TIMESTAMP(3);
 
 -- AlterTable
 ALTER TABLE "ItemAct" ADD COLUMN     "invoiceActionState" "InvoiceActionState",

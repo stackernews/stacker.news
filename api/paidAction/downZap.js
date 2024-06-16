@@ -22,6 +22,10 @@ export async function perform ({ invoiceId, sats, id: itemId }, { me, cost, mode
   return { id: itemId, sats, act: 'DONT_LIKE_THIS', path, actId: itemAct.id }
 }
 
+export async function retry ({ invoiceId, newInvoiceId }, { tx }) {
+  await tx.itemAct.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
+}
+
 export async function onPaid ({ invoice, actId }, { models, tx }) {
   let itemAct
   if (invoice) {

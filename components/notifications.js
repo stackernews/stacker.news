@@ -3,7 +3,7 @@ import { useQuery } from '@apollo/client'
 import Comment, { CommentSkeleton } from './comment'
 import Item from './item'
 import ItemJob from './item-job'
-import { INVOICIFICATION, NOTIFICATIONS } from '@/fragments/notifications'
+import { NOTIFICATIONS } from '@/fragments/notifications'
 import MoreFooter from './more-footer'
 import Invite from './invite'
 import { dayMonthYear, timeSince } from '@/lib/time'
@@ -294,42 +294,40 @@ function InvoicePaid ({ n }) {
   )
 }
 
-function Invoicification ({ n: { id, invoice, sortTime } }) {
+function Invoicification ({ n: { invoice, sortTime } }) {
   const actRetry = useAct({
     query: RETRY_PAID_ACTION,
     extend: {
-      update: (cache, { invoice }) => {
-        if (invoice) {
-          // XXX change this code at your own peril
-          cache.updateFragment({
-            id: `Invoicification:${id}`,
-            fragment: INVOICIFICATION,
-            fragmentName: 'InvoicificationFields'
-          },
-          data => {
-            return ({ ...data, invoice: { ...data.invoice, ...invoice } })
-          })
-        }
-      },
-      onPayError: (e, cache, { invoice }) => {
+      update (cache, { invoice: newInvoice }) {
         if (invoice) {
           cache.modify({
-            id: `Invoice:${invoice.id}`,
+            id: `ItemAct:${invoice.itemAct?.id}`,
             fields: {
-              actionState: () => 'FAILED'
+              invoiceActionState: () => 'PENDING',
+              invoiceId: () => newInvoice.id
             }
           })
         }
       },
-      onPaid: (result, cache, { invoice }) => {
-        if (invoice) {
-          cache.modify({
-            id: `Invoice:${invoice.id}`,
-            fields: {
-              actionState: () => 'PAID'
-            }
-          })
-        }
+      onPaid: (cache, { invoice: newInvoice }) => {
+        // set the invoiceActionState to PAID
+        cache.modify({
+          id: `ItemAct:${invoice.itemAct?.id}`,
+          fields: {
+            invoiceActionState: () => 'PAID',
+            invoiceId: () => newInvoice.id
+          }
+        })
+      },
+      onPayError: (e, cache, { invoice: newInvoice }) => {
+        // set the invoiceActionState to FAILED
+        cache.modify({
+          id: `ItemAct:${invoice.itemAct?.id}`,
+          fields: {
+            invoiceActionState: () => 'FAILED',
+            invoiceId: () => newInvoice.id
+          }
+        })
       }
     }
   })
@@ -341,33 +339,21 @@ function Invoicification ({ n: { id, invoice, sortTime } }) {
   // 2. make item has-many invoices
   if (!invoice.item) return null
 
-  let actionString = ''
-  let colorClass = 'text-info'
+  let retry
+  let actionString
+  const { invoiceId, invoiceActionState } = { ...invoice.item, ...invoice.itemAct }
   const itemType = invoice.item.title ? 'post' : 'comment'
-  switch (invoice.actionType) {
-    case 'ITEM_CREATE':
-      actionString = `${itemType} create `
-      break
-    case 'ITEM_UPDATE':
-      actionString = `${itemType} edit `
-      break
-    case 'ZAP':
-      actionString = `zap on ${itemType} `
-      break
-    case 'DOWN_ZAP':
-      actionString = `downzap on ${itemType} `
-      break
-  }
-  let actionState
+
   if (['ITEM_CREATE', 'ITEM_UPDATE'].includes(invoice.actionType)) {
-    // for item create/update, the action state we care about is on the item
-    // XXX sharing this code is causing problems, clearly
-    actionState = invoice.item.invoiceActionState
+    actionString = `${itemType} ${invoice.actionType === 'ITEM_CREATE' ? 'create' : 'edit'} `
+    retry = retryCreateItem
   } else {
-    actionState = invoice.actionState
+    actionString = `${invoice.actionType === 'ZAP' ? 'zap' : 'downzap'} on ${itemType} `
+    retry = actRetry
   }
 
-  switch (actionState) {
+  let colorClass = 'text-info'
+  switch (invoiceActionState) {
     case 'FAILED':
       actionString += 'failed'
       colorClass = 'text-warning'
@@ -385,20 +371,15 @@ function Invoicification ({ n: { id, invoice, sortTime } }) {
       <small className={`fw-bold ${colorClass} d-inline-flex align-items-center my-1`}>
         {actionString}
         <span className='ms-1 text-muted fw-light'> {numWithUnits(invoice.satsRequested)}</span>
-        {actionState === 'FAILED' &&
-          <Button
-            size='sm' variant='outline-warning ms-2 border-1 rounded py-0'
-            style={{ '--bs-btn-hover-color': '#fff' }}
-            onClick={() => {
-              if (['ITEM_CREATE', 'ITEM_UPDATE'].includes(invoice.actionType)) {
-                retryCreateItem({ variables: { invoiceId: parseInt(invoice.item.invoiceId) } }).catch(console.error)
-              } else {
-                actRetry({ variables: { invoiceId: parseInt(invoice.id) } }).catch(console.error)
-              }
-            }}
-          >
-            retry
-          </Button>}
+        <Button
+          size='sm' variant={`outline-warning ms-2 border-1 rounded py-0 ${invoiceActionState === 'FAILED' ? 'visible' : 'invisible'}`}
+          style={{ '--bs-btn-hover-color': '#fff', '--bs-btn-active-color': '#fff' }}
+          onClick={() => {
+            retry({ variables: { invoiceId: parseInt(invoiceId) } }).catch(console.error)
+          }}
+        >
+          retry
+        </Button>
       </small>
       <div>
         {invoice.item.title

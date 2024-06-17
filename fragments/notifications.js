@@ -18,6 +18,12 @@ export const INVOICIFICATION = gql`
       item {
         ...ItemFullFields
       }
+      itemAct {
+        id
+        act
+        invoiceId
+        invoiceActionState
+      }
     }
   }`
 

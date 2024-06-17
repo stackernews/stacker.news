@@ -152,7 +152,7 @@ export default function ItemInfo ({
       <>
         <span> \ </span>
         <span
-          className='text-reset pointer'
+          className='text-reset pointer fw-bold'
           onClick={onClick}
         >
           <Component />

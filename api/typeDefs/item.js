@@ -25,6 +25,13 @@ export default gql`
     invoice: Invoice
   }
 
+  type ItemAct {
+    id: ID!
+    act: String!
+    invoiceId: Int
+    invoiceActionState: InvoiceActionState
+  }
+
   extend type Mutation {
     bookmarkItem(id: ID): Item
     pinItem(id: ID): Item

@@ -77,6 +77,7 @@ export default gql`
     actionState: String
     actionType: String
     item: Item
+    itemAct: ItemAct
   }
 
   type Withdrawl {

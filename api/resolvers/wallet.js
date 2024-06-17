@@ -380,18 +380,10 @@ export default {
         throw new GraphQLError('bad hmac', { extensions: { code: 'FORBIDDEN' } })
       }
       await cancelHodlInvoice({ id: hash, lnd })
-      const inv = await serialize(
-        models.invoice.update({
-          where: {
-            hash
-          },
-          data: {
-            cancelled: true
-          }
-        }),
-        { models }
-      )
-      return inv
+      await models.$executeRaw`
+        INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, priority)
+          VALUES ('checkInvoice', jsonb_build_object('hash', ${hash}), 21, true, 100)`
+      return await models.invoice.findFirst({ where: { hash } })
     },
     dropBolt11: async (parent, { id }, { me, models, lnd }) => {
       if (!me) {
@@ -571,6 +563,21 @@ export default {
               WHERE "ItemAct"."invoiceId" = $1
               AND "ItemAct"."userId" = $2`
           }, Number(invoice.id), me?.id))?.[0]
+        default:
+          return null
+      }
+    },
+    itemAct: async (invoice, args, { models, me }) => {
+      switch (invoice.actionType) {
+        case 'ZAP':
+        case 'DOWN_ZAP':
+          return (await models.$queryRaw`
+              SELECT id, act, "invoiceId", "invoiceActionState", msats
+              FROM "ItemAct"
+              WHERE "ItemAct"."invoiceId" = ${Number(invoice.id)}
+              AND "ItemAct"."userId" = ${me?.id}
+              AND act = ${invoice.actionType === 'ZAP' ? 'TIP' : 'DONT_LIKE_THIS'}::"ItemActType"`
+          )?.[0]
         default:
           return null
       }

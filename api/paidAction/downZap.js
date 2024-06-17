@@ -22,8 +22,14 @@ export async function perform ({ invoiceId, sats, id: itemId }, { me, cost, mode
   return { id: itemId, sats, act: 'DONT_LIKE_THIS', path, actId: itemAct.id }
 }
 
-export async function retry ({ invoiceId, newInvoiceId }, { tx }) {
+export async function retry ({ invoiceId, newInvoiceId }, { tx, cost }) {
   await tx.itemAct.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
+  const [{ id, path }] = await tx.$queryRaw`
+    SELECT id, ltree2text(path) as path
+    FROM "Item"
+    JOIN "ItemAct" ON "Item".id = "ItemAct".itemId
+    WHERE "ItemAct".invoiceId = ${newInvoiceId}`
+  return { id, sats: cost / BigInt(1000), act: 'DONT_LIKE_THIS', path }
 }
 
 export async function onPaid ({ invoice, actId }, { models, tx }) {

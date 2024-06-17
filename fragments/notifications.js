@@ -5,8 +5,24 @@ import { SUB_FIELDS } from './subs'
 
 export const HAS_NOTIFICATIONS = gql`{ hasNewNotes }`
 
-export const NOTIFICATIONS = gql`
+export const INVOICIFICATION = gql`
   ${ITEM_FULL_FIELDS}
+  fragment InvoicificationFields on Invoicification {
+    id
+    sortTime
+    invoice {
+      id
+      actionState
+      actionType
+      satsRequested
+      item {
+        ...ItemFullFields
+      }
+    }
+  }`
+
+export const NOTIFICATIONS = gql`
+  ${INVOICIFICATION}
   ${INVITE_FIELDS}
   ${SUB_FIELDS}
 
@@ -142,16 +158,7 @@ export const NOTIFICATIONS = gql`
           }
         }
         ... on Invoicification {
-          id
-          sortTime
-          invoice {
-            id
-            actionState
-            actionType
-            item {
-              ...ItemFullFields
-            }
-          }
+          ...InvoicificationFields
         }
         ... on WithdrawlPaid {
           id

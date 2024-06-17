@@ -117,6 +117,10 @@ export async function retry ({ invoiceId, newInvoiceId }, { tx }) {
   await tx.itemAct.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
   await tx.item.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
   await tx.upload.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
+  return (await tx.$queryRaw`
+    SELECT *, ltree2text(path) AS path, created_at AS "createdAt", updated_at AS "updatedAt"
+    FROM "Item" WHERE "invoiceId" = ${newInvoiceId}`
+  )[0]
 }
 
 export async function onPaid ({ invoice, id }, context) {

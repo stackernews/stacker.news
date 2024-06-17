@@ -33,6 +33,12 @@ export async function retry ({ invoiceId, newInvoiceId }, { tx }) {
   await tx.itemAct.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
   await tx.pollBlindVote.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
   await tx.pollVote.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
+  const [{ id }] = await tx.$queryRaw`
+    SELECT id, ltree2text(path) as path
+    FROM "Item"
+    JOIN "ItemAct" ON "Item".id = "ItemAct".itemId
+    WHERE "ItemAct".invoiceId = ${newInvoiceId}`
+  return { id }
 }
 
 export async function onPaid ({ invoice }, { tx }) {

@@ -30,8 +30,14 @@ export async function perform ({ invoiceId, sats, id: itemId, ...args }, { me, c
   return { id: itemId, sats, act: 'TIP', path, actIds: acts.map(act => act.id) }
 }
 
-export async function retry ({ invoiceId, newInvoiceId }, { tx }) {
+export async function retry ({ invoiceId, newInvoiceId }, { tx, cost }) {
   await tx.itemAct.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
+  const [{ id, path }] = await tx.$queryRaw`
+    SELECT "Item".id, ltree2text(path) as path
+    FROM "Item"
+    JOIN "ItemAct" ON "Item".id = "ItemAct"."itemId"
+    WHERE "ItemAct"."invoiceId" = ${newInvoiceId}`
+  return { id, sats: Number(BigInt(cost) / BigInt(1000)), act: 'TIP', path }
 }
 
 export async function onPaid ({ invoice, actIds }, { models, tx }) {

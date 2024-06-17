@@ -20,7 +20,7 @@ export default gql`
   type ItemActResult {
     id: ID!
     sats: Int!
-    path: String!
+    path: String
     act: String!
     invoice: Invoice
   }

@@ -26,7 +26,7 @@ import { useQrPayment } from './payment'
 import { usePaidMutation } from './use-paid-mutation'
 import { RETRY_PAID_ACTION } from '@/fragments/paidAction'
 
-function useRetryCreateItem ({ id }) {
+export function useRetryCreateItem ({ id }) {
   const [retryPaidAction] = usePaidMutation(RETRY_PAID_ACTION, {
     update (cache, { data: { retryPaidAction: { __typename, invoice } } }) {
       if (__typename === 'ItemPaidAction' && invoice) {
@@ -82,8 +82,7 @@ function useRetryCreateItem ({ id }) {
 export default function ItemInfo ({
   item, full, commentsText = 'comments',
   commentTextSingular = 'comment', className, embellishUser, extraInfo, onEdit, editText,
-  onQuoteReply, extraBadges, nested, pinnable, showActionDropdown = true, showUser = true,
-  zapInvoiceId
+  onQuoteReply, extraBadges, nested, pinnable, showActionDropdown = true, showUser = true
 }) {
   const editThreshold = new Date(item.invoicePaidAt ?? item.createdAt).getTime() + 10 * 60000
   const me = useMe()
@@ -116,6 +115,8 @@ export default function ItemInfo ({
 
   const EditInfo = () => {
     const waitForQrPayment = useQrPayment()
+    if (item.deletedAt) return null
+
     let Component
     let onClick
     if (me && item.invoiceActionState && item.invoiceActionState !== 'PAID') {
@@ -125,13 +126,13 @@ export default function ItemInfo ({
       } else {
         Component = () => (
           <span
-            className='text-reset'
+            className='text-info'
           >pending
           </span>
         )
         onClick = () => waitForQrPayment({ id: item.invoiceId }, null, false).catch(console.error)
       }
-    } else if (canEdit && !item.deletedAt) {
+    } else if (canEdit) {
       Component = () => (
         <>
           <span>{editText || 'edit'} </span>
@@ -273,13 +274,6 @@ export default function ItemInfo ({
               <>
                 <hr className='dropdown-divider' />
                 <OutlawDropdownItem item={item} />
-              </>}
-            {zapInvoiceId &&
-              <>
-                <hr className='dropdown-divider' />
-                <Link href={`/invoices/${zapInvoiceId}`} className='text-reset dropdown-item'>
-                  view zap invoice
-                </Link>
               </>}
             {item.mine && item.invoiceId &&
               <>

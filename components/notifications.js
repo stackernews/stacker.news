@@ -3,7 +3,7 @@ import { useQuery } from '@apollo/client'
 import Comment, { CommentSkeleton } from './comment'
 import Item from './item'
 import ItemJob from './item-job'
-import { NOTIFICATIONS } from '@/fragments/notifications'
+import { INVOICIFICATION, NOTIFICATIONS } from '@/fragments/notifications'
 import MoreFooter from './more-footer'
 import Invite from './invite'
 import { dayMonthYear, timeSince } from '@/lib/time'
@@ -29,7 +29,10 @@ import { LongCountdown } from './countdown'
 import { nextBillingWithGrace } from '@/lib/territory'
 import { commentSubTreeRootId } from '@/lib/item'
 import LinkToContext from './link-to-context'
-import { Badge } from 'react-bootstrap'
+import { Badge, Button } from 'react-bootstrap'
+import { useAct } from './item-act'
+import { RETRY_PAID_ACTION } from '@/fragments/paidAction'
+import { useRetryCreateItem } from './item-info'
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
@@ -291,7 +294,46 @@ function InvoicePaid ({ n }) {
   )
 }
 
-function Invoicification ({ n: { invoice } }) {
+function Invoicification ({ n: { id, invoice, sortTime } }) {
+  const actRetry = useAct({
+    query: RETRY_PAID_ACTION,
+    extend: {
+      update: (cache, { invoice }) => {
+        if (invoice) {
+          // XXX change this code at your own peril
+          cache.updateFragment({
+            id: `Invoicification:${id}`,
+            fragment: INVOICIFICATION,
+            fragmentName: 'InvoicificationFields'
+          },
+          data => {
+            return ({ ...data, invoice: { ...data.invoice, ...invoice } })
+          })
+        }
+      },
+      onPayError: (e, cache, { invoice }) => {
+        if (invoice) {
+          cache.modify({
+            id: `Invoice:${invoice.id}`,
+            fields: {
+              actionState: () => 'FAILED'
+            }
+          })
+        }
+      },
+      onPaid: (result, cache, { invoice }) => {
+        if (invoice) {
+          cache.modify({
+            id: `Invoice:${invoice.id}`,
+            fields: {
+              actionState: () => 'PAID'
+            }
+          })
+        }
+      }
+    }
+  })
+  const retryCreateItem = useRetryCreateItem({ id: invoice.item?.id })
   // XXX if we navigate to an invoice after it is retried in notifications
   // the cache will clear invoice.item and will error on window.back
   // alternatively, we could/should
@@ -301,25 +343,25 @@ function Invoicification ({ n: { invoice } }) {
 
   let actionString = ''
   let colorClass = 'text-info'
-  let zapInvoiceId = null
+  const itemType = invoice.item.title ? 'post' : 'comment'
   switch (invoice.actionType) {
     case 'ITEM_CREATE':
-      actionString = 'item creation '
+      actionString = `${itemType} create `
       break
     case 'ITEM_UPDATE':
-      actionString = 'item update '
+      actionString = `${itemType} edit `
       break
     case 'ZAP':
-      actionString = 'zap on item '
-      zapInvoiceId = invoice.id
+      actionString = `zap on ${itemType} `
       break
     case 'DOWN_ZAP':
-      actionString = 'downzap on item '
-      zapInvoiceId = invoice.id
+      actionString = `downzap on ${itemType} `
       break
   }
   let actionState
   if (['ITEM_CREATE', 'ITEM_UPDATE'].includes(invoice.actionType)) {
+    // for item create/update, the action state we care about is on the item
+    // XXX sharing this code is causing problems, clearly
     actionState = invoice.item.invoiceActionState
   } else {
     actionState = invoice.actionState
@@ -340,14 +382,31 @@ function Invoicification ({ n: { invoice } }) {
 
   return (
     <div className='px-2'>
-      <small className={`fw-bold ${colorClass} my-1`}>{actionString}</small>
+      <small className={`fw-bold ${colorClass} d-inline-flex align-items-center my-1`}>
+        {actionString}
+        <span className='ms-1 text-muted fw-light'> {numWithUnits(invoice.satsRequested)}</span>
+        {actionState === 'FAILED' &&
+          <Button
+            size='sm' variant='outline-warning ms-2 border-1 rounded py-0'
+            style={{ '--bs-btn-hover-color': '#fff' }}
+            onClick={() => {
+              if (['ITEM_CREATE', 'ITEM_UPDATE'].includes(invoice.actionType)) {
+                retryCreateItem({ variables: { invoiceId: parseInt(invoice.item.invoiceId) } }).catch(console.error)
+              } else {
+                actRetry({ variables: { invoiceId: parseInt(invoice.id) } }).catch(console.error)
+              }
+            }}
+          >
+            retry
+          </Button>}
+      </small>
       <div>
         {invoice.item.title
-          ? <Item item={invoice.item} zapInvoiceId={zapInvoiceId} />
+          ? <Item item={invoice.item} />
           : (
             <div className='pb-2'>
               <RootProvider root={invoice.item.root}>
-                <Comment item={invoice.item} noReply includeParent clickToContext zapInvoiceId={zapInvoiceId} />
+                <Comment item={invoice.item} noReply includeParent clickToContext />
               </RootProvider>
             </div>
             )}

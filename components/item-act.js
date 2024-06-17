@@ -119,64 +119,77 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
   )
 }
 
-export function useAct ({ update } = {}) {
-  const modifyCache = (cache, { data: { act: { result } } }) => {
-    if (!result) return
-    const { id, sats, path, act } = result
-    cache.modify({
-      id: `Item:${id}`,
-      fields: {
-        sats (existingSats = 0) {
-          if (act === 'TIP') {
-            return existingSats + sats
-          }
-          return existingSats
-        },
-        meSats: (existingSats = 0) => {
-          if (act === 'TIP') {
-            return existingSats + sats
-          }
-          return existingSats
-        },
-        meDontLikeSats: (existingSats = 0) => {
-          if (act === 'DONT_LIKE_THIS') {
-            return existingSats + sats
-          }
-          return existingSats
+// todo: this may need to be modified for bounties
+function modifyActCache (cache, { result, invoice }) {
+  if (!result) return
+  const { id, sats, path, act } = result
+  cache.modify({
+    id: `Item:${id}`,
+    fields: {
+      sats (existingSats = 0) {
+        if (act === 'TIP') {
+          return existingSats + sats
         }
+        return existingSats
+      },
+      meSats: (existingSats = 0) => {
+        if (act === 'TIP') {
+          return existingSats + sats
+        }
+        return existingSats
+      },
+      meDontLikeSats: (existingSats = 0) => {
+        if (act === 'DONT_LIKE_THIS') {
+          return existingSats + sats
+        }
+        return existingSats
       }
-    })
-
-    if (act === 'TIP') {
-      // update all ancestors
-      path.split('.').forEach(aId => {
-        if (Number(aId) === Number(id)) return
-        cache.modify({
-          id: `Item:${aId}`,
-          fields: {
-            commentSats (existingCommentSats = 0) {
-              return existingCommentSats + sats
-            }
-          }
-        })
-      })
-    }
-  }
-
-  const [act] = usePaidMutation(ACT_MUTATION, {
-    // todo: this should be moved out of here for bounties
-    update: (cache, response) => {
-      modifyCache(cache, response)
-      update?.(cache, response)
-    },
-    onPayError: (e, cache, response) => {
-      const { data: { act: { result } } } = response
-      if (!result) return
-      const { sats } = result
-      modifyCache(cache, { data: { act: { result: { ...result, sats: -1 * sats } } } })
     }
   })
 
+  if (act === 'TIP') {
+    // update all ancestors
+    path.split('.').forEach(aId => {
+      if (Number(aId) === Number(id)) return
+      cache.modify({
+        id: `Item:${aId}`,
+        fields: {
+          commentSats (existingCommentSats = 0) {
+            return existingCommentSats + sats
+          }
+        }
+      })
+    })
+  }
+}
+
+export function useAct ({ query = ACT_MUTATION, extend, ...options } = {}) {
+  // because the mutation name we use varies,
+  // we need to extract the result/invoice from the response
+  const getPaidActionResult = data => Object.values(data)[0]
+
+  const [act] = usePaidMutation(query, {
+    update: (cache, { data }) => {
+      const response = getPaidActionResult(data)
+      if (!response) return
+      modifyActCache(cache, response)
+      extend?.update?.(cache, response)
+    },
+    onPayError: (e, cache, { data }) => {
+      const response = getPaidActionResult(data)
+      if (!response || !response.result) return
+      const { result: { sats } } = response
+      const negate = { ...response, result: { ...response.result, sats: -1 * sats } }
+      modifyActCache(cache, negate)
+      extend?.onPayError?.(e, cache, negate)
+    },
+    onPaid: (cache, { data }) => {
+      const response = getPaidActionResult(data)
+      if (!response) return
+      extend?.onPaid?.(cache, response)
+    },
+    ...options
+  })
   return act
 }
 

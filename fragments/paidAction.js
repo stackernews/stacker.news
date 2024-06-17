@@ -10,16 +10,50 @@ export const PAID_ACTION = gql`
       hmac
       id
       expiresAt
+      actionState
+      actionType
     }
     paymentMethod
   }`
 
+const ITEM_PAID_ACTION_FIELDS = gql`
+  ${COMMENTS}
+  fragment ItemPaidActionFields on ItemPaidAction {
+    result {
+      id
+      deleteScheduledAt
+      reminderScheduledAt
+      ...CommentFields
+      comments {
+        ...CommentsRecursive
+      }
+    }
+  }`
+
+const ITEM_ACT_PAID_ACTION_FIELDS = gql`
+  fragment ItemActPaidActionFields on ItemActPaidAction {
+    result {
+      id
+      sats
+      path
+      act
+    }
+  }`
+
 export const RETRY_PAID_ACTION = gql`
   ${PAID_ACTION}
+  ${ITEM_PAID_ACTION_FIELDS}
+  ${ITEM_ACT_PAID_ACTION_FIELDS}
   mutation retryPaidAction($invoiceId: Int!) {
     retryPaidAction(invoiceId: $invoiceId) {
       __typename
       ...PaidActionFields
+      ... on ItemPaidAction {
+        ...ItemPaidActionFields
+      }
+      ... on ItemActPaidAction {
+        ...ItemActPaidActionFields
+      }
     }
   }`
 
@@ -36,14 +70,10 @@ export const DONATE = gql`
 
 export const ACT_MUTATION = gql`
   ${PAID_ACTION}
+  ${ITEM_ACT_PAID_ACTION_FIELDS}
   mutation act($id: ID!, $sats: Int!, $act: String, $hash: String, $hmac: String) {
     act(id: $id, sats: $sats, act: $act, hash: $hash, hmac: $hmac) {
-      result {
-        id
-        sats
-        path
-        act
-      }
+      ...ItemActPaidActionFields
       ...PaidActionFields
     }
   }`
@@ -106,35 +136,21 @@ export const UPSERT_POLL = gql`
   }`
 
 export const CREATE_COMMENT = gql`
-  ${COMMENTS}
+  ${ITEM_PAID_ACTION_FIELDS}
   ${PAID_ACTION}
   mutation upsertComment($text: String!, $parentId: ID!, $hash: String, $hmac: String) {
     upsertComment(text: $text, parentId: $parentId, hash: $hash, hmac: $hmac) {
-      result {
-        ...CommentFields
-        deleteScheduledAt
-        reminderScheduledAt
-        comments {
-          ...CommentsRecursive
-        }
-      }
+      ...ItemPaidActionFields
       ...PaidActionFields
     }
   }`
 
 export const UPSERT_COMMENT = gql`
-  ${COMMENTS}
+  ${ITEM_PAID_ACTION_FIELDS}
   ${PAID_ACTION}
   mutation upsertComment($id: ID!, $text: String!, $hash: String, $hmac: String) {
     upsertComment(id: $id, text: $text, hash: $hash, hmac: $hmac) {
-      result {
-        ...CommentFields
-        deleteScheduledAt
-        reminderScheduledAt
-        comments {
-          ...CommentsRecursive
-        }
-      }
+      ...ItemPaidActionFields
       ...PaidActionFields
     }
   }`

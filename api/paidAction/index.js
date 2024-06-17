@@ -114,10 +114,8 @@ export async function retryPaidAction (actionType, args, context) {
     // create a new invoice
     const invoice = await createDbInvoice(actionType, args, context)
 
-    // retry the action, by replacing the old invoiceId with the new one
-    await action.retry({ invoiceId, newInvoiceId: invoice.id }, context)
-
     return {
+      result: await action.retry({ invoiceId, newInvoiceId: invoice.id }, context),
       invoice,
       paymentMethod: 'OPTIMISTIC'
     }

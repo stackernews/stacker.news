@@ -155,6 +155,8 @@ export const useQrPayment = () => {
         <Invoice
           id={inv.id}
           modal
+          description
+          status='loading'
           successVerb='received'
           webLn={false}
           webLnError={webLnError}

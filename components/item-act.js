@@ -64,7 +64,13 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
   const onSubmit = useCallback(async ({ amount, hash, hmac }) => {
     if (abortSignal && zapUndoTrigger({ me, amount })) {
       onClose?.()
-      await abortSignal.pause({ me, amount })
+      try {
+        await abortSignal.pause({ me, amount })
+      } catch (error) {
+        if (error instanceof ActCanceledError) {
+          return
+        }
+      }
     }
     strike()
     await act({

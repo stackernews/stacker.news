@@ -344,8 +344,8 @@ function Invoicification ({ n: { invoice, sortTime } }) {
   const { invoiceId, invoiceActionState } = { ...invoice.item, ...invoice.itemAct }
   const itemType = invoice.item.title ? 'post' : 'comment'
 
-  if (['ITEM_CREATE', 'ITEM_UPDATE'].includes(invoice.actionType)) {
-    actionString = `${itemType} ${invoice.actionType === 'ITEM_CREATE' ? 'create' : 'edit'} `
+  if (invoice.actionType === 'ITEM_CREATE') {
+    actionString = `${itemType} create `
     retry = retryCreateItem
   } else {
     actionString = `${invoice.actionType === 'ZAP' ? 'zap' : 'downzap'} on ${itemType} `

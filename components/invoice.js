@@ -132,9 +132,6 @@ function ActionInfo ({ invoice }) {
     case 'ITEM_CREATE':
       actionString = 'item creation '
       break
-    case 'ITEM_UPDATE':
-      actionString = 'item update '
-      break
     case 'ZAP':
       actionString = 'zap on item '
       break

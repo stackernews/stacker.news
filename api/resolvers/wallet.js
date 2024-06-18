@@ -541,7 +541,6 @@ export default {
     item: async (invoice, args, { models, me }) => {
       switch (invoice.actionType) {
         case 'ITEM_CREATE':
-        case 'ITEM_UPDATE':
           return (await itemQueryWithMeta({
             me,
             models,

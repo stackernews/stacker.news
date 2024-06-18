@@ -340,9 +340,9 @@ export default {
         AND "Invoice"."actionState" = 'FAILED'
         AND (
           "Invoice"."actionType" = 'ITEM_CREATE' OR
-          "Invoice"."actionType" = 'ITEM_UPDATE' OR
           "Invoice"."actionType" = 'ZAP' OR
-          "Invoice"."actionType" = 'DOWN_ZAP'
+          "Invoice"."actionType" = 'DOWN_ZAP' OR
+          "Invoice"."actionType" = 'POLL_VOTE'
         )
         ORDER BY "sortTime" DESC
         LIMIT ${LIMIT})`

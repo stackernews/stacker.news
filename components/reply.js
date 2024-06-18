@@ -114,7 +114,9 @@ export default forwardRef(function Reply ({
           }
         })
       },
-      onPayError: (e, cache, { data: { upsertComment: { result: { id } } } }) => {
+      onPayError: (e, cache, { data: { upsertComment: { result } } }) => {
+        if (!result) return
+        const { id } = result
         // set the invoiceActionState to FAILED
         cache.modify({
           id: `Item:${id}`,

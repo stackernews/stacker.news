@@ -12,7 +12,7 @@ this is just like useMutation with a few changes:
   b. it's called after the invoice is paid for pessimistic updates
 4. we return a payError field in the result object if the invoice fails to pay
 */
-export function usePaidMutation (mutation, { onCompleted, ...options }) {
+export function usePaidMutation (mutation, { onCompleted, ...options } = {}) {
   options.optimisticResponse = addOptimisticResponseExtras(options.optimisticResponse)
   const [mutate, result] = useMutation(mutation, options)
   const waitForWebLnPayment = useWebLnPayment()

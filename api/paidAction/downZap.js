@@ -25,24 +25,25 @@ export async function perform ({ invoiceId, sats, id: itemId }, { me, cost, mode
 export async function retry ({ invoiceId, newInvoiceId }, { tx, cost }) {
   await tx.itemAct.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
   const [{ id, path }] = await tx.$queryRaw`
-    SELECT id, ltree2text(path) as path
+    SELECT "Item".id, ltree2text(path) as path
     FROM "Item"
-    JOIN "ItemAct" ON "Item".id = "ItemAct".itemId
-    WHERE "ItemAct".invoiceId = ${newInvoiceId}`
-  return { id, sats: cost / BigInt(1000), act: 'DONT_LIKE_THIS', path }
+    JOIN "ItemAct" ON "Item".id = "ItemAct"."itemId"
+    WHERE "ItemAct"."invoiceId" = ${newInvoiceId}`
+  return { id, sats: Number(BigInt(cost) / BigInt(1000)), act: 'DONT_LIKE_THIS', path }
 }
 
 export async function onPaid ({ invoice, actId }, { models, tx }) {
   let itemAct
   if (invoice) {
-    itemAct = await tx.itemAct.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } })
+    await tx.itemAct.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } })
+    itemAct = await tx.itemAct.findFirst({ where: { invoiceId: invoice.id } })
   } else if (actId) {
     itemAct = await tx.itemAct.findUnique({ where: { id: actId } })
   } else {
     throw new Error('No invoice or actId')
   }
 
-  await tx.$executeRaw`SELECT weighted_downvotes_after_act(${itemAct.itemId}::INTEGER, ${itemAct.userId}::INTEGER, ${itemAct.msats / BigInt(1000)}::INTEGER)`
+  await tx.$executeRaw`SELECT weighted_downvotes_after_act(${itemAct.itemId}::INTEGER, ${itemAct.userId}::INTEGER, ${BigInt(itemAct.msats) / BigInt(1000)}::INTEGER)`
 }
 
 export async function onFail ({ invoice }, { tx }) {

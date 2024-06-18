@@ -21,53 +21,54 @@ export async function getMentions ({ text, id }, { me, models }) {
 }
 
 export async function performBotBehavior ({ text, id }, { me, models, tx }) {
-  if (text) {
-    const userId = me?.id || USER_ID.anon
-    const deleteAt = getDeleteAt(text)
-    if (deleteAt) {
-      models.$queryRaw`
+  // delete any existing deleteItem or reminder jobs for this item
+  const userId = me?.id || USER_ID.anon
+  await tx.$queryRaw`
+    DELETE FROM pgboss.job
+    WHERE name = 'deleteItem'
+    AND data->>'id' = ${id}::TEXT
+    AND state <> 'completed'`
+  await tx.$queryRaw`
         DELETE FROM pgboss.job
         WHERE name = 'reminder'
         AND data->>'itemId' = ${id}::TEXT
         AND data->>'userId' = ${userId}::TEXT
         AND state <> 'completed'`
+  await tx.reminder.deleteMany({
+    where: {
+      itemId: Number(id),
+      userId: Number(userId),
+      remindAt: {
+        gt: new Date()
+      }
+    }
+  })
+
+  if (text) {
+    const deleteAt = getDeleteAt(text)
+    if (deleteAt) {
       await tx.$queryRaw`
         INSERT INTO pgboss.job (name, data, startafter, expirein)
         VALUES (
           'deleteItem',
-          jsonb_build_object('id', ${id}),
-          ${deleteAt},
-          ${deleteAt} - now() + interval '1 minute')`
+          jsonb_build_object('id', ${id}::INTEGER),
+          ${deleteAt}::TIMESTAMP,
+          ${deleteAt}::TIMESTAMP - now() + interval '1 minute')`
     }
 
     const remindAt = getRemindAt(text)
     if (remindAt) {
       await tx.$queryRaw`
-      DELETE FROM pgboss.job
-      WHERE name = 'reminder'
-      AND data->>'itemId' = ${id}::TEXT
-      AND data->>'userId' = ${userId}::TEXT
-      AND state <> 'completed'`
-      await tx.reminder.deleteMany({
-        where: {
-          itemId: Number(id),
-          userId: Number(userId),
-          remindAt: {
-            gt: new Date()
-          }
-        }
-      })
-      await tx.$queryRaw`
         INSERT INTO pgboss.job (name, data, startafter, expirein)
         VALUES (
-          'remindItem',
-          jsonb_build_object('id', ${id}),
-          ${remindAt},
-          ${remindAt} - now() + interval '1 minute')`
+          'reminder',
+          jsonb_build_object('itemId', ${id}::INTEGER, 'userId', ${userId}::INTEGER),
+          ${remindAt}::TIMESTAMP,
+          ${remindAt}::TIMESTAMP - now() + interval '1 minute')`
       await tx.reminder.create({
         data: {
           userId,
-          itemId: id,
+          itemId: Number(id),
           remindAt
         }
       })

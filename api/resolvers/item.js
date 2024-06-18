@@ -1155,7 +1155,11 @@ export default {
         // Only query for deleteScheduledAt for your own items to keep DB queries minimized
         return null
       }
-      const deleteJobs = await models.$queryRawUnsafe(`SELECT startafter FROM pgboss.job WHERE name = 'deleteItem' AND data->>'id' = '${item.id}'`)
+      const deleteJobs = await models.$queryRaw`
+        SELECT startafter
+        FROM pgboss.job
+        WHERE name = 'deleteItem' AND data->>'id' = ${item.id}::TEXT
+        AND state = 'created'`
       return deleteJobs[0]?.startafter ?? null
     },
     reminderScheduledAt: async (item, args, { me, models }) => {
@@ -1165,7 +1169,13 @@ export default {
         // don't support reminders for ANON
         return null
       }
-      const reminderJobs = await models.$queryRawUnsafe(`SELECT startafter FROM pgboss.job WHERE name = 'reminder' AND data->>'itemId' = '${item.id}' AND data->>'userId' = '${meId}'`)
+      const reminderJobs = await models.$queryRaw`
+        SELECT startafter
+        FROM pgboss.job
+        WHERE name = 'reminder'
+        AND data->>'itemId' = ${item.id}::TEXT
+        AND data->>'userId' = ${meId}::TEXT
+        AND state = 'created'`
       return reminderJobs[0]?.startafter ?? null
     }
   }

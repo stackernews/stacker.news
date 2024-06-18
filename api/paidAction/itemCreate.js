@@ -104,20 +104,22 @@ export async function perform (args, context) {
     })).bio
   }
 
-  const { id } = await tx.item.create({ data: itemData })
+  const item = await tx.item.create({ data: itemData })
 
   // store a reference to the item in the invoice
   if (invoiceId) {
     await tx.invoice.update({
       where: { id: invoiceId },
-      data: { actionId: id }
+      data: { actionId: item.id }
     })
   }
+
+  await performBotBehavior(item, context)
 
   // ltree is unsupported in Prisma, so we have to query it manually (FUCK!)
   return (await tx.$queryRaw`
     SELECT *, ltree2text(path) AS path, created_at AS "createdAt", updated_at AS "updatedAt"
-    FROM "Item" WHERE id = ${id}`
+    FROM "Item" WHERE id = ${item.id}`
   )[0]
 }
 
@@ -145,8 +147,6 @@ export async function onPaid ({ invoice, id }, context) {
   } else {
     throw new Error('No item found')
   }
-
-  await performBotBehavior(item, context)
 
   if (item.maxBid) {
     await tx.$executeRaw`SELECT run_auction(${item.id}::INTEGER)`

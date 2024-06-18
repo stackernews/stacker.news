@@ -106,6 +106,14 @@ export async function perform (args, context) {
 
   const { id } = await tx.item.create({ data: itemData })
 
+  // store a reference to the item in the invoice
+  if (invoiceId) {
+    await tx.invoice.update({
+      where: { id: invoiceId },
+      data: { actionId: id }
+    })
+  }
+
   // ltree is unsupported in Prisma, so we have to query it manually (FUCK!)
   return (await tx.$queryRaw`
     SELECT *, ltree2text(path) AS path, created_at AS "createdAt", updated_at AS "updatedAt"
@@ -165,5 +173,5 @@ export async function onFail ({ invoice }, { tx }) {
 }
 
 export async function describe ({ parentId }, context) {
-  return `SN: create ${parentId ? `reply to #${parentId}` : 'post'}`
+  return `SN: create ${parentId ? `reply to #${parentId}` : 'item'}`
 }

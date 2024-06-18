@@ -755,6 +755,7 @@ model Invoice {
 
   actionState   InvoiceActionState?
   actionType    InvoiceActionType?
+  actionId      Int?
   ItemAct       ItemAct[]
   Item          Item[]
   Upload        Upload[]

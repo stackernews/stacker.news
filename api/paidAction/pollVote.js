@@ -19,6 +19,11 @@ export async function perform ({ invoiceId, id }, { me, cost, tx }) {
   let invoiceData = {}
   if (invoiceId) {
     invoiceData = { invoiceId, invoiceActionState: 'PENDING' }
+    // store a reference to the item in the invoice
+    await tx.invoice.update({
+      where: { id: invoiceId },
+      data: { actionId: itemId }
+    })
   }
 
   // the unique index on userId, itemId will prevent double voting
@@ -55,6 +60,6 @@ export async function onFail ({ invoice }, { tx }) {
   await tx.pollVote.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'FAILED' } })
 }
 
-export async function describe ({ id }, context) {
-  return `SN: vote on poll #${id}`
+export async function describe ({ id }, { actionId }) {
+  return `SN: vote on poll #${id ?? actionId}`
 }

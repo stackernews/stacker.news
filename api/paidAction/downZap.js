@@ -12,6 +12,11 @@ export async function perform ({ invoiceId, sats, id: itemId }, { me, cost, mode
   let invoiceData = {}
   if (invoiceId) {
     invoiceData = { invoiceId, invoiceActionState: 'PENDING' }
+    // store a reference to the item in the invoice
+    await tx.invoice.update({
+      where: { id: invoiceId },
+      data: { actionId: itemId }
+    })
   }
 
   const itemAct = await tx.itemAct.create({
@@ -50,6 +55,6 @@ export async function onFail ({ invoice }, { tx }) {
   await tx.itemAct.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'FAILED' } })
 }
 
-export async function describe ({ itemId, sats }, context) {
-  return `SN: downzap of ${sats} sats to #${itemId}`
+export async function describe ({ itemId, sats }, { cost, actionId }) {
+  return `SN: downzap of ${sats ?? (cost / BigInt(1000))} sats to #${itemId ?? actionId}`
 }

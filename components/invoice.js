@@ -128,28 +128,33 @@ function ActionInfo ({ invoice }) {
 
   let className = 'text-info'
   let actionString = ''
-  switch (invoice.actionType) {
-    case 'ITEM_CREATE':
-      actionString = 'item creation '
-      break
-    case 'ZAP':
-      actionString = 'zap on item '
-      break
-    case 'DOWN_ZAP':
-      actionString = 'downzap on item '
-      break
-  }
 
   switch (invoice.actionState) {
     case 'FAILED':
-      actionString += 'failed'
+    case 'RETRYING':
+      actionString += 'attempted '
       className = 'text-warning'
       break
     case 'PAID':
-      actionString += 'paid'
+      actionString += 'successful '
       break
     default:
-      actionString += 'pending'
+      actionString += 'pending '
+  }
+
+  switch (invoice.actionType) {
+    case 'ITEM_CREATE':
+      actionString += 'item creation'
+      break
+    case 'ZAP':
+      actionString += 'zap on item'
+      break
+    case 'DOWN_ZAP':
+      actionString += 'downzap on item'
+      break
+    case 'POLL_VOTE':
+      actionString += 'downzap on item'
+      break
   }
 
   return (

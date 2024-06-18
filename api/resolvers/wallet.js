@@ -539,29 +539,20 @@ export default {
     satsReceived: i => msatsToSats(i.msatsReceived),
     satsRequested: i => msatsToSats(i.msatsRequested),
     item: async (invoice, args, { models, me }) => {
+      if (!invoice.actionId) return null
       switch (invoice.actionType) {
         case 'ITEM_CREATE':
-          return (await itemQueryWithMeta({
-            me,
-            models,
-            query: `
-              ${SELECT}
-              FROM "Item"
-              WHERE "invoiceId" = $1
-              AND "userId" = $2`
-          }, Number(invoice.id), Number(me?.id)))?.[0]
         case 'ZAP':
         case 'DOWN_ZAP':
+        case 'POLL_VOTE':
           return (await itemQueryWithMeta({
             me,
             models,
             query: `
               ${SELECT}
               FROM "Item"
-              JOIN "ItemAct" ON "ItemAct"."itemId" = "Item".id
-              WHERE "ItemAct"."invoiceId" = $1
-              AND "ItemAct"."userId" = $2`
-          }, Number(invoice.id), me?.id))?.[0]
+              WHERE id = $1`
+          }, Number(invoice.actionId)))?.[0]
         default:
           return null
       }

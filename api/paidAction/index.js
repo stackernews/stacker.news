@@ -72,74 +72,6 @@ export default async function performPaidAction (actionType, args, context) {
   }
 }
 
-export async function retryPaidAction (actionType, args, context) {
-  const { models, me } = context
-  const { invoiceId } = args
-
-  const action = paidActions[actionType]
-  if (!action) {
-    throw new Error(`retryPaidAction - invalid action type ${actionType}`)
-  }
-
-  if (!me) {
-    throw new Error(`retryPaidAction - must be logged in ${actionType}`)
-  }
-
-  if (!action.supportsOptimism) {
-    throw new Error(`retryPaidAction - action does not support optimism ${actionType}`)
-  }
-
-  if (!action.retry) {
-    throw new Error(`retryPaidAction - action does not support retrying ${actionType}`)
-  }
-
-  context.user = await models.user.findUnique({ where: { id: me.id } })
-  return await models.$transaction(async tx => {
-    context.tx = tx
-    context.optimistic = true
-
-    // update the old invoice to RETRYING, so that it's not confused with FAILED
-    const { msatsRequested } = await tx.invoice.update({
-      where: {
-        id: invoiceId,
-        actionState: 'FAILED'
-      },
-      data: {
-        actionState: 'RETRYING'
-      }
-    })
-
-    context.cost = BigInt(msatsRequested)
-
-    // create a new invoice
-    const invoice = await createDbInvoice(actionType, args, context)
-
-    return {
-      result: await action.retry({ invoiceId, newInvoiceId: invoice.id }, context),
-      invoice,
-      paymentMethod: 'OPTIMISTIC'
-    }
-  })
-}
-
-async function performOptimisticAction (actionType, args, context) {
-  const { models } = context
-  const action = paidActions[actionType]
-
-  return await models.$transaction(async tx => {
-    context.tx = tx
-    context.optimistic = true
-
-    const invoice = await createDbInvoice(actionType, args, context)
-
-    return {
-      invoice,
-      result: await action.perform({ invoiceId: invoice.id, ...args }, context),
-      paymentMethod: 'OPTIMISTIC'
-    }
-  })
-}
-
 async function performFeeCreditAction (actionType, args, context) {
   const { me, models, cost } = context
   const action = paidActions[actionType]
@@ -164,6 +96,24 @@ async function performFeeCreditAction (actionType, args, context) {
     return {
       result,
       paymentMethod: 'FEE_CREDIT'
+    }
+  })
+}
+
+async function performOptimisticAction (actionType, args, context) {
+  const { models } = context
+  const action = paidActions[actionType]
+
+  return await models.$transaction(async tx => {
+    context.tx = tx
+    context.optimistic = true
+
+    const invoice = await createDbInvoice(actionType, args, context)
+
+    return {
+      invoice,
+      result: await action.perform({ invoiceId: invoice.id, ...args }, context),
+      paymentMethod: 'OPTIMISTIC'
     }
   })
 }
@@ -209,11 +159,62 @@ async function performPessimiticAction (actionType, args, context) {
   }
 }
 
+export async function retryPaidAction (actionType, args, context) {
+  const { models, me } = context
+  const { invoiceId } = args
+
+  const action = paidActions[actionType]
+  if (!action) {
+    throw new Error(`retryPaidAction - invalid action type ${actionType}`)
+  }
+
+  if (!me) {
+    throw new Error(`retryPaidAction - must be logged in ${actionType}`)
+  }
+
+  if (!action.supportsOptimism) {
+    throw new Error(`retryPaidAction - action does not support optimism ${actionType}`)
+  }
+
+  if (!action.retry) {
+    throw new Error(`retryPaidAction - action does not support retrying ${actionType}`)
+  }
+
+  context.user = await models.user.findUnique({ where: { id: me.id } })
+  return await models.$transaction(async tx => {
+    context.tx = tx
+    context.optimistic = true
+
+    // update the old invoice to RETRYING, so that it's not confused with FAILED
+    const { msatsRequested, actionId } = await tx.invoice.update({
+      where: {
+        id: invoiceId,
+        actionState: 'FAILED'
+      },
+      data: {
+        actionState: 'RETRYING'
+      }
+    })
+
+    context.cost = BigInt(msatsRequested)
+    context.actionId = actionId
+
+    // create a new invoice
+    const invoice = await createDbInvoice(actionType, args, context)
+
+    return {
+      result: await action.retry({ invoiceId, newInvoiceId: invoice.id }, context),
+      invoice,
+      paymentMethod: 'OPTIMISTIC'
+    }
+  })
+}
+
 const OPTIMISTIC_INVOICE_EXPIRE = { seconds: 10 } // { hours: 1 }
 const PESSIMISTIC_INVOICE_EXPIRE = { seconds: 10 } // { minutes: 10 }
 
 async function createDbInvoice (actionType, args, context) {
-  const { user, models, tx, lnd, cost, optimistic } = context
+  const { user, models, tx, lnd, cost, optimistic, actionId } = context
   const action = paidActions[actionType]
   const createLNDInvoice = optimistic ? createInvoice : createHodlInvoice
   const db = tx ?? models
@@ -235,7 +236,8 @@ async function createDbInvoice (actionType, args, context) {
       userId: user?.id || USER_ID.anon,
       actionType,
       actionState: optimistic ? 'PENDING' : 'PENDING_HELD',
-      expiresAt
+      expiresAt,
+      actionId
     }
   })
 

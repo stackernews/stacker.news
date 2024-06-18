@@ -6,7 +6,8 @@ CREATE TYPE "InvoiceActionState" AS ENUM ('PENDING', 'PENDING_HELD', 'HELD', 'PA
 
 -- AlterTable
 ALTER TABLE "Invoice" ADD COLUMN     "actionState" "InvoiceActionState",
-ADD COLUMN     "actionType" "InvoiceActionType";
+ADD COLUMN     "actionType" "InvoiceActionType",
+ADD COLUMN     "actionId" INTEGER;
 
 -- AlterTable
 ALTER TABLE "Item" ADD COLUMN     "invoiceActionState" "InvoiceActionState",

@@ -62,6 +62,10 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
   const act = useAct()
 
   const onSubmit = useCallback(async ({ amount, hash, hmac }) => {
+    if (abortSignal && zapUndoTrigger({ me, amount })) {
+      onClose?.()
+      await abortSignal.pause({ me, amount })
+    }
     strike()
     await act({
       variables: {
@@ -87,7 +91,7 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
       }
     })
     addCustomTip(Number(amount))
-  }, [me, act, down, item.id, strike])
+  }, [me, act, down, item.id, strike, onClose, abortSignal])
 
   return (
     <Form
@@ -210,6 +214,7 @@ export function useZap () {
     const optimisticResponse = { act: { result: { path: item.path, ...variables } } }
 
     try {
+      await abortSignal.pause({ me, amount: sats })
       strike()
       await act({ variables, optimisticResponse })
     } catch (error) {
@@ -232,10 +237,10 @@ export class ActCanceledError extends Error {
 }
 
 export class ZapUndoController extends AbortController {
-  constructor () {
+  constructor ({ onStart = () => {}, onDone = () => {} }) {
     super()
-    this.signal.start = () => { this.started = true }
-    this.signal.done = () => { this.done = true }
+    this.signal.start = onStart
+    this.signal.done = onDone
     this.signal.pause = async ({ me, amount }) => {
       if (zapUndoTrigger({ me, amount })) {
         await zapUndo(this.signal)

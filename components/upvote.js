@@ -98,7 +98,7 @@ export default function UpVote ({ item, className }) {
   )
 
   const [controller, setController] = useState(null)
-  const pending = controller?.started && !controller.done
+  const [pending, setPending] = useState(false)
 
   const setVoteShow = useCallback((yes) => {
     if (!me) return
@@ -148,7 +148,7 @@ export default function UpVote ({ item, className }) {
     setHover(false)
   }
 
-  const handleLongPress = (e) => {
+  const handleLongPress = async (e) => {
     if (!item) return
 
     // we can't tip ourselves
@@ -163,7 +163,7 @@ export default function UpVote ({ item, className }) {
       setController(null)
       return
     }
-    const c = new ZapUndoController()
+    const c = new ZapUndoController({ onStart: () => setPending(true), onDone: () => setPending(false) })
     setController(c)
 
     showModal(onClose =>
@@ -190,7 +190,7 @@ export default function UpVote ({ item, className }) {
         setController(null)
         return
       }
-      const c = new ZapUndoController()
+      const c = new ZapUndoController({ onStart: () => setPending(true), onDone: () => setPending(false) })
       setController(c)
 
       await zap({ item, me, abortSignal: c.signal })

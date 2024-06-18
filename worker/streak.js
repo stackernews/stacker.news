@@ -13,6 +13,7 @@ export async function computeStreaks ({ models }) {
       ((SELECT "userId", floor(sum("ItemAct".msats)/1000) as sats_spent
           FROM "ItemAct"
           WHERE (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')::date >= (now() AT TIME ZONE 'America/Chicago' - interval '1 day')::date
+          AND ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID')
           GROUP BY "userId")
       UNION ALL
       (SELECT "userId", sats as sats_spent
@@ -90,6 +91,7 @@ export async function checkStreak ({ data: { id }, models }) {
             FROM "ItemAct"
             WHERE (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')::date >= (now() AT TIME ZONE 'America/Chicago')::date
             AND "userId" = ${Number(id)}
+            AND ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID')
             GROUP BY "userId")
         UNION ALL
         (SELECT "userId", sats as sats_spent

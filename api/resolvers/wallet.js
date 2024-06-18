@@ -215,6 +215,7 @@ export default {
             WHERE "ItemAct".act = 'TIP'
             AND ("Item"."userId" = $1 OR "ItemForward"."userId" = $1)
             AND "ItemAct".created_at <= $2
+            AND ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID')
             GROUP BY "Item".id)`
         )
         queries.push(
@@ -247,6 +248,7 @@ export default {
             JOIN "Item" on "ItemAct"."itemId" = "Item".id
             WHERE "ItemAct"."userId" = $1
             AND "ItemAct".created_at <= $2
+            AND ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID')
             GROUP BY "Item".id)`
         )
         queries.push(

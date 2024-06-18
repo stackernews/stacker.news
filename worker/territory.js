@@ -57,6 +57,7 @@ export async function territoryRevenue ({ models }) {
             WHERE date_trunc('day', "ItemAct".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = date_trunc('day', (now() AT TIME ZONE 'America/Chicago' - interval '1 day'))
               AND "ItemAct".act <> 'TIP'
               AND "Sub".status <> 'STOPPED'
+              AND ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID')
         ) subquery
         GROUP BY "subName", "userId"
       ),

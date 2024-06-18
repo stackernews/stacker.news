@@ -128,6 +128,7 @@ async function getGraph (models) {
         JOIN "Item" ON "Item".id = "ItemAct"."itemId" AND "ItemAct".act IN ('FEE', 'TIP', 'DONT_LIKE_THIS')
           AND "Item"."parentId" IS NULL AND NOT "Item".bio AND "Item"."userId" <> "ItemAct"."userId"
         JOIN users ON "ItemAct"."userId" = users.id AND users.id <> ${USER_ID.anon}
+        WHERE "ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID'
         GROUP BY user_id, name, item_id, user_at, against
         HAVING CASE WHEN
           "ItemAct".act = 'DONT_LIKE_THIS' THEN sum("ItemAct".msats) > ${AGAINST_MSAT_MIN}

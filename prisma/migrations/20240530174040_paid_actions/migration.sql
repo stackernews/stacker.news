@@ -312,3 +312,535 @@ BEGIN
     RETURN result;
 END
 $$;
+
+DROP MATERIALIZED VIEW IF EXISTS zap_rank_personal_view;
+CREATE MATERIALIZED VIEW IF NOT EXISTS zap_rank_personal_view AS
+WITH item_votes AS (
+    SELECT "Item".id, "Item"."parentId", "Item".boost, "Item".created_at, "Item"."weightedComments", "ItemAct"."userId" AS "voterId",
+        LOG((SUM("ItemAct".msats) FILTER (WHERE "ItemAct".act IN ('TIP', 'FEE'))) / 1000.0) AS "vote",
+        GREATEST(LOG((SUM("ItemAct".msats) FILTER (WHERE "ItemAct".act = 'DONT_LIKE_THIS')) / 1000.0), 0) AS "downVote"
+    FROM "Item"
+    CROSS JOIN zap_rank_personal_constants
+    JOIN "ItemAct" ON "ItemAct"."itemId" = "Item".id
+    WHERE (
+        ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID')
+        AND
+        (
+            ("ItemAct"."userId" <> "Item"."userId" AND "ItemAct".act IN ('TIP', 'FEE', 'DONT_LIKE_THIS'))
+        OR
+            ("ItemAct".act = 'BOOST' AND "ItemAct"."userId" = "Item"."userId")
+        )
+    )
+    AND "Item".created_at >= now_utc() - item_age_bound
+    GROUP BY "Item".id, "Item"."parentId", "Item".boost, "Item".created_at, "Item"."weightedComments", "ItemAct"."userId"
+    HAVING SUM("ItemAct".msats) > 1000
+), viewer_votes AS (
+    SELECT item_votes.id, item_votes."parentId", item_votes.boost, item_votes.created_at,
+        item_votes."weightedComments", "Arc"."fromId" AS "viewerId",
+        GREATEST("Arc"."zapTrust", g."zapTrust", 0) * item_votes."vote" AS "weightedVote",
+        GREATEST("Arc"."zapTrust", g."zapTrust", 0) * item_votes."downVote" AS "weightedDownVote"
+    FROM item_votes
+    CROSS JOIN zap_rank_personal_constants
+    LEFT JOIN "Arc" ON "Arc"."toId" = item_votes."voterId"
+    LEFT JOIN "Arc" g ON g."fromId" = global_viewer_id AND g."toId" = item_votes."voterId"
+    AND ("Arc"."zapTrust" IS NOT NULL OR g."zapTrust" IS NOT NULL)
+), viewer_weighted_votes AS (
+    SELECT viewer_votes.id, viewer_votes."parentId", viewer_votes.boost, viewer_votes.created_at, viewer_votes."viewerId",
+        viewer_votes."weightedComments", SUM(viewer_votes."weightedVote") AS "weightedVotes",
+        SUM(viewer_votes."weightedDownVote") AS "weightedDownVotes"
+    FROM viewer_votes
+    GROUP BY viewer_votes.id, viewer_votes."parentId", viewer_votes.boost, viewer_votes.created_at, viewer_votes."viewerId", viewer_votes."weightedComments"
+), viewer_zaprank AS (
+    SELECT l.id, l."parentId", l.boost, l.created_at, l."viewerId", l."weightedComments",
+        GREATEST(l."weightedVotes", g."weightedVotes") AS "weightedVotes", GREATEST(l."weightedDownVotes", g."weightedDownVotes") AS "weightedDownVotes"
+    FROM viewer_weighted_votes l
+    CROSS JOIN zap_rank_personal_constants
+    JOIN users ON users.id = l."viewerId"
+    JOIN viewer_weighted_votes g ON l.id = g.id AND g."viewerId" = global_viewer_id
+    WHERE (l."weightedVotes" > min_viewer_votes
+        AND g."weightedVotes" / l."weightedVotes" <= max_personal_viewer_vote_ratio
+        AND users."lastSeenAt" >= now_utc() - user_last_seen_bound)
+    OR l."viewerId" = global_viewer_id
+    GROUP BY l.id, l."parentId", l.boost, l.created_at, l."viewerId", l."weightedVotes", l."weightedComments",
+        g."weightedVotes", l."weightedDownVotes", g."weightedDownVotes", min_viewer_votes
+    HAVING GREATEST(l."weightedVotes", g."weightedVotes") > min_viewer_votes OR l.boost > 0
+), viewer_fractions_zaprank AS (
+    SELECT z.*,
+        (CASE WHEN z."weightedVotes" - z."weightedDownVotes" > 0 THEN
+              GREATEST(z."weightedVotes" - z."weightedDownVotes", POWER(z."weightedVotes" - z."weightedDownVotes", vote_power))
+            ELSE
+                z."weightedVotes" - z."weightedDownVotes"
+            END + z."weightedComments" * CASE WHEN z."parentId" IS NULL THEN comment_scaler ELSE 0 END) AS tf_numerator,
+        POWER(GREATEST(age_wait_hours, EXTRACT(EPOCH FROM (now_utc() - z.created_at))/3600), vote_decay) AS decay_denominator,
+        (POWER(z.boost/boost_per_vote, boost_power)
+         /
+         POWER(GREATEST(age_wait_hours, EXTRACT(EPOCH FROM (now_utc() - z.created_at))/3600), boost_decay)) AS boost_addend
+    FROM viewer_zaprank z, zap_rank_personal_constants
+)
+SELECT z.id, z."parentId", z."viewerId",
+    COALESCE(tf_numerator, 0) / decay_denominator + boost_addend AS tf_hot_score,
+    COALESCE(tf_numerator, 0) AS tf_top_score
+FROM viewer_fractions_zaprank z
+WHERE tf_numerator > 0 OR boost_addend > 0;
+
+CREATE UNIQUE INDEX IF NOT EXISTS zap_rank_personal_view_viewer_id_idx ON zap_rank_personal_view("viewerId", id);
+CREATE INDEX IF NOT EXISTS hot_tf_zap_rank_personal_view_idx ON zap_rank_personal_view("viewerId", tf_hot_score DESC NULLS LAST, id DESC);
+CREATE INDEX IF NOT EXISTS top_tf_zap_rank_personal_view_idx ON zap_rank_personal_view("viewerId", tf_top_score DESC NULLS LAST, id DESC);
+
+CREATE OR REPLACE FUNCTION rewards(min TIMESTAMP(3), max TIMESTAMP(3), ival INTERVAL, date_part TEXT)
+RETURNS TABLE (
+    t TIMESTAMP(3), total BIGINT, donations BIGINT, fees BIGINT, boost BIGINT, jobs BIGINT, anons_stack BIGINT
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+BEGIN
+    RETURN QUERY
+    SELECT period.t,
+        coalesce(FLOOR(sum(msats)), 0)::BIGINT as total,
+        coalesce(FLOOR(sum(msats) FILTER(WHERE type = 'DONATION')), 0)::BIGINT as donations,
+        coalesce(FLOOR(sum(msats) FILTER(WHERE type NOT IN ('BOOST', 'STREAM', 'DONATION', 'ANON'))), 0)::BIGINT as fees,
+        coalesce(FLOOR(sum(msats) FILTER(WHERE type = 'BOOST')), 0)::BIGINT as boost,
+        coalesce(FLOOR(sum(msats) FILTER(WHERE type = 'STREAM')), 0)::BIGINT as jobs,
+        coalesce(FLOOR(sum(msats) FILTER(WHERE type = 'ANON')), 0)::BIGINT as anons_stack
+    FROM generate_series(min, max, ival) period(t),
+    LATERAL
+    (
+        (SELECT
+            ("ItemAct".msats - COALESCE("ReferralAct".msats, 0)) * COALESCE("Sub"."rewardsPct", 100) * 0.01  as msats,
+            act::text as type
+          FROM "ItemAct"
+          JOIN "Item" ON "Item"."id" = "ItemAct"."itemId"
+          LEFT JOIN "Sub" ON "Sub"."name" = "Item"."subName"
+          LEFT JOIN "ReferralAct" ON "ReferralAct"."itemActId" = "ItemAct".id
+          WHERE date_trunc(date_part, "ItemAct".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = period.t
+            AND "ItemAct".act <> 'TIP'
+            AND ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID'))
+          UNION ALL
+        (SELECT sats * 1000 as msats, 'DONATION' as type
+          FROM "Donation"
+          WHERE date_trunc(date_part, "Donation".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = period.t)
+          UNION ALL
+        -- any earnings from anon's stack that are not forwarded to other users
+        (SELECT "ItemAct".msats, 'ANON' as type
+          FROM "Item"
+          JOIN "ItemAct" ON "ItemAct"."itemId" = "Item".id
+          LEFT JOIN "ItemForward" ON "ItemForward"."itemId" = "Item".id
+          WHERE "Item"."userId" = 27 AND "ItemAct".act = 'TIP'
+          AND date_trunc(date_part, "ItemAct".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = period.t
+          AND ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID')
+          GROUP BY "ItemAct".id, "ItemAct".msats
+          HAVING COUNT("ItemForward".id) = 0)
+    ) x
+    GROUP BY period.t;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION user_values(
+    min TIMESTAMP(3), max TIMESTAMP(3), ival INTERVAL, date_part TEXT,
+    percentile_cutoff INTEGER DEFAULT 33,
+    each_upvote_portion FLOAT DEFAULT 4.0,
+    each_item_portion FLOAT DEFAULT 4.0,
+    handicap_ids INTEGER[] DEFAULT '{616, 6030, 946, 4502}',
+    handicap_zap_mult FLOAT DEFAULT 0.2)
+RETURNS TABLE (
+    t TIMESTAMP(3), id INTEGER, proportion FLOAT
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    min_utc TIMESTAMP(3) := timezone('utc', min AT TIME ZONE 'America/Chicago');
+BEGIN
+    RETURN QUERY
+    SELECT period.t, u."userId", u.total_proportion
+    FROM generate_series(min, max, ival) period(t),
+    LATERAL
+        (WITH item_ratios AS (
+            SELECT *,
+                CASE WHEN "parentId" IS NULL THEN 'POST' ELSE 'COMMENT' END as type,
+                CASE WHEN "weightedVotes" > 0 THEN "weightedVotes"/(sum("weightedVotes") OVER (PARTITION BY "parentId" IS NULL)) ELSE 0 END AS ratio
+            FROM (
+                SELECT *,
+                    NTILE(100)  OVER (PARTITION BY "parentId" IS NULL ORDER BY ("weightedVotes"-"weightedDownVotes") desc) AS percentile,
+                    ROW_NUMBER()  OVER (PARTITION BY "parentId" IS NULL ORDER BY ("weightedVotes"-"weightedDownVotes") desc) AS rank
+                FROM
+                    "Item"
+                WHERE date_trunc(date_part, created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = period.t
+                AND "weightedVotes" > 0 AND "deletedAt" IS NULL AND NOT bio
+            ) x
+            WHERE x.percentile <= percentile_cutoff
+        ),
+        -- get top upvoters of top posts and comments
+        upvoter_islands AS (
+            SELECT "ItemAct"."userId", item_ratios.id, item_ratios.ratio, item_ratios."parentId",
+                "ItemAct".msats as tipped, "ItemAct".created_at as acted_at,
+                ROW_NUMBER() OVER (partition by item_ratios.id order by "ItemAct".created_at asc)
+                - ROW_NUMBER() OVER (partition by item_ratios.id, "ItemAct"."userId" order by "ItemAct".created_at asc) AS island
+            FROM item_ratios
+            JOIN "ItemAct" on "ItemAct"."itemId" = item_ratios.id
+            WHERE act = 'TIP' AND date_trunc(date_part, "ItemAct".created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago') = period.t
+            AND ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID')
+        ),
+        -- isolate contiguous upzaps from the same user on the same item so that when we take the log
+        -- of the upzaps it accounts for successive zaps and does not disproportionately reward them
+        upvoters AS (
+            SELECT "userId", upvoter_islands.id, ratio, "parentId", GREATEST(log(sum(tipped) / 1000), 0) as tipped, min(acted_at) as acted_at
+            FROM upvoter_islands
+            GROUP BY "userId", upvoter_islands.id, ratio, "parentId", island
+        ),
+        -- the relative contribution of each upvoter to the post/comment
+        -- early multiplier: 10/ln(early_rank + e)
+        -- we also weight by trust in a step wise fashion
+        upvoter_ratios AS (
+            SELECT "userId", sum(early_multiplier*tipped_ratio*ratio*CASE WHEN users.id = ANY (handicap_ids) THEN handicap_zap_mult ELSE FLOOR(users.trust*3)+handicap_zap_mult END) as upvoter_ratio,
+                "parentId" IS NULL as "isPost", CASE WHEN "parentId" IS NULL THEN 'TIP_POST' ELSE 'TIP_COMMENT' END as type
+            FROM (
+                SELECT *,
+                    10.0/LN(ROW_NUMBER() OVER (partition by upvoters.id order by acted_at asc) + EXP(1.0)) AS early_multiplier,
+                    tipped::float/(sum(tipped) OVER (partition by upvoters.id)) tipped_ratio
+                FROM upvoters
+                WHERE tipped > 0
+            ) u
+            JOIN users on "userId" = users.id
+            GROUP BY "userId", "parentId" IS NULL
+        ),
+        proportions AS (
+            SELECT "userId", NULL as id, type, ROW_NUMBER() OVER (PARTITION BY "isPost" ORDER BY upvoter_ratio DESC) as rank,
+                upvoter_ratio/(sum(upvoter_ratio) OVER (PARTITION BY "isPost"))/each_upvote_portion as proportion
+            FROM upvoter_ratios
+            WHERE upvoter_ratio > 0
+            UNION ALL
+            SELECT "userId", item_ratios.id, type, rank, ratio/each_item_portion as proportion
+            FROM item_ratios
+        )
+        SELECT "userId", sum(proportions.proportion) AS total_proportion
+        FROM proportions
+        GROUP BY "userId"
+        HAVING sum(proportions.proportion) > 0.000001) u;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION sub_stats(min TIMESTAMP(3), max TIMESTAMP(3), ival INTERVAL, date_part TEXT)
+RETURNS TABLE (
+    t TIMESTAMP(3), sub_name CITEXT, comments BIGINT, posts BIGINT,
+    msats_revenue BIGINT, msats_stacked BIGINT, msats_spent BIGINT)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    min_utc TIMESTAMP(3) := timezone('utc', min AT TIME ZONE 'America/Chicago');
+BEGIN
+    RETURN QUERY
+    SELECT period.t,
+        "subName" as sub_name,
+        (sum(quantity) FILTER (WHERE type = 'COMMENT'))::BIGINT as comments,
+        (sum(quantity) FILTER (WHERE type = 'POST'))::BIGINT as posts,
+        (sum(quantity) FILTER (WHERE type = 'REVENUE'))::BIGINT as msats_revenue,
+        (sum(quantity) FILTER (WHERE type = 'TIP'))::BIGINT as msats_stacked,
+        (sum(quantity) FILTER (WHERE type IN ('BOOST', 'TIP', 'FEE', 'STREAM', 'POLL', 'DONT_LIKE_THIS', 'VOTE')))::BIGINT as msats_spent
+    FROM generate_series(min, max, ival) period(t)
+    LEFT JOIN (
+        -- For msats_spent and msats_stacked
+        (SELECT "subName", "ItemAct"."msats" as quantity, act::TEXT as type, "ItemAct"."created_at"
+            FROM "ItemAct"
+            JOIN "Item" ON "Item"."id" = "ItemAct"."itemId"
+            WHERE "ItemAct"."created_at" >= min_utc
+                AND "subName" IS NOT NULL
+                AND ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID'))
+            UNION ALL
+        (SELECT "subName", 1 as quantity, 'POST' as type, created_at
+            FROM "Item"
+            WHERE created_at >= min_utc
+                AND "Item"."parentId" IS NULL
+                AND "subName" IS NOT NULL)
+            UNION ALL
+        (SELECT root."subName", 1 as quantity, 'COMMENT' as type, "Item"."created_at"
+            FROM "Item"
+            JOIN "Item" root ON "Item"."rootId" = root."id"
+            WHERE "Item"."created_at" >= min_utc
+                AND root."subName" IS NOT NULL)
+            UNION ALL
+        -- For msats_revenue
+        (SELECT "subName", msats as quantity, type::TEXT as type, created_at
+            FROM "SubAct"
+            WHERE created_at >= min_utc)
+    ) u ON period.t = date_trunc(date_part, u.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')
+    GROUP BY "subName", period.t
+    ORDER BY period.t ASC;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION user_stats(min TIMESTAMP(3), max TIMESTAMP(3), ival INTERVAL, date_part TEXT)
+RETURNS TABLE (
+    t TIMESTAMP(3), id INTEGER, comments BIGINT, posts BIGINT, territories BIGINT,
+    referrals BIGINT, msats_tipped BIGINT, msats_rewards BIGINT, msats_referrals BIGINT,
+    msats_revenue BIGINT, msats_stacked BIGINT, msats_fees BIGINT, msats_donated BIGINT,
+    msats_billing BIGINT, msats_spent BIGINT)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    min_utc TIMESTAMP(3) := timezone('utc', min AT TIME ZONE 'America/Chicago');
+BEGIN
+    RETURN QUERY
+    SELECT period.t,
+        "userId" as id,
+        -- counts
+        (sum(quantity) FILTER (WHERE type = 'COMMENT'))::BIGINT as comments,
+        (sum(quantity) FILTER (WHERE type = 'POST'))::BIGINT as posts,
+        (sum(quantity) FILTER (WHERE type = 'TERRITORY'))::BIGINT as territories,
+        (sum(quantity) FILTER (WHERE type = 'REFERRAL'))::BIGINT as referrals,
+        -- stacking
+        (sum(quantity) FILTER (WHERE type = 'TIPPEE'))::BIGINT as msats_tipped,
+        (sum(quantity) FILTER (WHERE type = 'EARN'))::BIGINT as msats_rewards,
+        (sum(quantity) FILTER (WHERE type = 'REFERRAL_ACT'))::BIGINT as msats_referrals,
+        (sum(quantity) FILTER (WHERE type = 'REVENUE'))::BIGINT as msats_revenue,
+        (sum(quantity) FILTER (WHERE type IN ('TIPPEE', 'EARN', 'REFERRAL_ACT', 'REVENUE')))::BIGINT as msats_stacked,
+        -- spending
+        (sum(quantity) FILTER (WHERE type IN ('BOOST', 'TIP', 'FEE', 'STREAM', 'POLL', 'DONT_LIKE_THIS')))::BIGINT as msats_fees,
+        (sum(quantity) FILTER (WHERE type = 'DONATION'))::BIGINT as msats_donated,
+        (sum(quantity) FILTER (WHERE type = 'TERRITORY'))::BIGINT as msats_billing,
+        (sum(quantity) FILTER (WHERE type IN ('BOOST', 'TIP', 'FEE', 'STREAM', 'POLL', 'DONT_LIKE_THIS', 'DONATION', 'TERRITORY')))::BIGINT as msats_spent
+    FROM generate_series(min, max, ival) period(t)
+    LEFT JOIN
+    ((SELECT "userId", msats as quantity, act::TEXT as type, created_at
+        FROM "ItemAct"
+        WHERE created_at >= min_utc
+        AND ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID'))
+        UNION ALL
+    (SELECT "userId", sats*1000 as quantity, 'DONATION' as type, created_at
+        FROM "Donation"
+        WHERE created_at >= min_utc)
+        UNION ALL
+    (SELECT "userId", 1 as quantity,
+        CASE WHEN "Item"."parentId" IS NULL THEN 'POST' ELSE 'COMMENT' END as type, created_at
+        FROM "Item"
+        WHERE created_at >= min_utc)
+        UNION ALL
+    (SELECT "referrerId" as "userId", 1 as quantity, 'REFERRAL' as type, created_at
+        FROM users
+        WHERE "referrerId" IS NOT NULL
+        AND created_at >= min_utc)
+        UNION ALL
+    -- tips accounting for forwarding
+    (SELECT "Item"."userId", floor("ItemAct".msats * (1-COALESCE(sum("ItemForward".pct)/100.0, 0))) as quantity, 'TIPPEE' as type, "ItemAct".created_at
+        FROM "ItemAct"
+        JOIN "Item" on "ItemAct"."itemId" = "Item".id
+        LEFT JOIN "ItemForward" on "ItemForward"."itemId" = "Item".id
+        WHERE "ItemAct".act = 'TIP'
+        AND "ItemAct".created_at >= min_utc
+        AND ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID')
+        GROUP BY "Item"."userId", "ItemAct".id, "ItemAct".msats, "ItemAct".created_at)
+        UNION ALL
+    -- tips where stacker is a forwardee
+    (SELECT "ItemForward"."userId", floor("ItemAct".msats*("ItemForward".pct/100.0)) as quantity, 'TIPPEE' as type, "ItemAct".created_at
+        FROM "ItemAct"
+        JOIN "Item" on "ItemAct"."itemId" = "Item".id
+        JOIN "ItemForward" on "ItemForward"."itemId" = "Item".id
+        WHERE "ItemAct".act = 'TIP'
+        AND "ItemAct".created_at >= min_utc
+        AND ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID'))
+        UNION ALL
+    (SELECT "userId", msats as quantity, 'EARN' as type, created_at
+        FROM "Earn"
+        WHERE created_at >= min_utc)
+        UNION ALL
+    (SELECT "referrerId" as "userId", msats as quantity, 'REFERRAL_ACT' as type, created_at
+        FROM "ReferralAct"
+        WHERE created_at >= min_utc)
+        UNION ALL
+    (SELECT "userId", msats as quantity, type::TEXT as type, created_at
+        FROM "SubAct"
+        WHERE created_at >= min_utc)
+        UNION ALL
+    (SELECT "userId", 1 as quantity, 'TERRITORY' as type, created_at
+        FROM "Sub"
+        WHERE status <> 'STOPPED'
+        AND created_at >= min_utc)
+    ) u ON period.t = date_trunc(date_part, u.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')
+    GROUP BY "userId", period.t
+    ORDER BY period.t ASC;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION spending_growth(min TIMESTAMP(3), max TIMESTAMP(3), ival INTERVAL, date_part TEXT)
+RETURNS TABLE (t TIMESTAMP(3), jobs BIGINT, boost BIGINT, fees BIGINT, tips BIGINT, donations BIGINT, territories BIGINT)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    min_utc TIMESTAMP(3) := timezone('utc', min AT TIME ZONE 'America/Chicago');
+BEGIN
+    RETURN QUERY
+    SELECT period.t,
+        coalesce(floor(sum(msats) FILTER (WHERE act = 'STREAM')/1000), 0)::BIGINT as jobs,
+        coalesce(floor(sum(msats) FILTER (WHERE act = 'BOOST')/1000), 0)::BIGINT as boost,
+        coalesce(floor(sum(msats) FILTER (WHERE act NOT IN ('BOOST', 'TIP', 'STREAM', 'DONATION', 'TERRITORY'))/1000), 0)::BIGINT as fees,
+        coalesce(floor(sum(msats) FILTER (WHERE act = 'TIP')/1000), 0)::BIGINT as tips,
+        coalesce(floor(sum(msats) FILTER (WHERE act = 'DONATION')/1000), 0)::BIGINT as donations,
+        coalesce(floor(sum(msats) FILTER (WHERE act = 'TERRITORY')/1000), 0)::BIGINT as territories
+    FROM generate_series(min, max, ival) period(t)
+    LEFT JOIN
+    ((SELECT "ItemAct".created_at, msats, act::text as act
+        FROM "ItemAct"
+        WHERE created_at >= min_utc
+        AND ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID'))
+    UNION ALL
+    (SELECT created_at, sats * 1000 as msats, 'DONATION' as act
+        FROM "Donation"
+        WHERE created_at >= min_utc)
+    UNION ALL
+    (SELECT created_at, msats, 'TERRITORY' as act
+        FROM "SubAct"
+        WHERE type = 'BILLING'
+        AND created_at >= min_utc)
+    ) u ON period.t = date_trunc(date_part, u.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')
+    GROUP BY period.t
+    ORDER BY period.t ASC;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION stacking_growth(min TIMESTAMP(3), max TIMESTAMP(3), ival INTERVAL, date_part TEXT)
+RETURNS TABLE (t TIMESTAMP(3), rewards BIGINT, posts BIGINT, comments BIGINT, referrals BIGINT, territories BIGINT)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    min_utc TIMESTAMP(3) := timezone('utc', min AT TIME ZONE 'America/Chicago');
+BEGIN
+    RETURN QUERY
+    SELECT period.t,
+        coalesce(floor(sum(airdrop)/1000),0)::BIGINT as rewards,
+        coalesce(floor(sum(post)/1000),0)::BIGINT as posts,
+        coalesce(floor(sum(comment)/1000),0)::BIGINT as comments,
+        coalesce(floor(sum(referral)/1000),0)::BIGINT as referrals,
+        coalesce(floor(sum(revenue)/1000),0)::BIGINT as territories
+    FROM generate_series(min, max, ival) period(t)
+    LEFT JOIN
+    ((SELECT "ItemAct".created_at, 0 as airdrop,
+        CASE WHEN "Item"."parentId" IS NULL THEN 0 ELSE "ItemAct".msats END as comment,
+        CASE WHEN "Item"."parentId" IS NULL THEN "ItemAct".msats ELSE 0 END as post,
+        0 as referral,
+        0 as revenue
+        FROM "ItemAct"
+        JOIN "Item" on "ItemAct"."itemId" = "Item".id
+        WHERE "ItemAct".act = 'TIP'
+        AND "ItemAct".created_at >= min_utc
+        AND ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID'))
+    UNION ALL
+    (SELECT created_at, 0 as airdrop, 0 as post, 0 as comment, msats as referral, 0 as revenue
+        FROM "ReferralAct"
+        WHERE created_at >= min_utc)
+    UNION ALL
+    (SELECT created_at, msats as airdrop, 0 as post, 0 as comment, 0 as referral, 0 as revenue
+        FROM "Earn"
+        WHERE created_at >= min_utc)
+    UNION ALL
+        (SELECT created_at, 0 as airdrop, 0 as post, 0 as comment, 0 as referral, msats as revenue
+            FROM "SubAct"
+            WHERE type = 'REVENUE'
+            AND created_at >= min_utc)
+    ) u ON period.t = date_trunc(date_part, u.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')
+    GROUP BY period.t
+    ORDER BY period.t ASC;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION stackers_growth(min TIMESTAMP(3), max TIMESTAMP(3), ival INTERVAL, date_part TEXT)
+RETURNS TABLE (t TIMESTAMP(3), "userId" INT, type TEXT)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    min_utc TIMESTAMP(3) := timezone('utc', min AT TIME ZONE 'America/Chicago');
+BEGIN
+    RETURN QUERY
+    SELECT period.t, u."userId", u.type
+    FROM generate_series(min, max, ival) period(t)
+    LEFT JOIN
+    ((SELECT "ItemAct".created_at, "Item"."userId", CASE WHEN "Item"."parentId" IS NULL THEN 'POST' ELSE 'COMMENT' END as type
+        FROM "ItemAct"
+        JOIN "Item" on "ItemAct"."itemId" = "Item".id
+        WHERE "ItemAct".act = 'TIP'
+        AND "ItemAct".created_at >= min_utc
+        AND ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID'))
+    UNION ALL
+    (SELECT created_at, "Earn"."userId", 'EARN' as type
+        FROM "Earn"
+        WHERE created_at >= min_utc)
+    UNION ALL
+        (SELECT created_at, "ReferralAct"."referrerId" as "userId", 'REFERRAL' as type
+        FROM "ReferralAct"
+        WHERE created_at >= min_utc)
+    UNION ALL
+        (SELECT created_at, "SubAct"."userId", 'REVENUE' as type
+            FROM "SubAct"
+            WHERE "SubAct".type = 'REVENUE'
+            AND created_at >= min_utc)
+    ) u ON period.t = date_trunc(date_part, u.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')
+    GROUP BY period.t, u."userId", u.type
+    ORDER BY period.t ASC;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION item_growth(min TIMESTAMP(3), max TIMESTAMP(3), ival INTERVAL, date_part TEXT)
+RETURNS TABLE (t TIMESTAMP(3), comments BIGINT, jobs BIGINT, posts BIGINT, territories BIGINT, zaps BIGINT)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    min_utc TIMESTAMP(3) := timezone('utc', min AT TIME ZONE 'America/Chicago');
+BEGIN
+    RETURN QUERY
+    SELECT period.t, count(*) FILTER (WHERE type = 'COMMENT') as comments,
+            count(*) FILTER (WHERE type = 'JOB') as jobs,
+            count(*) FILTER (WHERE type = 'POST') as posts,
+            count(*) FILTER (WHERE type = 'TERRITORY') as territories,
+            count(*) FILTER (WHERE type = 'ZAP') as zaps
+    FROM generate_series(min, max, ival) period(t)
+    LEFT JOIN
+    ((SELECT created_at,
+        CASE
+            WHEN "subName" = 'jobs' THEN 'JOB'
+            WHEN "parentId" IS NULL THEN 'POST'
+            ELSE 'COMMENT' END as type
+    FROM "Item"
+    WHERE created_at >= min_utc)
+    UNION ALL
+    (SELECT created_at, 'TERRITORY' as type
+    FROM "Sub"
+    WHERE created_at >= min_utc)
+    UNION ALL
+    (SELECT created_at, 'ZAP' as type
+    FROM "ItemAct"
+    WHERE act = 'TIP'
+    AND ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID')
+    AND created_at >= min_utc)) u ON period.t = date_trunc(date_part, u.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')
+    GROUP BY period.t
+    ORDER BY period.t ASC;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION spender_growth(min TIMESTAMP(3), max TIMESTAMP(3), ival INTERVAL, date_part TEXT)
+RETURNS TABLE (t TIMESTAMP(3), "userId" INT, type TEXT)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    min_utc TIMESTAMP(3) := timezone('utc', min AT TIME ZONE 'America/Chicago');
+BEGIN
+    RETURN QUERY
+    SELECT period.t, u."userId", u.type
+    FROM generate_series(min, max, ival) period(t)
+    LEFT JOIN
+    ((SELECT "ItemAct".created_at, "ItemAct"."userId", act::text as type
+        FROM "ItemAct"
+        WHERE created_at >= min_utc
+        AND ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID'))
+    UNION ALL
+    (SELECT created_at, "Donation"."userId", 'DONATION' as type
+        FROM "Donation"
+        WHERE created_at >= min_utc)
+    UNION ALL
+    (SELECT created_at, "SubAct"."userId", 'TERRITORY' as type
+            FROM "SubAct"
+            WHERE "SubAct".type = 'BILLING'
+            AND created_at >= min_utc)
+    ) u ON period.t = date_trunc(date_part, u.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Chicago')
+    GROUP BY period.t, u."userId", u.type
+    ORDER BY period.t ASC;
+END;
+$$;

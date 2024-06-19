@@ -7,7 +7,7 @@ import { createHmac } from './wallet'
 import { msatsToSats, numWithUnits } from '@/lib/format'
 import { BALANCE_LIMIT_MSATS } from '@/lib/constants'
 
-export default async function serialize (trx, { models, lnd, me, hash, hmac, fee }) {
+export default async function serialize (trx, { models, lnd, me, hash, hmac, fee, verifyPayment: verify }) {
   // wrap first argument in array if not array already
   const isArray = Array.isArray(trx)
   if (!isArray) trx = [trx]
@@ -17,7 +17,7 @@ export default async function serialize (trx, { models, lnd, me, hash, hmac, fee
   trx = trx.filter(q => !!q)
 
   let invoice
-  if (hash) {
+  if (verify) {
     invoice = await verifyPayment(models, hash, hmac, fee)
     trx = [
       models.$executeRaw`SELECT confirm_invoice(${hash}, ${invoice.msatsReceived})`,

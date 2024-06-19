@@ -10,9 +10,9 @@ import { useToast } from './toast'
 import { useLightning } from './lightning'
 import { nextTip } from './upvote'
 import { InvoiceCanceledError, usePayment } from './payment'
-// import { optimisticUpdate } from '@/lib/apollo'
 import { Types as ClientNotification, ClientNotifyProvider, useClientNotifications } from './client-notifications'
 import { ZAP_UNDO_DELAY_MS } from '@/lib/constants'
+import { useItemContext } from './item'
 
 const defaultTips = [100, 1000, 10_000, 100_000]
 
@@ -100,11 +100,10 @@ export const actUpdate = ({ me, onUpdate }) => (cache, args) => {
   onUpdate?.(cache, args)
 }
 
-export default function ItemAct ({ onClose, item, down, children, abortSignal }) {
+export default function ItemAct ({ onClose, item, down, children, abortSignal, optimisticUpdate }) {
   const inputRef = useRef(null)
   const me = useMe()
   const [oValue, setOValue] = useState()
-  const strike = useLightning()
 
   useEffect(() => {
     inputRef.current?.focus()
@@ -113,8 +112,6 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
   const act = useAct()
 
   const onSubmit = useCallback(async ({ amount, hash, hmac }) => {
-    strike()
-    onClose()
     await act({
       variables: {
         id: item.id,
@@ -123,28 +120,11 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
         hash,
         hmac
       },
-      optimisticResponse: {
-        act: { id: item.id, sats: Number(amount), act: down ? 'DONT_LIKE_THIS' : 'TIP', path: item.path }
-      },
       update: actUpdate({ me })
     })
     if (!me) setItemMeAnonSats({ id: item.id, amount })
     addCustomTip(Number(amount))
-  }, [me, act, down, item.id, strike])
-
-  // XXX avoid manual optimistic updates until
-  //   https://github.com/stackernews/stacker.news/issues/1218 is fixed
-  // const optimisticUpdate = useCallback(({ amount }) => {
-  //   const variables = {
-  //     id: item.id,
-  //     sats: Number(amount),
-  //     act: down ? 'DONT_LIKE_THIS' : 'TIP'
-  //   }
-  //   const optimisticResponse = { act: { ...variables, path: item.path } }
-  //   strike()
-  //   onClose()
-  //   return { mutation: ACT_MUTATION, variables, optimisticResponse, update: actUpdate({ me }) }
-  // }, [item.id, down, !!me, strike])
+  }, [me, act, down, item.id])
 
   return (
     <ClientNotifyProvider additionalProps={{ itemId: item.id }}>
@@ -155,7 +135,7 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
         }}
         schema={amountSchema}
         prepaid
-        // optimisticUpdate={optimisticUpdate}
+        optimisticUpdate={({ amount }) => optimisticUpdate(amount, { onClose })}
         onSubmit={onSubmit}
         clientNotification={ClientNotification.Zap}
         signal={abortSignal}
@@ -260,9 +240,10 @@ export function useZap () {
   const toaster = useToast()
   const strike = useLightning()
   const payment = usePayment()
+  const { pendingSats } = useItemContext()
 
-  return useCallback(async ({ item, mem, abortSignal }) => {
-    const meSats = (item?.meSats || 0)
+  return useCallback(async ({ item, abortSignal, optimisticUpdate }) => {
+    const meSats = (item?.meSats || 0) + pendingSats
 
     // add current sats to next tip since idempotent zaps use desired total zap not difference
     const sats = meSats + nextTip(meSats, { ...me?.privates })
@@ -270,14 +251,11 @@ export function useZap () {
 
     const variables = { id: item.id, sats, act: 'TIP' }
     const notifyProps = { itemId: item.id, sats: satsDelta }
-    const optimisticResponse = { act: { path: item.path, ...variables } }
+    // const optimisticResponse = { act: { path: item.path, ...variables } }
 
     let revert, cancel, nid
     try {
-      // XXX avoid manual optimistic updates until
-      //   https://github.com/stackernews/stacker.news/issues/1218 is fixed
-      // revert = optimisticUpdate({ mutation: ZAP_MUTATION, variables, optimisticResponse, update })
-      // strike()
+      revert = optimisticUpdate?.(satsDelta)
 
       await abortSignal.pause({ me, amount: satsDelta })
 
@@ -288,13 +266,15 @@ export function useZap () {
       let hash, hmac;
       [{ hash, hmac }, cancel] = await payment.request(satsDelta)
 
-      // XXX related to comment above
-      // await zap({ variables: { ...variables, hash, hmac } })
-      strike()
-      await zap({ variables: { ...variables, hash, hmac }, optimisticResponse, update })
+      await zap({
+        variables: { ...variables, hash, hmac },
+        update: (...args) => {
+          revert?.()
+          update(...args)
+        }
+      })
     } catch (error) {
       revert?.()
-
       if (error instanceof InvoiceCanceledError || error instanceof ActCanceledError) {
         return
       }
@@ -310,7 +290,7 @@ export function useZap () {
     } finally {
       if (nid) unnotify(nid)
     }
-  }, [me?.id, strike, payment, notify, unnotify])
+  }, [me?.id, strike, payment, notify, unnotify, pendingSats])
 }
 
 export class ActCanceledError extends Error {

@@ -825,7 +825,7 @@ export default {
 
       await serialize(
         models.$queryRawUnsafe(`${SELECT} FROM poll_vote($1::INTEGER, $2::INTEGER) AS "Item"`, Number(id), Number(me.id)),
-        { models, lnd, me, hash, hmac }
+        { models, lnd, me, hash, hmac, verifyPayment: !!hash || !me }
       )
 
       return id
@@ -859,7 +859,7 @@ export default {
         }
       }
 
-      if (idempotent) {
+      if (me && idempotent) {
         await serialize(
           models.$queryRaw`
           SELECT
@@ -869,7 +869,7 @@ export default {
              WHERE act IN ('TIP', 'FEE')
              AND "itemId" = ${Number(id)}::INTEGER
              AND "userId" = ${me.id}::INTEGER)::INTEGER)`,
-          { models, lnd, hash, hmac }
+          { models, lnd, hash, hmac, verifyPayment: !!hash }
         )
       } else {
         await serialize(
@@ -877,7 +877,7 @@ export default {
             SELECT
               item_act(${Number(id)}::INTEGER,
               ${me?.id || USER_ID.anon}::INTEGER, ${act}::"ItemActType", ${Number(sats)}::INTEGER)`,
-          { models, lnd, me, hash, hmac, fee: sats }
+          { models, lnd, me, hash, hmac, fee: sats, verifyPayment: !!hash || !me }
         )
       }
 
@@ -1348,7 +1348,7 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
   ([item] = await serialize(
     models.$queryRawUnsafe(`${SELECT} FROM update_item($1::JSONB, $2::JSONB, $3::JSONB, $4::INTEGER[]) AS "Item"`,
       JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options), uploadIds),
-    { models, lnd, me, hash, hmac, fee: imgFees }
+    { models, lnd, me, hash, hmac, fee: imgFees, verifyPayment: !!hash || !me }
   ))
 
   await createMentions(item, models)
@@ -1405,7 +1405,7 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
     models.$queryRawUnsafe(
       `${SELECT} FROM create_item($1::JSONB, $2::JSONB, $3::JSONB, '${spamInterval}'::INTERVAL, $4::INTEGER[]) AS "Item"`,
       JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options), uploadIds),
-    { models, lnd, me, hash, hmac, fee }
+    { models, lnd, me, hash, hmac, fee, verifyPayment: !!hash || !me }
   ))
 
   await createMentions(item, models)

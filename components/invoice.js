@@ -137,6 +137,7 @@ function ActionInfo ({ invoice }) {
       break
     case 'PAID':
       actionString += 'successful '
+      className = 'text-success'
       break
     default:
       actionString += 'pending '
@@ -153,7 +154,7 @@ function ActionInfo ({ invoice }) {
       actionString += 'downzap on item'
       break
     case 'POLL_VOTE':
-      actionString += 'downzap on item'
+      actionString += 'poll vote'
       break
   }
 

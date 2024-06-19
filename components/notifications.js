@@ -343,22 +343,23 @@ function Invoicification ({ n: { invoice, sortTime } }) {
 
   let retry
   let actionString
-  const { invoiceId, invoiceActionState } = {
-    ...invoice.item,
-    ...invoice.itemAct,
-    ...{ invoiceId: invoice.item.poll?.meInvoiceId, invoiceActionState: invoice.item.poll?.meInvoiceActionState }
-  }
+  let invoiceId
+  let invoiceActionState
   const itemType = invoice.item.title ? 'post' : 'comment'
 
   if (invoice.actionType === 'ITEM_CREATE') {
     actionString = `${itemType} create `
-    retry = retryCreateItem
+    retry = retryCreateItem;
+    ({ invoiceId, invoiceActionState } = invoice.item)
   } else if (invoice.actionType === 'POLL_VOTE') {
     actionString = 'poll vote '
     retry = retryPollVote
+    invoiceId = invoice.item.poll?.meInvoiceId
+    invoiceActionState = invoice.item.poll?.meInvoiceActionState
   } else {
     actionString = `${invoice.actionType === 'ZAP' ? 'zap' : 'downzap'} on ${itemType} `
-    retry = actRetry
+    retry = actRetry;
+    ({ invoiceId, invoiceActionState } = invoice.itemAct)
   }
 
   let colorClass = 'text-info'

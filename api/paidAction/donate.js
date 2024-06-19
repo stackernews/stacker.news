@@ -8,7 +8,7 @@ export async function getCost ({ sats }) {
   return BigInt(sats) * BigInt(1000)
 }
 
-export async function perform ({ sats }, { me, models, tx }) {
+export async function perform ({ sats }, { me, tx }) {
   await tx.donation.create({
     data: {
       sats,

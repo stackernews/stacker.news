@@ -3,6 +3,7 @@ import { datePivot } from '@/lib/time'
 import { verifyPayment } from '../resolvers/serial'
 import { USER_ID } from '@/lib/constants'
 import { createHmac } from '../resolvers/wallet'
+import { Prisma } from '@prisma/client'
 
 export const paidActions = {
   BUY_CREDITS: await import('./buyCredits'),
@@ -97,7 +98,7 @@ async function performFeeCreditAction (actionType, args, context) {
       result,
       paymentMethod: 'FEE_CREDIT'
     }
-  })
+  }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })
 }
 
 async function performOptimisticAction (actionType, args, context) {
@@ -112,10 +113,10 @@ async function performOptimisticAction (actionType, args, context) {
 
     return {
       invoice,
-      result: await action.perform({ invoiceId: invoice.id, ...args }, context),
+      result: await action.perform?.({ invoiceId: invoice.id, ...args }, context),
       paymentMethod: 'OPTIMISTIC'
     }
-  })
+  }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })
 }
 
 async function performPessimisticAction (actionType, args, context) {
@@ -149,7 +150,7 @@ async function performPessimisticAction (actionType, args, context) {
         result: await action.perform(args, context),
         paymentMethod: 'PESSIMISTIC'
       }
-    })
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })
   } else {
     // just create the invoice and complete action when it's paid
     return {
@@ -207,7 +208,7 @@ export async function retryPaidAction (actionType, args, context) {
       invoice,
       paymentMethod: 'OPTIMISTIC'
     }
-  })
+  }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })
 }
 
 const OPTIMISTIC_INVOICE_EXPIRE = { seconds: 10 } // { hours: 1 }

@@ -100,7 +100,6 @@ export async function perform (args, context) {
     }
   }
 
-  // TODO: test bio
   let item
   if (data.bio && me) {
     item = (await tx.user.update({

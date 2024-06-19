@@ -9,8 +9,8 @@ export async function getCost ({ billingType }) {
   return BigInt(TERRITORY_PERIOD_COST(billingType)) * BigInt(1000)
 }
 
-export async function perform ({ name, ...data }, { me, cost, models, tx }) {
-  const sub = await models.sub.findUnique({
+export async function perform ({ name, ...data }, { me, cost, tx }) {
+  const sub = await tx.sub.findUnique({
     where: {
       name
     }
@@ -30,7 +30,7 @@ export async function perform ({ name, ...data }, { me, cost, models, tx }) {
   data.userId = me.id
 
   if (sub.userId !== me.id) {
-    await models.territoryTransfer.create({ data: { subName: name, oldUserId: sub.userId, newUserId: me.id } })
+    await tx.territoryTransfer.create({ data: { subName: name, oldUserId: sub.userId, newUserId: me.id } })
   }
 
   await tx.subAct.create({

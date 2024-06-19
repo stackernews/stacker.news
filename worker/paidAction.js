@@ -3,148 +3,125 @@ import { datePivot } from '@/lib/time'
 import { Prisma } from '@prisma/client'
 import { getInvoice } from 'ln-service'
 
-export async function settleAction ({ data: { invoiceId }, models, lnd, boss }) {
-  let dbInv
+async function transitionInvoice (jobName, { invoiceId, fromState, toState, toData, onTransition }, { models, lnd, boss }) {
+  let dbInvoice
+  console.log(`${jobName}: transitioning invoice ${invoiceId} from ${fromState} to ${toState}`)
 
   try {
-    dbInv = await models.invoice.findUnique({
-      where: { id: invoiceId }
-    })
-    const invoice = await getInvoice({ id: dbInv.hash, lnd })
+    dbInvoice = await models.invoice.findUnique({ where: { id: invoiceId } })
+    const lndInvoice = await getInvoice({ id: dbInvoice.hash, lnd })
+    const data = toData(lndInvoice)
 
-    if (!invoice.is_confirmed) {
-      throw new Error('invoice is not confirmed')
+    if (!Array.isArray(fromState)) {
+      fromState = [fromState]
     }
 
     await models.$transaction(async tx => {
-      // optimistic concurrency control (aborts if invoice is not in PENDING state)
-      await tx.invoice.update({
-        where: { id: dbInv.id, actionState: 'PENDING' },
+      dbInvoice = await tx.invoice.update({
+        where: {
+          id: invoiceId,
+          actionState: {
+            in: fromState
+          }
+        },
         data: {
-          actionState: 'PAID',
-          confirmedAt: new Date(invoice.confirmed_at),
-          confirmedIndex: invoice.confirmed_index,
-          msatsReceived: BigInt(invoice.received_mtokens)
+          actionState: toState,
+          ...data
         }
       })
 
-      await paidActions[dbInv.actionType].onPaid?.({ invoice: dbInv }, { models, tx })
-      await tx.$executeRaw`INSERT INTO pgboss.job (name, data) VALUES ('checkStreak', jsonb_build_object('id', ${dbInv.userId}))`
-    })
-    console.log(`transitioned action ${dbInv.actionType} to PAID`)
+      // our own optimistic concurrency check
+      if (!dbInvoice) {
+        console.log(`${jobName}: record not found transitioning invoice ${invoiceId}:${dbInvoice.hash} from ${fromState} to ${toState}`)
+        return
+      }
+
+      await onTransition({ lndInvoice, dbInvoice, tx })
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })
+
+    console.log(`${jobName}: transitioned invoice ${invoiceId}:${dbInvoice.hash} from ${fromState} to ${toState}`)
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError) {
-      // this error is thrown when we try to update a record that has been updated by another worker
-      // so we just ignore it and let the other worker take the transition "lock" and perform the transition
       if (e.code === 'P2025') {
-        console.error(`record not found ${dbInv?.hash}`)
+        console.log(`${jobName}: record not found transitioning invoice ${dbInvoice?.hash} from ${fromState} to ${toState}`)
         return
       }
       if (e.code === 'P2034') {
-        console.error(`write conflict ${dbInv?.hash}`)
+        console.log(`${jobName}: write conflict transitioning invoice ${dbInvoice?.hash} from ${fromState} to ${toState}`)
         return
       }
     }
 
-    console.error(`unexpected error transitioning action ${dbInv?.actionType} to PAID`, e)
+    console.error(`${jobName}: unexpected error transitioning invoice ${invoiceId}:${dbInvoice?.hash} from ${fromState} to ${toState}`, e)
     boss.send(
-      'settleAction',
+      jobName,
       { invoiceId },
       { startAfter: datePivot(new Date(), { minutes: 1 }), priority: 1000 })
   }
+}
+
+export async function settleAction ({ data: { invoiceId }, models, lnd, boss }) {
+  return await transitionInvoice('settleAction', {
+    invoiceId,
+    fromState: 'PENDING',
+    toState: 'PAID',
+    toData: invoice => {
+      if (!invoice.is_confirmed) {
+        throw new Error('invoice is not confirmed')
+      }
+      return {
+        confirmedAt: new Date(invoice.confirmed_at),
+        confirmedIndex: invoice.confirmed_index,
+        msatsReceived: BigInt(invoice.received_mtokens)
+      }
+    },
+    onTransition: async ({ dbInvoice, tx }) => {
+      await paidActions[dbInvoice.actionType].onPaid?.({ invoice: dbInvoice }, { models, tx, lnd })
+      await tx.$executeRaw`INSERT INTO pgboss.job (name, data) VALUES ('checkStreak', jsonb_build_object('id', ${dbInvoice.userId}))`
+    }
+  }, { models, lnd, boss })
 }
 
 export async function holdAction ({ data: { invoiceId }, models, lnd, boss }) {
-  let dbInv
-
-  try {
-    dbInv = await models.invoice.findUnique({
-      where: { id: invoiceId }
-    })
-    const invoice = await getInvoice({ id: dbInv.hash, lnd })
-
-    if (!invoice.is_held) {
-      throw new Error('invoice is not held')
-    }
-
-    await models.$transaction(async tx => {
-      // optimistic concurrency control (aborts if invoice is not in PENDING_HELD state)
-      await tx.invoice.update({
-        where: { id: dbInv.id, actionState: 'PENDING_HELD' },
-        data: {
-          actionState: 'HELD',
-          isHeld: true,
-          msatsReceived: BigInt(invoice.received_mtokens)
-        }
-      })
-
-      // Make sure that after payment, JIT invoices are settled
-      // within 60 seconds or they will be canceled to minimize risk of
-      // force closures or wallets banning us.
-      const expiresAt = new Date(Math.min(dbInv.expiresAt, datePivot(new Date(), { seconds: 60 })))
-      await models.$queryRaw`
+  return await transitionInvoice('holdAction', {
+    invoiceId,
+    fromState: 'PENDING_HELD',
+    toState: 'HELD',
+    toData: invoice => {
+      if (!invoice.is_held) {
+        throw new Error('invoice is not held')
+      }
+      return {
+        isHeld: true,
+        msatsReceived: BigInt(invoice.received_mtokens)
+      }
+    },
+    onTransition: async ({ dbInvoice, tx }) => {
+      // make sure settled or cancelled in 60 seconds to minimize risk of force closures
+      const expiresAt = new Date(Math.min(dbInvoice.expiresAt, datePivot(new Date(), { seconds: 60 })))
+      await tx.$executeRaw`
         INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
-        VALUES ('finalizeHodlInvoice', jsonb_build_object('hash', ${dbInv.hash}), 21, true, ${expiresAt})`
-    })
-    console.log(`transitioned action ${dbInv.actionType} to HELD`)
-  } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError) {
-      // this error is thrown when we try to update a record that has been updated by another worker
-      // so we just ignore it and let the other worker take the transition "lock" and perform the transition
-      if (e.code === 'P2025') {
-        console.error(`record not found ${dbInv?.hash}`)
-        return
-      }
-      if (e.code === 'P2034') {
-        console.error(`write conflict ${dbInv?.hash}`)
-        return
-      }
+        VALUES ('finalizeHodlInvoice', jsonb_build_object('hash', ${dbInvoice.hash}), 21, true, ${expiresAt})`
     }
-
-    console.error(`unexpected error transitioning action ${dbInv?.actionType} to HELD`, e)
-    boss.send(
-      'holdAction',
-      { invoiceId },
-      { startAfter: datePivot(new Date(), { minutes: 1 }), priority: 1000 })
-  }
+  }, { models, lnd, boss })
 }
 
 export async function settleActionError ({ data: { invoiceId }, models, lnd, boss }) {
-  let dbInv
-
-  try {
-    dbInv = await models.invoice.findUnique({
-      where: { id: invoiceId }
-    })
-    const invoice = await getInvoice({ id: dbInv.hash, lnd })
-
-    if (!invoice.is_canceled) {
-      throw new Error('invoice is not cancelled')
-    }
-
-    await models.$transaction(async tx => {
-      // optimistic concurrency control (aborts if invoice is not in PENDING state)
-      await tx.invoice.update({
-        where: { id: dbInv.id, actionState: 'PENDING' },
-        data: {
-          actionState: 'FAILED',
-          cancelled: true
-        }
-      })
-      await paidActions[dbInv.actionType].onFail?.({ invoice: dbInv }, { models, tx })
-    })
-  } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError) {
-      // this error is thrown when we try to update a record that has been updated by another worker
-      // so we just ignore it and let the other worker take the transition "lock" and perform the transition
-      if (e.code === 'P2025') {
-        return
+  return await transitionInvoice('settleActionError', {
+    invoiceId,
+    // any of these states can transition to FAILED
+    fromState: ['PENDING', 'PENDING_HELD', 'HELD'],
+    toState: 'FAILED',
+    toData: invoice => {
+      if (!invoice.is_canceled) {
+        throw new Error('invoice is not cancelled')
       }
+      return {
+        cancelled: true
+      }
+    },
+    onTransition: async ({ dbInvoice, tx }) => {
+      await paidActions[dbInvoice.actionType].onFail?.({ invoice: dbInvoice }, { models, tx, lnd })
     }
-    console.error(`unexpected error transitioning action ${dbInv?.actionType} to FAILED`, e)
-    boss.send(
-      'settleActionError',
-      { invoiceId },
-      { startAfter: datePivot(new Date(), { minutes: 1 }), priority: 1000 })
-  }
+  }, { models, lnd, boss })
 }

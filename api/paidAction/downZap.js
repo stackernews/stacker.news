@@ -6,7 +6,7 @@ export async function getCost ({ sats }) {
   return BigInt(sats) * BigInt(1000)
 }
 
-export async function perform ({ invoiceId, sats, id: itemId }, { me, cost, models, tx }) {
+export async function perform ({ invoiceId, sats, id: itemId }, { me, cost, tx }) {
   itemId = parseInt(itemId)
 
   let invoiceData = {}
@@ -37,7 +37,7 @@ export async function retry ({ invoiceId, newInvoiceId }, { tx, cost }) {
   return { id, sats: Number(BigInt(cost) / BigInt(1000)), act: 'DONT_LIKE_THIS', path }
 }
 
-export async function onPaid ({ invoice, actId }, { models, tx }) {
+export async function onPaid ({ invoice, actId }, { tx }) {
   let itemAct
   if (invoice) {
     await tx.itemAct.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } })

@@ -37,13 +37,13 @@ export default async function performPaidAction (actionType, args, context) {
     context.cost = await paidAction.getCost(args, context)
     if (hash || hmac || !me) {
       console.log('performPaidAction - hash or hmac provided, or anon', actionType, args)
-      return await performPessimiticAction(actionType, args, context)
+      return await performPessimisticAction(actionType, args, context)
     }
 
     const isRich = context.cost <= context.user.msats
     if (!isRich && !paidAction.supportsOptimism) {
       console.log('performPaidAction - action does not support optimism', actionType, args)
-      return await performPessimiticAction(actionType, args, context)
+      return await performPessimisticAction(actionType, args, context)
     }
 
     if (isRich) {
@@ -55,7 +55,7 @@ export default async function performPaidAction (actionType, args, context) {
         // if we fail to do the action with fee credits, we should fall back to optimistic
         if (!paidAction.supportsOptimism) {
           console.error('performPaidAction - action does not support optimism and fee credits failed ', actionType, args)
-          return await performPessimiticAction(actionType, args, context)
+          return await performPessimisticAction(actionType, args, context)
         }
       }
     }
@@ -118,7 +118,7 @@ async function performOptimisticAction (actionType, args, context) {
   })
 }
 
-async function performPessimiticAction (actionType, args, context) {
+async function performPessimisticAction (actionType, args, context) {
   const { models, hash, hmac, cost, lnd } = context
   const action = paidActions[actionType]
 

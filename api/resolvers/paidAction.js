@@ -26,7 +26,6 @@ export default {
       }
 
       const result = await retryPaidAction(invoice.actionType, { invoiceId }, { models, me, lnd })
-      console.log('retryPaidAction', result)
 
       return {
         ...result,

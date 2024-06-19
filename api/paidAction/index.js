@@ -219,6 +219,11 @@ async function createDbInvoice (actionType, args, context) {
   const createLNDInvoice = optimistic ? createInvoice : createHodlInvoice
   const db = tx ?? models
 
+  if (cost < BigInt(1000)) {
+    // sanity check
+    throw new Error('The cost of the action must be at least 1 sat')
+  }
+
   const expiresAt = datePivot(new Date(), optimistic ? OPTIMISTIC_INVOICE_EXPIRE : PESSIMISTIC_INVOICE_EXPIRE)
   const lndInv = await createLNDInvoice({
     description: user?.hideInvoiceDesc ? undefined : await action.describe(args, context),

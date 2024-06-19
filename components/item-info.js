@@ -245,64 +245,66 @@ export default function ItemInfo ({
         <>{' '}<Badge className={styles.newComment} bg={null}>bot</Badge></>
         )}
       {extraBadges}
-      <EditInfo />
       {
         showActionDropdown &&
-          <ActionDropdown>
-            <CopyLinkDropdownItem item={item} />
-            {(item.parentId || item.text) && onQuoteReply &&
-              <Dropdown.Item onClick={onQuoteReply}>quote reply</Dropdown.Item>}
-            {me && <BookmarkDropdownItem item={item} />}
-            {me && <SubscribeDropdownItem item={item} />}
-            {item.otsHash &&
-              <Link href={`/items/${item.id}/ots`} className='text-reset dropdown-item'>
-                opentimestamp
-              </Link>}
-            {item?.noteId && (
-              <Dropdown.Item onClick={() => window.open(`https://njump.me/${item.noteId}`, '_blank', 'noopener,noreferrer,nofollow')}>
-                nostr note
-              </Dropdown.Item>
-            )}
-            {item && item.mine && !item.noteId && !item.isJob && !item.parentId &&
-              <CrosspostDropdownItem item={item} />}
-            {me && !item.position &&
+          <>
+            <EditInfo />
+            <ActionDropdown>
+              <CopyLinkDropdownItem item={item} />
+              {(item.parentId || item.text) && onQuoteReply &&
+                <Dropdown.Item onClick={onQuoteReply}>quote reply</Dropdown.Item>}
+              {me && <BookmarkDropdownItem item={item} />}
+              {me && <SubscribeDropdownItem item={item} />}
+              {item.otsHash &&
+                <Link href={`/items/${item.id}/ots`} className='text-reset dropdown-item'>
+                  opentimestamp
+                </Link>}
+              {item?.noteId && (
+                <Dropdown.Item onClick={() => window.open(`https://njump.me/${item.noteId}`, '_blank', 'noopener,noreferrer,nofollow')}>
+                  nostr note
+                </Dropdown.Item>
+              )}
+              {item && item.mine && !item.noteId && !item.isJob && !item.parentId &&
+                <CrosspostDropdownItem item={item} />}
+              {me && !item.position &&
             !item.mine && !item.deletedAt &&
             (item.meDontLikeSats > meTotalSats
               ? <DropdownItemUpVote item={item} />
               : <DontLikeThisDropdownItem item={item} />)}
-            {me && sub && !item.mine && !item.outlawed && Number(me.id) === Number(sub.userId) && sub.moderated &&
-              <>
-                <hr className='dropdown-divider' />
-                <OutlawDropdownItem item={item} />
-              </>}
-            {item.mine && item.invoiceId &&
-              <>
-                <hr className='dropdown-divider' />
-                <Link href={`/invoices/${item.invoiceId}`} className='text-reset dropdown-item'>
-                  view invoice
-                </Link>
-              </>}
-            {me && !nested && !item.mine && sub && Number(me.id) !== Number(sub.userId) &&
-              <>
-                <hr className='dropdown-divider' />
-                <MuteSubDropdownItem item={item} sub={sub} />
-              </>}
-            {canPin &&
-              <>
-                <hr className='dropdown-divider' />
-                <PinSubDropdownItem item={item} />
-              </>}
-            {item.mine && !item.position && !item.deletedAt && !item.bio &&
-              <>
-                <hr className='dropdown-divider' />
-                <DeleteDropdownItem itemId={item.id} type={item.title ? 'post' : 'comment'} />
-              </>}
-            {me && !item.mine &&
-              <>
-                <hr className='dropdown-divider' />
-                <MuteDropdownItem user={item.user} />
-              </>}
-          </ActionDropdown>
+              {me && sub && !item.mine && !item.outlawed && Number(me.id) === Number(sub.userId) && sub.moderated &&
+                <>
+                  <hr className='dropdown-divider' />
+                  <OutlawDropdownItem item={item} />
+                </>}
+              {item.mine && item.invoiceId &&
+                <>
+                  <hr className='dropdown-divider' />
+                  <Link href={`/invoices/${item.invoiceId}`} className='text-reset dropdown-item'>
+                    view invoice
+                  </Link>
+                </>}
+              {me && !nested && !item.mine && sub && Number(me.id) !== Number(sub.userId) &&
+                <>
+                  <hr className='dropdown-divider' />
+                  <MuteSubDropdownItem item={item} sub={sub} />
+                </>}
+              {canPin &&
+                <>
+                  <hr className='dropdown-divider' />
+                  <PinSubDropdownItem item={item} />
+                </>}
+              {item.mine && !item.position && !item.deletedAt && !item.bio &&
+                <>
+                  <hr className='dropdown-divider' />
+                  <DeleteDropdownItem itemId={item.id} type={item.title ? 'post' : 'comment'} />
+                </>}
+              {me && !item.mine &&
+                <>
+                  <hr className='dropdown-divider' />
+                  <MuteDropdownItem user={item.user} />
+                </>}
+            </ActionDropdown>
+          </>
       }
       {extraInfo}
     </div>

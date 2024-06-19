@@ -1,6 +1,7 @@
 import { USER_ID } from '@/lib/constants'
 import { imageFeesInfo } from '../resolvers/image'
-import { getMentions, performBotBehavior } from './lib/item'
+import { getItemMentions, getMentions, performBotBehavior } from './lib/item'
+import { notifyItemMention, notifyMention } from '@/lib/webPush'
 
 export const anonable = false
 export const supportsPessimism = true
@@ -17,10 +18,19 @@ export async function getCost ({ id, boost = 0, uploadIds }, { me, models }) {
 
 export async function perform (args, context) {
   const { id, boost = 0, uploadIds = [], options: pollOptions = [], forwardUsers: itemForwards = [], ...data } = args
-  const { tx, me } = context
-  // TODO: old boost?
-  const boostMsats = BigInt(boost) * BigInt(1000)
+  const { tx, me, models } = context
 
+  const old = await tx.item.findUnique({
+    where: { id: parseInt(id) },
+    include: {
+      ThreadSubscription: true,
+      mentions: true,
+      itemForwards: true,
+      referrer: true
+    }
+  })
+
+  const boostMsats = BigInt(boost - (old.boost || 0)) * BigInt(1000)
   const itemActs = []
   if (boostMsats > 0) {
     itemActs.push({
@@ -28,30 +38,25 @@ export async function perform (args, context) {
     })
   }
 
-  const old = await tx.item.findUnique({
-    where: { id: parseInt(id) },
-    include: {
-      ThreadSubscription: true,
-      mentions: true,
-      itemForwards: true
-    }
-  })
-
   // createMany is the set difference of the new - old
   // deleteMany is the set difference of the old - new
   // updateMany is the intersection of the old and new
-  const difference = (a, b) => a.filter(x => !b.find(y => y.userId === x.userId))
+  const difference = (a, b, key = 'userId') => a.filter(x => !b.find(y => y[key] === x[key]))
   const intersectionMerge = (a, b, key) => a.filter(x => b.find(y => y.userId === x.userId))
     .map(x => ({ [key]: x[key], ...b.find(y => y.userId === x.userId) }))
 
   const mentions = await getMentions(args, context)
+  const itemMentions = await getItemMentions(args, context)
 
-  await tx.item.update({
+  const item = await tx.item.update({
     where: { id: parseInt(id) },
+    include: {
+      mentions: true,
+      referrer: { include: { refereeItem: true } }
+    },
     data: {
       ...data,
       boost,
-      // TODO: ItemMentions
       // TODO: test all these nested inserts
       // TODO: give nested relations a consistent naming scheme
       PollOption: {
@@ -100,6 +105,14 @@ export async function perform (args, context) {
         createMany: {
           data: difference(mentions, old.mentions)
         }
+      },
+      referrer: {
+        deleteMany: {
+          refereeId: {
+            in: difference(old.referrer, itemMentions, 'refereeId').map(({ refereeId }) => refereeId)
+          }
+        },
+        create: difference(itemMentions, old.referrer, 'refereeId')
       }
     }
   })
@@ -112,6 +125,16 @@ export async function perform (args, context) {
     VALUES ('imgproxy', jsonb_build_object('id', ${id}::INTEGER), 21, true, now() + interval '5 seconds')`
 
   await performBotBehavior(args, context)
+
+  // notify all the mentions if the mention is new
+  for (const { userId, createdAt } of item.mentions) {
+    if (item.updatedAt.getTime() === createdAt.getTime()) continue
+    notifyMention({ models, item, userId }).catch(console.error)
+  }
+  for (const { refereeItem, createdAt } of item.referrer) {
+    if (item.updatedAt.getTime() === createdAt.getTime()) continue
+    notifyItemMention({ models, referrerItem: item, refereeItem }).catch(console.error)
+  }
 
   // ltree is unsupported in Prisma, so we have to query it manually (FUCK!)
   return (await tx.$queryRaw`

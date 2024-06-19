@@ -210,7 +210,7 @@ export function useZap () {
   const toaster = useToast()
   const strike = useLightning()
 
-  return useCallback(async ({ item, mem, abortSignal }) => {
+  return useCallback(async ({ item, abortSignal }) => {
     const meSats = (item?.meSats || 0)
 
     // add current sats to next tip since idempotent zaps use desired total zap not difference

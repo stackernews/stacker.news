@@ -1,7 +1,8 @@
 import { USER_ID } from '@/lib/constants'
 import { getDeleteAt, getRemindAt } from '@/lib/item'
+import { parseInternalLinks } from '@/lib/url'
 
-export async function getMentions ({ text, id }, { me, models }) {
+export async function getMentions ({ text }, { me, models }) {
   const mentionPattern = /\B@[\w_]+/gi
   const names = text.match(mentionPattern)?.map(m => m.slice(1))
   if (names?.length > 0) {
@@ -17,6 +18,29 @@ export async function getMentions ({ text, id }, { me, models }) {
     })
     return users.map(user => ({ userId: user.id }))
   }
+  return []
+}
+
+export const getItemMentions = async ({ text }, { me, models }) => {
+  const linkPattern = new RegExp(`${process.env.NEXT_PUBLIC_URL}/items/\\d+.*`, 'gi')
+  const refs = text.match(linkPattern)?.map(m => {
+    try {
+      const { itemId, commentId } = parseInternalLinks(m)
+      return Number(commentId || itemId)
+    } catch (err) {
+      return null
+    }
+  }).filter(r => !!r)
+
+  if (refs?.length > 0) {
+    const referee = await models.item.findMany({
+      where: {
+        id: { in: refs }
+      }
+    })
+    return referee.map(r => ({ refereeId: r.id }))
+  }
+
   return []
 }
 

@@ -1,23 +1,29 @@
-import { USER_ID } from '@/lib/constants'
-import { notifyItemParents, notifyTerritorySubscribers, notifyUserSubscribers } from '@/lib/webPush'
-import { getMentions, performBotBehavior } from './lib/item'
+import { ANON_ITEM_SPAM_INTERVAL, ITEM_SPAM_INTERVAL, USER_ID } from '@/lib/constants'
+import { notifyItemMention, notifyItemParents, notifyMention, notifyTerritorySubscribers, notifyUserSubscribers } from '@/lib/webPush'
+import { getItemMentions, getMentions, performBotBehavior } from './lib/item'
 
 export const anonable = true
 export const supportsPessimism = true
 export const supportsOptimism = true
 
-export async function getCost ({ subName, parentId, uploadIds, boost }, { models, user }) {
+export async function getCost ({ subName, parentId, uploadIds, boost = 0 }, { models, user }) {
   const sub = parentId ? null : await models.sub.findUnique({ where: { name: subName } })
   const baseCost = parentId ? BigInt(1000) : BigInt(sub.baseCost) * BigInt(1000)
-  // baseCost * 10^num_items_in_10m * 100 (anon) or 1 (user) + image fees
-  // TODO: anon is getting charged spam fees
+
+  // cost = baseCost * 10^num_items_in_10m * 100 (anon) or 1 (user) + image fees + boost
   const [{ cost }] = await models.$queryRaw`
     SELECT ${baseCost}::INTEGER
-      * POWER(10, item_spam(${parentId}::INTEGER, ${user?.id || USER_ID.anon}::INTEGER, '10m'::INTERVAL))
+      * POWER(10, item_spam(${parentId}::INTEGER, ${user?.id || USER_ID.anon}::INTEGER,
+          ${user?.id ? ITEM_SPAM_INTERVAL : ANON_ITEM_SPAM_INTERVAL}::INTERVAL))
       * ${user ? 1 : 100}::INTEGER
-      + (SELECT "nUnpaid" * "imageFeeMsats" FROM image_fees_info(${user?.id || USER_ID.anon}::INTEGER, ${uploadIds})) as cost`
-  // freebies must be allowed, cost must be less than baseCost, no boost, user must exist, and cost must be less or equal to user's balance
-  const freebie = (parentId || sub?.allowFreebies) && cost <= baseCost && !boost && !!user && cost > user?.msats
+      + (SELECT "nUnpaid" * "imageFeeMsats"
+          FROM image_fees_info(${user?.id || USER_ID.anon}::INTEGER, ${uploadIds}))
+      + ${BigInt(boost) * BigInt(1000)}::INTEGER as cost`
+
+  // sub allows freebies, cost is less than baseCost, not anon, and cost must be greater than user's balance
+  const freebie = (parentId || sub?.allowFreebies) && cost <= baseCost && !!user && cost > user?.msats
+
+  console.log(cost, freebie)
   return freebie ? BigInt(0) : BigInt(cost)
 }
 
@@ -50,13 +56,13 @@ export async function perform (args, context) {
   }
 
   const mentions = await getMentions(args, context)
+  const itemMentions = await getItemMentions(args, context)
 
   const itemData = {
     parentId: parentId ? parseInt(parentId) : null,
     ...data,
     ...invoiceData,
     boost,
-    // TODO: ItemMentions
     // TODO: test all these nested inserts
     // TODO: give nested relations a consistent naming scheme
     ThreadSubscription: {
@@ -89,6 +95,9 @@ export async function perform (args, context) {
       createMany: {
         data: mentions
       }
+    },
+    referrer: {
+      create: itemMentions
     }
   }
 
@@ -138,12 +147,24 @@ export async function onPaid ({ invoice, id }, context) {
   let item
 
   if (invoice) {
-    item = await tx.item.findFirst({ where: { invoiceId: invoice.id } })
+    item = await tx.item.findFirst({
+      where: { invoiceId: invoice.id },
+      include: {
+        mentions: true,
+        referrer: { include: { refereeItem: true } }
+      }
+    })
     await tx.itemAct.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } })
     await tx.item.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID', invoicePaidAt: new Date() } })
     await tx.upload.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID', paid: true } })
   } else if (id) {
-    item = await tx.item.findUnique({ where: { id } })
+    item = await tx.item.findUnique({
+      where: { id },
+      include: {
+        mentions: true,
+        referrer: { include: { refereeItem: true } }
+      }
+    })
   } else {
     throw new Error('No item found')
   }
@@ -161,6 +182,13 @@ export async function onPaid ({ invoice, id }, context) {
   if (item.parentId) {
     await tx.$executeRaw`SELECT ncomments_after_comment(${item.id}::INTEGER)`
     notifyItemParents({ item, me: item.userId, models }).catch(console.error)
+  }
+
+  for (const { userId } of item.mentions) {
+    notifyMention({ models, item, userId }).catch(console.error)
+  }
+  for (const { referee } of item.referrer) {
+    notifyItemMention({ models, referrerItem: item, refereeItem: referee }).catch(console.error)
   }
   notifyUserSubscribers({ models, item }).catch(console.error)
   notifyTerritorySubscribers({ models, item }).catch(console.error)

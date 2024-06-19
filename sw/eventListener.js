@@ -114,7 +114,7 @@ const mergeAndShowNotification = async (sw, payload, currentNotifications, tag, 
   // merge notifications into single notification payload
   // ---
   // tags that need to know the amount of notifications with same tag for merging
-  const AMOUNT_TAGS = ['REPLY', 'MENTION', 'REFERRAL', 'INVITE', 'FOLLOW', 'TERRITORY_POST']
+  const AMOUNT_TAGS = ['REPLY', 'MENTION', 'ITEM_MENTION', 'REFERRAL', 'INVITE', 'FOLLOW', 'TERRITORY_POST']
   // tags that need to know the sum of sats of notifications with same tag for merging
   const SUM_SATS_TAGS = ['DEPOSIT', 'WITHDRAWAL']
   // this should reflect the amount of notifications that were already merged before
@@ -143,6 +143,8 @@ const mergeAndShowNotification = async (sw, payload, currentNotifications, tag, 
       title = `you have ${amount} new replies`
     } else if (compareTag === 'MENTION') {
       title = `you were mentioned ${amount} times`
+    } else if (compareTag === 'ITEM_MENTION') {
+      title = `your items were mentioned ${amount} times`
     } else if (compareTag === 'REFERRAL') {
       title = `${amount} stackers joined via your referral links`
     } else if (compareTag === 'INVITE') {

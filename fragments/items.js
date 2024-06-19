@@ -61,6 +61,7 @@ export const ITEM_FIELDS = gql`
     rel
     eventDate
     eventLocation
+    apiKey
   }`
 
 export const ITEM_FULL_FIELDS = gql`
@@ -127,7 +128,6 @@ export const POLL_FIELDS = gql`
         id
         option
         count
-        meVoted
       }
     }
   }`

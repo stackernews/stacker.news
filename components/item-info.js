@@ -15,13 +15,14 @@ import BookmarkDropdownItem from './bookmark'
 import SubscribeDropdownItem from './subscribe'
 import { CopyLinkDropdownItem, CrosspostDropdownItem } from './share'
 import Hat from './hat'
-import { AD_USER_ID } from '@/lib/constants'
+import { USER_ID } from '@/lib/constants'
 import ActionDropdown from './action-dropdown'
 import MuteDropdownItem from './mute'
 import { DropdownItemUpVote } from './upvote'
 import { useRoot } from './root'
 import { MuteSubDropdownItem, PinSubDropdownItem } from './territory-header'
 import UserPopover from './user-popover'
+import { useItemContext } from './item'
 
 export default function ItemInfo ({
   item, full, commentsText = 'comments',
@@ -36,6 +37,7 @@ export default function ItemInfo ({
   const [hasNewComments, setHasNewComments] = useState(false)
   const [meTotalSats, setMeTotalSats] = useState(0)
   const root = useRoot()
+  const { pendingSats, pendingCommentSats, pendingDownSats } = useItemContext()
   const sub = item?.sub || root?.sub
 
   useEffect(() => {
@@ -45,8 +47,8 @@ export default function ItemInfo ({
   }, [item])
 
   useEffect(() => {
-    if (item) setMeTotalSats((item.meSats || 0) + (item.meAnonSats || 0))
-  }, [item?.meSats, item?.meAnonSats])
+    if (item) setMeTotalSats((item.meSats || 0) + (item.meAnonSats || 0) + (pendingSats))
+  }, [item?.meSats, item?.meAnonSats, pendingSats])
 
   // territory founders can pin any post in their territory
   // and OPs can pin any root reply in their post
@@ -56,9 +58,11 @@ export default function ItemInfo ({
   const rootReply = item.path.split('.').length === 2
   const canPin = (isPost && mySub) || (myPost && rootReply)
 
+  const downSats = item.meDontLikeSats + pendingDownSats
+
   return (
     <div className={className || `${styles.other}`}>
-      {!(item.position && (pinnable || !item.subName)) && !(!item.parentId && Number(item.user?.id) === AD_USER_ID) &&
+      {!(item.position && (pinnable || !item.subName)) && !(!item.parentId && Number(item.user?.id) === USER_ID.ad) &&
         <>
           <span title={`from ${numWithUnits(item.upvotes, {
             abbreviate: false,
@@ -66,11 +70,11 @@ export default function ItemInfo ({
             unitPlural: 'stackers'
           })} ${item.mine
             ? `\\ ${numWithUnits(item.meSats, { abbreviate: false })} to post`
-            : `(${numWithUnits(meTotalSats, { abbreviate: false })}${item.meDontLikeSats
-              ? ` & ${numWithUnits(item.meDontLikeSats, { abbreviate: false, unitSingular: 'downsat', unitPlural: 'downsats' })}`
+            : `(${numWithUnits(meTotalSats, { abbreviate: false })}${downSats
+              ? ` & ${numWithUnits(downSats, { abbreviate: false, unitSingular: 'downsat', unitPlural: 'downsats' })}`
               : ''} from me)`} `}
           >
-            {numWithUnits(item.sats)}
+            {numWithUnits(item.sats + pendingSats)}
           </span>
           <span> \ </span>
         </>}
@@ -88,7 +92,7 @@ export default function ItemInfo ({
               `/items/${item.id}?commentsViewedAt=${viewedAt}`,
               `/items/${item.id}`)
           }
-        }} title={numWithUnits(item.commentSats)} className='text-reset position-relative'
+        }} title={numWithUnits(item.commentSats + pendingCommentSats)} className='text-reset position-relative'
       >
         {numWithUnits(item.ncomments, {
           abbreviate: false,
@@ -136,6 +140,9 @@ export default function ItemInfo ({
             {' '}<Badge className={styles.newComment} bg={null}>freebie</Badge>
           </Link>
         )}
+      {(item.apiKey &&
+        <>{' '}<Badge className={styles.newComment} bg={null}>bot</Badge></>
+        )}
       {extraBadges}
       {canEdit && !item.deletedAt &&
         <>
@@ -174,7 +181,7 @@ export default function ItemInfo ({
               <CrosspostDropdownItem item={item} />}
             {me && !item.position &&
             !item.mine && !item.deletedAt &&
-            (item.meDontLikeSats > meTotalSats
+            (downSats > meTotalSats
               ? <DropdownItemUpVote item={item} />
               : <DontLikeThisDropdownItem item={item} />)}
             {me && sub && !item.mine && !item.outlawed && Number(me.id) === Number(sub.userId) && sub.moderated &&

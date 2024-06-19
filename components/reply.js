@@ -31,7 +31,15 @@ export function ReplyOnAnotherPage ({ item }) {
   )
 }
 
-export default forwardRef(function Reply ({ item, onSuccess, replyOpen, children, placeholder, onQuoteReply, onCancelQuote, quote }, ref) {
+export default forwardRef(function Reply ({
+  item,
+  replyOpen,
+  children,
+  placeholder,
+  onQuoteReply,
+  onCancelQuote,
+  quote
+}, ref) {
   const [reply, setReply] = useState(replyOpen || quote)
   const me = useMe()
   const parentId = item.id

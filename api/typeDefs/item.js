@@ -47,7 +47,6 @@ export default gql`
     id: ID,
     option: String!
     count: Int!
-    meVoted: Boolean!
   }
 
   type Poll {
@@ -128,6 +127,7 @@ export default gql`
     rel: String
     eventDate: Date
     eventLocation: String
+    apiKey: Boolean
   }
 
   input ItemForwardInput {

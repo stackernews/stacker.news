@@ -6,7 +6,7 @@ import BackArrow from '../../svgs/arrow-left-line.svg'
 import { useCallback, useEffect, useState } from 'react'
 import Price from '../price'
 import SubSelect from '../sub-select'
-import { ANON_USER_ID, BALANCE_LIMIT_MSATS, Wallet } from '../../lib/constants'
+import { USER_ID, BALANCE_LIMIT_MSATS, Wallet } from '../../lib/constants'
 import Head from 'next/head'
 import NoteIcon from '../../svgs/notification-4-fill.svg'
 import { useMe } from '../me'
@@ -307,7 +307,7 @@ export function AnonDropdown ({ path }) {
       <Dropdown className={styles.dropdown} align='end'>
         <Dropdown.Toggle className='nav-link nav-item' id='profile' variant='custom'>
           <Nav.Link eventKey='anon' as='span' className='p-0 fw-normal'>
-            @anon<Hat user={{ id: ANON_USER_ID }} />
+            @anon<Hat user={{ id: USER_ID.anon }} />
           </Nav.Link>
         </Dropdown.Toggle>
         <Dropdown.Menu className='p-3'>

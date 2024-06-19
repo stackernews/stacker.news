@@ -43,6 +43,12 @@ export default gql`
     sortTime: Date!
   }
 
+  type ItemMention {
+    id: ID!
+    item: Item!
+    sortTime: Date!
+  }
+
   type Invitification {
     id: ID!
     invite: Invite!
@@ -130,7 +136,7 @@ export default gql`
   union Notification = Reply | Votification | Mention
     | Invitification | Earn | JobChanged | InvoicePaid | WithdrawlPaid | Referral
     | Streak | FollowActivity | ForwardedVotification | Revenue | SubStatus
-    | TerritoryPost | TerritoryTransfer | Reminder
+    | TerritoryPost | TerritoryTransfer | Reminder | ItemMention
 
   type Notifications {
     lastChecked: Date

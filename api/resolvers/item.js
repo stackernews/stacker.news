@@ -1,5 +1,5 @@
 import { GraphQLError } from 'graphql'
-import { ensureProtocol, removeTracking, stripTrailingSlash } from '@/lib/url'
+import { ensureProtocol, parseInternalLinks, removeTracking, stripTrailingSlash } from '@/lib/url'
 import serialize from './serial'
 import { decodeCursor, LIMIT, nextCursorEncoded } from '@/lib/cursor'
 import { getMetadata, metadataRuleSets } from 'page-metadata-parser'
@@ -8,14 +8,14 @@ import domino from 'domino'
 import {
   ITEM_SPAM_INTERVAL, ITEM_FILTER_THRESHOLD,
   COMMENT_DEPTH_LIMIT, COMMENT_TYPE_QUERY,
-  ANON_USER_ID, ANON_ITEM_SPAM_INTERVAL, POLL_COST,
-  ITEM_ALLOW_EDITS, GLOBAL_SEED, ANON_FEE_MULTIPLIER, NOFOLLOW_LIMIT, UNKNOWN_LINK_REL
+  USER_ID, ANON_ITEM_SPAM_INTERVAL, POLL_COST,
+  ITEM_ALLOW_EDITS, GLOBAL_SEED, ANON_FEE_MULTIPLIER, NOFOLLOW_LIMIT, UNKNOWN_LINK_REL, SN_USER_IDS
 } from '@/lib/constants'
 import { msatsToSats } from '@/lib/format'
 import { parse } from 'tldts'
 import uu from 'url-unshort'
 import { actSchema, advSchema, bountySchema, eventSchema, commentSchema, discussionSchema, jobSchema, linkSchema, pollSchema, ssValidate } from '@/lib/validate'
-import { notifyItemParents, notifyUserSubscribers, notifyZapped, notifyTerritorySubscribers, notifyMention } from '@/lib/webPush'
+import { notifyItemParents, notifyUserSubscribers, notifyZapped, notifyTerritorySubscribers, notifyMention, notifyItemMention } from '@/lib/webPush'
 import { defaultCommentSort, isJob, deleteItemByAuthor, getDeleteCommand, hasDeleteCommand, getReminderCommand, hasReminderCommand } from '@/lib/item'
 import { datePivot, whenRange } from '@/lib/time'
 import { imageFeesInfo, uploadIdsFromText } from './image'
@@ -27,18 +27,11 @@ function commentsOrderByClause (me, models, sort) {
     return 'ORDER BY "Item".created_at DESC, "Item".id DESC'
   }
 
-  if (me) {
-    if (sort === 'top') {
-      return `ORDER BY COALESCE(
-        personal_top_score,
-        ${orderByNumerator(models, 0)}) DESC NULLS LAST,
-        "Item".msats DESC, ("Item".freebie IS FALSE) DESC, "Item".id DESC`
-    } else {
-      return `ORDER BY COALESCE(
+  if (me && sort === 'hot') {
+    return `ORDER BY COALESCE(
         personal_hot_score,
         ${orderByNumerator(models, 0)}/POWER(GREATEST(3, EXTRACT(EPOCH FROM (now_utc() - "Item".created_at))/3600), 1.3)) DESC NULLS LAST,
         "Item".msats DESC, ("Item".freebie IS FALSE) DESC, "Item".id DESC`
-    }
   } else {
     if (sort === 'top') {
       return `ORDER BY ${orderByNumerator(models, 0)} DESC NULLS LAST, "Item".msats DESC, ("Item".freebie IS FALSE) DESC,  "Item".id DESC`
@@ -373,32 +366,10 @@ export default {
           }, decodedCursor.time, decodedCursor.offset, limit, ...subArr)
           break
         case 'top':
-          if (me && (!by || by === 'zaprank') && (when === 'day' || when === 'week')) {
-            // personalized zaprank only goes back 7 days
-            items = await itemQueryWithMeta({
-              me,
-              models,
-              query: `
-              ${SELECT}, GREATEST(g.tf_top_score, l.tf_top_score) AS rank
-              ${relationClause(type)}
-              ${joinZapRankPersonalView(me, models)}
-              ${whereClause(
-                '"Item"."deletedAt" IS NULL',
-                subClause(sub, 5, subClauseTable(type), me, showNsfw),
-                typeClause(type),
-                whenClause(when, 'Item'),
-                await filterClause(me, models, type),
-                muteClause(me))}
-              ORDER BY rank DESC
-              OFFSET $3
-              LIMIT $4`,
-              orderBy: 'ORDER BY rank DESC'
-            }, ...whenRange(when, from, to || decodedCursor.time), decodedCursor.offset, limit, ...subArr)
-          } else {
-            items = await itemQueryWithMeta({
-              me,
-              models,
-              query: `
+          items = await itemQueryWithMeta({
+            me,
+            models,
+            query: `
               ${selectClause(type)}
               ${relationClause(type)}
               ${whereClause(
@@ -411,9 +382,8 @@ export default {
               ${orderByClause(by || 'zaprank', me, models, type)}
               OFFSET $3
               LIMIT $4`,
-              orderBy: orderByClause(by || 'zaprank', me, models, type)
-            }, ...whenRange(when, from, to || decodedCursor.time), decodedCursor.offset, limit, ...subArr)
-          }
+            orderBy: orderByClause(by || 'zaprank', me, models, type)
+          }, ...whenRange(when, from, to || decodedCursor.time), decodedCursor.offset, limit, ...subArr)
           break
         default:
           // sub so we know the default ranking
@@ -863,7 +833,7 @@ export default {
 
       await serialize(
         models.$queryRawUnsafe(`${SELECT} FROM poll_vote($1::INTEGER, $2::INTEGER) AS "Item"`, Number(id), Number(me.id)),
-        { models, lnd, me, hash, hmac }
+        { models, lnd, me, hash, hmac, verifyPayment: !!hash || !me }
       )
 
       return id
@@ -897,7 +867,7 @@ export default {
         }
       }
 
-      if (idempotent) {
+      if (me && idempotent) {
         await serialize(
           models.$queryRaw`
           SELECT
@@ -907,15 +877,15 @@ export default {
              WHERE act IN ('TIP', 'FEE')
              AND "itemId" = ${Number(id)}::INTEGER
              AND "userId" = ${me.id}::INTEGER)::INTEGER)`,
-          { models, lnd, hash, hmac }
+          { models, lnd, hash, hmac, verifyPayment: !!hash }
         )
       } else {
         await serialize(
           models.$queryRaw`
             SELECT
               item_act(${Number(id)}::INTEGER,
-              ${me?.id || ANON_USER_ID}::INTEGER, ${act}::"ItemActType", ${Number(sats)}::INTEGER)`,
-          { models, lnd, me, hash, hmac, fee: sats }
+              ${me?.id || USER_ID.anon}::INTEGER, ${act}::"ItemActType", ${Number(sats)}::INTEGER)`,
+          { models, lnd, me, hash, hmac, fee: sats, verifyPayment: !!hash || !me }
         )
       }
 
@@ -1042,8 +1012,7 @@ export default {
       }
 
       const options = await models.$queryRaw`
-        SELECT "PollOption".id, option, count("PollVote"."userId")::INTEGER as count,
-          coalesce(bool_or("PollVote"."userId" = ${me?.id}), 'f') as "meVoted"
+        SELECT "PollOption".id, option, count("PollVote".id)::INTEGER as count
         FROM "PollOption"
         LEFT JOIN "PollVote" on "PollVote"."pollOptionId" = "PollOption".id
         WHERE "PollOption"."itemId" = ${item.id}
@@ -1051,9 +1020,16 @@ export default {
         ORDER BY "PollOption".id ASC
       `
 
+      const meVoted = await models.pollBlindVote.findFirst({
+        where: {
+          userId: me?.id,
+          itemId: item.id
+        }
+      })
+
       const poll = {}
       poll.options = options
-      poll.meVoted = options.some(o => o.meVoted)
+      poll.meVoted = !!meVoted
       poll.count = options.reduce((t, o) => t + o.count, 0)
 
       return poll
@@ -1195,7 +1171,7 @@ export default {
       return parent.otsHash
     },
     deleteScheduledAt: async (item, args, { me, models }) => {
-      const meId = me?.id ?? ANON_USER_ID
+      const meId = me?.id ?? USER_ID.anon
       if (meId !== item.userId) {
         // Only query for deleteScheduledAt for your own items to keep DB queries minimized
         return null
@@ -1204,8 +1180,8 @@ export default {
       return deleteJobs[0]?.startafter ?? null
     },
     reminderScheduledAt: async (item, args, { me, models }) => {
-      const meId = me?.id ?? ANON_USER_ID
-      if (meId !== item.userId || meId === ANON_USER_ID) {
+      const meId = me?.id ?? USER_ID.anon
+      if (meId !== item.userId || meId === USER_ID.anon) {
         // don't show reminders on an item if it isn't yours
         // don't support reminders for ANON
         return null
@@ -1217,6 +1193,7 @@ export default {
 }
 
 const namePattern = /\B@[\w_]+/gi
+const refPattern = new RegExp(`${process.env.NEXT_PUBLIC_URL}/items/\\d+.*`, 'gi')
 
 export const createMentions = async (item, models) => {
   // if we miss a mention, in the rare circumstance there's some kind of
@@ -1226,49 +1203,112 @@ export const createMentions = async (item, models) => {
     return
   }
 
+  // user mentions
   try {
-    const mentions = item.text.match(namePattern)?.map(m => m.slice(1))
-    if (mentions?.length > 0) {
-      const users = await models.user.findMany({
-        where: {
-          name: { in: mentions },
-          // Don't create mentions when mentioning yourself
-          id: { not: item.userId }
-        }
-      })
-
-      users.forEach(async user => {
-        const data = {
-          itemId: item.id,
-          userId: user.id
-        }
-
-        const mention = await models.mention.upsert({
-          where: {
-            itemId_userId: data
-          },
-          update: data,
-          create: data
-        })
-
-        // only send if mention is new to avoid duplicates
-        if (mention.createdAt.getTime() === mention.updatedAt.getTime()) {
-          notifyMention({ models, userId: user.id, item })
-        }
-      })
-    }
+    await createUserMentions(item, models)
   } catch (e) {
-    console.error('mention failure', e)
+    console.error('user mention failure', e)
   }
+
+  // item mentions
+  try {
+    await createItemMentions(item, models)
+  } catch (e) {
+    console.error('item mention failure', e)
+  }
+}
+
+const createUserMentions = async (item, models) => {
+  const mentions = item.text.match(namePattern)?.map(m => m.slice(1))
+  if (!mentions || mentions.length === 0) return
+
+  const users = await models.user.findMany({
+    where: {
+      name: { in: mentions },
+      // Don't create mentions when mentioning yourself
+      id: { not: item.userId }
+    }
+  })
+
+  users.forEach(async user => {
+    const data = {
+      itemId: item.id,
+      userId: user.id
+    }
+
+    const mention = await models.mention.upsert({
+      where: {
+        itemId_userId: data
+      },
+      update: data,
+      create: data
+    })
+
+    // only send if mention is new to avoid duplicates
+    if (mention.createdAt.getTime() === mention.updatedAt.getTime()) {
+      notifyMention({ models, userId: user.id, item })
+    }
+  })
+}
+
+const createItemMentions = async (item, models) => {
+  const refs = item.text.match(refPattern)?.map(m => {
+    try {
+      const { itemId, commentId } = parseInternalLinks(m)
+      return Number(commentId || itemId)
+    } catch (err) {
+      return null
+    }
+  }).filter(r => !!r)
+  if (!refs || refs.length === 0) return
+
+  const referee = await models.item.findMany({
+    where: {
+      id: { in: refs },
+      // Don't create mentions for your own items
+      userId: { not: item.userId }
+    }
+  })
+
+  referee.forEach(async r => {
+    const data = {
+      referrerId: item.id,
+      refereeId: r.id
+    }
+
+    const mention = await models.itemMention.upsert({
+      where: {
+        referrerId_refereeId: data
+      },
+      update: data,
+      create: data
+    })
+
+    // only send if mention is new to avoid duplicates
+    if (mention.createdAt.getTime() === mention.updatedAt.getTime()) {
+      notifyItemMention({ models, referrerItem: item, refereeItem: r })
+    }
+  })
 }
 
 export const updateItem = async (parent, { sub: subName, forward, options, ...item }, { me, models, lnd, hash, hmac }) => {
   // update iff this item belongs to me
   const old = await models.item.findUnique({ where: { id: Number(item.id) }, include: { sub: true } })
-  if (Number(old.userId) !== Number(me?.id)) {
+
+  // author can always edit their own item
+  const mid = Number(me?.id)
+  const isMine = Number(old.userId) === mid
+
+  // allow admins to edit special items
+  const allowEdit = ITEM_ALLOW_EDITS.includes(old.id)
+  const adminEdit = SN_USER_IDS.includes(mid) && allowEdit
+
+  if (!isMine && !adminEdit) {
     throw new GraphQLError('item does not belong to you', { extensions: { code: 'FORBIDDEN' } })
   }
-  if (subName && old.subName !== subName) {
+
+  const differentSub = subName && old.subName !== subName
+  if (differentSub) {
     const sub = await models.sub.findUnique({ where: { name: subName } })
     if (old.freebie) {
       if (!sub.allowFreebies) {
@@ -1282,10 +1322,13 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
   // in case they lied about their existing boost
   await ssValidate(advSchema, { boost: item.boost }, { models, me, existingBoost: old.boost })
 
-  // prevent update if it's not explicitly allowed, not their bio, not their job and older than 10 minutes
   const user = await models.user.findUnique({ where: { id: me.id } })
-  if (!ITEM_ALLOW_EDITS.includes(old.id) && user.bioId !== old.id &&
-    !isJob(item) && Date.now() > new Date(old.createdAt).getTime() + 10 * 60000) {
+
+  // prevent update if it's not explicitly allowed, not their bio, not their job and older than 10 minutes
+  const myBio = user.bioId === old.id
+  const timer = Date.now() < new Date(old.createdAt).getTime() + 10 * 60_000
+
+  if (!allowEdit && !myBio && !timer) {
     throw new GraphQLError('item can no longer be editted', { extensions: { code: 'BAD_INPUT' } })
   }
 
@@ -1304,7 +1347,7 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
     }
   }
 
-  item = { subName, userId: me.id, ...item }
+  item = { subName, userId: old.userId, ...item }
   const fwdUsers = await getForwardUsers(models, forward)
 
   const uploadIds = uploadIdsFromText(item.text, { models })
@@ -1313,7 +1356,7 @@ export const updateItem = async (parent, { sub: subName, forward, options, ...it
   ([item] = await serialize(
     models.$queryRawUnsafe(`${SELECT} FROM update_item($1::JSONB, $2::JSONB, $3::JSONB, $4::INTEGER[]) AS "Item"`,
       JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options), uploadIds),
-    { models, lnd, me, hash, hmac, fee: imgFees }
+    { models, lnd, me, hash, hmac, fee: imgFees, verifyPayment: !!hash || !me }
   ))
 
   await createMentions(item, models)
@@ -1341,13 +1384,16 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
   item.subName = item.sub
   delete item.sub
 
-  item.userId = me ? Number(me.id) : ANON_USER_ID
+  item.userId = me ? Number(me.id) : USER_ID.anon
 
   const fwdUsers = await getForwardUsers(models, forward)
   if (item.url && !isJob(item)) {
     item.url = ensureProtocol(item.url)
     item.url = removeTracking(item.url)
   }
+
+  // mark item as created with API key
+  item.apiKey = me?.apiKey
 
   const uploadIds = uploadIdsFromText(item.text, { models })
   const { totalFees: imgFees } = await imageFeesInfo(uploadIds, { models, me })
@@ -1367,7 +1413,7 @@ export const createItem = async (parent, { forward, options, ...item }, { me, mo
     models.$queryRawUnsafe(
       `${SELECT} FROM create_item($1::JSONB, $2::JSONB, $3::JSONB, '${spamInterval}'::INTERVAL, $4::INTEGER[]) AS "Item"`,
       JSON.stringify(item), JSON.stringify(fwdUsers), JSON.stringify(options), uploadIds),
-    { models, lnd, me, hash, hmac, fee }
+    { models, lnd, me, hash, hmac, fee, verifyPayment: !!hash || !me }
   ))
 
   await createMentions(item, models)
@@ -1402,7 +1448,7 @@ const enqueueDeletionJob = async (item, models) => {
 }
 
 const deleteReminderAndJob = async ({ me, item, models }) => {
-  if (me?.id && me.id !== ANON_USER_ID) {
+  if (me?.id && me.id !== USER_ID.anon) {
     await models.$transaction([
       models.$queryRawUnsafe(`
         DELETE FROM pgboss.job
@@ -1424,7 +1470,7 @@ const deleteReminderAndJob = async ({ me, item, models }) => {
 
 const createReminderAndJob = async ({ me, item, models }) => {
   // disallow anon to use reminder
-  if (!me || me.id === ANON_USER_ID) {
+  if (!me || me.id === USER_ID.anon) {
     return
   }
   const reminderCommand = getReminderCommand(item.text)
@@ -1471,7 +1517,7 @@ export const SELECT =
   "Item".ncomments, "Item"."commentMsats", "Item"."lastCommentAt", "Item"."weightedVotes",
   "Item"."weightedDownVotes", "Item".freebie, "Item".bio, "Item"."otsHash", "Item"."bountyPaidTo", "Item"."eventDate", "Item"."eventLocation",
   ltree2text("Item"."path") AS "path", "Item"."weightedComments", "Item"."imgproxyUrls", "Item".outlawed,
-  "Item"."pollExpiresAt"`
+  "Item"."pollExpiresAt", "Item"."apiKey"`
 
 function topOrderByWeightedSats (me, models) {
   return `ORDER BY ${orderByNumerator(models)} DESC NULLS LAST, "Item".id DESC`

@@ -248,7 +248,7 @@ export default {
 
       const results = await serialize(
         queries,
-        { models, lnd, me, hash, hmac, fee: sub.billingCost })
+        { models, lnd, me, hash, hmac, fee: sub.billingCost, verifyPayment: !!hash || !me })
       return results[1]
     },
     toggleMuteSub: async (parent, { name }, { me, models }) => {
@@ -368,7 +368,7 @@ export default {
         models.sub.update({ where: { name }, data: newSub }),
         isTransfer && models.territoryTransfer.create({ data: { subName: name, oldUserId: oldSub.userId, newUserId: me.id } })
       ],
-      { models, lnd, hash, me, hmac, fee: billingCost })
+      { models, lnd, hash, me, hmac, fee: billingCost, verifyPayment: !!hash || !me })
 
       if (isTransfer) notifyTerritoryTransfer({ models, sub: newSub, to: me })
     }
@@ -382,7 +382,10 @@ export default {
       return await models.user.findUnique({ where: { id: sub.userId } })
     },
     meMuteSub: async (sub, args, { models }) => {
-      return sub.meMuteSub || sub.MuteSub?.length > 0
+      if (sub.meMuteSub !== undefined) {
+        return sub.meMuteSub
+      }
+      return sub.MuteSub?.length > 0
     },
     nposts: async (sub, { when, from, to }, { models }) => {
       if (typeof sub.nposts !== 'undefined') {
@@ -395,7 +398,11 @@ export default {
       }
     },
     meSubscription: async (sub, args, { me, models }) => {
-      return sub.meSubscription || sub.SubSubscription?.length > 0
+      if (sub.meSubscription !== undefined) {
+        return sub.meSubscription
+      }
+
+      return sub.SubSubscription?.length > 0
     },
     createdAt: sub => sub.createdAt || sub.created_at
   }
@@ -457,7 +464,7 @@ async function createSub (parent, data, { me, models, lnd, hash, hmac }) {
           subName: data.name
         }
       })
-    ], { models, lnd, me, hash, hmac, fee: billingCost })
+    ], { models, lnd, me, hash, hmac, fee: billingCost, verifyPayment: !!hash || !me })
 
     return results[1]
   } catch (error) {
@@ -538,7 +545,7 @@ async function updateSub (parent, { oldName, ...data }, { me, models, lnd, hash,
               userId: me.id
             }
           })
-        ], { models, lnd, me, hash, hmac, fee: proratedCost })
+        ], { models, lnd, me, hash, hmac, fee: proratedCost, verifyPayment: !!hash || !me })
         return results[2]
       }
     }

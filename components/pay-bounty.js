@@ -6,9 +6,8 @@ import { useMe } from './me'
 import { numWithUnits } from '@/lib/format'
 import { useShowModal } from './modal'
 import { useRoot } from './root'
-import { useAct, actUpdate, ACT_MUTATION } from './item-act'
+import { useAct, actUpdate } from './item-act'
 import { InvoiceCanceledError, usePayment } from './payment'
-import { optimisticUpdate } from '@/lib/apollo'
 import { useLightning } from './lightning'
 import { useToast } from './toast'
 import { Types as ClientNotification, useClientNotifications } from './client-notifications'
@@ -45,30 +44,21 @@ export default function PayBounty ({ children, item }) {
     const notifyProps = { itemId: item.id, sats }
     const optimisticResponse = { act: { ...variables, path: item.path } }
 
-    let revert, cancel, nid
+    let cancel, nid
     try {
-      revert = optimisticUpdate({
-        mutation: ACT_MUTATION,
-        variables,
-        optimisticResponse,
-        update: actUpdate({ me, onUpdate: onUpdate(onComplete) })
-      })
-
       if (me) {
         nid = notify(ClientNotification.Bounty.PENDING, notifyProps)
       }
 
       let hash, hmac;
       [{ hash, hmac }, cancel] = await payment.request(sats)
+
       await act({
         variables: { hash, hmac, ...variables },
-        optimisticResponse: {
-          act: variables
-        }
+        optimisticResponse,
+        update: actUpdate({ me, onUpdate: onUpdate(onComplete) })
       })
     } catch (error) {
-      revert?.()
-
       if (error instanceof InvoiceCanceledError) {
         return
       }

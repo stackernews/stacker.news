@@ -560,15 +560,21 @@ export default {
       }
     },
     itemAct: async (invoice, args, { models, me }) => {
+      const action2act = {
+        ZAP: 'TIP',
+        DOWN_ZAP: 'DONT_LIKE_THIS',
+        POLL_VOTE: 'POLL'
+      }
       switch (invoice.actionType) {
         case 'ZAP':
         case 'DOWN_ZAP':
+        case 'POLL_VOTE':
           return (await models.$queryRaw`
               SELECT id, act, "invoiceId", "invoiceActionState", msats
               FROM "ItemAct"
               WHERE "ItemAct"."invoiceId" = ${Number(invoice.id)}
               AND "ItemAct"."userId" = ${me?.id}
-              AND act = ${invoice.actionType === 'ZAP' ? 'TIP' : 'DONT_LIKE_THIS'}::"ItemActType"`
+              AND act = ${action2act[invoice.actionType]}::"ItemActType"`
           )?.[0]
         default:
           return null

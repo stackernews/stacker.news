@@ -1,4 +1,3 @@
-import { gql } from '@apollo/client'
 import Button from 'react-bootstrap/Button'
 import { fixedDecimal, numWithUnits } from '@/lib/format'
 import { timeLeft } from '@/lib/time'
@@ -6,44 +5,15 @@ import { useMe } from './me'
 import styles from './poll.module.css'
 import { signIn } from 'next-auth/react'
 import ActionTooltip from './action-tooltip'
-import { InvoiceCanceledError } from './payment'
+import { InvoiceCanceledError, useQrPayment } from './payment'
 import { useToast } from './toast'
 import { usePaidMutation } from './use-paid-mutation'
+import { POLL_VOTE, RETRY_PAID_ACTION } from '@/fragments/paidAction'
 
 export default function Poll ({ item }) {
   const me = useMe()
-  const POLL_VOTE_MUTATION = gql`
-    mutation pollVote($id: ID!, $hash: String, $hmac: String) {
-      pollVote(id: $id, hash: $hash, hmac: $hmac) {
-        id
-      }
-    }`
-  const [pollVote] = usePaidMutation(POLL_VOTE_MUTATION)
+  const pollVote = usePollVote({ query: POLL_VOTE, itemId: item.id })
   const toaster = useToast()
-
-  const update = (cache, { data: { pollVote: { result } } }) => {
-    if (!result) return
-    const { id } = result
-    cache.modify({
-      id: `Item:${item.id}`,
-      fields: {
-        poll (existingPoll) {
-          const poll = { ...existingPoll }
-          poll.meVoted = true
-          poll.count += 1
-          return poll
-        }
-      }
-    })
-    cache.modify({
-      id: `PollOption:${id}`,
-      fields: {
-        count (existingCount) {
-          return existingCount + 1
-        }
-      }
-    })
-  }
 
   const PollButton = ({ v }) => {
     return (
@@ -55,7 +25,10 @@ export default function Poll ({ item }) {
               const variables = { id: v.id }
               const optimisticResponse = { pollVote: { result: { id: v.id } } }
               try {
-                await pollVote({ variables, optimisticResponse, update })
+                await pollVote({
+                  variables,
+                  optimisticResponse
+                })
               } catch (error) {
                 if (error instanceof InvoiceCanceledError) {
                   return
@@ -74,10 +47,34 @@ export default function Poll ({ item }) {
     )
   }
 
+  const RetryVote = () => {
+    const retryVote = usePollVote({ query: RETRY_PAID_ACTION, itemId: item.id })
+    const waitForQrPayment = useQrPayment()
+
+    if (item.poll.meInvoiceActionState === 'PENDING') {
+      return (
+        <span
+          className='ms-2 fw-bold text-info pointer'
+          onClick={() => waitForQrPayment({ id: parseInt(item.poll.meInvoiceId) }, null, false).catch(console.error)}
+        >vote pending
+        </span>
+      )
+    }
+    return (
+      <span
+        className='ms-2 fw-bold text-warning pointer'
+        onClick={() => retryVote({ variables: { invoiceId: parseInt(item.poll.meInvoiceId) } })}
+      >
+        retry vote
+      </span>
+    )
+  }
+
   const hasExpiration = !!item.pollExpiresAt
   const timeRemaining = timeLeft(new Date(item.pollExpiresAt))
   const mine = item.user.id === me?.id
-  const showPollButton = (!hasExpiration || timeRemaining) && !item.poll.meVoted && !mine
+  const meVotePending = item.poll.meInvoiceActionState && item.poll.meInvoiceActionState !== 'PAID'
+  const showPollButton = (!hasExpiration || timeRemaining) && !item.poll.meVoted && !meVotePending && !mine
   const pollCount = item.poll.count
   return (
     <div className={styles.pollBox}>
@@ -93,6 +90,7 @@ export default function Poll ({ item }) {
       <div className='text-muted mt-1'>
         {numWithUnits(item.poll.count, { unitSingular: 'vote', unitPlural: 'votes' })}
         {hasExpiration && ` \\ ${timeRemaining ? `${timeRemaining} left` : 'poll ended'}`}
+        {!showPollButton && meVotePending && <RetryVote />}
       </div>
     </div>
   )
@@ -106,4 +104,90 @@ function PollResult ({ v, progress }) {
       <div className={styles.pollProgress} style={{ width: `${progress}%` }} />
     </div>
   )
+}
+
+export function usePollVote ({ query = POLL_VOTE, itemId }) {
+  const update = (cache, { data }) => {
+    // the mutation name varies for optimistic retries
+    const response = Object.values(data)[0]
+    if (!response) return
+    const { result, invoice } = response
+    const { id } = result
+    cache.modify({
+      id: `Item:${itemId}`,
+      fields: {
+        poll (existingPoll) {
+          const poll = { ...existingPoll }
+          poll.meVoted = true
+          if (invoice) {
+            poll.meInvoiceActionState = 'PENDING'
+            poll.meInvoiceId = invoice.id
+          }
+          poll.count += 1
+          return poll
+        }
+      }
+    })
+    cache.modify({
+      id: `PollOption:${id}`,
+      fields: {
+        count (existingCount) {
+          return existingCount + 1
+        }
+      }
+    })
+  }
+
+  const onPayError = (e, cache, { data }) => {
+    // the mutation name varies for optimistic retries
+    const response = Object.values(data)[0]
+    if (!response) return
+    const { result, invoice } = response
+    const { id } = result
+    cache.modify({
+      id: `Item:${itemId}`,
+      fields: {
+        poll (existingPoll) {
+          const poll = { ...existingPoll }
+          poll.meVoted = false
+          if (invoice) {
+            poll.meInvoiceActionState = 'FAILED'
+            poll.meInvoiceId = invoice?.id
+          }
+          poll.count -= 1
+          return poll
+        }
+      }
+    })
+    cache.modify({
+      id: `PollOption:${id}`,
+      fields: {
+        count (existingCount) {
+          return existingCount - 1
+        }
+      }
+    })
+  }
+
+  const onPaid = (cache, { data }) => {
+    // the mutation name varies for optimistic retries
+    const response = Object.values(data)[0]
+    if (!response?.invoice) return
+    const { invoice } = response
+    cache.modify({
+      id: `Item:${itemId}`,
+      fields: {
+        poll (existingPoll) {
+          const poll = { ...existingPoll }
+          poll.meVoted = true
+          poll.meInvoiceActionState = 'PAID'
+          poll.meInvoiceId = invoice.id
+          return poll
+        }
+      }
+    })
+  }
+
+  const [pollVote] = usePaidMutation(query, { update, onPayError, onPaid })
+  return pollVote
 }

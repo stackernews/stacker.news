@@ -1,5 +1,5 @@
 import { gql } from '@apollo/client'
-import { ITEM_FULL_FIELDS } from './items'
+import { ITEM_FULL_FIELDS, POLL_FIELDS } from './items'
 import { INVITE_FIELDS } from './invites'
 import { SUB_FIELDS } from './subs'
 
@@ -7,6 +7,7 @@ export const HAS_NOTIFICATIONS = gql`{ hasNewNotes }`
 
 export const INVOICIFICATION = gql`
   ${ITEM_FULL_FIELDS}
+  ${POLL_FIELDS}
   fragment InvoicificationFields on Invoicification {
     id
     sortTime
@@ -17,6 +18,7 @@ export const INVOICIFICATION = gql`
       satsRequested
       item {
         ...ItemFullFields
+        ...PollFields
       }
       itemAct {
         id

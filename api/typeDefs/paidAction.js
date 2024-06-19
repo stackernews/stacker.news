@@ -29,7 +29,7 @@ type ItemActPaidAction implements PaidAction {
   paymentMethod: PaymentMethod!
 }
 
-type PollPaidAction implements PaidAction {
+type PollVotePaidAction implements PaidAction {
   result: PollVoteResult
   invoice: Invoice
   paymentMethod: PaymentMethod!

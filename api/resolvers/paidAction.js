@@ -18,7 +18,7 @@ export default {
       } else if (invoice.actionType === 'ZAP') {
         type = 'ItemActPaidAction'
       } else if (invoice.actionType === 'POLL_VOTE') {
-        type = 'PollPaidAction'
+        type = 'PollVotePaidAction'
       } else if (invoice.actionType === 'DOWN_ZAP') {
         type = 'ItemActPaidAction'
       } else {

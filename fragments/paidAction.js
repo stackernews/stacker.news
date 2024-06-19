@@ -54,6 +54,11 @@ export const RETRY_PAID_ACTION = gql`
       ... on ItemActPaidAction {
         ...ItemActPaidActionFields
       }
+      ... on PollVotePaidAction {
+        result {
+          id
+        }
+      }
     }
   }`
 
@@ -130,6 +135,17 @@ export const UPSERT_POLL = gql`
         id
         deleteScheduledAt
         reminderScheduledAt
+      }
+      ...PaidActionFields
+    }
+  }`
+
+export const POLL_VOTE = gql`
+  ${PAID_ACTION}
+  mutation pollVote($id: ID!, $hash: String, $hmac: String) {
+    pollVote(id: $id, hash: $hash, hmac: $hmac) {
+      result {
+        id
       }
       ...PaidActionFields
     }

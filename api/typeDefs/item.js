@@ -22,7 +22,6 @@ export default gql`
     sats: Int!
     path: String
     act: String!
-    invoice: Invoice
   }
 
   type ItemAct {
@@ -46,13 +45,12 @@ export default gql`
     updateNoteId(id: ID!, noteId: String!): Item!
     upsertComment(id:ID, text: String!, parentId: ID, hash: String, hmac: String): ItemPaidAction!
     act(id: ID!, sats: Int, act: String, idempotent: Boolean, hash: String, hmac: String): ItemActPaidAction!
-    pollVote(id: ID!, hash: String, hmac: String): PollPaidAction!
+    pollVote(id: ID!, hash: String, hmac: String): PollVotePaidAction!
     toggleOutlaw(id: ID!): Item!
   }
 
   type PollVoteResult {
     id: ID!
-    invoice: Invoice
   }
 
   type PollOption {
@@ -63,6 +61,8 @@ export default gql`
 
   type Poll {
     meVoted: Boolean!
+    meInvoiceId: Int
+    meInvoiceActionState: InvoiceActionState
     count: Int!
     options: [PollOption!]!
   }

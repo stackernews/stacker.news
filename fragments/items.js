@@ -124,6 +124,8 @@ export const POLL_FIELDS = gql`
   fragment PollFields on Item {
     poll {
       meVoted
+      meInvoiceId
+      meInvoiceActionState
       count
       options {
         id

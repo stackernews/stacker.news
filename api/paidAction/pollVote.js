@@ -38,12 +38,9 @@ export async function retry ({ invoiceId, newInvoiceId }, { tx }) {
   await tx.itemAct.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
   await tx.pollBlindVote.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
   await tx.pollVote.updateMany({ where: { invoiceId }, data: { invoiceId: newInvoiceId, invoiceActionState: 'PENDING' } })
-  const [{ id }] = await tx.$queryRaw`
-    SELECT id, ltree2text(path) as path
-    FROM "Item"
-    JOIN "ItemAct" ON "Item".id = "ItemAct".itemId
-    WHERE "ItemAct".invoiceId = ${newInvoiceId}`
-  return { id }
+
+  const { pollOptionId } = await tx.pollVote.findFirst({ where: { invoiceId: newInvoiceId } })
+  return { id: pollOptionId }
 }
 
 export async function onPaid ({ invoice }, { tx }) {
@@ -51,7 +48,8 @@ export async function onPaid ({ invoice }, { tx }) {
 
   await tx.itemAct.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } })
   await tx.pollBlindVote.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } })
-  await tx.pollVote.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } })
+  // anonymize the vote
+  await tx.pollVote.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceId: null, invoiceActionState: null } })
 }
 
 export async function onFail ({ invoice }, { tx }) {

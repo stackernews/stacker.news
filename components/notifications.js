@@ -33,6 +33,7 @@ import { Badge, Button } from 'react-bootstrap'
 import { useAct } from './item-act'
 import { RETRY_PAID_ACTION } from '@/fragments/paidAction'
 import { useRetryCreateItem } from './item-info'
+import { usePollVote } from './poll'
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
@@ -332,6 +333,7 @@ function Invoicification ({ n: { invoice, sortTime } }) {
     }
   })
   const retryCreateItem = useRetryCreateItem({ id: invoice.item?.id })
+  const retryPollVote = usePollVote({ query: RETRY_PAID_ACTION, itemId: invoice.item?.id })
   // XXX if we navigate to an invoice after it is retried in notifications
   // the cache will clear invoice.item and will error on window.back
   // alternatively, we could/should
@@ -341,12 +343,19 @@ function Invoicification ({ n: { invoice, sortTime } }) {
 
   let retry
   let actionString
-  const { invoiceId, invoiceActionState } = { ...invoice.item, ...invoice.itemAct }
+  const { invoiceId, invoiceActionState } = {
+    ...invoice.item,
+    ...invoice.itemAct,
+    ...{ invoiceId: invoice.item.poll?.meInvoiceId, invoiceActionState: invoice.item.poll?.meInvoiceActionState }
+  }
   const itemType = invoice.item.title ? 'post' : 'comment'
 
   if (invoice.actionType === 'ITEM_CREATE') {
     actionString = `${itemType} create `
     retry = retryCreateItem
+  } else if (invoice.actionType === 'POLL_VOTE') {
+    actionString = 'poll vote '
+    retry = retryPollVote
   } else {
     actionString = `${invoice.actionType === 'ZAP' ? 'zap' : 'downzap'} on ${itemType} `
     retry = actRetry

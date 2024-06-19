@@ -1240,8 +1240,13 @@ export const updateItem = async (parent, { sub: subName, forward, ...item }, { m
     item.url = removeTracking(item.url)
   }
 
-  item = { subName, userId: me.id, ...item }
-  item.forwardUsers = await getForwardUsers(models, forward)
+  // prevent editing a bio like a regular item
+  if (old.bio) {
+    item = { id: Number(item.id), text: item.text, title: `@${user.name}'s bio`, userId: me.id }
+  } else {
+    item = { subName, userId: me.id, ...item }
+    item.forwardUsers = await getForwardUsers(models, forward)
+  }
   item.uploadIds = uploadIdsFromText(item.text, { models })
 
   const resultItem = await performPaidAction('ITEM_UPDATE', item, { models, me, lnd, hash, hmac })

@@ -6,24 +6,23 @@ export const anonable = true
 export const supportsPessimism = true
 export const supportsOptimism = true
 
-export async function getCost ({ subName, parentId, uploadIds, boost = 0 }, { models, user }) {
-  const sub = parentId ? null : await models.sub.findUnique({ where: { name: subName } })
-  const baseCost = parentId ? BigInt(1000) : BigInt(sub.baseCost) * BigInt(1000)
+export async function getCost ({ subName, parentId, uploadIds, boost = 0, bio }, { models, user }) {
+  const sub = parentId || bio ? null : await models.sub.findUnique({ where: { name: subName } })
+  const baseCost = parentId || bio ? BigInt(1000) : BigInt(sub.baseCost) * BigInt(1000)
 
   // cost = baseCost * 10^num_items_in_10m * 100 (anon) or 1 (user) + image fees + boost
   const [{ cost }] = await models.$queryRaw`
     SELECT ${baseCost}::INTEGER
       * POWER(10, item_spam(${parentId}::INTEGER, ${user?.id || USER_ID.anon}::INTEGER,
-          ${user?.id ? ITEM_SPAM_INTERVAL : ANON_ITEM_SPAM_INTERVAL}::INTERVAL))
+          ${user?.id && !bio ? ITEM_SPAM_INTERVAL : ANON_ITEM_SPAM_INTERVAL}::INTERVAL))
       * ${user ? 1 : 100}::INTEGER
       + (SELECT "nUnpaid" * "imageFeeMsats"
           FROM image_fees_info(${user?.id || USER_ID.anon}::INTEGER, ${uploadIds}))
       + ${BigInt(boost) * BigInt(1000)}::INTEGER as cost`
 
-  // sub allows freebies, cost is less than baseCost, not anon, and cost must be greater than user's balance
-  const freebie = (parentId || sub?.allowFreebies) && cost <= baseCost && !!user && cost > user?.msats
+  // sub allows freebies (or is a bio or a comment), cost is less than baseCost, not anon, and cost must be greater than user's balance
+  const freebie = (parentId || bio || sub?.allowFreebies) && cost <= baseCost && !!user && cost > user?.msats
 
-  console.log(cost, freebie)
   return freebie ? BigInt(0) : BigInt(cost)
 }
 
@@ -102,18 +101,20 @@ export async function perform (args, context) {
   }
 
   // TODO: test bio
+  let item
   if (data.bio && me) {
-    return (await tx.user.update({
+    item = (await tx.user.update({
       where: { id: data.userId },
+      include: { bio: true },
       data: {
         bio: {
           create: itemData
         }
       }
     })).bio
+  } else {
+    item = await tx.item.create({ data: itemData })
   }
-
-  const item = await tx.item.create({ data: itemData })
 
   // store a reference to the item in the invoice
   if (invoiceId) {

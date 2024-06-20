@@ -3,6 +3,7 @@ import { useMe } from '@/components/me'
 import useLocalState from '@/components/use-local-state'
 import { useWalletLogger } from '@/components/wallet-logger'
 import { SSR } from '@/lib/constants'
+import { bolt11Tags } from '@/lib/bolt11'
 
 // wallet definitions
 export const WALLET_DEFS = [
@@ -18,25 +19,45 @@ export const Status = {
 
 export function useWallet (name) {
   const me = useMe()
-  const { logger } = useWalletLogger(name)
 
-  const wallet = getWalletByName(name, me)
+  const wallet = name ? getWalletByName(name, me) : getEnabledWallet(me)
+  const { logger } = useWalletLogger(wallet)
   const storageKey = getStorageKey(wallet?.name, me)
   const [config, saveConfig, clearConfig] = useLocalState(storageKey)
 
-  const isConfigured = !!config
-
   const sendPayment = useCallback(async (bolt11) => {
-    return await wallet.sendPayment({ bolt11, config, logger })
+    const hash = bolt11Tags(bolt11).payment_hash
+    logger.info('sending payment:', `payment_hash=${hash}`)
+    try {
+      const { preimage } = await wallet.sendPayment({ bolt11, config, logger })
+      logger.ok('payment successful:', `payment_hash=${hash}`, `preimage=${preimage}`)
+    } catch (err) {
+      const message = err.message || err.toString?.()
+      logger.error('payment failed:', `payment_hash=${hash}`, message)
+      throw err
+    }
   }, [wallet, config, logger])
 
   const validate = useCallback(async (values) => {
-    return await wallet.validate({ logger, ...values })
-  }, [logger])
+    try {
+      // validate should log custom INFO and OK message
+      return await wallet.validate({ logger, ...values })
+    } catch (err) {
+      const message = err.message || err.toString?.()
+      logger.error(message)
+      throw err
+    }
+  }, [wallet, logger])
 
   const enable = useCallback(() => {
     enableWallet(name, me)
-  }, [name, me])
+    logger.ok('wallet enabled')
+  }, [name, me, logger])
+
+  const disable = useCallback(() => {
+    disableWallet(name, me)
+    logger.ok('wallet disabled')
+  }, [name, me, logger])
 
   return {
     ...wallet,
@@ -46,15 +67,22 @@ export function useWallet (name) {
     saveConfig,
     clearConfig,
     enable,
-    isConfigured,
-    status: config?.enabled ? Status.Enabled : Status.Initialized
+    disable,
+    isConfigured: !!config,
+    status: config?.enabled ? Status.Enabled : Status.Initialized,
+    logger
   }
 }
 
 export function getWalletByName (name, me) {
-  return name
-    ? WALLET_DEFS.find(def => def.name === name)
-    : WALLET_DEFS.find(def => {
+  return WALLET_DEFS.find(def => def.name === name)
+}
+
+export function getEnabledWallet (me) {
+  // TODO: handle multiple enabled wallets
+  return WALLET_DEFS
+    .filter(def => def.canPay)
+    .find(def => {
       const key = getStorageKey(def.name, me)
       const config = SSR ? null : JSON.parse(window?.localStorage.getItem(key))
       return config?.enabled
@@ -70,6 +98,7 @@ function getStorageKey (name, me) {
 }
 
 function enableWallet (name, me) {
+  // mark all wallets as disabled except the one to enable
   for (const walletDef of WALLET_DEFS) {
     const toEnable = walletDef.name === name
     const key = getStorageKey(name, me)
@@ -79,4 +108,12 @@ function enableWallet (name, me) {
       window.localStorage.setItem(key, JSON.stringify(config))
     }
   }
+}
+
+function disableWallet (name, me) {
+  const key = getStorageKey(name, me)
+  const config = JSON.parse(window.localStorage.getItem(key))
+  if (!config) return
+  config.enabled = false
+  window.localStorage.setItem(key, JSON.stringify(config))
 }

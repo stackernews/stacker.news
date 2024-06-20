@@ -7,7 +7,7 @@ import { WalletSecurityBanner } from '@/components/banners'
 import { WalletLogs } from '@/components/wallet-logger'
 import { useToast } from '@/components/toast'
 import { useRouter } from 'next/router'
-import { useWallet } from '@/components/wallet'
+import { useWallet, Status } from '@/components/wallet'
 
 export const getServerSideProps = getGetServerSideProps({ authRequired: true })
 
@@ -34,25 +34,27 @@ export default function WalletSettings () {
       <Form
         initial={initial}
         schema={lnbitsSchema}
-        onSubmit={async ({ isDefault, ...values }) => {
+        onSubmit={async ({ enabled, ...values }) => {
           try {
             await wallet.validate(values)
             wallet.saveConfig(values)
-            wallet.enable()
+            if (enabled) wallet.enable()
+            else wallet.disable()
             toaster.success('saved settings')
             router.push('/settings/wallets')
           } catch (err) {
             console.error(err)
-            toaster.danger('failed to attach: ' + err.message || err.toString?.())
+            const message = 'failed to attach: ' + err.message || err.toString?.()
+            toaster.danger(message)
           }
         }}
       >
         <WalletFields wallet={wallet} />
         <ClientCheckbox
           disabled={false}
-          initialValue={false}
-          label='default payment method'
-          name='isDefault'
+          initialValue={wallet.status === Status.Enabled}
+          label='enabled'
+          name='enabled'
         />
         <WalletButtonBar
           wallet={wallet} onDelete={async () => {
@@ -62,7 +64,9 @@ export default function WalletSettings () {
               router.push('/settings/wallets')
             } catch (err) {
               console.error(err)
-              toaster.danger('failed to detach: ' + err.message || err.toString?.())
+              const message = 'failed to detach: ' + err.message || err.toString?.()
+              wallet.logger.error(message)
+              toaster.danger(message)
             }
           }}
         />

@@ -228,8 +228,13 @@ export const WalletLoggerProvider = ({ children }) => {
         const index = store.index('ts')
         const request = index.getAll()
         request.onsuccess = () => {
-          const logs = request.result
+          let logs = request.result
           setLogs((prevLogs) => {
+            if (process.env.NODE_ENV !== 'production') {
+              // in dev mode, useEffect runs twice, so we filter out duplicates here
+              const existingIds = prevLogs.map(({ id }) => id)
+              logs = logs.filter(({ id }) => !existingIds.includes(id))
+            }
             // sort oldest first to keep same order as logs are appended
             return [...prevLogs, ...logs].sort((a, b) => a.ts - b.ts)
           })
@@ -254,16 +259,16 @@ export const WalletLoggerProvider = ({ children }) => {
   }, [saveLog])
 
   const deleteLogs = useCallback(async (walletName) => {
-    const wallet = getWalletByName(walletName, me)
+    const wallet = walletName ? getWalletByName(walletName, me) : null
 
-    if (!walletName || wallet.server) {
+    if (!wallet || wallet.canReceive) {
       await deleteServerWalletLogs({ variables: { wallet: wallet?.type } })
     }
-    if (!walletName || !wallet.server) {
+    if (!wallet || wallet.canPay) {
       const tx = idb.current.transaction(idbStoreName, 'readwrite')
       const objectStore = tx.objectStore(idbStoreName)
       const idx = objectStore.index('wallet_ts')
-      const request = walletName ? idx.openCursor(window.IDBKeyRange.bound([walletName, -Infinity], [walletName, Infinity])) : idx.openCursor()
+      const request = wallet ? idx.openCursor(window.IDBKeyRange.bound([wallet.name, -Infinity], [wallet.name, Infinity])) : idx.openCursor()
       request.onsuccess = function (event) {
         const cursor = event.target.result
         if (cursor) {
@@ -271,7 +276,7 @@ export const WalletLoggerProvider = ({ children }) => {
           cursor.continue()
         } else {
           // finished
-          setLogs((logs) => logs.filter(l => walletName ? l.wallet !== walletName : false))
+          setLogs((logs) => logs.filter(l => wallet ? l.wallet !== wallet.name : false))
         }
       }
     }
@@ -286,29 +291,33 @@ export const WalletLoggerProvider = ({ children }) => {
   )
 }
 
-export function useWalletLogger (walletName) {
+export function useWalletLogger (wallet) {
   const { appendLog, deleteLogs: innerDeleteLogs } = useContext(WalletLoggerContext)
 
   const log = useCallback(level => message => {
+    if (!wallet) {
+      console.error('cannot log: no wallet set')
+      return
+    }
     // TODO:
     //   also send this to us if diagnostics was enabled,
     //   very similar to how the service worker logger works.
-    appendLog(walletName, level, message)
-    console[level !== 'error' ? 'info' : 'error'](`[${walletName}]`, message)
-  }, [appendLog, walletName])
+    appendLog(wallet.name, level, message)
+    console[level !== 'error' ? 'info' : 'error'](`[${wallet.name}]`, message)
+  }, [appendLog, wallet?.name])
 
   const logger = useMemo(() => ({
     ok: (...message) => log('ok')(message.join(' ')),
     info: (...message) => log('info')(message.join(' ')),
     error: (...message) => log('error')(message.join(' '))
-  }), [log, walletName])
+  }), [log, wallet?.name])
 
-  const deleteLogs = useCallback((w) => innerDeleteLogs(w || walletName), [innerDeleteLogs, walletName])
+  const deleteLogs = useCallback((w) => innerDeleteLogs(w?.name || wallet?.name), [innerDeleteLogs, wallet?.name])
 
   return { logger, deleteLogs }
 }
 
-export function useWalletLogs (walletName) {
+export function useWalletLogs (wallet) {
   const logs = useContext(WalletLogsContext)
-  return logs.filter(l => !walletName || l.wallet === walletName)
+  return logs.filter(l => !wallet || l.wallet === wallet.name)
 }

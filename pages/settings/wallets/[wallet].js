@@ -36,9 +36,11 @@ export default function WalletSettings () {
         schema={lnbitsSchema}
         onSubmit={async ({ enabled, ...values }) => {
           try {
+            const newConfig = !wallet.isConfigured
             await wallet.validate(values)
             wallet.saveConfig(values)
-            if (enabled) wallet.enable()
+            // enable wallet if checkbox was set or if wallet was just configured
+            if (enabled || newConfig) wallet.enable()
             else wallet.disable()
             toaster.success('saved settings')
             router.push('/settings/wallets')

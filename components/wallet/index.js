@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { useMe } from '@/components/me'
 import useLocalState from '@/components/use-local-state'
-import { useWalletLogger } from '@/components/logger'
+import { useWalletLogger } from '@/components/wallet-logger'
 import { SSR } from '@/lib/constants'
 
 // wallet definitions

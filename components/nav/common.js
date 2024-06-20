@@ -22,8 +22,7 @@ import SearchIcon from '../../svgs/search-line.svg'
 import classNames from 'classnames'
 import SnIcon from '@/svgs/sn.svg'
 import { useHasNewNotes } from '../use-has-new-notes'
-import { useWalletLogger } from '@/components/logger'
-// import { useWallet } from '@/components/wallet'
+import { useWalletLogger } from '@/components/wallet-logger'
 
 export function Brand ({ className }) {
   return (

@@ -281,8 +281,24 @@ export default memo(function Text ({ rel, imgproxyUrls, children, tab, itemId, o
                   <div className={styles.videoContainer}>
                     <iframe
                       title='Rumble Video'
-                      allowFullScreen=''
+                      allowFullScreen
                       src={meta?.href}
+                      sandbox='allow-scripts'
+                    />
+                  </div>
+                </div>
+              )
+            }
+
+            if (provider === 'peertube') {
+              return (
+                <div style={videoWrapperStyles}>
+                  <div className={styles.videoContainer}>
+                    <iframe
+                      title='PeerTube Video'
+                      allowFullScreen
+                      src={meta?.href}
+                      sandbox='allow-scripts'
                     />
                   </div>
                 </div>

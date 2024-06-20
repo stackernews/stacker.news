@@ -29,7 +29,7 @@ export function useWallet (name) {
     const hash = bolt11Tags(bolt11).payment_hash
     logger.info('sending payment:', `payment_hash=${hash}`)
     try {
-      const { preimage } = await wallet.sendPayment({ bolt11, config, logger })
+      const { preimage } = await wallet.sendPayment({ bolt11, config })
       logger.ok('payment successful:', `payment_hash=${hash}`, `preimage=${preimage}`)
     } catch (err) {
       const message = err.message || err.toString?.()

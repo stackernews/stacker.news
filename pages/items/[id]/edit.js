@@ -27,7 +27,7 @@ export default function PostEdit ({ ssrData }) {
   const { item } = data || ssrData
   const [sub, setSub] = useState(item.subName)
 
-  const editThreshold = new Date(item.createdAt).getTime() + 10 * 60000
+  const editThreshold = new Date(item?.invoicePaidAt ?? item.createdAt).getTime() + 10 * 60000
 
   let FormType = DiscussionForm
   let itemType = 'DISCUSSION'

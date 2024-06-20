@@ -59,13 +59,36 @@ export function useWallet (name) {
     logger.ok('wallet disabled')
   }, [name, me, logger])
 
+  const save = useCallback((values) => {
+    try {
+      saveConfig(values)
+      logger.ok('wallet attached')
+    } catch (err) {
+      const message = 'failed to attach: ' + err.message || err.toString?.()
+      logger.error(message)
+      throw err
+    }
+  }, [saveConfig, logger])
+
+  // delete is a reserved keyword
+  const delete_ = useCallback(() => {
+    try {
+      clearConfig()
+      logger.ok('wallet detached')
+    } catch (err) {
+      const message = 'failed to detach: ' + err.message || err.toString?.()
+      logger.error(message)
+      throw err
+    }
+  }, [clearConfig, logger])
+
   return {
     ...wallet,
     sendPayment,
     validate,
     config,
-    saveConfig,
-    clearConfig,
+    save,
+    delete: delete_,
     enable,
     disable,
     isConfigured: !!config,

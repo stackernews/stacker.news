@@ -1,6 +1,7 @@
-import { bolt11Tags } from '@/lib/bolt11'
-
 export const name = 'lnbits'
+
+export const canPay = true
+export const canReceive = false
 
 export const fields = [
   {
@@ -25,7 +26,9 @@ export async function validate ({ logger, ...config }) {
 }
 
 async function getInfo ({ logger, ...config }) {
+  logger.info('trying to fetch wallet')
   const response = await getWallet(config.url, config.adminKey)
+  logger.ok('wallet found')
   return {
     node: {
       alias: response.name,
@@ -41,27 +44,18 @@ async function getInfo ({ logger, ...config }) {
   }
 }
 
-export async function sendPayment ({ bolt11, config, logger }) {
+export async function sendPayment ({ bolt11, config }) {
   const { url, adminKey } = config
 
-  const hash = bolt11Tags(bolt11).payment_hash
-  logger.info('sending payment:', `payment_hash=${hash}`)
+  const response = await postPayment(url, adminKey, bolt11)
 
-  try {
-    const response = await postPayment(url, adminKey, bolt11)
-
-    const checkResponse = await getPayment(url, adminKey, response.payment_hash)
-    if (!checkResponse.preimage) {
-      throw new Error('No preimage')
-    }
-
-    const preimage = checkResponse.preimage
-    logger.ok('payment successful:', `payment_hash=${hash}`, `preimage=${preimage}`)
-    return { preimage }
-  } catch (err) {
-    logger.error('payment failed:', `payment_hash=${hash}`, err.message || err.toString?.())
-    throw err
+  const checkResponse = await getPayment(url, adminKey, response.payment_hash)
+  if (!checkResponse.preimage) {
+    throw new Error('No preimage')
   }
+
+  const preimage = checkResponse.preimage
+  return { preimage }
 }
 
 async function getWallet (baseUrl, adminKey) {

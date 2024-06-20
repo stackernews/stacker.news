@@ -7,7 +7,8 @@ import { bolt11Tags } from '@/lib/bolt11'
 
 // wallet definitions
 export const WALLET_DEFS = [
-  await import('@/components/wallet/lnbits')
+  await import('@/components/wallet/lnbits'),
+  await import('@/components/wallet/nwc')
 ]
 
 export const Status = {
@@ -29,7 +30,7 @@ export function useWallet (name) {
     const hash = bolt11Tags(bolt11).payment_hash
     logger.info('sending payment:', `payment_hash=${hash}`)
     try {
-      const { preimage } = await wallet.sendPayment({ bolt11, config })
+      const { preimage } = await wallet.sendPayment({ bolt11, config, logger })
       logger.ok('payment successful:', `payment_hash=${hash}`, `preimage=${preimage}`)
     } catch (err) {
       const message = err.message || err.toString?.()
@@ -41,6 +42,7 @@ export function useWallet (name) {
   const validate = useCallback(async (values) => {
     try {
       // validate should log custom INFO and OK message
+      // TODO: add timeout
       return await wallet.validate({ logger, ...values })
     } catch (err) {
       const message = err.message || err.toString?.()

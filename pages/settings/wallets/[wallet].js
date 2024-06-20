@@ -28,7 +28,7 @@ export default function WalletSettings () {
   return (
     <CenterLayout>
       <h2 className='pb-2'>{wallet.card.title}</h2>
-      <h6 className='text-muted text-center pb-3'>use {wallet.card.title} for payments</h6>
+      <h6 className='text-muted text-center pb-3'>{wallet.card.subtitle}</h6>
       <WalletSecurityBanner />
       <Form
         initial={initial}

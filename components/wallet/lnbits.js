@@ -18,6 +18,7 @@ export const fields = [
 
 export const card = {
   title: 'LNbits',
+  subtitle: 'use LNbits for payments',
   badges: ['send only', 'non-custodialish']
 }
 

@@ -118,6 +118,7 @@ export async function perform (args, context) {
   })
 
   if (data.maxBid) {
+    // TODO: this may have read-modify-write issues
     await tx.$executeRaw`SELECT run_auction(${id}::INTEGER)`
   }
 

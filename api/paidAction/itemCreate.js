@@ -180,6 +180,7 @@ export async function onPaid ({ invoice, id }, context) {
     VALUES ('imgproxy', jsonb_build_object('id', ${item.id}), 21, true, now() + interval '5 seconds')`
 
   if (item.parentId) {
+    // TODO: this may have read-modify-write issues
     await tx.$executeRaw`SELECT ncomments_after_comment(${item.id}::INTEGER)`
     notifyItemParents({ item, me: item.userId, models }).catch(console.error)
   }

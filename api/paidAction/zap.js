@@ -66,13 +66,21 @@ export async function onPaid ({ invoice, actIds }, { models, tx }) {
   const itemAct = acts.find(act => act.act === 'TIP')
   const itemActFee = acts.find(act => act.act === 'FEE')
 
+  await tx.user.update({ where: { id: itemAct.item.userId }, data: { msats: { increment: itemAct.msats } } })
   // TODO: do forwards
   // TODO: make sure these aren't read-modify-write
-  await tx.user.update({ where: { id: itemAct.item.userId }, data: { msats: { increment: itemAct.msats } } })
+  // TODO: make sure these consider "invoiceActionState when computing values"
+  // TODO: weighted_votes_after_tip is read-modify-write, ie successive votes from the same user will race when
+  // computing the multiplier
   await tx.$executeRaw`SELECT weighted_votes_after_tip(${itemAct.itemId}::INTEGER, ${itemAct.userId}::INTEGER, ${sats}::INTEGER)`
+  // TODO: this doesn't need to be a plpgsql function
   await tx.$executeRaw`SELECT sats_after_tip(${itemAct.itemId}::INTEGER, ${itemAct.userId}::INTEGER, ${msats}::BIGINT)`
+  // TODO1: test bounties
+  // might be read-modify-write in terms of adding to "bountyPaidTo"
   await tx.$executeRaw`SELECT bounty_paid_after_act(${itemAct.itemId}::INTEGER, ${itemAct.userId}::INTEGER)`
+  // TODO: this is really complicated ... forwards make it pretty intense
   await tx.$executeRaw`SELECT referral_act(${itemActFee.id}::INTEGER)`
+  // TODO: check all notifications
   notifyZapped({ models, id: itemAct.itemId }).catch(console.error)
 }
 

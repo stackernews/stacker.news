@@ -48,6 +48,7 @@ export async function onPaid ({ invoice, actId }, { tx }) {
     throw new Error('No invoice or actId')
   }
 
+  // TODO: this probably has read-modify-write issues
   await tx.$executeRaw`SELECT weighted_downvotes_after_act(${itemAct.itemId}::INTEGER, ${itemAct.userId}::INTEGER, ${BigInt(itemAct.msats) / BigInt(1000)}::INTEGER)`
 }
 

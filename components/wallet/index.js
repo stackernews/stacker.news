@@ -70,6 +70,8 @@ export function useWallet (name) {
     disable,
     isConfigured: !!config,
     status: config?.enabled ? Status.Enabled : Status.Initialized,
+    canPay: !!wallet?.sendPayment,
+    canReceive: !!wallet?.createInvoice,
     logger
   }
 }
@@ -81,7 +83,7 @@ export function getWalletByName (name, me) {
 export function getEnabledWallet (me) {
   // TODO: handle multiple enabled wallets
   return WALLET_DEFS
-    .filter(def => def.canPay)
+    .filter(def => !!def.sendPayment)
     .find(def => {
       const key = getStorageKey(def.name, me)
       const config = SSR ? null : JSON.parse(window?.localStorage.getItem(key))

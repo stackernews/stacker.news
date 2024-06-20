@@ -252,15 +252,13 @@ export const WalletLoggerProvider = ({ children }) => {
     return () => idb.current?.close()
   }, [])
 
-  const appendLog = useCallback((walletName, level, message) => {
-    const log = { wallet: walletName, level, message, ts: +new Date() }
+  const appendLog = useCallback((wallet, level, message) => {
+    const log = { wallet: wallet.name, level, message, ts: +new Date() }
     saveLog(log)
     setLogs((prevLogs) => [...prevLogs, log])
   }, [saveLog])
 
-  const deleteLogs = useCallback(async (walletName) => {
-    const wallet = walletName ? getWalletByName(walletName, me) : null
-
+  const deleteLogs = useCallback(async (wallet) => {
     if (!wallet || wallet.canReceive) {
       await deleteServerWalletLogs({ variables: { wallet: wallet?.type } })
     }
@@ -302,9 +300,9 @@ export function useWalletLogger (wallet) {
     // TODO:
     //   also send this to us if diagnostics was enabled,
     //   very similar to how the service worker logger works.
-    appendLog(wallet.name, level, message)
+    appendLog(wallet, level, message)
     console[level !== 'error' ? 'info' : 'error'](`[${wallet.name}]`, message)
-  }, [appendLog, wallet?.name])
+  }, [appendLog, wallet])
 
   const logger = useMemo(() => ({
     ok: (...message) => log('ok')(message.join(' ')),
@@ -312,7 +310,7 @@ export function useWalletLogger (wallet) {
     error: (...message) => log('error')(message.join(' '))
   }), [log, wallet?.name])
 
-  const deleteLogs = useCallback((w) => innerDeleteLogs(w?.name || wallet?.name), [innerDeleteLogs, wallet?.name])
+  const deleteLogs = useCallback((w) => innerDeleteLogs(w || wallet), [innerDeleteLogs, wallet])
 
   return { logger, deleteLogs }
 }

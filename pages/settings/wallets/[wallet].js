@@ -38,7 +38,7 @@ export default function WalletSettings () {
           try {
             const newConfig = !wallet.isConfigured
             await wallet.validate(values)
-            wallet.saveConfig(values)
+            wallet.save(values)
             // enable wallet if checkbox was set or if wallet was just configured
             if (enabled || newConfig) wallet.enable()
             else wallet.disable()
@@ -61,13 +61,12 @@ export default function WalletSettings () {
         <WalletButtonBar
           wallet={wallet} onDelete={async () => {
             try {
-              wallet.clearConfig()
+              wallet.delete()
               toaster.success('saved settings')
               router.push('/settings/wallets')
             } catch (err) {
               console.error(err)
               const message = 'failed to detach: ' + err.message || err.toString?.()
-              wallet.logger.error(message)
               toaster.danger(message)
             }
           }}

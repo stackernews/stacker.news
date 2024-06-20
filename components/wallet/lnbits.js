@@ -1,8 +1,5 @@
 export const name = 'lnbits'
 
-export const canPay = true
-export const canReceive = false
-
 export const fields = [
   {
     name: 'url',

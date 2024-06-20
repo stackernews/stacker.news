@@ -2,7 +2,6 @@ import { getGetServerSideProps } from '@/api/ssrApollo'
 import { Form, ClientInput, ClientCheckbox, PasswordInput } from '@/components/form'
 import { CenterLayout } from '@/components/layout'
 import { WalletButtonBar } from '@/components/wallet-card'
-import { lnbitsSchema } from '@/lib/validate'
 import { WalletSecurityBanner } from '@/components/banners'
 import { WalletLogs } from '@/components/wallet-logger'
 import { useToast } from '@/components/toast'
@@ -33,7 +32,7 @@ export default function WalletSettings () {
       <WalletSecurityBanner />
       <Form
         initial={initial}
-        schema={lnbitsSchema}
+        schema={wallet.schema}
         onSubmit={async ({ enabled, ...values }) => {
           try {
             const newConfig = !wallet.isConfigured

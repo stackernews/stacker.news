@@ -35,6 +35,7 @@ import { RETRY_PAID_ACTION } from '@/fragments/paidAction'
 import { usePollVote } from './poll'
 import { paidActionCacheMods } from './use-paid-mutation'
 import { useRetryCreateItem } from './use-item-submit'
+import { payBountyCacheMods } from './pay-bounty'
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
@@ -296,11 +297,28 @@ function InvoicePaid ({ n }) {
   )
 }
 
-function Invoicification ({ n: { invoice, sortTime } }) {
-  const actRetry = useAct({
+function useActRetry ({ invoice }) {
+  const cacheMods = paidActionCacheMods(`ItemAct:${invoice.itemAct?.id}`)
+  const bountyCacheMods = invoice.item?.bounty ? payBountyCacheMods() : {}
+  return useAct({
     query: RETRY_PAID_ACTION,
-    ...paidActionCacheMods(`ItemAct:${invoice.itemAct?.id}`)
+    onPayError: (e, cache, { data }) => {
+      cacheMods?.onPayError?.(e, cache, { data })
+      bountyCacheMods?.onPayError?.(e, cache, { data })
+    },
+    onPaid: (cache, { data }) => {
+      cacheMods?.onPaid?.(cache, { data })
+      bountyCacheMods?.onPaid?.(cache, { data })
+    },
+    update: (cache, { data }) => {
+      cacheMods?.update?.(cache, { data })
+      bountyCacheMods?.update?.(cache, { data })
+    }
   })
+}
+
+function Invoicification ({ n: { invoice, sortTime } }) {
+  const actRetry = useActRetry({ invoice })
   const retryCreateItem = useRetryCreateItem({ id: invoice.item?.id })
   const retryPollVote = usePollVote({ query: RETRY_PAID_ACTION, itemId: invoice.item?.id })
   // XXX if we navigate to an invoice after it is retried in notifications
@@ -326,7 +344,9 @@ function Invoicification ({ n: { invoice, sortTime } }) {
     invoiceId = invoice.item.poll?.meInvoiceId
     invoiceActionState = invoice.item.poll?.meInvoiceActionState
   } else {
-    actionString = `${invoice.actionType === 'ZAP' ? 'zap' : 'downzap'} on ${itemType} `
+    actionString = `${invoice.actionType === 'ZAP'
+      ? invoice.item.root?.bounty ? 'bounty payment' : 'zap'
+      : 'downzap'} on ${itemType} `
     retry = actRetry;
     ({ invoiceId, invoiceActionState } = invoice.itemAct)
   }

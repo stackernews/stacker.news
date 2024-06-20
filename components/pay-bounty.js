@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react'
+import React from 'react'
 import Button from 'react-bootstrap/Button'
 import styles from './pay-bounty.module.css'
 import ActionTooltip from './action-tooltip'
@@ -6,10 +6,43 @@ import { useMe } from './me'
 import { numWithUnits } from '@/lib/format'
 import { useShowModal } from './modal'
 import { useRoot } from './root'
-import { useAct } from './item-act'
+import { ActCanceledError, useAct } from './item-act'
 import { InvoiceCanceledError } from './payment'
 import { useLightning } from './lightning'
 import { useToast } from './toast'
+
+export function payBountyCacheMods () {
+  return {
+    onPaid: (cache, { data }) => {
+      const response = Object.values(data)[0]
+      if (!response?.result) return
+      const { id, path } = response.result
+      const root = path.split('.')[0]
+      cache.modify({
+        id: `Item:${root}`,
+        fields: {
+          bountyPaidTo (existingPaidTo = []) {
+            return [...(existingPaidTo || []), Number(id)]
+          }
+        }
+      })
+    },
+    onPayError: (e, cache, { data }) => {
+      const response = Object.values(data)[0]
+      if (!response?.result) return
+      const { id, path } = response.result
+      const root = path.split('.')[0]
+      cache.modify({
+        id: `Item:${root}`,
+        fields: {
+          bountyPaidTo (existingPaidTo = []) {
+            return existingPaidTo.filter(i => i !== Number(id))
+          }
+        }
+      })
+    }
+  }
+}
 
 export default function PayBounty ({ children, item }) {
   const me = useMe()
@@ -17,37 +50,19 @@ export default function PayBounty ({ children, item }) {
   const root = useRoot()
   const strike = useLightning()
   const toaster = useToast()
+  const variables = { id: item.id, sats: root.bounty, act: 'TIP' }
+  const act = useAct({
+    variables,
+    optimisticResponse: { act: { result: { ...variables, path: item.path } } },
+    ...payBountyCacheMods()
+  })
 
-  const onUpdate = useCallback(onComplete => (cache, { data: { act: { result } } }) => {
-    if (!result) return
-    const { id, path } = result
-
-    // update root bounty status
-    const root = path.split('.')[0]
-    cache.modify({
-      id: `Item:${root}`,
-      fields: {
-        bountyPaidTo (existingPaidTo = []) {
-          return [...(existingPaidTo || []), Number(id)]
-        }
-      }
-    })
-    onComplete()
-  }, [])
-
-  const handlePayBounty = async onComplete => {
-    const sats = root.bounty
-    const variables = { id: item.id, sats, act: 'TIP', path: item.path }
-    const optimisticResponse = { act: { result: { ...variables, path: item.path } } }
-    const act = useAct({ update: onUpdate(onComplete) })
+  const handlePayBounty = async onCompleted => {
     try {
       strike()
-      await act({
-        variables,
-        optimisticResponse
-      })
+      await act({ onCompleted })
     } catch (error) {
-      if (error instanceof InvoiceCanceledError) {
+      if (error instanceof InvoiceCanceledError || error instanceof ActCanceledError) {
         return
       }
 

@@ -55,7 +55,8 @@ export default function Poll ({ item }) {
       return (
         <span
           className='ms-2 fw-bold text-info pointer'
-          onClick={() => waitForQrPayment({ id: parseInt(item.poll.meInvoiceId) }, null, false).catch(console.error)}
+          onClick={() => waitForQrPayment(
+            { id: parseInt(item.poll.meInvoiceId) }, null, { cancelOnClose: false }).catch(console.error)}
         >vote pending
         </span>
       )

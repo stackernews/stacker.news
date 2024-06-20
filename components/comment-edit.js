@@ -1,28 +1,30 @@
 import { Form, MarkdownInput } from '@/components/form'
 import styles from './reply.module.css'
 import { commentSchema } from '@/lib/validate'
-import { useToast } from './toast'
-import { toastUpsertSuccessMessages } from '@/lib/form'
 import { FeeButtonProvider } from './fee-button'
 import { ItemButtonBar } from './post'
-import { UPSERT_COMMENT } from '@/fragments/paidAction'
-import { usePaidMutation } from './use-paid-mutation'
+import { UPDATE_COMMENT } from '@/fragments/paidAction'
+import useItemSubmit from './use-item-submit'
 
 export default function CommentEdit ({ comment, editThreshold, onSuccess, onCancel }) {
-  const toaster = useToast()
-  const [upsertComment] = usePaidMutation(UPSERT_COMMENT, {
-    update (cache, { data: { upsertComment: { result } } }) {
-      if (!result) return
+  const onSubmit = useItemSubmit(UPDATE_COMMENT, {
+    paidMutationOptions: {
+      update (cache, { data: { upsertComment: { result } } }) {
+        if (!result) return
 
-      cache.modify({
-        id: `Item:${comment.id}`,
-        fields: {
-          text () {
-            return result.text
+        cache.modify({
+          id: `Item:${comment.id}`,
+          fields: {
+            text () {
+              return result.text
+            }
           }
-        }
-      })
-    }
+        })
+      }
+    },
+    item: comment,
+    navigateOnSubmit: false,
+    onSuccessfulSubmit: onSuccess
   })
 
   return (
@@ -33,16 +35,7 @@ export default function CommentEdit ({ comment, editThreshold, onSuccess, onCanc
             text: comment.text
           }}
           schema={commentSchema}
-          onSubmit={async (values, { resetForm }) => {
-            const { data, error } = await upsertComment({ variables: { ...values, id: comment.id } })
-            if (error) {
-              throw new Error({ message: error.toString() })
-            }
-            toastUpsertSuccessMessages(toaster, data, 'upsertComment', true, values.text)
-            if (onSuccess) {
-              onSuccess()
-            }
-          }}
+          onSubmit={onSubmit}
         >
           <MarkdownInput
             name='text'

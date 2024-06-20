@@ -7,15 +7,13 @@ import Link from 'next/link'
 import { FeeButtonProvider, postCommentBaseLineItems, postCommentUseRemoteLineItems } from './fee-button'
 import { commentsViewedAfterComment } from '@/lib/new-comments'
 import { commentSchema } from '@/lib/validate'
-import { useToast } from './toast'
-import { toastUpsertSuccessMessages } from '@/lib/form'
 import { ItemButtonBar } from './post'
 import { useShowModal } from './modal'
 import { Button } from 'react-bootstrap'
 import { useRoot } from './root'
 import { commentSubTreeRootId } from '@/lib/item'
-import { usePaidMutation } from './use-paid-mutation'
 import { CREATE_COMMENT } from '@/fragments/paidAction'
+import useItemSubmit from './use-item-submit'
 
 export function ReplyOnAnotherPage ({ item }) {
   const rootId = commentSubTreeRootId(item)
@@ -45,7 +43,6 @@ export default forwardRef(function Reply ({
   const me = useMe()
   const parentId = item.id
   const replyInput = useRef(null)
-  const toaster = useToast()
   const showModal = useShowModal()
   const root = useRoot()
   const sub = item?.sub || root?.sub
@@ -56,79 +53,52 @@ export default forwardRef(function Reply ({
     }
   }, [replyOpen, quote, parentId])
 
-  const [upsertComment] = usePaidMutation(CREATE_COMMENT, {
-    update (cache, { data: { upsertComment: { result } } }) {
-      if (!result) return
-
-      cache.modify({
-        id: `Item:${parentId}`,
-        fields: {
-          comments (existingCommentRefs = []) {
-            const newCommentRef = cache.writeFragment({
-              data: result,
-              fragment: COMMENTS,
-              fragmentName: 'CommentsRecursive'
-            })
-            return [newCommentRef, ...existingCommentRefs]
-          }
-        }
-      })
-
-      const ancestors = item.path.split('.')
-
-      // update all ancestors
-      ancestors.forEach(id => {
-        cache.modify({
-          id: `Item:${id}`,
-          fields: {
-            ncomments (existingNComments = 0) {
-              return existingNComments + 1
-            }
-          }
-        })
-      })
-
-      // so that we don't see indicator for our own comments, we record this comments as the latest time
-      // but we also have record num comments, in case someone else commented when we did
-      const root = ancestors[0]
-      commentsViewedAfterComment(root, result.createdAt)
-    }
-  })
-
-  const onSubmit = useCallback(async (variables, { resetForm }) => {
-    await upsertComment({
-      variables: { parentId, ...variables },
-      onCompleted: (data) => {
-        resetForm({ text: '' })
-        setReply(replyOpen || false)
-        toastUpsertSuccessMessages(toaster, data, 'upsertComment', false, variables.text)
-      },
-      onPaid: (cache, { data: { upsertComment: { result: { id } } } }) => {
-        // set the invoiceActionState to PAID
-        cache.modify({
-          id: `Item:${id}`,
-          fields: {
-            invoiceActionState () {
-              return 'PAID'
-            }
-          }
-        })
-      },
-      onPayError: (e, cache, { data: { upsertComment: { result } } }) => {
+  const onSubmit = useItemSubmit(CREATE_COMMENT, {
+    extraValues: { parentId },
+    paidMutationOptions: {
+      update (cache, { data: { upsertComment: { result, invoice } } }) {
         if (!result) return
-        const { id } = result
-        // set the invoiceActionState to FAILED
+
         cache.modify({
-          id: `Item:${id}`,
+          id: `Item:${parentId}`,
           fields: {
-            invoiceActionState () {
-              return 'FAILED'
+            comments (existingCommentRefs = []) {
+              const newCommentRef = cache.writeFragment({
+                data: result,
+                fragment: COMMENTS,
+                fragmentName: 'CommentsRecursive'
+              })
+              return [newCommentRef, ...existingCommentRefs]
             }
           }
         })
+
+        const ancestors = item.path.split('.')
+
+        // update all ancestors
+        ancestors.forEach(id => {
+          cache.modify({
+            id: `Item:${id}`,
+            fields: {
+              ncomments (existingNComments = 0) {
+                return existingNComments + 1
+              }
+            }
+          })
+        })
+
+        // so that we don't see indicator for our own comments, we record this comments as the latest time
+        // but we also have record num comments, in case someone else commented when we did
+        const root = ancestors[0]
+        commentsViewedAfterComment(root, result.createdAt)
       }
-    })
-  }, [upsertComment, setReply, parentId])
+    },
+    onSuccessfulSubmit: (data, { resetForm }) => {
+      resetForm({ text: '' })
+      setReply(replyOpen || false)
+    },
+    navigateOnSubmit: false
+  })
 
   useEffect(() => {
     if (replyInput.current && reply && !replyOpen) replyInput.current.focus()

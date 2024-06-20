@@ -32,8 +32,9 @@ import LinkToContext from './link-to-context'
 import { Badge, Button } from 'react-bootstrap'
 import { useAct } from './item-act'
 import { RETRY_PAID_ACTION } from '@/fragments/paidAction'
-import { useRetryCreateItem } from './item-info'
 import { usePollVote } from './poll'
+import { paidActionCacheMods } from './use-paid-mutation'
+import { useRetryCreateItem } from './use-item-submit'
 
 function Notification ({ n, fresh }) {
   const type = n.__typename
@@ -298,39 +299,7 @@ function InvoicePaid ({ n }) {
 function Invoicification ({ n: { invoice, sortTime } }) {
   const actRetry = useAct({
     query: RETRY_PAID_ACTION,
-    extend: {
-      update (cache, { invoice: newInvoice }) {
-        if (invoice) {
-          cache.modify({
-            id: `ItemAct:${invoice.itemAct?.id}`,
-            fields: {
-              invoiceActionState: () => 'PENDING',
-              invoiceId: () => newInvoice.id
-            }
-          })
-        }
-      },
-      onPaid: (cache, { invoice: newInvoice }) => {
-        // set the invoiceActionState to PAID
-        cache.modify({
-          id: `ItemAct:${invoice.itemAct?.id}`,
-          fields: {
-            invoiceActionState: () => 'PAID',
-            invoiceId: () => newInvoice.id
-          }
-        })
-      },
-      onPayError: (e, cache, { invoice: newInvoice }) => {
-        // set the invoiceActionState to FAILED
-        cache.modify({
-          id: `ItemAct:${invoice.itemAct?.id}`,
-          fields: {
-            invoiceActionState: () => 'FAILED',
-            invoiceId: () => newInvoice.id
-          }
-        })
-      }
-    }
+    ...paidActionCacheMods(`ItemAct:${invoice.itemAct?.id}`)
   })
   const retryCreateItem = useRetryCreateItem({ id: invoice.item?.id })
   const retryPollVote = usePollVote({ query: RETRY_PAID_ACTION, itemId: invoice.item?.id })

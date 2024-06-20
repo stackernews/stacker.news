@@ -8,15 +8,12 @@ import AccordianItem from './accordian-item'
 import Item from './item'
 import { discussionSchema } from '@/lib/validate'
 import { SubSelectInitial } from './sub-select'
-import { useCallback } from 'react'
-import { normalizeForwards, toastUpsertSuccessMessages } from '@/lib/form'
+import { normalizeForwards } from '@/lib/form'
 import { MAX_TITLE_LENGTH } from '@/lib/constants'
 import { useMe } from './me'
-import useCrossposter from './use-crossposter'
-import { useToast } from './toast'
 import { ItemButtonBar } from './post'
-import { usePaidMutation } from './use-paid-mutation'
 import { UPSERT_DISCUSSION } from '@/fragments/paidAction'
+import useItemSubmit from './use-item-submit'
 
 export function DiscussionForm ({
   item, sub, editThreshold, titleLabel = 'title',
@@ -26,46 +23,11 @@ export function DiscussionForm ({
   const router = useRouter()
   const client = useApolloClient()
   const me = useMe()
+  const onSubmit = useItemSubmit(UPSERT_DISCUSSION, { item, sub })
   const schema = discussionSchema({ client, me, existingBoost: item?.boost })
   // if Web Share Target API was used
   const shareTitle = router.query.title
   const shareText = router.query.text ? decodeURI(router.query.text) : undefined
-  const crossposter = useCrossposter()
-  const toaster = useToast()
-
-  const [upsertDiscussion] = usePaidMutation(UPSERT_DISCUSSION)
-
-  const onSubmit = useCallback(
-    async ({ boost, crosspost, ...values }) => {
-      const { data, error } = await upsertDiscussion({
-        variables: {
-          sub: item?.subName || sub?.name,
-          id: item?.id,
-          boost: boost ? Number(boost) : undefined,
-          ...values,
-          forward: normalizeForwards(values.forward)
-        }
-      })
-
-      if (error) {
-        throw new Error({ message: error.toString() })
-      }
-
-      const discussionId = data?.upsertDiscussion?.result?.id
-
-      if (crosspost && discussionId) {
-        await crossposter(discussionId)
-      }
-
-      if (item) {
-        await router.push(`/items/${item.id}`)
-      } else {
-        const prefix = sub?.name ? `/~${sub.name}` : ''
-        await router.push(prefix + '/recent')
-      }
-      toastUpsertSuccessMessages(toaster, data, 'upsertDiscussion', !!item, values.text)
-    }, [upsertDiscussion, router, item, sub, crossposter]
-  )
 
   const [getRelated, { data: relatedData }] = useLazyQuery(gql`
     ${ITEM_FIELDS}

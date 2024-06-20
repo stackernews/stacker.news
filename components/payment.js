@@ -141,7 +141,13 @@ export const useQrPayment = () => {
   const invoice = useInvoice()
   const showModal = useShowModal()
 
-  const waitForQrPayment = useCallback(async (inv, webLnError, cancelOnClose = true) => {
+  const waitForQrPayment = useCallback(async (inv, webLnError,
+    {
+      keepOpen = true,
+      cancelOnClose = true,
+      persistOnNavigate = false
+    } = {}
+  ) => {
     return await new Promise((resolve, reject) => {
       let paid
       const cancelAndReject = async (onClose) => {
@@ -163,7 +169,7 @@ export const useQrPayment = () => {
           onPayment={() => { paid = true; onClose(); resolve() }}
           poll
         />,
-      { keepOpen: true, onClose: cancelAndReject })
+      { keepOpen, persistOnNavigate, onClose: cancelAndReject })
     })
   }, [invoice])
 

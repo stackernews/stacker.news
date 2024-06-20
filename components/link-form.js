@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Form, Input, MarkdownInput } from '@/components/form'
 import { useRouter } from 'next/router'
 import { gql, useApolloClient, useLazyQuery } from '@apollo/client'
@@ -9,27 +9,22 @@ import Item from './item'
 import AccordianItem from './accordian-item'
 import { linkSchema } from '@/lib/validate'
 import Moon from '@/svgs/moon-fill.svg'
-import { normalizeForwards, toastUpsertSuccessMessages } from '@/lib/form'
-import { useToast } from './toast'
+import { normalizeForwards } from '@/lib/form'
 import { SubSelectInitial } from './sub-select'
 import { MAX_TITLE_LENGTH } from '@/lib/constants'
-import useCrossposter from './use-crossposter'
 import { useMe } from './me'
 import { ItemButtonBar } from './post'
-import { usePaidMutation } from './use-paid-mutation'
 import { UPSERT_LINK } from '@/fragments/paidAction'
+import useItemSubmit from './use-item-submit'
 
 export function LinkForm ({ item, sub, editThreshold, children }) {
   const router = useRouter()
   const client = useApolloClient()
   const me = useMe()
-  const toaster = useToast()
   const schema = linkSchema({ client, me, existingBoost: item?.boost })
   // if Web Share Target API was used
   const shareUrl = router.query.url
   const shareTitle = router.query.title
-
-  const crossposter = useCrossposter()
 
   const [getPageTitleAndUnshorted, { data }] = useLazyQuery(gql`
     query PageTitleAndUnshorted($url: String!) {
@@ -72,39 +67,7 @@ export function LinkForm ({ item, sub, editThreshold, children }) {
     }
   }
 
-  const [upsertLink] = usePaidMutation(UPSERT_LINK)
-
-  const onSubmit = useCallback(
-    async ({ boost, crosspost, title, ...values }) => {
-      const { data, error } = await upsertLink({
-        variables: {
-          sub: item?.subName || sub?.name,
-          id: item?.id,
-          boost: boost ? Number(boost) : undefined,
-          title: title.trim(),
-          ...values,
-          forward: normalizeForwards(values.forward)
-        }
-      })
-      if (error) {
-        throw new Error({ message: error.toString() })
-      }
-
-      const linkId = data?.upsertLink?.result?.id
-
-      if (crosspost && linkId) {
-        await crossposter(linkId)
-      }
-
-      if (item) {
-        await router.push(`/items/${item.id}`)
-      } else {
-        const prefix = sub?.name ? `/~${sub.name}` : ''
-        await router.push(prefix + '/recent')
-      }
-      toastUpsertSuccessMessages(toaster, data, 'upsertLink', !!item, values.text)
-    }, [upsertLink, router]
-  )
+  const onSubmit = useItemSubmit(UPSERT_LINK, { item, sub })
 
   useEffect(() => {
     if (data?.pageTitleAndUnshorted?.title) {

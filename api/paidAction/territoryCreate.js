@@ -8,7 +8,7 @@ export async function getCost ({ billingType }) {
   return BigInt(TERRITORY_PERIOD_COST(billingType)) * BigInt(1000)
 }
 
-export async function perform (data, { me, cost, tx }) {
+export async function perform ({ invoiceId, ...data }, { me, cost, tx }) {
   const { billingType } = data
   const billingCost = TERRITORY_PERIOD_COST(billingType)
   const billedLastAt = new Date()

@@ -5,23 +5,20 @@ import InputGroup from 'react-bootstrap/InputGroup'
 import Image from 'react-bootstrap/Image'
 import BootstrapForm from 'react-bootstrap/Form'
 import Alert from 'react-bootstrap/Alert'
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import Info from './info'
 import AccordianItem from './accordian-item'
 import styles from '@/styles/post.module.css'
 import { useLazyQuery, gql } from '@apollo/client'
-import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { usePrice } from './price'
 import Avatar from './avatar'
 import { jobSchema } from '@/lib/validate'
 import { MAX_TITLE_LENGTH, MEDIA_URL } from '@/lib/constants'
-import { useToast } from './toast'
-import { toastUpsertSuccessMessages } from '@/lib/form'
 import { ItemButtonBar } from './post'
 import { useFormikContext } from 'formik'
-import { usePaidMutation } from './use-paid-mutation'
 import { UPSERT_JOB } from '@/fragments/paidAction'
+import useItemSubmit from './use-item-submit'
 
 function satsMin2Mo (minute) {
   return minute * 30 * 24 * 60
@@ -42,42 +39,10 @@ function PriceHint ({ monthly }) {
 // need to recent list items
 export default function JobForm ({ item, sub }) {
   const storageKeyPrefix = item ? undefined : `${sub.name}-job`
-  const router = useRouter()
-  const toaster = useToast()
   const [logoId, setLogoId] = useState(item?.uploadId)
-  const [upsertJob] = usePaidMutation(UPSERT_JOB)
 
-  const onSubmit = useCallback(
-    async ({ maxBid, start, stop, ...values }) => {
-      let status
-      if (start) {
-        status = 'ACTIVE'
-      } else if (stop) {
-        status = 'STOPPED'
-      }
-
-      const { data, error } = await upsertJob({
-        variables: {
-          id: item?.id,
-          sub: item?.subName || sub?.name,
-          maxBid: Number(maxBid),
-          status,
-          logo: Number(logoId),
-          ...values
-        }
-      })
-      if (error) {
-        throw new Error({ message: error.toString() })
-      }
-
-      if (item) {
-        await router.push(`/items/${item.id}`)
-      } else {
-        await router.push(`/~${sub.name}/recent`)
-      }
-      toastUpsertSuccessMessages(toaster, data, 'upsertJob', !!item, values.text)
-    }, [upsertJob, router, logoId]
-  )
+  const extraValues = logoId ? { logo: Number(logoId) } : {}
+  const onSubmit = useItemSubmit(UPSERT_JOB, { item, sub, extraValues })
 
   return (
     <>

@@ -47,9 +47,17 @@ export default function useModal () {
 
   const router = useRouter()
   useEffect(() => {
-    router.events.on('routeChangeStart', onClose)
-    return () => router.events.off('routeChangeStart', onClose)
-  }, [router.events, onClose])
+    const maybeOnClose = () => {
+      const content = getCurrentContent()
+      const { persistOnNavigate } = content?.options || {}
+      if (!persistOnNavigate) {
+        onClose()
+      }
+    }
+
+    router.events.on('routeChangeStart', maybeOnClose)
+    return () => router.events.off('routeChangeStart', maybeOnClose)
+  }, [router.events, onClose, getCurrentContent])
 
   const modal = useMemo(() => {
     if (modalStack.current.length === 0) {

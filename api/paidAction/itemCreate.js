@@ -13,7 +13,7 @@ export async function getCost ({ subName, parentId, uploadIds, boost = 0, bio },
   // cost = baseCost * 10^num_items_in_10m * 100 (anon) or 1 (user) + image fees + boost
   const [{ cost }] = await models.$queryRaw`
     SELECT ${baseCost}::INTEGER
-      * POWER(10, item_spam(${parentId}::INTEGER, ${user?.id || USER_ID.anon}::INTEGER,
+      * POWER(10, item_spam(${parseInt(parentId)}::INTEGER, ${user?.id || USER_ID.anon}::INTEGER,
           ${user?.id && !bio ? ITEM_SPAM_INTERVAL : ANON_ITEM_SPAM_INTERVAL}::INTERVAL))
       * ${user ? 1 : 100}::INTEGER
       + (SELECT "nUnpaid" * "imageFeeMsats"

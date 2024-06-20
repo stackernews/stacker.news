@@ -23,61 +23,7 @@ import { useRoot } from './root'
 import { MuteSubDropdownItem, PinSubDropdownItem } from './territory-header'
 import UserPopover from './user-popover'
 import { useQrPayment } from './payment'
-import { usePaidMutation } from './use-paid-mutation'
-import { RETRY_PAID_ACTION } from '@/fragments/paidAction'
-
-export function useRetryCreateItem ({ id }) {
-  const [retryPaidAction] = usePaidMutation(RETRY_PAID_ACTION, {
-    update (cache, { data: { retryPaidAction: { __typename, invoice } } }) {
-      if (__typename === 'ItemPaidAction' && invoice) {
-        cache.modify({
-          id: `Item:${id}`,
-          fields: {
-            invoiceId (existingInvoiceId) {
-              return invoice.id
-            },
-            invoiceActionState () {
-              return 'PENDING'
-            }
-          }
-        })
-      }
-    },
-    onPaid: (cache, { data: { retryPaidAction: { __typename, invoice } } }) => {
-      // set the invoiceActionState to PAID
-      cache.modify({
-        id: `Item:${id}`,
-        fields: {
-          invoiceActionState () {
-            return 'PAID'
-          },
-          invoiceId (existingInvoiceId) {
-            return invoice.id
-          },
-          invoicePaidAt () {
-            return new Date().toISOString()
-          }
-        }
-      })
-    },
-    onPayError: (e, cache, { data: { retryPaidAction: { __typename, invoice } } }) => {
-      // set the invoiceActionState to FAILED
-      cache.modify({
-        id: `Item:${id}`,
-        fields: {
-          invoiceActionState () {
-            return 'FAILED'
-          },
-          invoiceId (existingInvoiceId) {
-            return invoice.id
-          }
-        }
-      })
-    }
-  })
-
-  return retryPaidAction
-}
+import { useRetryCreateItem } from './use-item-submit'
 
 export default function ItemInfo ({
   item, full, commentsText = 'comments',
@@ -130,7 +76,7 @@ export default function ItemInfo ({
           >pending
           </span>
         )
-        onClick = () => waitForQrPayment({ id: item.invoiceId }, null, false).catch(console.error)
+        onClick = () => waitForQrPayment({ id: item.invoiceId }, null, { cancelOnClose: false }).catch(console.error)
       }
     } else if (canEdit) {
       Component = () => (

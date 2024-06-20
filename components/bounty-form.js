@@ -1,18 +1,16 @@
 import { Form, Input, MarkdownInput } from '@/components/form'
-import { useRouter } from 'next/router'
-import { gql, useApolloClient, useMutation } from '@apollo/client'
+import { useApolloClient } from '@apollo/client'
 import Countdown from './countdown'
 import AdvPostForm, { AdvPostInitial } from './adv-post-form'
 import InputGroup from 'react-bootstrap/InputGroup'
-import useCrossposter from './use-crossposter'
 import { bountySchema } from '@/lib/validate'
 import { SubSelectInitial } from './sub-select'
-import { useCallback } from 'react'
-import { normalizeForwards, toastUpsertSuccessMessages } from '@/lib/form'
+import { normalizeForwards } from '@/lib/form'
 import { MAX_TITLE_LENGTH } from '@/lib/constants'
 import { useMe } from './me'
-import { useToast } from './toast'
 import { ItemButtonBar } from './post'
+import useItemSubmit from './use-item-submit'
+import { UPSERT_BOUNTY } from '@/fragments/paidAction'
 
 export function BountyForm ({
   item,
@@ -24,75 +22,11 @@ export function BountyForm ({
   handleSubmit,
   children
 }) {
-  const router = useRouter()
   const client = useApolloClient()
   const me = useMe()
-  const toaster = useToast()
-  const crossposter = useCrossposter()
   const schema = bountySchema({ client, me, existingBoost: item?.boost })
-  const [upsertBounty] = useMutation(
-    gql`
-      mutation upsertBounty(
-        $sub: String
-        $id: ID
-        $title: String!
-        $bounty: Int!
-        $text: String
-        $boost: Int
-        $forward: [ItemForwardInput]
-        $hash: String
-        $hmac: String
-      ) {
-        upsertBounty(
-          sub: $sub
-          id: $id
-          title: $title
-          bounty: $bounty
-          text: $text
-          boost: $boost
-          forward: $forward
-          hash: $hash
-          hmac: $hmac
-        ) {
-          id
-          deleteScheduledAt
-          reminderScheduledAt
-        }
-      }
-    `
-  )
 
-  const onSubmit = useCallback(
-    async ({ boost, bounty, crosspost, ...values }) => {
-      const { data, error } = await upsertBounty({
-        variables: {
-          sub: item?.subName || sub?.name,
-          id: item?.id,
-          boost: boost ? Number(boost) : undefined,
-          bounty: bounty ? Number(bounty) : undefined,
-          ...values,
-          forward: normalizeForwards(values.forward)
-        }
-      })
-      if (error) {
-        throw new Error({ message: error.toString() })
-      }
-
-      const bountyId = data?.upsertBounty?.id
-
-      if (crosspost && bountyId) {
-        await crossposter(bountyId)
-      }
-
-      if (item) {
-        await router.push(`/items/${item.id}`)
-      } else {
-        const prefix = sub?.name ? `/~${sub.name}` : ''
-        await router.push(prefix + '/recent')
-      }
-      toastUpsertSuccessMessages(toaster, data, 'upsertBounty', !!item, values.text)
-    }, [upsertBounty, router]
-  )
+  const onSubmit = useItemSubmit(UPSERT_BOUNTY, { item, sub })
 
   const storageKeyPrefix = item ? undefined : 'bounty'
 

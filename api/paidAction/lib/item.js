@@ -47,6 +47,7 @@ export const getItemMentions = async ({ text }, { me, models }) => {
 export async function performBotBehavior ({ text, id }, { me, models, tx }) {
   // delete any existing deleteItem or reminder jobs for this item
   const userId = me?.id || USER_ID.anon
+  id = Number(id)
   await tx.$queryRaw`
     DELETE FROM pgboss.job
     WHERE name = 'deleteItem'

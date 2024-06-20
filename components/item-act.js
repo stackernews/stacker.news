@@ -173,17 +173,18 @@ function modifyActCache (cache, { result, invoice }) {
   }
 }
 
-export function useAct ({ query = ACT_MUTATION, extend, ...options } = {}) {
+export function useAct ({ query = ACT_MUTATION, ...options } = {}) {
   // because the mutation name we use varies,
   // we need to extract the result/invoice from the response
   const getPaidActionResult = data => Object.values(data)[0]
 
   const [act] = usePaidMutation(query, {
+    ...options,
     update: (cache, { data }) => {
       const response = getPaidActionResult(data)
       if (!response) return
       modifyActCache(cache, response)
-      extend?.update?.(cache, response)
+      options?.update?.(cache, { data })
     },
     onPayError: (e, cache, { data }) => {
       const response = getPaidActionResult(data)
@@ -191,14 +192,13 @@ export function useAct ({ query = ACT_MUTATION, extend, ...options } = {}) {
       const { result: { sats } } = response
       const negate = { ...response, result: { ...response.result, sats: -1 * sats } }
       modifyActCache(cache, negate)
-      extend?.onPayError?.(e, cache, negate)
+      options?.onPayError?.(e, cache, { data })
     },
     onPaid: (cache, { data }) => {
       const response = getPaidActionResult(data)
       if (!response) return
-      extend?.onPaid?.(cache, response)
-    },
-    ...options
+      options?.onPaid?.(cache, { data })
+    }
   })
   return act
 }

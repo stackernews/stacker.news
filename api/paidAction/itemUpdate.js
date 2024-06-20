@@ -19,7 +19,6 @@ export async function getCost ({ id, boost = 0, uploadIds }, { me, models }) {
 export async function perform (args, context) {
   const { id, boost = 0, uploadIds = [], options: pollOptions = [], forwardUsers: itemForwards = [], ...data } = args
   const { tx, me, models } = context
-
   const old = await tx.item.findUnique({
     where: { id: parseInt(id) },
     include: {
@@ -41,8 +40,8 @@ export async function perform (args, context) {
   // createMany is the set difference of the new - old
   // deleteMany is the set difference of the old - new
   // updateMany is the intersection of the old and new
-  const difference = (a, b, key = 'userId') => a.filter(x => !b.find(y => y[key] === x[key]))
-  const intersectionMerge = (a, b, key) => a.filter(x => b.find(y => y.userId === x.userId))
+  const difference = (a = [], b = [], key = 'userId') => a.filter(x => !b.find(y => y[key] === x[key]))
+  const intersectionMerge = (a = [], b = [], key) => a.filter(x => b.find(y => y.userId === x.userId))
     .map(x => ({ [key]: x[key], ...b.find(y => y.userId === x.userId) }))
 
   const mentions = await getMentions(args, context)
@@ -61,11 +60,11 @@ export async function perform (args, context) {
       // TODO: give nested relations a consistent naming scheme
       PollOption: {
         createMany: {
-          data: pollOptions.map(option => ({ option }))
+          data: pollOptions?.map(option => ({ option }))
         }
       },
       ItemUpload: {
-        connect: uploadIds.map(id => ({ uploadId: id }))
+        connect: uploadIds?.map(id => ({ uploadId: id }))
       },
       actions: {
         createMany: {
@@ -140,7 +139,7 @@ export async function perform (args, context) {
   // ltree is unsupported in Prisma, so we have to query it manually (FUCK!)
   return (await tx.$queryRaw`
     SELECT *, ltree2text(path) AS path, created_at AS "createdAt", updated_at AS "updatedAt"
-    FROM "Item" WHERE id = ${parseInt(id)}`
+    FROM "Item" WHERE id = ${parseInt(id)}::INTEGER`
   )[0]
 }
 

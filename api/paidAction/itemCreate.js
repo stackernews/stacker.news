@@ -169,9 +169,9 @@ export async function onPaid ({ invoice, id }, context) {
     throw new Error('No item found')
   }
 
-  if (item.maxBid) {
-    await tx.$executeRaw`SELECT run_auction(${item.id}::INTEGER)`
-  }
+  // if (item.maxBid) {
+  //   await tx.$executeRaw`SELECT run_auction(${item.id}::INTEGER)`
+  // }
 
   await tx.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
     VALUES ('timestampItem', jsonb_build_object('id', ${item.id}), now() + interval '10 minutes', -2)`

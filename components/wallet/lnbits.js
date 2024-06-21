@@ -22,8 +22,10 @@ export const card = {
   badges: ['send only', 'non-custodialish']
 }
 
-export async function validate ({ logger, ...config }) {
-  return await getInfo({ logger, ...config })
+export async function validate ({ logger, url, adminKey }) {
+  logger.info('trying to fetch wallet')
+  await getWallet(url, adminKey)
+  logger.ok('wallet found')
 }
 
 export const schema = object({
@@ -51,28 +53,7 @@ export const schema = object({
   adminKey: string().length(32)
 })
 
-async function getInfo ({ logger, ...config }) {
-  logger.info('trying to fetch wallet')
-  const response = await getWallet(config.url, config.adminKey)
-  logger.ok('wallet found')
-  return {
-    node: {
-      alias: response.name,
-      pubkey: ''
-    },
-    methods: [
-      'getInfo',
-      'getBalance',
-      'sendPayment'
-    ],
-    version: '1.0',
-    supports: ['lightning']
-  }
-}
-
-export async function sendPayment ({ bolt11, config }) {
-  const { url, adminKey } = config
-
+export async function sendPayment ({ bolt11, url, adminKey }) {
   const response = await postPayment(url, adminKey, bolt11)
 
   const checkResponse = await getPayment(url, adminKey, response.payment_hash)

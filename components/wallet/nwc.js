@@ -98,8 +98,8 @@ export async function validate ({ logger, nwcUrl }) {
   }
 }
 
-export async function sendPayment ({ bolt11, config, logger }) {
-  const { relayUrl, walletPubkey, secret } = parseNwcUrl(config.nwcUrl)
+export async function sendPayment ({ bolt11, nwcUrl, logger }) {
+  const { relayUrl, walletPubkey, secret } = parseNwcUrl(nwcUrl)
 
   const relay = await Relay.connect(relayUrl).catch(() => {
     // NOTE: passed error is undefined for some reason

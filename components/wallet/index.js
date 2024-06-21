@@ -127,11 +127,11 @@ function getStorageKey (name, me) {
 function enableWallet (name, me) {
   // mark all wallets as disabled except the one to enable
   for (const walletDef of WALLET_DEFS) {
+    const key = getStorageKey(walletDef.name, me)
+    let config = JSON.parse(window.localStorage.getItem(key))
     const toEnable = walletDef.name === name
-    const key = getStorageKey(name, me)
-    const config = JSON.parse(window.localStorage.getItem(key))
-    if (config.enabled || toEnable) {
-      config.enabled = toEnable
+    if (config || toEnable) {
+      config = { ...config, enabled: toEnable }
       window.localStorage.setItem(key, JSON.stringify(config))
     }
   }

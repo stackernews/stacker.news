@@ -34,8 +34,7 @@ export default function WalletSettings () {
         onSubmit={async ({ enabled, ...values }) => {
           try {
             const newConfig = !wallet.isConfigured
-            await wallet.validate(values)
-            wallet.save(values)
+            await wallet.save(values)
             // enable wallet if checkbox was set or if wallet was just configured
             if (enabled || newConfig) wallet.enable()
             else wallet.disable()

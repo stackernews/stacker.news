@@ -21,9 +21,7 @@ export default function WalletSettings () {
       ...acc,
       [field.name]: wallet.config?.[field.name] || ''
     }
-  }, {
-    isDefault: wallet.isDefault || false
-  })
+  }, {})
 
   return (
     <CenterLayout>

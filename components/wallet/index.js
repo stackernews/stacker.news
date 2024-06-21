@@ -39,18 +39,6 @@ export function useWallet (name) {
     }
   }, [wallet, config, logger])
 
-  const validate = useCallback(async (values) => {
-    try {
-      // validate should log custom INFO and OK message
-      // TODO: add timeout
-      return await wallet.validate({ logger, ...values })
-    } catch (err) {
-      const message = err.message || err.toString?.()
-      logger.error(message)
-      throw err
-    }
-  }, [wallet, logger])
-
   const enable = useCallback(() => {
     enableWallet(name, me)
     logger.ok('wallet enabled')
@@ -61,12 +49,15 @@ export function useWallet (name) {
     logger.ok('wallet disabled')
   }, [name, me, logger])
 
-  const save = useCallback((values) => {
+  const save = useCallback(async (values) => {
     try {
+      // validate should log custom INFO and OK message
+      // TODO: add timeout
+      await wallet.validate({ logger, ...values })
       saveConfig(values)
       logger.ok('wallet attached')
     } catch (err) {
-      const message = 'failed to attach: ' + err.message || err.toString?.()
+      const message = err.message || err.toString?.()
       logger.error(message)
       throw err
     }
@@ -78,7 +69,7 @@ export function useWallet (name) {
       clearConfig()
       logger.ok('wallet detached')
     } catch (err) {
-      const message = 'failed to detach: ' + err.message || err.toString?.()
+      const message = err.message || err.toString?.()
       logger.error(message)
       throw err
     }
@@ -87,7 +78,6 @@ export function useWallet (name) {
   return {
     ...wallet,
     sendPayment,
-    validate,
     config,
     save,
     delete: delete_,

@@ -46,7 +46,7 @@ export function useWallet (name) {
 
   const disable = useCallback(() => {
     disableWallet(name, me)
-    logger.ok('wallet disabled')
+    logger.info('wallet disabled')
   }, [name, me, logger])
 
   const save = useCallback(async (values) => {

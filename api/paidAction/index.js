@@ -4,19 +4,30 @@ import { verifyPayment } from '../resolvers/serial'
 import { USER_ID } from '@/lib/constants'
 import { createHmac } from '../resolvers/wallet'
 import { Prisma } from '@prisma/client'
+import * as BUY_CREDITS from './buyCredits'
+import * as ITEM_CREATE from './itemCreate'
+import * as ITEM_UPDATE from './itemUpdate'
+import * as ZAP from './zap'
+import * as DOWN_ZAP from './downZap'
+import * as POLL_VOTE from './pollVote'
+import * as TERRITORY_CREATE from './territoryCreate'
+import * as TERRITORY_UPDATE from './territoryUpdate'
+import * as TERRITORY_BILLING from './territoryBilling'
+import * as TERRITORY_UNARCHIVE from './territoryUnarchive'
+import * as DONATE from './donate'
 
 export const paidActions = {
-  BUY_CREDITS: await import('./buyCredits'),
-  ITEM_CREATE: await import('./itemCreate'),
-  ITEM_UPDATE: await import('./itemUpdate'),
-  ZAP: await import('./zap'),
-  DOWN_ZAP: await import('./downZap'),
-  POLL_VOTE: await import('./pollVote'),
-  TERRITORY_CREATE: await import('./territoryCreate'),
-  TERRITORY_UPDATE: await import('./territoryUpdate'),
-  TERRITORY_BILLING: await import('./territoryBilling'),
-  TERRITORY_UNARCHIVE: await import('./territoryUnarchive'),
-  DONATE: await import('./donate')
+  BUY_CREDITS,
+  ITEM_CREATE,
+  ITEM_UPDATE,
+  ZAP,
+  DOWN_ZAP,
+  POLL_VOTE,
+  TERRITORY_CREATE,
+  TERRITORY_UPDATE,
+  TERRITORY_BILLING,
+  TERRITORY_UNARCHIVE,
+  DONATE
 }
 
 export default async function performPaidAction (actionType, args, context) {

@@ -169,18 +169,17 @@ export async function onPaid ({ invoice, id }, context) {
     throw new Error('No item found')
   }
 
-  // if (item.maxBid) {
-  //   await tx.$executeRaw`SELECT run_auction(${item.id}::INTEGER)`
-  // }
-
   await tx.$executeRaw`INSERT INTO pgboss.job (name, data, startafter, priority)
     VALUES ('timestampItem', jsonb_build_object('id', ${item.id}), now() + interval '10 minutes', -2)`
   await tx.$executeRaw`
     INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
     VALUES ('imgproxy', jsonb_build_object('id', ${item.id}), 21, true, now() + interval '5 seconds')`
 
+  // todo: outlaws by median
+  // todo: referals for boost
+
   if (item.parentId) {
-    // TODO: this may have read-modify-write issues
+    // TODO: serialization anomaly
     await tx.$executeRaw`SELECT ncomments_after_comment(${item.id}::INTEGER)`
     notifyItemParents({ item, me: item.userId, models }).catch(console.error)
   }

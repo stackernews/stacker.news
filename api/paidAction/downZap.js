@@ -48,8 +48,34 @@ export async function onPaid ({ invoice, actId }, { tx }) {
     throw new Error('No invoice or actId')
   }
 
-  // TODO: this probably has read-modify-write issues
-  await tx.$executeRaw`SELECT weighted_downvotes_after_act(${itemAct.itemId}::INTEGER, ${itemAct.userId}::INTEGER, ${BigInt(itemAct.msats) / BigInt(1000)}::INTEGER)`
+  const msats = BigInt(itemAct.msats)
+  const sats = msats / BigInt(1000)
+
+  // XXX this is vulnerable to serialization anomalies in the case of multiple zaps from the same user
+  // see ./zap.js for more info
+  await tx.$executeRaw`
+    WITH zapper AS (
+      SELECT * FROM users WHERE id = ${itemAct.userId}
+    ), zapped AS (
+      SELECT COALESCE(SUM("ItemAct".msats) / 1000, 0)  as sats
+      FROM "ItemAct"
+      WHERE "ItemAct"."userId" = ${itemAct.userId}
+      AND "ItemAct"."itemId" = ${itemAct.itemId}
+      AND "ItemAct".id <> ${itemAct.id}
+      AND act IN ('DONT_LIKE_THIS')
+      AND ("ItemAct"."invoiceActionState" IS NULL OR "ItemAct"."invoiceActionState" = 'PAID')
+    ), zap AS (
+      SELECT (zapper.trust *
+        CASE WHEN zapped.sats = 0
+          THEN LOG(${sats})
+          ELSE LOG((zapped.sats + ${sats}) / zapped.sats)
+        END) AS weighted_down_vote
+      FROM zapper, zapped
+    )
+    UPDATE "Item"
+    SET "weightedDownVotes" = "weightedDownVotes" + zap.weighted_down_vote
+    FROM zap
+    WHERE id = ${itemAct.itemId}`
 }
 
 export async function onFail ({ invoice }, { tx }) {

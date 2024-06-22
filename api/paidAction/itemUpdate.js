@@ -116,15 +116,12 @@ export async function perform (args, context) {
     }
   })
 
-  // if (data.maxBid) {
-  //   // TODO: this may have read-modify-write issues
-  //   await tx.$executeRaw`SELECT run_auction(${id}::INTEGER)`
-  // }
-
   await tx.$executeRaw`INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
     VALUES ('imgproxy', jsonb_build_object('id', ${id}::INTEGER), 21, true, now() + interval '5 seconds')`
 
   await performBotBehavior(args, context)
+
+  // todo: referals for boost
 
   // notify all the mentions if the mention is new
   for (const { userId, createdAt } of item.mentions) {

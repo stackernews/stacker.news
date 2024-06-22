@@ -129,7 +129,6 @@ export default function ItemAct ({ onClose, item, down, children, abortSignal })
   )
 }
 
-// todo: this may need to be modified for bounties
 function modifyActCache (cache, { result, invoice }) {
   if (!result) return
   const { id, sats, path, act } = result

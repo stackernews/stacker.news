@@ -40,6 +40,8 @@ export async function perform (args, context) {
     })
   }
 
+  // todo: outlaws by median
+
   const itemActs = []
   if (boostMsats > 0) {
     itemActs.push({
@@ -151,7 +153,8 @@ export async function onPaid ({ invoice, id }, context) {
       where: { invoiceId: invoice.id },
       include: {
         mentions: true,
-        referrer: { include: { refereeItem: true } }
+        referrer: { include: { refereeItem: true } },
+        user: true
       }
     })
     await tx.itemAct.updateMany({ where: { invoiceId: invoice.id }, data: { invoiceActionState: 'PAID' } })
@@ -162,7 +165,8 @@ export async function onPaid ({ invoice, id }, context) {
       where: { id },
       include: {
         mentions: true,
-        referrer: { include: { refereeItem: true } }
+        referrer: { include: { refereeItem: true } },
+        user: true
       }
     })
   } else {
@@ -175,12 +179,30 @@ export async function onPaid ({ invoice, id }, context) {
     INSERT INTO pgboss.job (name, data, retrylimit, retrybackoff, startafter)
     VALUES ('imgproxy', jsonb_build_object('id', ${item.id}), 21, true, now() + interval '5 seconds')`
 
-  // todo: outlaws by median
   // todo: referals for boost
 
   if (item.parentId) {
-    // TODO: serialization anomaly
-    await tx.$executeRaw`SELECT ncomments_after_comment(${item.id}::INTEGER)`
+    // denormalize ncomments and "weightedComments" for ancestors, and insert into reply table
+    await tx.$executeRaw`
+      WITH comment AS (
+        SELECT *
+        FROM "Item"
+        WHERE id = ${item.id}
+      ), ancestors AS (
+        UPDATE "Item"
+        SET ncomments = "Item".ncomments + 1,
+          "weightedComments" = "Item"."weightedComments" +
+            CASE WHEN comment."userId" = "Item"."userId" THEN 0 ELSE ${item.user.trust} END
+        FROM comment
+        WHERE "Item".path @> comment.path AND "Item".id <> comment.id
+        RETURNING "Item".*
+      )
+      INSERT INTO "Reply" (created_at, updated_at, "ancestorId", "ancestorUserId", "itemId", "userId", level)
+        SELECT comment.created_at, comment.updated_at, ancestors.id, ancestors."userId",
+          comment.id, comment."userId", nlevel(comment.path) - nlevel(ancestors.path)
+        FROM ancestors, comment
+        WHERE ancestors."userId" <> comment."userId"`
+
     notifyItemParents({ item, me: item.userId, models }).catch(console.error)
   }
 
